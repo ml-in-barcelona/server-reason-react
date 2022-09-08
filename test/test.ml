@@ -24,6 +24,7 @@ module React = struct
       | Element of Element.t
       | Closed_element of Closed_element.t
       | Text of string
+      | Empty (* is this needed? Only used in React.null *)
   end =
     Node
 
@@ -48,6 +49,14 @@ module React = struct
         raise @@ Invalid_children "closing tag with children isn't valid"
     | true -> Node.Closed_element { tag; attributes }
     | false -> Node.Element { tag; attributes; children }
+
+  (* ReasonReact APIs *)
+  let string txt = Node.Text txt
+  let null = Node.Empty
+  let int i = Node.Text (string_of_int i)
+
+  (* FIXME: float_of_string might be different on the browser *)
+  let float f = Node.Text (string_of_float f)
 end
 
 module ReactDOMServer = struct
@@ -74,6 +83,7 @@ module ReactDOMServer = struct
 
   let rec renderToString (component : Node.t) =
     match component with
+    | Empty -> ""
     | Text text -> text
     | Element { tag; attributes; children } ->
         let childrens =
@@ -134,9 +144,7 @@ let test_closing_tag () =
   assert_string (ReactDOMServer.renderToString input) "<input />"
 
 let test_innerhtml () =
-  let p =
-    React.createElement "p" [ React.Attribute.String ("children", "text") ] []
-  in
+  let p = React.createElement "p" [] [ React.string "text" ] in
   assert_string (ReactDOMServer.renderToString p) "<p>text</p>"
 
 let test_children () =
@@ -153,6 +161,7 @@ let () =
         ; test_case "bool attributes" `Quick test_bool_attributes
         ; test_case "attributes" `Quick test_attributes
         ; test_case "self-closing tag" `Quick test_closing_tag
+        ; test_case "inner text" `Quick test_innerhtml
         ; test_case "children" `Quick test_children
         ] )
     ]

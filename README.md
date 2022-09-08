@@ -7,6 +7,7 @@
 - [jsoo-react/html.ml](https://github.com/ml-in-barcelona/jsoo-react/blob/main/ppx/html.ml)
 - [StaticReactExperiment](https://github.com/reasonml/reason-react/compare/StaticReactExperiment)
 - [TyXML](https://github.com/ocsigen/tyxml)
+- [html.spec.whatwg](https://html.spec.whatwg.org/#attr-input-checked)
 
 ### Reconcilier
 
@@ -24,12 +25,15 @@
 - [x] Define the React Tree using React.createElement (not the JSX ppx)
 - [x] Allow attributes to be strings or booleans
 - [ ] [Handle HTML entities](https://github.com/MaibornWolff/react-wasm-dom/blob/main/src/__tests__/escapeTextForBrowser-test.jsx)
-- [ ] Handle fragments
 - [ ] Handle syntetic events
 - [ ] Handle refs
+- [ ] Handle value/defaultValue logic https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMTextarea-test.js
 - [ ] Handle lists with keys
 - [ ] Transform attributes to JSX
+- [ ] Handle ReasonReact APIS. React.null, React.string, React.int
+- [ ] Handle fragments
 - [ ] Handle [style attribute](https://github.com/MaibornWolff/react-wasm-dom/blob/main/src/__tests__/CSSPropertyOperations-test.jsx)
+- [ ] Handle React portals
 - [ ] Pretty print with [fmt](https://github.com/dbuenzli/fmt)
 
 ## Questions
