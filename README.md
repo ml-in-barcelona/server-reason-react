@@ -22,7 +22,7 @@
 - [x] Take a look at a [Rust implementation](https://github.com/MaibornWolff/react-wasm-dom)
 - [x] Try to render a string given a React Tree
 - [x] Define the React Tree using React.createElement (not the JSX ppx)
-- [ ] Allow attributes to be strings or booleans
+- [x] Allow attributes to be strings or booleans
 - [ ] [Handle HTML entities](https://github.com/MaibornWolff/react-wasm-dom/blob/main/src/__tests__/escapeTextForBrowser-test.jsx)
 - [ ] Handle fragments
 - [ ] Handle syntetic events
@@ -41,3 +41,4 @@
   - UseEffect should not run
 - Hooks and other callbacks should be untouched
 - Components runtime? If there is a function call such as setState inside a component?
+- When Server components, can we transform React.node into json?
