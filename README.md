@@ -28,6 +28,7 @@
 - [ ] Handle syntetic events
 - [ ] Handle refs
 - [ ] Handle value/defaultValue logic https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMTextarea-test.js
+- [ ] Bring logic from ppx/html.ml into React.Element
 - [ ] Handle lists with keys
 - [ ] Transform attributes to JSX
 - [x] Handle ReasonReact APIS. React.null, React.string, React.int
@@ -40,7 +41,9 @@
 
 ## Questions
 
+- Should `children` be a List or a custom type with polymoprhic constructors?
 - What to do with React.Components
+  - static getDerivedStateFromError(error)
 - Suspense?
 - Hooks should be mocked
   - UseState should "work"?
