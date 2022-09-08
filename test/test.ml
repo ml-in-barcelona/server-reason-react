@@ -1,21 +1,31 @@
 open Alcotest
 
 module React = struct
-  type element =
-    { tag : string
-    ; attributes : (string * string) list
-    ; children : element list
-    }
+  (* Self referencing modules to have recursive type records without collission *)
+  module rec Element : sig
+    type t =
+      { tag : string
+      ; attributes : (string * string) list
+      ; children : Node.t list
+      }
+  end =
+    Element
 
-  type closed_element =
-    { tag : string
-    ; attributes : (string * string) list
-    }
+  and Closed_element : sig
+    type t =
+      { tag : string
+      ; attributes : (string * string) list
+      }
+  end =
+    Closed_element
 
-  type node =
-    | Element of element
-    | Closed_element of closed_element
-    | Text of string
+  and Node : sig
+    type t =
+      | Element of Element.t
+      | Closed_element of Closed_element.t
+      | Text of string
+  end =
+    Node
 
   let is_self_closing_tag = function
     | "area" | "base" | "br" | "col" | "embed" | "hr" | "img" | "input" | "link"
@@ -23,10 +33,14 @@ module React = struct
         true
     | _ -> false
 
+  exception Invalid_children of string
+
   let createElement tag attributes children =
     match is_self_closing_tag tag with
-    | false -> Element { tag; attributes; children }
-    | true -> Closed_element { tag; attributes }
+    | true when List.length children > 0 ->
+        raise @@ Invalid_children "closing tag with children isn't valid"
+    | true -> Node.Closed_element { tag; attributes }
+    | false -> Node.Element { tag; attributes; children }
 end
 
 module ReactDOMServer = struct
@@ -38,16 +52,18 @@ module ReactDOMServer = struct
     | [] -> ""
     | _ -> " " ^ String.concat " " (attributes |> List.map attribute_to_string)
 
-  let renderToString node =
-    match node with
-    | React.Element { tag; attributes; _ } ->
-        let children = "" in
+  let rec renderToString (component : React.Node.t) =
+    match component with
+    | Text text -> text
+    | Element { tag; attributes; children } ->
+        let childrens =
+          children |> List.map renderToString |> String.concat ""
+        in
         Printf.sprintf "<%s%s>%s</%s>" tag
           (attributes_to_string attributes)
-          children tag
-    | React.Closed_element { tag; attributes } ->
+          childrens tag
+    | Closed_element { tag; attributes } ->
         Printf.sprintf "<%s%s />" tag (attributes_to_string attributes)
-    | React.Text str -> Printf.sprintf "%s" str
 end
 
 let expect_msg = "should be equal"
@@ -78,9 +94,9 @@ let test_innerhtml () =
   assert_string (ReactDOMServer.renderToString p) "<p>text</p>"
 
 let test_children () =
-  let _children = React.createElement "div" [] [] in
-  let div = React.createElement "div" [] [] in
-  assert_string (ReactDOMServer.renderToString div) "<div></div>"
+  let children = React.createElement "div" [] [] in
+  let div = React.createElement "div" [] [ children ] in
+  assert_string (ReactDOMServer.renderToString div) "<div><div></div></div>"
 
 let () =
   let open Alcotest in
