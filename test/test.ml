@@ -24,6 +24,7 @@ module React = struct
       | Element of Element.t
       | Closed_element of Closed_element.t
       | Text of string
+      | Fragment of t list
       | Empty (* is this needed? Only used in React.null *)
   end =
     Node
@@ -57,6 +58,12 @@ module React = struct
 
   (* FIXME: float_of_string might be different on the browser *)
   let float f = Node.Text (string_of_float f)
+
+  (*
+    Fragments are Symbol[] in JavaScript and can be used as tags on createElement
+    Such as React.createElement(React.Fragment, null, null), but they may contain childrens.
+    We created a new "Node" constructor to represent this case. Check babel transformation for more details: https://babeljs.io/repl/#?browsers=defaults%2C%20not%20ie%2011%2C%20not%20ie_mob%2011&build=&builtIns=false&corejs=false&spec=false&loose=false&code_lz=DwJQpghgxgLgdAMQE4QOYFswDsYD4BQABIcAA64AyA9gDYTAD05-j408yamOuQA&debug=false&forceAllTransforms=false&shippedProposals=false&circleciRepo=&evaluate=false&fileSize=false&timeTravel=false&sourceType=module&lineWrap=true&presets=env%2Creact&prettier=true&targets=Node-18&version=7.19.0&externalPlugins=&assumptions=%7B%7D *)
+  let fragment children = Node.Fragment children
 end
 
 module ReactDOMServer = struct
@@ -88,6 +95,10 @@ module ReactDOMServer = struct
   let rec renderToString (component : Node.t) =
     match component with
     | Empty -> ""
+    | Fragment [] -> ""
+    | Fragment childs ->
+        let childrens = childs |> List.map renderToString |> String.concat "" in
+        Printf.sprintf "%s" childrens
     | Text text -> text
     | Element { tag; attributes; children } ->
         let childrens =
@@ -162,6 +173,13 @@ let test_className () =
   in
   assert_string (ReactDOMServer.renderToString div) "<div class=\"lol\"></div>"
 
+let test_fragment () =
+  let div = React.createElement "div" [] [] in
+  let component = React.fragment [ div; div ] in
+  assert_string
+    (ReactDOMServer.renderToString component)
+    "<div></div><div></div>"
+
 let () =
   let open Alcotest in
   run "ReactDOMServer test suite"
@@ -174,5 +192,6 @@ let () =
         ; test_case "inner text" `Quick test_innerhtml
         ; test_case "children" `Quick test_children
         ; test_case "className -> class" `Quick test_className
+        ; test_case "fragment" `Quick test_fragment
         ] )
     ]
