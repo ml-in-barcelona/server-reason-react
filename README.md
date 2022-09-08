@@ -26,8 +26,11 @@
 - [x] Allow attributes to be strings or booleans
 - [ ] [Handle HTML entities](https://github.com/MaibornWolff/react-wasm-dom/blob/main/src/__tests__/escapeTextForBrowser-test.jsx)
 - [ ] Handle syntetic events
+- [ ] A way to trigger warnings for invalid attributes (probably better to do it in the ppx?)
 - [ ] Handle refs
-- [ ] Handle value/defaultValue logic https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMTextarea-test.js
+- [ ] Handle value/defaultValue logic
+  - https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMTextarea-test.js
+  - https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMSelect-test.js
 - [ ] Bring logic from ppx/html.ml into React.Element
 - [ ] Handle lists with keys
 - [ ] Transform attributes to JSX
@@ -37,7 +40,9 @@
 - [ ] Handle fragments
 - [ ] Handle [style attribute](https://github.com/MaibornWolff/react-wasm-dom/blob/main/src/__tests__/CSSPropertyOperations-test.jsx)
 - [ ] Handle React portals
+- [ ] Handle React dengerouslySetInnerHtml
 - [ ] Pretty print with [fmt](https://github.com/dbuenzli/fmt)
+- [ ] Handle SVGs
 
 ## Questions
 
