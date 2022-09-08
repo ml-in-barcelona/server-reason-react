@@ -46,7 +46,6 @@ let rec find_opt p = function
   | x :: l -> if p x then Some x else find_opt p l
 
 let nolabel = Nolabel
-
 let labelled str = Labelled str
 
 let getLabel str =
