@@ -62,7 +62,8 @@ end
 module ReactDOMServer = struct
   open React
 
-  let attribute_name_to_jsx k = match k with "className" -> "class" | _ -> k
+  let attribute_name_to_jsx k =
+    match k with "className" -> "class" | "htmlFor" -> "for" | _ -> k
 
   let attribute_to_string attr =
     match attr with
