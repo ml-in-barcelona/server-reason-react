@@ -9,7 +9,11 @@ module React = struct
     | [] -> ""
     | _ -> " " ^ String.concat " " (attributes |> List.map attribute_to_string)
 
-  let is_self_closing_tag = function "input" -> true | _ -> false
+  let is_self_closing_tag = function
+    | "area" | "base" | "br" | "col" | "embed" | "hr" | "img" | "input" | "link"
+    | "meta" | "param" | "source" | "track" | "wbr" ->
+        true
+    | _ -> false
 
   let createElement tag attributes =
     match is_self_closing_tag tag with
