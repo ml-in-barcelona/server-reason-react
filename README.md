@@ -30,7 +30,9 @@
 - [ ] Handle value/defaultValue logic https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMTextarea-test.js
 - [ ] Handle lists with keys
 - [ ] Transform attributes to JSX
-- [ ] Handle ReasonReact APIS. React.null, React.string, React.int
+- [x] Handle ReasonReact APIS. React.null, React.string, React.int
+- [ ] React.cloneElement
+- [ ] React.Children API (https://github.com/reasonml/reason-react/blob/master/src/React.re#L58-L76)
 - [ ] Handle fragments
 - [ ] Handle [style attribute](https://github.com/MaibornWolff/react-wasm-dom/blob/main/src/__tests__/CSSPropertyOperations-test.jsx)
 - [ ] Handle React portals

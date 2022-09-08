@@ -62,9 +62,12 @@ end
 module ReactDOMServer = struct
   open React
 
+  let attribute_name_to_jsx k = match k with "className" -> "class" | _ -> k
+
   let attribute_to_string attr =
     match attr with
-    | Attribute.String (k, v) -> Printf.sprintf "%s=\"%s\"" k v
+    | Attribute.String (k, v) ->
+        Printf.sprintf "%s=\"%s\"" (attribute_name_to_jsx k) v
     | Bool (k, true) -> Printf.sprintf "%s" k
     | Bool (_, false) -> ""
 
@@ -152,10 +155,16 @@ let test_children () =
   let div = React.createElement "div" [] [ children ] in
   assert_string (ReactDOMServer.renderToString div) "<div><div></div></div>"
 
+let test_className () =
+  let div =
+    React.createElement "div" [ React.Attribute.String ("className", "lol") ] []
+  in
+  assert_string (ReactDOMServer.renderToString div) "<div class=\"lol\"></div>"
+
 let () =
   let open Alcotest in
-  run "Tests"
-    [ ( "ReactDOMServer"
+  run "ReactDOMServer test suite"
+    [ ( "renderToString"
       , [ test_case "div" `Quick test_tag
         ; test_case "empty attributes" `Quick test_empty_attributes
         ; test_case "bool attributes" `Quick test_bool_attributes
@@ -163,5 +172,6 @@ let () =
         ; test_case "self-closing tag" `Quick test_closing_tag
         ; test_case "inner text" `Quick test_innerhtml
         ; test_case "children" `Quick test_children
+        ; test_case "className -> class" `Quick test_className
         ] )
     ]
