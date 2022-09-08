@@ -9,8 +9,13 @@ module React = struct
     | [] -> ""
     | _ -> " " ^ String.concat " " (attributes |> List.map attribute_to_string)
 
+  let is_self_closing_tag = function "input" -> true | _ -> false
+
   let createElement tag attributes =
-    Printf.sprintf "<%s%s></%s>" tag (attributes_to_string attributes) tag
+    match is_self_closing_tag tag with
+    | true -> Printf.sprintf "<%s%s />" tag (attributes_to_string attributes)
+    | false ->
+        Printf.sprintf "<%s%s></%s>" tag (attributes_to_string attributes) tag
 end
 
 module ReactDOMServer = struct
@@ -22,13 +27,15 @@ let assert_string left right = (check string) expect_msg right left
 let test_div () = assert_string (React.createElement "div" []) "<div></div>"
 
 let test_attributes () =
-  assert_string (React.createElement "div" [ ("", "") ]) "<div></div>"
+  assert_string
+    (React.createElement "a" [ ("href", "google.html"); ("target", "_blank") ])
+    "<a href=\"google.html\" target=\"_blank\"></a>"
 
 let test_children () =
   assert_string (React.createElement "div" []) "<div></div>"
 
 let test_closing_tag () =
-  assert_string (React.createElement "div" []) "<div></div>"
+  assert_string (React.createElement "input" []) "<input />"
 
 let () =
   let open Alcotest in
