@@ -1,4 +1,4 @@
-project_name = jsoo-react
+project_name = native-react-dom
 
 DUNE = opam exec -- dune
 opam_file = $(project_name).opam

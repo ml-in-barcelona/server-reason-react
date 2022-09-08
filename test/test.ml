@@ -92,23 +92,36 @@ module ReactDOMServer = struct
         ^ (String.concat " " (attributes |> List.map attribute_to_string)
           |> String.trim)
 
+  (* FIXME: Add link to source *)
+  let react_root_attr_name = "data-reactroot"
+  let data_react_root_attr = Printf.sprintf " %s=\"\"" react_root_attr_name
+  let is_root = ref true
+
   let rec renderToString (component : Node.t) =
+    let root_attribute =
+      match is_root.contents with
+      | true ->
+          is_root.contents = false |> ignore;
+          data_react_root_attr
+      | false -> ""
+    in
     match component with
     | Empty -> ""
     | Fragment [] -> ""
+    | Text text -> text
     | Fragment childs ->
         let childrens = childs |> List.map renderToString |> String.concat "" in
         Printf.sprintf "%s" childrens
-    | Text text -> text
     | Element { tag; attributes; children } ->
+        let attributes = attributes_to_string attributes in
         let childrens =
           children |> List.map renderToString |> String.concat ""
         in
-        Printf.sprintf "<%s%s>%s</%s>" tag
-          (attributes_to_string attributes)
-          childrens tag
+        Printf.sprintf "<%s%s%s>%s</%s>" tag root_attribute attributes childrens
+          tag
     | Closed_element { tag; attributes } ->
-        Printf.sprintf "<%s%s />" tag (attributes_to_string attributes)
+        let attributes = attributes_to_string attributes in
+        Printf.sprintf "<%s%s%s />" tag root_attribute attributes
 end
 
 (*
@@ -122,11 +135,15 @@ let assert_string left right = (check string) expect_msg right left
 
 let test_tag () =
   let div = React.createElement "div" [] [] in
-  assert_string (ReactDOMServer.renderToString div) "<div></div>"
+  assert_string
+    (ReactDOMServer.renderToString div)
+    "<div data-reactroot=\"\"></div>"
 
 let test_empty_attributes () =
   let div = React.createElement "div" [ React.Attribute.String ("", "") ] [] in
-  assert_string (ReactDOMServer.renderToString div) "<div></div>"
+  assert_string
+    (ReactDOMServer.renderToString div)
+    "<div data-reactroot=\"\"></div>"
 
 let test_attributes () =
   let a =
@@ -138,7 +155,7 @@ let test_attributes () =
   in
   assert_string
     (ReactDOMServer.renderToString a)
-    "<a href=\"google.html\" target=\"_blank\"></a>"
+    "<a data-reactroot=\"\" href=\"google.html\" target=\"_blank\"></a>"
 
 let test_bool_attributes () =
   let a =
@@ -152,33 +169,41 @@ let test_bool_attributes () =
   in
   assert_string
     (ReactDOMServer.renderToString a)
-    "<input type=\"checkbox\" name=\"cheese\" checked />"
+    "<input data-reactroot=\"\" type=\"checkbox\" name=\"cheese\" checked />"
 
 let test_closing_tag () =
   let input = React.createElement "input" [] [] in
-  assert_string (ReactDOMServer.renderToString input) "<input />"
+  assert_string
+    (ReactDOMServer.renderToString input)
+    "<input data-reactroot=\"\" />"
 
 let test_innerhtml () =
   let p = React.createElement "p" [] [ React.string "text" ] in
-  assert_string (ReactDOMServer.renderToString p) "<p>text</p>"
+  assert_string
+    (ReactDOMServer.renderToString p)
+    "<p data-reactroot=\"\">text</p>"
 
 let test_children () =
   let children = React.createElement "div" [] [] in
   let div = React.createElement "div" [] [ children ] in
-  assert_string (ReactDOMServer.renderToString div) "<div><div></div></div>"
+  assert_string
+    (ReactDOMServer.renderToString div)
+    "<div data-reactroot=\"\"><div></div></div>"
 
 let test_className () =
   let div =
     React.createElement "div" [ React.Attribute.String ("className", "lol") ] []
   in
-  assert_string (ReactDOMServer.renderToString div) "<div class=\"lol\"></div>"
+  assert_string
+    (ReactDOMServer.renderToString div)
+    "<div data-reactroot=\"\" class=\"lol\"></div>"
 
 let test_fragment () =
   let div = React.createElement "div" [] [] in
   let component = React.fragment [ div; div ] in
   assert_string
     (ReactDOMServer.renderToString component)
-    "<div></div><div></div>"
+    "<div data-reactroot=\"\"></div><div></div>"
 
 let () =
   let open Alcotest in

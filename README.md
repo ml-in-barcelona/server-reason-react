@@ -27,6 +27,7 @@
 - [x] Handle ReasonReact APIS. React.null, React.string, React.int
 - [x] Handle fragments
 - [ ] Add data-reactroot="" to the root element
+  - [ ] Abstract renderToStringRec to handle internal state (ref is_root)
 - [ ] Handle [style attribute](https://github.com/MaibornWolff/react-wasm-dom/blob/main/src/__tests__/CSSPropertyOperations-test.jsx)
 - [ ] Handle React dengerouslySetInnerHtml
 - [ ] React.cloneElement
