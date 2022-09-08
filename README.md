@@ -25,16 +25,16 @@
 - [x] Define the React Tree using React.createElement (not the JSX ppx)
 - [x] Allow attributes to be strings or booleans
 - [x] Handle ReasonReact APIS. React.null, React.string, React.int
-- [ ] Handle fragments
+- [x] Handle fragments
+- [ ] Add data-reactroot="" to the root element
+- [ ] Handle [style attribute](https://github.com/MaibornWolff/react-wasm-dom/blob/main/src/__tests__/CSSPropertyOperations-test.jsx)
+- [ ] Handle React dengerouslySetInnerHtml
 - [ ] React.cloneElement
 - [ ] React.Children API (https://github.com/reasonml/reason-react/blob/master/src/React.re#L58-L76)
-- [ ] Handle [style attribute](https://github.com/MaibornWolff/react-wasm-dom/blob/main/src/__tests__/CSSPropertyOperations-test.jsx)
 - [ ] Handle React portals
-- [ ] Handle React dengerouslySetInnerHtml
+- [ ] Handle SVGs
 - [ ] Pretty print with [fmt](https://github.com/dbuenzli/fmt)
 - [ ] Create a module called "JSX" with all the HTML-like stuff: https://facebook.github.io/jsx/
-- [ ] Handle SVGs
-- [ ] Add data-reactroot="" to the root element
 
 ## PPX TODO
 - [ ] Transform attributes to JSX.
