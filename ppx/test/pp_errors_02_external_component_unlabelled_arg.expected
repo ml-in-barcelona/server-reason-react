@@ -1,0 +1,4 @@
+File "input_errors_02_external_component_unlabelled_arg.ml", line 1, characters 26-43:
+1 | external%component make : Js.js_string Js.t -> React.element = "foo"
+                              ^^^^^^^^^^^^^^^^^
+Error: native-react: externals only allow labelled or optional labelled arguments

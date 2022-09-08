@@ -1,0 +1,7 @@
+profile = default
+break-separators = before
+dock-collection-brackets = false
+exp-grouping = preserve
+type-decl = sparse
+break-fun-decl = fit-or-vertical
+break-fun-sig = fit-or-vertical

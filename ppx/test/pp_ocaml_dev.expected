@@ -1,0 +1,453 @@
+let rec pp_user = 2
+type t = string[@@foo external f : int]
+let make =
+  let make_props
+    : ?name:'name ->
+        ?key:string ->
+          unit ->
+            < name: 'name option Js_of_ocaml.Js.readonly_prop   > 
+              Js_of_ocaml.Js.t
+    =
+    fun ?name ->
+      fun ?key ->
+        fun () ->
+          let open Js_of_ocaml.Js.Unsafe in
+            obj
+              [|("key",
+                  (inject
+                     (Js_of_ocaml.Js.Optdef.option
+                        (Option.map Js_of_ocaml.Js.string key))));("name",
+                                                                    (
+                                                                    inject
+                                                                    name))|]
+    [@@merlin.hide ] in
+  let make =
+    ((fun ?(name= "") ->
+        (div [||] [React.string ("Hello " ^ name)] : React.element))
+    [@warning "-16"]) in
+  ((let make
+      (Props :
+        < name: 'name option Js_of_ocaml.Js.readonly_prop   > 
+          Js_of_ocaml.Js.t)
+      =
+      make
+        ?name:((fun (type res) ->
+                  fun (type a0) ->
+                    fun (a0 : a0 Js_of_ocaml.Js.t) ->
+                      fun
+                        (_ :
+                          a0 -> < get: res   ;.. >  Js_of_ocaml.Js.gen_prop)
+                        -> (Js_of_ocaml.Js.Unsafe.get a0 "name" : res))
+                 (Props : < .. >  Js_of_ocaml.Js.t) (fun x -> x#name)) in
+    React.set_display_name make __FUNCTION__;
+    (fun ?name ->
+       fun ?key ->
+         fun () -> React.create_element make (make_props ?key ?name ())))
+    [@merlin.hide ])
+let make =
+  let make_props
+    : children:'children ->
+        ?key:string ->
+          unit ->
+            < children: 'children Js_of_ocaml.Js.readonly_prop   > 
+              Js_of_ocaml.Js.t
+    =
+    fun ~children ->
+      fun ?key ->
+        fun () ->
+          let open Js_of_ocaml.Js.Unsafe in
+            obj
+              [|("key",
+                  (inject
+                     (Js_of_ocaml.Js.Optdef.option
+                        (Option.map Js_of_ocaml.Js.string key))));("children",
+                                                                    (
+                                                                    inject
+                                                                    children))|]
+    [@@merlin.hide ] in
+  let make =
+    ((fun ~children:(first, second) ->
+        (div [||] [first; second] : React.element))
+    [@warning "-16"]) in
+  ((let make
+      (Props :
+        < children: 'children Js_of_ocaml.Js.readonly_prop   > 
+          Js_of_ocaml.Js.t)
+      =
+      make
+        ~children:((fun (type res) ->
+                      fun (type a0) ->
+                        fun (a0 : a0 Js_of_ocaml.Js.t) ->
+                          fun
+                            (_ :
+                              a0 ->
+                                < get: res   ;.. >  Js_of_ocaml.Js.gen_prop)
+                            ->
+                            (Js_of_ocaml.Js.Unsafe.get a0 "children" : 
+                            res)) (Props : < .. >  Js_of_ocaml.Js.t)
+                     (fun x -> x#children)) in
+    React.set_display_name make __FUNCTION__;
+    (fun ~children ->
+       fun ?key ->
+         fun () -> React.create_element make (make_props ?key ~children ())))
+    [@merlin.hide ])
+let make =
+  let make_props
+    : children:'children ->
+        ?key:string ->
+          unit ->
+            < children: 'children Js_of_ocaml.Js.readonly_prop   > 
+              Js_of_ocaml.Js.t
+    =
+    fun ~children ->
+      fun ?key ->
+        fun () ->
+          let open Js_of_ocaml.Js.Unsafe in
+            obj
+              [|("key",
+                  (inject
+                     (Js_of_ocaml.Js.Optdef.option
+                        (Option.map Js_of_ocaml.Js.string key))));("children",
+                                                                    (
+                                                                    inject
+                                                                    children))|]
+    [@@merlin.hide ] in
+  let make = ((fun ~children:kids -> (div [||] kids : React.element))
+    [@warning "-16"]) in
+  ((let make
+      (Props :
+        < children: 'children Js_of_ocaml.Js.readonly_prop   > 
+          Js_of_ocaml.Js.t)
+      =
+      make
+        ~children:((fun (type res) ->
+                      fun (type a0) ->
+                        fun (a0 : a0 Js_of_ocaml.Js.t) ->
+                          fun
+                            (_ :
+                              a0 ->
+                                < get: res   ;.. >  Js_of_ocaml.Js.gen_prop)
+                            ->
+                            (Js_of_ocaml.Js.Unsafe.get a0 "children" : 
+                            res)) (Props : < .. >  Js_of_ocaml.Js.t)
+                     (fun x -> x#children)) in
+    React.set_display_name make __FUNCTION__;
+    (fun ~children ->
+       fun ?key ->
+         fun () -> React.create_element make (make_props ?key ~children ())))
+    [@merlin.hide ])
+let make =
+  let make_props
+    : children:'children ->
+        ?key:string ->
+          unit ->
+            < children: 'children Js_of_ocaml.Js.readonly_prop   > 
+              Js_of_ocaml.Js.t
+    =
+    fun ~children ->
+      fun ?key ->
+        fun () ->
+          let open Js_of_ocaml.Js.Unsafe in
+            obj
+              [|("key",
+                  (inject
+                     (Js_of_ocaml.Js.Optdef.option
+                        (Option.map Js_of_ocaml.Js.string key))));("children",
+                                                                    (
+                                                                    inject
+                                                                    children))|]
+    [@@merlin.hide ] in
+  let make =
+    ((fun ~children:(first, second) ->
+        fun () -> (div [||] [first; second] : React.element))
+    [@warning "-16"]) in
+  ((let make
+      (Props :
+        < children: 'children Js_of_ocaml.Js.readonly_prop   > 
+          Js_of_ocaml.Js.t)
+      =
+      make
+        ~children:((fun (type res) ->
+                      fun (type a0) ->
+                        fun (a0 : a0 Js_of_ocaml.Js.t) ->
+                          fun
+                            (_ :
+                              a0 ->
+                                < get: res   ;.. >  Js_of_ocaml.Js.gen_prop)
+                            ->
+                            (Js_of_ocaml.Js.Unsafe.get a0 "children" : 
+                            res)) (Props : < .. >  Js_of_ocaml.Js.t)
+                     (fun x -> x#children)) () in
+    React.set_display_name make __FUNCTION__;
+    (fun ~children ->
+       fun ?key ->
+         fun () -> React.create_element make (make_props ?key ~children ())))
+    [@merlin.hide ])
+let make =
+  let make_props
+    : ?name:'name ->
+        ?key:string ->
+          unit ->
+            < name: 'name option Js_of_ocaml.Js.readonly_prop   > 
+              Js_of_ocaml.Js.t
+    =
+    fun ?name ->
+      fun ?key ->
+        fun () ->
+          let open Js_of_ocaml.Js.Unsafe in
+            obj
+              [|("key",
+                  (inject
+                     (Js_of_ocaml.Js.Optdef.option
+                        (Option.map Js_of_ocaml.Js.string key))));("name",
+                                                                    (
+                                                                    inject
+                                                                    name))|]
+    [@@merlin.hide ] in
+  let make = ((fun ?(name= "") -> (div [||] [name] : React.element))
+    [@warning "-16"]) in
+  ((let make
+      (Props :
+        < name: 'name option Js_of_ocaml.Js.readonly_prop   > 
+          Js_of_ocaml.Js.t)
+      =
+      make
+        ?name:((fun (type res) ->
+                  fun (type a0) ->
+                    fun (a0 : a0 Js_of_ocaml.Js.t) ->
+                      fun
+                        (_ :
+                          a0 -> < get: res   ;.. >  Js_of_ocaml.Js.gen_prop)
+                        -> (Js_of_ocaml.Js.Unsafe.get a0 "name" : res))
+                 (Props : < .. >  Js_of_ocaml.Js.t) (fun x -> x#name)) in
+    React.set_display_name make __FUNCTION__;
+    (fun ?name ->
+       fun ?key ->
+         fun () -> React.create_element make (make_props ?key ?name ())))
+    [@merlin.hide ])
+let make =
+  let make_props : ?key:string -> unit -> <  >  Js_of_ocaml.Js.t =
+    fun ?key ->
+      fun () ->
+        let open Js_of_ocaml.Js.Unsafe in
+          obj
+            [|("key",
+                (inject
+                   (Js_of_ocaml.Js.Optdef.option
+                      (Option.map Js_of_ocaml.Js.string key))))|][@@merlin.hide
+                                                                   ] in
+  let make () = (div [||] [] : React.element) in
+  ((let make (Props : <  >  Js_of_ocaml.Js.t) = make () in
+    React.set_display_name make __FUNCTION__;
+    (fun ?key -> fun () -> React.create_element make (make_props ?key ())))
+    [@merlin.hide ])
+let make =
+  let make_props
+    : foo:a ->
+        ?key:string ->
+          unit -> < foo: a Js_of_ocaml.Js.readonly_prop   >  Js_of_ocaml.Js.t
+    =
+    fun ~foo ->
+      fun ?key ->
+        fun () ->
+          let open Js_of_ocaml.Js.Unsafe in
+            obj
+              [|("key",
+                  (inject
+                     (Js_of_ocaml.Js.Optdef.option
+                        (Option.map Js_of_ocaml.Js.string key))));("foo",
+                                                                    (
+                                                                    inject
+                                                                    foo))|]
+    [@@merlin.hide ] in
+  let make (type a) ~foo:(foo : a)  = (div [||] [] : _) in
+  ((let make
+      (Props : < foo: a Js_of_ocaml.Js.readonly_prop   >  Js_of_ocaml.Js.t) =
+      make
+        ~foo:((fun (type res) ->
+                 fun (type a0) ->
+                   fun (a0 : a0 Js_of_ocaml.Js.t) ->
+                     fun
+                       (_ :
+                         a0 -> < get: res   ;.. >  Js_of_ocaml.Js.gen_prop)
+                       -> (Js_of_ocaml.Js.Unsafe.get a0 "foo" : res))
+                (Props : < .. >  Js_of_ocaml.Js.t) (fun x -> x#foo)) in
+    React.set_display_name make __FUNCTION__;
+    (fun ~foo ->
+       fun ?key ->
+         fun () -> React.create_element make (make_props ?key ~foo ())))
+    [@merlin.hide ])
+let make =
+  let make_props
+    : foo:'foo ->
+        ?key:string ->
+          unit ->
+            < foo: 'foo Js_of_ocaml.Js.readonly_prop   >  Js_of_ocaml.Js.t
+    =
+    fun ~foo ->
+      fun ?key ->
+        fun () ->
+          let open Js_of_ocaml.Js.Unsafe in
+            obj
+              [|("key",
+                  (inject
+                     (Js_of_ocaml.Js.Optdef.option
+                        (Option.map Js_of_ocaml.Js.string key))));("foo",
+                                                                    (
+                                                                    inject
+                                                                    foo))|]
+    [@@merlin.hide ] in
+  let make (type a) = (fun ~foo:_ -> div [||] [] : foo:a -> _) in
+  ((let make
+      (Props :
+        < foo: 'foo Js_of_ocaml.Js.readonly_prop   >  Js_of_ocaml.Js.t)
+      =
+      make
+        ~foo:((fun (type res) ->
+                 fun (type a0) ->
+                   fun (a0 : a0 Js_of_ocaml.Js.t) ->
+                     fun
+                       (_ :
+                         a0 -> < get: res   ;.. >  Js_of_ocaml.Js.gen_prop)
+                       -> (Js_of_ocaml.Js.Unsafe.get a0 "foo" : res))
+                (Props : < .. >  Js_of_ocaml.Js.t) (fun x -> x#foo)) in
+    React.set_display_name make __FUNCTION__;
+    (fun ~foo ->
+       fun ?key ->
+         fun () -> React.create_element make (make_props ?key ~foo ())))
+    [@merlin.hide ])
+let make =
+  let make_props
+    : bar:int option ->
+        ?key:string ->
+          unit ->
+            < bar: int option Js_of_ocaml.Js.readonly_prop   > 
+              Js_of_ocaml.Js.t
+    =
+    fun ~bar ->
+      fun ?key ->
+        fun () ->
+          let open Js_of_ocaml.Js.Unsafe in
+            obj
+              [|("key",
+                  (inject
+                     (Js_of_ocaml.Js.Optdef.option
+                        (Option.map Js_of_ocaml.Js.string key))));("bar",
+                                                                    (
+                                                                    inject
+                                                                    bar))|]
+    [@@merlin.hide ] in
+  let make =
+    ((fun ~bar:(bar : int option) ->
+        (div [||]
+           [React.string (string_of_int (Option.value ~default:0 bar))] () : 
+        React.element))
+    [@warning "-16"]) in
+  ((let make
+      (Props :
+        < bar: int option Js_of_ocaml.Js.readonly_prop   >  Js_of_ocaml.Js.t)
+      =
+      make
+        ~bar:((fun (type res) ->
+                 fun (type a0) ->
+                   fun (a0 : a0 Js_of_ocaml.Js.t) ->
+                     fun
+                       (_ :
+                         a0 -> < get: res   ;.. >  Js_of_ocaml.Js.gen_prop)
+                       -> (Js_of_ocaml.Js.Unsafe.get a0 "bar" : res))
+                (Props : < .. >  Js_of_ocaml.Js.t) (fun x -> x#bar)) in
+    React.set_display_name make __FUNCTION__;
+    (fun ~bar ->
+       fun ?key ->
+         fun () -> React.create_element make (make_props ?key ~bar ())))
+    [@merlin.hide ])
+let make =
+  let make_props
+    : name:Js.js_string Js.t ->
+        ?key:string ->
+          unit ->
+            < name: Js.js_string Js.t Js_of_ocaml.Js.readonly_prop   > 
+              Js_of_ocaml.Js.t
+    =
+    fun ~name ->
+      fun ?key ->
+        fun () ->
+          let open Js_of_ocaml.Js.Unsafe in
+            obj
+              [|("key",
+                  (inject
+                     (Js_of_ocaml.Js.Optdef.option
+                        (Option.map Js_of_ocaml.Js.string key))));("name",
+                                                                    (
+                                                                    inject
+                                                                    name))|]
+    [@@merlin.hide ] in
+  fun ~name ->
+    fun ?key ->
+      fun () ->
+        React.create_element
+          (Js_of_ocaml.Js.Unsafe.js_expr
+             "require(\"my-react-library\").MyReactComponent")
+          (make_props ?key ~name ())
+let make =
+  let make_props
+    : ?name:Js.js_string Js.t ->
+        ?key:string ->
+          unit ->
+            < name: Js.js_string Js.t option Js_of_ocaml.Js.readonly_prop  
+              >  Js_of_ocaml.Js.t
+    =
+    fun ?name ->
+      fun ?key ->
+        fun () ->
+          let open Js_of_ocaml.Js.Unsafe in
+            obj
+              [|("key",
+                  (inject
+                     (Js_of_ocaml.Js.Optdef.option
+                        (Option.map Js_of_ocaml.Js.string key))));("name",
+                                                                    (
+                                                                    inject
+                                                                    (Js_of_ocaml.Js.Optdef.option
+                                                                    name)))|]
+    [@@merlin.hide ] in
+  fun ?name ->
+    fun ?key ->
+      fun () ->
+        React.create_element
+          (Js_of_ocaml.Js.Unsafe.js_expr
+             "require(\"my-react-library\").MyReactComponent")
+          (make_props ?key ?name ())
+let make =
+  let make_props
+    : names:string array ->
+        ?key:string ->
+          unit ->
+            < names: string array Js_of_ocaml.Js.readonly_prop   > 
+              Js_of_ocaml.Js.t
+    =
+    fun ~names ->
+      fun ?key ->
+        fun () ->
+          let open Js_of_ocaml.Js.Unsafe in
+            obj
+              [|("key",
+                  (inject
+                     (Js_of_ocaml.Js.Optdef.option
+                        (Option.map Js_of_ocaml.Js.string key))));("names",
+                                                                    (
+                                                                    inject
+                                                                    ((fun v
+                                                                    ->
+                                                                    Js_of_ocaml.Js.array
+                                                                    (Array.map
+                                                                    Js_of_ocaml.Js.string
+                                                                    v)) names)))|]
+    [@@merlin.hide ] in
+  fun ~names ->
+    fun ?key ->
+      fun () ->
+        React.create_element
+          (Js_of_ocaml.Js.Unsafe.js_expr
+             "require(\"my-react-library\").MyReactComponent")
+          (make_props ?key ~names ())

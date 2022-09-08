@@ -1,0 +1,22 @@
+(executables
+ (names App)
+ (modes js)
+ (libraries gen_js_api lwt js_of_ocaml-lwt react)
+ (js_of_ocaml
+  (javascript_files static-requires.js))
+ (preprocess
+  (pps gen_js_api.ppx ppx_blob js_of_ocaml-ppx jsoo_react_ppx)))
+
+(rule
+ (targets Bindings.ml)
+ (deps Bindings.rei)
+ (action
+  (progn
+   (with-stdout-to
+    Bindings.ml.tmp
+    (run %{bin:refmt} --parse=re -i true --print=ml %{deps}))
+   (run %{bin:gen_js_api} -o %{targets} Bindings.ml.tmp))))
+
+(alias
+ (name default)
+ (deps App.js static/primitive.css static/prism.css static/prism.js))

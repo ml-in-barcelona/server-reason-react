@@ -1,0 +1,12 @@
+(env
+ (dev
+  (flags
+   (:standard -w -9))))
+
+(library
+ (name jsoo_react_ppx)
+ (public_name native-react.ppx)
+ (libraries compiler-libs.common ppxlib ppxlib.astlib)
+ (preprocess
+  (pps ppxlib.metaquot))
+ (kind ppx_rewriter))
