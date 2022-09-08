@@ -66,6 +66,12 @@ module ReactDOMServer = struct
         Printf.sprintf "<%s%s />" tag (attributes_to_string attributes)
 end
 
+(*
+  ********************************************************
+  *                    TESTS                             *
+  ********************************************************
+*)
+
 let expect_msg = "should be equal"
 let assert_string left right = (check string) expect_msg right left
 
