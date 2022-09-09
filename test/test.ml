@@ -1,5 +1,52 @@
 open Alcotest
 
+module HTML = struct
+  (* https://discuss.ocaml.org/t/html-encoding-of-string/4289/4 *)
+  (* If problems http://projects.camlcity.org/projects/dl/ocamlnet-4.1.6/doc/html-main/Netencoding.Html.html *)
+  let escape s =
+    let add = Buffer.add_string in
+    let len = String.length s in
+    let b = Buffer.create len in
+    let max_idx = len - 1 in
+    let flush b start i =
+      if start < len then Buffer.add_substring b s start (i - start)
+    in
+    let rec escape_inner start i =
+      if i > max_idx then flush b start i
+      else
+        let next = i + 1 in
+        match String.get s i with
+        | '&' ->
+            flush b start i;
+            add b "&amp;";
+            escape_inner next next
+        | '<' ->
+            flush b start i;
+            add b "&lt;";
+            escape_inner next next
+        | '>' ->
+            flush b start i;
+            add b "&gt;";
+            escape_inner next next
+        | '\'' ->
+            flush b start i;
+            add b "&apos;";
+            escape_inner next next
+        | '\"' ->
+            flush b start i;
+            add b "&quot;";
+            escape_inner next next
+        (* Do we need to add empty space here?
+           | ' ' ->
+               flush b start i;
+               add b "&nbsp;";
+               escape_inner next next *)
+        | _ -> escape_inner start next
+    in
+    escape_inner 0 0 |> ignore;
+    Buffer.contents b
+end
+
 module React = struct
   (* Self referencing modules to have recursive type records without collission *)
   module rec Element : sig
@@ -51,20 +98,29 @@ module React = struct
     match is_self_closing_tag tag with
     | true when List.length children > 0 ->
         (* TODO: Add test for this *)
+        (* QUESTION: should raise or return monad? *)
         raise @@ Invalid_children "closing tag with children isn't valid"
     | true -> Node.Closed_element { tag; attributes }
     | false -> Node.Element { tag; attributes; children }
+
+  (* FIXME: Doesn't clone anything *)
+  (* FIXME: Add tests for cloneElement *)
+  let cloneElement element new_attributes new_childrens =
+    let open Node in
+    match element with
+    | Element { tag; attributes = _; children = _ } ->
+        Element { tag; attributes = new_attributes; children = new_childrens }
+    | Closed_element { tag; attributes = _ } ->
+        Closed_element { tag; attributes = new_attributes }
+    | Fragment _childrens -> Fragment new_childrens
+    | Text t -> Text t
+    | Empty -> Empty
 
   (*
     Fragments are Symbol[] in JavaScript and can be used as tags on createElement
     Such as React.createElement(React.Fragment, null, null), but they may contain childrens.
     We created a new "Node" constructor to represent this case. Check babel transformation for more details: https://babeljs.io/repl/#?browsers=defaults%2C%20not%20ie%2011%2C%20not%20ie_mob%2011&build=&builtIns=false&corejs=false&spec=false&loose=false&code_lz=DwJQpghgxgLgdAMQE4QOYFswDsYD4BQABIcAA64AyA9gDYTAD05-j408yamOuQA&debug=false&forceAllTransforms=false&shippedProposals=false&circleciRepo=&evaluate=false&fileSize=false&timeTravel=false&sourceType=module&lineWrap=true&presets=env%2Creact&prettier=true&targets=Node-18&version=7.19.0&externalPlugins=&assumptions=%7B%7D *)
   let fragment children = Node.Fragment children
-
-  (* helpers *)
-  let text t = Node.Text t
-  let element e = Node.Element e
-  let closed_element e = Node.Closed_element e
 
   (* ReasonReact APIs *)
   let string txt = Node.Text txt
@@ -101,7 +157,8 @@ module ReactDOMServer = struct
     | Bool (_, false) -> ""
     | Bool (k, true) -> Printf.sprintf "%s" k
     | Style styles -> Printf.sprintf "style=\"%s\"" (styles_to_string styles)
-    | String (k, v) -> Printf.sprintf "%s=\"%s\"" (attribute_name_to_jsx k) v
+    | String (k, v) ->
+        Printf.sprintf "%s=\"%s\"" (attribute_name_to_jsx k) (HTML.escape v)
 
   let attribute_is_not_empty = function
     | Attribute.String (k, _v) -> k != ""
@@ -127,24 +184,24 @@ module ReactDOMServer = struct
   (* is_root starts at true, and only goes to false when renders an element or closed element *)
   let renderToString (component : Node.t) =
     let is_root = ref true in
-    let rec render_to_string_rec component =
+    let rec render_to_string_inner component =
       let root_attribute =
         match is_root.contents with true -> data_react_root_attr | false -> ""
       in
       match component with
       | Node.Empty -> ""
       | Fragment [] -> ""
-      | Text text -> text
+      | Text text -> HTML.escape text
       | Fragment childs ->
           let childrens =
-            childs |> List.map render_to_string_rec |> String.concat ""
+            childs |> List.map render_to_string_inner |> String.concat ""
           in
           Printf.sprintf "%s" childrens
       | Element { tag; attributes; children } ->
           is_root.contents <- false;
           let attributes = attributes_to_string attributes in
           let childrens =
-            children |> List.map render_to_string_rec |> String.concat ""
+            children |> List.map render_to_string_inner |> String.concat ""
           in
           Printf.sprintf "<%s%s%s>%s</%s>" tag root_attribute attributes
             childrens tag
@@ -153,7 +210,7 @@ module ReactDOMServer = struct
           let attributes = attributes_to_string attributes in
           Printf.sprintf "<%s%s%s />" tag root_attribute attributes
     in
-    render_to_string_rec component
+    render_to_string_inner component
 end
 
 (*
@@ -285,6 +342,16 @@ let test_inline_styles () =
     (ReactDOMServer.renderToString component)
     "<button data-reactroot=\"\" style=\"color: red; border: none\"></button>"
 
+let test_escape_attributes () =
+  let component =
+    React.createElement "div"
+      [ React.Attribute.String ("a", "\' <") ]
+      [ React.string "& \"" ]
+  in
+  assert_string
+    (ReactDOMServer.renderToString component)
+    "<div data-reactroot=\"\" a=\"&apos; &lt;\">&amp; &quot;</div>"
+
 let () =
   let open Alcotest in
   run "ReactDOMServer test suite"
@@ -298,10 +365,13 @@ let () =
         ; test_case "self-closing tag" `Quick test_closing_tag
         ; test_case "inner text" `Quick test_innerhtml
         ; test_case "children" `Quick test_children
-        ; test_case "className -> class" `Quick test_className
-        ; test_case "fragment" `Quick test_fragment
-        ; test_case "fragment and text" `Quick test_fragments_and_texts
-        ; test_case "defaultValue" `Quick test_default_value
-        ; test_case "styles" `Quick test_inline_styles
+        ; test_case "className turns into class" `Quick test_className
+        ; test_case "fragment is empty" `Quick test_fragment
+        ; test_case "fragment and text concat nicely" `Quick
+            test_fragments_and_texts
+        ; test_case "defaultValue should be value" `Quick test_default_value
+        ; test_case "inline styles" `Quick test_inline_styles
+        ; test_case "escape HTML attributes" `Quick test_escape_attributes
         ] )
+    ; ("", [])
     ]
