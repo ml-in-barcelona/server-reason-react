@@ -50,9 +50,21 @@ module React = struct
   let createElement tag attributes children =
     match is_self_closing_tag tag with
     | true when List.length children > 0 ->
+        (* TODO: Add test for this *)
         raise @@ Invalid_children "closing tag with children isn't valid"
     | true -> Node.Closed_element { tag; attributes }
     | false -> Node.Element { tag; attributes; children }
+
+  (*
+    Fragments are Symbol[] in JavaScript and can be used as tags on createElement
+    Such as React.createElement(React.Fragment, null, null), but they may contain childrens.
+    We created a new "Node" constructor to represent this case. Check babel transformation for more details: https://babeljs.io/repl/#?browsers=defaults%2C%20not%20ie%2011%2C%20not%20ie_mob%2011&build=&builtIns=false&corejs=false&spec=false&loose=false&code_lz=DwJQpghgxgLgdAMQE4QOYFswDsYD4BQABIcAA64AyA9gDYTAD05-j408yamOuQA&debug=false&forceAllTransforms=false&shippedProposals=false&circleciRepo=&evaluate=false&fileSize=false&timeTravel=false&sourceType=module&lineWrap=true&presets=env%2Creact&prettier=true&targets=Node-18&version=7.19.0&externalPlugins=&assumptions=%7B%7D *)
+  let fragment children = Node.Fragment children
+
+  (* helpers *)
+  let text t = Node.Text t
+  let element e = Node.Element e
+  let closed_element e = Node.Closed_element e
 
   (* ReasonReact APIs *)
   let string txt = Node.Text txt
@@ -61,19 +73,21 @@ module React = struct
 
   (* FIXME: float_of_string might be different on the browser *)
   let float f = Node.Text (string_of_float f)
-
-  (*
-    Fragments are Symbol[] in JavaScript and can be used as tags on createElement
-    Such as React.createElement(React.Fragment, null, null), but they may contain childrens.
-    We created a new "Node" constructor to represent this case. Check babel transformation for more details: https://babeljs.io/repl/#?browsers=defaults%2C%20not%20ie%2011%2C%20not%20ie_mob%2011&build=&builtIns=false&corejs=false&spec=false&loose=false&code_lz=DwJQpghgxgLgdAMQE4QOYFswDsYD4BQABIcAA64AyA9gDYTAD05-j408yamOuQA&debug=false&forceAllTransforms=false&shippedProposals=false&circleciRepo=&evaluate=false&fileSize=false&timeTravel=false&sourceType=module&lineWrap=true&presets=env%2Creact&prettier=true&targets=Node-18&version=7.19.0&externalPlugins=&assumptions=%7B%7D *)
-  let fragment children = Node.Fragment children
 end
 
 module ReactDOMServer = struct
   open React
 
   let attribute_name_to_jsx k =
-    match k with "className" -> "class" | "htmlFor" -> "for" | _ -> k
+    match k with
+    | "className" -> "class"
+    | "htmlFor" -> "for"
+    (* serialize defaultValue props to the value attribute *)
+    (* FIXME: Add link *)
+    | "defaultValue" -> "value"
+    | "defaultChecked" -> "checked"
+    | "defaultSelected" -> "selected"
+    | _ -> k
 
   let attribute_to_string attr =
     match attr with
@@ -232,6 +246,28 @@ let test_nulls () =
     (ReactDOMServer.renderToString component)
     "<div data-reactroot=\"\"><div></div><span></span></div>"
 
+let test_fragments_and_texts () =
+  let component =
+    React.createElement "div" []
+      [ React.fragment [ React.Node.Text "foo" ]
+      ; React.Node.Text "bar"
+      ; React.createElement "b" [] []
+      ]
+  in
+  assert_string
+    (ReactDOMServer.renderToString component)
+    "<div data-reactroot=\"\">foobar<b></b></div>"
+
+let test_default_value () =
+  let component =
+    React.createElement "input"
+      [ React.Attribute.String ("defaultValue", "lol") ]
+      []
+  in
+  assert_string
+    (ReactDOMServer.renderToString component)
+    "<input data-reactroot=\"\" value=\"lol\" />"
+
 let () =
   let open Alcotest in
   run "ReactDOMServer test suite"
@@ -247,5 +283,7 @@ let () =
         ; test_case "children" `Quick test_children
         ; test_case "className -> class" `Quick test_className
         ; test_case "fragment" `Quick test_fragment
+        ; test_case "fragment and text" `Quick test_fragments_and_texts
+        ; test_case "defaultValue" `Quick test_default_value
         ] )
     ]
