@@ -272,7 +272,7 @@ module ReactDOMServer = struct
   let data_react_root_attr = Printf.sprintf " %s=\"\"" react_root_attr_name
 
   (* is_root starts at true, and only goes to false when renders an element or closed element *)
-  let renderToString (component : Node.t) =
+  let renderToStaticMarkup (component : Node.t) =
     let is_root = ref true in
     let rec render_to_string_inner component =
       let root_attribute =
@@ -281,11 +281,11 @@ module ReactDOMServer = struct
       match component with
       | Node.Empty -> ""
       | Fragment [] -> ""
-      (* If function contains a fn as payload. Should this run on renderToString? *)
+      (* If function contains a fn as payload. Should this run on renderToStaticMarkup? *)
       | Function -> ""
       | Text text -> HTML.escape text
       | Provider (set_context, children) ->
-          (* We set the context on renderToString *)
+          (* We set the context on renderToStaticMarkup *)
           print_endline "render prov";
           set_context ();
           children |> List.map render_to_string_inner |> String.concat ""
@@ -325,13 +325,13 @@ let assert_string left right = (check string) expect_msg right left
 let test_tag () =
   let div = React.createElement "div" [] [] in
   assert_string
-    (ReactDOMServer.renderToString div)
+    (ReactDOMServer.renderToStaticMarkup div)
     "<div data-reactroot=\"\"></div>"
 
 let test_empty_attributes () =
   let div = React.createElement "div" [ React.Attribute.String ("", "") ] [] in
   assert_string
-    (ReactDOMServer.renderToString div)
+    (ReactDOMServer.renderToStaticMarkup div)
     "<div data-reactroot=\"\"></div>"
 
 let test_empty_attribute () =
@@ -339,7 +339,7 @@ let test_empty_attribute () =
     React.createElement "div" [ React.Attribute.String ("className", "") ] []
   in
   assert_string
-    (ReactDOMServer.renderToString div)
+    (ReactDOMServer.renderToStaticMarkup div)
     "<div data-reactroot=\"\" class=\"\"></div>"
 
 let test_attributes () =
@@ -351,7 +351,7 @@ let test_attributes () =
       []
   in
   assert_string
-    (ReactDOMServer.renderToString a)
+    (ReactDOMServer.renderToStaticMarkup a)
     "<a data-reactroot=\"\" href=\"google.html\" target=\"_blank\"></a>"
 
 let test_bool_attributes () =
@@ -365,26 +365,26 @@ let test_bool_attributes () =
       []
   in
   assert_string
-    (ReactDOMServer.renderToString a)
+    (ReactDOMServer.renderToStaticMarkup a)
     "<input data-reactroot=\"\" type=\"checkbox\" name=\"cheese\" checked />"
 
 let test_closing_tag () =
   let input = React.createElement "input" [] [] in
   assert_string
-    (ReactDOMServer.renderToString input)
+    (ReactDOMServer.renderToStaticMarkup input)
     "<input data-reactroot=\"\" />"
 
 let test_innerhtml () =
   let p = React.createElement "p" [] [ React.string "text" ] in
   assert_string
-    (ReactDOMServer.renderToString p)
+    (ReactDOMServer.renderToStaticMarkup p)
     "<p data-reactroot=\"\">text</p>"
 
 let test_children () =
   let children = React.createElement "div" [] [] in
   let div = React.createElement "div" [] [ children ] in
   assert_string
-    (ReactDOMServer.renderToString div)
+    (ReactDOMServer.renderToStaticMarkup div)
     "<div data-reactroot=\"\"><div></div></div>"
 
 let test_className () =
@@ -392,14 +392,14 @@ let test_className () =
     React.createElement "div" [ React.Attribute.String ("className", "lol") ] []
   in
   assert_string
-    (ReactDOMServer.renderToString div)
+    (ReactDOMServer.renderToStaticMarkup div)
     "<div data-reactroot=\"\" class=\"lol\"></div>"
 
 let test_fragment () =
   let div = React.createElement "div" [] [] in
   let component = React.fragment [ div; div ] in
   assert_string
-    (ReactDOMServer.renderToString component)
+    (ReactDOMServer.renderToStaticMarkup component)
     "<div data-reactroot=\"\"></div><div></div>"
 
 let test_nulls () =
@@ -407,7 +407,7 @@ let test_nulls () =
   let span = React.createElement "span" [] [] in
   let component = React.createElement "div" [] [ div; span; React.null ] in
   assert_string
-    (ReactDOMServer.renderToString component)
+    (ReactDOMServer.renderToStaticMarkup component)
     "<div data-reactroot=\"\"><div></div><span></span></div>"
 
 let test_fragments_and_texts () =
@@ -419,7 +419,7 @@ let test_fragments_and_texts () =
       ]
   in
   assert_string
-    (ReactDOMServer.renderToString component)
+    (ReactDOMServer.renderToStaticMarkup component)
     "<div data-reactroot=\"\">foobar<b></b></div>"
 
 let test_default_value () =
@@ -429,7 +429,7 @@ let test_default_value () =
       []
   in
   assert_string
-    (ReactDOMServer.renderToString component)
+    (ReactDOMServer.renderToStaticMarkup component)
     "<input data-reactroot=\"\" value=\"lol\" />"
 
 let test_inline_styles () =
@@ -439,7 +439,7 @@ let test_inline_styles () =
       []
   in
   assert_string
-    (ReactDOMServer.renderToString component)
+    (ReactDOMServer.renderToStaticMarkup component)
     "<button data-reactroot=\"\" style=\"color: red; border: none\"></button>"
 
 let test_escape_attributes () =
@@ -449,7 +449,7 @@ let test_escape_attributes () =
       [ React.string "& \"" ]
   in
   assert_string
-    (ReactDOMServer.renderToString component)
+    (ReactDOMServer.renderToStaticMarkup component)
     "<div data-reactroot=\"\" a=\"&apos;&nbsp;&lt;\">&amp;&nbsp;&quot;</div>"
 
 let test_clone_empty () =
@@ -457,8 +457,8 @@ let test_clone_empty () =
     React.createElement "div" [ React.Attribute.String ("val", "33") ] []
   in
   assert_string
-    (ReactDOMServer.renderToString component)
-    (ReactDOMServer.renderToString (React.cloneElement component [] []))
+    (ReactDOMServer.renderToStaticMarkup component)
+    (ReactDOMServer.renderToStaticMarkup (React.cloneElement component [] []))
 
 let test_clone_attributes () =
   let component =
@@ -479,8 +479,8 @@ let test_clone_attributes () =
       []
   in
   assert_string
-    (ReactDOMServer.renderToString cloned)
-    (ReactDOMServer.renderToString expected)
+    (ReactDOMServer.renderToStaticMarkup cloned)
+    (ReactDOMServer.renderToStaticMarkup expected)
 
 let test_clone_order_attributes () =
   let component = React.createElement "div" [] [] in
@@ -499,8 +499,8 @@ let test_clone_order_attributes () =
       []
   in
   assert_string
-    (ReactDOMServer.renderToString cloned)
-    (ReactDOMServer.renderToString expected)
+    (ReactDOMServer.renderToStaticMarkup cloned)
+    (ReactDOMServer.renderToStaticMarkup expected)
 
 let test_context () =
   let context = React.createContext 10 in
@@ -512,13 +512,13 @@ let test_context () =
         ]
   in
   assert_string
-    (ReactDOMServer.renderToString component)
+    (ReactDOMServer.renderToStaticMarkup component)
     "<section data-reactroot=\"\">20</section>"
 
 let () =
   let open Alcotest in
   run "Tests"
-    [ ( "ReactDOMServer.renderToString"
+    [ ( "ReactDOMServer.renderToStaticMarkup"
       , [ test_case "div" `Quick test_tag
         ; test_case "empty attribute" `Quick test_empty_attribute
         ; test_case "empty attributes" `Quick test_empty_attributes
@@ -537,7 +537,7 @@ let () =
         ; test_case "escape HTML attributes" `Quick test_escape_attributes
         ; test_case "createContext" `Quick test_context
         ] )
-    ; ( (* FIXME: those test shouldn't rely on renderToString, make a TESTABLE component*)
+    ; ( (* FIXME: those test shouldn't rely on renderToStaticMarkup, make a TESTABLE component*)
         "React.cloneElement"
       , [ test_case "empty component" `Quick test_clone_empty
         ; test_case "attributes component" `Quick test_clone_attributes
