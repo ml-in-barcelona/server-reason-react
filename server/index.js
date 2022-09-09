@@ -3,6 +3,6 @@ const ReactDOM = require("react-dom/server");
 
 let aaa = React.createElement("input", {key:"p"})
 let div = React.createElement("div", {key:"div"}, ["Hello World", aaa])
-let body = React.createElement("body", null, div)
+let body = React.createElement(React.Fragment, null, [div, aaa])
 
-console.log(ReactDOM.renderToString(aaa));
+console.log(ReactDOM.renderToString(body));

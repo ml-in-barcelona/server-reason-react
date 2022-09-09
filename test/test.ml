@@ -95,33 +95,38 @@ module ReactDOMServer = struct
   (* FIXME: Add link to source *)
   let react_root_attr_name = "data-reactroot"
   let data_react_root_attr = Printf.sprintf " %s=\"\"" react_root_attr_name
-  let is_root = ref true
 
-  let rec renderToString (component : Node.t) =
-    let root_attribute =
-      match is_root.contents with
-      | true ->
-          is_root.contents = false |> ignore;
-          data_react_root_attr
-      | false -> ""
+  (* is_root starts at true, and only goes to false when renders an element or closed element *)
+
+  let renderToString (component : Node.t) =
+    let is_root = ref true in
+    let rec render_to_string_rec component =
+      let root_attribute =
+        match is_root.contents with true -> data_react_root_attr | false -> ""
+      in
+      match component with
+      | Node.Empty -> ""
+      | Fragment [] -> ""
+      | Text text -> text
+      | Fragment childs ->
+          let childrens =
+            childs |> List.map render_to_string_rec |> String.concat ""
+          in
+          Printf.sprintf "%s" childrens
+      | Element { tag; attributes; children } ->
+          is_root.contents <- false;
+          let attributes = attributes_to_string attributes in
+          let childrens =
+            children |> List.map render_to_string_rec |> String.concat ""
+          in
+          Printf.sprintf "<%s%s%s>%s</%s>" tag root_attribute attributes
+            childrens tag
+      | Closed_element { tag; attributes } ->
+          is_root.contents <- false;
+          let attributes = attributes_to_string attributes in
+          Printf.sprintf "<%s%s%s />" tag root_attribute attributes
     in
-    match component with
-    | Empty -> ""
-    | Fragment [] -> ""
-    | Text text -> text
-    | Fragment childs ->
-        let childrens = childs |> List.map renderToString |> String.concat "" in
-        Printf.sprintf "%s" childrens
-    | Element { tag; attributes; children } ->
-        let attributes = attributes_to_string attributes in
-        let childrens =
-          children |> List.map renderToString |> String.concat ""
-        in
-        Printf.sprintf "<%s%s%s>%s</%s>" tag root_attribute attributes childrens
-          tag
-    | Closed_element { tag; attributes } ->
-        let attributes = attributes_to_string attributes in
-        Printf.sprintf "<%s%s%s />" tag root_attribute attributes
+    render_to_string_rec component
 end
 
 (*
