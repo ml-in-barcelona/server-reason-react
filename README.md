@@ -40,7 +40,7 @@
   - How does it work for Fragments/Texts/Empty?
 - [x] [Scape text with HTML](https://github.com/MaibornWolff/react-wasm-dom/blob/main/src/__tests__/escapeTextForBrowser-test.jsx) [entities](https://stackoverflow.com/questions/7381974/which-characters-need-to-be-escaped-in-html)
   - Should we handle every html entity?
-- [ ] Handle refs
+- [x] Handle refs
 - [ ] Pretty print with [fmt](https://github.com/dbuenzli/fmt)
 - [ ] Create a module called "JSX" with all the HTML-like stuff: https://facebook.github.io/jsx/
 - [ ] React.Children API (https://github.com/reasonml/reason-react/blob/master/src/React.re#L58-L76)
