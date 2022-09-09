@@ -28,23 +28,25 @@
 - [x] Handle fragments
 - [x] Add data-reactroot="" to the root element
   - [x] Abstract renderToStringRec to handle internal state (ref is_root)
-- [ ] Handle [style attribute](https://github.com/MaibornWolff/react-wasm-dom/blob/main/src/__tests__/CSSPropertyOperations-test.jsx)
-- [ ] Handle React dengerouslySetInnerHtml
+- [x] Handle value/defaultValue logic and similars
 - [ ] Implement React.Context (https://github.com/preactjs/preact-render-to-string/blob/master/test/context.test.js)
+- [ ] Handle [style attribute](https://github.com/MaibornWolff/react-wasm-dom/blob/main/src/__tests__/CSSPropertyOperations-test.jsx)
+- [ ] Create a module called "JSX" with all the HTML-like stuff: https://facebook.github.io/jsx/
+- [ ] Handle React dengerouslySetInnerHtml
+- [ ] Handle textarea (value prop should be the children? Link?)
 - [ ] React.cloneElement
 - [ ] React.Children API (https://github.com/reasonml/reason-react/blob/master/src/React.re#L58-L76)
 - [ ] Handle React portals
-- [ ] Handle SVGs
+- [ ] Handle refs
 - [ ] Pretty print with [fmt](https://github.com/dbuenzli/fmt)
-- [ ] Create a module called "JSX" with all the HTML-like stuff: https://facebook.github.io/jsx/
+- [ ] [Scape text with HTML](https://github.com/MaibornWolff/react-wasm-dom/blob/main/src/__tests__/escapeTextForBrowser-test.jsx) [entities](https://stackoverflow.com/questions/7381974/which-characters-need-to-be-escaped-in-html) `t rendered = render(<div a={'"<>&'}>{'"<>&'}</div>), expected = <div a="&quot;&lt;>&amp;">&quot;&lt;>&amp;</div>;`
+- [ ] Handle emojis?
+- [ ] Handle SVGs
 
 ## PPX TODO
-- [ ] Transform attributes to JSX.
+- [ ] Transform attributes to JSX?
 - [ ] Handle synthetic events. Maybe it needs to be done in the ppx?
-- [ ] [Scape text with HTML](https://github.com/MaibornWolff/react-wasm-dom/blob/main/src/__tests__/escapeTextForBrowser-test.jsx) [entities](https://stackoverflow.com/questions/7381974/which-characters-need-to-be-escaped-in-html)
 - [ ] A way to trigger warnings for invalid attributes (probably better to do it in the ppx?)
-- [ ] Handle refs
-- [ ] Handle value/defaultValue logic
   - https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMTextarea-test.js
   - https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMSelect-test.js
 - [ ] Bring logic from ppx/html.ml into React.Element
@@ -60,5 +62,6 @@
   - UseState should "work"?
   - UseEffect should not run
 - Hooks and other callbacks should be untouched
+- Should we support shallowRenderer? (Render only one level of the component tree, leaving the rest as Capital leters and not recursively render them)
 - Components runtime? If there is a function call such as setState inside a component?
-- When Server components, can we transform React.node into json?
+- (Smoking idea) When Server components, can we transform React.node into json?
