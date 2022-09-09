@@ -36,11 +36,10 @@ module HTML = struct
             flush b start i;
             add b "&quot;";
             escape_inner next next
-        (* Do we need to add empty space here?
-           | ' ' ->
-               flush b start i;
-               add b "&nbsp;";
-               escape_inner next next *)
+        | ' ' ->
+            flush b start i;
+            add b "&nbsp;";
+            escape_inner next next
         | _ -> escape_inner start next
     in
     escape_inner 0 0 |> ignore;
@@ -150,6 +149,11 @@ module ReactDOMServer = struct
     |> List.map (fun (k, v) -> k ^ ": " ^ String.trim v)
     |> String.concat "; "
 
+  (* FIXME: We don't have any way to test Ref, since Ref constructor isn't
+     available due to the unknown of their type *)
+  (* This list can go long!? *)
+  let attribute_is_not_jsx = function "ref" -> true | _ -> false
+
   let attribute_to_string attr =
     let open Attribute in
     match attr with
@@ -157,6 +161,7 @@ module ReactDOMServer = struct
     | Bool (_, false) -> ""
     | Bool (k, true) -> Printf.sprintf "%s" k
     | Style styles -> Printf.sprintf "style=\"%s\"" (styles_to_string styles)
+    | String (k, _) when attribute_is_not_jsx k -> ""
     | String (k, v) ->
         Printf.sprintf "%s=\"%s\"" (attribute_name_to_jsx k) (HTML.escape v)
 
@@ -350,7 +355,7 @@ let test_escape_attributes () =
   in
   assert_string
     (ReactDOMServer.renderToString component)
-    "<div data-reactroot=\"\" a=\"&apos; &lt;\">&amp; &quot;</div>"
+    "<div data-reactroot=\"\" a=\"&apos;&nbsp;&lt;\">&amp;&nbsp;&quot;</div>"
 
 let () =
   let open Alcotest in

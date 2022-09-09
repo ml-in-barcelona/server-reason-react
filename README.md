@@ -38,7 +38,8 @@
   - It's implemented a silly cloneElement that doesn't clone attributes/childrens
   - Aside from attr/childs, how does it work?
   - How does it work for Fragments/Texts/Empty?
-- [ ] [Scape text with HTML](https://github.com/MaibornWolff/react-wasm-dom/blob/main/src/__tests__/escapeTextForBrowser-test.jsx) [entities](https://stackoverflow.com/questions/7381974/which-characters-need-to-be-escaped-in-html) `t rendered = render(<div a={'"<>&'}>{'"<>&'}</div>), expected = <div a="&quot;&lt;>&amp;">&quot;&lt;>&amp;</div>;`
+- [x] [Scape text with HTML](https://github.com/MaibornWolff/react-wasm-dom/blob/main/src/__tests__/escapeTextForBrowser-test.jsx) [entities](https://stackoverflow.com/questions/7381974/which-characters-need-to-be-escaped-in-html)
+  - Should we handle every html entity?
 - [ ] Handle refs
 - [ ] Pretty print with [fmt](https://github.com/dbuenzli/fmt)
 - [ ] Create a module called "JSX" with all the HTML-like stuff: https://facebook.github.io/jsx/
