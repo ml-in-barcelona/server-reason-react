@@ -29,8 +29,9 @@
 - [x] Add data-reactroot="" to the root element
   - [x] Abstract renderToStringRec to handle internal state (ref is_root)
 - [x] Handle value/defaultValue logic and similars
-- [ ] Implement React.Context (https://github.com/preactjs/preact-render-to-string/blob/master/test/context.test.js)
 - [ ] Handle [style attribute](https://github.com/MaibornWolff/react-wasm-dom/blob/main/src/__tests__/CSSPropertyOperations-test.jsx)
+  - [ ] Do we need to add the units (adding px when matters) ?
+- [ ] Implement React.Context (https://github.com/preactjs/preact-render-to-string/blob/master/test/context.test.js)
 - [ ] Create a module called "JSX" with all the HTML-like stuff: https://facebook.github.io/jsx/
 - [ ] Handle React dengerouslySetInnerHtml
 - [ ] Handle textarea (value prop should be the children? Link?)

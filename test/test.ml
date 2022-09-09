@@ -33,8 +33,8 @@ module React = struct
     type t =
       | Bool of (string * bool)
       | String of (string * string)
-    (* | Style
-       | Ref
+      | Style of (string * string) list
+    (* | Ref
        | InnerHtml *)
   end =
     Attribute
@@ -89,16 +89,24 @@ module ReactDOMServer = struct
     | "defaultSelected" -> "selected"
     | _ -> k
 
+  let styles_to_string styles =
+    styles
+    |> List.map (fun (k, v) -> k ^ ": " ^ String.trim v)
+    |> String.concat "; "
+
   let attribute_to_string attr =
+    let open Attribute in
     match attr with
-    | Attribute.String (k, v) ->
-        Printf.sprintf "%s=\"%s\"" (attribute_name_to_jsx k) v
-    | Bool (k, true) -> Printf.sprintf "%s" k
+    (* false attributes don't get rendered *)
     | Bool (_, false) -> ""
+    | Bool (k, true) -> Printf.sprintf "%s" k
+    | Style styles -> Printf.sprintf "style=\"%s\"" (styles_to_string styles)
+    | String (k, v) -> Printf.sprintf "%s=\"%s\"" (attribute_name_to_jsx k) v
 
   let attribute_is_not_empty = function
     | Attribute.String (k, _v) -> k != ""
     | Attribute.Bool (k, _) -> k != ""
+    | Attribute.Style styles -> List.length styles != 0
 
   (* FIXME: Remove empty style attributes or class *)
   let attribute_is_not_valid = attribute_is_not_empty
@@ -117,7 +125,6 @@ module ReactDOMServer = struct
   let data_react_root_attr = Printf.sprintf " %s=\"\"" react_root_attr_name
 
   (* is_root starts at true, and only goes to false when renders an element or closed element *)
-
   let renderToString (component : Node.t) =
     let is_root = ref true in
     let rec render_to_string_rec component =
@@ -268,6 +275,16 @@ let test_default_value () =
     (ReactDOMServer.renderToString component)
     "<input data-reactroot=\"\" value=\"lol\" />"
 
+let test_inline_styles () =
+  let component =
+    React.createElement "button"
+      [ React.Attribute.Style [ ("color", "red"); ("border", "none") ] ]
+      []
+  in
+  assert_string
+    (ReactDOMServer.renderToString component)
+    "<button data-reactroot=\"\" style=\"color: red; border: none\"></button>"
+
 let () =
   let open Alcotest in
   run "ReactDOMServer test suite"
@@ -285,5 +302,6 @@ let () =
         ; test_case "fragment" `Quick test_fragment
         ; test_case "fragment and text" `Quick test_fragments_and_texts
         ; test_case "defaultValue" `Quick test_default_value
+        ; test_case "styles" `Quick test_inline_styles
         ] )
     ]
