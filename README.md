@@ -30,7 +30,7 @@
   - [x] Abstract renderToStringRec to handle internal state (ref is_root)
 - [x] Handle value/defaultValue logic and similars
 - [x] Handle [style attribute](https://github.com/MaibornWolff/react-wasm-dom/blob/main/src/__tests__/CSSPropertyOperations-test.jsx)
-- [ ] Implement React.Context (https://github.com/preactjs/preact-render-to-string/blob/master/test/context.test.js)
+- [x] Implement React.Context (https://github.com/preactjs/preact-render-to-string/blob/master/test/context.test.js)
 - [x] React.cloneElement
   - How does it work for Fragments/Texts/Empty?
 - [x] [Scape text with HTML](https://github.com/MaibornWolff/react-wasm-dom/blob/main/src/__tests__/escapeTextForBrowser-test.jsx) [entities](https://stackoverflow.com/questions/7381974/which-characters-need-to-be-escaped-in-html)

@@ -78,8 +78,8 @@ module React = struct
          Eventually It could be Function2 'a -> 'b -> 'c and Function3, etc *)
       (* Need to think where those are called as well *)
       | Function
-      | Provider of t list
-      | Consumer of t list
+      | Provider of ((unit -> unit) * t list)
+      | Consumer of (unit -> t list)
   end =
     Node
 
@@ -187,16 +187,17 @@ module React = struct
 
   type 'a context =
     { provider : value:'a -> children:Node.t list -> Node.t
-    ; consumer : children:Node.t list -> Node.t
-    ; currentValue : 'a
+    ; consumer : children:('a -> Node.t list) -> Node.t
     }
 
   (* Maybe its wrong *)
   let createContext (initial_value : 'a) : 'a context =
-    let _value = ref initial_value in
-    { currentValue = initial_value
-    ; provider = (fun ~value:_ ~children -> Node.Provider children)
-    ; consumer = (fun ~children -> Node.Consumer children)
+    let ref_value = ref initial_value in
+    { provider =
+        (fun ~value ~children ->
+          Node.Provider ((fun () -> ref_value.contents <- value), children))
+    ; consumer =
+        (fun ~children -> Node.Consumer (fun () -> children ref_value.contents))
     }
 
   (*
@@ -283,7 +284,15 @@ module ReactDOMServer = struct
       (* If function contains a fn as payload. Should this run on renderToString? *)
       | Function -> ""
       | Text text -> HTML.escape text
-      | Fragment children | Provider children | Consumer children ->
+      | Provider (set_context, children) ->
+          (* We set the context on renderToString *)
+          print_endline "render prov";
+          set_context ();
+          children |> List.map render_to_string_inner |> String.concat ""
+      | Consumer children ->
+          print_endline "render consu";
+          children () |> List.map render_to_string_inner |> String.concat ""
+      | Fragment children ->
           let stringed_childs =
             children |> List.map render_to_string_inner |> String.concat ""
           in
@@ -493,6 +502,19 @@ let test_clone_order_attributes () =
     (ReactDOMServer.renderToString cloned)
     (ReactDOMServer.renderToString expected)
 
+let test_context () =
+  let context = React.createContext 10 in
+  let component =
+    context.provider ~value:20
+      ~children:
+        [ context.consumer ~children:(fun value ->
+              [ React.createElement "section" [] [ React.int value ] ])
+        ]
+  in
+  assert_string
+    (ReactDOMServer.renderToString component)
+    "<section data-reactroot=\"\">20</section>"
+
 let () =
   let open Alcotest in
   run "Tests"
@@ -513,6 +535,7 @@ let () =
         ; test_case "defaultValue should be value" `Quick test_default_value
         ; test_case "inline styles" `Quick test_inline_styles
         ; test_case "escape HTML attributes" `Quick test_escape_attributes
+        ; test_case "createContext" `Quick test_context
         ] )
     ; ( (* FIXME: those test shouldn't rely on renderToString, make a TESTABLE component*)
         "React.cloneElement"
