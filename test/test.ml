@@ -33,6 +33,9 @@ module React = struct
     type t =
       | Bool of (string * bool)
       | String of (string * string)
+    (* | Style
+       | Ref
+       | InnerHtml *)
   end =
     Attribute
 
@@ -79,12 +82,15 @@ module ReactDOMServer = struct
     | Bool (k, true) -> Printf.sprintf "%s" k
     | Bool (_, false) -> ""
 
-  let attribute_is_empty = function
-    | Attribute.String (k, v) -> v != "" || k != ""
+  let attribute_is_not_empty = function
+    | Attribute.String (k, _v) -> k != ""
     | Attribute.Bool (k, _) -> k != ""
 
+  (* FIXME: Remove empty style attributes or class *)
+  let attribute_is_not_valid = attribute_is_not_empty
+
   let attributes_to_string attrs =
-    let attributes = List.filter attribute_is_empty attrs in
+    let attributes = List.filter attribute_is_not_valid attrs in
     match attributes with
     | [] -> ""
     | _ ->
@@ -150,6 +156,14 @@ let test_empty_attributes () =
     (ReactDOMServer.renderToString div)
     "<div data-reactroot=\"\"></div>"
 
+let test_empty_attribute () =
+  let div =
+    React.createElement "div" [ React.Attribute.String ("className", "") ] []
+  in
+  assert_string
+    (ReactDOMServer.renderToString div)
+    "<div data-reactroot=\"\" class=\"\"></div>"
+
 let test_attributes () =
   let a =
     React.createElement "a"
@@ -210,13 +224,23 @@ let test_fragment () =
     (ReactDOMServer.renderToString component)
     "<div data-reactroot=\"\"></div><div></div>"
 
+let test_nulls () =
+  let div = React.createElement "div" [] [] in
+  let span = React.createElement "span" [] [] in
+  let component = React.createElement "div" [] [ div; span; React.null ] in
+  assert_string
+    (ReactDOMServer.renderToString component)
+    "<div data-reactroot=\"\"><div></div><span></span></div>"
+
 let () =
   let open Alcotest in
   run "ReactDOMServer test suite"
     [ ( "renderToString"
       , [ test_case "div" `Quick test_tag
+        ; test_case "empty attribute" `Quick test_empty_attribute
         ; test_case "empty attributes" `Quick test_empty_attributes
         ; test_case "bool attributes" `Quick test_bool_attributes
+        ; test_case "ignore nulls" `Quick test_nulls
         ; test_case "attributes" `Quick test_attributes
         ; test_case "self-closing tag" `Quick test_closing_tag
         ; test_case "inner text" `Quick test_innerhtml

@@ -26,10 +26,11 @@
 - [x] Allow attributes to be strings or booleans
 - [x] Handle ReasonReact APIS. React.null, React.string, React.int
 - [x] Handle fragments
-- [ ] Add data-reactroot="" to the root element
-  - [ ] Abstract renderToStringRec to handle internal state (ref is_root)
+- [x] Add data-reactroot="" to the root element
+  - [x] Abstract renderToStringRec to handle internal state (ref is_root)
 - [ ] Handle [style attribute](https://github.com/MaibornWolff/react-wasm-dom/blob/main/src/__tests__/CSSPropertyOperations-test.jsx)
 - [ ] Handle React dengerouslySetInnerHtml
+- [ ] Implement React.Context (https://github.com/preactjs/preact-render-to-string/blob/master/test/context.test.js)
 - [ ] React.cloneElement
 - [ ] React.Children API (https://github.com/reasonml/reason-react/blob/master/src/React.re#L58-L76)
 - [ ] Handle React portals
