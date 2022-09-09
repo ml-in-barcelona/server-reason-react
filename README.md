@@ -38,6 +38,8 @@
 - [x] Handle refs
 - [ ] Create interface for React and ReactDOMServe
 - [ ] Create a module called "JSX" with all the HTML-like stuff: https://facebook.github.io/jsx/
+- [ ] Mock React.memoN
+- [ ] Mock React.useCallbackN
 - [ ] React.Children API (https://github.com/reasonml/reason-react/blob/master/src/React.re#L58-L76)
 - [ ] Handle React portals
 - [ ] Handle React dengerouslySetInnerHtml

@@ -66,12 +66,20 @@ module React = struct
     Closed_element
 
   and Node : sig
+    (* should we add here all Symbols from React? *)
     type t =
       | Element of Element.t
       | Closed_element of Closed_element.t
       | Text of string
       | Fragment of t list
-      | Empty (* is this needed? Only used in React.null *)
+      | Empty
+      (* To support expressions as functions. Used in React.Context.Consumer *)
+      (* How the f* I can type Function f being 'a -> 'b.
+         Eventually It could be Function2 'a -> 'b -> 'c and Function3, etc *)
+      (* Need to think where those are called as well *)
+      | Function
+      | Provider of t list
+      | Consumer of t list
   end =
     Node
 
@@ -80,8 +88,7 @@ module React = struct
       | Bool of (string * bool)
       | String of (string * string)
       | Style of (string * string) list
-    (* | Ref
-       | InnerHtml *)
+    (* | Ref | DangerouslyInnerHtml *)
   end =
     Attribute
 
@@ -93,7 +100,6 @@ module React = struct
 
   exception Invalid_children of string
 
-
   let compare_styles left right =
     List.compare
       (fun (a, va) (b, vb) -> String.compare a b + String.compare va vb)
@@ -102,11 +108,10 @@ module React = struct
   let compare_attribute left right =
     let open Attribute in
     match (left, right) with
-    | Bool (left_key, left_value), Bool (right_key, right_value) ->
-        Bool.compare left_value right_value + String.compare left_key right_key
-    | String (left_key, left_value), String (right_key, right_value) ->
-        String.compare left_value right_value
-        + String.compare left_key right_key
+    | Bool (left_key, _), Bool (right_key, _) ->
+        String.compare left_key right_key
+    | String (left_key, _), String (right_key, _) ->
+        String.compare left_key right_key
     | Style lstyles, Style rstyles -> compare_styles lstyles rstyles
     | _ -> 0
 
@@ -175,6 +180,24 @@ module React = struct
     | Fragment _childrens -> Fragment new_childrens
     | Text t -> Text t
     | Empty -> Empty
+    (* How does context nodes on cloneElement? *)
+    | Function -> Function
+    | Provider child -> Provider child
+    | Consumer child -> Consumer child
+
+  type 'a context =
+    { provider : value:'a -> children:Node.t list -> Node.t
+    ; consumer : children:Node.t list -> Node.t
+    ; currentValue : 'a
+    }
+
+  (* Maybe its wrong *)
+  let createContext (initial_value : 'a) : 'a context =
+    let _value = ref initial_value in
+    { currentValue = initial_value
+    ; provider = (fun ~value:_ ~children -> Node.Provider children)
+    ; consumer = (fun ~children -> Node.Consumer children)
+    }
 
   (*
     Fragments are Symbol[] in JavaScript and can be used as tags on createElement
@@ -257,12 +280,14 @@ module ReactDOMServer = struct
       match component with
       | Node.Empty -> ""
       | Fragment [] -> ""
+      (* If function contains a fn as payload. Should this run on renderToString? *)
+      | Function -> ""
       | Text text -> HTML.escape text
-      | Fragment childs ->
-          let childrens =
-            childs |> List.map render_to_string_inner |> String.concat ""
+      | Fragment children | Provider children | Consumer children ->
+          let stringed_childs =
+            children |> List.map render_to_string_inner |> String.concat ""
           in
-          Printf.sprintf "%s" childrens
+          Printf.sprintf "%s" stringed_childs
       | Element { tag; attributes; children } ->
           is_root.contents <- false;
           let attributes = attributes_to_string attributes in
@@ -448,6 +473,26 @@ let test_clone_attributes () =
     (ReactDOMServer.renderToString cloned)
     (ReactDOMServer.renderToString expected)
 
+let test_clone_order_attributes () =
+  let component = React.createElement "div" [] [] in
+  let expected =
+    React.createElement "div"
+      [ React.Attribute.String ("val", "31")
+      ; React.Attribute.Bool ("lola", true)
+      ]
+      []
+  in
+  let cloned =
+    React.cloneElement component
+      [ React.Attribute.Bool ("lola", true)
+      ; React.Attribute.String ("val", "31")
+      ]
+      []
+  in
+  assert_string
+    (ReactDOMServer.renderToString cloned)
+    (ReactDOMServer.renderToString expected)
+
 let () =
   let open Alcotest in
   run "Tests"
@@ -469,8 +514,11 @@ let () =
         ; test_case "inline styles" `Quick test_inline_styles
         ; test_case "escape HTML attributes" `Quick test_escape_attributes
         ] )
-    ; ( "React.cloneElement"
+    ; ( (* FIXME: those test shouldn't rely on renderToString, make a TESTABLE component*)
+        "React.cloneElement"
       , [ test_case "empty component" `Quick test_clone_empty
         ; test_case "attributes component" `Quick test_clone_attributes
+        ; test_case "ordered attributes component" `Quick
+            test_clone_order_attributes
         ] )
     ]
