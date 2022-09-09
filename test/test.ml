@@ -93,6 +93,63 @@ module React = struct
 
   exception Invalid_children of string
 
+
+  let compare_styles left right =
+    List.compare
+      (fun (a, va) (b, vb) -> String.compare a b + String.compare va vb)
+      left right
+
+  let compare_attribute left right =
+    let open Attribute in
+    match (left, right) with
+    | Bool (left_key, left_value), Bool (right_key, right_value) ->
+        Bool.compare left_value right_value + String.compare left_key right_key
+    | String (left_key, left_value), String (right_key, right_value) ->
+        String.compare left_value right_value
+        + String.compare left_key right_key
+    | Style lstyles, Style rstyles -> compare_styles lstyles rstyles
+    | _ -> 0
+
+  let clone_attribute acc attr new_attr =
+    let open Attribute in
+    match (attr, new_attr) with
+    | Bool (left, _), Bool (right, value) when left == right ->
+        Bool (left, value) :: acc
+    | String (left, _), String (right, value) when left == right ->
+        String (left, value) :: acc
+    | _ -> new_attr :: acc
+
+  module StringMap = Map.Make (String)
+
+  type attributes = Attribute.t StringMap.t
+
+  let attributes_to_map attrs =
+    List.fold_left
+      (fun acc attr ->
+        match attr with
+        | Attribute.Bool (key, value) ->
+            StringMap.add key (Attribute.Bool (key, value)) acc
+        | Attribute.String (key, value) ->
+            StringMap.add key (Attribute.String (key, value)) acc
+        | Attribute.Style _ -> acc)
+      StringMap.empty attrs
+
+  let clone_attributes attributes new_attributes =
+    let attribute_map = attributes_to_map attributes in
+    let new_attribute_map = attributes_to_map new_attributes in
+    StringMap.merge
+      (fun _key attr new_attr ->
+        match (attr, new_attr) with
+        | Some attr, Some new_attr -> Some (clone_attribute [] attr new_attr)
+        | Some attr, None -> Some [ attr ]
+        | None, Some new_attr -> Some [ new_attr ]
+        | None, None -> None)
+      attribute_map new_attribute_map
+    |> StringMap.bindings
+    |> List.map (fun (_, attrs) -> attrs)
+    |> List.flatten |> List.rev
+    |> List.sort compare_attribute
+
   let createElement tag attributes children =
     match is_self_closing_tag tag with
     | true when List.length children > 0 ->
@@ -102,15 +159,19 @@ module React = struct
     | true -> Node.Closed_element { tag; attributes }
     | false -> Node.Element { tag; attributes; children }
 
-  (* FIXME: Doesn't clone anything *)
-  (* FIXME: Add tests for cloneElement *)
+  (* cloneElements overrides childrens *)
   let cloneElement element new_attributes new_childrens =
     let open Node in
     match element with
-    | Element { tag; attributes = _; children = _ } ->
-        Element { tag; attributes = new_attributes; children = new_childrens }
-    | Closed_element { tag; attributes = _ } ->
-        Closed_element { tag; attributes = new_attributes }
+    | Element { tag; attributes; children = _ } ->
+        Element
+          { tag
+          ; attributes = clone_attributes attributes new_attributes
+          ; children = new_childrens
+          }
+    | Closed_element { tag; attributes } ->
+        Closed_element
+          { tag; attributes = clone_attributes attributes new_attributes }
     | Fragment _childrens -> Fragment new_childrens
     | Text t -> Text t
     | Empty -> Empty
@@ -137,7 +198,7 @@ module ReactDOMServer = struct
     match k with
     | "className" -> "class"
     | "htmlFor" -> "for"
-    (* serialize defaultValue props to the value attribute *)
+    (* serialize defaultX props to the X attribute *)
     (* FIXME: Add link *)
     | "defaultValue" -> "value"
     | "defaultChecked" -> "checked"
@@ -152,7 +213,7 @@ module ReactDOMServer = struct
   (* FIXME: We don't have any way to test Ref, since Ref constructor isn't
      available due to the unknown of their type *)
   (* This list can go long!? *)
-  let attribute_is_not_jsx = function "ref" -> true | _ -> false
+  let attribute_is_not_html = function "ref" -> true | _ -> false
 
   let attribute_to_string attr =
     let open Attribute in
@@ -161,14 +222,14 @@ module ReactDOMServer = struct
     | Bool (_, false) -> ""
     | Bool (k, true) -> Printf.sprintf "%s" k
     | Style styles -> Printf.sprintf "style=\"%s\"" (styles_to_string styles)
-    | String (k, _) when attribute_is_not_jsx k -> ""
+    | String (k, _) when attribute_is_not_html k -> ""
     | String (k, v) ->
         Printf.sprintf "%s=\"%s\"" (attribute_name_to_jsx k) (HTML.escape v)
 
   let attribute_is_not_empty = function
     | Attribute.String (k, _v) -> k != ""
-    | Attribute.Bool (k, _) -> k != ""
-    | Attribute.Style styles -> List.length styles != 0
+    | Bool (k, _) -> k != ""
+    | Style styles -> List.length styles != 0
 
   (* FIXME: Remove empty style attributes or class *)
   let attribute_is_not_valid = attribute_is_not_empty
@@ -357,10 +418,40 @@ let test_escape_attributes () =
     (ReactDOMServer.renderToString component)
     "<div data-reactroot=\"\" a=\"&apos;&nbsp;&lt;\">&amp;&nbsp;&quot;</div>"
 
+let test_clone_empty () =
+  let component =
+    React.createElement "div" [ React.Attribute.String ("val", "33") ] []
+  in
+  assert_string
+    (ReactDOMServer.renderToString component)
+    (ReactDOMServer.renderToString (React.cloneElement component [] []))
+
+let test_clone_attributes () =
+  let component =
+    React.createElement "div" [ React.Attribute.String ("val", "33") ] []
+  in
+  let expected =
+    React.createElement "div"
+      [ React.Attribute.String ("val", "31")
+      ; React.Attribute.Bool ("lola", true)
+      ]
+      []
+  in
+  let cloned =
+    React.cloneElement component
+      [ React.Attribute.Bool ("lola", true)
+      ; React.Attribute.String ("val", "31")
+      ]
+      []
+  in
+  assert_string
+    (ReactDOMServer.renderToString cloned)
+    (ReactDOMServer.renderToString expected)
+
 let () =
   let open Alcotest in
-  run "ReactDOMServer test suite"
-    [ ( "renderToString"
+  run "Tests"
+    [ ( "ReactDOMServer.renderToString"
       , [ test_case "div" `Quick test_tag
         ; test_case "empty attribute" `Quick test_empty_attribute
         ; test_case "empty attributes" `Quick test_empty_attributes
@@ -378,5 +469,8 @@ let () =
         ; test_case "inline styles" `Quick test_inline_styles
         ; test_case "escape HTML attributes" `Quick test_escape_attributes
         ] )
-    ; ("", [])
+    ; ( "React.cloneElement"
+      , [ test_case "empty component" `Quick test_clone_empty
+        ; test_case "attributes component" `Quick test_clone_attributes
+        ] )
     ]

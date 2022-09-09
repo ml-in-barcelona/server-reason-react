@@ -30,27 +30,28 @@
   - [x] Abstract renderToStringRec to handle internal state (ref is_root)
 - [x] Handle value/defaultValue logic and similars
 - [x] Handle [style attribute](https://github.com/MaibornWolff/react-wasm-dom/blob/main/src/__tests__/CSSPropertyOperations-test.jsx)
-  - [ ] Do we need to add the units (adding `px` when matters and other cases from [CSSPropertyOperations-test](https://github.com/MaibornWolff/react-wasm-dom/blob/main/src/__tests__/CSSPropertyOperations-test.jsx)) ?
 - [ ] Implement React.Context (https://github.com/preactjs/preact-render-to-string/blob/master/test/context.test.js)
-- [ ] Handle React dengerouslySetInnerHtml
-  - Not sure how it works, tbh
-- [ ] React.cloneElement
-  - It's implemented a silly cloneElement that doesn't clone attributes/childrens
-  - Aside from attr/childs, how does it work?
+- [x] React.cloneElement
   - How does it work for Fragments/Texts/Empty?
 - [x] [Scape text with HTML](https://github.com/MaibornWolff/react-wasm-dom/blob/main/src/__tests__/escapeTextForBrowser-test.jsx) [entities](https://stackoverflow.com/questions/7381974/which-characters-need-to-be-escaped-in-html)
   - Should we handle every html entity?
 - [x] Handle refs
-- [ ] Pretty print with [fmt](https://github.com/dbuenzli/fmt)
+- [ ] Create interface for React and ReactDOMServe
 - [ ] Create a module called "JSX" with all the HTML-like stuff: https://facebook.github.io/jsx/
 - [ ] React.Children API (https://github.com/reasonml/reason-react/blob/master/src/React.re#L58-L76)
 - [ ] Handle React portals
+- [ ] Handle React dengerouslySetInnerHtml
+  - Not sure how it works, tbh
 - [ ] Handle emojis?
 - [ ] Handle SVGs
 - [ ] Handle textarea (value prop should be the children? Link? Can't find other cases)
 
+### NTH
+- [ ] Pretty print with [fmt](https://github.com/dbuenzli/fmt)
+- (Smoking idea) When Server components, can we transform React.node to json?
+
 ## PPX TODO
-- [ ] Transform attributes to JSX?
+- [ ] Transform attributes to JSX or do it in "runtime" ?
 - [ ] Handle synthetic events. Maybe it needs to be done in the ppx?
 - [ ] A way to trigger warnings for invalid attributes (probably better to do it in the ppx?)
   - https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMTextarea-test.js
@@ -61,13 +62,13 @@
 ## Questions
 
 - Should `children` be a List or a custom type with polymoprhic constructors?
-- What to do with React.Components
-  - static getDerivedStateFromError(error)
+- What to do with React.Components -> Probably render them as Components
 - Suspense?
-- Hooks should be mocked
-  - UseState should "work"?
-  - UseEffect should not run
-- Hooks and other callbacks should be untouched
-- Should we support shallowRenderer? (Render only one level of the component tree, leaving the rest as Capital leters and not recursively render them)
+- UseState should be mocked
+- createContext should work
+- UseEffect should not run
+- Other hooks and other callbacks should be ignored
 - Components runtime? If there is a function call such as setState inside a component?
-- (Smoking idea) When Server components, can we transform React.node into json?
+- Should we support shallowRenderer? (Render only one level of the component tree, leaving the rest as Capital letters and not recursively render them)
+- Does the order of attributes matter on cloneElement?
+- Do we need to add the units (adding `px` when matters and other cases from [CSSPropertyOperations-test](https://github.com/MaibornWolff/react-wasm-dom/blob/main/src/__tests__/CSSPropertyOperations-test.jsx)) ?
