@@ -1,8 +1,7 @@
 const React = require("react");
 const ReactDOM = require("react-dom/server");
 
-let aaa = React.createElement("input", {key:"p"})
-let div = React.createElement("div", {key:"div"}, ["Hello World", aaa])
-let body = React.createElement(React.Fragment, null, [div, aaa])
+let aaa = React.createElement("button", { value: "aaa" });
+let clon = React.cloneElement(aaa, { value: "bbb" });
 
-console.log(ReactDOM.renderToString(React.createElement('div', { lola: '' })));
+console.log(ReactDOM.renderToString(clon));

@@ -29,20 +29,24 @@
 - [x] Add data-reactroot="" to the root element
   - [x] Abstract renderToStringRec to handle internal state (ref is_root)
 - [x] Handle value/defaultValue logic and similars
-- [ ] Handle [style attribute](https://github.com/MaibornWolff/react-wasm-dom/blob/main/src/__tests__/CSSPropertyOperations-test.jsx)
-  - [ ] Do we need to add the units (adding px when matters) ?
+- [x] Handle [style attribute](https://github.com/MaibornWolff/react-wasm-dom/blob/main/src/__tests__/CSSPropertyOperations-test.jsx)
+  - [ ] Do we need to add the units (adding `px` when matters and other cases from [CSSPropertyOperations-test](https://github.com/MaibornWolff/react-wasm-dom/blob/main/src/__tests__/CSSPropertyOperations-test.jsx)) ?
 - [ ] Implement React.Context (https://github.com/preactjs/preact-render-to-string/blob/master/test/context.test.js)
-- [ ] Create a module called "JSX" with all the HTML-like stuff: https://facebook.github.io/jsx/
 - [ ] Handle React dengerouslySetInnerHtml
-- [ ] Handle textarea (value prop should be the children? Link?)
+  - Not sure how it works, tbh
 - [ ] React.cloneElement
-- [ ] React.Children API (https://github.com/reasonml/reason-react/blob/master/src/React.re#L58-L76)
-- [ ] Handle React portals
+  - It's implemented a silly cloneElement that doesn't clone attributes/childrens
+  - Aside from attr/childs, how does it work?
+  - How does it work for Fragments/Texts/Empty?
+- [ ] [Scape text with HTML](https://github.com/MaibornWolff/react-wasm-dom/blob/main/src/__tests__/escapeTextForBrowser-test.jsx) [entities](https://stackoverflow.com/questions/7381974/which-characters-need-to-be-escaped-in-html) `t rendered = render(<div a={'"<>&'}>{'"<>&'}</div>), expected = <div a="&quot;&lt;>&amp;">&quot;&lt;>&amp;</div>;`
 - [ ] Handle refs
 - [ ] Pretty print with [fmt](https://github.com/dbuenzli/fmt)
-- [ ] [Scape text with HTML](https://github.com/MaibornWolff/react-wasm-dom/blob/main/src/__tests__/escapeTextForBrowser-test.jsx) [entities](https://stackoverflow.com/questions/7381974/which-characters-need-to-be-escaped-in-html) `t rendered = render(<div a={'"<>&'}>{'"<>&'}</div>), expected = <div a="&quot;&lt;>&amp;">&quot;&lt;>&amp;</div>;`
+- [ ] Create a module called "JSX" with all the HTML-like stuff: https://facebook.github.io/jsx/
+- [ ] React.Children API (https://github.com/reasonml/reason-react/blob/master/src/React.re#L58-L76)
+- [ ] Handle React portals
 - [ ] Handle emojis?
 - [ ] Handle SVGs
+- [ ] Handle textarea (value prop should be the children? Link? Can't find other cases)
 
 ## PPX TODO
 - [ ] Transform attributes to JSX?
