@@ -12,9 +12,9 @@
 ### Reconcilier
 
 - [https://github.com/briskml/brisk](https://github.com/briskml/brisk)
+- [https://github.com/briskml/brisk-reconciler](https://github.com/briskml/brisk-reconciler)
 - [https://github.com/aidenybai/tiny-vdom](https://github.com/aidenybai/tiny-vdom)
 - [https://reactjs.org/docs/reconciliation.html](https://reactjs.org/docs/reconciliation.html)
-- [https://github.com/briskml/brisk-reconciler](https://github.com/briskml/brisk-reconciler)
 - [https://github.com/ms-jpq/Noact/blob/noact/src/noact.ts](https://github.com/ms-jpq/Noact/blob/noact/src/noact.ts)
 
 ## TODOs
@@ -38,45 +38,44 @@
   - Should we handle every html entity?
 - [x] Handle refs
 - [x] Handle useContext
-- [ ] Run useState
-- [ ] Ignore useEffect
-- [ ] Handle React.memoN
-- [ ] Handle React.useCallbackN
-- [ ] Does React portals work in SSR?
-- [ ] Handle React dengerouslySetInnerHtml
-  - Not sure how it works, tbh
-- [ ] Handle SVGs
-- [ ] Handle emojis? Add Uutfs
+- [x] Run useState
+- [x] Handle React.memoN
+- [x] Handle React.useCallbackN
+- [x] Ignore useEffect
+- [x] Handle React dengerouslySetInnerHTML
+- [x] Add test for hooks
+- [ ] Implement renderToString
+  - What are the differences?
+- [ ] Handle unicode. Add Uutfs?
+- [ ] Implement the rest of the React API
+  - forwardRef
+
+- [ ] (ppx) Transform attributes to JSX or do it in "runtime" ?
+- [ ] (ppx) Handle synthetic events. Maybe it needs to be done in the ppx?
+- [ ] (ppx) A way to trigger warnings for invalid attributes (probably better to do it in the ppx?)
+  - https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMTextarea-test.js
+  - https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMSelect-test.js
 
 ### Org
 - [ ] Create interface for React and ReactDOMServe
 - [ ] Create a module called "JSX" with all the HTML-like stuff: https://facebook.github.io/jsx/
-
-### NTH
-- [ ] Pretty print with [fmt](https://github.com/dbuenzli/fmt)
-- (Smoking idea) When Server components, can we transform React.node to json?
-
-## PPX TODO
-- [ ] Transform attributes to JSX or do it in "runtime" ?
-- [ ] Handle synthetic events. Maybe it needs to be done in the ppx?
-- [ ] A way to trigger warnings for invalid attributes (probably better to do it in the ppx?)
-  - https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMTextarea-test.js
-  - https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMSelect-test.js
-- [ ] Bring logic from ppx/html.ml into React.Element
+- [ ] Add Pretty print with [fmt](https://github.com/dbuenzli/fmt)
 
 ## Questions
 
-<!-- - Should `children` be a List or a custom type with polymoprhic constructors? -->
-<!-- - What to do with React.Components -> Probably render them as Components -->
+- How should we handle errors from: createElement or renderToString
 - Suspense?
-- UseState should be mocked?
-<!-- - createContext should work -->
-- UseEffect should not run
-- Lists with keys, why SSR complains?
-- Other hooks and other callbacks should be ignored
+  "ReactDOMServer does not yet support Suspense - server/node_modules/react-dom/cjs/react-dom-server.node.development.js:3518"
+<!-- - UseEffect should not run -->
 - How does SSR handle component runtime?
   - If there is a function call such as setState inside a component?
-- When should we support shallowRenderer?
+  - Lists with keys, why SSR complains?
+    - Because there's re-rendering inside SSR. Reconciling? Commiting? What?
+- How difficult would be to support Server components?
 - Do we need CSSOperations?
-  - Add the units (adding `px` when matters and other cases from [CSSPropertyOperations-test](https://github.com/MaibornWolff/react-wasm-dom/blob/main/src/__tests__/CSSPropertyOperations-test.jsx)) ?
-- React.Children API (https://github.com/reasonml/reason-react/blob/master/src/React.re#L58-L76)
+  - Add the units (adding `px` when matters and other cases from [CSSPropertyOperations-test](https://github.com/MaibornWolff/react-wasm-dom/blob/main/src/__tests__/CSSPropertyOperations-test.jsx))?
+- Do we need to support React.Children API from reason-react? (https://github.com/reasonml/reason-react/blob/master/src/React.re#L58-L76)
+
+### Not native-react-dom related
+- How we are going to mock the DOM Api?
+- Can we use Belly/Belt in native?
