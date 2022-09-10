@@ -73,11 +73,6 @@ module React = struct
       | Text of string
       | Fragment of t list
       | Empty
-      (* To support expressions as functions. Used in React.Context.Consumer *)
-      (* How the f* I can type Function f being 'a -> 'b.
-         Eventually It could be Function2 'a -> 'b -> 'c and Function3, etc *)
-      (* Need to think where those are called as well *)
-      | Function
       | Provider of ((unit -> unit) * t list)
       | Consumer of (unit -> t list)
   end =
@@ -181,24 +176,26 @@ module React = struct
     | Text t -> Text t
     | Empty -> Empty
     (* How does context nodes on cloneElement? *)
-    | Function -> Function
     | Provider child -> Provider child
     | Consumer child -> Consumer child
 
   type 'a context =
-    { provider : value:'a -> children:Node.t list -> Node.t
+    { current_value : 'a ref
+    ; provider : value:'a -> children:Node.t list -> Node.t
     ; consumer : children:('a -> Node.t list) -> Node.t
     }
 
-  (* Maybe its wrong *)
   let createContext (initial_value : 'a) : 'a context =
     let ref_value = ref initial_value in
-    { provider =
+    { current_value = ref_value
+    ; provider =
         (fun ~value ~children ->
           Node.Provider ((fun () -> ref_value.contents <- value), children))
     ; consumer =
         (fun ~children -> Node.Consumer (fun () -> children ref_value.contents))
     }
+
+  let useContext context = context.current_value.contents
 
   (*
     Fragments are Symbol[] in JavaScript and can be used as tags on createElement
@@ -281,8 +278,6 @@ module ReactDOMServer = struct
       match component with
       | Node.Empty -> ""
       | Fragment [] -> ""
-      (* If function contains a fn as payload. Should this run on renderToStaticMarkup? *)
-      | Function -> ""
       | Text text -> HTML.escape text
       | Provider (set_context, children) ->
           (* We set the context on renderToStaticMarkup *)
@@ -518,7 +513,7 @@ let test_context () =
 let () =
   let open Alcotest in
   run "Tests"
-    [ ( "ReactDOMServer.renderToStaticMarkup"
+    [ ( "renderToStaticMarkup"
       , [ test_case "div" `Quick test_tag
         ; test_case "empty attribute" `Quick test_empty_attribute
         ; test_case "empty attributes" `Quick test_empty_attributes
@@ -536,6 +531,7 @@ let () =
         ; test_case "inline styles" `Quick test_inline_styles
         ; test_case "escape HTML attributes" `Quick test_escape_attributes
         ; test_case "createContext" `Quick test_context
+          (* FIXME: Add test for useContext *)
         ] )
     ; ( (* FIXME: those test shouldn't rely on renderToStaticMarkup, make a TESTABLE component*)
         "React.cloneElement"
