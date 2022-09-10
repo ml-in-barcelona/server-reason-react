@@ -15,19 +15,70 @@ let clon = React.cloneElement(
 
 const { Provider, Consumer } = React.createContext(10);
 
-let app = () => {
-  return React.createElement("div", null, [
-    React.createElement(
-      Provider,
-      {
-        key: 1,
-        value: "correct",
-      },
-      React.createElement(Consumer, null, (value) =>
-        React.createElement("section", null, "value is: ")
-      )
-    ),
-  ]);
+var app = () => {
+  /* https://fb.me/react-uselayouteffect-ssr */
+  React.useLayoutEffect(() => {
+    console.log("asdfdsf");
+
+    return () => {
+      console.log("asdfsdf");
+    };
+  });
+  return React.createElement("div", { className: "contenido" }, []);
 };
 
-console.log(ReactDOM.renderToStaticMarkup(app()));
+var app = () => {
+  let [state, setState] = React.useState(0);
+
+  React.useEffect(() => {
+    setState(state + 1);
+    console.log("asdfdsf");
+
+    return () => {
+      console.log("asdfsdf");
+    };
+  });
+  return React.createElement("div", { className: "contenido" }, []);
+};
+
+var app = () => {
+  let [state, setState] = React.useState(0);
+  let ref = React.useRef(true);
+  console.log(state);
+  if (ref.current) {
+    setState(state + 1);
+    ref.current = false;
+  }
+  React.useEffect(() => {
+    console.log("asfsdafsafsadf");
+  });
+  React.useEffect(() => {
+    console.log("asfsdafsafsadf");
+  }, [state]);
+  console.log(state);
+  return React.createElement("div", null, [state]);
+};
+
+/* var app = () => {
+  return React.createElement("div", {
+    dangerouslySetInnerHTML: { __html: "asdf" },
+  });
+}; */
+
+var ctx = React.createContext(10);
+
+var context_user = () => {
+  let a = React.useContext(ctx);
+  console.log(a);
+  return React.createElement("div", { key: 1 }, [a]);
+};
+
+var app = () => {
+  return React.createElement(
+    ctx.Provider,
+    { value: 0 },
+    React.createElement(context_user)
+  );
+};
+
+console.log(ReactDOM.renderToStaticMarkup(React.createElement(app, null)));
