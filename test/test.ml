@@ -1,5 +1,3 @@
-open Alcotest
-
 module HTML = struct
   (* https://discuss.ocaml.org/t/html-encoding-of-string/4289/4 *)
   (* If problems http://projects.camlcity.org/projects/dl/ocamlnet-4.1.6/doc/html-main/Netencoding.Html.html *)
@@ -83,7 +81,7 @@ module React = struct
       | Bool of (string * bool)
       | String of (string * string)
       | Style of (string * string) list
-    (* | Ref | DangerouslyInnerHtml *)
+      | DangerouslyInnerHtml of string
   end =
     Attribute
 
@@ -131,6 +129,7 @@ module React = struct
             StringMap.add key (Attribute.Bool (key, value)) acc
         | Attribute.String (key, value) ->
             StringMap.add key (Attribute.String (key, value)) acc
+        | Attribute.DangerouslyInnerHtml _ -> acc
         | Attribute.Style _ -> acc)
       StringMap.empty attrs
 
@@ -175,7 +174,7 @@ module React = struct
     | Fragment _childrens -> Fragment new_childrens
     | Text t -> Text t
     | Empty -> Empty
-    (* How does context nodes on cloneElement? *)
+    (* FIXME: How does cloneElement does with Provider/Consumer *)
     | Provider child -> Provider child
     | Consumer child -> Consumer child
 
@@ -197,11 +196,75 @@ module React = struct
 
   let useContext context = context.current_value.contents
 
-  (*
-    Fragments are Symbol[] in JavaScript and can be used as tags on createElement
-    Such as React.createElement(React.Fragment, null, null), but they may contain childrens.
-    We created a new "Node" constructor to represent this case. Check babel transformation for more details: https://babeljs.io/repl/#?browsers=defaults%2C%20not%20ie%2011%2C%20not%20ie_mob%2011&build=&builtIns=false&corejs=false&spec=false&loose=false&code_lz=DwJQpghgxgLgdAMQE4QOYFswDsYD4BQABIcAA64AyA9gDYTAD05-j408yamOuQA&debug=false&forceAllTransforms=false&shippedProposals=false&circleciRepo=&evaluate=false&fileSize=false&timeTravel=false&sourceType=module&lineWrap=true&presets=env%2Creact&prettier=true&targets=Node-18&version=7.19.0&externalPlugins=&assumptions=%7B%7D *)
-  let fragment children = Node.Fragment children
+  let useState f_initial_value =
+    let setState _ = () in
+    (f_initial_value (), setState)
+
+  let useStateValue initial_value =
+    let setState _ = () in
+    (initial_value, setState)
+
+  let useMemo fn = fn ()
+  let useMemo1 fn _ = fn ()
+  let useMemo2 fn _ = fn ()
+  let useMemo3 fn _ = fn ()
+  let useMemo4 fn _ = fn ()
+  let useMemo5 fn _ = fn ()
+  let useMemo6 fn _ = fn ()
+  let useCallback fn = fn
+  let useCallback1 fn _ = fn
+  let useCallback2 fn _ = fn
+  let useCallback3 fn _ = fn
+  let useCallback4 fn _ = fn
+  let useCallback5 fn _ = fn
+  let useCallback6 (fn : 'a -> 'b) = fn
+
+  let useReducer :
+      ('state -> 'action -> 'state) -> 'state -> 'state * ('action -> unit) =
+   fun _ s -> (s, fun _ -> ())
+
+  let useEffect0 : (unit -> (unit -> unit) option) -> unit = fun _ -> ()
+
+  let useEffect1 : (unit -> (unit -> unit) option) -> 'dependency array -> unit
+      =
+   fun _ _ -> ()
+
+  let useEffect2 :
+      (unit -> (unit -> unit) option) -> 'dependency1 * 'dependency2 -> unit =
+   fun _ _ -> ()
+
+  let useEffect3 :
+         (unit -> (unit -> unit) option)
+      -> 'dependency1 * 'dependency2 * 'dependency3
+      -> unit =
+   fun _ _ -> ()
+
+  let useEffect4 :
+         (unit -> (unit -> unit) option)
+      -> 'dependency1 * 'dependency2 * 'dependency3 * 'dependency4
+      -> unit =
+   fun _ _ -> ()
+
+  let useEffect5 :
+         (unit -> (unit -> unit) option)
+      -> 'dependency1
+         * 'dependency2
+         * 'dependency3
+         * 'dependency4
+         * 'dependency5
+      -> unit =
+   fun _ _ -> ()
+
+  let useEffect6 :
+         (unit -> (unit -> unit) option)
+      -> 'dependency1
+         * 'dependency2
+         * 'dependency3
+         * 'dependency4
+         * 'dependency5
+         * 'dependency6
+      -> unit =
+   fun _ _ -> ()
 
   (* ReasonReact APIs *)
   let string txt = Node.Text txt
@@ -231,9 +294,7 @@ module ReactDOMServer = struct
     |> List.map (fun (k, v) -> k ^ ": " ^ String.trim v)
     |> String.concat "; "
 
-  (* FIXME: We don't have any way to test Ref, since Ref constructor isn't
-     available due to the unknown of their type *)
-  (* This list can go long!? *)
+  (* ignores "ref" prop *)
   let attribute_is_not_html = function "ref" -> true | _ -> false
 
   let attribute_to_string attr =
@@ -244,12 +305,14 @@ module ReactDOMServer = struct
     | Bool (k, true) -> Printf.sprintf "%s" k
     | Style styles -> Printf.sprintf "style=\"%s\"" (styles_to_string styles)
     | String (k, _) when attribute_is_not_html k -> ""
+    | DangerouslyInnerHtml html -> html
     | String (k, v) ->
         Printf.sprintf "%s=\"%s\"" (attribute_name_to_jsx k) (HTML.escape v)
 
   let attribute_is_not_empty = function
     | Attribute.String (k, _v) -> k != ""
     | Bool (k, _) -> k != ""
+    | DangerouslyInnerHtml _ -> false
     | Style styles -> List.length styles != 0
 
   (* FIXME: Remove empty style attributes or class *)
@@ -270,7 +333,7 @@ module ReactDOMServer = struct
 
   (* is_root starts at true, and only goes to false when renders an element or closed element *)
   let renderToStaticMarkup (component : Node.t) =
-    let is_root = ref true in
+    let is_root = ref false in
     let rec render_to_string_inner component =
       let root_attribute =
         match is_root.contents with true -> data_react_root_attr | false -> ""
@@ -288,11 +351,9 @@ module ReactDOMServer = struct
           print_endline "render consu";
           children () |> List.map render_to_string_inner |> String.concat ""
       | Fragment children ->
-          let stringed_childs =
-            children |> List.map render_to_string_inner |> String.concat ""
-          in
-          Printf.sprintf "%s" stringed_childs
+          children |> List.map render_to_string_inner |> String.concat ""
       | Element { tag; attributes; children } ->
+          (* Error: Can only set one of `children` or `props.dangerouslySetInnerHTML`. *)
           is_root.contents <- false;
           let attributes = attributes_to_string attributes in
           let childrens =
@@ -314,20 +375,18 @@ end
   ********************************************************
 *)
 
+open Alcotest
+
 let expect_msg = "should be equal"
 let assert_string left right = (check string) expect_msg right left
 
 let test_tag () =
   let div = React.createElement "div" [] [] in
-  assert_string
-    (ReactDOMServer.renderToStaticMarkup div)
-    "<div data-reactroot=\"\"></div>"
+  assert_string (ReactDOMServer.renderToStaticMarkup div) "<div></div>"
 
 let test_empty_attributes () =
   let div = React.createElement "div" [ React.Attribute.String ("", "") ] [] in
-  assert_string
-    (ReactDOMServer.renderToStaticMarkup div)
-    "<div data-reactroot=\"\"></div>"
+  assert_string (ReactDOMServer.renderToStaticMarkup div) "<div></div>"
 
 let test_empty_attribute () =
   let div =
@@ -335,7 +394,7 @@ let test_empty_attribute () =
   in
   assert_string
     (ReactDOMServer.renderToStaticMarkup div)
-    "<div data-reactroot=\"\" class=\"\"></div>"
+    "<div class=\"\"></div>"
 
 let test_attributes () =
   let a =
@@ -347,7 +406,7 @@ let test_attributes () =
   in
   assert_string
     (ReactDOMServer.renderToStaticMarkup a)
-    "<a data-reactroot=\"\" href=\"google.html\" target=\"_blank\"></a>"
+    "<a href=\"google.html\" target=\"_blank\"></a>"
 
 let test_bool_attributes () =
   let a =
@@ -361,26 +420,22 @@ let test_bool_attributes () =
   in
   assert_string
     (ReactDOMServer.renderToStaticMarkup a)
-    "<input data-reactroot=\"\" type=\"checkbox\" name=\"cheese\" checked />"
+    "<input type=\"checkbox\" name=\"cheese\" checked />"
 
 let test_closing_tag () =
   let input = React.createElement "input" [] [] in
-  assert_string
-    (ReactDOMServer.renderToStaticMarkup input)
-    "<input data-reactroot=\"\" />"
+  assert_string (ReactDOMServer.renderToStaticMarkup input) "<input />"
 
 let test_innerhtml () =
   let p = React.createElement "p" [] [ React.string "text" ] in
-  assert_string
-    (ReactDOMServer.renderToStaticMarkup p)
-    "<p data-reactroot=\"\">text</p>"
+  assert_string (ReactDOMServer.renderToStaticMarkup p) "<p>text</p>"
 
 let test_children () =
   let children = React.createElement "div" [] [] in
   let div = React.createElement "div" [] [ children ] in
   assert_string
     (ReactDOMServer.renderToStaticMarkup div)
-    "<div data-reactroot=\"\"><div></div></div>"
+    "<div><div></div></div>"
 
 let test_className () =
   let div =
@@ -388,14 +443,14 @@ let test_className () =
   in
   assert_string
     (ReactDOMServer.renderToStaticMarkup div)
-    "<div data-reactroot=\"\" class=\"lol\"></div>"
+    "<div class=\"lol\"></div>"
 
 let test_fragment () =
   let div = React.createElement "div" [] [] in
-  let component = React.fragment [ div; div ] in
+  let component = React.Node.Fragment [ div; div ] in
   assert_string
     (ReactDOMServer.renderToStaticMarkup component)
-    "<div data-reactroot=\"\"></div><div></div>"
+    "<div></div><div></div>"
 
 let test_nulls () =
   let div = React.createElement "div" [] [] in
@@ -403,19 +458,19 @@ let test_nulls () =
   let component = React.createElement "div" [] [ div; span; React.null ] in
   assert_string
     (ReactDOMServer.renderToStaticMarkup component)
-    "<div data-reactroot=\"\"><div></div><span></span></div>"
+    "<div><div></div><span></span></div>"
 
 let test_fragments_and_texts () =
   let component =
     React.createElement "div" []
-      [ React.fragment [ React.Node.Text "foo" ]
+      [ React.Node.Fragment [ React.Node.Text "foo" ]
       ; React.Node.Text "bar"
       ; React.createElement "b" [] []
       ]
   in
   assert_string
     (ReactDOMServer.renderToStaticMarkup component)
-    "<div data-reactroot=\"\">foobar<b></b></div>"
+    "<div>foobar<b></b></div>"
 
 let test_default_value () =
   let component =
@@ -425,7 +480,7 @@ let test_default_value () =
   in
   assert_string
     (ReactDOMServer.renderToStaticMarkup component)
-    "<input data-reactroot=\"\" value=\"lol\" />"
+    "<input value=\"lol\" />"
 
 let test_inline_styles () =
   let component =
@@ -435,7 +490,7 @@ let test_inline_styles () =
   in
   assert_string
     (ReactDOMServer.renderToStaticMarkup component)
-    "<button data-reactroot=\"\" style=\"color: red; border: none\"></button>"
+    "<button style=\"color: red; border: none\"></button>"
 
 let test_escape_attributes () =
   let component =
@@ -445,7 +500,7 @@ let test_escape_attributes () =
   in
   assert_string
     (ReactDOMServer.renderToStaticMarkup component)
-    "<div data-reactroot=\"\" a=\"&apos;&nbsp;&lt;\">&amp;&nbsp;&quot;</div>"
+    "<div a=\"&apos;&nbsp;&lt;\">&amp;&nbsp;&quot;</div>"
 
 let test_clone_empty () =
   let component =
@@ -508,7 +563,39 @@ let test_context () =
   in
   assert_string
     (ReactDOMServer.renderToStaticMarkup component)
-    "<section data-reactroot=\"\">20</section>"
+    "<section>20</section>"
+
+let test_use_state () =
+  let state, _setState = React.useStateValue "LOL" in
+  let component = React.createElement "section" [] [ React.string state ] in
+  assert_string
+    (ReactDOMServer.renderToStaticMarkup component)
+    "<section>LOL</section>"
+
+let test_use_memo () =
+  let memo = React.useMemo (fun () -> 23) in
+  let component = React.createElement "header" [] [ React.int memo ] in
+  assert_string
+    (ReactDOMServer.renderToStaticMarkup component)
+    "<header>23</header>"
+
+let test_use_callback () =
+  let memo = React.useCallback (fun () -> 23) in
+  let component = React.createElement "header" [] [ React.int (memo ()) ] in
+  assert_string
+    (ReactDOMServer.renderToStaticMarkup component)
+    "<header>23</header>"
+
+(* let context = React.createContext 10
+   let context_user () =
+     let number = React.useContext context in
+     React.createElement "section" [] [ React.int number ]
+
+   let test_use_context () =
+     let component = context.provider ~value:0 ~children:[ context_user () ] in
+     assert_string
+       (ReactDOMServer.renderToStaticMarkup component)
+       "<section>0</section>" *)
 
 let () =
   let open Alcotest in
@@ -531,7 +618,10 @@ let () =
         ; test_case "inline styles" `Quick test_inline_styles
         ; test_case "escape HTML attributes" `Quick test_escape_attributes
         ; test_case "createContext" `Quick test_context
-          (* FIXME: Add test for useContext *)
+          (* FIXME: Add test for useContext; test_case "useContext" `Quick test_use_context *)
+        ; test_case "useState" `Quick test_use_state
+        ; test_case "useMemo" `Quick test_use_memo
+        ; test_case "useCallback" `Quick test_use_callback
         ] )
     ; ( (* FIXME: those test shouldn't rely on renderToStaticMarkup, make a TESTABLE component*)
         "React.cloneElement"
