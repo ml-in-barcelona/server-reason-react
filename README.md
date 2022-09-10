@@ -78,4 +78,6 @@
 
 ### Not native-react-dom related
 - How we are going to mock the DOM Api?
+- Do we have any way to ensure bs.obj/similars to compile in native?
+  - Probably only doing melange?
 - Can we use Belly/Belt in native?

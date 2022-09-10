@@ -71,7 +71,7 @@ module React = struct
       | Text of string
       | Fragment of t list
       | Empty
-      | Provider of ((unit -> unit) * t list)
+      | Provider of (unit -> t) list
       | Consumer of (unit -> t list)
   end =
     Node
@@ -178,21 +178,28 @@ module React = struct
     | Provider child -> Provider child
     | Consumer child -> Consumer child
 
+  (* let dispacher =
+
+     let currentDispatcher = ref dispacher *)
+
+  (* HooksDispatcherOnUpdateInDEV *)
+
   type 'a context =
     { current_value : 'a ref
-    ; provider : value:'a -> children:Node.t list -> Node.t
+    ; provider : value:'a -> children:(unit -> Node.t) list -> Node.t
     ; consumer : children:('a -> Node.t list) -> Node.t
     }
 
   let createContext (initial_value : 'a) : 'a context =
     let ref_value = ref initial_value in
-    { current_value = ref_value
-    ; provider =
-        (fun ~value ~children ->
-          Node.Provider ((fun () -> ref_value.contents <- value), children))
-    ; consumer =
-        (fun ~children -> Node.Consumer (fun () -> children ref_value.contents))
-    }
+    let provider ~value ~children =
+      ref_value.contents <- value;
+      Node.Provider children
+    in
+    let consumer ~children =
+      Node.Consumer (fun () -> children ref_value.contents)
+    in
+    { current_value = ref_value; provider; consumer }
 
   let useContext context = context.current_value.contents
 
@@ -342,18 +349,16 @@ module ReactDOMServer = struct
       | Node.Empty -> ""
       | Fragment [] -> ""
       | Text text -> HTML.escape text
-      | Provider (set_context, children) ->
-          (* We set the context on renderToStaticMarkup *)
-          print_endline "render prov";
-          set_context ();
-          children |> List.map render_to_string_inner |> String.concat ""
+      | Provider children ->
+          children
+          |> List.map (fun f -> f ())
+          |> List.map render_to_string_inner
+          |> String.concat ""
       | Consumer children ->
-          print_endline "render consu";
           children () |> List.map render_to_string_inner |> String.concat ""
       | Fragment children ->
           children |> List.map render_to_string_inner |> String.concat ""
       | Element { tag; attributes; children } ->
-          (* Error: Can only set one of `children` or `props.dangerouslySetInnerHTML`. *)
           is_root.contents <- false;
           let attributes = attributes_to_string attributes in
           let childrens =
@@ -557,8 +562,9 @@ let test_context () =
   let component =
     context.provider ~value:20
       ~children:
-        [ context.consumer ~children:(fun value ->
-              [ React.createElement "section" [] [ React.int value ] ])
+        [ (fun () ->
+            context.consumer ~children:(fun value ->
+                [ React.createElement "section" [] [ React.int value ] ]))
         ]
   in
   assert_string
@@ -586,16 +592,27 @@ let test_use_callback () =
     (ReactDOMServer.renderToStaticMarkup component)
     "<header>23</header>"
 
-(* let context = React.createContext 10
-   let context_user () =
-     let number = React.useContext context in
-     React.createElement "section" [] [ React.int number ]
+let test_use_context () =
+  let context = React.createContext 10 in
+  let context_user () =
+    let number = React.useContext context in
+    React.createElement "section" [] [ React.int number ]
+  in
+  let component = context.provider ~value:0 ~children:[ context_user ] in
+  assert_string
+    (ReactDOMServer.renderToStaticMarkup component)
+    "<section>0</section>"
 
-   let test_use_context () =
-     let component = context.provider ~value:0 ~children:[ context_user () ] in
-     assert_string
-       (ReactDOMServer.renderToStaticMarkup component)
-       "<section>0</section>" *)
+module Component = struct
+  let make () = React.createElement "div" [] []
+end
+
+(* let test_component () =
+   let header = React.createElement "div" [] [] in
+   let app = React.createElement "div" [] [ Component.make () ] in
+   assert_string
+     (ReactDOMServer.renderToStaticMarkup app)
+     "<div><div></div></div>" *)
 
 let () =
   let open Alcotest in
@@ -618,7 +635,7 @@ let () =
         ; test_case "inline styles" `Quick test_inline_styles
         ; test_case "escape HTML attributes" `Quick test_escape_attributes
         ; test_case "createContext" `Quick test_context
-          (* FIXME: Add test for useContext; test_case "useContext" `Quick test_use_context *)
+        ; test_case "useContext" `Quick test_use_context
         ; test_case "useState" `Quick test_use_state
         ; test_case "useMemo" `Quick test_use_memo
         ; test_case "useCallback" `Quick test_use_callback
