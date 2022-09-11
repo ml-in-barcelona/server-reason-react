@@ -48,8 +48,7 @@
   - What are the differences?
 - [ ] Handle unicode. Add Uutfs?
 - [ ] Implement the rest of the React API
-  - forwardRef
-
+  - Support forwardRef
 - [ ] (ppx) Transform attributes to JSX or do it in "runtime" ?
 - [ ] (ppx) Handle synthetic events. Maybe it needs to be done in the ppx?
 - [ ] (ppx) A way to trigger warnings for invalid attributes (probably better to do it in the ppx?)
@@ -81,3 +80,4 @@
 - Do we have any way to ensure bs.obj/similars to compile in native?
   - Probably only doing melange?
 - Can we use Belly/Belt in native?
+- Fast pipe

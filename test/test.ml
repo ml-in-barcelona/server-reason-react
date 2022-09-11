@@ -64,7 +64,6 @@ module React = struct
     Closed_element
 
   and Node : sig
-    (* should we add here all Symbols from React? *)
     type t =
       | Element of Element.t
       | Closed_element of Closed_element.t
@@ -93,11 +92,6 @@ module React = struct
 
   exception Invalid_children of string
 
-  let compare_styles left right =
-    List.compare
-      (fun (a, va) (b, vb) -> String.compare a b + String.compare va vb)
-      left right
-
   let compare_attribute left right =
     let open Attribute in
     match (left, right) with
@@ -105,7 +99,10 @@ module React = struct
         String.compare left_key right_key
     | String (left_key, _), String (right_key, _) ->
         String.compare left_key right_key
-    | Style lstyles, Style rstyles -> compare_styles lstyles rstyles
+    | Style left_styles, Style right_styles ->
+        List.compare
+          (fun (a, va) (b, vb) -> String.compare a b + String.compare va vb)
+          left_styles right_styles
     | _ -> 0
 
   let clone_attribute acc attr new_attr =
@@ -607,13 +604,6 @@ module Component = struct
   let make () = React.createElement "div" [] []
 end
 
-(* let test_component () =
-   let header = React.createElement "div" [] [] in
-   let app = React.createElement "div" [] [ Component.make () ] in
-   assert_string
-     (ReactDOMServer.renderToStaticMarkup app)
-     "<div><div></div></div>" *)
-
 let () =
   let open Alcotest in
   run "Tests"
@@ -640,7 +630,8 @@ let () =
         ; test_case "useMemo" `Quick test_use_memo
         ; test_case "useCallback" `Quick test_use_callback
         ] )
-    ; ( (* FIXME: those test shouldn't rely on renderToStaticMarkup, make a TESTABLE component*)
+    ; ( (* FIXME: those test shouldn't rely on renderToStaticMarkup,
+           make an alcotest TESTABLE component *)
         "React.cloneElement"
       , [ test_case "empty component" `Quick test_clone_empty
         ; test_case "attributes component" `Quick test_clone_attributes
