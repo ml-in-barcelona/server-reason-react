@@ -23,9 +23,8 @@ module Joe =
       ((fun ?(name= (("joe")[@reason.raw_literal "joe"])) ->
           ((React.Dom.createDOMElementVariadic "div"
               ~props:(Js_of_ocaml.Js.Unsafe.obj [||] : React.Dom.domProps)
-              [(((Printf.sprintf (("`name` is %s")
-                    [@reason.raw_literal "`name` is %s"]) name)
-                   |> React.string)
+              [((((("`name` ")[@reason.raw_literal "`name` "]) ^ name) |>
+                   React.string)
               [@reason.preserve_braces ])])
           [@reason.preserve_braces ]))
       [@warning "-16"])

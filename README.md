@@ -44,16 +44,23 @@
 - [x] Ignore useEffect
 - [x] Handle React dengerouslySetInnerHTML
 - [x] Add test for hooks
+- [ ] Implement the rest of the React API
+  - Support forwardRef
 - [ ] Implement renderToString
   - What are the differences?
 - [ ] Handle unicode. Add Uutfs?
-- [ ] Implement the rest of the React API
-  - Support forwardRef
-- [ ] (ppx) Transform attributes to JSX or do it in "runtime" ?
-- [ ] (ppx) Handle synthetic events. Maybe it needs to be done in the ppx?
-- [ ] (ppx) A way to trigger warnings for invalid attributes (probably better to do it in the ppx?)
+- [ ] Implement setState as a tick on the dispatcher
+
+### ppx transformation
+
+- [ ] Remove all jsoo specific
+- [ ] Render to something that make sense
+- [ ] Transform attributes to JSX or do it in "runtime" ?
+- [ ] Handle synthetic events. Maybe it needs to be done in the ppx?
+- [ ] A way to trigger warnings for invalid attributes (probably better to do it in the ppx?)
   - https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMTextarea-test.js
   - https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMSelect-test.js
+- [ ] Remove HTML stuff?
 
 ### Org
 - [ ] Create interface for React and ReactDOMServe
