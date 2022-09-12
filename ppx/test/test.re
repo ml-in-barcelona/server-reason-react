@@ -54,7 +54,7 @@ let test_ref_attribute = () => {
   let divRef = React.useRef(Js.Nullable.null);
 
   let div = <div ref={React.Ref.domRef(divRef)} />;
-  assert_string(ReactDOM.renderToStaticMarkup(div), "<div hidden></div>");
+  assert_string(ReactDOM.renderToStaticMarkup(div), "<div></div>");
 };
 
 let test_innerhtml_attribute = () => {
