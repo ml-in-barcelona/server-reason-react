@@ -1,0 +1,17 @@
+(executable
+ (name snapshot)
+ (libraries reason ppxlib jsoo_react_ppx))
+
+(rule
+ (targets test_reason.ml)
+ (deps input_reason.re)
+ (action
+  (with-stdout-to
+   %{targets}
+   (run refmt --parse=re --print=ml %{deps}))))
+
+(rule
+ (alias runtest)
+ (action
+  (progn
+   (diff pp_reason.expected pp_reason.result))))
