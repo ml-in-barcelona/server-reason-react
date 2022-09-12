@@ -594,14 +594,36 @@ let jsxMapper () =
           Exp.constant ~loc (Pconst_string (jsxName, loc, None))
         in
         let objectValue = makeValue ~isOptional ~loc prop value in
+        let react_attr_expr =
+          match prop with
+          | Attribute { type_; _ } -> (
+              match type_ with
+              | Html.String ->
+                  [%expr
+                    React.Attribute.String ([%e objectKey], [%e objectValue])]
+              | Int ->
+                  [%expr
+                    React.Attribute.String
+                      ([%e objectKey], string_of_int [%e objectValue])]
+              | Float ->
+                  [%expr
+                    React.Attribute.String
+                      ([%e objectKey], string_of_float [%e objectValue])]
+              | Bool ->
+                  [%expr
+                    React.Attribute.Bool ([%e objectKey], [%e objectValue])]
+              | Style -> value
+              | Ref -> value
+              | InnerHtml -> value)
+          | Event _ -> failwith "todo: add events"
+        in
         match isOptional with
         | true ->
             [%expr
               [%e objectKey]
               , Js_of_ocaml.Js.Unsafe.inject
                   (Js_of_ocaml.Js.Optdef.option [%e objectValue])]
-        | false ->
-            [%expr React.Attribute.String ([%e objectKey], [%e objectValue])]
+        | false -> react_attr_expr
       in
       let propsObj =
         [%expr [%e Exp.array ~loc (List.map makePropField labeledProps)]]

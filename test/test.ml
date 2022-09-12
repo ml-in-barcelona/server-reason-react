@@ -126,7 +126,7 @@ let test_escape_attributes () =
 
 let test_clone_empty () =
   let component =
-    React.createElement "div" [| React.Attribute.String ("val", "33") |] []
+    React.createElement "div" [| React.Attribute.Bool ("hidden", true) |] []
   in
   assert_string
     (ReactDOM.renderToStaticMarkup component)
