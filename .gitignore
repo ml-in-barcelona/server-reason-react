@@ -99,3 +99,6 @@ _opam/
 
 # Example output folder
 build
+
+# vscode
+.vscode
