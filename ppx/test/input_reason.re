@@ -4,4 +4,3 @@ module Joe = {
     <div> {"`name` " ++ name |> React.string} </div>;
   };
 };
-

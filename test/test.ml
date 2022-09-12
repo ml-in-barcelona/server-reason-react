@@ -123,9 +123,9 @@ module React = struct
       (fun acc attr ->
         match attr with
         | Attribute.Bool (key, value) ->
-            StringMap.add key (Attribute.Bool (key, value)) acc
+            acc |> StringMap.add key (Attribute.Bool (key, value))
         | Attribute.String (key, value) ->
-            StringMap.add key (Attribute.String (key, value)) acc
+            acc |> StringMap.add key (Attribute.String (key, value))
         | Attribute.DangerouslyInnerHtml _ -> acc
         | Attribute.Style _ -> acc)
       StringMap.empty attrs
@@ -150,7 +150,7 @@ module React = struct
     match is_self_closing_tag tag with
     | true when List.length children > 0 ->
         (* TODO: Add test for this *)
-        (* QUESTION: should raise or return monad? *)
+        (* Q: should raise or return monad? *)
         raise @@ Invalid_children "closing tag with children isn't valid"
     | true -> Node.Closed_element { tag; attributes }
     | false -> Node.Element { tag; attributes; children }
@@ -175,10 +175,7 @@ module React = struct
     | Provider child -> Provider child
     | Consumer child -> Consumer child
 
-  (* let dispacher =
-
-     let currentDispatcher = ref dispacher *)
-
+  (* let currentDispatcher = ref dispacher *)
   (* HooksDispatcherOnUpdateInDEV *)
 
   type 'a context =
@@ -306,10 +303,10 @@ module ReactDOMServer = struct
     match attr with
     (* false attributes don't get rendered *)
     | Bool (_, false) -> ""
-    | Bool (k, true) -> Printf.sprintf "%s" k
+    | Bool (k, true) -> k
+    | DangerouslyInnerHtml html -> html
     | Style styles -> Printf.sprintf "style=\"%s\"" (styles_to_string styles)
     | String (k, _) when attribute_is_not_html k -> ""
-    | DangerouslyInnerHtml html -> html
     | String (k, v) ->
         Printf.sprintf "%s=\"%s\"" (attribute_name_to_jsx k) (HTML.escape v)
 
@@ -335,8 +332,8 @@ module ReactDOMServer = struct
   let react_root_attr_name = "data-reactroot"
   let data_react_root_attr = Printf.sprintf " %s=\"\"" react_root_attr_name
 
-  (* is_root starts at true, and only goes to false when renders an element or closed element *)
   let renderToStaticMarkup (component : Node.t) =
+    (* is_root starts at true (when renderToString) and only goes to false when renders an element or closed element *)
     let is_root = ref false in
     let rec render_to_string_inner component =
       let root_attribute =

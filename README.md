@@ -53,9 +53,9 @@
 
 ### ppx transformation
 
-- [ ] Remove all jsoo specific
-- [ ] Render to something that make sense
-- [ ] Transform attributes to JSX or do it in "runtime" ?
+- [ ] Remove all `jsoo` specific
+- [ ] Render to something that makes sense
+- [ ] Transform attributes to JSX or do it in "runtime"?
 - [ ] Handle synthetic events. Maybe it needs to be done in the ppx?
 - [ ] A way to trigger warnings for invalid attributes (probably better to do it in the ppx?)
   - https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMTextarea-test.js
@@ -74,17 +74,18 @@
   "ReactDOMServer does not yet support Suspense - server/node_modules/react-dom/cjs/react-dom-server.node.development.js:3518"
 <!-- - UseEffect should not run -->
 - How does SSR handle component runtime?
-  - If there is a function call such as setState inside a component?
+  - If there is a function call such as `setState` inside a component?
   - Lists with keys, why SSR complains?
     - Because there's re-rendering inside SSR. Reconciling? Commiting? What?
-- How difficult would be to support Server components?
 - Do we need CSSOperations?
   - Add the units (adding `px` when matters and other cases from [CSSPropertyOperations-test](https://github.com/MaibornWolff/react-wasm-dom/blob/main/src/__tests__/CSSPropertyOperations-test.jsx))?
+- How difficult would be to support Server components?
 - Do we need to support React.Children API from reason-react? (https://github.com/reasonml/reason-react/blob/master/src/React.re#L58-L76)
 
 ### Not native-react-dom related
-- How we are going to mock the DOM Api?
-- Do we have any way to ensure bs.obj/similars to compile in native?
+
+- How we are going to mock the DOM api?
+- Do we have any way to ensure `bs.obj`/similars to compile in native?
   - Probably only doing melange?
 - Can we use Belly/Belt in native?
 - Fast pipe

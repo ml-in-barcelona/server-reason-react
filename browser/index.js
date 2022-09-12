@@ -1,7 +1,7 @@
 const React = window.React;
 const ReactDOM = window.ReactDOM;
 
-let app = (value) => {
+let app = () => {
   return React.createElement("div", { key: "fi", style: { color: "blue" } }, [
     "first",
   ]);
