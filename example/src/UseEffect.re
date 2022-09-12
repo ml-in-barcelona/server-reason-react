@@ -1,5 +1,5 @@
 open Bindings;
-open React.Dom.Dsl;
+open ReactDom.Dsl;
 open Html;
 
 [@react.component]

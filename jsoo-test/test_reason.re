@@ -2,7 +2,7 @@ open Webtest.Suite;
 module Js = Js_of_ocaml.Js;
 module Dom_html = Js_of_ocaml.Dom_html;
 module Dom = Js_of_ocaml.Dom;
-open React.Dom.Dsl;
+open ReactDom.Dsl;
 open Html;
 let act = ReactDOMTestUtils.act;
 
@@ -28,7 +28,7 @@ let withContainer = f => {
   let container = Dom_html.createDiv(doc);
   Dom.appendChild(doc##.body, container);
   let result = f(container);
-  ignore(React.Dom.unmount_component_at_node(container));
+  ignore(ReactDom.unmount_component_at_node(container));
   Dom.removeChild(doc##.body, container);
   result;
 };
@@ -45,7 +45,7 @@ let testDom = () => {
 let testReact = () =>
   withContainer(c => {
     act(() => {
-      React.Dom.render(
+      ReactDom.render(
         <div> {"Hello world!" |> React.string} </div>,
         Dom_html.element(c),
       )
@@ -56,7 +56,7 @@ let testReact = () =>
 let testKeys = () =>
   withContainer(c => {
     act(() => {
-      React.Dom.render(
+      ReactDom.render(
         <div>
           ...{List.map(
             str => <div key=str> {str |> React.string} </div>,
@@ -80,13 +80,13 @@ let testOptionalPropsUppercase = () => {
     };
   };
   withContainer(c => {
-    act(() => {React.Dom.render(<OptProps />, Dom_html.element(c))});
+    act(() => {ReactDom.render(<OptProps />, Dom_html.element(c))});
     assert_equal(
       c##.textContent,
       Js.Opt.return(Js.string("`name` is joe")),
     );
     act(() => {
-      React.Dom.render(<OptProps name="jane" />, Dom_html.element(c))
+      ReactDom.render(<OptProps name="jane" />, Dom_html.element(c))
     });
     assert_equal(
       c##.textContent,
@@ -103,11 +103,11 @@ let testOptionalPropsLowercase = () => {
 
   withContainer(c => {
     act(() =>
-      React.Dom.render(<LinkWithMaybeHref href=None />, Dom_html.element(c))
+      ReactDom.render(<LinkWithMaybeHref href=None />, Dom_html.element(c))
     );
     assert_equal(c##.innerHTML, Js.string("<a></a>"));
     act(() =>
-      React.Dom.render(
+      ReactDom.render(
         <LinkWithMaybeHref href={Some("https://google.es")} />,
         Dom_html.element(c),
       )
@@ -135,7 +135,7 @@ let testContext = () => {
   };
   withContainer(c => {
     act(() => {
-      React.Dom.render(
+      ReactDom.render(
         <DummyContext.Provider value="bar">
           <DummyContext.Consumer />
         </DummyContext.Provider>,
@@ -169,21 +169,21 @@ let testUseCallback1 = () => {
   withContainer(c => {
     let fooString = "foo"; /* strings in OCaml are boxed, and we want to keep same reference across renders */
     act(() => {
-      React.Dom.render(<UseCallback a=fooString />, Dom_html.element(c))
+      ReactDom.render(<UseCallback a=fooString />, Dom_html.element(c))
     });
     assert_equal(
       c##.textContent,
       Js.Opt.return(Js.string("`count` is 1, `str` is init and foo and")),
     );
     act(() => {
-      React.Dom.render(<UseCallback a=fooString />, Dom_html.element(c))
+      ReactDom.render(<UseCallback a=fooString />, Dom_html.element(c))
     });
     assert_equal(
       c##.textContent,
       Js.Opt.return(Js.string("`count` is 1, `str` is init and foo and")),
     );
     act(() => {
-      React.Dom.render(<UseCallback a="bar" />, Dom_html.element(c))
+      ReactDom.render(<UseCallback a="bar" />, Dom_html.element(c))
     });
     assert_equal(
       c##.textContent,
@@ -232,7 +232,7 @@ let testUseCallback4 = () => {
     let d = [3];
     let e = [|4|];
     act(() => {
-      React.Dom.render(<UseCallback a b d e />, Dom_html.element(c))
+      ReactDom.render(<UseCallback a b d e />, Dom_html.element(c))
     });
     assert_equal(
       c##.textContent,
@@ -241,7 +241,7 @@ let testUseCallback4 = () => {
       ),
     );
     act(() => {
-      React.Dom.render(<UseCallback a b d e />, Dom_html.element(c))
+      ReactDom.render(<UseCallback a b d e />, Dom_html.element(c))
     });
     assert_equal(
       c##.textContent,
@@ -250,7 +250,7 @@ let testUseCallback4 = () => {
       ),
     );
     act(() => {
-      React.Dom.render(<UseCallback a=a2 b d e />, Dom_html.element(c))
+      ReactDom.render(<UseCallback a=a2 b d e />, Dom_html.element(c))
     });
     assert_equal(
       c##.textContent,
@@ -259,7 +259,7 @@ let testUseCallback4 = () => {
       ),
     );
     act(() => {
-      React.Dom.render(<UseCallback a=a2 b d e />, Dom_html.element(c))
+      ReactDom.render(<UseCallback a=a2 b d e />, Dom_html.element(c))
     });
     assert_equal(
       c##.textContent,
@@ -268,7 +268,7 @@ let testUseCallback4 = () => {
       ),
     );
     act(() => {
-      React.Dom.render(<UseCallback a=a2 b=3 d e />, Dom_html.element(c))
+      ReactDom.render(<UseCallback a=a2 b=3 d e />, Dom_html.element(c))
     });
     assert_equal(
       c##.textContent,
@@ -277,7 +277,7 @@ let testUseCallback4 = () => {
       ),
     );
     act(() => {
-      React.Dom.render(
+      ReactDom.render(
         <UseCallback a=a2 b=3 d=[4] e />,
         Dom_html.element(c),
       )
@@ -310,7 +310,7 @@ let testUseState = () => {
   withContainer(c => {
     open ReactDOMTestUtils;
     act(() => {
-      React.Dom.render(<DummyStateComponent />, Dom_html.element(c))
+      ReactDom.render(<DummyStateComponent />, Dom_html.element(c))
     });
     assert_equal(
       c##.innerHTML,
@@ -363,9 +363,9 @@ let testUseStateUpdaterReference = () => {
     };
   };
   withContainer(c => {
-    act(() => {React.Dom.render(<UseState />, Dom_html.element(c))});
+    act(() => {ReactDom.render(<UseState />, Dom_html.element(c))});
     assert_equal(c##.textContent, Js.Opt.return(Js.string("false")));
-    act(() => {React.Dom.render(<UseState />, Dom_html.element(c))});
+    act(() => {ReactDom.render(<UseState />, Dom_html.element(c))});
     assert_equal(c##.textContent, Js.Opt.return(Js.string("true")));
   });
 };
@@ -401,7 +401,7 @@ let testUseReducer = () => {
   withContainer(c => {
     open ReactDOMTestUtils;
     act(() => {
-      React.Dom.render(<DummyReducerComponent />, Dom_html.element(c))
+      ReactDom.render(<DummyReducerComponent />, Dom_html.element(c))
     });
     assert_equal(
       c##.innerHTML,
@@ -469,7 +469,7 @@ let testUseReducerWithMapState = () => {
   withContainer(c => {
     open ReactDOMTestUtils;
     act(() => {
-      React.Dom.render(
+      ReactDom.render(
         <DummyReducerWithMapStateComponent />,
         Dom_html.element(c),
       )
@@ -525,9 +525,9 @@ let testUseReducerDispatchReference = () => {
     };
   };
   withContainer(c => {
-    act(() => {React.Dom.render(<UseReducer />, Dom_html.element(c))});
+    act(() => {ReactDom.render(<UseReducer />, Dom_html.element(c))});
     assert_equal(c##.textContent, Js.Opt.return(Js.string("false")));
-    act(() => {React.Dom.render(<UseReducer />, Dom_html.element(c))});
+    act(() => {ReactDom.render(<UseReducer />, Dom_html.element(c))});
     assert_equal(c##.textContent, Js.Opt.return(Js.string("true")));
   });
 };
@@ -551,14 +551,14 @@ let testUseMemo1 = () => {
   withContainer(c => {
     let fooString = "foo"; /* strings in OCaml are boxed, and we want to keep same reference across renders */
     act(() => {
-      React.Dom.render(<UseMemo a=fooString />, Dom_html.element(c))
+      ReactDom.render(<UseMemo a=fooString />, Dom_html.element(c))
     });
     assert_equal(c##.textContent, Js.Opt.return(Js.string("`count` is 1")));
     act(() => {
-      React.Dom.render(<UseMemo a=fooString />, Dom_html.element(c))
+      ReactDom.render(<UseMemo a=fooString />, Dom_html.element(c))
     });
     assert_equal(c##.textContent, Js.Opt.return(Js.string("`count` is 1")));
-    act(() => {React.Dom.render(<UseMemo a="foo" />, Dom_html.element(c))});
+    act(() => {ReactDom.render(<UseMemo a="foo" />, Dom_html.element(c))});
     assert_equal(c##.textContent, Js.Opt.return(Js.string("`count` is 2")));
   });
 };
@@ -579,20 +579,20 @@ let testMemo = () => {
   withContainer(c => {
     let fooString = "foo"; /* strings in OCaml are boxed, and we want to keep same reference across renders */
     act(() => {
-      React.Dom.render(<Memoized a=fooString />, Dom_html.element(c))
+      ReactDom.render(<Memoized a=fooString />, Dom_html.element(c))
     });
     assert_equal(
       c##.textContent,
       Js.Opt.return(Js.string("`a` is foo, `numRenders` is 1")),
     );
     act(() => {
-      React.Dom.render(<Memoized a=fooString />, Dom_html.element(c))
+      ReactDom.render(<Memoized a=fooString />, Dom_html.element(c))
     });
     assert_equal(
       c##.textContent,
       Js.Opt.return(Js.string("`a` is foo, `numRenders` is 1")),
     );
-    act(() => {React.Dom.render(<Memoized a="bar" />, Dom_html.element(c))});
+    act(() => {ReactDom.render(<Memoized a="bar" />, Dom_html.element(c))});
     assert_equal(
       c##.textContent,
       Js.Opt.return(Js.string("`a` is bar, `numRenders` is 2")),
@@ -619,20 +619,20 @@ let testMemoCustomCompareProps = () => {
   withContainer(c => {
     let fooString = "foo"; /* strings in OCaml are boxed, and we want to keep same reference across renders */
     act(() => {
-      React.Dom.render(<Memoized a=fooString />, Dom_html.element(c))
+      ReactDom.render(<Memoized a=fooString />, Dom_html.element(c))
     });
     assert_equal(
       c##.textContent,
       Js.Opt.return(Js.string("`a` is foo, `numRenders` is 1")),
     );
     act(() => {
-      React.Dom.render(<Memoized a=fooString />, Dom_html.element(c))
+      ReactDom.render(<Memoized a=fooString />, Dom_html.element(c))
     });
     assert_equal(
       c##.textContent,
       Js.Opt.return(Js.string("`a` is foo, `numRenders` is 1")),
     );
-    act(() => {React.Dom.render(<Memoized a="bar" />, Dom_html.element(c))});
+    act(() => {ReactDom.render(<Memoized a="bar" />, Dom_html.element(c))});
     assert_equal(
       c##.textContent,
       Js.Opt.return(Js.string("`a` is foo, `numRenders` is 1")),
@@ -651,7 +651,7 @@ let testForwardRef = () => {
   module FancyButton = {
     [@react.component]
     let make =
-      React.Dom.forward_ref((~children, ref_) => {
+      ReactDom.forward_ref((~children, ref_) => {
         <button ref_ className="FancyButton"> ...children </button>
       });
   };
@@ -659,9 +659,9 @@ let testForwardRef = () => {
   withContainer(c => {
     let count = ref(0);
     let buttonRef =
-      React.Dom.Ref.callback_dom_ref(_ref => {count := count^ + 1});
+      ReactDom.Ref.callback_dom_ref(_ref => {count := count^ + 1});
     act(() => {
-      React.Dom.render(
+      ReactDom.render(
         <FancyButton ref=buttonRef> <div /> </FancyButton>,
         Dom_html.element(c),
       )
@@ -690,7 +690,7 @@ let testUseRef = () => {
     };
 
     act(() => {
-      React.Dom.render(
+      ReactDom.render(
         <DummyComponentWithRefAndEffect cb />,
         Dom_html.element(c),
       )
@@ -723,7 +723,7 @@ let testChildrenMapWithIndex = () => {
   };
   withContainer(c => {
     act(() => {
-      React.Dom.render(
+      ReactDom.render(
         <DummyComponentThatMapsChildren>
           <div> {React.int(1)} </div>
           <div> {React.int(2)} </div>
@@ -744,7 +744,7 @@ let testChildrenMapWithIndex = () => {
 let testFragmentModule = () => {
   withContainer(c => {
     act(() => {
-      React.Dom.render(
+      ReactDom.render(
         <React.Fragment>
           <div> {React.string("Hello")} </div>
           <div> {React.string("World")} </div>
@@ -762,7 +762,7 @@ let testFragmentModule = () => {
 let testFragmentSyntax = () => {
   withContainer(c => {
     act(() => {
-      React.Dom.render(
+      ReactDom.render(
         <>
           <div> {React.string("Hello")} </div>
           <div> {React.string("World")} </div>
@@ -786,7 +786,7 @@ let testNonListChildren = () => {
   };
   withContainer(c => {
     act(() => {
-      React.Dom.render(
+      ReactDom.render(
         <NonListChildrenComponent>
           ...(<div> {React.int(1)} </div>, <div> {React.int(3)} </div>)
         </NonListChildrenComponent>,
@@ -803,9 +803,9 @@ let testNonListChildren = () => {
 let testDangerouslySetInnerHTML = () => {
   withContainer(c => {
     act(() => {
-      React.Dom.render(
+      ReactDom.render(
         <div
-          dangerouslySetInnerHTML={React.Dom.SafeString.make_unchecked(
+          dangerouslySetInnerHTML={ReactDom.SafeString.make_unchecked(
             "<lol></lol>",
           )}
         />,
@@ -824,7 +824,7 @@ let testExternals = () => {
   };
   withContainer(c => {
     act(() => {
-      React.Dom.render(
+      ReactDom.render(
         <JsComp name={Js.string("John")} />,
         Dom_html.element(c),
       )
@@ -841,7 +841,7 @@ let testExternalChildren = () => {
   };
   withContainer(c => {
     act(() => {
-      React.Dom.render(
+      ReactDom.render(
         <JsComp> <em key="one"> {React.string("John")} </em> </JsComp>,
         Dom_html.element(c),
       )
@@ -858,7 +858,7 @@ let testExternalNonFunction = () => {
   };
   withContainer(c => {
     act(() => {
-      React.Dom.render(<JsComp name="John" />, Dom_html.element(c))
+      ReactDom.render(<JsComp name="John" />, Dom_html.element(c))
     });
     assert_equal(c##.innerHTML, Js.string("<span>Hey John</span>"));
   });
@@ -872,7 +872,7 @@ let testExternalOptionalArg = () => {
   };
   withContainer(c => {
     act(() => {
-      React.Dom.render(
+      ReactDom.render(
         <JsComp name={Js.string("John")} />,
         Dom_html.element(c),
       )
@@ -889,7 +889,7 @@ let testExternalStringArg = () => {
   };
   withContainer(c => {
     act(() => {
-      React.Dom.render(<JsComp name="John" />, Dom_html.element(c))
+      ReactDom.render(<JsComp name="John" />, Dom_html.element(c))
     });
     assert_equal(c##.innerHTML, Js.string("<span>Hey John</span>"));
   });
@@ -903,7 +903,7 @@ let testExternalOptionalStringArg = () => {
   };
   withContainer(c => {
     act(() => {
-      React.Dom.render(<JsComp name="John" />, Dom_html.element(c))
+      ReactDom.render(<JsComp name="John" />, Dom_html.element(c))
     });
     assert_equal(c##.innerHTML, Js.string("<span>Hey John</span>"));
   });
@@ -917,7 +917,7 @@ let testExternalBoolArg = () => {
   };
   withContainer(c => {
     act(() => {
-      React.Dom.render(
+      ReactDom.render(
         <JsComp name="John" strong=false />,
         Dom_html.element(c),
       )
@@ -934,7 +934,7 @@ let testExternalOptionalBoolArg = () => {
   };
   withContainer(c => {
     act(() => {
-      React.Dom.render(
+      ReactDom.render(
         <JsComp name="John" strong=true />,
         Dom_html.element(c),
       )
@@ -954,7 +954,7 @@ let testExternalArrayArg = () => {
   };
   withContainer(c => {
     act(() => {
-      React.Dom.render(
+      ReactDom.render(
         <JsComp>
           ...[|<em key="one"> {React.string("John")} </em>|]
         </JsComp>,
@@ -973,7 +973,7 @@ let testExternalOptionalArrayArg = () => {
   };
   withContainer(c => {
     act(() => {
-      React.Dom.render(
+      ReactDom.render(
         <JsComp>
           ...[|<em key="one"> {React.string("John")} </em>|]
         </JsComp>,
@@ -992,7 +992,7 @@ let testExternalSecondOrderArgConversion = () => {
   };
   withContainer(c => {
     act(() => {
-      React.Dom.render(
+      ReactDom.render(
         <JsComp names=[|"John", "Jerry", "Fred"|] />,
         Dom_html.element(c),
       )
@@ -1013,7 +1013,7 @@ let testAliasedChildren = () => {
   };
   withContainer(c => {
     act(() => {
-      React.Dom.render(
+      ReactDom.render(
         <AliasedChildrenComponent>
           <div> {React.int(1)} </div>
           <div> {React.int(3)} </div>
@@ -1043,7 +1043,7 @@ let testWithId = () => {
   };
   withContainer(c => {
     act(() => {
-      React.Dom.render(
+      ReactDom.render(
         WithTestId.make(~id="feed-toggle", ~children=[<div />], ()),
         Dom_html.element(c),
       )
@@ -1058,7 +1058,7 @@ let testWithId = () => {
 let testPropMaybeNone = () =>
   withContainer(c => {
     act(() =>
-      React.Dom.render(<div className=?None />, Dom_html.element(c))
+      ReactDom.render(<div className=?None />, Dom_html.element(c))
     );
     assert_equal(c##.innerHTML, Js.string("<div></div>"));
   });
@@ -1066,7 +1066,7 @@ let testPropMaybeNone = () =>
 let testPropMaybeSome = () =>
   withContainer(c => {
     act(() =>
-      React.Dom.render(
+      ReactDom.render(
         <div className=?{Some("foo")} />,
         Dom_html.element(c),
       )
@@ -1079,7 +1079,7 @@ let testPropCustomString = () =>
     module Prop = {
       let foo = Prop.string("foo");
     };
-    act(() => React.Dom.render(<div foo="bar" />, Dom_html.element(c)));
+    act(() => ReactDom.render(<div foo="bar" />, Dom_html.element(c)));
     assert_equal(c##.innerHTML, Js.string("<div foo=\"bar\"></div>"));
   });
 
@@ -1088,7 +1088,7 @@ let testPropCustomBool = () =>
     module Prop = {
       let disabled = Prop.bool("disabled");
     };
-    act(() => React.Dom.render(<div disabled=true />, Dom_html.element(c)));
+    act(() => ReactDom.render(<div disabled=true />, Dom_html.element(c)));
     assert_equal(c##.innerHTML, Js.string("<div disabled=\"\"></div>"));
   });
 
@@ -1097,7 +1097,7 @@ let testPropCustomInt = () =>
     module Prop = {
       let foo = Prop.int("foo");
     };
-    act(() => React.Dom.render(<div foo=42 />, Dom_html.element(c)));
+    act(() => ReactDom.render(<div foo=42 />, Dom_html.element(c)));
     assert_equal(c##.innerHTML, Js.string("<div foo=\"42\"></div>"));
   });
 
@@ -1106,7 +1106,7 @@ let testPropCustomFloat = () =>
     module Prop = {
       let foo = Prop.float_("foo");
     };
-    act(() => React.Dom.render(<div foo=42.5 />, Dom_html.element(c)));
+    act(() => ReactDom.render(<div foo=42.5 />, Dom_html.element(c)));
     assert_equal(c##.innerHTML, Js.string("<div foo=\"42.5\"></div>"));
   });
 
@@ -1116,7 +1116,7 @@ let testPropCustomAny = () =>
       let foo: Js.t(Js.js_array(string)) => Prop.t = Prop.any("foo");
     };
     act(() =>
-      React.Dom.render(
+      ReactDom.render(
         <div foo={Js.array([|"bar", "baz"|])} />,
         Dom_html.element(c),
       )
@@ -1133,7 +1133,7 @@ let testCustomElement = () =>
       let data_out = Prop.bool("data-out");
     };
     act(() =>
-      React.Dom.render(
+      ReactDom.render(
         <cool_element coolness="max"> <chill data_out=true /> </cool_element>,
         Dom_html.element(c),
       )
@@ -1154,7 +1154,7 @@ let testSvg = () =>
       include Svg.Prop;
     };
     act(() =>
-      React.Dom.render(
+      ReactDom.render(
         <svg width="100" height="100">
           <circle
             cx="50"

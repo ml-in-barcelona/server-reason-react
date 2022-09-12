@@ -1,4 +1,4 @@
-open React.Dom.Dsl
+open ReactDom.Dsl
 open Html
 
 let%component make () =

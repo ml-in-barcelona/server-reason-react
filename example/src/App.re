@@ -1,1 +1,1 @@
-React.Dom.render_to_element(~id="app", <Main />);
+ReactDom.render_to_element(~id="app", <Main />);

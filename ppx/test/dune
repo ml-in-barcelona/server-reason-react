@@ -1,23 +1,5 @@
-(executable
- (name main)
- (libraries reason ppxlib jsoo_react_ppx))
-
-(rule
- (targets pp_reason.result)
- (deps test_reason.ml)
- (action
-  (run ./main.exe --impl %{deps} -o %{targets})))
-
-(rule
- (targets test_reason.ml)
- (deps input_reason.re)
- (action
-  (with-stdout-to
-   %{targets}
-   (run refmt --parse=re --print=ml %{deps}))))
-
-(rule
- (alias runtest)
- (action
-  (progn
-   (diff pp_reason.expected pp_reason.result))))
+(test
+ (name test)
+ (libraries alcotest native-react.lib)
+ (preprocess
+  (pps native-react.ppx)))

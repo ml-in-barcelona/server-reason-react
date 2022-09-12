@@ -8,7 +8,7 @@
 (*
    The transform:
    transform `[@JSX] div(~props1=a, ~props2=b, ~children=[foo, bar], ())` into
-   `React.Dom.createDOMElementVariadic("div", React.Dom.domProps(~props1=1, ~props2=b), [foo, bar])`.
+   `ReactDom.createDOMElementVariadic("div", ReactDom.domProps(~props1=1, ~props2=b), [foo, bar])`.
    transform the upper-cased case
    `[@JSX] Foo.createElement(~key=a, ~ref=b, ~foo=bar, ~children=[], ())` into
    `React.createElement(Foo.make, Foo.makeProps(~key=a, ~ref=b, ~foo=bar, ()))`
@@ -57,7 +57,7 @@ let keyType loc =
   Typ.constr ~loc { loc; txt = optionIdent }
     [ Typ.constr ~loc { loc; txt = Lident "string" } [] ]
 
-let refType loc = [%type: React.Dom.domRef]
+let refType loc = [%type: ReactDom.domRef]
 
 type 'a children =
   | ListLiteral of 'a
@@ -349,9 +349,9 @@ let makeAttributeValue ~loc (type_ : Html.attributeType) value =
   | Int -> [%expr ([%e value] : int)]
   | Float -> [%expr ([%e value] : float)]
   | Bool -> [%expr ([%e value] : bool)]
-  | Style -> [%expr ([%e value] : React.Dom.Style.t)]
-  | Ref -> [%expr ([%e value] : React.Dom.domRef)]
-  | InnerHtml -> [%expr ([%e value] : React.Dom.DangerouslySetInnerHTML.t)]
+  | Style -> [%expr ([%e value] : ReactDom.Style.t)]
+  | Ref -> [%expr ([%e value] : ReactDom.domRef)]
+  | InnerHtml -> [%expr ([%e value] : ReactDom.DangerouslySetInnerHTML.t)]
 
 let makeEventValue ~loc (type_ : Html.eventType) value =
   match type_ with
@@ -546,7 +546,7 @@ let jsxMapper () =
         [%expr
           (Js_of_ocaml.Js.Unsafe.obj
              [%e Exp.array ~loc (List.map makePropField labeledProps)]
-            : React.Dom.domProps)]
+            : ReactDom.domProps)]
       in
       [ (* "div" *)
         (nolabel, componentNameExpr)
@@ -559,7 +559,7 @@ let jsxMapper () =
     Exp.apply
       ~loc (* throw away the [@JSX] attribute and keep the others, if any *)
       ~attrs
-      (* React.Dom.createElement *)
+      (* ReactDom.createElement *)
       (Exp.ident ~loc
          { loc; txt = Ldot (Ldot (Lident "React", "Dom"), createElementCall) })
       args
@@ -1222,7 +1222,7 @@ let jsxMapper () =
               callArguments
         (* div(~prop1=foo, ~prop2=bar, ~children=[bla], ()) *)
         (* turn that into
-           React.Dom.createElement(~props=React.Dom.props(~props1=foo, ~props2=bar, ()), [|bla|]) *)
+           ReactDom.createElement(~props=ReactDom.props(~props1=foo, ~props2=bar, ()), [|bla|]) *)
         | { loc; txt = Lident id } ->
             transformLowercaseCall mapper loc attrs callArguments id applyLoc
         | { txt = Ldot (_, anythingNotCreateElementOrMake) } ->

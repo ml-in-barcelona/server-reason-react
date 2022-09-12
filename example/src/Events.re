@@ -1,5 +1,5 @@
 open Bindings;
-open React.Dom.Dsl;
+open ReactDom.Dsl;
 open Html;
 
 type coords = {
@@ -10,7 +10,7 @@ type coords = {
 module Title = {
   [@react.component]
   let make = (~children) => {
-    <h5 style=React.Dom.Style.(make([|margin("15px 0 0")|]))> children </h5>;
+    <h5 style=ReactDom.Style.(make([|margin("15px 0 0")|]))> children </h5>;
   };
 };
 
@@ -45,7 +45,7 @@ let make = () => {
           let value = React.Event.Form.target(event) |> Window.value;
           setInputText(_ => value);
         }}
-        style=React.Dom.Style.(make([|margin_right("15px")|]))
+        style=ReactDom.Style.(make([|margin_right("15px")|]))
         value=inputText
       />
       <button type_="submit"> {"submit dis" |> React.string} </button>

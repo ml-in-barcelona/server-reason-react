@@ -52,7 +52,7 @@ let keyType loc =
   Typ.constr ~loc { loc; txt = optionIdent }
     [ Typ.constr ~loc { loc; txt = Lident "string" } [] ]
 
-let refType loc = [%type: React.Dom.dom_ref]
+let refType loc = [%type: ReactDom.dom_ref]
 
 type componentConfig = { propsName : string }
 
@@ -253,14 +253,14 @@ let makeAttributeValue ~loc ~isOptional (type_ : Html.attributeType) value =
   | Float, true -> [%expr ([%e value] : float option)]
   | Bool, false -> [%expr ([%e value] : bool)]
   | Bool, true -> [%expr ([%e value] : bool option)]
-  | Style, false -> [%expr ([%e value] : React.Dom.Style.t)]
-  | Style, true -> [%expr ([%e value] : React.Dom.Style.t option)]
-  | Ref, false -> [%expr ([%e value] : React.Dom.dom_ref)]
-  | Ref, true -> [%expr ([%e value] : React.Dom.dom_ref option)]
+  | Style, false -> [%expr ([%e value] : ReactDom.Style.t)]
+  | Style, true -> [%expr ([%e value] : ReactDom.Style.t option)]
+  | Ref, false -> [%expr ([%e value] : ReactDom.dom_ref)]
+  | Ref, true -> [%expr ([%e value] : ReactDom.dom_ref option)]
   | InnerHtml, false ->
-      [%expr ([%e value] : React.Dom.DangerouslySetInnerHTML.t)]
+      [%expr ([%e value] : ReactDom.DangerouslySetInnerHTML.t)]
   | InnerHtml, true ->
-      [%expr ([%e value] : React.Dom.DangerouslySetInnerHTML.t option)]
+      [%expr ([%e value] : ReactDom.DangerouslySetInnerHTML.t option)]
 
 let makeEventValue ~loc ~isOptional (type_ : Html.eventType) value =
   match (type_, isOptional) with
@@ -1136,7 +1136,7 @@ let jsxMapper () =
             }
         (* div(~prop1=foo, ~prop2=bar, ~children=[bla], ()) *)
         (* turn that into
-           React.Dom.createElement(~props=React.Dom.props(~props1=foo, ~props2=bar, ()), [|bla|]) *)
+           ReactDom.createElement(~props=ReactDom.props(~props1=foo, ~props2=bar, ()), [|bla|]) *)
         | { loc; txt = Lident id } ->
             transformLowercaseCall loc attrs callArguments id apply_loc
         | { txt = Ldot (_, anythingNotCreateElementOrMake) } ->

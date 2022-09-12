@@ -1,4 +1,4 @@
-open React.Dom.Dsl;
+open ReactDom.Dsl;
 open Html;
 
 let s = React.string;
@@ -58,7 +58,7 @@ let examples = [
     path: "web-components",
     title: "Web Components",
     element:
-      <div style=React.Dom.Style.(make([|height("50vw")|]))>
+      <div style=ReactDom.Style.(make([|height("50vw")|]))>
         <WebComponent />
       </div>,
     code: <Code text=[%blob "WebComponent.ml"] />,

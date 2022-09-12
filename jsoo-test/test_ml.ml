@@ -1,4 +1,4 @@
-open React.Dom.Dsl
+open ReactDom.Dsl
 open Html
 open Webtest.Suite
 module Js = Js_of_ocaml.Js
@@ -23,7 +23,7 @@ let withContainer f =
   let container = Html.createDiv doc in
   Dom.appendChild doc##.body container;
   let result = f container in
-  ignore (React.Dom.unmount_component_at_node container);
+  ignore (ReactDom.unmount_component_at_node container);
   Dom.removeChild doc##.body container;
   result
 
@@ -35,9 +35,9 @@ let withContainers2 f =
 
   let result = f container1 container2 in
 
-  ignore (React.Dom.unmount_component_at_node container1);
+  ignore (ReactDom.unmount_component_at_node container1);
   Dom.removeChild doc##.body container1;
-  ignore (React.Dom.unmount_component_at_node container2);
+  ignore (ReactDom.unmount_component_at_node container2);
   Dom.removeChild doc##.body container2;
 
   result
@@ -53,7 +53,7 @@ let testDom () =
 let testReact () =
   withContainer (fun c ->
       act (fun () ->
-          React.Dom.render
+          ReactDom.render
             (div [||] [ "Hello world!" |> string ])
             (Html.element c));
       assert_equal c##.textContent (Js.Opt.return (Js.string "Hello world!")))
@@ -61,10 +61,10 @@ let testReact () =
 let testPortal () =
   withContainers2 (fun c1 c2 ->
       act (fun () ->
-          React.Dom.render
+          ReactDom.render
             (div [||]
                [ string "Hello"
-               ; React.Dom.create_portal
+               ; ReactDom.create_portal
                    (div [||] [ string "world!" ])
                    (Html.element c2)
                ])
@@ -75,7 +75,7 @@ let testPortal () =
 let testKeys () =
   withContainer (fun c ->
       act (fun () ->
-          React.Dom.render
+          ReactDom.render
             (div [||]
                (List.map
                   (fun str -> div [| key str |] [ str |> string ])
@@ -90,10 +90,10 @@ let testOptionalPropsUppercase () =
       div [||] [ Printf.sprintf "`name` is %s" name |> string ]
   end in
   withContainer (fun c ->
-      act (fun () -> React.Dom.render (OptProps.make ()) (Html.element c));
+      act (fun () -> ReactDom.render (OptProps.make ()) (Html.element c));
       assert_equal c##.textContent (Js.Opt.return (Js.string "`name` is joe"));
       act (fun () ->
-          React.Dom.render (OptProps.make ~name:"jane" ()) (Html.element c));
+          ReactDom.render (OptProps.make ~name:"jane" ()) (Html.element c));
       assert_equal c##.textContent (Js.Opt.return (Js.string "`name` is jane")))
 
 let testOptionalPropsLowercase () =
@@ -103,12 +103,12 @@ let testOptionalPropsLowercase () =
   end in
   withContainer (fun c ->
       act (fun () ->
-          React.Dom.render
+          ReactDom.render
             (LinkWithMaybeHref.make ~href:None ())
             (Html.element c));
       assert_equal c##.innerHTML (Js.string "<a></a>");
       act (fun () ->
-          React.Dom.render
+          ReactDom.render
             (LinkWithMaybeHref.make ~href:(Some "https://google.es") ())
             (Html.element c));
       printInnerHTML c;
@@ -131,7 +131,7 @@ let testContext () =
   end in
   withContainer (fun c ->
       act (fun () ->
-          React.Dom.render
+          ReactDom.render
             (DummyContext.Provider.make ~value:"bar"
                [ DummyContext.Consumer.make () ])
             (Html.element c));
@@ -150,7 +150,7 @@ let test_hooks_use_ref () =
   withContainer (fun c ->
       let myRef = ref None in
       let cb reactRef = myRef := Some reactRef in
-      act (fun () -> React.Dom.render (C.make ~cb ()) (Html.element c));
+      act (fun () -> ReactDom.render (C.make ~cb ()) (Html.element c));
       assert_equal (myRef.contents |> Option.map (fun item -> !item)) (Some 2))
 
 let test_hooks_use_effect () =
@@ -161,9 +161,9 @@ let test_hooks_use_effect () =
       div [||] []
   end in
   withContainer (fun c ->
-      act (fun () -> React.Dom.render (C.make ~a:1 ~b:2 ()) (Html.element c));
-      act (fun () -> React.Dom.render (C.make ~a:1 ~b:2 ()) (Html.element c));
-      act (fun () -> React.Dom.render (C.make ~a:2 ~b:3 ()) (Html.element c));
+      act (fun () -> ReactDom.render (C.make ~a:1 ~b:2 ()) (Html.element c));
+      act (fun () -> ReactDom.render (C.make ~a:1 ~b:2 ()) (Html.element c));
+      act (fun () -> ReactDom.render (C.make ~a:2 ~b:3 ()) (Html.element c));
       assert_equal !count 2)
 
 let test_hooks_use_resource_release () =
@@ -179,10 +179,10 @@ let test_hooks_use_resource_release () =
       div [||] []
   end in
   withContainer (fun c ->
-      act (fun () -> React.Dom.render (C.make ~a:1 ~b:2 ()) (Html.element c));
-      act (fun () -> React.Dom.render (C.make ~a:1 ~b:2 ()) (Html.element c));
-      act (fun () -> React.Dom.render (C.make ~a:2 ~b:3 ()) (Html.element c));
-      act (fun () -> React.Dom.render (div [||] []) (Html.element c));
+      act (fun () -> ReactDom.render (C.make ~a:1 ~b:2 ()) (Html.element c));
+      act (fun () -> ReactDom.render (C.make ~a:1 ~b:2 ()) (Html.element c));
+      act (fun () -> ReactDom.render (C.make ~a:2 ~b:3 ()) (Html.element c));
+      act (fun () -> ReactDom.render (div [||] []) (Html.element c));
       assert_equal !acquired [])
 
 let test_hooks_use_effect_custom_equal () =
@@ -194,9 +194,9 @@ let test_hooks_use_effect_custom_equal () =
       div [||] []
   end in
   withContainer (fun c ->
-      act (fun () -> React.Dom.render (C.make ~a:1 ~b:2 ()) (Html.element c));
-      act (fun () -> React.Dom.render (C.make ~a:1 ~b:3 ()) (Html.element c));
-      act (fun () -> React.Dom.render (C.make ~a:2 ~b:3 ()) (Html.element c));
+      act (fun () -> ReactDom.render (C.make ~a:1 ~b:2 ()) (Html.element c));
+      act (fun () -> ReactDom.render (C.make ~a:1 ~b:3 ()) (Html.element c));
+      act (fun () -> ReactDom.render (C.make ~a:2 ~b:3 ()) (Html.element c));
       assert_equal !count 2)
 
 let test_hooks_use_memo () =
@@ -212,19 +212,19 @@ let test_hooks_use_memo () =
   end in
   withContainer (fun c ->
       act (fun () ->
-          React.Dom.render (UseMemo.make ~a:"foo" ()) (Html.element c));
+          ReactDom.render (UseMemo.make ~a:"foo" ()) (Html.element c));
       assert_equal c##.textContent (Js.Opt.return (Js.string "foo1"));
 
       act (fun () ->
-          React.Dom.render (UseMemo.make ~a:"foo" ()) (Html.element c));
+          ReactDom.render (UseMemo.make ~a:"foo" ()) (Html.element c));
       assert_equal c##.textContent (Js.Opt.return (Js.string "foo1"));
 
       act (fun () ->
-          React.Dom.render (UseMemo.make ~a:"bar" ()) (Html.element c));
+          ReactDom.render (UseMemo.make ~a:"bar" ()) (Html.element c));
       assert_equal c##.textContent (Js.Opt.return (Js.string "bar2"));
 
       act (fun () ->
-          React.Dom.render (UseMemo.make ~a:"foo" ()) (Html.element c));
+          ReactDom.render (UseMemo.make ~a:"foo" ()) (Html.element c));
       assert_equal c##.textContent (Js.Opt.return (Js.string "foo3")))
 
 let test_hooks_use_memo_custom_equal () =
@@ -241,15 +241,15 @@ let test_hooks_use_memo_custom_equal () =
   end in
   withContainer (fun c ->
       act (fun () ->
-          React.Dom.render (UseMemo.make ~a:"foo" ~b:"x" ()) (Html.element c));
+          ReactDom.render (UseMemo.make ~a:"foo" ~b:"x" ()) (Html.element c));
       assert_equal c##.textContent (Js.Opt.return (Js.string "foox1"));
 
       act (fun () ->
-          React.Dom.render (UseMemo.make ~a:"foo" ~b:"y" ()) (Html.element c));
+          ReactDom.render (UseMemo.make ~a:"foo" ~b:"y" ()) (Html.element c));
       assert_equal c##.textContent (Js.Opt.return (Js.string "foox1"));
 
       act (fun () ->
-          React.Dom.render (UseMemo.make ~a:"bar" ~b:"y" ()) (Html.element c));
+          ReactDom.render (UseMemo.make ~a:"bar" ~b:"y" ()) (Html.element c));
       assert_equal c##.textContent (Js.Opt.return (Js.string "bary2")))
 
 let test_use_effect_always () =
@@ -262,8 +262,8 @@ let test_use_effect_always () =
       div [||] []
   end in
   withContainer (fun c ->
-      act (fun () -> React.Dom.render (C.make ()) (Html.element c));
-      act (fun () -> React.Dom.render (C.make ()) (Html.element c));
+      act (fun () -> ReactDom.render (C.make ()) (Html.element c));
+      act (fun () -> ReactDom.render (C.make ()) (Html.element c));
       assert_equal !count 2)
 
 let test_use_effect_once () =
@@ -276,8 +276,8 @@ let test_use_effect_once () =
       div [||] []
   end in
   withContainer (fun c ->
-      act (fun () -> React.Dom.render (C.make ()) (Html.element c));
-      act (fun () -> React.Dom.render (C.make ()) (Html.element c));
+      act (fun () -> ReactDom.render (C.make ()) (Html.element c));
+      act (fun () -> ReactDom.render (C.make ()) (Html.element c));
       assert_equal !count 1)
 
 let test_use_effect2 () =
@@ -292,9 +292,9 @@ let test_use_effect2 () =
       div [||] []
   end in
   withContainer (fun c ->
-      act (fun () -> React.Dom.render (C.make ~a:1 ~b:2 ()) (Html.element c));
-      act (fun () -> React.Dom.render (C.make ~a:1 ~b:2 ()) (Html.element c));
-      act (fun () -> React.Dom.render (C.make ~a:2 ~b:3 ()) (Html.element c));
+      act (fun () -> ReactDom.render (C.make ~a:1 ~b:2 ()) (Html.element c));
+      act (fun () -> ReactDom.render (C.make ~a:1 ~b:2 ()) (Html.element c));
+      act (fun () -> ReactDom.render (C.make ~a:2 ~b:3 ()) (Html.element c));
       assert_equal !count 2)
 
 let testUseCallback1 () =
@@ -315,15 +315,15 @@ let testUseCallback1 () =
   withContainer (fun c ->
       let fooString = "foo" in
       act (fun () ->
-          React.Dom.render (UseCallback.make ~a:fooString ()) (Html.element c));
+          ReactDom.render (UseCallback.make ~a:fooString ()) (Html.element c));
       assert_equal c##.textContent
         (Js.Opt.return (Js.string "`count` is 1, `str` is init and foo and"));
       act (fun () ->
-          React.Dom.render (UseCallback.make ~a:fooString ()) (Html.element c));
+          ReactDom.render (UseCallback.make ~a:fooString ()) (Html.element c));
       assert_equal c##.textContent
         (Js.Opt.return (Js.string "`count` is 1, `str` is init and foo and"));
       act (fun () ->
-          React.Dom.render (UseCallback.make ~a:"bar" ()) (Html.element c));
+          ReactDom.render (UseCallback.make ~a:"bar" ()) (Html.element c));
       assert_equal c##.textContent
         (Js.Opt.return
            (Js.string "`count` is 2, `str` is init and foo and bar and")))
@@ -354,34 +354,34 @@ let testUseCallback4 () =
       let d = [ 3 ] in
       let e = [| 4 |] in
       act (fun () ->
-          React.Dom.render (UseCallback.make ~a ~b ~d ~e ()) (Html.element c));
+          ReactDom.render (UseCallback.make ~a ~b ~d ~e ()) (Html.element c));
       assert_equal c##.textContent
         (Js.Opt.return
            (Js.string "`count` is 1, `str` is a: foo, b: 2, d: [3], e: [|4|]"));
       act (fun () ->
-          React.Dom.render (UseCallback.make ~a ~b ~d ~e ()) (Html.element c));
+          ReactDom.render (UseCallback.make ~a ~b ~d ~e ()) (Html.element c));
       assert_equal c##.textContent
         (Js.Opt.return
            (Js.string "`count` is 1, `str` is a: foo, b: 2, d: [3], e: [|4|]"));
       act (fun () ->
-          React.Dom.render (UseCallback.make ~a:a2 ~b ~d ~e ()) (Html.element c));
+          ReactDom.render (UseCallback.make ~a:a2 ~b ~d ~e ()) (Html.element c));
       assert_equal c##.textContent
         (Js.Opt.return
            (Js.string "`count` is 2, `str` is a: bar, b: 2, d: [3], e: [|4|]"));
       act (fun () ->
-          React.Dom.render (UseCallback.make ~a:a2 ~b ~d ~e ()) (Html.element c));
+          ReactDom.render (UseCallback.make ~a:a2 ~b ~d ~e ()) (Html.element c));
       assert_equal c##.textContent
         (Js.Opt.return
            (Js.string "`count` is 2, `str` is a: bar, b: 2, d: [3], e: [|4|]"));
       act (fun () ->
-          React.Dom.render
+          ReactDom.render
             (UseCallback.make ~a:a2 ~b:3 ~d ~e ())
             (Html.element c));
       assert_equal c##.textContent
         (Js.Opt.return
            (Js.string "`count` is 3, `str` is a: bar, b: 3, d: [3], e: [|4|]"));
       act (fun () ->
-          React.Dom.render
+          ReactDom.render
             (UseCallback.make ~a:a2 ~b:3 ~d:[ 4 ] ~e ())
             (Html.element c));
       assert_equal c##.textContent
@@ -405,7 +405,7 @@ let testUseState () =
   withContainer (fun c ->
       let open ReactDOMTestUtils in
       act (fun () ->
-          React.Dom.render (DummyStateComponent.make ()) (Html.element c));
+          ReactDom.render (DummyStateComponent.make ()) (Html.element c));
       assert_equal c##.innerHTML
         (Js.string
            "<div \
@@ -444,9 +444,9 @@ let testUseStateUpdaterReference () =
       div [||] [ equal |> string ]
   end in
   withContainer (fun c ->
-      act (fun () -> React.Dom.render (UseState.make ()) (Html.element c));
+      act (fun () -> ReactDom.render (UseState.make ()) (Html.element c));
       assert_equal c##.textContent (Js.Opt.return (Js.string "false"));
-      act (fun () -> React.Dom.render (UseState.make ()) (Html.element c));
+      act (fun () -> ReactDom.render (UseState.make ()) (Html.element c));
       assert_equal c##.textContent (Js.Opt.return (Js.string "true")))
 
 let testUseReducer () =
@@ -471,7 +471,7 @@ let testUseReducer () =
   withContainer (fun c ->
       let open ReactDOMTestUtils in
       act (fun () ->
-          React.Dom.render (DummyReducerComponent.make ()) (Html.element c));
+          ReactDom.render (DummyReducerComponent.make ()) (Html.element c));
       assert_equal c##.innerHTML
         (Js.string
            "<div \
@@ -517,7 +517,7 @@ let testUseReducerWithMapState () =
   withContainer (fun c ->
       let open ReactDOMTestUtils in
       act (fun () ->
-          React.Dom.render
+          ReactDom.render
             (DummyReducerWithMapStateComponent.make ())
             (Html.element c));
       assert_equal c##.innerHTML
@@ -558,9 +558,9 @@ let testUseReducerDispatchReference () =
       div [||] [ equal |> string ]
   end in
   withContainer (fun c ->
-      act (fun () -> React.Dom.render (UseReducer.make ()) (Html.element c));
+      act (fun () -> ReactDom.render (UseReducer.make ()) (Html.element c));
       assert_equal c##.textContent (Js.Opt.return (Js.string "false"));
-      act (fun () -> React.Dom.render (UseReducer.make ()) (Html.element c));
+      act (fun () -> ReactDom.render (UseReducer.make ()) (Html.element c));
       assert_equal c##.textContent (Js.Opt.return (Js.string "true")))
 
 let testUseMemo1 () =
@@ -578,13 +578,13 @@ let testUseMemo1 () =
   withContainer (fun c ->
       let fooString = "foo" in
       act (fun () ->
-          React.Dom.render (UseMemo.make ~a:fooString ()) (Html.element c));
+          ReactDom.render (UseMemo.make ~a:fooString ()) (Html.element c));
       assert_equal c##.textContent (Js.Opt.return (Js.string "`count` is 1"));
       act (fun () ->
-          React.Dom.render (UseMemo.make ~a:fooString ()) (Html.element c));
+          ReactDom.render (UseMemo.make ~a:fooString ()) (Html.element c));
       assert_equal c##.textContent (Js.Opt.return (Js.string "`count` is 1"));
       act (fun () ->
-          React.Dom.render (UseMemo.make ~a:"foo" ()) (Html.element c));
+          ReactDom.render (UseMemo.make ~a:"foo" ()) (Html.element c));
       assert_equal c##.textContent (Js.Opt.return (Js.string "`count` is 2")))
 
 let testMemo () =
@@ -601,15 +601,15 @@ let testMemo () =
   withContainer (fun c ->
       let fooString = "foo" in
       act (fun () ->
-          React.Dom.render (Memoized.make ~a:fooString ()) (Html.element c));
+          ReactDom.render (Memoized.make ~a:fooString ()) (Html.element c));
       assert_equal c##.textContent
         (Js.Opt.return (Js.string "`a` is foo, `numRenders` is 1"));
       act (fun () ->
-          React.Dom.render (Memoized.make ~a:fooString ()) (Html.element c));
+          ReactDom.render (Memoized.make ~a:fooString ()) (Html.element c));
       assert_equal c##.textContent
         (Js.Opt.return (Js.string "`a` is foo, `numRenders` is 1"));
       act (fun () ->
-          React.Dom.render (Memoized.make ~a:"bar" ()) (Html.element c));
+          ReactDom.render (Memoized.make ~a:"bar" ()) (Html.element c));
       assert_equal c##.textContent
         (Js.Opt.return (Js.string "`a` is bar, `numRenders` is 2")))
 
@@ -629,15 +629,15 @@ let testMemoCustomCompareProps () =
   withContainer (fun c ->
       let fooString = "foo" in
       act (fun () ->
-          React.Dom.render (Memoized.make ~a:fooString ()) (Html.element c));
+          ReactDom.render (Memoized.make ~a:fooString ()) (Html.element c));
       assert_equal c##.textContent
         (Js.Opt.return (Js.string "`a` is foo, `numRenders` is 1"));
       act (fun () ->
-          React.Dom.render (Memoized.make ~a:fooString ()) (Html.element c));
+          ReactDom.render (Memoized.make ~a:fooString ()) (Html.element c));
       assert_equal c##.textContent
         (Js.Opt.return (Js.string "`a` is foo, `numRenders` is 1"));
       act (fun () ->
-          React.Dom.render (Memoized.make ~a:"bar" ()) (Html.element c));
+          ReactDom.render (Memoized.make ~a:"bar" ()) (Html.element c));
       assert_equal c##.textContent
         (Js.Opt.return (Js.string "`a` is foo, `numRenders` is 1")))
 
@@ -658,10 +658,10 @@ let testForwardRef () =
   withContainer (fun c ->
       let count = ref 0 in
       let buttonRef =
-        React.Dom.Ref.callback_dom_ref (fun _ref -> count := !count + 1)
+        ReactDom.Ref.callback_dom_ref (fun _ref -> count := !count + 1)
       in
       act (fun () ->
-          React.Dom.render
+          ReactDom.render
             (FancyButton.make ~ref:buttonRef [ div [||] [] ])
             (Html.element c));
       assert_equal !count 2)
@@ -681,7 +681,7 @@ let testUseRef () =
       let myRef = ref None in
       let cb reactRef = myRef := Some reactRef in
       act (fun () ->
-          React.Dom.render
+          ReactDom.render
             (DummyComponentWithRefAndEffect.make ~cb ())
             (Html.element c));
       assert_equal
@@ -700,7 +700,7 @@ let testChildrenMapWithIndex () =
   end in
   withContainer (fun c ->
       act (fun () ->
-          React.Dom.render
+          ReactDom.render
             (DummyComponentThatMapsChildren.make
                ~children:
                  [ div [||] [ int 1 ]; div [||] [ int 2 ]; div [||] [ int 3 ] ]
@@ -714,7 +714,7 @@ let testChildrenMapWithIndex () =
 let testFragment () =
   withContainer (fun c ->
       act (fun () ->
-          React.Dom.render
+          ReactDom.render
             (fragment
                [ div [||] [ string "Hello" ]; div [||] [ string "World" ] ])
             (Html.element c));
@@ -726,7 +726,7 @@ let testNonListChildren () =
   end in
   withContainer (fun c ->
       act (fun () ->
-          React.Dom.render
+          ReactDom.render
             (NonListChildrenComponent.make
                ~children:(div [||] [ int 1 ], div [||] [ int 3 ])
                ())
@@ -737,10 +737,10 @@ let testNonListChildren () =
 let testDangerouslySetInnerHTML () =
   withContainer (fun c ->
       act (fun () ->
-          React.Dom.render
+          ReactDom.render
             (div
                [| dangerouslySetInnerHTML
-                    (React.Dom.SafeString.make_unchecked "<lol></lol>")
+                    (ReactDom.SafeString.make_unchecked "<lol></lol>")
                |]
                [])
             (Html.element c));
@@ -754,7 +754,7 @@ let testExternals () =
   end in
   withContainer (fun c ->
       act (fun () ->
-          React.Dom.render
+          ReactDom.render
             (JsComp.make ~name:(Js.string "John") ())
             (Html.element c));
       assert_equal c##.innerHTML (Js.string "<span>Hey John</span>"))
@@ -767,7 +767,7 @@ let testExternalChildren () =
   end in
   withContainer (fun c ->
       act (fun () ->
-          React.Dom.render
+          ReactDom.render
             (JsComp.make
                ~children:
                  (Js.array [| em [| key "one" |] [ React.string "John" ] |])
@@ -783,7 +783,7 @@ let testExternalNonFunction () =
   end in
   withContainer (fun c ->
       act (fun () ->
-          React.Dom.render
+          ReactDom.render
             (JsComp.make ~name:(Js.string "John") ())
             (Html.element c));
       assert_equal c##.innerHTML (Js.string "<span>Hey John</span>"))
@@ -794,7 +794,7 @@ let testAliasedChildren () =
   end in
   withContainer (fun c ->
       act (fun () ->
-          React.Dom.render
+          ReactDom.render
             (AliasedChildrenComponent.make
                ~children:[ div [||] [ int 1 ]; div [||] [ int 3 ] ]
                ())
@@ -812,7 +812,7 @@ let testWithId () =
   end in
   withContainer (fun c ->
       act (fun () ->
-          React.Dom.render
+          ReactDom.render
             (WithTestId.make ~id:"feed-toggle" ~children:[ div [||] [] ] ())
             (Html.element c));
       assert_equal c##.innerHTML
@@ -821,7 +821,7 @@ let testWithId () =
 let testPropMaybeNone () =
   withContainer (fun c ->
       act (fun () ->
-          React.Dom.render
+          ReactDom.render
             (div [| Prop.(maybe className) None |] [])
             (Html.element c));
       assert_equal c##.innerHTML (Js.string "<div></div>"))
@@ -829,7 +829,7 @@ let testPropMaybeNone () =
 let testPropMaybeSome () =
   withContainer (fun c ->
       act (fun () ->
-          React.Dom.render
+          ReactDom.render
             (div [| Prop.(maybe className) (Some "foo") |] [])
             (Html.element c));
       assert_equal c##.innerHTML (Js.string "<div class=\"foo\"></div>"))
@@ -837,7 +837,7 @@ let testPropMaybeSome () =
 let testPropCustomString () =
   withContainer (fun c ->
       act (fun () ->
-          React.Dom.render
+          ReactDom.render
             (div [| Prop.string "foo" "bar" |] [])
             (Html.element c));
       assert_equal c##.innerHTML (Js.string "<div foo=\"bar\"></div>"))
@@ -845,7 +845,7 @@ let testPropCustomString () =
 let testPropCustomBool () =
   withContainer (fun c ->
       act (fun () ->
-          React.Dom.render
+          ReactDom.render
             (div [| Prop.bool "disabled" true |] [])
             (Html.element c));
       assert_equal c##.innerHTML (Js.string "<div disabled=\"\"></div>"))
@@ -853,21 +853,19 @@ let testPropCustomBool () =
 let testPropCustomInt () =
   withContainer (fun c ->
       act (fun () ->
-          React.Dom.render (div [| Prop.int "foo" 42 |] []) (Html.element c));
+          ReactDom.render (div [| Prop.int "foo" 42 |] []) (Html.element c));
       assert_equal c##.innerHTML (Js.string "<div foo=\"42\"></div>"))
 
 let testPropCustomFloat () =
   withContainer (fun c ->
       act (fun () ->
-          React.Dom.render
-            (div [| Prop.float_ "foo" 42.5 |] [])
-            (Html.element c));
+          ReactDom.render (div [| Prop.float_ "foo" 42.5 |] []) (Html.element c));
       assert_equal c##.innerHTML (Js.string "<div foo=\"42.5\"></div>"))
 
 let testPropCustomAny () =
   withContainer (fun c ->
       act (fun () ->
-          React.Dom.render
+          ReactDom.render
             (div [| Prop.any "foo" (Js.array [| "bar"; "baz" |]) |] [])
             (Html.element c));
       assert_equal c##.innerHTML (Js.string "<div foo=\"bar,baz\"></div>"))
@@ -875,7 +873,7 @@ let testPropCustomAny () =
 let testCustomElement () =
   withContainer (fun c ->
       act (fun () ->
-          React.Dom.render
+          ReactDom.render
             (h "cool-element"
                [| Prop.string "coolness" "max" |]
                [ h "chill" [| Prop.bool "data-out" true |] [] ])
@@ -888,7 +886,7 @@ let testCustomElement () =
 let testElementMaybeNone () =
   withContainer (fun c ->
       act (fun () ->
-          React.Dom.render
+          ReactDom.render
             (maybe (fun cls -> div [| className cls |] []) None)
             (Html.element c));
       assert_equal c##.innerHTML (Js.string ""))
@@ -896,7 +894,7 @@ let testElementMaybeNone () =
 let testElementMaybeSome () =
   withContainer (fun c ->
       act (fun () ->
-          React.Dom.render
+          ReactDom.render
             (maybe (fun cls -> div [| className cls |] []) (Some "foo"))
             (Html.element c));
       assert_equal c##.innerHTML (Js.string "<div class=\"foo\"></div>"))
@@ -904,7 +902,7 @@ let testElementMaybeSome () =
 let testSvg () =
   withContainer (fun c ->
       act (fun () ->
-          React.Dom.render
+          ReactDom.render
             Svg.(
               svg
                 [| width "100"; height "100" |]
