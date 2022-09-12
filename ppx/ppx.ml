@@ -607,7 +607,7 @@ let jsxMapper () =
                   [%expr
                     React.Attribute.Bool ([%e objectKey], [%e objectValue])]
               | Style -> value
-              | Ref -> value
+              | Ref -> [%expr React.Attribute.Ref [%e value]]
               | InnerHtml -> value)
           | Event _ -> failwith "todo: add events"
         in
