@@ -1,7 +1,6 @@
 type attributeType =
   | String
   | Int
-  | Float
   | Bool
   | Style
   | Ref

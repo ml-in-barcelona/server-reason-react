@@ -350,8 +350,6 @@ let makeAttributeValue ~loc ~isOptional (type_ : Html.attributeType) value =
   | String, false -> [%expr ([%e value] : string)]
   | Int, false -> [%expr ([%e value] : int)]
   | Int, true -> [%expr ([%e value] : int option)]
-  | Float, false -> [%expr ([%e value] : float)]
-  | Float, true -> [%expr ([%e value] : float option)]
   | Bool, false -> [%expr ([%e value] : bool)]
   | Bool, true -> [%expr ([%e value] : bool option)]
   | Style, false -> [%expr ([%e value] : React.Dom.Style.t)]
@@ -605,10 +603,6 @@ let jsxMapper () =
                   [%expr
                     React.Attribute.String
                       ([%e objectKey], string_of_int [%e objectValue])]
-              | Float ->
-                  [%expr
-                    React.Attribute.String
-                      ([%e objectKey], string_of_float [%e objectValue])]
               | Bool ->
                   [%expr
                     React.Attribute.Bool ([%e objectKey], [%e objectValue])]

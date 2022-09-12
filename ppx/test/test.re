@@ -19,10 +19,7 @@ let test_empty_attribute = () => {
 
 let test_bool_attribute = () => {
   let div = <div hidden=true />;
-  assert_string(
-    ReactDOM.renderToStaticMarkup(div),
-    "<div class=\"\"></div>",
-  );
+  assert_string(ReactDOM.renderToStaticMarkup(div), "<div hidden></div>");
 };
 
 run(
