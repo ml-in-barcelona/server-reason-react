@@ -10,54 +10,6 @@ let createRef () = ref None
 let useRef value = ref value
 let forwardRef f = f ()
 
-(* module StrictMode = {
-     [@bs.obj]
-     external makeProps:
-       (~children: element, ~key: 'key=?, unit) => {. "children": element};
-     [@bs.module "react"]
-     external make: component({. "children": element}) = "StrictMode";
-   }; *)
-
-(* module Suspense = {
-     [@bs.obj]
-     external makeProps:
-       (~children: element=?, ~fallback: element=?, ~key: 'key=?, unit) =>
-       {
-         .
-         "children": option(element),
-         "fallback": option(element),
-       };
-     [@bs.module "react"]
-     external make:
-       component({
-         .
-         "children": option(element),
-         "fallback": option(element),
-       }) =
-       "Suspense";
-   }; *)
-
-(* useImperativeHandle *)
-(* useLayoutEffect *)
-
-(*
-
-type transitionConfig = {timeoutMs: int};
-
-   [@bs.module "react"]
-   external useTransition:
-     (~config: transitionConfig=?, unit) =>
-     (callback(callback(unit, unit), unit), bool) =
-     "useTransition";
- *)
-
-(*
-   [@bs.set]
-   external setDisplayName: (component('props), string) => unit = "displayName";
-
-   [@bs.get] [@bs.return nullable]
-   external displayName: component('props) => option(string) = "displayName"; *)
-
 (* Self referencing modules to have recursive type records without collission *)
 module rec Element : sig
   type t =
@@ -80,7 +32,7 @@ and Node : sig
   type t =
     | Element of Element.t
     | Closed_element of Closed_element.t
-    | Component of (unit -> Node.t)
+    | Component of (unit -> t)
     | Text of string
     | Fragment of t list
     | Empty
