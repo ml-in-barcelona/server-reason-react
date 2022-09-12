@@ -13,6 +13,7 @@ depends: [
   "alcotest" {with-test}
   "ocamlformat" {= "0.21.0" & with-test}
   "reason" {with-test}
+  "ocaml-lsp-server" {with-test}
   "odoc" {with-doc}
 ]
 build: [
