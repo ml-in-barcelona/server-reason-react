@@ -92,3 +92,5 @@ let renderToStaticMarkup (component : Node.t) =
         Printf.sprintf "<%s%s%s />" tag root_attribute attributes
   in
   render_to_string_inner component
+
+module Style = ReactDomStyle

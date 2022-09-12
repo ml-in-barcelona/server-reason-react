@@ -214,9 +214,13 @@ let test_use_context () =
   let component = context.provider ~value:0 ~children:[ context_user ] in
   assert_string (ReactDOM.renderToStaticMarkup component) "<section>0</section>"
 
-module Component = struct
-  let make () = React.createElement "div" [||] []
-end
+let test_two_styles () =
+  let styles = ReactDOM.Style.make ~background:"#333" ~fontSize:"24px" () in
+  assert_string styles "background: #333; font-size: 24px"
+
+let test_one_styles () =
+  let styles = ReactDOM.Style.make ~background:"#333" () in
+  assert_string styles "background: #333"
 
 let () =
   let open Alcotest in
@@ -250,5 +254,9 @@ let () =
         ; test_case "attributes component" `Quick test_clone_attributes
         ; test_case "ordered attributes component" `Quick
             test_clone_order_attributes
+        ] )
+    ; ( "ReactDOM.Style.make"
+      , [ test_case "generate one style" `Quick test_one_styles
+        ; test_case "generate more than one style" `Quick test_two_styles
         ] )
     ]
