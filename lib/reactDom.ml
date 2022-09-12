@@ -41,7 +41,9 @@ let attribute_is_not_empty = function
 let attribute_is_not_valid = attribute_is_not_empty
 
 let attributes_to_string attrs =
-  let attributes = List.filter attribute_is_not_valid attrs in
+  let attributes =
+    attrs |> Array.to_list |> List.filter attribute_is_not_valid
+  in
   match attributes with
   | [] -> ""
   | _ ->

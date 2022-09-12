@@ -8,7 +8,7 @@
 (*
    The transform:
    transform `[@JSX] div(~props1=a, ~props2=b, ~children=[foo, bar], ())` into
-   `React.createDOMElementVariadic("div", ReactDom.domProps(~props1=1, ~props2=b), [foo, bar])`.
+   `ReactDom.createDOMElementVariadic("div", ReactDom.domProps(~props1=1, ~props2=b), [foo, bar])`.
    transform the upper-cased case
    `[@JSX] Foo.createElement(~key=a, ~ref=b, ~foo=bar, ~children=[], ())` into
    `React.createElement(Foo.make, Foo.makeProps(~key=a, ~ref=b, ~foo=bar, ()))`
@@ -544,15 +544,12 @@ let jsxMapper () =
         [%expr [%e objectKey], value]
       in
       let propsObj =
-        [%expr
-          (Js_of_ocaml.Js.Unsafe.obj
-             [%e Exp.array ~loc (List.map makePropField labeledProps)]
-            : ReactDom.domProps)]
+        [%expr [%e Exp.array ~loc (List.map makePropField labeledProps)]]
       in
       [ (* "div" *)
         (nolabel, componentNameExpr)
-      ; (* ~props: Js_of_ocaml.Js.Unsafe.obj ... *)
-        (labelled "props", propsObj)
+      ; (* [React.Attribute.String("key", "value")] *)
+        (nolabel, propsObj)
       ; (* [|moreCreateElementCallsHere|] *)
         (nolabel, childrenExpr)
       ]

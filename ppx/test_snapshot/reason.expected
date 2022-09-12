@@ -1,4 +1,2 @@
-let lower =
-  React.createElement "div"
-    ~props:(Js_of_ocaml.Js.Unsafe.obj [||] : ReactDom.domProps) []
+let lower = React.createElement "div" [||] []
 let upper = React.createElement Input.make (Input.makeProps ())

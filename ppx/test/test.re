@@ -6,10 +6,7 @@ let assert_string = (left, right) =>
   (check(string))("should be equal", right, left);
 
 let test_tag = () => {
-  assert_string(
-    ReactDOM.renderToStaticMarkup(React.createElement("div", [], [])),
-    "<div></div>",
-  );
+  assert_string(ReactDOM.renderToStaticMarkup(<div />), "<div></div>");
 };
 
 run(
