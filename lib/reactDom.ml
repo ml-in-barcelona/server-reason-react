@@ -25,6 +25,7 @@ let attribute_to_string attr =
   (* false attributes don't get rendered *)
   | Bool (_, false) -> ""
   | Bool (k, true) -> k
+  | Ref _ -> ""
   | DangerouslyInnerHtml html -> html
   | Style styles -> Printf.sprintf "style=\"%s\"" (styles_to_string styles)
   | String (k, _) when attribute_is_not_html k -> ""
@@ -34,8 +35,9 @@ let attribute_to_string attr =
 let attribute_is_not_empty = function
   | Attribute.String (k, _v) -> k != ""
   | Bool (k, _) -> k != ""
-  | DangerouslyInnerHtml _ -> false
   | Style styles -> List.length styles != 0
+  | DangerouslyInnerHtml _ -> false
+  | Ref _ -> false
 
 (* FIXME: Remove empty style attributes or class *)
 let attribute_is_not_valid = attribute_is_not_empty
@@ -73,6 +75,7 @@ let renderToStaticMarkup (component : Node.t) =
         children () |> List.map render_to_string_inner |> String.concat ""
     | Fragment children ->
         children |> List.map render_to_string_inner |> String.concat ""
+    | Component f -> render_to_string_inner (f ())
     | Element { tag; attributes; children } ->
         is_root.contents <- false;
         let attributes = attributes_to_string attributes in

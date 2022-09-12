@@ -74,11 +74,23 @@ var context_user = () => {
 };
 
 var app = () => {
+  let ref = React.useRef(333);
+  console.log(ref);
   return React.createElement(
     ctx.Provider,
-    { value: 0 },
+    { value: 0, ref: ref },
     React.createElement(context_user)
   );
 };
+
+var app = React.forwardRef(() => {
+  let ref = React.useRef(333);
+  console.log(ref);
+  return React.createElement(
+    ctx.Provider,
+    { value: 0, ref: ref },
+    React.createElement(context_user)
+  );
+});
 
 console.log(ReactDOM.renderToStaticMarkup(React.createElement(app, null)));

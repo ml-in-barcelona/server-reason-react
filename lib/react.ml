@@ -1,3 +1,63 @@
+type domRef
+
+module Ref = struct
+  type t = domRef
+  type currentDomRef (*  = React.ref(Js.nullable(Dom.element)); *)
+  type callbackDomRef (*  = Js.nullable(Dom.element) => unit; *)
+end
+
+let createRef () = ref None
+let useRef value = ref value
+let forwardRef f = f ()
+
+(* module StrictMode = {
+     [@bs.obj]
+     external makeProps:
+       (~children: element, ~key: 'key=?, unit) => {. "children": element};
+     [@bs.module "react"]
+     external make: component({. "children": element}) = "StrictMode";
+   }; *)
+
+(* module Suspense = {
+     [@bs.obj]
+     external makeProps:
+       (~children: element=?, ~fallback: element=?, ~key: 'key=?, unit) =>
+       {
+         .
+         "children": option(element),
+         "fallback": option(element),
+       };
+     [@bs.module "react"]
+     external make:
+       component({
+         .
+         "children": option(element),
+         "fallback": option(element),
+       }) =
+       "Suspense";
+   }; *)
+
+(* useImperativeHandle *)
+(* useLayoutEffect *)
+
+(*
+
+type transitionConfig = {timeoutMs: int};
+
+   [@bs.module "react"]
+   external useTransition:
+     (~config: transitionConfig=?, unit) =>
+     (callback(callback(unit, unit), unit), bool) =
+     "useTransition";
+ *)
+
+(*
+   [@bs.set]
+   external setDisplayName: (component('props), string) => unit = "displayName";
+
+   [@bs.get] [@bs.return nullable]
+   external displayName: component('props) => option(string) = "displayName"; *)
+
 (* Self referencing modules to have recursive type records without collission *)
 module rec Element : sig
   type t =
@@ -20,6 +80,7 @@ and Node : sig
   type t =
     | Element of Element.t
     | Closed_element of Closed_element.t
+    | Component of (unit -> Node.t)
     | Text of string
     | Fragment of t list
     | Empty
@@ -34,6 +95,7 @@ and Attribute : sig
     | String of (string * string)
     | Style of (string * string) list
     | DangerouslyInnerHtml of string
+    | Ref of Ref.t
 end =
   Attribute
 
@@ -79,6 +141,7 @@ let attributes_to_map attrs =
       | Attribute.String (key, value) ->
           acc |> StringMap.add key (Attribute.String (key, value))
       | Attribute.DangerouslyInnerHtml _ -> acc
+      | Attribute.Ref _ -> acc
       | Attribute.Style _ -> acc)
     StringMap.empty attrs
 
@@ -126,6 +189,7 @@ let cloneElement element new_attributes new_childrens =
   (* FIXME: How does cloneElement does with Provider/Consumer *)
   | Provider child -> Provider child
   | Consumer child -> Consumer child
+  | Component f -> Component f
 
 (* let currentDispatcher = ref dispacher *)
 (* HooksDispatcherOnUpdateInDEV *)
