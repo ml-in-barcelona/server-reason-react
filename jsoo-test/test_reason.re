@@ -277,10 +277,7 @@ let testUseCallback4 = () => {
       ),
     );
     act(() => {
-      ReactDom.render(
-        <UseCallback a=a2 b=3 d=[4] e />,
-        Dom_html.element(c),
-      )
+      ReactDom.render(<UseCallback a=a2 b=3 d=[4] e />, Dom_html.element(c))
     });
     assert_equal(
       c##.textContent,
@@ -1057,19 +1054,14 @@ let testWithId = () => {
 
 let testPropMaybeNone = () =>
   withContainer(c => {
-    act(() =>
-      ReactDom.render(<div className=?None />, Dom_html.element(c))
-    );
+    act(() => ReactDom.render(<div className=?None />, Dom_html.element(c)));
     assert_equal(c##.innerHTML, Js.string("<div></div>"));
   });
 
 let testPropMaybeSome = () =>
   withContainer(c => {
     act(() =>
-      ReactDom.render(
-        <div className=?{Some("foo")} />,
-        Dom_html.element(c),
-      )
+      ReactDom.render(<div className=?{Some("foo")} />, Dom_html.element(c))
     );
     assert_equal(c##.innerHTML, Js.string("<div class=\"foo\"></div>"));
   });
