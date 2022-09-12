@@ -1,17 +1,16 @@
-(rule
- (targets reason.actual)
- (deps
-  (:pp ../../bin/standalone.exe)
-  (:input reason.ml))
- (action
-  ; expect the process to fail, capturing stderr
-  (with-stderr-to
-   %{targets}
-   (bash "! ./%{pp} %{input}"))))
+(executable
+ (name main)
+ (libraries native-react.ppx ppxlib))
 
 (rule
- (targets reason.ml)
- (deps reason.re)
+ (targets reason.result)
+ (deps test_reason.ml)
+ (action
+  (run ./main.exe --impl %{deps} -o %{targets})))
+
+(rule
+ (targets test_reason.ml)
+ (deps input_reason.re)
  (action
   (with-stdout-to
    %{targets}
@@ -20,5 +19,4 @@
 (rule
  (alias runtest)
  (action
-  (progn
-   (diff reason.expected reason.actual))))
+  (diff reason.expected reason.result)))
