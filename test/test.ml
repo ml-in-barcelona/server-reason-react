@@ -5,25 +5,27 @@ module ReactDOM = Main.ReactDOMServer
 let assert_string left right = (check string) "should be equal" right left
 
 let test_tag () =
-  let div = React.createElement "div" [] [] in
+  let div = React.createElement "div" [||] [] in
   assert_string (ReactDOM.renderToStaticMarkup div) "<div></div>"
 
 let test_empty_attributes () =
-  let div = React.createElement "div" [ React.Attribute.String ("", "") ] [] in
+  let div =
+    React.createElement "div" [| React.Attribute.String ("", "") |] []
+  in
   assert_string (ReactDOM.renderToStaticMarkup div) "<div></div>"
 
 let test_empty_attribute () =
   let div =
-    React.createElement "div" [ React.Attribute.String ("className", "") ] []
+    React.createElement "div" [| React.Attribute.String ("className", "") |] []
   in
   assert_string (ReactDOM.renderToStaticMarkup div) "<div class=\"\"></div>"
 
 let test_attributes () =
   let a =
     React.createElement "a"
-      [ React.Attribute.String ("href", "google.html")
-      ; React.Attribute.String ("target", "_blank")
-      ]
+      [| React.Attribute.String ("href", "google.html")
+       ; React.Attribute.String ("target", "_blank")
+      |]
       []
   in
   assert_string
@@ -33,11 +35,11 @@ let test_attributes () =
 let test_bool_attributes () =
   let a =
     React.createElement "input"
-      [ React.Attribute.String ("type", "checkbox")
-      ; React.Attribute.String ("name", "cheese")
-      ; React.Attribute.Bool ("checked", true)
-      ; React.Attribute.Bool ("disabled", false)
-      ]
+      [| React.Attribute.String ("type", "checkbox")
+       ; React.Attribute.String ("name", "cheese")
+       ; React.Attribute.Bool ("checked", true)
+       ; React.Attribute.Bool ("disabled", false)
+      |]
       []
   in
   assert_string
@@ -45,45 +47,47 @@ let test_bool_attributes () =
     "<input type=\"checkbox\" name=\"cheese\" checked />"
 
 let test_closing_tag () =
-  let input = React.createElement "input" [] [] in
+  let input = React.createElement "input" [||] [] in
   assert_string (ReactDOM.renderToStaticMarkup input) "<input />"
 
 let test_innerhtml () =
-  let p = React.createElement "p" [] [ React.string "text" ] in
+  let p = React.createElement "p" [||] [ React.string "text" ] in
   assert_string (ReactDOM.renderToStaticMarkup p) "<p>text</p>"
 
 let test_children () =
-  let children = React.createElement "div" [] [] in
-  let div = React.createElement "div" [] [ children ] in
+  let children = React.createElement "div" [||] [] in
+  let div = React.createElement "div" [||] [ children ] in
   assert_string (ReactDOM.renderToStaticMarkup div) "<div><div></div></div>"
 
 let test_className () =
   let div =
-    React.createElement "div" [ React.Attribute.String ("className", "lol") ] []
+    React.createElement "div"
+      [| React.Attribute.String ("className", "lol") |]
+      []
   in
   assert_string (ReactDOM.renderToStaticMarkup div) "<div class=\"lol\"></div>"
 
 let test_fragment () =
-  let div = React.createElement "div" [] [] in
+  let div = React.createElement "div" [||] [] in
   let component = React.Node.Fragment [ div; div ] in
   assert_string
     (ReactDOM.renderToStaticMarkup component)
     "<div></div><div></div>"
 
 let test_nulls () =
-  let div = React.createElement "div" [] [] in
-  let span = React.createElement "span" [] [] in
-  let component = React.createElement "div" [] [ div; span; React.null ] in
+  let div = React.createElement "div" [||] [] in
+  let span = React.createElement "span" [||] [] in
+  let component = React.createElement "div" [||] [ div; span; React.null ] in
   assert_string
     (ReactDOM.renderToStaticMarkup component)
     "<div><div></div><span></span></div>"
 
 let test_fragments_and_texts () =
   let component =
-    React.createElement "div" []
+    React.createElement "div" [||]
       [ React.Node.Fragment [ React.Node.Text "foo" ]
       ; React.Node.Text "bar"
-      ; React.createElement "b" [] []
+      ; React.createElement "b" [||] []
       ]
   in
   assert_string
@@ -93,7 +97,7 @@ let test_fragments_and_texts () =
 let test_default_value () =
   let component =
     React.createElement "input"
-      [ React.Attribute.String ("defaultValue", "lol") ]
+      [| React.Attribute.String ("defaultValue", "lol") |]
       []
   in
   assert_string
@@ -103,7 +107,7 @@ let test_default_value () =
 let test_inline_styles () =
   let component =
     React.createElement "button"
-      [ React.Attribute.Style [ ("color", "red"); ("border", "none") ] ]
+      [| React.Attribute.Style [ ("color", "red"); ("border", "none") ] |]
       []
   in
   assert_string
@@ -113,7 +117,7 @@ let test_inline_styles () =
 let test_escape_attributes () =
   let component =
     React.createElement "div"
-      [ React.Attribute.String ("a", "\' <") ]
+      [| React.Attribute.String ("a", "\' <") |]
       [ React.string "& \"" ]
   in
   assert_string
@@ -122,28 +126,28 @@ let test_escape_attributes () =
 
 let test_clone_empty () =
   let component =
-    React.createElement "div" [ React.Attribute.String ("val", "33") ] []
+    React.createElement "div" [| React.Attribute.String ("val", "33") |] []
   in
   assert_string
     (ReactDOM.renderToStaticMarkup component)
-    (ReactDOM.renderToStaticMarkup (React.cloneElement component [] []))
+    (ReactDOM.renderToStaticMarkup (React.cloneElement component [||] []))
 
 let test_clone_attributes () =
   let component =
-    React.createElement "div" [ React.Attribute.String ("val", "33") ] []
+    React.createElement "div" [| React.Attribute.String ("val", "33") |] []
   in
   let expected =
     React.createElement "div"
-      [ React.Attribute.String ("val", "31")
-      ; React.Attribute.Bool ("lola", true)
-      ]
+      [| React.Attribute.String ("val", "31")
+       ; React.Attribute.Bool ("lola", true)
+      |]
       []
   in
   let cloned =
     React.cloneElement component
-      [ React.Attribute.Bool ("lola", true)
-      ; React.Attribute.String ("val", "31")
-      ]
+      [| React.Attribute.Bool ("lola", true)
+       ; React.Attribute.String ("val", "31")
+      |]
       []
   in
   assert_string
@@ -151,19 +155,19 @@ let test_clone_attributes () =
     (ReactDOM.renderToStaticMarkup expected)
 
 let test_clone_order_attributes () =
-  let component = React.createElement "div" [] [] in
+  let component = React.createElement "div" [||] [] in
   let expected =
     React.createElement "div"
-      [ React.Attribute.String ("val", "31")
-      ; React.Attribute.Bool ("lola", true)
-      ]
+      [| React.Attribute.String ("val", "31")
+       ; React.Attribute.Bool ("lola", true)
+      |]
       []
   in
   let cloned =
     React.cloneElement component
-      [ React.Attribute.Bool ("lola", true)
-      ; React.Attribute.String ("val", "31")
-      ]
+      [| React.Attribute.Bool ("lola", true)
+       ; React.Attribute.String ("val", "31")
+      |]
       []
   in
   assert_string
@@ -177,7 +181,7 @@ let test_context () =
       ~children:
         [ (fun () ->
             context.consumer ~children:(fun value ->
-                [ React.createElement "section" [] [ React.int value ] ]))
+                [ React.createElement "section" [||] [ React.int value ] ]))
         ]
   in
   assert_string
@@ -186,32 +190,32 @@ let test_context () =
 
 let test_use_state () =
   let state, _setState = React.useStateValue "LOL" in
-  let component = React.createElement "section" [] [ React.string state ] in
+  let component = React.createElement "section" [||] [ React.string state ] in
   assert_string
     (ReactDOM.renderToStaticMarkup component)
     "<section>LOL</section>"
 
 let test_use_memo () =
   let memo = React.useMemo (fun () -> 23) in
-  let component = React.createElement "header" [] [ React.int memo ] in
+  let component = React.createElement "header" [||] [ React.int memo ] in
   assert_string (ReactDOM.renderToStaticMarkup component) "<header>23</header>"
 
 let test_use_callback () =
   let memo = React.useCallback (fun () -> 23) in
-  let component = React.createElement "header" [] [ React.int (memo ()) ] in
+  let component = React.createElement "header" [||] [ React.int (memo ()) ] in
   assert_string (ReactDOM.renderToStaticMarkup component) "<header>23</header>"
 
 let test_use_context () =
   let context = React.createContext 10 in
   let context_user () =
     let number = React.useContext context in
-    React.createElement "section" [] [ React.int number ]
+    React.createElement "section" [||] [ React.int number ]
   in
   let component = context.provider ~value:0 ~children:[ context_user ] in
   assert_string (ReactDOM.renderToStaticMarkup component) "<section>0</section>"
 
 module Component = struct
-  let make () = React.createElement "div" [] []
+  let make () = React.createElement "div" [||] []
 end
 
 let () =

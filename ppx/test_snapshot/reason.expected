@@ -1,4 +1,6 @@
-let lower =
+let lower = React.createElement "div" [||] []
+let lower_with_empty_attr =
   React.createElement "div"
-    ~props:(Js_of_ocaml.Js.Unsafe.obj [||] : ReactDom.domProps) []
+    [|(React.Attribute.String
+         ("className", ((("")[@reason.raw_literal ""]) : string)))|] []
 let upper = React.createElement Input.make (Input.makeProps ())

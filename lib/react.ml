@@ -62,7 +62,7 @@ type transitionConfig = {timeoutMs: int};
 module rec Element : sig
   type t =
     { tag : string
-    ; attributes : Attribute.t list
+    ; attributes : Attribute.t array
     ; children : Node.t list
     }
 end =
@@ -71,7 +71,7 @@ end =
 and Closed_element : sig
   type t =
     { tag : string
-    ; attributes : Attribute.t list
+    ; attributes : Attribute.t array
     }
 end =
   Closed_element
@@ -133,7 +133,7 @@ module StringMap = Map.Make (String)
 type attributes = Attribute.t StringMap.t
 
 let attributes_to_map attrs =
-  List.fold_left
+  Array.fold_left
     (fun acc attr ->
       match attr with
       | Attribute.Bool (key, value) ->
@@ -145,7 +145,7 @@ let attributes_to_map attrs =
       | Attribute.Style _ -> acc)
     StringMap.empty attrs
 
-let clone_attributes attributes new_attributes =
+let clone_attributes (attributes : 'a array) new_attributes =
   let attribute_map = attributes_to_map attributes in
   let new_attribute_map = attributes_to_map new_attributes in
   StringMap.merge
@@ -160,6 +160,7 @@ let clone_attributes attributes new_attributes =
   |> List.map (fun (_, attrs) -> attrs)
   |> List.flatten |> List.rev
   |> List.sort compare_attribute
+  |> Array.of_list
 
 let createElement tag attributes children =
   match is_self_closing_tag tag with
