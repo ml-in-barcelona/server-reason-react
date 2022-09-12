@@ -1,2 +1,6 @@
 let lower = React.createElement "div" [||] []
+let lower_with_empty_attr =
+  React.createElement "div"
+    [|(React.Attribute.String
+         ("className", ((("")[@reason.raw_literal ""]) : string)))|] []
 let upper = React.createElement Input.make (Input.makeProps ())
