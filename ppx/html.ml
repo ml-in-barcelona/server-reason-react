@@ -3,7 +3,6 @@ let ( & ) = List.append
 type attributeType =
   | String
   | Int
-  | Float
   | Bool
   | Style
   | Ref
