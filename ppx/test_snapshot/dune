@@ -1,10 +1,17 @@
-(executable
- (name snapshot)
- (libraries reason ppxlib jsoo_react_ppx))
+(rule
+ (targets reason.actual)
+ (deps
+  (:pp ../../bin/standalone.exe)
+  (:input reason.ml))
+ (action
+  ; expect the process to fail, capturing stderr
+  (with-stderr-to
+   %{targets}
+   (bash "! ./%{pp} %{input}"))))
 
 (rule
- (targets test_reason.ml)
- (deps input_reason.re)
+ (targets reason.ml)
+ (deps reason.re)
  (action
   (with-stdout-to
    %{targets}
@@ -14,4 +21,4 @@
  (alias runtest)
  (action
   (progn
-   (diff pp_reason.expected pp_reason.result))))
+   (diff reason.expected reason.actual))))

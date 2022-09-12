@@ -1,0 +1,4 @@
+(executable
+ (name standalone)
+ (modules standalone)
+ (libraries native-react.ppx ppxlib))
