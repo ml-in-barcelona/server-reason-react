@@ -1,0 +1,3 @@
+(library
+ (name shims)
+ (public_name native-react.shims))

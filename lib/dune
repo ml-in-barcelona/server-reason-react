@@ -1,3 +1,4 @@
 (library
  (name index)
- (public_name native-react.lib))
+ (public_name native-react.lib)
+ (libraries native-react.shims))
