@@ -44,11 +44,11 @@
 - [x] Ignore useEffect
 - [x] Handle React dengerouslySetInnerHTML
 - [x] Add test for hooks
-- [ ] Implement all JSX logic from HTML in attribute_name_to_jsx
+- [ ] Implement all JSX logic
   - [ ] Check migrated tests for all cases
-  - cased custom attributes
-  - no HTML events
-  - no unknown events
+  - [x] cased custom attributes
+  - [x] no HTML events
+  - [x] no unknown events
 - [ ] Implement renderToString
   - What are the differences?
 - [ ] Implement the rest of the React API

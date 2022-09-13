@@ -1,7 +1,7 @@
 open Alcotest;
 module React = Index.React;
 module ReactDOM = Index.ReactDOMServer;
-open Index.Bridge;
+open Index.Shims;
 
 let assert_string = (left, right) =>
   (check(string))("should be equal", right, left);

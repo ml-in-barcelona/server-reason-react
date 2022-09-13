@@ -1,6 +1,6 @@
 type domRef
 
-open Bridge
+open Shims
 
 module Ref = struct
   type t = domRef
