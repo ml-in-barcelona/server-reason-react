@@ -79,10 +79,7 @@ let test_int_opt_attribute_some = () => {
 let test_int_opt_attribute_none = () => {
   let tabIndex = None;
   let div = <div ?tabIndex />;
-  assert_string(
-    ReactDOM.renderToStaticMarkup(div),
-    "<div></div>",
-  );
+  assert_string(ReactDOM.renderToStaticMarkup(div), "<div></div>");
 };
 
 let test_string_opt_attribute_some = () => {
@@ -97,10 +94,7 @@ let test_string_opt_attribute_some = () => {
 let test_string_opt_attribute_none = () => {
   let className = None;
   let div = <div ?className />;
-  assert_string(
-    ReactDOM.renderToStaticMarkup(div),
-    "<div></div>",
-  );
+  assert_string(ReactDOM.renderToStaticMarkup(div), "<div></div>");
 };
 
 run(
@@ -120,8 +114,16 @@ run(
         test_case("inner_html_attr", `Quick, test_innerhtml_attribute),
         test_case("int_opt_attr_some", `Quick, test_int_opt_attribute_some),
         test_case("int_opt_attr_none", `Quick, test_int_opt_attribute_none),
-        test_case("string_opt_attr_some", `Quick, test_string_opt_attribute_some),
-        test_case("string_opt_attr_none", `Quick, test_string_opt_attribute_none),
+        test_case(
+          "string_opt_attr_some",
+          `Quick,
+          test_string_opt_attribute_some,
+        ),
+        test_case(
+          "string_opt_attr_none",
+          `Quick,
+          test_string_opt_attribute_none,
+        ),
       ],
     ),
   ],
