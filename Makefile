@@ -22,6 +22,9 @@ build-prod: ## Build for production (--profile=prod)
 dev: ## Build in watch mode
 	$(DUNE) build -w @@default
 
+clean: ## Clean artifacts
+	$(DUNE) clean
+
 test: ## Run the unit tests
 	$(DUNE) build @runtest
 

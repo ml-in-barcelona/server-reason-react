@@ -1,6 +1,6 @@
 open Alcotest
-module React = Main.React
-module ReactDOM = Main.ReactDOMServer
+module React = Index.React
+module ReactDOM = Index.ReactDOMServer
 
 let assert_string left right = (check string) "should be equal" right left
 

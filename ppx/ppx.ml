@@ -19,8 +19,8 @@
    `React.createFragment([foo])`
  *)
 
+module DomProps = Index.DomProps
 module Ocaml_location = Location
-module DomProps = Main.DomProps
 open Ppxlib
 open Ast_helper
 
@@ -344,7 +344,7 @@ let rec makeFunsForMakePropsBody list args =
            args)
   | [] -> args
 
-let makeAttributeValue ~loc ~isOptional (type_ : Html.attributeType) value =
+let makeAttributeValue ~loc ~isOptional (type_ : DomProps.attributeType) value =
   match (type_, isOptional) with
   | String, true ->
       [%expr Option.map Js_of_ocaml.Js.string ([%e value] : string option)]
@@ -362,7 +362,7 @@ let makeAttributeValue ~loc ~isOptional (type_ : Html.attributeType) value =
   | InnerHtml, true ->
       [%expr ([%e value] : React.Dom.DangerouslySetInnerHTML.t option)]
 
-let makeEventValue ~loc ~isOptional (type_ : Html.eventType) value =
+let makeEventValue ~loc ~isOptional (type_ : DomProps.eventType) value =
   match (type_, isOptional) with
   | Clipboard, false -> [%expr ([%e value] : React.Event.Clipboard.t -> unit)]
   | Clipboard, true ->
@@ -576,7 +576,7 @@ let jsxMapper () =
         let isOptional = isOptional arg_label in
         let name = getLabel arg_label in
         let prop =
-          match Html.findByName id name with
+          match DomProps.findByName id name with
           | Ok p -> p
           | Error err -> (
               match err with
@@ -588,7 +588,7 @@ let jsxMapper () =
                   @@ Location.raise_errorf ~loc
                        "prop '%s' isn't a valid prop for a '%s'" name id)
         in
-        let jsxName = Html.getJSXName prop in
+        let jsxName = DomProps.getJSXName prop in
         let objectKey =
           Exp.constant ~loc (Pconst_string (jsxName, loc, None))
         in
@@ -597,7 +597,7 @@ let jsxMapper () =
           match prop with
           | Attribute { type_; _ } -> (
               match type_ with
-              | Html.String ->
+              | DomProps.String ->
                   [%expr
                     React.Attribute.String ([%e objectKey], [%e objectValue])]
               | Int ->

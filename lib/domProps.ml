@@ -965,7 +965,7 @@ let inputHTMLAttributes =
   ; Attribute { name = "src"; jsxName = "src"; type_ = String }
   ; Attribute
       { name = "step"; jsxName = "step"; type_ = String (* number |  *) }
-  ; Attribute { name = "type"; jsxName = "type"; type_ = inputTypeAttribute }
+  ; Attribute { name = "type_"; jsxName = "type"; type_ = inputTypeAttribute }
   ; Attribute
       { name = "value"
       ; jsxName = "value"
