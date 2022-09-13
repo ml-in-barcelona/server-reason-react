@@ -346,8 +346,7 @@ let rec makeFunsForMakePropsBody list args =
 
 let makeAttributeValue ~loc ~isOptional (type_ : DomProps.attributeType) value =
   match (type_, isOptional) with
-  | String, true ->
-      [%expr Option.map Js_of_ocaml.Js.string ([%e value] : string option)]
+  | String, true -> [%expr ([%e value] : string option)]
   | String, false -> [%expr ([%e value] : string)]
   | Int, false -> [%expr ([%e value] : int)]
   | Int, true -> [%expr ([%e value] : int option)]
@@ -596,23 +595,57 @@ let jsxMapper () =
         let react_attr_expr =
           match prop with
           | Attribute { type_; _ } -> (
-              match type_ with
-              | DomProps.String ->
+              match (type_, isOptional) with
+              | DomProps.String, false ->
                   [%expr
                     React.Attribute.String ([%e objectKey], [%e objectValue])]
-              | Int ->
+              | DomProps.String, true ->
+                  [%expr
+                    Option.map
+                      (fun v -> React.Attribute.String ([%e objectKey], v))
+                      [%e objectValue]]
+              | Int, false ->
                   [%expr
                     React.Attribute.String
                       ([%e objectKey], string_of_int [%e objectValue])]
-              | Bool ->
+              | Int, true ->
+                  [%expr
+                    Option.map
+                      (fun v ->
+                        React.Attribute.String ([%e objectKey], string_of_int v))
+                      [%e objectValue]]
+              | Bool, false ->
                   [%expr
                     React.Attribute.Bool ([%e objectKey], [%e objectValue])]
-              | Style -> [%expr React.Attribute.Style [%e value]]
-              | Ref -> [%expr React.Attribute.Ref [%e value]]
-              | InnerHtml -> (
+              | Bool, true ->
+                  [%expr
+                    Option.map
+                      (fun v -> React.Attribute.Bool ([%e objectKey], v))
+                      [%e objectValue]]
+              | Style, false -> [%expr React.Attribute.Style [%e value]]
+              | Style, true ->
+                  [%expr
+                    Option.map (fun v -> React.Attribute.Style v) [%e value]]
+              | Ref, false -> [%expr React.Attribute.Ref [%e value]]
+              | Ref, true ->
+                  [%expr Option.map (fun v -> React.Attribute.Ref v) [%e value]]
+              | InnerHtml, false -> (
                   match value with
                   | [%expr [%bs.obj { __html = [%e? inner] }]] ->
                       [%expr React.Attribute.DangerouslyInnerHtml [%e inner]]
+                  | _ ->
+                      raise
+                      @@ Location.raise_errorf ~loc
+                           "unexpected expression found on \
+                            dangerouslySetInnerHTML")
+              | InnerHtml, true -> (
+                  match value with
+                  | [%expr [%bs.obj { __html = [%e? inner] }]] ->
+                      [%expr
+                        Option.map
+                          (fun v ->
+                            React.Attribute.DangerouslyInnerHtml [%e inner])
+                          [%e inner]]
                   | _ ->
                       raise
                       @@ Location.raise_errorf ~loc
@@ -621,15 +654,15 @@ let jsxMapper () =
           | Event _ -> failwith "todo: add events"
         in
         match isOptional with
-        | true ->
-            [%expr
-              [%e objectKey]
-              , Js_of_ocaml.Js.Unsafe.inject
-                  (Js_of_ocaml.Js.Optdef.option [%e objectValue])]
-        | false -> react_attr_expr
+        | true -> react_attr_expr
+        | false -> [%expr Some [%e react_attr_expr]]
       in
       let propsObj =
-        [%expr [%e Exp.array ~loc (List.map makePropField labeledProps)]]
+        [%expr
+          [%e Exp.array ~loc (List.map makePropField labeledProps)]
+          |> Array.to_list
+          |> List.filter_map (fun a -> a)
+          |> Array.of_list]
       in
       [ (* "div" *)
         (nolabel, componentNameExpr)
