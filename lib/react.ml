@@ -117,6 +117,21 @@ let clone_attributes (attributes : 'a array) new_attributes =
   |> List.sort compare_attribute
   |> Array.of_list
 
+let create_element_inner tag attributes children =
+  let dangerouslySetInnerHTML =
+    Array.find_opt
+      (function Attribute.DangerouslyInnerHtml _ -> true | _ -> false)
+      attributes
+  in
+  let children =
+    match (dangerouslySetInnerHTML, children) with
+    | None, children -> children
+    | Some (Attribute.DangerouslyInnerHtml innerHtml), [] ->
+        [ Node.Text innerHtml ]
+    | Some _, _children -> raise (Invalid_children tag)
+  in
+  Node.Element { tag; attributes; children }
+
 let createElement tag attributes children =
   match is_self_closing_tag tag with
   | true when List.length children > 0 ->
@@ -124,7 +139,7 @@ let createElement tag attributes children =
       (* Q: should raise or return monad? *)
       raise @@ Invalid_children "closing tag with children isn't valid"
   | true -> Node.Closed_element { tag; attributes }
-  | false -> Node.Element { tag; attributes; children }
+  | false -> create_element_inner tag attributes children
 
 (* cloneElements overrides childrens *)
 let cloneElement element new_attributes new_childrens =

@@ -12,7 +12,6 @@ let attribute_name_to_jsx k =
   | _ -> k
 
 let attribute_is_html tag attr_name =
-  print_endline attr_name;
   match DomProps.findByName tag attr_name with Ok _ -> true | Error _ -> false
 
 let replace_reserved_names attr =
@@ -42,7 +41,7 @@ let attribute_to_string attr =
   (* false attributes don't get rendered *)
   | Bool (_, false) -> ""
   | Bool (k, true) -> k
-  | DangerouslyInnerHtml html -> html
+  | DangerouslyInnerHtml _ -> ""
   | Style styles -> Printf.sprintf "style=\"%s\"" styles
   | String (k, v) ->
       Printf.sprintf "%s=\"%s\"" (attribute_name_to_jsx k) (Html.escape v)
