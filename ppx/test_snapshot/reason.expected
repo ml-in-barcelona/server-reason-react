@@ -1,15 +1,37 @@
-let lower = React.createElement "div" [||] []
+let lower =
+  React.createElement "div"
+    ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
+       Array.of_list) []
 let lower_with_empty_attr =
   React.createElement "div"
-    [|(React.Attribute.String
-         ("className", ((("")[@reason.raw_literal ""]) : string)))|] []
+    ((([|(Some
+            (React.Attribute.String
+               ("className", ((("")[@reason.raw_literal ""]) : string))))|]
+         |> Array.to_list)
+        |> (List.filter_map (fun a -> a)))
+       |> Array.of_list) []
 let lower_with_style =
   React.createElement "div"
-    [|(React.Attribute.Style
-         ((ReactDOM.Style.make ~backgroundColor:(("gainsboro")
-             [@reason.raw_literal "gainsboro"]) ())
-         [@reason.preserve_braces ]))|] []
+    ((([|(Some
+            (React.Attribute.Style
+               ((ReactDOM.Style.make ~backgroundColor:(("gainsboro")
+                   [@reason.raw_literal "gainsboro"]) ())
+               [@reason.preserve_braces ])))|]
+         |> Array.to_list)
+        |> (List.filter_map (fun a -> a)))
+       |> Array.of_list) []
 let lower_inner_html =
-  React.createElement "div" [|(React.Attribute.DangerouslyInnerHtml text)|]
-    []
+  React.createElement "div"
+    ((([|(Some (React.Attribute.DangerouslyInnerHtml text))|] |>
+         Array.to_list)
+        |> (List.filter_map (fun a -> a)))
+       |> Array.of_list) []
+let lower_opt_attr =
+  React.createElement "div"
+    ((([|(Option.map
+            (fun v -> React.Attribute.String ("tabIndex", (string_of_int v)))
+            (tabIndex : int option))|]
+         |> Array.to_list)
+        |> (List.filter_map (fun a -> a)))
+       |> Array.of_list) []
 let upper = React.createElement Input.make (Input.makeProps ())
