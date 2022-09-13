@@ -11,11 +11,6 @@ let attribute_name_to_jsx k =
   | "defaultSelected" -> "selected"
   | _ -> k
 
-let styles_to_string styles =
-  styles
-  |> List.map (fun (k, v) -> k ^ ": " ^ String.trim v)
-  |> String.concat "; "
-
 (* ignores "ref" prop *)
 let attribute_is_not_html = function "ref" -> true | _ -> false
 
@@ -27,7 +22,7 @@ let attribute_to_string attr =
   | Bool (k, true) -> k
   | Ref _ -> ""
   | DangerouslyInnerHtml html -> html
-  | Style styles -> Printf.sprintf "style=\"%s\"" (styles_to_string styles)
+  | Style styles -> Printf.sprintf "style=\"%s\"" styles
   | String (k, _) when attribute_is_not_html k -> ""
   | String (k, v) ->
       Printf.sprintf "%s=\"%s\"" (attribute_name_to_jsx k) (Html.escape v)
@@ -35,7 +30,7 @@ let attribute_to_string attr =
 let attribute_is_not_empty = function
   | Attribute.String (k, _v) -> k != ""
   | Bool (k, _) -> k != ""
-  | Style styles -> List.length styles != 0
+  | Style styles -> String.length styles != 0
   | DangerouslyInnerHtml _ -> false
   | Ref _ -> false
 

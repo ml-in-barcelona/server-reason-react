@@ -107,7 +107,7 @@ let test_default_value () =
 let test_inline_styles () =
   let component =
     React.createElement "button"
-      [| React.Attribute.Style [ ("color", "red"); ("border", "none") ] |]
+      [| React.Attribute.Style "color: red; border: none" |]
       []
   in
   assert_string

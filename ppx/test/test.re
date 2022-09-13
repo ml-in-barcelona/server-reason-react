@@ -45,10 +45,11 @@ let test_int_attribute = () => {
   );
 };
 
-// let test_style_attribute = () => {
-//   let div = <div hidden=true />;
-//   assert_string(ReactDOM.renderToStaticMarkup(div), "<div hidden></div>");
-// };
+let test_style_attribute = () => {
+  let div =
+    <div style={ReactDOM.Style.make(~backgroundColor="gainsboro", ())} />;
+  assert_string(ReactDOM.renderToStaticMarkup(div), "<div hidden></div>");
+};
 
 let test_ref_attribute = () => {
   let divRef = React.useRef(Js.Nullable.null);
