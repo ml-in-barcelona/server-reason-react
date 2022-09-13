@@ -16,42 +16,47 @@ let styles_to_string styles =
   |> List.map (fun (k, v) -> k ^ ": " ^ String.trim v)
   |> String.concat "; "
 
-(* ignores "ref" prop *)
-let attribute_is_not_html = function "ref" -> true | _ -> false
+let attribute_is_html tag attr_name =
+  match DomProps.findByName tag attr_name with Ok _ -> true | Error _ -> false
+
+let get_key = function
+  | Attribute.Bool (k, _) -> k
+  | String (k, _) -> k
+  | Ref _ -> "ref"
+  | DangerouslyInnerHtml _ -> "dangerouslySetInnerHTML"
+  | Style _ -> "style"
+
+let is_react_custom_attributes attr =
+  match get_key attr with
+  | "dangerouslySetInnerHTML" | "ref" | "key" | "suppressContentEditableWarning"
+  | "suppressHydrationWarning" ->
+      true
+  | _ -> false
+
+let attribute_is_valid tag attr = attribute_is_html tag (get_key attr)
 
 let attribute_to_string attr =
   let open Attribute in
   match attr with
+  | Ref _ -> ""
   (* false attributes don't get rendered *)
   | Bool (_, false) -> ""
   | Bool (k, true) -> k
-  | Ref _ -> ""
-  | DangerouslyInnerHtml html -> html
-  | Style styles -> Printf.sprintf "style=\"%s\"" (styles_to_string styles)
-  | String (k, _) when attribute_is_not_html k -> ""
   | String (k, v) ->
       Printf.sprintf "%s=\"%s\"" (attribute_name_to_jsx k) (Html.escape v)
+  | DangerouslyInnerHtml html -> html
+  | Style styles -> Printf.sprintf "style=\"%s\"" (styles_to_string styles)
 
-let attribute_is_not_empty = function
-  | Attribute.String (k, _v) -> k != ""
-  | Bool (k, _) -> k != ""
-  | Style styles -> List.length styles != 0
-  | DangerouslyInnerHtml _ -> false
-  | Ref _ -> false
-
-(* FIXME: Remove empty style attributes or class *)
-let attribute_is_not_valid = attribute_is_not_empty
-
-let attributes_to_string attrs =
-  let attributes =
-    attrs |> Array.to_list |> List.filter attribute_is_not_valid
+let attributes_to_string tag attrs =
+  let valid_attributes =
+    attrs |> Array.to_list
+    |> List.filter (attribute_is_valid tag)
+    |> List.filter (Fun.negate is_react_custom_attributes)
+    |> List.map attribute_to_string
   in
-  match attributes with
+  match valid_attributes with
   | [] -> ""
-  | _ ->
-      " "
-      ^ (String.concat " " (attributes |> List.map attribute_to_string)
-        |> String.trim)
+  | _ -> " " ^ (valid_attributes |> String.concat " " |> String.trim)
 
 (* FIXME: Add link to source *)
 let react_root_attr_name = "data-reactroot"
@@ -80,7 +85,7 @@ let renderToStaticMarkup (component : Node.t) =
     | Component f -> render_to_string_inner (f ())
     | Element { tag; attributes; children } ->
         is_root.contents <- false;
-        let attributes = attributes_to_string attributes in
+        let attributes = attributes_to_string tag attributes in
         let childrens =
           children |> List.map render_to_string_inner |> String.concat ""
         in
@@ -88,7 +93,7 @@ let renderToStaticMarkup (component : Node.t) =
           tag
     | Closed_element { tag; attributes } ->
         is_root.contents <- false;
-        let attributes = attributes_to_string attributes in
+        let attributes = attributes_to_string tag attributes in
         Printf.sprintf "<%s%s%s />" tag root_attribute attributes
   in
   render_to_string_inner component

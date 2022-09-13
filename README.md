@@ -44,6 +44,11 @@
 - [x] Ignore useEffect
 - [x] Handle React dengerouslySetInnerHTML
 - [x] Add test for hooks
+- [ ] Implement all JSX logic from HTML in attribute_name_to_jsx
+  - [ ] Check migrated tests for all cases
+  - cased custom attributes
+  - no HTML events
+  - no unknown events
 - [ ] Implement renderToString
   - What are the differences?
 - [ ] Implement the rest of the React API
@@ -55,23 +60,45 @@
   - [ ] useTransition
   - [ ] setDisplayName
   - [ ] displayName
-- [ ] ReactDOM.Style.make
+- [x] ReactDOM.Style.make
 - [ ] Handle unicode. Add Uutfs?
 - [ ] Implement setState as a tick on the dispatcher
+
+### Migrated tests from facebook/react/react-dom
+- [ ] https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMServerIntegrationAttributes-test.js
+- [ ] https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMServerIntegrationCheckbox-test.js
+- [ ] https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMServerIntegrationElements-test.js
+- [ ] https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMServerIntegrationFragment-test.js
+- [ ] https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMServerIntegrationHooks-test.js
+- [ ] https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMServerIntegrationInput-test.js
+- [ ] https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMServerIntegrationLegacyContext-test.js
+- [ ] https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMServerIntegrationLegacyContextDisabled-test.internal.js
+- [ ] https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMServerIntegrationModes-test.js
+- [ ] https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMServerIntegrationNewContext-test.js
+- [ ] https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMServerIntegrationReconnecting-test.js
+- [ ] https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMServerIntegrationRefs-test.js
+- [ ] https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMServerIntegrationSelect-test.js
+- [ ] https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMServerIntegrationSpecialTypes-test.js
+- [ ] https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMServerIntegrationTextarea-test.js
+- [ ] https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMServerIntegrationUntrustedURL-test.internal.js
+- [ ] https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMServerIntegrationUserInteraction-test.js
+- [ ] https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMServerLifecycles-test.js
+- [ ] https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMServerPartialHydration-test.internal.js
+- [ ] https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMServerSelectiveHydration-test.internal.js
+- [ ] https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMServerSuspense-test.internal.js
 
 ### ppx transformation
 
 - [x] Remove all `jsoo` specific
 - [x] Render to something that makes sense
-- [ ] Transform attributes to JSX
+- [x] Transform attributes to JSX
+- [ ] Transform React.Components
 - [ ] Handle synthetic events. Maybe it needs to be done in the ppx?
 - [ ] A way to trigger warnings for invalid attributes (probably better to do it in the ppx?)
   - https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMTextarea-test.js
   - https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMSelect-test.js
-- [ ] Remove HTML stuff?
 
 ### Org
-- [ ] Create interface for React and ReactDOMServe
 - [ ] Create a module called "JSX" with all the HTML-like stuff: https://facebook.github.io/jsx/
 - [ ] Add Pretty print with [fmt](https://github.com/dbuenzli/fmt)
 
@@ -96,4 +123,5 @@
 - Do we have any way to ensure `bs.obj`/similars to compile in native?
   - Probably only doing melange?
 - Can we use Belly/Belt in native?
+  - https://github.com/jaredly/belt
 - Fast pipe

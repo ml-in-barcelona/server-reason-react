@@ -59,6 +59,17 @@ let test_children () =
   let div = React.createElement "div" [||] [ children ] in
   assert_string (ReactDOM.renderToStaticMarkup div) "<div><div></div></div>"
 
+let test_ignored_attributes_on_jsx () =
+  let div =
+    React.createElement "div"
+      [| React.Attribute.String ("key", "uniqueKeyId")
+       ; React.Attribute.String ("wat", "randomAttributeThatShouldBeIgnored")
+       ; React.Attribute.Bool ("suppressContentEditableWarning", true)
+      |]
+      []
+  in
+  assert_string (ReactDOM.renderToStaticMarkup div) "<div></div>"
+
 let test_className () =
   let div =
     React.createElement "div"
@@ -117,12 +128,12 @@ let test_inline_styles () =
 let test_escape_attributes () =
   let component =
     React.createElement "div"
-      [| React.Attribute.String ("a", "\' <") |]
+      [| React.Attribute.String ("about", "\' <") |]
       [ React.string "& \"" ]
   in
   assert_string
     (ReactDOM.renderToStaticMarkup component)
-    "<div a=\"&apos;&nbsp;&lt;\">&amp;&nbsp;&quot;</div>"
+    "<div about=\"&apos;&nbsp;&lt;\">&amp;&nbsp;&quot;</div>"
 
 let test_clone_empty () =
   let component =
@@ -239,6 +250,8 @@ let () =
         ; test_case "fragment and text concat nicely" `Quick
             test_fragments_and_texts
         ; test_case "defaultValue should be value" `Quick test_default_value
+        ; test_case "attributes that gets ignored" `Quick
+            test_ignored_attributes_on_jsx
         ; test_case "inline styles" `Quick test_inline_styles
         ; test_case "escape HTML attributes" `Quick test_escape_attributes
         ; test_case "createContext" `Quick test_context

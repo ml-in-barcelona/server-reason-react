@@ -1,42 +1,11 @@
 type domRef
 
-module Dom = struct
-  type element
-end
-
-module Bridge = struct
-  module Js : sig
-    type 'a nullable
-
-    module Nullable : sig
-      type 'a t = 'a nullable
-
-      val null : 'a nullable
-      val return : 'a -> 'a nullable
-    end
-  end = struct
-    type 'a nullable =
-      | Null
-      | Something of 'a
-
-    module Nullable = struct
-      type +'a t = 'a nullable
-
-      let null = Null
-      let return a = Something a
-    end
-  end
-end
-
 open Bridge
 
 module Ref = struct
   type t = domRef
-
-  type currentDomRef =
-    Dom.element Js.nullable ref (*  = React.ref(Js.nullable(Dom.element)); *)
-
-  type callbackDomRef (*  = Js.nullable(Dom.element) => unit; *)
+  type currentDomRef = Dom.element Js.nullable ref
+  type callbackDomRef
 
   external domRef : currentDomRef -> domRef = "%identity"
   external callbackDomRef : callbackDomRef -> domRef = "%identity"

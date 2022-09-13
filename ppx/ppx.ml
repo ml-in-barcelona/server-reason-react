@@ -20,6 +20,7 @@
  *)
 
 module Ocaml_location = Location
+module DomProps = Main.DomProps
 open Ppxlib
 open Ast_helper
 
@@ -406,9 +407,9 @@ let makeEventValue ~loc ~isOptional (type_ : Html.eventType) value =
 
 let makeValue ~loc ~isOptional prop value =
   match prop with
-  | Html.Attribute attribute ->
+  | DomProps.Attribute attribute ->
       makeAttributeValue ~loc ~isOptional attribute.type_ value
-  | Html.Event event -> makeEventValue ~loc ~isOptional event.type_ value
+  | DomProps.Event event -> makeEventValue ~loc ~isOptional event.type_ value
 
 let makeJsObj ~loc namedArgListWithKeyAndRef =
   let labelToTuple label =

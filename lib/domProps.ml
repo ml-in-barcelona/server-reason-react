@@ -580,6 +580,19 @@ let ariaRole = String
    | Treeitem
    | Custom of String *)
 
+let reactValidHtml =
+  [ Attribute { name = "className"; jsxName = "className"; type_ = String }
+  ; Attribute
+      { name = "defaultChecked"; jsxName = "defaultChecked"; type_ = Bool }
+  ; Attribute
+      { name = "defaultSelected"; jsxName = "defaultSelected"; type_ = Bool }
+  ; Attribute
+      { name = "defaultValue"
+      ; jsxName = "defaultValue"
+      ; type_ = String (* | number | ReadonlyArray<String> *)
+      }
+  ]
+
 let reactAttributes =
   [ (* https://reactjs.org/docs/dom-elements.html *)
     Attribute
@@ -589,14 +602,6 @@ let reactAttributes =
       }
   ; Attribute { name = "ref"; jsxName = "ref"; type_ = Ref }
   ; Attribute { name = "key"; jsxName = "key"; type_ = String }
-  ; Attribute { name = "className"; jsxName = "className"; type_ = String }
-  ; Attribute
-      { name = "defaultChecked"; jsxName = "defaultChecked"; type_ = Bool }
-  ; Attribute
-      { name = "defaultValue"
-      ; jsxName = "defaultValue"
-      ; type_ = String (* | number | ReadonlyArray<String> *)
-      }
   ; Attribute
       { name = "suppressContentEditableWarning"
       ; jsxName = "suppressContentEditableWarning"
@@ -608,6 +613,7 @@ let reactAttributes =
       ; type_ = Bool
       }
   ]
+  & reactValidHtml
 
 let globalAttributes =
   [ (* https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes *)
@@ -959,7 +965,7 @@ let inputHTMLAttributes =
   ; Attribute { name = "src"; jsxName = "src"; type_ = String }
   ; Attribute
       { name = "step"; jsxName = "step"; type_ = String (* number |  *) }
-  ; Attribute { name = "type_"; jsxName = "type"; type_ = inputTypeAttribute }
+  ; Attribute { name = "type"; jsxName = "type"; type_ = inputTypeAttribute }
   ; Attribute
       { name = "value"
       ; jsxName = "value"
@@ -2291,7 +2297,11 @@ let getAttributes tag =
 let findByName tag name =
   let byName p = getName p = name in
   match getAttributes tag with
-  | Ok { attributes } ->
+  | Ok { attributes; _ } ->
       List.find_opt byName attributes
       |> Option.to_result ~none:`AttributeNotFound
   | Error err -> Error err
+
+let isReactValidProp name =
+  let byName p = getName p = name in
+  reactValidHtml |> List.exists byName

@@ -6,7 +6,7 @@
 (library
  (name jsoo_react_ppx)
  (public_name native-react.ppx)
- (libraries compiler-libs.common ppxlib ppxlib.astlib)
+ (libraries compiler-libs.common ppxlib ppxlib.astlib native-react.lib)
  (preprocess
   (pps ppxlib.metaquot))
  (kind ppx_rewriter))
