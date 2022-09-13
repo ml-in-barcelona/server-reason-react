@@ -1,4 +1,4 @@
 module React = React
-module Bridge = Bridge
+module Shims = Shims
 module ReactDOMServer = ReactDom
 module DomProps = DomProps
