@@ -118,7 +118,7 @@ let test_default_value () =
 let test_inline_styles () =
   let component =
     React.createElement "button"
-      [| React.Attribute.Style [ ("color", "red"); ("border", "none") ] |]
+      [| React.Attribute.Style "color: red; border: none" |]
       []
   in
   assert_string
@@ -216,6 +216,14 @@ let test_use_callback () =
   let component = React.createElement "header" [||] [ React.int (memo ()) ] in
   assert_string (ReactDOM.renderToStaticMarkup component) "<header>23</header>"
 
+let test_inner_html () =
+  let component =
+    React.createElement "div"
+      [| React.Attribute.DangerouslyInnerHtml "foo" |]
+      []
+  in
+  assert_string (ReactDOM.renderToStaticMarkup component) "<div>foo</div>"
+
 let test_use_context () =
   let context = React.createContext 10 in
   let context_user () =
@@ -259,6 +267,7 @@ let () =
         ; test_case "useState" `Quick test_use_state
         ; test_case "useMemo" `Quick test_use_memo
         ; test_case "useCallback" `Quick test_use_callback
+        ; test_case "innerHtml" `Quick test_inner_html
         ] )
     ; ( (* FIXME: those test shouldn't rely on renderToStaticMarkup,
            make an alcotest TESTABLE component *)

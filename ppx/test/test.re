@@ -45,10 +45,14 @@ let test_int_attribute = () => {
   );
 };
 
-// let test_style_attribute = () => {
-//   let div = <div hidden=true />;
-//   assert_string(ReactDOM.renderToStaticMarkup(div), "<div hidden></div>");
-// };
+let test_style_attribute = () => {
+  let div =
+    <div style={ReactDOM.Style.make(~backgroundColor="gainsboro", ())} />;
+  assert_string(
+    ReactDOM.renderToStaticMarkup(div),
+    "<div style=\"background-color: gainsboro\"></div>",
+  );
+};
 
 let test_ref_attribute = () => {
   let divRef = React.useRef(Js.Nullable.null);
@@ -58,7 +62,8 @@ let test_ref_attribute = () => {
 };
 
 let test_innerhtml_attribute = () => {
-  let div = <div hidden=true />;
+  let text = "foo";
+  let div = <div dangerouslySetInnerHTML={"__html": text} />;
   assert_string(ReactDOM.renderToStaticMarkup(div), "<div hidden></div>");
 };
 
@@ -74,7 +79,9 @@ run(
         test_case("input_bool_attrs", `Quick, test_bool_attributes),
         test_case("p_inner_html", `Quick, test_innerhtml),
         test_case("div_int_attr", `Quick, test_int_attribute),
+        test_case("style_attr", `Quick, test_style_attribute),
         test_case("div_ref_attr", `Quick, test_ref_attribute),
+        test_case("inner_html_attr", `Quick, test_innerhtml_attribute),
       ],
     ),
   ],

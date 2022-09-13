@@ -607,9 +607,17 @@ let jsxMapper () =
               | Bool ->
                   [%expr
                     React.Attribute.Bool ([%e objectKey], [%e objectValue])]
-              | Style -> value
+              | Style -> [%expr React.Attribute.Style [%e value]]
               | Ref -> [%expr React.Attribute.Ref [%e value]]
-              | InnerHtml -> value)
+              | InnerHtml -> (
+                  match value with
+                  | [%expr [%bs.obj { __html = [%e? inner] }]] ->
+                      [%expr React.Attribute.DangerouslyInnerHtml [%e inner]]
+                  | _ ->
+                      raise
+                      @@ Location.raise_errorf ~loc
+                           "unexpected expression found on \
+                            dangerouslySetInnerHTML"))
           | Event _ -> failwith "todo: add events"
         in
         match isOptional with

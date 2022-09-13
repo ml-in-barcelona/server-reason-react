@@ -11,22 +11,21 @@ let attribute_name_to_jsx k =
   | "defaultSelected" -> "selected"
   | _ -> k
 
-let styles_to_string styles =
-  styles
-  |> List.map (fun (k, v) -> k ^ ": " ^ String.trim v)
-  |> String.concat "; "
-
 let attribute_is_html tag attr_name =
+  print_endline attr_name;
   match DomProps.findByName tag attr_name with Ok _ -> true | Error _ -> false
+
+let replace_reserved_names attr =
+  match attr with "type" -> "type_" | _ -> attr
 
 let get_key = function
   | Attribute.Bool (k, _) -> k
-  | String (k, _) -> k
+  | String (k, _) -> replace_reserved_names k
   | Ref _ -> "ref"
   | DangerouslyInnerHtml _ -> "dangerouslySetInnerHTML"
   | Style _ -> "style"
 
-let is_react_custom_attributes attr =
+let is_react_custom_attribute attr =
   match get_key attr with
   | "dangerouslySetInnerHTML" | "ref" | "key" | "suppressContentEditableWarning"
   | "suppressHydrationWarning" ->
@@ -38,20 +37,21 @@ let attribute_is_valid tag attr = attribute_is_html tag (get_key attr)
 let attribute_to_string attr =
   let open Attribute in
   match attr with
+  (* ignores "ref" prop *)
   | Ref _ -> ""
   (* false attributes don't get rendered *)
   | Bool (_, false) -> ""
   | Bool (k, true) -> k
+  | DangerouslyInnerHtml html -> html
+  | Style styles -> Printf.sprintf "style=\"%s\"" styles
   | String (k, v) ->
       Printf.sprintf "%s=\"%s\"" (attribute_name_to_jsx k) (Html.escape v)
-  | DangerouslyInnerHtml html -> html
-  | Style styles -> Printf.sprintf "style=\"%s\"" (styles_to_string styles)
 
 let attributes_to_string tag attrs =
   let valid_attributes =
     attrs |> Array.to_list
     |> List.filter (attribute_is_valid tag)
-    |> List.filter (Fun.negate is_react_custom_attributes)
+    |> List.filter (Fun.negate is_react_custom_attribute)
     |> List.map attribute_to_string
   in
   match valid_attributes with

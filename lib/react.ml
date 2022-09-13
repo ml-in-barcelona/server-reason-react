@@ -50,7 +50,7 @@ and Attribute : sig
   type t =
     | Bool of (string * bool)
     | String of (string * string)
-    | Style of (string * string) list
+    | Style of string
     | DangerouslyInnerHtml of string
     | Ref of Ref.t
 end =
@@ -71,9 +71,7 @@ let compare_attribute left right =
   | String (left_key, _), String (right_key, _) ->
       String.compare left_key right_key
   | Style left_styles, Style right_styles ->
-      List.compare
-        (fun (a, va) (b, vb) -> String.compare a b + String.compare va vb)
-        left_styles right_styles
+      String.compare left_styles right_styles
   | _ -> 0
 
 let clone_attribute acc attr new_attr =

@@ -3,4 +3,13 @@ let lower_with_empty_attr =
   React.createElement "div"
     [|(React.Attribute.String
          ("className", ((("")[@reason.raw_literal ""]) : string)))|] []
+let lower_with_style =
+  React.createElement "div"
+    [|(React.Attribute.Style
+         ((ReactDOM.Style.make ~backgroundColor:(("gainsboro")
+             [@reason.raw_literal "gainsboro"]) ())
+         [@reason.preserve_braces ]))|] []
+let lower_inner_html =
+  React.createElement "div" [|(React.Attribute.DangerouslyInnerHtml text)|]
+    []
 let upper = React.createElement Input.make (Input.makeProps ())
