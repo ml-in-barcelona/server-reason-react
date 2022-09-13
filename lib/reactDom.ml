@@ -18,13 +18,26 @@ let attribute_to_string attr =
   let open Attribute in
   match attr with
   (* false attributes don't get rendered *)
-  | Bool (_, false) -> ""
-  | Bool (k, true) -> k
-  | Ref _ -> ""
-  | DangerouslyInnerHtml html -> html
-  | Style styles -> Printf.sprintf "style=\"%s\"" styles
-  | String (k, _) when attribute_is_not_html k -> ""
+  | Bool (_, false) ->
+      print_endline "111";
+      ""
+  | Bool (k, true) ->
+      print_endline "222";
+      k
+  | Ref _ ->
+      print_endline "333";
+      ""
+  | DangerouslyInnerHtml html ->
+      print_endline "Foo";
+      html
+  | Style styles ->
+      print_endline "444";
+      Printf.sprintf "style=\"%s\"" styles
+  | String (k, _) when attribute_is_not_html k ->
+      print_endline "555";
+      ""
   | String (k, v) ->
+      print_endline "666";
       Printf.sprintf "%s=\"%s\"" (attribute_name_to_jsx k) (Html.escape v)
 
 let attribute_is_not_empty = function
@@ -42,7 +55,9 @@ let attributes_to_string attrs =
     attrs |> Array.to_list |> List.filter attribute_is_not_valid
   in
   match attributes with
-  | [] -> ""
+  | [] ->
+      print_endline "FFJKLDFSKFJ";
+      ""
   | _ ->
       " "
       ^ (String.concat " " (attributes |> List.map attribute_to_string)

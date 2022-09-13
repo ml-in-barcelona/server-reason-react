@@ -62,7 +62,8 @@ let test_ref_attribute = () => {
 };
 
 let test_innerhtml_attribute = () => {
-  let div = <div hidden=true />;
+  let text = "foo";
+  let div = <div dangerouslySetInnerHTML={"__html": text} />;
   assert_string(ReactDOM.renderToStaticMarkup(div), "<div hidden></div>");
 };
 
@@ -80,6 +81,7 @@ run(
         test_case("div_int_attr", `Quick, test_int_attribute),
         test_case("style_attr", `Quick, test_style_attribute),
         test_case("div_ref_attr", `Quick, test_ref_attribute),
+        test_case("inner_html_attr", `Quick, test_innerhtml_attribute),
       ],
     ),
   ],
