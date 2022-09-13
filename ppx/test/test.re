@@ -97,6 +97,46 @@ let test_string_opt_attribute_none = () => {
   assert_string(ReactDOM.renderToStaticMarkup(div), "<div></div>");
 };
 
+let test_bool_opt_attribute_some = () => {
+  let hidden = Some(true);
+  let div = <div ?hidden />;
+  assert_string(ReactDOM.renderToStaticMarkup(div), "<div hidden></div>");
+};
+
+let test_bool_opt_attribute_none = () => {
+  let hidden = None;
+  let div = <div ?hidden />;
+  assert_string(ReactDOM.renderToStaticMarkup(div), "<div></div>");
+};
+
+let test_style_opt_attribute_some = () => {
+  let style = Some(ReactDOM.Style.make(~backgroundColor="gainsboro", ()));
+  let div = <div ?style />;
+  assert_string(
+    ReactDOM.renderToStaticMarkup(div),
+    "<div style=\"background-color: gainsboro\"></div>",
+  );
+};
+
+let test_style_opt_attribute_none = () => {
+  let style = None;
+  let div = <div ?style />;
+  assert_string(ReactDOM.renderToStaticMarkup(div), "<div></div>");
+};
+
+let test_ref_opt_attribute_some = () => {
+  let divRef = React.useRef(Js.Nullable.null);
+  let ref = Some(React.Ref.domRef(divRef));
+  let div = <div ?ref />;
+  assert_string(ReactDOM.renderToStaticMarkup(div), "<div></div>");
+};
+
+let test_ref_opt_attribute_none = () => {
+  let ref = None;
+  let div = <div ?ref />;
+  assert_string(ReactDOM.renderToStaticMarkup(div), "<div></div>");
+};
+
 run(
   "Tests",
   [
@@ -124,6 +164,20 @@ run(
           `Quick,
           test_string_opt_attribute_none,
         ),
+        test_case("bool_opt_attr_some", `Quick, test_bool_opt_attribute_some),
+        test_case("bool_opt_attr_none", `Quick, test_bool_opt_attribute_none),
+        test_case(
+          "style_opt_attr_some",
+          `Quick,
+          test_style_opt_attribute_some,
+        ),
+        test_case(
+          "style_opt_attr_none",
+          `Quick,
+          test_style_opt_attribute_none,
+        ),
+        test_case("ref_opt_attr_some", `Quick, test_ref_opt_attribute_some),
+        test_case("ref_opt_attr_none", `Quick, test_ref_opt_attribute_none),
       ],
     ),
   ],
