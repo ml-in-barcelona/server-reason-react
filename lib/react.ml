@@ -1,6 +1,7 @@
 type domRef
 
-open Shims
+open Shims.Webapi
+open Shims.Js
 
 module Ref = struct
   type t = domRef
