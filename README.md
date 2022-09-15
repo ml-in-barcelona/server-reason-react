@@ -1,5 +1,7 @@
 # native-react-dom
 
+https://www.javierchavarri.com/react-server-side-rendering-with-ocaml/
+
 ## References
 
 - [ReactDOM tests](https://github.com/facebook/react/tree/main/packages/react-dom/src/__tests__)
@@ -104,7 +106,7 @@
 
 ## Questions
 
-- How should we handle errors from: createElement or renderToString
+- How should we handle errors from `createElement` or `renderToString`
 - Suspense?
   "ReactDOMServer does not yet support Suspense - server/node_modules/react-dom/cjs/react-dom-server.node.development.js:3518"
 <!-- - UseEffect should not run -->

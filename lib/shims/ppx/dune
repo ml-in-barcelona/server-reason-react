@@ -1,5 +1,5 @@
 (library
- (name pipe_ppx)
+ (name pipe_first_ppx)
  (flags :standard -w -9)
  (libraries ppxlib)
  (kind ppx_rewriter))

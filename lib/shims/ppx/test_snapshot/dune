@@ -1,0 +1,14 @@
+(executable
+ (name main)
+ (libraries pipe_first_ppx ppxlib))
+
+(rule
+ (targets transformation.result)
+ (deps input.ml)
+ (action
+  (run ./main.exe --impl %{deps} -o %{targets})))
+
+(rule
+ (alias runtest)
+ (action
+  (diff output.expected transformation.result)))
