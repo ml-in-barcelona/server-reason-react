@@ -19,7 +19,6 @@
    `React.createFragment([foo])`
  *)
 
-module DomProps = Index.DomProps
 module Ocaml_location = Location
 open Ppxlib
 open Ast_helper

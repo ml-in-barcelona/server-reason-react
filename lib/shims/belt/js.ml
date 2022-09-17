@@ -1,3 +1,14 @@
+type 'a nullable =
+  | Null
+  | Something of 'a
+
+module Nullable = struct
+  type +'a t = 'a nullable
+
+  let null = Null
+  let return a = Something a
+end
+
 type 'a null = 'a option
 type 'a undefined = 'a option
 
@@ -9,10 +20,6 @@ external fromOpt : 'a option -> 'a undefined = "%identity"
 let undefined = None
 let null = None
 let empty = None
-
-let log a =
-  let _ = Obj.magic a in
-  ()
 
 module Undefined = struct
   type 'a t = 'a undefined
@@ -37,4 +44,12 @@ end
 
 module Exn = struct
   let raiseError _str = assert false
+end
+
+module Console = struct
+  let error = print_endline
+
+  let log a =
+    let _ = Obj.magic a in
+    ()
 end

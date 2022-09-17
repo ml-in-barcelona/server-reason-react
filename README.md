@@ -65,8 +65,12 @@ https://www.javierchavarri.com/react-server-side-rendering-with-ocaml/
 - [x] ReactDOM.Style.make
 - [ ] Handle unicode. Add Uutfs?
 - [ ] Implement setState as a tick on the dispatcher
-- [ ] Add ppx processing to replace `bs.obj` with classic OCaml objects (e.g. `{"foo": 2}` translates to `object method foo = 2 end`). 
+- [ ] Add ppx processing to replace `bs.obj` with classic OCaml objects (e.g. `{"foo": 2}` translates to `object method foo = 2 end`).
 - [ ] After ^, add support for optional dangerous inner html args
+
+### Demo
+- [ ] Create a server to render HTML with native-react-dom
+- [ ] Compile the same code to the client
 
 ### Migrated tests from facebook/react/react-dom
 - [ ] https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMServerIntegrationAttributes-test.js

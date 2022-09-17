@@ -140,7 +140,7 @@ let merge s1 s2 f = mergeU s1 s2 (fun a b c -> f a b c)
 let rec compareAux e1 e2 vcmp =
   match (e1, e2) with
   | h1 :: t1, h2 :: t2 ->
-      let c = Pervasives.compare (N.key h1 : key) (N.key h2) in
+      let c = Stdlib.compare (N.key h1 : key) (N.key h2) in
       if c = 0 then
         let cx = vcmp (N.value h1) (N.value h2) in
         if cx = 0 then

@@ -3,6 +3,7 @@ project_name = native-react-dom
 DUNE = opam exec -- dune
 opam_file = $(project_name).opam
 current_hash = $(shell git rev-parse HEAD)
+MEL = opam exec -- mel
 
 .PHONY: build build-prod dev test test-promote deps format format-check init publish-example
 
@@ -53,3 +54,6 @@ $(opam_file): dune-project ## Update the package dependencies when new deps are 
 init: ## Create a local opam switch and setups githooks
 	git config core.hooksPath .githooks
 	opam switch create . --deps-only --with-test
+
+demo:
+	$(MEL)

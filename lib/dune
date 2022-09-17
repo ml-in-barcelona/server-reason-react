@@ -1,4 +1,16 @@
 (library
- (name index)
- (public_name native-react.lib)
- (libraries native-react.shims))
+ (name react)
+ (modules react)
+ (public_name native-react.react)
+ (libraries shims))
+
+(library
+ (name reactDOM)
+ (modules reactDOM)
+ (public_name native-react.reactDom)
+ (libraries react shims domProps))
+
+(library
+ (name domProps)
+ (modules domProps)
+ (public_name native-react.domProps))

@@ -1,17 +1,9 @@
 open Alcotest
-module React = Index.React
-module ReactDOM = Index.ReactDOMServer
 
 let assert_string left right = (check string) "should be equal" right left
 
 let test_tag () =
   let div = React.createElement "div" [||] [] in
-  assert_string (ReactDOM.renderToStaticMarkup div) "<div></div>"
-
-let test_empty_attributes () =
-  let div =
-    React.createElement "div" [| React.Attribute.String ("", "") |] []
-  in
   assert_string (ReactDOM.renderToStaticMarkup div) "<div></div>"
 
 let test_empty_attribute () =

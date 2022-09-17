@@ -1,7 +1,6 @@
 type domRef
 
-open Shims.Webapi
-open Shims.Js
+open Webapi
 
 module Ref = struct
   type t = domRef
@@ -39,6 +38,7 @@ and Node : sig
     | Element of Element.t
     | Closed_element of Closed_element.t
     | Component of (unit -> t)
+    | List of t array
     | Text of string
     | Fragment of t list
     | Empty
@@ -158,6 +158,7 @@ let cloneElement element new_attributes new_childrens =
   | Fragment _childrens -> Fragment new_childrens
   | Text t -> Text t
   | Empty -> Empty
+  | List l -> List l
   (* FIXME: How does cloneElement does with Provider/Consumer *)
   | Provider child -> Provider child
   | Consumer child -> Consumer child
@@ -257,3 +258,4 @@ let int i = Node.Text (string_of_int i)
 
 (* FIXME: float_of_string might be different on the browser *)
 let float f = Node.Text (string_of_float f)
+let array arr = Node.List arr

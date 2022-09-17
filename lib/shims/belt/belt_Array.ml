@@ -12,7 +12,7 @@ let get arr i =
   if i >= 0 && i < length arr then Some (getUnsafe arr i) else None
 
 let getExn arr i =
-  if Pervasives.not (i >= 0 && i < length arr) then
+  if Stdlib.not (i >= 0 && i < length arr) then
     Js.Exn.raiseError "File \"\", line 37, characters 6-12";
   getUnsafe arr i
 
@@ -23,7 +23,7 @@ let set arr i v =
   else false
 
 let setExn arr i v =
-  if Pervasives.not (i >= 0 && i < length arr) then
+  if Stdlib.not (i >= 0 && i < length arr) then
     Js.Exn.raiseError "File \"\", line 43, characters 4-10";
   setUnsafe arr i v
 
@@ -123,7 +123,7 @@ let rangeBy start finish ~step =
 
 let zip xs ys =
   let lenx, leny = (length xs, length ys) in
-  let len = Pervasives.min lenx leny in
+  let len = Stdlib.min lenx leny in
   let s =
     if len > 0 then makeUninitializedUnsafe len (getUnsafe xs 0, getUnsafe ys 0)
     else [||]
@@ -135,7 +135,7 @@ let zip xs ys =
 
 let zipByU xs ys f =
   let lenx, leny = (length xs, length ys) in
-  let len = Pervasives.min lenx leny in
+  let len = Stdlib.min lenx leny in
   let s =
     if len > 0 then
       makeUninitializedUnsafe len (f (getUnsafe xs 0) (getUnsafe ys 0))

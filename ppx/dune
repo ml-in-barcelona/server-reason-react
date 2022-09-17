@@ -6,8 +6,14 @@
 (library
  (name jsoo_react_ppx)
  (public_name native-react.ppx)
- (libraries compiler-libs.common ppxlib ppxlib.astlib native-react.lib
-   native-react.shims)
+ (libraries
+  compiler-libs.common
+  ppxlib
+  ppxlib.astlib
+  native-react.react
+  native-react.reactDom
+  native-react.shims
+  native-react.domProps)
  (preprocess
   (pps ppxlib.metaquot))
  (kind ppx_rewriter))

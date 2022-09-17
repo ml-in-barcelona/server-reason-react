@@ -1,5 +1,9 @@
 (test
  (name test)
- (libraries alcotest native-react.lib native-react.shims)
+ (libraries
+  alcotest
+  native-react.react
+  native-react.reactDom
+  native-react.shims)
  (preprocess
   (pps native-react.ppx)))

@@ -44,16 +44,16 @@
 \    module Comparable1 = Belt.Id.MakeComparable(struct\n\
 \        type t = int * int\n\
 \        let cmp (a0, a1) (b0, b1) =\n\
-\          match Pervasives.compare a0 b0 with\n\
-\          | 0 -> Pervasives.compare a1 b1\n\
+\          match Stdlib.compare a0 b0 with\n\
+\          | 0 -> Stdlib.compare a1 b1\n\
 \          | c -> c\n\
 \    end)\n\n\
 \    let mySet1 = Belt.Set.make ~id:(module Comparable1)\n\n\
 \    module Comparable2 = Belt.Id.MakeComparable(struct\n\
 \      type t = int * int\n\
 \      let cmp (a0, a1) (b0, b1) =\n\
-\        match Pervasives.compare a0 b0 with\n\
-\        | 0 -> Pervasives.compare a1 b1\n\
+\        match Stdlib.compare a0 b0 with\n\
+\        | 0 -> Stdlib.compare a1 b1\n\
 \        | c -> c\n\
 \    end)\n\n\
 \    let mySet2 = Belt.Set.make ~id:(module Comparable2)\n\
