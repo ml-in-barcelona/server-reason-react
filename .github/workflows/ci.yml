@@ -39,8 +39,7 @@ jobs:
           node-version: 12
 
       - name: Install dependencies
-        run: |
-          opam install . --deps-only --with-doc --with-test
+        run: opam install . --deps-only --with-doc --with-test
 
       - name: Build
         run: make build
