@@ -1,0 +1,24 @@
+opam-version: "2.0"
+synopsis: "Project template for melange"
+description: "Template for a minimal melange project"
+maintainer: ["jchavarri"]
+authors: ["jchavarri"]
+license: "MIT"
+homepage: "https://github.com/jchavarri/melange-basic-template"
+bug-reports: "https://github.com/jchavarri/melange-basic-template/issues"
+depends: [
+  "ocaml" {>= "4.14.1" & < "5.0.0"}
+  "dune" {>= "3.0"}
+  "melange" {dev}
+  "melange-compiler-libs" {dev}
+  "ocaml-lsp-server" {dev}
+  "odoc" {with-doc}
+]
+build: [
+  ["echo" "run make build"]
+]
+dev-repo: "git+https://github.com/jchavarri/melange-basic-template.git"
+pin-depends: [
+  [ "melange.dev" "git+https://github.com/melange-re/melange.git#d8223041838be6674d3c544db318c6dd10345cd0" ]
+  [ "melange-compiler-libs.dev" "git+https://github.com/melange-re/melange-compiler-libs.git#029354b208335c6aafb3c483ef425c3a4afd1dc1" ]
+]

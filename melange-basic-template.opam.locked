@@ -1,0 +1,78 @@
+opam-version: "2.0"
+name: "melange-basic-template"
+version: "dev"
+synopsis: "Project template for melange"
+description: "Template for a minimal melange project"
+maintainer: "jchavarri"
+authors: "jchavarri"
+license: "MIT"
+homepage: "https://github.com/jchavarri/melange-basic-template"
+bug-reports: "https://github.com/jchavarri/melange-basic-template/issues"
+depends: [
+  "base-bigarray" {= "base"}
+  "base-bytes" {= "base" & dev}
+  "base-threads" {= "base"}
+  "base-unix" {= "base"}
+  "base64" {= "3.5.0" & dev}
+  "bigarray-compat" {= "1.1.0" & dev}
+  "chrome-trace" {= "3.4.1" & dev}
+  "cmdliner" {= "1.1.1" & dev}
+  "cppo" {= "1.6.9" & dev}
+  "csexp" {= "1.5.1" & dev}
+  "ctypes" {= "0.20.1" & dev}
+  "dune" {= "3.4.1"}
+  "dune-build-info" {= "3.4.1" & dev}
+  "dune-rpc" {= "3.4.1" & dev}
+  "dyn" {= "3.4.1" & dev}
+  "fiber" {= "3.4.1" & dev}
+  "fix" {= "20220121" & dev}
+  "integers" {= "0.7.0" & dev}
+  "luv" {= "0.5.11" & dev}
+  "melange" {= "dev" & dev}
+  "melange-compiler-libs" {= "dev" & dev}
+  "menhir" {= "20220210" & dev}
+  "menhirLib" {= "20220210" & dev}
+  "menhirSdk" {= "20220210" & dev}
+  "merlin-extend" {= "0.6.1" & dev}
+  "ocaml" {= "4.14.1"}
+  "ocaml-config" {= "2"}
+  "ocaml-lsp-server" {= "1.13.1" & dev}
+  "ocaml-variants" {= "4.14.1+trunk"}
+  "ocamlbuild" {= "0.14.1" & dev}
+  "ocamlfind" {= "1.9.5" & dev}
+  "ocamlformat-rpc-lib" {= "0.24.1" & dev}
+  "octavius" {= "1.2.2" & dev}
+  "omd" {= "1.3.2" & dev}
+  "ordering" {= "3.4.1" & dev}
+  "pp" {= "1.1.2" & dev}
+  "ppx_derivers" {= "1.2.1" & dev}
+  "ppx_yojson_conv_lib" {= "v0.15.0" & dev}
+  "re" {= "1.10.4" & dev}
+  "reason" {= "3.8.1" & dev}
+  "result" {= "1.5" & dev}
+  "seq" {= "base" & dev}
+  "spawn" {= "v0.15.1" & dev}
+  "stdlib-shims" {= "0.3.0" & dev}
+  "stdune" {= "3.4.1" & dev}
+  "topkg" {= "1.0.5" & dev}
+  "uutf" {= "1.0.3" & dev}
+  "xdg" {= "3.4.1" & dev}
+  "yojson" {= "2.0.2" & dev}
+]
+build: [
+  ["dune" "subst"] {dev}
+  [
+    "dune"
+    "build"
+    "-p"
+    name
+    "-j"
+    jobs
+    "--promote-install-files=false"
+    "@install"
+    "@runtest" {with-test}
+    "@doc" {with-doc}
+  ]
+  ["dune" "install" "-p" name "--create-install-files" name]
+]
+dev-repo: "git+https://github.com/jchavarri/melange-basic-template.git"

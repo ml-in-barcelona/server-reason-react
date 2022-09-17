@@ -1,4 +1,4 @@
-(lang dune 2.7)
+(lang dune 3.1)
 
 (name native-react)
 
@@ -11,7 +11,7 @@
 (source
  (github ml-in-barcelona/native-react))
 
-(generate_opam_files true)
+(generate_opam_files false)
 
 (implicit_transitive_deps false)
 
@@ -34,3 +34,9 @@
   (ocaml-lsp-server :with-test)
 
 ))
+
+(package
+ (name melange-basic-template)
+ (synopsis "Project template for melange")
+ (description
+  "Template for a minimal melange project"))
