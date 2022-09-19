@@ -493,9 +493,7 @@ let jsxMapper () =
         | ListLiteral expression ->
             (* this is a hack to support react components that introspect into their children *)
             childrenArg := Some expression;
-            [ ( labelled "children"
-              , Exp.ident ~loc { loc; txt = Ldot (Lident "React", "null") } )
-            ])
+            [ (Nolabel, expression) ])
       @ [ (nolabel, Exp.construct ~loc { loc; txt = Lident "()" } None) ]
     in
 
@@ -515,23 +513,7 @@ let jsxMapper () =
             (Invalid_argument
                "JSX name can't be the result of function applications")
     in
-    let makeFn =
-      Exp.apply ~attrs ~loc
-        (Exp.ident ~loc { loc; txt = makeFnIdentifier })
-        args
-    in
-    (* handle key, ref, children *)
-    (* React.createElement(Component.make, props, ...children) *)
-    match !childrenArg with
-    | None ->
-        Exp.apply ~loc ~attrs
-          (Exp.ident ~loc { loc; txt = Ldot (Lident "React", "createElement") })
-          [ (nolabel, makeFn) ]
-    | Some children ->
-        Exp.apply ~loc ~attrs
-          (Exp.ident ~loc
-             { loc; txt = Ldot (Lident "React", "createElementVariadic") })
-          [ (nolabel, makeFn); (nolabel, children) ]
+    Exp.apply ~attrs ~loc (Exp.ident ~loc { loc; txt = makeFnIdentifier }) args
   in
   let transformLowercaseCall loc attrs callArguments id callLoc =
     let children, nonChildrenProps = extractChildren ~loc callArguments in
@@ -1232,19 +1214,10 @@ let jsxMapper () =
           in
           (externs, binding @ bindings, newBindings)
         in
-        let externs, bindings, newBindings =
+        let externs, _bindings, _newBindings =
           List.fold_right otherStructures structuresAndBinding ([], [], [])
         in
-        externs
-        @ [ { pstr_loc; pstr_desc = Pstr_value (recFlag, bindings) } ]
-        @ (match newBindings with
-          | [] -> []
-          | newBindings ->
-              [ { pstr_loc = emptyLoc
-                ; pstr_desc = Pstr_value (recFlag, newBindings)
-                }
-              ])
-        @ returnStructures
+        externs @ returnStructures
     | structure -> structure :: returnStructures
   in
   let reactComponentTransform mapper structures =
@@ -1395,7 +1368,7 @@ let jsxMapper () =
           (* no JSX attribute *)
           | [], _ -> super#expression expression
           | _, nonJSXAttributes ->
-              let callExpression = [%expr React.Fragment.createElement] in
+              let callExpression = [%expr React.Fragment.make] in
               transformJsxCall self callExpression
                 [ (Labelled "children", listItems) ]
                 nonJSXAttributes listItems.pexp_loc)
