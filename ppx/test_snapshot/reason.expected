@@ -34,4 +34,23 @@ let lower_opt_attr =
          |> Array.to_list)
         |> (List.filter_map (fun a -> a)))
        |> Array.of_list) []
-let upper = React.createElement Input.make (Input.makeProps ())
+let upper = React.createElement (Input.make ())
+module React_component_without_props =
+  struct
+    let make ~lola  ~cosis  ?key  =
+      ((fun ~lola ->
+          ((fun ~cosis ->
+              ((Js.log cosis;
+                React.createElement "div"
+                  ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a)))
+                     |> Array.of_list)
+                  [((React.string lola)[@reason.preserve_braces ])])
+              [@reason.preserve_braces ]))
+          [@warning "-16"]))
+      [@warning "-16"])
+    
+  end
+let upper =
+  React.createElement
+    (React_component_without_props.make ~lola:(("flores")
+       [@reason.raw_literal "flores"]) ())

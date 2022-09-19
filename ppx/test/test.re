@@ -134,6 +134,21 @@ let test_ref_opt_attribute_none = () => {
   assert_string(ReactDOM.renderToStaticMarkup(div), "<div></div>");
 };
 
+/* module Lola = {
+    [@react.component]
+    let make = () => <div />
+  };
+
+  module Lola = {
+    let make = (~key=?, ~ref=?, ()) => React.createElement "div" [||] []
+  }
+}
+
+let test_component = () => {
+  assert_string(ReactDOM.renderToStaticMarkup(<Lola foo=2 />), "<div></div>");
+};
+ */
+
 run(
   "Tests",
   [

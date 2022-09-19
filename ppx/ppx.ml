@@ -27,6 +27,11 @@ let rec find_opt p = function
   | [] -> None
   | x :: l -> if p x then Some x else find_opt p l
 
+let isCap str =
+  let first = String.sub str 0 1 in
+  let capped = String.uppercase_ascii first in
+  first = capped
+
 let nolabel = Nolabel
 let labelled str = Labelled str
 let optional str = Optional str
@@ -325,7 +330,7 @@ let makeObjectField loc (str, _attrs, propType) =
 let makePropsType ~loc namedTypeList =
   Typ.mk ~loc
     (Ptyp_constr
-       ( { txt = Ldot (Ldot (Lident "Js_of_ocaml", "Js"), "t"); loc }
+       ( { txt = Ldot (Lident "Js", "t"); loc }
        , [ Typ.mk ~loc
              (Ptyp_object (List.map (makeObjectField loc) namedTypeList, Closed))
          ] ))
@@ -438,46 +443,37 @@ let makeJsObj ~loc namedArgListWithKeyAndRef =
       |> List.filter_map (fun x -> x)
       |> Array.of_list)]
 
-let makePropsValueBinding fnName loc namedArgListWithKeyAndRef propsType =
-  let core_type =
-    makeArgsForMakePropsType namedArgListWithKeyAndRef
-      [%type: unit -> [%t propsType]]
+let makeValueBinding
+    fnName
+    loc
+    namedArgListWithKeyAndRef
+    componentImplementation =
+  let propsName = fnName in
+  let name = makePropsName ~loc propsName in
+  let body =
+    makeFunsForMakePropsBody namedArgListWithKeyAndRef componentImplementation
   in
-  let propsName = fnName ^ "Props" in
-  Vb.mk ~loc
-    (Pat.mk ~loc
-       (Ppat_constraint
-          ( makePropsName ~loc propsName
-          , { ptyp_desc = Ptyp_poly ([], core_type)
-            ; ptyp_loc = loc
-            ; ptyp_attributes = []
-            ; ptyp_loc_stack = []
-            } )))
-    (Exp.mk ~loc
-       (Pexp_constraint
-          ( makeFunsForMakePropsBody namedArgListWithKeyAndRef
-              [%expr
-                fun _ ->
-                  let open Js_of_ocaml.Js.Unsafe in
-                  [%e makeJsObj ~loc namedArgListWithKeyAndRef]]
-          , core_type )))
 
-(* Returns a structure item for the `makeProps` function *)
-let makePropsItem fnName loc namedArgListWithKeyAndRef propsType =
+  Vb.mk ~loc name body
+
+let makeStructure fnName loc namedArgListWithKeyAndRef componentImplementation =
   Str.mk ~loc
     (Pstr_value
        ( Nonrecursive
-       , [ makePropsValueBinding fnName loc namedArgListWithKeyAndRef propsType
+       , [ makeValueBinding fnName loc namedArgListWithKeyAndRef
+             componentImplementation
          ] ))
 
-(* Builds an AST node for the entire `makeProps` function *)
-let makePropsDecl fnName loc namedArgListWithKeyAndRef namedTypeList =
-  makePropsItem fnName loc
+(* Builds an AST node for the modified `make` function *)
+let makeDeclaraton fnName loc namedArgListWithKeyAndRef componentImplementation
+    =
+  makeStructure fnName loc
     (List.map pluckLabelDefaultLocType namedArgListWithKeyAndRef)
-    (makePropsType ~loc namedTypeList)
+    componentImplementation
 
-(* TODO: some line number might still be wrong *)
 let jsxMapper () =
+  let childrenArg = ref None in
+
   let transformUppercaseCall modulePath mapper loc attrs _ callArguments =
     let children, argsWithLabels =
       extractChildren ~loc ~removeLastPositionUnit:true callArguments
@@ -489,7 +485,6 @@ let jsxMapper () =
       |> List.map (fun (label, expression) ->
              (label, mapper#expression expression))
     in
-    let childrenArg = ref None in
     let args =
       recursivelyTransformedArgsForMake
       @ (match childrenExpr with
@@ -503,29 +498,27 @@ let jsxMapper () =
             ])
       @ [ (nolabel, Exp.construct ~loc { loc; txt = Lident "()" } None) ]
     in
-    let isCap str =
-      let first = String.sub str 0 1 in
-      let capped = String.uppercase_ascii first in
-      first = capped
-    in
-    let ident =
+
+    let identifier =
       match modulePath with
       | Lident _ -> Ldot (modulePath, "make")
       | Ldot (_modulePath, value) as fullPath when isCap value ->
           Ldot (fullPath, "make")
       | modulePath -> modulePath
     in
-    let propsIdent =
-      match ident with
-      | Lident path -> Lident (path ^ "Props")
-      | Ldot (ident, path) -> Ldot (ident, path ^ "Props")
+    let makeFnIdentifier =
+      match identifier with
+      | Lident path -> Lident path
+      | Ldot (ident, path) -> Ldot (ident, path)
       | _ ->
           raise
             (Invalid_argument
                "JSX name can't be the result of function applications")
     in
-    let props =
-      Exp.apply ~attrs ~loc (Exp.ident ~loc { loc; txt = propsIdent }) args
+    let makeFn =
+      Exp.apply ~attrs ~loc
+        (Exp.ident ~loc { loc; txt = makeFnIdentifier })
+        args
     in
     (* handle key, ref, children *)
     (* React.createElement(Component.make, props, ...children) *)
@@ -533,15 +526,12 @@ let jsxMapper () =
     | None ->
         Exp.apply ~loc ~attrs
           (Exp.ident ~loc { loc; txt = Ldot (Lident "React", "createElement") })
-          [ (nolabel, Exp.ident ~loc { txt = ident; loc }); (nolabel, props) ]
+          [ (nolabel, makeFn) ]
     | Some children ->
         Exp.apply ~loc ~attrs
           (Exp.ident ~loc
              { loc; txt = Ldot (Lident "React", "createElementVariadic") })
-          [ (nolabel, Exp.ident ~loc { txt = ident; loc })
-          ; (nolabel, props)
-          ; (nolabel, children)
-          ]
+          [ (nolabel, makeFn); (nolabel, children) ]
   in
   let transformLowercaseCall loc attrs callArguments id callLoc =
     let children, nonChildrenProps = extractChildren ~loc callArguments in
@@ -838,11 +828,12 @@ let jsxMapper () =
               (label, None (* default *), loc, Some type_)
             in
             let retPropsType = makePropsType ~loc:pstr_loc namedTypeList in
+            let loc = pstr_loc in
             let externalPropsDecl =
-              makePropsItem fnName pstr_loc
+              makeStructure fnName pstr_loc
                 ((Optional "key", None, pstr_loc, Some (keyType pstr_loc))
                 :: List.map pluckLabelAndLoc propTypes)
-                retPropsType
+                [%expr "TODO: externals"]
             in
             (* can't be an arrow because it will defensively uncurry *)
             let newExternalType =
@@ -1055,7 +1046,9 @@ let jsxMapper () =
               in
               (wrapExpressionWithBinding wrapExpression, hasUnit, expression)
             in
-            let bindingWrapper, hasUnit, expression = modifiedBinding binding in
+            let _bindingWrapper, hasUnit, expression =
+              modifiedBinding binding
+            in
             let reactComponentAttribute =
               try Some (List.find hasAttr binding.pvb_attributes)
               with Not_found -> None
@@ -1138,11 +1131,8 @@ let jsxMapper () =
                         ([%e propsNameId] : < .. > Js_of_ocaml.Js.t)
                         (fun x -> [%e send])] )
             in
-            let namedTypeList = List.fold_left argToType [] namedArgList in
+            let _namedTypeList = List.fold_left argToType [] namedArgList in
             let loc = emptyLoc in
-            let makePropsLet =
-              makePropsDecl fnName loc namedArgListWithKeyAndRef namedTypeList
-            in
             let innerExpressionArgs =
               List.map pluckArg namedArgListWithKeyAndRefForNew
               @
@@ -1181,17 +1171,14 @@ let jsxMapper () =
             in
             let fullExpression =
               Exp.fun_ nolabel None
-                { ppat_desc =
-                    Ppat_constraint
-                      ( makePropsName ~loc:emptyLoc props.propsName
-                      , makePropsType ~loc:emptyLoc namedTypeList )
+                { ppat_desc = Ppat_var { txt = props.propsName; loc = emptyLoc }
                 ; ppat_loc = emptyLoc
                 ; ppat_attributes = []
                 ; ppat_loc_stack = []
                 }
                 innerExpressionWithRef
             in
-            let fullExpression =
+            let _fullExpression =
               match fullModuleName with
               | "" -> fullExpression
               | txt ->
@@ -1203,25 +1190,30 @@ let jsxMapper () =
                     (Exp.ident ~loc:emptyLoc
                        { loc = emptyLoc; txt = Lident txt })
             in
+            let makeLet =
+              makeDeclaraton fnName loc namedArgListWithKeyAndRef expression
+            in
             let bindings, newBinding =
               match recFlag with
               | Recursive ->
-                  ( [ bindingWrapper
-                        (Exp.let_ ~loc:emptyLoc Recursive
-                           [ makeNewBinding binding expression internalFnName
-                           ; Vb.mk
-                               (Pat.var { loc = emptyLoc; txt = fnName })
-                               fullExpression
-                           ]
-                           (Exp.ident { loc = emptyLoc; txt = Lident fnName }))
-                    ]
+                  ( (* [ bindingWrapper
+                           (Exp.let_ ~loc:emptyLoc Recursive
+                              [ makeNewBinding binding expression internalFnName
+                              ; Vb.mk
+                                  (Pat.var { loc = emptyLoc; txt = fnName })
+                                  fullExpression
+                              ]
+                              (Exp.ident { loc = emptyLoc; txt = Lident fnName }))
+                       ] *)
+                    []
                   , None )
               | Nonrecursive ->
-                  ( [ { binding with pvb_expr = expression; pvb_attributes = [] }
-                    ]
-                  , Some (bindingWrapper fullExpression) )
+                  ( (* [ { binding with pvb_expr = expression; pvb_attributes = [] }
+                       ] *)
+                    []
+                  , None (* Some (bindingWrapper fullExpression) *) )
             in
-            (Some makePropsLet, bindings, newBinding)
+            (Some makeLet, bindings, newBinding)
           else (None, [ binding ], None)
         in
         let structuresAndBinding = List.map mapBinding valueBindings in
@@ -1358,6 +1350,7 @@ let jsxMapper () =
              "JSX: `createElement` should be preceeded by a simple, direct \
               module name.")
   in
+
   object (self)
     inherit Ast_traverse.map as super
 
@@ -1420,11 +1413,11 @@ let jsxMapper () =
       mapped
   end
 
-let rewrite_implementation (code : Parsetree.structure) : Parsetree.structure =
+let rewrite_implementation code =
   let mapper = jsxMapper () in
   mapper#structure code
 
-let rewrite_signature (code : Parsetree.signature) : Parsetree.signature =
+let rewrite_signature code =
   let mapper = jsxMapper () in
   mapper#signature code
 
