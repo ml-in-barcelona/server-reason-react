@@ -67,11 +67,12 @@
 - [ ] Implement dispatcher
 - [ ] Add setState callbacks as tick on the dispatcher
 - [ ] Add support for SVGs (they have a few differences in rendering the tag and attributes)
-- [ ] Rename React.Node.t and others to React.Element
+- [x] Rename React.Node.t and others to React.Element
 - [ ] Ensure types from TypeScript make sense with our implementation
 - [ ] A way to trigger warnings for invalid attributes in special elements
   - [ReactDOMTextarea](https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMTextarea-test.js)
   - [ReactDOMSelect](https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMSelect-test.js)
+- [ ] Re-visit cloneElement
 
 ## Demo
 
@@ -83,14 +84,17 @@
 - [x] Remove all `jsoo` specific
 - [x] Render to something that makes sense
 - [x] Transform attributes to JSX
-- [ ] Transform lower case components
-- [ ] Transform React.Components
+- [x] Transform lower case components
+- [x] Transform React.Components
+- [ ] Enable reason test from ppx
+- [ ] Add Events
 - [ ] Transform signatures
 - [ ] Transform externals
   - (Lident "React", "componentLike")
 - [ ] Allow recursive components?
-- [ ] Transform Fragments to the right type s/React.Fragment.createElement/React.createFragment?
-- [ ] Is childrenArg ref hack, necessary?
+- [x] Transform Fragments to the right type s/React.Fragment.createElement/React.createFragment?
+- [x] Is childrenArg ref hack, necessary?
+- [ ] Can we cleanup this fucking beast?
 
 ## Questions
 

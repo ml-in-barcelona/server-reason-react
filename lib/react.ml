@@ -16,28 +16,28 @@ let useRef value = ref value
 let forwardRef f = f ()
 
 (* Self referencing modules to have recursive type records without collission *)
-module rec Element : sig
+module rec Lower_case_element : sig
   type t =
     { tag : string
     ; attributes : Attribute.t array
-    ; children : Node.t list
+    ; children : Element.t list
     }
 end =
-  Element
+  Lower_case_element
 
-and Closed_element : sig
+and Lower_case_closed_element : sig
   type t =
     { tag : string
     ; attributes : Attribute.t array
     }
 end =
-  Closed_element
+  Lower_case_closed_element
 
-and Node : sig
+and Element : sig
   type t =
-    | Element of Element.t
-    | Closed_element of Closed_element.t
-    | Component of (unit -> t)
+    | Lower_case_element of Lower_case_element.t
+    | Lower_case_closed_element of Lower_case_closed_element.t
+    | Upper_case_element of (unit -> t)
     | List of t array
     | Text of string
     | Fragment of t list
@@ -45,7 +45,7 @@ and Node : sig
     | Provider of (unit -> t) list
     | Consumer of (unit -> t list)
 end =
-  Node
+  Element
 
 and Attribute : sig
   type t =
@@ -56,6 +56,16 @@ and Attribute : sig
     | Ref of Ref.t
 end =
   Attribute
+
+and Fragment : sig
+  type t = Element.t list
+
+  val make : t -> Element.t
+end = struct
+  type t = Element.t list
+
+  let make f = Element.Fragment f
+end
 
 let is_self_closing_tag = function
   | "area" | "base" | "br" | "col" | "embed" | "hr" | "img" | "input" | "link"
@@ -128,10 +138,10 @@ let create_element_inner tag attributes children =
     match (dangerouslySetInnerHTML, children) with
     | None, children -> children
     | Some (Attribute.DangerouslyInnerHtml innerHtml), [] ->
-        [ Node.Text innerHtml ]
+        [ Element.Text innerHtml ]
     | Some _, _children -> raise (Invalid_children tag)
   in
-  Node.Element { tag; attributes; children }
+  Element.Lower_case_element { tag; attributes; children }
 
 let createElement tag attributes children =
   match is_self_closing_tag tag with
@@ -139,48 +149,46 @@ let createElement tag attributes children =
       (* TODO: Add test for this *)
       (* Q: should raise or return monad? *)
       raise @@ Invalid_children "closing tag with children isn't valid"
-  | true -> Node.Closed_element { tag; attributes }
+  | true -> Element.Lower_case_closed_element { tag; attributes }
   | false -> create_element_inner tag attributes children
 
 (* cloneElements overrides childrens *)
 let cloneElement element new_attributes new_childrens =
-  let open Node in
+  let open Element in
   match element with
-  | Element { tag; attributes; children = _ } ->
-      Element
+  | Lower_case_element { tag; attributes; children = _ } ->
+      Lower_case_element
         { tag
         ; attributes = clone_attributes attributes new_attributes
         ; children = new_childrens
         }
-  | Closed_element { tag; attributes } ->
-      Closed_element
+  | Lower_case_closed_element { tag; attributes } ->
+      Lower_case_closed_element
         { tag; attributes = clone_attributes attributes new_attributes }
   | Fragment _childrens -> Fragment new_childrens
   | Text t -> Text t
   | Empty -> Empty
   | List l -> List l
-  (* FIXME: How does cloneElement does with Provider/Consumer *)
   | Provider child -> Provider child
   | Consumer child -> Consumer child
-  | Component f -> Component f
+  | Upper_case_element f -> Upper_case_element f
 
-(* let currentDispatcher = ref dispacher *)
-(* HooksDispatcherOnUpdateInDEV *)
+let memo f _compare : 'props * 'props -> bool = f
 
 type 'a context =
   { current_value : 'a ref
-  ; provider : value:'a -> children:(unit -> Node.t) list -> Node.t
-  ; consumer : children:('a -> Node.t list) -> Node.t
+  ; provider : value:'a -> children:(unit -> Element.t) list -> Element.t
+  ; consumer : children:('a -> Element.t list) -> Element.t
   }
 
 let createContext (initial_value : 'a) : 'a context =
   let ref_value = ref initial_value in
   let provider ~value ~children =
     ref_value.contents <- value;
-    Node.Provider children
+    Element.Provider children
   in
   let consumer ~children =
-    Node.Consumer (fun () -> children ref_value.contents)
+    Element.Consumer (fun () -> children ref_value.contents)
   in
   { current_value = ref_value; provider; consumer }
 
@@ -252,10 +260,10 @@ let useEffect6 :
  fun _ _ -> ()
 
 (* ReasonReact APIs *)
-let string txt = Node.Text txt
-let null = Node.Empty
-let int i = Node.Text (string_of_int i)
+let string txt = Element.Text txt
+let null = Element.Empty
+let int i = Element.Text (string_of_int i)
 
 (* FIXME: float_of_string might be different on the browser *)
-let float f = Node.Text (string_of_float f)
-let array arr = Node.List arr
+let float f = Element.Text (string_of_float f)
+let array arr = Element.List arr

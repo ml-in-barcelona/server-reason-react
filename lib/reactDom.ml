@@ -107,15 +107,16 @@ let attributes_to_string tag attrs =
 let react_root_attr_name = "data-reactroot"
 let data_react_root_attr = Printf.sprintf " %s=\"\"" react_root_attr_name
 
-let renderToStaticMarkup (component : Node.t) =
+let renderToStaticMarkup (element : Element.t) =
   (* is_root starts at true (when renderToString) and only goes to false when renders an element or closed element *)
   let is_root = ref false in
-  let rec render_to_string_inner component =
+  let rec render_to_string_inner element =
     let root_attribute =
       match is_root.contents with true -> data_react_root_attr | false -> ""
     in
-    match component with
-    | Node.Empty -> ""
+    let open Element in
+    match element with
+    | Empty -> ""
     | Fragment [] -> ""
     | Text text -> Html.escape text
     | Provider children ->
@@ -131,8 +132,8 @@ let renderToStaticMarkup (component : Node.t) =
         children () |> List.map render_to_string_inner |> String.concat ""
     | Fragment children ->
         children |> List.map render_to_string_inner |> String.concat ""
-    | Component f -> render_to_string_inner (f ())
-    | Element { tag; attributes; children } ->
+    | Upper_case_element f -> render_to_string_inner (f ())
+    | Lower_case_element { tag; attributes; children } ->
         is_root.contents <- false;
         let attributes = attributes_to_string tag attributes in
         let childrens =
@@ -140,12 +141,12 @@ let renderToStaticMarkup (component : Node.t) =
         in
         Printf.sprintf "<%s%s%s>%s</%s>" tag root_attribute attributes childrens
           tag
-    | Closed_element { tag; attributes } ->
+    | Lower_case_closed_element { tag; attributes } ->
         is_root.contents <- false;
         let attributes = attributes_to_string tag attributes in
         Printf.sprintf "<%s%s%s />" tag root_attribute attributes
   in
-  render_to_string_inner component
+  render_to_string_inner element
 
 module Style = struct
   type t
