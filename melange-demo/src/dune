@@ -1,6 +1,7 @@
 (library
  (name server)
  (public_name melange-demo)
- (libraries react reactDOM shims belt)
+ (libraries native-react.react native-react.reactDom native-react.js)
+ (flags -open Js)
  (preprocess
-  (pps pipe_first_ppx native-react.ppx)))
+  (pps native-react.pipe_first_ppx native-react.ppx)))

@@ -33,8 +33,3 @@
   (reason :with-test)
   (ocaml-lsp-server :with-test)
 ))
-
-(package
- (name melange-demo)
- (synopsis "")
- (description ""))

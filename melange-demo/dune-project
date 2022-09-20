@@ -1,0 +1,21 @@
+(lang dune 3.1)
+
+(name melange-demo)
+
+(license MIT)
+
+(maintainers "Javier Chávarri <javier.chavarri@gmail.com>")
+
+(authors "Javier Chávarri <javier.chavarri@gmail.com>")
+
+(source
+ (github ml-in-barcelona/native-react))
+
+(generate_opam_files false)
+
+(implicit_transitive_deps false)
+
+(package
+ (name melange-demo)
+ (synopsis "Bindings to ReactJS for js_of_ocaml, including JSX ppx")
+)

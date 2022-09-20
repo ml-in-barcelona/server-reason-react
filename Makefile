@@ -55,5 +55,5 @@ init: ## Create a local opam switch and setups githooks
 	git config core.hooksPath .githooks
 	opam switch create . --deps-only --with-test
 
-demo:
+melange-demo:
 	$(MEL)

@@ -1,0 +1,7 @@
+(executable
+ (name index)
+ (public_name demo)
+ (package native-react)
+ (libraries react reactDOM shims belt native-react.js)
+ (preprocess
+  (pps pipe_first_ppx native-react.ppx)))
