@@ -64,8 +64,8 @@
   - [ ] displayName
 - [x] ReactDOM.Style.make
 - [ ] Handle unicode. Add Uutfs?
-- [ ] Implement dispatcher
 - [ ] Add setState callbacks as tick on the dispatcher
+  - [ ] Implement dispatcher
 - [ ] Add support for SVGs (they have a few differences in rendering the tag and attributes)
 - [x] Rename React.Node.t and others to React.Element
 - [ ] Ensure types from TypeScript make sense with our implementation
@@ -73,11 +73,13 @@
   - [ReactDOMTextarea](https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMTextarea-test.js)
   - [ReactDOMSelect](https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMSelect-test.js)
 - [ ] Re-visit cloneElement
+- [ ] What other React APIs do we need to implement?
 
 ## Demo
 
 - [x] Create a server to render HTML with native-react-dom
 - [x] Compile the same code to the client
+- [ ] Allow to build with melange and with OCaml
 
 ## ppx transformation
 
@@ -86,32 +88,34 @@
 - [x] Transform attributes to JSX
 - [x] Transform lower case components
 - [x] Transform React.Components
-- [ ] Enable reason test from ppx
-- [ ] Add Events
+- [x] Add Events
+- [ ] Enable reason test from ppx (sometimes it breaks???)
 - [ ] Transform signatures
 - [ ] Transform externals
   - (Lident "React", "componentLike")
 - [ ] Allow recursive components?
 - [x] Transform Fragments to the right type s/React.Fragment.createElement/React.createFragment?
 - [x] Is childrenArg ref hack, necessary?
-- [ ] Can we cleanup this fucking beast?
-
-## Questions
-
+- [ ] Can we cleanup this beast (ppx.ml) ?
+- [ ] Are keys necessary? Can we remove them?
 - How should we handle errors from `createElement` or `renderToString`
-- Suspense?
-  "ReactDOMServer does not yet support Suspense - server/node_modules/react-dom/cjs/react-dom-server.node.development.js:3518"
-- How does SSR handle component runtime?
+- [x] Suspense? "ReactDOMServer does not yet support Suspense - server/node_modules/react-dom/cjs/react-dom-server.node.development.js:3518"
+- [x] How does SSR handle component runtime?
   - If there is a function call such as state` inside a component?
   - Lists with keys, why SSR complains?
     - Because there's re-rendering inside SSR. Reconciling? Commiting? What?
-- Do we need CSSOperations?
+- [ ] Do we need CSSOperations?
   - Add the units (adding `px` when matters and other cases from [CSSPropertyOperations-test](https://github.com/MaibornWolff/react-wasm-dom/blob/main/src/__tests__/CSSPropertyOperations-test.jsx))?
-- How difficult would be to support Server components?
-- Do we need to support [React.Children API](https://github.com/reasonml/reason-react/blob/master/src/React.re#L58-L76) from reason-react
+- [ ] How difficult would be to support Server components?
+- [x] Do we need to support [React.Children API](https://github.com/reasonml/reason-react/blob/master/src/React.re#L58-L76) from reason-react. Almost deprecated.
 
 ### Not native-react-dom related
 
+- [ ] Try fetch
+- [ ] Bring promise
+  - [ ] Fix promise type missmatch.
+  - [ ] Push PR into aantron/promise?
+- [ ] Add bs-webapi
 - How we are going to mock the DOM API?
 - Do we have any way to ensure `bs.obj` compiles in native?
   - Probably only in melange?
