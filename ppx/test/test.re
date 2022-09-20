@@ -134,48 +134,57 @@ let test_ref_opt_attribute_none = () => {
   assert_string(ReactDOM.renderToStaticMarkup(div), "<div></div>");
 };
 
-let _ = run(
-  "Tests",
-  [
-    (
-      "renderToStaticMarkup",
-      [
-        test_case("div", `Quick, test_tag),
-        test_case("div_empty_attr", `Quick, test_empty_attribute),
-        test_case("div_bool_attr", `Quick, test_bool_attribute),
-        test_case("input_bool_attrs", `Quick, test_bool_attributes),
-        test_case("p_inner_html", `Quick, test_innerhtml),
-        test_case("div_int_attr", `Quick, test_int_attribute),
-        test_case("style_attr", `Quick, test_style_attribute),
-        test_case("div_ref_attr", `Quick, test_ref_attribute),
-        test_case("inner_html_attr", `Quick, test_innerhtml_attribute),
-        test_case("int_opt_attr_some", `Quick, test_int_opt_attribute_some),
-        test_case("int_opt_attr_none", `Quick, test_int_opt_attribute_none),
-        test_case(
-          "string_opt_attr_some",
-          `Quick,
-          test_string_opt_attribute_some,
-        ),
-        test_case(
-          "string_opt_attr_none",
-          `Quick,
-          test_string_opt_attribute_none,
-        ),
-        test_case("bool_opt_attr_some", `Quick, test_bool_opt_attribute_some),
-        test_case("bool_opt_attr_none", `Quick, test_bool_opt_attribute_none),
-        test_case(
-          "style_opt_attr_some",
-          `Quick,
-          test_style_opt_attribute_some,
-        ),
-        test_case(
-          "style_opt_attr_none",
-          `Quick,
-          test_style_opt_attribute_none,
-        ),
-        test_case("ref_opt_attr_some", `Quick, test_ref_opt_attribute_some),
-        test_case("ref_opt_attr_none", `Quick, test_ref_opt_attribute_none),
-      ],
-    ),
-  ],
-);
+let _ =
+  run(
+    "Tests",
+    [
+      (
+        "renderToStaticMarkup",
+        [
+          test_case("div", `Quick, test_tag),
+          test_case("div_empty_attr", `Quick, test_empty_attribute),
+          test_case("div_bool_attr", `Quick, test_bool_attribute),
+          test_case("input_bool_attrs", `Quick, test_bool_attributes),
+          test_case("p_inner_html", `Quick, test_innerhtml),
+          test_case("div_int_attr", `Quick, test_int_attribute),
+          test_case("style_attr", `Quick, test_style_attribute),
+          test_case("div_ref_attr", `Quick, test_ref_attribute),
+          test_case("inner_html_attr", `Quick, test_innerhtml_attribute),
+          test_case("int_opt_attr_some", `Quick, test_int_opt_attribute_some),
+          test_case("int_opt_attr_none", `Quick, test_int_opt_attribute_none),
+          test_case(
+            "string_opt_attr_some",
+            `Quick,
+            test_string_opt_attribute_some,
+          ),
+          test_case(
+            "string_opt_attr_none",
+            `Quick,
+            test_string_opt_attribute_none,
+          ),
+          test_case(
+            "bool_opt_attr_some",
+            `Quick,
+            test_bool_opt_attribute_some,
+          ),
+          test_case(
+            "bool_opt_attr_none",
+            `Quick,
+            test_bool_opt_attribute_none,
+          ),
+          test_case(
+            "style_opt_attr_some",
+            `Quick,
+            test_style_opt_attribute_some,
+          ),
+          test_case(
+            "style_opt_attr_none",
+            `Quick,
+            test_style_opt_attribute_none,
+          ),
+          test_case("ref_opt_attr_some", `Quick, test_ref_opt_attribute_some),
+          test_case("ref_opt_attr_none", `Quick, test_ref_opt_attribute_none),
+        ],
+      ),
+    ],
+  );

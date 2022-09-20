@@ -102,3 +102,13 @@ build
 
 # vscode
 .vscode
+
+lib
+_build
+_opam
+_esy
+.bsb.lock
+.merlin
+dune.mel
+.melange.eobjs
+dist/

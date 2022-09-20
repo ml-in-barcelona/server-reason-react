@@ -75,12 +75,6 @@
 - [ ] Re-visit cloneElement
 - [ ] What other React APIs do we need to implement?
 
-## Demo
-
-- [x] Create a server to render HTML with native-react-dom
-- [x] Compile the same code to the client
-- [ ] Allow to build with melange and with OCaml
-
 ## ppx transformation
 
 - [x] Remove all `jsoo` specific
@@ -109,14 +103,27 @@
 - [ ] How difficult would be to support Server components?
 - [x] Do we need to support [React.Children API](https://github.com/reasonml/reason-react/blob/master/src/React.re#L58-L76) from reason-react. Almost deprecated.
 
-### Not native-react-dom related
+## Demo/migration
 
+- [x] Pipe first
+  - [x] Add ppx
+  - [ ] Add operator
+- [x] Create a server to render HTML with native-react-dom
+- [x] Compile the same code to the client
+- [ ] Allow to build with melange and OCaml
 - [ ] Try fetch
-- [ ] Bring promise
-  - [ ] Fix promise type missmatch.
+- [ ] Try promise
+  - [ ] Fix promise type missmatch
   - [ ] Push PR into aantron/promise?
-- [ ] Add bs-webapi
-- How we are going to mock the DOM API?
+- [ ] How we are going to mock the [JavaScript APIs](https://rescript-lang.org/docs/manual/latest/api/js) from ReScript?
+- [ ] How we are going to mock the DOM API?
+  - [x] Create library from bs-webapi
+  - [ ] Found a way to add it incrementally?
+  - [ ] What can we do with externals?
 - Do we have any way to ensure `bs.obj` compiles in native?
   - Probably only in melange?
   - Add ppx processing to replace `bs.obj` with classic OCaml objects (e.g. `{"foo": 2}` translates to `object method foo = 2 end`).
+- Styles
+  - [ ] How we are going to handle Emotion?
+  - [ ] Migrate to styled-ppx
+  - [ ] Make styled-ppx run on compile time

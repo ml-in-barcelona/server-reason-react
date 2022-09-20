@@ -2,7 +2,7 @@
  (name react)
  (modules react)
  (public_name native-react.react)
- (libraries shims))
+ (libraries shims native-react.js))
 
 (library
  (name reactDOM)
