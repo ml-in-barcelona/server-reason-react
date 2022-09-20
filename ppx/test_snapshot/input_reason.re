@@ -196,3 +196,5 @@ module MemoCustomCompareProps = {
      <div> {Printf.sprintf("`name` is %s", name) |> React.string} </div>;
    };
     */
+
+let appa = "asdf";

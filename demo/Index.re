@@ -1,12 +1,4 @@
-/* ReactDOM.querySelector("#root")
-   ->(
-       fun
-       | Some(root) => ReactDOM.render(<App />, root)
-       | None =>
-         Js.Console.error(
-           "Failed to start React: couldn't find the #root element",
-         )
-     );
-    */
+/* let app = ReactDOM.renderToStaticMarkup(<App />); */
 
-Js.Console.error("Failed to start React: couldn't find the #root element");
+let appa = "asdf";
+Js.Console.error("Rendering in the #root element\n" ++ appa);

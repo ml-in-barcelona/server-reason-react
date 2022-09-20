@@ -110,6 +110,7 @@
   - [ ] Add operator
 - [x] Create a server to render HTML with native-react-dom
 - [x] Compile the same code to the client
+- [ ] Split commands to run tests and builds separately
 - [ ] Allow to build with melange and OCaml
 - [ ] Try fetch
 - [ ] Try promise
