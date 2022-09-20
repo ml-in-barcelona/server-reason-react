@@ -1,31 +1,30 @@
-let lower = <div />;
+/* let lower = <div />;
 let lower_with_empty_attr = <div className="" />;
 let lower_with_style =
   <div style={ReactDOM.Style.make(~backgroundColor="gainsboro", ())} />;
 let lower_inner_html = <div dangerouslySetInnerHTML={"__html": text} />;
 let lower_opt_attr = <div ?tabIndex />;
 let upper = <Input />;
-
+ */
 module React_component_without_props = {
   [@react.component]
-  let make = (~lola, ~cosis) => {
-    Js.log(cosis);
-
+  let make = (~lola) => {
     <div>{React.string(lola)}</div>
   }
-}
+};
 
-let upper = <React_component_without_props lola="flores" />;
+[@react.component]
+let make = () => <React_component_without_props lola="flores" />;
 
 // Components
 
-[@react.component]
+/* [@react.component]
 let make = (~name="") => {
   <>
     <div> {React.string("First " ++ name)} </div>
     <Hello one="1"> {React.string("2nd " ++ name)} </Hello>
   </>;
-};
+}; */
 
 /* module External = {
   [@react.component] [@otherAttribute "bla"]
@@ -73,7 +72,7 @@ module MemoCustomCompareProps = {
     );
 }; */
 
-module Memo = {
+/* module Memo = {
   [@react.component]
   let make =
     React.memo((~a) => {
@@ -92,19 +91,18 @@ module MemoCustomCompareProps = {
     );
 };
 
-/* let fragment = foo => [@bla] <> foo </>;
+let fragment = foo => <> foo </>;
 
 let polyChildrenFragment = (foo, bar) => <> foo bar </>;
 
 let nestedFragment = (foo, bar, baz) => <> foo <> bar baz </> </>;
-
-let upper = <Upper />;
-
 let upperWithProp = <Upper count />;
 
 let upperWithChild = foo => <Upper> foo </Upper>;
 
-let upperWithChildren = (foo, bar) => <Upper> foo bar </Upper>;
+let upperWithChildren = (foo, bar) => <Upper> foo bar </Upper>; */
+
+/*
 
 let lower = <div />;
 

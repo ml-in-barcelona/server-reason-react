@@ -1,57 +1,12 @@
-module React_component_without_props =
-  struct
-    let make ~lola  ~cosis  ?key  =
-      ((fun ~lola ->
-          ((fun ~cosis ->
-              ((Js.log cosis;
-                React.createElement "div"
-                  ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a)))
-                     |> Array.of_list)
-                  [((React.string lola)[@reason.preserve_braces ])])
-              [@reason.preserve_braces ]))
-          [@warning "-16"]))
-      [@warning "-16"])
-  end
-let make ?name  ?key  =
-  ((fun ?(name= (("")[@reason.raw_literal ""])) ->
-      ((React.Fragment.make
-          [React.createElement "div"
-             ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
-                Array.of_list)
-             [((React.string
-                  ((("First ")[@reason.raw_literal "First "]) ^ name))
-             [@reason.preserve_braces ])];
-          Hello.make ~one:(("1")[@reason.raw_literal "1"])
-            ~children:((React.string
-                          ((("2nd ")[@reason.raw_literal "2nd "]) ^ name))
-            [@reason.preserve_braces ]) ()] ())
-      [@reason.preserve_braces ]))
-  [@warning "-16"])
-module Memo =
-  struct
-    let make ~a  ?key  =
-      ((fun ~a ->
-          ((React.createElement "div"
-              ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
-                 Array.of_list)
-              [(((Printf.sprintf (("`a` is %s")
-                    [@reason.raw_literal "`a` is %s"]) a)
-                   |> React.string)
-              [@reason.preserve_braces ])])
-          [@reason.preserve_braces ]))
-      [@warning "-16"])
-  end
-module MemoCustomCompareProps =
-  struct
-    let make ~a  ?key  =
-      ((fun ~a ->
-          ((React.createElement "div"
-              ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
-                 Array.of_list)
-              [(((Printf.sprintf (("`a` is %d")
-                    [@reason.raw_literal "`a` is %d"]) a)
-                   |> React.string)
-              [@reason.preserve_braces ])])
-          [@reason.preserve_braces ]))
-      [@warning "-16"])
-  end
+module React_component_without_props = struct
+  let make =
+   fun [@warning "-16"] ~lola ?(key : string option = None) () ->
+    React.createElement "div"
+      ([| Option.map (fun raw -> React.Attribute.String ("key", raw)) key |]
+      |> Array.to_list
+      |> List.filter_map (fun a -> a)
+      |> Array.of_list)
+      [ React.string lola ]
+end
+
+let make () = React_component_without_props.make ~lola:"flores" ()
