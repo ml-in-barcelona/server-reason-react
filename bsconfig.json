@@ -3,7 +3,7 @@
     "name": "melange-basic-project",
     "version": "0.0.1",
     "sources": {
-      "dir" : "melange-basic-template/src"
+      "dir" : "melange-demo/src"
     },
     "package-specs": {
       "module": "commonjs"

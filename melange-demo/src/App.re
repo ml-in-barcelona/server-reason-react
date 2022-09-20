@@ -1,6 +1,6 @@
 module React_component_without_props = {
   [@warning "-27"]
-  let make = (~lola, ~key, ()) =>
+  let make = (~lola, ()) =>
     React.createElement(
       "div",
       [||] |> Array.to_list |> List.filter_map(a => a) |> Array.of_list,
@@ -8,4 +8,4 @@ module React_component_without_props = {
     );
 };
 
-let make = () => React_component_without_props.make(~lola="flores", ~key=Some("key"), ());
+let make = () => React_component_without_props.make(~lola="flores", ());

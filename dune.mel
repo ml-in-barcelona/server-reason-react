@@ -231,7 +231,7 @@
 (rule (with-stdout-to .bsbuild (run echo -n "MTAKUmVhY3QKUmVhY3RET00KUmVhY3RET01SZQpSZWFjdEV2ZW50ClJlYXNvblJlYWN0ClJlYWN0RE9NU3R5bGUKUmVhY3RET01TZXJ2ZXIKUmVhY3RUZXN0VXRpbHMKUmVzY3JpcHRSZWFjdFJvdXRlcgpSZXNjcmlwdFJlYWN0RXJyb3JCb3VuZGFyeQouL3NyYwkuL3NyYy9sZWdhY3kJCjEBAQMBAwEBAQEBCjAK")))
 )
 
-(subdir melange-basic-template/src
+(subdir melange-demo/src
 (rule
 (targets  App.ast)
  (deps (:inputs  App.re)  ../../.melange.eobjs/.bsbuild)
@@ -240,14 +240,14 @@
 (enabled_if %{bin-available:melc}) )
  (rule
 (targets  App.d)
- (deps (:inputs  ../.././melange-basic-template/src/App.ast) )
-(action (run meldep -root-dir /Users/davesnx/Code/github/ml-in-barcelona/native-react-dom -cwd ./melange-basic-template/src -p melange-basic-project -proj-dir /Users/davesnx/Code/github/ml-in-barcelona/native-react-dom  %{inputs}))
+ (deps (:inputs  ../.././melange-demo/src/App.ast) )
+(action (run meldep -root-dir /Users/davesnx/Code/github/ml-in-barcelona/native-react-dom -cwd ./melange-demo/src -p melange-basic-project -proj-dir /Users/davesnx/Code/github/ml-in-barcelona/native-react-dom  %{inputs}))
 (enabled_if %{bin-available:melc}) )
  (rule
 (targets  App.cmj App.cmi App.cmt App.bs.js)
  (deps (:inputs  App.ast)  (include App.d) ../../bsconfig.json(alias ../../node_modules/@rescript/react/src/mel)(alias ../../node_modules/@rescript/react/src/legacy/mel))
 (action
-  (run melc -bs-re-out -I . -I ../../node_modules/@rescript/react/src -I ../../node_modules/@rescript/react/src/legacy   -warn-error +101 -bs-package-name melange-basic-project -bs-package-output commonjs:./melange-basic-template/src:.bs.js -o App.cmj %{inputs}))
+  (run melc -bs-re-out -I . -I ../../node_modules/@rescript/react/src -I ../../node_modules/@rescript/react/src/legacy   -warn-error +101 -bs-package-name melange-basic-project -bs-package-output commonjs:./melange-demo/src:.bs.js -o App.cmj %{inputs}))
 (enabled_if %{bin-available:melc}) )
  (rule
 (targets  Index.ast)
@@ -257,21 +257,21 @@
 (enabled_if %{bin-available:melc}) )
  (rule
 (targets  Index.d)
- (deps (:inputs  ../.././melange-basic-template/src/Index.ast) )
-(action (run meldep -root-dir /Users/davesnx/Code/github/ml-in-barcelona/native-react-dom -cwd ./melange-basic-template/src -p melange-basic-project -proj-dir /Users/davesnx/Code/github/ml-in-barcelona/native-react-dom  %{inputs}))
+ (deps (:inputs  ../.././melange-demo/src/Index.ast) )
+(action (run meldep -root-dir /Users/davesnx/Code/github/ml-in-barcelona/native-react-dom -cwd ./melange-demo/src -p melange-basic-project -proj-dir /Users/davesnx/Code/github/ml-in-barcelona/native-react-dom  %{inputs}))
 (enabled_if %{bin-available:melc}) )
  (rule
 (targets  Index.cmj Index.cmi Index.cmt Index.bs.js)
  (deps (:inputs  Index.ast)  (include Index.d) ../../bsconfig.json(alias ../../node_modules/@rescript/react/src/mel)(alias ../../node_modules/@rescript/react/src/legacy/mel))
 (action
-  (run melc -bs-re-out -I . -I ../../node_modules/@rescript/react/src -I ../../node_modules/@rescript/react/src/legacy   -warn-error +101 -bs-package-name melange-basic-project -bs-package-output commonjs:./melange-basic-template/src:.bs.js -o Index.cmj %{inputs}))
+  (run melc -bs-re-out -I . -I ../../node_modules/@rescript/react/src -I ../../node_modules/@rescript/react/src/legacy   -warn-error +101 -bs-package-name melange-basic-project -bs-package-output commonjs:./melange-demo/src:.bs.js -o Index.cmj %{inputs}))
 (enabled_if %{bin-available:melc}) )
  
 (alias (name mel)(deps  Index.bs.js App.bs.js)
 (enabled_if %{bin-available:melc})))
 
 (subdir .melange.eobjs
-(rule (with-stdout-to .bsbuild (run echo -n "MgpBcHAKSW5kZXgKLi9tZWxhbmdlLWJhc2ljLXRlbXBsYXRlL3NyYwkKMQEBCjAK")))
+(rule (with-stdout-to .bsbuild (run echo -n "MgpBcHAKSW5kZXgKLi9tZWxhbmdlLWRlbW8vc3JjCQoxAQEKMAo=")))
 )
 
 (data_only_dirs node_modules .melange.eobjs)

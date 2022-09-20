@@ -32,11 +32,9 @@
   (ocamlformat (and (= 0.21.0) :with-test))
   (reason :with-test)
   (ocaml-lsp-server :with-test)
-
 ))
 
 (package
- (name melange-basic-template)
- (synopsis "Project template for melange")
- (description
-  "Template for a minimal melange project"))
+ (name melange-demo)
+ (synopsis "")
+ (description ""))
