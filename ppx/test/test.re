@@ -1,4 +1,4 @@
-open Alcotest;
+open! Alcotest;
 
 let assert_string = (left, right) =>
   (check(string))("should be equal", right, left);
@@ -134,7 +134,7 @@ let test_ref_opt_attribute_none = () => {
   assert_string(ReactDOM.renderToStaticMarkup(div), "<div></div>");
 };
 
-run(
+let _ = run(
   "Tests",
   [
     (
