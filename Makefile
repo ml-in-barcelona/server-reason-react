@@ -55,5 +55,11 @@ init: ## Create a local opam switch and setups githooks
 	git config core.hooksPath .githooks
 	opam switch create . --deps-only --with-test
 
-melange-demo:
-	$(MEL)
+ppx_test: ## Run ppx tests
+	$(DUNE) runtest ppx
+
+ppx_test_watch: ## Run ppx tests in watch mode
+	$(DUNE) runtest ppx --watch
+
+lib_test: ## Run library tests
+	$(DUNE) exec test/test.exe
