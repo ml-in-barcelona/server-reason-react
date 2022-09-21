@@ -25,11 +25,12 @@
 
   (ppxlib (>= 0.23.0))
 
+  (reason (= 3.8.1))
+
   ;; Test dependencies
   (alcotest :with-test)
 
   ;; Dev dependencies, using with-test so that consumers don't install them (until package is released in opam)
   (ocamlformat (and (= 0.21.0) :with-test))
-  (reason :with-test)
   (ocaml-lsp-server :with-test)
 ))

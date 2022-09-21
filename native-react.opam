@@ -12,7 +12,7 @@ depends: [
   "ppxlib" {>= "0.23.0"}
   "alcotest" {with-test}
   "ocamlformat" {= "0.21.0" & with-test}
-  "reason" {with-test}
+  "reason" {= "3.8.1"}
   "ocaml-lsp-server" {with-test}
   "odoc" {with-doc}
 ]
