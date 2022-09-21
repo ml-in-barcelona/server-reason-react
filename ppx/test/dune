@@ -4,6 +4,7 @@
   alcotest
   native-react.react
   native-react.reactDom
-  native-react.shims)
+  native-react.shims
+  native-react.js)
  (preprocess
   (pps native-react.ppx)))

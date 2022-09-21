@@ -467,7 +467,7 @@ let makeStructure fnName loc namedArgListWithKeyAndRef componentImplementation =
 (* Builds an AST node for the modified `make` function *)
 let makeDeclaraton ~loc fnName namedArgListWithKeyAndRef componentImplementation
     =
-  makeStructure fnName loc
+  makeValueBinding fnName loc
     (List.map pluckLabelDefaultLocType namedArgListWithKeyAndRef)
     componentImplementation
 
@@ -600,12 +600,12 @@ let argToConcreteType types (name, loc, type_) =
       :: types
   | _ -> types
 
-let process_value_binding ~loc mapper nestedModules recFlag valueBindings =
-  let fileName = filenameFromLoc loc in
-  let emptyLoc = Location.in_file fileName in
-  let mapBinding binding =
-    if not (hasAttrOnBinding binding) then (None, [ binding ], None)
-    else
+let process_value_binding ~loc mapper _nestedModules _recFlag valueBindings =
+  if not (hasAttrOnBinding valueBindings) then valueBindings
+  else
+    let fileName = filenameFromLoc loc in
+    let emptyLoc = Location.in_file fileName in
+    let mapBinding binding =
       let bindingLoc = binding.pvb_loc in
       let bindingPatLoc = binding.pvb_pat.ppat_loc in
       let binding =
@@ -615,8 +615,6 @@ let process_value_binding ~loc mapper nestedModules recFlag valueBindings =
         }
       in
       let fnName = getFnName binding in
-      let internalFnName = fnName ^ "$Internal" in
-      let fullModuleName = makeModuleName fileName !nestedModules fnName in
       let modifiedBindingOld binding =
         let expression = binding.pvb_expr in
         (* TODO: there is a long-tail of unsupported features inside of blocks - Pexp_letmodule , Pexp_letexception , Pexp_ifthenelse *)
@@ -773,18 +771,7 @@ let process_value_binding ~loc mapper nestedModules recFlag valueBindings =
         in
         (wrapExpressionWithBinding wrapExpression, hasUnit, expression)
       in
-      let bindingWrapper, hasUnit, expression = modifiedBinding binding in
-      let reactComponentAttribute =
-        try Some (List.find hasAttr binding.pvb_attributes)
-        with Not_found -> None
-      in
-      let _attr_loc, payload =
-        match reactComponentAttribute with
-        | Some { attr_loc; attr_payload } -> (attr_loc, Some attr_payload)
-        | None -> (emptyLoc, None)
-      in
-      let props = getPropsAttr payload in
-      (* do stuff here! *)
+      let _bindingWrapper, _hasUnit, expression = modifiedBinding binding in
       let namedArgList, forwardRef =
         recursivelyTransformNamedArgsForMake mapper
           (modifiedBindingOld binding)
@@ -811,147 +798,14 @@ let process_value_binding ~loc mapper nestedModules recFlag valueBindings =
             :: namedArgListWithKeyAndRef
         | None -> namedArgListWithKeyAndRef
       in
-      let namedArgListWithKeyAndRefForNew =
-        match forwardRef with
-        | Some txt ->
-            namedArgList
-            @ [ ( nolabel
-                , None
-                , Pat.var { txt; loc = emptyLoc }
-                , txt
-                , emptyLoc
-                , None )
-              ]
-        | None -> namedArgList
-      in
-      let pluckArg (label, _, _, alias, loc, _) =
-        let labelString =
-          match label with
-          | label when isOptional label || isLabelled label -> getLabel label
-          | _ -> ""
-        in
-        ( label
-        , match labelString with
-          | "" -> Exp.ident ~loc { txt = Lident alias; loc }
-          | labelString ->
-              let propsNameId =
-                Exp.ident ~loc { txt = Lident props.propsName; loc }
-              in
-              let labelStringConst =
-                Exp.constant ~loc (Const.string labelString)
-              in
-              let send =
-                Exp.send ~loc
-                  (Exp.ident ~loc { txt = Lident "x"; loc })
-                  { txt = labelString; loc }
-              in
-              (* https://github.com/ocsigen/js_of_ocaml/blob/b1c807eaa40fa17b04c7d8e7e24306a03a46681d/ppx/ppx_js/lib_internal/ppx_js_internal.ml#L322-L332 *)
-              [%expr
-                (fun (type res a0) (a0 : a0 Js_of_ocaml.Js.t)
-                     (_ : a0 -> < get : res ; .. > Js_of_ocaml.Js.gen_prop) :
-                     res ->
-                  Js_of_ocaml.Js.Unsafe.get a0 [%e labelStringConst])
-                  ([%e propsNameId] : < .. > Js_of_ocaml.Js.t)
-                  (fun x -> [%e send])] )
-      in
-      let _namedTypeList = List.fold_left argToType [] namedArgList in
       let loc = emptyLoc in
-      let innerExpressionArgs =
-        List.map pluckArg namedArgListWithKeyAndRefForNew
-        @
-        if hasUnit then
-          [ (Nolabel, Exp.construct { loc; txt = Lident "()" } None) ]
-        else []
-      in
-      let innerExpression =
-        Exp.apply
-          (Exp.ident
-             { loc
-             ; txt =
-                 Lident
-                   (match recFlag with
-                   | Recursive -> internalFnName
-                   | Nonrecursive -> fnName)
-             })
-          innerExpressionArgs
-      in
-      let innerExpressionWithRef =
-        match forwardRef with
-        | Some txt ->
-            { innerExpression with
-              pexp_desc =
-                Pexp_fun
-                  ( nolabel
-                  , None
-                  , { ppat_desc = Ppat_var { txt; loc = emptyLoc }
-                    ; ppat_loc = emptyLoc
-                    ; ppat_attributes = []
-                    ; ppat_loc_stack = []
-                    }
-                  , innerExpression )
-            }
-        | None -> innerExpression
-      in
-      let fullExpression =
-        Exp.fun_ nolabel None
-          { ppat_desc = Ppat_var { txt = props.propsName; loc = emptyLoc }
-          ; ppat_loc = emptyLoc
-          ; ppat_attributes = []
-          ; ppat_loc_stack = []
-          }
-          innerExpressionWithRef
-      in
-      let _fullExpression =
-        match fullModuleName with
-        | "" -> fullExpression
-        | txt ->
-            Exp.let_ Nonrecursive
-              [ Vb.mk ~loc:emptyLoc
-                  (Pat.var ~loc:emptyLoc { loc = emptyLoc; txt })
-                  fullExpression
-              ]
-              (Exp.ident ~loc:emptyLoc { loc = emptyLoc; txt = Lident txt })
-      in
       let makeLet =
         makeDeclaraton ~loc fnName namedArgListWithKeyAndRef expression
       in
-      let bindings, newBinding =
-        match recFlag with
-        | Recursive ->
-            ( [ bindingWrapper
-                  (Exp.let_ ~loc:emptyLoc Recursive
-                     [ makeNewBinding binding expression internalFnName
-                     ; Vb.mk
-                         (Pat.var { loc = emptyLoc; txt = fnName })
-                         fullExpression
-                     ]
-                     (Exp.ident { loc = emptyLoc; txt = Lident fnName }))
-              ]
-            , None )
-        | Nonrecursive ->
-            ( [ { binding with pvb_expr = expression; pvb_attributes = [] } ]
-            , Some (bindingWrapper fullExpression) )
-      in
-      (Some makeLet, bindings, newBinding)
-  in
-  let structuresAndBinding = List.map mapBinding valueBindings in
-  let otherStructures
-      (extern, binding, newBinding)
-      (externs, bindings, newBindings) =
-    let externs =
-      match extern with Some extern -> extern :: externs | None -> externs
+      makeLet
     in
-    let newBindings =
-      match newBinding with
-      | Some newBinding -> newBinding :: newBindings
-      | None -> newBindings
-    in
-    (externs, binding @ bindings, newBindings)
-  in
-  let externs, _bindings, _newBindings =
-    List.fold_right otherStructures structuresAndBinding ([], [], [])
-  in
-  externs
+    let value_binding = mapBinding valueBindings in
+    value_binding
 
 let jsxMapper () =
   (* let childrenArg = ref None in *)
@@ -1196,10 +1050,12 @@ let jsxMapper () =
     (* let component = ... *)
     | { pstr_loc; pstr_desc = Pstr_value (rec_flag, value_bindings) } ->
         let bindings =
-          process_value_binding ~loc:pstr_loc mapper nestedModules rec_flag
+          List.map
+            (process_value_binding ~loc:pstr_loc mapper nestedModules rec_flag)
             value_bindings
         in
-        bindings @ returnStructures
+        [ { pstr_loc; pstr_desc = Pstr_value (rec_flag, bindings) } ]
+        @ returnStructures
     | structure -> structure :: returnStructures
   in
   let reactComponentTransform mapper structures =
