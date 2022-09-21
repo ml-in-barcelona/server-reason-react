@@ -1,5 +1,48 @@
+let lower =
+  React.createElement "div"
+    ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
+       Array.of_list) []
+let lower_with_empty_attr =
+  React.createElement "div"
+    ((([|(Some
+            (React.Attribute.String
+               ("className", ((("")[@reason.raw_literal ""]) : string))))|]
+         |> Array.to_list)
+        |> (List.filter_map (fun a -> a)))
+       |> Array.of_list) []
+let lower_with_style =
+  React.createElement "div"
+    ((([|(Some
+            (React.Attribute.Style
+               ((ReactDOM.Style.make ~backgroundColor:(("gainsboro")
+                   [@reason.raw_literal "gainsboro"]) ())
+               [@reason.preserve_braces ])))|]
+         |> Array.to_list)
+        |> (List.filter_map (fun a -> a)))
+       |> Array.of_list) []
+let lower_inner_html =
+  React.createElement "div"
+    ((([|(Some (React.Attribute.DangerouslyInnerHtml text))|] |>
+         Array.to_list)
+        |> (List.filter_map (fun a -> a)))
+       |> Array.of_list) []
+let lower_opt_attr =
+  React.createElement "div"
+    ((([|(Option.map
+            (fun v -> React.Attribute.String ("tabIndex", (string_of_int v)))
+            (tabIndex : int option))|]
+         |> Array.to_list)
+        |> (List.filter_map (fun a -> a)))
+       |> Array.of_list) []
+let upper = Input.make ()
 module React_component_without_props =
   struct
+    let make ~lola  ~cosis  =
+      ((Js.log cosis;
+        React.createElement "div"
+          ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
+             Array.of_list) [((React.string lola)[@reason.preserve_braces ])])
+      [@reason.preserve_braces ])[@@react.component ]
     let make ~lola  ~cosis  ?key  =
       ((fun ~lola ->
           ((fun ~cosis ->
@@ -12,6 +55,21 @@ module React_component_without_props =
           [@warning "-16"]))
       [@warning "-16"])
   end
+let upper =
+  React_component_without_props.make ~lola:(("flores")
+    [@reason.raw_literal "flores"]) ()
+let make ?(name= (("")[@reason.raw_literal ""]))  =
+  ((React.Fragment.make
+      [React.createElement "div"
+         ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
+            Array.of_list)
+         [((React.string ((("First ")[@reason.raw_literal "First "]) ^ name))
+         [@reason.preserve_braces ])];
+      Hello.make ~one:(("1")[@reason.raw_literal "1"])
+        ~children:((React.string
+                      ((("2nd ")[@reason.raw_literal "2nd "]) ^ name))
+        [@reason.preserve_braces ]) ()] ())
+  [@reason.preserve_braces ])[@@react.component ]
 let make ?name  ?key  =
   ((fun ?(name= (("")[@reason.raw_literal ""])) ->
       ((React.Fragment.make
@@ -29,6 +87,17 @@ let make ?name  ?key  =
   [@warning "-16"])
 module Memo =
   struct
+    let make =
+      React.memo
+        (fun ~a ->
+           ((React.createElement "div"
+               ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a)))
+                  |> Array.of_list)
+               [(((Printf.sprintf (("`a` is %s")
+                     [@reason.raw_literal "`a` is %s"]) a)
+                    |> React.string)
+               [@reason.preserve_braces ])])
+           [@reason.preserve_braces ]))[@@react.component ]
     let make ~a  ?key  =
       ((fun ~a ->
           ((React.createElement "div"
@@ -43,6 +112,18 @@ module Memo =
   end
 module MemoCustomCompareProps =
   struct
+    let make =
+      React.memo
+        (fun ~a ->
+           ((React.createElement "div"
+               ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a)))
+                  |> Array.of_list)
+               [(((Printf.sprintf (("`a` is %d")
+                     [@reason.raw_literal "`a` is %d"]) a)
+                    |> React.string)
+               [@reason.preserve_braces ])])
+           [@reason.preserve_braces ]))
+        (fun prevPros -> fun nextProps -> false)[@@react.component ]
     let make ~a  ?key  =
       ((fun ~a ->
           ((React.createElement "div"
@@ -57,6 +138,40 @@ module MemoCustomCompareProps =
   end
 module App =
   struct
+    let make () =
+      ((React.createElement "html"
+          ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
+             Array.of_list)
+          [React.createElement "head"
+             ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
+                Array.of_list)
+             [React.createElement "title"
+                ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a)))
+                   |> Array.of_list)
+                [((React.string (("SSR React")
+                     [@reason.raw_literal "SSR React"]))
+                [@reason.preserve_braces ])]];
+          React.createElement "body"
+            ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
+               Array.of_list)
+            [React.createElement "div"
+               ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a)))
+                  |> Array.of_list)
+               [React.createElement "h1"
+                  ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a)))
+                     |> Array.of_list)
+                  [((React.string (("Wat")[@reason.raw_literal "Wat"]))
+                  [@reason.preserve_braces ])]];
+            React.createElement "script"
+              ((([|(Some
+                      (React.Attribute.String
+                         ("src", ((("/static/client.js")
+                           [@reason.raw_literal "/static/client.js"]) : 
+                           string))))|]
+                   |> Array.to_list)
+                  |> (List.filter_map (fun a -> a)))
+                 |> Array.of_list) []]])
+      [@reason.preserve_braces ])[@@react.component ]
     let make ?key  () =
       ((React.createElement "html"
           ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
@@ -92,3 +207,5 @@ module App =
                  |> Array.of_list) []]])
       [@reason.preserve_braces ])
   end
+let () = Dream.run ()
+let l = 33

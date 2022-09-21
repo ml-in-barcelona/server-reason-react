@@ -209,3 +209,8 @@ module App = {
     </html>;
   };
 };
+
+/* It shoudn't remove this :/ */
+let () = Dream.run();
+
+let l = 33;
