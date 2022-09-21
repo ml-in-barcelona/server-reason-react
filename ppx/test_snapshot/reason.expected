@@ -55,3 +55,40 @@ module MemoCustomCompareProps =
           [@reason.preserve_braces ]))
       [@warning "-16"])
   end
+module App =
+  struct
+    let make ?key  () =
+      ((React.createElement "html"
+          ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
+             Array.of_list)
+          [React.createElement "head"
+             ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
+                Array.of_list)
+             [React.createElement "title"
+                ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a)))
+                   |> Array.of_list)
+                [((React.string (("SSR React")
+                     [@reason.raw_literal "SSR React"]))
+                [@reason.preserve_braces ])]];
+          React.createElement "body"
+            ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
+               Array.of_list)
+            [React.createElement "div"
+               ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a)))
+                  |> Array.of_list)
+               [React.createElement "h1"
+                  ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a)))
+                     |> Array.of_list)
+                  [((React.string (("Wat")[@reason.raw_literal "Wat"]))
+                  [@reason.preserve_braces ])]];
+            React.createElement "script"
+              ((([|(Some
+                      (React.Attribute.String
+                         ("src", ((("/static/client.js")
+                           [@reason.raw_literal "/static/client.js"]) : 
+                           string))))|]
+                   |> Array.to_list)
+                  |> (List.filter_map (fun a -> a)))
+                 |> Array.of_list) []]])
+      [@reason.preserve_braces ])
+  end

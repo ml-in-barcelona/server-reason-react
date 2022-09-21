@@ -19,7 +19,7 @@
    `React.createFragment([foo])`
  *)
 
-module Ocaml_location = Location
+module OCaml_location = Location
 open Ppxlib
 open Ast_helper
 
@@ -226,7 +226,7 @@ let pluckLabelDefaultLocType (label, default, _, _, loc, type_) =
 let filenameFromLoc (pstr_loc : Location.t) =
   let fileName =
     match pstr_loc.loc_start.pos_fname with
-    | "" -> !Ocaml_location.input_name
+    | "" -> !OCaml_location.input_name
     | fileName -> fileName
   in
   let fileName =
@@ -472,8 +472,7 @@ let makeDeclaraton fnName loc namedArgListWithKeyAndRef componentImplementation
     componentImplementation
 
 let jsxMapper () =
-  let childrenArg = ref None in
-
+  (* let childrenArg = ref None in *)
   let transformUppercaseCall modulePath mapper loc attrs _ callArguments =
     let children, argsWithLabels =
       extractChildren ~loc ~removeLastPositionUnit:true callArguments
@@ -492,7 +491,7 @@ let jsxMapper () =
         | ListLiteral [%expr []] -> []
         | ListLiteral expression ->
             (* this is a hack to support react components that introspect into their children *)
-            childrenArg := Some expression;
+            (* childrenArg := Some expression; *)
             [ (Nolabel, expression) ])
       @ [ (nolabel, Exp.construct ~loc { loc; txt = Lident "()" } None) ]
     in
@@ -515,7 +514,7 @@ let jsxMapper () =
     in
     Exp.apply ~attrs ~loc (Exp.ident ~loc { loc; txt = makeFnIdentifier }) args
   in
-  let transformLowercaseCall loc attrs callArguments id callLoc =
+  let transformLowercaseCall ~loc mapper attrs callArguments id callLoc =
     let children, nonChildrenProps = extractChildren ~loc callArguments in
     let componentNameExpr = constantString ~loc id in
     let createElementCall =
@@ -640,7 +639,7 @@ let jsxMapper () =
       ; (* [React.Attribute.String("key", "value")] *)
         (nolabel, propsObj)
       ; (* [|moreCreateElementCallsHere|] *)
-        (nolabel, children)
+        (nolabel, mapper#expression children)
       ]
     in
     Exp.apply
@@ -1303,7 +1302,7 @@ let jsxMapper () =
         (* turn that into
            ReactDom.createElement(~props=ReactDom.props(~props1=foo, ~props2=bar, ()), [|bla|]) *)
         | { loc; txt = Lident id } ->
-            transformLowercaseCall loc attrs callArguments id applyLoc
+            transformLowercaseCall ~loc mapper attrs callArguments id applyLoc
         | { txt = Ldot (_, anythingNotCreateElementOrMake) } ->
             raise
               (Invalid_argument
