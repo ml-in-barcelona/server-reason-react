@@ -103,7 +103,6 @@ build
 # vscode
 .vscode
 
-lib
 _build
 _opam
 _esy

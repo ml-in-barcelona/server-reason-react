@@ -1,0 +1,6 @@
+(include_subdirs unqualified)
+
+(library
+ (public_name native-react.webapi)
+ (libraries js)
+ (name webapi))
