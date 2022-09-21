@@ -1,0 +1,14 @@
+# Declare shell files to have LF endings on checkout
+# On Windows, the default git setting for `core.autocrlf`
+# means that when checking out code, LF endings get converted
+# to CRLF. This causes problems for shell scripts, as bash
+# gets choked up on the extra `\r` character.
+* text eol=lf
+
+*.re linguist-language=Reason
+*.rei linguist-language=Reason
+
+*.ml linguist-language=OCaml
+*.mli linguist-language=OCaml
+*.mll linguist-language=OCaml
+*.mly linguist-language=OCaml
