@@ -51,17 +51,17 @@
   - [x] no HTML events
   - [x] no unknown events
 - [ ] Implement renderToString
-  - Check what are the differences
-  - Import test cases and implement those
+  - [ ] Import test cases and implement those
+  - [ ] Check what are the differences
 - [ ] Implement the rest of the React API
   - [x] Support forwardRef
   - [x] Support Ref
-  - [ ] Suspense
-  - [ ] useImperativeHandle
-  - [ ] useLayoutEffect
-  - [ ] useTransition
-  - [ ] setDisplayName
-  - [ ] displayName
+  - [ ] Shim suspense
+  - [ ] Shim useImperativeHandle
+  - [ ] Shim useLayoutEffect
+  - [ ] Shim useTransition
+  - [ ] Shim displayName/setDisplayName
+  - [ ] Re-visit cloneElement (most of our constructors don't make sense to "clone")
   - [ ] What other React APIs do we need to implement?
 - [x] ReactDOM.Style.make
 - [ ] Handle unicode. Add Uutfs?
@@ -74,7 +74,6 @@
 - [ ] A way to trigger warnings for invalid attributes in special elements
   - [ReactDOMTextarea](https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMTextarea-test.js)
   - [ReactDOMSelect](https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMSelect-test.js)
-- [ ] Re-visit cloneElement (most of our constructors don't make sense to "clone")
 
 ## ppx transformation
 
