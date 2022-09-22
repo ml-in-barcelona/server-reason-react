@@ -737,7 +737,6 @@ let process_value_binding ~loc valueBinding =
     let _bindingWrapper, _hasUnit, expression =
       (wrapExpressionWithBinding wrapExpression, hasUnit, expression)
     in
-    print_endline (fnName ^ " " ^ string_of_bool _hasUnit);
     makeDeclaration ~loc fnName [] expression
 
 let jsxMapper () =
