@@ -212,5 +212,23 @@ module App = {
 
 /* It shoudn't remove this :/ */
 let () = Dream.run();
-
 let l = 33;
+
+module Page = {
+  [@react.component]
+  let make = (~children) => {
+    <html>
+      <head>
+        <title>{React.string("SSR React")}</title>
+      </head>
+      <body>
+        <div id="root">
+          {children}
+        </div>
+        <script src="/static/client.js" />
+      </body>
+    </html>
+  }
+};
+
+let upperWithChildren = <Page><h1>{React.string("Yep")}</h1></Page>;

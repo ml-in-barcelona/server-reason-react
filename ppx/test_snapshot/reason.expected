@@ -37,7 +37,7 @@ let lower_opt_attr =
 let upper = Input.make ()
 module React_component_without_props =
   struct
-    let make ~lola  ~cosis  ?key  =
+    let make =
       ((fun ~lola ->
           ((fun ~cosis ->
               ((Js.log cosis;
@@ -52,7 +52,7 @@ module React_component_without_props =
 let upper =
   React_component_without_props.make ~lola:(("flores")
     [@reason.raw_literal "flores"]) ()
-let make ?name  ?key  =
+let make =
   ((fun ?(name= (("")[@reason.raw_literal ""])) ->
       ((React.Fragment.make
           [React.createElement "div"
@@ -69,7 +69,7 @@ let make ?name  ?key  =
   [@warning "-16"])
 module Memo =
   struct
-    let make ~a  ?key  =
+    let make =
       ((fun ~a ->
           ((React.createElement "div"
               ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
@@ -83,7 +83,7 @@ module Memo =
   end
 module MemoCustomCompareProps =
   struct
-    let make ~a  ?key  =
+    let make =
       ((fun ~a ->
           ((React.createElement "div"
               ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
@@ -97,7 +97,7 @@ module MemoCustomCompareProps =
   end
 module App =
   struct
-    let make ?key  () =
+    let make () =
       ((React.createElement "html"
           ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
              Array.of_list)
@@ -134,3 +134,51 @@ module App =
   end
 let () = Dream.run ()
 let l = 33
+module Page =
+  struct
+    let make =
+      ((fun ~children ->
+          ((React.createElement "html"
+              ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
+                 Array.of_list)
+              [React.createElement "head"
+                 ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a)))
+                    |> Array.of_list)
+                 [React.createElement "title"
+                    ((([||] |> Array.to_list) |>
+                        (List.filter_map (fun a -> a)))
+                       |> Array.of_list)
+                    [((React.string (("SSR React")
+                         [@reason.raw_literal "SSR React"]))
+                    [@reason.preserve_braces ])]];
+              React.createElement "body"
+                ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a)))
+                   |> Array.of_list)
+                [React.createElement "div"
+                   ((([|(Some
+                           (React.Attribute.String
+                              ("id", ((("root")
+                                [@reason.raw_literal "root"]) : string))))|]
+                        |> Array.to_list)
+                       |> (List.filter_map (fun a -> a)))
+                      |> Array.of_list)
+                   [((children)[@reason.preserve_braces ])];
+                React.createElement "script"
+                  ((([|(Some
+                          (React.Attribute.String
+                             ("src", ((("/static/client.js")
+                               [@reason.raw_literal "/static/client.js"]) : 
+                               string))))|]
+                       |> Array.to_list)
+                      |> (List.filter_map (fun a -> a)))
+                     |> Array.of_list) []]])
+          [@reason.preserve_braces ]))
+      [@warning "-16"])
+  end
+let upperWithChildren =
+  Page.make
+    ~children:(React.createElement "h1"
+                 ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a)))
+                    |> Array.of_list)
+                 [((React.string (("Yep")[@reason.raw_literal "Yep"]))
+                 [@reason.preserve_braces ])]) ()

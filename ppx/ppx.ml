@@ -444,12 +444,11 @@ let makeJsObj ~loc namedArgListWithKeyAndRef =
       |> Array.of_list)]
 
 let makeValueBinding
+    ~loc
     fnName
-    loc
     namedArgListWithKeyAndRef
     componentImplementation =
-  let propsName = fnName in
-  let name = makePropsName ~loc propsName in
+  let name = makePropsName ~loc fnName in
   let body =
     makeFunsForMakePropsBody namedArgListWithKeyAndRef componentImplementation
   in
@@ -460,14 +459,14 @@ let makeStructure fnName loc namedArgListWithKeyAndRef componentImplementation =
   Str.mk ~loc
     (Pstr_value
        ( Nonrecursive
-       , [ makeValueBinding fnName loc namedArgListWithKeyAndRef
+       , [ makeValueBinding ~loc fnName namedArgListWithKeyAndRef
              componentImplementation
          ] ))
 
 (* Builds an AST node for the modified `make` function *)
 let makeDeclaraton ~loc fnName namedArgListWithKeyAndRef componentImplementation
     =
-  makeValueBinding fnName loc
+  makeValueBinding ~loc fnName
     (List.map pluckLabelDefaultLocType namedArgListWithKeyAndRef)
     componentImplementation
 
@@ -537,8 +536,8 @@ let rec recursivelyTransformNamedArgsForMake mapper expr list =
       (list, Some txt)
   | Pexp_fun (Nolabel, _, pattern, _expression) ->
       Location.raise_errorf ~loc:pattern.ppat_loc
-        "jsoo-react: react.component refs only support plain arguments and \
-         type annotations."
+        "react.component refs only support plain arguments and type \
+         annotations."
   | _ -> (list, None)
 
 let argToType types (name, default, _noLabelName, _alias, loc, type_) =
@@ -600,7 +599,7 @@ let argToConcreteType types (name, loc, type_) =
       :: types
   | _ -> types
 
-let process_value_binding ~loc mapper _nestedModules _recFlag valueBindings =
+let process_value_binding ~loc _recFlag valueBindings =
   if not (hasAttrOnBinding valueBindings) then valueBindings
   else
     let fileName = filenameFromLoc loc in
@@ -615,40 +614,6 @@ let process_value_binding ~loc mapper _nestedModules _recFlag valueBindings =
         }
       in
       let fnName = getFnName binding in
-      let modifiedBindingOld binding =
-        let expression = binding.pvb_expr in
-        (* TODO: there is a long-tail of unsupported features inside of blocks - Pexp_letmodule , Pexp_letexception , Pexp_ifthenelse *)
-        let rec spelunkForFunExpression expression =
-          match expression with
-          (* let make = (~prop) => ... *)
-          | { pexp_desc = Pexp_fun _ } -> expression
-          (* let make = {let foo = bar in (~prop) => ...} *)
-          | { pexp_desc = Pexp_let (_recursive, _vbs, returnExpression) } ->
-              (* here's where we spelunk! *)
-              spelunkForFunExpression returnExpression
-          (* let make = React.forwardRef((~prop) => ...) or
-             let make = React.memoCustomCompareProps((~prop) => ..., compareProps()) *)
-          | { pexp_desc =
-                Pexp_apply
-                  ( _wrapperExpression
-                  , ( [ (Nolabel, innerFunctionExpression) ]
-                    | [ (Nolabel, innerFunctionExpression)
-                      ; (Nolabel, { pexp_desc = Pexp_fun _ })
-                      ] ) )
-            } ->
-              spelunkForFunExpression innerFunctionExpression
-          | { pexp_desc =
-                Pexp_sequence (_wrapperExpression, innerFunctionExpression)
-            } ->
-              spelunkForFunExpression innerFunctionExpression
-          | _ ->
-              raise
-                (Invalid_argument
-                   "react.component calls can only be on function definitions \
-                    or component wrappers (forwardRef, memo).")
-        in
-        spelunkForFunExpression expression
-      in
       let modifiedBinding binding =
         let hasApplication = ref false in
         let wrapExpressionWithBinding expressionFn expression =
@@ -772,40 +737,9 @@ let process_value_binding ~loc mapper _nestedModules _recFlag valueBindings =
         (wrapExpressionWithBinding wrapExpression, hasUnit, expression)
       in
       let _bindingWrapper, _hasUnit, expression = modifiedBinding binding in
-      let namedArgList, forwardRef =
-        recursivelyTransformNamedArgsForMake mapper
-          (modifiedBindingOld binding)
-          []
-      in
-      let namedArgListWithKeyAndRef =
-        ( optional "key"
-        , None
-        , Pat.var { txt = "key"; loc = emptyLoc }
-        , "key"
-        , emptyLoc
-        , Some (keyType emptyLoc) )
-        :: namedArgList
-      in
-      let namedArgListWithKeyAndRef =
-        match forwardRef with
-        | Some _ ->
-            ( optional "ref"
-            , None
-            , Pat.var { txt = "ref"; loc = emptyLoc }
-            , "ref"
-            , emptyLoc
-            , Some (refType emptyLoc) )
-            :: namedArgListWithKeyAndRef
-        | None -> namedArgListWithKeyAndRef
-      in
-      let loc = emptyLoc in
-      let makeLet =
-        makeDeclaraton ~loc fnName namedArgListWithKeyAndRef expression
-      in
-      makeLet
+      makeDeclaraton ~loc fnName [] expression
     in
-    let value_binding = mapBinding valueBindings in
-    value_binding
+    mapBinding valueBindings
 
 let jsxMapper () =
   (* let childrenArg = ref None in *)
@@ -825,13 +759,9 @@ let jsxMapper () =
       @ (match childrenExpr with
         | Exact children -> [ (labelled "children", children) ]
         | ListLiteral [%expr []] -> []
-        | ListLiteral expression ->
-            (* this is a hack to support react components that introspect into their children *)
-            (* childrenArg := Some expression; *)
-            [ (Nolabel, expression) ])
+        | ListLiteral expression -> [ (Nolabel, expression) ])
       @ [ (nolabel, Exp.construct ~loc { loc; txt = Lident "()" } None) ]
     in
-
     let identifier =
       match modulePath with
       | Lident _ -> Ldot (modulePath, "make")
@@ -986,7 +916,7 @@ let jsxMapper () =
       args
   in
   let nestedModules = ref [] in
-  let transformComponentDefinition mapper structure returnStructures =
+  let transformComponentDefinition _mapper structure returnStructures =
     match structure with
     (* external *)
     | { pstr_loc
@@ -1050,9 +980,7 @@ let jsxMapper () =
     (* let component = ... *)
     | { pstr_loc; pstr_desc = Pstr_value (rec_flag, value_bindings) } ->
         let bindings =
-          List.map
-            (process_value_binding ~loc:pstr_loc mapper nestedModules rec_flag)
-            value_bindings
+          List.map (process_value_binding ~loc:pstr_loc rec_flag) value_bindings
         in
         [ { pstr_loc; pstr_desc = Pstr_value (rec_flag, bindings) } ]
         @ returnStructures
