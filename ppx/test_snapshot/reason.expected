@@ -100,6 +100,189 @@ module MemoCustomCompareProps =
             [@reason.preserve_braces ]))
       [@warning "-16"][@warning "-16"])
   end
+let fragment foo = ((React.Fragment.make ~children:foo ())[@bla ])
+let polyChildrenFragment foo bar = React.Fragment.make [foo; bar] ()
+let nestedFragment foo bar baz =
+  React.Fragment.make [foo; React.Fragment.make [bar; baz] ()] ()
+let upper = Upper.make ()
+let upperWithProp = Upper.make ~count ()
+let upperWithChild foo = Upper.make ~children:foo ()
+let upperWithChildren foo bar = Upper.make [foo; bar] ()
+let lower =
+  React.createElement "div"
+    ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
+       Array.of_list) []
+let lowerWithChildAndProps foo =
+  React.createElement "a"
+    ((([|(Some
+            (React.Attribute.String ("tabIndex", (string_of_int (1 : int)))));(
+         Some
+           (React.Attribute.String
+              ("href", ((("https://example.com")
+                [@reason.raw_literal "https://example.com"]) : string))))|]
+         |> Array.to_list)
+        |> (List.filter_map (fun a -> a)))
+       |> Array.of_list) [foo]
+let lowerWithChildren foo bar =
+  React.createElement "lower"
+    ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
+       Array.of_list) [foo; bar]
+let lowerWithChildrenComplex =
+  React.createElement "div"
+    ((([|(Some
+            (React.Attribute.String
+               ("className", ((("flex-container")
+                 [@reason.raw_literal "flex-container"]) : string))))|]
+         |> Array.to_list)
+        |> (List.filter_map (fun a -> a)))
+       |> Array.of_list)
+    [React.createElement "div"
+       ((([|(Some
+               (React.Attribute.String
+                  ("className", ((("sidebar")
+                    [@reason.raw_literal "sidebar"]) : string))))|]
+            |> Array.to_list)
+           |> (List.filter_map (fun a -> a)))
+          |> Array.of_list)
+       [React.createElement "h2"
+          ((([|(Some
+                  (React.Attribute.String
+                     ("className", ((("title")
+                       [@reason.raw_literal "title"]) : string))))|]
+               |> Array.to_list)
+              |> (List.filter_map (fun a -> a)))
+             |> Array.of_list)
+          [(((("jsoo-react")[@reason.raw_literal "jsoo-react"]) |> s)
+          [@reason.preserve_braces ])];
+       React.createElement "nav"
+         ((([|(Some
+                 (React.Attribute.String
+                    ("className", ((("menu")
+                      [@reason.raw_literal "menu"]) : string))))|]
+              |> Array.to_list)
+             |> (List.filter_map (fun a -> a)))
+            |> Array.of_list)
+         [React.createElement "ul"
+            ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
+               Array.of_list)
+            [(((examples |>
+                  (List.map
+                     (fun e ->
+                        ((React.createElement "li"
+                            ((([|(Some
+                                    (React.Attribute.String
+                                       ("key", (((e.path)
+                                         [@reason.preserve_braces ]) : 
+                                         string))))|]
+                                 |> Array.to_list)
+                                |> (List.filter_map (fun a -> a)))
+                               |> Array.of_list)
+                            [React.createElement "a"
+                               ((([|(Some
+                                       (React.Attribute.String
+                                          ("href", (((e.path)
+                                            [@reason.preserve_braces ]) : 
+                                            string))))|]
+                                    |> Array.to_list)
+                                   |> (List.filter_map (fun a -> a)))
+                                  |> Array.of_list)
+                               [((e.title |> s)[@reason.preserve_braces ])]])
+                        [@reason.preserve_braces ]))))
+                 |> React.list)
+            [@reason.preserve_braces ])]]]]
+let nestedElement = Foo.Bar.make ~a:1 ~b:(("1")[@reason.raw_literal "1"]) ()
+let t =
+  FancyButton.make ~ref:buttonRef
+    ~children:(React.createElement "div"
+                 ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a)))
+                    |> Array.of_list) []) ()
+let t =
+  React.createElement "button"
+    ((([|(Some (React.Attribute.Ref ref));(Some
+                                             (React.Attribute.String
+                                                ("className",
+                                                  ((("FancyButton")
+                                                  [@reason.raw_literal
+                                                    "FancyButton"]) : 
+                                                  string))))|]
+         |> Array.to_list)
+        |> (List.filter_map (fun a -> a)))
+       |> Array.of_list) [children]
+let make =
+  ((fun ~children ->
+      ((fun ~ref ->
+          fun () ->
+            ((React.createElement "button"
+                ((([|(Some (React.Attribute.Ref ref));(Some
+                                                         (React.Attribute.String
+                                                            ("className",
+                                                              ((("FancyButton")
+                                                              [@reason.raw_literal
+                                                                "FancyButton"]) : 
+                                                              string))))|]
+                     |> Array.to_list)
+                    |> (List.filter_map (fun a -> a)))
+                   |> Array.of_list) [children])
+            [@reason.preserve_braces ]))
+      [@warning "-16"][@warning "-16"]))
+  [@warning "-16"])
+let testAttributes =
+  React.createElement "div"
+    ((([|(Some
+            (React.Attribute.String
+               ("translate", ((("yes")[@reason.raw_literal "yes"]) : string))))|]
+         |> Array.to_list)
+        |> (List.filter_map (fun a -> a)))
+       |> Array.of_list)
+    [React.createElement "picture"
+       ((([|(Some
+               (React.Attribute.String
+                  ("id", ((("idpicture")
+                    [@reason.raw_literal "idpicture"]) : string))))|]
+            |> Array.to_list)
+           |> (List.filter_map (fun a -> a)))
+          |> Array.of_list)
+       [React.createElement "img"
+          ((([|(Some
+                  (React.Attribute.String
+                     ("src", ((("picture/img.png")
+                       [@reason.raw_literal "picture/img.png"]) : string))));(
+               Some
+                 (React.Attribute.String
+                    ("alt", ((("test picture/img.png")
+                      [@reason.raw_literal "test picture/img.png"]) : 
+                      string))));(Some
+                                    (React.Attribute.String
+                                       ("id", ((("idimg")
+                                         [@reason.raw_literal "idimg"]) : 
+                                         string))))|]
+               |> Array.to_list)
+              |> (List.filter_map (fun a -> a)))
+             |> Array.of_list) [];
+       React.createElement "source"
+         ((([|(Some
+                 (React.Attribute.String
+                    ("type", ((("image/webp")
+                      [@reason.raw_literal "image/webp"]) : string))));(
+              Some
+                (React.Attribute.String
+                   ("src", ((("picture/img1.webp")
+                     [@reason.raw_literal "picture/img1.webp"]) : string))))|]
+              |> Array.to_list)
+             |> (List.filter_map (fun a -> a)))
+            |> Array.of_list) [];
+       React.createElement "source"
+         ((([|(Some
+                 (React.Attribute.String
+                    ("type", ((("image/jpeg")
+                      [@reason.raw_literal "image/jpeg"]) : string))));(
+              Some
+                (React.Attribute.String
+                   ("src", ((("picture/img2.jpg")
+                     [@reason.raw_literal "picture/img2.jpg"]) : string))))|]
+              |> Array.to_list)
+             |> (List.filter_map (fun a -> a)))
+            |> Array.of_list) []]]
 module App =
   struct
     let make () =

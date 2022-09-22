@@ -44,35 +44,6 @@ let make = (~name="") => {
      };
    }; */
 
-/* module ForwardRef = {
-     [@react.component]
-     let make =
-       React.forward_ref(theRef =>
-         <div ref={theRef |> Js_of_ocaml.Js.Opt.to_option}>
-           {React.string("ForwardRef")}
-         </div>
-       );
-   };
-
-   module Memo = {
-     [@react.component]
-     let make =
-       React.memo((~a) => {
-         <div> {Printf.sprintf("`a` is %s", a) |> React.string} </div>
-       });
-   };
-
-   module MemoCustomCompareProps = {
-     [@react.component]
-     let make =
-       React.memo(
-         ~compare=(prevPros, nextProps) => false,
-         (~a) => {
-           <div> {Printf.sprintf("`a` is %d", a) |> React.string} </div>
-         },
-       );
-   }; */
-
 module Memo = {
   [@react.component]
   let make =
@@ -92,51 +63,49 @@ module MemoCustomCompareProps = {
     );
 };
 
-/* let fragment = foo => [@bla] <> foo </>;
+let fragment = foo => [@bla] <> foo </>;
 
-   let polyChildrenFragment = (foo, bar) => <> foo bar </>;
+let polyChildrenFragment = (foo, bar) => <> foo bar </>;
 
-   let nestedFragment = (foo, bar, baz) => <> foo <> bar baz </> </>;
+let nestedFragment = (foo, bar, baz) => <> foo <> bar baz </> </>;
 
-   let upper = <Upper />;
+let upper = <Upper />;
 
-   let upperWithProp = <Upper count />;
+let upperWithProp = <Upper count />;
 
-   let upperWithChild = foo => <Upper> foo </Upper>;
+let upperWithChild = foo => <Upper> foo </Upper>;
 
-   let upperWithChildren = (foo, bar) => <Upper> foo bar </Upper>;
+let upperWithChildren = (foo, bar) => <Upper> foo bar </Upper>;
 
-   let lower = <div />;
+let lower = <div />;
 
-   let lowerWithChildAndProps = foo =>
-     <a tabIndex=1 href="https://example.com"> foo </a>;
+let lowerWithChildAndProps = foo =>
+  <a tabIndex=1 href="https://example.com"> foo </a>;
 
-   let lowerWithChildren = (foo, bar) => <lower> foo bar </lower>; */
+let lowerWithChildren = (foo, bar) => <lower> foo bar </lower>;
 
-/* let lowerWithChildrenComplex =
-   <div className="flex-container">
-     <div className="sidebar">
-       <h2 className="title"> {"jsoo-react" |> s} </h2>
-       <nav className="menu">
-         <ul>
-           {examples
-            |> List.map(e => {
-                 <li key={e.path}>
-                   <a
-                     href={e.path}
-                     /* onClick={event => {
-                       ReactEvent.Mouse.preventDefault(event);
-                       ReactRouter.push(e.path);
-                     }} */>
-                     {e.title |> s}
-                   </a>
-                 </li>
-               })
-            |> React.list}
-         </ul>
-       </nav>
-     </div>
-   </div>; */
+let lowerWithChildrenComplex =
+  <div className="flex-container">
+    <div className="sidebar">
+      <h2 className="title"> {"jsoo-react" |> s} </h2>
+      <nav className="menu">
+        <ul>
+          {examples
+           |> List.map(e => {
+                <li key={e.path}>
+                  <a href={e.path}>
+                    /* onClick={event => {
+                         ReactEvent.Mouse.preventDefault(event);
+                         ReactRouter.push(e.path);
+                       }} */
+                     {e.title |> s} </a>
+                </li>
+              })
+           |> React.list}
+        </ul>
+      </nav>
+    </div>
+  </div>;
 
 /* let lowerWithChildrenComplex2 =
    <div className="content-wrapper">
@@ -158,31 +127,31 @@ module MemoCustomCompareProps = {
      </div>
    </div>; */
 
-/* let nestedElement = <Foo.Bar a=1 b="1" />; */
+let nestedElement = <Foo.Bar a=1 b="1" />;
 
 /* [@react.component]
    let make = (~title, ~children) => {
      <div> ...{[<span> {title |> s} </span>, ...children]} </div>;
    }; */
 
-/* let t = <FancyButton ref=buttonRef> <div /> </FancyButton>; */
+let t = <FancyButton ref=buttonRef> <div /> </FancyButton>;
 
-/* let t = <button ref className="FancyButton"> ...children </button>; */
+let t = <button ref className="FancyButton"> children </button>;
 
-/* [@react.component]
-   let make =
-     React.forwardRef((~children, ~ref) => {
-       <button ref className="FancyButton"> ...children </button>
-     }); */
+[@react.component]
+let make =
+  React.forwardRef((~children, ~ref) => {
+    <button ref className="FancyButton"> children </button>
+  });
 
-/* let testAttributes =
-   <div translate="yes">
-     <picture id="idpicture">
-       <img src="picture/img.png" alt="test picture/img.png" id="idimg" />
-       <source type_="image/webp" src="picture/img1.webp" />
-       <source type_="image/jpeg" src="picture/img2.jpg" />
-     </picture>
-   </div>; */
+let testAttributes =
+  <div translate="yes">
+    <picture id="idpicture">
+      <img src="picture/img.png" alt="test picture/img.png" id="idimg" />
+      <source type_="image/webp" src="picture/img1.webp" />
+      <source type_="image/jpeg" src="picture/img2.jpg" />
+    </picture>
+  </div>;
 
 /* let randomElement = <text dx="1 2" dy="3 4" />; */
 
@@ -218,7 +187,9 @@ module Page = {
   [@react.component]
   let make = (~children, ~moreProps) => {
     <html>
-      <head> <title> {React.string("SSR React " ++ moreProps)} </title> </head>
+      <head>
+        <title> {React.string("SSR React " ++ moreProps)} </title>
+      </head>
       <body>
         <div id="root"> children </div>
         <script src="/static/client.js" />
@@ -227,4 +198,5 @@ module Page = {
   };
 };
 
-let upperWithChildren = <Page moreProps="hgalo"> <h1> {React.string("Yep")} </h1> </Page>;
+let upperWithChildren =
+  <Page moreProps="hgalo"> <h1> {React.string("Yep")} </h1> </Page>;

@@ -692,18 +692,6 @@ let process_value_binding ~loc valueBinding =
               }
           in
           ((fun a -> a), false, unerasableIgnoreExp expression)
-      (* let make = (prop) => ... *)
-      (* | { pexp_desc = Pexp_fun (_nolabel, _default, pattern, _internalExpression)
-         } ->
-           if hasApplication.contents then
-             ((fun a -> a), false, unerasableIgnoreExp expression)
-           else
-             Location.raise_errorf ~loc:pattern.ppat_loc
-               "props need to be labelled arguments.\n\
-               \  If you are working with refs be sure to wrap with \
-                React.forwardRef.\n\
-               \  If your component doesn't have any props use () or _ instead \
-                of a name." *)
       (* let make = {let foo = bar in (~prop) => ...} *)
       | { pexp_desc = Pexp_let (recursive, vbs, internalExpression) } ->
           (* here's where we spelunk! *)
