@@ -218,17 +218,13 @@ module Page = {
   [@react.component]
   let make = (~children) => {
     <html>
-      <head>
-        <title>{React.string("SSR React")}</title>
-      </head>
+      <head> <title> {React.string("SSR React")} </title> </head>
       <body>
-        <div id="root">
-          {children}
-        </div>
+        <div id="root"> children </div>
         <script src="/static/client.js" />
       </body>
-    </html>
-  }
+    </html>;
+  };
 };
 
-let upperWithChildren = <Page><h1>{React.string("Yep")}</h1></Page>;
+let upperWithChildren = <Page> <h1> {React.string("Yep")} </h1> </Page>;
