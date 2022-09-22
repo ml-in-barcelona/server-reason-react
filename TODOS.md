@@ -25,28 +25,28 @@
 - [x] Ignore useEffect
 - [x] Handle React dengerouslySetInnerHTML
 - [x] Add test for hooks
-- [ ] Implement all JSX logic
-  - [ReactDOMServerIntegrationAttributes](https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMServerIntegrationAttributes-test.js)
-  - [ReactDOMServerIntegrationCheckbox](https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMServerIntegrationCheckbox-test.js)
-  - [ReactDOMServerIntegrationElements](https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMServerIntegrationElements-test.js)
-  - [ReactDOMServerIntegrationFragment](https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMServerIntegrationFragment-test.js)
-  - [ReactDOMServerIntegrationHooks](https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMServerIntegrationHooks-test.js)
-  - [ReactDOMServerIntegrationInput](https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMServerIntegrationInput-test.js)
-  - [ReactDOMServerIntegrationLegacyContext](https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMServerIntegrationLegacyContext-test.js)
-  - [ReactDOMServerIntegrationLegacyContextDisabled](https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMServerIntegrationLegacyContextDisabled-test.internal.js)
-  - [ReactDOMServerIntegrationModes](https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMServerIntegrationModes-test.js)
-  - [ReactDOMServerIntegrationNewContext](https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMServerIntegrationNewContext-test.js)
-  - [ReactDOMServerIntegrationReconnecting](https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMServerIntegrationReconnecting-test.js)
-  - [ReactDOMServerIntegrationRefs](https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMServerIntegrationRefs-test.js)
-  - [ReactDOMServerIntegrationSelect](https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMServerIntegrationSelect-test.js)
-  - [ReactDOMServerIntegrationSpecialTypes](https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMServerIntegrationSpecialTypes-test.js)
-  - [ReactDOMServerIntegrationTextarea](https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMServerIntegrationTextarea-test.js)
-  - [ReactDOMServerIntegrationUntrustedURL](https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMServerIntegrationUntrustedURL-test.internal.js)
-  - [ReactDOMServerIntegrationUserInteraction](https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMServerIntegrationUserInteraction-test.js)
-  - [ReactDOMServerLifecycles](https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMServerLifecycles-test.js)
-  - [ReactDOMServerPartialHydration](https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMServerPartialHydration-test.internal.js)
-  - [ReactDOMServerSelectiveHydration](https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMServerSelectiveHydration-test.internal.js)
-  - [ReactDOMServerSuspense](https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMServerSuspense-test.internal.js)
+- [x] Implement all JSX logic
+  - [x] [ReactDOMServerIntegrationAttributes](https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMServerIntegrationAttributes-test.js)
+  - [x] [ReactDOMServerIntegrationCheckbox](https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMServerIntegrationCheckbox-test.js)
+  - [x] [ReactDOMServerIntegrationElements](https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMServerIntegrationElements-test.js)
+  - [x] [ReactDOMServerIntegrationFragment](https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMServerIntegrationFragment-test.js)
+  - [x] [ReactDOMServerIntegrationHooks](https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMServerIntegrationHooks-test.js)
+  - [x] [ReactDOMServerIntegrationInput](https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMServerIntegrationInput-test.js)
+  - [x] [ReactDOMServerIntegrationLegacyContext](https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMServerIntegrationLegacyContext-test.js)
+  - [x] [ReactDOMServerIntegrationLegacyContextDisabled](https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMServerIntegrationLegacyContextDisabled-test.internal.js)
+  - [x] [ReactDOMServerIntegrationModes](https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMServerIntegrationModes-test.js)
+  - [x] [ReactDOMServerIntegrationNewContext](https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMServerIntegrationNewContext-test.js)
+  - [x] [ReactDOMServerIntegrationReconnecting](https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMServerIntegrationReconnecting-test.js)
+  - [x] [ReactDOMServerIntegrationRefs](https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMServerIntegrationRefs-test.js)
+  - [x] [ReactDOMServerIntegrationSelect](https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMServerIntegrationSelect-test.js)
+  - [x] [ReactDOMServerIntegrationSpecialTypes](https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMServerIntegrationSpecialTypes-test.js)
+  - [x] [ReactDOMServerIntegrationTextarea](https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMServerIntegrationTextarea-test.js)
+  - [x] [ReactDOMServerIntegrationUntrustedURL](https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMServerIntegrationUntrustedURL-test.internal.js)
+  - [x] [ReactDOMServerIntegrationUserInteraction](https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMServerIntegrationUserInteraction-test.js)
+  - [x] [ReactDOMServerLifecycles](https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMServerLifecycles-test.js)
+  - [x] [ReactDOMServerPartialHydration](https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMServerPartialHydration-test.internal.js)
+  - [x] [ReactDOMServerSelectiveHydration](https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMServerSelectiveHydration-test.internal.js)
+  - [x] [ReactDOMServerSuspense](https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMServerSuspense-test.internal.js)
   - [x] cased custom attributes
   - [x] no HTML events
   - [x] no unknown events
@@ -62,9 +62,11 @@
   - [ ] useTransition
   - [ ] setDisplayName
   - [ ] displayName
+  - [ ] What other React APIs do we need to implement?
 - [x] ReactDOM.Style.make
 - [ ] Handle unicode. Add Uutfs?
 - [ ] Add setState callbacks as tick on the dispatcher
+  - [ ] Open an issue in facebook/react
   - [ ] Implement dispatcher
 - [ ] Add support for SVGs (they have a few differences in rendering the tag and attributes)
 - [x] Rename React.Node.t and others to React.Element
@@ -72,8 +74,7 @@
 - [ ] A way to trigger warnings for invalid attributes in special elements
   - [ReactDOMTextarea](https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMTextarea-test.js)
   - [ReactDOMSelect](https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMSelect-test.js)
-- [ ] Re-visit cloneElement
-- [ ] What other React APIs do we need to implement?
+- [ ] Re-visit cloneElement (most of our constructors don't make sense to "clone")
 
 ## ppx transformation
 
@@ -83,16 +84,16 @@
 - [x] Transform lower case components
 - [x] Transform React.Components
 - [x] Add Events
-- [ ] Enable reason test from ppx (sometimes it breaks???)
+- [x] Enable reason test from ppx
 - [ ] Transform signatures
 - [ ] Transform externals
   - (Lident "React", "componentLike")
-- [ ] Allow recursive components?
+- [x] Allow recursive components
 - [x] Transform Fragments to the right type s/React.Fragment.createElement/React.createFragment?
 - [x] Is childrenArg ref hack, necessary?
-- [ ] Can we cleanup this beast (ppx.ml) ?
-- [ ] Are keys necessary? Can we remove them?
-- How should we handle errors from `createElement` or `renderToString`
+- [ ] Can we cleanup this beast?
+- [x] Are keys necessary? Can we remove them?
+- [ ] How should we handle errors from `createElement` or `renderToString`
 - [x] Suspense? "ReactDOMServer does not yet support Suspense - server/node_modules/react-dom/cjs/react-dom-server.node.development.js:3518"
 - [x] How does SSR handle component runtime?
   - If there is a function call such as state` inside a component?
@@ -110,8 +111,8 @@
   - [ ] Add operator
 - [x] Create a server to render HTML with native-react-dom
 - [x] Compile the same code to the client
-- [ ] Split commands to run tests and builds separately
-- [ ] Allow to build with melange and OCaml
+- [x] Split commands to run tests and builds separately
+- [x] Allow to build with melange and OCaml
 - [ ] Try fetch
 - [ ] Try promise
   - [ ] Fix promise type missmatch
@@ -124,7 +125,11 @@
 - Do we have any way to ensure `bs.obj` compiles in native?
   - Probably only in melange?
   - Add ppx processing to replace `bs.obj` with classic OCaml objects (e.g. `{"foo": 2}` translates to `object method foo = 2 end`).
+- [ ] What other ReScript specific stuff need to take care?
+  - [ ] In most cases we should failwith when those appear while we try to think what's the good plan for shimming
+  - [ ] Antonio mention `optcomp / conditional compilation could work`
+  - [ ] How elliom works?
 - Styles
   - [ ] How we are going to handle Emotion?
-  - [ ] Migrate to styled-ppx
+  - [ ] Migrate styled-ppx
   - [ ] Make styled-ppx run on compile time
