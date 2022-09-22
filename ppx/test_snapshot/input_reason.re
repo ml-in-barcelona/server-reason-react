@@ -216,9 +216,9 @@ let l = 33;
 
 module Page = {
   [@react.component]
-  let make = (~children) => {
+  let make = (~children, ~moreProps) => {
     <html>
-      <head> <title> {React.string("SSR React")} </title> </head>
+      <head> <title> {React.string("SSR React " ++ moreProps)} </title> </head>
       <body>
         <div id="root"> children </div>
         <script src="/static/client.js" />
@@ -227,4 +227,4 @@ module Page = {
   };
 };
 
-let upperWithChildren = <Page> <h1> {React.string("Yep")} </h1> </Page>;
+let upperWithChildren = <Page moreProps="hgalo"> <h1> {React.string("Yep")} </h1> </Page>;

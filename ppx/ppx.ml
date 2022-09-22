@@ -1,22 +1,24 @@
 (*
   This is the file that handles turning Reason JSX' agnostic function call into
-  a jsoo-react-specific function call. Aka, this is a macro, using OCaml's ppx
-  facilities; https://whitequark.org/blog/2014/04/16/a-guide-to-extension-
-  points-in-ocaml/
-*)
+  native-react-dom calls, defined in lib/react.ml or lib/reactDom.ml.
 
-(*
-   The transform:
-   transform `[@JSX] div(~props1=a, ~props2=b, ~children=[foo, bar], ())` into
-   `ReactDom.createDOMElementVariadic("div", ReactDom.domProps(~props1=1, ~props2=b), [foo, bar])`.
-   transform the upper-cased case
-   `[@JSX] Foo.createElement(~key=a, ~ref=b, ~foo=bar, ~children=[], ())` into
-   `React.createElement(Foo.make, Foo.makeProps(~key=a, ~ref=b, ~foo=bar, ()))`
-   transform the upper-cased case
-   `[@JSX] Foo.createElement(~foo=bar, ~children=[foo, bar], ())` into
-   `React.createElementVariadic(Foo.make, Foo.makeProps(~foo=bar, ~children=React.null, ()), [foo, bar])`
-   transform `[@JSX] [foo]` into
-   `React.createFragment([foo])`
+  Check the tests for more concrete examples, but the general idea is:
+
+  transform
+  `[@JSX] div(~props1=a, ~props2=b, ~children=[foo, bar], ())`
+  `React.createElement("div", [| React.Attribute.XXX((props1, 1), React.Attribute.XXX((props2, b)), [foo, bar])`.
+
+  transform the upper-cased case
+  `[@JSX] Foo.createElement(~key=a, ~ref=b, ~foo=bar, ~children=[], ())`
+  `React.createElement(Foo.make(~key=a, ~ref=b, ~foo=bar, ()))`
+
+  transform the upper-cased case
+  `[@JSX] Foo.createElement(~foo=bar, ~children=[foo, bar], ())`
+  `React.createElement(Foo.make(~foo=bar, ()), [foo, bar])`
+
+  transform
+  `[@JSX] [foo]`
+  `React.createFragment([foo])`
  *)
 
 module OCaml_location = Location
@@ -455,7 +457,8 @@ let makeValueBinding
 
   Vb.mk ~loc name body
 
-let makeStructure fnName loc namedArgListWithKeyAndRef componentImplementation =
+let makeStructure ~loc fnName namedArgListWithKeyAndRef componentImplementation
+    =
   Str.mk ~loc
     (Pstr_value
        ( Nonrecursive
@@ -464,8 +467,11 @@ let makeStructure fnName loc namedArgListWithKeyAndRef componentImplementation =
          ] ))
 
 (* Builds an AST node for the modified `make` function *)
-let makeDeclaraton ~loc fnName namedArgListWithKeyAndRef componentImplementation
-    =
+let makeDeclaration
+    ~loc
+    fnName
+    namedArgListWithKeyAndRef
+    componentImplementation =
   makeValueBinding ~loc fnName
     (List.map pluckLabelDefaultLocType namedArgListWithKeyAndRef)
     componentImplementation
@@ -501,8 +507,8 @@ let rec recursivelyTransformNamedArgsForMake mapper expr list =
                   | _ -> "..."
                 in
                 Location.raise_errorf ~loc:pattern.ppat_loc
-                  "jsoo-react: optional argument annotations must have \
-                   explicit `option`. Did you mean `option(%s)=?`?"
+                  "optional argument annotations must have explicit `option`. \
+                   Did you mean `option(%s)=?`?"
                   currentType)
         | _ -> ()
       in
@@ -599,150 +605,154 @@ let argToConcreteType types (name, loc, type_) =
       :: types
   | _ -> types
 
-let process_value_binding ~loc _recFlag valueBindings =
-  if not (hasAttrOnBinding valueBindings) then valueBindings
+let process_value_binding ~loc valueBinding =
+  if not (hasAttrOnBinding valueBinding) then valueBinding
   else
     let fileName = filenameFromLoc loc in
     let emptyLoc = Location.in_file fileName in
-    let mapBinding binding =
-      let bindingLoc = binding.pvb_loc in
-      let bindingPatLoc = binding.pvb_pat.ppat_loc in
-      let binding =
-        { binding with
-          pvb_pat = { binding.pvb_pat with ppat_loc = emptyLoc }
-        ; pvb_loc = emptyLoc
-        }
-      in
-      let fnName = getFnName binding in
-      let modifiedBinding binding =
-        let hasApplication = ref false in
-        let wrapExpressionWithBinding expressionFn expression =
-          Vb.mk ~loc:bindingLoc
-            ~attrs:(List.filter otherAttrsPure binding.pvb_attributes)
-            (Pat.var ~loc:bindingPatLoc { loc = bindingPatLoc; txt = fnName })
-            (expressionFn expression)
-        in
-        let expression = binding.pvb_expr in
-        let unerasableIgnoreExp exp =
-          { exp with
-            pexp_attributes = unerasableIgnore emptyLoc :: exp.pexp_attributes
-          }
-        in
-        (* TODO: there is a long-tail of unsupported features inside of blocks - Pexp_letmodule , Pexp_letexception , Pexp_ifthenelse *)
-        let rec spelunkForFunExpression expression =
-          match expression with
-          (* let make = (~prop) => ... with no final unit *)
-          | { pexp_desc =
-                Pexp_fun
-                  ( ((Labelled _ | Optional _) as label)
-                  , default
-                  , pattern
-                  , ({ pexp_desc = Pexp_fun _ } as internalExpression) )
-            } ->
-              let wrap, hasUnit, exp =
-                spelunkForFunExpression internalExpression
-              in
-              ( wrap
-              , hasUnit
-              , unerasableIgnoreExp
-                  { expression with
-                    pexp_desc = Pexp_fun (label, default, pattern, exp)
-                  } )
-          (* let make = (()) => ... *)
-          (* let make = (_) => ... *)
-          | { pexp_desc =
-                Pexp_fun
-                  ( Nolabel
-                  , _default
-                  , { ppat_desc =
-                        Ppat_construct ({ txt = Lident "()" }, _) | Ppat_any
-                    }
-                  , _internalExpression )
-            } ->
-              ((fun a -> a), true, expression)
-          (* let make = (~prop) => ... *)
-          | { pexp_desc =
-                Pexp_fun
-                  ( (Labelled _ | Optional _)
-                  , _default
-                  , _pattern
-                  , _internalExpression )
-            } ->
-              ((fun a -> a), false, unerasableIgnoreExp expression)
-          (* let make = (prop) => ... *)
-          | { pexp_desc =
-                Pexp_fun (_nolabel, _default, pattern, _internalExpression)
-            } ->
-              if hasApplication.contents then
-                ((fun a -> a), false, unerasableIgnoreExp expression)
-              else
-                Location.raise_errorf ~loc:pattern.ppat_loc
-                  "jsoo-react: props need to be labelled arguments.\n\
-                  \  If you are working with refs be sure to wrap with \
-                   React.forwardRef.\n\
-                  \  If your component doesn't have any props use () or _ \
-                   instead of a name."
-          (* let make = {let foo = bar in (~prop) => ...} *)
-          | { pexp_desc = Pexp_let (recursive, vbs, internalExpression) } ->
-              (* here's where we spelunk! *)
-              let wrap, hasUnit, exp =
-                spelunkForFunExpression internalExpression
-              in
-              ( wrap
-              , hasUnit
-              , { expression with pexp_desc = Pexp_let (recursive, vbs, exp) }
-              )
-          (* let make = React.forwardRef((~prop) => ...) *)
-          | { pexp_desc =
-                Pexp_apply (wrapperExpression, [ (Nolabel, internalExpression) ])
-            } ->
-              let () = hasApplication := true in
-              let _, hasUnit, exp =
-                spelunkForFunExpression internalExpression
-              in
-              ( (fun exp -> Exp.apply wrapperExpression [ (nolabel, exp) ])
-              , hasUnit
-              , exp )
-          (* let make = React.memoCustomCompareProps((~prop) => ..., (prevPros, nextProps) => true) *)
-          | { pexp_desc =
-                Pexp_apply
-                  ( wrapperExpression
-                  , [ (Nolabel, internalExpression)
-                    ; ((Nolabel, { pexp_desc = Pexp_fun _ }) as compareProps)
-                    ] )
-            } ->
-              let () = hasApplication := true in
-              let _, hasUnit, exp =
-                spelunkForFunExpression internalExpression
-              in
-              ( (fun exp ->
-                  Exp.apply wrapperExpression [ (nolabel, exp); compareProps ])
-              , hasUnit
-              , exp )
-          | { pexp_desc = Pexp_sequence (wrapperExpression, internalExpression)
-            } ->
-              let wrap, hasUnit, exp =
-                spelunkForFunExpression internalExpression
-              in
-              ( wrap
-              , hasUnit
-              , { expression with
-                  pexp_desc = Pexp_sequence (wrapperExpression, exp)
-                } )
-          | e -> ((fun a -> a), false, e)
-        in
-        let wrapExpression, hasUnit, expression =
-          spelunkForFunExpression expression
-        in
-        (wrapExpressionWithBinding wrapExpression, hasUnit, expression)
-      in
-      let _bindingWrapper, _hasUnit, expression = modifiedBinding binding in
-      makeDeclaraton ~loc fnName [] expression
+    let fnName = getFnName valueBinding in
+    let bindingLoc = valueBinding.pvb_loc in
+    let bindingPatLoc = valueBinding.pvb_pat.ppat_loc in
+    let binding =
+      { valueBinding with
+        pvb_pat = { valueBinding.pvb_pat with ppat_loc = emptyLoc }
+      ; pvb_loc = emptyLoc
+      }
     in
-    mapBinding valueBindings
+    let hasApplication = ref false in
+    let wrapExpressionWithBinding expressionFn expression =
+      Vb.mk ~loc:bindingLoc
+        ~attrs:(List.filter otherAttrsPure binding.pvb_attributes)
+        (Pat.var ~loc:bindingPatLoc { loc = bindingPatLoc; txt = fnName })
+        (expressionFn expression)
+    in
+    let expression = binding.pvb_expr in
+    let unerasableIgnoreExp exp =
+      { exp with
+        pexp_attributes = unerasableIgnore emptyLoc :: exp.pexp_attributes
+      }
+    in
+    (* TODO: there is a long-tail of unsupported features inside of blocks - Pexp_letmodule , Pexp_letexception , Pexp_ifthenelse *)
+    let rec spelunkForFunExpression expression =
+      match expression with
+      (* let make = (~prop) => ... with no final unit *)
+      | { pexp_desc =
+            Pexp_fun
+              ( ((Labelled _ | Optional _) as label)
+              , default
+              , pattern
+              , ({ pexp_desc = Pexp_fun _ } as internalExpression) )
+        } ->
+          let wrap, hasUnit, exp = spelunkForFunExpression internalExpression in
+          let expression =
+            unerasableIgnoreExp
+              { expression with
+                pexp_desc = Pexp_fun (label, default, pattern, exp)
+              }
+          in
+          (wrap, hasUnit, expression)
+      (* let make = (()) => ... *)
+      (* let make = (_) => ... *)
+      | { pexp_desc =
+            Pexp_fun
+              ( Nolabel
+              , _default
+              , { ppat_desc =
+                    Ppat_construct ({ txt = Lident "()" }, _) | Ppat_any
+                }
+              , _internalExpression )
+        } ->
+          ((fun a -> a), true, expression)
+      (* let make = (~prop) => ... *)
+      | { pexp_desc = Pexp_fun (label, default, pattern, internalExpression) }
+        ->
+          let unit_pattern =
+            { ppat_desc =
+                Ppat_construct ({ txt = Lident "()"; loc = emptyLoc }, None)
+            ; ppat_loc = emptyLoc
+            ; ppat_loc_stack = []
+            ; ppat_attributes = []
+            }
+          in
+          let expression =
+            unerasableIgnoreExp
+              { expression with
+                pexp_desc =
+                  Pexp_fun
+                    ( label
+                    , default
+                    , pattern
+                    , { pexp_loc = emptyLoc
+                      ; pexp_desc =
+                          Pexp_fun
+                            (Nolabel, None, unit_pattern, internalExpression)
+                      ; pexp_loc_stack = []
+                      ; pexp_attributes = []
+                      } )
+              }
+          in
+          ((fun a -> a), false, unerasableIgnoreExp expression)
+      (* let make = (prop) => ... *)
+      (* | { pexp_desc = Pexp_fun (_nolabel, _default, pattern, _internalExpression)
+         } ->
+           if hasApplication.contents then
+             ((fun a -> a), false, unerasableIgnoreExp expression)
+           else
+             Location.raise_errorf ~loc:pattern.ppat_loc
+               "props need to be labelled arguments.\n\
+               \  If you are working with refs be sure to wrap with \
+                React.forwardRef.\n\
+               \  If your component doesn't have any props use () or _ instead \
+                of a name." *)
+      (* let make = {let foo = bar in (~prop) => ...} *)
+      | { pexp_desc = Pexp_let (recursive, vbs, internalExpression) } ->
+          (* here's where we spelunk! *)
+          let wrap, hasUnit, exp = spelunkForFunExpression internalExpression in
+          ( wrap
+          , hasUnit
+          , { expression with pexp_desc = Pexp_let (recursive, vbs, exp) } )
+      (* let make = React.forwardRef((~prop) => ...) *)
+      | { pexp_desc =
+            Pexp_apply (wrapperExpression, [ (Nolabel, internalExpression) ])
+        } ->
+          let () = hasApplication := true in
+          let _, hasUnit, exp = spelunkForFunExpression internalExpression in
+          ( (fun exp -> Exp.apply wrapperExpression [ (nolabel, exp) ])
+          , hasUnit
+          , exp )
+      (* let make = React.memoCustomCompareProps((~prop) => ..., (prevPros, nextProps) => true) *)
+      | { pexp_desc =
+            Pexp_apply
+              ( wrapperExpression
+              , [ (Nolabel, internalExpression)
+                ; ((Nolabel, { pexp_desc = Pexp_fun _ }) as compareProps)
+                ] )
+        } ->
+          let () = hasApplication := true in
+          let _, hasUnit, exp = spelunkForFunExpression internalExpression in
+          ( (fun exp ->
+              Exp.apply wrapperExpression [ (nolabel, exp); compareProps ])
+          , hasUnit
+          , exp )
+      | { pexp_desc = Pexp_sequence (wrapperExpression, internalExpression) } ->
+          let wrap, hasUnit, exp = spelunkForFunExpression internalExpression in
+          ( wrap
+          , hasUnit
+          , { expression with
+              pexp_desc = Pexp_sequence (wrapperExpression, exp)
+            } )
+      | e -> ((fun a -> a), false, e)
+    in
+    let wrapExpression, hasUnit, expression =
+      spelunkForFunExpression expression
+    in
+    let _bindingWrapper, _hasUnit, expression =
+      (wrapExpressionWithBinding wrapExpression, hasUnit, expression)
+    in
+    print_endline (fnName ^ " " ^ string_of_bool _hasUnit);
+    makeDeclaration ~loc fnName [] expression
 
 let jsxMapper () =
-  (* let childrenArg = ref None in *)
   let transformUppercaseCall modulePath mapper loc attrs _ callArguments =
     let children, argsWithLabels =
       extractChildren ~loc ~removeLastPositionUnit:true callArguments
@@ -947,7 +957,7 @@ let jsxMapper () =
             let retPropsType = makePropsType ~loc:pstr_loc namedTypeList in
             let loc = pstr_loc in
             let externalPropsDecl =
-              makeStructure fnName pstr_loc
+              makeStructure ~loc:pstr_loc fnName
                 ((Optional "key", None, pstr_loc, Some (keyType pstr_loc))
                 :: List.map pluckLabelAndLoc propTypes)
                 [%expr "TODO: externals"]
@@ -980,7 +990,7 @@ let jsxMapper () =
     (* let component = ... *)
     | { pstr_loc; pstr_desc = Pstr_value (rec_flag, value_bindings) } ->
         let bindings =
-          List.map (process_value_binding ~loc:pstr_loc rec_flag) value_bindings
+          List.map (process_value_binding ~loc:pstr_loc) value_bindings
         in
         [ { pstr_loc; pstr_desc = Pstr_value (rec_flag, bindings) } ]
         @ returnStructures
