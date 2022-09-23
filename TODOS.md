@@ -127,7 +127,7 @@
 - [ ] What other ReScript specific stuff need to take care?
   - [ ] In most cases we should failwith when those appear while we try to think what's the good plan for shimming
   - [ ] Antonio mention `optcomp / conditional compilation could work`
-  - [ ] How elliom works?
+  - [ ] How elliom works? (`[%server]` and `[%client]`)
 - Styles
   - [ ] How we are going to handle Emotion?
   - [ ] Migrate styled-ppx
