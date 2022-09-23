@@ -65,9 +65,9 @@
   - [ ] What other React APIs do we need to implement?
 - [x] ReactDOM.Style.make
 - [ ] Handle unicode. Add Uutfs?
-- [ ] Add setState callbacks as tick on the dispatcher
-  - [ ] Open an issue in facebook/react
-  - [ ] Implement dispatcher
+- [x] Add setState callbacks as tick on the dispatcher
+  - [x] Open an issue in facebook/react (https://github.com/facebook/react/issues/25318)
+  - [x] __Implement dispatcher__
 - [ ] Add support for SVGs (they have a few differences in rendering the tag and attributes)
 - [x] Rename React.Node.t and others to React.Element
 - [ ] Ensure types from TypeScript make sense with our implementation
