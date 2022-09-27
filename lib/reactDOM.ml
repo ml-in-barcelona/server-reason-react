@@ -812,6 +812,8 @@ module Style = struct
     |> StringMap.mapi (fun k v -> Printf.sprintf "%s: %s" k (String.trim v))
     |> StringMap.bindings |> List.map snd |> String.concat "; "
 
+  (* TODO: There are other APIs for styles such as combine, unsafeAddProp and unsafeAddStyle. *)
+
   (* let combine = ((_)[@bs.as {json|{}|json}]) -> t -> t -> t = "Object.assign"[@@bs.val ] *)
 
   (* external _dictToStyle : string Js.Dict.t -> t = "%identity" *)

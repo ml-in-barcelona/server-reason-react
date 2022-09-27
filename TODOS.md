@@ -66,7 +66,7 @@
 - [x] ReactDOM.Style.make
 - [ ] Handle unicode. Add Uutfs?
 - [x] Add setState callbacks as tick on the dispatcher
-  - [x] Open an issue in facebook/react (https://github.com/facebook/react/issues/25318)
+  - [x] Open an issue in facebook/react [Done](https://github.com/facebook/react/issues/25318)
   - [x] __Implement dispatcher__
 - [ ] Add support for SVGs (they have a few differences in rendering the tag and attributes)
 - [x] Rename React.Node.t and others to React.Element
@@ -114,8 +114,7 @@
 - [x] Allow to build with melange and OCaml
 - [ ] Try fetch
 - [ ] Try promise
-  - [ ] Fix promise type missmatch
-  - [ ] Push PR into aantron/promise?
+- [ ] Try belt
 - [ ] How we are going to mock the [JavaScript APIs](https://rescript-lang.org/docs/manual/latest/api/js) from ReScript?
 - [ ] How we are going to mock the DOM API?
   - [x] Create library from bs-webapi
@@ -128,7 +127,3 @@
   - [ ] In most cases we should failwith when those appear while we try to think what's the good plan for shimming
   - [ ] Antonio mention `optcomp / conditional compilation could work`
   - [ ] How elliom works? (`[%server]` and `[%client]`)
-- Styles
-  - [ ] How we are going to handle Emotion?
-  - [ ] Migrate styled-ppx
-  - [ ] Make styled-ppx run on compile time
