@@ -1,3 +1,7 @@
 (test
  (name test)
- (libraries alcotest native-react.react native-react.reactDom))
+ (libraries
+  alcotest
+  native-react.react
+  native-react.reactEvent
+  native-react.reactDom))

@@ -372,46 +372,46 @@ let makeAttributeValue ~loc ~isOptional (type_ : DomProps.attributeType) value =
 
 let makeEventValue ~loc ~isOptional (type_ : DomProps.eventType) value =
   match (type_, isOptional) with
-  | Clipboard, false -> [%expr ([%e value] : React.Event.Clipboard.t -> unit)]
+  | Clipboard, false -> [%expr ([%e value] : ReactEvent.Clipboard.t -> unit)]
   | Clipboard, true ->
-      [%expr ([%e value] : (React.Event.Clipboard.t -> unit) option)]
+      [%expr ([%e value] : (ReactEvent.Clipboard.t -> unit) option)]
   | Composition, false ->
-      [%expr ([%e value] : React.Event.Composition.t -> unit)]
+      [%expr ([%e value] : ReactEvent.Composition.t -> unit)]
   | Composition, true ->
-      [%expr ([%e value] : (React.Event.Composition.t -> unit) option)]
-  | Keyboard, false -> [%expr ([%e value] : React.Event.Keyboard.t -> unit)]
+      [%expr ([%e value] : (ReactEvent.Composition.t -> unit) option)]
+  | Keyboard, false -> [%expr ([%e value] : ReactEvent.Keyboard.t -> unit)]
   | Keyboard, true ->
-      [%expr ([%e value] : (React.Event.Keyboard.t -> unit) option)]
-  | Focus, false -> [%expr ([%e value] : React.Event.Focus.t -> unit)]
-  | Focus, true -> [%expr ([%e value] : (React.Event.Focus.t -> unit) option)]
-  | Form, false -> [%expr ([%e value] : React.Event.Form.t -> unit)]
-  | Form, true -> [%expr ([%e value] : (React.Event.Form.t -> unit) option)]
-  | Mouse, false -> [%expr ([%e value] : React.Event.Mouse.t -> unit)]
-  | Mouse, true -> [%expr ([%e value] : (React.Event.Mouse.t -> unit) option)]
-  | Selection, false -> [%expr ([%e value] : React.Event.Selection.t -> unit)]
+      [%expr ([%e value] : (ReactEvent.Keyboard.t -> unit) option)]
+  | Focus, false -> [%expr ([%e value] : ReactEvent.Focus.t -> unit)]
+  | Focus, true -> [%expr ([%e value] : (ReactEvent.Focus.t -> unit) option)]
+  | Form, false -> [%expr ([%e value] : ReactEvent.Form.t -> unit)]
+  | Form, true -> [%expr ([%e value] : (ReactEvent.Form.t -> unit) option)]
+  | Mouse, false -> [%expr ([%e value] : ReactEvent.Mouse.t -> unit)]
+  | Mouse, true -> [%expr ([%e value] : (ReactEvent.Mouse.t -> unit) option)]
+  | Selection, false -> [%expr ([%e value] : ReactEvent.Selection.t -> unit)]
   | Selection, true ->
-      [%expr ([%e value] : (React.Event.Selection.t -> unit) option)]
-  | Touch, false -> [%expr ([%e value] : React.Event.Touch.t -> unit)]
-  | Touch, true -> [%expr ([%e value] : (React.Event.Touch.t -> unit) option)]
-  | UI, false -> [%expr ([%e value] : React.Event.UI.t -> unit)]
-  | UI, true -> [%expr ([%e value] : (React.Event.UI.t -> unit) option)]
-  | Wheel, false -> [%expr ([%e value] : React.Event.Wheel.t -> unit)]
-  | Wheel, true -> [%expr ([%e value] : (React.Event.Wheel.t -> unit) option)]
-  | Media, false -> [%expr ([%e value] : React.Event.Media.t -> unit)]
-  | Media, true -> [%expr ([%e value] : (React.Event.Media.t -> unit) option)]
-  | Image, false -> [%expr ([%e value] : React.Event.Image.t -> unit)]
-  | Image, true -> [%expr ([%e value] : (React.Event.Image.t -> unit) option)]
-  | Animation, false -> [%expr ([%e value] : React.Event.Animation.t -> unit)]
+      [%expr ([%e value] : (ReactEvent.Selection.t -> unit) option)]
+  | Touch, false -> [%expr ([%e value] : ReactEvent.Touch.t -> unit)]
+  | Touch, true -> [%expr ([%e value] : (ReactEvent.Touch.t -> unit) option)]
+  | UI, false -> [%expr ([%e value] : ReactEvent.UI.t -> unit)]
+  | UI, true -> [%expr ([%e value] : (ReactEvent.UI.t -> unit) option)]
+  | Wheel, false -> [%expr ([%e value] : ReactEvent.Wheel.t -> unit)]
+  | Wheel, true -> [%expr ([%e value] : (ReactEvent.Wheel.t -> unit) option)]
+  | Media, false -> [%expr ([%e value] : ReactEvent.Media.t -> unit)]
+  | Media, true -> [%expr ([%e value] : (ReactEvent.Media.t -> unit) option)]
+  | Image, false -> [%expr ([%e value] : ReactEvent.Image.t -> unit)]
+  | Image, true -> [%expr ([%e value] : (ReactEvent.Image.t -> unit) option)]
+  | Animation, false -> [%expr ([%e value] : ReactEvent.Animation.t -> unit)]
   | Animation, true ->
-      [%expr ([%e value] : (React.Event.Animation.t -> unit) option)]
-  | Transition, false -> [%expr ([%e value] : React.Event.Transition.t -> unit)]
+      [%expr ([%e value] : (ReactEvent.Animation.t -> unit) option)]
+  | Transition, false -> [%expr ([%e value] : ReactEvent.Transition.t -> unit)]
   | Transition, true ->
-      [%expr ([%e value] : (React.Event.Transition.t -> unit) option)]
-  | Pointer, false -> [%expr ([%e value] : React.Event.Syntetic.t -> unit)]
+      [%expr ([%e value] : (ReactEvent.Transition.t -> unit) option)]
+  | Pointer, false -> [%expr ([%e value] : ReactEvent.Syntetic.t -> unit)]
   | Pointer, true ->
-      [%expr ([%e value] : (React.Event.Syntetic.t -> unit) option)]
-(* | Drag, false -> [%expr ([%e value] : React.Event.Syntetic.t -> unit)] *)
-(* | Drag, true -> [%expr ([%e value] : (React.Event.Syntetic.t -> unit) option)] *)
+      [%expr ([%e value] : (ReactEvent.Syntetic.t -> unit) option)]
+(* | Drag, false -> [%expr ([%e value] : ReactEvent.Syntetic.t -> unit)] *)
+(* | Drag, true -> [%expr ([%e value] : (ReactEvent.Syntetic.t -> unit) option)] *)
 
 let makeValue ~loc ~isOptional prop value =
   match prop with

@@ -135,7 +135,7 @@ let test_ref_opt_attribute_none = () => {
 };
 
 let test_onclick = () => {
-  let onClick = Some(_ => print_endline ("clicked"));
+  let onClick = Some(_ => print_endline("clicked"));
   let div = <div ?onClick />;
   assert_string(ReactDOM.renderToStaticMarkup(div), "<div></div>");
 };

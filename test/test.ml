@@ -234,13 +234,12 @@ let test_one_styles () =
   assert_string styles "background: #333"
 
 let make ~name () =
-  let onClick (event : React.Event.Mouse.t) : unit = ignore event in
+  let onClick (event : ReactEvent.Mouse.t) : unit = ignore event in
   React.createElement "button"
     ([| Some (React.Attribute.String ("name", (name : string)))
       ; Some
           (React.Attribute.Event
-             ( "event"
-             , React.EventT.Mouse (onClick : React.Event.Mouse.t -> unit) ))
+             ("event", React.EventT.Mouse (onClick : ReactEvent.Mouse.t -> unit)))
      |]
     |> Array.to_list
     |> List.filter_map (fun a -> a)

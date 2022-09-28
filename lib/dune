@@ -2,7 +2,13 @@
  (name react)
  (modules react)
  (public_name native-react.react)
- (libraries shims native-react.js domProps))
+ (libraries shims native-react.js domProps reactEvent))
+
+(library
+ (name reactEvent)
+ (modules reactEvent)
+ (public_name native-react.reactEvent)
+ (libraries native-react.js))
 
 (library
  (name reactDOM)

@@ -157,7 +157,7 @@ let randomElement = <text dx="1 2" dy="3 4" />;
 
 [@react.component]
 let make = (~name, ~isDisabled=?) => {
-  let onClick = (event) => Js.log(event);
+  let onClick = event => Js.log(event);
   <button name onClick disabled=isDisabled />;
 };
 
