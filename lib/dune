@@ -1,3 +1,10 @@
+; We want to keep the exact interface from ReasonReact
+; This layout of native-react.react isn't ideal. Since bsconfig exposes
+; every file as module, similarly on what (wrapped false) does.
+; We didn't use wrapped false since it will be all under a "React" namespace
+; and it's not the same as bs.
+; Current solution is to export all libs manually
+
 (library
  (name react)
  (modules react)
@@ -20,3 +27,9 @@
  (name domProps)
  (modules domProps)
  (public_name native-react.domProps))
+
+(library
+ (name reasonReactRouter)
+ (modules reasonReactRouter)
+ (public_name native-react.reasonReactRouter)
+ (libraries shims react))
