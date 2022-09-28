@@ -78,11 +78,11 @@ end =
 and Fragment : sig
   type t = Element.t list
 
-  val make : t -> Element.t
+  val make : t -> unit -> Element.t
 end = struct
   type t = Element.t list
 
-  let make f = Element.Fragment f
+  let make f () = Element.Fragment f
 end
 
 let is_self_closing_tag = function

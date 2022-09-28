@@ -79,6 +79,14 @@ let test_int_opt_attribute_none = () => {
   assert_string(ReactDOM.renderToStaticMarkup(div), "<div></div>");
 };
 
+let test_fragment = () => {
+  let div = <> <div className="md:w-1/3" /> <div className="md:w-2/3" /> </>;
+  assert_string(
+    ReactDOM.renderToStaticMarkup(div),
+    "<div class=\"md:w-1/3\"></div><div class=\"md:w-2/3\"></div>",
+  );
+};
+
 let test_string_opt_attribute_some = () => {
   let className = Some("foo");
   let div = <div ?className />;
@@ -190,6 +198,7 @@ let _ =
           ),
           test_case("ref_opt_attr_some", `Quick, test_ref_opt_attribute_some),
           test_case("ref_opt_attr_none", `Quick, test_ref_opt_attribute_none),
+          test_case("test_fragment", `Quick, test_fragment),
           test_case("event_onClick", `Quick, test_onclick),
         ],
       ),

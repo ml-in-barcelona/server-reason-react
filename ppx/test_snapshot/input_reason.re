@@ -200,3 +200,12 @@ module Page = {
 
 let upperWithChildren =
   <Page moreProps="hgalo"> <h1> {React.string("Yep")} </h1> </Page>;
+
+module Row = {
+  [@react.component]
+  let make = (~left, ~right) =>
+    <>
+      <div className="md:w-1/3"> left </div>
+      <div className="md:w-2/3"> right </div>
+    </>;
+};
