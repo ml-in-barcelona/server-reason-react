@@ -65,9 +65,8 @@ let make =
                     ((("First ")[@reason.raw_literal "First "]) ^ name))
                [@reason.preserve_braces ])];
             Hello.make ~one:(("1")[@reason.raw_literal "1"])
-              ~children:((React.string
-                            ((("2nd ")[@reason.raw_literal "2nd "]) ^ name))
-              [@reason.preserve_braces ]) ()] ())
+              [((React.string ((("2nd ")[@reason.raw_literal "2nd "]) ^ name))
+              [@reason.preserve_braces ])] ()] ())
         [@reason.preserve_braces ]))
   [@warning "-16"][@warning "-16"])
 module Memo =
@@ -100,13 +99,13 @@ module MemoCustomCompareProps =
             [@reason.preserve_braces ]))
       [@warning "-16"][@warning "-16"])
   end
-let fragment foo = ((React.Fragment.make ~children:foo ())[@bla ])
+let fragment foo = ((React.Fragment.make [foo] ())[@bla ])
 let polyChildrenFragment foo bar = React.Fragment.make [foo; bar] ()
 let nestedFragment foo bar baz =
   React.Fragment.make [foo; React.Fragment.make [bar; baz] ()] ()
 let upper = Upper.make ()
 let upperWithProp = Upper.make ~count ()
-let upperWithChild foo = Upper.make ~children:foo ()
+let upperWithChild foo = Upper.make [foo] ()
 let upperWithChildren foo bar = Upper.make [foo; bar] ()
 let lower =
   React.createElement "div"
@@ -193,9 +192,9 @@ let lowerWithChildrenComplex =
 let nestedElement = Foo.Bar.make ~a:1 ~b:(("1")[@reason.raw_literal "1"]) ()
 let t =
   FancyButton.make ~ref:buttonRef
-    ~children:(React.createElement "div"
-                 ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a)))
-                    |> Array.of_list) []) ()
+    [React.createElement "div"
+       ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
+          Array.of_list) []] ()
 let t =
   React.createElement "button"
     ((([|(Some (React.Attribute.Ref ref));(Some
@@ -417,11 +416,11 @@ module Page =
   end
 let upperWithChildren =
   Page.make ~moreProps:(("hgalo")[@reason.raw_literal "hgalo"])
-    ~children:(React.createElement "h1"
-                 ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a)))
-                    |> Array.of_list)
-                 [((React.string (("Yep")[@reason.raw_literal "Yep"]))
-                 [@reason.preserve_braces ])]) ()
+    [React.createElement "h1"
+       ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
+          Array.of_list)
+       [((React.string (("Yep")[@reason.raw_literal "Yep"]))
+       [@reason.preserve_braces ])]] ()
 module Row =
   struct
     let make =
@@ -450,3 +449,31 @@ module Row =
           [@warning "-16"][@warning "-16"]))
       [@warning "-16"])
   end
+let make =
+  ((fun ~children ->
+      fun () ->
+        ((React.createElement "div"
+            ((([|(Some
+                    (React.Attribute.String
+                       ("className",
+                         ((("flex xs:justify-center overflow-hidden")
+                         [@reason.raw_literal
+                           "flex xs:justify-center overflow-hidden"]) : 
+                         string))))|]
+                 |> Array.to_list)
+                |> (List.filter_map (fun a -> a)))
+               |> Array.of_list)
+            [React.Fragment.make
+               [React.createElement "div"
+                  ((([|(Some
+                          (React.Attribute.String
+                             ("className",
+                               ((("mt-8 md:mt-32 mx-8 md:mx-32 min-w-md lg:align-center w-full px-4 md:px-8 max-w-2xl")
+                               [@reason.raw_literal
+                                 "mt-8 md:mt-32 mx-8 md:mx-32 min-w-md lg:align-center w-full px-4 md:px-8 max-w-2xl"]) : 
+                               string))))|]
+                       |> Array.to_list)
+                      |> (List.filter_map (fun a -> a)))
+                     |> Array.of_list) [children]] ()])
+        [@reason.preserve_braces ]))
+  [@warning "-16"][@warning "-16"])
