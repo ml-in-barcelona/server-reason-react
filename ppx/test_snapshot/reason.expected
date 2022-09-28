@@ -283,6 +283,29 @@ let testAttributes =
               |> Array.to_list)
              |> (List.filter_map (fun a -> a)))
             |> Array.of_list) []]]
+let randomElement =
+  React.createElement "text"
+    ((([|(Some
+            (React.Attribute.String
+               ("dx", ((("1 2")[@reason.raw_literal "1 2"]) : string))));(
+         Some
+           (React.Attribute.String
+              ("dy", ((("3 4")[@reason.raw_literal "3 4"]) : string))))|]
+         |> Array.to_list)
+        |> (List.filter_map (fun a -> a)))
+       |> Array.of_list) []
+let make =
+  ((fun ?(name= (("joe")[@reason.raw_literal "joe"])) ->
+      fun () ->
+        ((React.createElement "div"
+            ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
+               Array.of_list)
+            [(((Printf.sprintf (("`name` is %s")
+                  [@reason.raw_literal "`name` is %s"]) name)
+                 |> React.string)
+            [@reason.preserve_braces ])])
+        [@reason.preserve_braces ]))
+  [@warning "-16"][@warning "-16"])
 module App =
   struct
     let make () =

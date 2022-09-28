@@ -153,18 +153,17 @@ let testAttributes =
     </picture>
   </div>;
 
-/* let randomElement = <text dx="1 2" dy="3 4" />; */
+let randomElement = <text dx="1 2" dy="3 4" />;
 
 /* [@react.component]
-   let make = (~name, ~isDisabled=?) => {
-     <button name /* ?onClick */ disabled=isDisabled />;
-   }; */
+  let make = (~name, ~isDisabled=?) => {
+    <button name /* ?onClick */ disabled=isDisabled />;
+  }; */
 
-/* [@react.component]
-   let make = (~name="joe") => {
-     <div> {Printf.sprintf("`name` is %s", name) |> React.string} </div>;
-   };
-    */
+[@react.component]
+let make = (~name="joe") => {
+  <div> {Printf.sprintf("`name` is %s", name) |> React.string} </div>;
+};
 
 module App = {
   [@react.component]
