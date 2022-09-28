@@ -295,6 +295,27 @@ let randomElement =
         |> (List.filter_map (fun a -> a)))
        |> Array.of_list) []
 let make =
+  ((fun ~name ->
+      ((fun ?isDisabled ->
+          fun () ->
+            ((let onClick event = Js.log event in
+              React.createElement "button"
+                ((([|(Some (React.Attribute.String ("name", (name : string))));(
+                     Some
+                       (React.Attribute.Event
+                          ("onClick",
+                            (React.EventT.Mouse
+                               (onClick : React.Event.Mouse.t -> unit)))));(
+                     Some
+                       (React.Attribute.Bool
+                          ("disabled", (isDisabled : bool))))|]
+                     |> Array.to_list)
+                    |> (List.filter_map (fun a -> a)))
+                   |> Array.of_list) [])
+            [@reason.preserve_braces ]))
+      [@warning "-16"][@warning "-16"]))
+  [@warning "-16"])
+let make =
   ((fun ?(name= (("joe")[@reason.raw_literal "joe"])) ->
       fun () ->
         ((React.createElement "div"

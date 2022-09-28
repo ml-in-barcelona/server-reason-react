@@ -155,10 +155,11 @@ let testAttributes =
 
 let randomElement = <text dx="1 2" dy="3 4" />;
 
-/* [@react.component]
-  let make = (~name, ~isDisabled=?) => {
-    <button name /* ?onClick */ disabled=isDisabled />;
-  }; */
+[@react.component]
+let make = (~name, ~isDisabled=?) => {
+  let onClick = (event) => Js.log(event);
+  <button name onClick disabled=isDisabled />;
+};
 
 [@react.component]
 let make = (~name="joe") => {

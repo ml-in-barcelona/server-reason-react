@@ -24,7 +24,7 @@ type eventType =
   | Animation
   | Transition
   | Pointer
-  | Drag
+(* | Drag *)
 
 type attribute =
   { type_ : attributeType
@@ -156,22 +156,22 @@ let globalEventHandlers =
   ; Event { name = "onContextMenuCapture"; type_ = Mouse }
   ; Event { name = "onDoubleClick"; type_ = Mouse }
   ; Event { name = "onDoubleClickCapture"; type_ = Mouse }
-  ; Event { name = "onDrag"; type_ = Drag }
-  ; Event { name = "onDragCapture"; type_ = Drag }
-  ; Event { name = "onDragEnd"; type_ = Drag }
-  ; Event { name = "onDragEndCapture"; type_ = Drag }
-  ; Event { name = "onDragEnter"; type_ = Drag }
-  ; Event { name = "onDragEnterCapture"; type_ = Drag }
-  ; Event { name = "onDragExit"; type_ = Drag }
-  ; Event { name = "onDragExitCapture"; type_ = Drag }
-  ; Event { name = "onDragLeave"; type_ = Drag }
-  ; Event { name = "onDragLeaveCapture"; type_ = Drag }
-  ; Event { name = "onDragOver"; type_ = Drag }
-  ; Event { name = "onDragOverCapture"; type_ = Drag }
-  ; Event { name = "onDragStart"; type_ = Drag }
-  ; Event { name = "onDragStartCapture"; type_ = Drag }
-  ; Event { name = "onDrop"; type_ = Drag }
-  ; Event { name = "onDropCapture"; type_ = Drag }
+    (* ; Event { name = "onDrag"; type_ = Drag } *)
+    (* ; Event { name = "onDragCapture"; type_ = Drag } *)
+    (* ; Event { name = "onDragEnd"; type_ = Drag } *)
+    (* ; Event { name = "onDragEndCapture"; type_ = Drag } *)
+    (* ; Event { name = "onDragEnter"; type_ = Drag } *)
+    (* ; Event { name = "onDragEnterCapture"; type_ = Drag } *)
+    (* ; Event { name = "onDragExit"; type_ = Drag } *)
+    (* ; Event { name = "onDragExitCapture"; type_ = Drag } *)
+    (* ; Event { name = "onDragLeave"; type_ = Drag } *)
+    (* ; Event { name = "onDragLeaveCapture"; type_ = Drag } *)
+    (* ; Event { name = "onDragOver"; type_ = Drag } *)
+    (* ; Event { name = "onDragOverCapture"; type_ = Drag } *)
+    (* ; Event { name = "onDragStart"; type_ = Drag } *)
+    (* ; Event { name = "onDragStartCapture"; type_ = Drag } *)
+    (* ; Event { name = "onDrop"; type_ = Drag } *)
+    (* ; Event { name = "onDropCapture"; type_ = Drag } *)
   ; Event { name = "onMouseDown"; type_ = Mouse }
   ; Event { name = "onMouseDownCapture"; type_ = Mouse }
   ; Event { name = "onMouseEnter"; type_ = Mouse }

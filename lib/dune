@@ -8,7 +8,7 @@
  (name reactDOM)
  (modules reactDOM)
  (public_name native-react.reactDom)
- (libraries react shims domProps))
+ (libraries react shims native-react.js domProps))
 
 (library
  (name domProps)

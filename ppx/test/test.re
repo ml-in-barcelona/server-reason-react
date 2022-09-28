@@ -134,6 +134,12 @@ let test_ref_opt_attribute_none = () => {
   assert_string(ReactDOM.renderToStaticMarkup(div), "<div></div>");
 };
 
+let test_onclick = () => {
+  let onClick = Some(_ => print_endline ("clicked"));
+  let div = <div ?onClick />;
+  assert_string(ReactDOM.renderToStaticMarkup(div), "<div></div>");
+};
+
 let _ =
   run(
     "Tests",
@@ -184,6 +190,7 @@ let _ =
           ),
           test_case("ref_opt_attr_some", `Quick, test_ref_opt_attribute_some),
           test_case("ref_opt_attr_none", `Quick, test_ref_opt_attribute_none),
+          test_case("event_onClick", `Quick, test_onclick),
         ],
       ),
     ],

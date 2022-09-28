@@ -22,7 +22,7 @@ type eventType =
   | Animation
   | Transition
   | Pointer
-  | Drag
+  (* | Drag *)
 
 type attribute =
   { type_ : attributeType

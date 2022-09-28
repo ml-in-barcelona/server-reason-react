@@ -358,14 +358,17 @@ let makeAttributeValue ~loc ~isOptional (type_ : DomProps.attributeType) value =
   | Int, true -> [%expr ([%e value] : int option)]
   | Bool, false -> [%expr ([%e value] : bool)]
   | Bool, true -> [%expr ([%e value] : bool option)]
-  | Style, false -> [%expr ([%e value] : React.Dom.Style.t)]
-  | Style, true -> [%expr ([%e value] : React.Dom.Style.t option)]
-  | Ref, false -> [%expr ([%e value] : React.Dom.domRef)]
-  | Ref, true -> [%expr ([%e value] : React.Dom.domRef option)]
-  | InnerHtml, false ->
-      [%expr ([%e value] : React.Dom.DangerouslySetInnerHTML.t)]
-  | InnerHtml, true ->
-      [%expr ([%e value] : React.Dom.DangerouslySetInnerHTML.t option)]
+  | Style, false -> [%expr ([%e value] : ReactDom.Style.t)]
+  | Style, true -> [%expr ([%e value] : ReactDom.Style.t option)]
+  (* Those ReactDom types are currently on ReasonReact, in our implementation they are in React namespace *)
+  | Ref, false -> [%expr ([%e value] : React.domRef)]
+  | Ref, true -> [%expr ([%e value] : React.domRef option)]
+  (* We don't have the runtime type of DangerouslySetInnerHTML, yet. In here we don't add any type constraint *)
+  | InnerHtml, false -> [%expr [%e value]]
+  | InnerHtml, true -> [%expr [%e value] option]
+(* | InnerHtml, false -> [%expr ([%e value] : React.DangerouslySetInnerHTML.t)]
+   | InnerHtml, true ->
+       [%expr ([%e value] : React.DangerouslySetInnerHTML.t option)] *)
 
 let makeEventValue ~loc ~isOptional (type_ : DomProps.eventType) value =
   match (type_, isOptional) with
@@ -407,8 +410,8 @@ let makeEventValue ~loc ~isOptional (type_ : DomProps.eventType) value =
   | Pointer, false -> [%expr ([%e value] : React.Event.Syntetic.t -> unit)]
   | Pointer, true ->
       [%expr ([%e value] : (React.Event.Syntetic.t -> unit) option)]
-  | Drag, false -> [%expr ([%e value] : React.Event.Syntetic.t -> unit)]
-  | Drag, true -> [%expr ([%e value] : (React.Event.Syntetic.t -> unit) option)]
+(* | Drag, false -> [%expr ([%e value] : React.Event.Syntetic.t -> unit)] *)
+(* | Drag, true -> [%expr ([%e value] : (React.Event.Syntetic.t -> unit) option)] *)
 
 let makeValue ~loc ~isOptional prop value =
   match prop with
@@ -825,70 +828,194 @@ let jsxMapper () =
           Exp.constant ~loc (Pconst_string (jsxName, loc, None))
         in
         let objectValue = makeValue ~isOptional ~loc prop value in
-        let react_attr_expr =
-          match prop with
-          | Attribute { type_; _ } -> (
-              match (type_, isOptional) with
-              | DomProps.String, false ->
-                  [%expr
-                    React.Attribute.String ([%e objectKey], [%e objectValue])]
-              | DomProps.String, true ->
-                  [%expr
-                    Option.map
-                      (fun v -> React.Attribute.String ([%e objectKey], v))
-                      [%e objectValue]]
-              | Int, false ->
-                  [%expr
-                    React.Attribute.String
-                      ([%e objectKey], string_of_int [%e objectValue])]
-              | Int, true ->
-                  [%expr
-                    Option.map
-                      (fun v ->
-                        React.Attribute.String ([%e objectKey], string_of_int v))
-                      [%e objectValue]]
-              | Bool, false ->
-                  [%expr
-                    React.Attribute.Bool ([%e objectKey], [%e objectValue])]
-              | Bool, true ->
-                  [%expr
-                    Option.map
-                      (fun v -> React.Attribute.Bool ([%e objectKey], v))
-                      [%e objectValue]]
-              | Style, false -> [%expr React.Attribute.Style [%e value]]
-              | Style, true ->
-                  [%expr
-                    Option.map (fun v -> React.Attribute.Style v) [%e value]]
-              | Ref, false -> [%expr React.Attribute.Ref [%e value]]
-              | Ref, true ->
-                  [%expr Option.map (fun v -> React.Attribute.Ref v) [%e value]]
-              | InnerHtml, false -> (
-                  match value with
-                  | [%expr [%bs.obj { __html = [%e? inner] }]] ->
-                      [%expr React.Attribute.DangerouslyInnerHtml [%e inner]]
-                  | _ ->
-                      raise
-                      @@ Location.raise_errorf ~loc
-                           "unexpected expression found on \
-                            dangerouslySetInnerHTML")
-              | InnerHtml, true -> (
-                  match value with
-                  | [%expr [%bs.obj { __html = [%e? inner] }]] ->
-                      [%expr
-                        Option.map
-                          (fun v ->
-                            React.Attribute.DangerouslyInnerHtml [%e inner])
-                          [%e inner]]
-                  | _ ->
-                      raise
-                      @@ Location.raise_errorf ~loc
-                           "unexpected expression found on \
-                            dangerouslySetInnerHTML"))
-          | Event _ -> failwith "todo: add events"
-        in
-        match isOptional with
-        | true -> react_attr_expr
-        | false -> [%expr Some [%e react_attr_expr]]
+        match (prop, isOptional) with
+        | Attribute { type_ = DomProps.String; _ }, false ->
+            [%expr
+              Some (React.Attribute.String ([%e objectKey], [%e objectValue]))]
+        | Attribute { type_ = DomProps.String; _ }, true ->
+            [%expr
+              Option.map
+                (fun v -> React.Attribute.String ([%e objectKey], v))
+                [%e objectValue]]
+        | Attribute { type_ = DomProps.Int; _ }, false ->
+            [%expr
+              Some
+                (React.Attribute.String
+                   ([%e objectKey], string_of_int [%e objectValue]))]
+        | Attribute { type_ = DomProps.Int; _ }, true ->
+            [%expr
+              Option.map
+                (fun v ->
+                  React.Attribute.String ([%e objectKey], string_of_int v))
+                [%e objectValue]]
+        | Attribute { type_ = DomProps.Bool; _ }, false ->
+            [%expr
+              Some (React.Attribute.Bool ([%e objectKey], [%e objectValue]))]
+        | Attribute { type_ = DomProps.Bool; _ }, true ->
+            [%expr
+              Option.map
+                (fun v -> React.Attribute.Bool ([%e objectKey], v))
+                [%e objectValue]]
+        | Attribute { type_ = DomProps.Style; _ }, false ->
+            [%expr Some (React.Attribute.Style [%e value])]
+        | Attribute { type_ = DomProps.Style; _ }, true ->
+            [%expr Option.map (fun v -> React.Attribute.Style v) [%e value]]
+        | Attribute { type_ = DomProps.Ref; _ }, false ->
+            [%expr Some (React.Attribute.Ref [%e value])]
+        | Attribute { type_ = DomProps.Ref; _ }, true ->
+            [%expr Option.map (fun v -> React.Attribute.Ref v) [%e value]]
+        | Attribute { type_ = DomProps.InnerHtml; _ }, false -> (
+            match value with
+            | [%expr [%bs.obj { __html = [%e? inner] }]] ->
+                [%expr Some (React.Attribute.DangerouslyInnerHtml [%e inner])]
+            | _ ->
+                raise
+                @@ Location.raise_errorf ~loc
+                     "unexpected expression found on dangerouslySetInnerHTML")
+        | Attribute { type_ = DomProps.InnerHtml; _ }, true -> (
+            match value with
+            | [%expr [%bs.obj { __html = [%e? inner] }]] ->
+                [%expr
+                  Option.map
+                    (fun v -> React.Attribute.DangerouslyInnerHtml v)
+                    [%e inner]]
+            | _ ->
+                raise
+                @@ Location.raise_errorf ~loc
+                     "unexpected expression found on dangerouslySetInnerHTML")
+        | Event { type_ = Mouse; name }, false ->
+            [%expr
+              Some
+                (React.Attribute.Event
+                   ( [%e constantString ~loc name]
+                   , React.EventT.Mouse [%e objectValue] ))]
+        | Event { type_ = Mouse; name }, true ->
+            [%expr
+              Option.map
+                (fun v ->
+                  React.Attribute.Event
+                    ([%e constantString ~loc name], React.EventT.Mouse v))
+                [%e objectValue]]
+        | Event { type_ = Selection; name }, false ->
+            [%expr
+              Some
+                (React.Attribute.Event
+                   ( [%e constantString ~loc name]
+                   , React.EventT.Selection [%e objectValue] ))]
+        | Event { type_ = Selection; name }, true ->
+            [%expr
+              Option.map (fun v ->
+                  (React.Attribute.Event
+                     ([%e constantString ~loc name], React.EventT.Selection v))
+                    [%e objectValue])]
+        | Event { type_ = Touch; name }, false ->
+            [%expr
+              Some
+                (React.Attribute.Event
+                   ( [%e constantString ~loc name]
+                   , React.EventT.Touch [%e objectValue] ))]
+        | Event { type_ = Touch; name }, true ->
+            [%expr
+              Option.map (fun v ->
+                  (React.Attribute.Event
+                     ([%e constantString ~loc name], React.EventT.Touch v))
+                    [%e objectValue])]
+        | Event { type_ = UI; name }, false ->
+            [%expr
+              Some
+                (React.Attribute.Event
+                   ( [%e constantString ~loc name]
+                   , React.EventT.UI [%e objectValue] ))]
+        | Event { type_ = UI; name }, true ->
+            [%expr
+              Option.map (fun v ->
+                  (React.Attribute.Event
+                     ([%e constantString ~loc name], React.EventT.UI v))
+                    [%e objectValue])]
+        | Event { type_ = Wheel; name }, false ->
+            [%expr
+              Some
+                (React.Attribute.Event
+                   ( [%e constantString ~loc name]
+                   , React.EventT.Wheel [%e objectValue] ))]
+        | Event { type_ = Wheel; name }, true ->
+            [%expr
+              Option.map (fun v ->
+                  (React.Attribute.Event
+                     ([%e constantString ~loc name], React.EventT.Wheel v))
+                    [%e objectValue])]
+        | Event { type_ = Clipboard; name }, false ->
+            [%expr
+              Some
+                (React.Attribute.Event
+                   ( [%e constantString ~loc name]
+                   , React.EventT.Clipboard [%e objectValue] ))]
+        | Event { type_ = Clipboard; name }, true ->
+            [%expr
+              Option.map (fun v ->
+                  (React.Attribute.Event
+                     ([%e constantString ~loc name], React.EventT.Clipboard v))
+                    [%e objectValue])]
+        | Event { type_ = Composition; name }, false ->
+            [%expr
+              Some
+                (React.Attribute.Event
+                   ( [%e constantString ~loc name]
+                   , React.EventT.Composition [%e objectValue] ))]
+        | Event { type_ = Composition; name }, true ->
+            [%expr
+              Option.map (fun v ->
+                  (React.Attribute.Event
+                     ([%e constantString ~loc name], React.EventT.Composition v))
+                    [%e objectValue])]
+        | Event { type_ = Keyboard; name }, false ->
+            [%expr
+              Some
+                (React.Attribute.Event
+                   ([%e constantString ~loc name], React.EventT.Keyboard v))]
+        | Event { type_ = Keyboard; name }, true ->
+            [%expr
+              Option.map (fun v ->
+                  (React.Attribute.Event
+                     ([%e constantString ~loc name], React.EventT.Keyboard v))
+                    [%e objectValue])]
+        | Event { type_ = Focus; name }, false ->
+            [%expr
+              Some
+                (React.Attribute.Event
+                   ( [%e constantString ~loc name]
+                   , React.EventT.Focus [%e objectValue] ))]
+        | Event { type_ = Focus; name }, true ->
+            [%expr
+              Option.map (fun v ->
+                  (React.Attribute.Event
+                     ([%e constantString ~loc name], React.EventT.Focus v))
+                    [%e objectValue])]
+        | Event { type_ = Form; name }, false ->
+            [%expr
+              Some
+                (React.Attribute.Event
+                   ( [%e constantString ~loc name]
+                   , React.EventT.Form [%e objectValue] ))]
+        | Event { type_ = Form; name }, true ->
+            [%expr
+              Option.map (fun v ->
+                  (React.Attribute.Event
+                     ([%e constantString ~loc name], React.EventT.Form v))
+                    [%e objectValue])]
+        | Event { type_ = Media; name }, false ->
+            [%expr
+              Some
+                (React.Attribute.Event
+                   ( [%e constantString ~loc name]
+                   , React.EventT.Media [%e objectValue] ))]
+        | Event { type_ = Media; name }, true ->
+            [%expr
+              Option.map (fun v ->
+                  (React.Attribute.Event
+                     ([%e constantString ~loc name], React.EventT.Media v))
+                    [%e objectValue])]
+        | _ -> failwith "Attribute not implemented, open an issue"
       in
       let propsObj =
         [%expr

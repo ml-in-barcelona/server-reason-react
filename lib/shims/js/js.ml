@@ -1,3 +1,5 @@
+type 'a t = < .. > as 'a
+
 type 'a nullable =
   | Null
   | Something of 'a

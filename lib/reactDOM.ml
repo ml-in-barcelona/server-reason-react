@@ -69,7 +69,7 @@ let get_key = function
   | Ref _ -> "ref"
   | DangerouslyInnerHtml _ -> "dangerouslySetInnerHTML"
   | Style _ -> "style"
-  | Event { name; _ } -> name
+  | Event (name, _) -> (* FIXME: tolowercase? does it even matter? *) name
 
 let is_react_custom_attribute attr =
   match get_key attr with
@@ -78,7 +78,11 @@ let is_react_custom_attribute attr =
       true
   | _ -> false
 
-let attribute_is_valid tag attr = attribute_is_html tag (get_key attr)
+let attribute_is_not_event attr =
+  match attr with Attribute.Event _ -> false | _ -> true
+
+let attribute_is_valid tag attr =
+  attribute_is_html tag (get_key attr) && attribute_is_not_event attr
 
 let attribute_to_string attr =
   let open Attribute in
