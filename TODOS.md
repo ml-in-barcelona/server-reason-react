@@ -50,6 +50,9 @@
   - [x] cased custom attributes
   - [x] no HTML events
   - [x] no unknown events
+- [x] Events
+  - [x] Ignore events on the server
+  - [ ] Are we sure that all cases are ignored? onClick callbacks yes, but what about other kinds? "void(0)" or other edgy cases?
 - [ ] Implement renderToString
   - [ ] Import test cases and implement those
   - [ ] Check what are the differences

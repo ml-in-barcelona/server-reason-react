@@ -54,6 +54,7 @@ and Attribute : sig
     | Style of string
     | DangerouslyInnerHtml of string
     | Ref of Ref.t
+    | Event of DomProps.event
 end =
   Attribute
 
@@ -106,8 +107,10 @@ let attributes_to_map attrs =
           acc |> StringMap.add key (Attribute.Bool (key, value))
       | Attribute.String (key, value) ->
           acc |> StringMap.add key (Attribute.String (key, value))
+      (* We don't add to the Map, the following constructors: *)
       | Attribute.DangerouslyInnerHtml _ -> acc
       | Attribute.Ref _ -> acc
+      | Attribute.Event _ -> acc
       | Attribute.Style _ -> acc)
     StringMap.empty attrs
 

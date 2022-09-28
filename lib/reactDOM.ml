@@ -69,6 +69,7 @@ let get_key = function
   | Ref _ -> "ref"
   | DangerouslyInnerHtml _ -> "dangerouslySetInnerHTML"
   | Style _ -> "style"
+  | Event { name; _ } -> name
 
 let is_react_custom_attribute attr =
   match get_key attr with
@@ -86,6 +87,8 @@ let attribute_to_string attr =
   | Ref _ -> ""
   (* false attributes don't get rendered *)
   | Bool (_, false) -> ""
+  (* We ignore events on SSR *)
+  | Event _ -> ""
   | Bool (k, true) -> k
   | DangerouslyInnerHtml _ -> ""
   | Style styles -> Printf.sprintf "style=\"%s\"" styles
