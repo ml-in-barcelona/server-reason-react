@@ -757,9 +757,9 @@ let jsxMapper () =
     let args =
       recursivelyTransformedArgsForMake
       @ (match childrenExpr with
-        | Exact children -> [ (nolabel, [%expr [ [%e children] ]]) ]
-        | ListLiteral [%expr []] -> []
-        | ListLiteral expression -> [ (Nolabel, expression) ])
+        | Exact children -> [ (labelled "children", [%expr [ [%e children] ]]) ]
+        | ListLiteral [%expr []] -> [ (labelled "children", [%expr []]) ]
+        | ListLiteral expression -> [ (labelled "children", expression) ])
       @ [ (nolabel, Exp.construct ~loc { loc; txt = Lident "()" } None) ]
     in
     let identifier =
