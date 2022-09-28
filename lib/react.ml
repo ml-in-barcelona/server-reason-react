@@ -287,3 +287,16 @@ let int i = Element.Text (string_of_int i)
 (* FIXME: float_of_string might be different on the browser *)
 let float f = Element.Text (string_of_float f)
 let array arr = Element.List arr
+
+let list_to_array list =
+  let rec to_array i res =
+    match i < 0 with
+    | true -> res
+    | false ->
+        let item = List.nth list i in
+        let rest = Array.append [| item |] res in
+        to_array (i - 1) rest
+  in
+  to_array (List.length list - 1) [||]
+
+let list l = Element.List (list_to_array l)

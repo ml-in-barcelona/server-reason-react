@@ -5,8 +5,8 @@ let path ?serverUrlString:_ () = []
 
 (* TODO: Maybe this should be implemented? *)
 let search ?serverUrlString:_ () = ""
-let push _path = ()
-let replace _path = ()
+let push (_path : string) = ()
+let replace (_path : string) = ()
 
 type url =
   { path : string list
