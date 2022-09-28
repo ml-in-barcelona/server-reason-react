@@ -52,6 +52,8 @@
   - [x] no unknown events
 - [x] Events
   - [x] Ignore events on the server
+  - [x] Transform to structure for react.ml
+  - [ ] What's happening with Drag
   - [ ] Are we sure that all cases are ignored? onClick callbacks yes, but what about other kinds? "void(0)" or other edgy cases?
 - [ ] Implement renderToString
   - [ ] Import test cases and implement those
@@ -124,6 +126,8 @@
   - [ ] Found a way to add it incrementally?
   - [ ] What can we do with externals?
 - Do we have any way to ensure `bs.obj` compiles in native?
+  - Idea: Treat all Js.t as OCaml objects, transform all a##b to (a#b).
+  - `##` is parsed by Reason
   - Probably only in melange?
   - Add ppx processing to replace `bs.obj` with classic OCaml objects (e.g. `{"foo": 2}` translates to `object method foo = 2 end`).
 - [ ] What other ReScript specific stuff need to take care?

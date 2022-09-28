@@ -233,6 +233,25 @@ let test_one_styles () =
   let styles = ReactDOM.Style.make ~background:"#333" () in
   assert_string styles "background: #333"
 
+let make ~name () =
+  let onClick (event : React.Event.Mouse.t) : unit = ignore event in
+  React.createElement "button"
+    ([| Some (React.Attribute.String ("name", (name : string)))
+      ; Some
+          (React.Attribute.Event
+             ( "event"
+             , React.EventT.Mouse (onClick : React.Event.Mouse.t -> unit) ))
+     |]
+    |> Array.to_list
+    |> List.filter_map (fun a -> a)
+    |> Array.of_list)
+    []
+
+let test_event () =
+  assert_string
+    (ReactDOM.renderToStaticMarkup (make ~name:"json" ()))
+    "<button name=\"json\"></button>"
+
 let () =
   let open Alcotest in
   run "Tests"
@@ -260,6 +279,7 @@ let () =
         ; test_case "useMemo" `Quick test_use_memo
         ; test_case "useCallback" `Quick test_use_callback
         ; test_case "innerHtml" `Quick test_inner_html
+        ; test_case "events" `Quick test_event
         ] )
     ; ( (* FIXME: those test shouldn't rely on renderToStaticMarkup,
            make an alcotest TESTABLE component *)
