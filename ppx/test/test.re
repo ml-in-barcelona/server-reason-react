@@ -94,8 +94,16 @@ module Container = {
   };
 };
 
-let test_children_fragment = () => {
+let test_children_uppercase = () => {
   let component = <Container> <span /> </Container>;
+  assert_string(
+    ReactDOM.renderToStaticMarkup(component),
+    "<div><span></span></div>",
+  );
+};
+
+let test_children_lowercase = () => {
+  let component = <div> <span /> </div>;
   assert_string(
     ReactDOM.renderToStaticMarkup(component),
     "<div><span></span></div>",
@@ -214,7 +222,8 @@ let _ =
           test_case("ref_opt_attr_some", `Quick, test_ref_opt_attribute_some),
           test_case("ref_opt_attr_none", `Quick, test_ref_opt_attribute_none),
           test_case("test_fragment", `Quick, test_fragment),
-          test_case("test_children_fragment", `Quick, test_children_fragment),
+          test_case("test_children_uppercase", `Quick, test_children_uppercase),
+          test_case("test_children_lowercase", `Quick, test_children_lowercase),
           test_case("event_onClick", `Quick, test_onclick),
         ],
       ),
