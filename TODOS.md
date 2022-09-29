@@ -90,12 +90,15 @@
 - [x] Add Events
 - [x] Enable reason test from ppx
 - [x] Transform Fragments to the right type s/React.Fragment.createElement/React.createFragment?
-  - [ ] Fix fragments and childrens
+  - [x] Fix fragments and childrens
 - [ ] Transform signatures
 - [ ] Transform externals
 - [x] Allow recursive components
 - [x] Is childrenArg ref hack, necessary?
 - [ ] Can we cleanup this beast?
+  - [ ] There's a ton of unncessary expressions to early
+  - [ ] The flow of the AST passes aren't clear
+  - [ ] There's an extra `[@JSX]` attribute that doesn't get deleted?
 - [x] Are keys necessary? Can we remove them?
 - [ ] How should we handle errors from `createElement` or `renderToString`
 - [x] Suspense? "ReactDOMServer does not yet support Suspense - server/node_modules/react-dom/cjs/react-dom-server.node.development.js:3518"
