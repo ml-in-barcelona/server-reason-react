@@ -200,3 +200,5 @@ let upper_child_ident = <Div> lola </Div>;
        <div />;
      };
    }; */
+
+<p> {React.string(greeting)} </p>
