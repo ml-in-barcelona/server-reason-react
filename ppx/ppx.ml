@@ -98,21 +98,21 @@ let transformChildrenIfListUpper ~loc ~mapper theList =
   in
   transformChildren_ theList [%expr []]
 
-(* let introspectChildren ~loc ~mapper theList =
-   let rec transformChildren_ theList accum =
-     (* not in the sense of converting a list to an array; convert the AST
-        reprensentation of a list to the AST reprensentation of an array *)
-     match theList with
-     | { pexp_desc = Pexp_construct ({ txt = Lident "[]" }, None) } ->
-         Exp.array ~loc (List.rev accum)
-     | { pexp_desc =
-           Pexp_construct
-             ({ txt = Lident "::" }, Some { pexp_desc = Pexp_tuple [ v; acc ] })
-       } ->
-         transformChildren_ acc (mapper#expression mapper v :: accum)
-     | notAList -> mapper#expression mapper notAList
-   in
-   transformChildren_ theList [] *)
+let transformChildrenIfList2 ~loc ~mapper theList =
+  let rec transformChildren_ theList accum =
+    (* not in the sense of converting a list to an array; convert the AST
+       reprensentation of a list to the AST reprensentation of an array *)
+    match theList with
+    | { pexp_desc = Pexp_construct ({ txt = Lident "[]" }, None) } ->
+        Exp.array ~loc (List.rev accum)
+    | { pexp_desc =
+          Pexp_construct
+            ({ txt = Lident "::" }, Some { pexp_desc = Pexp_tuple [ v; acc ] })
+      } ->
+        transformChildren_ acc (mapper#expression mapper v :: accum)
+    | notAList -> mapper#expression mapper notAList
+  in
+  transformChildren_ theList []
 
 let list_have_tail listExpr =
   match listExpr with
@@ -968,12 +968,11 @@ let jsxMapper () =
     let childrenExpr, argsWithLabels =
       extractChildren ~loc ~removeLastPositionUnit:true callArguments
     in
-    let argsForMake = argsWithLabels in
     let modifiedChildrenExpr =
       transformChildrenIfListUpper ~loc ~mapper childrenExpr
     in
     let recursivelyTransformedArgsForMake =
-      argsForMake
+      argsWithLabels
       |> List.map (fun (label, expression) ->
              (label, mapper#expression expression))
     in
@@ -1270,7 +1269,7 @@ let jsxMapper () =
           (* no JSX attribute *)
           | [], _ -> super#expression expression
           | _, nonJSXAttributes ->
-              transformJsxCall mapper [%expr React.Fragment.make]
+              transformJsxCall mapper [%expr React.Fragment.createElement]
                 [ (Labelled "children", listItems) ]
                 nonJSXAttributes listItems.pexp_loc)
       (* Delegate to the default mapper, a deep identity traversal *)

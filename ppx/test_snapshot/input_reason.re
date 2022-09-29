@@ -51,6 +51,8 @@ let fragment = foo => [@bla] <> foo </>;
 let polyChildrenFragment = (foo, bar) => <> foo bar </>;
 let nestedFragment = (foo, bar, baz) => <> foo <> bar baz </> </>;
 
+let nestedFragmentWithlower = foo => <> <div> foo </div> </>;
+
 let upper = <Upper />;
 
 let upperWithProp = <Upper count />;
@@ -184,6 +186,8 @@ let upper_child_ident = <Div> lola </Div>;
   <div> "hello" </div>
 </MyComponent>;
 
+<p> {React.string(greeting)} </p>;
+
 /* module External = {
      [@react.component] [@otherAttribute "bla"]
      external component: (~a: int, ~b: string) => React.element =
@@ -200,5 +204,3 @@ let upper_child_ident = <Div> lola </Div>;
        <div />;
      };
    }; */
-
-<p> {React.string(greeting)} </p>

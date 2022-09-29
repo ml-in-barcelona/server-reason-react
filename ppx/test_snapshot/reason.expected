@@ -109,6 +109,11 @@ let polyChildrenFragment foo bar =
 let nestedFragment foo bar baz =
   React.Fragment.make
     ~children:[foo; React.Fragment.make ~children:[bar; baz] ()] ()
+let nestedFragmentWithlower foo =
+  React.Fragment.make
+    ~children:(React.createElement "div"
+                 ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a)))
+                    |> Array.of_list) [foo]) ()
 let upper = Upper.make ~children:[] ()
 let upperWithProp = Upper.make ~count ~children:[] ()
 let upperWithChild foo = Upper.make ~children:foo ()
