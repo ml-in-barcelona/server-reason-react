@@ -1,7 +1,7 @@
 (include_subdirs no)
 
 (library
- (name pipe_first)
+ (name pipe_first_ppx)
  (modules pipe_first)
  (public_name native-react.pipe_first_ppx)
  (flags :standard -w -9)
@@ -9,7 +9,7 @@
  (kind ppx_rewriter))
 
 (library
- (name double_hash)
+ (name double_hash_ppx)
  (modules double_hash)
  (public_name native-react.double_hash_ppx)
  (flags :standard -w -9)

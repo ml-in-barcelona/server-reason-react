@@ -1,6 +1,6 @@
 (executable
  (name main)
- (libraries pipe_first double_hash ppxlib))
+ (libraries pipe_first_ppx double_hash_ppx ppxlib))
 
 (rule
  (targets transformation.result)
