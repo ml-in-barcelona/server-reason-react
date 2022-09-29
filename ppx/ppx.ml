@@ -764,7 +764,15 @@ let process_value_binding ~loc valueBinding =
     let _bindingWrapper, _hasUnit, expression =
       (wrapExpressionWithBinding wrapExpression, hasUnit, expression)
     in
-    makeDeclaration ~loc fnName [] expression
+    makeDeclaration ~loc fnName
+      [ ( optional "key"
+        , None
+        , Pat.var { txt = "key"; loc = emptyLoc }
+        , "key"
+        , emptyLoc
+        , Some (keyType emptyLoc) )
+      ]
+      expression
 
 let makePropField ~loc id (arg_label, value) =
   let isOptional = isOptional arg_label in
