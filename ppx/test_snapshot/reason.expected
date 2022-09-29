@@ -34,7 +34,7 @@ let lower_opt_attr =
          |> Array.to_list)
         |> (List.filter_map (fun a -> a)))
        |> Array.of_list) []
-let upper = Input.make ~children:[] ()
+let upper = Input.make ()
 module React_component_without_props =
   struct
     let make =
@@ -53,7 +53,7 @@ module React_component_without_props =
   end
 let upper =
   React_component_without_props.make ~lola:(("flores")
-    [@reason.raw_literal "flores"]) ~children:[] ()
+    [@reason.raw_literal "flores"]) ()
 let make =
   ((fun ?(name= (("")[@reason.raw_literal ""])) ->
       fun () ->
@@ -118,8 +118,8 @@ let nestedFragmentWithlower foo =
                    ((([||] |> Array.to_list) |>
                        (List.filter_map (fun a -> a)))
                       |> Array.of_list) [foo]])[@JSX ]) ()
-let upper = Upper.make ~children:[] ()
-let upperWithProp = Upper.make ~count ~children:[] ()
+let upper = Upper.make ()
+let upperWithProp = Upper.make ~count ()
 let upperWithChild foo = Upper.make ~children:foo ()
 let upperWithChildren foo bar = Upper.make ~children:[foo; bar] ()
 let lower =
@@ -222,8 +222,7 @@ let lowerWithChildrenComplex =
                         [@reason.preserve_braces ]))))
                  |> React.list)
             [@reason.preserve_braces ])]]]]
-let nestedElement =
-  Foo.Bar.make ~a:1 ~b:(("1")[@reason.raw_literal "1"]) ~children:[] ()
+let nestedElement = Foo.Bar.make ~a:1 ~b:(("1")[@reason.raw_literal "1"]) ()
 let t =
   FancyButton.make ~ref:buttonRef
     ~children:(React.createElement "div"
@@ -480,7 +479,7 @@ let lower_child_ident =
 let lower_child_ident =
   React.createElement "div"
     ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
-       Array.of_list) [App.make ~children:[] ()]
+       Array.of_list) [App.make ()]
 let upper_child_expr =
   Div.make ~children:((React.int 1)[@reason.preserve_braces ]) ()
 let upper_child_lower =
@@ -519,3 +518,5 @@ let div =
                        |> Array.to_list)
                       |> (List.filter_map (fun a -> a)))
                      |> Array.of_list) []])[@JSX ]) ()
+;;Link.make ~url:(("/hello")[@reason.raw_literal "/hello"]) ~txt:(("hiya")
+    [@reason.raw_literal "hiya"]) ()

@@ -980,7 +980,7 @@ let jsxMapper () =
       recursivelyTransformedArgsForMake
       @ (match modifiedChildrenExpr with
         | Exact children -> [ (labelled "children", [%expr [%e children]]) ]
-        | ListLiteral [%expr []] -> [ (labelled "children", [%expr []]) ]
+        | ListLiteral [%expr []] -> []
         | ListLiteral expression -> [ (labelled "children", expression) ])
       @ [ (nolabel, Exp.construct ~loc { loc; txt = Lident "()" } None) ]
     in
