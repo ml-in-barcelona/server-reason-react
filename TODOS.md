@@ -89,11 +89,11 @@
 - [x] Transform React.Components
 - [x] Add Events
 - [x] Enable reason test from ppx
+- [x] Transform Fragments to the right type s/React.Fragment.createElement/React.createFragment?
+  - [ ] Fix fragments and childrens
 - [ ] Transform signatures
 - [ ] Transform externals
-  - (Lident "React", "componentLike")
 - [x] Allow recursive components
-- [x] Transform Fragments to the right type s/React.Fragment.createElement/React.createFragment?
 - [x] Is childrenArg ref hack, necessary?
 - [ ] Can we cleanup this beast?
 - [x] Are keys necessary? Can we remove them?

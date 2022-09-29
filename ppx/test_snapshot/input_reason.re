@@ -27,23 +27,6 @@ let make = (~name="") => {
   </>;
 };
 
-/* module External = {
-     [@react.component] [@otherAttribute "bla"]
-     external component: (~a: int, ~b: string) => React.element =
-       {|require("my-react-library").MyReactComponent|};
-   };
-
-   module type X_int = {let x: int;};
-
-   module Func = (M: X_int) => {
-     let x = M.x + 1;
-     [@react.component]
-     let make = (~a, ~b, _) => {
-       print_endline("This function should be named `Test$Func`", M.x);
-       <div />;
-     };
-   }; */
-
 module Memo = {
   [@react.component]
   let make =
@@ -109,32 +92,7 @@ let lowerWithChildrenComplex =
     </div>
   </div>;
 
-/* let lowerWithChildrenComplex2 =
-   <div className="content-wrapper">
-     <div className="content">
-       {let example =
-          examples
-          |> List.find_opt(e => {
-               e.path
-               == (List.nth_opt(url.path, 0) |> Option.value(~default=""))
-             })
-          |> Option.value(~default=firstExample);
-        <div>
-          <h2> {example.title |> s} </h2>
-          <h4> {"Rendered component" |> s} </h4>
-          {example.element}
-          <h4> {"Code" |> s} </h4>
-          {example.code}
-        </div>}
-     </div>
-   </div>; */
-
 let nestedElement = <Foo.Bar a=1 b="1" />;
-
-/* [@react.component]
-   let make = (~title, ~children) => {
-     <div> ...{[<span> {title |> s} </span>, ...children]} </div>;
-   }; */
 
 let t = <FancyButton ref=buttonRef> <div /> </FancyButton>;
 
@@ -210,11 +168,36 @@ module Container = {
   };
 };
 
-module Row = {
-  [@react.component]
-  let make = (~left, ~right) =>
-    <>
-      <div className="md:w-1/3"> left </div>
-      <div className="md:w-2/3"> right </div>
-    </>;
-};
+let lower_child_static = <div> <span /> </div>;
+let lower_child_ident = <div> lolaspa </div>;
+let lower_child_ident = <div> <App /> </div>;
+
+let upper_child_expr = <Div> {React.int(1)} </Div>;
+let upper_child_lower = <Div> <span /> </Div>;
+let upper_child_ident = <Div> lola </Div>;
+
+<MyComponent
+  booleanAttribute=true
+  stringAttribute="string"
+  intAttribute=1
+  forcedOptional=?{Some("hello")}
+  onClick={send(handleClick)}>
+  <div> "hello" </div>
+</MyComponent>;
+
+/* module External = {
+     [@react.component] [@otherAttribute "bla"]
+     external component: (~a: int, ~b: string) => React.element =
+       {|require("my-react-library").MyReactComponent|};
+   };
+
+   module type X_int = {let x: int;};
+
+   module Func = (M: X_int) => {
+     let x = M.x + 1;
+     [@react.component]
+     let make = (~a, ~b, _) => {
+       print_endline("This function should be named `Test$Func`", M.x);
+       <div />;
+     };
+   }; */

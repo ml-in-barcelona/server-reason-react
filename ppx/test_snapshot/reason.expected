@@ -457,31 +457,38 @@ module Container =
             [@reason.preserve_braces ]))
       [@warning "-16"][@warning "-16"])
   end
-module Row =
-  struct
-    let make =
-      ((fun ~left ->
-          ((fun ~right ->
-              fun () ->
-                React.Fragment.make
-                  ~children:[React.createElement "div"
-                               ((([|(Some
-                                       (React.Attribute.String
-                                          ("className", ((("md:w-1/3")
-                                            [@reason.raw_literal "md:w-1/3"]) : 
-                                            string))))|]
-                                    |> Array.to_list)
-                                   |> (List.filter_map (fun a -> a)))
-                                  |> Array.of_list) [left];
-                            React.createElement "div"
-                              ((([|(Some
-                                      (React.Attribute.String
-                                         ("className", ((("md:w-2/3")
-                                           [@reason.raw_literal "md:w-2/3"]) : 
-                                           string))))|]
-                                   |> Array.to_list)
-                                  |> (List.filter_map (fun a -> a)))
-                                 |> Array.of_list) [right]] ())
-          [@warning "-16"][@warning "-16"]))
-      [@warning "-16"])
-  end
+let lower_child_static =
+  React.createElement "div"
+    ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
+       Array.of_list)
+    [React.createElement "span"
+       ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
+          Array.of_list) []]
+let lower_child_ident =
+  React.createElement "div"
+    ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
+       Array.of_list) [lolaspa]
+let lower_child_ident =
+  React.createElement "div"
+    ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
+       Array.of_list) [App.make ~children:[] ()]
+let upper_child_expr =
+  Div.make ~children:((React.int 1)[@reason.preserve_braces ]) ()
+let upper_child_lower =
+  Div.make
+    ~children:(React.createElement "span"
+                 ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a)))
+                    |> Array.of_list) []) ()
+let upper_child_ident = Div.make ~children:lola ()
+;;MyComponent.make ~booleanAttribute:((true)[@reason.preserve_braces ])
+    ~stringAttribute:(("string")[@reason.raw_literal "string"])
+    ~intAttribute:1
+    ?forcedOptional:((Some (("hello")[@reason.raw_literal "hello"]))
+    [@reason.preserve_braces ][@explicit_arity ])
+    ~onClick:((send handleClick)[@reason.preserve_braces ])
+    ~children:(React.createElement "div"
+                 ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a)))
+                    |> Array.of_list)
+                 [(("hello")
+                 [@reason.preserve_braces ][@reason.raw_literal "hello"])])
+    ()

@@ -98,16 +98,40 @@ let transformChildrenIfListUpper ~loc ~mapper theList =
   in
   transformChildren_ theList [%expr []]
 
-(* unlike reason-react ppx, we don't transform to array, just apply mapper to children *)
-let transformChildrenIfList ~loc ~mapper theList =
-  let rec transformChildren_ theList accum =
-    match theList with
+(* let introspectChildren ~loc ~mapper theList =
+   let rec transformChildren_ theList accum =
+     (* not in the sense of converting a list to an array; convert the AST
+        reprensentation of a list to the AST reprensentation of an array *)
+     match theList with
+     | { pexp_desc = Pexp_construct ({ txt = Lident "[]" }, None) } ->
+         Exp.array ~loc (List.rev accum)
+     | { pexp_desc =
+           Pexp_construct
+             ({ txt = Lident "::" }, Some { pexp_desc = Pexp_tuple [ v; acc ] })
+       } ->
+         transformChildren_ acc (mapper#expression mapper v :: accum)
+     | notAList -> mapper#expression mapper notAList
+   in
+   transformChildren_ theList [] *)
+
+let list_have_tail listExpr =
+  match listExpr with
+  | Pexp_construct ({ txt = Lident "::" }, Some { pexp_desc = Pexp_tuple _ })
+  | Pexp_construct ({ txt = Lident "[]" }, None) ->
+      false
+  | _ -> true
+
+let transformChildrenIfList ~loc ~mapper children =
+  let rec transformChildren_ children accum =
+    match children with
     | [%expr []] -> revAstList ~loc accum
+    | [%expr [%e? v] :: [%e? acc]] when not (list_have_tail acc.pexp_desc) ->
+        [%expr [%e mapper#expression v]]
     | [%expr [%e? v] :: [%e? acc]] ->
         transformChildren_ acc [%expr [%e mapper#expression v] :: [%e accum]]
     | notAList -> mapper#expression notAList
   in
-  transformChildren_ theList [%expr []]
+  transformChildren_ children [%expr []]
 
 let extractChildren ?(removeLastPositionUnit = false) ~loc propsAndChildren =
   let rec allButLast_ lst acc =
@@ -941,7 +965,6 @@ let makePropField ~loc id (arg_label, value) =
 
 let jsxMapper () =
   let transformUppercaseCall modulePath mapper loc attrs _ callArguments =
-    (* let childrenArgHack = ref None in *)
     let childrenExpr, argsWithLabels =
       extractChildren ~loc ~removeLastPositionUnit:true callArguments
     in
@@ -959,12 +982,7 @@ let jsxMapper () =
       @ (match modifiedChildrenExpr with
         | Exact children -> [ (labelled "children", [%expr [%e children]]) ]
         | ListLiteral [%expr []] -> [ (labelled "children", [%expr []]) ]
-        | ListLiteral expression ->
-            (* childrenArgHack := Some expression; *)
-            [ (labelled "children", expression) ])
-      (* @ (match childrenArgHack.contents with
-         | Some c -> [ (nolabel, [%expr [%e c]]) ]
-         | None -> [ (nolabel, [%expr []]) ]) *)
+        | ListLiteral expression -> [ (labelled "children", expression) ])
       @ [ (nolabel, Exp.construct ~loc { loc; txt = Lident "()" } None) ]
     in
     let identifier =
@@ -987,7 +1005,7 @@ let jsxMapper () =
   in
   let transformLowercaseCall ~loc mapper attrs callArguments id callLoc =
     let children, nonChildrenProps =
-      extractChildren ~removeLastPositionUnit:true ~loc callArguments
+      extractChildren ~loc ~removeLastPositionUnit:true callArguments
     in
     let createElementCall =
       match children with
@@ -1022,7 +1040,7 @@ let jsxMapper () =
       ; (* [React.Attribute.String("key", "value")] *)
         (nolabel, propsObj)
       ; (* [|moreCreateElementCallsHere|] *)
-        (nolabel, transformChildrenIfList ~loc ~mapper children)
+        (nolabel, mapper#expression children)
       ]
     in
     Exp.apply
@@ -1207,15 +1225,16 @@ let jsxMapper () =
               module name.")
   in
 
-  object (self)
+  object (mapper)
     inherit Ast_traverse.map as super
 
     method! signature signature =
-      super#signature @@ reactComponentSignatureTransform self signature
+      super#signature @@ reactComponentSignatureTransform mapper signature
 
     method! structure structure =
       match structure with
-      | structures -> super#structure @@ reactComponentTransform self structures
+      | structures ->
+          super#structure @@ reactComponentTransform mapper structures
 
     method! expression expression =
       match expression with
@@ -1233,7 +1252,7 @@ let jsxMapper () =
           (* no JSX attribute *)
           | [], _ -> super#expression expression
           | _, nonJSXAttributes ->
-              transformJsxCall self callExpression callArguments
+              transformJsxCall mapper callExpression callArguments
                 nonJSXAttributes applyLoc)
       (* is it a list with jsx attribute? Reason <>foo</> desugars to [@JSX][foo]*)
       | { pexp_desc =
@@ -1251,8 +1270,7 @@ let jsxMapper () =
           (* no JSX attribute *)
           | [], _ -> super#expression expression
           | _, nonJSXAttributes ->
-              let callExpression = [%expr React.Fragment.make] in
-              transformJsxCall self callExpression
+              transformJsxCall mapper [%expr React.Fragment.make]
                 [ (Labelled "children", listItems) ]
                 nonJSXAttributes listItems.pexp_loc)
       (* Delegate to the default mapper, a deep identity traversal *)
