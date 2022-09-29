@@ -204,3 +204,5 @@ let upper_child_ident = <Div> lola </Div>;
        <div />;
      };
    }; */
+
+let div = <> <div className="md:w-1/3" /> <div className="md:w-2/3" /> </>;

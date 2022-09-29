@@ -1014,7 +1014,6 @@ let jsxMapper () =
                 ({ txt = Lident "::" }, Some { pexp_desc = Pexp_tuple _ })
             | Pexp_construct ({ txt = Lident "[]" }, None) )
         } ->
-          (* "createDOMElementVariadic" *)
           "createElement"
       (* [@JSX] div(~children= value), coming from <div> ...(value) </div> *)
       | _ ->
@@ -1268,10 +1267,23 @@ let jsxMapper () =
           match (jsxAttribute, nonJSXAttributes) with
           (* no JSX attribute *)
           | [], _ -> super#expression expression
-          | _, nonJSXAttributes ->
-              transformJsxCall mapper [%expr React.Fragment.createElement]
-                [ (Labelled "children", listItems) ]
-                nonJSXAttributes listItems.pexp_loc)
+          | _, _nonJSXAttributes ->
+              let reactFragmentMake =
+                { pexp_desc =
+                    Pexp_ident
+                      { txt = Longident.parse "React.Fragment.make"; loc }
+                ; pexp_attributes = []
+                ; pexp_loc = loc
+                ; pexp_loc_stack = []
+                }
+              in
+              Exp.apply
+                ~loc
+                  (* throw away the [@JSX] attribute and keep the others, if any *)
+                ~attrs:nonJSXAttributes reactFragmentMake
+                [ (Labelled "children", super#expression listItems)
+                ; (nolabel, Exp.construct ~loc { loc; txt = Lident "()" } None)
+                ])
       (* Delegate to the default mapper, a deep identity traversal *)
       | e -> super#expression e
 

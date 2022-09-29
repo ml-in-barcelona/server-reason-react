@@ -58,19 +58,20 @@ let make =
   ((fun ?(name= (("")[@reason.raw_literal ""])) ->
       fun () ->
         ((React.Fragment.make
-            ~children:[React.createElement "div"
-                         ((([||] |> Array.to_list) |>
-                             (List.filter_map (fun a -> a)))
-                            |> Array.of_list)
-                         [((React.string
-                              ((("First ")[@reason.raw_literal "First "]) ^
-                                 name))
-                         [@reason.preserve_braces ])];
-                      Hello.make ~one:(("1")[@reason.raw_literal "1"])
-                        ~children:((React.string
-                                      ((("2nd ")[@reason.raw_literal "2nd "])
-                                         ^ name))[@reason.preserve_braces ])
-                        ()] ())
+            ~children:(([React.createElement "div"
+                           ((([||] |> Array.to_list) |>
+                               (List.filter_map (fun a -> a)))
+                              |> Array.of_list)
+                           [((React.string
+                                ((("First ")[@reason.raw_literal "First "]) ^
+                                   name))
+                           [@reason.preserve_braces ])];
+                        Hello.make ~one:(("1")[@reason.raw_literal "1"])
+                          ~children:((React.string
+                                        ((("2nd ")
+                                           [@reason.raw_literal "2nd "]) ^
+                                           name))[@reason.preserve_braces ])
+                          ()])[@reason.preserve_braces ][@JSX ]) ())
         [@reason.preserve_braces ]))
   [@warning "-16"][@warning "-16"])
 module Memo =
@@ -103,17 +104,20 @@ module MemoCustomCompareProps =
             [@reason.preserve_braces ]))
       [@warning "-16"][@warning "-16"])
   end
-let fragment foo = ((React.Fragment.make ~children:foo ())[@bla ])
+let fragment foo =
+  ((React.Fragment.make ~children:(([foo])[@bla ][@JSX ]) ())[@bla ])
 let polyChildrenFragment foo bar =
-  React.Fragment.make ~children:[foo; bar] ()
+  React.Fragment.make ~children:(([foo; bar])[@JSX ]) ()
 let nestedFragment foo bar baz =
   React.Fragment.make
-    ~children:[foo; React.Fragment.make ~children:[bar; baz] ()] ()
+    ~children:(([foo; React.Fragment.make ~children:(([bar; baz])[@JSX ]) ()])
+    [@JSX ]) ()
 let nestedFragmentWithlower foo =
   React.Fragment.make
-    ~children:(React.createElement "div"
-                 ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a)))
-                    |> Array.of_list) [foo]) ()
+    ~children:(([React.createElement "div"
+                   ((([||] |> Array.to_list) |>
+                       (List.filter_map (fun a -> a)))
+                      |> Array.of_list) [foo]])[@JSX ]) ()
 let upper = Upper.make ~children:[] ()
 let upperWithProp = Upper.make ~count ~children:[] ()
 let upperWithChild foo = Upper.make ~children:foo ()
@@ -497,3 +501,21 @@ let upper_child_ident = Div.make ~children:lola ()
 ;;React.createElement "p"
     ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
        Array.of_list) [((React.string greeting)[@reason.preserve_braces ])]
+let div =
+  React.Fragment.make
+    ~children:(([React.createElement "div"
+                   ((([|(Some
+                           (React.Attribute.String
+                              ("className", ((("md:w-1/3")
+                                [@reason.raw_literal "md:w-1/3"]) : string))))|]
+                        |> Array.to_list)
+                       |> (List.filter_map (fun a -> a)))
+                      |> Array.of_list) [];
+                React.createElement "div"
+                  ((([|(Some
+                          (React.Attribute.String
+                             ("className", ((("md:w-2/3")
+                               [@reason.raw_literal "md:w-2/3"]) : string))))|]
+                       |> Array.to_list)
+                      |> (List.filter_map (fun a -> a)))
+                     |> Array.of_list) []])[@JSX ]) ()
