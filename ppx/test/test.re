@@ -87,6 +87,21 @@ let test_fragment = () => {
   );
 };
 
+module Container = {
+  [@react.component]
+  let make = (~children) => {
+    <div> children </div>;
+  };
+};
+
+let test_children_fragment = () => {
+  let component = <Container> <span /> </Container>;
+  assert_string(
+    ReactDOM.renderToStaticMarkup(component),
+    "<div><span></span></div>",
+  );
+};
+
 let test_string_opt_attribute_some = () => {
   let className = Some("foo");
   let div = <div ?className />;
@@ -199,6 +214,7 @@ let _ =
           test_case("ref_opt_attr_some", `Quick, test_ref_opt_attribute_some),
           test_case("ref_opt_attr_none", `Quick, test_ref_opt_attribute_none),
           test_case("test_fragment", `Quick, test_fragment),
+          test_case("test_children_fragment", `Quick, test_children_fragment),
           test_case("event_onClick", `Quick, test_onclick),
         ],
       ),

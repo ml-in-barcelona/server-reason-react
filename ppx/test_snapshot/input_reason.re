@@ -93,12 +93,14 @@ let lowerWithChildrenComplex =
           {examples
            |> List.map(e => {
                 <li key={e.path}>
-                  <a href={e.path}>
-                    /* onClick={event => {
-                         ReactEvent.Mouse.preventDefault(event);
-                         ReactRouter.push(e.path);
-                       }} */
-                     {e.title |> s} </a>
+                  <a
+                    href={e.path}
+                    onClick={event => {
+                      ReactEvent.Mouse.preventDefault(event);
+                      ReactRouter.push(e.path);
+                    }}>
+                    {e.title |> s}
+                  </a>
                 </li>
               })
            |> React.list}
@@ -201,6 +203,22 @@ module Page = {
 let upperWithChildren =
   <Page moreProps="hgalo"> <h1> {React.string("Yep")} </h1> </Page>;
 
+module Container = {
+  [@react.component]
+  let make = (~children) => {
+    <div> children </div>;
+  };
+};
+
+module Row = {
+  [@react.component]
+  let make = (~left, ~right) =>
+    <>
+      <div className="md:w-1/3"> left </div>
+      <div className="md:w-2/3"> right </div>
+    </>;
+};
+
 [@react.component]
 let make = (~children) => {
   <div className="flex xs:justify-center overflow-hidden">
@@ -211,30 +229,4 @@ let make = (~children) => {
       </div>
     </>
   </div>;
-};
-
-/* [@react.component]
-   let make = () => {
-     let (count, _setCount) = React.useState(() => 0);
-
-     <PageContainer>
-       <h1 key="header"> {React.string("Counter")} </h1>
-       <p key="desc">
-         {React.string(
-            "The HTML (including counter value) comes first from the OCaml native server"
-            ++ " then is updated by React after hydration",
-          )}
-       </p>
-       <p key="counter"> {React.string(string_of_int(count))} </p>
-     </PageContainer>;
-   };
-    */
-
-module Row = {
-  [@react.component]
-  let make = (~left, ~right) =>
-    <>
-      <div className="md:w-1/3"> left </div>
-      <div className="md:w-2/3"> right </div>
-    </>;
 };
