@@ -37,7 +37,7 @@ let lower_opt_attr =
 let upper = Input.make ()
 module React_component_without_props =
   struct
-    let make =
+    let make ?key  =
       ((fun ~lola ->
           ((fun ~cosis ->
               fun () ->
@@ -54,7 +54,7 @@ module React_component_without_props =
 let upper =
   React_component_without_props.make ~lola:(("flores")
     [@reason.raw_literal "flores"]) ()
-let make =
+let make ?key  =
   ((fun ?(name= (("")[@reason.raw_literal ""])) ->
       fun () ->
         ((React.Fragment.make
@@ -76,7 +76,7 @@ let make =
   [@warning "-16"][@warning "-16"])
 module Memo =
   struct
-    let make =
+    let make ?key  =
       ((fun ~a ->
           fun () ->
             ((React.createElement "div"
@@ -91,7 +91,7 @@ module Memo =
   end
 module MemoCustomCompareProps =
   struct
-    let make =
+    let make ?key  =
       ((fun ~a ->
           fun () ->
             ((React.createElement "div"
@@ -240,7 +240,7 @@ let t =
          |> Array.to_list)
         |> (List.filter_map (fun a -> a)))
        |> Array.of_list) [children]
-let make =
+let make ?key  =
   ((fun ~children ->
       ((fun ~ref ->
           fun () ->
@@ -326,7 +326,7 @@ let randomElement =
          |> Array.to_list)
         |> (List.filter_map (fun a -> a)))
        |> Array.of_list) []
-let make =
+let make ?key  =
   ((fun ~name ->
       ((fun ?isDisabled ->
           fun () ->
@@ -347,7 +347,7 @@ let make =
             [@reason.preserve_braces ]))
       [@warning "-16"][@warning "-16"]))
   [@warning "-16"])
-let make =
+let make ?key  =
   ((fun ?(name= (("joe")[@reason.raw_literal "joe"])) ->
       fun () ->
         ((React.createElement "div"
@@ -361,7 +361,7 @@ let make =
   [@warning "-16"][@warning "-16"])
 module App =
   struct
-    let make () =
+    let make ?key  () =
       ((React.createElement "html"
           ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
              Array.of_list)
@@ -400,7 +400,7 @@ let () = Dream.run ()
 let l = 33
 module Page =
   struct
-    let make =
+    let make ?key  =
       ((fun ~children ->
           ((fun ~moreProps ->
               fun () ->
@@ -456,7 +456,7 @@ let upperWithChildren =
                  [@reason.preserve_braces ])]) ()
 module Container =
   struct
-    let make =
+    let make ?key  =
       ((fun ~children ->
           fun () ->
             ((React.createElement "div"

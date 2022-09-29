@@ -1,3 +1,5 @@
+(* pipe first *)
+
 let f1 : int -> int = fun x -> x + 1
 let f2 : int -> int -> int = fun a b -> a + b
 let f3 : int -> b:int -> c:int -> int = fun a ~b ~c -> a + b + c
@@ -55,3 +57,10 @@ let _ =
   bind (fun () ->
       print_endline "foo";
       return ())
+;;
+
+(* double hash *)
+
+a##b;;
+a##b##c
+(* a ## (b##c) *)

@@ -41,3 +41,4 @@ let ten2 = adder 5 5
 let _ =
   (let open Lwt in bind (fun () -> print_endline "foo"; return ()))
     (Lwt_js.sleep 1.)
+;;b a
