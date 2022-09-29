@@ -49,7 +49,6 @@ module MemoCustomCompareProps = {
 let fragment = foo => [@bla] <> foo </>;
 
 let polyChildrenFragment = (foo, bar) => <> foo bar </>;
-
 let nestedFragment = (foo, bar, baz) => <> foo <> bar baz </> </>;
 
 let upper = <Upper />;

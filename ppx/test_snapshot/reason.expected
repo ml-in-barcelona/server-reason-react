@@ -480,15 +480,12 @@ let upper_child_lower =
                  ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a)))
                     |> Array.of_list) []) ()
 let upper_child_ident = Div.make ~children:lola ()
-;;MyComponent.make ~booleanAttribute:((true)[@reason.preserve_braces ])
-    ~stringAttribute:(("string")[@reason.raw_literal "string"])
-    ~intAttribute:1
+;;MyComponent.make ~booleanAttribute:true ~stringAttribute:(("string")
+    [@reason.raw_literal "string"]) ~intAttribute:1
     ?forcedOptional:((Some (("hello")[@reason.raw_literal "hello"]))
     [@reason.preserve_braces ][@explicit_arity ])
     ~onClick:((send handleClick)[@reason.preserve_braces ])
     ~children:(React.createElement "div"
                  ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a)))
                     |> Array.of_list)
-                 [(("hello")
-                 [@reason.preserve_braces ][@reason.raw_literal "hello"])])
-    ()
+                 [(("hello")[@reason.raw_literal "hello"])]) ()
