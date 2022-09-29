@@ -53,8 +53,8 @@
 - [x] Events
   - [x] Ignore events on the server
   - [x] Transform to structure for react.ml
-  - [ ] What's happening with Drag
-  - [ ] Are we sure that all cases are ignored? onClick callbacks yes, but what about other kinds? "void(0)" or other edgy cases?
+  - [ ] What's happening with Drag type
+  - [ ] Are we sure that all cases are ignored? onClick callbacks yes, but what about other kinds? "void(0)" or other edgy cases? They aren't supported in Reason JSX afaik.
 - [ ] Implement renderToString
   - [ ] Import test cases and implement those
   - [ ] Check what are the differences
@@ -111,8 +111,7 @@
 ## Demo/migration
 
 - [x] Pipe first
-  - [x] Add ppx
-  - [ ] Add operator
+  - [x] Implement ppx
 - [x] Create a server to render HTML with native-react-dom
 - [x] Compile the same code to the client
 - [x] Split commands to run tests and builds separately
@@ -125,12 +124,13 @@
   - [x] Create library from bs-webapi
   - [ ] Found a way to add it incrementally?
   - [ ] What can we do with externals?
-- Do we have any way to ensure `bs.obj` compiles in native?
-  - Idea: Treat all Js.t as OCaml objects, transform all a##b to (a#b).
-  - `##` is parsed by Reason
-  - Probably only in melange?
-  - Add ppx processing to replace `bs.obj` with classic OCaml objects (e.g. `{"foo": 2}` translates to `object method foo = 2 end`).
 - [ ] What other ReScript specific stuff need to take care?
+  - Do we have any way to ensure `bs.obj` compiles in native?
+    - Idea: Treat all Js.t as OCaml objects, transform all a##b to (a#b).
+    - [ ] Implement ## ppx
+    - `##` is parsed by Reason
+    - Probably only in melange?
+    - Add ppx processing to replace `bs.obj` with classic OCaml objects (e.g. `{"foo": 2}` translates to `object method foo = 2 end`).
   - [ ] In most cases we should failwith when those appear while we try to think what's the good plan for shimming
-  - [ ] Antonio mention `optcomp / conditional compilation could work`
+  - [ ] Antonio mention `optcomp/conditional compilation could work`
   - [ ] How elliom works? (`[%server]` and `[%client]`)

@@ -222,8 +222,16 @@ let _ =
           test_case("ref_opt_attr_some", `Quick, test_ref_opt_attribute_some),
           test_case("ref_opt_attr_none", `Quick, test_ref_opt_attribute_none),
           test_case("test_fragment", `Quick, test_fragment),
-          test_case("test_children_uppercase", `Quick, test_children_uppercase),
-          test_case("test_children_lowercase", `Quick, test_children_lowercase),
+          test_case(
+            "test_children_uppercase",
+            `Quick,
+            test_children_uppercase,
+          ),
+          test_case(
+            "test_children_lowercase",
+            `Quick,
+            test_children_lowercase,
+          ),
           test_case("event_onClick", `Quick, test_onclick),
         ],
       ),
