@@ -63,3 +63,6 @@ ppx_test_watch: ## Run ppx tests in watch mode
 
 lib_test: ## Run library tests
 	$(DUNE) exec test/test.exe
+
+commit:
+	echo $(current_hash) | cut -c1-7 | pbcopy
