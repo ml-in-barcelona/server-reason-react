@@ -155,6 +155,9 @@ let renderToStaticMarkup (element : Element.t) =
   in
   render_to_string_inner element
 
+let querySelector _str = None
+let render _element _node = ()
+
 module Style = struct
   type t
 
