@@ -95,6 +95,7 @@
 - [ ] Transform externals
 - [x] Allow recursive components
 - [x] Is childrenArg ref hack, necessary?
+- [ ] Add rescript/lang tests
 - [ ] Can we cleanup this beast?
   - [ ] There's a ton of unncessary expressions to early
   - [ ] The flow of the AST passes aren't clear
