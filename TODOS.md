@@ -132,6 +132,7 @@
   - [k6](https://github.com/grafana/k6)
   - [autocannon](https://github.com/mcollina/autocannon)
   - [cassowary](https://github.com/rogerwelin/cassowary)
+  - siege
 - [ ] How we are going to mock the [JavaScript APIs](https://rescript-lang.org/docs/manual/latest/api/js) from ReScript?
 - [ ] How we are going to mock the DOM API?
   - [x] Create library from bs-webapi
