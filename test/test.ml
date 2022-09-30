@@ -125,7 +125,7 @@ let test_escape_attributes () =
   in
   assert_string
     (ReactDOM.renderToStaticMarkup component)
-    "<div about=\"&apos;&nbsp;&lt;\">&amp;&nbsp;&quot;</div>"
+    "<div about=\"\' <\">&amp;&nbsp;&quot;</div>"
 
 let test_clone_empty () =
   let component =
@@ -251,6 +251,18 @@ let test_event () =
     (ReactDOM.renderToStaticMarkup (make ~name:"json" ()))
     "<button name=\"json\"></button>"
 
+let test_className_2 () =
+  let component =
+    React.createElement "div"
+      [| React.Attribute.String
+           ("className", "flex xs:justify-center overflow-hidden")
+      |]
+      []
+  in
+  assert_string
+    (ReactDOM.renderToStaticMarkup component)
+    "<div class=\"flex xs:justify-center overflow-hidden\"></div>"
+
 let () =
   let open Alcotest in
   run "Tests"
@@ -264,6 +276,7 @@ let () =
         ; test_case "inner text" `Quick test_innerhtml
         ; test_case "children" `Quick test_children
         ; test_case "className turns into class" `Quick test_className
+        ; test_case "test_className" `Quick test_className_2
         ; test_case "fragment is empty" `Quick test_fragment
         ; test_case "fragment and text concat nicely" `Quick
             test_fragments_and_texts

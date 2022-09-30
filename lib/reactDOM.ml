@@ -96,8 +96,7 @@ let attribute_to_string attr =
   | Bool (k, true) -> k
   | DangerouslyInnerHtml _ -> ""
   | Style styles -> Printf.sprintf "style=\"%s\"" styles
-  | String (k, v) ->
-      Printf.sprintf "%s=\"%s\"" (attribute_name_to_jsx k) (Html.escape v)
+  | String (k, v) -> Printf.sprintf "%s=\"%s\"" (attribute_name_to_jsx k) v
 
 let attributes_to_string tag attrs =
   let valid_attributes =
