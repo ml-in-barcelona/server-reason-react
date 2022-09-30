@@ -68,6 +68,10 @@
   - [ ] Shim displayName/setDisplayName
   - [ ] Re-visit cloneElement (most of our constructors don't make sense to "clone")
   - [ ] What other React APIs do we need to implement?
+  - [ ] createRoot/createBlockingRoot
+  - [ ] hydrate
+  - [ ] createPortal
+
 - [x] ReactDOM.Style.make
 - [ ] Handle unicode. Add Uutfs?
 - [x] Add setState callbacks as tick on the dispatcher
@@ -123,6 +127,11 @@
 - [ ] Try fetch
 - [ ] Try promise
 - [ ] Try belt
+- [ ] Benchmarks
+  - [wrk](https://github.com/wg/wrk)
+  - [k6](https://github.com/grafana/k6)
+  - [autocannon](https://github.com/mcollina/autocannon)
+  - [cassowary](https://github.com/rogerwelin/cassowary)
 - [ ] How we are going to mock the [JavaScript APIs](https://rescript-lang.org/docs/manual/latest/api/js) from ReScript?
 - [ ] How we are going to mock the DOM API?
   - [x] Create library from bs-webapi
