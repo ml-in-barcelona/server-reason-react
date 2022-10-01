@@ -128,6 +128,8 @@
 - [ ] Try promise
 - [ ] Try belt
 - [ ] Benchmarks
+  - [coding-for-performance-why-we-chose-rust](https://www.mezmo.com/blog/coding-for-performance-why-we-chose-rust)
+  - [Web frameworks benchmark](https://github.com/the-benchmarker/web-frameworks)
   - [wrk](https://github.com/wg/wrk)
   - [k6](https://github.com/grafana/k6)
   - [autocannon](https://github.com/mcollina/autocannon)
