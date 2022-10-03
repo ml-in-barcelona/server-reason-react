@@ -56,8 +56,9 @@
   - [ ] What's happening with Drag type
   - [ ] Are we sure that all cases are ignored? onClick callbacks yes, but what about other kinds? "void(0)" or other edgy cases? They aren't supported in Reason JSX afaik.
 - [ ] Implement renderToString
-  - [ ] Import test cases and implement those
+  - [ ] Import test cases
   - [ ] Check what are the differences
+  - [ ] Implement missing
 - [ ] Implement the rest of the React API
   - [x] Support forwardRef
   - [x] Support Ref
@@ -71,7 +72,7 @@
   - [ ] createRoot/createBlockingRoot
   - [ ] hydrate
   - [ ] createPortal
-
+- [ ] How should we handle errors from `createElement` or `renderToString`
 - [x] ReactDOM.Style.make
 - [ ] Handle unicode. Add Uutfs?
 - [x] Add setState callbacks as tick on the dispatcher
@@ -83,6 +84,7 @@
 - [ ] A way to trigger warnings for invalid attributes in special elements
   - [ReactDOMTextarea](https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMTextarea-test.js)
   - [ReactDOMSelect](https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMSelect-test.js)
+- [ ] How should we handle errors from `createElement` or `renderToString`. Currently we raise exceptions to match with reason-react, but if we could change that would be great.
 
 ## ppx transformation
 
@@ -105,7 +107,6 @@
   - [ ] The flow of the AST passes aren't clear
   - [ ] There's an extra `[@JSX]` attribute that doesn't get deleted?
 - [x] Are keys necessary? Can we remove them?
-- [ ] How should we handle errors from `createElement` or `renderToString`
 - [x] Suspense? "ReactDOMServer does not yet support Suspense - server/node_modules/react-dom/cjs/react-dom-server.node.development.js:3518"
 - [x] How does SSR handle component runtime?
   - If there is a function call such as state` inside a component?

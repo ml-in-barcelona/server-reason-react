@@ -21,7 +21,7 @@ jobs:
           - ubuntu-latest
           - windows-latest
         ocaml-compiler:
-          - 4.12.1
+          - 4.14.0
 
     steps:
       - name: Checkout code
@@ -33,11 +33,6 @@ jobs:
           ocaml-compiler: ${{ matrix.ocaml-compiler }}
           dune-cache: ${{ matrix.os != 'windows-latest' }}
 
-      - name: Use Node 12
-        uses: actions/setup-node@v1
-        with:
-          node-version: 12
-
       - name: Install dependencies
         run: opam install . --deps-only --with-doc --with-test
 
@@ -46,10 +41,6 @@ jobs:
 
       - name: Check formatting
         run: make format-check
-
-      - name: "Install npm packages for tests"
-        run: yarn install
-        working-directory: test
 
       - name: Run tests
         run: make test
