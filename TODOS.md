@@ -85,6 +85,12 @@
   - [ReactDOMTextarea](https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMTextarea-test.js)
   - [ReactDOMSelect](https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMSelect-test.js)
 - [ ] How should we handle errors from `createElement` or `renderToString`. Currently we raise exceptions to match with reason-react, but if we could change that would be great.
+- [ ] Absorb reason-react
+- [ ] Add React.useStateValue
+- [ ] [pull/641](https://github.com/reasonml/reason-react/pull/641)
+- [ ] Add a form of [pull/605](https://github.com/reasonml/reason-react/pull/605)
+- [ ] [pull/603](https://github.com/reasonml/reason-react/pull/603)
+- [ ] Merge all this repo into reason-react?
 
 ## ppx transformation
 
