@@ -124,10 +124,14 @@
 - [x] Compile the same code to the client
 - [x] Split commands to run tests and builds separately
 - [x] Allow to build with melange and OCaml
+- [x] Implement benchmark demo
 - [ ] Try fetch
 - [ ] Try promise
 - [ ] Try belt
-- [ ] Benchmarks
+- [ ] Try hydratation
+- [ ] Try routes
+- [ ] How we are going to mock the [JavaScript APIs](https://rescript-lang.org/docs/manual/latest/api/js) from ReScript?
+- [ ] Create a benchmark matrix
   - [coding-for-performance-why-we-chose-rust](https://www.mezmo.com/blog/coding-for-performance-why-we-chose-rust)
   - [Web frameworks benchmark](https://github.com/the-benchmarker/web-frameworks)
   - [wrk](https://github.com/wg/wrk)
@@ -135,7 +139,6 @@
   - [autocannon](https://github.com/mcollina/autocannon)
   - [cassowary](https://github.com/rogerwelin/cassowary)
   - siege
-- [ ] How we are going to mock the [JavaScript APIs](https://rescript-lang.org/docs/manual/latest/api/js) from ReScript?
 - [ ] How we are going to mock the DOM API?
   - [x] Create library from bs-webapi
   - [ ] Found a way to add it incrementally?
