@@ -2,6 +2,7 @@
  (name test)
  (libraries
   alcotest
+  fmt
   native-react.react
   native-react.reactEvent
   native-react.reactDom))

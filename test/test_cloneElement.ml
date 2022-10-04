@@ -1,18 +1,48 @@
 open Alcotest
 
-let assert_string left right = (check string) "should be equal" right left
-(*let are_equal c1 c2 = match c1 c2 with _ -> true
-  let pp x = Format.pp_print_string x
-    let component = Alcotest.testable pp are_equal
-    let assert_component left right = (check string) "should be equal" right left *)
+let equal_attrs (a1 : React.Attribute.t) (a2 : React.Attribute.t) =
+  match (a1, a2) with
+  | Bool (k1, v1), Bool (k2, v2) -> k1 == k2 && v1 = v2
+  | String (k1, v1), String (k2, v2) -> k1 == k2 && v1 == v2
+  | Style s1, Style s2 -> s1 == s2
+  | DangerouslyInnerHtml s1, DangerouslyInnerHtml s2 -> s1 == s2
+  (* Can't compare functions ^^ *)
+  | Event (k1, _v1), Event (k2, _v2) -> k1 == k2
+  | _ -> false
+
+let equal_components (c1 : React.Element.t) (c2 : React.Element.t) =
+  let rec equal_rec (c1 : React.Element.t) (c2 : React.Element.t) =
+    match (c1, c2) with
+    | Lower_case_element lc1, Lower_case_element lc2 ->
+        lc1.tag == lc2.tag
+        && List.for_all2 equal_rec lc1.children lc2.children
+        && Array.for_all2 equal_attrs lc1.attributes lc2.attributes
+    | Lower_case_closed_element lc1, Lower_case_closed_element lc2 ->
+        lc1.tag == lc2.tag
+        && Array.for_all2 equal_attrs lc1.attributes lc2.attributes
+    | Upper_case_element cf1, Upper_case_element cf2 ->
+        equal_rec (cf1 ()) (cf2 ())
+    | List cl1, List cl2 -> Array.for_all2 equal_rec cl1 cl2
+    | Text t1, Text t2 -> t1 == t2
+    | Fragment fl1, Fragment fl2 -> List.for_all2 equal_rec fl1 fl2
+    | Empty, Empty -> true
+    | _ -> false
+  in
+  equal_rec c1 c2
+
+let component =
+  Alcotest.testable
+    (fun ppf v ->
+      Fmt.string ppf (Printf.sprintf "%s" (ReactDOM.renderToStaticMarkup v)))
+    equal_components
+
+let assert_component left right = (check component) "should be equal" right left
 
 let test_clone_empty () =
   let component =
     React.createElement "div" [| React.Attribute.Bool ("hidden", true) |] []
   in
-  assert_string
-    (ReactDOM.renderToStaticMarkup component)
-    (ReactDOM.renderToStaticMarkup (React.cloneElement component [||] []))
+  assert_component component (React.cloneElement component [||] [])
 
 let test_clone_attributes () =
   let component =
@@ -32,9 +62,7 @@ let test_clone_attributes () =
       |]
       []
   in
-  assert_string
-    (ReactDOM.renderToStaticMarkup cloned)
-    (ReactDOM.renderToStaticMarkup expected)
+  assert_component cloned expected
 
 let test_clone_order_attributes () =
   let component = React.createElement "div" [||] [] in
@@ -52,9 +80,7 @@ let test_clone_order_attributes () =
       |]
       []
   in
-  assert_string
-    (ReactDOM.renderToStaticMarkup cloned)
-    (ReactDOM.renderToStaticMarkup expected)
+  assert_component cloned expected
 
 let tests =
   ( (* FIXME: those test shouldn't rely on renderToStaticMarkup,
