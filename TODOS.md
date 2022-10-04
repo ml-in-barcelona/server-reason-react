@@ -90,6 +90,9 @@
 - [ ] Add a form of [pull/605](https://github.com/reasonml/reason-react/pull/605)
 - [ ] [pull/603](https://github.com/reasonml/reason-react/pull/603)
 - [ ] Merge all this repo into reason-react?
+- [ ] Change useEffect1 and others to not be an array and be just the value
+- [ ] Update to latest React
+- [ ] Continue with React.jsx/React.jsxKeyed
 
 ## ppx transformation
 
