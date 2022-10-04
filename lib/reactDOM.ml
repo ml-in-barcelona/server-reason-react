@@ -106,7 +106,6 @@ let attributes_to_string tag attrs =
   | [] -> ""
   | _ -> " " ^ (valid_attributes |> String.concat " " |> String.trim)
 
-(* FIXME: Add link to source *)
 let react_root_attr_name = "data-reactroot"
 let data_react_root_attr = Printf.sprintf " %s=\"\"" react_root_attr_name
 
@@ -114,17 +113,18 @@ type mode =
   | String
   | Markup
 
-let render_to_implementation ~mode (element : Element.t) =
-  (* is_root starts at true (when renderToString) and only goes to false when renders an element or closed element *)
+let render ~mode (element : Element.t) =
+  let open Element in
+  (* is_root starts at true (when renderToString) and only goes to false
+     when renders an lower-case element or closed element *)
   let is_to_string = mode = String in
   let is_root = ref is_to_string in
   (* previous_was_text_node ensures to add <!-- --> between text nodes *)
   let previous_was_text_node = ref false in
-  let rec render_to_static_markup_inner element =
+  let rec render_inner element =
     let root_attribute =
       match is_root.contents with true -> data_react_root_attr | false -> ""
     in
-    let open Element in
     match element with
     | Empty -> ""
     | Fragment [] -> ""
@@ -138,40 +138,27 @@ let render_to_implementation ~mode (element : Element.t) =
     | Provider children ->
         children
         |> List.map (fun f -> f ())
-        |> List.map render_to_static_markup_inner
-        |> String.concat ""
+        |> List.map render_inner |> String.concat ""
     | List list ->
-        list
-        |> Array.map render_to_static_markup_inner
-        |> Array.to_list |> String.concat ""
+        list |> Array.map render_inner |> Array.to_list |> String.concat ""
     | Consumer children ->
-        children ()
-        |> List.map render_to_static_markup_inner
-        |> String.concat ""
-    | Fragment children ->
-        children |> List.map render_to_static_markup_inner |> String.concat ""
-    | Upper_case_element f -> render_to_static_markup_inner (f ())
+        children () |> List.map render_inner |> String.concat ""
+    | Fragment children -> children |> List.map render_inner |> String.concat ""
+    | Upper_case_element f -> render_inner (f ())
     | Lower_case_element { tag; attributes; children } ->
         is_root.contents <- false;
-        let attributes = attributes_to_string tag attributes in
-        let childrens =
-          children |> List.map render_to_static_markup_inner |> String.concat ""
-        in
-        Printf.sprintf "<%s%s%s>%s</%s>" tag root_attribute attributes childrens
-          tag
+        let attrs = attributes_to_string tag attributes in
+        let childrens = children |> List.map render_inner |> String.concat "" in
+        Printf.sprintf "<%s%s%s>%s</%s>" tag root_attribute attrs childrens tag
     | Lower_case_closed_element { tag; attributes } ->
         is_root.contents <- false;
-        let attributes = attributes_to_string tag attributes in
-        Printf.sprintf "<%s%s%s />" tag root_attribute attributes
+        let attrs = attributes_to_string tag attributes in
+        Printf.sprintf "<%s%s%s />" tag root_attribute attrs
   in
-  render_to_static_markup_inner element
+  render_inner element
 
-let renderToString (element : Element.t) =
-  render_to_implementation ~mode:String element
-
-let renderToStaticMarkup (element : Element.t) =
-  render_to_implementation ~mode:Markup element
-
+let renderToString element = render ~mode:String element
+let renderToStaticMarkup element = render ~mode:Markup element
 let querySelector _str = None
 let render _element _node = ()
 
