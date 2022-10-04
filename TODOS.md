@@ -55,10 +55,10 @@
   - [x] Transform to structure for react.ml
   - [ ] What's happening with Drag type
   - [ ] Are we sure that all cases are ignored? onClick callbacks yes, but what about other kinds? "void(0)" or other edgy cases? They aren't supported in Reason JSX afaik.
-- [ ] Implement renderToString
-  - [ ] Import test cases
-  - [ ] Check what are the differences
-  - [ ] Implement missing
+- [x] Implement renderToString
+  - [x] Import test cases
+  - [x] Check what are the differences
+  - [x] Implement missing
 - [ ] Implement the rest of the React API
   - [x] Support forwardRef
   - [x] Support Ref

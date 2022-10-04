@@ -93,4 +93,12 @@ var app = React.forwardRef(() => {
   );
 });
 
+/* React.createElement "div"
+      [| React.Attribute.String ("about", "\' <") |]
+      [ React.string "& \"" ] */
+
+var app = () => {
+  return React.createElement("div", { about: "' <" }, ['& "']);
+};
+
 console.log(ReactDOM.renderToStaticMarkup(React.createElement(app, null)));
