@@ -72,19 +72,18 @@
   - [ ] createRoot/createBlockingRoot
   - [ ] hydrate
   - [ ] createPortal
-- [ ] How should we handle errors from `createElement` or `renderToString`
 - [x] ReactDOM.Style.make
 - [ ] Handle unicode. Add Uutfs?
 - [x] Add setState callbacks as tick on the dispatcher
   - [x] Open an issue in facebook/react [Done](https://github.com/facebook/react/issues/25318)
   - [x] __Implement dispatcher__
-- [ ] Add support for SVGs (they have a few differences in rendering the tag and attributes)
+- [ ] Add support for SVGs (they have a few differences in rendering tags and attributes)
 - [x] Rename React.Node.t and others to React.Element
-- [ ] Ensure types from TypeScript make sense with our implementation
+- [ ] Ensure types from TypeScript make sense with our implementation (e.g. `React.Element` vs `React.Node`)
 - [ ] A way to trigger warnings for invalid attributes in special elements
   - [ReactDOMTextarea](https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMTextarea-test.js)
   - [ReactDOMSelect](https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMSelect-test.js)
-- [ ] How should we handle errors from `createElement` or `renderToString`. Currently we raise exceptions to match with reason-react, but if we could change that would be great.
+- [ ] How should we handle errors from `createElement` or `renderToString`. Currently we raise exceptions to match with reason-react, but if we could change that would be great. Maybe some validations can happen in the ppx.
 - [ ] Absorb reason-react
 - [ ] Add React.useStateValue
 - [ ] [pull/641](https://github.com/reasonml/reason-react/pull/641)
