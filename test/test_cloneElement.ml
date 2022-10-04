@@ -1,6 +1,10 @@
 open Alcotest
 
 let assert_string left right = (check string) "should be equal" right left
+(*let are_equal c1 c2 = match c1 c2 with _ -> true
+  let pp x = Format.pp_print_string x
+    let component = Alcotest.testable pp are_equal
+    let assert_component left right = (check string) "should be equal" right left *)
 
 let test_clone_empty () =
   let component =
