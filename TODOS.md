@@ -84,15 +84,10 @@
   - [ReactDOMTextarea](https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMTextarea-test.js)
   - [ReactDOMSelect](https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMSelect-test.js)
 - [ ] How should we handle errors from `createElement` or `renderToString`. Currently we raise exceptions to match with reason-react, but if we could change that would be great. Maybe some validations can happen in the ppx.
-- [ ] Absorb reason-react
-- [ ] Add React.useStateValue
-- [ ] [pull/641](https://github.com/reasonml/reason-react/pull/641)
-- [ ] Add a form of [pull/605](https://github.com/reasonml/reason-react/pull/605)
-- [ ] [pull/603](https://github.com/reasonml/reason-react/pull/603)
-- [ ] Merge all this repo into reason-react?
-- [ ] Change useEffect1 and others to not be an array and be just the value
-- [ ] Update to latest React
-- [ ] Continue with React.jsx/React.jsxKeyed
+- [x] implement hash and test it
+- [ ] Port jsoo-css code
+- [ ] Adaprt interface
+- [ ] Create some unit tests from emotion
 
 ## ppx transformation
 

@@ -33,3 +33,11 @@
  (modules reasonReactRouter)
  (public_name native-react.reasonReactRouter)
  (libraries shims react))
+
+; Not related with react/react-dom
+
+(library
+ (name emotion)
+ (modules emotion)
+ (public_name native-react.emotion)
+ (libraries murmur3))
