@@ -85,9 +85,13 @@
   - [ReactDOMSelect](https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMSelect-test.js)
 - [ ] How should we handle errors from `createElement` or `renderToString`. Currently we raise exceptions to match with reason-react, but if we could change that would be great. Maybe some validations can happen in the ppx.
 - [x] implement hash and test it
-- [ ] Port jsoo-css code
-- [ ] Adaprt interface
-- [ ] Create some unit tests from emotion
+- [x] Port jsoo-css code
+- [x] Adaprt interface
+- [x] Create some unit tests from emotion
+- [x] Render styles, not emotion object camelCase
+- [ ] Implement Selectors
+- [ ] Implement Media queries
+- [ ] Fix fontStyle/font-face
 
 ## ppx transformation
 

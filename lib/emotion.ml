@@ -1,5 +1,5 @@
 module Hash = struct
-  let make str = Murmur3.hash32 str |> Int32.abs |> Int32.to_string
+  let make (str : string) = Murmur3.hash32 str |> Int32.abs |> Int32.to_string
 
   (* let make str =
      (* Initialize the hash *)
@@ -45,3 +45,88 @@ module Hash = struct
      h.contents |> Int.to_string
   *)
 end
+
+(* include Values;
+   include Properties;
+   include Colors;
+
+   type t = string;
+   let to_string = Rule.to_string;
+   let mergeStyles = Emotion_bindings.mergeStyles;
+   let make = Emotion_bindings.make;
+   let injectRules = Emotion_bindings.injectRules;
+   let injectRaw = Emotion_bindings.injectRaw;
+   let global = (. selector, rules) => Emotion_bindings.injectRules(. selector, to_string(rules));
+   let keyframe = (. frames) =>
+       Emotion_bindings.keyframe(.
+           Array.fold_left(
+             (. dict, (stop, rules)) => {
+               Js_of_ocaml.Js.Unsafe.set(
+                 dict,
+                 Int.to_string(stop) ++ "%",
+                 to_string(rules),
+               );
+               dict;
+             },
+             Js_of_ocaml.Js.Unsafe.obj([||]),
+             frames
+           ),
+         );
+*)
+
+(* external injectRaw: (. string) => unit = "injectGlobal"
+   let renderRaw = (. _, css) => injectRaw(. css)
+
+   @module("@emotion/css")
+   external injectRawRules: (. Js.Json.t) => unit = "injectGlobal"
+
+   let injectRules = (. selector, rules) =>
+     injectRawRules(. Js.Dict.fromArray([(selector, rules)])->Js.Json.object_)
+   let renderRules = (. _, selector, rules) =>
+     injectRawRules(. Js.Dict.fromArray([(selector, rules)])->Js.Json.object_)
+
+   @module("@emotion/css")
+   external mergeStyles: (. array<styleEncoding>) => styleEncoding = "cx"
+
+   @module("@emotion/css") external make: (. Js.Json.t) => styleEncoding = "css"
+
+   @module("@emotion/css")
+   external makeAnimation: (. Js.Dict.t<Js.Json.t>) => string = "keyframes" *)
+
+let rec rule_to_string accumulator rule =
+  let open Css.Rule in
+  let next_rule =
+    match rule with
+    | Declaration (property, value) -> Printf.sprintf "%s: %s" property value
+    | Selector (selector, rules) ->
+        Printf.sprintf ".%s { %s }" selector (to_string rules)
+    | Pseudoclass (pseduoclass, rules) ->
+        Printf.sprintf ":%s { %s }" pseduoclass (to_string rules)
+    | PseudoclassParam (pseudoclass, param, rules) ->
+        Printf.sprintf ":%s ( %s ) %s" pseudoclass param (to_string rules)
+  in
+  accumulator ^ next_rule ^ "; "
+
+and to_string rules = rules |> Array.fold_left rule_to_string "" |> String.trim
+
+let make_style_fn side_effect (styles : Css.Rule.t array) =
+  let hash = Hash.make (to_string styles) in
+  side_effect hash styles;
+  hash
+
+let cache = ref (Hashtbl.create 1000)
+
+let push hash (styles : Css.Rule.t array) =
+  Hashtbl.add cache.contents hash styles
+
+let _get hash = Hashtbl.find cache.contents hash
+let create () = make_style_fn push
+
+let render_style_tag () =
+  Hashtbl.fold
+    (fun hash rules accumulator ->
+      let selector = "." ^ hash in
+      let rules = to_string rules in
+      Printf.sprintf "%s%s { %s } " accumulator selector rules)
+    cache.contents ""
+  |> String.trim
