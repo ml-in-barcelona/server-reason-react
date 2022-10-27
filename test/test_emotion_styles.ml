@@ -2,11 +2,11 @@ open Alcotest
 
 let assert_string left right = (check string) "should be equal" right left
 
-(* let test_one_property () =
-   let style = Emotion.create () in
-   let _className = style [| Css.Properties.display `block |] in
-   let css = Emotion.render_style_tag () in
-   assert_string css ".362999430 { display: block; }" *)
+let test_one_property () =
+  let style = Emotion.create () in
+  let _className = style [| Css.Properties.display `block |] in
+  let css = Emotion.render_style_tag () in
+  assert_string css ".362999430 { display: block; }"
 
 let test_multiple_properties () =
   let style = Emotion.create () in
@@ -51,6 +51,6 @@ let test_multiple_properties () =
 let tests =
   ( "Emotion"
   , [ (* test_case "test_with_react_component" `Quick test_with_react *)
-      (* test_case "test_one_property" `Quick test_one_property *)
-      test_case "test_multiple_properties" `Quick test_multiple_properties
+      test_case "test_one_property" `Quick test_one_property
+    ; test_case "test_multiple_properties" `Quick test_multiple_properties
     ] )

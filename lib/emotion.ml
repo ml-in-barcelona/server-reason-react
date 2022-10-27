@@ -120,7 +120,13 @@ let push hash (styles : Css.Rule.t array) =
   Hashtbl.add cache.contents hash styles
 
 let _get hash = Hashtbl.find cache.contents hash
-let create () = make_style_fn push
+let flush () = Hashtbl.clear cache.contents
+
+let create () =
+  (* Each time a style function is created,
+     previous styles from the cache got removed *)
+  flush ();
+  make_style_fn push
 
 let render_style_tag () =
   Hashtbl.fold
