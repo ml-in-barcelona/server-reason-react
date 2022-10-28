@@ -94,6 +94,31 @@ let test_with_react () =
     "<html><head><style>.s362999430 { display: block; \
      }</style></head><body><div class=\"s362999430\"></div></body></html>"
 
+let test_selector_ampersand () =
+  let style = Emotion.create () in
+  let _className =
+    style
+      [ Css.Properties.fontSize (`px 42)
+      ; Css.Properties.selector "& .div" [ Css.Properties.fontSize (`px 24) ]
+      ]
+  in
+  let css = Emotion.render_style_tag () in
+  assert_string css
+    ".s1978948461 { font-size: 42px; } .s1978948461 .div { font-size: 24px; }"
+
+let test_selector_ampersand_at_the_middle () =
+  let style = Emotion.create () in
+  let _className =
+    style
+      [ Css.Properties.fontSize (`px 42)
+      ; Css.Properties.selector "& div &" [ Css.Properties.fontSize (`px 24) ]
+      ]
+  in
+  let css = Emotion.render_style_tag () in
+  assert_string css
+    ".s1368516918 { font-size: 42px; } .s1368516918 div .s1368516918 { \
+     font-size: 24px; }"
+
 let test_media_queries () =
   let style = Emotion.create () in
   let _className =
@@ -119,4 +144,7 @@ let tests =
     ; test_case "test_selector_with_a_lot_of_nesting" `Quick
         test_selector_with_a_lot_of_nesting
     ; test_case "test_media_queries" `Quick test_media_queries
+    ; test_case "test_selector_ampersand" `Quick test_selector_ampersand
+    ; test_case "test_selector_ampersand_at_the_middle" `Quick
+        test_selector_ampersand_at_the_middle
     ] )

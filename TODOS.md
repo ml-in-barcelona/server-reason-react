@@ -90,9 +90,10 @@
 - [x] Create some unit tests from emotion
 - [x] Render styles, not emotion object camelCase
 - [x] Implement Selectors
-  - [ ] Implement &
+  - [x] Implement &
   - [ ] Implement Pseudoselectors and all
-- [ ] Implement Media queries
+- [x] Implement Media queries
+  - [ ] Nested media queries (2 levels)
 - [ ] Implement keyframes
 - [ ] Implement Global styles
 - [ ] Fix fontStyle/font-face

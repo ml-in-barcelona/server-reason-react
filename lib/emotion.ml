@@ -118,12 +118,31 @@ let render_declaration rule =
 
 let is_media_query selector = String.contains selector '@'
 
+let replace_all input output =
+  Str.global_replace (Str.regexp_string input) output
+
+let replace_first input output =
+  Str.replace_first (Str.regexp_string input) output
+
+let remove_first_ampersand selector =
+  if String.starts_with ~prefix:"&" selector then replace_first "&" "" selector
+  else selector
+
+let resolve_ampersand hash selector = replace_all "&" ("." ^ hash) selector
+
+let make_prelude hash selector =
+  let selector =
+    selector |> remove_first_ampersand |> String.trim |> resolve_ampersand hash
+  in
+  Printf.sprintf ".%s %s" hash selector
+
 let render_selectors hash rule =
   match rule with
   | Css.Rule.Selector (selector, rules) when is_media_query selector ->
       Some (Printf.sprintf "%s { .%s { %s } }" selector hash (to_string rules))
   | Css.Rule.Selector (selector, rules) ->
-      Some (Printf.sprintf ".%s %s { %s }" hash selector (to_string rules))
+      let prelude = make_prelude hash selector in
+      Some (Printf.sprintf "%s { %s }" prelude (to_string rules))
   | Pseudoclass (pseduoclass, rules) ->
       Some (Printf.sprintf "%s:%s { %s }" hash pseduoclass (to_string rules))
   | PseudoclassParam (pseudoclass, param, rules) ->
@@ -160,18 +179,13 @@ let print_rules rules =
 let rec unnest ~prefix =
   let open Css.Rule in
   List.partition_map (function
-    | Declaration _ as rule -> Left rule
-    (* | Selector (title, _selector_rules) as media_query when is_media_query title
-       ->
-         print_endline prefix;
-         Left media_query
-    *)
     | Selector (title, selector_rules) ->
         let new_prelude = prefix ^ title in
         print_endline prefix;
         let content, tail = unnest ~prefix:(new_prelude ^ " ") selector_rules in
         Right (Selector (new_prelude, content) :: List.flatten tail)
-    | _ -> failwith "todo")
+    | Declaration _ as rule -> Left rule
+    | _ as rule -> Left rule)
 
 let unnest_selectors rules =
   rules
