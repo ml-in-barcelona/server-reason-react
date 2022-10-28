@@ -1,6 +1,6 @@
 module Hash = struct
-  let make (str : string) = Murmur3.hash32 str |> Int32.abs |> Int32.to_string
-  (* |> String.cat "s" *)
+  let make (str : string) =
+    Murmur3.hash32 str |> Int32.abs |> Int32.to_string |> String.cat "s"
 
   (* let make str =
      (* Initialize the hash *)

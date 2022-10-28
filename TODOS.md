@@ -89,8 +89,12 @@
 - [x] Adaprt interface
 - [x] Create some unit tests from emotion
 - [x] Render styles, not emotion object camelCase
-- [ ] Implement Selectors
+- [x] Implement Selectors
+  - [ ] Implement &
+  - [ ] Implement Pseudoselectors and all
 - [ ] Implement Media queries
+- [ ] Implement keyframes
+- [ ] Implement Global styles
 - [ ] Fix fontStyle/font-face
 
 ## ppx transformation

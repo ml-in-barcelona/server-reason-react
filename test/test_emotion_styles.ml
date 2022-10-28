@@ -6,7 +6,7 @@ let test_one_property () =
   let style = Emotion.create () in
   let _className = style [ Css.Properties.display `block ] in
   let css = Emotion.render_style_tag () in
-  assert_string css ".362999430 { display: block; }"
+  assert_string css ".s362999430 { display: block; }"
 
 let test_multiple_properties () =
   let style = Emotion.create () in
@@ -14,7 +14,7 @@ let test_multiple_properties () =
     style [ Css.Properties.display `block; Css.Properties.fontSize (`px 10) ]
   in
   let css = Emotion.render_style_tag () in
-  assert_string css ".1016840165 { display: block; font-size: 10px; }"
+  assert_string css ".s1016840165 { display: block; font-size: 10px; }"
 
 let test_selector_one_nesting () =
   let style = Emotion.create () in
@@ -27,7 +27,7 @@ let test_selector_one_nesting () =
   in
   let css = Emotion.render_style_tag () in
   assert_string css
-    ".1631319699 { color: #F0F8FF; } .1631319699 a { color: #663399; }"
+    ".s1631319699 { color: #F0F8FF; } .s1631319699 a { color: #663399; }"
 
 let test_selector_more_than_one_nesting () =
   let style = Emotion.create () in
@@ -42,8 +42,8 @@ let test_selector_more_than_one_nesting () =
   in
   let css = Emotion.render_style_tag () in
   assert_string css
-    ".105107207 { color: #F0F8FF; } .105107207 a { display: block; } \
-     .105107207 a div { display: none; }"
+    ".s105107207 { color: #F0F8FF; } .s105107207 a { display: block; } \
+     .s105107207 a div { display: none; }"
 
 let test_selector_with_a_lot_of_nesting () =
   let style = Emotion.create () in
@@ -68,10 +68,10 @@ let test_selector_with_a_lot_of_nesting () =
   in
   let css = Emotion.render_style_tag () in
   assert_string css
-    ".695613379 { display: flex; } .695613379 a { display: block; } .695613379 \
-     a div { display: none; } .695613379 a div span { display: none; } \
-     .695613379 a div span hr { display: none; } .695613379 a div span hr code \
-     { display: none; }"
+    ".s695613379 { display: flex; } .s695613379 a { display: block; } \
+     .s695613379 a div { display: none; } .s695613379 a div span { display: \
+     none; } .s695613379 a div span hr { display: none; } .s695613379 a div \
+     span hr code { display: none; }"
 
 let test_with_react () =
   let style = Emotion.create () in
@@ -91,8 +91,8 @@ let test_with_react () =
   let app = React.createElement "html" [||] [ head; body ] in
   assert_string
     (ReactDOM.renderToStaticMarkup app)
-    "<html><head><style>.362999430 { display: block; \
-     }</style></head><body><div class=\"362999430\"></div></body></html>"
+    "<html><head><style>.s362999430 { display: block; \
+     }</style></head><body><div class=\"s362999430\"></div></body></html>"
 
 let tests =
   ( "Emotion"
