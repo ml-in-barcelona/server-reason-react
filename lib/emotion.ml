@@ -1,5 +1,6 @@
 module Hash = struct
   let make (str : string) = Murmur3.hash32 str |> Int32.abs |> Int32.to_string
+  (* |> String.cat "s" *)
 
   (* let make str =
      (* Initialize the hash *)
@@ -107,16 +108,98 @@ let rec rule_to_string accumulator rule =
   in
   accumulator ^ next_rule ^ "; "
 
-and to_string rules = rules |> Array.fold_left rule_to_string "" |> String.trim
+and to_string rules = rules |> List.fold_left rule_to_string "" |> String.trim
 
-let make_style_fn side_effect (styles : Css.Rule.t array) =
+let render_declaration rule =
+  match rule with
+  | Css.Rule.Declaration (property, value) ->
+      Some (Printf.sprintf "%s: %s;" property value)
+  | _ -> None
+
+let render_selectors hash rule =
+  match rule with
+  | Css.Rule.Selector (selector, rules) ->
+      Some (Printf.sprintf ".%s %s { %s }" hash selector (to_string rules))
+  | Pseudoclass (pseduoclass, rules) ->
+      Some (Printf.sprintf "%s:%s { %s }" hash pseduoclass (to_string rules))
+  | PseudoclassParam (pseudoclass, param, rules) ->
+      Some
+        (Printf.sprintf "%s:%s ( %s ) %s" hash pseudoclass param
+           (to_string rules))
+  | _ -> None
+
+(* let rec rule_to_debug nesting accumulator rule =
+     let open Css.Rule in
+     let next_rule =
+       match rule with
+       | Declaration (property, value) ->
+           Printf.sprintf "Declaration (\"%s\", \"%s\")" property value
+       | Selector (selector, rules) ->
+           Printf.sprintf "Selector (\"%s\", %s)" selector
+             (to_debug (nesting + 1) rules)
+       | Pseudoclass (pseduoclass, rules) ->
+           Printf.sprintf "Pseudoclass (\"%s\", %s)" pseduoclass
+             (to_debug (nesting + 1) rules)
+       | PseudoclassParam (pseudoclass, param, rules) ->
+           Printf.sprintf "PseudoclassParam (\"%s\", \"%s\", %s)" pseudoclass param
+             (to_debug (nesting + 1) rules)
+     in
+     let space = if nesting > 0 then String.make (nesting * 2) ' ' else "" in
+     accumulator ^ Printf.sprintf "\n%s" space ^ next_rule
+
+   and to_debug nesting rules =
+     rules |> List.fold_left (rule_to_debug nesting) "" |> String.trim
+
+   let print_rules rules =
+     rules |> List.iter (fun rule -> print_endline (to_debug 0 [ rule ])) *)
+
+let is_declaration rule =
+  match rule with Css.Rule.Declaration _ -> true | _ -> false
+
+let remove_non_selectors rules =
+  rules |> Array.to_list |> List.filter is_declaration |> Array.of_list
+
+let rec partition ?(prefix = "") =
+  let open Css.Rule in
+  List.partition_map (function
+    | Declaration _ as v -> Left v
+    | Selector (title, children) ->
+        let content, tail = partition ~prefix:(prefix ^ title ^ " ") children in
+        Right (Selector (prefix ^ title, content) :: List.flatten tail)
+    | _ -> failwith "todo")
+
+let unnest_selectors rules =
+  List.map
+    (fun v ->
+      let content, trees = partition [ v ] in
+      List.flatten (content :: trees))
+    rules
+  |> List.flatten |> List.rev
+
+let rec nested_rule_to_string hash rules =
+  let list_of_rules = rules |> unnest_selectors |> List.rev in
+  let declarations =
+    list_of_rules |> List.filter_map render_declaration |> String.concat " "
+    |> fun all -> Printf.sprintf ".%s { %s }" hash all
+  in
+  let selectors =
+    list_of_rules
+    |> List.filter_map (render_selectors hash)
+    |> String.concat " "
+  in
+  Printf.sprintf "%s %s" declarations selectors
+
+and nested_to_string hash rules =
+  rules |> nested_rule_to_string hash |> String.trim
+
+let make_style_fn side_effect (styles : Css.Rule.t list) =
   let hash = Hash.make (to_string styles) in
   side_effect hash styles;
   hash
 
 let cache = ref (Hashtbl.create 1000)
 
-let push hash (styles : Css.Rule.t array) =
+let push hash (styles : Css.Rule.t list) =
   Hashtbl.add cache.contents hash styles
 
 let _get hash = Hashtbl.find cache.contents hash
@@ -131,8 +214,7 @@ let create () =
 let render_style_tag () =
   Hashtbl.fold
     (fun hash rules accumulator ->
-      let selector = "." ^ hash in
-      let rules = to_string rules in
-      Printf.sprintf "%s%s { %s } " accumulator selector rules)
+      let rules = nested_to_string hash rules in
+      Printf.sprintf "%s %s" accumulator rules)
     cache.contents ""
   |> String.trim

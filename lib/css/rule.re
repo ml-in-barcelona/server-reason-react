@@ -1,8 +1,8 @@
 type t =
   | Declaration(string, string)
-  | Selector(string, array(t))
-  | Pseudoclass(string, array(t))
-  | PseudoclassParam(string, string, array(t));
+  | Selector(string, list(t))
+  | Pseudoclass(string, list(t))
+  | PseudoclassParam(string, string, list(t));
 
 let rec rule_to_string = (accumulator: string, rule) => {
   let next_rule = switch (rule) {
@@ -18,5 +18,5 @@ let rec rule_to_string = (accumulator: string, rule) => {
   accumulator ++ next_rule ++ "; ";
 }
 
-and to_string = (rules: array(t)) =>
-  rules |> Array.fold_left(rule_to_string, "");
+and to_string = (rules: list(t)) =>
+  rules |> List.fold_left(rule_to_string, "");
