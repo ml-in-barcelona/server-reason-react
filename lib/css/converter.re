@@ -2,7 +2,8 @@ open Values;
 
 let string_of_time = t => Int.to_string(t) ++ "ms";
 
-let string_of_content = fun
+let string_of_content =
+  fun
   | #Content.t as c => Content.toString(c)
   | #Counter.t as c => Counter.toString(c)
   | #Counters.t as c => Counters.toString(c)
@@ -11,17 +12,20 @@ let string_of_content = fun
   | #Var.t as va => Var.toString(va)
   | #Cascading.t as c => Cascading.toString(c);
 
-let string_of_counter_increment = fun
+let string_of_counter_increment =
+  fun
   | #CounterIncrement.t as o => CounterIncrement.toString(o)
   | #Var.t as va => Var.toString(va)
   | #Cascading.t as c => Cascading.toString(c);
 
-let string_of_counter_reset = fun
+let string_of_counter_reset =
+  fun
   | #CounterReset.t as o => CounterReset.toString(o)
   | #Var.t as va => Var.toString(va)
   | #Cascading.t as c => Cascading.toString(c);
 
-let string_of_counter_set = fun
+let string_of_counter_set =
+  fun
   | #CounterSet.t as o => CounterSet.toString(o)
   | #Var.t as va => Var.toString(va)
   | #Cascading.t as c => Cascading.toString(c);

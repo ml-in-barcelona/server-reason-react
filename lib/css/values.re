@@ -1953,5 +1953,5 @@ module TouchAction = {
     | `panUp => "pan-up"
     | `panDown => "pan-down"
     | `pinchZoom => "pinch-zoom"
-    | `manipulation => "manipulation"
+    | `manipulation => "manipulation";
 };

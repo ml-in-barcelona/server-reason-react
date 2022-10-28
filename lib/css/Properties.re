@@ -218,7 +218,8 @@ let borderRightColor = x =>
 let borderRightWidth = x =>
   Declaration("border-right-width", Length.toString(x));
 
-let borderTopColor = x => Declaration("border-top-color", string_of_color(x));
+let borderTopColor = x =>
+  Declaration("border-top-color", string_of_color(x));
 
 let borderTopLeftRadius = x =>
   Declaration("border-top-left-radius", Length.toString(x));
@@ -226,7 +227,8 @@ let borderTopLeftRadius = x =>
 let borderTopRightRadius = x =>
   Declaration("border-top-right-radius", Length.toString(x));
 
-let borderTopWidth = x => Declaration("border-top-width", Length.toString(x));
+let borderTopWidth = x =>
+  Declaration("border-top-width", Length.toString(x));
 
 let borderWidth = x => Declaration("border-width", Length.toString(x));
 
@@ -293,7 +295,10 @@ let countersIncrement = xs =>
 let counterReset = x =>
   Declaration("counter-reset", string_of_counter_reset(x));
 let countersReset = xs =>
-  Declaration("counter-reset", xs |> concatArr(string_of_counter_reset, " "));
+  Declaration(
+    "counter-reset",
+    xs |> concatArr(string_of_counter_reset, " "),
+  );
 
 let counterSet = x => Declaration("counter-set", string_of_counter_set(x));
 let countersSet = xs =>
@@ -441,7 +446,8 @@ let gridColumn = (start, end') =>
 let gridColumnGap = x =>
   Declaration("grid-column-gap", string_of_column_gap(x));
 
-let gridColumnStart = n => Declaration("grid-column-start", Int.to_string(n));
+let gridColumnStart = n =>
+  Declaration("grid-column-start", Int.to_string(n));
 
 let gridColumnEnd = n => Declaration("grid-column-end", Int.to_string(n));
 
@@ -1908,7 +1914,8 @@ let transition = (~duration=?, ~delay=?, ~timingFunction=?, property) =>
     Transition.shorthand(~duration?, ~delay?, ~timingFunction?, property),
   );
 
-let transitionDelay = i => Declaration("transition-delay", string_of_time(i));
+let transitionDelay = i =>
+  Declaration("transition-delay", string_of_time(i));
 
 let transitionDuration = i =>
   Declaration("transition-duration", string_of_time(i));
