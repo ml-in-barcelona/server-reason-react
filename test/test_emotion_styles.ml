@@ -94,6 +94,20 @@ let test_with_react () =
     "<html><head><style>.s362999430 { display: block; \
      }</style></head><body><div class=\"s362999430\"></div></body></html>"
 
+let test_media_queries () =
+  let style = Emotion.create () in
+  let _className =
+    style
+      [ Css.Properties.maxWidth (`px 800)
+      ; Css.Properties.media "(max-width: 768px)"
+          [ Css.Properties.width (`px 300) ]
+      ]
+  in
+  let css = Emotion.render_style_tag () in
+  assert_string css
+    ".s2073633259 { max-width: 800px; } @media (max-width: 768px) { \
+     .s2073633259 { width: 300px; } }"
+
 let tests =
   ( "Emotion"
   , [ test_case "test_with_react_component" `Quick test_with_react
@@ -104,4 +118,5 @@ let tests =
         test_selector_more_than_one_nesting
     ; test_case "test_selector_with_a_lot_of_nesting" `Quick
         test_selector_with_a_lot_of_nesting
+    ; test_case "test_media_queries" `Quick test_media_queries
     ] )

@@ -116,8 +116,12 @@ let render_declaration rule =
       Some (Printf.sprintf "%s: %s;" property value)
   | _ -> None
 
+let is_media_query selector = String.contains selector '@'
+
 let render_selectors hash rule =
   match rule with
+  | Css.Rule.Selector (selector, rules) when is_media_query selector ->
+      Some (Printf.sprintf "%s { .%s { %s } }" selector hash (to_string rules))
   | Css.Rule.Selector (selector, rules) ->
       Some (Printf.sprintf ".%s %s { %s }" hash selector (to_string rules))
   | Pseudoclass (pseduoclass, rules) ->
@@ -128,56 +132,57 @@ let render_selectors hash rule =
            (to_string rules))
   | _ -> None
 
-(* let rec rule_to_debug nesting accumulator rule =
-     let open Css.Rule in
-     let next_rule =
-       match rule with
-       | Declaration (property, value) ->
-           Printf.sprintf "Declaration (\"%s\", \"%s\")" property value
-       | Selector (selector, rules) ->
-           Printf.sprintf "Selector (\"%s\", %s)" selector
-             (to_debug (nesting + 1) rules)
-       | Pseudoclass (pseduoclass, rules) ->
-           Printf.sprintf "Pseudoclass (\"%s\", %s)" pseduoclass
-             (to_debug (nesting + 1) rules)
-       | PseudoclassParam (pseudoclass, param, rules) ->
-           Printf.sprintf "PseudoclassParam (\"%s\", \"%s\", %s)" pseudoclass param
-             (to_debug (nesting + 1) rules)
-     in
-     let space = if nesting > 0 then String.make (nesting * 2) ' ' else "" in
-     accumulator ^ Printf.sprintf "\n%s" space ^ next_rule
+let rec rule_to_debug nesting accumulator rule =
+  let open Css.Rule in
+  let next_rule =
+    match rule with
+    | Declaration (property, value) ->
+        Printf.sprintf "Declaration (\"%s\", \"%s\")" property value
+    | Selector (selector, rules) ->
+        Printf.sprintf "Selector (\"%s\", %s)" selector
+          (to_debug (nesting + 1) rules)
+    | Pseudoclass (pseduoclass, rules) ->
+        Printf.sprintf "Pseudoclass (\"%s\", %s)" pseduoclass
+          (to_debug (nesting + 1) rules)
+    | PseudoclassParam (pseudoclass, param, rules) ->
+        Printf.sprintf "PseudoclassParam (\"%s\", \"%s\", %s)" pseudoclass param
+          (to_debug (nesting + 1) rules)
+  in
+  let space = if nesting > 0 then String.make (nesting * 2) ' ' else "" in
+  accumulator ^ Printf.sprintf "\n%s" space ^ next_rule
 
-   and to_debug nesting rules =
-     rules |> List.fold_left (rule_to_debug nesting) "" |> String.trim
+and to_debug nesting rules =
+  rules |> List.fold_left (rule_to_debug nesting) "" |> String.trim
 
-   let print_rules rules =
-     rules |> List.iter (fun rule -> print_endline (to_debug 0 [ rule ])) *)
+let print_rules rules =
+  rules |> List.iter (fun rule -> print_endline (to_debug 0 [ rule ]))
 
-let is_declaration rule =
-  match rule with Css.Rule.Declaration _ -> true | _ -> false
-
-let remove_non_selectors rules =
-  rules |> Array.to_list |> List.filter is_declaration |> Array.of_list
-
-let rec partition ?(prefix = "") =
+let rec unnest ~prefix =
   let open Css.Rule in
   List.partition_map (function
-    | Declaration _ as v -> Left v
-    | Selector (title, children) ->
-        let content, tail = partition ~prefix:(prefix ^ title ^ " ") children in
-        Right (Selector (prefix ^ title, content) :: List.flatten tail)
+    | Declaration _ as rule -> Left rule
+    (* | Selector (title, _selector_rules) as media_query when is_media_query title
+       ->
+         print_endline prefix;
+         Left media_query
+    *)
+    | Selector (title, selector_rules) ->
+        let new_prelude = prefix ^ title in
+        print_endline prefix;
+        let content, tail = unnest ~prefix:(new_prelude ^ " ") selector_rules in
+        Right (Selector (new_prelude, content) :: List.flatten tail)
     | _ -> failwith "todo")
 
 let unnest_selectors rules =
-  List.map
-    (fun v ->
-      let content, trees = partition [ v ] in
-      List.flatten (content :: trees))
-    rules
+  rules
+  |> List.map (fun rule ->
+         let declarations, selectors = unnest ~prefix:"" [ rule ] in
+         List.flatten (declarations :: selectors))
   |> List.flatten |> List.rev
 
 let rec nested_rule_to_string hash rules =
   let list_of_rules = rules |> unnest_selectors |> List.rev in
+  print_rules list_of_rules;
   let declarations =
     list_of_rules |> List.filter_map render_declaration |> String.concat " "
     |> fun all -> Printf.sprintf ".%s { %s }" hash all
