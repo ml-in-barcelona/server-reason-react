@@ -144,10 +144,10 @@ let render_selectors hash rule =
       let prelude = make_prelude hash selector in
       Some (Printf.sprintf "%s { %s }" prelude (to_string rules))
   | Pseudoclass (pseduoclass, rules) ->
-      Some (Printf.sprintf "%s:%s { %s }" hash pseduoclass (to_string rules))
+      Some (Printf.sprintf ".%s:%s { %s }" hash pseduoclass (to_string rules))
   | PseudoclassParam (pseudoclass, param, rules) ->
       Some
-        (Printf.sprintf "%s:%s ( %s ) %s" hash pseudoclass param
+        (Printf.sprintf ".%s:%s ( %s ) %s" hash pseudoclass param
            (to_string rules))
   | _ -> None
 

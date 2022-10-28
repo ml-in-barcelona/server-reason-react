@@ -133,6 +133,19 @@ let test_media_queries () =
     ".s2073633259 { max-width: 800px; } @media (max-width: 768px) { \
      .s2073633259 { width: 300px; } }"
 
+let test_selector_params () =
+  let style = Emotion.create () in
+  let _className =
+    style
+      [ Css.Properties.maxWidth (`px 800)
+      ; Css.Properties.firstChild [ Css.Properties.width (`px 300) ]
+      ]
+  in
+  let css = Emotion.render_style_tag () in
+  assert_string css
+    ".s1464869224 { max-width: 800px; } .s1464869224:first-child { width: \
+     300px; }"
+
 let tests =
   ( "Emotion"
   , [ test_case "test_with_react_component" `Quick test_with_react
@@ -145,6 +158,5 @@ let tests =
         test_selector_with_a_lot_of_nesting
     ; test_case "test_media_queries" `Quick test_media_queries
     ; test_case "test_selector_ampersand" `Quick test_selector_ampersand
-    ; test_case "test_selector_ampersand_at_the_middle" `Quick
-        test_selector_ampersand_at_the_middle
+    ; test_case "test_selector_params" `Quick test_selector_params
     ] )
