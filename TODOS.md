@@ -91,11 +91,12 @@
 - [x] Render styles, not emotion object camelCase
 - [x] Implement Selectors
   - [x] Implement &
-  - [ ] Implement Pseudoselectors and all
+  - [x] Implement Pseudoselectors and all
 - [x] Implement Media queries
-  - [ ] Nested media queries (2 levels)
-- [ ] Implement keyframes
-- [ ] Implement Global styles
+  - [ ] Joined nested media queries (2 levels -> @media x + @media y -> @media x and y)
+- [ ] Implement the proper Emotion API first (right now exporting style fn only, maybe worth doing a Functor)
+  - [ ] Implement keyframes
+  - [ ] Implement Global styles
 - [ ] Fix fontStyle/font-face
 
 ## ppx transformation

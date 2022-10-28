@@ -237,3 +237,14 @@ let render_style_tag () =
       Printf.sprintf "%s %s" accumulator rules)
     cache.contents ""
   |> String.trim
+
+(* let keyframes name rules =
+   let rules =
+     rules
+     |> List.map (fun (percentage, rule) ->
+            let percentage = percentage |> string_of_float |> String.trim in
+            Printf.sprintf "%s%% { %s }" percentage (to_string rule))
+     |> String.concat " "
+   in
+   Printf.sprintf "@keyframes %s { %s }" name rules
+*)
