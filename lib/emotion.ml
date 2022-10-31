@@ -2,25 +2,55 @@ module Hash = struct
   let make (str : string) =
     Murmur3.hash32 str |> Int32.abs |> Int32.to_string |> String.cat "s"
 
-  (* let make str =
+  (*
+    TODO: Remove ocaml-murmur3 and re-implement it in OCaml (murmur3 binds to C)
+    https://github.com/garycourt/murmurhash-js/blob/master/murmurhash2_gc.js
+
+    What's below it's an ongoing effort to match the result
+
+  let make (str : string) =
      (* Initialize the hash *)
      let h = ref 0 in
 
      (* Mix 4 bytes at a time into the hash *)
-     let k = ref 0 in
+     let k = ref Int64.zero in
      let i = 0 in
      let len = String.length str in
 
+     (* let ( >> ) = Int.shift_right in *)
+     let ( << ) = Int64.shift_left in
+     let ( & ) = Int64.logand in
+     let ( ||| ) = Int64.logor in
+     let ( * ) = Int64.mul in
+     let ( >>> ) = Int64.shift_right_logical in
+     let ( ++ ) = Int64.add in
+
      for i = 0 to (len / 4) - 1 do
-       let or_0xff = ( land ) 0xff in
-       let first = String.get str i |> Char.code |> or_0xff in
-       let second = String.get str (i + 1) |> Char.code |> or_0xff |> ( lsl ) 8 in
-       let third = String.get str (i + 2) |> Char.code |> or_0xff |> ( lsl ) 16 in
-       let forth = String.get str (i + 3) |> Char.code |> or_0xff |> ( lsl ) 24 in
-       k := first lor (second lor (third lor forth));
-       k := (k.contents land 0xffff * 0x5bd1e995) + (k.contents lsr 16);
-       k := k.contents lxor (k.contents lsr 24) land 0xffffffff;
-       h := h.contents * 0x5bd1e995 lxor !k;
+       let first = String.get str i |> Char.code |> Int64.of_int & 255L in
+       let second =
+         String.get str (i + 1) |> Char.code |> Int64.of_int & 255L << 8
+       in
+       let third =
+         String.get str (i + 2) |> Char.code |> Int64.of_int & 255L << 16
+       in
+       let forth =
+         String.get str (i + 3) |> Char.code |> Int64.of_int & 255L << 24
+       in
+       (* print_endline (Printf.sprintf "first: %d" first);
+          print_endline (Printf.sprintf "second: %d" second);
+          print_endline (Printf.sprintf "third: %d" third);
+          print_endline (Printf.sprintf "forth: %d" forth); *)
+       k := first ||| (second ||| (third ||| forth));
+
+       (* k =
+          (k & 0xffff) * 0x5bd1e995 + (((k >>> 16) * 0xe995) << 16); *)
+       let k_one = (k.contents & 65535L) * 1540483477L in
+       let k_16 = (k.contents >>> 16) * 59797L << 16 in
+       print_endline (Printf.sprintf "k: %Ld" k_16);
+       k := k_one ++ k_16;
+
+       (* k := k.contents lxor (k.contents lsr 24) land 0xffffffff; *)
+       (* h := h.contents * 0x5bd1e995 lxor !k; *)
        h := h.contents lxor (h.contents lsr 24)
      done;
 
@@ -33,18 +63,21 @@ module Hash = struct
                  |> Char.code |> ( land ) 0xff |> ( lsl ) 16)
         | 2 ->
             h.contents
-            lxor (String.get str (i + 1) |> Char.code |> ( land ) 0xff |> ( lsl ) 8)
+            lxor (String.get str (i + 1)
+                 |> Char.code |> ( land ) 0xff |> ( lsl ) 8)
         | 1 -> h.contents lxor (String.get str i |> Char.code |> ( land ) 0xff)
         | _ -> h.contents);
+
+     (* print_endline (Printf.sprintf "h-pre: %d" h.contents); *)
 
      (* Do a few final mixes of the hash to ensure the last few *)
      (* bytes are well-incorporated. *)
      h := h.contents lxor (h.contents lsr 13);
-     h := h.contents * 0x5bd1e995;
+     (* h := h.contents * 0x5bd1e995; *)
      h := h.contents lxor (h.contents lsr 15);
 
-     h.contents |> Int.to_string
-  *)
+     (* print_endline (Printf.sprintf "Result: %d" h.contents); *)
+     h.contents |> Int.to_string *)
 end
 
 (* include Values;

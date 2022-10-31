@@ -93,8 +93,10 @@
   - [x] Implement &
   - [x] Implement Pseudoselectors and all
 - [x] Implement Media queries
-  - [ ] Joined nested media queries (2 levels -> @media x + @media y -> @media x and y)
-- [ ] Implement the proper Emotion API first (right now exporting style fn only, maybe worth doing a Functor)
+- [ ] Align murmur hashing with emotion
+- [ ] Joined nested media queries (2 levels -> @media x + @media y -> @media x and y)
+- [ ] Implement the proper Emotion API first (right now exporting style fn only, maybe worth doing a Functor?)
+  - [ ] Doing the same API as emotion
   - [ ] Implement keyframes
   - [ ] Implement Global styles
 - [ ] Fix fontStyle/font-face
@@ -145,14 +147,10 @@
 - [ ] Try hydratation
 - [ ] Try routes
 - [ ] How we are going to mock the [JavaScript APIs](https://rescript-lang.org/docs/manual/latest/api/js) from ReScript?
+- [ ] bs.raw ppx (jscomp/frontend/bs_builtin_ppx.ml)
 - [ ] Create a benchmark matrix
-  - [coding-for-performance-why-we-chose-rust](https://www.mezmo.com/blog/coding-for-performance-why-we-chose-rust)
-  - [Web frameworks benchmark](https://github.com/the-benchmarker/web-frameworks)
-  - [wrk](https://github.com/wg/wrk)
-  - [k6](https://github.com/grafana/k6)
-  - [autocannon](https://github.com/mcollina/autocannon)
-  - [cassowary](https://github.com/rogerwelin/cassowary)
-  - siege
+  - [ ] Create a project that can generate a project based on ReasonReact
+  - [ ] Run wrk on them and create a basic matrix
 - [ ] How we are going to mock the DOM API?
   - [x] Create library from bs-webapi
   - [ ] Found a way to add it incrementally?
@@ -160,7 +158,7 @@
 - [ ] What other ReScript specific stuff need to take care?
   - Do we have any way to ensure `bs.obj` compiles in native?
     - Idea: Treat all Js.t as OCaml objects, transform all a##b to (a#b).
-    - [ ] Implement ## ppx
+    - [x] Implement ## ppx
     - `##` is parsed by Reason
     - Probably only in melange?
     - Add ppx processing to replace `bs.obj` with classic OCaml objects (e.g. `{"foo": 2}` translates to `object method foo = 2 end`).
