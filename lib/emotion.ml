@@ -1,11 +1,10 @@
 module Hash = struct
   (*
-    TODO: This hashing function should be a rewrite of @emotion/hash,
-    what's below it's an ongoing effort to match the hashing function.
+    This hashing is a rewrite of @emotion/hash. What's below it's an ongoing effort to match the hashing function, currently very broken.
 
     Reference: https://github.com/emotion-js/emotion/blob/main/packages/hash/src/index.js
     https://github.com/garycourt/murmurhash-js/blob/master/murmurhash2_gc.js
-    *)
+  *)
   let make (str : string) =
     (* Initialize the hash *)
     let h = ref Int64.zero in
@@ -29,10 +28,6 @@ module Hash = struct
       let second = get_int64_char str (i + 1) & 255L << 8 in
       let third = get_int64_char str (i + 2) & 255L << 16 in
       let forth = get_int64_char str (i + 3) & 255L << 24 in
-      (* print_endline (Printf.sprintf "first: %d" first);
-         print_endline (Printf.sprintf "second: %d" second);
-         print_endline (Printf.sprintf "third: %d" third);
-         print_endline (Printf.sprintf "forth: %d" forth); *)
       k := first ||| (second ||| (third ||| forth));
 
       (* k =
@@ -65,8 +60,6 @@ module Hash = struct
            h' ^ (get_int64_char str (i + 1) & 255L)
        | _ -> h.contents);
 
-    (* print_endline (Printf.sprintf "h-pre: %d" h.contents); *)
-
     (* h ^= h >>> 13;
        h =
          (h & 0xffff) * 0x5bd1e995 + (((h >>> 16) * 0xe995) << 16);
@@ -81,53 +74,6 @@ module Hash = struct
     (* let result = ((h ^ (h >>> 15)) >>> 0).toString(36); *)
     !h |> Int64.abs |> Int64.to_string |> String.cat "s"
 end
-
-(* include Values;
-   include Properties;
-   include Colors;
-
-   type t = string;
-   let to_string = Rule.to_string;
-   let mergeStyles = Emotion_bindings.mergeStyles;
-   let make = Emotion_bindings.make;
-   let injectRules = Emotion_bindings.injectRules;
-   let injectRaw = Emotion_bindings.injectRaw;
-   let global = (. selector, rules) => Emotion_bindings.injectRules(. selector, to_string(rules));
-   let keyframe = (. frames) =>
-       Emotion_bindings.keyframe(.
-           Array.fold_left(
-             (. dict, (stop, rules)) => {
-               Js_of_ocaml.Js.Unsafe.set(
-                 dict,
-                 Int.to_string(stop) ++ "%",
-                 to_string(rules),
-               );
-               dict;
-             },
-             Js_of_ocaml.Js.Unsafe.obj([||]),
-             frames
-           ),
-         );
-*)
-
-(* external injectRaw: (. string) => unit = "injectGlobal"
-   let renderRaw = (. _, css) => injectRaw(. css)
-
-   @module("@emotion/css")
-   external injectRawRules: (. Js.Json.t) => unit = "injectGlobal"
-
-   let injectRules = (. selector, rules) =>
-     injectRawRules(. Js.Dict.fromArray([(selector, rules)])->Js.Json.object_)
-   let renderRules = (. _, selector, rules) =>
-     injectRawRules(. Js.Dict.fromArray([(selector, rules)])->Js.Json.object_)
-
-   @module("@emotion/css")
-   external mergeStyles: (. array<styleEncoding>) => styleEncoding = "cx"
-
-   @module("@emotion/css") external make: (. Js.Json.t) => styleEncoding = "css"
-
-   @module("@emotion/css")
-   external makeAnimation: (. Js.Dict.t<Js.Json.t>) => string = "keyframes" *)
 
 let rec rule_to_string accumulator rule =
   let open Css.Rule in
@@ -166,10 +112,10 @@ let remove_first_ampersand selector =
 let resolve_ampersand hash selector = replace_all "&" ("." ^ hash) selector
 
 let make_prelude hash selector =
-  let selector =
+  let new_selector =
     selector |> remove_first_ampersand |> String.trim |> resolve_ampersand hash
   in
-  Printf.sprintf ".%s %s" hash selector
+  Printf.sprintf ".%s %s" hash new_selector
 
 let render_selectors hash rule =
   match rule with
@@ -283,3 +229,47 @@ let render_style_tag () =
    in
    Printf.sprintf "@keyframes %s { %s }" name rules
 *)
+
+(*
+   type t = string;
+   let to_string = Rule.to_string;
+   let mergeStyles = Emotion_bindings.mergeStyles;
+   let make = Emotion_bindings.make;
+   let injectRules = Emotion_bindings.injectRules;
+   let injectRaw = Emotion_bindings.injectRaw;
+   let global = (. selector, rules) => Emotion_bindings.injectRules(. selector, to_string(rules));
+   let keyframe = (. frames) =>
+       Emotion_bindings.keyframe(.
+           Array.fold_left(
+             (. dict, (stop, rules)) => {
+               Js_of_ocaml.Js.Unsafe.set(
+                 dict,
+                 Int.to_string(stop) ++ "%",
+                 to_string(rules),
+               );
+               dict;
+             },
+             Js_of_ocaml.Js.Unsafe.obj([||]),
+             frames
+           ),
+         );
+*)
+
+(* external injectRaw: (. string) => unit = "injectGlobal"
+   let renderRaw = (. _, css) => injectRaw(. css)
+
+   @module("@emotion/css")
+   external injectRawRules: (. Js.Json.t) => unit = "injectGlobal"
+
+   let injectRules = (. selector, rules) =>
+     injectRawRules(. Js.Dict.fromArray([(selector, rules)])->Js.Json.object_)
+   let renderRules = (. _, selector, rules) =>
+     injectRawRules(. Js.Dict.fromArray([(selector, rules)])->Js.Json.object_)
+
+   @module("@emotion/css")
+   external mergeStyles: (. array<styleEncoding>) => styleEncoding = "cx"
+
+   @module("@emotion/css") external make: (. Js.Json.t) => styleEncoding = "css"
+
+   @module("@emotion/css")
+   external makeAnimation: (. Js.Dict.t<Js.Json.t>) => string = "keyframes" *)
