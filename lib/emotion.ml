@@ -1,83 +1,85 @@
 module Hash = struct
-  let make (str : string) =
-    Murmur3.hash32 str |> Int32.abs |> Int32.to_string |> String.cat "s"
-
   (*
-    TODO: Remove ocaml-murmur3 and re-implement it in OCaml (murmur3 binds to C)
+    TODO: This hashing function should be a rewrite of @emotion/hash,
+    what's below it's an ongoing effort to match the hashing function.
+
+    Reference: https://github.com/emotion-js/emotion/blob/main/packages/hash/src/index.js
     https://github.com/garycourt/murmurhash-js/blob/master/murmurhash2_gc.js
-
-    What's below it's an ongoing effort to match the result
-
+    *)
   let make (str : string) =
-     (* Initialize the hash *)
-     let h = ref 0 in
+    (* Initialize the hash *)
+    let h = ref Int64.zero in
 
-     (* Mix 4 bytes at a time into the hash *)
-     let k = ref Int64.zero in
-     let i = 0 in
-     let len = String.length str in
+    (* Mix 4 bytes at a time into the hash *)
+    let k = ref Int64.zero in
+    let i = 0 in
+    let len = String.length str in
 
-     (* let ( >> ) = Int.shift_right in *)
-     let ( << ) = Int64.shift_left in
-     let ( & ) = Int64.logand in
-     let ( ||| ) = Int64.logor in
-     let ( * ) = Int64.mul in
-     let ( >>> ) = Int64.shift_right_logical in
-     let ( ++ ) = Int64.add in
+    let ( << ) = Int64.shift_left in
+    let ( & ) = Int64.logand in
+    let ( ||| ) = Int64.logor in
+    let ( * ) = Int64.mul in
+    let ( >>> ) = Int64.shift_right in
+    let ( ++ ) = Int64.add in
+    let ( ^ ) = Int64.logxor in
+    let get_int64_char str i = String.get str i |> Char.code |> Int64.of_int in
 
-     for i = 0 to (len / 4) - 1 do
-       let first = String.get str i |> Char.code |> Int64.of_int & 255L in
-       let second =
-         String.get str (i + 1) |> Char.code |> Int64.of_int & 255L << 8
-       in
-       let third =
-         String.get str (i + 2) |> Char.code |> Int64.of_int & 255L << 16
-       in
-       let forth =
-         String.get str (i + 3) |> Char.code |> Int64.of_int & 255L << 24
-       in
-       (* print_endline (Printf.sprintf "first: %d" first);
-          print_endline (Printf.sprintf "second: %d" second);
-          print_endline (Printf.sprintf "third: %d" third);
-          print_endline (Printf.sprintf "forth: %d" forth); *)
-       k := first ||| (second ||| (third ||| forth));
+    for i = 0 to (len / 4) - 1 do
+      let first = get_int64_char str i & 255L in
+      let second = get_int64_char str (i + 1) & 255L << 8 in
+      let third = get_int64_char str (i + 2) & 255L << 16 in
+      let forth = get_int64_char str (i + 3) & 255L << 24 in
+      (* print_endline (Printf.sprintf "first: %d" first);
+         print_endline (Printf.sprintf "second: %d" second);
+         print_endline (Printf.sprintf "third: %d" third);
+         print_endline (Printf.sprintf "forth: %d" forth); *)
+      k := first ||| (second ||| (third ||| forth));
 
-       (* k =
-          (k & 0xffff) * 0x5bd1e995 + (((k >>> 16) * 0xe995) << 16); *)
-       let k_one = (k.contents & 65535L) * 1540483477L in
-       let k_16 = (k.contents >>> 16) * 59797L << 16 in
-       print_endline (Printf.sprintf "k: %Ld" k_16);
-       k := k_one ++ k_16;
+      (* k =
+         (k & 0xffff) * 0x5bd1e995 + (((k >>> 16) * 0xe995) << 16); *)
+      let k_one = (!k & 65535L) * 1540483477L in
+      let k_16 = (!k >>> 16) * 59797L << 16 in
+      k := k_one ++ k_16;
+      (* k ^= /* k >>> r: */ k >>> 24; *)
+      k := !k ^ (!k >>> 24);
 
-       (* k := k.contents lxor (k.contents lsr 24) land 0xffffffff; *)
-       (* h := h.contents * 0x5bd1e995 lxor !k; *)
-       h := h.contents lxor (h.contents lsr 24)
-     done;
+      (* h =
+         /* Math.imul(k, m): */
+         ((k & 0xffff) * 0x5bd1e995 + (((k >>> 16) * 0xe995) << 16)) ^
+         /* Math.imul(h, m): */
+         ((h & 0xffff) * 0x5bd1e995 + (((h >>> 16) * 0xe995) << 16)); *)
+      h :=
+        (((!k & 65535L) * 1540483477L) ++ ((!k >>> 16) * 59797L << 16))
+        ^ (((!h & 65535L) * 1540483477L) ++ ((!h >>> 16) * 59797L << 16))
+    done;
 
-     (* Handle the last few bytes of the input array *)
-     (h :=
-        match len with
-        | 3 ->
-            h.contents
-            lxor (String.get str (i + 2)
-                 |> Char.code |> ( land ) 0xff |> ( lsl ) 16)
-        | 2 ->
-            h.contents
-            lxor (String.get str (i + 1)
-                 |> Char.code |> ( land ) 0xff |> ( lsl ) 8)
-        | 1 -> h.contents lxor (String.get str i |> Char.code |> ( land ) 0xff)
-        | _ -> h.contents);
+    (* Handle the last few bytes of the input array *)
+    (h :=
+       match len with
+       | 3 -> !h ^ (get_int64_char str (i + 2) & 255L) << 16
+       | 2 -> !h ^ (get_int64_char str (i + 1) & 255L) << 8
+       | 1 ->
+           let h' =
+             ((!h & 65535L) * 1540483477L) ++ ((!h >>> 16) * 59797L << 16)
+           in
+           h' ^ (get_int64_char str (i + 1) & 255L)
+       | _ -> h.contents);
 
-     (* print_endline (Printf.sprintf "h-pre: %d" h.contents); *)
+    (* print_endline (Printf.sprintf "h-pre: %d" h.contents); *)
 
-     (* Do a few final mixes of the hash to ensure the last few *)
-     (* bytes are well-incorporated. *)
-     h := h.contents lxor (h.contents lsr 13);
-     (* h := h.contents * 0x5bd1e995; *)
-     h := h.contents lxor (h.contents lsr 15);
+    (* h ^= h >>> 13;
+       h =
+         (h & 0xffff) * 0x5bd1e995 + (((h >>> 16) * 0xe995) << 16);
+    *)
 
-     (* print_endline (Printf.sprintf "Result: %d" h.contents); *)
-     h.contents |> Int.to_string *)
+    (* Do a few final mixes of the hash to ensure the last few *)
+    (* bytes are well-incorporated. *)
+    h := !h ^ (!h >>> 13);
+    h := ((!h & 65535L) * 1540483477L) ++ ((!h >>> 16) * 59797L << 16);
+    h := !h ^ (!h >>> 15);
+
+    (* let result = ((h ^ (h >>> 15)) >>> 0).toString(36); *)
+    !h |> Int64.abs |> Int64.to_string |> String.cat "s"
 end
 
 (* include Values;

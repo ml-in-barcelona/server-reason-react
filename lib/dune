@@ -40,4 +40,4 @@
  (name emotion)
  (modules emotion)
  (public_name native-react.emotion)
- (libraries murmur3 native-react.css str))
+ (libraries native-react.css str))

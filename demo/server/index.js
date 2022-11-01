@@ -116,17 +116,19 @@ const murmur2 = (str) => {
     i = 0,
     len = str.length;
   for (; len >= 4; ++i, len -= 4) {
-    /* console.log("first", str.charCodeAt(i) & 0xff);
-    console.log("second", (str.charCodeAt(++i) & 0xff) << 8);
-    console.log("third", (str.charCodeAt(++i) & 0xff) << 16);
-    console.log("fourth", (str.charCodeAt(++i) & 0xff) << 24); */
+    console.log("first", str.charCodeAt(i) & 0xff);
+    console.log("second", (str.charCodeAt(1 + i) & 0xff) << 8);
+    console.log("third", (str.charCodeAt(2 + i) & 0xff) << 16);
+    console.log("fourth", (str.charCodeAt(3 + i) & 0xff) << 24);
+
     k =
       (str.charCodeAt(i) & 0xff) |
-      ((str.charCodeAt(++i) & 0xff) << 8) |
-      ((str.charCodeAt(++i) & 0xff) << 16) |
-      ((str.charCodeAt(++i) & 0xff) << 24);
+      ((str.charCodeAt(i + 1) & 0xff) << 8) |
+      ((str.charCodeAt(i + 2) & 0xff) << 16) |
+      ((str.charCodeAt(i + 3) & 0xff) << 24);
 
-    console.log("k", ((k >>> 16) * 0xe995) << 16);
+    console.log("PRE: ", k);
+
     k =
       /* Math.imul(k, m): */
       (k & 0xffff) * 0x5bd1e995 + (((k >>> 16) * 0xe995) << 16);
@@ -139,8 +141,6 @@ const murmur2 = (str) => {
       /* Math.imul(h, m): */
       ((h & 0xffff) * 0x5bd1e995 + (((h >>> 16) * 0xe995) << 16));
   }
-
-  /* console.log("k: ", k); */
 
   // Handle the last few bytes of the input array
 

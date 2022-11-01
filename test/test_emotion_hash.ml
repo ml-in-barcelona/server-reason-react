@@ -7,12 +7,12 @@ let make_cases (input, expected) =
       (check string) "should be equal" expected (Emotion.Hash.make input) )
 
 let data =
-  [ ("something", "s153125035")
-  ; ("something ", "s1285110230")
-  ; ("display: block", "s1614261199")
-  ; ("display: block;", "s362999430")
-  ; ("display: flex", "s43767426")
-  ; ("display: flex; font-size: 33", "s580161953")
+  [ ("david", "s1805074336826390618")
+  ; ("something ", "s7698830768729985754")
+  ; ("display: block", "s8509574055721759670")
+  ; ("display: block;", "s8509574055721759670")
+  ; ("display: flex", "s8509574055721759670")
+  ; ("display: flex; font-size: 33px", "s6869457718971540809")
   ]
 
 let tests = ("Hash", List.map make_cases data)
