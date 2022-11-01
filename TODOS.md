@@ -93,12 +93,13 @@
   - [x] Implement &
   - [x] Implement Pseudoselectors and all
 - [x] Implement Media queries
-- [ ] Align murmur hashing with emotion
+- [x] Remove ocaml-murmur3
 - [ ] Joined nested media queries (2 levels -> @media x + @media y -> @media x and y)
 - [ ] Implement the proper Emotion API first (right now exporting style fn only, maybe worth doing a Functor?)
   - [ ] Doing the same API as emotion
   - [ ] Implement keyframes
   - [ ] Implement Global styles
+- [ ] Align murmur hashing with emotion
 - [ ] Fix fontStyle/font-face
 
 ## ppx transformation
