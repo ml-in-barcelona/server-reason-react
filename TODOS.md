@@ -1,5 +1,7 @@
 # TODOS
 
+## React / ReactDOM
+
 - [x] Create a basic reason project with alcotest
 - [x] Take a look at a [Rust implementation](https://github.com/MaibornWolff/react-wasm-dom)
 - [x] Try to render a string given a React Tree
@@ -84,9 +86,12 @@
   - [ReactDOMTextarea](https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMTextarea-test.js)
   - [ReactDOMSelect](https://github.com/facebook/react/blob/main/packages/react-dom/src/__tests__/ReactDOMSelect-test.js)
 - [ ] How should we handle errors from `createElement` or `renderToString`. Currently we raise exceptions to match with reason-react, but if we could change that would be great. Maybe some validations can happen in the ppx.
+
+## Emotion
+
 - [x] implement hash and test it
 - [x] Port jsoo-css code
-- [x] Adaprt interface
+- [x] Adapt interface
 - [x] Create some unit tests from emotion
 - [x] Render styles, not emotion object camelCase
 - [x] Implement Selectors
@@ -94,16 +99,20 @@
   - [x] Implement Pseudoselectors and all
 - [x] Implement Media queries
 - [x] Remove ocaml-murmur3
+- [x] Remove Emotion.create
 - [ ] Joined nested media queries (2 levels -> @media x + @media y -> @media x and y)
-- [ ] Implement the proper Emotion API first (right now exporting style fn only, maybe worth doing a Functor?)
-  - [ ] Doing the same API as emotion
-  - [ ] Implement keyframes
-  - [ ] Implement Global styles
+- [x] Implement the proper Emotion API first (right now exporting style fn only, maybe worth doing a Functor?)
+  - [x] Doing the same API as emotion
+  - [ ] Design a new server API that isn't aligned with emotion/server
+- [ ] Implement keyframes
+- [ ] Implement Global styles
 - [ ] Align murmur hashing with emotion
 - [ ] Fix fontStyle/font-face
+- [ ] Create a emotion.mli file
 
-## ppx transformation
+## ppx
 
+- [x] Migrate from jsoo-react's ppx
 - [x] Remove all `jsoo` specific
 - [x] Render to something that makes sense
 - [x] Transform attributes to JSX
@@ -133,7 +142,7 @@
 - [ ] How difficult would be to support Server components?
 - [x] Do we need to support [React.Children API](https://github.com/reasonml/reason-react/blob/master/src/React.re#L58-L76) from reason-react. Almost deprecated.
 
-## Demo/migration
+## Demo
 
 - [x] Pipe first
   - [x] Implement ppx

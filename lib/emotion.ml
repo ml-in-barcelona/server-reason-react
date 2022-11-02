@@ -162,7 +162,6 @@ let rec unnest ~prefix =
   List.partition_map (function
     | Selector (title, selector_rules) ->
         let new_prelude = prefix ^ title in
-        print_endline prefix;
         let content, tail = unnest ~prefix:(new_prelude ^ " ") selector_rules in
         Right (Selector (new_prelude, content) :: List.flatten tail)
     | Declaration _ as rule -> Left rule
@@ -176,8 +175,9 @@ let unnest_selectors rules =
   |> List.flatten |> List.rev
 
 let rec nested_rule_to_string hash rules =
+  (* TODO: Refactor with partition or partition_map. List.filter_map is error prone.
+     Selectors might need to respect the order of definition, and this breaks the order *)
   let list_of_rules = rules |> unnest_selectors |> List.rev in
-  print_rules list_of_rules;
   let declarations =
     list_of_rules |> List.filter_map render_declaration |> String.concat " "
     |> fun all -> Printf.sprintf ".%s { %s }" hash all
@@ -192,24 +192,17 @@ let rec nested_rule_to_string hash rules =
 and nested_to_string hash rules =
   rules |> nested_rule_to_string hash |> String.trim
 
-let make_style_fn side_effect (styles : Css.Rule.t list) =
-  let hash = Hash.make (to_string styles) in
-  side_effect hash styles;
-  hash
-
 let cache = ref (Hashtbl.create 1000)
+let _get hash = Hashtbl.find cache.contents hash
+let flush () = Hashtbl.clear cache.contents
 
 let push hash (styles : Css.Rule.t list) =
   Hashtbl.add cache.contents hash styles
 
-let _get hash = Hashtbl.find cache.contents hash
-let flush () = Hashtbl.clear cache.contents
-
-let create () =
-  (* Each time a style function is created,
-     previous styles from the cache got removed *)
-  flush ();
-  make_style_fn push
+let style (styles : Css.Rule.t list) =
+  let hash = Hash.make (to_string styles) in
+  push hash styles;
+  hash
 
 let render_style_tag () =
   Hashtbl.fold
