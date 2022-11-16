@@ -1,6 +1,6 @@
 (*
   This is the file that handles turning Reason JSX' agnostic function call into
-  native-react-dom calls, defined in lib/react.ml or lib/reactDom.ml.
+  server-reason-react calls, defined in lib/react.ml or lib/reactDom.ml.
 
   Check the tests for more concrete examples, but the general idea is:
 

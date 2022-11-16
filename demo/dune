@@ -1,7 +1,7 @@
 (executable
  (name index)
  (public_name demo)
- (package native-react)
- (libraries react reactDOM shims belt native-react.js)
+ (package server-reason-react)
+ (libraries react reactDOM shims belt server-reason-react.js)
  (preprocess
-  (pps pipe_first_ppx double_hash_ppx native-react.ppx)))
+  (pps pipe_first_ppx double_hash_ppx server-reason-react.ppx)))

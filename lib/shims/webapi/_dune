@@ -1,6 +1,6 @@
 (include_subdirs unqualified)
 
 (library
- (public_name native-react.webapi)
+ (public_name server-reason-react.webapi)
  (libraries js)
  (name webapi))

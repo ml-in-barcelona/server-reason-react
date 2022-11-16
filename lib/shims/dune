@@ -1,5 +1,5 @@
 (library
  (name shims)
- (public_name native-react.shims)
+ (public_name server-reason-react.shims)
  (libraries belt)
  (wrapped false))

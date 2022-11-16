@@ -1,5 +1,5 @@
 ; We want to keep the exact interface from ReasonReact
-; This layout of native-react.react isn't ideal. Since bsconfig exposes
+; This layout of server-reason-react.react isn't ideal. Since bsconfig exposes
 ; every file as module, similarly on what (wrapped false) does.
 ; We didn't use wrapped false since it will be all under a "React" namespace
 ; and it's not the same as bs.
@@ -8,30 +8,30 @@
 (library
  (name react)
  (modules react)
- (public_name native-react.react)
- (libraries shims native-react.js domProps reactEvent))
+ (public_name server-reason-react.react)
+ (libraries shims server-reason-react.js domProps reactEvent))
 
 (library
  (name reactEvent)
  (modules reactEvent)
- (public_name native-react.reactEvent)
- (libraries native-react.js))
+ (public_name server-reason-react.reactEvent)
+ (libraries server-reason-react.js))
 
 (library
  (name reactDOM)
  (modules reactDOM)
- (public_name native-react.reactDom)
- (libraries react shims native-react.js domProps))
+ (public_name server-reason-react.reactDom)
+ (libraries react shims server-reason-react.js domProps))
 
 (library
  (name domProps)
  (modules domProps)
- (public_name native-react.domProps))
+ (public_name server-reason-react.domProps))
 
 (library
  (name reasonReactRouter)
  (modules reasonReactRouter)
- (public_name native-react.reasonReactRouter)
+ (public_name server-reason-react.reasonReactRouter)
  (libraries shims react))
 
 ; Not related with react/react-dom
@@ -39,5 +39,5 @@
 (library
  (name emotion)
  (modules emotion)
- (public_name native-react.emotion)
- (libraries native-react.css str))
+ (public_name server-reason-react.emotion)
+ (libraries server-reason-react.css str))

@@ -1,6 +1,6 @@
 (lang dune 3.1)
 
-(name native-react)
+(name server-reason-react)
 
 (license MIT)
 
@@ -9,14 +9,14 @@
 (authors "David Sancho <dsnxmoreno@gmail.com>")
 
 (source
- (github ml-in-barcelona/native-react-dom))
+ (github ml-in-barcelona/server-reason-react))
 
 (generate_opam_files true)
 
 (implicit_transitive_deps false)
 
 (package
- (name native-react)
+ (name server-reason-react)
  (synopsis "Rendering React components on the server")
  (depends
   ;; General system dependencies

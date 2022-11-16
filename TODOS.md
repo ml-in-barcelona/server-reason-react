@@ -101,6 +101,7 @@
 - [x] Remove ocaml-murmur3
 - [x] Remove Emotion.create
 - [ ] Joined nested media queries (2 levels -> @media x + @media y -> @media x and y)
+- [ ] Are there any other cases like ^?
 - [x] Implement the proper Emotion API first (right now exporting style fn only, maybe worth doing a Functor?)
   - [x] Doing the same API as emotion
   - [ ] Design a new server API that isn't aligned with emotion/server
@@ -146,15 +147,16 @@
 
 - [x] Pipe first
   - [x] Implement ppx
-- [x] Create a server to render HTML with native-react-dom
+- [x] Create a server to render HTML with server-reason-react
 - [x] Compile the same code to the client
 - [x] Split commands to run tests and builds separately
 - [x] Allow to build with melange and OCaml
 - [x] Implement benchmark demo
+- [ ] Try hydratation
+- [ ] Try emotion
 - [ ] Try fetch
 - [ ] Try promise
 - [ ] Try belt
-- [ ] Try hydratation
 - [ ] Try routes
 - [ ] How we are going to mock the [JavaScript APIs](https://rescript-lang.org/docs/manual/latest/api/js) from ReScript?
 - [ ] bs.raw ppx (jscomp/frontend/bs_builtin_ppx.ml)

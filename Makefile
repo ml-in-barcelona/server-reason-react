@@ -1,4 +1,4 @@
-project_name = native-react-dom
+project_name = server-reason-react
 
 DUNE = opam exec -- dune
 opam_file = $(project_name).opam
