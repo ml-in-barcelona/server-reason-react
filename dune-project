@@ -17,7 +17,7 @@
 
 (package
  (name server-reason-react)
- (synopsis "Rendering React components on the server")
+ (synopsis "Rendering React components on the server natively")
  (depends
   ;; General system dependencies
   (dune (and (>= 3.1) (< 4)))
