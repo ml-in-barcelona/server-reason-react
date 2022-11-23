@@ -8,29 +8,34 @@
 (library
  (name react)
  (modules react)
+ (modes melange best)
  (public_name server-reason-react.react)
  (libraries shims server-reason-react.js domProps reactEvent))
 
 (library
  (name reactEvent)
  (modules reactEvent)
+ (modes melange best)
  (public_name server-reason-react.reactEvent)
  (libraries server-reason-react.js))
 
 (library
  (name reactDOM)
  (modules reactDOM)
+ (modes melange best)
  (public_name server-reason-react.reactDom)
  (libraries react shims server-reason-react.js domProps))
 
 (library
  (name domProps)
  (modules domProps)
+ (modes melange best)
  (public_name server-reason-react.domProps))
 
 (library
  (name reasonReactRouter)
  (modules reasonReactRouter)
+ (modes melange best)
  (public_name server-reason-react.reasonReactRouter)
  (libraries shims react))
 
@@ -39,5 +44,6 @@
 (library
  (name emotion)
  (modules emotion)
+ (modes melange best)
  (public_name server-reason-react.emotion)
  (libraries server-reason-react.css str))

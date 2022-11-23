@@ -1,4 +1,6 @@
-(lang dune 3.1)
+(lang dune 3.6)
+(using directory-targets 0.1)
+(using melange 0.1)
 
 (name server-reason-react)
 
@@ -20,7 +22,7 @@
  (synopsis "Rendering React components on the server natively")
  (depends
   ;; General system dependencies
-  (dune (and (>= 3.1) (< 4)))
+  (dune (and (>= 3.6) (< 4)))
   (ocaml (and (>= 4.12.0) (< 5.0.0)))
 
   (ppxlib (>= 0.23.0))
