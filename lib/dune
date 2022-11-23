@@ -42,8 +42,8 @@
 ; Not related with react/react-dom
 
 (library
- (name emotion)
- (modules emotion)
+ (name css)
+ (modules css)
  (modes melange best)
- (public_name server-reason-react.emotion)
- (libraries server-reason-react.css str))
+ (public_name server-reason-react.css)
+ (libraries server-reason-react.bs_css str))

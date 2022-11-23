@@ -1,3 +1,6 @@
+include Bs_css.Properties
+include Bs_css.Colors
+
 module Hash = struct
   (*
     This hashing is a rewrite of @emotion/hash. What's below it's an ongoing effort to match the hashing function, currently very broken.
@@ -76,7 +79,7 @@ module Hash = struct
 end
 
 let rec rule_to_string accumulator rule =
-  let open Css.Rule in
+  let open Bs_css.Rule in
   let next_rule =
     match rule with
     | Declaration (property, value) -> Printf.sprintf "%s: %s" property value
@@ -93,7 +96,7 @@ and to_string rules = rules |> List.fold_left rule_to_string "" |> String.trim
 
 let render_declaration rule =
   match rule with
-  | Css.Rule.Declaration (property, value) ->
+  | Bs_css.Rule.Declaration (property, value) ->
       Some (Printf.sprintf "%s: %s;" property value)
   | _ -> None
 
@@ -119,9 +122,9 @@ let make_prelude hash selector =
 
 let render_selectors hash rule =
   match rule with
-  | Css.Rule.Selector (selector, rules) when is_media_query selector ->
+  | Bs_css.Rule.Selector (selector, rules) when is_media_query selector ->
       Some (Printf.sprintf "%s { .%s { %s } }" selector hash (to_string rules))
-  | Css.Rule.Selector (selector, rules) ->
+  | Bs_css.Rule.Selector (selector, rules) ->
       let prelude = make_prelude hash selector in
       Some (Printf.sprintf "%s { %s }" prelude (to_string rules))
   | Pseudoclass (pseduoclass, rules) ->
@@ -133,7 +136,7 @@ let render_selectors hash rule =
   | _ -> None
 
 let rec rule_to_debug nesting accumulator rule =
-  let open Css.Rule in
+  let open Bs_css.Rule in
   let next_rule =
     match rule with
     | Declaration (property, value) ->
@@ -158,7 +161,7 @@ let print_rules rules =
   rules |> List.iter (fun rule -> print_endline (to_debug 0 [ rule ]))
 
 let rec unnest ~prefix =
-  let open Css.Rule in
+  let open Bs_css.Rule in
   List.partition_map (function
     | Selector (title, selector_rules) ->
         let new_prelude = prefix ^ title in
@@ -196,10 +199,10 @@ let cache = ref (Hashtbl.create 1000)
 let _get hash = Hashtbl.find cache.contents hash
 let flush () = Hashtbl.clear cache.contents
 
-let push hash (styles : Css.Rule.t list) =
+let push hash (styles : Bs_css.Rule.t list) =
   Hashtbl.add cache.contents hash styles
 
-let style (styles : Css.Rule.t list) =
+let style (styles : Bs_css.Rule.t list) =
   let hash = Hash.make (to_string styles) in
   push hash styles;
   hash

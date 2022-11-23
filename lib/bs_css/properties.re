@@ -1836,12 +1836,12 @@ let fontFace =
     );
 
   {j|@font-face {
-     font-family: $fontFamily;
-     src: $src;
-     $(fontStyle)
-     $(fontWeight)
-     $(fontDisplay)
-   }|j};
+    font-family: $fontFamily;
+    src: $src;
+    $(fontStyle)
+    $(fontWeight)
+    $(fontDisplay)
+  }|j};
 };
 
 let textDecoration = x =>
@@ -1883,8 +1883,8 @@ let transformStyle = x =>
   );
 
 /**
- * Transition
- */
+* Transition
+*/
 module Transition = {
   type t = [ | `value(string)];
 
@@ -1926,8 +1926,8 @@ let transitionTimingFunction = x =>
 let transitionProperty = x => Declaration("transition-property", x);
 
 /**
- * Animation
- */
+* Animation
+*/
 module Animation = {
   type t = [ | `value(string)];
 
@@ -1997,8 +1997,8 @@ let animations = x =>
 let animationName = x => Declaration("animation-name", x);
 
 /**
- * SVG
- */
+* SVG
+*/
 module SVG = {
   let fill = x =>
     Declaration(

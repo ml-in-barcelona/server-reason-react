@@ -1,0 +1,3 @@
+(library
+ (name bs_css)
+ (public_name server-reason-react.bs_css))

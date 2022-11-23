@@ -3,8 +3,7 @@ open Alcotest
 let make_cases (input, expected) =
   ( Printf.sprintf "\"%s\"" input
   , `Quick
-  , fun () ->
-      (check string) "should be equal" expected (Emotion.Hash.make input) )
+  , fun () -> (check string) "should be equal" expected (Css.Hash.make input) )
 
 let data =
   [ ("david", "s1805074336826390618")

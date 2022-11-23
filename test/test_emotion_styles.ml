@@ -3,72 +3,65 @@ open Alcotest
 let assert_string left right = (check string) "should be equal" right left
 
 let test_one_property () =
-  let _className = Emotion.style [ Css.Properties.display `block ] in
-  let css = Emotion.render_style_tag () in
-  Emotion.flush ();
+  let _className = Css.style [ Css.display `block ] in
+  let css = Css.render_style_tag () in
+  Css.flush ();
   assert_string css ".s8509574055721759670 { display: block; }"
 
 let test_multiple_properties () =
-  let _className =
-    Emotion.style
-      [ Css.Properties.display `block; Css.Properties.fontSize (`px 10) ]
-  in
-  let css = Emotion.render_style_tag () in
-  Emotion.flush ();
+  let _className = Css.style [ Css.display `block; Css.fontSize (`px 10) ] in
+  let css = Css.render_style_tag () in
+  Css.flush ();
   assert_string css ".s9188976592960551744 { display: block; font-size: 10px; }"
 
 let test_selector_one_nesting () =
   let _className =
-    Emotion.style
-      [ Css.Properties.color Css.Colors.aliceblue
-      ; Css.Properties.selector "a"
-          [ Css.Properties.color Css.Colors.rebeccapurple ]
+    Css.style
+      [ Css.color Css.aliceblue
+      ; Css.selector "a" [ Css.color Css.rebeccapurple ]
       ]
   in
-  let css = Emotion.render_style_tag () in
-  Emotion.flush ();
+  let css = Css.render_style_tag () in
+  Css.flush ();
   assert_string css
     ".s2630910063741011612 { color: #F0F8FF; } .s2630910063741011612 a { \
      color: #663399; }"
 
 let test_selector_more_than_one_nesting () =
   let _className =
-    Emotion.style
-      [ Css.Properties.color Css.Colors.aliceblue
-      ; Css.Properties.selector "a"
-          [ Css.Properties.display `block
-          ; Css.Properties.selector "div" [ Css.Properties.display `none ]
-          ]
+    Css.style
+      [ Css.color Css.aliceblue
+      ; Css.selector "a"
+          [ Css.display `block; Css.selector "div" [ Css.display `none ] ]
       ]
   in
-  let css = Emotion.render_style_tag () in
-  Emotion.flush ();
+  let css = Css.render_style_tag () in
+  Css.flush ();
   assert_string css
     ".s4013267212197328780 { color: #F0F8FF; } .s4013267212197328780 a { \
      display: block; } .s4013267212197328780 a div { display: none; }"
 
 let test_selector_with_a_lot_of_nesting () =
   let _className =
-    Emotion.style
-      [ Css.Properties.display `flex
-      ; Css.Properties.selector "a"
-          [ Css.Properties.display `block
-          ; Css.Properties.selector "div"
-              [ Css.Properties.display `none
-              ; Css.Properties.selector "span"
-                  [ Css.Properties.display `none
-                  ; Css.Properties.selector "hr"
-                      [ Css.Properties.display `none
-                      ; Css.Properties.selector "code"
-                          [ Css.Properties.display `none ]
+    Css.style
+      [ Css.display `flex
+      ; Css.selector "a"
+          [ Css.display `block
+          ; Css.selector "div"
+              [ Css.display `none
+              ; Css.selector "span"
+                  [ Css.display `none
+                  ; Css.selector "hr"
+                      [ Css.display `none
+                      ; Css.selector "code" [ Css.display `none ]
                       ]
                   ]
               ]
           ]
       ]
   in
-  let css = Emotion.render_style_tag () in
-  Emotion.flush ();
+  let css = Css.render_style_tag () in
+  Css.flush ();
   assert_string css
     ".s8087706279073073590 { display: flex; } .s8087706279073073590 a { \
      display: block; } .s8087706279073073590 a div { display: none; } \
@@ -77,9 +70,9 @@ let test_selector_with_a_lot_of_nesting () =
      { display: none; }"
 
 let test_with_react () =
-  let className = Emotion.style [ Css.Properties.display `block ] in
-  let css = Emotion.render_style_tag () in
-  Emotion.flush ();
+  let className = Css.style [ Css.display `block ] in
+  let css = Css.render_style_tag () in
+  Css.flush ();
   let head =
     React.createElement "head" [||]
       [ React.createElement "style" [||] [ React.string css ] ]
@@ -100,40 +93,37 @@ let test_with_react () =
 
 let test_selector_ampersand () =
   let _className =
-    Emotion.style
-      [ Css.Properties.fontSize (`px 42)
-      ; Css.Properties.selector "& .div" [ Css.Properties.fontSize (`px 24) ]
-      ]
+    Css.style
+      [ Css.fontSize (`px 42); Css.selector "& .div" [ Css.fontSize (`px 24) ] ]
   in
-  let css = Emotion.render_style_tag () in
-  Emotion.flush ();
+  let css = Css.render_style_tag () in
+  Css.flush ();
   assert_string css
     ".s7041836792339950151 { font-size: 42px; } .s7041836792339950151 .div { \
      font-size: 24px; }"
 
 let test_selector_ampersand_at_the_middle () =
   let _className =
-    Emotion.style
-      [ Css.Properties.fontSize (`px 42)
-      ; Css.Properties.selector "& div &" [ Css.Properties.fontSize (`px 24) ]
+    Css.style
+      [ Css.fontSize (`px 42)
+      ; Css.selector "& div &" [ Css.fontSize (`px 24) ]
       ]
   in
-  let css = Emotion.render_style_tag () in
-  Emotion.flush ();
+  let css = Css.render_style_tag () in
+  Css.flush ();
   assert_string css
     ".s8112958294750809463 { font-size: 42px; } .s8112958294750809463 div \
      .s8112958294750809463 { font-size: 24px; }"
 
 let test_media_queries () =
   let _className =
-    Emotion.style
-      [ Css.Properties.maxWidth (`px 800)
-      ; Css.Properties.media "(max-width: 768px)"
-          [ Css.Properties.width (`px 300) ]
+    Css.style
+      [ Css.maxWidth (`px 800)
+      ; Css.media "(max-width: 768px)" [ Css.width (`px 300) ]
       ]
   in
-  let css = Emotion.render_style_tag () in
-  Emotion.flush ();
+  let css = Css.render_style_tag () in
+  Css.flush ();
   assert_string css
     ".s8112958294750809463 { max-width: 800px; } @media (max-width: 768px) { \
      .s8112958294750809463 { width: 300px; } }"
@@ -141,28 +131,25 @@ let test_media_queries () =
 (* let test_media_queries_nested () =
    let _className =
      style
-       [ Css.Properties.maxWidth (`px 800)
-       ; Css.Properties.media "(max-width: 768px)"
-           [ Css.Properties.width (`px 300)
-           ; Css.Properties.media "(min-width: 400px)"
-               [ Css.Properties.width (`px 300) ]
+       [ Css.maxWidth (`px 800)
+       ; Css.media "(max-width: 768px)"
+           [ Css.width (`px 300)
+           ; Css.media "(min-width: 400px)"
+               [ Css.width (`px 300) ]
            ]
        ]
    in
-   let css = Emotion.render_style_tag () in
+   let css = Css.render_style_tag () in
    assert_string css
      ".s2073633259 { max-width: 800px; } @media (max-width: 768px) { \
       .s2073633259 { width: 300px; } }"
 *)
 let test_selector_params () =
   let _className =
-    Emotion.style
-      [ Css.Properties.maxWidth (`px 800)
-      ; Css.Properties.firstChild [ Css.Properties.width (`px 300) ]
-      ]
+    Css.style [ Css.maxWidth (`px 800); Css.firstChild [ Css.width (`px 300) ] ]
   in
-  let css = Emotion.render_style_tag () in
-  Emotion.flush ();
+  let css = Css.render_style_tag () in
+  Css.flush ();
   assert_string css
     ".s2654165039198648687 { max-width: 800px; } \
      .s2654165039198648687:first-child { width: 300px; }"
@@ -170,14 +157,14 @@ let test_selector_params () =
 let test_keyframe () =
   let loading = "random" in
   (* let loading =
-       Emotion.keyframes
-         [ (0, [ Css.Properties.transform (`rotate (`deg 0.)) ])
-         ; (100, [ Css.Properties.transform (`rotate (`deg (-360.))) ])
+       Css.keyframes
+         [ (0, [ Css.transform (`rotate (`deg 0.)) ])
+         ; (100, [ Css.transform (`rotate (`deg (-360.))) ])
          ]
      in *)
-  let _className = Emotion.style [ Css.Properties.animationName loading ] in
-  let css = Emotion.render_style_tag () in
-  Emotion.flush ();
+  let _className = Css.style [ Css.animationName loading ] in
+  let css = Css.render_style_tag () in
+  Css.flush ();
   assert_string css ".s4414540036276571615 { animation-name: random; }"
 
 let tests =
