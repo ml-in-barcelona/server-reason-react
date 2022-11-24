@@ -11,7 +11,7 @@
  (modes melange best)
  (wrapped false)
  (public_name server-reason-react.react)
- (libraries shims js))
+ (libraries shims server-reason-react.js))
 
 (library
  (name reactDOM)
@@ -19,7 +19,7 @@
  (modes melange best)
  (wrapped false)
  (public_name server-reason-react.reactDom)
- (libraries react shims js))
+ (libraries react shims server-reason-react.js))
 
 ; Not related with react/react-dom
 

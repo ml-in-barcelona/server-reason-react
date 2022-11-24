@@ -37,11 +37,3 @@
   (ocamlformat (and (= 0.21.0) :with-test))
   (ocaml-lsp-server :with-test)
 ))
-
-(package
- (name js)
- (synopsis "")
- (depends
-  (dune (and (>= 3.6) (< 4)))
-  (ocaml (and (>= 4.12.0) (< 5.0.0)))
-))
