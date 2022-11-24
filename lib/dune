@@ -7,37 +7,19 @@
 
 (library
  (name react)
- (modules react)
+ (modules react reactEvent domProps)
  (modes melange best)
+ (wrapped false)
  (public_name server-reason-react.react)
- (libraries shims server-reason-react.js domProps reactEvent))
-
-(library
- (name reactEvent)
- (modules reactEvent)
- (modes melange best)
- (public_name server-reason-react.reactEvent)
- (libraries server-reason-react.js))
+ (libraries shims js))
 
 (library
  (name reactDOM)
- (modules reactDOM)
+ (modules reactDOM reactDOMStyle)
  (modes melange best)
+ (wrapped false)
  (public_name server-reason-react.reactDom)
- (libraries react shims server-reason-react.js domProps))
-
-(library
- (name domProps)
- (modules domProps)
- (modes melange best)
- (public_name server-reason-react.domProps))
-
-(library
- (name reasonReactRouter)
- (modules reasonReactRouter)
- (modes melange best)
- (public_name server-reason-react.reasonReactRouter)
- (libraries shims react))
+ (libraries react shims js))
 
 ; Not related with react/react-dom
 

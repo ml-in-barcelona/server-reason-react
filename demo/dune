@@ -2,6 +2,6 @@
  (name index)
  (public_name demo)
  (package server-reason-react)
- (libraries react reactDOM shims belt server-reason-react.js)
+ (libraries react reactDOM shims belt js)
  (preprocess
   (pps pipe_first_ppx double_hash_ppx server-reason-react.ppx)))
