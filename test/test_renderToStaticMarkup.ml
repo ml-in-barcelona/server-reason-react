@@ -142,7 +142,7 @@ let test_context () =
     "<section>20</section>"
 
 let test_use_state () =
-  let state, _setState = React.useStateValue "LOL" in
+  let state, _setState = React.useState (fun () -> "LOL") in
   let component = React.createElement "section" [||] [ React.string state ] in
   assert_string
     (ReactDOM.renderToStaticMarkup component)
