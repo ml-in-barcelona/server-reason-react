@@ -6,12 +6,12 @@ let make_cases (input, expected) =
   , fun () -> (check string) "should be equal" expected (Css.Hash.make input) )
 
 let data =
-  [ ("david", "s1805074336826390618")
-  ; ("something ", "s7698830768729985754")
-  ; ("display: block", "s8509574055721759670")
-  ; ("display: block;", "s8509574055721759670")
-  ; ("display: flex", "s8509574055721759670")
-  ; ("display: flex; font-size: 33px", "s6869457718971540809")
+  [ ("david", "css-60843658")
+  ; ("something ", "css-2100439605")
+  ; ("display: block", "css-896256303")
+  ; ("display: block;", "css-738546387")
+  ; ("display: flex", "css-1823448902")
+  ; ("display: flex; font-size: 33px", "css-190878179")
   ]
 
 let tests = ("Hash", List.map make_cases data)
