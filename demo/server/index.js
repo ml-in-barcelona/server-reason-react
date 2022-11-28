@@ -116,35 +116,49 @@ const murmur2 = (str) => {
     i = 0,
     len = str.length;
   for (; len >= 4; ++i, len -= 4) {
-    console.log("first", str.charCodeAt(i) & 0xff);
-    console.log("second", (str.charCodeAt(1 + i) & 0xff) << 8);
-    console.log("third", (str.charCodeAt(2 + i) & 0xff) << 16);
-    console.log("fourth", (str.charCodeAt(3 + i) & 0xff) << 24);
-
     k =
       (str.charCodeAt(i) & 0xff) |
       ((str.charCodeAt(i + 1) & 0xff) << 8) |
       ((str.charCodeAt(i + 2) & 0xff) << 16) |
       ((str.charCodeAt(i + 3) & 0xff) << 24);
 
-    console.log("PRE: ", k);
+    /* console.log(str.charCodeAt(i) & 0xff); */
+    /* console.log((str.charCodeAt(i + 1) & 0xff) << 8); */
+    /* console.log((str.charCodeAt(i + 2) & 0xff) << 16); */
+    /* console.log((str.charCodeAt(i + 3) & 0xff) << 24); */
+    /* console.log("--"); */
 
-    k =
-      /* Math.imul(k, m): */
-      (k & 0xffff) * 0x5bd1e995 + (((k >>> 16) * 0xe995) << 16);
+    let k_one = (k & 0xffff) * 0x5bd1e995;
+    /* console.log(k & 0xffff); */
+    /* console.log(k_one); */
+    let k_pre_16 = (k >>> 16) * 0xe995;
+    /* console.log(k_pre_16); */
+    let k_16 = k_pre_16 << 16;
+    /* console.log(k_16); */
 
+    k = k_one + k_16;
+    /* console.log(k); */
+    /* console.log(k ^ (k >>> 24)); */
     k ^= /* k >>> r: */ k >>> 24;
+    /* console.log(k); */
+    /* console.log("--"); */
 
     h =
       /* Math.imul(k, m): */
       ((k & 0xffff) * 0x5bd1e995 + (((k >>> 16) * 0xe995) << 16)) ^
       /* Math.imul(h, m): */
       ((h & 0xffff) * 0x5bd1e995 + (((h >>> 16) * 0xe995) << 16));
+    /* console.log((k & 0xffff) * 0x5bd1e995 + (((k >>> 16) * 0xe995) << 16)); */
+    /* console.log((h & 0xffff) * 0x5bd1e995 + (((h >>> 16) * 0xe995) << 16)); */
+    /* console.log(((k >>> 16) * 0xe995) << 16); */
+    /* console.log((h & 0xffff) * 0x5bd1e995); */
+    /* console.log(((h >>> 16) * 0xe995) << 16); */
+    /* console.log(h); */
   }
 
   // Handle the last few bytes of the input array
 
-  switch (len) {
+  /* switch (len) {
     case 3:
       h ^= (str.charCodeAt(i + 2) & 0xff) << 16;
     case 2:
@@ -152,16 +166,17 @@ const murmur2 = (str) => {
     case 1:
       h ^= str.charCodeAt(i) & 0xff;
       h =
-        /* Math.imul(h, m): */
         (h & 0xffff) * 0x5bd1e995 + (((h >>> 16) * 0xe995) << 16);
-  }
-
-  /* console.log("h-pre: ", h); */
+  } */
 
   // Do a few final mixes of the hash to ensure the last few
   // bytes are well-incorporated.
 
+  /* console.log(h >>> 13); */
+
   h ^= h >>> 13;
+  /* console.log(h); */
+
   h =
     /* Math.imul(h, m): */
     (h & 0xffff) * 0x5bd1e995 + (((h >>> 16) * 0xe995) << 16);
@@ -169,8 +184,9 @@ const murmur2 = (str) => {
   /* console.log("h-post: ", h); */
 
   let result = ((h ^ (h >>> 15)) >>> 0).toString(36);
-  /* console.log("Result: ", result); */
+  console.log("Result: ", result);
   return result;
 };
 
-murmur2("david");
+murmur2("display: block");
+murmur2("display: flex");
