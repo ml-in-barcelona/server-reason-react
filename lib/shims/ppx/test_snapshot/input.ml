@@ -57,11 +57,44 @@ let _ =
   bind (fun () ->
       print_endline "foo";
       return ())
+
+(* Make sure nested expressions don't cause slowness *)
+let lowerWithChildrenComplex =
+  (div ~className:"flex-container"
+     ~children:
+       [ (div ~className:"sidebar"
+            ~children:
+              [ (h2 ~className:"title" ~children:[] () [@JSX])
+              ; (nav ~className:"menu"
+                   ~children:
+                     [ (ul
+                          ~children:
+                            [ examples
+                              |. List.map (fun e ->
+                                     (li ~key:e.path
+                                        ~children:
+                                          [ (a ~href:e.path
+                                               ~onClick:(fun event ->
+                                                 ReactEvent.Mouse.preventDefault
+                                                   event;
+                                                 ReactRouter.push e.path)
+                                               ~children:[ e.title |. s ]
+                                               () [@JSX])
+                                          ]
+                                        () [@JSX]))
+                              |. React.list
+                            ]
+                          () [@JSX])
+                     ]
+                   () [@JSX])
+              ]
+            () [@JSX])
+       ]
+     () [@JSX])
 ;;
 
 (* double hash *)
 
 a##b;;
 a##b##c
-
 (* a ## (b##c) *)
