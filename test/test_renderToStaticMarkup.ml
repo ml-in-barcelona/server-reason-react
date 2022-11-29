@@ -142,11 +142,21 @@ let test_context () =
     "<section>20</section>"
 
 let test_use_state () =
-  let state, _setState = React.useState (fun () -> "LOL") in
-  let component = React.createElement "section" [||] [ React.string state ] in
+  let state, setState = React.useState (fun () -> "LOL") in
+
+  let onClick _event = setState (fun _prev -> "OMG") |> ignore in
+
+  let component =
+    React.createElement "div" [||]
+      [ React.createElement "button"
+          [| React.Attribute.Event ("onClick", Mouse onClick) |]
+          []
+      ; React.createElement "span" [||] [ React.string state ]
+      ]
+  in
   assert_string
     (ReactDOM.renderToStaticMarkup component)
-    "<section>LOL</section>"
+    "<div><button></button><span>LOL</span></div>"
 
 let test_use_memo () =
   let memo = React.useMemo (fun () -> 23) in

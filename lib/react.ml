@@ -216,9 +216,9 @@ let createContext (initial_value : 'a) : 'a context =
 
 let useContext context = context.current_value.contents
 
-let useState (make_initial_value : unit -> 'state) =
-  let setState fn : ('state -> 'state) -> unit = fn () in
-  let initial_value : 'state = make_initial_value () in
+let useState make_initial_value =
+  let setState fn = fn () in
+  let initial_value = make_initial_value () in
   (initial_value, setState)
 
 let useMemo fn = fn ()
