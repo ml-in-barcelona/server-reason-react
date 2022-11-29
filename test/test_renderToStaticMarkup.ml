@@ -144,7 +144,7 @@ let test_context () =
 let test_use_state () =
   let state, setState = React.useState (fun () -> "LOL") in
 
-  let onClick _event = setState (fun _prev -> "OMG") |> ignore in
+  let onClick _event = setState (fun _prev -> "OMG") in
 
   let component =
     React.createElement "div" [||]
