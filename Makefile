@@ -43,10 +43,6 @@ test-promote: ## Updates snapshots and promotes it to correct
 .PHONY: deps
 deps: $(opam_file) ## Alias to update the opam file and install the needed deps
 
-$(opam_file): dune-project ## Update the package dependencies when new deps are added to dune-project
-	$(DUNE) build @install
-	opam install . --deps-only --with-test # Install the new dependencies
-
 .PHONY: format
 format: ## Format the codebase with ocamlformat
 	$(DUNE) build @fmt --auto-promote
@@ -55,24 +51,27 @@ format: ## Format the codebase with ocamlformat
 format-check: ## Checks if format is correct
 	$(DUNE) build @fmt
 
-
 .PHONY: init
 init: ## Create a local opam switch and setups githooks
 	git config core.hooksPath .githooks
 	opam switch create . --deps-only --with-test
 
-.PHONY: ppx_test
-ppx_test: ## Run ppx tests
+.PHONY: ppx-test
+ppx-test: ## Run ppx tests
 	$(DUNE) runtest ppx
 
-.PHONY: ppx_test_watch
-ppx_test_watch: ## Run ppx tests in watch mode
+.PHONY: ppx-test-watch
+ppx-test-watch: ## Run ppx tests in watch mode
 	$(DUNE) runtest ppx --watch
 
-.PHONY: lib_test
-lib_test: ## Run library tests
+.PHONY: lib-test
+lib-test: ## Run library tests
 	$(DUNE) exec test/test.exe
 
 .PHONY: commit
 commit:
 	echo $(current_hash) | cut -c1-7 | pbcopy
+
+$(opam_file): dune-project ## Update the package dependencies when new deps are added to dune-project
+	$(DUNE) build @install
+	opam install . --deps-only --with-test # Install the new dependencies
