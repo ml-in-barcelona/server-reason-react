@@ -69,7 +69,7 @@ lib-test: ## Run library tests
 	$(DUNE) exec test/test.exe
 
 .PHONY: commit
-commit:
+commit: ## Print lasts commit hash
 	@echo "Copied hash in copy: $(current_hash)";
 	@echo $(current_hash) | pbcopy;
 
