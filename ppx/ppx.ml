@@ -1022,7 +1022,7 @@ let jsxMapper () =
                 ({ txt = Lident "::" }, Some { pexp_desc = Pexp_tuple _ })
             | Pexp_construct ({ txt = Lident "[]" }, None) )
         } ->
-          "createElement"
+          "createElementVariadic"
       (* [@JSX] div(~children= value), coming from <div> ...(value) </div> *)
       | _ ->
           raise
