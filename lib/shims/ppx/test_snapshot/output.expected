@@ -80,4 +80,5 @@ let lowerWithChildrenComplex =
                                [@JSX ])] ())
                 [@JSX ])] ())
   [@JSX ])
-;;a#b; (a#b)#c
+;;a#b
+;;(a#b)#c
