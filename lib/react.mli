@@ -79,9 +79,6 @@ exception Invalid_children of string
 val createElement : string -> Attribute.t array -> Element.t list -> Element.t
 val cloneElement : Element.t -> Attribute.t array -> Element.t list -> Element.t
 
-val createElementVariadic :
-  string -> props:Attribute.t array -> Element.t list -> Element.t
-
 val memo : ('props * 'props -> bool) -> 'a -> 'props * 'props -> bool
 
 type 'a context =

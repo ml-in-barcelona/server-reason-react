@@ -1022,7 +1022,7 @@ let jsxMapper () =
                 ({ txt = Lident "::" }, Some { pexp_desc = Pexp_tuple _ })
             | Pexp_construct ({ txt = Lident "[]" }, None) )
         } ->
-          "createElementVariadic"
+          "createElement"
       (* [@JSX] div(~children= value), coming from <div> ...(value) </div> *)
       | _ ->
           raise
@@ -1045,7 +1045,7 @@ let jsxMapper () =
         (nolabel, componentNameExpr)
       ; (* [React.Attribute.String("key", "value")] *)
         (nolabel, propsObj)
-      ; (* [|moreCreateElementCallsHere|] *)
+      ; (* [|children aka moreCreateElementCallsHere|] *)
         (nolabel, mapper#expression children)
       ]
     in

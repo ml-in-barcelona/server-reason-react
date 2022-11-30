@@ -192,11 +192,12 @@ let cloneElement element new_attributes new_childrens =
   | Consumer child -> Consumer child
   | Upper_case_element f -> Upper_case_element f
 
-(* TODO: Use DomProps to implement this *)
-let labelled_props_to_props _props = [||]
+(* (* TODO: Use DomProps to implement this *)
+   let labelled_props_to_props _props = [||]
 
-let createElementVariadic tag ~props children =
-  createElement tag (labelled_props_to_props props) children
+   let createElementVariadic tag ~props children =
+     createElement tag (labelled_props_to_props props) children
+*)
 
 let memo f _compare : 'props * 'props -> bool = f
 
