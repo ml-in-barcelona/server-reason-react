@@ -2,6 +2,8 @@ include Bs_css.Properties
 include Bs_css.Colors
 
 module Hash = struct
+  (* This monstruosity runs a few bitwise operations as Int32 while the rest
+     of the algorithm is on Int64. *)
   module I32 = struct
     let ( << ) a b = Int32.shift_left (Int64.to_int32 a) b |> Int64.of_int32
 

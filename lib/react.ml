@@ -115,9 +115,7 @@ let clone_attribute acc attr new_attr =
 
 module StringMap = Map.Make (String)
 
-type attributes = Attribute.t StringMap.t
-
-let attributes_to_map attrs =
+let attributes_to_map (attributes : Attribute.t array) =
   Array.fold_left
     (fun acc attr ->
       match attr with
@@ -130,9 +128,9 @@ let attributes_to_map attrs =
       | Attribute.Ref _ -> acc
       | Attribute.Event _ -> acc
       | Attribute.Style _ -> acc)
-    StringMap.empty attrs
+    StringMap.empty attributes
 
-let clone_attributes (attributes : 'a array) new_attributes =
+let clone_attributes (attributes : Attribute.t array) new_attributes =
   let attribute_map = attributes_to_map attributes in
   let new_attribute_map = attributes_to_map new_attributes in
   StringMap.merge
