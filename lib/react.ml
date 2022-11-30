@@ -192,7 +192,6 @@ let cloneElement element new_attributes new_childrens =
   | Consumer child -> Consumer child
   | Upper_case_element f -> Upper_case_element f
 
-let createElementVariadic tag ~props children = createElement tag props children
 let memo f _compare : 'props * 'props -> bool = f
 
 type 'a context =

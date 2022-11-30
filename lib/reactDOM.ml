@@ -113,7 +113,7 @@ type mode =
   | String
   | Markup
 
-let render ~mode (element : Element.t) =
+let render_tree ~mode (element : Element.t) =
   let open Element in
   (* is_root starts at true (when renderToString) and only goes to false
      when renders an lower-case element or closed element *)
@@ -157,8 +157,8 @@ let render ~mode (element : Element.t) =
   in
   render_inner element
 
-let renderToString element = render ~mode:String element
-let renderToStaticMarkup element = render ~mode:Markup element
+let renderToString element = render_tree ~mode:String element
+let renderToStaticMarkup element = render_tree ~mode:Markup element
 let querySelector _str = None
 let render _element _node = ()
 

@@ -1045,7 +1045,7 @@ let jsxMapper () =
         (nolabel, componentNameExpr)
       ; (* [React.Attribute.String("key", "value")] *)
         (nolabel, propsObj)
-      ; (* [|moreCreateElementCallsHere|] *)
+      ; (* [|children aka moreCreateElementCallsHere|] *)
         (nolabel, mapper#expression children)
       ]
     in

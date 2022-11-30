@@ -1,5 +1,3 @@
-type t
-
 module StringMap = Map.Make (String)
 
 type styles = string StringMap.t
