@@ -153,18 +153,31 @@ let render_declaration rule =
   | _ -> None
 
 let is_media_query selector = String.contains selector '@'
+let regex_amp = Str.regexp_string "&"
+let replace_ampersand output = Str.global_replace regex_amp output
 
-let replace_all input output =
-  Str.global_replace (Str.regexp_string input) output
+let prefix ~pre s =
+  let len = String.length pre in
+  if len > String.length s then false
+  else
+    let rec check i =
+      if i = len then true
+      else if Stdlib.( <> ) (String.unsafe_get s i) (String.unsafe_get pre i)
+      then false
+      else check (i + 1)
+    in
+    check 0
 
-let replace_first input output =
-  Str.replace_first (Str.regexp_string input) output
+let chop_prefix ~pre s =
+  if prefix ~pre s then
+    Some
+      (String.sub s (String.length pre) (String.length s - String.length pre))
+  else None
 
 let remove_first_ampersand selector =
-  if String.starts_with ~prefix:"&" selector then replace_first "&" "" selector
-  else selector
+  selector |> chop_prefix ~pre:"&" |> Option.value ~default:selector
 
-let resolve_ampersand hash selector = replace_all "&" ("." ^ hash) selector
+let resolve_ampersand hash selector = replace_ampersand ("." ^ hash) selector
 
 let make_prelude hash selector =
   let new_selector =
