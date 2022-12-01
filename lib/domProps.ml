@@ -2823,7 +2823,6 @@ let isReactValidProp name =
        ?(yChannelSelector: string option)
        ?(z: string option)
        ?(zoomAndPan: string option)
-
        ?(about: string option)
        ?(datatype: string option)
        ?(inlist: string option)
@@ -2832,7 +2831,6 @@ let isReactValidProp name =
        ?(resource: string option)
        ?(typeof: string option)
        ?(vocab: string option)
-
        ?(dangerouslySetInnerHTML: dangerouslySetInnerHTML option)
        ?(suppressContentEditableWarning: bool option)
 *)
