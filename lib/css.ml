@@ -1,6 +1,12 @@
 include Bs_css.Properties
 include Bs_css.Colors
 
+module Seq = struct
+  include Seq
+
+  let flatten l = Seq.flat_map (fun x -> x) l
+end
+
 module Hash = struct
   (* This monstruosity runs a few bitwise operations as Int32 while the rest
      of the algorithm is on Int64. *)
@@ -130,21 +136,36 @@ module Hash = struct
     !h |> Int64.to_string |> String.cat "css-"
 end
 
-let rec rule_to_string accumulator rule =
+let rec rule_str_seq =
   let open Bs_css.Rule in
-  let next_rule =
-    match rule with
-    | Declaration (property, value) -> Printf.sprintf "%s: %s" property value
-    | Selector (selector, rules) ->
-        Printf.sprintf ".%s { %s }" selector (to_string rules)
-    | Pseudoclass (pseduoclass, rules) ->
-        Printf.sprintf ":%s { %s }" pseduoclass (to_string rules)
-    | PseudoclassParam (pseudoclass, param, rules) ->
-        Printf.sprintf ":%s ( %s ) %s" pseudoclass param (to_string rules)
-  in
-  accumulator ^ next_rule ^ "; "
+  function
+  | Declaration (property, value) -> List.to_seq [ property; ": "; value; "; " ]
+  | Selector (selector, rules) ->
+      Seq.append
+        (Seq.append
+           (List.to_seq [ "."; selector; " { " ])
+           (rules_str_seq rules))
+        (Seq.return " }")
+  | Pseudoclass (pseudoclass, rules) ->
+      Seq.append
+        (Seq.append
+           (List.to_seq [ ":"; pseudoclass; " { " ])
+           (rules_str_seq rules))
+        (Seq.return " }")
+  | PseudoclassParam (pseudoclass, param, rules) ->
+      Seq.append
+        (Seq.append
+           (List.to_seq [ ":"; pseudoclass; " ("; param; ") { " ])
+           (rules_str_seq rules))
+        (Seq.return " }")
 
-and to_string rules = rules |> List.fold_left rule_to_string "" |> String.trim
+and rules_str_seq rules =
+  List.to_seq rules |> Seq.map rule_str_seq |> Seq.flatten
+
+let rule_to_string rule = rule_str_seq rule |> List.of_seq |> String.concat ""
+
+let rules_to_string rules =
+  rules_str_seq rules |> List.of_seq |> String.concat ""
 
 let render_declaration rule =
   match rule with
@@ -188,16 +209,19 @@ let make_prelude hash selector =
 let render_selectors hash rule =
   match rule with
   | Bs_css.Rule.Selector (selector, rules) when is_media_query selector ->
-      Some (Printf.sprintf "%s { .%s { %s } }" selector hash (to_string rules))
+      Some
+        (Printf.sprintf "%s { .%s { %s } }" selector hash
+           (rules_to_string rules))
   | Bs_css.Rule.Selector (selector, rules) ->
       let prelude = make_prelude hash selector in
-      Some (Printf.sprintf "%s { %s }" prelude (to_string rules))
+      Some (Printf.sprintf "%s { %s }" prelude (rules_to_string rules))
   | Pseudoclass (pseduoclass, rules) ->
-      Some (Printf.sprintf ".%s:%s { %s }" hash pseduoclass (to_string rules))
+      Some
+        (Printf.sprintf ".%s:%s { %s }" hash pseduoclass (rules_to_string rules))
   | PseudoclassParam (pseudoclass, param, rules) ->
       Some
         (Printf.sprintf ".%s:%s ( %s ) %s" hash pseudoclass param
-           (to_string rules))
+           (rules_to_string rules))
   | _ -> None
 
 let rec rule_to_debug nesting accumulator rule =
@@ -242,7 +266,7 @@ let unnest_selectors rules =
          List.flatten (declarations :: selectors))
   |> List.flatten |> List.rev
 
-let rec nested_rule_to_string hash rules =
+let nested_rule_to_string hash rules =
   (* TODO: Refactor with partition or partition_map. List.filter_map is error prone.
      Selectors might need to respect the order of definition, and this breaks the order *)
   let list_of_rules = rules |> unnest_selectors |> List.rev in
@@ -257,9 +281,6 @@ let rec nested_rule_to_string hash rules =
   in
   Printf.sprintf "%s %s" declarations selectors
 
-and nested_to_string hash rules =
-  rules |> nested_rule_to_string hash |> String.trim
-
 let cache = ref (Hashtbl.create 1000)
 let _get hash = Hashtbl.find cache.contents hash
 let flush () = Hashtbl.clear cache.contents
@@ -268,14 +289,14 @@ let push hash (styles : Bs_css.Rule.t list) =
   Hashtbl.add cache.contents hash styles
 
 let style (styles : Bs_css.Rule.t list) =
-  let hash = Hash.make (to_string styles) in
+  let hash = Hash.make (rules_to_string styles) in
   push hash styles;
   hash
 
 let render_style_tag () =
   Hashtbl.fold
     (fun hash rules accumulator ->
-      let rules = nested_to_string hash rules in
+      let rules = rules |> nested_rule_to_string hash |> String.trim in
       Printf.sprintf "%s %s" accumulator rules)
     cache.contents ""
   |> String.trim
