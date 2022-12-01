@@ -1,5 +1,6 @@
 include Bs_css.Properties
 include Bs_css.Colors
+open Bs_css.Rule
 
 (* Exposing this module on Css.Hash to test it *)
 module Hash = Hash
@@ -10,40 +11,39 @@ module Seq = struct
   let flatten l = Seq.flat_map (fun x -> x) l
 end
 
-let rec rule_str_seq =
-  let open Bs_css.Rule in
-  function
+let rec generate_seq_rule = function
   | Declaration (property, value) -> List.to_seq [ property; ": "; value; "; " ]
   | Selector (selector, rules) ->
       Seq.append
         (Seq.append
            (List.to_seq [ "."; selector; " { " ])
-           (rules_str_seq rules))
+           (generate_seq_rules rules))
         (Seq.return " }")
   | Pseudoclass (pseudoclass, rules) ->
       Seq.append
         (Seq.append
            (List.to_seq [ ":"; pseudoclass; " { " ])
-           (rules_str_seq rules))
+           (generate_seq_rules rules))
         (Seq.return " }")
   | PseudoclassParam (pseudoclass, param, rules) ->
       Seq.append
         (Seq.append
            (List.to_seq [ ":"; pseudoclass; " ("; param; ") { " ])
-           (rules_str_seq rules))
+           (generate_seq_rules rules))
         (Seq.return " }")
 
-and rules_str_seq rules =
-  List.to_seq rules |> Seq.map rule_str_seq |> Seq.flatten
+and generate_seq_rules rules =
+  List.to_seq rules |> Seq.map generate_seq_rule |> Seq.flatten
 
-let rule_to_string rule = rule_str_seq rule |> List.of_seq |> String.concat ""
+let rule_to_string rule =
+  generate_seq_rule rule |> List.of_seq |> String.concat ""
 
 let rules_to_string rules =
-  rules_str_seq rules |> List.of_seq |> String.concat ""
+  generate_seq_rules rules |> List.of_seq |> String.concat ""
 
 let render_declaration rule =
   match rule with
-  | Bs_css.Rule.Declaration (property, value) ->
+  | Declaration (property, value) ->
       Some (Printf.sprintf "%s: %s;" property value)
   | _ -> None
 
@@ -82,11 +82,11 @@ let make_prelude hash selector =
 
 let render_selectors hash rule =
   match rule with
-  | Bs_css.Rule.Selector (selector, rules) when is_media_query selector ->
+  | Selector (selector, rules) when is_media_query selector ->
       Some
         (Printf.sprintf "%s { .%s { %s } }" selector hash
            (rules_to_string rules))
-  | Bs_css.Rule.Selector (selector, rules) ->
+  | Selector (selector, rules) ->
       let prelude = make_prelude hash selector in
       Some (Printf.sprintf "%s { %s }" prelude (rules_to_string rules))
   | Pseudoclass (pseduoclass, rules) ->
@@ -99,7 +99,6 @@ let render_selectors hash rule =
   | _ -> None
 
 let rec rule_to_debug nesting accumulator rule =
-  let open Bs_css.Rule in
   let next_rule =
     match rule with
     | Declaration (property, value) ->
@@ -123,7 +122,6 @@ let print_rules rules =
   rules |> List.iter (fun rule -> print_endline (to_debug 0 [ rule ]))
 
 let rec unnest ~prefix =
-  let open Bs_css.Rule in
   List.partition_map (function
     | Selector (title, selector_rules) ->
         let new_prelude = prefix ^ title in
@@ -157,11 +155,9 @@ let nested_rule_to_string hash rules =
 let cache = ref (Hashtbl.create 1000)
 let _get hash = Hashtbl.find cache.contents hash
 let flush () = Hashtbl.clear cache.contents
+let push hash (styles : t list) = Hashtbl.add cache.contents hash styles
 
-let push hash (styles : Bs_css.Rule.t list) =
-  Hashtbl.add cache.contents hash styles
-
-let style (styles : Bs_css.Rule.t list) =
+let style (styles : t list) =
   let hash = Hash.make (rules_to_string styles) in
   push hash styles;
   hash
