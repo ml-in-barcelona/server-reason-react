@@ -1,194 +1,104 @@
 include Bs_css.Properties
 include Bs_css.Colors
+open Bs_css.Rule
 
-module Hash = struct
-  (* This monstruosity runs a few bitwise operations as Int32 while the rest
-     of the algorithm is on Int64. *)
-  module I32 = struct
-    let ( << ) a b = Int32.shift_left (Int64.to_int32 a) b |> Int64.of_int32
+(* Exposing this module on Css.Hash to test it *)
+module Hash = Hash
 
-    let ( * ) a b =
-      Int32.mul (Int64.to_int32 a) (Int64.to_int32 b) |> Int64.of_int32
+module Seq = struct
+  include Seq
 
-    let ( >>> ) a b = Int32.shift_right (Int64.to_int32 a) b |> Int64.of_int32
-
-    let ( ++ ) a b =
-      Int32.add (Int64.to_int32 a) (Int64.to_int32 b) |> Int64.of_int32
-
-    let ( ^ ) a b =
-      Int32.logxor (Int64.to_int32 a) (Int64.to_int32 b) |> Int64.of_int32
-  end
-
-  let ( << ) = Int64.shift_left
-  let ( & ) = Int64.logand
-  let ( ||| ) = Int64.logor
-  let ( * ) = Int64.mul
-  let ( >>> ) = Int64.shift_right
-  let ( ++ ) = Int64.add
-  let ( ^ ) = Int64.logxor
-
-  (*
-    This hashing is a rewrite of @emotion/hash. What's below it's an ongoing effort to match the hashing function, currently not very precise. It's currenlty
-    a big WIP and that's why it's full of prints and comments.
-
-    Reference: https://github.com/emotion-js/emotion/blob/main/packages/hash/src/index.js
-  *)
-  let make (str : string) =
-    (* Initialize the hash *)
-    let len = str |> String.length |> Int64.of_int in
-    let h = ref (Int64.mul len len) in
-
-    (* Mix 4 bytes at a time into the hash *)
-    let k = ref Int64.zero in
-    let i = ref 0 in
-    let len = ref (String.length str) in
-
-    let get_int64_char str i = String.get str i |> Char.code |> Int64.of_int in
-
-    while !len >= 4 do
-      let first = get_int64_char str !i & 255L in
-      let second = (get_int64_char str (!i + 1) & 255L) << 8 in
-      let third = (get_int64_char str (!i + 2) & 255L) << 16 in
-      let forth = (get_int64_char str (!i + 3) & 255L) << 24 in
-      k := first ||| (second ||| (third ||| forth));
-
-      (* print_endline (Int64.to_string first); *)
-      (* print_endline (Int64.to_string second); *)
-      (* print_endline (Int64.to_string third); *)
-      (* print_endline (Int64.to_string forth); *)
-      (* print_endline "--"; *)
-      let k_one = !k & 65535L in
-      (* print_endline (Int64.to_string k_one); *)
-      (* print_endline (Int64.to_string (k_one * 1540483477L)); *)
-      let k_pre_16 = I32.( * ) (!k >>> 16) 59797L in
-      (* print_endline (Int64.to_string k_pre_16); *)
-      let k_16 = I32.( << ) k_pre_16 16 in
-      (* print_endline (Int64.to_string k_16); *)
-      k := (k_one * 1540483477L) ++ k_16;
-
-      (* print_endline (Int64.to_string !k); *)
-
-      (* k ^= k >>> 24; *)
-      (* k ^= /* k >>> r: */ k >>> 24; *)
-      k := I32.( ^ ) !k (I32.( >>> ) !k 24);
-
-      (* print_endline (Int64.to_string !k); *)
-      (* print_endline "--"; *)
-      let first_h =
-        ((!k & 65535L) * 1540483477L)
-        ++ I32.( << ) (I32.( >>> ) !k 16 * 59797L) 16
-      in
-      let second_h =
-        ((!h & 65535L) * 1540483477L)
-        ++ I32.( << ) (I32.( >>> ) !h 16 * 59797L) 16
-      in
-
-      h := I32.( ^ ) first_h second_h;
-      (* print_endline
-         (Int64.to_string
-            (I32.( << ) (I32.( >>> ) !k 16 * 59797L) 16)) *)
-      (* print_endline (Int64.to_string ((!h & 65535L) * 1540483477L)); *)
-      (* print_endline (Int64.to_string !h) *)
-      len := !len - 4;
-      i := !i + 1
-    done;
-
-    (* print_endline (Int64.to_string !h); *)
-
-    (* Handle the last few bytes of the input array *)
-    (* (h :=
-       match !len with
-       | 3 -> !h ^ I32.( << ) (get_int64_char str (!i + 2) & 255L) 16
-       | 2 -> !h ^ (get_int64_char str (!i + 1) & 255L) << 8
-       | 1 ->
-           h := I32.( ^ ) !h (get_int64_char str !i & 255L);
-           print_endline (Int64.to_string !h);
-           print_endline (Int64.to_string (Int64.shift_right !h 16));
-           ((!h & 65535L) * 1540483477L) ++ ((!h >>> 16) * 59797L << 16)
-       | _ -> !h); *)
-
-    (* Do a few final mixes of the hash to ensure the last few
-       * bytes are well-incorporated. *)
-
-    (* h ^= h >>> 13;
-       h =
-         (h & 0xffff) * 0x5bd1e995 + (((h >>> 16) * 0xe995) << 16);
-    *)
-
-    (* Do a few final mixes of the hash to ensure the last few *)
-    (* bytes are well-incorporated. *)
-    (* print_endline (Int64.to_string (!h >>> 13)); *)
-    h := !h ^ I32.( >>> ) !h 13;
-    h :=
-      I32.( ++ )
-        (I32.( * ) (!h & 65535L) 1540483477L)
-        (I32.( * ) (!h >>> 16) (59797L << 16));
-    h := !h ^ I32.( >>> ) !h 15;
-
-    (* turn to base 36 *)
-    (* let result = ((h ^ (h >>> 15)) >>> 0).toString(36); *)
-    !h |> Int64.to_string |> String.cat "css-"
+  let flatten l = Seq.flat_map (fun x -> x) l
 end
 
-let rec rule_to_string accumulator rule =
-  let open Bs_css.Rule in
-  let next_rule =
-    match rule with
-    | Declaration (property, value) -> Printf.sprintf "%s: %s" property value
-    | Selector (selector, rules) ->
-        Printf.sprintf ".%s { %s }" selector (to_string rules)
-    | Pseudoclass (pseduoclass, rules) ->
-        Printf.sprintf ":%s { %s }" pseduoclass (to_string rules)
-    | PseudoclassParam (pseudoclass, param, rules) ->
-        Printf.sprintf ":%s ( %s ) %s" pseudoclass param (to_string rules)
-  in
-  accumulator ^ next_rule ^ "; "
+let rec generate_seq_rule = function
+  | Declaration (property, value) -> List.to_seq [ property; ": "; value; "; " ]
+  | Selector (selector, rules) ->
+      Seq.append
+        (Seq.append
+           (List.to_seq [ "."; selector; " { " ])
+           (generate_seq_rules rules))
+        (Seq.return " }")
+  | Pseudoclass (pseudoclass, rules) ->
+      Seq.append
+        (Seq.append
+           (List.to_seq [ ":"; pseudoclass; " { " ])
+           (generate_seq_rules rules))
+        (Seq.return " }")
+  | PseudoclassParam (pseudoclass, param, rules) ->
+      Seq.append
+        (Seq.append
+           (List.to_seq [ ":"; pseudoclass; " ("; param; ") { " ])
+           (generate_seq_rules rules))
+        (Seq.return " }")
 
-and to_string rules = rules |> List.fold_left rule_to_string "" |> String.trim
+and generate_seq_rules rules =
+  List.to_seq rules |> Seq.map generate_seq_rule |> Seq.flatten
+
+let rule_to_string rule =
+  generate_seq_rule rule |> List.of_seq |> String.concat ""
+
+let rules_to_string rules =
+  generate_seq_rules rules |> List.of_seq |> String.concat ""
 
 let render_declaration rule =
   match rule with
-  | Bs_css.Rule.Declaration (property, value) ->
+  | Declaration (property, value) ->
       Some (Printf.sprintf "%s: %s;" property value)
   | _ -> None
 
 let is_media_query selector = String.contains selector '@'
+let regex_amp = Str.regexp_string "&"
+let replace_ampersand output = Str.global_replace regex_amp output
 
-let replace_all input output =
-  Str.global_replace (Str.regexp_string input) output
+let prefix ~pre s =
+  let len = String.length pre in
+  if len > String.length s then false
+  else
+    let rec check i =
+      if i = len then true
+      else if Stdlib.( <> ) (String.unsafe_get s i) (String.unsafe_get pre i)
+      then false
+      else check (i + 1)
+    in
+    check 0
 
-let replace_first input output =
-  Str.replace_first (Str.regexp_string input) output
+let chop_prefix ~pre s =
+  if prefix ~pre s then
+    Some
+      (String.sub s (String.length pre) (String.length s - String.length pre))
+  else None
 
 let remove_first_ampersand selector =
-  if String.starts_with ~prefix:"&" selector then replace_first "&" "" selector
-  else selector
+  selector |> chop_prefix ~pre:"&" |> Option.value ~default:selector
 
-let resolve_ampersand hash selector = replace_all "&" ("." ^ hash) selector
+let resolve_ampersand hash selector = replace_ampersand ("." ^ hash) selector
 
 let make_prelude hash selector =
   let new_selector =
-    selector |> remove_first_ampersand |> String.trim |> resolve_ampersand hash
+    selector |> remove_first_ampersand |> resolve_ampersand hash
   in
   Printf.sprintf ".%s %s" hash new_selector
 
 let render_selectors hash rule =
   match rule with
-  | Bs_css.Rule.Selector (selector, rules) when is_media_query selector ->
-      Some (Printf.sprintf "%s { .%s { %s } }" selector hash (to_string rules))
-  | Bs_css.Rule.Selector (selector, rules) ->
+  | Selector (selector, rules) when is_media_query selector ->
+      Some
+        (Printf.sprintf "%s { .%s { %s } }" selector hash
+           (rules_to_string rules))
+  | Selector (selector, rules) ->
       let prelude = make_prelude hash selector in
-      Some (Printf.sprintf "%s { %s }" prelude (to_string rules))
+      Some (Printf.sprintf "%s { %s }" prelude (rules_to_string rules))
   | Pseudoclass (pseduoclass, rules) ->
-      Some (Printf.sprintf ".%s:%s { %s }" hash pseduoclass (to_string rules))
+      Some
+        (Printf.sprintf ".%s:%s { %s }" hash pseduoclass (rules_to_string rules))
   | PseudoclassParam (pseudoclass, param, rules) ->
       Some
         (Printf.sprintf ".%s:%s ( %s ) %s" hash pseudoclass param
-           (to_string rules))
+           (rules_to_string rules))
   | _ -> None
 
 let rec rule_to_debug nesting accumulator rule =
-  let open Bs_css.Rule in
   let next_rule =
     match rule with
     | Declaration (property, value) ->
@@ -206,14 +116,12 @@ let rec rule_to_debug nesting accumulator rule =
   let space = if nesting > 0 then String.make (nesting * 2) ' ' else "" in
   accumulator ^ Printf.sprintf "\n%s" space ^ next_rule
 
-and to_debug nesting rules =
-  rules |> List.fold_left (rule_to_debug nesting) "" |> String.trim
+and to_debug nesting rules = rules |> List.fold_left (rule_to_debug nesting) ""
 
 let print_rules rules =
   rules |> List.iter (fun rule -> print_endline (to_debug 0 [ rule ]))
 
 let rec unnest ~prefix =
-  let open Bs_css.Rule in
   List.partition_map (function
     | Selector (title, selector_rules) ->
         let new_prelude = prefix ^ title in
@@ -229,7 +137,7 @@ let unnest_selectors rules =
          List.flatten (declarations :: selectors))
   |> List.flatten |> List.rev
 
-let rec nested_rule_to_string hash rules =
+let nested_rule_to_string hash rules =
   (* TODO: Refactor with partition or partition_map. List.filter_map is error prone.
      Selectors might need to respect the order of definition, and this breaks the order *)
   let list_of_rules = rules |> unnest_selectors |> List.rev in
@@ -244,28 +152,22 @@ let rec nested_rule_to_string hash rules =
   in
   Printf.sprintf "%s %s" declarations selectors
 
-and nested_to_string hash rules =
-  rules |> nested_rule_to_string hash |> String.trim
-
 let cache = ref (Hashtbl.create 1000)
 let _get hash = Hashtbl.find cache.contents hash
 let flush () = Hashtbl.clear cache.contents
+let push hash (styles : t list) = Hashtbl.add cache.contents hash styles
 
-let push hash (styles : Bs_css.Rule.t list) =
-  Hashtbl.add cache.contents hash styles
-
-let style (styles : Bs_css.Rule.t list) =
-  let hash = Hash.make (to_string styles) in
+let style (styles : t list) =
+  let hash = Hash.make (rules_to_string styles) in
   push hash styles;
   hash
 
 let render_style_tag () =
   Hashtbl.fold
     (fun hash rules accumulator ->
-      let rules = nested_to_string hash rules in
+      let rules = rules |> nested_rule_to_string hash |> String.trim in
       Printf.sprintf "%s %s" accumulator rules)
     cache.contents ""
-  |> String.trim
 
 (* let keyframes name rules =
    let rules =

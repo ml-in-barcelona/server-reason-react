@@ -22,7 +22,7 @@
  (synopsis "Rendering React components on the server natively")
  (depends
   ;; General system dependencies
-  (dune (and (>= 3.6) (< 4)))
+  (dune (and (>= 3.1) (< 4)))
   (ocaml (and (>= 4.12.0) (< 5.0.0)))
 
   (ppxlib (>= 0.23.0))
