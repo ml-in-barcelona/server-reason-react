@@ -78,7 +78,9 @@ let attribute_is_not_event attr =
   match attr with Attribute.Event _ -> false | _ -> true
 
 let attribute_is_valid tag attr =
-  attribute_is_html tag (get_key attr) && attribute_is_not_event attr
+  attribute_is_html tag (get_key attr)
+  && attribute_is_not_event attr
+  && not (is_react_custom_attribute attr)
 
 let attribute_to_string attr =
   let open Attribute in
@@ -98,13 +100,13 @@ let attribute_to_string attr =
 let attributes_to_string tag attrs =
   let valid_attributes =
     attrs |> Array.to_list
-    |> List.filter (attribute_is_valid tag)
-    |> List.filter (Fun.negate is_react_custom_attribute)
-    |> List.map attribute_to_string
+    |> List.filter_map (fun attr ->
+           if attribute_is_valid tag attr then Some (attribute_to_string attr)
+           else None)
   in
   match valid_attributes with
   | [] -> ""
-  | _ -> " " ^ (valid_attributes |> String.concat " " |> String.trim)
+  | rest -> " " ^ (rest |> String.concat " " |> String.trim)
 
 let react_root_attr_name = "data-reactroot"
 let data_react_root_attr = Printf.sprintf " %s=\"\"" react_root_attr_name
