@@ -6,6 +6,6 @@ let () =
     ; Test_renderToString.tests
     ; Test_cloneElement.tests
     ; Test_reactDOMStyle.tests
-    ; Test_css_hash.tests
+    ; Test_hash.tests
     ; Test_css_styles.tests
     ]

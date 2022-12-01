@@ -6,13 +6,13 @@ let test_one_property () =
   let _className = Css.style [ Css.display `block ] in
   let css = Css.render_style_tag () in
   Css.flush ();
-  assert_string css ".css-1123528597 { display: block; }"
+  assert_string css " .css-1123528597 { display: block; }"
 
 let test_multiple_properties () =
   let _className = Css.style [ Css.display `block; Css.fontSize (`px 10) ] in
   let css = Css.render_style_tag () in
   Css.flush ();
-  assert_string css ".css-23396256 { display: block; font-size: 10px; }"
+  assert_string css " .css-23396256 { display: block; font-size: 10px; }"
 
 let test_selector_one_nesting () =
   let _className =
@@ -24,7 +24,7 @@ let test_selector_one_nesting () =
   let css = Css.render_style_tag () in
   Css.flush ();
   assert_string css
-    ".css-325779844 { color: #F0F8FF; } .css-325779844 a { color: #663399;  }"
+    " .css-325779844 { color: #F0F8FF; } .css-325779844 a { color: #663399;  }"
 
 let test_selector_more_than_one_nesting () =
   let _className =
@@ -37,7 +37,7 @@ let test_selector_more_than_one_nesting () =
   let css = Css.render_style_tag () in
   Css.flush ();
   assert_string css
-    ".css-63155034 { color: #F0F8FF; } .css-63155034 a { display: block;  } \
+    " .css-63155034 { color: #F0F8FF; } .css-63155034 a { display: block;  } \
      .css-63155034 a div { display: none;  }"
 
 let test_selector_with_a_lot_of_nesting () =
@@ -62,8 +62,8 @@ let test_selector_with_a_lot_of_nesting () =
   let css = Css.render_style_tag () in
   Css.flush ();
   assert_string css
-    ".css-1474285669 { display: flex; } .css-1474285669 a { display: block;  } \
-     .css-1474285669 a div { display: none;  } .css-1474285669 a div span { \
+    " .css-1474285669 { display: flex; } .css-1474285669 a { display: block;  \
+     } .css-1474285669 a div { display: none;  } .css-1474285669 a div span { \
      display: none;  } .css-1474285669 a div span hr { display: none;  } \
      .css-1474285669 a div span hr code { display: none;  }"
 
@@ -85,7 +85,7 @@ let test_with_react () =
   let app = React.createElement "html" [||] [ head; body ] in
   assert_string
     (ReactDOM.renderToStaticMarkup app)
-    "<html><head><style>.css-1123528597 { display: block; \
+    "<html><head><style> .css-1123528597 { display: block; \
      }</style></head><body><div class=\"css-1123528597\"></div></body></html>"
 
 let test_selector_ampersand () =
@@ -96,7 +96,7 @@ let test_selector_ampersand () =
   let css = Css.render_style_tag () in
   Css.flush ();
   assert_string css
-    ".css-734192936 { font-size: 42px; } .css-734192936 .div { font-size: \
+    " .css-734192936 { font-size: 42px; } .css-734192936  .div { font-size: \
      24px;  }"
 
 let test_selector_ampersand_at_the_middle () =
@@ -109,7 +109,7 @@ let test_selector_ampersand_at_the_middle () =
   let css = Css.render_style_tag () in
   Css.flush ();
   assert_string css
-    ".css-734192936 { font-size: 42px; } .css-734192936 div .css-734192936 { \
+    " .css-734192936 { font-size: 42px; } .css-734192936 div .css-734192936 { \
      font-size: 24px;  }"
 
 let test_media_queries () =
@@ -122,7 +122,7 @@ let test_media_queries () =
   let css = Css.render_style_tag () in
   Css.flush ();
   assert_string css
-    ".css-1122938993 { max-width: 800px; } @media (max-width: 768px) { \
+    " .css-1122938993 { max-width: 800px; } @media (max-width: 768px) { \
      .css-1122938993 { width: 300px;  } }"
 
 (* let test_media_queries_nested () =
@@ -148,7 +148,7 @@ let test_selector_params () =
   let css = Css.render_style_tag () in
   Css.flush ();
   assert_string css
-    ".css-330440578 { max-width: 800px; } .css-330440578:first-child { width: \
+    " .css-330440578 { max-width: 800px; } .css-330440578:first-child { width: \
      300px;  }"
 
 let test_keyframe () =
@@ -162,7 +162,7 @@ let test_keyframe () =
   let _className = Css.style [ Css.animationName loading ] in
   let css = Css.render_style_tag () in
   Css.flush ();
-  assert_string css ".css-1872099120 { animation-name: random; }"
+  assert_string css " .css-1872099120 { animation-name: random; }"
 
 let tests =
   ( "Emotion"

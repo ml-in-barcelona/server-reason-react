@@ -25,7 +25,7 @@
 
 (library
  (name css)
- (modules css)
+ (modules css hash)
  (modes melange best)
  (public_name server-reason-react.css)
  (libraries server-reason-react.bs_css str))
