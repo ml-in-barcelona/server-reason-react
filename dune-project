@@ -3,6 +3,7 @@
 (using melange 0.1)
 
 (name server-reason-react)
+(version 3234376)
 
 (license MIT)
 
