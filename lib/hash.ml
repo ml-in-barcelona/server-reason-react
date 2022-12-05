@@ -23,8 +23,45 @@ let ( >>> ) = Int64.shift_right
 let ( ++ ) = Int64.add
 let ( ^ ) = Int64.logxor
 
-let to_css (number : Int64.t) =
-  number |> Printf.sprintf "%Lx" |> String.cat "css-"
+let to_base36 (num : Int64.t) =
+  let rec to_base36' (num : Int64.t) =
+    if num = 0L then []
+    else
+      let quotient = Int64.div num 36L in
+      let remainder = Int64.rem num 36L in
+      (match remainder with
+      | 10L -> "a"
+      | 11L -> "b"
+      | 12L -> "c"
+      | 13L -> "d"
+      | 14L -> "e"
+      | 15L -> "f"
+      | 16L -> "g"
+      | 17L -> "h"
+      | 18L -> "i"
+      | 19L -> "j"
+      | 20L -> "k"
+      | 21L -> "l"
+      | 22L -> "m"
+      | 23L -> "n"
+      | 24L -> "o"
+      | 25L -> "p"
+      | 26L -> "q"
+      | 27L -> "r"
+      | 28L -> "s"
+      | 29L -> "t"
+      | 30L -> "u"
+      | 31L -> "v"
+      | 32L -> "w"
+      | 33L -> "x"
+      | 34L -> "y"
+      | 35L -> "z"
+      | _ -> string_of_int (Int64.to_int remainder))
+      :: to_base36' quotient
+  in
+  num |> to_base36' |> List.rev |> String.concat ""
+
+let to_css (number : Int64.t) = number |> to_base36 |> String.cat "css-"
 
 (*
     This hashing is a rewrite of @emotion/hash. What's below it's an ongoing effort to match the hashing function, currently not very precise. It's currenlty

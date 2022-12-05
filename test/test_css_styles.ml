@@ -6,13 +6,13 @@ let test_one_property () =
   let _className = Css.style [ Css.display `block ] in
   let css = Css.render_style_tag () in
   Css.flush ();
-  assert_string css " .css-42f7af95 { display: block; }"
+  assert_string css " .css-ikx47p { display: block; }"
 
 let test_multiple_properties () =
   let _className = Css.style [ Css.display `block; Css.fontSize (`px 10) ] in
   let css = Css.render_style_tag () in
   Css.flush ();
-  assert_string css " .css-164ffa0 { display: block; font-size: 10px; }"
+  assert_string css " .css-dxgo0 { display: block; font-size: 10px; }"
 
 let test_selector_one_nesting () =
   let _className =
@@ -24,7 +24,7 @@ let test_selector_one_nesting () =
   let css = Css.render_style_tag () in
   Css.flush ();
   assert_string css
-    " .css-136b0184 { color: #F0F8FF; } .css-136b0184 a { color: #663399;  }"
+    " .css-5dylc4 { color: #F0F8FF; } .css-5dylc4 a { color: #663399;  }"
 
 let test_selector_more_than_one_nesting () =
   let _className =
@@ -37,8 +37,8 @@ let test_selector_more_than_one_nesting () =
   let css = Css.render_style_tag () in
   Css.flush ();
   assert_string css
-    " .css-3c3ab5a { color: #F0F8FF; } .css-3c3ab5a a { display: block;  } \
-     .css-3c3ab5a a div { display: none;  }"
+    " .css-11lmqi { color: #F0F8FF; } .css-11lmqi a { display: block;  } \
+     .css-11lmqi a div { display: none;  }"
 
 let test_selector_with_a_lot_of_nesting () =
   let _className =
@@ -62,10 +62,10 @@ let test_selector_with_a_lot_of_nesting () =
   let css = Css.render_style_tag () in
   Css.flush ();
   assert_string css
-    " .css-57dfd065 { display: flex; } .css-57dfd065 a { display: block;  } \
-     .css-57dfd065 a div { display: none;  } .css-57dfd065 a div span { \
-     display: none;  } .css-57dfd065 a div span hr { display: none;  } \
-     .css-57dfd065 a div span hr code { display: none;  }"
+    " .css-odr23p { display: flex; } .css-odr23p a { display: block;  } \
+     .css-odr23p a div { display: none;  } .css-odr23p a div span { display: \
+     none;  } .css-odr23p a div span hr { display: none;  } .css-odr23p a div \
+     span hr code { display: none;  }"
 
 let test_selector_ampersand () =
   let _className =
@@ -75,8 +75,7 @@ let test_selector_ampersand () =
   let css = Css.render_style_tag () in
   Css.flush ();
   assert_string css
-    " .css-2bc2e528 { font-size: 42px; } .css-2bc2e528  .div { font-size: \
-     24px;  }"
+    " .css-c54aw8 { font-size: 42px; } .css-c54aw8  .div { font-size: 24px;  }"
 
 let test_selector_ampersand_at_the_middle () =
   let _className =
@@ -88,7 +87,7 @@ let test_selector_ampersand_at_the_middle () =
   let css = Css.render_style_tag () in
   Css.flush ();
   assert_string css
-    " .css-42eeb071 { font-size: 42px; } .css-42eeb071 div .css-42eeb071 { \
+    " .css-5lv1rr { font-size: 42px; } .css-5lv1rr  div .css-5lv1rr { \
      font-size: 24px;  }"
 
 let test_media_queries () =
@@ -101,8 +100,8 @@ let test_media_queries () =
   let css = Css.render_style_tag () in
   Css.flush ();
   assert_string css
-    " .css-42eeb071 { max-width: 800px; } @media (max-width: 768px) { \
-     .css-42eeb071 { width: 300px;  } }"
+    " .css-ikkh9t { max-width: 800px; } @media (max-width: 768px) { \
+     .css-ikkh9t { width: 300px;  } }"
 
 (* let test_media_queries_nested () =
    let _className =
@@ -127,7 +126,7 @@ let test_selector_params () =
   let css = Css.render_style_tag () in
   Css.flush ();
   assert_string css
-    " .css-13b21f82 { max-width: 800px; } .css-13b21f82:first-child { width: \
+    " .css-5gqhky { max-width: 800px; } .css-5gqhky:first-child { width: \
      300px;  }"
 
 let test_keyframe () =
@@ -141,7 +140,7 @@ let test_keyframe () =
   let _className = Css.style [ Css.animationName loading ] in
   let css = Css.render_style_tag () in
   Css.flush ();
-  assert_string css " .css-6f95f730 { animation-name: random; }"
+  assert_string css " .css-uylkxc { animation-name: random; }"
 
 let test_with_react () =
   let className = Css.style [ Css.display `block ] in
@@ -161,8 +160,8 @@ let test_with_react () =
   let app = React.createElement "html" [||] [ head; body ] in
   assert_string
     (ReactDOM.renderToStaticMarkup app)
-    "<html><head><style> .css-42f7af95 { display: block; \
-     }</style></head><body><div class=\"css-42f7af95\"></div></body></html>"
+    "<html><head><style> .css-ikx47p { display: block; \
+     }</style></head><body><div class=\"css-ikx47p\"></div></body></html>"
 
 let tests =
   ( "Emotion"
@@ -176,6 +175,8 @@ let tests =
     ; test_case "test_media_queries" `Quick test_media_queries
       (* ; test_case "test_media_queries_nested" `Quick test_media_queries_nested *)
     ; test_case "test_selector_ampersand" `Quick test_selector_ampersand
+    ; test_case "test_selector_ampersand_at_the_middle" `Quick
+        test_selector_ampersand_at_the_middle
     ; test_case "test_selector_params" `Quick test_selector_params
     ; test_case "test_keyframe" `Quick test_keyframe
     ; test_case "test_with_react_component" `Quick test_with_react
