@@ -23,13 +23,53 @@ let ( >>> ) = Int64.shift_right
 let ( ++ ) = Int64.add
 let ( ^ ) = Int64.logxor
 
+let to_base36 (num : Int64.t) =
+  let rec to_base36' (num : Int64.t) =
+    if num = 0L then []
+    else
+      let quotient = Int64.div num 36L in
+      let remainder = Int64.rem num 36L in
+      (match remainder with
+      | 10L -> "a"
+      | 11L -> "b"
+      | 12L -> "c"
+      | 13L -> "d"
+      | 14L -> "e"
+      | 15L -> "f"
+      | 16L -> "g"
+      | 17L -> "h"
+      | 18L -> "i"
+      | 19L -> "j"
+      | 20L -> "k"
+      | 21L -> "l"
+      | 22L -> "m"
+      | 23L -> "n"
+      | 24L -> "o"
+      | 25L -> "p"
+      | 26L -> "q"
+      | 27L -> "r"
+      | 28L -> "s"
+      | 29L -> "t"
+      | 30L -> "u"
+      | 31L -> "v"
+      | 32L -> "w"
+      | 33L -> "x"
+      | 34L -> "y"
+      | 35L -> "z"
+      | _ -> string_of_int (Int64.to_int remainder))
+      :: to_base36' quotient
+  in
+  num |> to_base36' |> List.rev |> String.concat ""
+
+let to_css (number : Int64.t) = number |> to_base36 |> String.cat "css-"
+
 (*
     This hashing is a rewrite of @emotion/hash. What's below it's an ongoing effort to match the hashing function, currently not very precise. It's currenlty
     a big WIP and that's why it's full of prints and comments.
 
     Reference: https://github.com/emotion-js/emotion/blob/main/packages/hash/src/index.js
   *)
-let make (str : string) =
+let murmur2 (str : string) =
   (* Initialize the hash *)
   let len = str |> String.length |> Int64.of_int in
   let h = ref (Int64.mul len len) in
@@ -39,14 +79,13 @@ let make (str : string) =
   let i = ref 0 in
   let len = ref (String.length str) in
 
-  let get_int64_char str i = String.get str i |> Char.code |> Int64.of_int in
-
   while !len >= 4 do
-    let first = get_int64_char str !i & 255L in
-    let second = (get_int64_char str (!i + 1) & 255L) << 8 in
-    let third = (get_int64_char str (!i + 2) & 255L) << 16 in
-    let forth = (get_int64_char str (!i + 3) & 255L) << 24 in
-    k := first ||| (second ||| (third ||| forth));
+    k :=
+      Char.code str.[!i]
+      lor (Char.code str.[!i + 1] lsl 8)
+      lor (Char.code str.[!i + 2] lsl 16)
+      lor (Char.code str.[!i + 3] lsl 24)
+      |> Int64.of_int;
 
     (* print_endline (Int64.to_string first); *)
     (* print_endline (Int64.to_string second); *)
@@ -119,8 +158,56 @@ let make (str : string) =
     I32.( ++ )
       (I32.( * ) (!h & 65535L) 1540483477L)
       (I32.( * ) (!h >>> 16) (59797L << 16));
-  h := !h ^ I32.( >>> ) !h 15;
 
-  (* turn to base 36 *)
-  (* let result = ((h ^ (h >>> 15)) >>> 0).toString(36); *)
-  !h |> Int64.to_string |> String.cat "css-"
+  !h ^ I32.( >>> ) !h 15
+
+(* let murmur2 str =
+   let h : Int64.t ref = ref 0L in
+   let m = 0x5bd1e995 in
+   let r = 24 in
+   let len = String.length str in
+   let rec loop i =
+     if len >= 4 then begin
+       let k =
+         Char.code str.[i]
+         lor (Char.code str.[i + 1] lsl 8)
+         lor (Char.code str.[i + 2] lsl 16)
+         lor (Char.code str.[i + 3] lsl 24)
+       in
+       let k =
+         Int64.mul (Int64.logand k 0xffffL) m
+         lor Int64.shift_left (Int64.mul (Int64.shift_right_logical k 16) m) 16
+       in
+       let k = Int64.logxor k (Int64.shift_right_logical k r) in
+       let h' =
+         Int64.mul (Int64.logand k 0xffffL) m
+         lor Int64.shift_left (Int64.mul (Int64.shift_right_logical k 16) m) 16
+       in
+       h := Int64.logxor !h h';
+       loop (i + 4)
+     end
+   in
+   loop 0;
+   begin
+     match len with
+     | 3 ->
+         h :=
+           Int64.logxor !h
+             (Int64.shift_left (Int64.of_int (Char.code str.[len - 2])) 16)
+     | 2 ->
+         h :=
+           Int64.logxor !h
+             (Int64.shift_left (Int64.of_int (Char.code str.[len - 1])) 8)
+     | 1 -> h := Int64.logxor !h (Int64.of_int (Char.code str.[len]))
+     | _ -> ()
+   end;
+   h := Int64.logxor !h (Int64.shift_right_logical !h 13);
+   h :=
+     Int64.mul (Int64.logand !h 0xffffL) m
+     lor Int64.shift_left (Int64.mul (Int64.shift_right_logical !h 16) m) 16;
+   Int64.logxor !h (Int64.shift_right_logical !h 15)
+*)
+
+let make (str : string) =
+  let hash = murmur2 str in
+  to_css hash
