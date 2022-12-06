@@ -131,24 +131,17 @@ let murmur2 (str : string) =
   (* print_endline (Int64.to_string !h); *)
 
   (* Handle the last few bytes of the input array *)
-  (* (h :=
-     match !len with
-     | 3 -> !h ^ I32.( << ) (get_int64_char str (!i + 2) & 255L) 16
-     | 2 -> !h ^ (get_int64_char str (!i + 1) & 255L) << 8
-     | 1 ->
-         h := I32.( ^ ) !h (get_int64_char str !i & 255L);
-         print_endline (Int64.to_string !h);
-         print_endline (Int64.to_string (Int64.shift_right !h 16));
-         ((!h & 65535L) * 1540483477L) ++ ((!h >>> 16) * 59797L << 16)
-     | _ -> !h); *)
-
-  (* Do a few final mixes of the hash to ensure the last few
-     * bytes are well-incorporated. *)
-
-  (* h ^= h >>> 13;
-     h =
-       (h & 0xffff) * 0x5bd1e995 + (((h >>> 16) * 0xe995) << 16);
-  *)
+  (* (match !len with
+     | 3 ->
+         h :=
+           Int64.logxor !h
+             (Int64.shift_left (Int64.of_int (Char.code str.[!len - 2])) 16)
+     | 2 ->
+         h :=
+           Int64.logxor !h
+             (Int64.shift_left (Int64.of_int (Char.code str.[!len - 1])) 8)
+     | 1 -> h := Int64.logxor !h (Int64.of_int (Char.code str.[!len]))
+     | _ -> ()); *)
 
   (* Do a few final mixes of the hash to ensure the last few *)
   (* bytes are well-incorporated. *)
