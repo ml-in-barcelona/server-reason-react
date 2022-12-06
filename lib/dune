@@ -8,7 +8,7 @@
 (library
  (name react)
  (modules react reactEvent domProps)
- (modes melange best)
+ (modes best)
  (wrapped false)
  (public_name server-reason-react.react)
  (libraries shims server-reason-react.js))
@@ -16,7 +16,7 @@
 (library
  (name reactDOM)
  (modules reactDOM reactDOMStyle)
- (modes melange best)
+ (modes best)
  (wrapped false)
  (public_name server-reason-react.reactDom)
  (libraries react shims server-reason-react.js))
@@ -26,6 +26,6 @@
 (library
  (name css)
  (modules css hash)
- (modes melange best)
+ (modes best)
  (public_name server-reason-react.css)
  (libraries server-reason-react.bs_css str))
