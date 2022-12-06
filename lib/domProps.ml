@@ -2074,6 +2074,7 @@ let webViewHTMLAttributes =
 
 let commonHtmlAttributes =
   elementAttributes & reactAttributes & globalAttributes & globalEventHandlers
+  & ariaAttributes
 
 let htmlElements =
   [ { tag = "a"; attributes = commonHtmlAttributes & anchorHTMLAttributes }
@@ -2281,6 +2282,9 @@ let getName = function
   | Attribute { name; _ } -> name
   | Event { name; _ } -> name
 
+let domPropNames =
+  (commonSvgAttributes & commonHtmlAttributes) |> List.map getName
+
 let getJSXName = function
   | Attribute { jsxName; _ } -> jsxName
   | Event { name; _ } -> name
@@ -2294,17 +2298,86 @@ let getAttributes tag =
   List.find_opt (fun element -> element.tag = tag) elements
   |> Option.to_result ~none:`ElementNotFound
 
+let isDataAttribute = String.starts_with ~prefix:"data"
+
+let string_of_chars chars =
+  let buf = Buffer.create 16 in
+  List.iter (Buffer.add_char buf) chars;
+  Buffer.contents buf
+
+let chars_of_string str = List.init (String.length str) (String.get str)
+
+let camelcaseToKebabcase str =
+  let rec loop acc = function
+    | [] -> acc
+    | [ x ] -> x :: acc
+    | x :: y :: xs ->
+        if Char.uppercase_ascii y == y then
+          loop ('-' :: x :: acc) (Char.lowercase_ascii y :: xs)
+        else loop (x :: acc) (y :: xs)
+  in
+  str |> chars_of_string |> loop [] |> List.rev |> string_of_chars
+
 let findByName tag name =
   let byName p = getName p = name in
-  match getAttributes tag with
-  | Ok { attributes; _ } ->
-      List.find_opt byName attributes
-      |> Option.to_result ~none:`AttributeNotFound
-  | Error err -> Error err
+  if isDataAttribute name then
+    let jsxName = camelcaseToKebabcase name in
+    Ok (Attribute { name; jsxName; type_ = String })
+  else
+    match getAttributes tag with
+    | Ok { attributes; _ } ->
+        List.find_opt byName attributes
+        |> Option.to_result ~none:`AttributeNotFound
+    | Error err -> Error err
 
 let isReactValidProp name =
   let byName p = getName p = name in
   reactValidHtml |> List.exists byName
+
+module Levenshtein = struct
+  (* Levenshtein distance from https://rosettacode.org/wiki/Levenshtein_distance *)
+  let minimum a b c = min a (min b c)
+
+  let distance s t =
+    let first = String.length s and second = String.length t in
+    let matrix = Array.make_matrix (first + 1) (second + 1) 0 in
+    for i = 0 to first do
+      matrix.(i).(0) <- i
+    done;
+    for j = 0 to second do
+      matrix.(0).(j) <- j
+    done;
+    for j = 1 to second do
+      for i = 1 to first do
+        if s.[i - 1] = t.[j - 1] then matrix.(i).(j) <- matrix.(i - 1).(j - 1)
+        else
+          matrix.(i).(j) <-
+            minimum
+              (matrix.(i - 1).(j) + 1)
+              (matrix.(i).(j - 1) + 1)
+              (matrix.(i - 1).(j - 1) + 1)
+      done
+    done;
+    matrix.(first).(second)
+end
+
+type closest =
+  { name : string
+  ; distance : int
+  }
+
+let find_closest_name invalid =
+  let accumulate_distance name bestMatch =
+    let distance = Levenshtein.distance invalid name in
+    match distance < bestMatch.distance with
+    | true -> { name; distance }
+    | false -> bestMatch
+  in
+  let { name; distance = _ } =
+    List.fold_right accumulate_distance domPropNames
+      { name = ""; distance = max_int }
+  in
+  name
 
 (* A manual implementation of [@bs.deriving abstract] *)
 (* type domRef
