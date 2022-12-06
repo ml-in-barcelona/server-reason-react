@@ -2072,9 +2072,12 @@ let webViewHTMLAttributes =
       { name = "webPreferences"; jsxName = "webPreferences"; type_ = String }
   ]
 
+let hackAttributes =
+  [ Attribute { name = "_onclick"; jsxName = "onclick"; type_ = String } ]
+
 let commonHtmlAttributes =
   elementAttributes & reactAttributes & globalAttributes & globalEventHandlers
-  & ariaAttributes
+  & ariaAttributes & hackAttributes
 
 let htmlElements =
   [ { tag = "a"; attributes = commonHtmlAttributes & anchorHTMLAttributes }
@@ -2283,7 +2286,10 @@ let getName = function
   | Event { name; _ } -> name
 
 let domPropNames =
-  (commonSvgAttributes & commonHtmlAttributes) |> List.map getName
+  (commonSvgAttributes & commonHtmlAttributes)
+  |> List.map getName
+  (* We ignore prefixed names such as "hackAttributes prop list" *)
+  |> List.filter (fun name -> String.starts_with ~prefix:"_" name)
 
 let getJSXName = function
   | Attribute { jsxName; _ } -> jsxName

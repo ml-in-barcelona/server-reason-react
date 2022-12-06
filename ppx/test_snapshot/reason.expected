@@ -505,7 +505,7 @@ let upper_child_ident = Div.make ~children:lola ()
 ;;React.createElement "p"
     ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
        Array.of_list) [((React.string greeting)[@reason.preserve_braces ])]
-let div =
+let dataAttributesShouldTransformToKebabCase =
   React.Fragment.make
     ~children:(([React.createElement "div"
                    ((([|(Some
@@ -531,5 +531,3 @@ let div =
                        |> Array.to_list)
                       |> (List.filter_map (fun a -> a)))
                      |> Array.of_list) []])[@JSX ]) ()
-;;Link.make ~url:(("/hello")[@reason.raw_literal "/hello"]) ~txt:(("hiya")
-    [@reason.raw_literal "hiya"]) ()
