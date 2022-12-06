@@ -1,7 +1,7 @@
 (lang dune 2.9)
 
 (name server-reason-react)
-(version 9f336eb)
+(version 9872504)
 
 (license MIT)
 
