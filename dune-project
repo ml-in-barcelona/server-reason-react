@@ -1,9 +1,7 @@
-(lang dune 3.6)
-(using directory-targets 0.1)
-(using melange 0.1)
+(lang dune 2.9)
 
 (name server-reason-react)
-(version 3234376)
+(version 9f336eb)
 
 (license MIT)
 
@@ -23,7 +21,7 @@
  (synopsis "Rendering React components on the server natively")
  (depends
   ;; General system dependencies
-  (dune (and (>= 3.6) (< 4)))
+  (dune (and (>= 2.9) (< 4)))
   (ocaml (and (>= 4.12.0) (< 5.0.0)))
 
   (ppxlib (>= 0.23.0))
