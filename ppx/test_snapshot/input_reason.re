@@ -165,7 +165,7 @@ let upperWithChildren =
 module Container = {
   [@react.component]
   let make = (~children) => {
-    <div> children </div>;
+    <div ariaHidden="true"> children </div>;
   };
 };
 

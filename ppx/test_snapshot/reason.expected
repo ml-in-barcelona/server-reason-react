@@ -460,7 +460,12 @@ module Container =
       ((fun ~children ->
           fun () ->
             ((React.createElement "div"
-                ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a)))
+                ((([|(Some
+                        (React.Attribute.String
+                           ("aria-hidden", ((("true")
+                             [@reason.raw_literal "true"]) : string))))|]
+                     |> Array.to_list)
+                    |> (List.filter_map (fun a -> a)))
                    |> Array.of_list) [children])
             [@reason.preserve_braces ]))
       [@warning "-16"][@warning "-16"])

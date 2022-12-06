@@ -2074,6 +2074,7 @@ let webViewHTMLAttributes =
 
 let commonHtmlAttributes =
   elementAttributes & reactAttributes & globalAttributes & globalEventHandlers
+  & ariaAttributes
 
 let htmlElements =
   [ { tag = "a"; attributes = commonHtmlAttributes & anchorHTMLAttributes }
