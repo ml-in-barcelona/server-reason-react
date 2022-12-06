@@ -531,3 +531,12 @@ let dataAttributesShouldTransformToKebabCase =
                        |> Array.to_list)
                       |> (List.filter_map (fun a -> a)))
                      |> Array.of_list) []])[@JSX ]) ()
+let render_onclickPropsAsString =
+  React.createElement "div"
+    ((([|(Some
+            (React.Attribute.String
+               ("onclick", ((("alert('hello')")
+                 [@reason.raw_literal "alert('hello')"]) : string))))|]
+         |> Array.to_list)
+        |> (List.filter_map (fun a -> a)))
+       |> Array.of_list) []
