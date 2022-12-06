@@ -510,8 +510,16 @@ let div =
     ~children:(([React.createElement "div"
                    ((([|(Some
                            (React.Attribute.String
-                              ("className", ((("md:w-1/3")
-                                [@reason.raw_literal "md:w-1/3"]) : string))))|]
+                              ("data-attribute", ((("")
+                                [@reason.raw_literal ""]) : string))));(
+                        Some
+                          (React.Attribute.String
+                             ("dataattribute", ((("")
+                               [@reason.raw_literal ""]) : string))));(
+                        Some
+                          (React.Attribute.String
+                             ("className", ((("md:w-1/3")
+                               [@reason.raw_literal "md:w-1/3"]) : string))))|]
                         |> Array.to_list)
                        |> (List.filter_map (fun a -> a)))
                       |> Array.of_list) [];

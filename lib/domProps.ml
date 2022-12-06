@@ -2295,13 +2295,37 @@ let getAttributes tag =
   List.find_opt (fun element -> element.tag = tag) elements
   |> Option.to_result ~none:`ElementNotFound
 
+let isDataAttribute = String.starts_with ~prefix:"data"
+
+let string_of_chars chars =
+  let buf = Buffer.create 16 in
+  List.iter (Buffer.add_char buf) chars;
+  Buffer.contents buf
+
+let chars_of_string str = List.init (String.length str) (String.get str)
+
+let camelcaseToKebabcase str =
+  let rec loop acc = function
+    | [] -> acc
+    | [ x ] -> x :: acc
+    | x :: y :: xs ->
+        if Char.uppercase_ascii y == y then
+          loop ('-' :: x :: acc) (Char.lowercase_ascii y :: xs)
+        else loop (x :: acc) (y :: xs)
+  in
+  str |> chars_of_string |> loop [] |> List.rev |> string_of_chars
+
 let findByName tag name =
   let byName p = getName p = name in
-  match getAttributes tag with
-  | Ok { attributes; _ } ->
-      List.find_opt byName attributes
-      |> Option.to_result ~none:`AttributeNotFound
-  | Error err -> Error err
+  if isDataAttribute name then
+    let jsxName = camelcaseToKebabcase name in
+    Ok (Attribute { name; jsxName; type_ = String })
+  else
+    match getAttributes tag with
+    | Ok { attributes; _ } ->
+        List.find_opt byName attributes
+        |> Option.to_result ~none:`AttributeNotFound
+    | Error err -> Error err
 
 let isReactValidProp name =
   let byName p = getName p = name in
