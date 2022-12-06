@@ -2282,6 +2282,9 @@ let getName = function
   | Attribute { name; _ } -> name
   | Event { name; _ } -> name
 
+let domPropNames =
+  (commonSvgAttributes & commonHtmlAttributes) |> List.map getName
+
 let getJSXName = function
   | Attribute { jsxName; _ } -> jsxName
   | Event { name; _ } -> name
@@ -2330,6 +2333,51 @@ let findByName tag name =
 let isReactValidProp name =
   let byName p = getName p = name in
   reactValidHtml |> List.exists byName
+
+module Levenshtein = struct
+  (* Levenshtein distance from https://rosettacode.org/wiki/Levenshtein_distance *)
+  let minimum a b c = min a (min b c)
+
+  let distance s t =
+    let first = String.length s and second = String.length t in
+    let matrix = Array.make_matrix (first + 1) (second + 1) 0 in
+    for i = 0 to first do
+      matrix.(i).(0) <- i
+    done;
+    for j = 0 to second do
+      matrix.(0).(j) <- j
+    done;
+    for j = 1 to second do
+      for i = 1 to first do
+        if s.[i - 1] = t.[j - 1] then matrix.(i).(j) <- matrix.(i - 1).(j - 1)
+        else
+          matrix.(i).(j) <-
+            minimum
+              (matrix.(i - 1).(j) + 1)
+              (matrix.(i).(j - 1) + 1)
+              (matrix.(i - 1).(j - 1) + 1)
+      done
+    done;
+    matrix.(first).(second)
+end
+
+type closest =
+  { name : string
+  ; distance : int
+  }
+
+let find_closest_name invalid =
+  let accumulate_distance name bestMatch =
+    let distance = Levenshtein.distance invalid name in
+    match distance < bestMatch.distance with
+    | true -> { name; distance }
+    | false -> bestMatch
+  in
+  let { name; distance = _ } =
+    List.fold_right accumulate_distance domPropNames
+      { name = ""; distance = max_int }
+  in
+  name
 
 (* A manual implementation of [@bs.deriving abstract] *)
 (* type domRef

@@ -184,9 +184,8 @@ const murmur2 = (str) => {
   /* console.log("h-post: ", h); */
 
   let result = ((h ^ (h >>> 15)) >>> 0).toString(36);
-  console.log("Result: ", result);
   return result;
 };
 
-murmur2("display: block");
-murmur2("display: flex");
+console.log(murmur2("display: block"));
+console.log(murmur2("display: flex"));

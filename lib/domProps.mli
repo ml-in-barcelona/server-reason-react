@@ -47,3 +47,4 @@ type errors =
 val getJSXName : prop -> string
 val findByName : string -> string -> (prop, errors) result
 val isReactValidProp : string -> bool
+val find_closest_name : string -> string

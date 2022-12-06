@@ -783,11 +783,22 @@ let makePropField ~loc id (arg_label, value) =
     | Error err -> (
         match err with
         | `ElementNotFound ->
-            raise @@ Location.raise_errorf ~loc "tag '%s' doesn't exist" id
-        | `AttributeNotFound ->
             raise
             @@ Location.raise_errorf ~loc
-                 "prop '%s' isn't a valid prop for a '%s'" name id)
+                 "HTML tag '%s' doesn't exist.\n\
+                  If this isn't correct, please open an issue at %s" id
+                 "https://github.com/ml-in-barcelona/server-reason-react/issues"
+        | `AttributeNotFound ->
+            let suggestion = DomProps.find_closest_name name in
+            raise
+            @@ Location.raise_errorf ~loc
+                 "prop '%s' isn't valid on a '%s' element.\n\
+                  Hint: Maybe you mean '%s'?\n\n\
+                  If this isn't correct, please open an issue at %s. Meanwhile \
+                  you could use `React.createElement`."
+                 name id suggestion
+                 "https://github.com/ml-in-barcelona/server-reason-react/issues"
+        )
   in
   let jsxName = DomProps.getJSXName prop in
   let objectKey = Exp.constant ~loc (Pconst_string (jsxName, loc, None)) in
