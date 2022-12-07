@@ -117,15 +117,30 @@ let test_inline_styles () =
     (ReactDOM.renderToStaticMarkup component)
     "<button style=\"color: red; border: none\"></button>"
 
-let test_escape_attributes () =
+let test_encode_attributes () =
   let component =
     React.createElement "div"
-      [| React.Attribute.String ("about", "\' <") |]
+      [| React.Attribute.String ("about", "\' <")
+       ; React.Attribute.String ("data-user-path", "what/the/path")
+      |]
       [ React.string "& \"" ]
   in
   assert_string
     (ReactDOM.renderToStaticMarkup component)
-    "<div about=\"&#x27; &lt;\">&amp; &quot;</div>"
+    "<div about=\"&#x27; &lt;\" data-user-path=\"what/the/path\">&amp; \
+     &quot;</div>"
+
+let test_dangerouslySetInnerHtml () =
+  let component =
+    React.createElement "script"
+      [| React.Attribute.String ("type", "application/javascript")
+         (* ; React.Attribute.DangerouslyInnerHtml (React.makeDangerouslySetInnerHTML "console.log(\"Hi!\")") *)
+      |]
+      []
+  in
+  assert_string
+    (ReactDOM.renderToStaticMarkup component)
+    "<div type=\"application/javascript\">console.log(\"Hi!\")</div>"
 
 let test_context () =
   let context = React.createContext 10 in
@@ -234,7 +249,8 @@ let tests =
     ; test_case "attributes that gets ignored" `Quick
         test_ignored_attributes_on_jsx
     ; test_case "inline styles" `Quick test_inline_styles
-    ; test_case "escape HTML attributes" `Quick test_escape_attributes
+    ; test_case "escape HTML attributes" `Quick test_encode_attributes
+    ; test_case "innerHTML" `Quick test_dangerouslySetInnerHtml
     ; test_case "createContext" `Quick test_context
     ; test_case "useContext" `Quick test_use_context
     ; test_case "useState" `Quick test_use_state

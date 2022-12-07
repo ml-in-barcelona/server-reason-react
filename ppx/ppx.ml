@@ -838,6 +838,8 @@ let makePropField ~loc id (arg_label, value) =
       [%expr Option.map (fun v -> React.Attribute.Ref v) [%e value]]
   | Attribute { type_ = DomProps.InnerHtml; _ }, false -> (
       match value with
+      (* Even thought we dont have bs.obj in OCaml, we do in Reason.
+         We can extract the field __html and pass it to React.Attribute.DangerouslyInnerHtml *)
       | [%expr [%bs.obj { __html = [%e? inner] }]] ->
           [%expr Some (React.Attribute.DangerouslyInnerHtml [%e inner])]
       | _ ->
@@ -846,6 +848,8 @@ let makePropField ~loc id (arg_label, value) =
                "unexpected expression found on dangerouslySetInnerHTML")
   | Attribute { type_ = DomProps.InnerHtml; _ }, true -> (
       match value with
+      (* Even thought we dont have bs.obj in OCaml, we do in Reason.
+         We can extract the field __html and pass it to React.Attribute.DangerouslyInnerHtml *)
       | [%expr [%bs.obj { __html = [%e? inner] }]] ->
           [%expr
             Option.map

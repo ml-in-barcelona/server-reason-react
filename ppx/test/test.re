@@ -59,9 +59,13 @@ let test_ref_attribute = () => {
 };
 
 let test_innerhtml_attribute = () => {
-  let text = "foo";
-  let div = <div dangerouslySetInnerHTML={"__html": text} />;
+  let div = <div dangerouslySetInnerHTML={"__html": "foo"} />;
   assert_string(ReactDOM.renderToStaticMarkup(div), "<div>foo</div>");
+};
+
+let test_innerhtml_attribute_complex = () => {
+  let div = <div dangerouslySetInnerHTML={"__html": "console.log(\"Lola\")"} />;
+  assert_string(ReactDOM.renderToStaticMarkup(div), "<div>console.log(\"Lola\")</div>");
 };
 
 let test_int_opt_attribute_some = () => {
@@ -187,6 +191,7 @@ let _ =
           test_case("style_attr", `Quick, test_style_attribute),
           test_case("div_ref_attr", `Quick, test_ref_attribute),
           test_case("inner_html_attr", `Quick, test_innerhtml_attribute),
+          test_case("p_inner_html", `Quick, test_innerhtml_attribute_complex),
           test_case("int_opt_attr_some", `Quick, test_int_opt_attribute_some),
           test_case("int_opt_attr_none", `Quick, test_int_opt_attribute_none),
           test_case(

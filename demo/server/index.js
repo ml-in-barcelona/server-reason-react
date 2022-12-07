@@ -93,12 +93,6 @@ var app = React.forwardRef(() => {
   );
 });
 
-var app = () => {
-  return React.createElement("div", { about: "' <" }, ['& "']);
-};
-
-/* console.log(ReactDOM.renderToStaticMarkup(React.createElement(app, null))); */
-
 const murmur2 = (str) => {
   // 'm' and 'r' are mixing constants generated offline.
   // They're not really 'magic', they just happen to work well.
@@ -187,5 +181,12 @@ const murmur2 = (str) => {
   return result;
 };
 
-console.log(murmur2("display: block"));
+/* console.log(murmur2("display: block"));
 console.log(murmur2("display: flex"));
+ */
+
+var app = () => {
+  return React.createElement("script", {}, `console.log("asdfas");`);
+};
+
+console.log(ReactDOM.renderToStaticMarkup(React.createElement(app, null)));

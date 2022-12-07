@@ -37,6 +37,7 @@ and Element : sig
     | Upper_case_element of (unit -> t)
     | List of t array
     | Text of string
+    | InnerHtml of string
     | Fragment of t list
     | Empty
     | Provider of (unit -> t) list
