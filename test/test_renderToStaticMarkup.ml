@@ -134,13 +134,13 @@ let test_dangerouslySetInnerHtml () =
   let component =
     React.createElement "script"
       [| React.Attribute.String ("type", "application/javascript")
-         (* ; React.Attribute.DangerouslyInnerHtml (React.makeDangerouslySetInnerHTML "console.log(\"Hi!\")") *)
+       ; React.Attribute.DangerouslyInnerHtml "console.log(\"Hi!\")"
       |]
       []
   in
   assert_string
     (ReactDOM.renderToStaticMarkup component)
-    "<div type=\"application/javascript\">console.log(\"Hi!\")</div>"
+    "<script type=\"application/javascript\">console.log(\"Hi!\")</script>"
 
 let test_context () =
   let context = React.createContext 10 in

@@ -64,8 +64,12 @@ let test_innerhtml_attribute = () => {
 };
 
 let test_innerhtml_attribute_complex = () => {
-  let div = <div dangerouslySetInnerHTML={"__html": "console.log(\"Lola\")"} />;
-  assert_string(ReactDOM.renderToStaticMarkup(div), "<div>console.log(\"Lola\")</div>");
+  let div =
+    <div dangerouslySetInnerHTML={"__html": "console.log(\"Lola\")"} />;
+  assert_string(
+    ReactDOM.renderToStaticMarkup(div),
+    "<div>console.log(\"Lola\")</div>",
+  );
 };
 
 let test_int_opt_attribute_some = () => {
