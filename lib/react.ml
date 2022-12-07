@@ -40,6 +40,7 @@ and Element : sig
     | Upper_case_element of (unit -> t)
     | List of t array
     | Text of string
+    | InnerHtml of string
     | Fragment of t list
     | Empty
     | Provider of (unit -> t) list
@@ -123,7 +124,7 @@ let attributes_to_map (attributes : Attribute.t array) =
           acc |> StringMap.add key (Attribute.Bool (key, value))
       | Attribute.String (key, value) ->
           acc |> StringMap.add key (Attribute.String (key, value))
-      (* We don't add to the Map, the following constructors: *)
+      (* The following constructors shoudn't be part of the Map: *)
       | Attribute.DangerouslyInnerHtml _ -> acc
       | Attribute.Ref _ -> acc
       | Attribute.Event _ -> acc
@@ -157,7 +158,9 @@ let create_element_inner tag attributes children =
     match (dangerouslySetInnerHTML, children) with
     | None, children -> children
     | Some (Attribute.DangerouslyInnerHtml innerHtml), [] ->
-        [ Element.Text innerHtml ]
+        (* This adds as children the innerHTML, and we treat it differently
+           from Element.Text to avoid encoding to HTML their content *)
+        [ Element.InnerHtml innerHtml ]
     | Some _, _children -> raise (Invalid_children tag)
   in
   Element.Lower_case_element { tag; attributes; children }
@@ -186,6 +189,7 @@ let cloneElement element new_attributes new_childrens =
         { tag; attributes = clone_attributes attributes new_attributes }
   | Fragment _childrens -> Fragment new_childrens
   | Text t -> Text t
+  | InnerHtml t -> InnerHtml t
   | Empty -> Empty
   | List l -> List l
   | Provider child -> Provider child
@@ -283,7 +287,7 @@ let string txt = Element.Text txt
 let null = Element.Empty
 let int i = Element.Text (string_of_int i)
 
-(* FIXME: float_of_string might be different on the browser *)
+(* FIXME: float_of_string might be different from the browser *)
 let float f = Element.Text (string_of_float f)
 let array arr = Element.List arr
 

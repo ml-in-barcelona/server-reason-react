@@ -2,7 +2,6 @@ project_name = server-reason-react
 
 DUNE = opam exec -- dune
 opam_file = $(project_name).opam
-current_hash = $(shell git rev-parse HEAD | cut -c1-7)
 MEL = opam exec -- mel
 
 .PHONY: help
@@ -67,11 +66,6 @@ ppx-test-watch: ## Run ppx tests in watch mode
 .PHONY: lib-test
 lib-test: ## Run library tests
 	$(DUNE) exec test/test.exe
-
-.PHONY: commit
-commit: ## Print lasts commit hash
-	@echo "Copied hash in copy: $(current_hash)";
-	@echo $(current_hash) | pbcopy;
 
 $(opam_file): dune-project ## Update the package dependencies when new deps are added to dune-project
 	$(DUNE) build @install

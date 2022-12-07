@@ -3,7 +3,7 @@ open React
 module Html = struct
   (* Based on https://github.com/facebook/react/blob/97d75c9c8bcddb0daed1ed062101c7f5e9b825f4/packages/react-dom-bindings/src/server/escapeTextForBrowser.js#L51-L98 *)
   (* https://discuss.ocaml.org/t/html-encoding-of-string/4289/4 *)
-  let escape s =
+  let encode s =
     let add = Buffer.add_string in
     let len = String.length s in
     let b = Buffer.create len in
@@ -89,13 +89,16 @@ let attribute_to_string attr =
   | Ref _ -> ""
   (* false attributes don't get rendered *)
   | Bool (_, false) -> ""
-  (* We ignore events on SSR *)
-  | Event _ -> ""
+  (* Simply render the attribute name when is true *)
   | Bool (k, true) -> k
+  (* Since we extracted the attribute as children (Eleent.InnerHtml),
+     we don't want to render anything here *)
   | DangerouslyInnerHtml _ -> ""
+  (* We ignore events on SSR, the only exception is "_onclick" which turns to be an Attribute.String *)
+  | Event _ -> ""
   | Style styles -> Printf.sprintf "style=\"%s\"" styles
   | String (k, v) ->
-      Printf.sprintf "%s=\"%s\"" (attribute_name_to_jsx k) (Html.escape v)
+      Printf.sprintf "%s=\"%s\"" (attribute_name_to_jsx k) (Html.encode v)
 
 let attributes_to_string tag attrs =
   let valid_attributes =
@@ -130,13 +133,14 @@ let render_tree ~mode (element : Element.t) =
     match element with
     | Empty -> ""
     | Fragment [] -> ""
+    | InnerHtml text -> text
     | Text text -> (
         let is_previous_text_node = previous_was_text_node.contents in
         previous_was_text_node.contents <- true;
         match mode with
         | String when is_previous_text_node ->
-            Printf.sprintf "<!-- -->%s" (Html.escape text)
-        | _ -> Html.escape text)
+            Printf.sprintf "<!-- -->%s" (Html.encode text)
+        | _ -> Html.encode text)
     | Provider children ->
         children
         |> List.map (fun f -> f ())

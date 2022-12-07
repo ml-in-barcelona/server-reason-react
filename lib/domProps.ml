@@ -2289,7 +2289,7 @@ let domPropNames =
   (commonSvgAttributes & commonHtmlAttributes)
   |> List.map getName
   (* We ignore prefixed names such as "hackAttributes prop list" *)
-  |> List.filter (fun name -> String.starts_with ~prefix:"_" name)
+  |> List.filter (fun name -> not (String.starts_with ~prefix:"_" name))
 
 let getJSXName = function
   | Attribute { jsxName; _ } -> jsxName
