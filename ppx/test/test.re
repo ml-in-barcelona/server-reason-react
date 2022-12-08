@@ -1,13 +1,14 @@
-open! Alcotest;
-
-let assert_string = (left, right) =>
-  (check(string))("should be equal", right, left);
-
-let test_tag = () => {
-  assert_string(ReactDOM.renderToStaticMarkup(<div />), "<div></div>");
+let assert_string = (left, right) => {
+  let checkString = Alcotest.check(Alcotest.string);
+  checkString("should be equal", right, left);
 };
 
-let test_empty_attribute = () => {
+let tag = () => {
+  let div = <div />;
+  assert_string(ReactDOM.renderToStaticMarkup(div), "<div></div>");
+};
+
+let empty_attribute = () => {
   let div = <div className="" />;
   assert_string(
     ReactDOM.renderToStaticMarkup(div),
@@ -15,12 +16,12 @@ let test_empty_attribute = () => {
   );
 };
 
-let test_bool_attribute = () => {
+let bool_attribute = () => {
   let div = <div hidden=true />;
   assert_string(ReactDOM.renderToStaticMarkup(div), "<div hidden></div>");
 };
 
-let test_bool_attributes = () => {
+let bool_attributes = () => {
   let input =
     <input type_="checkbox" name="cheese" checked=true disabled=false />;
   assert_string(
@@ -29,12 +30,12 @@ let test_bool_attributes = () => {
   );
 };
 
-let test_innerhtml = () => {
+let innerhtml = () => {
   let p = <p> {React.string("text")} </p>;
   assert_string(ReactDOM.renderToStaticMarkup(p), "<p>text</p>");
 };
 
-let test_int_attribute = () => {
+let int_attribute = () => {
   let div = <div tabIndex=1 />;
   assert_string(
     ReactDOM.renderToStaticMarkup(div),
@@ -42,7 +43,7 @@ let test_int_attribute = () => {
   );
 };
 
-let test_style_attribute = () => {
+let style_attribute = () => {
   let div =
     <div style={ReactDOM.Style.make(~backgroundColor="gainsboro", ())} />;
   assert_string(
@@ -51,19 +52,19 @@ let test_style_attribute = () => {
   );
 };
 
-let test_ref_attribute = () => {
+let ref_attribute = () => {
   let divRef = React.useRef(Js.Nullable.null);
 
   let div = <div ref={React.Ref.domRef(divRef)} />;
   assert_string(ReactDOM.renderToStaticMarkup(div), "<div></div>");
 };
 
-let test_innerhtml_attribute = () => {
+let innerhtml_attribute = () => {
   let div = <div dangerouslySetInnerHTML={"__html": "foo"} />;
   assert_string(ReactDOM.renderToStaticMarkup(div), "<div>foo</div>");
 };
 
-let test_innerhtml_attribute_complex = () => {
+let innerhtml_attribute_complex = () => {
   let div =
     <div dangerouslySetInnerHTML={"__html": "console.log(\"Lola\")"} />;
   assert_string(
@@ -72,7 +73,7 @@ let test_innerhtml_attribute_complex = () => {
   );
 };
 
-let test_int_opt_attribute_some = () => {
+let int_opt_attribute_some = () => {
   let tabIndex = Some(1);
   let div = <div ?tabIndex />;
   assert_string(
@@ -81,13 +82,13 @@ let test_int_opt_attribute_some = () => {
   );
 };
 
-let test_int_opt_attribute_none = () => {
+let int_opt_attribute_none = () => {
   let tabIndex = None;
   let div = <div ?tabIndex />;
   assert_string(ReactDOM.renderToStaticMarkup(div), "<div></div>");
 };
 
-let test_fragment = () => {
+let fragment = () => {
   let div = <> <div className="md:w-1/3" /> <div className="md:w-2/3" /> </>;
   assert_string(
     ReactDOM.renderToStaticMarkup(div),
@@ -102,7 +103,7 @@ module Container = {
   };
 };
 
-let test_children_uppercase = () => {
+let children_uppercase = () => {
   let component = <Container> <span /> </Container>;
   assert_string(
     ReactDOM.renderToStaticMarkup(component),
@@ -110,7 +111,7 @@ let test_children_uppercase = () => {
   );
 };
 
-let test_children_lowercase = () => {
+let children_lowercase = () => {
   let component = <div> <span /> </div>;
   assert_string(
     ReactDOM.renderToStaticMarkup(component),
@@ -118,7 +119,7 @@ let test_children_lowercase = () => {
   );
 };
 
-let test_string_opt_attribute_some = () => {
+let string_opt_attribute_some = () => {
   let className = Some("foo");
   let div = <div ?className />;
   assert_string(
@@ -127,25 +128,25 @@ let test_string_opt_attribute_some = () => {
   );
 };
 
-let test_string_opt_attribute_none = () => {
+let string_opt_attribute_none = () => {
   let className = None;
   let div = <div ?className />;
   assert_string(ReactDOM.renderToStaticMarkup(div), "<div></div>");
 };
 
-let test_bool_opt_attribute_some = () => {
+let bool_opt_attribute_some = () => {
   let hidden = Some(true);
   let div = <div ?hidden />;
   assert_string(ReactDOM.renderToStaticMarkup(div), "<div hidden></div>");
 };
 
-let test_bool_opt_attribute_none = () => {
+let bool_opt_attribute_none = () => {
   let hidden = None;
   let div = <div ?hidden />;
   assert_string(ReactDOM.renderToStaticMarkup(div), "<div></div>");
 };
 
-let test_style_opt_attribute_some = () => {
+let style_opt_attribute_some = () => {
   let style = Some(ReactDOM.Style.make(~backgroundColor="gainsboro", ()));
   let div = <div ?style />;
   assert_string(
@@ -154,94 +155,64 @@ let test_style_opt_attribute_some = () => {
   );
 };
 
-let test_style_opt_attribute_none = () => {
+let style_opt_attribute_none = () => {
   let style = None;
   let div = <div ?style />;
   assert_string(ReactDOM.renderToStaticMarkup(div), "<div></div>");
 };
 
-let test_ref_opt_attribute_some = () => {
+let ref_opt_attribute_some = () => {
   let divRef = React.useRef(Js.Nullable.null);
   let ref = Some(React.Ref.domRef(divRef));
   let div = <div ?ref />;
   assert_string(ReactDOM.renderToStaticMarkup(div), "<div></div>");
 };
 
-let test_ref_opt_attribute_none = () => {
+let ref_opt_attribute_none = () => {
   let ref = None;
   let div = <div ?ref />;
   assert_string(ReactDOM.renderToStaticMarkup(div), "<div></div>");
 };
 
-let test_onclick = () => {
+let onclick = () => {
   let onClick = Some(_ => print_endline("clicked"));
   let div = <div ?onClick />;
   assert_string(ReactDOM.renderToStaticMarkup(div), "<div></div>");
 };
 
+let case = (title, fn) => Alcotest.test_case(title, `Quick, fn);
+
 let _ =
-  run(
+  Alcotest.run(
     "Tests",
     [
       (
         "renderToStaticMarkup",
         [
-          test_case("div", `Quick, test_tag),
-          test_case("div_empty_attr", `Quick, test_empty_attribute),
-          test_case("div_bool_attr", `Quick, test_bool_attribute),
-          test_case("input_bool_attrs", `Quick, test_bool_attributes),
-          test_case("p_inner_html", `Quick, test_innerhtml),
-          test_case("div_int_attr", `Quick, test_int_attribute),
-          test_case("style_attr", `Quick, test_style_attribute),
-          test_case("div_ref_attr", `Quick, test_ref_attribute),
-          test_case("inner_html_attr", `Quick, test_innerhtml_attribute),
-          test_case("p_inner_html", `Quick, test_innerhtml_attribute_complex),
-          test_case("int_opt_attr_some", `Quick, test_int_opt_attribute_some),
-          test_case("int_opt_attr_none", `Quick, test_int_opt_attribute_none),
-          test_case(
-            "string_opt_attr_some",
-            `Quick,
-            test_string_opt_attribute_some,
-          ),
-          test_case(
-            "string_opt_attr_none",
-            `Quick,
-            test_string_opt_attribute_none,
-          ),
-          test_case(
-            "bool_opt_attr_some",
-            `Quick,
-            test_bool_opt_attribute_some,
-          ),
-          test_case(
-            "bool_opt_attr_none",
-            `Quick,
-            test_bool_opt_attribute_none,
-          ),
-          test_case(
-            "style_opt_attr_some",
-            `Quick,
-            test_style_opt_attribute_some,
-          ),
-          test_case(
-            "style_opt_attr_none",
-            `Quick,
-            test_style_opt_attribute_none,
-          ),
-          test_case("ref_opt_attr_some", `Quick, test_ref_opt_attribute_some),
-          test_case("ref_opt_attr_none", `Quick, test_ref_opt_attribute_none),
-          test_case("test_fragment", `Quick, test_fragment),
-          test_case(
-            "test_children_uppercase",
-            `Quick,
-            test_children_uppercase,
-          ),
-          test_case(
-            "test_children_lowercase",
-            `Quick,
-            test_children_lowercase,
-          ),
-          test_case("event_onClick", `Quick, test_onclick),
+          case("div", tag),
+          case("div_empty_attr", empty_attribute),
+          case("div_bool_attr", bool_attribute),
+          case("input_bool_attrs", bool_attributes),
+          case("p_inner_html", innerhtml),
+          case("div_int_attr", int_attribute),
+          case("style_attr", style_attribute),
+          case("div_ref_attr", ref_attribute),
+          case("inner_html_attr", innerhtml_attribute),
+          case("p_inner_html", innerhtml_attribute_complex),
+          case("int_opt_attr_some", int_opt_attribute_some),
+          case("int_opt_attr_none", int_opt_attribute_none),
+          case("string_opt_attr_some", string_opt_attribute_some),
+          case("string_opt_attr_none", string_opt_attribute_none),
+          case("bool_opt_attr_some", bool_opt_attribute_some),
+          case("bool_opt_attr_none", bool_opt_attribute_none),
+          case("style_opt_attr_some", style_opt_attribute_some),
+          case("style_opt_attr_none", style_opt_attribute_none),
+          case("ref_opt_attr_some", ref_opt_attribute_some),
+          case("ref_opt_attr_none", ref_opt_attribute_none),
+          case("test_fragment", fragment),
+          case("test_children_uppercase", children_uppercase),
+          case("test_children_lowercase", children_lowercase),
+          case("event_onClick", onclick),
         ],
       ),
     ],

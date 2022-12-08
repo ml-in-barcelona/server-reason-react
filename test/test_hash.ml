@@ -1,9 +1,8 @@
-open Alcotest
-
 let check_equality (input, expected) =
   ( Printf.sprintf "\"%s\"" input
   , `Quick
-  , fun () -> (check string) "should be equal" expected input )
+  , fun () -> (Alcotest.check Alcotest.string) "should be equal" expected input
+  )
 
 let data =
   [ (* Ensure hashing is pure and equal *)
