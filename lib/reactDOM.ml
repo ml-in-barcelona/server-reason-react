@@ -53,13 +53,13 @@ let attribute_name_to_jsx k =
   | "defaultSelected" -> "selected"
   | _ -> k
 
+let is_onclick_event event =
+  match event with
+  | Attribute.Event (name, _) when String.equal name "_onclick" -> true
+  | _ -> false
+
 let attribute_is_html tag attr_name =
-  (* We make sure that onclick is valid attribute *)
-  if String.equal attr_name "onclick" then true
-  else
-    match DomProps.findByName tag attr_name with
-    | Ok _ -> true
-    | Error _ -> false
+  match DomProps.findByName tag attr_name with Ok _ -> true | Error _ -> false
 
 let replace_reserved_names attr =
   match attr with "type" -> "type_" | _ -> attr
@@ -80,7 +80,11 @@ let is_react_custom_attribute attr =
   | _ -> false
 
 let attribute_is_not_event attr =
-  match attr with Attribute.Event _ -> false | _ -> true
+  match attr with
+  (* We treat _onclick as "not an event", so attribute_is_valid turns it true *)
+  | Attribute.Event _ as event when is_onclick_event event -> true
+  | Attribute.Event _ -> false
+  | _ -> true
 
 let attribute_is_valid tag attr =
   attribute_is_html tag (get_key attr)
@@ -99,7 +103,9 @@ let attribute_to_string attr =
   (* Since we extracted the attribute as children (Eleent.InnerHtml),
      we don't want to render anything here *)
   | DangerouslyInnerHtml _ -> ""
-  (* We ignore events on SSR, the only exception is "_onclick" which turns to be an Attribute.String *)
+  (* We ignore events on SSR, the only exception is "_onclick" which renders as onclick *)
+  | Event (name, Inline value) when String.equal name "_onclick" ->
+      Printf.sprintf "onclick=\"%s\"" value
   | Event _ -> ""
   | Style styles -> Printf.sprintf "style=\"%s\"" styles
   | String (k, v) ->

@@ -24,6 +24,8 @@ type eventType =
   | Animation
   | Transition
   | Pointer
+  | Inline
+(* _onclick *)
 (* | Drag *)
 
 type attribute =
@@ -2072,8 +2074,7 @@ let webViewHTMLAttributes =
       { name = "webPreferences"; jsxName = "webPreferences"; type_ = String }
   ]
 
-let hackAttributes =
-  [ Attribute { name = "_onclick"; jsxName = "onclick"; type_ = String } ]
+let hackAttributes = [ Event { name = "_onclick"; type_ = Inline } ]
 
 let commonHtmlAttributes =
   elementAttributes & reactAttributes & globalAttributes & globalEventHandlers

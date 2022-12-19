@@ -434,6 +434,8 @@ let makeEventValue ~loc ~isOptional (type_ : DomProps.eventType) value =
   | Pointer, false -> [%expr ([%e value] : ReactEvent.Syntetic.t -> unit)]
   | Pointer, true ->
       [%expr ([%e value] : (ReactEvent.Syntetic.t -> unit) option)]
+  | Inline, false -> [%expr ([%e value] : string)]
+  | Inline, true -> [%expr ([%e value] : string option)]
 (* | Drag, false -> [%expr ([%e value] : ReactEvent.Syntetic.t -> unit)] *)
 (* | Drag, true -> [%expr ([%e value] : (ReactEvent.Syntetic.t -> unit) option)] *)
 
@@ -983,6 +985,18 @@ let makePropField ~loc id (arg_label, value) =
         Option.map (fun v ->
             (React.Attribute.Event
                ([%e constantString ~loc name], React.EventT.Media v))
+              [%e objectValue])]
+  | Event { type_ = Inline; name }, false ->
+      [%expr
+        Some
+          (React.Attribute.Event
+             ( [%e constantString ~loc name]
+             , React.EventT.Inline [%e objectValue] ))]
+  | Event { type_ = Inline; name }, true ->
+      [%expr
+        Option.map (fun v ->
+            (React.Attribute.Event
+               ([%e constantString ~loc name], React.EventT.Inline v))
               [%e objectValue])]
   | _ -> failwith "Attribute not implemented, open an issue"
 

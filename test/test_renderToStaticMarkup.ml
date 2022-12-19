@@ -232,7 +232,7 @@ let className_2 () =
 let _onclick_render_as_string () =
   let component =
     React.createElement "div"
-      [| React.Attribute.String ("onclick", "$(this).hide()") |]
+      [| React.Attribute.Event ("_onclick", Inline "$(this).hide()") |]
       []
   in
 

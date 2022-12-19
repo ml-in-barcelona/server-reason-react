@@ -174,10 +174,19 @@ let ref_opt_attribute_none = () => {
   assert_string(ReactDOM.renderToStaticMarkup(div), "<div></div>");
 };
 
-let onclick = () => {
+let onClick_empty = () => {
   let onClick = Some(_ => print_endline("clicked"));
   let div = <div ?onClick />;
   assert_string(ReactDOM.renderToStaticMarkup(div), "<div></div>");
+};
+
+let onclick_inline_string = () => {
+  let onClick = "console.log('clicked')";
+  let div = <div _onclick=onClick />;
+  assert_string(
+    ReactDOM.renderToStaticMarkup(div),
+    "<div onclick=\"console.log('clicked')\"></div>",
+  );
 };
 
 let case = (title, fn) => Alcotest.test_case(title, `Quick, fn);
@@ -212,7 +221,8 @@ let _ =
           case("test_fragment", fragment),
           case("test_children_uppercase", children_uppercase),
           case("test_children_lowercase", children_lowercase),
-          case("event_onClick", onclick),
+          case("event_onClick", onClick_empty),
+          case("event_onclick_inline_string", onclick_inline_string),
         ],
       ),
     ],
