@@ -57,6 +57,7 @@ and EventT : sig
     | Focus of (ReactEvent.Focus.t -> unit)
     | Form of (ReactEvent.Form.t -> unit)
     | Media of (ReactEvent.Media.t -> unit)
+    | Inline of string
 end
 
 and Attribute : sig

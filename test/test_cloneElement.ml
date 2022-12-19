@@ -1,5 +1,3 @@
-open Alcotest
-
 let equal_attrs (a1 : React.Attribute.t) (a2 : React.Attribute.t) =
   match (a1, a2) with
   | Bool (k1, v1), Bool (k2, v2) -> k1 == k2 && v1 = v2
@@ -36,15 +34,16 @@ let component =
       Fmt.string ppf (Printf.sprintf "%s" (ReactDOM.renderToStaticMarkup v)))
     equal_components
 
-let assert_component left right = (check component) "should be equal" right left
+let assert_component left right =
+  (Alcotest.check component) "should be equal" right left
 
-let test_clone_empty () =
+let clone_empty () =
   let component =
     React.createElement "div" [| React.Attribute.Bool ("hidden", true) |] []
   in
   assert_component component (React.cloneElement component [||] [])
 
-let test_clone_attributes () =
+let clone_attributes () =
   let component =
     React.createElement "div" [| React.Attribute.String ("val", "33") |] []
   in
@@ -64,7 +63,7 @@ let test_clone_attributes () =
   in
   assert_component cloned expected
 
-let test_clone_order_attributes () =
+let clone_order_attributes () =
   let component = React.createElement "div" [||] [] in
   let expected =
     React.createElement "div"
@@ -82,12 +81,13 @@ let test_clone_order_attributes () =
   in
   assert_component cloned expected
 
+let case title fn = Alcotest.test_case title `Quick fn
+
 let tests =
   ( (* FIXME: those test shouldn't rely on renderToStaticMarkup,
        make an alcotest TESTABLE component *)
     "React.cloneElement"
-  , [ test_case "empty component" `Quick test_clone_empty
-    ; test_case "attributes component" `Quick test_clone_attributes
-    ; test_case "ordered attributes component" `Quick
-        test_clone_order_attributes
+  , [ case "empty component" clone_empty
+    ; case "attributes component" clone_attributes
+    ; case "ordered attributes component" clone_order_attributes
     ] )

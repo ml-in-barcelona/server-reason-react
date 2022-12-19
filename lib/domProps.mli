@@ -22,6 +22,8 @@ type eventType =
   | Animation
   | Transition
   | Pointer
+  | Inline
+(* _onclick *)
 (* | Drag *)
 
 type attribute =
