@@ -229,6 +229,17 @@ let className_2 () =
     (ReactDOM.renderToStaticMarkup component)
     "<div class=\"flex xs:justify-center overflow-hidden\"></div>"
 
+let _onclick_render_as_string () =
+  let component =
+    React.createElement "div"
+      [| React.Attribute.String ("onclick", "$(this).hide()") |]
+      []
+  in
+
+  assert_string
+    (ReactDOM.renderToStaticMarkup component)
+    "<div onclick=\"$(this).hide()\"></div>"
+
 let case title fn = Alcotest.test_case title `Quick fn
 
 let tests =
@@ -257,4 +268,5 @@ let tests =
     ; case "useCallback" use_callback
     ; case "innerHtml" inner_html
     ; case "events" event
+    ; case "_onclick" _onclick_render_as_string
     ] )

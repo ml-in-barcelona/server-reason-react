@@ -54,7 +54,12 @@ let attribute_name_to_jsx k =
   | _ -> k
 
 let attribute_is_html tag attr_name =
-  match DomProps.findByName tag attr_name with Ok _ -> true | Error _ -> false
+  (* We make sure that onclick is valid attribute *)
+  if String.equal attr_name "onclick" then true
+  else
+    match DomProps.findByName tag attr_name with
+    | Ok _ -> true
+    | Error _ -> false
 
 let replace_reserved_names attr =
   match attr with "type" -> "type_" | _ -> attr
