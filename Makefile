@@ -6,12 +6,13 @@ MEL = opam exec -- mel
 
 .PHONY: help
 help: ## Print this help message
+	@echo "";
 	@echo "List of available make commands";
 	@echo "";
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}';
 	@echo "";
 
-.PHONY: help
+.PHONY: build
 build: ## Build the project, including non installable libraries and executables
 	$(DUNE) build @@default
 
