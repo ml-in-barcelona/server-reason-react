@@ -322,6 +322,8 @@ let useLayoutEffect6 :
     -> unit =
  fun _ _ -> ()
 
+let setDisplayName : 'component -> string -> unit = fun _ _ -> ()
+
 (* ReasonReact APIs *)
 let string txt = Element.Text txt
 let null = Element.Empty
