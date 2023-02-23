@@ -270,3 +270,30 @@ module Transition = struct
   let pseudoElement : t -> string = fun _ -> ""
   let elapsedTime : t -> float = fun _ -> 0.
 end
+
+module Drag = struct
+  type tag
+  type t = tag synthetic
+
+  include MakeEventWithType (struct
+    type nonrec t = t [@@nonrec]
+  end)
+
+  let altKey : t -> bool = fun _ -> false
+  let button : t -> int = fun _ -> 0
+  let buttons : t -> int = fun _ -> 0
+  let clientX : t -> int = fun _ -> 0
+  let clientY : t -> int = fun _ -> 0
+  let ctrlKey : t -> bool = fun _ -> false
+  let getModifierState : t -> string -> bool = fun _ _ -> false
+  let metaKey : t -> bool = fun _ -> false
+  let movementX : t -> int = fun _ -> 0
+  let movementY : t -> int = fun _ -> 0
+  let pageX : t -> int = fun _ -> 0
+  let pageY : t -> int = fun _ -> 0
+  let relatedTarget : t -> < .. > Js.t option = fun _ -> None
+  let screenX : t -> int = fun _ -> 0
+  let screenY : t -> int = fun _ -> 0
+  let shiftKey : t -> bool = fun _ -> false
+  let dataTransfer : t -> < .. > Js.t option = fun _ -> None
+end
