@@ -179,4 +179,11 @@ let renderToStaticMarkup element = render_tree ~mode:Markup element
 let querySelector _str = None
 let render _element _node = ()
 
+let hydrate _element _node =
+  (* failwith seems bad, but I don't know any other way
+     of warning the user without changing the types *)
+  failwith "hydrate shouldn't run on the server"
+
+let createPortal _reactElement _domElement = _reactElement
+
 module Style = ReactDOMStyle
