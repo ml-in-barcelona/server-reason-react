@@ -436,8 +436,8 @@ let makeEventValue ~loc ~isOptional (type_ : DomProps.eventType) value =
       [%expr ([%e value] : (ReactEvent.Syntetic.t -> unit) option)]
   | Inline, false -> [%expr ([%e value] : string)]
   | Inline, true -> [%expr ([%e value] : string option)]
-(* | Drag, false -> [%expr ([%e value] : ReactEvent.Syntetic.t -> unit)] *)
-(* | Drag, true -> [%expr ([%e value] : (ReactEvent.Syntetic.t -> unit) option)] *)
+  | Drag, false -> [%expr ([%e value] : ReactEvent.Drag.t -> unit)]
+  | Drag, true -> [%expr ([%e value] : (ReactEvent.Drag.t -> unit) option)]
 
 let makeValue ~loc ~isOptional prop value =
   match prop with

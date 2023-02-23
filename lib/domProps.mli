@@ -23,8 +23,8 @@ type eventType =
   | Transition
   | Pointer
   | Inline
+  | Drag
 (* _onclick *)
-(* | Drag *)
 
 type attribute =
   { type_ : attributeType
