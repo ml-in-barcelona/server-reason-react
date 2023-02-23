@@ -177,13 +177,14 @@ let render_tree ~mode (element : Element.t) =
 let renderToString element = render_tree ~mode:String element
 let renderToStaticMarkup element = render_tree ~mode:Markup element
 let querySelector _str = None
-let render _element _node = ()
 
-let hydrate _element _node =
+let fail_impossible_action_in_ssr =
   (* failwith seems bad, but I don't know any other way
      of warning the user without changing the types *)
-  failwith "hydrate shouldn't run on the server"
+  failwith "render shouldn't run on the server"
 
+let render _element _node = fail_impossible_action_in_ssr
+let hydrate _element _node = fail_impossible_action_in_ssr
 let createPortal _reactElement _domElement = _reactElement
 
 module Style = ReactDOMStyle

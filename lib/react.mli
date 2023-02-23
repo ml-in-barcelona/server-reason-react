@@ -140,6 +140,40 @@ val useEffect6 :
      * 'dependency6
   -> unit
 
+val useLayoutEffect0 : (unit -> (unit -> unit) option) -> unit
+
+val useLayoutEffect1 :
+  (unit -> (unit -> unit) option) -> 'dependency array -> unit
+
+val useLayoutEffect2 :
+  (unit -> (unit -> unit) option) -> 'dependency1 * 'dependency2 -> unit
+
+val useLayoutEffect3 :
+     (unit -> (unit -> unit) option)
+  -> 'dependency1 * 'dependency2 * 'dependency3
+  -> unit
+
+val useLayoutEffect4 :
+     (unit -> (unit -> unit) option)
+  -> 'dependency1 * 'dependency2 * 'dependency3 * 'dependency4
+  -> unit
+
+val useLayoutEffect5 :
+     (unit -> (unit -> unit) option)
+  -> 'dependency1 * 'dependency2 * 'dependency3 * 'dependency4 * 'dependency5
+  -> unit
+
+val useLayoutEffect6 :
+     (unit -> (unit -> unit) option)
+  -> 'dependency1
+     * 'dependency2
+     * 'dependency3
+     * 'dependency4
+     * 'dependency5
+     * 'dependency6
+  -> unit
+
+val setDisplayName : 'component -> string -> unit
 val string : string -> Element.t
 val null : Element.t
 val int : int -> Element.t
