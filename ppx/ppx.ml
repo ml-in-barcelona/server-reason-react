@@ -431,9 +431,9 @@ let makeEventValue ~loc ~isOptional (type_ : DomProps.eventType) value =
   | Transition, false -> [%expr ([%e value] : ReactEvent.Transition.t -> unit)]
   | Transition, true ->
       [%expr ([%e value] : (ReactEvent.Transition.t -> unit) option)]
-  | Pointer, false -> [%expr ([%e value] : ReactEvent.Syntetic.t -> unit)]
+  | Pointer, false -> [%expr ([%e value] : ReactEvent.Pointer.t -> unit)]
   | Pointer, true ->
-      [%expr ([%e value] : (ReactEvent.Syntetic.t -> unit) option)]
+      [%expr ([%e value] : (ReactEvent.Pointer.t -> unit) option)]
   | Inline, false -> [%expr ([%e value] : string)]
   | Inline, true -> [%expr ([%e value] : string option)]
   | Drag, false -> [%expr ([%e value] : ReactEvent.Drag.t -> unit)]
