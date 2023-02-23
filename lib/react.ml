@@ -283,6 +283,45 @@ let useEffect6 :
     -> unit =
  fun _ _ -> ()
 
+let useLayoutEffect0 : (unit -> (unit -> unit) option) -> unit = fun _ -> ()
+
+let useLayoutEffect1 :
+    (unit -> (unit -> unit) option) -> 'dependency array -> unit =
+ fun _ _ -> ()
+
+let useLayoutEffect2 :
+    (unit -> (unit -> unit) option) -> 'dependency1 * 'dependency2 -> unit =
+ fun _ _ -> ()
+
+let useLayoutEffect3 :
+       (unit -> (unit -> unit) option)
+    -> 'dependency1 * 'dependency2 * 'dependency3
+    -> unit =
+ fun _ _ -> ()
+
+let useLayoutEffect4 :
+       (unit -> (unit -> unit) option)
+    -> 'dependency1 * 'dependency2 * 'dependency3 * 'dependency4
+    -> unit =
+ fun _ _ -> ()
+
+let useLayoutEffect5 :
+       (unit -> (unit -> unit) option)
+    -> 'dependency1 * 'dependency2 * 'dependency3 * 'dependency4 * 'dependency5
+    -> unit =
+ fun _ _ -> ()
+
+let useLayoutEffect6 :
+       (unit -> (unit -> unit) option)
+    -> 'dependency1
+       * 'dependency2
+       * 'dependency3
+       * 'dependency4
+       * 'dependency5
+       * 'dependency6
+    -> unit =
+ fun _ _ -> ()
+
 (* ReasonReact APIs *)
 let string txt = Element.Text txt
 let null = Element.Empty
