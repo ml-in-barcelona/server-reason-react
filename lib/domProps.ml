@@ -1002,7 +1002,7 @@ let liHTMLAttributes =
   ]
 
 let linkHTMLAttributes =
-  [ Attribute { name = "as"; jsxName = "as"; type_ = String }
+  [ Attribute { name = "as_"; jsxName = "as"; type_ = String }
   ; Attribute { name = "crossOrigin"; jsxName = "crossOrigin"; type_ = String }
   ; Attribute { name = "href"; jsxName = "href"; type_ = String }
   ; Attribute { name = "hrefLang"; jsxName = "hrefLang"; type_ = String }
