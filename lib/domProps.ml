@@ -308,15 +308,6 @@ let ariaAttributes =
       ; jsxName = "aria-disabled"
       ; type_ = String (* Bool | 'false' | 'true' *)
       }
-    (* Indicates what functions can be performed when a dragged object is released on the drop target.
-     * @deprecated in ARIA 1.1
-     *)
-  ; Attribute
-      { name = "ariaDropeffect"
-      ; jsxName = "aria-dropeffect"
-      ; type_ =
-          String (* 'none' | 'copy' | 'execute' | 'link' | 'move' | 'popup' *)
-      }
     (* Identifies the element that provides an error message for the object.
      * @see aria-invalid @see aria-describedby.
      *)
@@ -335,14 +326,6 @@ let ariaAttributes =
      * allows assistive technology to override the general default of reading in document source order.
      *)
   ; Attribute { name = "ariaFlowto"; jsxName = "aria-flowto"; type_ = String }
-    (* Indicates an element's "grabbed" state in a drag-and-drop operation.
-     * @deprecated in ARIA 1.1
-     *)
-  ; Attribute
-      { name = "ariaGrabbed"
-      ; jsxName = "aria-grabbed"
-      ; type_ = String (* Bool | 'false' | 'true' *)
-      }
     (* Indicates the availability and type of interactive popup element, such as menu or dialog, that can be triggered by an element. *)
   ; Attribute
       { name = "ariaHaspopup"
@@ -474,6 +457,8 @@ let ariaAttributes =
      * @see aria-rowcount @see aria-rowspan.
      *)
   ; Attribute { name = "ariaRowindex"; jsxName = "aria-rowindex"; type_ = Int }
+    (**)
+  ; Attribute { name = "ariaRowindextext"; jsxName = "aria-rowindextext"; type_ = String }
     (* Defines the number of rows spanned by a cell or gridcell within a table, grid, or treegrid.
      * @see aria-rowindex @see aria-colspan.
      *)
@@ -504,6 +489,8 @@ let ariaAttributes =
      * @see aria-valuetext.
      *)
   ; Attribute { name = "ariaValuenow"; jsxName = "aria-valuenow"; type_ = Int }
+  ; Attribute { name = "ariaValuemin"; jsxName = "aria-valuemin"; type_ = Int }
+  ; Attribute { name = "ariaValuemax"; jsxName = "aria-valuemax"; type_ = Int }
     (* Defines the human readable text alternative of aria-valuenow for a range widget. *)
   ; Attribute
       { name = "ariaValuetext"; jsxName = "aria-valuetext"; type_ = String }
