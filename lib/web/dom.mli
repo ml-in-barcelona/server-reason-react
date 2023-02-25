@@ -1,0 +1,2 @@
+type element
+type window

@@ -1,0 +1,5 @@
+(library
+ (name web)
+ (wrapped false)
+ (public_name server-reason-react.web)
+ (libraries js))

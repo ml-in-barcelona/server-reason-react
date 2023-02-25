@@ -1,0 +1,3 @@
+(library
+ (name js)
+ (public_name server-reason-react.js))

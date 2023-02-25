@@ -4,7 +4,7 @@ type domRef
 
 module Ref : sig
   type t = domRef
-  type currentDomRef = Webapi.Dom.element Js.nullable ref
+  type currentDomRef = Web.Dom.element Js.nullable ref
   type callbackDomRef
 
   external domRef : currentDomRef -> domRef = "%identity"

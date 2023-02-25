@@ -17,12 +17,7 @@ module Js = {
   };
 
   module Float = {
-    let toString = f =>
-      if (Float.round(f) == f) {
-        f |> int_of_float |> string_of_int;
-      } else {
-        string_of_float(f);
-      };
+    let toString = string_of_float;
   };
 };
 

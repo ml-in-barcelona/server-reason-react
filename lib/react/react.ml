@@ -1,10 +1,8 @@
 type domRef
 
-open Webapi
-
 module Ref = struct
   type t = domRef
-  type currentDomRef = Dom.element Js.nullable ref
+  type currentDomRef = Webapi.Dom.element Js.nullable ref
   type callbackDomRef
 
   external domRef : currentDomRef -> domRef = "%identity"
