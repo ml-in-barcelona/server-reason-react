@@ -54,7 +54,7 @@ format-check: ## Checks if format is correct
 .PHONY: init
 init: ## Create a local opam switch and setups githooks
 	git config core.hooksPath .githooks
-	opam switch create . --deps-only --with-test
+	opam switch create . 4.14.1 --deps-only --with-test
 
 .PHONY: ppx-test
 ppx-test: ## Run ppx tests
