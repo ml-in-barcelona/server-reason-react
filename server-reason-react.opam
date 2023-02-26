@@ -14,7 +14,7 @@ depends: [
   "reason" {= "3.8.1"}
   "alcotest" {with-test}
   "fmt" {with-test}
-  "ocamlformat" {= "0.24.0" & with-test}
+  "ocamlformat" {= "0.21.0" & with-test}
   "ocaml-lsp-server" {with-test}
   "odoc" {with-doc}
 ]
