@@ -55,6 +55,7 @@ format-check: ## Checks if format is correct
 init: ## Create a local opam switch and setups githooks
 	git config core.hooksPath .githooks
 	opam switch create . 4.14.1 --deps-only --with-test
+	opam pin add dune "https://github.com/ocaml/dune.git#0d44bbfdb2a68907a464aeb2dabe95388dac5712" -y
 
 .PHONY: ppx-test
 ppx-test: ## Run ppx tests

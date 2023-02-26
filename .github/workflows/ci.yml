@@ -34,7 +34,9 @@ jobs:
           dune-cache: true
 
       - name: Install dependencies
-        run: opam install . --deps-only --with-doc --with-test
+        run: |
+          opam install . --deps-only --with-doc --with-test
+          opam pin add dune "https://github.com/ocaml/dune.git#0d44bbfdb2a68907a464aeb2dabe95388dac5712"
 
       - name: Build
         run: make build
