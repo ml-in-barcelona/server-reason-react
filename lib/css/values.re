@@ -4,7 +4,7 @@ module Js = {
   module String = {
     let startsWith = (affix, str) => {
       let start =
-        try (String.sub(str, 0, String.length(affix))) {
+        try(String.sub(str, 0, String.length(affix))) {
         | _ => ""
         };
 

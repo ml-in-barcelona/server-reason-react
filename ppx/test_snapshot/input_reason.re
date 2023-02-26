@@ -71,24 +71,20 @@ let lowerWithChildrenComplex =
       <h2 className="title"> {"jsoo-react" |> s} </h2>
       <nav className="menu">
         <ul>
-          {
-            examples
-            |> List.map(e =>
-                 <li key={e.path}>
-                   <a
-                     href={e.path}
-                     onClick={
-                       event => {
-                         ReactEvent.Mouse.preventDefault(event);
-                         ReactRouter.push(e.path);
-                       }
-                     }>
-                     {e.title |> s}
-                   </a>
-                 </li>
-               )
-            |> React.list
-          }
+          {examples
+           |> List.map(e =>
+                <li key={e.path}>
+                  <a
+                    href={e.path}
+                    onClick={event => {
+                      ReactEvent.Mouse.preventDefault(event);
+                      ReactRouter.push(e.path);
+                    }}>
+                    {e.title |> s}
+                  </a>
+                </li>
+              )
+           |> React.list}
         </ul>
       </nav>
     </div>
