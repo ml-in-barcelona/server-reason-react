@@ -56,6 +56,7 @@ init: ## Create a local opam switch and setups githooks
 	git config core.hooksPath .githooks
 	opam switch create . 4.14.1 --deps-only --with-test
 	opam pin add dune "https://github.com/ocaml/dune.git#0d44bbfdb2a68907a464aeb2dabe95388dac5712" -y
+	opam pin add melange "https://github.com/melange-re/melange.git#85a77cf9763066aeffd0c8de668af2e17f0bcc5a" -y
 
 .PHONY: ppx-test
 ppx-test: ## Run ppx tests
