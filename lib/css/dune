@@ -1,5 +1,4 @@
 (library
  (name css)
  (public_name server-reason-react.css)
- (modes best melange)
- (libraries str))
+ (modes best melange))

@@ -48,8 +48,6 @@ let render_declaration rule =
   | _ -> None
 
 let is_media_query selector = String.contains selector '@'
-let regex_amp = Str.regexp_string "&"
-let replace_ampersand output = Str.global_replace regex_amp output
 
 let prefix ~pre s =
   let len = String.length pre in
@@ -71,6 +69,20 @@ let chop_prefix ~pre s =
 
 let remove_first_ampersand selector =
   selector |> chop_prefix ~pre:"&" |> Option.value ~default:selector
+
+let replace_ampersand str var =
+  let len = String.length str in
+  let result = Bytes.create len in
+  let rec loop i =
+    if i = len then result
+    else if str.[i] = '&' then (
+      String.blit var 0 result i (String.length var);
+      loop (i + String.length var))
+    else (
+      Bytes.set result i str.[i];
+      loop (i + 1))
+  in
+  loop 0 |> String.of_bytes
 
 let resolve_ampersand hash selector = replace_ampersand ("." ^ hash) selector
 
