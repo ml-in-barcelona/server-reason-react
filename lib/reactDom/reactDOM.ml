@@ -180,8 +180,11 @@ let querySelector _str = None
 
 let fail_impossible_action_in_ssr =
   (* failwith seems bad, but I don't know any other way
-     of warning the user without changing the types *)
-  failwith "render shouldn't run on the server"
+     of warning the user without changing the types. Doing a unit *)
+  (* failwith
+     (Printf.sprintf "render shouldn't run on the server %s, line %d" __FILE__
+        __LINE__) *)
+  ()
 
 let render _element _node = fail_impossible_action_in_ssr
 let hydrate _element _node = fail_impossible_action_in_ssr

@@ -70,21 +70,18 @@ let chop_prefix ~pre s =
 let remove_first_ampersand selector =
   selector |> chop_prefix ~pre:"&" |> Option.value ~default:selector
 
-let replace_ampersand str var =
-  let len = String.length str in
-  let result = Bytes.create len in
-  let rec loop i =
-    if i = len then result
-    else if str.[i] = '&' then (
-      String.blit var 0 result i (String.length var);
-      loop (i + String.length var))
-    else (
-      Bytes.set result i str.[i];
-      loop (i + 1))
+let replace_ampersand str with_ =
+  let rec replace_ampersand' str var =
+    let len = String.length str in
+    if len = 0 then ""
+    else if str.[0] = '&' then
+      var ^ replace_ampersand' (String.sub str 1 (len - 1)) var
+    else
+      String.sub str 0 1 ^ replace_ampersand' (String.sub str 1 (len - 1)) var
   in
-  loop 0 |> String.of_bytes
+  replace_ampersand' str with_
 
-let resolve_ampersand hash selector = replace_ampersand ("." ^ hash) selector
+let resolve_ampersand hash selector = replace_ampersand selector ("." ^ hash)
 
 let make_prelude hash selector =
   let new_selector =
