@@ -1,4 +1,4 @@
-module Dom: sig
+module Dom : sig
   type element
   type window
 end
