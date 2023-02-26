@@ -1,7 +1,6 @@
 name: CI
 
 on:
-  pull_request:
   push:
   schedule:
     # Prime the caches every Monday
@@ -19,7 +18,7 @@ jobs:
         os:
           - macos-latest
           - ubuntu-latest
-          - windows-latest
+          # - windows-latest
         ocaml-compiler:
           - 4.14.0
 
@@ -34,7 +33,10 @@ jobs:
           dune-cache: true
 
       - name: Install dependencies
-        run: opam install . --deps-only --with-doc --with-test
+        run: |
+          opam install . --deps-only --with-doc --with-test
+          opam pin add dune "https://github.com/ocaml/dune.git#0d44bbfdb2a68907a464aeb2dabe95388dac5712" -y
+          opam pin add melange "https://github.com/melange-re/melange.git#85a77cf9763066aeffd0c8de668af2e17f0bcc5a" -y
 
       - name: Build
         run: make build

@@ -1,0 +1,6 @@
+(library
+ (name reasonReactRouter)
+ (modes best)
+ (wrapped false)
+ (public_name server-reason-react.reasonReactRouter)
+ (libraries react js))

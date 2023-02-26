@@ -4,7 +4,6 @@
   alcotest
   server-reason-react.react
   server-reason-react.reactDom
-  shims
-  js)
+  server-reason-react.js)
  (preprocess
   (pps server-reason-react.ppx)))

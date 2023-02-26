@@ -5,5 +5,5 @@
   (language c)
   (names stubs))
  (flags :standard -w -A)
- (public_name server-reason-react.belt)
- (name belt))
+ (name belt)
+ (public_name server-reason-react.belt))

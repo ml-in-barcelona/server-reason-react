@@ -1,6 +1,6 @@
-include Bs_css.Properties
-include Bs_css.Colors
-open Bs_css.Rule
+include Properties
+include Colors
+open Rule
 
 (* Exposing this module on Css.Hash to test it *)
 module Hash = Hash
@@ -48,8 +48,6 @@ let render_declaration rule =
   | _ -> None
 
 let is_media_query selector = String.contains selector '@'
-let regex_amp = Str.regexp_string "&"
-let replace_ampersand output = Str.global_replace regex_amp output
 
 let prefix ~pre s =
   let len = String.length pre in
@@ -72,7 +70,18 @@ let chop_prefix ~pre s =
 let remove_first_ampersand selector =
   selector |> chop_prefix ~pre:"&" |> Option.value ~default:selector
 
-let resolve_ampersand hash selector = replace_ampersand ("." ^ hash) selector
+let replace_ampersand str with_ =
+  let rec replace_ampersand' str var =
+    let len = String.length str in
+    if len = 0 then ""
+    else if str.[0] = '&' then
+      var ^ replace_ampersand' (String.sub str 1 (len - 1)) var
+    else
+      String.sub str 0 1 ^ replace_ampersand' (String.sub str 1 (len - 1)) var
+  in
+  replace_ampersand' str with_
+
+let resolve_ampersand hash selector = replace_ampersand selector ("." ^ hash)
 
 let make_prelude hash selector =
   let new_selector =

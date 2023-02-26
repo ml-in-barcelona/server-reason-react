@@ -17,31 +17,28 @@ module React_component_without_props = {
 
 let upper = <React_component_without_props lola="flores" />;
 
-// Components
+/* Components */
 
 [@react.component]
-let make = (~name="") => {
+let make = (~name="") =>
   <>
     <div> {React.string("First " ++ name)} </div>
     <Hello one="1"> {React.string("2nd " ++ name)} </Hello>
   </>;
-};
 
 module Memo = {
   [@react.component]
   let make =
-    React.memo((~a) => {
+    React.memo((~a) =>
       <div> {Printf.sprintf("`a` is %s", a) |> React.string} </div>
-    });
+    );
 };
 
 module MemoCustomCompareProps = {
   [@react.component]
   let make =
     React.memo(
-      (~a) => {
-        <div> {Printf.sprintf("`a` is %d", a) |> React.string} </div>
-      },
+      (~a) => <div> {Printf.sprintf("`a` is %d", a) |> React.string} </div>,
       (prevPros, nextProps) => false,
     );
 };
@@ -75,7 +72,7 @@ let lowerWithChildrenComplex =
       <nav className="menu">
         <ul>
           {examples
-           |> List.map(e => {
+           |> List.map(e =>
                 <li key={e.path}>
                   <a
                     href={e.path}
@@ -86,7 +83,7 @@ let lowerWithChildrenComplex =
                     {e.title |> s}
                   </a>
                 </li>
-              })
+              )
            |> React.list}
         </ul>
       </nav>
@@ -101,9 +98,9 @@ let t = <button ref className="FancyButton"> children </button>;
 
 [@react.component]
 let make =
-  React.forwardRef((~children, ~ref) => {
+  React.forwardRef((~children, ~ref) =>
     <button ref className="FancyButton"> children </button>
-  });
+  );
 
 let testAttributes =
   <div translate="yes">
@@ -123,13 +120,12 @@ let make = (~name, ~isDisabled=?) => {
 };
 
 [@react.component]
-let make = (~name="joe") => {
+let make = (~name="joe") =>
   <div> {Printf.sprintf("`name` is %s", name) |> React.string} </div>;
-};
 
 module App = {
   [@react.component]
-  let make = () => {
+  let make = () =>
     <html>
       <head> <title> {React.string("SSR React")} </title> </head>
       <body>
@@ -137,7 +133,6 @@ module App = {
         <script src="/static/client.js" />
       </body>
     </html>;
-  };
 };
 
 /* It shoudn't remove this :/ */
@@ -146,7 +141,7 @@ let l = 33;
 
 module Page = {
   [@react.component]
-  let make = (~children, ~moreProps) => {
+  let make = (~children, ~moreProps) =>
     <html>
       <head>
         <title> {React.string("SSR React " ++ moreProps)} </title>
@@ -156,7 +151,6 @@ module Page = {
         <script src="/static/client.js" />
       </body>
     </html>;
-  };
 };
 
 let upperWithChildren =
@@ -164,9 +158,7 @@ let upperWithChildren =
 
 module Container = {
   [@react.component]
-  let make = (~children) => {
-    <div ariaHidden="true"> children </div>;
-  };
+  let make = (~children) => <div ariaHidden="true"> children </div>;
 };
 
 let lower_child_static = <div> <span /> </div>;

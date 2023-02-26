@@ -17,12 +17,7 @@ module Js = {
   };
 
   module Float = {
-    let toString = f =>
-      if (Float.round(f) == f) {
-        f |> int_of_float |> string_of_int;
-      } else {
-        string_of_float(f);
-      };
+    let toString = string_of_float;
   };
 };
 
@@ -1348,7 +1343,7 @@ module GridArea = {
   let numIdent = (x, y) => `numIdent((x, y));
   let span = x => `span(x);
 
-  let toString = t => {
+  let toString = t =>
     switch (t) {
     | `auto => "auto"
     | `ident(s) => s
@@ -1363,7 +1358,6 @@ module GridArea = {
         }
       )
     };
-  };
 };
 
 module BackdropFilter = {

@@ -1048,7 +1048,7 @@ let invalid = pseudoclass("invalid");
 let lang = (code, rules) => PseudoclassParam("lang", code, rules);
 let lastChild = pseudoclass("last-child");
 let lastOfType = pseudoclass("last-of-type");
-//let left = selector(":left");
+/* let left = selector(":left"); */
 let link = pseudoclass("link");
 let not_ = (selector, rules) => PseudoclassParam("not", selector, rules);
 
@@ -1076,7 +1076,7 @@ let outOfRange = pseudoclass("out-of-range");
 let readOnly = pseudoclass("read-only");
 let readWrite = pseudoclass("read-write");
 let required = pseudoclass("required");
-//let right = selector(":right");
+/* let right = selector(":right"); */
 let root = pseudoclass("root");
 let scope = pseudoclass("scope");
 let target = pseudoclass("target");
@@ -1124,7 +1124,7 @@ let unset = Cascading.unset;
 let var = Var.var;
 let varDefault = Var.varDefault;
 
-// shared
+/* shared */
 let auto = `auto;
 let none = `none;
 let text = `text;
@@ -1159,16 +1159,16 @@ let static = Position.static;
 let fixed = `fixed;
 let sticky = Position.sticky;
 
-//let none = Resize.none;
-//let both = Resize.both;
+/* let none = Resize.none; */
+/* let both = Resize.both; */
 let horizontal = Resize.horizontal;
 let vertical = Resize.vertical;
-//let block = Resize.block;
-//let inline = Resize.inline;
+/* let block = Resize.block; */
+/* let inline = Resize.inline; */
 
 let smallCaps = FontVariant.smallCaps;
 
-//let normal = `normal;
+/* let normal = `normal; */
 let italic = FontStyle.italic;
 let oblique = FontStyle.oblique;
 
@@ -1195,9 +1195,9 @@ let steps = TimingFunction.steps;
 let cubicBezier = TimingFunction.cubicBezier;
 
 let marginBox = GeometyBox.marginBox;
-//let borderBox = GeometyBox.borderBox;
-//let paddingBox = GeometyBox.paddingBox;
-//let contentBox = GeometyBox.contentBox;
+/* let borderBox = GeometyBox.borderBox; */
+/* let paddingBox = GeometyBox.paddingBox; */
+/* let contentBox = GeometyBox.contentBox; */
 let fillBox = GeometyBox.fillBox;
 let strokeBox = GeometyBox.strokeBox;
 let viewBox = GeometyBox.viewBox;
@@ -1238,10 +1238,10 @@ let areas = GridTemplateAreas.areas;
 let ident = GridArea.ident;
 let numIdent = GridArea.numIdent;
 
-// cursor aliases
-//let auto = Cursor.auto;
-//let default = Cursor.default;
-//let none = Cursor.none;
+/*  cursor aliases */
+/* let auto = Cursor.auto; */
+/* let default = Cursor.default; */
+/* let none = Cursor.none; */
 let contextMenu = Cursor.contextMenu;
 let help = Cursor.help;
 let pointer = Cursor.pointer;
@@ -1249,7 +1249,7 @@ let progress = Cursor.progress;
 let wait = Cursor.wait;
 let cell = Cursor.cell;
 let crosshair = Cursor.crosshair;
-//let text = Cursor.text;
+/* let text = Cursor.text; */
 let verticalText = Cursor.verticalText;
 let alias = Cursor.alias;
 let copy = Cursor.copy;
@@ -1280,7 +1280,7 @@ let vw = x => `vw(x);
 let fr = x => `fr(x);
 
 module Calc = {
-  /* https://www.w3.org/TR/css3-values/#calc-notation */
+  /*  https://www.w3.org/TR/css3-values/#calc-notation */
   let (-) = (a, b) => `calc((`sub, a, b));
   let (+) = (a, b) => `calc((`add, a, b));
   /* let ( * ) = (a, b) => `multiply((a, b));

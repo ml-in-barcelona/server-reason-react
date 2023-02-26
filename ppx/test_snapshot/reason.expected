@@ -57,36 +57,33 @@ let upper =
 let make ?key  =
   ((fun ?(name= (("")[@reason.raw_literal ""])) ->
       fun () ->
-        ((React.Fragment.make
-            ~children:(([React.createElement "div"
-                           ((([||] |> Array.to_list) |>
-                               (List.filter_map (fun a -> a)))
-                              |> Array.of_list)
-                           [((React.string
-                                ((("First ")[@reason.raw_literal "First "]) ^
-                                   name))
-                           [@reason.preserve_braces ])];
-                        Hello.make ~one:(("1")[@reason.raw_literal "1"])
-                          ~children:((React.string
-                                        ((("2nd ")
-                                           [@reason.raw_literal "2nd "]) ^
-                                           name))[@reason.preserve_braces ])
-                          ()])[@reason.preserve_braces ][@JSX ]) ())
-        [@reason.preserve_braces ]))
+        React.Fragment.make
+          ~children:(([React.createElement "div"
+                         ((([||] |> Array.to_list) |>
+                             (List.filter_map (fun a -> a)))
+                            |> Array.of_list)
+                         [((React.string
+                              ((("First ")[@reason.raw_literal "First "]) ^
+                                 name))
+                         [@reason.preserve_braces ])];
+                      Hello.make ~one:(("1")[@reason.raw_literal "1"])
+                        ~children:((React.string
+                                      ((("2nd ")[@reason.raw_literal "2nd "])
+                                         ^ name))[@reason.preserve_braces ])
+                        ()])[@JSX ]) ())
   [@warning "-16"][@warning "-16"])
 module Memo =
   struct
     let make ?key  =
       ((fun ~a ->
           fun () ->
-            ((React.createElement "div"
-                ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a)))
-                   |> Array.of_list)
-                [(((Printf.sprintf (("`a` is %s")
-                      [@reason.raw_literal "`a` is %s"]) a)
-                     |> React.string)
-                [@reason.preserve_braces ])])
-            [@reason.preserve_braces ]))
+            React.createElement "div"
+              ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
+                 Array.of_list)
+              [(((Printf.sprintf (("`a` is %s")
+                    [@reason.raw_literal "`a` is %s"]) a)
+                   |> React.string)
+              [@reason.preserve_braces ])])
       [@warning "-16"][@warning "-16"])
   end
 module MemoCustomCompareProps =
@@ -94,14 +91,13 @@ module MemoCustomCompareProps =
     let make ?key  =
       ((fun ~a ->
           fun () ->
-            ((React.createElement "div"
-                ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a)))
-                   |> Array.of_list)
-                [(((Printf.sprintf (("`a` is %d")
-                      [@reason.raw_literal "`a` is %d"]) a)
-                     |> React.string)
-                [@reason.preserve_braces ])])
-            [@reason.preserve_braces ]))
+            React.createElement "div"
+              ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
+                 Array.of_list)
+              [(((Printf.sprintf (("`a` is %d")
+                    [@reason.raw_literal "`a` is %d"]) a)
+                   |> React.string)
+              [@reason.preserve_braces ])])
       [@warning "-16"][@warning "-16"])
   end
 let fragment foo =
@@ -182,44 +178,41 @@ let lowerWithChildrenComplex =
             [(((examples |>
                   (List.map
                      (fun e ->
-                        ((React.createElement "li"
-                            ((([|(Some
-                                    (React.Attribute.String
-                                       ("key", (((e.path)
-                                         [@reason.preserve_braces ]) : 
-                                         string))))|]
-                                 |> Array.to_list)
-                                |> (List.filter_map (fun a -> a)))
-                               |> Array.of_list)
-                            [React.createElement "a"
-                               ((([|(Some
-                                       (React.Attribute.String
-                                          ("href", (((e.path)
-                                            [@reason.preserve_braces ]) : 
-                                            string))));(Some
-                                                          (React.Attribute.Event
-                                                             ("onClick",
-                                                               (React.EventT.Mouse
-                                                                  ((((
-                                                                  fun event
+                        React.createElement "li"
+                          ((([|(Some
+                                  (React.Attribute.String
+                                     ("key", (((e.path)
+                                       [@reason.preserve_braces ]) : 
+                                       string))))|]
+                               |> Array.to_list)
+                              |> (List.filter_map (fun a -> a)))
+                             |> Array.of_list)
+                          [React.createElement "a"
+                             ((([|(Some
+                                     (React.Attribute.String
+                                        ("href", (((e.path)
+                                          [@reason.preserve_braces ]) : 
+                                          string))));(Some
+                                                        (React.Attribute.Event
+                                                           ("onClick",
+                                                             (React.EventT.Mouse
+                                                                ((((fun event
                                                                     ->
-                                                                    ((
-                                                                    ReactEvent.Mouse.preventDefault
+                                                                    ((ReactEvent.Mouse.preventDefault
                                                                     event;
                                                                     ReactRouter.push
                                                                     e.path)
                                                                     [@reason.preserve_braces
                                                                     ])))
-                                                                  [@reason.preserve_braces
-                                                                    ]) : 
-                                                                  ReactEvent.Mouse.t
-                                                                    -> 
-                                                                    unit)))))|]
-                                    |> Array.to_list)
-                                   |> (List.filter_map (fun a -> a)))
-                                  |> Array.of_list)
-                               [((e.title |> s)[@reason.preserve_braces ])]])
-                        [@reason.preserve_braces ]))))
+                                                                [@reason.preserve_braces
+                                                                  ]) : 
+                                                                ReactEvent.Mouse.t
+                                                                  -> 
+                                                                  unit)))))|]
+                                  |> Array.to_list)
+                                 |> (List.filter_map (fun a -> a)))
+                                |> Array.of_list)
+                             [((e.title |> s)[@reason.preserve_braces ])]])))
                  |> React.list)
             [@reason.preserve_braces ])]]]]
 let nestedElement = Foo.Bar.make ~a:1 ~b:(("1")[@reason.raw_literal "1"]) ()
@@ -244,18 +237,17 @@ let make ?key  =
   ((fun ~children ->
       ((fun ~ref ->
           fun () ->
-            ((React.createElement "button"
-                ((([|(Some (React.Attribute.Ref ref));(Some
-                                                         (React.Attribute.String
-                                                            ("className",
-                                                              ((("FancyButton")
-                                                              [@reason.raw_literal
-                                                                "FancyButton"]) : 
-                                                              string))))|]
-                     |> Array.to_list)
-                    |> (List.filter_map (fun a -> a)))
-                   |> Array.of_list) [children])
-            [@reason.preserve_braces ]))
+            React.createElement "button"
+              ((([|(Some (React.Attribute.Ref ref));(Some
+                                                       (React.Attribute.String
+                                                          ("className",
+                                                            ((("FancyButton")
+                                                            [@reason.raw_literal
+                                                              "FancyButton"]) : 
+                                                            string))))|]
+                   |> Array.to_list)
+                  |> (List.filter_map (fun a -> a)))
+                 |> Array.of_list) [children])
       [@warning "-16"][@warning "-16"]))
   [@warning "-16"])
 let testAttributes =
@@ -350,51 +342,49 @@ let make ?key  =
 let make ?key  =
   ((fun ?(name= (("joe")[@reason.raw_literal "joe"])) ->
       fun () ->
-        ((React.createElement "div"
-            ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
-               Array.of_list)
-            [(((Printf.sprintf (("`name` is %s")
-                  [@reason.raw_literal "`name` is %s"]) name)
-                 |> React.string)
-            [@reason.preserve_braces ])])
-        [@reason.preserve_braces ]))
+        React.createElement "div"
+          ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
+             Array.of_list)
+          [(((Printf.sprintf (("`name` is %s")
+                [@reason.raw_literal "`name` is %s"]) name)
+               |> React.string)
+          [@reason.preserve_braces ])])
   [@warning "-16"][@warning "-16"])
 module App =
   struct
     let make ?key  () =
-      ((React.createElement "html"
+      React.createElement "html"
+        ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
+           Array.of_list)
+        [React.createElement "head"
+           ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
+              Array.of_list)
+           [React.createElement "title"
+              ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
+                 Array.of_list)
+              [((React.string (("SSR React")
+                   [@reason.raw_literal "SSR React"]))
+              [@reason.preserve_braces ])]];
+        React.createElement "body"
           ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
              Array.of_list)
-          [React.createElement "head"
+          [React.createElement "div"
              ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
                 Array.of_list)
-             [React.createElement "title"
+             [React.createElement "h1"
                 ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a)))
                    |> Array.of_list)
-                [((React.string (("SSR React")
-                     [@reason.raw_literal "SSR React"]))
+                [((React.string (("Wat")[@reason.raw_literal "Wat"]))
                 [@reason.preserve_braces ])]];
-          React.createElement "body"
-            ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
-               Array.of_list)
-            [React.createElement "div"
-               ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a)))
-                  |> Array.of_list)
-               [React.createElement "h1"
-                  ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a)))
-                     |> Array.of_list)
-                  [((React.string (("Wat")[@reason.raw_literal "Wat"]))
-                  [@reason.preserve_braces ])]];
-            React.createElement "script"
-              ((([|(Some
-                      (React.Attribute.String
-                         ("src", ((("/static/client.js")
-                           [@reason.raw_literal "/static/client.js"]) : 
-                           string))))|]
-                   |> Array.to_list)
-                  |> (List.filter_map (fun a -> a)))
-                 |> Array.of_list) []]])
-      [@reason.preserve_braces ])
+          React.createElement "script"
+            ((([|(Some
+                    (React.Attribute.String
+                       ("src", ((("/static/client.js")
+                         [@reason.raw_literal "/static/client.js"]) : 
+                         string))))|]
+                 |> Array.to_list)
+                |> (List.filter_map (fun a -> a)))
+               |> Array.of_list) []]]
   end
 let () = Dream.run ()
 let l = 33
@@ -404,46 +394,43 @@ module Page =
       ((fun ~children ->
           ((fun ~moreProps ->
               fun () ->
-                ((React.createElement "html"
+                React.createElement "html"
+                  ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a)))
+                     |> Array.of_list)
+                  [React.createElement "head"
+                     ((([||] |> Array.to_list) |>
+                         (List.filter_map (fun a -> a)))
+                        |> Array.of_list)
+                     [React.createElement "title"
+                        ((([||] |> Array.to_list) |>
+                            (List.filter_map (fun a -> a)))
+                           |> Array.of_list)
+                        [((React.string
+                             ((("SSR React ")
+                                [@reason.raw_literal "SSR React "]) ^
+                                moreProps))
+                        [@reason.preserve_braces ])]];
+                  React.createElement "body"
                     ((([||] |> Array.to_list) |>
                         (List.filter_map (fun a -> a)))
                        |> Array.of_list)
-                    [React.createElement "head"
-                       ((([||] |> Array.to_list) |>
-                           (List.filter_map (fun a -> a)))
-                          |> Array.of_list)
-                       [React.createElement "title"
-                          ((([||] |> Array.to_list) |>
-                              (List.filter_map (fun a -> a)))
-                             |> Array.of_list)
-                          [((React.string
-                               ((("SSR React ")
-                                  [@reason.raw_literal "SSR React "]) ^
-                                  moreProps))
-                          [@reason.preserve_braces ])]];
-                    React.createElement "body"
-                      ((([||] |> Array.to_list) |>
-                          (List.filter_map (fun a -> a)))
-                         |> Array.of_list)
-                      [React.createElement "div"
-                         ((([|(Some
-                                 (React.Attribute.String
-                                    ("id", ((("root")
-                                      [@reason.raw_literal "root"]) : 
-                                      string))))|]
-                              |> Array.to_list)
-                             |> (List.filter_map (fun a -> a)))
-                            |> Array.of_list) [children];
-                      React.createElement "script"
-                        ((([|(Some
-                                (React.Attribute.String
-                                   ("src", ((("/static/client.js")
-                                     [@reason.raw_literal
-                                       "/static/client.js"]) : string))))|]
-                             |> Array.to_list)
-                            |> (List.filter_map (fun a -> a)))
-                           |> Array.of_list) []]])
-                [@reason.preserve_braces ]))
+                    [React.createElement "div"
+                       ((([|(Some
+                               (React.Attribute.String
+                                  ("id", ((("root")
+                                    [@reason.raw_literal "root"]) : string))))|]
+                            |> Array.to_list)
+                           |> (List.filter_map (fun a -> a)))
+                          |> Array.of_list) [children];
+                    React.createElement "script"
+                      ((([|(Some
+                              (React.Attribute.String
+                                 ("src", ((("/static/client.js")
+                                   [@reason.raw_literal "/static/client.js"]) : 
+                                   string))))|]
+                           |> Array.to_list)
+                          |> (List.filter_map (fun a -> a)))
+                         |> Array.of_list) []]])
           [@warning "-16"][@warning "-16"]))
       [@warning "-16"])
   end
@@ -459,15 +446,14 @@ module Container =
     let make ?key  =
       ((fun ~children ->
           fun () ->
-            ((React.createElement "div"
-                ((([|(Some
-                        (React.Attribute.String
-                           ("aria-hidden", ((("true")
-                             [@reason.raw_literal "true"]) : string))))|]
-                     |> Array.to_list)
-                    |> (List.filter_map (fun a -> a)))
-                   |> Array.of_list) [children])
-            [@reason.preserve_braces ]))
+            React.createElement "div"
+              ((([|(Some
+                      (React.Attribute.String
+                         ("aria-hidden", ((("true")
+                           [@reason.raw_literal "true"]) : string))))|]
+                   |> Array.to_list)
+                  |> (List.filter_map (fun a -> a)))
+                 |> Array.of_list) [children])
       [@warning "-16"][@warning "-16"])
   end
 let lower_child_static =

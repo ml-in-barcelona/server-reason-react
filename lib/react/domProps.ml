@@ -1,5 +1,5 @@
 [@@@ocamlformat "disable"]
-(* This file is more like a spreadshit, prefer to keep it with margin=300.
+(* This file is more like a spreadsheet, prefer to keep it with margin=300.
    Since @@@ocamlformat "margin=300" isn't possible, we disable it *)
 
 let ( & ) = List.append
