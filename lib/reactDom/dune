@@ -1,7 +1,7 @@
 (library
  (name reactDOM)
  (modules reactDOM reactDOMStyle)
- (modes melange best)
+ (modes best)
  (wrapped false)
  (public_name server-reason-react.reactDom)
- (libraries react js web))
+ (libraries react js webapi))

@@ -1,2 +1,0 @@
-type element
-type window

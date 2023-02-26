@@ -1,3 +1,4 @@
 (library
  (name js)
+ (modes best)
  (public_name server-reason-react.js))
