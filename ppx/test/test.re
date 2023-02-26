@@ -98,9 +98,7 @@ let fragment = () => {
 
 module Container = {
   [@react.component]
-  let make = (~children) => {
-    <div> children </div>;
-  };
+  let make = (~children) => <div> children </div>;
 };
 
 let children_uppercase = () => {

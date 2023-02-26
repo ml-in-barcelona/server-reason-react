@@ -4,7 +4,7 @@ module Js = {
   module String = {
     let startsWith = (affix, str) => {
       let start =
-        try(String.sub(str, 0, String.length(affix))) {
+        try (String.sub(str, 0, String.length(affix))) {
         | _ => ""
         };
 
@@ -1343,7 +1343,7 @@ module GridArea = {
   let numIdent = (x, y) => `numIdent((x, y));
   let span = x => `span(x);
 
-  let toString = t => {
+  let toString = t =>
     switch (t) {
     | `auto => "auto"
     | `ident(s) => s
@@ -1358,7 +1358,6 @@ module GridArea = {
         }
       )
     };
-  };
 };
 
 module BackdropFilter = {

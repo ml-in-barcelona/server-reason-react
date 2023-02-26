@@ -17,6 +17,5 @@ let rec rule_to_string = (accumulator: string, rule) => {
     };
   accumulator ++ next_rule ++ "; ";
 }
-
 and to_string = (rules: list(t)) =>
   rules |> List.fold_left(rule_to_string, "");
