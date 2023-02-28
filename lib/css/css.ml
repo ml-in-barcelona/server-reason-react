@@ -1,9 +1,6 @@
 include Properties
 include Colors
-open Rule
-
-(* Exposing this module on Css.Hash to test it *)
-module Hash = Hash
+include Rule
 
 module Seq = struct
   include Seq
