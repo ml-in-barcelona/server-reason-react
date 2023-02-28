@@ -6,4 +6,5 @@ let () =
     ; Test_reactDOMStyle.tests
     ; Test_hash.tests
     ; Test_css_styles.tests
+    ; Test_css_autoprefixer.tests
     ]
