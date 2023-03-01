@@ -9,13 +9,13 @@ let khtml property = Printf.sprintf "-khtml-%s" property
 
 let prefix_property (property : string) (value : string) prefixes =
   prefixes
-  |> List.map (fun prefixer -> Css.Declaration (prefixer property, value))
+  |> List.map (fun prefixer -> Rule.Declaration (prefixer property, value))
 
 let prefix_value (property : string) (value : string) prefixes =
   prefixes
-  |> List.map (fun prefixer -> Css.Declaration (property, prefixer value))
+  |> List.map (fun prefixer -> Rule.Declaration (property, prefixer value))
 
-let prefix (rule : Css.t) : Css.t list =
+let prefix (rule : Rule.t) : Rule.t list =
   match rule with
   | Declaration
       ( (( "animation" | "animation-name" | "animation-duration"

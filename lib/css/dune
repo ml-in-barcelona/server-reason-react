@@ -1,7 +1,7 @@
 (library
  (name css)
  (public_name server-reason-react.css)
- (modules :standard \ hash autoprefixer)
+ (modules :standard \ hash)
  (modes best melange)
  (libraries hash))
 
@@ -10,10 +10,3 @@
  (modules hash)
  (public_name server-reason-react.hash)
  (modes best melange))
-
-(library
- (name autoprefixer)
- (modules autoprefixer)
- (public_name server-reason-react.autoprefixer)
- (modes best melange)
- (libraries css))
