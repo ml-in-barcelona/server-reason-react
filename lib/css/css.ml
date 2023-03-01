@@ -1,9 +1,6 @@
 include Properties
 include Colors
-open Rule
-
-(* Exposing this module on Css.Hash to test it *)
-module Hash = Hash
+include Rule
 
 module Seq = struct
   include Seq
@@ -33,7 +30,9 @@ let rec generate_seq_rule = function
         (Seq.return " }")
 
 and generate_seq_rules rules =
-  List.to_seq rules |> Seq.map generate_seq_rule |> Seq.flatten
+  rules
+  |> List.map Autoprefixer.prefix
+  |> List.flatten |> List.to_seq |> Seq.map generate_seq_rule |> Seq.flatten
 
 let rule_to_string rule =
   generate_seq_rule rule |> List.of_seq |> String.concat ""
@@ -151,7 +150,11 @@ let nested_rule_to_string hash rules =
      Selectors might need to respect the order of definition, and this breaks the order *)
   let list_of_rules = rules |> unnest_selectors |> List.rev in
   let declarations =
-    list_of_rules |> List.filter_map render_declaration |> String.concat " "
+    list_of_rules
+    |> List.map Autoprefixer.prefix
+    |> List.flatten
+    |> List.filter_map render_declaration
+    |> String.concat " "
     |> fun all -> Printf.sprintf ".%s { %s }" hash all
   in
   let selectors =

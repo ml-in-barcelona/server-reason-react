@@ -139,7 +139,8 @@ let keyframe () =
   let _className = Css.style [ Css.animationName loading ] in
   let css = Css.render_style_tag () in
   Css.flush ();
-  assert_string css " .css-uylkxc { animation-name: random; }"
+  assert_string css
+    " .css-kxzxz3 { -webkit-animation-name: random; animation-name: random; }"
 
 let with_react () =
   let className = Css.style [ Css.display `block ] in

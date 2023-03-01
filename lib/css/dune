@@ -1,4 +1,12 @@
 (library
  (name css)
  (public_name server-reason-react.css)
+ (modules :standard \ hash)
+ (modes best melange)
+ (libraries hash))
+
+(library
+ (name hash)
+ (modules hash)
+ (public_name server-reason-react.hash)
  (modes best melange))
