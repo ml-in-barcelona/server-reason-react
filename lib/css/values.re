@@ -17,7 +17,22 @@ module Js = {
   };
 
   module Float = {
-    let toString = string_of_float;
+    let round = x => {
+      let low = floor(x);
+      let high = ceil(x);
+      if (x -. low > high -. x) {
+        high;
+      } else {
+        low;
+      };
+    };
+
+    let toString = f =>
+      if (round(f) == f) {
+        f |> int_of_float |> string_of_int;
+      } else {
+        string_of_float(f);
+      };
   };
 };
 

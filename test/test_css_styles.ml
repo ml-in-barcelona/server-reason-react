@@ -13,6 +13,12 @@ let multiple_properties () =
   Css.flush ();
   assert_string css " .css-dxgo0 { display: block; font-size: 10px; }"
 
+let float_values () =
+  let _className = Css.style [ Css.padding (`rem 10.) ] in
+  let css = Css.render_style_tag () in
+  Css.flush ();
+  assert_string css " .css-vsqypz { padding: 10rem; }"
+
 let selector_one_nesting () =
   let _className =
     Css.style
@@ -169,6 +175,7 @@ let tests =
   ( "Emotion"
   , [ case "one_property" one_property
     ; case "multiple_properties" multiple_properties
+    ; case "float_values" float_values
     ; case "selector_one_nesting" selector_one_nesting
     ; case "selector_more_than_one_nesting" selector_more_than_one_nesting
     ; case "selector_with_a_lot_of_nesting" selector_with_a_lot_of_nesting
