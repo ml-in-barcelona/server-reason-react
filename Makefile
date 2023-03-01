@@ -76,6 +76,10 @@ ppx-test-watch: ## Run ppx tests in watch mode
 lib-test: ## Run library tests
 	$(DUNE) exec test/test.exe
 
+.PHONY: subst
+subst: ## Run dune substitute
+	$(DUNE) subst
+
 $(opam_file): dune-project ## Update the package dependencies when new deps are added to dune-project
 	$(DUNE) build @install
 	opam install . --deps-only --with-test # Install the new dependencies

@@ -2,7 +2,7 @@
 (using melange 0.1)
 
 (name server-reason-react)
-(version cad2cb6)
+(version 923ed7d-dirty)
 
 (license MIT)
 
