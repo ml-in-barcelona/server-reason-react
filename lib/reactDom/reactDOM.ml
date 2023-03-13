@@ -62,7 +62,7 @@ let attribute_is_html tag attr_name =
   match DomProps.findByName tag attr_name with Ok _ -> true | Error _ -> false
 
 let replace_reserved_names attr =
-  match attr with "type" -> "type_" | _ -> attr
+  match attr with "type" -> "type_" | "as" -> "as_" | _ -> attr
 
 let get_key = function
   | Attribute.Bool (k, _) -> k
@@ -133,9 +133,10 @@ let render_tree ~mode (element : Element.t) =
   let open Element in
   (* is_root starts at true (when renderToString) and only goes to false
      when renders an lower-case element or closed element *)
-  let is_to_string = mode = String in
-  let is_root = ref is_to_string in
-  (* previous_was_text_node ensures to add <!-- --> between text nodes *)
+  let is_mode_to_string = mode = String in
+  let is_root = ref is_mode_to_string in
+  (* previous_was_text_node is the flag to enable rendering comments
+     <!-- --> between text nodes *)
   let previous_was_text_node = ref false in
   let rec render_inner element =
     let root_attribute =

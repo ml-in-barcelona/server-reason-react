@@ -58,6 +58,14 @@ let ref_attribute = () => {
   assert_string(ReactDOM.renderToStaticMarkup(div), "<div></div>");
 };
 
+let link_as_attribute = () => {
+  let link = <link as_="image" rel="preload" href="https://sancho.dev/blog" />;
+  assert_string(
+    ReactDOM.renderToStaticMarkup(link),
+    "<link as=\"image\" rel=\"preload\" href=\"https://sancho.dev/blog\" />",
+  );
+};
+
 let innerhtml_attribute = () => {
   let div = <div dangerouslySetInnerHTML={"__html": "foo"} />;
   assert_string(ReactDOM.renderToStaticMarkup(div), "<div>foo</div>");
@@ -203,6 +211,7 @@ let _ =
           case("div_int_attr", int_attribute),
           case("style_attr", style_attribute),
           case("div_ref_attr", ref_attribute),
+          case("link_as_attr", link_as_attribute),
           case("inner_html_attr", innerhtml_attribute),
           case("p_inner_html", innerhtml_attribute_complex),
           case("int_opt_attr_some", int_opt_attribute_some),
