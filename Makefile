@@ -58,8 +58,8 @@ setup-githooks: ## Setup githooks
 .PHONY: install
 install: ## Install dependencies
 	opam switch create . 4.14.0 --deps-only --with-test
-	opam pin add dune "https://github.com/ocaml/dune.git#0d44bbfdb2a68907a464aeb2dabe95388dac5712" -y
-	opam pin add melange "https://github.com/melange-re/melange.git#85a77cf9763066aeffd0c8de668af2e17f0bcc5a" -y
+	opam pin add dune "https://github.com/ocaml/dune.git#d3e9b73f6305a62ae7c7a469373d504354a4384c" -y
+	opam pin add melange "https://github.com/melange-re/melange.git#09863c526722a6b29740c6ca93a9ab0a556027e3" -y
 
 .PHONY: init
 init: setup-githooks install ## Create a local dev enviroment
