@@ -54,11 +54,17 @@ format-check: ## Checks if format is correct
 setup-githooks: ## Setup githooks
 	@git config core.hooksPath .githooks
 
-.PHONY: install
-install: ## Install dependencies
+.PHONY: pin
+pin: ## Pin dependencies
+	@opam pin add dune "https://github.com/ocaml/dune.git#21914b91f66a94e2cae33b9b19ea1521b6104d8a" -y
+	@opam pin add melange "https://github.com/melange-re/melange.git#227b7cb862c4a81f74c19fa051a75005918a18ff" -y
+
+.PHONY: create-switch
+create-switch: ## Create opam switch
 	@opam switch create . 4.14.0 --deps-only --with-test
-	@opam pin add dune "https://github.com/ocaml/dune.git#d3e9b73f6305a62ae7c7a469373d504354a4384c" -y
-	@opam pin add melange "https://github.com/melange-re/melange.git#09863c526722a6b29740c6ca93a9ab0a556027e3" -y
+
+.PHONY: install
+install: create-switch pin ## Install dependencies
 
 .PHONY: init
 init: setup-githooks install ## Create a local dev enviroment
