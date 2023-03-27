@@ -1,0 +1,13 @@
+(cram
+ (alias runtest)
+ (deps
+  %{bin:node}
+  %{project_root}/package.json
+  %{project_root}/package-lock.json))
+
+(rule
+ (target
+  (dir node_modules))
+ (alias runtest)
+ (action
+  (run ln -sfn %{project_root}/../../node_modules %{target})))

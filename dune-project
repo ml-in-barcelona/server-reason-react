@@ -1,5 +1,8 @@
 (lang dune 3.7)
 (using melange 0.1)
+(using directory-targets 0.1)
+
+(cram enable)
 
 (name server-reason-react)
 (version 923ed7d-dirty)
