@@ -346,6 +346,5 @@ val make :
   -> unit
   -> string
 
-val combine: t -> t -> t
-
-val unsafeAddProp: t -> string -> string -> t
+val combine : t -> t -> t
+val unsafeAddProp : t -> string -> string -> t
