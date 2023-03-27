@@ -6,40 +6,40 @@ module Html = struct
   let encode s =
     let add = Buffer.add_string in
     let len = String.length s in
-    let b = Buffer.create len in
+    let buff = Buffer.create len in
     let max_idx = len - 1 in
-    let flush b start i =
-      if start < len then Buffer.add_substring b s start (i - start)
+    let flush buff start i =
+      if start < len then Buffer.add_substring buff s start (i - start)
     in
     let rec escape_inner start i =
-      if i > max_idx then flush b start i
+      if i > max_idx then flush buff start i
       else
         let next = i + 1 in
         match String.get s i with
         | '&' ->
-            flush b start i;
-            add b "&amp;";
+            flush buff start i;
+            add buff "&amp;";
             escape_inner next next
         | '<' ->
-            flush b start i;
-            add b "&lt;";
+            flush buff start i;
+            add buff "&lt;";
             escape_inner next next
         | '>' ->
-            flush b start i;
-            add b "&gt;";
+            flush buff start i;
+            add buff "&gt;";
             escape_inner next next
         | '\'' ->
-            flush b start i;
-            add b "&#x27;";
+            flush buff start i;
+            add buff "&#x27;";
             escape_inner next next
         | '\"' ->
-            flush b start i;
-            add b "&quot;";
+            flush buff start i;
+            add buff "&quot;";
             escape_inner next next
         | _ -> escape_inner start next
     in
     escape_inner 0 0 |> ignore;
-    Buffer.contents b
+    Buffer.contents buff
 end
 
 let attribute_name_to_jsx k =
