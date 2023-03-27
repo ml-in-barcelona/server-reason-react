@@ -171,7 +171,7 @@ let with_react () =
 
 let empty () =
   let className = Css.style [] in
-  assert_string className "css-none"
+  assert_string className "css-"
 
 let case title fn = Alcotest.test_case title `Quick fn
 

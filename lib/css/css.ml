@@ -156,12 +156,9 @@ let flush () = Hashtbl.clear cache.contents
 let push hash (styles : t list) = Hashtbl.add cache.contents hash styles
 
 let style (styles : t list) =
-  match styles with
-  | [] -> "css-none"
-  | _ ->
-      let hash = Hash.make (rules_to_string styles) in
-      push hash styles;
-      hash
+  let hash = Hash.make (rules_to_string styles) in
+  push hash styles;
+  hash
 
 let render_style_tag () =
   Hashtbl.fold
