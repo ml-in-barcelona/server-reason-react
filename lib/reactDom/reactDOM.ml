@@ -129,10 +129,11 @@ type mode =
   | String
   | Markup
 
-let render_tree ~mode (element : Element.t) =
+let render_tree ~docType ~mode (element : Element.t) =
   let open Element in
   let buff = Buffer.create 16 in
   let push = Buffer.add_string buff in
+  if docType then push "<!DOCTYPE html>";
   (* is_root starts at true (when renderToString) and only goes to false
      when renders an lower-case element or closed element *)
   let is_mode_to_string = mode = String in
@@ -183,8 +184,12 @@ let render_tree ~mode (element : Element.t) =
   render_inner element;
   buff |> Buffer.contents
 
-let renderToString element = render_tree ~mode:String element
-let renderToStaticMarkup element = render_tree ~mode:Markup element
+let renderToString ?(docType = false) element =
+  render_tree ~mode:String element ~docType
+
+let renderToStaticMarkup ?(docType = false) element =
+  render_tree ~mode:Markup element ~docType
+
 let querySelector _str = None
 
 let fail_impossible_action_in_ssr =

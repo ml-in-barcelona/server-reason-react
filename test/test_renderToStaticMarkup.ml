@@ -240,6 +240,15 @@ let _onclick_render_as_string () =
     (ReactDOM.renderToStaticMarkup component)
     "<div onclick=\"$(this).hide()\"></div>"
 
+let render_with_doc_type () =
+  let div =
+    React.createElement "div" [||]
+      [ React.createElement "span" [||] [ React.string "This is valid HTML5" ] ]
+  in
+  assert_string
+    (ReactDOM.renderToStaticMarkup ~docType:true div)
+    "<!DOCTYPE html><div><span>This is valid HTML5</span></div>"
+
 let case title fn = Alcotest.test_case title `Quick fn
 
 let tests =
@@ -269,4 +278,5 @@ let tests =
     ; case "innerHtml" inner_html
     ; case "events" event
     ; case "_onclick" _onclick_render_as_string
+    ; case "!DOCTYPE" render_with_doc_type
     ] )
