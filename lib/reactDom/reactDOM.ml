@@ -98,12 +98,12 @@ let attribute_to_string attr =
   | Ref _ -> ""
   (* false attributes don't get rendered *)
   | Bool (_, false) -> ""
-  (* Simply render the attribute name when is true *)
+  (* true attributes render solely the attribute name *)
   | Bool (k, true) -> k
-  (* Since we extracted the attribute as children (Eleent.InnerHtml),
+  (* Since we extracted the attribute as children (Element.InnerHtml),
      we don't want to render anything here *)
   | DangerouslyInnerHtml _ -> ""
-  (* We ignore events on SSR, the only exception is "_onclick" which renders as onclick *)
+  (* We ignore events on SSR, the only exception is "_onclick" which renders as string onclick *)
   | Event (name, Inline value) when String.equal name "_onclick" ->
       Printf.sprintf "onclick=\"%s\"" value
   | Event _ -> ""
