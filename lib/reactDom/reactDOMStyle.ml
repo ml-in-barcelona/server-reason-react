@@ -1,8 +1,8 @@
 module StringMap = Map.Make (String)
 
-type styles = string StringMap.t
+type t = string StringMap.t
 
-let add name item (map : styles) =
+let add name item (map : t) =
   match item with Some i -> map |> StringMap.add name i | None -> map
 
 let make
@@ -667,16 +667,17 @@ let make
            Buffer.add_string buff (Printf.sprintf "%s: %s; " k (String.trim v)));
   Buffer.contents buff
 
-(* TODO: There are other APIs for styles such as combine, unsafeAddProp and unsafeAddStyle. *)
+let combine (styles1 : t) (styles2 : t) : t =
+  let seq1 = styles1 |> StringMap.to_seq in
+  let seq2 = styles2 |> StringMap.to_seq in
+  Seq.append seq1 seq2 |> StringMap.of_seq
 
-(* let combine = ((_)[@bs.as {json|{}|json}]) -> t -> t -> t = "Object.assign"[@@bs.val ] *)
+let unsafeAddProp styles (key : string) (value : string) : t =
+  styles |> StringMap.add key value
 
-(* external _dictToStyle : string Js.Dict.t -> t = "%identity" *)
+(* Since we don't have a proper representation of `< .. > Js.t` yet,
+   we can't make the unsafeAddStyle
 
-(* let unsafeAddProp style key value =
-    let dict = Js.Dict.empty () in
-    Js.Dict.set dict key value; combine style (_dictToStyle dict) *)
-
-(* external unsafeAddStyle :
+   external unsafeAddStyle :
       ((_)[@bs.as {json|{}|json}]) -> t -> < .. > Js.t -> t = "Object.assign"
     [@@bs.val ] *)

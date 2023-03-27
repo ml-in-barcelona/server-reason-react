@@ -1,3 +1,5 @@
+type t
+
 val make :
      ?azimuth:string
   -> ?background:string
@@ -343,3 +345,7 @@ val make :
   -> ?rubyPosition:string
   -> unit
   -> string
+
+val combine: t -> t -> t
+
+val unsafeAddProp: t -> string -> string -> t
