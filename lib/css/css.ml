@@ -2,43 +2,29 @@ include Properties
 include Colors
 include Rule
 
-module Seq = struct
-  include Seq
-
-  let flatten l = Seq.flat_map (fun x -> x) l
-end
-
-let rec generate_seq_rule = function
-  | Declaration (property, value) -> List.to_seq [ property; ": "; value; "; " ]
+let rec generate_rule rule =
+  let buff = Buffer.create 16 in
+  let push = Buffer.add_string buff in
+  (match rule with
+  | Declaration (property, value) ->
+      push (Printf.sprintf "%s: %s; " property value)
   | Selector (selector, rules) ->
-      Seq.append
-        (Seq.append
-           (List.to_seq [ "."; selector; " { " ])
-           (generate_seq_rules rules))
-        (Seq.return " }")
+      push (Printf.sprintf ".%s { %s }" selector (generate_rules rules))
   | Pseudoclass (pseudoclass, rules) ->
-      Seq.append
-        (Seq.append
-           (List.to_seq [ ":"; pseudoclass; " { " ])
-           (generate_seq_rules rules))
-        (Seq.return " }")
+      push (Printf.sprintf ":%s { %s }" pseudoclass (generate_rules rules))
   | PseudoclassParam (pseudoclass, param, rules) ->
-      Seq.append
-        (Seq.append
-           (List.to_seq [ ":"; pseudoclass; " ("; param; ") { " ])
-           (generate_seq_rules rules))
-        (Seq.return " }")
+      push
+        (Printf.sprintf ":%s (%s) { %s }" pseudoclass param
+           (generate_rules rules)));
+  Buffer.contents buff
 
-and generate_seq_rules rules =
+and generate_rules rules =
   rules
   |> List.map Autoprefixer.prefix
-  |> List.flatten |> List.to_seq |> Seq.map generate_seq_rule |> Seq.flatten
+  |> List.flatten |> List.map generate_rule |> String.concat ""
 
-let rule_to_string rule =
-  generate_seq_rule rule |> List.of_seq |> String.concat ""
-
-let rules_to_string rules =
-  generate_seq_rules rules |> List.of_seq |> String.concat ""
+let rule_to_string rule = generate_rule rule
+let rules_to_string rules = generate_rules rules
 
 let render_declaration rule =
   match rule with
