@@ -168,7 +168,6 @@ let createElement tag attributes children =
   match is_self_closing_tag tag with
   | true when List.length children > 0 ->
       (* TODO: Add test for this *)
-      (* Q: should raise or return monad? *)
       raise @@ Invalid_children "closing tag with children isn't valid"
   | true -> Element.Lower_case_closed_element { tag; attributes }
   | false -> create_element_inner tag attributes children

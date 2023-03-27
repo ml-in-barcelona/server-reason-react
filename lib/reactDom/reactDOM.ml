@@ -131,6 +131,8 @@ type mode =
 
 let render_tree ~mode (element : Element.t) =
   let open Element in
+  let buff = Buffer.create 16 in
+  let push = Buffer.add_string buff in
   (* is_root starts at true (when renderToString) and only goes to false
      when renders an lower-case element or closed element *)
   let is_mode_to_string = mode = String in
@@ -143,37 +145,43 @@ let render_tree ~mode (element : Element.t) =
       match is_root.contents with true -> data_react_root_attr | false -> ""
     in
     match element with
-    | Empty -> ""
-    | Fragment [] -> ""
-    | InnerHtml text -> text
+    | Empty -> push ""
+    | Provider childrens ->
+        childrens |> List.map (fun f -> f ()) |> List.iter render_inner
+    | Consumer children -> children () |> List.iter render_inner
+    | Fragment [] -> push ""
+    | Fragment childrens -> childrens |> List.iter render_inner
+    | List list -> list |> Array.iter render_inner
+    | Upper_case_element f -> render_inner (f ())
+    | Lower_case_element { tag; attributes; children } ->
+        is_root.contents <- false;
+        let attrs = attributes_to_string tag attributes in
+        push "<";
+        push tag;
+        push root_attribute;
+        push attrs;
+        push ">";
+        children |> List.iter render_inner;
+        push "</";
+        push tag;
+        push ">"
+    | Lower_case_closed_element { tag; attributes } ->
+        is_root.contents <- false;
+        push "<";
+        push tag;
+        push (attributes_to_string tag attributes);
+        push " />"
     | Text text -> (
         let is_previous_text_node = previous_was_text_node.contents in
         previous_was_text_node.contents <- true;
         match mode with
         | String when is_previous_text_node ->
-            Printf.sprintf "<!-- -->%s" (Html.encode text)
-        | _ -> Html.encode text)
-    | Provider children ->
-        children
-        |> List.map (fun f -> f ())
-        |> List.map render_inner |> String.concat ""
-    | List list ->
-        list |> Array.map render_inner |> Array.to_list |> String.concat ""
-    | Consumer children ->
-        children () |> List.map render_inner |> String.concat ""
-    | Fragment children -> children |> List.map render_inner |> String.concat ""
-    | Upper_case_element f -> render_inner (f ())
-    | Lower_case_element { tag; attributes; children } ->
-        is_root.contents <- false;
-        let attrs = attributes_to_string tag attributes in
-        let childrens = children |> List.map render_inner |> String.concat "" in
-        Printf.sprintf "<%s%s%s>%s</%s>" tag root_attribute attrs childrens tag
-    | Lower_case_closed_element { tag; attributes } ->
-        is_root.contents <- false;
-        let attrs = attributes_to_string tag attributes in
-        Printf.sprintf "<%s%s%s />" tag root_attribute attrs
+            push (Printf.sprintf "<!-- -->%s" (Html.encode text))
+        | _ -> push (Html.encode text))
+    | InnerHtml text -> push text
   in
-  render_inner element
+  render_inner element;
+  buff |> Buffer.contents
 
 let renderToString element = render_tree ~mode:String element
 let renderToStaticMarkup element = render_tree ~mode:Markup element
