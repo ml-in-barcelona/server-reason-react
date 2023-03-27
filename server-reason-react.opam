@@ -17,7 +17,6 @@ depends: [
   "ocaml-lsp-server" {with-test}
   "odoc" {with-doc}
   "melange" {= "0.3.2"}
-  "mel" {= "0.3.2"}
 ]
 build: [
   ["dune" "subst"] {dev}
