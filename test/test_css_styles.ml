@@ -169,6 +169,10 @@ let with_react () =
     "<html><head><style> .css-ikx47p { display: block; \
      }</style></head><body><div class=\"css-ikx47p\"></div></body></html>"
 
+let empty () =
+  let className = Css.style [] in
+  assert_string className "css-none"
+
 let case title fn = Alcotest.test_case title `Quick fn
 
 let tests =
@@ -186,4 +190,5 @@ let tests =
     ; case "selector_params" selector_params
     ; case "keyframe" keyframe
     ; case "with_react_component" with_react
+    ; case "emtpy" empty
     ] )
