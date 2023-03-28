@@ -158,6 +158,7 @@ let flush () = Hashtbl.clear cache.contents
 let append hash (styles : t list) = Hashtbl.add cache.contents hash styles
 
 let style (styles : t list) =
+  print_endline (rules_to_string styles);
   let hash = Hash.default (rules_to_string styles) |> String.cat "css-" in
   append hash styles;
   hash
