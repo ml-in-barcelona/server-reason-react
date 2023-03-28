@@ -1,6 +1,6 @@
 (cram
  (alias runtest)
- (deps %{bin:node}))
+ (deps %{bin:node} %{bin:test_hasher_ml}))
 
 ; (rule
 ; (target

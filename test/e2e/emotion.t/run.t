@@ -6,10 +6,8 @@ $ cat >index.js <<EOF
 $ node index.js
 css-17vxl0k
 
-  $ cat >index.js <<EOF
-  > const hash = require("@emotion/hash").default;
-  > console.log(hash("display: flex;"))
-  > EOF
+  $ node test_hasher_js.js "padding:0;"
+  7yrjag
 
-  $ node index.js
-  etlvsf
+  $ test_hasher_ml "padding:0;"
+  7yrjag
