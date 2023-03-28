@@ -17,7 +17,8 @@ end
 
 let ( << ) = Int64.shift_left
 let ( & ) = Int64.logand
-let ( ||| ) = Int64.logor
+
+(* let ( ||| ) = Int64.logor *)
 let ( * ) = Int64.mul
 let ( >>> ) = Int64.shift_right
 let ( ++ ) = Int64.add
@@ -61,7 +62,7 @@ let to_base36 (num : Int64.t) =
   in
   num |> to_base36' |> List.rev |> String.concat ""
 
-let to_css (number : Int64.t) = number |> to_base36 |> String.cat "css-"
+let to_css (number : Int64.t) = number |> to_base36
 
 (*
     This hashing is a rewrite of @emotion/hash. What's below it's an ongoing effort to match the hashing function, currently not very precise. It's currenlty
@@ -201,6 +202,8 @@ let murmur2 (str : string) =
    Int64.logxor !h (Int64.shift_right_logical !h 15)
 *)
 
-let make (str : string) =
-  let hash = murmur2 str in
-  to_css hash
+let make (str : string) = str |> murmur2 |> to_css
+
+(* Re-export as default since we want to compile it with Melange and match
+   the same interface as @emotion/hash *)
+let default = make

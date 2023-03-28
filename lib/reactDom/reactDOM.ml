@@ -6,40 +6,40 @@ module Html = struct
   let encode s =
     let add = Buffer.add_string in
     let len = String.length s in
-    let b = Buffer.create len in
+    let buff = Buffer.create len in
     let max_idx = len - 1 in
-    let flush b start i =
-      if start < len then Buffer.add_substring b s start (i - start)
+    let flush buff start i =
+      if start < len then Buffer.add_substring buff s start (i - start)
     in
     let rec escape_inner start i =
-      if i > max_idx then flush b start i
+      if i > max_idx then flush buff start i
       else
         let next = i + 1 in
         match String.get s i with
         | '&' ->
-            flush b start i;
-            add b "&amp;";
+            flush buff start i;
+            add buff "&amp;";
             escape_inner next next
         | '<' ->
-            flush b start i;
-            add b "&lt;";
+            flush buff start i;
+            add buff "&lt;";
             escape_inner next next
         | '>' ->
-            flush b start i;
-            add b "&gt;";
+            flush buff start i;
+            add buff "&gt;";
             escape_inner next next
         | '\'' ->
-            flush b start i;
-            add b "&#x27;";
+            flush buff start i;
+            add buff "&#x27;";
             escape_inner next next
         | '\"' ->
-            flush b start i;
-            add b "&quot;";
+            flush buff start i;
+            add buff "&quot;";
             escape_inner next next
         | _ -> escape_inner start next
     in
     escape_inner 0 0 |> ignore;
-    Buffer.contents b
+    Buffer.contents buff
 end
 
 let attribute_name_to_jsx k =
@@ -98,12 +98,12 @@ let attribute_to_string attr =
   | Ref _ -> ""
   (* false attributes don't get rendered *)
   | Bool (_, false) -> ""
-  (* Simply render the attribute name when is true *)
+  (* true attributes render solely the attribute name *)
   | Bool (k, true) -> k
-  (* Since we extracted the attribute as children (Eleent.InnerHtml),
+  (* Since we extracted the attribute as children (Element.InnerHtml),
      we don't want to render anything here *)
   | DangerouslyInnerHtml _ -> ""
-  (* We ignore events on SSR, the only exception is "_onclick" which renders as onclick *)
+  (* We ignore events on SSR, the only exception is "_onclick" which renders as string onclick *)
   | Event (name, Inline value) when String.equal name "_onclick" ->
       Printf.sprintf "onclick=\"%s\"" value
   | Event _ -> ""
@@ -129,8 +129,11 @@ type mode =
   | String
   | Markup
 
-let render_tree ~mode (element : Element.t) =
+let render_tree ~docType ~mode (element : Element.t) =
   let open Element in
+  let buff = Buffer.create 16 in
+  let push = Buffer.add_string buff in
+  if docType then push "<!DOCTYPE html>";
   (* is_root starts at true (when renderToString) and only goes to false
      when renders an lower-case element or closed element *)
   let is_mode_to_string = mode = String in
@@ -143,40 +146,50 @@ let render_tree ~mode (element : Element.t) =
       match is_root.contents with true -> data_react_root_attr | false -> ""
     in
     match element with
-    | Empty -> ""
-    | Fragment [] -> ""
-    | InnerHtml text -> text
+    | Empty -> push ""
+    | Provider childrens ->
+        childrens |> List.map (fun f -> f ()) |> List.iter render_inner
+    | Consumer children -> children () |> List.iter render_inner
+    | Fragment [] -> push ""
+    | Fragment childrens -> childrens |> List.iter render_inner
+    | List list -> list |> Array.iter render_inner
+    | Upper_case_element f -> render_inner (f ())
+    | Lower_case_element { tag; attributes; children } ->
+        is_root.contents <- false;
+        let attrs = attributes_to_string tag attributes in
+        push "<";
+        push tag;
+        push root_attribute;
+        push attrs;
+        push ">";
+        children |> List.iter render_inner;
+        push "</";
+        push tag;
+        push ">"
+    | Lower_case_closed_element { tag; attributes } ->
+        is_root.contents <- false;
+        push "<";
+        push tag;
+        push (attributes_to_string tag attributes);
+        push " />"
     | Text text -> (
         let is_previous_text_node = previous_was_text_node.contents in
         previous_was_text_node.contents <- true;
         match mode with
         | String when is_previous_text_node ->
-            Printf.sprintf "<!-- -->%s" (Html.encode text)
-        | _ -> Html.encode text)
-    | Provider children ->
-        children
-        |> List.map (fun f -> f ())
-        |> List.map render_inner |> String.concat ""
-    | List list ->
-        list |> Array.map render_inner |> Array.to_list |> String.concat ""
-    | Consumer children ->
-        children () |> List.map render_inner |> String.concat ""
-    | Fragment children -> children |> List.map render_inner |> String.concat ""
-    | Upper_case_element f -> render_inner (f ())
-    | Lower_case_element { tag; attributes; children } ->
-        is_root.contents <- false;
-        let attrs = attributes_to_string tag attributes in
-        let childrens = children |> List.map render_inner |> String.concat "" in
-        Printf.sprintf "<%s%s%s>%s</%s>" tag root_attribute attrs childrens tag
-    | Lower_case_closed_element { tag; attributes } ->
-        is_root.contents <- false;
-        let attrs = attributes_to_string tag attributes in
-        Printf.sprintf "<%s%s%s />" tag root_attribute attrs
+            push (Printf.sprintf "<!-- -->%s" (Html.encode text))
+        | _ -> push (Html.encode text))
+    | InnerHtml text -> push text
   in
-  render_inner element
+  render_inner element;
+  buff |> Buffer.contents
 
-let renderToString element = render_tree ~mode:String element
-let renderToStaticMarkup element = render_tree ~mode:Markup element
+let renderToString ?(docType = false) element =
+  render_tree ~mode:String element ~docType
+
+let renderToStaticMarkup ?(docType = false) element =
+  render_tree ~mode:Markup element ~docType
+
 let querySelector _str = None
 
 let fail_impossible_action_in_ssr =

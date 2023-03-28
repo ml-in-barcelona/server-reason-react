@@ -1,8 +1,8 @@
 module StringMap = Map.Make (String)
 
-type styles = string StringMap.t
+type t = string StringMap.t
 
-let add name item (map : styles) =
+let add name item (map : t) =
   match item with Some i -> map |> StringMap.add name i | None -> map
 
 let make
@@ -349,326 +349,335 @@ let make
     ?(rubyMerge : string option)
     ?(rubyPosition : string option)
     () =
-  let styles = StringMap.empty in
-  styles
-  |> add "align-content" alignContent
-  |> add "align-items" alignItems
-  |> add "align-self" alignSelf
-  |> add "alignment-baseline" alignmentBaseline
-  |> add "all" all
-  |> add "animation-delay" animationDelay
-  |> add "animation-direction" animationDirection
-  |> add "animation-duration" animationDuration
-  |> add "animation-fill-mode" animationFillMode
-  |> add "animation-iteration-count" animationIterationCount
-  |> add "animation-name" animationName
-  |> add "animation-play-state" animationPlayState
-  |> add "animation-timing-function" animationTimingFunction
-  |> add "animation" animation
-  |> add "appearance" appearance
-  |> add "azimuth" azimuth
-  |> add "backface-visibility" backfaceVisibility
-  |> add "background-attachment" backgroundAttachment
-  |> add "background-blend-mode" backgroundBlendMode
-  |> add "background-clip" backgroundClip
-  |> add "background-color" backgroundColor
-  |> add "background-image" backgroundImage
-  |> add "background-origin" backgroundOrigin
-  |> add "background-position" backgroundPosition
-  |> add "background-repeat" backgroundRepeat
-  |> add "background-size" backgroundSize
-  |> add "background" background
-  |> add "baseline-shift" baselineShift
-  |> add "border-bottom-color" borderBottomColor
-  |> add "border-bottom-left-radius" borderBottomLeftRadius
-  |> add "border-bottom-right-radius" borderBottomRightRadius
-  |> add "border-bottom-style" borderBottomStyle
-  |> add "border-bottom-width" borderBottomWidth
-  |> add "border-bottom" borderBottom
-  |> add "border-collapse" borderCollapse
-  |> add "border-color" borderColor
-  |> add "border-image-outset" borderImageOutset
-  |> add "border-image-repeat" borderImageRepeat
-  |> add "border-image-slice" borderImageSlice
-  |> add "border-image-source" borderImageSource
-  |> add "border-image-width" borderImageWidth
-  |> add "border-image" borderImage
-  |> add "border-left-color" borderLeftColor
-  |> add "border-left-style" borderLeftStyle
-  |> add "border-left-width" borderLeftWidth
-  |> add "border-left" borderLeft
-  |> add "border-radius" borderRadius
-  |> add "border-right-color" borderRightColor
-  |> add "border-right-style" borderRightStyle
-  |> add "border-right-width" borderRightWidth
-  |> add "border-right" borderRight
-  |> add "border-spacing" borderSpacing
-  |> add "border-style" borderStyle
-  |> add "border-top-color" borderTopColor
-  |> add "border-top-left-radius" borderTopLeftRadius
-  |> add "border-top-right-radius" borderTopRightRadius
-  |> add "border-top-style" borderTopStyle
-  |> add "border-top-width" borderTopWidth
-  |> add "border-top" borderTop
-  |> add "border-width" borderWidth
-  |> add "border" border |> add "bottom" bottom
-  |> add "box-decoration-break" boxDecorationBreak
-  |> add "box-shadow" boxShadow |> add "box-sizing" boxSizing
-  |> add "break-after" breakAfter
-  |> add "break-before" breakBefore
-  |> add "break-inside" breakInside
-  |> add "caption-side" captionSide
-  |> add "caret-animation" caretAnimation
-  |> add "caret-color" caretColor
-  |> add "caret-shape" caretShape
-  |> add "caret" caret |> add "clear" clear |> add "clip-path" clipPath
-  |> add "clip-rule" clipRule |> add "clip-rule" clipRule |> add "clip" clip
-  |> add "color-interpolation-filters" colorInterpolationFilters
-  |> add "color-interpolation" colorInterpolation
-  |> add "color-profile" colorProfile
-  |> add "color-rendering" colorRendering
-  |> add "color" color
-  |> add "column-count" columnCount
-  |> add "column-fill" columnFill
-  |> add "column-gap" columnGap
-  |> add "column-rule-color" columnRuleColor
-  |> add "column-rule-style" columnRuleStyle
-  |> add "column-rule-width" columnRuleWidth
-  |> add "column-rule" columnRule
-  |> add "column-span" columnSpan
-  |> add "column-width" columnWidth
-  |> add "columns" columns |> add "content" content
-  |> add "counter-increment" counterIncrement
-  |> add "counter-reset" counterReset
-  |> add "cue-after" cueAfter |> add "cue-before" cueBefore |> add "cue" cue
-  |> add "cursor" cursor |> add "direction" direction |> add "display" display
-  |> add "dominant-baseline" dominantBaseline
-  |> add "elevation" elevation
-  |> add "empty-cells" emptyCells
-  |> add "fill-opacity" fillOpacity
-  |> add "fill-rule" fillRule |> add "fill" fill |> add "filter" filter
-  |> add "flex-basis" flexBasis
-  |> add "flex-direction" flexDirection
-  |> add "flex-flow" flexFlow |> add "flex-grow" flexGrow
-  |> add "flex-shrink" flexShrink
-  |> add "flex-wrap" flexWrap |> add "flex" flex |> add "float" float
-  |> add "flood-color" floodColor
-  |> add "flood-opacity" floodOpacity
-  |> add "font-family" fontFamily
-  |> add "font-feature-settings" fontFeatureSettings
-  |> add "font-kerning" fontKerning
-  |> add "font-language-override" fontLanguageOverride
-  |> add "font-size-adjust" fontSizeAdjust
-  |> add "font-size" fontSize
-  |> add "font-stretch" fontStretch
-  |> add "font-style" fontStyle
-  |> add "font-synthesis" fontSynthesis
-  |> add "font-variant-caps" fontVariantCaps
-  |> add "font-variant-east-asian" fontVariantEastAsian
-  |> add "font-variant-ligatures" fontVariantLigatures
-  |> add "font-variant-numeric" fontVariantNumeric
-  |> add "font-variant-position" fontVariantPosition
-  |> add "font-variant" fontVariant
-  |> add "font-weight" fontWeight
-  |> add "font" font
-  |> add "fornt-variant-alternates" forntVariantAlternates
-  |> add "glyph-orientation-horizontal" glyphOrientationHorizontal
-  |> add "glyph-orientation-vertical" glyphOrientationVertical
-  |> add "grid-area" gridArea
-  |> add "grid-auto-columns" gridAutoColumns
-  |> add "grid-auto-flow" gridAutoFlow
-  |> add "grid-auto-rows" gridAutoRows
-  |> add "grid-column-end" gridColumnEnd
-  |> add "grid-column-gap" gridColumnGap
-  |> add "grid-column-start" gridColumnStart
-  |> add "grid-column" gridColumn
-  |> add "grid-gap" gridGap
-  |> add "grid-row-end" gridRowEnd
-  |> add "grid-row-gap" gridRowGap
-  |> add "grid-row-start" gridRowStart
-  |> add "grid-row" gridRow
-  |> add "grid-template-areas" gridTemplateAreas
-  |> add "grid-template-columns" gridTemplateColumns
-  |> add "grid-template-rows" gridTemplateRows
-  |> add "grid-template" gridTemplate
-  |> add "grid" grid
-  |> add "hanging-punctuation" hangingPunctuation
-  |> add "height" height |> add "hyphens" hyphens
-  |> add "image-orientation" imageOrientation
-  |> add "image-rendering" imageRendering
-  |> add "image-resolution" imageResolution
-  |> add "isolation" isolation
-  |> add "justify-content" justifyContent
-  |> add "justify-items" justifyItems
-  |> add "justify-self" justifySelf
-  |> add "kerning" kerning |> add "left" left
-  |> add "letter-spacing" letterSpacing
-  |> add "lighting-color" lightingColor
-  |> add "line-break" lineBreak
-  |> add "line-height" lineHeight
-  |> add "list-style-image" listStyleImage
-  |> add "list-style-position" listStylePosition
-  |> add "list-style-type" listStyleType
-  |> add "list-style" listStyle
-  |> add "margin-bottom" marginBottom
-  |> add "margin-left" marginLeft
-  |> add "margin-right" marginRight
-  |> add "margin-top" marginTop |> add "margin" margin
-  |> add "marker-end" markerEnd |> add "marker-mid" markerMid
-  |> add "marker-offset" markerOffset
-  |> add "marker-start" markerStart
-  |> add "marks" marks
-  |> add "marquee-direction" marqueeDirection
-  |> add "marquee-loop" marqueeLoop
-  |> add "marquee-speed" marqueeSpeed
-  |> add "marquee-style" marqueeStyle
-  |> add "mask-border-mode" maskBorderMode
-  |> add "mask-border-outset" maskBorderOutset
-  |> add "mask-border-repeat" maskBorderRepeat
-  |> add "mask-border-slice" maskBorderSlice
-  |> add "mask-border-source" maskBorderSource
-  |> add "mask-border-width" maskBorderWidth
-  |> add "mask-border" maskBorder
-  |> add "mask-clip" maskClip
-  |> add "mask-composite" maskComposite
-  |> add "mask-image" maskImage |> add "mask-mode" maskMode
-  |> add "mask-origin" maskOrigin
-  |> add "mask-position" maskPosition
-  |> add "mask-repeat" maskRepeat
-  |> add "mask-size" maskSize |> add "mask-type" maskType |> add "mask" mask
-  |> add "max-height" maxHeight |> add "max-lines" maxLines
-  |> add "max-width" maxWidth |> add "min-height" minHeight
-  |> add "min-width" minWidth
-  |> add "mix-blend-mode" mixBlendMode
-  |> add "nav-down" navDown |> add "nav-left" navLeft
-  |> add "nav-right" navRight |> add "nav-up" navUp
-  |> add "object-fit" objectFit
-  |> add "object-position" objectPosition
-  |> add "opacity" opacity |> add "order" order |> add "orphans" orphans
-  |> add "outline-color" outlineColor
-  |> add "outline-offset" outlineOffset
-  |> add "outline-style" outlineStyle
-  |> add "outline-width" outlineWidth
-  |> add "outline" outline
-  |> add "overflow-style" overflowStyle
-  |> add "overflow-wrap" overflowWrap
-  |> add "overflow-x" overflowX |> add "overflow-y" overflowY
-  |> add "overflow" overflow
-  |> add "padding-bottom" paddingBottom
-  |> add "padding-left" paddingLeft
-  |> add "padding-right" paddingRight
-  |> add "padding-top" paddingTop
-  |> add "padding" padding
-  |> add "page-break-after" pageBreakAfter
-  |> add "page-break-before" pageBreakBefore
-  |> add "page-break-inside" pageBreakInside
-  |> add "page" page
-  |> add "pause-after" pauseAfter
-  |> add "pause-before" pauseBefore
-  |> add "pause" pause
-  |> add "perspective-origin" perspectiveOrigin
-  |> add "perspective" perspective
-  |> add "pitch-range" pitchRange
-  |> add "pitch" pitch
-  |> add "place-content" placeContent
-  |> add "place-items" placeItems
-  |> add "place-self" placeSelf
-  |> add "play-during" playDuring
-  |> add "pointer-events" pointerEvents
-  |> add "position" position |> add "quotes" quotes |> add "resize" resize
-  |> add "rest-after" restAfter
-  |> add "rest-before" restBefore
-  |> add "rest" rest |> add "richness" richness |> add "right" right
-  |> add "rotation-point" rotationPoint
-  |> add "rotation" rotation |> add "ruby-align" rubyAlign
-  |> add "ruby-merge" rubyMerge
-  |> add "ruby-position" rubyPosition
-  |> add "shape-image-threshold" shapeImageThreshold
-  |> add "shape-margin" shapeMargin
-  |> add "shape-outside" shapeOutside
-  |> add "shape-rendering" shapeRendering
-  |> add "size" size |> add "speak-as" speakAs
-  |> add "speak-header" speakHeader
-  |> add "speak-numeral" speakNumeral
-  |> add "speak-punctuation" speakPunctuation
-  |> add "speak" speak
-  |> add "speech-rate" speechRate
-  |> add "stop-color" stopColor
-  |> add "stop-opacity" stopOpacity
-  |> add "stress" stress
-  |> add "stroke-dasharray" strokeDasharray
-  |> add "stroke-dashoffset" strokeDashoffset
-  |> add "stroke-linecap" strokeLinecap
-  |> add "stroke-linejoin" strokeLinejoin
-  |> add "stroke-miterlimit" strokeMiterlimit
-  |> add "stroke-opacity" strokeOpacity
-  |> add "stroke-width" strokeWidth
-  |> add "stroke" stroke |> add "tab-size" tabSize
-  |> add "table-layout" tableLayout
-  |> add "text-align-last" textAlignLast
-  |> add "text-align" textAlign
-  |> add "text-anchor" textAnchor
-  |> add "text-combine-upright" textCombineUpright
-  |> add "text-decoration-color" textDecorationColor
-  |> add "text-decoration-line" textDecorationLine
-  |> add "text-decoration-skip" textDecorationSkip
-  |> add "text-decoration-style" textDecorationStyle
-  |> add "text-decoration" textDecoration
-  |> add "text-emphasis-color" textEmphasisColor
-  |> add "text-emphasis-position" textEmphasisPosition
-  |> add "text-emphasis-style" textEmphasisStyle
-  |> add "text-emphasis" textEmphasis
-  |> add "text-indent" textIndent
-  |> add "text-justify" textJustify
-  |> add "text-orientation" textOrientation
-  |> add "text-overflow" textOverflow
-  |> add "text-rendering" textRendering
-  |> add "text-shadow" textShadow
-  |> add "text-transform" textTransform
-  |> add "text-underline-position" textUnderlinePosition
-  |> add "top" top
-  |> add "transform-origin" transformOrigin
-  |> add "transform-style" transformStyle
-  |> add "transform" transform
-  |> add "transition-delay" transitionDelay
-  |> add "transition-duration" transitionDuration
-  |> add "transition-property" transitionProperty
-  |> add "transition-timing-function" transitionTimingFunction
-  |> add "transition" transition
-  |> add "unicode-bidi" unicodeBidi
-  |> add "user-select" userSelect
-  |> add "vertical-align" verticalAlign
-  |> add "visibility" visibility
-  |> add "voice-balance" voiceBalance
-  |> add "voice-duration" voiceDuration
-  |> add "voice-family" voiceFamily
-  |> add "voice-pitch" voicePitch
-  |> add "voice-range" voiceRange
-  |> add "voice-rate" voiceRate
-  |> add "voice-stress" voiceStress
-  |> add "voice-volume" voiceVolume
-  |> add "volume" volume
-  |> add "white-space" whiteSpace
-  |> add "widows" widows |> add "width" width
-  |> add "will-change" willChange
-  |> add "word-break" wordBreak
-  |> add "word-spacing" wordSpacing
-  |> add "word-wrap" wordWrap
-  |> add "writing-mode" writingMode
-  |> add "z-index" zIndex
-  |> StringMap.mapi (fun k v -> Printf.sprintf "%s: %s" k (String.trim v))
-  |> StringMap.bindings |> List.map snd |> String.concat "; "
+  let styles =
+    StringMap.empty
+    |> add "align-content" alignContent
+    |> add "align-items" alignItems
+    |> add "align-self" alignSelf
+    |> add "alignment-baseline" alignmentBaseline
+    |> add "all" all
+    |> add "animation-delay" animationDelay
+    |> add "animation-direction" animationDirection
+    |> add "animation-duration" animationDuration
+    |> add "animation-fill-mode" animationFillMode
+    |> add "animation-iteration-count" animationIterationCount
+    |> add "animation-name" animationName
+    |> add "animation-play-state" animationPlayState
+    |> add "animation-timing-function" animationTimingFunction
+    |> add "animation" animation
+    |> add "appearance" appearance
+    |> add "azimuth" azimuth
+    |> add "backface-visibility" backfaceVisibility
+    |> add "background-attachment" backgroundAttachment
+    |> add "background-blend-mode" backgroundBlendMode
+    |> add "background-clip" backgroundClip
+    |> add "background-color" backgroundColor
+    |> add "background-image" backgroundImage
+    |> add "background-origin" backgroundOrigin
+    |> add "background-position" backgroundPosition
+    |> add "background-repeat" backgroundRepeat
+    |> add "background-size" backgroundSize
+    |> add "background" background
+    |> add "baseline-shift" baselineShift
+    |> add "border-bottom-color" borderBottomColor
+    |> add "border-bottom-left-radius" borderBottomLeftRadius
+    |> add "border-bottom-right-radius" borderBottomRightRadius
+    |> add "border-bottom-style" borderBottomStyle
+    |> add "border-bottom-width" borderBottomWidth
+    |> add "border-bottom" borderBottom
+    |> add "border-collapse" borderCollapse
+    |> add "border-color" borderColor
+    |> add "border-image-outset" borderImageOutset
+    |> add "border-image-repeat" borderImageRepeat
+    |> add "border-image-slice" borderImageSlice
+    |> add "border-image-source" borderImageSource
+    |> add "border-image-width" borderImageWidth
+    |> add "border-image" borderImage
+    |> add "border-left-color" borderLeftColor
+    |> add "border-left-style" borderLeftStyle
+    |> add "border-left-width" borderLeftWidth
+    |> add "border-left" borderLeft
+    |> add "border-radius" borderRadius
+    |> add "border-right-color" borderRightColor
+    |> add "border-right-style" borderRightStyle
+    |> add "border-right-width" borderRightWidth
+    |> add "border-right" borderRight
+    |> add "border-spacing" borderSpacing
+    |> add "border-style" borderStyle
+    |> add "border-top-color" borderTopColor
+    |> add "border-top-left-radius" borderTopLeftRadius
+    |> add "border-top-right-radius" borderTopRightRadius
+    |> add "border-top-style" borderTopStyle
+    |> add "border-top-width" borderTopWidth
+    |> add "border-top" borderTop
+    |> add "border-width" borderWidth
+    |> add "border" border |> add "bottom" bottom
+    |> add "box-decoration-break" boxDecorationBreak
+    |> add "box-shadow" boxShadow |> add "box-sizing" boxSizing
+    |> add "break-after" breakAfter
+    |> add "break-before" breakBefore
+    |> add "break-inside" breakInside
+    |> add "caption-side" captionSide
+    |> add "caret-animation" caretAnimation
+    |> add "caret-color" caretColor
+    |> add "caret-shape" caretShape
+    |> add "caret" caret |> add "clear" clear |> add "clip-path" clipPath
+    |> add "clip-rule" clipRule |> add "clip-rule" clipRule |> add "clip" clip
+    |> add "color-interpolation-filters" colorInterpolationFilters
+    |> add "color-interpolation" colorInterpolation
+    |> add "color-profile" colorProfile
+    |> add "color-rendering" colorRendering
+    |> add "color" color
+    |> add "column-count" columnCount
+    |> add "column-fill" columnFill
+    |> add "column-gap" columnGap
+    |> add "column-rule-color" columnRuleColor
+    |> add "column-rule-style" columnRuleStyle
+    |> add "column-rule-width" columnRuleWidth
+    |> add "column-rule" columnRule
+    |> add "column-span" columnSpan
+    |> add "column-width" columnWidth
+    |> add "columns" columns |> add "content" content
+    |> add "counter-increment" counterIncrement
+    |> add "counter-reset" counterReset
+    |> add "cue-after" cueAfter |> add "cue-before" cueBefore |> add "cue" cue
+    |> add "cursor" cursor |> add "direction" direction |> add "display" display
+    |> add "dominant-baseline" dominantBaseline
+    |> add "elevation" elevation
+    |> add "empty-cells" emptyCells
+    |> add "fill-opacity" fillOpacity
+    |> add "fill-rule" fillRule |> add "fill" fill |> add "filter" filter
+    |> add "flex-basis" flexBasis
+    |> add "flex-direction" flexDirection
+    |> add "flex-flow" flexFlow |> add "flex-grow" flexGrow
+    |> add "flex-shrink" flexShrink
+    |> add "flex-wrap" flexWrap |> add "flex" flex |> add "float" float
+    |> add "flood-color" floodColor
+    |> add "flood-opacity" floodOpacity
+    |> add "font-family" fontFamily
+    |> add "font-feature-settings" fontFeatureSettings
+    |> add "font-kerning" fontKerning
+    |> add "font-language-override" fontLanguageOverride
+    |> add "font-size-adjust" fontSizeAdjust
+    |> add "font-size" fontSize
+    |> add "font-stretch" fontStretch
+    |> add "font-style" fontStyle
+    |> add "font-synthesis" fontSynthesis
+    |> add "font-variant-caps" fontVariantCaps
+    |> add "font-variant-east-asian" fontVariantEastAsian
+    |> add "font-variant-ligatures" fontVariantLigatures
+    |> add "font-variant-numeric" fontVariantNumeric
+    |> add "font-variant-position" fontVariantPosition
+    |> add "font-variant" fontVariant
+    |> add "font-weight" fontWeight
+    |> add "font" font
+    |> add "fornt-variant-alternates" forntVariantAlternates
+    |> add "glyph-orientation-horizontal" glyphOrientationHorizontal
+    |> add "glyph-orientation-vertical" glyphOrientationVertical
+    |> add "grid-area" gridArea
+    |> add "grid-auto-columns" gridAutoColumns
+    |> add "grid-auto-flow" gridAutoFlow
+    |> add "grid-auto-rows" gridAutoRows
+    |> add "grid-column-end" gridColumnEnd
+    |> add "grid-column-gap" gridColumnGap
+    |> add "grid-column-start" gridColumnStart
+    |> add "grid-column" gridColumn
+    |> add "grid-gap" gridGap
+    |> add "grid-row-end" gridRowEnd
+    |> add "grid-row-gap" gridRowGap
+    |> add "grid-row-start" gridRowStart
+    |> add "grid-row" gridRow
+    |> add "grid-template-areas" gridTemplateAreas
+    |> add "grid-template-columns" gridTemplateColumns
+    |> add "grid-template-rows" gridTemplateRows
+    |> add "grid-template" gridTemplate
+    |> add "grid" grid
+    |> add "hanging-punctuation" hangingPunctuation
+    |> add "height" height |> add "hyphens" hyphens
+    |> add "image-orientation" imageOrientation
+    |> add "image-rendering" imageRendering
+    |> add "image-resolution" imageResolution
+    |> add "isolation" isolation
+    |> add "justify-content" justifyContent
+    |> add "justify-items" justifyItems
+    |> add "justify-self" justifySelf
+    |> add "kerning" kerning |> add "left" left
+    |> add "letter-spacing" letterSpacing
+    |> add "lighting-color" lightingColor
+    |> add "line-break" lineBreak
+    |> add "line-height" lineHeight
+    |> add "list-style-image" listStyleImage
+    |> add "list-style-position" listStylePosition
+    |> add "list-style-type" listStyleType
+    |> add "list-style" listStyle
+    |> add "margin-bottom" marginBottom
+    |> add "margin-left" marginLeft
+    |> add "margin-right" marginRight
+    |> add "margin-top" marginTop |> add "margin" margin
+    |> add "marker-end" markerEnd |> add "marker-mid" markerMid
+    |> add "marker-offset" markerOffset
+    |> add "marker-start" markerStart
+    |> add "marks" marks
+    |> add "marquee-direction" marqueeDirection
+    |> add "marquee-loop" marqueeLoop
+    |> add "marquee-speed" marqueeSpeed
+    |> add "marquee-style" marqueeStyle
+    |> add "mask-border-mode" maskBorderMode
+    |> add "mask-border-outset" maskBorderOutset
+    |> add "mask-border-repeat" maskBorderRepeat
+    |> add "mask-border-slice" maskBorderSlice
+    |> add "mask-border-source" maskBorderSource
+    |> add "mask-border-width" maskBorderWidth
+    |> add "mask-border" maskBorder
+    |> add "mask-clip" maskClip
+    |> add "mask-composite" maskComposite
+    |> add "mask-image" maskImage |> add "mask-mode" maskMode
+    |> add "mask-origin" maskOrigin
+    |> add "mask-position" maskPosition
+    |> add "mask-repeat" maskRepeat
+    |> add "mask-size" maskSize |> add "mask-type" maskType |> add "mask" mask
+    |> add "max-height" maxHeight |> add "max-lines" maxLines
+    |> add "max-width" maxWidth |> add "min-height" minHeight
+    |> add "min-width" minWidth
+    |> add "mix-blend-mode" mixBlendMode
+    |> add "nav-down" navDown |> add "nav-left" navLeft
+    |> add "nav-right" navRight |> add "nav-up" navUp
+    |> add "object-fit" objectFit
+    |> add "object-position" objectPosition
+    |> add "opacity" opacity |> add "order" order |> add "orphans" orphans
+    |> add "outline-color" outlineColor
+    |> add "outline-offset" outlineOffset
+    |> add "outline-style" outlineStyle
+    |> add "outline-width" outlineWidth
+    |> add "outline" outline
+    |> add "overflow-style" overflowStyle
+    |> add "overflow-wrap" overflowWrap
+    |> add "overflow-x" overflowX |> add "overflow-y" overflowY
+    |> add "overflow" overflow
+    |> add "padding-bottom" paddingBottom
+    |> add "padding-left" paddingLeft
+    |> add "padding-right" paddingRight
+    |> add "padding-top" paddingTop
+    |> add "padding" padding
+    |> add "page-break-after" pageBreakAfter
+    |> add "page-break-before" pageBreakBefore
+    |> add "page-break-inside" pageBreakInside
+    |> add "page" page
+    |> add "pause-after" pauseAfter
+    |> add "pause-before" pauseBefore
+    |> add "pause" pause
+    |> add "perspective-origin" perspectiveOrigin
+    |> add "perspective" perspective
+    |> add "pitch-range" pitchRange
+    |> add "pitch" pitch
+    |> add "place-content" placeContent
+    |> add "place-items" placeItems
+    |> add "place-self" placeSelf
+    |> add "play-during" playDuring
+    |> add "pointer-events" pointerEvents
+    |> add "position" position |> add "quotes" quotes |> add "resize" resize
+    |> add "rest-after" restAfter
+    |> add "rest-before" restBefore
+    |> add "rest" rest |> add "richness" richness |> add "right" right
+    |> add "rotation-point" rotationPoint
+    |> add "rotation" rotation |> add "ruby-align" rubyAlign
+    |> add "ruby-merge" rubyMerge
+    |> add "ruby-position" rubyPosition
+    |> add "shape-image-threshold" shapeImageThreshold
+    |> add "shape-margin" shapeMargin
+    |> add "shape-outside" shapeOutside
+    |> add "shape-rendering" shapeRendering
+    |> add "size" size |> add "speak-as" speakAs
+    |> add "speak-header" speakHeader
+    |> add "speak-numeral" speakNumeral
+    |> add "speak-punctuation" speakPunctuation
+    |> add "speak" speak
+    |> add "speech-rate" speechRate
+    |> add "stop-color" stopColor
+    |> add "stop-opacity" stopOpacity
+    |> add "stress" stress
+    |> add "stroke-dasharray" strokeDasharray
+    |> add "stroke-dashoffset" strokeDashoffset
+    |> add "stroke-linecap" strokeLinecap
+    |> add "stroke-linejoin" strokeLinejoin
+    |> add "stroke-miterlimit" strokeMiterlimit
+    |> add "stroke-opacity" strokeOpacity
+    |> add "stroke-width" strokeWidth
+    |> add "stroke" stroke |> add "tab-size" tabSize
+    |> add "table-layout" tableLayout
+    |> add "text-align-last" textAlignLast
+    |> add "text-align" textAlign
+    |> add "text-anchor" textAnchor
+    |> add "text-combine-upright" textCombineUpright
+    |> add "text-decoration-color" textDecorationColor
+    |> add "text-decoration-line" textDecorationLine
+    |> add "text-decoration-skip" textDecorationSkip
+    |> add "text-decoration-style" textDecorationStyle
+    |> add "text-decoration" textDecoration
+    |> add "text-emphasis-color" textEmphasisColor
+    |> add "text-emphasis-position" textEmphasisPosition
+    |> add "text-emphasis-style" textEmphasisStyle
+    |> add "text-emphasis" textEmphasis
+    |> add "text-indent" textIndent
+    |> add "text-justify" textJustify
+    |> add "text-orientation" textOrientation
+    |> add "text-overflow" textOverflow
+    |> add "text-rendering" textRendering
+    |> add "text-shadow" textShadow
+    |> add "text-transform" textTransform
+    |> add "text-underline-position" textUnderlinePosition
+    |> add "top" top
+    |> add "transform-origin" transformOrigin
+    |> add "transform-style" transformStyle
+    |> add "transform" transform
+    |> add "transition-delay" transitionDelay
+    |> add "transition-duration" transitionDuration
+    |> add "transition-property" transitionProperty
+    |> add "transition-timing-function" transitionTimingFunction
+    |> add "transition" transition
+    |> add "unicode-bidi" unicodeBidi
+    |> add "user-select" userSelect
+    |> add "vertical-align" verticalAlign
+    |> add "visibility" visibility
+    |> add "voice-balance" voiceBalance
+    |> add "voice-duration" voiceDuration
+    |> add "voice-family" voiceFamily
+    |> add "voice-pitch" voicePitch
+    |> add "voice-range" voiceRange
+    |> add "voice-rate" voiceRate
+    |> add "voice-stress" voiceStress
+    |> add "voice-volume" voiceVolume
+    |> add "volume" volume
+    |> add "white-space" whiteSpace
+    |> add "widows" widows |> add "width" width
+    |> add "will-change" willChange
+    |> add "word-break" wordBreak
+    |> add "word-spacing" wordSpacing
+    |> add "word-wrap" wordWrap
+    |> add "writing-mode" writingMode
+    |> add "z-index" zIndex
+  in
+  let size = StringMap.to_seq styles |> Seq.length in
+  let buff = Buffer.create size in
+  StringMap.to_seq styles
+  |> Seq.iteri (fun index (k, v) ->
+         if index == size - 1 then
+           Buffer.add_string buff (Printf.sprintf "%s: %s" k (String.trim v))
+         else
+           Buffer.add_string buff (Printf.sprintf "%s: %s; " k (String.trim v)));
+  Buffer.contents buff
 
-(* TODO: There are other APIs for styles such as combine, unsafeAddProp and unsafeAddStyle. *)
+let combine (styles1 : t) (styles2 : t) : t =
+  let seq1 = styles1 |> StringMap.to_seq in
+  let seq2 = styles2 |> StringMap.to_seq in
+  Seq.append seq1 seq2 |> StringMap.of_seq
 
-(* let combine = ((_)[@bs.as {json|{}|json}]) -> t -> t -> t = "Object.assign"[@@bs.val ] *)
+let unsafeAddProp styles (key : string) (value : string) : t =
+  styles |> StringMap.add key value
 
-(* external _dictToStyle : string Js.Dict.t -> t = "%identity" *)
+(* Since we don't have a proper representation of `< .. > Js.t` yet,
+   we can't make the unsafeAddStyle
 
-(* let unsafeAddProp style key value =
-    let dict = Js.Dict.empty () in
-    Js.Dict.set dict key value; combine style (_dictToStyle dict) *)
-
-(* external unsafeAddStyle :
+   external unsafeAddStyle :
       ((_)[@bs.as {json|{}|json}]) -> t -> < .. > Js.t -> t = "Object.assign"
     [@@bs.val ] *)

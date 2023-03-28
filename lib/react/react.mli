@@ -46,6 +46,7 @@ end
 
 and EventT : sig
   type t =
+    | Drag of (ReactEvent.Drag.t -> unit)
     | Mouse of (ReactEvent.Mouse.t -> unit)
     | Selection of (ReactEvent.Selection.t -> unit)
     | Touch of (ReactEvent.Touch.t -> unit)

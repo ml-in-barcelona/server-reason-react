@@ -1,5 +1,6 @@
 (test
  (name test)
+ (modules :standard)
  (libraries
   alcotest
   fmt
