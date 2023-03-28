@@ -1,8 +1,1 @@
-(dirs lib ppx test demo)
-
-(melange.emit
- (target cjs)
- (alias default)
- (module_systems commonjs)
- ; We can remove melange from libraries in a further melange version
- (libraries melange hash))
+(dirs lib ppx test demo mocked-hash-js)

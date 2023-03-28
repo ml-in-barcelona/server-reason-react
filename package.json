@@ -1,9 +1,0 @@
-{
-  "dependencies": {
-    "@emotion/css": "^11.10.6",
-    "@emotion/hash": "file:_build/default/cjs/node_modules/server-reason-react.hash/hash.js"
-  },
-  "resolutions": {
-    "@emotion/hash": "file:_build/default/cjs/node_modules/server-reason-react.hash/hash.js"
-  }
-}
