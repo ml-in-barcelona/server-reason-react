@@ -14,6 +14,7 @@ let data =
   ; (Hash.make "display: flex", "u5mu6e")
   ; (Hash.make "display: flex;", "etlvsf")
   ; (Hash.make "display: flex; font-size: 33px", "35n6jn")
+  ; (Hash.make "padding:0;", "7yrjag")
   ]
 
 let tests = ("Hash", List.map check_equality data)

@@ -2,29 +2,28 @@ include Properties
 include Colors
 include Rule
 
-let rec generate_rule rule =
+let rec rules_to_string rules =
   let buff = Buffer.create 16 in
   let push = Buffer.add_string buff in
-  (match rule with
-  | Declaration (property, value) ->
-      push (Printf.sprintf "%s: %s; " property value)
-  | Selector (selector, rules) ->
-      push (Printf.sprintf ".%s { %s }" selector (generate_rules rules))
-  | Pseudoclass (pseudoclass, rules) ->
-      push (Printf.sprintf ":%s { %s }" pseudoclass (generate_rules rules))
-  | PseudoclassParam (pseudoclass, param, rules) ->
-      push
-        (Printf.sprintf ":%s (%s) { %s }" pseudoclass param
-           (generate_rules rules)));
-  Buffer.contents buff
+  let rule_to_string rule =
+    match rule with
+    | Declaration (property, value) ->
+        push (Printf.sprintf "%s: %s; " property value)
+    | Selector (selector, rules) ->
+        push (Printf.sprintf ".%s { %s }" selector (rules_to_string rules))
+    | Pseudoclass (pseudoclass, rules) ->
+        push (Printf.sprintf ":%s { %s }" pseudoclass (rules_to_string rules))
+    | PseudoclassParam (pseudoclass, param, rules) ->
+        push
+          (Printf.sprintf ":%s (%s) { %s }" pseudoclass param
+             (rules_to_string rules))
+  in
 
-and generate_rules rules =
   rules
   |> List.map Autoprefixer.prefix
-  |> List.flatten |> List.map generate_rule |> String.concat ""
+  |> List.flatten |> List.iter rule_to_string;
 
-let rule_to_string rule = generate_rule rule
-let rules_to_string rules = generate_rules rules
+  Buffer.contents buff
 
 let render_declaration rule =
   match rule with
@@ -32,7 +31,7 @@ let render_declaration rule =
       Some (Printf.sprintf "%s: %s;" property value)
   | _ -> None
 
-let is_media_query selector = String.contains selector '@'
+let is_at_rule selector = String.contains selector '@'
 
 let prefix ~pre s =
   let len = String.length pre in
@@ -68,7 +67,7 @@ let replace_ampersand str with_ =
 
 let resolve_ampersand hash selector = replace_ampersand selector ("." ^ hash)
 
-let make_prelude hash selector =
+let render_prelude hash selector =
   let new_selector =
     selector |> remove_first_ampersand |> resolve_ampersand hash
   in
@@ -76,12 +75,12 @@ let make_prelude hash selector =
 
 let render_selectors hash rule =
   match rule with
-  | Selector (selector, rules) when is_media_query selector ->
+  | Selector (selector, rules) when is_at_rule selector ->
       Some
         (Printf.sprintf "%s { .%s { %s } }" selector hash
            (rules_to_string rules))
   | Selector (selector, rules) ->
-      let prelude = make_prelude hash selector in
+      let prelude = render_prelude hash selector in
       Some (Printf.sprintf "%s { %s }" prelude (rules_to_string rules))
   | Pseudoclass (pseduoclass, rules) ->
       Some
@@ -115,26 +114,29 @@ and to_debug nesting rules = rules |> List.fold_left (rule_to_debug nesting) ""
 let print_rules rules =
   rules |> List.iter (fun rule -> print_endline (to_debug 0 [ rule ]))
 
-let rec unnest ~prefix =
-  List.partition_map (function
-    | Selector (title, selector_rules) ->
-        let new_prelude = prefix ^ title in
-        let content, tail = unnest ~prefix:(new_prelude ^ " ") selector_rules in
-        Right (Selector (new_prelude, content) :: List.flatten tail)
-    | Declaration _ as rule -> Left rule
-    | _ as rule -> Left rule)
+let resolve_selectors rules =
+  let rec unnest ~prefix =
+    List.partition_map (function
+      | Selector (title, selector_rules) ->
+          let new_prelude = prefix ^ title in
+          let content, tail =
+            unnest ~prefix:(new_prelude ^ " ") selector_rules
+          in
+          Right (Selector (new_prelude, content) :: List.flatten tail)
+      | _ as rule -> Left rule)
+  in
+  let resolve_selector rule =
+    let declarations, selectors = unnest ~prefix:"" [ rule ] in
+    List.flatten (declarations :: selectors)
+  in
+  rules |> List.map resolve_selector |> List.flatten
 
-let unnest_selectors rules =
-  rules
-  |> List.map (fun rule ->
-         let declarations, selectors = unnest ~prefix:"" [ rule ] in
-         List.flatten (declarations :: selectors))
-  |> List.flatten |> List.rev
-
-let nested_rule_to_string hash rules =
+(* `resolved_rule` here means to print valid CSS, selectors are nested
+   and properties aren't autoprefixed. This function transforms into correct CSS. *)
+let resolved_rule_to_css hash rules =
   (* TODO: Refactor with partition or partition_map. List.filter_map is error prone.
      Selectors might need to respect the order of definition, and this breaks the order *)
-  let list_of_rules = rules |> unnest_selectors |> List.rev in
+  let list_of_rules = rules |> resolve_selectors in
   let declarations =
     list_of_rules
     |> List.map Autoprefixer.prefix
@@ -153,17 +155,17 @@ let nested_rule_to_string hash rules =
 let cache = ref (Hashtbl.create 1000)
 let _get hash = Hashtbl.find cache.contents hash
 let flush () = Hashtbl.clear cache.contents
-let push hash (styles : t list) = Hashtbl.add cache.contents hash styles
+let append hash (styles : t list) = Hashtbl.add cache.contents hash styles
 
 let style (styles : t list) =
   let hash = Hash.default (rules_to_string styles) |> String.cat "css-" in
-  push hash styles;
+  append hash styles;
   hash
 
 let render_style_tag () =
   Hashtbl.fold
     (fun hash rules accumulator ->
-      let rules = rules |> nested_rule_to_string hash |> String.trim in
+      let rules = rules |> resolved_rule_to_css hash |> String.trim in
       Printf.sprintf "%s %s" accumulator rules)
     cache.contents ""
 
