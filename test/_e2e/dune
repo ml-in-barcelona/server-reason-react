@@ -1,6 +1,9 @@
 (cram
  (alias runtest)
- (deps %{bin:node} %{bin:test_hasher_ml}))
+ (deps
+  %{bin:node}
+  %{bin:test_hasher_ml}
+  (package mocked-hash-js)))
 
 ; (rule
 ; (target
