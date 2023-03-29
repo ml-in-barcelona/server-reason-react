@@ -5,19 +5,19 @@ let one_property () =
   let _className = Css.style [ Css.display `block ] in
   let css = Css.render_style_tag () in
   Css.flush ();
-  assert_string css " .css-ikx47p { display: block; }"
+  assert_string css " .css-etlvsf { display: block; }"
 
 let multiple_properties () =
   let _className = Css.style [ Css.display `block; Css.fontSize (`px 10) ] in
   let css = Css.render_style_tag () in
   Css.flush ();
-  assert_string css " .css-dxgo0 { display: block; font-size: 10px; }"
+  assert_string css " .css-66lw0t { display: block; font-size: 10px; }"
 
 let float_values () =
   let _className = Css.style [ Css.padding (`rem 10.) ] in
   let css = Css.render_style_tag () in
   Css.flush ();
-  assert_string css " .css-vsqypz { padding: 10rem; }"
+  assert_string css " .css-g4terb { padding: 10rem; }"
 
 let selector_one_nesting () =
   let _className =
@@ -29,7 +29,7 @@ let selector_one_nesting () =
   let css = Css.render_style_tag () in
   Css.flush ();
   assert_string css
-    " .css-5dylc4 { color: #F0F8FF; } .css-5dylc4 a { color: #663399;  }"
+    " .css-kx51ye { color: #F0F8FF; } .css-kx51ye a { color: #663399; }"
 
 let selector_more_than_one_nesting () =
   let _className =
@@ -42,8 +42,8 @@ let selector_more_than_one_nesting () =
   let css = Css.render_style_tag () in
   Css.flush ();
   assert_string css
-    " .css-11lmqi { color: #F0F8FF; } .css-11lmqi a { display: block;  } \
-     .css-11lmqi a div { display: none;  }"
+    " .css-5hr6i6 { color: #F0F8FF; } .css-5hr6i6 a { display: block; } \
+     .css-5hr6i6 a div { display: none; }"
 
 let selector_with_a_lot_of_nesting () =
   let _className =
@@ -67,10 +67,10 @@ let selector_with_a_lot_of_nesting () =
   let css = Css.render_style_tag () in
   Css.flush ();
   assert_string css
-    " .css-odr23p { display: flex; } .css-odr23p a { display: block;  } \
-     .css-odr23p a div { display: none;  } .css-odr23p a div span { display: \
-     none;  } .css-odr23p a div span hr { display: none;  } .css-odr23p a div \
-     span hr code { display: none;  }"
+    " .css-or3ar2 { display: flex; } .css-or3ar2 a { display: block; } \
+     .css-or3ar2 a div { display: none; } .css-or3ar2 a div span { display: \
+     none; } .css-or3ar2 a div span hr { display: none; } .css-or3ar2 a div \
+     span hr code { display: none; }"
 
 let selector_ampersand () =
   let _className =
@@ -80,7 +80,7 @@ let selector_ampersand () =
   let css = Css.render_style_tag () in
   Css.flush ();
   assert_string css
-    " .css-c54aw8 { font-size: 42px; } .css-c54aw8  .div { font-size: 24px;  }"
+    " .css-rz74tm { font-size: 42px; } .css-rz74tm  .div { font-size: 24px; }"
 
 let selector_ampersand_at_the_middle () =
   let _className =
@@ -92,8 +92,8 @@ let selector_ampersand_at_the_middle () =
   let css = Css.render_style_tag () in
   Css.flush ();
   assert_string css
-    " .css-5lv1rr { font-size: 42px; } .css-5lv1rr  div .css-5lv1rr { \
-     font-size: 24px;  }"
+    " .css-oitwqf { font-size: 42px; } .css-oitwqf  div .css-oitwqf { \
+     font-size: 24px; }"
 
 let media_queries () =
   let _className =
@@ -105,8 +105,8 @@ let media_queries () =
   let css = Css.render_style_tag () in
   Css.flush ();
   assert_string css
-    " .css-ikkh9t { max-width: 800px; } @media (max-width: 768px) { \
-     .css-ikkh9t { width: 300px;  } }"
+    " .css-czgfdn { max-width: 800px; } @media (max-width: 768px) { \
+     .css-czgfdn { width: 300px; } }"
 
 (* let media_queries_nested () =
    let _className =
@@ -131,8 +131,8 @@ let selector_params () =
   let css = Css.render_style_tag () in
   Css.flush ();
   assert_string css
-    " .css-5gqhky { max-width: 800px; } .css-5gqhky:first-child { width: \
-     300px;  }"
+    " .css-39mqrq { max-width: 800px; } .css-39mqrq:first-child { width: \
+     300px; }"
 
 let keyframe () =
   let loading = "random" in
@@ -146,7 +146,7 @@ let keyframe () =
   let css = Css.render_style_tag () in
   Css.flush ();
   assert_string css
-    " .css-kxzxz3 { -webkit-animation-name: random; animation-name: random; }"
+    " .css-7t1ji0 { -webkit-animation-name: random; animation-name: random; }"
 
 let with_react () =
   let className = Css.style [ Css.display `block ] in
@@ -166,8 +166,8 @@ let with_react () =
   let app = React.createElement "html" [||] [ head; body ] in
   assert_string
     (ReactDOM.renderToStaticMarkup app)
-    "<html><head><style> .css-ikx47p { display: block; \
-     }</style></head><body><div class=\"css-ikx47p\"></div></body></html>"
+    "<html><head><style> .css-etlvsf { display: block; \
+     }</style></head><body><div class=\"css-etlvsf\"></div></body></html>"
 
 let empty () =
   let className = Css.style [] in
