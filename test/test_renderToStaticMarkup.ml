@@ -246,7 +246,7 @@ let render_with_doc_type () =
       [ React.createElement "span" [||] [ React.string "This is valid HTML5" ] ]
   in
   assert_string
-    (ReactDOM.renderToStaticMarkup ~docType:true div)
+    (ReactDOM.renderToStaticMarkup ~docType:ReactDOM.HTML5 div)
     "<!DOCTYPE html><div><span>This is valid HTML5</span></div>"
 
 let case title fn = Alcotest.test_case title `Quick fn
