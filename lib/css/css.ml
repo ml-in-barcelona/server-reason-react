@@ -2,26 +2,29 @@ include Properties
 include Colors
 include Rule
 
+(* rules_to_string render the rule in a format where the hash matches with `@emotion/serialiseStyles`
+   It doesn't render any whitespace.
+
+   TODO: Ensure PseudoclassParam is rendered correctly.
+*)
 let rec rules_to_string rules =
   let buff = Buffer.create 16 in
   let push = Buffer.add_string buff in
   let rule_to_string rule =
     match rule with
     | Declaration (property, value) ->
-        push (Printf.sprintf "%s: %s; " property value)
+        push (Printf.sprintf "%s:%s;" property value)
     | Selector (selector, rules) ->
-        push (Printf.sprintf ".%s { %s }" selector (rules_to_string rules))
+        push (Printf.sprintf "%s{%s}" selector (rules_to_string rules))
     | Pseudoclass (pseudoclass, rules) ->
-        push (Printf.sprintf ":%s { %s }" pseudoclass (rules_to_string rules))
+        push (Printf.sprintf ":%s{%s}" pseudoclass (rules_to_string rules))
     | PseudoclassParam (pseudoclass, param, rules) ->
         push
-          (Printf.sprintf ":%s (%s) { %s }" pseudoclass param
+          (Printf.sprintf ":%s (%s) {%s}" pseudoclass param
              (rules_to_string rules))
   in
 
-  rules
-  |> List.map Autoprefixer.prefix
-  |> List.flatten |> List.iter rule_to_string;
+  rules |> List.iter rule_to_string;
 
   Buffer.contents buff
 
@@ -30,6 +33,13 @@ let render_declaration rule =
   | Declaration (property, value) ->
       Some (Printf.sprintf "%s: %s;" property value)
   | _ -> None
+
+let render_declarations rules =
+  rules
+  |> List.map Autoprefixer.prefix
+  |> List.flatten
+  |> List.filter_map render_declaration
+  |> String.concat " "
 
 let is_at_rule selector = String.contains selector '@'
 
@@ -78,17 +88,18 @@ let render_selectors hash rule =
   | Selector (selector, rules) when is_at_rule selector ->
       Some
         (Printf.sprintf "%s { .%s { %s } }" selector hash
-           (rules_to_string rules))
+           (render_declarations rules))
   | Selector (selector, rules) ->
       let prelude = render_prelude hash selector in
-      Some (Printf.sprintf "%s { %s }" prelude (rules_to_string rules))
+      Some (Printf.sprintf "%s { %s }" prelude (render_declarations rules))
   | Pseudoclass (pseduoclass, rules) ->
       Some
-        (Printf.sprintf ".%s:%s { %s }" hash pseduoclass (rules_to_string rules))
+        (Printf.sprintf ".%s:%s { %s }" hash pseduoclass
+           (render_declarations rules))
   | PseudoclassParam (pseudoclass, param, rules) ->
       Some
         (Printf.sprintf ".%s:%s ( %s ) %s" hash pseudoclass param
-           (rules_to_string rules))
+           (render_declarations rules))
   | _ -> None
 
 let rec rule_to_debug nesting accumulator rule =
@@ -158,7 +169,6 @@ let flush () = Hashtbl.clear cache.contents
 let append hash (styles : t list) = Hashtbl.add cache.contents hash styles
 
 let style (styles : t list) =
-  print_endline (rules_to_string styles);
   let hash = Hash.default (rules_to_string styles) |> String.cat "css-" in
   append hash styles;
   hash

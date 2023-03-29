@@ -10,22 +10,22 @@ let prefix_one_declaration declaration output =
 let text_size_adjust () =
   prefix_one_declaration
     (Css.unsafe "text-size-adjust" "none")
-    " .css-imeydt { -webkit-text-size-adjust: none; -moz-text-size-adjust: \
+    " .css-4bcd2j { -webkit-text-size-adjust: none; -moz-text-size-adjust: \
      none; -ms-text-size-adjust: none; text-size-adjust: none; }"
 
 let text_decoration () =
   prefix_one_declaration
     (Css.textDecoration `lineThrough)
-    " .css-ws9oa3 { -webkit-text-decoration: line-through; text-decoration: \
+    " .css-lemim { -webkit-text-decoration: line-through; text-decoration: \
      line-through; }"
 
 let display_grid () =
-  prefix_one_declaration (Css.display `grid) " .css-c7pm1f { display: grid; }"
+  prefix_one_declaration (Css.display `grid) " .css-u5mu6e { display: grid; }"
 
 let animation_duration () =
   prefix_one_declaration
     (Css.animationIterationCount `infinite)
-    " .css-bgy1zj { -webkit-animation-iteration-count: infinite; \
+    " .css-5vecbj { -webkit-animation-iteration-count: infinite; \
      animation-iteration-count: infinite; }"
 
 let case title fn = Alcotest.test_case title `Quick fn
