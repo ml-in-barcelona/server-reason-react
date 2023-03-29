@@ -5,7 +5,7 @@
 (cram enable)
 
 (name server-reason-react)
-(version 923ed7d-dirty)
+(version e08f6bb)
 
 (license MIT)
 
