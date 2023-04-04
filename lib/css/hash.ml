@@ -65,20 +65,25 @@ let to_base36 (num : Int64.t) =
 let to_css (number : Int64.t) = number |> to_base36
 
 (*
-    This hashing is a rewrite of @emotion/hash. What's below it's an ongoing effort to match the hashing function, currently not very precise. It's currenlty
-    a big WIP and that's why it's full of prints and comments.
+    The murmur2 hashing is based on @emotion/hash, which is based on
+    https://github.com/garycourt/murmurhash-js and ported from
+    https://github.com/aappleby/smhasher/blob/61a0530f28277f2e850bfc39600ce61d02b518de/src/MurmurHash2.cpp#L37-L86.
+
+    It's an ongoing effort to match the hashing function, currently not very precise.
+    It's a big WIP and that's why it's full of prints and comments.
 
     Reference: https://github.com/emotion-js/emotion/blob/main/packages/hash/src/index.js
   *)
 let murmur2 (str : string) =
+  let length = String.length str in
   (* Initialize the hash *)
-  let len = str |> String.length |> Int64.of_int in
-  let h = ref (Int64.mul len len) in
+  let seed = 123456789L in
+  let h = ref seed in
 
   (* Mix 4 bytes at a time into the hash *)
   let k = ref Int64.zero in
   let i = ref 0 in
-  let len = ref (String.length str) in
+  let len = ref length in
 
   while !len >= 4 do
     k :=
@@ -89,10 +94,6 @@ let murmur2 (str : string) =
       |> Int64.of_int;
 
     (* print_endline (Int64.to_string first); *)
-    (* print_endline (Int64.to_string second); *)
-    (* print_endline (Int64.to_string third); *)
-    (* print_endline (Int64.to_string forth); *)
-    (* print_endline "--"; *)
     let k_one = !k & 65535L in
     (* print_endline (Int64.to_string k_one); *)
     (* print_endline (Int64.to_string (k_one * 1540483477L)); *)
@@ -129,20 +130,27 @@ let murmur2 (str : string) =
     i := !i + 1
   done;
 
-  (* print_endline (Int64.to_string !h); *)
+  print_endline (Printf.sprintf "hash: %d" (Int64.to_int !h));
+
+  (* print_endline (Printf.sprintf "len: %d" !len); *)
 
   (* Handle the last few bytes of the input array *)
-  (* (match !len with
-     | 3 ->
-         h :=
-           Int64.logxor !h
-             (Int64.shift_left (Int64.of_int (Char.code str.[!len - 2])) 16)
-     | 2 ->
-         h :=
-           Int64.logxor !h
-             (Int64.shift_left (Int64.of_int (Char.code str.[!len - 1])) 8)
-     | 1 -> h := Int64.logxor !h (Int64.of_int (Char.code str.[!len]))
-     | _ -> ()); *)
+  (match !len with
+  | 3 ->
+      (* print_endline (Printf.sprintf "char: %c" str.[length - 2]); *)
+      let temp = Int64.of_int (Char.code str.[length - 2]) & 255L in
+      (* print_endline (Printf.sprintf "temp: %d" (Int64.to_int temp)); *)
+      h := I32.( ^ ) !h (Int64.shift_left temp 16)
+      (* print_endline (Printf.sprintf "hash: %d" (Int64.to_int !h)) *)
+  | 2 ->
+      print_endline (Printf.sprintf "char: %c" str.[length - 1]);
+      let temp = Int64.of_int (Char.code str.[length - 1]) & 255L in
+      h := I32.( ^ ) !h (Int64.shift_left temp 8)
+  | 1 ->
+      h := !h ^ (Int64.of_int (Char.code str.[length - 1]) & 255L);
+      h :=
+        I32.( * ) (!h & 65535L) 1540483477L ++ (I32.( >>> ) !h 16 * 59797L << 16)
+  | _ -> ());
 
   (* Do a few final mixes of the hash to ensure the last few *)
   (* bytes are well-incorporated. *)
@@ -151,56 +159,21 @@ let murmur2 (str : string) =
   h :=
     I32.( ++ )
       (I32.( * ) (!h & 65535L) 1540483477L)
-      (I32.( * ) (!h >>> 16) (59797L << 16));
+      (I32.( * ) (!h >>> 16) 59797L << 16);
 
-  !h ^ I32.( >>> ) !h 15
+  h := !h ^ I32.( >>> ) !h 15;
+  !h >>> 0
 
-(* let murmur2 str =
-   let h : Int64.t ref = ref 0L in
-   let m = 0x5bd1e995 in
-   let r = 24 in
-   let len = String.length str in
-   let rec loop i =
-     if len >= 4 then begin
-       let k =
-         Char.code str.[i]
-         lor (Char.code str.[i + 1] lsl 8)
-         lor (Char.code str.[i + 2] lsl 16)
-         lor (Char.code str.[i + 3] lsl 24)
-       in
-       let k =
-         Int64.mul (Int64.logand k 0xffffL) m
-         lor Int64.shift_left (Int64.mul (Int64.shift_right_logical k 16) m) 16
-       in
-       let k = Int64.logxor k (Int64.shift_right_logical k r) in
-       let h' =
-         Int64.mul (Int64.logand k 0xffffL) m
-         lor Int64.shift_left (Int64.mul (Int64.shift_right_logical k 16) m) 16
-       in
-       h := Int64.logxor !h h';
-       loop (i + 4)
-     end
-   in
-   loop 0;
-   begin
-     match len with
-     | 3 ->
-         h :=
-           Int64.logxor !h
-             (Int64.shift_left (Int64.of_int (Char.code str.[len - 2])) 16)
-     | 2 ->
-         h :=
-           Int64.logxor !h
-             (Int64.shift_left (Int64.of_int (Char.code str.[len - 1])) 8)
-     | 1 -> h := Int64.logxor !h (Int64.of_int (Char.code str.[len]))
-     | _ -> ()
-   end;
-   h := Int64.logxor !h (Int64.shift_right_logical !h 13);
-   h :=
-     Int64.mul (Int64.logand !h 0xffffL) m
-     lor Int64.shift_left (Int64.mul (Int64.shift_right_logical !h 16) m) 16;
-   Int64.logxor !h (Int64.shift_right_logical !h 15)
-*)
+(*
+  h =
+    /* Math.imul(h, m): */
+    (h & 0xffff) * 0x5bd1e995 + (((h >>> 16) * 0xe995) << 16)
+
+  return ((h ^ (h >>> 15)) >>> 0).toString(36) *)
+
+(*
+   h = (((h & 0xffff) * 0x5bd1e995) + ((((h >>> 16) * 0x5bd1e995) & 0xffff) << 16));
+   h ^= h >>> 15; *)
 
 let make (str : string) = str |> murmur2 |> to_css
 

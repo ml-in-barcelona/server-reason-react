@@ -1,27 +1,30 @@
 let assert_string left right =
   (Alcotest.check Alcotest.string) "should be equal" right left
 
+let hidden (_ : string) = "XXXXXX"
+let style = Css.style_with_hash ~hash:hidden
+
 let one_property () =
-  let _className = Css.style [ Css.display `block ] in
+  let _className = style [ Css.display `block ] in
   let css = Css.render_style_tag () in
   Css.flush ();
-  assert_string css " .css-etlvsf { display: block; }"
+  assert_string css " .css-XXXXXX { display: block; }"
 
 let multiple_properties () =
-  let _className = Css.style [ Css.display `block; Css.fontSize (`px 10) ] in
+  let _className = style [ Css.display `block; Css.fontSize (`px 10) ] in
   let css = Css.render_style_tag () in
   Css.flush ();
-  assert_string css " .css-66lw0t { display: block; font-size: 10px; }"
+  assert_string css " .css-XXXXXX { display: block; font-size: 10px; }"
 
 let float_values () =
-  let _className = Css.style [ Css.padding (`rem 10.) ] in
+  let _className = style [ Css.padding (`rem 10.) ] in
   let css = Css.render_style_tag () in
   Css.flush ();
-  assert_string css " .css-g4terb { padding: 10rem; }"
+  assert_string css " .css-XXXXXX { padding: 10rem; }"
 
 let selector_one_nesting () =
   let _className =
-    Css.style
+    style
       [
         Css.color Css.aliceblue;
         Css.selector "a" [ Css.color Css.rebeccapurple ];
@@ -30,11 +33,11 @@ let selector_one_nesting () =
   let css = Css.render_style_tag () in
   Css.flush ();
   assert_string css
-    " .css-kx51ye { color: #F0F8FF; } .css-kx51ye a { color: #663399; }"
+    " .css-XXXXXX { color: #F0F8FF; } .css-XXXXXX a { color: #663399; }"
 
 let selector_more_than_one_nesting () =
   let _className =
-    Css.style
+    style
       [
         Css.color Css.aliceblue;
         Css.selector "a"
@@ -44,12 +47,12 @@ let selector_more_than_one_nesting () =
   let css = Css.render_style_tag () in
   Css.flush ();
   assert_string css
-    " .css-5hr6i6 { color: #F0F8FF; } .css-5hr6i6 a { display: block; } \
-     .css-5hr6i6 a div { display: none; }"
+    " .css-XXXXXX { color: #F0F8FF; } .css-XXXXXX a { display: block; } \
+     .css-XXXXXX a div { display: none; }"
 
 let selector_with_a_lot_of_nesting () =
   let _className =
-    Css.style
+    style
       [
         Css.display `flex;
         Css.selector "a"
@@ -74,24 +77,24 @@ let selector_with_a_lot_of_nesting () =
   let css = Css.render_style_tag () in
   Css.flush ();
   assert_string css
-    " .css-or3ar2 { display: flex; } .css-or3ar2 a { display: block; } \
-     .css-or3ar2 a div { display: none; } .css-or3ar2 a div span { display: \
-     none; } .css-or3ar2 a div span hr { display: none; } .css-or3ar2 a div \
+    " .css-XXXXXX { display: flex; } .css-XXXXXX a { display: block; } \
+     .css-XXXXXX a div { display: none; } .css-XXXXXX a div span { display: \
+     none; } .css-XXXXXX a div span hr { display: none; } .css-XXXXXX a div \
      span hr code { display: none; }"
 
 let selector_ampersand () =
   let _className =
-    Css.style
+    style
       [ Css.fontSize (`px 42); Css.selector "& .div" [ Css.fontSize (`px 24) ] ]
   in
   let css = Css.render_style_tag () in
   Css.flush ();
   assert_string css
-    " .css-rz74tm { font-size: 42px; } .css-rz74tm  .div { font-size: 24px; }"
+    " .css-XXXXXX { font-size: 42px; } .css-XXXXXX  .div { font-size: 24px; }"
 
 let selector_ampersand_at_the_middle () =
   let _className =
-    Css.style
+    style
       [
         Css.fontSize (`px 42); Css.selector "& div &" [ Css.fontSize (`px 24) ];
       ]
@@ -99,12 +102,12 @@ let selector_ampersand_at_the_middle () =
   let css = Css.render_style_tag () in
   Css.flush ();
   assert_string css
-    " .css-oitwqf { font-size: 42px; } .css-oitwqf  div .css-oitwqf { \
+    " .css-XXXXXX { font-size: 42px; } .css-XXXXXX  div .css-XXXXXX { \
      font-size: 24px; }"
 
 let media_queries () =
   let _className =
-    Css.style
+    style
       [
         Css.maxWidth (`px 800);
         Css.media "(max-width: 768px)" [ Css.width (`px 300) ];
@@ -113,8 +116,8 @@ let media_queries () =
   let css = Css.render_style_tag () in
   Css.flush ();
   assert_string css
-    " .css-czgfdn { max-width: 800px; } @media (max-width: 768px) { \
-     .css-czgfdn { width: 300px; } }"
+    " .css-XXXXXX { max-width: 800px; } @media (max-width: 768px) { \
+     .css-XXXXXX { width: 300px; } }"
 
 (* let media_queries_nested () =
    let _className =
@@ -134,12 +137,12 @@ let media_queries () =
 *)
 let selector_params () =
   let _className =
-    Css.style [ Css.maxWidth (`px 800); Css.firstChild [ Css.width (`px 300) ] ]
+    style [ Css.maxWidth (`px 800); Css.firstChild [ Css.width (`px 300) ] ]
   in
   let css = Css.render_style_tag () in
   Css.flush ();
   assert_string css
-    " .css-39mqrq { max-width: 800px; } .css-39mqrq:first-child { width: \
+    " .css-XXXXXX { max-width: 800px; } .css-XXXXXX:first-child { width: \
      300px; }"
 
 let keyframe () =
@@ -150,14 +153,14 @@ let keyframe () =
          ; (100, [ Css.transform (`rotate (`deg (-360.))) ])
          ]
      in *)
-  let _className = Css.style [ Css.animationName loading ] in
+  let _className = style [ Css.animationName loading ] in
   let css = Css.render_style_tag () in
   Css.flush ();
   assert_string css
-    " .css-7t1ji0 { -webkit-animation-name: random; animation-name: random; }"
+    " .css-XXXXXX { -webkit-animation-name: random; animation-name: random; }"
 
 let with_react () =
-  let className = Css.style [ Css.display `block ] in
+  let className = style [ Css.display `block ] in
   let css = Css.render_style_tag () in
   Css.flush ();
   let head =
@@ -175,13 +178,13 @@ let with_react () =
   let app = React.createElement "html" [||] [ head; body ] in
   assert_string
     (ReactDOM.renderToStaticMarkup app)
-    "<html><head><style> .css-etlvsf { display: block; \
-     }</style></head><body><div class=\"css-etlvsf\"></div></body></html>"
+    "<html><head><style> .css-XXXXXX { display: block; \
+     }</style></head><body><div class=\"css-XXXXXX\"></div></body></html>"
 
 let empty () =
   let className = Css.style [] in
   Css.flush ();
-  assert_string className "css-"
+  assert_string className "css-vuk6us"
 
 let case title fn = Alcotest.test_case title `Quick fn
 
