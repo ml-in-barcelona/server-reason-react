@@ -18,7 +18,7 @@ let equal_components (c1 : React.Element.t) (c2 : React.Element.t) =
     | Lower_case_closed_element lc1, Lower_case_closed_element lc2 ->
         lc1.tag == lc2.tag
         && Array.for_all2 equal_attrs lc1.attributes lc2.attributes
-    | Upper_case_element cf1, Upper_case_element cf2 ->
+    | Upper_case_component cf1, Upper_case_component cf2 ->
         equal_rec (cf1 ()) (cf2 ())
     | List cl1, List cl2 -> Array.for_all2 equal_rec cl1 cl2
     | Text t1, Text t2 -> t1 == t2

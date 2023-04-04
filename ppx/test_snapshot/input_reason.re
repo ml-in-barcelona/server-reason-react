@@ -1,71 +1,20 @@
 let lower = <div />;
-let lower_with_empty_attr = <div className="" />;
-let lower_with_style =
+let lower_empty_attr = <div className="" />;
+let lower_inline_styles =
   <div style={ReactDOM.Style.make(~backgroundColor="gainsboro", ())} />;
 let lower_inner_html = <div dangerouslySetInnerHTML={"__html": text} />;
 let lower_opt_attr = <div ?tabIndex />;
-let upper = <Input />;
-
-module React_component_without_props = {
-  [@react.component]
-  let make = (~lola, ~cosis) => {
-    Js.log(cosis);
-
-    <div> {React.string(lola)} </div>;
-  };
-};
-
-let upper = <React_component_without_props lola="flores" />;
-
-/* Components */
-
-[@react.component]
-let make = (~name="") =>
-  <>
-    <div> {React.string("First " ++ name)} </div>
-    <Hello one="1"> {React.string("2nd " ++ name)} </Hello>
-  </>;
-
-module Memo = {
-  [@react.component]
-  let make =
-    React.memo((~a) =>
-      <div> {Printf.sprintf("`a` is %s", a) |> React.string} </div>
-    );
-};
-
-module MemoCustomCompareProps = {
-  [@react.component]
-  let make =
-    React.memo(
-      (~a) => <div> {Printf.sprintf("`a` is %d", a) |> React.string} </div>,
-      (prevPros, nextProps) => false,
-    );
-};
-
-let fragment = foo => [@bla] <> foo </>;
-
-let polyChildrenFragment = (foo, bar) => <> foo bar </>;
-let nestedFragment = (foo, bar, baz) => <> foo <> bar baz </> </>;
-
-let nestedFragmentWithlower = foo => <> <div> foo </div> </>;
-
-let upper = <Upper />;
-
-let upperWithProp = <Upper count />;
-
-let upperWithChild = foo => <Upper> foo </Upper>;
-
-let upperWithChildren = (foo, bar) => <Upper> foo bar </Upper>;
-
-let lower = <div />;
 
 let lowerWithChildAndProps = foo =>
   <a tabIndex=1 href="https://example.com"> foo </a>;
 
-let lowerWithChildren = (foo, bar) => <lower> foo bar </lower>;
+let lower_child_static = <div> <span /> </div>;
+let lower_child_ident = <div> lolaspa </div>;
+let lower_child_single = <div> <div /> </div>;
+let lower_children_multiple = (foo, bar) => <lower> foo bar </lower>;
+let lower_child_with_upper_as_children = <div> <App /> </div>;
 
-let lowerWithChildrenComplex =
+let lower_children_nested =
   <div className="flex-container">
     <div className="sidebar">
       <h2 className="title"> {"jsoo-react" |> s} </h2>
@@ -90,19 +39,46 @@ let lowerWithChildrenComplex =
     </div>
   </div>;
 
-let nestedElement = <Foo.Bar a=1 b="1" />;
+let fragment = foo => [@bla] <> foo </>;
 
-let t = <FancyButton ref=buttonRef> <div /> </FancyButton>;
+let poly_children_fragment = (foo, bar) => <> foo bar </>;
+let nested_fragment = (foo, bar, baz) => <> foo <> bar baz </> </>;
 
-let t = <button ref className="FancyButton"> children </button>;
+let nested_fragment_with_lower = foo => <> <div> foo </div> </>;
 
-[@react.component]
-let make =
-  React.forwardRef((~children, ~ref) =>
-    <button ref className="FancyButton"> children </button>
-  );
+let upper = <Upper />;
 
-let testAttributes =
+let upper_prop = <Upper count />;
+
+let upper_children_single = foo => <Upper> foo </Upper>;
+
+let upper_children_multiple = (foo, bar) => <Upper> foo bar </Upper>;
+
+let upper_children =
+  <Page moreProps="hgalo"> <h1> {React.string("Yep")} </h1> </Page>;
+
+let upper_nested_module = <Foo.Bar a=1 b="1" />;
+
+let upper_child_expr = <Div> {React.int(1)} </Div>;
+let upper_child_ident = <Div> lola </Div>;
+
+let upper_all_kinds_of_props =
+  <MyComponent
+    booleanAttribute=true
+    stringAttribute="string"
+    intAttribute=1
+    forcedOptional=?{Some("hello")}
+    onClick={send(handleClick)}>
+    <div> "hello" </div>
+  </MyComponent>;
+
+let upper_ref_with_children =
+  <FancyButton ref=buttonRef> <div /> </FancyButton>;
+
+let lower_ref_with_children =
+  <button ref className="FancyButton"> children </button>;
+
+let lower_with_many_props =
   <div translate="yes">
     <picture id="idpicture">
       <img src="picture/img.png" alt="test picture/img.png" id="idimg" />
@@ -111,35 +87,71 @@ let testAttributes =
     </picture>
   </div>;
 
-let randomElement = <text dx="1 2" dy="3 4" />;
+let some_random_html_element = <text dx="1 2" dy="3 4" />;
 
-[@react.component]
-let make = (~name, ~isDisabled=?) => {
-  let onClick = event => Js.log(event);
-  <button name onClick disabled=isDisabled />;
+/* Components */
+module React_component_with_props = {
+  [@react.component]
+  let make = (~lola) => {
+    <div> {React.string(lola)} </div>;
+  };
 };
 
-[@react.component]
-let make = (~name="joe") =>
-  <div> {Printf.sprintf("`name` is %s", name) |> React.string} </div>;
+let react_component_with_props = <React_component_with_props lola="flores" />;
 
-module App = {
+module Upper_case_with_fragment_as_root = {
   [@react.component]
-  let make = () =>
-    <html>
-      <head> <title> {React.string("SSR React")} </title> </head>
-      <body>
-        <div> <h1> {React.string("Wat")} </h1> </div>
-        <script src="/static/client.js" />
-      </body>
-    </html>;
+  let make = (~name="") =>
+    <>
+      <div> {React.string("First " ++ name)} </div>
+      <Hello one="1"> {React.string("2nd " ++ name)} </Hello>
+    </>;
+};
+
+module Using_React_memo = {
+  [@react.component]
+  let make =
+    React.memo((~a) =>
+      <div> {Printf.sprintf("`a` is %s", a) |> React.string} </div>
+    );
+};
+
+module Using_memo_custom_compare_Props = {
+  [@react.component]
+  let make =
+    React.memo(
+      (~a) => <div> {Printf.sprintf("`a` is %d", a) |> React.string} </div>,
+      (prevPros, nextProps) => false,
+    );
+};
+
+module Forward_Ref = {
+  [@react.component]
+  let make =
+    React.forwardRef((~children, ~ref) =>
+      <button ref className="FancyButton"> children </button>
+    );
+};
+
+module Onclick_handler_button = {
+  [@react.component]
+  let make = (~name, ~isDisabled=?) => {
+    let onClick = event => Js.log(event);
+    <button name onClick disabled=isDisabled />;
+  };
+};
+
+module Children_as_string = {
+  [@react.component]
+  let make = (~name="joe") =>
+    <div> {Printf.sprintf("`name` is %s", name) |> React.string} </div>;
 };
 
 /* It shoudn't remove this :/ */
 let () = Dream.run();
 let l = 33;
 
-module Page = {
+module Uppercase_with_SSR_components = {
   [@react.component]
   let make = (~children, ~moreProps) =>
     <html>
@@ -153,34 +165,12 @@ module Page = {
     </html>;
 };
 
-let upperWithChildren =
-  <Page moreProps="hgalo"> <h1> {React.string("Yep")} </h1> </Page>;
-
-module Container = {
+module Upper_with_aria = {
   [@react.component]
   let make = (~children) => <div ariaHidden="true"> children </div>;
 };
 
-let lower_child_static = <div> <span /> </div>;
-let lower_child_ident = <div> lolaspa </div>;
-let lower_child_ident = <div> <App /> </div>;
-
-let upper_child_expr = <Div> {React.int(1)} </Div>;
-let upper_child_lower = <Div> <span /> </Div>;
-let upper_child_ident = <Div> lola </Div>;
-
-<MyComponent
-  booleanAttribute=true
-  stringAttribute="string"
-  intAttribute=1
-  forcedOptional=?{Some("hello")}
-  onClick={send(handleClick)}>
-  <div> "hello" </div>
-</MyComponent>;
-
-<p> {React.string(greeting)} </p>;
-
-let dataAttributesShouldTransformToKebabCase =
+let data_attributes_should_transform_to_kebabcase =
   <>
     <div dataAttribute="" dataattribute="" className="md:w-1/3" />
     <div className="md:w-2/3" />

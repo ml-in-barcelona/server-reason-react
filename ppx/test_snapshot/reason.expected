@@ -2,7 +2,7 @@ let lower =
   React.createElement "div"
     ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
        Array.of_list) []
-let lower_with_empty_attr =
+let lower_empty_attr =
   React.createElement "div"
     ((([|(Some
             (React.Attribute.String
@@ -10,7 +10,7 @@ let lower_with_empty_attr =
          |> Array.to_list)
         |> (List.filter_map (fun a -> a)))
        |> Array.of_list) []
-let lower_with_style =
+let lower_inline_styles =
   React.createElement "div"
     ((([|(Some
             (React.Attribute.Style
@@ -34,94 +34,6 @@ let lower_opt_attr =
          |> Array.to_list)
         |> (List.filter_map (fun a -> a)))
        |> Array.of_list) []
-let upper = Input.make ()
-module React_component_without_props =
-  struct
-    let make ?key  =
-      ((fun ~lola ->
-          ((fun ~cosis ->
-              fun () ->
-                ((Js.log cosis;
-                  React.createElement "div"
-                    ((([||] |> Array.to_list) |>
-                        (List.filter_map (fun a -> a)))
-                       |> Array.of_list)
-                    [((React.string lola)[@reason.preserve_braces ])])
-                [@reason.preserve_braces ]))
-          [@warning "-16"][@warning "-16"]))
-      [@warning "-16"])
-  end
-let upper =
-  React_component_without_props.make ~lola:(("flores")
-    [@reason.raw_literal "flores"]) ()
-let make ?key  =
-  ((fun ?(name= (("")[@reason.raw_literal ""])) ->
-      fun () ->
-        React.Fragment.make
-          ~children:(([React.createElement "div"
-                         ((([||] |> Array.to_list) |>
-                             (List.filter_map (fun a -> a)))
-                            |> Array.of_list)
-                         [((React.string
-                              ((("First ")[@reason.raw_literal "First "]) ^
-                                 name))
-                         [@reason.preserve_braces ])];
-                      Hello.make ~one:(("1")[@reason.raw_literal "1"])
-                        ~children:((React.string
-                                      ((("2nd ")[@reason.raw_literal "2nd "])
-                                         ^ name))[@reason.preserve_braces ])
-                        ()])[@JSX ]) ())
-  [@warning "-16"][@warning "-16"])
-module Memo =
-  struct
-    let make ?key  =
-      ((fun ~a ->
-          fun () ->
-            React.createElement "div"
-              ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
-                 Array.of_list)
-              [(((Printf.sprintf (("`a` is %s")
-                    [@reason.raw_literal "`a` is %s"]) a)
-                   |> React.string)
-              [@reason.preserve_braces ])])
-      [@warning "-16"][@warning "-16"])
-  end
-module MemoCustomCompareProps =
-  struct
-    let make ?key  =
-      ((fun ~a ->
-          fun () ->
-            React.createElement "div"
-              ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
-                 Array.of_list)
-              [(((Printf.sprintf (("`a` is %d")
-                    [@reason.raw_literal "`a` is %d"]) a)
-                   |> React.string)
-              [@reason.preserve_braces ])])
-      [@warning "-16"][@warning "-16"])
-  end
-let fragment foo =
-  ((React.Fragment.make ~children:(([foo])[@bla ][@JSX ]) ())[@bla ])
-let polyChildrenFragment foo bar =
-  React.Fragment.make ~children:(([foo; bar])[@JSX ]) ()
-let nestedFragment foo bar baz =
-  React.Fragment.make
-    ~children:(([foo; React.Fragment.make ~children:(([bar; baz])[@JSX ]) ()])
-    [@JSX ]) ()
-let nestedFragmentWithlower foo =
-  React.Fragment.make
-    ~children:(([React.createElement "div"
-                   ((([||] |> Array.to_list) |>
-                       (List.filter_map (fun a -> a)))
-                      |> Array.of_list) [foo]])[@JSX ]) ()
-let upper = Upper.make ()
-let upperWithProp = Upper.make ~count ()
-let upperWithChild foo = Upper.make ~children:foo ()
-let upperWithChildren foo bar = Upper.make ~children:[foo; bar] ()
-let lower =
-  React.createElement "div"
-    ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
-       Array.of_list) []
 let lowerWithChildAndProps foo =
   React.createElement "a"
     ((([|(Some
@@ -133,11 +45,33 @@ let lowerWithChildAndProps foo =
          |> Array.to_list)
         |> (List.filter_map (fun a -> a)))
        |> Array.of_list) [foo]
-let lowerWithChildren foo bar =
+let lower_child_static =
+  React.createElement "div"
+    ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
+       Array.of_list)
+    [React.createElement "span"
+       ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
+          Array.of_list) []]
+let lower_child_ident =
+  React.createElement "div"
+    ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
+       Array.of_list) [lolaspa]
+let lower_child_single =
+  React.createElement "div"
+    ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
+       Array.of_list)
+    [React.createElement "div"
+       ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
+          Array.of_list) []]
+let lower_children_multiple foo bar =
   React.createElement "lower"
     ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
        Array.of_list) [foo; bar]
-let lowerWithChildrenComplex =
+let lower_child_with_upper_as_children =
+  React.createElement "div"
+    ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
+       Array.of_list) [App.make ()]
+let lower_children_nested =
   React.createElement "div"
     ((([|(Some
             (React.Attribute.String
@@ -215,13 +149,53 @@ let lowerWithChildrenComplex =
                              [((e.title |> s)[@reason.preserve_braces ])]])))
                  |> React.list)
             [@reason.preserve_braces ])]]]]
-let nestedElement = Foo.Bar.make ~a:1 ~b:(("1")[@reason.raw_literal "1"]) ()
-let t =
+let fragment foo =
+  ((React.Fragment.make ~children:(([foo])[@bla ][@JSX ]) ())[@bla ])
+let poly_children_fragment foo bar =
+  React.Fragment.make ~children:(([foo; bar])[@JSX ]) ()
+let nested_fragment foo bar baz =
+  React.Fragment.make
+    ~children:(([foo; React.Fragment.make ~children:(([bar; baz])[@JSX ]) ()])
+    [@JSX ]) ()
+let nested_fragment_with_lower foo =
+  React.Fragment.make
+    ~children:(([React.createElement "div"
+                   ((([||] |> Array.to_list) |>
+                       (List.filter_map (fun a -> a)))
+                      |> Array.of_list) [foo]])[@JSX ]) ()
+let upper = Upper.make ()
+let upper_prop = Upper.make ~count ()
+let upper_children_single foo = Upper.make ~children:foo ()
+let upper_children_multiple foo bar =
+  Upper.make ~children:(React.list [foo; bar]) ()
+let upper_children =
+  Page.make ~moreProps:(("hgalo")[@reason.raw_literal "hgalo"])
+    ~children:(React.createElement "h1"
+                 ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a)))
+                    |> Array.of_list)
+                 [((React.string (("Yep")[@reason.raw_literal "Yep"]))
+                 [@reason.preserve_braces ])]) ()
+let upper_nested_module =
+  Foo.Bar.make ~a:1 ~b:(("1")[@reason.raw_literal "1"]) ()
+let upper_child_expr =
+  Div.make ~children:((React.int 1)[@reason.preserve_braces ]) ()
+let upper_child_ident = Div.make ~children:lola ()
+let upper_all_kinds_of_props =
+  MyComponent.make ~booleanAttribute:true ~stringAttribute:(("string")
+    [@reason.raw_literal "string"]) ~intAttribute:1
+    ?forcedOptional:((Some (("hello")[@reason.raw_literal "hello"]))
+    [@reason.preserve_braces ][@explicit_arity ])
+    ~onClick:((send handleClick)[@reason.preserve_braces ])
+    ~children:(React.createElement "div"
+                 ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a)))
+                    |> Array.of_list)
+                 [(("hello")[@reason.raw_literal "hello"])]) ()
+let upper_ref_with_children =
   FancyButton.make ~ref:buttonRef
     ~children:(React.createElement "div"
                  ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a)))
                     |> Array.of_list) []) ()
-let t =
+let lower_ref_with_children =
   React.createElement "button"
     ((([|(Some (React.Attribute.Ref ref));(Some
                                              (React.Attribute.String
@@ -233,24 +207,7 @@ let t =
          |> Array.to_list)
         |> (List.filter_map (fun a -> a)))
        |> Array.of_list) [children]
-let make ?key  =
-  ((fun ~children ->
-      ((fun ~ref ->
-          fun () ->
-            React.createElement "button"
-              ((([|(Some (React.Attribute.Ref ref));(Some
-                                                       (React.Attribute.String
-                                                          ("className",
-                                                            ((("FancyButton")
-                                                            [@reason.raw_literal
-                                                              "FancyButton"]) : 
-                                                            string))))|]
-                   |> Array.to_list)
-                  |> (List.filter_map (fun a -> a)))
-                 |> Array.of_list) [children])
-      [@warning "-16"][@warning "-16"]))
-  [@warning "-16"])
-let testAttributes =
+let lower_with_many_props =
   React.createElement "div"
     ((([|(Some
             (React.Attribute.String
@@ -307,7 +264,7 @@ let testAttributes =
               |> Array.to_list)
              |> (List.filter_map (fun a -> a)))
             |> Array.of_list) []]]
-let randomElement =
+let some_random_html_element =
   React.createElement "text"
     ((([|(Some
             (React.Attribute.String
@@ -318,77 +275,133 @@ let randomElement =
          |> Array.to_list)
         |> (List.filter_map (fun a -> a)))
        |> Array.of_list) []
-let make ?key  =
-  ((fun ~name ->
-      ((fun ?isDisabled ->
-          fun () ->
-            ((let onClick event = Js.log event in
-              React.createElement "button"
-                ((([|(Some (React.Attribute.String ("name", (name : string))));(
-                     Some
-                       (React.Attribute.Event
-                          ("onClick",
-                            (React.EventT.Mouse
-                               (onClick : ReactEvent.Mouse.t -> unit)))));(
-                     Some
-                       (React.Attribute.Bool
-                          ("disabled", (isDisabled : bool))))|]
-                     |> Array.to_list)
-                    |> (List.filter_map (fun a -> a)))
-                   |> Array.of_list) [])
-            [@reason.preserve_braces ]))
-      [@warning "-16"][@warning "-16"]))
-  [@warning "-16"])
-let make ?key  =
-  ((fun ?(name= (("joe")[@reason.raw_literal "joe"])) ->
-      fun () ->
-        React.createElement "div"
-          ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
-             Array.of_list)
-          [(((Printf.sprintf (("`name` is %s")
-                [@reason.raw_literal "`name` is %s"]) name)
-               |> React.string)
-          [@reason.preserve_braces ])])
-  [@warning "-16"][@warning "-16"])
-module App =
+module React_component_with_props =
   struct
-    let make ?key  () =
-      React.createElement "html"
-        ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
-           Array.of_list)
-        [React.createElement "head"
-           ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
-              Array.of_list)
-           [React.createElement "title"
-              ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
-                 Array.of_list)
-              [((React.string (("SSR React")
-                   [@reason.raw_literal "SSR React"]))
-              [@reason.preserve_braces ])]];
-        React.createElement "body"
-          ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
-             Array.of_list)
-          [React.createElement "div"
-             ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
-                Array.of_list)
-             [React.createElement "h1"
+    let make ?key  =
+      ((fun ~lola ->
+          fun () ->
+            ((React.createElement "div"
                 ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a)))
                    |> Array.of_list)
-                [((React.string (("Wat")[@reason.raw_literal "Wat"]))
-                [@reason.preserve_braces ])]];
-          React.createElement "script"
-            ((([|(Some
-                    (React.Attribute.String
-                       ("src", ((("/static/client.js")
-                         [@reason.raw_literal "/static/client.js"]) : 
-                         string))))|]
-                 |> Array.to_list)
-                |> (List.filter_map (fun a -> a)))
-               |> Array.of_list) []]]
+                [((React.string lola)[@reason.preserve_braces ])])
+            [@reason.preserve_braces ]))
+      [@warning "-16"][@warning "-16"])
+  end
+let react_component_with_props =
+  React_component_with_props.make ~lola:(("flores")
+    [@reason.raw_literal "flores"]) ()
+module Upper_case_with_fragment_as_root =
+  struct
+    let make ?key  =
+      ((fun ?(name= (("")[@reason.raw_literal ""])) ->
+          fun () ->
+            React.Fragment.make
+              ~children:(([React.createElement "div"
+                             ((([||] |> Array.to_list) |>
+                                 (List.filter_map (fun a -> a)))
+                                |> Array.of_list)
+                             [((React.string
+                                  ((("First ")[@reason.raw_literal "First "])
+                                     ^ name))
+                             [@reason.preserve_braces ])];
+                          Hello.make ~one:(("1")[@reason.raw_literal "1"])
+                            ~children:((React.string
+                                          ((("2nd ")
+                                             [@reason.raw_literal "2nd "]) ^
+                                             name))
+                            [@reason.preserve_braces ]) ()])[@JSX ]) ())
+      [@warning "-16"][@warning "-16"])
+  end
+module Using_React_memo =
+  struct
+    let make ?key  =
+      ((fun ~a ->
+          fun () ->
+            React.createElement "div"
+              ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
+                 Array.of_list)
+              [(((Printf.sprintf (("`a` is %s")
+                    [@reason.raw_literal "`a` is %s"]) a)
+                   |> React.string)
+              [@reason.preserve_braces ])])
+      [@warning "-16"][@warning "-16"])
+  end
+module Using_memo_custom_compare_Props =
+  struct
+    let make ?key  =
+      ((fun ~a ->
+          fun () ->
+            React.createElement "div"
+              ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
+                 Array.of_list)
+              [(((Printf.sprintf (("`a` is %d")
+                    [@reason.raw_literal "`a` is %d"]) a)
+                   |> React.string)
+              [@reason.preserve_braces ])])
+      [@warning "-16"][@warning "-16"])
+  end
+module Forward_Ref =
+  struct
+    let make ?key  =
+      ((fun ~children ->
+          ((fun ~ref ->
+              fun () ->
+                React.createElement "button"
+                  ((([|(Some (React.Attribute.Ref ref));(Some
+                                                           (React.Attribute.String
+                                                              ("className",
+                                                                ((("FancyButton")
+                                                                [@reason.raw_literal
+                                                                  "FancyButton"]) : 
+                                                                string))))|]
+                       |> Array.to_list)
+                      |> (List.filter_map (fun a -> a)))
+                     |> Array.of_list) [children])
+          [@warning "-16"][@warning "-16"]))
+      [@warning "-16"])
+  end
+module Onclick_handler_button =
+  struct
+    let make ?key  =
+      ((fun ~name ->
+          ((fun ?isDisabled ->
+              fun () ->
+                ((let onClick event = Js.log event in
+                  React.createElement "button"
+                    ((([|(Some
+                            (React.Attribute.String ("name", (name : string))));(
+                         Some
+                           (React.Attribute.Event
+                              ("onClick",
+                                (React.EventT.Mouse
+                                   (onClick : ReactEvent.Mouse.t -> unit)))));(
+                         Some
+                           (React.Attribute.Bool
+                              ("disabled", (isDisabled : bool))))|]
+                         |> Array.to_list)
+                        |> (List.filter_map (fun a -> a)))
+                       |> Array.of_list) [])
+                [@reason.preserve_braces ]))
+          [@warning "-16"][@warning "-16"]))
+      [@warning "-16"])
+  end
+module Children_as_string =
+  struct
+    let make ?key  =
+      ((fun ?(name= (("joe")[@reason.raw_literal "joe"])) ->
+          fun () ->
+            React.createElement "div"
+              ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
+                 Array.of_list)
+              [(((Printf.sprintf (("`name` is %s")
+                    [@reason.raw_literal "`name` is %s"]) name)
+                   |> React.string)
+              [@reason.preserve_braces ])])
+      [@warning "-16"][@warning "-16"])
   end
 let () = Dream.run ()
 let l = 33
-module Page =
+module Uppercase_with_SSR_components =
   struct
     let make ?key  =
       ((fun ~children ->
@@ -434,14 +447,7 @@ module Page =
           [@warning "-16"][@warning "-16"]))
       [@warning "-16"])
   end
-let upperWithChildren =
-  Page.make ~moreProps:(("hgalo")[@reason.raw_literal "hgalo"])
-    ~children:(React.createElement "h1"
-                 ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a)))
-                    |> Array.of_list)
-                 [((React.string (("Yep")[@reason.raw_literal "Yep"]))
-                 [@reason.preserve_braces ])]) ()
-module Container =
+module Upper_with_aria =
   struct
     let make ?key  =
       ((fun ~children ->
@@ -456,42 +462,7 @@ module Container =
                  |> Array.of_list) [children])
       [@warning "-16"][@warning "-16"])
   end
-let lower_child_static =
-  React.createElement "div"
-    ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
-       Array.of_list)
-    [React.createElement "span"
-       ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
-          Array.of_list) []]
-let lower_child_ident =
-  React.createElement "div"
-    ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
-       Array.of_list) [lolaspa]
-let lower_child_ident =
-  React.createElement "div"
-    ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
-       Array.of_list) [App.make ()]
-let upper_child_expr =
-  Div.make ~children:((React.int 1)[@reason.preserve_braces ]) ()
-let upper_child_lower =
-  Div.make
-    ~children:(React.createElement "span"
-                 ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a)))
-                    |> Array.of_list) []) ()
-let upper_child_ident = Div.make ~children:lola ()
-;;MyComponent.make ~booleanAttribute:true ~stringAttribute:(("string")
-    [@reason.raw_literal "string"]) ~intAttribute:1
-    ?forcedOptional:((Some (("hello")[@reason.raw_literal "hello"]))
-    [@reason.preserve_braces ][@explicit_arity ])
-    ~onClick:((send handleClick)[@reason.preserve_braces ])
-    ~children:(React.createElement "div"
-                 ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a)))
-                    |> Array.of_list)
-                 [(("hello")[@reason.raw_literal "hello"])]) ()
-;;React.createElement "p"
-    ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
-       Array.of_list) [((React.string greeting)[@reason.preserve_braces ])]
-let dataAttributesShouldTransformToKebabCase =
+let data_attributes_should_transform_to_kebabcase =
   React.Fragment.make
     ~children:(([React.createElement "div"
                    ((([|(Some
