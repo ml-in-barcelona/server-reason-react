@@ -188,6 +188,10 @@ let dataAttributesShouldTransformToKebabCase =
 
 let render_onclickPropsAsString = <div _onclick="alert('hello')" />;
 
+let _ = <SingleChildren> <div /> </SingleChildren>;
+
+let _ = <MultipleChildren> <div /> <div /> </MultipleChildren>;
+
 /* module External = {
      [@react.component] [@otherAttribute "bla"]
      external component: (~a: int, ~b: string) => React.element =

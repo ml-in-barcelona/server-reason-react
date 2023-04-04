@@ -95,23 +95,6 @@ let transformChildrenIfListUpper ~loc ~mapper theList =
   in
   transformChildren_ theList [%expr []]
 
-let transformChildrenIfList2 ~loc ~mapper theList =
-  let rec transformChildren_ theList accum =
-    (* not in the sense of converting a list to an array; convert the AST
-       reprensentation of a list to the AST reprensentation of an array *)
-    match theList with
-    | { pexp_desc = Pexp_construct ({ txt = Lident "[]" }, None) } ->
-        Exp.array ~loc (List.rev accum)
-    | {
-     pexp_desc =
-       Pexp_construct
-         ({ txt = Lident "::" }, Some { pexp_desc = Pexp_tuple [ v; acc ] });
-    } ->
-        transformChildren_ acc (mapper#expression mapper v :: accum)
-    | notAList -> mapper#expression mapper notAList
-  in
-  transformChildren_ theList []
-
 let list_have_tail listExpr =
   match listExpr with
   | Pexp_construct ({ txt = Lident "::" }, Some { pexp_desc = Pexp_tuple _ })
@@ -123,7 +106,7 @@ let transformChildrenIfList ~loc ~mapper children =
   let rec transformChildren_ children accum =
     match children with
     | [%expr []] -> revAstList ~loc accum
-    | [%expr [%e? v] :: [%e? acc]] when not (list_have_tail acc.pexp_desc) ->
+    | [%expr [%e? v] :: [%e? acc]] when list_have_tail acc.pexp_desc ->
         [%expr [%e mapper#expression v]]
     | [%expr [%e? v] :: [%e? acc]] ->
         transformChildren_ acc [%expr [%e mapper#expression v] :: [%e accum]]
@@ -199,18 +182,18 @@ let getFnName binding =
   | _ ->
       raise (Invalid_argument "react.component calls cannot be destructured.")
 
-let makeNewBinding binding expression newName =
-  match binding with
-  | { pvb_pat = { ppat_desc = Ppat_var ppat_var } as pvb_pat } ->
-      {
-        binding with
-        pvb_pat =
-          { pvb_pat with ppat_desc = Ppat_var { ppat_var with txt = newName } };
-        pvb_expr = expression;
-        pvb_attributes = [ merlinFocus ];
-      }
-  | _ ->
-      raise (Invalid_argument "react.component calls cannot be destructured.")
+(* let makeNewBinding binding expression newName =
+   match binding with
+   | { pvb_pat = { ppat_desc = Ppat_var ppat_var } as pvb_pat } ->
+       {
+         binding with
+         pvb_pat =
+           { pvb_pat with ppat_desc = Ppat_var { ppat_var with txt = newName } };
+         pvb_expr = expression;
+         pvb_attributes = [ merlinFocus ];
+       }
+   | _ ->
+       raise (Invalid_argument "react.component calls cannot be destructured.") *)
 
 (* Lookup the value of `props` otherwise raise Invalid_argument error *)
 let getPropsNameValue _acc (loc, exp) =
@@ -1045,7 +1028,8 @@ let jsxMapper () =
       @ (match modifiedChildrenExpr with
         | Exact children -> [ (labelled "children", [%expr [%e children]]) ]
         | ListLiteral [%expr []] -> []
-        | ListLiteral expression -> [ (labelled "children", expression) ])
+        | ListLiteral expression ->
+            [ (labelled "children", [%expr React.list [%e expression]]) ])
       @ [ (nolabel, Exp.construct ~loc { loc; txt = Lident "()" } None) ]
     in
     let identifier =
@@ -1070,6 +1054,7 @@ let jsxMapper () =
     let children, nonChildrenProps =
       extractChildren ~loc ~removeLastPositionUnit:true callArguments
     in
+    let childrenExpr = transformChildrenIfList ~loc ~mapper children in
     let createElementCall =
       match children with
       (* [@JSX] div(~children=[a]), coming from <div> a </div> *)
@@ -1104,7 +1089,7 @@ let jsxMapper () =
         (* [React.Attribute.String("key", "value")] *)
         (nolabel, propsObj);
         (* [|children aka moreCreateElementCallsHere|] *)
-        (nolabel, mapper#expression children);
+        (nolabel, mapper#expression childrenExpr);
       ]
     in
     Exp.apply

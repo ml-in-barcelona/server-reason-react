@@ -32,7 +32,7 @@ and Element : sig
   type t =
     | Lower_case_element of Lower_case_element.t
     | Lower_case_closed_element of Lower_case_closed_element.t
-    | Upper_case_element of (unit -> t)
+    | Upper_case_component of (unit -> t)
     | List of t array
     | Text of string
     | InnerHtml of string
@@ -190,7 +190,7 @@ let cloneElement element new_attributes new_childrens =
   | List l -> List l
   | Provider child -> Provider child
   | Consumer child -> Consumer child
-  | Upper_case_element f -> Upper_case_element f
+  | Upper_case_component f -> Upper_case_component f
 
 let memo f _compare : 'props * 'props -> bool = f
 

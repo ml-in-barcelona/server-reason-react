@@ -211,6 +211,36 @@ let svg = () => {
   );
 };
 
+module Component = {
+  [@react.component]
+  let make = (~children: React.Element.t, ~cosas as _) => {
+    <div>{children}</div>;
+  };
+};
+
+let children_flattening_one_element = () => {
+  assert_string(
+    ReactDOM.renderToStaticMarkup(
+      <Component cosas=true>
+        <span />
+      </Component>,
+    ),
+    "<div><span></span></div>",
+  );
+};
+
+let children_flattening_multiple_elements = () => {
+  assert_string(
+    ReactDOM.renderToStaticMarkup(
+      <Component cosas=false>
+        <div> <span /> </div>
+        <span />
+      </Component>,
+    ),
+    "<div><div><span></span></div><span></span></div>",
+  );
+};
+
 let case = (title, fn) => Alcotest.test_case(title, `Quick, fn);
 
 let _ =
@@ -247,6 +277,8 @@ let _ =
           case("test_children_lowercase", children_lowercase),
           case("event_onClick", onClick_empty),
           case("event_onclick_inline_string", onclick_inline_string),
+          case("children_flattening_one_element", children_flattening_one_element),
+          case("children_flattening_multiple_elements", children_flattening_multiple_elements),
         ],
       ),
     ],

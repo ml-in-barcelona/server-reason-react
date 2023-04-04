@@ -117,7 +117,8 @@ let nestedFragmentWithlower foo =
 let upper = Upper.make ()
 let upperWithProp = Upper.make ~count ()
 let upperWithChild foo = Upper.make ~children:foo ()
-let upperWithChildren foo bar = Upper.make ~children:[foo; bar] ()
+let upperWithChildren foo bar =
+  Upper.make ~children:(React.list [foo; bar]) ()
 let lower =
   React.createElement "div"
     ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
@@ -527,3 +528,19 @@ let render_onclickPropsAsString =
          |> Array.to_list)
         |> (List.filter_map (fun a -> a)))
        |> Array.of_list) []
+let _ =
+  SingleChildren.make
+    ~children:(React.createElement "div"
+                 ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a)))
+                    |> Array.of_list) []) ()
+let _ =
+  MultipleChildren.make
+    ~children:(React.list
+                 [React.createElement "div"
+                    ((([||] |> Array.to_list) |>
+                        (List.filter_map (fun a -> a)))
+                       |> Array.of_list) [];
+                 React.createElement "div"
+                   ((([||] |> Array.to_list) |>
+                       (List.filter_map (fun a -> a)))
+                      |> Array.of_list) []]) ()

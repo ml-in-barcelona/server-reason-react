@@ -166,7 +166,7 @@ let render_tree ~docType ~mode (element : Element.t) =
     | Fragment [] -> push ""
     | Fragment childrens -> childrens |> List.iter render_inner
     | List list -> list |> Array.iter render_inner
-    | Upper_case_element f -> render_inner (f ())
+    | Upper_case_component f -> render_inner (f ())
     | Lower_case_element { tag; attributes; children } ->
         is_root.contents <- false;
         let attrs = attributes_to_string tag attributes in
