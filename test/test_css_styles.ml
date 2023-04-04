@@ -182,9 +182,10 @@ let with_react () =
      }</style></head><body><div class=\"css-XXXXXX\"></div></body></html>"
 
 let empty () =
+  (* an empty declaration should not have a hash *)
   let className = Css.style [] in
   Css.flush ();
-  assert_string className "css-vuk6us"
+  assert_string className "css-"
 
 let case title fn = Alcotest.test_case title `Quick fn
 
@@ -204,5 +205,5 @@ let tests =
       case "selector_params" selector_params;
       case "keyframe" keyframe;
       case "with_react_component" with_react;
-      case "emtpy" empty;
+      case "empty" empty;
     ] )
