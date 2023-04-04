@@ -8,7 +8,6 @@ let lower_opt_attr = <div ?tabIndex />;
 let lowerWithChildAndProps = foo =>
   <a tabIndex=1 href="https://example.com"> foo </a>;
 
-
 let lower_child_static = <div> <span /> </div>;
 let lower_child_ident = <div> lolaspa </div>;
 let lower_child_single = <div> <div /> </div>;
@@ -63,18 +62,21 @@ let upper_nested_module = <Foo.Bar a=1 b="1" />;
 let upper_child_expr = <Div> {React.int(1)} </Div>;
 let upper_child_ident = <Div> lola </Div>;
 
-let upper_all_kinds_of_props = <MyComponent
-  booleanAttribute=true
-  stringAttribute="string"
-  intAttribute=1
-  forcedOptional=?{Some("hello")}
-  onClick={send(handleClick)}>
-  <div> "hello" </div>
-</MyComponent>;
+let upper_all_kinds_of_props =
+  <MyComponent
+    booleanAttribute=true
+    stringAttribute="string"
+    intAttribute=1
+    forcedOptional=?{Some("hello")}
+    onClick={send(handleClick)}>
+    <div> "hello" </div>
+  </MyComponent>;
 
-let upper_ref_with_children = <FancyButton ref=buttonRef> <div /> </FancyButton>;
+let upper_ref_with_children =
+  <FancyButton ref=buttonRef> <div /> </FancyButton>;
 
-let lower_ref_with_children = <button ref className="FancyButton"> children </button>;
+let lower_ref_with_children =
+  <button ref className="FancyButton"> children </button>;
 
 let lower_with_many_props =
   <div translate="yes">
@@ -124,12 +126,11 @@ module Using_memo_custom_compare_Props = {
 };
 
 module Forward_Ref = {
-
-[@react.component]
-let make =
-  React.forwardRef((~children, ~ref) =>
-    <button ref className="FancyButton"> children </button>
-  );
+  [@react.component]
+  let make =
+    React.forwardRef((~children, ~ref) =>
+      <button ref className="FancyButton"> children </button>
+    );
 };
 
 module Onclick_handler_button = {
