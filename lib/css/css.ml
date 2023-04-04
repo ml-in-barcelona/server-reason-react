@@ -173,6 +173,11 @@ let style (styles : t list) =
   append hash styles;
   hash
 
+let style_with_hash ~hash (styles : t list) =
+  let hash = hash (rules_to_string styles) |> String.cat "css-" in
+  append hash styles;
+  hash
+
 let render_style_tag () =
   Hashtbl.fold
     (fun hash rules accumulator ->
