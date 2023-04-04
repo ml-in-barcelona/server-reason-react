@@ -9,10 +9,10 @@ type ('key, 'id) cmp = ('key, 'id) Belt_Id.cmp
 module S = struct
   include (
     struct
-      type ('k, 'v, 'id) t =
-        { cmp : ('k, 'id) cmp
-        ; mutable data : ('k, 'v) N.t
-        }
+      type ('k, 'v, 'id) t = {
+        cmp : ('k, 'id) cmp;
+        mutable data : ('k, 'v) N.t;
+      }
 
       let t : cmp:('k, 'id) cmp -> data:('k, 'v) N.t -> ('k, 'v, 'id) t =
        fun ~cmp ~data -> { cmp; data }

@@ -1,10 +1,4 @@
-type attributeType =
-  | String
-  | Int
-  | Bool
-  | Style
-  | Ref
-  | InnerHtml
+type attributeType = String | Int | Bool | Style | Ref | InnerHtml
 
 type eventType =
   | Clipboard
@@ -26,25 +20,10 @@ type eventType =
   | Drag
 (* _onclick *)
 
-type attribute =
-  { type_ : attributeType
-  ; name : string
-  ; jsxName : string
-  }
-
-type event =
-  { type_ : eventType
-  ; name : string
-  }
-
-type prop =
-  | Attribute of attribute
-  | Event of event
-
-type errors =
-  [ `ElementNotFound
-  | `AttributeNotFound
-  ]
+type attribute = { type_ : attributeType; name : string; jsxName : string }
+type event = { type_ : eventType; name : string }
+type prop = Attribute of attribute | Event of event
+type errors = [ `ElementNotFound | `AttributeNotFound ]
 
 val getJSXName : prop -> string
 val findByName : string -> string -> (prop, errors) result

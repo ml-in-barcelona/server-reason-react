@@ -10,10 +10,10 @@ type ('key, 'id) cmp = ('key, 'id) Belt_Id.cmp
 module S = struct
   include (
     struct
-      type ('value, 'id) t =
-        { cmp : ('value, 'id) cmp
-        ; mutable data : 'value N.t
-        }
+      type ('value, 'id) t = {
+        cmp : ('value, 'id) cmp;
+        mutable data : 'value N.t;
+      }
 
       let t : cmp:('value, 'id) cmp -> data:'value N.t -> ('value, 'id) t =
        fun ~cmp ~data -> { cmp; data }
@@ -225,13 +225,13 @@ let split d key =
   let len = A.length arr in
   if i < 0 then
     let next = -i - 1 in
-    ( ( S.t ~data:(N.fromSortedArrayAux arr 0 next) ~cmp
-      , S.t ~data:(N.fromSortedArrayAux arr next (len - next)) ~cmp )
-    , false )
+    ( ( S.t ~data:(N.fromSortedArrayAux arr 0 next) ~cmp,
+        S.t ~data:(N.fromSortedArrayAux arr next (len - next)) ~cmp ),
+      false )
   else
-    ( ( S.t ~data:(N.fromSortedArrayAux arr 0 i) ~cmp
-      , S.t ~data:(N.fromSortedArrayAux arr (i + 1) (len - i - 1)) ~cmp )
-    , true )
+    ( ( S.t ~data:(N.fromSortedArrayAux arr 0 i) ~cmp,
+        S.t ~data:(N.fromSortedArrayAux arr (i + 1) (len - i - 1)) ~cmp ),
+      true )
 
 let keepU d p = S.t ~data:(N.keepCopyU (S.data d) p) ~cmp:(S.cmp d)
 let keep d p = keepU d (fun a -> p a)

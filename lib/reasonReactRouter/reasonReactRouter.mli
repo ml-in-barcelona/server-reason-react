@@ -6,14 +6,14 @@ val replace : string -> unit
 
 type watcherID
 
-type url =
-  { (* path takes window.location.path, like "/book/title/edit" and turns it into `["book", "title", "edit"]` *)
-    path : string list
-  ; (* the url's hash, if any. The # symbol is stripped out for you *)
-    hash : string
-  ; (* the url's query params, if any. The ? symbol is stripped out for you *)
-    search : string
-  }
+type url = {
+  (* path takes window.location.path, like "/book/title/edit" and turns it into `["book", "title", "edit"]` *)
+  path : string list;
+  (* the url's hash, if any. The # symbol is stripped out for you *)
+  hash : string;
+  (* the url's query params, if any. The ? symbol is stripped out for you *)
+  search : string;
+}
 
 val watchUrl : (url -> unit) -> watcherID
 (** start watching for URL changes. Returns a subscription token. Upon url change, calls the callback and passes it the url record *)

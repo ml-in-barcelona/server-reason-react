@@ -2,11 +2,7 @@ include (
   struct
     type 'a t = { mutable root : 'a opt_cell }
     and 'a opt_cell = 'a cell Js.null
-
-    and 'a cell =
-      { head : 'a
-      ; tail : 'a opt_cell
-      }
+    and 'a cell = { head : 'a; tail : 'a opt_cell }
 
     let t : root:'a opt_cell -> 'a t = fun ~root -> { root }
     let rootSet : 'a t -> 'a opt_cell -> unit = fun o v -> o.root <- v

@@ -49,15 +49,15 @@ let clone_attributes () =
   in
   let expected =
     React.createElement "div"
-      [| React.Attribute.String ("val", "31")
-       ; React.Attribute.Bool ("lola", true)
+      [|
+        React.Attribute.String ("val", "31"); React.Attribute.Bool ("lola", true);
       |]
       []
   in
   let cloned =
     React.cloneElement component
-      [| React.Attribute.Bool ("lola", true)
-       ; React.Attribute.String ("val", "31")
+      [|
+        React.Attribute.Bool ("lola", true); React.Attribute.String ("val", "31");
       |]
       []
   in
@@ -67,15 +67,15 @@ let clone_order_attributes () =
   let component = React.createElement "div" [||] [] in
   let expected =
     React.createElement "div"
-      [| React.Attribute.String ("val", "31")
-       ; React.Attribute.Bool ("lola", true)
+      [|
+        React.Attribute.String ("val", "31"); React.Attribute.Bool ("lola", true);
       |]
       []
   in
   let cloned =
     React.cloneElement component
-      [| React.Attribute.Bool ("lola", true)
-       ; React.Attribute.String ("val", "31")
+      [|
+        React.Attribute.Bool ("lola", true); React.Attribute.String ("val", "31");
       |]
       []
   in
@@ -86,8 +86,9 @@ let case title fn = Alcotest.test_case title `Quick fn
 let tests =
   ( (* FIXME: those test shouldn't rely on renderToStaticMarkup,
        make an alcotest TESTABLE component *)
-    "React.cloneElement"
-  , [ case "empty component" clone_empty
-    ; case "attributes component" clone_attributes
-    ; case "ordered attributes component" clone_order_attributes
+    "React.cloneElement",
+    [
+      case "empty component" clone_empty;
+      case "attributes component" clone_attributes;
+      case "ordered attributes component" clone_order_attributes;
     ] )

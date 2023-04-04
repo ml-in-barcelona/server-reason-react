@@ -3,23 +3,23 @@
 
 include (
   struct
-    type ('k, 'v) node =
-      { mutable key : 'k
-      ; mutable value : 'v
-      ; mutable height : int
-      ; mutable left : ('k, 'v) t
-      ; mutable right : ('k, 'v) t
-      }
+    type ('k, 'v) node = {
+      mutable key : 'k;
+      mutable value : 'v;
+      mutable height : int;
+      mutable left : ('k, 'v) t;
+      mutable right : ('k, 'v) t;
+    }
 
     and ('key, 'a) t = ('key, 'a) node Js.null
 
     let node :
-           key:'k
-        -> value:'v
-        -> height:int
-        -> left:('k, 'v) t
-        -> right:('k, 'v) t
-        -> ('k, 'v) node =
+        key:'k ->
+        value:'v ->
+        height:int ->
+        left:('k, 'v) t ->
+        right:('k, 'v) t ->
+        ('k, 'v) node =
      fun ~key ~value ~height ~left ~right -> { key; value; height; left; right }
 
     let keySet : ('k, 'v) node -> 'k -> unit = fun o v -> o.key <- v
@@ -38,12 +38,12 @@ include (
       and ('key, 'a) t = ('key, 'a) node Js.null
 
       val node :
-           key:'k
-        -> value:'v
-        -> height:int
-        -> left:('k, 'v) t
-        -> right:('k, 'v) t
-        -> ('k, 'v) node
+        key:'k ->
+        value:'v ->
+        height:int ->
+        left:('k, 'v) t ->
+        right:('k, 'v) t ->
+        ('k, 'v) node
 
       val keySet : ('k, 'v) node -> 'k -> unit
       val key : ('k, 'v) node -> 'k
@@ -104,37 +104,37 @@ let bal l x d r =
   if hl > hr + 2 then
     let ll, lv, ld, lr =
       let __ocaml_internal_obj = unsafeCoerce l in
-      ( left __ocaml_internal_obj
-      , key __ocaml_internal_obj
-      , value __ocaml_internal_obj
-      , right __ocaml_internal_obj )
+      ( left __ocaml_internal_obj,
+        key __ocaml_internal_obj,
+        value __ocaml_internal_obj,
+        right __ocaml_internal_obj )
     in
     if treeHeight ll >= treeHeight lr then create ll lv ld (create lr x d r)
     else
       let lrl, lrv, lrd, lrr =
         let __ocaml_internal_obj = unsafeCoerce lr in
-        ( left __ocaml_internal_obj
-        , key __ocaml_internal_obj
-        , value __ocaml_internal_obj
-        , right __ocaml_internal_obj )
+        ( left __ocaml_internal_obj,
+          key __ocaml_internal_obj,
+          value __ocaml_internal_obj,
+          right __ocaml_internal_obj )
       in
       create (create ll lv ld lrl) lrv lrd (create lrr x d r)
   else if hr > hl + 2 then
     let rl, rv, rd, rr =
       let __ocaml_internal_obj = unsafeCoerce r in
-      ( left __ocaml_internal_obj
-      , key __ocaml_internal_obj
-      , value __ocaml_internal_obj
-      , right __ocaml_internal_obj )
+      ( left __ocaml_internal_obj,
+        key __ocaml_internal_obj,
+        value __ocaml_internal_obj,
+        right __ocaml_internal_obj )
     in
     if treeHeight rr >= treeHeight rl then create (create l x d rl) rv rd rr
     else
       let rll, rlv, rld, rlr =
         let __ocaml_internal_obj = unsafeCoerce rl in
-        ( left __ocaml_internal_obj
-        , key __ocaml_internal_obj
-        , value __ocaml_internal_obj
-        , right __ocaml_internal_obj )
+        ( left __ocaml_internal_obj,
+          key __ocaml_internal_obj,
+          value __ocaml_internal_obj,
+          right __ocaml_internal_obj )
       in
       create (create l x d rll) rlv rld (create rlr rv rd rr)
   else
@@ -380,10 +380,7 @@ let rec fillArray n i arr =
 
 include (
   struct
-    type cursor =
-      { mutable forward : int
-      ; mutable backward : int
-      }
+    type cursor = { mutable forward : int; mutable backward : int }
 
     let cursor : forward:int -> backward:int -> cursor =
      fun ~forward ~backward -> { forward; backward }

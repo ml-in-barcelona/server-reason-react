@@ -9,10 +9,10 @@ type ('value, 'id) cmp = ('value, 'id) Belt_Id.cmp
 module S = struct
   include (
     struct
-      type ('value, 'id) t =
-        { cmp : ('value, 'id) cmp
-        ; data : ('value, 'id) Dict.t
-        }
+      type ('value, 'id) t = {
+        cmp : ('value, 'id) cmp;
+        data : ('value, 'id) Dict.t;
+      }
 
       let t :
           cmp:('value, 'id) cmp -> data:('value, 'id) Dict.t -> ('value, 'id) t

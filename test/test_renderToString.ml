@@ -25,8 +25,9 @@ let text_single_node () =
 let consecutives_text_nodes () =
   let div =
     React.createElement "div" [||]
-      [ React.createElement "span" [||]
-          [ React.string "Hello"; React.string "Hello" ]
+      [
+        React.createElement "span" [||]
+          [ React.string "Hello"; React.string "Hello" ];
       ]
   in
   assert_string
@@ -36,9 +37,10 @@ let consecutives_text_nodes () =
 let case title fn = Alcotest.test_case title `Quick fn
 
 let tests =
-  ( "renderToString"
-  , [ case "react root" react_root_one_element
-    ; case "react root in two" react_root_two_elements
-    ; case "one text node should not add <!-- -->" text_single_node
-    ; case "consecutive text nodes should add <!-- -->" consecutives_text_nodes
+  ( "renderToString",
+    [
+      case "react root" react_root_one_element;
+      case "react root in two" react_root_two_elements;
+      case "one text node should not add <!-- -->" text_single_node;
+      case "consecutive text nodes should add <!-- -->" consecutives_text_nodes;
     ] )

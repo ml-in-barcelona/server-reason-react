@@ -21,8 +21,8 @@ let prefix (rule : Rule.t) : Rule.t list =
       ( (( "animation" | "animation-name" | "animation-duration"
          | "animation-delay" | "animation-direction" | "animation-fill-mode"
          | "animation-iteration-count" | "animation-play-state"
-         | "animation-timing-function" ) as property)
-      , value )
+         | "animation-timing-function" ) as property),
+        value )
   | Declaration (("text-decoration" as property), value)
   | Declaration (("filter" as property), value)
   | Declaration (("clip-path" as property), value)
@@ -32,18 +32,18 @@ let prefix (rule : Rule.t) : Rule.t list =
   | Declaration
       ( (( "mask" | "mask-image" | "mask-mode" | "mask-clip" | "mask-size"
          | "mask-repeat" | "mask-origin" | "mask-position" | "mask-composite" )
-        as property)
-      , value )
+        as property),
+        value )
   | Declaration
       ( (( "column-count" | "column-fill" | "column-gap" | "column-rule"
          | "column-rule-color" | "column-rule-style" | "column-rule-width"
-         | "column-span" | "column-width" ) as property)
-      , value )
+         | "column-span" | "column-width" ) as property),
+        value )
   | Declaration (("background-clip" as property), value)
   | Declaration
       ( (( "margin-inline-end" | "margin-inline-start" | "padding-inline-start"
-         | "padding-inline-end" ) as property)
-      , value )
+         | "padding-inline-end" ) as property),
+        value )
   | Declaration (("columns" as property), value) ->
       prefix_property property value [ webkit ] @ [ rule ]
   | Declaration (("user-select" as property), value)
@@ -65,21 +65,21 @@ let prefix (rule : Rule.t) : Rule.t list =
       prefix_property "print-color-adjust" value [ webkit ] @ [ rule ]
   | Declaration
       ( (( "align-items" | "align-content" | "flex-shrink" | "flex-basis"
-         | "align-self" | "flex-grow" | "justify-content" ) as _property)
-      , _value ) ->
+         | "align-self" | "flex-grow" | "justify-content" ) as _property),
+        _value ) ->
       [ rule ]
   | Declaration (("cursor" as property), (("grab" | "grabbing") as value)) ->
       prefix_value property value [ webkit ] @ [ rule ]
   | Declaration
       ( (( "width" | "min-width" | "max-width" | "height" | "min-height"
-         | "max-height" | "min-block-size" | "max-block-size" ) as property)
-      , (("fit-content" | "max-content" | "min-content" | "fill-available") as
+         | "max-height" | "min-block-size" | "max-block-size" ) as property),
+        (("fit-content" | "max-content" | "min-content" | "fill-available") as
         value) ) ->
       prefix_value property value [ webkit; moz ] @ [ rule ]
   | Declaration
       ( (( "width" | "min-width" | "max-width" | "height" | "min-height"
-         | "max-height" ) as property)
-      , "stretch" ) ->
+         | "max-height" ) as property),
+        "stretch" ) ->
       prefix_value property "fill-available" [ webkit ]
       @ prefix_value property "available" [ moz ]
       @ [ rule ]

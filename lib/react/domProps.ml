@@ -1543,10 +1543,7 @@ let getJSXName = function
   | Attribute { jsxName; _ } -> jsxName
   | Event { name; _ } -> name
 
-type errors =
-  [ `ElementNotFound
-  | `AttributeNotFound
-  ]
+type errors = [ `ElementNotFound | `AttributeNotFound ]
 
 let getAttributes tag =
   List.find_opt (fun element -> element.tag = tag) elements
@@ -1616,10 +1613,7 @@ module Levenshtein = struct
     matrix.(first).(second)
 end
 
-type closest =
-  { name : string
-  ; distance : int
-  }
+type closest = { name : string; distance : int }
 
 let find_closest_name invalid =
   let accumulate_distance name bestMatch =

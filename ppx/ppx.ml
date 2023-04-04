@@ -66,10 +66,7 @@ let keyType loc =
 
 let refType loc = [%type: ReactDom.domRef]
 
-type 'a children =
-  | ListLiteral of 'a
-  | Exact of 'a
-
+type 'a children = ListLiteral of 'a | Exact of 'a
 type componentConfig = { propsName : string }
 
 let revAstList ~loc expr =
@@ -105,10 +102,11 @@ let transformChildrenIfList2 ~loc ~mapper theList =
     match theList with
     | { pexp_desc = Pexp_construct ({ txt = Lident "[]" }, None) } ->
         Exp.array ~loc (List.rev accum)
-    | { pexp_desc =
-          Pexp_construct
-            ({ txt = Lident "::" }, Some { pexp_desc = Pexp_tuple [ v; acc ] })
-      } ->
+    | {
+     pexp_desc =
+       Pexp_construct
+         ({ txt = Lident "::" }, Some { pexp_desc = Pexp_tuple [ v; acc ] });
+    } ->
         transformChildren_ acc (mapper#expression mapper v :: accum)
     | notAList -> mapper#expression mapper notAList
   in
@@ -137,8 +135,9 @@ let extractChildren ?(removeLastPositionUnit = false) ~loc propsAndChildren =
   let rec allButLast_ lst acc =
     match lst with
     | [] -> []
-    | [ (Nolabel, { pexp_desc = Pexp_construct ({ txt = Lident "()" }, None) })
-      ] ->
+    | [
+     (Nolabel, { pexp_desc = Pexp_construct ({ txt = Lident "()" }, None) });
+    ] ->
         acc
     | (Nolabel, _) :: _rest ->
         raise
@@ -154,8 +153,8 @@ let extractChildren ?(removeLastPositionUnit = false) ~loc propsAndChildren =
   with
   | [], props ->
       (* no children provided? Place a placeholder list *)
-      ( Exp.construct ~loc { loc; txt = Lident "[]" } None
-      , if removeLastPositionUnit then allButLast props else props )
+      ( Exp.construct ~loc { loc; txt = Lident "[]" } None,
+        if removeLastPositionUnit then allButLast props else props )
   | [ (_, childrenExpr) ], props ->
       (childrenExpr, if removeLastPositionUnit then allButLast props else props)
   | _ ->
@@ -163,15 +162,17 @@ let extractChildren ?(removeLastPositionUnit = false) ~loc propsAndChildren =
         (Invalid_argument "JSX: somehow there's more than one `children` label")
 
 let unerasableIgnore loc =
-  { attr_name = { txt = "warning"; loc }
-  ; attr_payload = PStr [ Str.eval (Exp.constant (Const.string "-16")) ]
-  ; attr_loc = loc
+  {
+    attr_name = { txt = "warning"; loc };
+    attr_payload = PStr [ Str.eval (Exp.constant (Const.string "-16")) ];
+    attr_loc = loc;
   }
 
 let merlinFocus =
-  { attr_name = { txt = "merlin.focus"; loc = Location.none }
-  ; attr_payload = PStr []
-  ; attr_loc = Location.none
+  {
+    attr_name = { txt = "merlin.focus"; loc = Location.none };
+    attr_payload = PStr [];
+    attr_loc = Location.none;
   }
 
 (* Helper method to look up the [@react.component] attribute *)
@@ -186,8 +187,9 @@ let hasAttrOnBinding { pvb_attributes } =
 
 (* Filter the [@react.component] attribute and immutably replace them on the binding *)
 let filterAttrOnBinding binding =
-  { binding with
-    pvb_attributes = List.filter otherAttrsPure binding.pvb_attributes
+  {
+    binding with
+    pvb_attributes = List.filter otherAttrsPure binding.pvb_attributes;
   }
 
 (* Finds the name of the variable the binding is assigned to, otherwise raises Invalid_argument *)
@@ -200,11 +202,12 @@ let getFnName binding =
 let makeNewBinding binding expression newName =
   match binding with
   | { pvb_pat = { ppat_desc = Ppat_var ppat_var } as pvb_pat } ->
-      { binding with
+      {
+        binding with
         pvb_pat =
-          { pvb_pat with ppat_desc = Ppat_var { ppat_var with txt = newName } }
-      ; pvb_expr = expression
-      ; pvb_attributes = [ merlinFocus ]
+          { pvb_pat with ppat_desc = Ppat_var { ppat_var with txt = newName } };
+        pvb_expr = expression;
+        pvb_attributes = [ merlinFocus ];
       }
   | _ ->
       raise (Invalid_argument "react.component calls cannot be destructured.")
@@ -226,15 +229,17 @@ let getPropsAttr payload =
   match payload with
   | Some
       (PStr
-        ({ pstr_desc =
-             Pstr_eval ({ pexp_desc = Pexp_record (recordFields, None) }, _)
+        ({
+           pstr_desc =
+             Pstr_eval ({ pexp_desc = Pexp_record (recordFields, None) }, _);
          }
         :: _rest)) ->
       List.fold_left getPropsNameValue defaultProps recordFields
   | Some
       (PStr
-        ({ pstr_desc =
-             Pstr_eval ({ pexp_desc = Pexp_ident { txt = Lident "props" } }, _)
+        ({
+           pstr_desc =
+             Pstr_eval ({ pexp_desc = Pexp_ident { txt = Lident "props" } }, _);
          }
         :: _rest)) ->
       { propsName = "props" }
@@ -294,20 +299,22 @@ let rec makeArgsForMakePropsType list args =
         (* ~foo: int=1 *)
         | _label, Some type_, Some _ -> type_
         (* ~foo: option(int)=? *)
-        | ( label
-          , Some
-              { ptyp_desc = Ptyp_constr ({ txt = Lident "option"; _ }, [ type_ ])
-              ; _
-              }
-          , _ )
-        | ( label
-          , Some
-              { ptyp_desc =
+        | ( label,
+            Some
+              {
+                ptyp_desc = Ptyp_constr ({ txt = Lident "option"; _ }, [ type_ ]);
+                _;
+              },
+            _ )
+        | ( label,
+            Some
+              {
+                ptyp_desc =
                   Ptyp_constr
-                    ({ txt = Ldot (Lident "*predef*", "option"); _ }, [ type_ ])
-              ; _
-              }
-          , _ )
+                    ({ txt = Ldot (Lident "*predef*", "option"); _ }, [ type_ ]);
+                _;
+              },
+            _ )
         (* ~foo: int=? - note this isnt valid. but we want to get a type error *)
         | label, Some type_, _
           when isOptional label ->
@@ -328,18 +335,20 @@ let makePropsValue fnName loc namedArgListWithKeyAndRef propsType =
   Val.mk ~loc { txt = propsName; loc }
     (makeArgsForMakePropsType namedArgListWithKeyAndRef
        (Typ.arrow Nolabel
-          { ptyp_desc = Ptyp_constr ({ txt = Lident "unit"; loc }, [])
-          ; ptyp_loc = loc
-          ; ptyp_attributes = []
-          ; ptyp_loc_stack = []
+          {
+            ptyp_desc = Ptyp_constr ({ txt = Lident "unit"; loc }, []);
+            ptyp_loc = loc;
+            ptyp_attributes = [];
+            ptyp_loc_stack = [];
           }
           propsType))
 
 (* Build an AST node for the signature of the `external` definition *)
 let makePropsExternalSig fnName loc namedArgListWithKeyAndRef propsType =
-  { psig_loc = loc
-  ; psig_desc =
-      Psig_value (makePropsValue fnName loc namedArgListWithKeyAndRef propsType)
+  {
+    psig_loc = loc;
+    psig_desc =
+      Psig_value (makePropsValue fnName loc namedArgListWithKeyAndRef propsType);
   }
 
 (* Build an AST node for the props name when converted to a Js.t inside the function signature  *)
@@ -347,18 +356,20 @@ let makePropsName ~loc name = Pat.mk ~loc (Ppat_var { txt = name; loc })
 
 let makeObjectField loc (str, _attrs, propType) =
   let type_ = [%type: [%t propType] Js_of_ocaml.Js.readonly_prop] in
-  { pof_desc = Otag ({ loc; txt = str }, { type_ with ptyp_attributes = [] })
-  ; pof_loc = loc
-  ; pof_attributes = []
+  {
+    pof_desc = Otag ({ loc; txt = str }, { type_ with ptyp_attributes = [] });
+    pof_loc = loc;
+    pof_attributes = [];
   }
 
 (* Build an AST node representing a "closed" Js_of_ocaml.Js.t object representing a component's props *)
 let makePropsType ~loc namedTypeList =
   Typ.mk ~loc
     (Ptyp_constr
-       ( { txt = Ldot (Lident "Js", "t"); loc }
-       , [ Typ.mk ~loc
-             (Ptyp_object (List.map (makeObjectField loc) namedTypeList, Closed))
+       ( { txt = Ldot (Lident "Js", "t"); loc },
+         [
+           Typ.mk ~loc
+             (Ptyp_object (List.map (makeObjectField loc) namedTypeList, Closed));
          ] ))
 
 let rec makeFunsForMakePropsBody list args =
@@ -366,10 +377,11 @@ let rec makeFunsForMakePropsBody list args =
   | (label, _default, loc, _interiorType) :: tl ->
       makeFunsForMakePropsBody tl
         (Exp.fun_ ~loc label None
-           { ppat_desc = Ppat_var { txt = getLabel label; loc }
-           ; ppat_loc = loc
-           ; ppat_attributes = []
-           ; ppat_loc_stack = []
+           {
+             ppat_desc = Ppat_var { txt = getLabel label; loc };
+             ppat_loc = loc;
+             ppat_attributes = [];
+             ppat_loc_stack = [];
            }
            args)
   | [] -> args
@@ -453,8 +465,8 @@ let makeJsObj ~loc namedArgListWithKeyAndRef =
       match l = "key" with
       | true ->
           [%expr
-            [%e Exp.constant ~loc (Const.string l)]
-            , inject (Js_of_ocaml.Js.string [%e raw])]
+            [%e Exp.constant ~loc (Const.string l)],
+              inject (Js_of_ocaml.Js.string [%e raw])]
       | false ->
           [%expr [%e Exp.constant ~loc (Const.string l)], inject [%e raw]]
     in
@@ -474,10 +486,7 @@ let makeJsObj ~loc namedArgListWithKeyAndRef =
       |> List.filter_map (fun x -> x)
       |> Array.of_list)]
 
-let makeValueBinding
-    ~loc
-    fnName
-    namedArgListWithKeyAndRef
+let makeValueBinding ~loc fnName namedArgListWithKeyAndRef
     componentImplementation =
   let name = makePropsName ~loc fnName in
   let body =
@@ -490,16 +499,14 @@ let makeStructure ~loc fnName namedArgListWithKeyAndRef componentImplementation
     =
   Str.mk ~loc
     (Pstr_value
-       ( Nonrecursive
-       , [ makeValueBinding ~loc fnName namedArgListWithKeyAndRef
-             componentImplementation
+       ( Nonrecursive,
+         [
+           makeValueBinding ~loc fnName namedArgListWithKeyAndRef
+             componentImplementation;
          ] ))
 
 (* Builds an AST node for the modified `make` function *)
-let makeDeclaration
-    ~loc
-    fnName
-    namedArgListWithKeyAndRef
+let makeDeclaration ~loc fnName namedArgListWithKeyAndRef
     componentImplementation =
   makeValueBinding ~loc fnName
     (List.map pluckLabelDefaultLocType namedArgListWithKeyAndRef)
@@ -555,19 +562,20 @@ let rec recursivelyTransformNamedArgsForMake mapper expr list =
       recursivelyTransformNamedArgsForMake mapper expression
         ((arg, default, pattern, alias, pattern.ppat_loc, type_) :: list)
   | Pexp_fun
-      ( Nolabel
-      , _
-      , { ppat_desc = Ppat_construct ({ txt = Lident "()" }, _) | Ppat_any }
-      , _expression ) ->
+      ( Nolabel,
+        _,
+        { ppat_desc = Ppat_construct ({ txt = Lident "()" }, _) | Ppat_any },
+        _expression ) ->
       (list, None)
   | Pexp_fun
-      ( Nolabel
-      , _
-      , { ppat_desc =
+      ( Nolabel,
+        _,
+        {
+          ppat_desc =
             ( Ppat_var { txt }
-            | Ppat_constraint ({ ppat_desc = Ppat_var { txt } }, _) )
-        }
-      , _expression ) ->
+            | Ppat_constraint ({ ppat_desc = Ppat_var { txt } }, _) );
+        },
+        _expression ) ->
       (list, Some txt)
   | Pexp_fun (Nolabel, _, pattern, _expression) ->
       Location.raise_errorf ~loc:pattern.ppat_loc
@@ -577,51 +585,57 @@ let rec recursivelyTransformNamedArgsForMake mapper expr list =
 
 let argToType types (name, default, _noLabelName, _alias, loc, type_) =
   match (type_, name, default) with
-  | ( Some { ptyp_desc = Ptyp_constr ({ txt = Lident "option" }, [ type_ ]) }
-    , name
-    , _ )
+  | ( Some { ptyp_desc = Ptyp_constr ({ txt = Lident "option" }, [ type_ ]) },
+      name,
+      _ )
     when isOptional name ->
-      ( getLabel name
-      , []
-      , { type_ with
+      ( getLabel name,
+        [],
+        {
+          type_ with
           ptyp_desc =
-            Ptyp_constr ({ loc = type_.ptyp_loc; txt = optionIdent }, [ type_ ])
+            Ptyp_constr ({ loc = type_.ptyp_loc; txt = optionIdent }, [ type_ ]);
         } )
       :: types
   | Some type_, name, Some _default ->
-      ( getLabel name
-      , []
-      , { ptyp_desc = Ptyp_constr ({ loc; txt = optionIdent }, [ type_ ])
-        ; ptyp_loc = loc
-        ; ptyp_attributes = []
-        ; ptyp_loc_stack = []
+      ( getLabel name,
+        [],
+        {
+          ptyp_desc = Ptyp_constr ({ loc; txt = optionIdent }, [ type_ ]);
+          ptyp_loc = loc;
+          ptyp_attributes = [];
+          ptyp_loc_stack = [];
         } )
       :: types
   | Some type_, name, _ -> (getLabel name, [], type_) :: types
   | None, name, _ when isOptional name ->
-      ( getLabel name
-      , []
-      , { ptyp_desc =
+      ( getLabel name,
+        [],
+        {
+          ptyp_desc =
             Ptyp_constr
-              ( { loc; txt = optionIdent }
-              , [ { ptyp_desc = Ptyp_var (safeTypeFromValue name)
-                  ; ptyp_loc = loc
-                  ; ptyp_attributes = []
-                  ; ptyp_loc_stack = []
-                  }
-                ] )
-        ; ptyp_loc = loc
-        ; ptyp_attributes = []
-        ; ptyp_loc_stack = []
+              ( { loc; txt = optionIdent },
+                [
+                  {
+                    ptyp_desc = Ptyp_var (safeTypeFromValue name);
+                    ptyp_loc = loc;
+                    ptyp_attributes = [];
+                    ptyp_loc_stack = [];
+                  };
+                ] );
+          ptyp_loc = loc;
+          ptyp_attributes = [];
+          ptyp_loc_stack = [];
         } )
       :: types
   | None, name, _ when isLabelled name ->
-      ( getLabel name
-      , []
-      , { ptyp_desc = Ptyp_var (safeTypeFromValue name)
-        ; ptyp_loc = loc
-        ; ptyp_attributes = []
-        ; ptyp_loc_stack = []
+      ( getLabel name,
+        [],
+        {
+          ptyp_desc = Ptyp_var (safeTypeFromValue name);
+          ptyp_loc = loc;
+          ptyp_attributes = [];
+          ptyp_loc_stack = [];
         } )
       :: types
   | _ -> types
@@ -643,9 +657,10 @@ let process_value_binding ~loc valueBinding =
     let bindingLoc = valueBinding.pvb_loc in
     let bindingPatLoc = valueBinding.pvb_pat.ppat_loc in
     let binding =
-      { valueBinding with
-        pvb_pat = { valueBinding.pvb_pat with ppat_loc = emptyLoc }
-      ; pvb_loc = emptyLoc
+      {
+        valueBinding with
+        pvb_pat = { valueBinding.pvb_pat with ppat_loc = emptyLoc };
+        pvb_loc = emptyLoc;
       }
     in
     let hasApplication = ref false in
@@ -657,67 +672,74 @@ let process_value_binding ~loc valueBinding =
     in
     let expression = binding.pvb_expr in
     let unerasableIgnoreExp exp =
-      { exp with
-        pexp_attributes = unerasableIgnore emptyLoc :: exp.pexp_attributes
+      {
+        exp with
+        pexp_attributes = unerasableIgnore emptyLoc :: exp.pexp_attributes;
       }
     in
     (* TODO: there is a long-tail of unsupported features inside of blocks - Pexp_letmodule , Pexp_letexception , Pexp_ifthenelse *)
     let rec spelunkForFunExpression expression =
       match expression with
       (* let make = (~prop) => ... with no final unit *)
-      | { pexp_desc =
-            Pexp_fun
-              ( ((Labelled _ | Optional _) as label)
-              , default
-              , pattern
-              , ({ pexp_desc = Pexp_fun _ } as internalExpression) )
-        } ->
+      | {
+       pexp_desc =
+         Pexp_fun
+           ( ((Labelled _ | Optional _) as label),
+             default,
+             pattern,
+             ({ pexp_desc = Pexp_fun _ } as internalExpression) );
+      } ->
           let wrap, hasUnit, exp = spelunkForFunExpression internalExpression in
           let expression =
             unerasableIgnoreExp
-              { expression with
-                pexp_desc = Pexp_fun (label, default, pattern, exp)
+              {
+                expression with
+                pexp_desc = Pexp_fun (label, default, pattern, exp);
               }
           in
           (wrap, hasUnit, expression)
       (* let make = (()) => ... *)
       (* let make = (_) => ... *)
-      | { pexp_desc =
-            Pexp_fun
-              ( Nolabel
-              , _default
-              , { ppat_desc =
-                    Ppat_construct ({ txt = Lident "()" }, _) | Ppat_any
-                }
-              , _internalExpression )
-        } ->
+      | {
+       pexp_desc =
+         Pexp_fun
+           ( Nolabel,
+             _default,
+             {
+               ppat_desc = Ppat_construct ({ txt = Lident "()" }, _) | Ppat_any;
+             },
+             _internalExpression );
+      } ->
           ((fun a -> a), true, expression)
       (* let make = (~prop) => ... *)
       | { pexp_desc = Pexp_fun (label, default, pattern, internalExpression) }
         ->
           let unit_pattern =
-            { ppat_desc =
-                Ppat_construct ({ txt = Lident "()"; loc = emptyLoc }, None)
-            ; ppat_loc = emptyLoc
-            ; ppat_loc_stack = []
-            ; ppat_attributes = []
+            {
+              ppat_desc =
+                Ppat_construct ({ txt = Lident "()"; loc = emptyLoc }, None);
+              ppat_loc = emptyLoc;
+              ppat_loc_stack = [];
+              ppat_attributes = [];
             }
           in
           let expression =
             unerasableIgnoreExp
-              { expression with
+              {
+                expression with
                 pexp_desc =
                   Pexp_fun
-                    ( label
-                    , default
-                    , pattern
-                    , { pexp_loc = emptyLoc
-                      ; pexp_desc =
+                    ( label,
+                      default,
+                      pattern,
+                      {
+                        pexp_loc = emptyLoc;
+                        pexp_desc =
                           Pexp_fun
-                            (Nolabel, None, unit_pattern, internalExpression)
-                      ; pexp_loc_stack = []
-                      ; pexp_attributes = []
-                      } )
+                            (Nolabel, None, unit_pattern, internalExpression);
+                        pexp_loc_stack = [];
+                        pexp_attributes = [];
+                      } );
               }
           in
           ((fun a -> a), false, unerasableIgnoreExp expression)
@@ -725,38 +747,42 @@ let process_value_binding ~loc valueBinding =
       | { pexp_desc = Pexp_let (recursive, vbs, internalExpression) } ->
           (* here's where we spelunk! *)
           let wrap, hasUnit, exp = spelunkForFunExpression internalExpression in
-          ( wrap
-          , hasUnit
-          , { expression with pexp_desc = Pexp_let (recursive, vbs, exp) } )
+          ( wrap,
+            hasUnit,
+            { expression with pexp_desc = Pexp_let (recursive, vbs, exp) } )
       (* let make = React.forwardRef((~prop) => ...) *)
-      | { pexp_desc =
-            Pexp_apply (wrapperExpression, [ (Nolabel, internalExpression) ])
-        } ->
+      | {
+       pexp_desc =
+         Pexp_apply (wrapperExpression, [ (Nolabel, internalExpression) ]);
+      } ->
           let () = hasApplication := true in
           let _, hasUnit, exp = spelunkForFunExpression internalExpression in
-          ( (fun exp -> Exp.apply wrapperExpression [ (nolabel, exp) ])
-          , hasUnit
-          , exp )
+          ( (fun exp -> Exp.apply wrapperExpression [ (nolabel, exp) ]),
+            hasUnit,
+            exp )
       (* let make = React.memoCustomCompareProps((~prop) => ..., (prevPros, nextProps) => true) *)
-      | { pexp_desc =
-            Pexp_apply
-              ( wrapperExpression
-              , [ (Nolabel, internalExpression)
-                ; ((Nolabel, { pexp_desc = Pexp_fun _ }) as compareProps)
-                ] )
-        } ->
+      | {
+       pexp_desc =
+         Pexp_apply
+           ( wrapperExpression,
+             [
+               (Nolabel, internalExpression);
+               ((Nolabel, { pexp_desc = Pexp_fun _ }) as compareProps);
+             ] );
+      } ->
           let () = hasApplication := true in
           let _, hasUnit, exp = spelunkForFunExpression internalExpression in
           ( (fun exp ->
-              Exp.apply wrapperExpression [ (nolabel, exp); compareProps ])
-          , hasUnit
-          , exp )
+              Exp.apply wrapperExpression [ (nolabel, exp); compareProps ]),
+            hasUnit,
+            exp )
       | { pexp_desc = Pexp_sequence (wrapperExpression, internalExpression) } ->
           let wrap, hasUnit, exp = spelunkForFunExpression internalExpression in
-          ( wrap
-          , hasUnit
-          , { expression with
-              pexp_desc = Pexp_sequence (wrapperExpression, exp)
+          ( wrap,
+            hasUnit,
+            {
+              expression with
+              pexp_desc = Pexp_sequence (wrapperExpression, exp);
             } )
       | e -> ((fun a -> a), false, e)
     in
@@ -767,12 +793,13 @@ let process_value_binding ~loc valueBinding =
       (wrapExpressionWithBinding wrapExpression, hasUnit, expression)
     in
     makeDeclaration ~loc fnName
-      [ ( optional "key"
-        , None
-        , Pat.var { txt = "key"; loc = emptyLoc }
-        , "key"
-        , emptyLoc
-        , Some (keyType emptyLoc) )
+      [
+        ( optional "key",
+          None,
+          Pat.var { txt = "key"; loc = emptyLoc },
+          "key",
+          emptyLoc,
+          Some (keyType emptyLoc) );
       ]
       expression
 
@@ -877,8 +904,8 @@ let makePropField ~loc id (arg_label, value) =
       [%expr
         Some
           (React.Attribute.Event
-             ( [%e constantString ~loc name]
-             , React.EventT.Selection [%e objectValue] ))]
+             ( [%e constantString ~loc name],
+               React.EventT.Selection [%e objectValue] ))]
   | Event { type_ = Selection; name }, true ->
       [%expr
         Option.map (fun v ->
@@ -922,8 +949,8 @@ let makePropField ~loc id (arg_label, value) =
       [%expr
         Some
           (React.Attribute.Event
-             ( [%e constantString ~loc name]
-             , React.EventT.Clipboard [%e objectValue] ))]
+             ( [%e constantString ~loc name],
+               React.EventT.Clipboard [%e objectValue] ))]
   | Event { type_ = Clipboard; name }, true ->
       [%expr
         Option.map (fun v ->
@@ -934,8 +961,8 @@ let makePropField ~loc id (arg_label, value) =
       [%expr
         Some
           (React.Attribute.Event
-             ( [%e constantString ~loc name]
-             , React.EventT.Composition [%e objectValue] ))]
+             ( [%e constantString ~loc name],
+               React.EventT.Composition [%e objectValue] ))]
   | Event { type_ = Composition; name }, true ->
       [%expr
         Option.map (fun v ->
@@ -990,8 +1017,8 @@ let makePropField ~loc id (arg_label, value) =
       [%expr
         Some
           (React.Attribute.Event
-             ( [%e constantString ~loc name]
-             , React.EventT.Inline [%e objectValue] ))]
+             ( [%e constantString ~loc name],
+               React.EventT.Inline [%e objectValue] ))]
   | Event { type_ = Inline; name }, true ->
       [%expr
         Option.map (fun v ->
@@ -1046,11 +1073,12 @@ let jsxMapper () =
     let createElementCall =
       match children with
       (* [@JSX] div(~children=[a]), coming from <div> a </div> *)
-      | { pexp_desc =
-            ( Pexp_construct
-                ({ txt = Lident "::" }, Some { pexp_desc = Pexp_tuple _ })
-            | Pexp_construct ({ txt = Lident "[]" }, None) )
-        } ->
+      | {
+       pexp_desc =
+         ( Pexp_construct
+             ({ txt = Lident "::" }, Some { pexp_desc = Pexp_tuple _ })
+         | Pexp_construct ({ txt = Lident "[]" }, None) );
+      } ->
           "createElement"
       (* [@JSX] div(~children= value), coming from <div> ...(value) </div> *)
       | _ ->
@@ -1070,12 +1098,13 @@ let jsxMapper () =
           |> List.filter_map (fun a -> a)
           |> Array.of_list]
       in
-      [ (* "div" *)
-        (nolabel, componentNameExpr)
-      ; (* [React.Attribute.String("key", "value")] *)
-        (nolabel, propsObj)
-      ; (* [|children aka moreCreateElementCallsHere|] *)
-        (nolabel, mapper#expression children)
+      [
+        (* "div" *)
+        (nolabel, componentNameExpr);
+        (* [React.Attribute.String("key", "value")] *)
+        (nolabel, propsObj);
+        (* [|children aka moreCreateElementCallsHere|] *)
+        (nolabel, mapper#expression children);
       ]
     in
     Exp.apply
@@ -1089,11 +1118,12 @@ let jsxMapper () =
   let transformComponentDefinition _mapper structure returnStructures =
     match structure with
     (* external *)
-    | { pstr_loc
-      ; pstr_desc =
+    | {
+        pstr_loc;
+        pstr_desc =
           Pstr_primitive
             ({ pval_name = { txt = fnName }; pval_attributes; pval_type } as
-            value_description)
+            value_description);
       } as pstr -> (
         match List.filter hasAttr pval_attributes with
         | [] -> structure :: returnStructures
@@ -1125,20 +1155,23 @@ let jsxMapper () =
             (* can't be an arrow because it will defensively uncurry *)
             let newExternalType =
               Ptyp_constr
-                ( { loc = pstr_loc
-                  ; txt = Ldot (Lident "React", "componentLike")
-                  }
-                , [ retPropsType; innerType ] )
+                ( {
+                    loc = pstr_loc;
+                    txt = Ldot (Lident "React", "componentLike");
+                  },
+                  [ retPropsType; innerType ] )
             in
             let newStructure =
-              { pstr with
+              {
+                pstr with
                 pstr_desc =
                   Pstr_primitive
-                    { value_description with
-                      pval_type = { pval_type with ptyp_desc = newExternalType }
-                    ; pval_attributes =
-                        List.filter otherAttrsPure pval_attributes
-                    }
+                    {
+                      value_description with
+                      pval_type = { pval_type with ptyp_desc = newExternalType };
+                      pval_attributes =
+                        List.filter otherAttrsPure pval_attributes;
+                    };
               }
             in
             externalPropsDecl :: newStructure :: returnStructures
@@ -1161,11 +1194,12 @@ let jsxMapper () =
   in
   let transformComponentSignature _mapper signature returnSignatures =
     match signature with
-    | { psig_loc
-      ; psig_desc =
+    | {
+        psig_loc;
+        psig_desc =
           Psig_value
             ({ pval_name = { txt = fnName }; pval_attributes; pval_type } as
-            psig_desc)
+            psig_desc);
       } as psig -> (
         match List.filter hasAttr pval_attributes with
         | [] -> signature :: returnSignatures
@@ -1196,20 +1230,23 @@ let jsxMapper () =
             (* can't be an arrow because it will defensively uncurry *)
             let newExternalType =
               Ptyp_constr
-                ( { loc = psig_loc
-                  ; txt = Ldot (Lident "React", "componentLike")
-                  }
-                , [ retPropsType; innerType ] )
+                ( {
+                    loc = psig_loc;
+                    txt = Ldot (Lident "React", "componentLike");
+                  },
+                  [ retPropsType; innerType ] )
             in
             let newStructure =
-              { psig with
+              {
+                psig with
                 psig_desc =
                   Psig_value
-                    { psig_desc with
-                      pval_type = { pval_type with ptyp_desc = newExternalType }
-                    ; pval_attributes =
-                        List.filter otherAttrsPure pval_attributes
-                    }
+                    {
+                      psig_desc with
+                      pval_type = { pval_type with ptyp_desc = newExternalType };
+                      pval_attributes =
+                        List.filter otherAttrsPure pval_attributes;
+                    };
               }
             in
             externalPropsDecl :: newStructure :: returnSignatures
@@ -1274,10 +1311,11 @@ let jsxMapper () =
     method! expression expression =
       match expression with
       (* Does the function application have the @JSX attribute? *)
-      | { pexp_desc = Pexp_apply (callExpression, callArguments)
-        ; pexp_attributes
-        ; pexp_loc = applyLoc
-        } -> (
+      | {
+       pexp_desc = Pexp_apply (callExpression, callArguments);
+       pexp_attributes;
+       pexp_loc = applyLoc;
+      } -> (
           let jsxAttribute, nonJSXAttributes =
             List.partition
               (fun attribute -> attribute.attr_name.txt = "JSX")
@@ -1290,11 +1328,12 @@ let jsxMapper () =
               transformJsxCall mapper callExpression callArguments
                 nonJSXAttributes applyLoc)
       (* is it a list with jsx attribute? Reason <>foo</> desugars to [@JSX][foo]*)
-      | { pexp_desc =
+      | {
+          pexp_desc =
             ( Pexp_construct
                 ({ txt = Lident "::"; loc }, Some { pexp_desc = Pexp_tuple _ })
-            | Pexp_construct ({ txt = Lident "[]"; loc }, None) )
-        ; pexp_attributes
+            | Pexp_construct ({ txt = Lident "[]"; loc }, None) );
+          pexp_attributes;
         } as listItems -> (
           let jsxAttribute, nonJSXAttributes =
             List.partition
@@ -1306,20 +1345,22 @@ let jsxMapper () =
           | [], _ -> super#expression expression
           | _, _nonJSXAttributes ->
               let reactFragmentMake =
-                { pexp_desc =
+                {
+                  pexp_desc =
                     Pexp_ident
-                      { txt = Longident.parse "React.Fragment.make"; loc }
-                ; pexp_attributes = []
-                ; pexp_loc = loc
-                ; pexp_loc_stack = []
+                      { txt = Longident.parse "React.Fragment.make"; loc };
+                  pexp_attributes = [];
+                  pexp_loc = loc;
+                  pexp_loc_stack = [];
                 }
               in
               Exp.apply
                 ~loc
                   (* throw away the [@JSX] attribute and keep the others, if any *)
                 ~attrs:nonJSXAttributes reactFragmentMake
-                [ (Labelled "children", super#expression listItems)
-                ; (nolabel, Exp.construct ~loc { loc; txt = Lident "()" } None)
+                [
+                  (Labelled "children", super#expression listItems);
+                  (nolabel, Exp.construct ~loc { loc; txt = Lident "()" } None);
                 ])
       (* Delegate to the default mapper, a deep identity traversal *)
       | e -> super#expression e

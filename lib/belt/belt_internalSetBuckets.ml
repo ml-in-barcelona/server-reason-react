@@ -2,11 +2,7 @@ module C = Belt_internalBucketsType
 
 include (
   struct
-    type 'a bucket =
-      { mutable key : 'a
-      ; mutable next : 'a bucket C.opt
-      }
-
+    type 'a bucket = { mutable key : 'a; mutable next : 'a bucket C.opt }
     and ('hash, 'eq, 'a) t = ('hash, 'eq, 'a bucket) C.container
 
     let bucket : key:'a -> next:'a bucket C.opt -> 'a bucket =

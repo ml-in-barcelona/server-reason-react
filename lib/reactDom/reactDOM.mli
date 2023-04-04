@@ -1,8 +1,4 @@
-type docType =
-  | HTML5
-  | HTML4
-  | HTML4_frameset
-  | HTML4_transactional
+type docType = HTML5 | HTML4 | HTML4_frameset | HTML4_transactional
 
 val renderToString : ?docType:docType -> React.Element.t -> string
 val renderToStaticMarkup : ?docType:docType -> React.Element.t -> string

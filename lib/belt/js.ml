@@ -1,6 +1,4 @@
-type 'a nullable =
-  | Null
-  | Something of 'a
+type 'a nullable = Null | Something of 'a
 
 module Nullable = struct
   type +'a t = 'a nullable

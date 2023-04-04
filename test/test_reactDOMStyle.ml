@@ -12,7 +12,8 @@ let one_styles () =
 let case title fn = Alcotest.test_case title `Quick fn
 
 let tests =
-  ( "ReactDOM.Style.make"
-  , [ case "generate one style" one_styles
-    ; case "generate more than one style" two_styles
+  ( "ReactDOM.Style.make",
+    [
+      case "generate one style" one_styles;
+      case "generate more than one style" two_styles;
     ] )

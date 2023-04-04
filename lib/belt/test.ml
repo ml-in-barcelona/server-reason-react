@@ -148,10 +148,7 @@ let _ = Belt_List.map a (fun x -> print_int x)
 module Example = struct
   include (
     struct
-      type foo =
-        { name : string
-        ; age : int
-        }
+      type foo = { name : string; age : int }
 
       let foo : name:string -> age:int -> foo = fun ~name ~age -> { name; age }
       let name : foo -> string = fun o -> o.name
@@ -187,10 +184,7 @@ let _ =
 module TestingMore = struct
   include (
     struct
-      type t =
-        { name2 : string option [@bs.optional]
-        ; age2 : int
-        }
+      type t = { name2 : string option; [@bs.optional] age2 : int }
 
       let t : ?name2:string -> age2:int -> unit -> t =
        fun ?name2 ~age2 () -> { name2; age2 }

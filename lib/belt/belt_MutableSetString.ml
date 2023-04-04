@@ -193,13 +193,13 @@ let split d key =
   let len = A.length arr in
   if i < 0 then
     let next = -i - 1 in
-    ( ( t ~data:(N.fromSortedArrayAux arr 0 next)
-      , t ~data:(N.fromSortedArrayAux arr next (len - next)) )
-    , false )
+    ( ( t ~data:(N.fromSortedArrayAux arr 0 next),
+        t ~data:(N.fromSortedArrayAux arr next (len - next)) ),
+      false )
   else
-    ( ( t ~data:(N.fromSortedArrayAux arr 0 i)
-      , t ~data:(N.fromSortedArrayAux arr (i + 1) (len - i - 1)) )
-    , true )
+    ( ( t ~data:(N.fromSortedArrayAux arr 0 i),
+        t ~data:(N.fromSortedArrayAux arr (i + 1) (len - i - 1)) ),
+      true )
 
 let keepU d p = t ~data:(N.keepCopyU (data d) p)
 let keep d p = keepU d (fun a -> p a)

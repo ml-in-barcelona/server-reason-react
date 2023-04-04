@@ -31,9 +31,10 @@ let animation_duration () =
 let case title fn = Alcotest.test_case title `Quick fn
 
 let tests =
-  ( "Autoprefixer"
-  , [ case "text-size-adjust" text_size_adjust
-    ; case "text-decoration" text_decoration
-    ; case "display: grid" display_grid
-    ; case "animation-duration" animation_duration
+  ( "Autoprefixer",
+    [
+      case "text-size-adjust" text_size_adjust;
+      case "text-decoration" text_decoration;
+      case "display: grid" display_grid;
+      case "animation-duration" animation_duration;
     ] )

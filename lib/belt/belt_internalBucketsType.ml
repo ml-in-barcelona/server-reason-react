@@ -2,19 +2,19 @@ type 'a opt = 'a Js.undefined
 
 include (
   struct
-    type ('hash, 'eq, 'c) container =
-      { mutable size : int
-      ; mutable buckets : 'c opt array
-      ; hash : 'hash
-      ; eq : 'eq
-      }
+    type ('hash, 'eq, 'c) container = {
+      mutable size : int;
+      mutable buckets : 'c opt array;
+      hash : 'hash;
+      eq : 'eq;
+    }
 
     let container :
-           size:int
-        -> buckets:'c opt array
-        -> hash:'hash
-        -> eq:'eq
-        -> ('hash, 'eq, 'c) container =
+        size:int ->
+        buckets:'c opt array ->
+        hash:'hash ->
+        eq:'eq ->
+        ('hash, 'eq, 'c) container =
      fun ~size ~buckets ~hash ~eq -> { size; buckets; hash; eq }
 
     let sizeSet : ('hash, 'eq, 'c) container -> int -> unit =
@@ -35,11 +35,11 @@ include (
       type ('hash, 'eq, 'c) container
 
       val container :
-           size:int
-        -> buckets:'c opt array
-        -> hash:'hash
-        -> eq:'eq
-        -> ('hash, 'eq, 'c) container
+        size:int ->
+        buckets:'c opt array ->
+        hash:'hash ->
+        eq:'eq ->
+        ('hash, 'eq, 'c) container
 
       val sizeSet : ('hash, 'eq, 'c) container -> int -> unit
       val size : ('hash, 'eq, 'c) container -> int

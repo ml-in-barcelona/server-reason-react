@@ -22,8 +22,9 @@ let float_values () =
 let selector_one_nesting () =
   let _className =
     Css.style
-      [ Css.color Css.aliceblue
-      ; Css.selector "a" [ Css.color Css.rebeccapurple ]
+      [
+        Css.color Css.aliceblue;
+        Css.selector "a" [ Css.color Css.rebeccapurple ];
       ]
   in
   let css = Css.render_style_tag () in
@@ -34,9 +35,10 @@ let selector_one_nesting () =
 let selector_more_than_one_nesting () =
   let _className =
     Css.style
-      [ Css.color Css.aliceblue
-      ; Css.selector "a"
-          [ Css.display `block; Css.selector "div" [ Css.display `none ] ]
+      [
+        Css.color Css.aliceblue;
+        Css.selector "a"
+          [ Css.display `block; Css.selector "div" [ Css.display `none ] ];
       ]
   in
   let css = Css.render_style_tag () in
@@ -48,20 +50,25 @@ let selector_more_than_one_nesting () =
 let selector_with_a_lot_of_nesting () =
   let _className =
     Css.style
-      [ Css.display `flex
-      ; Css.selector "a"
-          [ Css.display `block
-          ; Css.selector "div"
-              [ Css.display `none
-              ; Css.selector "span"
-                  [ Css.display `none
-                  ; Css.selector "hr"
-                      [ Css.display `none
-                      ; Css.selector "code" [ Css.display `none ]
-                      ]
-                  ]
-              ]
-          ]
+      [
+        Css.display `flex;
+        Css.selector "a"
+          [
+            Css.display `block;
+            Css.selector "div"
+              [
+                Css.display `none;
+                Css.selector "span"
+                  [
+                    Css.display `none;
+                    Css.selector "hr"
+                      [
+                        Css.display `none;
+                        Css.selector "code" [ Css.display `none ];
+                      ];
+                  ];
+              ];
+          ];
       ]
   in
   let css = Css.render_style_tag () in
@@ -85,8 +92,8 @@ let selector_ampersand () =
 let selector_ampersand_at_the_middle () =
   let _className =
     Css.style
-      [ Css.fontSize (`px 42)
-      ; Css.selector "& div &" [ Css.fontSize (`px 24) ]
+      [
+        Css.fontSize (`px 42); Css.selector "& div &" [ Css.fontSize (`px 24) ];
       ]
   in
   let css = Css.render_style_tag () in
@@ -98,8 +105,9 @@ let selector_ampersand_at_the_middle () =
 let media_queries () =
   let _className =
     Css.style
-      [ Css.maxWidth (`px 800)
-      ; Css.media "(max-width: 768px)" [ Css.width (`px 300) ]
+      [
+        Css.maxWidth (`px 800);
+        Css.media "(max-width: 768px)" [ Css.width (`px 300) ];
       ]
   in
   let css = Css.render_style_tag () in
@@ -158,9 +166,10 @@ let with_react () =
   in
   let body =
     React.createElement "body" [||]
-      [ React.createElement "div"
+      [
+        React.createElement "div"
           [| React.Attribute.String ("className", className) |]
-          []
+          [];
       ]
   in
   let app = React.createElement "html" [||] [ head; body ] in
@@ -177,19 +186,20 @@ let empty () =
 let case title fn = Alcotest.test_case title `Quick fn
 
 let tests =
-  ( "Emotion"
-  , [ case "one_property" one_property
-    ; case "multiple_properties" multiple_properties
-    ; case "float_values" float_values
-    ; case "selector_one_nesting" selector_one_nesting
-    ; case "selector_more_than_one_nesting" selector_more_than_one_nesting
-    ; case "selector_with_a_lot_of_nesting" selector_with_a_lot_of_nesting
-    ; case "media_queries" media_queries
-      (* ; case "media_queries_nested" media_queries_nested *)
-    ; case "selector_ampersand" selector_ampersand
-    ; case "selector_ampersand_at_the_middle" selector_ampersand_at_the_middle
-    ; case "selector_params" selector_params
-    ; case "keyframe" keyframe
-    ; case "with_react_component" with_react
-    ; case "emtpy" empty
+  ( "Emotion",
+    [
+      case "one_property" one_property;
+      case "multiple_properties" multiple_properties;
+      case "float_values" float_values;
+      case "selector_one_nesting" selector_one_nesting;
+      case "selector_more_than_one_nesting" selector_more_than_one_nesting;
+      case "selector_with_a_lot_of_nesting" selector_with_a_lot_of_nesting;
+      case "media_queries" media_queries
+      (* ; case "media_queries_nested" media_queries_nested *);
+      case "selector_ampersand" selector_ampersand;
+      case "selector_ampersand_at_the_middle" selector_ampersand_at_the_middle;
+      case "selector_params" selector_params;
+      case "keyframe" keyframe;
+      case "with_react_component" with_react;
+      case "emtpy" empty;
     ] )

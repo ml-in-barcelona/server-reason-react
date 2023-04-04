@@ -125,16 +125,10 @@ let attributes_to_string tag attrs =
 let react_root_attr_name = "data-reactroot"
 let data_react_root_attr = Printf.sprintf " %s=\"\"" react_root_attr_name
 
-type mode =
-  | String
-  | Markup
+type mode = String | Markup
 
 (** The DOCTYPE declaration is an instruction to the web browser about what version of HTML the page is written in. This ensures that the web page is parsed the same way by different web browsers. *)
-type docType =
-  | HTML5
-  | HTML4
-  | HTML4_frameset
-  | HTML4_transactional
+type docType = HTML5 | HTML4 | HTML4_frameset | HTML4_transactional
 
 let render_docType = function
   | HTML5 -> "<!DOCTYPE html>"

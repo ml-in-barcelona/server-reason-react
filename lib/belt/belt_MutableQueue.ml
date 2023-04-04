@@ -2,18 +2,14 @@ module A = Belt_Array
 
 include (
   struct
-    type 'a node =
-      { content : 'a
-      ; mutable next : 'a cell
-      }
-
+    type 'a node = { content : 'a; mutable next : 'a cell }
     and 'a cell = 'a node Js.null
 
-    and 'a t =
-      { mutable length : int
-      ; mutable first : 'a cell
-      ; mutable last : 'a cell
-      }
+    and 'a t = {
+      mutable length : int;
+      mutable first : 'a cell;
+      mutable last : 'a cell;
+    }
 
     let node : content:'a -> next:'a cell -> 'a node =
      fun ~content ~next -> { content; next }

@@ -92,14 +92,7 @@ let union (src : element array) src1ofs src1len src2 src2ofs src2len dst dstofs
   loop src1ofs (A.getUnsafe src src1ofs) src2ofs (A.getUnsafe src2 src2ofs)
     dstofs
 
-let intersect
-    (src : element array)
-    src1ofs
-    src1len
-    src2
-    src2ofs
-    src2len
-    dst
+let intersect (src : element array) src1ofs src1len src2 src2ofs src2len dst
     dstofs =
   let src1r = src1ofs + src1len in
   let src2r = src2ofs + src2len in

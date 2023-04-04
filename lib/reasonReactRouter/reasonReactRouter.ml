@@ -8,18 +8,14 @@ let search ?serverUrlString:_ () = ""
 let push (_path : string) = ()
 let replace (_path : string) = ()
 
-type url =
-  { path : string list
-  ; hash : string
-  ; search : string
-  }
-
+type url = { path : string list; hash : string; search : string }
 type watcherID = unit -> unit
 
 let url ?serverUrlString () =
-  { path = path ?serverUrlString ()
-  ; hash = hash ()
-  ; search = search ?serverUrlString ()
+  {
+    path = path ?serverUrlString ();
+    hash = hash ();
+    search = search ?serverUrlString ();
   }
 
 let dangerouslyGetInitialUrl = url

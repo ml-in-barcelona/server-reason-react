@@ -8,8 +8,8 @@ let expander e =
     let loc = e.pexp_loc in
     match e.pexp_desc with
     | Pexp_apply
-        ( { pexp_desc = Pexp_ident { txt = Lident "|."; _ }; pexp_loc_stack }
-        , [ (Nolabel, arg); (Nolabel, fn) ] ) -> (
+        ( { pexp_desc = Pexp_ident { txt = Lident "|."; _ }; pexp_loc_stack },
+          [ (Nolabel, arg); (Nolabel, fn) ] ) -> (
         let fn = Option.value ~default:fn (expander' fn) in
         let arg = Option.value ~default:arg (expander' arg) in
         match fn with
@@ -23,20 +23,23 @@ let expander e =
                 args
             in
             Some
-              { pexp_desc = Pexp_apply (fn, (Nolabel, arg) :: args)
-              ; pexp_attributes = []
-              ; pexp_loc
-              ; pexp_loc_stack
+              {
+                pexp_desc = Pexp_apply (fn, (Nolabel, arg) :: args);
+                pexp_attributes = [];
+                pexp_loc;
+                pexp_loc_stack;
               }
-        | { pexp_desc = Pexp_construct (lident, None)
-          ; pexp_loc
-          ; pexp_loc_stack
-          } ->
+        | {
+         pexp_desc = Pexp_construct (lident, None);
+         pexp_loc;
+         pexp_loc_stack;
+        } ->
             Some
-              { pexp_desc = Pexp_construct (lident, Some arg)
-              ; pexp_attributes = []
-              ; pexp_loc
-              ; pexp_loc_stack
+              {
+                pexp_desc = Pexp_construct (lident, Some arg);
+                pexp_attributes = [];
+                pexp_loc;
+                pexp_loc_stack;
               }
         | _ -> Some (Ast_builder.Default.pexp_apply ~loc fn [ (Nolabel, arg) ]))
     | _ -> None

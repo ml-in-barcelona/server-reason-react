@@ -215,11 +215,7 @@ let fill a ~offset ~len v =
         setUnsafe a i v
       done
 
-let blitUnsafe
-    ~src:a1
-    ~srcOffset:srcofs1
-    ~dst:a2
-    ~dstOffset:srcofs2
+let blitUnsafe ~src:a1 ~srcOffset:srcofs1 ~dst:a2 ~dstOffset:srcofs2
     ~len:blitLength =
   if srcofs2 <= srcofs1 then
     for j = 0 to blitLength - 1 do

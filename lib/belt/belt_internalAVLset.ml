@@ -1,20 +1,20 @@
 include (
   struct
-    type 'value node =
-      { mutable value : 'value
-      ; mutable height : int
-      ; mutable left : 'value t
-      ; mutable right : 'value t
-      }
+    type 'value node = {
+      mutable value : 'value;
+      mutable height : int;
+      mutable left : 'value t;
+      mutable right : 'value t;
+    }
 
     and 'value t = 'value node Js.null
 
     let node :
-           value:'value
-        -> height:int
-        -> left:'value t
-        -> right:'value t
-        -> 'value node =
+        value:'value ->
+        height:int ->
+        left:'value t ->
+        right:'value t ->
+        'value node =
      fun ~value ~height ~left ~right -> { value; height; left; right }
 
     let valueSet : 'value node -> 'value -> unit = fun o v -> o.value <- v
@@ -31,11 +31,11 @@ include (
       and 'value t = 'value node Js.null
 
       val node :
-           value:'value
-        -> height:int
-        -> left:'value t
-        -> right:'value t
-        -> 'value node
+        value:'value ->
+        height:int ->
+        left:'value t ->
+        right:'value t ->
+        'value node
 
       val valueSet : 'value node -> 'value -> unit
       val value : 'value node -> 'value
@@ -88,33 +88,33 @@ let bal l v r =
   if hl > hr + 2 then
     let ll, lv, lr =
       let __ocaml_internal_obj = unsafeCoerce l in
-      ( left __ocaml_internal_obj
-      , value __ocaml_internal_obj
-      , right __ocaml_internal_obj )
+      ( left __ocaml_internal_obj,
+        value __ocaml_internal_obj,
+        right __ocaml_internal_obj )
     in
     if heightGe ll lr then create ll lv (create lr v r)
     else
       let lrl, lrv, lrr =
         let __ocaml_internal_obj = unsafeCoerce lr in
-        ( left __ocaml_internal_obj
-        , value __ocaml_internal_obj
-        , right __ocaml_internal_obj )
+        ( left __ocaml_internal_obj,
+          value __ocaml_internal_obj,
+          right __ocaml_internal_obj )
       in
       create (create ll lv lrl) lrv (create lrr v r)
   else if hr > hl + 2 then
     let rl, rv, rr =
       let __ocaml_internal_obj = unsafeCoerce r in
-      ( left __ocaml_internal_obj
-      , value __ocaml_internal_obj
-      , right __ocaml_internal_obj )
+      ( left __ocaml_internal_obj,
+        value __ocaml_internal_obj,
+        right __ocaml_internal_obj )
     in
     if heightGe rr rl then create (create l v rl) rv rr
     else
       let rll, rlv, rlr =
         let __ocaml_internal_obj = unsafeCoerce rl in
-        ( left __ocaml_internal_obj
-        , value __ocaml_internal_obj
-        , right __ocaml_internal_obj )
+        ( left __ocaml_internal_obj,
+          value __ocaml_internal_obj,
+          right __ocaml_internal_obj )
       in
       create (create l v rll) rlv (create rlr rv rr)
   else
@@ -267,10 +267,7 @@ let rec fillArray n i arr =
 
 include (
   struct
-    type cursor =
-      { mutable forward : int
-      ; mutable backward : int
-      }
+    type cursor = { mutable forward : int; mutable backward : int }
 
     let cursor : forward:int -> backward:int -> cursor =
      fun ~forward ~backward -> { forward; backward }
@@ -416,8 +413,8 @@ let partitionCopyU n p =
       let cursor = cursor ~forward:0 ~backward in
       fillArrayWithPartition n cursor v p;
       let forwardLen = forward cursor in
-      ( fromSortedArrayAux v 0 forwardLen
-      , fromSortedArrayRevAux v backward (size - forwardLen) )
+      ( fromSortedArrayAux v 0 forwardLen,
+        fromSortedArrayRevAux v backward (size - forwardLen) )
 
 let partitionCopy n p = partitionCopyU n (fun a -> p a)
 

@@ -14,8 +14,9 @@ let empty_attribute () =
 let attributes () =
   let a =
     React.createElement "a"
-      [| React.Attribute.String ("href", "google.html")
-       ; React.Attribute.String ("target", "_blank")
+      [|
+        React.Attribute.String ("href", "google.html");
+        React.Attribute.String ("target", "_blank");
       |]
       []
   in
@@ -26,10 +27,11 @@ let attributes () =
 let bool_attributes () =
   let a =
     React.createElement "input"
-      [| React.Attribute.String ("type", "checkbox")
-       ; React.Attribute.String ("name", "cheese")
-       ; React.Attribute.Bool ("checked", true)
-       ; React.Attribute.Bool ("disabled", false)
+      [|
+        React.Attribute.String ("type", "checkbox");
+        React.Attribute.String ("name", "cheese");
+        React.Attribute.Bool ("checked", true);
+        React.Attribute.Bool ("disabled", false);
       |]
       []
   in
@@ -53,9 +55,10 @@ let children () =
 let ignored_attributes_on_jsx () =
   let div =
     React.createElement "div"
-      [| React.Attribute.String ("key", "uniqueKeyId")
-       ; React.Attribute.String ("wat", "randomAttributeThatShouldBeIgnored")
-       ; React.Attribute.Bool ("suppressContentEditableWarning", true)
+      [|
+        React.Attribute.String ("key", "uniqueKeyId");
+        React.Attribute.String ("wat", "randomAttributeThatShouldBeIgnored");
+        React.Attribute.Bool ("suppressContentEditableWarning", true);
       |]
       []
   in
@@ -87,9 +90,10 @@ let nulls () =
 let fragments_and_texts () =
   let component =
     React.createElement "div" [||]
-      [ React.Element.Fragment [ React.string "foo" ]
-      ; React.string "bar"
-      ; React.createElement "b" [||] []
+      [
+        React.Element.Fragment [ React.string "foo" ];
+        React.string "bar";
+        React.createElement "b" [||] [];
       ]
   in
   assert_string
@@ -119,8 +123,9 @@ let inline_styles () =
 let encode_attributes () =
   let component =
     React.createElement "div"
-      [| React.Attribute.String ("about", "\' <")
-       ; React.Attribute.String ("data-user-path", "what/the/path")
+      [|
+        React.Attribute.String ("about", "\' <");
+        React.Attribute.String ("data-user-path", "what/the/path");
       |]
       [ React.string "& \"" ]
   in
@@ -132,8 +137,9 @@ let encode_attributes () =
 let dangerouslySetInnerHtml () =
   let component =
     React.createElement "script"
-      [| React.Attribute.String ("type", "application/javascript")
-       ; React.Attribute.DangerouslyInnerHtml "console.log(\"Hi!\")"
+      [|
+        React.Attribute.String ("type", "application/javascript");
+        React.Attribute.DangerouslyInnerHtml "console.log(\"Hi!\")";
       |]
       []
   in
@@ -146,9 +152,10 @@ let context () =
   let component =
     context.provider ~value:20
       ~children:
-        [ (fun () ->
+        [
+          (fun () ->
             context.consumer ~children:(fun value ->
-                [ React.createElement "section" [||] [ React.int value ] ]))
+                [ React.createElement "section" [||] [ React.int value ] ]));
         ]
   in
   assert_string
@@ -162,10 +169,11 @@ let use_state () =
 
   let component =
     React.createElement "div" [||]
-      [ React.createElement "button"
+      [
+        React.createElement "button"
           [| React.Attribute.Event ("onClick", Mouse onClick) |]
-          []
-      ; React.createElement "span" [||] [ React.string state ]
+          [];
+        React.createElement "span" [||] [ React.string state ];
       ]
   in
   assert_string
@@ -202,10 +210,11 @@ let use_context () =
 let make ~name () =
   let onClick (event : ReactEvent.Mouse.t) : unit = ignore event in
   React.createElement "button"
-    ([| Some (React.Attribute.String ("name", (name : string)))
-      ; Some
-          (React.Attribute.Event
-             ("event", React.EventT.Mouse (onClick : ReactEvent.Mouse.t -> unit)))
+    ([|
+       Some (React.Attribute.String ("name", (name : string)));
+       Some
+         (React.Attribute.Event
+            ("event", React.EventT.Mouse (onClick : ReactEvent.Mouse.t -> unit)));
      |]
     |> Array.to_list
     |> List.filter_map (fun a -> a)
@@ -220,8 +229,9 @@ let event () =
 let className_2 () =
   let component =
     React.createElement "div"
-      [| React.Attribute.String
-           ("className", "flex xs:justify-center overflow-hidden")
+      [|
+        React.Attribute.String
+          ("className", "flex xs:justify-center overflow-hidden");
       |]
       []
   in
@@ -261,22 +271,24 @@ let render_with_doc_type () =
 let render_svg () =
   let path =
     React.createElement "path"
-      [| React.Attribute.String
-           ( "d"
-           , "M 5 3 C 3.9069372 3 3 3.9069372 3 5 L 3 19 C 3 20.093063 \
-              3.9069372 21 5 21 L 19 21 C 20.093063 21 21 20.093063 21 19 L 21 \
-              12 L 19 12 L 19 19 L 5 19 L 5 5 L 12 5 L 12 3 L 5 3 z M 14 3 L \
-              14 5 L 17.585938 5 L 8.2929688 14.292969 L 9.7070312 15.707031 L \
-              19 6.4140625 L 19 10 L 21 10 L 21 3 L 14 3 z" )
+      [|
+        React.Attribute.String
+          ( "d",
+            "M 5 3 C 3.9069372 3 3 3.9069372 3 5 L 3 19 C 3 20.093063 \
+             3.9069372 21 5 21 L 19 21 C 20.093063 21 21 20.093063 21 19 L 21 \
+             12 L 19 12 L 19 19 L 5 19 L 5 5 L 12 5 L 12 3 L 5 3 z M 14 3 L 14 \
+             5 L 17.585938 5 L 8.2929688 14.292969 L 9.7070312 15.707031 L 19 \
+             6.4140625 L 19 10 L 21 10 L 21 3 L 14 3 z" );
       |]
       []
   in
   let svg =
     React.createElement "svg"
-      [| React.Attribute.String ("xmlns", "http://www.w3.org/2000/svg")
-       ; React.Attribute.String ("viewBox", "0 0 24 24")
-       ; React.Attribute.String ("width", "24px")
-       ; React.Attribute.String ("height", "24px")
+      [|
+        React.Attribute.String ("xmlns", "http://www.w3.org/2000/svg");
+        React.Attribute.String ("viewBox", "0 0 24 24");
+        React.Attribute.String ("width", "24px");
+        React.Attribute.String ("height", "24px");
       |]
       [ path ]
   in
@@ -292,32 +304,33 @@ let render_svg () =
 let case title fn = Alcotest.test_case title `Quick fn
 
 let tests =
-  ( "renderToStaticMarkup"
-  , [ case "div" tag
-    ; case "empty attribute" empty_attribute
-    ; case "bool attributes" bool_attributes
-    ; case "ignore nulls" nulls
-    ; case "attributes" attributes
-    ; case "self-closing tag" closing_tag
-    ; case "inner text" innerhtml
-    ; case "children" children
-    ; case "className turns into class" className
-    ; case "test_className" className_2
-    ; case "fragment is empty" fragment
-    ; case "fragment and text concat nicely" fragments_and_texts
-    ; case "defaultValue should be value" default_value
-    ; case "attributes that gets ignored" ignored_attributes_on_jsx
-    ; case "inline styles" inline_styles
-    ; case "escape HTML attributes" encode_attributes
-    ; case "innerHTML" dangerouslySetInnerHtml
-    ; case "createContext" context
-    ; case "useContext" use_context
-    ; case "useState" use_state
-    ; case "useMemo" use_memo
-    ; case "useCallback" use_callback
-    ; case "innerHtml" inner_html
-    ; case "events" event
-    ; case "_onclick" _onclick_render_as_string
-    ; case "!DOCTYPE" render_with_doc_type
-    ; case "svg" render_svg
+  ( "renderToStaticMarkup",
+    [
+      case "div" tag;
+      case "empty attribute" empty_attribute;
+      case "bool attributes" bool_attributes;
+      case "ignore nulls" nulls;
+      case "attributes" attributes;
+      case "self-closing tag" closing_tag;
+      case "inner text" innerhtml;
+      case "children" children;
+      case "className turns into class" className;
+      case "test_className" className_2;
+      case "fragment is empty" fragment;
+      case "fragment and text concat nicely" fragments_and_texts;
+      case "defaultValue should be value" default_value;
+      case "attributes that gets ignored" ignored_attributes_on_jsx;
+      case "inline styles" inline_styles;
+      case "escape HTML attributes" encode_attributes;
+      case "innerHTML" dangerouslySetInnerHtml;
+      case "createContext" context;
+      case "useContext" use_context;
+      case "useState" use_state;
+      case "useMemo" use_memo;
+      case "useCallback" use_callback;
+      case "innerHtml" inner_html;
+      case "events" event;
+      case "_onclick" _onclick_render_as_string;
+      case "!DOCTYPE" render_with_doc_type;
+      case "svg" render_svg;
     ] )

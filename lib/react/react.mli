@@ -16,18 +16,15 @@ val useRef : 'a -> 'a ref
 val forwardRef : (unit -> 'a) -> 'a
 
 module rec Lower_case_element : sig
-  type t =
-    { tag : string
-    ; attributes : Attribute.t array
-    ; children : Element.t list
-    }
+  type t = {
+    tag : string;
+    attributes : Attribute.t array;
+    children : Element.t list;
+  }
 end
 
 and Lower_case_closed_element : sig
-  type t =
-    { tag : string
-    ; attributes : Attribute.t array
-    }
+  type t = { tag : string; attributes : Attribute.t array }
 end
 
 and Element : sig
@@ -83,11 +80,11 @@ val createElement : string -> Attribute.t array -> Element.t list -> Element.t
 val cloneElement : Element.t -> Attribute.t array -> Element.t list -> Element.t
 val memo : ('props * 'props -> bool) -> 'a -> 'props * 'props -> bool
 
-type 'a context =
-  { current_value : 'a ref
-  ; provider : value:'a -> children:(unit -> Element.t) list -> Element.t
-  ; consumer : children:('a -> Element.t list) -> Element.t
-  }
+type 'a context = {
+  current_value : 'a ref;
+  provider : value:'a -> children:(unit -> Element.t) list -> Element.t;
+  consumer : children:('a -> Element.t list) -> Element.t;
+}
 
 val createContext : 'a -> 'a context
 val useContext : 'a context -> 'a
@@ -117,29 +114,29 @@ val useEffect2 :
   (unit -> (unit -> unit) option) -> 'dependency1 * 'dependency2 -> unit
 
 val useEffect3 :
-     (unit -> (unit -> unit) option)
-  -> 'dependency1 * 'dependency2 * 'dependency3
-  -> unit
+  (unit -> (unit -> unit) option) ->
+  'dependency1 * 'dependency2 * 'dependency3 ->
+  unit
 
 val useEffect4 :
-     (unit -> (unit -> unit) option)
-  -> 'dependency1 * 'dependency2 * 'dependency3 * 'dependency4
-  -> unit
+  (unit -> (unit -> unit) option) ->
+  'dependency1 * 'dependency2 * 'dependency3 * 'dependency4 ->
+  unit
 
 val useEffect5 :
-     (unit -> (unit -> unit) option)
-  -> 'dependency1 * 'dependency2 * 'dependency3 * 'dependency4 * 'dependency5
-  -> unit
+  (unit -> (unit -> unit) option) ->
+  'dependency1 * 'dependency2 * 'dependency3 * 'dependency4 * 'dependency5 ->
+  unit
 
 val useEffect6 :
-     (unit -> (unit -> unit) option)
-  -> 'dependency1
-     * 'dependency2
-     * 'dependency3
-     * 'dependency4
-     * 'dependency5
-     * 'dependency6
-  -> unit
+  (unit -> (unit -> unit) option) ->
+  'dependency1
+  * 'dependency2
+  * 'dependency3
+  * 'dependency4
+  * 'dependency5
+  * 'dependency6 ->
+  unit
 
 val useLayoutEffect0 : (unit -> (unit -> unit) option) -> unit
 
@@ -150,29 +147,29 @@ val useLayoutEffect2 :
   (unit -> (unit -> unit) option) -> 'dependency1 * 'dependency2 -> unit
 
 val useLayoutEffect3 :
-     (unit -> (unit -> unit) option)
-  -> 'dependency1 * 'dependency2 * 'dependency3
-  -> unit
+  (unit -> (unit -> unit) option) ->
+  'dependency1 * 'dependency2 * 'dependency3 ->
+  unit
 
 val useLayoutEffect4 :
-     (unit -> (unit -> unit) option)
-  -> 'dependency1 * 'dependency2 * 'dependency3 * 'dependency4
-  -> unit
+  (unit -> (unit -> unit) option) ->
+  'dependency1 * 'dependency2 * 'dependency3 * 'dependency4 ->
+  unit
 
 val useLayoutEffect5 :
-     (unit -> (unit -> unit) option)
-  -> 'dependency1 * 'dependency2 * 'dependency3 * 'dependency4 * 'dependency5
-  -> unit
+  (unit -> (unit -> unit) option) ->
+  'dependency1 * 'dependency2 * 'dependency3 * 'dependency4 * 'dependency5 ->
+  unit
 
 val useLayoutEffect6 :
-     (unit -> (unit -> unit) option)
-  -> 'dependency1
-     * 'dependency2
-     * 'dependency3
-     * 'dependency4
-     * 'dependency5
-     * 'dependency6
-  -> unit
+  (unit -> (unit -> unit) option) ->
+  'dependency1
+  * 'dependency2
+  * 'dependency3
+  * 'dependency4
+  * 'dependency5
+  * 'dependency6 ->
+  unit
 
 val setDisplayName : 'component -> string -> unit
 val string : string -> Element.t
