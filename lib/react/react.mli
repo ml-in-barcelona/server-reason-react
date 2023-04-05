@@ -1,5 +1,3 @@
-[@@@warning "-67"] (* There's an unused parameter on functor Fragment *)
-
 type domRef
 
 module Ref : sig
@@ -15,30 +13,14 @@ val createRef : unit -> 'a option ref
 val useRef : 'a -> 'a ref
 val forwardRef : (unit -> 'a) -> 'a
 
-module rec Lower_case_element : sig
-  type t = {
-    tag : string;
-    attributes : Attribute.t array;
-    children : Element.t list;
-  }
-end
-
-and Lower_case_closed_element : sig
-  type t = { tag : string; attributes : Attribute.t array }
-end
-
-and Element : sig
+module rec Attribute : sig
   type t =
-    | Lower_case_element of Lower_case_element.t
-    | Lower_case_closed_element of Lower_case_closed_element.t
-    | Upper_case_component of (unit -> t)
-    | List of t array
-    | Text of string
-    | InnerHtml of string
-    | Fragment of t list
-    | Empty
-    | Provider of (unit -> t) list
-    | Consumer of (unit -> t list)
+    | Bool of (string * bool)
+    | String of (string * string)
+    | Style of string
+    | DangerouslyInnerHtml of string
+    | Ref of domRef
+    | Event of string * EventT.t
 end
 
 and EventT : sig
@@ -58,35 +40,46 @@ and EventT : sig
     | Inline of string
 end
 
-and Attribute : sig
-  type t =
-    | Bool of (string * bool)
-    | String of (string * string)
-    | Style of string
-    | DangerouslyInnerHtml of string
-    | Ref of domRef
-    | Event of string * EventT.t
-end
+type lower_case_element = {
+  tag : string;
+  attributes : Attribute.t array;
+  children : element list;
+}
 
-and Fragment : sig
-  type t = Element.t list
+and element =
+  | Lower_case_element of lower_case_element
+  | Upper_case_component of (unit -> element)
+  | List of element array
+  | Text of string
+  | InnerHtml of string
+  | Fragment of element list
+  | Empty
+  | Provider of (unit -> element) list
+  | Consumer of (unit -> element list)
 
-  val make : children:t -> unit -> Element.t
-end
+and fragment = element list
 
 exception Invalid_children of string
 
-val createElement : string -> Attribute.t array -> Element.t list -> Element.t
-val cloneElement : Element.t -> Attribute.t array -> Element.t list -> Element.t
-val memo : ('props * 'props -> bool) -> 'a -> 'props * 'props -> bool
+val createElement : string -> Attribute.t array -> element list -> element
+val fragment : children:element list -> unit -> element
+val cloneElement : element -> Attribute.t array -> element list -> element
+val string : string -> element
+val null : element
+val int : int -> element
+val float : float -> element
+val array : element array -> element
+val list : element list -> element
 
 type 'a context = {
   current_value : 'a ref;
-  provider : value:'a -> children:(unit -> Element.t) list -> Element.t;
-  consumer : children:('a -> Element.t list) -> Element.t;
+  provider : value:'a -> children:(unit -> element) list -> element;
+  consumer : children:('a -> element list) -> element;
 }
 
 val createContext : 'a -> 'a context
+
+(* val memo : ('props * 'props -> bool) -> 'a -> 'props * 'props -> bool *)
 val useContext : 'a context -> 'a
 val useState : (unit -> 'state) -> 'state * (('state -> 'state) -> unit)
 val useMemo : (unit -> 'a) -> 'a
@@ -172,9 +165,3 @@ val useLayoutEffect6 :
   unit
 
 val setDisplayName : 'component -> string -> unit
-val string : string -> Element.t
-val null : Element.t
-val int : int -> Element.t
-val float : float -> Element.t
-val array : Element.t array -> Element.t
-val list : Element.t list -> Element.t

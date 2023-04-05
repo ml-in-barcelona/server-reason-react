@@ -74,7 +74,7 @@ let className () =
 
 let fragment () =
   let div = React.createElement "div" [||] [] in
-  let component = React.Element.Fragment [ div; div ] in
+  let component = React.fragment ~children:[ div; div ] () in
   assert_string
     (ReactDOM.renderToStaticMarkup component)
     "<div></div><div></div>"
@@ -91,7 +91,7 @@ let fragments_and_texts () =
   let component =
     React.createElement "div" [||]
       [
-        React.Element.Fragment [ React.string "foo" ];
+        React.fragment ~children:[ React.string "foo" ] ();
         React.string "bar";
         React.createElement "b" [||] [];
       ]

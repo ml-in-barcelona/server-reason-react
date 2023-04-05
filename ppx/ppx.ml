@@ -1332,8 +1332,7 @@ let jsxMapper () =
               let reactFragmentMake =
                 {
                   pexp_desc =
-                    Pexp_ident
-                      { txt = Longident.parse "React.Fragment.make"; loc };
+                    Pexp_ident { txt = Longident.parse "React.fragment"; loc };
                   pexp_attributes = [];
                   pexp_loc = loc;
                   pexp_loc_stack = [];

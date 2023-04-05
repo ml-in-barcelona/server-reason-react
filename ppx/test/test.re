@@ -213,7 +213,7 @@ let svg = () => {
 
 module Component = {
   [@react.component]
-  let make = (~children: React.Element.t, ~cosas as _) => {
+  let make = (~children: React.element, ~cosas as _) => {
     <div> children </div>;
   };
 };

@@ -4,4 +4,4 @@
  (modes best)
  (wrapped false)
  (public_name server-reason-react.reactDom)
- (libraries react js webapi))
+ (libraries react js webapi html))
