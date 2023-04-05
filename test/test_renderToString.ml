@@ -36,6 +36,23 @@ let consecutives_text_nodes () =
 
 let case title fn = Alcotest.test_case title `Quick fn
 
+let whatever =
+  React.createElement "div"
+    ([||] |> Array.to_list |> List.filter_map (fun a -> a) |> Array.of_list)
+    [
+      React.fragment
+        ~children:
+          (React.list
+             [
+               React.createElement "iframe"
+                 ([||] |> Array.to_list
+                 |> List.filter_map (fun a -> a)
+                 |> Array.of_list)
+                 [];
+             ])
+        ();
+    ]
+
 let tests =
   ( "renderToString",
     [

@@ -1337,10 +1337,13 @@ let jsxMapper () =
           (* no JSX attribute *)
           | [], _ -> super#expression expression
           | _, nonJSXAttributes ->
+              let childrenExpr =
+                transformChildrenIfList ~loc ~mapper listItems
+              in
               let reactFragmentMake =
                 {
                   pexp_desc =
-                    Pexp_ident { txt = Longident.parse "React.fragment"; loc };
+                    Pexp_ident { txt = Ldot (Lident "React", "fragment"); loc };
                   pexp_attributes = [];
                   pexp_loc = loc;
                   pexp_loc_stack = [];
@@ -1351,8 +1354,7 @@ let jsxMapper () =
                   (* throw away the [@JSX] attribute and keep the others, if any *)
                 ~attrs:nonJSXAttributes reactFragmentMake
                 [
-                  ( Labelled "children",
-                    [%expr React.list [%e super#expression listItems]] );
+                  (Labelled "children", [%expr React.list [%e childrenExpr]]);
                   (nolabel, Exp.construct ~loc { loc; txt = Lident "()" } None);
                 ])
       (* Delegate to the default mapper, a deep identity traversal *)

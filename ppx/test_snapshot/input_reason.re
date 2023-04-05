@@ -46,6 +46,8 @@ let nested_fragment = (foo, bar, baz) => <> foo <> bar baz </> </>;
 
 let nested_fragment_with_lower = foo => <> <div> foo </div> </>;
 
+let fragment_as_a_child = <div> <> <iframe /> </> </div>;
+
 let upper = <Upper />;
 
 let upper_prop = <Upper count />;
