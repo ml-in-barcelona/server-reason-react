@@ -52,17 +52,17 @@ and element =
   | List of element array
   | Text of string
   | InnerHtml of string
-  | Fragment of element list
+  | Fragment of element
   | Empty
   | Provider of (unit -> element) list
   | Consumer of (unit -> element list)
 
-and fragment = element list
+and fragment = element
 
 exception Invalid_children of string
 
 val createElement : string -> Attribute.t array -> element list -> element
-val fragment : children:element list -> unit -> element
+val fragment : children:element -> unit -> element
 val cloneElement : element -> Attribute.t array -> element list -> element
 val string : string -> element
 val null : element

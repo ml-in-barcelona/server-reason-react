@@ -119,8 +119,7 @@ let render_tree ~docType ~mode element =
     | Provider childrens ->
         childrens |> List.map (fun f -> f ()) |> List.iter render_inner
     | Consumer children -> children () |> List.iter render_inner
-    | Fragment [] -> push ""
-    | Fragment childrens -> childrens |> List.iter render_inner
+    | Fragment children -> render_inner children
     | List list -> list |> Array.iter render_inner
     | Upper_case_component f -> render_inner (f ())
     | Lower_case_element { tag; attributes; _ }

@@ -149,20 +149,25 @@ let lower_children_nested =
                              [((e.title |> s)[@reason.preserve_braces ])]])))
                  |> React.list)
             [@reason.preserve_braces ])]]]]
-let fragment foo = ((React.fragment ~children:(([foo])[@bla ][@JSX ]) ())
+let fragment foo =
+  ((React.fragment ~children:(React.list (([foo])[@bla ][@JSX ])) ())
   [@bla ])
 let poly_children_fragment foo bar =
-  React.fragment ~children:(([foo; bar])[@JSX ]) ()
+  React.fragment ~children:(React.list (([foo; bar])[@JSX ])) ()
 let nested_fragment foo bar baz =
   React.fragment
-    ~children:(([foo; React.fragment ~children:(([bar; baz])[@JSX ]) ()])
-    [@JSX ]) ()
+    ~children:(React.list
+                 (([foo;
+                   React.fragment
+                     ~children:(React.list (([bar; baz])[@JSX ])) ()])
+                 [@JSX ])) ()
 let nested_fragment_with_lower foo =
   React.fragment
-    ~children:(([React.createElement "div"
-                   ((([||] |> Array.to_list) |>
-                       (List.filter_map (fun a -> a)))
-                      |> Array.of_list) [foo]])[@JSX ]) ()
+    ~children:(React.list
+                 (([React.createElement "div"
+                      ((([||] |> Array.to_list) |>
+                          (List.filter_map (fun a -> a)))
+                         |> Array.of_list) [foo]])[@JSX ])) ()
 let upper = Upper.make ()
 let upper_prop = Upper.make ~count ()
 let upper_children_single foo = Upper.make ~children:foo ()
@@ -296,20 +301,22 @@ module Upper_case_with_fragment_as_root =
       ((fun ?(name= (("")[@reason.raw_literal ""])) ->
           fun () ->
             React.fragment
-              ~children:(([React.createElement "div"
-                             ((([||] |> Array.to_list) |>
-                                 (List.filter_map (fun a -> a)))
-                                |> Array.of_list)
-                             [((React.string
-                                  ((("First ")[@reason.raw_literal "First "])
-                                     ^ name))
-                             [@reason.preserve_braces ])];
-                          Hello.make ~one:(("1")[@reason.raw_literal "1"])
-                            ~children:((React.string
-                                          ((("2nd ")
-                                             [@reason.raw_literal "2nd "]) ^
-                                             name))
-                            [@reason.preserve_braces ]) ()])[@JSX ]) ())
+              ~children:(React.list
+                           (([React.createElement "div"
+                                ((([||] |> Array.to_list) |>
+                                    (List.filter_map (fun a -> a)))
+                                   |> Array.of_list)
+                                [((React.string
+                                     ((("First ")
+                                        [@reason.raw_literal "First "]) ^
+                                        name))
+                                [@reason.preserve_braces ])];
+                             Hello.make ~one:(("1")[@reason.raw_literal "1"])
+                               ~children:((React.string
+                                             ((("2nd ")
+                                                [@reason.raw_literal "2nd "])
+                                                ^ name))
+                               [@reason.preserve_braces ]) ()])[@JSX ])) ())
       [@warning "-16"][@warning "-16"])
   end
 module Using_React_memo =
@@ -464,30 +471,33 @@ module Upper_with_aria =
   end
 let data_attributes_should_transform_to_kebabcase =
   React.fragment
-    ~children:(([React.createElement "div"
-                   ((([|(Some
-                           (React.Attribute.String
-                              ("data-attribute", ((("")
-                                [@reason.raw_literal ""]) : string))));(
-                        Some
-                          (React.Attribute.String
-                             ("dataattribute", ((("")
-                               [@reason.raw_literal ""]) : string))));(
-                        Some
-                          (React.Attribute.String
-                             ("className", ((("md:w-1/3")
-                               [@reason.raw_literal "md:w-1/3"]) : string))))|]
-                        |> Array.to_list)
-                       |> (List.filter_map (fun a -> a)))
-                      |> Array.of_list) [];
-                React.createElement "div"
-                  ((([|(Some
-                          (React.Attribute.String
-                             ("className", ((("md:w-2/3")
-                               [@reason.raw_literal "md:w-2/3"]) : string))))|]
-                       |> Array.to_list)
-                      |> (List.filter_map (fun a -> a)))
-                     |> Array.of_list) []])[@JSX ]) ()
+    ~children:(React.list
+                 (([React.createElement "div"
+                      ((([|(Some
+                              (React.Attribute.String
+                                 ("data-attribute", ((("")
+                                   [@reason.raw_literal ""]) : string))));(
+                           Some
+                             (React.Attribute.String
+                                ("dataattribute", ((("")
+                                  [@reason.raw_literal ""]) : string))));(
+                           Some
+                             (React.Attribute.String
+                                ("className", ((("md:w-1/3")
+                                  [@reason.raw_literal "md:w-1/3"]) : 
+                                  string))))|]
+                           |> Array.to_list)
+                          |> (List.filter_map (fun a -> a)))
+                         |> Array.of_list) [];
+                   React.createElement "div"
+                     ((([|(Some
+                             (React.Attribute.String
+                                ("className", ((("md:w-2/3")
+                                  [@reason.raw_literal "md:w-2/3"]) : 
+                                  string))))|]
+                          |> Array.to_list)
+                         |> (List.filter_map (fun a -> a)))
+                        |> Array.of_list) []])[@JSX ])) ()
 let render_onclickPropsAsString =
   React.createElement "div"
     ((([|(Some

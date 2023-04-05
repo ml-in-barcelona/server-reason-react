@@ -1336,7 +1336,7 @@ let jsxMapper () =
           match (jsxAttribute, nonJSXAttributes) with
           (* no JSX attribute *)
           | [], _ -> super#expression expression
-          | _, _nonJSXAttributes ->
+          | _, nonJSXAttributes ->
               let reactFragmentMake =
                 {
                   pexp_desc =
@@ -1351,7 +1351,8 @@ let jsxMapper () =
                   (* throw away the [@JSX] attribute and keep the others, if any *)
                 ~attrs:nonJSXAttributes reactFragmentMake
                 [
-                  (Labelled "children", super#expression listItems);
+                  ( Labelled "children",
+                    [%expr React.list [%e super#expression listItems]] );
                   (nolabel, Exp.construct ~loc { loc; txt = Lident "()" } None);
                 ])
       (* Delegate to the default mapper, a deep identity traversal *)

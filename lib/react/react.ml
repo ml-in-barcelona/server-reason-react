@@ -58,12 +58,12 @@ and element =
   | List of element array
   | Text of string
   | InnerHtml of string
-  | Fragment of element list
+  | Fragment of element
   | Empty
   | Provider of (unit -> element) list
   | Consumer of (unit -> element list)
 
-and fragment = element list
+and fragment = element
 
 exception Invalid_children of string
 
@@ -154,7 +154,7 @@ let cloneElement element new_attributes new_childrens =
           attributes = clone_attributes attributes new_attributes;
           children = new_childrens;
         }
-  | Fragment _childrens -> Fragment new_childrens
+  | Fragment _childrens -> Fragment _childrens
   | Text t -> Text t
   | InnerHtml t -> InnerHtml t
   | Empty -> Empty
