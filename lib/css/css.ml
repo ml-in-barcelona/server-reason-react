@@ -164,9 +164,11 @@ let resolved_rule_to_css hash rules =
   Printf.sprintf "%s %s" declarations selectors
 
 let cache = ref (Hashtbl.create 1000)
-let _get hash = Hashtbl.find cache.contents hash
+let get hash = Hashtbl.mem cache.contents hash
 let flush () = Hashtbl.clear cache.contents
-let append hash (styles : t list) = Hashtbl.add cache.contents hash styles
+
+let append hash (styles : t list) =
+  if get hash then () else Hashtbl.add cache.contents hash styles
 
 let style (styles : t list) =
   let hash = Hash.default (rules_to_string styles) |> String.cat "css-" in

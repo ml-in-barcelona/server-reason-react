@@ -187,6 +187,13 @@ let empty () =
   Css.flush ();
   assert_string className "css-"
 
+let duplicated_styles_should_push_once () =
+  let _className_1 = style [ Css.flexGrow 1. ] in
+  let _className_2 = style [ Css.flexGrow 1. ] in
+  let css = Css.render_style_tag () in
+  Css.flush ();
+  assert_string css " .css-XXXXXX { flex-grow: 1; }"
+
 let case title fn = Alcotest.test_case title `Quick fn
 
 let tests =
@@ -206,4 +213,6 @@ let tests =
       case "keyframe" keyframe;
       case "with_react_component" with_react;
       case "empty" empty;
+      case "duplicated_styles_should_push_once"
+        duplicated_styles_should_push_once;
     ] )
