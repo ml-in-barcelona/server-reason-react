@@ -11,13 +11,16 @@ module Dom = struct
 
   module Element = struct
     let closest event : element = event#target
+    let contains (_target : element) (_parent : element) = false
   end
 
   module EventTarget = struct
-    let contains (_target : element) = false
-
     external unsafeAsDocument : eventTarget -> document = "%identity"
     external unsafeAsElement : eventTarget -> element = "%identity"
     external unsafeAsWindow : eventTarget -> window = "%identity"
+  end
+
+  module Document = struct
+    let addMouseDownEventListener _handler (_document : document) = ()
   end
 end
