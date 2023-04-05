@@ -483,6 +483,17 @@ let gridRowEnd = n => Declaration("grid-row-end", Int.to_string(n));
 
 let gridRowStart = n => Declaration("grid-row-start", Int.to_string(n));
 
+let gap = x =>
+  Declaration(
+    "gap",
+    switch (x) {
+    | #Percentage.t as p => Percentage.toString(p)
+    | #Length.t as l => Length.toString(l)
+    | #Var.t as va => Var.toString(va)
+    | #Cascading.t as c => Cascading.toString(c)
+    },
+  );
+
 let height = x =>
   Declaration(
     "height",
