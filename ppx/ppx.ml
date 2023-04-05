@@ -875,138 +875,146 @@ let makePropField ~loc id (arg_label, value) =
       [%expr
         Some
           (React.Attribute.Event
-             ([%e constantString ~loc name], React.EventT.Mouse [%e objectValue]))]
+             ( [%e constantString ~loc name],
+               React.Attribute.Event.Mouse [%e objectValue] ))]
   | Event { type_ = Mouse; name }, true ->
       [%expr
         Option.map
           (fun v ->
             React.Attribute.Event
-              ([%e constantString ~loc name], React.EventT.Mouse v))
+              ([%e constantString ~loc name], React.Attribute.Event.Mouse v))
           [%e objectValue]]
   | Event { type_ = Selection; name }, false ->
       [%expr
         Some
           (React.Attribute.Event
              ( [%e constantString ~loc name],
-               React.EventT.Selection [%e objectValue] ))]
+               React.Attribute.Event.Selection [%e objectValue] ))]
   | Event { type_ = Selection; name }, true ->
       [%expr
         Option.map (fun v ->
             (React.Attribute.Event
-               ([%e constantString ~loc name], React.EventT.Selection v))
+               ([%e constantString ~loc name], React.Attribute.Event.Selection v))
               [%e objectValue])]
   | Event { type_ = Touch; name }, false ->
       [%expr
         Some
           (React.Attribute.Event
-             ([%e constantString ~loc name], React.EventT.Touch [%e objectValue]))]
+             ( [%e constantString ~loc name],
+               React.Attribute.Event.Touch [%e objectValue] ))]
   | Event { type_ = Touch; name }, true ->
       [%expr
         Option.map (fun v ->
             (React.Attribute.Event
-               ([%e constantString ~loc name], React.EventT.Touch v))
+               ([%e constantString ~loc name], React.Attribute.Event.Touch v))
               [%e objectValue])]
   | Event { type_ = UI; name }, false ->
       [%expr
         Some
           (React.Attribute.Event
-             ([%e constantString ~loc name], React.EventT.UI [%e objectValue]))]
+             ( [%e constantString ~loc name],
+               React.Attribute.Event.UI [%e objectValue] ))]
   | Event { type_ = UI; name }, true ->
       [%expr
         Option.map (fun v ->
             (React.Attribute.Event
-               ([%e constantString ~loc name], React.EventT.UI v))
+               ([%e constantString ~loc name], React.Attribute.Event.UI v))
               [%e objectValue])]
   | Event { type_ = Wheel; name }, false ->
       [%expr
         Some
           (React.Attribute.Event
-             ([%e constantString ~loc name], React.EventT.Wheel [%e objectValue]))]
+             ( [%e constantString ~loc name],
+               React.Attribute.Event.Wheel [%e objectValue] ))]
   | Event { type_ = Wheel; name }, true ->
       [%expr
         Option.map (fun v ->
             (React.Attribute.Event
-               ([%e constantString ~loc name], React.EventT.Wheel v))
+               ([%e constantString ~loc name], React.Attribute.Event.Wheel v))
               [%e objectValue])]
   | Event { type_ = Clipboard; name }, false ->
       [%expr
         Some
           (React.Attribute.Event
              ( [%e constantString ~loc name],
-               React.EventT.Clipboard [%e objectValue] ))]
+               React.Attribute.Event.Clipboard [%e objectValue] ))]
   | Event { type_ = Clipboard; name }, true ->
       [%expr
         Option.map (fun v ->
             (React.Attribute.Event
-               ([%e constantString ~loc name], React.EventT.Clipboard v))
+               ([%e constantString ~loc name], React.Attribute.Event.Clipboard v))
               [%e objectValue])]
   | Event { type_ = Composition; name }, false ->
       [%expr
         Some
           (React.Attribute.Event
              ( [%e constantString ~loc name],
-               React.EventT.Composition [%e objectValue] ))]
+               React.Attribute.Event.Composition [%e objectValue] ))]
   | Event { type_ = Composition; name }, true ->
       [%expr
         Option.map (fun v ->
             (React.Attribute.Event
-               ([%e constantString ~loc name], React.EventT.Composition v))
+               ( [%e constantString ~loc name],
+                 React.Attribute.Event.Composition v ))
               [%e objectValue])]
   | Event { type_ = Keyboard; name }, false ->
       [%expr
         Some
           (React.Attribute.Event
-             ([%e constantString ~loc name], React.EventT.Keyboard v))]
+             ([%e constantString ~loc name], React.Attribute.Keyboard v))]
   | Event { type_ = Keyboard; name }, true ->
       [%expr
         Option.map (fun v ->
             (React.Attribute.Event
-               ([%e constantString ~loc name], React.EventT.Keyboard v))
+               ([%e constantString ~loc name], React.Attribute.Keyboard v))
               [%e objectValue])]
   | Event { type_ = Focus; name }, false ->
       [%expr
         Some
           (React.Attribute.Event
-             ([%e constantString ~loc name], React.EventT.Focus [%e objectValue]))]
+             ( [%e constantString ~loc name],
+               React.Attribute.Event.Focus [%e objectValue] ))]
   | Event { type_ = Focus; name }, true ->
       [%expr
         Option.map (fun v ->
             (React.Attribute.Event
-               ([%e constantString ~loc name], React.EventT.Focus v))
+               ([%e constantString ~loc name], React.Attribute.Event.Focus v))
               [%e objectValue])]
   | Event { type_ = Form; name }, false ->
       [%expr
         Some
           (React.Attribute.Event
-             ([%e constantString ~loc name], React.EventT.Form [%e objectValue]))]
+             ( [%e constantString ~loc name],
+               React.Attribute.Event.Form [%e objectValue] ))]
   | Event { type_ = Form; name }, true ->
       [%expr
         Option.map (fun v ->
             (React.Attribute.Event
-               ([%e constantString ~loc name], React.EventT.Form v))
+               ([%e constantString ~loc name], React.Attribute.Event.Form v))
               [%e objectValue])]
   | Event { type_ = Media; name }, false ->
       [%expr
         Some
           (React.Attribute.Event
-             ([%e constantString ~loc name], React.EventT.Media [%e objectValue]))]
+             ( [%e constantString ~loc name],
+               React.Attribute.Media [%e objectValue] ))]
   | Event { type_ = Media; name }, true ->
       [%expr
         Option.map (fun v ->
             (React.Attribute.Event
-               ([%e constantString ~loc name], React.EventT.Media v))
+               ([%e constantString ~loc name], React.Attribute.Media v))
               [%e objectValue])]
   | Event { type_ = Inline; name }, false ->
       [%expr
         Some
           (React.Attribute.Event
              ( [%e constantString ~loc name],
-               React.EventT.Inline [%e objectValue] ))]
+               React.Attribute.Event.Inline [%e objectValue] ))]
   | Event { type_ = Inline; name }, true ->
       [%expr
         Option.map (fun v ->
             (React.Attribute.Event
-               ([%e constantString ~loc name], React.EventT.Inline v))
+               ([%e constantString ~loc name], React.Attribute.Event.Inline v))
               [%e objectValue])]
   | _ -> failwith "Attribute not implemented, open an issue"
 

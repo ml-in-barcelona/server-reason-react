@@ -214,7 +214,9 @@ let make ~name () =
        Some (React.Attribute.String ("name", (name : string)));
        Some
          (React.Attribute.Event
-            ("event", React.EventT.Mouse (onClick : ReactEvent.Mouse.t -> unit)));
+            ( "event",
+              React.Attribute.Event.Mouse (onClick : ReactEvent.Mouse.t -> unit)
+            ));
      |]
     |> Array.to_list
     |> List.filter_map (fun a -> a)

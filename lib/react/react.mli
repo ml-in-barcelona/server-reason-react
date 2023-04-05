@@ -13,31 +13,31 @@ val createRef : unit -> 'a option ref
 val useRef : 'a -> 'a ref
 val forwardRef : (unit -> 'a) -> 'a
 
-module rec Attribute : sig
+module Attribute : sig
+  module Event : sig
+    type t =
+      | Drag of (ReactEvent.Drag.t -> unit)
+      | Mouse of (ReactEvent.Mouse.t -> unit)
+      | Selection of (ReactEvent.Selection.t -> unit)
+      | Touch of (ReactEvent.Touch.t -> unit)
+      | UI of (ReactEvent.UI.t -> unit)
+      | Wheel of (ReactEvent.Wheel.t -> unit)
+      | Clipboard of (ReactEvent.Clipboard.t -> unit)
+      | Composition of (ReactEvent.Composition.t -> unit)
+      | Keyboard of (ReactEvent.Keyboard.t -> unit)
+      | Focus of (ReactEvent.Focus.t -> unit)
+      | Form of (ReactEvent.Form.t -> unit)
+      | Media of (ReactEvent.Media.t -> unit)
+      | Inline of string
+  end
+
   type t =
     | Bool of (string * bool)
     | String of (string * string)
     | Style of string
     | DangerouslyInnerHtml of string
     | Ref of domRef
-    | Event of string * EventT.t
-end
-
-and EventT : sig
-  type t =
-    | Drag of (ReactEvent.Drag.t -> unit)
-    | Mouse of (ReactEvent.Mouse.t -> unit)
-    | Selection of (ReactEvent.Selection.t -> unit)
-    | Touch of (ReactEvent.Touch.t -> unit)
-    | UI of (ReactEvent.UI.t -> unit)
-    | Wheel of (ReactEvent.Wheel.t -> unit)
-    | Clipboard of (ReactEvent.Clipboard.t -> unit)
-    | Composition of (ReactEvent.Composition.t -> unit)
-    | Keyboard of (ReactEvent.Keyboard.t -> unit)
-    | Focus of (ReactEvent.Focus.t -> unit)
-    | Form of (ReactEvent.Form.t -> unit)
-    | Media of (ReactEvent.Media.t -> unit)
-    | Inline of string
+    | Event of string * Event.t
 end
 
 type lower_case_element = {
