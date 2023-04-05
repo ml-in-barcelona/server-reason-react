@@ -1,3 +1,6 @@
+(** Types for JS objects *)
+(* https://github.com/rescript-lang/rescript-compiler/blob/master/jscomp/runtime/js.ml *)
+
 type 'a t = < .. > as 'a
 type 'a nullable = Null | Something of 'a
 
@@ -45,10 +48,4 @@ module Exn = struct
   let raiseError _str = assert false
 end
 
-module Console = struct
-  let error = print_endline
-
-  let log a =
-    let _ = Obj.magic a in
-    ()
-end
+module Console = Js_console

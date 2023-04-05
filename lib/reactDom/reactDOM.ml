@@ -1,47 +1,5 @@
 open React
 
-module Html = struct
-  (* Based on https://github.com/facebook/react/blob/97d75c9c8bcddb0daed1ed062101c7f5e9b825f4/packages/react-dom-bindings/src/server/escapeTextForBrowser.js#L51-L98 *)
-  (* https://discuss.ocaml.org/t/html-encoding-of-string/4289/4 *)
-  let encode s =
-    let add = Buffer.add_string in
-    let len = String.length s in
-    let buff = Buffer.create len in
-    let max_idx = len - 1 in
-    let flush buff start i =
-      if start < len then Buffer.add_substring buff s start (i - start)
-    in
-    let rec escape_inner start i =
-      if i > max_idx then flush buff start i
-      else
-        let next = i + 1 in
-        match String.get s i with
-        | '&' ->
-            flush buff start i;
-            add buff "&amp;";
-            escape_inner next next
-        | '<' ->
-            flush buff start i;
-            add buff "&lt;";
-            escape_inner next next
-        | '>' ->
-            flush buff start i;
-            add buff "&gt;";
-            escape_inner next next
-        | '\'' ->
-            flush buff start i;
-            add buff "&#x27;";
-            escape_inner next next
-        | '\"' ->
-            flush buff start i;
-            add buff "&quot;";
-            escape_inner next next
-        | _ -> escape_inner start next
-    in
-    escape_inner 0 0 |> ignore;
-    Buffer.contents buff
-end
-
 let attribute_name_to_jsx k =
   match k with
   | "className" -> "class"
@@ -83,7 +41,7 @@ let attribute_is_not_event attr =
   match attr with
   (* We treat _onclick as "not an event", so attribute_is_valid turns it true *)
   | Attribute.Event _ as event when is_onclick_event event -> true
-  | Attribute.Event _ -> false
+  | Event _ -> false
   | _ -> true
 
 let attribute_is_valid tag attr =
@@ -92,10 +50,9 @@ let attribute_is_valid tag attr =
   && not (is_react_custom_attribute attr)
 
 let attribute_to_string attr =
-  let open Attribute in
   match attr with
   (* ignores "ref" prop *)
-  | Ref _ -> ""
+  | Attribute.Ref _ -> ""
   (* false attributes don't get rendered *)
   | Bool (_, false) -> ""
   (* true attributes render solely the attribute name *)
@@ -142,8 +99,7 @@ let render_docType = function
       "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\" \
        \"http://www.w3.org/TR/html4/loose.dtd\">"
 
-let render_tree ~docType ~mode (element : Element.t) =
-  let open Element in
+let render_tree ~docType ~mode element =
   let buff = Buffer.create 16 in
   let push = Buffer.add_string buff in
   Option.iter (fun docType -> push (render_docType docType)) docType;
@@ -163,28 +119,27 @@ let render_tree ~docType ~mode (element : Element.t) =
     | Provider childrens ->
         childrens |> List.map (fun f -> f ()) |> List.iter render_inner
     | Consumer children -> children () |> List.iter render_inner
-    | Fragment [] -> push ""
-    | Fragment childrens -> childrens |> List.iter render_inner
+    | Fragment children -> render_inner children
     | List list -> list |> Array.iter render_inner
     | Upper_case_component f -> render_inner (f ())
-    | Lower_case_element { tag; attributes; children } ->
-        is_root.contents <- false;
-        let attrs = attributes_to_string tag attributes in
-        push "<";
-        push tag;
-        push root_attribute;
-        push attrs;
-        push ">";
-        children |> List.iter render_inner;
-        push "</";
-        push tag;
-        push ">"
-    | Lower_case_closed_element { tag; attributes } ->
+    | Lower_case_element { tag; attributes; _ }
+      when Html.is_self_closing_tag tag ->
         is_root.contents <- false;
         push "<";
         push tag;
         push (attributes_to_string tag attributes);
         push " />"
+    | Lower_case_element { tag; attributes; children } ->
+        is_root.contents <- false;
+        push "<";
+        push tag;
+        push root_attribute;
+        push (attributes_to_string tag attributes);
+        push ">";
+        children |> List.iter render_inner;
+        push "</";
+        push tag;
+        push ">"
     | Text text -> (
         let is_previous_text_node = previous_was_text_node.contents in
         previous_was_text_node.contents <- true;

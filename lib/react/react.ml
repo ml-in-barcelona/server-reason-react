@@ -13,88 +13,64 @@ let createRef () = ref None
 let useRef value = ref value
 let forwardRef f = f ()
 
-(* Self referencing modules to have recursive type records without collission *)
-module rec Lower_case_element : sig
-  type t = {
-    tag : string;
-    attributes : Attribute.t array;
-    children : Element.t list;
-  }
-end =
-  Lower_case_element
+(* type ('props, 'return) componentLike = 'props -> 'return
+   type 'props component = ('props, element) componentLike
 
-and Lower_case_closed_element : sig
-  type t = { tag : string; attributes : Attribute.t array }
-end =
-  Lower_case_closed_element
+   external component : ('props, element) componentLike -> 'props component
+     = "%identity" *)
 
-and Element : sig
-  type t =
-    | Lower_case_element of Lower_case_element.t
-    | Lower_case_closed_element of Lower_case_closed_element.t
-    | Upper_case_component of (unit -> t)
-    | List of t array
-    | Text of string
-    | InnerHtml of string
-    | Fragment of t list
-    | Empty
-    | Provider of (unit -> t) list
-    | Consumer of (unit -> t list)
-end =
-  Element
+module Attribute = struct
+  module Event = struct
+    type t =
+      | Drag of (ReactEvent.Drag.t -> unit)
+      | Mouse of (ReactEvent.Mouse.t -> unit)
+      | Selection of (ReactEvent.Selection.t -> unit)
+      | Touch of (ReactEvent.Touch.t -> unit)
+      | UI of (ReactEvent.UI.t -> unit)
+      | Wheel of (ReactEvent.Wheel.t -> unit)
+      | Clipboard of (ReactEvent.Clipboard.t -> unit)
+      | Composition of (ReactEvent.Composition.t -> unit)
+      | Keyboard of (ReactEvent.Keyboard.t -> unit)
+      | Focus of (ReactEvent.Focus.t -> unit)
+      | Form of (ReactEvent.Form.t -> unit)
+      | Media of (ReactEvent.Media.t -> unit)
+      | Inline of string
+  end
 
-and EventT : sig
-  type t =
-    | Drag of (ReactEvent.Drag.t -> unit)
-    | Mouse of (ReactEvent.Mouse.t -> unit)
-    | Selection of (ReactEvent.Selection.t -> unit)
-    | Touch of (ReactEvent.Touch.t -> unit)
-    | UI of (ReactEvent.UI.t -> unit)
-    | Wheel of (ReactEvent.Wheel.t -> unit)
-    | Clipboard of (ReactEvent.Clipboard.t -> unit)
-    | Composition of (ReactEvent.Composition.t -> unit)
-    | Keyboard of (ReactEvent.Keyboard.t -> unit)
-    | Focus of (ReactEvent.Focus.t -> unit)
-    | Form of (ReactEvent.Form.t -> unit)
-    | Media of (ReactEvent.Media.t -> unit)
-    | Inline of string
-end =
-  EventT
-
-and Attribute : sig
   type t =
     | Bool of (string * bool)
     | String of (string * string)
     | Style of string
     | DangerouslyInnerHtml of string
     | Ref of Ref.t
-    | Event of string * EventT.t
-end =
-  Attribute
-
-and Fragment : sig
-  type t = Element.t list
-
-  val make : children:t -> unit -> Element.t
-end = struct
-  type t = Element.t list
-
-  let make ~children () = Element.Fragment children
+    | Event of string * Event.t
 end
 
-let is_self_closing_tag = function
-  (* https://github.com/facebook/react/blob/97d75c9c8bcddb0daed1ed062101c7f5e9b825f4/packages/react-dom-bindings/src/shared/omittedCloseTags.js *)
-  | "area" | "base" | "br" | "col" | "embed" | "hr" | "img" | "input" | "link"
-  | "meta" | "param" | "source" | "track" | "wbr" (* | "menuitem" *) ->
-      true
-  | _ -> false
+type lower_case_element = {
+  tag : string;
+  attributes : Attribute.t array;
+  children : element list;
+}
+
+and element =
+  | Lower_case_element of lower_case_element
+  | Upper_case_component of (unit -> element)
+  | List of element array
+  | Text of string
+  | InnerHtml of string
+  | Fragment of element
+  | Empty
+  | Provider of (unit -> element) list
+  | Consumer of (unit -> element list)
+
+and fragment = element
 
 exception Invalid_children of string
 
 let compare_attribute left right =
-  let open Attribute in
   match (left, right) with
-  | Bool (left_key, _), Bool (right_key, _) -> String.compare left_key right_key
+  | Attribute.Bool (left_key, _), Attribute.Bool (right_key, _) ->
+      String.compare left_key right_key
   | String (left_key, _), String (right_key, _) ->
       String.compare left_key right_key
   | Style left_styles, Style right_styles ->
@@ -113,18 +89,17 @@ let clone_attribute acc attr new_attr =
 module StringMap = Map.Make (String)
 
 let attributes_to_map (attributes : Attribute.t array) =
+  let open Attribute in
   Array.fold_left
     (fun acc attr ->
       match attr with
-      | Attribute.Bool (key, value) ->
-          acc |> StringMap.add key (Attribute.Bool (key, value))
-      | Attribute.String (key, value) ->
-          acc |> StringMap.add key (Attribute.String (key, value))
+      | Bool (key, value) -> acc |> StringMap.add key (Bool (key, value))
+      | String (key, value) -> acc |> StringMap.add key (String (key, value))
       (* The following constructors shoudn't be part of the Map: *)
-      | Attribute.DangerouslyInnerHtml _ -> acc
-      | Attribute.Ref _ -> acc
-      | Attribute.Event _ -> acc
-      | Attribute.Style _ -> acc)
+      | DangerouslyInnerHtml _ -> acc
+      | Ref _ -> acc
+      | Event _ -> acc
+      | Style _ -> acc)
     StringMap.empty attributes
 
 let clone_attributes (attributes : Attribute.t array) new_attributes =
@@ -156,22 +131,21 @@ let create_element_inner tag attributes children =
     | Some (Attribute.DangerouslyInnerHtml innerHtml), [] ->
         (* This adds as children the innerHTML, and we treat it differently
            from Element.Text to avoid encoding to HTML their content *)
-        [ Element.InnerHtml innerHtml ]
+        [ InnerHtml innerHtml ]
     | Some _, _children -> raise (Invalid_children tag)
   in
-  Element.Lower_case_element { tag; attributes; children }
+  Lower_case_element { tag; attributes; children }
 
 let createElement tag attributes children =
-  match is_self_closing_tag tag with
+  match Html.is_self_closing_tag tag with
   | true when List.length children > 0 ->
       (* TODO: Add test for this *)
       raise @@ Invalid_children "closing tag with children isn't valid"
-  | true -> Element.Lower_case_closed_element { tag; attributes }
+  | true -> Lower_case_element { tag; attributes; children = [] }
   | false -> create_element_inner tag attributes children
 
 (* cloneElements overrides childrens *)
 let cloneElement element new_attributes new_childrens =
-  let open Element in
   match element with
   | Lower_case_element { tag; attributes; children = _ } ->
       Lower_case_element
@@ -180,10 +154,7 @@ let cloneElement element new_attributes new_childrens =
           attributes = clone_attributes attributes new_attributes;
           children = new_childrens;
         }
-  | Lower_case_closed_element { tag; attributes } ->
-      Lower_case_closed_element
-        { tag; attributes = clone_attributes attributes new_attributes }
-  | Fragment _childrens -> Fragment new_childrens
+  | Fragment _childrens -> Fragment _childrens
   | Text t -> Text t
   | InnerHtml t -> InnerHtml t
   | Empty -> Empty
@@ -192,24 +163,47 @@ let cloneElement element new_attributes new_childrens =
   | Consumer child -> Consumer child
   | Upper_case_component f -> Upper_case_component f
 
-let memo f _compare : 'props * 'props -> bool = f
+let fragment ~children () = Fragment children
+
+(* ReasonReact APIs *)
+let string txt = Text txt
+let null = Empty
+let int i = Text (string_of_int i)
+
+(* FIXME: float_of_string might be different from the browser *)
+let float f = Text (string_of_float f)
+let array arr = List arr
+
+let list_to_array list =
+  let rec to_array i res =
+    match i < 0 with
+    | true -> res
+    | false ->
+        let item = List.nth list i in
+        let rest = Array.append [| item |] res in
+        to_array (i - 1) rest
+  in
+  to_array (List.length list - 1) [||]
+
+let list l = List (list_to_array l)
 
 type 'a context = {
   current_value : 'a ref;
-  provider : value:'a -> children:(unit -> Element.t) list -> Element.t;
-  consumer : children:('a -> Element.t list) -> Element.t;
+  provider : value:'a -> children:(unit -> element) list -> element;
+  consumer : children:('a -> element list) -> element;
 }
 
 let createContext (initial_value : 'a) : 'a context =
   let ref_value = ref initial_value in
   let provider ~value ~children =
     ref_value.contents <- value;
-    Element.Provider children
+    Provider children
   in
-  let consumer ~children =
-    Element.Consumer (fun () -> children ref_value.contents)
-  in
+  let consumer ~children = Consumer (fun () -> children ref_value.contents) in
   { current_value = ref_value; provider; consumer }
+
+(* let memo f : 'props * 'props -> bool = f
+   let memoCustomCompareProps f _compare : 'props * 'props -> bool = f *)
 
 let useContext context = context.current_value.contents
 
@@ -318,25 +312,3 @@ let useLayoutEffect6 :
  fun _ _ -> ()
 
 let setDisplayName : 'component -> string -> unit = fun _ _ -> ()
-
-(* ReasonReact APIs *)
-let string txt = Element.Text txt
-let null = Element.Empty
-let int i = Element.Text (string_of_int i)
-
-(* FIXME: float_of_string might be different from the browser *)
-let float f = Element.Text (string_of_float f)
-let array arr = Element.List arr
-
-let list_to_array list =
-  let rec to_array i res =
-    match i < 0 with
-    | true -> res
-    | false ->
-        let item = List.nth list i in
-        let rest = Array.append [| item |] res in
-        to_array (i - 1) rest
-  in
-  to_array (List.length list - 1) [||]
-
-let list l = Element.List (list_to_array l)

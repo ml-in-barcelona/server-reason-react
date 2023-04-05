@@ -44,10 +44,12 @@ let swapUnsafe xs i j =
   setUnsafe xs i (getUnsafe xs j);
   setUnsafe xs j tmp
 
+let random_int min max = Random.int (max - min) + min
+
 let shuffleInPlace xs =
   let len = length xs in
   for i = 0 to len - 1 do
-    swapUnsafe xs i (Js_math.random_int i len)
+    swapUnsafe xs i (random_int i len)
   done
 
 let shuffle xs =

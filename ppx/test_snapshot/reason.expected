@@ -129,7 +129,7 @@ let lower_children_nested =
                                           string))));(Some
                                                         (React.Attribute.Event
                                                            ("onClick",
-                                                             (React.EventT.Mouse
+                                                             (React.Attribute.Event.Mouse
                                                                 ((((fun event
                                                                     ->
                                                                     ((ReactEvent.Mouse.preventDefault
@@ -150,19 +150,24 @@ let lower_children_nested =
                  |> React.list)
             [@reason.preserve_braces ])]]]]
 let fragment foo =
-  ((React.Fragment.make ~children:(([foo])[@bla ][@JSX ]) ())[@bla ])
+  ((React.fragment ~children:(React.list (([foo])[@bla ][@JSX ])) ())
+  [@bla ])
 let poly_children_fragment foo bar =
-  React.Fragment.make ~children:(([foo; bar])[@JSX ]) ()
+  React.fragment ~children:(React.list (([foo; bar])[@JSX ])) ()
 let nested_fragment foo bar baz =
-  React.Fragment.make
-    ~children:(([foo; React.Fragment.make ~children:(([bar; baz])[@JSX ]) ()])
-    [@JSX ]) ()
+  React.fragment
+    ~children:(React.list
+                 (([foo;
+                   React.fragment
+                     ~children:(React.list (([bar; baz])[@JSX ])) ()])
+                 [@JSX ])) ()
 let nested_fragment_with_lower foo =
-  React.Fragment.make
-    ~children:(([React.createElement "div"
-                   ((([||] |> Array.to_list) |>
-                       (List.filter_map (fun a -> a)))
-                      |> Array.of_list) [foo]])[@JSX ]) ()
+  React.fragment
+    ~children:(React.list
+                 (([React.createElement "div"
+                      ((([||] |> Array.to_list) |>
+                          (List.filter_map (fun a -> a)))
+                         |> Array.of_list) [foo]])[@JSX ])) ()
 let upper = Upper.make ()
 let upper_prop = Upper.make ~count ()
 let upper_children_single foo = Upper.make ~children:foo ()
@@ -295,21 +300,23 @@ module Upper_case_with_fragment_as_root =
     let make ?key  =
       ((fun ?(name= (("")[@reason.raw_literal ""])) ->
           fun () ->
-            React.Fragment.make
-              ~children:(([React.createElement "div"
-                             ((([||] |> Array.to_list) |>
-                                 (List.filter_map (fun a -> a)))
-                                |> Array.of_list)
-                             [((React.string
-                                  ((("First ")[@reason.raw_literal "First "])
-                                     ^ name))
-                             [@reason.preserve_braces ])];
-                          Hello.make ~one:(("1")[@reason.raw_literal "1"])
-                            ~children:((React.string
-                                          ((("2nd ")
-                                             [@reason.raw_literal "2nd "]) ^
-                                             name))
-                            [@reason.preserve_braces ]) ()])[@JSX ]) ())
+            React.fragment
+              ~children:(React.list
+                           (([React.createElement "div"
+                                ((([||] |> Array.to_list) |>
+                                    (List.filter_map (fun a -> a)))
+                                   |> Array.of_list)
+                                [((React.string
+                                     ((("First ")
+                                        [@reason.raw_literal "First "]) ^
+                                        name))
+                                [@reason.preserve_braces ])];
+                             Hello.make ~one:(("1")[@reason.raw_literal "1"])
+                               ~children:((React.string
+                                             ((("2nd ")
+                                                [@reason.raw_literal "2nd "])
+                                                ^ name))
+                               [@reason.preserve_braces ]) ()])[@JSX ])) ())
       [@warning "-16"][@warning "-16"])
   end
 module Using_React_memo =
@@ -373,7 +380,7 @@ module Onclick_handler_button =
                          Some
                            (React.Attribute.Event
                               ("onClick",
-                                (React.EventT.Mouse
+                                (React.Attribute.Event.Mouse
                                    (onClick : ReactEvent.Mouse.t -> unit)))));(
                          Some
                            (React.Attribute.Bool
@@ -463,37 +470,40 @@ module Upper_with_aria =
       [@warning "-16"][@warning "-16"])
   end
 let data_attributes_should_transform_to_kebabcase =
-  React.Fragment.make
-    ~children:(([React.createElement "div"
-                   ((([|(Some
-                           (React.Attribute.String
-                              ("data-attribute", ((("")
-                                [@reason.raw_literal ""]) : string))));(
-                        Some
-                          (React.Attribute.String
-                             ("dataattribute", ((("")
-                               [@reason.raw_literal ""]) : string))));(
-                        Some
-                          (React.Attribute.String
-                             ("className", ((("md:w-1/3")
-                               [@reason.raw_literal "md:w-1/3"]) : string))))|]
-                        |> Array.to_list)
-                       |> (List.filter_map (fun a -> a)))
-                      |> Array.of_list) [];
-                React.createElement "div"
-                  ((([|(Some
-                          (React.Attribute.String
-                             ("className", ((("md:w-2/3")
-                               [@reason.raw_literal "md:w-2/3"]) : string))))|]
-                       |> Array.to_list)
-                      |> (List.filter_map (fun a -> a)))
-                     |> Array.of_list) []])[@JSX ]) ()
+  React.fragment
+    ~children:(React.list
+                 (([React.createElement "div"
+                      ((([|(Some
+                              (React.Attribute.String
+                                 ("data-attribute", ((("")
+                                   [@reason.raw_literal ""]) : string))));(
+                           Some
+                             (React.Attribute.String
+                                ("dataattribute", ((("")
+                                  [@reason.raw_literal ""]) : string))));(
+                           Some
+                             (React.Attribute.String
+                                ("className", ((("md:w-1/3")
+                                  [@reason.raw_literal "md:w-1/3"]) : 
+                                  string))))|]
+                           |> Array.to_list)
+                          |> (List.filter_map (fun a -> a)))
+                         |> Array.of_list) [];
+                   React.createElement "div"
+                     ((([|(Some
+                             (React.Attribute.String
+                                ("className", ((("md:w-2/3")
+                                  [@reason.raw_literal "md:w-2/3"]) : 
+                                  string))))|]
+                          |> Array.to_list)
+                         |> (List.filter_map (fun a -> a)))
+                        |> Array.of_list) []])[@JSX ])) ()
 let render_onclickPropsAsString =
   React.createElement "div"
     ((([|(Some
             (React.Attribute.Event
                ("_onclick",
-                 (React.EventT.Inline ((("alert('hello')")
+                 (React.Attribute.Event.Inline ((("alert('hello')")
                     [@reason.raw_literal "alert('hello')"]) : string)))))|]
          |> Array.to_list)
         |> (List.filter_map (fun a -> a)))

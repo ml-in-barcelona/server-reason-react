@@ -74,7 +74,7 @@ let className () =
 
 let fragment () =
   let div = React.createElement "div" [||] [] in
-  let component = React.Element.Fragment [ div; div ] in
+  let component = React.fragment ~children:(React.list [ div; div ]) () in
   assert_string
     (ReactDOM.renderToStaticMarkup component)
     "<div></div><div></div>"
@@ -91,7 +91,7 @@ let fragments_and_texts () =
   let component =
     React.createElement "div" [||]
       [
-        React.Element.Fragment [ React.string "foo" ];
+        React.fragment ~children:(React.list [ React.string "foo" ]) ();
         React.string "bar";
         React.createElement "b" [||] [];
       ]
@@ -214,7 +214,9 @@ let make ~name () =
        Some (React.Attribute.String ("name", (name : string)));
        Some
          (React.Attribute.Event
-            ("event", React.EventT.Mouse (onClick : ReactEvent.Mouse.t -> unit)));
+            ( "event",
+              React.Attribute.Event.Mouse (onClick : ReactEvent.Mouse.t -> unit)
+            ));
      |]
     |> Array.to_list
     |> List.filter_map (fun a -> a)
