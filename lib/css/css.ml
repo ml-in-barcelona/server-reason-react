@@ -173,6 +173,12 @@ let style (styles : t list) =
   append hash styles;
   hash
 
+let style_debug (styles : t list) =
+  print_endline (rules_to_string styles);
+  let hash = Hash.default (rules_to_string styles) |> String.cat "css-" in
+  append hash styles;
+  hash
+
 let style_with_hash ~hash (styles : t list) =
   let hash = hash (rules_to_string styles) |> String.cat "css-" in
   append hash styles;
