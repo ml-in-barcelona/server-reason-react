@@ -6,6 +6,7 @@ module Dom = struct
 
   module MouseEvent = struct
     let target event = event#target
+    let stopPropagation () = ()
   end
 
   module Element = struct
