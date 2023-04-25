@@ -176,3 +176,15 @@ module Option = Belt_Option
 [@@@ocaml.text " {!Belt.Result}\n\n    Utilities for result data type.\n"]
 
 module Result = Belt_Result
+
+(** {!Belt.Int}
+    Utilities for Int.
+*)
+
+module Int = Belt_Int
+
+(** {!Belt.Float}
+    Utilities for Float.
+*)
+
+module Float = Belt_Float

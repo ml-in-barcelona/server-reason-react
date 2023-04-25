@@ -6,5 +6,19 @@
   (names stubs))
  (flags :standard -w -A)
  (name belt)
+ (modules :standard \ test)
  (public_name server-reason-react.belt)
  (libraries js))
+
+(executable
+ (name test)
+ (modules test)
+ (public_name test)
+ (flags :standard -w -32-27-34)
+ (libraries belt js))
+
+(rule
+ (alias runtest)
+ (deps test)
+ (action
+  (run ./test.exe)))

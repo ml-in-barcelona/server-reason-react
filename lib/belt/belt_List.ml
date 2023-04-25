@@ -518,6 +518,42 @@ let rec keepU xs p =
 
 let keep xs p = keepU xs (fun x -> p x)
 
+let rec copyAuxWithFilterIndex f cellX prec i =
+  match cellX with
+  | [] -> ()
+  | h :: t ->
+      if f h i then (
+        let next = mutableCell h [] in
+        unsafeMutateTail prec next;
+        copyAuxWithFilterIndex f t next (i + 1))
+      else copyAuxWithFilterIndex f t prec (i + 1)
+
+let rec copyAuxWitFilterMap f cellX prec =
+  match cellX with
+  | [] -> ()
+  | h :: t -> (
+      match f h with
+      | Some h ->
+          let next = mutableCell h [] in
+          unsafeMutateTail prec next;
+          copyAuxWitFilterMap f t next
+      | None -> copyAuxWitFilterMap f t prec)
+
+let keepWithIndexU xs p =
+  let rec auxKeepWithIndex xs p i =
+    match xs with
+    | [] -> []
+    | h :: t ->
+        if p h i then (
+          let cell = mutableCell h [] in
+          copyAuxWithFilterIndex p t cell (i + 1);
+          cell)
+        else auxKeepWithIndex t p (i + 1)
+  in
+  auxKeepWithIndex xs p 0
+
+let keepWithIndex xs p = keepWithIndexU xs (fun x i -> p x i)
+
 let rec keepMapU xs p =
   match xs with
   | [] -> []
