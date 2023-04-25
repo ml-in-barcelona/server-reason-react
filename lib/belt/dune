@@ -1,24 +1,23 @@
-(include_subdirs unqualified)
+(subdir
+ src
+ (library
+  (foreign_stubs
+   (language c)
+   (names stubs))
+  (flags :standard -w -A)
+  (name belt)
+  (public_name server-reason-react.belt)
+  (libraries js)))
 
-(library
- (foreign_stubs
-  (language c)
-  (names stubs))
- (flags :standard -w -A)
- (name belt)
- (modules :standard \ test)
- (public_name server-reason-react.belt)
- (libraries js))
-
-(executable
- (name test)
- (modules test)
- (public_name test)
- (flags :standard -w -32-27-34)
- (libraries belt js))
-
-(rule
- (alias runtest)
- (deps test)
- (action
-  (run ./test.exe)))
+(subdir
+ test
+ (executable
+  (name test)
+  (modules test)
+  (flags :standard -w -32-27-34)
+  (libraries server-reason-react.belt server-reason-react.js))
+ (rule
+  (alias runtest)
+  (deps test.ml)
+  (action
+   (run ./test.exe))))
