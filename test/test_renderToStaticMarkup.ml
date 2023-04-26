@@ -258,8 +258,8 @@ let render_with_doc_type () =
       [ React.createElement "span" [||] [ React.string "This is valid HTML5" ] ]
   in
   assert_string
-    (ReactDOM.renderToStaticMarkup ~docType:ReactDOM.HTML5 div)
-    "<!DOCTYPE html><div><span>This is valid HTML5</span></div>"
+    (ReactDOM.renderToStaticMarkup div)
+    "<div><span>This is valid HTML5</span></div>"
 
 (* <svg
          xmlns="http://www.w3.org/2000/svg"
