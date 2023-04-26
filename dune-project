@@ -16,7 +16,7 @@
 (source
  (github ml-in-barcelona/server-reason-react))
 
-(generate_opam_files false)
+(generate_opam_files true)
 
 (implicit_transitive_deps false)
 
