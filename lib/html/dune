@@ -1,5 +1,4 @@
 (library
  (name html)
- (modes best)
  (wrapped false)
  (public_name server-reason-react.html))

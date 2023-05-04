@@ -1,7 +1,6 @@
 (library
  (name reactDOM)
  (modules reactDOM reactDOMStyle)
- (modes best)
  (wrapped false)
  (public_name server-reason-react.reactDom)
  (libraries react js webapi html))

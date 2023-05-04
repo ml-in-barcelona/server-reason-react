@@ -1,5 +1,4 @@
 (library
  (name webapi)
- (modes best melange)
  (public_name server-reason-react.webapi)
  (libraries js))
