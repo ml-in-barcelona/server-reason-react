@@ -144,7 +144,7 @@ module Pointer = struct
 
   let detail : t -> int = fun _ -> 0
 
-  (* let view : t -> Dom.window = (fun _ -> object end) *)
+  (* let view : t -> Dom.window = fun _ -> object end *)
   let screenX : t -> int = fun _ -> 0
   let screenY : t -> int = fun _ -> 0
   let clientX : t -> int = fun _ -> 0
