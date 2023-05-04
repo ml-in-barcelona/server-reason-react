@@ -132,7 +132,6 @@ let render_tree ~mode element =
             push (Printf.sprintf "<!-- -->%s" (Html.encode text))
         | _ -> push (Html.encode text))
     | InnerHtml text -> push text
-    | _ -> failwith "todo"
   in
   render_inner element;
   buff |> Buffer.contents
