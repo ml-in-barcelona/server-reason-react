@@ -1,3 +1,6 @@
 (library
  (name js)
- (public_name server-reason-react.js))
+ (public_name server-reason-react.js)
+ (flags :standard -w -49)
+ (preprocess
+  (pps melange.ppx)))

@@ -3,8 +3,8 @@ external size : 'a array -> int = "%array_length"
 external getUnsafe : 'a array -> int -> 'a = "%array_unsafe_get"
 external setUnsafe : 'a array -> int -> 'a -> unit = "%array_unsafe_set"
 
-let getUndefined arr i =
-  try Js.fromOpt (Some arr.(i)) with Invalid_argument _ -> Js.fromOpt None
+(* let getUndefined arr i =
+   try Js.fromOpt (Some arr.(i)) with Invalid_argument _ -> Js.fromOpt None *)
 
 external get : 'a array -> int -> 'a = "%array_safe_get"
 
@@ -27,7 +27,7 @@ let setExn arr i v =
     Js.Exn.raiseError "File \"\", line 43, characters 4-10";
   setUnsafe arr i v
 
-let makeUninitialized len = Array.make len Js.undefined
+(* let makeUninitialized len = Array.make len Js.undefined *)
 let makeUninitializedUnsafe len defaultVal = Array.make len defaultVal
 let truncateToLengthUnsafe arr len = Array.sub arr 0 len
 
