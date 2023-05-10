@@ -2,6 +2,8 @@
 
 Re-implementation of parts of React, ReactDOM and entirely ReactDOMServer; plus a few related libraries in OCaml, to enable Server-side Rendering on reason-react applications.
 
+Explained more in detail in this blog post: [sancho.dev/blog/server-side-rendering-react-in-ocaml](https://sancho.dev/blog/server-side-rendering-react-in-ocaml).
+
 [Demo](https://github.com/ml-in-barcelona/fullstack-reason-react-demo)
 
 > **Warning**
