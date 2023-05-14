@@ -50,7 +50,7 @@ include (
 module A = Belt_Array
 module S = Belt_SortArray
 
-let toOpt = Js.toOpt
+let toOpt = Js.toOption
 let return : 'a -> 'a Js.null = Js.Null.return
 let empty = Js.empty
 let unsafeCoerce : 'a Js.null -> 'a = Js.Null.getUnsafe

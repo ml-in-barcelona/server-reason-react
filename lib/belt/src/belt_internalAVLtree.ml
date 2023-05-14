@@ -62,7 +62,7 @@ type ('k, 'id) cmp = ('k, 'id) Belt_Id.cmp
 module A = Belt_Array
 module S = Belt_SortArray
 
-let toOpt : 'a Js.null -> 'a option = Js.toOpt
+let toOpt : 'a Js.null -> 'a option = Js.toOption
 let return a = Js.Null.return a
 let empty : 'a Js.null = Js.empty
 let unsafeCoerce a = Js.Null.getUnsafe a
