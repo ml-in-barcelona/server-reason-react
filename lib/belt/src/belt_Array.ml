@@ -27,7 +27,7 @@ let setExn arr i v =
     Js.Exn.raiseError "File \"\", line 43, characters 4-10";
   setUnsafe arr i v
 
-(* let makeUninitialized len = Array.make len Js.undefined *)
+let makeUninitialized len = Array.make len Js.undefined
 let makeUninitializedUnsafe len defaultVal = Array.make len defaultVal
 let truncateToLengthUnsafe arr len = Array.sub arr 0 len
 
