@@ -1,6 +1,7 @@
-(* type 'a t = <..> *)
+type 'a t = < .. > as 'a
 type 'a null = 'a option
 type 'a undefined = 'a option
+type 'a nullable = 'a option
 
 external toOption : 'a null -> 'a option = "%identity"
 external nullToOption : 'a null -> 'a option = "%identity"
@@ -23,6 +24,16 @@ module Undefined = struct
 end
 
 module Null = struct
+  type 'a t = 'a null
+
+  external toOption : 'a t -> 'a option = "%identity"
+  external fromOpt : 'a option -> 'a t = "%identity"
+
+  let return a = fromOpt (Some a)
+  let getUnsafe a = match toOption a with None -> assert false | Some a -> a
+end
+
+module Nullable = struct
   type 'a t = 'a null
 
   external toOption : 'a t -> 'a option = "%identity"
