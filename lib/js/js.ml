@@ -57,7 +57,7 @@ end
 module Exn = struct
   type error
 
-  external makeError : string -> error = "Error" [@@bs.new]
+  external makeError : string -> error = "%identity"
 
   let raiseError str = raise (Obj.magic (makeError str : error) : exn)
 end
