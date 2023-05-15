@@ -280,6 +280,20 @@ let keepU a f =
 
 let keep a f = keepU a (fun a -> f a)
 
+let keepWithIndexU a f =
+  let l = length a in
+  let r = if l > 0 then makeUninitializedUnsafe l (getUnsafe a 0) else [||] in
+  let j = ref 0 in
+  for i = 0 to l - 1 do
+    let v = getUnsafe a i in
+    if f v i then (
+      setUnsafe r !j v;
+      incr j)
+  done;
+  truncateToLengthUnsafe r !j
+
+let keepWithIndex a f = keepWithIndexU a (fun a -> f a)
+
 let keepMapU a f =
   let l = length a in
   let r = ref None in
