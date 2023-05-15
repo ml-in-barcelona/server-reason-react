@@ -309,7 +309,7 @@ module Array2 = struct
   let filteri _ _ = failwith "TODO"
 
   (* external find : 'a t -> (('a -> bool)[@bs.uncurry]) -> 'a option = "find" [@@bs.send] [@@bs.return { undefined_to_opt }] *)
-  let find _ _ = failwith "TODO"
+  let find arr fn = Stdlib.Array.find_opt fn arr
   (* ES2015 *)
 
   (* external findi : 'a t -> (('a -> int -> bool)[@bs.uncurry]) -> 'a option = "find" [@@bs.send] [@@bs.return {  undefined_to_opt }] *)
@@ -325,24 +325,31 @@ module Array2 = struct
   (* ES2015 *)
 
   (* external forEach : 'a t -> (('a -> unit)[@bs.uncurry]) -> unit = "forEach" [@@bs.send] *)
-  let forEach _ _ = failwith "TODO"
+  let forEach arr fn = Stdlib.Array.iter fn arr
 
   (* external forEachi : 'a t -> (('a -> int -> unit)[@bs.uncurry]) -> unit = "forEach" [@@bs.send] *)
-  let forEachi _ _ = failwith "TODO"
+  let forEachi arr fn = Stdlib.Array.iteri fn arr
 
   (* commented out until bs has a plan for iterators external keys : 'a t -> int array_iter = "" [@@bs.send] (* ES2015 *) *)
 
   (* external map : 'a t -> (('a -> 'b)[@bs.uncurry]) -> 'b t = "map" [@@bs.send] *)
-  let map _ _ = failwith "TODO"
+  let map arr fn = Stdlib.Array.map fn arr
 
   (* external mapi : 'a t -> (('a -> int -> 'b)[@bs.uncurry]) -> 'b t = "map" [@@bs.send] *)
-  let mapi _ _ = failwith "TODO"
+  let mapi arr fn = Stdlib.Array.mapi fn arr
 
   (* external reduce : 'a t -> (('b -> 'a -> 'b)[@bs.uncurry]) -> 'b -> 'b = "reduce" [@@bs.send] *)
-  let reduce _ _ = failwith "TODO"
+
+  (* external reduce : 'a t -> (('b -> 'a -> 'b)[@bs.uncurry]) -> 'b -> 'b = "reduce" [@@bs.send] *)
+  let reduce arr fn init = Stdlib.Array.fold_left fn init arr
 
   (* external reducei : 'a t -> (('b -> 'a -> int -> 'b)[@bs.uncurry]) -> 'b -> 'b = "reduce" [@@bs.send] *)
-  let reducei _ _ = failwith "TODO"
+  let reducei arr fn init =
+    let r = ref init in
+    for i = 0 to Stdlib.Array.length arr - 1 do
+      r := fn !r (Stdlib.Array.unsafe_get arr i) i
+    done;
+    !r
 
   (* external reduceRight : 'a t -> (('b -> 'a -> 'b)[@bs.uncurry]) -> 'b -> 'b = "reduceRight" [@@bs.send] *)
   let reduceRight _ _ = failwith "TODO"
@@ -1567,7 +1574,7 @@ The return type is [float] because this function returns [NaN] if [n] is less th
   indexOf "bookseller" "xyz" = -1;;
 ]}
 *)
-  let indexOf _ _ = failwith "TODO"
+  let indexOf str ch = Stdlib.String.index str ch
 
   (* external indexOfFrom : t -> t -> int -> int = "indexOf" [@@bs.send] *)
 
