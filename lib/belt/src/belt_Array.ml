@@ -31,9 +31,10 @@ let setExn arr i v =
 
 let makeUninitialized len = Array.make len Js.undefined
 let makeUninitializedUnsafe len defaultVal = Array.make len defaultVal
-
 (* let truncateToLengthUnsafe arr len = Array.sub arr 0 len *)
-let truncateToLengthUnsafe _arr _len = failwith "TODO"
+
+let truncateToLengthUnsafe _arr _len =
+  Not_implemented.failwith "truncateToLengthUnsafe"
 
 let copy a =
   let l = length a in
@@ -459,20 +460,18 @@ let unzip a =
   done;
   (a1, a2)
 
-let sliceToEnd _ _ = failwith "TODO"
-let flatMapU _ _ = failwith "TODO"
-let flatMap _ _ = failwith "TODO"
-let getByU _ _ = failwith "TODO"
-let getBy _ _ = failwith "TODO"
-let getIndexByU _ _ = failwith "TODO"
-let getIndexBy _ _ = failwith "TODO"
-let getIndexU _ _ = failwith "TODO"
-let keepWithIndexU _ _ = failwith "TODO"
-let keepWithIndex _ _ = failwith "TODO"
-let reduceWithIndexU _ _ = failwith "TODO"
-let reduceWithIndex _ _ = failwith "TODO"
-let joinWithU _ _ = failwith "TODO"
-let joinWith _ _ = failwith "TODO"
-let initU _ _ = failwith "TODO"
-let init _ _ = failwith "TODO"
-let push _ _ = failwith "TODO"
+let sliceToEnd _ _ = Not_implemented.failwith "sliceToEnd"
+let flatMapU _ _ = Not_implemented.failwith "flatMapU"
+let flatMap _ _ = Not_implemented.failwith "flatMap"
+let getByU _ _ = Not_implemented.failwith "getByU"
+let getBy _ _ = Not_implemented.failwith "getBy"
+let getIndexByU _ _ = Not_implemented.failwith "getIndexByU"
+let getIndexBy _ _ = Not_implemented.failwith "getIndexBy"
+let getIndexU _ _ = Not_implemented.failwith "getIndexU"
+let reduceWithIndexU _ _ = Not_implemented.failwith "reduceWithIndexU"
+let reduceWithIndex _ _ = Not_implemented.failwith "reduceWithIndex"
+let joinWithU _ _ = Not_implemented.failwith "joinWithU"
+let joinWith _ _ = Not_implemented.failwith "joinWith"
+let initU _ _ = Not_implemented.failwith "initU"
+let init _ _ = Not_implemented.failwith "init"
+let push _ _ = Not_implemented.failwith "push"
