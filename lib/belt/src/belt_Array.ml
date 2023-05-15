@@ -1,3 +1,5 @@
+type 'a t = 'a array
+
 external length : 'a array -> int = "%array_length"
 external size : 'a array -> int = "%array_length"
 external getUnsafe : 'a array -> int -> 'a = "%array_unsafe_get"
@@ -29,7 +31,9 @@ let setExn arr i v =
 
 let makeUninitialized len = Array.make len Js.undefined
 let makeUninitializedUnsafe len defaultVal = Array.make len defaultVal
-let truncateToLengthUnsafe arr len = Array.sub arr 0 len
+
+(* let truncateToLengthUnsafe arr len = Array.sub arr 0 len *)
+let truncateToLengthUnsafe _arr _len = failwith "TODO"
 
 let copy a =
   let l = length a in
@@ -440,3 +444,21 @@ let unzip a =
     setUnsafe a2 i v2
   done;
   (a1, a2)
+
+let sliceToEnd _ _ = failwith "TODO"
+let flatMapU _ _ = failwith "TODO"
+let flatMap _ _ = failwith "TODO"
+let getByU _ _ = failwith "TODO"
+let getBy _ _ = failwith "TODO"
+let getIndexByU _ _ = failwith "TODO"
+let getIndexBy _ _ = failwith "TODO"
+let getIndexU _ _ = failwith "TODO"
+let keepWithIndexU _ _ = failwith "TODO"
+let keepWithIndex _ _ = failwith "TODO"
+let reduceWithIndexU _ _ = failwith "TODO"
+let reduceWithIndex _ _ = failwith "TODO"
+let joinWithU _ _ = failwith "TODO"
+let joinWith _ _ = failwith "TODO"
+let initU _ _ = failwith "TODO"
+let init _ _ = failwith "TODO"
+let push _ _ = failwith "TODO"
