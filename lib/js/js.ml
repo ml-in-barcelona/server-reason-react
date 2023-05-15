@@ -31,11 +31,11 @@ end
 (* module MapperRt = Js_mapperRt *)
 (* module Internal = struct
      open Fn
-     external opaqueFullApply : 'a -> 'a = "#full_apply"
+     (* external opaqueFullApply : 'a -> 'a = "#full_apply" *)
 
      (* Use opaque instead of [._n] to prevent some optimizations happening *)
-     external run : 'a arity0 -> 'a = "#run"
-     external opaque : 'a -> 'a = "%opaque"
+     (* external run : 'a arity0 -> 'a = "#run" *)
+     (* external opaque : 'a -> 'a = "%opaque" *)
 
    end *)
 (**/**)
@@ -515,7 +515,8 @@ module Array = struct
 
   (* Iteration functions *)
   (* commented out until bs has a plan for iterators
-     external entries : (int * 'a) array_iter = "" [@@bs.send.pipe: 'a t as 'this] (* ES2015 *)
+     (* external entries : (int * 'a) array_iter = "" [@@bs.send.pipe: 'a t as 'this] (* ES2015 *) *)
+     let entries _ _ = failwith "TODO"
   *)
 
   (* external every : (('a -> bool)[@bs.uncurry]) -> bool = "every" [@@bs.send.pipe: 'a t as 'this] *)
@@ -555,7 +556,8 @@ module Array = struct
   let forEachi _ _ = failwith "TODO"
 
   (* commented out until bs has a plan for iterators
-     external keys : int array_iter = "" [@@bs.send.pipe: 'a t as 'this] (* ES2015 *)
+     (* external keys : int array_iter = "" [@@bs.send.pipe: 'a t as 'this] (* ES2015 *) *)
+     let keys _ _ = failwith "TODO"
   *)
 
   (* external map : (('a -> 'b)[@bs.uncurry]) -> 'b t = "map" [@@bs.send.pipe: 'a t as 'this] *)
@@ -583,7 +585,8 @@ module Array = struct
   let somei _ _ = failwith "TODO"
 
   (* commented out until bs has a plan for iterators
-     external values : 'a array_iter = "" [@@bs.send.pipe: 'a t as 'this] (* ES2015 *)
+     (* external values : 'a array_iter = "" [@@bs.send.pipe: 'a t as 'this] (* ES2015 *) *)
+     let values _ _ = failwith "TODO"
   *)
   (* external unsafe_get : 'a array -> int -> 'a = "%array_unsafe_get" *)
   let unsafe_get _ _ = failwith "TODO"
@@ -592,16 +595,1492 @@ module Array = struct
   let unsafe_set _ _ = failwith "TODO"
 end
 
+module Re = struct
+  type t
+  (** Provide bindings to Js regex expression *)
+end
+
 module String = struct
   (** Provide bindings to JS string *)
+
+  (** JavaScript String API *)
+
+  type t = string
+
+  (* external make : 'a -> t = "String" [@@bs.val] *)
+
+  (** [make value] converts the given value to a string
+
+@example {[
+  make 3.5 = "3.5";;
+  make [|1;2;3|]) = "1,2,3";;
+]}
+*)
+  let make _ _ = failwith "TODO"
+
+  (* external fromCharCode : int -> t = "String.fromCharCode" [@@bs.val] *)
+
+  (** [fromCharCode n]
+  creates a string containing the character corresponding to that number; {i n} ranges from 0 to 65535. If out of range, the lower 16 bits of the value are used. Thus, [fromCharCode 0x1F63A] gives the same result as [fromCharCode 0xF63A].
+
+@example {[
+  fromCharCode 65 = "A";;
+  fromCharCode 0x3c8 = {js|ψ|js};;
+  fromCharCode 0xd55c = {js|한|js};;
+  fromCharCode -64568 = {js|ψ|js};;
+]}
+*)
+  let fromCharCode _ _ = failwith "TODO"
+
+  (* external fromCharCodeMany : int array -> t = "String.fromCharCode" [@@bs.val] [@@bs.splice] *)
+
+  (** [fromCharCodeMany \[|n1;n2;n3|\]] creates a string from the characters corresponding to the given numbers, using the same rules as [fromCharCode].
+
+@example {[
+  fromCharCodeMany([|0xd55c, 0xae00, 33|]) = {js|한글!|js};;
+]}
+*)
+  let fromCharCodeMany _ _ = failwith "TODO"
+
+  (* external fromCodePoint : int -> t = "String.fromCodePoint" [@@bs.val] *)
+
+  (** [fromCodePoint n]
+  creates a string containing the character corresponding to that numeric code point. If the number is not a valid code point, {b raises} [RangeError]. Thus, [fromCodePoint 0x1F63A] will produce a correct value, unlike [fromCharCode 0x1F63A], and [fromCodePoint -5] will raise a [RangeError].
+
+@example {[
+  fromCodePoint 65 = "A";;
+  fromCodePoint 0x3c8 = {js|ψ|js};;
+  fromCodePoint 0xd55c = {js|한|js};;
+  fromCodePoint 0x1f63a = {js|😺|js};;
+]}
+
+*)
+  let fromCodePoint _ _ = failwith "TODO"
+  (** ES2015 *)
+
+  (* external fromCodePointMany : int array -> t = "String.fromCodePoint" [@@bs.val] [@@bs.splice] *)
+
+  (** [fromCharCodeMany \[|n1;n2;n3|\]] creates a string from the characters corresponding to the given code point numbers, using the same rules as [fromCodePoint].
+
+@example {[
+  fromCodePointMany([|0xd55c; 0xae00; 0x1f63a|]) = {js|한글😺|js}
+]}
+*)
+  let fromCodePointMany _ _ = failwith "TODO"
+  (** ES2015 *)
+
+  (* String.raw: ES2015, meant to be used with template strings, not directly *)
+
+  (* external length : t -> int = "length" [@@bs.get] *)
+
+  (** [length s] returns the length of the given string.
+
+@example {[
+  length "abcd" = 4;;
+]}
+
+*)
+  let length _ _ = failwith "TODO"
+
+  (* external get : t -> int -> t = "" [@@bs.get_index] *)
+
+  (** [get s n] returns as a string the character at the given index number. If [n] is out of range, this function returns [undefined], so at some point this function may be modified to return [t option].
+
+@example {[
+  get "Reason" 0 = "R";;
+  get "Reason" 4 = "o";;
+  get {js|Rẽasöń|js} 5 = {js|ń|js};;
+]}
+*)
+  let get _ _ = failwith "TODO"
+
+  (* external charAt : int -> t = "charAt" [@@bs.send.pipe: t] *)
+
+  (** [charAt n s] gets the character at index [n] within string [s]. If [n] is negative or greater than the length of [s], returns the empty string. If the string contains characters outside the range [\u0000-\uffff], it will return the first 16-bit value at that position in the string.
+
+@example {[
+  charAt 0, "Reason" = "R"
+  charAt( 12, "Reason") = "";
+  charAt( 5, {js|Rẽasöń|js} = {js|ń|js}
+]}
+*)
+  let charAt _ _ = failwith "TODO"
+
+  (* external charCodeAt : int -> float = "charCodeAt" [@@bs.send.pipe: t] *)
+
+  (** [charCodeAt n s] returns the character code at position [n] in string [s]; the result is in the range 0-65535, unlke [codePointAt], so it will not work correctly for characters with code points greater than or equal to [0x10000].
+The return type is [float] because this function returns [NaN] if [n] is less than zero or greater than the length of the string.
+
+@example {[
+  charCodeAt 0 {js|😺|js} returns 0xd83d
+  codePointAt 0 {js|😺|js} returns Some 0x1f63a
+]}
+
+*)
+  let charCodeAt _ _ = failwith "TODO"
+
+  (* external codePointAt : int -> int option = "codePointAt" [@@bs.send.pipe: t] *)
+
+  (** [codePointAt n s] returns the code point at position [n] within string [s] as a [Some] value. The return value handles code points greater than or equal to [0x10000]. If there is no code point at the given position, the function returns [None].
+
+@example {[
+  codePointAt 1 {js|¿😺?|js} = Some 0x1f63a
+  codePointAt 5 "abc" = None
+]}
+*)
+  let codePointAt _ _ = failwith "TODO"
+  (** ES2015 *)
+
+  (* external concat : t -> t = "concat" [@@bs.send.pipe: t] *)
+
+  (** [concat append original] returns a new string with [append] added after [original].
+
+@example {[
+  concat "bell" "cow" = "cowbell";;
+]}
+*)
+  let concat _ _ = failwith "TODO"
+
+  (* external concatMany : t array -> t = "concat" [@@bs.send.pipe: t] [@@bs.splice] *)
+
+  (** [concat arr original] returns a new string consisting of each item of an array of strings added to the [original] string.
+
+@example {[
+  concatMany [|"2nd"; "3rd"; "4th"|] "1st" = "1st2nd3rd4th";;
+]}
+*)
+  let concatMany _ _ = failwith "TODO"
+
+  (* external endsWith : t -> bool = "endsWith" [@@bs.send.pipe: t] *)
+
+  (** ES2015:
+    [endsWith substr str] returns [true] if the [str] ends with [substr], [false] otherwise.
+
+@example {[
+  endsWith "Script" "ReScript" = true;;
+  endsWith "Script" "ReShoes" = false;;
+]}
+*)
+  let endsWith _ _ = failwith "TODO"
+
+  (* external endsWithFrom : t -> int -> bool = "endsWith" [@@bs.send.pipe: t] *)
+
+  (** [endsWithFrom ending len str] returns [true] if the first [len] characters of [str] end with [ending], [false] otherwise. If [n] is greater than or equal to the length of [str], then it works like [endsWith]. (Honestly, this should have been named [endsWithAt], but oh well.)
+
+@example {[
+  endsWithFrom "cd" 4 "abcd" = true;;
+  endsWithFrom "cd" 3 "abcde" = false;;
+  endsWithFrom "cde" 99 "abcde" = true;;
+  endsWithFrom "ple" 7 "example.dat" = true;;
+]}
+*)
+  let endsWithFrom _ _ = failwith "TODO"
+  (** ES2015 *)
+
+  (* external includes : t -> bool = "includes" [@@bs.send.pipe: t] *)
+
+  (**
+  [includes searchValue s] returns [true] if [searchValue] is found anywhere within [s], [false] otherwise.
+
+@example {[
+  includes "gram" "programmer" = true;;
+  includes "er" "programmer" = true;;
+  includes "pro" "programmer" = true;;
+  includes "xyz" "programmer" = false;;
+]}
+*)
+  let includes _ _ = failwith "TODO"
+  (** ES2015 *)
+
+  (* external includesFrom : t -> int -> bool = "includes" [@@bs.send.pipe: t] *)
+
+  (**
+  [includes searchValue start s] returns [true] if [searchValue] is found anywhere within [s] starting at character number [start] (where 0 is the first character), [false] otherwise.
+
+@example {[
+  includesFrom "gram" 1 "programmer" = true;;
+  includesFrom "gram" 4 "programmer" = false;;
+  includesFrom {js|한|js} 1 {js|대한민국|js} = true;;
+]}
+*)
+  let includesFrom _ _ = failwith "TODO"
+  (** ES2015 *)
+
+  (* external indexOf : t -> int = "indexOf" [@@bs.send.pipe: t] *)
+
+  (**
+  [indexOf searchValue s] returns the position at which [searchValue] was first found within [s], or [-1] if [searchValue] is not in [s].
+
+@example {[
+  indexOf "ok" "bookseller" = 2;;
+  indexOf "sell" "bookseller" = 4;;
+  indexOf "ee" "beekeeper" = 1;;
+  indexOf "xyz" "bookseller" = -1;;
+]}
+*)
+  let indexOf _ _ = failwith "TODO"
+
+  (* external indexOfFrom : t -> int -> int = "indexOf" [@@bs.send.pipe: t] *)
+
+  (**
+  [indexOfFrom searchValue start s] returns the position at which [searchValue] was found within [s] starting at character position [start], or [-1] if [searchValue] is not found in that portion of [s]. The return value is relative to the beginning of the string, no matter where the search started from.
+
+@example {[
+  indexOfFrom "ok" 1 "bookseller" = 2;;
+  indexOfFrom "sell" 2 "bookseller" = 4;;
+  indexOfFrom "sell" 5 "bookseller" = -1;;
+  indexOf "xyz" "bookseller" = -1;;
+]}
+*)
+  let indexOfFrom _ _ = failwith "TODO"
+
+  (* external lastIndexOf : t -> int = "lastIndexOf" [@@bs.send.pipe: t] *)
+
+  (**
+  [lastIndexOf searchValue s] returns the position of the {i last} occurrence of [searchValue] within [s], searching backwards from the end of the string. Returns [-1] if [searchValue] is not in [s]. The return value is always relative to the beginning of the string.
+
+@example {[
+  lastIndexOf "ok" "bookseller" = 2;;
+  lastIndexOf "ee" "beekeeper" = 4;;
+  lastIndexOf "xyz" "abcdefg" = -1;;
+]}
+*)
+  let lastIndexOf _ _ = failwith "TODO"
+
+  (* external lastIndexOfFrom : t -> int -> int = "lastIndexOf" [@@bs.send.pipe: t] *)
+
+  (**
+  [lastIndexOfFrom searchValue start s] returns the position of the {i last} occurrence of [searchValue] within [s], searching backwards from the given [start] position. Returns [-1] if [searchValue] is not in [s]. The return value is always relative to the beginning of the string.
+
+@example {[
+  lastIndexOfFrom "ok" 6 "bookseller" = 2;;
+  lastIndexOfFrom "ee" 8 "beekeeper" = 4;;
+  lastIndexOfFrom "ee" 3 "beekeeper" = 1;;
+  lastIndexOfFrom "xyz" 4 "abcdefg" = -1;;
+]}
+*)
+  let lastIndexOfFrom _ _ = failwith "TODO"
+
+  (* extended by ECMA-402 *)
+
+  (* external localeCompare : t -> float = "localeCompare" [@@bs.send.pipe: t] *)
+
+  (**
+  [localeCompare comparison reference] returns
+
+{ul
+  {- a negative value if [reference] comes before [comparison] in sort order}
+  {- zero if [reference] and [comparison] have the same sort order}
+  {- a positive value if [reference] comes after [comparison] in sort order}}
+
+@example {[
+  (localeCompare "ant" "zebra") > 0.0;;
+  (localeCompare "zebra" "ant") < 0.0;;
+  (localeCompare "cat" "cat") = 0.0;;
+  (localeCompare "cat" "CAT") > 0.0;;
+]}
+*)
+  let localeCompare _ _ = failwith "TODO"
+
+  (* external match_ : Re.t -> t option array option = "match" [@@bs.send.pipe: t] [@@bs.return { null_to_opt }] *)
+
+  (**
+  [match regexp str] matches a string against the given [regexp]. If there is no match, it returns [None].
+  For regular expressions without the [g] modifier, if there is a match, the return value is [Some array] where the array contains:
+
+  {ul
+    {- The entire matched string}
+    {- Any capture groups if the [regexp] had parentheses}
+  }
+
+  For regular expressions with the [g] modifier, a matched expression returns [Some array] with all the matched substrings and no capture groups.
+
+@example {[
+  match [%re "/b[aeiou]t/"] "The better bats" = Some [|"bet"|]
+  match [%re "/b[aeiou]t/g"] "The better bats" = Some [|"bet";"bat"|]
+  match [%re "/(\\d+)-(\\d+)-(\\d+)/"] "Today is 2018-04-05." =
+    Some [|"2018-04-05"; "2018"; "04"; "05"|]
+  match [%re "/b[aeiou]g/"] "The large container." = None
+]}
+
+*)
+  let match_ _ _ = failwith "TODO"
+
+  (* external normalize : t = "normalize" [@@bs.send.pipe: t] *)
+
+  (** [normalize str] returns the normalized Unicode string using Normalization Form Canonical (NFC) Composition.
+
+Consider the character [ã], which can be represented as the single codepoint [\u00e3] or the combination of a lower case letter A [\u0061] and a combining tilde [\u0303]. Normalization ensures that both can be stored in an equivalent binary representation.
+
+@see <https://www.unicode.org/reports/tr15/tr15-45.html> Unicode technical report for details
+*)
+  let normalize _ _ = failwith "TODO"
+  (** ES2015 *)
+
+  (* external normalizeByForm : t -> t = "normalize" [@@bs.send.pipe: t] *)
+
+  (**
+  [normalize str form] (ES2015) returns the normalized Unicode string using the specified form of normalization, which may be one of:
+
+  {ul
+    {- "NFC" — Normalization Form Canonical Composition.}
+    {- "NFD" — Normalization Form Canonical Decomposition.}
+    {- "NFKC" — Normalization Form Compatibility Composition.}
+    {- "NFKD" — Normalization Form Compatibility Decomposition.}
+  }
+
+  @see <https://www.unicode.org/reports/tr15/tr15-45.html> Unicode technical report for details
+*)
+  let normalizeByForm _ _ = failwith "TODO"
+
+  (* external repeat : int -> t = "repeat" [@@bs.send.pipe: t] *)
+
+  (**
+  [repeat n s] returns a string that consists of [n] repetitions of [s]. Raises [RangeError] if [n] is negative.
+
+@example {[
+  repeat 3 "ha" = "hahaha"
+  repeat 0 "empty" = ""
+]}
+*)
+  let repeat _ _ = failwith "TODO"
+  (** ES2015 *)
+
+  (* external replace : t -> t -> t = "replace" [@@bs.send.pipe: t] *)
+
+  (** [replace substr newSubstr string] returns a new string which is
+identical to [string] except with the first matching instance of [substr]
+replaced by [newSubstr].
+
+[substr] is treated as a verbatim string to match, not a regular
+expression.
+
+@example {[
+  replace "old" "new" "old string" = "new string"
+  replace "the" "this" "the cat and the dog" = "this cat and the dog"
+]}
+*)
+  let replace _ _ = failwith "TODO"
+
+  (* external replaceByRe : Re.t -> t -> t = "replace" [@@bs.send.pipe: t] *)
+
+  (** [replaceByRe regex replacement string] returns a new string where occurrences matching [regex]
+have been replaced by [replacement].
+
+@example {[
+  replaceByRe [%re "/[aeiou]/g"] "x" "vowels be gone" = "vxwxls bx gxnx"
+  replaceByRe [%re "/(\\w+) (\\w+)/"] "$2, $1" "Juan Fulano" = "Fulano, Juan"
+]}
+*)
+  let replaceByRe _ _ = failwith "TODO"
+
+  (* external unsafeReplaceBy0 : Re.t -> ((t -> int -> t -> t)[@bs.uncurry]) -> t *)
+
+  (** returns a new string with some or all matches of a pattern with no capturing
+parentheses replaced by the value returned from the given function.
+The function receives as its parameters the matched string, the offset at which the
+match begins, and the whole string being matched
+
+@example {[
+let str = "beautiful vowels"
+let re = [%re "/[aeiou]/g"]
+let matchFn matchPart offset wholeString =
+  Js.String.toUpperCase matchPart
+
+let replaced = Js.String.unsafeReplaceBy0 re matchFn str
+
+let () = Js.log replaced (* prints "bEAUtifUl vOwEls" *)
+]}
+
+@see <https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/replace#Specifying_a_function_as_a_parameter> MDN
+*)
+  let unsafeReplaceBy0 _ _ = failwith "TODO" = "replace" [@@bs.send.pipe: t]
+
+  (* external unsafeReplaceBy1 :
+     Re.t -> ((t -> t -> int -> t -> t)[@bs.uncurry]) -> t = "replace" [@@bs.send.pipe: t] *)
+
+  (** returns a new string with some or all matches of a pattern with one set of capturing
+parentheses replaced by the value returned from the given function.
+The function receives as its parameters the matched string, the captured string,
+the offset at which the match begins, and the whole string being matched.
+
+@example {[
+let str = "increment 23"
+let re = [%re "/increment (\\d+)/g"]
+let matchFn matchPart p1 offset wholeString =
+  wholeString ^ " is " ^ (string_of_int ((int_of_string p1) + 1))
+
+let replaced = Js.String.unsafeReplaceBy1 re matchFn str
+
+let () = Js.log replaced (* prints "increment 23 is 24" *)
+]}
+
+@see <https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/replace#Specifying_a_function_as_a_parameter> MDN
+*)
+  let unsafeReplaceBy1 _ _ = failwith "TODO"
+
+  (* external unsafeReplaceBy2 : Re.t -> ((t -> t -> t -> int -> t -> t)[@bs.uncurry]) -> t = "replace" [@@bs.send.pipe: t] *)
+
+  (** returns a new string with some or all matches of a pattern with two sets of capturing
+parentheses replaced by the value returned from the given function.
+The function receives as its parameters the matched string, the captured strings,
+the offset at which the match begins, and the whole string being matched.
+
+@example {[
+let str = "7 times 6"
+let re = [%re "/(\\d+) times (\\d+)/"]
+let matchFn matchPart p1 p2 offset wholeString =
+  string_of_int ((int_of_string p1) * (int_of_string p2))
+
+let replaced = Js.String.unsafeReplaceBy2 re matchFn str
+
+let () = Js.log replaced (* prints "42" *)
+]}
+
+@see <https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/replace#Specifying_a_function_as_a_parameter> MDN
+*)
+  let unsafeReplaceBy2 _ _ = failwith "TODO"
+
+  (* external unsafeReplaceBy3 :
+     Re.t -> ((t -> t -> t -> t -> int -> t -> t)[@bs.uncurry]) -> t = "replace" [@@bs.send.pipe: t] *)
+
+  (** returns a new string with some or all matches of a pattern with three sets of capturing
+parentheses replaced by the value returned from the given function.
+The function receives as its parameters the matched string, the captured strings,
+the offset at which the match begins, and the whole string being matched.
+
+@see <https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/replace#Specifying_a_function_as_a_parameter> MDN
+*)
+  let unsafeReplaceBy3 _ _ = failwith "TODO"
+
+  (* external search : Re.t -> int = "search" [@@bs.send.pipe: t] *)
+
+  (** [search regexp str] returns the starting position of the first match of [regexp] in the given [str], or -1 if there is no match.
+
+@example {[
+search [%re "/\\d+/"] "testing 1 2 3" = 8;;
+search [%re "/\\d+/"] "no numbers" = -1;;
+]}
+*)
+  let search _ _ = failwith "TODO"
+
+  (* external slice : from:int -> to_:int -> t = "slice" [@@bs.send.pipe: t] *)
+
+  (** [slice from:n1 to_:n2 str] returns the substring of [str] starting at character [n1] up to but not including [n2]
+
+If either [n1] or [n2] is negative, then it is evaluated as [length str - n1] (or [length str - n2].
+
+If [n2] is greater than the length of [str], then it is treated as [length str].
+
+If [n1] is greater than [n2], [slice] returns the empty string.
+
+@example {[
+  slice ~from:2 ~to_:5 "abcdefg" == "cde";;
+  slice ~from:2 ~to_:9 "abcdefg" == "cdefg";;
+  slice ~from:(-4) ~to_:(-2) "abcdefg" == "de";;
+  slice ~from:5 ~to_:1 "abcdefg" == "";;
+]}
+*)
+  let slice _ _ = failwith "TODO"
+
+  (* external sliceToEnd : from:int -> t = "slice" [@@bs.send.pipe: t] *)
+
+  (** [sliceToEnd from: n str] returns the substring of [str] starting at character [n] to the end of the string
+
+If [n] is negative, then it is evaluated as [length str - n].
+
+If [n] is greater than the length of [str], then [sliceToEnd] returns the empty string.
+
+@example {[
+  sliceToEnd ~from: 4 "abcdefg" == "efg";;
+  sliceToEnd ~from: (-2) "abcdefg" == "fg";;
+  sliceToEnd ~from: 7 "abcdefg" == "";;
+]}
+*)
+  let sliceToEnd _ _ = failwith "TODO"
+
+  (* external split : t -> t array = "split" [@@bs.send.pipe: t] *)
+
+  (**
+  [split delimiter str] splits the given [str] at every occurrence of [delimiter] and returns an
+  array of the resulting substrings.
+
+@example {[
+  split "-" "2018-01-02" = [|"2018"; "01"; "02"|];;
+  split "," "a,b,,c" = [|"a"; "b"; ""; "c"|];;
+  split "::" "good::bad as great::awful" = [|"good"; "bad as great"; "awful"|];;
+  split ";" "has-no-delimiter" = [|"has-no-delimiter"|];;
+]};
+*)
+  let split _ _ = failwith "TODO"
+
+  (* external splitAtMost : t -> limit:int -> t array = "split" [@@bs.send.pipe: t] *)
+
+  (**
+  [splitAtMost delimiter ~limit: n str] splits the given [str] at every occurrence of [delimiter] and returns an array of the first [n] resulting substrings. If [n] is negative or greater than the number of substrings, the array will contain all the substrings.
+
+@example {[
+  splitAtMost "/" ~limit: 3 "ant/bee/cat/dog/elk" = [|"ant"; "bee"; "cat"|];;
+  splitAtMost "/" ~limit: 0 "ant/bee/cat/dog/elk" = [| |];;
+  splitAtMost "/" ~limit: 9 "ant/bee/cat/dog/elk" = [|"ant"; "bee"; "cat"; "dog"; "elk"|];;
+]}
+*)
+  let splitAtMost _ _ = failwith "TODO"
+
+  (* external splitLimited : t -> int -> t array = "split" [@@bs.send.pipe: t] [@@deprecated "Please use splitAtMost"] *)
+
+  (**
+  Deprecated - Please use [splitAtMost]
+*)
+  let splitLimited _ _ = failwith "TODO"
+
+  (* external splitByRe : Re.t -> t option array = "split" [@@bs.send.pipe: t] *)
+
+  (**
+  [splitByRe regex str] splits the given [str] at every occurrence of [regex] and returns an
+  array of the resulting substrings.
+
+@example {[
+  splitByRe [%re "/\\s*[,;]\\s*/"] "art; bed , cog ;dad" = [|Some "art"; Some "bed"; Some "cog"; Some "dad"|];;
+  splitByRe [%re "/[,;]/"] "has:no:match" = [|Some "has:no:match"|];;
+  splitByRe [%re "/(#)(:)?/"] "a#b#:c" = [|Some "a"; Some "#"; None; Some "b"; Some "#"; Some ":"; Some "c"|];;
+]};
+*)
+  let splitByRe _ _ = failwith "TODO"
+
+  (* external splitByReAtMost : Re.t -> limit:int -> t option array = "split" [@@bs.send.pipe: t] *)
+
+  (**
+  [splitByReAtMost regex ~limit: n str] splits the given [str] at every occurrence of [regex] and returns an
+  array of the first [n] resulting substrings. If [n] is negative or greater than the number of substrings, the array will contain all the substrings.
+
+@example {[
+  splitByReAtMost [%re "/\\s*:\\s*/"] ~limit: 3 "one: two: three: four" = [|Some "one"; Some "two"; Some "three"|];;
+  splitByReAtMost [%re "/\\s*:\\s*/"] ~limit: 0 "one: two: three: four" = [| |];;
+  splitByReAtMost [%re "/\\s*:\\s*/"] ~limit: 8 "one: two: three: four" = [|Some "one"; Some "two"; Some "three"; Some "four"|];;
+  splitByReAtMost [%re "/(#)(:)?/"] ~limit:3 "a#b#:c" = [|Some "a"; Some "#"; None|];;
+]};
+*)
+  let splitByReAtMost _ _ = failwith "TODO"
+
+  (* external splitRegexpLimited : Re.t -> int -> t array = "split" [@@bs.send.pipe: t] [@@deprecated "Please use  splitByReAtMost"] *)
+
+  (** Deprecated - Please use [splitByReAtMost] *)
+  let splitRegexpLimited _ _ = failwith "TODO"
+
+  (* external startsWith : t -> bool = "startsWith" [@@bs.send.pipe: t] *)
+
+  (** ES2015:
+    [startsWith substr str] returns [true] if the [str] starts with [substr], [false] otherwise.
+
+@example {[
+  startsWith "Re" "ReScript" = true;;
+  startsWith "" "ReScript" = true;;
+  startsWith "Re" "JavaScript" = false;;
+]}
+*)
+  let startsWith _ _ = failwith "TODO"
+
+  (* external startsWithFrom : t -> int -> bool = "startsWith" [@@bs.send.pipe: t] *)
+
+  (** ES2015:
+    [startsWithFrom substr n str] returns [true] if the [str] starts with [substr] starting at position [n], [false] otherwise. If [n] is negative, the search starts at the beginning of [str].
+
+@example {[
+  startsWithFrom "cri" 3 "ReScript" = true;;
+  startsWithFrom "" 3 "ReScript" = true;;
+  startsWithFrom "Re" 2 "JavaScript" = false;;
+]}
+*)
+  let startsWithFrom _ _ = failwith "TODO"
+
+  (* external substr : from:int -> t = "substr" [@@bs.send.pipe: t] *)
+
+  (**
+  [substr ~from: n str] returns the substring of [str] from position [n] to the end of the string.
+
+  If [n] is less than zero, the starting position is the length of [str] - [n].
+
+  If [n] is greater than or equal to the length of [str], returns the empty string.
+
+@example {[
+  substr ~from: 3 "abcdefghij" = "defghij"
+  substr ~from: (-3) "abcdefghij" = "hij"
+  substr ~from: 12 "abcdefghij" = ""
+]}
+*)
+  let substr _ _ = failwith "TODO"
+
+  (* external substrAtMost : from:int -> length:int -> t = "substr" [@@bs.send.pipe: t] *)
+
+  (**
+  [substrAtMost ~from: pos ~length: n str] returns the substring of [str] of length [n] starting at position [pos].
+
+  If [pos] is less than zero, the starting position is the length of [str] - [pos].
+
+  If [pos] is greater than or equal to the length of [str], returns the empty string.
+
+  If [n] is less than or equal to zero, returns the empty string.
+
+@example {[
+  substrAtMost ~from: 3 ~length: 4 "abcdefghij" = "defghij"
+  substrAtMost ~from: (-3) ~length: 4 "abcdefghij" = "hij"
+  substrAtMost ~from: 12 ~ length: 2 "abcdefghij" = ""
+]}
+*)
+  let substrAtMost _ _ = failwith "TODO"
+
+  (* external substring : from:int -> to_:int -> t = "substring" [@@bs.send.pipe: t] *)
+
+  (**
+  [substring ~from: start ~to_: finish str] returns characters [start] up to but not including [finish] from [str].
+
+  If [start] is less than zero, it is treated as zero.
+
+  If [finish] is zero or negative, the empty string is returned.
+
+  If [start] is greater than [finish], the start and finish points are swapped.
+
+@example {[
+  substring ~from: 3 ~to_: 6 "playground" = "ygr";;
+  substring ~from: 6 ~to_: 3 "playground" = "ygr";;
+  substring ~from: 4 ~to_: 12 "playground" = "ground";;
+]}
+*)
+  let substring _ _ = failwith "TODO"
+
+  (* external substringToEnd : from:int -> t = "substring" [@@bs.send.pipe: t] *)
+
+  (**
+  [substringToEnd ~from: start str] returns the substring of [str] from position [start] to the end.
+
+  If [start] is less than or equal to zero, the entire string is returned.
+
+  If [start] is greater than or equal to the length of [str], the empty string is returned.
+
+@example {[
+  substringToEnd ~from: 4 "playground" = "ground";;
+  substringToEnd ~from: (-3) "playground" = "playground";;
+  substringToEnd ~from: 12 "playground" = "";
+]}
+*)
+  let substringToEnd _ _ = failwith "TODO"
+
+  (* external toLowerCase : t = "toLowerCase" [@@bs.send.pipe: t] *)
+
+  (**
+  [toLowerCase str] converts [str] to lower case using the locale-insensitive case mappings in the Unicode Character Database. Notice that the conversion can give different results depending upon context, for example with the Greek letter sigma, which has two different lower case forms when it is the last character in a string or not.
+
+@example {[
+  toLowerCase "ABC" = "abc";;
+  toLowerCase {js|ΣΠ|js} = {js|σπ|js};;
+  toLowerCase {js|ΠΣ|js} = {js|πς|js};;
+]}
+*)
+  let toLowerCase _ _ = failwith "TODO"
+
+  (* external toLocaleLowerCase : t = "toLocaleLowerCase" [@@bs.send.pipe: t] *)
+
+  (**
+  [toLocaleLowerCase str] converts [str] to lower case using the current locale
+*)
+  let toLocaleLowerCase _ _ = failwith "TODO"
+
+  (* external toUpperCase : t = "toUpperCase" [@@bs.send.pipe: t] *)
+
+  (**
+  [toUpperCase str] converts [str] to upper case using the locale-insensitive case mappings in the Unicode Character Database. Notice that the conversion can expand the number of letters in the result; for example the German [ß] capitalizes to two [S]es in a row.
+
+@example {[
+  toUpperCase "abc" = "ABC";;
+  toUpperCase {js|Straße|js} = {js|STRASSE|js};;
+  toLowerCase {js|πς|js} = {js|ΠΣ|js};;
+]}
+*)
+  let toUpperCase _ _ = failwith "TODO"
+
+  (* external toLocaleUpperCase : t = "toLocaleUpperCase" [@@bs.send.pipe: t] *)
+
+  (**
+  [toLocaleUpperCase str] converts [str] to upper case using the current locale
+*)
+  let toLocaleUpperCase _ _ = failwith "TODO"
+
+  (* external trim : t = "trim" [@@bs.send.pipe: t] *)
+
+  (**
+  [trim str] returns a string that is [str] with whitespace stripped from both ends. Internal whitespace is not removed.
+
+@example {[
+  trim "   abc def   " = "abc def"
+  trim "\n\r\t abc def \n\n\t\r " = "abc def"
+]}
+*)
+  let trim _ _ = failwith "TODO"
+
+  (* HTML wrappers *)
+
+  (* external anchor : t -> t = "anchor" [@@bs.send.pipe: t] *)
+
+  (**
+  [anchor anchorName anchorText] creates a string with an HTML [<a>] element with [name] attribute of [anchorName] and [anchorText] as its content.
+
+@example {[
+  anchor "page1" "Page One" = "<a name=\"page1\">Page One</a>"
+]}
+*)
+  let anchor _ _ = failwith "TODO"
+  (** ES2015 *)
+
+  (* external link : t -> t = "link" [@@bs.send.pipe: t] *)
+
+  (**
+  [link urlText linkText] creates a string withan HTML [<a>] element with [href] attribute of [urlText] and [linkText] as its content.
+
+@example {[
+  link "page2.html" "Go to page two" = "<a href=\"page2.html\">Go to page two</a>"
+]}
+*)
+  let link _ _ = failwith "TODO"
+  (** ES2015 *)
+
+  (* external castToArrayLike : t -> t Array2.array_like = "%identity" *)
+  let castToArrayLike _ _ = failwith "TODO"
+  (* FIXME: we should not encourage people to use [%identity], better
+      to provide something using [@@bs.val] so that we can track such
+      casting
+  *)
 end
 
 module String2 = struct
   (** Provide bindings to JS string *)
-end
 
-module Re = struct
-  (** Provide bindings to Js regex expression *)
+  (** JavaScript String API *)
+
+  type t = string
+
+  (* external make : 'a -> t = "String" [@@bs.val] *)
+
+  (** [make value] converts the given value to a string
+
+@example {[
+  make 3.5 = "3.5";;
+  make [|1;2;3|]) = "1,2,3";;
+]}
+*)
+  let make _ _ = failwith "TODO"
+
+  (* external fromCharCode : int -> t = "String.fromCharCode" [@@bs.val] *)
+
+  (** [fromCharCode n]
+  creates a string containing the character corresponding to that number; {i n} ranges from 0 to 65535. If out of range, the lower 16 bits of the value are used. Thus, [fromCharCode 0x1F63A] gives the same result as [fromCharCode 0xF63A].
+
+@example {[
+  fromCharCode 65 = "A";;
+  fromCharCode 0x3c8 = {js|ψ|js};;
+  fromCharCode 0xd55c = {js|한|js};;
+  fromCharCode -64568 = {js|ψ|js};;
+]}
+*)
+  let fromCharCode _ _ = failwith "TODO"
+
+  (* external fromCharCodeMany : int array -> t = "String.fromCharCode" [@@bs.val] [@@bs.
+     splice] *)
+
+  (** [fromCharCodeMany \[|n1;n2;n3|\]] creates a string from the characters corresponding to the given numbers, using the same rules as [fromCharCode].
+
+@example {[
+  fromCharCodeMany([|0xd55c, 0xae00, 33|]) = {js|한글!|js};;
+]}
+*)
+  let fromCharCodeMany _ _ = failwith "TODO"
+
+  (* external fromCodePoint : int -> t = "String.fromCodePoint" [@@bs.val] (** ES2015 *) *)
+
+  (** [fromCodePoint n]
+  creates a string containing the character corresponding to that numeric code point. If the number is not a valid code point, {b raises} [RangeError]. Thus, [fromCodePoint 0x1F63A] will produce a correct value, unlike [fromCharCode 0x1F63A], and [fromCodePoint -5] will raise a [RangeError].
+
+@example {[
+  fromCodePoint 65 = "A";;
+  fromCodePoint 0x3c8 = {js|ψ|js};;
+  fromCodePoint 0xd55c = {js|한|js};;
+  fromCodePoint 0x1f63a = {js|😺|js};;
+]}
+
+*)
+  let fromCodePoint _ _ = failwith "TODO"
+
+  (* external fromCodePointMany : int array -> t = "String.fromCodePoint" [@@bs.val] [@@bs.
+     splice] *)
+
+  (** [fromCharCodeMany \[|n1;n2;n3|\]] creates a string from the characters corresponding to the given code point numbers, using the same rules as [fromCodePoint].
+
+@example {[
+  fromCodePointMany([|0xd55c; 0xae00; 0x1f63a|]) = {js|한글😺|js}
+]}
+*)
+  let fromCodePointMany _ _ = failwith "TODO"
+  (** ES2015 *)
+
+  (* String.raw: ES2015, meant to be used with template strings, not directly *)
+
+  (* external length : t -> int = "length" [@@bs.get] *)
+
+  (** [length s] returns the length of the given string.
+
+@example {[
+  length "abcd" = 4;;
+]}
+
+*)
+  let length _ _ = failwith "TODO"
+
+  (* external get : t -> int -> t = "" [@@bs.get_index] *)
+
+  (** [get s n] returns as a string the character at the given index number. If [n] is out of range, this function returns [undefined], so at some point this function may be modified to return [t option].
+
+@example {[
+  get "Reason" 0 = "R";;
+  get "Reason" 4 = "o";;
+  get {js|Rẽasöń|js} 5 = {js|ń|js};;
+]}
+*)
+  let get _ _ = failwith "TODO"
+
+  (* external charAt : t -> int -> t = "charAt" [@@bs.send] *)
+
+  (** [charAt n s] gets the character at index [n] within string [s]. If [n] is negative or greater than the length of [s], returns the empty string. If the string contains characters outside the range [\u0000-\uffff], it will return the first 16-bit value at that position in the string.
+
+@example {[
+  charAt "Reason" 0 = "R"
+  charAt "Reason" 12 = "";
+  charAt {js|Rẽasöń|js} 5 = {js|ń|js}
+]}
+*)
+  let charAt _ _ = failwith "TODO"
+
+  (* external charCodeAt : t -> int -> float = "charCodeAt" [@@bs.send] *)
+
+  (** [charCodeAt n s] returns the character code at position [n] in string [s]; the result is in the range 0-65535, unlke [codePointAt], so it will not work correctly for characters with code points greater than or equal to [0x10000].
+The return type is [float] because this function returns [NaN] if [n] is less than zero or greater than the length of the string.
+
+@example {[
+  charCodeAt {js|😺|js} 0 returns 0xd83d
+  codePointAt {js|😺|js} 0 returns Some 0x1f63a
+]}
+
+*)
+  let charCodeAt _ _ = failwith "TODO"
+
+  (* external codePointAt : t -> int -> int option = "codePointAt" [@@bs.send]  (** ES2015 *) *)
+
+  (** [codePointAt n s] returns the code point at position [n] within string [s] as a [Some] value. The return value handles code points greater than or equal to [0x10000]. If there is no code point at the given position, the function returns [None].
+
+@example {[
+  codePointAt {js|¿😺?|js} 1 = Some 0x1f63a
+  codePointAt "abc" 5 = None
+]}
+*)
+  let codePointAt _ _ = failwith "TODO"
+
+  (* external concat : t -> t -> t = "concat" [@@bs.send] *)
+
+  (** [concat append original] returns a new string with [append] added after [original].
+
+@example {[
+  concat "cow" "bell" = "cowbell";;
+]}
+*)
+  let concat _ _ = failwith "TODO"
+
+  (* external concatMany : t -> t array -> t = "concat" [@@bs.send] [@@bs.splice] *)
+
+  (** [concat arr original] returns a new string consisting of each item of an array of strings added to the [original] string.
+
+@example {[
+  concatMany "1st" [|"2nd"; "3rd"; "4th"|] = "1st2nd3rd4th";;
+]}
+*)
+  let concatMany _ _ = failwith "TODO"
+
+  (* external endsWith : t -> t -> bool = "endsWith" [@@bs.send] *)
+
+  (** ES2015:
+    [endsWith substr str] returns [true] if the [str] ends with [substr], [false] otherwise.
+
+@example {[
+  endsWith "ReScript" "Script" = true;;
+  endsWith "ReShoes" "Script" = false;;
+]}
+*)
+  let endsWith _ _ = failwith "TODO"
+
+  (* external endsWithFrom : t -> t -> int -> bool = "endsWith" [@@bs.send] (** ES2015 *) *)
+
+  (** [endsWithFrom ending len str] returns [true] if the first [len] characters of [str] end with [ending], [false] otherwise. If [n] is greater than or equal to the length of [str], then it works like [endsWith]. (Honestly, this should have been named [endsWithAt], but oh well.)
+
+@example {[
+  endsWithFrom "abcd" "cd" 4 = true;;
+  endsWithFrom "abcde" "cd" 3 = false;;
+  endsWithFrom "abcde" "cde" 99 = true;;
+  endsWithFrom "example.dat" "ple" 7 = true;;
+]}
+*)
+  let endsWithFrom _ _ = failwith "TODO"
+
+  (* external includes : t -> t -> bool = "includes" [@@bs.send] (** ES2015 *) *)
+
+  (**
+  [includes searchValue s] returns [true] if [searchValue] is found anywhere within [s], [false] otherwise.
+
+@example {[
+  includes "programmer" "gram" = true;;
+  includes "programmer" "er" = true;;
+  includes "programmer" "pro" = true;;
+  includes "programmer" "xyz" = false;;
+]}
+*)
+  let includes _ _ = failwith "TODO"
+
+  (* external includesFrom : t -> t -> int -> bool = "includes" [@@bs.send] (** ES2015 *) *)
+
+  (**
+  [includes searchValue start s] returns [true] if [searchValue] is found anywhere within [s] starting at character number [start] (where 0 is the first character), [false] otherwise.
+
+@example {[
+  includesFrom "programmer" "gram" 1 = true;;
+  includesFrom "programmer" "gram" 4 = false;;
+  includesFrom {js|대한민국|js} {js|한|js} 1 = true;;
+]}
+*)
+  let includesFrom _ _ = failwith "TODO"
+
+  (* external indexOf : t -> t -> int = "indexOf" [@@bs.send] *)
+
+  (**
+  [indexOf searchValue s] returns the position at which [searchValue] was first found within [s], or [-1] if [searchValue] is not in [s].
+
+@example {[
+  indexOf "bookseller" "ok" = 2;;
+  indexOf "bookseller" "sell" = 4;;
+  indexOf "beekeeper" "ee" = 1;;
+  indexOf "bookseller" "xyz" = -1;;
+]}
+*)
+  let indexOf _ _ = failwith "TODO"
+
+  (* external indexOfFrom : t -> t -> int -> int = "indexOf" [@@bs.send] *)
+
+  (**
+  [indexOfFrom searchValue start s] returns the position at which [searchValue] was found within [s] starting at character position [start], or [-1] if [searchValue] is not found in that portion of [s]. The return value is relative to the beginning of the string, no matter where the search started from.
+
+@example {[
+  indexOfFrom "bookseller" "ok" 1 = 2;;
+  indexOfFrom "bookseller" "sell" 2 = 4;;
+  indexOfFrom "bookseller" "sell" 5 = -1;;
+  indexOf "bookseller" "xyz" = -1;;
+]}
+*)
+  let indexOfFrom _ _ = failwith "TODO"
+
+  (* external lastIndexOf : t -> t -> int = "lastIndexOf" [@@bs.send] *)
+
+  (**
+  [lastIndexOf searchValue s] returns the position of the {i last} occurrence of [searchValue] within [s], searching backwards from the end of the string. Returns [-1] if [searchValue] is not in [s]. The return value is always relative to the beginning of the string.
+
+@example {[
+  lastIndexOf "bookseller" "ok" = 2;;
+  lastIndexOf "beekeeper" "ee" = 4;;
+  lastIndexOf "abcdefg" "xyz" = -1;;
+]}
+*)
+  let lastIndexOf _ _ = failwith "TODO"
+
+  (* external lastIndexOfFrom : t -> t -> int -> int = "lastIndexOf" [@@bs.send] *)
+
+  (**
+  [lastIndexOfFrom searchValue start s] returns the position of the {i last} occurrence of [searchValue] within [s], searching backwards from the given [start] position. Returns [-1] if [searchValue] is not in [s]. The return value is always relative to the beginning of the string.
+
+@example {[
+  lastIndexOfFrom "bookseller" "ok" 6 = 2;;
+  lastIndexOfFrom "beekeeper" "ee" 8 = 4;;
+  lastIndexOfFrom "beekeeper" "ee" 3 = 1;;
+  lastIndexOfFrom "abcdefg" "xyz" 4 = -1;;
+]}
+*)
+  let lastIndexOfFrom _ _ = failwith "TODO"
+
+  (* extended by ECMA-402 *)
+
+  (* external localeCompare : t -> t -> float = "localeCompare" [@@bs.send] *)
+
+  (**
+  [localeCompare comparison reference] returns
+
+{ul
+  {- a negative value if [reference] comes before [comparison] in sort order}
+  {- zero if [reference] and [comparison] have the same sort order}
+  {- a positive value if [reference] comes after [comparison] in sort order}}
+
+@example {[
+  (localeCompare "zebra" "ant") > 0.0;;
+  (localeCompare "ant" "zebra") < 0.0;;
+  (localeCompare "cat" "cat") = 0.0;;
+  (localeCompare "CAT" "cat") > 0.0;;
+]}
+*)
+  let localeCompare _ _ = failwith "TODO"
+
+  (* external match_ : t -> Js_re.t -> t option array option = "match" [@@bs.send] [@@bs.
+     return {null_to_opt}] *)
+
+  (**
+  [match regexp str] matches a string against the given [regexp]. If there is no match, it returns [None].
+  For regular expressions without the [g] modifier, if there is a match, the return value is [Some array] where the array contains:
+
+  {ul
+    {- The entire matched string}
+    {- Any capture groups if the [regexp] had parentheses}
+  }
+
+  For regular expressions with the [g] modifier, a matched expression returns [Some array] with all the matched substrings and no capture groups.
+
+@example {[
+  match "The better bats" [%re "/b[aeiou]t/"] = Some [|"bet"|]
+  match "The better bats" [%re "/b[aeiou]t/g"] = Some [|"bet";"bat"|]
+  match "Today is 2018-04-05." [%re "/(\\d+)-(\\d+)-(\\d+)/"] = Some [|"2018-04-05"; "2018"; "04"; "05"|]
+  match "The large container." [%re "/b[aeiou]g/"] = None
+]}
+
+*)
+  let match_ _ _ = failwith "TODO"
+
+  (* external normalize : t -> t = "normalize" [@@bs.send] (** ES2015 *) *)
+
+  (** [normalize str] returns the normalized Unicode string using Normalization Form Canonical (NFC) Composition.
+
+Consider the character [ã], which can be represented as the single codepoint [\u00e3] or the combination of a lower case letter A [\u0061] and a combining tilde [\u0303]. Normalization ensures that both can be stored in an equivalent binary representation.
+
+@see <https://www.unicode.org/reports/tr15/tr15-45.html> Unicode technical report for details
+*)
+  let normalize _ _ = failwith "TODO"
+
+  (* external normalizeByForm : t -> t -> t = "normalize" [@@bs.send] *)
+
+  (**
+  [normalize str form] (ES2015) returns the normalized Unicode string using the specified form of normalization, which may be one of:
+
+  {ul
+    {- "NFC" — Normalization Form Canonical Composition.}
+    {- "NFD" — Normalization Form Canonical Decomposition.}
+    {- "NFKC" — Normalization Form Compatibility Composition.}
+    {- "NFKD" — Normalization Form Compatibility Decomposition.}
+  }
+
+  @see <https://www.unicode.org/reports/tr15/tr15-45.html> Unicode technical report for details
+*)
+  let normalizeByForm _ _ = failwith "TODO"
+
+  (* external repeat : t -> int -> t = "repeat" [@@bs.send] (** ES2015 *) *)
+
+  (**
+  [repeat n s] returns a string that consists of [n] repetitions of [s]. Raises [RangeError] if [n] is negative.
+
+@example {[
+  repeat "ha" 3 = "hahaha"
+  repeat "empty" 0 = ""
+]}
+*)
+  let repeat _ _ = failwith "TODO"
+
+  (* external replace : t -> t -> t -> t = "replace" [@@bs.send] *)
+
+  (** [replace substr newSubstr string] returns a new string which is
+identical to [string] except with the first matching instance of [substr]
+replaced by [newSubstr].
+
+[substr] is treated as a verbatim string to match, not a regular
+expression.
+
+@example {[
+  replace "old string" "old" "new" = "new string"
+  replace "the cat and the dog" "the" "this" = "this cat and the dog"
+]}
+*)
+  let replace _ _ = failwith "TODO"
+
+  (* external replaceByRe : t -> Js_re.t -> t -> t = "replace" [@@bs.send] *)
+
+  (** [replaceByRe regex replacement string] returns a new string where occurrences matching [regex]
+have been replaced by [replacement].
+
+@example {[
+  replaceByRe "vowels be gone" [%re "/[aeiou]/g"] "x" = "vxwxls bx gxnx"
+  replaceByRe "Juan Fulano" [%re "/(\\w+) (\\w+)/"] "$2, $1" = "Fulano, Juan"
+]}
+*)
+  let replaceByRe _ _ = failwith "TODO"
+
+  (* external unsafeReplaceBy0 : t -> Js_re.t -> (t -> int -> t -> t [@bs.uncurry]) -> t =
+     "replace" [@@bs.send] *)
+
+  (** returns a new string with some or all matches of a pattern with no capturing
+parentheses replaced by the value returned from the given function.
+The function receives as its parameters the matched string, the offset at which the
+match begins, and the whole string being matched
+
+@example {[
+let str = "beautiful vowels"
+let re = [%re "/[aeiou]/g"]
+let matchFn matchPart offset wholeString =
+  Js.String2.toUpperCase matchPart
+
+let replaced = Js.String2.unsafeReplaceBy0 str re matchFn
+
+let () = Js.log replaced (* prints "bEAUtifUl vOwEls" *)
+]}
+
+@see <https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/replace#Specifying_a_function_as_a_parameter> MDN
+*)
+  let unsafeReplaceBy0 _ _ = failwith "TODO"
+
+  (* external unsafeReplaceBy1 : t -> Js_re.t -> (t -> t -> int -> t -> t [@bs.uncurry]) -> t = "replace" [@@bs.send] *)
+
+  (** returns a new string with some or all matches of a pattern with one set of capturing
+parentheses replaced by the value returned from the given function.
+The function receives as its parameters the matched string, the captured string,
+the offset at which the match begins, and the whole string being matched.
+
+@example {[
+let str = "increment 23"
+let re = [%re "/increment (\\d+)/g"]
+let matchFn matchPart p1 offset wholeString =
+  wholeString ^ " is " ^ (string_of_int ((int_of_string p1) + 1))
+
+let replaced = Js.String2.unsafeReplaceBy1 str re matchFn
+
+let () = Js.log replaced (* prints "increment 23 is 24" *)
+]}
+
+@see <https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/replace#Specifying_a_function_as_a_parameter> MDN
+*)
+  let unsafeReplaceBy1 _ _ = failwith "TODO"
+
+  (* external unsafeReplaceBy2 : t -> Js_re.t -> (t -> t -> t -> int -> t -> t [@bs.uncurry])  -> t = "replace" [@@bs.send] *)
+
+  (** returns a new string with some or all matches of a pattern with two sets of capturing
+parentheses replaced by the value returned from the given function.
+The function receives as its parameters the matched string, the captured strings,
+the offset at which the match begins, and the whole string being matched.
+
+@example {[
+let str = "7 times 6"
+let re = [%re "/(\\d+) times (\\d+)/"]
+let matchFn matchPart p1 p2 offset wholeString =
+  string_of_int ((int_of_string p1) * (int_of_string p2))
+
+let replaced = Js.String2.unsafeReplaceBy2 str re matchFn
+
+let () = Js.log replaced (* prints "42" *)
+]}
+
+@see <https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/replace#Specifying_a_function_as_a_parameter> MDN
+*)
+  let unsafeReplaceBy2 _ _ = failwith "TODO"
+
+  (* external unsafeReplaceBy3 : t -> Js_re.t -> (t -> t -> t -> t -> int -> t -> t [@bs.
+     uncurry]) -> t = "replace" [@@bs.send] *)
+
+  (** returns a new string with some or all matches of a pattern with three sets of capturing
+parentheses replaced by the value returned from the given function.
+The function receives as its parameters the matched string, the captured strings,
+the offset at which the match begins, and the whole string being matched.
+
+@see <https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/replace#Specifying_a_function_as_a_parameter> MDN
+*)
+  let unsafeReplaceBy3 _ _ = failwith "TODO"
+
+  (* external search : t -> Js_re.t -> int = "search" [@@bs.send] *)
+
+  (** [search regexp str] returns the starting position of the first match of [regexp] in the given [str], or -1 if there is no match.
+
+@example {[
+search "testing 1 2 3" [%re "/\\d+/"] = 8;;
+search "no numbers" [%re "/\\d+/"] = -1;;
+]}
+*)
+  let search _ _ = failwith "TODO"
+
+  (* external slice : t -> from:int -> to_:int ->  t = "slice" [@@bs.send] *)
+
+  (** [slice from:n1 to_:n2 str] returns the substring of [str] starting at character [n1] up to but not including [n2]
+
+If either [n1] or [n2] is negative, then it is evaluated as [length str - n1] (or [length str - n2].
+
+If [n2] is greater than the length of [str], then it is treated as [length str].
+
+If [n1] is greater than [n2], [slice] returns the empty string.
+
+@example {[
+  slice "abcdefg" ~from:2 ~to_:5 == "cde";;
+  slice "abcdefg" ~from:2 ~to_:9 == "cdefg";;
+  slice "abcdefg" ~from:(-4) ~to_:(-2) == "de";;
+  slice "abcdefg" ~from:5 ~to_:1 == "";;
+]}
+*)
+  let slice _ _ = failwith "TODO"
+
+  (* external sliceToEnd : t -> from:int ->  t = "slice" [@@bs.send] *)
+
+  (** [sliceToEnd from: n str] returns the substring of [str] starting at character [n] to the end of the string
+
+If [n] is negative, then it is evaluated as [length str - n].
+
+If [n] is greater than the length of [str], then [sliceToEnd] returns the empty string.
+
+@example {[
+  sliceToEnd "abcdefg" ~from: 4 == "efg";;
+  sliceToEnd "abcdefg" ~from: (-2) == "fg";;
+  sliceToEnd "abcdefg" ~from: 7 == "";;
+]}
+*)
+  let sliceToEnd _ _ = failwith "TODO"
+
+  (* external split : t -> t -> t array  = "split" [@@bs.send] *)
+
+  (**
+  [split delimiter str] splits the given [str] at every occurrence of [delimiter] and returns an
+  array of the resulting substrings.
+
+@example {[
+  split "2018-01-02" "-" = [|"2018"; "01"; "02"|];;
+  split "a,b,,c" "," = [|"a"; "b"; ""; "c"|];;
+  split "good::bad as great::awful" "::" = [|"good"; "bad as great"; "awful"|];;
+  split "has-no-delimiter" ";" = [|"has-no-delimiter"|];;
+]};
+*)
+  let split _ _ = failwith "TODO"
+
+  (* external splitAtMost: t -> t -> limit:int -> t array = "split" [@@bs.send] *)
+
+  (**
+  [splitAtMost delimiter ~limit: n str] splits the given [str] at every occurrence of [delimiter] and returns an array of the first [n] resulting substrings. If [n] is negative or greater than the number of substrings, the array will contain all the substrings.
+
+@example {[
+  splitAtMost "ant/bee/cat/dog/elk" "/" ~limit: 3 = [|"ant"; "bee"; "cat"|];;
+  splitAtMost "ant/bee/cat/dog/elk" "/" ~limit: 0 = [| |];;
+  splitAtMost "ant/bee/cat/dog/elk" "/" ~limit: 9 = [|"ant"; "bee"; "cat"; "dog"; "elk"|];;
+]}
+*)
+  let splitAtMost _ _ = failwith "TODO"
+
+  (* external splitByRe : t -> Js_re.t -> t option array = "split" [@@bs.send] *)
+
+  (**
+  [splitByRe regex str] splits the given [str] at every occurrence of [regex] and returns an
+  array of the resulting substrings.
+
+@example {[
+  splitByRe "art; bed , cog ;dad" [%re "/\\s*[,;]\\s*/"] = [|"art"; "bed"; "cog"; "dad"|];;
+  splitByRe "has:no:match" [%re "/[,;]/"] = [|"has:no:match"|];;
+]};
+*)
+  let splitByRe _ _ = failwith "TODO"
+
+  (* external splitByReAtMost : t -> Js_re.t -> limit:int ->  t option array = "split" [@@bs.send] *)
+
+  (**
+  [splitByReAtMost regex ~limit: n str] splits the given [str] at every occurrence of [regex] and returns an
+  array of the first [n] resulting substrings. If [n] is negative or greater than the number of substrings, the array will contain all the substrings.
+
+@example {[
+  splitByReAtMost "one: two: three: four" [%re "/\\s*:\\s*/"] ~limit: 3 = [|"one"; "two"; "three"|];;
+  splitByReAtMost "one: two: three: four" [%re "/\\s*:\\s*/"] ~limit: 0 = [| |];;
+  splitByReAtMost "one: two: three: four" [%re "/\\s*:\\s*/"] ~limit: 8 = [|"one"; "two"; "three"; "four"|];;
+]};
+*)
+  let splitByReAtMost _ _ = failwith "TODO"
+
+  (* external startsWith : t -> t -> bool = "startsWith" [@@bs.send] *)
+
+  (** ES2015:
+    [startsWith substr str] returns [true] if the [str] starts with [substr], [false] otherwise.
+
+@example {[
+  startsWith "ReScript" "Re" = true;;
+  startsWith "ReScript" "" = true;;
+  startsWith "JavaScript" "Re" = false;;
+]}
+*)
+  let startsWith _ _ = failwith "TODO"
+
+  (* external startsWithFrom : t -> t -> int -> bool = "startsWith" [@@bs.send] *)
+
+  (** ES2015:
+    [startsWithFrom substr n str] returns [true] if the [str] starts with [substr] starting at position [n], [false] otherwise. If [n] is negative, the search starts at the beginning of [str].
+
+@example {[
+  startsWithFrom "ReScript" "cri" 3 = true;;
+  startsWithFrom "ReScript" "" 3 = true;;
+  startsWithFrom "JavaScript" "Re" 2 = false;;
+]}
+*)
+  let startsWithFrom _ _ = failwith "TODO"
+
+  (* external substr : t -> from:int -> t = "substr" [@@bs.send] *)
+
+  (**
+  [substr ~from: n str] returns the substring of [str] from position [n] to the end of the string.
+
+  If [n] is less than zero, the starting position is the length of [str] - [n].
+
+  If [n] is greater than or equal to the length of [str], returns the empty string.
+
+@example {[
+  substr "abcdefghij" ~from: 3 = "defghij"
+  substr "abcdefghij" ~from: (-3) = "hij"
+  substr "abcdefghij" ~from: 12 = ""
+]}
+*)
+  let substr _ _ = failwith "TODO"
+
+  (* external substrAtMost : t -> from:int -> length:int -> t = "substr" [@@bs.send] *)
+
+  (**
+  [substrAtMost ~from: pos ~length: n str] returns the substring of [str] of length [n] starting at position [pos].
+
+  If [pos] is less than zero, the starting position is the length of [str] - [pos].
+
+  If [pos] is greater than or equal to the length of [str], returns the empty string.
+
+  If [n] is less than or equal to zero, returns the empty string.
+
+@example {[
+  substrAtMost "abcdefghij" ~from: 3 ~length: 4 = "defghij"
+  substrAtMost "abcdefghij" ~from: (-3) ~length: 4 = "hij"
+  substrAtMost "abcdefghij" ~from: 12 ~ length: 2 = ""
+]}
+*)
+  let substrAtMost _ _ = failwith "TODO"
+
+  (* external substring : t -> from:int -> to_:int ->  t = "substring" [@@bs.send] *)
+
+  (**
+  [substring ~from: start ~to_: finish str] returns characters [start] up to but not including [finish] from [str].
+
+  If [start] is less than zero, it is treated as zero.
+
+  If [finish] is zero or negative, the empty string is returned.
+
+  If [start] is greater than [finish], the start and finish points are swapped.
+
+@example {[
+  substring "playground" ~from: 3 ~to_: 6 = "ygr";;
+  substring "playground" ~from: 6 ~to_: 3 = "ygr";;
+  substring "playground" ~from: 4 ~to_: 12 = "ground";;
+]}
+*)
+  let substring _ _ = failwith "TODO"
+
+  (* external substringToEnd : t -> from:int ->  t = "substring" [@@bs.send] *)
+
+  (**
+  [substringToEnd ~from: start str] returns the substring of [str] from position [start] to the end.
+
+  If [start] is less than or equal to zero, the entire string is returned.
+
+  If [start] is greater than or equal to the length of [str], the empty string is returned.
+
+@example {[
+  substringToEnd "playground" ~from: 4 = "ground";;
+  substringToEnd "playground" ~from: (-3) = "playground";;
+  substringToEnd "playground" ~from: 12 = "";
+]}
+*)
+  let substringToEnd _ _ = failwith "TODO"
+
+  (* external toLowerCase : t -> t = "toLowerCase" [@@bs.send] *)
+
+  (**
+  [toLowerCase str] converts [str] to lower case using the locale-insensitive case mappings in the Unicode Character Database. Notice that the conversion can give different results depending upon context, for example with the Greek letter sigma, which has two different lower case forms when it is the last character in a string or not.
+
+@example {[
+  toLowerCase "ABC" = "abc";;
+  toLowerCase {js|ΣΠ|js} = {js|σπ|js};;
+  toLowerCase {js|ΠΣ|js} = {js|πς|js};;
+]}
+*)
+  let toLowerCase _ _ = failwith "TODO"
+
+  (* external toLocaleLowerCase : t -> t = "toLocaleLowerCase" [@@bs.send] *)
+
+  (**
+  [toLocaleLowerCase str] converts [str] to lower case using the current locale
+*)
+  let toLocaleLowerCase _ _ = failwith "TODO"
+
+  (* external toUpperCase : t -> t = "toUpperCase" [@@bs.send] *)
+
+  (**
+  [toUpperCase str] converts [str] to upper case using the locale-insensitive case mappings in the Unicode Character Database. Notice that the conversion can expand the number of letters in the result; for example the German [ß] capitalizes to two [S]es in a row.
+
+@example {[
+  toUpperCase "abc" = "ABC";;
+  toUpperCase {js|Straße|js} = {js|STRASSE|js};;
+  toLowerCase {js|πς|js} = {js|ΠΣ|js};;
+]}
+*)
+  let toUpperCase _ _ = failwith "TODO"
+
+  (* external toLocaleUpperCase : t -> t = "toLocaleUpperCase" [@@bs.send] *)
+
+  (**
+  [toLocaleUpperCase str] converts [str] to upper case using the current locale
+*)
+  let toLocaleUpperCase _ _ = failwith "TODO"
+
+  (* external trim : t -> t = "trim" [@@bs.send] *)
+
+  (**
+  [trim str] returns a string that is [str] with whitespace stripped from both ends. Internal whitespace is not removed.
+
+@example {[
+  trim "   abc def   " = "abc def"
+  trim "\n\r\t abc def \n\n\t\r " = "abc def"
+]}
+*)
+  let trim _ _ = failwith "TODO"
+
+  (* HTML wrappers *)
+
+  (* external anchor : t -> t -> t = "anchor" [@@bs.send] (** ES2015 *) *)
+
+  (**
+  [anchor anchorName anchorText] creates a string with an HTML [<a>] element with [name] attribute of [anchorName] and [anchorText] as its content.
+
+@example {[
+  anchor "Page One" "page1" = "<a name=\"page1\">Page One</a>"
+]}
+*)
+  let anchor _ _ = failwith "TODO"
+
+  (* external link : t -> t -> t = "link" [@@bs.send] (** ES2015 *) *)
+
+  (**
+  [link urlText linkText] creates a string withan HTML [<a>] element with [href] attribute of [urlText] and [linkText] as its content.
+
+@example {[
+  link "Go to page two" "page2.html" = "<a href=\"page2.html\">Go to page two</a>"
+]}
+*)
+  let link _ _ = failwith "TODO"
+
+  (* external castToArrayLike : t -> t Js_array2.array_like = "%identity" *)
+  let castToArrayLike _ _ = failwith "TODO"
+  (* FIXME: we should not encourage people to use [%identity], better
+      to provide something using [@@bs.val] so that we can track such
+      casting
+  *)
 end
 
 module Promise = struct
