@@ -156,7 +156,8 @@ module Exn = struct
 end
 
 (** Provide bindings to Js array *)
-module Array2 = struct
+module Array2_ = struct
+  (* "Array2_" is to hide it from Array2 *)
   type 'a t = 'a array
   (** JavaScript Array API *)
 
@@ -206,10 +207,9 @@ module Array2 = struct
   let fillRangeInPlace _ _ = failwith "TODO"
   (* ES2015 *)
 
-  (* external pop : 'a t -> 'a option = "pop" [@@bs.send] [@@bs.return undefined_to_opt] *)
-
   (** https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/push *)
   let pop _ _ = failwith "TODO"
+  (* external pop : 'a t -> 'a option = "pop" [@@bs.send] [@@bs.return undefined_to_opt] *)
 
   (* external push : 'a t -> 'a -> int = "push" [@@bs.send] *)
   let push _ _ = failwith "TODO"
@@ -376,7 +376,7 @@ module Array = struct
   (** JavaScript Array API *)
 
   type 'a t = 'a array
-  type 'a array_like = 'a Array2.array_like
+  type 'a array_like = 'a Array2_.array_like
 
   (* commented out until bs has a plan for iterators
      type 'a array_iter = 'a array_like
@@ -482,7 +482,7 @@ module Array = struct
   let indexOf _ _ = failwith "TODO"
 
   (* external indexOfFrom : 'a -> from:int -> int = "indexOf" [@@bs.send.pipe: 'a t as 'this] *)
-  let indexOfFrom _ _ = failwith "TODO"
+  let indexOfFrom _ ~from:_ _ = failwith "TODO"
 
   (* external join : 'a t -> string = "join" [@@bs.send] [@@deprecated "please use joinWith instead"] *)
   let join _ _ = failwith "TODO"

@@ -100,13 +100,17 @@ let string2_tests =
              assert_int (lastIndexOfFrom "abcdefg" "xyz" 4) (-1) *)
           ());
       case "localeCompare" (fun () ->
-          (* localeCompare "ant" "zebra"
-             > 0.0 (localeCompare "zebra" "ant")
-             < 0.0 (localeCompare "cat" "cat")
-             = 0.0 (localeCompare "cat" "CAT")
-             > 0.0 *)
+          (* localeCompare "ant" "zebra" > 0.0
+             localeCompare "zebra" "ant" < 0.0
+             localeCompare "cat" "cat" = 0.0
+             localeCompare "cat" "CAT" > 0.0
+          *)
           ());
       case "match" (fun () ->
+          (* assert_string_array
+             (match_ [%bs.re "/b[aeiou]t/"] "The better bats"
+             |> Stdlib.Option.get)
+             [| "bet" |]; *)
           (* match_ [%re "/b[aeiou]t/"] "The better bats" = Some [|"bet"|]
              match_ [%re "/b[aeiou]t/g"] "The better bats" = Some [|"bet";"bat"|]
              match_ [%re "/(\\d+)-(\\d+)-(\\d+)/"] "Today is 2018-04-05." =
@@ -235,7 +239,7 @@ let string2_tests =
           (* assert_string (substrAtMost ~from:12 ~length:2 "abcdefghij") "" *)
           ());
       case "substring" (fun () ->
-          (* assert_string (substring ~from:3 ~to_:6 "playground") "ygr"; *)
+          assert_string (substring ~from:3 ~to_:6 "playground") "ygr";
           (* assert_string (substring ~from:6 ~to_:3 "playground") "ygr"; *)
           assert_string (substring ~from:4 ~to_:12 "playground") "ground");
       case "substringToEnd" (fun () ->
