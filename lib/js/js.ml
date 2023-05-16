@@ -1391,7 +1391,10 @@ module String2 = struct
   fromCharCode -64568 = {js|ψ|js};;
 ]}
 *)
-  let fromCharCode _ = failwith "TODO"
+  let fromCharCode code =
+    let uchar = Uchar.of_int code in
+    let char_value = Uchar.to_char uchar in
+    Stdlib.String.make 1 char_value
 
   (* external fromCharCodeMany : int array -> t = "String.fromCharCode" [@@bs.val] [@@bs.
      splice] *)
@@ -1415,9 +1418,11 @@ module String2 = struct
   fromCodePoint 0xd55c = {js|한|js};;
   fromCodePoint 0x1f63a = {js|😺|js};;
 ]}
-
 *)
-  let fromCodePoint _ = failwith "TODO"
+
+  let fromCodePoint code_point =
+    let ch = Char.chr code_point in
+    Stdlib.String.make 1 ch
 
   (* external fromCodePointMany : int array -> t = "String.fromCodePoint" [@@bs.val] [@@bs.
      splice] *)

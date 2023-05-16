@@ -10,7 +10,7 @@ let assert_int left right =
 let assert_bool left right =
   (Alcotest.check Alcotest.bool) "should be equal" right left
 
-let case title fn = Alcotest.test_case title `Quick fn
+let case title (fn : unit -> unit) = Alcotest.test_case title `Quick fn
 
 let string2_tests =
   let open Js.String2 in
@@ -26,7 +26,7 @@ let string2_tests =
           assert_string (get "Reason" 4) "o"
           (* assert_string (get {js|Rẽasöń|js} 5) {js|ń|js}; *));
       case "fromCharCode" (fun () ->
-          (* assert_string (fromCharCode 65) "A"; *)
+          assert_string (fromCharCode 65) "A";
           (* assert_string (fromCharCode 0x3c8) {js|ψ|js}; *)
           (* assert_string (fromCharCode 0xd55c) {js|한|js} *)
           (* assert_string (fromCharCode -64568) {js|ψ|js}; *)
@@ -35,11 +35,10 @@ let string2_tests =
           (* fromCharCodeMany([|0xd55c, 0xae00, 33|]) = {js|한글!|js} *)
           ());
       case "fromCodePoint" (fun () ->
-          (* assert_string (fromCodePoint 65) "A";
-             assert_string (fromCodePoint 0x3c8) {js|ψ|js};
-             assert_string (fromCodePoint 0xd55c) {js|한|js};
-             assert_string (fromCodePoint 0x1f63a) {js|😺|js} *)
-          ());
+          assert_string (fromCodePoint 65) "A"
+          (* assert_string (fromCodePoint 0x3c8) {js|ψ|js}; *)
+          (* assert_string (fromCodePoint 0xd55c) {js|한|js} *)
+          (* assert_string (fromCodePoint 0x1f63a) {js|😺|js} *));
       case "fromCodePointMany" (fun () ->
           (* assert_string
              (fromCodePointMany [| 0xd55c; 0xae00; 0x1f63a |])
@@ -99,24 +98,25 @@ let string2_tests =
              assert_int (lastIndexOfFrom "beekeeper" "ee" 3) 1;
              assert_int (lastIndexOfFrom "abcdefg" "xyz" 4) (-1) *)
           ());
-      case "localeCompare" (fun () ->
-          (* localeCompare "ant" "zebra" > 0.0
+      (* case "localeCompare" (fun () ->
+           localeCompare "ant" "zebra" > 0.0
              localeCompare "zebra" "ant" < 0.0
              localeCompare "cat" "cat" = 0.0
              localeCompare "cat" "CAT" > 0.0
-          *)
           ());
-      case "match" (fun () ->
-          (* assert_string_array
-             (match_ [%bs.re "/b[aeiou]t/"] "The better bats"
-             |> Stdlib.Option.get)
-             [| "bet" |]; *)
-          (* match_ [%re "/b[aeiou]t/"] "The better bats" = Some [|"bet"|]
-             match_ [%re "/b[aeiou]t/g"] "The better bats" = Some [|"bet";"bat"|]
-             match_ [%re "/(\\d+)-(\\d+)-(\\d+)/"] "Today is 2018-04-05." =
-               Some [|"2018-04-05"; "2018"; "04"; "05"|]
-             match_ [%re "/b[aeiou]g/"] "The large container." = None *)
-          ());
+      *)
+      (* case "match" (fun () ->
+         assert_string_array
+               (match_ [%bs.re "/b[aeiou]t/"] "The better bats"
+               |> Stdlib.Option.get)
+               [| "bet" |]; *)
+      (* match_ [%re "/b[aeiou]t/"] "The better bats" = Some [|"bet"|]
+            match_ [%re "/b[aeiou]t/g"] "The better bats" = Some [|"bet";"bat"|]
+            match_ [%re "/(\\d+)-(\\d+)-(\\d+)/"] "Today is 2018-04-05." =
+              Some [|"2018-04-05"; "2018"; "04"; "05"|]
+            match_ [%re "/b[aeiou]g/"] "The large container." = None
+         ());
+      *)
       case "repeat" (fun () ->
           assert_string (repeat "ha" 3) "hahaha";
           assert_string (repeat "empty" 0) "");
