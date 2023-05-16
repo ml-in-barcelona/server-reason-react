@@ -1555,7 +1555,7 @@ The return type is [float] because this function returns [NaN] if [n] is less th
   endsWithFrom "example.dat" "ple" 7 = true;;
 ]}
 *)
-  let endsWithFrom str from suffix =
+  let endsWithFrom str suffix from =
     let str_length = Stdlib.String.length str in
     let suffix_length = Stdlib.String.length suffix in
     let start_idx = Stdlib.max 0 (from - suffix_length) in
@@ -1595,7 +1595,7 @@ The return type is [float] because this function returns [NaN] if [n] is less th
   includesFrom {js|대한민국|js} {js|한|js} 1 = true;;
 ]}
 *)
-  let includesFrom str from sub =
+  let includesFrom str sub from =
     let str_length = Stdlib.String.length str in
     let sub_length = Stdlib.String.length sub in
     let rec includes_helper idx =
@@ -1638,7 +1638,7 @@ The return type is [float] because this function returns [NaN] if [n] is less th
   indexOfFrom "bookseller" "sell" 5 = -1;;
 ]}
 *)
-  let indexOfFrom str from pattern =
+  let indexOfFrom str pattern from =
     let str_length = Stdlib.String.length str in
     let pattern_length = Stdlib.String.length pattern in
     let rec index_helper idx =
@@ -1681,7 +1681,7 @@ The return type is [float] because this function returns [NaN] if [n] is less th
   lastIndexOfFrom "abcdefg" "xyz" 4 = -1;;
 ]}
 *)
-  let lastIndexOfFrom str from pattern =
+  let lastIndexOfFrom str pattern from =
     let rec last_index_helper str pattern current_index max_index =
       if current_index < 0 then -1
       else if
@@ -2171,15 +2171,16 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   let trim str =
     let whitespace = " \t\n\r" in
     let is_whitespace c = Stdlib.String.contains whitespace c in
+    let get str idx = Stdlib.String.get str idx in
     let length = Stdlib.String.length str in
     let rec trim_start idx =
       if idx >= length then length
-      else if is_whitespace str.[idx] then trim_start (idx + 1)
+      else if is_whitespace (get str idx) then trim_start (idx + 1)
       else idx
     in
     let rec trim_end idx =
       if idx <= 0 then 0
-      else if is_whitespace str.[idx - 1] then trim_end (idx - 1)
+      else if is_whitespace (get str (idx - 1)) then trim_end (idx - 1)
       else idx
     in
     let start_idx = trim_start 0 in
