@@ -240,7 +240,7 @@ let string2_tests =
           ());
       case "substring" (fun () ->
           assert_string (substring ~from:3 ~to_:6 "playground") "ygr";
-          (* assert_string (substring ~from:6 ~to_:3 "playground") "ygr"; *)
+          assert_string (substring ~from:6 ~to_:3 "playground") "ygr";
           assert_string (substring ~from:4 ~to_:12 "playground") "ground");
       case "substringToEnd" (fun () ->
           assert_string (substringToEnd ~from:4 "playground") "ground";

@@ -2099,7 +2099,8 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
     let length = Stdlib.String.length str in
     let start_idx = max 0 (min from length) in
     let end_idx = max 0 (min to_ length) in
-    if start_idx >= end_idx then ""
+    if start_idx >= end_idx then
+      Stdlib.String.sub str end_idx (start_idx - end_idx)
     else Stdlib.String.sub str start_idx (end_idx - start_idx)
 
   (* external substringToEnd : t -> from:int ->  t = "substring" [@@bs.send] *)
