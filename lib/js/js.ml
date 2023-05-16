@@ -1375,7 +1375,9 @@ module String2 = struct
   make [|1;2;3|]) = "1,2,3";;
 ]}
 *)
-  let make _ _ = failwith "TODO"
+
+  (* TODO (davesnx): This changes the interface from String() *)
+  let make i ch = Stdlib.String.make i ch
 
   (* external fromCharCode : int -> t = "String.fromCharCode" [@@bs.val] *)
 
@@ -1389,7 +1391,7 @@ module String2 = struct
   fromCharCode -64568 = {js|ψ|js};;
 ]}
 *)
-  let fromCharCode _ _ = failwith "TODO"
+  let fromCharCode _ = failwith "TODO"
 
   (* external fromCharCodeMany : int array -> t = "String.fromCharCode" [@@bs.val] [@@bs.
      splice] *)
@@ -1415,7 +1417,7 @@ module String2 = struct
 ]}
 
 *)
-  let fromCodePoint _ _ = failwith "TODO"
+  let fromCodePoint _ = failwith "TODO"
 
   (* external fromCodePointMany : int array -> t = "String.fromCodePoint" [@@bs.val] [@@bs.
      splice] *)
@@ -1426,7 +1428,7 @@ module String2 = struct
   fromCodePointMany([|0xd55c; 0xae00; 0x1f63a|]) = {js|한글😺|js}
 ]}
 *)
-  let fromCodePointMany _ _ = failwith "TODO"
+  let fromCodePointMany _ = failwith "TODO"
   (** ES2015 *)
 
   (* String.raw: ES2015, meant to be used with template strings, not directly *)
@@ -1440,7 +1442,7 @@ module String2 = struct
 ]}
 
 *)
-  let length _ _ = failwith "TODO"
+  let length = Stdlib.String.length
 
   (* external get : t -> int -> t = "" [@@bs.get_index] *)
 
@@ -1452,9 +1454,22 @@ module String2 = struct
   get {js|Rẽasöń|js} 5 = {js|ń|js};;
 ]}
 *)
-  let get _ _ = failwith "TODO"
+  let get str index =
+    let ch = Stdlib.String.get str index in
+    Stdlib.String.make 1 ch
+
+  (* external set : t -> int -> t -> t = "" [@@bs.set_index] *)
+
+  (** [set s n c] sets the character at the given index number to the given character. If [n] is out of range, this function does nothing. *)
 
   (* external charAt : t -> int -> t = "charAt" [@@bs.send] *)
+
+  (* TODO (davesnx): If the string contains characters outside the range [\u0000-\uffff], it will return the first 16-bit value at that position in the string. *)
+  let charAt str index =
+    if index < 0 || index >= Stdlib.String.length str then ""
+    else
+      let ch = Stdlib.String.get str index in
+      Stdlib.String.make 1 ch
 
   (** [charAt n s] gets the character at index [n] within string [s]. If [n] is negative or greater than the length of [s], returns the empty string. If the string contains characters outside the range [\u0000-\uffff], it will return the first 16-bit value at that position in the string.
 
@@ -1464,7 +1479,6 @@ module String2 = struct
   charAt {js|Rẽasöń|js} 5 = {js|ń|js}
 ]}
 *)
-  let charAt _ _ = failwith "TODO"
 
   (* external charCodeAt : t -> int -> float = "charCodeAt" [@@bs.send] *)
 
@@ -1498,7 +1512,7 @@ The return type is [float] because this function returns [NaN] if [n] is less th
   concat "cow" "bell" = "cowbell";;
 ]}
 *)
-  let concat _ _ = failwith "TODO"
+  let concat str1 str2 = Stdlib.String.concat "" [ str1; str2 ]
 
   (* external concatMany : t -> t array -> t = "concat" [@@bs.send] [@@bs.splice] *)
 
@@ -1508,7 +1522,10 @@ The return type is [float] because this function returns [NaN] if [n] is less th
   concatMany "1st" [|"2nd"; "3rd"; "4th"|] = "1st2nd3rd4th";;
 ]}
 *)
-  let concatMany _ _ = failwith "TODO"
+
+  let concatMany original many =
+    let many_list = Stdlib.Array.to_list many in
+    Stdlib.String.concat "" (original :: many_list)
 
   (* external endsWith : t -> t -> bool = "endsWith" [@@bs.send] *)
 
@@ -1520,7 +1537,12 @@ The return type is [float] because this function returns [NaN] if [n] is less th
   endsWith "ReShoes" "Script" = false;;
 ]}
 *)
-  let endsWith _ _ = failwith "TODO"
+  let endsWith str suffix =
+    let str_length = Stdlib.String.length str in
+    let suffix_length = Stdlib.String.length suffix in
+    if str_length < suffix_length then false
+    else
+      Stdlib.String.sub str (str_length - suffix_length) suffix_length = suffix
 
   (* external endsWithFrom : t -> t -> int -> bool = "endsWith" [@@bs.send] (** ES2015 *) *)
 
@@ -1533,7 +1555,12 @@ The return type is [float] because this function returns [NaN] if [n] is less th
   endsWithFrom "example.dat" "ple" 7 = true;;
 ]}
 *)
-  let endsWithFrom _ _ = failwith "TODO"
+  let endsWithFrom str from suffix =
+    let str_length = Stdlib.String.length str in
+    let suffix_length = Stdlib.String.length suffix in
+    let start_idx = Stdlib.max 0 (from - suffix_length) in
+    if str_length - start_idx < suffix_length then false
+    else Stdlib.String.sub str start_idx suffix_length = suffix
 
   (* external includes : t -> t -> bool = "includes" [@@bs.send] (** ES2015 *) *)
 
@@ -1547,7 +1574,15 @@ The return type is [float] because this function returns [NaN] if [n] is less th
   includes "programmer" "xyz" = false;;
 ]}
 *)
-  let includes _ _ = failwith "TODO"
+  let includes str sub =
+    let str_length = Stdlib.String.length str in
+    let sub_length = Stdlib.String.length sub in
+    let rec includes_helper idx =
+      if idx + sub_length > str_length then false
+      else if Stdlib.String.sub str idx sub_length = sub then true
+      else includes_helper (idx + 1)
+    in
+    includes_helper 0
 
   (* external includesFrom : t -> t -> int -> bool = "includes" [@@bs.send] (** ES2015 *) *)
 
@@ -1560,7 +1595,15 @@ The return type is [float] because this function returns [NaN] if [n] is less th
   includesFrom {js|대한민국|js} {js|한|js} 1 = true;;
 ]}
 *)
-  let includesFrom _ _ = failwith "TODO"
+  let includesFrom str from sub =
+    let str_length = Stdlib.String.length str in
+    let sub_length = Stdlib.String.length sub in
+    let rec includes_helper idx =
+      if idx + sub_length > str_length then false
+      else if Stdlib.String.sub str idx sub_length = sub then true
+      else includes_helper (idx + 1)
+    in
+    includes_helper from
 
   (* external indexOf : t -> t -> int = "indexOf" [@@bs.send] *)
 
@@ -1574,7 +1617,15 @@ The return type is [float] because this function returns [NaN] if [n] is less th
   indexOf "bookseller" "xyz" = -1;;
 ]}
 *)
-  let indexOf str ch = Stdlib.String.index str ch
+  let indexOf str pattern =
+    let str_length = Stdlib.String.length str in
+    let pattern_length = Stdlib.String.length pattern in
+    let rec index_helper idx =
+      if idx + pattern_length > str_length then -1
+      else if Stdlib.String.sub str idx pattern_length = pattern then idx
+      else index_helper (idx + 1)
+    in
+    index_helper 0
 
   (* external indexOfFrom : t -> t -> int -> int = "indexOf" [@@bs.send] *)
 
@@ -1585,10 +1636,17 @@ The return type is [float] because this function returns [NaN] if [n] is less th
   indexOfFrom "bookseller" "ok" 1 = 2;;
   indexOfFrom "bookseller" "sell" 2 = 4;;
   indexOfFrom "bookseller" "sell" 5 = -1;;
-  indexOf "bookseller" "xyz" = -1;;
 ]}
 *)
-  let indexOfFrom _ _ = failwith "TODO"
+  let indexOfFrom str from pattern =
+    let str_length = Stdlib.String.length str in
+    let pattern_length = Stdlib.String.length pattern in
+    let rec index_helper idx =
+      if idx + pattern_length > str_length then -1
+      else if Stdlib.String.sub str idx pattern_length = pattern then idx
+      else index_helper (idx + 1)
+    in
+    index_helper from
 
   (* external lastIndexOf : t -> t -> int = "lastIndexOf" [@@bs.send] *)
 
@@ -1601,7 +1659,15 @@ The return type is [float] because this function returns [NaN] if [n] is less th
   lastIndexOf "abcdefg" "xyz" = -1;;
 ]}
 *)
-  let lastIndexOf _ _ = failwith "TODO"
+  let lastIndexOf str pattern =
+    let str_length = Stdlib.String.length str in
+    let pattern_length = Stdlib.String.length pattern in
+    let rec last_index_helper idx =
+      if idx < 0 || idx + pattern_length > str_length then -1
+      else if Stdlib.String.sub str idx pattern_length = pattern then idx
+      else last_index_helper (idx - 1)
+    in
+    last_index_helper (str_length - pattern_length)
 
   (* external lastIndexOfFrom : t -> t -> int -> int = "lastIndexOf" [@@bs.send] *)
 
@@ -1615,7 +1681,19 @@ The return type is [float] because this function returns [NaN] if [n] is less th
   lastIndexOfFrom "abcdefg" "xyz" 4 = -1;;
 ]}
 *)
-  let lastIndexOfFrom _ _ = failwith "TODO"
+  let lastIndexOfFrom str from pattern =
+    let rec last_index_helper str pattern current_index max_index =
+      if current_index < 0 then -1
+      else if
+        current_index <= max_index
+        && Stdlib.String.sub str current_index (Stdlib.String.length pattern)
+           = pattern
+      then current_index
+      else last_index_helper str pattern (current_index - 1) max_index
+    in
+    let str_length = Stdlib.String.length str in
+    let max_index = Stdlib.min (str_length - 1) from in
+    last_index_helper str pattern max_index max_index
 
   (* extended by ECMA-402 *)
 
@@ -1690,6 +1768,8 @@ Consider the character [ã], which can be represented as the single codepoint [\
 
   (* external repeat : t -> int -> t = "repeat" [@@bs.send] (** ES2015 *) *)
 
+  (* TODO(davesnx): RangeError *)
+
   (**
   [repeat n s] returns a string that consists of [n] repetitions of [s]. Raises [RangeError] if [n] is negative.
 
@@ -1698,7 +1778,11 @@ Consider the character [ã], which can be represented as the single codepoint [\
   repeat "empty" 0 = ""
 ]}
 *)
-  let repeat _ _ = failwith "TODO"
+  let repeat str count =
+    let rec repeat' str acc remaining =
+      if remaining <= 0 then acc else repeat' str (str ^ acc) (remaining - 1)
+    in
+    repeat' str "" count
 
   (* external replace : t -> t -> t -> t = "replace" [@@bs.send] *)
 
@@ -1714,7 +1798,7 @@ expression.
   replace "the cat and the dog" "the" "this" = "this cat and the dog"
 ]}
 *)
-  let replace _ _ = failwith "TODO"
+  let replace _ _ _ = failwith "TODO"
 
   (* external replaceByRe : t -> Js_re.t -> t -> t = "replace" [@@bs.send] *)
 
@@ -1726,7 +1810,7 @@ have been replaced by [replacement].
   replaceByRe "Juan Fulano" [%re "/(\\w+) (\\w+)/"] "$2, $1" = "Fulano, Juan"
 ]}
 *)
-  let replaceByRe _ _ = failwith "TODO"
+  let replaceByRe _ _ _ = failwith "TODO"
 
   (* external unsafeReplaceBy0 : t -> Js_re.t -> (t -> int -> t -> t [@bs.uncurry]) -> t =
      "replace" [@@bs.send] *)
@@ -1835,7 +1919,12 @@ If [n1] is greater than [n2], [slice] returns the empty string.
   slice "abcdefg" ~from:5 ~to_:1 == "";;
 ]}
 *)
-  let slice _ _ = failwith "TODO"
+  let slice str ~from ~to_ =
+    let str_length = Stdlib.String.length str in
+    let start_idx = Stdlib.max 0 (Stdlib.min from str_length) in
+    let end_idx = Stdlib.max start_idx (Stdlib.min to_ str_length) in
+    if start_idx >= end_idx then ""
+    else Stdlib.String.sub str start_idx (end_idx - start_idx)
 
   (* external sliceToEnd : t -> from:int ->  t = "slice" [@@bs.send] *)
 
@@ -1851,7 +1940,10 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   sliceToEnd "abcdefg" ~from: 7 == "";;
 ]}
 *)
-  let sliceToEnd _ _ = failwith "TODO"
+  let sliceToEnd str ~from =
+    let str_length = Stdlib.String.length str in
+    let start_idx = Stdlib.max 0 (Stdlib.min from str_length) in
+    Stdlib.String.sub str start_idx (str_length - start_idx)
 
   (* external split : t -> t -> t array  = "split" [@@bs.send] *)
 
@@ -1866,7 +1958,7 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   split "has-no-delimiter" ";" = [|"has-no-delimiter"|];;
 ]};
 *)
-  let split _ _ = failwith "TODO"
+  let split _str _delimiter = failwith "TODO"
 
   (* external splitAtMost: t -> t -> limit:int -> t array = "split" [@@bs.send] *)
 
@@ -1879,7 +1971,7 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   splitAtMost "ant/bee/cat/dog/elk" "/" ~limit: 9 = [|"ant"; "bee"; "cat"; "dog"; "elk"|];;
 ]}
 *)
-  let splitAtMost _ _ = failwith "TODO"
+  let splitAtMost _str _separator ~limit:_ = failwith "TODO"
 
   (* external splitByRe : t -> Js_re.t -> t option array = "split" [@@bs.send] *)
 
@@ -1919,7 +2011,9 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   startsWith "JavaScript" "Re" = false;;
 ]}
 *)
-  let startsWith _ _ = failwith "TODO"
+  let startsWith str prefix =
+    Stdlib.String.length prefix <= Stdlib.String.length str
+    && Stdlib.String.sub str 0 (Stdlib.String.length prefix) = prefix
 
   (* external startsWithFrom : t -> t -> int -> bool = "startsWith" [@@bs.send] *)
 
@@ -1932,7 +2026,7 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   startsWithFrom "JavaScript" "Re" 2 = false;;
 ]}
 *)
-  let startsWithFrom _ _ = failwith "TODO"
+  let startsWithFrom _str _index _ = failwith "TODO"
 
   (* external substr : t -> from:int -> t = "substr" [@@bs.send] *)
 
@@ -1949,7 +2043,11 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   substr "abcdefghij" ~from: 12 = ""
 ]}
 *)
-  let substr _ _ = failwith "TODO"
+  let substr str ~from =
+    let str_length = Stdlib.String.length str in
+    let start_idx = Stdlib.max 0 (Stdlib.min from str_length) in
+    if start_idx >= str_length then ""
+    else Stdlib.String.sub str start_idx (str_length - start_idx)
 
   (* external substrAtMost : t -> from:int -> length:int -> t = "substr" [@@bs.send] *)
 
@@ -1968,7 +2066,12 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   substrAtMost "abcdefghij" ~from: 12 ~ length: 2 = ""
 ]}
 *)
-  let substrAtMost _ _ = failwith "TODO"
+  let substrAtMost str ~from ~length =
+    let str_length = Stdlib.String.length str in
+    let start_idx = max 0 (min from str_length) in
+    let end_idx = min (start_idx + length) str_length in
+    if start_idx >= end_idx then ""
+    else Stdlib.String.sub str start_idx (end_idx - start_idx)
 
   (* external substring : t -> from:int -> to_:int ->  t = "substring" [@@bs.send] *)
 
@@ -1987,7 +2090,12 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   substring "playground" ~from: 4 ~to_: 12 = "ground";;
 ]}
 *)
-  let substring _ _ = failwith "TODO"
+  let substring str ~from ~to_ =
+    let length = Stdlib.String.length str in
+    let start_idx = max 0 (min from length) in
+    let end_idx = max 0 (min to_ length) in
+    if start_idx >= end_idx then ""
+    else Stdlib.String.sub str start_idx (end_idx - start_idx)
 
   (* external substringToEnd : t -> from:int ->  t = "substring" [@@bs.send] *)
 
@@ -2004,7 +2112,11 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   substringToEnd "playground" ~from: 12 = "";
 ]}
 *)
-  let substringToEnd _ _ = failwith "TODO"
+  let substringToEnd str ~from =
+    let length = Stdlib.String.length str in
+    if from >= length then ""
+    else if from < 0 then str
+    else Stdlib.String.sub str from (length - from)
 
   (* external toLowerCase : t -> t = "toLowerCase" [@@bs.send] *)
 
@@ -2017,7 +2129,7 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   toLowerCase {js|ΠΣ|js} = {js|πς|js};;
 ]}
 *)
-  let toLowerCase _ _ = failwith "TODO"
+  let toLowerCase str = Stdlib.String.lowercase_ascii str
 
   (* external toLocaleLowerCase : t -> t = "toLocaleLowerCase" [@@bs.send] *)
 
@@ -2037,7 +2149,7 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   toLowerCase {js|πς|js} = {js|ΠΣ|js};;
 ]}
 *)
-  let toUpperCase _ _ = failwith "TODO"
+  let toUpperCase str = Stdlib.String.uppercase_ascii str
 
   (* external toLocaleUpperCase : t -> t = "toLocaleUpperCase" [@@bs.send] *)
 
@@ -2056,7 +2168,24 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   trim "\n\r\t abc def \n\n\t\r " = "abc def"
 ]}
 *)
-  let trim _ _ = failwith "TODO"
+  let trim str =
+    let whitespace = " \t\n\r" in
+    let is_whitespace c = Stdlib.String.contains whitespace c in
+    let length = Stdlib.String.length str in
+    let rec trim_start idx =
+      if idx >= length then length
+      else if is_whitespace str.[idx] then trim_start (idx + 1)
+      else idx
+    in
+    let rec trim_end idx =
+      if idx <= 0 then 0
+      else if is_whitespace str.[idx - 1] then trim_end (idx - 1)
+      else idx
+    in
+    let start_idx = trim_start 0 in
+    let end_idx = trim_end length in
+    if start_idx >= end_idx then ""
+    else Stdlib.String.sub str start_idx (end_idx - start_idx)
 
   (* HTML wrappers *)
 
