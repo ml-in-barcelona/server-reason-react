@@ -596,7 +596,15 @@ let rec zip l1 l2 =
       zipAux l1 l2 cell;
       cell
 
-let filterWithIndex _ _ = Not_implemented.failwith "filterWithIndex"
-let reduceWithIndexU _ _ = Not_implemented.failwith "reduceWithIndexU"
-let reduceWithIndex _ _ = Not_implemented.failwith "reduceWithIndex"
-let filter _ _ = Not_implemented.failwith "filter"
+let rec reduceWithIndexAuxU l acc f i =
+  match l with
+  | [] -> acc
+  | x :: xs -> reduceWithIndexAuxU xs (f acc x i [@bs]) f (i + 1)
+
+let reduceWithIndexU l acc f = reduceWithIndexAuxU l acc f 0
+
+let reduceWithIndex l acc f =
+  reduceWithIndexU l acc (fun [@bs] acc x i -> f acc x i)
+
+let filter = keep
+let filterWithIndex = keepWithIndexU
