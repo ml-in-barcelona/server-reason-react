@@ -222,3 +222,5 @@ val updateMutate :
 
 val fromArray : ('a * 'b) array -> cmp:('a -> 'a -> int) -> ('a, 'b) node option
 val removeMinAuxWithRootMutate : ('a, 'b) node -> ('a, 'c) node -> ('a, 'c) t
+val findFirstByU : ('a, 'b) t -> (('a -> 'b -> bool)[@bs]) -> ('a * 'b) option
+val findFirstBy : ('a, 'b) t -> ('a -> 'b -> bool) -> ('a * 'b) option

@@ -678,3 +678,19 @@ let rec removeMinAuxWithRootMutate nt n =
   | Some ln ->
       leftSet n (removeMinAuxWithRootMutate nt ln);
       return (balMutate n)
+
+let rec findFirstByU n p =
+  match n with
+  | None -> None
+  | Some n ->
+      let left = findFirstByU n.left p in
+      if left <> None then left
+      else
+        let { key = v; value = d } = n in
+        let pvd = (p v d [@bs]) in
+        if pvd then Some (v, d)
+        else
+          let right = findFirstByU n.right p in
+          if right <> None then right else None
+
+let findFirstBy n p = findFirstByU n (fun [@bs] a b -> p a b)

@@ -216,5 +216,5 @@ let removeMany t keys ~cmp =
   | None -> N.empty
   | Some t -> removeMany0 t keys 0 len ~cmp
 
-let findFirstBy _ _ = Not_implemented.failwith "findFirstBy"
-let findFirstByU _ _ = Not_implemented.failwith "findFirstByU"
+let findFirstByU = N.findFirstByU
+let findFirstBy = N.findFirstBy
