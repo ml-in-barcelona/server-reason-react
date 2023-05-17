@@ -27,27 +27,27 @@ include (
       val tail : 'a cell -> 'a opt_cell
     end)
 
-(* let make () = t ~root:Js.null *)
-(* let clear s = rootSet s Js.null *)
+let make () = t ~root:Js.null
+let clear s = rootSet s Js.null
 let copy (s : _ t) : _ t = t ~root:(root s)
 let push s x = rootSet s (Js.Null.return @@ cell ~head:x ~tail:(root s))
 
-(* let topUndefined (s : 'a t) =
-   match Js.nullToOption (root s) with
-   | None -> Js.undefined
-   | Some x -> Js.Undefined.return (head x) *)
+let topUndefined (s : 'a t) =
+  match Js.nullToOption (root s) with
+  | None -> Js.undefined
+  | Some x -> Js.Undefined.return (head x)
 
 let top s =
   match Js.nullToOption (root s) with None -> None | Some x -> Some (head x)
 
-(* let isEmpty s = root s = Js.null *)
+let isEmpty s = root s = Js.null
 
-(* let popUndefined s =
-   match Js.nullToOption (root s) with
-   | None -> Js.undefined
-   | Some x ->
-       rootSet s (tail x);
-       Js.Undefined.return (head x) *)
+let popUndefined s =
+  match Js.nullToOption (root s) with
+  | None -> Js.undefined
+  | Some x ->
+      rootSet s (tail x);
+      Js.Undefined.return (head x)
 
 let pop s =
   match Js.nullToOption (root s) with
@@ -74,13 +74,13 @@ let rec iterAux (s : _ opt_cell) f =
 let forEachU s f = iterAux (root s) f
 let forEach s f = forEachU s (fun x -> f x)
 
-(* let dynamicPopIterU s f =
-   let cursor = ref (root s) in
-   while !cursor != Js.null do
-     let v = Js.Null.getUnsafe !cursor in
-     rootSet s (tail v);
-     f (head v);
-     cursor := root s
-   done *)
+let dynamicPopIterU s f =
+  let cursor = ref (root s) in
+  while !cursor != Js.null do
+    let v = Js.Null.getUnsafe !cursor in
+    rootSet s (tail v);
+    f (head v);
+    cursor := root s
+  done
 
-(* let dynamicPopIter s f = dynamicPopIterU s (fun x -> f x) *)
+let dynamicPopIter s f = dynamicPopIterU s (fun x -> f x)

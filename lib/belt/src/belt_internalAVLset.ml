@@ -1,51 +1,25 @@
-include (
-  struct
-    type 'value node = {
-      mutable value : 'value;
-      mutable height : int;
-      mutable left : 'value t;
-      mutable right : 'value t;
-    }
+type 'value node = {
+  mutable value : 'value; [@bs.as "v"]
+  mutable height : int; [@bs.as "h"]
+  mutable left : 'value t; [@bs.as "l"]
+  mutable right : 'value t; [@bs.as "r"]
+}
 
-    and 'value t = 'value node Js.null
+and 'value t = 'value node option
 
-    let node :
-        value:'value ->
-        height:int ->
-        left:'value t ->
-        right:'value t ->
-        'value node =
-     fun ~value ~height ~left ~right -> { value; height; left; right }
+let node :
+    value:'value -> height:int -> left:'value t -> right:'value t -> 'value node
+    =
+ fun ~value ~height ~left ~right -> { value; height; left; right }
 
-    let valueSet : 'value node -> 'value -> unit = fun o v -> o.value <- v
-    let value : 'value node -> 'value = fun o -> o.value
-    let heightSet : 'value node -> int -> unit = fun o v -> o.height <- v
-    let height : 'value node -> int = fun o -> o.height
-    let leftSet : 'value node -> 'value t -> unit = fun o v -> o.left <- v
-    let left : 'value node -> 'value t = fun o -> o.left
-    let rightSet : 'value node -> 'value t -> unit = fun o v -> o.right <- v
-    let right : 'value node -> 'value t = fun o -> o.right
-  end :
-    sig
-      type 'value node
-      and 'value t = 'value node Js.null
-
-      val node :
-        value:'value ->
-        height:int ->
-        left:'value t ->
-        right:'value t ->
-        'value node
-
-      val valueSet : 'value node -> 'value -> unit
-      val value : 'value node -> 'value
-      val heightSet : 'value node -> int -> unit
-      val height : 'value node -> int
-      val leftSet : 'value node -> 'value t -> unit
-      val left : 'value node -> 'value t
-      val rightSet : 'value node -> 'value t -> unit
-      val right : 'value node -> 'value t
-    end)
+let valueSet : 'value node -> 'value -> unit = fun o v -> o.value <- v
+let value : 'value node -> 'value = fun o -> o.value
+let heightSet : 'value node -> int -> unit = fun o v -> o.height <- v
+let height : 'value node -> int = fun o -> o.height
+let leftSet : 'value node -> 'value t -> unit = fun o v -> o.left <- v
+let left : 'value node -> 'value t = fun o -> o.left
+let rightSet : 'value node -> 'value t -> unit = fun o v -> o.right <- v
+let right : 'value node -> 'value t = fun o -> o.right
 
 module A = Belt_Array
 module S = Belt_SortArray

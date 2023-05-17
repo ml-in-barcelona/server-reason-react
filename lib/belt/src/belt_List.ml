@@ -595,3 +595,8 @@ let rec zip l1 l2 =
       let cell = mutableCell (a1, a2) [] in
       zipAux l1 l2 cell;
       cell
+
+let filterWithIndex _ _ = Not_implemented.failwith "filterWithIndex"
+let reduceWithIndexU _ _ = Not_implemented.failwith "reduceWithIndexU"
+let reduceWithIndex _ _ = Not_implemented.failwith "reduceWithIndex"
+let filter _ _ = Not_implemented.failwith "filter"

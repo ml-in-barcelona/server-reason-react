@@ -1,61 +1,35 @@
 [@@@ocaml.text
 " Almost rewritten  by authors of BuckleScript                       "]
 
-include (
-  struct
-    type ('k, 'v) node = {
-      mutable key : 'k;
-      mutable value : 'v;
-      mutable height : int;
-      mutable left : ('k, 'v) t;
-      mutable right : ('k, 'v) t;
-    }
+type ('k, 'v) node = {
+  mutable key : 'k;
+  mutable value : 'v;
+  mutable height : int;
+  mutable left : ('k, 'v) t;
+  mutable right : ('k, 'v) t;
+}
 
-    and ('key, 'a) t = ('key, 'a) node Js.null
+and ('key, 'a) t = ('key, 'a) node Js.null
 
-    let node :
-        key:'k ->
-        value:'v ->
-        height:int ->
-        left:('k, 'v) t ->
-        right:('k, 'v) t ->
-        ('k, 'v) node =
-     fun ~key ~value ~height ~left ~right -> { key; value; height; left; right }
+let node :
+    key:'k ->
+    value:'v ->
+    height:int ->
+    left:('k, 'v) t ->
+    right:('k, 'v) t ->
+    ('k, 'v) node =
+ fun ~key ~value ~height ~left ~right -> { key; value; height; left; right }
 
-    let keySet : ('k, 'v) node -> 'k -> unit = fun o v -> o.key <- v
-    let key : ('k, 'v) node -> 'k = fun o -> o.key
-    let valueSet : ('k, 'v) node -> 'v -> unit = fun o v -> o.value <- v
-    let value : ('k, 'v) node -> 'v = fun o -> o.value
-    let heightSet : ('k, 'v) node -> int -> unit = fun o v -> o.height <- v
-    let height : ('k, 'v) node -> int = fun o -> o.height
-    let leftSet : ('k, 'v) node -> ('k, 'v) t -> unit = fun o v -> o.left <- v
-    let left : ('k, 'v) node -> ('k, 'v) t = fun o -> o.left
-    let rightSet : ('k, 'v) node -> ('k, 'v) t -> unit = fun o v -> o.right <- v
-    let right : ('k, 'v) node -> ('k, 'v) t = fun o -> o.right
-  end :
-    sig
-      type ('k, 'v) node
-      and ('key, 'a) t = ('key, 'a) node Js.null
-
-      val node :
-        key:'k ->
-        value:'v ->
-        height:int ->
-        left:('k, 'v) t ->
-        right:('k, 'v) t ->
-        ('k, 'v) node
-
-      val keySet : ('k, 'v) node -> 'k -> unit
-      val key : ('k, 'v) node -> 'k
-      val valueSet : ('k, 'v) node -> 'v -> unit
-      val value : ('k, 'v) node -> 'v
-      val heightSet : ('k, 'v) node -> int -> unit
-      val height : ('k, 'v) node -> int
-      val leftSet : ('k, 'v) node -> ('k, 'v) t -> unit
-      val left : ('k, 'v) node -> ('k, 'v) t
-      val rightSet : ('k, 'v) node -> ('k, 'v) t -> unit
-      val right : ('k, 'v) node -> ('k, 'v) t
-    end)
+let keySet : ('k, 'v) node -> 'k -> unit = fun o v -> o.key <- v
+let key : ('k, 'v) node -> 'k = fun o -> o.key
+let valueSet : ('k, 'v) node -> 'v -> unit = fun o v -> o.value <- v
+let value : ('k, 'v) node -> 'v = fun o -> o.value
+let heightSet : ('k, 'v) node -> int -> unit = fun o v -> o.height <- v
+let height : ('k, 'v) node -> int = fun o -> o.height
+let leftSet : ('k, 'v) node -> ('k, 'v) t -> unit = fun o v -> o.left <- v
+let left : ('k, 'v) node -> ('k, 'v) t = fun o -> o.left
+let rightSet : ('k, 'v) node -> ('k, 'v) t -> unit = fun o v -> o.right <- v
+let right : ('k, 'v) node -> ('k, 'v) t = fun o -> o.right
 
 type ('k, 'id) cmp = ('k, 'id) Belt_Id.cmp
 

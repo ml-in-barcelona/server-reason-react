@@ -159,3 +159,6 @@ let getId (type key identity) (m : (key, _, identity) t) : (key, identity) id =
 let packIdData (type key idx) ~(id : (key, idx) id) ~data =
   let module M = (val id) in
   S.t ~cmp:M.cmp ~data
+
+let findFirstBy _ _ = Not_implemented.failwith "findFirstBy"
+let findFirstByU _ _ = Not_implemented.failwith "findFirstByU"

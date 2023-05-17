@@ -215,3 +215,6 @@ let removeMany t keys ~cmp =
   match N.toOpt t with
   | None -> N.empty
   | Some t -> removeMany0 t keys 0 len ~cmp
+
+let findFirstBy _ _ = Not_implemented.failwith "findFirstBy"
+let findFirstByU _ _ = Not_implemented.failwith "findFirstByU"
