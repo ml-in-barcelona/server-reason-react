@@ -1,6 +1,0 @@
-(test
- (name test)
- (modules :standard)
- (libraries alcotest server-reason-react.js)
- (preprocess
-  (pps melange.ppx)))
