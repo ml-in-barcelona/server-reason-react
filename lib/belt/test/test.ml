@@ -72,15 +72,32 @@ let () =
   | Some t -> print_endline (string_of_int t)
   | None -> print_endline "error");
 
-  (* returns [Some 10] *)
   let (none : int option) = Belt.Option.keep (Some 4) (fun x -> x > 5) in
   (match none with
   | Some _ -> print_endline "error"
   | None -> print_endline "green");
 
-  (* returns [None] *)
   let (none : int option) = Belt.Option.keep None (fun x -> x > 5) in
   match none with
   | Some _ -> print_endline "error"
   | None -> print_endline "green"
-(* returns [None] *)
+
+let () =
+  let ten = Belt.Int.fromString "10" in
+  match ten with
+  | Some t -> print_endline (Belt.Int.toString t)
+  | None -> print_endline "waaaa"
+
+let print_array arr =
+  print_string "[";
+  print_string (Belt.Array.getUnsafe arr 0);
+  Belt.Array.forEach (Belt.Array.sliceToEnd arr 1) (fun x ->
+      print_string (", " ^ x));
+  print_string "]\n"
+
+let () =
+  print_endline "\nBelt.Array";
+  let arr = Belt.Array.makeUninitializedUnsafe 5 "lola" in
+  print_array arr;
+  let newa = Belt.Array.truncateToLengthUnsafe arr 3 in
+  print_array newa
