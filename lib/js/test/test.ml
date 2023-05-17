@@ -1,14 +1,20 @@
 let assert_string left right =
-  (Alcotest.check Alcotest.string) "should be equal" right left
+  Alcotest.check Alcotest.string "should be equal" right left
+
+let assert_option x left right =
+  Alcotest.check (Alcotest.option x) "should be equal" right left
 
 let _assert_string_array left right =
-  (Alcotest.check (Alcotest.array Alcotest.string)) "should be equal" right left
+  Alcotest.check (Alcotest.array Alcotest.string) "should be equal" right left
 
 let assert_int left right =
-  (Alcotest.check Alcotest.int) "should be equal" right left
+  Alcotest.check Alcotest.int "should be equal" right left
+
+let assert_float left right =
+  Alcotest.check (Alcotest.float 2.) "should be equal" right left
 
 let assert_bool left right =
-  (Alcotest.check Alcotest.bool) "should be equal" right left
+  Alcotest.check Alcotest.bool "should be equal" right left
 
 let case title (fn : unit -> unit) = Alcotest.test_case title `Quick fn
 
@@ -48,14 +54,14 @@ let string2_tests =
           assert_string (charAt "Reason" 0) "R";
           assert_string (charAt "Reason" 12) ""
           (* assert_string (charAt {js|Rẽasöń|js} 5) {js|ń|js} *));
-      (* case "charCodeAt" (fun () ->
-           charCodeAt 0 {js|😺|js} returns 0xd83d
-           codePointAt 0 {js|😺|js} returns Some 0x1f63a
-         ); *)
-      (* case "codePointAt" (fun () ->
-           (codePointAt 1 {js|¿😺?|js}) Some 0x1f63a
-           (codePointAt 5 "abc") None
-         ); *)
+      case "charCodeAt" (fun () ->
+          (* charCodeAt {js|😺|js} 0) 0xd83d *)
+          assert_float (charCodeAt "lola" 1) 111.;
+          assert_float (charCodeAt "lola" 0) 108.);
+      case "codePointAt" (fun () ->
+          assert_option Alcotest.int (codePointAt "lola" 1) (Some 111);
+          (* assert_option Alcotest.int (codePointAt {js|¿😺?|js} 1) (Some 0x1f63a); *)
+          assert_option Alcotest.int (codePointAt "abc" 5) None);
       case "concat" (fun () -> assert_string (concat "cow" "bell") "cowbell");
       case "concatMany" (fun () ->
           assert_string

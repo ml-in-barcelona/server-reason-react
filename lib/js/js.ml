@@ -1492,11 +1492,13 @@ The return type is [float] because this function returns [NaN] if [n] is less th
 
 @example {[
   charCodeAt {js|😺|js} 0 returns 0xd83d
-  codePointAt {js|😺|js} 0 returns Some 0x1f63a
 ]}
-
 *)
-  let charCodeAt _ _ = failwith "TODO"
+
+  (* JavaScript's String.prototype.charCodeAt can handle surrogate pairs, which are used to represent some Unicode characters in JavaScript strings. This implementation does not handle surrogate pairs and it treats each Unicode character as a separate code point, even if it's part of a surrogate pair. *)
+  let charCodeAt s n =
+    if n < 0 || n >= Stdlib.String.length s then nan
+    else float_of_int (Stdlib.Char.code (Stdlib.String.get s n))
 
   (* external codePointAt : t -> int -> int option = "codePointAt" [@@bs.send]  (** ES2015 *) *)
 
@@ -1507,7 +1509,12 @@ The return type is [float] because this function returns [NaN] if [n] is less th
   codePointAt "abc" 5 = None
 ]}
 *)
-  let codePointAt _ _ = failwith "TODO"
+  let codePointAt str index =
+    let str_length = Stdlib.String.length str in
+    if index >= 0 && index < str_length then
+      let uchar = Uchar.of_char (Stdlib.String.get str index) in
+      Some (Uchar.to_int uchar)
+    else None
 
   (* external concat : t -> t -> t = "concat" [@@bs.send] *)
 
@@ -2177,16 +2184,16 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   let trim str =
     let whitespace = " \t\n\r" in
     let is_whitespace c = Stdlib.String.contains whitespace c in
-    let get str idx = Stdlib.String.get str idx in
     let length = Stdlib.String.length str in
     let rec trim_start idx =
       if idx >= length then length
-      else if is_whitespace (get str idx) then trim_start (idx + 1)
+      else if is_whitespace (Stdlib.String.get str idx) then trim_start (idx + 1)
       else idx
     in
     let rec trim_end idx =
       if idx <= 0 then 0
-      else if is_whitespace (get str (idx - 1)) then trim_end (idx - 1)
+      else if is_whitespace (Stdlib.String.get str (idx - 1)) then
+        trim_end (idx - 1)
       else idx
     in
     let start_idx = trim_start 0 in
