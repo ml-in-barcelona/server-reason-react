@@ -31,10 +31,7 @@ let setExn arr i v =
 
 let makeUninitialized len = Array.make len Js.undefined
 let makeUninitializedUnsafe len defaultVal = Array.make len defaultVal
-(* let truncateToLengthUnsafe arr len = Array.sub arr 0 len *)
-
-let truncateToLengthUnsafe _arr _len =
-  Not_implemented.failwith "truncateToLengthUnsafe"
+let truncateToLengthUnsafe arr len = Stdlib.Array.sub arr 0 len
 
 let copy a =
   let l = length a in
@@ -460,18 +457,70 @@ let unzip a =
   done;
   (a1, a2)
 
-let sliceToEnd _ _ = Not_implemented.failwith "sliceToEnd"
-let flatMapU _ _ = Not_implemented.failwith "flatMapU"
-let flatMap _ _ = Not_implemented.failwith "flatMap"
-let getByU _ _ = Not_implemented.failwith "getByU"
-let getBy _ _ = Not_implemented.failwith "getBy"
-let getIndexByU _ _ = Not_implemented.failwith "getIndexByU"
-let getIndexBy _ _ = Not_implemented.failwith "getIndexBy"
-let getIndexU _ _ = Not_implemented.failwith "getIndexU"
-let reduceWithIndexU _ _ = Not_implemented.failwith "reduceWithIndexU"
-let reduceWithIndex _ _ = Not_implemented.failwith "reduceWithIndex"
-let joinWithU _ _ = Not_implemented.failwith "joinWithU"
-let joinWith _ _ = Not_implemented.failwith "joinWith"
-let initU _ _ = Not_implemented.failwith "initU"
-let init _ _ = Not_implemented.failwith "init"
-let push _ _ = Not_implemented.failwith "push"
+let sliceToEnd a offset =
+  let lena = length a in
+  let ofs = if offset < 0 then Pervasives.max (lena + offset) 0 else offset in
+  let len = if lena > ofs then lena - ofs else 0 in
+  Stdlib.Array.init len (fun i -> getUnsafe a (ofs + i))
+
+let flatMapU a f = concatMany (mapU a f)
+let flatMap a f = flatMapU a (fun a -> f a)
+
+let getByU a p =
+  let l = length a in
+  let i = ref 0 in
+  let r = ref None in
+  while r.contents = None && i.contents < l do
+    let v = getUnsafe a i.contents in
+    if p v then r.contents <- Some v;
+    i.contents <- i.contents + 1
+  done;
+  r.contents
+
+let getBy a p = getByU a (fun [@bs] a -> p a)
+
+let getIndexByU a p =
+  let l = length a in
+  let i = ref 0 in
+  let r = ref None in
+  while r.contents = None && i.contents < l do
+    let v = getUnsafe a i.contents in
+    if p v then r.contents <- Some i.contents;
+    i.contents <- i.contents + 1
+  done;
+  r.contents
+
+let getIndexBy a p = getIndexByU a (fun a -> p a)
+
+let reduceWithIndexU a x f =
+  let r = ref x in
+  for i = 0 to length a - 1 do
+    r.contents <- f r.contents (getUnsafe a i) i
+  done;
+  r.contents
+
+let reduceWithIndex a x f = reduceWithIndexU a x (fun a b c -> f a b c)
+
+let joinWithU a sep toString =
+  match length a with
+  | 0 -> ""
+  | l ->
+      let lastIndex = l - 1 in
+      let rec aux i res =
+        let v = getUnsafe a i in
+        if i = lastIndex then res ^ toString v
+        else aux (i + 1) (res ^ toString v ^ sep)
+      in
+      aux 0 ""
+
+let joinWith a sep toString = joinWithU a sep (fun x -> toString x)
+let initU n f = Stdlib.Array.init n f
+let init n f = initU n (fun i -> f i)
+
+let push arr i =
+  let len = length arr in
+  setUnsafe arr (len + 1) i
+  [@@depreacted
+    "You should use `concat` instead. Since in JavaScript \
+     `Array.prototype.push` mutates the array reference, and it is not \
+     possible in native OCaml."]

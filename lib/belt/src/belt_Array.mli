@@ -655,7 +655,7 @@ val eq : 'a t -> 'a t -> ('a -> 'a -> bool) -> bool
 (* external truncateToLengthUnsafe : 'a t -> int -> unit = "length"
    [@@bs.set] *)
 
-val truncateToLengthUnsafe : 'a t -> int -> unit
+val truncateToLengthUnsafe : 'a t -> int -> 'a t
 (** {b Unsafe}
   [truncateToLengthUnsafe xs n] sets length of array [xs] to [n].
 
