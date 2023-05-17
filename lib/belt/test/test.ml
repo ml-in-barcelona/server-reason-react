@@ -65,3 +65,22 @@ let () =
   match ten with
   | Some t -> print_endline (Belt.Int.toString t)
   | None -> print_endline "waaaa"
+
+let () =
+  let (some10 : int option) = Belt.Option.keep (Some 10) (fun x -> x > 5) in
+  (match some10 with
+  | Some t -> print_endline (string_of_int t)
+  | None -> print_endline "error");
+
+  (* returns [Some 10] *)
+  let (none : int option) = Belt.Option.keep (Some 4) (fun x -> x > 5) in
+  (match none with
+  | Some _ -> print_endline "error"
+  | None -> print_endline "green");
+
+  (* returns [None] *)
+  let (none : int option) = Belt.Option.keep None (fun x -> x > 5) in
+  match none with
+  | Some _ -> print_endline "error"
+  | None -> print_endline "green"
+(* returns [None] *)

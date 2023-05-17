@@ -30,9 +30,12 @@ let cmpU a b f =
   | None, None -> 0
 
 let cmp a b f = cmpU a b (fun x y -> f x y)
-let keep _ _ = Not_implemented.failwith "keep"
-let keepU _ _ = Not_implemented.failwith "keepU"
-let forEach _ _ = Not_implemented.failwith "forEach"
-let forEachU _ _ = Not_implemented.failwith "forEachU"
+
+let keepU opt f =
+  match opt with Some x when f x -> opt | Some _ | None -> None
+
+let keep opt f = keepU opt (fun x -> f x)
+let forEachU opt f = match opt with Some x -> f x | None -> ()
+let forEach opt f = forEachU opt (fun x -> f x)
 
 external getUnsafe : 'a option -> 'a = "%identity"
