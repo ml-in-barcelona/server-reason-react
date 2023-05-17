@@ -56,7 +56,7 @@ setup-githooks: ## Setup githooks
 
 .PHONY: pin
 pin: ## Pin dependencies
-	@opam pin add dune.dev "https://github.com/ocaml/dune.git#4c18a4cd6121de6bb20b76236d6fb54c17e1b3a9" -y
+	@opam pin add dune.dev "https://github.com/ocaml/dune.git#5274278dc68b0248d5bf01d2fee408797495a82c" -y
 	@opam pin add melange-compiler-libs.dev "https://github.com/melange-re/melange-compiler-libs.git#575ac4c24b296ea897821f9aaee1146ff258c704" -y
 	@opam pin add melange.dev "https://github.com/melange-re/melange.git#ebc038332c16e331ee4ab9017426e63461157cdd" -y
 
