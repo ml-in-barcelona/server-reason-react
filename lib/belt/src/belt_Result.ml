@@ -2,7 +2,9 @@ type ('a, 'b) t = ('a, 'b) result = Ok of 'a | Error of 'b
 
 let getExn = function
   | Ok x -> x
-  | Error _ -> Js.Exn.raiseError "File \"\", line 31, characters 17-23"
+  | Error _ ->
+      let error = Printf.sprintf "File %s, line %d" __FILE__ __LINE__ in
+      Js.Exn.raiseError error
 
 let mapWithDefaultU opt default f =
   match opt with Ok x -> f x | Error _ -> default

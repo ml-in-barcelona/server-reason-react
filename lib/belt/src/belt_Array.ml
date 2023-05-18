@@ -14,9 +14,10 @@ let get arr i =
   if i >= 0 && i < length arr then Some (getUnsafe arr i) else None
 
 let getExn arr i =
-  if Stdlib.not (i >= 0 && i < length arr) then
-    Js.Exn.raiseError "File \"\", line 37, characters 6-12";
-  getUnsafe arr i
+  if Stdlib.not (i >= 0 && i < length arr) then (
+    let error = Printf.sprintf "File %s, line %d" __FILE__ __LINE__ in
+    Js.Exn.raiseError error;
+    getUnsafe arr i)
 
 let set arr i v =
   if i >= 0 && i < length arr then (
@@ -25,9 +26,10 @@ let set arr i v =
   else false
 
 let setExn arr i v =
-  if Stdlib.not (i >= 0 && i < length arr) then
-    Js.Exn.raiseError "File \"\", line 43, characters 4-10";
-  setUnsafe arr i v
+  if Stdlib.not (i >= 0 && i < length arr) then (
+    let error = Printf.sprintf "File %s, line %d" __FILE__ __LINE__ in
+    Js.Exn.raiseError error;
+    setUnsafe arr i v)
 
 let makeUninitialized len = Array.make len Js.undefined
 let makeUninitializedUnsafe len defaultVal = Array.make len defaultVal

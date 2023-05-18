@@ -325,9 +325,11 @@ let rec checkInvariantInternal (v : _ t) =
       let l, r = (left n, right n) in
       let diff = treeHeight l - treeHeight r in
       if Stdlib.not (diff <= 2 && diff >= -2) then
-        Js.Exn.raiseError "File \"\", line 374, characters 6-12";
-      checkInvariantInternal l;
-      checkInvariantInternal r
+        let error = Printf.sprintf "File %s, line %d" __FILE__ __LINE__ in
+        Js.Exn.raiseError error
+      else (
+        checkInvariantInternal l;
+        checkInvariantInternal r)
 
 let rec fillArrayKey n i arr =
   let l, v, r = (left n, key n, right n) in
@@ -554,7 +556,9 @@ let rec getUndefined n x ~cmp =
 
 let rec getExn n x ~cmp =
   match toOpt n with
-  | None -> Js.Exn.raiseError "File \"\", line 609, characters 6-12"
+  | None ->
+      let error = Printf.sprintf "File %s, line %d" __FILE__ __LINE__ in
+      Js.Exn.raiseError error
   | Some n ->
       let v = key n in
       let c = (Belt_Id.getCmpInternal cmp) x v in

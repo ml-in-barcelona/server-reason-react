@@ -1,6 +1,8 @@
 let getExn = function
   | Some x -> x
-  | None -> Js.Exn.raiseError "File \"\", line 28, characters 14-20"
+  | None ->
+      let error = Printf.sprintf "File %s, line %d" __FILE__ __LINE__ in
+      Js.Exn.raiseError error
 
 let mapWithDefaultU opt default f =
   match opt with Some x -> f x | None -> default
