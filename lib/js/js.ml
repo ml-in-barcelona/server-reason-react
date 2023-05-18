@@ -109,8 +109,15 @@ module Null = struct
   external toOption : 'a t -> 'a option = "%identity"
   external fromOpt : 'a option -> 'a t = "%identity"
 
-  let return a = fromOpt (Some a)
+  let empty = None
+  let return a = Some a
   let getUnsafe a = match toOption a with None -> assert false | Some a -> a
+  let test = function None -> true | Some _ -> false
+  let getExn _ = failwith "TODO"
+  let bind _ _ = failwith "TODO"
+  let iter _ _ = failwith "TODO"
+  let fromOption = fromOpt
+  let from_opt = fromOpt
 end
 
 module Undefined = struct
@@ -122,6 +129,15 @@ module Undefined = struct
 
   external toOption : 'a t -> 'a option = "%identity"
   external fromOpt : 'a option -> 'a t = "%identity"
+
+  let getExn _ = failwith "TODO"
+  let getUnsafe a = match toOption a with None -> assert false | Some a -> a
+  let bind _ _ = failwith "TODO"
+  let iter _ _ = failwith "TODO"
+  let testAny _ = failwith "TODO"
+  let test _ = failwith "TODO"
+  let fromOption = fromOpt
+  let from_opt = fromOpt
 end
 
 module Nullable = struct
@@ -148,11 +164,25 @@ end
 module Null_undefined = Nullable
 
 module Exn = struct
-  type error
+  type t
+  type exn += private Error of t
 
-  external makeError : string -> error = "%identity"
+  external makeError : string -> t = "%identity"
 
-  let raiseError str = raise (Stdlib.Obj.magic (makeError str : error) : exn)
+  let asJsExn _ = failwith "TODO"
+  let stack _ = failwith "TODO"
+  let message _ = failwith "TODO"
+  let name _ = failwith "TODO"
+  let fileName _ = failwith "TODO"
+  let anyToExnInternal _ = failwith "TODO"
+  let isCamlExceptionOrOpenVariant _ = failwith "TODO"
+  let raiseError str = raise (Stdlib.Obj.magic (makeError str : t) : exn)
+  let raiseEvalError _ = failwith "TODO"
+  let raiseRangeError _ = failwith "TODO"
+  let raiseReferenceError _ = failwith "TODO"
+  let raiseSyntaxError _ = failwith "TODO"
+  let raiseTypeError _ = failwith "TODO"
+  let raiseUriError _ = failwith "TODO"
 end
 
 (** Provide bindings to Js array *)
@@ -2243,6 +2273,21 @@ end
 
 module Dict = struct
   (** Provide utilities for JS dictionary object *)
+
+  type 'a t
+  type key = string
+
+  let get _ _ = failwith "TODO"
+  let unsafeGet _ _ = failwith "TODO"
+  let set _ _ = failwith "TODO"
+  let keys _ = failwith "TODO"
+  let empty _ = failwith "TODO"
+  let unsafeDeleteKey _ _ = failwith "TODO"
+  let entries _ = failwith "TODO"
+  let values _ = failwith "TODO"
+  let fromList _ = failwith "TODO"
+  let fromArray _ = failwith "TODO"
+  let map _ _ = failwith "TODO"
 end
 
 module Global = struct
@@ -2271,6 +2316,52 @@ end
 
 module Types = struct
   (** Provide utilities for manipulating JS types *)
+
+  type symbol
+  (**Js symbol type only available in ES6 *)
+
+  type bigint_val
+  (** Js bigint type only available in ES2020 *)
+
+  type obj_val
+
+  type undefined_val
+  (** This type has only one value [undefined] *)
+
+  type null_val
+  (** This type has only one value [null] *)
+
+  type function_val
+
+  type _ t =
+    | Undefined : undefined_val t
+    | Null : null_val t
+    | Boolean : bool t
+    | Number : float t
+    | String : string t
+    | Function : function_val t
+    | Object : obj_val t
+    | Symbol : symbol t
+    | BigInt : bigint_val t
+
+  (** @example{[
+  test "x" String = true
+  ]}*)
+  let test _ _ = failwith "TODO"
+
+  type tagged_t =
+    | JSFalse
+    | JSTrue
+    | JSNull
+    | JSUndefined
+    | JSNumber of float
+    | JSString of string
+    | JSFunction of function_val
+    | JSObject of obj_val
+    | JSSymbol of symbol
+    | JSBigInt of bigint_val
+
+  let classify _ = failwith "TODO"
 end
 
 module Float = struct
@@ -2287,18 +2378,84 @@ end
 
 module Option = struct
   (** Provide utilities for option *)
+
+  type 'a t = 'a option
+
+  let some _ = failwith "TODO"
+  let isSome _ = failwith "TODO"
+  let isSomeValue _ _ _ = failwith "TODO"
+  let isNone _ = failwith "TODO"
+  let getExn _ = failwith "TODO"
+  let equal _ _ = failwith "TODO"
+  let andThen _ _ = failwith "TODO"
+  let map _ _ = failwith "TODO"
+  let getWithDefault _ _ = failwith "TODO"
+  let default _ = failwith "TODO"
+  let filter _ _ = failwith "TODO"
+  let firstSome _ _ = failwith "TODO"
 end
 
 module Result = struct
   (** Define the interface for result *)
+  type (+'good, +'bad) t = Ok of 'good | Error of 'bad
+  [@@deprecated "Please use `Belt.Result.t` instead"]
 end
 
 module List = struct
+  type 'a t = 'a list
   (** Provide utilities for list *)
+
+  let length _ = failwith "TODO"
+  let cons _ = failwith "TODO"
+  let isEmpty _ = failwith "TODO"
+  let hd _ = failwith "TODO"
+  let tl _ = failwith "TODO"
+  let nth _ = failwith "TODO"
+  let revAppend _ = failwith "TODO"
+  let rev _ = failwith "TODO"
+  let mapRev _ = failwith "TODO"
+  let map _ _ = failwith "TODO"
+  let iter _ _ = failwith "TODO"
+  let iteri _ _ = failwith "TODO"
+  let foldLeft _ _ _ = failwith "TODO"
+  let foldRight _ _ _ = failwith "TODO"
+  let flatten _ = failwith "TODO"
+  let filter _ _ = failwith "TODO"
+  let filterMap _ _ = failwith "TODO"
+  let countBy _ _ = failwith "TODO"
+  let init _ _ = failwith "TODO"
+  let toVector _ = failwith "TODO"
+  let equal _ _ = failwith "TODO"
 end
 
 module Vector = struct
   (** Provide utilities for Vector *)
+
+  type 'a t = 'a array
+
+  let filterInPlace _ = failwith "TODO"
+  let empty _ = failwith "TODO"
+  let pushBack _ = failwith "TODO"
+  let copy _ = failwith "TODO"
+  let memByRef _ = failwith "TODO"
+  let iter _ = failwith "TODO"
+  let iteri _ = failwith "TODO"
+  let toList _ = failwith "TODO"
+  let map _ = failwith "TODO"
+  let mapi _ = failwith "TODO"
+  let foldLeft _ = failwith "TODO"
+  let foldRight _ = failwith "TODO"
+
+  external length : 'a t -> int = "%array_length"
+  external get : 'a t -> int -> 'a = "%array_safe_get"
+  external set : 'a t -> int -> 'a -> unit = "%array_safe_set"
+  external make : int -> 'a -> 'a t = "caml_make_vect"
+
+  let init _ = failwith "TODO"
+  let append _ = failwith "TODO"
+
+  external unsafe_get : 'a t -> int -> 'a = "%array_unsafe_get"
+  external unsafe_set : 'a t -> int -> 'a -> unit = "%array_unsafe_set"
 end
 
 module Console = struct
