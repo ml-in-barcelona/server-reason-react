@@ -15,3 +15,13 @@
  (flags :standard -w -9)
  (libraries ppxlib)
  (kind ppx_rewriter))
+
+(library
+ (name regex_ppx)
+ (modules regex)
+ (public_name server-reason-react.regex_ppx)
+ (flags :standard -w -9)
+ (libraries ppxlib str)
+ (preprocess
+  (pps ppxlib.metaquot))
+ (kind ppx_rewriter))

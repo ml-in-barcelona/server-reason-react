@@ -1,6 +1,8 @@
 let getExn = function
   | Some x -> x
-  | None -> Js.Exn.raiseError "File \"\", line 28, characters 14-20"
+  | None ->
+      let error = Printf.sprintf "File %s, line %d" __FILE__ __LINE__ in
+      Js.Exn.raiseError error
 
 let mapWithDefaultU opt default f =
   match opt with Some x -> f x | None -> default
@@ -30,3 +32,12 @@ let cmpU a b f =
   | None, None -> 0
 
 let cmp a b f = cmpU a b (fun x y -> f x y)
+
+let keepU opt f =
+  match opt with Some x when f x -> opt | Some _ | None -> None
+
+let keep opt f = keepU opt (fun x -> f x)
+let forEachU opt f = match opt with Some x -> f x | None -> ()
+let forEach opt f = forEachU opt (fun x -> f x)
+
+external getUnsafe : 'a option -> 'a = "%identity"

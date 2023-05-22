@@ -1,35 +1,24 @@
 module Int = Belt_MapInt
-[@@ocaml.doc
-  " specalized when key type is [int], more efficient\n\
-  \    than the generic type\n"]
-[@@ocaml.doc
-  " specalized when key type is [string], more efficient\n\
-  \    than the generic type "]
+(** specalized when key type is [int], more efficient
+    than the generic type
+*)
 
 module String = Belt_MapString
-[@@ocaml.doc
-  " specalized when key type is [string], more efficient\n\
-  \    than the generic type "]
+(** specalized when key type is [string], more efficient
+    than the generic type *)
 
 module Dict = Belt_MapDict
-[@@ocaml.doc
-  " seprate function from data, a more verboe but slightly\n\
-  \    more efficient\n"]
-
-module N = Belt_MapDict
-module A = Belt_Array
+(** seprate function from data, a more verboe but slightly
+    more efficient
+*)
 
 type ('key, 'id) id = ('key, 'id) Belt_Id.comparable
 type ('key, 'id) cmp = ('key, 'id) Belt_Id.cmp
+type ('k, 'v, 'id) t = { cmp : ('k, 'id) cmp; data : ('k, 'v, 'id) Dict.t }
 
 module S = struct
   include (
     struct
-      type ('k, 'v, 'id) t = {
-        cmp : ('k, 'id) cmp;
-        data : ('k, 'v, 'id) Dict.t;
-      }
-
       let t : cmp:('k, 'id) cmp -> data:('k, 'v, 'id) Dict.t -> ('k, 'v, 'id) t
           =
        fun ~cmp ~data -> { cmp; data }
@@ -38,8 +27,6 @@ module S = struct
       let data : ('k, 'v, 'id) t -> ('k, 'v, 'id) Dict.t = fun o -> o.data
     end :
       sig
-        type ('k, 'v, 'id) t
-
         val t :
           cmp:('k, 'id) cmp -> data:('k, 'v, 'id) Dict.t -> ('k, 'v, 'id) t
 
@@ -47,8 +34,6 @@ module S = struct
         val data : ('k, 'v, 'id) t -> ('k, 'v, 'id) Dict.t
       end)
 end
-
-type ('k, 'v, 'id) t = ('k, 'v, 'id) S.t
 
 let fromArray (type k idx) data ~(id : (k, idx) id) =
   let module M = (val id) in
@@ -159,3 +144,6 @@ let getId (type key identity) (m : (key, _, identity) t) : (key, identity) id =
 let packIdData (type key idx) ~(id : (key, idx) id) ~data =
   let module M = (val id) in
   S.t ~cmp:M.cmp ~data
+
+let findFirstByU m f = Dict.findFirstByU m.data f
+let findFirstBy m f = findFirstByU m (fun a b -> f a b)

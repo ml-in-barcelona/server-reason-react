@@ -1,68 +1,42 @@
 [@@@ocaml.text
 " Almost rewritten  by authors of BuckleScript                       "]
 
-include (
-  struct
-    type ('k, 'v) node = {
-      mutable key : 'k;
-      mutable value : 'v;
-      mutable height : int;
-      mutable left : ('k, 'v) t;
-      mutable right : ('k, 'v) t;
-    }
+type ('k, 'v) node = {
+  mutable key : 'k;
+  mutable value : 'v;
+  mutable height : int;
+  mutable left : ('k, 'v) t;
+  mutable right : ('k, 'v) t;
+}
 
-    and ('key, 'a) t = ('key, 'a) node Js.null
+and ('key, 'a) t = ('key, 'a) node Js.null
 
-    let node :
-        key:'k ->
-        value:'v ->
-        height:int ->
-        left:('k, 'v) t ->
-        right:('k, 'v) t ->
-        ('k, 'v) node =
-     fun ~key ~value ~height ~left ~right -> { key; value; height; left; right }
+let node :
+    key:'k ->
+    value:'v ->
+    height:int ->
+    left:('k, 'v) t ->
+    right:('k, 'v) t ->
+    ('k, 'v) node =
+ fun ~key ~value ~height ~left ~right -> { key; value; height; left; right }
 
-    let keySet : ('k, 'v) node -> 'k -> unit = fun o v -> o.key <- v
-    let key : ('k, 'v) node -> 'k = fun o -> o.key
-    let valueSet : ('k, 'v) node -> 'v -> unit = fun o v -> o.value <- v
-    let value : ('k, 'v) node -> 'v = fun o -> o.value
-    let heightSet : ('k, 'v) node -> int -> unit = fun o v -> o.height <- v
-    let height : ('k, 'v) node -> int = fun o -> o.height
-    let leftSet : ('k, 'v) node -> ('k, 'v) t -> unit = fun o v -> o.left <- v
-    let left : ('k, 'v) node -> ('k, 'v) t = fun o -> o.left
-    let rightSet : ('k, 'v) node -> ('k, 'v) t -> unit = fun o v -> o.right <- v
-    let right : ('k, 'v) node -> ('k, 'v) t = fun o -> o.right
-  end :
-    sig
-      type ('k, 'v) node
-      and ('key, 'a) t = ('key, 'a) node Js.null
-
-      val node :
-        key:'k ->
-        value:'v ->
-        height:int ->
-        left:('k, 'v) t ->
-        right:('k, 'v) t ->
-        ('k, 'v) node
-
-      val keySet : ('k, 'v) node -> 'k -> unit
-      val key : ('k, 'v) node -> 'k
-      val valueSet : ('k, 'v) node -> 'v -> unit
-      val value : ('k, 'v) node -> 'v
-      val heightSet : ('k, 'v) node -> int -> unit
-      val height : ('k, 'v) node -> int
-      val leftSet : ('k, 'v) node -> ('k, 'v) t -> unit
-      val left : ('k, 'v) node -> ('k, 'v) t
-      val rightSet : ('k, 'v) node -> ('k, 'v) t -> unit
-      val right : ('k, 'v) node -> ('k, 'v) t
-    end)
+let keySet : ('k, 'v) node -> 'k -> unit = fun o v -> o.key <- v
+let key : ('k, 'v) node -> 'k = fun o -> o.key
+let valueSet : ('k, 'v) node -> 'v -> unit = fun o v -> o.value <- v
+let value : ('k, 'v) node -> 'v = fun o -> o.value
+let heightSet : ('k, 'v) node -> int -> unit = fun o v -> o.height <- v
+let height : ('k, 'v) node -> int = fun o -> o.height
+let leftSet : ('k, 'v) node -> ('k, 'v) t -> unit = fun o v -> o.left <- v
+let left : ('k, 'v) node -> ('k, 'v) t = fun o -> o.left
+let rightSet : ('k, 'v) node -> ('k, 'v) t -> unit = fun o v -> o.right <- v
+let right : ('k, 'v) node -> ('k, 'v) t = fun o -> o.right
 
 type ('k, 'id) cmp = ('k, 'id) Belt_Id.cmp
 
 module A = Belt_Array
 module S = Belt_SortArray
 
-let toOpt : 'a Js.null -> 'a option = Js.toOpt
+let toOpt : 'a Js.null -> 'a option = Js.toOption
 let return a = Js.Null.return a
 let empty : 'a Js.null = Js.empty
 let unsafeCoerce a = Js.Null.getUnsafe a
@@ -351,9 +325,11 @@ let rec checkInvariantInternal (v : _ t) =
       let l, r = (left n, right n) in
       let diff = treeHeight l - treeHeight r in
       if Stdlib.not (diff <= 2 && diff >= -2) then
-        Js.Exn.raiseError "File \"\", line 374, characters 6-12";
-      checkInvariantInternal l;
-      checkInvariantInternal r
+        let error = Printf.sprintf "File %s, line %d" __FILE__ __LINE__ in
+        Js.Exn.raiseError error
+      else (
+        checkInvariantInternal l;
+        checkInvariantInternal r)
 
 let rec fillArrayKey n i arr =
   let l, v, r = (left n, key n, right n) in
@@ -580,7 +556,9 @@ let rec getUndefined n x ~cmp =
 
 let rec getExn n x ~cmp =
   match toOpt n with
-  | None -> Js.Exn.raiseError "File \"\", line 609, characters 6-12"
+  | None ->
+      let error = Printf.sprintf "File %s, line %d" __FILE__ __LINE__ in
+      Js.Exn.raiseError error
   | Some n ->
       let v = key n in
       let c = (Belt_Id.getCmpInternal cmp) x v in
@@ -704,3 +682,19 @@ let rec removeMinAuxWithRootMutate nt n =
   | Some ln ->
       leftSet n (removeMinAuxWithRootMutate nt ln);
       return (balMutate n)
+
+let rec findFirstByU n p =
+  match n with
+  | None -> None
+  | Some n ->
+      let left = findFirstByU n.left p in
+      if left <> None then left
+      else
+        let { key = v; value = d } = n in
+        let pvd = (p v d [@bs]) in
+        if pvd then Some (v, d)
+        else
+          let right = findFirstByU n.right p in
+          if right <> None then right else None
+
+let findFirstBy n p = findFirstByU n (fun [@bs] a b -> p a b)

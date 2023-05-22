@@ -103,3 +103,11 @@ let lowerWithChildrenComplex =
 a##b;;
 a##b##c
 (* a ## (b##c) *)
+
+(* regex *)
+
+let basic = [%re "/foo/"]
+let flag_global = [%re "/foo/g"]
+let flags_global_multiline_insensitive = [%re "/foo/gim"]
+let scape_digis_with_global = [%re "/(\\d+)/g"]
+let payload_should_be_a_string = [%re apply]

@@ -1,5 +1,5 @@
 let assert_string left right =
-  (Alcotest.check Alcotest.string) "should be equal" right left
+  Alcotest.check Alcotest.string "should be equal" right left
 
 let prefix_one_declaration declaration output =
   let hidden (_ : string) = "XXXXXX" in

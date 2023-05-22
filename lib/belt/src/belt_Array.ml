@@ -1,10 +1,12 @@
+type 'a t = 'a array
+
 external length : 'a array -> int = "%array_length"
 external size : 'a array -> int = "%array_length"
 external getUnsafe : 'a array -> int -> 'a = "%array_unsafe_get"
 external setUnsafe : 'a array -> int -> 'a -> unit = "%array_unsafe_set"
 
-(* let getUndefined arr i =
-   try Js.fromOpt (Some arr.(i)) with Invalid_argument _ -> Js.fromOpt None *)
+let getUndefined arr i =
+  try Js.fromOpt (Some arr.(i)) with Invalid_argument _ -> Js.fromOpt None
 
 external get : 'a array -> int -> 'a = "%array_safe_get"
 
@@ -12,8 +14,9 @@ let get arr i =
   if i >= 0 && i < length arr then Some (getUnsafe arr i) else None
 
 let getExn arr i =
-  if Stdlib.not (i >= 0 && i < length arr) then
-    Js.Exn.raiseError "File \"\", line 37, characters 6-12";
+  (if Stdlib.not (i >= 0 && i < length arr) then
+   let error = Printf.sprintf "File %s, line %d" __FILE__ __LINE__ in
+   Js.Exn.raiseError error);
   getUnsafe arr i
 
 let set arr i v =
@@ -23,13 +26,14 @@ let set arr i v =
   else false
 
 let setExn arr i v =
-  if Stdlib.not (i >= 0 && i < length arr) then
-    Js.Exn.raiseError "File \"\", line 43, characters 4-10";
-  setUnsafe arr i v
+  if Stdlib.not (i >= 0 && i < length arr) then (
+    let error = Printf.sprintf "File %s, line %d" __FILE__ __LINE__ in
+    Js.Exn.raiseError error;
+    setUnsafe arr i v)
 
-(* let makeUninitialized len = Array.make len Js.undefined *)
+let makeUninitialized len = Array.make len Js.undefined
 let makeUninitializedUnsafe len defaultVal = Array.make len defaultVal
-let truncateToLengthUnsafe arr len = Array.sub arr 0 len
+let truncateToLengthUnsafe arr len = Stdlib.Array.sub arr 0 len
 
 let copy a =
   let l = length a in
@@ -276,6 +280,20 @@ let keepU a f =
 
 let keep a f = keepU a (fun a -> f a)
 
+let keepWithIndexU a f =
+  let l = length a in
+  let r = if l > 0 then makeUninitializedUnsafe l (getUnsafe a 0) else [||] in
+  let j = ref 0 in
+  for i = 0 to l - 1 do
+    let v = getUnsafe a i in
+    if f v i then (
+      setUnsafe r !j v;
+      incr j)
+  done;
+  truncateToLengthUnsafe r !j
+
+let keepWithIndex a f = keepWithIndexU a (fun a -> f a)
+
 let keepMapU a f =
   let l = length a in
   let r = ref None in
@@ -440,3 +458,71 @@ let unzip a =
     setUnsafe a2 i v2
   done;
   (a1, a2)
+
+let sliceToEnd a offset =
+  let lena = length a in
+  let ofs = if offset < 0 then Pervasives.max (lena + offset) 0 else offset in
+  let len = if lena > ofs then lena - ofs else 0 in
+  Stdlib.Array.init len (fun i -> getUnsafe a (ofs + i))
+
+let flatMapU a f = concatMany (mapU a f)
+let flatMap a f = flatMapU a (fun a -> f a)
+
+let getByU a p =
+  let l = length a in
+  let i = ref 0 in
+  let r = ref None in
+  while r.contents = None && i.contents < l do
+    let v = getUnsafe a i.contents in
+    if p v then r.contents <- Some v;
+    i.contents <- i.contents + 1
+  done;
+  r.contents
+
+let getBy a p = getByU a (fun [@bs] a -> p a)
+
+let getIndexByU a p =
+  let l = length a in
+  let i = ref 0 in
+  let r = ref None in
+  while r.contents = None && i.contents < l do
+    let v = getUnsafe a i.contents in
+    if p v then r.contents <- Some i.contents;
+    i.contents <- i.contents + 1
+  done;
+  r.contents
+
+let getIndexBy a p = getIndexByU a (fun a -> p a)
+
+let reduceWithIndexU a x f =
+  let r = ref x in
+  for i = 0 to length a - 1 do
+    r.contents <- f r.contents (getUnsafe a i) i
+  done;
+  r.contents
+
+let reduceWithIndex a x f = reduceWithIndexU a x (fun a b c -> f a b c)
+
+let joinWithU a sep toString =
+  match length a with
+  | 0 -> ""
+  | l ->
+      let lastIndex = l - 1 in
+      let rec aux i res =
+        let v = getUnsafe a i in
+        if i = lastIndex then res ^ toString v
+        else aux (i + 1) (res ^ toString v ^ sep)
+      in
+      aux 0 ""
+
+let joinWith a sep toString = joinWithU a sep (fun x -> toString x)
+let initU n f = Stdlib.Array.init n f
+let init n f = initU n (fun i -> f i)
+
+let push arr i =
+  let len = length arr in
+  setUnsafe arr (len + 1) i
+  [@@deprecated
+    "You should use `concat` instead. Since in JavaScript \
+     `Array.prototype.push` mutates the array reference, and it is not \
+     possible in native OCaml."]

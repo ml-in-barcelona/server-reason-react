@@ -28,6 +28,7 @@
   (ocaml (>= 4.14.0))
   (ppxlib (>= 0.23.0))
   (reason (= 3.8.1))
+  (pcre (>= 7.4.0))
 
   ;; Test dependencies
   (alcotest :with-test)

@@ -1,5 +1,5 @@
 let assert_string left right =
-  (Alcotest.check Alcotest.string) "should be equal" right left
+  Alcotest.check Alcotest.string "should be equal" right left
 
 let two_styles () =
   let styles = ReactDOM.Style.make ~background:"#333" ~fontSize:"24px" () in
@@ -9,11 +9,16 @@ let one_styles () =
   let styles = ReactDOM.Style.make ~background:"#333" () in
   assert_string styles "background: #333"
 
+let zero_styles () =
+  let styles = ReactDOM.Style.make () in
+  assert_string styles ""
+
 let case title fn = Alcotest.test_case title `Quick fn
 
 let tests =
   ( "ReactDOM.Style.make",
     [
+      case "generate empty style" zero_styles;
       case "generate one style" one_styles;
       case "generate more than one style" two_styles;
     ] )

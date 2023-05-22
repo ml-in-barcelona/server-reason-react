@@ -3,44 +3,27 @@
 
 module C = Belt_internalBucketsType
 
-include (
-  struct
-    type ('a, 'b) bucket = {
-      mutable key : 'a;
-      mutable value : 'b;
-      mutable next : ('a, 'b) bucket C.opt;
-    }
+type ('a, 'b) bucket = {
+  mutable key : 'a;
+  mutable value : 'b;
+  mutable next : ('a, 'b) bucket C.opt;
+}
 
-    and ('hash, 'eq, 'a, 'b) t = ('hash, 'eq, ('a, 'b) bucket) C.container
+and ('hash, 'eq, 'a, 'b) t = ('hash, 'eq, ('a, 'b) bucket) C.container
 
-    let bucket :
-        key:'a -> value:'b -> next:('a, 'b) bucket C.opt -> ('a, 'b) bucket =
-     fun ~key ~value ~next -> { key; value; next }
+let bucket : key:'a -> value:'b -> next:('a, 'b) bucket C.opt -> ('a, 'b) bucket
+    =
+ fun ~key ~value ~next -> { key; value; next }
 
-    let keySet : ('a, 'b) bucket -> 'a -> unit = fun o v -> o.key <- v
-    let key : ('a, 'b) bucket -> 'a = fun o -> o.key
-    let valueSet : ('a, 'b) bucket -> 'b -> unit = fun o v -> o.value <- v
-    let value : ('a, 'b) bucket -> 'b = fun o -> o.value
+let keySet : ('a, 'b) bucket -> 'a -> unit = fun o v -> o.key <- v
+let key : ('a, 'b) bucket -> 'a = fun o -> o.key
+let valueSet : ('a, 'b) bucket -> 'b -> unit = fun o v -> o.value <- v
+let value : ('a, 'b) bucket -> 'b = fun o -> o.value
 
-    let nextSet : ('a, 'b) bucket -> ('a, 'b) bucket C.opt -> unit =
-     fun o v -> o.next <- v
+let nextSet : ('a, 'b) bucket -> ('a, 'b) bucket C.opt -> unit =
+ fun o v -> o.next <- v
 
-    let next : ('a, 'b) bucket -> ('a, 'b) bucket C.opt = fun o -> o.next
-  end :
-    sig
-      type ('a, 'b) bucket
-      and ('hash, 'eq, 'a, 'b) t = ('hash, 'eq, ('a, 'b) bucket) C.container
-
-      val bucket :
-        key:'a -> value:'b -> next:('a, 'b) bucket C.opt -> ('a, 'b) bucket
-
-      val keySet : ('a, 'b) bucket -> 'a -> unit
-      val key : ('a, 'b) bucket -> 'a
-      val valueSet : ('a, 'b) bucket -> 'b -> unit
-      val value : ('a, 'b) bucket -> 'b
-      val nextSet : ('a, 'b) bucket -> ('a, 'b) bucket C.opt -> unit
-      val next : ('a, 'b) bucket -> ('a, 'b) bucket C.opt
-    end)
+let next : ('a, 'b) bucket -> ('a, 'b) bucket C.opt = fun o -> o.next
 
 module A = Belt_Array
 

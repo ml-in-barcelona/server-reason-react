@@ -1,5 +1,5 @@
 let assert_string left right =
-  (Alcotest.check Alcotest.string) "should be equal" right left
+  Alcotest.check Alcotest.string "should be equal" right left
 
 let react_root_one_element () =
   let div = React.createElement "div" [||] [] in

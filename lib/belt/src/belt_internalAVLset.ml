@@ -1,56 +1,30 @@
-include (
-  struct
-    type 'value node = {
-      mutable value : 'value;
-      mutable height : int;
-      mutable left : 'value t;
-      mutable right : 'value t;
-    }
+type 'value node = {
+  mutable value : 'value; [@bs.as "v"]
+  mutable height : int; [@bs.as "h"]
+  mutable left : 'value t; [@bs.as "l"]
+  mutable right : 'value t; [@bs.as "r"]
+}
 
-    and 'value t = 'value node Js.null
+and 'value t = 'value node option
 
-    let node :
-        value:'value ->
-        height:int ->
-        left:'value t ->
-        right:'value t ->
-        'value node =
-     fun ~value ~height ~left ~right -> { value; height; left; right }
+let node :
+    value:'value -> height:int -> left:'value t -> right:'value t -> 'value node
+    =
+ fun ~value ~height ~left ~right -> { value; height; left; right }
 
-    let valueSet : 'value node -> 'value -> unit = fun o v -> o.value <- v
-    let value : 'value node -> 'value = fun o -> o.value
-    let heightSet : 'value node -> int -> unit = fun o v -> o.height <- v
-    let height : 'value node -> int = fun o -> o.height
-    let leftSet : 'value node -> 'value t -> unit = fun o v -> o.left <- v
-    let left : 'value node -> 'value t = fun o -> o.left
-    let rightSet : 'value node -> 'value t -> unit = fun o v -> o.right <- v
-    let right : 'value node -> 'value t = fun o -> o.right
-  end :
-    sig
-      type 'value node
-      and 'value t = 'value node Js.null
-
-      val node :
-        value:'value ->
-        height:int ->
-        left:'value t ->
-        right:'value t ->
-        'value node
-
-      val valueSet : 'value node -> 'value -> unit
-      val value : 'value node -> 'value
-      val heightSet : 'value node -> int -> unit
-      val height : 'value node -> int
-      val leftSet : 'value node -> 'value t -> unit
-      val left : 'value node -> 'value t
-      val rightSet : 'value node -> 'value t -> unit
-      val right : 'value node -> 'value t
-    end)
+let valueSet : 'value node -> 'value -> unit = fun o v -> o.value <- v
+let value : 'value node -> 'value = fun o -> o.value
+let heightSet : 'value node -> int -> unit = fun o v -> o.height <- v
+let height : 'value node -> int = fun o -> o.height
+let leftSet : 'value node -> 'value t -> unit = fun o v -> o.left <- v
+let left : 'value node -> 'value t = fun o -> o.left
+let rightSet : 'value node -> 'value t -> unit = fun o v -> o.right <- v
+let right : 'value node -> 'value t = fun o -> o.right
 
 module A = Belt_Array
 module S = Belt_SortArray
 
-let toOpt = Js.toOpt
+let toOpt = Js.toOption
 let return : 'a -> 'a Js.null = Js.Null.return
 let empty = Js.empty
 let unsafeCoerce : 'a Js.null -> 'a = Js.Null.getUnsafe
@@ -254,9 +228,11 @@ let rec checkInvariantInternal (v : _ t) =
       let l, r = (left n, right n) in
       let diff = treeHeight l - treeHeight r in
       if Stdlib.not (diff <= 2 && diff >= -2) then
-        Js.Exn.raiseError "File \"\", line 306, characters 6-12";
-      checkInvariantInternal l;
-      checkInvariantInternal r
+        let error = Printf.sprintf "File %s, line %d" __FILE__ __LINE__ in
+        Js.Exn.raiseError error
+      else (
+        checkInvariantInternal l;
+        checkInvariantInternal r)
 
 let rec fillArray n i arr =
   let l, v, r = (left n, value n, right n) in
@@ -477,7 +453,9 @@ let rec getUndefined (n : _ t) x ~cmp =
 
 let rec getExn (n : _ t) x ~cmp =
   match toOpt n with
-  | None -> Js.Exn.raiseError "File \"\", line 548, characters 14-20"
+  | None ->
+      let error = Printf.sprintf "File %s, line %d" __FILE__ __LINE__ in
+      Js.Exn.raiseError error
   | Some t ->
       let v = value t in
       let c = (Belt_Id.getCmpInternal cmp) x v in

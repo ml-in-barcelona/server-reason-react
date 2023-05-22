@@ -10,14 +10,18 @@ let head x = match x with [] -> None | x :: _ -> Some x
 
 let headExn x =
   match x with
-  | [] -> Js.Exn.raiseError "File \"\", line 94, characters 12-18"
+  | [] ->
+      let error = Printf.sprintf "File %s, line %d" __FILE__ __LINE__ in
+      Js.Exn.raiseError error
   | x :: _ -> x
 
 let tail x = match x with [] -> None | _ :: xs -> Some xs
 
 let tailExn x =
   match x with
-  | [] -> Js.Exn.raiseError "File \"\", line 104, characters 12-18"
+  | [] ->
+      let error = Printf.sprintf "File %s, line %d" __FILE__ __LINE__ in
+      Js.Exn.raiseError error
   | _ :: t -> t
 
 let add xs x = x :: xs
@@ -30,12 +34,16 @@ let rec nthAux x n =
 let rec nthAuxAssert x n =
   match x with
   | h :: t -> if n = 0 then h else nthAuxAssert t (n - 1)
-  | _ -> Js.Exn.raiseError "File \"\", line 118, characters 11-17"
+  | _ ->
+      let error = Printf.sprintf "File %s, line %d" __FILE__ __LINE__ in
+      Js.Exn.raiseError error
 
 let get x n = if n < 0 then None else nthAux x n
 
 let getExn x n =
-  if n < 0 then Js.Exn.raiseError "File \"\", line 125, characters 18-24"
+  if n < 0 then
+    let error = Printf.sprintf "File %s, line %d" __FILE__ __LINE__ in
+    Js.Exn.raiseError error
   else nthAuxAssert x n
 
 let rec partitionAux p cell precX precY =
@@ -595,3 +603,16 @@ let rec zip l1 l2 =
       let cell = mutableCell (a1, a2) [] in
       zipAux l1 l2 cell;
       cell
+
+let rec reduceWithIndexAuxU l acc f i =
+  match l with
+  | [] -> acc
+  | x :: xs -> reduceWithIndexAuxU xs (f acc x i [@bs]) f (i + 1)
+
+let reduceWithIndexU l acc f = reduceWithIndexAuxU l acc f 0
+
+let reduceWithIndex l acc f =
+  reduceWithIndexU l acc (fun [@bs] acc x i -> f acc x i)
+
+let filter = keep
+let filterWithIndex = keepWithIndexU
