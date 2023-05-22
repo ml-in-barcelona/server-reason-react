@@ -389,6 +389,107 @@ end
 
 module Re : sig
   type t
+  (* The RegExp object *)
+
+  type result
+  (* The result of a executing a RegExp on a string. *)
+
+  val captures : result -> string nullable array
+  (** An array of the match and captures, the first is the full match and the remaining are the substring captures. *)
+
+  val matches : result -> string array
+  (** Deprecated. Use captures instead. An array of the matches, the first is the full match and the remaining are the substring matches. *)
+
+  val index : result -> int
+  (** 0-based index of the match in the input string. *)
+
+  val input : result -> string
+  (* The original input string. *)
+
+  val fromString : string -> t
+  (** Constructs a RegExp object (Js.Re.t) from a string. Regex literals %re("/.../") should generally be preferred, but fromString is useful when you need to dynamically construct a regex using strings, exactly like when you do so in JavaScript. *)
+
+  (* let firstReScriptFileExtension = (filename, content) -> {
+         let result = Js.Re.fromString(filename ++ "\.(res|resi)")->Js.Re.exec_(content)
+         switch result {
+         | Some(r) -> Js.Nullable.toOption(Js.Re.captures(r)[1])
+         | None -> None
+         }
+       }
+     firstReScriptFileExtension("School", "School.res School.resi Main.js School.bs.js")
+  *)
+
+  val fromStringWithFlags : string -> flags:string -> t
+  (* Constructs a RegExp object (Js.Re.t) from a string with the given flags. See Js.Re.fromString.
+
+     Valid flags:
+
+     g global i ignore case m multiline u unicode (es2015) y sticky (es2015)
+  *)
+
+  val flags : t -> string
+  (** Returns the enabled flags as a string. *)
+
+  val global : t -> bool
+  (** Returns a bool indicating whether the global flag is set. *)
+
+  val ignoreCase : t -> bool
+  (** Returns a bool indicating whether the ignoreCase flag is set. *)
+
+  val lastIndex : t -> int
+  (*+ Returns the index where the next match will start its search. This property will be modified when the RegExp object is used, if the global ("g") flag is set. *)
+
+  (* let re = %re("/ab*/g")
+     let str = "abbcdefabh"
+
+     let break = ref(false)
+     while !break.contents {
+       switch Js.Re.exec_(re, str) {
+       | Some(result) -> Js.Nullable.iter(Js.Re.captures(result)[0], (. match_) -> {
+           let next = Belt.Int.toString(Js.Re.lastIndex(re))
+           Js.log("Found " ++ (match_ ++ (". Next match starts at " ++ next)))
+         })
+       | None -> break := true
+       }
+     } *)
+
+  val setLastIndex : t -> int -> unit
+  (** Sets the index at which the next match will start its search from. *)
+
+  val multiline : t -> bool
+  (** Returns a bool indicating whether the multiline flag is set. *)
+
+  val source : t -> string
+  (** Returns the pattern as a string. *)
+
+  val sticky : t -> bool
+  (** Returns a bool indicating whether the sticky flag is set. *)
+
+  val unicode : t -> bool
+  (** Returns a bool indicating whether the unicode flag is set. *)
+
+  val exec_ : t -> string -> result option
+  (** Executes a search on a given string using the given RegExp object. Returns Some(Js.Re.result) if a match is found, None otherwise. *)
+
+  (* let re = %re("/quick\s(brown).+?(jumps)/ig")
+     let result = Js.Re.exec_(re, "The Quick Brown Fox Jumps Over The Lazy Dog") *)
+
+  val exec : string -> t -> result option
+  (** Deprecated. please use Js.Re.exec_ instead. *)
+
+  val test_ : t -> string -> bool
+  (** Tests whether the given RegExp object will match a given string. Returns true if a match is found, false otherwise. *)
+
+  (* A simple implementation of Js.String.startsWith
+
+     let str = "hello world!"
+
+     let startsWith = (target, substring) -> Js.Re.fromString("^" ++ substring)->Js.Re.test_(target)
+
+     Js.log(str->startsWith("hello")) /* prints "true" */ *)
+
+  val test : string -> t -> bool
+  (** Deprecated. please use Js.Re.test_ instead. *)
 end
 
 module String : sig

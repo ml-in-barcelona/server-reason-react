@@ -633,8 +633,135 @@ module Array = struct
 end
 
 module Re = struct
-  type t
   (** Provide bindings to Js regex expression *)
+
+  type flag = [ Pcre.cflag | `GLOBAL | `STICKY | `UNICODE ]
+
+  (* The RegExp object *)
+  type t = { regex : Pcre.regexp; flags : flag list; mutable lastIndex : int }
+
+  (* The result of a executing a RegExp on a string. *)
+  type result = { substrings : Pcre.substrings list; input : string }
+
+  let captures : result -> string nullable array =
+   fun result ->
+    result.substrings
+    |> Stdlib.List.map Pcre.get_opt_substrings
+    |> Stdlib.Array.concat
+
+  let matches : result -> string array =
+   fun result ->
+    result.substrings
+    |> Stdlib.List.map Pcre.get_substrings
+    |> Stdlib.Array.concat
+
+  let index : result -> int =
+   fun result ->
+    try
+      let substring = Stdlib.List.nth result.substrings 0 in
+      let start_offset, _end_offset = Pcre.get_substring_ofs substring 0 in
+      start_offset
+    with Not_found -> 0
+
+  let input : result -> string = fun result -> result.input
+  let source : t -> string = fun _ -> failwith "todo source"
+
+  let fromString : string -> t =
+   fun str ->
+    try
+      let regexp = Pcre.regexp str in
+      { regex = regexp; flags = []; lastIndex = 0 }
+    with
+    | Pcre.Error BadPartial -> raise @@ Invalid_argument "BadPartial"
+    | Pcre.Error (BadPattern (msg, _pos)) ->
+        raise @@ Invalid_argument ("BadPattern: " ^ msg)
+    | Pcre.Error Partial -> raise @@ Invalid_argument "Partial"
+    | Pcre.Error BadUTF8 -> raise @@ Invalid_argument "BadUTF8"
+    | Pcre.Error BadUTF8Offset -> raise @@ Invalid_argument "BadUTF8Offset"
+    | Pcre.Error MatchLimit -> raise @@ Invalid_argument "MatchLimit"
+    | Pcre.Error RecursionLimit -> raise @@ Invalid_argument "RecursionLimit"
+    | Pcre.Error WorkspaceSize -> raise @@ Invalid_argument "WorkspaceSize"
+    | Pcre.Error (InternalError msg) -> raise @@ Invalid_argument msg
+
+  let char_of_cflag : Pcre.cflag -> char option = function
+    | `CASELESS -> Some 'i'
+    | `MULTILINE -> Some 'm'
+    | `UTF8 -> Some 'u'
+    | _ -> None
+
+  let flag_of_char : char -> flag = function
+    | 'g' -> `GLOBAL
+    | 'i' -> `CASELESS
+    | 'm' -> `MULTILINE
+    | 'u' -> `UTF8
+    | 'y' -> `STICKY
+    | _ -> raise (Invalid_argument "invalid flag")
+
+  let parse_flags : string -> flag list =
+   fun flags -> flags |> String.to_seq |> Seq.map flag_of_char |> List.of_seq
+
+  let cflag_of_flag : flag -> Pcre.cflag option =
+   fun flag ->
+    match flag with
+    | `GLOBAL | `STICKY | `UNICODE -> None
+    | `CASELESS -> Some `CASELESS
+    | `MULTILINE -> Some `MULTILINE
+    | `DOTALL -> Some `DOTALL
+    | `EXTENDED -> Some `EXTENDED
+    | `ANCHORED -> Some `ANCHORED
+    | `DOLLAR_ENDONLY -> Some `DOLLAR_ENDONLY
+    | `EXTRA -> Some `EXTRA
+    | `UNGREEDY -> Some `UNGREEDY
+    | `UTF8 -> Some `UTF8
+    | `NO_UTF8_CHECK -> Some `NO_UTF8_CHECK
+    | `NO_AUTO_CAPTURE -> Some `NO_AUTO_CAPTURE
+    | `AUTO_CALLOUT -> Some `AUTO_CALLOUT
+    | `FIRSTLINE -> Some `FIRSTLINE
+
+  let fromStringWithFlags : string -> flags:string -> t =
+   fun str ~flags:str_flags ->
+    let flags = parse_flags str_flags in
+    let pcre_flags = List.filter_map cflag_of_flag flags in
+    let regexp = Pcre.regexp ~flags:pcre_flags str in
+    { regex = regexp; flags = parse_flags str_flags; lastIndex = 0 }
+
+  let flags : t -> string =
+   fun regexp ->
+    let options = Pcre.options regexp.regex in
+    let flags = Pcre.cflag_list options in
+    flags |> List.filter_map char_of_cflag |> List.to_seq |> String.of_seq
+
+  let flag : t -> flag -> bool = fun regexp flag -> List.mem flag regexp.flags
+  let global : t -> bool = fun regexp -> flag regexp `GLOBAL
+  let ignoreCase : t -> bool = fun regexp -> flag regexp `CASELESS
+  let multiline : t -> bool = fun regexp -> flag regexp `MULTILINE
+  let sticky : t -> bool = fun regexp -> flag regexp `STICKY
+  let unicode : t -> bool = fun regexp -> flag regexp `UNICODE
+  let lastIndex : t -> int = fun regex -> regex.lastIndex
+
+  let setLastIndex : t -> int -> unit =
+   fun regex index -> regex.lastIndex <- index
+
+  let exec_ : t -> string -> result option =
+   fun regexp str ->
+    try
+      let rex = regexp.regex in
+      let pos = regexp.lastIndex in
+      if global regexp then
+        let substrings = Pcre.exec_all ~rex ~pos str in
+        Some { substrings = substrings |> Stdlib.Array.to_list; input = str }
+      else
+        let substrings = Pcre.exec ~rex ~pos str in
+        Some { substrings = [ substrings ]; input = str }
+    with Not_found -> None
+
+  let exec : string -> t -> result option = fun str rex -> exec_ rex str
+
+  let test_ : t -> string -> bool =
+   fun regexp str -> Pcre.pmatch ~rex:regexp.regex str
+
+  (** Deprecated. please use Js.Re.test_ instead. *)
+  let test : string -> t -> bool = fun str regex -> test_ regex str
 end
 
 module String = struct
