@@ -522,7 +522,7 @@ let init n f = initU n (fun i -> f i)
 let push arr i =
   let len = length arr in
   setUnsafe arr (len + 1) i
-  [@@depreacted
+  [@@deprecated
     "You should use `concat` instead. Since in JavaScript \
      `Array.prototype.push` mutates the array reference, and it is not \
      possible in native OCaml."]
