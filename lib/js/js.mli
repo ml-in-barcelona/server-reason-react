@@ -477,6 +477,8 @@ module Re : sig
   val exec : string -> t -> result option
   (** Deprecated. please use Js.Re.exec_ instead. *)
 
+  val wat : unit -> unit
+
   val test_ : t -> string -> bool
   (** Tests whether the given RegExp object will match a given string. Returns true if a match is found, false otherwise. *)
 

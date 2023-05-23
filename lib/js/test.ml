@@ -18,15 +18,15 @@ let assert_bool left right =
 
 let case title (fn : unit -> unit) = Alcotest.test_case title `Quick fn
 
-let re_tests =
+let _re_tests =
   ( "Js.Re",
     [
-      (* case "captures" (fun () ->
+      case "captures" (fun () ->
           let abc_regex = Js.Re.fromString "abc" in
           let result = Js.Re.exec_ abc_regex "abcdefabcdef" |> Option.get in
           let matches = Js.Re.captures result |> Array.map Option.get in
-          assert_string_array matches [| "abc" |]); *)
-      (* case "exec" (fun () ->
+          assert_string_array matches [| "abc" |]);
+      case "exec" (fun () ->
           let regex = Js.Re.fromString ".ats" in
           let input = "cats and bats" in
           let regex_and_capture =
@@ -35,18 +35,23 @@ let re_tests =
           in
           assert_string_array regex_and_capture [| "cats" |];
           assert_string_array regex_and_capture [| "cats" |];
-          assert_string_array regex_and_capture [| "cats" |]); *)
+          assert_string_array regex_and_capture [| "cats" |]);
       case "exec with global" (fun () ->
           let regex = Js.Re.fromStringWithFlags ~flags:"g" ".ats" in
           let input = "cats and bats and mats" in
-          let regex_and_capture =
-            Js.Re.exec_ regex input |> Option.get |> Js.Re.captures
-            |> Array.map Option.get
-          in
           assert_bool (Js.Re.global regex) true;
-          assert_string_array regex_and_capture [| "cats" |];
-          assert_string_array regex_and_capture [| "bats" |];
-          assert_string_array regex_and_capture [| "mats" |]);
+          assert_string_array
+            (Js.Re.exec_ regex input |> Option.get |> Js.Re.captures
+           |> Array.map Option.get)
+            [| "cats" |];
+          assert_string_array
+            (Js.Re.exec_ regex input |> Option.get |> Js.Re.captures
+           |> Array.map Option.get)
+            [| "bats" |];
+          assert_string_array
+            (Js.Re.exec_ regex input |> Option.get |> Js.Re.captures
+           |> Array.map Option.get)
+            [| "mats" |]);
       case "modifier: end ($)" (fun () ->
           let regex = Js.Re.fromString "cat$" in
           assert_bool (Js.Re.test_ regex "The cat and mouse") false;
@@ -61,7 +66,7 @@ let re_tests =
           assert_string_array matches [| "Hello" |];
           let result = Js.Re.exec_ regex "Hello gello! hello" |> Option.get in
           let matches = Js.Re.captures result |> Array.map Option.get in
-          assert_string_array matches [| "Hello" |]);
+          assert_string_array matches [| "hello" |]);
       case "modifier: or ([])" (fun () ->
           let regex = Js.Re.fromString "(\\w+)\\s(\\w+)" in
           assert_bool (Js.Re.test_ regex "Jane Smith") true;
@@ -89,7 +94,7 @@ let re_tests =
           match Js.Re.exec_ regex "xyzzy" with
           | Some res ->
               assert_int (Js.Re.index res) 4;
-              assert_int (Js.Re.lastIndex regex) 3
+              assert_int (Js.Re.lastIndex regex) 5
           | None -> Alcotest.fail "should have matched");
       case "input" (fun () ->
           let regex = Js.Re.fromString "zbar" in
@@ -98,7 +103,7 @@ let re_tests =
           | None -> Alcotest.fail "should have matched");
     ] )
 
-let _string2_tests =
+let string2_tests =
   ( "Js.String2",
     [
       case "make" (fun () ->
@@ -363,4 +368,4 @@ let _string2_tests =
           ());
     ] )
 
-let () = Alcotest.run "Js_tests" [ (* string2_tests; *) re_tests ]
+let () = Alcotest.run "Js_tests" [ string2_tests; _re_tests ]
