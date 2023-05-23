@@ -641,29 +641,25 @@ module Re = struct
   type t = { regex : Pcre.regexp; flags : flag list; mutable lastIndex : int }
 
   (* The result of a executing a RegExp on a string. *)
-  type result = { substrings : Pcre.substrings list; input : string }
+  type result = { substrings : Pcre.substrings }
 
   let captures : result -> string nullable array =
-   fun result ->
-    result.substrings
-    |> Stdlib.List.map Pcre.get_opt_substrings
-    |> Stdlib.Array.concat
+   fun result -> Pcre.get_opt_substrings result.substrings
 
   let matches : result -> string array =
-   fun result ->
-    result.substrings
-    |> Stdlib.List.map Pcre.get_substrings
-    |> Stdlib.Array.concat
+   fun result -> Pcre.get_substrings result.substrings
 
   let index : result -> int =
    fun result ->
     try
-      let substring = Stdlib.List.nth result.substrings 0 in
+      let substring = result.substrings in
       let start_offset, _end_offset = Pcre.get_substring_ofs substring 0 in
       start_offset
     with Not_found -> 0
 
-  let input : result -> string = fun result -> result.input
+  let input : result -> string =
+   fun result -> Pcre.get_subject result.substrings
+
   let source : t -> string = fun _ -> failwith "todo source"
 
   let fromString : string -> t =
@@ -747,12 +743,8 @@ module Re = struct
     try
       let rex = regexp.regex in
       let pos = regexp.lastIndex in
-      if global regexp then
-        let substrings = Pcre.exec_all ~rex ~pos str in
-        Some { substrings = substrings |> Stdlib.Array.to_list; input = str }
-      else
-        let substrings = Pcre.exec ~rex ~pos str in
-        Some { substrings = [ substrings ]; input = str }
+      let substrings = Pcre.exec ~rex ~pos str in
+      Some { substrings }
     with Not_found -> None
 
   let exec : string -> t -> result option = fun str rex -> exec_ rex str
