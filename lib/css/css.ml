@@ -194,10 +194,14 @@ let render_style_tag () =
     cache.contents ""
 
 (* Re-export CssJs to have compatibility with bs-css *)
+type rule = Rule.t
+
 module CssJs = struct
   include Properties
   include Colors
   include Rule
+
+  type rule = Rule.t
 
   let style arr = style (Array.to_list arr)
 end
