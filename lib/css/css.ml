@@ -2,13 +2,6 @@ include Properties
 include Colors
 include Rule
 
-(* Re-export CssJs to have compatibility with bs-css *)
-module CssJs = struct
-  include Properties
-  include Colors
-  include Rule
-end
-
 (* rules_to_string render the rule in a format where the hash matches with `@emotion/serialiseStyles`
    It doesn't render any whitespace.
 
@@ -199,6 +192,15 @@ let render_style_tag () =
       let rules = rules |> resolved_rule_to_css hash |> String.trim in
       Printf.sprintf "%s %s" accumulator rules)
     cache.contents ""
+
+(* Re-export CssJs to have compatibility with bs-css *)
+module CssJs = struct
+  include Properties
+  include Colors
+  include Rule
+
+  let style = style
+end
 
 (* let keyframes name rules =
    let rules =
