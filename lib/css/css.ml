@@ -199,7 +199,7 @@ module CssJs = struct
   include Colors
   include Rule
 
-  let style = style
+  let style arr = style (Array.to_list arr)
 end
 
 (* let keyframes name rules =
