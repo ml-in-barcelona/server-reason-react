@@ -3,4 +3,6 @@
  (modules reactDOM reactDOMStyle)
  (wrapped false)
  (public_name server-reason-react.reactDom)
- (libraries react js webapi html))
+ (libraries react js webapi html)
+ (preprocess
+  (pps melange.ppx)))

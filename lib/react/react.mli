@@ -57,9 +57,14 @@ and element =
   | Provider of (unit -> element) list
   | Consumer of (unit -> element list)
 
-and fragment = element
-
 exception Invalid_children of string
+
+(* type ('props, 'return) componentLike = 'props -> 'return *)
+(* type 'props component = ('props, element) componentLike *)
+(* external component : ('props, element) componentLike -> 'props component = "%identity" *)
+
+val createDOMElementVariadic :
+  string -> Attribute.t array -> element array -> element
 
 val createElement : string -> Attribute.t array -> element list -> element
 val fragment : children:element -> unit -> element
@@ -165,3 +170,11 @@ val useLayoutEffect6 :
   unit
 
 val setDisplayName : 'component -> string -> unit
+
+module Children : sig
+  (* val map : (element -> element) -> element array -> element array *)
+  (* val forEach : (element -> unit) -> element array -> unit *)
+  (* val count : element array -> int *)
+  (* val only : element array -> element *)
+  val toArray : element -> element array
+end

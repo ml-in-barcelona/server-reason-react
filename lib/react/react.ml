@@ -13,12 +13,6 @@ let createRef () = ref None
 let useRef value = ref value
 let forwardRef f = f ()
 
-(* type ('props, 'return) componentLike = 'props -> 'return
-   type 'props component = ('props, element) componentLike
-
-   external component : ('props, element) componentLike -> 'props component
-     = "%identity" *)
-
 module Attribute = struct
   module Event = struct
     type t =
@@ -62,8 +56,6 @@ and element =
   | Empty
   | Provider of (unit -> element) list
   | Consumer of (unit -> element list)
-
-and fragment = element
 
 exception Invalid_children of string
 
@@ -143,6 +135,10 @@ let createElement tag attributes children =
       raise @@ Invalid_children "closing tag with children isn't valid"
   | true -> Lower_case_element { tag; attributes; children = [] }
   | false -> create_element_inner tag attributes children
+
+let createDOMElementVariadic :
+    string -> Attribute.t array -> element array -> element =
+ fun tag props childrens -> createElement tag props (childrens |> Array.to_list)
 
 (* cloneElements overrides childrens *)
 let cloneElement element new_attributes new_childrens =
@@ -312,3 +308,25 @@ let useLayoutEffect6 :
  fun _ _ -> ()
 
 let setDisplayName : 'component -> string -> unit = fun _ _ -> ()
+
+module Children = struct
+  (* [@bs.module "react"] [@bs.scope "Children"] [@bs.val]
+     external map: (element, element => element) => element = "map";
+     [@bs.module "react"] [@bs.scope "Children"] [@bs.val]
+     external mapWithIndex:
+       (element, [@bs.uncurry] ((element, int) => element)) => element =
+       "map";
+     [@bs.module "react"] [@bs.scope "Children"] [@bs.val]
+     external forEach: (element, element => unit) => unit = "forEach";
+     [@bs.module "react"] [@bs.scope "Children"] [@bs.val]
+     external forEachWithIndex:
+       (element, [@bs.uncurry] ((element, int) => unit)) => unit =
+       "forEach";
+     [@bs.module "react"] [@bs.scope "Children"] [@bs.val]
+     external count: element => int = "count";
+     [@bs.module "react"] [@bs.scope "Children"] [@bs.val]
+     external only: element => element = "only";
+     [@bs.module "react"] [@bs.scope "Children"] [@bs.val] *)
+  (* external toArray: element => array(element) = "toArray"; *)
+  let toArray children = [| children |]
+end

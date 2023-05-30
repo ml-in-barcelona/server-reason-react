@@ -1,30 +1,30 @@
 type 'a t = < .. > as 'a
 
-module Fn = struct
-  type 'a arity0 = { i0 : unit -> 'a [@internal] }
-  type 'a arity1 = { i1 : 'a [@internal] }
-  type 'a arity2 = { i2 : 'a [@internal] }
-  type 'a arity3 = { i3 : 'a [@internal] }
-  type 'a arity4 = { i4 : 'a [@internal] }
-  type 'a arity5 = { i5 : 'a [@internal] }
-  type 'a arity6 = { i6 : 'a [@internal] }
-  type 'a arity7 = { i7 : 'a [@internal] }
-  type 'a arity8 = { i8 : 'a [@internal] }
-  type 'a arity9 = { i9 : 'a [@internal] }
-  type 'a arity10 = { i10 : 'a [@internal] }
-  type 'a arity11 = { i11 : 'a [@internal] }
-  type 'a arity12 = { i12 : 'a [@internal] }
-  type 'a arity13 = { i13 : 'a [@internal] }
-  type 'a arity14 = { i14 : 'a [@internal] }
-  type 'a arity15 = { i15 : 'a [@internal] }
-  type 'a arity16 = { i16 : 'a [@internal] }
-  type 'a arity17 = { i17 : 'a [@internal] }
-  type 'a arity18 = { i18 : 'a [@internal] }
-  type 'a arity19 = { i19 : 'a [@internal] }
-  type 'a arity20 = { i20 : 'a [@internal] }
-  type 'a arity21 = { i21 : 'a [@internal] }
-  type 'a arity22 = { i22 : 'a [@internal] }
-end
+(* module Fn = struct
+     type 'a arity0 = { i0 : unit -> 'a [@internal] }
+     type 'a arity1 = { i1 : 'a [@internal] }
+     type 'a arity2 = { i2 : 'a [@internal] }
+     type 'a arity3 = { i3 : 'a [@internal] }
+     type 'a arity4 = { i4 : 'a [@internal] }
+     type 'a arity5 = { i5 : 'a [@internal] }
+     type 'a arity6 = { i6 : 'a [@internal] }
+     type 'a arity7 = { i7 : 'a [@internal] }
+     type 'a arity8 = { i8 : 'a [@internal] }
+     type 'a arity9 = { i9 : 'a [@internal] }
+     type 'a arity10 = { i10 : 'a [@internal] }
+     type 'a arity11 = { i11 : 'a [@internal] }
+     type 'a arity12 = { i12 : 'a [@internal] }
+     type 'a arity13 = { i13 : 'a [@internal] }
+     type 'a arity14 = { i14 : 'a [@internal] }
+     type 'a arity15 = { i15 : 'a [@internal] }
+     type 'a arity16 = { i16 : 'a [@internal] }
+     type 'a arity17 = { i17 : 'a [@internal] }
+     type 'a arity18 = { i18 : 'a [@internal] }
+     type 'a arity19 = { i19 : 'a [@internal] }
+     type 'a arity20 = { i20 : 'a [@internal] }
+     type 'a arity21 = { i21 : 'a [@internal] }
+     type 'a arity22 = { i22 : 'a [@internal] }
+   end *)
 
 (**/**)
 
@@ -154,9 +154,9 @@ module Nullable = struct
   let bind x f =
     match to_opt x with
     | None -> (Stdlib.Obj.magic (x : 'a t) : 'b t)
-    | Some x -> return (f x [@bs])
+    | Some x -> return (f x)
 
-  let iter x f = match to_opt x with None -> () | Some x -> f x [@bs]
+  let iter x f = match to_opt x with None -> () | Some x -> f x
   let fromOption x = match x with None -> undefined | Some x -> return x
   let from_opt = fromOption
 end
@@ -1151,7 +1151,7 @@ let () = Js.log replaced (* prints "bEAUtifUl vOwEls" *)
 
 @see <https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/replace#Specifying_a_function_as_a_parameter> MDN
 *)
-  let unsafeReplaceBy0 _ _ = failwith "TODO" = "replace" [@@bs.send.pipe: t]
+  let unsafeReplaceBy0 _ _ = failwith "TODO" = "replace"
 
   (* external unsafeReplaceBy1 :
      Re.t -> ((t -> t -> int -> t -> t)[@bs.uncurry]) -> t = "replace" [@@bs.send.pipe: t] *)
