@@ -2,6 +2,13 @@ include Properties
 include Colors
 include Rule
 
+(* Re-export CssJs to have compatibility with bs-css *)
+module CssJs = struct
+  include Properties
+  include Colors
+  include Rule
+end
+
 (* rules_to_string render the rule in a format where the hash matches with `@emotion/serialiseStyles`
    It doesn't render any whitespace.
 
