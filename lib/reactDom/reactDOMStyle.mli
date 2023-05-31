@@ -344,7 +344,8 @@ val make :
   ?rubyMerge:string ->
   ?rubyPosition:string ->
   unit ->
-  string
+  t
 
+val to_string : t -> string
 val combine : t -> t -> t
 val unsafeAddProp : t -> string -> string -> t

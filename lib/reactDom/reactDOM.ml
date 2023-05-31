@@ -153,3 +153,10 @@ let hydrate _element _node = fail_impossible_action_in_ssr
 let createPortal _reactElement _domElement = _reactElement
 
 module Style = ReactDOMStyle
+
+let createDOMElementVariadic :
+    string -> Attribute.t array -> React.element array -> element =
+ fun tag props childrens ->
+  React.createElement tag props (childrens |> Array.to_list)
+
+let domProps = Props.domProps

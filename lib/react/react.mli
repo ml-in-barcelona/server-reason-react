@@ -24,6 +24,9 @@ module Attribute : sig
       | Wheel of (ReactEvent.Wheel.t -> unit)
       | Clipboard of (ReactEvent.Clipboard.t -> unit)
       | Composition of (ReactEvent.Composition.t -> unit)
+      | Transition of (ReactEvent.Transition.t -> unit)
+      | Animation of (ReactEvent.Animation.t -> unit)
+      | Pointer of (ReactEvent.Pointer.t -> unit)
       | Keyboard of (ReactEvent.Keyboard.t -> unit)
       | Focus of (ReactEvent.Focus.t -> unit)
       | Form of (ReactEvent.Form.t -> unit)
@@ -57,9 +60,11 @@ and element =
   | Provider of (unit -> element) list
   | Consumer of (unit -> element list)
 
-and fragment = element
-
 exception Invalid_children of string
+
+(* type ('props, 'return) componentLike = 'props -> 'return *)
+(* type 'props component = ('props, element) componentLike *)
+(* external component : ('props, element) componentLike -> 'props component = "%identity" *)
 
 val createElement : string -> Attribute.t array -> element list -> element
 val fragment : children:element -> unit -> element
@@ -165,3 +170,16 @@ val useLayoutEffect6 :
   unit
 
 val setDisplayName : 'component -> string -> unit
+
+module Children : sig
+  val map : (element -> element) -> element array -> element array
+
+  val mapWithIndex :
+    (int -> element -> element) -> element array -> element array
+
+  val forEach : (element -> unit) -> element array -> unit
+  val forEachWithIndex : (int -> element -> unit) -> element array -> unit
+  val count : element array -> int
+  val only : element array -> element
+  val toArray : element -> element array
+end

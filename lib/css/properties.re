@@ -1806,21 +1806,14 @@ let backgroundSize = x =>
   );
 
 let fontFace =
-    (
-      ~fontFamily as _,
-      ~src,
-      ~fontStyle as _=?,
-      ~fontWeight=?,
-      ~fontDisplay=?,
-      (),
-    ) => {
-  let _fontStyle = "font-style: " ++ "normal" ++ ";";
-  /* let fontStyle =
-     fontStyle
-     |> Option.map(FontStyle.toString)
-     |> Option.get("", s => "font-style: " ++ s ++ ";"); */
+    (~fontFamily, ~src, ~fontStyle=?, ~fontWeight=?, ~fontDisplay=?, ()) => {
+  let fontStyle =
+    switch (fontStyle) {
+    | Some(style) => "font-style: " ++ style ++ ";"
+    | None => ""
+    };
 
-  let _src =
+  let src =
     src
     |> concatArr(
          fun
@@ -1829,8 +1822,10 @@ let fontFace =
          ", ",
        );
 
-  let _fontWeight =
-    Option.get(fontWeight, "", w =>
+  let fontWeight =
+    switch (fontWeight) {
+    | None => ""
+    | Some(w) =>
       "font-weight: "
       ++ (
         switch (w) {
@@ -1840,19 +1835,21 @@ let fontFace =
         }
       )
       ++ ";"
-    );
-  let _fontDisplay =
+    };
+
+  let fontDisplay =
     Option.get(fontDisplay, "", f =>
       "font-display: " ++ FontDisplay.toString(f) ++ ";"
     );
 
-  {j|@font-face {
-    font-family: $fontFamily;
-    src: $src;
-    $(fontStyle)
-    $(fontWeight)
-    $(fontDisplay)
-  }|j};
+  Printf.sprintf(
+    "@font-face { font-family: %s;\nsrc: %s;\n%s\n%s\n%s }",
+    fontFamily,
+    src,
+    fontStyle,
+    fontWeight,
+    fontDisplay,
+  );
 };
 
 let textDecoration = x =>

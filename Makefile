@@ -56,8 +56,7 @@ setup-githooks: ## Setup githooks
 
 .PHONY: pin
 pin: ## Pin dependencies
-	@opam pin add melange-compiler-libs.dev "https://github.com/melange-re/melange-compiler-libs.git#575ac4c24b296ea897821f9aaee1146ff258c704" -y
-	@opam pin add melange.dev "https://github.com/melange-re/melange.git#ebc038332c16e331ee4ab9017426e63461157cdd" -y
+	@opam pin add melange "https://github.com/melange-re/melange.git#47c95b328039161142c6313843100ffb989282f5" -y
 
 .PHONY: create-switch
 create-switch: ## Create opam switch

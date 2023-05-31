@@ -13,12 +13,6 @@ let createRef () = ref None
 let useRef value = ref value
 let forwardRef f = f ()
 
-(* type ('props, 'return) componentLike = 'props -> 'return
-   type 'props component = ('props, element) componentLike
-
-   external component : ('props, element) componentLike -> 'props component
-     = "%identity" *)
-
 module Attribute = struct
   module Event = struct
     type t =
@@ -30,6 +24,9 @@ module Attribute = struct
       | Wheel of (ReactEvent.Wheel.t -> unit)
       | Clipboard of (ReactEvent.Clipboard.t -> unit)
       | Composition of (ReactEvent.Composition.t -> unit)
+      | Transition of (ReactEvent.Transition.t -> unit)
+      | Animation of (ReactEvent.Animation.t -> unit)
+      | Pointer of (ReactEvent.Pointer.t -> unit)
       | Keyboard of (ReactEvent.Keyboard.t -> unit)
       | Focus of (ReactEvent.Focus.t -> unit)
       | Form of (ReactEvent.Form.t -> unit)
@@ -62,8 +59,6 @@ and element =
   | Empty
   | Provider of (unit -> element) list
   | Consumer of (unit -> element list)
-
-and fragment = element
 
 exception Invalid_children of string
 
@@ -312,3 +307,17 @@ let useLayoutEffect6 :
  fun _ _ -> ()
 
 let setDisplayName : 'component -> string -> unit = fun _ _ -> ()
+
+module Children = struct
+  let map fn elements = Array.map fn elements
+  let mapWithIndex fn elements = Array.mapi fn elements
+  let forEach fn elements = Array.iter fn elements
+  let forEachWithIndex fn elements = Array.iteri fn elements
+  let count elements = Array.length elements
+
+  let only elements =
+    if Array.length elements >= 1 then Array.get elements 0
+    else raise (Invalid_argument "Expected at least one child")
+
+  let toArray element = [| element |]
+end

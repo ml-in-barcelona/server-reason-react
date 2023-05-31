@@ -1,30 +1,30 @@
 type 'a t = 'a constraint 'a = < .. >
 
-module Fn : sig
-  type 'a arity0 = { i0 : unit -> 'a }
-  type 'a arity1 = { i1 : 'a }
-  type 'a arity2 = { i2 : 'a }
-  type 'a arity3 = { i3 : 'a }
-  type 'a arity4 = { i4 : 'a }
-  type 'a arity5 = { i5 : 'a }
-  type 'a arity6 = { i6 : 'a }
-  type 'a arity7 = { i7 : 'a }
-  type 'a arity8 = { i8 : 'a }
-  type 'a arity9 = { i9 : 'a }
-  type 'a arity10 = { i10 : 'a }
-  type 'a arity11 = { i11 : 'a }
-  type 'a arity12 = { i12 : 'a }
-  type 'a arity13 = { i13 : 'a }
-  type 'a arity14 = { i14 : 'a }
-  type 'a arity15 = { i15 : 'a }
-  type 'a arity16 = { i16 : 'a }
-  type 'a arity17 = { i17 : 'a }
-  type 'a arity18 = { i18 : 'a }
-  type 'a arity19 = { i19 : 'a }
-  type 'a arity20 = { i20 : 'a }
-  type 'a arity21 = { i21 : 'a }
-  type 'a arity22 = { i22 : 'a }
-end
+(* module Fn : sig
+     type 'a arity0 = { i0 : unit -> 'a }
+     type 'a arity1 = { i1 : 'a }
+     type 'a arity2 = { i2 : 'a }
+     type 'a arity3 = { i3 : 'a }
+     type 'a arity4 = { i4 : 'a }
+     type 'a arity5 = { i5 : 'a }
+     type 'a arity6 = { i6 : 'a }
+     type 'a arity7 = { i7 : 'a }
+     type 'a arity8 = { i8 : 'a }
+     type 'a arity9 = { i9 : 'a }
+     type 'a arity10 = { i10 : 'a }
+     type 'a arity11 = { i11 : 'a }
+     type 'a arity12 = { i12 : 'a }
+     type 'a arity13 = { i13 : 'a }
+     type 'a arity14 = { i14 : 'a }
+     type 'a arity15 = { i15 : 'a }
+     type 'a arity16 = { i16 : 'a }
+     type 'a arity17 = { i17 : 'a }
+     type 'a arity18 = { i18 : 'a }
+     type 'a arity19 = { i19 : 'a }
+     type 'a arity20 = { i20 : 'a }
+     type 'a arity21 = { i21 : 'a }
+     type 'a arity22 = { i22 : 'a }
+   end *)
 
 type 'a null = 'a option
 type 'a undefined = 'a null
@@ -71,7 +71,7 @@ let maybeGreetWorld (maybeGreeting: string Js.null) =
 ]}
 *)
 
-  val iter : 'a t -> (('a -> unit)[@bs]) -> unit
+  val iter : 'a t -> ('a -> unit) -> unit
   (** Iterates over the contained value with the given function
 
 If ['a Js.null] contains a value, that value is unwrapped and applied to
@@ -134,7 +134,7 @@ module Undefined : sig
   val getUnsafe : 'a t -> 'a
   val getExn : 'a t -> 'a
 
-  val bind : 'a t -> (('a -> 'b)[@bs]) -> 'b t
+  val bind : 'a t -> ('a -> 'b) -> 'b t
   (** Maps the contained value using the given function
 
 If ['a Js.undefined] contains a value, that value is unwrapped, mapped to a ['b] using
@@ -146,7 +146,7 @@ let maybeGreetWorld (maybeGreeting: string Js.undefined) =
 ]}
 *)
 
-  val iter : 'a t -> (('a -> unit)[@bs]) -> unit
+  val iter : 'a t -> ('a -> unit) -> unit
   (** Iterates over the contained value with the given function
 
 If ['a Js.undefined] contains a value, that value is unwrapped and applied to
@@ -477,8 +477,6 @@ module Re : sig
   val exec : string -> t -> result option
   (** Deprecated. please use Js.Re.exec_ instead. *)
 
-  val wat : unit -> unit
-
   val test_ : t -> string -> bool
   (** Tests whether the given RegExp object will match a given string. Returns true if a match is found, false otherwise. *)
 
@@ -651,7 +649,7 @@ module Dict : sig
   (** [empty ()] returns an empty dictionary *)
   (* external empty : unit -> 'a t = "" [@@bs.obj] *)
 
-  val unsafeDeleteKey : (string t -> string -> unit[@bs])
+  val unsafeDeleteKey : string t -> string -> unit
   (** Experimental internal function *)
 
   (* external entries : 'a t -> (key * 'a) array = "Object.entries" [@@bs.val] *)
@@ -670,7 +668,7 @@ module Dict : sig
   (** [fromArray entries] creates a new dictionary containing each
   [(key, value)] pair in [entries] *)
 
-  val map : (('a -> 'b)[@bs]) -> 'a t -> 'b t
+  val map : ('a -> 'b) -> 'a t -> 'b t
   (** [map f dict] maps [dict] to a new dictionary with the same keys,
   using [f] to map each value *)
 end
@@ -739,12 +737,12 @@ module Option : sig
 
   val some : 'a -> 'a option
   val isSome : 'a option -> bool
-  val isSomeValue : (('a -> 'a -> bool)[@bs]) -> 'a -> 'a option -> bool
+  val isSomeValue : ('a -> 'a -> bool) -> 'a -> 'a option -> bool
   val isNone : 'a option -> bool
   val getExn : 'a option -> 'a
-  val equal : (('a -> 'b -> bool)[@bs]) -> 'a option -> 'b option -> bool
-  val andThen : (('a -> 'b option)[@bs]) -> 'a option -> 'b option
-  val map : (('a -> 'b)[@bs]) -> 'a option -> 'b option
+  val equal : ('a -> 'b -> bool) -> 'a option -> 'b option -> bool
+  val andThen : ('a -> 'b option) -> 'a option -> 'b option
+  val map : ('a -> 'b) -> 'a option -> 'b option
   val getWithDefault : 'a -> 'a option -> 'a
 
   val default : 'a -> 'a option -> 'a
@@ -752,7 +750,7 @@ module Option : sig
       "Use getWithDefault instead since default has special meaning in ES \
        module"]
 
-  val filter : (('a -> bool)[@bs]) -> 'a option -> 'a option
+  val filter : ('a -> bool) -> 'a option -> 'a option
   val firstSome : 'a option -> 'a option -> 'a option
 end
 
@@ -774,25 +772,25 @@ module List : sig
   val nth : 'a t -> int -> 'a option
   val revAppend : 'a t -> 'a t -> 'a t
   val rev : 'a t -> 'a t
-  val mapRev : (('a -> 'b)[@bs]) -> 'a t -> 'b t
-  val map : (('a -> 'b)[@bs]) -> 'a t -> 'b t
-  val iter : (('a -> unit)[@bs]) -> 'a t -> unit
-  val iteri : ((int -> 'a -> unit)[@bs]) -> 'a t -> unit
+  val mapRev : ('a -> 'b) -> 'a t -> 'b t
+  val map : ('a -> 'b) -> 'a t -> 'b t
+  val iter : ('a -> unit) -> 'a t -> unit
+  val iteri : (int -> 'a -> unit) -> 'a t -> unit
 
-  val foldLeft : (('a -> 'b -> 'a)[@bs]) -> 'a -> 'b list -> 'a
+  val foldLeft : ('a -> 'b -> 'a) -> 'a -> 'b list -> 'a
   (** Application order is left to right, tail recurisve *)
 
-  val foldRight : (('a -> 'b -> 'b)[@bs]) -> 'a list -> 'b -> 'b
+  val foldRight : ('a -> 'b -> 'b) -> 'a list -> 'b -> 'b
   (** Application order is right to left
       tail-recursive. *)
 
   val flatten : 'a t t -> 'a t
-  val filter : (('a -> bool)[@bs]) -> 'a t -> 'a t
-  val filterMap : (('a -> 'b option)[@bs]) -> 'a t -> 'b t
-  val countBy : (('a -> bool)[@bs]) -> 'a list -> int
-  val init : int -> ((int -> 'a)[@bs]) -> 'a t
+  val filter : ('a -> bool) -> 'a t -> 'a t
+  val filterMap : ('a -> 'b option) -> 'a t -> 'b t
+  val countBy : ('a -> bool) -> 'a list -> int
+  val init : int -> (int -> 'a) -> 'a t
   val toVector : 'a t -> 'a array
-  val equal : (('a -> 'a -> bool)[@bs]) -> 'a list -> 'a list -> bool
+  val equal : ('a -> 'a -> bool) -> 'a list -> 'a list -> bool
 end
 
 module Vector : sig
@@ -800,7 +798,7 @@ module Vector : sig
 
   type 'a t = 'a array
 
-  val filterInPlace : (('a -> bool)[@bs]) -> 'a t -> unit
+  val filterInPlace : ('a -> bool) -> 'a t -> unit
   val empty : 'a t -> unit
   val pushBack : 'a -> 'a t -> unit
 
@@ -808,8 +806,8 @@ module Vector : sig
   (** shallow copy *)
 
   val memByRef : 'a -> 'a t -> bool
-  val iter : (('a -> unit)[@bs]) -> 'a t -> unit
-  val iteri : ((int -> 'a -> unit)[@bs]) -> 'a t -> unit
+  val iter : ('a -> unit) -> 'a t -> unit
+  val iteri : (int -> 'a -> unit) -> 'a t -> unit
 
   (* [@@deprecated "Use Js.List.toVector instead"] *)
   (* val ofList : 'a list -> 'a t   *)
@@ -817,10 +815,10 @@ module Vector : sig
 *)
 
   val toList : 'a t -> 'a list
-  val map : (('a -> 'b)[@bs]) -> 'a t -> 'b t
-  val mapi : ((int -> 'a -> 'b)[@bs]) -> 'a t -> 'b t
-  val foldLeft : (('a -> 'b -> 'a)[@bs]) -> 'a -> 'b t -> 'a
-  val foldRight : (('b -> 'a -> 'a)[@bs]) -> 'b t -> 'a -> 'a
+  val map : ('a -> 'b) -> 'a t -> 'b t
+  val mapi : (int -> 'a -> 'b) -> 'a t -> 'b t
+  val foldLeft : ('a -> 'b -> 'a) -> 'a -> 'b t -> 'a
+  val foldRight : ('b -> 'a -> 'a) -> 'b t -> 'a -> 'a
 
   external length : 'a t -> int = "%array_length"
   (** Return the length (number of elements) of the given array. *)
@@ -855,7 +853,7 @@ module Vector : sig
    If the value of [x] is a floating-point number, then the maximum
    size is only [Sys.max_array_length / 2].*)
 
-  val init : int -> ((int -> 'a)[@bs]) -> 'a t
+  val init : int -> (int -> 'a) -> 'a t
   (** @param n size
     @param fn callback
     @raise RangeError when [n] is negative  *)
