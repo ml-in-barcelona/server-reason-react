@@ -492,6 +492,7 @@ let domProps
   ?(vocab)
   ?(dangerouslySetInnerHTML)
   ?(suppressContentEditableWarning)
+  ?(suppressHydrationWarning)
     () =
   let open React.Attribute in
   []
@@ -982,4 +983,5 @@ let domProps
   |> add (Option.map (fun v -> (String ("vocab", v))) vocab)
   |> add (Option.map (fun v -> (DangerouslyInnerHtml v.__html)) dangerouslySetInnerHTML)
   |> add (Option.map (fun v -> (Bool ("suppressContentEditableWarning", v))) suppressContentEditableWarning)
+  |> add (Option.map (fun v -> (Bool ("suppressHydrationWarning", v))) suppressHydrationWarning)
   |> Array.of_list
