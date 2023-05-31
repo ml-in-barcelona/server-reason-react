@@ -29,7 +29,7 @@ module Text = {
       tagType |> Tag.unwrap,
       ReactDOM.domProps(
         ~className="foo",
-        ~style=ReactDOMStyle.make(~display="none", ()),
+        ~style=ReactDOM.Style.make(~display="none", ()),
         (),
       ),
       React.Children.toArray(children),
