@@ -154,1285 +154,996 @@ let createPortal _reactElement _domElement = _reactElement
 
 module Style = ReactDOMStyle
 
-type domRef
 type dangerouslySetInnerHTML = { __html : string } [@@boxed]
 
-type domProps = {
-  key : string option; [@optional]
-  ref : domRef option; [@optional] [@as "aria-activedescendant"]
-  ariaActivedescendant : string option; [@optional] [@as "aria-atomic"]
-  ariaAtomic : bool option; [@optional] [@as "aria-autocomplete"]
-  ariaAutocomplete : string option; [@optional] [@as "aria-busy"]
-  ariaBusy : bool option; [@optional] [@as "aria-checked"]
-  ariaChecked : string option; [@optional] [@as "aria-colcount"]
-  ariaColcount : int option; [@optional] [@as "aria-colindex"]
-  ariaColindex : int option; [@optional] [@as "aria-colspan"]
-  ariaColspan : int option; [@optional] [@as "aria-controls"]
-  ariaControls : string option; [@optional] [@as "aria-current"]
-  ariaCurrent : string option; [@optional] [@as "aria-describedby"]
-  ariaDescribedby : string option; [@optional] [@as "aria-details"]
-  ariaDetails : string option; [@optional] [@as "aria-disabled"]
-  ariaDisabled : bool option; [@optional] [@as "aria-errormessage"]
-  ariaErrormessage : string option; [@optional] [@as "aria-expanded"]
-  ariaExpanded : bool option; [@optional] [@as "aria-flowto"]
-  ariaFlowto : string option; [@optional] [@as "aria-grabbed"]
-  ariaGrabbed : bool option; [@optional] [@as "aria-haspopup"]
-  ariaHaspopup : string option; [@optional] [@as "aria-hidden"]
-  ariaHidden : bool option; [@optional] [@as "aria-invalid"]
-  ariaInvalid : string option; [@optional] [@as "aria-keyshortcuts"]
-  ariaKeyshortcuts : string option; [@optional] [@as "aria-label"]
-  ariaLabel : string option; [@optional] [@as "aria-labelledby"]
-  ariaLabelledby : string option; [@optional] [@as "aria-level"]
-  ariaLevel : int option; [@optional] [@as "aria-live"]
-  ariaLive : string option; [@optional] [@as "aria-modal"]
-  ariaModal : bool option; [@optional] [@as "aria-multiline"]
-  ariaMultiline : bool option; [@optional] [@as "aria-multiselectable"]
-  ariaMultiselectable : bool option; [@optional] [@as "aria-orientation"]
-  ariaOrientation : string option; [@optional] [@as "aria-owns"]
-  ariaOwns : string option; [@optional] [@as "aria-placeholder"]
-  ariaPlaceholder : string option; [@optional] [@as "aria-posinset"]
-  ariaPosinset : int option; [@optional] [@as "aria-pressed"]
-  ariaPressed : string option; [@optional] [@as "aria-readonly"]
-  ariaReadonly : bool option; [@optional] [@as "aria-relevant"]
-  ariaRelevant : string option; [@optional] [@as "aria-required"]
-  ariaRequired : bool option; [@optional] [@as "aria-roledescription"]
-  ariaRoledescription : string option; [@optional] [@as "aria-rowcount"]
-  ariaRowcount : int option; [@optional] [@as "aria-rowindex"]
-  ariaRowindex : int option; [@optional] [@as "aria-rowindextext"]
-  ariaRowindextext : string option; [@optional] [@as "aria-rowspan"]
-  ariaRowspan : int option; [@optional] [@as "aria-selected"]
-  ariaSelected : bool option; [@optional] [@as "aria-setsize"]
-  ariaSetsize : int option; [@optional] [@as "aria-sort"]
-  ariaSort : string option; [@optional] [@as "aria-valuemax"]
-  ariaValuemax : float option; [@optional] [@as "aria-valuemin"]
-  ariaValuemin : float option; [@optional] [@as "aria-valuenow"]
-  ariaValuenow : float option; [@optional] [@as "aria-valuetext"]
-  ariaValuetext : string option; [@optional]
-  defaultChecked : bool option; [@optional]
-  defaultValue : string option; [@optional]
-  accessKey : string option; [@optional]
-  className : string option; [@optional]
-  contentEditable : bool option; [@optional]
-  contextMenu : string option; [@optional]
-  dir : string option; [@optional]
-  draggable : bool option; [@optional]
-  hidden : bool option; [@optional]
-  id : string option; [@optional]
-  lang : string option; [@optional]
-  role : string option; [@optional]
-  style : ReactDOMStyle.t option; [@optional]
-  spellCheck : bool option; [@optional]
-  tabIndex : int option; [@optional]
-  title : string option; [@optional]
-  itemID : string option; [@optional]
-  itemProp : string option; [@optional]
-  itemRef : string option; [@optional]
-  itemScope : bool option; [@optional]
-  itemType : string option; [@optional] [@as "as"]
-  as_ : string option; [@optional]
-  accept : string option; [@optional]
-  acceptCharset : string option; [@optional]
-  action : string option; [@optional]
-  allowFullScreen : bool option; [@optional]
-  alt : string option; [@optional]
-  async : bool option; [@optional]
-  autoComplete : string option; [@optional]
-  autoCapitalize : string option; [@optional]
-  autoFocus : bool option; [@optional]
-  autoPlay : bool option; [@optional]
-  challenge : string option; [@optional]
-  charSet : string option; [@optional]
-  checked : bool option; [@optional]
-  cite : string option; [@optional]
-  crossOrigin : string option; [@optional]
-  cols : int option; [@optional]
-  colSpan : int option; [@optional]
-  content : string option; [@optional]
-  controls : bool option; [@optional]
-  coords : string option; [@optional]
-  data : string option; [@optional]
-  dateTime : string option; [@optional]
-  default : bool option; [@optional]
-  defer : bool option; [@optional]
-  disabled : bool option; [@optional]
-  download : string option; [@optional]
-  encType : string option; [@optional]
-  form : string option; [@optional]
-  formAction : string option; [@optional]
-  formTarget : string option; [@optional]
-  formMethod : string option; [@optional]
-  headers : string option; [@optional]
-  height : string option; [@optional]
-  high : int option; [@optional]
-  href : string option; [@optional]
-  hrefLang : string option; [@optional]
-  htmlFor : string option; [@optional]
-  httpEquiv : string option; [@optional]
-  icon : string option; [@optional]
-  inputMode : string option; [@optional]
-  integrity : string option; [@optional]
-  keyType : string option; [@optional]
-  kind : string option; [@optional]
-  label : string option; [@optional]
-  list : string option; [@optional]
-  loop : bool option; [@optional]
-  low : int option; [@optional]
-  manifest : string option; [@optional]
-  max : string option; [@optional]
-  maxLength : int option; [@optional]
-  media : string option; [@optional]
-  mediaGroup : string option; [@optional] [@as "method"]
-  method_ : string option; [@optional]
-  min : string option; [@optional]
-  minLength : int option; [@optional]
-  multiple : bool option; [@optional]
-  muted : bool option; [@optional]
-  name : string option; [@optional]
-  nonce : string option; [@optional]
-  noValidate : bool option; [@optional] [@as "open"]
-  open_ : bool option; [@optional]
-  optimum : int option; [@optional]
-  pattern : string option; [@optional]
-  placeholder : string option; [@optional]
-  playsInline : bool option; [@optional]
-  poster : string option; [@optional]
-  preload : string option; [@optional]
-  radioGroup : string option; [@optional]
-  readOnly : bool option; [@optional]
-  rel : string option; [@optional]
-  required : bool option; [@optional]
-  reversed : bool option; [@optional]
-  rows : int option; [@optional]
-  rowSpan : int option; [@optional]
-  sandbox : string option; [@optional]
-  scope : string option; [@optional]
-  scoped : bool option; [@optional]
-  scrolling : string option; [@optional]
-  selected : bool option; [@optional]
-  shape : string option; [@optional]
-  size : int option; [@optional]
-  sizes : string option; [@optional]
-  span : int option; [@optional]
-  src : string option; [@optional]
-  srcDoc : string option; [@optional]
-  srcLang : string option; [@optional]
-  srcSet : string option; [@optional]
-  start : int option; [@optional]
-  step : float option; [@optional]
-  summary : string option; [@optional]
-  target : string option; [@optional] [@as "type"]
-  type_ : string option; [@optional]
-  useMap : string option; [@optional]
-  value : string option; [@optional]
-  width : string option; [@optional]
-  wrap : string option; [@optional]
-  onCopy : (ReactEvent.Clipboard.t -> unit) option; [@optional]
-  onCut : (ReactEvent.Clipboard.t -> unit) option; [@optional]
-  onPaste : (ReactEvent.Clipboard.t -> unit) option; [@optional]
-  onCompositionEnd : (ReactEvent.Composition.t -> unit) option; [@optional]
-  onCompositionStart : (ReactEvent.Composition.t -> unit) option; [@optional]
-  onCompositionUpdate : (ReactEvent.Composition.t -> unit) option; [@optional]
-  onKeyDown : (ReactEvent.Keyboard.t -> unit) option; [@optional]
-  onKeyPress : (ReactEvent.Keyboard.t -> unit) option; [@optional]
-  onKeyUp : (ReactEvent.Keyboard.t -> unit) option; [@optional]
-  onFocus : (ReactEvent.Focus.t -> unit) option; [@optional]
-  onBlur : (ReactEvent.Focus.t -> unit) option; [@optional]
-  onChange : (ReactEvent.Form.t -> unit) option; [@optional]
-  onInput : (ReactEvent.Form.t -> unit) option; [@optional]
-  onSubmit : (ReactEvent.Form.t -> unit) option; [@optional]
-  onInvalid : (ReactEvent.Form.t -> unit) option; [@optional]
-  onClick : (ReactEvent.Mouse.t -> unit) option; [@optional]
-  onContextMenu : (ReactEvent.Mouse.t -> unit) option; [@optional]
-  onDoubleClick : (ReactEvent.Mouse.t -> unit) option; [@optional]
-  onDrag : (ReactEvent.Drag.t -> unit) option; [@optional]
-  onDragEnd : (ReactEvent.Drag.t -> unit) option; [@optional]
-  onDragEnter : (ReactEvent.Drag.t -> unit) option; [@optional]
-  onDragExit : (ReactEvent.Drag.t -> unit) option; [@optional]
-  onDragLeave : (ReactEvent.Drag.t -> unit) option; [@optional]
-  onDragOver : (ReactEvent.Drag.t -> unit) option; [@optional]
-  onDragStart : (ReactEvent.Drag.t -> unit) option; [@optional]
-  onDrop : (ReactEvent.Drag.t -> unit) option; [@optional]
-  onMouseDown : (ReactEvent.Mouse.t -> unit) option; [@optional]
-  onMouseEnter : (ReactEvent.Mouse.t -> unit) option; [@optional]
-  onMouseLeave : (ReactEvent.Mouse.t -> unit) option; [@optional]
-  onMouseMove : (ReactEvent.Mouse.t -> unit) option; [@optional]
-  onMouseOut : (ReactEvent.Mouse.t -> unit) option; [@optional]
-  onMouseOver : (ReactEvent.Mouse.t -> unit) option; [@optional]
-  onMouseUp : (ReactEvent.Mouse.t -> unit) option; [@optional]
-  onSelect : (ReactEvent.Selection.t -> unit) option; [@optional]
-  onTouchCancel : (ReactEvent.Touch.t -> unit) option; [@optional]
-  onTouchEnd : (ReactEvent.Touch.t -> unit) option; [@optional]
-  onTouchMove : (ReactEvent.Touch.t -> unit) option; [@optional]
-  onTouchStart : (ReactEvent.Touch.t -> unit) option; [@optional]
-  onPointerOver : (ReactEvent.Pointer.t -> unit) option; [@optional]
-  onPointerEnter : (ReactEvent.Pointer.t -> unit) option; [@optional]
-  onPointerDown : (ReactEvent.Pointer.t -> unit) option; [@optional]
-  onPointerMove : (ReactEvent.Pointer.t -> unit) option; [@optional]
-  onPointerUp : (ReactEvent.Pointer.t -> unit) option; [@optional]
-  onPointerCancel : (ReactEvent.Pointer.t -> unit) option; [@optional]
-  onPointerOut : (ReactEvent.Pointer.t -> unit) option; [@optional]
-  onPointerLeave : (ReactEvent.Pointer.t -> unit) option; [@optional]
-  onGotPointerCapture : (ReactEvent.Pointer.t -> unit) option; [@optional]
-  onLostPointerCapture : (ReactEvent.Pointer.t -> unit) option; [@optional]
-  onScroll : (ReactEvent.UI.t -> unit) option; [@optional]
-  onWheel : (ReactEvent.Wheel.t -> unit) option; [@optional]
-  onAbort : (ReactEvent.Media.t -> unit) option; [@optional]
-  onCanPlay : (ReactEvent.Media.t -> unit) option; [@optional]
-  onCanPlayThrough : (ReactEvent.Media.t -> unit) option; [@optional]
-  onDurationChange : (ReactEvent.Media.t -> unit) option; [@optional]
-  onEmptied : (ReactEvent.Media.t -> unit) option; [@optional]
-  onEncrypetd : (ReactEvent.Media.t -> unit) option; [@optional]
-  onEnded : (ReactEvent.Media.t -> unit) option; [@optional]
-  onError : (ReactEvent.Media.t -> unit) option; [@optional]
-  onLoadedData : (ReactEvent.Media.t -> unit) option; [@optional]
-  onLoadedMetadata : (ReactEvent.Media.t -> unit) option; [@optional]
-  onLoadStart : (ReactEvent.Media.t -> unit) option; [@optional]
-  onPause : (ReactEvent.Media.t -> unit) option; [@optional]
-  onPlay : (ReactEvent.Media.t -> unit) option; [@optional]
-  onPlaying : (ReactEvent.Media.t -> unit) option; [@optional]
-  onProgress : (ReactEvent.Media.t -> unit) option; [@optional]
-  onRateChange : (ReactEvent.Media.t -> unit) option; [@optional]
-  onSeeked : (ReactEvent.Media.t -> unit) option; [@optional]
-  onSeeking : (ReactEvent.Media.t -> unit) option; [@optional]
-  onStalled : (ReactEvent.Media.t -> unit) option; [@optional]
-  onSuspend : (ReactEvent.Media.t -> unit) option; [@optional]
-  onTimeUpdate : (ReactEvent.Media.t -> unit) option; [@optional]
-  onVolumeChange : (ReactEvent.Media.t -> unit) option; [@optional]
-  onWaiting : (ReactEvent.Media.t -> unit) option; [@optional]
-  onLoad : (ReactEvent.Image.t -> unit) option; [@optional]
-  onAnimationStart : (ReactEvent.Animation.t -> unit) option; [@optional]
-  onAnimationEnd : (ReactEvent.Animation.t -> unit) option; [@optional]
-  onAnimationIteration : (ReactEvent.Animation.t -> unit) option; [@optional]
-  onTransitionEnd : (ReactEvent.Transition.t -> unit) option; [@optional]
-  accentHeight : string option; [@optional]
-  accumulate : string option; [@optional]
-  additive : string option; [@optional]
-  alignmentBaseline : string option; [@optional]
-  allowReorder : string option; [@optional]
-  alphabetic : string option; [@optional]
-  amplitude : string option; [@optional]
-  arabicForm : string option; [@optional]
-  ascent : string option; [@optional]
-  attributeName : string option; [@optional]
-  attributeType : string option; [@optional]
-  autoReverse : string option; [@optional]
-  azimuth : string option; [@optional]
-  baseFrequency : string option; [@optional]
-  baseProfile : string option; [@optional]
-  baselineShift : string option; [@optional]
-  bbox : string option; [@optional] [@as "begin"]
-  begin_ : string option; [@optional]
-  bias : string option; [@optional]
-  by : string option; [@optional]
-  calcMode : string option; [@optional]
-  capHeight : string option; [@optional]
-  clip : string option; [@optional]
-  clipPath : string option; [@optional]
-  clipPathUnits : string option; [@optional]
-  clipRule : string option; [@optional]
-  colorInterpolation : string option; [@optional]
-  colorInterpolationFilters : string option; [@optional]
-  colorProfile : string option; [@optional]
-  colorRendering : string option; [@optional]
-  contentScriptType : string option; [@optional]
-  contentStyleType : string option; [@optional]
-  cursor : string option; [@optional]
-  cx : string option; [@optional]
-  cy : string option; [@optional]
-  d : string option; [@optional]
-  decelerate : string option; [@optional]
-  descent : string option; [@optional]
-  diffuseConstant : string option; [@optional]
-  direction : string option; [@optional]
-  display : string option; [@optional]
-  divisor : string option; [@optional]
-  dominantBaseline : string option; [@optional]
-  dur : string option; [@optional]
-  dx : string option; [@optional]
-  dy : string option; [@optional]
-  edgeMode : string option; [@optional]
-  elevation : string option; [@optional]
-  enableBackground : string option; [@optional] [@as "end"]
-  end_ : string option; [@optional]
-  exponent : string option; [@optional]
-  externalResourcesRequired : string option; [@optional]
-  fill : string option; [@optional]
-  fillOpacity : string option; [@optional]
-  fillRule : string option; [@optional]
-  filter : string option; [@optional]
-  filterRes : string option; [@optional]
-  filterUnits : string option; [@optional]
-  floodColor : string option; [@optional]
-  floodOpacity : string option; [@optional]
-  focusable : string option; [@optional]
-  fontFamily : string option; [@optional]
-  fontSize : string option; [@optional]
-  fontSizeAdjust : string option; [@optional]
-  fontStretch : string option; [@optional]
-  fontStyle : string option; [@optional]
-  fontVariant : string option; [@optional]
-  fontWeight : string option; [@optional]
-  fomat : string option; [@optional]
-  from : string option; [@optional]
-  fx : string option; [@optional]
-  fy : string option; [@optional]
-  g1 : string option; [@optional]
-  g2 : string option; [@optional]
-  glyphName : string option; [@optional]
-  glyphOrientationHorizontal : string option; [@optional]
-  glyphOrientationVertical : string option; [@optional]
-  glyphRef : string option; [@optional]
-  gradientTransform : string option; [@optional]
-  gradientUnits : string option; [@optional]
-  hanging : string option; [@optional]
-  horizAdvX : string option; [@optional]
-  horizOriginX : string option; [@optional]
-  ideographic : string option; [@optional]
-  imageRendering : string option; [@optional] [@as "in"]
-  in_ : string option; [@optional]
-  in2 : string option; [@optional]
-  intercept : string option; [@optional]
-  k : string option; [@optional]
-  k1 : string option; [@optional]
-  k2 : string option; [@optional]
-  k3 : string option; [@optional]
-  k4 : string option; [@optional]
-  kernelMatrix : string option; [@optional]
-  kernelUnitLength : string option; [@optional]
-  kerning : string option; [@optional]
-  keyPoints : string option; [@optional]
-  keySplines : string option; [@optional]
-  keyTimes : string option; [@optional]
-  lengthAdjust : string option; [@optional]
-  letterSpacing : string option; [@optional]
-  lightingColor : string option; [@optional]
-  limitingConeAngle : string option; [@optional]
-  local : string option; [@optional]
-  markerEnd : string option; [@optional]
-  markerHeight : string option; [@optional]
-  markerMid : string option; [@optional]
-  markerStart : string option; [@optional]
-  markerUnits : string option; [@optional]
-  markerWidth : string option; [@optional]
-  mask : string option; [@optional]
-  maskContentUnits : string option; [@optional]
-  maskUnits : string option; [@optional]
-  mathematical : string option; [@optional]
-  mode : string option; [@optional]
-  numOctaves : string option; [@optional]
-  offset : string option; [@optional]
-  opacity : string option; [@optional]
-  operator : string option; [@optional]
-  order : string option; [@optional]
-  orient : string option; [@optional]
-  orientation : string option; [@optional]
-  origin : string option; [@optional]
-  overflow : string option; [@optional]
-  overflowX : string option; [@optional]
-  overflowY : string option; [@optional]
-  overlinePosition : string option; [@optional]
-  overlineThickness : string option; [@optional]
-  paintOrder : string option; [@optional]
-  panose1 : string option; [@optional]
-  pathLength : string option; [@optional]
-  patternContentUnits : string option; [@optional]
-  patternTransform : string option; [@optional]
-  patternUnits : string option; [@optional]
-  pointerEvents : string option; [@optional]
-  points : string option; [@optional]
-  pointsAtX : string option; [@optional]
-  pointsAtY : string option; [@optional]
-  pointsAtZ : string option; [@optional]
-  preserveAlpha : string option; [@optional]
-  preserveAspectRatio : string option; [@optional]
-  primitiveUnits : string option; [@optional]
-  r : string option; [@optional]
-  radius : string option; [@optional]
-  refX : string option; [@optional]
-  refY : string option; [@optional]
-  renderingIntent : string option; [@optional]
-  repeatCount : string option; [@optional]
-  repeatDur : string option; [@optional]
-  requiredExtensions : string option; [@optional]
-  requiredFeatures : string option; [@optional]
-  restart : string option; [@optional]
-  result : string option; [@optional]
-  rotate : string option; [@optional]
-  rx : string option; [@optional]
-  ry : string option; [@optional]
-  scale : string option; [@optional]
-  seed : string option; [@optional]
-  shapeRendering : string option; [@optional]
-  slope : string option; [@optional]
-  spacing : string option; [@optional]
-  specularConstant : string option; [@optional]
-  specularExponent : string option; [@optional]
-  speed : string option; [@optional]
-  spreadMethod : string option; [@optional]
-  startOffset : string option; [@optional]
-  stdDeviation : string option; [@optional]
-  stemh : string option; [@optional]
-  stemv : string option; [@optional]
-  stitchTiles : string option; [@optional]
-  stopColor : string option; [@optional]
-  stopOpacity : string option; [@optional]
-  strikethroughPosition : string option; [@optional]
-  strikethroughThickness : string option; [@optional]
-  stroke : string option; [@optional]
-  strokeDasharray : string option; [@optional]
-  strokeDashoffset : string option; [@optional]
-  strokeLinecap : string option; [@optional]
-  strokeLinejoin : string option; [@optional]
-  strokeMiterlimit : string option; [@optional]
-  strokeOpacity : string option; [@optional]
-  strokeWidth : string option; [@optional]
-  surfaceScale : string option; [@optional]
-  systemLanguage : string option; [@optional]
-  tableValues : string option; [@optional]
-  targetX : string option; [@optional]
-  targetY : string option; [@optional]
-  textAnchor : string option; [@optional]
-  textDecoration : string option; [@optional]
-  textLength : string option; [@optional]
-  textRendering : string option; [@optional] [@as "to"]
-  to_ : string option; [@optional]
-  transform : string option; [@optional]
-  u1 : string option; [@optional]
-  u2 : string option; [@optional]
-  underlinePosition : string option; [@optional]
-  underlineThickness : string option; [@optional]
-  unicode : string option; [@optional]
-  unicodeBidi : string option; [@optional]
-  unicodeRange : string option; [@optional]
-  unitsPerEm : string option; [@optional]
-  vAlphabetic : string option; [@optional]
-  vHanging : string option; [@optional]
-  vIdeographic : string option; [@optional]
-  vMathematical : string option; [@optional]
-  values : string option; [@optional]
-  vectorEffect : string option; [@optional]
-  version : string option; [@optional]
-  vertAdvX : string option; [@optional]
-  vertAdvY : string option; [@optional]
-  vertOriginX : string option; [@optional]
-  vertOriginY : string option; [@optional]
-  viewBox : string option; [@optional]
-  viewTarget : string option; [@optional]
-  visibility : string option; [@optional]
-  widths : string option; [@optional]
-  wordSpacing : string option; [@optional]
-  writingMode : string option; [@optional]
-  x : string option; [@optional]
-  x1 : string option; [@optional]
-  x2 : string option; [@optional]
-  xChannelSelector : string option; [@optional]
-  xHeight : string option; [@optional]
-  xlinkActuate : string option; [@optional]
-  xlinkArcrole : string option; [@optional]
-  xlinkHref : string option; [@optional]
-  xlinkRole : string option; [@optional]
-  xlinkShow : string option; [@optional]
-  xlinkTitle : string option; [@optional]
-  xlinkType : string option; [@optional]
-  xmlns : string option; [@optional]
-  xmlnsXlink : string option; [@optional]
-  xmlBase : string option; [@optional]
-  xmlLang : string option; [@optional]
-  xmlSpace : string option; [@optional]
-  y : string option; [@optional]
-  y1 : string option; [@optional]
-  y2 : string option; [@optional]
-  yChannelSelector : string option; [@optional]
-  z : string option; [@optional]
-  zoomAndPan : string option; [@optional]
-  about : string option; [@optional]
-  datatype : string option; [@optional]
-  inlist : string option; [@optional]
-  prefix : string option; [@optional]
-  property : string option; [@optional]
-  resource : string option; [@optional]
-  typeof : string option; [@optional]
-  vocab : string option; [@optional]
-  dangerouslySetInnerHTML : dangerouslySetInnerHTML option; [@optional]
-  suppressContentEditableWarning : bool option; [@optional]
-}
-[@@deriving abstract]
+let add item (map : Attribute.t list) =
+  match item with Some i -> map |> List.cons i | None -> map
 
-(* let domProps ?(key : string option) ?(ref : domRef option)
-     ?(ariaDetails : string option) ?(ariaDisabled : bool option)
-     ?(ariaHidden : bool option) ?(ariaKeyshortcuts : string option)
-     ?(ariaLabel : string option) ?(ariaRoledescription : string option)
-     ?(ariaExpanded : bool option) ?(ariaLevel : int option)
-     ?(ariaModal : bool option) ?(ariaMultiline : bool option)
-     ?(ariaMultiselectable : bool option) ?(ariaPlaceholder : string option)
-     ?(ariaReadonly : bool option) ?(ariaRequired : bool option)
-     ?(ariaSelected : bool option) ?(ariaSort : string option)
-     ?(ariaValuemax : float option) ?(ariaValuemin : float option)
-     ?(ariaValuenow : float option) ?(ariaValuetext : string option)
-     ?(ariaAtomic : bool option) ?(ariaBusy : bool option)
-     ?(ariaChecked : string option) ?(ariaAutocomplete : string option)
-     ?(ariaRelevant : string option) ?(ariaGrabbed : bool option)
-     ?(ariaActivedescendant : string option) ?(ariaColcount : int option)
-     ?(ariaColindex : int option) ?(ariaColspan : int option)
-     ?(ariaControls : string option) ?(ariaDescribedby : string option)
-     ?(ariaCurrent : string option) ?(ariaErrormessage : string option)
-     ?(ariaFlowto : string option) ?(ariaLabelledby : string option)
-     ?(ariaOwns : string option) ?(ariaPosinset : int option)
-     ?(ariaRowcount : int option) ?(ariaRowindex : int option)
-     ?(ariaRowspan : int option) ?(ariaSetsize : int option)
-     ?(defaultChecked : bool option) ?(defaultValue : string option)
-     ?(accessKey : string option) ?(className : string option)
-     ?(contentEditable : bool option) ?(contextMenu : string option)
-     ?(dir : string option) ?(draggable : bool option) ?(hidden : bool option)
-     ?(id : string option) ?(lang : string option) ?(role : string option)
-     ?(style : ReactDOMStyle.t option) ?(spellCheck : bool option)
-     ?(tabIndex : int option) ?(title : string option) ?(itemID : string option)
-     ?(itemProp : string option) ?(itemRef : string option)
-     ?(itemScope : bool option) ?(itemType : string option)
-     ?(accept : string option) ?(acceptCharset : string option)
-     ?(action : string option) ?(allowFullScreen : bool option)
-     ?(alt : string option) ?(async : bool option)
-     ?(autoComplete : string option) ?(autoCapitalize : string option)
-     ?(autoFocus : bool option) ?(autoPlay : bool option)
-     ?(challenge : string option) ?(charSet : string option)
-     ?(checked : bool option) ?(cite : string option)
-     ?(crossOrigin : string option) ?(cols : int option) ?(colSpan : int option)
-     ?(content : string option) ?(controls : bool option)
-     ?(coords : string option) ?(data : string option)
-     ?(dateTime : string option) ?(default : bool option) ?(defer : bool option)
-     ?(disabled : bool option) ?(download : string option)
-     ?(encType : string option) ?(form : string option)
-     ?(formAction : string option) ?(formTarget : string option)
-     ?(formMethod : string option) ?(headers : string option)
-     ?(height : string option) ?(high : int option) ?(href : string option)
-     ?(hrefLang : string option) ?(htmlFor : string option)
-     ?(httpEquiv : string option) ?(icon : string option)
-     ?(inputMode : string option) ?(integrity : string option)
-     ?(keyType : string option) ?(kind : string option) ?(label : string option)
-     ?(list : string option) ?(loop : bool option) ?(low : int option)
-     ?(manifest : string option) ?(max : string option) ?(maxLength : int option)
-     ?(media : string option) ?(mediaGroup : string option)
-     ?(method_ : string option) ?(* as method *) (min : string option)
-     ?(minLength : int option) ?(multiple : bool option) ?(muted : bool option)
-     ?(name : string option) ?(nonce : string option) ?(noValidate : bool option)
-     ?(open_ : bool option) ?(*
-    as open *) (optimum : int option)
-     ?(pattern : string option) ?(placeholder : string option)
-     ?(playsInline : bool option) ?(poster : string option)
-     ?(preload : string option) ?(radioGroup : string option)
-     ?(readOnly : bool option) ?(rel : string option) ?(required : bool option)
-     ?(reversed : bool option) ?(rows : int option) ?(rowSpan : int option)
-     ?(sandbox : string option) ?(scope : string option) ?(scoped : bool option)
-     ?(scrolling : string option) ?(selected : bool option)
-     ?(shape : string option) ?(size : int option) ?(sizes : string option)
-     ?(span : int option) ?(src : string option) ?(srcDoc : string option)
-     ?(srcLang : string option) ?(srcSet : string option) ?(start : int option)
-     ?(step : float option) ?(summary : string option) ?(target : string option)
-     ?(type_ : string option) ?(* as type *) (useMap : string option)
-     ?(value : string option) ?(width : string option) ?(wrap : string option)
-     ?(onCopy : (ReactEvent.Clipboard.t -> unit) option)
-     ?(onCut : (ReactEvent.Clipboard.t -> unit) option)
-     ?(onPaste : (ReactEvent.Clipboard.t -> unit) option)
-     ?(onCompositionEnd : (ReactEvent.Composition.t -> unit) option)
-     ?(onCompositionStart : (ReactEvent.Composition.t -> unit) option)
-     ?(onCompositionUpdate : (ReactEvent.Composition.t -> unit) option)
-     ?(onKeyDown : (ReactEvent.Keyboard.t -> unit) option)
-     ?(onKeyPress : (ReactEvent.Keyboard.t -> unit) option)
-     ?(onKeyUp : (ReactEvent.Keyboard.t -> unit) option)
-     ?(onFocus : (ReactEvent.Focus.t -> unit) option)
-     ?(onBlur : (ReactEvent.Focus.t -> unit) option)
-     ?(onChange : (ReactEvent.Form.t -> unit) option)
-     ?(onInput : (ReactEvent.Form.t -> unit) option)
-     ?(onSubmit : (ReactEvent.Form.t -> unit) option)
-     ?(onInvalid : (ReactEvent.Form.t -> unit) option)
-     ?(onClick : (ReactEvent.Mouse.t -> unit) option)
-     ?(onContextMenu : (ReactEvent.Mouse.t -> unit) option)
-     ?(onDoubleClick : (ReactEvent.Mouse.t -> unit) option)
-     ?(onDrag : (ReactEvent.Drag.t -> unit) option)
-     ?(onDragEnd : (ReactEvent.Drag.t -> unit) option)
-     ?(onDragEnter : (ReactEvent.Drag.t -> unit) option)
-     ?(onDragExit : (ReactEvent.Drag.t -> unit) option)
-     ?(onDragLeave : (ReactEvent.Drag.t -> unit) option)
-     ?(onDragOver : (ReactEvent.Drag.t -> unit) option)
-     ?(onDragStart : (ReactEvent.Drag.t -> unit) option)
-     ?(onDrop : (ReactEvent.Drag.t -> unit) option)
-     ?(onMouseDown : (ReactEvent.Mouse.t -> unit) option)
-     ?(onMouseEnter : (ReactEvent.Mouse.t -> unit) option)
-     ?(onMouseLeave : (ReactEvent.Mouse.t -> unit) option)
-     ?(onMouseMove : (ReactEvent.Mouse.t -> unit) option)
-     ?(onMouseOut : (ReactEvent.Mouse.t -> unit) option)
-     ?(onMouseOver : (ReactEvent.Mouse.t -> unit) option)
-     ?(onMouseUp : (ReactEvent.Mouse.t -> unit) option)
-     ?(onSelect : (ReactEvent.Selection.t -> unit) option)
-     ?(onTouchCancel : (ReactEvent.Touch.t -> unit) option)
-     ?(onTouchEnd : (ReactEvent.Touch.t -> unit) option)
-     ?(onTouchMove : (ReactEvent.Touch.t -> unit) option)
-     ?(onTouchStart : (ReactEvent.Touch.t -> unit) option)
-     ?(onPointerOver : (ReactEvent.Pointer.t -> unit) option)
-     ?(onPointerEnter : (ReactEvent.Pointer.t -> unit) option)
-     ?(onPointerDown : (ReactEvent.Pointer.t -> unit) option)
-     ?(onPointerMove : (ReactEvent.Pointer.t -> unit) option)
-     ?(onPointerUp : (ReactEvent.Pointer.t -> unit) option)
-     ?(onPointerCancel : (ReactEvent.Pointer.t -> unit) option)
-     ?(onPointerOut : (ReactEvent.Pointer.t -> unit) option)
-     ?(onPointerLeave : (ReactEvent.Pointer.t -> unit) option)
-     ?(onGotPointerCapture : (ReactEvent.Pointer.t -> unit) option)
-     ?(onLostPointerCapture : (ReactEvent.Pointer.t -> unit) option)
-     ?(onScroll : (ReactEvent.UI.t -> unit) option)
-     ?(onWheel : (ReactEvent.Wheel.t -> unit) option)
-     ?(onAbort : (ReactEvent.Media.t -> unit) option)
-     ?(onCanPlay : (ReactEvent.Media.t -> unit) option)
-     ?(onCanPlayThrough : (ReactEvent.Media.t -> unit) option)
-     ?(onDurationChange : (ReactEvent.Media.t -> unit) option)
-     ?(onEmptied : (ReactEvent.Media.t -> unit) option)
-     ?(onEncrypetd : (ReactEvent.Media.t -> unit) option)
-     ?(onEnded : (ReactEvent.Media.t -> unit) option)
-     ?(onError : (ReactEvent.Media.t -> unit) option)
-     ?(onLoadedData : (ReactEvent.Media.t -> unit) option)
-     ?(onLoadedMetadata : (ReactEvent.Media.t -> unit) option)
-     ?(onLoadStart : (ReactEvent.Media.t -> unit) option)
-     ?(onPause : (ReactEvent.Media.t -> unit) option)
-     ?(onPlay : (ReactEvent.Media.t -> unit) option)
-     ?(onPlaying : (ReactEvent.Media.t -> unit) option)
-     ?(onProgress : (ReactEvent.Media.t -> unit) option)
-     ?(onRateChange : (ReactEvent.Media.t -> unit) option)
-     ?(onSeeked : (ReactEvent.Media.t -> unit) option)
-     ?(onSeeking : (ReactEvent.Media.t -> unit) option)
-     ?(onStalled : (ReactEvent.Media.t -> unit) option)
-     ?(onSuspend : (ReactEvent.Media.t -> unit) option)
-     ?(onTimeUpdate : (ReactEvent.Media.t -> unit) option)
-     ?(onVolumeChange : (ReactEvent.Media.t -> unit) option)
-     ?(onWaiting : (ReactEvent.Media.t -> unit) option)
-     ?(onLoad : (ReactEvent.Image.t -> unit) option)
-     ?(onAnimationStart : (ReactEvent.Animation.t -> unit) option)
-     ?(onAnimationEnd : (ReactEvent.Animation.t -> unit) option)
-     ?(onAnimationIteration : (ReactEvent.Animation.t -> unit) option)
-     ?(onTransitionEnd : (ReactEvent.Transition.t -> unit) option)
-     ?(accentHeight : string option) ?(accumulate : string option)
-     ?(additive : string option) ?(alignmentBaseline : string option)
-     ?(allowReorder : string option) ?(alphabetic : string option)
-     ?(amplitude : string option) ?(arabicForm : string option)
-     ?(ascent : string option) ?(attributeName : string option)
-     ?(attributeType : string option) ?(autoReverse : string option)
-     ?(azimuth : string option) ?(baseFrequency : string option)
-     ?(baseProfile : string option) ?(baselineShift : string option)
-     ?(bbox : string option) ?(begin_ : string option)
-     ?(* as begin *) (bias : string option) ?(by : string option)
-     ?(calcMode : string option) ?(capHeight : string option)
-     ?(clip : string option) ?(clipPath : string option)
-     ?(clipPathUnits : string option) ?(clipRule : string option)
-     ?(colorInterpolation : string option)
-     ?(colorInterpolationFilters : string option) ?(colorProfile : string option)
-     ?(colorRendering : string option) ?(contentScriptType : string option)
-     ?(contentStyleType : string option) ?(cursor : string option)
-     ?(cx : string option) ?(cy : string option) ?(d : string option)
-     ?(decelerate : string option) ?(descent : string option)
-     ?(diffuseConstant : string option) ?(direction : string option)
-     ?(display : string option) ?(divisor : string option)
-     ?(dominantBaseline : string option) ?(dur : string option)
-     ?(dx : string option) ?(dy : string option) ?(edgeMode : string option)
-     ?(elevation : string option) ?(enableBackground : string option)
-     ?(end_ : string option) ?(* as end *)
-                             (exponent : string option)
-     ?(externalResourcesRequired : string option) ?(fill : string option)
-     ?(fillOpacity : string option) ?(fillRule : string option)
-     ?(filter : string option) ?(filterRes : string option)
-     ?(filterUnits : string option) ?(floodColor : string option)
-     ?(floodOpacity : string option) ?(focusable : string option)
-     ?(fontFamily : string option) ?(fontSize : string option)
-     ?(fontSizeAdjust : string option) ?(fontStretch : string option)
-     ?(fontStyle : string option) ?(fontVariant : string option)
-     ?(fontWeight : string option) ?(fomat : string option)
-     ?(from : string option) ?(fx : string option) ?(fy : string option)
-     ?(g1 : string option) ?(g2 : string option) ?(glyphName : string option)
-     ?(glyphOrientationHorizontal : string option)
-     ?(glyphOrientationVertical : string option) ?(glyphRef : string option)
-     ?(gradientTransform : string option) ?(gradientUnits : string option)
-     ?(hanging : string option) ?(horizAdvX : string option)
-     ?(horizOriginX : string option) ?(ideographic : string option)
-     ?(imageRendering : string option) ?(in_ : string option)
-     ?(* as in *) (in2 : string option) ?(intercept : string option)
-     ?(k : string option) ?(k1 : string option) ?(k2 : string option)
-     ?(k3 : string option) ?(k4 : string option) ?(kernelMatrix : string option)
-     ?(kernelUnitLength : string option) ?(kerning : string option)
-     ?(keyPoints : string option) ?(keySplines : string option)
-     ?(keyTimes : string option) ?(lengthAdjust : string option)
-     ?(letterSpacing : string option) ?(lightingColor : string option)
-     ?(limitingConeAngle : string option) ?(local : string option)
-     ?(markerEnd : string option) ?(markerHeight : string option)
-     ?(markerMid : string option) ?(markerStart : string option)
-     ?(markerUnits : string option) ?(markerWidth : string option)
-     ?(mask : string option) ?(maskContentUnits : string option)
-     ?(maskUnits : string option) ?(mathematical : string option)
-     ?(mode : string option) ?(numOctaves : string option)
-     ?(offset : string option) ?(opacity : string option)
-     ?(operator : string option) ?(order : string option)
-     ?(orient : string option) ?(orientation : string option)
-     ?(origin : string option) ?(overflow : string option)
-     ?(overflowX : string option) ?(overflowY : string option)
-     ?(overlinePosition : string option) ?(overlineThickness : string option)
-     ?(paintOrder : string option) ?(panose1 : string option)
-     ?(pathLength : string option) ?(patternContentUnits : string option)
-     ?(patternTransform : string option) ?(patternUnits : string option)
-     ?(pointerEvents : string option) ?(points : string option)
-     ?(pointsAtX : string option) ?(pointsAtY : string option)
-     ?(pointsAtZ : string option) ?(preserveAlpha : string option)
-     ?(preserveAspectRatio : string option) ?(primitiveUnits : string option)
-     ?(r : string option) ?(radius : string option) ?(refX : string option)
-     ?(refY : string option) ?(renderingIntent : string option)
-     ?(repeatCount : string option) ?(repeatDur : string option)
-     ?(requiredExtensions : string option) ?(requiredFeatures : string option)
-     ?(restart : string option) ?(result : string option)
-     ?(rotate : string option) ?(rx : string option) ?(ry : string option)
-     ?(scale : string option) ?(seed : string option)
-     ?(shapeRendering : string option) ?(slope : string option)
-     ?(spacing : string option) ?(specularConstant : string option)
-     ?(specularExponent : string option) ?(speed : string option)
-     ?(spreadMethod : string option) ?(startOffset : string option)
-     ?(stdDeviation : string option) ?(stemh : string option)
-     ?(stemv : string option) ?(stitchTiles : string option)
-     ?(stopColor : string option) ?(stopOpacity : string option)
-     ?(strikethroughPosition : string option)
-     ?(strikethroughThickness : string option) ?(stroke : string option)
-     ?(strokeDasharray : string option) ?(strokeDashoffset : string option)
-     ?(strokeLinecap : string option) ?(strokeLinejoin : string option)
-     ?(strokeMiterlimit : string option) ?(strokeOpacity : string option)
-     ?(strokeWidth : string option) ?(surfaceScale : string option)
-     ?(systemLanguage : string option) ?(tableValues : string option)
-     ?(targetX : string option) ?(targetY : string option)
-     ?(textAnchor : string option) ?(textDecoration : string option)
-     ?(textLength : string option) ?(textRendering : string option)
-     ?(to_ : string option) ?(transform : string option) ?(u1 : string option)
-     ?(u2 : string option) ?(underlinePosition : string option)
-     ?(underlineThickness : string option) ?(unicode : string option)
-     ?(unicodeBidi : string option) ?(unicodeRange : string option)
-     ?(unitsPerEm : string option) ?(vAlphabetic : string option)
-     ?(vHanging : string option) ?(vIdeographic : string option)
-     ?(vMathematical : string option) ?(values : string option)
-     ?(vectorEffect : string option) ?(version : string option)
-     ?(vertAdvX : string option) ?(vertAdvY : string option)
-     ?(vertOriginX : string option) ?(vertOriginY : string option)
-     ?(viewBox : string option) ?(viewTarget : string option)
-     ?(visibility : string option) ?(widths : string option)
-     ?(wordSpacing : string option) ?(writingMode : string option)
-     ?(x : string option) ?(x1 : string option) ?(x2 : string option)
-     ?(xChannelSelector : string option) ?(xHeight : string option)
-     ?(xlinkActuate : string option) ?(xlinkArcrole : string option)
-     ?(xlinkHref : string option) ?(xlinkRole : string option)
-     ?(xlinkShow : string option) ?(xlinkTitle : string option)
-     ?(xlinkType : string option) ?(xmlns : string option)
-     ?(xmlnsXlink : string option) ?(xmlBase : string option)
-     ?(xmlLang : string option) ?(xmlSpace : string option) ?(y : string option)
-     ?(y1 : string option) ?(y2 : string option)
-     ?(yChannelSelector : string option) ?(z : string option)
-     ?(zoomAndPan : string option) ?(about : string option)
-     ?(datatype : string option) ?(inlist : string option)
-     ?(prefix : string option) ?(property : string option)
-     ?(resource : string option) ?(typeof : string option)
-     ?(vocab : string option)
-     ?(dangerouslySetInnerHTML : dangerouslySetInnerHTML option)
-     ?(suppressContentEditableWarning : bool option)
-     ?(ariaHaspopup : string option) ?(ariaInvalid : string option)
-     ?(ariaLive : string option) ?(ariaOrientation : string option)
-     ?(ariaPressed : string option) ?(ariaRowindextext : string option)
-     ?(as_ : string option) () : domProps =
-   {
-     key;
-     ref;
-     ariaActivedescendant;
-     ariaAtomic;
-     ariaAutocomplete;
-     ariaBusy;
-     ariaChecked;
-     ariaColcount;
-     ariaColindex;
-     ariaColspan;
-     ariaControls;
-     ariaCurrent;
-     ariaDescribedby;
-     ariaDetails;
-     ariaDisabled;
-     ariaErrormessage;
-     ariaExpanded;
-     ariaFlowto;
-     ariaGrabbed;
-     ariaHaspopup;
-     ariaHidden;
-     ariaInvalid;
-     ariaKeyshortcuts;
-     ariaLabel;
-     ariaLabelledby;
-     ariaLevel;
-     ariaLive;
-     ariaModal;
-     ariaMultiline;
-     ariaMultiselectable;
-     ariaOrientation;
-     ariaOwns;
-     ariaPlaceholder;
-     ariaPosinset;
-     ariaPressed;
-     ariaReadonly;
-     ariaRelevant;
-     ariaRequired;
-     ariaRoledescription;
-     ariaRowcount;
-     ariaRowindex;
-     ariaRowindextext;
-     ariaRowspan;
-     ariaSelected;
-     ariaSetsize;
-     ariaSort;
-     ariaValuemax;
-     ariaValuemin;
-     ariaValuenow;
-     ariaValuetext;
-     defaultChecked;
-     defaultValue;
-     accessKey;
-     className;
-     contentEditable;
-     contextMenu;
-     dir;
-     draggable;
-     hidden;
-     id;
-     lang;
-     role;
-     style;
-     spellCheck;
-     tabIndex;
-     title;
-     itemID;
-     itemProp;
-     itemRef;
-     itemScope;
-     itemType;
-     as_;
-     accept;
-     acceptCharset;
-     action;
-     allowFullScreen;
-     alt;
-     async;
-     autoComplete;
-     autoCapitalize;
-     autoFocus;
-     autoPlay;
-     challenge;
-     charSet;
-     checked;
-     cite;
-     crossOrigin;
-     cols;
-     colSpan;
-     content;
-     controls;
-     coords;
-     data;
-     dateTime;
-     default;
-     defer;
-     disabled;
-     download;
-     encType;
-     form;
-     formAction;
-     formTarget;
-     formMethod;
-     headers;
-     height;
-     high;
-     href;
-     hrefLang;
-     htmlFor;
-     httpEquiv;
-     icon;
-     inputMode;
-     integrity;
-     keyType;
-     kind;
-     label;
-     list;
-     loop;
-     low;
-     manifest;
-     max;
-     maxLength;
-     media;
-     mediaGroup;
-     method_;
-     min;
-     minLength;
-     multiple;
-     muted;
-     name;
-     nonce;
-     noValidate;
-     open_;
-     optimum;
-     pattern;
-     placeholder;
-     playsInline;
-     poster;
-     preload;
-     radioGroup;
-     readOnly;
-     rel;
-     required;
-     reversed;
-     rows;
-     rowSpan;
-     sandbox;
-     scope;
-     scoped;
-     scrolling;
-     selected;
-     shape;
-     size;
-     sizes;
-     span;
-     src;
-     srcDoc;
-     srcLang;
-     srcSet;
-     start;
-     step;
-     summary;
-     target;
-     type_;
-     useMap;
-     value;
-     width;
-     wrap;
-     onCopy;
-     onCut;
-     onPaste;
-     onCompositionEnd;
-     onCompositionStart;
-     onCompositionUpdate;
-     onKeyDown;
-     onKeyPress;
-     onKeyUp;
-     onFocus;
-     onBlur;
-     onChange;
-     onInput;
-     onSubmit;
-     onInvalid;
-     onClick;
-     onContextMenu;
-     onDoubleClick;
-     onDrag;
-     onDragEnd;
-     onDragEnter;
-     onDragExit;
-     onDragLeave;
-     onDragOver;
-     onDragStart;
-     onDrop;
-     onMouseDown;
-     onMouseEnter;
-     onMouseLeave;
-     onMouseMove;
-     onMouseOut;
-     onMouseOver;
-     onMouseUp;
-     onSelect;
-     onTouchCancel;
-     onTouchEnd;
-     onTouchMove;
-     onTouchStart;
-     onPointerOver;
-     onPointerEnter;
-     onPointerDown;
-     onPointerMove;
-     onPointerUp;
-     onPointerCancel;
-     onPointerOut;
-     onPointerLeave;
-     onGotPointerCapture;
-     onLostPointerCapture;
-     onScroll;
-     onWheel;
-     onAbort;
-     onCanPlay;
-     onCanPlayThrough;
-     onDurationChange;
-     onEmptied;
-     onEncrypetd;
-     onEnded;
-     onError;
-     onLoadedData;
-     onLoadedMetadata;
-     onLoadStart;
-     onPause;
-     onPlay;
-     onPlaying;
-     onProgress;
-     onRateChange;
-     onSeeked;
-     onSeeking;
-     onStalled;
-     onSuspend;
-     onTimeUpdate;
-     onVolumeChange;
-     onWaiting;
-     onLoad;
-     onAnimationStart;
-     onAnimationEnd;
-     onAnimationIteration;
-     onTransitionEnd;
-     accentHeight;
-     accumulate;
-     additive;
-     alignmentBaseline;
-     allowReorder;
-     alphabetic;
-     amplitude;
-     arabicForm;
-     ascent;
-     attributeName;
-     attributeType;
-     autoReverse;
-     azimuth;
-     baseFrequency;
-     baseProfile;
-     baselineShift;
-     bbox;
-     begin_;
-     bias;
-     by;
-     calcMode;
-     capHeight;
-     clip;
-     clipPath;
-     clipPathUnits;
-     clipRule;
-     colorInterpolation;
-     colorInterpolationFilters;
-     colorProfile;
-     colorRendering;
-     contentScriptType;
-     contentStyleType;
-     cursor;
-     cx;
-     cy;
-     d;
-     decelerate;
-     descent;
-     diffuseConstant;
-     direction;
-     display;
-     divisor;
-     dominantBaseline;
-     dur;
-     dx;
-     dy;
-     edgeMode;
-     elevation;
-     enableBackground;
-     end_;
-     exponent;
-     externalResourcesRequired;
-     fill;
-     fillOpacity;
-     fillRule;
-     filter;
-     filterRes;
-     filterUnits;
-     floodColor;
-     floodOpacity;
-     focusable;
-     fontFamily;
-     fontSize;
-     fontSizeAdjust;
-     fontStretch;
-     fontStyle;
-     fontVariant;
-     fontWeight;
-     fomat;
-     from;
-     fx;
-     fy;
-     g1;
-     g2;
-     glyphName;
-     glyphOrientationHorizontal;
-     glyphOrientationVertical;
-     glyphRef;
-     gradientTransform;
-     gradientUnits;
-     hanging;
-     horizAdvX;
-     horizOriginX;
-     ideographic;
-     imageRendering;
-     in_;
-     in2;
-     intercept;
-     k;
-     k1;
-     k2;
-     k3;
-     k4;
-     kernelMatrix;
-     kernelUnitLength;
-     kerning;
-     keyPoints;
-     keySplines;
-     keyTimes;
-     lengthAdjust;
-     letterSpacing;
-     lightingColor;
-     limitingConeAngle;
-     local;
-     markerEnd;
-     markerHeight;
-     markerMid;
-     markerStart;
-     markerUnits;
-     markerWidth;
-     mask;
-     maskContentUnits;
-     maskUnits;
-     mathematical;
-     mode;
-     numOctaves;
-     offset;
-     opacity;
-     operator;
-     order;
-     orient;
-     orientation;
-     origin;
-     overflow;
-     overflowX;
-     overflowY;
-     overlinePosition;
-     overlineThickness;
-     paintOrder;
-     panose1;
-     pathLength;
-     patternContentUnits;
-     patternTransform;
-     patternUnits;
-     pointerEvents;
-     points;
-     pointsAtX;
-     pointsAtY;
-     pointsAtZ;
-     preserveAlpha;
-     preserveAspectRatio;
-     primitiveUnits;
-     r;
-     radius;
-     refX;
-     refY;
-     renderingIntent;
-     repeatCount;
-     repeatDur;
-     requiredExtensions;
-     requiredFeatures;
-     restart;
-     result;
-     rotate;
-     rx;
-     ry;
-     scale;
-     seed;
-     shapeRendering;
-     slope;
-     spacing;
-     specularConstant;
-     specularExponent;
-     speed;
-     spreadMethod;
-     startOffset;
-     stdDeviation;
-     stemh;
-     stemv;
-     stitchTiles;
-     stopColor;
-     stopOpacity;
-     strikethroughPosition;
-     strikethroughThickness;
-     stroke;
-     strokeDasharray;
-     strokeDashoffset;
-     strokeLinecap;
-     strokeLinejoin;
-     strokeMiterlimit;
-     strokeOpacity;
-     strokeWidth;
-     surfaceScale;
-     systemLanguage;
-     tableValues;
-     targetX;
-     targetY;
-     textAnchor;
-     textDecoration;
-     textLength;
-     textRendering;
-     to_;
-     transform;
-     u1;
-     u2;
-     underlinePosition;
-     underlineThickness;
-     unicode;
-     unicodeBidi;
-     unicodeRange;
-     unitsPerEm;
-     vAlphabetic;
-     vHanging;
-     vIdeographic;
-     vMathematical;
-     values;
-     vectorEffect;
-     version;
-     vertAdvX;
-     vertAdvY;
-     vertOriginX;
-     vertOriginY;
-     viewBox;
-     viewTarget;
-     visibility;
-     widths;
-     wordSpacing;
-     writingMode;
-     x;
-     x1;
-     x2;
-     xChannelSelector;
-     xHeight;
-     xlinkActuate;
-     xlinkArcrole;
-     xlinkHref;
-     xlinkRole;
-     xlinkShow;
-     xlinkTitle;
-     xlinkType;
-     xmlns;
-     xmlnsXlink;
-     xmlBase;
-     xmlLang;
-     xmlSpace;
-     y;
-     y1;
-     y2;
-     yChannelSelector;
-     z;
-     zoomAndPan;
-     about;
-     datatype;
-     inlist;
-     prefix;
-     property;
-     resource;
-     typeof;
-     vocab;
-     dangerouslySetInnerHTML;
-     suppressContentEditableWarning;
-   }
-*)
+[@@@ocamlformat "disable"]
+
+(* TODO: aria names *)
+let domProps
+    ?(key : string option)
+    ?(ref : React.domRef option)
+    ?(ariaDetails : string option)
+    ?(ariaDisabled)
+    ?(ariaHidden)
+    ?(ariaKeyshortcuts: string option)
+    ?(ariaLabel: string option)
+    ?(ariaRoledescription: string option)
+    ?(ariaExpanded)
+    ?(ariaLevel: int option)
+    ?(ariaModal)
+    ?(ariaMultiline)
+    ?(ariaMultiselectable)
+    ?(ariaPlaceholder: string option)
+    ?(ariaReadonly)
+    ?(ariaRequired)
+    ?(ariaSelected)
+    ?(ariaSort: string option)
+    ?(ariaValuemax: float option)
+    ?(ariaValuemin: float option)
+    ?(ariaValuenow: float option)
+    ?(ariaValuetext: string option)
+    ?(ariaAtomic)
+    ?(ariaBusy)
+    ?(ariaRelevant: string option)
+    ?(ariaGrabbed)
+    ?(ariaActivedescendant: string option)
+    ?(ariaColcount: int option)
+    ?(ariaColindex: int option)
+    ?(ariaColspan: int option)
+    ?(ariaControls: string option)
+    ?(ariaDescribedby: string option)
+    ?(ariaErrormessage: string option)
+    ?(ariaFlowto: string option)
+    ?(ariaLabelledby: string option)
+    ?(ariaOwns: string option)
+    ?(ariaPosinset: int option)
+    ?(ariaRowcount: int option)
+    ?(ariaRowindex: int option)
+    ?(ariaRowspan: int option)
+    ?(ariaSetsize: int option)
+    ?(defaultChecked)
+    ?(defaultValue: string option)
+    ?(accessKey: string option)
+    ?(className: string option)
+    ?(contentEditable)
+    ?(contextMenu: string option)
+    ?(dir: string option)
+    ?(draggable)
+    ?(hidden)
+    ?(id: string option)
+    ?(lang: string option)
+    ?(role: string option)
+    ?(style: ReactDOMStyle.t option)
+    ?(spellCheck)
+    ?(tabIndex: int option)
+    ?(title: string option)
+    ?(itemID: string option)
+    ?(itemProp: string option)
+    ?(itemRef: string option)
+    ?(itemScope)
+    ?(itemType: string option)
+    ?(accept: string option)
+    ?(acceptCharset: string option)
+    ?(action: string option)
+    ?(allowFullScreen)
+    ?(alt: string option)
+    ?(async)
+    ?(autoComplete: string option)
+    ?(autoCapitalize: string option)
+    ?(autoFocus)
+    ?(autoPlay)
+    ?(challenge: string option)
+    ?(charSet: string option)
+    ?(checked)
+    ?(cite: string option)
+    ?(crossOrigin: string option)
+    ?(cols: int option)
+    ?(colSpan: int option)
+    ?(content: string option)
+    ?(controls)
+    ?(coords: string option)
+    ?(data: string option)
+    ?(dateTime: string option)
+    ?(default)
+    ?(defer)
+    ?(disabled)
+    ?(download: string option)
+    ?(encType: string option)
+    ?(form: string option)
+    ?(formAction: string option)
+    ?(formTarget: string option)
+    ?(formMethod: string option)
+    ?(headers: string option)
+    ?(height: string option)
+    ?(high: int option)
+    ?(href: string option)
+    ?(hrefLang: string option)
+    ?(htmlFor: string option)
+    ?(httpEquiv: string option)
+    ?(icon: string option)
+    ?(inputMode: string option)
+    ?(integrity: string option)
+    ?(keyType: string option)
+    ?(kind: string option)
+    ?(label: string option)
+    ?(list: string option)
+    ?(loop)
+    ?(low: int option)
+    ?(manifest: string option)
+    ?(max: string option)
+    ?(maxLength: int option)
+    ?(media: string option)
+    ?(mediaGroup: string option)
+    ?(method_: string option)
+    ?(min: string option)
+    ?(minLength: int option)
+    ?(multiple)
+    ?(muted)
+    ?(name: string option)
+    ?(nonce: string option)
+    ?(noValidate)
+    ?(open_)
+    ?(optimum: int option)
+    ?(pattern: string option)
+    ?(placeholder: string option)
+    ?(playsInline)
+    ?(poster: string option)
+    ?(preload: string option)
+    ?(radioGroup: string option)
+    ?(readOnly)
+    ?(rel: string option)
+    ?(required)
+    ?(reversed)
+    ?(rows: int option)
+    ?(rowSpan: int option)
+    ?(sandbox: string option)
+    ?(scope: string option)
+    ?(scoped)
+    ?(scrolling: string option)
+    ?(selected)
+    ?(shape: string option)
+    ?(size: int option)
+    ?(sizes: string option)
+    ?(span: int option)
+    ?(src: string option)
+    ?(srcDoc: string option)
+    ?(srcLang: string option)
+    ?(srcSet: string option)
+    ?(start: int option)
+    ?(step: float option)
+    ?(summary: string option)
+    ?(target: string option)
+    ?(type_: string option)
+    ?(useMap: string option)
+    ?(value: string option)
+    ?(width: string option)
+    ?(wrap: string option)
+    ?(onCopy: (ReactEvent.Clipboard.t -> unit) option)
+    ?(onCut: (ReactEvent.Clipboard.t -> unit) option)
+    ?(onPaste: (ReactEvent.Clipboard.t -> unit) option)
+    ?(onCompositionEnd: (ReactEvent.Composition.t -> unit) option)
+    ?(onCompositionStart: (ReactEvent.Composition.t -> unit) option)
+    ?(onCompositionUpdate: (ReactEvent.Composition.t -> unit) option)
+    ?(onKeyDown: (ReactEvent.Keyboard.t -> unit) option)
+    ?(onKeyPress: (ReactEvent.Keyboard.t -> unit) option)
+    ?(onKeyUp: (ReactEvent.Keyboard.t -> unit) option)
+    ?(onFocus: (ReactEvent.Focus.t -> unit) option)
+    ?(onBlur: (ReactEvent.Focus.t -> unit) option)
+    ?(onChange: (ReactEvent.Form.t -> unit) option)
+    ?(onInput: (ReactEvent.Form.t -> unit) option)
+    ?(onSubmit: (ReactEvent.Form.t -> unit) option)
+    ?(onInvalid: (ReactEvent.Form.t -> unit) option)
+    ?(onClick: (ReactEvent.Mouse.t -> unit) option)
+    ?(onContextMenu: (ReactEvent.Mouse.t -> unit) option)
+    ?(onDoubleClick: (ReactEvent.Mouse.t -> unit) option)
+    ?(onDrag: (ReactEvent.Mouse.t -> unit) option)
+    ?(onDragEnd: (ReactEvent.Mouse.t -> unit) option)
+    ?(onDragEnter: (ReactEvent.Mouse.t -> unit) option)
+    ?(onDragExit: (ReactEvent.Mouse.t -> unit) option)
+    ?(onDragLeave: (ReactEvent.Mouse.t -> unit) option)
+    ?(onDragOver: (ReactEvent.Mouse.t -> unit) option)
+    ?(onDragStart: (ReactEvent.Mouse.t -> unit) option)
+    ?(onDrop: (ReactEvent.Mouse.t -> unit) option)
+    ?(onMouseDown: (ReactEvent.Mouse.t -> unit) option)
+    ?(onMouseEnter: (ReactEvent.Mouse.t -> unit) option)
+    ?(onMouseLeave: (ReactEvent.Mouse.t -> unit) option)
+    ?(onMouseMove: (ReactEvent.Mouse.t -> unit) option)
+    ?(onMouseOut: (ReactEvent.Mouse.t -> unit) option)
+    ?(onMouseOver: (ReactEvent.Mouse.t -> unit) option)
+    ?(onMouseUp: (ReactEvent.Mouse.t -> unit) option)
+    ?(onSelect: (ReactEvent.Selection.t -> unit) option)
+    ?(onTouchCancel: (ReactEvent.Touch.t -> unit) option)
+    ?(onTouchEnd: (ReactEvent.Touch.t -> unit) option)
+    ?(onTouchMove: (ReactEvent.Touch.t -> unit) option)
+    ?(onTouchStart: (ReactEvent.Touch.t -> unit) option)
+    ?(onPointerOver: (ReactEvent.Pointer.t -> unit) option)
+    ?(onPointerEnter: (ReactEvent.Pointer.t -> unit) option)
+    ?(onPointerDown: (ReactEvent.Pointer.t -> unit) option)
+    ?(onPointerMove: (ReactEvent.Pointer.t -> unit) option)
+    ?(onPointerUp: (ReactEvent.Pointer.t -> unit) option)
+    ?(onPointerCancel: (ReactEvent.Pointer.t -> unit) option)
+    ?(onPointerOut: (ReactEvent.Pointer.t -> unit) option)
+    ?(onPointerLeave: (ReactEvent.Pointer.t -> unit) option)
+    ?(onGotPointerCapture: (ReactEvent.Pointer.t -> unit) option)
+    ?(onLostPointerCapture: (ReactEvent.Pointer.t -> unit) option)
+    ?(onScroll: (ReactEvent.UI.t -> unit) option)
+    ?(onWheel: (ReactEvent.Wheel.t -> unit) option)
+    ?(onAbort: (ReactEvent.Media.t -> unit) option)
+    ?(onCanPlay: (ReactEvent.Media.t -> unit) option)
+    ?(onCanPlayThrough: (ReactEvent.Media.t -> unit) option)
+    ?(onDurationChange: (ReactEvent.Media.t -> unit) option)
+    ?(onEmptied: (ReactEvent.Media.t -> unit) option)
+    ?(onEncrypetd: (ReactEvent.Media.t -> unit) option)
+    ?(onEnded: (ReactEvent.Media.t -> unit) option)
+    ?(onError: (ReactEvent.Media.t -> unit) option)
+    ?(onLoadedData: (ReactEvent.Media.t -> unit) option)
+    ?(onLoadedMetadata: (ReactEvent.Media.t -> unit) option)
+    ?(onLoadStart: (ReactEvent.Media.t -> unit) option)
+    ?(onPause: (ReactEvent.Media.t -> unit) option)
+    ?(onPlay: (ReactEvent.Media.t -> unit) option)
+    ?(onPlaying: (ReactEvent.Media.t -> unit) option)
+    ?(onProgress: (ReactEvent.Media.t -> unit) option)
+    ?(onRateChange: (ReactEvent.Media.t -> unit) option)
+    ?(onSeeked: (ReactEvent.Media.t -> unit) option)
+    ?(onSeeking: (ReactEvent.Media.t -> unit) option)
+    ?(onStalled: (ReactEvent.Media.t -> unit) option)
+    ?(onSuspend: (ReactEvent.Media.t -> unit) option)
+    ?(onTimeUpdate: (ReactEvent.Media.t -> unit) option)
+    ?(onVolumeChange: (ReactEvent.Media.t -> unit) option)
+    ?(onWaiting: (ReactEvent.Media.t -> unit) option)
+    ?(onAnimationStart: (ReactEvent.Animation.t -> unit) option)
+    ?(onAnimationEnd: (ReactEvent.Animation.t -> unit) option)
+    ?(onAnimationIteration: (ReactEvent.Animation.t -> unit) option)
+    ?(onTransitionEnd: (ReactEvent.Transition.t -> unit) option)
+    ?(accentHeight: string option)
+    ?(accumulate: string option)
+    ?(additive: string option)
+    ?(alignmentBaseline: string option)
+    ?(allowReorder: string option)
+    ?(alphabetic: string option)
+    ?(amplitude: string option)
+    ?(arabicForm: string option)
+    ?(ascent: string option)
+    ?(attributeName: string option)
+    ?(attributeType: string option)
+    ?(autoReverse: string option)
+    ?(azimuth: string option)
+    ?(baseFrequency: string option)
+    ?(baseProfile: string option)
+    ?(baselineShift: string option)
+    ?(bbox: string option)
+    ?(begin_: string option)
+    ?(bias: string option)
+    ?(by: string option)
+    ?(calcMode: string option)
+    ?(capHeight: string option)
+    ?(clip: string option)
+    ?(clipPath: string option)
+    ?(clipPathUnits: string option)
+    ?(clipRule: string option)
+    ?(colorInterpolation: string option)
+    ?(colorInterpolationFilters: string option)
+    ?(colorProfile: string option)
+    ?(colorRendering: string option)
+    ?(contentScriptType: string option)
+    ?(contentStyleType: string option)
+    ?(cursor: string option)
+    ?(cx: string option)
+    ?(cy: string option)
+    ?(d: string option)
+    ?(decelerate: string option)
+    ?(descent: string option)
+    ?(diffuseConstant: string option)
+    ?(direction: string option)
+    ?(display: string option)
+    ?(divisor: string option)
+    ?(dominantBaseline: string option)
+    ?(dur: string option)
+    ?(dx: string option)
+    ?(dy: string option)
+    ?(edgeMode: string option)
+    ?(elevation: string option)
+    ?(enableBackground: string option)
+    ?(end_: string option)
+    ?(exponent: string option)
+    ?(externalResourcesRequired: string option)
+    ?(fill: string option)
+    ?(fillOpacity: string option)
+    ?(fillRule: string option)
+    ?(filter: string option)
+    ?(filterRes: string option)
+    ?(filterUnits: string option)
+    ?(floodColor: string option)
+    ?(floodOpacity: string option)
+    ?(focusable: string option)
+    ?(fontFamily: string option)
+    ?(fontSize: string option)
+    ?(fontSizeAdjust: string option)
+    ?(fontStretch: string option)
+    ?(fontStyle: string option)
+    ?(fontVariant: string option)
+    ?(fontWeight: string option)
+    ?(fomat: string option)
+    ?(from: string option)
+    ?(fx: string option)
+    ?(fy: string option)
+    ?(g1: string option)
+    ?(g2: string option)
+    ?(glyphName: string option)
+    ?(glyphOrientationHorizontal: string option)
+    ?(glyphOrientationVertical: string option)
+    ?(glyphRef: string option)
+    ?(gradientTransform: string option)
+    ?(gradientUnits: string option)
+    ?(hanging: string option)
+    ?(horizAdvX: string option)
+    ?(horizOriginX: string option)
+    ?(ideographic: string option)
+    ?(imageRendering: string option)
+    ?(in_: string option)
+    ?(in2: string option)
+    ?(intercept: string option)
+    ?(k: string option)
+    ?(k1: string option)
+    ?(k2: string option)
+    ?(k3: string option)
+    ?(k4: string option)
+    ?(kernelMatrix: string option)
+    ?(kernelUnitLength: string option)
+    ?(kerning: string option)
+    ?(keyPoints: string option)
+    ?(keySplines: string option)
+    ?(keyTimes: string option)
+    ?(lengthAdjust: string option)
+    ?(letterSpacing: string option)
+    ?(lightingColor: string option)
+    ?(limitingConeAngle: string option)
+    ?(local: string option)
+    ?(markerEnd: string option)
+    ?(markerHeight: string option)
+    ?(markerMid: string option)
+    ?(markerStart: string option)
+    ?(markerUnits: string option)
+    ?(markerWidth: string option)
+    ?(mask: string option)
+    ?(maskContentUnits: string option)
+    ?(maskUnits: string option)
+    ?(mathematical: string option)
+    ?(mode: string option)
+    ?(numOctaves: string option)
+    ?(offset: string option)
+    ?(opacity: string option)
+    ?(operator: string option)
+    ?(order: string option)
+    ?(orient: string option)
+    ?(orientation: string option)
+    ?(origin: string option)
+    ?(overflow: string option)
+    ?(overflowX: string option)
+    ?(overflowY: string option)
+    ?(overlinePosition: string option)
+    ?(overlineThickness: string option)
+    ?(paintOrder: string option)
+    ?(panose1: string option)
+    ?(pathLength: string option)
+    ?(patternContentUnits: string option)
+    ?(patternTransform: string option)
+    ?(patternUnits: string option)
+    ?(pointerEvents: string option)
+    ?(points: string option)
+    ?(pointsAtX: string option)
+    ?(pointsAtY: string option)
+    ?(pointsAtZ: string option)
+    ?(preserveAlpha: string option)
+    ?(preserveAspectRatio: string option)
+    ?(primitiveUnits: string option)
+    ?(r: string option)
+    ?(radius: string option)
+    ?(refX: string option)
+    ?(refY: string option)
+    ?(renderingIntent: string option)
+    ?(repeatCount: string option)
+    ?(repeatDur: string option)
+    ?(requiredExtensions: string option)
+    ?(requiredFeatures: string option)
+    ?(restart: string option)
+    ?(result: string option)
+    ?(rotate: string option)
+    ?(rx: string option)
+    ?(ry: string option)
+    ?(scale: string option)
+    ?(seed: string option)
+    ?(shapeRendering: string option)
+    ?(slope: string option)
+    ?(spacing: string option)
+    ?(specularConstant: string option)
+    ?(specularExponent: string option)
+    ?(speed: string option)
+    ?(spreadMethod: string option)
+    ?(startOffset: string option)
+    ?(stdDeviation: string option)
+    ?(stemh: string option)
+    ?(stemv: string option)
+    ?(stitchTiles: string option)
+    ?(stopColor: string option)
+    ?(stopOpacity: string option)
+    ?(strikethroughPosition: string option)
+    ?(strikethroughThickness: string option)
+    ?(stroke: string option)
+    ?(strokeDasharray: string option)
+    ?(strokeDashoffset: string option)
+    ?(strokeLinecap: string option)
+    ?(strokeLinejoin: string option)
+    ?(strokeMiterlimit: string option)
+    ?(strokeOpacity: string option)
+    ?(strokeWidth: string option)
+    ?(surfaceScale: string option)
+    ?(systemLanguage: string option)
+    ?(tableValues: string option)
+    ?(targetX: string option)
+    ?(targetY: string option)
+    ?(textAnchor: string option)
+    ?(textDecoration: string option)
+    ?(textLength: string option)
+    ?(textRendering: string option)
+    ?(to_: string option)
+    ?(transform: string option)
+    ?(u1: string option)
+    ?(u2: string option)
+    ?(underlinePosition: string option)
+    ?(underlineThickness: string option)
+    ?(unicode: string option)
+    ?(unicodeBidi: string option)
+    ?(unicodeRange: string option)
+    ?(unitsPerEm: string option)
+    ?(vAlphabetic: string option)
+    ?(vHanging: string option)
+    ?(vIdeographic: string option)
+    ?(vMathematical: string option)
+    ?(values: string option)
+    ?(vectorEffect: string option)
+    ?(version: string option)
+    ?(vertAdvX: string option)
+    ?(vertAdvY: string option)
+    ?(vertOriginX: string option)
+    ?(vertOriginY: string option)
+    ?(viewBox: string option)
+    ?(viewTarget: string option)
+    ?(visibility: string option)
+    ?(widths: string option)
+    ?(wordSpacing: string option)
+    ?(writingMode: string option)
+    ?(x: string option)
+    ?(x1: string option)
+    ?(x2: string option)
+    ?(xChannelSelector: string option)
+    ?(xHeight: string option)
+    ?(xlinkActuate: string option)
+    ?(xlinkArcrole: string option)
+    ?(xlinkHref: string option)
+    ?(xlinkRole: string option)
+    ?(xlinkShow: string option)
+    ?(xlinkTitle: string option)
+    ?(xlinkType: string option)
+    ?(xmlns: string option)
+    ?(xmlnsXlink: string option)
+    ?(xmlBase: string option)
+    ?(xmlLang: string option)
+    ?(xmlSpace: string option)
+    ?(y: string option)
+    ?(y1: string option)
+    ?(y2: string option)
+    ?(yChannelSelector: string option)
+    ?(z: string option)
+    ?(zoomAndPan: string option)
+    ?(about: string option)
+    ?(datatype: string option)
+    ?(inlist: string option)
+    ?(prefix: string option)
+    ?(property: string option)
+    ?(resource: string option)
+    ?(typeof: string option)
+    ?(vocab: string option)
+    ?(dangerouslySetInnerHTML: dangerouslySetInnerHTML option)
+    ?(suppressContentEditableWarning: bool option)
+      () =
+  let open React.Attribute in
+  []
+  |> add (Option.map (fun v -> String ("key", v)) key)
+  |> add (Option.map (fun v -> Ref v) ref)
+  |> add (Option.map (fun v -> String ("ariaDetails", v)) ariaDetails)
+  |> add (Option.map (fun v -> (String ("ariaDetails", v))) ariaDetails)
+  |> add (Option.map (fun v -> (Bool ("ariaDisabled", v))) ariaDisabled)
+  |> add (Option.map (fun v -> (Bool ("ariaHidden", v))) ariaHidden)
+  |> add (Option.map (fun v -> (String ("ariaKeyshortcuts", v))) ariaKeyshortcuts)
+  |> add (Option.map (fun v -> (String ("ariaLabel", v))) ariaLabel)
+  |> add (Option.map (fun v -> (String ("ariaRoledescription", v))) ariaRoledescription)
+  |> add (Option.map (fun v -> (Bool ("ariaExpanded", v))) ariaExpanded)
+  |> add (Option.map (fun v -> (String ("ariaLevel", string_of_int v))) ariaLevel)
+  |> add (Option.map (fun v -> (Bool ("ariaModal", v))) ariaModal)
+  |> add (Option.map (fun v -> (Bool ("ariaMultiline", v))) ariaMultiline)
+  |> add (Option.map (fun v -> (Bool ("ariaMultiselectable", v))) ariaMultiselectable)
+  |> add (Option.map (fun v -> (String ("ariaPlaceholder", v))) ariaPlaceholder)
+  |> add (Option.map (fun v -> (Bool ("ariaReadonly", v))) ariaReadonly)
+  |> add (Option.map (fun v -> (Bool ("ariaRequired", v))) ariaRequired)
+  |> add (Option.map (fun v -> (Bool ("ariaSelected", v))) ariaSelected)
+  |> add (Option.map (fun v -> (String ("ariaSort", v))) ariaSort)
+  |> add (Option.map (fun v -> (String ("ariaValuemax", string_of_float v))) ariaValuemax)
+  |> add (Option.map (fun v -> (String ("ariaValuemin", string_of_float v))) ariaValuemin)
+  |> add (Option.map (fun v -> (String ("ariaValuenow", string_of_float v))) ariaValuenow)
+  |> add (Option.map (fun v -> (String ("ariaValuetext", v))) ariaValuetext)
+  |> add (Option.map (fun v -> (Bool ("ariaAtomic", v))) ariaAtomic)
+  |> add (Option.map (fun v -> (Bool ("ariaBusy", v))) ariaBusy)
+  |> add (Option.map (fun v -> (String ("ariaRelevant", v))) ariaRelevant)
+  |> add (Option.map (fun v -> (Bool ("ariaGrabbed", v))) ariaGrabbed)
+  |> add (Option.map (fun v -> (String ("ariaActivedescendant", v))) ariaActivedescendant)
+  |> add (Option.map (fun v -> (String ("ariaColcount", string_of_int v))) ariaColcount)
+  |> add (Option.map (fun v -> (String ("ariaColindex", string_of_int v))) ariaColindex)
+  |> add (Option.map (fun v -> (String ("ariaColspan", string_of_int v))) ariaColspan)
+  |> add (Option.map (fun v -> (String ("ariaControls", v))) ariaControls)
+  |> add (Option.map (fun v -> (String ("ariaDescribedby", v))) ariaDescribedby)
+  |> add (Option.map (fun v -> (String ("ariaErrormessage", v))) ariaErrormessage)
+  |> add (Option.map (fun v -> (String ("ariaFlowto", v))) ariaFlowto)
+  |> add (Option.map (fun v -> (String ("ariaLabelledby", v))) ariaLabelledby)
+  |> add (Option.map (fun v -> (String ("ariaOwns", v))) ariaOwns)
+  |> add (Option.map (fun v -> (String ("ariaPosinset", string_of_int v))) ariaPosinset)
+  |> add (Option.map (fun v -> (String ("ariaRowcount", string_of_int v))) ariaRowcount)
+  |> add (Option.map (fun v -> (String ("ariaRowindex", string_of_int v))) ariaRowindex)
+  |> add (Option.map (fun v -> (String ("ariaRowspan", string_of_int v))) ariaRowspan)
+  |> add (Option.map (fun v -> (String ("ariaSetsize", string_of_int v))) ariaSetsize)
+  |> add (Option.map (fun v -> (Bool ("defaultChecked", v))) defaultChecked)
+  |> add (Option.map (fun v -> (String ("defaultValue", v))) defaultValue)
+  |> add (Option.map (fun v -> (String ("accessKey", v))) accessKey)
+  |> add (Option.map (fun v -> (String ("className", v))) className)
+  |> add (Option.map (fun v -> (Bool ("contentEditable", v))) contentEditable)
+  |> add (Option.map (fun v -> (String ("contextMenu", v))) contextMenu)
+  |> add (Option.map (fun v -> (String ("dir", v))) dir)
+  |> add (Option.map (fun v -> (Bool ("draggable", v))) draggable)
+  |> add (Option.map (fun v -> (Bool ("hidden", v))) hidden)
+  |> add (Option.map (fun v -> (String ("id", v))) id)
+  |> add (Option.map (fun v -> (String ("lang", v))) lang)
+  |> add (Option.map (fun v -> (String ("role", v))) role)
+  |> add (Option.map (fun v -> (Style (ReactDOMStyle.to_string v))) style)
+  |> add (Option.map (fun v -> (Bool ("spellCheck", v))) spellCheck)
+  |> add (Option.map (fun v -> (String ("tabIndex", string_of_int v))) tabIndex)
+  |> add (Option.map (fun v -> (String ("title", v))) title)
+  |> add (Option.map (fun v -> (String ("itemID", v))) itemID)
+  |> add (Option.map (fun v -> (String ("itemProp", v))) itemProp)
+  |> add (Option.map (fun v -> (String ("itemRef", v))) itemRef)
+  |> add (Option.map (fun v -> (Bool ("itemScope", v))) itemScope)
+  |> add (Option.map (fun v -> (String ("itemType", v))) itemType)
+  |> add (Option.map (fun v -> (String ("accept", v))) accept)
+  |> add (Option.map (fun v -> (String ("acceptCharset", v))) acceptCharset)
+  |> add (Option.map (fun v -> (String ("action", v))) action)
+  |> add (Option.map (fun v -> (Bool ("allowFullScreen", v))) allowFullScreen)
+  |> add (Option.map (fun v -> (String ("alt", v))) alt)
+  |> add (Option.map (fun v -> (Bool ("async", v))) async)
+  |> add (Option.map (fun v -> (String ("autoComplete", v))) autoComplete)
+  |> add (Option.map (fun v -> (String ("autoCapitalize", v))) autoCapitalize)
+  |> add (Option.map (fun v -> (Bool ("autoFocus", v))) autoFocus)
+  |> add (Option.map (fun v -> (Bool ("autoPlay", v))) autoPlay)
+  |> add (Option.map (fun v -> (String ("challenge", v))) challenge)
+  |> add (Option.map (fun v -> (String ("charSet", v))) charSet)
+  |> add (Option.map (fun v -> (Bool ("checked", v))) checked)
+  |> add (Option.map (fun v -> (String ("cite", v))) cite)
+  |> add (Option.map (fun v -> (String ("crossOrigin", v))) crossOrigin)
+  |> add (Option.map (fun v -> (String ("cols", string_of_int v))) cols)
+  |> add (Option.map (fun v -> (String ("colSpan", string_of_int v))) colSpan)
+  |> add (Option.map (fun v -> (String ("content", v))) content)
+  |> add (Option.map (fun v -> (Bool ("controls", v))) controls)
+  |> add (Option.map (fun v -> (String ("coords", v))) coords)
+  |> add (Option.map (fun v -> (String ("data", v))) data)
+  |> add (Option.map (fun v -> (String ("dateTime", v))) dateTime)
+  |> add (Option.map (fun v -> (Bool ("default", v))) default)
+  |> add (Option.map (fun v -> (Bool ("defer", v))) defer)
+  |> add (Option.map (fun v -> (Bool ("disabled", v))) disabled)
+  |> add (Option.map (fun v -> (String ("download", v))) download)
+  |> add (Option.map (fun v -> (String ("encType", v))) encType)
+  |> add (Option.map (fun v -> (String ("form", v))) form)
+  |> add (Option.map (fun v -> (String ("formAction", v))) formAction)
+  |> add (Option.map (fun v -> (String ("formTarget", v))) formTarget)
+  |> add (Option.map (fun v -> (String ("formMethod", v))) formMethod)
+  |> add (Option.map (fun v -> (String ("headers", v))) headers)
+  |> add (Option.map (fun v -> (String ("height", v))) height)
+  |> add (Option.map (fun v -> (String ("high", string_of_int v))) high)
+  |> add (Option.map (fun v -> (String ("href", v))) href)
+  |> add (Option.map (fun v -> (String ("hrefLang", v))) hrefLang)
+  |> add (Option.map (fun v -> (String ("htmlFor", v))) htmlFor)
+  |> add (Option.map (fun v -> (String ("httpEquiv", v))) httpEquiv)
+  |> add (Option.map (fun v -> (String ("icon", v))) icon)
+  |> add (Option.map (fun v -> (String ("inputMode", v))) inputMode)
+  |> add (Option.map (fun v -> (String ("integrity", v))) integrity)
+  |> add (Option.map (fun v -> (String ("keyType", v))) keyType)
+  |> add (Option.map (fun v -> (String ("kind", v))) kind)
+  |> add (Option.map (fun v -> (String ("label", v))) label)
+  |> add (Option.map (fun v -> (String ("list", v))) list)
+  |> add (Option.map (fun v -> (Bool ("loop", v))) loop)
+  |> add (Option.map (fun v -> (String ("low", string_of_int v))) low)
+  |> add (Option.map (fun v -> (String ("manifest", v))) manifest)
+  |> add (Option.map (fun v -> (String ("max", v))) max)
+  |> add (Option.map (fun v -> (String ("maxLength", string_of_int v))) maxLength)
+  |> add (Option.map (fun v -> (String ("media", v))) media)
+  |> add (Option.map (fun v -> (String ("mediaGroup", v))) mediaGroup)
+  |> add (Option.map (fun v -> (String ("method", v))) method_)
+  |> add (Option.map (fun v -> (String ("min", v))) min)
+  |> add (Option.map (fun v -> (String ("minLength", string_of_int v))) minLength)
+  |> add (Option.map (fun v -> (Bool ("multiple", v))) multiple)
+  |> add (Option.map (fun v -> (Bool ("muted", v))) muted)
+  |> add (Option.map (fun v -> (String ("name", v))) name)
+  |> add (Option.map (fun v -> (String ("nonce", v))) nonce)
+  |> add (Option.map (fun v -> (Bool ("noValidate", v))) noValidate)
+  |> add (Option.map (fun v -> (Bool ("open", v))) open_)
+  |> add (Option.map (fun v -> (String ("optimum", string_of_int v))) optimum)
+  |> add (Option.map (fun v -> (String ("pattern", v))) pattern)
+  |> add (Option.map (fun v -> (String ("placeholder", v))) placeholder)
+  |> add (Option.map (fun v -> (Bool ("playsInline", v))) playsInline)
+  |> add (Option.map (fun v -> (String ("poster", v))) poster)
+  |> add (Option.map (fun v -> (String ("preload", v))) preload)
+  |> add (Option.map (fun v -> (String ("radioGroup", v))) radioGroup)
+  |> add (Option.map (fun v -> (Bool ("readOnly", v))) readOnly)
+  |> add (Option.map (fun v -> (String ("rel", v))) rel)
+  |> add (Option.map (fun v -> (Bool ("required", v))) required)
+  |> add (Option.map (fun v -> (Bool ("reversed", v))) reversed)
+  |> add (Option.map (fun v -> (String ("rows", string_of_int v))) rows)
+  |> add (Option.map (fun v -> (String ("rowSpan", string_of_int v))) rowSpan)
+  |> add (Option.map (fun v -> (String ("sandbox", v))) sandbox)
+  |> add (Option.map (fun v -> (String ("scope", v))) scope)
+  |> add (Option.map (fun v -> (Bool ("scoped", v))) scoped)
+  |> add (Option.map (fun v -> (String ("scrolling", v))) scrolling)
+  |> add (Option.map (fun v -> (Bool ("selected", v))) selected)
+  |> add (Option.map (fun v -> (String ("shape", v))) shape)
+  |> add (Option.map (fun v -> (String ("size", string_of_int v))) size)
+  |> add (Option.map (fun v -> (String ("sizes", v))) sizes)
+  |> add (Option.map (fun v -> (String ("span", string_of_int v))) span)
+  |> add (Option.map (fun v -> (String ("src", v))) src)
+  |> add (Option.map (fun v -> (String ("srcDoc", v))) srcDoc)
+  |> add (Option.map (fun v -> (String ("srcLang", v))) srcLang)
+  |> add (Option.map (fun v -> (String ("srcSet", v))) srcSet)
+  |> add (Option.map (fun v -> (String ("start", string_of_int v))) start)
+  |> add (Option.map (fun v -> (String ("step", string_of_float v))) step)
+  |> add (Option.map (fun v -> (String ("summary", v))) summary)
+  |> add (Option.map (fun v -> (String ("target", v))) target)
+  |> add (Option.map (fun v -> (String ("type", v))) type_)
+  |> add (Option.map (fun v -> (String ("useMap", v))) useMap)
+  |> add (Option.map (fun v -> (String ("value", v))) value)
+  |> add (Option.map (fun v -> (String ("width", v))) width)
+  |> add (Option.map (fun v -> (String ("wrap", v))) wrap)
+  |> add (Option.map (fun v -> (Event ("onCopy", Event.Clipboard v))) onCopy)
+  |> add (Option.map (fun v -> (Event ("onCut", Event.Clipboard v))) onCut)
+  |> add (Option.map (fun v -> (Event ("onPaste", Event.Clipboard v))) onPaste)
+  |> add (Option.map (fun v -> (Event ("onCompositionEnd", Event.Composition v))) onCompositionEnd)
+  |> add (Option.map (fun v -> (Event ("onCompositionStart", Event.Composition v))) onCompositionStart)
+  |> add (Option.map (fun v -> (Event ("onCompositionUpdate", Event.Composition v))) onCompositionUpdate)
+  |> add (Option.map (fun v -> (Event ("onKeyDown", Event.Keyboard v))) onKeyDown)
+  |> add (Option.map (fun v -> (Event ("onKeyPress", Event.Keyboard v))) onKeyPress)
+  |> add (Option.map (fun v -> (Event ("onKeyUp", Event.Keyboard v))) onKeyUp)
+  |> add (Option.map (fun v -> (Event ("onFocus", Event.Focus v))) onFocus)
+  |> add (Option.map (fun v -> (Event ("onBlur", Event.Focus v))) onBlur)
+  |> add (Option.map (fun v -> (Event ("onChange", Event.Form v))) onChange)
+  |> add (Option.map (fun v -> (Event ("onInput", Event.Form v))) onInput)
+  |> add (Option.map (fun v -> (Event ("onSubmit", Event.Form v))) onSubmit)
+  |> add (Option.map (fun v -> (Event ("onInvalid", Event.Form v))) onInvalid)
+  |> add (Option.map (fun v -> (Event ("onClick", Event.Mouse v))) onClick)
+  |> add (Option.map (fun v -> (Event ("onContextMenu", Event.Mouse v))) onContextMenu)
+  |> add (Option.map (fun v -> (Event ("onDoubleClick", Event.Mouse v))) onDoubleClick)
+  |> add (Option.map (fun v -> (Event ("onDrag", Event.Mouse v))) onDrag)
+  |> add (Option.map (fun v -> (Event ("onDragEnd", Event.Mouse v))) onDragEnd)
+  |> add (Option.map (fun v -> (Event ("onDragEnter", Event.Mouse v))) onDragEnter)
+  |> add (Option.map (fun v -> (Event ("onDragExit", Event.Mouse v))) onDragExit)
+  |> add (Option.map (fun v -> (Event ("onDragLeave", Event.Mouse v))) onDragLeave)
+  |> add (Option.map (fun v -> (Event ("onDragOver", Event.Mouse v))) onDragOver)
+  |> add (Option.map (fun v -> (Event ("onDragStart", Event.Mouse v))) onDragStart)
+  |> add (Option.map (fun v -> (Event ("onDrop", Event.Mouse v))) onDrop)
+  |> add (Option.map (fun v -> (Event ("onMouseDown", Event.Mouse v))) onMouseDown)
+  |> add (Option.map (fun v -> (Event ("onMouseEnter", Event.Mouse v))) onMouseEnter)
+  |> add (Option.map (fun v -> (Event ("onMouseLeave", Event.Mouse v))) onMouseLeave)
+  |> add (Option.map (fun v -> (Event ("onMouseMove", Event.Mouse v))) onMouseMove)
+  |> add (Option.map (fun v -> (Event ("onMouseOut", Event.Mouse v))) onMouseOut)
+  |> add (Option.map (fun v -> (Event ("onMouseOver", Event.Mouse v))) onMouseOver)
+  |> add (Option.map (fun v -> (Event ("onMouseUp", Event.Mouse v))) onMouseUp)
+  |> add (Option.map (fun v -> (Event ("onSelect", Event.Selection v))) onSelect)
+  |> add (Option.map (fun v -> (Event ("onTouchCancel", Event.Touch v))) onTouchCancel)
+  |> add (Option.map (fun v -> (Event ("onTouchEnd", Event.Touch v))) onTouchEnd)
+  |> add (Option.map (fun v -> (Event ("onTouchMove", Event.Touch v))) onTouchMove)
+  |> add (Option.map (fun v -> (Event ("onTouchStart", Event.Touch v))) onTouchStart)
+  |> add (Option.map (fun v -> (Event ("onPointerOver", Event.Pointer v))) onPointerOver)
+  |> add (Option.map (fun v -> (Event ("onPointerEnter", Event.Pointer v))) onPointerEnter)
+  |> add (Option.map (fun v -> (Event ("onPointerDown", Event.Pointer v))) onPointerDown)
+  |> add (Option.map (fun v -> (Event ("onPointerMove", Event.Pointer v))) onPointerMove)
+  |> add (Option.map (fun v -> (Event ("onPointerUp", Event.Pointer v))) onPointerUp)
+  |> add (Option.map (fun v -> (Event ("onPointerCancel", Event.Pointer v))) onPointerCancel)
+  |> add (Option.map (fun v -> (Event ("onPointerOut", Event.Pointer v))) onPointerOut)
+  |> add (Option.map (fun v -> (Event ("onPointerLeave", Event.Pointer v))) onPointerLeave)
+  |> add (Option.map (fun v -> (Event ("onGotPointerCapture", Event.Pointer v))) onGotPointerCapture)
+  |> add (Option.map (fun v -> (Event ("onLostPointerCapture", Event.Pointer v))) onLostPointerCapture)
+  |> add (Option.map (fun v -> (Event ("onScroll", Event.UI v))) onScroll)
+  |> add (Option.map (fun v -> (Event ("onWheel", Event.Wheel v))) onWheel)
+  |> add (Option.map (fun v -> (Event ("onAbort", Event.Media v))) onAbort)
+  |> add (Option.map (fun v -> (Event ("onCanPlay", Event.Media v))) onCanPlay)
+  |> add (Option.map (fun v -> (Event ("onCanPlayThrough", Event.Media v))) onCanPlayThrough)
+  |> add (Option.map (fun v -> (Event ("onDurationChange", Event.Media v))) onDurationChange)
+  |> add (Option.map (fun v -> (Event ("onEmptied", Event.Media v))) onEmptied)
+  |> add (Option.map (fun v -> (Event ("onEncrypetd", Event.Media v))) onEncrypetd)
+  |> add (Option.map (fun v -> (Event ("onEnded", Event.Media v))) onEnded)
+  |> add (Option.map (fun v -> (Event ("onError", Event.Media v))) onError)
+  |> add (Option.map (fun v -> (Event ("onLoadedData", Event.Media v))) onLoadedData)
+  |> add (Option.map (fun v -> (Event ("onLoadedMetadata", Event.Media v))) onLoadedMetadata)
+  |> add (Option.map (fun v -> (Event ("onLoadStart", Event.Media v))) onLoadStart)
+  |> add (Option.map (fun v -> (Event ("onPause", Event.Media v))) onPause)
+  |> add (Option.map (fun v -> (Event ("onPlay", Event.Media v))) onPlay)
+  |> add (Option.map (fun v -> (Event ("onPlaying", Event.Media v))) onPlaying)
+  |> add (Option.map (fun v -> (Event ("onProgress", Event.Media v))) onProgress)
+  |> add (Option.map (fun v -> (Event ("onRateChange", Event.Media v))) onRateChange)
+  |> add (Option.map (fun v -> (Event ("onSeeked", Event.Media v))) onSeeked)
+  |> add (Option.map (fun v -> (Event ("onSeeking", Event.Media v))) onSeeking)
+  |> add (Option.map (fun v -> (Event ("onStalled", Event.Media v))) onStalled)
+  |> add (Option.map (fun v -> (Event ("onSuspend", Event.Media v))) onSuspend)
+  |> add (Option.map (fun v -> (Event ("onTimeUpdate", Event.Media v))) onTimeUpdate)
+  |> add (Option.map (fun v -> (Event ("onVolumeChange", Event.Media v))) onVolumeChange)
+  |> add (Option.map (fun v -> (Event ("onWaiting", Event.Media v))) onWaiting)
+  |> add (Option.map (fun v -> (Event ("onAnimationStart", Event.Animation v))) onAnimationStart)
+  |> add (Option.map (fun v -> (Event ("onAnimationEnd", Event.Animation v))) onAnimationEnd)
+  |> add (Option.map (fun v -> (Event ("onAnimationIteration", Event.Animation v))) onAnimationIteration)
+  |> add (Option.map (fun v -> (Event ("onTransitionEnd", Event.Transition v))) onTransitionEnd)
+  |> add (Option.map (fun v -> (String ("accentHeight", v))) accentHeight)
+  |> add (Option.map (fun v -> (String ("accumulate", v))) accumulate)
+  |> add (Option.map (fun v -> (String ("additive", v))) additive)
+  |> add (Option.map (fun v -> (String ("alignmentBaseline", v))) alignmentBaseline)
+  |> add (Option.map (fun v -> (String ("allowReorder", v))) allowReorder)
+  |> add (Option.map (fun v -> (String ("alphabetic", v))) alphabetic)
+  |> add (Option.map (fun v -> (String ("amplitude", v))) amplitude)
+  |> add (Option.map (fun v -> (String ("arabicForm", v))) arabicForm)
+  |> add (Option.map (fun v -> (String ("ascent", v))) ascent)
+  |> add (Option.map (fun v -> (String ("attributeName", v))) attributeName)
+  |> add (Option.map (fun v -> (String ("attributeType", v))) attributeType)
+  |> add (Option.map (fun v -> (String ("autoReverse", v))) autoReverse)
+  |> add (Option.map (fun v -> (String ("azimuth", v))) azimuth)
+  |> add (Option.map (fun v -> (String ("baseFrequency", v))) baseFrequency)
+  |> add (Option.map (fun v -> (String ("baseProfile", v))) baseProfile)
+  |> add (Option.map (fun v -> (String ("baselineShift", v))) baselineShift)
+  |> add (Option.map (fun v -> (String ("bbox", v))) bbox)
+  |> add (Option.map (fun v -> (String ("begin", v))) begin_)
+  |> add (Option.map (fun v -> (String ("bias", v))) bias)
+  |> add (Option.map (fun v -> (String ("by", v))) by)
+  |> add (Option.map (fun v -> (String ("calcMode", v))) calcMode)
+  |> add (Option.map (fun v -> (String ("capHeight", v))) capHeight)
+  |> add (Option.map (fun v -> (String ("clip", v))) clip)
+  |> add (Option.map (fun v -> (String ("clipPath", v))) clipPath)
+  |> add (Option.map (fun v -> (String ("clipPathUnits", v))) clipPathUnits)
+  |> add (Option.map (fun v -> (String ("clipRule", v))) clipRule)
+  |> add (Option.map (fun v -> (String ("colorInterpolation", v))) colorInterpolation)
+  |> add (Option.map (fun v -> (String ("colorInterpolationFilters", v))) colorInterpolationFilters)
+  |> add (Option.map (fun v -> (String ("colorProfile", v))) colorProfile)
+  |> add (Option.map (fun v -> (String ("colorRendering", v))) colorRendering)
+  |> add (Option.map (fun v -> (String ("contentScriptType", v))) contentScriptType)
+  |> add (Option.map (fun v -> (String ("contentStyleType", v))) contentStyleType)
+  |> add (Option.map (fun v -> (String ("cursor", v))) cursor)
+  |> add (Option.map (fun v -> (String ("cx", v))) cx)
+  |> add (Option.map (fun v -> (String ("cy", v))) cy)
+  |> add (Option.map (fun v -> (String ("d", v))) d)
+  |> add (Option.map (fun v -> (String ("decelerate", v))) decelerate)
+  |> add (Option.map (fun v -> (String ("descent", v))) descent)
+  |> add (Option.map (fun v -> (String ("diffuseConstant", v))) diffuseConstant)
+  |> add (Option.map (fun v -> (String ("direction", v))) direction)
+  |> add (Option.map (fun v -> (String ("display", v))) display)
+  |> add (Option.map (fun v -> (String ("divisor", v))) divisor)
+  |> add (Option.map (fun v -> (String ("dominantBaseline", v))) dominantBaseline)
+  |> add (Option.map (fun v -> (String ("dur", v))) dur)
+  |> add (Option.map (fun v -> (String ("dx", v))) dx)
+  |> add (Option.map (fun v -> (String ("dy", v))) dy)
+  |> add (Option.map (fun v -> (String ("edgeMode", v))) edgeMode)
+  |> add (Option.map (fun v -> (String ("elevation", v))) elevation)
+  |> add (Option.map (fun v -> (String ("enableBackground", v))) enableBackground)
+  |> add (Option.map (fun v -> (String ("end", v))) end_)
+  |> add (Option.map (fun v -> (String ("exponent", v))) exponent)
+  |> add (Option.map (fun v -> (String ("externalResourcesRequired", v))) externalResourcesRequired)
+  |> add (Option.map (fun v -> (String ("fill", v))) fill)
+  |> add (Option.map (fun v -> (String ("fillOpacity", v))) fillOpacity)
+  |> add (Option.map (fun v -> (String ("fillRule", v))) fillRule)
+  |> add (Option.map (fun v -> (String ("filter", v))) filter)
+  |> add (Option.map (fun v -> (String ("filterRes", v))) filterRes)
+  |> add (Option.map (fun v -> (String ("filterUnits", v))) filterUnits)
+  |> add (Option.map (fun v -> (String ("floodColor", v))) floodColor)
+  |> add (Option.map (fun v -> (String ("floodOpacity", v))) floodOpacity)
+  |> add (Option.map (fun v -> (String ("focusable", v))) focusable)
+  |> add (Option.map (fun v -> (String ("fontFamily", v))) fontFamily)
+  |> add (Option.map (fun v -> (String ("fontSize", v))) fontSize)
+  |> add (Option.map (fun v -> (String ("fontSizeAdjust", v))) fontSizeAdjust)
+  |> add (Option.map (fun v -> (String ("fontStretch", v))) fontStretch)
+  |> add (Option.map (fun v -> (String ("fontStyle", v))) fontStyle)
+  |> add (Option.map (fun v -> (String ("fontVariant", v))) fontVariant)
+  |> add (Option.map (fun v -> (String ("fontWeight", v))) fontWeight)
+  |> add (Option.map (fun v -> (String ("fomat", v))) fomat)
+  |> add (Option.map (fun v -> (String ("from", v))) from)
+  |> add (Option.map (fun v -> (String ("fx", v))) fx)
+  |> add (Option.map (fun v -> (String ("fy", v))) fy)
+  |> add (Option.map (fun v -> (String ("g1", v))) g1)
+  |> add (Option.map (fun v -> (String ("g2", v))) g2)
+  |> add (Option.map (fun v -> (String ("glyphName", v))) glyphName)
+  |> add (Option.map (fun v -> (String ("glyphOrientationHorizontal", v))) glyphOrientationHorizontal)
+  |> add (Option.map (fun v -> (String ("glyphOrientationVertical", v))) glyphOrientationVertical)
+  |> add (Option.map (fun v -> (String ("glyphRef", v))) glyphRef)
+  |> add (Option.map (fun v -> (String ("gradientTransform", v))) gradientTransform)
+  |> add (Option.map (fun v -> (String ("gradientUnits", v))) gradientUnits)
+  |> add (Option.map (fun v -> (String ("hanging", v))) hanging)
+  |> add (Option.map (fun v -> (String ("horizAdvX", v))) horizAdvX)
+  |> add (Option.map (fun v -> (String ("horizOriginX", v))) horizOriginX)
+  |> add (Option.map (fun v -> (String ("ideographic", v))) ideographic)
+  |> add (Option.map (fun v -> (String ("imageRendering", v))) imageRendering)
+  |> add (Option.map (fun v -> (String ("in", v))) in_)
+  |> add (Option.map (fun v -> (String ("in2", v))) in2)
+  |> add (Option.map (fun v -> (String ("intercept", v))) intercept)
+  |> add (Option.map (fun v -> (String ("k", v))) k)
+  |> add (Option.map (fun v -> (String ("k1", v))) k1)
+  |> add (Option.map (fun v -> (String ("k2", v))) k2)
+  |> add (Option.map (fun v -> (String ("k3", v))) k3)
+  |> add (Option.map (fun v -> (String ("k4", v))) k4)
+  |> add (Option.map (fun v -> (String ("kernelMatrix", v))) kernelMatrix)
+  |> add (Option.map (fun v -> (String ("kernelUnitLength", v))) kernelUnitLength)
+  |> add (Option.map (fun v -> (String ("kerning", v))) kerning)
+  |> add (Option.map (fun v -> (String ("keyPoints", v))) keyPoints)
+  |> add (Option.map (fun v -> (String ("keySplines", v))) keySplines)
+  |> add (Option.map (fun v -> (String ("keyTimes", v))) keyTimes)
+  |> add (Option.map (fun v -> (String ("lengthAdjust", v))) lengthAdjust)
+  |> add (Option.map (fun v -> (String ("letterSpacing", v))) letterSpacing)
+  |> add (Option.map (fun v -> (String ("lightingColor", v))) lightingColor)
+  |> add (Option.map (fun v -> (String ("limitingConeAngle", v))) limitingConeAngle)
+  |> add (Option.map (fun v -> (String ("local", v))) local)
+  |> add (Option.map (fun v -> (String ("markerEnd", v))) markerEnd)
+  |> add (Option.map (fun v -> (String ("markerHeight", v))) markerHeight)
+  |> add (Option.map (fun v -> (String ("markerMid", v))) markerMid)
+  |> add (Option.map (fun v -> (String ("markerStart", v))) markerStart)
+  |> add (Option.map (fun v -> (String ("markerUnits", v))) markerUnits)
+  |> add (Option.map (fun v -> (String ("markerWidth", v))) markerWidth)
+  |> add (Option.map (fun v -> (String ("mask", v))) mask)
+  |> add (Option.map (fun v -> (String ("maskContentUnits", v))) maskContentUnits)
+  |> add (Option.map (fun v -> (String ("maskUnits", v))) maskUnits)
+  |> add (Option.map (fun v -> (String ("mathematical", v))) mathematical)
+  |> add (Option.map (fun v -> (String ("mode", v))) mode)
+  |> add (Option.map (fun v -> (String ("numOctaves", v))) numOctaves)
+  |> add (Option.map (fun v -> (String ("offset", v))) offset)
+  |> add (Option.map (fun v -> (String ("opacity", v))) opacity)
+  |> add (Option.map (fun v -> (String ("operator", v))) operator)
+  |> add (Option.map (fun v -> (String ("order", v))) order)
+  |> add (Option.map (fun v -> (String ("orient", v))) orient)
+  |> add (Option.map (fun v -> (String ("orientation", v))) orientation)
+  |> add (Option.map (fun v -> (String ("origin", v))) origin)
+  |> add (Option.map (fun v -> (String ("overflow", v))) overflow)
+  |> add (Option.map (fun v -> (String ("overflowX", v))) overflowX)
+  |> add (Option.map (fun v -> (String ("overflowY", v))) overflowY)
+  |> add (Option.map (fun v -> (String ("overlinePosition", v))) overlinePosition)
+  |> add (Option.map (fun v -> (String ("overlineThickness", v))) overlineThickness)
+  |> add (Option.map (fun v -> (String ("paintOrder", v))) paintOrder)
+  |> add (Option.map (fun v -> (String ("panose1", v))) panose1)
+  |> add (Option.map (fun v -> (String ("pathLength", v))) pathLength)
+  |> add (Option.map (fun v -> (String ("patternContentUnits", v))) patternContentUnits)
+  |> add (Option.map (fun v -> (String ("patternTransform", v))) patternTransform)
+  |> add (Option.map (fun v -> (String ("patternUnits", v))) patternUnits)
+  |> add (Option.map (fun v -> (String ("pointerEvents", v))) pointerEvents)
+  |> add (Option.map (fun v -> (String ("points", v))) points)
+  |> add (Option.map (fun v -> (String ("pointsAtX", v))) pointsAtX)
+  |> add (Option.map (fun v -> (String ("pointsAtY", v))) pointsAtY)
+  |> add (Option.map (fun v -> (String ("pointsAtZ", v))) pointsAtZ)
+  |> add (Option.map (fun v -> (String ("preserveAlpha", v))) preserveAlpha)
+  |> add (Option.map (fun v -> (String ("preserveAspectRatio", v))) preserveAspectRatio)
+  |> add (Option.map (fun v -> (String ("primitiveUnits", v))) primitiveUnits)
+  |> add (Option.map (fun v -> (String ("r", v))) r)
+  |> add (Option.map (fun v -> (String ("radius", v))) radius)
+  |> add (Option.map (fun v -> (String ("refX", v))) refX)
+  |> add (Option.map (fun v -> (String ("refY", v))) refY)
+  |> add (Option.map (fun v -> (String ("renderingIntent", v))) renderingIntent)
+  |> add (Option.map (fun v -> (String ("repeatCount", v))) repeatCount)
+  |> add (Option.map (fun v -> (String ("repeatDur", v))) repeatDur)
+  |> add (Option.map (fun v -> (String ("requiredExtensions", v))) requiredExtensions)
+  |> add (Option.map (fun v -> (String ("requiredFeatures", v))) requiredFeatures)
+  |> add (Option.map (fun v -> (String ("restart", v))) restart)
+  |> add (Option.map (fun v -> (String ("result", v))) result)
+  |> add (Option.map (fun v -> (String ("rotate", v))) rotate)
+  |> add (Option.map (fun v -> (String ("rx", v))) rx)
+  |> add (Option.map (fun v -> (String ("ry", v))) ry)
+  |> add (Option.map (fun v -> (String ("scale", v))) scale)
+  |> add (Option.map (fun v -> (String ("seed", v))) seed)
+  |> add (Option.map (fun v -> (String ("shapeRendering", v))) shapeRendering)
+  |> add (Option.map (fun v -> (String ("slope", v))) slope)
+  |> add (Option.map (fun v -> (String ("spacing", v))) spacing)
+  |> add (Option.map (fun v -> (String ("specularConstant", v))) specularConstant)
+  |> add (Option.map (fun v -> (String ("specularExponent", v))) specularExponent)
+  |> add (Option.map (fun v -> (String ("speed", v))) speed)
+  |> add (Option.map (fun v -> (String ("spreadMethod", v))) spreadMethod)
+  |> add (Option.map (fun v -> (String ("startOffset", v))) startOffset)
+  |> add (Option.map (fun v -> (String ("stdDeviation", v))) stdDeviation)
+  |> add (Option.map (fun v -> (String ("stemh", v))) stemh)
+  |> add (Option.map (fun v -> (String ("stemv", v))) stemv)
+  |> add (Option.map (fun v -> (String ("stitchTiles", v))) stitchTiles)
+  |> add (Option.map (fun v -> (String ("stopColor", v))) stopColor)
+  |> add (Option.map (fun v -> (String ("stopOpacity", v))) stopOpacity)
+  |> add (Option.map (fun v -> (String ("strikethroughPosition", v))) strikethroughPosition)
+  |> add (Option.map (fun v -> (String ("strikethroughThickness", v))) strikethroughThickness)
+  |> add (Option.map (fun v -> (String ("stroke", v))) stroke)
+  |> add (Option.map (fun v -> (String ("strokeDasharray", v))) strokeDasharray)
+  |> add (Option.map (fun v -> (String ("strokeDashoffset", v))) strokeDashoffset)
+  |> add (Option.map (fun v -> (String ("strokeLinecap", v))) strokeLinecap)
+  |> add (Option.map (fun v -> (String ("strokeLinejoin", v))) strokeLinejoin)
+  |> add (Option.map (fun v -> (String ("strokeMiterlimit", v))) strokeMiterlimit)
+  |> add (Option.map (fun v -> (String ("strokeOpacity", v))) strokeOpacity)
+  |> add (Option.map (fun v -> (String ("strokeWidth", v))) strokeWidth)
+  |> add (Option.map (fun v -> (String ("surfaceScale", v))) surfaceScale)
+  |> add (Option.map (fun v -> (String ("systemLanguage", v))) systemLanguage)
+  |> add (Option.map (fun v -> (String ("tableValues", v))) tableValues)
+  |> add (Option.map (fun v -> (String ("targetX", v))) targetX)
+  |> add (Option.map (fun v -> (String ("targetY", v))) targetY)
+  |> add (Option.map (fun v -> (String ("textAnchor", v))) textAnchor)
+  |> add (Option.map (fun v -> (String ("textDecoration", v))) textDecoration)
+  |> add (Option.map (fun v -> (String ("textLength", v))) textLength)
+  |> add (Option.map (fun v -> (String ("textRendering", v))) textRendering)
+  |> add (Option.map (fun v -> (String ("to", v))) to_)
+  |> add (Option.map (fun v -> (String ("transform", v))) transform)
+  |> add (Option.map (fun v -> (String ("u1", v))) u1)
+  |> add (Option.map (fun v -> (String ("u2", v))) u2)
+  |> add (Option.map (fun v -> (String ("underlinePosition", v))) underlinePosition)
+  |> add (Option.map (fun v -> (String ("underlineThickness", v))) underlineThickness)
+  |> add (Option.map (fun v -> (String ("unicode", v))) unicode)
+  |> add (Option.map (fun v -> (String ("unicodeBidi", v))) unicodeBidi)
+  |> add (Option.map (fun v -> (String ("unicodeRange", v))) unicodeRange)
+  |> add (Option.map (fun v -> (String ("unitsPerEm", v))) unitsPerEm)
+  |> add (Option.map (fun v -> (String ("vAlphabetic", v))) vAlphabetic)
+  |> add (Option.map (fun v -> (String ("vHanging", v))) vHanging)
+  |> add (Option.map (fun v -> (String ("vIdeographic", v))) vIdeographic)
+  |> add (Option.map (fun v -> (String ("vMathematical", v))) vMathematical)
+  |> add (Option.map (fun v -> (String ("values", v))) values)
+  |> add (Option.map (fun v -> (String ("vectorEffect", v))) vectorEffect)
+  |> add (Option.map (fun v -> (String ("version", v))) version)
+  |> add (Option.map (fun v -> (String ("vertAdvX", v))) vertAdvX)
+  |> add (Option.map (fun v -> (String ("vertAdvY", v))) vertAdvY)
+  |> add (Option.map (fun v -> (String ("vertOriginX", v))) vertOriginX)
+  |> add (Option.map (fun v -> (String ("vertOriginY", v))) vertOriginY)
+  |> add (Option.map (fun v -> (String ("viewBox", v))) viewBox)
+  |> add (Option.map (fun v -> (String ("viewTarget", v))) viewTarget)
+  |> add (Option.map (fun v -> (String ("visibility", v))) visibility)
+  |> add (Option.map (fun v -> (String ("widths", v))) widths)
+  |> add (Option.map (fun v -> (String ("wordSpacing", v))) wordSpacing)
+  |> add (Option.map (fun v -> (String ("writingMode", v))) writingMode)
+  |> add (Option.map (fun v -> (String ("x", v))) x)
+  |> add (Option.map (fun v -> (String ("x1", v))) x1)
+  |> add (Option.map (fun v -> (String ("x2", v))) x2)
+  |> add (Option.map (fun v -> (String ("xChannelSelector", v))) xChannelSelector)
+  |> add (Option.map (fun v -> (String ("xHeight", v))) xHeight)
+  |> add (Option.map (fun v -> (String ("xlinkActuate", v))) xlinkActuate)
+  |> add (Option.map (fun v -> (String ("xlinkArcrole", v))) xlinkArcrole)
+  |> add (Option.map (fun v -> (String ("xlinkHref", v))) xlinkHref)
+  |> add (Option.map (fun v -> (String ("xlinkRole", v))) xlinkRole)
+  |> add (Option.map (fun v -> (String ("xlinkShow", v))) xlinkShow)
+  |> add (Option.map (fun v -> (String ("xlinkTitle", v))) xlinkTitle)
+  |> add (Option.map (fun v -> (String ("xlinkType", v))) xlinkType)
+  |> add (Option.map (fun v -> (String ("xmlns", v))) xmlns)
+  |> add (Option.map (fun v -> (String ("xmlnsXlink", v))) xmlnsXlink)
+  |> add (Option.map (fun v -> (String ("xmlBase", v))) xmlBase)
+  |> add (Option.map (fun v -> (String ("xmlLang", v))) xmlLang)
+  |> add (Option.map (fun v -> (String ("xmlSpace", v))) xmlSpace)
+  |> add (Option.map (fun v -> (String ("y", v))) y)
+  |> add (Option.map (fun v -> (String ("y1", v))) y1)
+  |> add (Option.map (fun v -> (String ("y2", v))) y2)
+  |> add (Option.map (fun v -> (String ("yChannelSelector", v))) yChannelSelector)
+  |> add (Option.map (fun v -> (String ("z", v))) z)
+  |> add (Option.map (fun v -> (String ("zoomAndPan", v))) zoomAndPan)
+  |> add (Option.map (fun v -> (String ("about", v))) about)
+  |> add (Option.map (fun v -> (String ("datatype", v))) datatype)
+  |> add (Option.map (fun v -> (String ("inlist", v))) inlist)
+  |> add (Option.map (fun v -> (String ("prefix", v))) prefix)
+  |> add (Option.map (fun v -> (String ("property", v))) property)
+  |> add (Option.map (fun v -> (String ("resource", v))) resource)
+  |> add (Option.map (fun v -> (String ("typeof", v))) typeof)
+  |> add (Option.map (fun v -> (String ("vocab", v))) vocab)
+  |> add (Option.map (fun v -> (DangerouslyInnerHtml v.__html)) dangerouslySetInnerHTML)
+  |> add (Option.map (fun v -> (Bool ("suppressContentEditableWarning", v))) suppressContentEditableWarning)
+  |> Array.of_list
+
+[@@@ocamlformat "enable"]
+
+let createDOMElementVariadic :
+    string -> Attribute.t array -> React.element array -> element =
+ fun tag props childrens ->
+  React.createElement tag props (childrens |> Array.to_list)

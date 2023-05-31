@@ -24,6 +24,9 @@ module Attribute : sig
       | Wheel of (ReactEvent.Wheel.t -> unit)
       | Clipboard of (ReactEvent.Clipboard.t -> unit)
       | Composition of (ReactEvent.Composition.t -> unit)
+      | Transition of (ReactEvent.Transition.t -> unit)
+      | Animation of (ReactEvent.Animation.t -> unit)
+      | Pointer of (ReactEvent.Pointer.t -> unit)
       | Keyboard of (ReactEvent.Keyboard.t -> unit)
       | Focus of (ReactEvent.Focus.t -> unit)
       | Form of (ReactEvent.Form.t -> unit)
@@ -62,9 +65,6 @@ exception Invalid_children of string
 (* type ('props, 'return) componentLike = 'props -> 'return *)
 (* type 'props component = ('props, element) componentLike *)
 (* external component : ('props, element) componentLike -> 'props component = "%identity" *)
-
-val createDOMElementVariadic :
-  string -> Attribute.t array -> element array -> element
 
 val createElement : string -> Attribute.t array -> element list -> element
 val fragment : children:element -> unit -> element

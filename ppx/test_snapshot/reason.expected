@@ -14,9 +14,10 @@ let lower_inline_styles =
   React.createElement "div"
     ((([|(Some
             (React.Attribute.Style
-               ((ReactDOM.Style.make ~backgroundColor:(("gainsboro")
-                   [@reason.raw_literal "gainsboro"]) ())
-               [@reason.preserve_braces ])))|]
+               (ReactDOM.Style.to_string
+                  ((ReactDOM.Style.make ~backgroundColor:(("gainsboro")
+                      [@reason.raw_literal "gainsboro"]) ())
+                  [@reason.preserve_braces ]))))|]
          |> Array.to_list)
         |> (List.filter_map (fun a -> a)))
        |> Array.of_list) []

@@ -841,9 +841,12 @@ let makePropField ~loc id (arg_label, value) =
           (fun v -> React.Attribute.Bool ([%e objectKey], v))
           [%e objectValue]]
   | Attribute { type_ = DomProps.Style; _ }, false ->
-      [%expr Some (React.Attribute.Style [%e value])]
+      [%expr Some (React.Attribute.Style (ReactDOM.Style.to_string [%e value]))]
   | Attribute { type_ = DomProps.Style; _ }, true ->
-      [%expr Option.map (fun v -> React.Attribute.Style v) [%e value]]
+      [%expr
+        Option.map
+          (fun v -> React.Attribute.Style (ReactDOM.Style.to_string v))
+          [%e value]]
   | Attribute { type_ = DomProps.Ref; _ }, false ->
       [%expr Some (React.Attribute.Ref [%e value])]
   | Attribute { type_ = DomProps.Ref; _ }, true ->

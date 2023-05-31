@@ -25,9 +25,13 @@ module Text = {
 
   [@react.component]
   let make = (~tagType, ~children: React.element) => {
-    React.createDOMElementVariadic(
+    ReactDOM.createDOMElementVariadic(
       tagType |> Tag.unwrap,
-      ReactDOM.domProps(~className="foo", ()),
+      ReactDOM.domProps(
+        ~className="foo",
+        ~style=ReactDOMStyle.make(~display="none", ()),
+        (),
+      ),
       React.Children.toArray(children),
     );
   };
@@ -37,7 +41,7 @@ let full_case = () => {
   let component = <Text tagType=Text.Tag.H1> {React.string("Hello")} </Text>;
   assert_string(
     ReactDOM.renderToStaticMarkup(component),
-    "<h1 class=\"foo\">Hello</h1>",
+    "<h1 style=\"display: none\" class=\"foo\">Hello</h1>",
   );
 };
 

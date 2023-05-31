@@ -24,6 +24,9 @@ module Attribute = struct
       | Wheel of (ReactEvent.Wheel.t -> unit)
       | Clipboard of (ReactEvent.Clipboard.t -> unit)
       | Composition of (ReactEvent.Composition.t -> unit)
+      | Transition of (ReactEvent.Transition.t -> unit)
+      | Animation of (ReactEvent.Animation.t -> unit)
+      | Pointer of (ReactEvent.Pointer.t -> unit)
       | Keyboard of (ReactEvent.Keyboard.t -> unit)
       | Focus of (ReactEvent.Focus.t -> unit)
       | Form of (ReactEvent.Form.t -> unit)
@@ -135,10 +138,6 @@ let createElement tag attributes children =
       raise @@ Invalid_children "closing tag with children isn't valid"
   | true -> Lower_case_element { tag; attributes; children = [] }
   | false -> create_element_inner tag attributes children
-
-let createDOMElementVariadic :
-    string -> Attribute.t array -> element array -> element =
- fun tag props childrens -> createElement tag props (childrens |> Array.to_list)
 
 (* cloneElements overrides childrens *)
 let cloneElement element new_attributes new_childrens =
