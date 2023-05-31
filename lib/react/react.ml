@@ -309,23 +309,39 @@ let useLayoutEffect6 :
 let setDisplayName : 'component -> string -> unit = fun _ _ -> ()
 
 module Children = struct
-  (* [@bs.module "react"] [@bs.scope "Children"] [@bs.val]
-     external map: (element, element => element) => element = "map";
-     [@bs.module "react"] [@bs.scope "Children"] [@bs.val]
-     external mapWithIndex:
-       (element, [@bs.uncurry] ((element, int) => element)) => element =
-       "map";
-     [@bs.module "react"] [@bs.scope "Children"] [@bs.val]
-     external forEach: (element, element => unit) => unit = "forEach";
-     [@bs.module "react"] [@bs.scope "Children"] [@bs.val]
-     external forEachWithIndex:
-       (element, [@bs.uncurry] ((element, int) => unit)) => unit =
-       "forEach";
-     [@bs.module "react"] [@bs.scope "Children"] [@bs.val]
-     external count: element => int = "count";
-     [@bs.module "react"] [@bs.scope "Children"] [@bs.val]
-     external only: element => element = "only";
-     [@bs.module "react"] [@bs.scope "Children"] [@bs.val] *)
-  (* external toArray: element => array(element) = "toArray"; *)
-  let toArray children = [| children |]
+  let map element fn =
+    match element with
+      | List of elements -> List.map fn elements
+      | _ as element' -> fn element'
+
+  let mapWithIndex element fn =
+    match element with
+      | List of elements -> List.mapi fn elements
+      | _ as element' -> fn element'
+
+  let forEach element fn =
+    match element with
+      | List of elements -> List.iter fn elements
+      | _ as element' -> fn element'
+
+  let forEachWithIndex element fn =
+    match element with
+      | List of elements -> List.iterii fn elements
+      | _ as element' -> fn element'
+
+  let count element =
+    match element with
+    | Lower_case_element of _ -> 1
+    | Upper_case_component of _ -> 1
+    | List of elements -> List.length elements
+    | Text of _ -> 1
+    | InnerHtml of _ -> 1
+    | Fragment of _ -> 1
+    | Empty -> 0
+    | Provider of providers -> List.length providers
+    | Consumer of _ -> 1
+
+  let only x = x
+
+  let toArray element = [| element |]
 end
