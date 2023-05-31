@@ -309,39 +309,15 @@ let useLayoutEffect6 :
 let setDisplayName : 'component -> string -> unit = fun _ _ -> ()
 
 module Children = struct
-  let map element fn =
-    match element with
-      | List of elements -> List.map fn elements
-      | _ as element' -> fn element'
+  let map fn elements = Array.map fn elements
+  let mapWithIndex fn elements = Array.mapi fn elements
+  let forEach fn elements = Array.iter fn elements
+  let forEachWithIndex fn elements = Array.iteri fn elements
+  let count elements = Array.length elements
 
-  let mapWithIndex element fn =
-    match element with
-      | List of elements -> List.mapi fn elements
-      | _ as element' -> fn element'
-
-  let forEach element fn =
-    match element with
-      | List of elements -> List.iter fn elements
-      | _ as element' -> fn element'
-
-  let forEachWithIndex element fn =
-    match element with
-      | List of elements -> List.iterii fn elements
-      | _ as element' -> fn element'
-
-  let count element =
-    match element with
-    | Lower_case_element of _ -> 1
-    | Upper_case_component of _ -> 1
-    | List of elements -> List.length elements
-    | Text of _ -> 1
-    | InnerHtml of _ -> 1
-    | Fragment of _ -> 1
-    | Empty -> 0
-    | Provider of providers -> List.length providers
-    | Consumer of _ -> 1
-
-  let only x = x
+  let only elements =
+    if Array.length elements >= 1 then Array.get elements 0
+    else raise (Invalid_argument "Expected at least one child")
 
   let toArray element = [| element |]
 end

@@ -172,9 +172,14 @@ val useLayoutEffect6 :
 val setDisplayName : 'component -> string -> unit
 
 module Children : sig
-  (* val map : (element -> element) -> element array -> element array *)
-  (* val forEach : (element -> unit) -> element array -> unit *)
-  (* val count : element array -> int *)
-  (* val only : element array -> element *)
+  val map : (element -> element) -> element array -> element array
+
+  val mapWithIndex :
+    (int -> element -> element) -> element array -> element array
+
+  val forEach : (element -> unit) -> element array -> unit
+  val forEachWithIndex : (int -> element -> unit) -> element array -> unit
+  val count : element array -> int
+  val only : element array -> element
   val toArray : element -> element array
 end
