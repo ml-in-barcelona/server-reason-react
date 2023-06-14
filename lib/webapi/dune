@@ -1,0 +1,6 @@
+(library
+ (name webapi_melange)
+ (public_name server-reason-react.webapi-melange)
+ (libraries js)
+ (preprocess
+  (pps melange.ppx)))
