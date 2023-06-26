@@ -1,4 +1,6 @@
 (library
  (name webapi)
  (public_name server-reason-react.webapi)
- (libraries js))
+ (libraries js)
+ (preprocess
+  (pps melange.ppx)))

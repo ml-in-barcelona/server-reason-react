@@ -13,6 +13,7 @@ depends: [
   "ppxlib" {>= "0.23.0"}
   "reason" {= "3.8.1"}
   "pcre" {>= "7.4.0"}
+  "promise" {>= "1.1.2"}
   "alcotest" {with-test}
   "fmt" {with-test}
   "ocamlformat" {= "0.21.0" & with-test}

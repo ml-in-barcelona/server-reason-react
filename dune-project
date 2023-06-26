@@ -29,6 +29,7 @@
   (ppxlib (>= 0.23.0))
   (reason (= 3.8.1))
   (pcre (>= 7.4.0))
+  (promise (>= 1.1.2))
 
   ;; Test dependencies
   (alcotest :with-test)

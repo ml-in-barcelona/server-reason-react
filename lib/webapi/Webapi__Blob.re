@@ -1,6 +1,6 @@
 module Impl = (T: {type t;}) => {
-  [@bs.send]
-  external arrayBuffer: T.t => Js.Promise.t(Js.Typed_array.ArrayBuffer.t);
+  /*   [@bs.send]
+       external arrayBuffer: T.t => Js.Promise.t(Js.Typed_array.ArrayBuffer.t); */
 
   [@bs.get] external size: T.t => float;
 
@@ -11,7 +11,7 @@ module Impl = (T: {type t;}) => {
   [@bs.send]
   external stream: T.t => Webapi__ReadableStream.t;
 
-  [@bs.send] external text: T.t => Js.Promise.t(string);
+  /* [@bs.send] external text: T.t => Js.Promise.t(string); */
 
   [@bs.get] external type_: T.t => string = "type";
 

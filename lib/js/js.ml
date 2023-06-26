@@ -2383,9 +2383,7 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   *)
 end
 
-module Promise = struct
-  (** Provide bindings to JS promise *)
-end
+module Promise = Promise
 
 module Date = struct
   (** Provide bindings for JS Date *)
