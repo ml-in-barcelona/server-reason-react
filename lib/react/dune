@@ -2,6 +2,6 @@
  (name react)
  (wrapped false)
  (public_name server-reason-react.react)
- (libraries melange.runtime js webapi html)
+ (libraries js webapi html)
  (preprocess
   (pps melange.ppx)))
