@@ -3,7 +3,7 @@
  (modules js)
  (public_name server-reason-react.js)
  (flags :standard -w -49)
- (libraries pcre)
+ (libraries pcre promise)
  (preprocess
   (pps melange.ppx)))
 
