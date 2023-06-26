@@ -1,7 +1,7 @@
 (executable
  (name intf_of_sign)
  (modules intf_of_sign)
- (libraries melange-compiler-libs compiler-libs str ppxlib)
+ (libraries compiler-libs str ppxlib)
  (public_name intf-of-sign)
  (preprocess
   (pps ppxlib.metaquot)))
