@@ -3,13 +3,13 @@ type t;
 [@bs.new] external make: unit => t = "Image";
 [@bs.new] external makeWithSize: (int, int) => t = "Image";
 
-[@bs.get] external alt: t => string;
+[@bs.get] external alt: t => string = "alt";
 [@bs.set] external setAlt: (t, string) => unit = "alt";
-[@bs.get] external src: t => string;
+[@bs.get] external src: t => string = "src";
 [@bs.set] external setSrc: (t, string) => unit = "src";
-[@bs.get] external srcset: t => string;
+[@bs.get] external srcset: t => string = "srcset";
 [@bs.set] external setSrcset: (t, string) => unit = "srcset";
-[@bs.get] external sizes: t => string;
+[@bs.get] external sizes: t => string = "sizes";
 [@bs.set] external setSizes: (t, string) => unit = "sizes";
 [@bs.get] [@bs.return nullable] external crossOrigin: t => option(string);
 [@bs.set]
@@ -33,7 +33,7 @@ let setCrossOrigin = (self, value) =>
 [@bs.get] external decoding: t => string;
 [@bs.set] external setDecoding: (t, string) => unit = "decoding";
 
-[@bs.send.pipe: t] external decode: Js.Promise.t(unit);
+/* [@bs.send.pipe: t] external decode: Js.Promise.t(unit); */
 
 include Webapi__Dom__Node.Impl({
   type nonrec t = t;

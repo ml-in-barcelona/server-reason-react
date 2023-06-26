@@ -136,11 +136,11 @@ module Impl = (T: {type t;}) => {
   [@bs.get] external labels: t_htmlInputElement => array(Dom.nodeList);
   [@bs.get] external step: t_htmlInputElement => string;
   [@bs.set] external setStep: (t_htmlInputElement, string) => unit = "step";
-  [@bs.get] [@bs.return nullable]
-  external valueAsDate: t_htmlInputElement => option(Js.Date.t);
-  [@bs.set]
-  external setValueAsDate: (t_htmlInputElement, Js.Date.t) => unit =
-    "valueAsDate";
+  /* [@bs.get] [@bs.return nullable]
+     external valueAsDate: t_htmlInputElement => option(Js.Date.t); */
+  /* [@bs.set]
+     external setValueAsDate: (t_htmlInputElement, Js.Date.t) => unit =
+       "valueAsDate"; */
   [@bs.get] external valueAsNumber: t_htmlInputElement => float;
 
   [@bs.send.pipe: t_htmlInputElement] external select: unit;

@@ -242,7 +242,7 @@ end
 module Headers = struct
   type t = headers
 
-  external make : t = "Headers" [@@bs.new]
+  (* external make : t = "Headers" [@@bs.new] *)
   external makeWithInit : headersInit -> t = "Headers" [@@bs.new]
   external append : string -> string -> unit = "append" [@@bs.send.pipe: t]
   external delete : string -> unit = "delete" [@@bs.send.pipe: t]
@@ -279,13 +279,13 @@ module Body = struct
     external body : T.t -> readableStream = "body" [@@bs.get]
     external bodyUsed : T.t -> bool = "bodyUsed" [@@bs.get]
 
-    external arrayBuffer : arrayBuffer Js.Promise.t = "arrayBuffer"
-      [@@bs.send.pipe: T.t]
+    (* external arrayBuffer : arrayBuffer Js.Promise.t = "arrayBuffer"
+       [@@bs.send.pipe: T.t] *)
 
-    external blob : blob Js.Promise.t = "blob" [@@bs.send.pipe: T.t]
-    external formData : formData Js.Promise.t = "formData" [@@bs.send.pipe: T.t]
-    external json : Js.Json.t Js.Promise.t = "json" [@@bs.send.pipe: T.t]
-    external text : string Js.Promise.t = "text" [@@bs.send.pipe: T.t]
+    (* external blob : blob Js.Promise.t = "blob" [@@bs.send.pipe: T.t] *)
+    (* external formData : formData Js.Promise.t = "formData" [@@bs.send.pipe: T.t] *)
+    (* external json : Js.Json.t Js.Promise.t = "json" [@@bs.send.pipe: T.t] *)
+    (* external text : string Js.Promise.t = "text" [@@bs.send.pipe: T.t] *)
   end
 
   type t = body
@@ -461,15 +461,16 @@ module FormData = struct
     [@@bs.send]
 end
 
-external fetch : string -> response Js.Promise.t = "fetch" [@@bs.val]
+(* external fetch : string -> response Js.Promise.t = "fetch" [@@bs.val] *)
 
-external fetchWithInit : string -> requestInit -> response Js.Promise.t
-  = "fetch"
-  [@@bs.val]
+(* external fetchWithInit : string -> requestInit -> response Js.Promise.t
+   = "fetch"
+   [@@bs.val] *)
 
-external fetchWithRequest : request -> response Js.Promise.t = "fetch"
-  [@@bs.val]
+(* external fetchWithRequest : request -> response Js.Promise.t = "fetch"
+   [@@bs.val] *)
 
-external fetchWithRequestInit : request -> requestInit -> response Js.Promise.t
-  = "fetch"
-  [@@bs.val]
+(* external fetchWithRequestInit : request -> requestInit -> response Js.Promise.t
+   = "fetch"
+   [@@bs.val]
+*)

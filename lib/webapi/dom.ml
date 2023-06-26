@@ -308,11 +308,12 @@ module Storage2 = struct
     [@@bs.send] [@@bs.return null_to_opt]
 
   external length : t -> int = "length" [@@bs.get]
-  external localStorage : t = "localStorage" [@@bs.val]
+  (* external localStorage : t = "localStorage" [@@bs.val] *)
 
   let localStorage : t = assert false
 
-  external sessionStorage : t = "sessionStorage" [@@bs.val]
+  (* external sessionStorage : t = "sessionStorage" [@@bs.val] *)
+  let sessionStorage : t = assert false
 end
 
 module Storage = struct
@@ -329,6 +330,10 @@ module Storage = struct
     [@@bs.send.pipe: t] [@@bs.return null_to_opt]
 
   external length : t -> int = "length" [@@bs.get]
-  external localStorage : t = "localStorage" [@@bs.val]
-  external sessionStorage : t = "sessionStorage" [@@bs.val]
+
+  (* external localStorage : t = "localStorage" [@@bs.val] *)
+  let localStorage : t = assert false
+
+  (* external sessionStorage : t = "sessionStorage" [@@bs.val] *)
+  let sessionStorage : t = assert false
 end

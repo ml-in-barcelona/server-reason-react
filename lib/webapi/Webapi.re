@@ -14,13 +14,11 @@ module File = Webapi__File;
 
     @since 0.18.0 */
 /* module FormData = Fetch.FormData; */
-
 /** Re-export from [bs-fetch] for convenience. See also
     {!module:FormData}.
 
     @since 0.18.0 */
 /* module Iterator = FormData.Iterator; */
-
 module Performance = Webapi__Performance;
 
 /** @since 0.19.0 */
