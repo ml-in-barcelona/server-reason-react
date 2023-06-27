@@ -1,0 +1,3 @@
+(melange.emit
+ (target tests)
+ (libraries webapi))
