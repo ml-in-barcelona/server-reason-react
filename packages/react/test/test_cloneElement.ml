@@ -83,7 +83,7 @@ let case title fn = Alcotest.test_case title `Quick fn
 let tests =
   ( (* FIXME: those test shouldn't rely on renderToStaticMarkup,
        make an alcotest TESTABLE component *)
-    "React.cloneElement",
+    "cloneElement",
     [
       case "empty component" clone_empty;
       case "attributes component" clone_attributes;

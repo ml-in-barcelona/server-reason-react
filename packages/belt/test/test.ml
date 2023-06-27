@@ -29,7 +29,7 @@ let _ =
   Belt.Array.forEachU aa (fun x ->
       match Js.Undefined.toOption x with
       | None -> print_endline "YUP"
-      | ((Some x) [@explicit_arity]) -> assert false)
+      | Some x -> assert false)
 
 let aa = Belt.Array.mapWithIndex aa (fun i _ -> i)
 let aaa = Belt.List.concat [ 1.0; 2.0 ] [ 3.0; 4.0 ]

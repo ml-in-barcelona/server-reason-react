@@ -238,9 +238,44 @@ let children_flattening_multiple_elements = () => {
 
 let case = (title, fn) => Alcotest.test_case(title, `Quick, fn);
 
+let assert_string = (left, right) =>
+  Alcotest.check(Alcotest.string, "should be equal", right, left);
+
+module Text = {
+  module Tag = {
+    type t =
+      | H1;
+
+    let unwrap =
+      fun
+      | H1 => "h1";
+  };
+
+  [@react.component]
+  let make = (~tagType, ~children: React.element) => {
+    ReactDOM.createDOMElementVariadic(
+      tagType |> Tag.unwrap,
+      ReactDOM.domProps(
+        ~className="foo",
+        ~style=ReactDOM.Style.make(~display="none", ()),
+        (),
+      ),
+      React.Children.toArray(children),
+    );
+  };
+};
+
+let create_element_variadic = () => {
+  let component = <Text tagType=Text.Tag.H1> {React.string("Hello")} </Text>;
+  assert_string(
+    ReactDOM.renderToStaticMarkup(component),
+    "<h1 style=\"display: none\" class=\"foo\">Hello</h1>",
+  );
+};
+
 let _ =
   Alcotest.run(
-    "Tests",
+    "server-reason-react-ppx",
     [
       (
         "renderToStaticMarkup",
@@ -280,6 +315,7 @@ let _ =
             "children_flattening_multiple_elements",
             children_flattening_multiple_elements,
           ),
+          case("createElementVariadic", create_element_variadic),
         ],
       ),
     ],
