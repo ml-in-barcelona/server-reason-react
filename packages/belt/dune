@@ -11,13 +11,10 @@
 
 (subdir
  test
- (executable
+ (test
   (name test)
-  (modules test)
+  (modules :standard)
   (flags :standard -w -32-27-34)
-  (libraries server-reason-react.belt server-reason-react.js))
- (rule
-  (alias runtest)
-  (deps test.ml)
-  (action
-   (run ./test.exe))))
+  (libraries alcotest fmt server-reason-react.belt server-reason-react.js)
+  (preprocess
+   (pps server-reason-react.ppx))))
