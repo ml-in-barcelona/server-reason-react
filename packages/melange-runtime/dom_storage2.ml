@@ -1,16 +1,22 @@
 type t
 
-external getItem : t -> string -> string option = "getItem"
-  [@@bs.send] [@@bs.return null_to_opt]
+(* external getItem : string -> string option = "getItem"
+  [@@bs.send.pipe: t] [@@bs.return null_to_opt] *)
+let getItem _k = None
 
-external setItem : t -> string -> string -> unit = "setItem" [@@bs.send]
-external removeItem : t -> string -> unit = "removeItem" [@@bs.send]
-external clear : t -> unit = "clear" [@@bs.send]
+(* external setItem : string -> string -> unit = "setItem" [@@bs.send.pipe: t] *)
+let setItem _k _v = ()
+(* external removeItem : string -> unit = "removeItem" [@@bs.send.pipe: t] *)
+let removeItem _k = ()
+(* external clear : unit -> unit = "clear" [@@bs.send.pipe: t] *)
+let clear _ = ()
 
-external key : t -> int -> string option = "key"
-  [@@bs.send] [@@bs.return null_to_opt]
+(* external key : int -> string option = "key"
+  [@@bs.send.pipe: t] [@@bs.return null_to_opt] *)
+let key _ = None
 
-external length : t -> int = "length" [@@bs.get]
+(* external length : t -> int = "length" [@@bs.get] *)
+let length _ = 0
 
 (* external localStorage : t = "localStorage" [@@bs.val] *)
 let localStorage = assert false
