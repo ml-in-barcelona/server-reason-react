@@ -2,6 +2,6 @@
  (name reactDOM)
  (wrapped false)
  (public_name server-reason-react.reactDom)
- (libraries react js webapi html)
+ (libraries react js html)
  (preprocess
   (pps melange.ppx)))

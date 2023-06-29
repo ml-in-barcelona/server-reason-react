@@ -20,9 +20,14 @@ type file
 module AbortController = struct
   type t = abortController
 
-  external signal : t -> signal = "signal" [@@bs.get]
-  external abort : unit = "abort" [@@bs.send.pipe: t]
-  external make : unit -> t = "AbortController" [@@bs.new]
+  (* external signal : t -> signal = "signal" [@@bs.get] *)
+  let signal _ = assert false
+
+  (* external abort : unit = "abort" [@@bs.send.pipe: t] *)
+  let abort _ = ()
+
+  (* external make : unit -> t = "AbortController" [@@bs.new] *)
+  let make () = assert false
 end
 
 type requestMethod =

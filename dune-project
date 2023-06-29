@@ -5,7 +5,6 @@
 (cram enable)
 
 (name server-reason-react)
-(version e08f6bb)
 
 (license MIT)
 
