@@ -24,9 +24,10 @@
  (synopsis "Rendering React components on the server natively")
  (depends
   ;; General system dependencies
-  (ocaml (>= 4.14.0))
+  (ocaml (and (>= 4.12.0) (< 5.0.0)))
+
   (ppxlib (>= 0.23.0))
-  (reason (= 3.8.1))
+  (reason (>= 3.8.1))
   (pcre (>= 7.4.0))
   (promise (>= 1.1.2))
 
