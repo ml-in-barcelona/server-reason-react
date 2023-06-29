@@ -9,4 +9,4 @@
  (name hash)
  (modules hash)
  (public_name server-reason-react.hash)
- (modes best melange))
+ (modes :standard melange))
