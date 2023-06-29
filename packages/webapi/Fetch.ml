@@ -20,14 +20,9 @@ type file
 module AbortController = struct
   type t = abortController
 
-  (* external signal : t -> signal = "signal" [@@bs.get] *)
-  let signal _ = assert false
-
-  (* external abort : unit = "abort" [@@bs.send.pipe: t] *)
-  let abort _ = ()
-
-  (* external make : unit -> t = "AbortController" [@@bs.new] *)
-  let make () = assert false
+  external signal : t -> signal = "signal" [@@bs.get]
+  external abort : unit = "abort" [@@bs.send.pipe: t]
+  external make : unit -> t = "AbortController" [@@bs.new]
 end
 
 type requestMethod =
@@ -284,7 +279,6 @@ module Body = struct
     external body : T.t -> readableStream = "body" [@@bs.get]
     external bodyUsed : T.t -> bool = "bodyUsed" [@@bs.get]
 
-    (* Unsure why Js.Promise is unbound module *)
     (* external arrayBuffer : arrayBuffer Js.Promise.t = "arrayBuffer"
        [@@bs.send.pipe: T.t] *)
 
@@ -430,7 +424,7 @@ module FormData = struct
       else `File (Obj.magic t)
   end
 
-  module Iterator = Iterator
+  module Iterator = Fetch__Iterator
 
   type t = formData
 
@@ -441,8 +435,8 @@ module FormData = struct
   external getAll : string -> EntryValue.t array = "getAll" [@@bs.send.pipe: t]
   external set : string -> string -> unit = "set" [@@bs.send.pipe: t]
   external has : string -> bool = "has" [@@bs.send.pipe: t]
-  external keys : t -> string Iterator.t = "keys" [@@bs.send]
-  external values : t -> EntryValue.t Iterator.t = "values" [@@bs.send]
+  external keys : t -> string Fetch__Iterator.t = "keys" [@@bs.send]
+  external values : t -> EntryValue.t Fetch__Iterator.t = "values" [@@bs.send]
 
   external appendObject : string -> < .. > Js.t -> ?filename:string -> unit
     = "append"
@@ -463,26 +457,20 @@ module FormData = struct
   external setFile : string -> file -> ?filename:string -> unit = "set"
     [@@bs.send.pipe: t]
 
-  external entries : t -> (string * EntryValue.t) Iterator.t = "entries"
+  external entries : t -> (string * EntryValue.t) Fetch__Iterator.t = "entries"
     [@@bs.send]
 end
 
-(* external fetch : string -> response Js.Promise.t = "fetch" [@@bs.val]
+(* external fetch : string -> response Js.Promise.t = "fetch" [@@bs.val] *)
 
-   external fetchWithInit :
-      string
-     -> requestInit
-     -> response Js.Promise.t
-     = "fetch"
-     [@@bs.val]
+(* external fetchWithInit : string -> requestInit -> response Js.Promise.t
+   = "fetch"
+   [@@bs.val] *)
 
-   external fetchWithRequest : request -> response Js.Promise.t = "fetch"
-     [@@bs.val]
+(* external fetchWithRequest : request -> response Js.Promise.t = "fetch"
+   [@@bs.val] *)
 
-   external fetchWithRequestInit :
-      request
-     -> requestInit
-     -> response Js.Promise.t
-     = "fetch"
-     [@@bs.val]
+(* external fetchWithRequestInit : request -> requestInit -> response Js.Promise.t
+   = "fetch"
+   [@@bs.val]
 *)
