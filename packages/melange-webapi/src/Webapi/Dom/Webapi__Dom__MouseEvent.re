@@ -1,4 +1,6 @@
-module Impl = (T: {type t;}) => {
+module Impl = (T: {
+                 type t;
+               }) => {
   [@bs.get] external altKey: T.t => bool = "altKey";
   [@bs.get] external button: T.t => int = "button";
   [@bs.get] external buttons: T.t => int /* bitmask */ = "buttons";

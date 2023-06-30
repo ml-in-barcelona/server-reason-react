@@ -1,4 +1,6 @@
-module Impl = (T: {type t;}) => {
+module Impl = (T: {
+                 type t;
+               }) => {
   type t_htmlDocument = T.t;
 
   [@bs.get] [@bs.return nullable]

@@ -1,5 +1,7 @@
 /* Mixin */
-module Impl = (T: {type t;}) => {
+module Impl = (T: {
+                 type t;
+               }) => {
   [@bs.get] external children: T.t => Dom.htmlCollection = "children";
   [@bs.get] [@bs.return nullable]
   external firstElementChild: T.t => option(Dom.element) =

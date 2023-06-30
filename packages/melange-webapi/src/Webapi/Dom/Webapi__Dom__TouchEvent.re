@@ -1,6 +1,8 @@
 type touchList; /* TODO, Touch Events */
 
-module Impl = (T: {type t;}) => {
+module Impl = (T: {
+                 type t;
+               }) => {
   [@bs.get] external altKey: T.t => bool = "altKey";
   [@bs.get] external changedTouches: T.t => touchList = "changedTouches";
   [@bs.get] external ctrlKey: T.t => bool = "ctrlKey";

@@ -3,7 +3,9 @@
  * MDN: https://developer.mozilla.org/en-US/docs/Web/API/HTMLFormElement
  */
 
-module Impl = (T: {type t;}) => {
+module Impl = (T: {
+                 type t;
+               }) => {
   type t_htmlFormElement = T.t;
 
   /* TODO: elements: HTMLFormControlsCollection */

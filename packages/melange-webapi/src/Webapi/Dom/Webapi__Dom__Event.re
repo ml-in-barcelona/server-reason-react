@@ -1,4 +1,6 @@
-module Impl = (T: {type t;}) => {
+module Impl = (T: {
+                 type t;
+               }) => {
   [@bs.get] external bubbles: T.t => bool = "bubbles";
   [@bs.get] external cancelable: T.t => bool = "cancelable";
   [@bs.get] external composed: T.t => bool = "composed";

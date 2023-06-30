@@ -3,7 +3,9 @@ let ofNode = (node: Dom.node): option('a) =>
   Webapi__Dom__Node.nodeType(node) == Webapi__Dom__Types.Element
     ? Some(Obj.magic(node)) : None;
 
-module Impl = (T: {type t;}) => {
+module Impl = (T: {
+                 type t;
+               }) => {
   let asHtmlElement: T.t => option(Dom.htmlElement) = [%raw
     {|
     function(element) {

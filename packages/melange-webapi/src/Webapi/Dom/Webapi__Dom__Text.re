@@ -2,7 +2,9 @@ let ofNode = (node: Dom.node): option('a) =>
   Webapi__Dom__Node.nodeType(node) == Webapi__Dom__Types.Text
     ? Some(Obj.magic(node)) : None;
 
-module Impl = (T: {type t;}) => {
+module Impl = (T: {
+                 type t;
+               }) => {
   let ofNode: Dom.node => option(T.t) = ofNode;
 
   [@bs.send.pipe: T.t]

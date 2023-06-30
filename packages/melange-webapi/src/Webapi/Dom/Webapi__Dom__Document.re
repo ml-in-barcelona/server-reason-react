@@ -1,4 +1,6 @@
-module Impl = (T: {type t;}) => {
+module Impl = (T: {
+                 type t;
+               }) => {
   external asDocument: T.t => Dom.document = "%identity";
 
   let asHtmlDocument: T.t => option(Dom.htmlDocument) = [%raw
@@ -164,7 +166,7 @@ include Webapi__Dom__EventTarget.Impl({
 include Webapi__Dom__NonElementParentNode.Impl({
   type nonrec t = t;
 });
-include Webapi__Dom__DocumentOrShadowRoot.Impl({});
+include Webapi__Dom__DocumentOrShadowRoot.Impl();
 include Webapi__Dom__ParentNode.Impl({
   type nonrec t = t;
 });

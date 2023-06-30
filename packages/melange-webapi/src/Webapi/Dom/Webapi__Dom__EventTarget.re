@@ -1,4 +1,6 @@
-module Impl = (T: {type t;}) => {
+module Impl = (T: {
+                 type t;
+               }) => {
   external asEventTarget: T.t => Dom.eventTarget = "%identity";
 
   [@bs.send.pipe: T.t]

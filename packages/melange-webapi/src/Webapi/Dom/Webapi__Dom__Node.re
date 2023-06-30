@@ -1,4 +1,6 @@
-module Impl = (T: {type t;}) => {
+module Impl = (T: {
+                 type t;
+               }) => {
   external asNode: T.t => Dom.node = "%identity";
 
   /* baseURI */

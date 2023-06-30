@@ -3,7 +3,9 @@
  * MDN: https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement
  */
 
-module Impl = (T: {type t;}) => {
+module Impl = (T: {
+                 type t;
+               }) => {
   type t_htmlInputElement = T.t;
 
   [@bs.get] [@bs.return nullable]

@@ -9,7 +9,7 @@ include Webapi__Dom__EventTarget.Impl({
 include Webapi__Dom__NonElementParentNode.Impl({
   type nonrec t = t;
 });
-include Webapi__Dom__DocumentOrShadowRoot.Impl({});
+include Webapi__Dom__DocumentOrShadowRoot.Impl();
 include Webapi__Dom__ParentNode.Impl({
   type nonrec t = t;
 });

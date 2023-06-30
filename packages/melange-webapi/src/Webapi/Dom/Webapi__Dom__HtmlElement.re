@@ -1,4 +1,6 @@
-module Impl = (T: {type t;}) => {
+module Impl = (T: {
+                 type t;
+               }) => {
   type t_htmlElement = T.t;
 
   let ofElement = Webapi__Dom__Element.asHtmlElement;

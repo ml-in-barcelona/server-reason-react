@@ -1,4 +1,6 @@
-module Impl = (T: {type t;}) => {
+module Impl = (T: {
+                 type t;
+               }) => {
   [@bs.get] external data: T.t => string = "data";
   [@bs.get] external length: T.t => int = "length";
 

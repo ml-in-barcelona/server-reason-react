@@ -1,4 +1,6 @@
-module Impl = (T: {type t;}) => {
+module Impl = (T: {
+                 type t;
+               }) => {
   [@bs.get] external detail: T.t => int = "detail";
   [@bs.get] external view: T.t => Dom.window = "view"; /* technically returns a `WindowProxy` */
 };
