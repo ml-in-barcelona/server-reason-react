@@ -132,7 +132,12 @@ let render_tree ~mode element =
             push (Printf.sprintf "<!-- -->%s" (Html.encode text))
         | _ -> push (Html.encode text))
     | InnerHtml text -> push text
+    | Suspense { children; _ } ->
+        push "<!--$-->";
+        children |> List.iter render_inner;
+        push "<!--/$-->"
   in
+
   render_inner element;
   buff |> Buffer.contents
 

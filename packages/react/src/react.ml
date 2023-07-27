@@ -63,6 +63,7 @@ and element =
   | Empty
   | Provider of (unit -> element) list
   | Consumer of (unit -> element list)
+  | Suspense of { children : element list; fallback : element }
 
 exception Invalid_children of string
 
@@ -161,6 +162,7 @@ let cloneElement element new_attributes new_childrens =
   | Provider child -> Provider child
   | Consumer child -> Consumer child
   | Upper_case_component f -> Upper_case_component f
+  | Suspense { fallback; _ } -> Suspense { fallback; children = new_childrens }
 
 let fragment ~children () = Fragment children
 

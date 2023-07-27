@@ -3,5 +3,7 @@
  (wrapped false)
  (public_name server-reason-react.react)
  (libraries js html)
+ (flags
+  (:standard -w -30))
  (preprocess
   (pps melange.ppx)))

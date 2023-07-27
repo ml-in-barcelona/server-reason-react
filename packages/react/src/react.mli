@@ -63,6 +63,7 @@ and element =
   | Empty
   | Provider of (unit -> element) list
   | Consumer of (unit -> element list)
+  | Suspense of { children : element list; fallback : element }
 
 exception Invalid_children of string
 
