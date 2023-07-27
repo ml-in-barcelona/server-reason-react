@@ -1,6 +1,6 @@
 open React
 
-let attribute_name_to_jsx k =
+let jsx_attribute_to_html k =
   match k with
   | "className" -> "class"
   | "htmlFor" -> "for"
@@ -66,7 +66,7 @@ let attribute_to_string attr =
   | Event _ -> ""
   | Style styles -> Printf.sprintf "style=\"%s\"" styles
   | String (k, v) ->
-      Printf.sprintf "%s=\"%s\"" (attribute_name_to_jsx k) (Html.encode v)
+      Printf.sprintf "%s=\"%s\"" (jsx_attribute_to_html k) (Html.encode v)
 
 let attributes_to_string tag attrs =
   let valid_attributes =
