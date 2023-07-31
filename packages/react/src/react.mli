@@ -90,6 +90,7 @@ type 'a context = {
 val createContext : 'a -> 'a context
 
 (* val memo : ('props * 'props -> bool) -> 'a -> 'props * 'props -> bool *)
+val use : 'a Lwt.t -> 'a
 val useContext : 'a context -> 'a
 val useState : (unit -> 'state) -> 'state * (('state -> 'state) -> unit)
 val useMemo : (unit -> 'a) -> 'a

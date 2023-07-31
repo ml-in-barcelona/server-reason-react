@@ -206,6 +206,13 @@ let createContext (initial_value : 'a) : 'a context =
 (* let memo f : 'props * 'props -> bool = f
    let memoCustomCompareProps f _compare : 'props * 'props -> bool = f *)
 
+let use (type a) promise =
+  let exception Suspend of a Lwt.t in
+  match Lwt.state promise with
+  | Sleep -> raise (Suspend promise)
+  | Return v -> v
+  | Fail e -> raise e
+
 let useContext context = context.current_value.contents
 
 let useState (make_initial_value : unit -> 'state) =

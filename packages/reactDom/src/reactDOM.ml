@@ -84,7 +84,7 @@ let data_react_root_attr = Printf.sprintf " %s=\"\"" react_root_attr_name
 
 type mode = String | Markup
 
-let render_tree ~mode element =
+let render_tree_to_string ~mode element =
   let buff = Buffer.create 16 in
   let push = Buffer.add_string buff in
   (* is_root starts at true (when renderToString) and only goes to false
@@ -137,12 +137,100 @@ let render_tree ~mode element =
         children |> List.iter render_inner;
         push "<!--/$-->"
   in
-
   render_inner element;
   buff |> Buffer.contents
 
-let renderToString element = render_tree ~mode:String element
-let renderToStaticMarkup element = render_tree ~mode:Markup element
+let renderToString element =
+  (* TODO: try catch to avoid React.use usages *)
+  render_tree_to_string ~mode:String element
+
+let renderToStaticMarkup element =
+  (* TODO: try catch to avoid React.use usages *)
+  render_tree_to_string ~mode:Markup element
+
+let render_to_stream element =
+  let buff = Buffer.create 16 in
+  let push = Buffer.add_string buff in
+  let rec render_inner element =
+    match element with
+    | Empty -> push ""
+    | Provider childrens ->
+        childrens |> List.map (fun f -> f ()) |> List.iter render_inner
+    | Consumer children -> children () |> List.iter render_inner
+    | Fragment children -> render_inner children
+    | List list -> list |> Array.iter render_inner
+    | Upper_case_component f -> render_inner (f ())
+    | Lower_case_element { tag; attributes; _ }
+      when Html.is_self_closing_tag tag ->
+        push "<";
+        push tag;
+        push (attributes_to_string tag attributes);
+        push " />"
+    | Lower_case_element { tag; attributes; children } ->
+        push "<";
+        push tag;
+        push (attributes_to_string tag attributes);
+        push ">";
+        children |> List.iter render_inner;
+        push "</";
+        push tag;
+        push ">"
+    | Text text -> push (Html.encode text)
+    | InnerHtml text -> push text
+    | Suspense { children; _ } ->
+        push "<!--$-->";
+        children |> List.iter render_inner;
+        push "<!--/$-->"
+  in
+  render_inner element;
+  buff |> Buffer.contents
+
+let renderToLwtStream _element =
+  let stream, _push = Lwt_stream.create () in
+  let abort () =
+    (* TODO: Needs to flush the remaining loading fallbacks as HTML, and will attempt to render the rest on the client. *)
+    Lwt_stream.closed stream |> Lwt.ignore_result
+  in
+
+  (*
+      const request = createRequestImpl(children, options);
+      (* createRequestImpl ??? *)
+
+      let hasStartedFlowing = false;
+      startWork(request);
+      (* startWork ??? *)
+
+      let pipe = (destination) => {
+        hasStartedFlowing = true;
+        startFlowing(request, destination);
+        (* startFlowing ??? *)
+        destination.on('drain', createDrainHandler(destination, request));
+        (* createDrainHandler ??? *)
+
+        destination.on(
+          'error',
+          createAbortHandler(
+            request,
+            'The destination stream errored while writing data.',
+          ),
+        );
+        (* createAbortHandler ??? *)
+
+        destination.on(
+          'close',
+          createAbortHandler(request, 'The destination stream closed early.'),
+        );
+        return destination;
+      };
+
+      return {
+        pipe, abort
+      }
+  *)
+
+  (* let () = push (Some (render_to_stream element)) in *)
+  (stream, abort)
+
 let querySelector _str = None
 
 let fail_impossible_action_in_ssr =
