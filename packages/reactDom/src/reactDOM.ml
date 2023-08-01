@@ -176,23 +176,21 @@ let render_to_stream ~context_state element =
         arr |> Array.to_list |> List.map render_inner |> String.concat ""
     | Upper_case_component component -> (
         print_endline "Upper_case_component";
-        let element =
-          try Some (component ()) with
-          | React.Suspend (Any_promise promise) ->
-              print_endline "| React.Suspend (Any_promise promise) ->";
-              context_state.waiting <- context_state.waiting + 1;
-              Lwt.map
-                (fun _ ->
-                  context_state.push (render_inner element);
-                  context_state.waiting <- context_state.waiting - 1;
-                  if context_state.waiting = 0 then context_state.close ()
-                  else ())
-                promise
-              |> Lwt.ignore_result;
-              None
-          | e -> raise e
-        in
-        match element with Some element -> render_inner element | None -> "")
+        match component () with
+        | element -> render_inner element
+        | exception React.Suspend (Any_promise promise) ->
+            print_endline "| React.Suspend (Any_promise promise) ->";
+            context_state.waiting <- context_state.waiting + 1;
+            Lwt.map
+              (fun _ ->
+                context_state.push (render_inner element);
+                context_state.waiting <- context_state.waiting - 1;
+                if context_state.waiting = 0 then context_state.close () else ())
+              promise
+            |> Lwt.ignore_result;
+            (* TODO: What should it return in this case? *)
+            ""
+        | exception exn -> raise exn)
     | Lower_case_element { tag; attributes; _ }
       when Html.is_self_closing_tag tag ->
         Printf.sprintf "<%s%s />" tag (attributes_to_string tag attributes)

@@ -4,8 +4,19 @@ let assert_string left right =
 let assert_list ty left right =
   Alcotest.check (Alcotest.list ty) "should be equal" right left
 
+module Sleep = struct
+  let cached = ref false
+
+  let delay v =
+    if cached.contents then Lwt.return ()
+    else
+      let open Lwt.Infix in
+      cached.contents <- true;
+      Lwt_unix.sleep v >>= fun () -> Lwt.return ()
+end
+
 let make ~delay =
-  let () = React.use (Lwt_unix.sleep delay) in
+  let () = React.use (Sleep.delay delay) in
   React.createElement "div" [||]
     [
       React.createElement "span" [||]
@@ -28,7 +39,7 @@ let test_silly_stream _switch () : unit Lwt.t =
 let suspense_one _switch () : unit Lwt.t =
   let timer = React.Upper_case_component (fun () -> make ~delay:0.1) in
   let stream, _abort = ReactDOM.renderToLwtStream timer in
-  assert_stream stream [ "Hello"; "1." ]
+  assert_stream stream [ ""; "<div><span>Hello0.1</span></div>" ]
 
 let case title fn = Alcotest_lwt.test_case title `Quick fn
 
