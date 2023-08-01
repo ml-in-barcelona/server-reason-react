@@ -134,7 +134,7 @@ let render_tree_to_string ~mode element =
     | InnerHtml text -> push text
     | Suspense { children; _ } ->
         push "<!--$-->";
-        children |> List.iter render_inner;
+        render_inner children;
         push "<!--/$-->"
   in
   render_inner element;
@@ -164,51 +164,60 @@ type context_state = {
 }
 
 let render_to_stream ~context_state element =
-  let rec render_inner element =
+  let rec render_element element =
     match element with
     | Empty -> ""
     | Provider childrens ->
-        childrens |> List.map (fun f -> render_inner (f ())) |> String.concat ""
+        childrens
+        |> List.map (fun f -> render_element (f ()))
+        |> String.concat ""
     | Consumer children ->
-        children () |> List.map render_inner |> String.concat ""
-    | Fragment children -> render_inner children
+        children () |> List.map render_element |> String.concat ""
+    | Fragment children -> render_element children
     | List arr ->
-        arr |> Array.to_list |> List.map render_inner |> String.concat ""
-    | Upper_case_component component -> (
-        print_endline "Upper_case_component";
-        match component () with
-        | element -> render_inner element
-        | exception React.Suspend (Any_promise promise) ->
-            print_endline "| React.Suspend (Any_promise promise) ->";
-            context_state.waiting <- context_state.waiting + 1;
-            Lwt.map
-              (fun _ ->
-                context_state.push (render_inner element);
-                context_state.waiting <- context_state.waiting - 1;
-                if context_state.waiting = 0 then context_state.close () else ())
-              promise
-            |> Lwt.ignore_result;
-            (* TODO: What should it return in this case? *)
-            ""
-        | exception exn -> raise exn)
+        arr |> Array.to_list |> List.map render_element |> String.concat ""
+    | Upper_case_component component -> render_component component
     | Lower_case_element { tag; attributes; _ }
       when Html.is_self_closing_tag tag ->
         Printf.sprintf "<%s%s />" tag (attributes_to_string tag attributes)
     | Lower_case_element { tag; attributes; children } ->
         Printf.sprintf "<%s%s>%s</%s>" tag
           (attributes_to_string tag attributes)
-          (children |> List.map render_inner |> String.concat "")
+          (children |> List.map render_element |> String.concat "")
           tag
     | Text text -> Html.encode text
     | InnerHtml text -> text
-    | Suspense { children; _ } ->
-        Printf.sprintf "<!--$-->%s<!--/$-->"
-          (children |> List.map render_inner |> String.concat "")
+    | Suspense { children; fallback } -> (
+        match render_element children with
+        | output -> output
+        | exception React.Suspend (Any_promise promise) ->
+            context_state.waiting <- context_state.waiting + 1;
+            (* Wait for promise to resolve *)
+            Lwt.map
+              (fun _ ->
+                context_state.push (render_element children);
+                context_state.waiting <- context_state.waiting - 1;
+                if context_state.waiting = 0 then context_state.close () else ())
+              promise
+            |> Lwt.ignore_result;
+            (* Render the fallback state *)
+            Printf.sprintf "<!--$?--><template id='B:0'></template>%s<!--/$-->"
+              (render_element fallback)
+        | exception exn ->
+            Printf.sprintf "<!--$?--><template id='B:0'></template>%s<!--/$-->"
+              (render_element fallback))
+  and render_component component =
+    match component () with
+    | element -> render_element element
+    | exception React.Suspend (Any_promise promise) ->
+        (* Re-throw the React.Suspend, so it's catched on the Suspense branch *)
+        raise (React.Suspend (Any_promise promise))
+    (* In case of raising an exception inside a component without a Suspense boundary we "wait" or let the promise throw *)
+    | exception _ -> render_element (component ())
   in
-  render_inner element
+  render_element element
 
 let renderToLwtStream element =
-  print_endline "renderToLwtStream";
   let stream, push, close = Stream.create () in
   let context_state = { stream; push; close; waiting = 0 } in
   let shell = render_to_stream ~context_state element in

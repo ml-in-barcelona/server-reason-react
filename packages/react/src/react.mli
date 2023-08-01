@@ -53,7 +53,6 @@ type lower_case_element = {
   children : element list;
 }
 
-(* TODO: add `component = (unit -> element)`  *)
 and element =
   | Lower_case_element of lower_case_element
   | Upper_case_component of (unit -> element)
@@ -64,7 +63,7 @@ and element =
   | Empty
   | Provider of (unit -> element) list
   | Consumer of (unit -> element list)
-  | Suspense of { children : element list; fallback : element }
+  | Suspense of { children : element; fallback : element }
 
 exception Invalid_children of string
 
@@ -89,6 +88,10 @@ type 'a context = {
 }
 
 val createContext : 'a -> 'a context
+
+module Suspense : sig
+  val make : fallback:element -> children:element -> element
+end
 
 type any_promise = Any_promise : 'a Lwt.t -> any_promise
 

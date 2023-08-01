@@ -4,6 +4,14 @@ let assert_string left right =
 let assert_list ty left right =
   Alcotest.check (Alcotest.list ty) "should be equal" right left
 
+let case title fn = Alcotest_lwt.test_case title `Quick fn
+
+let assert_stream (stream : string Lwt_stream.t) expected =
+  let open Lwt.Infix in
+  Lwt_stream.to_list stream >>= fun content ->
+  if content = [] then Lwt.return @@ Alcotest.fail "stream should not be empty"
+  else Lwt.return @@ assert_list Alcotest.string content expected
+
 module Sleep = struct
   let cached = ref false
 
@@ -15,37 +23,82 @@ module Sleep = struct
       Lwt_unix.sleep v >>= fun () -> Lwt.return ()
 end
 
-let make ~delay =
-  let () = React.use (Sleep.delay delay) in
-  React.createElement "div" [||]
-    [
-      React.createElement "span" [||]
-        [ React.string "Hello"; React.float delay ];
-    ]
-
-let assert_stream (stream : string Lwt_stream.t) expected =
-  let open Lwt.Infix in
-  Lwt_stream.to_list stream >>= fun content ->
-  if content = [] then Lwt.return @@ Alcotest.fail "stream should not be empty"
-  else Lwt.return @@ assert_list Alcotest.string content expected
-
-let test_silly_stream _switch () : unit Lwt.t =
+let test_silly_stream _switch () =
   let stream, push = Lwt_stream.create () in
   push (Some "first");
   push (Some "secondo");
   push None;
   assert_stream stream [ "first"; "secondo" ]
 
-let suspense_one _switch () : unit Lwt.t =
-  let timer = React.Upper_case_component (fun () -> make ~delay:0.1) in
-  let stream, _abort = ReactDOM.renderToLwtStream timer in
-  assert_stream stream [ ""; "<div><span>Hello0.1</span></div>" ]
+(*
+  TODO: It currently raises React.Suspend(_), no clue what should happan
+  let react_use_without_suspense _switch () =
+  let delay = 0.1 in
+  let app =
+    React.Upper_case_component
+      (fun () ->
+        let () = React.use (Sleep.delay delay) in
+        React.createElement "div" [||]
+          [
+            React.createElement "span" [||]
+              [ React.string "Hello "; React.float delay ];
+          ])
+  in
+  let stream, _abort = ReactDOM.renderToLwtStream app in
+  assert_stream stream [ "<div><span>Hello 0.1</span></div>" ] *)
 
-let case title fn = Alcotest_lwt.test_case title `Quick fn
+let suspense_without_promise _switch () =
+  let hi =
+    React.Upper_case_component
+      (fun () ->
+        React.createElement "div" [||]
+          [ React.createElement "span" [||] [ React.string "Hello" ] ])
+  in
+  let app =
+    React.Suspense { fallback = React.string "Loading..."; children = hi }
+  in
+  let stream, _abort = ReactDOM.renderToLwtStream app in
+  assert_stream stream [ "<div><span>Hello</span></div>" ]
+
+let suspense_with_always_throwing _switch () =
+  let hi =
+    React.Upper_case_component (fun () -> raise (Failure "always throwing"))
+  in
+  let app =
+    React.Suspense { fallback = React.string "Loading..."; children = hi }
+  in
+  let stream, _abort = ReactDOM.renderToLwtStream app in
+  assert_stream stream
+    [ "<!--$?--><template id='B:0'></template>Loading...<!--/$-->" ]
+
+let react_use_with_suspense _switch () =
+  let delay = 0.5 in
+  let time =
+    React.Upper_case_component
+      (fun () ->
+        let () = React.use (Sleep.delay delay) in
+        React.createElement "div" [||]
+          [
+            React.createElement "span" [||]
+              [ React.string "Hello "; React.float delay ];
+          ])
+  in
+  let app =
+    React.Suspense { fallback = React.string "Loading..."; children = time }
+  in
+  let stream, _abort = ReactDOM.renderToLwtStream app in
+  assert_stream stream
+    [
+      "<!--$?--><template id='B:0'></template>Loading...<!--/$-->";
+      "<div><span>Hello 0.5</span></div>";
+    ]
 
 let tests =
   ( "renderToLwtStream",
     [
       case "test_silly_stream" test_silly_stream;
-      case "suspense_one" suspense_one;
+      (* case "react_use_without_suspense" react_use_without_suspense; *)
+      case "suspense_with_always_throwing" suspense_with_always_throwing;
+      case "suspense_without_promise" suspense_without_promise;
+      case "react_use_with_suspense" react_use_with_suspense;
     ] )

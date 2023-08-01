@@ -273,6 +273,20 @@ let create_element_variadic = () => {
   );
 };
 
+module Content = {
+  let make = () => {
+    <section className="comments">
+      <React.Suspense fallback={<span>React.string("Loading...")</span>}>
+        <div />
+      </React.Suspense>
+    </section>
+  }
+};
+
+let suspense = () => {
+
+}
+
 let _ =
   Alcotest.run(
     "server-reason-react-ppx",
