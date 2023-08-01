@@ -148,87 +148,76 @@ let renderToStaticMarkup element =
   (* TODO: try catch to avoid React.use usages *)
   render_tree_to_string ~mode:Markup element
 
-let render_to_stream element =
-  let buff = Buffer.create 16 in
-  let push = Buffer.add_string buff in
+module Stream = struct
+  let create () =
+    let stream, push_to_stream = Lwt_stream.create () in
+    let push v = push_to_stream @@ Some v in
+    let close () = push_to_stream @@ None in
+    (stream, push, close)
+end
+
+type context_state = {
+  stream : string Lwt_stream.t;
+  push : string -> unit;
+  close : unit -> unit;
+  mutable waiting : int;
+}
+
+let render_to_stream ~context_state element =
   let rec render_inner element =
     match element with
-    | Empty -> push ""
+    | Empty -> ""
     | Provider childrens ->
-        childrens |> List.map (fun f -> f ()) |> List.iter render_inner
-    | Consumer children -> children () |> List.iter render_inner
+        childrens |> List.map (fun f -> render_inner (f ())) |> String.concat ""
+    | Consumer children ->
+        children () |> List.map render_inner |> String.concat ""
     | Fragment children -> render_inner children
-    | List list -> list |> Array.iter render_inner
-    | Upper_case_component f -> render_inner (f ())
+    | List arr ->
+        arr |> Array.to_list |> List.map render_inner |> String.concat ""
+    | Upper_case_component component -> (
+        print_endline "Upper_case_component";
+        let element =
+          try Some (component ()) with
+          | React.Suspend (Any_promise promise) ->
+              print_endline "| React.Suspend (Any_promise promise) ->";
+              context_state.waiting <- context_state.waiting + 1;
+              Lwt.map
+                (fun _ ->
+                  context_state.push (render_inner element);
+                  context_state.waiting <- context_state.waiting - 1;
+                  if context_state.waiting = 0 then context_state.close ()
+                  else ())
+                promise
+              |> Lwt.ignore_result;
+              None
+          | e -> raise e
+        in
+        match element with Some element -> render_inner element | None -> "")
     | Lower_case_element { tag; attributes; _ }
       when Html.is_self_closing_tag tag ->
-        push "<";
-        push tag;
-        push (attributes_to_string tag attributes);
-        push " />"
+        Printf.sprintf "<%s%s />" tag (attributes_to_string tag attributes)
     | Lower_case_element { tag; attributes; children } ->
-        push "<";
-        push tag;
-        push (attributes_to_string tag attributes);
-        push ">";
-        children |> List.iter render_inner;
-        push "</";
-        push tag;
-        push ">"
-    | Text text -> push (Html.encode text)
-    | InnerHtml text -> push text
+        Printf.sprintf "<%s%s>%s</%s>" tag
+          (attributes_to_string tag attributes)
+          (children |> List.map render_inner |> String.concat "")
+          tag
+    | Text text -> Html.encode text
+    | InnerHtml text -> text
     | Suspense { children; _ } ->
-        push "<!--$-->";
-        children |> List.iter render_inner;
-        push "<!--/$-->"
+        Printf.sprintf "<!--$-->%s<!--/$-->"
+          (children |> List.map render_inner |> String.concat "")
   in
-  render_inner element;
-  buff |> Buffer.contents
+  render_inner element
 
-let renderToLwtStream _element =
-  let stream, _push = Lwt_stream.create () in
-  let abort () =
-    (* TODO: Needs to flush the remaining loading fallbacks as HTML, and will attempt to render the rest on the client. *)
-    Lwt_stream.closed stream |> Lwt.ignore_result
-  in
-
-  (*
-      const request = createRequestImpl(children, options);
-      (* createRequestImpl ??? *)
-
-      let hasStartedFlowing = false;
-      startWork(request);
-      (* startWork ??? *)
-
-      let pipe = (destination) => {
-        hasStartedFlowing = true;
-        startFlowing(request, destination);
-        (* startFlowing ??? *)
-        destination.on('drain', createDrainHandler(destination, request));
-        (* createDrainHandler ??? *)
-
-        destination.on(
-          'error',
-          createAbortHandler(
-            request,
-            'The destination stream errored while writing data.',
-          ),
-        );
-        (* createAbortHandler ??? *)
-
-        destination.on(
-          'close',
-          createAbortHandler(request, 'The destination stream closed early.'),
-        );
-        return destination;
-      };
-
-      return {
-        pipe, abort
-      }
-  *)
-
-  (* let () = push (Some (render_to_stream element)) in *)
+let renderToLwtStream element =
+  print_endline "renderToLwtStream";
+  let stream, push, close = Stream.create () in
+  let context_state = { stream; push; close; waiting = 0 } in
+  let shell = render_to_stream ~context_state element in
+  push shell;
+  if context_state.waiting = 0 then close ();
+  (* TODO: Needs to flush the remaining loading fallbacks as HTML, and will attempt to render the rest on the client. *)
+  let abort () = (* Lwt_stream.closed stream |> Lwt.ignore_result *) () in
   (stream, abort)
 
 let querySelector _str = None

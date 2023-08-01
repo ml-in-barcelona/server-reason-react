@@ -206,12 +206,18 @@ let createContext (initial_value : 'a) : 'a context =
 (* let memo f : 'props * 'props -> bool = f
    let memoCustomCompareProps f _compare : 'props * 'props -> bool = f *)
 
-let use (type a) promise =
-  let exception Suspend of a Lwt.t in
+(* `exception Suspend of 'a Lwt`
+    exceptions can't have type params, this is called existential wrapper *)
+type any_promise = Any_promise : 'a Lwt.t -> any_promise
+
+exception Suspend of any_promise
+
+let use promise =
   match Lwt.state promise with
-  | Sleep -> raise (Suspend promise)
-  | Return v -> v
+  | Sleep -> raise (Suspend (Any_promise promise))
+  (* TODO: Fail should raise a FailedSupense and catch at renderTo* *)
   | Fail e -> raise e
+  | Return v -> v
 
 let useContext context = context.current_value.contents
 

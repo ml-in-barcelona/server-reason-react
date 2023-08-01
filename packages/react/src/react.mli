@@ -53,6 +53,7 @@ type lower_case_element = {
   children : element list;
 }
 
+(* TODO: add `component = (unit -> element)`  *)
 and element =
   | Lower_case_element of lower_case_element
   | Upper_case_component of (unit -> element)
@@ -88,6 +89,10 @@ type 'a context = {
 }
 
 val createContext : 'a -> 'a context
+
+type any_promise = Any_promise : 'a Lwt.t -> any_promise
+
+exception Suspend of any_promise
 
 (* val memo : ('props * 'props -> bool) -> 'a -> 'props * 'props -> bool *)
 val use : 'a Lwt.t -> 'a
