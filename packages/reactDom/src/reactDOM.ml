@@ -84,9 +84,7 @@ let data_react_root_attr = Printf.sprintf " %s=\"\"" react_root_attr_name
 
 type mode = String | Markup
 
-let render_tree_to_string ~mode element =
-  let buff = Buffer.create 16 in
-  let push = Buffer.add_string buff in
+let render_to_string ~mode element =
   (* is_root starts at true (when renderToString) and only goes to false
      when renders an lower-case element or closed element *)
   let is_mode_to_string = mode = String in
@@ -94,59 +92,56 @@ let render_tree_to_string ~mode element =
   (* previous_was_text_node is the flag to enable rendering comments
      <!-- --> between text nodes *)
   let previous_was_text_node = ref false in
-  let rec render_inner element =
+  let rec render_element element =
     let root_attribute =
       match is_root.contents with true -> data_react_root_attr | false -> ""
     in
     match element with
-    | Empty -> push ""
+    | Empty -> ""
     | Provider childrens ->
-        childrens |> List.map (fun f -> f ()) |> List.iter render_inner
-    | Consumer children -> children () |> List.iter render_inner
-    | Fragment children -> render_inner children
-    | List list -> list |> Array.iter render_inner
-    | Upper_case_component f -> render_inner (f ())
+        childrens
+        |> List.map (fun f -> f ())
+        |> List.map render_element |> String.concat ""
+    | Consumer children ->
+        children () |> List.map render_element |> String.concat ""
+    | Fragment children -> render_element children
+    | List list ->
+        list |> Array.map render_element |> Array.to_list |> String.concat ""
+    | Upper_case_component f -> render_element (f ())
     | Lower_case_element { tag; attributes; _ }
       when Html.is_self_closing_tag tag ->
         is_root.contents <- false;
-        push "<";
-        push tag;
-        push (attributes_to_string tag attributes);
-        push " />"
+        Printf.sprintf "<%s%s%s />" tag root_attribute
+          (attributes_to_string tag attributes)
     | Lower_case_element { tag; attributes; children } ->
         is_root.contents <- false;
-        push "<";
-        push tag;
-        push root_attribute;
-        push (attributes_to_string tag attributes);
-        push ">";
-        children |> List.iter render_inner;
-        push "</";
-        push tag;
-        push ">"
+        Printf.sprintf "<%s%s%s>%s</%s>" tag root_attribute
+          (attributes_to_string tag attributes)
+          (children |> List.map render_element |> String.concat "")
+          tag
     | Text text -> (
         let is_previous_text_node = previous_was_text_node.contents in
         previous_was_text_node.contents <- true;
         match mode with
         | String when is_previous_text_node ->
-            push (Printf.sprintf "<!-- -->%s" (Html.encode text))
-        | _ -> push (Html.encode text))
-    | InnerHtml text -> push text
-    | Suspense { children; _ } ->
-        push "<!--$-->";
-        render_inner children;
-        push "<!--/$-->"
+            Printf.sprintf "<!-- -->%s" (Html.encode text)
+        | _ -> Html.encode text)
+    | InnerHtml text -> text
+    | Suspense { children; fallback } -> (
+        match render_element children with
+        | output -> Printf.sprintf "<!--$-->%s<!--/$-->" output
+        | exception _e ->
+            Printf.sprintf "<!--$!-->%s<!--/$-->" (render_element fallback))
   in
-  render_inner element;
-  buff |> Buffer.contents
+  render_element element
 
 let renderToString element =
   (* TODO: try catch to avoid React.use usages *)
-  render_tree_to_string ~mode:String element
+  render_to_string ~mode:String element
 
 let renderToStaticMarkup element =
   (* TODO: try catch to avoid React.use usages *)
-  render_tree_to_string ~mode:Markup element
+  render_to_string ~mode:Markup element
 
 module Stream = struct
   let create () =
