@@ -155,8 +155,23 @@ type context_state = {
   stream : string Lwt_stream.t;
   push : string -> unit;
   close : unit -> unit;
+  mutable b_id : int;
+  mutable s_id : int;
   mutable waiting : int;
 }
+
+let rc_script =
+  {|function $RC(a,b){a=document.getElementById(a);b=document.getElementById(b);b.parentNode.removeChild(b);if(a){a=a.previousSibling;var f=a.parentNode,c=a.nextSibling,e=0;do{if(c&&8===c.nodeType){var d=c.data;if("/$"===d)if(0===e)break;else e--;else"$"!==d&&"$?"!==d&&"$!"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data="$";a._reactRetry&&a._reactRetry()}}|}
+
+let render_inline_rc_script = Printf.sprintf {|<script>%s</script>|} rc_script
+
+let render_inline_rc_replacement replacements =
+  let rc_payload =
+    replacements
+    |> List.map (fun (b, s) -> Printf.sprintf "$RC('B:%i','S:%i')" b s)
+    |> String.concat ";"
+  in
+  Printf.sprintf {|<script>%s</script>|} rc_payload
 
 let render_to_stream ~context_state element =
   let rec render_element element =
@@ -190,17 +205,22 @@ let render_to_stream ~context_state element =
             (* Wait for promise to resolve *)
             Lwt.map
               (fun _ ->
-                context_state.push (render_element children);
+                context_state.push
+                  (render_resolved_element ~id:context_state.s_id children);
+                context_state.push render_inline_rc_script;
+                context_state.push
+                  (render_inline_rc_replacement
+                     [ (context_state.b_id, context_state.s_id) ]);
                 context_state.waiting <- context_state.waiting - 1;
                 if context_state.waiting = 0 then context_state.close () else ())
               promise
             |> Lwt.ignore_result;
             (* Render the fallback state *)
-            Printf.sprintf "<!--$?--><template id='B:0'></template>%s<!--/$-->"
-              (render_element fallback)
+            Printf.sprintf "<!--$?--><template id='B:%i'></template>%s<!--/$-->"
+              context_state.b_id (render_element fallback)
         | exception exn ->
-            Printf.sprintf "<!--$?--><template id='B:0'></template>%s<!--/$-->"
-              (render_element fallback))
+            Printf.sprintf "<!--$?--><template id='B:%i'></template>%s<!--/$-->"
+              context_state.b_id (render_element fallback))
   and render_component component =
     match component () with
     | element -> render_element element
@@ -209,12 +229,16 @@ let render_to_stream ~context_state element =
         raise (React.Suspend (Any_promise promise))
     (* In case of raising an exception inside a component without a Suspense boundary we "wait" or let the promise throw *)
     | exception _ -> render_element (component ())
+  and render_resolved_element ~id element =
+    Printf.sprintf "<div hidden id='S:%i'>%s</div>" id (render_element element)
   in
   render_element element
 
 let renderToLwtStream element =
   let stream, push, close = Stream.create () in
-  let context_state = { stream; push; close; waiting = 0 } in
+  let context_state =
+    { stream; push; close; waiting = 0; b_id = 0; s_id = 0 }
+  in
   let shell = render_to_stream ~context_state element in
   push shell;
   if context_state.waiting = 0 then close ();
