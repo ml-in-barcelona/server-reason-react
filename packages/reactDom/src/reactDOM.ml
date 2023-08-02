@@ -155,15 +155,17 @@ type context_state = {
   stream : string Lwt_stream.t;
   push : string -> unit;
   close : unit -> unit;
-  mutable b_id : int;
-  mutable s_id : int;
+  mutable boundary_id : int;
+  mutable suspense_id : int;
   mutable waiting : int;
 }
 
-let rc_script =
+(* https://github.com/facebook/react/blob/493f72b0a7111b601c16b8ad8bc2649d82c184a0/packages/react-dom-bindings/src/server/fizz-instruction-set/ReactDOMFizzInstructionSetShared.js#L46 *)
+let complete_boundary_script =
   {|function $RC(a,b){a=document.getElementById(a);b=document.getElementById(b);b.parentNode.removeChild(b);if(a){a=a.previousSibling;var f=a.parentNode,c=a.nextSibling,e=0;do{if(c&&8===c.nodeType){var d=c.data;if("/$"===d)if(0===e)break;else e--;else"$"!==d&&"$?"!==d&&"$!"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data="$";a._reactRetry&&a._reactRetry()}}|}
 
-let render_inline_rc_script = Printf.sprintf {|<script>%s</script>|} rc_script
+let inline_complete_boundary_script =
+  Printf.sprintf {|<script>%s</script>|} complete_boundary_script
 
 let render_inline_rc_replacement replacements =
   let rc_payload =
@@ -201,26 +203,31 @@ let render_to_stream ~context_state element =
         match render_element children with
         | output -> output
         | exception React.Suspend (Any_promise promise) ->
+            (* We store to current_*_id to bypass the increment *)
+            let current_boundary_id = context_state.boundary_id in
             context_state.waiting <- context_state.waiting + 1;
             (* Wait for promise to resolve *)
             Lwt.map
               (fun _ ->
+                let current_suspense_id = context_state.suspense_id in
                 context_state.push
-                  (render_resolved_element ~id:context_state.s_id children);
-                context_state.push render_inline_rc_script;
+                  (render_resolved_element ~id:current_suspense_id children);
+                context_state.push inline_complete_boundary_script;
                 context_state.push
                   (render_inline_rc_replacement
-                     [ (context_state.b_id, context_state.s_id) ]);
+                     [ (current_boundary_id, current_suspense_id) ]);
                 context_state.waiting <- context_state.waiting - 1;
+                context_state.suspense_id <- context_state.suspense_id + 1;
                 if context_state.waiting = 0 then context_state.close () else ())
               promise
             |> Lwt.ignore_result;
+            context_state.boundary_id <- context_state.boundary_id + 1;
             (* Render the fallback state *)
             Printf.sprintf "<!--$?--><template id='B:%i'></template>%s<!--/$-->"
-              context_state.b_id (render_element fallback)
+              current_boundary_id (render_element fallback)
         | exception exn ->
             Printf.sprintf "<!--$?--><template id='B:%i'></template>%s<!--/$-->"
-              context_state.b_id (render_element fallback))
+              context_state.boundary_id (render_element fallback))
   and render_component component =
     match component () with
     | element -> render_element element
@@ -237,7 +244,7 @@ let render_to_stream ~context_state element =
 let renderToLwtStream element =
   let stream, push, close = Stream.create () in
   let context_state =
-    { stream; push; close; waiting = 0; b_id = 0; s_id = 0 }
+    { stream; push; close; waiting = 0; boundary_id = 0; suspense_id = 0 }
   in
   let shell = render_to_stream ~context_state element in
   push shell;
