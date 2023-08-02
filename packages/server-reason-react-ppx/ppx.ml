@@ -1059,7 +1059,13 @@ let jsxMapper () =
             (Invalid_argument
                "JSX name can't be the result of function applications")
     in
-    Exp.apply ~attrs ~loc (Exp.ident ~loc { loc; txt = makeFnIdentifier }) args
+    [%expr
+      React.Upper_case_component
+        (fun () ->
+          [%e
+            Exp.apply ~attrs ~loc
+              (Exp.ident ~loc { loc; txt = makeFnIdentifier })
+              args])]
   in
   let transformLowercaseCall ~loc mapper attrs callArguments id callLoc =
     let children, nonChildrenProps =

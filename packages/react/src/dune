@@ -2,6 +2,8 @@
  (name react)
  (wrapped false)
  (public_name server-reason-react.react)
- (libraries js html)
+ (libraries js html lwt)
+ (flags
+  (:standard -w -30))
  (preprocess
   (pps melange.ppx)))

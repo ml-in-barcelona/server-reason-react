@@ -14,7 +14,9 @@ depends: [
   "reason" {>= "3.8.1"}
   "pcre" {>= "7.4.0"}
   "promise" {>= "1.1.2"}
+  "lwt" {>= "5.6.0"}
   "alcotest" {with-test}
+  "alcotest-lwt" {with-test}
   "fmt" {with-test}
   "ocamlformat" {= "0.21.0" & with-test}
   "ocaml-lsp-server" {with-test}

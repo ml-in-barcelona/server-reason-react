@@ -63,6 +63,7 @@ and element =
   | Empty
   | Provider of (unit -> element) list
   | Consumer of (unit -> element list)
+  | Suspense of { children : element; fallback : element }
 
 exception Invalid_children of string
 
@@ -143,7 +144,8 @@ let createElement tag attributes children =
   | true -> Lower_case_element { tag; attributes; children = [] }
   | false -> create_element_inner tag attributes children
 
-(* cloneElements overrides childrens *)
+(* cloneElements overrides childrens but is not always obvious what to do with
+   Provider, Consumer or Suspense. TODO: Check original (JS) implementation *)
 let cloneElement element new_attributes new_childrens =
   match element with
   | Lower_case_element { tag; attributes; children = _ } ->
@@ -161,6 +163,7 @@ let cloneElement element new_attributes new_childrens =
   | Provider child -> Provider child
   | Consumer child -> Consumer child
   | Upper_case_component f -> Upper_case_component f
+  | Suspense { fallback; children } -> Suspense { fallback; children }
 
 let fragment ~children () = Fragment children
 
@@ -201,8 +204,29 @@ let createContext (initial_value : 'a) : 'a context =
   let consumer ~children = Consumer (fun () -> children ref_value.contents) in
   { current_value = ref_value; provider; consumer }
 
+module Suspense = struct
+  let or_react_null = function None -> null | Some x -> x
+
+  let make ?fallback ?children () =
+    Suspense
+      { fallback = or_react_null fallback; children = or_react_null children }
+end
+
 (* let memo f : 'props * 'props -> bool = f
    let memoCustomCompareProps f _compare : 'props * 'props -> bool = f *)
+
+(* `exception Suspend of 'a Lwt`
+    exceptions can't have type params, this is called existential wrapper *)
+type any_promise = Any_promise : 'a Lwt.t -> any_promise
+
+exception Suspend of any_promise
+
+let use promise =
+  match Lwt.state promise with
+  | Sleep -> raise (Suspend (Any_promise promise))
+  (* TODO: Fail should raise a FailedSupense and catch at renderTo* *)
+  | Fail e -> raise e
+  | Return v -> v
 
 let useContext context = context.current_value.contents
 

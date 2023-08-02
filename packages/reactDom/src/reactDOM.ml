@@ -1,6 +1,6 @@
 open React
 
-let attribute_name_to_jsx k =
+let jsx_attribute_to_html k =
   match k with
   | "className" -> "class"
   | "htmlFor" -> "for"
@@ -66,7 +66,7 @@ let attribute_to_string attr =
   | Event _ -> ""
   | Style styles -> Printf.sprintf "style=\"%s\"" styles
   | String (k, v) ->
-      Printf.sprintf "%s=\"%s\"" (attribute_name_to_jsx k) (Html.encode v)
+      Printf.sprintf "%s=\"%s\"" (jsx_attribute_to_html k) (Html.encode v)
 
 let attributes_to_string tag attrs =
   let valid_attributes =
@@ -84,9 +84,7 @@ let data_react_root_attr = Printf.sprintf " %s=\"\"" react_root_attr_name
 
 type mode = String | Markup
 
-let render_tree ~mode element =
-  let buff = Buffer.create 16 in
-  let push = Buffer.add_string buff in
+let render_to_string ~mode element =
   (* is_root starts at true (when renderToString) and only goes to false
      when renders an lower-case element or closed element *)
   let is_mode_to_string = mode = String in
@@ -94,50 +92,168 @@ let render_tree ~mode element =
   (* previous_was_text_node is the flag to enable rendering comments
      <!-- --> between text nodes *)
   let previous_was_text_node = ref false in
-  let rec render_inner element =
+  let rec render_element element =
     let root_attribute =
       match is_root.contents with true -> data_react_root_attr | false -> ""
     in
     match element with
-    | Empty -> push ""
+    | Empty -> ""
     | Provider childrens ->
-        childrens |> List.map (fun f -> f ()) |> List.iter render_inner
-    | Consumer children -> children () |> List.iter render_inner
-    | Fragment children -> render_inner children
-    | List list -> list |> Array.iter render_inner
-    | Upper_case_component f -> render_inner (f ())
+        childrens
+        |> List.map (fun f -> f ())
+        |> List.map render_element |> String.concat ""
+    | Consumer children ->
+        children () |> List.map render_element |> String.concat ""
+    | Fragment children -> render_element children
+    | List list ->
+        list |> Array.map render_element |> Array.to_list |> String.concat ""
+    | Upper_case_component f -> render_element (f ())
     | Lower_case_element { tag; attributes; _ }
       when Html.is_self_closing_tag tag ->
         is_root.contents <- false;
-        push "<";
-        push tag;
-        push (attributes_to_string tag attributes);
-        push " />"
+        Printf.sprintf "<%s%s%s />" tag root_attribute
+          (attributes_to_string tag attributes)
     | Lower_case_element { tag; attributes; children } ->
         is_root.contents <- false;
-        push "<";
-        push tag;
-        push root_attribute;
-        push (attributes_to_string tag attributes);
-        push ">";
-        children |> List.iter render_inner;
-        push "</";
-        push tag;
-        push ">"
+        Printf.sprintf "<%s%s%s>%s</%s>" tag root_attribute
+          (attributes_to_string tag attributes)
+          (children |> List.map render_element |> String.concat "")
+          tag
     | Text text -> (
         let is_previous_text_node = previous_was_text_node.contents in
         previous_was_text_node.contents <- true;
         match mode with
         | String when is_previous_text_node ->
-            push (Printf.sprintf "<!-- -->%s" (Html.encode text))
-        | _ -> push (Html.encode text))
-    | InnerHtml text -> push text
+            Printf.sprintf "<!-- -->%s" (Html.encode text)
+        | _ -> Html.encode text)
+    | InnerHtml text -> text
+    | Suspense { children; fallback } -> (
+        match render_element children with
+        | output -> Printf.sprintf "<!--$-->%s<!--/$-->" output
+        | exception _e ->
+            Printf.sprintf "<!--$!-->%s<!--/$-->" (render_element fallback))
   in
-  render_inner element;
-  buff |> Buffer.contents
+  render_element element
 
-let renderToString element = render_tree ~mode:String element
-let renderToStaticMarkup element = render_tree ~mode:Markup element
+let renderToString element =
+  (* TODO: try catch to avoid React.use usages *)
+  render_to_string ~mode:String element
+
+let renderToStaticMarkup element =
+  (* TODO: try catch to avoid React.use usages *)
+  render_to_string ~mode:Markup element
+
+module Stream = struct
+  let create () =
+    let stream, push_to_stream = Lwt_stream.create () in
+    let push v = push_to_stream @@ Some v in
+    let close () = push_to_stream @@ None in
+    (stream, push, close)
+end
+
+type context_state = {
+  stream : string Lwt_stream.t;
+  push : string -> unit;
+  close : unit -> unit;
+  mutable boundary_id : int;
+  mutable suspense_id : int;
+  mutable waiting : int;
+}
+
+(* https://github.com/facebook/react/blob/493f72b0a7111b601c16b8ad8bc2649d82c184a0/packages/react-dom-bindings/src/server/fizz-instruction-set/ReactDOMFizzInstructionSetShared.js#L46 *)
+let complete_boundary_script =
+  {|function $RC(a,b){a=document.getElementById(a);b=document.getElementById(b);b.parentNode.removeChild(b);if(a){a=a.previousSibling;var f=a.parentNode,c=a.nextSibling,e=0;do{if(c&&8===c.nodeType){var d=c.data;if("/$"===d)if(0===e)break;else e--;else"$"!==d&&"$?"!==d&&"$!"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data="$";a._reactRetry&&a._reactRetry()}}|}
+
+let inline_complete_boundary_script =
+  Printf.sprintf {|<script>%s</script>|} complete_boundary_script
+
+let render_inline_rc_replacement replacements =
+  let rc_payload =
+    replacements
+    |> List.map (fun (b, s) -> Printf.sprintf "$RC('B:%i','S:%i')" b s)
+    |> String.concat ";"
+  in
+  Printf.sprintf {|<script>%s</script>|} rc_payload
+
+let render_to_stream ~context_state element =
+  let rec render_element element =
+    match element with
+    | Empty -> ""
+    | Provider childrens ->
+        childrens
+        |> List.map (fun f -> render_element (f ()))
+        |> String.concat ""
+    | Consumer children ->
+        children () |> List.map render_element |> String.concat ""
+    | Fragment children -> render_element children
+    | List arr ->
+        arr |> Array.to_list |> List.map render_element |> String.concat ""
+    | Upper_case_component component -> render_component component
+    | Lower_case_element { tag; attributes; _ }
+      when Html.is_self_closing_tag tag ->
+        Printf.sprintf "<%s%s />" tag (attributes_to_string tag attributes)
+    | Lower_case_element { tag; attributes; children } ->
+        Printf.sprintf "<%s%s>%s</%s>" tag
+          (attributes_to_string tag attributes)
+          (children |> List.map render_element |> String.concat "")
+          tag
+    | Text text -> Html.encode text
+    | InnerHtml text -> text
+    | Suspense { children; fallback } -> (
+        match render_element children with
+        | output -> output
+        | exception React.Suspend (Any_promise promise) ->
+            context_state.waiting <- context_state.waiting + 1;
+            (* We store to current_*_id to bypass the increment *)
+            let current_boundary_id = context_state.boundary_id in
+            let current_suspense_id = context_state.suspense_id in
+            context_state.boundary_id <- context_state.boundary_id + 1;
+            (* Wait for promise to resolve *)
+            Lwt.async (fun () ->
+                Lwt.map
+                  (fun _ ->
+                    context_state.push
+                      (render_resolved_element ~id:current_suspense_id children);
+                    context_state.push inline_complete_boundary_script;
+                    context_state.push
+                      (render_inline_rc_replacement
+                         [ (current_boundary_id, current_suspense_id) ]);
+                    context_state.waiting <- context_state.waiting - 1;
+                    context_state.suspense_id <- context_state.suspense_id + 1;
+                    if context_state.waiting = 0 then context_state.close ()
+                    else ())
+                  promise);
+            (* Render the fallback state *)
+            Printf.sprintf "<!--$?--><template id='B:%i'></template>%s<!--/$-->"
+              current_boundary_id (render_element fallback)
+        | exception exn ->
+            Printf.sprintf "<!--$?--><template id='B:%i'></template>%s<!--/$-->"
+              context_state.boundary_id (render_element fallback))
+  and render_component component =
+    match component () with
+    | element -> render_element element
+    | exception React.Suspend (Any_promise promise) ->
+        (* Re-throw the React.Suspend, so it's catched on the Suspense branch *)
+        raise (React.Suspend (Any_promise promise))
+    (* In case of raising an exception inside a component without a Suspense boundary we "wait" or let the promise throw *)
+    | exception _ -> render_element (component ())
+  and render_resolved_element ~id element =
+    Printf.sprintf "<div hidden id='S:%i'>%s</div>" id (render_element element)
+  in
+  render_element element
+
+let renderToLwtStream element =
+  let stream, push, close = Stream.create () in
+  let context_state =
+    { stream; push; close; waiting = 0; boundary_id = 0; suspense_id = 0 }
+  in
+  let shell = render_to_stream ~context_state element in
+  push shell;
+  if context_state.waiting = 0 then close ();
+  (* TODO: Needs to flush the remaining loading fallbacks as HTML, and will attempt to render the rest on the client. *)
+  let abort () = (* Lwt_stream.closed stream |> Lwt.ignore_result *) () in
+  (stream, abort)
+
 let querySelector _str = None
 
 let fail_impossible_action_in_ssr =

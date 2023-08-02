@@ -31,9 +31,11 @@
   (reason (>= 3.8.1))
   (pcre (>= 7.4.0))
   (promise (>= 1.1.2))
+  (lwt (>= 5.6.0))
 
   ;; Test dependencies
   (alcotest :with-test)
+  (alcotest-lwt :with-test)
   (fmt :with-test)
 
   ;; Dev dependencies, using with-test so that consumers don't install them (until package is released in opam)

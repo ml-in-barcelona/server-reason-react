@@ -63,6 +63,7 @@ and element =
   | Empty
   | Provider of (unit -> element) list
   | Consumer of (unit -> element list)
+  | Suspense of { children : element; fallback : element }
 
 exception Invalid_children of string
 
@@ -88,7 +89,16 @@ type 'a context = {
 
 val createContext : 'a -> 'a context
 
+module Suspense : sig
+  val make : ?fallback:element -> ?children:element -> unit -> element
+end
+
+type any_promise = Any_promise : 'a Lwt.t -> any_promise
+
+exception Suspend of any_promise
+
 (* val memo : ('props * 'props -> bool) -> 'a -> 'props * 'props -> bool *)
+val use : 'a Lwt.t -> 'a
 val useContext : 'a context -> 'a
 val useState : (unit -> 'state) -> 'state * (('state -> 'state) -> unit)
 val useMemo : (unit -> 'a) -> 'a
