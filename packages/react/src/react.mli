@@ -90,7 +90,7 @@ type 'a context = {
 val createContext : 'a -> 'a context
 
 module Suspense : sig
-  val make : fallback:element -> children:element -> element
+  val make : ?fallback:element -> ?children:element -> unit -> element
 end
 
 type any_promise = Any_promise : 'a Lwt.t -> any_promise
