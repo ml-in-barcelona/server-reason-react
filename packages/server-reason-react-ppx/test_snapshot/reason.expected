@@ -65,7 +65,7 @@ let lower_children_multiple foo bar =
 let lower_child_with_upper_as_children =
   React.createElement "div"
     ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a))) |>
-       Array.of_list) [App.make ()]
+       Array.of_list) [React.Upper_case_component ((fun () -> App.make ()))]
 let lower_children_nested =
   React.createElement "div"
     ((([|(Some
@@ -146,31 +146,45 @@ let fragment_as_a_child =
                        ((([||] |> Array.to_list) |>
                            (List.filter_map (fun a -> a)))
                           |> Array.of_list) []]) ()]
-let upper = Upper.make ()
-let upper_prop = Upper.make ~count ()
-let upper_children_single foo = Upper.make ~children:foo ()
+let upper = React.Upper_case_component (fun () -> Upper.make ())
+let upper_prop = React.Upper_case_component (fun () -> Upper.make ~count ())
+let upper_children_single foo =
+  React.Upper_case_component (fun () -> Upper.make ~children:foo ())
 let upper_children_multiple foo bar =
-  Upper.make ~children:(React.list [foo; bar]) ()
+  React.Upper_case_component
+    (fun () -> Upper.make ~children:(React.list [foo; bar]) ())
 let upper_children =
-  Page.make ~moreProps:"hgalo"
-    ~children:(React.createElement "h1"
-                 ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a)))
-                    |> Array.of_list) [React.string "Yep"]) ()
-let upper_nested_module = Foo.Bar.make ~a:1 ~b:"1" ()
-let upper_child_expr = Div.make ~children:(React.int 1) ()
-let upper_child_ident = Div.make ~children:lola ()
+  React.Upper_case_component
+    (fun () ->
+       Page.make ~moreProps:"hgalo"
+         ~children:(React.createElement "h1"
+                      ((([||] |> Array.to_list) |>
+                          (List.filter_map (fun a -> a)))
+                         |> Array.of_list) [React.string "Yep"]) ())
+let upper_nested_module =
+  React.Upper_case_component (fun () -> Foo.Bar.make ~a:1 ~b:"1" ())
+let upper_child_expr =
+  React.Upper_case_component (fun () -> Div.make ~children:(React.int 1) ())
+let upper_child_ident =
+  React.Upper_case_component (fun () -> Div.make ~children:lola ())
 let upper_all_kinds_of_props =
-  MyComponent.make ~booleanAttribute:true ~stringAttribute:"string"
-    ~intAttribute:1 ?forcedOptional:((Some "hello")[@explicit_arity ])
-    ~onClick:(send handleClick)
-    ~children:(React.createElement "div"
-                 ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a)))
-                    |> Array.of_list) ["hello"]) ()
+  React.Upper_case_component
+    (fun () ->
+       MyComponent.make ~booleanAttribute:true ~stringAttribute:"string"
+         ~intAttribute:1 ?forcedOptional:((Some "hello")[@explicit_arity ])
+         ~onClick:(send handleClick)
+         ~children:(React.createElement "div"
+                      ((([||] |> Array.to_list) |>
+                          (List.filter_map (fun a -> a)))
+                         |> Array.of_list) ["hello"]) ())
 let upper_ref_with_children =
-  FancyButton.make ~ref:buttonRef
-    ~children:(React.createElement "div"
-                 ((([||] |> Array.to_list) |> (List.filter_map (fun a -> a)))
-                    |> Array.of_list) []) ()
+  React.Upper_case_component
+    (fun () ->
+       FancyButton.make ~ref:buttonRef
+         ~children:(React.createElement "div"
+                      ((([||] |> Array.to_list) |>
+                          (List.filter_map (fun a -> a)))
+                         |> Array.of_list) []) ())
 let lower_ref_with_children =
   React.createElement "button"
     ((([|(Some (React.Attribute.Ref ref));(Some
@@ -242,7 +256,8 @@ module React_component_with_props =
       [@warning "-16"][@warning "-16"])
   end
 let react_component_with_props =
-  React_component_with_props.make ~lola:"flores" ()
+  React.Upper_case_component
+    (fun () -> React_component_with_props.make ~lola:"flores" ())
 module Upper_case_with_fragment_as_root =
   struct
     let make ?key  =
@@ -255,8 +270,11 @@ module Upper_case_with_fragment_as_root =
                                   (List.filter_map (fun a -> a)))
                                  |> Array.of_list)
                               [React.string ("First " ^ name)];
-                           Hello.make ~one:"1"
-                             ~children:(React.string ("2nd " ^ name)) ()]) ())
+                           React.Upper_case_component
+                             ((fun () ->
+                                 Hello.make ~one:"1"
+                                   ~children:(React.string ("2nd " ^ name))
+                                   ()))]) ())
       [@warning "-16"][@warning "-16"])
   end
 module Using_React_memo =
