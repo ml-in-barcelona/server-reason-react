@@ -207,6 +207,7 @@ let render_to_stream ~context_state element =
             (* We store to current_*_id to bypass the increment *)
             let current_boundary_id = context_state.boundary_id in
             let current_suspense_id = context_state.suspense_id in
+            context_state.boundary_id <- context_state.boundary_id + 1;
             (* Wait for promise to resolve *)
             Lwt.async (fun () ->
                 Lwt.map
@@ -222,7 +223,6 @@ let render_to_stream ~context_state element =
                     if context_state.waiting = 0 then context_state.close ()
                     else ())
                   promise);
-            context_state.boundary_id <- context_state.boundary_id + 1;
             (* Render the fallback state *)
             Printf.sprintf "<!--$?--><template id='B:%i'></template>%s<!--/$-->"
               current_boundary_id (render_element fallback)
