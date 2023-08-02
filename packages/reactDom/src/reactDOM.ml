@@ -203,13 +203,13 @@ let render_to_stream ~context_state element =
         match render_element children with
         | output -> output
         | exception React.Suspend (Any_promise promise) ->
+            context_state.waiting <- context_state.waiting + 1;
             (* We store to current_*_id to bypass the increment *)
             let current_boundary_id = context_state.boundary_id in
-            context_state.waiting <- context_state.waiting + 1;
+            let current_suspense_id = context_state.suspense_id in
             (* Wait for promise to resolve *)
             Lwt.map
               (fun _ ->
-                let current_suspense_id = context_state.suspense_id in
                 context_state.push
                   (render_resolved_element ~id:current_suspense_id children);
                 context_state.push inline_complete_boundary_script;

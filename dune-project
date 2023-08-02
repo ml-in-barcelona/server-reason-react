@@ -31,6 +31,7 @@
   (reason (>= 3.8.1))
   (pcre (>= 7.4.0))
   (promise (>= 1.1.2))
+  (lwt (>= 5.6.0))
 
   ;; Test dependencies
   (alcotest :with-test)
