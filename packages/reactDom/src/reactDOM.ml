@@ -208,19 +208,20 @@ let render_to_stream ~context_state element =
             let current_boundary_id = context_state.boundary_id in
             let current_suspense_id = context_state.suspense_id in
             (* Wait for promise to resolve *)
-            Lwt.map
-              (fun _ ->
-                context_state.push
-                  (render_resolved_element ~id:current_suspense_id children);
-                context_state.push inline_complete_boundary_script;
-                context_state.push
-                  (render_inline_rc_replacement
-                     [ (current_boundary_id, current_suspense_id) ]);
-                context_state.waiting <- context_state.waiting - 1;
-                context_state.suspense_id <- context_state.suspense_id + 1;
-                if context_state.waiting = 0 then context_state.close () else ())
-              promise
-            |> Lwt.ignore_result;
+            Lwt.async (fun () ->
+                Lwt.map
+                  (fun _ ->
+                    context_state.push
+                      (render_resolved_element ~id:current_suspense_id children);
+                    context_state.push inline_complete_boundary_script;
+                    context_state.push
+                      (render_inline_rc_replacement
+                         [ (current_boundary_id, current_suspense_id) ]);
+                    context_state.waiting <- context_state.waiting - 1;
+                    context_state.suspense_id <- context_state.suspense_id + 1;
+                    if context_state.waiting = 0 then context_state.close ()
+                    else ())
+                  promise);
             context_state.boundary_id <- context_state.boundary_id + 1;
             (* Render the fallback state *)
             Printf.sprintf "<!--$?--><template id='B:%i'></template>%s<!--/$-->"

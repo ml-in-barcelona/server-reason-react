@@ -206,7 +206,7 @@ let createContext (initial_value : 'a) : 'a context =
 
 module Suspense = struct
   let make ~fallback ~children = Suspense { fallback; children }
-end
+end [@react.component]
 
 (* let memo f : 'props * 'props -> bool = f
    let memoCustomCompareProps f _compare : 'props * 'props -> bool = f *)
