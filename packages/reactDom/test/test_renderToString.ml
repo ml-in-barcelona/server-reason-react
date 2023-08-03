@@ -34,7 +34,7 @@ let consecutives_text_nodes () =
     (ReactDOM.renderToString div)
     "<div data-reactroot=\"\"><span>Hello<!-- -->Hello</span></div>"
 
-let case title fn = Alcotest.test_case title `Quick fn
+let case title fn = Alcotest_lwt.test_case_sync title `Quick fn
 
 let whatever =
   React.createElement "div"

@@ -14,7 +14,7 @@ let zero_styles () =
   let styles = ReactDOM.Style.make () in
   assert_styles styles ""
 
-let case title fn = Alcotest.test_case title `Quick fn
+let case title fn = Alcotest_lwt.test_case_sync title `Quick fn
 
 let tests =
   ( "ReactDOM.Style.make",
