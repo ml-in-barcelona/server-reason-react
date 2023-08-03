@@ -188,7 +188,7 @@ let render_to_stream ~context_state element =
     | Fragment children -> render_element children
     | List arr ->
         arr |> Array.to_list |> List.map render_element |> String.concat ""
-    | Upper_case_component component -> render_component component
+    | Upper_case_component component -> render_element (component ())
     | Lower_case_element { tag; attributes; _ }
       when Html.is_self_closing_tag tag ->
         Printf.sprintf "<%s%s />" tag (attributes_to_string tag attributes)
@@ -212,33 +212,28 @@ let render_to_stream ~context_state element =
             Lwt.async (fun () ->
                 Lwt.map
                   (fun _ ->
+                    (* Enqueue the component with resolved data *)
                     context_state.push
                       (render_resolved_element ~id:current_suspense_id children);
+                    (* Enqueue the inline script that replaces fallback by resolved *)
                     context_state.push inline_complete_boundary_script;
                     context_state.push
                       (render_inline_rc_replacement
                          [ (current_boundary_id, current_suspense_id) ]);
                     context_state.waiting <- context_state.waiting - 1;
                     context_state.suspense_id <- context_state.suspense_id + 1;
-                    if context_state.waiting = 0 then context_state.close ()
-                    else ())
+                    if context_state.waiting = 0 then context_state.close ())
                   promise);
-            (* Render the fallback state *)
-            Printf.sprintf "<!--$?--><template id='B:%i'></template>%s<!--/$-->"
-              current_boundary_id (render_element fallback)
-        | exception exn ->
-            Printf.sprintf "<!--$?--><template id='B:%i'></template>%s<!--/$-->"
-              context_state.boundary_id (render_element fallback))
-  and render_component component =
-    match component () with
-    | element -> render_element element
-    | exception React.Suspend (Any_promise promise) ->
-        (* Re-throw the React.Suspend, so it's catched on the Suspense branch *)
-        raise (React.Suspend (Any_promise promise))
-    (* In case of raising an exception inside a component without a Suspense boundary we "wait" or let the promise throw *)
-    | exception _ -> render_element (component ())
+            (* Return the rendered fallback to SSR syncronous *)
+            render_fallback ~boundary_id:current_boundary_id fallback
+        | exception _exn ->
+            (* TODO: log exn *)
+            render_fallback ~boundary_id:context_state.boundary_id fallback)
   and render_resolved_element ~id element =
     Printf.sprintf "<div hidden id='S:%i'>%s</div>" id (render_element element)
+  and render_fallback ~boundary_id element =
+    Printf.sprintf "<!--$?--><template id='B:%i'></template>%s<!--/$-->"
+      boundary_id (render_element element)
   in
   render_element element
 
