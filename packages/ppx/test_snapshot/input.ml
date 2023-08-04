@@ -112,12 +112,15 @@ let flags_global_multiline_insensitive = [%re "/foo/gim"]
 let scape_digis_with_global = [%re "/(\\d+)/g"]
 let payload_should_be_a_string = [%re apply];;
 
-(* browser *)
+(* effect *)
 
 [%effect
   React.useEffect
     (Js.log "ok";
      (None, [||]))]
-;;
 
-[%effect None]
+let _ = [%effect None]
+
+(* browser_only *)
+let _ = [%browser_only Webapi.Dom.getElementById "foo"]
+let _ = [%browser_only fun () -> ()]

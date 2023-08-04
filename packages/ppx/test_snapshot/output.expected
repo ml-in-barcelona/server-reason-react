@@ -90,4 +90,6 @@ let scape_digis_with_global = Js.Re.fromStringWithFlags ~flags:"g" "(\\d+)"
 let payload_should_be_a_string =
   [%ocaml.error "payload should be a string literal"]
 ;;React.useEffect (fun () -> None) [||]
-;;[%ocaml.error "effect only accepts a useEffect expression"]
+let _ = [%ocaml.error "effect only accepts a useEffect expression"]
+let _ = fun () -> raise Browser_only
+let _ = fun () -> raise Browser_only
