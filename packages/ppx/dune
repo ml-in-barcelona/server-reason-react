@@ -25,3 +25,13 @@
  (preprocess
   (pps ppxlib.metaquot))
  (kind ppx_rewriter))
+
+(library
+ (name browser_ppx)
+ (modules browser)
+ (public_name server-reason-react.browser_ppx)
+ (flags :standard -w -9)
+ (libraries ppxlib)
+ (preprocess
+  (pps ppxlib.metaquot))
+ (kind ppx_rewriter))
