@@ -1,43 +1,43 @@
 type 'a t = < .. > as 'a
 
-(* module Fn = struct
-     type 'a arity0 = { i0 : unit -> 'a [@internal] }
-     type 'a arity1 = { i1 : 'a [@internal] }
-     type 'a arity2 = { i2 : 'a [@internal] }
-     type 'a arity3 = { i3 : 'a [@internal] }
-     type 'a arity4 = { i4 : 'a [@internal] }
-     type 'a arity5 = { i5 : 'a [@internal] }
-     type 'a arity6 = { i6 : 'a [@internal] }
-     type 'a arity7 = { i7 : 'a [@internal] }
-     type 'a arity8 = { i8 : 'a [@internal] }
-     type 'a arity9 = { i9 : 'a [@internal] }
-     type 'a arity10 = { i10 : 'a [@internal] }
-     type 'a arity11 = { i11 : 'a [@internal] }
-     type 'a arity12 = { i12 : 'a [@internal] }
-     type 'a arity13 = { i13 : 'a [@internal] }
-     type 'a arity14 = { i14 : 'a [@internal] }
-     type 'a arity15 = { i15 : 'a [@internal] }
-     type 'a arity16 = { i16 : 'a [@internal] }
-     type 'a arity17 = { i17 : 'a [@internal] }
-     type 'a arity18 = { i18 : 'a [@internal] }
-     type 'a arity19 = { i19 : 'a [@internal] }
-     type 'a arity20 = { i20 : 'a [@internal] }
-     type 'a arity21 = { i21 : 'a [@internal] }
-     type 'a arity22 = { i22 : 'a [@internal] }
-   end *)
+module Fn = struct
+  type 'a arity0 = { i0 : unit -> 'a [@internal] }
+  type 'a arity1 = { i1 : 'a [@internal] }
+  type 'a arity2 = { i2 : 'a [@internal] }
+  type 'a arity3 = { i3 : 'a [@internal] }
+  type 'a arity4 = { i4 : 'a [@internal] }
+  type 'a arity5 = { i5 : 'a [@internal] }
+  type 'a arity6 = { i6 : 'a [@internal] }
+  type 'a arity7 = { i7 : 'a [@internal] }
+  type 'a arity8 = { i8 : 'a [@internal] }
+  type 'a arity9 = { i9 : 'a [@internal] }
+  type 'a arity10 = { i10 : 'a [@internal] }
+  type 'a arity11 = { i11 : 'a [@internal] }
+  type 'a arity12 = { i12 : 'a [@internal] }
+  type 'a arity13 = { i13 : 'a [@internal] }
+  type 'a arity14 = { i14 : 'a [@internal] }
+  type 'a arity15 = { i15 : 'a [@internal] }
+  type 'a arity16 = { i16 : 'a [@internal] }
+  type 'a arity17 = { i17 : 'a [@internal] }
+  type 'a arity18 = { i18 : 'a [@internal] }
+  type 'a arity19 = { i19 : 'a [@internal] }
+  type 'a arity20 = { i20 : 'a [@internal] }
+  type 'a arity21 = { i21 : 'a [@internal] }
+  type 'a arity22 = { i22 : 'a [@internal] }
+end
 
 (**/**)
 
 (* module MapperRt = Js_mapperRt *)
-(* module Internal = struct
-     open Fn
-     (* external opaqueFullApply : 'a -> 'a = "#full_apply" *)
+module Internal = struct
+  (* open Fn *)
+  (* external opaqueFullApply : 'a -> 'a = "#full_apply" *)
 
-     (* Use opaque instead of [._n] to prevent some optimizations happening *)
-     (* external run : 'a arity0 -> 'a = "#run" *)
-     (* external opaque : 'a -> 'a = "%opaque" *)
+  (* Use opaque instead of [._n] to prevent some optimizations happening *)
+  (* external run : 'a arity0 -> 'a = "#run" *)
+  (* external opaque : 'a -> 'a = "%opaque" *)
+end
 
-   end *)
 (**/**)
 
 type +'a null = 'a option
@@ -80,7 +80,7 @@ type (+'a, +'e) promise
 
 (** [typeof x] will be compiled as [typeof x] in JS
     Please consider functions in {!Types} for a type safe way of reflection *)
-let typeof _ = "TODO"
+let typeof _ = failwith "Not implemented in server-reason-react"
 
 (** {4 operators }*)
 
@@ -113,9 +113,9 @@ module Null = struct
   let return a = Some a
   let getUnsafe a = match toOption a with None -> assert false | Some a -> a
   let test = function None -> true | Some _ -> false
-  let getExn _ = failwith "TODO"
-  let bind _ _ = failwith "TODO"
-  let iter _ _ = failwith "TODO"
+  let getExn _ = failwith "Not implemented in server-reason-react"
+  let bind _ _ = failwith "Not implemented in server-reason-react"
+  let iter _ _ = failwith "Not implemented in server-reason-react"
   let fromOption = fromOpt
   let from_opt = fromOpt
 end
@@ -130,12 +130,12 @@ module Undefined = struct
   external toOption : 'a t -> 'a option = "%identity"
   external fromOpt : 'a option -> 'a t = "%identity"
 
-  let getExn _ = failwith "TODO"
+  let getExn _ = failwith "Not implemented in server-reason-react"
   let getUnsafe a = match toOption a with None -> assert false | Some a -> a
-  let bind _ _ = failwith "TODO"
-  let iter _ _ = failwith "TODO"
-  let testAny _ = failwith "TODO"
-  let test _ = failwith "TODO"
+  let bind _ _ = failwith "Not implemented in server-reason-react"
+  let iter _ _ = failwith "Not implemented in server-reason-react"
+  let testAny _ = failwith "Not implemented in server-reason-react"
+  let test _ = failwith "Not implemented in server-reason-react"
   let fromOption = fromOpt
   let from_opt = fromOpt
 end
@@ -169,25 +169,28 @@ module Exn = struct
 
   external makeError : string -> t = "%identity"
 
-  let asJsExn _ = failwith "TODO"
-  let stack _ = failwith "TODO"
-  let message _ = failwith "TODO"
-  let name _ = failwith "TODO"
-  let fileName _ = failwith "TODO"
-  let anyToExnInternal _ = failwith "TODO"
-  let isCamlExceptionOrOpenVariant _ = failwith "TODO"
+  let asJsExn _ = failwith "Not implemented in server-reason-react"
+  let stack _ = failwith "Not implemented in server-reason-react"
+  let message _ = failwith "Not implemented in server-reason-react"
+  let name _ = failwith "Not implemented in server-reason-react"
+  let fileName _ = failwith "Not implemented in server-reason-react"
+  let anyToExnInternal _ = failwith "Not implemented in server-reason-react"
+
+  let isCamlExceptionOrOpenVariant _ =
+    failwith "Not implemented in server-reason-react"
+
   let raiseError str = raise (Stdlib.Obj.magic (makeError str : t) : exn)
-  let raiseEvalError _ = failwith "TODO"
-  let raiseRangeError _ = failwith "TODO"
-  let raiseReferenceError _ = failwith "TODO"
-  let raiseSyntaxError _ = failwith "TODO"
-  let raiseTypeError _ = failwith "TODO"
-  let raiseUriError _ = failwith "TODO"
+  let raiseEvalError _ = failwith "Not implemented in server-reason-react"
+  let raiseRangeError _ = failwith "Not implemented in server-reason-react"
+  let raiseReferenceError _ = failwith "Not implemented in server-reason-react"
+  let raiseSyntaxError _ = failwith "Not implemented in server-reason-react"
+  let raiseTypeError _ = failwith "Not implemented in server-reason-react"
+  let raiseUriError _ = failwith "Not implemented in server-reason-react"
 end
 
 (** Provide bindings to Js array *)
-module Array2_ = struct
-  (* "Array2_" is to hide it from Array2 *)
+module Array2 = struct
+  (* "Array2" is to hide it from Array2 *)
   type 'a t = 'a array
   (** JavaScript Array API *)
 
@@ -196,162 +199,163 @@ module Array2_ = struct
   (* commented out until bs has a plan for iterators `type 'a array_iter = 'a array_like`*)
 
   (* external from : 'a array_like -> 'a array = "Array.from" [@@bs.val] *)
-  let from _ _ = failwith "TODO"
+  let from _ _ = failwith "Not implemented in server-reason-react"
   (* ES2015 *)
 
   (* external fromMap : 'a array_like -> (('a -> 'b)[@bs.uncurry]) -> 'b array = "Array.from" [@@bs.val] *)
-  let fromMap _ _ = failwith "TODO"
+  let fromMap _ _ = failwith "Not implemented in server-reason-react"
   (* ES2015 *)
 
   (* external isArray : 'a -> bool = "Array.isArray" [@@bs.val] *)
-  let isArray _ _ = failwith "TODO"
+  let isArray _ _ = failwith "Not implemented in server-reason-react"
 
   (* ES2015 *)
   (* ES2015 *)
 
   (* Array.of: seems pointless unless you can bind *)
   (* external length : 'a array -> int = "length" [@@bs.get] *)
-  let length _ _ = failwith "TODO"
+  let length _ _ = failwith "Not implemented in server-reason-react"
 
   (* Mutator functions *)
   (* external copyWithin : 'a t -> to_:int -> 'a t = "copyWithin" [@@bs.send] *)
-  let copyWithin _ _ = failwith "TODO"
+  let copyWithin _ _ = failwith "Not implemented in server-reason-react"
   (* ES2015 *)
 
   (* external copyWithinFrom : 'a t -> to_:int -> from:int -> 'a t = "copyWithin" [@@bs.send] *)
-  let copyWithinFrom _ _ = failwith "TODO"
+  let copyWithinFrom _ _ = failwith "Not implemented in server-reason-react"
   (* ES2015 *)
 
   (* external copyWithinFromRange : 'a t -> to_:int -> start:int -> end_:int -> 'a t = "copyWithin" [@@bs.send] *)
-  let copyWithinFromRange _ _ = failwith "TODO"
+  let copyWithinFromRange _ _ =
+    failwith "Not implemented in server-reason-react"
   (* ES2015 *)
 
   (* external fillInPlace : 'a t -> 'a -> 'a t = "fill" [@@bs.send] (* ES2015 *) *)
-  let fillInPlace _ _ = failwith "TODO"
+  let fillInPlace _ _ = failwith "Not implemented in server-reason-react"
 
   (* external fillFromInPlace : 'a t -> 'a -> from:int -> 'a t = "fill" [@@bs.send] *)
-  let fillFromInPlace _ _ = failwith "TODO"
+  let fillFromInPlace _ _ = failwith "Not implemented in server-reason-react"
   (* ES2015 *)
 
   (* external fillRangeInPlace : 'a t -> 'a -> start:int -> end_:int -> 'a t = "fill" [@@bs.send] *)
-  let fillRangeInPlace _ _ = failwith "TODO"
+  let fillRangeInPlace _ _ = failwith "Not implemented in server-reason-react"
   (* ES2015 *)
 
   (** https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/push *)
-  let pop _ _ = failwith "TODO"
+  let pop _ _ = failwith "Not implemented in server-reason-react"
   (* external pop : 'a t -> 'a option = "pop" [@@bs.send] [@@bs.return undefined_to_opt] *)
 
   (* external push : 'a t -> 'a -> int = "push" [@@bs.send] *)
-  let push _ _ = failwith "TODO"
+  let push _ _ = failwith "Not implemented in server-reason-react"
 
   (* external pushMany : 'a t -> 'a array -> int = "push" [@@bs.send] [@@bs.splice] *)
-  let pushMany _ _ = failwith "TODO"
+  let pushMany _ _ = failwith "Not implemented in server-reason-react"
 
   (* external reverseInPlace : 'a t -> 'a t = "reverse" [@@bs.send] *)
-  let reverseInPlace _ _ = failwith "TODO"
+  let reverseInPlace _ _ = failwith "Not implemented in server-reason-react"
 
   (* external shift : 'a t -> 'a option = "shift" [@@bs.send] [@@bs.return undefined_to_opt] *)
-  let shift _ _ = failwith "TODO"
+  let shift _ _ = failwith "Not implemented in server-reason-react"
 
   (* external sortInPlace : 'a t -> 'a t = "sort" [@@bs.send] *)
-  let sortInPlace _ _ = failwith "TODO"
+  let sortInPlace _ _ = failwith "Not implemented in server-reason-react"
 
   (* external sortInPlaceWith : 'a t -> (('a -> 'a -> int)[@bs.uncurry]) -> 'a t = "sort" [@@bs.send] *)
-  let sortInPlaceWith _ _ = failwith "TODO"
+  let sortInPlaceWith _ _ = failwith "Not implemented in server-reason-react"
 
   (* external spliceInPlace : 'a t -> pos:int -> remove:int -> add:'a array -> 'a t = "splice" [@@bs.send] [@@bs.splice] *)
-  let spliceInPlace _ _ = failwith "TODO"
+  let spliceInPlace _ _ = failwith "Not implemented in server-reason-react"
 
   (* external removeFromInPlace : 'a t -> pos:int -> 'a t = "splice" [@@bs.send] *)
-  let removeFromInPlace _ _ = failwith "TODO"
+  let removeFromInPlace _ _ = failwith "Not implemented in server-reason-react"
 
   (* external removeCountInPlace : 'a t -> pos:int -> count:int -> 'a t = "splice" [@@bs.send] *)
-  let removeCountInPlace _ _ = failwith "TODO"
+  let removeCountInPlace _ _ = failwith "Not implemented in server-reason-react"
   (* screwy naming, but screwy function *)
 
   (* external unshift : 'a t -> 'a -> int = "unshift" [@@bs.send] *)
-  let unshift _ _ = failwith "TODO"
+  let unshift _ _ = failwith "Not implemented in server-reason-react"
 
   (* external unshiftMany : 'a t -> 'a array -> int = "unshift" [@@bs.send] [@@bs.splice] *)
-  let unshiftMany _ _ = failwith "TODO"
+  let unshiftMany _ _ = failwith "Not implemented in server-reason-react"
 
   (* Accessor functions *)
   (* external append : 'a t -> 'a -> 'a t = "concat" [@@bs.send] [@@deprecated "append is not type-safe. Use `concat` instead, and see #1884"] *)
-  let append _ _ = failwith "TODO"
+  let append _ _ = failwith "Not implemented in server-reason-react"
 
   (* external concat : 'a t -> 'a t -> 'a t = "concat" [@@bs.send] *)
-  let concat _ _ = failwith "TODO"
+  let concat _ _ = failwith "Not implemented in server-reason-react"
 
   (* external concatMany : 'a t -> 'a t array -> 'a t = "concat" [@@bs.send] [@@bs.splice] *)
-  let concatMany _ _ = failwith "TODO"
+  let concatMany _ _ = failwith "Not implemented in server-reason-react"
 
   (* TODO: Not available in Node V4  *)
   (* external includes : 'a t -> 'a -> bool = "includes" [@@bs.send] *)
 
   (** ES2016 *)
-  let includes _ _ = failwith "TODO"
+  let includes _ _ = failwith "Not implemented in server-reason-react"
 
   (* external indexOf : 'a t -> 'a -> int = "indexOf" [@@bs.send] *)
-  let indexOf _ _ = failwith "TODO"
+  let indexOf _ _ = failwith "Not implemented in server-reason-react"
 
   (* external indexOfFrom : 'a t -> 'a -> from:int -> int = "indexOf" [@@bs.send] *)
-  let indexOfFrom _ _ = failwith "TODO"
+  let indexOfFrom _ _ = failwith "Not implemented in server-reason-react"
 
   (* external joinWith : 'a t -> string -> string = "join" [@@bs.send] *)
-  let joinWith _ _ = failwith "TODO"
+  let joinWith _ _ = failwith "Not implemented in server-reason-react"
 
   (* external lastIndexOf : 'a t -> 'a -> int = "lastIndexOf" [@@bs.send] *)
-  let lastIndexOf _ _ = failwith "TODO"
+  let lastIndexOf _ _ = failwith "Not implemented in server-reason-react"
 
   (* external lastIndexOfFrom : 'a t -> 'a -> from:int -> int = "lastIndexOf" [@@bs.send] *)
-  let lastIndexOfFrom _ _ = failwith "TODO"
+  let lastIndexOfFrom _ _ = failwith "Not implemented in server-reason-react"
 
   (* external slice : 'a t -> start:int -> end_:int -> 'a t = "slice" [@@bs.send] *)
-  let slice _ _ = failwith "TODO"
+  let slice _ _ = failwith "Not implemented in server-reason-react"
 
   (* external copy : 'a t -> 'a t = "slice" [@@bs.send] *)
-  let copy _ _ = failwith "TODO"
+  let copy _ _ = failwith "Not implemented in server-reason-react"
 
   (* external sliceFrom : 'a t -> int -> 'a t = "slice" [@@bs.send] *)
-  let sliceFrom _ _ = failwith "TODO"
+  let sliceFrom _ _ = failwith "Not implemented in server-reason-react"
 
   (* external toString : 'a t -> string = "toString" [@@bs.send] *)
-  let toString _ _ = failwith "TODO"
+  let toString _ _ = failwith "Not implemented in server-reason-react"
 
   (* external toLocaleString : 'a t -> string = "toLocaleString" [@@bs.send] *)
-  let toLocaleString _ _ = failwith "TODO"
+  let toLocaleString _ _ = failwith "Not implemented in server-reason-react"
 
   (* Iteration functions *)
   (* commented out until bs has a plan for iterators external entries : 'a t -> (int * 'a) array_iter = "" [@@bs.send] (* ES2015 *) *)
 
   (* external every : 'a t -> (('a -> bool)[@bs.uncurry]) -> bool = "every" [@@bs.send] *)
-  let every _ _ = failwith "TODO"
+  let every _ _ = failwith "Not implemented in server-reason-react"
 
   (* external everyi : 'a t -> (('a -> int -> bool)[@bs.uncurry]) -> bool = "every" [@@bs.send] *)
-  let everyi _ _ = failwith "TODO"
+  let everyi _ _ = failwith "Not implemented in server-reason-react"
 
   (* external filter : 'a t -> (('a -> bool)[@bs.uncurry]) -> 'a t = "filter" [@@bs.send] *)
 
   (** should we use [bool] or [boolean] seems they are intechangeable here *)
-  let filter _ _ = failwith "TODO"
+  let filter _ _ = failwith "Not implemented in server-reason-react"
 
   (* external filteri : 'a t -> (('a -> int -> bool)[@bs.uncurry]) -> 'a t = "filter" [@@bs.send] *)
-  let filteri _ _ = failwith "TODO"
+  let filteri _ _ = failwith "Not implemented in server-reason-react"
 
   (* external find : 'a t -> (('a -> bool)[@bs.uncurry]) -> 'a option = "find" [@@bs.send] [@@bs.return { undefined_to_opt }] *)
   let find arr fn = Stdlib.Array.find_opt fn arr
   (* ES2015 *)
 
   (* external findi : 'a t -> (('a -> int -> bool)[@bs.uncurry]) -> 'a option = "find" [@@bs.send] [@@bs.return {  undefined_to_opt }] *)
-  let findi _ _ = failwith "TODO"
+  let findi _ _ = failwith "Not implemented in server-reason-react"
   (* ES2015 *)
 
   (* external findIndex : 'a t -> (('a -> bool)[@bs.uncurry]) -> int = "findIndex" [@@bs.send] *)
-  let findIndex _ _ = failwith "TODO"
+  let findIndex _ _ = failwith "Not implemented in server-reason-react"
   (* ES2015 *)
 
   (* external findIndexi : 'a t -> (('a -> int -> bool)[@bs.uncurry]) -> int = "findIndex" [@@bs.send] *)
-  let findIndexi _ _ = failwith "TODO"
+  let findIndexi _ _ = failwith "Not implemented in server-reason-react"
   (* ES2015 *)
 
   (* external forEach : 'a t -> (('a -> unit)[@bs.uncurry]) -> unit = "forEach" [@@bs.send] *)
@@ -382,23 +386,23 @@ module Array2_ = struct
     !r
 
   (* external reduceRight : 'a t -> (('b -> 'a -> 'b)[@bs.uncurry]) -> 'b -> 'b = "reduceRight" [@@bs.send] *)
-  let reduceRight _ _ = failwith "TODO"
+  let reduceRight _ _ = failwith "Not implemented in server-reason-react"
 
   (* external reduceRighti : 'a t -> (('b -> 'a -> int -> 'b)[@bs.uncurry]) -> 'b -> 'b = "reduceRight" [@@bs.send] *)
-  let reduceRighti _ _ = failwith "TODO"
+  let reduceRighti _ _ = failwith "Not implemented in server-reason-react"
 
   (* external some : 'a t -> (('a -> bool)[@bs.uncurry]) -> bool = "some" [@@bs.send] *)
-  let some _ _ = failwith "TODO"
+  let some _ _ = failwith "Not implemented in server-reason-react"
 
   (* external somei : 'a t -> (('a -> int -> bool)[@bs.uncurry]) -> bool = "some" [@@bs.send] *)
-  let somei _ _ = failwith "TODO"
+  let somei _ _ = failwith "Not implemented in server-reason-react"
 
   (* commented out until bs has a plan for iterators external values : 'a t -> 'a array_iter = "" [@@bs.send] (* ES2015 *) *)
   (* external unsafe_get : 'a array -> int -> 'a = "%array_unsafe_get" *)
-  let unsafe_get _ _ = failwith "TODO"
+  let unsafe_get _ _ = failwith "Not implemented in server-reason-react"
 
   (* external unsafe_set : 'a array -> int -> 'a -> unit = "%array_unsafe_set" *)
-  let unsafe_set _ _ = failwith "TODO"
+  let unsafe_set _ _ = failwith "Not implemented in server-reason-react"
 end
 
 (** Provide bindings to Js array *)
@@ -406,230 +410,232 @@ module Array = struct
   (** JavaScript Array API *)
 
   type 'a t = 'a array
-  type 'a array_like = 'a Array2_.array_like
+  type 'a array_like = 'a Array2.array_like
 
   (* commented out until bs has a plan for iterators
      type 'a array_iter = 'a array_like
   *)
 
   (* external from : 'a array_like -> 'a array = "Array.from" [@@bs.val] *)
-  let from _ _ = failwith "TODO"
+  let from _ _ = failwith "Not implemented in server-reason-react"
   (* ES2015 *)
 
   (* external fromMap : 'a array_like -> (('a -> 'b)[@bs.uncurry]) -> 'b array = "Array.from" [@@bs.val] *)
-  let fromMap _ _ = failwith "TODO"
+  let fromMap _ _ = failwith "Not implemented in server-reason-react"
   (* ES2015 *)
 
   (* external isArray : 'a -> bool = "Array.isArray" [@@bs.val] *)
-  let isArray _ _ = failwith "TODO"
+  let isArray _ _ = failwith "Not implemented in server-reason-react"
 
   (* ES2015 *)
   (* ES2015 *)
 
   (* Array.of: seems pointless unless you can bind *)
   (* external length : 'a array -> int = "length" [@@bs.get] *)
-  let length _ = failwith "TODO"
+  let length _ = failwith "Not implemented in server-reason-react"
 
   (* Mutator functions *)
   (* external copyWithin : to_:int -> 'this = "copyWithin" [@@bs.send.pipe: 'a t as 'this] *)
-  let copyWithin _ _ = failwith "TODO"
+  let copyWithin _ _ = failwith "Not implemented in server-reason-react"
   (* ES2015 *)
 
-  let copyWithinFrom _ _ = failwith "TODO"
+  let copyWithinFrom _ _ = failwith "Not implemented in server-reason-react"
 
   (* external copyWithinFrom : to_:int -> from:int -> 'this = "copyWithin" [@@bs.send.pipe: 'a t as 'this] *)
   (* ES2015 *)
 
   (* external copyWithinFromRange : to_:int -> start:int -> end_:int -> 'this = "copyWithin" [@@bs.send.pipe: 'a t as 'this] *)
-  let copyWithinFromRange _ _ = failwith "TODO"
+  let copyWithinFromRange _ _ =
+    failwith "Not implemented in server-reason-react"
   (* ES2015 *)
 
   (* external fillInPlace : 'a -> 'this = "fill" [@@bs.send.pipe: 'a t as 'this] *)
-  let fillInPlace _ _ = failwith "TODO"
+  let fillInPlace _ _ = failwith "Not implemented in server-reason-react"
   (* ES2015 *)
 
-  let fillFromInPlace _ _ = failwith "TODO"
+  let fillFromInPlace _ _ = failwith "Not implemented in server-reason-react"
   (* external fillFromInPlace : 'a -> from:int -> 'this = "fill" [@@bs.send.pipe: 'a t as 'this] *)
   (* ES2015 *)
 
-  let fillRangeInPlace _ _ = failwith "TODO"
+  let fillRangeInPlace _ _ = failwith "Not implemented in server-reason-react"
   (* external fillRangeInPlace : 'a -> start:int -> end_:int -> 'this = "fill" [@@bs.send.pipe: 'a t as 'this] *)
   (* ES2015 *)
 
   (** https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/push *)
-  let pop _ _ = failwith "TODO"
+  let pop _ _ = failwith "Not implemented in server-reason-react"
   (* external pop : 'a option = "pop" [@@bs.send.pipe: 'a t as 'this] [@@bs.return undefined_to_opt] *)
 
   (* external push : 'a -> int = "push" [@@bs.send.pipe: 'a t as 'this] *)
-  let push _ _ = failwith "TODO"
+  let push _ _ = failwith "Not implemented in server-reason-react"
 
   (* external pushMany : 'a array -> int = "push" [@@bs.send.pipe: 'a t as 'this] [@@bs.splice] *)
-  let pushMany _ _ = failwith "TODO"
+  let pushMany _ _ = failwith "Not implemented in server-reason-react"
 
   (* external reverseInPlace : 'this = "reverse" [@@bs.send.pipe: 'a t as 'this] *)
-  let reverseInPlace _ _ = failwith "TODO"
+  let reverseInPlace _ _ = failwith "Not implemented in server-reason-react"
   (* external shift : 'a option = "shift" [@@bs.send.pipe: 'a t as 'this] [@@bs.return { undefined_to_opt }] *)
 
-  let sortInPlace _ _ = failwith "TODO"
+  let sortInPlace _ _ = failwith "Not implemented in server-reason-react"
   (* external sortInPlace : 'this = "sort" [@@bs.send.pipe: 'a t as 'this] *)
 
-  let sortInPlaceWith _ _ = failwith "TODO"
+  let sortInPlaceWith _ _ = failwith "Not implemented in server-reason-react"
   (* external sortInPlaceWith : (('a -> 'a -> int)[@bs.uncurry]) -> 'this = "sort" [@@bs.send.pipe: 'a t as 'this] *)
 
-  let spliceInPlace _ _ = failwith "TODO"
+  let spliceInPlace _ _ = failwith "Not implemented in server-reason-react"
   (* external spliceInPlace : pos:int -> remove:int -> add:'a array -> 'this = "splice" [@@bs.send.pipe: 'a t as 'this] [@@bs.splice] *)
 
-  let removeFromInPlace _ _ = failwith "TODO"
+  let removeFromInPlace _ _ = failwith "Not implemented in server-reason-react"
   (* external removeFromInPlace : pos:int -> 'this = "splice" [@@bs.send.pipe: 'a t as 'this] *)
 
-  let removeCountInPlace _ _ = failwith "TODO"
+  let removeCountInPlace _ _ = failwith "Not implemented in server-reason-react"
   (* external removeCountInPlace : pos:int -> count:int -> 'this = "splice" [@@bs.send.pipe: 'a t as 'this] *)
   (* screwy naming, but screwy function *)
 
-  let unshift _ _ = failwith "TODO"
+  let unshift _ _ = failwith "Not implemented in server-reason-react"
   (* external unshift : 'a -> int = "unshift" [@@bs.send.pipe: 'a t as 'this] *)
 
-  let unshiftMany _ _ = failwith "TODO"
+  let unshiftMany _ _ = failwith "Not implemented in server-reason-react"
   (* external unshiftMany : 'a array -> int = "unshift" [@@bs.send.pipe: 'a t as 'this] [@@bs.splice] *)
 
   (* Accessor functions *)
   (* external append : 'a -> 'this = "concat" [@@bs.send.pipe: 'a t as 'this] [@@deprecated "append is not type-safe. Use `concat` instead, and see #1884"] *)
-  let append _ _ = failwith "TODO"
+  let append _ _ = failwith "Not implemented in server-reason-react"
 
   (* external concat : 'this -> 'this = "concat" [@@bs.send.pipe: 'a t as 'this] *)
-  let concat _ _ = failwith "TODO"
+  let concat _ _ = failwith "Not implemented in server-reason-react"
 
   (* external concatMany : 'this array -> 'this = "concat" [@@bs.send.pipe: 'a t as 'this] [@@bs.splice] *)
-  let concatMany _ _ = failwith "TODO"
+  let concatMany _ _ = failwith "Not implemented in server-reason-react"
 
   (** ES2016 *)
-  let includes _ _ = failwith "TODO"
+  let includes _ _ = failwith "Not implemented in server-reason-react"
 
   (* TODO: Not available in Node V4 *)
   (* external includes : 'a -> bool = "includes" [@@bs.send.pipe: 'a t as 'this] *)
 
   (* external indexOf : 'a -> int = "indexOf" [@@bs.send.pipe: 'a t as 'this] *)
-  let indexOf _ _ = failwith "TODO"
+  let indexOf _ _ = failwith "Not implemented in server-reason-react"
 
   (* external indexOfFrom : 'a -> from:int -> int = "indexOf" [@@bs.send.pipe: 'a t as 'this] *)
-  let indexOfFrom _ ~from:_ _ = failwith "TODO"
+  let indexOfFrom _ ~from:_ _ =
+    failwith "Not implemented in server-reason-react"
 
   (* external join : 'a t -> string = "join" [@@bs.send] [@@deprecated "please use joinWith instead"] *)
-  let join _ _ = failwith "TODO"
+  let join _ _ = failwith "Not implemented in server-reason-react"
 
   (* external joinWith : string -> string = "join" [@@bs.send.pipe: 'a t as 'this] *)
-  let joinWith _ _ = failwith "TODO"
+  let joinWith _ _ = failwith "Not implemented in server-reason-react"
 
   (* external lastIndexOf : 'a -> int = "lastIndexOf" [@@bs.send.pipe: 'a t as 'this] *)
-  let lastIndexOf _ _ = failwith "TODO"
+  let lastIndexOf _ _ = failwith "Not implemented in server-reason-react"
 
   (* external lastIndexOfFrom : 'a -> from:int -> int = "lastIndexOf" [@@bs.send.pipe: 'a t as 'this] *)
-  let lastIndexOfFrom _ _ = failwith "TODO"
+  let lastIndexOfFrom _ _ = failwith "Not implemented in server-reason-react"
 
   (* external lastIndexOf_start : 'a -> int = "lastIndexOf" [@@bs.send.pipe: 'a t as 'this] [@@deprecated "Please use `lastIndexOf"] *)
-  let lastIndexOf_start _ _ = failwith "TODO"
+  let lastIndexOf_start _ _ = failwith "Not implemented in server-reason-react"
 
   (* external slice : start:int -> end_:int -> 'this = "slice" [@@bs.send.pipe: 'a t as 'this] *)
-  let slice _ _ = failwith "TODO"
+  let slice _ _ = failwith "Not implemented in server-reason-react"
 
   (* external copy : 'this = "slice" [@@bs.send.pipe: 'a t as 'this] *)
-  let copy _ _ = failwith "TODO"
+  let copy _ _ = failwith "Not implemented in server-reason-react"
 
   (* external slice_copy : unit -> 'this = "slice" [@@bs.send.pipe: 'a t as 'this] [@@deprecated "Please use `copy`"] *)
-  let slice_copy _ _ = failwith "TODO"
+  let slice_copy _ _ = failwith "Not implemented in server-reason-react"
 
   (* external sliceFrom : int -> 'this = "slice" [@@bs.send.pipe: 'a t as 'this] *)
-  let sliceFrom _ _ = failwith "TODO"
+  let sliceFrom _ _ = failwith "Not implemented in server-reason-react"
 
   (* external slice_start : int -> 'this = "slice" [@@bs.send.pipe: 'a t as 'this] [@@deprecated "Please use `sliceFrom`"] *)
-  let slice_start _ _ = failwith "TODO"
+  let slice_start _ _ = failwith "Not implemented in server-reason-react"
 
   (* external toString : string = "toString" [@@bs.send.pipe: 'a t as 'this] *)
-  let toString _ _ = failwith "TODO"
+  let toString _ _ = failwith "Not implemented in server-reason-react"
 
   (* external toLocaleString : string = "toLocaleString" [@@bs.send.pipe: 'a t as 'this] *)
-  let toLocaleString _ _ = failwith "TODO"
+  let toLocaleString _ _ = failwith "Not implemented in server-reason-react"
 
   (* Iteration functions *)
   (* commented out until bs has a plan for iterators
      (* external entries : (int * 'a) array_iter = "" [@@bs.send.pipe: 'a t as 'this] (* ES2015 *) *)
-     let entries _ _ = failwith "TODO"
+     let entries _ _ = failwith "Not implemented in server-reason-react"
   *)
 
   (* external every : (('a -> bool)[@bs.uncurry]) -> bool = "every" [@@bs.send.pipe: 'a t as 'this] *)
-  let every _ _ = failwith "TODO"
+  let every _ _ = failwith "Not implemented in server-reason-react"
 
   (* external everyi : (('a -> int -> bool)[@bs.uncurry]) -> bool = "every" [@@bs.send.pipe: 'a t as 'this] *)
-  let everyi _ _ = failwith "TODO"
+  let everyi _ _ = failwith "Not implemented in server-reason-react"
 
   (* external filter : (('a -> bool)[@bs.uncurry]) -> 'this = "filter" [@@bs.send.pipe: 'a t as 'this] *)
 
   (** should we use [bool] or [boolean] seems they are intechangeable here *)
-  let filter _ _ = failwith "TODO"
+  let filter _ _ = failwith "Not implemented in server-reason-react"
 
   (* external filteri : (('a -> int -> bool)[@bs.uncurry]) -> 'this = "filter" [@@bs.send.pipe: 'a t as 'this] *)
-  let filteri _ _ = failwith "TODO"
+  let filteri _ _ = failwith "Not implemented in server-reason-react"
 
   (* external find : (('a -> bool)[@bs.uncurry]) -> 'a option = "find" [@@bs.send.pipe: 'a t as 'this] [@@bs.return { undefined_to_opt }] *)
-  let find _ _ = failwith "TODO"
+  let find _ _ = failwith "Not implemented in server-reason-react"
   (* ES2015 *)
 
   (* external findi : (('a -> int -> bool)[@bs.uncurry]) -> 'a option = "find" [@@bs.send.pipe: 'a t as 'this] [@@bs.return { undefined_to_opt }] *)
-  let findi _ _ = failwith "TODO"
+  let findi _ _ = failwith "Not implemented in server-reason-react"
   (* ES2015 *)
 
   (* external findIndex : (('a -> bool)[@bs.uncurry]) -> int = "findIndex" [@@bs.send.pipe: 'a t as 'this] *)
-  let findIndex _ _ = failwith "TODO"
+  let findIndex _ _ = failwith "Not implemented in server-reason-react"
   (* ES2015 *)
 
   (* external findIndexi : (('a -> int -> bool)[@bs.uncurry]) -> int = "findIndex" [@@bs.send.pipe: 'a t as 'this] *)
-  let findIndexi _ _ = failwith "TODO"
+  let findIndexi _ _ = failwith "Not implemented in server-reason-react"
   (* ES2015 *)
 
   (* external forEach : (('a -> unit)[@bs.uncurry]) -> unit = "forEach" [@@bs.send.pipe: 'a t as 'this] *)
-  let forEach _ _ = failwith "TODO"
+  let forEach _ _ = failwith "Not implemented in server-reason-react"
 
   (* external forEachi : (('a -> int -> unit)[@bs.uncurry]) -> unit = "forEach" [@@bs.send.pipe: 'a t as 'this] *)
-  let forEachi _ _ = failwith "TODO"
+  let forEachi _ _ = failwith "Not implemented in server-reason-react"
 
   (* commented out until bs has a plan for iterators
      (* external keys : int array_iter = "" [@@bs.send.pipe: 'a t as 'this] (* ES2015 *) *)
-     let keys _ _ = failwith "TODO"
+     let keys _ _ = failwith "Not implemented in server-reason-react"
   *)
 
   (* external map : (('a -> 'b)[@bs.uncurry]) -> 'b t = "map" [@@bs.send.pipe: 'a t as 'this] *)
-  let map _ _ = failwith "TODO"
+  let map _ _ = failwith "Not implemented in server-reason-react"
 
   (* external mapi : (('a -> int -> 'b)[@bs.uncurry]) -> 'b t = "map" [@@bs.send.pipe: 'a t as 'this] *)
-  let mapi _ _ = failwith "TODO"
+  let mapi _ _ = failwith "Not implemented in server-reason-react"
 
   (* external reduce : (('b -> 'a -> 'b)[@bs.uncurry]) -> 'b -> 'b = "reduce" [@@bs.send.pipe: 'a t as 'this] *)
-  let reduce _ _ = failwith "TODO"
+  let reduce _ _ = failwith "Not implemented in server-reason-react"
 
   (* external reducei : (('b -> 'a -> int -> 'b)[@bs.uncurry]) -> 'b -> 'b = "reduce" [@@bs.send.pipe: 'a t as 'this] *)
-  let reducei _ _ = failwith "TODO"
+  let reducei _ _ = failwith "Not implemented in server-reason-react"
 
   (* external reduceRight : (('b -> 'a -> 'b)[@bs.uncurry]) -> 'b -> 'b = "reduceRight" [@@bs.send.pipe: 'a t as 'this] *)
-  let reduceRight _ _ = failwith "TODO"
+  let reduceRight _ _ = failwith "Not implemented in server-reason-react"
 
   (* external reduceRighti : (('b -> 'a -> int -> 'b)[@bs.uncurry]) -> 'b -> 'b = "reduceRight" [@@bs.send.pipe: 'a t as 'this] *)
-  let reduceRighti _ _ = failwith "TODO"
+  let reduceRighti _ _ = failwith "Not implemented in server-reason-react"
 
   (* external some : (('a -> bool)[@bs.uncurry]) -> bool = "some" [@@bs.send.pipe: 'a t as 'this] *)
-  let some _ _ = failwith "TODO"
+  let some _ _ = failwith "Not implemented in server-reason-react"
 
   (* external somei : (('a -> int -> bool)[@bs.uncurry]) -> bool = "some" [@@bs.send.pipe: 'a t as 'this] *)
-  let somei _ _ = failwith "TODO"
+  let somei _ _ = failwith "Not implemented in server-reason-react"
 
   (* commented out until bs has a plan for iterators
      (* external values : 'a array_iter = "" [@@bs.send.pipe: 'a t as 'this] (* ES2015 *) *)
-     let values _ _ = failwith "TODO"
+     let values _ _ = failwith "Not implemented in server-reason-react"
   *)
   (* external unsafe_get : 'a array -> int -> 'a = "%array_unsafe_get" *)
-  let unsafe_get _ _ = failwith "TODO"
+  let unsafe_get _ _ = failwith "Not implemented in server-reason-react"
 
   (* external unsafe_set : 'a array -> int -> 'a -> unit = "%array_unsafe_set" *)
-  let unsafe_set _ _ = failwith "TODO"
+  let unsafe_set _ _ = failwith "Not implemented in server-reason-react"
 end
 
 module Re = struct
@@ -773,7 +779,7 @@ module String = struct
   make [|1;2;3|]) = "1,2,3";;
 ]}
 *)
-  let make _ _ = failwith "TODO"
+  let make _ _ = failwith "Not implemented in server-reason-react"
 
   (* external fromCharCode : int -> t = "String.fromCharCode" [@@bs.val] *)
 
@@ -787,7 +793,7 @@ module String = struct
   fromCharCode -64568 = {js|ψ|js};;
 ]}
 *)
-  let fromCharCode _ _ = failwith "TODO"
+  let fromCharCode _ _ = failwith "Not implemented in server-reason-react"
 
   (* external fromCharCodeMany : int array -> t = "String.fromCharCode" [@@bs.val] [@@bs.splice] *)
 
@@ -797,7 +803,7 @@ module String = struct
   fromCharCodeMany([|0xd55c, 0xae00, 33|]) = {js|한글!|js};;
 ]}
 *)
-  let fromCharCodeMany _ _ = failwith "TODO"
+  let fromCharCodeMany _ _ = failwith "Not implemented in server-reason-react"
 
   (* external fromCodePoint : int -> t = "String.fromCodePoint" [@@bs.val] *)
 
@@ -812,7 +818,7 @@ module String = struct
 ]}
 
 *)
-  let fromCodePoint _ _ = failwith "TODO"
+  let fromCodePoint _ _ = failwith "Not implemented in server-reason-react"
   (** ES2015 *)
 
   (* external fromCodePointMany : int array -> t = "String.fromCodePoint" [@@bs.val] [@@bs.splice] *)
@@ -823,7 +829,7 @@ module String = struct
   fromCodePointMany([|0xd55c; 0xae00; 0x1f63a|]) = {js|한글😺|js}
 ]}
 *)
-  let fromCodePointMany _ _ = failwith "TODO"
+  let fromCodePointMany _ _ = failwith "Not implemented in server-reason-react"
   (** ES2015 *)
 
   (* String.raw: ES2015, meant to be used with template strings, not directly *)
@@ -837,7 +843,7 @@ module String = struct
 ]}
 
 *)
-  let length _ _ = failwith "TODO"
+  let length _ _ = failwith "Not implemented in server-reason-react"
 
   (* external get : t -> int -> t = "" [@@bs.get_index] *)
 
@@ -849,7 +855,7 @@ module String = struct
   get {js|Rẽasöń|js} 5 = {js|ń|js};;
 ]}
 *)
-  let get _ _ = failwith "TODO"
+  let get _ _ = failwith "Not implemented in server-reason-react"
 
   (* external charAt : int -> t = "charAt" [@@bs.send.pipe: t] *)
 
@@ -861,7 +867,7 @@ module String = struct
   charAt( 5, {js|Rẽasöń|js} = {js|ń|js}
 ]}
 *)
-  let charAt _ _ = failwith "TODO"
+  let charAt _ _ = failwith "Not implemented in server-reason-react"
 
   (* external charCodeAt : int -> float = "charCodeAt" [@@bs.send.pipe: t] *)
 
@@ -874,7 +880,7 @@ The return type is [float] because this function returns [NaN] if [n] is less th
 ]}
 
 *)
-  let charCodeAt _ _ = failwith "TODO"
+  let charCodeAt _ _ = failwith "Not implemented in server-reason-react"
 
   (* external codePointAt : int -> int option = "codePointAt" [@@bs.send.pipe: t] *)
 
@@ -885,7 +891,7 @@ The return type is [float] because this function returns [NaN] if [n] is less th
   codePointAt 5 "abc" = None
 ]}
 *)
-  let codePointAt _ _ = failwith "TODO"
+  let codePointAt _ _ = failwith "Not implemented in server-reason-react"
   (** ES2015 *)
 
   (* external concat : t -> t = "concat" [@@bs.send.pipe: t] *)
@@ -896,7 +902,7 @@ The return type is [float] because this function returns [NaN] if [n] is less th
   concat "bell" "cow" = "cowbell";;
 ]}
 *)
-  let concat _ _ = failwith "TODO"
+  let concat _ _ = failwith "Not implemented in server-reason-react"
 
   (* external concatMany : t array -> t = "concat" [@@bs.send.pipe: t] [@@bs.splice] *)
 
@@ -906,7 +912,7 @@ The return type is [float] because this function returns [NaN] if [n] is less th
   concatMany [|"2nd"; "3rd"; "4th"|] "1st" = "1st2nd3rd4th";;
 ]}
 *)
-  let concatMany _ _ = failwith "TODO"
+  let concatMany _ _ = failwith "Not implemented in server-reason-react"
 
   (* external endsWith : t -> bool = "endsWith" [@@bs.send.pipe: t] *)
 
@@ -918,7 +924,7 @@ The return type is [float] because this function returns [NaN] if [n] is less th
   endsWith "Script" "ReShoes" = false;;
 ]}
 *)
-  let endsWith _ _ = failwith "TODO"
+  let endsWith _ _ = failwith "Not implemented in server-reason-react"
 
   (* external endsWithFrom : t -> int -> bool = "endsWith" [@@bs.send.pipe: t] *)
 
@@ -931,7 +937,7 @@ The return type is [float] because this function returns [NaN] if [n] is less th
   endsWithFrom "ple" 7 "example.dat" = true;;
 ]}
 *)
-  let endsWithFrom _ _ = failwith "TODO"
+  let endsWithFrom _ _ = failwith "Not implemented in server-reason-react"
   (** ES2015 *)
 
   (* external includes : t -> bool = "includes" [@@bs.send.pipe: t] *)
@@ -946,7 +952,7 @@ The return type is [float] because this function returns [NaN] if [n] is less th
   includes "xyz" "programmer" = false;;
 ]}
 *)
-  let includes _ _ = failwith "TODO"
+  let includes _ _ = failwith "Not implemented in server-reason-react"
   (** ES2015 *)
 
   (* external includesFrom : t -> int -> bool = "includes" [@@bs.send.pipe: t] *)
@@ -960,7 +966,7 @@ The return type is [float] because this function returns [NaN] if [n] is less th
   includesFrom {js|한|js} 1 {js|대한민국|js} = true;;
 ]}
 *)
-  let includesFrom _ _ = failwith "TODO"
+  let includesFrom _ _ = failwith "Not implemented in server-reason-react"
   (** ES2015 *)
 
   (* external indexOf : t -> int = "indexOf" [@@bs.send.pipe: t] *)
@@ -975,7 +981,7 @@ The return type is [float] because this function returns [NaN] if [n] is less th
   indexOf "xyz" "bookseller" = -1;;
 ]}
 *)
-  let indexOf _ _ = failwith "TODO"
+  let indexOf _ _ = failwith "Not implemented in server-reason-react"
 
   (* external indexOfFrom : t -> int -> int = "indexOf" [@@bs.send.pipe: t] *)
 
@@ -989,7 +995,7 @@ The return type is [float] because this function returns [NaN] if [n] is less th
   indexOf "xyz" "bookseller" = -1;;
 ]}
 *)
-  let indexOfFrom _ _ = failwith "TODO"
+  let indexOfFrom _ _ = failwith "Not implemented in server-reason-react"
 
   (* external lastIndexOf : t -> int = "lastIndexOf" [@@bs.send.pipe: t] *)
 
@@ -1002,7 +1008,7 @@ The return type is [float] because this function returns [NaN] if [n] is less th
   lastIndexOf "xyz" "abcdefg" = -1;;
 ]}
 *)
-  let lastIndexOf _ _ = failwith "TODO"
+  let lastIndexOf _ _ = failwith "Not implemented in server-reason-react"
 
   (* external lastIndexOfFrom : t -> int -> int = "lastIndexOf" [@@bs.send.pipe: t] *)
 
@@ -1016,7 +1022,7 @@ The return type is [float] because this function returns [NaN] if [n] is less th
   lastIndexOfFrom "xyz" 4 "abcdefg" = -1;;
 ]}
 *)
-  let lastIndexOfFrom _ _ = failwith "TODO"
+  let lastIndexOfFrom _ _ = failwith "Not implemented in server-reason-react"
 
   (* extended by ECMA-402 *)
 
@@ -1037,7 +1043,7 @@ The return type is [float] because this function returns [NaN] if [n] is less th
   (localeCompare "cat" "CAT") > 0.0;;
 ]}
 *)
-  let localeCompare _ _ = failwith "TODO"
+  let localeCompare _ _ = failwith "Not implemented in server-reason-react"
 
   (* external match_ : Re.t -> t option array option = "match" [@@bs.send.pipe: t] [@@bs.return { null_to_opt }] *)
 
@@ -1061,7 +1067,7 @@ The return type is [float] because this function returns [NaN] if [n] is less th
 ]}
 
 *)
-  let match_ _ _ = failwith "TODO"
+  let match_ _ _ = failwith "Not implemented in server-reason-react"
 
   (* external normalize : t = "normalize" [@@bs.send.pipe: t] *)
 
@@ -1071,7 +1077,7 @@ Consider the character [ã], which can be represented as the single codepoint [\
 
 @see <https://www.unicode.org/reports/tr15/tr15-45.html> Unicode technical report for details
 *)
-  let normalize _ _ = failwith "TODO"
+  let normalize _ _ = failwith "Not implemented in server-reason-react"
   (** ES2015 *)
 
   (* external normalizeByForm : t -> t = "normalize" [@@bs.send.pipe: t] *)
@@ -1088,7 +1094,7 @@ Consider the character [ã], which can be represented as the single codepoint [\
 
   @see <https://www.unicode.org/reports/tr15/tr15-45.html> Unicode technical report for details
 *)
-  let normalizeByForm _ _ = failwith "TODO"
+  let normalizeByForm _ _ = failwith "Not implemented in server-reason-react"
 
   (* external repeat : int -> t = "repeat" [@@bs.send.pipe: t] *)
 
@@ -1100,7 +1106,7 @@ Consider the character [ã], which can be represented as the single codepoint [\
   repeat 0 "empty" = ""
 ]}
 *)
-  let repeat _ _ = failwith "TODO"
+  let repeat _ _ = failwith "Not implemented in server-reason-react"
   (** ES2015 *)
 
   (* external replace : t -> t -> t = "replace" [@@bs.send.pipe: t] *)
@@ -1117,7 +1123,7 @@ expression.
   replace "the" "this" "the cat and the dog" = "this cat and the dog"
 ]}
 *)
-  let replace _ _ = failwith "TODO"
+  let replace _ _ = failwith "Not implemented in server-reason-react"
 
   (* external replaceByRe : Re.t -> t -> t = "replace" [@@bs.send.pipe: t] *)
 
@@ -1129,7 +1135,7 @@ have been replaced by [replacement].
   replaceByRe [%re "/(\\w+) (\\w+)/"] "$2, $1" "Juan Fulano" = "Fulano, Juan"
 ]}
 *)
-  let replaceByRe _ _ = failwith "TODO"
+  let replaceByRe _ _ = failwith "Not implemented in server-reason-react"
 
   (* external unsafeReplaceBy0 : Re.t -> ((t -> int -> t -> t)[@bs.uncurry]) -> t *)
 
@@ -1151,7 +1157,8 @@ let () = Js.log replaced (* prints "bEAUtifUl vOwEls" *)
 
 @see <https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/replace#Specifying_a_function_as_a_parameter> MDN
 *)
-  let unsafeReplaceBy0 _ _ = failwith "TODO" = "replace"
+  let unsafeReplaceBy0 _ _ =
+    failwith "Not implemented in server-reason-react" = "replace"
 
   (* external unsafeReplaceBy1 :
      Re.t -> ((t -> t -> int -> t -> t)[@bs.uncurry]) -> t = "replace" [@@bs.send.pipe: t] *)
@@ -1174,7 +1181,7 @@ let () = Js.log replaced (* prints "increment 23 is 24" *)
 
 @see <https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/replace#Specifying_a_function_as_a_parameter> MDN
 *)
-  let unsafeReplaceBy1 _ _ = failwith "TODO"
+  let unsafeReplaceBy1 _ _ = failwith "Not implemented in server-reason-react"
 
   (* external unsafeReplaceBy2 : Re.t -> ((t -> t -> t -> int -> t -> t)[@bs.uncurry]) -> t = "replace" [@@bs.send.pipe: t] *)
 
@@ -1196,7 +1203,7 @@ let () = Js.log replaced (* prints "42" *)
 
 @see <https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/replace#Specifying_a_function_as_a_parameter> MDN
 *)
-  let unsafeReplaceBy2 _ _ = failwith "TODO"
+  let unsafeReplaceBy2 _ _ = failwith "Not implemented in server-reason-react"
 
   (* external unsafeReplaceBy3 :
      Re.t -> ((t -> t -> t -> t -> int -> t -> t)[@bs.uncurry]) -> t = "replace" [@@bs.send.pipe: t] *)
@@ -1208,7 +1215,7 @@ the offset at which the match begins, and the whole string being matched.
 
 @see <https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/replace#Specifying_a_function_as_a_parameter> MDN
 *)
-  let unsafeReplaceBy3 _ _ = failwith "TODO"
+  let unsafeReplaceBy3 _ _ = failwith "Not implemented in server-reason-react"
 
   (* external search : Re.t -> int = "search" [@@bs.send.pipe: t] *)
 
@@ -1219,7 +1226,7 @@ search [%re "/\\d+/"] "testing 1 2 3" = 8;;
 search [%re "/\\d+/"] "no numbers" = -1;;
 ]}
 *)
-  let search _ _ = failwith "TODO"
+  let search _ _ = failwith "Not implemented in server-reason-react"
 
   (* external slice : from:int -> to_:int -> t = "slice" [@@bs.send.pipe: t] *)
 
@@ -1238,7 +1245,7 @@ If [n1] is greater than [n2], [slice] returns the empty string.
   slice ~from:5 ~to_:1 "abcdefg" == "";;
 ]}
 *)
-  let slice _ _ = failwith "TODO"
+  let slice _ _ = failwith "Not implemented in server-reason-react"
 
   (* external sliceToEnd : from:int -> t = "slice" [@@bs.send.pipe: t] *)
 
@@ -1254,7 +1261,7 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   sliceToEnd ~from: 7 "abcdefg" == "";;
 ]}
 *)
-  let sliceToEnd _ _ = failwith "TODO"
+  let sliceToEnd _ _ = failwith "Not implemented in server-reason-react"
 
   (* external split : t -> t array = "split" [@@bs.send.pipe: t] *)
 
@@ -1269,7 +1276,7 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   split ";" "has-no-delimiter" = [|"has-no-delimiter"|];;
 ]};
 *)
-  let split _ _ = failwith "TODO"
+  let split _ _ = failwith "Not implemented in server-reason-react"
 
   (* external splitAtMost : t -> limit:int -> t array = "split" [@@bs.send.pipe: t] *)
 
@@ -1282,14 +1289,14 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   splitAtMost "/" ~limit: 9 "ant/bee/cat/dog/elk" = [|"ant"; "bee"; "cat"; "dog"; "elk"|];;
 ]}
 *)
-  let splitAtMost _ _ = failwith "TODO"
+  let splitAtMost _ _ = failwith "Not implemented in server-reason-react"
 
   (* external splitLimited : t -> int -> t array = "split" [@@bs.send.pipe: t] [@@deprecated "Please use splitAtMost"] *)
 
   (**
   Deprecated - Please use [splitAtMost]
 *)
-  let splitLimited _ _ = failwith "TODO"
+  let splitLimited _ _ = failwith "Not implemented in server-reason-react"
 
   (* external splitByRe : Re.t -> t option array = "split" [@@bs.send.pipe: t] *)
 
@@ -1303,7 +1310,7 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   splitByRe [%re "/(#)(:)?/"] "a#b#:c" = [|Some "a"; Some "#"; None; Some "b"; Some "#"; Some ":"; Some "c"|];;
 ]};
 *)
-  let splitByRe _ _ = failwith "TODO"
+  let splitByRe _ _ = failwith "Not implemented in server-reason-react"
 
   (* external splitByReAtMost : Re.t -> limit:int -> t option array = "split" [@@bs.send.pipe: t] *)
 
@@ -1318,12 +1325,12 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   splitByReAtMost [%re "/(#)(:)?/"] ~limit:3 "a#b#:c" = [|Some "a"; Some "#"; None|];;
 ]};
 *)
-  let splitByReAtMost _ _ = failwith "TODO"
+  let splitByReAtMost _ _ = failwith "Not implemented in server-reason-react"
 
   (* external splitRegexpLimited : Re.t -> int -> t array = "split" [@@bs.send.pipe: t] [@@deprecated "Please use  splitByReAtMost"] *)
 
   (** Deprecated - Please use [splitByReAtMost] *)
-  let splitRegexpLimited _ _ = failwith "TODO"
+  let splitRegexpLimited _ _ = failwith "Not implemented in server-reason-react"
 
   (* external startsWith : t -> bool = "startsWith" [@@bs.send.pipe: t] *)
 
@@ -1336,7 +1343,7 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   startsWith "Re" "JavaScript" = false;;
 ]}
 *)
-  let startsWith _ _ = failwith "TODO"
+  let startsWith _ _ = failwith "Not implemented in server-reason-react"
 
   (* external startsWithFrom : t -> int -> bool = "startsWith" [@@bs.send.pipe: t] *)
 
@@ -1349,7 +1356,7 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   startsWithFrom "Re" 2 "JavaScript" = false;;
 ]}
 *)
-  let startsWithFrom _ _ = failwith "TODO"
+  let startsWithFrom _ _ = failwith "Not implemented in server-reason-react"
 
   (* external substr : from:int -> t = "substr" [@@bs.send.pipe: t] *)
 
@@ -1366,7 +1373,7 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   substr ~from: 12 "abcdefghij" = ""
 ]}
 *)
-  let substr _ _ = failwith "TODO"
+  let substr _ _ = failwith "Not implemented in server-reason-react"
 
   (* external substrAtMost : from:int -> length:int -> t = "substr" [@@bs.send.pipe: t] *)
 
@@ -1385,7 +1392,7 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   substrAtMost ~from: 12 ~ length: 2 "abcdefghij" = ""
 ]}
 *)
-  let substrAtMost _ _ = failwith "TODO"
+  let substrAtMost _ _ = failwith "Not implemented in server-reason-react"
 
   (* external substring : from:int -> to_:int -> t = "substring" [@@bs.send.pipe: t] *)
 
@@ -1404,7 +1411,7 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   substring ~from: 4 ~to_: 12 "playground" = "ground";;
 ]}
 *)
-  let substring _ _ = failwith "TODO"
+  let substring _ _ = failwith "Not implemented in server-reason-react"
 
   (* external substringToEnd : from:int -> t = "substring" [@@bs.send.pipe: t] *)
 
@@ -1421,7 +1428,7 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   substringToEnd ~from: 12 "playground" = "";
 ]}
 *)
-  let substringToEnd _ _ = failwith "TODO"
+  let substringToEnd _ _ = failwith "Not implemented in server-reason-react"
 
   (* external toLowerCase : t = "toLowerCase" [@@bs.send.pipe: t] *)
 
@@ -1434,14 +1441,14 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   toLowerCase {js|ΠΣ|js} = {js|πς|js};;
 ]}
 *)
-  let toLowerCase _ _ = failwith "TODO"
+  let toLowerCase _ _ = failwith "Not implemented in server-reason-react"
 
   (* external toLocaleLowerCase : t = "toLocaleLowerCase" [@@bs.send.pipe: t] *)
 
   (**
   [toLocaleLowerCase str] converts [str] to lower case using the current locale
 *)
-  let toLocaleLowerCase _ _ = failwith "TODO"
+  let toLocaleLowerCase _ _ = failwith "Not implemented in server-reason-react"
 
   (* external toUpperCase : t = "toUpperCase" [@@bs.send.pipe: t] *)
 
@@ -1454,14 +1461,14 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   toLowerCase {js|πς|js} = {js|ΠΣ|js};;
 ]}
 *)
-  let toUpperCase _ _ = failwith "TODO"
+  let toUpperCase _ _ = failwith "Not implemented in server-reason-react"
 
   (* external toLocaleUpperCase : t = "toLocaleUpperCase" [@@bs.send.pipe: t] *)
 
   (**
   [toLocaleUpperCase str] converts [str] to upper case using the current locale
 *)
-  let toLocaleUpperCase _ _ = failwith "TODO"
+  let toLocaleUpperCase _ _ = failwith "Not implemented in server-reason-react"
 
   (* external trim : t = "trim" [@@bs.send.pipe: t] *)
 
@@ -1473,7 +1480,7 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   trim "\n\r\t abc def \n\n\t\r " = "abc def"
 ]}
 *)
-  let trim _ _ = failwith "TODO"
+  let trim _ _ = failwith "Not implemented in server-reason-react"
 
   (* HTML wrappers *)
 
@@ -1486,7 +1493,7 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   anchor "page1" "Page One" = "<a name=\"page1\">Page One</a>"
 ]}
 *)
-  let anchor _ _ = failwith "TODO"
+  let anchor _ _ = failwith "Not implemented in server-reason-react"
   (** ES2015 *)
 
   (* external link : t -> t = "link" [@@bs.send.pipe: t] *)
@@ -1498,11 +1505,11 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   link "page2.html" "Go to page two" = "<a href=\"page2.html\">Go to page two</a>"
 ]}
 *)
-  let link _ _ = failwith "TODO"
+  let link _ _ = failwith "Not implemented in server-reason-react"
   (** ES2015 *)
 
   (* external castToArrayLike : t -> t Array2.array_like = "%identity" *)
-  let castToArrayLike _ _ = failwith "TODO"
+  let castToArrayLike _ _ = failwith "Not implemented in server-reason-react"
   (* FIXME: we should not encourage people to use [%identity], better
       to provide something using [@@bs.val] so that we can track such
       casting
@@ -1555,7 +1562,7 @@ module String2 = struct
   fromCharCodeMany([|0xd55c, 0xae00, 33|]) = {js|한글!|js};;
 ]}
 *)
-  let fromCharCodeMany _ _ = failwith "TODO"
+  let fromCharCodeMany _ _ = failwith "Not implemented in server-reason-react"
 
   (* external fromCodePoint : int -> t = "String.fromCodePoint" [@@bs.val] (** ES2015 *) *)
 
@@ -1583,7 +1590,7 @@ module String2 = struct
   fromCodePointMany([|0xd55c; 0xae00; 0x1f63a|]) = {js|한글😺|js}
 ]}
 *)
-  let fromCodePointMany _ = failwith "TODO"
+  let fromCodePointMany _ = failwith "Not implemented in server-reason-react"
   (** ES2015 *)
 
   (* String.raw: ES2015, meant to be used with template strings, not directly *)
@@ -1876,7 +1883,7 @@ The return type is [float] because this function returns [NaN] if [n] is less th
   (localeCompare "CAT" "cat") > 0.0;;
 ]}
 *)
-  let localeCompare _ _ = failwith "TODO"
+  let localeCompare _ _ = failwith "Not implemented in server-reason-react"
 
   (* external match_ : t -> Js_re.t -> t option array option = "match" [@@bs.send] [@@bs.
      return {null_to_opt}] *)
@@ -1900,7 +1907,7 @@ The return type is [float] because this function returns [NaN] if [n] is less th
 ]}
 
 *)
-  let match_ _ _ = failwith "TODO"
+  let match_ _ _ = failwith "Not implemented in server-reason-react"
 
   (* external normalize : t -> t = "normalize" [@@bs.send] (** ES2015 *) *)
 
@@ -1910,7 +1917,7 @@ Consider the character [ã], which can be represented as the single codepoint [\
 
 @see <https://www.unicode.org/reports/tr15/tr15-45.html> Unicode technical report for details
 *)
-  let normalize _ _ = failwith "TODO"
+  let normalize _ _ = failwith "Not implemented in server-reason-react"
 
   (* external normalizeByForm : t -> t -> t = "normalize" [@@bs.send] *)
 
@@ -1926,7 +1933,7 @@ Consider the character [ã], which can be represented as the single codepoint [\
 
   @see <https://www.unicode.org/reports/tr15/tr15-45.html> Unicode technical report for details
 *)
-  let normalizeByForm _ _ = failwith "TODO"
+  let normalizeByForm _ _ = failwith "Not implemented in server-reason-react"
 
   (* external repeat : t -> int -> t = "repeat" [@@bs.send] (** ES2015 *) *)
 
@@ -1960,7 +1967,7 @@ expression.
   replace "the cat and the dog" "the" "this" = "this cat and the dog"
 ]}
 *)
-  let replace _ _ _ = failwith "TODO"
+  let replace _ _ _ = failwith "Not implemented in server-reason-react"
 
   (* external replaceByRe : t -> Js_re.t -> t -> t = "replace" [@@bs.send] *)
 
@@ -1972,7 +1979,7 @@ have been replaced by [replacement].
   replaceByRe "Juan Fulano" [%re "/(\\w+) (\\w+)/"] "$2, $1" = "Fulano, Juan"
 ]}
 *)
-  let replaceByRe _ _ _ = failwith "TODO"
+  let replaceByRe _ _ _ = failwith "Not implemented in server-reason-react"
 
   (* external unsafeReplaceBy0 : t -> Js_re.t -> (t -> int -> t -> t [@bs.uncurry]) -> t =
      "replace" [@@bs.send] *)
@@ -1995,7 +2002,7 @@ let () = Js.log replaced (* prints "bEAUtifUl vOwEls" *)
 
 @see <https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/replace#Specifying_a_function_as_a_parameter> MDN
 *)
-  let unsafeReplaceBy0 _ _ = failwith "TODO"
+  let unsafeReplaceBy0 _ _ = failwith "Not implemented in server-reason-react"
 
   (* external unsafeReplaceBy1 : t -> Js_re.t -> (t -> t -> int -> t -> t [@bs.uncurry]) -> t = "replace" [@@bs.send] *)
 
@@ -2017,7 +2024,7 @@ let () = Js.log replaced (* prints "increment 23 is 24" *)
 
 @see <https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/replace#Specifying_a_function_as_a_parameter> MDN
 *)
-  let unsafeReplaceBy1 _ _ = failwith "TODO"
+  let unsafeReplaceBy1 _ _ = failwith "Not implemented in server-reason-react"
 
   (* external unsafeReplaceBy2 : t -> Js_re.t -> (t -> t -> t -> int -> t -> t [@bs.uncurry])  -> t = "replace" [@@bs.send] *)
 
@@ -2039,7 +2046,7 @@ let () = Js.log replaced (* prints "42" *)
 
 @see <https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/replace#Specifying_a_function_as_a_parameter> MDN
 *)
-  let unsafeReplaceBy2 _ _ = failwith "TODO"
+  let unsafeReplaceBy2 _ _ = failwith "Not implemented in server-reason-react"
 
   (* external unsafeReplaceBy3 : t -> Js_re.t -> (t -> t -> t -> t -> int -> t -> t [@bs.
      uncurry]) -> t = "replace" [@@bs.send] *)
@@ -2051,7 +2058,7 @@ the offset at which the match begins, and the whole string being matched.
 
 @see <https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/replace#Specifying_a_function_as_a_parameter> MDN
 *)
-  let unsafeReplaceBy3 _ _ = failwith "TODO"
+  let unsafeReplaceBy3 _ _ = failwith "Not implemented in server-reason-react"
 
   (* external search : t -> Js_re.t -> int = "search" [@@bs.send] *)
 
@@ -2062,7 +2069,7 @@ search "testing 1 2 3" [%re "/\\d+/"] = 8;;
 search "no numbers" [%re "/\\d+/"] = -1;;
 ]}
 *)
-  let search _ _ = failwith "TODO"
+  let search _ _ = failwith "Not implemented in server-reason-react"
 
   (* external slice : t -> from:int -> to_:int ->  t = "slice" [@@bs.send] *)
 
@@ -2120,7 +2127,7 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   split "has-no-delimiter" ";" = [|"has-no-delimiter"|];;
 ]};
 *)
-  let split _str _delimiter = failwith "TODO"
+  let split _str _delimiter = failwith "Not implemented in server-reason-react"
 
   (* external splitAtMost: t -> t -> limit:int -> t array = "split" [@@bs.send] *)
 
@@ -2133,7 +2140,8 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   splitAtMost "ant/bee/cat/dog/elk" "/" ~limit: 9 = [|"ant"; "bee"; "cat"; "dog"; "elk"|];;
 ]}
 *)
-  let splitAtMost _str _separator ~limit:_ = failwith "TODO"
+  let splitAtMost _str _separator ~limit:_ =
+    failwith "Not implemented in server-reason-react"
 
   (* external splitByRe : t -> Js_re.t -> t option array = "split" [@@bs.send] *)
 
@@ -2146,7 +2154,7 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   splitByRe "has:no:match" [%re "/[,;]/"] = [|"has:no:match"|];;
 ]};
 *)
-  let splitByRe _ _ = failwith "TODO"
+  let splitByRe _ _ = failwith "Not implemented in server-reason-react"
 
   (* external splitByReAtMost : t -> Js_re.t -> limit:int ->  t option array = "split" [@@bs.send] *)
 
@@ -2160,7 +2168,7 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   splitByReAtMost "one: two: three: four" [%re "/\\s*:\\s*/"] ~limit: 8 = [|"one"; "two"; "three"; "four"|];;
 ]};
 *)
-  let splitByReAtMost _ _ = failwith "TODO"
+  let splitByReAtMost _ _ = failwith "Not implemented in server-reason-react"
 
   (* external startsWith : t -> t -> bool = "startsWith" [@@bs.send] *)
 
@@ -2188,7 +2196,8 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   startsWithFrom "JavaScript" "Re" 2 = false;;
 ]}
 *)
-  let startsWithFrom _str _index _ = failwith "TODO"
+  let startsWithFrom _str _index _ =
+    failwith "Not implemented in server-reason-react"
 
   (* external substr : t -> from:int -> t = "substr" [@@bs.send] *)
 
@@ -2299,7 +2308,7 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   (**
   [toLocaleLowerCase str] converts [str] to lower case using the current locale
 *)
-  let toLocaleLowerCase _ _ = failwith "TODO"
+  let toLocaleLowerCase _ _ = failwith "Not implemented in server-reason-react"
 
   (* external toUpperCase : t -> t = "toUpperCase" [@@bs.send] *)
 
@@ -2319,7 +2328,7 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   (**
   [toLocaleUpperCase str] converts [str] to upper case using the current locale
 *)
-  let toLocaleUpperCase _ _ = failwith "TODO"
+  let toLocaleUpperCase _ _ = failwith "Not implemented in server-reason-react"
 
   (* external trim : t -> t = "trim" [@@bs.send] *)
 
@@ -2362,7 +2371,7 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   anchor "Page One" "page1" = "<a name=\"page1\">Page One</a>"
 ]}
 *)
-  let anchor _ _ = failwith "TODO"
+  let anchor _ _ = failwith "Not implemented in server-reason-react"
 
   (* external link : t -> t -> t = "link" [@@bs.send] (** ES2015 *) *)
 
@@ -2373,10 +2382,10 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   link "Go to page two" "page2.html" = "<a href=\"page2.html\">Go to page two</a>"
 ]}
 *)
-  let link _ _ = failwith "TODO"
+  let link _ _ = failwith "Not implemented in server-reason-react"
 
   (* external castToArrayLike : t -> t Js_array2.array_like = "%identity" *)
-  let castToArrayLike _ _ = failwith "TODO"
+  let castToArrayLike _ _ = failwith "Not implemented in server-reason-react"
   (* FIXME: we should not encourage people to use [%identity], better
       to provide something using [@@bs.val] so that we can track such
       casting
@@ -2398,52 +2407,21 @@ module Dict = struct
   type 'a t
   type key = string
 
-  let get _ _ = failwith "TODO"
-  let unsafeGet _ _ = failwith "TODO"
-  let set _ _ = failwith "TODO"
-  let keys _ = failwith "TODO"
-  let empty _ = failwith "TODO"
-  let unsafeDeleteKey _ _ = failwith "TODO"
-  let entries _ = failwith "TODO"
-  let values _ = failwith "TODO"
-  let fromList _ = failwith "TODO"
-  let fromArray _ = failwith "TODO"
-  let map _ _ = failwith "TODO"
+  let get _ _ = failwith "Not implemented in server-reason-react"
+  let unsafeGet _ _ = failwith "Not implemented in server-reason-react"
+  let set _ _ = failwith "Not implemented in server-reason-react"
+  let keys _ = failwith "Not implemented in server-reason-react"
+  let empty _ = failwith "Not implemented in server-reason-react"
+  let unsafeDeleteKey _ _ = failwith "Not implemented in server-reason-react"
+  let entries _ = failwith "Not implemented in server-reason-react"
+  let values _ = failwith "Not implemented in server-reason-react"
+  let fromList _ = failwith "Not implemented in server-reason-react"
+  let fromArray _ = failwith "Not implemented in server-reason-react"
+  let map _ _ = failwith "Not implemented in server-reason-react"
 end
 
 module Global = struct
   (** Provide bindings to JS global functions in global namespace*)
-end
-
-module Json = struct
-  (** Provide utilities for json *)
-end
-
-module Math = struct
-  (** Provide bindings for JS [Math] object *)
-end
-
-module Obj = struct
-  (** Provide utilities for {!Js.t} *)
-end
-
-module Typed_array = struct
-  (** Provide bindings for JS typed array *)
-  module Uint16Array = struct
-    type t
-  end
-
-  module Uint8ClampedArray = struct
-    type t
-  end
-
-  module Float32Array = struct
-    type t
-  end
-end
-
-module TypedArray2 = struct
-  (** Provide bindings for JS typed array *)
 end
 
 module Types = struct
@@ -2479,7 +2457,7 @@ module Types = struct
   (** @example{[
   test "x" String = true
   ]}*)
-  let test _ _ = failwith "TODO"
+  let test _ _ = failwith "Not implemented in server-reason-react"
 
   type tagged_t =
     | JSFalse
@@ -2493,7 +2471,133 @@ module Types = struct
     | JSSymbol of symbol
     | JSBigInt of bigint_val
 
-  let classify _ = failwith "TODO"
+  let classify _ = failwith "Not implemented in server-reason-react"
+end
+
+module Json = struct
+  (* Efficient JSON encoding using JavaScript API *)
+
+  type t
+
+  type _ kind =
+    | String : String.t kind
+    | Number : float kind
+    | Object : t Dict.t kind
+    | Array : t array kind
+    | Boolean : bool kind
+    | Null : Types.null_val kind
+
+  type tagged_t =
+    | JSONFalse
+    | JSONTrue
+    | JSONNull
+    | JSONString of string
+    | JSONNumber of float
+    | JSONObject of t Dict.t
+    | JSONArray of t array
+
+  let classify (_x : t) : tagged_t =
+    failwith "Not implemented in server-reason-react"
+
+  let test _ : bool = failwith "Not implemented in server-reason-react"
+  let decodeString json = failwith "Not implemented in server-reason-react"
+  let decodeNumber json = failwith "Not implemented in server-reason-react"
+  let decodeObject json = failwith "Not implemented in server-reason-react"
+  let decodeArray json = failwith "Not implemented in server-reason-react"
+
+  let decodeBoolean (json : t) =
+    failwith "Not implemented in server-reason-react"
+
+  let decodeNull json = failwith "Not implemented in server-reason-react"
+
+  (* external parse : string -> t = "parse"
+     [@@mel.val][@@mel.scope "JSON"] *)
+
+  (* external parseExn : string -> t = "parse" [@@mel.val] [@@mel.scope "JSON"] *)
+  let parseExn _ = failwith "Not implemented in server-reason-react"
+
+  (* external stringifyAny : 'a -> string option = "stringify"
+     [@@mel.val] [@@mel.scope "JSON"] *)
+  let stringifyAny _ = failwith "Not implemented in server-reason-react"
+
+  (* external null : t = "null" [@@mel.val] *)
+  let null _ = failwith "Not implemented in server-reason-react"
+
+  (* external undefined : t = "undefined" [@@mel.val] *)
+  (* external string : string -> t = "%identity" *)
+  let string _ = failwith "Not implemented in server-reason-react"
+
+  (* external number : float -> t = "%identity" *)
+  let number _ = failwith "Not implemented in server-reason-react"
+
+  (* external boolean : bool -> t = "%identity" *)
+  let boolean _ = failwith "Not implemented in server-reason-react"
+
+  (* external object_ : t Js_dict.t -> t = "%identity" *)
+  let object_ _ = failwith "Not implemented in server-reason-react"
+
+  (* external array : t array -> t = "%identity" *)
+  let array _ = failwith "Not implemented in server-reason-react"
+
+  (* external stringArray : string array -> t = "%identity" *)
+  let stringArray _ = failwith "Not implemented in server-reason-react"
+
+  (* external numberArray : float array -> t = "%identity" *)
+  let numberArray _ = failwith "Not implemented in server-reason-react"
+
+  (* external booleanArray : bool array -> t = "%identity" *)
+  let booleanArray _ = failwith "Not implemented in server-reason-react"
+
+  (* external objectArray : t Js_dict.t array -> t = "%identity" *)
+  let objectArray _ = failwith "Not implemented in server-reason-react"
+
+  (* external stringify : t -> string = "stringify"
+     [@@mel.val] [@@mel.scope "JSON"] *)
+  let stringify _ = failwith "Not implemented in server-reason-react"
+
+  (* external stringifyWithSpace :
+     t -> (_[@mel.as {json|null|json}]) -> int -> string = "stringify"
+     [@@mel.val] [@@mel.scope "JSON"] *)
+  let stringifyWithSpace _ = failwith "Not implemented in server-reason-react"
+
+  (* in memory modification does not work until your root is
+     actually None, so we need wrap it as `[v]` and
+     return the first element instead *)
+
+  let patch _ = failwith "Not implemented in server-reason-react"
+
+  let serializeExn (_x : t) : string =
+    failwith "Not implemented in server-reason-react"
+
+  let deserializeUnsafe (s : string) : 'a =
+    failwith "Not implemented in server-reason-react"
+end
+
+module Math = struct
+  (** Provide bindings for JS [Math] object *)
+end
+
+module Obj = struct
+  (** Provide utilities for {!Js.t} *)
+end
+
+module Typed_array = struct
+  (** Provide bindings for JS typed array *)
+  module Uint16Array = struct
+    type t
+  end
+
+  module Uint8ClampedArray = struct
+    type t
+  end
+
+  module Float32Array = struct
+    type t
+  end
+end
+
+module TypedArray2 = struct
+  (** Provide bindings for JS typed array *)
 end
 
 module Float = struct
@@ -2513,18 +2617,18 @@ module Option = struct
 
   type 'a t = 'a option
 
-  let some _ = failwith "TODO"
-  let isSome _ = failwith "TODO"
-  let isSomeValue _ _ _ = failwith "TODO"
-  let isNone _ = failwith "TODO"
-  let getExn _ = failwith "TODO"
-  let equal _ _ = failwith "TODO"
-  let andThen _ _ = failwith "TODO"
-  let map _ _ = failwith "TODO"
-  let getWithDefault _ _ = failwith "TODO"
-  let default _ = failwith "TODO"
-  let filter _ _ = failwith "TODO"
-  let firstSome _ _ = failwith "TODO"
+  let some _ = failwith "Not implemented in server-reason-react"
+  let isSome _ = failwith "Not implemented in server-reason-react"
+  let isSomeValue _ _ _ = failwith "Not implemented in server-reason-react"
+  let isNone _ = failwith "Not implemented in server-reason-react"
+  let getExn _ = failwith "Not implemented in server-reason-react"
+  let equal _ _ = failwith "Not implemented in server-reason-react"
+  let andThen _ _ = failwith "Not implemented in server-reason-react"
+  let map _ _ = failwith "Not implemented in server-reason-react"
+  let getWithDefault _ _ = failwith "Not implemented in server-reason-react"
+  let default _ = failwith "Not implemented in server-reason-react"
+  let filter _ _ = failwith "Not implemented in server-reason-react"
+  let firstSome _ _ = failwith "Not implemented in server-reason-react"
 end
 
 module Result = struct
@@ -2537,27 +2641,27 @@ module List = struct
   type 'a t = 'a list
   (** Provide utilities for list *)
 
-  let length _ = failwith "TODO"
-  let cons _ = failwith "TODO"
-  let isEmpty _ = failwith "TODO"
-  let hd _ = failwith "TODO"
-  let tl _ = failwith "TODO"
-  let nth _ = failwith "TODO"
-  let revAppend _ = failwith "TODO"
-  let rev _ = failwith "TODO"
-  let mapRev _ = failwith "TODO"
-  let map _ _ = failwith "TODO"
-  let iter _ _ = failwith "TODO"
-  let iteri _ _ = failwith "TODO"
-  let foldLeft _ _ _ = failwith "TODO"
-  let foldRight _ _ _ = failwith "TODO"
-  let flatten _ = failwith "TODO"
-  let filter _ _ = failwith "TODO"
-  let filterMap _ _ = failwith "TODO"
-  let countBy _ _ = failwith "TODO"
-  let init _ _ = failwith "TODO"
-  let toVector _ = failwith "TODO"
-  let equal _ _ = failwith "TODO"
+  let length _ = failwith "Not implemented in server-reason-react"
+  let cons _ = failwith "Not implemented in server-reason-react"
+  let isEmpty _ = failwith "Not implemented in server-reason-react"
+  let hd _ = failwith "Not implemented in server-reason-react"
+  let tl _ = failwith "Not implemented in server-reason-react"
+  let nth _ = failwith "Not implemented in server-reason-react"
+  let revAppend _ = failwith "Not implemented in server-reason-react"
+  let rev _ = failwith "Not implemented in server-reason-react"
+  let mapRev _ = failwith "Not implemented in server-reason-react"
+  let map _ _ = failwith "Not implemented in server-reason-react"
+  let iter _ _ = failwith "Not implemented in server-reason-react"
+  let iteri _ _ = failwith "Not implemented in server-reason-react"
+  let foldLeft _ _ _ = failwith "Not implemented in server-reason-react"
+  let foldRight _ _ _ = failwith "Not implemented in server-reason-react"
+  let flatten _ = failwith "Not implemented in server-reason-react"
+  let filter _ _ = failwith "Not implemented in server-reason-react"
+  let filterMap _ _ = failwith "Not implemented in server-reason-react"
+  let countBy _ _ = failwith "Not implemented in server-reason-react"
+  let init _ _ = failwith "Not implemented in server-reason-react"
+  let toVector _ = failwith "Not implemented in server-reason-react"
+  let equal _ _ = failwith "Not implemented in server-reason-react"
 end
 
 module Vector = struct
@@ -2565,26 +2669,26 @@ module Vector = struct
 
   type 'a t = 'a array
 
-  let filterInPlace _ = failwith "TODO"
-  let empty _ = failwith "TODO"
-  let pushBack _ = failwith "TODO"
-  let copy _ = failwith "TODO"
-  let memByRef _ = failwith "TODO"
-  let iter _ = failwith "TODO"
-  let iteri _ = failwith "TODO"
-  let toList _ = failwith "TODO"
-  let map _ = failwith "TODO"
-  let mapi _ = failwith "TODO"
-  let foldLeft _ = failwith "TODO"
-  let foldRight _ = failwith "TODO"
+  let filterInPlace _ = failwith "Not implemented in server-reason-react"
+  let empty _ = failwith "Not implemented in server-reason-react"
+  let pushBack _ = failwith "Not implemented in server-reason-react"
+  let copy _ = failwith "Not implemented in server-reason-react"
+  let memByRef _ = failwith "Not implemented in server-reason-react"
+  let iter _ = failwith "Not implemented in server-reason-react"
+  let iteri _ = failwith "Not implemented in server-reason-react"
+  let toList _ = failwith "Not implemented in server-reason-react"
+  let map _ = failwith "Not implemented in server-reason-react"
+  let mapi _ = failwith "Not implemented in server-reason-react"
+  let foldLeft _ = failwith "Not implemented in server-reason-react"
+  let foldRight _ = failwith "Not implemented in server-reason-react"
 
   external length : 'a t -> int = "%array_length"
   external get : 'a t -> int -> 'a = "%array_safe_get"
   external set : 'a t -> int -> 'a -> unit = "%array_safe_set"
   external make : int -> 'a -> 'a t = "caml_make_vect"
 
-  let init _ = failwith "TODO"
-  let append _ = failwith "TODO"
+  let init _ = failwith "Not implemented in server-reason-react"
+  let append _ = failwith "Not implemented in server-reason-react"
 
   external unsafe_get : 'a t -> int -> 'a = "%array_unsafe_get"
   external unsafe_set : 'a t -> int -> 'a -> unit = "%array_unsafe_set"
