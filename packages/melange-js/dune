@@ -3,13 +3,9 @@
  (modules js)
  (public_name server-reason-react.js)
  (flags :standard -w -49)
- (libraries pcre promise)
- (preprocess
-  (pps melange.ppx)))
+ (libraries pcre promise))
 
 (test
  (name test)
  (modules test)
- (libraries alcotest server-reason-react.js)
- (preprocess
-  (pps melange.ppx)))
+ (libraries alcotest server-reason-react.js))
