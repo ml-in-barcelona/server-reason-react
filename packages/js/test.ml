@@ -18,7 +18,7 @@ let assert_bool left right =
 
 let case title (fn : unit -> unit) = Alcotest.test_case title `Quick fn
 
-let _re_tests =
+let re_tests =
   ( "Js.Re",
     [
       case "captures" (fun () ->
@@ -368,4 +368,14 @@ let string2_tests =
           ());
     ] )
 
-let () = Alcotest.run "Js_tests" [ string2_tests; _re_tests ]
+let array_tests =
+  ( "Js.Array",
+    [
+      case "from" (fun () ->
+          Alcotest.check_raises "Js.Array.from"
+            (Js.Not_implemented
+               "'Js.Array.from' is not implemented in server-reason-react")
+            (fun () -> Js.Array.from 3));
+    ] )
+
+let () = Alcotest.run "Js_tests" [ string2_tests; re_tests; array_tests ]

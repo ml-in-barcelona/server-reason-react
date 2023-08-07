@@ -417,7 +417,7 @@ module Array = struct
   *)
 
   (* external from : 'a array_like -> 'a array = "Array.from" [@@bs.val] *)
-  let from _ _ = notImplemented "Js.Array" "from"
+  let from _ = notImplemented "Js.Array" "from"
   (* ES2015 *)
 
   (* external fromMap : 'a array_like -> (('a -> 'b)[@bs.uncurry]) -> 'b array = "Array.from" [@@bs.val] *)
@@ -664,7 +664,7 @@ module Re = struct
   let input : result -> string =
    fun result -> Pcre.get_subject result.substrings
 
-  let source : t -> string = fun _ -> failwith "todo source"
+  let source : t -> string = fun _ -> notImplemented "Js.Re" "source"
 
   let fromString : string -> t =
    fun str ->
