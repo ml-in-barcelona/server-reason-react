@@ -1,7 +1,10 @@
+exception Not_implemented of string
+
 let notImplemented module_ function_ =
-  failwith
-    (Printf.sprintf "'%s.%s' is not implemented in server-reason-react" module_
-       function_)
+  raise
+    (Not_implemented
+       (Printf.sprintf "'%s.%s' is not implemented in server-reason-react"
+          module_ function_))
 
 type 'a t = < .. > as 'a
 

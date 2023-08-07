@@ -251,16 +251,14 @@ let renderToLwtStream element =
 
 let querySelector _str = None
 
-let fail_impossible_action_in_ssr =
-  (* failwith seems bad, but I don't know any other way
-     of warning the user without changing the types. Doing a unit *)
-  (* failwith
-     (Printf.sprintf "render shouldn't run on the server %s, line %d" __FILE__
-        __LINE__) *)
-  ()
+exception Impossible_in_ssr of string
 
-let render _element _node = fail_impossible_action_in_ssr
-let hydrate _element _node = fail_impossible_action_in_ssr
+let fail_impossible_action_in_ssr fn =
+  let msg = Printf.sprintf "'%s' shouldn't run on the server" fn in
+  raise (Impossible_in_ssr msg)
+
+let render _element _node = fail_impossible_action_in_ssr "ReactDOM.render"
+let hydrate _element _node = fail_impossible_action_in_ssr "ReactDOM.hydrate"
 let createPortal _reactElement _domElement = _reactElement
 
 module Style = ReactDOMStyle
