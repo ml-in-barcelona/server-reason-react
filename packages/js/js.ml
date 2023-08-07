@@ -1,3 +1,8 @@
+let notImplemented module_ function_ =
+  failwith
+    (Printf.sprintf "'%s.%s' is not implemented in server-reason-react" module_
+       function_)
+
 type 'a t = < .. > as 'a
 
 module Fn = struct
@@ -80,7 +85,7 @@ type (+'a, +'e) promise
 
 (** [typeof x] will be compiled as [typeof x] in JS
     Please consider functions in {!Types} for a type safe way of reflection *)
-let typeof _ = failwith "Not implemented in server-reason-react"
+let typeof _ = notImplemented "Js" "typeof"
 
 (** {4 operators }*)
 
@@ -113,9 +118,9 @@ module Null = struct
   let return a = Some a
   let getUnsafe a = match toOption a with None -> assert false | Some a -> a
   let test = function None -> true | Some _ -> false
-  let getExn _ = failwith "Not implemented in server-reason-react"
-  let bind _ _ = failwith "Not implemented in server-reason-react"
-  let iter _ _ = failwith "Not implemented in server-reason-react"
+  let getExn _ = notImplemented "Js.Null" "getExn"
+  let bind _ _ = notImplemented "Js.Null" "bind"
+  let iter _ _ = notImplemented "Js.Null" "iter"
   let fromOption = fromOpt
   let from_opt = fromOpt
 end
@@ -130,12 +135,12 @@ module Undefined = struct
   external toOption : 'a t -> 'a option = "%identity"
   external fromOpt : 'a option -> 'a t = "%identity"
 
-  let getExn _ = failwith "Not implemented in server-reason-react"
+  let getExn _ = notImplemented "Js.Undefined" "getExn"
   let getUnsafe a = match toOption a with None -> assert false | Some a -> a
-  let bind _ _ = failwith "Not implemented in server-reason-react"
-  let iter _ _ = failwith "Not implemented in server-reason-react"
-  let testAny _ = failwith "Not implemented in server-reason-react"
-  let test _ = failwith "Not implemented in server-reason-react"
+  let bind _ _ = notImplemented "Js.Undefined" "bind"
+  let iter _ _ = notImplemented "Js.Undefined" "iter"
+  let testAny _ = notImplemented "Js.Undefined" "testAny"
+  let test _ = notImplemented "Js.Undefined" "test"
   let fromOption = fromOpt
   let from_opt = fromOpt
 end
@@ -169,23 +174,20 @@ module Exn = struct
 
   external makeError : string -> t = "%identity"
 
-  let asJsExn _ = failwith "Not implemented in server-reason-react"
-  let stack _ = failwith "Not implemented in server-reason-react"
-  let message _ = failwith "Not implemented in server-reason-react"
-  let name _ = failwith "Not implemented in server-reason-react"
-  let fileName _ = failwith "Not implemented in server-reason-react"
-  let anyToExnInternal _ = failwith "Not implemented in server-reason-react"
-
-  let isCamlExceptionOrOpenVariant _ =
-    failwith "Not implemented in server-reason-react"
-
+  let asJsExn _ = notImplemented "Js.Exn" "asJsExn"
+  let stack _ = notImplemented "Js.Exn" "stack"
+  let message _ = notImplemented "Js.Exn" "message"
+  let name _ = notImplemented "Js.Exn" "name"
+  let fileName _ = notImplemented "Js.Exn" "fileName"
+  let anyToExnInternal _ = notImplemented "Js.Exn" "anyToExnInternal"
+  let isCamlExceptionOrOpenVariant _ = notImplemented "Js.Exn" "mplemented"
   let raiseError str = raise (Stdlib.Obj.magic (makeError str : t) : exn)
-  let raiseEvalError _ = failwith "Not implemented in server-reason-react"
-  let raiseRangeError _ = failwith "Not implemented in server-reason-react"
-  let raiseReferenceError _ = failwith "Not implemented in server-reason-react"
-  let raiseSyntaxError _ = failwith "Not implemented in server-reason-react"
-  let raiseTypeError _ = failwith "Not implemented in server-reason-react"
-  let raiseUriError _ = failwith "Not implemented in server-reason-react"
+  let raiseEvalError _ = notImplemented "Js.Exn" "raiseEvalError"
+  let raiseRangeError _ = notImplemented "Js.Exn" "raiseRangeError"
+  let raiseReferenceError _ = notImplemented "Js.Exn" "raiseReferenceError"
+  let raiseSyntaxError _ = notImplemented "Js.Exn" "raiseSyntaxError"
+  let raiseTypeError _ = notImplemented "Js.Exn" "raiseTypeError"
+  let raiseUriError _ = notImplemented "Js.Exn" "raiseUriError"
 end
 
 (** Provide bindings to Js array *)
@@ -198,163 +200,162 @@ module Array2 = struct
   (* commented out until bs has a plan for iterators `type 'a array_iter = 'a array_like`*)
 
   (* external from : 'a array_like -> 'a array = "Array.from" [@@bs.val] *)
-  let from _ _ = failwith "Not implemented in server-reason-react"
+  let from _ _ = notImplemented "Js.Array2" "from"
   (* ES2015 *)
 
   (* external fromMap : 'a array_like -> (('a -> 'b)[@bs.uncurry]) -> 'b array = "Array.from" [@@bs.val] *)
-  let fromMap _ _ = failwith "Not implemented in server-reason-react"
+  let fromMap _ _ = notImplemented "Js.Array2" "fromMap"
   (* ES2015 *)
 
   (* external isArray : 'a -> bool = "Array.isArray" [@@bs.val] *)
-  let isArray _ _ = failwith "Not implemented in server-reason-react"
+  let isArray _ _ = notImplemented "Js.Array2" "isArray"
 
   (* ES2015 *)
   (* ES2015 *)
 
   (* Array.of: seems pointless unless you can bind *)
   (* external length : 'a array -> int = "length" [@@bs.get] *)
-  let length _ _ = failwith "Not implemented in server-reason-react"
+  let length _ _ = notImplemented "Js.Array2" "length"
 
   (* Mutator functions *)
   (* external copyWithin : 'a t -> to_:int -> 'a t = "copyWithin" [@@bs.send] *)
-  let copyWithin _ _ = failwith "Not implemented in server-reason-react"
+  let copyWithin _ _ = notImplemented "Js.Array2" "copyWithin"
   (* ES2015 *)
 
   (* external copyWithinFrom : 'a t -> to_:int -> from:int -> 'a t = "copyWithin" [@@bs.send] *)
-  let copyWithinFrom _ _ = failwith "Not implemented in server-reason-react"
+  let copyWithinFrom _ _ = notImplemented "Js.Array2" "copyWithinFrom"
   (* ES2015 *)
 
   (* external copyWithinFromRange : 'a t -> to_:int -> start:int -> end_:int -> 'a t = "copyWithin" [@@bs.send] *)
-  let copyWithinFromRange _ _ =
-    failwith "Not implemented in server-reason-react"
+  let copyWithinFromRange _ _ = notImplemented "Js.Array2" "copyWithinFromRange"
   (* ES2015 *)
 
   (* external fillInPlace : 'a t -> 'a -> 'a t = "fill" [@@bs.send] (* ES2015 *) *)
-  let fillInPlace _ _ = failwith "Not implemented in server-reason-react"
+  let fillInPlace _ _ = notImplemented "Js.Array2" "fillInPlace"
 
   (* external fillFromInPlace : 'a t -> 'a -> from:int -> 'a t = "fill" [@@bs.send] *)
-  let fillFromInPlace _ _ = failwith "Not implemented in server-reason-react"
+  let fillFromInPlace _ _ = notImplemented "Js.Array2" "fillFromInPlace"
   (* ES2015 *)
 
   (* external fillRangeInPlace : 'a t -> 'a -> start:int -> end_:int -> 'a t = "fill" [@@bs.send] *)
-  let fillRangeInPlace _ _ = failwith "Not implemented in server-reason-react"
+  let fillRangeInPlace _ _ = notImplemented "Js.Array2" "fillRangeInPlace"
   (* ES2015 *)
 
   (** https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/push *)
-  let pop _ _ = failwith "Not implemented in server-reason-react"
+  let pop _ _ = notImplemented "Js.Array2" "pop"
   (* external pop : 'a t -> 'a option = "pop" [@@bs.send] [@@bs.return undefined_to_opt] *)
 
   (* external push : 'a t -> 'a -> int = "push" [@@bs.send] *)
-  let push _ _ = failwith "Not implemented in server-reason-react"
+  let push _ _ = notImplemented "Js.Array2" "push"
 
   (* external pushMany : 'a t -> 'a array -> int = "push" [@@bs.send] [@@bs.splice] *)
-  let pushMany _ _ = failwith "Not implemented in server-reason-react"
+  let pushMany _ _ = notImplemented "Js.Array2" "pushMany"
 
   (* external reverseInPlace : 'a t -> 'a t = "reverse" [@@bs.send] *)
-  let reverseInPlace _ _ = failwith "Not implemented in server-reason-react"
+  let reverseInPlace _ _ = notImplemented "Js.Array2" "reverseInPlace"
 
   (* external shift : 'a t -> 'a option = "shift" [@@bs.send] [@@bs.return undefined_to_opt] *)
-  let shift _ _ = failwith "Not implemented in server-reason-react"
+  let shift _ _ = notImplemented "Js.Array2" "shift"
 
   (* external sortInPlace : 'a t -> 'a t = "sort" [@@bs.send] *)
-  let sortInPlace _ _ = failwith "Not implemented in server-reason-react"
+  let sortInPlace _ _ = notImplemented "Js.Array2" "sortInPlace"
 
   (* external sortInPlaceWith : 'a t -> (('a -> 'a -> int)[@bs.uncurry]) -> 'a t = "sort" [@@bs.send] *)
-  let sortInPlaceWith _ _ = failwith "Not implemented in server-reason-react"
+  let sortInPlaceWith _ _ = notImplemented "Js.Array2" "sortInPlaceWith"
 
   (* external spliceInPlace : 'a t -> pos:int -> remove:int -> add:'a array -> 'a t = "splice" [@@bs.send] [@@bs.splice] *)
-  let spliceInPlace _ _ = failwith "Not implemented in server-reason-react"
+  let spliceInPlace _ _ = notImplemented "Js.Array2" "spliceInPlace"
 
   (* external removeFromInPlace : 'a t -> pos:int -> 'a t = "splice" [@@bs.send] *)
-  let removeFromInPlace _ _ = failwith "Not implemented in server-reason-react"
+  let removeFromInPlace _ _ = notImplemented "Js.Array2" "removeFromInPlace"
 
   (* external removeCountInPlace : 'a t -> pos:int -> count:int -> 'a t = "splice" [@@bs.send] *)
-  let removeCountInPlace _ _ = failwith "Not implemented in server-reason-react"
+  let removeCountInPlace _ _ = notImplemented "Js.Array2" "removeCountInPlace"
   (* screwy naming, but screwy function *)
 
   (* external unshift : 'a t -> 'a -> int = "unshift" [@@bs.send] *)
-  let unshift _ _ = failwith "Not implemented in server-reason-react"
+  let unshift _ _ = notImplemented "Js.Array2" "unshift"
 
   (* external unshiftMany : 'a t -> 'a array -> int = "unshift" [@@bs.send] [@@bs.splice] *)
-  let unshiftMany _ _ = failwith "Not implemented in server-reason-react"
+  let unshiftMany _ _ = notImplemented "Js.Array2" "unshiftMany"
 
   (* Accessor functions *)
   (* external append : 'a t -> 'a -> 'a t = "concat" [@@bs.send] [@@deprecated "append is not type-safe. Use `concat` instead, and see #1884"] *)
-  let append _ _ = failwith "Not implemented in server-reason-react"
+  let append _ _ = notImplemented "Js.Array2" "append"
 
   (* external concat : 'a t -> 'a t -> 'a t = "concat" [@@bs.send] *)
-  let concat _ _ = failwith "Not implemented in server-reason-react"
+  let concat _ _ = notImplemented "Js.Array2" "concat"
 
   (* external concatMany : 'a t -> 'a t array -> 'a t = "concat" [@@bs.send] [@@bs.splice] *)
-  let concatMany _ _ = failwith "Not implemented in server-reason-react"
+  let concatMany _ _ = notImplemented "Js.Array2" "concatMany"
 
   (* TODO: Not available in Node V4  *)
   (* external includes : 'a t -> 'a -> bool = "includes" [@@bs.send] *)
 
   (** ES2016 *)
-  let includes _ _ = failwith "Not implemented in server-reason-react"
+  let includes _ _ = notImplemented "Js.Array2" "includes"
 
   (* external indexOf : 'a t -> 'a -> int = "indexOf" [@@bs.send] *)
-  let indexOf _ _ = failwith "Not implemented in server-reason-react"
+  let indexOf _ _ = notImplemented "Js.Array2" "indexOf"
 
   (* external indexOfFrom : 'a t -> 'a -> from:int -> int = "indexOf" [@@bs.send] *)
-  let indexOfFrom _ _ = failwith "Not implemented in server-reason-react"
+  let indexOfFrom _ _ = notImplemented "Js.Array2" "indexOfFrom"
 
   (* external joinWith : 'a t -> string -> string = "join" [@@bs.send] *)
-  let joinWith _ _ = failwith "Not implemented in server-reason-react"
+  let joinWith _ _ = notImplemented "Js.Array2" "joinWith"
 
   (* external lastIndexOf : 'a t -> 'a -> int = "lastIndexOf" [@@bs.send] *)
-  let lastIndexOf _ _ = failwith "Not implemented in server-reason-react"
+  let lastIndexOf _ _ = notImplemented "Js.Array2" "lastIndexOf"
 
   (* external lastIndexOfFrom : 'a t -> 'a -> from:int -> int = "lastIndexOf" [@@bs.send] *)
-  let lastIndexOfFrom _ _ = failwith "Not implemented in server-reason-react"
+  let lastIndexOfFrom _ _ = notImplemented "Js.Array2" "lastIndexOfFrom"
 
   (* external slice : 'a t -> start:int -> end_:int -> 'a t = "slice" [@@bs.send] *)
-  let slice _ _ = failwith "Not implemented in server-reason-react"
+  let slice _ _ = notImplemented "Js.Array2" "slice"
 
   (* external copy : 'a t -> 'a t = "slice" [@@bs.send] *)
-  let copy _ _ = failwith "Not implemented in server-reason-react"
+  let copy _ _ = notImplemented "Js.Array2" "copy"
 
   (* external sliceFrom : 'a t -> int -> 'a t = "slice" [@@bs.send] *)
-  let sliceFrom _ _ = failwith "Not implemented in server-reason-react"
+  let sliceFrom _ _ = notImplemented "Js.Array2" "sliceFrom"
 
   (* external toString : 'a t -> string = "toString" [@@bs.send] *)
-  let toString _ _ = failwith "Not implemented in server-reason-react"
+  let toString _ _ = notImplemented "Js.Array2" "toString"
 
   (* external toLocaleString : 'a t -> string = "toLocaleString" [@@bs.send] *)
-  let toLocaleString _ _ = failwith "Not implemented in server-reason-react"
+  let toLocaleString _ _ = notImplemented "Js.Array2" "toLocaleString"
 
   (* Iteration functions *)
   (* commented out until bs has a plan for iterators external entries : 'a t -> (int * 'a) array_iter = "" [@@bs.send] (* ES2015 *) *)
 
   (* external every : 'a t -> (('a -> bool)[@bs.uncurry]) -> bool = "every" [@@bs.send] *)
-  let every _ _ = failwith "Not implemented in server-reason-react"
+  let every _ _ = notImplemented "Js.Array2" "every"
 
   (* external everyi : 'a t -> (('a -> int -> bool)[@bs.uncurry]) -> bool = "every" [@@bs.send] *)
-  let everyi _ _ = failwith "Not implemented in server-reason-react"
+  let everyi _ _ = notImplemented "Js.Array2" "everyi"
 
   (* external filter : 'a t -> (('a -> bool)[@bs.uncurry]) -> 'a t = "filter" [@@bs.send] *)
 
   (** should we use [bool] or [boolean] seems they are intechangeable here *)
-  let filter _ _ = failwith "Not implemented in server-reason-react"
+  let filter _ _ = notImplemented "Js.Array2" "filter"
 
   (* external filteri : 'a t -> (('a -> int -> bool)[@bs.uncurry]) -> 'a t = "filter" [@@bs.send] *)
-  let filteri _ _ = failwith "Not implemented in server-reason-react"
+  let filteri _ _ = notImplemented "Js.Array2" "filteri"
 
   (* external find : 'a t -> (('a -> bool)[@bs.uncurry]) -> 'a option = "find" [@@bs.send] [@@bs.return { undefined_to_opt }] *)
   let find arr fn = Stdlib.Array.find_opt fn arr
   (* ES2015 *)
 
   (* external findi : 'a t -> (('a -> int -> bool)[@bs.uncurry]) -> 'a option = "find" [@@bs.send] [@@bs.return {  undefined_to_opt }] *)
-  let findi _ _ = failwith "Not implemented in server-reason-react"
+  let findi _ _ = notImplemented "Js.Array2" "findi"
   (* ES2015 *)
 
   (* external findIndex : 'a t -> (('a -> bool)[@bs.uncurry]) -> int = "findIndex" [@@bs.send] *)
-  let findIndex _ _ = failwith "Not implemented in server-reason-react"
+  let findIndex _ _ = notImplemented "Js.Array2" "findIndex"
   (* ES2015 *)
 
   (* external findIndexi : 'a t -> (('a -> int -> bool)[@bs.uncurry]) -> int = "findIndex" [@@bs.send] *)
-  let findIndexi _ _ = failwith "Not implemented in server-reason-react"
+  let findIndexi _ _ = notImplemented "Js.Array2" "findIndexi"
   (* ES2015 *)
 
   (* external forEach : 'a t -> (('a -> unit)[@bs.uncurry]) -> unit = "forEach" [@@bs.send] *)
@@ -385,23 +386,23 @@ module Array2 = struct
     !r
 
   (* external reduceRight : 'a t -> (('b -> 'a -> 'b)[@bs.uncurry]) -> 'b -> 'b = "reduceRight" [@@bs.send] *)
-  let reduceRight _ _ = failwith "Not implemented in server-reason-react"
+  let reduceRight _ _ = notImplemented "Js.Array2" "reduceRight"
 
   (* external reduceRighti : 'a t -> (('b -> 'a -> int -> 'b)[@bs.uncurry]) -> 'b -> 'b = "reduceRight" [@@bs.send] *)
-  let reduceRighti _ _ = failwith "Not implemented in server-reason-react"
+  let reduceRighti _ _ = notImplemented "Js.Array2" "reduceRighti"
 
   (* external some : 'a t -> (('a -> bool)[@bs.uncurry]) -> bool = "some" [@@bs.send] *)
-  let some _ _ = failwith "Not implemented in server-reason-react"
+  let some _ _ = notImplemented "Js.Array2" "some"
 
   (* external somei : 'a t -> (('a -> int -> bool)[@bs.uncurry]) -> bool = "some" [@@bs.send] *)
-  let somei _ _ = failwith "Not implemented in server-reason-react"
+  let somei _ _ = notImplemented "Js.Array2" "somei"
 
   (* commented out until bs has a plan for iterators external values : 'a t -> 'a array_iter = "" [@@bs.send] (* ES2015 *) *)
   (* external unsafe_get : 'a array -> int -> 'a = "%array_unsafe_get" *)
-  let unsafe_get _ _ = failwith "Not implemented in server-reason-react"
+  let unsafe_get _ _ = notImplemented "Js.Array2" "unsafe_get"
 
   (* external unsafe_set : 'a array -> int -> 'a -> unit = "%array_unsafe_set" *)
-  let unsafe_set _ _ = failwith "Not implemented in server-reason-react"
+  let unsafe_set _ _ = notImplemented "Js.Array2" "unsafe_set"
 end
 
 (** Provide bindings to Js array *)
@@ -416,225 +417,223 @@ module Array = struct
   *)
 
   (* external from : 'a array_like -> 'a array = "Array.from" [@@bs.val] *)
-  let from _ _ = failwith "Not implemented in server-reason-react"
+  let from _ _ = notImplemented "Js.Array" "from"
   (* ES2015 *)
 
   (* external fromMap : 'a array_like -> (('a -> 'b)[@bs.uncurry]) -> 'b array = "Array.from" [@@bs.val] *)
-  let fromMap _ _ = failwith "Not implemented in server-reason-react"
+  let fromMap _ _ = notImplemented "Js.Array" "fromMap"
   (* ES2015 *)
 
   (* external isArray : 'a -> bool = "Array.isArray" [@@bs.val] *)
-  let isArray _ _ = failwith "Not implemented in server-reason-react"
+  let isArray _ _ = notImplemented "Js.Array" "isArray"
 
   (* ES2015 *)
   (* ES2015 *)
 
   (* Array.of: seems pointless unless you can bind *)
   (* external length : 'a array -> int = "length" [@@bs.get] *)
-  let length _ = failwith "Not implemented in server-reason-react"
+  let length _ = notImplemented "Js.Array" "length"
 
   (* Mutator functions *)
   (* external copyWithin : to_:int -> 'this = "copyWithin" [@@bs.send.pipe: 'a t as 'this] *)
-  let copyWithin _ _ = failwith "Not implemented in server-reason-react"
+  let copyWithin _ _ = notImplemented "Js.Array" "copyWithin"
   (* ES2015 *)
 
-  let copyWithinFrom _ _ = failwith "Not implemented in server-reason-react"
+  let copyWithinFrom _ _ = notImplemented "Js.Array" "copyWithinFrom"
 
   (* external copyWithinFrom : to_:int -> from:int -> 'this = "copyWithin" [@@bs.send.pipe: 'a t as 'this] *)
   (* ES2015 *)
 
   (* external copyWithinFromRange : to_:int -> start:int -> end_:int -> 'this = "copyWithin" [@@bs.send.pipe: 'a t as 'this] *)
-  let copyWithinFromRange _ _ =
-    failwith "Not implemented in server-reason-react"
+  let copyWithinFromRange _ _ = notImplemented "Js.Array" "copyWithinFromRange"
   (* ES2015 *)
 
   (* external fillInPlace : 'a -> 'this = "fill" [@@bs.send.pipe: 'a t as 'this] *)
-  let fillInPlace _ _ = failwith "Not implemented in server-reason-react"
+  let fillInPlace _ _ = notImplemented "Js.Array" "fillInPlace"
   (* ES2015 *)
 
-  let fillFromInPlace _ _ = failwith "Not implemented in server-reason-react"
+  let fillFromInPlace _ _ = notImplemented "Js.Array" "fillFromInPlace"
   (* external fillFromInPlace : 'a -> from:int -> 'this = "fill" [@@bs.send.pipe: 'a t as 'this] *)
   (* ES2015 *)
 
-  let fillRangeInPlace _ _ = failwith "Not implemented in server-reason-react"
+  let fillRangeInPlace _ _ = notImplemented "Js.Array" "fillRangeInPlace"
   (* external fillRangeInPlace : 'a -> start:int -> end_:int -> 'this = "fill" [@@bs.send.pipe: 'a t as 'this] *)
   (* ES2015 *)
 
   (** https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/push *)
-  let pop _ _ = failwith "Not implemented in server-reason-react"
+  let pop _ _ = notImplemented "Js.Array" "pop"
   (* external pop : 'a option = "pop" [@@bs.send.pipe: 'a t as 'this] [@@bs.return undefined_to_opt] *)
 
   (* external push : 'a -> int = "push" [@@bs.send.pipe: 'a t as 'this] *)
-  let push _ _ = failwith "Not implemented in server-reason-react"
+  let push _ _ = notImplemented "Js.Array" "push"
 
   (* external pushMany : 'a array -> int = "push" [@@bs.send.pipe: 'a t as 'this] [@@bs.splice] *)
-  let pushMany _ _ = failwith "Not implemented in server-reason-react"
+  let pushMany _ _ = notImplemented "Js.Array" "pushMany"
 
   (* external reverseInPlace : 'this = "reverse" [@@bs.send.pipe: 'a t as 'this] *)
-  let reverseInPlace _ _ = failwith "Not implemented in server-reason-react"
+  let reverseInPlace _ _ = notImplemented "Js.Array" "reverseInPlace"
   (* external shift : 'a option = "shift" [@@bs.send.pipe: 'a t as 'this] [@@bs.return { undefined_to_opt }] *)
 
-  let sortInPlace _ _ = failwith "Not implemented in server-reason-react"
+  let sortInPlace _ _ = notImplemented "Js.Array" "sortInPlace"
   (* external sortInPlace : 'this = "sort" [@@bs.send.pipe: 'a t as 'this] *)
 
-  let sortInPlaceWith _ _ = failwith "Not implemented in server-reason-react"
+  let sortInPlaceWith _ _ = notImplemented "Js.Array" "sortInPlaceWith"
   (* external sortInPlaceWith : (('a -> 'a -> int)[@bs.uncurry]) -> 'this = "sort" [@@bs.send.pipe: 'a t as 'this] *)
 
-  let spliceInPlace _ _ = failwith "Not implemented in server-reason-react"
+  let spliceInPlace _ _ = notImplemented "Js.Array" "spliceInPlace"
   (* external spliceInPlace : pos:int -> remove:int -> add:'a array -> 'this = "splice" [@@bs.send.pipe: 'a t as 'this] [@@bs.splice] *)
 
-  let removeFromInPlace _ _ = failwith "Not implemented in server-reason-react"
+  let removeFromInPlace _ _ = notImplemented "Js.Array" "removeFromInPlace"
   (* external removeFromInPlace : pos:int -> 'this = "splice" [@@bs.send.pipe: 'a t as 'this] *)
 
-  let removeCountInPlace _ _ = failwith "Not implemented in server-reason-react"
+  let removeCountInPlace _ _ = notImplemented "Js.Array" "removeCountInPlace"
   (* external removeCountInPlace : pos:int -> count:int -> 'this = "splice" [@@bs.send.pipe: 'a t as 'this] *)
   (* screwy naming, but screwy function *)
 
-  let unshift _ _ = failwith "Not implemented in server-reason-react"
+  let unshift _ _ = notImplemented "Js.Array" "unshift"
   (* external unshift : 'a -> int = "unshift" [@@bs.send.pipe: 'a t as 'this] *)
 
-  let unshiftMany _ _ = failwith "Not implemented in server-reason-react"
+  let unshiftMany _ _ = notImplemented "Js.Array" "unshiftMany"
   (* external unshiftMany : 'a array -> int = "unshift" [@@bs.send.pipe: 'a t as 'this] [@@bs.splice] *)
 
   (* Accessor functions *)
   (* external append : 'a -> 'this = "concat" [@@bs.send.pipe: 'a t as 'this] [@@deprecated "append is not type-safe. Use `concat` instead, and see #1884"] *)
-  let append _ _ = failwith "Not implemented in server-reason-react"
+  let append _ _ = notImplemented "Js.Array" "append"
 
   (* external concat : 'this -> 'this = "concat" [@@bs.send.pipe: 'a t as 'this] *)
-  let concat _ _ = failwith "Not implemented in server-reason-react"
+  let concat _ _ = notImplemented "Js.Array" "concat"
 
   (* external concatMany : 'this array -> 'this = "concat" [@@bs.send.pipe: 'a t as 'this] [@@bs.splice] *)
-  let concatMany _ _ = failwith "Not implemented in server-reason-react"
+  let concatMany _ _ = notImplemented "Js.Array" "concatMany"
 
   (** ES2016 *)
-  let includes _ _ = failwith "Not implemented in server-reason-react"
 
   (* TODO: Not available in Node V4 *)
   (* external includes : 'a -> bool = "includes" [@@bs.send.pipe: 'a t as 'this] *)
+  let includes _ _ = notImplemented "Js.Array" "includes"
 
   (* external indexOf : 'a -> int = "indexOf" [@@bs.send.pipe: 'a t as 'this] *)
-  let indexOf _ _ = failwith "Not implemented in server-reason-react"
+  let indexOf _ _ = notImplemented "Js.Array" "indexOf"
 
   (* external indexOfFrom : 'a -> from:int -> int = "indexOf" [@@bs.send.pipe: 'a t as 'this] *)
-  let indexOfFrom _ ~from:_ _ =
-    failwith "Not implemented in server-reason-react"
+  let indexOfFrom _ ~from:_ _ = notImplemented "Js.Array" "indexOfFrom"
 
   (* external join : 'a t -> string = "join" [@@bs.send] [@@deprecated "please use joinWith instead"] *)
-  let join _ _ = failwith "Not implemented in server-reason-react"
+  let join _ _ = notImplemented "Js.Array" "join"
 
   (* external joinWith : string -> string = "join" [@@bs.send.pipe: 'a t as 'this] *)
-  let joinWith _ _ = failwith "Not implemented in server-reason-react"
+  let joinWith _ _ = notImplemented "Js.Array" "joinWith"
 
   (* external lastIndexOf : 'a -> int = "lastIndexOf" [@@bs.send.pipe: 'a t as 'this] *)
-  let lastIndexOf _ _ = failwith "Not implemented in server-reason-react"
+  let lastIndexOf _ _ = notImplemented "Js.Array" "lastIndexOf"
 
   (* external lastIndexOfFrom : 'a -> from:int -> int = "lastIndexOf" [@@bs.send.pipe: 'a t as 'this] *)
-  let lastIndexOfFrom _ _ = failwith "Not implemented in server-reason-react"
+  let lastIndexOfFrom _ _ = notImplemented "Js.Array" "lastIndexOfFrom"
 
   (* external lastIndexOf_start : 'a -> int = "lastIndexOf" [@@bs.send.pipe: 'a t as 'this] [@@deprecated "Please use `lastIndexOf"] *)
-  let lastIndexOf_start _ _ = failwith "Not implemented in server-reason-react"
+  let lastIndexOf_start _ _ = notImplemented "Js.Array" "lastIndexOf_start"
 
   (* external slice : start:int -> end_:int -> 'this = "slice" [@@bs.send.pipe: 'a t as 'this] *)
-  let slice _ _ = failwith "Not implemented in server-reason-react"
+  let slice _ _ = notImplemented "Js.Array" "slice"
 
   (* external copy : 'this = "slice" [@@bs.send.pipe: 'a t as 'this] *)
-  let copy _ _ = failwith "Not implemented in server-reason-react"
+  let copy _ _ = notImplemented "Js.Array" "copy"
 
   (* external slice_copy : unit -> 'this = "slice" [@@bs.send.pipe: 'a t as 'this] [@@deprecated "Please use `copy`"] *)
-  let slice_copy _ _ = failwith "Not implemented in server-reason-react"
+  let slice_copy _ _ = notImplemented "Js.Array" "slice_copy"
 
   (* external sliceFrom : int -> 'this = "slice" [@@bs.send.pipe: 'a t as 'this] *)
-  let sliceFrom _ _ = failwith "Not implemented in server-reason-react"
+  let sliceFrom _ _ = notImplemented "Js.Array" "sliceFrom"
 
   (* external slice_start : int -> 'this = "slice" [@@bs.send.pipe: 'a t as 'this] [@@deprecated "Please use `sliceFrom`"] *)
-  let slice_start _ _ = failwith "Not implemented in server-reason-react"
+  let slice_start _ _ = notImplemented "Js.Array" "slice_start"
 
   (* external toString : string = "toString" [@@bs.send.pipe: 'a t as 'this] *)
-  let toString _ _ = failwith "Not implemented in server-reason-react"
+  let toString _ _ = notImplemented "Js.Array" "toString"
 
   (* external toLocaleString : string = "toLocaleString" [@@bs.send.pipe: 'a t as 'this] *)
-  let toLocaleString _ _ = failwith "Not implemented in server-reason-react"
+  let toLocaleString _ _ = notImplemented "Js.Array" "toLocaleString"
 
   (* Iteration functions *)
   (* commented out until bs has a plan for iterators
      (* external entries : (int * 'a) array_iter = "" [@@bs.send.pipe: 'a t as 'this] (* ES2015 *) *)
-     let entries _ _ = failwith "Not implemented in server-reason-react"
   *)
+  let entries _ _ = notImplemented "Js.Array" "entries"
 
   (* external every : (('a -> bool)[@bs.uncurry]) -> bool = "every" [@@bs.send.pipe: 'a t as 'this] *)
-  let every _ _ = failwith "Not implemented in server-reason-react"
+  let every _ _ = notImplemented "Js.Array" "every"
 
   (* external everyi : (('a -> int -> bool)[@bs.uncurry]) -> bool = "every" [@@bs.send.pipe: 'a t as 'this] *)
-  let everyi _ _ = failwith "Not implemented in server-reason-react"
+  let everyi _ _ = notImplemented "Js.Array" "everyi"
 
   (* external filter : (('a -> bool)[@bs.uncurry]) -> 'this = "filter" [@@bs.send.pipe: 'a t as 'this] *)
 
   (** should we use [bool] or [boolean] seems they are intechangeable here *)
-  let filter _ _ = failwith "Not implemented in server-reason-react"
+  let filter _ _ = notImplemented "Js.Array" "filter"
 
   (* external filteri : (('a -> int -> bool)[@bs.uncurry]) -> 'this = "filter" [@@bs.send.pipe: 'a t as 'this] *)
-  let filteri _ _ = failwith "Not implemented in server-reason-react"
+  let filteri _ _ = notImplemented "Js.Array" "filteri"
 
   (* external find : (('a -> bool)[@bs.uncurry]) -> 'a option = "find" [@@bs.send.pipe: 'a t as 'this] [@@bs.return { undefined_to_opt }] *)
-  let find _ _ = failwith "Not implemented in server-reason-react"
+  let find _ _ = notImplemented "Js.Array" "find"
   (* ES2015 *)
 
   (* external findi : (('a -> int -> bool)[@bs.uncurry]) -> 'a option = "find" [@@bs.send.pipe: 'a t as 'this] [@@bs.return { undefined_to_opt }] *)
-  let findi _ _ = failwith "Not implemented in server-reason-react"
+  let findi _ _ = notImplemented "Js.Array" "findi"
   (* ES2015 *)
 
   (* external findIndex : (('a -> bool)[@bs.uncurry]) -> int = "findIndex" [@@bs.send.pipe: 'a t as 'this] *)
-  let findIndex _ _ = failwith "Not implemented in server-reason-react"
+  let findIndex _ _ = notImplemented "Js.Array" "findIndex"
   (* ES2015 *)
 
   (* external findIndexi : (('a -> int -> bool)[@bs.uncurry]) -> int = "findIndex" [@@bs.send.pipe: 'a t as 'this] *)
-  let findIndexi _ _ = failwith "Not implemented in server-reason-react"
+  let findIndexi _ _ = notImplemented "Js.Array" "findIndexi"
   (* ES2015 *)
 
   (* external forEach : (('a -> unit)[@bs.uncurry]) -> unit = "forEach" [@@bs.send.pipe: 'a t as 'this] *)
-  let forEach _ _ = failwith "Not implemented in server-reason-react"
+  let forEach _ _ = notImplemented "Js.Array" "forEach"
 
   (* external forEachi : (('a -> int -> unit)[@bs.uncurry]) -> unit = "forEach" [@@bs.send.pipe: 'a t as 'this] *)
-  let forEachi _ _ = failwith "Not implemented in server-reason-react"
+  let forEachi _ _ = notImplemented "Js.Array" "forEachi"
 
   (* commented out until bs has a plan for iterators
      (* external keys : int array_iter = "" [@@bs.send.pipe: 'a t as 'this] (* ES2015 *) *)
-     let keys _ _ = failwith "Not implemented in server-reason-react"
+     let keys _ _ = notImplemented "Js.Array" "keys"
   *)
 
   (* external map : (('a -> 'b)[@bs.uncurry]) -> 'b t = "map" [@@bs.send.pipe: 'a t as 'this] *)
-  let map _ _ = failwith "Not implemented in server-reason-react"
+  let map _ _ = notImplemented "Js.Array" "map"
 
   (* external mapi : (('a -> int -> 'b)[@bs.uncurry]) -> 'b t = "map" [@@bs.send.pipe: 'a t as 'this] *)
-  let mapi _ _ = failwith "Not implemented in server-reason-react"
+  let mapi _ _ = notImplemented "Js.Array" "mapi"
 
   (* external reduce : (('b -> 'a -> 'b)[@bs.uncurry]) -> 'b -> 'b = "reduce" [@@bs.send.pipe: 'a t as 'this] *)
-  let reduce _ _ = failwith "Not implemented in server-reason-react"
+  let reduce _ _ = notImplemented "Js.Array" "reduce"
 
   (* external reducei : (('b -> 'a -> int -> 'b)[@bs.uncurry]) -> 'b -> 'b = "reduce" [@@bs.send.pipe: 'a t as 'this] *)
-  let reducei _ _ = failwith "Not implemented in server-reason-react"
+  let reducei _ _ = notImplemented "Js.Array" "reducei"
 
   (* external reduceRight : (('b -> 'a -> 'b)[@bs.uncurry]) -> 'b -> 'b = "reduceRight" [@@bs.send.pipe: 'a t as 'this] *)
-  let reduceRight _ _ = failwith "Not implemented in server-reason-react"
+  let reduceRight _ _ = notImplemented "Js.Array" "reduceRight"
 
   (* external reduceRighti : (('b -> 'a -> int -> 'b)[@bs.uncurry]) -> 'b -> 'b = "reduceRight" [@@bs.send.pipe: 'a t as 'this] *)
-  let reduceRighti _ _ = failwith "Not implemented in server-reason-react"
+  let reduceRighti _ _ = notImplemented "Js.Array" "reduceRighti"
 
   (* external some : (('a -> bool)[@bs.uncurry]) -> bool = "some" [@@bs.send.pipe: 'a t as 'this] *)
-  let some _ _ = failwith "Not implemented in server-reason-react"
+  let some _ _ = notImplemented "Js.Array" "some"
 
   (* external somei : (('a -> int -> bool)[@bs.uncurry]) -> bool = "some" [@@bs.send.pipe: 'a t as 'this] *)
-  let somei _ _ = failwith "Not implemented in server-reason-react"
+  let somei _ _ = notImplemented "Js.Array" "somei"
 
   (* commented out until bs has a plan for iterators
      (* external values : 'a array_iter = "" [@@bs.send.pipe: 'a t as 'this] (* ES2015 *) *)
-     let values _ _ = failwith "Not implemented in server-reason-react"
+     let values _ _ = notImplemented "Js.Array" "values"
   *)
   (* external unsafe_get : 'a array -> int -> 'a = "%array_unsafe_get" *)
-  let unsafe_get _ _ = failwith "Not implemented in server-reason-react"
+  let unsafe_get _ _ = notImplemented "Js.Array" "unsafe_get"
 
   (* external unsafe_set : 'a array -> int -> 'a -> unit = "%array_unsafe_set" *)
-  let unsafe_set _ _ = failwith "Not implemented in server-reason-react"
+  let unsafe_set _ _ = notImplemented "Js.Array" "unsafe_set"
 end
 
 module Re = struct
@@ -778,7 +777,7 @@ module String = struct
   make [|1;2;3|]) = "1,2,3";;
 ]}
 *)
-  let make _ _ = failwith "Not implemented in server-reason-react"
+  let make _ _ = notImplemented "Js.String" "make"
 
   (* external fromCharCode : int -> t = "String.fromCharCode" [@@bs.val] *)
 
@@ -792,7 +791,7 @@ module String = struct
   fromCharCode -64568 = {js|ψ|js};;
 ]}
 *)
-  let fromCharCode _ _ = failwith "Not implemented in server-reason-react"
+  let fromCharCode _ _ = notImplemented "Js.String" "fromCharCode"
 
   (* external fromCharCodeMany : int array -> t = "String.fromCharCode" [@@bs.val] [@@bs.splice] *)
 
@@ -802,7 +801,7 @@ module String = struct
   fromCharCodeMany([|0xd55c, 0xae00, 33|]) = {js|한글!|js};;
 ]}
 *)
-  let fromCharCodeMany _ _ = failwith "Not implemented in server-reason-react"
+  let fromCharCodeMany _ _ = notImplemented "Js.String" "fromCharCodeMany"
 
   (* external fromCodePoint : int -> t = "String.fromCodePoint" [@@bs.val] *)
 
@@ -817,7 +816,7 @@ module String = struct
 ]}
 
 *)
-  let fromCodePoint _ _ = failwith "Not implemented in server-reason-react"
+  let fromCodePoint _ _ = notImplemented "Js.String" "fromCodePoint"
   (** ES2015 *)
 
   (* external fromCodePointMany : int array -> t = "String.fromCodePoint" [@@bs.val] [@@bs.splice] *)
@@ -828,7 +827,7 @@ module String = struct
   fromCodePointMany([|0xd55c; 0xae00; 0x1f63a|]) = {js|한글😺|js}
 ]}
 *)
-  let fromCodePointMany _ _ = failwith "Not implemented in server-reason-react"
+  let fromCodePointMany _ _ = notImplemented "Js.String" "fromCodePointMany"
   (** ES2015 *)
 
   (* String.raw: ES2015, meant to be used with template strings, not directly *)
@@ -842,7 +841,7 @@ module String = struct
 ]}
 
 *)
-  let length _ _ = failwith "Not implemented in server-reason-react"
+  let length _ _ = notImplemented "Js.String" "length"
 
   (* external get : t -> int -> t = "" [@@bs.get_index] *)
 
@@ -854,7 +853,7 @@ module String = struct
   get {js|Rẽasöń|js} 5 = {js|ń|js};;
 ]}
 *)
-  let get _ _ = failwith "Not implemented in server-reason-react"
+  let get _ _ = notImplemented "Js.String" "get"
 
   (* external charAt : int -> t = "charAt" [@@bs.send.pipe: t] *)
 
@@ -866,7 +865,7 @@ module String = struct
   charAt( 5, {js|Rẽasöń|js} = {js|ń|js}
 ]}
 *)
-  let charAt _ _ = failwith "Not implemented in server-reason-react"
+  let charAt _ _ = notImplemented "Js.String" "charAt"
 
   (* external charCodeAt : int -> float = "charCodeAt" [@@bs.send.pipe: t] *)
 
@@ -879,7 +878,7 @@ The return type is [float] because this function returns [NaN] if [n] is less th
 ]}
 
 *)
-  let charCodeAt _ _ = failwith "Not implemented in server-reason-react"
+  let charCodeAt _ _ = notImplemented "Js.String" "charCodeAt"
 
   (* external codePointAt : int -> int option = "codePointAt" [@@bs.send.pipe: t] *)
 
@@ -890,7 +889,7 @@ The return type is [float] because this function returns [NaN] if [n] is less th
   codePointAt 5 "abc" = None
 ]}
 *)
-  let codePointAt _ _ = failwith "Not implemented in server-reason-react"
+  let codePointAt _ _ = notImplemented "Js.String" "codePointAt"
   (** ES2015 *)
 
   (* external concat : t -> t = "concat" [@@bs.send.pipe: t] *)
@@ -901,7 +900,7 @@ The return type is [float] because this function returns [NaN] if [n] is less th
   concat "bell" "cow" = "cowbell";;
 ]}
 *)
-  let concat _ _ = failwith "Not implemented in server-reason-react"
+  let concat _ _ = notImplemented "Js.String" "concat"
 
   (* external concatMany : t array -> t = "concat" [@@bs.send.pipe: t] [@@bs.splice] *)
 
@@ -911,7 +910,7 @@ The return type is [float] because this function returns [NaN] if [n] is less th
   concatMany [|"2nd"; "3rd"; "4th"|] "1st" = "1st2nd3rd4th";;
 ]}
 *)
-  let concatMany _ _ = failwith "Not implemented in server-reason-react"
+  let concatMany _ _ = notImplemented "Js.String" "concatMany"
 
   (* external endsWith : t -> bool = "endsWith" [@@bs.send.pipe: t] *)
 
@@ -923,7 +922,7 @@ The return type is [float] because this function returns [NaN] if [n] is less th
   endsWith "Script" "ReShoes" = false;;
 ]}
 *)
-  let endsWith _ _ = failwith "Not implemented in server-reason-react"
+  let endsWith _ _ = notImplemented "Js.String" "endsWith"
 
   (* external endsWithFrom : t -> int -> bool = "endsWith" [@@bs.send.pipe: t] *)
 
@@ -936,7 +935,7 @@ The return type is [float] because this function returns [NaN] if [n] is less th
   endsWithFrom "ple" 7 "example.dat" = true;;
 ]}
 *)
-  let endsWithFrom _ _ = failwith "Not implemented in server-reason-react"
+  let endsWithFrom _ _ = notImplemented "Js.String" "endsWithFrom"
   (** ES2015 *)
 
   (* external includes : t -> bool = "includes" [@@bs.send.pipe: t] *)
@@ -951,7 +950,7 @@ The return type is [float] because this function returns [NaN] if [n] is less th
   includes "xyz" "programmer" = false;;
 ]}
 *)
-  let includes _ _ = failwith "Not implemented in server-reason-react"
+  let includes _ _ = notImplemented "Js.String" "includes"
   (** ES2015 *)
 
   (* external includesFrom : t -> int -> bool = "includes" [@@bs.send.pipe: t] *)
@@ -965,7 +964,7 @@ The return type is [float] because this function returns [NaN] if [n] is less th
   includesFrom {js|한|js} 1 {js|대한민국|js} = true;;
 ]}
 *)
-  let includesFrom _ _ = failwith "Not implemented in server-reason-react"
+  let includesFrom _ _ = notImplemented "Js.String" "includesFrom"
   (** ES2015 *)
 
   (* external indexOf : t -> int = "indexOf" [@@bs.send.pipe: t] *)
@@ -980,7 +979,7 @@ The return type is [float] because this function returns [NaN] if [n] is less th
   indexOf "xyz" "bookseller" = -1;;
 ]}
 *)
-  let indexOf _ _ = failwith "Not implemented in server-reason-react"
+  let indexOf _ _ = notImplemented "Js.String" "indexOf"
 
   (* external indexOfFrom : t -> int -> int = "indexOf" [@@bs.send.pipe: t] *)
 
@@ -994,7 +993,7 @@ The return type is [float] because this function returns [NaN] if [n] is less th
   indexOf "xyz" "bookseller" = -1;;
 ]}
 *)
-  let indexOfFrom _ _ = failwith "Not implemented in server-reason-react"
+  let indexOfFrom _ _ = notImplemented "Js.String" "indexOfFrom"
 
   (* external lastIndexOf : t -> int = "lastIndexOf" [@@bs.send.pipe: t] *)
 
@@ -1007,7 +1006,7 @@ The return type is [float] because this function returns [NaN] if [n] is less th
   lastIndexOf "xyz" "abcdefg" = -1;;
 ]}
 *)
-  let lastIndexOf _ _ = failwith "Not implemented in server-reason-react"
+  let lastIndexOf _ _ = notImplemented "Js.String" "lastIndexOf"
 
   (* external lastIndexOfFrom : t -> int -> int = "lastIndexOf" [@@bs.send.pipe: t] *)
 
@@ -1021,7 +1020,7 @@ The return type is [float] because this function returns [NaN] if [n] is less th
   lastIndexOfFrom "xyz" 4 "abcdefg" = -1;;
 ]}
 *)
-  let lastIndexOfFrom _ _ = failwith "Not implemented in server-reason-react"
+  let lastIndexOfFrom _ _ = notImplemented "Js.String" "lastIndexOfFrom"
 
   (* extended by ECMA-402 *)
 
@@ -1042,7 +1041,7 @@ The return type is [float] because this function returns [NaN] if [n] is less th
   (localeCompare "cat" "CAT") > 0.0;;
 ]}
 *)
-  let localeCompare _ _ = failwith "Not implemented in server-reason-react"
+  let localeCompare _ _ = notImplemented "Js.String" "localeCompare"
 
   (* external match_ : Re.t -> t option array option = "match" [@@bs.send.pipe: t] [@@bs.return { null_to_opt }] *)
 
@@ -1066,7 +1065,7 @@ The return type is [float] because this function returns [NaN] if [n] is less th
 ]}
 
 *)
-  let match_ _ _ = failwith "Not implemented in server-reason-react"
+  let match_ _ _ = notImplemented "Js.String" "match_"
 
   (* external normalize : t = "normalize" [@@bs.send.pipe: t] *)
 
@@ -1076,7 +1075,7 @@ Consider the character [ã], which can be represented as the single codepoint [\
 
 @see <https://www.unicode.org/reports/tr15/tr15-45.html> Unicode technical report for details
 *)
-  let normalize _ _ = failwith "Not implemented in server-reason-react"
+  let normalize _ _ = notImplemented "Js.String" "normalize"
   (** ES2015 *)
 
   (* external normalizeByForm : t -> t = "normalize" [@@bs.send.pipe: t] *)
@@ -1093,7 +1092,7 @@ Consider the character [ã], which can be represented as the single codepoint [\
 
   @see <https://www.unicode.org/reports/tr15/tr15-45.html> Unicode technical report for details
 *)
-  let normalizeByForm _ _ = failwith "Not implemented in server-reason-react"
+  let normalizeByForm _ _ = notImplemented "Js.String" "normalizeByForm"
 
   (* external repeat : int -> t = "repeat" [@@bs.send.pipe: t] *)
 
@@ -1105,7 +1104,7 @@ Consider the character [ã], which can be represented as the single codepoint [\
   repeat 0 "empty" = ""
 ]}
 *)
-  let repeat _ _ = failwith "Not implemented in server-reason-react"
+  let repeat _ _ = notImplemented "Js.String" "repeat"
   (** ES2015 *)
 
   (* external replace : t -> t -> t = "replace" [@@bs.send.pipe: t] *)
@@ -1122,7 +1121,7 @@ expression.
   replace "the" "this" "the cat and the dog" = "this cat and the dog"
 ]}
 *)
-  let replace _ _ = failwith "Not implemented in server-reason-react"
+  let replace _ _ = notImplemented "Js.String" "replace"
 
   (* external replaceByRe : Re.t -> t -> t = "replace" [@@bs.send.pipe: t] *)
 
@@ -1134,7 +1133,7 @@ have been replaced by [replacement].
   replaceByRe [%re "/(\\w+) (\\w+)/"] "$2, $1" "Juan Fulano" = "Fulano, Juan"
 ]}
 *)
-  let replaceByRe _ _ = failwith "Not implemented in server-reason-react"
+  let replaceByRe _ _ = notImplemented "Js.String" "replaceByRe"
 
   (* external unsafeReplaceBy0 : Re.t -> ((t -> int -> t -> t)[@bs.uncurry]) -> t *)
 
@@ -1156,8 +1155,7 @@ let () = Js.log replaced (* prints "bEAUtifUl vOwEls" *)
 
 @see <https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/replace#Specifying_a_function_as_a_parameter> MDN
 *)
-  let unsafeReplaceBy0 _ _ =
-    failwith "Not implemented in server-reason-react" = "replace"
+  let unsafeReplaceBy0 _ _ = notImplemented "Js.String" "mplemented"
 
   (* external unsafeReplaceBy1 :
      Re.t -> ((t -> t -> int -> t -> t)[@bs.uncurry]) -> t = "replace" [@@bs.send.pipe: t] *)
@@ -1180,7 +1178,7 @@ let () = Js.log replaced (* prints "increment 23 is 24" *)
 
 @see <https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/replace#Specifying_a_function_as_a_parameter> MDN
 *)
-  let unsafeReplaceBy1 _ _ = failwith "Not implemented in server-reason-react"
+  let unsafeReplaceBy1 _ _ = notImplemented "Js.String" "unsafeReplaceBy1"
 
   (* external unsafeReplaceBy2 : Re.t -> ((t -> t -> t -> int -> t -> t)[@bs.uncurry]) -> t = "replace" [@@bs.send.pipe: t] *)
 
@@ -1202,7 +1200,7 @@ let () = Js.log replaced (* prints "42" *)
 
 @see <https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/replace#Specifying_a_function_as_a_parameter> MDN
 *)
-  let unsafeReplaceBy2 _ _ = failwith "Not implemented in server-reason-react"
+  let unsafeReplaceBy2 _ _ = notImplemented "Js.String" "unsafeReplaceBy2"
 
   (* external unsafeReplaceBy3 :
      Re.t -> ((t -> t -> t -> t -> int -> t -> t)[@bs.uncurry]) -> t = "replace" [@@bs.send.pipe: t] *)
@@ -1214,7 +1212,7 @@ the offset at which the match begins, and the whole string being matched.
 
 @see <https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/replace#Specifying_a_function_as_a_parameter> MDN
 *)
-  let unsafeReplaceBy3 _ _ = failwith "Not implemented in server-reason-react"
+  let unsafeReplaceBy3 _ _ = notImplemented "Js.String" "unsafeReplaceBy3"
 
   (* external search : Re.t -> int = "search" [@@bs.send.pipe: t] *)
 
@@ -1225,7 +1223,7 @@ search [%re "/\\d+/"] "testing 1 2 3" = 8;;
 search [%re "/\\d+/"] "no numbers" = -1;;
 ]}
 *)
-  let search _ _ = failwith "Not implemented in server-reason-react"
+  let search _ _ = notImplemented "Js.String" "search"
 
   (* external slice : from:int -> to_:int -> t = "slice" [@@bs.send.pipe: t] *)
 
@@ -1244,7 +1242,7 @@ If [n1] is greater than [n2], [slice] returns the empty string.
   slice ~from:5 ~to_:1 "abcdefg" == "";;
 ]}
 *)
-  let slice _ _ = failwith "Not implemented in server-reason-react"
+  let slice _ _ = notImplemented "Js.String" "slice"
 
   (* external sliceToEnd : from:int -> t = "slice" [@@bs.send.pipe: t] *)
 
@@ -1260,7 +1258,7 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   sliceToEnd ~from: 7 "abcdefg" == "";;
 ]}
 *)
-  let sliceToEnd _ _ = failwith "Not implemented in server-reason-react"
+  let sliceToEnd _ _ = notImplemented "Js.String" "sliceToEnd"
 
   (* external split : t -> t array = "split" [@@bs.send.pipe: t] *)
 
@@ -1275,7 +1273,7 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   split ";" "has-no-delimiter" = [|"has-no-delimiter"|];;
 ]};
 *)
-  let split _ _ = failwith "Not implemented in server-reason-react"
+  let split _ _ = notImplemented "Js.String" "split"
 
   (* external splitAtMost : t -> limit:int -> t array = "split" [@@bs.send.pipe: t] *)
 
@@ -1288,14 +1286,14 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   splitAtMost "/" ~limit: 9 "ant/bee/cat/dog/elk" = [|"ant"; "bee"; "cat"; "dog"; "elk"|];;
 ]}
 *)
-  let splitAtMost _ _ = failwith "Not implemented in server-reason-react"
+  let splitAtMost _ _ = notImplemented "Js.String" "splitAtMost"
 
   (* external splitLimited : t -> int -> t array = "split" [@@bs.send.pipe: t] [@@deprecated "Please use splitAtMost"] *)
 
   (**
   Deprecated - Please use [splitAtMost]
 *)
-  let splitLimited _ _ = failwith "Not implemented in server-reason-react"
+  let splitLimited _ _ = notImplemented "Js.String" "splitLimited"
 
   (* external splitByRe : Re.t -> t option array = "split" [@@bs.send.pipe: t] *)
 
@@ -1309,7 +1307,7 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   splitByRe [%re "/(#)(:)?/"] "a#b#:c" = [|Some "a"; Some "#"; None; Some "b"; Some "#"; Some ":"; Some "c"|];;
 ]};
 *)
-  let splitByRe _ _ = failwith "Not implemented in server-reason-react"
+  let splitByRe _ _ = notImplemented "Js.String" "splitByRe"
 
   (* external splitByReAtMost : Re.t -> limit:int -> t option array = "split" [@@bs.send.pipe: t] *)
 
@@ -1324,12 +1322,12 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   splitByReAtMost [%re "/(#)(:)?/"] ~limit:3 "a#b#:c" = [|Some "a"; Some "#"; None|];;
 ]};
 *)
-  let splitByReAtMost _ _ = failwith "Not implemented in server-reason-react"
+  let splitByReAtMost _ _ = notImplemented "Js.String" "splitByReAtMost"
 
   (* external splitRegexpLimited : Re.t -> int -> t array = "split" [@@bs.send.pipe: t] [@@deprecated "Please use  splitByReAtMost"] *)
 
   (** Deprecated - Please use [splitByReAtMost] *)
-  let splitRegexpLimited _ _ = failwith "Not implemented in server-reason-react"
+  let splitRegexpLimited _ _ = notImplemented "Js.String" "splitRegexpLimited"
 
   (* external startsWith : t -> bool = "startsWith" [@@bs.send.pipe: t] *)
 
@@ -1342,7 +1340,7 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   startsWith "Re" "JavaScript" = false;;
 ]}
 *)
-  let startsWith _ _ = failwith "Not implemented in server-reason-react"
+  let startsWith _ _ = notImplemented "Js.String" "startsWith"
 
   (* external startsWithFrom : t -> int -> bool = "startsWith" [@@bs.send.pipe: t] *)
 
@@ -1355,7 +1353,7 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   startsWithFrom "Re" 2 "JavaScript" = false;;
 ]}
 *)
-  let startsWithFrom _ _ = failwith "Not implemented in server-reason-react"
+  let startsWithFrom _ _ = notImplemented "Js.String" "startsWithFrom"
 
   (* external substr : from:int -> t = "substr" [@@bs.send.pipe: t] *)
 
@@ -1372,7 +1370,7 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   substr ~from: 12 "abcdefghij" = ""
 ]}
 *)
-  let substr _ _ = failwith "Not implemented in server-reason-react"
+  let substr _ _ = notImplemented "Js.String" "substr"
 
   (* external substrAtMost : from:int -> length:int -> t = "substr" [@@bs.send.pipe: t] *)
 
@@ -1391,7 +1389,7 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   substrAtMost ~from: 12 ~ length: 2 "abcdefghij" = ""
 ]}
 *)
-  let substrAtMost _ _ = failwith "Not implemented in server-reason-react"
+  let substrAtMost _ _ = notImplemented "Js.String" "substrAtMost"
 
   (* external substring : from:int -> to_:int -> t = "substring" [@@bs.send.pipe: t] *)
 
@@ -1410,7 +1408,7 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   substring ~from: 4 ~to_: 12 "playground" = "ground";;
 ]}
 *)
-  let substring _ _ = failwith "Not implemented in server-reason-react"
+  let substring _ _ = notImplemented "Js.String" "substring"
 
   (* external substringToEnd : from:int -> t = "substring" [@@bs.send.pipe: t] *)
 
@@ -1427,7 +1425,7 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   substringToEnd ~from: 12 "playground" = "";
 ]}
 *)
-  let substringToEnd _ _ = failwith "Not implemented in server-reason-react"
+  let substringToEnd _ _ = notImplemented "Js.String" "substringToEnd"
 
   (* external toLowerCase : t = "toLowerCase" [@@bs.send.pipe: t] *)
 
@@ -1440,14 +1438,14 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   toLowerCase {js|ΠΣ|js} = {js|πς|js};;
 ]}
 *)
-  let toLowerCase _ _ = failwith "Not implemented in server-reason-react"
+  let toLowerCase _ _ = notImplemented "Js.String" "toLowerCase"
 
   (* external toLocaleLowerCase : t = "toLocaleLowerCase" [@@bs.send.pipe: t] *)
 
   (**
   [toLocaleLowerCase str] converts [str] to lower case using the current locale
 *)
-  let toLocaleLowerCase _ _ = failwith "Not implemented in server-reason-react"
+  let toLocaleLowerCase _ _ = notImplemented "Js.String" "toLocaleLowerCase"
 
   (* external toUpperCase : t = "toUpperCase" [@@bs.send.pipe: t] *)
 
@@ -1460,14 +1458,14 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   toLowerCase {js|πς|js} = {js|ΠΣ|js};;
 ]}
 *)
-  let toUpperCase _ _ = failwith "Not implemented in server-reason-react"
+  let toUpperCase _ _ = notImplemented "Js.String" "toUpperCase"
 
   (* external toLocaleUpperCase : t = "toLocaleUpperCase" [@@bs.send.pipe: t] *)
 
   (**
   [toLocaleUpperCase str] converts [str] to upper case using the current locale
 *)
-  let toLocaleUpperCase _ _ = failwith "Not implemented in server-reason-react"
+  let toLocaleUpperCase _ _ = notImplemented "Js.String" "toLocaleUpperCase"
 
   (* external trim : t = "trim" [@@bs.send.pipe: t] *)
 
@@ -1479,7 +1477,7 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   trim "\n\r\t abc def \n\n\t\r " = "abc def"
 ]}
 *)
-  let trim _ _ = failwith "Not implemented in server-reason-react"
+  let trim _ _ = notImplemented "Js.String" "trim"
 
   (* HTML wrappers *)
 
@@ -1492,7 +1490,7 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   anchor "page1" "Page One" = "<a name=\"page1\">Page One</a>"
 ]}
 *)
-  let anchor _ _ = failwith "Not implemented in server-reason-react"
+  let anchor _ _ = notImplemented "Js.String" "anchor"
   (** ES2015 *)
 
   (* external link : t -> t = "link" [@@bs.send.pipe: t] *)
@@ -1504,11 +1502,11 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   link "page2.html" "Go to page two" = "<a href=\"page2.html\">Go to page two</a>"
 ]}
 *)
-  let link _ _ = failwith "Not implemented in server-reason-react"
+  let link _ _ = notImplemented "Js.String" "link"
   (** ES2015 *)
 
   (* external castToArrayLike : t -> t Array2.array_like = "%identity" *)
-  let castToArrayLike _ _ = failwith "Not implemented in server-reason-react"
+  let castToArrayLike _ _ = notImplemented "Js.String" "castToArrayLike"
   (* FIXME: we should not encourage people to use [%identity], better
       to provide something using [@@bs.val] so that we can track such
       casting
@@ -1561,7 +1559,7 @@ module String2 = struct
   fromCharCodeMany([|0xd55c, 0xae00, 33|]) = {js|한글!|js};;
 ]}
 *)
-  let fromCharCodeMany _ _ = failwith "Not implemented in server-reason-react"
+  let fromCharCodeMany _ _ = notImplemented "" "fromCharCodeMany"
 
   (* external fromCodePoint : int -> t = "String.fromCodePoint" [@@bs.val] (** ES2015 *) *)
 
@@ -1589,7 +1587,7 @@ module String2 = struct
   fromCodePointMany([|0xd55c; 0xae00; 0x1f63a|]) = {js|한글😺|js}
 ]}
 *)
-  let fromCodePointMany _ = failwith "Not implemented in server-reason-react"
+  let fromCodePointMany _ = notImplemented "" "fromCodePointMany"
   (** ES2015 *)
 
   (* String.raw: ES2015, meant to be used with template strings, not directly *)
@@ -1882,7 +1880,7 @@ The return type is [float] because this function returns [NaN] if [n] is less th
   (localeCompare "CAT" "cat") > 0.0;;
 ]}
 *)
-  let localeCompare _ _ = failwith "Not implemented in server-reason-react"
+  let localeCompare _ _ = notImplemented "" "localeCompare"
 
   (* external match_ : t -> Js_re.t -> t option array option = "match" [@@bs.send] [@@bs.
      return {null_to_opt}] *)
@@ -1906,7 +1904,7 @@ The return type is [float] because this function returns [NaN] if [n] is less th
 ]}
 
 *)
-  let match_ _ _ = failwith "Not implemented in server-reason-react"
+  let match_ _ _ = notImplemented "" "match_"
 
   (* external normalize : t -> t = "normalize" [@@bs.send] (** ES2015 *) *)
 
@@ -1916,7 +1914,7 @@ Consider the character [ã], which can be represented as the single codepoint [\
 
 @see <https://www.unicode.org/reports/tr15/tr15-45.html> Unicode technical report for details
 *)
-  let normalize _ _ = failwith "Not implemented in server-reason-react"
+  let normalize _ _ = notImplemented "" "normalize"
 
   (* external normalizeByForm : t -> t -> t = "normalize" [@@bs.send] *)
 
@@ -1932,7 +1930,7 @@ Consider the character [ã], which can be represented as the single codepoint [\
 
   @see <https://www.unicode.org/reports/tr15/tr15-45.html> Unicode technical report for details
 *)
-  let normalizeByForm _ _ = failwith "Not implemented in server-reason-react"
+  let normalizeByForm _ _ = notImplemented "" "normalizeByForm"
 
   (* external repeat : t -> int -> t = "repeat" [@@bs.send] (** ES2015 *) *)
 
@@ -1966,7 +1964,7 @@ expression.
   replace "the cat and the dog" "the" "this" = "this cat and the dog"
 ]}
 *)
-  let replace _ _ _ = failwith "Not implemented in server-reason-react"
+  let replace _ _ _ = notImplemented "" "replace"
 
   (* external replaceByRe : t -> Js_re.t -> t -> t = "replace" [@@bs.send] *)
 
@@ -1978,7 +1976,7 @@ have been replaced by [replacement].
   replaceByRe "Juan Fulano" [%re "/(\\w+) (\\w+)/"] "$2, $1" = "Fulano, Juan"
 ]}
 *)
-  let replaceByRe _ _ _ = failwith "Not implemented in server-reason-react"
+  let replaceByRe _ _ _ = notImplemented "" "replaceByRe"
 
   (* external unsafeReplaceBy0 : t -> Js_re.t -> (t -> int -> t -> t [@bs.uncurry]) -> t =
      "replace" [@@bs.send] *)
@@ -2001,7 +1999,7 @@ let () = Js.log replaced (* prints "bEAUtifUl vOwEls" *)
 
 @see <https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/replace#Specifying_a_function_as_a_parameter> MDN
 *)
-  let unsafeReplaceBy0 _ _ = failwith "Not implemented in server-reason-react"
+  let unsafeReplaceBy0 _ _ = notImplemented "" "unsafeReplaceBy0"
 
   (* external unsafeReplaceBy1 : t -> Js_re.t -> (t -> t -> int -> t -> t [@bs.uncurry]) -> t = "replace" [@@bs.send] *)
 
@@ -2023,7 +2021,7 @@ let () = Js.log replaced (* prints "increment 23 is 24" *)
 
 @see <https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/replace#Specifying_a_function_as_a_parameter> MDN
 *)
-  let unsafeReplaceBy1 _ _ = failwith "Not implemented in server-reason-react"
+  let unsafeReplaceBy1 _ _ = notImplemented "" "unsafeReplaceBy1"
 
   (* external unsafeReplaceBy2 : t -> Js_re.t -> (t -> t -> t -> int -> t -> t [@bs.uncurry])  -> t = "replace" [@@bs.send] *)
 
@@ -2045,7 +2043,7 @@ let () = Js.log replaced (* prints "42" *)
 
 @see <https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/replace#Specifying_a_function_as_a_parameter> MDN
 *)
-  let unsafeReplaceBy2 _ _ = failwith "Not implemented in server-reason-react"
+  let unsafeReplaceBy2 _ _ = notImplemented "" "unsafeReplaceBy2"
 
   (* external unsafeReplaceBy3 : t -> Js_re.t -> (t -> t -> t -> t -> int -> t -> t [@bs.
      uncurry]) -> t = "replace" [@@bs.send] *)
@@ -2057,7 +2055,7 @@ the offset at which the match begins, and the whole string being matched.
 
 @see <https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/replace#Specifying_a_function_as_a_parameter> MDN
 *)
-  let unsafeReplaceBy3 _ _ = failwith "Not implemented in server-reason-react"
+  let unsafeReplaceBy3 _ _ = notImplemented "" "unsafeReplaceBy3"
 
   (* external search : t -> Js_re.t -> int = "search" [@@bs.send] *)
 
@@ -2068,7 +2066,7 @@ search "testing 1 2 3" [%re "/\\d+/"] = 8;;
 search "no numbers" [%re "/\\d+/"] = -1;;
 ]}
 *)
-  let search _ _ = failwith "Not implemented in server-reason-react"
+  let search _ _ = notImplemented "" "search"
 
   (* external slice : t -> from:int -> to_:int ->  t = "slice" [@@bs.send] *)
 
@@ -2126,7 +2124,7 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   split "has-no-delimiter" ";" = [|"has-no-delimiter"|];;
 ]};
 *)
-  let split _str _delimiter = failwith "Not implemented in server-reason-react"
+  let split _str _delimiter = notImplemented "" "split"
 
   (* external splitAtMost: t -> t -> limit:int -> t array = "split" [@@bs.send] *)
 
@@ -2139,8 +2137,7 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   splitAtMost "ant/bee/cat/dog/elk" "/" ~limit: 9 = [|"ant"; "bee"; "cat"; "dog"; "elk"|];;
 ]}
 *)
-  let splitAtMost _str _separator ~limit:_ =
-    failwith "Not implemented in server-reason-react"
+  let splitAtMost _str _separator ~limit:_ = notImplemented "" "mplemented"
 
   (* external splitByRe : t -> Js_re.t -> t option array = "split" [@@bs.send] *)
 
@@ -2153,7 +2150,7 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   splitByRe "has:no:match" [%re "/[,;]/"] = [|"has:no:match"|];;
 ]};
 *)
-  let splitByRe _ _ = failwith "Not implemented in server-reason-react"
+  let splitByRe _ _ = notImplemented "" "splitByRe"
 
   (* external splitByReAtMost : t -> Js_re.t -> limit:int ->  t option array = "split" [@@bs.send] *)
 
@@ -2167,7 +2164,7 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   splitByReAtMost "one: two: three: four" [%re "/\\s*:\\s*/"] ~limit: 8 = [|"one"; "two"; "three"; "four"|];;
 ]};
 *)
-  let splitByReAtMost _ _ = failwith "Not implemented in server-reason-react"
+  let splitByReAtMost _ _ = notImplemented "" "splitByReAtMost"
 
   (* external startsWith : t -> t -> bool = "startsWith" [@@bs.send] *)
 
@@ -2195,8 +2192,7 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   startsWithFrom "JavaScript" "Re" 2 = false;;
 ]}
 *)
-  let startsWithFrom _str _index _ =
-    failwith "Not implemented in server-reason-react"
+  let startsWithFrom _str _index _ = notImplemented "" "mplemented"
 
   (* external substr : t -> from:int -> t = "substr" [@@bs.send] *)
 
@@ -2307,7 +2303,7 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   (**
   [toLocaleLowerCase str] converts [str] to lower case using the current locale
 *)
-  let toLocaleLowerCase _ _ = failwith "Not implemented in server-reason-react"
+  let toLocaleLowerCase _ _ = notImplemented "" "toLocaleLowerCase"
 
   (* external toUpperCase : t -> t = "toUpperCase" [@@bs.send] *)
 
@@ -2327,7 +2323,7 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   (**
   [toLocaleUpperCase str] converts [str] to upper case using the current locale
 *)
-  let toLocaleUpperCase _ _ = failwith "Not implemented in server-reason-react"
+  let toLocaleUpperCase _ _ = notImplemented "" "toLocaleUpperCase"
 
   (* external trim : t -> t = "trim" [@@bs.send] *)
 
@@ -2370,7 +2366,7 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   anchor "Page One" "page1" = "<a name=\"page1\">Page One</a>"
 ]}
 *)
-  let anchor _ _ = failwith "Not implemented in server-reason-react"
+  let anchor _ _ = notImplemented "" "anchor"
 
   (* external link : t -> t -> t = "link" [@@bs.send] (** ES2015 *) *)
 
@@ -2381,10 +2377,10 @@ If [n] is greater than the length of [str], then [sliceToEnd] returns the empty 
   link "Go to page two" "page2.html" = "<a href=\"page2.html\">Go to page two</a>"
 ]}
 *)
-  let link _ _ = failwith "Not implemented in server-reason-react"
+  let link _ _ = notImplemented "" "link"
 
   (* external castToArrayLike : t -> t Js_array2.array_like = "%identity" *)
-  let castToArrayLike _ _ = failwith "Not implemented in server-reason-react"
+  let castToArrayLike _ _ = notImplemented "" "castToArrayLike"
   (* FIXME: we should not encourage people to use [%identity], better
       to provide something using [@@bs.val] so that we can track such
       casting
@@ -2406,17 +2402,17 @@ module Dict = struct
   type 'a t
   type key = string
 
-  let get _ _ = failwith "Not implemented in server-reason-react"
-  let unsafeGet _ _ = failwith "Not implemented in server-reason-react"
-  let set _ _ = failwith "Not implemented in server-reason-react"
-  let keys _ = failwith "Not implemented in server-reason-react"
-  let empty _ = failwith "Not implemented in server-reason-react"
-  let unsafeDeleteKey _ _ = failwith "Not implemented in server-reason-react"
-  let entries _ = failwith "Not implemented in server-reason-react"
-  let values _ = failwith "Not implemented in server-reason-react"
-  let fromList _ = failwith "Not implemented in server-reason-react"
-  let fromArray _ = failwith "Not implemented in server-reason-react"
-  let map _ _ = failwith "Not implemented in server-reason-react"
+  let get _ _ = notImplemented "Js.Dict" "get"
+  let unsafeGet _ _ = notImplemented "Js.Dict" "unsafeGet"
+  let set _ _ = notImplemented "Js.Dict" "set"
+  let keys _ = notImplemented "Js.Dict" "keys"
+  let empty _ = notImplemented "Js.Dict" "empty"
+  let unsafeDeleteKey _ _ = notImplemented "Js.Dict" "unsafeDeleteKey"
+  let entries _ = notImplemented "Js.Dict" "entries"
+  let values _ = notImplemented "Js.Dict" "values"
+  let fromList _ = notImplemented "Js.Dict" "fromList"
+  let fromArray _ = notImplemented "Js.Dict" "fromArray"
+  let map _ _ = notImplemented "Js.Dict" "map"
 end
 
 module Global = struct
@@ -2456,7 +2452,7 @@ module Types = struct
   (** @example{[
   test "x" String = true
   ]}*)
-  let test _ _ = failwith "Not implemented in server-reason-react"
+  let test _ _ = notImplemented "Js.Types" "test"
 
   type tagged_t =
     | JSFalse
@@ -2470,7 +2466,7 @@ module Types = struct
     | JSSymbol of symbol
     | JSBigInt of bigint_val
 
-  let classify _ = failwith "Not implemented in server-reason-react"
+  let classify _ = notImplemented "Js.Types" "classify"
 end
 
 module Json = struct
@@ -2495,81 +2491,74 @@ module Json = struct
     | JSONObject of t Dict.t
     | JSONArray of t array
 
-  let classify (_x : t) : tagged_t =
-    failwith "Not implemented in server-reason-react"
-
-  let test _ : bool = failwith "Not implemented in server-reason-react"
-  let decodeString json = failwith "Not implemented in server-reason-react"
-  let decodeNumber json = failwith "Not implemented in server-reason-react"
-  let decodeObject json = failwith "Not implemented in server-reason-react"
-  let decodeArray json = failwith "Not implemented in server-reason-react"
-
-  let decodeBoolean (json : t) =
-    failwith "Not implemented in server-reason-react"
-
-  let decodeNull json = failwith "Not implemented in server-reason-react"
+  let classify (_x : t) : tagged_t = notImplemented "Js.Json" "mplemented"
+  let test _ : bool = notImplemented "Js.Json" "test"
+  let decodeString json = notImplemented "Js.Json" "decodeString"
+  let decodeNumber json = notImplemented "Js.Json" "decodeNumber"
+  let decodeObject json = notImplemented "Js.Json" "decodeObject"
+  let decodeArray json = notImplemented "Js.Json" "decodeArray"
+  let decodeBoolean (json : t) = notImplemented "Js.Json" "mplemented"
+  let decodeNull json = notImplemented "Js.Json" "decodeNull"
 
   (* external parse : string -> t = "parse"
      [@@mel.val][@@mel.scope "JSON"] *)
 
   (* external parseExn : string -> t = "parse" [@@mel.val] [@@mel.scope "JSON"] *)
-  let parseExn _ = failwith "Not implemented in server-reason-react"
+  let parseExn _ = notImplemented "Js.Json" "parseExn"
 
   (* external stringifyAny : 'a -> string option = "stringify"
      [@@mel.val] [@@mel.scope "JSON"] *)
-  let stringifyAny _ = failwith "Not implemented in server-reason-react"
+  let stringifyAny _ = notImplemented "Js.Json" "stringifyAny"
 
   (* external null : t = "null" [@@mel.val] *)
-  let null _ = failwith "Not implemented in server-reason-react"
+  let null _ = notImplemented "Js.Json" "null"
 
   (* external undefined : t = "undefined" [@@mel.val] *)
   (* external string : string -> t = "%identity" *)
-  let string _ = failwith "Not implemented in server-reason-react"
+  let string _ = notImplemented "Js.Json" "string"
 
   (* external number : float -> t = "%identity" *)
-  let number _ = failwith "Not implemented in server-reason-react"
+  let number _ = notImplemented "Js.Json" "number"
 
   (* external boolean : bool -> t = "%identity" *)
-  let boolean _ = failwith "Not implemented in server-reason-react"
+  let boolean _ = notImplemented "Js.Json" "boolean"
 
   (* external object_ : t Js_dict.t -> t = "%identity" *)
-  let object_ _ = failwith "Not implemented in server-reason-react"
+  let object_ _ = notImplemented "Js.Json" "object_"
 
   (* external array : t array -> t = "%identity" *)
-  let array _ = failwith "Not implemented in server-reason-react"
+  let array _ = notImplemented "Js.Json" "array"
 
   (* external stringArray : string array -> t = "%identity" *)
-  let stringArray _ = failwith "Not implemented in server-reason-react"
+  let stringArray _ = notImplemented "Js.Json" "stringArray"
 
   (* external numberArray : float array -> t = "%identity" *)
-  let numberArray _ = failwith "Not implemented in server-reason-react"
+  let numberArray _ = notImplemented "Js.Json" "numberArray"
 
   (* external booleanArray : bool array -> t = "%identity" *)
-  let booleanArray _ = failwith "Not implemented in server-reason-react"
+  let booleanArray _ = notImplemented "Js.Json" "booleanArray"
 
   (* external objectArray : t Js_dict.t array -> t = "%identity" *)
-  let objectArray _ = failwith "Not implemented in server-reason-react"
+  let objectArray _ = notImplemented "Js.Json" "objectArray"
 
   (* external stringify : t -> string = "stringify"
      [@@mel.val] [@@mel.scope "JSON"] *)
-  let stringify _ = failwith "Not implemented in server-reason-react"
+  let stringify _ = notImplemented "Js.Json" "stringify"
 
   (* external stringifyWithSpace :
      t -> (_[@mel.as {json|null|json}]) -> int -> string = "stringify"
      [@@mel.val] [@@mel.scope "JSON"] *)
-  let stringifyWithSpace _ = failwith "Not implemented in server-reason-react"
+  let stringifyWithSpace _ = notImplemented "Js.Json" "stringifyWithSpace"
 
   (* in memory modification does not work until your root is
      actually None, so we need wrap it as `[v]` and
      return the first element instead *)
 
-  let patch _ = failwith "Not implemented in server-reason-react"
-
-  let serializeExn (_x : t) : string =
-    failwith "Not implemented in server-reason-react"
+  let patch _ = notImplemented "Js.Json" "patch"
+  let serializeExn (_x : t) : string = notImplemented "Js.Json" "mplemented"
 
   let deserializeUnsafe (s : string) : 'a =
-    failwith "Not implemented in server-reason-react"
+    notImplemented "Js.Json" "mplemented"
 end
 
 module Math = struct
@@ -2616,18 +2605,18 @@ module Option = struct
 
   type 'a t = 'a option
 
-  let some _ = failwith "Not implemented in server-reason-react"
-  let isSome _ = failwith "Not implemented in server-reason-react"
-  let isSomeValue _ _ _ = failwith "Not implemented in server-reason-react"
-  let isNone _ = failwith "Not implemented in server-reason-react"
-  let getExn _ = failwith "Not implemented in server-reason-react"
-  let equal _ _ = failwith "Not implemented in server-reason-react"
-  let andThen _ _ = failwith "Not implemented in server-reason-react"
-  let map _ _ = failwith "Not implemented in server-reason-react"
-  let getWithDefault _ _ = failwith "Not implemented in server-reason-react"
-  let default _ = failwith "Not implemented in server-reason-react"
-  let filter _ _ = failwith "Not implemented in server-reason-react"
-  let firstSome _ _ = failwith "Not implemented in server-reason-react"
+  let some _ = notImplemented "Js.Option" "some"
+  let isSome _ = notImplemented "Js.Option" "isSome"
+  let isSomeValue _ _ _ = notImplemented "Js.Option" "isSomeValue"
+  let isNone _ = notImplemented "Js.Option" "isNone"
+  let getExn _ = notImplemented "Js.Option" "getExn"
+  let equal _ _ = notImplemented "Js.Option" "equal"
+  let andThen _ _ = notImplemented "Js.Option" "andThen"
+  let map _ _ = notImplemented "Js.Option" "map"
+  let getWithDefault _ _ = notImplemented "Js.Option" "getWithDefault"
+  let default _ = notImplemented "Js.Option" "default"
+  let filter _ _ = notImplemented "Js.Option" "filter"
+  let firstSome _ _ = notImplemented "Js.Option" "firstSome"
 end
 
 module Result = struct
@@ -2640,27 +2629,27 @@ module List = struct
   type 'a t = 'a list
   (** Provide utilities for list *)
 
-  let length _ = failwith "Not implemented in server-reason-react"
-  let cons _ = failwith "Not implemented in server-reason-react"
-  let isEmpty _ = failwith "Not implemented in server-reason-react"
-  let hd _ = failwith "Not implemented in server-reason-react"
-  let tl _ = failwith "Not implemented in server-reason-react"
-  let nth _ = failwith "Not implemented in server-reason-react"
-  let revAppend _ = failwith "Not implemented in server-reason-react"
-  let rev _ = failwith "Not implemented in server-reason-react"
-  let mapRev _ = failwith "Not implemented in server-reason-react"
-  let map _ _ = failwith "Not implemented in server-reason-react"
-  let iter _ _ = failwith "Not implemented in server-reason-react"
-  let iteri _ _ = failwith "Not implemented in server-reason-react"
-  let foldLeft _ _ _ = failwith "Not implemented in server-reason-react"
-  let foldRight _ _ _ = failwith "Not implemented in server-reason-react"
-  let flatten _ = failwith "Not implemented in server-reason-react"
-  let filter _ _ = failwith "Not implemented in server-reason-react"
-  let filterMap _ _ = failwith "Not implemented in server-reason-react"
-  let countBy _ _ = failwith "Not implemented in server-reason-react"
-  let init _ _ = failwith "Not implemented in server-reason-react"
-  let toVector _ = failwith "Not implemented in server-reason-react"
-  let equal _ _ = failwith "Not implemented in server-reason-react"
+  let length _ = notImplemented "Js.List" "length"
+  let cons _ = notImplemented "Js.List" "cons"
+  let isEmpty _ = notImplemented "Js.List" "isEmpty"
+  let hd _ = notImplemented "Js.List" "hd"
+  let tl _ = notImplemented "Js.List" "tl"
+  let nth _ = notImplemented "Js.List" "nth"
+  let revAppend _ = notImplemented "Js.List" "revAppend"
+  let rev _ = notImplemented "Js.List" "rev"
+  let mapRev _ = notImplemented "Js.List" "mapRev"
+  let map _ _ = notImplemented "Js.List" "map"
+  let iter _ _ = notImplemented "Js.List" "iter"
+  let iteri _ _ = notImplemented "Js.List" "iteri"
+  let foldLeft _ _ _ = notImplemented "Js.List" "foldLeft"
+  let foldRight _ _ _ = notImplemented "Js.List" "foldRight"
+  let flatten _ = notImplemented "Js.List" "flatten"
+  let filter _ _ = notImplemented "Js.List" "filter"
+  let filterMap _ _ = notImplemented "Js.List" "filterMap"
+  let countBy _ _ = notImplemented "Js.List" "countBy"
+  let init _ _ = notImplemented "Js.List" "init"
+  let toVector _ = notImplemented "Js.List" "toVector"
+  let equal _ _ = notImplemented "Js.List" "equal"
 end
 
 module Vector = struct
@@ -2668,26 +2657,26 @@ module Vector = struct
 
   type 'a t = 'a array
 
-  let filterInPlace _ = failwith "Not implemented in server-reason-react"
-  let empty _ = failwith "Not implemented in server-reason-react"
-  let pushBack _ = failwith "Not implemented in server-reason-react"
-  let copy _ = failwith "Not implemented in server-reason-react"
-  let memByRef _ = failwith "Not implemented in server-reason-react"
-  let iter _ = failwith "Not implemented in server-reason-react"
-  let iteri _ = failwith "Not implemented in server-reason-react"
-  let toList _ = failwith "Not implemented in server-reason-react"
-  let map _ = failwith "Not implemented in server-reason-react"
-  let mapi _ = failwith "Not implemented in server-reason-react"
-  let foldLeft _ = failwith "Not implemented in server-reason-react"
-  let foldRight _ = failwith "Not implemented in server-reason-react"
+  let filterInPlace _ = notImplemented "Js.Vector" "filterInPlace"
+  let empty _ = notImplemented "Js.Vector" "empty"
+  let pushBack _ = notImplemented "Js.Vector" "pushBack"
+  let copy _ = notImplemented "Js.Vector" "copy"
+  let memByRef _ = notImplemented "Js.Vector" "memByRef"
+  let iter _ = notImplemented "Js.Vector" "iter"
+  let iteri _ = notImplemented "Js.Vector" "iteri"
+  let toList _ = notImplemented "Js.Vector" "toList"
+  let map _ = notImplemented "Js.Vector" "map"
+  let mapi _ = notImplemented "Js.Vector" "mapi"
+  let foldLeft _ = notImplemented "Js.Vector" "foldLeft"
+  let foldRight _ = notImplemented "Js.Vector" "foldRight"
 
   external length : 'a t -> int = "%array_length"
   external get : 'a t -> int -> 'a = "%array_safe_get"
   external set : 'a t -> int -> 'a -> unit = "%array_safe_set"
   external make : int -> 'a -> 'a t = "caml_make_vect"
 
-  let init _ = failwith "Not implemented in server-reason-react"
-  let append _ = failwith "Not implemented in server-reason-react"
+  let init _ = notImplemented "Js.Vector" "init"
+  let append _ = notImplemented "Js.Vector" "append"
 
   external unsafe_get : 'a t -> int -> 'a = "%array_unsafe_get"
   external unsafe_set : 'a t -> int -> 'a -> unit = "%array_unsafe_set"
