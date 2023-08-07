@@ -1,5 +1,0 @@
-(library
- (name reasonReactRouter)
- (wrapped false)
- (public_name server-reason-react.reasonReactRouter)
- (libraries react js))

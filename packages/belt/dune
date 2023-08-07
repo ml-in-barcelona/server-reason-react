@@ -7,7 +7,7 @@
   (flags :standard -w -A)
   (name belt)
   (public_name server-reason-react.belt)
-  (libraries js)))
+  (libraries server-reason-react.js)))
 
 (subdir
  test

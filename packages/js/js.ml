@@ -190,7 +190,6 @@ end
 
 (** Provide bindings to Js array *)
 module Array2 = struct
-  (* "Array2" is to hide it from Array2 *)
   type 'a t = 'a array
   (** JavaScript Array API *)
 

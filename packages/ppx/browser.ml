@@ -13,7 +13,7 @@ let effect_rule =
                 pexp_loc_stack;
               },
               _ ) ->
-            [%expr React.useEffect (fun () -> None) [||]]
+            [%expr React.useEffect0 (fun () -> None)]
         | _ ->
             [%expr [%ocaml.error "effect only accepts a useEffect expression"]])
     | _ -> [%expr [%ocaml.error "effect only accepts a useEffect expression"]]
