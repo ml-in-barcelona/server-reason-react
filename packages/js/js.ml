@@ -542,7 +542,7 @@ module Array = struct
   (* external copy : 'this = "slice" [@@bs.send.pipe: 'a t as 'this] *)
   let copy _ _ = notImplemented "Js.Array" "copy"
 
-  (* external slice_copy : unit -> 'this = "slice" [@@bs.send.pipe: 'a t as 'this] [@@deprecated "Please use `copy`"] *)
+  (* external slice_copy : _ 'this = "slice" [@@bs.send.pipe: 'a t as 'this] [@@deprecated "Please use `copy`"] *)
   let slice_copy _ _ = notImplemented "Js.Array" "slice_copy"
 
   (* external sliceFrom : int -> 'this = "slice" [@@bs.send.pipe: 'a t as 'this] *)
@@ -2521,6 +2521,179 @@ end
 module Date = struct
   type t
   (** Provide bindings for JS Date *)
+
+  (** returns the primitive value of this date, equivalent to getTime *)
+  let valueOf _t = notImplemented "Js.Date" "valueOf"
+
+  (** returns a date representing the current time *)
+  let make _ = notImplemented "Js.Date" "make"
+
+  let fromFloat _ = notImplemented "Js.Date" "fromFloat"
+  let fromString _ = notImplemented "Js.Date" "fromString"
+  let makeWithYM ~year:_ ~month:_ _ = notImplemented "Js.Date" "makeWithYM"
+
+  let makeWithYMD ~year:_ ~month:_ ~date:_ _ =
+    notImplemented "Js.Date" "makeWithYMD"
+
+  let makeWithYMDH ~year:_ ~month:_ ~date:_ ~hours:__ _ =
+    notImplemented "Js.Date" "makeWithYMDH"
+
+  let makeWithYMDHM ~year:_ ~month:_ ~date:_ ~hours:_ ~minutes:_ _ t =
+    notImplemented "Js.Date" "makeWithYMDHM"
+
+  let makeWithYMDHMS ~year:_ ~month:_ ~date:_ ~hours:_ ~minutes:_ ~seconds:_ _ t
+      =
+    notImplemented "Js.Date" "makeWithYMDHMS"
+
+  let utcWithYM ~year:_ ~month:_ _ = notImplemented "Js.Date" "utcWithYM"
+
+  let utcWithYMD ~year:_ ~month:_ ~date:_ _ =
+    notImplemented "Js.Date" "utcWithYMD"
+
+  let utcWithYMDH ~year:_ ~month:_ ~date:_ ~hours:__ _ =
+    notImplemented "Js.Date" "utcWithYMDH"
+
+  let utcWithYMDHM ~year:_ ~month:_ ~date:_ ~hours:_ ~minutes:_ _ float =
+    notImplemented "Js.Date" "utcWithYMDHM"
+
+  let utcWithYMDHMS ~year:_ ~month:_ ~date:_ ~hours:_ ~minutes:_ ~seconds:_ _
+      float =
+    notImplemented "Js.Date" "utcWithYMDHMS"
+
+  (** returns the number of milliseconds since Unix epoch *)
+  let now _ = notImplemented "Js.Date" "now"
+
+  let parse _ = notImplemented "Js.Date" "parse"
+
+  (** returns NaN if passed invalid date string *)
+  let parseAsFloat _ = notImplemented "Js.Date" "parseAsFloat"
+
+  (** return the day of the month (1-31) *)
+  let getDate _ _float = notImplemented "Js.Date" "getDate"
+
+  (** returns the day of the week (0-6) *)
+  let getDay _ _float = notImplemented "Js.Date" "getDay"
+
+  let getFullYear _ _float = notImplemented "Js.Date" "getFullYear"
+  let getHours _ _float = notImplemented "Js.Date" "getHours"
+  let getMilliseconds _ _float = notImplemented "Js.Date" "getMilliseconds"
+  let getMinutes _ _float = notImplemented "Js.Date" "getMinutes"
+
+  (** returns the month (0-11) *)
+  let getMonth _ _float = notImplemented "Js.Date" "getMonth"
+
+  let getSeconds _ _float = notImplemented "Js.Date" "getSeconds"
+
+  (** returns the number of milliseconds since Unix epoch *)
+  let getTime _ _float = notImplemented "Js.Date" "getTime"
+
+  let getTimezoneOffset _ _float = notImplemented "Js.Date" "getTimezoneOffset"
+
+  (** return the day of the month (1-31) *)
+  let getUTCDate _ _float = notImplemented "Js.Date" "getUTCDate"
+
+  (** returns the day of the week (0-6) *)
+  let getUTCDay _ _float = notImplemented "Js.Date" "getUTCDay"
+
+  let getUTCFullYear _ _float = notImplemented "Js.Date" "getUTCFullYear"
+  let getUTCHours _ _float = notImplemented "Js.Date" "getUTCHours"
+
+  let getUTCMilliseconds _ _float =
+    notImplemented "Js.Date" "getUTCMilliseconds"
+
+  let getUTCMinutes _ _float = notImplemented "Js.Date" "getUTCMinutes"
+
+  (** returns the month (0-11) *)
+  let getUTCMonth _ _float = notImplemented "Js.Date" "getUTCMonth"
+
+  let getUTCSeconds _ _float = notImplemented "Js.Date" "getUTCSeconds"
+  let getYear _ _float = notImplemented "Js.Date" "getYear"
+  let setDate _ _ = notImplemented "Js.Date" "setDate"
+  let setFullYear _ _float = notImplemented "Js.Date" "setFullYear"
+
+  let setFullYearM _ ~year:_ ~month:_ _ =
+    notImplemented "Js.Date" "setFullYearM"
+
+  let setFullYearMD _t ~year:_ ~month:_ ~date:_ _ =
+    notImplemented "Js.Date" "setFullYearMD"
+
+  let setHours _ _float = notImplemented "Js.Date" "setHours"
+  let setHoursM t ~hours:_ ~minutes:_ = notImplemented "Js.Date" "setHoursM"
+  let setHoursMS _t ~hours:_ ~minutes:_ = notImplemented "Js.Date" "setHoursMS"
+
+  let setHoursMSMs _t ~hours:_ ~minutes:_ ~seconds:_ ~milliseconds:_ _ =
+    notImplemented "Js.Date" "setHoursMSMs"
+
+  let setMilliseconds _ _float = notImplemented "Js.Date" "setMilliseconds"
+  let setMinutes _ _float = notImplemented "Js.Date" "setMinutes"
+  let setMinutesS _ ~minutes:_ = notImplemented "Js.Date" "setMinutesS"
+  let setMinutesSMs _t ~minutes:_ = notImplemented "Js.Date" "setMinutesSMs"
+  let setMonth _ _float = notImplemented "Js.Date" "setMonth"
+  let setMonthD t ~month:_ ~date:_ _ = notImplemented "Js.Date" "setMonthD"
+  let setSeconds _ _float = notImplemented "Js.Date" "setSeconds"
+
+  let setSecondsMs _ ~seconds:_ ~milliseconds:_ _ =
+    notImplemented "Js.Date" "setSecondsMs"
+
+  let setTime _ _float = notImplemented "Js.Date" "setTime"
+  let setUTCDate _ _float = notImplemented "Js.Date" "setUTCDate"
+  let setUTCFullYear _ _float = notImplemented "Js.Date" "setUTCFullYear"
+
+  let setUTCFullYearM _ ~year:_ ~month:_ _ =
+    notImplemented "Js.Date" "setUTCFullYearM"
+
+  let setUTCFullYearMD _t ~year:_ ~month:_ ~date:_ _ =
+    notImplemented "Js.Date" "setUTCFullYearMD"
+
+  let setUTCHours _ _float = notImplemented "Js.Date" "setUTCHours"
+
+  let setUTCHoursM t ~hours:_ ~minutes:_ =
+    notImplemented "Js.Date" "setUTCHoursM"
+
+  let setUTCHoursMS _t ~hours:_ ~minutes:_ =
+    notImplemented "Js.Date" "setUTCHoursMS"
+
+  let setUTCHoursMSMs _t ~hours:_ ~minutes:_ ~seconds:_ ~milliseconds:_ _ =
+    notImplemented "Js.Date" "setUTCHoursMSMs"
+
+  let setUTCMilliseconds _ _float =
+    notImplemented "Js.Date" "setUTCMilliseconds"
+
+  let setUTCMinutes _ _float = notImplemented "Js.Date" "setUTCMinutes"
+  let setUTCMinutesS _ ~minutes:_ = notImplemented "Js.Date" "setUTCMinutesS"
+
+  let setUTCMinutesSMs _t ~minutes:_ =
+    notImplemented "Js.Date" "setUTCMinutesSMs"
+
+  let setUTCMonth _ _float = notImplemented "Js.Date" "setUTCMonth"
+
+  let setUTCMonthD t ~month:_ ~date:_ _ =
+    notImplemented "Js.Date" "setUTCMonthD"
+
+  let setUTCSeconds _ _float = notImplemented "Js.Date" "setUTCSeconds"
+  let setUTCSecondsMs _t ~seconds:_ = notImplemented "Js.Date" "setUTCSecondsMs"
+  let setUTCTime _ _float = notImplemented "Js.Date" "setUTCTime"
+  let setYear _ _float = notImplemented "Js.Date" "setYear"
+  let toDateString _ string = notImplemented "Js.Date" "toDateString"
+  let toGMTString _ string = notImplemented "Js.Date" "toGMTString"
+  let toISOString _ string = notImplemented "Js.Date" "toISOString"
+  let toJSON _ string = notImplemented "Js.Date" "toJSON"
+  let toJSONUnsafe _ string = notImplemented "Js.Date" "toJSONUnsafe"
+
+  let toLocaleDateString _ string =
+    notImplemented "Js.Date" "toLocaleDateString"
+
+  (* TODO: has overloads with somewhat poor browser support *)
+  let toLocaleString _ string = notImplemented "Js.Date" "toLocaleString"
+
+  (* TODO: has overloads with somewhat poor browser support *)
+  let toLocaleTimeString _ string =
+    notImplemented "Js.Date" "toLocaleTimeString"
+
+  (* TODO: has overloads with somewhat poor browser support *)
+  let toString _ string = notImplemented "Js.Date" "toString"
+  let toTimeString _ string = notImplemented "Js.Date" "toTimeString"
+  let toUTCString _ string = notImplemented "Js.Date" "toUTCString"
 end
 
 module type Dictionary = sig
@@ -2892,7 +3065,7 @@ module Console = struct
   let warn4 = log4
   let warnMany = logMany
 
-  (* external trace : unit -> unit = "trace" [@@bs.val] [@@bs.scope "console"] *)
+  (* external trace : _ unit = "trace" [@@bs.val] [@@bs.scope "console"] *)
   let trace () = ()
 
   (* external timeStart : string -> unit = "time" [@@bs.val] [@@bs.scope "console"] *)
