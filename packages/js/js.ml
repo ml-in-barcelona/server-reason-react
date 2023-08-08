@@ -2765,7 +2765,29 @@ module Dict : Dictionary = struct
 end
 
 module Global = struct
-  (** Provide bindings to JS global functions in global namespace*)
+  (** Contains functions available in the global scope
+    ([window] in a browser context) *)
+
+  type intervalId
+  (** Identify an interval started by {! setInterval} *)
+
+  type timeoutId
+  (** Identify timeout started by {! setTimeout} *)
+
+  let clearInterval _intervalId = notImplemented "Js.Global" "clearInterval"
+  let clearTimeout _timeoutId = notImplemented "Js.Global" "clearTimeout"
+  let setInterval _ _ = notImplemented "Js.Global" "setInterval"
+  let setIntervalFloat _ _ = notImplemented "Js.Global" "setInterval"
+  let setTimeout _ _ = notImplemented "Js.Global" "setTimeout"
+  let setTimeoutFloat _ _ = notImplemented "Js.Global" "setTimeout"
+  let encodeURI _string = notImplemented "Js.Global" "encodeURI"
+  let decodeURI _string = notImplemented "Js.Global" "decodeURI"
+
+  let encodeURIComponent _string =
+    notImplemented "Js.Global" "encodeURIComponent"
+
+  let decodeURIComponent _string =
+    notImplemented "Js.Global" "decodeURIComponent"
 end
 
 module Types = struct
@@ -2911,7 +2933,225 @@ module Json = struct
 end
 
 module Math = struct
-  (** Provide bindings for JS [Math] object *)
+  (** JavaScript Math API *)
+
+  (** Euler's number *)
+  let _E = 2.718281828459045
+
+  (** natural logarithm of 2 *)
+  let _LN2 = 0.6931471805599453
+
+  (** natural logarithm of 10 *)
+  let _LN10 = 2.302585092994046
+
+  (** base 2 logarithm of E *)
+  let _LOG2E = 1.4426950408889634
+
+  (** base 10 logarithm of E *)
+  let _LOG10E = 0.4342944819032518
+
+  (** Pi... (ratio of the circumference and diameter of a circle) *)
+  let _PI = 3.141592653589793
+
+  (** square root of 1/2 *)
+  let _SQRT1_2 = 0.7071067811865476
+
+  (** square root of 2 *)
+  let _SQRT2 = 1.41421356237
+
+  (** absolute value *)
+  let abs_int _ = notImplemented "Js.Math" "abs_int"
+
+  let abs_float _ = notImplemented "Js.Math" "abs_float"
+
+  (** absolute value *)
+
+  let acos _ = notImplemented "Js.Math" "acos"
+
+  (** arccosine in radians, can return NaN *)
+
+  let acosh _ = notImplemented "Js.Math" "acosh"
+
+  (** hyperbolic arccosine in raidans, can return NaN, ES2015 *)
+
+  let asin _ = notImplemented "Js.Math" "asin"
+
+  (** arcsine in radians, can return NaN *)
+
+  let asinh _ = notImplemented "Js.Math" "asinh"
+
+  (** hyperbolic arcsine in raidans, ES2015 *)
+
+  let atan _ = notImplemented "Js.Math" "atan"
+
+  (** arctangent in radians *)
+
+  let atanh _ = notImplemented "Js.Math" "atanh"
+
+  (** hyperbolic arctangent in radians, can return NaN, ES2015 *)
+
+  let atan2 ~y:_ ~x:_ = notImplemented "Js.Math" "atan2"
+
+  (** arctangent of the quotient of x and y, mostly... this one's a bit weird *)
+
+  let cbrt _ = notImplemented "Js.Math" "cbrt"
+
+  (** cube root, can return NaN, ES2015 *)
+
+  let unsafe_ceil_int _ = notImplemented "Js.Math" "unsafe_ceil_int"
+
+  (** may return values not representable by [int] *)
+
+  let unsafe_ceil _ = notImplemented "Js.Math" "unsafe_ceil"
+
+  (** smallest int greater than or equal to the argument *)
+  let ceil_int _ _ = notImplemented "Js.Math" "ceil_int"
+
+  let ceil _ = notImplemented "Js.Math" "ceil"
+  let ceil_float _ = notImplemented "Js.Math" "ceil_float"
+
+  (** smallest float greater than or equal to the argument *)
+
+  let clz32 _ = notImplemented "Js.Math" "clz32"
+
+  (** number of leading zero bits of the argument's 32 bit int representation, ES2015 *)
+  (* can convert string, float etc. to number *)
+
+  let cos _ = notImplemented "Js.Math" "cos"
+
+  (** cosine in radians *)
+
+  let cosh _ = notImplemented "Js.Math" "cosh"
+
+  (** hyperbolic cosine in radians, ES2015 *)
+
+  let exp _ = notImplemented "Js.Math" "exp"
+
+  (** natural exponentional *)
+
+  let expm1 _ = notImplemented "Js.Math" "expm1"
+
+  (** natural exponential minus 1, ES2015 *)
+
+  (** may return values not representable by [int] *)
+  let unsafe_floor_int _ = notImplemented "Js.Math" "unsafe_floor_int"
+
+  let unsafe_floor _ = notImplemented "Js.Math" "unsafe_floor"
+
+  (** largest int greater than or equal to the arugment *)
+  let floor_int _f = notImplemented "Js.Math" "floor_int"
+
+  let floor _ = notImplemented "Js.Math" "floor"
+  let floor_float _ = notImplemented "Js.Math" "floor_float"
+  let fround _ = notImplemented "Js.Math" "fround"
+
+  (** round to nearest single precision float, ES2015 *)
+
+  let hypot _ = notImplemented "Js.Math" "hypot"
+
+  (** pythagorean equation, ES2015 *)
+
+  (** generalized pythagorean equation, ES2015 *)
+  let hypotMany _ _array = notImplemented "Js.Math" "hypotMany"
+
+  let imul _ = notImplemented "Js.Math" "imul"
+
+  (** 32-bit integer multiplication, ES2015 *)
+
+  let log _ = notImplemented "Js.Math" "log"
+
+  (** natural logarithm, can return NaN *)
+
+  let log1p _ = notImplemented "Js.Math" "log1p"
+
+  (** natural logarithm of 1 + the argument, can return NaN, ES2015 *)
+
+  let log10 _ = notImplemented "Js.Math" "log10"
+
+  (** base 10 logarithm, can return NaN, ES2015 *)
+
+  let log2 _ = notImplemented "Js.Math" "log2"
+
+  (** base 2 logarithm, can return NaN, ES2015 *)
+
+  let max_int _ = notImplemented "Js.Math" "max_int"
+
+  (** max value *)
+
+  (** max value *)
+  let maxMany_int _ _array = notImplemented "Js.Math" "maxMany_int"
+
+  let max_float _ = notImplemented "Js.Math" "max_float"
+
+  (** max value *)
+
+  (** max value *)
+  let maxMany_float _ _array = notImplemented "Js.Math" "maxMany_float"
+
+  let min_int _ = notImplemented "Js.Math" "min_int"
+
+  (** min value *)
+
+  (** min value *)
+  let minMany_int _ _array = notImplemented "Js.Math" "minMany_int"
+
+  let min_float _ = notImplemented "Js.Math" "min_float"
+
+  (** min value *)
+
+  (** min value *)
+  let minMany_float _ _array = notImplemented "Js.Math" "minMany_float"
+
+  (** base to the power of the exponent *)
+  let pow_int ~base:_ ~exp:_ = notImplemented "Js.Math" "pow_int"
+
+  let pow_float ~base:_ ~exp:_ = notImplemented "Js.Math" "pow_float"
+
+  (** base to the power of the exponent *)
+
+  let random _ = notImplemented "Js.Math" "random"
+
+  (** random number in \[0,1) *)
+
+  (** random number in \[min,max) *)
+  let random_int _min _max = notImplemented "Js.Math" "random_int"
+
+  let unsafe_round _ = notImplemented "Js.Math" "unsafe_round"
+
+  (** rounds to nearest integer, returns a value not representable as [int] if NaN *)
+
+  let round _ = notImplemented "Js.Math" "round"
+
+  (** rounds to nearest integer *)
+
+  let sign_int _ = notImplemented "Js.Math" "sign_int"
+
+  (** the sign of the argument, 1, -1 or 0, ES2015 *)
+
+  let sign_float _ = notImplemented "Js.Math" "sign_float"
+
+  (** the sign of the argument, 1, -1, 0, -0 or NaN, ES2015 *)
+
+  (** sine in radians *)
+  let sin _ = notImplemented "Js.Math" "sin"
+
+  (** hyperbolic sine in radians, ES2015 *)
+  let sinh _ = notImplemented "Js.Math" "sinh"
+
+  (** square root, can return NaN *)
+  let sqrt _ = notImplemented "Js.Math" "sqrt"
+
+  (** tangent in radians *)
+  let tan _ = notImplemented "Js.Math" "tan"
+
+  (** hyperbolic tangent in radians, ES2015 *)
+  let tanh _ = notImplemented "Js.Math" "tanh"
+
+  (** truncate, ie. remove fractional digits, returns a value not representable as [int] if NaN, ES2015 *)
+  let unsafe_trunc _ = notImplemented "Js.Math" "unsafe_trunc"
+
+  (** truncate, ie. remove fractional digits, returns a value not representable as [int] if NaN, ES2015 *)
+  let trunc _ = notImplemented "Js.Math" "trunc"
 end
 
 module Obj = struct
