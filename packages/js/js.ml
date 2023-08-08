@@ -2707,61 +2707,57 @@ module type Dictionary = sig
   val fromList : (key * 'a) list -> 'a t
   val keys : 'a t -> key array
   val values : 'a t -> 'a array
-  val set : 'a t -> key -> 'a -> 'a t
+  val set : 'a t -> key -> 'a -> unit
   val get : 'a t -> key -> 'a option
   val unsafeGet : 'a t -> key -> 'a
   val map : ('a -> 'b) -> 'a t -> 'b t
-  val unsafeDeleteKey : 'a t -> key -> 'a t
+  val unsafeDeleteKey : 'a t -> key -> unit
 end
 
 module Dict : Dictionary = struct
   (** Provide utilities for JS dictionary object *)
 
   type key = string
-  type 'a t = (key * 'a) list
+  type 'a t = (key, 'a) Hashtbl.t
 
-  exception NotFound
+  let empty () : 'a t = Hashtbl.create 10
 
-  let empty () : 'a t = []
-  let entries (dict : 'a t) : (string * 'a) array = dict |> Stdlib.Array.of_list
+  let entries (dict : 'a t) : (string * 'a) array =
+    Hashtbl.fold (fun k v acc -> (k, v) :: acc) dict [] |> Stdlib.Array.of_list
 
   let get (dict : 'a t) (k : key) : 'a option =
-    let rec get' dict k =
-      match dict with
-      | [] -> None
-      | (k', x) :: rest -> if k = k' then Some x else get' rest k
-    in
-    get' dict k
+    try Some (Hashtbl.find dict k) with Not_found -> None
 
   let map (f : 'a -> 'b) (dict : 'a t) =
-    Stdlib.List.map (fun (k, a) -> (k, f a)) dict
+    Hashtbl.fold
+      (fun k v acc ->
+        Hashtbl.add acc k (f v);
+        acc)
+      dict (empty ())
 
-  let set (dict : 'a t) (k : key) (x : 'a) : 'a t =
-    let update (dict : 'a t) (key : key) (value : 'a) =
-      Stdlib.List.map
-        (fun (k, v) -> if Stdlib.String.equal k key then (k, value) else (k, v))
-        dict
-    in
-    match get dict k with None -> (k, x) :: dict | Some v -> update dict k v
+  let set (dict : 'a t) (k : key) (x : 'a) : unit = Hashtbl.replace dict k x
 
   let fromList (lst : (key * 'a) list) : 'a t =
-    Stdlib.List.fold_left (fun acc (k, v) -> set acc k v) [] lst
-    |> Stdlib.List.rev
+    let length = Stdlib.List.length lst in
+    let dict = Hashtbl.create length in
+    Stdlib.List.iter (fun (k, v) -> Hashtbl.add dict k v) lst;
+    dict
 
   let fromArray (arr : (key * 'a) array) : 'a t =
-    Stdlib.Array.to_list arr |> fromList
+    let length = Stdlib.Array.length arr in
+    let dict = Hashtbl.create length in
+    Stdlib.Array.iter (fun (k, v) -> Hashtbl.add dict k v) arr;
+    dict
 
   let keys (dict : 'a t) =
-    Stdlib.List.map (fun (k, _) -> k) dict |> Stdlib.Array.of_list
+    Hashtbl.fold (fun k _ acc -> k :: acc) dict [] |> Stdlib.Array.of_list
 
   let values (dict : 'a t) =
-    Stdlib.List.map (fun (_, value) -> value) dict |> Stdlib.Array.of_list
+    Hashtbl.fold (fun _k value acc -> value :: acc) dict []
+    |> Stdlib.Array.of_list
 
-  let unsafeGet (dict : 'a t) (k : key) : 'a =
-    match get dict k with None -> raise NotFound | Some x -> x
-
-  let unsafeDeleteKey (dict : 'a t) (key : key) =
-    List.filter (fun (k, _) -> k <> key) dict
+  let unsafeGet (dict : 'a t) (k : key) : 'a = Hashtbl.find dict k
+  let unsafeDeleteKey (dict : 'a t) (key : key) = Hashtbl.remove dict key
 end
 
 module Global = struct

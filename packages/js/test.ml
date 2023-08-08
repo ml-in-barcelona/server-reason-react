@@ -407,24 +407,24 @@ let dict_tests =
           assert_int (Js.Dict.unsafeGet (obj ()) "foo") 43);
       case "set" (fun _ ->
           let o = Js.Dict.empty () in
-          let new_ = Js.Dict.set o "foo" 36 in
-          assert_option_int (Js.Dict.get new_ "foo") (Some 36));
+          Js.Dict.set o "foo" 36;
+          assert_option_int (Js.Dict.get o "foo") (Some 36));
       case "keys" (fun _ ->
           assert_string_array
             (Js.Dict.keys (long_obj ()))
-            [| "david"; "foo"; "bar" |]);
+            [| "bar"; "david"; "foo" |]);
       case "keys duplicated" (fun _ ->
           assert_string_array
             (Js.Dict.keys (obj_duplicated ()))
-            [| "foo"; "bar" |]);
+            [| "bar"; "bar"; "foo" |]);
       case "entries" (fun _ ->
           assert_int_dict_entries
             (Js.Dict.entries (obj ()))
-            [| ("foo", 43); ("bar", 86) |]);
+            [| ("bar", 86); ("foo", 43) |]);
       case "values" (fun _ ->
-          assert_int_array (Js.Dict.values (obj ())) [| 43; 86 |]);
+          assert_int_array (Js.Dict.values (obj ())) [| 86; 43 |]);
       case "values duplicated" (fun _ ->
-          assert_int_array (Js.Dict.values (obj_duplicated ())) [| 43; 86 |]);
+          assert_int_array (Js.Dict.values (obj_duplicated ())) [| 86; 1; 43 |]);
       case "fromList - []" (fun _ ->
           assert_int_dict_entries (Js.Dict.entries (Js.Dict.fromList [])) [||]);
       case "fromList" (fun _ ->
@@ -445,7 +445,7 @@ let dict_tests =
           let salePrices = Js.Dict.map discount prices in
           assert_int_dict_entries
             (Js.Dict.entries salePrices)
-            [| ("pen", 10); ("book", 50); ("stapler", 70) |]);
+            [| ("book", 50); ("stapler", 70); ("pen", 10) |]);
     ] )
 
 let () =
