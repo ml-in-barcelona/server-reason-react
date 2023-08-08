@@ -57,6 +57,7 @@ setup-githooks: ## Setup githooks
 .PHONY: pin
 pin: ## Pin dependencies
 	@opam pin add melange "https://github.com/melange-re/melange.git#da421be55e755096403425ed3c260486deab61f3" -y
+	@opam pin add pcre2 "https://github.com/tobil4sk/pcre2-ocaml.git#18fcbf511b5f564b1d3694469e1a3a824c52e2e3" -y
 
 .PHONY: create-switch
 create-switch: ## Create opam switch

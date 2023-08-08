@@ -640,6 +640,7 @@ module Array = struct
 end
 
 module Re = struct
+  module Pcre = Pcre2
   (** Provide bindings to Js regex expression *)
 
   type flag = [ Pcre.cflag | `GLOBAL | `STICKY | `UNICODE ]
@@ -675,28 +676,22 @@ module Re = struct
       let regexp = Pcre.regexp str in
       { regex = regexp; flags = []; lastIndex = 0 }
     with
-    | Pcre.Error BadPartial -> raise @@ Invalid_argument "BadPartial"
     | Pcre.Error (BadPattern (msg, _pos)) ->
         raise @@ Invalid_argument ("BadPattern: " ^ msg)
     | Pcre.Error Partial -> raise @@ Invalid_argument "Partial"
-    | Pcre.Error BadUTF8 -> raise @@ Invalid_argument "BadUTF8"
-    | Pcre.Error BadUTF8Offset -> raise @@ Invalid_argument "BadUTF8Offset"
     | Pcre.Error MatchLimit -> raise @@ Invalid_argument "MatchLimit"
-    | Pcre.Error RecursionLimit -> raise @@ Invalid_argument "RecursionLimit"
     | Pcre.Error WorkspaceSize -> raise @@ Invalid_argument "WorkspaceSize"
     | Pcre.Error (InternalError msg) -> raise @@ Invalid_argument msg
 
   let char_of_cflag : Pcre.cflag -> char option = function
     | `CASELESS -> Some 'i'
     | `MULTILINE -> Some 'm'
-    | `UTF8 -> Some 'u'
     | _ -> None
 
   let flag_of_char : char -> flag = function
     | 'g' -> `GLOBAL
     | 'i' -> `CASELESS
     | 'm' -> `MULTILINE
-    | 'u' -> `UTF8
     | 'y' -> `STICKY
     | _ -> raise (Invalid_argument "invalid flag")
 
@@ -713,13 +708,30 @@ module Re = struct
     | `EXTENDED -> Some `EXTENDED
     | `ANCHORED -> Some `ANCHORED
     | `DOLLAR_ENDONLY -> Some `DOLLAR_ENDONLY
-    | `EXTRA -> Some `EXTRA
     | `UNGREEDY -> Some `UNGREEDY
-    | `UTF8 -> Some `UTF8
-    | `NO_UTF8_CHECK -> Some `NO_UTF8_CHECK
     | `NO_AUTO_CAPTURE -> Some `NO_AUTO_CAPTURE
     | `AUTO_CALLOUT -> Some `AUTO_CALLOUT
     | `FIRSTLINE -> Some `FIRSTLINE
+    | `LITERAL -> Some `LITERAL
+    | `ALLOW_EMPTY_CLASS -> Some `ALLOW_EMPTY_CLASS
+    | `MATCH_INVALID_UTF -> Some `MATCH_INVALID_UTF
+    | `MATCH_UNSET_BACKREF -> Some `MATCH_UNSET_BACKREF
+    | `NO_UTF_CHECK -> Some `NO_UTF_CHECK
+    | `ALT_BSUX -> Some `ALT_BSUX
+    | `ALT_CIRCUMFLEX -> Some `ALT_CIRCUMFLEX
+    | `USE_OFFSET_LIMIT -> Some `USE_OFFSET_LIMIT
+    | `DUPNAMES -> Some `DUPNAMES
+    | `NEVER_UTF -> Some `NEVER_UTF
+    | `NO_DOTSTAR_ANCHOR -> Some `NO_DOTSTAR_ANCHOR
+    | `UTF -> Some `UTF
+    | `NO_START_OPTIMIZE -> Some `NO_START_OPTIMIZE
+    | `NEVER_BACKSLASH_C -> Some `NEVER_BACKSLASH_C
+    | `UCP -> Some `UCP
+    | `EXTENDED_MORE -> Some `EXTENDED_MORE
+    | `ALT_VERBNAMES -> Some `ALT_VERBNAMES
+    | `ENDANCHORED -> Some `ENDANCHORED
+    | `NEVER_UCP -> Some `NEVER_UCP
+    | `NO_AUTO_POSSESS -> Some `NO_AUTO_POSSESS
 
   let fromStringWithFlags : string -> flags:string -> t =
    fun str ~flags:str_flags ->
