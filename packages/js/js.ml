@@ -2523,23 +2523,72 @@ module Date = struct
   (** Provide bindings for JS Date *)
 end
 
-module Dict = struct
-  (** Provide utilities for JS dictionary object *)
-
+module type Dictionary = sig
+  (* Implemented as an assosiative list *)
   type 'a t
   type key = string
 
-  let get _ _ = notImplemented "Js.Dict" "get"
-  let unsafeGet _ _ = notImplemented "Js.Dict" "unsafeGet"
-  let set _ _ = notImplemented "Js.Dict" "set"
-  let keys _ = notImplemented "Js.Dict" "keys"
-  let empty _ = notImplemented "Js.Dict" "empty"
-  let unsafeDeleteKey _ _ = notImplemented "Js.Dict" "unsafeDeleteKey"
-  let entries _ = notImplemented "Js.Dict" "entries"
-  let values _ = notImplemented "Js.Dict" "values"
-  let fromList _ = notImplemented "Js.Dict" "fromList"
-  let fromArray _ = notImplemented "Js.Dict" "fromArray"
-  let map _ _ = notImplemented "Js.Dict" "map"
+  val empty : unit -> 'a t
+  val entries : 'a t -> (key * 'a) array
+  val fromArray : (key * 'a) array -> 'a t
+  val fromList : (key * 'a) list -> 'a t
+  val keys : 'a t -> key array
+  val values : 'a t -> 'a array
+  val set : 'a t -> key -> 'a -> 'a t
+  val get : 'a t -> key -> 'a option
+  val unsafeGet : 'a t -> key -> 'a
+  val map : ('a -> 'b) -> 'a t -> 'b t
+  val unsafeDeleteKey : 'a t -> key -> 'a t
+end
+
+module Dict : Dictionary = struct
+  (** Provide utilities for JS dictionary object *)
+
+  type key = string
+  type 'a t = (key * 'a) list
+
+  exception NotFound
+
+  let empty () : 'a t = []
+  let entries (dict : 'a t) : (string * 'a) array = dict |> Stdlib.Array.of_list
+
+  let get (dict : 'a t) (k : key) : 'a option =
+    let rec get' dict k =
+      match dict with
+      | [] -> None
+      | (k', x) :: rest -> if k = k' then Some x else get' rest k
+    in
+    get' dict k
+
+  let map (f : 'a -> 'b) (dict : 'a t) =
+    Stdlib.List.map (fun (k, a) -> (k, f a)) dict
+
+  let set (dict : 'a t) (k : key) (x : 'a) : 'a t =
+    let update (dict : 'a t) (key : key) (value : 'a) =
+      Stdlib.List.map
+        (fun (k, v) -> if Stdlib.String.equal k key then (k, value) else (k, v))
+        dict
+    in
+    match get dict k with None -> (k, x) :: dict | Some v -> update dict k v
+
+  let fromList (lst : (key * 'a) list) : 'a t =
+    Stdlib.List.fold_left (fun acc (k, v) -> set acc k v) [] lst
+    |> Stdlib.List.rev
+
+  let fromArray (arr : (key * 'a) array) : 'a t =
+    Stdlib.Array.to_list arr |> fromList
+
+  let keys (dict : 'a t) =
+    Stdlib.List.map (fun (k, _) -> k) dict |> Stdlib.Array.of_list
+
+  let values (dict : 'a t) =
+    Stdlib.List.map (fun (_, value) -> value) dict |> Stdlib.Array.of_list
+
+  let unsafeGet (dict : 'a t) (k : key) : 'a =
+    match get dict k with None -> raise NotFound | Some x -> x
+
+  let unsafeDeleteKey (dict : 'a t) (key : key) =
+    List.filter (fun (k, _) -> k <> key) dict
 end
 
 module Global = struct

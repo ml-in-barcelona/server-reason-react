@@ -7,6 +7,18 @@ let assert_option x left right =
 let assert_string_array left right =
   Alcotest.check (Alcotest.array Alcotest.string) "should be equal" right left
 
+let assert_int_array left right =
+  Alcotest.check (Alcotest.array Alcotest.int) "should be equal" right left
+
+let assert_dict_entries type_ left right =
+  Alcotest.check
+    (Alcotest.array (Alcotest.pair Alcotest.string type_))
+    "should be equal" right left
+
+let assert_int_dict_entries = assert_dict_entries Alcotest.int
+let assert_string_dict_entries = assert_dict_entries Alcotest.string
+let assert_option_int = assert_option Alcotest.int
+
 let assert_int left right =
   Alcotest.check Alcotest.int "should be equal" right left
 
@@ -143,11 +155,9 @@ let string2_tests =
           assert_float (Js.String2.charCodeAt "lola" 1) 111.;
           assert_float (Js.String2.charCodeAt "lola" 0) 108.);
       case "codePointAt" (fun () ->
-          assert_option Alcotest.int
-            (Js.String2.codePointAt "lola" 1)
-            (Some 111);
-          (* assert_option Alcotest.int (Js.String2.codePointAt {js|¿😺?|js} 1) (Some 0x1f63a); *)
-          assert_option Alcotest.int (Js.String2.codePointAt "abc" 5) None);
+          assert_option_int (Js.String2.codePointAt "lola" 1) (Some 111);
+          (* assert_option_int (Js.String2.codePointAt {js|¿😺?|js} 1) (Some 0x1f63a); *)
+          assert_option_int (Js.String2.codePointAt "abc" 5) None);
       case "concat" (fun () ->
           assert_string (Js.String2.concat "cow" "bell") "cowbell");
       case "concatMany" (fun () ->
@@ -378,4 +388,65 @@ let array_tests =
             (fun () -> Js.Array.from 3));
     ] )
 
-let () = Alcotest.run "Js_tests" [ string2_tests; re_tests; array_tests ]
+let obj () = Js.Dict.fromList [ ("foo", 43); ("bar", 86) ]
+let long_obj () = Js.Dict.fromList [ ("david", 99); ("foo", 43); ("bar", 86) ]
+
+let obj_duplicated () =
+  Js.Dict.fromList [ ("foo", 43); ("bar", 86); ("bar", 1) ]
+
+let dict_tests =
+  ( "Js.Dict",
+    [
+      case "empty" (fun _ ->
+          assert_string_dict_entries (Js.Dict.entries (Js.Dict.empty ())) [||]);
+      case "get" (fun _ ->
+          assert_option_int (Js.Dict.get (obj ()) "foo") (Some 43));
+      case "get from missing property" (fun _ ->
+          assert_option_int (Js.Dict.get (obj ()) "baz") None);
+      case "unsafe_get" (fun _ ->
+          assert_int (Js.Dict.unsafeGet (obj ()) "foo") 43);
+      case "set" (fun _ ->
+          let o = Js.Dict.empty () in
+          let new_ = Js.Dict.set o "foo" 36 in
+          assert_option_int (Js.Dict.get new_ "foo") (Some 36));
+      case "keys" (fun _ ->
+          assert_string_array
+            (Js.Dict.keys (long_obj ()))
+            [| "david"; "foo"; "bar" |]);
+      case "keys duplicated" (fun _ ->
+          assert_string_array
+            (Js.Dict.keys (obj_duplicated ()))
+            [| "foo"; "bar" |]);
+      case "entries" (fun _ ->
+          assert_int_dict_entries
+            (Js.Dict.entries (obj ()))
+            [| ("foo", 43); ("bar", 86) |]);
+      case "values" (fun _ ->
+          assert_int_array (Js.Dict.values (obj ())) [| 43; 86 |]);
+      case "values duplicated" (fun _ ->
+          assert_int_array (Js.Dict.values (obj_duplicated ())) [| 43; 86 |]);
+      case "fromList - []" (fun _ ->
+          assert_int_dict_entries (Js.Dict.entries (Js.Dict.fromList [])) [||]);
+      case "fromList" (fun _ ->
+          assert_int_dict_entries
+            (Js.Dict.entries (Js.Dict.fromList [ ("x", 23); ("y", 46) ]))
+            [| ("x", 23); ("y", 46) |]);
+      case "fromArray - []" (fun _ ->
+          assert_int_dict_entries (Js.Dict.entries (Js.Dict.fromArray [||])) [||]);
+      case "fromArray" (fun _ ->
+          assert_int_dict_entries
+            (Js.Dict.entries (Js.Dict.fromArray [| ("x", 23); ("y", 46) |]))
+            [| ("x", 23); ("y", 46) |]);
+      case "map" (fun _ ->
+          let prices =
+            Js.Dict.fromList [ ("pen", 1); ("book", 5); ("stapler", 7) ]
+          in
+          let discount price = price * 10 in
+          let salePrices = Js.Dict.map discount prices in
+          assert_int_dict_entries
+            (Js.Dict.entries salePrices)
+            [| ("pen", 10); ("book", 50); ("stapler", 70) |]);
+    ] )
+
+let () =
+  Alcotest.run "Js_tests" [ string2_tests; re_tests; array_tests; dict_tests ]
