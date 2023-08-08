@@ -3156,6 +3156,10 @@ end
 
 module Obj = struct
   (** Provide utilities for {!Js.t} *)
+
+  let empty _ = notImplemented "Js.Obj" "empty"
+  let assign _ _ = notImplemented "Js.Obj" "assign"
+  let keys _ = notImplemented "Js.Obj" "keys"
 end
 
 module Typed_array = struct
@@ -3178,11 +3182,53 @@ module TypedArray2 = struct
 end
 
 module Float = struct
-  (** Provide utilities for JS float *)
+  (** Provides functions for inspecting and manipulating [float]s *)
+
+  let _NaN = Stdlib.Float.nan
+  let isNaN _ = notImplemented "Js.Float" "isNaN"
+  let isFinite _ = notImplemented "Js.Float" "isFinite"
+  let toExponential _ = notImplemented "Js.Float" "toExponential"
+
+  let toExponentialWithPrecision _ ~digits:_ =
+    notImplemented "Js.Float" "toExponentialWithPrecision"
+
+  let toFixed _ = notImplemented "Js.Float" "toFixed"
+
+  let toFixedWithPrecision _ ~digits:_ =
+    notImplemented "Js.Float" "toFixedWithPrecision"
+
+  let toPrecision _ = notImplemented "Js.Float" "toPrecision"
+
+  let toPrecisionWithPrecision _ ~digits:_ =
+    notImplemented "Js.Float" "toPrecisionWithPrecision"
+
+  let toString _ = notImplemented "Js.Float" "toString"
+
+  let toStringWithRadix _ ~radix:_ =
+    notImplemented "Js.Float" "toStringWithRadix"
+
+  let fromString _ = notImplemented "Js.Float" "fromString"
 end
 
 module Int = struct
-  (** Provide utilities for int *)
+  (** Provides functions for inspecting and manipulating [int]s *)
+
+  let toExponential _ = notImplemented "Js.Int" "toExponential"
+
+  let toExponentialWithPrecision _ ~digits:_ =
+    notImplemented "Js.Int" "toExponentialWithPrecision"
+
+  let toPrecision _ = notImplemented "Js.Int" "toPrecision"
+
+  let toPrecisionWithPrecision _ ~digits:_ =
+    notImplemented "Js.Int" "toPrecisionWithPrecision"
+
+  let toString _ = notImplemented "Js.Int" "toString"
+  let toStringWithRadix _ ~radix:_ = notImplemented "Js.Int" "toStringWithRadix"
+  let toFloat _ = notImplemented "Js.Int" "toFloat"
+  let equal _a _b = notImplemented "Js.Int" "equal"
+  let max = 2147483647
+  let min = -2147483648
 end
 
 module Bigint = struct
@@ -3323,16 +3369,24 @@ let logMany = Console.logMany
 
 module Set = struct
   (** Provides bindings for ES6 Set *)
+
+  type t
 end
 
 module WeakSet = struct
   (** Provides bindings for ES6 WeakSet *)
+
+  type t
 end
 
 module Map = struct
   (** Provides bindings for ES6 Map *)
+
+  type t
 end
 
 module WeakMap = struct
   (** Provides bindings for ES6 WeakMap *)
+
+  type t
 end
