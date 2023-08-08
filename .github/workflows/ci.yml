@@ -26,10 +26,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Install pcre (only MacOS)
-        if: ${{ runner.os }} == 'macos-latest'
-        run: pcre-config --version
-
       - name: Use OCaml ${{ matrix.ocaml-compiler }}
         uses: ocaml/setup-ocaml@v2
         with:
