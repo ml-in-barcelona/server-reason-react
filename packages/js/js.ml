@@ -3370,23 +3370,23 @@ let logMany = Console.logMany
 module Set = struct
   (** Provides bindings for ES6 Set *)
 
-  type t
+  type 'a t
 end
 
 module WeakSet = struct
   (** Provides bindings for ES6 WeakSet *)
 
-  type t
+  type 'a t
 end
 
 module Map = struct
   (** Provides bindings for ES6 Map *)
 
-  type t
+  type ('k, 'v) t
 end
 
 module WeakMap = struct
   (** Provides bindings for ES6 WeakMap *)
 
-  type t
+  type ('k, 'v) t
 end
