@@ -503,18 +503,19 @@ let reduceWithIndexU a x f =
 
 let reduceWithIndex a x f = reduceWithIndexU a x (fun a b c -> f a b c)
 
-let joinWithU a sep =
+let joinWithU a sep toString =
   match length a with
   | 0 -> ""
   | l ->
       let lastIndex = l - 1 in
       let rec aux i res =
         let v = getUnsafe a i in
-        if i = lastIndex then res ^ v else aux (i + 1) (res ^ v ^ sep)
+        if i = lastIndex then res ^ toString v
+        else aux (i + 1) (res ^ toString v ^ sep)
       in
       aux 0 ""
 
-let joinWith a sep = joinWithU a sep
+let joinWith a sep toString = joinWithU a sep (fun x -> toString x)
 let initU n f = Stdlib.Array.init n f
 let init n f = initU n (fun i -> f i)
 

@@ -549,9 +549,9 @@ val reduceWithIndex : 'a t -> 'b -> ('b -> 'a -> int -> 'b) -> 'b
     ]}
 *)
 
-val joinWithU : string t -> string -> string
+val joinWithU : 'a t -> string -> (('a -> string)[@bs]) -> string
 
-val joinWith : string t -> string -> string
+val joinWith : 'a t -> string -> ('a -> string) -> string
 (** [joinWith xs sep toString]
 
     Concatenates all the elements of [xs] converted to string with [toString], each separated by [sep], the string
