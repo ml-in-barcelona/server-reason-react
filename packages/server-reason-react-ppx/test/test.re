@@ -255,7 +255,7 @@ module Text = {
   let make = (~tagType, ~children: React.element) => {
     ReactDOM.createDOMElementVariadic(
       tagType |> Tag.unwrap,
-      ReactDOM.domProps(
+      ~props=ReactDOM.domProps(
         ~className="foo",
         ~style=ReactDOM.Style.make(~display="none", ()),
         (),

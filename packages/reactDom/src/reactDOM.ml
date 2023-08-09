@@ -263,9 +263,8 @@ let createPortal _reactElement _domElement = _reactElement
 
 module Style = ReactDOMStyle
 
-let createDOMElementVariadic :
-    string -> Attribute.t array -> React.element array -> element =
- fun tag props childrens ->
+let createDOMElementVariadic
+    (tag: string) ~(props: Attribute.t array) (childrens: React.element array) =
   React.createElement tag props (childrens |> Array.to_list)
 
 let domProps = Props.domProps
