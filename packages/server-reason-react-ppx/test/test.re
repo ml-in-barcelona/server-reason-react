@@ -255,11 +255,12 @@ module Text = {
   let make = (~tagType, ~children: React.element) => {
     ReactDOM.createDOMElementVariadic(
       tagType |> Tag.unwrap,
-      ~props=ReactDOM.domProps(
-        ~className="foo",
-        ~style=ReactDOM.Style.make(~display="none", ()),
-        (),
-      ),
+      ~props=
+        ReactDOM.domProps(
+          ~className="foo",
+          ~style=ReactDOM.Style.make(~display="none", ()),
+          (),
+        ),
       React.Children.toArray(children),
     );
   };
