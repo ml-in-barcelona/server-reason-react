@@ -81,8 +81,6 @@ type (+'a, +'e) promise
    | Some _ -> false
    | None -> true *)
 
-(* external typeof : 'a -> string = "#typeof" *)
-
 (** [typeof x] will be compiled as [typeof x] in JS
     Please consider functions in {!Types} for a type safe way of reflection *)
 let typeof _ = notImplemented "Js" "typeof"
