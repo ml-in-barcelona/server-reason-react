@@ -31,8 +31,7 @@
  (modules browser)
  (public_name server-reason-react.browser_ppx)
  (flags :standard -w -9)
- (libraries ppxlib)
- (ppx_runtime_libraries runtime)
+ (libraries ppxlib ppxlib.astlib)
  (preprocess
   (pps ppxlib.metaquot))
  (kind ppx_rewriter))
