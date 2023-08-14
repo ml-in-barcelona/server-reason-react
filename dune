@@ -3,4 +3,4 @@
   (flags
    (:standard -w -27))))
 
-(dirs packages demo mocked-hash-js)
+(dirs packages demo)
