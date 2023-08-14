@@ -165,7 +165,11 @@ let cloneElement element new_attributes new_childrens =
   | Upper_case_component f -> Upper_case_component f
   | Suspense { fallback; children } -> Suspense { fallback; children }
 
-let fragment ~children () = Fragment children
+module Fragment = struct
+  let make ~children () = Fragment children
+end
+
+let fragment ~children () = Fragment.make ~children ()
 
 (* ReasonReact APIs *)
 let string txt = Text txt
@@ -203,6 +207,30 @@ let createContext (initial_value : 'a) : 'a context =
   in
   let consumer ~children = Consumer (fun () -> children ref_value.contents) in
   { current_value = ref_value; provider; consumer }
+
+(* module Context = {
+     type t('props);
+
+     [@bs.obj]
+     external makeProps:
+       (~value: 'props, ~children: element, unit) =>
+       {
+         .
+         "value": 'props,
+         "children": element,
+       };
+
+     [@bs.get]
+     external provider:
+       t('props) =>
+       component({
+         .
+         "value": 'props,
+         "children": element,
+       }) =
+       "Provider";
+   };
+*)
 
 module Suspense = struct
   let or_react_null = function None -> null | Some x -> x
@@ -349,27 +377,3 @@ module Children = struct
 
   let toArray element = [| element |]
 end
-
-(* module Context = {
-     type t('props);
-
-     [@bs.obj]
-     external makeProps:
-       (~value: 'props, ~children: element, unit) =>
-       {
-         .
-         "value": 'props,
-         "children": element,
-       };
-
-     [@bs.get]
-     external provider:
-       t('props) =>
-       component({
-         .
-         "value": 'props,
-         "children": element,
-       }) =
-       "Provider";
-   };
-*)
