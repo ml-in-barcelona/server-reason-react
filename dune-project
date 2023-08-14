@@ -25,13 +25,15 @@
  (depends
   ;; General system dependencies
   (ocaml (and (>= 4.12.0) (< 5.0.0)))
+  (reason (>= 3.8.1))
   melange
 
+  ;; Library dependencies
   (ppxlib (>= 0.23.0))
-  (reason (>= 3.8.1))
   (pcre (<= 7.5.0))
   (promise (>= 1.1.2))
   (lwt (>= 5.6.0))
+  (lwt_ppx (>= 5.6.0))
 
   ;; Test dependencies
   (alcotest :with-test)
