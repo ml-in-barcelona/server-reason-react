@@ -195,10 +195,10 @@ module Array2 = struct
 
   type 'a array_like
 
-  let from _ _ = notImplemented "Js.Array2" "from"
+  let from _ = notImplemented "Js.Array2" "from"
   let fromMap _ _ = notImplemented "Js.Array2" "fromMap"
-  let isArray _ _ = notImplemented "Js.Array2" "isArray"
-  let length _ _ = notImplemented "Js.Array2" "length"
+  let isArray _ = notImplemented "Js.Array2" "isArray"
+  let length _ = notImplemented "Js.Array2" "length"
 
   (* Mutator functions *)
   let copyWithin _ _ = notImplemented "Js.Array2" "copyWithin"
@@ -278,7 +278,7 @@ module Array = struct
 
   let from _ = notImplemented "Js.Array" "from"
   let fromMap _ _ = notImplemented "Js.Array" "fromMap"
-  let isArray _ _ = notImplemented "Js.Array" "isArray"
+  let isArray _ = notImplemented "Js.Array" "isArray"
   let length _ = notImplemented "Js.Array" "length"
 
   (* Mutator functions *)
