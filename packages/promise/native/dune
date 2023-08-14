@@ -1,0 +1,7 @@
+(library
+ (name promise_native)
+ (public_name server-reason-react.promise-native)
+ (wrapped false)
+ (libraries lwt server-reason-react.js server-reason-react.belt)
+ (preprocess
+  (pps lwt_ppx)))
