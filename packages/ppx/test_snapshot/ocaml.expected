@@ -93,9 +93,6 @@ let payload_should_be_a_string =
 let _ = [%ocaml.error "effect only accepts a useEffect expression"]
 let _ = ((raise ReactDOM.Impossible_in_ssr "Webapi.Dom.getElementById")
   [@warning "-27"])
-let _ =
-  fun () -> ((raise ReactDOM.Impossible_in_ssr "fun () -> ()")
-    [@warning "-27"])
 let valueFromEvent = Webapi.Dom.getElementById "foo"
 let valueFromEvent evt =
   raise

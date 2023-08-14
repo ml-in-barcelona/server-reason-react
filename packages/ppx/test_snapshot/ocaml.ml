@@ -123,7 +123,6 @@ let _ = [%effect None]
 
 (* browser_only *)
 let _ = [%browser_only Webapi.Dom.getElementById "foo"]
-let _ = [%browser_only fun () -> ()]
 
 let%browser_only valueFromEvent = Webapi.Dom.getElementById "foo"
 let%browser_only valueFromEvent evt = Webapi.Dom.getElementById "foo"

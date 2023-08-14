@@ -1,7 +1,17 @@
-[@warning "-27"]
-let loadInitialText = () =>
-  raise(
-    ReactDOM.Impossible_in_ssr(
-      "fun () ->\n  setHtmlFetchState Loading;\n  (((((WcApi.fetchHTML WcConstants.initialText) |. Promise.flatMap)\n       (fun html ->\n          (onChange (html |. WcStringHelpers.htmlToText)) |. Promise.resolved))\n      |. Promise.Js.catch)\n     (fun _ -> (setHtmlFetchState Error) |. Promise.resolved))\n    |. ignore",
-    ),
-  );
+let make = () => {
+  let loadInitialText = () =>
+    [@warning "-27"]
+    raise(
+      ReactDOM.Impossible_in_ssr(
+        "fun () ->\n  setHtmlFetchState Loading;\n  (((((WcApi.fetchHTML WcConstants.initialText) |. Promise.flatMap)\n       (fun html ->\n          (onChange (html |. WcStringHelpers.htmlToText)) |. Promise.resolved))\n      |. Promise.Js.catch)\n     (fun _ -> (setHtmlFetchState Error) |. Promise.resolved))\n    |. ignore",
+      ),
+    );
+  let loadInitialText = argument1 =>
+    [@warning "-27"]
+    raise(
+      ReactDOM.Impossible_in_ssr(
+        "fun argument1 ->\n  fun argument2 ->\n    setHtmlFetchState Loading;\n    (((((WcApi.fetchHTML WcConstants.initialText) |. Promise.flatMap)\n         (fun html ->\n            (onChange (html |. WcStringHelpers.htmlToText)) |.\n              Promise.resolved))\n        |. Promise.Js.catch)\n       (fun _ -> (setHtmlFetchState Error) |. Promise.resolved))\n      |. ignore",
+      ),
+    );
+  React.createElement("div");
+};

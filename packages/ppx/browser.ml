@@ -26,6 +26,28 @@ let effect_rule =
     (Extension.V3.declare "effect" Extension.Context.expression extractor
        handler)
 
+let browser_only_value_binding pattern expression =
+  let loc = pattern.ppat_loc in
+  match pattern with
+  | [%pat? ()] -> Builder.value_binding ~loc ~pat:pattern ~expr:[%expr ()]
+  | _ -> (
+      match expression.pexp_desc with
+      | Pexp_fun (_arg_label, _arg_expression, fun_pattern, _expression) ->
+          let stringified = Ppxlib.Pprintast.string_of_expression expression in
+          let message = Builder.estring ~loc stringified in
+          Builder.value_binding ~loc ~pat:pattern
+            ~expr:
+              [%expr
+                fun [%p fun_pattern] ->
+                  (raise
+                     (ReactDOM.Impossible_in_ssr [%e message]) [@warning "-27"])]
+      | _ ->
+          Builder.value_binding ~loc ~pat:pattern
+            ~expr:
+              [%expr
+                [%ocaml.error
+                  "browser only works on expressions or function definitions"]])
+
 let browser_only_on_expressions_rule =
   let extractor = Ast_pattern.(single_expr_payload __) in
   let handler ~ctxt payload =
@@ -41,12 +63,19 @@ let browser_only_on_expressions_rule =
             let message = Builder.estring ~loc stringified in
             [%expr
               raise ReactDOM.Impossible_in_ssr [%e message] [@warning "-27"]]
-        | Pexp_fun (_arg_label, _arg_expression, _pattern, _expression) ->
+        | Pexp_fun (_arg_label, _arg_expression, fun_pattern, _expression) ->
             let stringified = Ppxlib.Pprintast.string_of_expression payload in
             let message = Builder.estring ~loc stringified in
             [%expr
-              fun () ->
+              fun [%p fun_pattern] ->
                 (raise ReactDOM.Impossible_in_ssr [%e message] [@warning "-27"])]
+        | Pexp_let (rec_flag, value_bindings, expression) ->
+            Builder.pexp_let ~loc rec_flag
+              (List.map
+                 (fun binding ->
+                   browser_only_value_binding binding.pvb_pat binding.pvb_expr)
+                 value_bindings)
+              expression
         | _ ->
             [%expr
               [%ocaml.error

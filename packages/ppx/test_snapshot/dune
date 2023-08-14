@@ -1,12 +1,12 @@
 (executable
- (name main)
+ (name test_standalone)
  (libraries pipe_first_ppx double_hash_ppx regex_ppx browser_ppx ppxlib))
 
 (rule
  (targets ocaml.preprocessed)
  (deps ocaml.ml)
  (action
-  (run ./main.exe --impl %{deps} -o %{targets})))
+  (run ./test_standalone.exe --impl %{deps} -o %{targets})))
 
 (rule
  (targets reason.preprocessed)
@@ -17,7 +17,7 @@
    (with-stdout-to
     %{targets}
     (run refmt --parse re --print ml %{input}))
-   (run ./main.exe --impl %{targets} -o %{targets})
+   (run ./test_standalone.exe --impl %{targets} -o %{targets})
    (run refmt --parse ml --print re --in-place %{targets}))))
 
 (rule
