@@ -1,0 +1,7 @@
+[@warning "-27"]
+let loadInitialText = () =>
+  raise(
+    ReactDOM.Impossible_in_ssr(
+      "fun () ->\n  setHtmlFetchState Loading;\n  (((((WcApi.fetchHTML WcConstants.initialText) |. Promise.flatMap)\n       (fun html ->\n          (onChange (html |. WcStringHelpers.htmlToText)) |. Promise.resolved))\n      |. Promise.Js.catch)\n     (fun _ -> (setHtmlFetchState Error) |. Promise.resolved))\n    |. ignore",
+    ),
+  );

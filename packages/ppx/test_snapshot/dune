@@ -3,12 +3,26 @@
  (libraries pipe_first_ppx double_hash_ppx regex_ppx browser_ppx ppxlib))
 
 (rule
- (targets transformation.result)
- (deps input.ml)
+ (targets ocaml.preprocessed)
+ (deps ocaml.ml)
  (action
   (run ./main.exe --impl %{deps} -o %{targets})))
 
 (rule
+ (targets reason.preprocessed)
+ (deps
+  (:input reason.re))
+ (action
+  (progn
+   (with-stdout-to
+    %{targets}
+    (run refmt --parse re --print ml %{input}))
+   (run ./main.exe --impl %{targets} -o %{targets})
+   (run refmt --parse ml --print re --in-place %{targets}))))
+
+(rule
  (alias runtest)
  (action
-  (diff output.expected transformation.result)))
+  (progn
+   (diff reason.expected reason.preprocessed)
+   (diff ocaml.expected ocaml.preprocessed))))
