@@ -4,11 +4,11 @@ let assert_string left right =
 let assert_option x left right =
   Alcotest.check (Alcotest.option x) "should be equal" right left
 
-let assert_string_array left right =
-  Alcotest.check (Alcotest.array Alcotest.string) "should be equal" right left
+let assert_array ty left right =
+  Alcotest.check (Alcotest.array ty) "should be equal" right left
 
-let assert_int_array left right =
-  Alcotest.check (Alcotest.array Alcotest.int) "should be equal" right left
+let assert_string_array = assert_array Alcotest.string
+let assert_array_int = assert_array Alcotest.int
 
 let assert_dict_entries type_ left right =
   Alcotest.check
@@ -28,7 +28,8 @@ let assert_float left right =
 let assert_bool left right =
   Alcotest.check Alcotest.bool "should be equal" right left
 
-let case title (fn : unit -> unit) = Alcotest.test_case title `Quick fn
+let case title (fn : unit -> unit) = Alcotest_lwt.test_case_sync title `Quick fn
+let case_async title fn = Alcotest_lwt.test_case title `Quick fn
 
 let re_tests =
   ( "Js.Re",
@@ -422,9 +423,9 @@ let dict_tests =
             (Js.Dict.entries (obj ()))
             [| ("bar", 86); ("foo", 43) |]);
       case "values" (fun _ ->
-          assert_int_array (Js.Dict.values (obj ())) [| 86; 43 |]);
+          assert_array_int (Js.Dict.values (obj ())) [| 86; 43 |]);
       case "values duplicated" (fun _ ->
-          assert_int_array (Js.Dict.values (obj_duplicated ())) [| 86; 1; 43 |]);
+          assert_array_int (Js.Dict.values (obj_duplicated ())) [| 86; 1; 43 |]);
       case "fromList - []" (fun _ ->
           assert_int_dict_entries (Js.Dict.entries (Js.Dict.fromList [])) [||]);
       case "fromList" (fun _ ->
@@ -448,5 +449,62 @@ let dict_tests =
             [| ("book", 50); ("stapler", 70); ("pen", 10) |]);
     ] )
 
+let promise_to_lwt (p : 'a Js.Promise.t) : 'a Lwt.t = Obj.magic p
+
+let resolve _switch () =
+  let value = "hi" in
+  let resolved = Js.Promise.resolve value in
+  resolved |> promise_to_lwt |> Lwt.map (assert_string value)
+
+let all _switch () =
+  let p0 = Js.Promise.make (fun ~resolve ~reject:_ -> resolve 5) in
+  let p1 = Js.Promise.make (fun ~resolve ~reject:_ -> resolve 10) in
+  let resolved = Js.Promise.all [| p0; p1 |] in
+  resolved |> promise_to_lwt |> Lwt.map (assert_array_int [| 5; 10 |])
+
+let set_timeout callback delay =
+  let _ =
+    Lwt.async (fun () ->
+        let%lwt () = Lwt_unix.sleep delay in
+        callback ();
+        Lwt.return ())
+  in
+  ()
+
+let all_async _switch () =
+  let p0 =
+    Js.Promise.make (fun ~resolve ~reject:_ ->
+        set_timeout (fun () -> resolve 5) 0.5)
+  in
+  let p1 =
+    Js.Promise.make (fun ~resolve ~reject:_ ->
+        set_timeout (fun () -> resolve 99) 0.3)
+  in
+  let resolved = Js.Promise.all [| p0; p1 |] in
+  resolved |> promise_to_lwt |> Lwt.map (assert_array_int [| 5; 99 |])
+
+let race_async _switch () =
+  let p0 =
+    Js.Promise.make (fun ~resolve ~reject:_ ->
+        set_timeout (fun () -> resolve "second") 0.5)
+  in
+  let p1 =
+    Js.Promise.make (fun ~resolve ~reject:_ ->
+        set_timeout (fun () -> resolve "first") 0.3)
+  in
+  let resolved = Js.Promise.race [| p0; p1 |] in
+  resolved |> promise_to_lwt |> Lwt.map (assert_string "first")
+
+let promise_tests =
+  ( "Promise",
+    [
+      case_async "resolve" resolve;
+      case_async "all" all;
+      case_async "all_async" all_async;
+      case_async "race_async" race_async;
+    ] )
+
 let () =
-  Alcotest.run "Js_tests" [ string2_tests; re_tests; array_tests; dict_tests ]
+  Alcotest_lwt.run "Promise"
+    [ promise_tests; string2_tests; re_tests; array_tests; dict_tests ]
+  |> Lwt_main.run

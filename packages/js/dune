@@ -3,9 +3,13 @@
  (modules js)
  (public_name server-reason-react.js)
  (flags :standard -w -49)
- (libraries pcre promise))
+ (libraries pcre lwt)
+ (preprocess
+  (pps lwt_ppx)))
 
 (test
  (name test)
  (modules test)
- (libraries alcotest server-reason-react.js))
+ (libraries alcotest alcotest-lwt lwt server-reason-react.js)
+ (preprocess
+  (pps lwt_ppx)))

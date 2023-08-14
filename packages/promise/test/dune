@@ -1,6 +1,0 @@
-(test
- (name test)
- (modules :standard)
- (libraries fmt lwt alcotest alcotest-lwt promise_native)
- (preprocess
-  (pps lwt_ppx)))

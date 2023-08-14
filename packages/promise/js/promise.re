@@ -1,95 +1,362 @@
-/* Copyright (C) 2015-2016 Bloomberg Finance L.P.
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * In addition to the permissions granted to you by the LGPL, you may combine
- * or link a "work that uses the Library" with a publicly distributed version
- * of this file to produce a combined library or application, then distribute
- * that combined work under the terms of your choosing, with no requirement
- * to comply with the obligations normally placed on you by section 4 of the
- * LGPL version 3 (or the corresponding section of a later version of the LGPL
- * should you choose to use a later version).
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA. */
+/* This file is part of reason-promise, released under the MIT license. See
+   LICENSE.md for details, or visit
+   https://github.com/aantron/promise/blob/master/LICENSE.md. */
 
-/** Specialized bindings to Promise. Note: For simplicity,
-    this binding does not track the error type, it treat it as an opaque type
-    {[
+type rejectable(+'a, +'e);
+type never;
 
-    ]}
-*/;
+type promise(+'a) = rejectable('a, never);
+type t(+'a) = promise('a);
 
-type t(+'a);
-type error;
+let onUnhandledException =
+  ref(exn => {
+    prerr_endline("Unhandled exception in promise callback:");
+    Js.Console.error(exn);
+  });
 
-[@bs.new]
-external make:
-  (
-  [@bs.uncurry]
-  ((~resolve: (. 'a) => unit, ~reject: (. exn) => unit) => unit)
-  ) =>
-  t('a) =
-  "Promise";
+[%%bs.raw
+  {|
+function PromiseBox(p) {
+    this.nested = p;
+};
 
-/* [make (fun resolve reject -> .. )] */
-[@bs.val] [@bs.scope "Promise"] external resolve: 'a => t('a) = "resolve";
-[@bs.val] [@bs.scope "Promise"] external reject: exn => t('a) = "reject";
+function unbox(value) {
+    if (value instanceof PromiseBox)
+        return value.nested;
+    else
+        return value;
+}
 
-[@bs.val] [@bs.scope "Promise"]
-external all: array(t('a)) => t(array('a)) = "all";
+function box(value) {
+    if (value != null && typeof value.then === 'function')
+        return new PromiseBox(value);
+    else
+        return value;
+}
 
-[@bs.val] [@bs.scope "Promise"]
-external all2: ((t('a0), t('a1))) => t(('a0, 'a1)) = "all";
+function make(executor) {
+    return new Promise(function (resolve, reject) {
+        var boxingResolve = function(value) {
+            resolve(box(value));
+        };
+        executor(boxingResolve, reject);
+    });
+};
 
-[@bs.val] [@bs.scope "Promise"]
-external all3: ((t('a0), t('a1), t('a2))) => t(('a0, 'a1, 'a2)) = "all";
+function resolved(value) {
+    return Promise.resolve(box(value));
+};
 
-[@bs.val] [@bs.scope "Promise"]
-external all4:
-  ((t('a0), t('a1), t('a2), t('a3))) => t(('a0, 'a1, 'a2, 'a3)) =
-  "all";
+function then(promise, callback) {
+    return promise.then(function (value) {
+        try {
+            return callback(unbox(value));
+        }
+        catch (exception) {
+            onUnhandledException.contents(exception);
+            return new Promise(function() {});
+        }
+    });
+};
 
-[@bs.val] [@bs.scope "Promise"]
-external all5:
-  ((t('a0), t('a1), t('a2), t('a3), t('a4))) =>
-  t(('a0, 'a1, 'a2, 'a3, 'a4)) =
-  "all";
+function catch_(promise, callback) {
+    var safeCallback = function (error) {
+        try {
+            return callback(error);
+        }
+        catch (exception) {
+            onUnhandledException.contents(exception);
+            return new Promise(function() {});
+        }
+    };
 
-[@bs.val] [@bs.scope "Promise"]
-external all6:
-  ((t('a0), t('a1), t('a2), t('a3), t('a4), t('a5))) =>
-  t(('a0, 'a1, 'a2, 'a3, 'a4, 'a5)) =
-  "all";
+    return promise.catch(safeCallback);
+};
+|}
+];
 
-[@bs.val] [@bs.scope "Promise"]
-external race: array(t('a)) => t('a) = "race";
+module Js_ = {
+  type t('a, 'e) = rejectable('a, 'e);
 
-[@bs.send.pipe: t('a)]
-external then_: ([@bs.uncurry] ('a => t('b))) => t('b) = "then";
+  external relax: promise('a) => rejectable('a, _) = "%identity";
 
-[@bs.send.pipe: t('a)]
-external catch: ([@bs.uncurry] (error => t('a))) => t('a) = "catch";
-/* [ p|> catch handler]
-       Note in JS the returned promise type is actually runtime dependent,
-       if promise is rejected, it will pick the [handler] otherwise the original promise,
-       to make it strict we enforce reject handler
-       https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/catch
-   */
+  [@bs.val]
+  external jsNew: (('a => unit, 'e => unit) => unit) => rejectable('a, 'e) =
+    "make";
 
-/*
- let errorAsExn (x :  error) (e  : (exn ->'a option))=
-   if Caml_exceptions.isCamlExceptionOrOpenVariant (Obj.magic x ) then
-      e (Obj.magic x)
-   else None
- [%bs.error?  ]
- */
+  let pending = () => {
+    let resolve = ref(ignore);
+    let reject = ref(ignore);
+    let p =
+      jsNew((resolve', reject') => {
+        resolve := resolve';
+        reject := reject';
+      });
+    (p, resolve^, reject^);
+  };
+
+  [@bs.val] external resolved: 'a => rejectable('a, _) = "resolved";
+
+  [@bs.val]
+  external flatMap:
+    (rejectable('a, 'e), 'a => rejectable('b, 'e)) => rejectable('b, 'e) =
+    "then";
+
+  let map = (promise, callback) =>
+    flatMap(promise, v => resolved(callback(v)));
+
+  let get = (promise, callback) => ignore(map(promise, callback));
+
+  let tap = (promise, callback) =>
+    map(
+      promise,
+      v => {
+        callback(v);
+        v;
+      },
+    );
+
+  [@bs.scope "Promise"] [@bs.val]
+  external rejected: 'e => rejectable(_, 'e) = "reject";
+
+  [@bs.val]
+  external catch:
+    (rejectable('a, 'e), 'e => rejectable('a, 'e2)) => rejectable('a, 'e2) =
+    "catch_";
+
+  [@bs.val] external unbox: 'a => 'a = "unbox";
+
+  [@bs.scope "Promise"] [@bs.val] external jsAll: 'a => 'b = "all";
+
+  let allArray = promises =>
+    map(jsAll(promises), promises => Belt.Array.map(promises, unbox));
+
+  let all = promises =>
+    map(allArray(Belt.List.toArray(promises)), Belt.List.fromArray);
+
+  let all2 = (p1, p2) => jsAll((p1, p2));
+
+  let all3 = (p1, p2, p3) => jsAll((p1, p2, p3));
+
+  let all4 = (p1, p2, p3, p4) => jsAll((p1, p2, p3, p4));
+
+  let all5 = (p1, p2, p3, p4, p5) => jsAll((p1, p2, p3, p4, p5));
+
+  let all6 = (p1, p2, p3, p4, p5, p6) => jsAll((p1, p2, p3, p4, p5, p6));
+
+  [@bs.scope "Promise"] [@bs.val]
+  external jsRace: array(rejectable('a, 'e)) => rejectable('a, 'e) = "race";
+
+  let race = promises =>
+    if (promises == []) {
+      raise(Invalid_argument("Promise.race([]) would be pending forever"));
+    } else {
+      jsRace(Belt.List.toArray(promises));
+    };
+
+  let toResult = promise =>
+    catch(map(promise, v => Ok(v)), e => resolved(Error(e)));
+
+  let fromResult = promise =>
+    flatMap(
+      relax(promise),
+      fun
+      | Ok(v) => resolved(v)
+      | Error(e) => rejected(e),
+    );
+
+  external fromBsPromise:
+    Js.Promise.t('a) => rejectable('a, Js.Promise.error) =
+    "%identity";
+
+  external toBsPromise: rejectable('a, _) => Js.Promise.t('a) = "%identity";
+};
+
+let pending = () => {
+  let (p, resolve, _) = Js_.pending();
+  (p, resolve);
+};
+
+let exec = executor => {
+  let (p, resolve) = pending();
+  executor(resolve);
+  p;
+};
+
+let resolved = Js_.resolved;
+let flatMap = Js_.flatMap;
+let map = Js_.map;
+let get = Js_.get;
+let tap = Js_.tap;
+let all = Js_.all;
+let all2 = Js_.all2;
+let all3 = Js_.all3;
+let all4 = Js_.all4;
+let all5 = Js_.all5;
+let all6 = Js_.all6;
+let allArray = Js_.allArray;
+let race = Js_.race;
+
+let flatMapOk = (promise, callback) =>
+  flatMap(promise, result =>
+    switch (result) {
+    | Ok(v) => callback(v)
+    | Error(_) as error => resolved(error)
+    }
+  );
+
+let flatMapError = (promise, callback) =>
+  flatMap(promise, result =>
+    switch (result) {
+    | Ok(_) as ok => resolved(ok)
+    | Error(e) => callback(e)
+    }
+  );
+
+let mapOk = (promise, callback) =>
+  map(promise, result =>
+    switch (result) {
+    | Ok(v) => Ok(callback(v))
+    | Error(_) as error => error
+    }
+  );
+
+let mapError = (promise, callback) =>
+  map(promise, result =>
+    switch (result) {
+    | Ok(_) as ok => ok
+    | Error(e) => Error(callback(e))
+    }
+  );
+
+let getOk = (promise, callback) =>
+  get(promise, result =>
+    switch (result) {
+    | Ok(v) => callback(v)
+    | Error(_) => ()
+    }
+  );
+
+let getError = (promise, callback) =>
+  get(promise, result =>
+    switch (result) {
+    | Ok(_) => ()
+    | Error(e) => callback(e)
+    }
+  );
+
+let tapOk = (promise, callback) => {
+  getOk(promise, callback);
+  promise;
+};
+
+let tapError = (promise, callback) => {
+  getError(promise, callback);
+  promise;
+};
+
+let allOkArray = promises => {
+  let promiseCount = Belt.Array.length(promises);
+
+  if (promiseCount == 0) {
+    resolved(Ok([||]));
+  } else {
+    let resultValues = Belt.Array.make(promiseCount, None);
+    let resultCount = ref(0);
+    let (resultPromise, resolve) = pending();
+
+    let (callbackRemover, removeCallbacks) = pending();
+
+    promises->Belt.Array.forEachWithIndex((index, promise)
+      /* Because callbacks are added to the user's promises through calls to the
+         JS runtime's Promise.race, this function leaks memory if and only if
+         the JS runtime's Promise functions leak memory. In particular, if one
+         of the promises resolves with Error(_), the callbacks on the other
+         promises should be removed. If not done, and long-pending promises are
+         repeatedly passed to allOk in a loop, they will gradually accumulate
+         huge lists of stale callbacks. This is also true of Promise.race, so we
+         rely on the quality of the runtime's Promise.race implementation to
+         proactively remove these callbacks. */
+      =>
+        race([promise, callbackRemover])
+        |> (
+          wrapped =>
+            get(wrapped, result =>
+              switch (result) {
+              | Ok(v) =>
+                resultValues->Belt.Array.setExn(index, Some(v));
+                incr(resultCount);
+                if (resultCount^ >= promiseCount) {
+                  resultValues->Belt.Array.map(v =>
+                    switch (v) {
+                    | Some(v) => v
+                    | None => assert(false)
+                    }
+                  )
+                  |> (values => resolve(Ok(values)));
+                };
+              | Error(e) =>
+                resolve(Error(e));
+                removeCallbacks(Error(e));
+              }
+            )
+        )
+      );
+
+    resultPromise;
+  };
+};
+
+let allOk = promises =>
+  mapOk(allOkArray(Belt.List.toArray(promises)), Belt.List.fromArray);
+
+let unsafeAllOkArray = Obj.magic(allOkArray);
+
+let allOk2 = (p1, p2) => unsafeAllOkArray((p1, p2));
+
+let allOk3 = (p1, p2, p3) => unsafeAllOkArray((p1, p2, p3));
+
+let allOk4 = (p1, p2, p3, p4) => unsafeAllOkArray((p1, p2, p3, p4));
+
+let allOk5 = (p1, p2, p3, p4, p5) => unsafeAllOkArray((p1, p2, p3, p4, p5));
+
+let allOk6 = (p1, p2, p3, p4, p5, p6) =>
+  unsafeAllOkArray((p1, p2, p3, p4, p5, p6));
+
+module Operators = {
+  let (>|=) = mapOk;
+  let (>>=) = flatMapOk;
+};
+
+let flatMapSome = (promise, callback) =>
+  flatMap(promise, option =>
+    switch (option) {
+    | Some(v) => callback(v)
+    | None => resolved(None)
+    }
+  );
+
+let mapSome = (promise, callback) =>
+  map(promise, option =>
+    switch (option) {
+    | Some(v) => Some(callback(v))
+    | None => None
+    }
+  );
+
+let getSome = (promise, callback) =>
+  get(promise, option =>
+    switch (option) {
+    | Some(v) => callback(v)
+    | None => ()
+    }
+  );
+
+let tapSome = (promise, callback) => {
+  getSome(promise, callback);
+  promise;
+};
+
+module PipeFirst = {};
+
+module Js = Js_;
