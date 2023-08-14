@@ -27,9 +27,6 @@ let map: (promise('a), 'a => 'b) => promise('b);
 
 let flatMap: (promise('a), 'a => promise('b)) => promise('b);
 
-/* Compatibility with BuckleScript < 6. */
-type result('a, 'e) = Belt.Result.t('a, 'e);
-
 /* Results. */
 let getOk: (promise(result('a, 'e)), 'a => unit) => unit;
 
