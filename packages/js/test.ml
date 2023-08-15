@@ -387,8 +387,8 @@ let array_tests =
       case "from" (fun () ->
           Alcotest.check_raises "Js.Array.from"
             (Js.Not_implemented
-               "'Js.Array.from' is not implemented in server-reason-react")
-            (fun () -> Js.Array.from 3));
+               "'Js.Array.from' is not implemented in native under \
+                server-reason-react.js") (fun () -> Js.Array.from 3));
     ] )
 
 let obj () = Js.Dict.fromList [ ("foo", 43); ("bar", 86) ]

@@ -3,7 +3,8 @@ exception Not_implemented of string
 let notImplemented module_ function_ =
   raise
     (Not_implemented
-       (Printf.sprintf "'%s.%s' is not implemented in server-reason-react"
+       (Printf.sprintf
+          "'%s.%s' is not implemented in native under server-reason-react.js"
           module_ function_))
 
 type 'a t = < .. > as 'a
@@ -188,7 +189,6 @@ module Exn = struct
   let raiseUriError _ = notImplemented "Js.Exn" "raiseUriError"
 end
 
-(** Provide bindings to Js array *)
 module Array2 = struct
   type 'a t = 'a array
   (** JavaScript Array API *)
@@ -197,8 +197,11 @@ module Array2 = struct
 
   let from _ = notImplemented "Js.Array2" "from"
   let fromMap _ _ = notImplemented "Js.Array2" "fromMap"
-  let isArray _ = notImplemented "Js.Array2" "isArray"
-  let length _ = notImplemented "Js.Array2" "length"
+
+  (* This doesn't behave the same as melange-js, since it's a runtime check
+     so lists are represented as arrays in the runtime: isArray([1, 2]) == true *)
+  let isArray (_arr : 'a array) = true
+  let length arr = Stdlib.Array.length arr
 
   (* Mutator functions *)
   let copyWithin _ _ = notImplemented "Js.Array2" "copyWithin"
@@ -207,14 +210,10 @@ module Array2 = struct
   let fillInPlace _ _ = notImplemented "Js.Array2" "fillInPlace"
   let fillFromInPlace _ _ = notImplemented "Js.Array2" "fillFromInPlace"
   let fillRangeInPlace _ _ = notImplemented "Js.Array2" "fillRangeInPlace"
-
-  (** https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/push *)
   let pop _ _ = notImplemented "Js.Array2" "pop"
-
   let push _ _ = notImplemented "Js.Array2" "push"
   let pushMany _ _ = notImplemented "Js.Array2" "pushMany"
   let reverseInPlace _ _ = notImplemented "Js.Array2" "reverseInPlace"
-  let shift _ _ = notImplemented "Js.Array2" "shift"
   let sortInPlace _ _ = notImplemented "Js.Array2" "sortInPlace"
   let sortInPlaceWith _ _ = notImplemented "Js.Array2" "sortInPlaceWith"
   let spliceInPlace _ _ = notImplemented "Js.Array2" "spliceInPlace"
@@ -224,52 +223,170 @@ module Array2 = struct
   let unshiftMany _ _ = notImplemented "Js.Array2" "unshiftMany"
 
   (* Accessor functions *)
-  let append _ _ = notImplemented "Js.Array2" "append"
-  let concat _ _ = notImplemented "Js.Array2" "concat"
-  let concatMany _ _ = notImplemented "Js.Array2" "concatMany"
-  let includes _ _ = notImplemented "Js.Array2" "includes"
-  let indexOf _ _ = notImplemented "Js.Array2" "indexOf"
-  let indexOfFrom _ _ = notImplemented "Js.Array2" "indexOfFrom"
-  let joinWith _ _ = notImplemented "Js.Array2" "joinWith"
-  let lastIndexOf _ _ = notImplemented "Js.Array2" "lastIndexOf"
-  let lastIndexOfFrom _ _ = notImplemented "Js.Array2" "lastIndexOfFrom"
-  let slice _ _ = notImplemented "Js.Array2" "slice"
-  let copy _ _ = notImplemented "Js.Array2" "copy"
-  let sliceFrom _ _ = notImplemented "Js.Array2" "sliceFrom"
-  let toString _ _ = notImplemented "Js.Array2" "toString"
-  let toLocaleString _ _ = notImplemented "Js.Array2" "toLocaleString"
+  let append arr item = Stdlib.Array.append arr (Stdlib.Array.of_list [ item ])
+  let concat first second = Stdlib.Array.append first second
+  let concatMany arr many = Stdlib.Array.append arr (Stdlib.Array.of_list many)
+  let includes arr item = Stdlib.Array.exists (fun x -> x = item) arr
+
+  let indexOf arr item =
+    let rec aux idx =
+      if idx >= Stdlib.Array.length arr then -1
+      else if arr.(idx) = item then idx
+      else aux (idx + 1)
+    in
+    aux 0
+
+  let indexOfFrom arr item ~from =
+    let rec aux idx =
+      if idx >= Stdlib.Array.length arr then -1
+      else if arr.(idx) = item then idx
+      else aux (idx + 1)
+    in
+    if from < 0 || from >= Stdlib.Array.length arr then -1 else aux from
+
+  let joinWith arr joiner = Stdlib.Array.to_list arr |> String.concat joiner
+  let join arr = Stdlib.Array.to_list arr |> String.concat ","
+
+  let lastIndexOf item arr =
+    let rec aux idx =
+      if idx < 0 then -1 else if arr.(idx) = item then idx else aux (idx - 1)
+    in
+    aux (Stdlib.Array.length arr - 1)
+
+  let lastIndexOfFrom arr item ~from =
+    let rec aux idx =
+      if idx < 0 then -1 else if arr.(idx) = item then idx else aux (idx - 1)
+    in
+    if from < 0 || from >= Stdlib.Array.length arr then -1 else aux from
+
+  let slice arr ~start ~end_ =
+    let len = Stdlib.Array.length arr in
+    let s = max 0 (if start < 0 then len + start else start) in
+    let e = min len (if end_ < 0 then len + end_ else end_) in
+    if s >= e then [||] else Stdlib.Array.sub arr s (e - s)
+
+  let copy arr = Stdlib.Array.copy arr
+
+  let sliceFrom arr start =
+    let len = Stdlib.Array.length arr in
+    let s = max 0 (if start < 0 then len + start else start) in
+    if s >= len then [||] else Stdlib.Array.sub arr s (len - s)
+
+  let toString _ = notImplemented "Js.Array2" "toString"
+  let toLocaleString _ = notImplemented "Js.Array2" "toLocaleString"
 
   (* Iteration functions *)
-  let every _ _ = notImplemented "Js.Array2" "every"
-  let everyi _ _ = notImplemented "Js.Array2" "everyi"
-  let filter _ _ = notImplemented "Js.Array2" "filter"
-  let filteri _ _ = notImplemented "Js.Array2" "filteri"
-  let find arr fn = Stdlib.Array.find_opt fn arr
-  let findi _ _ = notImplemented "Js.Array2" "findi"
-  let findIndex _ _ = notImplemented "Js.Array2" "findIndex"
-  let findIndexi _ _ = notImplemented "Js.Array2" "findIndexi"
+  let entries (_ : 'a array) = notImplemented "Js.Array2" "entries"
+
+  let everyi arr fn =
+    let len = Stdlib.Array.length arr in
+    let rec aux idx =
+      if idx >= len then true
+      else if fn arr.(idx) idx then aux (idx + 1)
+      else false
+    in
+    aux 0
+
+  let every arr fn =
+    let len = Stdlib.Array.length arr in
+    let rec aux idx =
+      if idx >= len then true else if fn arr.(idx) then aux (idx + 1) else false
+    in
+    aux 0
+
+  let filter arr fn =
+    arr |> Stdlib.Array.to_list |> List.filter fn |> Stdlib.Array.of_list
+
+  let filteri arr fn =
+    arr |> Stdlib.Array.to_list |> List.filteri fn |> Stdlib.Array.of_list
+
+  let findi arr fn =
+    let len = Stdlib.Array.length arr in
+    let rec aux idx =
+      if idx >= len then None
+      else if fn arr.(idx) idx then Some arr.(idx)
+      else aux (idx + 1)
+    in
+    aux 0
+
+  let find arr fn =
+    let len = Stdlib.Array.length arr in
+    let rec aux idx =
+      if idx >= len then None
+      else if fn arr.(idx) then Some arr.(idx)
+      else aux (idx + 1)
+    in
+    aux 0
+
+  let findIndexi arr fn =
+    let len = Stdlib.Array.length arr in
+    let rec aux idx =
+      if idx >= len then -1 else if fn arr.(idx) idx then idx else aux (idx + 1)
+    in
+    aux 0
+
+  let findIndex arr fn =
+    let len = Stdlib.Array.length arr in
+    let rec aux idx =
+      if idx >= len then -1 else if fn arr.(idx) then idx else aux (idx + 1)
+    in
+    aux 0
+
   let forEach arr fn = Stdlib.Array.iter fn arr
   let forEachi arr fn = Stdlib.Array.iteri fn arr
   let map arr fn = Stdlib.Array.map fn arr
   let mapi arr fn = Stdlib.Array.mapi fn arr
-  let reduce arr fn init = Stdlib.Array.fold_left fn init arr
+
+  let reduce arr fn init =
+    let r = ref init in
+    for i = 0 to length arr - 1 do
+      r := fn !r (Stdlib.Array.unsafe_get arr i)
+    done;
+    !r
 
   let reducei arr fn init =
     let r = ref init in
-    for i = 0 to Stdlib.Array.length arr - 1 do
+    for i = 0 to length arr - 1 do
       r := fn !r (Stdlib.Array.unsafe_get arr i) i
     done;
     !r
 
-  let reduceRight _ _ = notImplemented "Js.Array2" "reduceRight"
-  let reduceRighti _ _ = notImplemented "Js.Array2" "reduceRighti"
-  let some _ _ = notImplemented "Js.Array2" "some"
-  let somei _ _ = notImplemented "Js.Array2" "somei"
-  let unsafe_get _ _ = notImplemented "Js.Array2" "unsafe_get"
-  let unsafe_set _ _ = notImplemented "Js.Array2" "unsafe_set"
+  let reduceRight arr fn init =
+    let r = ref init in
+    for i = length arr - 1 downto 0 do
+      r := fn (Stdlib.Array.unsafe_get arr i) !r
+    done;
+    !r
+
+  let reduceRighti arr fn init =
+    let r = ref init in
+    for i = length arr - 1 downto 0 do
+      r := fn (Stdlib.Array.unsafe_get arr i) !r i
+    done;
+    !r
+
+  let some arr fn =
+    let n = Stdlib.Array.length arr in
+    let rec loop i =
+      if i = n then false
+      else if fn (Stdlib.Array.unsafe_get arr i) then true
+      else loop (succ i)
+    in
+    loop 0
+
+  let somei arr fn =
+    let n = Stdlib.Array.length arr in
+    let rec loop i =
+      if i = n then false
+      else if fn (Stdlib.Array.unsafe_get arr i) i then true
+      else loop (succ i)
+    in
+    loop 0
+
+  let unsafe_get arr idx = Stdlib.Array.unsafe_get arr idx
+  let unsafe_set arr idx item = Stdlib.Array.unsafe_set arr idx item
 end
 
-(** Provide bindings to Js array *)
 module Array = struct
   (** JavaScript Array API *)
 
@@ -278,8 +395,11 @@ module Array = struct
 
   let from _ = notImplemented "Js.Array" "from"
   let fromMap _ _ = notImplemented "Js.Array" "fromMap"
-  let isArray _ = notImplemented "Js.Array" "isArray"
-  let length _ = notImplemented "Js.Array" "length"
+
+  (* This doesn't behave the same as melange-js, since it's a runtime check
+     so lists are represented as arrays in the runtime: isArray([1, 2]) == true *)
+  let isArray (_arr : 'a array) = true
+  let length arr = Stdlib.Array.length arr
 
   (* Mutator functions *)
   let copyWithin _ _ = notImplemented "Js.Array" "copyWithin"
@@ -301,47 +421,177 @@ module Array = struct
   let unshiftMany _ _ = notImplemented "Js.Array" "unshiftMany"
 
   (* Accessor functions *)
-  let append _ _ = notImplemented "Js.Array" "append"
-  let concat _ _ = notImplemented "Js.Array" "concat"
-  let concatMany _ _ = notImplemented "Js.Array" "concatMany"
-  let includes _ _ = notImplemented "Js.Array" "includes"
-  let indexOf _ _ = notImplemented "Js.Array" "indexOf"
-  let indexOfFrom _ ~from:_ _ = notImplemented "Js.Array" "indexOfFrom"
-  let join _ _ = notImplemented "Js.Array" "join"
-  let joinWith _ _ = notImplemented "Js.Array" "joinWith"
-  let lastIndexOf _ _ = notImplemented "Js.Array" "lastIndexOf"
-  let lastIndexOfFrom _ _ = notImplemented "Js.Array" "lastIndexOfFrom"
-  let lastIndexOf_start _ _ = notImplemented "Js.Array" "lastIndexOf_start"
-  let slice _ _ = notImplemented "Js.Array" "slice"
-  let copy _ _ = notImplemented "Js.Array" "copy"
-  let slice_copy _ _ = notImplemented "Js.Array" "slice_copy"
-  let sliceFrom _ _ = notImplemented "Js.Array" "sliceFrom"
-  let slice_start _ _ = notImplemented "Js.Array" "slice_start"
-  let toString _ _ = notImplemented "Js.Array" "toString"
-  let toLocaleString _ _ = notImplemented "Js.Array" "toLocaleString"
+  let append item arr = Stdlib.Array.append arr (Stdlib.Array.of_list [ item ])
+  let concat first second = Stdlib.Array.append second first
+  let concatMany many arr = Stdlib.Array.append arr (Stdlib.Array.of_list many)
+  let includes item arr = Stdlib.Array.exists (fun x -> x = item) arr
+
+  let indexOf item arr =
+    let rec aux idx =
+      if idx >= Stdlib.Array.length arr then -1
+      else if arr.(idx) = item then idx
+      else aux (idx + 1)
+    in
+    aux 0
+
+  let indexOfFrom arr ~from item =
+    let rec aux idx =
+      if idx >= Stdlib.Array.length arr then -1
+      else if arr.(idx) = item then idx
+      else aux (idx + 1)
+    in
+    if from < 0 || from >= Stdlib.Array.length arr then -1 else aux from
+
+  let joinWith joiner arr = Stdlib.Array.to_list arr |> String.concat joiner
+  let join arr = Stdlib.Array.to_list arr |> String.concat ","
+
+  let lastIndexOf arr item =
+    let rec aux idx =
+      if idx < 0 then -1 else if arr.(idx) = item then idx else aux (idx - 1)
+    in
+    aux (Stdlib.Array.length arr - 1)
+
+  let lastIndexOfFrom arr ~from item =
+    let rec aux idx =
+      if idx < 0 then -1 else if arr.(idx) = item then idx else aux (idx - 1)
+    in
+    if from < 0 || from >= Stdlib.Array.length arr then -1 else aux from
+
+  let lastIndexOf_start (_item : 'a) (_arr : 'a array) =
+    notImplemented "Js.Array" "lastIndexOf_start"
+
+  let slice ~start ~end_ arr =
+    let len = Stdlib.Array.length arr in
+    let s = max 0 (if start < 0 then len + start else start) in
+    let e = min len (if end_ < 0 then len + end_ else end_) in
+    if s >= e then [||] else Stdlib.Array.sub arr s (e - s)
+
+  let copy arr = Stdlib.Array.copy arr
+
+  let slice_copy (_ : unit) (_ : 'a array) =
+    notImplemented "Js.Array" "slice_copy"
+
+  let sliceFrom start arr =
+    let len = Stdlib.Array.length arr in
+    let s = max 0 (if start < 0 then len + start else start) in
+    if s >= len then [||] else Stdlib.Array.sub arr s (len - s)
+
+  let slice_start (_ : int) (_ : 'a array) =
+    notImplemented "Js.Array" "slice_start"
+
+  let toString _ = notImplemented "Js.Array" "toString"
+  let toLocaleString _ = notImplemented "Js.Array" "toLocaleString"
 
   (* Iteration functions *)
-  let entries _ _ = notImplemented "Js.Array" "entries"
-  let every _ _ = notImplemented "Js.Array" "every"
-  let everyi _ _ = notImplemented "Js.Array" "everyi"
-  let filter _ _ = notImplemented "Js.Array" "filter"
-  let filteri _ _ = notImplemented "Js.Array" "filteri"
-  let find _ _ = notImplemented "Js.Array" "find"
-  let findi _ _ = notImplemented "Js.Array" "findi"
-  let findIndex _ _ = notImplemented "Js.Array" "findIndex"
-  let findIndexi _ _ = notImplemented "Js.Array" "findIndexi"
-  let forEach _ _ = notImplemented "Js.Array" "forEach"
-  let forEachi _ _ = notImplemented "Js.Array" "forEachi"
-  let map _ _ = notImplemented "Js.Array" "map"
-  let mapi _ _ = notImplemented "Js.Array" "mapi"
-  let reduce _ _ = notImplemented "Js.Array" "reduce"
-  let reducei _ _ = notImplemented "Js.Array" "reducei"
-  let reduceRight _ _ = notImplemented "Js.Array" "reduceRight"
-  let reduceRighti _ _ = notImplemented "Js.Array" "reduceRighti"
-  let some _ _ = notImplemented "Js.Array" "some"
-  let somei _ _ = notImplemented "Js.Array" "somei"
-  let unsafe_get _ _ = notImplemented "Js.Array" "unsafe_get"
-  let unsafe_set _ _ = notImplemented "Js.Array" "unsafe_set"
+  let entries (_ : 'a array) = notImplemented "Js.Array" "entries"
+
+  let everyi fn arr =
+    let len = Stdlib.Array.length arr in
+    let rec aux idx =
+      if idx >= len then true
+      else if fn arr.(idx) idx then aux (idx + 1)
+      else false
+    in
+    aux 0
+
+  let every fn arr =
+    let len = Stdlib.Array.length arr in
+    let rec aux idx =
+      if idx >= len then true else if fn arr.(idx) then aux (idx + 1) else false
+    in
+    aux 0
+
+  let filter fn arr =
+    arr |> Stdlib.Array.to_list |> List.filter fn |> Stdlib.Array.of_list
+
+  let filteri fn arr =
+    arr |> Stdlib.Array.to_list |> List.filteri fn |> Stdlib.Array.of_list
+
+  let findi fn arr =
+    let len = Stdlib.Array.length arr in
+    let rec aux idx =
+      if idx >= len then None
+      else if fn arr.(idx) idx then Some arr.(idx)
+      else aux (idx + 1)
+    in
+    aux 0
+
+  let find fn arr =
+    let len = Stdlib.Array.length arr in
+    let rec aux idx =
+      if idx >= len then None
+      else if fn arr.(idx) then Some arr.(idx)
+      else aux (idx + 1)
+    in
+    aux 0
+
+  let findIndexi fn arr =
+    let len = Stdlib.Array.length arr in
+    let rec aux idx =
+      if idx >= len then -1 else if fn arr.(idx) idx then idx else aux (idx + 1)
+    in
+    aux 0
+
+  let findIndex fn arr =
+    let len = Stdlib.Array.length arr in
+    let rec aux idx =
+      if idx >= len then -1 else if fn arr.(idx) then idx else aux (idx + 1)
+    in
+    aux 0
+
+  let forEach fn arr = Stdlib.Array.iter fn arr
+  let forEachi fn arr = Stdlib.Array.iteri fn arr
+  let map fn arr = Stdlib.Array.map fn arr
+  let mapi fn arr = Stdlib.Array.mapi fn arr
+
+  let reduce fn init arr =
+    let r = ref init in
+    for i = 0 to length arr - 1 do
+      r := fn !r (Stdlib.Array.unsafe_get arr i)
+    done;
+    !r
+
+  let reducei fn init arr =
+    let r = ref init in
+    for i = 0 to length arr - 1 do
+      r := fn !r (Stdlib.Array.unsafe_get arr i) i
+    done;
+    !r
+
+  let reduceRight fn init arr =
+    let r = ref init in
+    for i = length arr - 1 downto 0 do
+      r := fn (Stdlib.Array.unsafe_get arr i) !r
+    done;
+    !r
+
+  let reduceRighti fn init arr =
+    let r = ref init in
+    for i = length arr - 1 downto 0 do
+      r := fn (Stdlib.Array.unsafe_get arr i) !r i
+    done;
+    !r
+
+  let some fn arr =
+    let n = Stdlib.Array.length arr in
+    let rec loop i =
+      if i = n then false
+      else if fn (Stdlib.Array.unsafe_get arr i) then true
+      else loop (succ i)
+    in
+    loop 0
+
+  let somei fn arr =
+    let n = Stdlib.Array.length arr in
+    let rec loop i =
+      if i = n then false
+      else if fn (Stdlib.Array.unsafe_get arr i) i then true
+      else loop (succ i)
+    in
+    loop 0
+
+  let unsafe_get arr idx = Stdlib.Array.unsafe_get arr idx
+  let unsafe_set arr idx item = Stdlib.Array.unsafe_set arr idx item
 end
 
 module Re = struct
@@ -403,7 +653,11 @@ module Re = struct
     | 'm' -> `MULTILINE
     | 'u' -> `UTF8
     | 'y' -> `STICKY
-    | _ -> raise (Invalid_argument "invalid flag")
+    | 's' -> `DOTALL
+    | other ->
+        raise
+          (Invalid_argument
+             (Printf.sprintf "Invalid flag '%c'. Only g, i, m, u, y, s" other))
 
   let parse_flags : string -> flag list =
    fun flags -> flags |> String.to_seq |> Seq.map flag_of_char |> List.of_seq
