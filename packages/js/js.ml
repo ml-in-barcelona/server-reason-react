@@ -457,6 +457,7 @@ module Re = struct
       let substrings = Pcre.exec ~rex ~pos:regexp.lastIndex str in
       let _, lastIndex = Pcre.get_substring_ofs substrings 0 in
       regexp.lastIndex <- lastIndex;
+      print_endline @@ string_of_int regexp.lastIndex;
       Some { substrings }
     with Not_found -> None
 
@@ -809,7 +810,38 @@ module String2 = struct
     repeat' str "" count
 
   let replace _ _ _ = notImplemented "Js.String2" "replace"
-  let replaceByRe _ _ _ = notImplemented "Js.String2" "replaceByRe"
+
+  let replaceByRe pattern replacement str =
+    let rec replace_all str =
+      match Re.exec_ pattern str with
+      | None -> str
+      | Some result ->
+          Re.setLastIndex pattern 0;
+          let matches = Re.matches result in
+          let matched_str = Stdlib.Array.get matches 0 in
+          let prefix = Stdlib.String.sub str 0 (Re.index result) in
+          let suffix_start = Re.index result + String.length matched_str in
+          let suffix =
+            Stdlib.String.sub str suffix_start (String.length str - suffix_start)
+          in
+          prefix ^ replacement ^ replace_all suffix
+    in
+    let replace_first str =
+      match Re.exec_ pattern str with
+      | None -> str
+      | Some result ->
+          let matches = Re.matches result in
+          let matched_str = Stdlib.Array.get matches 0 in
+          let prefix = Stdlib.String.sub str 0 (Re.index result) in
+          let suffix_start = Re.index result + String.length matched_str in
+          let suffix =
+            Stdlib.String.sub str suffix_start (String.length str - suffix_start)
+          in
+          prefix ^ replacement ^ suffix
+    in
+
+    if Re.global pattern then replace_all str else replace_first str
+
   let unsafeReplaceBy0 _ _ = notImplemented "Js.String2" "unsafeReplaceBy0"
   let unsafeReplaceBy1 _ _ = notImplemented "Js.String2" "unsafeReplaceBy1"
   let unsafeReplaceBy2 _ _ = notImplemented "Js.String2" "unsafeReplaceBy2"

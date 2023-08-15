@@ -12,4 +12,4 @@
  (modules test)
  (libraries alcotest alcotest-lwt lwt server-reason-react.js)
  (preprocess
-  (pps lwt_ppx)))
+  (pps lwt_ppx regex_ppx)))
