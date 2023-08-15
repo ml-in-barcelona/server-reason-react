@@ -231,14 +231,14 @@ let string2_tests =
                "this cat and the dog" *)
           ());
       case "replaceByRe" (fun () ->
-          assert_string (Js.String2.replaceByRe [%re "/d/"] "x" "david") "xavid"
+          assert_string (Js.String2.replaceByRe "david" [%re "/d/"] "x") "xavid"
           (* assert_string
              (Js.String2.replaceByRe [%re "/(\\w+) (\\w+)/"] "$2, $1"
                 "Juan Fulano")
              "Fulano, Juan" *));
       case "replaceByRe with global" (fun () ->
           assert_string
-            (Js.String2.replaceByRe [%re "/[aeiou]/g"] "x" "vowels be gone")
+            (Js.String2.replaceByRe "vowels be gone" [%re "/[aeiou]/g"] "x")
             "vxwxls bx gxnx");
       case "unsafeReplaceBy0" (fun () ->
           (* let str = "beautiful vowels" in

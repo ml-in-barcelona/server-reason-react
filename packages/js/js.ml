@@ -399,7 +399,7 @@ module Array = struct
   (* This doesn't behave the same as melange-js, since it's a runtime check
      so lists are represented as arrays in the runtime: isArray([1, 2]) == true *)
   let isArray (_arr : 'a array) = true
-  let length arr = Stdlib.Array.length arr
+  let length = Array2.length
 
   (* Mutator functions *)
   let copyWithin _ _ = notImplemented "Js.Array" "copyWithin"
@@ -421,60 +421,27 @@ module Array = struct
   let unshiftMany _ _ = notImplemented "Js.Array" "unshiftMany"
 
   (* Accessor functions *)
-  let append item arr = Stdlib.Array.append arr (Stdlib.Array.of_list [ item ])
-  let concat first second = Stdlib.Array.append second first
-  let concatMany many arr = Stdlib.Array.append arr (Stdlib.Array.of_list many)
-  let includes item arr = Stdlib.Array.exists (fun x -> x = item) arr
-
-  let indexOf item arr =
-    let rec aux idx =
-      if idx >= Stdlib.Array.length arr then -1
-      else if arr.(idx) = item then idx
-      else aux (idx + 1)
-    in
-    aux 0
-
-  let indexOfFrom arr ~from item =
-    let rec aux idx =
-      if idx >= Stdlib.Array.length arr then -1
-      else if arr.(idx) = item then idx
-      else aux (idx + 1)
-    in
-    if from < 0 || from >= Stdlib.Array.length arr then -1 else aux from
-
-  let joinWith joiner arr = Stdlib.Array.to_list arr |> String.concat joiner
-  let join arr = Stdlib.Array.to_list arr |> String.concat ","
-
-  let lastIndexOf arr item =
-    let rec aux idx =
-      if idx < 0 then -1 else if arr.(idx) = item then idx else aux (idx - 1)
-    in
-    aux (Stdlib.Array.length arr - 1)
-
-  let lastIndexOfFrom arr ~from item =
-    let rec aux idx =
-      if idx < 0 then -1 else if arr.(idx) = item then idx else aux (idx - 1)
-    in
-    if from < 0 || from >= Stdlib.Array.length arr then -1 else aux from
+  let append item arr = Array2.append arr item
+  let concat first second = Array2.concat first second
+  let concatMany many arr = Array2.concatMany arr many
+  let includes item arr = Array2.includes arr item
+  let indexOf item arr = Array2.indexOf arr item
+  let indexOfFrom arr ~from item = Array2.indexOfFrom arr item ~from
+  let joinWith joiner arr = Array2.joinWith arr joiner
+  let join arr = Array2.join arr
+  let lastIndexOf arr item = Array2.lastIndexOf item arr
+  let lastIndexOfFrom arr ~from item = Array2.lastIndexOfFrom arr item ~from
 
   let lastIndexOf_start (_item : 'a) (_arr : 'a array) =
     notImplemented "Js.Array" "lastIndexOf_start"
 
-  let slice ~start ~end_ arr =
-    let len = Stdlib.Array.length arr in
-    let s = max 0 (if start < 0 then len + start else start) in
-    let e = min len (if end_ < 0 then len + end_ else end_) in
-    if s >= e then [||] else Stdlib.Array.sub arr s (e - s)
-
-  let copy arr = Stdlib.Array.copy arr
+  let slice ~start ~end_ arr = Array2.slice arr ~start ~end_
+  let copy = Stdlib.Array.copy
 
   let slice_copy (_ : unit) (_ : 'a array) =
     notImplemented "Js.Array" "slice_copy"
 
-  let sliceFrom start arr =
-    let len = Stdlib.Array.length arr in
-    let s = max 0 (if start < 0 then len + start else start) in
-    if s >= len then [||] else Stdlib.Array.sub arr s (len - s)
+  let sliceFrom start arr = Array2.sliceFrom arr start
 
   let slice_start (_ : int) (_ : 'a array) =
     notImplemented "Js.Array" "slice_start"
@@ -484,112 +451,24 @@ module Array = struct
 
   (* Iteration functions *)
   let entries (_ : 'a array) = notImplemented "Js.Array" "entries"
-
-  let everyi fn arr =
-    let len = Stdlib.Array.length arr in
-    let rec aux idx =
-      if idx >= len then true
-      else if fn arr.(idx) idx then aux (idx + 1)
-      else false
-    in
-    aux 0
-
-  let every fn arr =
-    let len = Stdlib.Array.length arr in
-    let rec aux idx =
-      if idx >= len then true else if fn arr.(idx) then aux (idx + 1) else false
-    in
-    aux 0
-
-  let filter fn arr =
-    arr |> Stdlib.Array.to_list |> List.filter fn |> Stdlib.Array.of_list
-
-  let filteri fn arr =
-    arr |> Stdlib.Array.to_list |> List.filteri fn |> Stdlib.Array.of_list
-
-  let findi fn arr =
-    let len = Stdlib.Array.length arr in
-    let rec aux idx =
-      if idx >= len then None
-      else if fn arr.(idx) idx then Some arr.(idx)
-      else aux (idx + 1)
-    in
-    aux 0
-
-  let find fn arr =
-    let len = Stdlib.Array.length arr in
-    let rec aux idx =
-      if idx >= len then None
-      else if fn arr.(idx) then Some arr.(idx)
-      else aux (idx + 1)
-    in
-    aux 0
-
-  let findIndexi fn arr =
-    let len = Stdlib.Array.length arr in
-    let rec aux idx =
-      if idx >= len then -1 else if fn arr.(idx) idx then idx else aux (idx + 1)
-    in
-    aux 0
-
-  let findIndex fn arr =
-    let len = Stdlib.Array.length arr in
-    let rec aux idx =
-      if idx >= len then -1 else if fn arr.(idx) then idx else aux (idx + 1)
-    in
-    aux 0
-
-  let forEach fn arr = Stdlib.Array.iter fn arr
-  let forEachi fn arr = Stdlib.Array.iteri fn arr
-  let map fn arr = Stdlib.Array.map fn arr
-  let mapi fn arr = Stdlib.Array.mapi fn arr
-
-  let reduce fn init arr =
-    let r = ref init in
-    for i = 0 to length arr - 1 do
-      r := fn !r (Stdlib.Array.unsafe_get arr i)
-    done;
-    !r
-
-  let reducei fn init arr =
-    let r = ref init in
-    for i = 0 to length arr - 1 do
-      r := fn !r (Stdlib.Array.unsafe_get arr i) i
-    done;
-    !r
-
-  let reduceRight fn init arr =
-    let r = ref init in
-    for i = length arr - 1 downto 0 do
-      r := fn (Stdlib.Array.unsafe_get arr i) !r
-    done;
-    !r
-
-  let reduceRighti fn init arr =
-    let r = ref init in
-    for i = length arr - 1 downto 0 do
-      r := fn (Stdlib.Array.unsafe_get arr i) !r i
-    done;
-    !r
-
-  let some fn arr =
-    let n = Stdlib.Array.length arr in
-    let rec loop i =
-      if i = n then false
-      else if fn (Stdlib.Array.unsafe_get arr i) then true
-      else loop (succ i)
-    in
-    loop 0
-
-  let somei fn arr =
-    let n = Stdlib.Array.length arr in
-    let rec loop i =
-      if i = n then false
-      else if fn (Stdlib.Array.unsafe_get arr i) i then true
-      else loop (succ i)
-    in
-    loop 0
-
+  let everyi fn arr = Array2.everyi arr fn
+  let every fn arr = Array2.every arr fn
+  let filter fn arr = Array2.filter arr fn
+  let filteri fn arr = Array2.filteri arr fn
+  let findi fn arr = Array2.findi arr fn
+  let find fn arr = Array2.find arr fn
+  let findIndexi fn arr = Array2.findIndexi arr fn
+  let findIndex fn arr = Array2.findIndex arr fn
+  let forEach fn arr = Array2.forEach arr fn
+  let forEachi fn arr = Array2.forEachi arr fn
+  let map fn arr = Array2.map arr fn
+  let mapi fn arr = Array2.mapi arr fn
+  let reduce fn init arr = Array2.reduce arr fn init
+  let reducei fn init arr = Array2.reducei arr fn init
+  let reduceRight fn init arr = Array2.reduceRight arr fn init
+  let reduceRighti fn init arr = Array2.reduceRighti arr fn init
+  let some fn arr = Array2.some arr fn
+  let somei fn arr = Array2.somei arr fn
   let unsafe_get arr idx = Stdlib.Array.unsafe_get arr idx
   let unsafe_set arr idx item = Stdlib.Array.unsafe_set arr idx item
 end
@@ -721,203 +600,6 @@ module Re = struct
    fun regexp str -> Pcre.pmatch ~rex:regexp.regex str
 
   let test : string -> t -> bool = fun str regex -> test_ regex str
-end
-
-module String = struct
-  (** JavaScript String API *)
-
-  type t = string
-
-  (* TODO (davesnx): This changes the interface from String() *)
-  let make i ch = Stdlib.String.make i ch
-
-  let fromCharCode code =
-    let uchar = Uchar.of_int code in
-    let char_value = Uchar.to_char uchar in
-    Stdlib.String.make 1 char_value
-
-  let fromCharCodeMany _ = notImplemented "Js.String" "fromCharCodeMany"
-
-  let fromCodePoint code_point =
-    let ch = Char.chr code_point in
-    Stdlib.String.make 1 ch
-
-  let fromCodePointMany _ = notImplemented "Js.String" "fromCodePointMany"
-  let length = Stdlib.String.length
-
-  let get index str =
-    let ch = Stdlib.String.get str index in
-    Stdlib.String.make 1 ch
-
-  (* TODO (davesnx): If the string contains characters outside the range [\u0000-\uffff], it will return the first 16-bit value at that position in the string. *)
-  let charAt index str =
-    if index < 0 || index >= Stdlib.String.length str then ""
-    else
-      let ch = Stdlib.String.get str index in
-      Stdlib.String.make 1 ch
-
-  let charCodeAt index str =
-    if index < 0 || index >= Stdlib.String.length str then nan
-    else float_of_int (Stdlib.Char.code (Stdlib.String.get str index))
-
-  let codePointAt index str =
-    let str_length = Stdlib.String.length str in
-    if index >= 0 && index < str_length then
-      let uchar = Uchar.of_char (Stdlib.String.get str index) in
-      Some (Uchar.to_int uchar)
-    else None
-
-  let concatMany many original =
-    let many_list = Stdlib.Array.to_list many in
-    Stdlib.String.concat "" (original :: many_list)
-
-  let endsWith suffix str =
-    let str_length = Stdlib.String.length str in
-    let suffix_length = Stdlib.String.length suffix in
-    if str_length < suffix_length then false
-    else
-      Stdlib.String.sub str (str_length - suffix_length) suffix_length = suffix
-
-  let endsWithFrom from suffix str =
-    let str_length = Stdlib.String.length str in
-    let suffix_length = Stdlib.String.length suffix in
-    let start_idx = Stdlib.max 0 (from - suffix_length) in
-    if str_length - start_idx < suffix_length then false
-    else Stdlib.String.sub str start_idx suffix_length = suffix
-
-  let includes sub str =
-    let str_length = Stdlib.String.length str in
-    let sub_length = Stdlib.String.length sub in
-    let rec includes_helper idx =
-      if idx + sub_length > str_length then false
-      else if Stdlib.String.sub str idx sub_length = sub then true
-      else includes_helper (idx + 1)
-    in
-    includes_helper 0
-
-  let includesFrom from sub str =
-    let str_length = Stdlib.String.length str in
-    let sub_length = Stdlib.String.length sub in
-    let rec includes_helper idx =
-      if idx + sub_length > str_length then false
-      else if Stdlib.String.sub str idx sub_length = sub then true
-      else includes_helper (idx + 1)
-    in
-    includes_helper from
-
-  let indexOf pattern str =
-    let str_length = Stdlib.String.length str in
-    let pattern_length = Stdlib.String.length pattern in
-    let rec index_helper idx =
-      if idx + pattern_length > str_length then -1
-      else if Stdlib.String.sub str idx pattern_length = pattern then idx
-      else index_helper (idx + 1)
-    in
-    index_helper 0
-
-  let indexOfFrom from pattern str =
-    let str_length = Stdlib.String.length str in
-    let pattern_length = Stdlib.String.length pattern in
-    let rec index_helper idx =
-      if idx + pattern_length > str_length then -1
-      else if Stdlib.String.sub str idx pattern_length = pattern then idx
-      else index_helper (idx + 1)
-    in
-    index_helper from
-
-  let localeCompare _ _ = notImplemented "Js.String" "localeCompare"
-  let match_ _ _ = notImplemented "Js.String" "match_"
-  let normalize _ _ = notImplemented "Js.String" "normalize"
-  let normalizeByForm _ _ = notImplemented "Js.String" "normalizeByForm"
-  let replace _ _ _ = notImplemented "Js.String" "replace"
-  let replaceByRe _ _ _ = notImplemented "Js.String" "replaceByRe"
-  let unsafeReplaceBy0 _ _ = notImplemented "Js.String" "unsafeReplaceBy0"
-  let unsafeReplaceBy1 _ _ = notImplemented "Js.String" "unsafeReplaceBy1"
-  let unsafeReplaceBy2 _ _ = notImplemented "Js.String" "unsafeReplaceBy2"
-  let unsafeReplaceBy3 _ _ = notImplemented "Js.String" "unsafeReplaceBy3"
-  let search _ _ = notImplemented "Js.String" "search"
-
-  let slice ~from ~to_ str =
-    let str_length = Stdlib.String.length str in
-    let start_idx = Stdlib.max 0 (Stdlib.min from str_length) in
-    let end_idx = Stdlib.max start_idx (Stdlib.min to_ str_length) in
-    if start_idx >= end_idx then ""
-    else Stdlib.String.sub str start_idx (end_idx - start_idx)
-
-  let sliceToEnd ~from str =
-    let str_length = Stdlib.String.length str in
-    let start_idx = Stdlib.max 0 (Stdlib.min from str_length) in
-    Stdlib.String.sub str start_idx (str_length - start_idx)
-
-  let split _str _delimiter = notImplemented "Js.String" "split"
-
-  let splitAtMost _separator ~limit:_ _str =
-    notImplemented "Js.String" "mplemented"
-
-  let splitByRe _ _ = notImplemented "Js.String" "splitByRe"
-  let splitByReAtMost _ _ = notImplemented "Js.String" "splitByReAtMost"
-
-  let startsWith prefix str =
-    Stdlib.String.length prefix <= Stdlib.String.length str
-    && Stdlib.String.sub str 0 (Stdlib.String.length prefix) = prefix
-
-  let startsWithFrom _str _index _ = notImplemented "Js.String" "mplemented"
-
-  let substr ~from str =
-    let str_length = Stdlib.String.length str in
-    let start_idx = Stdlib.max 0 (Stdlib.min from str_length) in
-    if start_idx >= str_length then ""
-    else Stdlib.String.sub str start_idx (str_length - start_idx)
-
-  let substrAtMost ~from ~length str =
-    let str_length = Stdlib.String.length str in
-    let start_idx = max 0 (min from str_length) in
-    let end_idx = min (start_idx + length) str_length in
-    if start_idx >= end_idx then ""
-    else Stdlib.String.sub str start_idx (end_idx - start_idx)
-
-  let substring ~from ~to_ str =
-    let length = Stdlib.String.length str in
-    let start_idx = max 0 (min from length) in
-    let end_idx = max 0 (min to_ length) in
-    if start_idx >= end_idx then
-      Stdlib.String.sub str end_idx (start_idx - end_idx)
-    else Stdlib.String.sub str start_idx (end_idx - start_idx)
-
-  let substringToEnd ~from str =
-    let length = Stdlib.String.length str in
-    if from >= length then ""
-    else if from < 0 then str
-    else Stdlib.String.sub str from (length - from)
-
-  let toLowerCase str = Stdlib.String.lowercase_ascii str
-  let toLocaleLowerCase _ _ = notImplemented "Js.String" "toLocaleLowerCase"
-  let toUpperCase str = Stdlib.String.uppercase_ascii str
-  let toLocaleUpperCase _ _ = notImplemented "Js.String" "toLocaleUpperCase"
-
-  let trim str =
-    let whitespace = " \t\n\r" in
-    let is_whitespace c = Stdlib.String.contains whitespace c in
-    let length = Stdlib.String.length str in
-    let rec trim_start idx =
-      if idx >= length then length
-      else if is_whitespace (Stdlib.String.get str idx) then trim_start (idx + 1)
-      else idx
-    in
-    let rec trim_end idx =
-      if idx <= 0 then 0
-      else if is_whitespace (Stdlib.String.get str (idx - 1)) then
-        trim_end (idx - 1)
-      else idx
-    in
-    let start_idx = trim_start 0 in
-    let end_idx = trim_end length in
-    if start_idx >= end_idx then ""
-    else Stdlib.String.sub str start_idx (end_idx - start_idx)
-
-  let anchor _ _ = notImplemented "Js.String" "anchor"
-  let link _ _ = notImplemented "Js.String" "link"
-  let castToArrayLike _ _ = notImplemented "Js.String" "castToArrayLike"
 end
 
 module String2 = struct
@@ -1065,7 +747,7 @@ module String2 = struct
 
   let replace _ _ _ = notImplemented "Js.String2" "replace"
 
-  let replaceByRe pattern replacement str =
+  let replaceByRe str pattern replacement =
     let rec replace_all str =
       match Re.exec_ pattern str with
       | None -> str
@@ -1183,6 +865,67 @@ module String2 = struct
   let anchor _ _ = notImplemented "Js.String2" "anchor"
   let link _ _ = notImplemented "Js.String2" "link"
   let castToArrayLike _ _ = notImplemented "Js.String2" "castToArrayLike"
+end
+
+module String = struct
+  type t = string
+  (** JavaScript String API *)
+
+  (* TODO (davesnx): This changes the interface from String() *)
+  let make i ch = Stdlib.String.make i ch
+  let fromCharCode = String2.fromCharCode
+  let fromCharCodeMany _ = notImplemented "Js.String" "fromCharCodeMany"
+  let fromCodePoint = String2.fromCodePoint
+  let fromCodePointMany _ = notImplemented "Js.String" "fromCodePointMany"
+  let length = String2.length
+  let get index str = String2.get str index
+  let charAt index str = String2.charAt str index
+  let charCodeAt index str = String2.charCodeAt str index
+  let codePointAt index str = String2.codePointAt str index
+  let concatMany many original = String2.concatMany original many
+  let endsWith suffix str = String2.endsWith str suffix
+  let endsWithFrom from suffix str = String2.endsWithFrom str from suffix
+  let includes sub str = String2.includes str sub
+  let includesFrom from sub str = String2.includesFrom str sub from
+  let indexOf pattern str = String2.indexOf str pattern
+  let indexOfFrom from pattern str = String2.indexOfFrom str pattern from
+  let localeCompare _ _ = notImplemented "Js.String" "localeCompare"
+  let match_ _ _ = notImplemented "Js.String" "match_"
+  let normalize _ _ = notImplemented "Js.String" "normalize"
+  let normalizeByForm _ _ = notImplemented "Js.String" "normalizeByForm"
+  let replace _ _ _ = notImplemented "Js.String" "replace"
+
+  let replaceByRe regex replacer input =
+    String2.replaceByRe input regex replacer
+
+  let unsafeReplaceBy0 _ _ = notImplemented "Js.String" "unsafeReplaceBy0"
+  let unsafeReplaceBy1 _ _ = notImplemented "Js.String" "unsafeReplaceBy1"
+  let unsafeReplaceBy2 _ _ = notImplemented "Js.String" "unsafeReplaceBy2"
+  let unsafeReplaceBy3 _ _ = notImplemented "Js.String" "unsafeReplaceBy3"
+  let search _ _ = notImplemented "Js.String" "search"
+  let slice ~from ~to_ str = String2.slice str ~from ~to_
+  let sliceToEnd ~from str = String2.sliceToEnd str ~from
+  let split _str _delimiter = notImplemented "Js.String" "split"
+
+  let splitAtMost _separator ~limit:_ _str =
+    notImplemented "Js.String" "mplemented"
+
+  let splitByRe _ _ = notImplemented "Js.String" "splitByRe"
+  let splitByReAtMost _ _ = notImplemented "Js.String" "splitByReAtMost"
+  let startsWith prefix str = String2.startsWith str prefix
+  let startsWithFrom _str _index _ = notImplemented "Js.String" "mplemented"
+  let substr ~from str = String2.substr str ~from
+  let substrAtMost ~from ~length str = String2.substrAtMost str ~from ~length
+  let substring ~from ~to_ str = String2.substring str ~from ~to_
+  let substringToEnd ~from str = String2.substringToEnd str ~from
+  let toLowerCase = String2.toLowerCase
+  let toLocaleLowerCase _ _ = notImplemented "Js.String" "toLocaleLowerCase"
+  let toUpperCase = String2.toUpperCase
+  let toLocaleUpperCase _ _ = notImplemented "Js.String" "toLocaleUpperCase"
+  let trim = String2.trim
+  let anchor _ _ = notImplemented "Js.String" "anchor"
+  let link _ _ = notImplemented "Js.String" "link"
+  let castToArrayLike _ _ = notImplemented "Js.String" "castToArrayLike"
 end
 
 module Promise = struct
