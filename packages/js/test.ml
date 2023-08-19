@@ -18,6 +18,7 @@ let assert_dict_entries type_ left right =
 let assert_int_dict_entries = assert_dict_entries Alcotest.int
 let assert_string_dict_entries = assert_dict_entries Alcotest.string
 let assert_option_int = assert_option Alcotest.int
+(* let assert_option_string = assert_option Alcotest.string *)
 
 let assert_int left right =
   Alcotest.check Alcotest.int "should be equal" right left
@@ -209,18 +210,27 @@ let string2_tests =
              localeCompare "cat" "CAT" > 0.0
           ());
       *)
-      (* case "match" (fun () ->
-         assert_string_array
-               (match_ [%bs.re "/b[aeiou]t/"] "The better bats"
-               |> Stdlib.Option.get)
-               [| "bet" |]; *)
-      (* match_ [%re "/b[aeiou]t/"] "The better bats" = Some [|"bet"|]
-            match_ [%re "/b[aeiou]t/g"] "The better bats" = Some [|"bet";"bat"|]
-            match_ [%re "/(\\d+)-(\\d+)-(\\d+)/"] "Today is 2018-04-05." =
-              Some [|"2018-04-05"; "2018"; "04"; "05"|]
-            match_ [%re "/b[aeiou]g/"] "The large container." = None
-         ());
-      *)
+      case "match" (fun () ->
+          let unsafe_match r s = Js.String2.match_ r s |> Stdlib.Option.get in
+          assert_string_array
+            (unsafe_match "The better bats" [%re "/b[aeiou]t/"])
+            [| "bet" |]);
+      case "match" (fun () ->
+          let unsafe_match s r =
+            Js.String2.match_ r s |> Stdlib.Option.value ~default:[||]
+          in
+          assert_string_array
+            (unsafe_match [%re "/b[aeiou]t/"] "The better bats")
+            [| "bet" |];
+          assert_string_array
+            (unsafe_match [%re "/b[aeiou]t/g"] "The better bats")
+            [| "bet"; "bat" |];
+          assert_string_array
+            (unsafe_match [%re "/(\\d+)-(\\d+)-(\\d+)/"] "Today is 2018-04-05.")
+            [| "2018-04-05"; "2018"; "04"; "05" |];
+          assert_string_array
+            (unsafe_match [%re "/b[aeiou]g/"] "The large container.")
+            [||]);
       case "repeat" (fun () ->
           assert_string (Js.String2.repeat "ha" 3) "hahaha";
           assert_string (Js.String2.repeat "empty" 0) "");
@@ -507,6 +517,6 @@ let promise_tests =
     ] )
 
 let () =
-  Alcotest_lwt.run "Promise"
+  Alcotest_lwt.run "Js"
     [ promise_tests; string2_tests; re_tests; array_tests; dict_tests ]
   |> Lwt_main.run

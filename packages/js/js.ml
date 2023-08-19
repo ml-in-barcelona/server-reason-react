@@ -590,7 +590,6 @@ module Re = struct
       let substrings = Pcre.exec ~rex ~pos:regexp.lastIndex str in
       let _, lastIndex = Pcre.get_substring_ofs substrings 0 in
       regexp.lastIndex <- lastIndex;
-      print_endline @@ string_of_int regexp.lastIndex;
       Some { substrings }
     with Not_found -> None
 
@@ -734,7 +733,33 @@ module String2 = struct
     last_index_helper str pattern max_index max_index
 
   let localeCompare _ _ = notImplemented "Js.String2" "localeCompare"
-  let match_ _ _ = notImplemented "Js.String2" "match_"
+
+  let match_ str regex =
+    let match_next str regex =
+      match Re.exec_ regex str with
+      | None -> None
+      | Some result -> Some (Re.matches result)
+    in
+
+    let rec match_all str regex =
+      match Re.exec_ regex str with
+      | None -> None
+      | Some result ->
+          Re.setLastIndex regex 0;
+          let matches = Re.matches result in
+          let matched_str = Stdlib.Array.get matches 0 in
+          let suffix_start = Re.index result + String.length matched_str in
+          let suffix =
+            Stdlib.String.sub str suffix_start (String.length str - suffix_start)
+          in
+          let suffix_matches =
+            match_all suffix regex |> Stdlib.Option.value ~default:[||]
+          in
+          Some (Stdlib.Array.append matches suffix_matches)
+    in
+
+    if Re.global regex then match_all str regex else match_next str regex
+
   let normalize _ _ = notImplemented "Js.String2" "normalize"
   let normalizeByForm _ _ = notImplemented "Js.String2" "normalizeByForm"
 
@@ -801,8 +826,39 @@ module String2 = struct
   let splitAtMost _str _separator ~limit:_ =
     notImplemented "Js.String2" "mplemented"
 
-  let splitByRe _ _ = notImplemented "Js.String2" "splitByRe"
   let splitByReAtMost _ _ = notImplemented "Js.String2" "splitByReAtMost"
+
+  let splitByRe str pattern =
+    let rec split_all str acc =
+      match Re.exec_ pattern str with
+      | None -> List.rev (str :: acc)
+      | Some result ->
+          Re.setLastIndex pattern 0;
+          let matches = Re.matches result in
+          let matched_str = Stdlib.Array.get matches 0 in
+          let prefix = String.sub str 0 (Re.index result) in
+          let suffix_start = Re.index result + String.length matched_str in
+          let suffix =
+            String.sub str suffix_start (String.length str - suffix_start)
+          in
+          split_all suffix (prefix :: acc)
+    in
+
+    let split_next str acc =
+      match Re.exec_ pattern str with
+      | None -> List.rev (str :: acc)
+      | Some result ->
+          let matches = Re.matches result in
+          let matched_str = Stdlib.Array.get matches 0 in
+          let prefix = String.sub str 0 (Re.index result) in
+          let suffix_start = Re.index result + String.length matched_str in
+          let suffix =
+            String.sub str suffix_start (String.length str - suffix_start)
+          in
+          prefix :: split_all suffix acc
+    in
+
+    if Re.global pattern then split_all str [] else split_next str []
 
   let startsWith str prefix =
     Stdlib.String.length prefix <= Stdlib.String.length str
@@ -890,7 +946,7 @@ module String = struct
   let indexOf pattern str = String2.indexOf str pattern
   let indexOfFrom from pattern str = String2.indexOfFrom str pattern from
   let localeCompare _ _ = notImplemented "Js.String" "localeCompare"
-  let match_ _ _ = notImplemented "Js.String" "match_"
+  let match_ regex str = String2.match_ str regex
   let normalize _ _ = notImplemented "Js.String" "normalize"
   let normalizeByForm _ _ = notImplemented "Js.String" "normalizeByForm"
   let replace _ _ _ = notImplemented "Js.String" "replace"
