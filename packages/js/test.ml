@@ -316,9 +316,18 @@ let string2_tests =
                [| "ant"; "bee"; "cat"; "dog"; "elk" |] *)
           ());
       case "splitByRe" (fun () ->
-          (* assert_string_array (splitByRe [%re "/\\s*[,;]\\s*/"] "art; bed , cog ;dad") [| Some "art"; Some "bed"; Some "cog"; Some "dad" |];
-             assert_string_array (splitByRe [%re "/[,;]/"] "has:no:match" [| Some "has:no:match" |] splitByRe [%re "/(#)(:)?/"] "a#b#:c") [|Some "a"; Some "#"; None; Some "b"; Some "#"; Some ":"; Some "c"; |]; *)
-          ());
+          let unsafe_splitByRe r s =
+            Js.String2.splitByRe r s |> Stdlib.Array.map Stdlib.Option.get
+          in
+          assert_string_array
+            (unsafe_splitByRe "art; bed , cog ;dad" [%re "/\\s*[,;]\\s*/"])
+            [| "art"; "bed"; "cog"; "dad" |];
+          assert_string_array
+            (unsafe_splitByRe "has:no:match" [%re "/[,;]/"])
+            [| "has:no:match" |];
+          assert_string_array
+            (unsafe_splitByRe "a#b#c" [%re "/(#)(:)?/g"])
+            [| "a"; "b"; "c" |]);
       case "splitByReAtMost" (fun () ->
           (* assert_string_array
                (splitByReAtMost [%re "/\\s*:\\s*/"] ~limit:3

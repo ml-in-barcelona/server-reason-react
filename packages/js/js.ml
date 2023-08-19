@@ -829,9 +829,12 @@ module String2 = struct
   let splitByReAtMost _ _ = notImplemented "Js.String2" "splitByReAtMost"
 
   let splitByRe str pattern =
+    let rev_array arr =
+      arr |> Stdlib.Array.to_list |> Stdlib.List.rev |> Stdlib.Array.of_list
+    in
     let rec split_all str acc =
       match Re.exec_ pattern str with
-      | None -> List.rev (str :: acc)
+      | None -> Stdlib.Array.append [| Some str |] acc |> rev_array
       | Some result ->
           Re.setLastIndex pattern 0;
           let matches = Re.matches result in
@@ -841,13 +844,15 @@ module String2 = struct
           let suffix =
             String.sub str suffix_start (String.length str - suffix_start)
           in
-          split_all suffix (prefix :: acc)
+          let suffix_matches = Stdlib.Array.append [| Some prefix |] acc in
+          split_all suffix suffix_matches
     in
 
     let split_next str acc =
       match Re.exec_ pattern str with
-      | None -> List.rev (str :: acc)
+      | None -> Stdlib.Array.append [| Some str |] acc |> rev_array
       | Some result ->
+          Re.setLastIndex pattern 0;
           let matches = Re.matches result in
           let matched_str = Stdlib.Array.get matches 0 in
           let prefix = String.sub str 0 (Re.index result) in
@@ -855,10 +860,10 @@ module String2 = struct
           let suffix =
             String.sub str suffix_start (String.length str - suffix_start)
           in
-          prefix :: split_all suffix acc
+          Stdlib.Array.append [| Some prefix |] (split_all suffix acc)
     in
 
-    if Re.global pattern then split_all str [] else split_next str []
+    if Re.global pattern then split_all str [||] else split_next str [||]
 
   let startsWith str prefix =
     Stdlib.String.length prefix <= Stdlib.String.length str
