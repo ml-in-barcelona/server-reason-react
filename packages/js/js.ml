@@ -1538,8 +1538,8 @@ module Float = struct
   (** Provides functions for inspecting and manipulating [float]s *)
 
   let _NaN = Stdlib.Float.nan
-  let isNaN _ = notImplemented "Js.Float" "isNaN"
-  let isFinite _ = notImplemented "Js.Float" "isFinite"
+  let isNaN float = Stdlib.Float.is_nan float
+  let isFinite float = Stdlib.Float.is_finite float
   let toExponential _ = notImplemented "Js.Float" "toExponential"
 
   let toExponentialWithPrecision _ ~digits:_ =
@@ -1555,12 +1555,13 @@ module Float = struct
   let toPrecisionWithPrecision _ ~digits:_ =
     notImplemented "Js.Float" "toPrecisionWithPrecision"
 
-  let toString _ = notImplemented "Js.Float" "toString"
+  (* TODO: This isn't equivalent *)
+  let toString = Stdlib.string_of_float
 
   let toStringWithRadix _ ~radix:_ =
     notImplemented "Js.Float" "toStringWithRadix"
 
-  let fromString _ = notImplemented "Js.Float" "fromString"
+  let fromString = Stdlib.float_of_string
 end
 
 module Int = struct
@@ -1576,10 +1577,10 @@ module Int = struct
   let toPrecisionWithPrecision _ ~digits:_ =
     notImplemented "Js.Int" "toPrecisionWithPrecision"
 
-  let toString _ = notImplemented "Js.Int" "toString"
+  let toString int = Stdlib.string_of_int int
   let toStringWithRadix _ ~radix:_ = notImplemented "Js.Int" "toStringWithRadix"
-  let toFloat _ = notImplemented "Js.Int" "toFloat"
-  let equal _a _b = notImplemented "Js.Int" "equal"
+  let toFloat int = Stdlib.float_of_int int
+  let equal = Stdlib.String.equal
   let max = 2147483647
   let min = -2147483648
 end
