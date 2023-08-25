@@ -255,7 +255,7 @@ module Headers = struct
   (* very experimental *)
 
   external get : string -> string option = "get"
-    [@@bs.send.pipe: t] [@@bs.return { null_to_opt }]
+  [@@bs.send.pipe: t] [@@bs.return { null_to_opt }]
 
   external has : string -> bool = "has" [@@bs.send.pipe: t]
   (* keys *)
@@ -322,7 +322,7 @@ module RequestInit = struct
     ?signal:signal ->
     unit ->
     requestInit = ""
-    [@@bs.obj]
+  [@@bs.obj]
 
   let make ?(method_ : requestMethod option) ?(headers : headersInit option)
       ?(body : bodyInit option) ?(referrer : string option)
@@ -408,7 +408,7 @@ module Response = struct
   external redirect : string -> t = "redirect" [@@bs.val]
 
   external redirectWithStatus : string -> int (* enum-ish *) -> t = "redirect"
-    [@@bs.val]
+  [@@bs.val]
 
   external headers : t -> headers = "headers" [@@bs.get]
   external ok : t -> bool = "ok" [@@bs.get]
@@ -446,25 +446,25 @@ module FormData = struct
 
   external appendObject : string -> < .. > Js.t -> ?filename:string -> unit
     = "append"
-    [@@bs.send.pipe: t]
+  [@@bs.send.pipe: t]
 
   external appendBlob : string -> blob -> ?filename:string -> unit = "append"
-    [@@bs.send.pipe: t]
+  [@@bs.send.pipe: t]
 
   external appendFile : string -> file -> ?filename:string -> unit = "append"
-    [@@bs.send.pipe: t]
+  [@@bs.send.pipe: t]
 
   external setObject : string -> < .. > Js.t -> ?filename:string -> unit = "set"
-    [@@bs.send.pipe: t]
+  [@@bs.send.pipe: t]
 
   external setBlob : string -> blob -> ?filename:string -> unit = "set"
-    [@@bs.send.pipe: t]
+  [@@bs.send.pipe: t]
 
   external setFile : string -> file -> ?filename:string -> unit = "set"
-    [@@bs.send.pipe: t]
+  [@@bs.send.pipe: t]
 
   external entries : t -> (string * EntryValue.t) Iterator.t = "entries"
-    [@@bs.send]
+  [@@bs.send]
 end
 
 (* external fetch : string -> response Js.Promise.t = "fetch" [@@bs.val]

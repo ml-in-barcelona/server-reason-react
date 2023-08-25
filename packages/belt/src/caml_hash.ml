@@ -43,15 +43,15 @@ let caml_hash_mix_string h s =
   done;
   let modulo = len land 3 in
   (if modulo <> 0 then
-   let w =
-     if modulo = 3 then
-       (Char.code s.[len - 1] lsl 16)
-       lor (Char.code s.[len - 2] lsl 8)
-       lor Char.code s.[len - 3]
-     else if modulo = 2 then
-       (Char.code s.[len - 1] lsl 8) lor Char.code s.[len - 2]
-     else Char.code s.[len - 1]
-   in
-   hash := caml_hash_mix_int !hash (Nativeint.of_int w));
+     let w =
+       if modulo = 3 then
+         (Char.code s.[len - 1] lsl 16)
+         lor (Char.code s.[len - 2] lsl 8)
+         lor Char.code s.[len - 3]
+       else if modulo = 2 then
+         (Char.code s.[len - 1] lsl 8) lor Char.code s.[len - 2]
+       else Char.code s.[len - 1]
+     in
+     hash := caml_hash_mix_int !hash (Nativeint.of_int w));
   hash := !hash ^ Nativeint.of_int len;
   !hash

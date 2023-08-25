@@ -15,8 +15,8 @@ let get arr i =
 
 let getExn arr i =
   (if Stdlib.not (i >= 0 && i < length arr) then
-   let error = Printf.sprintf "File %s, line %d" __FILE__ __LINE__ in
-   Js.Exn.raiseError error);
+     let error = Printf.sprintf "File %s, line %d" __FILE__ __LINE__ in
+     Js.Exn.raiseError error);
   getUnsafe arr i
 
 let set arr i v =
@@ -461,7 +461,7 @@ let unzip a =
 
 let sliceToEnd a offset =
   let lena = length a in
-  let ofs = if offset < 0 then Pervasives.max (lena + offset) 0 else offset in
+  let ofs = if offset < 0 then Stdlib.max (lena + offset) 0 else offset in
   let len = if lena > ofs then lena - ofs else 0 in
   Stdlib.Array.init len (fun i -> getUnsafe a (ofs + i))
 
@@ -522,7 +522,6 @@ let init n f = initU n (fun i -> f i)
 let push arr i =
   let len = length arr in
   setUnsafe arr (len + 1) i
-  [@@deprecated
-    "You should use `concat` instead. Since in JavaScript \
-     `Array.prototype.push` mutates the array reference, and it is not \
-     possible in native OCaml."]
+[@@deprecated
+  "You should use `concat` instead. Since in JavaScript `Array.prototype.push` \
+   mutates the array reference, and it is not possible in native OCaml."]

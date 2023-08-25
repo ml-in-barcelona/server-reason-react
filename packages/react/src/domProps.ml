@@ -1524,7 +1524,6 @@ let svgElements =
     { tag = "use"; attributes = commonSvgAttributes };
     { tag = "view"; attributes = commonSvgAttributes };
   ]
-
 [@@@ocamlformat "enable"]
 
 let elements = svgElements & htmlElements

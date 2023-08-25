@@ -118,7 +118,7 @@ let browser_only_on_structure_item =
             [%stri
               let [%p pattern] =
                fun [%p fun_pattern] -> [%e pexp_fun_to_last message expr]
-               [@@warning "-27"]]
+              [@@warning "-27"]]
         | _expr -> do_nothing rec_flag)
   in
   Context_free.Rule.extension

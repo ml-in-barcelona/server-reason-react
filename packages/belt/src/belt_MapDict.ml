@@ -158,7 +158,7 @@ let split n x ~cmp =
   match N.toOpt n with
   | None ->
       ( (let open N in
-        (empty, empty)),
+         (empty, empty)),
         None )
   | Some n ->
       let pres = ref None in
