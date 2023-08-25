@@ -24,7 +24,7 @@
  (synopsis "Rendering React components on the server natively")
  (depends
   ;; General system dependencies
-  (ocaml (and (>= 4.12.0) (< 5.0.0)))
+  (ocaml (and (>= 4.12.0) (< 5.2.0)))
   (reason (>= 3.8.1))
   melange
 
@@ -41,6 +41,6 @@
   (fmt :with-test)
 
   ;; Dev dependencies, using with-test so that consumers don't install them (until package is released in opam)
-  (ocamlformat (and (= 0.21.0) :with-test))
+  (ocamlformat :with-test)
   (ocaml-lsp-server :with-test)
 ))

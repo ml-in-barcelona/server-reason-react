@@ -461,7 +461,7 @@ let unzip a =
 
 let sliceToEnd a offset =
   let lena = length a in
-  let ofs = if offset < 0 then Pervasives.max (lena + offset) 0 else offset in
+  let ofs = if offset < 0 then Stdlib.max (lena + offset) 0 else offset in
   let len = if lena > ofs then lena - ofs else 0 in
   Stdlib.Array.init len (fun i -> getUnsafe a (ofs + i))
 
