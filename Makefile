@@ -60,7 +60,7 @@ pin: ## Pin dependencies
 
 .PHONY: create-switch
 create-switch: ## Create opam switch
-	@opam switch create . 4.14.0 --deps-only --with-test
+	@opam switch create . 4.14.0 --deps-only --with-test -y
 
 .PHONY: install
 install: create-switch pin ## Install dependencies
