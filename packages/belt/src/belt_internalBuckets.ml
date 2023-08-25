@@ -133,7 +133,7 @@ let rec filterMapInplaceBucket f h i prec cell =
       match C.toOpt n with
       | None -> nextSet cell n
       | Some nextCell -> filterMapInplaceBucket f h i bucket nextCell)
-  [@@ocaml.doc " iterate the Buckets, in place remove the elements "]
+[@@ocaml.doc " iterate the Buckets, in place remove the elements "]
 
 let keepMapInPlaceU h f =
   let h_buckets = C.buckets h in

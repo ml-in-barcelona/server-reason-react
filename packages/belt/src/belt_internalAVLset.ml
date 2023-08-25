@@ -269,13 +269,13 @@ let rec fillArrayWithPartition n cursor arr p =
   | None -> ()
   | Some l -> fillArrayWithPartition l cursor arr p);
   (if p v then (
-   let c = forward cursor in
-   A.setUnsafe arr c v;
-   forwardSet cursor (c + 1))
-  else
-    let c = backward cursor in
-    A.setUnsafe arr c v;
-    backwardSet cursor (c - 1));
+     let c = forward cursor in
+     A.setUnsafe arr c v;
+     forwardSet cursor (c + 1))
+   else
+     let c = backward cursor in
+     A.setUnsafe arr c v;
+     backwardSet cursor (c - 1));
   match toOpt r with
   | None -> ()
   | Some r -> fillArrayWithPartition r cursor arr p
@@ -485,7 +485,7 @@ let doubleWithLeftChild k3 =
   let v = return (rotateWithRightChild (unsafeCoerce (left k3))) in
   leftSet k3 v;
   rotateWithLeftChild k3
-  [@@ocaml.doc " "]
+[@@ocaml.doc " "]
 
 let doubleWithRightChild k2 =
   let v = return (rotateWithLeftChild (unsafeCoerce (right k2))) in
@@ -545,9 +545,9 @@ let fromArray (xs : _ array) ~cmp =
     let result =
       ref
         (if !next >= 0 then fromSortedArrayAux xs 0 !next
-        else (
-          next := - !next;
-          fromSortedArrayRevAux xs (!next - 1) !next))
+         else (
+           next := - !next;
+           fromSortedArrayRevAux xs (!next - 1) !next))
     in
     for i = !next to len - 1 do
       result := addMutate ~cmp !result (A.getUnsafe xs i)

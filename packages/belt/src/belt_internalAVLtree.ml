@@ -382,13 +382,13 @@ let rec fillArrayWithPartition n cursor arr p =
   | None -> ()
   | Some l -> fillArrayWithPartition l cursor arr p);
   (if p v then (
-   let c = forward cursor in
-   A.setUnsafe arr c (v, value n);
-   forwardSet cursor (c + 1))
-  else
-    let c = backward cursor in
-    A.setUnsafe arr c (v, value n);
-    backwardSet cursor (c - 1));
+     let c = forward cursor in
+     A.setUnsafe arr c (v, value n);
+     forwardSet cursor (c + 1))
+   else
+     let c = backward cursor in
+     A.setUnsafe arr c (v, value n);
+     backwardSet cursor (c - 1));
   match toOpt r with
   | None -> ()
   | Some r -> fillArrayWithPartition r cursor arr p
@@ -663,9 +663,9 @@ let fromArray (xs : _ array) ~cmp =
     let result =
       ref
         (if !next >= 0 then fromSortedArrayAux xs 0 !next
-        else (
-          next := - !next;
-          fromSortedArrayRevAux xs (!next - 1) !next))
+         else (
+           next := - !next;
+           fromSortedArrayRevAux xs (!next - 1) !next))
     in
     for i = !next to len - 1 do
       let k, v = A.getUnsafe xs i in

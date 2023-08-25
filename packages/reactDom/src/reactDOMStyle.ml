@@ -686,7 +686,6 @@ let make
   |> add "word-wrap" wordWrap
   |> add "writing-mode" writingMode
   |> add "z-index" zIndex
-
 [@@@ocamlformat "enable"]
 
 let to_string (styles : t) : string =

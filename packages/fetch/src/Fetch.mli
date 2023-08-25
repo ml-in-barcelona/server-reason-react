@@ -116,7 +116,7 @@ module Headers : sig
   (* very experimental *)
 
   external get : string -> string option = "get"
-    [@@bs.send.pipe: t] [@@bs.return { null_to_opt }]
+  [@@bs.send.pipe: t] [@@bs.return { null_to_opt }]
 
   external has : string -> bool = "has" [@@bs.send.pipe: t]
   (* keys *)
@@ -215,7 +215,7 @@ module Response : sig
   external redirect : string -> t = "redirect" [@@bs.val]
 
   external redirectWithStatus : string -> int (* enum-ish *) -> t = "redirect"
-    [@@bs.val]
+  [@@bs.val]
 
   external headers : t -> headers = "headers" [@@bs.get]
   external ok : t -> bool = "ok" [@@bs.get]
@@ -266,27 +266,27 @@ module FormData : sig
 
   external appendObject : string -> < .. > Js.t -> ?filename:string -> unit
     = "append"
-    [@@bs.send.pipe: t]
+  [@@bs.send.pipe: t]
   (** This is for React Native compatibility purposes *)
 
   external appendBlob : string -> blob -> ?filename:string -> unit = "append"
-    [@@bs.send.pipe: t]
+  [@@bs.send.pipe: t]
 
   external appendFile : string -> file -> ?filename:string -> unit = "append"
-    [@@bs.send.pipe: t]
+  [@@bs.send.pipe: t]
 
   external setObject : string -> < .. > Js.t -> ?filename:string -> unit = "set"
-    [@@bs.send.pipe: t]
+  [@@bs.send.pipe: t]
   (** This is for React Native compatibility purposes *)
 
   external setBlob : string -> blob -> ?filename:string -> unit = "set"
-    [@@bs.send.pipe: t]
+  [@@bs.send.pipe: t]
 
   external setFile : string -> file -> ?filename:string -> unit = "set"
-    [@@bs.send.pipe: t]
+  [@@bs.send.pipe: t]
 
   external entries : t -> (string * EntryValue.t) Iterator.t = "entries"
-    [@@bs.send]
+  [@@bs.send]
 end
 
 (* Unsure why Js.Promise is unbound module *)

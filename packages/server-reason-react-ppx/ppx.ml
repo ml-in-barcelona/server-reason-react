@@ -1125,7 +1125,7 @@ let jsxMapper () =
         pstr_desc =
           Pstr_primitive
             ({ pval_name = { txt = fnName }; pval_attributes; pval_type } as
-            value_description);
+             value_description);
       } as pstr -> (
         match List.filter hasAttr pval_attributes with
         | [] -> structure :: returnStructures
@@ -1201,7 +1201,7 @@ let jsxMapper () =
         psig_desc =
           Psig_value
             ({ pval_name = { txt = fnName }; pval_attributes; pval_type } as
-            psig_desc);
+             psig_desc);
       } as psig -> (
         match List.filter hasAttr pval_attributes with
         | [] -> signature :: returnSignatures
