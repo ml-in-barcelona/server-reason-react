@@ -206,9 +206,9 @@ let fromArray (xs : (key * _) array) =
     let result =
       ref
         (if !next >= 0 then N.fromSortedArrayAux xs 0 !next
-        else (
-          next := - !next;
-          N.fromSortedArrayRevAux xs (!next - 1) !next))
+         else (
+           next := - !next;
+           N.fromSortedArrayRevAux xs (!next - 1) !next))
     in
     for i = !next to len - 1 do
       let k, v = A.getUnsafe xs i in

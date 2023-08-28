@@ -28,19 +28,29 @@ let effect_rule =
 
 let browser_only_value_binding pattern expression =
   let loc = pattern.ppat_loc in
+  let rec last_expr_to_raise_impossbile name expr =
+    match expr.pexp_desc with
+    | Pexp_fun (_arg_label, _arg_expression, pattern, expr) ->
+        [%expr
+          fun [%p pattern] ->
+            ([%e last_expr_to_raise_impossbile name expr] [@warning "-27"])]
+    | _ ->
+        let message = Builder.estring ~loc name in
+        [%expr raise (ReactDOM.Impossible_in_ssr [%e message])]
+  in
   match pattern with
   | [%pat? ()] -> Builder.value_binding ~loc ~pat:pattern ~expr:[%expr ()]
   | _ -> (
       match expression.pexp_desc with
-      | Pexp_fun (_arg_label, _arg_expression, fun_pattern, _expression) ->
+      | Pexp_fun (_arg_label, _arg_expression, fun_pattern, expr) ->
           let stringified = Ppxlib.Pprintast.string_of_expression expression in
-          let message = Builder.estring ~loc stringified in
-          Builder.value_binding ~loc ~pat:pattern
-            ~expr:
-              [%expr
-                fun [%p fun_pattern] ->
-                  (raise
-                     (ReactDOM.Impossible_in_ssr [%e message]) [@warning "-27"])]
+          let expr = last_expr_to_raise_impossbile stringified expression in
+          let vb = Builder.value_binding ~loc ~pat:pattern ~expr in
+          let warning27 =
+            Builder.attribute ~loc ~name:{ txt = "warning"; loc }
+              ~payload:(PStr [ [%stri "-27"] ])
+          in
+          { vb with pvb_attributes = [ warning27 ] }
       | _ ->
           Builder.value_binding ~loc ~pat:pattern
             ~expr:
@@ -61,8 +71,7 @@ let browser_only_on_expressions_rule =
               Ppxlib.Pprintast.string_of_expression expression
             in
             let message = Builder.estring ~loc stringified in
-            [%expr
-              raise ReactDOM.Impossible_in_ssr [%e message] [@warning "-27"]]
+            [%expr raise ReactDOM.Impossible_in_ssr [%e message]]
         | Pexp_fun (_arg_label, _arg_expression, fun_pattern, _expression) ->
             let stringified = Ppxlib.Pprintast.string_of_expression payload in
             let message = Builder.estring ~loc stringified in
@@ -70,12 +79,15 @@ let browser_only_on_expressions_rule =
               fun [%p fun_pattern] ->
                 (raise ReactDOM.Impossible_in_ssr [%e message] [@warning "-27"])]
         | Pexp_let (rec_flag, value_bindings, expression) ->
-            Builder.pexp_let ~loc rec_flag
-              (List.map
-                 (fun binding ->
-                   browser_only_value_binding binding.pvb_pat binding.pvb_expr)
-                 value_bindings)
-              expression
+            let pexp_let =
+              Builder.pexp_let ~loc rec_flag
+                (List.map
+                   (fun binding ->
+                     browser_only_value_binding binding.pvb_pat binding.pvb_expr)
+                   value_bindings)
+                expression
+            in
+            [%expr [%e pexp_let] [@warning "-27"]]
         | _ ->
             [%expr
               [%ocaml.error
@@ -100,10 +112,11 @@ let browser_only_on_structure_item =
       | Recursive -> [%stri let rec [%p pattern] = [%e expression]]
       | Nonrecursive -> [%stri let [%p pattern] = [%e expression]]
     in
-    let rec pexp_fun_to_last name expr =
+    let rec last_expr_to_raise_impossbile name expr =
       match expr.pexp_desc with
       | Pexp_fun (_arg_label, _arg_expression, pattern, expr) ->
-          [%expr fun [%p pattern] -> [%e pexp_fun_to_last name expr]]
+          [%expr
+            fun [%p pattern] -> [%e last_expr_to_raise_impossbile name expr]]
       | _ ->
           let message = Builder.estring ~loc name in
           [%expr raise (ReactDOM.Impossible_in_ssr [%e message])]
@@ -117,7 +130,8 @@ let browser_only_on_structure_item =
             let message = Ppxlib.Pprintast.string_of_expression expression in
             [%stri
               let [%p pattern] =
-               fun [%p fun_pattern] -> [%e pexp_fun_to_last message expr]
+               fun [%p fun_pattern] ->
+                [%e last_expr_to_raise_impossbile message expr]
               [@@warning "-27"]]
         | _expr -> do_nothing rec_flag)
   in
