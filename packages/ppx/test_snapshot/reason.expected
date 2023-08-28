@@ -1,3 +1,5 @@
+let _ =
+  raise(ReactDOM.Impossible_in_ssr, "Webapi.Dom.getElementById \"foo\"");
 [@warning "-27"]
 let loadInitialText = () =>
   raise(ReactDOM.Impossible_in_ssr("fun () -> setHtmlFetchState Loading"));
@@ -14,6 +16,8 @@ let loadInitialText = (argument1, argument2) =>
     ),
   );
 let make = () => {
+  let _ =
+    raise(ReactDOM.Impossible_in_ssr, "Webapi.Dom.getElementById \"foo\"");
   [@warning "-27"]
   let loadInitialText = () =>
     raise(ReactDOM.Impossible_in_ssr("fun () -> setHtmlFetchState Loading"));

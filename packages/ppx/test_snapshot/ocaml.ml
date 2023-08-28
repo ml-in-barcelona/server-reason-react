@@ -128,3 +128,14 @@ let%browser_only valueFromEvent evt = Webapi.Dom.getElementById "foo"
 
 let%browser_only valueFromEvent evt moar_arguments =
   Webapi.Dom.getElementById "foo"
+
+let make () =
+  let _ = [%browser_only Webapi.Dom.getElementById "foo"] in
+  let%browser_only valueFromEvent = Webapi.Dom.getElementById "foo" in
+  let%browser_only valueFromEvent evt = Webapi.Dom.getElementById "foo" in
+
+  let%browser_only valueFromEvent evt moar_arguments =
+    Webapi.Dom.getElementById "foo"
+  in
+
+  React.createElement "div"

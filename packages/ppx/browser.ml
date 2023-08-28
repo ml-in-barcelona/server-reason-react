@@ -67,9 +67,7 @@ let browser_only_on_expressions_rule =
     | Native -> (
         match payload.pexp_desc with
         | Pexp_apply (expression, _) ->
-            let stringified =
-              Ppxlib.Pprintast.string_of_expression expression
-            in
+            let stringified = Ppxlib.Pprintast.string_of_expression payload in
             let message = Builder.estring ~loc stringified in
             [%expr raise ReactDOM.Impossible_in_ssr [%e message]]
         | Pexp_fun (_arg_label, _arg_expression, fun_pattern, _expression) ->
