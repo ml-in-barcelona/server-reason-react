@@ -1,0 +1,7 @@
+(test
+ (name test)
+ (modules :standard)
+ (flags :standard -w -32-27-34)
+ (libraries alcotest fmt server-reason-react.belt server-reason-react.js)
+ (preprocess
+  (pps server-reason-react.ppx)))
