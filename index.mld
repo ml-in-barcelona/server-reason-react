@@ -18,10 +18,16 @@ server-reason-react is an implementation of react-dom/server and some of React's
   // <div><h1>Hello visitor</h1></div>
 ]}
 
+
+{1:core Core}
+
 server-reason-react provides a React and ReactDOM modules with the same interface as reason-react, including the JSX transformation via server-reason-react-ppx.
 
 - {!React} server-reason-react.react
 - {!ReactDOM} server-reason-react.reactDom
+
+
+{1:extra Extra}
 
 Aside from the core modules, there're a few utilities that will be handy to make your frontend code be native. Those are {!Belt}, {!Js}, [Promise], and [Webapi].
 
