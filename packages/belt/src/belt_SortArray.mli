@@ -16,7 +16,7 @@ val strictlySortedLength : 'a array -> ('a -> 'a -> bool) -> int
   return [+n] means increasing order
   [-n] means negative order
 
-  @example{[
+  {[
      strictlySortedLength [|1;2;3;4;3|] (fun x y -> x < y) = 4;;
      strictlySortedLength [||] (fun x y -> x < y) = 0;;
      strictlySortedLength [|1|] (fun x y -> x < y) = 1;;
@@ -29,7 +29,7 @@ val isSortedU : 'a array -> (('a -> 'a -> int)[@bs]) -> bool
 val isSorted : 'a array -> ('a -> 'a -> int) -> bool
 (** [isSorted arr cmp]
     @return true if array is increasingly sorted (equal is okay )
-    @example {[
+    {[
      isSorted [|1;1;2;3;4|] (fun x y -> compare x y) = true
    ]}
 *)
@@ -68,7 +68,7 @@ val binarySearchBy : 'a array -> 'a -> ('a -> 'a -> int) -> int
   for example, if [key] is smaller than all elements return [-1] since [lnot (-1) = 0]
   if [key] is larger than all elements return [- (len + 1)] since [lnot (-(len+1)) = len]
 
-   @example {[
+   {[
      binarySearchBy [|1;2;3;4;33;35;36|] 33 = 4;;
      lnot (binarySearchBy [|1;3;5;7|] 4) = 2;;
    ]}

@@ -1,6 +1,7 @@
 (lang dune 3.8)
 (using melange 0.1)
 (using directory-targets 0.1)
+(using mdx 0.4)
 
 (cram enable)
 
@@ -39,6 +40,10 @@
   (alcotest :with-test)
   (alcotest-lwt :with-test)
   (fmt :with-test)
+
+  ;; Documentation
+  (odoc :with-doc)
+  (mdx :with-doc)
 
   ;; Dev dependencies, using with-test so that consumers don't install them (until package is released in opam)
   (ocamlformat :with-test)

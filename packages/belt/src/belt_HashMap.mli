@@ -1,4 +1,4 @@
-(** A {b mutable} Hash map which allows customized {!hash} behavior.
+(** A {b mutable} Hash map which allows customized {hash} behavior.
 
     All data are parameterized by not its only type but also a unique identity in
     the time of initialization, so that two {i HashMaps of ints} initialized with different
@@ -18,7 +18,7 @@
             ~hash:(fun[\@bs] (a : t)  -> a & 0xff)
             ~eq:(fun[\@bs] a b -> a = b)
         )
-      let s1 : (_, string,_) t  = make ~hintSize:40 ~id:(module I1)
+      let s1 : (_, string,_) t = make ~hintSize:40 ~id:(module I1)
     ]}
 
     The invariant must be held: for two elements who are {i equal},

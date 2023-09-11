@@ -19,9 +19,10 @@ depends: [
   "alcotest" {with-test}
   "alcotest-lwt" {with-test}
   "fmt" {with-test}
+  "odoc" {with-doc}
+  "mdx" {with-doc}
   "ocamlformat" {with-test}
   "ocaml-lsp-server" {with-test}
-  "odoc" {with-doc}
 ]
 build: [
   ["dune" "subst"] {dev}

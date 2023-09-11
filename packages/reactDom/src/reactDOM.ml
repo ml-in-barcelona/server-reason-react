@@ -159,6 +159,8 @@ type context_state = {
   mutable suspense_id : int;
   mutable waiting : int;
 }
+[@@warning "-69"]
+(* stream isn't being used *)
 
 (* https://github.com/facebook/react/blob/493f72b0a7111b601c16b8ad8bc2649d82c184a0/packages/react-dom-bindings/src/server/fizz-instruction-set/ReactDOMFizzInstructionSetShared.js#L46 *)
 let complete_boundary_script =

@@ -1,0 +1,49 @@
+{1:intro Introduction}
+
+server-reason-react is an implementation of react-dom/server and some of React's internals in OCaml. Its purpose is to render HTML markup from the server for a Reason React application natively.
+
+{[
+  module Greetings = {
+    let make = (~name) => {
+      <div>
+        <h1>
+          {React.string("Hello " ++ name)}
+        </h1>
+      </div>
+    }
+  };
+
+  let html = ReactDOM.renderToStaticMarkup(<Greetings name="visitor" />)
+  // <div><h1>Hello visitor</h1></div>
+]}
+
+server-reason-react provides a React and ReactDOM modules with the same interface as reason-react, including the JSX transformation via server-reason-react-ppx.
+
+- {!React} server-reason-react.react
+- {!ReactDOM} server-reason-react.reactDom
+
+Aside from the core modules, there're a few utilities that will be handy to make your frontend code be native. Those are {!Belt}, {!Js}, [Promise], and [Webapi].
+
+All of them are implementation of the same APIs as their originals. The level of stability of those extra libraries is not as ready for production as React or ReactDOM.
+Belt is feature complete and stable while the rest are still alpha, some missing APIs or incorrect functionality.
+
+Visit each API page for more information:
+
+- {!Belt} server-reason-react.belt
+- {!Js} server-reason-react.js
+- server-reason-react.promise
+- server-reason-react.webapi
+
+Also, a few ppxes:
+
+- browser_ppx, to discard code to run on the backend and only on the frontend.
+
+{[
+let%browser_only countDomNodes = (id) => {
+  let elements = Webapi.Element.querySelector("#" ++ id);
+  let arr_elements = Webapi.Element.toArray(elements);
+  Array.length(arr_elements);
+};
+]}
+
+- pipe_first_ppx, to enable pipe first syntax on native
