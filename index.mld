@@ -4,6 +4,7 @@ server-reason-react is an implementation of react-dom/server and some of React's
 
 {[
   module Greetings = {
+    [@react.component]
     let make = (~name) => {
       <div>
         <h1>
