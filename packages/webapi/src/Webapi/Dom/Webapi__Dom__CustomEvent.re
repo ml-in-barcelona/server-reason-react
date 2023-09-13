@@ -5,4 +5,5 @@ include Webapi__Dom__Event.Impl({
 });
 
 [@mel.new] external make: string => t = "CustomEvent";
-[@mel.new] external makeWithOptions: (string, Js.t({..})) => t = "CustomEvent";
+[@mel.new]
+external makeWithOptions: (string, Js.t({..})) => t = "CustomEvent";

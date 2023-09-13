@@ -44,13 +44,15 @@ module Impl = (T: {
   [@mel.get] external location: t_htmlDocument => Dom.location = "location";
   [@mel.set]
   external setLocation: (t_htmlDocument, string) => unit = "location";
-  [@mel.get] external plugins: t_htmlDocument => Dom.htmlCollection = "plugins";
+  [@mel.get]
+  external plugins: t_htmlDocument => Dom.htmlCollection = "plugins";
   [@mel.get]
   external readyState: t_htmlDocument => string /* enum */ = "readyState";
   let readyState: t_htmlDocument => Webapi__Dom__Types.readyState =
     self => Webapi__Dom__Types.decodeReadyState(readyState(self));
   [@mel.get] external referrer: t_htmlDocument => string = "referrer";
-  [@mel.get] external scripts: t_htmlDocument => Dom.htmlCollection = "scripts";
+  [@mel.get]
+  external scripts: t_htmlDocument => Dom.htmlCollection = "scripts";
   [@mel.get] external title: t_htmlDocument => string = "title";
   [@mel.set] external setTitle: (t_htmlDocument, string) => unit = "title";
   [@mel.get] external url: t_htmlDocument => string = "URL";
@@ -77,7 +79,8 @@ module Impl = (T: {
   [@mel.send.pipe: t_htmlDocument]
   external queryCommandValue: string => string = "queryCommandValue";
   [@mel.send.pipe: t_htmlDocument] external write: string => unit = "write";
-  [@mel.send.pipe: t_htmlDocument] external writeln: string => unit = "writeln";
+  [@mel.send.pipe: t_htmlDocument]
+  external writeln: string => unit = "writeln";
 };
 
 type t = Dom.htmlDocument;

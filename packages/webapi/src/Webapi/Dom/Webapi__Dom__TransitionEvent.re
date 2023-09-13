@@ -10,4 +10,5 @@ external makeWithOptions: (string, Js.t({..})) => t = "TransitionEvent";
 
 [@mel.get] external propertyName: t => string = "propertyName";
 [@mel.get] external elapsedTime: t => float = "elapsedTime";
-[@mel.get] external pseudoElement: t => string /* enum-ish */ = "pseudoElement";
+[@mel.get]
+external pseudoElement: t => string /* enum-ish */ = "pseudoElement";

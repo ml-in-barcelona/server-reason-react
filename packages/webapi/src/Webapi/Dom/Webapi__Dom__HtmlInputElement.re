@@ -13,7 +13,8 @@ module Impl = (T: {
   [@mel.get] external formAction: t_htmlInputElement => string = "formAction";
   [@mel.set]
   external setFormAction: (t_htmlInputElement, string) => unit = "formAction";
-  [@mel.get] external formEncType: t_htmlInputElement => string = "formEncType";
+  [@mel.get]
+  external formEncType: t_htmlInputElement => string = "formEncType";
   [@mel.set]
   external setFormEncType: (t_htmlInputElement, string) => unit =
     "formEncType";
@@ -51,7 +52,8 @@ module Impl = (T: {
   [@mel.get]
   external validationMessage: t_htmlInputElement => string =
     "validationMessage";
-  [@mel.get] external willValidate: t_htmlInputElement => bool = "willValidate";
+  [@mel.get]
+  external willValidate: t_htmlInputElement => bool = "willValidate";
 
   /* Properties that apply only to elements of type "checkbox" or "radio" */
   [@mel.get] external checked: t_htmlInputElement => bool = "checked";
@@ -102,7 +104,8 @@ module Impl = (T: {
   [@mel.get] external pattern: t_htmlInputElement => string = "pattern";
   [@mel.set]
   external setPattern: (t_htmlInputElement, string) => unit = "pattern";
-  [@mel.get] external placeholder: t_htmlInputElement => string = "placeholder";
+  [@mel.get]
+  external placeholder: t_htmlInputElement => string = "placeholder";
   [@mel.set]
   external setPlaceholder: (t_htmlInputElement, string) => unit =
     "placeholder";

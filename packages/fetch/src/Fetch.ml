@@ -406,9 +406,7 @@ module Response = struct
 
   external error : unit -> t = "error"
   external redirect : string -> t = "redirect"
-
   external redirectWithStatus : string -> int (* enum-ish *) -> t = "redirect"
-
   external headers : t -> headers = "headers" [@@mel.get]
   external ok : t -> bool = "ok" [@@mel.get]
   external redirected : t -> bool = "redirected" [@@mel.get]

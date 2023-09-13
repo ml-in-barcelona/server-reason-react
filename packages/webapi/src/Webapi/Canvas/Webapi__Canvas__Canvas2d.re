@@ -258,7 +258,8 @@ external fillText: (string, ~x: float, ~y: float, ~maxWidth: float=?) => unit =
 [@mel.send.pipe: t]
 external strokeText: (string, ~x: float, ~y: float, ~maxWidth: float=?) => unit =
   "strokeText";
-[@mel.send.pipe: t] external measureText: string => measureText = "measureText";
+[@mel.send.pipe: t]
+external measureText: string => measureText = "measureText";
 [@mel.get] external width: measureText => float = "width";
 
 /* Rectangles */

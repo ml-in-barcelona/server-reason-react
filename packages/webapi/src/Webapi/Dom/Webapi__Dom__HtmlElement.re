@@ -72,7 +72,8 @@ module Impl = (T: {
   [@mel.get] external spellcheck: t_htmlElement => bool = "spellcheck";
   [@mel.set]
   external setSpellcheck: (t_htmlElement, bool) => unit = "spellcheck" /*let setSpellcheck : t_htmlElement => bool => unit = fun self value => setSpellcheck self (Js.Boolean.to_js_boolean value);*/; /* temproarily removed to reduce codegen size */
-  [@mel.get] external style: t_htmlElement => Dom.cssStyleDeclaration = "style";
+  [@mel.get]
+  external style: t_htmlElement => Dom.cssStyleDeclaration = "style";
   [@mel.set]
   external setStyle: (t_htmlElement, Dom.cssStyleDeclaration) => unit =
     "style";

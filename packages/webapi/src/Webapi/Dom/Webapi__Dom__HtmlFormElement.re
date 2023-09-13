@@ -13,11 +13,14 @@ module Impl = (T: {
   [@mel.get] external name: t_htmlFormElement => string = "name";
   [@mel.set] external setName: (t_htmlFormElement, string) => unit = "name";
   [@mel.get] external method: t_htmlFormElement => string = "method";
-  [@mel.set] external setMethod: (t_htmlFormElement, string) => unit = "method";
+  [@mel.set]
+  external setMethod: (t_htmlFormElement, string) => unit = "method";
   [@mel.get] external target: t_htmlFormElement => string = "target";
-  [@mel.set] external setTarget: (t_htmlFormElement, string) => unit = "target";
+  [@mel.set]
+  external setTarget: (t_htmlFormElement, string) => unit = "target";
   [@mel.get] external action: t_htmlFormElement => string = "action";
-  [@mel.set] external setAction: (t_htmlFormElement, string) => unit = "action";
+  [@mel.set]
+  external setAction: (t_htmlFormElement, string) => unit = "action";
   [@mel.get]
   external acceptCharset: t_htmlFormElement => string = "acceptCharset";
   [@mel.set]

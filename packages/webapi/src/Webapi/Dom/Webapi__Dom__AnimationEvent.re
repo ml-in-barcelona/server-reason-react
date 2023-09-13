@@ -10,4 +10,5 @@ external makeWithOptions: (string, Js.t({..})) => t = "AnimationEvent";
 
 [@mel.get] external animationName: t => string = "animationName";
 [@mel.get] external elapsedTime: t => float = "elapsedTime";
-[@mel.get] external pseudoElement: t => string /* enum-ish */ = "pseudoElement";
+[@mel.get]
+external pseudoElement: t => string /* enum-ish */ = "pseudoElement";

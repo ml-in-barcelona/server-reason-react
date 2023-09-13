@@ -111,9 +111,12 @@ module Impl = (T: {
   external requestIdleCallbackWithOptions:
     (idleDeadline => unit, {. "timeout": int}) => idleCallbackId =
     "requestIdleCallback"; /* experimental, Cooperative Scheduling of Background Tasks */
-  [@mel.send.pipe: t_window] external resizeBy: (int, int) => unit = "resizeBy"; /* experimental, CSSOM View module */
-  [@mel.send.pipe: t_window] external resizeTo: (int, int) => unit = "resizeTo"; /* experimental, CSSOM View module */
-  [@mel.send.pipe: t_window] external scroll: (float, float) => unit = "scroll"; /* experimental, CSSOM View module */
+  [@mel.send.pipe: t_window]
+  external resizeBy: (int, int) => unit = "resizeBy"; /* experimental, CSSOM View module */
+  [@mel.send.pipe: t_window]
+  external resizeTo: (int, int) => unit = "resizeTo"; /* experimental, CSSOM View module */
+  [@mel.send.pipe: t_window]
+  external scroll: (float, float) => unit = "scroll"; /* experimental, CSSOM View module */
   [@mel.send.pipe: t_window]
   external scrollBy: (float, float) => unit = "scrollBy"; /* experimental, CSSOM View module */
   [@mel.send.pipe: t_window]

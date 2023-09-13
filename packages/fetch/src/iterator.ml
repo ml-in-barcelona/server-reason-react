@@ -2,7 +2,9 @@ module Next = struct
   type 'a t
 
   external done_ : _ t -> bool option = "done" [@@mel.get]
-  external value : 'a t -> 'a option = "value" [@@mel.get] [@@mel.return nullable]
+
+  external value : 'a t -> 'a option = "value"
+  [@@mel.get] [@@mel.return nullable]
 end
 
 type 'a t

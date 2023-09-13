@@ -2,7 +2,8 @@ module URLSearchParams = {
   type t;
 
   [@mel.new] external make: string => t = "URLSearchParams";
-  [@mel.new] external makeWithDict: Js.Dict.t(string) => t = "URLSearchParams";
+  [@mel.new]
+  external makeWithDict: Js.Dict.t(string) => t = "URLSearchParams";
   [@mel.new]
   external makeWithArray: array((string, string)) => t = "URLSearchParams";
   [@mel.send.pipe: t] external append: (string, string) => unit = "append";
