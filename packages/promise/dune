@@ -1,7 +1,7 @@
 (library
  (name promise_js)
  (public_name server-reason-react.promise-js)
- (modes :standard melange)
+ (modes melange)
  (modules promise_js)
  (wrapped false)
  (libraries melange.belt melange.js)
