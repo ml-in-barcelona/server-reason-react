@@ -1,8 +1,8 @@
 type 'value node = {
-  mutable value : 'value; [@bs.as "v"]
-  mutable height : int; [@bs.as "h"]
-  mutable left : 'value t; [@bs.as "l"]
-  mutable right : 'value t; [@bs.as "r"]
+  mutable value : 'value; [@mel.as "v"]
+  mutable height : int; [@mel.as "h"]
+  mutable left : 'value t; [@mel.as "l"]
+  mutable right : 'value t; [@mel.as "r"]
 }
 
 and 'value t = 'value node option

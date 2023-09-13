@@ -67,7 +67,7 @@ let map () =
 module TestingMore = struct
   include (
     struct
-      type t = { name2 : string option; [@bs.optional] age2 : int }
+      type t = { name2 : string option; [@mel.optional] age2 : int }
 
       let t : ?name2:string -> age2:int -> unit -> t =
        fun ?name2 ~age2 () -> { name2; age2 }

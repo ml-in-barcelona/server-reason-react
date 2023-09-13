@@ -9,11 +9,11 @@ include Webapi__Blob.Impl({
 [@text "{1 File class}"];
 
 /** @since 0.18.0 */
-[@bs.get]
+[@mel.get]
 external lastModified: t => float = "lastModified";
 
-// [@bs.new] external make: ... = "File";
+// [@mel.new] external make: ... = "File";
 
-[@bs.get] external name: t => string = "name";
+[@mel.get] external name: t => string = "name";
 
-[@bs.get] external preview: t => string = "preview";
+[@mel.get] external preview: t => string = "preview";

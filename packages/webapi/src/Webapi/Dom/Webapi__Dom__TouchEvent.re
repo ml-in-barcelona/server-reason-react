@@ -3,13 +3,13 @@ type touchList; /* TODO, Touch Events */
 module Impl = (T: {
                  type t;
                }) => {
-  [@bs.get] external altKey: T.t => bool = "altKey";
-  [@bs.get] external changedTouches: T.t => touchList = "changedTouches";
-  [@bs.get] external ctrlKey: T.t => bool = "ctrlKey";
-  [@bs.get] external metaKey: T.t => bool = "metaKey";
-  [@bs.get] external shiftKey: T.t => bool = "shiftKey";
-  [@bs.get] external targetTouches: T.t => touchList = "targetTouches";
-  [@bs.get] external touches: T.t => touchList = "touches";
+  [@mel.get] external altKey: T.t => bool = "altKey";
+  [@mel.get] external changedTouches: T.t => touchList = "changedTouches";
+  [@mel.get] external ctrlKey: T.t => bool = "ctrlKey";
+  [@mel.get] external metaKey: T.t => bool = "metaKey";
+  [@mel.get] external shiftKey: T.t => bool = "shiftKey";
+  [@mel.get] external targetTouches: T.t => touchList = "targetTouches";
+  [@mel.get] external touches: T.t => touchList = "touches";
 };
 
 type t = Dom.touchEvent;
@@ -24,5 +24,5 @@ include Impl({
   type nonrec t = t;
 });
 
-[@bs.new] external make: string => t = "TouchEvent";
-[@bs.new] external makeWithOptions: (string, Js.t({..})) => t = "TouchEvent";
+[@mel.new] external make: string => t = "TouchEvent";
+[@mel.new] external makeWithOptions: (string, Js.t({..})) => t = "TouchEvent";

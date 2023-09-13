@@ -851,9 +851,9 @@ let makePropField ~loc id (arg_label, value) =
       [%expr Option.map (fun v -> React.JSX.Ref v) [%e value]]
   | Attribute { type_ = DomProps.InnerHtml; _ }, false -> (
       match value with
-      (* Even thought we dont have bs.obj in OCaml, we do in Reason.
+      (* Even thought we dont have mel.obj in OCaml, we do in Reason.
          We can extract the field __html and pass it to React.JSX.DangerouslyInnerHtml *)
-      | [%expr [%bs.obj { __html = [%e? inner] }]] ->
+      | [%expr [%mel.obj { __html = [%e? inner] }]] ->
           [%expr Some (React.JSX.DangerouslyInnerHtml [%e inner])]
       | _ ->
           raise
@@ -861,9 +861,9 @@ let makePropField ~loc id (arg_label, value) =
                "unexpected expression found on dangerouslySetInnerHTML")
   | Attribute { type_ = DomProps.InnerHtml; _ }, true -> (
       match value with
-      (* Even thought we dont have bs.obj in OCaml, we do in Reason.
+      (* Even thought we dont have mel.obj in OCaml, we do in Reason.
          We can extract the field __html and pass it to React.JSX.DangerouslyInnerHtml *)
-      | [%expr [%bs.obj { __html = [%e? inner] }]] ->
+      | [%expr [%mel.obj { __html = [%e? inner] }]] ->
           [%expr
             Option.map (fun v -> React.JSX.DangerouslyInnerHtml v) [%e inner]]
       | _ ->

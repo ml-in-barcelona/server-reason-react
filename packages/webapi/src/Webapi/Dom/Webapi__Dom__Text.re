@@ -7,9 +7,9 @@ module Impl = (T: {
                }) => {
   let ofNode: Dom.node => option(T.t) = ofNode;
 
-  [@bs.send.pipe: T.t]
+  [@mel.send.pipe: T.t]
   external splitText: (~offset: int, unit) => Dom.text = "splitText";
-  [@bs.get] external wholeText: T.t => string = "wholeText";
+  [@mel.get] external wholeText: T.t => string = "wholeText";
 };
 
 type t = Dom.text;

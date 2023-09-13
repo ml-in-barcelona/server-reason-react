@@ -7,22 +7,22 @@ include Webapi__Dom__UiEvent.Impl({
   type nonrec t = t;
 });
 
-[@bs.new] external make: string => t = "KeyboardEvent";
-[@bs.new]
+[@mel.new] external make: string => t = "KeyboardEvent";
+[@mel.new]
 external makeWithOptions: (string, Js.t({..})) => t = "KeyboardEvent";
 
-[@bs.get] external altKey: t => bool = "altKey";
-[@bs.get] external code: t => string = "code";
-[@bs.get] external ctrlKey: t => bool = "ctrlKey";
-[@bs.get] external isComposing: t => bool = "isComposing";
-[@bs.get] external key: t => string = "key";
-[@bs.get] external locale: t => string = "locale";
-[@bs.get] external location: t => int = "location";
-[@bs.get] external metaKey: t => bool = "metaKey";
-[@bs.get] external repeat: t => bool = "repeat";
-[@bs.get] external shiftKey: t => bool = "shiftKey";
+[@mel.get] external altKey: t => bool = "altKey";
+[@mel.get] external code: t => string = "code";
+[@mel.get] external ctrlKey: t => bool = "ctrlKey";
+[@mel.get] external isComposing: t => bool = "isComposing";
+[@mel.get] external key: t => string = "key";
+[@mel.get] external locale: t => string = "locale";
+[@mel.get] external location: t => int = "location";
+[@mel.get] external metaKey: t => bool = "metaKey";
+[@mel.get] external repeat: t => bool = "repeat";
+[@mel.get] external shiftKey: t => bool = "shiftKey";
 
-[@bs.send.pipe: t]
+[@mel.send.pipe: t]
 external getModifierState: string /* modifierKey enum */ => bool =
   "getModifierState";
 let getModifierState: (Webapi__Dom__Types.modifierKey, t) => bool =

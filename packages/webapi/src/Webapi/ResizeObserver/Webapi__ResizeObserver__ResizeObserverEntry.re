@@ -1,4 +1,4 @@
 type t;
 
-[@bs.get] external contentRect: t => Dom.domRect = "contentRect";
-[@bs.get] external target: t => Dom.element = "target";
+[@mel.get] external contentRect: t => Dom.domRect = "contentRect";
+[@mel.get] external target: t => Dom.element = "target";

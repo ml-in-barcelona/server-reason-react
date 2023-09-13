@@ -2,5 +2,5 @@
 module Impl = (T: {
                  type t;
                }) => {
-  [@bs.send.pipe: T.t] external remove: unit = "remove";
+  [@mel.send.pipe: T.t] external remove: unit = "remove";
 };

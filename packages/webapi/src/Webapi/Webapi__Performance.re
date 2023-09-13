@@ -1,3 +1,3 @@
 type t;
 
-[@bs.send] external now: t => float = "now";
+[@mel.send] external now: t => float = "now";

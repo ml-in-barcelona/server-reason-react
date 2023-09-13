@@ -13,4 +13,4 @@ include Webapi__Dom__ChildNode.Impl({
   type nonrec t = t;
 });
 
-[@bs.get] external target: t => string = "target";
+[@mel.get] external target: t => string = "target";

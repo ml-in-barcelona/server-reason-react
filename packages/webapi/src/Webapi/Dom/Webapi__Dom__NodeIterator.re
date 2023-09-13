@@ -1,16 +1,16 @@
 type t = Dom.nodeIterator;
 
-[@bs.get] external root: t => Dom.node = "root";
-[@bs.get] external referenceNode: t => Dom.node = "referenceNode";
-[@bs.get]
+[@mel.get] external root: t => Dom.node = "root";
+[@mel.get] external referenceNode: t => Dom.node = "referenceNode";
+[@mel.get]
 external pointerBeforeReferenceNode: t => bool = "pointerBeforeReferenceNode";
-[@bs.get]
+[@mel.get]
 external whatToShow: t => Webapi__Dom__Types.WhatToShow.t = "whatToShow";
-[@bs.get] [@bs.return nullable]
+[@mel.get] [@mel.return nullable]
 external filter: t => option(Dom.nodeFilter) = "filter";
 
-[@bs.send.pipe: t] [@bs.return nullable]
+[@mel.send.pipe: t] [@mel.return nullable]
 external nextNode: option(Dom.node) = "nextNode";
-[@bs.send.pipe: t] [@bs.return nullable]
+[@mel.send.pipe: t] [@mel.return nullable]
 external previousNode: option(Dom.node) = "previousNode";
-[@bs.send.pipe: t] external detach: unit = "detach";
+[@mel.send.pipe: t] external detach: unit = "detach";

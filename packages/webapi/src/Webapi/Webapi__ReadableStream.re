@@ -2,30 +2,30 @@ module type Reader = {
   type t;
   type closed;
 
-  /* [@bs.send] external closed: t => Js.Promise.t(closed) = "closed"; */
-  /* [@bs.send] external cancel: t => Js.Promise.t(unit) = "cancel"; */
-  /* [@bs.send.pipe: t] external cancelWith: string => Js.Promise.t(string) = "cancel"; */
-  [@bs.send] external releaseLock: t => unit = "releaseLock";
+  /* [@mel.send] external closed: t => Js.Promise.t(closed) = "closed"; */
+  /* [@mel.send] external cancel: t => Js.Promise.t(unit) = "cancel"; */
+  /* [@mel.send.pipe: t] external cancelWith: string => Js.Promise.t(string) = "cancel"; */
+  [@mel.send] external releaseLock: t => unit = "releaseLock";
 };
 
 module rec DefaultReader: {
   include Reader;
-  /* [@bs.send] external read: t => Js.Promise.t(Fetch__Iterator.Next.t(string)) = "read"; */
+  /* [@mel.send] external read: t => Js.Promise.t(Fetch__Iterator.Next.t(string)) = "read"; */
 } = DefaultReader;
 
 module rec BYOBReader: {
   include Reader;
-  // [@bs.send.pipe: t] external read: view => Js.Promise.t(Fetch__Iterator.Next.t(string)) = "read";
+  // [@mel.send.pipe: t] external read: view => Js.Promise.t(Fetch__Iterator.Next.t(string)) = "read";
 } = BYOBReader;
 
 type t = Fetch.readableStream;
 
-[@bs.get] external locked: t => bool = "locked";
-/* [@bs.send] external cancel: t => Js.Promise.t(unit) = "cancel"; */
-/* [@bs.send.pipe: t] external cancelWith: string => Js.Promise.t(string) = "cancel"; */
-[@bs.send] external getReader: t => DefaultReader.t = "getReader";
-[@bs.send]
+[@mel.get] external locked: t => bool = "locked";
+/* [@mel.send] external cancel: t => Js.Promise.t(unit) = "cancel"; */
+/* [@mel.send.pipe: t] external cancelWith: string => Js.Promise.t(string) = "cancel"; */
+[@mel.send] external getReader: t => DefaultReader.t = "getReader";
+[@mel.send]
 external getReaderBYOB:
-  (t, [@bs.as {json|{"mode": "byob"}|json}] _) => BYOBReader.t =
+  (t, [@mel.as {json|{"mode": "byob"}|json}] _) => BYOBReader.t =
   "getReader";
-[@bs.send] external tee: t => (t, t) = "tee";
+[@mel.send] external tee: t => (t, t) = "tee";

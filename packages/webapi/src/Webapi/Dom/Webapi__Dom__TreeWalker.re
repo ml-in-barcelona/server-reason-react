@@ -1,24 +1,24 @@
 type t = Dom.treeWalker;
 
-[@bs.get] external root: t => Dom.node = "root";
-[@bs.get]
+[@mel.get] external root: t => Dom.node = "root";
+[@mel.get]
 external whatToShow: t => Webapi__Dom__Types.WhatToShow.t = "whatToShow";
-[@bs.get] [@bs.return nullable]
+[@mel.get] [@mel.return nullable]
 external filter: t => option(Dom.nodeFilter) = "filter";
-[@bs.get] external currentNode: t => Dom.node = "currentNode";
-[@bs.set] external setCurrentNode: (t, Dom.node) => unit = "setCurrentNode";
+[@mel.get] external currentNode: t => Dom.node = "currentNode";
+[@mel.set] external setCurrentNode: (t, Dom.node) => unit = "setCurrentNode";
 
-[@bs.send.pipe: t] [@bs.return nullable]
+[@mel.send.pipe: t] [@mel.return nullable]
 external parentNode: option(Dom.node) = "parentNode";
-[@bs.send.pipe: t] [@bs.return nullable]
+[@mel.send.pipe: t] [@mel.return nullable]
 external firstChild: option(Dom.node) = "firstChild";
-[@bs.send.pipe: t] [@bs.return nullable]
+[@mel.send.pipe: t] [@mel.return nullable]
 external lastChild: option(Dom.node) = "lastChild";
-[@bs.send.pipe: t] [@bs.return nullable]
+[@mel.send.pipe: t] [@mel.return nullable]
 external previousSibling: option(Dom.node) = "previousSibling";
-[@bs.send.pipe: t] [@bs.return nullable]
+[@mel.send.pipe: t] [@mel.return nullable]
 external nextSibling: option(Dom.node) = "nextSibling";
-[@bs.send.pipe: t] [@bs.return nullable]
+[@mel.send.pipe: t] [@mel.return nullable]
 external previousNode: option(Dom.node) = "previousNode";
-[@bs.send.pipe: t] [@bs.return nullable]
+[@mel.send.pipe: t] [@mel.return nullable]
 external nextNode: option(Dom.node) = "nextNode";

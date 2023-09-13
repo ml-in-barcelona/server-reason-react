@@ -1,2 +1,2 @@
-[@bs.val] external btoa: string => string = "btoa";
-[@bs.val] external atob: string => string = "atob";
+external btoa: string => string = "btoa";
+external atob: string => string = "atob";

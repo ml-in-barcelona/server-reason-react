@@ -4,11 +4,11 @@ include Webapi__Dom__Event.Impl({
   type nonrec t = t;
 });
 
-[@bs.new] external make: string => t = "ErrorEvent";
-[@bs.new] external makeWithOptions: (string, Js.t({..})) => t = "ErrorEvent";
+[@mel.new] external make: string => t = "ErrorEvent";
+[@mel.new] external makeWithOptions: (string, Js.t({..})) => t = "ErrorEvent";
 
-[@bs.get] external message: t => string = "message";
-[@bs.get] external filename: t => string = "filename";
-[@bs.get] external lineno: t => int = "lineno";
-[@bs.get] external colno: t => int = "colno";
-[@bs.get] external error: t => Js.t({..}) = "error";
+[@mel.get] external message: t => string = "message";
+[@mel.get] external filename: t => string = "filename";
+[@mel.get] external lineno: t => int = "lineno";
+[@mel.get] external colno: t => int = "colno";
+[@mel.get] external error: t => Js.t({..}) = "error";

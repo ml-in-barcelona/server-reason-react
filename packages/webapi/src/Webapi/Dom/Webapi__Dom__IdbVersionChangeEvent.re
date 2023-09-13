@@ -4,9 +4,9 @@ include Webapi__Dom__Event.Impl({
   type nonrec t = t;
 });
 
-[@bs.new] external make: string => t = "IDBVersionChangeEvent";
-[@bs.new]
+[@mel.new] external make: string => t = "IDBVersionChangeEvent";
+[@mel.new]
 external makeWithOptions: (string, Js.t({..})) => t = "IDBVersionChangeEvent";
 
-[@bs.get] external oldVersion: t => int = "oldVersion";
-[@bs.get] external newVersion: t => int = "newVersion";
+[@mel.get] external oldVersion: t => int = "oldVersion";
+[@mel.get] external newVersion: t => int = "newVersion";

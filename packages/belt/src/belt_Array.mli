@@ -275,8 +275,8 @@ val sliceToEnd : 'a t -> int -> 'a t
     ]}
 *)
 
-(* external copy : 'a t -> (_[@bs.as 0]) -> 'a t = "slice"
-   [@@bs.send] *)
+(* external copy : 'a t -> (_[@mel.as 0]) -> 'a t = "slice"
+   [@@mel.send] *)
 val copy : 'a t -> 'a t
 (** [copy a]
 
@@ -653,7 +653,7 @@ val eq : 'a t -> 'a t -> ('a -> 'a -> bool) -> bool
 *)
 
 (* external truncateToLengthUnsafe : 'a t -> int -> unit = "length"
-   [@@bs.set] *)
+   [@@mel.set] *)
 
 val truncateToLengthUnsafe : 'a t -> int -> 'a t
 (** {b Unsafe}
