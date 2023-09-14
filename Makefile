@@ -84,16 +84,16 @@ lib-test: ## Run library tests
 subst: ## Run dune substitute
 	@$(DUNE) subst
 
-.PHONY: doc
-doc: ## Generate odoc documentation
-	@$(DUNE) build --root . @doc
+.PHONY: documentation
+documentation: ## Generate odoc documentation
+	@$(DUNE) build --root . @docs
 
-.PHONY: doc-watch
-doc-watch: ## Generate odoc documentation
-	@$(DUNE) build --root . -w @doc
+.PHONY: documentation-watch
+documentation-watch: ## Generate odoc documentation
+	@$(DUNE) build --root . -w @docs
 
-.PHONY: servedoc
-servedoc: doc ## Open odoc documentation with default web browser
+.PHONY: documentation-serve
+documentation-serve: documentation ## Open odoc documentation with default web browser
 	@open _build/default/_doc/_html/index.html
 
 $(opam_file): dune-project ## Update the package dependencies when new deps are added to dune-project

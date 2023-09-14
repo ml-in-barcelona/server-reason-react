@@ -47,3 +47,14 @@ jobs:
 
       - name: Run tests
         run: make test
+
+      - name: Generate docs
+        run: make documentation
+
+      - name: Publish docs
+        uses: crazy-max/ghaction-github-pages@v1
+        with:
+          target_branch: gh-pages
+          build_dir: _build/default/_doc/_html/
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_REPO_TOKEN }}
