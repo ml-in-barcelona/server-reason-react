@@ -1,4 +1,5 @@
 type t
+(** Abstract type for Styles. ReactDOM.Style.make to generate `t` *)
 
 val make :
   ?azimuth:string ->
@@ -345,7 +346,12 @@ val make :
   ?rubyPosition:string ->
   unit ->
   t
+(** All CSS properties defined as strings. Last argument must be a `unit` *)
 
 val to_string : t -> string
+
 val combine : t -> t -> t
+(** Combine 2 ReactDOM.Styles.t into one *)
+
 val unsafeAddProp : t -> string -> string -> t
+(** A scape hatch to add properties to ReactDOM.Styles.t that aren't supported on ReactDOM.Styles.make *)

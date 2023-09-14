@@ -1,23 +1,36 @@
 val renderToString : React.element -> string
+(** renderToString renders a React tree to an HTML string.contents *)
+
 val renderToStaticMarkup : React.element -> string
+(** renderToStaticMarkup renders a non-interactive React tree to an HTML string. *)
+
 val renderToLwtStream : React.element -> string Lwt_stream.t * (unit -> unit)
+(** renderToPipeableStream renders a React tree to a Lwt_stream.t. *)
+
 val querySelector : 'a -> 'b option
 
 exception Impossible_in_ssr of string
+(** Exception to throw when operations aren't meant to be running on native, mostly used by browser_ppx *)
 
 val fail_impossible_action_in_ssr : string -> 'a
+
 val render : 'a -> 'b -> 'c
+(** Do nothing on the server *)
+
 val hydrate : 'a -> 'b -> 'c
+(** Do nothing on the server *)
+
 val createPortal : 'a -> 'b -> 'a
+(** Do nothing on the server *)
 
 module Style = ReactDOMStyle
+(** ReactDOM.Style generates the inline styles for the `style` prop. *)
 
 val createDOMElementVariadic :
-  string ->
-  props:React.Attribute.t array ->
-  React.element array ->
-  React.element
+  string -> props:React.JSX.prop array -> React.element array -> React.element
+(** Create a React.element by giving the HTML tag, an array of props and children *)
 
+(* JSX props for HTML and SVG elements, including React specific ones. *)
 val domProps :
   ?key:string ->
   ?ref:React.domRef ->
@@ -507,4 +520,4 @@ val domProps :
   ?suppressContentEditableWarning:bool ->
   ?suppressHydrationWarning:bool ->
   unit ->
-  React.Attribute.t array
+  React.JSX.prop array

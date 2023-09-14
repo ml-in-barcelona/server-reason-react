@@ -17,7 +17,7 @@ let createRef () = ref None
 let useRef value = ref value
 let forwardRef f = f ()
 
-module Attribute = struct
+module JSX = struct
   module Event = struct
     type t =
       | Drag of (ReactEvent.Drag.t -> unit)
@@ -38,7 +38,7 @@ module Attribute = struct
       | Inline of string
   end
 
-  type t =
+  type prop =
     | Bool of (string * bool)
     | String of (string * string)
     | Style of string
@@ -49,7 +49,7 @@ end
 
 type lower_case_element = {
   tag : string;
-  attributes : Attribute.t array;
+  attributes : JSX.prop array;
   children : element list;
 }
 
@@ -69,7 +69,7 @@ exception Invalid_children of string
 
 let compare_attribute left right =
   match (left, right) with
-  | Attribute.Bool (left_key, _), Attribute.Bool (right_key, _) ->
+  | JSX.Bool (left_key, _), JSX.Bool (right_key, _) ->
       String.compare left_key right_key
   | String (left_key, _), String (right_key, _) ->
       String.compare left_key right_key
@@ -78,7 +78,7 @@ let compare_attribute left right =
   | _ -> 0
 
 let clone_attribute acc attr new_attr =
-  let open Attribute in
+  let open JSX in
   match (attr, new_attr) with
   | Bool (left, _), Bool (right, value) when left == right ->
       Bool (left, value) :: acc
@@ -88,8 +88,8 @@ let clone_attribute acc attr new_attr =
 
 module StringMap = Map.Make (String)
 
-let attributes_to_map (attributes : Attribute.t array) =
-  let open Attribute in
+let attributes_to_map (attributes : JSX.prop array) =
+  let open JSX in
   Array.fold_left
     (fun acc attr ->
       match attr with
@@ -102,7 +102,7 @@ let attributes_to_map (attributes : Attribute.t array) =
       | Style _ -> acc)
     StringMap.empty attributes
 
-let clone_attributes (attributes : Attribute.t array) new_attributes =
+let clone_attributes (attributes : JSX.prop array) new_attributes =
   let attribute_map = attributes_to_map attributes in
   let new_attribute_map = attributes_to_map new_attributes in
   StringMap.merge
@@ -122,13 +122,13 @@ let clone_attributes (attributes : Attribute.t array) new_attributes =
 let create_element_inner tag attributes children =
   let dangerouslySetInnerHTML =
     Array.find_opt
-      (function Attribute.DangerouslyInnerHtml _ -> true | _ -> false)
+      (function JSX.DangerouslyInnerHtml _ -> true | _ -> false)
       attributes
   in
   let children =
     match (dangerouslySetInnerHTML, children) with
     | None, children -> children
-    | Some (Attribute.DangerouslyInnerHtml innerHtml), [] ->
+    | Some (JSX.DangerouslyInnerHtml innerHtml), [] ->
         (* This adds as children the innerHTML, and we treat it differently
            from Element.Text to avoid encoding to HTML their content *)
         [ InnerHtml innerHtml ]

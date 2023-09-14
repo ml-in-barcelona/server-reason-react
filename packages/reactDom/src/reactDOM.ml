@@ -13,7 +13,7 @@ let jsx_attribute_to_html k =
 
 let is_onclick_event event =
   match event with
-  | Attribute.Event (name, _) when String.equal name "_onclick" -> true
+  | JSX.Event (name, _) when String.equal name "_onclick" -> true
   | _ -> false
 
 let attribute_is_html tag attr_name =
@@ -23,7 +23,7 @@ let replace_reserved_names attr =
   match attr with "type" -> "type_" | "as" -> "as_" | _ -> attr
 
 let get_key = function
-  | Attribute.Bool (k, _) -> k
+  | JSX.Bool (k, _) -> k
   | String (k, _) -> replace_reserved_names k
   | Ref _ -> "ref"
   | DangerouslyInnerHtml _ -> "dangerouslySetInnerHTML"
@@ -40,7 +40,7 @@ let is_react_custom_attribute attr =
 let attribute_is_not_event attr =
   match attr with
   (* We treat _onclick as "not an event", so attribute_is_valid turns it true *)
-  | Attribute.Event _ as event when is_onclick_event event -> true
+  | JSX.Event _ as event when is_onclick_event event -> true
   | Event _ -> false
   | _ -> true
 
@@ -52,7 +52,7 @@ let attribute_is_valid tag attr =
 let attribute_to_string attr =
   match attr with
   (* ignores "ref" prop *)
-  | Attribute.Ref _ -> ""
+  | JSX.Ref _ -> ""
   (* false attributes don't get rendered *)
   | Bool (_, false) -> ""
   (* true attributes render solely the attribute name *)
@@ -265,7 +265,7 @@ let createPortal _reactElement _domElement = _reactElement
 
 module Style = ReactDOMStyle
 
-let createDOMElementVariadic (tag : string) ~(props : Attribute.t array)
+let createDOMElementVariadic (tag : string) ~(props : JSX.prop array)
     (childrens : React.element array) =
   React.createElement tag props (childrens |> Array.to_list)
 
