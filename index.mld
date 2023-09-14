@@ -18,21 +18,22 @@ server-reason-react is an implementation of react-dom/server and some of React's
   // <div><h1>Hello visitor</h1></div>
 ]}
 
+{1:core React and ReactDOM}
 
-{1:core Core}
-
-server-reason-react provides a React and ReactDOM modules with the same interface as reason-react, including the JSX transformation via server-reason-react-ppx.
+server-reason-react provides `React` and `ReactDOM` modules with the same interface as reason-react, including the JSX transformation via server-reason-react-ppx.
 
 - {!React} server-reason-react.react
 - {!ReactDOM} server-reason-react.reactDom
 
+You would also need `server-reason-react.ppx` to transform JSX into `React.createElement` calls.
 
-{1:extra Extra}
+{2:universal Make sure your code is universal}
 
-Aside from the core modules, there're a few utilities that will be handy to make your frontend code be native. Those are {!Belt}, {!Js}, [Promise], and [Webapi].
+One big challenge of sharing code between client and server is that the server side has different API environment with client side. In this respect server-reason-react SSR is not much different than Node.js, except on native you should prevent browser's API calls and Js and compile it properly while in Node.js is just a matter of not calling those browser APIs.
 
-All of them are implementation of the same APIs as their originals. The level of stability of those extra libraries is not as ready for production as React or ReactDOM.
-Belt is feature complete and stable while the rest are still alpha, some missing APIs or incorrect functionality.
+There're a few utilities that will be handy to make your frontend code be native: {!Belt}, {!Js}, [Promise], and [Webapi].
+
+All of them are implementation of the same APIs as their originals. Belt is feature complete and stable while the rest are still alpha, some missing APIs or incorrect functionality.
 
 Visit each API page for more information:
 
@@ -41,9 +42,14 @@ Visit each API page for more information:
 - server-reason-react.promise
 - server-reason-react.webapi
 
-Also, a few ppxes:
+{2:pipe_first_ppx Make pipe first work on native}
 
-- browser_ppx, to discard code to run on the backend and only on the frontend.
+Add [pipe_first_ppx] to your pps list in your dune files
+{[ (preprocess (pps pipe_first_ppx)) ]}
+
+{2:browser_ppx Exclude client code from native build}
+
+Thanks to [browser_ppx], we can easily discard what's mean to be running on the client and not execute it on the server:
 
 {[
 let%browser_only countDomNodes = (id) => {
@@ -53,4 +59,16 @@ let%browser_only countDomNodes = (id) => {
 };
 ]}
 
-- pipe_first_ppx, to enable pipe first syntax on native
+Since `browser_only` generates a function that raises an exception on native,
+you can wrap it in a try/catch block to prevent the exception from crashing and set a default
+{[
+let%browser_only countDomNodes = (id) => {
+  try {
+    let elements = Webapi.Element.querySelector("#" ++ id);
+    let arr_elements = Webapi.Element.toArray(elements);
+    Array.length(arr_elements);
+  } catch (e) {
+    0;
+  }
+};
+]}
