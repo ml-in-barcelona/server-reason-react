@@ -81,6 +81,10 @@ ppx-test-watch: ## Run ppx tests in watch mode
 lib-test: ## Run library tests
 	@$(DUNE) exec test/test.exe
 
+.PHONY: demo
+demo: ## Run demo executable
+	@$(DUNE) exec demo/index.exe
+
 .PHONY: subst
 subst: ## Run dune substitute
 	@$(DUNE) subst
