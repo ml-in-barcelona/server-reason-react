@@ -86,11 +86,11 @@ subst: ## Run dune substitute
 
 .PHONY: documentation
 documentation: ## Generate odoc documentation
-	@$(DUNE) build --root . @docs
+	@$(DUNE) build --root . @doc
 
 .PHONY: documentation-watch
 documentation-watch: ## Generate odoc documentation
-	@$(DUNE) build --root . -w @docs
+	@$(DUNE) build --root . -w @doc
 
 .PHONY: documentation-serve
 documentation-serve: documentation ## Open odoc documentation with default web browser
