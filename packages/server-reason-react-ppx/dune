@@ -6,11 +6,11 @@
 (library
  (name native_react_ppx)
  (public_name server-reason-react.ppx)
+ (kind ppx_rewriter)
  (libraries
   compiler-libs.common
   ppxlib
   ppxlib.astlib
   server-reason-react.react)
  (preprocess
-  (pps ppxlib.metaquot))
- (kind ppx_rewriter))
+  (pps ppxlib.metaquot)))

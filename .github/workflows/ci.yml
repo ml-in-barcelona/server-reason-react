@@ -6,6 +6,9 @@ on:
     # Prime the caches every Monday
     - cron: 0 1 * * MON
 
+permissions:
+  contents: write
+
 jobs:
   build:
     name: Build and test
@@ -47,3 +50,14 @@ jobs:
 
       - name: Run tests
         run: make test
+
+      - name: Generate docs
+        run: make documentation
+
+      - name: Publish docs
+        uses: crazy-max/ghaction-github-pages@v1
+        with:
+          target_branch: gh-pages
+          build_dir: _build/default/_doc/_html/
+        env:
+          GITHUB_TOKEN: ${{ github.token }}

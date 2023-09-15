@@ -1,8 +1,0 @@
-(library
- (name promise_js)
- (public_name server-reason-react.promise-js)
- (modes melange)
- (wrapped false)
- (libraries melange.js melange.belt)
- (preprocess
-  (pps melange.ppx)))

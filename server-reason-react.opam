@@ -9,7 +9,7 @@ bug-reports: "https://github.com/ml-in-barcelona/server-reason-react/issues"
 depends: [
   "dune" {>= "3.8"}
   "ocaml" {>= "4.12.0"}
-  "reason" {>= "3.8.1"}
+  "reason" {>= "3.8.1" & < "3.10.0"}
   "melange"
   "ppxlib" {>= "0.23.0"}
   "pcre" {<= "7.5.0"}
@@ -19,9 +19,10 @@ depends: [
   "alcotest" {with-test}
   "alcotest-lwt" {with-test}
   "fmt" {with-test}
+  "odoc" {with-doc}
+  "mdx" {with-doc}
   "ocamlformat" {with-test}
   "ocaml-lsp-server" {with-test}
-  "odoc" {with-doc}
 ]
 build: [
   ["dune" "subst"] {dev}

@@ -4,3 +4,6 @@
    (:standard -w -27))))
 
 (dirs packages demo)
+
+(documentation
+ (package server-reason-react))

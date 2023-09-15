@@ -7,7 +7,7 @@ let tag () =
 
 let empty_attribute () =
   let div =
-    React.createElement "div" [| React.Attribute.String ("className", "") |] []
+    React.createElement "div" [| React.JSX.String ("className", "") |] []
   in
   assert_string (ReactDOM.renderToStaticMarkup div) "<div class=\"\"></div>"
 
@@ -15,8 +15,8 @@ let attributes () =
   let a =
     React.createElement "a"
       [|
-        React.Attribute.String ("href", "google.html");
-        React.Attribute.String ("target", "_blank");
+        React.JSX.String ("href", "google.html");
+        React.JSX.String ("target", "_blank");
       |]
       []
   in
@@ -28,10 +28,10 @@ let bool_attributes () =
   let a =
     React.createElement "input"
       [|
-        React.Attribute.String ("type", "checkbox");
-        React.Attribute.String ("name", "cheese");
-        React.Attribute.Bool ("checked", true);
-        React.Attribute.Bool ("disabled", false);
+        React.JSX.String ("type", "checkbox");
+        React.JSX.String ("name", "cheese");
+        React.JSX.Bool ("checked", true);
+        React.JSX.Bool ("disabled", false);
       |]
       []
   in
@@ -56,9 +56,9 @@ let ignored_attributes_on_jsx () =
   let div =
     React.createElement "div"
       [|
-        React.Attribute.String ("key", "uniqueKeyId");
-        React.Attribute.String ("wat", "randomAttributeThatShouldBeIgnored");
-        React.Attribute.Bool ("suppressContentEditableWarning", true);
+        React.JSX.String ("key", "uniqueKeyId");
+        React.JSX.String ("wat", "randomAttributeThatShouldBeIgnored");
+        React.JSX.Bool ("suppressContentEditableWarning", true);
       |]
       []
   in
@@ -66,9 +66,7 @@ let ignored_attributes_on_jsx () =
 
 let className () =
   let div =
-    React.createElement "div"
-      [| React.Attribute.String ("className", "lol") |]
-      []
+    React.createElement "div" [| React.JSX.String ("className", "lol") |] []
   in
   assert_string (ReactDOM.renderToStaticMarkup div) "<div class=\"lol\"></div>"
 
@@ -103,7 +101,7 @@ let fragments_and_texts () =
 let default_value () =
   let component =
     React.createElement "input"
-      [| React.Attribute.String ("defaultValue", "lol") |]
+      [| React.JSX.String ("defaultValue", "lol") |]
       []
   in
   assert_string
@@ -113,7 +111,7 @@ let default_value () =
 let inline_styles () =
   let component =
     React.createElement "button"
-      [| React.Attribute.Style "color: red; border: none" |]
+      [| React.JSX.Style "color: red; border: none" |]
       []
   in
   assert_string
@@ -124,8 +122,8 @@ let encode_attributes () =
   let component =
     React.createElement "div"
       [|
-        React.Attribute.String ("about", "\' <");
-        React.Attribute.String ("data-user-path", "what/the/path");
+        React.JSX.String ("about", "\' <");
+        React.JSX.String ("data-user-path", "what/the/path");
       |]
       [ React.string "& \"" ]
   in
@@ -138,8 +136,8 @@ let dangerouslySetInnerHtml () =
   let component =
     React.createElement "script"
       [|
-        React.Attribute.String ("type", "application/javascript");
-        React.Attribute.DangerouslyInnerHtml "console.log(\"Hi!\")";
+        React.JSX.String ("type", "application/javascript");
+        React.JSX.DangerouslyInnerHtml "console.log(\"Hi!\")";
       |]
       []
   in
@@ -171,7 +169,7 @@ let use_state () =
     React.createElement "div" [||]
       [
         React.createElement "button"
-          [| React.Attribute.Event ("onClick", Mouse onClick) |]
+          [| React.JSX.Event ("onClick", Mouse onClick) |]
           [];
         React.createElement "span" [||] [ React.string state ];
       ]
@@ -192,9 +190,7 @@ let use_callback () =
 
 let inner_html () =
   let component =
-    React.createElement "div"
-      [| React.Attribute.DangerouslyInnerHtml "foo" |]
-      []
+    React.createElement "div" [| React.JSX.DangerouslyInnerHtml "foo" |] []
   in
   assert_string (ReactDOM.renderToStaticMarkup component) "<div>foo</div>"
 
@@ -211,12 +207,11 @@ let make ~name () =
   let onClick (event : ReactEvent.Mouse.t) : unit = ignore event in
   React.createElement "button"
     ([|
-       Some (React.Attribute.String ("name", (name : string)));
+       Some (React.JSX.String ("name", (name : string)));
        Some
-         (React.Attribute.Event
+         (React.JSX.Event
             ( "event",
-              React.Attribute.Event.Mouse (onClick : ReactEvent.Mouse.t -> unit)
-            ));
+              React.JSX.Event.Mouse (onClick : ReactEvent.Mouse.t -> unit) ));
      |]
     |> Array.to_list
     |> List.filter_map (fun a -> a)
@@ -232,8 +227,7 @@ let className_2 () =
   let component =
     React.createElement "div"
       [|
-        React.Attribute.String
-          ("className", "flex xs:justify-center overflow-hidden");
+        React.JSX.String ("className", "flex xs:justify-center overflow-hidden");
       |]
       []
   in
@@ -244,7 +238,7 @@ let className_2 () =
 let _onclick_render_as_string () =
   let component =
     React.createElement "div"
-      [| React.Attribute.Event ("_onclick", Inline "$(this).hide()") |]
+      [| React.JSX.Event ("_onclick", Inline "$(this).hide()") |]
       []
   in
 
@@ -265,7 +259,7 @@ let render_svg () =
   let path =
     React.createElement "path"
       [|
-        React.Attribute.String
+        React.JSX.String
           ( "d",
             "M 5 3 C 3.9069372 3 3 3.9069372 3 5 L 3 19 C 3 20.093063 \
              3.9069372 21 5 21 L 19 21 C 20.093063 21 21 20.093063 21 19 L 21 \
@@ -278,10 +272,10 @@ let render_svg () =
   let svg =
     React.createElement "svg"
       [|
-        React.Attribute.String ("xmlns", "http://www.w3.org/2000/svg");
-        React.Attribute.String ("viewBox", "0 0 24 24");
-        React.Attribute.String ("width", "24px");
-        React.Attribute.String ("height", "24px");
+        React.JSX.String ("xmlns", "http://www.w3.org/2000/svg");
+        React.JSX.String ("viewBox", "0 0 24 24");
+        React.JSX.String ("width", "24px");
+        React.JSX.String ("height", "24px");
       |]
       [ path ]
   in

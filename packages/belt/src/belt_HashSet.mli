@@ -1,4 +1,4 @@
-(** A {b mutable} Hash set which allows customized {!hash} behavior.
+(** A {b mutable} Hash set which allows customized {hash} behavior.
 
     All data are parameterized by not its only type but also a unique identity in
     the time of initialization, so that two {i HashSets of ints} initialized with different

@@ -17,7 +17,9 @@ val createRef : unit -> 'a option ref
 val useRef : 'a -> 'a ref
 val forwardRef : (unit -> 'a) -> 'a
 
-module Attribute : sig
+(** All of those types are used by the server-reason-react.ppx internally to represent valid React code from the server. It currently different from reason-react-ppx due to a need for knowing the types since ReactDOM needs to render differently depending on the type. *)
+module JSX : sig
+  (** All event callbacks *)
   module Event : sig
     type t =
       | Drag of (ReactEvent.Drag.t -> unit)
@@ -38,7 +40,8 @@ module Attribute : sig
       | Inline of string
   end
 
-  type t =
+  (** JSX.prop is the representation of HTML/SVG attributes and DOM events *)
+  type prop =
     | Bool of (string * bool)
     | String of (string * string)
     | Style of string
@@ -49,7 +52,7 @@ end
 
 type lower_case_element = {
   tag : string;
-  attributes : Attribute.t array;
+  attributes : JSX.prop array;
   children : element list;
 }
 
@@ -71,9 +74,9 @@ exception Invalid_children of string
 (* type 'props component = ('props, element) componentLike *)
 (* external component : ('props, element) componentLike -> 'props component = "%identity" *)
 
-val createElement : string -> Attribute.t array -> element list -> element
+val createElement : string -> JSX.prop array -> element list -> element
 val fragment : children:element -> unit -> element
-val cloneElement : element -> Attribute.t array -> element list -> element
+val cloneElement : element -> JSX.prop array -> element list -> element
 val string : string -> element
 val null : element
 val int : int -> element

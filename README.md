@@ -1,11 +1,9 @@
 # server-reason-react
 
-Re-implementation of parts of React, ReactDOM and entirely ReactDOMServer; plus a few related libraries in OCaml, to enable Server-side Rendering on reason-react applications.
+Re-implementation of React, ReactDOM and ReactDOMServer to run on the server and a few related libraries in Reason/OCaml, to enable Server-side Rendering on reason-react applications.
 
 Explained more in detail in this blog post: [sancho.dev/blog/server-side-rendering-react-in-ocaml](https://sancho.dev/blog/server-side-rendering-react-in-ocaml).
 
-[Demo](https://github.com/ml-in-barcelona/fullstack-reason-react-demo)
-
 > **Warning**
-> This repo is in an early stage and not ready for public consumption. Consider it as nightly releases. It's already used in production at [app.ahrefs.com](https://app.ahrefs.com) for all users, but the shape of the libraries, missing APIs and lack of documentation makes it hard to use and rely on it.
+> This repo is contains a few parts that are considered alpha-stage and not ready for production. The parts that are stable are used in production at [app.ahrefs.com](https://app.ahrefs.com) for all users and [wordcount.com](https://wordcount.com), but the Belt or Js modules have missing APIs and non-implemented functions.
 > Even with all of this, if you are still interested contact me in [Discord](https://discord.com/users/122441959414431745) or [Twitter](https://www.twitter.com/davesnx).

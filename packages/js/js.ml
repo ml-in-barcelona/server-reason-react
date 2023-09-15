@@ -95,15 +95,15 @@ let typeof _ = notImplemented "Js" "typeof"
 
 (* external unsafe_le : 'a -> 'a -> bool = "#unsafe_le" *)
 (**  [unsafe_le a b] will be compiled as [a <= b].
-     See also {!unsafe_lt} *)
+     See also {unsafe_lt} *)
 
 (* external unsafe_gt : 'a -> 'a -> bool = "#unsafe_gt" *)
 (**  [unsafe_gt a b] will be compiled as [a > b].
-     See also {!unsafe_lt} *)
+     See also {unsafe_lt} *)
 
 (* external unsafe_ge : 'a -> 'a -> bool = "#unsafe_ge" *)
 (**  [unsafe_ge a b] will be compiled as [a >= b].
-     See also {!unsafe_lt} *)
+     See also {unsafe_lt} *)
 
 (** {12 nested modules}*)
 
@@ -1349,7 +1349,7 @@ module Types = struct
     | Symbol : symbol t
     | BigInt : bigint_val t
 
-  (** @example{[
+  (** {[
   test "x" String = true
   ]}*)
   let test _ _ = notImplemented "Js.Types" "test"

@@ -2,7 +2,7 @@
 " This module is {!Belt.MutableSet} specialized with key type to be a \
  primitive type.\n\
 \    It is more efficient in general, the  API is the same with \
- {!Belt_MutableSet} except its key type is fixed,\n\
+ {!Belt.MutableSet} except its key type is fixed,\n\
 \    and identity is not needed(using the built-in one) \n"]
 
 module I = Belt_internalSetInt

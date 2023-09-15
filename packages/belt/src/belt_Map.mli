@@ -8,7 +8,7 @@
 
   Example usage:
 
-   @example {[
+   {[
     module PairComparator = Belt.Id.MakeComparable(struct
       type t = int * int
       let cmp (a0, a1) (b0, b1) =
@@ -78,21 +78,21 @@ type ('key, 'id) id = ('key, 'id) Belt_Id.comparable
 
 val make : id:('k, 'id) id -> ('k, 'v, 'id) t
 (** [make ~id] creates a new map by taking in the comparator
-    @example {[
+    {[
       let m = Belt.Map.make ~id:(module IntCmp)
     ]}
  *)
 
 val isEmpty : _ t -> bool
 (** [isEmpty m] checks whether a map m is empty
-    @example {[
+    {[
       isEmpty (fromArray [|1,"1"|] ~id:(module IntCmp)) = false
     ]}
 *)
 
 val has : ('k, 'v, 'id) t -> 'k -> bool
 (** [has m k] checks whether m has the key k
-    @example {[
+    {[
       has (fromArray [|1,"1"|] ~id:(module IntCmp)) 1 = true
     ]}
   *)
@@ -123,7 +123,7 @@ val findFirstBy : ('k, 'v, 'id) t -> ('k -> 'v -> bool) -> ('k * 'v) option
 (** [findFirstBy m p] uses funcion [f] to find the first key value pair
     to match predicate [p].
 
-    @example {[
+    {[
       let s0 = fromArray ~id:(module IntCmp) [|4,"4";1,"1";2,"2,"3""|];;
       findFirstBy s0 (fun k v -> k = 4 ) = option (4, "4");;
     ]}
@@ -137,7 +137,7 @@ val forEach : ('k, 'v, 'id) t -> ('k -> 'v -> unit) -> unit
     as second argument.  The bindings are passed to [f] in increasing
     order with respect to the ordering over the type of the keys.
 
-    @example {[
+    {[
       let s0 = fromArray ~id:(module IntCmp) [|4,"4";1,"1";2,"2,"3""|];;
       let acc = ref [] ;;
       forEach s0 (fun k v -> acc := (k,v) :: !acc);;
@@ -154,7 +154,7 @@ val reduce : ('k, 'v, 'id) t -> 'acc -> ('acc -> 'k -> 'v -> 'acc) -> 'acc
     where [k1 ... kN] are the keys of all bindings in [m]
     (in increasing order), and [d1 ... dN] are the associated data.
 
-    @example {[
+    {[
       let s0 = fromArray ~id:(module IntCmp) [|4,"4";1,"1";2,"2,"3""|];;
       reduce s0 [] (fun acc k v -> (k,v) acc ) = [4,"4";3,"3";2,"2";1,"1"];;
     ]}
@@ -175,7 +175,7 @@ val some : ('k, 'v, 'id) t -> ('k -> 'v -> bool) -> bool
 val size : ('k, 'v, 'id) t -> int
 (** [size s]
 
-    @example {[
+    {[
       size (fromArray [2,"2"; 2,"1"; 3,"3"] ~id:(module IntCmp)) = 2 ;;
     ]}
 *)
@@ -183,7 +183,7 @@ val size : ('k, 'v, 'id) t -> int
 val toArray : ('k, 'v, 'id) t -> ('k * 'v) array
 (** [toArray s]
 
-    @example {[
+    {[
       toArray (fromArray [2,"2"; 1,"1"; 3,"3"] ~id:(module IntCmp)) = [1,"1";2,"2";3,"3"]
     ]}
 
@@ -192,19 +192,19 @@ val toArray : ('k, 'v, 'id) t -> ('k * 'v) array
 val toList : ('k, 'v, 'id) t -> ('k * 'v) list
 (** In increasing order
 
-    {b See} {!toArray}
+    {b See} {toArray}
 *)
 
 val fromArray : ('k * 'v) array -> id:('k, 'id) id -> ('k, 'v, 'id) t
 (** [fromArray kvs ~id]
-    @example {[
+    {[
       toArray (fromArray [2,"2"; 1,"1"; 3,"3"] ~id:(module IntCmp)) = [1,"1";2,"2";3,"3"]
     ]}
 *)
 
 val keysToArray : ('k, 'v, 'id) t -> 'k array
 (** [keysToArray s]
-    @example {[
+    {[
       keysToArray (fromArray [2,"2"; 1,"1"; 3,"3"] ~id:(module IntCmp)) =
       [|1;2;3|];;
     ]}
@@ -212,7 +212,7 @@ val keysToArray : ('k, 'v, 'id) t -> 'k array
 
 val valuesToArray : ('k, 'v, 'id) t -> 'v array
 (** [valuesToArray s]
-    @example {[
+    {[
       valuesToArray (fromArray [2,"2"; 1,"1"; 3,"3"] ~id:(module IntCmp)) =
       [|"1";"2";"3"|];;
     ]}
@@ -225,7 +225,7 @@ val minKey : ('k, _, _) t -> 'k option
 *)
 
 val minKeyUndefined : ('k, _, _) t -> 'k Js.undefined
-(** {b See} {!minKey}*)
+(** {b See} {minKey}*)
 
 val maxKey : ('k, _, _) t -> 'k option
 (** [maxKey s]
@@ -233,7 +233,7 @@ val maxKey : ('k, _, _) t -> 'k option
 *)
 
 val maxKeyUndefined : ('k, _, _) t -> 'k Js.undefined
-(** {b See} {!maxKey} *)
+(** {b See} {maxKey} *)
 
 val minimum : ('k, 'v, _) t -> ('k * 'v) option
 (** [minimum s]
@@ -241,7 +241,7 @@ val minimum : ('k, 'v, _) t -> ('k * 'v) option
 *)
 
 val minUndefined : ('k, 'v, _) t -> ('k * 'v) Js.undefined
-(** {b See} {!minimum} *)
+(** {b See} {minimum} *)
 
 val maximum : ('k, 'v, _) t -> ('k * 'v) option
 (** [maximum s]
@@ -249,13 +249,13 @@ val maximum : ('k, 'v, _) t -> ('k * 'v) option
 *)
 
 val maxUndefined : ('k, 'v, _) t -> ('k * 'v) Js.undefined
-(** {b See} {!maximum}
+(** {b See} {maximum}
 *)
 
 val get : ('k, 'v, 'id) t -> 'k -> 'v option
 (** [get s k]
 
-    @example {[
+    {[
       get (fromArray [2,"2"; 1,"1"; 3,"3"] ~id:(module IntCmp)) 2 =
       Some "2";;
       get (fromArray [2,"2"; 1,"1"; 3,"3"] ~id:(module IntCmp)) 2 =
@@ -264,7 +264,7 @@ val get : ('k, 'v, 'id) t -> 'k -> 'v option
 *)
 
 val getUndefined : ('k, 'v, 'id) t -> 'k -> 'v Js.undefined
-(** {b See} {!get}
+(** {b See} {get}
 
     @return [undefined] when not found
 *)
@@ -272,7 +272,7 @@ val getUndefined : ('k, 'v, 'id) t -> 'k -> 'v Js.undefined
 val getWithDefault : ('k, 'v, 'id) t -> 'k -> 'v -> 'v
 (** [getWithDefault s k default]
 
-   {b See} {!get}
+   {b See} {get}
 
     @return [default] when [k] is not found
 
@@ -281,7 +281,7 @@ val getWithDefault : ('k, 'v, 'id) t -> 'k -> 'v -> 'v
 val getExn : ('k, 'v, 'id) t -> 'k -> 'v
 (** [getExn s k]
 
-   {b See} {!getExn}
+   {b See} {getExn}
 
     {b raise} when [k] not exist
 *)
@@ -291,7 +291,7 @@ val getExn : ('k, 'v, 'id) t -> 'k -> 'v
 val remove : ('k, 'v, 'id) t -> 'k -> ('k, 'v, 'id) t
 (** [remove m x] when [x] is not in [m], [m] is returned reference unchanged.
 
-    @example {[
+    {[
       let s0 =  (fromArray [2,"2"; 1,"1"; 3,"3"] ~id:(module IntCmp));;
 
       let s1 = remove s0 1;;
@@ -305,7 +305,7 @@ val remove : ('k, 'v, 'id) t -> 'k -> ('k, 'v, 'id) t
 val removeMany : ('k, 'v, 'id) t -> 'k array -> ('k, 'v, 'id) t
 (** [removeMany s xs]
 
-    Removing each of [xs] to [s], note unlike {!remove},
+    Removing each of [xs] to [s], note unlike {remove},
     the reference of return value might be changed even if none in [xs]
     exists [s]
 *)
@@ -315,7 +315,7 @@ val set : ('k, 'v, 'id) t -> 'k -> 'v -> ('k, 'v, 'id) t
     [m], with a new binding of [x] to [y]. If [x] was already bound
     in [m], its previous binding disappears.
 
-    @example {[
+    {[
       let s0 =  (fromArray [2,"2"; 1,"1"; 3,"3"] ~id:(module IntCmp));;
 
       let s1 = set s0 2 "3";;
@@ -341,7 +341,7 @@ val update :
 val mergeMany : ('k, 'v, 'id) t -> ('k * 'v) array -> ('k, 'v, 'id) t
 (** [mergeMany s xs]
 
-    Adding each of [xs] to [s], note unlike {!add},
+    Adding each of [xs] to [s], note unlike [add],
     the reference of return value might be changed even if all values in [xs]
     exist [s]
 *)
@@ -407,7 +407,7 @@ val mapWithKeyU :
 val mapWithKey : ('k, 'v, 'id) t -> ('k -> 'v -> 'v2) -> ('k, 'v2, 'id) t
 (** [mapWithKey m f]
 
-    The same as {!map} except that [f] is supplied with one more argument: the key
+    The same as {map} except that [f] is supplied with one more argument: the key
 *)
 
 val getData : ('k, 'v, 'id) t -> ('k, 'v, 'id) Belt_MapDict.t

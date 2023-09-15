@@ -1,0 +1,18 @@
+(library
+ (name promise_js)
+ (public_name server-reason-react.promise-js)
+ (modes melange)
+ (modules promise_js)
+ (wrapped false)
+ (libraries melange.belt melange.js)
+ (preprocess
+  (pps melange.ppx)))
+
+(library
+ (name promise_native)
+ (public_name server-reason-react.promise-native)
+ (wrapped false)
+ (modules promise_native)
+ (libraries lwt server-reason-react.js server-reason-react.belt)
+ (preprocess
+  (pps lwt_ppx)))

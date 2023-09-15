@@ -1,4 +1,4 @@
-let equal_attrs (a1 : React.Attribute.t) (a2 : React.Attribute.t) =
+let equal_attrs (a1 : React.JSX.prop) (a2 : React.JSX.prop) =
   match (a1, a2) with
   | Bool (k1, v1), Bool (k2, v2) -> k1 == k2 && v1 = v2
   | String (k1, v1), String (k2, v2) -> k1 == k2 && v1 == v2
@@ -36,26 +36,22 @@ let assert_component left right =
 
 let clone_empty () =
   let component =
-    React.createElement "div" [| React.Attribute.Bool ("hidden", true) |] []
+    React.createElement "div" [| React.JSX.Bool ("hidden", true) |] []
   in
   assert_component component (React.cloneElement component [||] [])
 
 let clone_attributes () =
   let component =
-    React.createElement "div" [| React.Attribute.String ("val", "33") |] []
+    React.createElement "div" [| React.JSX.String ("val", "33") |] []
   in
   let expected =
     React.createElement "div"
-      [|
-        React.Attribute.String ("val", "31"); React.Attribute.Bool ("lola", true);
-      |]
+      [| React.JSX.String ("val", "31"); React.JSX.Bool ("lola", true) |]
       []
   in
   let cloned =
     React.cloneElement component
-      [|
-        React.Attribute.Bool ("lola", true); React.Attribute.String ("val", "31");
-      |]
+      [| React.JSX.Bool ("lola", true); React.JSX.String ("val", "31") |]
       []
   in
   assert_component cloned expected
@@ -64,16 +60,12 @@ let clone_order_attributes () =
   let component = React.createElement "div" [||] [] in
   let expected =
     React.createElement "div"
-      [|
-        React.Attribute.String ("val", "31"); React.Attribute.Bool ("lola", true);
-      |]
+      [| React.JSX.String ("val", "31"); React.JSX.Bool ("lola", true) |]
       []
   in
   let cloned =
     React.cloneElement component
-      [|
-        React.Attribute.Bool ("lola", true); React.Attribute.String ("val", "31");
-      |]
+      [| React.JSX.Bool ("lola", true); React.JSX.String ("val", "31") |]
       []
   in
   assert_component cloned expected

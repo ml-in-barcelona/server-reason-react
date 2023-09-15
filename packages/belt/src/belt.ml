@@ -16,7 +16,7 @@
 \    {b Name Convention}\n\n\
 \    For higher order functions, it will be suffixed {b U} if it takes uncurried\n\
 \    callback.\n\n\
-\    @example mli {[\n\
+\    {[\n\
 \        val forEach  : 'a t -> ('a -> unit) -> unit\n\
 \        val forEachU : 'a t -> ('a -> unit [@bs]) -> unit \n\
 \    ]}\n\n\
@@ -40,7 +40,7 @@
  creates a big\n\
 \    closure at runtime and makes dead code elimination much harder.\n\
 \    We use a phantom type to solve the problem:\n\n\
-\    @example ml {[\n\
+\    {[\n\
 \    module Comparable1 = Belt.Id.MakeComparable(struct\n\
 \        type t = int * int\n\
 \        let cmp (a0, a1) (b0, b1) =\n\
@@ -62,7 +62,7 @@
  type, so\n\
 \    e.g. a `merge` operation that tries to merge these two sets will \
  correctly fail.\n\n\
-\    @example mli {[\n\
+\    {[\n\
 \        val mySet1 : ((int * int), Comparable1.identity) t\n\
 \        val mySet2 : ((int * int), Comparable2.identity) t\n\
 \    ]}\n\n\

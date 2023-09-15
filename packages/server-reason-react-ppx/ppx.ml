@@ -6,7 +6,7 @@
 
   transform
   `[@JSX] div(~props1=a, ~props2=b, ~children=[foo, bar], ())`
-  `React.createElement("div", [| React.Attribute.XXX((props1, 1), React.Attribute.XXX((props2, b)), [foo, bar])`.
+  `React.createElement("div", [| React.JSX.XXX((props1, 1), React.JSX.XXX((props2, b)), [foo, bar])`.
 
   transform the upper-cased case
   `[@JSX] Foo.createElement(~key=a, ~ref=b, ~foo=bar, ~children=[], ())`
@@ -817,46 +817,44 @@ let makePropField ~loc id (arg_label, value) =
   let objectValue = makeValue ~isOptional ~loc prop value in
   match (prop, isOptional) with
   | Attribute { type_ = DomProps.String; _ }, false ->
-      [%expr Some (React.Attribute.String ([%e objectKey], [%e objectValue]))]
+      [%expr Some (React.JSX.String ([%e objectKey], [%e objectValue]))]
   | Attribute { type_ = DomProps.String; _ }, true ->
       [%expr
         Option.map
-          (fun v -> React.Attribute.String ([%e objectKey], v))
+          (fun v -> React.JSX.String ([%e objectKey], v))
           [%e objectValue]]
   | Attribute { type_ = DomProps.Int; _ }, false ->
       [%expr
-        Some
-          (React.Attribute.String
-             ([%e objectKey], string_of_int [%e objectValue]))]
+        Some (React.JSX.String ([%e objectKey], string_of_int [%e objectValue]))]
   | Attribute { type_ = DomProps.Int; _ }, true ->
       [%expr
         Option.map
-          (fun v -> React.Attribute.String ([%e objectKey], string_of_int v))
+          (fun v -> React.JSX.String ([%e objectKey], string_of_int v))
           [%e objectValue]]
   | Attribute { type_ = DomProps.Bool; _ }, false ->
-      [%expr Some (React.Attribute.Bool ([%e objectKey], [%e objectValue]))]
+      [%expr Some (React.JSX.Bool ([%e objectKey], [%e objectValue]))]
   | Attribute { type_ = DomProps.Bool; _ }, true ->
       [%expr
         Option.map
-          (fun v -> React.Attribute.Bool ([%e objectKey], v))
+          (fun v -> React.JSX.Bool ([%e objectKey], v))
           [%e objectValue]]
   | Attribute { type_ = DomProps.Style; _ }, false ->
-      [%expr Some (React.Attribute.Style (ReactDOM.Style.to_string [%e value]))]
+      [%expr Some (React.JSX.Style (ReactDOM.Style.to_string [%e value]))]
   | Attribute { type_ = DomProps.Style; _ }, true ->
       [%expr
         Option.map
-          (fun v -> React.Attribute.Style (ReactDOM.Style.to_string v))
+          (fun v -> React.JSX.Style (ReactDOM.Style.to_string v))
           [%e value]]
   | Attribute { type_ = DomProps.Ref; _ }, false ->
-      [%expr Some (React.Attribute.Ref [%e value])]
+      [%expr Some (React.JSX.Ref [%e value])]
   | Attribute { type_ = DomProps.Ref; _ }, true ->
-      [%expr Option.map (fun v -> React.Attribute.Ref v) [%e value]]
+      [%expr Option.map (fun v -> React.JSX.Ref v) [%e value]]
   | Attribute { type_ = DomProps.InnerHtml; _ }, false -> (
       match value with
       (* Even thought we dont have bs.obj in OCaml, we do in Reason.
-         We can extract the field __html and pass it to React.Attribute.DangerouslyInnerHtml *)
+         We can extract the field __html and pass it to React.JSX.DangerouslyInnerHtml *)
       | [%expr [%bs.obj { __html = [%e? inner] }]] ->
-          [%expr Some (React.Attribute.DangerouslyInnerHtml [%e inner])]
+          [%expr Some (React.JSX.DangerouslyInnerHtml [%e inner])]
       | _ ->
           raise
           @@ Location.raise_errorf ~loc
@@ -864,12 +862,10 @@ let makePropField ~loc id (arg_label, value) =
   | Attribute { type_ = DomProps.InnerHtml; _ }, true -> (
       match value with
       (* Even thought we dont have bs.obj in OCaml, we do in Reason.
-         We can extract the field __html and pass it to React.Attribute.DangerouslyInnerHtml *)
+         We can extract the field __html and pass it to React.JSX.DangerouslyInnerHtml *)
       | [%expr [%bs.obj { __html = [%e? inner] }]] ->
           [%expr
-            Option.map
-              (fun v -> React.Attribute.DangerouslyInnerHtml v)
-              [%e inner]]
+            Option.map (fun v -> React.JSX.DangerouslyInnerHtml v) [%e inner]]
       | _ ->
           raise
           @@ Location.raise_errorf ~loc
@@ -877,147 +873,142 @@ let makePropField ~loc id (arg_label, value) =
   | Event { type_ = Mouse; name }, false ->
       [%expr
         Some
-          (React.Attribute.Event
+          (React.JSX.Event
              ( [%e constantString ~loc name],
-               React.Attribute.Event.Mouse [%e objectValue] ))]
+               React.JSX.Event.Mouse [%e objectValue] ))]
   | Event { type_ = Mouse; name }, true ->
       [%expr
         Option.map
           (fun v ->
-            React.Attribute.Event
-              ([%e constantString ~loc name], React.Attribute.Event.Mouse v))
+            React.JSX.Event
+              ([%e constantString ~loc name], React.JSX.Event.Mouse v))
           [%e objectValue]]
   | Event { type_ = Selection; name }, false ->
       [%expr
         Some
-          (React.Attribute.Event
+          (React.JSX.Event
              ( [%e constantString ~loc name],
-               React.Attribute.Event.Selection [%e objectValue] ))]
+               React.JSX.Event.Selection [%e objectValue] ))]
   | Event { type_ = Selection; name }, true ->
       [%expr
         Option.map (fun v ->
-            (React.Attribute.Event
-               ([%e constantString ~loc name], React.Attribute.Event.Selection v))
+            (React.JSX.Event
+               ([%e constantString ~loc name], React.JSX.Event.Selection v))
               [%e objectValue])]
   | Event { type_ = Touch; name }, false ->
       [%expr
         Some
-          (React.Attribute.Event
+          (React.JSX.Event
              ( [%e constantString ~loc name],
-               React.Attribute.Event.Touch [%e objectValue] ))]
+               React.JSX.Event.Touch [%e objectValue] ))]
   | Event { type_ = Touch; name }, true ->
       [%expr
         Option.map (fun v ->
-            (React.Attribute.Event
-               ([%e constantString ~loc name], React.Attribute.Event.Touch v))
+            (React.JSX.Event
+               ([%e constantString ~loc name], React.JSX.Event.Touch v))
               [%e objectValue])]
   | Event { type_ = UI; name }, false ->
       [%expr
         Some
-          (React.Attribute.Event
-             ( [%e constantString ~loc name],
-               React.Attribute.Event.UI [%e objectValue] ))]
+          (React.JSX.Event
+             ([%e constantString ~loc name], React.JSX.Event.UI [%e objectValue]))]
   | Event { type_ = UI; name }, true ->
       [%expr
         Option.map (fun v ->
-            (React.Attribute.Event
-               ([%e constantString ~loc name], React.Attribute.Event.UI v))
+            (React.JSX.Event
+               ([%e constantString ~loc name], React.JSX.Event.UI v))
               [%e objectValue])]
   | Event { type_ = Wheel; name }, false ->
       [%expr
         Some
-          (React.Attribute.Event
+          (React.JSX.Event
              ( [%e constantString ~loc name],
-               React.Attribute.Event.Wheel [%e objectValue] ))]
+               React.JSX.Event.Wheel [%e objectValue] ))]
   | Event { type_ = Wheel; name }, true ->
       [%expr
         Option.map (fun v ->
-            (React.Attribute.Event
-               ([%e constantString ~loc name], React.Attribute.Event.Wheel v))
+            (React.JSX.Event
+               ([%e constantString ~loc name], React.JSX.Event.Wheel v))
               [%e objectValue])]
   | Event { type_ = Clipboard; name }, false ->
       [%expr
         Some
-          (React.Attribute.Event
+          (React.JSX.Event
              ( [%e constantString ~loc name],
-               React.Attribute.Event.Clipboard [%e objectValue] ))]
+               React.JSX.Event.Clipboard [%e objectValue] ))]
   | Event { type_ = Clipboard; name }, true ->
       [%expr
         Option.map (fun v ->
-            (React.Attribute.Event
-               ([%e constantString ~loc name], React.Attribute.Event.Clipboard v))
+            (React.JSX.Event
+               ([%e constantString ~loc name], React.JSX.Event.Clipboard v))
               [%e objectValue])]
   | Event { type_ = Composition; name }, false ->
       [%expr
         Some
-          (React.Attribute.Event
+          (React.JSX.Event
              ( [%e constantString ~loc name],
-               React.Attribute.Event.Composition [%e objectValue] ))]
+               React.JSX.Event.Composition [%e objectValue] ))]
   | Event { type_ = Composition; name }, true ->
       [%expr
         Option.map (fun v ->
-            (React.Attribute.Event
-               ( [%e constantString ~loc name],
-                 React.Attribute.Event.Composition v ))
+            (React.JSX.Event
+               ([%e constantString ~loc name], React.JSX.Event.Composition v))
               [%e objectValue])]
   | Event { type_ = Keyboard; name }, false ->
       [%expr
         Some
-          (React.Attribute.Event
-             ([%e constantString ~loc name], React.Attribute.Keyboard v))]
+          (React.JSX.Event ([%e constantString ~loc name], React.JSX.Keyboard v))]
   | Event { type_ = Keyboard; name }, true ->
       [%expr
         Option.map (fun v ->
-            (React.Attribute.Event
-               ([%e constantString ~loc name], React.Attribute.Keyboard v))
+            (React.JSX.Event
+               ([%e constantString ~loc name], React.JSX.Keyboard v))
               [%e objectValue])]
   | Event { type_ = Focus; name }, false ->
       [%expr
         Some
-          (React.Attribute.Event
+          (React.JSX.Event
              ( [%e constantString ~loc name],
-               React.Attribute.Event.Focus [%e objectValue] ))]
+               React.JSX.Event.Focus [%e objectValue] ))]
   | Event { type_ = Focus; name }, true ->
       [%expr
         Option.map (fun v ->
-            (React.Attribute.Event
-               ([%e constantString ~loc name], React.Attribute.Event.Focus v))
+            (React.JSX.Event
+               ([%e constantString ~loc name], React.JSX.Event.Focus v))
               [%e objectValue])]
   | Event { type_ = Form; name }, false ->
       [%expr
         Some
-          (React.Attribute.Event
+          (React.JSX.Event
              ( [%e constantString ~loc name],
-               React.Attribute.Event.Form [%e objectValue] ))]
+               React.JSX.Event.Form [%e objectValue] ))]
   | Event { type_ = Form; name }, true ->
       [%expr
         Option.map (fun v ->
-            (React.Attribute.Event
-               ([%e constantString ~loc name], React.Attribute.Event.Form v))
+            (React.JSX.Event
+               ([%e constantString ~loc name], React.JSX.Event.Form v))
               [%e objectValue])]
   | Event { type_ = Media; name }, false ->
       [%expr
         Some
-          (React.Attribute.Event
-             ( [%e constantString ~loc name],
-               React.Attribute.Media [%e objectValue] ))]
+          (React.JSX.Event
+             ([%e constantString ~loc name], React.JSX.Media [%e objectValue]))]
   | Event { type_ = Media; name }, true ->
       [%expr
         Option.map (fun v ->
-            (React.Attribute.Event
-               ([%e constantString ~loc name], React.Attribute.Media v))
+            (React.JSX.Event ([%e constantString ~loc name], React.JSX.Media v))
               [%e objectValue])]
   | Event { type_ = Inline; name }, false ->
       [%expr
         Some
-          (React.Attribute.Event
+          (React.JSX.Event
              ( [%e constantString ~loc name],
-               React.Attribute.Event.Inline [%e objectValue] ))]
+               React.JSX.Event.Inline [%e objectValue] ))]
   | Event { type_ = Inline; name }, true ->
       [%expr
         Option.map (fun v ->
-            (React.Attribute.Event
-               ([%e constantString ~loc name], React.Attribute.Event.Inline v))
+            (React.JSX.Event
+               ([%e constantString ~loc name], React.JSX.Event.Inline v))
               [%e objectValue])]
   | _ -> failwith "Attribute not implemented, open an issue"
 
@@ -1103,7 +1094,7 @@ let jsxMapper () =
       [
         (* "div" *)
         (nolabel, componentNameExpr);
-        (* [React.Attribute.String("key", "value")] *)
+        (* [React.JSX.String("key", "value")] *)
         (nolabel, propsObj);
         (* [|children aka moreCreateElementCallsHere|] *)
         (nolabel, mapper#expression childrenExpr);
