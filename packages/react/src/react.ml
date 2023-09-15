@@ -199,6 +199,10 @@ type 'a context = {
   consumer : children:('a -> element list) -> element;
 }
 
+module Context = struct
+  let provider ctx = ctx.provider
+end
+
 let createContext (initial_value : 'a) : 'a context =
   let ref_value = ref initial_value in
   let provider ~value ~children =
@@ -207,30 +211,6 @@ let createContext (initial_value : 'a) : 'a context =
   in
   let consumer ~children = Consumer (fun () -> children ref_value.contents) in
   { current_value = ref_value; provider; consumer }
-
-(* module Context = {
-     type t('props);
-
-     [@bs.obj]
-     external makeProps:
-       (~value: 'props, ~children: element, unit) =>
-       {
-         .
-         "value": 'props,
-         "children": element,
-       };
-
-     [@bs.get]
-     external provider:
-       t('props) =>
-       component({
-         .
-         "value": 'props,
-         "children": element,
-       }) =
-       "Provider";
-   };
-*)
 
 module Suspense = struct
   let or_react_null = function None -> null | Some x -> x

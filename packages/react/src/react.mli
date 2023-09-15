@@ -90,6 +90,11 @@ type 'a context = {
   consumer : children:('a -> element list) -> element;
 }
 
+module Context : sig
+  val provider :
+    'a context -> value:'a -> children:(unit -> element) list -> element
+end
+
 val createContext : 'a -> 'a context
 
 module Suspense : sig
