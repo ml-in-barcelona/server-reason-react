@@ -11,8 +11,8 @@ let jsx_attribute_to_html k =
   | "defaultSelected" -> "selected"
   | _ -> k
 
-let is_onclick_event event =
-  match event with
+let is_onclick_event attr =
+  match attr with
   | JSX.Event (name, _) when String.equal name "_onclick" -> true
   | _ -> false
 
@@ -37,16 +37,11 @@ let is_react_custom_attribute attr =
       true
   | _ -> false
 
-let attribute_is_not_event attr =
-  match attr with
-  (* We treat _onclick as "not an event", so attribute_is_valid turns it true *)
-  | JSX.Event _ as event when is_onclick_event event -> true
-  | Event _ -> false
-  | _ -> true
+let attribute_is_event attr = match attr with JSX.Event _ -> true | _ -> false
 
 let attribute_is_valid tag attr =
   attribute_is_html tag (get_key attr)
-  && attribute_is_not_event attr
+  && (not (attribute_is_event attr))
   && not (is_react_custom_attribute attr)
 
 let attribute_to_string attr =
@@ -72,7 +67,8 @@ let attributes_to_string tag attrs =
   let valid_attributes =
     attrs |> Array.to_list
     |> List.filter_map (fun attr ->
-           if attribute_is_valid tag attr then Some (attribute_to_string attr)
+           if attribute_is_valid tag attr || is_onclick_event attr then
+             Some (attribute_to_string attr)
            else None)
   in
   match valid_attributes with
@@ -98,12 +94,8 @@ let render_to_string ~mode element =
     in
     match element with
     | Empty -> ""
-    | Provider childrens ->
-        childrens
-        |> List.map (fun f -> f ())
-        |> List.map render_element |> String.concat ""
-    | Consumer children ->
-        children () |> List.map render_element |> String.concat ""
+    | Provider children -> render_element children
+    | Consumer children -> render_element children
     | Fragment children -> render_element children
     | List list ->
         list |> Array.map render_element |> Array.to_list |> String.concat ""
@@ -181,12 +173,8 @@ let render_to_stream ~context_state element =
   let rec render_element element =
     match element with
     | Empty -> ""
-    | Provider childrens ->
-        childrens
-        |> List.map (fun f -> render_element (f ()))
-        |> String.concat ""
-    | Consumer children ->
-        children () |> List.map render_element |> String.concat ""
+    | Provider children -> render_element children
+    | Consumer children -> render_element children
     | Fragment children -> render_element children
     | List arr ->
         arr |> Array.to_list |> List.map render_element |> String.concat ""

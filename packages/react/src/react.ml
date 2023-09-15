@@ -61,8 +61,8 @@ and element =
   | InnerHtml of string
   | Fragment of element
   | Empty
-  | Provider of (unit -> element) list
-  | Consumer of (unit -> element list)
+  | Provider of element
+  | Consumer of element
   | Suspense of { children : element; fallback : element }
 
 exception Invalid_children of string
@@ -193,10 +193,12 @@ let list_to_array list =
 
 let list l = List (list_to_array l)
 
+type 'a provider = value:'a -> children:element -> unit -> element
+
 type 'a context = {
   current_value : 'a ref;
-  provider : value:'a -> children:(unit -> element) list -> element;
-  consumer : children:('a -> element list) -> element;
+  provider : 'a provider;
+  consumer : children:element -> element;
 }
 
 module Context = struct
@@ -205,11 +207,11 @@ end
 
 let createContext (initial_value : 'a) : 'a context =
   let ref_value = ref initial_value in
-  let provider ~value ~children =
+  let provider ~value ~children () =
     ref_value.contents <- value;
     Provider children
   in
-  let consumer ~children = Consumer (fun () -> children ref_value.contents) in
+  let consumer ~children = Consumer children in
   { current_value = ref_value; provider; consumer }
 
 module Suspense = struct

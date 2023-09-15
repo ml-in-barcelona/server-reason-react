@@ -145,16 +145,28 @@ let dangerouslySetInnerHtml () =
     (ReactDOM.renderToStaticMarkup component)
     "<script type=\"application/javascript\">console.log(\"Hi!\")</script>"
 
+let context = React.createContext 10
+
+module ContextProvider = struct
+  include React.Context
+
+  let make = React.Context.provider context
+end
+
+module ContextConsumer = struct
+  let make () =
+    let value = React.useContext context in
+    React.createElement "section" [||] [ React.int value ]
+end
+
 let context () =
-  let context = React.createContext 10 in
   let component =
-    context.provider ~value:20
-      ~children:
-        [
-          (fun () ->
-            context.consumer ~children:(fun value ->
-                [ React.createElement "section" [||] [ React.int value ] ]));
-        ]
+    React.Upper_case_component
+      (fun () ->
+        ContextProvider.make ~value:20
+          ~children:
+            (React.Upper_case_component (fun () -> ContextConsumer.make ()))
+          ())
   in
   assert_string
     (ReactDOM.renderToStaticMarkup component)
@@ -193,15 +205,6 @@ let inner_html () =
     React.createElement "div" [| React.JSX.DangerouslyInnerHtml "foo" |] []
   in
   assert_string (ReactDOM.renderToStaticMarkup component) "<div>foo</div>"
-
-let use_context () =
-  let context = React.createContext 10 in
-  let context_user () =
-    let number = React.useContext context in
-    React.createElement "section" [||] [ React.int number ]
-  in
-  let component = context.provider ~value:0 ~children:[ context_user ] in
-  assert_string (ReactDOM.renderToStaticMarkup component) "<section>0</section>"
 
 let make ~name () =
   let onClick (event : ReactEvent.Mouse.t) : unit = ignore event in
@@ -254,6 +257,10 @@ let render_with_doc_type () =
   assert_string
     (ReactDOM.renderToStaticMarkup div)
     "<div><span>This is valid HTML5</span></div>"
+
+let render_boolstring_prop () =
+  let div = React.createElement "div" [| React.JSX.Bool ("xx", true) |] [] in
+  assert_string (ReactDOM.renderToStaticMarkup div) "<div></div>"
 
 let render_svg () =
   let path =
@@ -334,11 +341,11 @@ let tests =
       case "fragment and text concat nicely" fragments_and_texts;
       case "defaultValue should be value" default_value;
       case "attributes that gets ignored" ignored_attributes_on_jsx;
+      case "render_boolstring_prop" render_boolstring_prop;
       case "inline styles" inline_styles;
       case "escape HTML attributes" encode_attributes;
       case "innerHTML" dangerouslySetInnerHtml;
-      case "createContext" context;
-      case "useContext" use_context;
+      case "context" context;
       case "useState" use_state;
       case "useMemo" use_memo;
       case "useCallback" use_callback;
