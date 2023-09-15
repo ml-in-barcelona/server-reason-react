@@ -12,6 +12,10 @@ jobs:
 
     runs-on: ${{ matrix.os }}
 
+    permissions:
+      contents: read
+      pull-requests: write
+
     strategy:
       fail-fast: false
       matrix:
@@ -57,4 +61,4 @@ jobs:
           target_branch: gh-pages
           build_dir: _build/default/_doc/_html/
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_REPO_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
