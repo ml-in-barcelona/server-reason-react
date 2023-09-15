@@ -179,7 +179,10 @@ module Exn = struct
   let name _ = notImplemented "Js.Exn" "name"
   let fileName _ = notImplemented "Js.Exn" "fileName"
   let anyToExnInternal _ = notImplemented "Js.Exn" "anyToExnInternal"
-  let isCamlExceptionOrOpenVariant _ = notImplemented "Js.Exn" "mplemented"
+
+  let isCamlExceptionOrOpenVariant _ =
+    notImplemented "Js.Exn" "isCamlExceptionOrOpenVariant"
+
   let raiseError str = raise (Stdlib.Obj.magic (makeError str : t) : exn)
   let raiseEvalError _ = notImplemented "Js.Exn" "raiseEvalError"
   let raiseRangeError _ = notImplemented "Js.Exn" "raiseRangeError"
@@ -824,7 +827,7 @@ module String2 = struct
   let split _str _delimiter = notImplemented "Js.String2" "split"
 
   let splitAtMost _str _separator ~limit:_ =
-    notImplemented "Js.String2" "mplemented"
+    notImplemented "Js.String2" "splitAtMost"
 
   let splitByReAtMost _ _ = notImplemented "Js.String2" "splitByReAtMost"
 
@@ -869,7 +872,8 @@ module String2 = struct
     Stdlib.String.length prefix <= Stdlib.String.length str
     && Stdlib.String.sub str 0 (Stdlib.String.length prefix) = prefix
 
-  let startsWithFrom _str _index _ = notImplemented "Js.String2" "mplemented"
+  let startsWithFrom _str _index _ =
+    notImplemented "Js.String2" "startsWithFrom"
 
   let substr str ~from =
     let str_length = Stdlib.String.length str in
@@ -969,12 +973,12 @@ module String = struct
   let split _str _delimiter = notImplemented "Js.String" "split"
 
   let splitAtMost _separator ~limit:_ _str =
-    notImplemented "Js.String" "mplemented"
+    notImplemented "Js.String" "splitAtMost"
 
   let splitByRe _ _ = notImplemented "Js.String" "splitByRe"
   let splitByReAtMost _ _ = notImplemented "Js.String" "splitByReAtMost"
   let startsWith prefix str = String2.startsWith str prefix
-  let startsWithFrom _str _index _ = notImplemented "Js.String" "mplemented"
+  let startsWithFrom _str _index _ = notImplemented "Js.String" "startsWithFrom"
   let substr ~from str = String2.substr str ~from
   let substrAtMost ~from ~length str = String2.substrAtMost str ~from ~length
   let substring ~from ~to_ str = String2.substring str ~from ~to_
@@ -1391,13 +1395,13 @@ module Json = struct
     | JSONObject of t Dict.t
     | JSONArray of t array
 
-  let classify (_x : t) : tagged_t = notImplemented "Js.Json" "mplemented"
+  let classify (_x : t) : tagged_t = notImplemented "Js.Json" "classify"
   let test _ : bool = notImplemented "Js.Json" "test"
   let decodeString json = notImplemented "Js.Json" "decodeString"
   let decodeNumber json = notImplemented "Js.Json" "decodeNumber"
   let decodeObject json = notImplemented "Js.Json" "decodeObject"
   let decodeArray json = notImplemented "Js.Json" "decodeArray"
-  let decodeBoolean (json : t) = notImplemented "Js.Json" "mplemented"
+  let decodeBoolean (json : t) = notImplemented "Js.Json" "decodeBoolean"
   let decodeNull json = notImplemented "Js.Json" "decodeNull"
   let parseExn _ = notImplemented "Js.Json" "parseExn"
   let stringifyAny _ = notImplemented "Js.Json" "stringifyAny"
@@ -1414,7 +1418,7 @@ module Json = struct
   let stringify _ = notImplemented "Js.Json" "stringify"
   let stringifyWithSpace _ = notImplemented "Js.Json" "stringifyWithSpace"
   let patch _ = notImplemented "Js.Json" "patch"
-  let serializeExn (_x : t) : string = notImplemented "Js.Json" "mplemented"
+  let serializeExn (_x : t) : string = notImplemented "Js.Json" "serializeExn"
 
   let deserializeUnsafe (s : string) : 'a =
     notImplemented "Js.Json" "mplemented"
@@ -1555,8 +1559,14 @@ module Float = struct
   let toPrecisionWithPrecision _ ~digits:_ =
     notImplemented "Js.Float" "toPrecisionWithPrecision"
 
-  (* TODO: This isn't equivalent *)
-  let toString = Stdlib.string_of_float
+  let toString f =
+    (* round x rounds x to the nearest integer with ties (fractional values of 0.5) rounded away from zero, regardless of the current rounding direction. If x is an integer, +0., -0., nan, or infinite, x itself is returned.
+
+       On 64-bit mingw-w64, this function may be emulated owing to a bug in the C runtime library (CRT) on this platform. *)
+    (* if round(f) == f, print the integer (since string_of_float 1.0 => "1.") *)
+    if Stdlib.Float.equal (Stdlib.Float.round f) f then
+      f |> int_of_float |> string_of_int
+    else Printf.sprintf "%g" f
 
   let toStringWithRadix _ ~radix:_ =
     notImplemented "Js.Float" "toStringWithRadix"

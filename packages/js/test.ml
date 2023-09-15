@@ -525,7 +525,29 @@ let promise_tests =
       case_async "race_async" race_async;
     ] )
 
+let float_tests =
+  ( "Float",
+    [
+      case "string_of_float" (fun () ->
+          assert_string (string_of_float 0.5) "0.5";
+          assert_string (string_of_float 80.0) "80.";
+          assert_string (string_of_float 80.) "80.";
+          assert_string (Js.Float.toString 80.0) "80";
+          assert_string (Js.Float.toString 80.1) "80.1";
+          assert_string (string_of_float 80.0001) "80.0001";
+          assert_string (Js.Float.toString 80.0001) "80.0001";
+          assert_string (string_of_float 80.00000000001) "80.";
+          assert_string (Js.Float.toString 80.00000000001) "80");
+    ] )
+
 let () =
   Alcotest_lwt.run "Js"
-    [ promise_tests; string2_tests; re_tests; array_tests; dict_tests ]
+    [
+      promise_tests;
+      float_tests;
+      string2_tests;
+      re_tests;
+      array_tests;
+      dict_tests;
+    ]
   |> Lwt_main.run
