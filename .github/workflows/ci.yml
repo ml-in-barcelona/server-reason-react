@@ -6,6 +6,9 @@ on:
     # Prime the caches every Monday
     - cron: 0 1 * * MON
 
+permissions:
+  contents: write
+
 jobs:
   build:
     name: Build and test
@@ -57,4 +60,4 @@ jobs:
           target_branch: gh-pages
           build_dir: _build/default/_doc/_html/
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_REPO_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}

@@ -1097,6 +1097,7 @@ module SVG = struct
       Attribute { name = "overflow"; jsxName = "overflow"; type_ = String (* number | *) };
       Attribute { name = "stopOpacity"; jsxName = "stopOpacity"; type_ = String (* number | *) };
       Attribute { name = "strokeLinecap"; jsxName = "strokeLinecap"; type_ = String (* type_= "butt" | "round" | "square" | "inherit" *) };
+      Attribute { name = "strokeLinejoin"; jsxName = "strokeLinejoin"; type_ = String (* type_= "butt" | "round" | "square" | "inherit" *) };
       Attribute { name = "unicodeBidi"; jsxName = "unicodeBidi"; type_ = String (* number | *) };
       Attribute { name = "vectorEffect"; jsxName = "vectorEffect"; type_ = String (* number | *) };
       Attribute { name = "wordSpacing"; jsxName = "wordSpacing"; type_ = String (* number | *) };
