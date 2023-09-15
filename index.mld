@@ -67,8 +67,8 @@ let%browser_only countDomNodes = (id) => {
     let elements = Webapi.Element.querySelector("#" ++ id);
     let arr_elements = Webapi.Element.toArray(elements);
     Array.length(arr_elements);
-  } catch (e) {
-    0;
+  } {
+    | _ => 0;
   }
 };
 ]}
