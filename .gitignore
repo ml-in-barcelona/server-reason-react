@@ -111,3 +111,5 @@ _esy
 dune.mel
 .melange.eobjs
 dist/
+
+.direnv/
