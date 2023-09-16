@@ -24,7 +24,8 @@ jobs:
           - ubuntu-latest
           # - windows-latest
         ocaml-compiler:
-          - 5.1.x
+          - 4.14.0
+          - 5.0
 
     steps:
       - name: Checkout code
