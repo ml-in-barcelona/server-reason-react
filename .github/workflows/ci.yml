@@ -80,16 +80,16 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
 
-     - name: Save cache when not Windows
-       uses: actions/cache/save@v3
-       if: steps.opam-cache.outputs.cache-hit != 'true' && runner.os != 'Windows'
-       with:
-         path: ~/.opam
-         key: opam-${{ matrix.os }}-${{ matrix.ocaml-compiler }}-${{ hashFiles('**.opam') }}
+      - name: Save cache when not Windows
+        uses: actions/cache/save@v3
+        if: steps.opam-cache.outputs.cache-hit != 'true' && runner.os != 'Windows'
+        with:
+          path: ~/.opam
+          key: opam-${{ matrix.os }}-${{ matrix.ocaml-compiler }}-${{ hashFiles('**.opam') }}
 
-     - name: Save cache when Windows
-       uses: actions/cache/save@v3
-       if: steps.opam-cache-windows.outputs.cache-hit != 'true' && runner.os == 'Windows'
-       with:
-         path: _opam
-         key: opam-${{ matrix.os }}-${{ matrix.ocaml-compiler }}-${{ hashFiles('**.opam') }}
+      - name: Save cache when Windows
+        uses: actions/cache/save@v3
+        if: steps.opam-cache-windows.outputs.cache-hit != 'true' && runner.os == 'Windows'
+        with:
+          path: _opam
+          key: opam-${{ matrix.os }}-${{ matrix.ocaml-compiler }}-${{ hashFiles('**.opam') }}
