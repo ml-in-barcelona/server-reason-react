@@ -369,7 +369,7 @@ let rec makeFunsForMakePropsBody list args =
            args)
   | [] -> args
 
-let makeAttributeValue ~loc ~isOptional (type_ : DomProps.attributeType) value =
+let makeAttributeValue ~loc ~isOptional (type_ : JsxProps.attributeType) value =
   match (type_, isOptional) with
   | String, true -> [%expr ([%e value] : string option)]
   | String, false -> [%expr ([%e value] : string)]
@@ -391,7 +391,7 @@ let makeAttributeValue ~loc ~isOptional (type_ : DomProps.attributeType) value =
    | InnerHtml, true ->
        [%expr ([%e value] : React.DangerouslySetInnerHTML.t option)] *)
 
-let makeEventValue ~loc ~isOptional (type_ : DomProps.eventType) value =
+let makeEventValue ~loc ~isOptional (type_ : JsxProps.eventType) value =
   match (type_, isOptional) with
   | Clipboard, false -> [%expr ([%e value] : ReactEvent.Clipboard.t -> unit)]
   | Clipboard, true ->
@@ -438,9 +438,9 @@ let makeEventValue ~loc ~isOptional (type_ : DomProps.eventType) value =
 
 let makeValue ~loc ~isOptional prop value =
   match prop with
-  | DomProps.Attribute attribute ->
+  | JsxProps.Attribute attribute ->
       makeAttributeValue ~loc ~isOptional attribute.type_ value
-  | DomProps.Event event -> makeEventValue ~loc ~isOptional event.type_ value
+  | JsxProps.Event event -> makeEventValue ~loc ~isOptional event.type_ value
 
 let makeJsObj ~loc namedArgListWithKeyAndRef =
   let labelToTuple label =
@@ -792,7 +792,7 @@ let makePropField ~loc id (arg_label, value) =
   let isOptional = isOptional arg_label in
   let name = getLabel arg_label in
   let prop =
-    match DomProps.findByName id name with
+    match JsxProps.findByName id name with
     | Ok p -> p
     | Error `ElementNotFound ->
         raise
@@ -801,7 +801,7 @@ let makePropField ~loc id (arg_label, value) =
               If this isn't correct, please open an issue at %s" id
              "https://github.com/ml-in-barcelona/server-reason-react/issues"
     | Error `AttributeNotFound ->
-        let suggestion = DomProps.find_closest_name name in
+        let suggestion = JsxProps.find_closest_name name in
         raise
         @@ Location.raise_errorf ~loc
              "prop '%s' isn't valid on a '%s' element.\n\
@@ -811,54 +811,54 @@ let makePropField ~loc id (arg_label, value) =
              name id suggestion
              "https://github.com/ml-in-barcelona/server-reason-react/issues"
   in
-  let jsxName = DomProps.getName prop in
+  let jsxName = JsxProps.getName prop in
   let objectKey = Exp.constant ~loc (Pconst_string (jsxName, loc, None)) in
   let objectValue = makeValue ~isOptional ~loc prop value in
   match (prop, isOptional) with
-  | Attribute { type_ = DomProps.String; _ }, false ->
+  | Attribute { type_ = JsxProps.String; _ }, false ->
       [%expr Some (React.JSX.String ([%e objectKey], [%e objectValue]))]
-  | Attribute { type_ = DomProps.String; _ }, true ->
+  | Attribute { type_ = JsxProps.String; _ }, true ->
       [%expr
         Option.map
           (fun v -> React.JSX.String ([%e objectKey], v))
           [%e objectValue]]
-  | Attribute { type_ = DomProps.Int; _ }, false ->
+  | Attribute { type_ = JsxProps.Int; _ }, false ->
       [%expr
         Some (React.JSX.String ([%e objectKey], string_of_int [%e objectValue]))]
-  | Attribute { type_ = DomProps.Int; _ }, true ->
+  | Attribute { type_ = JsxProps.Int; _ }, true ->
       [%expr
         Option.map
           (fun v -> React.JSX.String ([%e objectKey], string_of_int v))
           [%e objectValue]]
-  | Attribute { type_ = DomProps.Bool; _ }, false ->
+  | Attribute { type_ = JsxProps.Bool; _ }, false ->
       [%expr Some (React.JSX.Bool ([%e objectKey], [%e objectValue]))]
-  | Attribute { type_ = DomProps.Bool; _ }, true ->
+  | Attribute { type_ = JsxProps.Bool; _ }, true ->
       [%expr
         Option.map
           (fun v -> React.JSX.Bool ([%e objectKey], v))
           [%e objectValue]]
   (* StringlyBool transforms boolean into string *)
-  | Attribute { type_ = DomProps.StringlyBool; _ }, false ->
+  | Attribute { type_ = JsxProps.StringlyBool; _ }, false ->
       [%expr
         Some
           (React.JSX.String ([%e objectKey], string_of_bool [%e objectValue]))]
-  | Attribute { type_ = DomProps.StringlyBool; _ }, true ->
+  | Attribute { type_ = JsxProps.StringlyBool; _ }, true ->
       [%expr
         Option.map
           (fun v -> React.JSX.String ([%e objectKey], v))
           string_of_bool [%e objectValue]]
-  | Attribute { type_ = DomProps.Style; _ }, false ->
+  | Attribute { type_ = JsxProps.Style; _ }, false ->
       [%expr Some (React.JSX.Style (ReactDOM.Style.to_string [%e value]))]
-  | Attribute { type_ = DomProps.Style; _ }, true ->
+  | Attribute { type_ = JsxProps.Style; _ }, true ->
       [%expr
         Option.map
           (fun v -> React.JSX.Style (ReactDOM.Style.to_string v))
           [%e value]]
-  | Attribute { type_ = DomProps.Ref; _ }, false ->
+  | Attribute { type_ = JsxProps.Ref; _ }, false ->
       [%expr Some (React.JSX.Ref [%e value])]
-  | Attribute { type_ = DomProps.Ref; _ }, true ->
+  | Attribute { type_ = JsxProps.Ref; _ }, true ->
       [%expr Option.map (fun v -> React.JSX.Ref v) [%e value]]
-  | Attribute { type_ = DomProps.InnerHtml; _ }, false -> (
+  | Attribute { type_ = JsxProps.InnerHtml; _ }, false -> (
       match value with
       (* Even thought we dont have mel.obj in OCaml, we do in Reason.
          We can extract the field __html and pass it to React.JSX.DangerouslyInnerHtml *)
@@ -868,7 +868,7 @@ let makePropField ~loc id (arg_label, value) =
           raise
           @@ Location.raise_errorf ~loc
                "unexpected expression found on dangerouslySetInnerHTML")
-  | Attribute { type_ = DomProps.InnerHtml; _ }, true -> (
+  | Attribute { type_ = JsxProps.InnerHtml; _ }, true -> (
       match value with
       (* Even thought we dont have mel.obj in OCaml, we do in Reason.
          We can extract the field __html and pass it to React.JSX.DangerouslyInnerHtml *)
