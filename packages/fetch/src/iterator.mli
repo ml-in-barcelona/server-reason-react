@@ -6,8 +6,10 @@
 module Next : sig
   type 'a t
 
-  external done_ : _ t -> bool option = "done" [@@bs.get]
-  external value : 'a t -> 'a option = "value" [@@bs.get] [@@bs.return nullable]
+  external done_ : _ t -> bool option = "done" [@@mel.get]
+
+  external value : 'a t -> 'a option = "value"
+  [@@mel.get] [@@mel.return nullable]
 end
 
 type 'a t
@@ -16,4 +18,4 @@ val forEach : f:('a -> unit) -> 'a t -> unit
 (** [forEach ~f iterator] runs [f] on each item returned by the [iterator]. This
     is not defined by the platform but a convenience function. *)
 
-external next : 'a t -> 'a Next.t = "next" [@@bs.send]
+external next : 'a t -> 'a Next.t = "next" [@@mel.send]

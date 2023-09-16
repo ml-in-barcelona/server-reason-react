@@ -169,7 +169,7 @@ module Uppercase_with_SSR_components = {
 
 module Upper_with_aria = {
   [@react.component]
-  let make = (~children) => <div ariaHidden="true"> children </div>;
+  let make = (~children) => <div ariaHidden=true> children </div>;
 };
 
 let data_attributes_should_transform_to_kebabcase =

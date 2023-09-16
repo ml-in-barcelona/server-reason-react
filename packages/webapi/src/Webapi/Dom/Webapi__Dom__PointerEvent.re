@@ -11,18 +11,18 @@ include Webapi__Dom__MouseEvent.Impl({
   type nonrec t = t;
 });
 
-[@bs.new] external make: string => t = "PointerEvent";
-[@bs.new]
+[@mel.new] external make: string => t = "PointerEvent";
+[@mel.new]
 external makeWithOptions: (string, Js.t({..})) => t = "PointerEvent";
 
-[@bs.get] external pointerId: t => pointerId = "pointerId";
-[@bs.get] external width: t => int = "width";
-[@bs.get] external height: t => int = "height";
-[@bs.get] external pressure: t => float = "pressure";
-[@bs.get] external tiltX: t => int = "tiltX";
-[@bs.get] external tiltY: t => int = "tiltY";
-[@bs.get]
+[@mel.get] external pointerId: t => pointerId = "pointerId";
+[@mel.get] external width: t => int = "width";
+[@mel.get] external height: t => int = "height";
+[@mel.get] external pressure: t => float = "pressure";
+[@mel.get] external tiltX: t => int = "tiltX";
+[@mel.get] external tiltY: t => int = "tiltY";
+[@mel.get]
 external pointerType: t => string /* pointerType enum */ = "pointerType";
 let pointerType: t => Webapi__Dom__Types.pointerType =
   self => Webapi__Dom__Types.decodePointerType(pointerType(self));
-[@bs.get] external isPrimary: t => bool = "isPrimary";
+[@mel.get] external isPrimary: t => bool = "isPrimary";

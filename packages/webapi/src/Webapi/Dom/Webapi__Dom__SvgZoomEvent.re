@@ -7,12 +7,12 @@ include Webapi__Dom__UiEvent.Impl({
   type nonrec t = t;
 });
 
-[@bs.new] external make: string => t = "SVGZoomEvent";
-[@bs.new]
+[@mel.new] external make: string => t = "SVGZoomEvent";
+[@mel.new]
 external makeWithOptions: (string, Js.t({..})) => t = "SVGZoomEvent";
 
-[@bs.get] external zoomRectScreen: t => Dom.svgRect = "zoomRectScreen";
-[@bs.get] external previousScale: t => float = "previousScale";
-[@bs.get] external previousTranslate: t => Dom.svgPoint = "previousTranslate";
-[@bs.get] external newScale: t => float = "newScale";
-[@bs.get] external newTranslate: t => Dom.svgPoint = "newTranslate";
+[@mel.get] external zoomRectScreen: t => Dom.svgRect = "zoomRectScreen";
+[@mel.get] external previousScale: t => float = "previousScale";
+[@mel.get] external previousTranslate: t => Dom.svgPoint = "previousTranslate";
+[@mel.get] external newScale: t => float = "newScale";
+[@mel.get] external newTranslate: t => Dom.svgPoint = "newTranslate";

@@ -4,6 +4,12 @@
 
 (rule
  (targets reason.result)
+ (deps ppx.result)
+ (action
+  (run ocamlformat --impl %{deps} -o %{targets})))
+
+(rule
+ (targets ppx.result)
  (deps test_reason.ml)
  (action
   (run ./main.exe --impl %{deps} -o %{targets})))

@@ -7,8 +7,8 @@ include Webapi__Dom__UiEvent.Impl({
   type nonrec t = t;
 });
 
-[@bs.new] external make: string => t = "InputEvent";
-[@bs.new] external makeWithOptions: (string, Js.t({..})) => t = "InputEvent";
+[@mel.new] external make: string => t = "InputEvent";
+[@mel.new] external makeWithOptions: (string, Js.t({..})) => t = "InputEvent";
 
-[@bs.get] external data: t => string = "data";
-[@bs.get] external isComposing: t => bool = "isComposing";
+[@mel.get] external data: t => string = "data";
+[@mel.get] external isComposing: t => bool = "isComposing";

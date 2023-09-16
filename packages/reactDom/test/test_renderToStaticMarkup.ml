@@ -1,17 +1,15 @@
 let assert_string left right =
   Alcotest.check Alcotest.string "should be equal" right left
 
-let tag () =
+let single_empty_tag () =
   let div = React.createElement "div" [||] [] in
   assert_string (ReactDOM.renderToStaticMarkup div) "<div></div>"
 
-let empty_attribute () =
-  let div =
-    React.createElement "div" [| React.JSX.String ("className", "") |] []
-  in
+let empty_string_attribute () =
+  let div = React.createElement "div" [| React.JSX.String ("class", "") |] [] in
   assert_string (ReactDOM.renderToStaticMarkup div) "<div class=\"\"></div>"
 
-let attributes () =
+let string_attributes () =
   let a =
     React.createElement "a"
       [|
@@ -39,11 +37,21 @@ let bool_attributes () =
     (ReactDOM.renderToStaticMarkup a)
     "<input type=\"checkbox\" name=\"cheese\" checked />"
 
-let closing_tag () =
+let truthy_attributes () =
+  let component =
+    React.createElement "input"
+      [| React.JSX.String ("aria-hidden", "true") |]
+      []
+  in
+  assert_string
+    (ReactDOM.renderToStaticMarkup component)
+    "<input aria-hidden=\"true\" />"
+
+let self_closing_tag () =
   let input = React.createElement "input" [||] [] in
   assert_string (ReactDOM.renderToStaticMarkup input) "<input />"
 
-let innerhtml () =
+let dom_element_innerHtml () =
   let p = React.createElement "p" [||] [ React.string "text" ] in
   assert_string (ReactDOM.renderToStaticMarkup p) "<p>text</p>"
 
@@ -57,18 +65,11 @@ let ignored_attributes_on_jsx () =
     React.createElement "div"
       [|
         React.JSX.String ("key", "uniqueKeyId");
-        React.JSX.String ("wat", "randomAttributeThatShouldBeIgnored");
         React.JSX.Bool ("suppressContentEditableWarning", true);
       |]
       []
   in
   assert_string (ReactDOM.renderToStaticMarkup div) "<div></div>"
-
-let className () =
-  let div =
-    React.createElement "div" [| React.JSX.String ("className", "lol") |] []
-  in
-  assert_string (ReactDOM.renderToStaticMarkup div) "<div class=\"lol\"></div>"
 
 let fragment () =
   let div = React.createElement "div" [||] [] in
@@ -77,7 +78,7 @@ let fragment () =
     (ReactDOM.renderToStaticMarkup component)
     "<div></div><div></div>"
 
-let nulls () =
+let ignore_nulls () =
   let div = React.createElement "div" [||] [] in
   let span = React.createElement "span" [||] [] in
   let component = React.createElement "div" [||] [ div; span; React.null ] in
@@ -97,16 +98,6 @@ let fragments_and_texts () =
   assert_string
     (ReactDOM.renderToStaticMarkup component)
     "<div>foobar<b></b></div>"
-
-let default_value () =
-  let component =
-    React.createElement "input"
-      [| React.JSX.String ("defaultValue", "lol") |]
-      []
-  in
-  assert_string
-    (ReactDOM.renderToStaticMarkup component)
-    "<input value=\"lol\" />"
 
 let inline_styles () =
   let component =
@@ -145,16 +136,28 @@ let dangerouslySetInnerHtml () =
     (ReactDOM.renderToStaticMarkup component)
     "<script type=\"application/javascript\">console.log(\"Hi!\")</script>"
 
+let context = React.createContext 10
+
+module ContextProvider = struct
+  include React.Context
+
+  let make = React.Context.provider context
+end
+
+module ContextConsumer = struct
+  let make () =
+    let value = React.useContext context in
+    React.createElement "section" [||] [ React.int value ]
+end
+
 let context () =
-  let context = React.createContext 10 in
   let component =
-    context.provider ~value:20
-      ~children:
-        [
-          (fun () ->
-            context.consumer ~children:(fun value ->
-                [ React.createElement "section" [||] [ React.int value ] ]));
-        ]
+    React.Upper_case_component
+      (fun () ->
+        ContextProvider.make ~value:20
+          ~children:
+            (React.Upper_case_component (fun () -> ContextConsumer.make ()))
+          ())
   in
   assert_string
     (ReactDOM.renderToStaticMarkup component)
@@ -194,15 +197,6 @@ let inner_html () =
   in
   assert_string (ReactDOM.renderToStaticMarkup component) "<div>foo</div>"
 
-let use_context () =
-  let context = React.createContext 10 in
-  let context_user () =
-    let number = React.useContext context in
-    React.createElement "section" [||] [ React.int number ]
-  in
-  let component = context.provider ~value:0 ~children:[ context_user ] in
-  assert_string (ReactDOM.renderToStaticMarkup component) "<section>0</section>"
-
 let make ~name () =
   let onClick (event : ReactEvent.Mouse.t) : unit = ignore event in
   React.createElement "button"
@@ -223,12 +217,16 @@ let event () =
     (ReactDOM.renderToStaticMarkup (make ~name:"json" ()))
     "<button name=\"json\"></button>"
 
+let className () =
+  let div =
+    React.createElement "div" [| React.JSX.String ("class", "lol") |] []
+  in
+  assert_string (ReactDOM.renderToStaticMarkup div) "<div class=\"lol\"></div>"
+
 let className_2 () =
   let component =
     React.createElement "div"
-      [|
-        React.JSX.String ("className", "flex xs:justify-center overflow-hidden");
-      |]
+      [| React.JSX.String ("class", "flex xs:justify-center overflow-hidden") |]
       []
   in
   assert_string
@@ -254,6 +252,16 @@ let render_with_doc_type () =
   assert_string
     (ReactDOM.renderToStaticMarkup div)
     "<div><span>This is valid HTML5</span></div>"
+
+let dom_props_should_work () =
+  let div =
+    React.createElement "div"
+      (ReactDOM.domProps ~key:"uniq" ~className:"mabutton" ())
+      []
+  in
+  assert_string
+    (ReactDOM.renderToStaticMarkup div)
+    "<div class=\"mabutton\"></div>"
 
 let render_svg () =
   let path =
@@ -320,31 +328,31 @@ let case title fn = Alcotest_lwt.test_case_sync title `Quick fn
 let tests =
   ( "renderToStaticMarkup",
     [
-      case "div" tag;
-      case "empty attribute" empty_attribute;
-      case "bool attributes" bool_attributes;
-      case "ignore nulls" nulls;
-      case "attributes" attributes;
-      case "self-closing tag" closing_tag;
-      case "inner text" innerhtml;
+      case "single_empty_tag" single_empty_tag;
+      case "empty_string_attribute" empty_string_attribute;
+      case "bool_attributes" bool_attributes;
+      case "truthy_attributes" truthy_attributes;
+      case "ignore_nulls" ignore_nulls;
+      case "string_attributes" string_attributes;
+      case "self_closing_tag" self_closing_tag;
+      case "dom_element_innerHtml" dom_element_innerHtml;
       case "children" children;
-      case "className turns into class" className;
-      case "test_className" className_2;
-      case "fragment is empty" fragment;
-      case "fragment and text concat nicely" fragments_and_texts;
-      case "defaultValue should be value" default_value;
-      case "attributes that gets ignored" ignored_attributes_on_jsx;
-      case "inline styles" inline_styles;
-      case "escape HTML attributes" encode_attributes;
-      case "innerHTML" dangerouslySetInnerHtml;
-      case "createContext" context;
-      case "useContext" use_context;
-      case "useState" use_state;
-      case "useMemo" use_memo;
-      case "useCallback" use_callback;
-      case "innerHtml" inner_html;
-      case "events" event;
-      case "_onclick" _onclick_render_as_string;
-      case "!DOCTYPE" render_with_doc_type;
-      case "svg" render_svg;
+      case "className" className;
+      case "className_2" className_2;
+      case "fragment" fragment;
+      case "fragments_and_texts" fragments_and_texts;
+      case "ignored_attributes_on_jsx" ignored_attributes_on_jsx;
+      case "inline_styles" inline_styles;
+      case "encode_attributes" encode_attributes;
+      case "dom_props_should_work" dom_props_should_work;
+      case "dangerouslySetInnerHtml" dangerouslySetInnerHtml;
+      case "context" context;
+      case "use_state" use_state;
+      case "use_memo" use_memo;
+      case "use_callback" use_callback;
+      case "inner_html" inner_html;
+      case "event" event;
+      case "_onclick_render_as_string" _onclick_render_as_string;
+      case "render_with_doc_type" render_with_doc_type;
+      case "render_svg" render_svg;
     ] )

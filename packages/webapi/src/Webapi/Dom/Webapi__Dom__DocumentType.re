@@ -10,6 +10,6 @@ include Webapi__Dom__ChildNode.Impl({
   type nonrec t = t;
 });
 
-[@bs.get] external name: t => string = "name";
-[@bs.get] external publicId: t => string = "publicId";
-[@bs.get] external systemId: t => string = "systemId";
+[@mel.get] external name: t => string = "name";
+[@mel.get] external publicId: t => string = "publicId";
+[@mel.get] external systemId: t => string = "systemId";

@@ -1,29 +1,29 @@
 module Impl = (T: {
                  type t;
                }) => {
-  [@bs.get] external altKey: T.t => bool = "altKey";
-  [@bs.get] external button: T.t => int = "button";
-  [@bs.get] external buttons: T.t => int /* bitmask */ = "buttons";
-  [@bs.get] external clientX: T.t => int = "clientX";
-  [@bs.get] external clientY: T.t => int = "clientY";
-  [@bs.get] external ctrlKey: T.t => bool = "ctrlKey";
-  [@bs.get] external metaKey: T.t => bool = "metaKey";
-  [@bs.get] external movementX: T.t => int = "movementX";
-  [@bs.get] external movementY: T.t => int = "movementY";
-  [@bs.get] external offsetX: T.t => int = "offsetX"; /* experimental, but widely supported */
-  [@bs.get] external offsetY: T.t => int = "offsetY"; /* experimental, but widely supported */
-  [@bs.get] external pageX: T.t => int = "pageX"; /* experimental, but widely supported */
-  [@bs.get] external pageY: T.t => int = "pageY"; /* experimental, but widely supported */
-  [@bs.get] [@bs.return nullable]
+  [@mel.get] external altKey: T.t => bool = "altKey";
+  [@mel.get] external button: T.t => int = "button";
+  [@mel.get] external buttons: T.t => int /* bitmask */ = "buttons";
+  [@mel.get] external clientX: T.t => int = "clientX";
+  [@mel.get] external clientY: T.t => int = "clientY";
+  [@mel.get] external ctrlKey: T.t => bool = "ctrlKey";
+  [@mel.get] external metaKey: T.t => bool = "metaKey";
+  [@mel.get] external movementX: T.t => int = "movementX";
+  [@mel.get] external movementY: T.t => int = "movementY";
+  [@mel.get] external offsetX: T.t => int = "offsetX"; /* experimental, but widely supported */
+  [@mel.get] external offsetY: T.t => int = "offsetY"; /* experimental, but widely supported */
+  [@mel.get] external pageX: T.t => int = "pageX"; /* experimental, but widely supported */
+  [@mel.get] external pageY: T.t => int = "pageY"; /* experimental, but widely supported */
+  [@mel.get] [@mel.return nullable]
   external region: T.t => option(string) = "region";
-  [@bs.get] [@bs.return nullable]
+  [@mel.get] [@mel.return nullable]
   external relatedTarget: T.t => option(Dom.eventTarget) = "relatedTarget";
-  [@bs.get] external screenX: T.t => int = "screenX";
-  [@bs.get] external screenY: T.t => int = "screenY";
-  [@bs.get] external shiftKey: T.t => bool = "shiftKey";
-  [@bs.get] external x: T.t => int = "x"; /* experimental */
-  [@bs.get] external y: T.t => int = "y"; /* experimental */
-  [@bs.send.pipe: T.t]
+  [@mel.get] external screenX: T.t => int = "screenX";
+  [@mel.get] external screenY: T.t => int = "screenY";
+  [@mel.get] external shiftKey: T.t => bool = "shiftKey";
+  [@mel.get] external x: T.t => int = "x"; /* experimental */
+  [@mel.get] external y: T.t => int = "y"; /* experimental */
+  [@mel.send.pipe: T.t]
   external getModifierState: string /* modifierKey enum */ => bool =
     "getModifierState";
   let getModifierState: (Webapi__Dom__Types.modifierKey, T.t) => bool =
@@ -43,5 +43,5 @@ include Impl({
   type nonrec t = t;
 });
 
-[@bs.new] external make: string => t = "MouseEvent";
-[@bs.new] external makeWithOptions: (string, Js.t({..})) => t = "MouseEvent";
+[@mel.new] external make: string => t = "MouseEvent";
+[@mel.new] external makeWithOptions: (string, Js.t({..})) => t = "MouseEvent";

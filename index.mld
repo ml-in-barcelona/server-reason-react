@@ -25,7 +25,7 @@ server-reason-react provides `React` and `ReactDOM` modules with the same interf
 - {!React} server-reason-react.react
 - {!ReactDOM} server-reason-react.reactDom
 
-You would also need `server-reason-react.ppx` to transform JSX into `React.createElement` calls.
+[server-reason-react.ppx] needs to be a different ppx than [reason-react-ppx] just to transform domProps into an interal representation of Props where the type is known in order to render them on the server.
 
 {2:universal Make sure your code is universal}
 
@@ -67,8 +67,8 @@ let%browser_only countDomNodes = (id) => {
     let elements = Webapi.Element.querySelector("#" ++ id);
     let arr_elements = Webapi.Element.toArray(elements);
     Array.length(arr_elements);
-  } catch (e) {
-    0;
+  } {
+    | _ => 0;
   }
 };
 ]}

@@ -31,11 +31,8 @@ module Url = Webapi__Url;
 
 type rafId;
 
-[@bs.val]
 external requestAnimationFrame: (float => unit) => unit =
   "requestAnimationFrame";
-[@bs.val]
 external requestCancellableAnimationFrame: (float => unit) => rafId =
   "requestAnimationFrame";
-[@bs.val]
 external cancelAnimationFrame: rafId => unit = "cancelAnimationFrame";

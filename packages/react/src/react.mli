@@ -64,8 +64,8 @@ and element =
   | InnerHtml of string
   | Fragment of element
   | Empty
-  | Provider of (unit -> element) list
-  | Consumer of (unit -> element list)
+  | Provider of element
+  | Consumer of element
   | Suspense of { children : element; fallback : element }
 
 exception Invalid_children of string
@@ -84,15 +84,16 @@ val float : float -> element
 val array : element array -> element
 val list : element list -> element
 
+type 'a provider = value:'a -> children:element -> unit -> element
+
 type 'a context = {
   current_value : 'a ref;
-  provider : value:'a -> children:(unit -> element) list -> element;
-  consumer : children:('a -> element list) -> element;
+  provider : 'a provider;
+  consumer : children:element -> element;
 }
 
 module Context : sig
-  val provider :
-    'a context -> value:'a -> children:(unit -> element) list -> element
+  val provider : 'a context -> 'a provider
 end
 
 val createContext : 'a -> 'a context

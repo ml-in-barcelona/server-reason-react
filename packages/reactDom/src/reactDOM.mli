@@ -30,6 +30,8 @@ val createDOMElementVariadic :
   string -> props:React.JSX.prop array -> React.element array -> React.element
 (** Create a React.element by giving the HTML tag, an array of props and children *)
 
+type dangerouslySetInnerHTML = { __html : string } [@@boxed]
+
 (* JSX props for HTML and SVG elements, including React specific ones. *)
 val domProps :
   ?key:string ->
@@ -516,7 +518,7 @@ val domProps :
   ?resource:string ->
   ?typeof:string ->
   ?vocab:string ->
-  ?dangerouslySetInnerHTML:Props.dangerouslySetInnerHTML ->
+  ?dangerouslySetInnerHTML:dangerouslySetInnerHTML ->
   ?suppressContentEditableWarning:bool ->
   ?suppressHydrationWarning:bool ->
   unit ->

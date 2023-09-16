@@ -716,5 +716,4 @@ let unsafeAddProp styles (key : string) (value : string) : t =
    we can't make the unsafeAddStyle
 
    external unsafeAddStyle :
-      ((_)[@bs.as {json|{}|json}]) -> t -> < .. > Js.t -> t = "Object.assign"
-    [@@bs.val ] *)
+      ((_)[@mel.as {json|{}|json}]) -> t -> < .. > Js.t -> t = "Object.assign" *)

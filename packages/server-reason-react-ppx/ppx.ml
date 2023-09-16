@@ -19,7 +19,7 @@
   transform
   `[@JSX] [foo]`
   `React.createFragment([foo])`
- *)
+*)
 
 module OCaml_location = Location
 open Ppxlib
@@ -377,6 +377,8 @@ let makeAttributeValue ~loc ~isOptional (type_ : DomProps.attributeType) value =
   | Int, true -> [%expr ([%e value] : int option)]
   | Bool, false -> [%expr ([%e value] : bool)]
   | Bool, true -> [%expr ([%e value] : bool option)]
+  | StringlyBool, false -> [%expr ([%e value] : bool)]
+  | StringlyBool, true -> [%expr ([%e value] : bool option)]
   | Style, false -> [%expr ([%e value] : ReactDom.Style.t)]
   | Style, true -> [%expr ([%e value] : ReactDom.Style.t option)]
   (* Those ReactDom types are currently on ReasonReact, in our implementation they are in React namespace *)
@@ -792,27 +794,24 @@ let makePropField ~loc id (arg_label, value) =
   let prop =
     match DomProps.findByName id name with
     | Ok p -> p
-    | Error err -> (
-        match err with
-        | `ElementNotFound ->
-            raise
-            @@ Location.raise_errorf ~loc
-                 "HTML tag '%s' doesn't exist.\n\
-                  If this isn't correct, please open an issue at %s" id
-                 "https://github.com/ml-in-barcelona/server-reason-react/issues"
-        | `AttributeNotFound ->
-            let suggestion = DomProps.find_closest_name name in
-            raise
-            @@ Location.raise_errorf ~loc
-                 "prop '%s' isn't valid on a '%s' element.\n\
-                  Hint: Maybe you mean '%s'?\n\n\
-                  If this isn't correct, please open an issue at %s. Meanwhile \
-                  you could use `React.createElement`."
-                 name id suggestion
-                 "https://github.com/ml-in-barcelona/server-reason-react/issues"
-        )
+    | Error `ElementNotFound ->
+        raise
+        @@ Location.raise_errorf ~loc
+             "HTML tag '%s' doesn't exist.\n\
+              If this isn't correct, please open an issue at %s" id
+             "https://github.com/ml-in-barcelona/server-reason-react/issues"
+    | Error `AttributeNotFound ->
+        let suggestion = DomProps.find_closest_name name in
+        raise
+        @@ Location.raise_errorf ~loc
+             "prop '%s' isn't valid on a '%s' element.\n\
+              Hint: Maybe you mean '%s'?\n\n\
+              If this isn't correct, please open an issue at %s. Meanwhile you \
+              could use `React.createElement`."
+             name id suggestion
+             "https://github.com/ml-in-barcelona/server-reason-react/issues"
   in
-  let jsxName = DomProps.getJSXName prop in
+  let jsxName = DomProps.getName prop in
   let objectKey = Exp.constant ~loc (Pconst_string (jsxName, loc, None)) in
   let objectValue = makeValue ~isOptional ~loc prop value in
   match (prop, isOptional) with
@@ -838,6 +837,16 @@ let makePropField ~loc id (arg_label, value) =
         Option.map
           (fun v -> React.JSX.Bool ([%e objectKey], v))
           [%e objectValue]]
+  (* StringlyBool transforms boolean into string *)
+  | Attribute { type_ = DomProps.StringlyBool; _ }, false ->
+      [%expr
+        Some
+          (React.JSX.String ([%e objectKey], string_of_bool [%e objectValue]))]
+  | Attribute { type_ = DomProps.StringlyBool; _ }, true ->
+      [%expr
+        Option.map
+          (fun v -> React.JSX.String ([%e objectKey], v))
+          string_of_bool [%e objectValue]]
   | Attribute { type_ = DomProps.Style; _ }, false ->
       [%expr Some (React.JSX.Style (ReactDOM.Style.to_string [%e value]))]
   | Attribute { type_ = DomProps.Style; _ }, true ->
@@ -851,9 +860,9 @@ let makePropField ~loc id (arg_label, value) =
       [%expr Option.map (fun v -> React.JSX.Ref v) [%e value]]
   | Attribute { type_ = DomProps.InnerHtml; _ }, false -> (
       match value with
-      (* Even thought we dont have bs.obj in OCaml, we do in Reason.
+      (* Even thought we dont have mel.obj in OCaml, we do in Reason.
          We can extract the field __html and pass it to React.JSX.DangerouslyInnerHtml *)
-      | [%expr [%bs.obj { __html = [%e? inner] }]] ->
+      | [%expr [%mel.obj { __html = [%e? inner] }]] ->
           [%expr Some (React.JSX.DangerouslyInnerHtml [%e inner])]
       | _ ->
           raise
@@ -861,154 +870,157 @@ let makePropField ~loc id (arg_label, value) =
                "unexpected expression found on dangerouslySetInnerHTML")
   | Attribute { type_ = DomProps.InnerHtml; _ }, true -> (
       match value with
-      (* Even thought we dont have bs.obj in OCaml, we do in Reason.
+      (* Even thought we dont have mel.obj in OCaml, we do in Reason.
          We can extract the field __html and pass it to React.JSX.DangerouslyInnerHtml *)
-      | [%expr [%bs.obj { __html = [%e? inner] }]] ->
+      | [%expr [%mel.obj { __html = [%e? inner] }]] ->
           [%expr
             Option.map (fun v -> React.JSX.DangerouslyInnerHtml v) [%e inner]]
       | _ ->
           raise
           @@ Location.raise_errorf ~loc
                "unexpected expression found on dangerouslySetInnerHTML")
-  | Event { type_ = Mouse; name }, false ->
+  | Event { type_ = Mouse; jsxName }, false ->
       [%expr
         Some
           (React.JSX.Event
-             ( [%e constantString ~loc name],
+             ( [%e constantString ~loc jsxName],
                React.JSX.Event.Mouse [%e objectValue] ))]
-  | Event { type_ = Mouse; name }, true ->
+  | Event { type_ = Mouse; jsxName }, true ->
       [%expr
         Option.map
           (fun v ->
             React.JSX.Event
-              ([%e constantString ~loc name], React.JSX.Event.Mouse v))
+              ([%e constantString ~loc jsxName], React.JSX.Event.Mouse v))
           [%e objectValue]]
-  | Event { type_ = Selection; name }, false ->
+  | Event { type_ = Selection; jsxName }, false ->
       [%expr
         Some
           (React.JSX.Event
-             ( [%e constantString ~loc name],
+             ( [%e constantString ~loc jsxName],
                React.JSX.Event.Selection [%e objectValue] ))]
-  | Event { type_ = Selection; name }, true ->
+  | Event { type_ = Selection; jsxName }, true ->
       [%expr
         Option.map (fun v ->
             (React.JSX.Event
-               ([%e constantString ~loc name], React.JSX.Event.Selection v))
+               ([%e constantString ~loc jsxName], React.JSX.Event.Selection v))
               [%e objectValue])]
-  | Event { type_ = Touch; name }, false ->
+  | Event { type_ = Touch; jsxName }, false ->
       [%expr
         Some
           (React.JSX.Event
-             ( [%e constantString ~loc name],
+             ( [%e constantString ~loc jsxName],
                React.JSX.Event.Touch [%e objectValue] ))]
-  | Event { type_ = Touch; name }, true ->
+  | Event { type_ = Touch; jsxName }, true ->
       [%expr
         Option.map (fun v ->
             (React.JSX.Event
-               ([%e constantString ~loc name], React.JSX.Event.Touch v))
+               ([%e constantString ~loc jsxName], React.JSX.Event.Touch v))
               [%e objectValue])]
-  | Event { type_ = UI; name }, false ->
+  | Event { type_ = UI; jsxName }, false ->
       [%expr
         Some
           (React.JSX.Event
-             ([%e constantString ~loc name], React.JSX.Event.UI [%e objectValue]))]
-  | Event { type_ = UI; name }, true ->
+             ( [%e constantString ~loc jsxName],
+               React.JSX.Event.UI [%e objectValue] ))]
+  | Event { type_ = UI; jsxName }, true ->
       [%expr
         Option.map (fun v ->
             (React.JSX.Event
-               ([%e constantString ~loc name], React.JSX.Event.UI v))
+               ([%e constantString ~loc jsxName], React.JSX.Event.UI v))
               [%e objectValue])]
-  | Event { type_ = Wheel; name }, false ->
+  | Event { type_ = Wheel; jsxName }, false ->
       [%expr
         Some
           (React.JSX.Event
-             ( [%e constantString ~loc name],
+             ( [%e constantString ~loc jsxName],
                React.JSX.Event.Wheel [%e objectValue] ))]
-  | Event { type_ = Wheel; name }, true ->
+  | Event { type_ = Wheel; jsxName }, true ->
       [%expr
         Option.map (fun v ->
             (React.JSX.Event
-               ([%e constantString ~loc name], React.JSX.Event.Wheel v))
+               ([%e constantString ~loc jsxName], React.JSX.Event.Wheel v))
               [%e objectValue])]
-  | Event { type_ = Clipboard; name }, false ->
+  | Event { type_ = Clipboard; jsxName }, false ->
       [%expr
         Some
           (React.JSX.Event
-             ( [%e constantString ~loc name],
+             ( [%e constantString ~loc jsxName],
                React.JSX.Event.Clipboard [%e objectValue] ))]
-  | Event { type_ = Clipboard; name }, true ->
+  | Event { type_ = Clipboard; jsxName }, true ->
       [%expr
         Option.map (fun v ->
             (React.JSX.Event
-               ([%e constantString ~loc name], React.JSX.Event.Clipboard v))
+               ([%e constantString ~loc jsxName], React.JSX.Event.Clipboard v))
               [%e objectValue])]
-  | Event { type_ = Composition; name }, false ->
+  | Event { type_ = Composition; jsxName }, false ->
       [%expr
         Some
           (React.JSX.Event
-             ( [%e constantString ~loc name],
+             ( [%e constantString ~loc jsxName],
                React.JSX.Event.Composition [%e objectValue] ))]
-  | Event { type_ = Composition; name }, true ->
+  | Event { type_ = Composition; jsxName }, true ->
       [%expr
         Option.map (fun v ->
             (React.JSX.Event
-               ([%e constantString ~loc name], React.JSX.Event.Composition v))
+               ([%e constantString ~loc jsxName], React.JSX.Event.Composition v))
               [%e objectValue])]
-  | Event { type_ = Keyboard; name }, false ->
-      [%expr
-        Some
-          (React.JSX.Event ([%e constantString ~loc name], React.JSX.Keyboard v))]
-  | Event { type_ = Keyboard; name }, true ->
-      [%expr
-        Option.map (fun v ->
-            (React.JSX.Event
-               ([%e constantString ~loc name], React.JSX.Keyboard v))
-              [%e objectValue])]
-  | Event { type_ = Focus; name }, false ->
+  | Event { type_ = Keyboard; jsxName }, false ->
       [%expr
         Some
           (React.JSX.Event
-             ( [%e constantString ~loc name],
+             ([%e constantString ~loc jsxName], React.JSX.Keyboard v))]
+  | Event { type_ = Keyboard; jsxName }, true ->
+      [%expr
+        Option.map (fun v ->
+            (React.JSX.Event
+               ([%e constantString ~loc jsxName], React.JSX.Keyboard v))
+              [%e objectValue])]
+  | Event { type_ = Focus; jsxName }, false ->
+      [%expr
+        Some
+          (React.JSX.Event
+             ( [%e constantString ~loc jsxName],
                React.JSX.Event.Focus [%e objectValue] ))]
-  | Event { type_ = Focus; name }, true ->
+  | Event { type_ = Focus; jsxName }, true ->
       [%expr
         Option.map (fun v ->
             (React.JSX.Event
-               ([%e constantString ~loc name], React.JSX.Event.Focus v))
+               ([%e constantString ~loc jsxName], React.JSX.Event.Focus v))
               [%e objectValue])]
-  | Event { type_ = Form; name }, false ->
+  | Event { type_ = Form; jsxName }, false ->
       [%expr
         Some
           (React.JSX.Event
-             ( [%e constantString ~loc name],
+             ( [%e constantString ~loc jsxName],
                React.JSX.Event.Form [%e objectValue] ))]
-  | Event { type_ = Form; name }, true ->
+  | Event { type_ = Form; jsxName }, true ->
       [%expr
         Option.map (fun v ->
             (React.JSX.Event
-               ([%e constantString ~loc name], React.JSX.Event.Form v))
+               ([%e constantString ~loc jsxName], React.JSX.Event.Form v))
               [%e objectValue])]
-  | Event { type_ = Media; name }, false ->
+  | Event { type_ = Media; jsxName }, false ->
       [%expr
         Some
           (React.JSX.Event
-             ([%e constantString ~loc name], React.JSX.Media [%e objectValue]))]
-  | Event { type_ = Media; name }, true ->
+             ([%e constantString ~loc jsxName], React.JSX.Media [%e objectValue]))]
+  | Event { type_ = Media; jsxName }, true ->
       [%expr
         Option.map (fun v ->
-            (React.JSX.Event ([%e constantString ~loc name], React.JSX.Media v))
+            (React.JSX.Event
+               ([%e constantString ~loc jsxName], React.JSX.Media v))
               [%e objectValue])]
-  | Event { type_ = Inline; name }, false ->
+  | Event { type_ = Inline; jsxName }, false ->
       [%expr
         Some
           (React.JSX.Event
-             ( [%e constantString ~loc name],
+             ( [%e constantString ~loc jsxName],
                React.JSX.Event.Inline [%e objectValue] ))]
-  | Event { type_ = Inline; name }, true ->
+  | Event { type_ = Inline; jsxName }, true ->
       [%expr
         Option.map (fun v ->
             (React.JSX.Event
-               ([%e constantString ~loc name], React.JSX.Event.Inline v))
+               ([%e constantString ~loc jsxName], React.JSX.Event.Inline v))
               [%e objectValue])]
   | _ -> failwith "Attribute not implemented, open an issue"
 

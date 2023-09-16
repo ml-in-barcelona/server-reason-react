@@ -1,31 +1,31 @@
 type t = Dom.location;
 
 /* a more ergonomic API would perhaps accept a Window.t directly instead of Location.t */
-[@bs.get] external href: t => string = "href";
-[@bs.set] external setHref: (t, string) => unit = "href";
-[@bs.get] external protocol: t => string = "protocol";
-[@bs.set] external setProtocol: (t, string) => unit = "protocol";
-[@bs.get] external host: t => string = "host";
-[@bs.set] external setHost: (t, string) => unit = "host";
-[@bs.get] external hostname: t => string = "hostname";
-[@bs.set] external setHostname: (t, string) => unit = "hostname";
-[@bs.get] external port: t => string = "port";
-[@bs.set] external setPort: (t, string) => unit = "port";
-[@bs.get] external pathname: t => string = "pathname";
-[@bs.set] external setPathname: (t, string) => unit = "pathname";
-[@bs.get] external search: t => string = "search";
-[@bs.set] external setSearch: (t, string) => unit = "search";
-[@bs.get] external hash: t => string = "hash";
-[@bs.set] external setHash: (t, string) => unit = "hash";
-[@bs.get] external username: t => string = "username";
-[@bs.set] external setUsername: (t, string) => unit = "username";
-[@bs.get] external password: t => string = "password";
-[@bs.set] external setPassword: (t, string) => unit = "password";
-[@bs.get] external origin: t => string = "origin";
+[@mel.get] external href: t => string = "href";
+[@mel.set] external setHref: (t, string) => unit = "href";
+[@mel.get] external protocol: t => string = "protocol";
+[@mel.set] external setProtocol: (t, string) => unit = "protocol";
+[@mel.get] external host: t => string = "host";
+[@mel.set] external setHost: (t, string) => unit = "host";
+[@mel.get] external hostname: t => string = "hostname";
+[@mel.set] external setHostname: (t, string) => unit = "hostname";
+[@mel.get] external port: t => string = "port";
+[@mel.set] external setPort: (t, string) => unit = "port";
+[@mel.get] external pathname: t => string = "pathname";
+[@mel.set] external setPathname: (t, string) => unit = "pathname";
+[@mel.get] external search: t => string = "search";
+[@mel.set] external setSearch: (t, string) => unit = "search";
+[@mel.get] external hash: t => string = "hash";
+[@mel.set] external setHash: (t, string) => unit = "hash";
+[@mel.get] external username: t => string = "username";
+[@mel.set] external setUsername: (t, string) => unit = "username";
+[@mel.get] external password: t => string = "password";
+[@mel.set] external setPassword: (t, string) => unit = "password";
+[@mel.get] external origin: t => string = "origin";
 
-[@bs.send.pipe: t] external assign: string => unit = "assign";
-[@bs.send.pipe: t] external reload: unit = "reload";
-[@bs.send.pipe: t]
-external reloadWithForce: ([@bs.as {json|true|json}] _) => unit = "reload";
-[@bs.send.pipe: t] external replace: string => unit = "replace";
-[@bs.send.pipe: t] external toString: string = "toString";
+[@mel.send.pipe: t] external assign: string => unit = "assign";
+[@mel.send.pipe: t] external reload: unit = "reload";
+[@mel.send.pipe: t]
+external reloadWithForce: ([@mel.as {json|true|json}] _) => unit = "reload";
+[@mel.send.pipe: t] external replace: string => unit = "replace";
+[@mel.send.pipe: t] external toString: string = "toString";

@@ -218,7 +218,7 @@ module Component = {
   };
 };
 
-let children_flattening_one_element = () => {
+let children_one_element = () => {
   assert_string(
     ReactDOM.renderToStaticMarkup(
       <Component cosas=true> <span /> </Component>,
@@ -226,8 +226,7 @@ let children_flattening_one_element = () => {
     "<div><span></span></div>",
   );
 };
-
-let children_flattening_multiple_elements = () => {
+let children_multiple_elements = () => {
   assert_string(
     ReactDOM.renderToStaticMarkup(
       <Component cosas=false> <div> <span /> </div> <span /> </Component>,
@@ -274,6 +273,17 @@ let create_element_variadic = () => {
   );
 };
 
+let aria_props = () => {
+  let component =
+    <h1 ariaHidden=true ariaLabel="send email" ariaAtomic=true>
+      {React.string("Hello")}
+    </h1>;
+  assert_string(
+    ReactDOM.renderToStaticMarkup(component),
+    "<h1 aria-hidden=\"true\" aria-label=\"send email\" aria-atomic=\"true\">Hello</h1>",
+  );
+};
+
 let _ =
   Alcotest.run(
     "server-reason-react-ppx",
@@ -308,15 +318,10 @@ let _ =
           case("test_children_lowercase", children_lowercase),
           case("event_onClick", onClick_empty),
           case("event_onclick_inline_string", onclick_inline_string),
-          case(
-            "children_flattening_one_element",
-            children_flattening_one_element,
-          ),
-          case(
-            "children_flattening_multiple_elements",
-            children_flattening_multiple_elements,
-          ),
+          case("children_one_element", children_one_element),
+          case("children_multiple_elements", children_multiple_elements),
           case("createElementVariadic", create_element_variadic),
+          case("aria_props", aria_props),
         ],
       ),
     ],

@@ -23,113 +23,116 @@ module Impl = (T: {
 
   /* A lot of this isn't really "dom", but rather global exports */
 
-  [@bs.get] external console: t_window => console = "console";
-  [@bs.get] external crypto: t_window => crypto = "crypto";
-  [@bs.get] external document: t_window => Dom.document = "document";
-  [@bs.get] [@bs.return nullable]
+  [@mel.get] external console: t_window => console = "console";
+  [@mel.get] external crypto: t_window => crypto = "crypto";
+  [@mel.get] external document: t_window => Dom.document = "document";
+  [@mel.get] [@mel.return nullable]
   external frameElement: t_window => option(Dom.element) = "frameElement"; /* experimental? */
-  [@bs.get] external frames: t_window => frameList = "frames";
-  [@bs.get] external fullScreen: t_window => bool = "fullScreen";
-  [@bs.get] external history: t_window => Dom.history = "history";
-  [@bs.get] external innerWidth: t_window => int = "innerWidth";
-  [@bs.get] external innerHeight: t_window => int = "innerHeight";
-  [@bs.get] external isSecureContext: t_window => bool = "isSecureContext";
-  [@bs.get] external length: t_window => int = "length";
-  [@bs.get] external location: t_window => Dom.location = "location";
-  [@bs.set] external setLocation: (t_window, string) => unit = "location";
-  [@bs.get] external locationbar: t_window => locationbar = "locationbar";
+  [@mel.get] external frames: t_window => frameList = "frames";
+  [@mel.get] external fullScreen: t_window => bool = "fullScreen";
+  [@mel.get] external history: t_window => Dom.history = "history";
+  [@mel.get] external innerWidth: t_window => int = "innerWidth";
+  [@mel.get] external innerHeight: t_window => int = "innerHeight";
+  [@mel.get] external isSecureContext: t_window => bool = "isSecureContext";
+  [@mel.get] external length: t_window => int = "length";
+  [@mel.get] external location: t_window => Dom.location = "location";
+  [@mel.set] external setLocation: (t_window, string) => unit = "location";
+  [@mel.get] external locationbar: t_window => locationbar = "locationbar";
   /* localStorage: accessed directly via Dom.Storage.localStorage */
-  [@bs.get] external menubar: t_window => menubar = "menubar";
-  [@bs.get] external name: t_window => string = "name";
-  [@bs.set] external setName: (t_window, string) => unit = "name";
-  [@bs.get] external navigator: t_window => navigator = "navigator";
-  [@bs.get] [@bs.return nullable]
+  [@mel.get] external menubar: t_window => menubar = "menubar";
+  [@mel.get] external name: t_window => string = "name";
+  [@mel.set] external setName: (t_window, string) => unit = "name";
+  [@mel.get] external navigator: t_window => navigator = "navigator";
+  [@mel.get] [@mel.return nullable]
   external opener: t_window => option(Dom.window) = "opener";
-  [@bs.get] external outerWidth: t_window => int = "outerWidth";
-  [@bs.get] external outerHeight: t_window => int = "outerHeight";
-  [@bs.get] external pageXOffset: t_window => float = "pageXOffset"; /* alias for scrollX */
-  [@bs.get] external pageYOffset: t_window => float = "pageYOffset"; /* alias for scrollY */
-  [@bs.get] external parent: t_window => Dom.window = "parent";
-  [@bs.get]
+  [@mel.get] external outerWidth: t_window => int = "outerWidth";
+  [@mel.get] external outerHeight: t_window => int = "outerHeight";
+  [@mel.get] external pageXOffset: t_window => float = "pageXOffset"; /* alias for scrollX */
+  [@mel.get] external pageYOffset: t_window => float = "pageYOffset"; /* alias for scrollY */
+  [@mel.get] external parent: t_window => Dom.window = "parent";
+  [@mel.get]
   external performance: t_window => Webapi__Performance.t = "performance";
-  [@bs.get] external personalbar: t_window => personalbar = "personalbar";
-  [@bs.get] external screen: t_window => screen = "screen";
-  [@bs.get] external screenX: t_window => int = "screenX";
-  [@bs.get] external screenY: t_window => int = "screenY";
-  [@bs.get] external scrollbars: t_window => scrollbars = "scrollbars";
-  [@bs.get] external scrollX: t_window => float = "scrollX";
-  [@bs.get] external scrollY: t_window => float = "scrollY";
-  [@bs.get] external self: t_window => Dom.window = "self"; /* alias for window, but apparently convenient because self (stand-alone) resolves to WorkerGlobalScope in a web worker. Probably poitnless here though */
+  [@mel.get] external personalbar: t_window => personalbar = "personalbar";
+  [@mel.get] external screen: t_window => screen = "screen";
+  [@mel.get] external screenX: t_window => int = "screenX";
+  [@mel.get] external screenY: t_window => int = "screenY";
+  [@mel.get] external scrollbars: t_window => scrollbars = "scrollbars";
+  [@mel.get] external scrollX: t_window => float = "scrollX";
+  [@mel.get] external scrollY: t_window => float = "scrollY";
+  [@mel.get] external self: t_window => Dom.window = "self"; /* alias for window, but apparently convenient because self (stand-alone) resolves to WorkerGlobalScope in a web worker. Probably poitnless here though */
   /* sessionStorage: accessed directly via Dom.Storage.sessionStorage */
-  [@bs.get]
+  [@mel.get]
   external speechSynthesis: t_window => speechSynthesis = "speechSynthesis"; /* experimental */
-  [@bs.get] external status: t_window => string = "status";
-  [@bs.set] external setStatus: (t_window, string) => unit = "status";
-  [@bs.get] external statusbar: t_window => statusbar = "statusbar";
-  [@bs.get] external toolbar: t_window => toolbar = "toolbar";
-  [@bs.get] external top: t_window => Dom.window = "top";
-  [@bs.get] external window: t_window => t_window = "window"; /* This is pointless I think, it's just here because window is the implicit global scope, and it's needed to be able to get a reference to it */
+  [@mel.get] external status: t_window => string = "status";
+  [@mel.set] external setStatus: (t_window, string) => unit = "status";
+  [@mel.get] external statusbar: t_window => statusbar = "statusbar";
+  [@mel.get] external toolbar: t_window => toolbar = "toolbar";
+  [@mel.get] external top: t_window => Dom.window = "top";
+  [@mel.get] external window: t_window => t_window = "window"; /* This is pointless I think, it's just here because window is the implicit global scope, and it's needed to be able to get a reference to it */
 
-  [@bs.send.pipe: t_window] external alert: string => unit = "alert";
-  [@bs.send.pipe: t_window] external blur: unit = "blur";
-  [@bs.send.pipe: t_window]
+  [@mel.send.pipe: t_window] external alert: string => unit = "alert";
+  [@mel.send.pipe: t_window] external blur: unit = "blur";
+  [@mel.send.pipe: t_window]
   external cancelIdleCallback: idleCallbackId => unit = "cancelIdleCallback"; /* experimental, Cooperative Scheduling of Background Tasks */
-  [@bs.send.pipe: t_window] external close: unit = "close";
-  [@bs.send.pipe: t_window] external confirm: string => bool = "confirm";
-  [@bs.send.pipe: t_window] external focus: unit = "focus";
-  [@bs.send.pipe: t_window]
+  [@mel.send.pipe: t_window] external close: unit = "close";
+  [@mel.send.pipe: t_window] external confirm: string => bool = "confirm";
+  [@mel.send.pipe: t_window] external focus: unit = "focus";
+  [@mel.send.pipe: t_window]
   external getComputedStyle: Dom.element => Dom.cssStyleDeclaration =
     "getComputedStyle";
-  [@bs.send.pipe: t_window]
+  [@mel.send.pipe: t_window]
   external getComputedStyleWithPseudoElement:
     (Dom.element, string) => Dom.cssStyleDeclaration =
     "getComputedStyle";
-  [@bs.send.pipe: t_window]
+  [@mel.send.pipe: t_window]
   external getSelection: Dom.selection = "getSelection";
-  [@bs.send.pipe: t_window]
+  [@mel.send.pipe: t_window]
   external matchMedia: string => mediaQueryList = "matchMedia"; /* experimental, CSSOM View module */
-  [@bs.send.pipe: t_window] external moveBy: (int, int) => unit = "moveBy"; /* experimental, CSSOM View module */
-  [@bs.send.pipe: t_window] external moveTo: (int, int) => unit = "moveTo"; /* experimental, CSSOM View module */
-  [@bs.send.pipe: t_window] [@bs.return nullable]
+  [@mel.send.pipe: t_window] external moveBy: (int, int) => unit = "moveBy"; /* experimental, CSSOM View module */
+  [@mel.send.pipe: t_window] external moveTo: (int, int) => unit = "moveTo"; /* experimental, CSSOM View module */
+  [@mel.send.pipe: t_window] [@mel.return nullable]
   external open_:
     (~url: string, ~name: string, ~features: string=?) => option(Dom.window) =
     "open"; /* yes, features is a stringly typed list of key value pairs, sigh */
-  [@bs.send.pipe: t_window]
+  [@mel.send.pipe: t_window]
   external postMessage: ('a, string) => unit = "postMessage"; /* experimental-ish?, Web Messaging */
-  [@bs.send.pipe: t_window]
+  [@mel.send.pipe: t_window]
   external postMessageWithTransfers: ('a, string, array(transferable)) => unit =
     "postMessage"; /* experimental-ish?, Web Messaging */
-  [@bs.send.pipe: t_window] external print: unit = "print";
-  [@bs.send.pipe: t_window] external prompt: string => string = "prompt";
-  [@bs.send.pipe: t_window]
+  [@mel.send.pipe: t_window] external print: unit = "print";
+  [@mel.send.pipe: t_window] external prompt: string => string = "prompt";
+  [@mel.send.pipe: t_window]
   external promptWithDefault: (string, string) => string = "prompt";
   /* requestAnimationFrame: accessed directly via Webapi */
-  [@bs.send.pipe: t_window]
+  [@mel.send.pipe: t_window]
   external requestIdleCallback: (idleDeadline => unit) => idleCallbackId =
     "requestIdleCallback"; /* experimental, Cooperative Scheduling of Background Tasks */
-  [@bs.send.pipe: t_window]
+  [@mel.send.pipe: t_window]
   external requestIdleCallbackWithOptions:
     (idleDeadline => unit, {. "timeout": int}) => idleCallbackId =
     "requestIdleCallback"; /* experimental, Cooperative Scheduling of Background Tasks */
-  [@bs.send.pipe: t_window] external resizeBy: (int, int) => unit = "resizeBy"; /* experimental, CSSOM View module */
-  [@bs.send.pipe: t_window] external resizeTo: (int, int) => unit = "resizeTo"; /* experimental, CSSOM View module */
-  [@bs.send.pipe: t_window] external scroll: (float, float) => unit = "scroll"; /* experimental, CSSOM View module */
-  [@bs.send.pipe: t_window]
+  [@mel.send.pipe: t_window]
+  external resizeBy: (int, int) => unit = "resizeBy"; /* experimental, CSSOM View module */
+  [@mel.send.pipe: t_window]
+  external resizeTo: (int, int) => unit = "resizeTo"; /* experimental, CSSOM View module */
+  [@mel.send.pipe: t_window]
+  external scroll: (float, float) => unit = "scroll"; /* experimental, CSSOM View module */
+  [@mel.send.pipe: t_window]
   external scrollBy: (float, float) => unit = "scrollBy"; /* experimental, CSSOM View module */
-  [@bs.send.pipe: t_window]
+  [@mel.send.pipe: t_window]
   external scrollTo: (float, float) => unit = "scrollTo"; /* experimental, CSSOM View module */
-  [@bs.send.pipe: t_window] external stop: unit = "stop";
+  [@mel.send.pipe: t_window] external stop: unit = "stop";
 
-  [@bs.send.pipe: t_window]
+  [@mel.send.pipe: t_window]
   external addPopStateEventListener:
-    ([@bs.as "popstate"] _, Dom.popStateEvent => unit) => unit =
+    ([@mel.as "popstate"] _, Dom.popStateEvent => unit) => unit =
     "addEventListener";
-  [@bs.send.pipe: t_window]
+  [@mel.send.pipe: t_window]
   external removePopStateEventListener:
-    ([@bs.as "popstate"] _, Dom.popStateEvent => unit) => unit =
+    ([@mel.as "popstate"] _, Dom.popStateEvent => unit) => unit =
     "removeEventListener";
 
-  [@bs.set] external setOnLoad: (t_window, unit => unit) => unit = "onload"; /* use addEventListener instead? */
+  [@mel.set] external setOnLoad: (t_window, unit => unit) => unit = "onload"; /* use addEventListener instead? */
 };
 
 type t = Dom.window;

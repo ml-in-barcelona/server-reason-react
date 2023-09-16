@@ -10,12 +10,12 @@ include Webapi__Dom__MouseEvent.Impl({
   type nonrec t = t;
 });
 
-[@bs.new] external make: string => t = "WheelEvent";
-[@bs.new] external makeWithOptions: (string, Js.t({..})) => t = "WheelEvent";
+[@mel.new] external make: string => t = "WheelEvent";
+[@mel.new] external makeWithOptions: (string, Js.t({..})) => t = "WheelEvent";
 
-[@bs.get] external deltaX: t => float = "deltaX";
-[@bs.get] external deltaY: t => float = "deltaY";
-[@bs.get] external deltaZ: t => float = "deltaZ";
-[@bs.get] external deltaMode: t => int = "deltaMode";
+[@mel.get] external deltaX: t => float = "deltaX";
+[@mel.get] external deltaY: t => float = "deltaY";
+[@mel.get] external deltaZ: t => float = "deltaZ";
+[@mel.get] external deltaMode: t => int = "deltaMode";
 let deltaMode: t => Webapi__Dom__Types.deltaMode =
   self => Webapi__Dom__Types.decodeDeltaMode(deltaMode(self));

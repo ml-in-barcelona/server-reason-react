@@ -8,6 +8,7 @@ type attributeType =
   | String
   | Int
   | Bool
+  | StringlyBool
   | Style
   | Ref
   | InnerHtml
@@ -40,7 +41,7 @@ type attribute = {
 
 type event = {
   type_ : eventType;
-  name : string;
+  jsxName : string;
 }
 
 type prop =
@@ -63,166 +64,166 @@ let attributeAnchorTarget = String
 let globalEventHandlers =
   (* https://developer.mozilla.org/en-US/docs/Web/Events/Event_handlers *)
   [
-    Event { name = "onCopy"; type_ = Clipboard };
-    Event { name = "onCopyCapture"; type_ = Clipboard };
-    Event { name = "onCut"; type_ = Clipboard };
-    Event { name = "onCutCapture"; type_ = Clipboard };
-    Event { name = "onPaste"; type_ = Clipboard };
-    Event { name = "onPasteCapture"; type_ = Clipboard };
-    Event { name = "onCompositionEnd"; type_ = Composition };
-    Event { name = "onCompositionEndCapture"; type_ = Composition };
-    Event { name = "onCompositionStart"; type_ = Composition };
-    Event { name = "onCompositionStartCapture"; type_ = Composition };
-    Event { name = "onCompositionUpdate"; type_ = Composition };
-    Event { name = "onCompositionUpdateCapture"; type_ = Composition };
-    Event { name = "onFocus"; type_ = Focus };
-    Event { name = "onFocusCapture"; type_ = Focus };
-    Event { name = "onBlur"; type_ = Focus };
-    Event { name = "onBlurCapture"; type_ = Focus };
-    Event { name = "onChange"; type_ = Form };
-    Event { name = "onChangeCapture"; type_ = Form };
-    Event { name = "onBeforeInput"; type_ = Form };
-    Event { name = "onBeforeInputCapture"; type_ = Form };
-    Event { name = "onInput"; type_ = Form };
-    Event { name = "onInputCapture"; type_ = Form };
-    Event { name = "onReset"; type_ = Form };
-    Event { name = "onResetCapture"; type_ = Form };
-    Event { name = "onSubmit"; type_ = Form };
-    Event { name = "onSubmitCapture"; type_ = Form };
-    Event { name = "onInvalid"; type_ = Form };
-    Event { name = "onInvalidCapture"; type_ = Form };
-    Event { name = "onLoad"; type_ = Media };
-    Event { name = "onLoadCapture"; type_ = Media };
-    Event { name = "onError"; type_ = Media };
-    Event { name = "onErrorCapture"; type_ = Media };
-    Event { name = "onKeyDown"; type_ = Keyboard };
-    Event { name = "onKeyDownCapture"; type_ = Keyboard };
-    Event { name = "onKeyPress"; type_ = Keyboard };
-    Event { name = "onKeyPressCapture"; type_ = Keyboard };
-    Event { name = "onKeyUp"; type_ = Keyboard };
-    Event { name = "onKeyUpCapture"; type_ = Keyboard };
-    Event { name = "onAbort"; type_ = Media };
-    Event { name = "onAbortCapture"; type_ = Media };
-    Event { name = "onCanPlay"; type_ = Media };
-    Event { name = "onCanPlayCapture"; type_ = Media };
-    Event { name = "onCanPlayThrough"; type_ = Media };
-    Event { name = "onCanPlayThroughCapture"; type_ = Media };
-    Event { name = "onDurationChange"; type_ = Media };
-    Event { name = "onDurationChangeCapture"; type_ = Media };
-    Event { name = "onEmptied"; type_ = Media };
-    Event { name = "onEmptiedCapture"; type_ = Media };
-    Event { name = "onEncrypted"; type_ = Media };
-    Event { name = "onEncryptedCapture"; type_ = Media };
-    Event { name = "onEnded"; type_ = Media };
-    Event { name = "onEndedCapture"; type_ = Media };
-    Event { name = "onLoadedData"; type_ = Media };
-    Event { name = "onLoadedDataCapture"; type_ = Media };
-    Event { name = "onLoadedMetadata"; type_ = Media };
-    Event { name = "onLoadedMetadataCapture"; type_ = Media };
-    Event { name = "onLoadStart"; type_ = Media };
-    Event { name = "onLoadStartCapture"; type_ = Media };
-    Event { name = "onPause"; type_ = Media };
-    Event { name = "onPauseCapture"; type_ = Media };
-    Event { name = "onPlay"; type_ = Media };
-    Event { name = "onPlayCapture"; type_ = Media };
-    Event { name = "onPlaying"; type_ = Media };
-    Event { name = "onPlayingCapture"; type_ = Media };
-    Event { name = "onProgress"; type_ = Media };
-    Event { name = "onProgressCapture"; type_ = Media };
-    Event { name = "onRateChange"; type_ = Media };
-    Event { name = "onRateChangeCapture"; type_ = Media };
-    Event { name = "onSeeked"; type_ = Media };
-    Event { name = "onSeekedCapture"; type_ = Media };
-    Event { name = "onSeeking"; type_ = Media };
-    Event { name = "onSeekingCapture"; type_ = Media };
-    Event { name = "onStalled"; type_ = Media };
-    Event { name = "onStalledCapture"; type_ = Media };
-    Event { name = "onSuspend"; type_ = Media };
-    Event { name = "onSuspendCapture"; type_ = Media };
-    Event { name = "onTimeUpdate"; type_ = Media };
-    Event { name = "onTimeUpdateCapture"; type_ = Media };
-    Event { name = "onVolumeChange"; type_ = Media };
-    Event { name = "onVolumeChangeCapture"; type_ = Media };
-    Event { name = "onWaiting"; type_ = Media };
-    Event { name = "onWaitingCapture"; type_ = Media };
-    Event { name = "onAuxClick"; type_ = Mouse };
-    Event { name = "onAuxClickCapture"; type_ = Mouse };
-    Event { name = "onClick"; type_ = Mouse };
-    Event { name = "onClickCapture"; type_ = Mouse };
-    Event { name = "onContextMenu"; type_ = Mouse };
-    Event { name = "onContextMenuCapture"; type_ = Mouse };
-    Event { name = "onDoubleClick"; type_ = Mouse };
-    Event { name = "onDoubleClickCapture"; type_ = Mouse };
-    Event { name = "onDrag"; type_ = Drag };
-    Event { name = "onDragCapture"; type_ = Drag };
-    Event { name = "onDragEnd"; type_ = Drag };
-    Event { name = "onDragEndCapture"; type_ = Drag };
-    Event { name = "onDragEnter"; type_ = Drag };
-    Event { name = "onDragEnterCapture"; type_ = Drag };
-    Event { name = "onDragExit"; type_ = Drag };
-    Event { name = "onDragExitCapture"; type_ = Drag };
-    Event { name = "onDragLeave"; type_ = Drag };
-    Event { name = "onDragLeaveCapture"; type_ = Drag };
-    Event { name = "onDragOver"; type_ = Drag };
-    Event { name = "onDragOverCapture"; type_ = Drag };
-    Event { name = "onDragStart"; type_ = Drag };
-    Event { name = "onDragStartCapture"; type_ = Drag };
-    Event { name = "onDrop"; type_ = Drag };
-    Event { name = "onDropCapture"; type_ = Drag };
-    Event { name = "onMouseDown"; type_ = Mouse };
-    Event { name = "onMouseDownCapture"; type_ = Mouse };
-    Event { name = "onMouseEnter"; type_ = Mouse };
-    Event { name = "onMouseLeave"; type_ = Mouse };
-    Event { name = "onMouseMove"; type_ = Mouse };
-    Event { name = "onMouseMoveCapture"; type_ = Mouse };
-    Event { name = "onMouseOut"; type_ = Mouse };
-    Event { name = "onMouseOutCapture"; type_ = Mouse };
-    Event { name = "onMouseOver"; type_ = Mouse };
-    Event { name = "onMouseOverCapture"; type_ = Mouse };
-    Event { name = "onMouseUp"; type_ = Mouse };
-    Event { name = "onMouseUpCapture"; type_ = Mouse };
-    Event { name = "onSelect"; type_ = Selection };
-    Event { name = "onSelectCapture"; type_ = Selection };
-    Event { name = "onTouchCancel"; type_ = Touch };
-    Event { name = "onTouchCancelCapture"; type_ = Touch };
-    Event { name = "onTouchEnd"; type_ = Touch };
-    Event { name = "onTouchEndCapture"; type_ = Touch };
-    Event { name = "onTouchMove"; type_ = Touch };
-    Event { name = "onTouchMoveCapture"; type_ = Touch };
-    Event { name = "onTouchStart"; type_ = Touch };
-    Event { name = "onTouchStartCapture"; type_ = Touch };
-    Event { name = "onPointerDown"; type_ = Pointer };
-    Event { name = "onPointerDownCapture"; type_ = Pointer };
-    Event { name = "onPointerMove"; type_ = Pointer };
-    Event { name = "onPointerMoveCapture"; type_ = Pointer };
-    Event { name = "onPointerUp"; type_ = Pointer };
-    Event { name = "onPointerUpCapture"; type_ = Pointer };
-    Event { name = "onPointerCancel"; type_ = Pointer };
-    Event { name = "onPointerCancelCapture"; type_ = Pointer };
-    Event { name = "onPointerEnter"; type_ = Pointer };
-    Event { name = "onPointerEnterCapture"; type_ = Pointer };
-    Event { name = "onPointerLeave"; type_ = Pointer };
-    Event { name = "onPointerLeaveCapture"; type_ = Pointer };
-    Event { name = "onPointerOver"; type_ = Pointer };
-    Event { name = "onPointerOverCapture"; type_ = Pointer };
-    Event { name = "onPointerOut"; type_ = Pointer };
-    Event { name = "onPointerOutCapture"; type_ = Pointer };
-    Event { name = "onGotPointerCapture"; type_ = Pointer };
-    Event { name = "onGotPointerCaptureCapture"; type_ = Pointer };
-    Event { name = "onLostPointerCapture"; type_ = Pointer };
-    Event { name = "onLostPointerCaptureCapture"; type_ = Pointer };
-    Event { name = "onScroll"; type_ = UI };
-    Event { name = "onScrollCapture"; type_ = UI };
-    Event { name = "onWheel"; type_ = Wheel };
-    Event { name = "onWheelCapture"; type_ = Wheel };
-    Event { name = "onAnimationStart"; type_ = Animation };
-    Event { name = "onAnimationStartCapture"; type_ = Animation };
-    Event { name = "onAnimationEnd"; type_ = Animation };
-    Event { name = "onAnimationEndCapture"; type_ = Animation };
-    Event { name = "onAnimationIteration"; type_ = Animation };
-    Event { name = "onAnimationIterationCapture"; type_ = Animation };
-    Event { name = "onTransitionEnd"; type_ = Transition };
-    Event { name = "onTransitionEndCapture"; type_ = Transition };
+    Event { jsxName = "onCopy"; type_ = Clipboard };
+    Event { jsxName = "onCopyCapture"; type_ = Clipboard };
+    Event { jsxName = "onCut"; type_ = Clipboard };
+    Event { jsxName = "onCutCapture"; type_ = Clipboard };
+    Event { jsxName = "onPaste"; type_ = Clipboard };
+    Event { jsxName = "onPasteCapture"; type_ = Clipboard };
+    Event { jsxName = "onCompositionEnd"; type_ = Composition };
+    Event { jsxName = "onCompositionEndCapture"; type_ = Composition };
+    Event { jsxName = "onCompositionStart"; type_ = Composition };
+    Event { jsxName = "onCompositionStartCapture"; type_ = Composition };
+    Event { jsxName = "onCompositionUpdate"; type_ = Composition };
+    Event { jsxName = "onCompositionUpdateCapture"; type_ = Composition };
+    Event { jsxName = "onFocus"; type_ = Focus };
+    Event { jsxName = "onFocusCapture"; type_ = Focus };
+    Event { jsxName = "onBlur"; type_ = Focus };
+    Event { jsxName = "onBlurCapture"; type_ = Focus };
+    Event { jsxName = "onChange"; type_ = Form };
+    Event { jsxName = "onChangeCapture"; type_ = Form };
+    Event { jsxName = "onBeforeInput"; type_ = Form };
+    Event { jsxName = "onBeforeInputCapture"; type_ = Form };
+    Event { jsxName = "onInput"; type_ = Form };
+    Event { jsxName = "onInputCapture"; type_ = Form };
+    Event { jsxName = "onReset"; type_ = Form };
+    Event { jsxName = "onResetCapture"; type_ = Form };
+    Event { jsxName = "onSubmit"; type_ = Form };
+    Event { jsxName = "onSubmitCapture"; type_ = Form };
+    Event { jsxName = "onInvalid"; type_ = Form };
+    Event { jsxName = "onInvalidCapture"; type_ = Form };
+    Event { jsxName = "onLoad"; type_ = Media };
+    Event { jsxName = "onLoadCapture"; type_ = Media };
+    Event { jsxName = "onError"; type_ = Media };
+    Event { jsxName = "onErrorCapture"; type_ = Media };
+    Event { jsxName = "onKeyDown"; type_ = Keyboard };
+    Event { jsxName = "onKeyDownCapture"; type_ = Keyboard };
+    Event { jsxName = "onKeyPress"; type_ = Keyboard };
+    Event { jsxName = "onKeyPressCapture"; type_ = Keyboard };
+    Event { jsxName = "onKeyUp"; type_ = Keyboard };
+    Event { jsxName = "onKeyUpCapture"; type_ = Keyboard };
+    Event { jsxName = "onAbort"; type_ = Media };
+    Event { jsxName = "onAbortCapture"; type_ = Media };
+    Event { jsxName = "onCanPlay"; type_ = Media };
+    Event { jsxName = "onCanPlayCapture"; type_ = Media };
+    Event { jsxName = "onCanPlayThrough"; type_ = Media };
+    Event { jsxName = "onCanPlayThroughCapture"; type_ = Media };
+    Event { jsxName = "onDurationChange"; type_ = Media };
+    Event { jsxName = "onDurationChangeCapture"; type_ = Media };
+    Event { jsxName = "onEmptied"; type_ = Media };
+    Event { jsxName = "onEmptiedCapture"; type_ = Media };
+    Event { jsxName = "onEncrypted"; type_ = Media };
+    Event { jsxName = "onEncryptedCapture"; type_ = Media };
+    Event { jsxName = "onEnded"; type_ = Media };
+    Event { jsxName = "onEndedCapture"; type_ = Media };
+    Event { jsxName = "onLoadedData"; type_ = Media };
+    Event { jsxName = "onLoadedDataCapture"; type_ = Media };
+    Event { jsxName = "onLoadedMetadata"; type_ = Media };
+    Event { jsxName = "onLoadedMetadataCapture"; type_ = Media };
+    Event { jsxName = "onLoadStart"; type_ = Media };
+    Event { jsxName = "onLoadStartCapture"; type_ = Media };
+    Event { jsxName = "onPause"; type_ = Media };
+    Event { jsxName = "onPauseCapture"; type_ = Media };
+    Event { jsxName = "onPlay"; type_ = Media };
+    Event { jsxName = "onPlayCapture"; type_ = Media };
+    Event { jsxName = "onPlaying"; type_ = Media };
+    Event { jsxName = "onPlayingCapture"; type_ = Media };
+    Event { jsxName = "onProgress"; type_ = Media };
+    Event { jsxName = "onProgressCapture"; type_ = Media };
+    Event { jsxName = "onRateChange"; type_ = Media };
+    Event { jsxName = "onRateChangeCapture"; type_ = Media };
+    Event { jsxName = "onSeeked"; type_ = Media };
+    Event { jsxName = "onSeekedCapture"; type_ = Media };
+    Event { jsxName = "onSeeking"; type_ = Media };
+    Event { jsxName = "onSeekingCapture"; type_ = Media };
+    Event { jsxName = "onStalled"; type_ = Media };
+    Event { jsxName = "onStalledCapture"; type_ = Media };
+    Event { jsxName = "onSuspend"; type_ = Media };
+    Event { jsxName = "onSuspendCapture"; type_ = Media };
+    Event { jsxName = "onTimeUpdate"; type_ = Media };
+    Event { jsxName = "onTimeUpdateCapture"; type_ = Media };
+    Event { jsxName = "onVolumeChange"; type_ = Media };
+    Event { jsxName = "onVolumeChangeCapture"; type_ = Media };
+    Event { jsxName = "onWaiting"; type_ = Media };
+    Event { jsxName = "onWaitingCapture"; type_ = Media };
+    Event { jsxName = "onAuxClick"; type_ = Mouse };
+    Event { jsxName = "onAuxClickCapture"; type_ = Mouse };
+    Event { jsxName = "onClick"; type_ = Mouse };
+    Event { jsxName = "onClickCapture"; type_ = Mouse };
+    Event { jsxName = "onContextMenu"; type_ = Mouse };
+    Event { jsxName = "onContextMenuCapture"; type_ = Mouse };
+    Event { jsxName = "onDoubleClick"; type_ = Mouse };
+    Event { jsxName = "onDoubleClickCapture"; type_ = Mouse };
+    Event { jsxName = "onDrag"; type_ = Drag };
+    Event { jsxName = "onDragCapture"; type_ = Drag };
+    Event { jsxName = "onDragEnd"; type_ = Drag };
+    Event { jsxName = "onDragEndCapture"; type_ = Drag };
+    Event { jsxName = "onDragEnter"; type_ = Drag };
+    Event { jsxName = "onDragEnterCapture"; type_ = Drag };
+    Event { jsxName = "onDragExit"; type_ = Drag };
+    Event { jsxName = "onDragExitCapture"; type_ = Drag };
+    Event { jsxName = "onDragLeave"; type_ = Drag };
+    Event { jsxName = "onDragLeaveCapture"; type_ = Drag };
+    Event { jsxName = "onDragOver"; type_ = Drag };
+    Event { jsxName = "onDragOverCapture"; type_ = Drag };
+    Event { jsxName = "onDragStart"; type_ = Drag };
+    Event { jsxName = "onDragStartCapture"; type_ = Drag };
+    Event { jsxName = "onDrop"; type_ = Drag };
+    Event { jsxName = "onDropCapture"; type_ = Drag };
+    Event { jsxName = "onMouseDown"; type_ = Mouse };
+    Event { jsxName = "onMouseDownCapture"; type_ = Mouse };
+    Event { jsxName = "onMouseEnter"; type_ = Mouse };
+    Event { jsxName = "onMouseLeave"; type_ = Mouse };
+    Event { jsxName = "onMouseMove"; type_ = Mouse };
+    Event { jsxName = "onMouseMoveCapture"; type_ = Mouse };
+    Event { jsxName = "onMouseOut"; type_ = Mouse };
+    Event { jsxName = "onMouseOutCapture"; type_ = Mouse };
+    Event { jsxName = "onMouseOver"; type_ = Mouse };
+    Event { jsxName = "onMouseOverCapture"; type_ = Mouse };
+    Event { jsxName = "onMouseUp"; type_ = Mouse };
+    Event { jsxName = "onMouseUpCapture"; type_ = Mouse };
+    Event { jsxName = "onSelect"; type_ = Selection };
+    Event { jsxName = "onSelectCapture"; type_ = Selection };
+    Event { jsxName = "onTouchCancel"; type_ = Touch };
+    Event { jsxName = "onTouchCancelCapture"; type_ = Touch };
+    Event { jsxName = "onTouchEnd"; type_ = Touch };
+    Event { jsxName = "onTouchEndCapture"; type_ = Touch };
+    Event { jsxName = "onTouchMove"; type_ = Touch };
+    Event { jsxName = "onTouchMoveCapture"; type_ = Touch };
+    Event { jsxName = "onTouchStart"; type_ = Touch };
+    Event { jsxName = "onTouchStartCapture"; type_ = Touch };
+    Event { jsxName = "onPointerDown"; type_ = Pointer };
+    Event { jsxName = "onPointerDownCapture"; type_ = Pointer };
+    Event { jsxName = "onPointerMove"; type_ = Pointer };
+    Event { jsxName = "onPointerMoveCapture"; type_ = Pointer };
+    Event { jsxName = "onPointerUp"; type_ = Pointer };
+    Event { jsxName = "onPointerUpCapture"; type_ = Pointer };
+    Event { jsxName = "onPointerCancel"; type_ = Pointer };
+    Event { jsxName = "onPointerCancelCapture"; type_ = Pointer };
+    Event { jsxName = "onPointerEnter"; type_ = Pointer };
+    Event { jsxName = "onPointerEnterCapture"; type_ = Pointer };
+    Event { jsxName = "onPointerLeave"; type_ = Pointer };
+    Event { jsxName = "onPointerLeaveCapture"; type_ = Pointer };
+    Event { jsxName = "onPointerOver"; type_ = Pointer };
+    Event { jsxName = "onPointerOverCapture"; type_ = Pointer };
+    Event { jsxName = "onPointerOut"; type_ = Pointer };
+    Event { jsxName = "onPointerOutCapture"; type_ = Pointer };
+    Event { jsxName = "onGotPointerCapture"; type_ = Pointer };
+    Event { jsxName = "onGotPointerCaptureCapture"; type_ = Pointer };
+    Event { jsxName = "onLostPointerCapture"; type_ = Pointer };
+    Event { jsxName = "onLostPointerCaptureCapture"; type_ = Pointer };
+    Event { jsxName = "onScroll"; type_ = UI };
+    Event { jsxName = "onScrollCapture"; type_ = UI };
+    Event { jsxName = "onWheel"; type_ = Wheel };
+    Event { jsxName = "onWheelCapture"; type_ = Wheel };
+    Event { jsxName = "onAnimationStart"; type_ = Animation };
+    Event { jsxName = "onAnimationStartCapture"; type_ = Animation };
+    Event { jsxName = "onAnimationEnd"; type_ = Animation };
+    Event { jsxName = "onAnimationEndCapture"; type_ = Animation };
+    Event { jsxName = "onAnimationIteration"; type_ = Animation };
+    Event { jsxName = "onAnimationIterationCapture"; type_ = Animation };
+    Event { jsxName = "onTransitionEnd"; type_ = Transition };
+    Event { jsxName = "onTransitionEndCapture"; type_ = Transition };
   ]
 
 (* All the WAI-ARIA 1.1 attributes from https://www.w3.org/TR/wai-aria-1.1/ *)
@@ -230,232 +231,228 @@ let ariaAttributes =
   [
     (* Identifies the currently active element when DOM focus is on a composite
        widget, textbox, group, or application. *)
-    Attribute { name = "ariaActivedescendant"; jsxName = "aria-activedescendant"; type_ = String };
+    Attribute { name = "aria-activedescendant"; jsxName = "ariaActivedescendant"; type_ = String };
 
     (* Indicates whether assistive technologies will present all, or only parts
        of, the changed region based on the change notifications defined by the
        aria-relevant attribute. *)
-    Attribute { name = "ariaAtomic"; jsxName = "aria-atomic"; type_ = String (* Bool | 'false' | 'true' *) };
+    Attribute { name = "aria-atomic"; jsxName = "ariaAtomic"; type_ = StringlyBool };
 
     (* Indicates whether inputting text could trigger display of one or more predictions of the user's intended value for an input and specifies how predictions would be
      * presented if they are made.
      *)
-    Attribute { name = "ariaAutocomplete"; jsxName = "aria-autocomplete"; type_ = String (* 'none' | 'inline' | 'list' | 'both' *) };
+    Attribute { name = "aria-autocomplete"; jsxName = "ariaAutocomplete"; type_ = String (* 'none' | 'inline' | 'list' | 'both' *) };
 
     (* Indicates an element is being modified and that assistive technologies
        MAY want to wait until the modifications are complete before exposing
        them to the user. *)
-    Attribute { name = "ariaBusy"; jsxName = "aria-busy"; type_ = String (* Bool | 'false' | 'true' *) };
+    Attribute { name = "aria-busy"; jsxName = "ariaBusy"; type_ = StringlyBool };
 
     (* Indicates the current "checked" state of checkboxes, radio buttons, and other
     widgets.
     * @see aria-pressed @see aria-selected.
     *)
-    Attribute { name = "ariaChecked"; jsxName = "aria-checked"; type_ = String (* Bool | 'false' | 'mixed' | 'true' *) };
+    Attribute { name = "aria-checked"; jsxName = "ariaChecked"; type_ = String (* Bool | 'false' | 'mixed' | 'true' *) };
 
     (* Defines the total number of columns in a table, grid, or treegrid.
     * @see aria-colindex.
     *)
-    Attribute { name = "ariaColcount"; jsxName = "aria-colcount"; type_ = Int };
+    Attribute { name = "aria-colcount"; jsxName = "ariaColcount"; type_ = Int };
 
     (* Defines an element's column index or position with respect to the total number of columns within a table,
     grid, or treegrid.
     * @see aria-colcount @see aria-colspan.
     *)
-    Attribute { name = "ariaColindex"; jsxName = "aria-colindex"; type_ = Int };
+    Attribute { name = "aria-colindex"; jsxName = "ariaColindex"; type_ = Int };
 
     (* Defines the number of columns spanned by a cell or gridcell within a table, grid, or treegrid.
     * @see aria-colindex @see aria-rowspan.
     *)
-    Attribute { name = "ariaColspan"; jsxName = "aria-colspan"; type_ = Int };
+    Attribute { name = "aria-colspan"; jsxName = "ariaColspan"; type_ = Int };
 
     (* Identifies the element (or elements) whose contents or presence are controlled by the current element.
     * @see aria-owns.
     *)
-    Attribute { name = "ariaControls"; jsxName = "aria-controls"; type_ = String };
+    Attribute { name = "aria-controls"; jsxName = "ariaControls"; type_ = String };
 
     (* Indicates the element that represents the current item within a container
        or set of related elements. *)
-    Attribute { name = "ariaCurrent"; jsxName = "aria-current"; type_ = String (* Bool | 'false' | 'true' | 'page' | 'step' | 'location' | 'date' | 'time' *) };
+    Attribute { name = "aria-current"; jsxName = "ariaCurrent"; type_ = String (* Bool | 'false' | 'true' | 'page' | 'step' | 'location' | 'date' | 'time' *) };
 
     (* Identifies the element (or elements) that describes the object.
      * @see aria-labelledby
      *)
-    Attribute { name = "ariaDescribedby"; jsxName = "aria-describedby"; type_ = String };
+    Attribute { name = "aria-describedby"; jsxName = "ariaDescribedby"; type_ = String };
 
     (* Identifies the element that provides a detailed, extended description for
        the object. * @see aria-describedby. *)
-    Attribute { name = "ariaDetails"; jsxName = "aria-details"; type_ = String };
+    Attribute { name = "aria-details"; jsxName = "ariaDetails"; type_ = String };
 
     (* Indicates that the element is perceivable but disabled, so it is not editable or otherwise operable.
     * @see aria-hidden @see aria-readonly.
     *)
-    Attribute { name = "ariaDisabled"; jsxName = "aria-disabled"; type_ = String (* Bool | 'false' | 'true' *) };
+    Attribute { name = "aria-disabled"; jsxName = "ariaDisabled"; type_ = StringlyBool };
 
     (* Identifies the element that provides an error message for the object.
     * @see aria-invalid @see aria-describedby.
     *)
-    Attribute { name = "ariaErrormessage"; jsxName = "aria-errormessage"; type_ = String };
+    Attribute { name = "aria-errormessage"; jsxName = "ariaErrormessage"; type_ = String };
 
     (* Indicates whether the element, or another grouping element it controls,
        is currently expanded or collapsed. *)
-    Attribute { name = "ariaExpanded"; jsxName = "aria-expanded"; type_ = String (* Bool | 'false' | 'true' *) };
+    Attribute { name = "aria-expanded"; jsxName = "ariaExpanded"; type_ = StringlyBool };
 
     (* Identifies the next element (or elements) in an alternate reading order of content which, at the user's discretion,
      * allows assistive technology to override the general default of reading in document source order.
      *)
-    Attribute { name = "ariaFlowto"; jsxName = "aria-flowto"; type_ = String };
+    Attribute { name = "aria-flowto"; jsxName = "ariaFlowto"; type_ = String };
 
     (* Indicates the availability and type of interactive popup element, such as
        menu or dialog, that can be triggered by an element. *)
-    Attribute { name = "ariaHaspopup"; jsxName = "aria-haspopup"; type_ = String (* Bool | 'false' | 'true' | 'menu' | 'listbox' | 'tree' | 'grid' | 'dialog'; *)};
+    Attribute { name = "aria-haspopup"; jsxName = "ariaHaspopup"; type_ = String (* Bool | 'false' | 'true' | 'menu' | 'listbox' | 'tree' | 'grid' | 'dialog'; *)};
 
     (* Indicates whether the element is exposed to an accessibility API.
      * @see aria-disabled.
      *)
-    Attribute { name = "ariaHidden"; jsxName = "aria-hidden"; type_ = String (* Bool | 'false' | 'true' *) };
+    Attribute { name = "aria-hidden"; jsxName = "ariaHidden"; type_ = StringlyBool };
 
     (* Indicates the entered value does not conform to the format expected by the
     application.
     * @see aria-errormessage.
     *)
-    Attribute { name = "ariaInvalid"; jsxName = "aria-invalid"; type_ = String (* Bool | 'false' | 'true' | 'grammar' | 'spelling'; *) };
+    Attribute { name = "aria-invalid"; jsxName = "ariaInvalid"; type_ = String (* Bool | 'false' | 'true' | 'grammar' | 'spelling'; *) };
 
     (* Indicates keyboard shortcuts that an author has implemented to activate
        or give focus to an element. *)
-    Attribute { name = "ariaKeyshortcuts"; jsxName = "aria-keyshortcuts"; type_ = String };
+    Attribute { name = "aria-keyshortcuts"; jsxName = "ariaKeyshortcuts"; type_ = String };
 
     (* Defines a String value that labels the current element.
     * @see aria-labelledby.
     *)
-    Attribute { name = "ariaLabel"; jsxName = "aria-label"; type_ = String };
+    Attribute { name = "aria-label"; jsxName = "ariaLabel"; type_ = String };
 
     (* Identifies the element (or elements) that labels the current element.
     * @see aria-describedby.
     *)
-    Attribute { name = "ariaLabelledby"; jsxName = "aria-labelledby"; type_ = String };
+    Attribute { name = "aria-labelledby"; jsxName = "ariaLabelledby"; type_ = String };
 
     (* Defines the hierarchical level of an element within a structure. *)
-    Attribute { name = "ariaLevel"; jsxName = "aria-level"; type_ = Int };
+    Attribute { name = "aria-level"; jsxName = "ariaLevel"; type_ = Int };
 
     (* Indicates that an element will be updated, and describes the types of
        updates the user agents, assistive technologies, and user can expect ;rom
        the live region. *)
-    Attribute { name = "ariaLive"; jsxName = "aria-live"; type_ = String (* 'off' | 'assertive' | 'polite' *) };
+    Attribute { name = "aria-live"; jsxName = "ariaLive"; type_ = String (* 'off' | 'assertive' | 'polite' *) };
 
     (* Indicates whether an element is modal when displayed. *)
 
-    Attribute { name = "ariaModal"; jsxName = "aria-modal"; type_ = String (* Bool | 'false' | 'true' *) };
+    Attribute { name = "aria-modal"; jsxName = "ariaModal"; type_ = StringlyBool };
 
     (* Indicates whether a text box accepts multiple lines of input or only a
        single line. *)
-    Attribute { name = "ariaMultiline"; jsxName = "aria-multiline"; type_ = String (* Bool | 'false' | 'true' *) };
+    Attribute { name = "aria-multiline"; jsxName = "ariaMultiline"; type_ = StringlyBool };
 
     (* Indicates that the user may select more than one item from the current
        selectable descendants. *)
-    Attribute { name = "ariaMultiselectable"; jsxName = "aria-multiselectable"; type_ = String (* Bool | 'false' | 'true' *) };
+    Attribute { name = "aria-multiselectable"; jsxName = "ariaMultiselectable"; type_ = StringlyBool };
 
     (* Indicates whether the element's orientation is horizontal, vertical, or
        unknown/ambiguous. *)
-    Attribute { name = "ariaOrientation"; jsxName = "aria-orientation"; type_ = String (* 'horizontal' | 'vertical' *) };
+    Attribute { name = "aria-orientation"; jsxName = "ariaOrientation"; type_ = String (* 'horizontal' | 'vertical' *) };
 
     (* Identifies an element (or elements) in order to define a visual, functional, or contextual parent/child relationship
      * between DOM elements where the DOM hierarchy cannot be used to represent the relationship.
      * @see aria-controls.
      *)
-    Attribute { name = "ariaOwns"; jsxName = "aria-owns"; type_ = String };
+    Attribute { name = "aria-owns"; jsxName = "ariaOwns"; type_ = String };
 
     (* Defines a short hint (a word or short phrase) intended to aid the user with data entry when the control has no
     value.
     * A hint could be a sample value or a brief description of the expected format.
     *)
-    Attribute { name = "ariaPlaceholder"; jsxName = "aria-placeholder"; type_ = String };
+    Attribute { name = "aria-placeholder"; jsxName = "ariaPlaceholder"; type_ = String };
 
     (* Defines an element's number or position in the current set of listitems
        or treeitems. Not required if all elements in the set are present in the
        DOM. * @see aria-setsize. *)
-    Attribute { name = "ariaPosinset"; jsxName = "aria-posinset"; type_ = Int };
+    Attribute { name = "aria-posinset"; jsxName = "ariaPosinset"; type_ = Int };
 
     (* Indicates the current "pressed" state of toggle buttons.
     * @see aria-checked @see aria-selected.
     *)
-    Attribute { name = "ariaPressed"; jsxName = "aria-pressed"; type_ = String (* Bool | 'false' | 'mixed' | 'true' *) };
+    Attribute { name = "aria-pressed"; jsxName = "ariaPressed"; type_ = String (* Bool | 'false' | 'mixed' | 'true' *) };
 
     (* Indicates that the element is not editable, but is otherwise
     operable.
     * @see aria-disabled.
     *)
-    Attribute { name = "ariaReadonly"; jsxName = "aria-readonly"; type_ = String (* Bool | 'false' | 'true' *) };
+    Attribute { name = "aria-readonly"; jsxName = "ariaReadonly"; type_ = StringlyBool };
 
     (* Indicates what notifications the user agent will trigger when the
     accessibility tree within a live region is modified.
     * @see aria-atomic.
     *)
-    Attribute { name = "ariaRelevant"; jsxName = "aria-relevant"; type_ = String (* 'additions' | 'additions removals' | 'additions text' | 'all' | 'removals' | 'removals additions' | 'removals text' | 'text' | 'text additions' | 'text removals' *) };
+    Attribute { name = "aria-relevant"; jsxName = "ariaRelevant"; type_ = String (* 'additions' | 'additions removals' | 'additions text' | 'all' | 'removals' | 'removals additions' | 'removals text' | 'text' | 'text additions' | 'text removals' *) };
 
     (* Indicates that user input is required on the element before a form may be
        submitted. *)
-    Attribute { name = "ariaRequired"; jsxName = "aria-required"; type_ = String (* Bool | 'false' | 'true' *) };
+    Attribute { name = "aria-required"; jsxName = "ariaRequired"; type_ = StringlyBool };
 
     (* Defines a human-readable, author-localized description for the role of an
        element. *)
-    Attribute { name = "ariaRoledescription"; jsxName = "aria-roledescription"; type_ = String };
+    Attribute { name = "aria-roledescription"; jsxName = "ariaRoledescription"; type_ = String };
 
     (* Defines the total number of rows in a table, grid, or treegrid.
     * @see aria-rowindex.
     *)
-    Attribute { name = "ariaRowcount"; jsxName = "aria-rowcount"; type_ = Int };
+    Attribute { name = "aria-rowcount"; jsxName = "ariaRowcount"; type_ = Int };
 
     (* Defines an element's row index or position with respect to the total number of rows within a table, grid, or
     treegrid.
     * @see aria-rowcount @see aria-rowspan.
     *)
-    Attribute { name = "ariaRowindex"; jsxName = "aria-rowindex"; type_ = Int };
+    Attribute { name = "aria-rowindex"; jsxName = "ariaRowindex"; type_ = Int };
 
     (* *)
 
-    Attribute { name = "ariaRowindextext"; jsxName = "aria-rowindextext"; type_ = String };
+    Attribute { name = "aria-rowindextext"; jsxName = "ariaRowindextext"; type_ = String };
 
     (* Defines the number of rows spanned by a cell or gridcell within a table, grid, or treegrid.
     * @see aria-rowindex @see aria-colspan.
     *)
-    Attribute { name = "ariaRowspan"; jsxName = "aria-rowspan"; type_ = Int };
+    Attribute { name = "aria-rowspan"; jsxName = "ariaRowspan"; type_ = Int };
 
     (* Indicates the current "selected" state of various widgets.
     * @see aria-checked @see aria-pressed.
     *)
-    Attribute { name = "ariaSelected"; jsxName = "aria-selected"; type_ = String (* Bool | 'false' | 'true' *) };
+    Attribute { name = "aria-selected"; jsxName = "ariaSelected"; type_ = StringlyBool };
 
     (* Defines the number of items in the current set of listitems or treeitems.
     Not required if all elements in the set are present in the DOM.
     * @see aria-posinset.
     *)
-    Attribute { name = "ariaSetsize"; jsxName = "aria-setsize"; type_ = Int };
+    Attribute { name = "aria-setsize"; jsxName = "ariaSetsize"; type_ = Int };
 
     (* Indicates if items in a table or grid are sorted in ascending or
        descending order. *)
-    Attribute { name = "ariaSort"; jsxName = "aria-sort"; type_ = String (* 'none' | 'ascending' | 'descending' | 'other' *) };
+    Attribute { name = "aria-sort"; jsxName = "ariaSort"; type_ = String (* 'none' | 'ascending' | 'descending' | 'other' *) };
 
     (* Defines the maximum allowed value for a range widget. *)
 
-    Attribute { name = "ariaValuemax"; jsxName = "aria-valuemax"; type_ = Int };
+    Attribute { name = "aria-valuemax"; jsxName = "ariaValuemax"; type_ = Int };
 
     (* Defines the minimum allowed value for a range widget. *)
 
-    Attribute { name = "ariaValuemin"; jsxName = "aria-valuemin"; type_ = Int };
+    Attribute { name = "aria-valuemin"; jsxName = "ariaValuemin"; type_ = Int };
 
     (* Defines the current value for a range widget.
     * @see aria-valuetext.
     *)
-    Attribute { name = "ariaValuenow"; jsxName = "aria-valuenow"; type_ = Int };
-
-    Attribute { name = "ariaValuemin"; jsxName = "aria-valuemin"; type_ = Int };
-
-    Attribute { name = "ariaValuemax"; jsxName = "aria-valuemax"; type_ = Int };
+    Attribute { name = "aria-valuenow"; jsxName = "ariaValuenow"; type_ = Int };
 
     (* Defines the human readable text alternative of aria-valuenow for a range
        widget. *)
-    Attribute { name = "ariaValuetext"; jsxName = "aria-valuetext"; type_ = String };
+    Attribute { name = "aria-valuetext"; jsxName = "ariaValuetext"; type_ = String };
 
   ]
 
@@ -475,10 +472,10 @@ let ariaRole = String
 
 let reactValidHtml =
   [
-    Attribute { name = "className"; jsxName = "className"; type_ = String };
-    Attribute { name = "defaultChecked"; jsxName = "defaultChecked"; type_ = Bool };
-    Attribute { name = "defaultSelected"; jsxName = "defaultSelected"; type_ = Bool };
-    Attribute { name = "defaultValue"; jsxName = "defaultValue"; type_ = String (* | number | ReadonlyArray<String> *) };
+    Attribute { name = "class"; jsxName = "className"; type_ = String };
+    Attribute { name = "checked"; jsxName = "defaultChecked"; type_ = Bool };
+    Attribute { name = "selected"; jsxName = "defaultSelected"; type_ = Bool };
+    Attribute { name = "value"; jsxName = "defaultValue"; type_ = String (* | number | ReadonlyArray<String> *) };
   ]
 
 let reactAttributes =
@@ -569,7 +566,7 @@ let anchorHTMLAttributes =
     Attribute { name = "ping"; jsxName = "ping"; type_ = String };
     Attribute { name = "rel"; jsxName = "rel"; type_ = String };
     Attribute { name = "target"; jsxName = "target"; type_ = attributeAnchorTarget };
-    Attribute { name = "type_"; jsxName = "type"; type_ = String };
+    Attribute { name = "type"; jsxName = "type_"; type_ = String };
     Attribute { name = "referrerPolicy"; jsxName = "referrerPolicy"; type_ = attributeReferrerPolicy };
   ]
 
@@ -609,7 +606,7 @@ let buttonHTMLAttributes =
     Attribute { name = "formNoValidate"; jsxName = "formNoValidate"; type_ = Bool };
     Attribute { name = "formTarget"; jsxName = "formTarget"; type_ = String };
     Attribute { name = "name"; jsxName = "name"; type_ = String };
-    Attribute { name = "type_"; jsxName = "type"; type_ = String (* 'submit' | 'reset' | 'button' *) };
+    Attribute { name = "type"; jsxName = "type_"; type_ = String (* 'submit' | 'reset' | 'button' *) };
     Attribute { name = "value"; jsxName = "value"; type_ = String (* | ReadonlyArray<String> | number *) };
   ]
 
@@ -637,7 +634,7 @@ let dataHTMLAttributes =
 
 let detailsHTMLAttributes =
   [
-    Attribute { name = "open"; jsxName = "open"; type_ = Bool }; Event { name = "onToggle"; type_ = Media }
+    Attribute { name = "open"; jsxName = "open"; type_ = Bool }; Event { jsxName = "onToggle"; type_ = Media }
   ]
 
 let delHTMLAttributes =
@@ -653,9 +650,9 @@ let dialogHTMLAttributes =
 
 let embedHTMLAttributes =
   [
-    Attribute { name = "height"; type_ = String (* number | *); jsxName = "height" };
-    Attribute { name = "src"; type_ = String; jsxName = "src" };
-    Attribute { name = "type_"; type_ = String; jsxName = "type" };
+    Attribute { name = "height"; jsxName = "height"; type_ = String (* number | *); };
+    Attribute { name = "src"; jsxName = "src"; type_ = String; };
+    Attribute { name = "type"; jsxName = "type"; type_ = String; };
     Attribute { name = "width"; type_ = String (* number | *); jsxName = "width" };
   ]
 
@@ -761,10 +758,10 @@ let inputHTMLAttributes =
     Attribute { name = "size"; jsxName = "size"; type_ = Int (* number *) };
     Attribute { name = "src"; jsxName = "src"; type_ = String };
     Attribute { name = "step"; jsxName = "step"; type_ = String (* number | *) };
-    Attribute { name = "type_"; jsxName = "type"; type_ = inputTypeAttribute };
+    Attribute { name = "type"; jsxName = "type_"; type_ = inputTypeAttribute };
     Attribute { name = "value"; jsxName = "value"; type_ = String (* | ReadonlyArray<String> | number *) };
     Attribute { name = "width"; jsxName = "width"; type_ = String (* number | *) };
-    Event { name = "onChange"; type_ = Form };
+    Event { jsxName = "onChange"; type_ = Form };
   ]
 
 let keygenHTMLAttributes =
@@ -791,7 +788,7 @@ let liHTMLAttributes =
 
 let linkHTMLAttributes =
   [
-    Attribute { name = "as_"; jsxName = "as"; type_ = String };
+    Attribute { name = "as"; jsxName = "as_"; type_ = String };
     Attribute { name = "crossOrigin"; jsxName = "crossOrigin"; type_ = String };
     Attribute { name = "href"; jsxName = "href"; type_ = String };
     Attribute { name = "hrefLang"; jsxName = "hrefLang"; type_ = String };
@@ -800,7 +797,7 @@ let linkHTMLAttributes =
     Attribute { name = "media"; jsxName = "media"; type_ = String };
     Attribute { name = "rel"; jsxName = "rel"; type_ = String };
     Attribute { name = "sizes"; jsxName = "sizes"; type_ = String };
-    Attribute { name = "type_"; jsxName = "type"; type_ = String };
+    Attribute { name = "type"; jsxName = "type_"; type_ = String };
     Attribute { name = "charSet"; jsxName = "charSet"; type_ = String };
   ]
 
@@ -811,7 +808,7 @@ let mapHTMLAttributes =
 
 let menuHTMLAttributes =
   [
-    Attribute { name = "type_"; jsxName = "type"; type_ = String };
+    Attribute { name = "type"; jsxName = "type_"; type_ = String };
   ]
 
 let mediaHTMLAttributes =
@@ -861,7 +858,7 @@ let objectHTMLAttributes =
     Attribute { name = "form"; jsxName = "form"; type_ = String };
     Attribute { name = "height"; jsxName = "height"; type_ = String (* number | *) };
     Attribute { name = "name"; jsxName = "name"; type_ = String };
-    Attribute { name = "type_"; jsxName = "type"; type_ = String };
+    Attribute { name = "type"; jsxName = "type_"; type_ = String };
     Attribute { name = "useMap"; jsxName = "useMap"; type_ = String };
     Attribute { name = "width"; jsxName = "width"; type_ = String (* number | *) };
     Attribute { name = "wmode"; jsxName = "wmode"; type_ = String };
@@ -871,7 +868,7 @@ let olHTMLAttributes =
   [
     Attribute { name = "reversed"; jsxName = "reversed"; type_ = Bool };
     Attribute { name = "start"; jsxName = "start"; type_ = Int (* number *) };
-    Attribute { name = "type_"; jsxName = "type"; type_ = String (* '1' | 'a' | 'A' | 'i' | 'I' *) };
+    Attribute { name = "type"; jsxName = "type_"; type_ = String (* '1' | 'a' | 'A' | 'i' | 'I' *) };
   ]
 
 let optgroupHTMLAttributes =
@@ -923,7 +920,7 @@ let scriptHTMLAttributes =
     Attribute { name = "noModule"; jsxName = "noModule"; type_ = Bool };
     Attribute { name = "nonce"; jsxName = "nonce"; type_ = String };
     Attribute { name = "src"; jsxName = "src"; type_ = String };
-    Attribute { name = "type_"; jsxName = "type"; type_ = String };
+    Attribute { name = "type"; jsxName = "type_"; type_ = String };
   ]
 
 let selectHTMLAttributes =
@@ -937,7 +934,7 @@ let selectHTMLAttributes =
     Attribute { name = "required"; jsxName = "required"; type_ = Bool };
     Attribute { name = "size"; jsxName = "size"; type_ = Int (* number *) };
     Attribute { name = "value"; jsxName = "value"; type_ = String (* | ReadonlyArray<String> | number *) };
-    Event { name = "onChange"; type_ = Form };
+    Event { jsxName = "onChange"; type_ = Form };
   ]
 
 let sourceHTMLAttributes =
@@ -947,7 +944,7 @@ let sourceHTMLAttributes =
     Attribute { name = "sizes"; jsxName = "sizes"; type_ = String };
     Attribute { name = "src"; jsxName = "src"; type_ = String };
     Attribute { name = "srcSet"; jsxName = "srcSet"; type_ = String };
-    Attribute { name = "type_"; jsxName = "type"; type_ = String };
+    Attribute { name = "type"; jsxName = "type_"; type_ = String };
     Attribute { name = "width"; jsxName = "width"; type_ = String (* number | *) };
   ]
 
@@ -956,7 +953,7 @@ let styleHTMLAttributes =
     Attribute { name = "media"; jsxName = "media"; type_ = String };
     Attribute { name = "nonce"; jsxName = "nonce"; type_ = String };
     Attribute { name = "scoped"; jsxName = "scoped"; type_ = Bool };
-    Attribute { name = "type_"; jsxName = "type"; type_ = String }
+    Attribute { name = "type"; jsxName = "type_"; type_ = String }
   ]
 
 let tableHTMLAttributes =
@@ -984,7 +981,7 @@ let textareaHTMLAttributes =
     Attribute { name = "rows"; jsxName = "rows"; type_ = Int (* number *) };
     Attribute { name = "value"; jsxName = "value"; type_ = String (* | ReadonlyArray<String> | number *) };
     Attribute { name = "wrap"; jsxName = "wrap"; type_ = String };
-    Event { name = "onChange"; type_ = Form };
+    Event { jsxName = "onChange"; type_ = Form };
   ]
 
 let tdHTMLAttributes =
@@ -1097,7 +1094,6 @@ module SVG = struct
       Attribute { name = "overflow"; jsxName = "overflow"; type_ = String (* number | *) };
       Attribute { name = "stopOpacity"; jsxName = "stopOpacity"; type_ = String (* number | *) };
       Attribute { name = "strokeLinecap"; jsxName = "strokeLinecap"; type_ = String (* type_= "butt" | "round" | "square" | "inherit" *) };
-      Attribute { name = "strokeLinejoin"; jsxName = "strokeLinejoin"; type_ = String (* type_= "butt" | "round" | "square" | "inherit" *) };
       Attribute { name = "unicodeBidi"; jsxName = "unicodeBidi"; type_ = String (* number | *) };
       Attribute { name = "vectorEffect"; jsxName = "vectorEffect"; type_ = String (* number | *) };
       Attribute { name = "wordSpacing"; jsxName = "wordSpacing"; type_ = String (* number | *) };
@@ -1115,7 +1111,7 @@ module SVG = struct
       Attribute { name = "y"; jsxName = "y"; type_ = String (* number | *) };
       (* Transfer function attributes type, tableValues, slope, intercept,
          amplitude, exponent, offset *)
-      Attribute { name = "type_"; jsxName = "type"; type_ = String };
+      Attribute { name = "type"; jsxName = "type_"; type_ = String };
       Attribute { name = "exponent"; jsxName = "exponent"; type_ = String (* number | *) };
       Attribute { name = "slope"; jsxName = "slope"; type_ = String (* number | *) };
       Attribute { name = "amplitude"; jsxName = "amplitude"; type_ = String (* number | *) };
@@ -1336,7 +1332,7 @@ let webViewHTMLAttributes =
 
 let hackAttributes =
   [
-    Event { name = "_onclick"; type_ = Inline };
+    Event { jsxName = "_onclick"; type_ = Inline };
   ]
 
 let commonHtmlAttributes = elementAttributes & reactAttributes & globalAttributes & globalEventHandlers & ariaAttributes & hackAttributes
@@ -1531,7 +1527,7 @@ let elements = svgElements & htmlElements
 
 let getName = function
   | Attribute { name; _ } -> name
-  | Event { name; _ } -> name
+  | Event { jsxName; _ } -> jsxName
 
 let domPropNames =
   (commonSvgAttributes & commonHtmlAttributes)
@@ -1541,7 +1537,7 @@ let domPropNames =
 
 let getJSXName = function
   | Attribute { jsxName; _ } -> jsxName
-  | Event { name; _ } -> name
+  | Event { jsxName; _ } -> jsxName
 
 type errors = [ `ElementNotFound | `AttributeNotFound ]
 
@@ -1569,10 +1565,10 @@ let camelcaseToKebabcase str =
   in
   str |> chars_of_string |> loop [] |> List.rev |> string_of_chars
 
-let findByName tag name =
-  let byName p = getName p = name in
-  if isDataAttribute name then
-    let jsxName = camelcaseToKebabcase name in
+let findByName tag jsxName =
+  let byName p = getJSXName p = jsxName in
+  if isDataAttribute jsxName then
+    let name = camelcaseToKebabcase jsxName in
     Ok (Attribute { name; jsxName; type_ = String })
   else
     match getAttributes tag with
@@ -1582,7 +1578,7 @@ let findByName tag name =
     | Error err -> Error err
 
 let isReactValidProp name =
-  let byName p = getName p = name in
+  let byName p = getJSXName p = name in
   reactValidHtml |> List.exists byName
 
 module Levenshtein = struct

@@ -56,11 +56,12 @@ setup-githooks: ## Setup githooks
 
 .PHONY: pin
 pin: ## Pin dependencies
-	@opam pin add melange "https://github.com/melange-re/melange.git#da421be55e755096403425ed3c260486deab61f3" -y
+	@opam pin add melange "https://github.com/melange-re/melange.git#a01735398b5df5b90f0a567dd660847ae0e9da48" -y
+	@opam pin add reason "https://github.com/reasonml/reason.git#a3545e5f40bf90f20214a878bd3072b2365d6504" -y
 
 .PHONY: create-switch
 create-switch: ## Create opam switch
-	@opam switch create . 4.14.0 --deps-only --with-test -y
+	@opam switch create . 5.1.0~rc3 --deps-only --with-test -y
 
 .PHONY: install
 install: create-switch pin ## Install dependencies
@@ -79,6 +80,10 @@ ppx-test-watch: ## Run ppx tests in watch mode
 .PHONY: lib-test
 lib-test: ## Run library tests
 	@$(DUNE) exec test/test.exe
+
+.PHONY: demo
+demo: ## Run demo executable
+	@$(DUNE) exec demo/index.exe
 
 .PHONY: subst
 subst: ## Run dune substitute
