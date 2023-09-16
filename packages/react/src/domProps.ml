@@ -230,228 +230,228 @@ let ariaAttributes =
   [
     (* Identifies the currently active element when DOM focus is on a composite
        widget, textbox, group, or application. *)
-    Attribute { name = "ariaActivedescendant"; jsxName = "ariaActivedescendant"; type_ = String };
+    Attribute { name = "aria-activedescendant"; jsxName = "ariaActivedescendant"; type_ = String };
 
     (* Indicates whether assistive technologies will present all, or only parts
        of, the changed region based on the change notifications defined by the
        aria-relevant attribute. *)
-    Attribute { name = "ariaAtomic"; jsxName = "ariaAtomic"; type_ = String (* Bool | 'false' | 'true' *) };
+    Attribute { name = "aria-atomic"; jsxName = "ariaAtomic"; type_ = String (* Bool | 'false' | 'true' *) };
 
     (* Indicates whether inputting text could trigger display of one or more predictions of the user's intended value for an input and specifies how predictions would be
      * presented if they are made.
      *)
-    Attribute { name = "ariaAutocomplete"; jsxName = "ariaAutocomplete"; type_ = String (* 'none' | 'inline' | 'list' | 'both' *) };
+    Attribute { name = "aria-autocomplete"; jsxName = "ariaAutocomplete"; type_ = String (* 'none' | 'inline' | 'list' | 'both' *) };
 
     (* Indicates an element is being modified and that assistive technologies
        MAY want to wait until the modifications are complete before exposing
        them to the user. *)
-    Attribute { name = "ariaBusy"; jsxName = "ariaBusy"; type_ = String (* Bool | 'false' | 'true' *) };
+    Attribute { name = "aria-busy"; jsxName = "ariaBusy"; type_ = String (* Bool | 'false' | 'true' *) };
 
     (* Indicates the current "checked" state of checkboxes, radio buttons, and other
     widgets.
     * @see aria-pressed @see aria-selected.
     *)
-    Attribute { name = "ariaChecked"; jsxName = "ariaChecked"; type_ = String (* Bool | 'false' | 'mixed' | 'true' *) };
+    Attribute { name = "aria-checked"; jsxName = "ariaChecked"; type_ = String (* Bool | 'false' | 'mixed' | 'true' *) };
 
     (* Defines the total number of columns in a table, grid, or treegrid.
     * @see aria-colindex.
     *)
-    Attribute { name = "ariaColcount"; jsxName = "ariaColcount"; type_ = Int };
+    Attribute { name = "aria-colcount"; jsxName = "ariaColcount"; type_ = Int };
 
     (* Defines an element's column index or position with respect to the total number of columns within a table,
     grid, or treegrid.
     * @see aria-colcount @see aria-colspan.
     *)
-    Attribute { name = "ariaColindex"; jsxName = "ariaColindex"; type_ = Int };
+    Attribute { name = "aria-colindex"; jsxName = "ariaColindex"; type_ = Int };
 
     (* Defines the number of columns spanned by a cell or gridcell within a table, grid, or treegrid.
     * @see aria-colindex @see aria-rowspan.
     *)
-    Attribute { name = "ariaColspan"; jsxName = "ariaColspan"; type_ = Int };
+    Attribute { name = "aria-colspan"; jsxName = "ariaColspan"; type_ = Int };
 
     (* Identifies the element (or elements) whose contents or presence are controlled by the current element.
     * @see aria-owns.
     *)
-    Attribute { name = "ariaControls"; jsxName = "ariaControls"; type_ = String };
+    Attribute { name = "aria-controls"; jsxName = "ariaControls"; type_ = String };
 
     (* Indicates the element that represents the current item within a container
        or set of related elements. *)
-    Attribute { name = "ariaCurrent"; jsxName = "ariaCurrent"; type_ = String (* Bool | 'false' | 'true' | 'page' | 'step' | 'location' | 'date' | 'time' *) };
+    Attribute { name = "aria-current"; jsxName = "ariaCurrent"; type_ = String (* Bool | 'false' | 'true' | 'page' | 'step' | 'location' | 'date' | 'time' *) };
 
     (* Identifies the element (or elements) that describes the object.
      * @see aria-labelledby
      *)
-    Attribute { name = "ariaDescribedby"; jsxName = "ariaDescribedby"; type_ = String };
+    Attribute { name = "aria-describedby"; jsxName = "ariaDescribedby"; type_ = String };
 
     (* Identifies the element that provides a detailed, extended description for
        the object. * @see aria-describedby. *)
-    Attribute { name = "ariaDetails"; jsxName = "ariaDetails"; type_ = String };
+    Attribute { name = "aria-details"; jsxName = "ariaDetails"; type_ = String };
 
     (* Indicates that the element is perceivable but disabled, so it is not editable or otherwise operable.
     * @see aria-hidden @see aria-readonly.
     *)
-    Attribute { name = "ariaDisabled"; jsxName = "ariaDisabled"; type_ = String (* Bool | 'false' | 'true' *) };
+    Attribute { name = "aria-disabled"; jsxName = "ariaDisabled"; type_ = String (* Bool | 'false' | 'true' *) };
 
     (* Identifies the element that provides an error message for the object.
     * @see aria-invalid @see aria-describedby.
     *)
-    Attribute { name = "ariaErrormessage"; jsxName = "ariaErrormessage"; type_ = String };
+    Attribute { name = "aria-errormessage"; jsxName = "ariaErrormessage"; type_ = String };
 
     (* Indicates whether the element, or another grouping element it controls,
        is currently expanded or collapsed. *)
-    Attribute { name = "ariaExpanded"; jsxName = "ariaExpanded"; type_ = String (* Bool | 'false' | 'true' *) };
+    Attribute { name = "aria-expanded"; jsxName = "ariaExpanded"; type_ = String (* Bool | 'false' | 'true' *) };
 
     (* Identifies the next element (or elements) in an alternate reading order of content which, at the user's discretion,
      * allows assistive technology to override the general default of reading in document source order.
      *)
-    Attribute { name = "ariaFlowto"; jsxName = "ariaFlowto"; type_ = String };
+    Attribute { name = "aria-flowto"; jsxName = "ariaFlowto"; type_ = String };
 
     (* Indicates the availability and type of interactive popup element, such as
        menu or dialog, that can be triggered by an element. *)
-    Attribute { name = "ariaHaspopup"; jsxName = "ariaHaspopup"; type_ = String (* Bool | 'false' | 'true' | 'menu' | 'listbox' | 'tree' | 'grid' | 'dialog'; *)};
+    Attribute { name = "aria-haspopup"; jsxName = "ariaHaspopup"; type_ = String (* Bool | 'false' | 'true' | 'menu' | 'listbox' | 'tree' | 'grid' | 'dialog'; *)};
 
     (* Indicates whether the element is exposed to an accessibility API.
      * @see aria-disabled.
      *)
-    Attribute { name = "ariaHidden"; jsxName = "ariaHidden"; type_ = String (* Bool | 'false' | 'true' *) };
+    Attribute { name = "aria-hidden"; jsxName = "ariaHidden"; type_ = String (* Bool | 'false' | 'true' *) };
 
     (* Indicates the entered value does not conform to the format expected by the
     application.
     * @see aria-errormessage.
     *)
-    Attribute { name = "ariaInvalid"; jsxName = "ariaInvalid"; type_ = String (* Bool | 'false' | 'true' | 'grammar' | 'spelling'; *) };
+    Attribute { name = "aria-invalid"; jsxName = "ariaInvalid"; type_ = String (* Bool | 'false' | 'true' | 'grammar' | 'spelling'; *) };
 
     (* Indicates keyboard shortcuts that an author has implemented to activate
        or give focus to an element. *)
-    Attribute { name = "ariaKeyshortcuts"; jsxName = "ariaKeyshortcuts"; type_ = String };
+    Attribute { name = "aria-keyshortcuts"; jsxName = "ariaKeyshortcuts"; type_ = String };
 
     (* Defines a String value that labels the current element.
     * @see aria-labelledby.
     *)
-    Attribute { name = "ariaLabel"; jsxName = "ariaLabel"; type_ = String };
+    Attribute { name = "aria-label"; jsxName = "ariaLabel"; type_ = String };
 
     (* Identifies the element (or elements) that labels the current element.
     * @see aria-describedby.
     *)
-    Attribute { name = "ariaLabelledby"; jsxName = "ariaLabelledby"; type_ = String };
+    Attribute { name = "aria-labelledby"; jsxName = "ariaLabelledby"; type_ = String };
 
     (* Defines the hierarchical level of an element within a structure. *)
-    Attribute { name = "ariaLevel"; jsxName = "ariaLevel"; type_ = Int };
+    Attribute { name = "aria-level"; jsxName = "ariaLevel"; type_ = Int };
 
     (* Indicates that an element will be updated, and describes the types of
        updates the user agents, assistive technologies, and user can expect ;rom
        the live region. *)
-    Attribute { name = "ariaLive"; jsxName = "ariaLive"; type_ = String (* 'off' | 'assertive' | 'polite' *) };
+    Attribute { name = "aria-live"; jsxName = "ariaLive"; type_ = String (* 'off' | 'assertive' | 'polite' *) };
 
     (* Indicates whether an element is modal when displayed. *)
 
-    Attribute { name = "ariaModal"; jsxName = "ariaModal"; type_ = String (* Bool | 'false' | 'true' *) };
+    Attribute { name = "aria-modal"; jsxName = "ariaModal"; type_ = String (* Bool | 'false' | 'true' *) };
 
     (* Indicates whether a text box accepts multiple lines of input or only a
        single line. *)
-    Attribute { name = "ariaMultiline"; jsxName = "ariaMultiline"; type_ = String (* Bool | 'false' | 'true' *) };
+    Attribute { name = "aria-multiline"; jsxName = "ariaMultiline"; type_ = String (* Bool | 'false' | 'true' *) };
 
     (* Indicates that the user may select more than one item from the current
        selectable descendants. *)
-    Attribute { name = "ariaMultiselectable"; jsxName = "ariaMultiselectable"; type_ = String (* Bool | 'false' | 'true' *) };
+    Attribute { name = "aria-multiselectable"; jsxName = "ariaMultiselectable"; type_ = String (* Bool | 'false' | 'true' *) };
 
     (* Indicates whether the element's orientation is horizontal, vertical, or
        unknown/ambiguous. *)
-    Attribute { name = "ariaOrientation"; jsxName = "ariaOrientation"; type_ = String (* 'horizontal' | 'vertical' *) };
+    Attribute { name = "aria-orientation"; jsxName = "ariaOrientation"; type_ = String (* 'horizontal' | 'vertical' *) };
 
     (* Identifies an element (or elements) in order to define a visual, functional, or contextual parent/child relationship
      * between DOM elements where the DOM hierarchy cannot be used to represent the relationship.
      * @see aria-controls.
      *)
-    Attribute { name = "ariaOwns"; jsxName = "ariaOwns"; type_ = String };
+    Attribute { name = "aria-owns"; jsxName = "ariaOwns"; type_ = String };
 
     (* Defines a short hint (a word or short phrase) intended to aid the user with data entry when the control has no
     value.
     * A hint could be a sample value or a brief description of the expected format.
     *)
-    Attribute { name = "ariaPlaceholder"; jsxName = "ariaPlaceholder"; type_ = String };
+    Attribute { name = "aria-placeholder"; jsxName = "ariaPlaceholder"; type_ = String };
 
     (* Defines an element's number or position in the current set of listitems
        or treeitems. Not required if all elements in the set are present in the
        DOM. * @see aria-setsize. *)
-    Attribute { name = "ariaPosinset"; jsxName = "ariaPosinset"; type_ = Int };
+    Attribute { name = "aria-posinset"; jsxName = "ariaPosinset"; type_ = Int };
 
     (* Indicates the current "pressed" state of toggle buttons.
     * @see aria-checked @see aria-selected.
     *)
-    Attribute { name = "ariaPressed"; jsxName = "ariaPressed"; type_ = String (* Bool | 'false' | 'mixed' | 'true' *) };
+    Attribute { name = "aria-pressed"; jsxName = "ariaPressed"; type_ = String (* Bool | 'false' | 'mixed' | 'true' *) };
 
     (* Indicates that the element is not editable, but is otherwise
     operable.
     * @see aria-disabled.
     *)
-    Attribute { name = "ariaReadonly"; jsxName = "ariaReadonly"; type_ = String (* Bool | 'false' | 'true' *) };
+    Attribute { name = "aria-readonly"; jsxName = "ariaReadonly"; type_ = String (* Bool | 'false' | 'true' *) };
 
     (* Indicates what notifications the user agent will trigger when the
     accessibility tree within a live region is modified.
     * @see aria-atomic.
     *)
-    Attribute { name = "ariaRelevant"; jsxName = "ariaRelevant"; type_ = String (* 'additions' | 'additions removals' | 'additions text' | 'all' | 'removals' | 'removals additions' | 'removals text' | 'text' | 'text additions' | 'text removals' *) };
+    Attribute { name = "aria-relevant"; jsxName = "ariaRelevant"; type_ = String (* 'additions' | 'additions removals' | 'additions text' | 'all' | 'removals' | 'removals additions' | 'removals text' | 'text' | 'text additions' | 'text removals' *) };
 
     (* Indicates that user input is required on the element before a form may be
        submitted. *)
-    Attribute { name = "ariaRequired"; jsxName = "ariaRequired"; type_ = String (* Bool | 'false' | 'true' *) };
+    Attribute { name = "aria-required"; jsxName = "ariaRequired"; type_ = String (* Bool | 'false' | 'true' *) };
 
     (* Defines a human-readable, author-localized description for the role of an
        element. *)
-    Attribute { name = "ariaRoledescription"; jsxName = "ariaRoledescription"; type_ = String };
+    Attribute { name = "aria-roledescription"; jsxName = "ariaRoledescription"; type_ = String };
 
     (* Defines the total number of rows in a table, grid, or treegrid.
     * @see aria-rowindex.
     *)
-    Attribute { name = "ariaRowcount"; jsxName = "ariaRowcount"; type_ = Int };
+    Attribute { name = "aria-rowcount"; jsxName = "ariaRowcount"; type_ = Int };
 
     (* Defines an element's row index or position with respect to the total number of rows within a table, grid, or
     treegrid.
     * @see aria-rowcount @see aria-rowspan.
     *)
-    Attribute { name = "ariaRowindex"; jsxName = "ariaRowindex"; type_ = Int };
+    Attribute { name = "aria-rowindex"; jsxName = "ariaRowindex"; type_ = Int };
 
     (* *)
 
-    Attribute { name = "ariaRowindextext"; jsxName = "ariaRowindextext"; type_ = String };
+    Attribute { name = "aria-rowindextext"; jsxName = "ariaRowindextext"; type_ = String };
 
     (* Defines the number of rows spanned by a cell or gridcell within a table, grid, or treegrid.
     * @see aria-rowindex @see aria-colspan.
     *)
-    Attribute { name = "ariaRowspan"; jsxName = "ariaRowspan"; type_ = Int };
+    Attribute { name = "aria-rowspan"; jsxName = "ariaRowspan"; type_ = Int };
 
     (* Indicates the current "selected" state of various widgets.
     * @see aria-checked @see aria-pressed.
     *)
-    Attribute { name = "ariaSelected"; jsxName = "ariaSelected"; type_ = String (* Bool | 'false' | 'true' *) };
+    Attribute { name = "aria-selected"; jsxName = "ariaSelected"; type_ = String (* Bool | 'false' | 'true' *) };
 
     (* Defines the number of items in the current set of listitems or treeitems.
     Not required if all elements in the set are present in the DOM.
     * @see aria-posinset.
     *)
-    Attribute { name = "ariaSetsize"; jsxName = "ariaSetsize"; type_ = Int };
+    Attribute { name = "aria-setsize"; jsxName = "ariaSetsize"; type_ = Int };
 
     (* Indicates if items in a table or grid are sorted in ascending or
        descending order. *)
-    Attribute { name = "ariaSort"; jsxName = "ariaSort"; type_ = String (* 'none' | 'ascending' | 'descending' | 'other' *) };
+    Attribute { name = "aria-sort"; jsxName = "ariaSort"; type_ = String (* 'none' | 'ascending' | 'descending' | 'other' *) };
 
     (* Defines the maximum allowed value for a range widget. *)
 
-    Attribute { name = "ariaValuemax"; jsxName = "ariaValuemax"; type_ = Int };
+    Attribute { name = "aria-valuemax"; jsxName = "ariaValuemax"; type_ = Int };
 
     (* Defines the minimum allowed value for a range widget. *)
 
-    Attribute { name = "ariaValuemin"; jsxName = "ariaValuemin"; type_ = Int };
+    Attribute { name = "aria-valuemin"; jsxName = "ariaValuemin"; type_ = Int };
 
     (* Defines the current value for a range widget.
     * @see aria-valuetext.
     *)
-    Attribute { name = "ariaValuenow"; jsxName = "ariaValuenow"; type_ = Int };
+    Attribute { name = "aria-valuenow"; jsxName = "ariaValuenow"; type_ = Int };
 
     (* Defines the human readable text alternative of aria-valuenow for a range
        widget. *)
-    Attribute { name = "ariaValuetext"; jsxName = "ariaValuetext"; type_ = String };
+    Attribute { name = "aria-valuetext"; jsxName = "ariaValuetext"; type_ = String };
 
   ]
 
