@@ -24,7 +24,7 @@ jobs:
           - ubuntu-latest
           # - windows-latest
         ocaml-compiler:
-          - ocaml-variants.5.1.0+trunk
+          - 5.1.0
 
     steps:
       - name: Checkout code
@@ -52,10 +52,12 @@ jobs:
         run: make test
 
       - name: Generate docs
+        if: github.ref == 'refs/heads/main'
         run: make documentation
 
       - name: Publish docs
         uses: crazy-max/ghaction-github-pages@v1
+        if: github.ref == 'refs/heads/main'
         with:
           target_branch: gh-pages
           build_dir: _build/default/_doc/_html/
