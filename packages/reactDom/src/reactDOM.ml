@@ -1,83 +1,13 @@
 open React
 
-(* TODO: This should be encoded in the ppx *)
-let _jsx_attribute_to_html k =
-  match k with
-  | "className" -> "class"
-  | "htmlFor" -> "for"
-  (* serialize defaultX props to the X attribute *)
-  (* FIXME: Add link *)
-  | "defaultValue" -> "value"
-  | "defaultChecked" -> "checked"
-  | "defaultSelected" -> "selected"
-  (* all aria values *)
-  | "ariaActivedescendant" -> "aria-activedescendant"
-  | "ariaAtomic" -> "aria-atomic"
-  | "ariaAutocomplete" -> "aria-autocomplete"
-  | "ariaBusy" -> "aria-busy"
-  | "ariaChecked" -> "aria-checked"
-  | "ariaColcount" -> "aria-colcount"
-  | "ariaColindex" -> "aria-colindex"
-  | "ariaColspan" -> "aria-colspan"
-  | "ariaControls" -> "aria-controls"
-  | "ariaCurrent" -> "aria-current"
-  | "ariaDescribedby" -> "aria-describedby"
-  | "ariaDetails" -> "aria-details"
-  | "ariaDisabled" -> "aria-disabled"
-  | "ariaErrormessage" -> "aria-errormessage"
-  | "ariaExpanded" -> "aria-expanded"
-  | "ariaFlowto" -> "aria-flowto"
-  | "ariaHaspopup" -> "aria-haspopup"
-  | "ariaHidden" -> "aria-hidden"
-  | "ariaInvalid" -> "aria-invalid"
-  | "ariaKeyshortcuts" -> "aria-keyshortcuts"
-  | "ariaLabel" -> "aria-label"
-  | "ariaLabelledby" -> "aria-labelledby"
-  | "ariaLevel" -> "aria-level"
-  | "ariaLive" -> "aria-live"
-  | "ariaModal" -> "aria-modal"
-  | "ariaMultiline" -> "aria-multiline"
-  | "ariaMultiselectable" -> "aria-multiselectable"
-  | "ariaOrientation" -> "aria-orientation"
-  | "ariaOwns" -> "aria-owns"
-  | "ariaPlaceholder" -> "aria-placeholder"
-  | "ariaPosinset" -> "aria-posinset"
-  | "ariaPressed" -> "aria-pressed"
-  | "ariaReadonly" -> "aria-readonly"
-  | "ariaRelevant" -> "aria-relevant"
-  | "ariaRequired" -> "aria-required"
-  | "ariaRoledescription" -> "aria-roledescription"
-  | "ariaRowcount" -> "aria-rowcount"
-  | "ariaRowindex" -> "aria-rowindex"
-  | "ariaRowindextext" -> "aria-rowindextext"
-  | "ariaRowspan" -> "aria-rowspan"
-  | "ariaSelected" -> "aria-selected"
-  | "ariaSetsize" -> "aria-setsize"
-  | "ariaSort" -> "aria-sort"
-  | "ariaValuemax" -> "aria-valuemax"
-  | "ariaValuemin" -> "aria-valuemin"
-  | "ariaValuenow" -> "aria-valuenow"
-  | "ariaValuetext" -> "aria-valuetext"
-  | _ -> k
-
-let is_onclick_event attr =
-  match attr with
-  | JSX.Event (name, _) when String.equal name "_onclick" -> true
-  | _ -> false
-
-let _attribute_is_html tag attr_name =
-  match DomProps.findByName tag attr_name with Ok _ -> true | Error _ -> false
-
-let replace_reserved_names attr =
-  match attr with "type" -> "type_" | "as" -> "as_" | _ -> attr
-
 let get_key = function
   | JSX.Bool (k, _) -> k
-  | String (k, _) -> replace_reserved_names k
+  | String (k, _) -> k
   | Ref _ -> "ref"
   | DangerouslyInnerHtml _ -> "dangerouslySetInnerHTML"
   | Style _ -> "style"
-  | Event (name, _) -> (* FIXME: tolowercase? does it even matter? *) name
+  (* Events don't matter on SSR, but the key should be corrected to lowercase, since in domProps, Event only contains jsxName *)
+  | Event (name, _) -> String.lowercase_ascii name
 
 let is_react_custom_attribute attr =
   match get_key attr with
@@ -87,9 +17,6 @@ let is_react_custom_attribute attr =
   | _ -> false
 
 let attribute_is_event attr = match attr with JSX.Event _ -> true | _ -> false
-
-let attribute_is_valid tag attr =
-  (not (attribute_is_event attr)) && not (is_react_custom_attribute attr)
 
 let attribute_to_string attr =
   match attr with
@@ -109,13 +36,22 @@ let attribute_to_string attr =
   | Style styles -> Printf.sprintf "style=\"%s\"" styles
   | String (k, v) -> Printf.sprintf "%s=\"%s\"" k (Html.encode v)
 
+(* We render _onclick events as string, to support an onClick but as string
+   defined as `_onclick="$(this)"` on JSX *)
+let is_onclick_event_hack attr =
+  match attr with
+  | JSX.Event (name, _) when String.equal name "_onclick" -> true
+  | _ -> false
+
+let valid_attribute_to_string attr =
+  if is_react_custom_attribute attr then None
+  else if is_onclick_event_hack attr then Some (attribute_to_string attr)
+  else if attribute_is_event attr then None
+  else Some (attribute_to_string attr)
+
 let attributes_to_string tag attrs =
   let valid_attributes =
-    attrs |> Array.to_list
-    |> List.filter_map (fun attr ->
-           if attribute_is_valid tag attr || is_onclick_event attr then
-             Some (attribute_to_string attr)
-           else None)
+    attrs |> Array.to_list |> List.filter_map valid_attribute_to_string
   in
   match valid_attributes with
   | [] -> ""
