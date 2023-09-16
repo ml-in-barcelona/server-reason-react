@@ -21,7 +21,7 @@ type eventType =
 (* _onclick *)
 
 type attribute = { type_ : attributeType; name : string; jsxName : string }
-type event = { type_ : eventType; name : string }
+type event = { type_ : eventType; jsxName : string }
 type prop = Attribute of attribute | Event of event
 type errors = [ `ElementNotFound | `AttributeNotFound ]
 

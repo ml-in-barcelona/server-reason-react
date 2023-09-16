@@ -867,145 +867,148 @@ let makePropField ~loc id (arg_label, value) =
           raise
           @@ Location.raise_errorf ~loc
                "unexpected expression found on dangerouslySetInnerHTML")
-  | Event { type_ = Mouse; name }, false ->
+  | Event { type_ = Mouse; jsxName }, false ->
       [%expr
         Some
           (React.JSX.Event
-             ( [%e constantString ~loc name],
+             ( [%e constantString ~loc jsxName],
                React.JSX.Event.Mouse [%e objectValue] ))]
-  | Event { type_ = Mouse; name }, true ->
+  | Event { type_ = Mouse; jsxName }, true ->
       [%expr
         Option.map
           (fun v ->
             React.JSX.Event
-              ([%e constantString ~loc name], React.JSX.Event.Mouse v))
+              ([%e constantString ~loc jsxName], React.JSX.Event.Mouse v))
           [%e objectValue]]
-  | Event { type_ = Selection; name }, false ->
+  | Event { type_ = Selection; jsxName }, false ->
       [%expr
         Some
           (React.JSX.Event
-             ( [%e constantString ~loc name],
+             ( [%e constantString ~loc jsxName],
                React.JSX.Event.Selection [%e objectValue] ))]
-  | Event { type_ = Selection; name }, true ->
+  | Event { type_ = Selection; jsxName }, true ->
       [%expr
         Option.map (fun v ->
             (React.JSX.Event
-               ([%e constantString ~loc name], React.JSX.Event.Selection v))
+               ([%e constantString ~loc jsxName], React.JSX.Event.Selection v))
               [%e objectValue])]
-  | Event { type_ = Touch; name }, false ->
+  | Event { type_ = Touch; jsxName }, false ->
       [%expr
         Some
           (React.JSX.Event
-             ( [%e constantString ~loc name],
+             ( [%e constantString ~loc jsxName],
                React.JSX.Event.Touch [%e objectValue] ))]
-  | Event { type_ = Touch; name }, true ->
+  | Event { type_ = Touch; jsxName }, true ->
       [%expr
         Option.map (fun v ->
             (React.JSX.Event
-               ([%e constantString ~loc name], React.JSX.Event.Touch v))
+               ([%e constantString ~loc jsxName], React.JSX.Event.Touch v))
               [%e objectValue])]
-  | Event { type_ = UI; name }, false ->
+  | Event { type_ = UI; jsxName }, false ->
       [%expr
         Some
           (React.JSX.Event
-             ([%e constantString ~loc name], React.JSX.Event.UI [%e objectValue]))]
-  | Event { type_ = UI; name }, true ->
+             ( [%e constantString ~loc jsxName],
+               React.JSX.Event.UI [%e objectValue] ))]
+  | Event { type_ = UI; jsxName }, true ->
       [%expr
         Option.map (fun v ->
             (React.JSX.Event
-               ([%e constantString ~loc name], React.JSX.Event.UI v))
+               ([%e constantString ~loc jsxName], React.JSX.Event.UI v))
               [%e objectValue])]
-  | Event { type_ = Wheel; name }, false ->
+  | Event { type_ = Wheel; jsxName }, false ->
       [%expr
         Some
           (React.JSX.Event
-             ( [%e constantString ~loc name],
+             ( [%e constantString ~loc jsxName],
                React.JSX.Event.Wheel [%e objectValue] ))]
-  | Event { type_ = Wheel; name }, true ->
+  | Event { type_ = Wheel; jsxName }, true ->
       [%expr
         Option.map (fun v ->
             (React.JSX.Event
-               ([%e constantString ~loc name], React.JSX.Event.Wheel v))
+               ([%e constantString ~loc jsxName], React.JSX.Event.Wheel v))
               [%e objectValue])]
-  | Event { type_ = Clipboard; name }, false ->
+  | Event { type_ = Clipboard; jsxName }, false ->
       [%expr
         Some
           (React.JSX.Event
-             ( [%e constantString ~loc name],
+             ( [%e constantString ~loc jsxName],
                React.JSX.Event.Clipboard [%e objectValue] ))]
-  | Event { type_ = Clipboard; name }, true ->
+  | Event { type_ = Clipboard; jsxName }, true ->
       [%expr
         Option.map (fun v ->
             (React.JSX.Event
-               ([%e constantString ~loc name], React.JSX.Event.Clipboard v))
+               ([%e constantString ~loc jsxName], React.JSX.Event.Clipboard v))
               [%e objectValue])]
-  | Event { type_ = Composition; name }, false ->
+  | Event { type_ = Composition; jsxName }, false ->
       [%expr
         Some
           (React.JSX.Event
-             ( [%e constantString ~loc name],
+             ( [%e constantString ~loc jsxName],
                React.JSX.Event.Composition [%e objectValue] ))]
-  | Event { type_ = Composition; name }, true ->
+  | Event { type_ = Composition; jsxName }, true ->
       [%expr
         Option.map (fun v ->
             (React.JSX.Event
-               ([%e constantString ~loc name], React.JSX.Event.Composition v))
+               ([%e constantString ~loc jsxName], React.JSX.Event.Composition v))
               [%e objectValue])]
-  | Event { type_ = Keyboard; name }, false ->
-      [%expr
-        Some
-          (React.JSX.Event ([%e constantString ~loc name], React.JSX.Keyboard v))]
-  | Event { type_ = Keyboard; name }, true ->
-      [%expr
-        Option.map (fun v ->
-            (React.JSX.Event
-               ([%e constantString ~loc name], React.JSX.Keyboard v))
-              [%e objectValue])]
-  | Event { type_ = Focus; name }, false ->
+  | Event { type_ = Keyboard; jsxName }, false ->
       [%expr
         Some
           (React.JSX.Event
-             ( [%e constantString ~loc name],
+             ([%e constantString ~loc jsxName], React.JSX.Keyboard v))]
+  | Event { type_ = Keyboard; jsxName }, true ->
+      [%expr
+        Option.map (fun v ->
+            (React.JSX.Event
+               ([%e constantString ~loc jsxName], React.JSX.Keyboard v))
+              [%e objectValue])]
+  | Event { type_ = Focus; jsxName }, false ->
+      [%expr
+        Some
+          (React.JSX.Event
+             ( [%e constantString ~loc jsxName],
                React.JSX.Event.Focus [%e objectValue] ))]
-  | Event { type_ = Focus; name }, true ->
+  | Event { type_ = Focus; jsxName }, true ->
       [%expr
         Option.map (fun v ->
             (React.JSX.Event
-               ([%e constantString ~loc name], React.JSX.Event.Focus v))
+               ([%e constantString ~loc jsxName], React.JSX.Event.Focus v))
               [%e objectValue])]
-  | Event { type_ = Form; name }, false ->
+  | Event { type_ = Form; jsxName }, false ->
       [%expr
         Some
           (React.JSX.Event
-             ( [%e constantString ~loc name],
+             ( [%e constantString ~loc jsxName],
                React.JSX.Event.Form [%e objectValue] ))]
-  | Event { type_ = Form; name }, true ->
+  | Event { type_ = Form; jsxName }, true ->
       [%expr
         Option.map (fun v ->
             (React.JSX.Event
-               ([%e constantString ~loc name], React.JSX.Event.Form v))
+               ([%e constantString ~loc jsxName], React.JSX.Event.Form v))
               [%e objectValue])]
-  | Event { type_ = Media; name }, false ->
+  | Event { type_ = Media; jsxName }, false ->
       [%expr
         Some
           (React.JSX.Event
-             ([%e constantString ~loc name], React.JSX.Media [%e objectValue]))]
-  | Event { type_ = Media; name }, true ->
+             ([%e constantString ~loc jsxName], React.JSX.Media [%e objectValue]))]
+  | Event { type_ = Media; jsxName }, true ->
       [%expr
         Option.map (fun v ->
-            (React.JSX.Event ([%e constantString ~loc name], React.JSX.Media v))
+            (React.JSX.Event
+               ([%e constantString ~loc jsxName], React.JSX.Media v))
               [%e objectValue])]
-  | Event { type_ = Inline; name }, false ->
+  | Event { type_ = Inline; jsxName }, false ->
       [%expr
         Some
           (React.JSX.Event
-             ( [%e constantString ~loc name],
+             ( [%e constantString ~loc jsxName],
                React.JSX.Event.Inline [%e objectValue] ))]
-  | Event { type_ = Inline; name }, true ->
+  | Event { type_ = Inline; jsxName }, true ->
       [%expr
         Option.map (fun v ->
             (React.JSX.Event
-               ([%e constantString ~loc name], React.JSX.Event.Inline v))
+               ([%e constantString ~loc jsxName], React.JSX.Event.Inline v))
               [%e objectValue])]
   | _ -> failwith "Attribute not implemented, open an issue"
 
