@@ -1,14 +1,15 @@
-(env
- (test
-  (env-vars
-   (REFMT_PRINT_WIDTH 400))))
-
 (executable
  (name main)
  (libraries server-reason-react.ppx ppxlib))
 
 (rule
  (targets reason.result)
+ (deps ppx.result)
+ (action
+  (run ocamlformat --impl %{deps} -o %{targets})))
+
+(rule
+ (targets ppx.result)
  (deps test_reason.ml)
  (action
   (run ./main.exe --impl %{deps} -o %{targets})))
