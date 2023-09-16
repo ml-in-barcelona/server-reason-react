@@ -6,6 +6,8 @@
  (preprocess
   (pps melange.ppx reason-react-ppx server-reason-react.browser_ppx)))
 
+; this simply builds the melange version of the same code tested in the native folder to ensure 
+; that the interfaces of server-reason-react line up with reason-react
 (melange.emit
   (target main)
   (alias js)
@@ -13,14 +15,4 @@
   (modules)
   (libraries cross_test_js))
 
-;(test
-; (name cross_test_js)
-; (modules cross_test_js)
-; (libraries
-;   cross_test_js_lib
-;   alcotest
-;   fmt))
-;
-;(copy_files# "../native/shared/*{.ml,.re}")
-;(copy_files# "../native/shared/cross_test.ml")
 (copy_files# "../native/shared/test_context.re")

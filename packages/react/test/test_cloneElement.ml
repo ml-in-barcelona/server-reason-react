@@ -70,11 +70,6 @@ let clone_order_attributes () =
   in
   assert_component cloned expected
 
-(*
-let test_context =
-  Test_context.Provider.make ~value:(Some "test") ~children:(React.list []) ()
-  *)
-
 let case title fn = Alcotest.test_case title `Quick fn
 
 let tests =
@@ -85,5 +80,4 @@ let tests =
       case "empty component" clone_empty;
       case "attributes component" clone_attributes;
       case "ordered attributes component" clone_order_attributes;
-      (*case "context" test_context;*)
     ] )
