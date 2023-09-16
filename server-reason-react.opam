@@ -24,6 +24,7 @@ depends: [
   "ocamlformat" {with-test}
   "ocaml-lsp-server" {with-test}
   "reason-react" {with-test}
+  "reason-react-ppx" {with-test}
 ]
 build: [
   ["dune" "subst"] {dev}
