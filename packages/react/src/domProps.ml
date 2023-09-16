@@ -1585,6 +1585,7 @@ let isReactValidProp name =
   let byName p = getName p = name in
   reactValidHtml |> List.exists byName
 
+(* TODO: Use a simpler algo for string distance *)
 module Levenshtein = struct
   (* Levenshtein distance from
      https://rosettacode.org/wiki/Levenshtein_distance *)
