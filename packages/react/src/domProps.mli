@@ -1,4 +1,11 @@
-type attributeType = String | Int | Bool | Style | Ref | InnerHtml
+type attributeType =
+  | String
+  | Int
+  | Bool
+  | StringlyBool
+  | Style
+  | Ref
+  | InnerHtml
 
 type eventType =
   | Clipboard

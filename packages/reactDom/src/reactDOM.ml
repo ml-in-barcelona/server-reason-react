@@ -239,4 +239,4 @@ let createDOMElementVariadic (tag : string) ~(props : JSX.prop array)
     (childrens : React.element array) =
   React.createElement tag props (childrens |> Array.to_list)
 
-let domProps = Props.domProps
+let domProps = DomProps.domProps

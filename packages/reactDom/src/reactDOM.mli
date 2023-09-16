@@ -516,7 +516,7 @@ val domProps :
   ?resource:string ->
   ?typeof:string ->
   ?vocab:string ->
-  ?dangerouslySetInnerHTML:Props.dangerouslySetInnerHTML ->
+  ?dangerouslySetInnerHTML:DomProps.dangerouslySetInnerHTML ->
   ?suppressContentEditableWarning:bool ->
   ?suppressHydrationWarning:bool ->
   unit ->

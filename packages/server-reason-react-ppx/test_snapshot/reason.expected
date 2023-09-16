@@ -458,7 +458,9 @@ module Upper_with_aria = struct
   let make ?key =
    fun [@warning "-16"] [@warning "-16"] ~children () ->
     React.createElement "div"
-      ([| Some (React.JSX.String ("aria-hidden", ("true" : string))) |]
+      ([|
+         Some (React.JSX.String ("aria-hidden", string_of_bool (true : bool)));
+       |]
       |> Array.to_list
       |> List.filter_map (fun a -> a)
       |> Array.of_list)

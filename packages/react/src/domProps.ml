@@ -8,6 +8,7 @@ type attributeType =
   | String
   | Int
   | Bool
+  | StringlyBool
   | Style
   | Ref
   | InnerHtml
@@ -235,7 +236,7 @@ let ariaAttributes =
     (* Indicates whether assistive technologies will present all, or only parts
        of, the changed region based on the change notifications defined by the
        aria-relevant attribute. *)
-    Attribute { name = "aria-atomic"; jsxName = "ariaAtomic"; type_ = String (* Bool | 'false' | 'true' *) };
+    Attribute { name = "aria-atomic"; jsxName = "ariaAtomic"; type_ = StringlyBool };
 
     (* Indicates whether inputting text could trigger display of one or more predictions of the user's intended value for an input and specifies how predictions would be
      * presented if they are made.
@@ -245,7 +246,7 @@ let ariaAttributes =
     (* Indicates an element is being modified and that assistive technologies
        MAY want to wait until the modifications are complete before exposing
        them to the user. *)
-    Attribute { name = "aria-busy"; jsxName = "ariaBusy"; type_ = String (* Bool | 'false' | 'true' *) };
+    Attribute { name = "aria-busy"; jsxName = "ariaBusy"; type_ = StringlyBool };
 
     (* Indicates the current "checked" state of checkboxes, radio buttons, and other
     widgets.
@@ -290,7 +291,7 @@ let ariaAttributes =
     (* Indicates that the element is perceivable but disabled, so it is not editable or otherwise operable.
     * @see aria-hidden @see aria-readonly.
     *)
-    Attribute { name = "aria-disabled"; jsxName = "ariaDisabled"; type_ = String (* Bool | 'false' | 'true' *) };
+    Attribute { name = "aria-disabled"; jsxName = "ariaDisabled"; type_ = StringlyBool };
 
     (* Identifies the element that provides an error message for the object.
     * @see aria-invalid @see aria-describedby.
@@ -299,7 +300,7 @@ let ariaAttributes =
 
     (* Indicates whether the element, or another grouping element it controls,
        is currently expanded or collapsed. *)
-    Attribute { name = "aria-expanded"; jsxName = "ariaExpanded"; type_ = String (* Bool | 'false' | 'true' *) };
+    Attribute { name = "aria-expanded"; jsxName = "ariaExpanded"; type_ = StringlyBool };
 
     (* Identifies the next element (or elements) in an alternate reading order of content which, at the user's discretion,
      * allows assistive technology to override the general default of reading in document source order.
@@ -313,7 +314,7 @@ let ariaAttributes =
     (* Indicates whether the element is exposed to an accessibility API.
      * @see aria-disabled.
      *)
-    Attribute { name = "aria-hidden"; jsxName = "ariaHidden"; type_ = String (* Bool | 'false' | 'true' *) };
+    Attribute { name = "aria-hidden"; jsxName = "ariaHidden"; type_ = StringlyBool };
 
     (* Indicates the entered value does not conform to the format expected by the
     application.
@@ -345,15 +346,15 @@ let ariaAttributes =
 
     (* Indicates whether an element is modal when displayed. *)
 
-    Attribute { name = "aria-modal"; jsxName = "ariaModal"; type_ = String (* Bool | 'false' | 'true' *) };
+    Attribute { name = "aria-modal"; jsxName = "ariaModal"; type_ = StringlyBool };
 
     (* Indicates whether a text box accepts multiple lines of input or only a
        single line. *)
-    Attribute { name = "aria-multiline"; jsxName = "ariaMultiline"; type_ = String (* Bool | 'false' | 'true' *) };
+    Attribute { name = "aria-multiline"; jsxName = "ariaMultiline"; type_ = StringlyBool };
 
     (* Indicates that the user may select more than one item from the current
        selectable descendants. *)
-    Attribute { name = "aria-multiselectable"; jsxName = "ariaMultiselectable"; type_ = String (* Bool | 'false' | 'true' *) };
+    Attribute { name = "aria-multiselectable"; jsxName = "ariaMultiselectable"; type_ = StringlyBool };
 
     (* Indicates whether the element's orientation is horizontal, vertical, or
        unknown/ambiguous. *)
@@ -385,7 +386,7 @@ let ariaAttributes =
     operable.
     * @see aria-disabled.
     *)
-    Attribute { name = "aria-readonly"; jsxName = "ariaReadonly"; type_ = String (* Bool | 'false' | 'true' *) };
+    Attribute { name = "aria-readonly"; jsxName = "ariaReadonly"; type_ = StringlyBool };
 
     (* Indicates what notifications the user agent will trigger when the
     accessibility tree within a live region is modified.
@@ -395,7 +396,7 @@ let ariaAttributes =
 
     (* Indicates that user input is required on the element before a form may be
        submitted. *)
-    Attribute { name = "aria-required"; jsxName = "ariaRequired"; type_ = String (* Bool | 'false' | 'true' *) };
+    Attribute { name = "aria-required"; jsxName = "ariaRequired"; type_ = StringlyBool };
 
     (* Defines a human-readable, author-localized description for the role of an
        element. *)
@@ -424,7 +425,7 @@ let ariaAttributes =
     (* Indicates the current "selected" state of various widgets.
     * @see aria-checked @see aria-pressed.
     *)
-    Attribute { name = "aria-selected"; jsxName = "ariaSelected"; type_ = String (* Bool | 'false' | 'true' *) };
+    Attribute { name = "aria-selected"; jsxName = "ariaSelected"; type_ = StringlyBool };
 
     (* Defines the number of items in the current set of listitems or treeitems.
     Not required if all elements in the set are present in the DOM.

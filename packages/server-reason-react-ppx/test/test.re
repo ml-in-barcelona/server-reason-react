@@ -274,10 +274,13 @@ let create_element_variadic = () => {
 };
 
 let aria_props = () => {
-  let component = <h1 ariaHidden="true" ariaLabel="send email">{React.string("Hello")}</h1>;
+  let component =
+    <h1 ariaHidden=true ariaLabel="send email" ariaAtomic=true>
+      {React.string("Hello")}
+    </h1>;
   assert_string(
     ReactDOM.renderToStaticMarkup(component),
-    "<h1 aria-hidden=\"true\" aria-label=\"send email\">Hello</h1>",
+    "<h1 aria-hidden=\"true\" aria-label=\"send email\" aria-atomic=\"true\">Hello</h1>",
   );
 };
 
