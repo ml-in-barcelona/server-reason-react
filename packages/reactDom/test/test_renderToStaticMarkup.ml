@@ -1,17 +1,17 @@
 let assert_string left right =
   Alcotest.check Alcotest.string "should be equal" right left
 
-let tag () =
+let single_empty_tag () =
   let div = React.createElement "div" [||] [] in
   assert_string (ReactDOM.renderToStaticMarkup div) "<div></div>"
 
-let empty_attribute () =
+let empty_string_attribute () =
   let div =
     React.createElement "div" [| React.JSX.String ("className", "") |] []
   in
   assert_string (ReactDOM.renderToStaticMarkup div) "<div class=\"\"></div>"
 
-let attributes () =
+let string_attributes () =
   let a =
     React.createElement "a"
       [|
@@ -39,11 +39,23 @@ let bool_attributes () =
     (ReactDOM.renderToStaticMarkup a)
     "<input type=\"checkbox\" name=\"cheese\" checked />"
 
-let closing_tag () =
+let truthy_attributes () =
+  let component =
+    React.createElement "input"
+      [|
+        React.JSX.String ("ariaHidden", "true");
+        React.JSX.Bool ("ariaHidden", true);
+        React.JSX.Bool ("aria-hidden", true);
+      |]
+      []
+  in
+  assert_string (ReactDOM.renderToStaticMarkup component) "<input />"
+
+let self_closing_tag () =
   let input = React.createElement "input" [||] [] in
   assert_string (ReactDOM.renderToStaticMarkup input) "<input />"
 
-let innerhtml () =
+let dom_element_innerHtml () =
   let p = React.createElement "p" [||] [ React.string "text" ] in
   assert_string (ReactDOM.renderToStaticMarkup p) "<p>text</p>"
 
@@ -64,12 +76,6 @@ let ignored_attributes_on_jsx () =
   in
   assert_string (ReactDOM.renderToStaticMarkup div) "<div></div>"
 
-let className () =
-  let div =
-    React.createElement "div" [| React.JSX.String ("className", "lol") |] []
-  in
-  assert_string (ReactDOM.renderToStaticMarkup div) "<div class=\"lol\"></div>"
-
 let fragment () =
   let div = React.createElement "div" [||] [] in
   let component = React.fragment ~children:(React.list [ div; div ]) () in
@@ -77,7 +83,7 @@ let fragment () =
     (ReactDOM.renderToStaticMarkup component)
     "<div></div><div></div>"
 
-let nulls () =
+let ignore_nulls () =
   let div = React.createElement "div" [||] [] in
   let span = React.createElement "span" [||] [] in
   let component = React.createElement "div" [||] [ div; span; React.null ] in
@@ -226,6 +232,12 @@ let event () =
     (ReactDOM.renderToStaticMarkup (make ~name:"json" ()))
     "<button name=\"json\"></button>"
 
+let className () =
+  let div =
+    React.createElement "div" [| React.JSX.String ("className", "lol") |] []
+  in
+  assert_string (ReactDOM.renderToStaticMarkup div) "<div class=\"lol\"></div>"
+
 let className_2 () =
   let component =
     React.createElement "div"
@@ -258,9 +270,15 @@ let render_with_doc_type () =
     (ReactDOM.renderToStaticMarkup div)
     "<div><span>This is valid HTML5</span></div>"
 
-let render_boolstring_prop () =
-  let div = React.createElement "div" [| React.JSX.Bool ("xx", true) |] [] in
-  assert_string (ReactDOM.renderToStaticMarkup div) "<div></div>"
+let dom_props_should_work () =
+  let div =
+    React.createElement "div"
+      (ReactDOM.domProps ~key:"uniq" ~className:"mabutton" ())
+      []
+  in
+  assert_string
+    (ReactDOM.renderToStaticMarkup div)
+    "<div class=\"mabutton\"></div>"
 
 let render_svg () =
   let path =
@@ -327,31 +345,31 @@ let case title fn = Alcotest_lwt.test_case_sync title `Quick fn
 let tests =
   ( "renderToStaticMarkup",
     [
-      case "div" tag;
-      case "empty attribute" empty_attribute;
-      case "bool attributes" bool_attributes;
-      case "ignore nulls" nulls;
-      case "attributes" attributes;
-      case "self-closing tag" closing_tag;
-      case "inner text" innerhtml;
+      case "single_empty_tag" single_empty_tag;
+      case "empty_string_attribute" empty_string_attribute;
+      case "bool_attributes" bool_attributes;
+      case "ignore_nulls" ignore_nulls;
+      case "string_attributes" string_attributes;
+      case "self_closing_tag" self_closing_tag;
+      case "dom_element_innerHtml" dom_element_innerHtml;
       case "children" children;
-      case "className turns into class" className;
-      case "test_className" className_2;
-      case "fragment is empty" fragment;
-      case "fragment and text concat nicely" fragments_and_texts;
-      case "defaultValue should be value" default_value;
-      case "attributes that gets ignored" ignored_attributes_on_jsx;
-      case "render_boolstring_prop" render_boolstring_prop;
-      case "inline styles" inline_styles;
-      case "escape HTML attributes" encode_attributes;
-      case "innerHTML" dangerouslySetInnerHtml;
+      case "className" className;
+      case "className_2" className_2;
+      case "fragment" fragment;
+      case "fragments_and_texts" fragments_and_texts;
+      case "default_value" default_value;
+      case "ignored_attributes_on_jsx" ignored_attributes_on_jsx;
+      case "inline_styles" inline_styles;
+      case "encode_attributes" encode_attributes;
+      case "dom_props_should_work" dom_props_should_work;
+      case "dangerouslySetInnerHtml" dangerouslySetInnerHtml;
       case "context" context;
-      case "useState" use_state;
-      case "useMemo" use_memo;
-      case "useCallback" use_callback;
-      case "innerHtml" inner_html;
-      case "events" event;
-      case "_onclick" _onclick_render_as_string;
-      case "!DOCTYPE" render_with_doc_type;
-      case "svg" render_svg;
+      case "use_state" use_state;
+      case "use_memo" use_memo;
+      case "use_callback" use_callback;
+      case "inner_html" inner_html;
+      case "event" event;
+      case "_onclick_render_as_string" _onclick_render_as_string;
+      case "render_with_doc_type" render_with_doc_type;
+      case "render_svg" render_svg;
     ] )

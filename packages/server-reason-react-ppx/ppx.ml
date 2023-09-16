@@ -19,7 +19,7 @@
   transform
   `[@JSX] [foo]`
   `React.createFragment([foo])`
- *)
+*)
 
 module OCaml_location = Location
 open Ppxlib
