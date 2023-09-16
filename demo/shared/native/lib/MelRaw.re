@@ -1,4 +1,4 @@
-let%browser_only initWebsoket = [%mel.raw
+let%browser_only initWebsocket = [%mel.raw
   {|
 (function() {
  var socketUrl = "ws://" + location.host + "/_livereload";
