@@ -41,6 +41,7 @@
           alcotest-lwt
           fmt
           ppxlib
+          reason-react
         ];
         nativeBuildInputs = [
           findlib
