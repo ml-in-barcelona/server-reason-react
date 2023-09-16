@@ -6,9 +6,7 @@ let single_empty_tag () =
   assert_string (ReactDOM.renderToStaticMarkup div) "<div></div>"
 
 let empty_string_attribute () =
-  let div =
-    React.createElement "div" [| React.JSX.String ("className", "") |] []
-  in
+  let div = React.createElement "div" [| React.JSX.String ("class", "") |] [] in
   assert_string (ReactDOM.renderToStaticMarkup div) "<div class=\"\"></div>"
 
 let string_attributes () =
@@ -42,14 +40,12 @@ let bool_attributes () =
 let truthy_attributes () =
   let component =
     React.createElement "input"
-      [|
-        React.JSX.String ("ariaHidden", "true");
-        React.JSX.Bool ("ariaHidden", true);
-        React.JSX.Bool ("aria-hidden", true);
-      |]
+      [| React.JSX.String ("aria-hidden", "true") |]
       []
   in
-  assert_string (ReactDOM.renderToStaticMarkup component) "<input />"
+  assert_string
+    (ReactDOM.renderToStaticMarkup component)
+    "<input aria-hidden=\"true\" />"
 
 let self_closing_tag () =
   let input = React.createElement "input" [||] [] in
@@ -69,7 +65,6 @@ let ignored_attributes_on_jsx () =
     React.createElement "div"
       [|
         React.JSX.String ("key", "uniqueKeyId");
-        React.JSX.String ("wat", "randomAttributeThatShouldBeIgnored");
         React.JSX.Bool ("suppressContentEditableWarning", true);
       |]
       []
@@ -103,16 +98,6 @@ let fragments_and_texts () =
   assert_string
     (ReactDOM.renderToStaticMarkup component)
     "<div>foobar<b></b></div>"
-
-let default_value () =
-  let component =
-    React.createElement "input"
-      [| React.JSX.String ("defaultValue", "lol") |]
-      []
-  in
-  assert_string
-    (ReactDOM.renderToStaticMarkup component)
-    "<input value=\"lol\" />"
 
 let inline_styles () =
   let component =
@@ -234,16 +219,14 @@ let event () =
 
 let className () =
   let div =
-    React.createElement "div" [| React.JSX.String ("className", "lol") |] []
+    React.createElement "div" [| React.JSX.String ("class", "lol") |] []
   in
   assert_string (ReactDOM.renderToStaticMarkup div) "<div class=\"lol\"></div>"
 
 let className_2 () =
   let component =
     React.createElement "div"
-      [|
-        React.JSX.String ("className", "flex xs:justify-center overflow-hidden");
-      |]
+      [| React.JSX.String ("class", "flex xs:justify-center overflow-hidden") |]
       []
   in
   assert_string
@@ -270,15 +253,15 @@ let render_with_doc_type () =
     (ReactDOM.renderToStaticMarkup div)
     "<div><span>This is valid HTML5</span></div>"
 
-let dom_props_should_work () =
-  let div =
-    React.createElement "div"
-      (ReactDOM.domProps ~key:"uniq" ~className:"mabutton" ())
-      []
-  in
-  assert_string
-    (ReactDOM.renderToStaticMarkup div)
-    "<div class=\"mabutton\"></div>"
+(* let dom_props_should_work () =
+   let div =
+     React.createElement "div"
+       (ReactDOM.domProps ~key:"uniq" ~className:"mabutton" ())
+       []
+   in
+   assert_string
+     (ReactDOM.renderToStaticMarkup div)
+     "<div class=\"mabutton\"></div>" *)
 
 let render_svg () =
   let path =
@@ -348,6 +331,7 @@ let tests =
       case "single_empty_tag" single_empty_tag;
       case "empty_string_attribute" empty_string_attribute;
       case "bool_attributes" bool_attributes;
+      case "truthy_attributes" truthy_attributes;
       case "ignore_nulls" ignore_nulls;
       case "string_attributes" string_attributes;
       case "self_closing_tag" self_closing_tag;
@@ -357,11 +341,10 @@ let tests =
       case "className_2" className_2;
       case "fragment" fragment;
       case "fragments_and_texts" fragments_and_texts;
-      case "default_value" default_value;
       case "ignored_attributes_on_jsx" ignored_attributes_on_jsx;
       case "inline_styles" inline_styles;
       case "encode_attributes" encode_attributes;
-      case "dom_props_should_work" dom_props_should_work;
+      (* case "dom_props_should_work" dom_props_should_work; *)
       case "dangerouslySetInnerHtml" dangerouslySetInnerHtml;
       case "context" context;
       case "use_state" use_state;

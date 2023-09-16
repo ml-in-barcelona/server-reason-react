@@ -1,3 +1,8 @@
+(env
+ (test
+  (env-vars
+   (REFMT_PRINT_WIDTH 400))))
+
 (executable
  (name main)
  (libraries server-reason-react.ppx ppxlib))

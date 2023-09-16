@@ -1,6 +1,7 @@
 open React
 
-let jsx_attribute_to_html k =
+(* TODO: This should be encoded in the ppx *)
+let _jsx_attribute_to_html k =
   match k with
   | "className" -> "class"
   | "htmlFor" -> "for"
@@ -9,6 +10,54 @@ let jsx_attribute_to_html k =
   | "defaultValue" -> "value"
   | "defaultChecked" -> "checked"
   | "defaultSelected" -> "selected"
+  (* all aria values *)
+  | "ariaActivedescendant" -> "aria-activedescendant"
+  | "ariaAtomic" -> "aria-atomic"
+  | "ariaAutocomplete" -> "aria-autocomplete"
+  | "ariaBusy" -> "aria-busy"
+  | "ariaChecked" -> "aria-checked"
+  | "ariaColcount" -> "aria-colcount"
+  | "ariaColindex" -> "aria-colindex"
+  | "ariaColspan" -> "aria-colspan"
+  | "ariaControls" -> "aria-controls"
+  | "ariaCurrent" -> "aria-current"
+  | "ariaDescribedby" -> "aria-describedby"
+  | "ariaDetails" -> "aria-details"
+  | "ariaDisabled" -> "aria-disabled"
+  | "ariaErrormessage" -> "aria-errormessage"
+  | "ariaExpanded" -> "aria-expanded"
+  | "ariaFlowto" -> "aria-flowto"
+  | "ariaHaspopup" -> "aria-haspopup"
+  | "ariaHidden" -> "aria-hidden"
+  | "ariaInvalid" -> "aria-invalid"
+  | "ariaKeyshortcuts" -> "aria-keyshortcuts"
+  | "ariaLabel" -> "aria-label"
+  | "ariaLabelledby" -> "aria-labelledby"
+  | "ariaLevel" -> "aria-level"
+  | "ariaLive" -> "aria-live"
+  | "ariaModal" -> "aria-modal"
+  | "ariaMultiline" -> "aria-multiline"
+  | "ariaMultiselectable" -> "aria-multiselectable"
+  | "ariaOrientation" -> "aria-orientation"
+  | "ariaOwns" -> "aria-owns"
+  | "ariaPlaceholder" -> "aria-placeholder"
+  | "ariaPosinset" -> "aria-posinset"
+  | "ariaPressed" -> "aria-pressed"
+  | "ariaReadonly" -> "aria-readonly"
+  | "ariaRelevant" -> "aria-relevant"
+  | "ariaRequired" -> "aria-required"
+  | "ariaRoledescription" -> "aria-roledescription"
+  | "ariaRowcount" -> "aria-rowcount"
+  | "ariaRowindex" -> "aria-rowindex"
+  | "ariaRowindextext" -> "aria-rowindextext"
+  | "ariaRowspan" -> "aria-rowspan"
+  | "ariaSelected" -> "aria-selected"
+  | "ariaSetsize" -> "aria-setsize"
+  | "ariaSort" -> "aria-sort"
+  | "ariaValuemax" -> "aria-valuemax"
+  | "ariaValuemin" -> "aria-valuemin"
+  | "ariaValuenow" -> "aria-valuenow"
+  | "ariaValuetext" -> "aria-valuetext"
   | _ -> k
 
 let is_onclick_event attr =
@@ -16,7 +65,7 @@ let is_onclick_event attr =
   | JSX.Event (name, _) when String.equal name "_onclick" -> true
   | _ -> false
 
-let attribute_is_html tag attr_name =
+let _attribute_is_html tag attr_name =
   match DomProps.findByName tag attr_name with Ok _ -> true | Error _ -> false
 
 let replace_reserved_names attr =
@@ -40,9 +89,7 @@ let is_react_custom_attribute attr =
 let attribute_is_event attr = match attr with JSX.Event _ -> true | _ -> false
 
 let attribute_is_valid tag attr =
-  attribute_is_html tag (get_key attr)
-  && (not (attribute_is_event attr))
-  && not (is_react_custom_attribute attr)
+  (not (attribute_is_event attr)) && not (is_react_custom_attribute attr)
 
 let attribute_to_string attr =
   match attr with
@@ -60,8 +107,7 @@ let attribute_to_string attr =
       Printf.sprintf "onclick=\"%s\"" value
   | Event _ -> ""
   | Style styles -> Printf.sprintf "style=\"%s\"" styles
-  | String (k, v) ->
-      Printf.sprintf "%s=\"%s\"" (jsx_attribute_to_html k) (Html.encode v)
+  | String (k, v) -> Printf.sprintf "%s=\"%s\"" k (Html.encode v)
 
 let attributes_to_string tag attrs =
   let valid_attributes =

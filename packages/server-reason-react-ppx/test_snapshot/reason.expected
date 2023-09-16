@@ -4,7 +4,7 @@ let lower =
        Array.of_list) []
 let lower_empty_attr =
   React.createElement "div"
-    ((([|(Some (React.JSX.String ("className", ("" : string))))|] |>
+    ((([|(Some (React.JSX.String ("class", ("" : string))))|] |>
          Array.to_list)
         |> (List.filter_map (fun a -> a)))
        |> Array.of_list) []
@@ -65,22 +65,22 @@ let lower_child_with_upper_as_children =
        Array.of_list) [React.Upper_case_component ((fun () -> App.make ()))]
 let lower_children_nested =
   React.createElement "div"
-    ((([|(Some (React.JSX.String ("className", ("flex-container" : string))))|]
+    ((([|(Some (React.JSX.String ("class", ("flex-container" : string))))|]
          |> Array.to_list)
         |> (List.filter_map (fun a -> a)))
        |> Array.of_list)
     [React.createElement "div"
-       ((([|(Some (React.JSX.String ("className", ("sidebar" : string))))|]
-            |> Array.to_list)
+       ((([|(Some (React.JSX.String ("class", ("sidebar" : string))))|] |>
+            Array.to_list)
            |> (List.filter_map (fun a -> a)))
           |> Array.of_list)
        [React.createElement "h2"
-          ((([|(Some (React.JSX.String ("className", ("title" : string))))|]
-               |> Array.to_list)
+          ((([|(Some (React.JSX.String ("class", ("title" : string))))|] |>
+               Array.to_list)
               |> (List.filter_map (fun a -> a)))
              |> Array.of_list) ["jsoo-react" |> s];
        React.createElement "nav"
-         ((([|(Some (React.JSX.String ("className", ("menu" : string))))|] |>
+         ((([|(Some (React.JSX.String ("class", ("menu" : string))))|] |>
               Array.to_list)
              |> (List.filter_map (fun a -> a)))
             |> Array.of_list)
@@ -181,8 +181,7 @@ let lower_ref_with_children =
   React.createElement "button"
     ((([|(Some (React.JSX.Ref ref));(Some
                                        (React.JSX.String
-                                          ("className",
-                                            ("FancyButton" : string))))|]
+                                          ("class", ("FancyButton" : string))))|]
          |> Array.to_list)
         |> (List.filter_map (fun a -> a)))
        |> Array.of_list) [children]
@@ -290,7 +289,7 @@ module Forward_Ref =
                 React.createElement "button"
                   ((([|(Some (React.JSX.Ref ref));(Some
                                                      (React.JSX.String
-                                                        ("className",
+                                                        ("class",
                                                           ("FancyButton" : 
                                                           string))))|]
                        |> Array.to_list)
@@ -378,8 +377,7 @@ module Upper_with_aria =
       ((fun ~children ->
           fun () ->
             React.createElement "div"
-              ((([|(Some
-                      (React.JSX.String ("aria-hidden", ("true" : string))))|]
+              ((([|(Some (React.JSX.String ("ariaHidden", ("true" : string))))|]
                    |> Array.to_list)
                   |> (List.filter_map (fun a -> a)))
                  |> Array.of_list) [children])
@@ -397,15 +395,13 @@ let data_attributes_should_transform_to_kebabcase =
                                                                     ("" : 
                                                                     string))));(
                          Some
-                           (React.JSX.String
-                              ("className", ("md:w-1/3" : string))))|]
+                           (React.JSX.String ("class", ("md:w-1/3" : string))))|]
                          |> Array.to_list)
                         |> (List.filter_map (fun a -> a)))
                        |> Array.of_list) [];
                  React.createElement "div"
                    ((([|(Some
-                           (React.JSX.String
-                              ("className", ("md:w-2/3" : string))))|]
+                           (React.JSX.String ("class", ("md:w-2/3" : string))))|]
                         |> Array.to_list)
                        |> (List.filter_map (fun a -> a)))
                       |> Array.of_list) []]) ()

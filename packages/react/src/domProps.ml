@@ -230,232 +230,228 @@ let ariaAttributes =
   [
     (* Identifies the currently active element when DOM focus is on a composite
        widget, textbox, group, or application. *)
-    Attribute { name = "ariaActivedescendant"; jsxName = "aria-activedescendant"; type_ = String };
+    Attribute { name = "ariaActivedescendant"; jsxName = "ariaActivedescendant"; type_ = String };
 
     (* Indicates whether assistive technologies will present all, or only parts
        of, the changed region based on the change notifications defined by the
        aria-relevant attribute. *)
-    Attribute { name = "ariaAtomic"; jsxName = "aria-atomic"; type_ = String (* Bool | 'false' | 'true' *) };
+    Attribute { name = "ariaAtomic"; jsxName = "ariaAtomic"; type_ = String (* Bool | 'false' | 'true' *) };
 
     (* Indicates whether inputting text could trigger display of one or more predictions of the user's intended value for an input and specifies how predictions would be
      * presented if they are made.
      *)
-    Attribute { name = "ariaAutocomplete"; jsxName = "aria-autocomplete"; type_ = String (* 'none' | 'inline' | 'list' | 'both' *) };
+    Attribute { name = "ariaAutocomplete"; jsxName = "ariaAutocomplete"; type_ = String (* 'none' | 'inline' | 'list' | 'both' *) };
 
     (* Indicates an element is being modified and that assistive technologies
        MAY want to wait until the modifications are complete before exposing
        them to the user. *)
-    Attribute { name = "ariaBusy"; jsxName = "aria-busy"; type_ = String (* Bool | 'false' | 'true' *) };
+    Attribute { name = "ariaBusy"; jsxName = "ariaBusy"; type_ = String (* Bool | 'false' | 'true' *) };
 
     (* Indicates the current "checked" state of checkboxes, radio buttons, and other
     widgets.
     * @see aria-pressed @see aria-selected.
     *)
-    Attribute { name = "ariaChecked"; jsxName = "aria-checked"; type_ = String (* Bool | 'false' | 'mixed' | 'true' *) };
+    Attribute { name = "ariaChecked"; jsxName = "ariaChecked"; type_ = String (* Bool | 'false' | 'mixed' | 'true' *) };
 
     (* Defines the total number of columns in a table, grid, or treegrid.
     * @see aria-colindex.
     *)
-    Attribute { name = "ariaColcount"; jsxName = "aria-colcount"; type_ = Int };
+    Attribute { name = "ariaColcount"; jsxName = "ariaColcount"; type_ = Int };
 
     (* Defines an element's column index or position with respect to the total number of columns within a table,
     grid, or treegrid.
     * @see aria-colcount @see aria-colspan.
     *)
-    Attribute { name = "ariaColindex"; jsxName = "aria-colindex"; type_ = Int };
+    Attribute { name = "ariaColindex"; jsxName = "ariaColindex"; type_ = Int };
 
     (* Defines the number of columns spanned by a cell or gridcell within a table, grid, or treegrid.
     * @see aria-colindex @see aria-rowspan.
     *)
-    Attribute { name = "ariaColspan"; jsxName = "aria-colspan"; type_ = Int };
+    Attribute { name = "ariaColspan"; jsxName = "ariaColspan"; type_ = Int };
 
     (* Identifies the element (or elements) whose contents or presence are controlled by the current element.
     * @see aria-owns.
     *)
-    Attribute { name = "ariaControls"; jsxName = "aria-controls"; type_ = String };
+    Attribute { name = "ariaControls"; jsxName = "ariaControls"; type_ = String };
 
     (* Indicates the element that represents the current item within a container
        or set of related elements. *)
-    Attribute { name = "ariaCurrent"; jsxName = "aria-current"; type_ = String (* Bool | 'false' | 'true' | 'page' | 'step' | 'location' | 'date' | 'time' *) };
+    Attribute { name = "ariaCurrent"; jsxName = "ariaCurrent"; type_ = String (* Bool | 'false' | 'true' | 'page' | 'step' | 'location' | 'date' | 'time' *) };
 
     (* Identifies the element (or elements) that describes the object.
      * @see aria-labelledby
      *)
-    Attribute { name = "ariaDescribedby"; jsxName = "aria-describedby"; type_ = String };
+    Attribute { name = "ariaDescribedby"; jsxName = "ariaDescribedby"; type_ = String };
 
     (* Identifies the element that provides a detailed, extended description for
        the object. * @see aria-describedby. *)
-    Attribute { name = "ariaDetails"; jsxName = "aria-details"; type_ = String };
+    Attribute { name = "ariaDetails"; jsxName = "ariaDetails"; type_ = String };
 
     (* Indicates that the element is perceivable but disabled, so it is not editable or otherwise operable.
     * @see aria-hidden @see aria-readonly.
     *)
-    Attribute { name = "ariaDisabled"; jsxName = "aria-disabled"; type_ = String (* Bool | 'false' | 'true' *) };
+    Attribute { name = "ariaDisabled"; jsxName = "ariaDisabled"; type_ = String (* Bool | 'false' | 'true' *) };
 
     (* Identifies the element that provides an error message for the object.
     * @see aria-invalid @see aria-describedby.
     *)
-    Attribute { name = "ariaErrormessage"; jsxName = "aria-errormessage"; type_ = String };
+    Attribute { name = "ariaErrormessage"; jsxName = "ariaErrormessage"; type_ = String };
 
     (* Indicates whether the element, or another grouping element it controls,
        is currently expanded or collapsed. *)
-    Attribute { name = "ariaExpanded"; jsxName = "aria-expanded"; type_ = String (* Bool | 'false' | 'true' *) };
+    Attribute { name = "ariaExpanded"; jsxName = "ariaExpanded"; type_ = String (* Bool | 'false' | 'true' *) };
 
     (* Identifies the next element (or elements) in an alternate reading order of content which, at the user's discretion,
      * allows assistive technology to override the general default of reading in document source order.
      *)
-    Attribute { name = "ariaFlowto"; jsxName = "aria-flowto"; type_ = String };
+    Attribute { name = "ariaFlowto"; jsxName = "ariaFlowto"; type_ = String };
 
     (* Indicates the availability and type of interactive popup element, such as
        menu or dialog, that can be triggered by an element. *)
-    Attribute { name = "ariaHaspopup"; jsxName = "aria-haspopup"; type_ = String (* Bool | 'false' | 'true' | 'menu' | 'listbox' | 'tree' | 'grid' | 'dialog'; *)};
+    Attribute { name = "ariaHaspopup"; jsxName = "ariaHaspopup"; type_ = String (* Bool | 'false' | 'true' | 'menu' | 'listbox' | 'tree' | 'grid' | 'dialog'; *)};
 
     (* Indicates whether the element is exposed to an accessibility API.
      * @see aria-disabled.
      *)
-    Attribute { name = "ariaHidden"; jsxName = "aria-hidden"; type_ = String (* Bool | 'false' | 'true' *) };
+    Attribute { name = "ariaHidden"; jsxName = "ariaHidden"; type_ = String (* Bool | 'false' | 'true' *) };
 
     (* Indicates the entered value does not conform to the format expected by the
     application.
     * @see aria-errormessage.
     *)
-    Attribute { name = "ariaInvalid"; jsxName = "aria-invalid"; type_ = String (* Bool | 'false' | 'true' | 'grammar' | 'spelling'; *) };
+    Attribute { name = "ariaInvalid"; jsxName = "ariaInvalid"; type_ = String (* Bool | 'false' | 'true' | 'grammar' | 'spelling'; *) };
 
     (* Indicates keyboard shortcuts that an author has implemented to activate
        or give focus to an element. *)
-    Attribute { name = "ariaKeyshortcuts"; jsxName = "aria-keyshortcuts"; type_ = String };
+    Attribute { name = "ariaKeyshortcuts"; jsxName = "ariaKeyshortcuts"; type_ = String };
 
     (* Defines a String value that labels the current element.
     * @see aria-labelledby.
     *)
-    Attribute { name = "ariaLabel"; jsxName = "aria-label"; type_ = String };
+    Attribute { name = "ariaLabel"; jsxName = "ariaLabel"; type_ = String };
 
     (* Identifies the element (or elements) that labels the current element.
     * @see aria-describedby.
     *)
-    Attribute { name = "ariaLabelledby"; jsxName = "aria-labelledby"; type_ = String };
+    Attribute { name = "ariaLabelledby"; jsxName = "ariaLabelledby"; type_ = String };
 
     (* Defines the hierarchical level of an element within a structure. *)
-    Attribute { name = "ariaLevel"; jsxName = "aria-level"; type_ = Int };
+    Attribute { name = "ariaLevel"; jsxName = "ariaLevel"; type_ = Int };
 
     (* Indicates that an element will be updated, and describes the types of
        updates the user agents, assistive technologies, and user can expect ;rom
        the live region. *)
-    Attribute { name = "ariaLive"; jsxName = "aria-live"; type_ = String (* 'off' | 'assertive' | 'polite' *) };
+    Attribute { name = "ariaLive"; jsxName = "ariaLive"; type_ = String (* 'off' | 'assertive' | 'polite' *) };
 
     (* Indicates whether an element is modal when displayed. *)
 
-    Attribute { name = "ariaModal"; jsxName = "aria-modal"; type_ = String (* Bool | 'false' | 'true' *) };
+    Attribute { name = "ariaModal"; jsxName = "ariaModal"; type_ = String (* Bool | 'false' | 'true' *) };
 
     (* Indicates whether a text box accepts multiple lines of input or only a
        single line. *)
-    Attribute { name = "ariaMultiline"; jsxName = "aria-multiline"; type_ = String (* Bool | 'false' | 'true' *) };
+    Attribute { name = "ariaMultiline"; jsxName = "ariaMultiline"; type_ = String (* Bool | 'false' | 'true' *) };
 
     (* Indicates that the user may select more than one item from the current
        selectable descendants. *)
-    Attribute { name = "ariaMultiselectable"; jsxName = "aria-multiselectable"; type_ = String (* Bool | 'false' | 'true' *) };
+    Attribute { name = "ariaMultiselectable"; jsxName = "ariaMultiselectable"; type_ = String (* Bool | 'false' | 'true' *) };
 
     (* Indicates whether the element's orientation is horizontal, vertical, or
        unknown/ambiguous. *)
-    Attribute { name = "ariaOrientation"; jsxName = "aria-orientation"; type_ = String (* 'horizontal' | 'vertical' *) };
+    Attribute { name = "ariaOrientation"; jsxName = "ariaOrientation"; type_ = String (* 'horizontal' | 'vertical' *) };
 
     (* Identifies an element (or elements) in order to define a visual, functional, or contextual parent/child relationship
      * between DOM elements where the DOM hierarchy cannot be used to represent the relationship.
      * @see aria-controls.
      *)
-    Attribute { name = "ariaOwns"; jsxName = "aria-owns"; type_ = String };
+    Attribute { name = "ariaOwns"; jsxName = "ariaOwns"; type_ = String };
 
     (* Defines a short hint (a word or short phrase) intended to aid the user with data entry when the control has no
     value.
     * A hint could be a sample value or a brief description of the expected format.
     *)
-    Attribute { name = "ariaPlaceholder"; jsxName = "aria-placeholder"; type_ = String };
+    Attribute { name = "ariaPlaceholder"; jsxName = "ariaPlaceholder"; type_ = String };
 
     (* Defines an element's number or position in the current set of listitems
        or treeitems. Not required if all elements in the set are present in the
        DOM. * @see aria-setsize. *)
-    Attribute { name = "ariaPosinset"; jsxName = "aria-posinset"; type_ = Int };
+    Attribute { name = "ariaPosinset"; jsxName = "ariaPosinset"; type_ = Int };
 
     (* Indicates the current "pressed" state of toggle buttons.
     * @see aria-checked @see aria-selected.
     *)
-    Attribute { name = "ariaPressed"; jsxName = "aria-pressed"; type_ = String (* Bool | 'false' | 'mixed' | 'true' *) };
+    Attribute { name = "ariaPressed"; jsxName = "ariaPressed"; type_ = String (* Bool | 'false' | 'mixed' | 'true' *) };
 
     (* Indicates that the element is not editable, but is otherwise
     operable.
     * @see aria-disabled.
     *)
-    Attribute { name = "ariaReadonly"; jsxName = "aria-readonly"; type_ = String (* Bool | 'false' | 'true' *) };
+    Attribute { name = "ariaReadonly"; jsxName = "ariaReadonly"; type_ = String (* Bool | 'false' | 'true' *) };
 
     (* Indicates what notifications the user agent will trigger when the
     accessibility tree within a live region is modified.
     * @see aria-atomic.
     *)
-    Attribute { name = "ariaRelevant"; jsxName = "aria-relevant"; type_ = String (* 'additions' | 'additions removals' | 'additions text' | 'all' | 'removals' | 'removals additions' | 'removals text' | 'text' | 'text additions' | 'text removals' *) };
+    Attribute { name = "ariaRelevant"; jsxName = "ariaRelevant"; type_ = String (* 'additions' | 'additions removals' | 'additions text' | 'all' | 'removals' | 'removals additions' | 'removals text' | 'text' | 'text additions' | 'text removals' *) };
 
     (* Indicates that user input is required on the element before a form may be
        submitted. *)
-    Attribute { name = "ariaRequired"; jsxName = "aria-required"; type_ = String (* Bool | 'false' | 'true' *) };
+    Attribute { name = "ariaRequired"; jsxName = "ariaRequired"; type_ = String (* Bool | 'false' | 'true' *) };
 
     (* Defines a human-readable, author-localized description for the role of an
        element. *)
-    Attribute { name = "ariaRoledescription"; jsxName = "aria-roledescription"; type_ = String };
+    Attribute { name = "ariaRoledescription"; jsxName = "ariaRoledescription"; type_ = String };
 
     (* Defines the total number of rows in a table, grid, or treegrid.
     * @see aria-rowindex.
     *)
-    Attribute { name = "ariaRowcount"; jsxName = "aria-rowcount"; type_ = Int };
+    Attribute { name = "ariaRowcount"; jsxName = "ariaRowcount"; type_ = Int };
 
     (* Defines an element's row index or position with respect to the total number of rows within a table, grid, or
     treegrid.
     * @see aria-rowcount @see aria-rowspan.
     *)
-    Attribute { name = "ariaRowindex"; jsxName = "aria-rowindex"; type_ = Int };
+    Attribute { name = "ariaRowindex"; jsxName = "ariaRowindex"; type_ = Int };
 
     (* *)
 
-    Attribute { name = "ariaRowindextext"; jsxName = "aria-rowindextext"; type_ = String };
+    Attribute { name = "ariaRowindextext"; jsxName = "ariaRowindextext"; type_ = String };
 
     (* Defines the number of rows spanned by a cell or gridcell within a table, grid, or treegrid.
     * @see aria-rowindex @see aria-colspan.
     *)
-    Attribute { name = "ariaRowspan"; jsxName = "aria-rowspan"; type_ = Int };
+    Attribute { name = "ariaRowspan"; jsxName = "ariaRowspan"; type_ = Int };
 
     (* Indicates the current "selected" state of various widgets.
     * @see aria-checked @see aria-pressed.
     *)
-    Attribute { name = "ariaSelected"; jsxName = "aria-selected"; type_ = String (* Bool | 'false' | 'true' *) };
+    Attribute { name = "ariaSelected"; jsxName = "ariaSelected"; type_ = String (* Bool | 'false' | 'true' *) };
 
     (* Defines the number of items in the current set of listitems or treeitems.
     Not required if all elements in the set are present in the DOM.
     * @see aria-posinset.
     *)
-    Attribute { name = "ariaSetsize"; jsxName = "aria-setsize"; type_ = Int };
+    Attribute { name = "ariaSetsize"; jsxName = "ariaSetsize"; type_ = Int };
 
     (* Indicates if items in a table or grid are sorted in ascending or
        descending order. *)
-    Attribute { name = "ariaSort"; jsxName = "aria-sort"; type_ = String (* 'none' | 'ascending' | 'descending' | 'other' *) };
+    Attribute { name = "ariaSort"; jsxName = "ariaSort"; type_ = String (* 'none' | 'ascending' | 'descending' | 'other' *) };
 
     (* Defines the maximum allowed value for a range widget. *)
 
-    Attribute { name = "ariaValuemax"; jsxName = "aria-valuemax"; type_ = Int };
+    Attribute { name = "ariaValuemax"; jsxName = "ariaValuemax"; type_ = Int };
 
     (* Defines the minimum allowed value for a range widget. *)
 
-    Attribute { name = "ariaValuemin"; jsxName = "aria-valuemin"; type_ = Int };
+    Attribute { name = "ariaValuemin"; jsxName = "ariaValuemin"; type_ = Int };
 
     (* Defines the current value for a range widget.
     * @see aria-valuetext.
     *)
-    Attribute { name = "ariaValuenow"; jsxName = "aria-valuenow"; type_ = Int };
-
-    Attribute { name = "ariaValuemin"; jsxName = "aria-valuemin"; type_ = Int };
-
-    Attribute { name = "ariaValuemax"; jsxName = "aria-valuemax"; type_ = Int };
+    Attribute { name = "ariaValuenow"; jsxName = "ariaValuenow"; type_ = Int };
 
     (* Defines the human readable text alternative of aria-valuenow for a range
        widget. *)
-    Attribute { name = "ariaValuetext"; jsxName = "aria-valuetext"; type_ = String };
+    Attribute { name = "ariaValuetext"; jsxName = "ariaValuetext"; type_ = String };
 
   ]
 
@@ -475,10 +471,10 @@ let ariaRole = String
 
 let reactValidHtml =
   [
-    Attribute { name = "className"; jsxName = "className"; type_ = String };
-    Attribute { name = "defaultChecked"; jsxName = "defaultChecked"; type_ = Bool };
-    Attribute { name = "defaultSelected"; jsxName = "defaultSelected"; type_ = Bool };
-    Attribute { name = "defaultValue"; jsxName = "defaultValue"; type_ = String (* | number | ReadonlyArray<String> *) };
+    Attribute { name = "class"; jsxName = "className"; type_ = String };
+    Attribute { name = "checked"; jsxName = "defaultChecked"; type_ = Bool };
+    Attribute { name = "selected"; jsxName = "defaultSelected"; type_ = Bool };
+    Attribute { name = "value"; jsxName = "defaultValue"; type_ = String (* | number | ReadonlyArray<String> *) };
   ]
 
 let reactAttributes =
@@ -569,7 +565,7 @@ let anchorHTMLAttributes =
     Attribute { name = "ping"; jsxName = "ping"; type_ = String };
     Attribute { name = "rel"; jsxName = "rel"; type_ = String };
     Attribute { name = "target"; jsxName = "target"; type_ = attributeAnchorTarget };
-    Attribute { name = "type_"; jsxName = "type"; type_ = String };
+    Attribute { name = "type"; jsxName = "type_"; type_ = String };
     Attribute { name = "referrerPolicy"; jsxName = "referrerPolicy"; type_ = attributeReferrerPolicy };
   ]
 
@@ -609,7 +605,7 @@ let buttonHTMLAttributes =
     Attribute { name = "formNoValidate"; jsxName = "formNoValidate"; type_ = Bool };
     Attribute { name = "formTarget"; jsxName = "formTarget"; type_ = String };
     Attribute { name = "name"; jsxName = "name"; type_ = String };
-    Attribute { name = "type_"; jsxName = "type"; type_ = String (* 'submit' | 'reset' | 'button' *) };
+    Attribute { name = "type"; jsxName = "type_"; type_ = String (* 'submit' | 'reset' | 'button' *) };
     Attribute { name = "value"; jsxName = "value"; type_ = String (* | ReadonlyArray<String> | number *) };
   ]
 
@@ -653,9 +649,9 @@ let dialogHTMLAttributes =
 
 let embedHTMLAttributes =
   [
-    Attribute { name = "height"; type_ = String (* number | *); jsxName = "height" };
-    Attribute { name = "src"; type_ = String; jsxName = "src" };
-    Attribute { name = "type_"; type_ = String; jsxName = "type" };
+    Attribute { name = "height"; jsxName = "height"; type_ = String (* number | *); };
+    Attribute { name = "src"; jsxName = "src"; type_ = String; };
+    Attribute { name = "type"; jsxName = "type"; type_ = String; };
     Attribute { name = "width"; type_ = String (* number | *); jsxName = "width" };
   ]
 
@@ -761,7 +757,7 @@ let inputHTMLAttributes =
     Attribute { name = "size"; jsxName = "size"; type_ = Int (* number *) };
     Attribute { name = "src"; jsxName = "src"; type_ = String };
     Attribute { name = "step"; jsxName = "step"; type_ = String (* number | *) };
-    Attribute { name = "type_"; jsxName = "type"; type_ = inputTypeAttribute };
+    Attribute { name = "type"; jsxName = "type_"; type_ = inputTypeAttribute };
     Attribute { name = "value"; jsxName = "value"; type_ = String (* | ReadonlyArray<String> | number *) };
     Attribute { name = "width"; jsxName = "width"; type_ = String (* number | *) };
     Event { name = "onChange"; type_ = Form };
@@ -791,7 +787,7 @@ let liHTMLAttributes =
 
 let linkHTMLAttributes =
   [
-    Attribute { name = "as_"; jsxName = "as"; type_ = String };
+    Attribute { name = "as"; jsxName = "as_"; type_ = String };
     Attribute { name = "crossOrigin"; jsxName = "crossOrigin"; type_ = String };
     Attribute { name = "href"; jsxName = "href"; type_ = String };
     Attribute { name = "hrefLang"; jsxName = "hrefLang"; type_ = String };
@@ -800,7 +796,7 @@ let linkHTMLAttributes =
     Attribute { name = "media"; jsxName = "media"; type_ = String };
     Attribute { name = "rel"; jsxName = "rel"; type_ = String };
     Attribute { name = "sizes"; jsxName = "sizes"; type_ = String };
-    Attribute { name = "type_"; jsxName = "type"; type_ = String };
+    Attribute { name = "type"; jsxName = "type_"; type_ = String };
     Attribute { name = "charSet"; jsxName = "charSet"; type_ = String };
   ]
 
@@ -811,7 +807,7 @@ let mapHTMLAttributes =
 
 let menuHTMLAttributes =
   [
-    Attribute { name = "type_"; jsxName = "type"; type_ = String };
+    Attribute { name = "type"; jsxName = "type_"; type_ = String };
   ]
 
 let mediaHTMLAttributes =
@@ -861,7 +857,7 @@ let objectHTMLAttributes =
     Attribute { name = "form"; jsxName = "form"; type_ = String };
     Attribute { name = "height"; jsxName = "height"; type_ = String (* number | *) };
     Attribute { name = "name"; jsxName = "name"; type_ = String };
-    Attribute { name = "type_"; jsxName = "type"; type_ = String };
+    Attribute { name = "type"; jsxName = "type_"; type_ = String };
     Attribute { name = "useMap"; jsxName = "useMap"; type_ = String };
     Attribute { name = "width"; jsxName = "width"; type_ = String (* number | *) };
     Attribute { name = "wmode"; jsxName = "wmode"; type_ = String };
@@ -871,7 +867,7 @@ let olHTMLAttributes =
   [
     Attribute { name = "reversed"; jsxName = "reversed"; type_ = Bool };
     Attribute { name = "start"; jsxName = "start"; type_ = Int (* number *) };
-    Attribute { name = "type_"; jsxName = "type"; type_ = String (* '1' | 'a' | 'A' | 'i' | 'I' *) };
+    Attribute { name = "type"; jsxName = "type_"; type_ = String (* '1' | 'a' | 'A' | 'i' | 'I' *) };
   ]
 
 let optgroupHTMLAttributes =
@@ -923,7 +919,7 @@ let scriptHTMLAttributes =
     Attribute { name = "noModule"; jsxName = "noModule"; type_ = Bool };
     Attribute { name = "nonce"; jsxName = "nonce"; type_ = String };
     Attribute { name = "src"; jsxName = "src"; type_ = String };
-    Attribute { name = "type_"; jsxName = "type"; type_ = String };
+    Attribute { name = "type"; jsxName = "type_"; type_ = String };
   ]
 
 let selectHTMLAttributes =
@@ -947,7 +943,7 @@ let sourceHTMLAttributes =
     Attribute { name = "sizes"; jsxName = "sizes"; type_ = String };
     Attribute { name = "src"; jsxName = "src"; type_ = String };
     Attribute { name = "srcSet"; jsxName = "srcSet"; type_ = String };
-    Attribute { name = "type_"; jsxName = "type"; type_ = String };
+    Attribute { name = "type"; jsxName = "type_"; type_ = String };
     Attribute { name = "width"; jsxName = "width"; type_ = String (* number | *) };
   ]
 
@@ -956,7 +952,7 @@ let styleHTMLAttributes =
     Attribute { name = "media"; jsxName = "media"; type_ = String };
     Attribute { name = "nonce"; jsxName = "nonce"; type_ = String };
     Attribute { name = "scoped"; jsxName = "scoped"; type_ = Bool };
-    Attribute { name = "type_"; jsxName = "type"; type_ = String }
+    Attribute { name = "type"; jsxName = "type_"; type_ = String }
   ]
 
 let tableHTMLAttributes =
@@ -1097,7 +1093,6 @@ module SVG = struct
       Attribute { name = "overflow"; jsxName = "overflow"; type_ = String (* number | *) };
       Attribute { name = "stopOpacity"; jsxName = "stopOpacity"; type_ = String (* number | *) };
       Attribute { name = "strokeLinecap"; jsxName = "strokeLinecap"; type_ = String (* type_= "butt" | "round" | "square" | "inherit" *) };
-      Attribute { name = "strokeLinejoin"; jsxName = "strokeLinejoin"; type_ = String (* type_= "butt" | "round" | "square" | "inherit" *) };
       Attribute { name = "unicodeBidi"; jsxName = "unicodeBidi"; type_ = String (* number | *) };
       Attribute { name = "vectorEffect"; jsxName = "vectorEffect"; type_ = String (* number | *) };
       Attribute { name = "wordSpacing"; jsxName = "wordSpacing"; type_ = String (* number | *) };
@@ -1115,7 +1110,7 @@ module SVG = struct
       Attribute { name = "y"; jsxName = "y"; type_ = String (* number | *) };
       (* Transfer function attributes type, tableValues, slope, intercept,
          amplitude, exponent, offset *)
-      Attribute { name = "type_"; jsxName = "type"; type_ = String };
+      Attribute { name = "type"; jsxName = "type_"; type_ = String };
       Attribute { name = "exponent"; jsxName = "exponent"; type_ = String (* number | *) };
       Attribute { name = "slope"; jsxName = "slope"; type_ = String (* number | *) };
       Attribute { name = "amplitude"; jsxName = "amplitude"; type_ = String (* number | *) };
@@ -1569,10 +1564,10 @@ let camelcaseToKebabcase str =
   in
   str |> chars_of_string |> loop [] |> List.rev |> string_of_chars
 
-let findByName tag name =
-  let byName p = getName p = name in
-  if isDataAttribute name then
-    let jsxName = camelcaseToKebabcase name in
+let findByName tag jsxName =
+  let byName p = getJSXName p = jsxName in
+  if isDataAttribute jsxName then
+    let name = camelcaseToKebabcase jsxName in
     Ok (Attribute { name; jsxName; type_ = String })
   else
     match getAttributes tag with
@@ -1582,10 +1577,9 @@ let findByName tag name =
     | Error err -> Error err
 
 let isReactValidProp name =
-  let byName p = getName p = name in
+  let byName p = getJSXName p = name in
   reactValidHtml |> List.exists byName
 
-(* TODO: Use a simpler algo for string distance *)
 module Levenshtein = struct
   (* Levenshtein distance from
      https://rosettacode.org/wiki/Levenshtein_distance *)

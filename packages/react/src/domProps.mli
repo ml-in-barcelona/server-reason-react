@@ -26,6 +26,7 @@ type prop = Attribute of attribute | Event of event
 type errors = [ `ElementNotFound | `AttributeNotFound ]
 
 val getJSXName : prop -> string
+val getName : prop -> string
 val findByName : string -> string -> (prop, errors) result
 val isReactValidProp : string -> bool
 val find_closest_name : string -> string
