@@ -23,5 +23,4 @@ module App = {
 };
 
 let app = ReactDOM.renderToStaticMarkup(<App />);
-
 Js.Console.log(app);
