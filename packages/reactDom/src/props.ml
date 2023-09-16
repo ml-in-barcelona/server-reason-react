@@ -6,7 +6,7 @@ let add item (map : React.JSX.prop list) =
   match item with Some i -> map |> List.cons i | None -> map
 
 (* domProps isn't used by the generated code from the ppx, and it's purpose is to
-allow usages from user's code. *)
+allow usages from user's code via createElementVariadic and custom usages outside JSX *)
 let domProps
   ?(key)
   ?(ref)
