@@ -266,7 +266,7 @@ module Text = {
   };
 };
 
-let _create_element_variadic = () => {
+let create_element_variadic = () => {
   let component = <Text tagType=Text.Tag.H1> {React.string("Hello")} </Text>;
   assert_string(
     ReactDOM.renderToStaticMarkup(component),
@@ -316,7 +316,7 @@ let _ =
             "children_flattening_multiple_elements",
             children_flattening_multiple_elements,
           ),
-          /* case("createElementVariadic", create_element_variadic), */
+          case("createElementVariadic", create_element_variadic),
         ],
       ),
     ],

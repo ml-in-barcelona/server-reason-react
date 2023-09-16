@@ -253,15 +253,15 @@ let render_with_doc_type () =
     (ReactDOM.renderToStaticMarkup div)
     "<div><span>This is valid HTML5</span></div>"
 
-(* let dom_props_should_work () =
-   let div =
-     React.createElement "div"
-       (ReactDOM.domProps ~key:"uniq" ~className:"mabutton" ())
-       []
-   in
-   assert_string
-     (ReactDOM.renderToStaticMarkup div)
-     "<div class=\"mabutton\"></div>" *)
+let dom_props_should_work () =
+  let div =
+    React.createElement "div"
+      (ReactDOM.domProps ~key:"uniq" ~className:"mabutton" ())
+      []
+  in
+  assert_string
+    (ReactDOM.renderToStaticMarkup div)
+    "<div class=\"mabutton\"></div>"
 
 let render_svg () =
   let path =
@@ -344,7 +344,7 @@ let tests =
       case "ignored_attributes_on_jsx" ignored_attributes_on_jsx;
       case "inline_styles" inline_styles;
       case "encode_attributes" encode_attributes;
-      (* case "dom_props_should_work" dom_props_should_work; *)
+      case "dom_props_should_work" dom_props_should_work;
       case "dangerouslySetInnerHtml" dangerouslySetInnerHtml;
       case "context" context;
       case "use_state" use_state;
