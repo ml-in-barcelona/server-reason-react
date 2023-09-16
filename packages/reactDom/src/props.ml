@@ -5,10 +5,12 @@ type dangerouslySetInnerHTML = { __html : string } [@@boxed]
 let add item (map : React.JSX.prop list) =
   match item with Some i -> map |> List.cons i | None -> map
 
+(* domProps isn't used by the generated code from the ppx, and it's purpose is to
+allow usages from user's code. *)
 let domProps
   ?(key)
   ?(ref)
-  ?(ariaDetails )
+  ?(ariaDetails)
   ?(ariaDisabled)
   ?(ariaHidden)
   ?(ariaKeyshortcuts)
