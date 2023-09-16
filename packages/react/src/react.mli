@@ -93,10 +93,12 @@ type 'a context = {
 }
 
 module Context : sig
+  type 'a t = 'a context
+
   val provider : 'a context -> 'a provider
 end
 
-val createContext : 'a -> 'a context
+val createContext : 'a -> 'a Context.t
 
 module Suspense : sig
   val make : ?fallback:element -> ?children:element -> unit -> element
@@ -108,7 +110,7 @@ exception Suspend of any_promise
 
 (* val memo : ('props * 'props -> bool) -> 'a -> 'props * 'props -> bool *)
 val use : 'a Lwt.t -> 'a
-val useContext : 'a context -> 'a
+val useContext : 'a Context.t -> 'a
 val useState : (unit -> 'state) -> 'state * (('state -> 'state) -> unit)
 val useMemo : (unit -> 'a) -> 'a
 val useMemo1 : (unit -> 'a) -> 'b -> 'a
