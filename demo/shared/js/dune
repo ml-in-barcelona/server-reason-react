@@ -3,6 +3,6 @@
  (modes melange)
  (libraries reason-react)
  (preprocess
-  (pps melange.ppx browser_ppx reason-react-ppx)))
+  (pps melange.ppx reason-react-ppx browser_ppx -js)))
 
 (copy_files# "../native/lib/*.re")

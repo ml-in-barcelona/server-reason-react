@@ -32,4 +32,7 @@ let%browser_only initWebsocket: unit => unit = [%mel.raw
         console.debug("Live reload: WebSocket error:", event);
       };
     }
-|}];
+|}
+];
+
+let x = 22;
