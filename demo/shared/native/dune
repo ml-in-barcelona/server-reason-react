@@ -1,0 +1,13 @@
+(include_subdirs unqualified)
+
+(library
+ (name shared_native)
+ (libraries
+  server-reason-react.react
+  server-reason-react.reactDom
+  server-reason-react.js
+  server-reason-react.belt)
+ (preprocess
+  (pps melange.ppx browser_ppx)))
+
+(copy_files# "../*.re")

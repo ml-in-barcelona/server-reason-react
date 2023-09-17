@@ -8,8 +8,8 @@ homepage: "https://github.com/ml-in-barcelona/server-reason-react"
 bug-reports: "https://github.com/ml-in-barcelona/server-reason-react/issues"
 depends: [
   "dune" {>= "3.8"}
-  "ocaml" {>= "4.12.0"}
-  "reason" {>= "3.8.1" & < "3.10.0"}
+  "ocaml" {>= "5.0.0"}
+  "reason" {>= "3.10.0"}
   "melange"
   "ppxlib" {>= "0.23.0"}
   "pcre" {<= "7.5.0"}

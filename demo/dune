@@ -1,7 +1,13 @@
 (executable
  (name index)
  (public_name demo)
+ (modules Index)
  (package server-reason-react)
- (libraries react reactDOM belt js)
+ (libraries react reactDOM belt js shared_native)
  (preprocess
   (pps pipe_first_ppx double_hash_ppx server-reason-react.ppx)))
+
+(melange.emit
+ (target demo)
+ (modules Client)
+ (libraries shared_js))

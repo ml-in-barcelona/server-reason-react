@@ -202,10 +202,12 @@ type 'a context = {
 }
 
 module Context = struct
+  type 'a t = 'a context
+
   let provider ctx = ctx.provider
 end
 
-let createContext (initial_value : 'a) : 'a context =
+let createContext (initial_value : 'a) : 'a Context.t =
   let ref_value = ref initial_value in
   let provider ~value ~children () =
     ref_value.contents <- value;

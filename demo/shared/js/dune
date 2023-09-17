@@ -1,0 +1,8 @@
+(library
+ (name shared_js)
+ (modes melange)
+ (libraries reason-react)
+ (preprocess
+  (pps melange.ppx reason-react-ppx browser_ppx -js)))
+
+(copy_files# "../native/lib/*.re")
