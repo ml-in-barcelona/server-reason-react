@@ -59,8 +59,16 @@ let%browser_only countDomNodes = (id) => {
 };
 ]}
 
-Since [browser_only] generates a function that raises an exception on native ([ReactDOM.Impossible_in_ssr])
-you can wrap it in a try/catch block to prevent the exception from crashing and set a default
+Add [browser_ppx] to your pps in your dune files. Don't forget to add it on both "server" and "client" dune files, since you want to discard the content and add [browser_only -js] to the client ones.
+
+On client code:
+{[ (preprocess (pps browser_ppx -js)) ]}
+On server code:
+{[ (preprocess (pps browser_ppx)) ]}
+
+Since [browser_only] discards the function on the client part, in native it generates a function that raises an exception ([ReactDOM.Impossible_in_ssr]). So have the possibility to wrap it in a try/catch block to prevent the exception from crashing and maybe set a default value or do something else.
+
+The default raises since you don't want to crash the server and better know about it during development.
 {[
 let%browser_only countDomNodes = (id) => {
   let elements = Webapi.Element.querySelector("#" ++ id);
