@@ -54,7 +54,6 @@ jobs:
           ocaml-compiler: ${{ matrix.ocaml-compiler }}
           dune-cache: true
           opam-disable-sandboxing: true
-          opam-depext: false
 
       - name: Install deps
         run: opam install . --deps-only --with-doc --with-test
