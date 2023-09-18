@@ -59,16 +59,17 @@ let%browser_only countDomNodes = (id) => {
 };
 ]}
 
-Since `browser_only` generates a function that raises an exception on native,
+Since [browser_only] generates a function that raises an exception on native ([ReactDOM.Impossible_in_ssr])
 you can wrap it in a try/catch block to prevent the exception from crashing and set a default
 {[
 let%browser_only countDomNodes = (id) => {
-  try {
-    let elements = Webapi.Element.querySelector("#" ++ id);
-    let arr_elements = Webapi.Element.toArray(elements);
-    Array.length(arr_elements);
-  } {
-    | _ => 0;
-  }
-};
+  let elements = Webapi.Element.querySelector("#" ++ id);
+  let arr_elements = Webapi.Element.toArray(elements);
+  Array.length(arr_elements);
+}
+
+let main = id =>
+  try(countDomNodes(id)) {
+  | _ => 0
+  };
 ]}
