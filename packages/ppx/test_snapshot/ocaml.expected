@@ -91,7 +91,7 @@ let payload_should_be_a_string =
   [%ocaml.error "payload should be a string literal"]
 ;;React.useEffect0 (fun () -> None)
 let _ = [%ocaml.error "effect only accepts a useEffect expression"]
-let _ = raise ReactDOM.Impossible_in_ssr "Webapi.Dom.getElementById \"foo\""
+let _ = raise (ReactDOM.Impossible_in_ssr "Webapi.Dom.getElementById")
 let valueFromEvent = Webapi.Dom.getElementById "foo"
 let valueFromEvent evt =
   raise
@@ -103,8 +103,7 @@ let valueFromEvent evt moar_arguments =
        "fun evt -> fun moar_arguments -> Webapi.Dom.getElementById \"foo\"")
   [@@warning "-27"]
 let make () =
-  let _ =
-    raise ReactDOM.Impossible_in_ssr "Webapi.Dom.getElementById \"foo\"" in
+  let _ = raise (ReactDOM.Impossible_in_ssr "Webapi.Dom.getElementById") in
   let valueFromEvent =
     [%ocaml.error
       "browser only works on expressions or function definitions"] in

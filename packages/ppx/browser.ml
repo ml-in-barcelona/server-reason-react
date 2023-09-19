@@ -14,7 +14,7 @@ let effect_rule =
         | Pexp_apply
             ( {
                 pexp_desc = Pexp_ident { txt = Ldot (Lident _, "useEffect"); _ };
-                pexp_loc_stack;
+                _;
               },
               _ ) ->
             [%expr React.useEffect0 (fun () -> None)]
@@ -42,7 +42,7 @@ let browser_only_value_binding pattern expression =
   | [%pat? ()] -> Builder.value_binding ~loc ~pat:pattern ~expr:[%expr ()]
   | _ -> (
       match expression.pexp_desc with
-      | Pexp_fun (_arg_label, _arg_expression, fun_pattern, expr) ->
+      | Pexp_fun (_arg_label, _arg_expression, _fun_pattern, _expr) ->
           let stringified = Ppxlib.Pprintast.string_of_expression expression in
           let expr = last_expr_to_raise_impossbile stringified expression in
           let vb = Builder.value_binding ~loc ~pat:pattern ~expr in
@@ -67,15 +67,17 @@ let browser_only_on_expressions_rule =
     | Native -> (
         match payload.pexp_desc with
         | Pexp_apply (expression, _) ->
-            let stringified = Ppxlib.Pprintast.string_of_expression payload in
+            let stringified =
+              Ppxlib.Pprintast.string_of_expression expression
+            in
             let message = Builder.estring ~loc stringified in
-            [%expr raise ReactDOM.Impossible_in_ssr [%e message]]
+            [%expr raise (ReactDOM.Impossible_in_ssr [%e message])]
         | Pexp_fun (_arg_label, _arg_expression, fun_pattern, _expression) ->
             let stringified = Ppxlib.Pprintast.string_of_expression payload in
             let message = Builder.estring ~loc stringified in
             [%expr
               fun [%p fun_pattern] ->
-                (raise ReactDOM.Impossible_in_ssr [%e message] [@warning "-27"])]
+                raise (ReactDOM.Impossible_in_ssr [%e message] [@warning "-27"])]
         | Pexp_let (rec_flag, value_bindings, expression) ->
             let pexp_let =
               Builder.pexp_let ~loc rec_flag
