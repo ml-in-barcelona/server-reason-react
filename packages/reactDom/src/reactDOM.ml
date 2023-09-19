@@ -49,7 +49,7 @@ let valid_attribute_to_string attr =
   else if attribute_is_event attr then None
   else Some (attribute_to_string attr)
 
-let attributes_to_string tag attrs =
+let attributes_to_string attrs =
   let valid_attributes =
     attrs |> Array.to_list |> List.filter_map valid_attribute_to_string
   in
@@ -86,11 +86,11 @@ let render_to_string ~mode element =
       when Html.is_self_closing_tag tag ->
         is_root.contents <- false;
         Printf.sprintf "<%s%s%s />" tag root_attribute
-          (attributes_to_string tag attributes)
+          (attributes_to_string attributes)
     | Lower_case_element { tag; attributes; children } ->
         is_root.contents <- false;
         Printf.sprintf "<%s%s%s>%s</%s>" tag root_attribute
-          (attributes_to_string tag attributes)
+          (attributes_to_string attributes)
           (children |> List.map render_element |> String.concat "")
           tag
     | Text text -> (
@@ -163,10 +163,10 @@ let render_to_stream ~context_state element =
     | Upper_case_component component -> render_element (component ())
     | Lower_case_element { tag; attributes; _ }
       when Html.is_self_closing_tag tag ->
-        Printf.sprintf "<%s%s />" tag (attributes_to_string tag attributes)
+        Printf.sprintf "<%s%s />" tag (attributes_to_string attributes)
     | Lower_case_element { tag; attributes; children } ->
         Printf.sprintf "<%s%s>%s</%s>" tag
-          (attributes_to_string tag attributes)
+          (attributes_to_string attributes)
           (children |> List.map render_element |> String.concat "")
           tag
     | Text text -> Html.encode text
