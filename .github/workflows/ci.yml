@@ -1,8 +1,10 @@
 name: CI
 
 on:
-  pull_request:
   push:
+    branches:
+    - main
+  pull_request:
   schedule:
     # Prime the caches every Monday
     - cron: 0 1 * * MON
@@ -51,6 +53,7 @@ jobs:
         with:
           ocaml-compiler: ${{ matrix.ocaml-compiler }}
           dune-cache: true
+          opam-disable-sandboxing: true
 
       - name: Install deps
         run: opam install . --deps-only --with-doc --with-test
