@@ -10,11 +10,11 @@ module App = {
     let make = (~lola) => {
       let ctx_value = React.useContext(context);
 
-      <div>
+      <section>
         <h1> {React.int(Shared_native.MelRaw.x)} </h1>
         <span> {React.string(lola)} </span>
         <span> {React.string(ctx_value)} </span>
-      </div>;
+      </section>;
     };
   };
 
