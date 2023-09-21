@@ -56,7 +56,6 @@ setup-githooks: ## Setup githooks
 
 .PHONY: pin
 pin: ## Pin dependencies
-	@opam pin add melange "https://github.com/melange-re/melange.git#a01735398b5df5b90f0a567dd660847ae0e9da48" -y
 	@opam pin add reason-react-ppx.dev "https://github.com/reasonml/reason-react.git#0ccff71796b60d6c32ab6cf01e31beccca4698b9" -y
 	@opam pin add reason-react.dev "https://github.com/reasonml/reason-react.git#0ccff71796b60d6c32ab6cf01e31beccca4698b9" -y
 
