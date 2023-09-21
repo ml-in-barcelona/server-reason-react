@@ -31,7 +31,7 @@ server-reason-react provides {!React} and {!ReactDOM} modules with the same inte
 
 One big challenge of sharing code between client and server is that the server side has different API environment with client side. In this respect server-reason-react SSR is not much different than Node.js, except on native you should prevent browser's API calls and Js and compile it properly while in Node.js is just a matter of not calling those browser APIs.
 
-There're a few utilities that will be handy to make your frontend code be native: {!Belt}, {!Js}, [Promise], and [Webapi].
+There're a few utilities that will be handy to make your frontend code be native: {!Belt}, {!Js}, {!Promise_native.Promise}, and [Webapi].
 
 All of them are implementation of the same APIs as their originals. Belt is feature complete and stable while the rest are still alpha, some missing APIs or incorrect functionality.
 

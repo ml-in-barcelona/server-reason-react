@@ -1,0 +1,9 @@
+(library
+ (name promise_js)
+ (public_name server-reason-react.promise-js)
+ (modes melange)
+ (modules promise)
+ (wrapped false)
+ (libraries melange.belt melange.js)
+ (preprocess
+  (pps melange.ppx)))
