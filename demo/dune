@@ -8,6 +8,6 @@
   (pps pipe_first_ppx double_hash_ppx server-reason-react.ppx)))
 
 (melange.emit
- (target demo)
+ (target demo-js)
  (modules Client)
  (libraries shared_js))

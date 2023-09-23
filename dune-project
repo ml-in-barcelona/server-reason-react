@@ -43,7 +43,6 @@
 
   ;; Documentation
   (odoc :with-doc)
-  (mdx :with-doc)
 
   ;; Dev dependencies, using with-test so that consumers don't install them (until package is released in opam)
   (ocamlformat :with-test)
