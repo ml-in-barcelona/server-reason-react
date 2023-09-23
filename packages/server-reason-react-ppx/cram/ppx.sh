@@ -16,7 +16,7 @@ refmt --parse re --print ml "$3" > output.ml
 server-reason-react-ppx-standalone --impl output.ml -o temp.ml
 
 if [ "$2" == "ml" ]; then
-  ocamlformat --impl temp.ml -o temp.ml
+  ocamlformat --enable-outside-detected-project --impl temp.ml -o temp.ml
   cat temp.ml
   exit
 elif [ "$2" == "re" ]; then

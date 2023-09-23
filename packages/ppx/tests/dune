@@ -1,0 +1,7 @@
+(cram
+ (package server-reason-react)
+ (deps %{bin:ocamlformat} standalone.exe))
+
+(executable
+ (name standalone)
+ (libraries ppxlib pipe_first_ppx regex_ppx double_hash_ppx browser_ppx))
