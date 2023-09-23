@@ -523,3 +523,5 @@ val domProps :
   ?suppressHydrationWarning:bool ->
   unit ->
   React.JSX.prop array
+
+module Ref = React.Ref

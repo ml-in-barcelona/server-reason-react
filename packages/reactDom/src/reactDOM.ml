@@ -956,3 +956,5 @@ let domProps ?key ?ref ?ariaDetails ?ariaDisabled ?ariaHidden ?ariaKeyshortcuts
           (fun v -> Bool ("suppressHydrationWarning", v))
           suppressHydrationWarning)
   |> Array.of_list
+
+module Ref = React.Ref

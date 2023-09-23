@@ -34,7 +34,7 @@ val unwatchUrl : watcherID -> unit
 
 val dangerouslyGetInitialUrl : ?serverUrlString:string -> unit -> url
 
-val useUrl : ?serverUrl:string -> unit -> url
+val useUrl : ?serverUrl:url -> unit -> url
 (** hook for watching url changes.
  * serverUrl is used for ssr. it allows you to specify the url without relying on browser apis existing/working as expected
  *)
