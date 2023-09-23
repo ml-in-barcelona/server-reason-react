@@ -31,25 +31,25 @@ server-reason-react provides {!React} and {!ReactDOM} modules with the same inte
 
 One big challenge of sharing code between client and server is that the server side has different API environment with client side. In this respect server-reason-react SSR is not much different than Node.js, except on native you should prevent browser's API calls and Js and compile it properly while in Node.js is just a matter of not calling those browser APIs.
 
-There're a few utilities that will be handy to make your frontend code be native: {!Belt}, {!Js}, [Promise], and [Webapi].
+There're a few utilities that will be handy to make your frontend code work in native, such as {!Belt}, {!Js}, [Promise], and [Webapi].
 
-All of them are implementation of the same APIs as their originals. Belt is feature complete and stable while the rest are still alpha, some missing APIs or incorrect functionality.
+All of them are implementations of the same APIs as their originals. [Belt] is feature complete while the rest are still alpha, some missing APIs and incorrect functionality.
 
 Visit each API page for more information:
 
 - {!Belt} server-reason-react.belt
 - {!Js} server-reason-react.js
-- server-reason-react.promise
-- server-reason-react.webapi
+- server-reason-react.promise (vendored https://github.com/aantron/promise and make it compatible)
+- server-reason-react.webapi (vendored https://github.com/melange-community/melange-webapi and stripped down to the bare minimum)
 
 {2:pipe_first_ppx Make pipe first work on native}
 
 Add [pipe_first_ppx] to your pps list in your dune files
 {[ (preprocess (pps pipe_first_ppx)) ]}
 
-{2:browser_ppx Exclude client code from native build}
+{2:browser_ppx Exclude client code from the native build}
 
-Thanks to [browser_ppx], we can easily discard what's mean to be running on the client and not execute it on the server:
+Thanks to [browser_ppx], we can easily discard what's meant to be running on the client and avoid the execution on the server:
 
 {[
 let%browser_only countDomNodes = (id) => {
@@ -59,16 +59,15 @@ let%browser_only countDomNodes = (id) => {
 };
 ]}
 
-Add [browser_ppx] to your pps in your dune files. Don't forget to add it on both "server" and "client" dune files, since you want to discard the content and add [browser_only -js] to the client ones.
+Add [browser_ppx] to your pps in your dune files. Don't forget to add it on both "server" and "client" dune files, since you want to discard the content and add [browser_only -js] only to the client.
 
-On client code:
+On client's dune:
 {[ (preprocess (pps browser_ppx -js)) ]}
-On server code:
+On server's dune:
 {[ (preprocess (pps browser_ppx)) ]}
 
-Since [browser_only] discards the function on the client part, in native it generates a function that raises an exception ([ReactDOM.Impossible_in_ssr]). So have the possibility to wrap it in a try/catch block to prevent the exception from crashing and maybe set a default value or do something else.
+The method used by [browser_only] to discards the function is transforming the body of your function into a raise exception ([ReactDOM.Impossible_in_ssr]). Sometimes is useful to wrap it in a try/catch block to prevent the exception from crashing and maybe set a default value or do something else.
 
-The default raises since you don't want to crash the server and better know about it during development.
 {[
 let%browser_only countDomNodes = (id) => {
   let elements = Webapi.Element.querySelector("#" ++ id);
