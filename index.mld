@@ -25,7 +25,10 @@ server-reason-react provides {!React} and {!ReactDOM} modules with the same inte
 - {!React} server-reason-react.react
 - {!ReactDOM} server-reason-react.reactDom
 
-[server-reason-react.ppx] needs to be a different ppx than [reason-react-ppx] just to transform domProps into an interal representation of Props where the type is known in order to render them on the server.
+[server-reason-react.ppx] needs to be a different ppx than [reason-react-ppx] to transform domProps into an interal representation of Props where the type is known ahead of time in order to render them on the server.
+
+Add [server-reason-react.ppx] to your pps list in your dune files
+{[ (preprocess (pps server-reason-react.ppx)) ]}
 
 {2:universal Make sure your code is universal}
 
