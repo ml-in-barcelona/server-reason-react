@@ -1,6 +1,0 @@
-(library
- (name runtime)
- (public_name server-reason-react.melange-runtime)
- (wrapped false)
- (preprocess
-  (pps melange.ppx)))

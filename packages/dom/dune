@@ -1,0 +1,4 @@
+(library
+ (name dom)
+ (public_name server-reason-react.dom)
+ (wrapped false))
