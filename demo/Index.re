@@ -24,4 +24,9 @@ module App = {
 };
 
 let app = ReactDOM.renderToStaticMarkup(<App />);
+
+Js.Console.log("\n");
+Js.Console.log("Demo output: --------------------------------- \n");
 Js.Console.log(app);
+Js.Console.log("");
+Js.Console.log("---------------------------------------------- \n");
