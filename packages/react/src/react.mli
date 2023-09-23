@@ -4,6 +4,8 @@ module Dom : sig
   type element
 end
 
+type 'value ref = { mutable current : 'value }
+
 module Ref : sig
   type t = domRef
   type currentDomRef = Dom.element Js.nullable ref
@@ -76,7 +78,7 @@ exception Invalid_children of string
 
 val createElement : string -> JSX.prop array -> element list -> element
 val fragment : children:element -> unit -> element
-val cloneElement : element -> JSX.prop array -> element list -> element
+val cloneElement : element -> JSX.prop array -> element
 val string : string -> element
 val null : element
 val int : int -> element
@@ -95,7 +97,7 @@ type 'a context = {
 module Context : sig
   type 'a t = 'a context
 
-  val provider : 'a context -> 'a provider
+  val provider : 'a t -> 'a provider
 end
 
 val createContext : 'a -> 'a Context.t
