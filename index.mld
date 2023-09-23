@@ -20,7 +20,7 @@ server-reason-react is an implementation of react-dom/server and some of React's
 
 {1:core React and ReactDOM}
 
-server-reason-react provides {!React} and {!ReactDOM} modules with the same interface as reason-react, including the JSX transformation via [server-reason-react-ppx].
+server-reason-react provides {!React} and {!ReactDOM} modules with the same interface as reason-react, including the JSX transformation via [server-reason-react.ppx].
 
 - {!React} server-reason-react.react
 - {!ReactDOM} server-reason-react.reactDom

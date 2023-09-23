@@ -286,7 +286,7 @@ let aria_props = () => {
 
 let _ =
   Alcotest.run(
-    "server-reason-react-ppx",
+    "server-reason-react.ppx",
     [
       (
         "renderToStaticMarkup",

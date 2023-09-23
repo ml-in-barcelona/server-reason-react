@@ -1,0 +1,183 @@
+module React_component_with_props = struct
+  let make ?key =
+   fun [@warning "-16"] [@warning "-16"] ~lola () ->
+    React.createElement "div"
+      ([||] |> Array.to_list |> List.filter_map (fun a -> a) |> Array.of_list)
+      [ React.string lola ]
+end
+
+let react_component_with_props =
+  React.Upper_case_component
+    (fun () -> React_component_with_props.make ~lola:"flores" ())
+
+module Upper_case_with_fragment_as_root = struct
+  let make ?key =
+   fun [@warning "-16"] [@warning "-16"] ?(name = "") () ->
+    React.fragment
+      ~children:
+        (React.list
+           [
+             React.createElement "div"
+               ([||] |> Array.to_list
+               |> List.filter_map (fun a -> a)
+               |> Array.of_list)
+               [ React.string ("First " ^ name) ];
+             React.Upper_case_component
+               (fun () ->
+                 Hello.make ~one:"1" ~children:(React.string ("2nd " ^ name)) ());
+           ])
+      ()
+end
+
+module Using_React_memo = struct
+  let make ?key =
+   fun [@warning "-16"] [@warning "-16"] ~a () ->
+    React.createElement "div"
+      ([||] |> Array.to_list |> List.filter_map (fun a -> a) |> Array.of_list)
+      [ Printf.sprintf "`a` is %s" a |> React.string ]
+end
+
+module Using_memo_custom_compare_Props = struct
+  let make ?key =
+   fun [@warning "-16"] [@warning "-16"] ~a () ->
+    React.createElement "div"
+      ([||] |> Array.to_list |> List.filter_map (fun a -> a) |> Array.of_list)
+      [ Printf.sprintf "`a` is %d" a |> React.string ]
+end
+
+module Forward_Ref = struct
+  let make ?key =
+   fun [@warning "-16"] ~children ->
+    fun [@warning "-16"] [@warning "-16"] ~ref () ->
+     React.createElement "button"
+       ([|
+          Some (React.JSX.Ref ref);
+          Some (React.JSX.String ("class", ("FancyButton" : string)));
+        |]
+       |> Array.to_list
+       |> List.filter_map (fun a -> a)
+       |> Array.of_list)
+       [ children ]
+end
+
+module Onclick_handler_button = struct
+  let make ?key =
+   fun [@warning "-16"] ~name ->
+    fun [@warning "-16"] [@warning "-16"] ?isDisabled () ->
+     let onClick event = Js.log event in
+     React.createElement "button"
+       ([|
+          Some (React.JSX.String ("name", (name : string)));
+          Some
+            (React.JSX.Event
+               ( "onClick",
+                 React.JSX.Event.Mouse (onClick : ReactEvent.Mouse.t -> unit) ));
+          Some (React.JSX.Bool ("disabled", (isDisabled : bool)));
+        |]
+       |> Array.to_list
+       |> List.filter_map (fun a -> a)
+       |> Array.of_list)
+       []
+end
+
+module Children_as_string = struct
+  let make ?key =
+   fun [@warning "-16"] [@warning "-16"] ?(name = "joe") () ->
+    React.createElement "div"
+      ([||] |> Array.to_list |> List.filter_map (fun a -> a) |> Array.of_list)
+      [ Printf.sprintf "`name` is %s" name |> React.string ]
+end
+
+let () = Dream.run ()
+let l = 33
+
+module Uppercase_with_SSR_components = struct
+  let make ?key =
+   fun [@warning "-16"] ~children ->
+    fun [@warning "-16"] [@warning "-16"] ~moreProps () ->
+     React.createElement "html"
+       ([||] |> Array.to_list |> List.filter_map (fun a -> a) |> Array.of_list)
+       [
+         React.createElement "head"
+           ([||] |> Array.to_list
+           |> List.filter_map (fun a -> a)
+           |> Array.of_list)
+           [
+             React.createElement "title"
+               ([||] |> Array.to_list
+               |> List.filter_map (fun a -> a)
+               |> Array.of_list)
+               [ React.string ("SSR React " ^ moreProps) ];
+           ];
+         React.createElement "body"
+           ([||] |> Array.to_list
+           |> List.filter_map (fun a -> a)
+           |> Array.of_list)
+           [
+             React.createElement "div"
+               ([| Some (React.JSX.String ("id", ("root" : string))) |]
+               |> Array.to_list
+               |> List.filter_map (fun a -> a)
+               |> Array.of_list)
+               [ children ];
+             React.createElement "script"
+               ([|
+                  Some
+                    (React.JSX.String ("src", ("/static/client.js" : string)));
+                |]
+               |> Array.to_list
+               |> List.filter_map (fun a -> a)
+               |> Array.of_list)
+               [];
+           ];
+       ]
+end
+
+module Upper_with_aria = struct
+  let make ?key =
+   fun [@warning "-16"] [@warning "-16"] ~children () ->
+    React.createElement "div"
+      ([|
+         Some (React.JSX.String ("aria-hidden", string_of_bool (true : bool)));
+       |]
+      |> Array.to_list
+      |> List.filter_map (fun a -> a)
+      |> Array.of_list)
+      [ children ]
+end
+
+let data_attributes_should_transform_to_kebabcase =
+  React.fragment
+    ~children:
+      (React.list
+         [
+           React.createElement "div"
+             ([|
+                Some (React.JSX.String ("data-attribute", ("" : string)));
+                Some (React.JSX.String ("dataattribute", ("" : string)));
+                Some (React.JSX.String ("class", ("md:w-1/3" : string)));
+              |]
+             |> Array.to_list
+             |> List.filter_map (fun a -> a)
+             |> Array.of_list)
+             [];
+           React.createElement "div"
+             ([| Some (React.JSX.String ("class", ("md:w-2/3" : string))) |]
+             |> Array.to_list
+             |> List.filter_map (fun a -> a)
+             |> Array.of_list)
+             [];
+         ])
+    ()
+
+let render_onclickPropsAsString =
+  React.createElement "div"
+    ([|
+       Some
+         (React.JSX.Event
+            ("_onclick", React.JSX.Event.Inline ("alert('hello')" : string)));
+     |]
+    |> Array.to_list
+    |> List.filter_map (fun a -> a)
+    |> Array.of_list)
+    []
