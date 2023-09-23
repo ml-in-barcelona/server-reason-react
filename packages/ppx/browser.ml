@@ -10,16 +10,21 @@ let effect_rule =
   let handler ~ctxt:_ ({ txt = payload; loc } : Ppxlib.Parsetree.payload loc) =
     match payload with
     | PStr [ { pstr_desc = Pstr_eval (expression, _); _ } ] -> (
-        match expression.pexp_desc with
-        | Pexp_apply
-            ( {
-                pexp_desc = Pexp_ident { txt = Ldot (Lident _, "useEffect"); _ };
-                _;
-              },
-              _ ) ->
-            [%expr React.useEffect0 (fun () -> None)]
-        | _ ->
-            [%expr [%ocaml.error "effect only accepts a useEffect expression"]])
+        match !mode with
+        | Js -> expression
+        | Native -> (
+            match expression.pexp_desc with
+            | Pexp_apply
+                ( {
+                    pexp_desc =
+                      Pexp_ident { txt = Ldot (Lident _, "useEffect"); _ };
+                    pexp_loc_stack;
+                  },
+                  _ ) ->
+                [%expr React.useEffect0 (fun () -> None)]
+            | _ ->
+                [%expr
+                  [%ocaml.error "effect only accepts a useEffect expression"]]))
     | _ -> [%expr [%ocaml.error "effect only accepts a useEffect expression"]]
   in
   Context_free.Rule.extension
