@@ -1,0 +1,9 @@
+(include_subdirs unqualified)
+
+(library
+ (name webapi)
+ (public_name server-reason-react.webapi)
+ (wrapped false)
+ (libraries server-reason-react.js server-reason-react.dom)
+ (preprocess
+  (pps melange.ppx)))
