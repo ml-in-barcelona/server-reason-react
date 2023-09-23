@@ -38,7 +38,7 @@ let clone_empty () =
   let component =
     React.createElement "div" [| React.JSX.Bool ("hidden", true) |] []
   in
-  assert_component component (React.cloneElement component [||] [])
+  assert_component component (React.cloneElement component [||])
 
 let clone_attributes () =
   let component =
@@ -52,7 +52,6 @@ let clone_attributes () =
   let cloned =
     React.cloneElement component
       [| React.JSX.Bool ("lola", true); React.JSX.String ("val", "31") |]
-      []
   in
   assert_component cloned expected
 
@@ -66,7 +65,6 @@ let clone_order_attributes () =
   let cloned =
     React.cloneElement component
       [| React.JSX.Bool ("lola", true); React.JSX.String ("val", "31") |]
-      []
   in
   assert_component cloned expected
 
