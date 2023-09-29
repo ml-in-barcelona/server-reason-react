@@ -40,6 +40,14 @@ let style_order_matters_2 () =
   assert_styles styles
     "background-color: red; column-gap: 2px; opacity: 1.0; stress: 0; width: 20"
 
+let style_order_matters_2 () =
+  let styles =
+    ReactDOM.Style.make ~opacity:"1.0" ~stress:"0" ~width:"20"
+      ~backgroundColor:"red" ~columnGap:"2px" ()
+  in
+  assert_styles styles
+    "background-color: red; column-gap: 2px; opacity: 1.0; stress: 0; width: 20"
+
 let case title fn = Alcotest_lwt.test_case_sync title `Quick fn
 
 let tests =
