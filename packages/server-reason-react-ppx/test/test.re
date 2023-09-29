@@ -47,7 +47,7 @@ let style_attribute = () => {
     <div style={ReactDOM.Style.make(~backgroundColor="gainsboro", ())} />;
   assert_string(
     ReactDOM.renderToStaticMarkup(div),
-    "<div style=\"background-color: gainsboro\"></div>",
+    "<div style=\"background-color:gainsboro\"></div>",
   );
 };
 
@@ -156,7 +156,7 @@ let style_opt_attribute_some = () => {
   let div = <div ?style />;
   assert_string(
     ReactDOM.renderToStaticMarkup(div),
-    "<div style=\"background-color: gainsboro\"></div>",
+    "<div style=\"background-color:gainsboro\"></div>",
   );
 };
 
