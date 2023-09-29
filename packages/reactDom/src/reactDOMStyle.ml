@@ -349,8 +349,10 @@ let make
   ?(rubyMerge : string option)
   ?(rubyPosition : string option)
   () =
+  (* The order of addition matters since it will need to be the same order as
+  the JS object defined in https://github.com/reasonml/reason-react/blob/3327dc214905c4b2863b19807aaac375633645cf/src/dOMStyle.re *)
   []
-    |> add "z-index" zIndex
+  |> add "z-index" zIndex
   |> add "writing-mode" writingMode
   |> add "word-wrap" wordWrap
   |> add "word-spacing" wordSpacing
