@@ -14,6 +14,14 @@ let zero_styles () =
   let styles = ReactDOM.Style.make () in
   assert_styles styles ""
 
+let unsafe_add_prop () =
+  let styles =
+    ReactDOM.Style.unsafeAddProp
+      (ReactDOM.Style.make ~background:"#333" ())
+      "colorScheme" "dark"
+  in
+  assert_styles styles "background: #333; color-scheme: dark"
+
 let case title fn = Alcotest_lwt.test_case_sync title `Quick fn
 
 let tests =
@@ -22,4 +30,5 @@ let tests =
       case "generate empty style" zero_styles;
       case "generate one style" one_styles;
       case "generate more than one style" two_styles;
+      case "unsafeAddProp should be kebab-case" unsafe_add_prop;
     ] )

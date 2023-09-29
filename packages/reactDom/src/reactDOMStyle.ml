@@ -546,7 +546,8 @@ let make
   |> add "mask-border" maskBorder
   |> add "mask-clip" maskClip
   |> add "mask-composite" maskComposite
-  |> add "mask-image" maskImage |> add "mask-mode" maskMode
+  |> add "mask-image" maskImage
+  |> add "mask-mode" maskMode
   |> add "mask-origin" maskOrigin
   |> add "mask-position" maskPosition
   |> add "mask-repeat" maskRepeat
@@ -709,8 +710,26 @@ let combine (styles1 : t) (styles2 : t) : t =
   let seq2 = styles2 |> StringMap.to_seq in
   Seq.append seq1 seq2 |> StringMap.of_seq
 
+let string_of_chars chars =
+  let buf = Buffer.create 16 in
+  List.iter (Buffer.add_char buf) chars;
+  Buffer.contents buf
+
+let chars_of_string str = List.init (String.length str) (String.get str)
+
+let camelcaseToKebabcase str =
+  let rec loop acc = function
+    | [] -> acc
+    | [ x ] -> x :: acc
+    | x :: y :: xs ->
+        if Char.uppercase_ascii y == y then
+          loop ('-' :: x :: acc) (Char.lowercase_ascii y :: xs)
+        else loop (x :: acc) (y :: xs)
+  in
+  str |> chars_of_string |> loop [] |> List.rev |> string_of_chars
+
 let unsafeAddProp styles (key : string) (value : string) : t =
-  styles |> StringMap.add key value
+  styles |> StringMap.add (camelcaseToKebabcase key) value
 
 (* Since we don't have a proper representation of `< .. > Js.t` yet,
    we can't make the unsafeAddStyle
