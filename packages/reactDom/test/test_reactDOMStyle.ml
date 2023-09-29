@@ -22,6 +22,12 @@ let unsafe_add_prop () =
   in
   assert_styles styles "background: #333; color-scheme: dark"
 
+let style_order_matters () =
+  let styles =
+    ReactDOM.Style.make ~lineBreak:"100px" ~overflowWrap:"break-word" ()
+  in
+  assert_styles styles "line-break: 100px; overflow-wrap: break-word"
+
 let case title fn = Alcotest_lwt.test_case_sync title `Quick fn
 
 let tests =
@@ -31,4 +37,5 @@ let tests =
       case "generate one style" one_styles;
       case "generate more than one style" two_styles;
       case "unsafeAddProp should be kebab-case" unsafe_add_prop;
+      case "unsafeAddProp should be kebab-case" style_order_matters;
     ] )
