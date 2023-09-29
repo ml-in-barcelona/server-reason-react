@@ -132,3 +132,14 @@ We need to output ML syntax here, otherwise refmt could not parse it.
         |> Array.of_list)
         [ children ]
   end
+  
+  module Form_with_method = struct
+    let make ?key =
+     fun [@warning "-16"] [@warning "-16"] ~children () ->
+      React.createElement "form"
+        ([| Some (React.JSX.String ("method", ("GET" : string))) |]
+        |> Array.to_list
+        |> List.filter_map (fun a -> a)
+        |> Array.of_list)
+        [ children ]
+  end

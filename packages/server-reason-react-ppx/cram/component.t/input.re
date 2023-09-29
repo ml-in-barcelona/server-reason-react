@@ -77,3 +77,8 @@ module Upper_with_aria = {
   [@react.component]
   let make = (~children) => <div ariaHidden="true"> children </div>;
 };
+
+module Form_with_method = {
+  [@react.component]
+  let make = (~children) => <form method_="GET"> children </form>;
+};

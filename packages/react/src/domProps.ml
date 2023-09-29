@@ -669,7 +669,7 @@ let formHTMLAttributes =
     Attribute { name = "action"; jsxName = "action"; type_ = String };
     Attribute { name = "autoComplete"; jsxName = "autoComplete"; type_ = String };
     Attribute { name = "encType"; jsxName = "encType"; type_ = String };
-    Attribute { name = "method"; jsxName = "method"; type_ = String };
+    Attribute { name = "method"; jsxName = "method_"; type_ = String };
     Attribute { name = "name"; jsxName = "name"; type_ = String };
     Attribute { name = "noValidate"; jsxName = "noValidate"; type_ = Bool };
     Attribute { name = "target"; jsxName = "target"; type_ = String };
@@ -1159,7 +1159,7 @@ module SVG = struct
       Attribute { name = "id"; jsxName = "id"; type_ = String };
       Attribute { name = "lang"; jsxName = "lang"; type_ = String };
       Attribute { name = "media"; jsxName = "media"; type_ = String };
-      Attribute { name = "method"; jsxName = "method"; type_ = String };
+      Attribute { name = "method"; jsxName = "method_"; type_ = String };
       Attribute { name = "name"; jsxName = "name"; type_ = String };
       Attribute { name = "style"; jsxName = "style"; type_ = Style };
       Attribute { name = "target"; jsxName = "target"; type_ = String };
