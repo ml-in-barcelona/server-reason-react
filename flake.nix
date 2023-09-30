@@ -25,7 +25,18 @@
       pkgs = nixpkgs.legacyPackages."${system}".appendOverlays [
         melange.overlays.default
         (self: super: {
-          ocamlPackages = super.ocaml-ng.ocamlPackages_5_1;
+          ocamlPackages = super.ocaml-ng.ocamlPackages_5_1.overrideScope'
+            (oself: osuper:
+              with oself;
+              {
+                # This removes the patch that reverts https://github.com/reasonml/reason/pull/2530, 
+                # as tests do not pass with the current version used in the overlays.
+                # See also https://github.com/reasonml/reason-react/pull/792#issuecomment-1741868181 
+                reason = osuper.reason.overrideAttrs (o: {
+                  patches = [ ];
+                });
+              }
+            );
         })
       ];
       inherit (pkgs) ocamlPackages;
