@@ -17,6 +17,7 @@ With -js flag everything keeps as it is and browser_only extension disappears
   let loadInitialText () = setHtmlFetchState Loading
   let loadInitialText argument1 = setHtmlFetchState Loading
   let loadInitialText argument1 argument2 = setHtmlFetchState Loading
+  let labeled ~argument1 ~argument2 = setHtmlFetchState Loading
   
   let make () =
     let _ = Webapi.Dom.getElementById "foo" in
@@ -75,6 +76,12 @@ Without -js flag, the compilation to native replaces the expression with `raise 
     raise
       (ReactDOM.Impossible_in_ssr
          "fun argument1 -> fun argument2 -> setHtmlFetchState Loading")
+  [@@warning "-27"]
+  
+  let labeled argument1 argument2 =
+    raise
+      (ReactDOM.Impossible_in_ssr
+         "fun ~argument1 -> fun ~argument2 -> setHtmlFetchState Loading")
   [@@warning "-27"]
   
   let make () =
@@ -145,6 +152,12 @@ Without -js flag, the compilation to native replaces the expression with `raise 
     raise
       (ReactDOM.Impossible_in_ssr
          "fun argument1 -> fun argument2 -> setHtmlFetchState Loading")
+  [@@warning "-27"]
+  
+  let labeled argument1 argument2 =
+    raise
+      (ReactDOM.Impossible_in_ssr
+         "fun ~argument1 -> fun ~argument2 -> setHtmlFetchState Loading")
   [@@warning "-27"]
   
   let make () =
