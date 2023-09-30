@@ -147,7 +147,7 @@ module Browser_only = struct
                 let [%p pattern] =
                  fun [%p fun_pattern] ->
                   [%e last_expr_to_raise_impossbile message expr]
-                [@@warning "-27"]]
+                [@@warning "-27-32"]]
           | _expr -> do_nothing rec_flag)
     in
     Context_free.Rule.extension
