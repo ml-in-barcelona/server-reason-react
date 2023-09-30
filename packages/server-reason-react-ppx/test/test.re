@@ -269,7 +269,7 @@ let create_element_variadic = () => {
   let component = <Text tagType=Text.Tag.H1> {React.string("Hello")} </Text>;
   assert_string(
     ReactDOM.renderToStaticMarkup(component),
-    "<h1 style=\"display: none\" class=\"foo\">Hello</h1>",
+    "<h1 style=\"display:none\" class=\"foo\">Hello</h1>",
   );
 };
 
