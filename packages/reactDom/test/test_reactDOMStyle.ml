@@ -14,6 +14,10 @@ let zero_styles () =
   let styles = ReactDOM.Style.make () in
   assert_styles styles ""
 
+let emtpy_value () =
+  let styles = ReactDOM.Style.make ~background:"" () in
+  assert_styles styles "background: ;"
+
 let unsafe_add_prop () =
   let styles =
     ReactDOM.Style.unsafeAddProp
