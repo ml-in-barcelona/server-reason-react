@@ -883,14 +883,12 @@ let makePropField ~loc id (arg_label, value) =
       [%expr
         Some
           (React.JSX.Event
-             ( [%e constantString ~loc jsxName],
-               React.JSX.Mouse [%e objectValue] ))]
+             ([%e constantString ~loc jsxName], React.JSX.Mouse [%e objectValue]))]
   | Event { type_ = Mouse; jsxName }, true ->
       [%expr
         Option.map
           (fun v ->
-            React.JSX.Event
-              ([%e constantString ~loc jsxName], React.JSX.Mouse v))
+            React.JSX.Event ([%e constantString ~loc jsxName], React.JSX.Mouse v))
           [%e objectValue]]
   | Event { type_ = Selection; jsxName }, false ->
       [%expr
@@ -908,8 +906,7 @@ let makePropField ~loc id (arg_label, value) =
       [%expr
         Some
           (React.JSX.Event
-             ( [%e constantString ~loc jsxName],
-               React.JSX.Touch [%e objectValue] ))]
+             ([%e constantString ~loc jsxName], React.JSX.Touch [%e objectValue]))]
   | Event { type_ = Touch; jsxName }, true ->
       [%expr
         Option.map (fun v ->
@@ -920,20 +917,17 @@ let makePropField ~loc id (arg_label, value) =
       [%expr
         Some
           (React.JSX.Event
-             ( [%e constantString ~loc jsxName],
-               React.JSX.UI [%e objectValue] ))]
+             ([%e constantString ~loc jsxName], React.JSX.UI [%e objectValue]))]
   | Event { type_ = UI; jsxName }, true ->
       [%expr
         Option.map (fun v ->
-            (React.JSX.Event
-               ([%e constantString ~loc jsxName], React.JSX.UI v))
+            (React.JSX.Event ([%e constantString ~loc jsxName], React.JSX.UI v))
               [%e objectValue])]
   | Event { type_ = Wheel; jsxName }, false ->
       [%expr
         Some
           (React.JSX.Event
-             ( [%e constantString ~loc jsxName],
-               React.JSX.Wheel [%e objectValue] ))]
+             ([%e constantString ~loc jsxName], React.JSX.Wheel [%e objectValue]))]
   | Event { type_ = Wheel; jsxName }, true ->
       [%expr
         Option.map (fun v ->
@@ -979,8 +973,7 @@ let makePropField ~loc id (arg_label, value) =
       [%expr
         Some
           (React.JSX.Event
-             ( [%e constantString ~loc jsxName],
-               React.JSX.Focus [%e objectValue] ))]
+             ([%e constantString ~loc jsxName], React.JSX.Focus [%e objectValue]))]
   | Event { type_ = Focus; jsxName }, true ->
       [%expr
         Option.map (fun v ->
@@ -991,13 +984,11 @@ let makePropField ~loc id (arg_label, value) =
       [%expr
         Some
           (React.JSX.Event
-             ( [%e constantString ~loc jsxName],
-               React.JSX.Form [%e objectValue] ))]
+             ([%e constantString ~loc jsxName], React.JSX.Form [%e objectValue]))]
   | Event { type_ = Form; jsxName }, true ->
       [%expr
         Option.map (fun v ->
-            (React.JSX.Event
-               ([%e constantString ~loc jsxName], React.JSX.Form v))
+            (React.JSX.Event ([%e constantString ~loc jsxName], React.JSX.Form v))
               [%e objectValue])]
   | Event { type_ = Media; jsxName }, false ->
       [%expr

@@ -61,21 +61,21 @@ module JSX : sig
   val event : string -> event -> prop
 
   module Event : sig
-    val drag: string -> (ReactEvent.Drag.t -> unit) -> prop
-    val mouse: string -> (ReactEvent.Mouse.t -> unit) -> prop
-    val selection: string -> (ReactEvent.Selection.t -> unit) -> prop
-    val touch: string -> (ReactEvent.Touch.t -> unit) -> prop
-    val ui: string -> (ReactEvent.UI.t -> unit) -> prop
-    val wheel: string -> (ReactEvent.Wheel.t -> unit) -> prop
-    val clipboard: string -> (ReactEvent.Clipboard.t -> unit) -> prop
-    val composition: string -> (ReactEvent.Composition.t -> unit) -> prop
-    val transition: string -> (ReactEvent.Transition.t -> unit) -> prop
-    val animation: string -> (ReactEvent.Animation.t -> unit) -> prop
-    val pointer: string -> (ReactEvent.Pointer.t -> unit) -> prop
-    val keyboard: string -> (ReactEvent.Keyboard.t -> unit) -> prop
-    val focus: string -> (ReactEvent.Focus.t -> unit) -> prop
-    val form: string -> (ReactEvent.Form.t -> unit) -> prop
-    val media: string -> (ReactEvent.Media.t -> unit) -> prop
+    val drag : string -> (ReactEvent.Drag.t -> unit) -> prop
+    val mouse : string -> (ReactEvent.Mouse.t -> unit) -> prop
+    val selection : string -> (ReactEvent.Selection.t -> unit) -> prop
+    val touch : string -> (ReactEvent.Touch.t -> unit) -> prop
+    val ui : string -> (ReactEvent.UI.t -> unit) -> prop
+    val wheel : string -> (ReactEvent.Wheel.t -> unit) -> prop
+    val clipboard : string -> (ReactEvent.Clipboard.t -> unit) -> prop
+    val composition : string -> (ReactEvent.Composition.t -> unit) -> prop
+    val transition : string -> (ReactEvent.Transition.t -> unit) -> prop
+    val animation : string -> (ReactEvent.Animation.t -> unit) -> prop
+    val pointer : string -> (ReactEvent.Pointer.t -> unit) -> prop
+    val keyboard : string -> (ReactEvent.Keyboard.t -> unit) -> prop
+    val focus : string -> (ReactEvent.Focus.t -> unit) -> prop
+    val form : string -> (ReactEvent.Form.t -> unit) -> prop
+    val media : string -> (ReactEvent.Media.t -> unit) -> prop
   end
 end
 

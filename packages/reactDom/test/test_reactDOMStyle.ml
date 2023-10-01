@@ -4,11 +4,11 @@ let assert_styles styles str =
 
 let two_styles () =
   let styles = ReactDOM.Style.make ~background:"#333" ~fontSize:"24px" () in
-  assert_styles styles "background: #333; font-size: 24px"
+  assert_styles styles "background:#333;font-size:24px"
 
 let one_styles () =
   let styles = ReactDOM.Style.make ~background:"#333" () in
-  assert_styles styles "background: #333"
+  assert_styles styles "background:#333"
 
 let zero_styles () =
   let styles = ReactDOM.Style.make () in
@@ -24,21 +24,21 @@ let unsafe_add_prop () =
       (ReactDOM.Style.make ~background:"#333" ())
       "colorScheme" "dark"
   in
-  assert_styles styles "background: #333; color-scheme: dark"
+  assert_styles styles "background:#333;color-scheme:dark"
 
-let style_order_matters () =
+let order_matters () =
   let styles =
     ReactDOM.Style.make ~lineBreak:"100px" ~overflowWrap:"break-word" ()
   in
-  assert_styles styles "line-break: 100px; overflow-wrap: break-word"
+  assert_styles styles "line-break:100px;overflow-wrap:break-word"
 
-let style_order_matters_2 () =
+let order_matters_2 () =
   let styles =
-    ReactDOM.Style.make ~opacity:"1.0" ~stress:"0" ~width:"20"
-      ~backgroundColor:"red" ~columnGap:"2px" ()
+    ReactDOM.Style.make ~stress:"0" ~width:"20" ~opacity:"1.0" ~columnGap:"2px"
+      ~backgroundColor:"red" ()
   in
   assert_styles styles
-    "background-color: red; column-gap: 2px; opacity: 1.0; stress: 0; width: 20"
+    "background-color:red;stress:0;width:20;opacity:1.0;column-gap:2px"
 
 let case title fn = Alcotest_lwt.test_case_sync title `Quick fn
 
@@ -49,6 +49,6 @@ let tests =
       case "generate one style" one_styles;
       case "generate more than one style" two_styles;
       case "unsafeAddProp should be kebab-case" unsafe_add_prop;
-      case "order matters" style_order_matters;
-      case "order matters II" style_order_matters_2;
+      case "order matters" order_matters;
+      case "order matters II" order_matters_2;
     ] )

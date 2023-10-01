@@ -47,7 +47,7 @@ let style_attribute = () => {
     <div style={ReactDOM.Style.make(~backgroundColor="gainsboro", ())} />;
   assert_string(
     ReactDOM.renderToStaticMarkup(div),
-    "<div style=\"background-color: gainsboro\"></div>",
+    "<div style=\"background-color:gainsboro\"></div>",
   );
 };
 
@@ -156,7 +156,7 @@ let style_opt_attribute_some = () => {
   let div = <div ?style />;
   assert_string(
     ReactDOM.renderToStaticMarkup(div),
-    "<div style=\"background-color: gainsboro\"></div>",
+    "<div style=\"background-color:gainsboro\"></div>",
   );
 };
 
@@ -269,7 +269,7 @@ let create_element_variadic = () => {
   let component = <Text tagType=Text.Tag.H1> {React.string("Hello")} </Text>;
   assert_string(
     ReactDOM.renderToStaticMarkup(component),
-    "<h1 style=\"display: none\" class=\"foo\">Hello</h1>",
+    "<h1 style=\"display:none\" class=\"foo\">Hello</h1>",
   );
 };
 

@@ -42,8 +42,8 @@ module Browser_only = struct
       match expr.pexp_desc with
       | Pexp_fun (_arg_label, _arg_expression, pattern, expr) ->
           [%expr
-            fun [%p pattern] ->
-              ([%e last_expr_to_raise_impossbile name expr] [@warning "-27"])]
+            fun [@warning "-27"] [%p pattern] ->
+              [%e last_expr_to_raise_impossbile name expr]]
       | _ ->
           let message = Builder.estring ~loc name in
           [%expr raise (ReactDOM.Impossible_in_ssr [%e message])]
@@ -60,7 +60,7 @@ module Browser_only = struct
             let vb = Builder.value_binding ~loc ~pat:pattern ~expr in
             let warning27 =
               Builder.attribute ~loc ~name:{ txt = "warning"; loc }
-                ~payload:(PStr [ [%stri "-27"] ])
+                ~payload:(PStr [ [%stri "-27-26"] ])
             in
             { vb with pvb_attributes = [ warning27 ] }
         | _ ->
@@ -89,9 +89,8 @@ module Browser_only = struct
               let stringified = Ppxlib.Pprintast.string_of_expression payload in
               let message = Builder.estring ~loc stringified in
               [%expr
-                fun [%p fun_pattern] ->
-                  raise
-                    (ReactDOM.Impossible_in_ssr [%e message] [@warning "-27"])]
+                fun [@warning "-27"] [%p fun_pattern] ->
+                  raise (ReactDOM.Impossible_in_ssr [%e message])]
           | Pexp_let (rec_flag, value_bindings, expression) ->
               let pexp_let =
                 Builder.pexp_let ~loc rec_flag
@@ -147,7 +146,7 @@ module Browser_only = struct
                 let [%p pattern] =
                  fun [%p fun_pattern] ->
                   [%e last_expr_to_raise_impossbile message expr]
-                [@@warning "-27"]]
+                [@@warning "-27-32"]]
           | _expr -> do_nothing rec_flag)
     in
     Context_free.Rule.extension
