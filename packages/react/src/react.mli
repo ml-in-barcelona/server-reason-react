@@ -22,25 +22,23 @@ val forwardRef : (unit -> 'a) -> 'a
 (** All of those types are used by the server-reason-react.ppx internally to represent valid React code from the server. It currently different from reason-react-ppx due to a need for knowing the types since ReactDOM needs to render differently depending on the type. *)
 module JSX : sig
   (** All event callbacks *)
-  module Event : sig
-    type t =
-      | Drag of (ReactEvent.Drag.t -> unit)
-      | Mouse of (ReactEvent.Mouse.t -> unit)
-      | Selection of (ReactEvent.Selection.t -> unit)
-      | Touch of (ReactEvent.Touch.t -> unit)
-      | UI of (ReactEvent.UI.t -> unit)
-      | Wheel of (ReactEvent.Wheel.t -> unit)
-      | Clipboard of (ReactEvent.Clipboard.t -> unit)
-      | Composition of (ReactEvent.Composition.t -> unit)
-      | Transition of (ReactEvent.Transition.t -> unit)
-      | Animation of (ReactEvent.Animation.t -> unit)
-      | Pointer of (ReactEvent.Pointer.t -> unit)
-      | Keyboard of (ReactEvent.Keyboard.t -> unit)
-      | Focus of (ReactEvent.Focus.t -> unit)
-      | Form of (ReactEvent.Form.t -> unit)
-      | Media of (ReactEvent.Media.t -> unit)
-      | Inline of string
-  end
+  type event =
+    | Drag of (ReactEvent.Drag.t -> unit)
+    | Mouse of (ReactEvent.Mouse.t -> unit)
+    | Selection of (ReactEvent.Selection.t -> unit)
+    | Touch of (ReactEvent.Touch.t -> unit)
+    | UI of (ReactEvent.UI.t -> unit)
+    | Wheel of (ReactEvent.Wheel.t -> unit)
+    | Clipboard of (ReactEvent.Clipboard.t -> unit)
+    | Composition of (ReactEvent.Composition.t -> unit)
+    | Transition of (ReactEvent.Transition.t -> unit)
+    | Animation of (ReactEvent.Animation.t -> unit)
+    | Pointer of (ReactEvent.Pointer.t -> unit)
+    | Keyboard of (ReactEvent.Keyboard.t -> unit)
+    | Focus of (ReactEvent.Focus.t -> unit)
+    | Form of (ReactEvent.Form.t -> unit)
+    | Media of (ReactEvent.Media.t -> unit)
+    | Inline of string
 
   (** JSX.prop is the representation of HTML/SVG attributes and DOM events *)
   type prop =
@@ -49,7 +47,36 @@ module JSX : sig
     | Style of string
     | DangerouslyInnerHtml of string
     | Ref of domRef
-    | Event of string * Event.t
+    | Event of string * event
+
+  (** Helpers to create JSX.prop without variants, helpful for function application *)
+
+  val bool : string -> bool -> prop
+  val string : string -> string -> prop
+  val style : string -> prop
+  val dangerouslyInnerHtml : string -> prop
+  val int : string -> int -> prop
+  val float : string -> float -> prop
+  val ref : domRef -> prop
+  val event : string -> event -> prop
+
+  module Event : sig
+    val drag : string -> (ReactEvent.Drag.t -> unit) -> prop
+    val mouse : string -> (ReactEvent.Mouse.t -> unit) -> prop
+    val selection : string -> (ReactEvent.Selection.t -> unit) -> prop
+    val touch : string -> (ReactEvent.Touch.t -> unit) -> prop
+    val ui : string -> (ReactEvent.UI.t -> unit) -> prop
+    val wheel : string -> (ReactEvent.Wheel.t -> unit) -> prop
+    val clipboard : string -> (ReactEvent.Clipboard.t -> unit) -> prop
+    val composition : string -> (ReactEvent.Composition.t -> unit) -> prop
+    val transition : string -> (ReactEvent.Transition.t -> unit) -> prop
+    val animation : string -> (ReactEvent.Animation.t -> unit) -> prop
+    val pointer : string -> (ReactEvent.Pointer.t -> unit) -> prop
+    val keyboard : string -> (ReactEvent.Keyboard.t -> unit) -> prop
+    val focus : string -> (ReactEvent.Focus.t -> unit) -> prop
+    val form : string -> (ReactEvent.Form.t -> unit) -> prop
+    val media : string -> (ReactEvent.Media.t -> unit) -> prop
+  end
 end
 
 type lower_case_element = {

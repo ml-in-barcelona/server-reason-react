@@ -193,7 +193,7 @@
                                    [@implicit_arity]
                                    React.JSX.Event(
                                      "onClick",
-                                     React.JSX.Event.Mouse(
+                                     React.JSX.Mouse(
                                        event => {
                                          ReactEvent.Mouse.preventDefault(event);
                                          ReactRouter.push(e.path);

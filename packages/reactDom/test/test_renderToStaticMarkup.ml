@@ -204,8 +204,7 @@ let make ~name () =
        Some (React.JSX.String ("name", (name : string)));
        Some
          (React.JSX.Event
-            ( "event",
-              React.JSX.Event.Mouse (onClick : ReactEvent.Mouse.t -> unit) ));
+            ("onClick", React.JSX.Mouse (onClick : ReactEvent.Mouse.t -> unit)));
      |]
     |> Array.to_list
     |> List.filter_map (fun a -> a)

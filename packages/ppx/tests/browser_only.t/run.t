@@ -85,7 +85,7 @@ Without -js flag, the compilation to native replaces the expression with `raise 
     raise
       (ReactDOM.Impossible_in_ssr
          "fun ~argument1 -> fun ~argument2 -> setHtmlFetchState Loading")
-  [@@warning "-27"]
+  [@@warning "-27-32"]
   
   let make () =
     let _ = raise (ReactDOM.Impossible_in_ssr "Webapi.Dom.getElementById") in
@@ -168,7 +168,7 @@ Without -js flag, the compilation to native replaces the expression with `raise 
     raise
       (ReactDOM.Impossible_in_ssr
          "fun ~argument1 -> fun ~argument2 -> setHtmlFetchState Loading")
-  [@@warning "-27"]
+  [@@warning "-27-32"]
   
   let make () =
     let _ = raise (ReactDOM.Impossible_in_ssr "Webapi.Dom.getElementById") in

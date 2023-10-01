@@ -239,722 +239,996 @@ let createDOMElementVariadic (tag : string) ~(props : JSX.prop array)
     (childrens : React.element array) =
   React.createElement tag props (childrens |> Array.to_list)
 
-let add item (map : React.JSX.prop list) =
-  match item with Some i -> map |> List.cons i | None -> map
+let add kind value (map : JSX.prop list) =
+  match value with Some i -> map |> List.cons (kind i) | None -> map
 
 type dangerouslySetInnerHTML = { __html : string } [@@boxed]
 
+[@@@ocamlformat "disable"]
 (* domProps isn't used by the generated code from the ppx, and it's purpose is to
    allow usages from user's code via createElementVariadic and custom usages outside JSX *)
-let domProps ?key ?ref ?ariaDetails ?ariaDisabled ?ariaHidden ?ariaKeyshortcuts
-    ?ariaLabel ?ariaRoledescription ?ariaExpanded ?ariaLevel ?ariaModal
-    ?ariaMultiline ?ariaMultiselectable ?ariaPlaceholder ?ariaReadonly
-    ?ariaRequired ?ariaSelected ?ariaSort ?ariaValuemax ?ariaValuemin
-    ?ariaValuenow ?ariaValuetext ?ariaAtomic ?ariaBusy ?ariaRelevant
-    ?ariaGrabbed ?ariaActivedescendant ?ariaColcount ?ariaColindex ?ariaColspan
-    ?ariaControls ?ariaDescribedby ?ariaErrormessage ?ariaFlowto ?ariaLabelledby
-    ?ariaOwns ?ariaPosinset ?ariaRowcount ?ariaRowindex ?ariaRowspan
-    ?ariaSetsize ?defaultChecked ?defaultValue ?accessKey ?className
-    ?contentEditable ?contextMenu ?dir ?draggable ?hidden ?id ?lang ?role ?style
-    ?spellCheck ?tabIndex ?title ?itemID ?itemProp ?itemRef ?itemScope ?itemType
-    ?accept ?acceptCharset ?action ?allowFullScreen ?alt ?async ?autoComplete
-    ?autoCapitalize ?autoFocus ?autoPlay ?challenge ?charSet ?checked ?cite
-    ?crossOrigin ?cols ?colSpan ?content ?controls ?coords ?data ?dateTime
-    ?default ?defer ?disabled ?download ?encType ?form ?formAction ?formTarget
-    ?formMethod ?headers ?height ?high ?href ?hrefLang ?htmlFor ?httpEquiv ?icon
-    ?inputMode ?integrity ?keyType ?kind ?label ?list ?loop ?low ?manifest ?max
-    ?maxLength ?media ?mediaGroup ?method_ ?min ?minLength ?multiple ?muted
-    ?name ?nonce ?noValidate ?open_ ?optimum ?pattern ?placeholder ?playsInline
-    ?poster ?preload ?radioGroup ?readOnly ?rel ?required ?reversed ?rows
-    ?rowSpan ?sandbox ?scope ?scoped ?scrolling ?selected ?shape ?size ?sizes
-    ?span ?src ?srcDoc ?srcLang ?srcSet ?start ?step ?summary ?target ?type_
-    ?useMap ?value ?width ?wrap ?onCopy ?onCut ?onPaste ?onCompositionEnd
-    ?onCompositionStart ?onCompositionUpdate ?onKeyDown ?onKeyPress ?onKeyUp
-    ?onFocus ?onBlur ?onChange ?onInput ?onSubmit ?onInvalid ?onClick
-    ?onContextMenu ?onDoubleClick ?onDrag ?onDragEnd ?onDragEnter ?onDragExit
-    ?onDragLeave ?onDragOver ?onDragStart ?onDrop ?onMouseDown ?onMouseEnter
-    ?onMouseLeave ?onMouseMove ?onMouseOut ?onMouseOver ?onMouseUp ?onSelect
-    ?onTouchCancel ?onTouchEnd ?onTouchMove ?onTouchStart ?onPointerOver
-    ?onPointerEnter ?onPointerDown ?onPointerMove ?onPointerUp ?onPointerCancel
-    ?onPointerOut ?onPointerLeave ?onGotPointerCapture ?onLostPointerCapture
-    ?onScroll ?onWheel ?onAbort ?onCanPlay ?onCanPlayThrough ?onDurationChange
-    ?onEmptied ?onEncrypetd ?onEnded ?onError ?onLoadedData ?onLoadedMetadata
-    ?onLoadStart ?onPause ?onPlay ?onPlaying ?onProgress ?onRateChange ?onSeeked
-    ?onSeeking ?onStalled ?onSuspend ?onTimeUpdate ?onVolumeChange ?onWaiting
-    ?onAnimationStart ?onAnimationEnd ?onAnimationIteration ?onTransitionEnd
-    ?accentHeight ?accumulate ?additive ?alignmentBaseline ?allowReorder
-    ?alphabetic ?amplitude ?arabicForm ?ascent ?attributeName ?attributeType
-    ?autoReverse ?azimuth ?baseFrequency ?baseProfile ?baselineShift ?bbox
-    ?begin_ ?bias ?by ?calcMode ?capHeight ?clip ?clipPath ?clipPathUnits
-    ?clipRule ?colorInterpolation ?colorInterpolationFilters ?colorProfile
-    ?colorRendering ?contentScriptType ?contentStyleType ?cursor ?cx ?cy ?d
-    ?decelerate ?descent ?diffuseConstant ?direction ?display ?divisor
-    ?dominantBaseline ?dur ?dx ?dy ?edgeMode ?elevation ?enableBackground ?end_
-    ?exponent ?externalResourcesRequired ?fill ?fillOpacity ?fillRule ?filter
-    ?filterRes ?filterUnits ?floodColor ?floodOpacity ?focusable ?fontFamily
-    ?fontSize ?fontSizeAdjust ?fontStretch ?fontStyle ?fontVariant ?fontWeight
-    ?fomat ?from ?fx ?fy ?g1 ?g2 ?glyphName ?glyphOrientationHorizontal
-    ?glyphOrientationVertical ?glyphRef ?gradientTransform ?gradientUnits
-    ?hanging ?horizAdvX ?horizOriginX ?ideographic ?imageRendering ?in_ ?in2
-    ?intercept ?k ?k1 ?k2 ?k3 ?k4 ?kernelMatrix ?kernelUnitLength ?kerning
-    ?keyPoints ?keySplines ?keyTimes ?lengthAdjust ?letterSpacing ?lightingColor
-    ?limitingConeAngle ?local ?markerEnd ?markerHeight ?markerMid ?markerStart
-    ?markerUnits ?markerWidth ?mask ?maskContentUnits ?maskUnits ?mathematical
-    ?mode ?numOctaves ?offset ?opacity ?operator ?order ?orient ?orientation
-    ?origin ?overflow ?overflowX ?overflowY ?overlinePosition ?overlineThickness
-    ?paintOrder ?panose1 ?pathLength ?patternContentUnits ?patternTransform
-    ?patternUnits ?pointerEvents ?points ?pointsAtX ?pointsAtY ?pointsAtZ
-    ?preserveAlpha ?preserveAspectRatio ?primitiveUnits ?r ?radius ?refX ?refY
-    ?renderingIntent ?repeatCount ?repeatDur ?requiredExtensions
-    ?requiredFeatures ?restart ?result ?rotate ?rx ?ry ?scale ?seed
-    ?shapeRendering ?slope ?spacing ?specularConstant ?specularExponent ?speed
-    ?spreadMethod ?startOffset ?stdDeviation ?stemh ?stemv ?stitchTiles
-    ?stopColor ?stopOpacity ?strikethroughPosition ?strikethroughThickness
-    ?stroke ?strokeDasharray ?strokeDashoffset ?strokeLinecap ?strokeLinejoin
-    ?strokeMiterlimit ?strokeOpacity ?strokeWidth ?surfaceScale ?systemLanguage
-    ?tableValues ?targetX ?targetY ?textAnchor ?textDecoration ?textLength
-    ?textRendering ?to_ ?transform ?u1 ?u2 ?underlinePosition
-    ?underlineThickness ?unicode ?unicodeBidi ?unicodeRange ?unitsPerEm
-    ?vAlphabetic ?vHanging ?vIdeographic ?vMathematical ?values ?vectorEffect
-    ?version ?vertAdvX ?vertAdvY ?vertOriginX ?vertOriginY ?viewBox ?viewTarget
-    ?visibility ?widths ?wordSpacing ?writingMode ?x ?x1 ?x2 ?xChannelSelector
-    ?xHeight ?xlinkActuate ?xlinkArcrole ?xlinkHref ?xlinkRole ?xlinkShow
-    ?xlinkTitle ?xlinkType ?xmlns ?xmlnsXlink ?xmlBase ?xmlLang ?xmlSpace ?y ?y1
-    ?y2 ?yChannelSelector ?z ?zoomAndPan ?about ?datatype ?inlist ?prefix
-    ?property ?resource ?typeof ?vocab ?dangerouslySetInnerHTML
-    ?suppressContentEditableWarning ?suppressHydrationWarning () =
-  let open React.JSX in
+let domProps
+  ?key
+  ?ref
+  ?ariaDetails
+  ?ariaDisabled
+  ?ariaHidden
+  ?ariaKeyshortcuts
+  ?ariaLabel
+  ?ariaRoledescription
+  ?ariaExpanded
+  ?ariaLevel
+  ?ariaModal
+  ?ariaMultiline
+  ?ariaMultiselectable
+  ?ariaPlaceholder
+  ?ariaReadonly
+  ?ariaRequired
+  ?ariaSelected
+  ?ariaSort
+  ?ariaValuemax
+  ?ariaValuemin
+  ?ariaValuenow
+  ?ariaValuetext
+  ?ariaAtomic
+  ?ariaBusy
+  ?ariaRelevant
+  ?ariaGrabbed
+  ?ariaActivedescendant
+  ?ariaColcount
+  ?ariaColindex
+  ?ariaColspan
+  ?ariaControls
+  ?ariaDescribedby
+  ?ariaErrormessage
+  ?ariaFlowto
+  ?ariaLabelledby
+  ?ariaOwns
+  ?ariaPosinset
+  ?ariaRowcount
+  ?ariaRowindex
+  ?ariaRowspan
+  ?ariaSetsize
+  ?defaultChecked
+  ?defaultValue
+  ?accessKey
+  ?className
+  ?contentEditable
+  ?contextMenu
+  ?dir
+  ?draggable
+  ?hidden
+  ?id
+  ?lang
+  ?role
+  ?style
+  ?spellCheck
+  ?tabIndex
+  ?title
+  ?itemID
+  ?itemProp
+  ?itemRef
+  ?itemScope
+  ?itemType
+  ?accept
+  ?acceptCharset
+  ?action
+  ?allowFullScreen
+  ?alt
+  ?async
+  ?autoComplete
+  ?autoCapitalize
+  ?autoFocus
+  ?autoPlay
+  ?challenge
+  ?charSet
+  ?checked
+  ?cite
+  ?crossOrigin
+  ?cols
+  ?colSpan
+  ?content
+  ?controls
+  ?coords
+  ?data
+  ?dateTime
+  ?default
+  ?defer
+  ?disabled
+  ?download
+  ?encType
+  ?form
+  ?formAction
+  ?formTarget
+  ?formMethod
+  ?headers
+  ?height
+  ?high
+  ?href
+  ?hrefLang
+  ?htmlFor
+  ?httpEquiv
+  ?icon
+  ?inputMode
+  ?integrity
+  ?keyType
+  ?kind
+  ?label
+  ?list
+  ?loop
+  ?low
+  ?manifest
+  ?max
+  ?maxLength
+  ?media
+  ?mediaGroup
+  ?method_
+  ?min
+  ?minLength
+  ?multiple
+  ?muted
+  ?name
+  ?nonce
+  ?noValidate
+  ?open_
+  ?optimum
+  ?pattern
+  ?placeholder
+  ?playsInline
+  ?poster
+  ?preload
+  ?radioGroup
+  ?readOnly
+  ?rel
+  ?required
+  ?reversed
+  ?rows
+  ?rowSpan
+  ?sandbox
+  ?scope
+  ?scoped
+  ?scrolling
+  ?selected
+  ?shape
+  ?size
+  ?sizes
+  ?span
+  ?src
+  ?srcDoc
+  ?srcLang
+  ?srcSet
+  ?start
+  ?step
+  ?summary
+  ?target
+  ?type_
+  ?useMap
+  ?value
+  ?width
+  ?wrap
+  ?onCopy
+  ?onCut
+  ?onPaste
+  ?onCompositionEnd
+  ?onCompositionStart
+  ?onCompositionUpdate
+  ?onKeyDown
+  ?onKeyPress
+  ?onKeyUp
+  ?onFocus
+  ?onBlur
+  ?onChange
+  ?onInput
+  ?onSubmit
+  ?onInvalid
+  ?onClick
+  ?onContextMenu
+  ?onDoubleClick
+  ?onDrag
+  ?onDragEnd
+  ?onDragEnter
+  ?onDragExit
+  ?onDragLeave
+  ?onDragOver
+  ?onDragStart
+  ?onDrop
+  ?onMouseDown
+  ?onMouseEnter
+  ?onMouseLeave
+  ?onMouseMove
+  ?onMouseOut
+  ?onMouseOver
+  ?onMouseUp
+  ?onSelect
+  ?onTouchCancel
+  ?onTouchEnd
+  ?onTouchMove
+  ?onTouchStart
+  ?onPointerOver
+  ?onPointerEnter
+  ?onPointerDown
+  ?onPointerMove
+  ?onPointerUp
+  ?onPointerCancel
+  ?onPointerOut
+  ?onPointerLeave
+  ?onGotPointerCapture
+  ?onLostPointerCapture
+  ?onScroll
+  ?onWheel
+  ?onAbort
+  ?onCanPlay
+  ?onCanPlayThrough
+  ?onDurationChange
+  ?onEmptied
+  ?onEncrypetd
+  ?onEnded
+  ?onError
+  ?onLoadedData
+  ?onLoadedMetadata
+
+  ?onLoadStart
+  ?onPause
+  ?onPlay
+  ?onPlaying
+  ?onProgress
+  ?onRateChange
+  ?onSeeked
+
+  ?onSeeking
+  ?onStalled
+  ?onSuspend
+  ?onTimeUpdate
+  ?onVolumeChange
+  ?onWaiting
+
+  ?onAnimationStart
+  ?onAnimationEnd
+  ?onAnimationIteration
+  ?onTransitionEnd
+
+  ?accentHeight
+  ?accumulate
+  ?additive
+  ?alignmentBaseline
+  ?allowReorder
+
+  ?alphabetic
+  ?amplitude
+  ?arabicForm
+  ?ascent
+  ?attributeName
+  ?attributeType
+  ?autoReverse
+  ?azimuth
+  ?baseFrequency
+  ?baseProfile
+  ?baselineShift
+  ?bbox
+  ?begin_
+  ?bias
+  ?by
+  ?calcMode
+  ?capHeight
+  ?clip
+  ?clipPath
+  ?clipPathUnits
+  ?clipRule
+  ?colorInterpolation
+  ?colorInterpolationFilters
+  ?colorProfile
+  ?colorRendering
+  ?contentScriptType
+  ?contentStyleType
+  ?cursor
+  ?cx
+  ?cy
+  ?d
+  ?decelerate
+  ?descent
+  ?diffuseConstant
+  ?direction
+  ?display
+  ?divisor
+  ?dominantBaseline
+  ?dur
+  ?dx
+  ?dy
+  ?edgeMode
+  ?elevation
+  ?enableBackground
+  ?end_
+  ?exponent
+  ?externalResourcesRequired
+  ?fill
+  ?fillOpacity
+  ?fillRule
+  ?filter
+  ?filterRes
+  ?filterUnits
+  ?floodColor
+  ?floodOpacity
+  ?focusable
+  ?fontFamily
+  ?fontSize
+  ?fontSizeAdjust
+  ?fontStretch
+  ?fontStyle
+  ?fontVariant
+  ?fontWeight
+  ?fomat
+  ?from
+  ?fx
+  ?fy
+  ?g1
+  ?g2
+  ?glyphName
+  ?glyphOrientationHorizontal
+  ?glyphOrientationVertical
+  ?glyphRef
+  ?gradientTransform
+  ?gradientUnits
+  ?hanging
+  ?horizAdvX
+  ?horizOriginX
+  ?ideographic
+  ?imageRendering
+  ?in_
+  ?in2
+  ?intercept
+  ?k
+  ?k1
+  ?k2
+  ?k3
+  ?k4
+  ?kernelMatrix
+  ?kernelUnitLength
+  ?kerning
+  ?keyPoints
+  ?keySplines
+  ?keyTimes
+  ?lengthAdjust
+  ?letterSpacing
+  ?lightingColor
+  ?limitingConeAngle
+  ?local
+  ?markerEnd
+  ?markerHeight
+  ?markerMid
+  ?markerStart
+  ?markerUnits
+  ?markerWidth
+  ?mask
+  ?maskContentUnits
+  ?maskUnits
+  ?mathematical
+  ?mode
+  ?numOctaves
+  ?offset
+  ?opacity
+  ?operator
+  ?order
+  ?orient
+  ?orientation
+  ?origin
+  ?overflow
+  ?overflowX
+  ?overflowY
+  ?overlinePosition
+  ?overlineThickness
+  ?paintOrder
+  ?panose1
+  ?pathLength
+  ?patternContentUnits
+  ?patternTransform
+  ?patternUnits
+  ?pointerEvents
+  ?points
+  ?pointsAtX
+  ?pointsAtY
+  ?pointsAtZ
+  ?preserveAlpha
+  ?preserveAspectRatio
+  ?primitiveUnits
+  ?r
+  ?radius
+  ?refX
+  ?refY
+  ?renderingIntent
+  ?repeatCount
+  ?repeatDur
+  ?requiredExtensions
+  ?requiredFeatures
+  ?restart
+  ?result
+  ?rotate
+  ?rx
+  ?ry
+  ?scale
+  ?seed
+  ?shapeRendering
+  ?slope
+  ?spacing
+  ?specularConstant
+  ?specularExponent
+  ?speed
+  ?spreadMethod
+  ?startOffset
+  ?stdDeviation
+  ?stemh
+  ?stemv
+  ?stitchTiles
+  ?stopColor
+  ?stopOpacity
+  ?strikethroughPosition
+  ?strikethroughThickness
+  ?stroke
+  ?strokeDasharray
+  ?strokeDashoffset
+  ?strokeLinecap
+  ?strokeLinejoin
+  ?strokeMiterlimit
+  ?strokeOpacity
+  ?strokeWidth
+  ?surfaceScale
+  ?systemLanguage
+  ?tableValues
+  ?targetX
+  ?targetY
+  ?textAnchor
+  ?textDecoration
+  ?textLength
+  ?textRendering
+  ?to_
+  ?transform
+  ?u1
+  ?u2
+  ?underlinePosition
+  ?underlineThickness
+  ?unicode
+  ?unicodeBidi
+  ?unicodeRange
+  ?unitsPerEm
+  ?vAlphabetic
+  ?vHanging
+  ?vIdeographic
+  ?vMathematical
+  ?values
+  ?vectorEffect
+  ?version
+  ?vertAdvX
+  ?vertAdvY
+  ?vertOriginX
+  ?vertOriginY
+  ?viewBox
+  ?viewTarget
+  ?visibility
+  ?widths
+  ?wordSpacing
+  ?writingMode
+  ?x
+  ?x1
+  ?x2
+  ?xChannelSelector
+  ?xHeight
+  ?xlinkActuate
+  ?xlinkArcrole
+  ?xlinkHref
+  ?xlinkRole
+  ?xlinkShow
+  ?xlinkTitle
+  ?xlinkType
+  ?xmlns
+  ?xmlnsXlink
+  ?xmlBase
+  ?xmlLang
+  ?xmlSpace
+  ?y
+  ?y1
+  ?y2
+  ?yChannelSelector
+  ?z
+  ?zoomAndPan
+  ?about
+  ?datatype
+  ?inlist
+  ?prefix
+  ?property
+  ?resource
+  ?typeof
+  ?vocab
+  ?dangerouslySetInnerHTML
+  ?suppressContentEditableWarning
+  ?suppressHydrationWarning
+  () =
   []
-  |> add (Option.map (fun v -> String ("key", v)) key)
-  |> add (Option.map (fun v -> Ref v) ref)
-  |> add (Option.map (fun v -> String ("aria-details", v)) ariaDetails)
-  |> add (Option.map (fun v -> String ("aria-details", v)) ariaDetails)
-  |> add (Option.map (fun v -> Bool ("aria-disabled", v)) ariaDisabled)
-  |> add (Option.map (fun v -> Bool ("aria-hidden", v)) ariaHidden)
-  |> add
-       (Option.map (fun v -> String ("aria-keyshortcuts", v)) ariaKeyshortcuts)
-  |> add (Option.map (fun v -> String ("aria-label", v)) ariaLabel)
-  |> add
-       (Option.map
-          (fun v -> String ("aria-roledescription", v))
-          ariaRoledescription)
-  |> add (Option.map (fun v -> Bool ("aria-expanded", v)) ariaExpanded)
-  |> add
-       (Option.map (fun v -> String ("aria-level", string_of_int v)) ariaLevel)
-  |> add (Option.map (fun v -> Bool ("aria-modal", v)) ariaModal)
-  |> add (Option.map (fun v -> Bool ("aria-multiline", v)) ariaMultiline)
-  |> add
-       (Option.map
-          (fun v -> Bool ("aria-multiselectable", v))
-          ariaMultiselectable)
-  |> add (Option.map (fun v -> String ("aria-placeholder", v)) ariaPlaceholder)
-  |> add (Option.map (fun v -> Bool ("aria-readonly", v)) ariaReadonly)
-  |> add (Option.map (fun v -> Bool ("aria-required", v)) ariaRequired)
-  |> add (Option.map (fun v -> Bool ("aria-selected", v)) ariaSelected)
-  |> add (Option.map (fun v -> String ("aria-sort", v)) ariaSort)
-  |> add
-       (Option.map
-          (fun v -> String ("aria-valuemax", string_of_float v))
-          ariaValuemax)
-  |> add
-       (Option.map
-          (fun v -> String ("aria-valuemin", string_of_float v))
-          ariaValuemin)
-  |> add
-       (Option.map
-          (fun v -> String ("aria-valuenow", string_of_float v))
-          ariaValuenow)
-  |> add (Option.map (fun v -> String ("aria-valuetext", v)) ariaValuetext)
-  |> add (Option.map (fun v -> Bool ("aria-atomic", v)) ariaAtomic)
-  |> add (Option.map (fun v -> Bool ("aria-busy", v)) ariaBusy)
-  |> add (Option.map (fun v -> String ("aria-relevant", v)) ariaRelevant)
-  |> add (Option.map (fun v -> Bool ("aria-grabbed", v)) ariaGrabbed)
-  |> add
-       (Option.map
-          (fun v -> String ("aria-activedescendant", v))
-          ariaActivedescendant)
-  |> add
-       (Option.map
-          (fun v -> String ("aria-colcount", string_of_int v))
-          ariaColcount)
-  |> add
-       (Option.map
-          (fun v -> String ("aria-colindex", string_of_int v))
-          ariaColindex)
-  |> add
-       (Option.map
-          (fun v -> String ("aria-colspan", string_of_int v))
-          ariaColspan)
-  |> add (Option.map (fun v -> String ("aria-controls", v)) ariaControls)
-  |> add (Option.map (fun v -> String ("aria-describedby", v)) ariaDescribedby)
-  |> add
-       (Option.map (fun v -> String ("aria-errormessage", v)) ariaErrormessage)
-  |> add (Option.map (fun v -> String ("aria-flowto", v)) ariaFlowto)
-  |> add (Option.map (fun v -> String ("aria-labelledby", v)) ariaLabelledby)
-  |> add (Option.map (fun v -> String ("aria-owns", v)) ariaOwns)
-  |> add
-       (Option.map
-          (fun v -> String ("aria-posinset", string_of_int v))
-          ariaPosinset)
-  |> add
-       (Option.map
-          (fun v -> String ("aria-rowcount", string_of_int v))
-          ariaRowcount)
-  |> add
-       (Option.map
-          (fun v -> String ("aria-rowindex", string_of_int v))
-          ariaRowindex)
-  |> add
-       (Option.map
-          (fun v -> String ("aria-rowspan", string_of_int v))
-          ariaRowspan)
-  |> add
-       (Option.map
-          (fun v -> String ("aria-setsize", string_of_int v))
-          ariaSetsize)
-  |> add (Option.map (fun v -> Bool ("checked", v)) defaultChecked)
-  |> add (Option.map (fun v -> String ("value", v)) defaultValue)
-  |> add (Option.map (fun v -> String ("accessKey", v)) accessKey)
-  |> add (Option.map (fun v -> String ("class", v)) className)
-  |> add (Option.map (fun v -> Bool ("contentEditable", v)) contentEditable)
-  |> add (Option.map (fun v -> String ("contextMenu", v)) contextMenu)
-  |> add (Option.map (fun v -> String ("dir", v)) dir)
-  |> add (Option.map (fun v -> Bool ("draggable", v)) draggable)
-  |> add (Option.map (fun v -> Bool ("hidden", v)) hidden)
-  |> add (Option.map (fun v -> String ("id", v)) id)
-  |> add (Option.map (fun v -> String ("lang", v)) lang)
-  |> add (Option.map (fun v -> String ("role", v)) role)
-  |> add (Option.map (fun v -> Style (ReactDOMStyle.to_string v)) style)
-  |> add (Option.map (fun v -> Bool ("spellCheck", v)) spellCheck)
-  |> add (Option.map (fun v -> String ("tabIndex", string_of_int v)) tabIndex)
-  |> add (Option.map (fun v -> String ("title", v)) title)
-  |> add (Option.map (fun v -> String ("itemID", v)) itemID)
-  |> add (Option.map (fun v -> String ("itemProp", v)) itemProp)
-  |> add (Option.map (fun v -> String ("itemRef", v)) itemRef)
-  |> add (Option.map (fun v -> Bool ("itemScope", v)) itemScope)
-  |> add (Option.map (fun v -> String ("itemType", v)) itemType)
-  |> add (Option.map (fun v -> String ("accept", v)) accept)
-  |> add (Option.map (fun v -> String ("acceptCharset", v)) acceptCharset)
-  |> add (Option.map (fun v -> String ("action", v)) action)
-  |> add (Option.map (fun v -> Bool ("allowFullScreen", v)) allowFullScreen)
-  |> add (Option.map (fun v -> String ("alt", v)) alt)
-  |> add (Option.map (fun v -> Bool ("async", v)) async)
-  |> add (Option.map (fun v -> String ("autoComplete", v)) autoComplete)
-  |> add (Option.map (fun v -> String ("autoCapitalize", v)) autoCapitalize)
-  |> add (Option.map (fun v -> Bool ("autoFocus", v)) autoFocus)
-  |> add (Option.map (fun v -> Bool ("autoPlay", v)) autoPlay)
-  |> add (Option.map (fun v -> String ("challenge", v)) challenge)
-  |> add (Option.map (fun v -> String ("charSet", v)) charSet)
-  |> add (Option.map (fun v -> Bool ("checked", v)) checked)
-  |> add (Option.map (fun v -> String ("cite", v)) cite)
-  |> add (Option.map (fun v -> String ("crossOrigin", v)) crossOrigin)
-  |> add (Option.map (fun v -> String ("cols", string_of_int v)) cols)
-  |> add (Option.map (fun v -> String ("colSpan", string_of_int v)) colSpan)
-  |> add (Option.map (fun v -> String ("content", v)) content)
-  |> add (Option.map (fun v -> Bool ("controls", v)) controls)
-  |> add (Option.map (fun v -> String ("coords", v)) coords)
-  |> add (Option.map (fun v -> String ("data", v)) data)
-  |> add (Option.map (fun v -> String ("dateTime", v)) dateTime)
-  |> add (Option.map (fun v -> Bool ("default", v)) default)
-  |> add (Option.map (fun v -> Bool ("defer", v)) defer)
-  |> add (Option.map (fun v -> Bool ("disabled", v)) disabled)
-  |> add (Option.map (fun v -> String ("download", v)) download)
-  |> add (Option.map (fun v -> String ("encType", v)) encType)
-  |> add (Option.map (fun v -> String ("form", v)) form)
-  |> add (Option.map (fun v -> String ("formAction", v)) formAction)
-  |> add (Option.map (fun v -> String ("formTarget", v)) formTarget)
-  |> add (Option.map (fun v -> String ("formMethod", v)) formMethod)
-  |> add (Option.map (fun v -> String ("headers", v)) headers)
-  |> add (Option.map (fun v -> String ("height", v)) height)
-  |> add (Option.map (fun v -> String ("high", string_of_int v)) high)
-  |> add (Option.map (fun v -> String ("href", v)) href)
-  |> add (Option.map (fun v -> String ("hrefLang", v)) hrefLang)
-  |> add (Option.map (fun v -> String ("htmlFor", v)) htmlFor)
-  |> add (Option.map (fun v -> String ("httpEquiv", v)) httpEquiv)
-  |> add (Option.map (fun v -> String ("icon", v)) icon)
-  |> add (Option.map (fun v -> String ("inputMode", v)) inputMode)
-  |> add (Option.map (fun v -> String ("integrity", v)) integrity)
-  |> add (Option.map (fun v -> String ("keyType", v)) keyType)
-  |> add (Option.map (fun v -> String ("kind", v)) kind)
-  |> add (Option.map (fun v -> String ("label", v)) label)
-  |> add (Option.map (fun v -> String ("list", v)) list)
-  |> add (Option.map (fun v -> Bool ("loop", v)) loop)
-  |> add (Option.map (fun v -> String ("low", string_of_int v)) low)
-  |> add (Option.map (fun v -> String ("manifest", v)) manifest)
-  |> add (Option.map (fun v -> String ("max", v)) max)
-  |> add (Option.map (fun v -> String ("maxLength", string_of_int v)) maxLength)
-  |> add (Option.map (fun v -> String ("media", v)) media)
-  |> add (Option.map (fun v -> String ("mediaGroup", v)) mediaGroup)
-  |> add (Option.map (fun v -> String ("method", v)) method_)
-  |> add (Option.map (fun v -> String ("min", v)) min)
-  |> add (Option.map (fun v -> String ("minLength", string_of_int v)) minLength)
-  |> add (Option.map (fun v -> Bool ("multiple", v)) multiple)
-  |> add (Option.map (fun v -> Bool ("muted", v)) muted)
-  |> add (Option.map (fun v -> String ("name", v)) name)
-  |> add (Option.map (fun v -> String ("nonce", v)) nonce)
-  |> add (Option.map (fun v -> Bool ("noValidate", v)) noValidate)
-  |> add (Option.map (fun v -> Bool ("open", v)) open_)
-  |> add (Option.map (fun v -> String ("optimum", string_of_int v)) optimum)
-  |> add (Option.map (fun v -> String ("pattern", v)) pattern)
-  |> add (Option.map (fun v -> String ("placeholder", v)) placeholder)
-  |> add (Option.map (fun v -> Bool ("playsInline", v)) playsInline)
-  |> add (Option.map (fun v -> String ("poster", v)) poster)
-  |> add (Option.map (fun v -> String ("preload", v)) preload)
-  |> add (Option.map (fun v -> String ("radioGroup", v)) radioGroup)
-  |> add (Option.map (fun v -> Bool ("readOnly", v)) readOnly)
-  |> add (Option.map (fun v -> String ("rel", v)) rel)
-  |> add (Option.map (fun v -> Bool ("required", v)) required)
-  |> add (Option.map (fun v -> Bool ("reversed", v)) reversed)
-  |> add (Option.map (fun v -> String ("rows", string_of_int v)) rows)
-  |> add (Option.map (fun v -> String ("rowSpan", string_of_int v)) rowSpan)
-  |> add (Option.map (fun v -> String ("sandbox", v)) sandbox)
-  |> add (Option.map (fun v -> String ("scope", v)) scope)
-  |> add (Option.map (fun v -> Bool ("scoped", v)) scoped)
-  |> add (Option.map (fun v -> String ("scrolling", v)) scrolling)
-  |> add (Option.map (fun v -> Bool ("selected", v)) selected)
-  |> add (Option.map (fun v -> String ("shape", v)) shape)
-  |> add (Option.map (fun v -> String ("size", string_of_int v)) size)
-  |> add (Option.map (fun v -> String ("sizes", v)) sizes)
-  |> add (Option.map (fun v -> String ("span", string_of_int v)) span)
-  |> add (Option.map (fun v -> String ("src", v)) src)
-  |> add (Option.map (fun v -> String ("srcDoc", v)) srcDoc)
-  |> add (Option.map (fun v -> String ("srcLang", v)) srcLang)
-  |> add (Option.map (fun v -> String ("srcSet", v)) srcSet)
-  |> add (Option.map (fun v -> String ("start", string_of_int v)) start)
-  |> add (Option.map (fun v -> String ("step", string_of_float v)) step)
-  |> add (Option.map (fun v -> String ("summary", v)) summary)
-  |> add (Option.map (fun v -> String ("target", v)) target)
-  |> add (Option.map (fun v -> String ("type", v)) type_)
-  |> add (Option.map (fun v -> String ("useMap", v)) useMap)
-  |> add (Option.map (fun v -> String ("value", v)) value)
-  |> add (Option.map (fun v -> String ("width", v)) width)
-  |> add (Option.map (fun v -> String ("wrap", v)) wrap)
-  |> add (Option.map (fun v -> Event ("onCopy", Clipboard v)) onCopy)
-  |> add (Option.map (fun v -> Event ("onCut", Clipboard v)) onCut)
-  |> add (Option.map (fun v -> Event ("onPaste", Clipboard v)) onPaste)
-  |> add
-       (Option.map
-          (fun v -> Event ("onCompositionEnd", Composition v))
-          onCompositionEnd)
-  |> add
-       (Option.map
-          (fun v -> Event ("onCompositionStart", Composition v))
-          onCompositionStart)
-  |> add
-       (Option.map
-          (fun v -> Event ("onCompositionUpdate", Composition v))
-          onCompositionUpdate)
-  |> add (Option.map (fun v -> Event ("onKeyDown", Keyboard v)) onKeyDown)
-  |> add (Option.map (fun v -> Event ("onKeyPress", Keyboard v)) onKeyPress)
-  |> add (Option.map (fun v -> Event ("onKeyUp", Keyboard v)) onKeyUp)
-  |> add (Option.map (fun v -> Event ("onFocus", Focus v)) onFocus)
-  |> add (Option.map (fun v -> Event ("onBlur", Focus v)) onBlur)
-  |> add (Option.map (fun v -> Event ("onChange", Form v)) onChange)
-  |> add (Option.map (fun v -> Event ("onInput", Form v)) onInput)
-  |> add (Option.map (fun v -> Event ("onSubmit", Form v)) onSubmit)
-  |> add (Option.map (fun v -> Event ("onInvalid", Form v)) onInvalid)
-  |> add (Option.map (fun v -> Event ("onClick", Mouse v)) onClick)
-  |> add (Option.map (fun v -> Event ("onContextMenu", Mouse v)) onContextMenu)
-  |> add (Option.map (fun v -> Event ("onDoubleClick", Mouse v)) onDoubleClick)
-  |> add (Option.map (fun v -> Event ("onDrag", Mouse v)) onDrag)
-  |> add (Option.map (fun v -> Event ("onDragEnd", Mouse v)) onDragEnd)
-  |> add (Option.map (fun v -> Event ("onDragEnter", Mouse v)) onDragEnter)
-  |> add (Option.map (fun v -> Event ("onDragExit", Mouse v)) onDragExit)
-  |> add (Option.map (fun v -> Event ("onDragLeave", Mouse v)) onDragLeave)
-  |> add (Option.map (fun v -> Event ("onDragOver", Mouse v)) onDragOver)
-  |> add (Option.map (fun v -> Event ("onDragStart", Mouse v)) onDragStart)
-  |> add (Option.map (fun v -> Event ("onDrop", Mouse v)) onDrop)
-  |> add (Option.map (fun v -> Event ("onMouseDown", Mouse v)) onMouseDown)
-  |> add (Option.map (fun v -> Event ("onMouseEnter", Mouse v)) onMouseEnter)
-  |> add (Option.map (fun v -> Event ("onMouseLeave", Mouse v)) onMouseLeave)
-  |> add (Option.map (fun v -> Event ("onMouseMove", Mouse v)) onMouseMove)
-  |> add (Option.map (fun v -> Event ("onMouseOut", Mouse v)) onMouseOut)
-  |> add (Option.map (fun v -> Event ("onMouseOver", Mouse v)) onMouseOver)
-  |> add (Option.map (fun v -> Event ("onMouseUp", Mouse v)) onMouseUp)
-  |> add (Option.map (fun v -> Event ("onSelect", Selection v)) onSelect)
-  |> add (Option.map (fun v -> Event ("onTouchCancel", Touch v)) onTouchCancel)
-  |> add (Option.map (fun v -> Event ("onTouchEnd", Touch v)) onTouchEnd)
-  |> add (Option.map (fun v -> Event ("onTouchMove", Touch v)) onTouchMove)
-  |> add (Option.map (fun v -> Event ("onTouchStart", Touch v)) onTouchStart)
-  |> add
-       (Option.map (fun v -> Event ("onPointerOver", Pointer v)) onPointerOver)
-  |> add
-       (Option.map
-          (fun v -> Event ("onPointerEnter", Pointer v))
-          onPointerEnter)
-  |> add
-       (Option.map (fun v -> Event ("onPointerDown", Pointer v)) onPointerDown)
-  |> add
-       (Option.map (fun v -> Event ("onPointerMove", Pointer v)) onPointerMove)
-  |> add (Option.map (fun v -> Event ("onPointerUp", Pointer v)) onPointerUp)
-  |> add
-       (Option.map
-          (fun v -> Event ("onPointerCancel", Pointer v))
-          onPointerCancel)
-  |> add (Option.map (fun v -> Event ("onPointerOut", Pointer v)) onPointerOut)
-  |> add
-       (Option.map
-          (fun v -> Event ("onPointerLeave", Pointer v))
-          onPointerLeave)
-  |> add
-       (Option.map
-          (fun v -> Event ("onGotPointerCapture", Pointer v))
-          onGotPointerCapture)
-  |> add
-       (Option.map
-          (fun v -> Event ("onLostPointerCapture", Pointer v))
-          onLostPointerCapture)
-  |> add (Option.map (fun v -> Event ("onScroll", UI v)) onScroll)
-  |> add (Option.map (fun v -> Event ("onWheel", Wheel v)) onWheel)
-  |> add (Option.map (fun v -> Event ("onAbort", Media v)) onAbort)
-  |> add (Option.map (fun v -> Event ("onCanPlay", Media v)) onCanPlay)
-  |> add
-       (Option.map
-          (fun v -> Event ("onCanPlayThrough", Media v))
-          onCanPlayThrough)
-  |> add
-       (Option.map
-          (fun v -> Event ("onDurationChange", Media v))
-          onDurationChange)
-  |> add (Option.map (fun v -> Event ("onEmptied", Media v)) onEmptied)
-  |> add (Option.map (fun v -> Event ("onEncrypetd", Media v)) onEncrypetd)
-  |> add (Option.map (fun v -> Event ("onEnded", Media v)) onEnded)
-  |> add (Option.map (fun v -> Event ("onError", Media v)) onError)
-  |> add (Option.map (fun v -> Event ("onLoadedData", Media v)) onLoadedData)
-  |> add
-       (Option.map
-          (fun v -> Event ("onLoadedMetadata", Media v))
-          onLoadedMetadata)
-  |> add (Option.map (fun v -> Event ("onLoadStart", Media v)) onLoadStart)
-  |> add (Option.map (fun v -> Event ("onPause", Media v)) onPause)
-  |> add (Option.map (fun v -> Event ("onPlay", Media v)) onPlay)
-  |> add (Option.map (fun v -> Event ("onPlaying", Media v)) onPlaying)
-  |> add (Option.map (fun v -> Event ("onProgress", Media v)) onProgress)
-  |> add (Option.map (fun v -> Event ("onRateChange", Media v)) onRateChange)
-  |> add (Option.map (fun v -> Event ("onSeeked", Media v)) onSeeked)
-  |> add (Option.map (fun v -> Event ("onSeeking", Media v)) onSeeking)
-  |> add (Option.map (fun v -> Event ("onStalled", Media v)) onStalled)
-  |> add (Option.map (fun v -> Event ("onSuspend", Media v)) onSuspend)
-  |> add (Option.map (fun v -> Event ("onTimeUpdate", Media v)) onTimeUpdate)
-  |> add
-       (Option.map (fun v -> Event ("onVolumeChange", Media v)) onVolumeChange)
-  |> add (Option.map (fun v -> Event ("onWaiting", Media v)) onWaiting)
-  |> add
-       (Option.map
-          (fun v -> Event ("onAnimationStart", Animation v))
-          onAnimationStart)
-  |> add
-       (Option.map
-          (fun v -> Event ("onAnimationEnd", Animation v))
-          onAnimationEnd)
-  |> add
-       (Option.map
-          (fun v -> Event ("onAnimationIteration", Animation v))
-          onAnimationIteration)
-  |> add
-       (Option.map
-          (fun v -> Event ("onTransitionEnd", Transition v))
-          onTransitionEnd)
-  |> add (Option.map (fun v -> String ("accentHeight", v)) accentHeight)
-  |> add (Option.map (fun v -> String ("accumulate", v)) accumulate)
-  |> add (Option.map (fun v -> String ("additive", v)) additive)
-  |> add
-       (Option.map (fun v -> String ("alignmentBaseline", v)) alignmentBaseline)
-  |> add (Option.map (fun v -> String ("allowReorder", v)) allowReorder)
-  |> add (Option.map (fun v -> String ("alphabetic", v)) alphabetic)
-  |> add (Option.map (fun v -> String ("amplitude", v)) amplitude)
-  |> add (Option.map (fun v -> String ("arabicForm", v)) arabicForm)
-  |> add (Option.map (fun v -> String ("ascent", v)) ascent)
-  |> add (Option.map (fun v -> String ("attributeName", v)) attributeName)
-  |> add (Option.map (fun v -> String ("attributeType", v)) attributeType)
-  |> add (Option.map (fun v -> String ("autoReverse", v)) autoReverse)
-  |> add (Option.map (fun v -> String ("azimuth", v)) azimuth)
-  |> add (Option.map (fun v -> String ("baseFrequency", v)) baseFrequency)
-  |> add (Option.map (fun v -> String ("baseProfile", v)) baseProfile)
-  |> add (Option.map (fun v -> String ("baselineShift", v)) baselineShift)
-  |> add (Option.map (fun v -> String ("bbox", v)) bbox)
-  |> add (Option.map (fun v -> String ("begin", v)) begin_)
-  |> add (Option.map (fun v -> String ("bias", v)) bias)
-  |> add (Option.map (fun v -> String ("by", v)) by)
-  |> add (Option.map (fun v -> String ("calcMode", v)) calcMode)
-  |> add (Option.map (fun v -> String ("capHeight", v)) capHeight)
-  |> add (Option.map (fun v -> String ("clip", v)) clip)
-  |> add (Option.map (fun v -> String ("clipPath", v)) clipPath)
-  |> add (Option.map (fun v -> String ("clipPathUnits", v)) clipPathUnits)
-  |> add (Option.map (fun v -> String ("clipRule", v)) clipRule)
-  |> add
-       (Option.map
-          (fun v -> String ("colorInterpolation", v))
-          colorInterpolation)
-  |> add
-       (Option.map
-          (fun v -> String ("colorInterpolationFilters", v))
-          colorInterpolationFilters)
-  |> add (Option.map (fun v -> String ("colorProfile", v)) colorProfile)
-  |> add (Option.map (fun v -> String ("colorRendering", v)) colorRendering)
-  |> add
-       (Option.map (fun v -> String ("contentScriptType", v)) contentScriptType)
-  |> add (Option.map (fun v -> String ("contentStyleType", v)) contentStyleType)
-  |> add (Option.map (fun v -> String ("cursor", v)) cursor)
-  |> add (Option.map (fun v -> String ("cx", v)) cx)
-  |> add (Option.map (fun v -> String ("cy", v)) cy)
-  |> add (Option.map (fun v -> String ("d", v)) d)
-  |> add (Option.map (fun v -> String ("decelerate", v)) decelerate)
-  |> add (Option.map (fun v -> String ("descent", v)) descent)
-  |> add (Option.map (fun v -> String ("diffuseConstant", v)) diffuseConstant)
-  |> add (Option.map (fun v -> String ("direction", v)) direction)
-  |> add (Option.map (fun v -> String ("display", v)) display)
-  |> add (Option.map (fun v -> String ("divisor", v)) divisor)
-  |> add (Option.map (fun v -> String ("dominantBaseline", v)) dominantBaseline)
-  |> add (Option.map (fun v -> String ("dur", v)) dur)
-  |> add (Option.map (fun v -> String ("dx", v)) dx)
-  |> add (Option.map (fun v -> String ("dy", v)) dy)
-  |> add (Option.map (fun v -> String ("edgeMode", v)) edgeMode)
-  |> add (Option.map (fun v -> String ("elevation", v)) elevation)
-  |> add (Option.map (fun v -> String ("enableBackground", v)) enableBackground)
-  |> add (Option.map (fun v -> String ("end", v)) end_)
-  |> add (Option.map (fun v -> String ("exponent", v)) exponent)
-  |> add
-       (Option.map
-          (fun v -> String ("externalResourcesRequired", v))
-          externalResourcesRequired)
-  |> add (Option.map (fun v -> String ("fill", v)) fill)
-  |> add (Option.map (fun v -> String ("fillOpacity", v)) fillOpacity)
-  |> add (Option.map (fun v -> String ("fillRule", v)) fillRule)
-  |> add (Option.map (fun v -> String ("filter", v)) filter)
-  |> add (Option.map (fun v -> String ("filterRes", v)) filterRes)
-  |> add (Option.map (fun v -> String ("filterUnits", v)) filterUnits)
-  |> add (Option.map (fun v -> String ("floodColor", v)) floodColor)
-  |> add (Option.map (fun v -> String ("floodOpacity", v)) floodOpacity)
-  |> add (Option.map (fun v -> String ("focusable", v)) focusable)
-  |> add (Option.map (fun v -> String ("fontFamily", v)) fontFamily)
-  |> add (Option.map (fun v -> String ("fontSize", v)) fontSize)
-  |> add (Option.map (fun v -> String ("fontSizeAdjust", v)) fontSizeAdjust)
-  |> add (Option.map (fun v -> String ("fontStretch", v)) fontStretch)
-  |> add (Option.map (fun v -> String ("fontStyle", v)) fontStyle)
-  |> add (Option.map (fun v -> String ("fontVariant", v)) fontVariant)
-  |> add (Option.map (fun v -> String ("fontWeight", v)) fontWeight)
-  |> add (Option.map (fun v -> String ("fomat", v)) fomat)
-  |> add (Option.map (fun v -> String ("from", v)) from)
-  |> add (Option.map (fun v -> String ("fx", v)) fx)
-  |> add (Option.map (fun v -> String ("fy", v)) fy)
-  |> add (Option.map (fun v -> String ("g1", v)) g1)
-  |> add (Option.map (fun v -> String ("g2", v)) g2)
-  |> add (Option.map (fun v -> String ("glyphName", v)) glyphName)
-  |> add
-       (Option.map
-          (fun v -> String ("glyphOrientationHorizontal", v))
-          glyphOrientationHorizontal)
-  |> add
-       (Option.map
-          (fun v -> String ("glyphOrientationVertical", v))
-          glyphOrientationVertical)
-  |> add (Option.map (fun v -> String ("glyphRef", v)) glyphRef)
-  |> add
-       (Option.map (fun v -> String ("gradientTransform", v)) gradientTransform)
-  |> add (Option.map (fun v -> String ("gradientUnits", v)) gradientUnits)
-  |> add (Option.map (fun v -> String ("hanging", v)) hanging)
-  |> add (Option.map (fun v -> String ("horizAdvX", v)) horizAdvX)
-  |> add (Option.map (fun v -> String ("horizOriginX", v)) horizOriginX)
-  |> add (Option.map (fun v -> String ("ideographic", v)) ideographic)
-  |> add (Option.map (fun v -> String ("imageRendering", v)) imageRendering)
-  |> add (Option.map (fun v -> String ("in", v)) in_)
-  |> add (Option.map (fun v -> String ("in2", v)) in2)
-  |> add (Option.map (fun v -> String ("intercept", v)) intercept)
-  |> add (Option.map (fun v -> String ("k", v)) k)
-  |> add (Option.map (fun v -> String ("k1", v)) k1)
-  |> add (Option.map (fun v -> String ("k2", v)) k2)
-  |> add (Option.map (fun v -> String ("k3", v)) k3)
-  |> add (Option.map (fun v -> String ("k4", v)) k4)
-  |> add (Option.map (fun v -> String ("kernelMatrix", v)) kernelMatrix)
-  |> add (Option.map (fun v -> String ("kernelUnitLength", v)) kernelUnitLength)
-  |> add (Option.map (fun v -> String ("kerning", v)) kerning)
-  |> add (Option.map (fun v -> String ("keyPoints", v)) keyPoints)
-  |> add (Option.map (fun v -> String ("keySplines", v)) keySplines)
-  |> add (Option.map (fun v -> String ("keyTimes", v)) keyTimes)
-  |> add (Option.map (fun v -> String ("lengthAdjust", v)) lengthAdjust)
-  |> add (Option.map (fun v -> String ("letterSpacing", v)) letterSpacing)
-  |> add (Option.map (fun v -> String ("lightingColor", v)) lightingColor)
-  |> add
-       (Option.map (fun v -> String ("limitingConeAngle", v)) limitingConeAngle)
-  |> add (Option.map (fun v -> String ("local", v)) local)
-  |> add (Option.map (fun v -> String ("markerEnd", v)) markerEnd)
-  |> add (Option.map (fun v -> String ("markerHeight", v)) markerHeight)
-  |> add (Option.map (fun v -> String ("markerMid", v)) markerMid)
-  |> add (Option.map (fun v -> String ("markerStart", v)) markerStart)
-  |> add (Option.map (fun v -> String ("markerUnits", v)) markerUnits)
-  |> add (Option.map (fun v -> String ("markerWidth", v)) markerWidth)
-  |> add (Option.map (fun v -> String ("mask", v)) mask)
-  |> add (Option.map (fun v -> String ("maskContentUnits", v)) maskContentUnits)
-  |> add (Option.map (fun v -> String ("maskUnits", v)) maskUnits)
-  |> add (Option.map (fun v -> String ("mathematical", v)) mathematical)
-  |> add (Option.map (fun v -> String ("mode", v)) mode)
-  |> add (Option.map (fun v -> String ("numOctaves", v)) numOctaves)
-  |> add (Option.map (fun v -> String ("offset", v)) offset)
-  |> add (Option.map (fun v -> String ("opacity", v)) opacity)
-  |> add (Option.map (fun v -> String ("operator", v)) operator)
-  |> add (Option.map (fun v -> String ("order", v)) order)
-  |> add (Option.map (fun v -> String ("orient", v)) orient)
-  |> add (Option.map (fun v -> String ("orientation", v)) orientation)
-  |> add (Option.map (fun v -> String ("origin", v)) origin)
-  |> add (Option.map (fun v -> String ("overflow", v)) overflow)
-  |> add (Option.map (fun v -> String ("overflowX", v)) overflowX)
-  |> add (Option.map (fun v -> String ("overflowY", v)) overflowY)
-  |> add (Option.map (fun v -> String ("overlinePosition", v)) overlinePosition)
-  |> add
-       (Option.map (fun v -> String ("overlineThickness", v)) overlineThickness)
-  |> add (Option.map (fun v -> String ("paintOrder", v)) paintOrder)
-  |> add (Option.map (fun v -> String ("panose1", v)) panose1)
-  |> add (Option.map (fun v -> String ("pathLength", v)) pathLength)
-  |> add
-       (Option.map
-          (fun v -> String ("patternContentUnits", v))
-          patternContentUnits)
-  |> add (Option.map (fun v -> String ("patternTransform", v)) patternTransform)
-  |> add (Option.map (fun v -> String ("patternUnits", v)) patternUnits)
-  |> add (Option.map (fun v -> String ("pointerEvents", v)) pointerEvents)
-  |> add (Option.map (fun v -> String ("points", v)) points)
-  |> add (Option.map (fun v -> String ("pointsAtX", v)) pointsAtX)
-  |> add (Option.map (fun v -> String ("pointsAtY", v)) pointsAtY)
-  |> add (Option.map (fun v -> String ("pointsAtZ", v)) pointsAtZ)
-  |> add (Option.map (fun v -> String ("preserveAlpha", v)) preserveAlpha)
-  |> add
-       (Option.map
-          (fun v -> String ("preserveAspectRatio", v))
-          preserveAspectRatio)
-  |> add (Option.map (fun v -> String ("primitiveUnits", v)) primitiveUnits)
-  |> add (Option.map (fun v -> String ("r", v)) r)
-  |> add (Option.map (fun v -> String ("radius", v)) radius)
-  |> add (Option.map (fun v -> String ("refX", v)) refX)
-  |> add (Option.map (fun v -> String ("refY", v)) refY)
-  |> add (Option.map (fun v -> String ("renderingIntent", v)) renderingIntent)
-  |> add (Option.map (fun v -> String ("repeatCount", v)) repeatCount)
-  |> add (Option.map (fun v -> String ("repeatDur", v)) repeatDur)
-  |> add
-       (Option.map
-          (fun v -> String ("requiredExtensions", v))
-          requiredExtensions)
-  |> add (Option.map (fun v -> String ("requiredFeatures", v)) requiredFeatures)
-  |> add (Option.map (fun v -> String ("restart", v)) restart)
-  |> add (Option.map (fun v -> String ("result", v)) result)
-  |> add (Option.map (fun v -> String ("rotate", v)) rotate)
-  |> add (Option.map (fun v -> String ("rx", v)) rx)
-  |> add (Option.map (fun v -> String ("ry", v)) ry)
-  |> add (Option.map (fun v -> String ("scale", v)) scale)
-  |> add (Option.map (fun v -> String ("seed", v)) seed)
-  |> add (Option.map (fun v -> String ("shapeRendering", v)) shapeRendering)
-  |> add (Option.map (fun v -> String ("slope", v)) slope)
-  |> add (Option.map (fun v -> String ("spacing", v)) spacing)
-  |> add (Option.map (fun v -> String ("specularConstant", v)) specularConstant)
-  |> add (Option.map (fun v -> String ("specularExponent", v)) specularExponent)
-  |> add (Option.map (fun v -> String ("speed", v)) speed)
-  |> add (Option.map (fun v -> String ("spreadMethod", v)) spreadMethod)
-  |> add (Option.map (fun v -> String ("startOffset", v)) startOffset)
-  |> add (Option.map (fun v -> String ("stdDeviation", v)) stdDeviation)
-  |> add (Option.map (fun v -> String ("stemh", v)) stemh)
-  |> add (Option.map (fun v -> String ("stemv", v)) stemv)
-  |> add (Option.map (fun v -> String ("stitchTiles", v)) stitchTiles)
-  |> add (Option.map (fun v -> String ("stopColor", v)) stopColor)
-  |> add (Option.map (fun v -> String ("stopOpacity", v)) stopOpacity)
-  |> add
-       (Option.map
-          (fun v -> String ("strikethroughPosition", v))
-          strikethroughPosition)
-  |> add
-       (Option.map
-          (fun v -> String ("strikethroughThickness", v))
-          strikethroughThickness)
-  |> add (Option.map (fun v -> String ("stroke", v)) stroke)
-  |> add (Option.map (fun v -> String ("strokeDasharray", v)) strokeDasharray)
-  |> add (Option.map (fun v -> String ("strokeDashoffset", v)) strokeDashoffset)
-  |> add (Option.map (fun v -> String ("strokeLinecap", v)) strokeLinecap)
-  |> add (Option.map (fun v -> String ("strokeLinejoin", v)) strokeLinejoin)
-  |> add (Option.map (fun v -> String ("strokeMiterlimit", v)) strokeMiterlimit)
-  |> add (Option.map (fun v -> String ("strokeOpacity", v)) strokeOpacity)
-  |> add (Option.map (fun v -> String ("strokeWidth", v)) strokeWidth)
-  |> add (Option.map (fun v -> String ("surfaceScale", v)) surfaceScale)
-  |> add (Option.map (fun v -> String ("systemLanguage", v)) systemLanguage)
-  |> add (Option.map (fun v -> String ("tableValues", v)) tableValues)
-  |> add (Option.map (fun v -> String ("targetX", v)) targetX)
-  |> add (Option.map (fun v -> String ("targetY", v)) targetY)
-  |> add (Option.map (fun v -> String ("textAnchor", v)) textAnchor)
-  |> add (Option.map (fun v -> String ("textDecoration", v)) textDecoration)
-  |> add (Option.map (fun v -> String ("textLength", v)) textLength)
-  |> add (Option.map (fun v -> String ("textRendering", v)) textRendering)
-  |> add (Option.map (fun v -> String ("to", v)) to_)
-  |> add (Option.map (fun v -> String ("transform", v)) transform)
-  |> add (Option.map (fun v -> String ("u1", v)) u1)
-  |> add (Option.map (fun v -> String ("u2", v)) u2)
-  |> add
-       (Option.map (fun v -> String ("underlinePosition", v)) underlinePosition)
-  |> add
-       (Option.map
-          (fun v -> String ("underlineThickness", v))
-          underlineThickness)
-  |> add (Option.map (fun v -> String ("unicode", v)) unicode)
-  |> add (Option.map (fun v -> String ("unicodeBidi", v)) unicodeBidi)
-  |> add (Option.map (fun v -> String ("unicodeRange", v)) unicodeRange)
-  |> add (Option.map (fun v -> String ("unitsPerEm", v)) unitsPerEm)
-  |> add (Option.map (fun v -> String ("vAlphabetic", v)) vAlphabetic)
-  |> add (Option.map (fun v -> String ("vHanging", v)) vHanging)
-  |> add (Option.map (fun v -> String ("vIdeographic", v)) vIdeographic)
-  |> add (Option.map (fun v -> String ("vMathematical", v)) vMathematical)
-  |> add (Option.map (fun v -> String ("values", v)) values)
-  |> add (Option.map (fun v -> String ("vectorEffect", v)) vectorEffect)
-  |> add (Option.map (fun v -> String ("version", v)) version)
-  |> add (Option.map (fun v -> String ("vertAdvX", v)) vertAdvX)
-  |> add (Option.map (fun v -> String ("vertAdvY", v)) vertAdvY)
-  |> add (Option.map (fun v -> String ("vertOriginX", v)) vertOriginX)
-  |> add (Option.map (fun v -> String ("vertOriginY", v)) vertOriginY)
-  |> add (Option.map (fun v -> String ("viewBox", v)) viewBox)
-  |> add (Option.map (fun v -> String ("viewTarget", v)) viewTarget)
-  |> add (Option.map (fun v -> String ("visibility", v)) visibility)
-  |> add (Option.map (fun v -> String ("widths", v)) widths)
-  |> add (Option.map (fun v -> String ("wordSpacing", v)) wordSpacing)
-  |> add (Option.map (fun v -> String ("writingMode", v)) writingMode)
-  |> add (Option.map (fun v -> String ("x", v)) x)
-  |> add (Option.map (fun v -> String ("x1", v)) x1)
-  |> add (Option.map (fun v -> String ("x2", v)) x2)
-  |> add (Option.map (fun v -> String ("xChannelSelector", v)) xChannelSelector)
-  |> add (Option.map (fun v -> String ("xHeight", v)) xHeight)
-  |> add (Option.map (fun v -> String ("xlinkActuate", v)) xlinkActuate)
-  |> add (Option.map (fun v -> String ("xlinkArcrole", v)) xlinkArcrole)
-  |> add (Option.map (fun v -> String ("xlinkHref", v)) xlinkHref)
-  |> add (Option.map (fun v -> String ("xlinkRole", v)) xlinkRole)
-  |> add (Option.map (fun v -> String ("xlinkShow", v)) xlinkShow)
-  |> add (Option.map (fun v -> String ("xlinkTitle", v)) xlinkTitle)
-  |> add (Option.map (fun v -> String ("xlinkType", v)) xlinkType)
-  |> add (Option.map (fun v -> String ("xmlns", v)) xmlns)
-  |> add (Option.map (fun v -> String ("xmlnsXlink", v)) xmlnsXlink)
-  |> add (Option.map (fun v -> String ("xmlBase", v)) xmlBase)
-  |> add (Option.map (fun v -> String ("xmlLang", v)) xmlLang)
-  |> add (Option.map (fun v -> String ("xmlSpace", v)) xmlSpace)
-  |> add (Option.map (fun v -> String ("y", v)) y)
-  |> add (Option.map (fun v -> String ("y1", v)) y1)
-  |> add (Option.map (fun v -> String ("y2", v)) y2)
-  |> add (Option.map (fun v -> String ("yChannelSelector", v)) yChannelSelector)
-  |> add (Option.map (fun v -> String ("z", v)) z)
-  |> add (Option.map (fun v -> String ("zoomAndPan", v)) zoomAndPan)
-  |> add (Option.map (fun v -> String ("about", v)) about)
-  |> add (Option.map (fun v -> String ("datatype", v)) datatype)
-  |> add (Option.map (fun v -> String ("inlist", v)) inlist)
-  |> add (Option.map (fun v -> String ("prefix", v)) prefix)
-  |> add (Option.map (fun v -> String ("property", v)) property)
-  |> add (Option.map (fun v -> String ("resource", v)) resource)
-  |> add (Option.map (fun v -> String ("typeof", v)) typeof)
-  |> add (Option.map (fun v -> String ("vocab", v)) vocab)
-  |> add
-       (Option.map
-          (fun v -> DangerouslyInnerHtml v.__html)
-          dangerouslySetInnerHTML)
-  |> add
-       (Option.map
-          (fun v -> Bool ("suppressContentEditableWarning", v))
-          suppressContentEditableWarning)
-  |> add
-       (Option.map
-          (fun v -> Bool ("suppressHydrationWarning", v))
-          suppressHydrationWarning)
+  |> add (JSX.string "key") key
+  |> add JSX.ref ref
+  |> add (JSX.string "aria-details") ariaDetails
+  |> add (JSX.bool "aria-disabled") ariaDisabled
+  |> add (JSX.bool "aria-hidden") ariaHidden
+  |> add (JSX.string "aria-keyshortcuts") ariaKeyshortcuts
+  |> add (JSX.string "aria-label") ariaLabel
+  |> add (JSX.string "aria-roledescription") ariaRoledescription
+  |> add (JSX.bool "aria-expanded") ariaExpanded
+  |> add (JSX.int "aria-level") ariaLevel
+  |> add (JSX.bool "aria-modal") ariaModal
+  |> add (JSX.bool "aria-multiline") ariaMultiline
+  |> add (JSX.bool "aria-multiselectable") ariaMultiselectable
+  |> add (JSX.string "aria-placeholder") ariaPlaceholder
+  |> add (JSX.bool "aria-readonly") ariaReadonly
+  |> add (JSX.bool "aria-required") ariaRequired
+  |> add (JSX.bool "aria-selected") ariaSelected
+  |> add (JSX.string "aria-sort") ariaSort
+  |> add (JSX.float "aria-valuemax") ariaValuemax
+  |> add (JSX.float "aria-valuemin") ariaValuemin
+  |> add (JSX.float "aria-valuenow") ariaValuenow
+  |> add (JSX.string "aria-valuetext") ariaValuetext
+  |> add (JSX.bool "aria-atomic") ariaAtomic
+  |> add (JSX.bool "aria-busy") ariaBusy
+  |> add (JSX.string "aria-relevant") ariaRelevant
+  |> add (JSX.bool "aria-grabbed") ariaGrabbed
+  |> add (JSX.string "aria-activedescendant") ariaActivedescendant
+  |> add (JSX.int "aria-colcount") ariaColcount
+  |> add (JSX.int "aria-colindex") ariaColindex
+  |> add (JSX.int "aria-colspan") ariaColspan
+  |> add (JSX.string "aria-controls") ariaControls
+  |> add (JSX.string "aria-describedby") ariaDescribedby
+  |> add (JSX.string "aria-errormessage") ariaErrormessage
+  |> add (JSX.string "aria-flowto") ariaFlowto
+  |> add (JSX.string "aria-labelledby") ariaLabelledby
+  |> add (JSX.string "aria-owns") ariaOwns
+  |> add (JSX.int "aria-posinset") ariaPosinset
+  |> add (JSX.int "aria-rowcount") ariaRowcount
+  |> add (JSX.int "aria-rowindex") ariaRowindex
+  |> add (JSX.int "aria-rowspan") ariaRowspan
+  |> add (JSX.int "aria-setsize") ariaSetsize
+  |> add (JSX.bool "checked") defaultChecked
+  |> add (JSX.string "value") defaultValue
+  |> add (JSX.string "accessKey") accessKey
+  |> add (JSX.string "class") className
+  |> add (JSX.bool "contentEditable") contentEditable
+  |> add (JSX.string "contextMenu") contextMenu
+  |> add (JSX.string "dir") dir
+  |> add (JSX.bool "draggable") draggable
+  |> add (JSX.bool "hidden") hidden
+  |> add (JSX.string "id") id
+  |> add (JSX.string "lang") lang
+  |> add (JSX.string "role") role
+  |> add (fun v -> JSX.style (ReactDOMStyle.to_string v)) style
+  |> add (JSX.bool "spellCheck") spellCheck
+  |> add (JSX.int "tabIndex") tabIndex
+  |> add (JSX.string "title") title
+  |> add (JSX.string "itemID") itemID
+  |> add (JSX.string "itemProp") itemProp
+  |> add (JSX.string "itemRef") itemRef
+  |> add (JSX.bool "itemScope") itemScope
+  |> add (JSX.string "itemType") itemType
+  |> add (JSX.string "accept") accept
+  |> add (JSX.string "acceptCharset") acceptCharset
+  |> add (JSX.string "action") action
+  |> add (JSX.bool "allowFullScreen") allowFullScreen
+  |> add (JSX.string "alt") alt
+  |> add (JSX.bool "async") async
+  |> add (JSX.string "autoComplete") autoComplete
+  |> add (JSX.string "autoCapitalize") autoCapitalize
+  |> add (JSX.bool "autoFocus") autoFocus
+  |> add (JSX.bool "autoPlay") autoPlay
+  |> add (JSX.string "challenge") challenge
+  |> add (JSX.string "charSet") charSet
+  |> add (JSX.bool "checked") checked
+  |> add (JSX.string "cite") cite
+  |> add (JSX.string "crossOrigin") crossOrigin
+  |> add (JSX.int "cols") cols
+  |> add (JSX.int "colSpan") colSpan
+  |> add (JSX.string "content") content
+  |> add (JSX.bool "controls") controls
+  |> add (JSX.string "coords") coords
+  |> add (JSX.string "data") data
+  |> add (JSX.string "dateTime") dateTime
+  |> add (JSX.bool "default") default
+  |> add (JSX.bool "defer") defer
+  |> add (JSX.bool "disabled") disabled
+  |> add (JSX.string "download") download
+  |> add (JSX.string "encType") encType
+  |> add (JSX.string "form") form
+  |> add (JSX.string "formAction") formAction
+  |> add (JSX.string "formTarget") formTarget
+  |> add (JSX.string "formMethod") formMethod
+  |> add (JSX.string "headers") headers
+  |> add (JSX.string "height") height
+  |> add (JSX.int "high") high
+  |> add (JSX.string "href") href
+  |> add (JSX.string "hrefLang") hrefLang
+  |> add (JSX.string "htmlFor") htmlFor
+  |> add (JSX.string "httpEquiv") httpEquiv
+  |> add (JSX.string "icon") icon
+  |> add (JSX.string "inputMode") inputMode
+  |> add (JSX.string "integrity") integrity
+  |> add (JSX.string "keyType") keyType
+  |> add (JSX.string "kind") kind
+  |> add (JSX.string "label") label
+  |> add (JSX.string "list") list
+  |> add (JSX.bool "loop") loop
+  |> add (JSX.int "low") low
+  |> add (JSX.string "manifest") manifest
+  |> add (JSX.string "max") max
+  |> add (JSX.int "maxLength") maxLength
+  |> add (JSX.string "media") media
+  |> add (JSX.string "mediaGroup") mediaGroup
+  |> add (JSX.string "method") method_
+  |> add (JSX.string "min") min
+  |> add (JSX.int "minLength") minLength
+  |> add (JSX.bool "multiple") multiple
+  |> add (JSX.bool "muted") muted
+  |> add (JSX.string "name") name
+  |> add (JSX.string "nonce") nonce
+  |> add (JSX.bool "noValidate") noValidate
+  |> add (JSX.bool "open") open_
+  |> add (JSX.int "optimum") optimum
+  |> add (JSX.string "pattern") pattern
+  |> add (JSX.string "placeholder") placeholder
+  |> add (JSX.bool "playsInline") playsInline
+  |> add (JSX.string "poster") poster
+  |> add (JSX.string "preload") preload
+  |> add (JSX.string "radioGroup") radioGroup
+  |> add (JSX.bool "readOnly") readOnly
+  |> add (JSX.string "rel") rel
+  |> add (JSX.bool "required") required
+  |> add (JSX.bool "reversed") reversed
+  |> add (JSX.int "rows") rows
+  |> add (JSX.int "rowSpan") rowSpan
+  |> add (JSX.string "sandbox") sandbox
+  |> add (JSX.string "scope") scope
+  |> add (JSX.bool "scoped") scoped
+  |> add (JSX.string "scrolling") scrolling
+  |> add (JSX.bool "selected") selected
+  |> add (JSX.string "shape") shape
+  |> add (JSX.int "size") size
+  |> add (JSX.string "sizes") sizes
+  |> add (JSX.int "span") span
+  |> add (JSX.string "src") src
+  |> add (JSX.string "srcDoc") srcDoc
+  |> add (JSX.string "srcLang") srcLang
+  |> add (JSX.string "srcSet") srcSet
+  |> add (JSX.int "start") start
+  |> add (JSX.float "step") step
+  |> add (JSX.string "summary") summary
+  |> add (JSX.string "target") target
+  |> add (JSX.string "type") type_
+  |> add (JSX.string "useMap") useMap
+  |> add (JSX.string "value") value
+  |> add (JSX.string "width") width
+  |> add (JSX.string "wrap") wrap
+  |> add (JSX.Event.clipboard "onCopy") onCopy
+  |> add (JSX.Event.clipboard "onCut") onCut
+  |> add (JSX.Event.clipboard "onPaste") onPaste
+  |> add (JSX.Event.composition "onCompositionEnd") onCompositionEnd
+  |> add (JSX.Event.composition "onCompositionStart") onCompositionStart
+  |> add (JSX.Event.composition "onCompositionUpdate") onCompositionUpdate
+  |> add (JSX.Event.keyboard "onKeyDown") onKeyDown
+  |> add (JSX.Event.keyboard "onKeyPress") onKeyPress
+  |> add (JSX.Event.keyboard "onKeyUp") onKeyUp
+  |> add (JSX.Event.focus "onFocus") onFocus
+  |> add (JSX.Event.focus "onBlur") onBlur
+  |> add (JSX.Event.form "onChange") onChange
+  |> add (JSX.Event.form "onInput") onInput
+  |> add (JSX.Event.form "onSubmit") onSubmit
+  |> add (JSX.Event.form "onInvalid") onInvalid
+  |> add (JSX.Event.mouse "onClick") onClick
+  |> add (JSX.Event.mouse "onContextMenu") onContextMenu
+  |> add (JSX.Event.mouse "onDoubleClick") onDoubleClick
+  |> add (JSX.Event.mouse "onDrag") onDrag
+  |> add (JSX.Event.mouse "onDragEnd") onDragEnd
+  |> add (JSX.Event.mouse "onDragEnter") onDragEnter
+  |> add (JSX.Event.mouse "onDragExit") onDragExit
+  |> add (JSX.Event.mouse "onDragLeave") onDragLeave
+  |> add (JSX.Event.mouse "onDragOver") onDragOver
+  |> add (JSX.Event.mouse "onDragStart") onDragStart
+  |> add (JSX.Event.mouse "onDrop") onDrop
+  |> add (JSX.Event.mouse "onMouseDown") onMouseDown
+  |> add (JSX.Event.mouse "onMouseEnter") onMouseEnter
+  |> add (JSX.Event.mouse "onMouseLeave") onMouseLeave
+  |> add (JSX.Event.mouse "onMouseMove") onMouseMove
+  |> add (JSX.Event.mouse "onMouseOut") onMouseOut
+  |> add (JSX.Event.mouse "onMouseOver") onMouseOver
+  |> add (JSX.Event.mouse "onMouseUp") onMouseUp
+  |> add (JSX.Event.selection "onSelect") onSelect
+  |> add (JSX.Event.touch "onTouchCancel") onTouchCancel
+  |> add (JSX.Event.touch "onTouchEnd") onTouchEnd
+  |> add (JSX.Event.touch "onTouchMove") onTouchMove
+  |> add (JSX.Event.touch "onTouchStart") onTouchStart
+  |> add (JSX.Event.pointer "onPointerOver") onPointerOver
+  |> add (JSX.Event.pointer "onPointerEnter") onPointerEnter
+  |> add (JSX.Event.pointer "onPointerDown") onPointerDown
+  |> add (JSX.Event.pointer "onPointerMove") onPointerMove
+  |> add (JSX.Event.pointer "onPointerUp") onPointerUp
+  |> add (JSX.Event.pointer "onPointerCancel") onPointerCancel
+  |> add (JSX.Event.pointer "onPointerOut") onPointerOut
+  |> add (JSX.Event.pointer "onPointerLeave") onPointerLeave
+  |> add (JSX.Event.pointer "onGotPointerCapture") onGotPointerCapture
+  |> add (JSX.Event.pointer "onLostPointerCapture") onLostPointerCapture
+  |> add (JSX.Event.ui "onScroll") onScroll
+  |> add (JSX.Event.wheel "onWheel") onWheel
+  |> add (JSX.Event.media "onAbort") onAbort
+  |> add (JSX.Event.media "onCanPlay") onCanPlay
+  |> add (JSX.Event.media "onCanPlayThrough") onCanPlayThrough
+  |> add (JSX.Event.media "onDurationChange") onDurationChange
+  |> add (JSX.Event.media "onEmptied") onEmptied
+  |> add (JSX.Event.media "onEncrypetd") onEncrypetd
+  |> add (JSX.Event.media "onEnded") onEnded
+  |> add (JSX.Event.media "onError") onError
+  |> add (JSX.Event.media "onLoadedData") onLoadedData
+  |> add (JSX.Event.media "onLoadedMetadata") onLoadedMetadata
+  |> add (JSX.Event.media "onLoadStart") onLoadStart
+  |> add (JSX.Event.media "onPause") onPause
+  |> add (JSX.Event.media "onPlay") onPlay
+  |> add (JSX.Event.media "onPlaying") onPlaying
+  |> add (JSX.Event.media "onProgress") onProgress
+  |> add (JSX.Event.media "onRateChange") onRateChange
+  |> add (JSX.Event.media "onSeeked") onSeeked
+  |> add (JSX.Event.media "onSeeking") onSeeking
+  |> add (JSX.Event.media "onStalled") onStalled
+  |> add (JSX.Event.media "onSuspend") onSuspend
+  |> add (JSX.Event.media "onTimeUpdate") onTimeUpdate
+  |> add (JSX.Event.media "onVolumeChange") onVolumeChange
+  |> add (JSX.Event.media "onWaiting") onWaiting
+  |> add (JSX.Event.animation "onAnimationStart") onAnimationStart
+  |> add (JSX.Event.animation "onAnimationEnd") onAnimationEnd
+  |> add (JSX.Event.animation "onAnimationIteration") onAnimationIteration
+  |> add (JSX.Event.transition "onTransitionEnd") onTransitionEnd
+  |> add (JSX.string "accentHeight") accentHeight
+  |> add (JSX.string "accumulate") accumulate
+  |> add (JSX.string "additive") additive
+  |> add (JSX.string "alignmentBaseline") alignmentBaseline
+  |> add (JSX.string "allowReorder") allowReorder
+  |> add (JSX.string "alphabetic") alphabetic
+  |> add (JSX.string "amplitude") amplitude
+  |> add (JSX.string "arabicForm") arabicForm
+  |> add (JSX.string "ascent") ascent
+  |> add (JSX.string "attributeName") attributeName
+  |> add (JSX.string "attributeType") attributeType
+  |> add (JSX.string "autoReverse") autoReverse
+  |> add (JSX.string "azimuth") azimuth
+  |> add (JSX.string "baseFrequency") baseFrequency
+  |> add (JSX.string "baseProfile") baseProfile
+  |> add (JSX.string "baselineShift") baselineShift
+  |> add (JSX.string "bbox") bbox
+  |> add (JSX.string "begin") begin_
+  |> add (JSX.string "bias") bias
+  |> add (JSX.string "by") by
+  |> add (JSX.string "calcMode") calcMode
+  |> add (JSX.string "capHeight") capHeight
+  |> add (JSX.string "clip") clip
+  |> add (JSX.string "clipPath") clipPath
+  |> add (JSX.string "clipPathUnits") clipPathUnits
+  |> add (JSX.string "clipRule") clipRule
+  |> add (JSX.string "colorInterpolation") colorInterpolation
+  |> add (JSX.string "colorInterpolationFilters") colorInterpolationFilters
+  |> add (JSX.string "colorProfile") colorProfile
+  |> add (JSX.string "colorRendering") colorRendering
+  |> add (JSX.string "contentScriptType") contentScriptType
+  |> add (JSX.string "contentStyleType") contentStyleType
+  |> add (JSX.string "cursor") cursor
+  |> add (JSX.string "cx") cx
+  |> add (JSX.string "cy") cy
+  |> add (JSX.string "d") d
+  |> add (JSX.string "decelerate") decelerate
+  |> add (JSX.string "descent") descent
+  |> add (JSX.string "diffuseConstant") diffuseConstant
+  |> add (JSX.string "direction") direction
+  |> add (JSX.string "display") display
+  |> add (JSX.string "divisor") divisor
+  |> add (JSX.string "dominantBaseline") dominantBaseline
+  |> add (JSX.string "dur") dur
+  |> add (JSX.string "dx") dx
+  |> add (JSX.string "dy") dy
+  |> add (JSX.string "edgeMode") edgeMode
+  |> add (JSX.string "elevation") elevation
+  |> add (JSX.string "enableBackground") enableBackground
+  |> add (JSX.string "end") end_
+  |> add (JSX.string "exponent") exponent
+  |> add (JSX.string "externalResourcesRequired") externalResourcesRequired
+  |> add (JSX.string "fill") fill
+  |> add (JSX.string "fillOpacity") fillOpacity
+  |> add (JSX.string "fillRule") fillRule
+  |> add (JSX.string "filter") filter
+  |> add (JSX.string "filterRes") filterRes
+  |> add (JSX.string "filterUnits") filterUnits
+  |> add (JSX.string "floodColor") floodColor
+  |> add (JSX.string "floodOpacity") floodOpacity
+  |> add (JSX.string "focusable") focusable
+  |> add (JSX.string "fontFamily") fontFamily
+  |> add (JSX.string "fontSize") fontSize
+  |> add (JSX.string "fontSizeAdjust") fontSizeAdjust
+  |> add (JSX.string "fontStretch") fontStretch
+  |> add (JSX.string "fontStyle") fontStyle
+  |> add (JSX.string "fontVariant") fontVariant
+  |> add (JSX.string "fontWeight") fontWeight
+  |> add (JSX.string "fomat") fomat
+  |> add (JSX.string "from") from
+  |> add (JSX.string "fx") fx
+  |> add (JSX.string "fy") fy
+  |> add (JSX.string "g1") g1
+  |> add (JSX.string "g2") g2
+  |> add (JSX.string "glyphName") glyphName
+  |> add (JSX.string "glyphOrientationHorizontal") glyphOrientationHorizontal
+  |> add (JSX.string "glyphOrientationVertical") glyphOrientationVertical
+  |> add (JSX.string "glyphRef") glyphRef
+  |> add (JSX.string "gradientTransform") gradientTransform
+  |> add (JSX.string "gradientUnits") gradientUnits
+  |> add (JSX.string "hanging") hanging
+  |> add (JSX.string "horizAdvX") horizAdvX
+  |> add (JSX.string "horizOriginX") horizOriginX
+  |> add (JSX.string "ideographic") ideographic
+  |> add (JSX.string "imageRendering") imageRendering
+  |> add (JSX.string "in") in_
+  |> add (JSX.string "in2") in2
+  |> add (JSX.string "intercept") intercept
+  |> add (JSX.string "k") k
+  |> add (JSX.string "k1") k1
+  |> add (JSX.string "k2") k2
+  |> add (JSX.string "k3") k3
+  |> add (JSX.string "k4") k4
+  |> add (JSX.string "kernelMatrix") kernelMatrix
+  |> add (JSX.string "kernelUnitLength") kernelUnitLength
+  |> add (JSX.string "kerning") kerning
+  |> add (JSX.string "keyPoints") keyPoints
+  |> add (JSX.string "keySplines") keySplines
+  |> add (JSX.string "keyTimes") keyTimes
+  |> add (JSX.string "lengthAdjust") lengthAdjust
+  |> add (JSX.string "letterSpacing") letterSpacing
+  |> add (JSX.string "lightingColor") lightingColor
+  |> add (JSX.string "limitingConeAngle") limitingConeAngle
+  |> add (JSX.string "local") local
+  |> add (JSX.string "markerEnd") markerEnd
+  |> add (JSX.string "markerHeight") markerHeight
+  |> add (JSX.string "markerMid") markerMid
+  |> add (JSX.string "markerStart") markerStart
+  |> add (JSX.string "markerUnits") markerUnits
+  |> add (JSX.string "markerWidth") markerWidth
+  |> add (JSX.string "mask") mask
+  |> add (JSX.string "maskContentUnits") maskContentUnits
+  |> add (JSX.string "maskUnits") maskUnits
+  |> add (JSX.string "mathematical") mathematical
+  |> add (JSX.string "mode") mode
+  |> add (JSX.string "numOctaves") numOctaves
+  |> add (JSX.string "offset") offset
+  |> add (JSX.string "opacity") opacity
+  |> add (JSX.string "operator") operator
+  |> add (JSX.string "order") order
+  |> add (JSX.string "orient") orient
+  |> add (JSX.string "orientation") orientation
+  |> add (JSX.string "origin") origin
+  |> add (JSX.string "overflow") overflow
+  |> add (JSX.string "overflowX") overflowX
+  |> add (JSX.string "overflowY") overflowY
+  |> add (JSX.string "overlinePosition") overlinePosition
+  |> add (JSX.string "overlineThickness") overlineThickness
+  |> add (JSX.string "paintOrder") paintOrder
+  |> add (JSX.string "panose1") panose1
+  |> add (JSX.string "pathLength") pathLength
+  |> add (JSX.string "patternContentUnits") patternContentUnits
+  |> add (JSX.string "patternTransform") patternTransform
+  |> add (JSX.string "patternUnits") patternUnits
+  |> add (JSX.string "pointerEvents") pointerEvents
+  |> add (JSX.string "points") points
+  |> add (JSX.string "pointsAtX") pointsAtX
+  |> add (JSX.string "pointsAtY") pointsAtY
+  |> add (JSX.string "pointsAtZ") pointsAtZ
+  |> add (JSX.string "preserveAlpha") preserveAlpha
+  |> add (JSX.string "preserveAspectRatio") preserveAspectRatio
+  |> add (JSX.string "primitiveUnits") primitiveUnits
+  |> add (JSX.string "r") r
+  |> add (JSX.string "radius") radius
+  |> add (JSX.string "refX") refX
+  |> add (JSX.string "refY") refY
+  |> add (JSX.string "renderingIntent") renderingIntent
+  |> add (JSX.string "repeatCount") repeatCount
+  |> add (JSX.string "repeatDur") repeatDur
+  |> add (JSX.string "requiredExtensions") requiredExtensions
+  |> add (JSX.string "requiredFeatures") requiredFeatures
+  |> add (JSX.string "restart") restart
+  |> add (JSX.string "result") result
+  |> add (JSX.string "rotate") rotate
+  |> add (JSX.string "rx") rx
+  |> add (JSX.string "ry") ry
+  |> add (JSX.string "scale") scale
+  |> add (JSX.string "seed") seed
+  |> add (JSX.string "shapeRendering") shapeRendering
+  |> add (JSX.string "slope") slope
+  |> add (JSX.string "spacing") spacing
+  |> add (JSX.string "specularConstant") specularConstant
+  |> add (JSX.string "specularExponent") specularExponent
+  |> add (JSX.string "speed") speed
+  |> add (JSX.string "spreadMethod") spreadMethod
+  |> add (JSX.string "startOffset") startOffset
+  |> add (JSX.string "stdDeviation") stdDeviation
+  |> add (JSX.string "stemh") stemh
+  |> add (JSX.string "stemv") stemv
+  |> add (JSX.string "stitchTiles") stitchTiles
+  |> add (JSX.string "stopColor") stopColor
+  |> add (JSX.string "stopOpacity") stopOpacity
+  |> add (JSX.string "strikethroughPosition") strikethroughPosition
+  |> add (JSX.string "strikethroughThickness") strikethroughThickness
+  |> add (JSX.string "stroke") stroke
+  |> add (JSX.string "strokeDasharray") strokeDasharray
+  |> add (JSX.string "strokeDashoffset") strokeDashoffset
+  |> add (JSX.string "strokeLinecap") strokeLinecap
+  |> add (JSX.string "strokeLinejoin") strokeLinejoin
+  |> add (JSX.string "strokeMiterlimit") strokeMiterlimit
+  |> add (JSX.string "strokeOpacity") strokeOpacity
+  |> add (JSX.string "strokeWidth") strokeWidth
+  |> add (JSX.string "surfaceScale") surfaceScale
+  |> add (JSX.string "systemLanguage") systemLanguage
+  |> add (JSX.string "tableValues") tableValues
+  |> add (JSX.string "targetX") targetX
+  |> add (JSX.string "targetY") targetY
+  |> add (JSX.string "textAnchor") textAnchor
+  |> add (JSX.string "textDecoration") textDecoration
+  |> add (JSX.string "textLength") textLength
+  |> add (JSX.string "textRendering") textRendering
+  |> add (JSX.string "to") to_
+  |> add (JSX.string "transform") transform
+  |> add (JSX.string "u1") u1
+  |> add (JSX.string "u2") u2
+  |> add (JSX.string "underlinePosition") underlinePosition
+  |> add (JSX.string "underlineThickness") underlineThickness
+  |> add (JSX.string "unicode") unicode
+  |> add (JSX.string "unicodeBidi") unicodeBidi
+  |> add (JSX.string "unicodeRange") unicodeRange
+  |> add (JSX.string "unitsPerEm") unitsPerEm
+  |> add (JSX.string "vAlphabetic") vAlphabetic
+  |> add (JSX.string "vHanging") vHanging
+  |> add (JSX.string "vIdeographic") vIdeographic
+  |> add (JSX.string "vMathematical") vMathematical
+  |> add (JSX.string "values") values
+  |> add (JSX.string "vectorEffect") vectorEffect
+  |> add (JSX.string "version") version
+  |> add (JSX.string "vertAdvX") vertAdvX
+  |> add (JSX.string "vertAdvY") vertAdvY
+  |> add (JSX.string "vertOriginX") vertOriginX
+  |> add (JSX.string "vertOriginY") vertOriginY
+  |> add (JSX.string "viewBox") viewBox
+  |> add (JSX.string "viewTarget") viewTarget
+  |> add (JSX.string "visibility") visibility
+  |> add (JSX.string "widths") widths
+  |> add (JSX.string "wordSpacing") wordSpacing
+  |> add (JSX.string "writingMode") writingMode
+  |> add (JSX.string "x") x
+  |> add (JSX.string "x1") x1
+  |> add (JSX.string "x2") x2
+  |> add (JSX.string "xChannelSelector") xChannelSelector
+  |> add (JSX.string "xHeight") xHeight
+  |> add (JSX.string "xlinkActuate") xlinkActuate
+  |> add (JSX.string "xlinkArcrole") xlinkArcrole
+  |> add (JSX.string "xlinkHref") xlinkHref
+  |> add (JSX.string "xlinkRole") xlinkRole
+  |> add (JSX.string "xlinkShow") xlinkShow
+  |> add (JSX.string "xlinkTitle") xlinkTitle
+  |> add (JSX.string "xlinkType") xlinkType
+  |> add (JSX.string "xmlns") xmlns
+  |> add (JSX.string "xmlnsXlink") xmlnsXlink
+  |> add (JSX.string "xmlBase") xmlBase
+  |> add (JSX.string "xmlLang") xmlLang
+  |> add (JSX.string "xmlSpace") xmlSpace
+  |> add (JSX.string "y") y
+  |> add (JSX.string "y1") y1
+  |> add (JSX.string "y2") y2
+  |> add (JSX.string "yChannelSelector") yChannelSelector
+  |> add (JSX.string "z") z
+  |> add (JSX.string "zoomAndPan") zoomAndPan
+  |> add (JSX.string "about") about
+  |> add (JSX.string "datatype") datatype
+  |> add (JSX.string "inlist") inlist
+  |> add (JSX.string "prefix") prefix
+  |> add (JSX.string "property") property
+  |> add (JSX.string "resource") resource
+  |> add (JSX.string "typeof") typeof
+  |> add (JSX.string "vocab") vocab
+  |> add (fun v -> JSX.dangerouslyInnerHtml v.__html) dangerouslySetInnerHTML
+  |> add (JSX.bool "suppressContentEditableWarning") suppressContentEditableWarning
+  |> add (JSX.bool "suppressHydrationWarning") suppressHydrationWarning
   |> Array.of_list
 
 module Ref = React.Ref
