@@ -4,11 +4,11 @@ let assert_styles styles str =
 
 let two_styles () =
   let styles = ReactDOM.Style.make ~background:"#333" ~fontSize:"24px" () in
-  assert_styles styles "background: #333; font-size: 24px"
+  assert_styles styles "background:#333;font-size:24px"
 
 let one_styles () =
   let styles = ReactDOM.Style.make ~background:"#333" () in
-  assert_styles styles "background: #333"
+  assert_styles styles "background:#333"
 
 let zero_styles () =
   let styles = ReactDOM.Style.make () in
@@ -20,13 +20,13 @@ let unsafe_add_prop () =
       (ReactDOM.Style.make ~background:"#333" ())
       "colorScheme" "dark"
   in
-  assert_styles styles "background: #333; color-scheme: dark"
+  assert_styles styles "background:#333;color-scheme:dark"
 
 let style_order_matters () =
   let styles =
     ReactDOM.Style.make ~lineBreak:"100px" ~overflowWrap:"break-word" ()
   in
-  assert_styles styles "line-break: 100px; overflow-wrap: break-word"
+  assert_styles styles "line-break:100px;overflow-wrap:break-word"
 
 let case title fn = Alcotest_lwt.test_case_sync title `Quick fn
 
