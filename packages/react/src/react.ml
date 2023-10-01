@@ -20,25 +20,23 @@ let useRef value = { current = value }
 let forwardRef f = f ()
 
 module JSX = struct
-  module Event = struct
-    type t =
-      | Drag of (ReactEvent.Drag.t -> unit)
-      | Mouse of (ReactEvent.Mouse.t -> unit)
-      | Selection of (ReactEvent.Selection.t -> unit)
-      | Touch of (ReactEvent.Touch.t -> unit)
-      | UI of (ReactEvent.UI.t -> unit)
-      | Wheel of (ReactEvent.Wheel.t -> unit)
-      | Clipboard of (ReactEvent.Clipboard.t -> unit)
-      | Composition of (ReactEvent.Composition.t -> unit)
-      | Transition of (ReactEvent.Transition.t -> unit)
-      | Animation of (ReactEvent.Animation.t -> unit)
-      | Pointer of (ReactEvent.Pointer.t -> unit)
-      | Keyboard of (ReactEvent.Keyboard.t -> unit)
-      | Focus of (ReactEvent.Focus.t -> unit)
-      | Form of (ReactEvent.Form.t -> unit)
-      | Media of (ReactEvent.Media.t -> unit)
-      | Inline of string
-  end
+  type event =
+    | Drag of (ReactEvent.Drag.t -> unit)
+    | Mouse of (ReactEvent.Mouse.t -> unit)
+    | Selection of (ReactEvent.Selection.t -> unit)
+    | Touch of (ReactEvent.Touch.t -> unit)
+    | UI of (ReactEvent.UI.t -> unit)
+    | Wheel of (ReactEvent.Wheel.t -> unit)
+    | Clipboard of (ReactEvent.Clipboard.t -> unit)
+    | Composition of (ReactEvent.Composition.t -> unit)
+    | Transition of (ReactEvent.Transition.t -> unit)
+    | Animation of (ReactEvent.Animation.t -> unit)
+    | Pointer of (ReactEvent.Pointer.t -> unit)
+    | Keyboard of (ReactEvent.Keyboard.t -> unit)
+    | Focus of (ReactEvent.Focus.t -> unit)
+    | Form of (ReactEvent.Form.t -> unit)
+    | Media of (ReactEvent.Media.t -> unit)
+    | Inline of string
 
   type prop =
     | Bool of (string * bool)
@@ -46,7 +44,34 @@ module JSX = struct
     | Style of string
     | DangerouslyInnerHtml of string
     | Ref of Ref.t
-    | Event of string * Event.t
+    | Event of string * event
+
+  let bool key value = Bool (key, value)
+  let string key value = String (key, value)
+  let style value = Style value
+  let int key value = String (key, string_of_int value)
+  let float key value = String (key, string_of_float value)
+  let dangerouslyInnerHtml value = DangerouslyInnerHtml value
+  let ref value = Ref value
+  let event key value = Event (key, value)
+
+  module Event = struct
+    let drag key value = event key (Drag value)
+    let mouse key value = event key (Mouse value)
+    let selection key value = event key (Selection value)
+    let touch key value = event key (Touch value)
+    let ui key value = event key (UI value)
+    let wheel key value = event key (Wheel value)
+    let clipboard key value = event key (Clipboard value)
+    let composition key value = event key (Composition value)
+    let transition key value = event key (Transition value)
+    let animation key value = event key (Animation value)
+    let pointer key value = event key (Pointer value)
+    let keyboard key value = event key (Keyboard value)
+    let focus key value = event key (Focus value)
+    let form key value = event key (Form value)
+    let media key value = event key (Media value)
+  end
 end
 
 type lower_case_element = {
