@@ -82,7 +82,7 @@ Without -js flag, the compilation to native replaces the expression with `raise 
          "fun argument1 -> fun argument2 -> setHtmlFetchState Loading")
   [@@warning "-27-32"]
   
-  let labeled argument1 argument2 =
+  let labeled ~argument1 ~argument2 =
     raise
       (ReactDOM.Impossible_in_ssr
          "fun ~argument1 -> fun ~argument2 -> setHtmlFetchState Loading")
@@ -173,7 +173,7 @@ Without -js flag, the compilation to native replaces the expression with `raise 
          "fun argument1 -> fun argument2 -> setHtmlFetchState Loading")
   [@@warning "-27-32"]
   
-  let labeled argument1 argument2 =
+  let labeled ~argument1 ~argument2 =
     raise
       (ReactDOM.Impossible_in_ssr
          "fun ~argument1 -> fun ~argument2 -> setHtmlFetchState Loading")
