@@ -33,4 +33,6 @@ let make () =
     setHtmlFetchState Loading
   in
 
+  let%browser_only labeled ~argument1 ~argument2 = setHtmlFetchState Loading in
+
   React.createElement "div"
