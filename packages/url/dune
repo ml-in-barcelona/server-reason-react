@@ -10,7 +10,8 @@
   (modules URL)
   (wrapped false)
   (public_name server-reason-react.native-url)
-  (libraries uri server-reason-react.js)))
+  (libraries uri server-reason-react.js))
+ (copy_files ../URL.rei))
 
 (subdir
  js
@@ -21,7 +22,8 @@
   (wrapped false)
   (public_name server-reason-react.js-url)
   (preprocess
-   (pps melange.ppx))))
+   (pps melange.ppx)))
+ (copy_files ../URL.rei))
 
 (test
  (name test_native)

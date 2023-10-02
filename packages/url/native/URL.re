@@ -1,32 +1,35 @@
 module URLSearchParams = {
   type t;
-  /* [@mel.new] external make: string => t = "URLSearchParams"; */
-  /* [@mel.new] external makeWithDict: Js.Dict.t(string) => t = "URLSearchParams"; */
-  /* [@mel.new] external makeWithArray: array((string, string)) => t = "URLSearchParams"; */
-  /* [@mel.send] external append: (t, string, string) => unit = "append"; */
-  /* [@mel.send] external delete: (t, string) => unit = "delete"; */
-  /* [@mel.send] external entries: t => array((string, string)) = "entries"; */
-  /* [@mel.send] external forEach: (t, [@mel.uncurry] (string, string) => unit) => unit =  "forEach"; */
-  /* [@mel.return nullable] [@mel.send] external get: (t, string) => option(string) = "get"; */
-  /* [@mel.send] external getAll: (t, string) => array(string) = "getAll"; */
-  /* [@mel.send] external has: (t, string) => bool = "has"; */
-  /* [@mel.send] external keys: t => array(string) = "keys"; */
-  /* [@mel.send] external set: (t, string, string) => unit = "set"; */
-  /* [@mel.send] external sort: t => unit = "sort"; */
-  /* [@mel.send] external toString: t => string = "toString"; */
-  /* [@mel.send] external values: t => array(string) = "values"; */
+
+  let make = _string => assert(false);
+  /* let makeWithDict = Js.Dict.t(string) => t; */
+  let makeWithArray = _array => assert(false);
+  let append = (_url, _string, _string) => assert(false);
+  let delete = (t, string) => assert(false);
+  let entries = url => assert(false);
+
+  let forEach = (_t, _fn) => assert(false);
+  let get = (t, string) => assert(false);
+  let getAll = (t, string) => assert(false);
+  let has = (t, string) => assert(false);
+  let keys = t => assert(false);
+  let set = (t, string, string) => assert(false);
+  let sort = t => assert(false);
+  let toString = t => assert(false);
+  let values = t => assert(false);
 };
 
-type t;
+type t = Uri.t;
 
-/* [@mel.new] external make: string => t = "URL"; */
+let hash = t => assert(false);
+let setHash = (t, string) => assert(false);
 let make = str => {
   let uri = Uri.of_string(str);
   uri;
 };
-/* [@mel.new] external makeWith: (string, ~base: string) => t = "URL"; */
-/* [@mel.get] external hash: t => string = "hash"; */
-/* [@mel.set] external setHash: (t, string) => unit = "hash"; */
+
+let makeWith = str => assert(false);
+
 let host = url => {
   /* https://url.spec.whatwg.org/#dom-url-host */
   switch (Uri.host(url)) {
@@ -35,29 +38,24 @@ let host = url => {
   | None => ""
   };
 };
-/* [@mel.set] external setHost: (t, string) => unit = "host"; */
-/* [@mel.get] external hostname: t => string = "hostname"; */
-/* [@mel.set] external setHostname: (t, string) => unit = "hostname"; */
-/* [@mel.get] external href: t => string = "href"; */
-/* [@mel.set] external setHref: (t, string) => unit = "href"; */
-/* [@mel.get] external origin: t => string = "origin"; */
-/* [@mel.get] external password: t => string = "password"; */
-/* [@mel.set] external setPassword: (t, string) => unit = "password"; */
-/* [@mel.get] external pathname: t => string = "pathname"; */
-/* [@mel.set] external setPathname: (t, string) => unit = "pathname"; */
-/* [@mel.get] external port: t => string = "port"; */
-/* [@mel.set] external setPort: (t, string) => unit = "port"; */
-/* [@mel.get] external protocol: t => string = "protocol"; */
-/* [@mel.set] external setProtocol: (t, string) => unit = "protocol"; */
-/* [@mel.get] external search: t => string = "search"; */
-/* [@mel.set] external setSearch: (t, string) => unit = "search"; */
-/* [@mel.get] external searchParams: t => URLSearchParams.t = "searchParams"; */
-/* [@mel.get] external username: t => string = "username"; */
-/* [@mel.set] external setUsername: (t, string) => unit = "username"; */
-/* [@mel.send] external toJson: (t, unit) => string = "toJSON"; */
 
-/* Missing Webapi.File.t */
-/* Missing Webapi.Blob.t */
-/* @val @scope("URL") external createObjectURL: Webapi__File.t => string = "createObjectURL" */
-/* @val @scope("URL") external createObjectURLFromBlob: Webapi__Blob.t => string = "createObjectURL" */
-/* @val @scope("URL") external revokeObjectURL: string => unit = "revokeObjectURL" */
+let setHost = (t, string) => assert(false);
+let hostname = t => assert(false);
+let setHostname = (t, string) => assert(false);
+let href = t => assert(false);
+let setHref = (t, string) => assert(false);
+let origin = t => assert(false);
+let password = t => assert(false);
+let setPassword = (t, string) => assert(false);
+let pathname = t => assert(false);
+let setPathname = (t, string) => assert(false);
+let port = t => assert(false);
+let setPort = (t, string) => assert(false);
+let protocol = t => assert(false);
+let setProtocol = (t, string) => assert(false);
+let search = t => assert(false);
+let setSearch = (t, string) => assert(false);
+let searchParams = t => assert(false);
+let username = t => assert(false);
+let setUsername = (t, string) => assert(false);
+let toJson = (t, unit) => assert(false);
