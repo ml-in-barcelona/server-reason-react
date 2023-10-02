@@ -3,31 +3,10 @@
   (flags
    (:standard -w -27))))
 
-(subdir
- native
- (library
-  (name native_url)
-  (modules URL)
-  (wrapped false)
-  (public_name server-reason-react.native-url)
-  (libraries uri server-reason-react.js))
- (copy_files ../URL.rei))
-
-(subdir
- js
- (library
-  (name js_url)
-  (modules URL)
-  (modes melange)
-  (wrapped false)
-  (public_name server-reason-react.js-url)
-  (preprocess
-   (pps melange.ppx)))
- (copy_files ../URL.rei))
-
-(test
- (name test_native)
- (modules test_native)
- (flags
-  (:standard -w -32))
- (libraries alcotest server-reason-react.native-url))
+(library
+ ; This library is just the interface URL.rei, it's here to allow dune to compile it
+ ; but we don't use it directly since we copy_files it in the native and js directories
+ ; to type-check with the right implementation
+ (name interface_url)
+ (modules URL)
+ (modules_without_implementation URL))

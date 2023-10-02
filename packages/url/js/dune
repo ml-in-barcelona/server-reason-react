@@ -1,0 +1,10 @@
+(library
+ (name js_url)
+ (modules URL)
+ (modes melange)
+ (wrapped false)
+ (public_name server-reason-react.js-url)
+ (preprocess
+  (pps melange.ppx)))
+
+(copy_files ../URL.rei)

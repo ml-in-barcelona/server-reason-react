@@ -1,35 +1,20 @@
 module URLSearchParams: {
   type t;
 
-  [@mel.new]
   let make: string => t;
   /* [@mel.new] let makeWithDict: Js.Dict.t(string) => t; */
-  [@mel.new]
   let makeWithArray: array((string, string)) => t;
-  [@mel.send]
   let append: (t, string, string) => unit;
-  [@mel.send]
   let delete: (t, string) => unit;
-  [@mel.send]
   let entries: t => array((string, string));
-  [@mel.send]
-  let forEach: (t, [@mel.uncurry] ((string, string) => unit)) => unit;
-  [@mel.return nullable]
-  [@mel.send]
+  let forEach: (t, (string, string) => unit) => unit;
   let get: (t, string) => option(string);
-  [@mel.send]
   let getAll: (t, string) => array(string);
-  [@mel.send]
   let has: (t, string) => bool;
-  [@mel.send]
   let keys: t => array(string);
-  [@mel.send]
   let set: (t, string, string) => unit;
-  [@mel.send]
   let sort: t => unit;
-  [@mel.send]
   let toString: t => string;
-  [@mel.send]
   let values: t => array(string);
 };
 
