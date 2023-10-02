@@ -35,15 +35,25 @@ module Effect = struct
          handler)
 end
 
+let remove_unused_variable_warning27 ~loc =
+  Builder.attribute ~loc ~name:{ txt = "warning"; loc }
+    ~payload:(PStr [ [%stri "-27"] ])
+
 module Browser_only = struct
   let browser_only_value_binding pattern expression =
     let loc = pattern.ppat_loc in
     let rec last_expr_to_raise_impossbile name expr =
       match expr.pexp_desc with
-      | Pexp_fun (_arg_label, _arg_expression, pattern, expr) ->
-          [%expr
-            fun [@warning "-27"] [%p pattern] ->
-              [%e last_expr_to_raise_impossbile name expr]]
+      | Pexp_fun (arg_label, arg_expression, pattern, expr) ->
+          let fn =
+            Builder.pexp_fun ~loc arg_label arg_expression pattern
+              (last_expr_to_raise_impossbile name expr)
+          in
+          {
+            fn with
+            pexp_attributes =
+              remove_unused_variable_warning27 ~loc :: expr.pexp_attributes;
+          }
       | _ ->
           let message = Builder.estring ~loc name in
           [%expr raise (ReactDOM.Impossible_in_ssr [%e message])]
