@@ -4,9 +4,9 @@
    (:standard -w -27))))
 
 (library
- ; This library is just the interface URL.rei, it's here to allow dune to compile it
- ; but we don't use it directly since we copy_files it in the native and js directories
- ; to type-check with the right implementation
+ ; This library is the interface URL.rei and it exists to compile it, not consume it.
+ ; We copy_files the module directly to the native and js directories in order
+ ; to type-check with each implementation
  (name interface_url)
  (modules URL)
  (modules_without_implementation URL))
