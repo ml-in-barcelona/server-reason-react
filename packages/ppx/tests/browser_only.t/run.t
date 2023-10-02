@@ -30,29 +30,39 @@ With -js flag everything keeps as it is and browser_only extension disappears
 Without -js flag, the compilation to native replaces the expression with `raise (ReactDOM.Impossible_in_ssr`
 
   $ ../standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl
-  let _ = raise (ReactDOM.Impossible_in_ssr "Webapi.Dom.getElementById")
+  let _ =
+    raise
+      (ReactDOM.Impossible_in_ssr "[expression-apply]: Webapi.Dom.getElementById")
+  
   let valueFromEvent = Webapi.Dom.getElementById "foo"
   
   let valueFromEvent evt =
     raise
-      (ReactDOM.Impossible_in_ssr "fun evt -> Webapi.Dom.getElementById \"foo\"")
+      (ReactDOM.Impossible_in_ssr
+         "[structure-item-fun]: fun evt -> Webapi.Dom.getElementById \"foo\"")
   [@@warning "-27-32"]
   
   let valueFromEvent evt moar_arguments =
     raise
       (ReactDOM.Impossible_in_ssr
-         "fun evt -> fun moar_arguments -> Webapi.Dom.getElementById \"foo\"")
+         "[structure-item-fun]: fun evt -> fun moar_arguments -> \
+          Webapi.Dom.getElementById \"foo\"")
   [@@warning "-27-32"]
   
   let make () =
-    let _ = raise (ReactDOM.Impossible_in_ssr "Webapi.Dom.getElementById") in
+    let _ =
+      raise
+        (ReactDOM.Impossible_in_ssr
+           "[expression-apply]: Webapi.Dom.getElementById")
+    in
     let valueFromEvent =
       [%ocaml.error "browser only works on expressions or function definitions"]
     in
     let valueFromEvent =
      fun [@warning "-27"] evt ->
       raise
-        (ReactDOM.Impossible_in_ssr "fun evt -> Webapi.Dom.getElementById \"foo\"")
+        (ReactDOM.Impossible_in_ssr
+           "[value-binding]: fun evt -> Webapi.Dom.getElementById \"foo\"")
        [@@warning "-27-26"]
     in
     let valueFromEvent =
@@ -60,45 +70,60 @@ Without -js flag, the compilation to native replaces the expression with `raise 
       fun [@warning "-27"] moar_arguments ->
        raise
          (ReactDOM.Impossible_in_ssr
-            "fun evt -> fun moar_arguments -> Webapi.Dom.getElementById \"foo\"")
+            "[value-binding]: fun evt -> fun moar_arguments -> \
+             Webapi.Dom.getElementById \"foo\"")
        [@@warning "-27-26"]
     in
     React.createElement "div"
   
-  let _ = raise (ReactDOM.Impossible_in_ssr "Webapi.Dom.getElementById")
+  let _ =
+    raise
+      (ReactDOM.Impossible_in_ssr "[expression-apply]: Webapi.Dom.getElementById")
   
   let loadInitialText () =
-    raise (ReactDOM.Impossible_in_ssr "fun () -> setHtmlFetchState Loading")
+    raise
+      (ReactDOM.Impossible_in_ssr
+         "[structure-item-fun]: fun () -> setHtmlFetchState Loading")
   [@@warning "-27-32"]
   
   let loadInitialText argument1 =
     raise
-      (ReactDOM.Impossible_in_ssr "fun argument1 -> setHtmlFetchState Loading")
+      (ReactDOM.Impossible_in_ssr
+         "[structure-item-fun]: fun argument1 -> setHtmlFetchState Loading")
   [@@warning "-27-32"]
   
   let loadInitialText argument1 argument2 =
     raise
       (ReactDOM.Impossible_in_ssr
-         "fun argument1 -> fun argument2 -> setHtmlFetchState Loading")
+         "[structure-item-fun]: fun argument1 -> fun argument2 -> \
+          setHtmlFetchState Loading")
   [@@warning "-27-32"]
   
   let labeled ~argument1 ~argument2 =
     raise
       (ReactDOM.Impossible_in_ssr
-         "fun ~argument1 -> fun ~argument2 -> setHtmlFetchState Loading")
+         "[structure-item-fun]: fun ~argument1 -> fun ~argument2 -> \
+          setHtmlFetchState Loading")
   [@@warning "-27-32"]
   
   let make () =
-    let _ = raise (ReactDOM.Impossible_in_ssr "Webapi.Dom.getElementById") in
+    let _ =
+      raise
+        (ReactDOM.Impossible_in_ssr
+           "[expression-apply]: Webapi.Dom.getElementById")
+    in
     let loadInitialText =
      fun [@warning "-27"] () ->
-      raise (ReactDOM.Impossible_in_ssr "fun () -> setHtmlFetchState Loading")
+      raise
+        (ReactDOM.Impossible_in_ssr
+           "[value-binding]: fun () -> setHtmlFetchState Loading")
        [@@warning "-27-26"]
     in
     let loadInitialText =
      fun [@warning "-27"] argument1 ->
       raise
-        (ReactDOM.Impossible_in_ssr "fun argument1 -> setHtmlFetchState Loading")
+        (ReactDOM.Impossible_in_ssr
+           "[value-binding]: fun argument1 -> setHtmlFetchState Loading")
        [@@warning "-27-26"]
     in
     let loadInitialText =
@@ -106,7 +131,8 @@ Without -js flag, the compilation to native replaces the expression with `raise 
       fun [@warning "-27"] argument2 ->
        raise
          (ReactDOM.Impossible_in_ssr
-            "fun argument1 -> fun argument2 -> setHtmlFetchState Loading")
+            "[value-binding]: fun argument1 -> fun argument2 -> \
+             setHtmlFetchState Loading")
        [@@warning "-27-26"]
     in
     let labeled =
@@ -114,36 +140,47 @@ Without -js flag, the compilation to native replaces the expression with `raise 
       fun [@warning "-27"] ~argument2 ->
        raise
          (ReactDOM.Impossible_in_ssr
-            "fun ~argument1 -> fun ~argument2 -> setHtmlFetchState Loading")
+            "[value-binding]: fun ~argument1 -> fun ~argument2 -> \
+             setHtmlFetchState Loading")
        [@@warning "-27-26"]
     in
     React.createElement "div"
 
 
   $ ../standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl
-  let _ = raise (ReactDOM.Impossible_in_ssr "Webapi.Dom.getElementById")
+  let _ =
+    raise
+      (ReactDOM.Impossible_in_ssr "[expression-apply]: Webapi.Dom.getElementById")
+  
   let valueFromEvent = Webapi.Dom.getElementById "foo"
   
   let valueFromEvent evt =
     raise
-      (ReactDOM.Impossible_in_ssr "fun evt -> Webapi.Dom.getElementById \"foo\"")
+      (ReactDOM.Impossible_in_ssr
+         "[structure-item-fun]: fun evt -> Webapi.Dom.getElementById \"foo\"")
   [@@warning "-27-32"]
   
   let valueFromEvent evt moar_arguments =
     raise
       (ReactDOM.Impossible_in_ssr
-         "fun evt -> fun moar_arguments -> Webapi.Dom.getElementById \"foo\"")
+         "[structure-item-fun]: fun evt -> fun moar_arguments -> \
+          Webapi.Dom.getElementById \"foo\"")
   [@@warning "-27-32"]
   
   let make () =
-    let _ = raise (ReactDOM.Impossible_in_ssr "Webapi.Dom.getElementById") in
+    let _ =
+      raise
+        (ReactDOM.Impossible_in_ssr
+           "[expression-apply]: Webapi.Dom.getElementById")
+    in
     let valueFromEvent =
       [%ocaml.error "browser only works on expressions or function definitions"]
     in
     let valueFromEvent =
      fun [@warning "-27"] evt ->
       raise
-        (ReactDOM.Impossible_in_ssr "fun evt -> Webapi.Dom.getElementById \"foo\"")
+        (ReactDOM.Impossible_in_ssr
+           "[value-binding]: fun evt -> Webapi.Dom.getElementById \"foo\"")
        [@@warning "-27-26"]
     in
     let valueFromEvent =
@@ -151,45 +188,60 @@ Without -js flag, the compilation to native replaces the expression with `raise 
       fun [@warning "-27"] moar_arguments ->
        raise
          (ReactDOM.Impossible_in_ssr
-            "fun evt -> fun moar_arguments -> Webapi.Dom.getElementById \"foo\"")
+            "[value-binding]: fun evt -> fun moar_arguments -> \
+             Webapi.Dom.getElementById \"foo\"")
        [@@warning "-27-26"]
     in
     React.createElement "div"
   
-  let _ = raise (ReactDOM.Impossible_in_ssr "Webapi.Dom.getElementById")
+  let _ =
+    raise
+      (ReactDOM.Impossible_in_ssr "[expression-apply]: Webapi.Dom.getElementById")
   
   let loadInitialText () =
-    raise (ReactDOM.Impossible_in_ssr "fun () -> setHtmlFetchState Loading")
+    raise
+      (ReactDOM.Impossible_in_ssr
+         "[structure-item-fun]: fun () -> setHtmlFetchState Loading")
   [@@warning "-27-32"]
   
   let loadInitialText argument1 =
     raise
-      (ReactDOM.Impossible_in_ssr "fun argument1 -> setHtmlFetchState Loading")
+      (ReactDOM.Impossible_in_ssr
+         "[structure-item-fun]: fun argument1 -> setHtmlFetchState Loading")
   [@@warning "-27-32"]
   
   let loadInitialText argument1 argument2 =
     raise
       (ReactDOM.Impossible_in_ssr
-         "fun argument1 -> fun argument2 -> setHtmlFetchState Loading")
+         "[structure-item-fun]: fun argument1 -> fun argument2 -> \
+          setHtmlFetchState Loading")
   [@@warning "-27-32"]
   
   let labeled ~argument1 ~argument2 =
     raise
       (ReactDOM.Impossible_in_ssr
-         "fun ~argument1 -> fun ~argument2 -> setHtmlFetchState Loading")
+         "[structure-item-fun]: fun ~argument1 -> fun ~argument2 -> \
+          setHtmlFetchState Loading")
   [@@warning "-27-32"]
   
   let make () =
-    let _ = raise (ReactDOM.Impossible_in_ssr "Webapi.Dom.getElementById") in
+    let _ =
+      raise
+        (ReactDOM.Impossible_in_ssr
+           "[expression-apply]: Webapi.Dom.getElementById")
+    in
     let loadInitialText =
      fun [@warning "-27"] () ->
-      raise (ReactDOM.Impossible_in_ssr "fun () -> setHtmlFetchState Loading")
+      raise
+        (ReactDOM.Impossible_in_ssr
+           "[value-binding]: fun () -> setHtmlFetchState Loading")
        [@@warning "-27-26"]
     in
     let loadInitialText =
      fun [@warning "-27"] argument1 ->
       raise
-        (ReactDOM.Impossible_in_ssr "fun argument1 -> setHtmlFetchState Loading")
+        (ReactDOM.Impossible_in_ssr
+           "[value-binding]: fun argument1 -> setHtmlFetchState Loading")
        [@@warning "-27-26"]
     in
     let loadInitialText =
@@ -197,7 +249,8 @@ Without -js flag, the compilation to native replaces the expression with `raise 
       fun [@warning "-27"] argument2 ->
        raise
          (ReactDOM.Impossible_in_ssr
-            "fun argument1 -> fun argument2 -> setHtmlFetchState Loading")
+            "[value-binding]: fun argument1 -> fun argument2 -> \
+             setHtmlFetchState Loading")
        [@@warning "-27-26"]
     in
     let labeled =
@@ -205,7 +258,8 @@ Without -js flag, the compilation to native replaces the expression with `raise 
       fun [@warning "-27"] ~argument2 ->
        raise
          (ReactDOM.Impossible_in_ssr
-            "fun ~argument1 -> fun ~argument2 -> setHtmlFetchState Loading")
+            "[value-binding]: fun ~argument1 -> fun ~argument2 -> \
+             setHtmlFetchState Loading")
        [@@warning "-27-26"]
     in
     React.createElement "div"

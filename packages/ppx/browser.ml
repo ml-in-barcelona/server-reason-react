@@ -36,6 +36,11 @@ module Effect = struct
 end
 
 module Browser_only = struct
+  let impossible ~label loc message =
+    let message = "[" ^ label ^ "]" ^ ": " ^ message in
+    let message = Builder.estring ~loc message in
+    [%expr raise (ReactDOM.Impossible_in_ssr [%e message])]
+
   let browser_only_value_binding pattern expression =
     let loc = pattern.ppat_loc in
     let rec last_expr_to_raise_impossbile name expr =
@@ -55,9 +60,7 @@ module Browser_only = struct
             pexp_attributes =
               remove_unused_variable_warning27 ~loc :: expr.pexp_attributes;
           }
-      | _ ->
-          let message = Builder.estring ~loc name in
-          [%expr raise (ReactDOM.Impossible_in_ssr [%e message])]
+      | _ -> impossible ~label:"value-binding" loc name
     in
     match pattern with
     | [%pat? ()] -> Builder.value_binding ~loc ~pat:pattern ~expr:[%expr ()]
@@ -94,14 +97,12 @@ module Browser_only = struct
               let stringified =
                 Ppxlib.Pprintast.string_of_expression expression
               in
-              let message = Builder.estring ~loc stringified in
-              [%expr raise (ReactDOM.Impossible_in_ssr [%e message])]
+              impossible ~label:"expression-apply" loc stringified
           | Pexp_fun (arg_label, arg_expression, pattern, expr) ->
               let stringified = Ppxlib.Pprintast.string_of_expression payload in
-              let message = Builder.estring ~loc stringified in
               let fn =
                 Builder.pexp_fun ~loc arg_label arg_expression pattern
-                  [%expr raise (ReactDOM.Impossible_in_ssr [%e message])]
+                  (impossible ~label:"expression-fun" loc stringified)
               in
               { fn with pexp_attributes = expr.pexp_attributes }
           | Pexp_let (rec_flag, value_bindings, expression) ->
@@ -147,9 +148,7 @@ module Browser_only = struct
                 (last_expr_to_raise_impossbile name expression)
             in
             { fn with pexp_attributes = expr.pexp_attributes }
-        | _ ->
-            let message = Builder.estring ~loc name in
-            [%expr raise (ReactDOM.Impossible_in_ssr [%e message])]
+        | _ -> impossible ~label:"structure-item-fun" loc name
       in
       match !mode with
       (* When it's Js, keep item as it is *)
