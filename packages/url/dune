@@ -1,0 +1,31 @@
+(env
+ (dev
+  (flags
+   (:standard -w -27))))
+
+(subdir
+ native
+ (library
+  (name native_url)
+  (modules URL)
+  (wrapped false)
+  (public_name server-reason-react.native-url)
+  (libraries uri server-reason-react.js)))
+
+(subdir
+ js
+ (library
+  (name js_url)
+  (modules URL)
+  (modes melange)
+  (wrapped false)
+  (public_name server-reason-react.js-url)
+  (preprocess
+   (pps melange.ppx))))
+
+(test
+ (name test_native)
+ (modules test_native)
+ (flags
+  (:standard -w -32))
+ (libraries alcotest server-reason-react.native-url))
