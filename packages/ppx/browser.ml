@@ -103,7 +103,15 @@ module Browser_only = struct
                 Builder.pexp_fun ~loc arg_label arg_expression pattern
                   [%expr raise (ReactDOM.Impossible_in_ssr [%e message])]
               in
-              { fn with pexp_attributes = expr.pexp_attributes }
+              {
+                fn with
+                pexp_attributes =
+                  expr.pexp_attributes
+                  @ [
+                      Builder.attribute ~loc ~name:{ txt = "warning"; loc }
+                        ~payload:(PStr [ [%stri "-27"] ]);
+                    ];
+              }
           | Pexp_let (rec_flag, value_bindings, expression) ->
               let pexp_let =
                 Builder.pexp_let ~loc rec_flag
