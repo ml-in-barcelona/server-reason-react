@@ -22,6 +22,7 @@ depends: [
   "odoc" {with-doc}
   "ocamlformat" {with-test}
   "ocaml-lsp-server" {with-test}
+  "dream"
 ]
 build: [
   ["dune" "subst"] {dev}

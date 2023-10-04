@@ -47,4 +47,7 @@
   ;; Dev dependencies, using with-test so that consumers don't install them (until package is released in opam)
   (ocamlformat :with-test)
   (ocaml-lsp-server :with-test)
+
+  ;; Demo deps
+  dream
 ))
