@@ -81,45 +81,9 @@ module Dropdown = {
     };
   };
 
-  /* let useClickOutside = (domRef, callback) => {
-       open Webapi.Dom;
-       let onClickHandler = event => {
-         MouseEvent.stopPropagation(event);
-         let target = MouseEvent.target(event);
-         let targetElement = EventTarget.unsafeAsElement(target);
-         let targetIsOutsideOverlayTrigger =
-           switch (domRef |> Js.Nullable.toOption) {
-           | Some(ref_) => !Element.contains(targetElement, ref_)
-           | None => false
-           };
-
-         if (targetIsOutsideOverlayTrigger) {
-           callback();
-         };
-       };
-
-       React.useEffect2(
-         () => {
-           Document.addMouseDownEventListener(onClickHandler, document);
-           Some(
-             () =>
-               Document.removeMouseDownEventListener(onClickHandler, document),
-           );
-         },
-         (onClick, domRef.React.current),
-       );
-     }; */
-
   [@react.component]
   let make = (~items, ~onClick) => {
     let (isOpen, setIsOpen) = useStateValue(false);
-    let _triggerRef = React.useRef(Js.Nullable.null);
-
-    /* useClickOutside(triggerRef, () =>
-         if (isOpen) {
-           setIsOpen(false);
-         }
-       ); */
 
     <div className={Cx.make(["relative"])}>
       <Trigger isOpen onClick={_e => setIsOpen(!isOpen)} />
@@ -169,25 +133,29 @@ module Dropdown = {
 };
 
 module Menu = {
-  /* let useOnResize = () => {
-       React.useEffect1(
-         () => {
-           open Webapi.Dom;
-           let windowAsTarget = Window.asEventTarget(window);
-           let handleResize = _ => setWindowHeight(_ => getWindowHeight());
-           EventTarget.addEventListener("resize", handleResize, windowAsTarget);
-           Some(
-             () =>
-               EventTarget.removeEventListener(
-                 "resize",
-                 handleResize,
-                 windowAsTarget,
-               ),
-           );
-         },
-         [||],
-       );
-     }; */
+  let%browser_only getWindowHeight = () =>
+    Webapi.Dom.(window->Window.innerHeight);
+  let%browser_only useOnResize = () => {
+    let (windowHeight, setWindowHeight) =
+      React.useState(_ => getWindowHeight());
+
+    React.useEffect0(() => {
+      open Webapi.Dom;
+      let windowAsTarget = Window.asEventTarget(window);
+      let handleResize = _ => setWindowHeight(_ => getWindowHeight());
+      EventTarget.addEventListener("resize", handleResize, windowAsTarget);
+      Some(
+        () =>
+          EventTarget.removeEventListener(
+            "resize",
+            handleResize,
+            windowAsTarget,
+          ),
+      );
+    });
+
+    windowHeight;
+  };
 
   [@react.component]
   let make = (~currentNavigate: string, ~navigate: string => unit) => {
@@ -217,12 +185,7 @@ module Menu = {
 
     <div
       className={Cx.make([
-        "flex",
-        "items-center",
-        "justify-items-end",
-        "gap-4",
-        "mt-px",
-        /* Css.padding2(~v=`rem(0.5), ~h=`rem(1.5)), */
+        "flex items-center justify-items-end gap-4 mt-px p-2",
       ])}>
       {React.array(
          Belt.Array.mapWithIndex(tools, (key, item) =>

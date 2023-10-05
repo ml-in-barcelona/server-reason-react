@@ -2,7 +2,7 @@
  (name react)
  (wrapped false)
  (public_name server-reason-react.react)
- (libraries js html lwt)
+ (libraries js html lwt melange.dom)
  (flags
   (:standard -w -30))
  (preprocess
