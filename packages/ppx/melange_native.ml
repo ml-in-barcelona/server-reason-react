@@ -16,6 +16,18 @@ class raise_exception_mapper =
             List.exists is_melange_attr pval_attributes
           in
           if has_mel_module_attr then
+            let rec extract_args_labels_types acc = function
+              | { ptyp_desc = Ptyp_arrow (label, t1, t2); _ } ->
+                  let arg_name = "_" in
+                  let arg_pat =
+                    Builder.ppat_var ~loc:t1.ptyp_loc
+                      { loc = t1.ptyp_loc; txt = arg_name }
+                  in
+                  extract_args_labels_types ((label, arg_pat, t1) :: acc) t2
+              | _ -> acc
+            in
+
+            let args_labels_types = extract_args_labels_types [] pval_type in
             let args_pat =
               Builder.ppat_constraint ~loc:pval_type.ptyp_loc
                 (Builder.ppat_var ~loc:pval_name.loc
@@ -25,13 +37,15 @@ class raise_exception_mapper =
             let vb =
               Builder.value_binding ~loc:pval_loc ~pat:args_pat
                 ~expr:
-                  (Builder.pexp_fun ~loc:Location.none Nolabel None
-                     (Builder.ppat_any ~loc:Location.none)
-                     (let loc = Location.none in
-                      [%expr
-                        raise
-                          (Failure
-                             "called Melange external \"mel.\" from native")]))
+                  (let loc = Location.none in
+                   List.fold_left
+                     (fun acc (label, arg_pat, arg_type) ->
+                       Builder.pexp_fun ~loc:arg_type.ptyp_loc label None
+                         arg_pat acc)
+                     [%expr
+                       raise
+                         (Failure "called Melange external \"mel.\" from native")]
+                     args_labels_types)
             in
             Ast_helper.Str.value Nonrecursive [ vb ]
           else super#structure_item item
