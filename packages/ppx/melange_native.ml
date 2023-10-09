@@ -17,34 +17,6 @@ class raise_exception_mapper =
             List.exists is_melange_attr pval_attributes
           in
           if has_mel_module_attr then
-            let rec generate_arg_patterns_and_types = function
-              | { ptyp_desc = Ptyp_arrow (_arg_label, arg, rest); _ } ->
-                  let arg_pat =
-                    Builder.ppat_var ~loc:_TODO_locations
-                      { loc = arg.ptyp_loc; txt = "_arg_name_" }
-                  in
-                  let rest_args, arg_name, rest_types =
-                    generate_arg_patterns_and_types rest
-                  in
-                  ( arg_pat :: rest_args,
-                    (* todo: consolidate with let arg_pat above *)
-                    { loc = arg.ptyp_loc; txt = "_arg_name_" } :: arg_name,
-                    arg :: rest_types )
-              | _ -> ([], [], [])
-            in
-            let _arg_patterns, arg_names, _arg_types =
-              generate_arg_patterns_and_types pval_type
-            in
-            let _typs =
-              Builder.ptyp_poly ~loc:_TODO_locations arg_names
-                (Builder.ptyp_arrow ~loc:_TODO_locations Nolabel
-                   (Builder.ptyp_constr ~loc:_TODO_locations
-                      { loc = Location.none; txt = Lident "unit" }
-                      [])
-                   (Builder.ptyp_constr ~loc:_TODO_locations
-                      { loc = Location.none; txt = Lident "unit" }
-                      []))
-            in
             let args_pat =
               Builder.ppat_constraint ~loc:_TODO_locations
                 (Builder.ppat_var ~loc:_TODO_locations
@@ -59,7 +31,8 @@ class raise_exception_mapper =
                      (let loc = _TODO_locations in
                       [%expr
                         raise
-                          (Failure "called Melange external @mel from native")]))
+                          (Failure
+                             "called Melange external \"mel.\" from native")]))
             in
             Ast_helper.Str.value Nonrecursive [ vb ]
           else super#structure_item item
