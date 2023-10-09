@@ -1,6 +1,10 @@
 open Ppxlib
 module Builder = Ast_builder.Default
 
+let is_melange_attr { attr_name = { txt = attr } } =
+  let len = 4 in
+  String.length attr > 4 && String.equal (String.sub attr 0 len) "mel."
+
 class raise_exception_mapper =
   object (_self)
     inherit Ast_traverse.map as super
@@ -10,9 +14,7 @@ class raise_exception_mapper =
       | Pstr_primitive { pval_name; pval_attributes; pval_loc; pval_type } ->
           let _TODO_locations = Location.none in
           let has_mel_module_attr =
-            List.exists
-              (fun { attr_name } -> attr_name.txt = "mel.module")
-              pval_attributes
+            List.exists is_melange_attr pval_attributes
           in
           if has_mel_module_attr then
             let rec generate_arg_patterns_and_types = function

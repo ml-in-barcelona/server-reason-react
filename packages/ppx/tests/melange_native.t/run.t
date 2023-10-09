@@ -1,6 +1,9 @@
   $ ../standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl
-  external init : keycloak -> param:initParam -> init = "init" [@@mel.send]
-  external makeInitParam : onLoad:string -> unit -> initParam = "" [@@mel.obj]
+  let (init : keycloak -> param:initParam -> init) =
+   fun _ -> raise (Failure "called Melange external @mel from native")
+  
+  let (makeInitParam : onLoad:string -> unit -> initParam) =
+   fun _ -> raise (Failure "called Melange external @mel from native")
   
   let (keycloak : keycloak) =
    fun _ -> raise (Failure "called Melange external @mel from native")
