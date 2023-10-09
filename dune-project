@@ -30,7 +30,7 @@
   melange
 
   ;; Library dependencies
-  (ppxlib (>= 0.23.0))
+  (ppxlib (and (> 0.23.0) (<= 0.30.0)))
   (pcre (<= 7.5.0))
   (promise (>= 1.1.2))
   (lwt (>= 5.6.0))
