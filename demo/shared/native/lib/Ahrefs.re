@@ -135,6 +135,7 @@ module Dropdown = {
 module Menu = {
   let%browser_only getWindowHeight = () =>
     Webapi.Dom.(window->Window.innerHeight);
+
   let%browser_only useOnResize = () => {
     let (windowHeight, setWindowHeight) =
       React.useState(_ => getWindowHeight());
