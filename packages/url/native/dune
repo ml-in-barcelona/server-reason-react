@@ -1,15 +1,15 @@
-; (library
-;  (name native_url)
-;  (modules URL)
-;  (wrapped false)
-;  (public_name server-reason-react.native-url)
-;  (libraries uri server-reason-react.js))
+(library
+ (name native_url)
+ (modules URL)
+ (wrapped false)
+ (public_name server-reason-react.native-url)
+ (libraries uri server-reason-react.js))
 
-; (copy_files ../URL.rei)
+(copy_files ../URL.rei)
 
-; (test
-;  (name test_native)
-;  (modules test_native)
-;  (flags
-;   (:standard -w -32))
-;  (libraries alcotest server-reason-react.native-url))
+(test
+ (name test_native)
+ (modules test_native)
+ (flags
+  (:standard -w -32))
+ (libraries alcotest server-reason-react.native-url))
