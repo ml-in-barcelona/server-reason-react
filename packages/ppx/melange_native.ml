@@ -12,23 +12,22 @@ class raise_exception_mapper =
     method! structure_item item =
       match item.pstr_desc with
       | Pstr_primitive { pval_name; pval_attributes; pval_loc; pval_type } ->
-          let _TODO_locations = Location.none in
           let has_mel_module_attr =
             List.exists is_melange_attr pval_attributes
           in
           if has_mel_module_attr then
             let args_pat =
-              Builder.ppat_constraint ~loc:_TODO_locations
-                (Builder.ppat_var ~loc:_TODO_locations
+              Builder.ppat_constraint ~loc:pval_type.ptyp_loc
+                (Builder.ppat_var ~loc:pval_name.loc
                    { loc = pval_name.loc; txt = pval_name.txt })
                 pval_type
             in
             let vb =
               Builder.value_binding ~loc:pval_loc ~pat:args_pat
                 ~expr:
-                  (Builder.pexp_fun ~loc:_TODO_locations Nolabel None
-                     (Builder.ppat_any ~loc:_TODO_locations)
-                     (let loc = _TODO_locations in
+                  (Builder.pexp_fun ~loc:Location.none Nolabel None
+                     (Builder.ppat_any ~loc:Location.none)
+                     (let loc = Location.none in
                       [%expr
                         raise
                           (Failure
