@@ -4,4 +4,10 @@
 
 (executable
  (name standalone)
- (libraries ppxlib pipe_first_ppx regex_ppx double_hash_ppx browser_ppx))
+ (libraries
+  ppxlib
+  pipe_first_ppx
+  regex_ppx
+  double_hash_ppx
+  browser_ppx
+  melange_native_ppx))
