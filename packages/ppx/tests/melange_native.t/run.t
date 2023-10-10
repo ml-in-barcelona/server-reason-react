@@ -41,7 +41,7 @@ Only unlabelled
 
 Multiple args with optional
 
-  $ cat > input.ml <<EOF
+  $ cat > input.ml << EOF
   > type keycloak
   > external keycloak : ?z:int -> int -> foo:string -> keycloak = "default" [@@mel.module]
   > EOF
@@ -57,7 +57,7 @@ Multiple args with optional
 
 Single type (invalid OCaml, but valid in Melange)
 
-  $ cat > input.ml <<EOF
+  $ cat > input.ml << EOF
   > type keycloak
   > external keycloak : keycloak = "default" [@@mel.module "keycloak-js"]
   > EOF
@@ -69,3 +69,19 @@ Single type (invalid OCaml, but valid in Melange)
     raise (Failure "called Melange external \"mel.\" from native")
 
   $ ocamlc output.ml
+
+send.pipe
+  $ cat > input.ml << EOF
+  > external getModifierState : string -> bool = "getModifierState" [@@mel.send.pipe: t]
+  > 
+  > let getModifierState = (fun key -> fun self -> getModifierState (Webapi__Dom__Types.encodeModifierKey key) self : Webapi__Dom__Types.modifierKey -> t -> bool)
+  > EOF
+
+  $ ../standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl | tee output.ml
+  let (getModifierState : t -> string -> bool) =
+   fun _ _ -> raise (Failure "called Melange external \"mel.\" from native")
+  
+  let getModifierState =
+    (fun key self ->
+       getModifierState (Webapi__Dom__Types.encodeModifierKey key) self
+      : Webapi__Dom__Types.modifierKey -> t -> bool)

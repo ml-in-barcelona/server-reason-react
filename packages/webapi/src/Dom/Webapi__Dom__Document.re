@@ -3,7 +3,7 @@ module Impl = (T: {
                }) => {
   external asDocument: T.t => Dom.document = "%identity";
 
-  let asHtmlDocument: T.t => option(Dom.htmlDocument) = [%raw
+  let asHtmlDocument: T.t => option(Dom.htmlDocument) = [%mel.raw
     {|
     function(document) {
       var defaultView = document.defaultView;
