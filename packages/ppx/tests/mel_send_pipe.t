@@ -47,3 +47,18 @@ Nonlabelled arguments as functions
   $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl | tee output.ml
   let (forEach : (string -> int -> unit) -> t -> unit) =
    fun _ _ -> raise (Failure "called Melange external \"mel.\" from native")
+
+'a
+  $ cat > input.ml << EOF
+  > external postMessage : 'a -> string -> unit = "postMessage" [@@mel.send]
+
+  $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl | tee output.ml
+  let (postMessage : 'a -> string -> unit) =
+   fun _ _ -> raise (Failure "called Melange external \"mel.\" from native")
+
+  $ cat > input.ml << EOF
+  > external postMessage : 'a -> string -> unit = "postMessage" [@@mel.send.pipe : t_window]
+
+  $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl | tee output.ml
+  let (postMessage : 'a -> t_window -> string -> unit) =
+   fun _ _ _ -> raise (Failure "called Melange external \"mel.\" from native")
