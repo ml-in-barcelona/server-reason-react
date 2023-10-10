@@ -35,6 +35,7 @@
   (promise (>= 1.1.2))
   (lwt (>= 5.6.0))
   (lwt_ppx (>= 2.1.0))
+  (uri (>= 4.2.0))
 
   ;; Test dependencies
   (alcotest :with-test)

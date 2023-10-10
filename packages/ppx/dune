@@ -33,3 +33,13 @@
  (preprocess
   (pps ppxlib.metaquot))
  (kind ppx_rewriter))
+
+(library
+ (name melange_native_ppx)
+ (modules melange_native)
+ (public_name server-reason-react.melange_native_ppx)
+ (flags :standard -w -9)
+ (libraries ppxlib ppxlib.astlib)
+ (preprocess
+  (pps ppxlib.metaquot))
+ (kind ppx_rewriter))
