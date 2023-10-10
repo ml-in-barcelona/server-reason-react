@@ -26,8 +26,25 @@ let get_send_pipe pval_attributes =
 let has_mel_module_attr pval_attributes =
   List.exists is_melange_attr pval_attributes
 
+let is_mel_as core_type =
+  let has_ptyp_attribute ptyp_attributes =
+    List.exists
+      (fun { attr_name = { txt = attr } } -> attr = "mel.as")
+      ptyp_attributes
+  in
+  match core_type with
+  | { ptyp_desc = Ptyp_any; ptyp_attributes; _ } ->
+      has_ptyp_attribute ptyp_attributes
+  | _ -> false
+
 let extract_args_labels_types acc pval_type =
   let rec go acc = function
+    (* In case of being mel.as, ignore those *)
+    | { ptyp_desc = Ptyp_arrow (_label, t1, _t2); _ } when is_mel_as t1 -> acc
+    | { ptyp_desc = Ptyp_arrow (_label, _t1, t2); _ } when is_mel_as t2 -> acc
+    | { ptyp_desc = Ptyp_arrow (_label, t1, t2); _ }
+      when is_mel_as t1 && is_mel_as t2 ->
+        acc
     | { ptyp_desc = Ptyp_arrow (label, t1, t2); _ } ->
         let arg_name = "_" in
         let arg_pat =
