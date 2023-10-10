@@ -39,3 +39,11 @@ Labelled arguments
   let (scale : x:float -> y:float -> t -> unit) =
    fun ~x:_ ~y:_ _ ->
     raise (Failure "called Melange external \"mel.\" from native")
+
+Nonlabelled arguments as functions
+  $ cat > input.ml << EOF
+  > external forEach : (string -> int -> unit) -> unit = "forEach" [@@mel.send.pipe : t]
+
+  $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl | tee output.ml
+  let (forEach : (string -> int -> unit) -> t -> unit) =
+   fun _ _ -> raise (Failure "called Melange external \"mel.\" from native")

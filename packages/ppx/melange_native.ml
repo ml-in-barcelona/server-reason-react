@@ -58,6 +58,13 @@ let construct_pval_with_send_pipe send_pipe_core_type pval_type =
             Builder.ptyp_arrow ~loc:t2.ptyp_loc label t1
               (Builder.ptyp_arrow ~loc:t2.ptyp_loc Nolabel send_pipe_core_type
                  t2)
+        (* `arrow (constr -> constr) -> constr` gets transformed into,
+           `arrow (constr -> constr) -> t -> constr`
+        *)
+        | Ptyp_arrow _, Ptyp_constr _ ->
+            Builder.ptyp_arrow ~loc:t2.ptyp_loc label t1
+              (Builder.ptyp_arrow ~loc:t2.ptyp_loc Nolabel send_pipe_core_type
+                 t2)
         (* `constr -> arrow (constr -> constr)` gets transformed into
            `constr -> constr -> t -> constr` *)
         | Ptyp_constr _, Ptyp_arrow (_inner_label, _p1, _p2) ->
