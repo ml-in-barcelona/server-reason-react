@@ -90,6 +90,7 @@ let construct_pval_with_send_pipe send_pipe_core_type pval_type =
         Builder.ptyp_arrow ~loc Nolabel core_type send_pipe_core_type
     | { ptyp_desc = Ptyp_var _; ptyp_loc; _ } ->
         Builder.ptyp_arrow ~loc:ptyp_loc Nolabel core_type send_pipe_core_type
+    (* Here we ignore the Ptyp_any *)
     | _ -> core_type
   in
   insert_core_type_in_arrow pval_type

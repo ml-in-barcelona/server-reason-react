@@ -137,19 +137,8 @@ let setFillStyle = (type a, ctx: t, _: style(a), v: a) =>
   setFillStyle(ctx, v);
 
 let reifyStyle = (type a, x: 'a): (style(a), a) => {
-  let isCanvasGradient: 'a => bool = _ => false;
-  /* let isCanvasGradient: 'a => bool = [%mel.raw
-       {|
-       function(x) { return x instanceof CanvasGradient; }
-     |}
-     ]; */
-
-  let isCanvasPattern: 'a => bool = _ => false;
-  /* let isCanvasPattern: 'a => bool = [%raw
-       {|
-       function(x) { return x instanceof CanvasPattern; }
-     |}
-     ]; */
+  let isCanvasGradient = _ => false;
+  let isCanvasPattern = _ => false;
 
   (
     if (Js.typeof(x) == "string") {
