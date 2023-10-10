@@ -61,7 +61,7 @@ external comparePoint: (Dom.node_like('a), int) => int /* compareRsult enum */ =
 let comparePoint:
   (Dom.node_like('a), int, t) => Webapi__Dom__Types.compareResult =
   (node, offset, self) =>
-    Webapi__Dom__Types.decodeCompareResult(comparePoint(node, offset, self));
+    Webapi__Dom__Types.decodeCompareResult(comparePoint(self, node, offset));
 [@mel.send.pipe: t]
 external createContextualFragment: string => Dom.documentFragment =
   "createContextualFragment"; /* experimental, but widely supported */
