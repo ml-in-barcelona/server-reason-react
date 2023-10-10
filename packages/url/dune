@@ -9,4 +9,5 @@
  ; to type-check with each implementation
  (name interface_url)
  (modules URL)
+ (libraries js)
  (modules_without_implementation URL))
