@@ -45,11 +45,6 @@ let extract_args_labels_types acc pval_type =
     | { ptyp_desc = Ptyp_arrow (_label, t1, t2); _ }
       when is_mel_as t1 && is_mel_as t2 ->
         acc
-    | { ptyp_desc = Ptyp_var _var; ptyp_loc; _ } as core_type ->
-        let pattern =
-          Builder.ppat_var ~loc:ptyp_loc { loc = ptyp_loc; txt = "_" }
-        in
-        go ((Nolabel, pattern, core_type) :: acc) core_type
     | { ptyp_desc = Ptyp_arrow (label, t1, t2); _ } ->
         let pattern =
           Builder.ppat_var ~loc:t1.ptyp_loc { loc = t1.ptyp_loc; txt = "_" }
@@ -81,9 +76,6 @@ let construct_pval_with_send_pipe send_pipe_core_type pval_type =
         (* `constr -> constr` gets transformed into `constr -> t -> constr` *)
         (* `arrow (constr -> constr) -> constr` gets transformed into,
             `arrow (constr -> constr) -> t -> constr` *)
-        (* | Ptyp_constr _, Ptyp_var _ ->
-            Builder.ptyp_arrow ~loc:t1.ptyp_loc label t1
-              (insert_core_type_in_arrow t2) *)
         | _, _ ->
             Builder.ptyp_arrow ~loc:t2.ptyp_loc label t1
               (Builder.ptyp_arrow ~loc:t2.ptyp_loc Nolabel send_pipe_core_type

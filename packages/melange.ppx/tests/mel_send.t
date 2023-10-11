@@ -68,3 +68,18 @@ Single type (invalid OCaml, but valid in Melange)
     raise (Failure "called Melange external \"mel.\" from native")
 
   $ ocamlc output.ml
+
+mel.send
+
+  $ cat > input.ml << EOF
+  > type t
+  > external fillStyle : t -> 'a = "fillStyle" [@@mel.send]
+  > EOF
+
+  $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl | tee output.ml
+  type t
+  
+  let (fillStyle : t -> 'a) =
+   fun _ -> raise (Failure "called Melange external \"mel.\" from native")
+
+  $ ocamlc output.ml
