@@ -102,9 +102,11 @@ documentation: ## Generate odoc documentation
 # Since odoc fails when 2 wrapped libraries have the same name,
 # we need to ignore "promise" by adding an underscode in front of it
 	mv $(CURDIR)/packages/promise $(CURDIR)/packages/_promise
+	mv $(CURDIR)/packages/url $(CURDIR)/packages/_url
 	$(DUNE) build --root . @doc
 # and rollback the rename, so the build continues to work
 	mv $(CURDIR)/packages/_promise $(CURDIR)/packages/promise
+	mv $(CURDIR)/packages/_url $(CURDIR)/packages/url
 
 # Because if the hack above, we can't have watch mode
 ## .PHONY: documentation-watch
