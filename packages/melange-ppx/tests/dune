@@ -1,0 +1,7 @@
+(cram
+ (package server-reason-react)
+ (deps %{bin:ocamlformat} standalone.exe))
+
+(executable
+ (name standalone)
+ (libraries ppxlib melange_native_ppx))

@@ -27,4 +27,4 @@
  (package server-reason-react)
  (libraries react reactDOM belt js shared_native)
  (preprocess
-  (pps pipe_first_ppx double_hash_ppx server-reason-react.ppx)))
+  (pps melange_native_ppx server-reason-react.ppx)))

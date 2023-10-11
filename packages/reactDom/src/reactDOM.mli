@@ -9,11 +9,6 @@ val renderToLwtStream : React.element -> string Lwt_stream.t * (unit -> unit)
 
 val querySelector : 'a -> 'b option
 
-exception Impossible_in_ssr of string
-(** Exception to throw when operations aren't meant to be running on native, mostly used by browser_ppx *)
-
-val fail_impossible_action_in_ssr : string -> 'a
-
 val render : 'a -> 'b -> 'c
 (** Do nothing on the server *)
 

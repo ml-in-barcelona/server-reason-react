@@ -2,6 +2,6 @@
  (name reactDOM)
  (wrapped false)
  (public_name server-reason-react.reactDom)
- (libraries react js html lwt)
+ (libraries react js html lwt runtime)
  (preprocess
   (pps melange.ppx)))
