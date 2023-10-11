@@ -46,7 +46,4 @@ let expander e =
   in
   expander' e
 
-let () =
-  Driver.register_transformation
-    ~rules:[ Context_free.Rule.special_function "( |. )" expander ]
-    "pipe_first_ppx"
+let rule = Context_free.Rule.special_function "( |. )" expander
