@@ -13,15 +13,15 @@ help: ## Print this help message
 
 .PHONY: build
 build: ## Build the project, including non installable libraries and executables
-	$(DUNE) build @@default
+	$(DUNE) build @all
 
 .PHONY: build-prod
 build-prod: ## Build for production (--profile=prod)
-	$(DUNE) build --profile=prod @@default
+	$(DUNE) build --profile=prod @all
 
 .PHONY: dev
 dev: ## Build in watch mode
-	$(DUNE) build -w @@default
+	$(DUNE) build -w @all
 
 .PHONY: clean
 clean: ## Clean artifacts
@@ -56,10 +56,12 @@ setup-githooks: ## Setup githooks
 
 .PHONY: pin
 pin: ## Pin dependencies
-	opam pin add melange "https://github.com/melange-re/melange.git#a01735398b5df5b90f0a567dd660847ae0e9da48" -y
+	opam install dune.3.10.0
+	opam pin add melange.dev "https://github.com/melange-re/melange.git#2ff08be262f113fc8d28b66c272502c6f403399c" -y
 	opam pin add reason-react-ppx.dev "https://github.com/reasonml/reason-react.git#0ccff71796b60d6c32ab6cf01e31beccca4698b9" -y
 	opam pin add reason-react.dev "https://github.com/reasonml/reason-react.git#0ccff71796b60d6c32ab6cf01e31beccca4698b9" -y
-
+	opam pin add melange-fetch.dev "git+https://github.com/melange-community/melange-fetch.git#master" -y
+	opam pin add melange-webapi.dev "git+https://github.com/melange-community/melange-webapi.git#master" -y
 
 .PHONY: create-switch
 create-switch: ## Create opam switch
@@ -100,9 +102,11 @@ documentation: ## Generate odoc documentation
 # Since odoc fails when 2 wrapped libraries have the same name,
 # we need to ignore "promise" by adding an underscode in front of it
 	mv $(CURDIR)/packages/promise $(CURDIR)/packages/_promise
+	mv $(CURDIR)/packages/url $(CURDIR)/packages/_url
 	$(DUNE) build --root . @doc
 # and rollback the rename, so the build continues to work
 	mv $(CURDIR)/packages/_promise $(CURDIR)/packages/promise
+	mv $(CURDIR)/packages/_url $(CURDIR)/packages/url
 
 # Because if the hack above, we can't have watch mode
 ## .PHONY: documentation-watch

@@ -9,7 +9,7 @@ type 'value ref = { mutable current : 'value }
 module Ref : sig
   type t = domRef
   type currentDomRef = Dom.element Js.nullable ref
-  type callbackDomRef
+  type callbackDomRef = Dom.element Js.nullable -> unit
 
   external domRef : currentDomRef -> domRef = "%identity"
   external callbackDomRef : callbackDomRef -> domRef = "%identity"

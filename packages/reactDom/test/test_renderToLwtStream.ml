@@ -103,6 +103,38 @@ let react_use_with_suspense _switch () =
       "<script>$RC('B:0','S:0')</script>";
     ]
 
+let test_with_custom_component _switch () =
+  let custom_component =
+    React.Upper_case_component
+      (fun () ->
+        React.createElement "div" [||]
+          [
+            React.createElement "span" [||] [ React.string "Custom Component" ];
+          ])
+  in
+  let app = React.createElement "div" [||] [ custom_component ] in
+  let stream, _abort = ReactDOM.renderToLwtStream app in
+  assert_stream stream [ "<div><div><span>Custom Component</span></div></div>" ]
+
+let test_with_multiple_custom_components _switch () =
+  let custom_component =
+    React.Upper_case_component
+      (fun () ->
+        React.createElement "div" [||]
+          [
+            React.createElement "span" [||] [ React.string "Custom Component" ];
+          ])
+  in
+  let app =
+    React.createElement "div" [||] [ custom_component; custom_component ]
+  in
+  let stream, _abort = ReactDOM.renderToLwtStream app in
+  assert_stream stream
+    [
+      "<div><div><span>Custom Component</span></div><div><span>Custom \
+       Component</span></div></div>";
+    ]
+
 let tests =
   ( "renderToLwtStream",
     [

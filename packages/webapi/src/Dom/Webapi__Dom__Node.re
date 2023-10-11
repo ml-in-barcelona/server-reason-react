@@ -45,8 +45,7 @@ module Impl = (T: {
   [@mel.send.pipe: T.t]
   external compareDocumentPosition: Dom.node_like('a) => int =
     "compareDocumentPosition"; /* returns a bitmask which could also be represeneted as an enum, see https://developer.mozilla.org/en-US/docs/Web/API/Node/compareDocumentPosition */
-  [@mel.send.pipe: T.t]
-  external contains: Dom.node_like('a) => bool = "contains";
+  [@mel.send.pipe: T.t] external contains: Dom.node => bool = "contains";
   [@mel.send.pipe: T.t] external getRootNode: Dom.node = "getRootNode";
   [@mel.send.pipe: T.t]
   external getRootNodeComposed:

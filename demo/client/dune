@@ -1,0 +1,17 @@
+(melange.emit
+ (alias client)
+ (target app)
+ (modules app)
+ (libraries melange shared_js reason-react)
+ (preprocess
+  (pps reason-react-ppx))
+ (module_systems commonjs))
+
+(melange.emit
+ (alias client)
+ (target header)
+ (modules header)
+ (libraries melange shared_js reason-react)
+ (preprocess
+  (pps reason-react-ppx))
+ (module_systems commonjs))

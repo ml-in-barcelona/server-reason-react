@@ -4,10 +4,11 @@
 
 # server-reason-react
 
-Re-implementation of React, ReactDOM and ReactDOMServer to run on the server and a few related libraries in Reason/OCaml, to enable Server-side Rendering on reason-react applications.
-
-### Why 
-Explained in detail in this blog post: [sancho.dev/blog/server-side-rendering-react-in-ocaml](https://sancho.dev/blog/server-side-rendering-react-in-ocaml)
+Re-implementation of `react`, `react-dom` and `react-dom/server` to run on the server and a few related libraries in Reason/OCaml, to enable Server-side Rendering for reason-react applications.
 
 ### Documentation
 [API reference](https://ml-in-barcelona.github.io/server-reason-react/server-reason-react/index.html)
+
+
+### Why 
+Explained in detail in this blog post: [sancho.dev/blog/server-side-rendering-react-in-ocaml](https://sancho.dev/blog/server-side-rendering-react-in-ocaml)

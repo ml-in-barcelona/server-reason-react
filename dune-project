@@ -30,7 +30,7 @@
   melange
 
   ;; Library dependencies
-  (ppxlib (>= 0.23.0))
+  (ppxlib (and (> 0.23.0) (<= 0.31.0)))
   (pcre (<= 7.5.0))
   (promise (>= 1.1.2))
   (lwt (>= 5.6.0))
@@ -46,6 +46,12 @@
   (odoc :with-doc)
 
   ;; Dev dependencies, using with-test so that consumers don't install them (until package is released in opam)
-  (ocamlformat :with-test)
+  (ocamlformat
+   (and
+    (= 0.26.1)
+    :with-test))
   (ocaml-lsp-server :with-test)
+
+  ;; Demo deps
+  dream
 ))

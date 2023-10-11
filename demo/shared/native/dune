@@ -6,8 +6,9 @@
   server-reason-react.react
   server-reason-react.reactDom
   server-reason-react.js
-  server-reason-react.belt)
+  server-reason-react.belt
+  server-reason-react.webapi)
  (preprocess
-  (pps melange.ppx server-reason-react.ppx browser_ppx)))
+  (pps melange_native_ppx server-reason-react.ppx browser_ppx)))
 
 (copy_files# "../*.re")
