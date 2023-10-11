@@ -1,220 +1,70 @@
 With -js flag everything keeps as it is and browser_only extension disappears
 
   $ ../standalone.exe -impl input.ml -js | ocamlformat - --enable-outside-detected-project --impl
-  let _ = Webapi.Dom.getElementById "foo"
-  let valueFromEvent = Webapi.Dom.getElementById "foo"
-  let valueFromEvent evt = Webapi.Dom.getElementById "foo"
-  let valueFromEvent evt moar_arguments = Webapi.Dom.getElementById "foo"
+  let pstr_value_binding = Webapi.Dom.getElementById "foo"
+  let pstr_value_binding_2 = Webapi.Dom.getElementById "foo"
+  let pexp_fun_1arg_structure_item evt = Webapi.Dom.getElementById "foo"
+  
+  let pexp_fun_2arg_structure_item evt moar_arguments =
+    Webapi.Dom.getElementById "foo"
   
   let make () =
-    let _ = Webapi.Dom.getElementById "foo" in
-    let valueFromEvent = Webapi.Dom.getElementById "foo" in
-    let valueFromEvent evt = Webapi.Dom.getElementById "foo" in
-    let valueFromEvent evt moar_arguments = Webapi.Dom.getElementById "foo" in
-    React.createElement "div"
-  
-  let _ = Webapi.Dom.getElementById "foo"
-  let loadInitialText () = setHtmlFetchState Loading
-  let loadInitialText argument1 = setHtmlFetchState Loading
-  let loadInitialText argument1 argument2 = setHtmlFetchState Loading
-  let labeled ~argument1 ~argument2 = setHtmlFetchState Loading
-  let getById id = Webapi.Dom.getElementById id
-  
-  let make () =
-    let _ = Webapi.Dom.getElementById "foo" in
-    let loadInitialText () = setHtmlFetchState Loading in
-    let loadInitialText argument1 = setHtmlFetchState Loading in
-    let loadInitialText argument1 argument2 = setHtmlFetchState Loading in
-    let labeled ~argument1 ~argument2 = setHtmlFetchState Loading in
+    let fun_value_binding_pexp = Webapi.Dom.getElementById "foo" in
+    let fun_value_binding_pexp_2 = Webapi.Dom.getElementById "foo" in
+    let fun_value_binding_pexp_fun_1arg evt = Webapi.Dom.getElementById "foo" in
+    let fun_value_binding_pexp_fun_2arg evt moar_arguments =
+      Webapi.Dom.getElementById "foo"
+    in
+    let fun_value_binding_labelled_args ~argument1 ~argument2 =
+      setHtmlFetchState Loading
+    in
     React.createElement "div"
 
 Without -js flag, the compilation to native replaces the expression with `raise (ReactDOM.Impossible_in_ssr`
 
   $ ../standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl
-  let _ = raise (ReactDOM.Impossible_in_ssr "Webapi.Dom.getElementById")
-  let valueFromEvent = Webapi.Dom.getElementById "foo"
+  let pstr_value_binding =
+    Runtime.fail_impossible_action_in_ssr "Webapi.Dom.getElementById"
   
-  let valueFromEvent evt =
-    raise
-      (ReactDOM.Impossible_in_ssr "fun evt -> Webapi.Dom.getElementById \"foo\"")
+  let pstr_value_binding_2 = Webapi.Dom.getElementById "foo"
+  
+  let pexp_fun_1arg_structure_item evt =
+    Runtime.fail_impossible_action_in_ssr "pexp_fun_1arg_structure_item"
   [@@warning "-27-32"]
   
-  let valueFromEvent evt moar_arguments =
-    raise
-      (ReactDOM.Impossible_in_ssr
-         "fun evt -> fun moar_arguments -> Webapi.Dom.getElementById \"foo\"")
-  [@@warning "-27-32"]
-  
-  let make () =
-    let _ = raise (ReactDOM.Impossible_in_ssr "Webapi.Dom.getElementById") in
-    let valueFromEvent =
-      [%ocaml.error "browser only works on expressions or function definitions"]
-    in
-    let valueFromEvent =
-     fun [@warning "-27"] evt ->
-      raise
-        (ReactDOM.Impossible_in_ssr "fun evt -> Webapi.Dom.getElementById \"foo\"")
-       [@@warning "-27-26"]
-    in
-    let valueFromEvent =
-     fun [@warning "-27"] evt ->
-      fun [@warning "-27"] moar_arguments ->
-       raise
-         (ReactDOM.Impossible_in_ssr
-            "fun evt -> fun moar_arguments -> Webapi.Dom.getElementById \"foo\"")
-       [@@warning "-27-26"]
-    in
-    React.createElement "div"
-  
-  let _ = raise (ReactDOM.Impossible_in_ssr "Webapi.Dom.getElementById")
-  
-  let loadInitialText () =
-    raise (ReactDOM.Impossible_in_ssr "fun () -> setHtmlFetchState Loading")
-  [@@warning "-27-32"]
-  
-  let loadInitialText argument1 =
-    raise
-      (ReactDOM.Impossible_in_ssr "fun argument1 -> setHtmlFetchState Loading")
-  [@@warning "-27-32"]
-  
-  let loadInitialText argument1 argument2 =
-    raise
-      (ReactDOM.Impossible_in_ssr
-         "fun argument1 -> fun argument2 -> setHtmlFetchState Loading")
-  [@@warning "-27-32"]
-  
-  let labeled ~argument1 ~argument2 =
-    raise
-      (ReactDOM.Impossible_in_ssr
-         "fun ~argument1 -> fun ~argument2 -> setHtmlFetchState Loading")
-  [@@warning "-27-32"]
-  
-  let getById =
-   fun [@warning "-27"] id ->
-    raise (ReactDOM.Impossible_in_ssr "fun id -> Webapi.Dom.getElementById id")
-  
-  let make () =
-    let _ = raise (ReactDOM.Impossible_in_ssr "Webapi.Dom.getElementById") in
-    let loadInitialText =
-     fun [@warning "-27"] () ->
-      raise (ReactDOM.Impossible_in_ssr "fun () -> setHtmlFetchState Loading")
-       [@@warning "-27-26"]
-    in
-    let loadInitialText =
-     fun [@warning "-27"] argument1 ->
-      raise
-        (ReactDOM.Impossible_in_ssr "fun argument1 -> setHtmlFetchState Loading")
-       [@@warning "-27-26"]
-    in
-    let loadInitialText =
-     fun [@warning "-27"] argument1 ->
-      fun [@warning "-27"] argument2 ->
-       raise
-         (ReactDOM.Impossible_in_ssr
-            "fun argument1 -> fun argument2 -> setHtmlFetchState Loading")
-       [@@warning "-27-26"]
-    in
-    let labeled =
-     fun [@warning "-27"] ~argument1 ->
-      fun [@warning "-27"] ~argument2 ->
-       raise
-         (ReactDOM.Impossible_in_ssr
-            "fun ~argument1 -> fun ~argument2 -> setHtmlFetchState Loading")
-       [@@warning "-27-26"]
-    in
-    React.createElement "div"
-
-
-  $ ../standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl
-  let _ = raise (ReactDOM.Impossible_in_ssr "Webapi.Dom.getElementById")
-  let valueFromEvent = Webapi.Dom.getElementById "foo"
-  
-  let valueFromEvent evt =
-    raise
-      (ReactDOM.Impossible_in_ssr "fun evt -> Webapi.Dom.getElementById \"foo\"")
-  [@@warning "-27-32"]
-  
-  let valueFromEvent evt moar_arguments =
-    raise
-      (ReactDOM.Impossible_in_ssr
-         "fun evt -> fun moar_arguments -> Webapi.Dom.getElementById \"foo\"")
+  let pexp_fun_2arg_structure_item evt moar_arguments =
+    Runtime.fail_impossible_action_in_ssr "pexp_fun_2arg_structure_item"
   [@@warning "-27-32"]
   
   let make () =
-    let _ = raise (ReactDOM.Impossible_in_ssr "Webapi.Dom.getElementById") in
-    let valueFromEvent =
-      [%ocaml.error "browser only works on expressions or function definitions"]
+    let fun_value_binding_pexp =
+      Runtime.fail_impossible_action_in_ssr "Webapi.Dom.getElementById"
     in
-    let valueFromEvent =
-     fun [@warning "-27"] evt ->
-      raise
-        (ReactDOM.Impossible_in_ssr "fun evt -> Webapi.Dom.getElementById \"foo\"")
-       [@@warning "-27-26"]
-    in
-    let valueFromEvent =
-     fun [@warning "-27"] evt ->
-      fun [@warning "-27"] moar_arguments ->
-       raise
-         (ReactDOM.Impossible_in_ssr
-            "fun evt -> fun moar_arguments -> Webapi.Dom.getElementById \"foo\"")
-       [@@warning "-27-26"]
-    in
-    React.createElement "div"
-  
-  let _ = raise (ReactDOM.Impossible_in_ssr "Webapi.Dom.getElementById")
-  
-  let loadInitialText () =
-    raise (ReactDOM.Impossible_in_ssr "fun () -> setHtmlFetchState Loading")
-  [@@warning "-27-32"]
-  
-  let loadInitialText argument1 =
-    raise
-      (ReactDOM.Impossible_in_ssr "fun argument1 -> setHtmlFetchState Loading")
-  [@@warning "-27-32"]
-  
-  let loadInitialText argument1 argument2 =
-    raise
-      (ReactDOM.Impossible_in_ssr
-         "fun argument1 -> fun argument2 -> setHtmlFetchState Loading")
-  [@@warning "-27-32"]
-  
-  let labeled ~argument1 ~argument2 =
-    raise
-      (ReactDOM.Impossible_in_ssr
-         "fun ~argument1 -> fun ~argument2 -> setHtmlFetchState Loading")
-  [@@warning "-27-32"]
-  
-  let getById =
-   fun [@warning "-27"] id ->
-    raise (ReactDOM.Impossible_in_ssr "fun id -> Webapi.Dom.getElementById id")
-  
-  let make () =
-    let _ = raise (ReactDOM.Impossible_in_ssr "Webapi.Dom.getElementById") in
-    let loadInitialText =
-     fun [@warning "-27"] () ->
-      raise (ReactDOM.Impossible_in_ssr "fun () -> setHtmlFetchState Loading")
-       [@@warning "-27-26"]
-    in
-    let loadInitialText =
-     fun [@warning "-27"] argument1 ->
-      raise
-        (ReactDOM.Impossible_in_ssr "fun argument1 -> setHtmlFetchState Loading")
-       [@@warning "-27-26"]
-    in
-    let loadInitialText =
-     fun [@warning "-27"] argument1 ->
-      fun [@warning "-27"] argument2 ->
-       raise
-         (ReactDOM.Impossible_in_ssr
-            "fun argument1 -> fun argument2 -> setHtmlFetchState Loading")
-       [@@warning "-27-26"]
-    in
-    let labeled =
-     fun [@warning "-27"] ~argument1 ->
-      fun [@warning "-27"] ~argument2 ->
-       raise
-         (ReactDOM.Impossible_in_ssr
-            "fun ~argument1 -> fun ~argument2 -> setHtmlFetchState Loading")
-       [@@warning "-27-26"]
-    in
-    React.createElement "div"
+    (let fun_value_binding_pexp_2 =
+       [%ocaml.error
+         "browser_only works on function definitions. If there's another case \
+          where it can be helpful, feel free to open an issue in \
+          https://github.com/ml-in-barcelona/server-reason-react."]
+     in
+     (let fun_value_binding_pexp_fun_1arg =
+       fun [@warning "-27"] evt ->
+        Runtime.fail_impossible_action_in_ssr "fun_value_binding_pexp_fun_1arg"
+         [@@warning "-27-26"]
+      in
+      (let fun_value_binding_pexp_fun_2arg =
+        fun [@warning "-27"] evt ->
+         fun [@warning "-27"] moar_arguments ->
+          Runtime.fail_impossible_action_in_ssr "fun_value_binding_pexp_fun_2arg"
+          [@@warning "-27-26"]
+       in
+       (let fun_value_binding_labelled_args =
+         fun [@warning "-27"] ~argument1 ->
+          fun [@warning "-27"] ~argument2 ->
+           Runtime.fail_impossible_action_in_ssr "fun_value_binding_labelled_args"
+           [@@warning "-27-26"]
+        in
+        React.createElement "div")
+       [@warning "-27"])
+      [@warning "-27"])
+     [@warning "-27"])
+    [@warning "-27"]

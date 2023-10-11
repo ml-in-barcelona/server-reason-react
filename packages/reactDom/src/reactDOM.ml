@@ -223,14 +223,12 @@ let renderToLwtStream element =
 
 let querySelector _str = None
 
-exception Impossible_in_ssr of string
+let render _element _node =
+  Runtime.fail_impossible_action_in_ssr "ReactDOM.render"
 
-let fail_impossible_action_in_ssr fn =
-  let msg = Printf.sprintf "'%s' shouldn't run on the server" fn in
-  raise (Impossible_in_ssr msg)
+let hydrate _element _node =
+  Runtime.fail_impossible_action_in_ssr "ReactDOM.hydrate"
 
-let render _element _node = fail_impossible_action_in_ssr "ReactDOM.render"
-let hydrate _element _node = fail_impossible_action_in_ssr "ReactDOM.hydrate"
 let createPortal _reactElement _domElement = _reactElement
 
 module Style = ReactDOMStyle
