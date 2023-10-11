@@ -1,39 +1,27 @@
-let _ = [%browser_only Webapi.Dom.getElementById "foo"]
-let%browser_only valueFromEvent = Webapi.Dom.getElementById "foo"
-let%browser_only valueFromEvent evt = Webapi.Dom.getElementById "foo"
+let pstr_value_binding = [%browser_only Webapi.Dom.getElementById "foo"]
+let%browser_only pstr_value_binding_2 = Webapi.Dom.getElementById "foo"
 
-let%browser_only valueFromEvent evt moar_arguments =
+let%browser_only pexp_fun_1arg_structure_item evt =
+  Webapi.Dom.getElementById "foo"
+
+let%browser_only pexp_fun_2arg_structure_item evt moar_arguments =
   Webapi.Dom.getElementById "foo"
 
 let make () =
-  let _ = [%browser_only Webapi.Dom.getElementById "foo"] in
-  let%browser_only valueFromEvent = Webapi.Dom.getElementById "foo" in
-  let%browser_only valueFromEvent evt = Webapi.Dom.getElementById "foo" in
-
-  let%browser_only valueFromEvent evt moar_arguments =
+  let fun_value_binding_pexp =
+    [%browser_only Webapi.Dom.getElementById "foo"]
+  in
+  let%browser_only fun_value_binding_pexp_2 = Webapi.Dom.getElementById "foo" in
+  let%browser_only fun_value_binding_pexp_fun_1arg evt =
     Webapi.Dom.getElementById "foo"
   in
 
-  React.createElement "div"
-
-let _ = [%browser_only Webapi.Dom.getElementById "foo"]
-let%browser_only loadInitialText () = setHtmlFetchState Loading
-let%browser_only loadInitialText argument1 = setHtmlFetchState Loading
-let%browser_only loadInitialText argument1 argument2 = setHtmlFetchState Loading
-let%browser_only labeled ~argument1 ~argument2 = setHtmlFetchState Loading
-let getById = [%browser_only fun id -> Webapi.Dom.getElementById id]
-
-let make () =
-  let _ = [%browser_only Webapi.Dom.getElementById "foo"] in
-
-  let%browser_only loadInitialText () = setHtmlFetchState Loading in
-
-  let%browser_only loadInitialText argument1 = setHtmlFetchState Loading in
-
-  let%browser_only loadInitialText argument1 argument2 =
-    setHtmlFetchState Loading
+  let%browser_only fun_value_binding_pexp_fun_2arg evt moar_arguments =
+    Webapi.Dom.getElementById "foo"
   in
 
-  let%browser_only labeled ~argument1 ~argument2 = setHtmlFetchState Loading in
+  let%browser_only fun_value_binding_labelled_args ~argument1 ~argument2 =
+    setHtmlFetchState Loading
+  in
 
   React.createElement "div"
