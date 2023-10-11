@@ -64,12 +64,16 @@ let hostname = url => {
   | None => ""
   };
 };
-let setHostname = (t, string) => assert(false);
+let setHostname = (t, string) => {
+  Uri.with_host(t, Some(string));
+};
 let href = url => {
   Uri.to_string(url);
 };
-let setHref = (t, string) => assert(false);
-let origin = t => assert(false);
+let setHref = (t, string) => {
+  /* TODO: Unsure what to do here. Setting the href should update hostname, port, userinfo, etc. It seems like search params don't update. */
+  t;
+};
 let password = url =>
   /* https://url.spec.whatwg.org/#concept-url-password */
   switch (Uri.password(url)) {
@@ -77,34 +81,39 @@ let password = url =>
   | None => ""
   };
 let setPassword = (url, password) => {
-  /* If password is empty, is necessary pass None? */
-  Uri.with_password(
-    url,
-    Some(password),
-  );
+  Uri.with_password(url, Some(password));
 };
 let pathname = url => Uri.path(url);
-let setPathname = (t, string) => assert(false);
+let setPathname = (t, string) => {
+  Uri.with_path(t, string);
+};
 let port = url => {
   switch (Uri.port(url)) {
   | Some(port) => Int.to_string(port)
   | None => ""
   };
 };
-let setPort = (t, string) => assert(false);
+/* TODO: Return result? or optional Maybe int_of_string fails */
+let setPort = (t, string) => {
+  Uri.with_port(t, Some(int_of_string(string)));
+};
 let protocol = url => {
   switch (Uri.scheme(url)) {
   | Some(scheme) => scheme ++ ":"
   | None => ""
   };
 };
-let setProtocol = (t, string) => assert(false);
+let setProtocol = (t, string) => {
+  Uri.with_scheme(t, Some(string));
+};
 let search = url => {
   let scheme = protocol(url);
   let query = Uri.query(url);
-  Uri.encoded_of_query(~scheme, query);
+  "?" ++ Uri.encoded_of_query(~scheme, query);
 };
-let setSearch = (t, string) => assert(false);
+let setSearch = (t, string) => {
+  Uri.with_query(t, Uri.query_of_encoded(string));
+};
 let searchParams = url => assert(false);
 let username = url => {
   switch (Uri.user(url)) {
@@ -112,14 +121,27 @@ let username = url => {
   | None => ""
   };
 };
-let setUsername = (t, string) => assert(false);
+let setUsername = (t, string) => {
+  Uri.with_userinfo(t, Some(string));
+};
 let hash = url => {
   switch (Uri.fragment(url)) {
   | Some(fragment) => "#" ++ fragment
   | None => ""
   };
 };
-let setHash = (t, string) => assert(false);
+let setHash = (t, string) => {
+  Uri.with_fragment(t, Some(string));
+};
+
+let origin = t => {
+  /* https://url.spec.whatwg.org/#dom-url-origin */
+  switch (protocol(t), host(t)) {
+  | ("", _) => "null"
+  | (_, "") => "null"
+  | (protocol, host) => protocol ++ "//" ++ host
+  };
+};
 
 let toJson = url => assert(false);
 let toString = url => Uri.to_string(url);

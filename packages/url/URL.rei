@@ -7,7 +7,7 @@ module URLSearchParams: {
   let append: (t, string, string) => t;
   let delete: (t, string) => t;
   let entries: t => array((string, string));
-  let forEach: (t, (string, string) => unit) => t;
+  let forEach: (t, (string, string) => unit) => unit; /* Unsure about unit as returnable */
   let get: (t, string) => option(string);
   let getAll: (t, string) => array(string);
   let has: (t, string) => bool;

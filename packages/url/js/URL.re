@@ -2,38 +2,57 @@ module URLSearchParams = {
   type t;
 
   [@mel.new] external make: string => t = "URLSearchParams";
+
   [@mel.new]
   external makeWithDict: Js.Dict.t(string) => t = "URLSearchParams";
+
   [@mel.new]
   external makeWithArray: array((string, string)) => t = "URLSearchParams";
+
   [@mel.send] external toString: t => string = "toString";
+
   [@mel.send] external appendInPlace: (t, string, string) => unit = "append";
   let append = (searchParams, key, value) => {
-    assert(false);
+    let newSearchParams = make(toString(searchParams));
+    let _ = appendInPlace(searchParams, key, value);
+    newSearchParams;
   };
+
   [@mel.send] external deleteInPlace: (t, string) => unit = "delete";
   let delete = (searchParams, key) => {
-    assert(false);
+    let newSearchParams = make(toString(searchParams));
+    let _ = deleteInPlace(searchParams, key);
+    newSearchParams;
   };
   [@mel.send] external entries: t => array((string, string)) = "entries";
+
   [@mel.send]
   external forEach: (t, [@mel.uncurry] ((string, string) => unit)) => unit =
     "forEach";
+
   [@mel.return nullable] [@mel.send]
   external get: (t, string) => option(string) = "get";
+
   [@mel.send] external getAll: (t, string) => array(string) = "getAll";
+
   [@mel.send] external has: (t, string) => bool = "has";
+
   [@mel.send] external keys: t => array(string) = "keys";
+
   [@mel.send] external setInPlace: (t, string, string) => unit = "set";
   let set = (searchParams, key, value) => {
-    assert(false);
+    let newSearchParams = make(toString(searchParams));
+    let _ = setInPlace(searchParams, key, value);
+    newSearchParams;
   };
+
   [@mel.send] external sortInPlace: t => unit = "sort";
   let sort = searchParams => {
     let newSearchParams = make(toString(searchParams));
     let () = sortInPlace(newSearchParams);
     newSearchParams;
   };
+
   [@mel.send] external values: t => array(string) = "values";
 };
 
