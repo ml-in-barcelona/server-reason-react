@@ -40,27 +40,31 @@ Without -js flag, the compilation to native replaces the expression with `raise 
     let fun_value_binding_pexp =
       Runtime.fail_impossible_action_in_ssr "Webapi.Dom.getElementById"
     in
-    let fun_value_binding_pexp_2 =
-      [%ocaml.error
-        "browser_only works on function definitions. If there's another case \
-         where it can be helpful, feel free to open an issue in \
-         https://github.com/ml-in-barcelona/server-reason-react."]
-    in
-    let fun_value_binding_pexp_fun_1arg =
-     fun [@warning "-27"] evt ->
-      Runtime.fail_impossible_action_in_ssr "fun_value_binding_pexp_fun_1arg"
-       [@@warning "-27-26"]
-    in
-    let fun_value_binding_pexp_fun_2arg =
-     fun [@warning "-27"] evt ->
-      fun [@warning "-27"] moar_arguments ->
-       Runtime.fail_impossible_action_in_ssr "fun_value_binding_pexp_fun_2arg"
-       [@@warning "-27-26"]
-    in
-    let fun_value_binding_labelled_args =
-     fun [@warning "-27"] ~argument1 ->
-      fun [@warning "-27"] ~argument2 ->
-       Runtime.fail_impossible_action_in_ssr "fun_value_binding_labelled_args"
-       [@@warning "-27-26"]
-    in
-    React.createElement "div"
+    (let fun_value_binding_pexp_2 =
+       [%ocaml.error
+         "browser_only works on function definitions. If there's another case \
+          where it can be helpful, feel free to open an issue in \
+          https://github.com/ml-in-barcelona/server-reason-react."]
+     in
+     (let fun_value_binding_pexp_fun_1arg =
+       fun [@warning "-27"] evt ->
+        Runtime.fail_impossible_action_in_ssr "fun_value_binding_pexp_fun_1arg"
+         [@@warning "-27-26"]
+      in
+      (let fun_value_binding_pexp_fun_2arg =
+        fun [@warning "-27"] evt ->
+         fun [@warning "-27"] moar_arguments ->
+          Runtime.fail_impossible_action_in_ssr "fun_value_binding_pexp_fun_2arg"
+          [@@warning "-27-26"]
+       in
+       (let fun_value_binding_labelled_args =
+         fun [@warning "-27"] ~argument1 ->
+          fun [@warning "-27"] ~argument2 ->
+           Runtime.fail_impossible_action_in_ssr "fun_value_binding_labelled_args"
+           [@@warning "-27-26"]
+        in
+        React.createElement "div")
+       [@warning "-27"])
+      [@warning "-27"])
+     [@warning "-27"])
+    [@warning "-27"]
