@@ -99,8 +99,9 @@ subst: ## Run dune substitute
 
 .PHONY: documentation
 documentation: ## Generate odoc documentation
-# Since odoc fails when 2 wrapped libraries have the same name,
-# we need to ignore "promise" by adding an underscode in front of it
+# Since odoc/dune fails when 2 wrapped libraries have the same name,
+# we need to ignore conflicting packages by adding an underscode in front of it
+# https://github.com/ocaml/dune/issues/1645
 	mv $(CURDIR)/packages/promise $(CURDIR)/packages/_promise
 	mv $(CURDIR)/packages/url $(CURDIR)/packages/_url
 	$(DUNE) build --root . @doc
