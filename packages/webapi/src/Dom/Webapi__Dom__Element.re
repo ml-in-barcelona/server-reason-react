@@ -8,24 +8,23 @@ module Impl = (T: {
                }) => {
   /* let asHtmlElement: T.t => option(Dom.htmlElement) = [%mel.raw
        {|
-       function(element) {
-         var ownerDocument = element.ownerDocument;
+          function(element) {
+            var ownerDocument = element.ownerDocument;
 
-         if (ownerDocument != null) {
-           var defaultView = ownerDocument.defaultView;
+            if (ownerDocument != null) {
+              var defaultView = ownerDocument.defaultView;
 
-           if (defaultView != null) {
-             var HTMLElement = defaultView.HTMLElement;
+              if (defaultView != null) {
+                var HTMLElement = defaultView.HTMLElement;
 
-             if (HTMLElement != null && element instanceof HTMLElement) {
-               return element;
-             }
-           }
-         }
-       }
-     |}
+                if (HTMLElement != null && element instanceof HTMLElement) {
+                  return element;
+                }
+              }
+            }
+          }
+        |}
      ]; */
-  let asHtmlElement = _ => None;
 
   /** Unsafe cast, use [asHtmlElement] instead */
   external unsafeAsHtmlElement: T.t => Dom.htmlElement = "%identity";

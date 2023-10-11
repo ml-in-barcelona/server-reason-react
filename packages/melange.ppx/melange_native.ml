@@ -105,6 +105,7 @@ class raise_exception_mapper =
 
     method! structure_item item =
       match item.pstr_desc with
+      (* @mel. *)
       | Pstr_primitive { pval_name; pval_attributes; pval_loc; pval_type }
         when has_mel_module_attr pval_attributes ->
           let pipe_type =
@@ -149,9 +150,38 @@ class raise_exception_mapper =
       | _ -> super#structure_item item
   end
 
+module Raw = struct
+  open Ppxlib
+  module Builder = Ast_builder.Default
+
+  let extractor = Ast_pattern.(__')
+
+  let rule =
+    let handler ~ctxt:_ { txt = payload; loc } =
+      match payload with
+      | PStr [ { pstr_desc = Pstr_eval (expression, _); _ } ] -> (
+          match expression.pexp_desc with
+          | Pexp_constant (Pconst_string (_str, _location, _delimiter)) ->
+              [%expr ()]
+          | _ ->
+              Builder.pexp_extension ~loc
+              @@ Location.error_extensionf ~loc
+                   "payload should be a string literal")
+      | _ ->
+          Builder.pexp_extension ~loc
+          @@ Location.error_extensionf ~loc
+               "[%%mel.raw] should be used with an expression"
+    in
+    let extension =
+      Extension.V3.declare "mel.raw" Extension.Context.expression extractor
+        handler
+    in
+    Context_free.Rule.extension extension
+end
+
 let structure_mapper s = (new raise_exception_mapper)#structure s
 
 let () =
   Driver.register_transformation ~preprocess_impl:structure_mapper
-    ~rules:[ Pipe_first.rule; Regex.rule; Double_hash.rule ]
+    ~rules:[ Pipe_first.rule; Regex.rule; Double_hash.rule; Raw.rule ]
     "melange-native-ppx"
