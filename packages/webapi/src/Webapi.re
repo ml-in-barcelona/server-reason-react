@@ -2,7 +2,7 @@ module Base64 = Webapi__Base64;
 
 /** @since 0.18.0 */
 module Blob = Webapi__Blob;
-/* module Canvas = Webapi__Canvas; */
+module Canvas = Webapi__Canvas;
 module Dom = Webapi__Dom;
 module File = Webapi__File;
 
