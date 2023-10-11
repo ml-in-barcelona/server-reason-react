@@ -61,9 +61,6 @@ jobs:
       - name: Pin dune and melange
         run: make pin
 
-      - name: Ignore demo folder
-        run: mv demo _demo
-
       - name: Build
         run: make build
 
