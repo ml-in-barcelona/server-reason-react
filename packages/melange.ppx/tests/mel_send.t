@@ -10,13 +10,6 @@ Labelled args with @@mel.send
 
   $ ocamlc output.ml
 
-mel.send
-  $ cat > input.ml << EOF
-  > external fillStyle : t -> 'a = "fillStyle" [@@mel.send]
-  > EOF
-
-  $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl | tee output.ml
-
 Labelled and unlabelled args with @@mel.obj
 
   $ cat > input.ml <<EOF
