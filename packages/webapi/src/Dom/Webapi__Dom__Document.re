@@ -3,21 +3,22 @@ module Impl = (T: {
                }) => {
   external asDocument: T.t => Dom.document = "%identity";
 
-  let asHtmlDocument: T.t => option(Dom.htmlDocument) = [%raw
-    {|
-    function(document) {
-      var defaultView = document.defaultView;
+  let asHtmlDocument: T.t => option(Dom.htmlDocument) = _ => None;
+  /* let asHtmlDocument: T.t => option(Dom.htmlDocument) = [%mel.raw
+       {|
+       function(document) {
+         var defaultView = document.defaultView;
 
-      if (defaultView != null) {
-        var HTMLDocument = defaultView.HTMLDocument;
+         if (defaultView != null) {
+           var HTMLDocument = defaultView.HTMLDocument;
 
-        if (HTMLDocument != null && document instanceof HTMLDocument) {
-          return document;
-        }
-      }
-    }
-  |}
-  ];
+           if (HTMLDocument != null && document instanceof HTMLDocument) {
+             return document;
+           }
+         }
+       }
+     |}
+     ]; */
 
   /** Unsafe cast, use [ashtmlDocument] instead */
   external unsafeAsHtmlDocument: T.t => Dom.htmlDocument = "%identity";
@@ -166,7 +167,9 @@ include Webapi__Dom__EventTarget.Impl({
 include Webapi__Dom__NonElementParentNode.Impl({
   type nonrec t = t;
 });
-include Webapi__Dom__DocumentOrShadowRoot.Impl();
+include Webapi__Dom__DocumentOrShadowRoot.Impl({
+  ();
+});
 include Webapi__Dom__ParentNode.Impl({
   type nonrec t = t;
 });

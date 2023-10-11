@@ -137,17 +137,8 @@ let setFillStyle = (type a, ctx: t, _: style(a), v: a) =>
   setFillStyle(ctx, v);
 
 let reifyStyle = (type a, x: 'a): (style(a), a) => {
-  let isCanvasGradient: 'a => bool = [%raw
-    {|
-    function(x) { return x instanceof CanvasGradient; }
-  |}
-  ];
-
-  let isCanvasPattern: 'a => bool = [%raw
-    {|
-    function(x) { return x instanceof CanvasPattern; }
-  |}
-  ];
+  let isCanvasGradient = _ => false;
+  let isCanvasPattern = _ => false;
 
   (
     if (Js.typeof(x) == "string") {
@@ -165,12 +156,12 @@ let reifyStyle = (type a, x: 'a): (style(a), a) => {
   );
 };
 
-[@mel.get] external fillStyle: t => 'a = "fillStyle";
-[@mel.get] external strokeStyle: t => 'a = "strokeStyle";
+/* TODO: Fix this frozen */
+/* [@mel.get] external fillStyle: t => 'a = "fillStyle"; */
+/* [@mel.get] external strokeStyle: t => 'a = "strokeStyle"; */
 
-let fillStyle = (ctx: t) => ctx |> fillStyle |> reifyStyle;
-
-let strokeStyle = (ctx: t) => ctx |> strokeStyle |> reifyStyle;
+/* let fillStyle = (ctx: t) => ctx |> fillStyle |> reifyStyle; */
+/* let strokeStyle = (ctx: t) => ctx |> strokeStyle |> reifyStyle; */
 
 [@mel.set] external shadowOffsetX: (t, float) => unit = "shadowOffsetX";
 [@mel.set] external shadowOffsetY: (t, float) => unit = "shadowOffsetY";

@@ -10,9 +10,9 @@ let parse_re str =
     else Some (first, Some second)
   with Not_found -> None
 
+let extractor = Ast_pattern.(__')
+
 let rule =
-  let context = Extension.Context.expression in
-  let extractor = Ast_pattern.(__') in
   let handler ~ctxt:_ ({ txt = payload; loc } : Ppxlib.Parsetree.payload loc) =
     match payload with
     | PStr [ { pstr_desc = Pstr_eval (expression, _); _ } ] -> (
@@ -40,7 +40,7 @@ let rule =
         @@ Location.error_extensionf ~loc
              "[%%re] should be used with an expression"
   in
-  let extension = Extension.V3.declare "re" context extractor handler in
+  let extension =
+    Extension.V3.declare "re" Extension.Context.expression extractor handler
+  in
   Context_free.Rule.extension extension
-
-let () = Driver.V2.register_transformation "regex" ~rules:[ rule ]

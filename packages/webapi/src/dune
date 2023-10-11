@@ -5,5 +5,12 @@
  (public_name server-reason-react.webapi)
  (wrapped false)
  (libraries server-reason-react.js server-reason-react.dom)
+ (flags
+  :standard
+  -w
+  -34 ; unused-type-declaration
+  -w
+  -16 ; unerasable-optional-argument
+  )
  (preprocess
-  (pps melange.ppx)))
+  (pps melange_native_ppx)))
