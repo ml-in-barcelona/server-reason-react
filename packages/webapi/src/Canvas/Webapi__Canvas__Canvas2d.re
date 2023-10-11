@@ -156,12 +156,11 @@ let reifyStyle = (type a, x: 'a): (style(a), a) => {
   );
 };
 
-/* TODO: Fix this frozen */
-/* [@mel.get] external fillStyle: t => 'a = "fillStyle"; */
-/* [@mel.get] external strokeStyle: t => 'a = "strokeStyle"; */
+[@mel.get] external fillStyle: t => 'a = "fillStyle";
+[@mel.get] external strokeStyle: t => 'a = "strokeStyle";
 
-/* let fillStyle = (ctx: t) => ctx |> fillStyle |> reifyStyle; */
-/* let strokeStyle = (ctx: t) => ctx |> strokeStyle |> reifyStyle; */
+let fillStyle = (ctx: t) => ctx |> fillStyle |> reifyStyle;
+let strokeStyle = (ctx: t) => ctx |> strokeStyle |> reifyStyle;
 
 [@mel.set] external shadowOffsetX: (t, float) => unit = "shadowOffsetX";
 [@mel.set] external shadowOffsetY: (t, float) => unit = "shadowOffsetY";
