@@ -13,6 +13,4 @@ let expander e =
       | _ -> None)
   | _ -> None
 
-let () =
-  Driver.register_transformation "double_hash_ppx"
-    ~rules:[ Context_free.Rule.special_function "##" expander ]
+let rule = Context_free.Rule.special_function "##" expander

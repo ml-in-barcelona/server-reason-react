@@ -164,7 +164,7 @@ module Browser_only = struct
                 [%e Builder.estring ~loc original_name]]
       in
       match !mode with
-      (* When it's Js, keep item as it is *)
+      (* When it's -js, keep item as it is *)
       | Js -> do_nothing rec_flag
       | Native -> (
           match expression.pexp_desc with

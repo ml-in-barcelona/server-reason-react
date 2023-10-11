@@ -81,15 +81,17 @@ let construct_pval_with_send_pipe send_pipe_core_type pval_type =
         (* `constr -> constr` gets transformed into `constr -> t -> constr` *)
         (* `arrow (constr -> constr) -> constr` gets transformed into,
             `arrow (constr -> constr) -> t -> constr` *)
+        (* | Ptyp_constr _, Ptyp_var _ ->
+            Builder.ptyp_arrow ~loc:t1.ptyp_loc label t1
+              (insert_core_type_in_arrow t2) *)
         | _, _ ->
             Builder.ptyp_arrow ~loc:t2.ptyp_loc label t1
               (Builder.ptyp_arrow ~loc:t2.ptyp_loc Nolabel send_pipe_core_type
                  t2))
     (* In case of being a single ptyp_* turn into ptyp_* -> t *)
-    | { ptyp_desc = Ptyp_constr ({ txt = _; loc }, _); _ } ->
+    | { ptyp_desc = Ptyp_constr ({ txt = _; loc }, _); _ }
+    | { ptyp_desc = Ptyp_var _; ptyp_loc = loc; _ } ->
         Builder.ptyp_arrow ~loc Nolabel core_type send_pipe_core_type
-    | { ptyp_desc = Ptyp_var _; ptyp_loc; _ } ->
-        Builder.ptyp_arrow ~loc:ptyp_loc Nolabel core_type send_pipe_core_type
     (* Here we ignore the Ptyp_any *)
     | _ -> core_type
   in
@@ -101,6 +103,7 @@ let inject_send_pipe_as_last_argument pipe_type args_labels =
   | Some pipe_core_type -> pipe_core_type :: args_labels
 
 let raise_failure () =
+  (* TODO: Improve this error *)
   let loc = Location.none in
   [%expr raise (Failure "called Melange external \"mel.\" from native")]
 
@@ -158,4 +161,5 @@ let structure_mapper s = (new raise_exception_mapper)#structure s
 
 let () =
   Driver.register_transformation ~preprocess_impl:structure_mapper
+    ~rules:[ Pipe_first.rule; Regex.rule; Double_hash.rule ]
     "melange-native-ppx"
