@@ -50,16 +50,16 @@ Visit each API page for more information:
 - server-reason-react.promise (vendored https://github.com/aantron/promise and make it compatible)
 - server-reason-react.webapi (vendored https://github.com/melange-community/melange-webapi and stripped down to the bare minimum)
 
-{2:melange_native_ppx melange.ppx equivalent}
+{2:ppx melange.ppx equivalent}
 k
-Since melange.ppx is not compatible with native, we provide `melange_native.ppx` instead. It enables a few features:
+Since melange.ppx is not compatible with native, we provide `server-reason-react.melange.ppx` instead. It enables a few features:
 
 - Enables pipe_first {[->]}
 - Supports all {[mel.]} attributes
 - Supports RegExp {[%re "/regex/"]}
 - Supports Object access {[##]}
 
-{[ (preprocess (pps melange_native_ppx)) ]}
+{[ (preprocess (pps server-reason-react.melange.ppx)) ]}
 
 {2:browser_ppx Exclude client code from the native build}
 

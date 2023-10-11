@@ -1,6 +1,6 @@
 (library
  (name melange_native_ppx)
- (public_name server-reason-react.melange_native_ppx)
+ (public_name server-reason-react.melange.ppx)
  (flags :standard -w -9)
  (libraries ppxlib ppxlib.astlib str)
  (preprocess
