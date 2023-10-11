@@ -48,13 +48,12 @@ module Browser_only = struct
 
   let browser_only_value_binding pattern expression =
     let loc = pattern.ppat_loc in
-    let original_function_name = get_function_name pattern.ppat_desc in
-    let rec last_expr_to_raise_impossbile name expr =
+    let rec last_expr_to_raise_impossbile original_function_name expr =
       match expr.pexp_desc with
-      | Pexp_fun (arg_label, arg_expression, pattern, expr) ->
+      | Pexp_fun (arg_label, arg_expression, fun_pattern, expr) ->
           let fn =
-            Builder.pexp_fun ~loc arg_label arg_expression pattern
-              (last_expr_to_raise_impossbile name expr)
+            Builder.pexp_fun ~loc arg_label arg_expression fun_pattern
+              (last_expr_to_raise_impossbile original_function_name expr)
           in
           (* TODO: Maybe this isn't needed, since it's wrapped in a -27 already *)
           let remove_unused_variable_warning27 ~loc =
@@ -75,9 +74,8 @@ module Browser_only = struct
     | _ -> (
         match expression.pexp_desc with
         | Pexp_fun (_arg_label, _arg_expression, _fun_pattern, _expr) ->
-            let expr =
-              last_expr_to_raise_impossbile original_function_name expression
-            in
+            let function_name = get_function_name pattern.ppat_desc in
+            let expr = last_expr_to_raise_impossbile function_name expression in
             let vb = Builder.value_binding ~loc ~pat:pattern ~expr in
             let remove_unused_variable_warning27 =
               Builder.attribute ~loc ~name:{ txt = "warning"; loc }
@@ -87,14 +85,6 @@ module Browser_only = struct
         | _ ->
             Builder.value_binding ~loc ~pat:pattern
               ~expr:(error_only_works_on ~loc))
-
-  let get_function_name_from_payload expression =
-    match expression with
-    | { pexp_desc = Pexp_apply (expression, _); _ } -> (
-        match expression.pexp_desc with
-        | Pexp_ident { txt = Ldot (Lident _, name); _ } -> name
-        | _ -> "unknown")
-    | _ -> "unknown"
 
   let expression_rule =
     let extractor = Ast_pattern.(single_expr_payload __) in
@@ -162,9 +152,9 @@ module Browser_only = struct
       in
       let rec last_expr_to_raise_impossbile original_name expr =
         match expr.pexp_desc with
-        | Pexp_fun (arg_label, arg_expression, pattern, expression) ->
+        | Pexp_fun (arg_label, arg_expression, fun_pattern, expression) ->
             let fn =
-              Builder.pexp_fun ~loc arg_label arg_expression pattern
+              Builder.pexp_fun ~loc arg_label arg_expression fun_pattern
                 (last_expr_to_raise_impossbile original_name expression)
             in
             { fn with pexp_attributes = expr.pexp_attributes }
@@ -180,7 +170,7 @@ module Browser_only = struct
           match expression.pexp_desc with
           | Pexp_fun (arg_label, arg_expression, fun_pattern, expr) ->
               let original_function_name =
-                get_function_name fun_pattern.ppat_desc
+                get_function_name pattern.ppat_desc
               in
               let fn =
                 Builder.pexp_fun ~loc arg_label arg_expression fun_pattern
