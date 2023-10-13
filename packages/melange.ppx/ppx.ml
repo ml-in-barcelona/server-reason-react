@@ -10,6 +10,9 @@ let is_send_pipe pval_attributes =
     (fun { attr_name = { txt = attr } } -> String.equal attr "mel.send.pipe")
     pval_attributes
 
+let get_function_name pattern =
+  match pattern with Ppat_var { txt = name; _ } -> Some name | _ -> None
+
 let get_label = function
   | Ptyp_constr ({ txt = Lident label; _ }, _) -> Some label
   | _ -> None
@@ -26,17 +29,20 @@ let get_send_pipe pval_attributes =
 let has_mel_module_attr pval_attributes =
   List.exists is_melange_attr pval_attributes
 
+let has_ptyp_attribute ptyp_attributes attribute =
+  List.exists
+    (fun { attr_name = { txt = attr } } -> attr = attribute)
+    ptyp_attributes
+
 let is_mel_as core_type =
-  let has_ptyp_attribute ptyp_attributes =
-    List.exists
-      (fun { attr_name = { txt = attr } } -> attr = "mel.as")
-      ptyp_attributes
-  in
   match core_type with
   | { ptyp_desc = Ptyp_any; ptyp_attributes; _ } ->
-      has_ptyp_attribute ptyp_attributes
+      has_ptyp_attribute ptyp_attributes "mel.as"
   | _ -> false
 
+(* let has_mel_raw_attr pval_attributes =
+   has_ptyp_attribute ptyp_attributes "mel.raw"
+*)
 let extract_args_labels_types acc pval_type =
   let rec go acc = function
     (* In case of being mel.as, ignore those *)
@@ -94,10 +100,17 @@ let inject_send_pipe_as_last_argument pipe_type args_labels =
   | None -> args_labels
   | Some pipe_core_type -> pipe_core_type :: args_labels
 
+let expression_has_mel_raw expr =
+  match expr with
+  | Pexp_extension ({ txt = "mel.raw"; _ }, _) -> true
+  | _ -> false
+
 let raise_failure () =
   (* TODO: Improve this error *)
   let loc = Location.none in
   [%expr raise (Failure "called Melange external \"mel.\" from native")]
+
+[@@@warning "-26-27"]
 
 class raise_exception_mapper =
   object (_self)
@@ -105,6 +118,60 @@ class raise_exception_mapper =
 
     method! structure_item item =
       match item.pstr_desc with
+      | Pstr_value
+          ( Nonrecursive,
+            [
+              {
+                pvb_expr = expr;
+                pvb_pat = pattern;
+                pvb_attributes = _;
+                pvb_loc;
+              };
+            ] )
+        when expression_has_mel_raw expr.pexp_desc ->
+          let loc = item.pstr_loc in
+          let function_name =
+            match get_function_name pattern.ppat_desc with
+            | Some name -> name
+            (* TODO: assert  *)
+            | None -> assert false
+          in
+          let expression =
+            Builder.pexp_ident ~loc:pvb_loc { txt = Lident function_name; loc }
+          in
+          let value_description =
+            Builder.value_description ~loc
+              ~name:{ txt = function_name; loc }
+              ~type_:(Builder.ptyp_var ~loc "a")
+              ~prim:[]
+          in
+          let value_description_with_attributes =
+            {
+              value_description with
+              pval_attributes =
+                [
+                  {
+                    attr_name = { txt = "alert"; loc };
+                    attr_payload = PStr [ [%stri unimplemented "ojo aqui"] ];
+                    attr_loc = loc;
+                  };
+                ];
+            }
+          in
+          let psig =
+            Builder.psig_value ~loc value_description_with_attributes
+          in
+          let ppat = [%pat? [%p pattern]] in
+          let module_signature = [ psig ] in
+          let module_type = Builder.pmty_signature ~loc module_signature in
+          let module_expr =
+            Builder.pmod_structure ~loc
+              [ [%stri let [%p pattern] = [%e raise_failure ()]] ]
+          in
+          let module_constraint =
+            Builder.pmod_constraint ~loc module_expr module_type
+          in
+          [%stri include [%m module_constraint]]
       (* @mel. *)
       | Pstr_primitive { pval_name; pval_attributes; pval_loc; pval_type }
         when has_mel_module_attr pval_attributes ->
@@ -150,38 +217,56 @@ class raise_exception_mapper =
       | _ -> super#structure_item item
   end
 
-module Raw = struct
-  open Ppxlib
-  module Builder = Ast_builder.Default
+(* module Raw = struct
+     open Ppxlib
+     module Builder = Ast_builder.Default
 
-  let extractor = Ast_pattern.(__')
+     let extractor =
+       let open Ast_pattern in
+       let binding = value_binding ~pat:(pstring __) ~expr:(elist __) ^:: nil in
+       let mel_raw_externsion =
+         extension (string "mel.raw")
+           (pstr (pstr_value nonrecursive binding ^:: nil))
+       in
+       pstr_extension mel_raw_externsion nil
 
-  let rule =
-    let handler ~ctxt:_ { txt = payload; loc } =
-      match payload with
-      | PStr [ { pstr_desc = Pstr_eval (expression, _); _ } ] -> (
-          match expression.pexp_desc with
-          | Pexp_constant (Pconst_string (_str, _location, _delimiter)) ->
-              [%expr ()]
-          | _ ->
-              Builder.pexp_extension ~loc
-              @@ Location.error_extensionf ~loc
-                   "payload should be a string literal")
-      | _ ->
-          Builder.pexp_extension ~loc
-          @@ Location.error_extensionf ~loc
-               "[%%mel.raw] should be used with an expression"
-    in
-    let extension =
-      Extension.V3.declare "mel.raw" Extension.Context.expression extractor
-        handler
-    in
-    Context_free.Rule.extension extension
-end
+     (* let payload_pattern =
+        let open Ast_pattern in
+          pstr ((pstr_eval (pexp_constant (pconst_string __ __' none)) nil) ^:: __) *)
+
+     (* | Pstr_primitive
+             { pval_name = _; pval_attributes; pval_loc; pval_type = _ }
+           when has_mel_raw_attr pval_attributes ->
+             let loc = pval_loc in
+             [%stri let wat = [%e raise_failure ()]] *)
+
+     let rule =
+       let handler ~ctxt:_ _pattern _expression =
+         assert false
+         (* match payload with
+            | PStr [ { pstr_desc = Pstr_eval (expression, _); _ } ] -> (
+                match expression.pexp_desc with
+                | Pexp_constant (Pconst_string (_str, _location, _delimiter)) ->
+                    [%expr ()]
+                | _ ->
+                    Builder.pexp_extension ~loc
+                    @@ Location.error_extensionf ~loc
+                         "payload should be a string literal")
+            | _ ->
+                Builder.pexp_extension ~loc
+                @@ Location.error_extensionf ~loc
+                     "[%%mel.raw] should be used with an expression" *)
+       in
+       let extension =
+         Extension.V3.declare "mel.raw" Extension.Context.Structure_item extractor
+           handler
+       in
+       Context_free.Rule.extension extension
+   end *)
 
 let structure_mapper s = (new raise_exception_mapper)#structure s
 
 let () =
   Driver.register_transformation ~preprocess_impl:structure_mapper
-    ~rules:[ Pipe_first.rule; Regex.rule; Double_hash.rule; Raw.rule ]
+    ~rules:[ Pipe_first.rule; Regex.rule; Double_hash.rule ]
     "melange-native-ppx"
