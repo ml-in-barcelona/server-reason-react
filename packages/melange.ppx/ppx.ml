@@ -100,17 +100,22 @@ let inject_send_pipe_as_last_argument pipe_type args_labels =
   | None -> args_labels
   | Some pipe_core_type -> pipe_core_type :: args_labels
 
-let expression_has_mel_raw expr =
+let is_mel_raw expr =
   match expr with
   | Pexp_extension ({ txt = "mel.raw"; _ }, _) -> true
+  | _ -> false
+
+let expression_has_mel_raw expr =
+  match expr with
+  | Pexp_extension ({ txt = "mel.raw"; _ }, _) as pexp_desc ->
+      is_mel_raw pexp_desc
+  | Pexp_constraint (expr, _) -> is_mel_raw expr.pexp_desc
   | _ -> false
 
 let raise_failure () =
   (* TODO: Improve this error *)
   let loc = Location.none in
   [%expr raise (Failure "called Melange external \"mel.\" from native")]
-
-[@@@warning "-26-27"]
 
 class raise_exception_mapper =
   object (_self)
@@ -125,7 +130,7 @@ class raise_exception_mapper =
                 pvb_expr = expr;
                 pvb_pat = pattern;
                 pvb_attributes = _;
-                pvb_loc;
+                pvb_loc = _;
               };
             ] )
         when expression_has_mel_raw expr.pexp_desc ->
@@ -135,9 +140,6 @@ class raise_exception_mapper =
             | Some name -> name
             (* TODO: assert  *)
             | None -> assert false
-          in
-          let expression =
-            Builder.pexp_ident ~loc:pvb_loc { txt = Lident function_name; loc }
           in
           let value_description =
             Builder.value_description ~loc
@@ -158,12 +160,10 @@ class raise_exception_mapper =
                 ];
             }
           in
-          let psig =
-            Builder.psig_value ~loc value_description_with_attributes
+          let module_type =
+            Builder.pmty_signature ~loc
+              [ Builder.psig_value ~loc value_description_with_attributes ]
           in
-          let ppat = [%pat? [%p pattern]] in
-          let module_signature = [ psig ] in
-          let module_type = Builder.pmty_signature ~loc module_signature in
           let module_expr =
             Builder.pmod_structure ~loc
               [ [%stri let [%p pattern] = [%e raise_failure ()]] ]
