@@ -154,7 +154,16 @@ class raise_exception_mapper =
                 [
                   {
                     attr_name = { txt = "alert"; loc };
-                    attr_payload = PStr [ [%stri unimplemented "ojo aqui"] ];
+                    attr_payload =
+                      PStr
+                        [
+                          [%stri
+                            browser_only
+                              "Since it's a [%%mel.raw ...]. This expression \
+                               is marked to only run on the browser where \
+                               JavaScript can run. You can only use it inside \
+                               a let%%browser_only function."];
+                        ];
                     attr_loc = loc;
                   };
                 ];
