@@ -42,9 +42,28 @@ module Browser_only = struct
   let error_only_works_on ~loc =
     [%expr
       [%ocaml.error
-        "browser_only works on function definitions. If there's another case \
-         where it can be helpful, feel free to open an issue in \
+        "browser_only works on function definitions or values. If there's \
+         another case where it can be helpful, feel free to open an issue in \
          https://github.com/ml-in-barcelona/server-reason-react."]]
+
+  let browser_only_alert_payload ~loc =
+    {
+      attr_name = { txt = "alert"; loc };
+      attr_payload =
+        PStr
+          [
+            [%stri
+              browser_only
+                "This expression is marked to only run on the browser where \
+                 JavaScript can run. You can only use it inside a \
+                 let%browser_only function."];
+          ];
+      attr_loc = loc;
+    }
+
+  let remove_alert_browser_only ~loc =
+    Builder.attribute ~loc ~name:{ txt = "alert"; loc }
+      ~payload:(PStr [ [%stri "-browser_only"] ])
 
   let browser_only_value_binding pattern expression =
     let loc = pattern.ppat_loc in
@@ -67,20 +86,39 @@ module Browser_only = struct
         | Pexp_fun (_arg_label, _arg_expression, _fun_pattern, _expr) ->
             let function_name = get_function_name pattern.ppat_desc in
             let expr = last_expr_to_raise_impossible function_name expression in
-            let vb = Builder.value_binding ~loc ~pat:pattern ~expr in
+            let pat =
+              {
+                pattern with
+                ppat_attributes = [ browser_only_alert_payload ~loc ];
+              }
+            in
+            let vb = Builder.value_binding ~loc ~pat ~expr in
             let remove_unused_variable_warning27 =
               Builder.attribute ~loc ~name:{ txt = "warning"; loc }
                 ~payload:(PStr [ [%stri "-27-26"] ])
             in
-            let remove_alert_browser_only =
-              Builder.attribute ~loc ~name:{ txt = "alert"; loc }
-                ~payload:(PStr [ [%stri "-browser_only"] ])
-            in
             {
               vb with
               pvb_attributes =
-                [ remove_unused_variable_warning27; remove_alert_browser_only ];
+                [
+                  remove_unused_variable_warning27;
+                  remove_alert_browser_only ~loc;
+                ];
             }
+        | Pexp_ident { txt = longident; loc } ->
+            let stringified = Ppxlib.Longident.name longident in
+            let message = Builder.estring ~loc stringified in
+            let pat =
+              {
+                pattern with
+                ppat_attributes = [ browser_only_alert_payload ~loc ];
+              }
+            in
+            let vb =
+              Builder.value_binding ~loc ~pat
+                ~expr:[%expr Runtime.fail_impossible_action_in_ssr [%e message]]
+            in
+            { vb with pvb_attributes = [ remove_alert_browser_only ~loc ] }
         | _ ->
             Builder.value_binding ~loc ~pat:pattern
               ~expr:(error_only_works_on ~loc))
@@ -104,8 +142,14 @@ module Browser_only = struct
                 Ppxlib.Pprintast.string_of_expression expression
               in
               let message = Builder.estring ~loc stringified in
+              let pat =
+                {
+                  pattern with
+                  ppat_attributes = [ browser_only_alert_payload ~loc ];
+                }
+              in
               let fn =
-                Builder.pexp_fun ~loc arg_label arg_expression pattern
+                Builder.pexp_fun ~loc arg_label arg_expression pat
                   [%expr Runtime.fail_impossible_action_in_ssr [%e message]]
               in
               { fn with pexp_attributes = expression.pexp_attributes }
@@ -144,8 +188,14 @@ module Browser_only = struct
       let rec last_expr_to_raise_impossible original_name expr =
         match expr.pexp_desc with
         | Pexp_fun (arg_label, arg_expression, fun_pattern, expression) ->
+            let pat =
+              {
+                fun_pattern with
+                ppat_attributes = [ browser_only_alert_payload ~loc ];
+              }
+            in
             let fn =
-              Builder.pexp_fun ~loc arg_label arg_expression fun_pattern
+              Builder.pexp_fun ~loc arg_label arg_expression pat
                 (last_expr_to_raise_impossible original_name expression)
             in
             { fn with pexp_attributes = expr.pexp_attributes }
@@ -163,14 +213,38 @@ module Browser_only = struct
               let original_function_name =
                 get_function_name pattern.ppat_desc
               in
+              let pat =
+                {
+                  fun_pattern with
+                  ppat_attributes = [ browser_only_alert_payload ~loc ];
+                }
+              in
               let fn =
-                Builder.pexp_fun ~loc arg_label arg_expression fun_pattern
+                Builder.pexp_fun ~loc arg_label arg_expression pat
                   (last_expr_to_raise_impossible original_function_name expr)
               in
               let item = { fn with pexp_attributes = expr.pexp_attributes } in
               [%stri
-                let [%p pattern] = [%e item]
+                let ([%p pattern]
+                    [@alert
+                      browser_only
+                        "This expression is marked to only run on the browser \
+                         where JavaScript can run. You can only use it inside \
+                         a let%browser_only function."]) =
+                  [%e item]
                 [@@warning "-27-32"] [@@alert "-browser_only"]]
+          | Pexp_ident { txt = longident; loc } ->
+              let stringified = Ppxlib.Longident.name longident in
+              let message = Builder.estring ~loc stringified in
+              [%stri
+                let ([%p pattern]
+                    [@alert
+                      browser_only
+                        "This expression is marked to only run on the browser \
+                         where JavaScript can run. You can only use it inside \
+                         a let%browser_only function."]) =
+                  Runtime.fail_impossible_action_in_ssr [%e message]
+                [@@alert "-browser_only"]]
           | _expr -> do_nothing rec_flag)
     in
     Context_free.Rule.extension

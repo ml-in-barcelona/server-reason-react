@@ -269,8 +269,8 @@ class raise_exception_mapper =
           let implementation = make_implementation ~loc function_arity in
           [%stri let [%p fn_pattern] = [%e implementation]]
       (* %mel. *)
-      | Pstr_primitive { pval_name; pval_attributes; pval_loc; pval_type }
-        when has_mel_module_attr pval_attributes ->
+      (* external foo: t = "{{JavaScript}}" *)
+      | Pstr_primitive { pval_name; pval_attributes; pval_loc; pval_type } ->
           let pipe_type =
             match get_send_pipe pval_attributes with
             | Some core_type ->
@@ -292,7 +292,7 @@ class raise_exception_mapper =
             | Some (_, _, pipe_type) ->
                 construct_pval_with_send_pipe pipe_type pval_type
           in
-          let function_pattern =
+          let pat =
             Builder.ppat_constraint ~loc:pval_type.ptyp_loc function_core_type
               (Builder.ptyp_poly ~loc:pval_type.ptyp_loc [] pval_type_piped)
           in
@@ -305,9 +305,14 @@ class raise_exception_mapper =
                 Builder.pexp_fun ~loc:arg_type.ptyp_loc label None arg_pat acc)
               (raise_failure ()) arg_labels
           in
+          (* let pat =
+               {
+                 function_pattern with
+                 ppat_attributes = [ browser_only_alert_payload ~loc:pval_loc ];
+               }
+             in *)
           let vb =
-            Builder.value_binding ~loc:pval_loc ~pat:function_pattern
-              ~expr:function_expression
+            Builder.value_binding ~loc:pval_loc ~pat ~expr:function_expression
           in
           Ast_helper.Str.value Nonrecursive [ vb ]
       | _ -> super#structure_item item
