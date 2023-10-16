@@ -5,18 +5,13 @@ mel.raw as a value
   > EOF
 
   $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl | tee output.ml
-  include (
-    struct
-      let value = raise (Failure "called Melange external \"mel.\" from native")
-    end :
-      sig
-        val value : 'a
-        [@@alert
-          browser_only
-            "Since it's a [%mel.raw ...]. This expression is marked to only run \
-             on the browser where JavaScript can run. You can only use it inside \
-             a let%browser_only function."]
-      end)
+  let (value
+      [@alert
+        browser_only
+          "Since it's a [%mel.raw ...]. This expression is marked to only run on \
+           the browser where JavaScript can run. You can only use it inside a \
+           let%browser_only function."]) =
+    raise (Failure "called Melange external \"mel.\" from native")
 
   $ ocamlc output.ml
 
@@ -27,19 +22,13 @@ mel.raw as an unary function
   > EOF
 
   $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl | tee output.ml
-  include (
-    struct
-      let unary_function _ =
-        raise (Failure "called Melange external \"mel.\" from native")
-    end :
-      sig
-        val unary_function : 'a -> 'b
-        [@@alert
-          browser_only
-            "Since it's a [%mel.raw ...]. This expression is marked to only run \
-             on the browser where JavaScript can run. You can only use it inside \
-             a let%browser_only function."]
-      end)
+  let (unary_function
+      [@alert
+        browser_only
+          "Since it's a [%mel.raw ...]. This expression is marked to only run on \
+           the browser where JavaScript can run. You can only use it inside a \
+           let%browser_only function."]) =
+   fun _ -> raise (Failure "called Melange external \"mel.\" from native")
 
   $ ocamlc output.ml
 
@@ -53,19 +42,13 @@ mel.raw as an binary function
   > EOF
 
   $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl | tee output.ml
-  include (
-    struct
-      let binary_function _ _ =
-        raise (Failure "called Melange external \"mel.\" from native")
-    end :
-      sig
-        val binary_function : 'a -> 'b -> 'c
-        [@@alert
-          browser_only
-            "Since it's a [%mel.raw ...]. This expression is marked to only run \
-             on the browser where JavaScript can run. You can only use it inside \
-             a let%browser_only function."]
-      end)
+  let (binary_function
+      [@alert
+        browser_only
+          "Since it's a [%mel.raw ...]. This expression is marked to only run on \
+           the browser where JavaScript can run. You can only use it inside a \
+           let%browser_only function."]) =
+   fun _ _ -> raise (Failure "called Melange external \"mel.\" from native")
 
   $ ocamlc output.ml
 
@@ -79,18 +62,12 @@ mel.raw with type
   $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl | tee output.ml
   type t
   
-  include (
-    struct
-      let global : t =
-        raise (Failure "called Melange external \"mel.\" from native")
-    end :
-      sig
-        val global : t
-        [@@alert
-          browser_only
-            "Since it's a [%mel.raw ...]. This expression is marked to only run \
-             on the browser where JavaScript can run. You can only use it inside \
-             a let%browser_only function."]
-      end)
+  let (global
+      [@alert
+        browser_only
+          "Since it's a [%mel.raw ...]. This expression is marked to only run on \
+           the browser where JavaScript can run. You can only use it inside a \
+           let%browser_only function."]) =
+    raise (Failure "called Melange external \"mel.\" from native")
 
   $ ocamlc output.ml

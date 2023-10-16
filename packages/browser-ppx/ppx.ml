@@ -48,12 +48,12 @@ module Browser_only = struct
 
   let browser_only_value_binding pattern expression =
     let loc = pattern.ppat_loc in
-    let rec last_expr_to_raise_impossbile original_function_name expr =
+    let rec last_expr_to_raise_impossible original_function_name expr =
       match expr.pexp_desc with
       | Pexp_fun (arg_label, arg_expression, fun_pattern, expr) ->
           let fn =
             Builder.pexp_fun ~loc arg_label arg_expression fun_pattern
-              (last_expr_to_raise_impossbile original_function_name expr)
+              (last_expr_to_raise_impossible original_function_name expr)
           in
           { fn with pexp_attributes = expr.pexp_attributes }
       | _ ->
@@ -66,7 +66,7 @@ module Browser_only = struct
         match expression.pexp_desc with
         | Pexp_fun (_arg_label, _arg_expression, _fun_pattern, _expr) ->
             let function_name = get_function_name pattern.ppat_desc in
-            let expr = last_expr_to_raise_impossbile function_name expression in
+            let expr = last_expr_to_raise_impossible function_name expression in
             let vb = Builder.value_binding ~loc ~pat:pattern ~expr in
             let remove_unused_variable_warning27 =
               Builder.attribute ~loc ~name:{ txt = "warning"; loc }
@@ -141,12 +141,12 @@ module Browser_only = struct
         | Recursive -> [%stri let rec [%p pattern] = [%e expression]]
         | Nonrecursive -> [%stri let [%p pattern] = [%e expression]]
       in
-      let rec last_expr_to_raise_impossbile original_name expr =
+      let rec last_expr_to_raise_impossible original_name expr =
         match expr.pexp_desc with
         | Pexp_fun (arg_label, arg_expression, fun_pattern, expression) ->
             let fn =
               Builder.pexp_fun ~loc arg_label arg_expression fun_pattern
-                (last_expr_to_raise_impossbile original_name expression)
+                (last_expr_to_raise_impossible original_name expression)
             in
             { fn with pexp_attributes = expr.pexp_attributes }
         | _ ->
@@ -165,7 +165,7 @@ module Browser_only = struct
               in
               let fn =
                 Builder.pexp_fun ~loc arg_label arg_expression fun_pattern
-                  (last_expr_to_raise_impossbile original_function_name expr)
+                  (last_expr_to_raise_impossible original_function_name expr)
               in
               let item = { fn with pexp_attributes = expr.pexp_attributes } in
               [%stri

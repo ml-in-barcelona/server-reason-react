@@ -151,6 +151,21 @@ let make_implementation ~loc arity =
   | 7 -> [%expr fun _ _ _ _ _ _ _ -> [%e raise_failure ()]]
   | _ -> failwith "Melange: Too many arguments"
 
+let browser_only_alert_payload ~loc =
+  {
+    attr_name = { txt = "alert"; loc };
+    attr_payload =
+      PStr
+        [
+          [%stri
+            browser_only
+              "Since it's a [%mel.raw ...]. This expression is marked to only \
+               run on the browser where JavaScript can run. You can only use \
+               it inside a let%browser_only function."];
+        ];
+    attr_loc = loc;
+  }
+
 let make_value_description ~loc name arity =
   let name = { txt = name; loc } in
   let type_ = make_type ~loc arity in
@@ -159,22 +174,7 @@ let make_value_description ~loc name arity =
   in
   {
     value_description with
-    pval_attributes =
-      [
-        {
-          attr_name = { txt = "alert"; loc };
-          attr_payload =
-            PStr
-              [
-                [%stri
-                  browser_only
-                    "Since it's a [%mel.raw ...]. This expression is marked to \
-                     only run on the browser where JavaScript can run. You can \
-                     only use it inside a let%browser_only function."];
-              ];
-          attr_loc = loc;
-        };
-      ];
+    pval_attributes = [ browser_only_alert_payload ~loc ];
   }
 
 let get_function_arity pattern =
@@ -182,7 +182,7 @@ let get_function_arity pattern =
     | Pexp_fun (_, _, _, expr) -> go (arity + 1) expr.pexp_desc
     | _ -> arity
   in
-  go 1 pattern
+  go 0 pattern
 
 class raise_exception_mapper =
   object (_self)
@@ -200,7 +200,7 @@ class raise_exception_mapper =
                     pexp_desc =
                       Pexp_fun
                         (arg_label, arg_expression, fun_pattern, expression);
-                  };
+                  } as pvb_expr;
                 pvb_pat =
                   { ppat_desc = Ppat_var { txt = function_name; _ } } as
                   pvb_pattern;
@@ -209,111 +209,65 @@ class raise_exception_mapper =
               };
             ] )
         when expression_has_mel_raw expression.pexp_desc ->
-          let function_arity = get_function_arity expression.pexp_desc in
           let loc = item.pstr_loc in
-          let value_description =
-            make_value_description ~loc function_name function_arity
-          in
-          let module_type =
-            Builder.pmty_signature ~loc
-              [ Builder.psig_value ~loc value_description ]
-          in
+          let function_arity = get_function_arity pvb_expr.pexp_desc in
           let implementation = make_implementation ~loc function_arity in
-          let module_expr =
-            Builder.pmod_structure ~loc
-              [ [%stri let [%p pvb_pattern] = [%e implementation]] ]
+          let fn_pattern =
+            {
+              pvb_pattern with
+              ppat_attributes = [ browser_only_alert_payload ~loc ];
+            }
           in
-          let module_constraint =
-            Builder.pmod_constraint ~loc module_expr module_type
-          in
-          [%stri include [%m module_constraint]]
+          [%stri let [%p fn_pattern] = [%e implementation]]
       (* let a = [%mel.raw ...] *)
       | Pstr_value
           ( Nonrecursive,
             [
               {
-                pvb_expr = expr;
+                pvb_expr = expression;
                 pvb_pat =
                   { ppat_desc = Ppat_var { txt = function_name; _ } } as pattern;
                 pvb_attributes = _;
                 pvb_loc = _;
               };
             ] )
-        when expression_has_mel_raw expr.pexp_desc ->
+        when expression_has_mel_raw expression.pexp_desc ->
           let loc = item.pstr_loc in
-          let value_description = make_value_description ~loc function_name 0 in
-          let module_type =
-            Builder.pmty_signature ~loc
-              [ Builder.psig_value ~loc value_description ]
+          let fn_pattern =
+            {
+              pattern with
+              ppat_attributes = [ browser_only_alert_payload ~loc ];
+            }
           in
-          let module_expr =
-            Builder.pmod_structure ~loc
-              [ [%stri let [%p pattern] = [%e raise_failure ()]] ]
-          in
-          let module_constraint =
-            Builder.pmod_constraint ~loc module_expr module_type
-          in
-          [%stri include [%m module_constraint]]
+          let function_arity = get_function_arity expression.pexp_desc in
+          let implementation = make_implementation ~loc function_arity in
+          [%stri let [%p fn_pattern] = [%e implementation]]
       (* let a: t = [%mel.raw ...] *)
       | Pstr_value
           ( Nonrecursive,
             [
               {
-                pvb_expr = expr;
+                pvb_expr = expression;
                 pvb_pat =
                   {
                     ppat_desc =
                       Ppat_constraint (constrain_pattern, constrain_type);
-                  } as pattern;
+                  };
                 pvb_attributes = _;
                 pvb_loc = _;
               };
             ] )
-        when expression_has_mel_raw expr.pexp_desc ->
+        when expression_has_mel_raw expression.pexp_desc ->
           let loc = item.pstr_loc in
-          let function_name =
-            match get_function_name constrain_pattern.ppat_desc with
-            | Some name -> { txt = name; loc }
-            | None -> assert false
-          in
-          let value_description =
-            Builder.value_description ~loc ~name:function_name
-              ~type_:constrain_type ~prim:[]
-          in
-          let value_description =
+          let fn_pattern =
             {
-              value_description with
-              pval_attributes =
-                [
-                  {
-                    attr_name = { txt = "alert"; loc };
-                    attr_payload =
-                      PStr
-                        [
-                          [%stri
-                            browser_only
-                              "Since it's a [%mel.raw ...]. This expression is \
-                               marked to only run on the browser where \
-                               JavaScript can run. You can only use it inside \
-                               a let%browser_only function."];
-                        ];
-                    attr_loc = loc;
-                  };
-                ];
+              constrain_pattern with
+              ppat_attributes = [ browser_only_alert_payload ~loc ];
             }
           in
-          let module_type =
-            Builder.pmty_signature ~loc
-              [ Builder.psig_value ~loc value_description ]
-          in
-          let module_expr =
-            Builder.pmod_structure ~loc
-              [ [%stri let [%p pattern] = [%e raise_failure ()]] ]
-          in
-          let module_constraint =
-            Builder.pmod_constraint ~loc module_expr module_type
-          in
-          [%stri include [%m module_constraint]]
+          let function_arity = get_function_arity expression.pexp_desc in
+          let implementation = make_implementation ~loc function_arity in
+          [%stri let [%p fn_pattern] = [%e implementation]]
       (* %mel. *)
       | Pstr_primitive { pval_name; pval_attributes; pval_loc; pval_type }
         when has_mel_module_attr pval_attributes ->
