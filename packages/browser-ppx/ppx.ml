@@ -55,16 +55,7 @@ module Browser_only = struct
             Builder.pexp_fun ~loc arg_label arg_expression fun_pattern
               (last_expr_to_raise_impossbile original_function_name expr)
           in
-          (* TODO: Maybe this isn't needed, since it's wrapped in a -27 already *)
-          let remove_unused_variable_warning27 ~loc =
-            Builder.attribute ~loc ~name:{ txt = "warning"; loc }
-              ~payload:(PStr [ [%stri "-27"] ])
-          in
-          {
-            fn with
-            pexp_attributes =
-              remove_unused_variable_warning27 ~loc :: expr.pexp_attributes;
-          }
+          { fn with pexp_attributes = expr.pexp_attributes }
       | _ ->
           let message = Builder.estring ~loc original_function_name in
           [%expr Runtime.fail_impossible_action_in_ssr [%e message]]
@@ -81,7 +72,15 @@ module Browser_only = struct
               Builder.attribute ~loc ~name:{ txt = "warning"; loc }
                 ~payload:(PStr [ [%stri "-27-26"] ])
             in
-            { vb with pvb_attributes = [ remove_unused_variable_warning27 ] }
+            let remove_alert_browser_only =
+              Builder.attribute ~loc ~name:{ txt = "alert"; loc }
+                ~payload:(PStr [ [%stri "-browser_only"] ])
+            in
+            {
+              vb with
+              pvb_attributes =
+                [ remove_unused_variable_warning27; remove_alert_browser_only ];
+            }
         | _ ->
             Builder.value_binding ~loc ~pat:pattern
               ~expr:(error_only_works_on ~loc))
@@ -109,15 +108,7 @@ module Browser_only = struct
                 Builder.pexp_fun ~loc arg_label arg_expression pattern
                   [%expr Runtime.fail_impossible_action_in_ssr [%e message]]
               in
-              {
-                fn with
-                pexp_attributes =
-                  expression.pexp_attributes
-                  @ [
-                      Builder.attribute ~loc ~name:{ txt = "warning"; loc }
-                        ~payload:(PStr [ [%stri "-27"] ]);
-                    ];
-              }
+              { fn with pexp_attributes = expression.pexp_attributes }
           | Pexp_let (rec_flag, value_bindings, expression) ->
               let pexp_let =
                 Builder.pexp_let ~loc rec_flag
@@ -128,7 +119,7 @@ module Browser_only = struct
                      value_bindings)
                   expression
               in
-              [%expr [%e pexp_let] [@warning "-27"]]
+              [%expr [%e pexp_let]]
           | _ -> error_only_works_on ~loc)
     in
     Context_free.Rule.extension
@@ -177,7 +168,9 @@ module Browser_only = struct
                   (last_expr_to_raise_impossbile original_function_name expr)
               in
               let item = { fn with pexp_attributes = expr.pexp_attributes } in
-              [%stri let [%p pattern] = [%e item] [@@warning "-27-32"]]
+              [%stri
+                let [%p pattern] = [%e item]
+                [@@warning "-27-32"] [@@alert "-browser_only"]]
           | _expr -> do_nothing rec_flag)
     in
     Context_free.Rule.extension
