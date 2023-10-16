@@ -11,7 +11,13 @@ let is_send_pipe pval_attributes =
     pval_attributes
 
 let get_function_name pattern =
-  match pattern with Ppat_var { txt = name; _ } -> Some name | _ -> None
+  let rec go pattern =
+    match pattern with
+    | Ppat_var { txt = name; _ } -> Some name
+    | Ppat_constraint (pattern, _) -> go pattern.ppat_desc
+    | _ -> None
+  in
+  go pattern
 
 let get_label = function
   | Ptyp_constr ({ txt = Lident label; _ }, _) -> Some label
@@ -106,16 +112,77 @@ let is_mel_raw expr =
   | _ -> false
 
 let expression_has_mel_raw expr =
-  match expr with
-  | Pexp_extension ({ txt = "mel.raw"; _ }, _) as pexp_desc ->
-      is_mel_raw pexp_desc
-  | Pexp_constraint (expr, _) -> is_mel_raw expr.pexp_desc
-  | _ -> false
+  let rec go expr =
+    match expr with
+    | Pexp_extension ({ txt = "mel.raw"; _ }, _) as pexp_desc ->
+        is_mel_raw pexp_desc
+    | Pexp_constraint (expr, _) -> is_mel_raw expr.pexp_desc
+    | Pexp_fun (_, _, _, expr) -> go expr.pexp_desc
+    | _ -> false
+  in
+  go expr
 
 let raise_failure () =
   (* TODO: Improve this error *)
   let loc = Location.none in
   [%expr raise (Failure "called Melange external \"mel.\" from native")]
+
+let make_type ~loc arity =
+  match arity with
+  | 0 -> [%type: 'a]
+  | 1 -> [%type: 'a -> 'b]
+  | 2 -> [%type: 'a -> 'b -> 'c]
+  | 3 -> [%type: 'a -> 'b -> 'c -> 'd]
+  | 4 -> [%type: 'a -> 'b -> 'c -> 'd -> 'e]
+  | 5 -> [%type: 'a -> 'b -> 'c -> 'd -> 'e -> 'f]
+  | 6 -> [%type: 'a -> 'b -> 'c -> 'd -> 'e -> 'f -> 'g]
+  | 7 -> [%type: 'a -> 'b -> 'c -> 'd -> 'e -> 'f -> 'g -> 'h]
+  | _ -> failwith "Melange: Too many arguments"
+
+let make_implementation ~loc arity =
+  match arity with
+  | 0 -> [%expr [%e raise_failure ()]]
+  | 1 -> [%expr fun _ -> [%e raise_failure ()]]
+  | 2 -> [%expr fun _ _ -> [%e raise_failure ()]]
+  | 3 -> [%expr fun _ _ _ -> [%e raise_failure ()]]
+  | 4 -> [%expr fun _ _ _ _ -> [%e raise_failure ()]]
+  | 5 -> [%expr fun _ _ _ _ _ -> [%e raise_failure ()]]
+  | 6 -> [%expr fun _ _ _ _ _ _ -> [%e raise_failure ()]]
+  | 7 -> [%expr fun _ _ _ _ _ _ _ -> [%e raise_failure ()]]
+  | _ -> failwith "Melange: Too many arguments"
+
+let make_value_description ~loc name arity =
+  let name = { txt = name; loc } in
+  let type_ = make_type ~loc arity in
+  let value_description =
+    Builder.value_description ~loc ~name ~type_ ~prim:[]
+  in
+  {
+    value_description with
+    pval_attributes =
+      [
+        {
+          attr_name = { txt = "alert"; loc };
+          attr_payload =
+            PStr
+              [
+                [%stri
+                  browser_only
+                    "Since it's a [%%mel.raw ...]. This expression is marked \
+                     to only run on the browser where JavaScript can run. You \
+                     can only use it inside a let%%browser_only function."];
+              ];
+          attr_loc = loc;
+        };
+      ];
+  }
+
+let get_function_arity pattern =
+  let rec go arity = function
+    | Pexp_fun (_, _, _, expr) -> go (arity + 1) expr.pexp_desc
+    | _ -> arity
+  in
+  go 1 pattern
 
 class raise_exception_mapper =
   object (_self)
@@ -123,12 +190,81 @@ class raise_exception_mapper =
 
     method! structure_item item =
       match item.pstr_desc with
+      (* let a _ = [%mel.raw ...] *)
+      | Pstr_value
+          ( Nonrecursive,
+            [
+              {
+                pvb_expr =
+                  {
+                    pexp_desc =
+                      Pexp_fun
+                        (arg_label, arg_expression, fun_pattern, expression);
+                  };
+                pvb_pat =
+                  { ppat_desc = Ppat_var { txt = function_name; _ } } as
+                  pvb_pattern;
+                pvb_attributes = _;
+                pvb_loc = _;
+              };
+            ] )
+        when expression_has_mel_raw expression.pexp_desc ->
+          let function_arity = get_function_arity expression.pexp_desc in
+          let loc = item.pstr_loc in
+          let value_description =
+            make_value_description ~loc function_name function_arity
+          in
+          let module_type =
+            Builder.pmty_signature ~loc
+              [ Builder.psig_value ~loc value_description ]
+          in
+          let implementation = make_implementation ~loc function_arity in
+          let module_expr =
+            Builder.pmod_structure ~loc
+              [ [%stri let [%p pvb_pattern] = [%e implementation]] ]
+          in
+          let module_constraint =
+            Builder.pmod_constraint ~loc module_expr module_type
+          in
+          [%stri include [%m module_constraint]]
+      (* let a = [%mel.raw ...] *)
       | Pstr_value
           ( Nonrecursive,
             [
               {
                 pvb_expr = expr;
-                pvb_pat = pattern;
+                pvb_pat =
+                  { ppat_desc = Ppat_var { txt = function_name; _ } } as pattern;
+                pvb_attributes = _;
+                pvb_loc = _;
+              };
+            ] )
+        when expression_has_mel_raw expr.pexp_desc ->
+          let loc = item.pstr_loc in
+          let value_description = make_value_description ~loc function_name 0 in
+          let module_type =
+            Builder.pmty_signature ~loc
+              [ Builder.psig_value ~loc value_description ]
+          in
+          let module_expr =
+            Builder.pmod_structure ~loc
+              [ [%stri let [%p pattern] = [%e raise_failure ()]] ]
+          in
+          let module_constraint =
+            Builder.pmod_constraint ~loc module_expr module_type
+          in
+          [%stri include [%m module_constraint]]
+      (* let a: t = [%mel.raw ...] *)
+      | Pstr_value
+          ( Nonrecursive,
+            [
+              {
+                pvb_expr = expr;
+                pvb_pat =
+                  {
+                    ppat_desc =
+                      Ppat_constraint (constrain_pattern, constrain_type);
+                  } as pattern;
                 pvb_attributes = _;
                 pvb_loc = _;
               };
@@ -136,18 +272,15 @@ class raise_exception_mapper =
         when expression_has_mel_raw expr.pexp_desc ->
           let loc = item.pstr_loc in
           let function_name =
-            match get_function_name pattern.ppat_desc with
-            | Some name -> name
-            (* TODO: assert  *)
+            match get_function_name constrain_pattern.ppat_desc with
+            | Some name -> { txt = name; loc }
             | None -> assert false
           in
           let value_description =
-            Builder.value_description ~loc
-              ~name:{ txt = function_name; loc }
-              ~type_:(Builder.ptyp_var ~loc "a")
-              ~prim:[]
+            Builder.value_description ~loc ~name:function_name
+              ~type_:constrain_type ~prim:[]
           in
-          let value_description_with_attributes =
+          let value_description =
             {
               value_description with
               pval_attributes =
@@ -171,7 +304,7 @@ class raise_exception_mapper =
           in
           let module_type =
             Builder.pmty_signature ~loc
-              [ Builder.psig_value ~loc value_description_with_attributes ]
+              [ Builder.psig_value ~loc value_description ]
           in
           let module_expr =
             Builder.pmod_structure ~loc
@@ -181,7 +314,7 @@ class raise_exception_mapper =
             Builder.pmod_constraint ~loc module_expr module_type
           in
           [%stri include [%m module_constraint]]
-      (* @mel. *)
+      (* %mel. *)
       | Pstr_primitive { pval_name; pval_attributes; pval_loc; pval_type }
         when has_mel_module_attr pval_attributes ->
           let pipe_type =
@@ -225,53 +358,6 @@ class raise_exception_mapper =
           Ast_helper.Str.value Nonrecursive [ vb ]
       | _ -> super#structure_item item
   end
-
-(* module Raw = struct
-     open Ppxlib
-     module Builder = Ast_builder.Default
-
-     let extractor =
-       let open Ast_pattern in
-       let binding = value_binding ~pat:(pstring __) ~expr:(elist __) ^:: nil in
-       let mel_raw_externsion =
-         extension (string "mel.raw")
-           (pstr (pstr_value nonrecursive binding ^:: nil))
-       in
-       pstr_extension mel_raw_externsion nil
-
-     (* let payload_pattern =
-        let open Ast_pattern in
-          pstr ((pstr_eval (pexp_constant (pconst_string __ __' none)) nil) ^:: __) *)
-
-     (* | Pstr_primitive
-             { pval_name = _; pval_attributes; pval_loc; pval_type = _ }
-           when has_mel_raw_attr pval_attributes ->
-             let loc = pval_loc in
-             [%stri let wat = [%e raise_failure ()]] *)
-
-     let rule =
-       let handler ~ctxt:_ _pattern _expression =
-         assert false
-         (* match payload with
-            | PStr [ { pstr_desc = Pstr_eval (expression, _); _ } ] -> (
-                match expression.pexp_desc with
-                | Pexp_constant (Pconst_string (_str, _location, _delimiter)) ->
-                    [%expr ()]
-                | _ ->
-                    Builder.pexp_extension ~loc
-                    @@ Location.error_extensionf ~loc
-                         "payload should be a string literal")
-            | _ ->
-                Builder.pexp_extension ~loc
-                @@ Location.error_extensionf ~loc
-                     "[%%mel.raw] should be used with an expression" *)
-       in
-       let extension =
-         Extension.V3.declare "mel.raw" Extension.Context.Structure_item extractor
-           handler
-       in
-       Context_free.Rule.extension extension
-   end *)
 
 let structure_mapper s = (new raise_exception_mapper)#structure s
 
