@@ -13,9 +13,9 @@ mel.raw as a value
         val value : 'a
         [@@alert
           browser_only
-            "Since it's a [%%mel.raw ...]. This expression is marked to only run \
+            "Since it's a [%mel.raw ...]. This expression is marked to only run \
              on the browser where JavaScript can run. You can only use it inside \
-             a let%%browser_only function."]
+             a let%browser_only function."]
       end)
 
   $ ocamlc output.ml
@@ -36,9 +36,9 @@ mel.raw as an unary function
         val unary_function : 'a -> 'b
         [@@alert
           browser_only
-            "Since it's a [%%mel.raw ...]. This expression is marked to only run \
+            "Since it's a [%mel.raw ...]. This expression is marked to only run \
              on the browser where JavaScript can run. You can only use it inside \
-             a let%%browser_only function."]
+             a let%browser_only function."]
       end)
 
   $ ocamlc output.ml
@@ -62,9 +62,9 @@ mel.raw as an binary function
         val binary_function : 'a -> 'b -> 'c
         [@@alert
           browser_only
-            "Since it's a [%%mel.raw ...]. This expression is marked to only run \
+            "Since it's a [%mel.raw ...]. This expression is marked to only run \
              on the browser where JavaScript can run. You can only use it inside \
-             a let%%browser_only function."]
+             a let%browser_only function."]
       end)
 
   $ ocamlc output.ml
@@ -88,9 +88,9 @@ mel.raw with type
         val global : t
         [@@alert
           browser_only
-            "Since it's a [%%mel.raw ...]. This expression is marked to only run \
+            "Since it's a [%mel.raw ...]. This expression is marked to only run \
              on the browser where JavaScript can run. You can only use it inside \
-             a let%%browser_only function."]
+             a let%browser_only function."]
       end)
 
   $ ocamlc output.ml

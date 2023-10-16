@@ -168,9 +168,9 @@ let make_value_description ~loc name arity =
               [
                 [%stri
                   browser_only
-                    "Since it's a [%%mel.raw ...]. This expression is marked \
-                     to only run on the browser where JavaScript can run. You \
-                     can only use it inside a let%%browser_only function."];
+                    "Since it's a [%mel.raw ...]. This expression is marked to \
+                     only run on the browser where JavaScript can run. You can \
+                     only use it inside a let%browser_only function."];
               ];
           attr_loc = loc;
         };
@@ -292,10 +292,10 @@ class raise_exception_mapper =
                         [
                           [%stri
                             browser_only
-                              "Since it's a [%%mel.raw ...]. This expression \
-                               is marked to only run on the browser where \
+                              "Since it's a [%mel.raw ...]. This expression is \
+                               marked to only run on the browser where \
                                JavaScript can run. You can only use it inside \
-                               a let%%browser_only function."];
+                               a let%browser_only function."];
                         ];
                     attr_loc = loc;
                   };
