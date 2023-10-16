@@ -31,27 +31,11 @@ module Panel = {
   };
 };
 
-let global = {
-  module Unimplemented: {
-    [@alert unimplemented("Unimplemented primitive not available on native")]
-    let global: unit;
-  } = {
-    let global = ();
-  };
-  Unimplemented.(global);
-};
-
 module ShrinkerText = {
   [@react.component]
   let make = (~children, ~color) => {
     let first = children.[0] |> String.make(1);
     let rest = String.sub(children, 1, String.length(children) - 1);
-
-    /*     React.useEffect0([%browser_only () => {
-             let items = localStorage.get("javi");
-             setItems(_ => items);
-             [@alert "-unimplemented"]
-           }]); */
 
     <>
       <span className={Cx.make([Theme.text(color)])}>
