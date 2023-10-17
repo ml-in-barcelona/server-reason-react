@@ -71,3 +71,14 @@ mel.raw with type
     raise (Failure "called Melange external \"mel.\" from native")
 
   $ ocamlc output.ml
+
+mel.raw as a value
+
+  $ cat > input.ml << EOF
+  > [%%mel.raw {| console.log("running in JS"); |}]
+  > EOF
+
+  $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl | tee output.ml
+  [@@@ocaml.error "[%%mel.raw ...] is not allowed in native development"]
+
+  $ ocamlc output.ml

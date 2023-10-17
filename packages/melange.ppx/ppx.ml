@@ -190,6 +190,11 @@ class raise_exception_mapper =
 
     method! structure_item item =
       match item.pstr_desc with
+      (* [%%mel.raw ...] *)
+      | Pstr_extension (({ txt = "mel.raw"; loc }, _), _) ->
+          [%stri
+            [@@@ocaml.error
+            "[%%mel.raw ...] is not allowed in native development"]]
       (* let a _ = [%mel.raw ...] *)
       | Pstr_value
           ( Nonrecursive,
