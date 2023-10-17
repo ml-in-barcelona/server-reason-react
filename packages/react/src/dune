@@ -4,6 +4,4 @@
  (public_name server-reason-react.react)
  (libraries js html lwt melange.dom)
  (flags
-  (:standard -w -30))
- (preprocess
-  (pps melange.ppx)))
+  (:standard -w -30)))

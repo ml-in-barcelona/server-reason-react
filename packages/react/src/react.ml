@@ -291,90 +291,22 @@ let useCallback2 fn _ = fn
 let useCallback3 fn _ = fn
 let useCallback4 fn _ = fn
 let useCallback5 fn _ = fn
-let useCallback6 (fn : 'a -> 'b) = fn
-
-let useReducer :
-    ('state -> 'action -> 'state) -> 'state -> 'state * ('action -> unit) =
- fun _ s -> (s, fun _ -> ())
-
-let useEffect0 : (unit -> (unit -> unit) option) -> unit = fun _ -> ()
-
-let useEffect1 : (unit -> (unit -> unit) option) -> 'dependency array -> unit =
- fun _ _ -> ()
-
-let useEffect2 :
-    (unit -> (unit -> unit) option) -> 'dependency1 * 'dependency2 -> unit =
- fun _ _ -> ()
-
-let useEffect3 :
-    (unit -> (unit -> unit) option) ->
-    'dependency1 * 'dependency2 * 'dependency3 ->
-    unit =
- fun _ _ -> ()
-
-let useEffect4 :
-    (unit -> (unit -> unit) option) ->
-    'dependency1 * 'dependency2 * 'dependency3 * 'dependency4 ->
-    unit =
- fun _ _ -> ()
-
-let useEffect5 :
-    (unit -> (unit -> unit) option) ->
-    'dependency1 * 'dependency2 * 'dependency3 * 'dependency4 * 'dependency5 ->
-    unit =
- fun _ _ -> ()
-
-let useEffect6 :
-    (unit -> (unit -> unit) option) ->
-    'dependency1
-    * 'dependency2
-    * 'dependency3
-    * 'dependency4
-    * 'dependency5
-    * 'dependency6 ->
-    unit =
- fun _ _ -> ()
-
-let useLayoutEffect0 : (unit -> (unit -> unit) option) -> unit = fun _ -> ()
-
-let useLayoutEffect1 :
-    (unit -> (unit -> unit) option) -> 'dependency array -> unit =
- fun _ _ -> ()
-
-let useLayoutEffect2 :
-    (unit -> (unit -> unit) option) -> 'dependency1 * 'dependency2 -> unit =
- fun _ _ -> ()
-
-let useLayoutEffect3 :
-    (unit -> (unit -> unit) option) ->
-    'dependency1 * 'dependency2 * 'dependency3 ->
-    unit =
- fun _ _ -> ()
-
-let useLayoutEffect4 :
-    (unit -> (unit -> unit) option) ->
-    'dependency1 * 'dependency2 * 'dependency3 * 'dependency4 ->
-    unit =
- fun _ _ -> ()
-
-let useLayoutEffect5 :
-    (unit -> (unit -> unit) option) ->
-    'dependency1 * 'dependency2 * 'dependency3 * 'dependency4 * 'dependency5 ->
-    unit =
- fun _ _ -> ()
-
-let useLayoutEffect6 :
-    (unit -> (unit -> unit) option) ->
-    'dependency1
-    * 'dependency2
-    * 'dependency3
-    * 'dependency4
-    * 'dependency5
-    * 'dependency6 ->
-    unit =
- fun _ _ -> ()
-
-let setDisplayName : 'component -> string -> unit = fun _ _ -> ()
+let useCallback6 fn _ = fn
+let useReducer _ s = (s, fun _ -> ())
+let useEffect0 _ = ()
+let useEffect1 _ _ = ()
+let useEffect2 _ _ = ()
+let useEffect3 _ _ = ()
+let useEffect4 _ _ = ()
+let useEffect5 _ _ = ()
+let useEffect6 _ _ = ()
+let useLayoutEffect0 _ = ()
+let useLayoutEffect1 _ _ = ()
+let useLayoutEffect2 _ _ = ()
+let useLayoutEffect3 _ _ = ()
+let useLayoutEffect4 _ _ = ()
+let useLayoutEffect5 _ _ = ()
+let useLayoutEffect6 _ _ = ()
 
 module Children = struct
   let map fn elements = Array.map fn elements
@@ -389,3 +321,5 @@ module Children = struct
 
   let toArray element = [| element |]
 end
+
+let setDisplayName _ _ = ()

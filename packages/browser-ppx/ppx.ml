@@ -46,7 +46,7 @@ module Browser_only = struct
          another case where it can be helpful, feel free to open an issue in \
          https://github.com/ml-in-barcelona/server-reason-react."]]
 
-  let browser_only_alert_payload ~loc =
+  let enable_alert_browser_only ~loc =
     {
       attr_name = { txt = "alert"; loc };
       attr_payload =
@@ -89,7 +89,7 @@ module Browser_only = struct
             let pat =
               {
                 pattern with
-                ppat_attributes = [ browser_only_alert_payload ~loc ];
+                ppat_attributes = [ (* enable_alert_browser_only ~loc *) ];
               }
             in
             let vb = Builder.value_binding ~loc ~pat ~expr in
@@ -111,7 +111,7 @@ module Browser_only = struct
             let pat =
               {
                 pattern with
-                ppat_attributes = [ browser_only_alert_payload ~loc ];
+                ppat_attributes = [ enable_alert_browser_only ~loc ];
               }
             in
             let vb =
@@ -145,7 +145,7 @@ module Browser_only = struct
               let pat =
                 {
                   pattern with
-                  ppat_attributes = [ browser_only_alert_payload ~loc ];
+                  ppat_attributes = [ (* enable_alert_browser_only ~loc *) ];
                 }
               in
               let fn =
@@ -191,7 +191,7 @@ module Browser_only = struct
             let pat =
               {
                 fun_pattern with
-                ppat_attributes = [ browser_only_alert_payload ~loc ];
+                ppat_attributes = [ (* enable_alert_browser_only ~loc *) ];
               }
             in
             let fn =
@@ -216,7 +216,7 @@ module Browser_only = struct
               let pat =
                 {
                   fun_pattern with
-                  ppat_attributes = [ browser_only_alert_payload ~loc ];
+                  ppat_attributes = [ (* enable_alert_browser_only ~loc *) ];
                 }
               in
               let fn =
