@@ -194,10 +194,15 @@
                                    React.JSX.Event(
                                      "onClick",
                                      React.JSX.Mouse(
-                                       event => {
-                                         ReactEvent.Mouse.preventDefault(event);
-                                         ReactRouter.push(e.path);
-                                       }: ReactEvent.Mouse.t => unit,
+                                       [@alert "-browser_only"]
+                                       (
+                                         event => {
+                                           ReactEvent.Mouse.preventDefault(
+                                             event,
+                                           );
+                                           ReactRouter.push(e.path);
+                                         }
+                                       ): ReactEvent.Mouse.t => unit,
                                      ),
                                    ),
                                  ),

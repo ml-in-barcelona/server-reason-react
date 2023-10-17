@@ -1,39 +1,33 @@
-module Cosis = {
-  [@react.component]
-  let make = (~onClick) => {
-    <div
-      onClick={_ => {
-        Js.log("asdfs");
-        onClick();
-      }}
-    />;
-  };
-};
-
 [@react.component]
 let make = () => {
   let%browser_only onClick = _event => {
     Js.log("asfd");
   };
 
-  React.useEffect0(() => {
-    let _ = onClick();
+  /*   React.useEffect0(() => {
+          let _ = onClick();
 
-    None;
-  });
+          None;
+        });
 
-  React.useEffect1(
-    () => {
-      let _ = onClick();
-      let _ = onClick();
+        React.useEffect1(
+          () => {
+            let _ = onClick();
+            let _ = onClick();
 
-      None;
-    },
-    [|onClick|],
-  );
+            None;
+          },
+          [|onClick|],
+        );
+       */
 
-  /* <Cosis onClick /> */
   <div>
+    <div
+      onClick={_ => {
+        Js.log("asdfs");
+        onClick();
+      }}
+    />
     <form>
       <label>
         {React.string("Name:")}

@@ -58,7 +58,9 @@ We need to output ML syntax here, otherwise refmt could not parse it.
             Some
               (React.JSX.Event
                  ( "onClick",
-                   React.JSX.Mouse (onClick : ReactEvent.Mouse.t -> unit) ));
+                   React.JSX.Mouse
+                     ((onClick [@alert "-browser_only"])
+                       : ReactEvent.Mouse.t -> unit) ));
             Some (React.JSX.Bool ("disabled", (isDisabled : bool)));
           |]
          |> Array.to_list
