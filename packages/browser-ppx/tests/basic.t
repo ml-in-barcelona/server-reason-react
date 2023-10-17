@@ -76,13 +76,7 @@ Without -js flag, the compilation to native replaces the expression with `raise 
         browser_only
           "This expression is marked to only run on the browser where JavaScript \
            can run. You can only use it inside a let%browser_only function."]) =
-   fun (evt
-         [@alert
-           browser_only
-             "This expression is marked to only run on the browser where \
-              JavaScript can run. You can only use it inside a let%browser_only \
-              function."]) ->
-    Runtime.fail_impossible_action_in_ssr "pexp_fun_1arg_structure_item"
+   fun evt -> Runtime.fail_impossible_action_in_ssr "pexp_fun_1arg_structure_item"
   [@@warning "-27-32"] [@@alert "-browser_only"]
   
   let (pexp_fun_2arg_structure_item
@@ -90,18 +84,7 @@ Without -js flag, the compilation to native replaces the expression with `raise 
         browser_only
           "This expression is marked to only run on the browser where JavaScript \
            can run. You can only use it inside a let%browser_only function."]) =
-   fun (evt
-         [@alert
-           browser_only
-             "This expression is marked to only run on the browser where \
-              JavaScript can run. You can only use it inside a let%browser_only \
-              function."])
-       (moar_arguments
-         [@alert
-           browser_only
-             "This expression is marked to only run on the browser where \
-              JavaScript can run. You can only use it inside a let%browser_only \
-              function."]) ->
+   fun evt moar_arguments ->
     Runtime.fail_impossible_action_in_ssr "pexp_fun_2arg_structure_item"
   [@@warning "-27-32"] [@@alert "-browser_only"]
   
@@ -115,35 +98,17 @@ Without -js flag, the compilation to native replaces the expression with `raise 
          another case where it can be helpful, feel free to open an issue in \
          https://github.com/ml-in-barcelona/server-reason-react."]
     in
-    let (fun_value_binding_pexp_fun_1arg
-        [@alert
-          browser_only
-            "This expression is marked to only run on the browser where \
-             JavaScript can run. You can only use it inside a let%browser_only \
-             function."]) =
-     fun evt ->
+    let fun_value_binding_pexp_fun_1arg evt =
       Runtime.fail_impossible_action_in_ssr "fun_value_binding_pexp_fun_1arg"
-       [@@warning "-27-26"] [@@alert "-browser_only"]
+        [@@warning "-27-26"] [@@alert "-browser_only"]
     in
-    let (fun_value_binding_pexp_fun_2arg
-        [@alert
-          browser_only
-            "This expression is marked to only run on the browser where \
-             JavaScript can run. You can only use it inside a let%browser_only \
-             function."]) =
-     fun evt moar_arguments ->
+    let fun_value_binding_pexp_fun_2arg evt moar_arguments =
       Runtime.fail_impossible_action_in_ssr "fun_value_binding_pexp_fun_2arg"
-       [@@warning "-27-26"] [@@alert "-browser_only"]
+        [@@warning "-27-26"] [@@alert "-browser_only"]
     in
-    let (fun_value_binding_labelled_args
-        [@alert
-          browser_only
-            "This expression is marked to only run on the browser where \
-             JavaScript can run. You can only use it inside a let%browser_only \
-             function."]) =
-     fun ~argument1 ~argument2 ->
+    let fun_value_binding_labelled_args ~argument1 ~argument2 =
       Runtime.fail_impossible_action_in_ssr "fun_value_binding_labelled_args"
-       [@@warning "-27-26"] [@@alert "-browser_only"]
+        [@@warning "-27-26"] [@@alert "-browser_only"]
     in
     let (pexp_ident
         [@alert
