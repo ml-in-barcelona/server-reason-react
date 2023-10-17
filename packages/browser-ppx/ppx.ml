@@ -46,7 +46,7 @@ module Browser_only = struct
          another case where it can be helpful, feel free to open an issue in \
          https://github.com/ml-in-barcelona/server-reason-react."]]
 
-  let enable_alert_browser_only ~loc =
+  let _enable_alert_browser_only ~loc =
     {
       attr_name = { txt = "alert"; loc };
       attr_payload =
@@ -111,7 +111,7 @@ module Browser_only = struct
             let pat =
               {
                 pattern with
-                ppat_attributes = [ enable_alert_browser_only ~loc ];
+                ppat_attributes = [ (* enable_alert_browser_only ~loc *) ];
               }
             in
             let vb =

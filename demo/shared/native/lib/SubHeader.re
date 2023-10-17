@@ -1,7 +1,12 @@
 module Cosis = {
   [@react.component]
   let make = (~onClick) => {
-    <div onClick />;
+    <div
+      onClick={_ => {
+        Js.log("asdfs");
+        onClick();
+      }}
+    />;
   };
 };
 
@@ -13,14 +18,22 @@ let make = () => {
 
   React.useEffect0(() => {
     let _ = onClick();
-    let _ = onClick();
-    let _ = onClick();
 
     None;
   });
 
+  React.useEffect1(
+    () => {
+      let _ = onClick();
+      let _ = onClick();
+
+      None;
+    },
+    [|onClick|],
+  );
+
+  /* <Cosis onClick /> */
   <div>
-    <Cosis onClick />
     <form>
       <label>
         {React.string("Name:")}
