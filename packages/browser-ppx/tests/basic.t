@@ -110,12 +110,7 @@ Without -js flag, the compilation to native replaces the expression with `raise 
       Runtime.fail_impossible_action_in_ssr "fun_value_binding_labelled_args"
         [@@warning "-27-26"] [@@alert "-browser_only"]
     in
-    let (pexp_ident
-        [@alert
-          browser_only
-            "This expression is marked to only run on the browser where \
-             JavaScript can run. You can only use it inside a let%browser_only \
-             function."]) =
+    let pexp_ident =
       Runtime.fail_impossible_action_in_ssr "Webapi__Dom__Element.asHtmlElement"
         [@@alert "-browser_only"]
     in
