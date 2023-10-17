@@ -154,7 +154,7 @@ val useCallback2 : 'a -> 'b -> 'a
 val useCallback3 : 'a -> 'b -> 'a
 val useCallback4 : 'a -> 'b -> 'a
 val useCallback5 : 'a -> 'b -> 'a
-val useCallback6 : ('a -> 'b) -> 'a -> 'b
+val useCallback6 : 'a -> 'b -> 'a
 
 val useReducer :
   ('state -> 'action -> 'state) -> 'state -> 'state * ('action -> unit)
