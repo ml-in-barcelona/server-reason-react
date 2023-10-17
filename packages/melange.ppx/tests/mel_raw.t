@@ -79,6 +79,6 @@ mel.raw as a value
   > EOF
 
   $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl | tee output.ml
-  [@@@ocaml.error "[%%mel.raw ...] is not allowed in native development"]
+  ()
 
   $ ocamlc output.ml
