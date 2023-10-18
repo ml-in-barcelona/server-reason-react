@@ -45,15 +45,18 @@
     rec {
       devShells.default = pkgs.mkShell {
         buildInputs = [
-          lwt
-          lwt_ppx
-          ocamlPackages.melange
-          ocaml_pcre
           alcotest
           alcotest-lwt
+          dream
           fmt
+          lwt
+          lwt_ppx
+          melange-webapi
+          ocamlPackages.melange
+          ocaml_pcre
           ppxlib
           reason-react
+          uri
         ];
         nativeBuildInputs = [
           findlib
