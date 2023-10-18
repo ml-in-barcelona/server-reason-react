@@ -142,6 +142,7 @@ val use : 'a Lwt.t -> 'a
 val useContext : 'a Context.t -> 'a
 val useState : (unit -> 'state) -> 'state * (('state -> 'state) -> unit)
 val useMemo : (unit -> 'a) -> 'a
+val useMemo0 : (unit -> 'a) -> 'a
 val useMemo1 : (unit -> 'a) -> 'b -> 'a
 val useMemo2 : (unit -> 'a) -> 'b -> 'a
 val useMemo3 : (unit -> 'a) -> 'b -> 'a
@@ -149,6 +150,7 @@ val useMemo4 : (unit -> 'a) -> 'b -> 'a
 val useMemo5 : (unit -> 'a) -> 'b -> 'a
 val useMemo6 : (unit -> 'a) -> 'b -> 'a
 val useCallback : 'a -> 'a
+val useCallback0 : 'a -> 'a
 val useCallback1 : 'a -> 'b -> 'a
 val useCallback2 : 'a -> 'b -> 'a
 val useCallback3 : 'a -> 'b -> 'a

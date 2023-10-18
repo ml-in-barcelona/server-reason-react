@@ -279,6 +279,7 @@ let useState (make_initial_value : unit -> 'state) =
   (initial_value, setState)
 
 let useMemo fn = fn ()
+let useMemo0 fn = fn ()
 let useMemo1 fn _ = fn ()
 let useMemo2 fn _ = fn ()
 let useMemo3 fn _ = fn ()
@@ -286,6 +287,7 @@ let useMemo4 fn _ = fn ()
 let useMemo5 fn _ = fn ()
 let useMemo6 fn _ = fn ()
 let useCallback fn = fn
+let useCallback0 fn = fn
 let useCallback1 fn _ = fn
 let useCallback2 fn _ = fn
 let useCallback3 fn _ = fn
