@@ -1,0 +1,7 @@
+(copy_files# "../react.ml")
+
+(copy_files# "../reactEvent.ml")
+
+(library
+ (name unused_js_compat)
+ (libraries html lwt server-reason-react.js server-reason-react.dom))
