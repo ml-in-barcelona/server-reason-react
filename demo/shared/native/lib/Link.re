@@ -4,7 +4,7 @@ let make = (~url, ~txt) => {
     className="text-blue-500 hover:text-blue-800"
     href=url
     onClick={e => {
-      ReactEvent.Mouse.preventDefault(
+      React.Event.Mouse.preventDefault(
         e,
         /* ReasonReactRouter.push(url); */
       )

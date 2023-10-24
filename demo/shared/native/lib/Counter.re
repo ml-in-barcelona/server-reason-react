@@ -3,7 +3,7 @@ let make = () => {
   let (count, setCount) = React.useState(() => 23);
 
   let onClick = event => {
-    let _target = ReactEvent.Mouse.target(event);
+    let _target = React.Event.Mouse.target(event);
     print_endline("Console works too! " /* ++ target##value */);
     setCount(_ => count + 1);
   };
