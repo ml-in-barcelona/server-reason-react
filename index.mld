@@ -50,18 +50,9 @@ Visit each API page for more information:
 - server-reason-react.promise (vendored https://github.com/aantron/promise and make it compatible)
 - server-reason-react.webapi (vendored https://github.com/melange-community/melange-webapi and stripped down to the bare minimum)
 
-{2:ppx melange.ppx equivalent}
-k
-Since melange.ppx is not compatible with native, we provide `server-reason-react.melange.ppx` instead. It enables a few features:
-
-- Enables pipe_first {[->]}
-- Supports all {[mel.]} attributes
-- Supports RegExp {[%re "/regex/"]}
-- Supports Object access {[##]}
-
-{[ (preprocess (pps server-reason-react.melange.ppx)) ]}
-
 {2:browser_ppx Exclude client code from the native build}
+
+Sometimes shared code will have some parts that are meant to be executed only on the client. For example, if you're using [Webapi] to query the DOM, you don't want to run that on the server.
 
 Thanks to [browser_ppx], we can easily discard what's meant to be running on the client and avoid the execution on the server:
 
@@ -80,7 +71,7 @@ On client's dune:
 On server's dune:
 {[ (preprocess (pps browser_ppx)) ]}
 
-The method used by [browser_only] to discards the function is transforming the body of your function into a raise exception. Sometimes it can be useful to wrap it in a try/catch block to prevent the exception from crashing, or to provide a default value or do something else.
+The method used by [browser_only] to discards the function is transforming the body of your function into a raising exception. Sometimes it can be useful to wrap it in a try/catch block to prevent the exception from crashing, or to provide a default value or do something else.
 
 For example:
 {[
@@ -95,3 +86,14 @@ let main = id =>
   | _ => 0
   };
 ]}
+
+{2:ppx Externals and melange.ppx attributes}
+
+Since `melange.ppx` is not compatible with native, we provide `server-reason-react.melange.ppx` instead, to allow the ma It enables a few features:
+
+- Enables pipe_first {->}
+- Supports all {mel.} attributes
+- Supports RegExp {%re "/regex/"}
+- Supports Object access {##}
+
+{[ (preprocess (pps server-reason-react.melange.ppx)) ]}

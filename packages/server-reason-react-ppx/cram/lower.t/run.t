@@ -195,9 +195,11 @@
                                      "onClick",
                                      React.JSX.Mouse(
                                        event => {
-                                         ReactEvent.Mouse.preventDefault(event);
+                                         React.Event.Mouse.preventDefault(
+                                           event,
+                                         );
                                          ReactRouter.push(e.path);
-                                       }: ReactEvent.Mouse.t => unit,
+                                       }: React.Event.Mouse.t => unit,
                                      ),
                                    ),
                                  ),
@@ -322,60 +324,3 @@
       |> Array.of_list,
       [],
     );
-
-let lower_empty_attr =
-
-let lower_inline_styles =
-
-let lower_inner_html =
-
-let lower_opt_attr =
-
-let lowerWithChildAndProps foo =
-
-let lower_child_static =
-
-let lower_child_ident =
-
-let lower_child_single =
-
-let lower_children_multiple foo bar =
-
-let lower_child_with_upper_as_children =
-
-let lower_children_nested =
-
-let fragment foo = (React.fragment ~children:(React.list [ foo ]) () [@bla])
-
-let poly_children_fragment foo bar =
-
-let nested_fragment foo bar baz =
-
-let nested_fragment_with_lower foo =
-
-let fragment_as_a_child =
-
-let upper = React.Upper_case_component (fun () -> Upper.make ())
-let upper_prop = React.Upper_case_component (fun () -> Upper.make ~count ())
-
-let upper_children_single foo =
-
-let upper_children_multiple foo bar =
-
-let upper_children =
-
-let upper_nested_module =
-
-let upper_child_expr =
-
-let upper_child_ident =
-
-let upper_all_kinds_of_props =
-
-let upper_ref_with_children =
-
-let lower_ref_with_children =
-
-let lower_with_many_props =
-
-let some_random_html_element =

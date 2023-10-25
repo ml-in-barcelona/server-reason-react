@@ -58,8 +58,8 @@ setup-githooks: ## Setup githooks
 pin: ## Pin dependencies
 	opam install dune.3.10.0
 	opam pin add melange.dev "https://github.com/melange-re/melange.git#2ff08be262f113fc8d28b66c272502c6f403399c" -y
-	opam pin add reason-react-ppx.dev "https://github.com/reasonml/reason-react.git#0ccff71796b60d6c32ab6cf01e31beccca4698b9" -y
-	opam pin add reason-react.dev "https://github.com/reasonml/reason-react.git#0ccff71796b60d6c32ab6cf01e31beccca4698b9" -y
+	opam pin add reason-react-ppx.dev "https://github.com/reasonml/reason-react.git#7ca984c9a406b01e906fda1898f705f135fad202" -y
+	opam pin add reason-react.dev "https://github.com/reasonml/reason-react.git#7ca984c9a406b01e906fda1898f705f135fad202" -y
 	opam pin add melange-fetch.dev "git+https://github.com/melange-community/melange-fetch.git#master" -y
 	opam pin add melange-webapi.dev "git+https://github.com/melange-community/melange-webapi.git#master" -y
 
@@ -99,8 +99,9 @@ subst: ## Run dune substitute
 
 .PHONY: documentation
 documentation: ## Generate odoc documentation
-# Since odoc fails when 2 wrapped libraries have the same name,
-# we need to ignore "promise" by adding an underscode in front of it
+# Since odoc/dune fails when 2 wrapped libraries have the same name,
+# we need to ignore conflicting packages by adding an underscode in front of it
+# https://github.com/ocaml/dune/issues/1645
 	mv $(CURDIR)/packages/promise $(CURDIR)/packages/_promise
 	mv $(CURDIR)/packages/url $(CURDIR)/packages/_url
 	$(DUNE) build --root . @doc

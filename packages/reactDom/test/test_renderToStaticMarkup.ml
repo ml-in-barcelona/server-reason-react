@@ -198,13 +198,13 @@ let inner_html () =
   assert_string (ReactDOM.renderToStaticMarkup component) "<div>foo</div>"
 
 let make ~name () =
-  let onClick (event : ReactEvent.Mouse.t) : unit = ignore event in
+  let onClick (event : React.Event.Mouse.t) : unit = ignore event in
   React.createElement "button"
     ([|
        Some (React.JSX.String ("name", (name : string)));
        Some
          (React.JSX.Event
-            ("onClick", React.JSX.Mouse (onClick : ReactEvent.Mouse.t -> unit)));
+            ("onClick", React.JSX.Mouse (onClick : React.Event.Mouse.t -> unit)));
      |]
     |> Array.to_list
     |> List.filter_map (fun a -> a)

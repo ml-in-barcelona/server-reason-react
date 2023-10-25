@@ -13,4 +13,4 @@
   -16 ; unerasable-optional-argument
   )
  (preprocess
-  (pps melange_native_ppx)))
+  (pps melange_native_ppx browser_ppx)))

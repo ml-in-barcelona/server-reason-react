@@ -71,7 +71,7 @@ module Onclick_handler_button = struct
           Some
             (React.JSX.Event
                ( "onClick",
-                 React.JSX.Event.Mouse (onClick : ReactEvent.Mouse.t -> unit) ));
+                 React.JSX.Event.Mouse (onClick : React.Event.Mouse.t -> unit) ));
           Some (React.JSX.Bool ("disabled", (isDisabled : bool)));
         |]
        |> Array.to_list

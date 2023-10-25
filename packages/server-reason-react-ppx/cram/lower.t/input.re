@@ -26,7 +26,7 @@ let lower_children_nested =
                   <a
                     href={e.path}
                     onClick={event => {
-                      ReactEvent.Mouse.preventDefault(event);
+                      React.Event.Mouse.preventDefault(event);
                       ReactRouter.push(e.path);
                     }}>
                     {e.title |> s}
