@@ -1013,7 +1013,63 @@ let makePropField ~loc id (arg_label, value) =
             (React.JSX.Event
                ([%e constantString ~loc jsxName], React.JSX.Inline v))
               [%e objectValue])]
-  | _ -> failwith "Attribute not implemented, open an issue"
+  | Event { type_ = Image; jsxName }, false ->
+      [%expr
+        Some
+          (React.JSX.Event
+             ([%e constantString ~loc jsxName], React.JSX.Image [%e objectValue]))]
+  | Event { type_ = Image; jsxName }, true ->
+      [%expr
+        Option.map (fun v ->
+            (React.JSX.Event
+               ([%e constantString ~loc jsxName], React.JSX.Image v))
+              [%e objectValue])]
+  | Event { type_ = Animation; jsxName }, false ->
+      [%expr
+        Some
+          (React.JSX.Event
+             ( [%e constantString ~loc jsxName],
+               React.JSX.Animation [%e objectValue] ))]
+  | Event { type_ = Animation; jsxName }, true ->
+      [%expr
+        Option.map (fun v ->
+            (React.JSX.Event
+               ([%e constantString ~loc jsxName], React.JSX.Animation v))
+              [%e objectValue])]
+  | Event { type_ = Transition; jsxName }, false ->
+      [%expr
+        Some
+          (React.JSX.Event
+             ( [%e constantString ~loc jsxName],
+               React.JSX.Transition [%e objectValue] ))]
+  | Event { type_ = Transition; jsxName }, true ->
+      [%expr
+        Option.map (fun v ->
+            (React.JSX.Event
+               ([%e constantString ~loc jsxName], React.JSX.Transition v))
+              [%e objectValue])]
+  | Event { type_ = Pointer; jsxName }, false ->
+      [%expr
+        Some
+          (React.JSX.Event
+             ( [%e constantString ~loc jsxName],
+               React.JSX.Pointer [%e objectValue] ))]
+  | Event { type_ = Pointer; jsxName }, true ->
+      [%expr
+        Option.map (fun v ->
+            (React.JSX.Event
+               ([%e constantString ~loc jsxName], React.JSX.Pointer v))
+              [%e objectValue])]
+  | Event { type_ = Drag; jsxName }, false ->
+      [%expr
+        Some
+          (React.JSX.Event
+             ([%e constantString ~loc jsxName], React.JSX.Drag [%e objectValue]))]
+  | Event { type_ = Drag; jsxName }, true ->
+      [%expr
+        Option.map (fun v ->
+            (React.JSX.Event ([%e constantString ~loc jsxName], React.JSX.Drag v))
+              [%e objectValue])]
 
 let jsxMapper () =
   let transformUppercaseCall modulePath mapper loc attrs _ callArguments =
