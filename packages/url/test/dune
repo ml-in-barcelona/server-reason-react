@@ -1,0 +1,3 @@
+(cram
+ (package server-reason-react)
+ (deps %{bin:melc}))
