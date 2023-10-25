@@ -6,6 +6,20 @@ let case title (fn : unit -> unit) = Alcotest.test_case title `Quick fn
 let tests =
   ( "OK",
     [
+      case "make" (fun () ->
+          let url = URL.make "https://sancho.dev" in
+          assert_string (URL.toString url) "https://sancho.dev");
+      case "makeWith" (fun () ->
+          let url = URL.makeWith "about" ~base:"https://sancho.dev" in
+          assert_string (URL.host url) "sancho.dev";
+          assert_string (URL.pathname url) "/about";
+          assert_string (URL.toString url) "https://sancho.dev/about");
+      case "makeWith and relative base" (fun () ->
+          let url =
+            URL.makeWith "../cats" ~base:"http://www.example.com/dogs"
+          in
+          assert_string (URL.host url) "www.example.com";
+          assert_string (URL.pathname url) "/cats");
       case "host" (fun () ->
           let url = URL.make "https://sancho.dev" in
           assert_string (URL.host url) "sancho.dev");

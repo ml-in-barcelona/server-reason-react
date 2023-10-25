@@ -26,7 +26,11 @@ let make = str => {
   uri;
 };
 
-let makeWith = (str, ~base: string) => assert(false);
+let makeWith = (str, ~base: string) => {
+  let baseUri = Uri.of_string(base);
+  let absolute = Uri.with_uri(~path=Some(str), baseUri);
+  Uri.resolve(str, baseUri, absolute);
+};
 
 let host = url => {
   /* https://url.spec.whatwg.org/#dom-url-host */
