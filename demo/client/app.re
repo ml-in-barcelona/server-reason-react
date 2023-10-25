@@ -25,6 +25,8 @@ module Counter = {
 };
 
 switch (ReactDOM.querySelector("#root")) {
-| Some(el) => ReactDOM.hydrate(<Shared_js.App />, el)
+| Some(el) =>
+  let _root = ReactDOM.Client.hydrateRoot(el, <Shared_js.App />);
+  ();
 | None => ()
 };

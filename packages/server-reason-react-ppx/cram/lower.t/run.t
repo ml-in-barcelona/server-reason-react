@@ -195,9 +195,11 @@
                                      "onClick",
                                      React.JSX.Mouse(
                                        event => {
-                                         ReactEvent.Mouse.preventDefault(event);
+                                         React.Event.Mouse.preventDefault(
+                                           event,
+                                         );
                                          ReactRouter.push(e.path);
-                                       }: ReactEvent.Mouse.t => unit,
+                                       }: React.Event.Mouse.t => unit,
                                      ),
                                    ),
                                  ),
