@@ -1,10 +1,16 @@
-module URLSearchParams = {
+module SearchParams = {
   type t;
+  [@mel.new] external makeExn: string => t = "URLSearchParams";
 
-  [@mel.new] external make: string => t = "URLSearchParams";
+  let make = str => {
+    switch (makeExn(str)) {
+    | searchParams => Some(searchParams)
+    | exception _ => None
+    };
+  };
 
-  [@mel.new]
-  external makeWithDict: Js.Dict.t(string) => t = "URLSearchParams";
+  /* [@mel.new]
+     external makeWithDict: Js.Dict.t(string) => t = "URLSearchParams"; */
 
   [@mel.new]
   external makeWithArray: array((string, string)) => t = "URLSearchParams";
@@ -13,14 +19,14 @@ module URLSearchParams = {
 
   [@mel.send] external appendInPlace: (t, string, string) => unit = "append";
   let append = (searchParams, key, value) => {
-    let newSearchParams = make(toString(searchParams));
+    let newSearchParams = makeExn(toString(searchParams));
     let _ = appendInPlace(searchParams, key, value);
     newSearchParams;
   };
 
   [@mel.send] external deleteInPlace: (t, string) => unit = "delete";
   let delete = (searchParams, key) => {
-    let newSearchParams = make(toString(searchParams));
+    let newSearchParams = makeExn(toString(searchParams));
     let _ = deleteInPlace(searchParams, key);
     newSearchParams;
   };
@@ -41,14 +47,14 @@ module URLSearchParams = {
 
   [@mel.send] external setInPlace: (t, string, string) => unit = "set";
   let set = (searchParams, key, value) => {
-    let newSearchParams = make(toString(searchParams));
+    let newSearchParams = makeExn(toString(searchParams));
     let _ = setInPlace(searchParams, key, value);
     newSearchParams;
   };
 
   [@mel.send] external sortInPlace: t => unit = "sort";
   let sort = searchParams => {
-    let newSearchParams = make(toString(searchParams));
+    let newSearchParams = makeExn(toString(searchParams));
     let () = sortInPlace(newSearchParams);
     newSearchParams;
   };
@@ -58,26 +64,55 @@ module URLSearchParams = {
 
 type t;
 
-[@mel.new] external make: string => t = "URL";
+[@mel.new] external makeExn: string => t = "URL";
 [@mel.new] external makeWith: (string, ~base: string) => t = "URL";
 
-[@mel.send] external toJson: t => string = "toJSON";
+let make = str => {
+  switch (makeExn(str)) {
+  | searchParams => Some(searchParams)
+  | exception _ => None
+  };
+};
+
+/*
+ TODO: When we have a way to represent JSON universally, implement this. This should be "toJSON"
+ [@mel.send] external toJson: t => string = "toJSON"; */
 [@mel.send] external toString: t => string = "toString";
 
-[@mel.get] external origin: t => string = "origin";
+[@mel.get] external getOrigin: t => string = "origin";
+let origin = url => {
+  switch (getOrigin(url)) {
+  | "" => None
+  | origin => Some(origin)
+  };
+};
 
-[@mel.get] external hash: t => string = "hash";
+[@mel.get] external getHash: t => string = "hash";
+let hash = url => {
+  switch (getHash(url)) {
+  | "" => None
+  | hash => Some(hash)
+  };
+};
+
 [@mel.set] external setHashInPlace: (t, string) => unit = "hash";
 let setHash = (url, newHash) => {
-  let newUrl = make(toString(url));
+  let newUrl = makeExn(toString(url));
   let () = setHashInPlace(newUrl, newHash);
   newUrl;
 };
 
-[@mel.get] external host: t => string = "host";
+[@mel.get] external getHost: t => string = "host";
+let host = url => {
+  switch (getHost(url)) {
+  | "" => None
+  | host => Some(host)
+  };
+};
+
 [@mel.set] external setHostInPlace: (t, string) => unit = "host";
 let setHost = (url, newHost) => {
-  let newUrl = make(toString(url));
+  let newUrl = makeExn(toString(url));
   let () = setHostInPlace(newUrl, newHost);
   newUrl;
 };
@@ -85,7 +120,7 @@ let setHost = (url, newHost) => {
 [@mel.get] external hostname: t => string = "hostname";
 [@mel.set] external setHostnameInPlace: (t, string) => unit = "hostname";
 let setHostname = (url, newHostname) => {
-  let newUrl = make(toString(url));
+  let newUrl = makeExn(toString(url));
   let () = setHostnameInPlace(newUrl, newHostname);
   newUrl;
 };
@@ -93,15 +128,22 @@ let setHostname = (url, newHostname) => {
 [@mel.get] external href: t => string = "href";
 [@mel.set] external setHrefInPlace: (t, string) => unit = "href";
 let setHref = (url, newHref) => {
-  let newUrl = make(toString(url));
+  let newUrl = makeExn(toString(url));
   let () = setHrefInPlace(newUrl, newHref);
   newUrl;
 };
 
-[@mel.get] external password: t => string = "password";
+[@mel.get] external getPassword: t => string = "password";
+let password = url => {
+  switch (getPassword(url)) {
+  | "" => None
+  | password => Some(password)
+  };
+};
+
 [@mel.set] external setPasswordInPlace: (t, string) => unit = "password";
 let setPassword = (url, newPassword) => {
-  let newUrl = make(toString(url));
+  let newUrl = makeExn(toString(url));
   let () = setPasswordInPlace(newUrl, newPassword);
   newUrl;
 };
@@ -109,41 +151,65 @@ let setPassword = (url, newPassword) => {
 [@mel.get] external pathname: t => string = "pathname";
 [@mel.set] external setPathnameInPlace: (t, string) => unit = "pathname";
 let setPathname = (url, newPathname) => {
-  let newUrl = make(toString(url));
+  let newUrl = makeExn(toString(url));
   let () = setPathnameInPlace(newUrl, newPathname);
   newUrl;
 };
 
-[@mel.get] external port: t => string = "port";
+[@mel.get] external getPort: t => string = "port";
+let port = url => {
+  switch (getPort(url)) {
+  | "" => None
+  | port => Some(port)
+  };
+};
 [@mel.set] external setPortInPlace: (t, string) => unit = "port";
 let setPort = (url, newPort) => {
-  let newUrl = make(toString(url));
+  let newUrl = makeExn(toString(url));
   let () = setPortInPlace(newUrl, newPort);
   newUrl;
 };
 
-[@mel.get] external protocol: t => string = "protocol";
+[@mel.get] external getProtocol: t => string = "protocol";
+let protocol = url => {
+  switch (getProtocol(url)) {
+  | "" => None
+  | protocol => Some(protocol)
+  };
+};
 [@mel.set] external setProtocolInPlace: (t, string) => unit = "protocol";
 let setProtocol = (url, newProtocol) => {
-  let newUrl = make(toString(url));
+  let newUrl = makeExn(toString(url));
   let () = setProtocolInPlace(newUrl, newProtocol);
   newUrl;
 };
 
-[@mel.get] external search: t => string = "search";
+[@mel.get] external getSearch: t => string = "search";
+let search = url => {
+  switch (getSearch(url)) {
+  | "" => None
+  | search => Some(search)
+  };
+};
 [@mel.set] external setSearchInPlace: (t, string) => unit = "search";
 let setSearch = (url, newSearch) => {
-  let newUrl = make(toString(url));
+  let newUrl = makeExn(toString(url));
   let () = setSearchInPlace(newUrl, newSearch);
   newUrl;
 };
 
-[@mel.get] external username: t => string = "username";
+[@mel.get] external getUsername: t => string = "username";
+let username = url => {
+  switch (getUsername(url)) {
+  | "" => None
+  | username => Some(username)
+  };
+};
 [@mel.set] external setUsernameInPlace: (t, string) => unit = "username";
 let setUsername = (url, newUsername) => {
-  let newUrl = make(toString(url));
+  let newUrl = makeExn(toString(url));
   let () = setUsernameInPlace(newUrl, newUsername);
   newUrl;
 };
 
-[@mel.get] external searchParams: t => URLSearchParams.t = "searchParams";
+[@mel.get] external searchParams: t => SearchParams.t = "searchParams";

@@ -1,8 +1,9 @@
-module URLSearchParams: {
+module SearchParams: {
   type t;
 
-  let make: string => t;
-  let makeWithDict: Js.Dict.t(string) => t;
+  let makeExn: string => t;
+  let make: string => option(t);
+  /* let makeWithDict: Js.Dict.t(string) => t; */
   let makeWithArray: array((string, string)) => t;
   let append: (t, string, string) => t;
   let delete: (t, string) => t;
@@ -20,31 +21,33 @@ module URLSearchParams: {
 
 type t;
 
-let make: string => t;
-
+let makeExn: string => t;
+let make: string => option(t);
 let makeWith: (string, ~base: string) => t;
 
-let hash: t => string;
+let hash: t => option(string);
 let setHash: (t, string) => t;
-let host: t => string;
+let host: t => option(string);
 let setHost: (t, string) => t;
 let hostname: t => string;
 let setHostname: (t, string) => t;
 let href: t => string;
 let setHref: (t, string) => t;
-let origin: t => string;
-let password: t => string;
+let origin: t => option(string);
+let password: t => option(string);
 let setPassword: (t, string) => t;
 let pathname: t => string;
 let setPathname: (t, string) => t;
-let port: t => string;
+let port: t => option(string);
 let setPort: (t, string) => t;
-let protocol: t => string;
+let protocol: t => option(string);
 let setProtocol: (t, string) => t;
-let search: t => string;
+let search: t => option(string);
 let setSearch: (t, string) => t;
-let searchParams: t => URLSearchParams.t;
-let username: t => string;
+let searchParams: t => SearchParams.t;
+let username: t => option(string);
 let setUsername: (t, string) => t;
-let toJson: t => string;
+/*
+ TODO: When we have a way to represent JSON universally, implement this
+ let toJson: t => string; */
 let toString: t => string;
