@@ -1,3 +1,3 @@
 let () =
-  Ppxlib.Driver.register_transformation "native-react-ppx"
-    ~impl:Jsx_ppx.rewrite_implementation ~intf:Jsx_ppx.rewrite_interface
+  Ppxlib.Driver.register_transformation "server-reason-react.ppx"
+    ~impl:Jsx.rewrite_implementation ~intf:Jsx.rewrite_interface
