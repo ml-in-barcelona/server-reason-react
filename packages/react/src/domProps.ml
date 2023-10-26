@@ -1619,8 +1619,8 @@ let find_closest_name invalid =
     | true -> { name; distance }
     | false -> bestMatch
   in
-  let { name; distance = _ } =
+  let { name; distance } =
     List.fold_right accumulate_distance domPropNames
       { name = ""; distance = max_int }
   in
-  name
+  if distance > 2 then None else Some name
