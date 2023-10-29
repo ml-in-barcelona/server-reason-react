@@ -37,7 +37,15 @@ let make = () => {
     <form>
       <label>
         {React.string("Name:")}
-        <input type_="text" name="name" />
+        <input
+          onKeyPress=[%browser_only
+            _ => {
+              Js.log("key pressed");
+            }
+          ]
+          type_="text"
+          name="name"
+        />
       </label>
       <input type_="submit" value="Submit" />
     </form>
