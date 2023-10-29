@@ -496,7 +496,7 @@ let globalAttributes =
     Attribute { name = "accessKey"; jsxName = "accessKey"; type_ = String };
     Attribute { name = "autoCapitalize"; jsxName = "autoCapitalize"; type_ = String };
     Attribute { name = "contextMenu"; jsxName = "contextMenu"; type_ = String };
-    Attribute { name = "contentEditable"; jsxName = "contentEditable"; type_ = String };
+    Attribute { name = "contentEditable"; jsxName = "contentEditable"; type_ = StringlyBool };
     Attribute { name = "dir"; jsxName = "dir"; type_ = String };
     Attribute { name = "draggable"; jsxName = "draggable"; type_ = String (* Booleanish *) };
     Attribute { name = "hidden"; jsxName = "hidden"; type_ = Bool };
