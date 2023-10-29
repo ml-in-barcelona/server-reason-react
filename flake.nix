@@ -7,23 +7,15 @@
       url = "github:nix-ocaml/nix-overlays";
       inputs.flake-utils.follows = "flake-utils";
     };
-    melange = {
-      # this should match the pinned version in the Makefile
-      url = "github:melange-re/melange?rev=a01735398b5df5b90f0a567dd660847ae0e9da48";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.flake-utils.follows = "flake-utils";
-    };
   };
   outputs =
     { self
     , nixpkgs
     , flake-utils
-    , melange
     }:
     (flake-utils.lib.eachDefaultSystem (system:
     let
       pkgs = nixpkgs.legacyPackages."${system}".appendOverlays [
-        melange.overlays.default
         (self: super: {
           ocamlPackages = super.ocaml-ng.ocamlPackages_5_1.overrideScope'
             (oself: osuper:
@@ -34,6 +26,15 @@
                 # See also https://github.com/reasonml/reason-react/pull/792#issuecomment-1741868181 
                 reason = osuper.reason.overrideAttrs (o: {
                   patches = [ ];
+                });
+                melange = osuper.melange.overrideAttrs (o: {
+                  src = super.fetchFromGitHub {
+                    owner = "melange-re";
+                    repo = "melange";
+                    rev = "a01735398b5df5b90f0a567dd660847ae0e9da48";
+                    hash = "sha256-2/CyjNmOQCIq9OZzf+r4yaQpXd+VQQ6MWQyJAn9cOqo=";
+                    fetchSubmodules = true;
+                  };
                 });
               }
             );
@@ -52,7 +53,7 @@
           lwt
           lwt_ppx
           melange-webapi
-          ocamlPackages.melange
+          melange
           ocaml_pcre
           ppxlib
           reason-react
