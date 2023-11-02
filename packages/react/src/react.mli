@@ -636,6 +636,9 @@ val useCallback6 : 'a -> 'b -> 'a
 val useReducer :
   ('state -> 'action -> 'state) -> 'state -> 'state * ('action -> unit)
 
+val useReducerWithMapState :
+  ('state -> 'action -> 'initialState) -> 'initialState -> ('initialState -> 'state) -> 'state * ('action -> unit)
+
 val useEffect0 : (unit -> (unit -> unit) option) -> unit
 val useEffect1 : (unit -> (unit -> unit) option) -> 'dependency array -> unit
 
