@@ -567,6 +567,12 @@ let useState (make_initial_value : unit -> 'state) =
   in
   (initial_value, setState)
 
+let internal_id = ref 0
+
+let useId () =
+  internal_id := !internal_id + 1;
+  Int.to_string !internal_id
+
 let useMemo fn = fn ()
 let useMemo0 fn = fn ()
 let useMemo1 fn _ = fn ()
