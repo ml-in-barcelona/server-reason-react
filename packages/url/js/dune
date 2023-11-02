@@ -4,6 +4,7 @@
  (modes melange)
  (wrapped false)
  (public_name server-reason-react.js-url)
+ (libraries melange.js)
  (preprocess
   (pps melange.ppx)))
 

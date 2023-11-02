@@ -271,89 +271,90 @@ let makeModuleName fileName nestedModules fnName =
 *)
 
 (* Build an AST node representing all named args for the `makeProps` definition for a component's props *)
-let rec makeArgsForMakePropsType list args =
-  match list with
-  | (label, default, loc, interiorType) :: tl ->
-      let coreType =
-        match (label, interiorType, default) with
-        (* ~foo=1 *)
-        | label, None, Some _ ->
-            Typ.mk ~loc (Ptyp_var (safeTypeFromValue label))
-        (* ~foo: int=1 *)
-        | _label, Some type_, Some _ -> type_
-        (* ~foo: option(int)=? *)
-        | ( label,
-            Some
-              {
-                ptyp_desc = Ptyp_constr ({ txt = Lident "option"; _ }, [ type_ ]);
-                _;
-              },
-            _ )
-        | ( label,
-            Some
-              {
-                ptyp_desc =
-                  Ptyp_constr
-                    ({ txt = Ldot (Lident "*predef*", "option"); _ }, [ type_ ]);
-                _;
-              },
-            _ )
-        (* ~foo: int=? - note this isnt valid. but we want to get a type error *)
-        | label, Some type_, _
-          when isOptional label ->
-            type_
-        (* ~foo=? *)
-        | label, None, _ when isOptional label ->
-            Typ.mk ~loc (Ptyp_var (safeTypeFromValue label))
-        (* ~foo *)
-        | label, None, _ -> Typ.mk ~loc (Ptyp_var (safeTypeFromValue label))
-        | _label, Some type_, _ -> type_
-      in
-      makeArgsForMakePropsType tl (Typ.arrow ~loc label coreType args)
-  | [] -> args
-
+(* let rec makeArgsForMakePropsType list args =
+   match list with
+   | (label, default, loc, interiorType) :: tl ->
+       let coreType =
+         match (label, interiorType, default) with
+         (* ~foo=1 *)
+         | label, None, Some _ ->
+             Typ.mk ~loc (Ptyp_var (safeTypeFromValue label))
+         (* ~foo: int=1 *)
+         | _label, Some type_, Some _ -> type_
+         (* ~foo: option(int)=? *)
+         | ( label,
+             Some
+               {
+                 ptyp_desc = Ptyp_constr ({ txt = Lident "option"; _ }, [ type_ ]);
+                 _;
+               },
+             _ )
+         | ( label,
+             Some
+               {
+                 ptyp_desc =
+                   Ptyp_constr
+                     ({ txt = Ldot (Lident "*predef*", "option"); _ }, [ type_ ]);
+                 _;
+               },
+             _ )
+         (* ~foo: int=? - note this isnt valid. but we want to get a type error *)
+         | label, Some type_, _
+           when isOptional label ->
+             type_
+         (* ~foo=? *)
+         | label, None, _ when isOptional label ->
+             Typ.mk ~loc (Ptyp_var (safeTypeFromValue label))
+         (* ~foo *)
+         | label, None, _ -> Typ.mk ~loc (Ptyp_var (safeTypeFromValue label))
+         | _label, Some type_, _ -> type_
+       in
+       makeArgsForMakePropsType tl (Typ.arrow ~loc label coreType args)
+   | [] -> args
+*)
 (* Build an AST node for the Js object representing props for a component *)
-let makePropsValue fnName loc namedArgListWithKeyAndRef propsType =
-  let propsName = fnName ^ "Props" in
-  Val.mk ~loc { txt = propsName; loc }
-    (makeArgsForMakePropsType namedArgListWithKeyAndRef
-       (Typ.arrow Nolabel
-          {
-            ptyp_desc = Ptyp_constr ({ txt = Lident "unit"; loc }, []);
-            ptyp_loc = loc;
-            ptyp_attributes = [];
-            ptyp_loc_stack = [];
-          }
-          propsType))
+(* let makePropsValue fnName loc namedArgListWithKeyAndRef propsType =
+   let propsName = fnName ^ "Props" in
+   Val.mk ~loc { txt = propsName; loc }
+     (makeArgsForMakePropsType namedArgListWithKeyAndRef
+        (Typ.arrow Nolabel
+           {
+             ptyp_desc = Ptyp_constr ({ txt = Lident "unit"; loc }, []);
+             ptyp_loc = loc;
+             ptyp_attributes = [];
+             ptyp_loc_stack = [];
+           }
+           propsType))
+*)
 
 (* Build an AST node for the signature of the `external` definition *)
-let makePropsExternalSig fnName loc namedArgListWithKeyAndRef propsType =
-  {
-    psig_loc = loc;
-    psig_desc =
-      Psig_value (makePropsValue fnName loc namedArgListWithKeyAndRef propsType);
-  }
+(* let makePropsExternalSig fnName loc namedArgListWithKeyAndRef propsType =
+   {
+     psig_loc = loc;
+     psig_desc =
+       Psig_value (makePropsValue fnName loc namedArgListWithKeyAndRef propsType);
+   } *)
 
 (* Build an AST node for the props name when converted to a Js.t inside the function signature  *)
 let makePropsName ~loc name = Pat.mk ~loc (Ppat_var { txt = name; loc })
 
-let makeObjectField loc (str, _attrs, propType) =
-  let type_ = [%type: [%t propType] Js_of_ocaml.Js.readonly_prop] in
-  {
-    pof_desc = Otag ({ loc; txt = str }, { type_ with ptyp_attributes = [] });
-    pof_loc = loc;
-    pof_attributes = [];
-  }
+(* let makeObjectField loc (str, _attrs, propType) =
+   let type_ = [%type: [%t propType] Js_of_ocaml.Js.readonly_prop] in
+   {
+     pof_desc = Otag ({ loc; txt = str }, { type_ with ptyp_attributes = [] });
+     pof_loc = loc;
+     pof_attributes = [];
+   } *)
 
 (* Build an AST node representing a "closed" Js_of_ocaml.Js.t object representing a component's props *)
-let makePropsType ~loc namedTypeList =
-  Typ.mk ~loc
-    (Ptyp_constr
-       ( { txt = Ldot (Lident "Js", "t"); loc },
-         [
-           Typ.mk ~loc
-             (Ptyp_object (List.map (makeObjectField loc) namedTypeList, Closed));
-         ] ))
+(* let makePropsType ~loc namedTypeList =
+   Typ.mk ~loc
+     (Ptyp_constr
+        ( { txt = Ldot (Lident "Js", "t"); loc },
+          [
+            Typ.mk ~loc
+              (Ptyp_object (List.map (makeObjectField loc) namedTypeList, Closed));
+          ] )) *)
 
 let rec makeFunsForMakePropsBody list args =
   match list with
@@ -377,8 +378,8 @@ let makeAttributeValue ~loc ~isOptional (type_ : DomProps.attributeType) value =
   | Int, true -> [%expr ([%e value] : int option)]
   | Bool, false -> [%expr ([%e value] : bool)]
   | Bool, true -> [%expr ([%e value] : bool option)]
-  | StringlyBool, false -> [%expr ([%e value] : bool)]
-  | StringlyBool, true -> [%expr ([%e value] : bool option)]
+  | BooleanishString, false -> [%expr ([%e value] : bool)]
+  | BooleanishString, true -> [%expr ([%e value] : bool option)]
   | Style, false -> [%expr ([%e value] : ReactDom.Style.t)]
   | Style, true -> [%expr ([%e value] : ReactDom.Style.t option)]
   (* Those ReactDom types are currently on ReasonReact, in our implementation they are in React namespace *)
@@ -393,83 +394,54 @@ let makeAttributeValue ~loc ~isOptional (type_ : DomProps.attributeType) value =
 
 let makeEventValue ~loc ~isOptional (type_ : DomProps.eventType) value =
   match (type_, isOptional) with
-  | Clipboard, false -> [%expr ([%e value] : ReactEvent.Clipboard.t -> unit)]
+  | Clipboard, false -> [%expr ([%e value] : React.Event.Clipboard.t -> unit)]
   | Clipboard, true ->
-      [%expr ([%e value] : (ReactEvent.Clipboard.t -> unit) option)]
+      [%expr ([%e value] : (React.Event.Clipboard.t -> unit) option)]
   | Composition, false ->
-      [%expr ([%e value] : ReactEvent.Composition.t -> unit)]
+      [%expr ([%e value] : React.Event.Composition.t -> unit)]
   | Composition, true ->
-      [%expr ([%e value] : (ReactEvent.Composition.t -> unit) option)]
-  | Keyboard, false -> [%expr ([%e value] : ReactEvent.Keyboard.t -> unit)]
+      [%expr ([%e value] : (React.Event.Composition.t -> unit) option)]
+  | Keyboard, false -> [%expr ([%e value] : React.Event.Keyboard.t -> unit)]
   | Keyboard, true ->
-      [%expr ([%e value] : (ReactEvent.Keyboard.t -> unit) option)]
-  | Focus, false -> [%expr ([%e value] : ReactEvent.Focus.t -> unit)]
-  | Focus, true -> [%expr ([%e value] : (ReactEvent.Focus.t -> unit) option)]
-  | Form, false -> [%expr ([%e value] : ReactEvent.Form.t -> unit)]
-  | Form, true -> [%expr ([%e value] : (ReactEvent.Form.t -> unit) option)]
-  | Mouse, false -> [%expr ([%e value] : ReactEvent.Mouse.t -> unit)]
-  | Mouse, true -> [%expr ([%e value] : (ReactEvent.Mouse.t -> unit) option)]
-  | Selection, false -> [%expr ([%e value] : ReactEvent.Selection.t -> unit)]
+      [%expr ([%e value] : (React.Event.Keyboard.t -> unit) option)]
+  | Focus, false -> [%expr ([%e value] : React.Event.Focus.t -> unit)]
+  | Focus, true -> [%expr ([%e value] : (React.Event.Focus.t -> unit) option)]
+  | Form, false -> [%expr ([%e value] : React.Event.Form.t -> unit)]
+  | Form, true -> [%expr ([%e value] : (React.Event.Form.t -> unit) option)]
+  | Mouse, false -> [%expr ([%e value] : React.Event.Mouse.t -> unit)]
+  | Mouse, true -> [%expr ([%e value] : (React.Event.Mouse.t -> unit) option)]
+  | Selection, false -> [%expr ([%e value] : React.Event.Selection.t -> unit)]
   | Selection, true ->
-      [%expr ([%e value] : (ReactEvent.Selection.t -> unit) option)]
-  | Touch, false -> [%expr ([%e value] : ReactEvent.Touch.t -> unit)]
-  | Touch, true -> [%expr ([%e value] : (ReactEvent.Touch.t -> unit) option)]
-  | UI, false -> [%expr ([%e value] : ReactEvent.UI.t -> unit)]
-  | UI, true -> [%expr ([%e value] : (ReactEvent.UI.t -> unit) option)]
-  | Wheel, false -> [%expr ([%e value] : ReactEvent.Wheel.t -> unit)]
-  | Wheel, true -> [%expr ([%e value] : (ReactEvent.Wheel.t -> unit) option)]
-  | Media, false -> [%expr ([%e value] : ReactEvent.Media.t -> unit)]
-  | Media, true -> [%expr ([%e value] : (ReactEvent.Media.t -> unit) option)]
-  | Image, false -> [%expr ([%e value] : ReactEvent.Image.t -> unit)]
-  | Image, true -> [%expr ([%e value] : (ReactEvent.Image.t -> unit) option)]
-  | Animation, false -> [%expr ([%e value] : ReactEvent.Animation.t -> unit)]
+      [%expr ([%e value] : (React.Event.Selection.t -> unit) option)]
+  | Touch, false -> [%expr ([%e value] : React.Event.Touch.t -> unit)]
+  | Touch, true -> [%expr ([%e value] : (React.Event.Touch.t -> unit) option)]
+  | UI, false -> [%expr ([%e value] : React.Event.UI.t -> unit)]
+  | UI, true -> [%expr ([%e value] : (React.Event.UI.t -> unit) option)]
+  | Wheel, false -> [%expr ([%e value] : React.Event.Wheel.t -> unit)]
+  | Wheel, true -> [%expr ([%e value] : (React.Event.Wheel.t -> unit) option)]
+  | Media, false -> [%expr ([%e value] : React.Event.Media.t -> unit)]
+  | Media, true -> [%expr ([%e value] : (React.Event.Media.t -> unit) option)]
+  | Image, false -> [%expr ([%e value] : React.Event.Image.t -> unit)]
+  | Image, true -> [%expr ([%e value] : (React.Event.Image.t -> unit) option)]
+  | Animation, false -> [%expr ([%e value] : React.Event.Animation.t -> unit)]
   | Animation, true ->
-      [%expr ([%e value] : (ReactEvent.Animation.t -> unit) option)]
-  | Transition, false -> [%expr ([%e value] : ReactEvent.Transition.t -> unit)]
+      [%expr ([%e value] : (React.Event.Animation.t -> unit) option)]
+  | Transition, false -> [%expr ([%e value] : React.Event.Transition.t -> unit)]
   | Transition, true ->
-      [%expr ([%e value] : (ReactEvent.Transition.t -> unit) option)]
-  | Pointer, false -> [%expr ([%e value] : ReactEvent.Pointer.t -> unit)]
+      [%expr ([%e value] : (React.Event.Transition.t -> unit) option)]
+  | Pointer, false -> [%expr ([%e value] : React.Event.Pointer.t -> unit)]
   | Pointer, true ->
-      [%expr ([%e value] : (ReactEvent.Pointer.t -> unit) option)]
+      [%expr ([%e value] : (React.Event.Pointer.t -> unit) option)]
   | Inline, false -> [%expr ([%e value] : string)]
   | Inline, true -> [%expr ([%e value] : string option)]
-  | Drag, false -> [%expr ([%e value] : ReactEvent.Drag.t -> unit)]
-  | Drag, true -> [%expr ([%e value] : (ReactEvent.Drag.t -> unit) option)]
+  | Drag, false -> [%expr ([%e value] : React.Event.Drag.t -> unit)]
+  | Drag, true -> [%expr ([%e value] : (React.Event.Drag.t -> unit) option)]
 
 let makeValue ~loc ~isOptional prop value =
   match prop with
   | DomProps.Attribute attribute ->
       makeAttributeValue ~loc ~isOptional attribute.type_ value
   | DomProps.Event event -> makeEventValue ~loc ~isOptional event.type_ value
-
-let makeJsObj ~loc namedArgListWithKeyAndRef =
-  let labelToTuple label =
-    let l = getLabel label in
-    let id = Exp.ident ~loc { txt = Lident l; loc } in
-    let make_tuple raw =
-      match l = "key" with
-      | true ->
-          [%expr
-            [%e Exp.constant ~loc (Const.string l)],
-              inject (Js_of_ocaml.Js.string [%e raw])]
-      | false ->
-          [%expr [%e Exp.constant ~loc (Const.string l)], inject [%e raw]]
-    in
-    match isOptional label with
-    | true ->
-        [%expr Option.map (fun raw -> [%e make_tuple [%expr raw]]) [%e id]]
-    | false -> [%expr Some [%e make_tuple id]]
-  in
-  [%expr
-    obj
-      ([%e
-         Exp.array ~loc
-           (List.map
-              (fun (label, _, _, _) -> labelToTuple label)
-              namedArgListWithKeyAndRef)]
-      |> Array.to_list
-      |> List.filter_map (fun x -> x)
-      |> Array.of_list)]
 
 let makeValueBinding ~loc fnName namedArgListWithKeyAndRef
     componentImplementation =
@@ -800,16 +772,26 @@ let makePropField ~loc id (arg_label, value) =
              "HTML tag '%s' doesn't exist.\n\
               If this isn't correct, please open an issue at %s" id
              "https://github.com/ml-in-barcelona/server-reason-react/issues"
-    | Error `AttributeNotFound ->
-        let suggestion = DomProps.find_closest_name name in
-        raise
-        @@ Location.raise_errorf ~loc
-             "prop '%s' isn't valid on a '%s' element.\n\
-              Hint: Maybe you mean '%s'?\n\n\
-              If this isn't correct, please open an issue at %s. Meanwhile you \
-              could use `React.createElement`."
-             name id suggestion
-             "https://github.com/ml-in-barcelona/server-reason-react/issues"
+    | Error `AttributeNotFound -> (
+        match DomProps.find_closest_name name with
+        | None ->
+            raise
+            @@ Location.raise_errorf ~loc
+                 "prop '%s' isn't valid on a '%s' element.\n\
+                  If this isn't correct, please open an issue at %s. Meanwhile \
+                  you could use `React.createElement`."
+                 name id
+                 "https://github.com/ml-in-barcelona/server-reason-react/issues"
+        | Some suggestion ->
+            raise
+            @@ Location.raise_errorf ~loc
+                 "prop '%s' isn't valid on a '%s' element.\n\
+                  Hint: Maybe you mean '%s'?\n\n\
+                  If this isn't correct, please open an issue at %s. Meanwhile \
+                  you could use `React.createElement`."
+                 name id suggestion
+                 "https://github.com/ml-in-barcelona/server-reason-react/issues"
+        )
   in
   let jsxName = DomProps.getName prop in
   let objectKey = Exp.constant ~loc (Pconst_string (jsxName, loc, None)) in
@@ -837,12 +819,12 @@ let makePropField ~loc id (arg_label, value) =
         Option.map
           (fun v -> React.JSX.Bool ([%e objectKey], v))
           [%e objectValue]]
-  (* StringlyBool transforms boolean into string *)
-  | Attribute { type_ = DomProps.StringlyBool; _ }, false ->
+  (* BooleanishString needs to transform bool into string *)
+  | Attribute { type_ = DomProps.BooleanishString; _ }, false ->
       [%expr
         Some
           (React.JSX.String ([%e objectKey], string_of_bool [%e objectValue]))]
-  | Attribute { type_ = DomProps.StringlyBool; _ }, true ->
+  | Attribute { type_ = DomProps.BooleanishString; _ }, true ->
       [%expr
         Option.map
           (fun v -> React.JSX.String ([%e objectKey], v))
@@ -962,7 +944,8 @@ let makePropField ~loc id (arg_label, value) =
       [%expr
         Some
           (React.JSX.Event
-             ([%e constantString ~loc jsxName], React.JSX.Keyboard v))]
+             ( [%e constantString ~loc jsxName],
+               React.JSX.Keyboard [%e objectValue] ))]
   | Event { type_ = Keyboard; jsxName }, true ->
       [%expr
         Option.map (fun v ->
@@ -1013,7 +996,63 @@ let makePropField ~loc id (arg_label, value) =
             (React.JSX.Event
                ([%e constantString ~loc jsxName], React.JSX.Inline v))
               [%e objectValue])]
-  | _ -> failwith "Attribute not implemented, open an issue"
+  | Event { type_ = Image; jsxName }, false ->
+      [%expr
+        Some
+          (React.JSX.Event
+             ([%e constantString ~loc jsxName], React.JSX.Image [%e objectValue]))]
+  | Event { type_ = Image; jsxName }, true ->
+      [%expr
+        Option.map (fun v ->
+            (React.JSX.Event
+               ([%e constantString ~loc jsxName], React.JSX.Image v))
+              [%e objectValue])]
+  | Event { type_ = Animation; jsxName }, false ->
+      [%expr
+        Some
+          (React.JSX.Event
+             ( [%e constantString ~loc jsxName],
+               React.JSX.Animation [%e objectValue] ))]
+  | Event { type_ = Animation; jsxName }, true ->
+      [%expr
+        Option.map (fun v ->
+            (React.JSX.Event
+               ([%e constantString ~loc jsxName], React.JSX.Animation v))
+              [%e objectValue])]
+  | Event { type_ = Transition; jsxName }, false ->
+      [%expr
+        Some
+          (React.JSX.Event
+             ( [%e constantString ~loc jsxName],
+               React.JSX.Transition [%e objectValue] ))]
+  | Event { type_ = Transition; jsxName }, true ->
+      [%expr
+        Option.map (fun v ->
+            (React.JSX.Event
+               ([%e constantString ~loc jsxName], React.JSX.Transition v))
+              [%e objectValue])]
+  | Event { type_ = Pointer; jsxName }, false ->
+      [%expr
+        Some
+          (React.JSX.Event
+             ( [%e constantString ~loc jsxName],
+               React.JSX.Pointer [%e objectValue] ))]
+  | Event { type_ = Pointer; jsxName }, true ->
+      [%expr
+        Option.map (fun v ->
+            (React.JSX.Event
+               ([%e constantString ~loc jsxName], React.JSX.Pointer v))
+              [%e objectValue])]
+  | Event { type_ = Drag; jsxName }, false ->
+      [%expr
+        Some
+          (React.JSX.Event
+             ([%e constantString ~loc jsxName], React.JSX.Drag [%e objectValue]))]
+  | Event { type_ = Drag; jsxName }, true ->
+      [%expr
+        Option.map (fun v ->
+            (React.JSX.Event ([%e constantString ~loc jsxName], React.JSX.Drag v))
+              [%e objectValue])]
 
 let jsxMapper () =
   let transformUppercaseCall modulePath mapper loc attrs _ callArguments =
@@ -1115,67 +1154,22 @@ let jsxMapper () =
     match structure with
     (* external *)
     | {
-        pstr_loc;
+        pstr_loc = loc;
         pstr_desc =
           Pstr_primitive
             ({ pval_name = { txt = fnName }; pval_attributes; pval_type } as
-             value_description);
-      } as pstr -> (
+             _value_description);
+      } as _pstr -> (
         match List.filter hasAttr pval_attributes with
         | [] -> structure :: returnStructures
-        | [ _ ] ->
-            let rec getPropTypes types ({ ptyp_loc; ptyp_desc } as fullType) =
-              match ptyp_desc with
-              | Ptyp_arrow (name, type_, ({ ptyp_desc = Ptyp_arrow _ } as rest))
-                when isLabelled name || isOptional name ->
-                  getPropTypes ((name, ptyp_loc, type_) :: types) rest
-              | Ptyp_arrow (Nolabel, _type, rest) -> getPropTypes types rest
-              | Ptyp_arrow (name, type_, returnValue)
-                when isLabelled name || isOptional name ->
-                  (returnValue, (name, returnValue.ptyp_loc, type_) :: types)
-              | _ -> (fullType, types)
-            in
-            let innerType, propTypes = getPropTypes [] pval_type in
-            let namedTypeList = List.fold_left argToConcreteType [] propTypes in
-            let pluckLabelAndLoc (label, loc, type_) =
-              (label, None (* default *), loc, Some type_)
-            in
-            let retPropsType = makePropsType ~loc:pstr_loc namedTypeList in
-            let loc = pstr_loc in
-            let externalPropsDecl =
-              makeStructure ~loc:pstr_loc fnName
-                ((Optional "key", None, pstr_loc, Some (keyType pstr_loc))
-                :: List.map pluckLabelAndLoc propTypes)
-                [%expr "TODO: externals"]
-            in
-            (* can't be an arrow because it will defensively uncurry *)
-            let newExternalType =
-              Ptyp_constr
-                ( {
-                    loc = pstr_loc;
-                    txt = Ldot (Lident "React", "componentLike");
-                  },
-                  [ retPropsType; innerType ] )
-            in
-            let newStructure =
-              {
-                pstr with
-                pstr_desc =
-                  Pstr_primitive
-                    {
-                      value_description with
-                      pval_type = { pval_type with ptyp_desc = newExternalType };
-                      pval_attributes =
-                        List.filter otherAttrsPure pval_attributes;
-                    };
-              }
-            in
-            externalPropsDecl :: newStructure :: returnStructures
         | _ ->
-            raise
-              (Invalid_argument
-                 "Only one react.component call can exist on a component at \
-                  one time"))
+            [%str
+              [%ocaml.error
+                "externals aren't supported on server-reason-react. externals \
+                 are used to bind to React components defined in JavaScript, \
+                 in the server, that doesn't make sense. If you need to render \
+                 this on the server, implement a placeholder or an empty \
+                 element"]] @ returnStructures)
     (* let component = ... *)
     | { pstr_loc; pstr_desc = Pstr_value (rec_flag, value_bindings) } ->
         let bindings =
@@ -1184,9 +1178,6 @@ let jsxMapper () =
         [ { pstr_loc; pstr_desc = Pstr_value (rec_flag, bindings) } ]
         @ returnStructures
     | structure -> structure :: returnStructures
-  in
-  let reactComponentTransform mapper structures =
-    List.fold_right (transformComponentDefinition mapper) structures []
   in
   let transformComponentSignature _mapper signature returnSignatures =
     match signature with
@@ -1200,38 +1191,6 @@ let jsxMapper () =
         match List.filter hasAttr pval_attributes with
         | [] -> signature :: returnSignatures
         | [ _ ] ->
-            let rec getPropTypes types ({ ptyp_loc; ptyp_desc } as fullType) =
-              match ptyp_desc with
-              | Ptyp_arrow (name, type_, ({ ptyp_desc = Ptyp_arrow _ } as rest))
-                when isOptional name || isLabelled name ->
-                  getPropTypes ((name, ptyp_loc, type_) :: types) rest
-              | Ptyp_arrow (Nolabel, _type, rest) -> getPropTypes types rest
-              | Ptyp_arrow (name, type_, returnValue)
-                when isOptional name || isLabelled name ->
-                  (returnValue, (name, returnValue.ptyp_loc, type_) :: types)
-              | _ -> (fullType, types)
-            in
-            let innerType, propTypes = getPropTypes [] pval_type in
-            let namedTypeList = List.fold_left argToConcreteType [] propTypes in
-            let pluckLabelAndLoc (label, loc, type_) =
-              (label, None, loc, Some type_)
-            in
-            let retPropsType = makePropsType ~loc:psig_loc namedTypeList in
-            let externalPropsDecl =
-              makePropsExternalSig fnName psig_loc
-                ((optional "key", None, psig_loc, Some (keyType psig_loc))
-                :: List.map pluckLabelAndLoc propTypes)
-                retPropsType
-            in
-            (* can't be an arrow because it will defensively uncurry *)
-            let newExternalType =
-              Ptyp_constr
-                ( {
-                    loc = psig_loc;
-                    txt = Ldot (Lident "React", "componentLike");
-                  },
-                  [ retPropsType; innerType ] )
-            in
             let newStructure =
               {
                 psig with
@@ -1239,22 +1198,19 @@ let jsxMapper () =
                   Psig_value
                     {
                       psig_desc with
-                      pval_type = { pval_type with ptyp_desc = newExternalType };
+                      pval_type;
                       pval_attributes =
                         List.filter otherAttrsPure pval_attributes;
                     };
               }
             in
-            externalPropsDecl :: newStructure :: returnSignatures
+            newStructure :: returnSignatures
         | _ ->
             raise
               (Invalid_argument
                  "Only one react.component call can exist on a component at \
                   one time"))
     | signature -> signature :: returnSignatures
-  in
-  let reactComponentSignatureTransform mapper signatures =
-    List.fold_right (transformComponentSignature mapper) signatures []
   in
   let transformJsxCall mapper callExpression callArguments attrs applyLoc =
     match callExpression.pexp_desc with
@@ -1297,12 +1253,12 @@ let jsxMapper () =
     inherit Ast_traverse.map as super
 
     method! signature signature =
-      super#signature @@ reactComponentSignatureTransform mapper signature
+      super#signature
+      @@ List.fold_right (transformComponentSignature mapper) signature []
 
     method! structure structure =
-      match structure with
-      | structures ->
-          super#structure @@ reactComponentTransform mapper structures
+      super#structure
+      @@ List.fold_right (transformComponentDefinition mapper) structure []
 
     method! expression expression =
       match expression with

@@ -19,25 +19,501 @@ val createRef : unit -> 'a option ref
 val useRef : 'a -> 'a ref
 val forwardRef : (unit -> 'a) -> 'a
 
+module Event : sig
+  type 'a synthetic
+
+  module MakeEventWithType : functor
+    (Type : sig
+       type t
+     end)
+    -> sig
+    val bubbles : Type.t -> bool
+    val cancelable : Type.t -> bool
+    val currentTarget : Type.t -> < >
+    val defaultPrevented : Type.t -> bool
+    val eventPhase : Type.t -> int
+    val isTrusted : Type.t -> bool
+    val nativeEvent : Type.t -> < >
+    val preventDefault : Type.t -> unit
+    val isDefaultPrevented : Type.t -> bool
+    val stopPropagation : Type.t -> unit
+    val isPropagationStopped : Type.t -> bool
+    val target : Type.t -> < >
+    val timeStamp : Type.t -> float
+    val type_ : Type.t -> string
+    val persist : Type.t -> unit
+  end
+
+  module Synthetic : sig
+    type tag
+    type t = tag synthetic
+
+    val bubbles : 'a synthetic -> bool
+    val cancelable : 'a synthetic -> bool
+    val currentTarget : 'a synthetic -> < >
+    val defaultPrevented : 'a synthetic -> bool
+    val eventPhase : 'a synthetic -> int
+    val isTrusted : 'a synthetic -> bool
+    val nativeEvent : 'a synthetic -> < >
+    val preventDefault : 'a synthetic -> unit
+    val isDefaultPrevented : 'a synthetic -> bool
+    val stopPropagation : 'a synthetic -> unit
+    val isPropagationStopped : 'a synthetic -> bool
+    val target : 'a synthetic -> < >
+    val timeStamp : 'a synthetic -> float
+    val type_ : 'a synthetic -> string
+    val persist : 'a synthetic -> unit
+  end
+
+  module Clipboard : sig
+    type tag
+    type t = tag synthetic
+
+    val bubbles : t -> bool
+    val cancelable : t -> bool
+    val currentTarget : t -> < >
+    val defaultPrevented : t -> bool
+    val eventPhase : t -> int
+    val isTrusted : t -> bool
+    val nativeEvent : t -> < >
+    val preventDefault : t -> unit
+    val isDefaultPrevented : t -> bool
+    val stopPropagation : t -> unit
+    val isPropagationStopped : t -> bool
+    val target : t -> < >
+    val timeStamp : t -> float
+    val type_ : t -> string
+    val persist : t -> unit
+    val clipboardData : t -> < >
+  end
+
+  module Composition : sig
+    type tag
+    type t = tag synthetic
+
+    val bubbles : t -> bool
+    val cancelable : t -> bool
+    val currentTarget : t -> < >
+    val defaultPrevented : t -> bool
+    val eventPhase : t -> int
+    val isTrusted : t -> bool
+    val nativeEvent : t -> < >
+    val preventDefault : t -> unit
+    val isDefaultPrevented : t -> bool
+    val stopPropagation : t -> unit
+    val isPropagationStopped : t -> bool
+    val target : t -> < >
+    val timeStamp : t -> float
+    val type_ : t -> string
+    val persist : t -> unit
+    val data : t -> string
+  end
+
+  module Keyboard : sig
+    type tag
+    type t = tag synthetic
+
+    val bubbles : t -> bool
+    val cancelable : t -> bool
+    val currentTarget : t -> < >
+    val defaultPrevented : t -> bool
+    val eventPhase : t -> int
+    val isTrusted : t -> bool
+    val nativeEvent : t -> < >
+    val preventDefault : t -> unit
+    val isDefaultPrevented : t -> bool
+    val stopPropagation : t -> unit
+    val isPropagationStopped : t -> bool
+    val target : t -> < >
+    val timeStamp : t -> float
+    val type_ : t -> string
+    val persist : t -> unit
+    val altKey : t -> bool
+    val charCode : t -> int
+    val ctrlKey : t -> bool
+    val getModifierState : t -> string -> bool
+    val key : t -> string
+    val keyCode : t -> int
+    val locale : t -> string
+    val location : t -> int
+    val metaKey : t -> bool
+    val repeat : t -> bool
+    val shiftKey : t -> bool
+    val which : t -> int
+  end
+
+  module Focus : sig
+    type tag
+    type t = tag synthetic
+
+    val bubbles : t -> bool
+    val cancelable : t -> bool
+    val currentTarget : t -> < >
+    val defaultPrevented : t -> bool
+    val eventPhase : t -> int
+    val isTrusted : t -> bool
+    val nativeEvent : t -> < >
+    val preventDefault : t -> unit
+    val isDefaultPrevented : t -> bool
+    val stopPropagation : t -> unit
+    val isPropagationStopped : t -> bool
+    val target : t -> < >
+    val timeStamp : t -> float
+    val type_ : t -> string
+    val persist : t -> unit
+    val relatedTarget : t -> < .. > option
+  end
+
+  module Form : sig
+    type tag
+    type t = tag synthetic
+
+    val bubbles : t -> bool
+    val cancelable : t -> bool
+    val currentTarget : t -> < >
+    val defaultPrevented : t -> bool
+    val eventPhase : t -> int
+    val isTrusted : t -> bool
+    val nativeEvent : t -> < >
+    val preventDefault : t -> unit
+    val isDefaultPrevented : t -> bool
+    val stopPropagation : t -> unit
+    val isPropagationStopped : t -> bool
+    val target : t -> < >
+    val timeStamp : t -> float
+    val type_ : t -> string
+    val persist : t -> unit
+  end
+
+  module Mouse : sig
+    type tag
+    type t = tag synthetic
+
+    val bubbles : t -> bool
+    val cancelable : t -> bool
+    val currentTarget : t -> < >
+    val defaultPrevented : t -> bool
+    val eventPhase : t -> int
+    val isTrusted : t -> bool
+    val nativeEvent : t -> < >
+    val preventDefault : t -> unit
+    val isDefaultPrevented : t -> bool
+    val stopPropagation : t -> unit
+    val isPropagationStopped : t -> bool
+    val target : t -> < >
+    val timeStamp : t -> float
+    val type_ : t -> string
+    val persist : t -> unit
+    val altKey : t -> bool
+    val button : t -> int
+    val buttons : t -> int
+    val clientX : t -> int
+    val clientY : t -> int
+    val ctrlKey : t -> bool
+    val getModifierState : t -> string -> bool
+    val metaKey : t -> bool
+    val movementX : t -> int
+    val movementY : t -> int
+    val pageX : t -> int
+    val pageY : t -> int
+    val relatedTarget : t -> < .. > option
+    val screenX : t -> int
+    val screenY : t -> int
+    val shiftKey : t -> bool
+  end
+
+  module Pointer : sig
+    type tag
+    type t = tag synthetic
+
+    val bubbles : t -> bool
+    val cancelable : t -> bool
+    val currentTarget : t -> < >
+    val defaultPrevented : t -> bool
+    val eventPhase : t -> int
+    val isTrusted : t -> bool
+    val nativeEvent : t -> < >
+    val preventDefault : t -> unit
+    val isDefaultPrevented : t -> bool
+    val stopPropagation : t -> unit
+    val isPropagationStopped : t -> bool
+    val target : t -> < >
+    val timeStamp : t -> float
+    val type_ : t -> string
+    val persist : t -> unit
+    val detail : t -> int
+    val screenX : t -> int
+    val screenY : t -> int
+    val clientX : t -> int
+    val clientY : t -> int
+    val pageX : t -> int
+    val pageY : t -> int
+    val movementX : t -> int
+    val movementY : t -> int
+    val ctrlKey : t -> bool
+    val shiftKey : t -> bool
+    val altKey : t -> bool
+    val metaKey : t -> bool
+    val getModifierState : t -> string -> bool
+    val button : t -> int
+    val buttons : t -> int
+    val relatedTarget : t -> < .. > option
+    val width : t -> float
+    val height : t -> float
+    val pressure : t -> float
+    val tangentialPressure : t -> float
+    val tiltX : t -> int
+    val tiltY : t -> int
+    val twist : t -> int
+    val pointerType : t -> string
+    val isPrimary : t -> bool
+  end
+
+  module Selection : sig
+    type tag
+    type t = tag synthetic
+
+    val bubbles : t -> bool
+    val cancelable : t -> bool
+    val currentTarget : t -> < >
+    val defaultPrevented : t -> bool
+    val eventPhase : t -> int
+    val isTrusted : t -> bool
+    val nativeEvent : t -> < >
+    val preventDefault : t -> unit
+    val isDefaultPrevented : t -> bool
+    val stopPropagation : t -> unit
+    val isPropagationStopped : t -> bool
+    val target : t -> < >
+    val timeStamp : t -> float
+    val type_ : t -> string
+    val persist : t -> unit
+  end
+
+  module Touch : sig
+    type tag
+    type t = tag synthetic
+
+    val bubbles : t -> bool
+    val cancelable : t -> bool
+    val currentTarget : t -> < >
+    val defaultPrevented : t -> bool
+    val eventPhase : t -> int
+    val isTrusted : t -> bool
+    val nativeEvent : t -> < >
+    val preventDefault : t -> unit
+    val isDefaultPrevented : t -> bool
+    val stopPropagation : t -> unit
+    val isPropagationStopped : t -> bool
+    val target : t -> < >
+    val timeStamp : t -> float
+    val type_ : t -> string
+    val persist : t -> unit
+    val altKey : t -> bool
+    val changedTouches : t -> < >
+    val ctrlKey : t -> bool
+    val getModifierState : t -> string -> bool
+    val metaKey : t -> bool
+    val shiftKey : t -> bool
+    val targetTouches : t -> < >
+    val touches : t -> < >
+  end
+
+  module UI : sig
+    type tag
+    type t = tag synthetic
+
+    val bubbles : t -> bool
+    val cancelable : t -> bool
+    val currentTarget : t -> < >
+    val defaultPrevented : t -> bool
+    val eventPhase : t -> int
+    val isTrusted : t -> bool
+    val nativeEvent : t -> < >
+    val preventDefault : t -> unit
+    val isDefaultPrevented : t -> bool
+    val stopPropagation : t -> unit
+    val isPropagationStopped : t -> bool
+    val target : t -> < >
+    val timeStamp : t -> float
+    val type_ : t -> string
+    val persist : t -> unit
+    val detail : t -> int
+  end
+
+  module Wheel : sig
+    type tag
+    type t = tag synthetic
+
+    val bubbles : t -> bool
+    val cancelable : t -> bool
+    val currentTarget : t -> < >
+    val defaultPrevented : t -> bool
+    val eventPhase : t -> int
+    val isTrusted : t -> bool
+    val nativeEvent : t -> < >
+    val preventDefault : t -> unit
+    val isDefaultPrevented : t -> bool
+    val stopPropagation : t -> unit
+    val isPropagationStopped : t -> bool
+    val target : t -> < >
+    val timeStamp : t -> float
+    val type_ : t -> string
+    val persist : t -> unit
+    val deltaMode : t -> int
+    val deltaX : t -> float
+    val deltaY : t -> float
+    val deltaZ : t -> float
+  end
+
+  module Media : sig
+    type tag
+    type t = tag synthetic
+
+    val bubbles : t -> bool
+    val cancelable : t -> bool
+    val currentTarget : t -> < >
+    val defaultPrevented : t -> bool
+    val eventPhase : t -> int
+    val isTrusted : t -> bool
+    val nativeEvent : t -> < >
+    val preventDefault : t -> unit
+    val isDefaultPrevented : t -> bool
+    val stopPropagation : t -> unit
+    val isPropagationStopped : t -> bool
+    val target : t -> < >
+    val timeStamp : t -> float
+    val type_ : t -> string
+    val persist : t -> unit
+  end
+
+  module Image : sig
+    type tag
+    type t = tag synthetic
+
+    val bubbles : t -> bool
+    val cancelable : t -> bool
+    val currentTarget : t -> < >
+    val defaultPrevented : t -> bool
+    val eventPhase : t -> int
+    val isTrusted : t -> bool
+    val nativeEvent : t -> < >
+    val preventDefault : t -> unit
+    val isDefaultPrevented : t -> bool
+    val stopPropagation : t -> unit
+    val isPropagationStopped : t -> bool
+    val target : t -> < >
+    val timeStamp : t -> float
+    val type_ : t -> string
+    val persist : t -> unit
+  end
+
+  module Animation : sig
+    type tag
+    type t = tag synthetic
+
+    val bubbles : t -> bool
+    val cancelable : t -> bool
+    val currentTarget : t -> < >
+    val defaultPrevented : t -> bool
+    val eventPhase : t -> int
+    val isTrusted : t -> bool
+    val nativeEvent : t -> < >
+    val preventDefault : t -> unit
+    val isDefaultPrevented : t -> bool
+    val stopPropagation : t -> unit
+    val isPropagationStopped : t -> bool
+    val target : t -> < >
+    val timeStamp : t -> float
+    val type_ : t -> string
+    val persist : t -> unit
+    val animationName : t -> string
+    val pseudoElement : t -> string
+    val elapsedTime : t -> float
+  end
+
+  module Transition : sig
+    type tag
+    type t = tag synthetic
+
+    val bubbles : t -> bool
+    val cancelable : t -> bool
+    val currentTarget : t -> < >
+    val defaultPrevented : t -> bool
+    val eventPhase : t -> int
+    val isTrusted : t -> bool
+    val nativeEvent : t -> < >
+    val preventDefault : t -> unit
+    val isDefaultPrevented : t -> bool
+    val stopPropagation : t -> unit
+    val isPropagationStopped : t -> bool
+    val target : t -> < >
+    val timeStamp : t -> float
+    val type_ : t -> string
+    val persist : t -> unit
+    val propertyName : t -> string
+    val pseudoElement : t -> string
+    val elapsedTime : t -> float
+  end
+
+  module Drag : sig
+    type tag
+    type t = tag synthetic
+
+    val bubbles : t -> bool
+    val cancelable : t -> bool
+    val currentTarget : t -> < >
+    val defaultPrevented : t -> bool
+    val eventPhase : t -> int
+    val isTrusted : t -> bool
+    val nativeEvent : t -> < >
+    val preventDefault : t -> unit
+    val isDefaultPrevented : t -> bool
+    val stopPropagation : t -> unit
+    val isPropagationStopped : t -> bool
+    val target : t -> < >
+    val timeStamp : t -> float
+    val type_ : t -> string
+    val persist : t -> unit
+    val altKey : t -> bool
+    val button : t -> int
+    val buttons : t -> int
+    val clientX : t -> int
+    val clientY : t -> int
+    val ctrlKey : t -> bool
+    val getModifierState : t -> string -> bool
+    val metaKey : t -> bool
+    val movementX : t -> int
+    val movementY : t -> int
+    val pageX : t -> int
+    val pageY : t -> int
+    val relatedTarget : t -> < .. > option
+    val screenX : t -> int
+    val screenY : t -> int
+    val shiftKey : t -> bool
+    val dataTransfer : t -> < .. > option
+  end
+end
+
 (** All of those types are used by the server-reason-react.ppx internally to represent valid React code from the server. It currently different from reason-react-ppx due to a need for knowing the types since ReactDOM needs to render differently depending on the type. *)
 module JSX : sig
   (** All event callbacks *)
   type event =
-    | Drag of (ReactEvent.Drag.t -> unit)
-    | Mouse of (ReactEvent.Mouse.t -> unit)
-    | Selection of (ReactEvent.Selection.t -> unit)
-    | Touch of (ReactEvent.Touch.t -> unit)
-    | UI of (ReactEvent.UI.t -> unit)
-    | Wheel of (ReactEvent.Wheel.t -> unit)
-    | Clipboard of (ReactEvent.Clipboard.t -> unit)
-    | Composition of (ReactEvent.Composition.t -> unit)
-    | Transition of (ReactEvent.Transition.t -> unit)
-    | Animation of (ReactEvent.Animation.t -> unit)
-    | Pointer of (ReactEvent.Pointer.t -> unit)
-    | Keyboard of (ReactEvent.Keyboard.t -> unit)
-    | Focus of (ReactEvent.Focus.t -> unit)
-    | Form of (ReactEvent.Form.t -> unit)
-    | Media of (ReactEvent.Media.t -> unit)
+    | Drag of (Event.Drag.t -> unit)
+    | Mouse of (Event.Mouse.t -> unit)
+    | Selection of (Event.Selection.t -> unit)
+    | Touch of (Event.Touch.t -> unit)
+    | UI of (Event.UI.t -> unit)
+    | Wheel of (Event.Wheel.t -> unit)
+    | Clipboard of (Event.Clipboard.t -> unit)
+    | Composition of (Event.Composition.t -> unit)
+    | Transition of (Event.Transition.t -> unit)
+    | Animation of (Event.Animation.t -> unit)
+    | Pointer of (Event.Pointer.t -> unit)
+    | Keyboard of (Event.Keyboard.t -> unit)
+    | Focus of (Event.Focus.t -> unit)
+    | Form of (Event.Form.t -> unit)
+    | Media of (Event.Media.t -> unit)
     | Inline of string
 
   (** JSX.prop is the representation of HTML/SVG attributes and DOM events *)
@@ -61,21 +537,21 @@ module JSX : sig
   val event : string -> event -> prop
 
   module Event : sig
-    val drag : string -> (ReactEvent.Drag.t -> unit) -> prop
-    val mouse : string -> (ReactEvent.Mouse.t -> unit) -> prop
-    val selection : string -> (ReactEvent.Selection.t -> unit) -> prop
-    val touch : string -> (ReactEvent.Touch.t -> unit) -> prop
-    val ui : string -> (ReactEvent.UI.t -> unit) -> prop
-    val wheel : string -> (ReactEvent.Wheel.t -> unit) -> prop
-    val clipboard : string -> (ReactEvent.Clipboard.t -> unit) -> prop
-    val composition : string -> (ReactEvent.Composition.t -> unit) -> prop
-    val transition : string -> (ReactEvent.Transition.t -> unit) -> prop
-    val animation : string -> (ReactEvent.Animation.t -> unit) -> prop
-    val pointer : string -> (ReactEvent.Pointer.t -> unit) -> prop
-    val keyboard : string -> (ReactEvent.Keyboard.t -> unit) -> prop
-    val focus : string -> (ReactEvent.Focus.t -> unit) -> prop
-    val form : string -> (ReactEvent.Form.t -> unit) -> prop
-    val media : string -> (ReactEvent.Media.t -> unit) -> prop
+    val drag : string -> (Event.Drag.t -> unit) -> prop
+    val mouse : string -> (Event.Mouse.t -> unit) -> prop
+    val selection : string -> (Event.Selection.t -> unit) -> prop
+    val touch : string -> (Event.Touch.t -> unit) -> prop
+    val ui : string -> (Event.UI.t -> unit) -> prop
+    val wheel : string -> (Event.Wheel.t -> unit) -> prop
+    val clipboard : string -> (Event.Clipboard.t -> unit) -> prop
+    val composition : string -> (Event.Composition.t -> unit) -> prop
+    val transition : string -> (Event.Transition.t -> unit) -> prop
+    val animation : string -> (Event.Animation.t -> unit) -> prop
+    val pointer : string -> (Event.Pointer.t -> unit) -> prop
+    val keyboard : string -> (Event.Keyboard.t -> unit) -> prop
+    val focus : string -> (Event.Focus.t -> unit) -> prop
+    val form : string -> (Event.Form.t -> unit) -> prop
+    val media : string -> (Event.Media.t -> unit) -> prop
   end
 end
 
@@ -138,10 +614,10 @@ type any_promise = Any_promise : 'a Lwt.t -> any_promise
 exception Suspend of any_promise
 
 (* val memo : ('props * 'props -> bool) -> 'a -> 'props * 'props -> bool *)
-val use : 'a Lwt.t -> 'a
 val useContext : 'a Context.t -> 'a
 val useState : (unit -> 'state) -> 'state * (('state -> 'state) -> unit)
 val useMemo : (unit -> 'a) -> 'a
+val useMemo0 : (unit -> 'a) -> 'a
 val useMemo1 : (unit -> 'a) -> 'b -> 'a
 val useMemo2 : (unit -> 'a) -> 'b -> 'a
 val useMemo3 : (unit -> 'a) -> 'b -> 'a
@@ -149,15 +625,23 @@ val useMemo4 : (unit -> 'a) -> 'b -> 'a
 val useMemo5 : (unit -> 'a) -> 'b -> 'a
 val useMemo6 : (unit -> 'a) -> 'b -> 'a
 val useCallback : 'a -> 'a
+val useCallback0 : 'a -> 'a
 val useCallback1 : 'a -> 'b -> 'a
 val useCallback2 : 'a -> 'b -> 'a
 val useCallback3 : 'a -> 'b -> 'a
 val useCallback4 : 'a -> 'b -> 'a
 val useCallback5 : 'a -> 'b -> 'a
 val useCallback6 : 'a -> 'b -> 'a
+val useId : unit -> string
 
 val useReducer :
   ('state -> 'action -> 'state) -> 'state -> 'state * ('action -> unit)
+
+val useReducerWithMapState :
+  ('state -> 'action -> 'initialState) ->
+  'initialState ->
+  ('initialState -> 'state) ->
+  'state * ('action -> unit)
 
 val useEffect0 : (unit -> (unit -> unit) option) -> unit
 val useEffect1 : (unit -> (unit -> unit) option) -> 'dependency array -> unit
@@ -237,3 +721,11 @@ module Children : sig
   val only : element array -> element
   val toArray : element -> element array
 end
+
+module Experimental : sig
+  val use : 'a Lwt.t -> 'a
+end
+
+val useTransition : unit -> bool * ((unit -> unit) -> unit)
+val useDebugValue : 'value -> ?format:('value -> string) -> unit
+val useDeferredValue : 'value -> 'value

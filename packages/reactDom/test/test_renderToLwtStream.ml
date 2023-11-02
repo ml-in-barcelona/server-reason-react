@@ -40,7 +40,7 @@ let react_use_without_suspense _switch () =
   let app =
     React.Upper_case_component
       (fun () ->
-        let () = React.use (Sleep.delay delay) in
+        let () = React.Experimental.use (Sleep.delay delay) in
         React.createElement "div" [||]
           [
             React.createElement "span" [||]
@@ -80,7 +80,7 @@ let react_use_with_suspense _switch () =
   let time =
     React.Upper_case_component
       (fun () ->
-        let () = React.use (Sleep.delay delay) in
+        let () = React.Experimental.use (Sleep.delay delay) in
         React.createElement "div" [||]
           [
             React.createElement "span" [||]

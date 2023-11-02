@@ -30,29 +30,24 @@ server-reason-react provides {!React} and {!ReactDOM} modules with the same inte
 Add [server-reason-react.ppx] to your pps list in your dune files
 {[ (preprocess (pps server-reason-react.ppx)) ]}
 
-{2:universal Make sure your code is universal}
+{1:universal Make sure your code is universal}
 
-One big challenge of sharing code between client and server is that the server and the client platforms hav different API environments. You can't use browser's API on the server, and you can't use FileSystem API on the client (to give an example).
+One big challenge of sharing code between client and server is that the server and the client platforms have different APIs available. You can't use browser's APIs on the server, such as [document.querySelectorAll] and you can't use server related APIs on the client such as any filsystem operation.
 
-In this aspect server-reason-react SSR is not much different than Node.js. Node.js doesn't provide a window/document/etc and leaves the user to manually check for them on each usage. In our case, we don't want to run those in the server-context, but we want to compile them (!)
-
- So, we want to prevent browser's API calls, Js.* to be called on the server.
+In this aspect server-reason-react SSR is not much different than Node.js. Node.js doesn't provide a window/document/etc and leaves the user to manually check for them on each usage. In our case, we don't provide any implementation for the browser APIs but we want the code to compile.
 
 There're a few utilities that will be handy to make your frontend code work in native.
-server-reason-react comes with re-implementations for such as {!Belt}, {!Js}, [Promise], and [Webapi] to make it easier to write universal code and don't worry about the platform.
 
-All of them are implementations of the same APIs as their originals. [Belt] is feature complete while the rest are still alpha, some missing APIs and incorrect functionality.
+[server-reason-react] comes with a few modules that are compatible with both server and client, to make it easier to write universal code and don't worry about the platform.
 
-Visit each API page for more information:
-
-- {!Belt} server-reason-react.belt
-- {!Js} server-reason-react.js
-- server-reason-react.promise (vendored https://github.com/aantron/promise and make it compatible)
-- server-reason-react.webapi (vendored https://github.com/melange-community/melange-webapi and stripped down to the bare minimum)
+- {!Belt} is an implementation of Belt that would work on both server and client. [server-reason-react.belt]
+- {!Js} is an half-implementation of the Js module from melange.js, and many parts aren't implemented and some other parts aren't possible to implement on the server (Unstable, can raise "NOT IMPLEMENTED"). [server-reason-react.js]
+- {!Webapi} is a stripped down version of [melange-webapi] that will crash at runtime if you call those APIs on the server. [server-reason-react.webapi]
+- [Promise] is a vendored version of [aantron/promise] that will work on both server and client. [server-reason-react.promise]
 
 {2:browser_ppx Exclude client code from the native build}
 
-Sometimes shared code will have some parts that are meant to be executed only on the client. For example, if you're using [Webapi] to query the DOM, you don't want to run that on the server.
+Even when Belt, Js, and other modules might be universal, sometimes you want to discard some code from native, and only execute it on the client. For example, if you're using [Webapi] to query the DOM, you only want to run that on the client.
 
 Thanks to [browser_ppx], we can easily discard what's meant to be running on the client and avoid the execution on the server:
 
@@ -89,11 +84,22 @@ let main = id =>
 
 {2:ppx Externals and melange.ppx attributes}
 
-Since `melange.ppx` is not compatible with native, we provide `server-reason-react.melange.ppx` instead, to allow the ma It enables a few features:
+Since {melange.ppx} is not compatible with native, we provide [server-reason-react.melange.ppx] instead.
+ It allows to have the same features as [melange.ppx], so all externals, mel attributes and other features are supported.
 
-- Enables pipe_first {->}
-- Supports all {mel.} attributes
-- Supports RegExp {%re "/regex/"}
-- Supports Object access {##}
+{3: Supports all {mel.} attributes}
+mel.* attributes are stripped out of the native build, and transformed into raising functions to raise at server runtime.
+{3: Enables pipe_first [->]}
+
+it's a syntax sugar for pipe_last [||>], but it's not supported by default in native. [server-reason-react.melange.ppx] enables it and works perfectly fine in native.
+
+{3: Supports RegExp [%re "/regex/"]}
+
+Transforms [%re ...] into Js.Re.t from [server-reason-react.js] and works perfectly fine in native (There might be some features missing in the implementation, such as backtracking or grouping.)
+{3: Debugger [%debugger]}
+It removes the debugger in native. It's a noop on the server context, and it's pretty uncommon to use it on shared code.
+
+{4: Supports Object access [##]}
+Unstable. It's not supported by default in native, since ## operates on JavaScript Objects, and the interface of that isn't polished.
 
 {[ (preprocess (pps server-reason-react.melange.ppx)) ]}

@@ -2,7 +2,7 @@ type attributeType =
   | String
   | Int
   | Bool
-  | StringlyBool
+  | BooleanishString
   | Style
   | Ref
   | InnerHtml
@@ -36,4 +36,4 @@ val getJSXName : prop -> string
 val getName : prop -> string
 val findByName : string -> string -> (prop, errors) result
 val isReactValidProp : string -> bool
-val find_closest_name : string -> string
+val find_closest_name : string -> string option

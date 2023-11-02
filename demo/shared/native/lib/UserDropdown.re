@@ -152,7 +152,7 @@
            onClick->Option.mapWithDefault(
              (),
              onClick => {
-               e->ReactEvent.Mouse.preventDefault;
+               e->React.Event.Mouse.preventDefault;
                onClick();
              },
            );

@@ -20,23 +20,325 @@ let createRef () = { current = None }
 let useRef value = { current = value }
 let forwardRef f = f ()
 
+module Event = struct
+  type 'a synthetic
+
+  module MakeEventWithType (Type : sig
+    type t
+  end) =
+  struct
+    let bubbles : Type.t -> bool = fun _ -> false
+    let cancelable : Type.t -> bool = fun _ -> false
+    let currentTarget : Type.t -> < .. > Js.t = fun _ -> object end
+    let defaultPrevented : Type.t -> bool = fun _ -> false
+    let eventPhase : Type.t -> int = fun _ -> 0
+    let isTrusted : Type.t -> bool = fun _ -> false
+    let nativeEvent : Type.t -> < .. > Js.t = fun _ -> object end
+    let preventDefault : Type.t -> unit = fun _ -> ()
+    let isDefaultPrevented : Type.t -> bool = fun _ -> false
+    let stopPropagation : Type.t -> unit = fun _ -> ()
+    let isPropagationStopped : Type.t -> bool = fun _ -> false
+    let target : Type.t -> < .. > Js.t = fun _ -> object end
+    let timeStamp : Type.t -> float = fun _ -> 0.
+    let type_ : Type.t -> string = fun _ -> ""
+    let persist : Type.t -> unit = fun _ -> ()
+  end
+
+  module Synthetic = struct
+    type tag
+    type t = tag synthetic
+
+    let bubbles : 'a synthetic -> bool = fun _ -> false
+    let cancelable : 'a synthetic -> bool = fun _ -> false
+    let currentTarget : 'a synthetic -> < .. > Js.t = fun _ -> object end
+    let defaultPrevented : 'a synthetic -> bool = fun _ -> false
+    let eventPhase : 'a synthetic -> int = fun _ -> 0
+    let isTrusted : 'a synthetic -> bool = fun _ -> false
+    let nativeEvent : 'a synthetic -> < .. > Js.t = fun _ -> object end
+    let preventDefault : 'a synthetic -> unit = fun _ -> ()
+    let isDefaultPrevented : 'a synthetic -> bool = fun _ -> false
+    let stopPropagation : 'a synthetic -> unit = fun _ -> ()
+    let isPropagationStopped : 'a synthetic -> bool = fun _ -> false
+    let target : 'a synthetic -> < .. > Js.t = fun _ -> object end
+    let timeStamp : 'a synthetic -> float = fun _ -> 0.
+    let type_ : 'a synthetic -> string = fun _ -> ""
+    let persist : 'a synthetic -> unit = fun _ -> ()
+  end
+
+  (* let toSyntheticEvent : 'a synthetic -> Synthetic.t = i -> i *)
+
+  module Clipboard = struct
+    type tag
+    type t = tag synthetic
+
+    include MakeEventWithType (struct
+      type nonrec t = t [@@nonrec]
+    end)
+
+    let clipboardData : t -> < .. > Js.t = fun _ -> object end
+  end
+
+  module Composition = struct
+    type tag
+    type t = tag synthetic
+
+    include MakeEventWithType (struct
+      type nonrec t = t [@@nonrec]
+    end)
+
+    let data : t -> string = fun _ -> ""
+  end
+
+  module Keyboard = struct
+    type tag
+    type t = tag synthetic
+
+    include MakeEventWithType (struct
+      type nonrec t = t [@@nonrec]
+    end)
+
+    let altKey : t -> bool = fun _ -> false
+    let charCode : t -> int = fun _ -> 0
+    let ctrlKey : t -> bool = fun _ -> false
+    let getModifierState : t -> string -> bool = fun _ _ -> false
+    let key : t -> string = fun _ -> ""
+    let keyCode : t -> int = fun _ -> 0
+    let locale : t -> string = fun _ -> ""
+    let location : t -> int = fun _ -> 0
+    let metaKey : t -> bool = fun _ -> false
+    let repeat : t -> bool = fun _ -> false
+    let shiftKey : t -> bool = fun _ -> false
+    let which : t -> int = fun _ -> 0
+  end
+
+  module Focus = struct
+    type tag
+    type t = tag synthetic
+
+    include MakeEventWithType (struct
+      type nonrec t = t [@@nonrec]
+    end)
+
+    let relatedTarget : t -> < .. > Js.t option = fun _ -> None
+  end
+
+  module Form = struct
+    type tag
+    type t = tag synthetic
+
+    include MakeEventWithType (struct
+      type nonrec t = t [@@nonrec]
+    end)
+  end
+
+  module Mouse = struct
+    type tag
+    type t = tag synthetic
+
+    include MakeEventWithType (struct
+      type nonrec t = t [@@nonrec]
+    end)
+
+    let altKey : t -> bool = fun _ -> false
+    let button : t -> int = fun _ -> 0
+    let buttons : t -> int = fun _ -> 0
+    let clientX : t -> int = fun _ -> 0
+    let clientY : t -> int = fun _ -> 0
+    let ctrlKey : t -> bool = fun _ -> false
+    let getModifierState : t -> string -> bool = fun _ _ -> false
+    let metaKey : t -> bool = fun _ -> false
+    let movementX : t -> int = fun _ -> 0
+    let movementY : t -> int = fun _ -> 0
+    let pageX : t -> int = fun _ -> 0
+    let pageY : t -> int = fun _ -> 0
+    let relatedTarget : t -> < .. > Js.t option = fun _ -> None
+    let screenX : t -> int = fun _ -> 0
+    let screenY : t -> int = fun _ -> 0
+    let shiftKey : t -> bool = fun _ -> false
+  end
+
+  module Pointer = struct
+    type tag
+    type t = tag synthetic
+
+    include MakeEventWithType (struct
+      type nonrec t = t [@@nonrec]
+    end)
+
+    let detail : t -> int = fun _ -> 0
+
+    (* let view : t -> Dom.window = fun _ -> object end *)
+    let screenX : t -> int = fun _ -> 0
+    let screenY : t -> int = fun _ -> 0
+    let clientX : t -> int = fun _ -> 0
+    let clientY : t -> int = fun _ -> 0
+    let pageX : t -> int = fun _ -> 0
+    let pageY : t -> int = fun _ -> 0
+    let movementX : t -> int = fun _ -> 0
+    let movementY : t -> int = fun _ -> 0
+    let ctrlKey : t -> bool = fun _ -> false
+    let shiftKey : t -> bool = fun _ -> false
+    let altKey : t -> bool = fun _ -> false
+    let metaKey : t -> bool = fun _ -> false
+    let getModifierState : t -> string -> bool = fun _ _ -> false
+    let button : t -> int = fun _ -> 0
+    let buttons : t -> int = fun _ -> 0
+    let relatedTarget : t -> < .. > Js.t option = fun _ -> None
+
+    (* let pointerId : t -> Dom.eventPointerId *)
+    let width : t -> float = fun _ -> 0.
+    let height : t -> float = fun _ -> 0.
+    let pressure : t -> float = fun _ -> 0.
+    let tangentialPressure : t -> float = fun _ -> 0.
+    let tiltX : t -> int = fun _ -> 0
+    let tiltY : t -> int = fun _ -> 0
+    let twist : t -> int = fun _ -> 0
+    let pointerType : t -> string = fun _ -> ""
+    let isPrimary : t -> bool = fun _ -> false
+  end
+
+  module Selection = struct
+    type tag
+    type t = tag synthetic
+
+    include MakeEventWithType (struct
+      type nonrec t = t [@@nonrec]
+    end)
+  end
+
+  module Touch = struct
+    type tag
+    type t = tag synthetic
+
+    include MakeEventWithType (struct
+      type nonrec t = t [@@nonrec]
+    end)
+
+    let altKey : t -> bool = fun _ -> false
+    let changedTouches : t -> < .. > Js.t = fun _ -> object end
+    let ctrlKey : t -> bool = fun _ -> false
+    let getModifierState : t -> string -> bool = fun _ _ -> false
+    let metaKey : t -> bool = fun _ -> false
+    let shiftKey : t -> bool = fun _ -> false
+    let targetTouches : t -> < .. > Js.t = fun _ -> object end
+    let touches : t -> < .. > Js.t = fun _ -> object end
+  end
+
+  module UI = struct
+    type tag
+    type t = tag synthetic
+
+    include MakeEventWithType (struct
+      type nonrec t = t [@@nonrec]
+    end)
+
+    let detail : t -> int = fun _ -> 0
+    (* let view : t -> Dom.window *)
+  end
+
+  module Wheel = struct
+    type tag
+    type t = tag synthetic
+
+    include MakeEventWithType (struct
+      type nonrec t = t [@@nonrec]
+    end)
+
+    let deltaMode : t -> int = fun _ -> 0
+    let deltaX : t -> float = fun _ -> 0.
+    let deltaY : t -> float = fun _ -> 0.
+    let deltaZ : t -> float = fun _ -> 0.
+  end
+
+  module Media = struct
+    type tag
+    type t = tag synthetic
+
+    include MakeEventWithType (struct
+      type nonrec t = t [@@nonrec]
+    end)
+  end
+
+  module Image = struct
+    type tag
+    type t = tag synthetic
+
+    include MakeEventWithType (struct
+      type nonrec t = t [@@nonrec]
+    end)
+  end
+
+  module Animation = struct
+    type tag
+    type t = tag synthetic
+
+    include MakeEventWithType (struct
+      type nonrec t = t [@@nonrec]
+    end)
+
+    let animationName : t -> string = fun _ -> ""
+    let pseudoElement : t -> string = fun _ -> ""
+    let elapsedTime : t -> float = fun _ -> 0.
+  end
+
+  module Transition = struct
+    type tag
+    type t = tag synthetic
+
+    include MakeEventWithType (struct
+      type nonrec t = t [@@nonrec]
+    end)
+
+    let propertyName : t -> string = fun _ -> ""
+    let pseudoElement : t -> string = fun _ -> ""
+    let elapsedTime : t -> float = fun _ -> 0.
+  end
+
+  module Drag = struct
+    type tag
+    type t = tag synthetic
+
+    include MakeEventWithType (struct
+      type nonrec t = t [@@nonrec]
+    end)
+
+    let altKey : t -> bool = fun _ -> false
+    let button : t -> int = fun _ -> 0
+    let buttons : t -> int = fun _ -> 0
+    let clientX : t -> int = fun _ -> 0
+    let clientY : t -> int = fun _ -> 0
+    let ctrlKey : t -> bool = fun _ -> false
+    let getModifierState : t -> string -> bool = fun _ _ -> false
+    let metaKey : t -> bool = fun _ -> false
+    let movementX : t -> int = fun _ -> 0
+    let movementY : t -> int = fun _ -> 0
+    let pageX : t -> int = fun _ -> 0
+    let pageY : t -> int = fun _ -> 0
+    let relatedTarget : t -> < .. > Js.t option = fun _ -> None
+    let screenX : t -> int = fun _ -> 0
+    let screenY : t -> int = fun _ -> 0
+    let shiftKey : t -> bool = fun _ -> false
+    let dataTransfer : t -> < .. > Js.t option = fun _ -> None
+  end
+end
+
 module JSX = struct
   type event =
-    | Drag of (ReactEvent.Drag.t -> unit)
-    | Mouse of (ReactEvent.Mouse.t -> unit)
-    | Selection of (ReactEvent.Selection.t -> unit)
-    | Touch of (ReactEvent.Touch.t -> unit)
-    | UI of (ReactEvent.UI.t -> unit)
-    | Wheel of (ReactEvent.Wheel.t -> unit)
-    | Clipboard of (ReactEvent.Clipboard.t -> unit)
-    | Composition of (ReactEvent.Composition.t -> unit)
-    | Transition of (ReactEvent.Transition.t -> unit)
-    | Animation of (ReactEvent.Animation.t -> unit)
-    | Pointer of (ReactEvent.Pointer.t -> unit)
-    | Keyboard of (ReactEvent.Keyboard.t -> unit)
-    | Focus of (ReactEvent.Focus.t -> unit)
-    | Form of (ReactEvent.Form.t -> unit)
-    | Media of (ReactEvent.Media.t -> unit)
+    | Drag of (Event.Drag.t -> unit)
+    | Mouse of (Event.Mouse.t -> unit)
+    | Selection of (Event.Selection.t -> unit)
+    | Touch of (Event.Touch.t -> unit)
+    | UI of (Event.UI.t -> unit)
+    | Wheel of (Event.Wheel.t -> unit)
+    | Clipboard of (Event.Clipboard.t -> unit)
+    | Composition of (Event.Composition.t -> unit)
+    | Transition of (Event.Transition.t -> unit)
+    | Animation of (Event.Animation.t -> unit)
+    | Pointer of (Event.Pointer.t -> unit)
+    | Keyboard of (Event.Keyboard.t -> unit)
+    | Focus of (Event.Focus.t -> unit)
+    | Form of (Event.Form.t -> unit)
+    | Media of (Event.Media.t -> unit)
     | Inline of string
 
   type prop =
@@ -255,19 +557,6 @@ end
 (* let memo f : 'props * 'props -> bool = f
    let memoCustomCompareProps f _compare : 'props * 'props -> bool = f *)
 
-(* `exception Suspend of 'a Lwt`
-    exceptions can't have type params, this is called existential wrapper *)
-type any_promise = Any_promise : 'a Lwt.t -> any_promise
-
-exception Suspend of any_promise
-
-let use promise =
-  match Lwt.state promise with
-  | Sleep -> raise (Suspend (Any_promise promise))
-  (* TODO: Fail should raise a FailedSupense and catch at renderTo* *)
-  | Fail e -> raise e
-  | Return v -> v
-
 let useContext context = context.current_value.current
 
 let useState (make_initial_value : unit -> 'state) =
@@ -278,7 +567,14 @@ let useState (make_initial_value : unit -> 'state) =
   in
   (initial_value, setState)
 
+let internal_id = ref 0
+
+let useId () =
+  internal_id := !internal_id + 1;
+  Int.to_string !internal_id
+
 let useMemo fn = fn ()
+let useMemo0 fn = fn ()
 let useMemo1 fn _ = fn ()
 let useMemo2 fn _ = fn ()
 let useMemo3 fn _ = fn ()
@@ -286,6 +582,7 @@ let useMemo4 fn _ = fn ()
 let useMemo5 fn _ = fn ()
 let useMemo6 fn _ = fn ()
 let useCallback fn = fn
+let useCallback0 fn = fn
 let useCallback1 fn _ = fn
 let useCallback2 fn _ = fn
 let useCallback3 fn _ = fn
@@ -293,6 +590,7 @@ let useCallback4 fn _ = fn
 let useCallback5 fn _ = fn
 let useCallback6 fn _ = fn
 let useReducer _ s = (s, fun _ -> ())
+let useReducerWithMapState _ s mapper = (mapper s, fun _ -> ())
 let useEffect0 _ = ()
 let useEffect1 _ _ = ()
 let useEffect2 _ _ = ()
@@ -323,3 +621,24 @@ module Children = struct
 end
 
 let setDisplayName _ _ = ()
+let useTransition () = (false, fun (_cb : unit -> unit) -> ())
+
+let useDebugValue : 'value -> ?format:('value -> string) -> unit =
+ fun [@warning "-16"] _ ?format -> ()
+
+let useDeferredValue value = value
+
+(* `exception Suspend of 'a Lwt`
+    exceptions can't have type params, this is called existential wrapper *)
+type any_promise = Any_promise : 'a Lwt.t -> any_promise
+
+exception Suspend of any_promise
+
+module Experimental = struct
+  let use promise =
+    match Lwt.state promise with
+    | Sleep -> raise (Suspend (Any_promise promise))
+    (* TODO: Fail should raise a FailedSupense and catch at renderTo* *)
+    | Fail e -> raise e
+    | Return v -> v
+end

@@ -322,7 +322,16 @@ class raise_exception_mapper =
 
 let structure_mapper s = (new raise_exception_mapper)#structure s
 
+module Debug = struct
+  let rule =
+    let extractor = Ast_pattern.(__') in
+    let handler ~ctxt:_ { loc } = [%expr ()] in
+    Context_free.Rule.extension
+      (Extension.V3.declare "debug" Extension.Context.expression extractor
+         handler)
+end
+
 let () =
   Driver.register_transformation ~preprocess_impl:structure_mapper
-    ~rules:[ Pipe_first.rule; Regex.rule; Double_hash.rule ]
+    ~rules:[ Pipe_first.rule; Regex.rule; Double_hash.rule; Debug.rule ]
     "melange-native-ppx"
