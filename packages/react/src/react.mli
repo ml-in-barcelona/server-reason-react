@@ -614,7 +614,6 @@ type any_promise = Any_promise : 'a Lwt.t -> any_promise
 exception Suspend of any_promise
 
 (* val memo : ('props * 'props -> bool) -> 'a -> 'props * 'props -> bool *)
-val use : 'a Lwt.t -> 'a
 val useContext : 'a Context.t -> 'a
 val useState : (unit -> 'state) -> 'state * (('state -> 'state) -> unit)
 val useMemo : (unit -> 'a) -> 'a
@@ -715,3 +714,9 @@ module Children : sig
   val only : element array -> element
   val toArray : element -> element array
 end
+
+module Experimental : sig
+  val use : 'a Lwt.t -> 'a
+end
+
+val useTransition : unit -> bool * ((unit -> unit) -> unit)
