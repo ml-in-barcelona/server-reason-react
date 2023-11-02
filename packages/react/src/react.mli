@@ -728,3 +728,4 @@ end
 
 val useTransition : unit -> bool * ((unit -> unit) -> unit)
 val useDebugValue : 'value -> ?format:('value -> string) -> unit
+val useDeferredValue : 'value -> 'value
