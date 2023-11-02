@@ -16,6 +16,7 @@ module Layout = {
   [@react.component]
   let make = (~children) => {
     <div
+      spellCheck=false
       className={Cx.make(
         [],
         /* Css.maxWidth(`px(800)),

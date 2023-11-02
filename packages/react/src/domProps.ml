@@ -8,7 +8,10 @@ type attributeType =
   | String
   | Int
   | Bool
-  | StringlyBool
+  (* attributes that are boolean values, rendered as strings
+   https://github.com/facebook/react/blob/a17467e7e2cd8947c595d1834889b5d184459f12/packages/react-dom-bindings/src/server/ReactFizzConfigDOM.js#L1165-L1176
+  *)
+  | BooleanishString
   | Style
   | Ref
   | InnerHtml
@@ -236,7 +239,7 @@ let ariaAttributes =
     (* Indicates whether assistive technologies will present all, or only parts
        of, the changed region based on the change notifications defined by the
        aria-relevant attribute. *)
-    Attribute { name = "aria-atomic"; jsxName = "ariaAtomic"; type_ = StringlyBool };
+    Attribute { name = "aria-atomic"; jsxName = "ariaAtomic"; type_ = BooleanishString };
 
     (* Indicates whether inputting text could trigger display of one or more predictions of the user's intended value for an input and specifies how predictions would be
      * presented if they are made.
@@ -246,7 +249,7 @@ let ariaAttributes =
     (* Indicates an element is being modified and that assistive technologies
        MAY want to wait until the modifications are complete before exposing
        them to the user. *)
-    Attribute { name = "aria-busy"; jsxName = "ariaBusy"; type_ = StringlyBool };
+    Attribute { name = "aria-busy"; jsxName = "ariaBusy"; type_ = BooleanishString };
 
     (* Indicates the current "checked" state of checkboxes, radio buttons, and other
     widgets.
@@ -291,7 +294,7 @@ let ariaAttributes =
     (* Indicates that the element is perceivable but disabled, so it is not editable or otherwise operable.
     * @see aria-hidden @see aria-readonly.
     *)
-    Attribute { name = "aria-disabled"; jsxName = "ariaDisabled"; type_ = StringlyBool };
+    Attribute { name = "aria-disabled"; jsxName = "ariaDisabled"; type_ = BooleanishString };
 
     (* Identifies the element that provides an error message for the object.
     * @see aria-invalid @see aria-describedby.
@@ -300,7 +303,7 @@ let ariaAttributes =
 
     (* Indicates whether the element, or another grouping element it controls,
        is currently expanded or collapsed. *)
-    Attribute { name = "aria-expanded"; jsxName = "ariaExpanded"; type_ = StringlyBool };
+    Attribute { name = "aria-expanded"; jsxName = "ariaExpanded"; type_ = BooleanishString };
 
     (* Identifies the next element (or elements) in an alternate reading order of content which, at the user's discretion,
      * allows assistive technology to override the general default of reading in document source order.
@@ -314,7 +317,7 @@ let ariaAttributes =
     (* Indicates whether the element is exposed to an accessibility API.
      * @see aria-disabled.
      *)
-    Attribute { name = "aria-hidden"; jsxName = "ariaHidden"; type_ = StringlyBool };
+    Attribute { name = "aria-hidden"; jsxName = "ariaHidden"; type_ = BooleanishString };
 
     (* Indicates the entered value does not conform to the format expected by the
     application.
@@ -346,15 +349,15 @@ let ariaAttributes =
 
     (* Indicates whether an element is modal when displayed. *)
 
-    Attribute { name = "aria-modal"; jsxName = "ariaModal"; type_ = StringlyBool };
+    Attribute { name = "aria-modal"; jsxName = "ariaModal"; type_ = BooleanishString };
 
     (* Indicates whether a text box accepts multiple lines of input or only a
        single line. *)
-    Attribute { name = "aria-multiline"; jsxName = "ariaMultiline"; type_ = StringlyBool };
+    Attribute { name = "aria-multiline"; jsxName = "ariaMultiline"; type_ = BooleanishString };
 
     (* Indicates that the user may select more than one item from the current
        selectable descendants. *)
-    Attribute { name = "aria-multiselectable"; jsxName = "ariaMultiselectable"; type_ = StringlyBool };
+    Attribute { name = "aria-multiselectable"; jsxName = "ariaMultiselectable"; type_ = BooleanishString };
 
     (* Indicates whether the element's orientation is horizontal, vertical, or
        unknown/ambiguous. *)
@@ -386,7 +389,7 @@ let ariaAttributes =
     operable.
     * @see aria-disabled.
     *)
-    Attribute { name = "aria-readonly"; jsxName = "ariaReadonly"; type_ = StringlyBool };
+    Attribute { name = "aria-readonly"; jsxName = "ariaReadonly"; type_ = BooleanishString };
 
     (* Indicates what notifications the user agent will trigger when the
     accessibility tree within a live region is modified.
@@ -396,7 +399,7 @@ let ariaAttributes =
 
     (* Indicates that user input is required on the element before a form may be
        submitted. *)
-    Attribute { name = "aria-required"; jsxName = "ariaRequired"; type_ = StringlyBool };
+    Attribute { name = "aria-required"; jsxName = "ariaRequired"; type_ = BooleanishString };
 
     (* Defines a human-readable, author-localized description for the role of an
        element. *)
@@ -425,7 +428,7 @@ let ariaAttributes =
     (* Indicates the current "selected" state of various widgets.
     * @see aria-checked @see aria-pressed.
     *)
-    Attribute { name = "aria-selected"; jsxName = "ariaSelected"; type_ = StringlyBool };
+    Attribute { name = "aria-selected"; jsxName = "ariaSelected"; type_ = BooleanishString };
 
     (* Defines the number of items in the current set of listitems or treeitems.
     Not required if all elements in the set are present in the DOM.
@@ -496,9 +499,9 @@ let globalAttributes =
     Attribute { name = "accessKey"; jsxName = "accessKey"; type_ = String };
     Attribute { name = "autoCapitalize"; jsxName = "autoCapitalize"; type_ = String };
     Attribute { name = "contextMenu"; jsxName = "contextMenu"; type_ = String };
-    Attribute { name = "contentEditable"; jsxName = "contentEditable"; type_ = String };
+    Attribute { name = "contentEditable"; jsxName = "contentEditable"; type_ = BooleanishString };
     Attribute { name = "dir"; jsxName = "dir"; type_ = String };
-    Attribute { name = "draggable"; jsxName = "draggable"; type_ = String (* Booleanish *) };
+    Attribute { name = "draggable"; jsxName = "draggable"; type_ = BooleanishString };
     Attribute { name = "hidden"; jsxName = "hidden"; type_ = Bool };
     Attribute { name = "id"; jsxName = "id"; type_ = String };
     Attribute { name = "itemProp"; jsxName = "itemProp"; type_ = String };
@@ -511,7 +514,7 @@ let globalAttributes =
     Attribute { name = "part"; jsxName = "part"; type_ = String };
     Attribute { name = "nonce"; jsxName = "nonce"; type_ = String };
     Attribute { name = "slot"; jsxName = "slot"; type_ = String };
-    Attribute { name = "spellCheck"; jsxName = "spellCheck"; type_ = String (* Booleanish *) };
+    Attribute { name = "spellCheck"; jsxName = "spellCheck"; type_ = BooleanishString };
     Attribute { name = "style"; jsxName = "style"; type_ = Style };
     Attribute { name = "tabIndex"; jsxName = "tabIndex"; type_ = Int };
     Attribute { name = "enterKeyHint"; jsxName = "enterKeyHint"; type_ = Int };
@@ -1175,7 +1178,7 @@ module SVG = struct
       Attribute { name = "alphabetic"; jsxName = "alphabetic"; type_ = String (* number | *) };
       Attribute { name = "arabicForm"; jsxName = "arabicForm"; type_ = String (* type_= "initial" | "medial" | "terminal" | "isolated" *) };
       Attribute { name = "ascent"; jsxName = "ascent"; type_ = String (* number | *) };
-      Attribute { name = "autoReverse"; jsxName = "autoReverse"; type_ = String (* Booleanish *) };
+      Attribute { name = "autoReverse"; jsxName = "autoReverse"; type_ = BooleanishString };
       Attribute { name = "azimuth"; jsxName = "azimuth"; type_ = String (* number | *) };
       Attribute { name = "baseProfile"; jsxName = "baseProfile"; type_ = String (* number | *) };
       Attribute { name = "bbox"; jsxName = "bbox"; type_ = String (* number | *) };
@@ -1190,7 +1193,7 @@ module SVG = struct
       Attribute { name = "dy"; jsxName = "dy"; type_ = String (* number | *) };
       Attribute { name = "edgeMode"; jsxName = "edgeMode"; type_ = String (* number | *) };
       Attribute { name = "elevation"; jsxName = "elevation"; type_ = String (* number | *) };
-      Attribute { name = "externalResourcesRequired"; jsxName = "externalResourcesRequired"; type_ = String (* Booleanish *) };
+      Attribute { name = "externalResourcesRequired"; jsxName = "externalResourcesRequired"; type_ = BooleanishString };
       Attribute { name = "filterRes"; jsxName = "filterRes"; type_ = String (* number | *) };
       Attribute { name = "filterUnits"; jsxName = "filterUnits"; type_ = String (* number | *) };
       Attribute { name = "format"; jsxName = "format"; type_ = String (* number | *) };
@@ -1461,6 +1464,8 @@ let htmlElements =
 
 let commonSvgAttributes = SVG.attributes & reactAttributes & globalEventHandlers & ariaAttributes
 
+let feConvolveMatrixAttributes = [ Attribute { name = "preserveAlpha"; jsxName = "preserveAlpha"; type_ = BooleanishString } ]
+
 let svgElements =
   [
     { tag = "svg"; attributes = commonSvgAttributes };
@@ -1476,7 +1481,7 @@ let svgElements =
     { tag = "feColorMatrix"; attributes = commonSvgAttributes };
     { tag = "feComponentTransfer"; attributes = commonSvgAttributes };
     { tag = "feComposite"; attributes = commonSvgAttributes };
-    { tag = "feConvolveMatrix"; attributes = commonSvgAttributes };
+    { tag = "feConvolveMatrix"; attributes = commonSvgAttributes & feConvolveMatrixAttributes };
     { tag = "feDiffuseLighting"; attributes = commonSvgAttributes };
     { tag = "feDisplacementMap"; attributes = commonSvgAttributes };
     { tag = "feDistantLight"; attributes = commonSvgAttributes };
