@@ -944,7 +944,8 @@ let makePropField ~loc id (arg_label, value) =
       [%expr
         Some
           (React.JSX.Event
-             ([%e constantString ~loc jsxName], React.JSX.Keyboard v))]
+             ( [%e constantString ~loc jsxName],
+               React.JSX.Keyboard [%e objectValue] ))]
   | Event { type_ = Keyboard; jsxName }, true ->
       [%expr
         Option.map (fun v ->
