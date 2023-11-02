@@ -616,6 +616,9 @@ end
 let setDisplayName _ _ = ()
 let useTransition () = (false, fun (_cb : unit -> unit) -> ())
 
+let useDebugValue : 'value -> ?format:('value -> string) -> unit =
+ fun [@warning "-16"] _ ?format -> ()
+
 (* `exception Suspend of 'a Lwt`
     exceptions can't have type params, this is called existential wrapper *)
 type any_promise = Any_promise : 'a Lwt.t -> any_promise

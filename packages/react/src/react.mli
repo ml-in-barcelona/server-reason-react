@@ -720,3 +720,4 @@ module Experimental : sig
 end
 
 val useTransition : unit -> bool * ((unit -> unit) -> unit)
+val useDebugValue : 'value -> ?format:('value -> string) -> unit
