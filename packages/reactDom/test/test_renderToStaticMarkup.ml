@@ -49,9 +49,7 @@ let truthy_attributes () =
 
 let falsy_attributes () =
   let component =
-    React.createElement "textarea"
-      [| React.JSX.Bool ("spellCheck", false) |]
-      []
+    React.createElement "textarea" [| React.JSX.Bool ("spellCheck", false) |] []
   in
   assert_string
     (ReactDOM.renderToStaticMarkup component)
