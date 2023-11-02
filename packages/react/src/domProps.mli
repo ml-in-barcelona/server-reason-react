@@ -2,7 +2,7 @@ type attributeType =
   | String
   | Int
   | Bool
-  | StringlyBool
+  | BooleanishString
   | Style
   | Ref
   | InnerHtml

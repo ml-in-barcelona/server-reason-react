@@ -378,8 +378,8 @@ let makeAttributeValue ~loc ~isOptional (type_ : DomProps.attributeType) value =
   | Int, true -> [%expr ([%e value] : int option)]
   | Bool, false -> [%expr ([%e value] : bool)]
   | Bool, true -> [%expr ([%e value] : bool option)]
-  | StringlyBool, false -> [%expr ([%e value] : bool)]
-  | StringlyBool, true -> [%expr ([%e value] : bool option)]
+  | BooleanishString, false -> [%expr ([%e value] : bool)]
+  | BooleanishString, true -> [%expr ([%e value] : bool option)]
   | Style, false -> [%expr ([%e value] : ReactDom.Style.t)]
   | Style, true -> [%expr ([%e value] : ReactDom.Style.t option)]
   (* Those ReactDom types are currently on ReasonReact, in our implementation they are in React namespace *)
@@ -819,12 +819,12 @@ let makePropField ~loc id (arg_label, value) =
         Option.map
           (fun v -> React.JSX.Bool ([%e objectKey], v))
           [%e objectValue]]
-  (* StringlyBool transforms boolean into string *)
-  | Attribute { type_ = DomProps.StringlyBool; _ }, false ->
+  (* BooleanishString needs to transform bool into string *)
+  | Attribute { type_ = DomProps.BooleanishString; _ }, false ->
       [%expr
         Some
           (React.JSX.String ([%e objectKey], string_of_bool [%e objectValue]))]
-  | Attribute { type_ = DomProps.StringlyBool; _ }, true ->
+  | Attribute { type_ = DomProps.BooleanishString; _ }, true ->
       [%expr
         Option.map
           (fun v -> React.JSX.String ([%e objectKey], v))
