@@ -614,7 +614,6 @@ type any_promise = Any_promise : 'a Lwt.t -> any_promise
 exception Suspend of any_promise
 
 (* val memo : ('props * 'props -> bool) -> 'a -> 'props * 'props -> bool *)
-val use : 'a Lwt.t -> 'a
 val useContext : 'a Context.t -> 'a
 val useState : (unit -> 'state) -> 'state * (('state -> 'state) -> unit)
 val useMemo : (unit -> 'a) -> 'a
@@ -633,9 +632,16 @@ val useCallback3 : 'a -> 'b -> 'a
 val useCallback4 : 'a -> 'b -> 'a
 val useCallback5 : 'a -> 'b -> 'a
 val useCallback6 : 'a -> 'b -> 'a
+val useId : unit -> string
 
 val useReducer :
   ('state -> 'action -> 'state) -> 'state -> 'state * ('action -> unit)
+
+val useReducerWithMapState :
+  ('state -> 'action -> 'initialState) ->
+  'initialState ->
+  ('initialState -> 'state) ->
+  'state * ('action -> unit)
 
 val useEffect0 : (unit -> (unit -> unit) option) -> unit
 val useEffect1 : (unit -> (unit -> unit) option) -> 'dependency array -> unit
@@ -715,3 +721,10 @@ module Children : sig
   val only : element array -> element
   val toArray : element -> element array
 end
+
+module Experimental : sig
+  val use : 'a Lwt.t -> 'a
+end
+
+val useTransition : unit -> bool * ((unit -> unit) -> unit)
+val useDebugValue : 'value -> ?format:('value -> string) -> unit

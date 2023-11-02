@@ -82,7 +82,7 @@ module Data = {
 module Comments = {
   let make = () => {
     /* Sincronous data: let comments = Data.get(); */
-    let comments = React.use(Data.promise());
+    let comments = React.Experimental.use(Data.promise());
 
     <>
       {comments

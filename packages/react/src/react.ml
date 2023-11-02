@@ -557,19 +557,6 @@ end
 (* let memo f : 'props * 'props -> bool = f
    let memoCustomCompareProps f _compare : 'props * 'props -> bool = f *)
 
-(* `exception Suspend of 'a Lwt`
-    exceptions can't have type params, this is called existential wrapper *)
-type any_promise = Any_promise : 'a Lwt.t -> any_promise
-
-exception Suspend of any_promise
-
-let use promise =
-  match Lwt.state promise with
-  | Sleep -> raise (Suspend (Any_promise promise))
-  (* TODO: Fail should raise a FailedSupense and catch at renderTo* *)
-  | Fail e -> raise e
-  | Return v -> v
-
 let useContext context = context.current_value.current
 
 let useState (make_initial_value : unit -> 'state) =
@@ -579,6 +566,12 @@ let useState (make_initial_value : unit -> 'state) =
     ()
   in
   (initial_value, setState)
+
+let internal_id = ref 0
+
+let useId () =
+  internal_id := !internal_id + 1;
+  Int.to_string !internal_id
 
 let useMemo fn = fn ()
 let useMemo0 fn = fn ()
@@ -597,6 +590,7 @@ let useCallback4 fn _ = fn
 let useCallback5 fn _ = fn
 let useCallback6 fn _ = fn
 let useReducer _ s = (s, fun _ -> ())
+let useReducerWithMapState _ s mapper = (mapper s, fun _ -> ())
 let useEffect0 _ = ()
 let useEffect1 _ _ = ()
 let useEffect2 _ _ = ()
@@ -627,3 +621,22 @@ module Children = struct
 end
 
 let setDisplayName _ _ = ()
+let useTransition () = (false, fun (_cb : unit -> unit) -> ())
+
+let useDebugValue : 'value -> ?format:('value -> string) -> unit =
+ fun [@warning "-16"] _ ?format -> ()
+
+(* `exception Suspend of 'a Lwt`
+    exceptions can't have type params, this is called existential wrapper *)
+type any_promise = Any_promise : 'a Lwt.t -> any_promise
+
+exception Suspend of any_promise
+
+module Experimental = struct
+  let use promise =
+    match Lwt.state promise with
+    | Sleep -> raise (Suspend (Any_promise promise))
+    (* TODO: Fail should raise a FailedSupense and catch at renderTo* *)
+    | Fail e -> raise e
+    | Return v -> v
+end
