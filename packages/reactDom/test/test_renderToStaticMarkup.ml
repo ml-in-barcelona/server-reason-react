@@ -35,7 +35,7 @@ let bool_attributes () =
   in
   assert_string
     (ReactDOM.renderToStaticMarkup a)
-    "<input type=\"checkbox\" name=\"cheese\" checked />"
+    "<input type=\"checkbox\" name=\"cheese\" checked disabled=\"false\" />"
 
 let truthy_attributes () =
   let component =
@@ -46,6 +46,16 @@ let truthy_attributes () =
   assert_string
     (ReactDOM.renderToStaticMarkup component)
     "<input aria-hidden=\"true\" />"
+
+let falsy_attributes () =
+  let component =
+    React.createElement "textarea"
+      [| React.JSX.Bool ("spellCheck", false) |]
+      []
+  in
+  assert_string
+    (ReactDOM.renderToStaticMarkup component)
+    "<textarea spellCheck=\"false\"></textarea>"
 
 let self_closing_tag () =
   let input = React.createElement "input" [||] [] in
@@ -331,6 +341,7 @@ let tests =
       case "empty_string_attribute" empty_string_attribute;
       case "bool_attributes" bool_attributes;
       case "truthy_attributes" truthy_attributes;
+      case "falsy_attributes" falsy_attributes;
       case "ignore_nulls" ignore_nulls;
       case "string_attributes" string_attributes;
       case "self_closing_tag" self_closing_tag;

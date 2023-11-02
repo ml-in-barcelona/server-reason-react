@@ -22,8 +22,7 @@ let attribute_to_string attr =
   match attr with
   (* ignores "ref" prop *)
   | JSX.Ref _ -> ""
-  (* false attributes don't get rendered *)
-  | Bool (_, false) -> ""
+  | Bool (k, false) -> Printf.sprintf "%s=\"false\"" k
   (* true attributes render solely the attribute name *)
   | Bool (k, true) -> k
   (* Since we extracted the attribute as children (Element.InnerHtml),
