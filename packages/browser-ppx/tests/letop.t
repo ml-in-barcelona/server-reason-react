@@ -1,0 +1,15 @@
+  $ cat > input.ml << EOF
+  > [%%browser_only let ( let+ ) = fun p f -> map f p]
+  > EOF
+
+  $ ./standalone.exe -impl input.ml -js | ocamlformat - --enable-outside-detected-project --impl
+  let ( let+ ) p f = map f p
+
+  $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl
+  let (( let+ )
+      [@alert
+        browser_only
+          "This expression is marked to only run on the browser where JavaScript \
+           can run. You can only use it inside a let%browser_only function."]) =
+   fun [@warning "-27-32"] [@alert "-browser_only"] p f ->
+    Runtime.fail_impossible_action_in_ssr "let+"

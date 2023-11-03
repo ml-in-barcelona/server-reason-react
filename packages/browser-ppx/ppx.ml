@@ -69,6 +69,8 @@ module Browser_only = struct
     let loc = pattern.ppat_loc in
     let rec last_expr_to_raise_impossible original_function_name expr =
       match expr.pexp_desc with
+      | Pexp_constraint (expr, _) ->
+          last_expr_to_raise_impossible original_function_name expr
       | Pexp_fun (arg_label, arg_expression, fun_pattern, expr) ->
           let fn =
             Builder.pexp_fun ~loc arg_label arg_expression fun_pattern
@@ -83,6 +85,34 @@ module Browser_only = struct
     | [%pat? ()] -> Builder.value_binding ~loc ~pat:pattern ~expr:[%expr ()]
     | _ -> (
         match expression.pexp_desc with
+        | Pexp_constraint
+            ( {
+                pexp_desc =
+                  Pexp_fun (_arg_label, _arg_expression, _fun_pattern, _expr);
+                _;
+              },
+              _type_constraint ) ->
+            let function_name = get_function_name pattern.ppat_desc in
+            let expr = last_expr_to_raise_impossible function_name expression in
+            let pat =
+              {
+                pattern with
+                ppat_attributes = [ (* enable_alert_browser_only ~loc *) ];
+              }
+            in
+            let vb = Builder.value_binding ~loc ~pat ~expr in
+            let remove_unused_variable_warning27 =
+              Builder.attribute ~loc ~name:{ txt = "warning"; loc }
+                ~payload:(PStr [ [%stri "-27-26"] ])
+            in
+            {
+              vb with
+              pvb_attributes =
+                [
+                  remove_unused_variable_warning27;
+                  remove_alert_browser_only ~loc;
+                ];
+            }
         | Pexp_fun (_arg_label, _arg_expression, _fun_pattern, _expr) ->
             let function_name = get_function_name pattern.ppat_desc in
             let expr = last_expr_to_raise_impossible function_name expression in
@@ -137,6 +167,29 @@ module Browser_only = struct
               in
               let message = Builder.estring ~loc stringified in
               [%expr Runtime.fail_impossible_action_in_ssr [%e message]]
+          | Pexp_constraint
+              ( {
+                  pexp_desc =
+                    Pexp_fun (arg_label, arg_expression, pattern, expression);
+                },
+                type_constraint ) ->
+              let stringified =
+                Ppxlib.Pprintast.string_of_expression expression
+              in
+              let message = Builder.estring ~loc stringified in
+              let pat =
+                {
+                  pattern with
+                  ppat_attributes = [ (* enable_alert_browser_only ~loc *) ];
+                }
+              in
+              let fn =
+                Builder.pexp_fun ~loc arg_label arg_expression pat
+                  [%expr Runtime.fail_impossible_action_in_ssr [%e message]]
+              in
+              Builder.pexp_constraint ~loc
+                { fn with pexp_attributes = expression.pexp_attributes }
+                type_constraint
           | Pexp_fun (arg_label, arg_expression, pattern, expression) ->
               let stringified =
                 Ppxlib.Pprintast.string_of_expression expression
@@ -209,6 +262,36 @@ module Browser_only = struct
       | Js -> do_nothing rec_flag
       | Native -> (
           match expression.pexp_desc with
+          | Pexp_constraint
+              ( {
+                  pexp_desc =
+                    Pexp_fun (arg_label, arg_expression, fun_pattern, expr);
+                  _;
+                },
+                type_constraint ) ->
+              let original_function_name =
+                get_function_name pattern.ppat_desc
+              in
+              let pat =
+                {
+                  fun_pattern with
+                  ppat_attributes = [ (* enable_alert_browser_only ~loc *) ];
+                }
+              in
+              let fn =
+                Builder.pexp_fun ~loc arg_label arg_expression pat
+                  (last_expr_to_raise_impossible original_function_name expr)
+              in
+              let item = { fn with pexp_attributes = expr.pexp_attributes } in
+              [%stri
+                let ([%p pattern] :
+                      ([%t type_constraint]
+                      [@alert
+                        browser_only
+                          "This expression is marked to only run on the \
+                           browser where JavaScript can run. You can only use \
+                           it inside a let%browser_only function."])) =
+                  ([%e item] [@warning "-27-32"] [@alert "-browser_only"])]
           | Pexp_fun (arg_label, arg_expression, fun_pattern, expr) ->
               let original_function_name =
                 get_function_name pattern.ppat_desc
@@ -231,8 +314,7 @@ module Browser_only = struct
                         "This expression is marked to only run on the browser \
                          where JavaScript can run. You can only use it inside \
                          a let%browser_only function."]) =
-                  [%e item]
-                [@@warning "-27-32"] [@@alert "-browser_only"]]
+                  ([%e item] [@warning "-27-32"] [@alert "-browser_only"])]
           | Pexp_ident { txt = longident; loc } ->
               let stringified = Ppxlib.Longident.name longident in
               let message = Builder.estring ~loc stringified in
