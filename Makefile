@@ -54,24 +54,25 @@ format-check: ## Checks if format is correct
 setup-githooks: ## Setup githooks
 	git config core.hooksPath .githooks
 
+.PHONY: create-switch
+create-switch: ## Create opam switch
+	opam switch create . 5.1.0 --deps-only --with-test -y
+
+.PHONY: install
+install:
+	$(DUNE) build @install
+	opam install . --deps-only --with-test
+
 .PHONY: pin
 pin: ## Pin dependencies
-	opam install dune.3.10.0
 	opam pin add melange.dev "https://github.com/melange-re/melange.git#2ff08be262f113fc8d28b66c272502c6f403399c" -y
 	opam pin add reason-react-ppx.dev "https://github.com/reasonml/reason-react.git#7ca984c9a406b01e906fda1898f705f135fad202" -y
 	opam pin add reason-react.dev "https://github.com/reasonml/reason-react.git#7ca984c9a406b01e906fda1898f705f135fad202" -y
 	opam pin add melange-fetch.dev "git+https://github.com/melange-community/melange-fetch.git#master" -y
 	opam pin add melange-webapi.dev "git+https://github.com/melange-community/melange-webapi.git#master" -y
 
-.PHONY: create-switch
-create-switch: ## Create opam switch
-	opam switch create . 5.1.0 --deps-only --with-test -y
-
-.PHONY: install
-install: create-switch pin ## Install dependencies
-
 .PHONY: init
-init: setup-githooks install ## Create a local dev enviroment
+init: setup-githooks create-switch install pin ## Create a local dev enviroment
 
 .PHONY: ppx-test
 ppx-test: ## Run ppx tests
@@ -117,7 +118,3 @@ documentation: ## Generate odoc documentation
 .PHONY: documentation-serve
 documentation-serve: documentation ## Open odoc documentation with default web browser
 	open _build/default/_doc/_html/index.html
-
-$(opam_file): dune-project ## Update the package dependencies when new deps are added to dune-project
-	$(DUNE) build @install
-	opam install . --deps-only --with-test # Install the new dependencies
