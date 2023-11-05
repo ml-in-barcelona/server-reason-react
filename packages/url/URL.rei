@@ -23,6 +23,7 @@ type t;
 
 let makeExn: string => t;
 let make: string => option(t);
+/* https://developer.mozilla.org/en-US/docs/Web/API/URL/canParse_static */
 let makeWith: (string, ~base: string) => t;
 
 let hash: t => option(string);

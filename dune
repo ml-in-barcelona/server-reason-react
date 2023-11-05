@@ -3,7 +3,7 @@
   (flags
    (-warn-error +A-d -alert ++browser_only))))
 
-(dirs packages demo)
+(dirs packages demo doc)
 
 (documentation
  (package server-reason-react))
