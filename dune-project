@@ -53,5 +53,5 @@
   (ocaml-lsp-server :with-test)
 
   ;; Demo deps
-  dream
+  (dream :with-test)
 ))
