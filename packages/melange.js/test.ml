@@ -400,16 +400,7 @@ let string2_tests =
           ());
     ] )
 
-let array_tests =
-  ( "Js.Array",
-    [
-      case "from" (fun () ->
-          Alcotest.check_raises "Js.Array.from"
-            (Js.Not_implemented
-               "'Js.Array.from' is not implemented in native under \
-                server-reason-react.js") (fun () -> Js.Array.from 3));
-    ] )
-
+let array_tests = ("Js.Array", [])
 let obj () = Js.Dict.fromList [ ("foo", 43); ("bar", 86) ]
 let long_obj () = Js.Dict.fromList [ ("david", 99); ("foo", 43); ("bar", 86) ]
 

@@ -4,8 +4,12 @@ let notImplemented module_ function_ =
   raise
     (Not_implemented
        (Printf.sprintf
-          "'%s.%s' is not implemented in native under server-reason-react.js"
-          module_ function_))
+          "'%s.%s' is not implemented in native on `server-reason-react.js`. \
+           You are running code that depends on the browser, this is not \
+           supported. If this case should run on native and there's no browser \
+           dependency, please open an issue at %s"
+          module_ function_
+          "https://github.com/ml-in-barcelona/server-reason-react/issues"))
 
 type 'a t = < .. > as 'a
 
@@ -167,9 +171,15 @@ module Null_undefined = Nullable
 
 module Exn = struct
   type t
-  type exn += private Error of t
 
-  external makeError : string -> t = "%identity"
+  type exn +=
+    | Error of string
+    | EvalError of string
+    | RangeError of string
+    | ReferenceError of string
+    | SyntaxError of string
+    | TypeError of string
+    | UriError of string
 
   let asJsExn _ = notImplemented "Js.Exn" "asJsExn"
   let stack _ = notImplemented "Js.Exn" "stack"
@@ -181,13 +191,13 @@ module Exn = struct
   let isCamlExceptionOrOpenVariant _ =
     notImplemented "Js.Exn" "isCamlExceptionOrOpenVariant"
 
-  let raiseError str = raise ((makeError str : t) : exn)
-  let raiseEvalError _ = notImplemented "Js.Exn" "raiseEvalError"
-  let raiseRangeError _ = notImplemented "Js.Exn" "raiseRangeError"
-  let raiseReferenceError _ = notImplemented "Js.Exn" "raiseReferenceError"
-  let raiseSyntaxError _ = notImplemented "Js.Exn" "raiseSyntaxError"
-  let raiseTypeError _ = notImplemented "Js.Exn" "raiseTypeError"
-  let raiseUriError _ = notImplemented "Js.Exn" "raiseUriError"
+  let raiseError str = raise (Error str)
+  let raiseEvalError str = raise (EvalError str)
+  let raiseRangeError str = raise (RangeError str)
+  let raiseReferenceError str = raise (ReferenceError str)
+  let raiseSyntaxError str = raise (SyntaxError str)
+  let raiseTypeError str = raise (TypeError str)
+  let raiseUriError str = raise (UriError str)
 end
 
 module Array2 = struct
@@ -1616,12 +1626,6 @@ module Option = struct
   let firstSome _ _ = notImplemented "Js.Option" "firstSome"
 end
 
-module Result = struct
-  (** Define the interface for result *)
-  type (+'good, +'bad) t = Ok of 'good | Error of 'bad
-  [@@deprecated "Please use `Belt.Result.t` instead"]
-end
-
 module List = struct
   type 'a t = 'a list
   (** Provide utilities for list *)
@@ -1684,6 +1688,8 @@ module Console = struct
   let log2 a b = print_endline (Printf.sprintf "%s %s" a b)
   let log3 a b c = print_endline (Printf.sprintf "%s %s %s" a b c)
   let log4 a b c d = print_endline (Printf.sprintf "%s %s %s %s" a b c d)
+
+  (* TODO: This prints different lines, not a single print *)
   let logMany arr = Stdlib.Array.iter log arr
   let info = log
   let info2 = log2
@@ -1700,9 +1706,9 @@ module Console = struct
   let warn3 = log3
   let warn4 = log4
   let warnMany = logMany
-  let trace () = ()
-  let timeStart _ = ()
-  let timeEnd _ = ()
+  let trace () = notImplemented "Js.Console" "trace"
+  let timeStart _ = notImplemented "Js.Console" "timeStart"
+  let timeEnd _ = notImplemented "Js.Console" "timeEnd"
 end
 
 let log = Console.log
