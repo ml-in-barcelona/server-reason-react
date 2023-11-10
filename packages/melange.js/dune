@@ -5,8 +5,11 @@
 
 (library
  (name js)
- (modules js)
+ (modules :standard \ test)
  (public_name server-reason-react.js)
+ (foreign_stubs
+  (language c)
+  (names Native_channels))
  (flags :standard -w -49)
  (libraries pcre lwt)
  (preprocess

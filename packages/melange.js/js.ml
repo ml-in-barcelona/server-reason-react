@@ -1682,6 +1682,42 @@ module Vector = struct
 end
 
 module Console = struct
+  type t = {
+    log : 'a. 'a -> unit;
+    out : 'a. 'a -> unit;
+    warn : 'a. 'a -> unit;
+    error : 'a. 'a -> unit;
+    debug : 'a. 'a -> unit;
+  }
+
+  let makeStandardChannelsConsole (objectPrinter : Object_printer.t) : t =
+    {
+      log =
+        (fun a ->
+          Native_channels._log (objectPrinter.polymorphicPrint objectPrinter a));
+      out =
+        (fun a ->
+          Native_channels._out (objectPrinter.polymorphicPrint objectPrinter a));
+      debug =
+        (fun a ->
+          Native_channels._debug
+            (objectPrinter.polymorphicPrint objectPrinter a));
+      error =
+        (fun a ->
+          Native_channels._error
+            (objectPrinter.polymorphicPrint objectPrinter a));
+      warn =
+        (fun a ->
+          Native_channels._warn (objectPrinter.polymorphicPrint objectPrinter a));
+    }
+
+  let defaultGlobalConsole = makeStandardChannelsConsole Object_printer.base
+  let currentGlobalConsole = { contents = defaultGlobalConsole }
+  let log a = currentGlobalConsole.contents.log a
+  let out a = currentGlobalConsole.contents.out a
+  let debug a = currentGlobalConsole.contents.debug a
+  let warn a = currentGlobalConsole.contents.warn a
+  let error a = currentGlobalConsole.contents.error a
   let log a = print_endline (Stdlib.Obj.magic a)
 
   let log2 a b =
