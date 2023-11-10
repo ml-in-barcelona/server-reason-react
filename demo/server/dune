@@ -1,7 +1,7 @@
 (executable
  (name server)
  (libraries
-  dream
+  tiny_httpd
   shared_native
   server-reason-react.react
   server-reason-react.reactDom
@@ -9,16 +9,6 @@
  (modules :standard \ Index)
  (preprocess
   (pps server-reason-react.ppx lwt_ppx)))
-
-(rule
- (alias server)
- (deps ./server.exe)
- (action
-  ; we want dune to write the file but not attach any fsevents listeners to it,
-  ; so that watchexec can read from it without issues.
-  ; this means no (target), no (with-stdout-to), just a bash command with stdout
-  ; redirect inside a string
-  (bash "date > %{project_root}/../../.processes/last_built_at.txt")))
 
 (executable
  (name index)

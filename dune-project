@@ -53,5 +53,5 @@
   (ocaml-lsp-server :with-test)
 
   ;; Demo deps
-  (dream :with-test)
+  (tiny_httpd :with-test)
 ))

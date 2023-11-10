@@ -49,48 +49,49 @@ module Page = {
   };
 };
 
-let handler =
-  Dream.router([
-    Dream.get("/", _request =>
-      Dream.html(
-        ReactDOM.renderToString(
-          <Page scripts=["/static/app.js"]> <Shared_native.App /> </Page>,
-        ),
-      )
-    ),
-    Dream.get("/header", _request =>
-      Dream.html(
-        ReactDOM.renderToString(
-          <Page scripts=["/static/header.js"]>
-            <Shared_native.Ahrefs />
-          </Page>,
-        ),
-      )
-    ),
-    Dream.get("/stream", _request =>
-      Dream.stream(
-        ~headers=[("Content-Type", "text/html")],
-        response_stream => {
-          let (stream, _) =
-            ReactDOM.renderToLwtStream(<Page> <Comments.App /> </Page>);
+/* let handler =
+     Dream.router([
+       Dream.get("/", _request =>
+         Dream.html(
+           ReactDOM.renderToString(
+             <Page scripts=["/static/app.js"]> <Shared_native.App /> </Page>,
+           ),
+         )
+       ),
+       Dream.get("/header", _request =>
+         Dream.html(
+           ReactDOM.renderToString(
+             <Page scripts=["/static/header.js"]>
+               <Shared_native.Ahrefs />
+             </Page>,
+           ),
+         )
+       ),
+       Dream.get("/stream", _request =>
+         Dream.stream(
+           ~headers=[("Content-Type", "text/html")],
+           response_stream => {
+             let (stream, _) =
+               ReactDOM.renderToLwtStream(<Page> <Comments.App /> </Page>);
 
-          Lwt_stream.iter_s(
-            data => {
-              let%lwt () = Dream.write(response_stream, data);
-              Dream.flush(response_stream);
-            },
-            stream,
-          );
-        },
-      )
-    ),
-    Dream.get("/static/**", Dream.static("./static")),
-  ]);
+             Lwt_stream.iter_s(
+               data => {
+                 let%lwt () = Dream.write(response_stream, data);
+                 Dream.flush(response_stream);
+               },
+               stream,
+             );
+           },
+         )
+       ),
+       Dream.get("/static/**", Dream.static("./static")),
+     ]);
 
-let interface =
-  switch (Sys.getenv_opt("SERVER_INTERFACE")) {
-  | Some(env) => env
-  | None => "localhost"
-  };
+   let interface =
+     switch (Sys.getenv_opt("SERVER_INTERFACE")) {
+     | Some(env) => env
+     | None => "localhost"
+     };
 
-Dream.run(~port=8080, ~interface, handler);
+   Dream.run(~port=8080, ~interface, handler);
+    */
