@@ -156,9 +156,7 @@ module Nullable = struct
   let undefined : 'a t = None
 
   let bind x f =
-    match to_opt x with
-    | None -> (Stdlib.Obj.magic (x : 'a t) : 'b t)
-    | Some x -> return (f x)
+    match to_opt x with None -> ((x : 'a t) : 'b t) | Some x -> return (f x)
 
   let iter x f = match to_opt x with None -> () | Some x -> f x
   let fromOption x = match x with None -> undefined | Some x -> return x
@@ -183,7 +181,7 @@ module Exn = struct
   let isCamlExceptionOrOpenVariant _ =
     notImplemented "Js.Exn" "isCamlExceptionOrOpenVariant"
 
-  let raiseError str = raise (Stdlib.Obj.magic (makeError str : t) : exn)
+  let raiseError str = raise ((makeError str : t) : exn)
   let raiseEvalError _ = notImplemented "Js.Exn" "raiseEvalError"
   let raiseRangeError _ = notImplemented "Js.Exn" "raiseRangeError"
   let raiseReferenceError _ = notImplemented "Js.Exn" "raiseReferenceError"
@@ -1682,22 +1680,10 @@ module Vector = struct
 end
 
 module Console = struct
-  let log a = print_endline (Stdlib.Obj.magic a)
-
-  let log2 a b =
-    print_endline
-      (Printf.sprintf "%s %s" (Stdlib.Obj.magic a) (Stdlib.Obj.magic b))
-
-  let log3 a b c =
-    print_endline
-      (Printf.sprintf "%s %s %s" (Stdlib.Obj.magic a) (Stdlib.Obj.magic b)
-         (Stdlib.Obj.magic c))
-
-  let log4 a b c d =
-    print_endline
-      (Printf.sprintf "%s %s %s %s" (Stdlib.Obj.magic a) (Stdlib.Obj.magic b)
-         (Stdlib.Obj.magic c) (Stdlib.Obj.magic d))
-
+  let log a = print_endline a
+  let log2 a b = print_endline (Printf.sprintf "%s %s" a b)
+  let log3 a b c = print_endline (Printf.sprintf "%s %s %s" a b c)
+  let log4 a b c d = print_endline (Printf.sprintf "%s %s %s %s" a b c d)
   let logMany arr = Stdlib.Array.iter log arr
   let info = log
   let info2 = log2
