@@ -624,7 +624,7 @@ let setDisplayName _ _ = ()
 let useTransition () = (false, fun (_cb : unit -> unit) -> ())
 
 let useDebugValue : 'value -> ?format:('value -> string) -> unit =
- fun [@warning "-16"] _ ?format -> ()
+ fun [@warning "-16"] _ ?format:_ -> ()
 
 let useDeferredValue value = value
 

@@ -22,7 +22,7 @@ let globalStyles = {js|
 
 module Page = {
   [@react.component]
-  let make = (~children, ~scripts=[]) => {
+  let _make = (~children, ~scripts=[]) => {
     <html>
       <head>
         <meta charSet="UTF-8" />

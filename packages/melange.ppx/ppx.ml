@@ -201,10 +201,10 @@ class raise_exception_mapper =
                   {
                     pexp_desc =
                       Pexp_fun
-                        (arg_label, arg_expression, fun_pattern, expression);
+                        (_arg_label, _arg_expression, _fun_pattern, expression);
                   } as pvb_expr;
                 pvb_pat =
-                  { ppat_desc = Ppat_var { txt = function_name; _ } } as
+                  { ppat_desc = Ppat_var { txt = _function_name; _ } } as
                   pvb_pattern;
                 pvb_attributes = _;
                 pvb_loc = _;
@@ -228,7 +228,8 @@ class raise_exception_mapper =
               {
                 pvb_expr = expression;
                 pvb_pat =
-                  { ppat_desc = Ppat_var { txt = function_name; _ } } as pattern;
+                  { ppat_desc = Ppat_var { txt = _function_name; _ } } as
+                  pattern;
                 pvb_attributes = _;
                 pvb_loc = _;
               };
@@ -253,7 +254,7 @@ class raise_exception_mapper =
                 pvb_pat =
                   {
                     ppat_desc =
-                      Ppat_constraint (constrain_pattern, constrain_type);
+                      Ppat_constraint (constrain_pattern, _constrain_type);
                   };
                 pvb_attributes = _;
                 pvb_loc = _;

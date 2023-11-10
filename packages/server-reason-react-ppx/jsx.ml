@@ -1157,8 +1157,8 @@ let jsxMapper () =
         pstr_loc = loc;
         pstr_desc =
           Pstr_primitive
-            ({ pval_name = { txt = fnName }; pval_attributes; pval_type } as
-             _value_description);
+            ({ pval_name = { txt = _fnName }; pval_attributes; pval_type = _ }
+             as _value_description);
       } as _pstr -> (
         match List.filter hasAttr pval_attributes with
         | [] -> structure :: returnStructures
@@ -1182,10 +1182,10 @@ let jsxMapper () =
   let transformComponentSignature _mapper signature returnSignatures =
     match signature with
     | {
-        psig_loc;
+        psig_loc = _;
         psig_desc =
           Psig_value
-            ({ pval_name = { txt = fnName }; pval_attributes; pval_type } as
+            ({ pval_name = { txt = _fnName }; pval_attributes; pval_type } as
              psig_desc);
       } as psig -> (
         match List.filter hasAttr pval_attributes with
