@@ -38,7 +38,7 @@ let int_attribute = () => {
   let div = <div tabIndex=1 />;
   assert_string(
     ReactDOM.renderToStaticMarkup(div),
-    "<div tabIndex=\"1\"></div>",
+    "<div tabindex=\"1\"></div>",
   );
 };
 
@@ -85,7 +85,7 @@ let int_opt_attribute_some = () => {
   let div = <div ?tabIndex />;
   assert_string(
     ReactDOM.renderToStaticMarkup(div),
-    "<div tabIndex=\"1\"></div>",
+    "<div tabindex=\"1\"></div>",
   );
 };
 
