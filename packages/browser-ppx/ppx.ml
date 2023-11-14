@@ -284,14 +284,16 @@ module Browser_only = struct
               in
               let item = { fn with pexp_attributes = expr.pexp_attributes } in
               [%stri
-                let ([%p pattern] :
-                      ([%t type_constraint]
-                      [@alert
-                        browser_only
-                          "This expression is marked to only run on the \
-                           browser where JavaScript can run. You can only use \
-                           it inside a let%browser_only function."])) =
-                  ([%e item] [@warning "-27-32"] [@alert "-browser_only"])]
+                let[@warning "-27-32"] ([%p pattern] :
+                                         ([%t type_constraint]
+                                         [@alert
+                                           browser_only
+                                             "This expression is marked to \
+                                              only run on the browser where \
+                                              JavaScript can run. You can only \
+                                              use it inside a let%browser_only \
+                                              function."])) =
+                  ([%e item] [@alert "-browser_only"])]
           | Pexp_fun (arg_label, arg_expression, fun_pattern, expr) ->
               let original_function_name =
                 get_function_name pattern.ppat_desc
@@ -308,13 +310,13 @@ module Browser_only = struct
               in
               let item = { fn with pexp_attributes = expr.pexp_attributes } in
               [%stri
-                let ([%p pattern]
+                let[@warning "-27-32"] ([%p pattern]
                     [@alert
                       browser_only
                         "This expression is marked to only run on the browser \
                          where JavaScript can run. You can only use it inside \
                          a let%browser_only function."]) =
-                  ([%e item] [@warning "-27-32"] [@alert "-browser_only"])]
+                  ([%e item] [@alert "-browser_only"])]
           | Pexp_ident { txt = longident; loc } ->
               let stringified = Ppxlib.Longident.name longident in
               let message = Builder.estring ~loc stringified in
