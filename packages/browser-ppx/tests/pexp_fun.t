@@ -32,9 +32,12 @@ With -js flag everything keeps as it is and browser_only extension disappears
       setHtmlFetchState Loading
     in
     ()
-Without -js flag, the compilation to native replaces the expression with `raise (ReactDOM.Impossible_in_ssr`
 
-  $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl
+Without -js flag, the compilation to native replaces the expression with a raise
+
+  $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl > output.ml
+
+  $ cat output.ml
   let (pexp_fun_1arg_structure_item
       [@alert
         browser_only
@@ -63,3 +66,7 @@ Without -js flag, the compilation to native replaces the expression with `raise 
         [@@warning "-26-27"] [@@alert "-browser_only"]
     in
     ()
+
+  $ sed "s/Runtime.fail_impossible_action_in_ssr/print_endline/g" output.ml > output.ml
+
+  $ ocamlc -c output.ml

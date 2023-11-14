@@ -36,6 +36,20 @@ module Effect = struct
 end
 
 module Browser_only = struct
+  (* 26 unused-var (bound to a let or as) *)
+  let remove_unused_var ~loc =
+    Builder.attribute ~loc ~name:{ txt = "warning"; loc }
+      ~payload:(PStr [ [%stri "-26"] ])
+
+  (* 27 unused-var-strict (not bound to a let or as, for example a function argument)*)
+  let remove_unused_var_strict ~loc =
+    Builder.attribute ~loc ~name:{ txt = "warning"; loc }
+      ~payload:(PStr [ [%stri "-27"] ])
+
+  let remove_unused_varariables ~loc =
+    Builder.attribute ~loc ~name:{ txt = "warning"; loc }
+      ~payload:(PStr [ [%stri "-26-27"] ])
+
   let get_function_name pattern =
     match pattern with Ppat_var { txt = name; _ } -> name | _ -> "unkwnown"
 
@@ -101,16 +115,12 @@ module Browser_only = struct
               }
             in
             let vb = Builder.value_binding ~loc ~pat ~expr in
-            let remove_unused_variable_warning27 =
-              Builder.attribute ~loc ~name:{ txt = "warning"; loc }
-                ~payload:(PStr [ [%stri "-27-26"] ])
-            in
+
             {
               vb with
               pvb_attributes =
                 [
-                  remove_unused_variable_warning27;
-                  remove_alert_browser_only ~loc;
+                  remove_unused_varariables ~loc; remove_alert_browser_only ~loc;
                 ];
             }
         | Pexp_fun (_arg_label, _arg_expression, _fun_pattern, _expr) ->
@@ -123,16 +133,11 @@ module Browser_only = struct
               }
             in
             let vb = Builder.value_binding ~loc ~pat ~expr in
-            let remove_unused_variable_warning27 =
-              Builder.attribute ~loc ~name:{ txt = "warning"; loc }
-                ~payload:(PStr [ [%stri "-27-26"] ])
-            in
             {
               vb with
               pvb_attributes =
                 [
-                  remove_unused_variable_warning27;
-                  remove_alert_browser_only ~loc;
+                  remove_unused_varariables ~loc; remove_alert_browser_only ~loc;
                 ];
             }
         | Pexp_ident { txt = longident; loc } ->
@@ -284,14 +289,16 @@ module Browser_only = struct
               in
               let item = { fn with pexp_attributes = expr.pexp_attributes } in
               [%stri
-                let ([%p pattern] :
-                      ([%t type_constraint]
-                      [@alert
-                        browser_only
-                          "This expression is marked to only run on the \
-                           browser where JavaScript can run. You can only use \
-                           it inside a let%browser_only function."])) =
-                  ([%e item] [@warning "-27-32"] [@alert "-browser_only"])]
+                let[@warning "-27-32"] ([%p pattern] :
+                                         ([%t type_constraint]
+                                         [@alert
+                                           browser_only
+                                             "This expression is marked to \
+                                              only run on the browser where \
+                                              JavaScript can run. You can only \
+                                              use it inside a let%browser_only \
+                                              function."])) =
+                  ([%e item] [@alert "-browser_only"])]
           | Pexp_fun (arg_label, arg_expression, fun_pattern, expr) ->
               let original_function_name =
                 get_function_name pattern.ppat_desc
@@ -308,13 +315,13 @@ module Browser_only = struct
               in
               let item = { fn with pexp_attributes = expr.pexp_attributes } in
               [%stri
-                let ([%p pattern]
+                let[@warning "-27-32"] ([%p pattern]
                     [@alert
                       browser_only
                         "This expression is marked to only run on the browser \
                          where JavaScript can run. You can only use it inside \
                          a let%browser_only function."]) =
-                  ([%e item] [@warning "-27-32"] [@alert "-browser_only"])]
+                  ([%e item] [@alert "-browser_only"])]
           | Pexp_ident { txt = longident; loc } ->
               let stringified = Ppxlib.Longident.name longident in
               let message = Builder.estring ~loc stringified in
