@@ -13,8 +13,10 @@ let encode s =
   Buffer.contents buffer
 
 let is_self_closing_tag = function
-  (* https://github.com/facebook/react/blob/97d75c9c8bcddb0daed1ed062101c7f5e9b825f4/packages/react-dom-bindings/src/shared/omittedCloseTags.js *)
-  | "area" | "base" | "br" | "col" | "embed" | "hr" | "img" | "input" | "link"
-  | "meta" | "param" | "source" | "track" | "wbr" (* | "menuitem" *) ->
+  (* Take the list from
+     https://github.com/facebook/react/blob/97d75c9c8bcddb0daed1ed062101c7f5e9b825f4/packages/react-dom-bindings/src/shared/omittedCloseTags.js but found https://github.com/wooorm/html-void-elements to be more complete. *)
+  | "area" | "base" | "basefont" | "bgsound" | "br" | "col" | "command"
+  | "embed" | "frame" | "hr" | "image" | "img" | "input" | "keygen"
+  | "link" (* | "menuitem" *) | "meta" | "param" | "source" | "track" | "wbr" ->
       true
   | _ -> false
