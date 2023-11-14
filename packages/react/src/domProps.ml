@@ -1,3 +1,10 @@
+(* TODO:
+    - Add URL on each property
+    - Add description on each property
+    - Add URL on each tag
+    - Add depreacted and experimental tags
+*)
+
 [@@@ocamlformat "disable"]
 (* This file is more like a spreadsheet, prefer to keep it with margin=300.
    Since @@@ocamlformat "margin=300" isn't possible, we disable it *)
@@ -496,28 +503,29 @@ let globalAttributes =
   [
     (* https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes *)
     (* Standard HTML Attributes *)
-    Attribute { name = "accessKey"; jsxName = "accessKey"; type_ = String };
-    Attribute { name = "autoCapitalize"; jsxName = "autoCapitalize"; type_ = String };
-    Attribute { name = "contextMenu"; jsxName = "contextMenu"; type_ = String };
-    Attribute { name = "contentEditable"; jsxName = "contentEditable"; type_ = BooleanishString };
+    Attribute { name = "accesskey"; jsxName = "accessKey"; type_ = String };
+    Attribute { name = "autocapitalize"; jsxName = "autoCapitalize"; type_ = String };
+    Attribute { name = "autofocus"; jsxName = "autoFocus"; type_ = String };
+    Attribute { name = "contextmenu"; jsxName = "contextMenu"; type_ = String };
+    Attribute { name = "contenteditable"; jsxName = "contentEditable"; type_ = BooleanishString };
     Attribute { name = "dir"; jsxName = "dir"; type_ = String };
     Attribute { name = "draggable"; jsxName = "draggable"; type_ = BooleanishString };
     Attribute { name = "hidden"; jsxName = "hidden"; type_ = Bool };
     Attribute { name = "id"; jsxName = "id"; type_ = String };
-    Attribute { name = "itemProp"; jsxName = "itemProp"; type_ = String };
-    Attribute { name = "itemScope"; jsxName = "itemScope"; type_ = Bool };
-    Attribute { name = "itemType"; jsxName = "itemType"; type_ = String };
-    Attribute { name = "itemID"; jsxName = "itemID"; type_ = String };
-    Attribute { name = "itemRef"; jsxName = "itemRef"; type_ = String };
+    Attribute { name = "itemprop"; jsxName = "itemProp"; type_ = String };
+    Attribute { name = "itemscope"; jsxName = "itemScope"; type_ = Bool };
+    Attribute { name = "itemtype"; jsxName = "itemType"; type_ = String };
+    Attribute { name = "itemid"; jsxName = "itemID"; type_ = String };
+    Attribute { name = "itemref"; jsxName = "itemRef"; type_ = String };
     Attribute { name = "lang"; jsxName = "lang"; type_ = String };
     Attribute { name = "placeholder"; jsxName = "placeholder"; type_ = String };
     Attribute { name = "part"; jsxName = "part"; type_ = String };
     Attribute { name = "nonce"; jsxName = "nonce"; type_ = String };
     Attribute { name = "slot"; jsxName = "slot"; type_ = String };
-    Attribute { name = "spellCheck"; jsxName = "spellCheck"; type_ = BooleanishString };
+    Attribute { name = "spellcheck"; jsxName = "spellCheck"; type_ = BooleanishString };
     Attribute { name = "style"; jsxName = "style"; type_ = Style };
     Attribute { name = "tabIndex"; jsxName = "tabIndex"; type_ = Int };
-    Attribute { name = "enterKeyHint"; jsxName = "enterKeyHint"; type_ = Int };
+    Attribute { name = "enterkeyhint"; jsxName = "enterKeyHint"; type_ = Int };
     (* data-* attributes are globaly available *)
     (* Experimental ; Attribute {name= "exportParts"; jsxName= "exportParts";
        type_= Int} *)
@@ -527,7 +535,7 @@ let globalAttributes =
     (* Living Standard * Hints at the type of data that might be entered by the
        user while editing the element or its contents * @see
        https://html.spec.whatwg.org/multipage/interaction.html#input-modalities:-the-inputmode-attribute *)
-    Attribute { name = "inputMode"; jsxName = "inputmode"; type_ = String (* 'none' | 'text' | 'tel' | 'url' | 'email' | 'numeric' | 'decimal' | 'search' *) };
+    Attribute { name = "inputmode"; jsxName = "inputmode"; type_ = String (* 'none' | 'text' | 'tel' | 'url' | 'email' | 'numeric' | 'decimal' | 'search' *) };
 
     (* Specify that a standard HTML element should behave like a defined custom
        built-in element * @see
@@ -537,14 +545,14 @@ let globalAttributes =
 
 let elementAttributes =
   [
-    Attribute { name = "radioGroup"; jsxName = "radioGroup"; type_ = String };
+    (* Attribute { name = "radioGroup"; jsxName = "radioGroup"; type_ = String }; Does it exist? *)
 
     (* WAI-ARIA *)
     Attribute { name = "role"; jsxName = "role"; type_ = ariaRole };
 
     (* RDFa Attributes *)
     Attribute { name = "about"; jsxName = "about"; type_ = String };
-    Attribute { name = "dataType"; jsxName = "dataType"; type_ = String };
+    (* Attribute { name = "dataType"; jsxName = "dataType"; type_ = String }; *)
     Attribute { name = "inlist"; jsxName = "inlist"; type_ = String (* any *) };
     Attribute { name = "prefix"; jsxName = "prefix"; type_ = String };
     Attribute { name = "property"; jsxName = "property"; type_ = String };
@@ -553,8 +561,10 @@ let elementAttributes =
     Attribute { name = "vocab"; jsxName = "vocab"; type_ = String };
 
     (* Non-standard Attributes *)
-    Attribute { name = "autoCorrect"; jsxName = "autoCorrect"; type_ = String };
-    Attribute { name = "autoSave"; jsxName = "autoSave"; type_ = String };
+    (* https://developer.mozilla.org/en-US/docs/Web/HTML/Element/Input#autocorrect *)
+    Attribute { name = "autocorrect"; jsxName = "autoCorrect"; type_ = String };
+    (* https://developer.mozilla.org/en-US/docs/Web/HTML/Element/Input#attr-autosave *)
+    Attribute { name = "autosave"; jsxName = "autoSave"; type_ = String };
     Attribute { name = "color"; jsxName = "color"; type_ = String };
     Attribute { name = "results"; jsxName = "results"; type_ = Int };
     Attribute { name = "security"; jsxName = "security"; type_ = String };
@@ -598,17 +608,22 @@ let blockquoteHTMLAttributes =
     Attribute { name = "cite"; jsxName = "cite"; type_ = String };
   ]
 
+(* https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button *)
 let buttonHTMLAttributes =
   [
-    Attribute { name = "autoFocus"; jsxName = "autofocus"; type_ = Bool };
+    Attribute { name = "autofocus"; jsxName = "autoFocus"; type_ = Bool };
+    Attribute { name = "autocomplete"; jsxName = "autoComplete"; type_ = Bool };
     Attribute { name = "disabled"; jsxName = "disabled"; type_ = Bool };
     Attribute { name = "form"; jsxName = "form"; type_ = String };
-    Attribute { name = "formAction"; jsxName = "formAction"; type_ = String };
-    Attribute { name = "formEncType"; jsxName = "formEncType"; type_ = String };
-    Attribute { name = "formMethod"; jsxName = "formMethod"; type_ = String };
-    Attribute { name = "formNoValidate"; jsxName = "formNoValidate"; type_ = Bool };
-    Attribute { name = "formTarget"; jsxName = "formTarget"; type_ = String };
+    Attribute { name = "formaction"; jsxName = "formAction"; type_ = String };
+    Attribute { name = "formenctype"; jsxName = "formEncType"; type_ = String };
+    (* https://developer.mozilla.org/en-US/docs/Web/HTML/Element/form#method *)
+    Attribute { name = "formmethod"; jsxName = "formMethod"; type_ = String };
+    Attribute { name = "formnovalidate"; jsxName = "formNoValidate"; type_ = Bool };
+    Attribute { name = "formtarget"; jsxName = "formTarget"; type_ = String };
     Attribute { name = "name"; jsxName = "name"; type_ = String };
+    Attribute { name = "popovertarget"; jsxName = "popoverTarget"; type_ = String };
+    Attribute { name = "popovertargetaction"; jsxName = "popoverTargetAction"; type_ = String };
     Attribute { name = "type"; jsxName = "type_"; type_ = String (* 'submit' | 'reset' | 'button' *) };
     Attribute { name = "value"; jsxName = "value"; type_ = String (* | ReadonlyArray<String> | number *) };
   ]
@@ -635,22 +650,26 @@ let dataHTMLAttributes =
     Attribute { name = "value"; jsxName = "value"; type_ = String (* | ReadonlyArray<String> | number *) }
   ]
 
+(* https://developer.mozilla.org/en-US/docs/Web/HTML/Element/details *)
 let detailsHTMLAttributes =
   [
     Attribute { name = "open"; jsxName = "open"; type_ = Bool }; Event { jsxName = "onToggle"; type_ = Media }
   ]
 
+(* https://developer.mozilla.org/en-US/docs/Web/HTML/Element/del *)
 let delHTMLAttributes =
   [
     Attribute { name = "cite"; type_ = String; jsxName = "cite" };
-    Attribute { name = "dateTime"; type_ = String; jsxName = "dateTime" }
+    Attribute { name = "datetime"; type_ = String; jsxName = "dateTime" }
   ]
 
+(* https://developer.mozilla.org/en-US/docs/Web/HTML/Element/dialog *)
 let dialogHTMLAttributes =
   [
     Attribute { name = "open"; jsxName = "open"; type_ = Bool }
   ]
 
+(* https://developer.mozilla.org/en-US/docs/Web/HTML/Element/embed *)
 let embedHTMLAttributes =
   [
     Attribute { name = "height"; jsxName = "height"; type_ = String (* number | *); };
@@ -659,6 +678,7 @@ let embedHTMLAttributes =
     Attribute { name = "width"; type_ = String (* number | *); jsxName = "width" };
   ]
 
+(* https://developer.mozilla.org/en-US/docs/Web/HTML/Element/fieldset *)
 let fieldsetHTMLAttributes =
   [
     Attribute { name = "disabled"; jsxName = "disabled"; type_ = Bool };
@@ -666,15 +686,19 @@ let fieldsetHTMLAttributes =
     Attribute { name = "name"; jsxName = "name"; type_ = String };
   ]
 
+(* https://developer.mozilla.org/en-US/docs/Web/HTML/Element/form *)
 let formHTMLAttributes =
   [
-    Attribute { name = "acceptCharset"; jsxName = "acceptCharset"; type_ = String };
-    Attribute { name = "action"; jsxName = "action"; type_ = String };
-    Attribute { name = "autoComplete"; jsxName = "autoComplete"; type_ = String };
-    Attribute { name = "encType"; jsxName = "encType"; type_ = String };
-    Attribute { name = "method"; jsxName = "method_"; type_ = String };
+    Attribute { name = "accept"; jsxName = "accept"; type_ = String };
+    Attribute { name = "accept-charset"; jsxName = "acceptCharset"; type_ = String };
+    Attribute { name = "autocapitalize"; jsxName = "autoCapitalize"; type_ = String };
+    Attribute { name = "autocomplete"; jsxName = "autoComplete"; type_ = String };
     Attribute { name = "name"; jsxName = "name"; type_ = String };
-    Attribute { name = "noValidate"; jsxName = "noValidate"; type_ = Bool };
+    Attribute { name = "rel"; jsxName = "rel"; type_ = String };
+    Attribute { name = "enctype"; jsxName = "encType"; type_ = String };
+    Attribute { name = "action"; jsxName = "action"; type_ = String };
+    Attribute { name = "method"; jsxName = "method_"; type_ = String };
+    Attribute { name = "novalidate"; jsxName = "noValidate"; type_ = Bool };
     Attribute { name = "target"; jsxName = "target"; type_ = String };
   ]
 
@@ -688,34 +712,44 @@ let iframeHTMLAttributes =
     Attribute { name = "allow"; jsxName = "allow"; type_ = String };
     Attribute { name = "allowfullscreen"; jsxName = "allowFullScreen"; type_ = Bool };
     Attribute { name = "allowtransparency"; jsxName = "allowTransparency"; type_ = Bool };
-    (* deprecated *)
-    Attribute { name = "frameBorder"; jsxName = "frameBorder"; type_ = String (* number | *) };
-    Attribute { name = "height"; jsxName = "height"; type_ = String (* number | *) };
-    (* deprecated *)
-    Attribute { name = "marginHeight"; jsxName = "marginHeight"; type_ = Int (* number *) };
-    (* deprecated *)
-    Attribute { name = "marginWidth"; jsxName = "marginWidth"; type_ = Int (* number *) };
+    Attribute { name = "csp"; jsxName = "csp"; type_ = String };
+    Attribute { name = "credentialless"; jsxName = "credentialLess"; type_ = String };
+    Attribute { name = "loading"; jsxName = "loading"; type_ = String };
+    Attribute { name = "sandbox"; jsxName = "sandbox"; type_ = String };
     Attribute { name = "name"; jsxName = "name"; type_ = String };
     Attribute { name = "sandbox"; jsxName = "sandbox"; type_ = String };
-    (* deprecated *)
-    Attribute { name = "scrolling"; jsxName = "scrolling"; type_ = String };
     Attribute { name = "seamless"; jsxName = "seamless"; type_ = Bool };
     Attribute { name = "src"; jsxName = "src"; type_ = String };
-    Attribute { name = "srcDoc"; jsxName = "srcDoc"; type_ = String };
+    Attribute { name = "srcdoc"; jsxName = "srcDoc"; type_ = String };
     Attribute { name = "width"; jsxName = "width"; type_ = String (* number | *) };
+    Attribute { name = "height"; jsxName = "height"; type_ = String (* number | *) };
+    (* Deprecated attributes *)
+    Attribute { name = "align"; jsxName = "align"; type_ = String };
+    Attribute { name = "longdesc"; jsxName = "longDesc"; type_ = String };
+    Attribute { name = "frameborder"; jsxName = "frameBorder"; type_ = String (* number | *) };
+    Attribute { name = "marginheight"; jsxName = "marginHeight"; type_ = Int (* number *) };
+    Attribute { name = "marginwidth"; jsxName = "marginWidth"; type_ = Int (* number *) };
+    Attribute { name = "scrolling"; jsxName = "scrolling"; type_ = String };
   ]
 
+(* https://developer.mozilla.org/en-US/docs/Web/HTML/Element/img *)
 let imgHTMLAttributes =
   [
     Attribute { name = "alt"; jsxName = "alt"; type_ = String };
-    Attribute { name = "crossOrigin"; jsxName = "crossOrigin"; type_ = String (* "anonymous" | "use-credentials" | "" *) };
+    Attribute { name = "crossorigin"; jsxName = "crossOrigin"; type_ = String (* "anonymous" | "use-credentials" | "" *) };
+    Attribute { name = "elementtiming"; jsxName = "elementTiming"; type_ = String };
+    Attribute { name = "fetchpriority"; jsxName = "fetchPriority"; type_ = String };
+    Attribute { name = "loading"; jsxName = "loading"; type_ = String };
+    Attribute { name = "ismap"; jsxName = "isMap"; type_ = Bool };
     Attribute { name = "decoding"; jsxName = "decoding"; type_ = String (* "async" | "auto" | "sync" *) };
-    Attribute { name = "height"; jsxName = "height"; type_ = String (* number | *) };
     Attribute { name = "sizes"; jsxName = "sizes"; type_ = String };
     Attribute { name = "src"; jsxName = "src"; type_ = String };
-    Attribute { name = "srcSet"; jsxName = "srcset"; type_ = String };
-    Attribute { name = "useMap"; jsxName = "usemap"; type_ = String };
+    Attribute { name = "srcset"; jsxName = "srcset"; type_ = String };
+    Attribute { name = "usemap"; jsxName = "usemap"; type_ = String };
     Attribute { name = "width"; jsxName = "width"; type_ = String (* number | *) };
+    Attribute { name = "height"; jsxName = "height"; type_ = String (* number | *) };
+    (* Deprecated *)
+    (* align, border, hspace, longdesc, name, vspace *)
   ]
 
 let insHTMLAttributes =
@@ -734,18 +768,18 @@ let inputHTMLAttributes =
   [
     Attribute { name = "accept"; jsxName = "accept"; type_ = String };
     Attribute { name = "alt"; jsxName = "alt"; type_ = String };
-    Attribute { name = "autoComplete"; jsxName = "autoComplete"; type_ = String };
-    Attribute { name = "autoFocus"; jsxName = "autoFocus"; type_ = Bool };
+    Attribute { name = "autocomplete"; jsxName = "autoComplete"; type_ = String };
+    Attribute { name = "autofocus"; jsxName = "autoFocus"; type_ = Bool };
     Attribute { name = "capture"; jsxName = "capture"; type_ = String (* Bool | *) (* https://www.w3.org/TR/html-media-capture/ *) };
     Attribute { name = "checked"; jsxName = "checked"; type_ = Bool };
-    Attribute { name = "crossOrigin"; jsxName = "crossOrigin"; type_ = String };
+    Attribute { name = "crossorigin"; jsxName = "crossOrigin"; type_ = String };
     Attribute { name = "disabled"; jsxName = "disabled"; type_ = Bool };
     Attribute { name = "form"; jsxName = "form"; type_ = String };
-    Attribute { name = "formAction"; jsxName = "formAction"; type_ = String };
-    Attribute { name = "formEncType"; jsxName = "formEncType"; type_ = String };
-    Attribute { name = "formMethod"; jsxName = "formMethod"; type_ = String };
-    Attribute { name = "formNoValidate"; jsxName = "formNoValidate"; type_ = Bool };
-    Attribute { name = "formTarget"; jsxName = "formTarget"; type_ = String };
+    Attribute { name = "formaction"; jsxName = "formAction"; type_ = String };
+    Attribute { name = "formenctype"; jsxName = "formEncType"; type_ = String };
+    Attribute { name = "method"; jsxName = "formMethod"; type_ = String };
+    Attribute { name = "novalidate"; jsxName = "formNoValidate"; type_ = Bool };
+    Attribute { name = "target"; jsxName = "formTarget"; type_ = String };
     Attribute { name = "height"; jsxName = "height"; type_ = String (* number | *) };
     Attribute { name = "list"; jsxName = "list"; type_ = String };
     Attribute { name = "max"; jsxName = "max"; type_ = String (* number | *) };
@@ -769,7 +803,7 @@ let inputHTMLAttributes =
 
 let keygenHTMLAttributes =
   [
-    Attribute { name = "autoFocus"; jsxName = "autoFocus"; type_ = Bool };
+    Attribute { name = "autofocus"; jsxName = "autoFocus"; type_ = Bool };
     Attribute { name = "challenge"; jsxName = "challenge"; type_ = String };
     Attribute { name = "disabled"; jsxName = "disabled"; type_ = Bool };
     Attribute { name = "form"; jsxName = "form"; type_ = String };
@@ -928,8 +962,8 @@ let scriptHTMLAttributes =
 
 let selectHTMLAttributes =
   [
-    Attribute { name = "autoComplete"; jsxName = "autoComplete"; type_ = String };
-    Attribute { name = "autoFocus"; jsxName = "autoFocus"; type_ = Bool };
+    Attribute { name = "autocomplete"; jsxName = "autoComplete"; type_ = String };
+    Attribute { name = "autofocus"; jsxName = "autoFocus"; type_ = Bool };
     Attribute { name = "disabled"; jsxName = "disabled"; type_ = Bool };
     Attribute { name = "form"; jsxName = "form"; type_ = String };
     Attribute { name = "multiple"; jsxName = "multiple"; type_ = Bool };
@@ -969,8 +1003,8 @@ let tableHTMLAttributes =
 
 let textareaHTMLAttributes =
   [
-    Attribute { name = "autoComplete"; jsxName = "autoComplete"; type_ = String };
-    Attribute { name = "autoFocus"; jsxName = "autoFocus"; type_ = String };
+    Attribute { name = "autocomplete"; jsxName = "autoComplete"; type_ = String };
+    Attribute { name = "autofocus"; jsxName = "autoFocus"; type_ = String };
     Attribute { name = "cols"; jsxName = "cols"; type_ = Int (* number *) };
     Attribute { name = "dirName"; jsxName = "dirName"; type_ = String };
     Attribute { name = "disabled"; jsxName = "disabled"; type_ = Bool };
@@ -1338,8 +1372,8 @@ end
 let webViewHTMLAttributes =
   [
     Attribute { name = "allowfullcreen"; jsxName = "allowFullScreen"; type_ = Bool };
-    Attribute { name = "allowPopups"; jsxName = "allowPopups"; type_ = Bool };
-    Attribute { name = "autoFocus"; jsxName = "autoFocus"; type_ = Bool };
+    (* Attribute { name = "allowPopups"; jsxName = "allowPopups"; type_ = Bool }; Does it exist? *)
+    Attribute { name = "autofocus"; jsxName = "autoFocus"; type_ = Bool };
     Attribute { name = "autoSize"; jsxName = "autoSize"; type_ = Bool };
     Attribute { name = "blinkFeatures"; jsxName = "blinkFeatures"; type_ = String };
     Attribute { name = "disableBlinkFeatures"; jsxName = "disableBlinkFeatures"; type_ = String };
@@ -1553,19 +1587,19 @@ let svgElements =
 
 let elements = svgElements & htmlElements
 
+let getJSXName = function
+  | Attribute { jsxName; _ } -> jsxName
+  | Event { jsxName; _ } -> jsxName
+
 let getName = function
   | Attribute { name; _ } -> name
   | Event { jsxName; _ } -> jsxName
 
 let domPropNames =
   (commonSvgAttributes & commonHtmlAttributes)
-  |> List.map getName
+  |> List.map getJSXName
   (* We ignore prefixed names such as "hackAttributes prop list" *)
   |> List.filter (fun name -> not (String.starts_with ~prefix:"_" name))
-
-let getJSXName = function
-  | Attribute { jsxName; _ } -> jsxName
-  | Event { jsxName; _ } -> jsxName
 
 type errors = [ `ElementNotFound | `AttributeNotFound ]
 
