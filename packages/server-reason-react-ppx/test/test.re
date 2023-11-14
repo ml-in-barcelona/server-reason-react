@@ -194,7 +194,7 @@ let onclick_inline_string = () => {
   );
 };
 
-let svg = () => {
+let svg_1 = () => {
   assert_string(
     ReactDOM.renderToStaticMarkup(
       <svg
@@ -208,6 +208,48 @@ let svg = () => {
       </svg>,
     ),
     "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" width=\"24px\" height=\"24px\"><path d=\"M 5 3 C 3.9069372 3 3 3.9069372 3 5 L 3 19 C 3 20.093063 3.9069372 21 5 21 L 19 21 C 20.093063 21 21 20.093063 21 19 L 21 12 L 19 12 L 19 19 L 5 19 L 5 5 L 12 5 L 12 3 L 5 3 z M 14 3 L 14 5 L 17.585938 5 L 8.2929688 14.292969 L 9.7070312 15.707031 L 19 6.4140625 L 19 10 L 21 10 L 21 3 L 14 3 z\"></path></svg>",
+  );
+};
+
+let svg_2 = () => {
+  assert_string(
+    ReactDOM.renderToStaticMarkup(
+      <svg
+        width="100"
+        height="100"
+        xmlns="http://www.w3.org/2000/svg"
+        xmlnsXlink="http://www.w3.org/1999/xlink"
+        version="1.1"
+        baseProfile="full"
+        viewBox="0 0 100 100"
+        preserveAspectRatio="xMidYMid meet"
+        zoomAndPan="magnify"
+        fill="#000000"
+        fillOpacity="0.8"
+        stroke="#000000"
+        strokeOpacity="0.8"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeMiterlimit="4"
+        strokeDasharray="5,5"
+        strokeDashoffset="2"
+        opacity="0.8"
+        color="red"
+        enableBackground="accumulate"
+        patternUnits="userSpaceOnUse"
+        gradientUnits="userSpaceOnUse"
+        gradientTransform="rotate(45)"
+        filter="url(#myFilter)"
+        transform="rotate(45 50 50)">
+        <defs>
+          <filter id="myFilter">
+            <feGaussianBlur in_="SourceGraphic" stdDeviation="3" />
+          </filter>
+        </defs>
+      </svg>,
+    ),
+    {|<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink" version="1.1" baseProfile="full" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" zoomAndPan="magnify" fill="#000000" fill-opacity="0.8" stroke="#000000" stroke-opacity="0.8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4" stroke-dasharray="5,5" stroke-dashoffset="2" opacity="0.8" color="red" enable-background="accumulate" patternUnits="userSpaceOnUse" gradientUnits="userSpaceOnUse" gradientTransform="rotate(45)" filter="url(#myFilter)" transform="rotate(45 50 50)"><defs><filter id="myFilter"><feGaussianBlur in="SourceGraphic" stdDeviation="3"></feGaussianBlur></filter></defs></svg>|},
   );
 };
 
@@ -297,7 +339,8 @@ let _ =
           case("input_bool_attrs", bool_attributes),
           case("p_inner_html", innerhtml),
           case("div_int_attr", int_attribute),
-          case("svg", svg),
+          case("svg_1", svg_1),
+          case("svg_2", svg_2),
           case("style_attr", style_attribute),
           case("div_ref_attr", ref_attribute),
           case("link_as_attr", link_as_attribute),
