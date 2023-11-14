@@ -76,11 +76,15 @@ init: setup-githooks create-switch install pin ## Create a local dev enviroment
 
 .PHONY: ppx-test
 ppx-test: ## Run ppx tests
-	$(DUNE) runtest ppx
+	$(DUNE) runtest packages/server-reason-react-ppx
 
 .PHONY: ppx-test-watch
 ppx-test-watch: ## Run ppx tests in watch mode
-	$(DUNE) runtest ppx --watch
+	$(DUNE) runtest packages/server-reason-react-ppx --watch
+
+.PHONY: ppx-test-promote
+ppx-test-promote: ## Prommote ppx tests snapshots
+	$(DUNE) runtest packages/server-reason-react-ppx --auto-promote
 
 .PHONY: lib-test
 lib-test: ## Run library tests
