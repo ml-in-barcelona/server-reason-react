@@ -11,5 +11,6 @@
         browser_only
           "This expression is marked to only run on the browser where JavaScript \
            can run. You can only use it inside a let%browser_only function."]) =
-   fun [@warning "-27-32"] [@alert "-browser_only"] p f ->
+   fun [@alert "-browser_only"] p f ->
     Runtime.fail_impossible_action_in_ssr "let+"
+  [@@warning "-27-32"]

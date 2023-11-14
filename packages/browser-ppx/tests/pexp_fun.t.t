@@ -40,24 +40,26 @@ Without -js flag, the compilation to native replaces the expression with `raise 
         browser_only
           "This expression is marked to only run on the browser where JavaScript \
            can run. You can only use it inside a let%browser_only function."]) =
-   fun [@warning "-27-32"] [@alert "-browser_only"] evt ->
+   fun [@alert "-browser_only"] evt ->
     Runtime.fail_impossible_action_in_ssr "pexp_fun_1arg_structure_item"
+  [@@warning "-27-32"]
   
   let (pexp_fun_2arg_structure_item
       [@alert
         browser_only
           "This expression is marked to only run on the browser where JavaScript \
            can run. You can only use it inside a let%browser_only function."]) =
-   fun [@warning "-27-32"] [@alert "-browser_only"] evt moar_arguments ->
+   fun [@alert "-browser_only"] evt moar_arguments ->
     Runtime.fail_impossible_action_in_ssr "pexp_fun_2arg_structure_item"
+  [@@warning "-27-32"]
   
   let make () =
     let fun_value_binding_pexp_fun_2arg evt moar_arguments =
       Runtime.fail_impossible_action_in_ssr "fun_value_binding_pexp_fun_2arg"
-        [@@warning "-27-26"] [@@alert "-browser_only"]
+        [@@warning "-26-27"] [@@alert "-browser_only"]
     in
     let fun_value_binding_labelled_args ~argument1 ~argument2 =
       Runtime.fail_impossible_action_in_ssr "fun_value_binding_labelled_args"
-        [@@warning "-27-26"] [@@alert "-browser_only"]
+        [@@warning "-26-27"] [@@alert "-browser_only"]
     in
     ()

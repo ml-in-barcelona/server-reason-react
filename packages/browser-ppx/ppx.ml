@@ -36,6 +36,20 @@ module Effect = struct
 end
 
 module Browser_only = struct
+  (* 26 unused-var (bound to a let or as) *)
+  let remove_unused_var ~loc =
+    Builder.attribute ~loc ~name:{ txt = "warning"; loc }
+      ~payload:(PStr [ [%stri "-26"] ])
+
+  (* 27 unused-var-strict (not bound to a let or as, for example a function argument)*)
+  let remove_unused_var_strict ~loc =
+    Builder.attribute ~loc ~name:{ txt = "warning"; loc }
+      ~payload:(PStr [ [%stri "-27"] ])
+
+  let remove_unused_varariables ~loc =
+    Builder.attribute ~loc ~name:{ txt = "warning"; loc }
+      ~payload:(PStr [ [%stri "-26-27"] ])
+
   let get_function_name pattern =
     match pattern with Ppat_var { txt = name; _ } -> name | _ -> "unkwnown"
 
@@ -101,16 +115,12 @@ module Browser_only = struct
               }
             in
             let vb = Builder.value_binding ~loc ~pat ~expr in
-            let remove_unused_variable_warning27 =
-              Builder.attribute ~loc ~name:{ txt = "warning"; loc }
-                ~payload:(PStr [ [%stri "-27-26"] ])
-            in
+
             {
               vb with
               pvb_attributes =
                 [
-                  remove_unused_variable_warning27;
-                  remove_alert_browser_only ~loc;
+                  remove_unused_varariables ~loc; remove_alert_browser_only ~loc;
                 ];
             }
         | Pexp_fun (_arg_label, _arg_expression, _fun_pattern, _expr) ->
@@ -123,16 +133,11 @@ module Browser_only = struct
               }
             in
             let vb = Builder.value_binding ~loc ~pat ~expr in
-            let remove_unused_variable_warning27 =
-              Builder.attribute ~loc ~name:{ txt = "warning"; loc }
-                ~payload:(PStr [ [%stri "-27-26"] ])
-            in
             {
               vb with
               pvb_attributes =
                 [
-                  remove_unused_variable_warning27;
-                  remove_alert_browser_only ~loc;
+                  remove_unused_varariables ~loc; remove_alert_browser_only ~loc;
                 ];
             }
         | Pexp_ident { txt = longident; loc } ->

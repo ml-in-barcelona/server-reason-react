@@ -18,6 +18,7 @@
   };
 
   $ ./standalone.exe -impl input.ml | refmt --parse ml --print re
+  [@warning "-27-32"]
   let discard:
     [@alert
       browser_only(
@@ -26,11 +27,10 @@
     ] (
       Js.Promise.t(unit) => unit
     ) =
-    [@warning "-27-32"]
     [@alert "-browser_only"]
     (value => Runtime.fail_impossible_action_in_ssr("discard"));
   let make = () => {
-    [@warning "-27-26"]
+    [@warning "-26-27"]
     [@alert "-browser_only"]
     let discard = value => Runtime.fail_impossible_action_in_ssr("discard");
     ();
