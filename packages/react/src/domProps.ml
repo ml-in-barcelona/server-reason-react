@@ -8,10 +8,7 @@ type attributeType =
   | String
   | Int
   | Bool
-  (* attributes that are boolean values, rendered as strings
-   https://github.com/facebook/react/blob/a17467e7e2cd8947c595d1834889b5d184459f12/packages/react-dom-bindings/src/server/ReactFizzConfigDOM.js#L1165-L1176
-  *)
-  | BooleanishString
+  | BooleanishString (* `BooleanishString` are JSX attributes boolean values but rendered as strings on HTML https://github.com/facebook/react/blob/a17467e7e2cd8947c595d1834889b5d184459f12/packages/react-dom-bindings/src/server/ReactFizzConfigDOM.js#L1165-L1176 *)
   | Style
   | Ref
   | InnerHtml
