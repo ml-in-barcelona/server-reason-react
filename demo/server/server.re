@@ -1,3 +1,12 @@
+/**
+
+  This is a demo of a HTTP server that demostrates the possibility of Html_of_jsx.
+
+  It uses `tiny_httpd` to keep the dependencies to a minimum. It also contains a bunch of utilities to generate styles.
+
+*/
+module Httpd = Tiny_httpd;
+
 let globalStyles = {js|
   html, body, #root {
     margin: 0;
@@ -22,7 +31,7 @@ let globalStyles = {js|
 
 module Page = {
   [@react.component]
-  let _make = (~children, ~scripts=[]) => {
+  let make = (~children, ~scripts=[]) => {
     <html>
       <head>
         <meta charSet="UTF-8" />
@@ -49,49 +58,149 @@ module Page = {
   };
 };
 
-/* let handler =
-     Dream.router([
-       Dream.get("/", _request =>
-         Dream.html(
-           ReactDOM.renderToString(
-             <Page scripts=["/static/app.js"]> <Shared_native.App /> </Page>,
-           ),
-         )
-       ),
-       Dream.get("/header", _request =>
-         Dream.html(
-           ReactDOM.renderToString(
-             <Page scripts=["/static/header.js"]>
-               <Shared_native.Ahrefs />
-             </Page>,
-           ),
-         )
-       ),
-       Dream.get("/stream", _request =>
-         Dream.stream(
-           ~headers=[("Content-Type", "text/html")],
-           response_stream => {
-             let (stream, _) =
-               ReactDOM.renderToLwtStream(<Page> <Comments.App /> </Page>);
+module Link = {
+  [@react.component]
+  let make = (~href, ~children) => {
+    <a
+      className="font-medium text-blue-600 hover:underline flex items-center"
+      href>
+      {React.string(children)}
+      <svg
+        className="w-3 h-3 ms-2 rtl:rotate-180"
+        ariaHidden=true
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 14 10">
+        <path
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="2"
+          d="M1 5h12m0 0L9 1m4 4L9 9"
+        />
+      </svg>
+    </a>;
+  };
+};
 
-             Lwt_stream.iter_s(
+module Home = {
+  [@react.component]
+  let make = () => {
+    <div className="p-8">
+      <h1 className="font-bold text-2xl">
+        {React.string("Home page of the demos")}
+      </h1>
+      <br />
+      <ul>
+        <li> <Link href="/markup"> "Markup" </Link> </li>
+        <li> <Link href="/string"> "String" </Link> </li>
+        <li> <Link href="/header"> "Header" </Link> </li>
+      </ul>
+    </div>;
+  };
+};
+
+let () = {
+  let server = Httpd.create();
+  let addr = Httpd.addr(server);
+  let port = Httpd.port(server);
+  Httpd.set_top_handler(
+    server,
+    _req => {
+      let html =
+        ReactDOM.renderToString(
+          <Page scripts=["/static/header.js"]> <Home /> </Page>,
+        );
+      Httpd.Response.make_string(Ok(html));
+    },
+  );
+  Httpd.add_route_handler(
+    ~meth=`GET,
+    server,
+    Httpd.Route.(exact("header") @/ string @/ return),
+    (_name, _req) => {
+      let html =
+        ReactDOM.renderToString(
+          <Page scripts=["/static/header.js"]>
+            <Shared_native.Ahrefs />
+          </Page>,
+        );
+      Httpd.Response.make_string(Ok(html));
+    },
+  );
+  Httpd.add_route_handler(
+    ~meth=`GET,
+    server,
+    Httpd.Route.(exact("markup") @/ string @/ return),
+    (_name, _req) => {
+      let html =
+        ReactDOM.renderToStaticMarkup(
+          <Page scripts=["/static/app.js"]> <Shared_native.App /> </Page>,
+        );
+      Httpd.Response.make_string(Ok(html));
+    },
+  );
+  Httpd.add_route_handler(
+    ~meth=`GET,
+    server,
+    Httpd.Route.(exact("string") @/ return),
+    _req => {
+      let html =
+        ReactDOM.renderToString(
+          <Page scripts=["/static/app.js"]> <Shared_native.App /> </Page>,
+        );
+      Httpd.Response.make_string(Ok(html));
+    },
+  );
+  /*
+   TODO: Render to stream
+    Dream.get("/stream", _request =>
+           Dream.stream(
+             ~headers=[("Content-Type", "text/html")],
+             response_stream => {
+               let (stream, _) =
+                 ReactDOM.renderToLwtStream(<Page> <Comments.App /> </Page>);
+
+               Lwt_stream.iter_s(
+                 data => {
+                   let%lwt () = Dream.write(response_stream, data);
+                   Dream.flush(response_stream);
+                 },
+                 stream,
+               );
+             },
+           )
+         ),
+
+   Httpd.add_route_handler_stream(
+        ~meth=`GET,
+        server,
+        Httpd.Route.(exact("stream") @/ return),
+        req => {
+          let (_stream, _close) =
+            ReactDOM.renderToLwtStream(
+              <Page scripts=["/static/app.js"]> <Shared_native.App /> </Page>,
+            );
+          /* Lwt_stream.iter_s(
                data => {
                  let%lwt () = Dream.write(response_stream, data);
                  Dream.flush(response_stream);
                },
                stream,
-             );
-           },
-         )
-       ),
-       Dream.get("/static/**", Dream.static("./static")),
-     ]);
-
-   let interface =
-     switch (Sys.getenv_opt("SERVER_INTERFACE")) {
-     | Some(env) => env
-     | None => "localhost"
-     };
-
-   Dream.run(~port=8080, ~interface, handler);
-    */
+             ); */
+          Tiny_httpd_stream.iter(write, req.Request.body);
+          let a = Httpd.Byte_stream.of_string("asdf");
+          Httpd.Response.make_stream(Ok(a));
+        },
+      ); */
+  /* TODO: Render client assets via Dream.get("/static/**", Dream.static("./static"))
+     using https://github.com/c-cube/tiny_httpd#http_of_dir */
+  switch (
+    Httpd.run(server, ~after_init=() =>
+      Printf.printf("Listening on http://%s:%d\n%!", addr, port)
+    )
+  ) {
+  | Ok () => ()
+  | Error(e) => raise(e)
+  };
+};

@@ -92,11 +92,11 @@ lib-test: ## Run library tests
 
 .PHONY: demo
 demo: ## Run demo executable
-	$(DUNE) exec demo/index.exe
+	$(DUNE) exec demo/server/server.exe --display-separate-messages
 
 .PHONY: demo-watch
 demo-watch: ## Run demo executable
-	$(DUNE) exec -w demo/index.exe
+	$(DUNE) exec demo/server/server.exe --display-separate-messages --display=quiet --watch
 
 .PHONY: subst
 subst: ## Run dune substitute

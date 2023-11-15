@@ -457,17 +457,7 @@ let split_args args =
     List.filter_map args ~f:(function
       | Labelled "children", children_expression ->
           let children' =
-            unwrap_children []
-              ~f:(fun e ->
-                let expression =
-                  match e.pexp_desc with
-                  | Pexp_constant (Pconst_string _) ->
-                      let loc = e.pexp_loc in
-                      [%expr Jsx.text [%e e]]
-                  | _ -> e
-                in
-                expression)
-              children_expression
+            unwrap_children [] ~f:(fun e -> e) children_expression
           in
           children := (children_expression.pexp_loc, children');
           None

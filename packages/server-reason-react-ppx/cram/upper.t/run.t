@@ -27,7 +27,7 @@
     React.Upper_case_component(
       () =>
         MyComponent.make(
-          ~children=React.createElement("div", [], [Jsx.text("hello")]),
+          ~children=React.createElement("div", [], ["hello"]),
           ~booleanAttribute=true,
           ~stringAttribute="string",
           ~intAttribute=1,
