@@ -4,9 +4,7 @@
   end = struct
     let make ?key =
      fun [@warning "-16"] [@warning "-16"] ?(mockup : string option) () ->
-      React.createElement "button"
-        ([||] |> Array.to_list |> List.filter_map (fun a -> a) |> Array.of_list)
-        [ React.string "Hello!" ]
+      React.createElement "button" [] [ React.string "Hello!" ]
   end
   
   module MyPropIsOptionOptionBoolLetWithValSig : sig

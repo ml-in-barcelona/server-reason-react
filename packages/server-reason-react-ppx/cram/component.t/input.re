@@ -7,31 +7,22 @@ module React_component_with_props = {
 
 let react_component_with_props = <React_component_with_props lola="flores" />;
 
-module Upper_case_with_fragment_as_root = {
-  [@react.component]
-  let make = (~name="") =>
-    <>
-      <div> {React.string("First " ++ name)} </div>
-      <Hello one="1"> {React.string("2nd " ++ name)} </Hello>
-    </>;
-};
-
 /* module Using_React_memo = {
-  [@react.component]
-  let make =
-    React.memo((~a) =>
-      <div> {Printf.sprintf("`a` is %s", a) |> React.string} </div>
-    );
-};
+     [@react.component]
+     let make =
+       React.memo((~a) =>
+         <div> {Printf.sprintf("`a` is %s", a) |> React.string} </div>
+       );
+   };
 
-module Using_memo_custom_compare_Props = {
-  [@react.component]
-  let make =
-    React.memoCustomCompareProps(
-      (~a) => <div> {Printf.sprintf("`a` is %d", a) |> React.string} </div>,
-      (prevPros, nextProps) => false,
-    );
-}; */
+   module Using_memo_custom_compare_Props = {
+     [@react.component]
+     let make =
+       React.memoCustomCompareProps(
+         (~a) => <div> {Printf.sprintf("`a` is %d", a) |> React.string} </div>,
+         (prevPros, nextProps) => false,
+       );
+   }; */
 
 module Forward_Ref = {
   [@react.component]

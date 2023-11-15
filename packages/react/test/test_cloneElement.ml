@@ -14,7 +14,7 @@ let equal_components (c1 : React.element) (c2 : React.element) =
     | Lower_case_element lc1, Lower_case_element lc2 ->
         lc1.tag == lc2.tag
         && List.for_all2 equal_rec lc1.children lc2.children
-        && Array.for_all2 equal_attrs lc1.attributes lc2.attributes
+        && List.for_all2 equal_attrs lc1.attributes lc2.attributes
     | Upper_case_component cf1, Upper_case_component cf2 ->
         equal_rec (cf1 ()) (cf2 ())
     | List cl1, List cl2 -> Array.for_all2 equal_rec cl1 cl2
@@ -36,35 +36,35 @@ let assert_component left right =
 
 let clone_empty () =
   let component =
-    React.createElement "div" [| React.JSX.Bool ("hidden", true) |] []
+    React.createElement "div" [ React.JSX.Bool ("hidden", true) ] []
   in
-  assert_component component (React.cloneElement component [||])
+  assert_component component (React.cloneElement component [])
 
 let clone_attributes () =
   let component =
-    React.createElement "div" [| React.JSX.String ("val", "33") |] []
+    React.createElement "div" [ React.JSX.String ("val", "33") ] []
   in
   let expected =
     React.createElement "div"
-      [| React.JSX.String ("val", "31"); React.JSX.Bool ("lola", true) |]
+      [ React.JSX.String ("val", "31"); React.JSX.Bool ("lola", true) ]
       []
   in
   let cloned =
     React.cloneElement component
-      [| React.JSX.Bool ("lola", true); React.JSX.String ("val", "31") |]
+      [ React.JSX.Bool ("lola", true); React.JSX.String ("val", "31") ]
   in
   assert_component cloned expected
 
 let clone_order_attributes () =
-  let component = React.createElement "div" [||] [] in
+  let component = React.createElement "div" [] [] in
   let expected =
     React.createElement "div"
-      [| React.JSX.String ("val", "31"); React.JSX.Bool ("lola", true) |]
+      [ React.JSX.String ("val", "31"); React.JSX.Bool ("lola", true) ]
       []
   in
   let cloned =
     React.cloneElement component
-      [| React.JSX.Bool ("lola", true); React.JSX.String ("val", "31") |]
+      [ React.JSX.Bool ("lola", true); React.JSX.String ("val", "31") ]
   in
   assert_component cloned expected
 

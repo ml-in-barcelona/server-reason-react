@@ -8,7 +8,7 @@ let use_state_doesnt_fire () =
         let state, set_state = React.useState (fun () -> "foo") in
         (* You wouldn't have this code in prod, but just for testing purposes *)
         set_state (fun _prev -> "bar");
-        React.createElement "div" [||] [ React.string state ])
+        React.createElement "div" [] [ React.string state ])
   in
   assert_string (ReactDOM.renderToStaticMarkup app) "<div>foo</div>"
 
@@ -20,7 +20,7 @@ let use_effect_doesnt_fire () =
         React.useEffect0 (fun () ->
             ref.current <- "bar";
             None);
-        React.createElement "div" [||] [ React.string ref.current ])
+        React.createElement "div" [] [ React.string ref.current ])
   in
   assert_string (ReactDOM.renderToStaticMarkup app) "<div>foo</div>"
 

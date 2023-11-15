@@ -557,7 +557,7 @@ end
 
 type lower_case_element = {
   tag : string;
-  attributes : JSX.prop array;
+  attributes : JSX.prop list;
   children : element list;
 }
 
@@ -579,9 +579,9 @@ exception Invalid_children of string
 (* type 'props component = ('props, element) componentLike *)
 (* external component : ('props, element) componentLike -> 'props component = "%identity" *)
 
-val createElement : string -> JSX.prop array -> element list -> element
-val fragment : children:element -> unit -> element
-val cloneElement : element -> JSX.prop array -> element
+val createElement : string -> JSX.prop list -> element list -> element
+val fragment : element -> element
+val cloneElement : element -> JSX.prop list -> element
 val string : string -> element
 val null : element
 val int : int -> element
