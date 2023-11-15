@@ -60,8 +60,9 @@ module Page = {
 
 module Link = {
   [@react.component]
-  let make = (~href, ~children) => {
+  let make = (~href, ~children, ()) => {
     <a
+      onClick={_e => print_endline("clicked")}
       className="font-medium text-blue-600 hover:underline flex items-center"
       href>
       {React.string(children)}

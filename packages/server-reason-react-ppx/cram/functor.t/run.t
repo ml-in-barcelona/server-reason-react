@@ -9,7 +9,7 @@ We need to output ML syntax here, otherwise refmt could not parse it.
     let x = M.x + 1
   
     let make ?key ~a =
-     fun [@warning "-16"] [@warning "-16"] ~b () ->
+     fun [@warning "-16"] ~b () ->
       print_endline "This function should be named `Test$Func`" M.x;
       React.createElement "div" [] []
   end

@@ -120,7 +120,8 @@ let validate_prop ~loc id name =
              If this isn't correct, please open an issue at %s." name id
             suggestion issues_url)
 
-let make_prop ~loc ~is_optional ~prop attribute_name attribute_value =
+let make_prop ~is_optional ~prop attribute_name attribute_value =
+  let loc = attribute_value.pexp_loc in
   let open DomProps in
   match (prop, is_optional) with
   | Attribute { type_ = DomProps.String; _ }, false ->
@@ -422,7 +423,7 @@ let transform_labelled ~loc ~tag_name (prop_label, (runtime_value : expression))
       let is_optional = is_optional prop_label in
       let prop = validate_prop ~loc tag_name name in
       let name = estring ~loc (DomProps.getName prop) in
-      let new_prop = make_prop ~loc ~is_optional ~prop name runtime_value in
+      let new_prop = make_prop ~is_optional ~prop name runtime_value in
       [%expr [%e new_prop] :: [%e props]]
 
 let transform_attributes ~loc ~tag_name args =
@@ -554,27 +555,9 @@ let keyType loc =
   Ast_helper.Typ.constr ~loc { loc; txt = optionIdent }
     [ Ast_helper.Typ.constr ~loc { loc; txt = Lident "string" } [] ]
 
-let process_value_binding ~loc valueBinding =
-  let fileName = filenameFromLoc loc in
-  let emptyLoc = Location.in_file fileName in
-  let fnName = getFnName valueBinding in
-  let bindingLoc = valueBinding.pvb_loc in
-  let bindingPatLoc = valueBinding.pvb_pat.ppat_loc in
-  let binding =
-    {
-      valueBinding with
-      pvb_pat = { valueBinding.pvb_pat with ppat_loc = emptyLoc };
-      pvb_loc = emptyLoc;
-    }
-  in
-  let hasApplication = ref false in
-  let wrapExpressionWithBinding expressionFn expression =
-    Ast_helper.Vb.mk ~loc:bindingLoc
-      ~attrs:(List.filter ~f:otherAttrsPure binding.pvb_attributes)
-      (Ast_helper.Pat.var ~loc:bindingPatLoc
-         { loc = bindingPatLoc; txt = fnName })
-      (expressionFn expression)
-  in
+let process_value_binding ~loc binding =
+  let emptyLoc = { loc with loc_ghost = true } in
+  let fnName = getFnName binding in
   let expression = binding.pvb_expr in
   let unerasableIgnoreExp exp =
     {
@@ -614,7 +597,10 @@ let process_value_binding ~loc valueBinding =
     } ->
         ((fun a -> a), true, expression)
     (* let make = (~prop) => ... *)
-    | { pexp_desc = Pexp_fun (label, default, pattern, internalExpression) } ->
+    | {
+     pexp_desc = Pexp_fun (label, default, pattern, internalExpression);
+     pexp_loc;
+    } ->
         let unit_pattern =
           {
             ppat_desc =
@@ -634,7 +620,7 @@ let process_value_binding ~loc valueBinding =
                     default,
                     pattern,
                     {
-                      pexp_loc = emptyLoc;
+                      pexp_loc;
                       pexp_desc =
                         Pexp_fun
                           (Nolabel, None, unit_pattern, internalExpression);
@@ -643,22 +629,28 @@ let process_value_binding ~loc valueBinding =
                     } );
             }
         in
-        ((fun a -> a), false, unerasableIgnoreExp expression)
+        ((fun a -> a), false, expression)
     (* let make = {let foo = bar in (~prop) => ...} *)
-    | { pexp_desc = Pexp_let (recursive, vbs, internalExpression) } ->
+    | { pexp_desc = Pexp_let (recursive, vbs, internalExpression); pexp_loc } ->
         (* here's where we spelunk! *)
         let wrap, hasUnit, exp = spelunkForFunExpression internalExpression in
         ( wrap,
           hasUnit,
-          { expression with pexp_desc = Pexp_let (recursive, vbs, exp) } )
+          {
+            expression with
+            pexp_desc = Pexp_let (recursive, vbs, exp);
+            pexp_loc;
+          } )
     (* let make = React.forwardRef((~prop) => ...) *)
     | {
      pexp_desc =
        Pexp_apply (wrapperExpression, [ (Nolabel, internalExpression) ]);
+     pexp_loc;
     } ->
-        let () = hasApplication := true in
         let _, hasUnit, exp = spelunkForFunExpression internalExpression in
-        ( (fun exp -> Ast_helper.Exp.apply wrapperExpression [ (Nolabel, exp) ]),
+        ( (fun exp ->
+            Ast_helper.Exp.apply ~loc:pexp_loc wrapperExpression
+              [ (Nolabel, exp) ]),
           hasUnit,
           exp )
     (* let make = React.memoCustomCompareProps((~prop) => ..., (prevPros, nextProps) => true) *)
@@ -671,7 +663,6 @@ let process_value_binding ~loc valueBinding =
              ((Nolabel, { pexp_desc = Pexp_fun _ }) as compareProps);
            ] );
     } ->
-        let () = hasApplication := true in
         let _, hasUnit, exp = spelunkForFunExpression internalExpression in
         ( (fun exp ->
             Ast_helper.Exp.apply wrapperExpression
@@ -686,11 +677,8 @@ let process_value_binding ~loc valueBinding =
         )
     | e -> ((fun a -> a), false, e)
   in
-  let wrapExpression, hasUnit, expression =
+  let _wrapExpression, _hasUnit, expression =
     spelunkForFunExpression expression
-  in
-  let _bindingWrapper, _hasUnit, expression =
-    (wrapExpressionWithBinding wrapExpression, hasUnit, expression)
   in
   let namedArgListWithKeyAndRef =
     [ (Optional "key", None, emptyLoc, Some (keyType emptyLoc)) ]
@@ -789,15 +777,14 @@ let rewrite_jsx =
             | Pexp_ident
                 { txt = Ldot (modulePath, ("createElement" | "make")); loc } ->
                 let id = { loc; txt = Ldot (modulePath, "make") } in
-                rewrite_component ~loc:tag.pexp_loc id rest_of_args children
+                rewrite_component ~loc:expr.pexp_loc id rest_of_args children
             (* local_function() [@JSX] *)
             | Pexp_ident id ->
-                rewrite_component ~loc:tag.pexp_loc id rest_of_args children
+                rewrite_component ~loc:expr.pexp_loc id rest_of_args children
             | _ -> assert false)
         (* div() [@JSX] *)
         | Pexp_apply (tag, _props) when has_jsx_attr expr.pexp_attributes ->
-            let loc = expr.pexp_loc in
-            raise_errorf ~loc
+            raise_errorf ~loc:expr.pexp_loc
               "jsx: %s should be an identifier, not an expression"
               (Ppxlib_ast.Pprintast.string_of_expression tag)
         (* <> </> is represented as a list in the Parsetree with [@JSX] *)

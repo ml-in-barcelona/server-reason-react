@@ -3,7 +3,7 @@
     val make : ?mockup:string -> React.element
   end = struct
     let make ?key =
-     fun [@warning "-16"] [@warning "-16"] ?(mockup : string option) () ->
+     fun [@warning "-16"] ?(mockup : string option) () ->
       React.createElement "button" [] [ React.string "Hello!" ]
   end
   
@@ -11,6 +11,5 @@
     val make : ?myProp:bool option -> React.element
   end = struct
     let make ?key =
-     fun [@warning "-16"] [@warning "-16"] ?(myProp : bool option option) () ->
-      React.null
+     fun [@warning "-16"] ?(myProp : bool option option) () -> React.null
   end

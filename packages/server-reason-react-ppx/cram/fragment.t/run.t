@@ -11,7 +11,6 @@
   module Fragment = {
     let make = (~key=?) =>
       [@warning "-16"]
-      [@warning "-16"]
       (
         (~name="", ()) =>
           React.fragment(

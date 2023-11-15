@@ -3,7 +3,7 @@ We need to output ML syntax here, otherwise refmt could not parse it.
   $ ../ppx.sh --output ml input.re
   module React_component_with_props = struct
     let make ?key =
-     fun [@warning "-16"] [@warning "-16"] ~lola () ->
+     fun [@warning "-16"] ~lola () ->
       React.createElement "div" [] [ React.string lola ]
   end
   
@@ -13,7 +13,7 @@ We need to output ML syntax here, otherwise refmt could not parse it.
   
   module Forward_Ref = struct
     let make ?key ~children =
-     fun [@warning "-16"] [@warning "-16"] ~buttonRef () ->
+     fun [@warning "-16"] ~buttonRef () ->
       React.createElement "button"
         (List.filter_map Fun.id
            [
@@ -25,7 +25,7 @@ We need to output ML syntax here, otherwise refmt could not parse it.
   
   module Onclick_handler_button = struct
     let make ?key ~name =
-     fun [@warning "-16"] [@warning "-16"] ?isDisabled () ->
+     fun [@warning "-16"] ?isDisabled () ->
       let onClick event = Js.log event in
       React.createElement "button"
         (List.filter_map Fun.id
@@ -42,7 +42,7 @@ We need to output ML syntax here, otherwise refmt could not parse it.
   
   module Children_as_string = struct
     let make ?key =
-     fun [@warning "-16"] [@warning "-16"] ?(name = "joe") () ->
+     fun [@warning "-16"] ?(name = "joe") () ->
       React.createElement "div" []
         [ Printf.sprintf "`name` is %s" name |> React.string ]
   end
@@ -52,7 +52,7 @@ We need to output ML syntax here, otherwise refmt could not parse it.
   
   module Uppercase_with_SSR_components = struct
     let make ?key ~children =
-     fun [@warning "-16"] [@warning "-16"] ~moreProps () ->
+     fun [@warning "-16"] ~moreProps () ->
       React.createElement "html" []
         [
           React.createElement "head" []
@@ -79,7 +79,7 @@ We need to output ML syntax here, otherwise refmt could not parse it.
   
   module Upper_with_aria = struct
     let make ?key =
-     fun [@warning "-16"] [@warning "-16"] ~children () ->
+     fun [@warning "-16"] ~children () ->
       React.createElement "div"
         (List.filter_map Fun.id
            [
@@ -91,7 +91,7 @@ We need to output ML syntax here, otherwise refmt could not parse it.
   
   module Form_with_method = struct
     let make ?key =
-     fun [@warning "-16"] [@warning "-16"] ~children () ->
+     fun [@warning "-16"] ~children () ->
       React.createElement "form"
         (List.filter_map Fun.id
            [ Some (React.JSX.String ("method", ("GET" : string))) ])
