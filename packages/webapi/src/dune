@@ -4,7 +4,10 @@
  (name webapi)
  (public_name server-reason-react.webapi)
  (wrapped false)
- (libraries server-reason-react.js server-reason-react.dom)
+ (libraries
+  server-reason-react.js
+  server-reason-react.dom
+  server-reason-react.melange-fetch)
  (flags
   :standard
   -w
