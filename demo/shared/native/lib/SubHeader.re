@@ -10,7 +10,7 @@ module Cosis = {
   };
 };
 
-let storage = Dom.Storage2.localStorage;
+let%browser_only getStorage = () => Dom.Storage2.localStorage;
 
 [@react.component]
 let make = () => {
