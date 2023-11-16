@@ -1,0 +1,35 @@
+
+{0:intro Introduction}
+
+[server-reason-react] is an implementation of [react-dom/server] and some of React's internals in OCaml. Its purpose is to render HTML markup from the server for a Reason React application natively.
+
+{[
+  module Greetings = {
+    [@react.component]
+    let make = (~name) => {
+      <div>
+        <h1>
+          {React.string("Hello " ++ name)}
+        </h1>
+      </div>
+    }
+  };
+
+  let html = ReactDOM.renderToStaticMarkup(<Greetings name="visitor" />)
+  // <div><h1>Hello visitor</h1></div>
+]}
+
+{1:core React and ReactDOM}
+
+[server-reason-react] provides {!React} and {!ReactDOM} modules with the same interface as reason-react, including the JSX transformation via [server-reason-react.ppx].
+
+- {!React}
+- {!ReactDOM}
+
+Note: [server-reason-react.ppx] needs to be a different ppx than [reason-react-ppx] to transform domProps into an interal representation of Props where the type is known ahead of time in order to render them on the server.
+
+Add [server-reason-react.react] and [server-reason-react.reactDom] to your libraries in a your dune file
+{[ (libraries (server-reason-react.react server-reason-react.reactDom) ]}
+
+Also add [server-reason-react.ppx] to your pps list in your dune files
+{[ (preprocess (pps server-reason-react.ppx)) ]}

@@ -1,5 +1,4 @@
 /** The Webapi library (stubbed) */
-
 module Base64 = Webapi__Base64;
 
 /** @since 0.18.0 */
