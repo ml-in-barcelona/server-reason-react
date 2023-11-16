@@ -7,9 +7,6 @@ let assert_array = (ty, left, right) =>
 let assert_string = (left, right) =>
   Alcotest.check(Alcotest.string, "should be equal", right, left);
 
-let assert_string = (left, right) =>
-  Alcotest.check(Alcotest.string, "should be equal", right, left);
-
 let assert_bool = (left, right) =>
   Alcotest.check(Alcotest.bool, "should be equal", right, left);
 

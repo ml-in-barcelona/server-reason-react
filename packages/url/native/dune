@@ -10,6 +10,4 @@
 (test
  (name test_native)
  (modules test_native)
- (flags
-  (:standard -w -32))
  (libraries alcotest server-reason-react.native-url))
