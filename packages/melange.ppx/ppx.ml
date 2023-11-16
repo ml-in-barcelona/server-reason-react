@@ -46,9 +46,6 @@ let is_mel_as core_type =
       has_ptyp_attribute ptyp_attributes "mel.as"
   | _ -> false
 
-(* let has_mel_raw_attr pval_attributes =
-   has_ptyp_attribute ptyp_attributes "mel.raw"
-*)
 let extract_args_labels_types acc pval_type =
   let rec go acc = function
     (* In case of being mel.as, ignore those *)
@@ -65,8 +62,6 @@ let extract_args_labels_types acc pval_type =
     | _ -> acc
   in
   go acc pval_type
-
-type t = Ppxlib.core_type
 
 (* Insert send_pipe_core_type as a last argument of the function, but not the return type *)
 let construct_pval_with_send_pipe send_pipe_core_type pval_type =
@@ -122,34 +117,31 @@ let expression_has_mel_raw expr =
   in
   go expr
 
-let raise_failure () =
-  (* TODO: Improve this error *)
-  let loc = Location.none in
-  [%expr raise (Failure "called Melange external \"mel.\" from native")]
+let raise_failure ~loc name =
+  [%expr
+    let () =
+      Printf.printf
+        {|
+There has been a call to a Melange's external [@mel.blabla] from native code.
 
-let make_type ~loc arity =
-  match arity with
-  | 0 -> [%type: 'a]
-  | 1 -> [%type: 'a -> 'b]
-  | 2 -> [%type: 'a -> 'b -> 'c]
-  | 3 -> [%type: 'a -> 'b -> 'c -> 'd]
-  | 4 -> [%type: 'a -> 'b -> 'c -> 'd -> 'e]
-  | 5 -> [%type: 'a -> 'b -> 'c -> 'd -> 'e -> 'f]
-  | 6 -> [%type: 'a -> 'b -> 'c -> 'd -> 'e -> 'f -> 'g]
-  | 7 -> [%type: 'a -> 'b -> 'c -> 'd -> 'e -> 'f -> 'g -> 'h]
-  | _ -> failwith "Melange: Too many arguments"
+External bindings are used to communicate with JavaScript code, which can't run on the server and should be wrapped with browser_only ppx or only run it only on the client side. If there's any issue, try wrapping the expression with a try/catch as a workaround.
 
-let make_implementation ~loc arity =
-  match arity with
-  | 0 -> [%expr [%e raise_failure ()]]
-  | 1 -> [%expr fun _ -> [%e raise_failure ()]]
-  | 2 -> [%expr fun _ _ -> [%e raise_failure ()]]
-  | 3 -> [%expr fun _ _ _ -> [%e raise_failure ()]]
-  | 4 -> [%expr fun _ _ _ _ -> [%e raise_failure ()]]
-  | 5 -> [%expr fun _ _ _ _ _ -> [%e raise_failure ()]]
-  | 6 -> [%expr fun _ _ _ _ _ _ -> [%e raise_failure ()]]
-  | 7 -> [%expr fun _ _ _ _ _ _ _ -> [%e raise_failure ()]]
-  | _ -> failwith "Melange: Too many arguments"
+|}
+    in
+    raise
+      (Runtime.fail_impossible_action_in_ssr
+         [%e Builder.pexp_constant ~loc (Pconst_string (name, loc, None))])]
+
+let make_implementation ~loc arity name =
+  let rec make_fun ~loc arity =
+    match arity with
+    | 0 -> [%expr [%e raise_failure ~loc name]]
+    | _ ->
+        Builder.pexp_fun ~loc Nolabel None
+          (Builder.ppat_var ~loc { loc; txt = "_" })
+          (make_fun ~loc (arity - 1))
+  in
+  make_fun ~loc arity
 
 let browser_only_alert_payload ~loc =
   {
@@ -164,17 +156,6 @@ let browser_only_alert_payload ~loc =
                it inside a let%browser_only function."];
         ];
     attr_loc = loc;
-  }
-
-let make_value_description ~loc name arity =
-  let name = { txt = name; loc } in
-  let type_ = make_type ~loc arity in
-  let value_description =
-    Builder.value_description ~loc ~name ~type_ ~prim:[]
-  in
-  {
-    value_description with
-    pval_attributes = [ browser_only_alert_payload ~loc ];
   }
 
 let get_function_arity pattern =
@@ -204,7 +185,7 @@ class raise_exception_mapper =
                         (_arg_label, _arg_expression, _fun_pattern, expression);
                   } as pvb_expr;
                 pvb_pat =
-                  { ppat_desc = Ppat_var { txt = _function_name; _ } } as
+                  { ppat_desc = Ppat_var { txt = function_name; _ } } as
                   pvb_pattern;
                 pvb_attributes = _;
                 pvb_loc = _;
@@ -213,7 +194,9 @@ class raise_exception_mapper =
         when expression_has_mel_raw expression.pexp_desc ->
           let loc = item.pstr_loc in
           let function_arity = get_function_arity pvb_expr.pexp_desc in
-          let implementation = make_implementation ~loc function_arity in
+          let implementation =
+            make_implementation ~loc function_arity function_name
+          in
           let fn_pattern =
             {
               pvb_pattern with
@@ -228,8 +211,7 @@ class raise_exception_mapper =
               {
                 pvb_expr = expression;
                 pvb_pat =
-                  { ppat_desc = Ppat_var { txt = _function_name; _ } } as
-                  pattern;
+                  { ppat_desc = Ppat_var { txt = function_name; _ } } as pattern;
                 pvb_attributes = _;
                 pvb_loc = _;
               };
@@ -243,7 +225,9 @@ class raise_exception_mapper =
             }
           in
           let function_arity = get_function_arity expression.pexp_desc in
-          let implementation = make_implementation ~loc function_arity in
+          let implementation =
+            make_implementation ~loc function_arity function_name
+          in
           [%stri let [%p fn_pattern] = [%e implementation]]
       (* let a: t = [%mel.raw ...] *)
       | Pstr_value
@@ -269,7 +253,7 @@ class raise_exception_mapper =
             }
           in
           let function_arity = get_function_arity expression.pexp_desc in
-          let implementation = make_implementation ~loc function_arity in
+          let implementation = make_implementation ~loc function_arity "" in
           [%stri let [%p fn_pattern] = [%e implementation]]
       (* %mel. *)
       (* external foo: t = "{{JavaScript}}" *)
@@ -306,7 +290,8 @@ class raise_exception_mapper =
             List.fold_left
               (fun acc (label, arg_pat, arg_type) ->
                 Builder.pexp_fun ~loc:arg_type.ptyp_loc label None arg_pat acc)
-              (raise_failure ()) arg_labels
+              (raise_failure ~loc:pval_type.ptyp_loc pval_name.txt)
+              arg_labels
           in
           (* let pat =
                {

@@ -1,7 +1,7 @@
 (library
  (name shared_js)
  (modes melange)
- (libraries reason-react melange-webapi melange.belt)
+ (libraries reason-react melange-webapi melange.belt melange.dom)
  (preprocess
   (pps melange.ppx reason-react-ppx browser_ppx -js)))
 

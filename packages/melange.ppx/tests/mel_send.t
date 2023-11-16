@@ -1,31 +1,57 @@
 Labelled args with @@mel.send
-  $ cat > input.ml <<EOF
+  $ cat > input.ml << EOF
   > external init : string -> param:int -> string = "init" [@@mel.send]
   > EOF
 
   $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl | tee output.ml
   let (init : string -> param:int -> string) =
    fun _ ~param:_ ->
-    raise (Failure "called Melange external \"mel.\" from native")
+    let () =
+      Printf.printf
+        {|
+  There has been a call to a Melange's external [@mel.blabla] from native code.
+  
+  External bindings are used to communicate with JavaScript code, which can't run on the server and should be wrapped with browser_only ppx or only run it only on the client side. If there's any issue, try wrapping the expression with a try/catch as a workaround.
+  
+  |}
+    in
+    raise (Runtime.fail_impossible_action_in_ssr "init")
 
-  $ ocamlc output.ml
+  $ echo "module Runtime = struct" > main.ml
+  $ cat $INSIDE_DUNE/packages/runtime/runtime.ml >> main.ml
+  $ echo "end" >> main.ml
+  $ cat output.ml >> main.ml
+  $ ocamlc -c main.ml
 
 Labelled and unlabelled args with @@mel.obj
 
-  $ cat > input.ml <<EOF
+  $ cat > input.ml << EOF
   > external makeInitParam : onLoad:string -> unit -> string = "" [@@mel.obj]
   > EOF
 
   $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl | tee output.ml
   let (makeInitParam : onLoad:string -> unit -> string) =
    fun ~onLoad:_ _ ->
-    raise (Failure "called Melange external \"mel.\" from native")
+    let () =
+      Printf.printf
+        {|
+  There has been a call to a Melange's external [@mel.blabla] from native code.
+  
+  External bindings are used to communicate with JavaScript code, which can't run on the server and should be wrapped with browser_only ppx or only run it only on the client side. If there's any issue, try wrapping the expression with a try/catch as a workaround.
+  
+  |}
+    in
+    raise (Runtime.fail_impossible_action_in_ssr "makeInitParam")
 
-  $ ocamlc output.ml
+  $ echo "module Runtime = struct" > main.ml
+  $ cat $INSIDE_DUNE/packages/runtime/runtime.ml >> main.ml
+  $ echo "end" >> main.ml
+  $ cat output.ml >> main.ml
+  $ ocamlc -c main.ml
 
 Only unlabelled
 
-  $ cat > input.ml <<EOF
+  $ cat > input.ml << EOF
   > type keycloak
   > external keycloak : string -> keycloak = "default" [@@mel.module]
   > EOF
@@ -34,9 +60,23 @@ Only unlabelled
   type keycloak
   
   let (keycloak : string -> keycloak) =
-   fun _ -> raise (Failure "called Melange external \"mel.\" from native")
+   fun _ ->
+    let () =
+      Printf.printf
+        {|
+  There has been a call to a Melange's external [@mel.blabla] from native code.
+  
+  External bindings are used to communicate with JavaScript code, which can't run on the server and should be wrapped with browser_only ppx or only run it only on the client side. If there's any issue, try wrapping the expression with a try/catch as a workaround.
+  
+  |}
+    in
+    raise (Runtime.fail_impossible_action_in_ssr "keycloak")
 
-  $ ocamlc output.ml
+  $ echo "module Runtime = struct" > main.ml
+  $ cat $INSIDE_DUNE/packages/runtime/runtime.ml >> main.ml
+  $ echo "end" >> main.ml
+  $ cat output.ml >> main.ml
+  $ ocamlc -c main.ml
 
 Multiple args with optional
 
@@ -50,9 +90,22 @@ Multiple args with optional
   
   let (keycloak : ?z:int -> int -> foo:string -> keycloak) =
    fun ?z:_ _ ~foo:_ ->
-    raise (Failure "called Melange external \"mel.\" from native")
+    let () =
+      Printf.printf
+        {|
+  There has been a call to a Melange's external [@mel.blabla] from native code.
+  
+  External bindings are used to communicate with JavaScript code, which can't run on the server and should be wrapped with browser_only ppx or only run it only on the client side. If there's any issue, try wrapping the expression with a try/catch as a workaround.
+  
+  |}
+    in
+    raise (Runtime.fail_impossible_action_in_ssr "keycloak")
 
-  $ ocamlc output.ml
+  $ echo "module Runtime = struct" > main.ml
+  $ cat $INSIDE_DUNE/packages/runtime/runtime.ml >> main.ml
+  $ echo "end" >> main.ml
+  $ cat output.ml >> main.ml
+  $ ocamlc -c main.ml
 
 Single type (invalid OCaml, but valid in Melange)
 
@@ -65,9 +118,22 @@ Single type (invalid OCaml, but valid in Melange)
   type keycloak
   
   let (keycloak : keycloak) =
-    raise (Failure "called Melange external \"mel.\" from native")
+    let () =
+      Printf.printf
+        {|
+  There has been a call to a Melange's external [@mel.blabla] from native code.
+  
+  External bindings are used to communicate with JavaScript code, which can't run on the server and should be wrapped with browser_only ppx or only run it only on the client side. If there's any issue, try wrapping the expression with a try/catch as a workaround.
+  
+  |}
+    in
+    raise (Runtime.fail_impossible_action_in_ssr "keycloak")
 
-  $ ocamlc output.ml
+  $ echo "module Runtime = struct" > main.ml
+  $ cat $INSIDE_DUNE/packages/runtime/runtime.ml >> main.ml
+  $ echo "end" >> main.ml
+  $ cat output.ml >> main.ml
+  $ ocamlc -c main.ml
 
 mel.send
 
@@ -80,6 +146,20 @@ mel.send
   type t
   
   let (fillStyle : t -> 'a) =
-   fun _ -> raise (Failure "called Melange external \"mel.\" from native")
+   fun _ ->
+    let () =
+      Printf.printf
+        {|
+  There has been a call to a Melange's external [@mel.blabla] from native code.
+  
+  External bindings are used to communicate with JavaScript code, which can't run on the server and should be wrapped with browser_only ppx or only run it only on the client side. If there's any issue, try wrapping the expression with a try/catch as a workaround.
+  
+  |}
+    in
+    raise (Runtime.fail_impossible_action_in_ssr "fillStyle")
 
-  $ ocamlc output.ml
+  $ echo "module Runtime = struct" > main.ml
+  $ cat $INSIDE_DUNE/packages/runtime/runtime.ml >> main.ml
+  $ echo "end" >> main.ml
+  $ cat output.ml >> main.ml
+  $ ocamlc -c main.ml

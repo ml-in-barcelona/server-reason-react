@@ -62,7 +62,7 @@ let%browser_only countDomNodes = (id) => {
 };
 ]}
 
-Add [browser_ppx] to your pps in your dune files. Don't forget to add it on both "server" and "client" dune files, since you want to discard the content and add [browser_only -js] only to the client.
+Add [browser_ppx] to your pps in your dune files. Don't forget to add it on both "server" and "client" dune files, since you want to discard the content and add [browser_ppx -js] only to the client.
 
 On client's dune:
 {[ (preprocess (pps browser_ppx -js)) ]}

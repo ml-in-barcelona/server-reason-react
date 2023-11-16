@@ -10,6 +10,8 @@ module Cosis = {
   };
 };
 
+let%browser_only getStorage = () => Dom.Storage2.localStorage;
+
 [@react.component]
 let make = () => {
   let%browser_only onClick = _event => {

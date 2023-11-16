@@ -8,7 +8,7 @@ Test some locations
   > (using melange 0.1)
   > EOF
 
-  $ cat > dune <<EOF
+  $ cat > dune << EOF
   > (library
   >  (libraries server-reason-react.react server-reason-react.reactDom)
   >  (public_name test)
