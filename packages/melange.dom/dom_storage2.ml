@@ -1,27 +1,15 @@
 type t
 
-(* external getItem : string -> string option = "getItem"
-   [@@mel.send.pipe: t] [@@mel.return null_to_opt] *)
-let getItem _k = None
+external getItem : string -> string option = "getItem"
+[@@mel.send.pipe: t] [@@mel.return null_to_opt]
 
-(* external setItem : string -> string -> unit = "setItem" [@@mel.send.pipe: t] *)
-let setItem _k _v = ()
+external setItem : string -> string -> unit = "setItem" [@@mel.send.pipe: t]
+external removeItem : string -> unit = "removeItem" [@@mel.send.pipe: t]
+external clear : unit -> unit = "clear" [@@mel.send.pipe: t]
 
-(* external removeItem : string -> unit = "removeItem" [@@mel.send.pipe: t] *)
-let removeItem _k = ()
+external key : int -> string option = "key"
+[@@mel.send.pipe: t] [@@mel.return null_to_opt]
 
-(* external clear : unit -> unit = "clear" [@@mel.send.pipe: t] *)
-let clear _ = ()
-
-(* external key : int -> string option = "key"
-   [@@mel.send.pipe: t] [@@mel.return null_to_opt] *)
-let key _ = None
-
-(* external length : t -> int = "length" [@@mel.get] *)
-let length _ = 0
-
-(* external localStorage : t = "localStorage" *)
-let localStorage = assert false
-
-(* external sessionStorage : t = "sessionStorage" *)
-let sessionStorage = assert false
+external length : t -> int = "length" [@@mel.get]
+external localStorage : t = "localStorage"
+external sessionStorage : t = "sessionStorage"

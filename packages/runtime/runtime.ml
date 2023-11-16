@@ -6,7 +6,7 @@ let fail_impossible_action_in_ssr fn =
   let () =
     Printf.printf
       {|
-The function '%s' should only run on the client. Make sure you aren't accidentally calling this function in a server-side context.
+'%s' should only run on the client. Make sure you aren't accidentally calling this function in a server-side context.
 
 Here's the raw callstack:
 
@@ -15,5 +15,4 @@ Here's the raw callstack:
       fn raw_callstack
   in
   raise
-    (Impossible_in_ssr
-       (Printf.sprintf {|The function '%s' shouldn't run on the server|} fn))
+    (Impossible_in_ssr (Printf.sprintf {|'%s' shouldn't run on the server|} fn))

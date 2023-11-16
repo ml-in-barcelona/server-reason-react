@@ -334,6 +334,19 @@ module Browser_only = struct
                          a let%browser_only function."]) =
                   Runtime.fail_impossible_action_in_ssr [%e message]
                 [@@alert "-browser_only"]]
+          | Pexp_newtype (name, expr) ->
+              let original_function_name = name.txt in
+              let item =
+                last_expr_to_raise_impossible original_function_name expr
+              in
+              [%stri
+                let[@warning "-27-32"] ([%p pattern]
+                    [@alert
+                      browser_only
+                        "This expression is marked to only run on the browser \
+                         where JavaScript can run. You can only use it inside \
+                         a let%browser_only function."]) =
+                  ([%e item] [@alert "-browser_only"])]
           | _expr -> do_nothing rec_flag)
     in
     Context_free.Rule.extension

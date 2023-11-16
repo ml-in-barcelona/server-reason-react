@@ -1,3 +1,5 @@
 (library
  (name dom)
- (public_name server-reason-react.dom))
+ (public_name server-reason-react.dom)
+ (preprocess
+  (pps server-reason-react.melange.ppx)))

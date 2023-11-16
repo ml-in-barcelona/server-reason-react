@@ -9,6 +9,19 @@ mel.as attribute
   type t
   
   let (document : t) =
-    raise (Failure "called Melange external \"mel.\" from native")
+    let () =
+      Printf.printf
+        {|
+  There has been a call to a Melange's external [@mel.blabla] from native code.
+  
+  External bindings are used to communicate with JavaScript code, which can't run on the server and should be wrapped with browser_only ppx or only run it only on the client side. If there's any issue, try wrapping the expression with a try/catch as a workaround.
+  
+  |}
+    in
+    raise (Runtime.fail_impossible_action_in_ssr "document")
 
-  $ ocamlc output.ml
+  $ echo "module Runtime = struct" > main.ml
+  $ cat $INSIDE_DUNE/packages/runtime/runtime.ml >> main.ml
+  $ echo "end" >> main.ml
+  $ cat output.ml >> main.ml
+  $ ocamlc -c main.ml

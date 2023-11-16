@@ -11,9 +11,16 @@ mel.raw as a value
           "Since it's a [%mel.raw ...]. This expression is marked to only run on \
            the browser where JavaScript can run. You can only use it inside a \
            let%browser_only function."]) =
-    raise (Failure "called Melange external \"mel.\" from native")
-
-  $ ocamlc output.ml
+    let () =
+      Printf.printf
+        {|
+  There has been a call to a Melange's external [@mel.blabla] from native code.
+  
+  External bindings are used to communicate with JavaScript code, which can't run on the server and should be wrapped with browser_only ppx or only run it only on the client side. If there's any issue, try wrapping the expression with a try/catch as a workaround.
+  
+  |}
+    in
+    raise (Runtime.fail_impossible_action_in_ssr "value")
 
 mel.raw as an unary function
 
@@ -28,9 +35,17 @@ mel.raw as an unary function
           "Since it's a [%mel.raw ...]. This expression is marked to only run on \
            the browser where JavaScript can run. You can only use it inside a \
            let%browser_only function."]) =
-   fun _ -> raise (Failure "called Melange external \"mel.\" from native")
-
-  $ ocamlc output.ml
+   fun _ ->
+    let () =
+      Printf.printf
+        {|
+  There has been a call to a Melange's external [@mel.blabla] from native code.
+  
+  External bindings are used to communicate with JavaScript code, which can't run on the server and should be wrapped with browser_only ppx or only run it only on the client side. If there's any issue, try wrapping the expression with a try/catch as a workaround.
+  
+  |}
+    in
+    raise (Runtime.fail_impossible_action_in_ssr "unary_function")
 
 mel.raw as an binary function
 
@@ -48,9 +63,17 @@ mel.raw as an binary function
           "Since it's a [%mel.raw ...]. This expression is marked to only run on \
            the browser where JavaScript can run. You can only use it inside a \
            let%browser_only function."]) =
-   fun _ _ -> raise (Failure "called Melange external \"mel.\" from native")
-
-  $ ocamlc output.ml
+   fun _ _ ->
+    let () =
+      Printf.printf
+        {|
+  There has been a call to a Melange's external [@mel.blabla] from native code.
+  
+  External bindings are used to communicate with JavaScript code, which can't run on the server and should be wrapped with browser_only ppx or only run it only on the client side. If there's any issue, try wrapping the expression with a try/catch as a workaround.
+  
+  |}
+    in
+    raise (Runtime.fail_impossible_action_in_ssr "binary_function")
 
 mel.raw with type
 
@@ -68,9 +91,16 @@ mel.raw with type
           "Since it's a [%mel.raw ...]. This expression is marked to only run on \
            the browser where JavaScript can run. You can only use it inside a \
            let%browser_only function."]) =
-    raise (Failure "called Melange external \"mel.\" from native")
-
-  $ ocamlc output.ml
+    let () =
+      Printf.printf
+        {|
+  There has been a call to a Melange's external [@mel.blabla] from native code.
+  
+  External bindings are used to communicate with JavaScript code, which can't run on the server and should be wrapped with browser_only ppx or only run it only on the client side. If there's any issue, try wrapping the expression with a try/catch as a workaround.
+  
+  |}
+    in
+    raise (Runtime.fail_impossible_action_in_ssr "")
 
 mel.raw as a value
 
@@ -80,5 +110,3 @@ mel.raw as a value
 
   $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl | tee output.ml
   ()
-
-  $ ocamlc output.ml

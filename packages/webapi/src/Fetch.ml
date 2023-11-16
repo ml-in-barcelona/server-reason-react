@@ -441,8 +441,7 @@ module FormData = struct
   module EntryValue = struct
     type t
 
-    let classify : t -> [> `String of string | `File of file ] =
-     fun t ->
+    let%browser_only classify t =
       if Js.typeof t = "string" then `String (Obj.magic t)
       else `File (Obj.magic t)
   end
