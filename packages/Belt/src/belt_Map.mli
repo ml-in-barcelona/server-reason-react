@@ -225,7 +225,7 @@ val minKey : ('k, _, _) t -> 'k option
 *)
 
 val minKeyUndefined : ('k, _, _) t -> 'k Js.undefined
-(** {b See} {minKey}*)
+(** {b See} [minKey]*)
 
 val maxKey : ('k, _, _) t -> 'k option
 (** [maxKey s]
@@ -233,7 +233,7 @@ val maxKey : ('k, _, _) t -> 'k option
 *)
 
 val maxKeyUndefined : ('k, _, _) t -> 'k Js.undefined
-(** {b See} {maxKey} *)
+(** {b See} [maxKey] *)
 
 val minimum : ('k, 'v, _) t -> ('k * 'v) option
 (** [minimum s]
@@ -241,7 +241,7 @@ val minimum : ('k, 'v, _) t -> ('k * 'v) option
 *)
 
 val minUndefined : ('k, 'v, _) t -> ('k * 'v) Js.undefined
-(** {b See} {minimum} *)
+(** {b See} [minimum] *)
 
 val maximum : ('k, 'v, _) t -> ('k * 'v) option
 (** [maximum s]
@@ -249,7 +249,7 @@ val maximum : ('k, 'v, _) t -> ('k * 'v) option
 *)
 
 val maxUndefined : ('k, 'v, _) t -> ('k * 'v) Js.undefined
-(** {b See} {maximum}
+(** {b See} [maximum]
 *)
 
 val get : ('k, 'v, 'id) t -> 'k -> 'v option
@@ -264,7 +264,7 @@ val get : ('k, 'v, 'id) t -> 'k -> 'v option
 *)
 
 val getUndefined : ('k, 'v, 'id) t -> 'k -> 'v Js.undefined
-(** {b See} {get}
+(** {b See} [get]
 
     @return [undefined] when not found
 *)
@@ -281,7 +281,7 @@ val getWithDefault : ('k, 'v, 'id) t -> 'k -> 'v -> 'v
 val getExn : ('k, 'v, 'id) t -> 'k -> 'v
 (** [getExn s k]
 
-   {b See} {getExn}
+   {b See} [getExn]
 
     {b raise} when [k] not exist
 *)

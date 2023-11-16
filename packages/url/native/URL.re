@@ -168,7 +168,7 @@ let setHostname = (t, string) => {
 let href = url => {
   Uri.to_string(url);
 };
-let setHref = (t, string) => {
+let setHref = (t, _string) => {
   /* TODO: Unsure what to do here. Setting the href should update hostname, port, userinfo, etc. It seems like search params don't update. */
   t;
 };
@@ -217,7 +217,7 @@ let search = url => {
 let setSearch = (t, string) => {
   Uri.with_query(t, Uri.query_of_encoded(string));
 };
-let searchParams = url => assert(false);
+let searchParams = _url => assert(false);
 let username = url => {
   switch (Uri.user(url)) {
   /* User can be empty, if the Uri has a password is parsed as Some(""),

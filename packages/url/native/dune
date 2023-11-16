@@ -1,13 +1,7 @@
 (library
- (name native_url)
- (modules URL)
+ (name url_native)
+ (public_name server-reason-react.url-native)
  (wrapped false)
- (public_name server-reason-react.native-url)
- (libraries uri server-reason-react.js))
+ (libraries uri js))
 
-(copy_files ../URL.rei)
-
-(test
- (name test_native)
- (modules test_native)
- (libraries alcotest server-reason-react.native-url))
+(copy_files# "../URL.rei")

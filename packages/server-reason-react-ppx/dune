@@ -4,7 +4,7 @@
    (:standard -w -9))))
 
 (library
- (name native_react_ppx)
+ (name ppx)
  (public_name server-reason-react.ppx)
  (kind ppx_rewriter)
  (libraries

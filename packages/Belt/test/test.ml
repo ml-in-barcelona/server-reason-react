@@ -15,10 +15,6 @@ let assert_array ty left right =
 let assert_list ty left right =
   Alcotest.check (Alcotest.list ty) "should be equal" right left
 
-type ('a, 'id) eq = ('a, 'id) Belt.Id.eq
-type ('a, 'id) hash = ('a, 'id) Belt.Id.hash
-type ('a, 'id) id = ('a, 'id) Belt.Id.hashable
-
 module Example = struct
   include (
     struct
@@ -39,7 +35,9 @@ end
 
 let eq () =
   let tony = Example.foo ~name:"Tony" ~age:27 in
-  print_endline (Example.name tony)
+  let () = print_endline (Example.name tony) in
+  let () = print_endline (Int.to_string (Example.age tony)) in
+  ()
 
 let length () =
   let arr : int Js.undefined array = Belt.Array.makeUninitialized 1 in
@@ -63,28 +61,6 @@ let map () =
     Belt.List.map [ 3.0; 4.0 ] (fun x -> "Number: " ^ string_of_float x)
   in
   assert_list Alcotest.string [ "Number: 3."; "Number: 4." ] result
-
-module TestingMore = struct
-  include (
-    struct
-      type t = { name2 : string option; [@mel.optional] age2 : int }
-
-      let t : ?name2:string -> age2:int -> unit -> t =
-       fun ?name2 ~age2 () -> { name2; age2 }
-
-      let name2 : t -> string option = fun o -> o.name2
-      let age2 : t -> int = fun o -> o.age2
-    end :
-      sig
-        type t
-
-        val t : ?name2:string -> age2:int -> unit -> t
-        val name2 : t -> string option
-        val age2 : t -> int
-      end)
-end
-
-let aaaaa = TestingMore.t ~age2:10 ()
 
 let keep_1 () =
   let (some10 : int option) = Belt.Option.keep (Some 10) (fun x -> x > 5) in

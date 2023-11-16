@@ -1,13 +1,8 @@
 (cram
  (package server-reason-react)
- (deps
-  %{bin:server-reason-react-ppx-standalone}
-  %{bin:refmt}
-  %{bin:ocamlformat}
-  ppx.sh))
+ (deps %{bin:standalone.exe} %{bin:refmt} %{bin:ocamlformat} ppx.sh))
 
 (executable
  (name standalone)
  (modules standalone)
- (public_name server-reason-react-ppx-standalone)
  (libraries server-reason-react.ppx ppxlib))

@@ -59,7 +59,7 @@ Since {melange.ppx} is not compatible with native, we provide [server-reason-rea
 mel.* attributes are stripped out of the native build, and transformed into raising functions to raise at server runtime.
 {3: Enables pipe_first [->]}
 
-it's a syntax sugar for pipe_last [||>], but it's not supported by default in native. [server-reason-react.melange_ppx] enables it and works perfectly fine in native.
+it's a syntax sugar for pipe_last [|>], but it's not supported by default in native. [server-reason-react.melange_ppx] enables it and works perfectly fine in native.
 
 {3: Supports RegExp [%re "/regex/"]}
 

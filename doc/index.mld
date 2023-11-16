@@ -10,9 +10,10 @@ Note: In the future we plan to extract these libraries into their own packages.
 
 Explained more details in this blog post {{:https://sancho.dev/blog/server-side-rendering-react-in-ocaml}sancho.dev/blog/server-side-rendering-react-in-ocaml}
 
-{1 Manual}
+{1 Index}
 
-The manual consists of several sections. It can be read linearly, but you can also jump directly to your section of interest:
+This documentation will explain the different modules available in [server-reason-react], and how to use them, but also how to share code between the client and the server.
+
 {ol
 {li {{!page-"install"}Intallation}}
 {li {{!page-"universal-code"}How universal code works}}

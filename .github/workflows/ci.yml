@@ -72,7 +72,7 @@ jobs:
 
       - name: Generate docs
         if: github.ref == 'refs/heads/main'
-        run: make documentation
+        run: make docs
 
       - name: Publish docs
         uses: crazy-max/ghaction-github-pages@v1

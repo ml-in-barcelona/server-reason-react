@@ -1,15 +1,9 @@
 (executable
  (name server)
- (libraries
-  tiny_httpd
-  shared_native
-  server-reason-react.react
-  server-reason-react.reactDom
-  server-reason-react.js
-  lwt.unix)
+ (libraries tiny_httpd shared_native react reactDOM js lwt.unix)
  (modules :standard \ Index)
  (preprocess
-  (pps server-reason-react.ppx server-reason-react.browser_ppx lwt_ppx)))
+  (pps ppx browser_ppx lwt_ppx)))
 
 (executable
  (name index)
@@ -18,4 +12,4 @@
  (package server-reason-react)
  (libraries react reactDOM belt js shared_native tiny_httpd melange.dom)
  (preprocess
-  (pps melange_native_ppx server-reason-react.ppx)))
+  (pps melange_native_ppx ppx)))

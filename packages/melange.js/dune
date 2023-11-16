@@ -15,6 +15,6 @@
 (test
  (name test)
  (modules test)
- (libraries alcotest alcotest-lwt lwt server-reason-react.js)
+ (libraries alcotest alcotest-lwt lwt js)
  (preprocess
   (pps lwt_ppx melange_native_ppx)))

@@ -1,8 +1,8 @@
-(** A {b mutable} Hash map which allows customized {hash} behavior.
+(** A {b mutable} Hash map which allows customized [hash] behavior.
 
     All data are parameterized by not its only type but also a unique identity in
     the time of initialization, so that two {i HashMaps of ints} initialized with different
-    {i hash} functions will have different type.
+    [hash] functions will have different type.
 
     For example:
     {[

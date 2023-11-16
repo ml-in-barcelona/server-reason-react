@@ -1,11 +1,10 @@
 (library
- (name js_url)
- (modules URL)
+ (name url_js)
  (modes melange)
- (wrapped false)
- (public_name server-reason-react.js-url)
+ (public_name server-reason-react.url-js)
  (libraries melange.js)
+ (wrapped false)
  (preprocess
   (pps melange.ppx)))
 
-(copy_files ../URL.rei)
+(copy_files# "../URL.rei")
