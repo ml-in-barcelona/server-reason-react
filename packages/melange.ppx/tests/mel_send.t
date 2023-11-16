@@ -1,5 +1,5 @@
 Labelled args with @@mel.send
-  $ cat > input.ml <<EOF
+  $ cat > input.ml << EOF
   > external init : string -> param:int -> string = "init" [@@mel.send]
   > EOF
 
@@ -12,7 +12,7 @@ Labelled args with @@mel.send
 
 Labelled and unlabelled args with @@mel.obj
 
-  $ cat > input.ml <<EOF
+  $ cat > input.ml << EOF
   > external makeInitParam : onLoad:string -> unit -> string = "" [@@mel.obj]
   > EOF
 
@@ -25,7 +25,7 @@ Labelled and unlabelled args with @@mel.obj
 
 Only unlabelled
 
-  $ cat > input.ml <<EOF
+  $ cat > input.ml << EOF
   > type keycloak
   > external keycloak : string -> keycloak = "default" [@@mel.module]
   > EOF
