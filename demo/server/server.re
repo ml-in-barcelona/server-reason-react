@@ -109,8 +109,6 @@ module Home = {
   };
 };
 
-let a = React.Upper_case_component(() => Home.make());
-
 let () = {
   let server = Httpd.create();
   let addr = Httpd.addr(server);
@@ -192,20 +190,22 @@ let () = {
             ReactDOM.renderToLwtStream(
               <Page scripts=["/static/app.js"]> <Shared_native.App /> </Page>,
             );
-          /* Lwt_stream.iter_s(
+          Lwt_stream.iter_s(
                data => {
                  let%lwt () = Dream.write(response_stream, data);
                  Dream.flush(response_stream);
                },
                stream,
-             ); */
+             );
           Tiny_httpd_stream.iter(write, req.Request.body);
           let a = Httpd.Byte_stream.of_string("asdf");
           Httpd.Response.make_stream(Ok(a));
         },
       ); */
-  /* TODO: Render client assets via Dream.get("/static/**", Dream.static("./static"))
+
+  /* TODO: Render client assets via Dream.get("/static", Dream.static("./static"))
      using https://github.com/c-cube/tiny_httpd#http_of_dir */
+
   switch (
     Httpd.run(server, ~after_init=() =>
       Printf.printf("Listening on http://%s:%d\n%!", addr, port)
