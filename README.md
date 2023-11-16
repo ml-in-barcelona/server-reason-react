@@ -8,4 +8,4 @@ Re-implementation of `react`, `react-dom` and `react-dom/server` to run on the s
 
 Explained more details in this blog post [sancho.dev/blog/server-side-rendering-react-in-ocaml](https://sancho.dev/blog/server-side-rendering-react-in-ocaml)
 
-### [Documentation](https://ml-in-barcelona.github.io/server-reason-react/server-reason-react/index.html)
+### [Documentation](https://ml-in-barcelona.github.io/server-reason-react/local/server-reason-react/index.html)
