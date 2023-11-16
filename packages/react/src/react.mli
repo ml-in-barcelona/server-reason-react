@@ -1,3 +1,5 @@
+(** The react library *)
+
 type domRef
 
 module Dom : sig

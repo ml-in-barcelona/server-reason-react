@@ -2,4 +2,4 @@
  (name dom)
  (public_name server-reason-react.dom)
  (preprocess
-  (pps server-reason-react.melange.ppx)))
+  (pps server-reason-react.melange_ppx)))

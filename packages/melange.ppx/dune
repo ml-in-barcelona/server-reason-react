@@ -1,6 +1,6 @@
 (library
  (name melange_native_ppx)
- (public_name server-reason-react.melange.ppx)
+ (public_name server-reason-react.melange_ppx)
  (ppx_runtime_libraries server-reason-react.runtime)
  (flags :standard -w -9)
  (libraries ppxlib ppxlib.astlib str)

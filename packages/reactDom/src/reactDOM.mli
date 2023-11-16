@@ -1,3 +1,5 @@
+(** The ReactDOM library *)
+
 val renderToString : React.element -> string
 (** renderToString renders a React tree to an HTML string.contents *)
 

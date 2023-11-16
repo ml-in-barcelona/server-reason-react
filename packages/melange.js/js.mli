@@ -1,3 +1,5 @@
+(** The Js equivalent library (very unsafe) *)
+
 type 'a t = 'a constraint 'a = < .. >
 
 module Fn : sig
