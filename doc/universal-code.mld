@@ -52,18 +52,19 @@ let main = id =>
 
 {2:ppx Externals and melange.ppx attributes}
 
-Since {melange.ppx} is not compatible with native, we provide [server-reason-react.melange_ppx] instead.
+Since [melange.ppx] is not compatible with native, we provide [server-reason-react.melange_ppx] instead.
  It allows to have the same features as [melange.ppx], so all externals, mel attributes and other features are supported.
 
-{3: Supports all {mel.} attributes}
+{3: Supports all [mel.] attributes}
 mel.* attributes are stripped out of the native build, and transformed into raising functions to raise at server runtime.
-{3: Enables pipe_first [->]}
 
+{3: Enables pipe_first [->]}
 it's a syntax sugar for pipe_last [|>], but it's not supported by default in native. [server-reason-react.melange_ppx] enables it and works perfectly fine in native.
 
-{3: Supports RegExp [%re "/regex/"]}
+{3: Supports RegExp [[%re "/regex/"]]}
 
-Transforms [%re ...] into Js.Re.t from [server-reason-react.js] and works perfectly fine in native (There might be some features missing in the implementation, such as backtracking or grouping.)
+Transforms [[%re ...]] into Js.Re.t from [server-reason-react.js] and works perfectly fine in native (There might be some features missing in the implementation, such as backtracking or grouping.)
+
 {3: Debugger [%debugger]}
 It removes the debugger in native. It's a noop on the server context, and it's pretty uncommon to use it on shared code.
 

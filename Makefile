@@ -65,6 +65,7 @@ install:
 
 .PHONY: pin
 pin: ## Pin dependencies
+	opam pin add dune.dev "https://github.com/ocaml/dune.git#c5352807775e688de982cb0e4029fb84341a261d" -y
 	opam pin add melange.dev "https://github.com/melange-re/melange.git#2ff08be262f113fc8d28b66c272502c6f403399c" -y
 	opam pin add reason-react-ppx.dev "https://github.com/reasonml/reason-react.git#7ca984c9a406b01e906fda1898f705f135fad202" -y
 	opam pin add reason-react.dev "https://github.com/reasonml/reason-react.git#7ca984c9a406b01e906fda1898f705f135fad202" -y
@@ -104,20 +105,13 @@ subst: ## Run dune substitute
 
 .PHONY: docs
 docs: ## Generate odoc documentation
-# Since odoc/dune fails when 2 wrapped libraries have the same name,
-# we need to ignore conflicting packages by adding an underscode in front of it
-# https://github.com/ocaml/dune/issues/1645
-	mv $(CURDIR)/packages/promise $(CURDIR)/packages/_promise
-	mv $(CURDIR)/packages/url $(CURDIR)/packages/_url
-	$(DUNE) build --root . @doc
-	mv $(CURDIR)/packages/_promise $(CURDIR)/packages/promise
-	mv $(CURDIR)/packages/_url $(CURDIR)/packages/url
+	$(DUNE) build --root . @doc-new
 
 # Because if the hack above, we can't have watch mode
 .PHONY: docs-watch
 docs-watch: ## Generate odoc docs
-	$(DUNE) build --root . -w @doc
+	$(DUNE) build --root . -w @doc-new
 
 .PHONY: docs-serve
 docs-serve: docs ## Open odoc docs with default web browser
-	open _build/default/_doc/_html/index.html
+	open _build/default/_doc_new/html/docs/index.html

@@ -70,18 +70,18 @@ jobs:
       - name: Run tests
         run: make test
 
-      # - name: Generate docs
-        # if: github.ref == 'refs/heads/main'
-        # run: make docs
+      - name: Generate docs
+        if: github.ref == 'refs/heads/main'
+        run: make docs
 
-      # - name: Publish docs
-        # uses: crazy-max/ghaction-github-pages@v1
-        # if: github.ref == 'refs/heads/main'
-        # with:
-          # target_branch: gh-pages
-          # build_dir: _build/default/_doc/_html/
-        # env:
-          # GITHUB_TOKEN: ${{ github.token }}
+      - name: Publish docs
+        uses: crazy-max/ghaction-github-pages@v1
+        if: github.ref == 'refs/heads/main'
+        with:
+          target_branch: gh-pages
+          build_dir: _build/default/_doc_new/html/docs/
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
 
       - name: Save cache when not Windows
         uses: actions/cache/save@v3
