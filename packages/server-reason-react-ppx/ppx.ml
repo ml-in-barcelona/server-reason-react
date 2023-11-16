@@ -8,6 +8,7 @@ let issues_url = repo_url |> Printf.sprintf "%s/issues"
 (* There's no pexp_list on Ppxlib since isn't a constructor of the Parsetree *)
 let pexp_list ~loc xs =
   List.fold_left (List.rev xs) ~init:[%expr []] ~f:(fun xs x ->
+      let loc = x.pexp_loc in
       [%expr [%e x] :: [%e xs]])
 
 exception Error of expression
@@ -26,20 +27,6 @@ let make_string ~loc str =
   let open Ast_helper in
   Ast_helper.Exp.constant ~loc (Const.string str)
 
-let getLabel str =
-  match str with Optional str | Labelled str -> str | Nolabel -> ""
-
-let optionIdent = Lident "option"
-
-let argIsKeyRef = function
-  | Labelled ("key" | "ref"), _ | Optional ("key" | "ref"), _ -> true
-  | _ -> false
-
-let isUnit expr =
-  match expr.pexp_desc with
-  | Pexp_construct ({ txt = Lident "()"; _ }, _) -> true
-  | _ -> false
-
 (* Helper method to look up the [@react.component] attribute *)
 let hasAttr { attr_name; _ } = attr_name.txt = "react.component"
 
@@ -49,25 +36,7 @@ let otherAttrsPure { attr_name; _ } = attr_name.txt <> "react.component"
 let hasAttrOnBinding { pvb_attributes } =
   List.find_opt ~f:hasAttr pvb_attributes <> None
 
-let collect_props visit args =
-  let rec go props = function
-    | [] -> (None, props)
-    | [ (Nolabel, arg) ] -> (Some (visit arg), props)
-    | (Nolabel, prop) :: _ ->
-        let loc = prop.pexp_loc in
-        (* TODO: Render the corrected argument *)
-        let error =
-          [%expr
-            [%ocaml.error
-              "jsx: All arguments should be labelled arguments. I found one \
-               without a label. Add a ~ before the argument."]]
-        in
-        go ((Nolabel, visit error) :: props) []
-    | (proplab, prop) :: xs -> go ((proplab, visit prop) :: props) xs
-  in
-  go [] args
-
-let rec unwrap_children ~f children = function
+let rec unwrap_children children = function
   | { pexp_desc = Pexp_construct ({ txt = Lident "[]"; _ }, None); _ } ->
       List.rev children
   | {
@@ -77,7 +46,7 @@ let rec unwrap_children ~f children = function
             Some { pexp_desc = Pexp_tuple [ child; next ]; _ } );
       _;
     } ->
-      unwrap_children ~f (f child :: children) next
+      unwrap_children (child :: children) next
   | e -> raise_errorf ~loc:e.pexp_loc "jsx: children prop should be a list"
 
 let is_jsx = function
@@ -426,7 +395,7 @@ let transform_labelled ~loc ~tag_name (prop_label, (runtime_value : expression))
       let new_prop = make_prop ~is_optional ~prop name runtime_value in
       [%expr [%e new_prop] :: [%e props]]
 
-let transform_attributes ~loc ~tag_name args =
+let transform_lowercase_props ~loc ~tag_name args =
   match args with
   | [] -> [%expr []]
   | attrs -> (
@@ -442,24 +411,22 @@ let transform_attributes ~loc ~tag_name args =
           (* We need to filter attributes since optionals are represented as None *)
           [%expr List.filter_map Fun.id [%e list_of_attributes]])
 
-let rewrite_node ~loc tag_name args children =
-  let dom_node_name = estring ~loc tag_name in
-  let attributes = transform_attributes ~loc ~tag_name args in
+let rewrite_lowercase ~loc:exprLoc tag_name args children =
+  let loc = exprLoc in
+  let dom_node_name = estring ~loc:exprLoc tag_name in
+  let props = transform_lowercase_props ~loc:exprLoc ~tag_name args in
   match children with
   | Some children ->
       let childrens = pexp_list ~loc children in
-      [%expr
-        React.createElement [%e dom_node_name] [%e attributes] [%e childrens]]
-  | None -> [%expr React.createElement [%e dom_node_name] [%e attributes] []]
+      [%expr React.createElement [%e dom_node_name] [%e props] [%e childrens]]
+  | None -> [%expr React.createElement [%e dom_node_name] [%e props] []]
 
 let split_args args =
   let children = ref (Location.none, []) in
   let rest =
     List.filter_map args ~f:(function
       | Labelled "children", children_expression ->
-          let children' =
-            unwrap_children [] ~f:(fun e -> e) children_expression
-          in
+          let children' = unwrap_children [] children_expression in
           children := (children_expression.pexp_loc, children');
           None
       | arg_label, e -> Some (arg_label, e))
@@ -470,13 +437,12 @@ let split_args args =
   (children_prop, rest)
 
 let reverse_pexp_list ~loc expr =
-  let rec reverse_pexp_list_ acc = function
+  let rec go acc = function
     | [%expr []] -> acc
-    | [%expr [%e? hd] :: [%e? tl]] ->
-        reverse_pexp_list_ [%expr [%e hd] :: [%e acc]] tl
+    | [%expr [%e? hd] :: [%e? tl]] -> go [%expr [%e hd] :: [%e acc]] tl
     | expr -> expr
   in
-  reverse_pexp_list_ [%expr []] expr
+  go [%expr []] expr
 
 let list_have_tail expr =
   match expr with
@@ -498,7 +464,7 @@ let transform_items_of_list ~loc children =
   in
   run_mapper children [%expr []]
 
-let unerasableIgnore loc =
+let remove_warning_16_optional_argument_cannot_be_erased ~loc =
   let open Ast_helper in
   {
     attr_name = { txt = "warning"; loc };
@@ -507,184 +473,103 @@ let unerasableIgnore loc =
     attr_loc = loc;
   }
 
-(* Lookup the filename from the location information on the AST node and turn it into a valid module identifier *)
-let filenameFromLoc (pstr_loc : Location.t) =
-  let fileName = pstr_loc.loc_start.pos_fname in
-  let fileName =
-    try Filename.chop_extension (Filename.basename fileName)
-    with Invalid_argument _ -> fileName
-  in
-  let fileName = String.capitalize_ascii fileName in
-  fileName
+let remove_warning_27_unused_var_strict ~loc =
+  let open Ast_helper in
+  {
+    attr_name = { txt = "warning"; loc };
+    attr_payload =
+      PStr [ Str.eval (Ast_helper.Exp.constant (Const.string "-27")) ];
+    attr_loc = loc;
+  }
 
-(* Finds the name of the variable the binding is assigned to, otherwise raises Invalid_argument *)
-let getFnName binding =
+(* Finds the name of the variable the binding is assigned to, otherwise raises *)
+let get_function_name binding =
   match binding with
   | { pvb_pat = { ppat_desc = Ppat_var { txt } } } -> txt
   | _ ->
-      raise (Invalid_argument "react.component calls cannot be destructured.")
+      raise_errorf ~loc:binding.pvb_loc
+        "react.component calls cannot be destructured."
 
-let rec makeFunsForMakePropsBody list args =
-  match list with
-  | (label, _default, loc, _interiorType) :: tl ->
-      makeFunsForMakePropsBody tl
-        (Ast_helper.Exp.fun_ ~loc label None
-           {
-             ppat_desc = Ppat_var { txt = getLabel label; loc };
-             ppat_loc = loc;
-             ppat_attributes = [];
-             ppat_loc_stack = [];
-           }
-           args)
-  | [] -> args
+(* TODO: there is a long-tail of unsupported features inside of blocks - Pexp_letmodule , Pexp_letexception , Pexp_ifthenelse *)
+let rec transform_function_with_warning expression =
+  let loc = expression.pexp_loc in
+  match expression.pexp_desc with
+  (* let make = (~prop) => ... with no final unit *)
+  | Pexp_fun
+      ( ((Labelled _ | Optional _) as label),
+        default,
+        pattern,
+        ({ pexp_desc = Pexp_fun _ } as internalExpression) ) ->
+      let exp = transform_function_with_warning internalExpression in
+      { expression with pexp_desc = Pexp_fun (label, default, pattern, exp) }
+  (* let make = (()) => ... *)
+  (* let make = (_) => ... *)
+  | Pexp_fun
+      ( Nolabel,
+        _default,
+        { ppat_desc = Ppat_construct ({ txt = Lident "()" }, _) | Ppat_any },
+        _internalExpression ) ->
+      expression
+  (* let make = (~prop) => ... *)
+  | Pexp_fun (label, default, pattern, internalExpression) ->
+      {
+        expression with
+        pexp_attributes =
+          remove_warning_16_optional_argument_cannot_be_erased ~loc
+          :: expression.pexp_attributes;
+        pexp_desc =
+          Pexp_fun
+            ( label,
+              default,
+              pattern,
+              {
+                pexp_loc = expression.pexp_loc;
+                pexp_desc =
+                  Pexp_fun (Nolabel, None, [%pat? ()], internalExpression);
+                pexp_loc_stack = [];
+                pexp_attributes = [];
+              } );
+      }
+  (* let make = {let foo = bar in (~prop) => ...} *)
+  | Pexp_let (recursive, vbs, internalExpression) ->
+      (* here's where we spelunk! *)
+      let exp = transform_function_with_warning internalExpression in
+      { expression with pexp_desc = Pexp_let (recursive, vbs, exp) }
+  (* let make = React.forwardRef((~prop) => ...) *)
+  | Pexp_apply (_wrapperExpression, [ (Nolabel, internalExpression) ]) ->
+      transform_function_with_warning internalExpression
+  (* let make = React.memoCustomCompareProps((~prop) => ..., (prevPros, nextProps) => true) *)
+  | Pexp_apply
+      ( _wrapperExpression,
+        [
+          (Nolabel, internalExpression);
+          ((Nolabel, { pexp_desc = Pexp_fun _ }) as _compareProps);
+        ] ) ->
+      transform_function_with_warning internalExpression
+  | Pexp_sequence (wrapperExpression, internalExpression) ->
+      let exp = transform_function_with_warning internalExpression in
+      { expression with pexp_desc = Pexp_sequence (wrapperExpression, exp) }
+  | _ -> expression
 
-(* Build an AST node for the props name when converted to a Js.t inside the function signature  *)
-let makePropsName ~loc name =
-  Ast_helper.Pat.mk ~loc (Ppat_var { txt = name; loc })
-
-let makeValueBinding ~loc fnName namedArgListWithKeyAndRef
-    componentImplementation =
-  let name = makePropsName ~loc fnName in
-  let body =
-    makeFunsForMakePropsBody namedArgListWithKeyAndRef componentImplementation
-  in
-
-  Ast_helper.Vb.mk ~loc name body
-
-let keyType loc =
-  Ast_helper.Typ.constr ~loc { loc; txt = optionIdent }
-    [ Ast_helper.Typ.constr ~loc { loc; txt = Lident "string" } [] ]
-
-let process_value_binding ~loc binding =
-  let emptyLoc = { loc with loc_ghost = true } in
-  let fnName = getFnName binding in
-  let expression = binding.pvb_expr in
-  let unerasableIgnoreExp exp =
-    {
-      exp with
-      pexp_attributes = unerasableIgnore emptyLoc :: exp.pexp_attributes;
-    }
-  in
-  (* TODO: there is a long-tail of unsupported features inside of blocks - Pexp_letmodule , Pexp_letexception , Pexp_ifthenelse *)
-  let rec spelunkForFunExpression expression =
-    match expression with
-    (* let make = (~prop) => ... with no final unit *)
-    | {
-     pexp_desc =
-       Pexp_fun
-         ( ((Labelled _ | Optional _) as label),
-           default,
-           pattern,
-           ({ pexp_desc = Pexp_fun _ } as internalExpression) );
-    } ->
-        let wrap, hasUnit, exp = spelunkForFunExpression internalExpression in
-        let expression =
-          {
-            expression with
-            pexp_desc = Pexp_fun (label, default, pattern, exp);
-          }
-        in
-        (wrap, hasUnit, expression)
-    (* let make = (()) => ... *)
-    (* let make = (_) => ... *)
-    | {
-     pexp_desc =
-       Pexp_fun
-         ( Nolabel,
-           _default,
-           { ppat_desc = Ppat_construct ({ txt = Lident "()" }, _) | Ppat_any },
-           _internalExpression );
-    } ->
-        ((fun a -> a), true, expression)
-    (* let make = (~prop) => ... *)
-    | {
-     pexp_desc = Pexp_fun (label, default, pattern, internalExpression);
-     pexp_loc;
-    } ->
-        let unit_pattern =
-          {
-            ppat_desc =
-              Ppat_construct ({ txt = Lident "()"; loc = emptyLoc }, None);
-            ppat_loc = emptyLoc;
-            ppat_loc_stack = [];
-            ppat_attributes = [];
-          }
-        in
-        let expression =
-          unerasableIgnoreExp
-            {
-              expression with
-              pexp_desc =
-                Pexp_fun
-                  ( label,
-                    default,
-                    pattern,
-                    {
-                      pexp_loc;
-                      pexp_desc =
-                        Pexp_fun
-                          (Nolabel, None, unit_pattern, internalExpression);
-                      pexp_loc_stack = [];
-                      pexp_attributes = [];
-                    } );
-            }
-        in
-        ((fun a -> a), false, expression)
-    (* let make = {let foo = bar in (~prop) => ...} *)
-    | { pexp_desc = Pexp_let (recursive, vbs, internalExpression); pexp_loc } ->
-        (* here's where we spelunk! *)
-        let wrap, hasUnit, exp = spelunkForFunExpression internalExpression in
-        ( wrap,
-          hasUnit,
-          {
-            expression with
-            pexp_desc = Pexp_let (recursive, vbs, exp);
-            pexp_loc;
-          } )
-    (* let make = React.forwardRef((~prop) => ...) *)
-    | {
-     pexp_desc =
-       Pexp_apply (wrapperExpression, [ (Nolabel, internalExpression) ]);
-     pexp_loc;
-    } ->
-        let _, hasUnit, exp = spelunkForFunExpression internalExpression in
-        ( (fun exp ->
-            Ast_helper.Exp.apply ~loc:pexp_loc wrapperExpression
-              [ (Nolabel, exp) ]),
-          hasUnit,
-          exp )
-    (* let make = React.memoCustomCompareProps((~prop) => ..., (prevPros, nextProps) => true) *)
-    | {
-     pexp_desc =
-       Pexp_apply
-         ( wrapperExpression,
-           [
-             (Nolabel, internalExpression);
-             ((Nolabel, { pexp_desc = Pexp_fun _ }) as compareProps);
-           ] );
-    } ->
-        let _, hasUnit, exp = spelunkForFunExpression internalExpression in
-        ( (fun exp ->
-            Ast_helper.Exp.apply wrapperExpression
-              [ (Nolabel, exp); compareProps ]),
-          hasUnit,
-          exp )
-    | { pexp_desc = Pexp_sequence (wrapperExpression, internalExpression) } ->
-        let wrap, hasUnit, exp = spelunkForFunExpression internalExpression in
-        ( wrap,
-          hasUnit,
-          { expression with pexp_desc = Pexp_sequence (wrapperExpression, exp) }
-        )
-    | e -> ((fun a -> a), false, e)
-  in
-  let _wrapExpression, _hasUnit, expression =
-    spelunkForFunExpression expression
-  in
-  let namedArgListWithKeyAndRef =
-    [ (Optional "key", None, emptyLoc, Some (keyType emptyLoc)) ]
-  in
+let make_value_binding binding =
+  let loc = binding.pvb_loc in
+  let ghost_loc = { binding.pvb_loc with loc_ghost = true } in
+  let binding_expr = transform_function_with_warning binding.pvb_expr in
   (* Builds an AST node for the modified `make` function *)
-  makeValueBinding ~loc fnName namedArgListWithKeyAndRef expression
+  let name =
+    Ast_helper.Pat.mk ~loc:ghost_loc
+      (Ppat_var { txt = get_function_name binding; loc = ghost_loc })
+  in
+  let key_arg = Optional "key" in
+  (* default_value = None means there's no default *)
+  let default_value = None in
+  let renamed_arg = ppat_var ~loc:ghost_loc { txt = "_"; loc } in
+  (* Append key argument since we want to allow users of this component to set key
+     (and assign it to _ since it shouldn't be used) *)
+  let body_expression =
+    pexp_fun ~loc:ghost_loc key_arg default_value renamed_arg binding_expr
+  in
+  Ast_helper.Vb.mk ~loc name body_expression
 
 let rewrite_signature_item signature_item =
   (* Remove the [@react.component] from the AST *)
@@ -738,16 +623,11 @@ let rewrite_structure_item structure_item =
                on the server, implement a placeholder or an empty element"]])
   (* let component = ... *)
   | Pstr_value (rec_flag, value_bindings) ->
-      let bindings =
-        value_bindings
-        |> List.map ~f:(fun vb ->
-               if not (hasAttrOnBinding vb) then vb
-               else process_value_binding ~loc:structure_item.pstr_loc vb)
+      let map_value_binding vb =
+        if not (hasAttrOnBinding vb) then vb else make_value_binding vb
       in
-      {
-        pstr_loc = structure_item.pstr_loc;
-        pstr_desc = Pstr_value (rec_flag, bindings);
-      }
+      let bindings = List.map ~f:map_value_binding value_bindings in
+      pstr_value ~loc:structure_item.pstr_loc rec_flag bindings
   | _ -> structure_item
 
 let rewrite_jsx =
@@ -769,8 +649,8 @@ let rewrite_jsx =
             let children, rest_of_args = split_args args in
             match tag.pexp_desc with
             (* div() [@JSX] *)
-            | Pexp_ident { txt = Lident name; loc = name_loc } ->
-                rewrite_node ~loc:name_loc name rest_of_args children
+            | Pexp_ident { txt = Lident name; loc = _name_loc } ->
+                rewrite_lowercase ~loc:expr.pexp_loc name rest_of_args children
             (* Reason adds `createElement` as default when an uppercase is found,
                we change it back to make *)
             (* Foo.createElement() [@JSX] *)

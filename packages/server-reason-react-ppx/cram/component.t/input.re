@@ -73,3 +73,5 @@ module Form_with_method = {
   [@react.component]
   let make = (~children) => <form method_="GET"> children </form>;
 };
+
+let a = <Uppercase> <div /> </Uppercase>;

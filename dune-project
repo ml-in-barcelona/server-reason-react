@@ -41,6 +41,7 @@
   (alcotest :with-test)
   (alcotest-lwt :with-test)
   (fmt :with-test)
+  (merlin :with-test)
 
   ;; Documentation
   (odoc :with-doc)

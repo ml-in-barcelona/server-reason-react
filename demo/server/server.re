@@ -60,7 +60,15 @@ module Page = {
 
 module Link = {
   [@react.component]
-  let make = (~href, ~children, ()) => {
+  let make = (~href, ~children) => {
+    let (useState, setState) = React.useState(() => false);
+
+    React.useEffect0(() => {
+      setState(_prev => !useState);
+
+      None;
+    });
+
     <a
       onClick={_e => print_endline("clicked")}
       className="font-medium text-blue-600 hover:underline flex items-center"
@@ -100,6 +108,8 @@ module Home = {
     </div>;
   };
 };
+
+let a = React.Upper_case_component(() => Home.make());
 
 let () = {
   let server = Httpd.create();

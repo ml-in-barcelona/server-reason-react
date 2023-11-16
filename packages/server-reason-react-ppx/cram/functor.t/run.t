@@ -8,7 +8,7 @@ We need to output ML syntax here, otherwise refmt could not parse it.
   module Func (M : X_int) = struct
     let x = M.x + 1
   
-    let make ?key ~a =
+    let make ?key:_ ~a =
      fun [@warning "-16"] ~b () ->
       print_endline "This function should be named `Test$Func`" M.x;
       React.createElement "div" [] []
