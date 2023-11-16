@@ -12,13 +12,8 @@
     React.Upper_case_component(
       () =>
         Page.make(
+          ~children=React.createElement("h1", [], [React.string("Yep")]),
           ~moreProps="hgalo",
-          ~children=
-            React.createElement(
-              "h1",
-              [||] |> Array.to_list |> List.filter_map(a => a) |> Array.of_list,
-              [React.string("Yep")],
-            ),
           (),
         ),
     );
@@ -32,17 +27,12 @@
     React.Upper_case_component(
       () =>
         MyComponent.make(
+          ~children=React.createElement("div", [], ["hello"]),
           ~booleanAttribute=true,
           ~stringAttribute="string",
           ~intAttribute=1,
           ~forcedOptional=?Some("hello"),
           ~onClick=send(handleClick),
-          ~children=
-            React.createElement(
-              "div",
-              [||] |> Array.to_list |> List.filter_map(a => a) |> Array.of_list,
-              ["hello"],
-            ),
           (),
         ),
     );
@@ -50,13 +40,8 @@
     React.Upper_case_component(
       () =>
         FancyButton.make(
+          ~children=React.createElement("div", [], []),
           ~ref=buttonRef,
-          ~children=
-            React.createElement(
-              "div",
-              [||] |> Array.to_list |> List.filter_map(a => a) |> Array.of_list,
-              [],
-            ),
           (),
         ),
     );

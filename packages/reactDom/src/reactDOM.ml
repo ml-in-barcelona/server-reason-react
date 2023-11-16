@@ -50,9 +50,7 @@ let valid_attribute_to_string attr =
   else Some (attribute_to_string attr)
 
 let attributes_to_string attrs =
-  let valid_attributes =
-    attrs |> Array.to_list |> List.filter_map valid_attribute_to_string
-  in
+  let valid_attributes = attrs |> List.filter_map valid_attribute_to_string in
   match valid_attributes with
   | [] -> ""
   | rest -> " " ^ (rest |> String.concat " " |> String.trim)
@@ -233,11 +231,11 @@ let createPortal _reactElement _domElement = _reactElement
 
 module Style = ReactDOMStyle
 
-let createDOMElementVariadic (tag : string) ~(props : JSX.prop array)
+let createDOMElementVariadic (tag : string) ~props
     (childrens : React.element array) =
   React.createElement tag props (childrens |> Array.to_list)
 
-let add kind value (map : JSX.prop list) =
+let add kind value map =
   match value with Some i -> map |> List.cons (kind i) | None -> map
 
 type dangerouslySetInnerHTML = { __html : string } [@@boxed]
@@ -1227,6 +1225,5 @@ let domProps
   |> add (fun v -> JSX.dangerouslyInnerHtml v.__html) dangerouslySetInnerHTML
   |> add (JSX.bool "suppressContentEditableWarning") suppressContentEditableWarning
   |> add (JSX.bool "suppressHydrationWarning") suppressHydrationWarning
-  |> Array.of_list
 
 module Ref = React.Ref

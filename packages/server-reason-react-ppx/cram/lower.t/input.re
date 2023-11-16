@@ -21,7 +21,7 @@ let lower_children_nested =
       <nav className="menu">
         <ul>
           {examples
-          |> List.map(e =>
+           |> List.map(e =>
                 <li key={e.path}>
                   <a
                     href={e.path}
@@ -33,7 +33,7 @@ let lower_children_nested =
                   </a>
                 </li>
               )
-          |> React.list}
+           |> React.list}
         </ul>
       </nav>
     </div>
@@ -52,3 +52,5 @@ let lower_with_many_props =
   </div>;
 
 let some_random_html_element = <text dx="1 2" dy="3 4" />;
+
+let div = <div ?onClick />;

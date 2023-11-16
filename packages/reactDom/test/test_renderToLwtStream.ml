@@ -41,9 +41,9 @@ let react_use_without_suspense _switch () =
     React.Upper_case_component
       (fun () ->
         let () = React.Experimental.use (Sleep.delay delay) in
-        React.createElement "div" [||]
+        React.createElement "div" []
           [
-            React.createElement "span" [||]
+            React.createElement "span" []
               [ React.string "Hello "; React.float delay ];
           ])
   in
@@ -54,8 +54,8 @@ let suspense_without_promise _switch () =
   let hi =
     React.Upper_case_component
       (fun () ->
-        React.createElement "div" [||]
-          [ React.createElement "span" [||] [ React.string "Hello" ] ])
+        React.createElement "div" []
+          [ React.createElement "span" [] [ React.string "Hello" ] ])
   in
   let app =
     React.Suspense { fallback = React.string "Loading..."; children = hi }
@@ -81,9 +81,9 @@ let react_use_with_suspense _switch () =
     React.Upper_case_component
       (fun () ->
         let () = React.Experimental.use (Sleep.delay delay) in
-        React.createElement "div" [||]
+        React.createElement "div" []
           [
-            React.createElement "span" [||]
+            React.createElement "span" []
               [ React.string "Hello "; React.float delay ];
           ])
   in
@@ -107,12 +107,10 @@ let test_with_custom_component _switch () =
   let custom_component =
     React.Upper_case_component
       (fun () ->
-        React.createElement "div" [||]
-          [
-            React.createElement "span" [||] [ React.string "Custom Component" ];
-          ])
+        React.createElement "div" []
+          [ React.createElement "span" [] [ React.string "Custom Component" ] ])
   in
-  let app = React.createElement "div" [||] [ custom_component ] in
+  let app = React.createElement "div" [] [ custom_component ] in
   let stream, _abort = ReactDOM.renderToLwtStream app in
   assert_stream stream [ "<div><div><span>Custom Component</span></div></div>" ]
 
@@ -120,13 +118,11 @@ let test_with_multiple_custom_components _switch () =
   let custom_component =
     React.Upper_case_component
       (fun () ->
-        React.createElement "div" [||]
-          [
-            React.createElement "span" [||] [ React.string "Custom Component" ];
-          ])
+        React.createElement "div" []
+          [ React.createElement "span" [] [ React.string "Custom Component" ] ])
   in
   let app =
-    React.createElement "div" [||] [ custom_component; custom_component ]
+    React.createElement "div" [] [ custom_component; custom_component ]
   in
   let stream, _abort = ReactDOM.renderToLwtStream app in
   assert_stream stream

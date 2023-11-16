@@ -333,6 +333,6 @@ module Debug = struct
 end
 
 let () =
-  Driver.register_transformation ~preprocess_impl:structure_mapper
+  Driver.register_transformation ~impl:structure_mapper
     ~rules:[ Pipe_first.rule; Regex.rule; Double_hash.rule; Debug.rule ]
     "melange-native-ppx"

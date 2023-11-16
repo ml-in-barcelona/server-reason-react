@@ -22,7 +22,7 @@ module Style = ReactDOMStyle
 (** ReactDOM.Style generates the inline styles for the `style` prop. *)
 
 val createDOMElementVariadic :
-  string -> props:React.JSX.prop array -> React.element array -> React.element
+  string -> props:React.JSX.prop list -> React.element array -> React.element
 (** Create a React.element by giving the HTML tag, an array of props and children *)
 
 type dangerouslySetInnerHTML = { __html : string } [@@boxed]
@@ -517,6 +517,6 @@ val domProps :
   ?suppressContentEditableWarning:bool ->
   ?suppressHydrationWarning:bool ->
   unit ->
-  React.JSX.prop array
+  React.JSX.prop list
 
 module Ref = React.Ref

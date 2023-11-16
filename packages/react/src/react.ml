@@ -379,7 +379,7 @@ end
 
 type lower_case_element = {
   tag : string;
-  attributes : JSX.prop array;
+  attributes : JSX.prop list;
   children : element list;
 }
 
@@ -418,9 +418,9 @@ let clone_attribute acc attr new_attr =
 
 module StringMap = Map.Make (String)
 
-let attributes_to_map (attributes : JSX.prop array) =
+let attributes_to_map attributes =
   let open JSX in
-  Array.fold_left
+  List.fold_left
     (fun acc attr ->
       match attr with
       | Bool (key, value) -> acc |> StringMap.add key (Bool (key, value))
@@ -432,7 +432,7 @@ let attributes_to_map (attributes : JSX.prop array) =
       | Style _ -> acc)
     StringMap.empty attributes
 
-let clone_attributes (attributes : JSX.prop array) new_attributes =
+let clone_attributes attributes new_attributes =
   let attribute_map = attributes_to_map attributes in
   let new_attribute_map = attributes_to_map new_attributes in
   StringMap.merge
@@ -447,11 +447,10 @@ let clone_attributes (attributes : JSX.prop array) new_attributes =
   |> List.map (fun (_, attrs) -> attrs)
   |> List.flatten |> List.rev
   |> List.sort compare_attribute
-  |> Array.of_list
 
 let create_element_inner tag attributes children =
   let dangerouslySetInnerHTML =
-    Array.find_opt
+    List.find_opt
       (function JSX.DangerouslyInnerHtml _ -> true | _ -> false)
       attributes
   in
@@ -499,7 +498,7 @@ module Fragment = struct
   let make ~children () = Fragment children
 end
 
-let fragment ~children () = Fragment.make ~children ()
+let fragment children = Fragment.make ~children ()
 
 (* ReasonReact APIs *)
 let string txt = Text txt
