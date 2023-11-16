@@ -495,10 +495,10 @@ let cloneElement element new_attributes =
   | Suspense { fallback; children } -> Suspense { fallback; children }
 
 module Fragment = struct
-  let make ~children () = Fragment children
+  let make ~children ?key:_ () = Fragment children
 end
 
-let fragment children = Fragment.make ~children ()
+let fragment children = Fragment.make ~children ?key:None ()
 
 (* ReasonReact APIs *)
 let string txt = Text txt

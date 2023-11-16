@@ -103,6 +103,18 @@ let fragment = () => {
   );
 };
 
+let fragment_with_key = () => {
+  let div =
+    <React.Fragment key="asd">
+      <div className="md:w-1/3" />
+      <div className="md:w-2/3" />
+    </React.Fragment>;
+  assert_string(
+    ReactDOM.renderToStaticMarkup(div),
+    "<div class=\"md:w-1/3\"></div><div class=\"md:w-2/3\"></div>",
+  );
+};
+
 module Container = {
   [@react.component]
   let make = (~children) => <div> children </div>;
@@ -357,6 +369,7 @@ let _ =
           case("ref_opt_attr_some", ref_opt_attribute_some),
           case("ref_opt_attr_none", ref_opt_attribute_none),
           case("test_fragment", fragment),
+          case("test_fragment_with_key", fragment_with_key),
           case("test_children_uppercase", children_uppercase),
           case("test_children_lowercase", children_lowercase),
           case("event_onClick", onClick_empty),

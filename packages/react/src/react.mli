@@ -577,9 +577,9 @@ and element =
 
 exception Invalid_children of string
 
-(* type ('props, 'return) componentLike = 'props -> 'return *)
-(* type 'props component = ('props, element) componentLike *)
-(* external component : ('props, element) componentLike -> 'props component = "%identity" *)
+module Fragment : sig
+  val make : children:element -> ?key:string -> unit -> element
+end
 
 val createElement : string -> JSX.prop list -> element list -> element
 val fragment : element -> element

@@ -34,10 +34,6 @@ let consecutives_text_nodes () =
 
 let case title fn = Alcotest_lwt.test_case_sync title `Quick fn
 
-let whatever =
-  React.createElement "div" []
-    [ React.fragment (React.list [ React.createElement "iframe" [] [] ]) ]
-
 let tests =
   ( "renderToString",
     [
