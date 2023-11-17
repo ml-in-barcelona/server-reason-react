@@ -1,15 +1,25 @@
-(** The ReactDOM library *)
+(** {1: The ReactDOM library } *)
 
 val renderToString : React.element -> string
-(** renderToString renders a React tree to an HTML string.contents *)
+(** renderToString renders a React tree to as an HTML string.
+
+Similar to
+{{:https://react.dev/reference/react-dom/server/renderToString}} *)
 
 val renderToStaticMarkup : React.element -> string
-(** renderToStaticMarkup renders a non-interactive React tree to an HTML string. *)
+(** renderToStaticMarkup renders a non-interactive React tree to an HTML string.
+
+Similar to {{:https://react.dev/reference/react-dom/server/renderToStaticMarkup}} *)
 
 val renderToLwtStream : React.element -> string Lwt_stream.t * (unit -> unit)
-(** renderToPipeableStream renders a React tree to a Lwt_stream.t. *)
+(** renderToPipeableStream renders a React tree to a Lwt_stream.t.
+
+Similar to {{:https://react.dev/reference/react-dom/server/renderToPipeableStream}} *)
+
+(** {2: The rest of the API is there for compatibility with ReactDOM's reason-react} *)
 
 val querySelector : 'a -> 'b option
+(** Do nothing on the server, always returns None *)
 
 val render : 'a -> 'b -> 'c
 (** Do nothing on the server *)

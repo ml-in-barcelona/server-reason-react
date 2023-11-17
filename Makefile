@@ -112,6 +112,9 @@ docs: ## Generate odoc documentation
 docs-watch: ## Generate odoc docs
 	$(DUNE) build --root . -w @doc-new
 
-.PHONY: docs-serve
-docs-serve: docs ## Open odoc docs with default web browser
+.PHONY: docs-open
+docs-open: ## Open odoc docs with default web browser
 	open _build/default/_doc_new/html/docs/index.html
+
+.PHONY: docs-serve
+docs-serve: docs docs-open ## Open odoc docs with default web browser

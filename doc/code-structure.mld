@@ -1,0 +1,16 @@
+{0:structure How to organise the code}
+
+(Document still in WIP)
+
+There are a few ways to organise the code in order to share it between the client and the server.
+
+{[
+- src
+  - client/
+    - dune
+  - server/
+    - dune
+  - shared/
+    - lib/
+
+]}
