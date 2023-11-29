@@ -7,9 +7,7 @@
 
 (executable
  (name index)
- (public_name demo)
  (modules Index)
- (package server-reason-react)
  (libraries react reactDOM belt js shared_native tiny_httpd melange.dom)
  (preprocess
   (pps melange_native_ppx ppx)))
