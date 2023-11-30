@@ -3,11 +3,11 @@
  (libraries tiny_httpd shared_native react reactDOM js lwt.unix)
  (modules :standard \ Index)
  (preprocess
-  (pps ppx browser_ppx lwt_ppx)))
+  (pps server_reason_react_ppx browser_ppx lwt_ppx)))
 
 (executable
  (name index)
  (modules Index)
  (libraries react reactDOM belt js shared_native tiny_httpd melange.dom)
  (preprocess
-  (pps melange_native_ppx ppx)))
+  (pps melange_native_ppx server_reason_react_ppx)))

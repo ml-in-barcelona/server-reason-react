@@ -4,6 +4,6 @@
  (name shared_native)
  (libraries react reactDOM js belt dom webapi)
  (preprocess
-  (pps melange_native_ppx ppx browser_ppx)))
+  (pps melange_native_ppx server_reason_react_ppx browser_ppx)))
 
 (copy_files# "../*.re")
