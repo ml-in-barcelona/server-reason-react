@@ -338,6 +338,23 @@ let aria_props = () => {
   );
 };
 
+module Optional_prop = {
+  [@react.component]
+  let make = () => {
+    let target = None;
+
+    <a href="/" ?target> {React.string("...")} </a>;
+  };
+};
+
+let optional_prop = () => {
+  let component = <Optional_prop />;
+  assert_string(
+    ReactDOM.renderToStaticMarkup(component),
+    {|<a href="/">...</a>|},
+  );
+};
+
 let _ =
   Alcotest.run(
     "server-reason-react.ppx",
@@ -378,6 +395,7 @@ let _ =
           case("children_multiple_elements", children_multiple_elements),
           case("createElementVariadic", create_element_variadic),
           case("aria_props", aria_props),
+          case("optional_prop", optional_prop),
         ],
       ),
     ],
