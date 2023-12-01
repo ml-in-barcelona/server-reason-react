@@ -38,11 +38,13 @@
       List.filter_map(
         Fun.id,
         [
-          Option.map(
-            v =>
+          switch ((tabIndex: option(int))) {
+          | None => None
+          | Some(v) =>
+            Some(
               [@implicit_arity] React.JSX.String("tabindex", string_of_int(v)),
-            tabIndex: option(int),
-          ),
+            )
+          },
         ],
       ),
       [],
@@ -294,11 +296,13 @@
       List.filter_map(
         Fun.id,
         [
-          Option.map(
-            v =>
+          switch ((onClick: option(React.Event.Mouse.t => unit))) {
+          | None => None
+          | Some(v) =>
+            Some(
               [@implicit_arity] React.JSX.Event("onClick", React.JSX.Mouse(v)),
-            onClick: option(React.Event.Mouse.t => unit),
-          ),
+            )
+          },
         ],
       ),
       [],
