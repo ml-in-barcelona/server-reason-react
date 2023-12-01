@@ -100,9 +100,9 @@ let make_prop ~is_optional ~prop attribute_name attribute_value =
              ([%e attribute_name], ([%e attribute_value] : string)))]
   | Attribute { type_ = DomProps.String; _ }, true ->
       [%expr
-        Option.map
-          (fun v -> React.JSX.String ([%e attribute_name], v))
-          ([%e attribute_value] : string option)]
+        match ([%e attribute_value] : string option) with
+        | None -> None
+        | Some v -> Some (React.JSX.String ([%e attribute_name], v))]
   | Attribute { type_ = DomProps.Int; _ }, false ->
       [%expr
         Some
@@ -110,18 +110,19 @@ let make_prop ~is_optional ~prop attribute_name attribute_value =
              ([%e attribute_name], string_of_int ([%e attribute_value] : int)))]
   | Attribute { type_ = DomProps.Int; _ }, true ->
       [%expr
-        Option.map
-          (fun v -> React.JSX.String ([%e attribute_name], string_of_int v))
-          ([%e attribute_value] : int option)]
+        match ([%e attribute_value] : int option) with
+        | None -> None
+        | Some v ->
+            Some (React.JSX.String ([%e attribute_name], string_of_int v))]
   | Attribute { type_ = DomProps.Bool; _ }, false ->
       [%expr
         Some
           (React.JSX.Bool ([%e attribute_name], ([%e attribute_value] : bool)))]
   | Attribute { type_ = DomProps.Bool; _ }, true ->
       [%expr
-        Option.map
-          (fun v -> React.JSX.Bool ([%e attribute_name], v))
-          ([%e attribute_value] : bool option)]
+        match ([%e attribute_value] : bool option) with
+        | None -> None
+        | Some v -> Some (React.JSX.Bool ([%e attribute_name], v))]
   (* BooleanishString needs to transform bool into string *)
   | Attribute { type_ = DomProps.BooleanishString; _ }, false ->
       [%expr
@@ -130,9 +131,10 @@ let make_prop ~is_optional ~prop attribute_name attribute_value =
              ([%e attribute_name], string_of_bool ([%e attribute_value] : bool)))]
   | Attribute { type_ = DomProps.BooleanishString; _ }, true ->
       [%expr
-        Option.map
-          (fun v -> React.JSX.String ([%e attribute_name], string_of_bool v))
-          ([%e attribute_value] : option bool)]
+        match ([%e attribute_value] : bool option) with
+        | None -> None
+        | Some v ->
+            Some (React.JSX.String ([%e attribute_name], string_of_bool v))]
   | Attribute { type_ = DomProps.Style; _ }, false ->
       [%expr
         Some
@@ -141,16 +143,16 @@ let make_prop ~is_optional ~prop attribute_name attribute_value =
                 ([%e attribute_value] : ReactDOM.Style.t)))]
   | Attribute { type_ = DomProps.Style; _ }, true ->
       [%expr
-        Option.map
-          (fun v -> React.JSX.Style (ReactDOM.Style.to_string v))
-          ([%e attribute_value] : ReactDOM.Style.t option)]
+        match ([%e attribute_value] : ReactDOM.Style.t option) with
+        | None -> None
+        | Some v -> Some (React.JSX.Style (ReactDOM.Style.to_string v))]
   | Attribute { type_ = DomProps.Ref; _ }, false ->
       [%expr Some (React.JSX.Ref ([%e attribute_value] : React.domRef))]
   | Attribute { type_ = DomProps.Ref; _ }, true ->
       [%expr
-        Option.map
-          (fun v -> React.JSX.Ref v)
-          ([%e attribute_value] : React.domRef option)]
+        match ([%e attribute_value] : React.domRef option) with
+        | None -> None
+        | Some v -> Some (React.JSX.Ref v)]
   | Attribute { type_ = DomProps.InnerHtml; _ }, false -> (
       match attribute_value with
       (* Even thought we dont have mel.obj in OCaml, we do in Reason.
@@ -166,7 +168,9 @@ let make_prop ~is_optional ~prop attribute_name attribute_value =
          We can extract the field __html and pass it to React.JSX.DangerouslyInnerHtml *)
       | [%expr [%mel.obj { __html = [%e? inner] }]] ->
           [%expr
-            Option.map (fun v -> React.JSX.DangerouslyInnerHtml v) [%e inner]]
+            match [%e inner] with
+            | None -> None
+            | Some v -> Some (React.JSX.DangerouslyInnerHtml v)]
       | _ ->
           raise_errorf ~loc
             "jsx: unexpected expression found on dangerouslySetInnerHTML")
@@ -179,10 +183,11 @@ let make_prop ~is_optional ~prop attribute_name attribute_value =
                  ([%e attribute_value] : React.Event.Mouse.t -> unit) ))]
   | Event { type_ = Mouse; jsxName }, true ->
       [%expr
-        Option.map
-          (fun v ->
-            React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Mouse v))
-          ([%e attribute_value] : (React.Event.Mouse.t -> unit) option)]
+        match ([%e attribute_value] : (React.Event.Mouse.t -> unit) option) with
+        | None -> None
+        | Some v ->
+            Some
+              (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Mouse v))]
   | Event { type_ = Selection; jsxName }, false ->
       [%expr
         Some
@@ -192,10 +197,14 @@ let make_prop ~is_optional ~prop attribute_name attribute_value =
                  ([%e attribute_value] : React.Event.Mouse.t -> unit) ))]
   | Event { type_ = Selection; jsxName }, true ->
       [%expr
-        Option.map (fun v ->
-            (React.JSX.Event
-               ([%e make_string ~loc jsxName], React.JSX.Selection v))
-              ([%e attribute_value] : (React.Event.Selection.t -> unit) option))]
+        match
+          ([%e attribute_value] : (React.Event.Selection.t -> unit) option)
+        with
+        | None -> None
+        | Some v ->
+            Some
+              (React.JSX.Event
+                 ([%e make_string ~loc jsxName], React.JSX.Selection v))]
   | Event { type_ = Touch; jsxName }, false ->
       [%expr
         Some
@@ -205,9 +214,11 @@ let make_prop ~is_optional ~prop attribute_name attribute_value =
                  ([%e attribute_value] : React.Event.Touch.t -> unit) ))]
   | Event { type_ = Touch; jsxName }, true ->
       [%expr
-        Option.map (fun v ->
-            (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Touch v))
-              ([%e attribute_value] : (React.Event.Touch.t -> unit) option))]
+        match ([%e attribute_value] : (React.Event.Touch.t -> unit) option) with
+        | None -> None
+        | Some v ->
+            Some
+              (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Touch v))]
   | Event { type_ = UI; jsxName }, false ->
       [%expr
         Some
@@ -216,9 +227,11 @@ let make_prop ~is_optional ~prop attribute_name attribute_value =
                React.JSX.UI ([%e attribute_value] : React.Event.UI.t -> unit) ))]
   | Event { type_ = UI; jsxName }, true ->
       [%expr
-        Option.map (fun v ->
-            (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.UI v))
-              ([%e attribute_value] : (React.Event.UI.t -> unit) option))]
+        match ([%e attribute_value] : (React.Event.UI.t -> unit) option) with
+        | None -> None
+        | Some v ->
+            Some
+              (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.UI v))]
   | Event { type_ = Wheel; jsxName }, false ->
       [%expr
         Some
@@ -228,9 +241,11 @@ let make_prop ~is_optional ~prop attribute_name attribute_value =
                  ([%e attribute_value] : React.Event.Wheel.t -> unit) ))]
   | Event { type_ = Wheel; jsxName }, true ->
       [%expr
-        Option.map (fun v ->
-            (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Wheel v))
-              ([%e attribute_value] : (React.Event.Wheel.t -> unit) option))]
+        match ([%e attribute_value] : (React.Event.Wheel.t -> unit) option) with
+        | None -> None
+        | Some v ->
+            Some
+              (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Wheel v))]
   | Event { type_ = Clipboard; jsxName }, false ->
       [%expr
         Some
@@ -240,10 +255,14 @@ let make_prop ~is_optional ~prop attribute_name attribute_value =
                  ([%e attribute_value] : React.Event.Clipboard.t -> unit) ))]
   | Event { type_ = Clipboard; jsxName }, true ->
       [%expr
-        Option.map (fun v ->
-            (React.JSX.Event
-               ([%e make_string ~loc jsxName], React.JSX.Clipboard v))
-              ([%e attribute_value] : (React.Event.Clipboard.t -> unit) option))]
+        match
+          ([%e attribute_value] : (React.Event.Clipboard.t -> unit) option)
+        with
+        | None -> None
+        | Some v ->
+            Some
+              (React.JSX.Event
+                 ([%e make_string ~loc jsxName], React.JSX.Clipboard v))]
   | Event { type_ = Composition; jsxName }, false ->
       [%expr
         Some
@@ -253,11 +272,14 @@ let make_prop ~is_optional ~prop attribute_name attribute_value =
                  ([%e attribute_value] : React.Event.Composition.t -> unit) ))]
   | Event { type_ = Composition; jsxName }, true ->
       [%expr
-        Option.map (fun v ->
-            (React.JSX.Event
-               ([%e make_string ~loc jsxName], React.JSX.Composition v))
-              ([%e attribute_value]
-                : (React.Event.Composition.t -> unit) option))]
+        match
+          ([%e attribute_value] : (React.Event.Composition.t -> unit) option)
+        with
+        | None -> None
+        | Some v ->
+            Some
+              (React.JSX.Event
+                 ([%e make_string ~loc jsxName], React.JSX.Composition v))]
   | Event { type_ = Keyboard; jsxName }, false ->
       [%expr
         Some
@@ -267,10 +289,14 @@ let make_prop ~is_optional ~prop attribute_name attribute_value =
                  ([%e attribute_value] : React.Event.Keyboard.t -> unit) ))]
   | Event { type_ = Keyboard; jsxName }, true ->
       [%expr
-        Option.map (fun v ->
-            (React.JSX.Event
-               ([%e make_string ~loc jsxName], React.JSX.Keyboard v))
-              ([%e attribute_value] : (React.Event.Keyboard.t -> unit) option))]
+        match
+          ([%e attribute_value] : (React.Event.Keyboard.t -> unit) option)
+        with
+        | None -> None
+        | Some v ->
+            Some
+              (React.JSX.Event
+                 ([%e make_string ~loc jsxName], React.JSX.Keyboard v))]
   | Event { type_ = Focus; jsxName }, false ->
       [%expr
         Some
@@ -280,9 +306,11 @@ let make_prop ~is_optional ~prop attribute_name attribute_value =
                  ([%e attribute_value] : React.Event.Focus.t -> unit) ))]
   | Event { type_ = Focus; jsxName }, true ->
       [%expr
-        Option.map (fun v ->
-            (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Focus v))
-              ([%e attribute_value] : (React.Event.Focus.t -> unit) option))]
+        match ([%e attribute_value] : (React.Event.Focus.t -> unit) option) with
+        | None -> None
+        | Some v ->
+            Some
+              (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Focus v))]
   | Event { type_ = Form; jsxName }, false ->
       [%expr
         Some
@@ -292,9 +320,11 @@ let make_prop ~is_optional ~prop attribute_name attribute_value =
                  ([%e attribute_value] : React.Event.Form.t -> unit) ))]
   | Event { type_ = Form; jsxName }, true ->
       [%expr
-        Option.map (fun v ->
-            (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Form v))
-              ([%e attribute_value] : (React.Event.Form.t -> unit) option))]
+        match ([%e attribute_value] : (React.Event.Form.t -> unit) option) with
+        | None -> None
+        | Some v ->
+            Some
+              (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Form v))]
   | Event { type_ = Media; jsxName }, false ->
       [%expr
         Some
@@ -304,9 +334,11 @@ let make_prop ~is_optional ~prop attribute_name attribute_value =
                  ([%e attribute_value] : React.Event.Media.t -> unit) ))]
   | Event { type_ = Media; jsxName }, true ->
       [%expr
-        Option.map (fun v ->
-            (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Media v))
-              ([%e attribute_value] : (React.Event.Media.t -> unit) option))]
+        match ([%e attribute_value] : (React.Event.Media.t -> unit) option) with
+        | None -> None
+        | Some v ->
+            Some
+              (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Media v))]
   | Event { type_ = Inline; jsxName }, false ->
       [%expr
         Some
@@ -315,9 +347,12 @@ let make_prop ~is_optional ~prop attribute_name attribute_value =
                React.JSX.Inline ([%e attribute_value] : string) ))]
   | Event { type_ = Inline; jsxName }, true ->
       [%expr
-        Option.map (fun v ->
-            (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Inline v))
-              ([%e attribute_value] : string option))]
+        match ([%e attribute_value] : string option) with
+        | None -> None
+        | Some v ->
+            Some
+              (React.JSX.Event
+                 ([%e make_string ~loc jsxName], React.JSX.Inline v))]
   | Event { type_ = Image; jsxName }, false ->
       [%expr
         Some
@@ -328,9 +363,11 @@ let make_prop ~is_optional ~prop attribute_name attribute_value =
              ))]
   | Event { type_ = Image; jsxName }, true ->
       [%expr
-        Option.map (fun v ->
-            (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Image v))
-              ([%e attribute_value] : (React.Event.Image.t -> unit) option))]
+        match ([%e attribute_value] : (React.Event.Image.t -> unit) option) with
+        | None -> None
+        | Some v ->
+            Some
+              (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Image v))]
   | Event { type_ = Animation; jsxName }, false ->
       [%expr
         Some
@@ -340,10 +377,14 @@ let make_prop ~is_optional ~prop attribute_name attribute_value =
                  ([%e attribute_value] : React.Event.Animation.t -> unit) ))]
   | Event { type_ = Animation; jsxName }, true ->
       [%expr
-        Option.map (fun v ->
-            (React.JSX.Event
-               ([%e make_string ~loc jsxName], React.JSX.Animation v))
-              ([%e attribute_value] : (React.Event.Animation.t -> unit) option))]
+        match
+          ([%e attribute_value] : (React.Event.Animation.t -> unit) option)
+        with
+        | None -> None
+        | Some v ->
+            Some
+              (React.JSX.Event
+                 ([%e make_string ~loc jsxName], React.JSX.Animation v))]
   | Event { type_ = Transition; jsxName }, false ->
       [%expr
         Some
@@ -353,10 +394,14 @@ let make_prop ~is_optional ~prop attribute_name attribute_value =
                  ([%e attribute_value] : React.Event.Transition.t -> unit) ))]
   | Event { type_ = Transition; jsxName }, true ->
       [%expr
-        Option.map (fun v ->
-            (React.JSX.Event
-               ([%e make_string ~loc jsxName], React.JSX.Transition v))
-              ([%e attribute_value] : (React.Event.Transition.t -> unit) option))]
+        match
+          ([%e attribute_value] : (React.Event.Transition.t -> unit) option)
+        with
+        | None -> None
+        | Some v ->
+            Some
+              (React.JSX.Event
+                 ([%e make_string ~loc jsxName], React.JSX.Transition v))]
   | Event { type_ = Pointer; jsxName }, false ->
       [%expr
         Some
@@ -366,9 +411,14 @@ let make_prop ~is_optional ~prop attribute_name attribute_value =
                  ([%e attribute_value] : React.Event.Pointer.t -> unit) ))]
   | Event { type_ = Pointer; jsxName }, true ->
       [%expr
-        Option.map (fun v ->
-            (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Pointer v))
-              ([%e attribute_value] : (React.Event.Pointer.t -> unit) option))]
+        match
+          ([%e attribute_value] : (React.Event.Pointer.t -> unit) option)
+        with
+        | None -> None
+        | Some v ->
+            Some
+              (React.JSX.Event
+                 ([%e make_string ~loc jsxName], React.JSX.Pointer v))]
   | Event { type_ = Drag; jsxName }, false ->
       [%expr
         Some
@@ -378,9 +428,11 @@ let make_prop ~is_optional ~prop attribute_name attribute_value =
                  ([%e attribute_value] : React.Event.Drag.t -> unit) ))]
   | Event { type_ = Drag; jsxName }, true ->
       [%expr
-        Option.map (fun v ->
-            (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Drag v))
-              ([%e attribute_value] : (React.Event.Drag.t -> unit) option))]
+        match ([%e attribute_value] : (React.Event.Drag.t -> unit) option) with
+        | None -> None
+        | Some v ->
+            Some
+              (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Drag v))]
 
 let is_optional = function Optional _ -> true | _ -> false
 
