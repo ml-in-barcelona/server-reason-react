@@ -65,7 +65,7 @@ install:
 
 .PHONY: pin
 pin: ## Pin dependencies
-	opam pin add dune.dev "https://github.com/ocaml/dune.git#c5352807775e688de982cb0e4029fb84341a261d" -y
+	opam pin add dune.dev "https://github.com/ocaml/dune.git#4c9dec68fc776d808a36bb139230a2695c619d59" -y
 	opam pin add melange.dev "https://github.com/melange-re/melange.git#2ff08be262f113fc8d28b66c272502c6f403399c" -y
 	opam pin add reason-react-ppx.dev "https://github.com/reasonml/reason-react.git#7ca984c9a406b01e906fda1898f705f135fad202" -y
 	opam pin add reason-react.dev "https://github.com/reasonml/reason-react.git#7ca984c9a406b01e906fda1898f705f135fad202" -y
