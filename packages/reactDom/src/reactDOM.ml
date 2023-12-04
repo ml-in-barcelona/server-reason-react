@@ -1,7 +1,9 @@
 open React
 
-let get_key = function
-  | JSX.Bool (k, _) -> k
+let get_key v =
+  let open JSX in
+  match v with
+  | Bool (k, _) -> k
   | String (k, _) -> k
   | Ref _ -> "ref"
   | DangerouslyInnerHtml _ -> "dangerouslySetInnerHTML"
@@ -245,7 +247,8 @@ let booleanish_string name v = JSX.string name (string_of_bool v)
 
 [@@@ocamlformat "disable"]
 (* domProps isn't used by the generated code from the ppx, and it's purpose is to
-   allow usages from user's code via createElementVariadic and custom usages outside JSX *)
+   allow usages from user's code via createElementVariadic and custom usages outside JSX. It needs to be in sync with domProps *)
+(* Props are added alphabetically instead of the order of  *)
 let domProps
   ?key
   ?ref
