@@ -416,3 +416,22 @@ let _ =
       ),
     ],
   );
+
+/* ariaAtomic
+ariaBusy
+ariaDisabled
+ariaExpanded
+ariaHidden
+ariaModal
+ariaMultiline
+ariaMultiselectable
+ariaReadonly
+ariaRequired
+ariaSelected
+
+contentEditable
+draggable
+spellCheck
+autoReverse
+externalResourcesRequired
+ */

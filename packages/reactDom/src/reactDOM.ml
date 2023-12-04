@@ -240,6 +240,9 @@ let add kind value map =
 
 type dangerouslySetInnerHTML = { __html : string } [@@boxed]
 
+(* `Booleanish_string` are JSX attributes represented as boolean values but rendered as strings on HTML https://github.com/facebook/react/blob/a17467e7e2cd8947c595d1834889b5d184459f12/packages/react-dom-bindings/src/server/ReactFizzConfigDOM.js#L1165-L1176 *)
+let booealish_string name = (fun v -> JSX.string name (string_of_bool v))
+
 [@@@ocamlformat "disable"]
 (* domProps isn't used by the generated code from the ppx, and it's purpose is to
    allow usages from user's code via createElementVariadic and custom usages outside JSX *)
@@ -741,27 +744,27 @@ let domProps
   |> add (JSX.string "key") key
   |> add JSX.ref ref
   |> add (JSX.string "aria-details") ariaDetails
-  |> add (JSX.bool "aria-disabled") ariaDisabled
-  |> add (JSX.bool "aria-hidden") ariaHidden
+  |> add (booealish_string "aria-disabled") ariaDisabled
+  |> add (booealish_string "aria-hidden") ariaHidden
   |> add (JSX.string "aria-keyshortcuts") ariaKeyshortcuts
   |> add (JSX.string "aria-label") ariaLabel
   |> add (JSX.string "aria-roledescription") ariaRoledescription
-  |> add (JSX.bool "aria-expanded") ariaExpanded
+  |> add (booealish_string "aria-expanded") ariaExpanded
   |> add (JSX.int "aria-level") ariaLevel
-  |> add (JSX.bool "aria-modal") ariaModal
-  |> add (JSX.bool "aria-multiline") ariaMultiline
-  |> add (JSX.bool "aria-multiselectable") ariaMultiselectable
+  |> add (booealish_string "aria-modal") ariaModal
+  |> add (booealish_string "aria-multiline") ariaMultiline
+  |> add (booealish_string "aria-multiselectable") ariaMultiselectable
   |> add (JSX.string "aria-placeholder") ariaPlaceholder
-  |> add (JSX.bool "aria-readonly") ariaReadonly
-  |> add (JSX.bool "aria-required") ariaRequired
-  |> add (JSX.bool "aria-selected") ariaSelected
+  |> add (booealish_string "aria-readonly") ariaReadonly
+  |> add (booealish_string "aria-required") ariaRequired
+  |> add (booealish_string "aria-selected") ariaSelected
   |> add (JSX.string "aria-sort") ariaSort
   |> add (JSX.float "aria-valuemax") ariaValuemax
   |> add (JSX.float "aria-valuemin") ariaValuemin
   |> add (JSX.float "aria-valuenow") ariaValuenow
   |> add (JSX.string "aria-valuetext") ariaValuetext
-  |> add (JSX.bool "aria-atomic") ariaAtomic
-  |> add (JSX.bool "aria-busy") ariaBusy
+  |> add (booealish_string "aria-atomic") ariaAtomic
+  |> add (booealish_string "aria-busy") ariaBusy
   |> add (JSX.string "aria-relevant") ariaRelevant
   |> add (JSX.bool "aria-grabbed") ariaGrabbed
   |> add (JSX.string "aria-activedescendant") ariaActivedescendant
@@ -783,16 +786,16 @@ let domProps
   |> add (JSX.string "value") defaultValue
   |> add (JSX.string "accessKey") accessKey
   |> add (JSX.string "class") className
-  |> add (JSX.bool "contentEditable") contentEditable
+  |> add (booealish_string "contentEditable") contentEditable
   |> add (JSX.string "contextMenu") contextMenu
   |> add (JSX.string "dir") dir
-  |> add (JSX.bool "draggable") draggable
+  |> add (booealish_string "draggable") draggable
   |> add (JSX.bool "hidden") hidden
   |> add (JSX.string "id") id
   |> add (JSX.string "lang") lang
   |> add (JSX.string "role") role
   |> add (fun v -> JSX.style (ReactDOMStyle.to_string v)) style
-  |> add (fun v -> JSX.string "spellcheck" (string_of_bool v)) (spellCheck)
+  |> add (booealish_string "spellcheck") spellCheck
   |> add (JSX.int "tabIndex") tabIndex
   |> add (JSX.string "title") title
   |> add (JSX.string "itemID") itemID
