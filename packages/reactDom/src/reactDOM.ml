@@ -8,7 +8,10 @@ let get_key v =
   | Ref _ -> "ref"
   | DangerouslyInnerHtml _ -> "dangerouslySetInnerHTML"
   | Style _ -> "style"
-  (* Events don't matter on SSR, but the key should be corrected to lowercase, since in domProps, Event only contains jsxName *)
+  (* Events don't matter on SSR, but the key should be corrected to lowercase,
+  since in domProps, Event only contains jsxName.
+
+  TODO: Rename domProps to be lowercase and remove this lowercase_ascii call *)
   | Event (name, _) -> String.lowercase_ascii name
 
 let is_react_custom_attribute attr =
