@@ -792,7 +792,7 @@ let domProps
   |> add (JSX.string "lang") lang
   |> add (JSX.string "role") role
   |> add (fun v -> JSX.style (ReactDOMStyle.to_string v)) style
-  |> add (JSX.bool "spellCheck") spellCheck
+  |> add (fun v -> JSX.string "spellcheck" (string_of_bool v)) (spellCheck)
   |> add (JSX.int "tabIndex") tabIndex
   |> add (JSX.string "title") title
   |> add (JSX.string "itemID") itemID

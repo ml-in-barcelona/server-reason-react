@@ -276,7 +276,7 @@ let spellCheck_with_ppx = () => {
 let spellCheck_without_ppx = () => {
   let div =
     React.createElement("div", ReactDOM.domProps(~spellCheck=false, ()), []);
-  assert_string(ReactDOM.renderToStaticMarkup(div), "<div ></div>");
+  assert_string(ReactDOM.renderToStaticMarkup(div), {|<div spellcheck="false"></div>|});
 };
 
 module Component = {
