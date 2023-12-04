@@ -265,6 +265,23 @@ let svg_2 = () => {
   );
 };
 
+let spellCheck_with_ppx = () => {
+  let div = <div spellCheck=false />;
+  assert_string(
+    ReactDOM.renderToStaticMarkup(div),
+    {|<div spellcheck="false"></div>|},
+  );
+};
+
+let spellCheck_without_ppx = () => {
+  let div =
+    React.createElement("div", ReactDOM.domProps(~spellCheck=false, ()), []);
+  assert_string(
+    ReactDOM.renderToStaticMarkup(div),
+    {|<div spellcheck="false"></div>|},
+  );
+};
+
 module Component = {
   [@react.component]
   let make = (~children: React.element, ~cosas as _) => {
@@ -370,6 +387,8 @@ let _ =
           case("div_int_attr", int_attribute),
           case("svg_1", svg_1),
           case("svg_2", svg_2),
+          case("spellCheck_with_ppx", spellCheck_with_ppx),
+          case("spellCheck_without_ppx", spellCheck_without_ppx),
           case("style_attr", style_attribute),
           case("div_ref_attr", ref_attribute),
           case("link_as_attr", link_as_attribute),

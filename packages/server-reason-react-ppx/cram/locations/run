@@ -1,3 +1,6 @@
+# This test is slow and a little fragile, using it to debug locations,
+# but prefer to keep it not running by default.
+
 Test some locations
 
   $ cat > test.opam << EOF
