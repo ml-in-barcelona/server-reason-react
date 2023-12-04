@@ -4,20 +4,20 @@ let assert_string = (left, right) => {
 
 let tag = () => {
   let div = <div />;
-  assert_string(ReactDOM.renderToStaticMarkup(div), "<div></div>");
+  assert_string(ReactDOM.renderToStaticMarkup(div), {|<div></div>|});
 };
 
 let empty_attribute = () => {
   let div = <div className="" />;
   assert_string(
     ReactDOM.renderToStaticMarkup(div),
-    "<div class=\"\"></div>",
+    {|<div class=""></div>|},
   );
 };
 
 let bool_attribute = () => {
   let div = <div hidden=true />;
-  assert_string(ReactDOM.renderToStaticMarkup(div), "<div hidden></div>");
+  assert_string(ReactDOM.renderToStaticMarkup(div), {|<div hidden></div>|});
 };
 
 let bool_attributes = () => {
@@ -25,7 +25,7 @@ let bool_attributes = () => {
     <input type_="checkbox" name="cheese" checked=true disabled=false />;
   assert_string(
     ReactDOM.renderToStaticMarkup(input),
-    "<input type=\"checkbox\" name=\"cheese\" checked />",
+    {|<input type="checkbox" name="cheese" checked />|},
   );
 };
 
@@ -38,7 +38,7 @@ let int_attribute = () => {
   let div = <div tabIndex=1 />;
   assert_string(
     ReactDOM.renderToStaticMarkup(div),
-    "<div tabindex=\"1\"></div>",
+    {|<div tabindex="1"></div>|},
   );
 };
 
@@ -47,7 +47,7 @@ let style_attribute = () => {
     <div style={ReactDOM.Style.make(~backgroundColor="gainsboro", ())} />;
   assert_string(
     ReactDOM.renderToStaticMarkup(div),
-    "<div style=\"background-color:gainsboro\"></div>",
+    {|<div style="background-color:gainsboro"></div>|},
   );
 };
 
@@ -55,28 +55,28 @@ let ref_attribute = () => {
   let divRef = React.useRef(Js.Nullable.null);
 
   let div = <div ref={React.Ref.domRef(divRef)} />;
-  assert_string(ReactDOM.renderToStaticMarkup(div), "<div></div>");
+  assert_string(ReactDOM.renderToStaticMarkup(div), {|<div></div>|});
 };
 
 let link_as_attribute = () => {
   let link = <link as_="image" rel="preload" href="https://sancho.dev/blog" />;
   assert_string(
     ReactDOM.renderToStaticMarkup(link),
-    "<link as=\"image\" rel=\"preload\" href=\"https://sancho.dev/blog\" />",
+    {|<link as="image" rel="preload" href="https://sancho.dev/blog" />|},
   );
 };
 
 let innerhtml_attribute = () => {
   let div = <div dangerouslySetInnerHTML={"__html": "foo"} />;
-  assert_string(ReactDOM.renderToStaticMarkup(div), "<div>foo</div>");
+  assert_string(ReactDOM.renderToStaticMarkup(div), {|<div>foo</div>|});
 };
 
 let innerhtml_attribute_complex = () => {
   let div =
-    <div dangerouslySetInnerHTML={"__html": "console.log(\"Lola\")"} />;
+    <div dangerouslySetInnerHTML={"__html": {|console.log("Lola")|}} />;
   assert_string(
     ReactDOM.renderToStaticMarkup(div),
-    "<div>console.log(\"Lola\")</div>",
+    {|<div>console.log("Lola")</div>|},
   );
 };
 
@@ -85,21 +85,21 @@ let int_opt_attribute_some = () => {
   let div = <div ?tabIndex />;
   assert_string(
     ReactDOM.renderToStaticMarkup(div),
-    "<div tabindex=\"1\"></div>",
+    {|<div tabindex="1"></div>|},
   );
 };
 
 let int_opt_attribute_none = () => {
   let tabIndex = None;
   let div = <div ?tabIndex />;
-  assert_string(ReactDOM.renderToStaticMarkup(div), "<div></div>");
+  assert_string(ReactDOM.renderToStaticMarkup(div), {|<div></div>|});
 };
 
 let fragment = () => {
   let div = <> <div className="md:w-1/3" /> <div className="md:w-2/3" /> </>;
   assert_string(
     ReactDOM.renderToStaticMarkup(div),
-    "<div class=\"md:w-1/3\"></div><div class=\"md:w-2/3\"></div>",
+    {|<div class="md:w-1/3"></div><div class="md:w-2/3"></div>|},
   );
 };
 
@@ -111,7 +111,7 @@ let fragment_with_key = () => {
     </React.Fragment>;
   assert_string(
     ReactDOM.renderToStaticMarkup(div),
-    "<div class=\"md:w-1/3\"></div><div class=\"md:w-2/3\"></div>",
+    {|<div class="md:w-1/3"></div><div class="md:w-2/3"></div>|},
   );
 };
 
@@ -124,7 +124,7 @@ let children_uppercase = () => {
   let component = <Container> <span /> </Container>;
   assert_string(
     ReactDOM.renderToStaticMarkup(component),
-    "<div><span></span></div>",
+    {|<div><span></span></div>|},
   );
 };
 
@@ -132,7 +132,7 @@ let children_lowercase = () => {
   let component = <div> <span /> </div>;
   assert_string(
     ReactDOM.renderToStaticMarkup(component),
-    "<div><span></span></div>",
+    {|<div><span></span></div>|},
   );
 };
 
@@ -141,26 +141,26 @@ let string_opt_attribute_some = () => {
   let div = <div ?className />;
   assert_string(
     ReactDOM.renderToStaticMarkup(div),
-    "<div class=\"foo\"></div>",
+    {|<div class="foo"></div>|},
   );
 };
 
 let string_opt_attribute_none = () => {
   let className = None;
   let div = <div ?className />;
-  assert_string(ReactDOM.renderToStaticMarkup(div), "<div></div>");
+  assert_string(ReactDOM.renderToStaticMarkup(div), {|<div></div>|});
 };
 
 let bool_opt_attribute_some = () => {
   let hidden = Some(true);
   let div = <div ?hidden />;
-  assert_string(ReactDOM.renderToStaticMarkup(div), "<div hidden></div>");
+  assert_string(ReactDOM.renderToStaticMarkup(div), {|<div hidden></div>|});
 };
 
 let bool_opt_attribute_none = () => {
   let hidden = None;
   let div = <div ?hidden />;
-  assert_string(ReactDOM.renderToStaticMarkup(div), "<div></div>");
+  assert_string(ReactDOM.renderToStaticMarkup(div), {|<div></div>|});
 };
 
 let style_opt_attribute_some = () => {
@@ -168,33 +168,33 @@ let style_opt_attribute_some = () => {
   let div = <div ?style />;
   assert_string(
     ReactDOM.renderToStaticMarkup(div),
-    "<div style=\"background-color:gainsboro\"></div>",
+    {|<div style="background-color:gainsboro"></div>|},
   );
 };
 
 let style_opt_attribute_none = () => {
   let style = None;
   let div = <div ?style />;
-  assert_string(ReactDOM.renderToStaticMarkup(div), "<div></div>");
+  assert_string(ReactDOM.renderToStaticMarkup(div), {|<div></div>|});
 };
 
 let ref_opt_attribute_some = () => {
   let divRef = React.useRef(Js.Nullable.null);
   let ref = Some(React.Ref.domRef(divRef));
   let div = <div ?ref />;
-  assert_string(ReactDOM.renderToStaticMarkup(div), "<div></div>");
+  assert_string(ReactDOM.renderToStaticMarkup(div), {|<div></div>|});
 };
 
 let ref_opt_attribute_none = () => {
   let ref = None;
   let div = <div ?ref />;
-  assert_string(ReactDOM.renderToStaticMarkup(div), "<div></div>");
+  assert_string(ReactDOM.renderToStaticMarkup(div), {|<div></div>|});
 };
 
 let onClick_empty = () => {
   let onClick = Some(_ => print_endline("clicked"));
   let div = <div ?onClick />;
-  assert_string(ReactDOM.renderToStaticMarkup(div), "<div></div>");
+  assert_string(ReactDOM.renderToStaticMarkup(div), {|<div></div>|});
 };
 
 let onclick_inline_string = () => {
@@ -202,7 +202,7 @@ let onclick_inline_string = () => {
   let div = <div _onclick=onClick />;
   assert_string(
     ReactDOM.renderToStaticMarkup(div),
-    "<div onclick=\"console.log('clicked')\"></div>",
+    {|<div onclick="console.log('clicked')"></div>|},
   );
 };
 
@@ -219,7 +219,7 @@ let svg_1 = () => {
         />
       </svg>,
     ),
-    "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" width=\"24px\" height=\"24px\"><path d=\"M 5 3 C 3.9069372 3 3 3.9069372 3 5 L 3 19 C 3 20.093063 3.9069372 21 5 21 L 19 21 C 20.093063 21 21 20.093063 21 19 L 21 12 L 19 12 L 19 19 L 5 19 L 5 5 L 12 5 L 12 3 L 5 3 z M 14 3 L 14 5 L 17.585938 5 L 8.2929688 14.292969 L 9.7070312 15.707031 L 19 6.4140625 L 19 10 L 21 10 L 21 3 L 14 3 z\"></path></svg>",
+    {|<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24px" height="24px"><path d="M 5 3 C 3.9069372 3 3 3.9069372 3 5 L 3 19 C 3 20.093063 3.9069372 21 5 21 L 19 21 C 20.093063 21 21 20.093063 21 19 L 21 12 L 19 12 L 19 19 L 5 19 L 5 5 L 12 5 L 12 3 L 5 3 z M 14 3 L 14 5 L 17.585938 5 L 8.2929688 14.292969 L 9.7070312 15.707031 L 19 6.4140625 L 19 10 L 21 10 L 21 3 L 14 3 z"></path></svg>|},
   );
 };
 
@@ -277,7 +277,7 @@ let children_one_element = () => {
     ReactDOM.renderToStaticMarkup(
       <Component cosas=true> <span /> </Component>,
     ),
-    "<div><span></span></div>",
+    {|<div><span></span></div>|},
   );
 };
 let children_multiple_elements = () => {
@@ -285,7 +285,7 @@ let children_multiple_elements = () => {
     ReactDOM.renderToStaticMarkup(
       <Component cosas=false> <div> <span /> </div> <span /> </Component>,
     ),
-    "<div><div><span></span></div><span></span></div>",
+    {|<div><div><span></span></div><span></span></div>|},
   );
 };
 
@@ -323,7 +323,7 @@ let create_element_variadic = () => {
   let component = <Text tagType=Text.Tag.H1> {React.string("Hello")} </Text>;
   assert_string(
     ReactDOM.renderToStaticMarkup(component),
-    "<h1 style=\"display:none\" class=\"foo\">Hello</h1>",
+    {|<h1 style="display:none" class="foo">Hello</h1>|},
   );
 };
 
@@ -334,7 +334,7 @@ let aria_props = () => {
     </h1>;
   assert_string(
     ReactDOM.renderToStaticMarkup(component),
-    "<h1 aria-hidden=\"true\" aria-label=\"send email\" aria-atomic=\"true\">Hello</h1>",
+    {|<h1 aria-hidden="true" aria-label="send email" aria-atomic="true">Hello</h1>|},
   );
 };
 
