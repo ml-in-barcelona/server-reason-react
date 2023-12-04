@@ -525,7 +525,7 @@ let globalAttributes =
     (* Living Standard * Hints at the type of data that might be entered by the
        user while editing the element or its contents * @see
        https://html.spec.whatwg.org/multipage/interaction.html#input-modalities:-the-inputmode-attribute *)
-    Attribute { name = "inputmode"; jsxName = "inputmode"; type_ = String (* 'none' | 'text' | 'tel' | 'url' | 'email' | 'numeric' | 'decimal' | 'search' *) };
+    Attribute { name = "inputmode"; jsxName = "inputMode"; type_ = String (* 'none' | 'text' | 'tel' | 'url' | 'email' | 'numeric' | 'decimal' | 'search' *) };
 
     (* Specify that a standard HTML element should behave like a defined custom
        built-in element * @see
@@ -800,8 +800,8 @@ let keygenHTMLAttributes =
     Attribute { name = "challenge"; jsxName = "challenge"; type_ = String };
     Attribute { name = "disabled"; jsxName = "disabled"; type_ = Bool };
     Attribute { name = "form"; jsxName = "form"; type_ = String };
-    Attribute { name = "keyType"; jsxName = "keyType"; type_ = String };
-    Attribute { name = "keyParams"; jsxName = "keyParams"; type_ = String };
+    Attribute { name = "keytype"; jsxName = "keyType"; type_ = String };
+    Attribute { name = "keyparams"; jsxName = "keyParams"; type_ = String };
     Attribute { name = "name"; jsxName = "name"; type_ = String };
   ]
 
@@ -1151,6 +1151,8 @@ module SVG = struct
       Attribute { name = "overflow"; jsxName = "overflow"; type_ = String (* number | *) };
       Attribute { name = "pointer-events"; jsxName = "pointerEvents"; type_ = String };
       Attribute { name = "shape-rendering"; jsxName = "shapeRendering"; type_ = String };
+      Attribute { name = "specularConstant"; jsxName = "specularConstant"; type_ = String }; (* https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/specularConstant *)
+      Attribute { name = "specularExponent"; jsxName = "specularExponent"; type_ = String }; (* https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/specularExponent *)
       Attribute { name = "solid-color"; jsxName = "solidColor"; type_ = String };
       Attribute { name = "solid-opacity"; jsxName = "solidOpacity"; type_ = String };
       Attribute { name = "stop-color"; jsxName = "stopColor"; type_ = String };
@@ -1189,13 +1191,16 @@ module SVG = struct
       Attribute { name = "slope"; jsxName = "slope"; type_ = String (* number | *) };
       Attribute { name = "amplitude"; jsxName = "amplitude"; type_ = String (* number | *) };
       Attribute { name = "intercept"; jsxName = "intercept"; type_ = String (* number | *) };
+      (* https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/tableValues *)
       Attribute { name = "tableValues"; jsxName = "tableValues"; type_ = String (* number | *) };
 
       (* Animation target element attributes *)
       Attribute { name = "href"; jsxName = "href"; type_ = String };
 
       (* Animation attribute target attributes*)
+      (* https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/attributeName *)
       Attribute { name = "attributeName"; jsxName = "attributeName"; type_ = String };
+      (* https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/attributeType *)
       Attribute { name = "attributeType"; jsxName = "attributeType"; type_ = String };
 
       (* Animation timing attributes begin, dur, end, min, max, restart,
@@ -1211,6 +1216,7 @@ module SVG = struct
       Attribute { name = "fill"; jsxName = "fill"; type_ = String };
 
       (* Animation value attributes *)
+      (* https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/calcMode *)
       Attribute { name = "calcMode"; jsxName = "calcMode"; type_ = String (* number | *) };
       Attribute { name = "values"; jsxName = "values"; type_ = String };
       Attribute { name = "keySplines"; jsxName = "keySplines"; type_ = String (* number | *) };
@@ -1250,8 +1256,10 @@ module SVG = struct
       (* Attribute { name = "autoReverse"; jsxName = "autoReverse"; type_ = BooleanishString }; Does it exists? *)
       Attribute { name = "azimuth"; jsxName = "azimuth"; type_ = String (* number | *) };
       Attribute { name = "baseProfile"; jsxName = "baseProfile"; type_ = String (* number | *) };
+      Attribute { name = "baseFrequency"; jsxName = "baseFrequency"; type_ = String (* number | *) };
       Attribute { name = "bbox"; jsxName = "bbox"; type_ = String (* number | *) };
       Attribute { name = "bias"; jsxName = "bias"; type_ = String (* number | *) };
+      (* https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/cap-height *)
       Attribute { name = "cap-height"; jsxName = "capHeight"; type_ = String (* number | *) };
       Attribute { name = "cx"; jsxName = "cx"; type_ = String (* number | *) };
       Attribute { name = "cy"; jsxName = "cy"; type_ = String (* number | *) };
@@ -1263,8 +1271,8 @@ module SVG = struct
       Attribute { name = "edgeMode"; jsxName = "edgeMode"; type_ = String (* number | *) };
       Attribute { name = "elevation"; jsxName = "elevation"; type_ = String (* number | *) };
       (* Attribute { name = "externalResourcesRequired"; jsxName = "externalResourcesRequired"; type_ = BooleanishString }; Does it exists? *)
-      (* Attribute { name = "filterRes"; jsxName = "filterRes"; type_ = String (* number | *) }; *)
-      (* Attribute { name = "filterUnits"; jsxName = "filterUnits"; type_ = String (* number | *) }; *)
+      Attribute { name = "filterRes"; jsxName = "filterRes"; type_ = String (* number | *) };
+      Attribute { name = "filterUnits"; jsxName = "filterUnits"; type_ = String (* number | *) };
       Attribute { name = "format"; jsxName = "format"; type_ = String (* number | *) };
       Attribute { name = "fr"; jsxName = "fr"; type_ = String (* number | *) };
       Attribute { name = "fx"; jsxName = "fx"; type_ = String (* number | *) };
@@ -1272,7 +1280,7 @@ module SVG = struct
       Attribute { name = "g1"; jsxName = "g1"; type_ = String (* number | *) };
       Attribute { name = "g2"; jsxName = "g2"; type_ = String (* number | *) };
       Attribute { name = "glyph-name"; jsxName = "glyphName"; type_ = String (* number | *) }; (* Deprecated *)
-      (* Attribute { name = "glyphRef"; jsxName = "glyphRef"; type_ = String (* number | *) }; *) (* Only used in glyph *)
+      Attribute { name = "glyphRef"; jsxName = "glyphRef"; type_ = String (* number | *) }; (* Deprecated *)
       Attribute { name = "gradientTransform"; jsxName = "gradientTransform"; type_ = String }; (* https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/gradientTransform *)
       Attribute { name = "gradientUnits"; jsxName = "gradientUnits"; type_ = String };
       Attribute { name = "hanging"; jsxName = "hanging"; type_ = String (* number | *) };
@@ -1297,6 +1305,7 @@ module SVG = struct
       Attribute { name = "markerWidth"; jsxName = "markerWidth"; type_ = String (* number | *) }; (* https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/markerWidth *)
       Attribute { name = "markerHeight"; jsxName = "markerHeight"; type_ = String (* number | *) }; (* https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/markerHeight *)
       Attribute { name = "maskUnits"; jsxName = "maskUnits"; type_ = String (* number | *) }; (* https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/maskUnits *)
+      Attribute { name = "maskContentUnits"; jsxName = "maskContentUnits"; type_ = String (* number | *) }; (* https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/maskContentUnits *)
       Attribute { name = "mathematical"; jsxName = "mathematical"; type_ = String (* number | *) };
       Attribute { name = "mode"; jsxName = "mode"; type_ = String (* number | *) };
       Attribute { name = "numOctaves"; jsxName = "numOctaves"; type_ = String (* number | *) }; (* https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/numOctaves *)
@@ -1305,7 +1314,8 @@ module SVG = struct
       Attribute { name = "orient"; jsxName = "orient"; type_ = String (* number | *) };
       Attribute { name = "orientation"; jsxName = "orientation"; type_ = String (* number | *) };
       Attribute { name = "origin"; jsxName = "origin"; type_ = String (* number | *) };
-      Attribute { name = "overline-thickness"; jsxName = "overlineThickness"; type_ = Int };
+      Attribute { name = "overline-thickness"; jsxName = "overlineThickness"; type_ = String };
+      Attribute { name = "overline-position"; jsxName = "overlinePosition"; type_ = String };
       Attribute { name = "paint-order"; jsxName = "paintOrder"; type_ = String (* number | *) };
       Attribute { name = "panose1"; jsxName = "panose1"; type_ = String (* number | *) };
       Attribute { name = "path"; jsxName = "path"; type_ = String };
@@ -1319,6 +1329,7 @@ module SVG = struct
       Attribute { name = "preserveAspectRatio"; jsxName = "preserveAspectRatio"; type_ = String }; (* https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/preserveAspectRatio *)
       Attribute { name = "r"; jsxName = "r"; type_ = String (* number | *) };
       Attribute { name = "radius"; jsxName = "radius"; type_ = String (* number | *) };
+      Attribute { name = "requiredFeatures"; jsxName = "requiredFeatures"; type_ = String (* number | *) }; (* https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/requiredFeatures *)
       Attribute { name = "refX"; jsxName = "refX"; type_ = String (* number | *) }; (* https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/refX *)
       Attribute { name = "refY"; jsxName = "refY"; type_ = String (* number | *) }; (* https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/refY *)
       Attribute { name = "rotate"; jsxName = "rotate"; type_ = String (* number | *) };
@@ -1338,14 +1349,17 @@ module SVG = struct
       Attribute { name = "strikethrough-thickness"; jsxName = "strikethroughThickness"; type_ = String (* number | *) };
       Attribute { name = "stroke-width"; jsxName = "strokeWidth"; type_ = String (* number | *) };
       Attribute { name = "surfaceScale"; jsxName = "surfaceScale"; type_ = String (* number | *) }; (* https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/surfaceScale *)
+      Attribute { name = "systemLanguage"; jsxName = "systemLanguage"; type_ = String (* number | *) }; (* https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/systemLanguage *)
       Attribute { name = "targetX"; jsxName = "targetX"; type_ = String (* number | *) };
       Attribute { name = "targetY"; jsxName = "targetY"; type_ = String (* number | *) };
       Attribute { name = "textLength"; jsxName = "textLength"; type_ = String (* number | *) }; (* https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/textLength *)
       Attribute { name = "u1"; jsxName = "u1"; type_ = String (* number | *) };
       Attribute { name = "u2"; jsxName = "u2"; type_ = String (* number | *) };
       Attribute { name = "unicode"; jsxName = "unicode"; type_ = String (* number | *) };
-      Attribute { name = "unicodeRange"; jsxName = "unicodeRange"; type_ = String (* number | *) };
-      Attribute { name = "unitsPerEm"; jsxName = "unitsPerEm"; type_ = String (* number | *) };
+      (* https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/unicode-range *)
+      Attribute { name = "unicode-range"; jsxName = "unicodeRange"; type_ = String (* number | *) };
+      (* https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/units-per-em *)
+      Attribute { name = "units-per-em"; jsxName = "unitsPerEm"; type_ = String (* number | *) };
       Attribute { name = "v-alphabetic"; jsxName = "vAlphabetic"; type_ = String (* number | *) }; (* Deprecated *) (* https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/v-alphabetic *)
       Attribute { name = "version"; jsxName = "version"; type_ = String };
       Attribute { name = "vert-adv-y"; jsxName = "vertAdvY"; type_ = String (* number | *) }; (* https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/vert-adv-y *)

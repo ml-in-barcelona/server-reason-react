@@ -276,7 +276,10 @@ let spellCheck_with_ppx = () => {
 let spellCheck_without_ppx = () => {
   let div =
     React.createElement("div", ReactDOM.domProps(~spellCheck=false, ()), []);
-  assert_string(ReactDOM.renderToStaticMarkup(div), {|<div spellcheck="false"></div>|});
+  assert_string(
+    ReactDOM.renderToStaticMarkup(div),
+    {|<div spellcheck="false"></div>|},
+  );
 };
 
 module Component = {
@@ -416,22 +419,3 @@ let _ =
       ),
     ],
   );
-
-/* ariaAtomic
-ariaBusy
-ariaDisabled
-ariaExpanded
-ariaHidden
-ariaModal
-ariaMultiline
-ariaMultiselectable
-ariaReadonly
-ariaRequired
-ariaSelected
-
-contentEditable
-draggable
-spellCheck
-autoReverse
-externalResourcesRequired
- */

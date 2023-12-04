@@ -241,7 +241,7 @@ let add kind value map =
 type dangerouslySetInnerHTML = { __html : string } [@@boxed]
 
 (* `Booleanish_string` are JSX attributes represented as boolean values but rendered as strings on HTML https://github.com/facebook/react/blob/a17467e7e2cd8947c595d1834889b5d184459f12/packages/react-dom-bindings/src/server/ReactFizzConfigDOM.js#L1165-L1176 *)
-let booealish_string name = (fun v -> JSX.string name (string_of_bool v))
+let booealish_string name v = JSX.string name (string_of_bool v)
 
 [@@@ocamlformat "disable"]
 (* domProps isn't used by the generated code from the ppx, and it's purpose is to
@@ -784,10 +784,10 @@ let domProps
   |> add (JSX.int "aria-setsize") ariaSetsize
   |> add (JSX.bool "checked") defaultChecked
   |> add (JSX.string "value") defaultValue
-  |> add (JSX.string "accessKey") accessKey
+  |> add (JSX.string "accesskey") accessKey
   |> add (JSX.string "class") className
-  |> add (booealish_string "contentEditable") contentEditable
-  |> add (JSX.string "contextMenu") contextMenu
+  |> add (booealish_string "contenteditable") contentEditable
+  |> add (JSX.string "contextmenu") contextMenu
   |> add (JSX.string "dir") dir
   |> add (booealish_string "draggable") draggable
   |> add (JSX.bool "hidden") hidden
@@ -796,55 +796,55 @@ let domProps
   |> add (JSX.string "role") role
   |> add (fun v -> JSX.style (ReactDOMStyle.to_string v)) style
   |> add (booealish_string "spellcheck") spellCheck
-  |> add (JSX.int "tabIndex") tabIndex
+  |> add (JSX.int "tabindex") tabIndex
   |> add (JSX.string "title") title
-  |> add (JSX.string "itemID") itemID
-  |> add (JSX.string "itemProp") itemProp
-  |> add (JSX.string "itemRef") itemRef
-  |> add (JSX.bool "itemScope") itemScope
-  |> add (JSX.string "itemType") itemType
+  |> add (JSX.string "itemid") itemID
+  |> add (JSX.string "itemorop") itemProp
+  |> add (JSX.string "itemref") itemRef
+  |> add (JSX.bool "itemccope") itemScope
+  |> add (JSX.string "itemtype") itemType
   |> add (JSX.string "accept") accept
-  |> add (JSX.string "acceptCharset") acceptCharset
+  |> add (JSX.string "accept-charset") acceptCharset
   |> add (JSX.string "action") action
-  |> add (JSX.bool "allowFullScreen") allowFullScreen
+  |> add (JSX.bool "allowfullscreen") allowFullScreen
   |> add (JSX.string "alt") alt
   |> add (JSX.bool "async") async
-  |> add (JSX.string "autoComplete") autoComplete
-  |> add (JSX.string "autoCapitalize") autoCapitalize
-  |> add (JSX.bool "autoFocus") autoFocus
-  |> add (JSX.bool "autoPlay") autoPlay
+  |> add (JSX.string "autocomplete") autoComplete
+  |> add (JSX.string "autocapitalize") autoCapitalize
+  |> add (JSX.bool "autofocus") autoFocus
+  |> add (JSX.bool "autoplay") autoPlay
   |> add (JSX.string "challenge") challenge
   |> add (JSX.string "charSet") charSet
   |> add (JSX.bool "checked") checked
   |> add (JSX.string "cite") cite
-  |> add (JSX.string "crossOrigin") crossOrigin
+  |> add (JSX.string "crossorigin") crossOrigin
   |> add (JSX.int "cols") cols
-  |> add (JSX.int "colSpan") colSpan
+  |> add (JSX.int "colspan") colSpan
   |> add (JSX.string "content") content
   |> add (JSX.bool "controls") controls
   |> add (JSX.string "coords") coords
   |> add (JSX.string "data") data
-  |> add (JSX.string "dateTime") dateTime
+  |> add (JSX.string "datetime") dateTime
   |> add (JSX.bool "default") default
   |> add (JSX.bool "defer") defer
   |> add (JSX.bool "disabled") disabled
   |> add (JSX.string "download") download
-  |> add (JSX.string "encType") encType
+  |> add (JSX.string "enctype") encType
   |> add (JSX.string "form") form
-  |> add (JSX.string "formAction") formAction
-  |> add (JSX.string "formTarget") formTarget
-  |> add (JSX.string "formMethod") formMethod
+  |> add (JSX.string "formction") formAction
+  |> add (JSX.string "formtarget") formTarget
+  |> add (JSX.string "formmethod") formMethod
   |> add (JSX.string "headers") headers
   |> add (JSX.string "height") height
   |> add (JSX.int "high") high
   |> add (JSX.string "href") href
-  |> add (JSX.string "hrefLang") hrefLang
-  |> add (JSX.string "htmlFor") htmlFor
-  |> add (JSX.string "httpEquiv") httpEquiv
+  |> add (JSX.string "hreflang") hrefLang
+  |> add (JSX.string "for") htmlFor
+  |> add (JSX.string "http-eequiv") httpEquiv
   |> add (JSX.string "icon") icon
-  |> add (JSX.string "inputMode") inputMode
+  |> add (JSX.string "inputmode") inputMode
   |> add (JSX.string "integrity") integrity
-  |> add (JSX.string "keyType") keyType
+  |> add (JSX.string "keytype") keyType
   |> add (JSX.string "kind") kind
   |> add (JSX.string "label") label
   |> add (JSX.string "list") list
@@ -852,12 +852,12 @@ let domProps
   |> add (JSX.int "low") low
   |> add (JSX.string "manifest") manifest
   |> add (JSX.string "max") max
-  |> add (JSX.int "maxLength") maxLength
+  |> add (JSX.int "maxlength") maxLength
   |> add (JSX.string "media") media
-  |> add (JSX.string "mediaGroup") mediaGroup
+  |> add (JSX.string "mediagroup") mediaGroup
   |> add (JSX.string "method") method_
   |> add (JSX.string "min") min
-  |> add (JSX.int "minLength") minLength
+  |> add (JSX.int "minlength") minLength
   |> add (JSX.bool "multiple") multiple
   |> add (JSX.bool "muted") muted
   |> add (JSX.string "name") name
@@ -870,13 +870,13 @@ let domProps
   |> add (JSX.bool "playsInline") playsInline
   |> add (JSX.string "poster") poster
   |> add (JSX.string "preload") preload
-  |> add (JSX.string "radioGroup") radioGroup
-  |> add (JSX.bool "readOnly") readOnly
+  |> add (JSX.string "radioGroup") radioGroup (* Unsure if it exists? *)
+  |> add (JSX.bool "readonly") readOnly
   |> add (JSX.string "rel") rel
   |> add (JSX.bool "required") required
   |> add (JSX.bool "reversed") reversed
   |> add (JSX.int "rows") rows
-  |> add (JSX.int "rowSpan") rowSpan
+  |> add (JSX.int "rowspan") rowSpan
   |> add (JSX.string "sandbox") sandbox
   |> add (JSX.string "scope") scope
   |> add (JSX.bool "scoped") scoped
@@ -887,9 +887,9 @@ let domProps
   |> add (JSX.string "sizes") sizes
   |> add (JSX.int "span") span
   |> add (JSX.string "src") src
-  |> add (JSX.string "srcDoc") srcDoc
-  |> add (JSX.string "srcLang") srcLang
-  |> add (JSX.string "srcSet") srcSet
+  |> add (JSX.string "srcdoc") srcDoc
+  |> add (JSX.string "srclang") srcLang
+  |> add (JSX.string "srcset") srcSet
   |> add (JSX.int "start") start
   |> add (JSX.float "step") step
   |> add (JSX.string "summary") summary
@@ -976,18 +976,18 @@ let domProps
   |> add (JSX.Event.animation "onAnimationEnd") onAnimationEnd
   |> add (JSX.Event.animation "onAnimationIteration") onAnimationIteration
   |> add (JSX.Event.transition "onTransitionEnd") onTransitionEnd
-  |> add (JSX.string "accentHeight") accentHeight
+  |> add (JSX.string "accent-height") accentHeight
   |> add (JSX.string "accumulate") accumulate
   |> add (JSX.string "additive") additive
-  |> add (JSX.string "alignmentBaseline") alignmentBaseline
-  |> add (JSX.string "allowReorder") allowReorder
+  |> add (JSX.string "alignment-baseline") alignmentBaseline
+  |> add (JSX.string "allowReorder") allowReorder (* Does it exist? *)
   |> add (JSX.string "alphabetic") alphabetic
   |> add (JSX.string "amplitude") amplitude
-  |> add (JSX.string "arabicForm") arabicForm
+  |> add (JSX.string "arabic-form") arabicForm
   |> add (JSX.string "ascent") ascent
   |> add (JSX.string "attributeName") attributeName
   |> add (JSX.string "attributeType") attributeType
-  |> add (JSX.string "autoReverse") autoReverse
+  |> add (JSX.string "autoReverse") autoReverse (* Does it exist? *)
   |> add (JSX.string "azimuth") azimuth
   |> add (JSX.string "baseFrequency") baseFrequency
   |> add (JSX.string "baseProfile") baseProfile
@@ -1034,33 +1034,34 @@ let domProps
   |> add (JSX.string "filter") filter
   |> add (JSX.string "filterRes") filterRes
   |> add (JSX.string "filterUnits") filterUnits
-  |> add (JSX.string "floodColor") floodColor
-  |> add (JSX.string "floodOpacity") floodOpacity
+  |> add (JSX.string "flood-color") floodColor
+  |> add (JSX.string "flood-opacity") floodOpacity
   |> add (JSX.string "focusable") focusable
-  |> add (JSX.string "fontFamily") fontFamily
-  |> add (JSX.string "fontSize") fontSize
-  |> add (JSX.string "fontSizeAdjust") fontSizeAdjust
-  |> add (JSX.string "fontStretch") fontStretch
-  |> add (JSX.string "fontStyle") fontStyle
-  |> add (JSX.string "fontVariant") fontVariant
-  |> add (JSX.string "fontWeight") fontWeight
+  |> add (JSX.string "font-family") fontFamily
+  |> add (JSX.string "font-size") fontSize
+  |> add (JSX.string "font-size-adjust") fontSizeAdjust
+  |> add (JSX.string "font-stretch") fontStretch
+  |> add (JSX.string "font-style") fontStyle
+  |> add (JSX.string "font-variant") fontVariant
+  |> add (JSX.string "font-weight") fontWeight
   |> add (JSX.string "fomat") fomat
   |> add (JSX.string "from") from
   |> add (JSX.string "fx") fx
   |> add (JSX.string "fy") fy
   |> add (JSX.string "g1") g1
   |> add (JSX.string "g2") g2
-  |> add (JSX.string "glyphName") glyphName
-  |> add (JSX.string "glyphOrientationHorizontal") glyphOrientationHorizontal
-  |> add (JSX.string "glyphOrientationVertical") glyphOrientationVertical
+  |> add (JSX.string "glyph-name") glyphName
+  |> add (JSX.string "glyph-orientation-horizontal") glyphOrientationHorizontal
+  |> add (JSX.string "glyph-orientation-vertical") glyphOrientationVertical
   |> add (JSX.string "glyphRef") glyphRef
   |> add (JSX.string "gradientTransform") gradientTransform
   |> add (JSX.string "gradientUnits") gradientUnits
   |> add (JSX.string "hanging") hanging
-  |> add (JSX.string "horizAdvX") horizAdvX
-  |> add (JSX.string "horizOriginX") horizOriginX
+  |> add (JSX.string "horiz-adv-x") horizAdvX
+  |> add (JSX.string "horiz-origin-x") horizOriginX
+  (* |> add (JSX.string "horiz-origin-y") horizOriginY *) (* Should be added *)
   |> add (JSX.string "ideographic") ideographic
-  |> add (JSX.string "imageRendering") imageRendering
+  |> add (JSX.string "image-rendering") imageRendering
   |> add (JSX.string "in") in_
   |> add (JSX.string "in2") in2
   |> add (JSX.string "intercept") intercept
@@ -1080,11 +1081,11 @@ let domProps
   |> add (JSX.string "lightingColor") lightingColor
   |> add (JSX.string "limitingConeAngle") limitingConeAngle
   |> add (JSX.string "local") local
-  |> add (JSX.string "markerEnd") markerEnd
-  |> add (JSX.string "markerHeight") markerHeight
-  |> add (JSX.string "markerMid") markerMid
-  |> add (JSX.string "markerStart") markerStart
-  |> add (JSX.string "markerUnits") markerUnits
+  |> add (JSX.string "marker-end") markerEnd
+  |> add (JSX.string "marker-height") markerHeight
+  |> add (JSX.string "marker-mid") markerMid
+  |> add (JSX.string "marker-start") markerStart
+  |> add (JSX.string "marker-units") markerUnits
   |> add (JSX.string "markerWidth") markerWidth
   |> add (JSX.string "mask") mask
   |> add (JSX.string "maskContentUnits") maskContentUnits
@@ -1102,9 +1103,9 @@ let domProps
   |> add (JSX.string "overflow") overflow
   |> add (JSX.string "overflowX") overflowX
   |> add (JSX.string "overflowY") overflowY
-  |> add (JSX.string "overlinePosition") overlinePosition
-  |> add (JSX.string "overlineThickness") overlineThickness
-  |> add (JSX.string "paintOrder") paintOrder
+  |> add (JSX.string "overline-position") overlinePosition
+  |> add (JSX.string "overline-thickness") overlineThickness
+  |> add (JSX.string "paint-order") paintOrder
   |> add (JSX.string "panose1") panose1
   |> add (JSX.string "pathLength") pathLength
   |> add (JSX.string "patternContentUnits") patternContentUnits
@@ -1122,10 +1123,10 @@ let domProps
   |> add (JSX.string "radius") radius
   |> add (JSX.string "refX") refX
   |> add (JSX.string "refY") refY
-  |> add (JSX.string "renderingIntent") renderingIntent
+  |> add (JSX.string "renderingIntent") renderingIntent (* Does it exist? *)
   |> add (JSX.string "repeatCount") repeatCount
   |> add (JSX.string "repeatDur") repeatDur
-  |> add (JSX.string "requiredExtensions") requiredExtensions
+  |> add (JSX.string "requiredExtensions") requiredExtensions (* Does it exists? *)
   |> add (JSX.string "requiredFeatures") requiredFeatures
   |> add (JSX.string "restart") restart
   |> add (JSX.string "result") result
@@ -1134,7 +1135,7 @@ let domProps
   |> add (JSX.string "ry") ry
   |> add (JSX.string "scale") scale
   |> add (JSX.string "seed") seed
-  |> add (JSX.string "shapeRendering") shapeRendering
+  |> add (JSX.string "shape-rendering") shapeRendering
   |> add (JSX.string "slope") slope
   |> add (JSX.string "spacing") spacing
   |> add (JSX.string "specularConstant") specularConstant
@@ -1148,69 +1149,69 @@ let domProps
   |> add (JSX.string "stitchTiles") stitchTiles
   |> add (JSX.string "stopColor") stopColor
   |> add (JSX.string "stopOpacity") stopOpacity
-  |> add (JSX.string "strikethroughPosition") strikethroughPosition
-  |> add (JSX.string "strikethroughThickness") strikethroughThickness
+  |> add (JSX.string "strikethrough-position") strikethroughPosition
+  |> add (JSX.string "strikethrough-thickness") strikethroughThickness
   |> add (JSX.string "stroke") stroke
-  |> add (JSX.string "strokeDasharray") strokeDasharray
-  |> add (JSX.string "strokeDashoffset") strokeDashoffset
-  |> add (JSX.string "strokeLinecap") strokeLinecap
-  |> add (JSX.string "strokeLinejoin") strokeLinejoin
-  |> add (JSX.string "strokeMiterlimit") strokeMiterlimit
-  |> add (JSX.string "strokeOpacity") strokeOpacity
-  |> add (JSX.string "strokeWidth") strokeWidth
+  |> add (JSX.string "stroke-dasharray") strokeDasharray
+  |> add (JSX.string "stroke-dashoffset") strokeDashoffset
+  |> add (JSX.string "stroke-linecap") strokeLinecap
+  |> add (JSX.string "stroke-linejoin") strokeLinejoin
+  |> add (JSX.string "stroke-miterlimit") strokeMiterlimit
+  |> add (JSX.string "stroke-opacity") strokeOpacity
+  |> add (JSX.string "stroke-width") strokeWidth
   |> add (JSX.string "surfaceScale") surfaceScale
   |> add (JSX.string "systemLanguage") systemLanguage
   |> add (JSX.string "tableValues") tableValues
   |> add (JSX.string "targetX") targetX
   |> add (JSX.string "targetY") targetY
-  |> add (JSX.string "textAnchor") textAnchor
-  |> add (JSX.string "textDecoration") textDecoration
+  |> add (JSX.string "text-anchor") textAnchor
+  |> add (JSX.string "text-decoration") textDecoration
   |> add (JSX.string "textLength") textLength
-  |> add (JSX.string "textRendering") textRendering
+  |> add (JSX.string "text-rendering") textRendering
   |> add (JSX.string "to") to_
   |> add (JSX.string "transform") transform
   |> add (JSX.string "u1") u1
   |> add (JSX.string "u2") u2
-  |> add (JSX.string "underlinePosition") underlinePosition
-  |> add (JSX.string "underlineThickness") underlineThickness
+  |> add (JSX.string "underline-position") underlinePosition
+  |> add (JSX.string "underline-thickness") underlineThickness
   |> add (JSX.string "unicode") unicode
-  |> add (JSX.string "unicodeBidi") unicodeBidi
-  |> add (JSX.string "unicodeRange") unicodeRange
-  |> add (JSX.string "unitsPerEm") unitsPerEm
-  |> add (JSX.string "vAlphabetic") vAlphabetic
-  |> add (JSX.string "vHanging") vHanging
-  |> add (JSX.string "vIdeographic") vIdeographic
-  |> add (JSX.string "vMathematical") vMathematical
+  |> add (JSX.string "unicode-bidi") unicodeBidi
+  |> add (JSX.string "unicode-range") unicodeRange
+  |> add (JSX.string "units-per-em") unitsPerEm
+  |> add (JSX.string "v-alphabetic") vAlphabetic
+  |> add (JSX.string "v-hanging") vHanging
+  |> add (JSX.string "v-ideographic") vIdeographic
+  |> add (JSX.string "vMathematical") vMathematical (* Does it exists? *)
   |> add (JSX.string "values") values
-  |> add (JSX.string "vectorEffect") vectorEffect
+  |> add (JSX.string "vector-effect") vectorEffect
   |> add (JSX.string "version") version
-  |> add (JSX.string "vertAdvX") vertAdvX
-  |> add (JSX.string "vertAdvY") vertAdvY
-  |> add (JSX.string "vertOriginX") vertOriginX
-  |> add (JSX.string "vertOriginY") vertOriginY
+  |> add (JSX.string "vert-adv-x") vertAdvX
+  |> add (JSX.string "vert-adv-y") vertAdvY
+  |> add (JSX.string "vert-origin-x") vertOriginX
+  |> add (JSX.string "vert-origin-y") vertOriginY
   |> add (JSX.string "viewBox") viewBox
   |> add (JSX.string "viewTarget") viewTarget
   |> add (JSX.string "visibility") visibility
   |> add (JSX.string "widths") widths
-  |> add (JSX.string "wordSpacing") wordSpacing
-  |> add (JSX.string "writingMode") writingMode
+  |> add (JSX.string "word-spacing") wordSpacing
+  |> add (JSX.string "writing-mode") writingMode
   |> add (JSX.string "x") x
   |> add (JSX.string "x1") x1
   |> add (JSX.string "x2") x2
   |> add (JSX.string "xChannelSelector") xChannelSelector
-  |> add (JSX.string "xHeight") xHeight
-  |> add (JSX.string "xlinkActuate") xlinkActuate
+  |> add (JSX.string "x-height") xHeight
+  |> add (JSX.string "xlink:arcrole") xlinkActuate
   |> add (JSX.string "xlinkArcrole") xlinkArcrole
-  |> add (JSX.string "xlinkHref") xlinkHref
-  |> add (JSX.string "xlinkRole") xlinkRole
-  |> add (JSX.string "xlinkShow") xlinkShow
-  |> add (JSX.string "xlinkTitle") xlinkTitle
-  |> add (JSX.string "xlinkType") xlinkType
+  |> add (JSX.string "xlink:href") xlinkHref
+  |> add (JSX.string "xlink:role") xlinkRole
+  |> add (JSX.string "xlink:show") xlinkShow
+  |> add (JSX.string "xlink:title") xlinkTitle
+  |> add (JSX.string "xlink:type") xlinkType
   |> add (JSX.string "xmlns") xmlns
   |> add (JSX.string "xmlnsXlink") xmlnsXlink
-  |> add (JSX.string "xmlBase") xmlBase
-  |> add (JSX.string "xmlLang") xmlLang
-  |> add (JSX.string "xmlSpace") xmlSpace
+  |> add (JSX.string "xml:base") xmlBase
+  |> add (JSX.string "xml:lang") xmlLang
+  |> add (JSX.string "xml:space") xmlSpace
   |> add (JSX.string "y") y
   |> add (JSX.string "y1") y1
   |> add (JSX.string "y2") y2
