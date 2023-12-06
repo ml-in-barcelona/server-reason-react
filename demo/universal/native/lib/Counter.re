@@ -4,7 +4,11 @@ let make = () => {
 
   let onClick = event => {
     let _target = React.Event.Mouse.target(event);
-    print_endline("Console works too! " /* ++ target##value */);
+    switch%platform (Runtime.platform) {
+    | Server => print_endline("This never prints")
+    | Client => print_endline("This prints to the console ")
+    };
+    /* print_endline("Console works too! " ++ target##value); */
     setCount(_ => count + 1);
   };
 

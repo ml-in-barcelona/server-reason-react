@@ -4,7 +4,7 @@
  (modules app)
  (libraries melange shared_js reason-react)
  (preprocess
-  (pps reason-react-ppx melange_native_ppx browser_ppx -js))
+  (pps reason-react-ppx browser_ppx -js melange.ppx))
  (module_systems commonjs))
 
 (melange.emit
@@ -13,5 +13,5 @@
  (modules header)
  (libraries melange shared_js reason-react)
  (preprocess
-  (pps reason-react-ppx))
+  (pps reason-react-ppx melange.ppx))
  (module_systems commonjs))
