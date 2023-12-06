@@ -6,8 +6,9 @@ type target = Native | Js
 let mode = ref Native
 
 module Effect = struct
+  let extractor = Ast_pattern.(__')
+
   let rule =
-    let extractor = Ast_pattern.(__') in
     let handler ~ctxt:_ ({ txt = payload; loc } : Ppxlib.Parsetree.payload loc)
         =
       match payload with
@@ -32,6 +33,52 @@ module Effect = struct
     in
     Context_free.Rule.extension
       (Extension.V3.declare "effect" Extension.Context.expression extractor
+         handler)
+end
+
+module Platform = struct
+  let pattern = Ast_pattern.(__')
+
+  let collect_expressions ~loc first second =
+    match (first.pc_lhs.ppat_desc, second.pc_lhs.ppat_desc) with
+    | ( Ppat_construct
+          ({ txt = Lident "Server" | Ldot (Lident "Runtime", "Server"); _ }, _),
+        Ppat_construct
+          ({ txt = Lident "Client" | Ldot (Lident "Runtime", "Client"); _ }, _)
+      ) ->
+        Ok (first.pc_rhs, second.pc_rhs)
+    | ( Ppat_construct
+          ({ txt = Lident "Client" | Ldot (Lident "Runtime", "Client"); _ }, _),
+        Ppat_construct
+          ({ txt = Lident "Server" | Ldot (Lident "Runtime", "Server"); _ }, _)
+      ) ->
+        Ok (second.pc_rhs, first.pc_rhs)
+    | _ ->
+        Error
+          [%expr [%ocaml.error "platform requires 2 cases: Server | Client"]]
+
+  let handler ~ctxt:_ { txt = payload; loc } =
+    match payload with
+    | PStr [ { pstr_desc = Pstr_eval (expression, _); _ } ] -> (
+        match expression.pexp_desc with
+        | Pexp_match (_expression, cases) -> (
+            match cases with
+            | [ first; second ] -> (
+                match collect_expressions ~loc first second with
+                | Ok (server_expr, client_expr) -> (
+                    match !mode with
+                    (* When it's -js keep the client_expr *)
+                    | Js -> client_expr
+                    (* When it's isn't -js keep the server_expr *)
+                    | Native -> server_expr)
+                | Error error_msg_expr -> error_msg_expr)
+            | _ -> [%expr [%ocaml.error ast_error_msg]])
+        | _ -> [%expr [%ocaml.error "platform requires a match expression"]])
+    | _ -> [%expr [%ocaml.error "platform requires a match expression"]]
+
+  let rule =
+    Context_free.Rule.extension
+      (Extension.V3.declare "platform" Extension.Context.expression pattern
          handler)
 end
 
@@ -364,4 +411,5 @@ let () =
         Effect.rule;
         Browser_only.expression_rule;
         Browser_only.structure_item_rule;
+        Platform.rule;
       ]
