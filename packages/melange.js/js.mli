@@ -174,278 +174,113 @@ module Exn : sig
   val raiseUriError : string -> 'a
 end
 
-module Array2 : sig
+module Array : sig
   type 'a t = 'a array
   type 'a array_like
 
-  val from : 'a -> 'b
+  val from : 'a array_like -> 'a t
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val fromMap : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val isArray : 'a array -> bool
-  val length : 'a array -> int
-
-  val copyWithin : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val copyWithinFrom : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val copyWithinFromRange : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val fillInPlace : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val fillFromInPlace : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val fillRangeInPlace : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val pop : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val push : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val pushMany : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val reverseInPlace : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val sortInPlace : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val sortInPlaceWith : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val spliceInPlace : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val removeFromInPlace : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val removeCountInPlace : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val unshift : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val unshiftMany : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val append : 'a array -> 'a -> 'a array
-  val concat : 'a array -> 'a array -> 'a array
-  val concatMany : 'a array -> 'a list -> 'a array
-  val includes : 'a array -> 'a -> bool
-  val indexOf : 'a array -> 'a -> int
-  val indexOfFrom : 'a array -> 'a -> from:int -> int
-  val joinWith : string array -> string -> string
-  val join : string array -> string
-  val lastIndexOf : 'a -> 'a array -> int
-  val lastIndexOfFrom : 'a array -> 'a -> from:int -> int
-  val slice : 'a array -> start:int -> end_:int -> 'a array
-  val copy : 'a array -> 'a array
-  val sliceFrom : 'a array -> int -> 'a array
-
-  val toString : 'a -> 'b
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val toLocaleString : 'a -> 'b
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val entries : 'a array -> 'b
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val everyi : 'a array -> ('a -> int -> bool) -> bool
-  val every : 'a array -> ('a -> bool) -> bool
-  val filter : 'a array -> ('a -> bool) -> 'a array
-  val filteri : 'a array -> (int -> 'a -> bool) -> 'a array
-  val findi : 'a array -> ('a -> int -> bool) -> 'a nullable
-  val find : 'a array -> ('a -> bool) -> 'a nullable
-  val findIndexi : 'a array -> ('a -> int -> bool) -> int
-  val findIndex : 'a array -> ('a -> bool) -> int
-  val forEach : 'a array -> ('a -> unit) -> unit
-  val forEachi : 'a array -> (int -> 'a -> unit) -> unit
-  val map : 'a array -> ('a -> 'b) -> 'b array
-  val mapi : 'a array -> (int -> 'a -> 'b) -> 'b array
-  val reduce : 'a array -> ('b -> 'a -> 'b) -> 'b -> 'b
-  val reducei : 'a array -> ('b -> 'a -> int -> 'b) -> 'b -> 'b
-  val reduceRight : 'a array -> ('a -> 'b -> 'b) -> 'b -> 'b
-  val reduceRighti : 'a array -> ('a -> 'b -> int -> 'b) -> 'b -> 'b
-  val some : 'a array -> ('a -> bool) -> bool
-  val somei : 'a array -> ('a -> int -> bool) -> bool
-  val unsafe_get : 'a array -> int -> 'a
-  val unsafe_set : 'a array -> int -> 'a -> unit
-end
-
-module Array : sig
-  type 'a t = 'a array
-  type 'a array_like = 'a Array2.array_like
-
-  val from : 'a -> 'b
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val fromMap : 'a -> 'b -> 'c
+  val fromMap : 'a array_like -> f:('a -> 'b) -> 'b t
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
   val isArray : 'a array -> bool
   val length : 'a array -> int
 
-  val copyWithin : 'a -> 'b -> 'c
+  val copyWithin : to_:int -> ?start:int -> ?end_:int -> 'a t -> 'a t
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val copyWithinFrom : 'a -> 'b -> 'c
+  val fill : value:'a -> ?start:int -> ?end_:int -> 'a t -> 'a t
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val copyWithinFromRange : 'a -> 'b -> 'c
+  val pop : 'a t -> 'a nullable
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val fillInPlace : 'a -> 'b -> 'c
+  val push : value:'a -> 'a t -> int
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val fillFromInPlace : 'a -> 'b -> 'c
+  val pushMany : values:'a t -> 'a t -> int
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val fillRangeInPlace : 'a -> 'b -> 'c
+  val reverseInPlace : 'a t -> 'a t
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val pop : 'a -> 'b -> 'c
+  val shift : 'a t -> 'a option
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val push : 'a -> 'b -> 'c
+  val sortInPlace : 'a t -> 'a t
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val pushMany : 'a -> 'b -> 'c
+  val sortInPlaceWith : f:('a -> 'a -> int) -> 'a t -> 'a t
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val reverseInPlace : 'a -> 'b -> 'c
+  val spliceInPlace : start:int -> remove:int -> add:'a t -> 'a t -> 'a t
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val sortInPlace : 'a -> 'b -> 'c
+  val removeFromInPlace : start:int -> 'a t -> 'a t
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val sortInPlaceWith : 'a -> 'b -> 'c
+  val removeCountInPlace : start:int -> count:int -> 'a t -> 'a t
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val spliceInPlace : 'a -> 'b -> 'c
+  val unshift : value:'a -> 'a t -> int
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val removeFromInPlace : 'a -> 'b -> 'c
+  val unshiftMany : values:'a t -> 'a t -> int
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val removeCountInPlace : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val unshift : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val unshiftMany : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val append : 'a -> 'a array -> 'a array
-  val concat : 'a array -> 'a array -> 'a array
-  val concatMany : 'a list -> 'a array -> 'a array
-  val includes : 'a -> 'a array -> bool
-  val indexOf : 'a -> 'a array -> int
-  val indexOfFrom : 'a array -> from:int -> 'a -> int
-  val joinWith : string -> string array -> string
-  val join : string array -> string
-  val lastIndexOf : 'a array -> 'a -> int
-  val lastIndexOfFrom : 'a array -> from:int -> 'a -> int
-
-  val lastIndexOf_start : 'a -> 'a array -> 'b
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val slice : start:int -> end_:int -> 'a array -> 'a array
+  val concat : other:'a t -> 'a t -> 'a t
+  val concatMany : arrays:'a t t -> 'a t -> 'a t
+  val includes : value:'a -> 'a t -> bool
+  val indexOf : value:'a -> ?start:int -> 'a t -> int
+  val join : ?sep:string -> 'a t -> string
+  val lastIndexOf : value:'a -> 'a t -> int
+  val lastIndexOfFrom : value:'a -> start:int -> 'a t -> int
+  val slice : ?start:int -> ?end_:int -> 'a t -> 'a t
   val copy : 'a array -> 'a array
 
-  val slice_copy : unit -> 'a array -> 'b
+  val toString : 'a t -> string
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val sliceFrom : int -> 'a array -> 'a array
-
-  val slice_start : int -> 'a array -> 'b
+  val toLocaleString : 'a t -> string
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val toString : 'a -> 'b
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val toLocaleString : 'a -> 'b
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val entries : 'a array -> 'b
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val everyi : ('a -> int -> bool) -> 'a array -> bool
-  val every : ('a -> bool) -> 'a array -> bool
-  val filter : ('a -> bool) -> 'a array -> 'a array
-  val filteri : (int -> 'a -> bool) -> 'a array -> 'a array
-  val findi : ('a -> int -> bool) -> 'a array -> 'a nullable
-  val find : ('a -> bool) -> 'a array -> 'a nullable
-  val findIndexi : ('a -> int -> bool) -> 'a array -> int
-  val findIndex : ('a -> bool) -> 'a array -> int
-  val forEach : ('a -> unit) -> 'a array -> unit
-  val forEachi : (int -> 'a -> unit) -> 'a array -> unit
-  val map : ('a -> 'b) -> 'a array -> 'b array
-  val mapi : (int -> 'a -> 'b) -> 'a array -> 'b array
-  val reduce : ('a -> 'b -> 'a) -> 'a -> 'b array -> 'a
-  val reducei : ('a -> 'b -> int -> 'a) -> 'a -> 'b array -> 'a
-  val reduceRight : ('a -> 'b -> 'b) -> 'b -> 'a array -> 'b
-  val reduceRighti : ('a -> 'b -> int -> 'b) -> 'b -> 'a array -> 'b
-  val some : ('a -> bool) -> 'a array -> bool
-  val somei : ('a -> int -> bool) -> 'a array -> bool
+  val everyi : f:('a -> int -> bool) -> 'a t -> bool
+  val every : f:('a -> bool) -> 'a t -> bool
+  val filter : f:('a -> bool) -> 'a t -> 'a t
+  val filteri : f:('a -> int -> bool) -> 'a t -> 'a t
+  val findi : f:('a -> int -> bool) -> 'a t -> 'a nullable
+  val find : f:('a -> bool) -> 'a t -> 'a nullable
+  val findIndexi : f:('a -> int -> bool) -> 'a t -> int
+  val findIndex : f:('a -> bool) -> 'a t -> int
+  val forEach : f:('a -> unit) -> 'a t -> unit
+  val forEachi : f:('a -> int -> unit) -> 'a t -> unit
+  val map : f:('a -> 'b) -> 'a t -> 'b t
+  val mapi : f:('a -> int -> 'b) -> 'a t -> 'b t
+  val reduce : f:('b -> 'a -> 'b) -> init:'b -> 'a t -> 'b
+  val reducei : f:('b -> 'a -> int -> 'b) -> init:'b -> 'a t -> 'b
+  val reduceRight : f:('b -> 'a -> 'b) -> init:'b -> 'a t -> 'b
+  val reduceRighti : f:('b -> 'a -> int -> 'b) -> init:'b -> 'a t -> 'b
+  val some : f:('a -> bool) -> 'a t -> bool
+  val somei : f:('a -> int -> bool) -> 'a t -> bool
   val unsafe_get : 'a array -> int -> 'a
   val unsafe_set : 'a array -> int -> 'a -> unit
 end
