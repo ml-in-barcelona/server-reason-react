@@ -584,147 +584,163 @@ module Re = struct
   let test : string -> t -> bool = fun str regex -> test_ regex str
 end
 
-module String2 = struct
-  (** JavaScript String API *)
-
+module String : sig
   type t = string
 
-  (* TODO (davesnx): This changes the interface from String() *)
-  let make i ch = Stdlib.String.make i ch
+  val make : 'a -> t
+  val fromCharCode : int -> t
+  val fromCharCodeMany : int array -> t
+  val fromCodePoint : int -> t
+  val fromCodePointMany : int array -> t
+  val length : t -> int
+  val get : t -> int -> t
+  val charAt : index:int -> t -> t
+  val charCodeAt : index:int -> t -> float
+  val codePointAt : index:int -> t -> int option
+  val concat : other:t -> t -> t
+  val concatMany : strings:t array -> t -> t
+  val endsWith : suffix:t -> ?len:int -> t -> bool
+  val includes : search:t -> ?start:int -> t -> bool
+  val indexOf : search:t -> ?start:int -> t -> int
+  val lastIndexOf : search:t -> ?start:int -> t -> int
+  val localeCompare : other:t -> t -> float
+  val match_ : regexp:Re.t -> t -> t option array option
+  val normalize : ?form:[ `NFC | `NFD | `NFKC | `NFKD ] -> t -> t
+  val repeat : count:int -> t -> t
+  val replace : search:t -> replacement:t -> t -> t
+  val replaceByRe : regexp:Re.t -> replacement:t -> t -> t
+  val unsafeReplaceBy0 : regexp:Re.t -> f:(t -> int -> t -> t) -> t -> t
+  val unsafeReplaceBy1 : regexp:Re.t -> f:(t -> t -> int -> t -> t) -> t -> t
+
+  val unsafeReplaceBy2 :
+    regexp:Re.t -> f:(t -> t -> t -> int -> t -> t) -> t -> t
+
+  val unsafeReplaceBy3 :
+    regexp:Re.t -> f:(t -> t -> t -> t -> int -> t -> t) -> t -> t
+
+  val search : regexp:Re.t -> t -> int
+  val slice : ?start:int -> ?end_:int -> t -> t
+  val split : ?sep:t -> ?limit:int -> t -> t array
+  val splitByRe : regexp:Re.t -> ?limit:int -> t -> t option array
+  val startsWith : prefix:t -> ?start:int -> t -> bool
+  val substr : ?start:int -> ?len:int -> t -> t
+  val substring : ?start:int -> ?end_:int -> t -> t
+  val toLowerCase : t -> t
+  val toLocaleLowerCase : t -> t
+  val toUpperCase : t -> t
+  val toLocaleUpperCase : t -> t
+  val trim : t -> t
+  val anchor : name:t -> t -> t
+  val link : href:t -> t -> t
+end = struct
+  type t = string
+  (** JavaScript String API *)
+
+  let make whatever = notImplemented "Js.String" "make"
 
   let fromCharCode code =
     let uchar = Uchar.of_int code in
     let char_value = Uchar.to_char uchar in
     Stdlib.String.make 1 char_value
 
-  let fromCharCodeMany _ _ = notImplemented "" "fromCharCodeMany"
+  let fromCharCodeMany _ = notImplemented "Js.String" "fromCharCodeMany"
 
   let fromCodePoint code_point =
     let ch = Char.chr code_point in
     Stdlib.String.make 1 ch
 
-  let fromCodePointMany _ = notImplemented "Js.String2" "fromCodePointMany"
+  let fromCodePointMany _ = notImplemented "Js.String" "fromCodePointMany"
   let length = Stdlib.String.length
 
   let get str index =
     let ch = Stdlib.String.get str index in
     Stdlib.String.make 1 ch
 
-  (** [set s n c] sets the character at the given index number to the given character. If [n] is out of range, this function does nothing. *)
-  let set _ _ _ = notImplemented "Js.String2" "set"
-
   (* TODO (davesnx): If the string contains characters outside the range [\u0000-\uffff], it will return the first 16-bit value at that position in the string. *)
-  let charAt str index =
+  let charAt ~index str =
     if index < 0 || index >= Stdlib.String.length str then ""
     else
       let ch = Stdlib.String.get str index in
       Stdlib.String.make 1 ch
 
-  let charCodeAt s n =
+  let charCodeAt ~index:n s =
     if n < 0 || n >= Stdlib.String.length s then nan
     else float_of_int (Stdlib.Char.code (Stdlib.String.get s n))
 
-  let codePointAt str index =
+  let codePointAt ~index str =
     let str_length = Stdlib.String.length str in
     if index >= 0 && index < str_length then
       let uchar = Uchar.of_char (Stdlib.String.get str index) in
       Some (Uchar.to_int uchar)
     else None
 
-  let concat str1 str2 = Stdlib.String.concat "" [ str1; str2 ]
+  let concat ~other:str2 str1 = Stdlib.String.concat "" [ str1; str2 ]
 
-  let concatMany original many =
+  let concatMany ~strings:many original =
     let many_list = Stdlib.Array.to_list many in
     Stdlib.String.concat "" (original :: many_list)
 
-  let endsWith str suffix =
+  let endsWith ~suffix ?len str =
     let str_length = Stdlib.String.length str in
     let suffix_length = Stdlib.String.length suffix in
-    if str_length < suffix_length then false
-    else
-      Stdlib.String.sub str (str_length - suffix_length) suffix_length = suffix
+    let end_idx =
+      match len with Some i -> Stdlib.min str_length i | None -> str_length
+    in
+    let sub_str = Stdlib.String.sub str 0 end_idx in
+    print_endline
+      (Printf.sprintf "Stdlib.String.sub %s (%d - %d) %d" sub_str str_length
+         suffix_length suffix_length);
+    Stdlib.String.ends_with ~suffix sub_str
 
-  let endsWithFrom str suffix from =
+  let includes ~search ?start str =
     let str_length = Stdlib.String.length str in
-    let suffix_length = Stdlib.String.length suffix in
-    let start_idx = Stdlib.max 0 (from - suffix_length) in
-    if str_length - start_idx < suffix_length then false
-    else Stdlib.String.sub str start_idx suffix_length = suffix
-
-  let includes str sub =
-    let str_length = Stdlib.String.length str in
-    let sub_length = Stdlib.String.length sub in
+    let search_length = Stdlib.String.length search in
     let rec includes_helper idx =
-      if idx + sub_length > str_length then false
-      else if Stdlib.String.sub str idx sub_length = sub then true
+      if idx + search_length > str_length then false
+      else if Stdlib.String.sub str idx search_length = search then true
       else includes_helper (idx + 1)
     in
-    includes_helper 0
-
-  let includesFrom str sub from =
-    let str_length = Stdlib.String.length str in
-    let sub_length = Stdlib.String.length sub in
-    let rec includes_helper idx =
-      if idx + sub_length > str_length then false
-      else if Stdlib.String.sub str idx sub_length = sub then true
-      else includes_helper (idx + 1)
-    in
+    let from = match start with None -> 0 | Some f -> f in
     includes_helper from
 
-  let indexOf str pattern =
+  let indexOf ~search ?start str =
     let str_length = Stdlib.String.length str in
-    let pattern_length = Stdlib.String.length pattern in
+    let search_length = Stdlib.String.length search in
     let rec index_helper idx =
-      if idx + pattern_length > str_length then -1
-      else if Stdlib.String.sub str idx pattern_length = pattern then idx
+      if idx + search_length > str_length then -1
+      else if Stdlib.String.sub str idx search_length = search then idx
       else index_helper (idx + 1)
     in
-    index_helper 0
-
-  let indexOfFrom str pattern from =
-    let str_length = Stdlib.String.length str in
-    let pattern_length = Stdlib.String.length pattern in
-    let rec index_helper idx =
-      if idx + pattern_length > str_length then -1
-      else if Stdlib.String.sub str idx pattern_length = pattern then idx
-      else index_helper (idx + 1)
-    in
+    let from = match start with None -> 0 | Some f -> f in
     index_helper from
 
-  let lastIndexOf str pattern =
-    let str_length = Stdlib.String.length str in
-    let pattern_length = Stdlib.String.length pattern in
-    let rec last_index_helper idx =
-      if idx < 0 || idx + pattern_length > str_length then -1
-      else if Stdlib.String.sub str idx pattern_length = pattern then idx
-      else last_index_helper (idx - 1)
+  let lastIndexOf ~search ?(start = max_int) str =
+    let len = String.length str in
+    let rec find_index i =
+      if i < 0 || i > start then -1
+      else
+        let sub_len = min (len - i) (String.length search) in
+        if String.sub str i sub_len = search then i else find_index (i - 1)
     in
-    last_index_helper (str_length - pattern_length)
+    find_index (min (len - 1) start)
 
-  let lastIndexOfFrom str pattern from =
-    let rec last_index_helper str pattern current_index max_index =
-      if current_index < 0 then -1
-      else if
-        current_index <= max_index
-        && Stdlib.String.sub str current_index (Stdlib.String.length pattern)
-           = pattern
-      then current_index
-      else last_index_helper str pattern (current_index - 1) max_index
+  let localeCompare ~other:_ _ = notImplemented "Js.String" "localeCompare"
+
+  let match_ ~regexp str =
+    let wrap_option arr =
+      (* TODO(jchavarri): how to emulate JS returning None for optional capture groups that are not found?
+         See related: https://github.com/melange-re/melange/commit/ccceb69d85afdf7743259bb9faca6f975ebe541f*)
+      Array.map ~f:(fun r -> Some r) arr
     in
-    let str_length = Stdlib.String.length str in
-    let max_index = Stdlib.min (str_length - 1) from in
-    last_index_helper str pattern max_index max_index
 
-  let localeCompare _ _ = notImplemented "Js.String2" "localeCompare"
-
-  let match_ str regex =
     let match_next str regex =
       match Re.exec_ regex str with
       | None -> None
-      | Some result -> Some (Re.matches result)
+      | Some result -> Some (wrap_option (Re.matches result))
     in
 
-    let rec match_all str regex =
+    let rec match_all : t -> Re.t -> t nullable array nullable =
+     fun str regex ->
       match Re.exec_ regex str with
       | None -> None
       | Some result ->
@@ -738,29 +754,28 @@ module String2 = struct
           let suffix_matches =
             match_all suffix regex |> Stdlib.Option.value ~default:[||]
           in
-          Some (Stdlib.Array.append matches suffix_matches)
+          Some (Stdlib.Array.append (wrap_option matches) suffix_matches)
     in
 
-    if Re.global regex then match_all str regex else match_next str regex
+    if Re.global regexp then match_all str regexp else match_next str regexp
 
-  let normalize _ _ = notImplemented "Js.String2" "normalize"
-  let normalizeByForm _ _ = notImplemented "Js.String2" "normalizeByForm"
+  let normalize ?form:_ _ = notImplemented "Js.String" "normalize"
 
   (* TODO(davesnx): RangeError *)
-  let repeat str count =
+  let repeat ~count str =
     let rec repeat' str acc remaining =
       if remaining <= 0 then acc else repeat' str (str ^ acc) (remaining - 1)
     in
     repeat' str "" count
 
-  let replace _ _ _ = notImplemented "Js.String2" "replace"
+  let replace ~search:_ ~replacement:_ _ = notImplemented "Js.String" "replace"
 
-  let replaceByRe str pattern replacement =
+  let replaceByRe ~regexp ~replacement str =
     let rec replace_all str =
-      match Re.exec_ pattern str with
+      match Re.exec_ regexp str with
       | None -> str
       | Some result ->
-          Re.setLastIndex pattern 0;
+          Re.setLastIndex regexp 0;
           let matches = Re.matches result in
           let matched_str = Stdlib.Array.get matches 0 in
           let prefix = Stdlib.String.sub str 0 (Re.index result) in
@@ -771,7 +786,7 @@ module String2 = struct
           prefix ^ replacement ^ replace_all suffix
     in
     let replace_first str =
-      match Re.exec_ pattern str with
+      match Re.exec_ regexp str with
       | None -> str
       | Some result ->
           let matches = Re.matches result in
@@ -784,42 +799,42 @@ module String2 = struct
           prefix ^ replacement ^ suffix
     in
 
-    if Re.global pattern then replace_all str else replace_first str
+    if Re.global regexp then replace_all str else replace_first str
 
-  let unsafeReplaceBy0 _ _ = notImplemented "Js.String2" "unsafeReplaceBy0"
-  let unsafeReplaceBy1 _ _ = notImplemented "Js.String2" "unsafeReplaceBy1"
-  let unsafeReplaceBy2 _ _ = notImplemented "Js.String2" "unsafeReplaceBy2"
-  let unsafeReplaceBy3 _ _ = notImplemented "Js.String2" "unsafeReplaceBy3"
-  let search _ _ = notImplemented "Js.String2" "search"
+  let unsafeReplaceBy0 ~regexp:_ ~f:_ _ =
+    notImplemented "Js.String" "unsafeReplaceBy0"
 
-  let slice str ~from ~to_ =
+  let unsafeReplaceBy1 ~regexp:_ ~f:_ _ =
+    notImplemented "Js.String" "unsafeReplaceBy1"
+
+  let unsafeReplaceBy2 ~regexp:_ ~f:_ _ =
+    notImplemented "Js.String" "unsafeReplaceBy2"
+
+  let unsafeReplaceBy3 ~regexp:_ ~f:_ _ =
+    notImplemented "Js.String" "unsafeReplaceBy3"
+
+  let search ~regexp:_ _ = notImplemented "Js.String" "search"
+
+  let slice ?start ?end_ str =
     let str_length = Stdlib.String.length str in
-    let start_idx = Stdlib.max 0 (Stdlib.min from str_length) in
-    let end_idx = Stdlib.max start_idx (Stdlib.min to_ str_length) in
+    let start = match start with None -> 0 | Some s -> s in
+    let end_ = match end_ with None -> str_length | Some s -> s in
+    let start_idx = Stdlib.max 0 (Stdlib.min start str_length) in
+    let end_idx = Stdlib.max start_idx (Stdlib.min end_ str_length) in
     if start_idx >= end_idx then ""
     else Stdlib.String.sub str start_idx (end_idx - start_idx)
 
-  let sliceToEnd str ~from =
-    let str_length = Stdlib.String.length str in
-    let start_idx = Stdlib.max 0 (Stdlib.min from str_length) in
-    Stdlib.String.sub str start_idx (str_length - start_idx)
+  let split ?sep ?limit _str = notImplemented "Js.String" "split"
 
-  let split _str _delimiter = notImplemented "Js.String2" "split"
-
-  let splitAtMost _str _separator ~limit:_ =
-    notImplemented "Js.String2" "splitAtMost"
-
-  let splitByReAtMost _ _ = notImplemented "Js.String2" "splitByReAtMost"
-
-  let splitByRe str pattern =
+  let splitByRe ~regexp ?limit str =
     let rev_array arr =
       arr |> Stdlib.Array.to_list |> Stdlib.List.rev |> Stdlib.Array.of_list
     in
     let rec split_all str acc =
-      match Re.exec_ pattern str with
+      match Re.exec_ regexp str with
       | None -> Stdlib.Array.append [| Some str |] acc |> rev_array
       | Some result ->
-          Re.setLastIndex pattern 0;
+          Re.setLastIndex regexp 0;
           let matches = Re.matches result in
           let matched_str = Stdlib.Array.get matches 0 in
           let prefix = String.sub str 0 (Re.index result) in
@@ -832,10 +847,10 @@ module String2 = struct
     in
 
     let split_next str acc =
-      match Re.exec_ pattern str with
+      match Re.exec_ regexp str with
       | None -> Stdlib.Array.append [| Some str |] acc |> rev_array
       | Some result ->
-          Re.setLastIndex pattern 0;
+          Re.setLastIndex regexp 0;
           let matches = Re.matches result in
           let matched_str = Stdlib.Array.get matches 0 in
           let prefix = String.sub str 0 (Re.index result) in
@@ -846,46 +861,43 @@ module String2 = struct
           Stdlib.Array.append [| Some prefix |] (split_all suffix acc)
     in
 
-    if Re.global pattern then split_all str [||] else split_next str [||]
+    if Re.global regexp then split_all str [||] else split_next str [||]
 
-  let startsWith str prefix =
-    Stdlib.String.length prefix <= Stdlib.String.length str
-    && Stdlib.String.sub str 0 (Stdlib.String.length prefix) = prefix
+  let startsWith ~prefix ?(start = 0) str =
+    let len_prefix = String.length prefix in
+    let len_str = String.length str in
+    if start < 0 || start > len_str then false
+    else
+      let rec compare_prefix i =
+        i = len_prefix
+        || i < len_str
+           && prefix.[i] = str.[start + i]
+           && compare_prefix (i + 1)
+      in
+      compare_prefix 0
 
-  let startsWithFrom _str _index _ =
-    notImplemented "Js.String2" "startsWithFrom"
-
-  let substr str ~from =
+  let substr ?(start = 0) ?len str =
     let str_length = Stdlib.String.length str in
-    let start_idx = Stdlib.max 0 (Stdlib.min from str_length) in
-    if start_idx >= str_length then ""
-    else Stdlib.String.sub str start_idx (str_length - start_idx)
-
-  let substrAtMost str ~from ~length =
-    let str_length = Stdlib.String.length str in
-    let start_idx = max 0 (min from str_length) in
-    let end_idx = min (start_idx + length) str_length in
+    let len = match len with None -> str_length | Some s -> s in
+    let start_idx = max 0 (min start str_length) in
+    let end_idx = min (start_idx + len) str_length in
     if start_idx >= end_idx then ""
     else Stdlib.String.sub str start_idx (end_idx - start_idx)
 
-  let substring str ~from ~to_ =
-    let length = Stdlib.String.length str in
-    let start_idx = max 0 (min from length) in
-    let end_idx = max 0 (min to_ length) in
+  let substring ?start ?end_ str =
+    let str_length = Stdlib.String.length str in
+    let start = match start with None -> 0 | Some s -> s in
+    let end_ = match end_ with None -> str_length | Some s -> s in
+    let start_idx = max 0 (min start str_length) in
+    let end_idx = max 0 (min end_ str_length) in
     if start_idx >= end_idx then
       Stdlib.String.sub str end_idx (start_idx - end_idx)
     else Stdlib.String.sub str start_idx (end_idx - start_idx)
 
-  let substringToEnd str ~from =
-    let length = Stdlib.String.length str in
-    if from >= length then ""
-    else if from < 0 then str
-    else Stdlib.String.sub str from (length - from)
-
-  let toLowerCase str = Stdlib.String.lowercase_ascii str
-  let toLocaleLowerCase _ _ = notImplemented "Js.String2" "toLocaleLowerCase"
-  let toUpperCase str = Stdlib.String.uppercase_ascii str
-  let toLocaleUpperCase _ _ = notImplemented "Js.String2" "toLocaleUpperCase"
+  let toLowerCase = Stdlib.String.lowercase_ascii
+  let toLocaleLowerCase _ = notImplemented "Js.String" "toLocaleLowerCase"
+  let toUpperCase = Stdlib.String.uppercase_ascii
+  let toLocaleUpperCase _ = notImplemented "Js.String" "toLocaleUpperCase"
 
   let trim str =
     let whitespace = " \t\n\r" in
@@ -907,70 +919,8 @@ module String2 = struct
     if start_idx >= end_idx then ""
     else Stdlib.String.sub str start_idx (end_idx - start_idx)
 
-  let anchor _ _ = notImplemented "Js.String2" "anchor"
-  let link _ _ = notImplemented "Js.String2" "link"
-  let castToArrayLike _ _ = notImplemented "Js.String2" "castToArrayLike"
-end
-
-module String = struct
-  type t = string
-  (** JavaScript String API *)
-
-  (* TODO (davesnx): This changes the interface from String() *)
-  let make i ch = Stdlib.String.make i ch
-  let fromCharCode = String2.fromCharCode
-  let fromCharCodeMany _ = notImplemented "Js.String" "fromCharCodeMany"
-  let fromCodePoint = String2.fromCodePoint
-  let fromCodePointMany _ = notImplemented "Js.String" "fromCodePointMany"
-  let length = String2.length
-  let get index str = String2.get str index
-  let charAt index str = String2.charAt str index
-  let charCodeAt index str = String2.charCodeAt str index
-  let codePointAt index str = String2.codePointAt str index
-  let concatMany many original = String2.concatMany original many
-  let endsWith suffix str = String2.endsWith str suffix
-  let endsWithFrom from suffix str = String2.endsWithFrom str from suffix
-  let includes sub str = String2.includes str sub
-  let includesFrom from sub str = String2.includesFrom str sub from
-  let indexOf pattern str = String2.indexOf str pattern
-  let indexOfFrom from pattern str = String2.indexOfFrom str pattern from
-  let localeCompare _ _ = notImplemented "Js.String" "localeCompare"
-  let match_ regex str = String2.match_ str regex
-  let normalize _ _ = notImplemented "Js.String" "normalize"
-  let normalizeByForm _ _ = notImplemented "Js.String" "normalizeByForm"
-  let replace _ _ _ = notImplemented "Js.String" "replace"
-
-  let replaceByRe regex replacer input =
-    String2.replaceByRe input regex replacer
-
-  let unsafeReplaceBy0 _ _ = notImplemented "Js.String" "unsafeReplaceBy0"
-  let unsafeReplaceBy1 _ _ = notImplemented "Js.String" "unsafeReplaceBy1"
-  let unsafeReplaceBy2 _ _ = notImplemented "Js.String" "unsafeReplaceBy2"
-  let unsafeReplaceBy3 _ _ = notImplemented "Js.String" "unsafeReplaceBy3"
-  let search _ _ = notImplemented "Js.String" "search"
-  let slice ~from ~to_ str = String2.slice str ~from ~to_
-  let sliceToEnd ~from str = String2.sliceToEnd str ~from
-  let split _str _delimiter = notImplemented "Js.String" "split"
-
-  let splitAtMost _separator ~limit:_ _str =
-    notImplemented "Js.String" "splitAtMost"
-
-  let splitByRe _ _ = notImplemented "Js.String" "splitByRe"
-  let splitByReAtMost _ _ = notImplemented "Js.String" "splitByReAtMost"
-  let startsWith prefix str = String2.startsWith str prefix
-  let startsWithFrom _str _index _ = notImplemented "Js.String" "startsWithFrom"
-  let substr ~from str = String2.substr str ~from
-  let substrAtMost ~from ~length str = String2.substrAtMost str ~from ~length
-  let substring ~from ~to_ str = String2.substring str ~from ~to_
-  let substringToEnd ~from str = String2.substringToEnd str ~from
-  let toLowerCase = String2.toLowerCase
-  let toLocaleLowerCase _ _ = notImplemented "Js.String" "toLocaleLowerCase"
-  let toUpperCase = String2.toUpperCase
-  let toLocaleUpperCase _ _ = notImplemented "Js.String" "toLocaleUpperCase"
-  let trim = String2.trim
-  let anchor _ _ = notImplemented "Js.String" "anchor"
-  let link _ _ = notImplemented "Js.String" "link"
-  let castToArrayLike _ _ = notImplemented "Js.String" "castToArrayLike"
+  let anchor ~name:_ _ = notImplemented "Js.String" "anchor"
+  let link ~href:_ _ = notImplemented "Js.String" "link"
 end
 
 module Promise = struct

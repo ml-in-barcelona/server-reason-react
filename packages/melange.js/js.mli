@@ -333,231 +333,106 @@ module Re : sig
   val test : string -> t -> bool
 end
 
-module String2 : sig
-  type t = string
-
-  val make : int -> char -> string
-  val fromCharCode : int -> string
-
-  val fromCharCodeMany : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val fromCodePoint : int -> string
-  val fromCodePointMany : 'a -> 'b
-  val length : string -> int
-  val get : string -> int -> string
-
-  val set : 'a -> 'b -> 'c -> 'd
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val charAt : string -> int -> string
-  val charCodeAt : string -> int -> float
-  val codePointAt : string -> int -> int nullable
-  val concat : string -> string -> string
-  val concatMany : string -> string array -> string
-  val endsWith : string -> string -> bool
-  val endsWithFrom : string -> string -> int -> bool
-  val includes : string -> string -> bool
-  val includesFrom : string -> string -> int -> bool
-  val indexOf : string -> string -> int
-  val indexOfFrom : string -> string -> int -> int
-  val lastIndexOf : string -> string -> int
-  val lastIndexOfFrom : string -> string -> int -> int
-
-  val localeCompare : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val match_ : string -> Re.t -> string array nullable
-
-  val normalize : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val normalizeByForm : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val repeat : string -> int -> string
-
-  val replace : 'a -> 'b -> 'c -> 'd
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val replaceByRe : string -> Re.t -> string -> string
-
-  val unsafeReplaceBy0 : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val unsafeReplaceBy1 : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val unsafeReplaceBy2 : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val unsafeReplaceBy3 : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val search : 'a -> 'b -> 'c
-  val slice : string -> from:int -> to_:int -> string
-  val sliceToEnd : string -> from:int -> string
-  val split : 'a -> 'b -> 'c
-
-  val splitAtMost : 'a -> 'b -> limit:'c -> 'd
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val splitByReAtMost : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val splitByRe : string -> Re.t -> string nullable array
-  val startsWith : string -> string -> bool
-
-  val startsWithFrom : 'a -> 'b -> 'c -> 'd
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val substr : string -> from:int -> string
-  val substrAtMost : string -> from:int -> length:int -> string
-  val substring : string -> from:int -> to_:int -> string
-  val substringToEnd : string -> from:int -> string
-  val toLowerCase : string -> string
-
-  val toLocaleLowerCase : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val toUpperCase : string -> string
-
-  val toLocaleUpperCase : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val trim : string -> string
-
-  val anchor : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val link : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val castToArrayLike : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-end
-
 module String : sig
   type t = string
 
-  val make : int -> char -> string
-  val fromCharCode : int -> string
-
-  val fromCharCodeMany : 'a -> 'b
+  val make : 'a -> t
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val fromCodePoint : int -> string
-  val fromCodePointMany : 'a -> 'b
-  val length : string -> int
-  val get : int -> string -> string
-  val charAt : int -> string -> string
-  val charCodeAt : int -> string -> float
-  val codePointAt : int -> string -> int nullable
-  val concatMany : string array -> string -> string
-  val endsWith : string -> string -> bool
-  val endsWithFrom : string -> int -> string -> bool
-  val includes : string -> string -> bool
-  val includesFrom : int -> string -> string -> bool
-  val indexOf : string -> string -> int
-  val indexOfFrom : int -> string -> string -> int
-  val localeCompare : 'a -> 'b -> 'c
-  val match_ : Re.t -> string -> string array nullable
+  val fromCharCode : int -> t
 
-  val normalize : 'a -> 'b -> 'c
+  val fromCharCodeMany : int array -> t
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val normalizeByForm : 'a -> 'b -> 'c
+  val fromCodePoint : int -> t
+
+  val fromCodePointMany : int array -> t
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val replace : 'a -> 'b -> 'c -> 'd
+  val length : t -> int
+  val get : t -> int -> t
+  val charAt : index:int -> t -> t
+  val charCodeAt : index:int -> t -> float
+  val codePointAt : index:int -> t -> int nullable
+  val concat : other:t -> t -> t
+  val concatMany : strings:t array -> t -> t
+  val endsWith : suffix:t -> ?len:int -> t -> bool
+  val includes : search:t -> ?start:int -> t -> bool
+  val indexOf : search:t -> ?start:int -> t -> int
+  val lastIndexOf : search:t -> ?start:int -> t -> int
+
+  val localeCompare : other:t -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val replaceByRe : Re.t -> string -> string -> string
+  val match_ : regexp:Re.t -> t -> t nullable array nullable
 
-  val unsafeReplaceBy0 : 'a -> 'b -> 'c
+  val normalize : ?form:[ `NFC | `NFD | `NFKC | `NFKD ] -> t -> t
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val unsafeReplaceBy1 : 'a -> 'b -> 'c
+  val repeat : count:int -> t -> t
+
+  val replace : search:t -> replacement:t -> t -> t
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val unsafeReplaceBy2 : 'a -> 'b -> 'c
+  val replaceByRe : regexp:Re.t -> replacement:t -> t -> t
+
+  val unsafeReplaceBy0 : regexp:Re.t -> f:(t -> int -> t -> t) -> t -> t
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val unsafeReplaceBy3 : 'a -> 'b -> 'c
+  val unsafeReplaceBy1 : regexp:Re.t -> f:(t -> t -> int -> t -> t) -> t -> t
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val search : 'a -> 'b -> 'c
-  val slice : from:int -> to_:int -> string -> string
-  val sliceToEnd : from:int -> string -> string
-  val split : 'a -> 'b -> 'c
-
-  val splitAtMost : 'a -> limit:'b -> 'c -> 'd
+  val unsafeReplaceBy2 :
+    regexp:Re.t -> f:(t -> t -> t -> int -> t -> t) -> t -> t
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val splitByRe : 'a -> 'b -> 'c
+  val unsafeReplaceBy3 :
+    regexp:Re.t -> f:(t -> t -> t -> t -> int -> t -> t) -> t -> t
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val splitByReAtMost : 'a -> 'b -> 'c
+  val search : regexp:Re.t -> t -> int
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val startsWith : string -> string -> bool
+  val slice : ?start:int -> ?end_:int -> t -> t
 
-  val startsWithFrom : 'a -> 'b -> 'c -> 'd
+  val split : ?sep:t -> ?limit:int -> t -> t array
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val substr : from:int -> string -> string
-  val substrAtMost : from:int -> length:int -> string -> string
-  val substring : from:int -> to_:int -> string -> string
-  val substringToEnd : from:int -> string -> string
-  val toLowerCase : string -> string
+  val splitByRe : regexp:Re.t -> ?limit:int -> t -> t nullable array
+  val startsWith : prefix:t -> ?start:int -> t -> bool
+  val substr : ?start:int -> ?len:int -> t -> t
+  val substring : ?start:int -> ?end_:int -> t -> t
+  val toLowerCase : t -> t
 
-  val toLocaleLowerCase : 'a -> 'b -> 'c
+  val toLocaleLowerCase : t -> t
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val toUpperCase : string -> string
-  val toLocaleUpperCase : 'a -> 'b -> 'c
-  val trim : string -> string
+  val toUpperCase : t -> t
 
-  val anchor : 'a -> 'b -> 'c
+  val toLocaleUpperCase : t -> t
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val link : 'a -> 'b -> 'c
+  val trim : t -> t
+
+  val anchor : name:t -> t -> t
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val castToArrayLike : 'a -> 'b -> 'c
+  val link : href:t -> t -> t
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 end
