@@ -194,63 +194,63 @@ module Browser_only = struct
             Builder.value_binding ~loc ~pat:pattern
               ~expr:(error_only_works_on ~loc))
 
-  let expression_rule =
-    let extractor = Ast_pattern.(single_expr_payload __) in
-    let handler ~ctxt payload =
-      let loc = Expansion_context.Extension.extension_point_loc ctxt in
-      match !mode with
-      | Js -> payload
-      | Native -> (
-          match payload.pexp_desc with
-          | Pexp_apply (expression, _) ->
-              let stringified =
-                Ppxlib.Pprintast.string_of_expression expression
-              in
-              let message = Builder.estring ~loc stringified in
-              [%expr Runtime.fail_impossible_action_in_ssr [%e message]]
-          | Pexp_constraint
-              ( {
-                  pexp_desc =
-                    Pexp_fun (arg_label, arg_expression, pattern, expression);
-                },
-                type_constraint ) ->
-              let stringified =
-                Ppxlib.Pprintast.string_of_expression expression
-              in
-              let message = Builder.estring ~loc stringified in
-              let fn =
-                Builder.pexp_fun ~loc arg_label arg_expression pattern
-                  [%expr Runtime.fail_impossible_action_in_ssr [%e message]]
-              in
-              Builder.pexp_constraint ~loc
-                { fn with pexp_attributes = expression.pexp_attributes }
-                type_constraint
-          | Pexp_fun (arg_label, arg_expression, pattern, expression) ->
-              let stringified =
-                Ppxlib.Pprintast.string_of_expression expression
-              in
-              let message = Builder.estring ~loc stringified in
-              let fn =
-                Builder.pexp_fun ~loc arg_label arg_expression pattern
-                  [%expr Runtime.fail_impossible_action_in_ssr [%e message]]
-              in
+  let extractor = Ast_pattern.(single_expr_payload __)
+
+  let expression_handler ~ctxt payload =
+    let loc = Expansion_context.Extension.extension_point_loc ctxt in
+    match !mode with
+    | Js -> payload
+    | Native -> (
+        match payload.pexp_desc with
+        | Pexp_apply (expression, _) ->
+            let stringified =
+              Ppxlib.Pprintast.string_of_expression expression
+            in
+            let message = Builder.estring ~loc stringified in
+            [%expr Runtime.fail_impossible_action_in_ssr [%e message]]
+        | Pexp_constraint
+            ( {
+                pexp_desc =
+                  Pexp_fun (arg_label, arg_expression, pattern, expression);
+              },
+              type_constraint ) ->
+            let stringified =
+              Ppxlib.Pprintast.string_of_expression expression
+            in
+            let message = Builder.estring ~loc stringified in
+            let fn =
+              Builder.pexp_fun ~loc arg_label arg_expression pattern
+                [%expr Runtime.fail_impossible_action_in_ssr [%e message]]
+            in
+            Builder.pexp_constraint ~loc
               { fn with pexp_attributes = expression.pexp_attributes }
-          | Pexp_let (rec_flag, value_bindings, expression) ->
-              let pexp_let =
-                Builder.pexp_let ~loc rec_flag
-                  (List.map
-                     (fun binding ->
-                       browser_only_value_binding binding.pvb_pat
-                         binding.pvb_expr)
-                     value_bindings)
-                  expression
-              in
-              [%expr [%e pexp_let]]
-          | _ -> error_only_works_on ~loc)
-    in
+              type_constraint
+        | Pexp_fun (arg_label, arg_expression, pattern, expression) ->
+            let stringified =
+              Ppxlib.Pprintast.string_of_expression expression
+            in
+            let message = Builder.estring ~loc stringified in
+            let fn =
+              Builder.pexp_fun ~loc arg_label arg_expression pattern
+                [%expr Runtime.fail_impossible_action_in_ssr [%e message]]
+            in
+            { fn with pexp_attributes = expression.pexp_attributes }
+        | Pexp_let (rec_flag, value_bindings, expression) ->
+            let pexp_let =
+              Builder.pexp_let ~loc rec_flag
+                (List.map
+                   (fun binding ->
+                     browser_only_value_binding binding.pvb_pat binding.pvb_expr)
+                   value_bindings)
+                expression
+            in
+            [%expr [%e pexp_let]]
+        | _ -> error_only_works_on ~loc)
+
+  let expression_rule =
     Context_free.Rule.extension
       (Extension.V3.declare "browser_only" Extension.Context.expression
-         extractor handler)
+         extractor expression_handler)
 
   (* Generates a structure_item with a value binding with a pattern and an expression with all the alerts and warnings *)
   let make_vb_with_browser_only ~loc pattern expression =
@@ -270,78 +270,72 @@ module Browser_only = struct
     in
     pstr @@ extractor_in_let ^:: nil
 
-  let structure_item_rule =
-    let handler ~ctxt rec_flag pattern expression =
-      let loc = Expansion_context.Extension.extension_point_loc ctxt in
-      let do_nothing rec_flag =
-        match rec_flag with
-        | Recursive -> [%stri let rec [%p pattern] = [%e expression]]
-        | Nonrecursive -> [%stri let [%p pattern] = [%e expression]]
-      in
-
-      match !mode with
-      (* When it's -js, keep item as it is *)
-      | Js -> do_nothing rec_flag
-      | Native -> (
-          match expression.pexp_desc with
-          | Pexp_constraint
-              ( {
-                  pexp_desc =
-                    Pexp_fun (arg_label, arg_expression, fun_pattern, expr);
-                  _;
-                },
-                type_constraint ) ->
-              let original_function_name =
-                get_function_name pattern.ppat_desc
-              in
-              let new_fun_pattern = remove_type_constraint fun_pattern in
-              let fn =
-                Builder.pexp_fun ~loc arg_label arg_expression new_fun_pattern
-                  (last_expr_to_raise_impossible ~loc original_function_name
-                     expr)
-              in
-              let item = { fn with pexp_attributes = expr.pexp_attributes } in
-              [%stri
-                let[@warning "-27-32"] ([%p pattern] :
-                                         ([%t type_constraint]
-                                         [@alert
-                                           browser_only
-                                             "This expression is marked to \
-                                              only run on the browser where \
-                                              JavaScript can run. You can only \
-                                              use it inside a let%browser_only \
-                                              function."])) =
-                  ([%e item] [@alert "-browser_only"])]
-          | Pexp_fun (arg_label, arg_expression, fun_pattern, expr) ->
-              let original_function_name =
-                get_function_name pattern.ppat_desc
-              in
-              let new_fun_pattern = remove_type_constraint fun_pattern in
-              let fn =
-                Builder.pexp_fun ~loc arg_label arg_expression new_fun_pattern
-                  (last_expr_to_raise_impossible ~loc original_function_name
-                     expr)
-              in
-              let item = { fn with pexp_attributes = expr.pexp_attributes } in
-              make_vb_with_browser_only ~loc pattern item
-          | Pexp_ident { txt = longident; loc } ->
-              let stringified = Ppxlib.Longident.name longident in
-              let message = Builder.estring ~loc stringified in
-              let item =
-                [%expr Runtime.fail_impossible_action_in_ssr [%e message]]
-              in
-              make_vb_with_browser_only ~loc pattern item
-          | Pexp_newtype (name, expr) ->
-              let original_function_name = name.txt in
-              let item =
-                last_expr_to_raise_impossible ~loc original_function_name expr
-              in
-              make_vb_with_browser_only ~loc pattern item
-          | _expr -> do_nothing rec_flag)
+  let structure_item_handler ~ctxt rec_flag pattern expression =
+    let loc = Expansion_context.Extension.extension_point_loc ctxt in
+    let do_nothing rec_flag =
+      match rec_flag with
+      | Recursive -> [%stri let rec [%p pattern] = [%e expression]]
+      | Nonrecursive -> [%stri let [%p pattern] = [%e expression]]
     in
+
+    match !mode with
+    (* When it's -js, keep item as it is *)
+    | Js -> do_nothing rec_flag
+    | Native -> (
+        match expression.pexp_desc with
+        | Pexp_constraint
+            ( {
+                pexp_desc =
+                  Pexp_fun (arg_label, arg_expression, fun_pattern, expr);
+                _;
+              },
+              type_constraint ) ->
+            let original_function_name = get_function_name pattern.ppat_desc in
+            let new_fun_pattern = remove_type_constraint fun_pattern in
+            let fn =
+              Builder.pexp_fun ~loc arg_label arg_expression new_fun_pattern
+                (last_expr_to_raise_impossible ~loc original_function_name expr)
+            in
+            let item = { fn with pexp_attributes = expr.pexp_attributes } in
+            [%stri
+              let[@warning "-27-32"] ([%p pattern] :
+                                       ([%t type_constraint]
+                                       [@alert
+                                         browser_only
+                                           "This expression is marked to only \
+                                            run on the browser where \
+                                            JavaScript can run. You can only \
+                                            use it inside a let%browser_only \
+                                            function."])) =
+                ([%e item] [@alert "-browser_only"])]
+        | Pexp_fun (arg_label, arg_expression, fun_pattern, expr) ->
+            let original_function_name = get_function_name pattern.ppat_desc in
+            let new_fun_pattern = remove_type_constraint fun_pattern in
+            let fn =
+              Builder.pexp_fun ~loc arg_label arg_expression new_fun_pattern
+                (last_expr_to_raise_impossible ~loc original_function_name expr)
+            in
+            let item = { fn with pexp_attributes = expr.pexp_attributes } in
+            make_vb_with_browser_only ~loc pattern item
+        | Pexp_ident { txt = longident; loc } ->
+            let stringified = Ppxlib.Longident.name longident in
+            let message = Builder.estring ~loc stringified in
+            let item =
+              [%expr Runtime.fail_impossible_action_in_ssr [%e message]]
+            in
+            make_vb_with_browser_only ~loc pattern item
+        | Pexp_newtype (name, expr) ->
+            let original_function_name = name.txt in
+            let item =
+              last_expr_to_raise_impossible ~loc original_function_name expr
+            in
+            make_vb_with_browser_only ~loc pattern item
+        | _expr -> do_nothing rec_flag)
+
+  let structure_item_rule =
     Context_free.Rule.extension
       (Extension.V3.declare "browser_only" Extension.Context.structure_item
-         extractor handler)
+         extractor structure_item_handler)
 end
 
 let () =
