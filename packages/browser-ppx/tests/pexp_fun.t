@@ -5,6 +5,12 @@
   > let%browser_only pexp_fun_2arg_structure_item evt moar_arguments =
   >   Webapi.Dom.getElementById "foo"
   > 
+  > let%browser_only perform ?abortController ?(base = defaultBase) (req : ('handler, 'a, 'i, 'o) Client.request) input =
+  >  Js.log abortController;
+  >  Js.log base;
+  >  Js.log req;
+  >  Js.log input
+  > 
   > let make () =
   >   let%browser_only fun_value_binding_pexp_fun_2arg evt moar_arguments =
   >     Webapi.Dom.getElementById "foo"
@@ -23,6 +29,13 @@ With -js flag everything keeps as it is and browser_only extension disappears
   
   let pexp_fun_2arg_structure_item evt moar_arguments =
     Webapi.Dom.getElementById "foo"
+  
+  let perform ?abortController ?(base = defaultBase)
+      (req : ('handler, 'a, 'i, 'o) Client.request) input =
+    Js.log abortController;
+    Js.log base;
+    Js.log req;
+    Js.log input
   
   let make () =
     let fun_value_binding_pexp_fun_2arg evt moar_arguments =
@@ -54,6 +67,15 @@ Without -js flag, the compilation to native replaces the expression with a raise
            can run. You can only use it inside a let%browser_only function."]) =
    fun [@alert "-browser_only"] evt moar_arguments ->
     Runtime.fail_impossible_action_in_ssr "pexp_fun_2arg_structure_item"
+  [@@warning "-27-32"]
+  
+  let (perform
+      [@alert
+        browser_only
+          "This expression is marked to only run on the browser where JavaScript \
+           can run. You can only use it inside a let%browser_only function."]) =
+   fun [@alert "-browser_only"] ?abortController ?base req input ->
+    Runtime.fail_impossible_action_in_ssr "perform"
   [@@warning "-27-32"]
   
   let make () =

@@ -6,6 +6,7 @@ type target = Native | Js
 let mode = ref Native
 
 module Effect = struct
+  (* TODO: [%effect] is a little incomplete, only works with useEffect0 (not other useEffectX, neither useLayoutEffects) *)
   let extractor = Ast_pattern.(__')
 
   let rule =
@@ -86,7 +87,7 @@ let rec last_expr_to_raise_impossible ~loc original_name expr =
   match expr.pexp_desc with
   | Pexp_constraint (expr, _) ->
       last_expr_to_raise_impossible ~loc original_name expr
-  | Pexp_fun (arg_label, arg_expression, fun_pattern, expression) ->
+  | Pexp_fun (arg_label, _arg_expression, fun_pattern, expression) ->
       let new_fun_pattern =
         {
           fun_pattern with
@@ -94,7 +95,7 @@ let rec last_expr_to_raise_impossible ~loc original_name expr =
         }
       in
       let fn =
-        Builder.pexp_fun ~loc arg_label arg_expression new_fun_pattern
+        Builder.pexp_fun ~loc arg_label None new_fun_pattern
           (last_expr_to_raise_impossible ~loc original_name expression)
       in
       { fn with pexp_attributes = expr.pexp_attributes }
@@ -149,20 +150,6 @@ module Browser_only = struct
 
   let browser_only_value_binding pattern expression =
     let loc = pattern.ppat_loc in
-    (* let rec last_expr_to_raise_impossible ~loc original_function_name expr =
-         match expr.pexp_desc with
-         | Pexp_constraint (expr, _) ->
-             last_expr_to_raise_impossible ~loc original_function_name expr
-         | Pexp_fun (arg_label, arg_expression, fun_pattern, expr) ->
-             let fn =
-               Builder.pexp_fun ~loc arg_label arg_expression fun_pattern
-                 (last_expr_to_raise_impossible ~loc original_function_name expr)
-             in
-             { fn with pexp_attributes = expr.pexp_attributes }
-         | _ ->
-             let message = Builder.estring ~loc original_function_name in
-             [%expr Runtime.fail_impossible_action_in_ssr [%e message]]
-       in *)
     match pattern with
     | [%pat? ()] -> Builder.value_binding ~loc ~pat:pattern ~expr:[%expr ()]
     | _ -> (
