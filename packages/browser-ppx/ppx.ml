@@ -83,17 +83,17 @@ module Platform = struct
          handler)
 end
 
+let remove_type_constraint pattern =
+  match pattern with
+  | { ppat_desc = Ppat_constraint (pattern, _); _ } -> pattern
+  | _ -> pattern
+
 let rec last_expr_to_raise_impossible ~loc original_name expr =
   match expr.pexp_desc with
   | Pexp_constraint (expr, _) ->
       last_expr_to_raise_impossible ~loc original_name expr
   | Pexp_fun (arg_label, _arg_expression, fun_pattern, expression) ->
-      let new_fun_pattern =
-        {
-          fun_pattern with
-          ppat_attributes = [ (* enable_alert_browser_only ~loc *) ];
-        }
-      in
+      let new_fun_pattern = remove_type_constraint fun_pattern in
       let fn =
         Builder.pexp_fun ~loc arg_label None new_fun_pattern
           (last_expr_to_raise_impossible ~loc original_name expression)
@@ -294,12 +294,7 @@ module Browser_only = struct
               let original_function_name =
                 get_function_name pattern.ppat_desc
               in
-              let new_fun_pattern =
-                {
-                  fun_pattern with
-                  ppat_attributes = [ (* enable_alert_browser_only ~loc *) ];
-                }
-              in
+              let new_fun_pattern = remove_type_constraint fun_pattern in
               let fn =
                 Builder.pexp_fun ~loc arg_label arg_expression new_fun_pattern
                   (last_expr_to_raise_impossible ~loc original_function_name
@@ -321,12 +316,7 @@ module Browser_only = struct
               let original_function_name =
                 get_function_name pattern.ppat_desc
               in
-              let new_fun_pattern =
-                {
-                  fun_pattern with
-                  ppat_attributes = [ (* enable_alert_browser_only ~loc *) ];
-                }
-              in
+              let new_fun_pattern = remove_type_constraint fun_pattern in
               let fn =
                 Builder.pexp_fun ~loc arg_label arg_expression new_fun_pattern
                   (last_expr_to_raise_impossible ~loc original_function_name

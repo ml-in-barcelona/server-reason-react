@@ -78,5 +78,4 @@
         )
       ]
       reifyStyle =
-    [@alert "-browser_only"]
-    ((x: 'a) => Runtime.fail_impossible_action_in_ssr("a"));
+    [@alert "-browser_only"] (x => Runtime.fail_impossible_action_in_ssr("a"));
