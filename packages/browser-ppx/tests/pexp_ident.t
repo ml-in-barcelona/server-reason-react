@@ -23,8 +23,9 @@ Without -js flag, the compilation to native replaces the expression with `raise 
         browser_only
           "This expression is marked to only run on the browser where JavaScript \
            can run. You can only use it inside a let%browser_only function."]) =
-    Runtime.fail_impossible_action_in_ssr "Webapi__Dom__Element.asHtmlElement"
-  [@@alert "-browser_only"]
+    (Runtime.fail_impossible_action_in_ssr "Webapi__Dom__Element.asHtmlElement"
+     [@alert "-browser_only"])
+  [@@warning "-27-32"]
   
   let make () =
     let pexp_ident =
