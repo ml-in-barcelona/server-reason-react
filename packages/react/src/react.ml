@@ -590,6 +590,7 @@ let useCallback5 fn _ = fn
 let useCallback6 fn _ = fn
 let useReducer _ s = (s, fun _ -> ())
 let useReducerWithMapState _ s mapper = (mapper s, fun _ -> ())
+let useEffect _ = ()
 let useEffect0 _ = ()
 let useEffect1 _ _ = ()
 let useEffect2 _ _ = ()

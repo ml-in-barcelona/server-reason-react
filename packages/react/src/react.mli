@@ -645,6 +645,7 @@ val useReducerWithMapState :
   ('initialState -> 'state) ->
   'state * ('action -> unit)
 
+val useEffect : (unit -> (unit -> unit) option) -> unit
 val useEffect0 : (unit -> (unit -> unit) option) -> unit
 val useEffect1 : (unit -> (unit -> unit) option) -> 'dependency array -> unit
 
