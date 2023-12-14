@@ -1,6 +1,6 @@
 type t
 
-external getItem : string -> string option = "getItem"
+external getItem : t -> string -> string option = "getItem"
 [@@mel.send.pipe: t] [@@mel.return null_to_opt]
 
 external setItem : string -> string -> unit = "setItem" [@@mel.send.pipe: t]
