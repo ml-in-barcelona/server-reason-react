@@ -9,9 +9,9 @@ Labelled args with @@mel.send
     let () =
       Printf.printf
         {|
-  There has been a call to a Melange's external [@mel.blabla] from native code.
+  There is a Melange's external (for example: [@mel.get]) call from native code.
   
-  External bindings are used to communicate with JavaScript code, which can't run on the server and should be wrapped with browser_only ppx or only run it only on the client side. If there's any issue, try wrapping the expression with a try/catch as a workaround.
+  Melange externals are bindings to JavaScript code, which can't run on the server and should be wrapped with browser_only ppx or only run it only on the client side. If there's any issue, try wrapping the expression with a try/catch as a workaround.
   
   |}
     in
@@ -35,9 +35,9 @@ Labelled and unlabelled args with @@mel.obj
     let () =
       Printf.printf
         {|
-  There has been a call to a Melange's external [@mel.blabla] from native code.
+  There is a Melange's external (for example: [@mel.get]) call from native code.
   
-  External bindings are used to communicate with JavaScript code, which can't run on the server and should be wrapped with browser_only ppx or only run it only on the client side. If there's any issue, try wrapping the expression with a try/catch as a workaround.
+  Melange externals are bindings to JavaScript code, which can't run on the server and should be wrapped with browser_only ppx or only run it only on the client side. If there's any issue, try wrapping the expression with a try/catch as a workaround.
   
   |}
     in
@@ -64,9 +64,9 @@ Only unlabelled
     let () =
       Printf.printf
         {|
-  There has been a call to a Melange's external [@mel.blabla] from native code.
+  There is a Melange's external (for example: [@mel.get]) call from native code.
   
-  External bindings are used to communicate with JavaScript code, which can't run on the server and should be wrapped with browser_only ppx or only run it only on the client side. If there's any issue, try wrapping the expression with a try/catch as a workaround.
+  Melange externals are bindings to JavaScript code, which can't run on the server and should be wrapped with browser_only ppx or only run it only on the client side. If there's any issue, try wrapping the expression with a try/catch as a workaround.
   
   |}
     in
@@ -93,9 +93,9 @@ Multiple args with optional
     let () =
       Printf.printf
         {|
-  There has been a call to a Melange's external [@mel.blabla] from native code.
+  There is a Melange's external (for example: [@mel.get]) call from native code.
   
-  External bindings are used to communicate with JavaScript code, which can't run on the server and should be wrapped with browser_only ppx or only run it only on the client side. If there's any issue, try wrapping the expression with a try/catch as a workaround.
+  Melange externals are bindings to JavaScript code, which can't run on the server and should be wrapped with browser_only ppx or only run it only on the client side. If there's any issue, try wrapping the expression with a try/catch as a workaround.
   
   |}
     in
@@ -121,9 +121,9 @@ Single type (invalid OCaml, but valid in Melange)
     let () =
       Printf.printf
         {|
-  There has been a call to a Melange's external [@mel.blabla] from native code.
+  There is a Melange's external (for example: [@mel.get]) call from native code.
   
-  External bindings are used to communicate with JavaScript code, which can't run on the server and should be wrapped with browser_only ppx or only run it only on the client side. If there's any issue, try wrapping the expression with a try/catch as a workaround.
+  Melange externals are bindings to JavaScript code, which can't run on the server and should be wrapped with browser_only ppx or only run it only on the client side. If there's any issue, try wrapping the expression with a try/catch as a workaround.
   
   |}
     in
@@ -150,9 +150,9 @@ mel.send
     let () =
       Printf.printf
         {|
-  There has been a call to a Melange's external [@mel.blabla] from native code.
+  There is a Melange's external (for example: [@mel.get]) call from native code.
   
-  External bindings are used to communicate with JavaScript code, which can't run on the server and should be wrapped with browser_only ppx or only run it only on the client side. If there's any issue, try wrapping the expression with a try/catch as a workaround.
+  Melange externals are bindings to JavaScript code, which can't run on the server and should be wrapped with browser_only ppx or only run it only on the client side. If there's any issue, try wrapping the expression with a try/catch as a workaround.
   
   |}
     in
