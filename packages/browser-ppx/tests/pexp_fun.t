@@ -6,10 +6,10 @@
   >   Webapi.Dom.getElementById "foo"
   > 
   > let%browser_only perform ?abortController ?(base = defaultBase) (req : ('handler, 'a, 'i, 'o) Client.request) input =
-  >  Js.log abortController;
-  >  Js.log base;
-  >  Js.log req;
-  >  Js.log input
+  >   Js.log abortController;
+  >   Js.log base;
+  >   Js.log req;
+  >   Js.log input
   > 
   > let make () =
   >   let%browser_only fun_value_binding_pexp_fun_2arg evt moar_arguments =
