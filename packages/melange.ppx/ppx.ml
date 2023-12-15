@@ -165,6 +165,70 @@ let get_function_arity pattern =
   in
   go 0 pattern
 
+let transform_external_arrow ~loc pval_name pval_attributes pval_type =
+  let pipe_type =
+    match get_send_pipe pval_attributes with
+    | Some core_type ->
+        let pattern =
+          Builder.ppat_var ~loc:core_type.ptyp_loc
+            { loc = core_type.ptyp_loc; txt = "_" }
+        in
+        Some (Nolabel, pattern, core_type)
+    | None -> None
+  in
+  let args_labels_types = extract_args_labels_types [] pval_type in
+  let function_core_type =
+    Builder.ppat_var ~loc:pval_name.loc
+      { loc = pval_name.loc; txt = pval_name.txt }
+  in
+  let pval_type_piped =
+    match pipe_type with
+    | None -> pval_type
+    | Some (_, _, pipe_type) ->
+        construct_pval_with_send_pipe pipe_type pval_type
+  in
+  let pat =
+    Builder.ppat_constraint ~loc:pval_type.ptyp_loc function_core_type
+      (Builder.ptyp_poly ~loc:pval_type.ptyp_loc [] pval_type_piped)
+  in
+  let arg_labels =
+    inject_send_pipe_as_last_argument pipe_type args_labels_types
+  in
+  let function_expression =
+    List.fold_left
+      (fun acc (label, arg_pat, arg_type) ->
+        Builder.pexp_fun ~loc:arg_type.ptyp_loc label None arg_pat acc)
+      (raise_failure ~loc:pval_type.ptyp_loc pval_name.txt)
+      arg_labels
+  in
+  let vb = Builder.value_binding ~loc ~pat ~expr:function_expression in
+  Ast_helper.Str.value Nonrecursive [ vb ]
+
+let transform_external pval_name pval_attributes pval_loc pval_type =
+  match pval_type.ptyp_desc with
+  | Ptyp_arrow _ ->
+      transform_external_arrow ~loc:pval_loc pval_name pval_attributes pval_type
+  | Ptyp_constr _ ->
+      (* When mel.send.pipe is used, it's treated as a funcion *)
+      if Option.is_some (get_send_pipe pval_attributes) then
+        transform_external_arrow ~loc:pval_loc pval_name pval_attributes
+          pval_type
+      else
+        let loc = pval_loc in
+        let function_core_type =
+          Builder.ppat_var ~loc:pval_name.loc
+            { loc = pval_name.loc; txt = pval_name.txt }
+        in
+        let pattern =
+          Builder.ppat_constraint ~loc:pval_type.ptyp_loc function_core_type
+            (Builder.ptyp_poly ~loc:pval_type.ptyp_loc [] pval_type)
+        in
+        [%stri let [%p pattern] = Obj.magic ()]
+  | Ptyp_any | Ptyp_var _ | Ptyp_tuple _ | Ptyp_object _ | Ptyp_class _
+  | Ptyp_alias _ | Ptyp_variant _ | Ptyp_poly _ | Ptyp_package _
+  | Ptyp_extension _ ->
+      assert false
+
 class raise_exception_mapper =
   object (_self)
     inherit Ast_traverse.map as super
@@ -258,51 +322,7 @@ class raise_exception_mapper =
       (* %mel. *)
       (* external foo: t = "{{JavaScript}}" *)
       | Pstr_primitive { pval_name; pval_attributes; pval_loc; pval_type } ->
-          let pipe_type =
-            match get_send_pipe pval_attributes with
-            | Some core_type ->
-                let pattern =
-                  Builder.ppat_var ~loc:core_type.ptyp_loc
-                    { loc = core_type.ptyp_loc; txt = "_" }
-                in
-                Some (Nolabel, pattern, core_type)
-            | None -> None
-          in
-          let args_labels_types = extract_args_labels_types [] pval_type in
-          let function_core_type =
-            Builder.ppat_var ~loc:pval_name.loc
-              { loc = pval_name.loc; txt = pval_name.txt }
-          in
-          let pval_type_piped =
-            match pipe_type with
-            | None -> pval_type
-            | Some (_, _, pipe_type) ->
-                construct_pval_with_send_pipe pipe_type pval_type
-          in
-          let pat =
-            Builder.ppat_constraint ~loc:pval_type.ptyp_loc function_core_type
-              (Builder.ptyp_poly ~loc:pval_type.ptyp_loc [] pval_type_piped)
-          in
-          let arg_labels =
-            inject_send_pipe_as_last_argument pipe_type args_labels_types
-          in
-          let function_expression =
-            List.fold_left
-              (fun acc (label, arg_pat, arg_type) ->
-                Builder.pexp_fun ~loc:arg_type.ptyp_loc label None arg_pat acc)
-              (raise_failure ~loc:pval_type.ptyp_loc pval_name.txt)
-              arg_labels
-          in
-          (* let pat =
-               {
-                 function_pattern with
-                 ppat_attributes = [ browser_only_alert_payload ~loc:pval_loc ];
-               }
-             in *)
-          let vb =
-            Builder.value_binding ~loc:pval_loc ~pat ~expr:function_expression
-          in
-          Ast_helper.Str.value Nonrecursive [ vb ]
+          transform_external pval_name pval_attributes pval_loc pval_type
       | _ -> super#structure_item item
   end
 
