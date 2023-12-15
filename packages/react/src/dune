@@ -2,4 +2,4 @@
  (name react)
  (wrapped false)
  (public_name server-reason-react.react)
- (libraries js html lwt melange.dom))
+ (libraries js html lwt server-reason-react.dom))

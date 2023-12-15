@@ -1,10 +1,4 @@
 type domRef
-
-module Dom = struct
-  (* TODO: This should point to Dom.element from melange.dom, but melange.dom isn't compatible with native yet. https://github.com/melange-re/melange/pull/756 *)
-  type element
-end
-
 type 'value ref = { mutable current : 'value }
 
 module Ref = struct
