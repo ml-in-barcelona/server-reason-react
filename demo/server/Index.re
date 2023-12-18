@@ -5,22 +5,21 @@ module App = {
     let make = React.Context.provider(context);
   };
 
-  module Dummy = {
+  module Aware = {
     [@react.component]
-    let make = (~lola) => {
-      let ctx_value = React.useContext(context);
+    let make = (~name) => {
+      let value = React.useContext(context);
 
       <section>
-        <h1> {React.int(Shared_native.MelRaw.x)} </h1>
-        <span> {React.string(lola)} </span>
-        <span> {React.string(ctx_value)} </span>
+        <span> {React.string(name)} </span>
+        <span> {React.string(value)} </span>
       </section>;
     };
   };
 
   [@react.component]
   let make = () =>
-    <Provider value="maybe no"> <Dummy lola="flores" /> </Provider>;
+    <Provider value="maybe no"> <Aware name="flores" /> </Provider>;
 };
 
 let app = ReactDOM.renderToStaticMarkup(<App />);

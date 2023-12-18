@@ -12,35 +12,41 @@ let parse_re str =
 
 let extractor = Ast_pattern.(__')
 
-let rule =
-  let handler ~ctxt:_ ({ txt = payload; loc } : Ppxlib.Parsetree.payload loc) =
-    match payload with
-    | PStr [ { pstr_desc = Pstr_eval (expression, _); _ } ] -> (
-        match expression.pexp_desc with
-        | Pexp_constant (Pconst_string (str, location, _delimiter)) -> (
-            let regex', flags' =
-              match parse_re str with
-              | Some (regex, flags) -> (regex, flags)
-              | None ->
-                  Location.raise_errorf ~loc:location
-                    "invalid regex: %s, expected /regex/flags" str
-            in
-            let regex = Builder.estring ~loc:location regex' in
-            match flags' with
-            | None -> [%expr Js.Re.fromString [%e regex]]
-            | Some flags' ->
-                let flags = Builder.estring ~loc:location flags' in
-                [%expr Js.Re.fromStringWithFlags ~flags:[%e flags] [%e regex]])
-        | _ ->
-            Builder.pexp_extension ~loc
-            @@ Location.error_extensionf ~loc
-                 "payload should be a string literal")
-    | _ ->
-        Builder.pexp_extension ~loc
-        @@ Location.error_extensionf ~loc
-             "[%%re] should be used with an expression"
-  in
+let handler ~ctxt:_ ({ txt = payload; loc } : Ppxlib.Parsetree.payload loc) =
+  match payload with
+  | PStr [ { pstr_desc = Pstr_eval (expression, _); _ } ] -> (
+      match expression.pexp_desc with
+      | Pexp_constant (Pconst_string (str, location, _delimiter)) -> (
+          let regex', flags' =
+            match parse_re str with
+            | Some (regex, flags) -> (regex, flags)
+            | None ->
+                Location.raise_errorf ~loc:location
+                  "invalid regex: %s, expected /regex/flags" str
+          in
+          let regex = Builder.estring ~loc:location regex' in
+          match flags' with
+          | None -> [%expr Js.Re.fromString [%e regex]]
+          | Some flags' ->
+              let flags = Builder.estring ~loc:location flags' in
+              [%expr Js.Re.fromStringWithFlags ~flags:[%e flags] [%e regex]])
+      | _ ->
+          Builder.pexp_extension ~loc
+          @@ Location.error_extensionf ~loc "payload should be a string literal"
+      )
+  | _ ->
+      Builder.pexp_extension ~loc
+      @@ Location.error_extensionf ~loc
+           "[%%re] should be used with an expression"
+
+let re_rule =
   let extension =
     Extension.V3.declare "re" Extension.Context.expression extractor handler
+  in
+  Context_free.Rule.extension extension
+
+let mel_re_rule =
+  let extension =
+    Extension.V3.declare "mel.re" Extension.Context.expression extractor handler
   in
   Context_free.Rule.extension extension
