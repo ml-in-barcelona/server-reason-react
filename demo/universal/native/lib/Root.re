@@ -6,6 +6,9 @@ let make = (~children, ~background) => {
       "padding-0",
       "w-[100vw]",
       "h-[100vh]",
+      "flex",
+      "justify-center",
+      "items-start",
       Theme.background(background),
     ])}>
     children

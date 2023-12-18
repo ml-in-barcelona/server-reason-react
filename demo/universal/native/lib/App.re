@@ -15,20 +15,7 @@ module Hr = {
 module Layout = {
   [@react.component]
   let make = (~children) => {
-    <div
-      spellCheck=false
-      className={Cx.make(
-        [],
-        /* Css.maxWidth(`px(800)),
-           Css.margin2(~v=`zero, ~h=`auto),
-           Css.padding4(
-             ~top=`rem(4.0),
-             ~bottom=`zero,
-             ~left=`rem(2.0),
-             ~right=`rem(2.0),
-           ),
-           Theme.Media.onMobile([Css.overflow(`hidden)]), */
-      )}>
+    <div spellCheck=false className={Cx.make(["max-w-2xl", "pt-16"])}>
       children
     </div>;
   };
@@ -85,10 +72,12 @@ module Header = {
   [@react.component]
   let make = () => {
     <div className={Cx.make(["text-yellow-700", "text-xl"])}>
-      <h1 className={Cx.make(["m-0"])}>
-        {React.string("Server Reason React")}
-      </h1>
-      <Spacer top=2> <Menu /> </Spacer>
+      <Spacer bottom=4>
+        <h1 className={Cx.make(["m-0", "text-5xl", "font-bold"])}>
+          {React.string("Server Reason React")}
+        </h1>
+      </Spacer>
+      <Menu />
     </div>;
   };
 };

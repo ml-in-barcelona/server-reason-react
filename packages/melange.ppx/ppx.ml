@@ -143,7 +143,7 @@ let make_implementation ~loc arity name =
   in
   make_fun ~loc arity
 
-let browser_only_alert_payload ~loc =
+let browser_only_alert_mel_raw ~loc =
   {
     attr_name = { txt = "alert"; loc };
     attr_payload =

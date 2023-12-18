@@ -34,11 +34,10 @@ let make = () => {
     [|onClick|],
   );
 
-  /* <Cosis onClick /> */
-  <div>
-    <form>
+  <div className="text-white">
+    <form className="flex gap-4">
       <label>
-        {React.string("Name:")}
+        {React.string("Name ")}
         <input
           onKeyPress=[%browser_only
             _ => {

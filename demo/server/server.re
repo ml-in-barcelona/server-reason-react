@@ -6,6 +6,7 @@
 
 */
 module Httpd = Tiny_httpd;
+module Httpd_dir = Tiny_httpd_dir;
 
 let globalStyles = {js|
   html, body, #root {
@@ -31,7 +32,7 @@ let globalStyles = {js|
 
 module Page = {
   [@react.component]
-  let make = (~children, ~scripts=[]) => {
+  let make = (~children, ~scripts as _=[]) => {
     <html>
       <head>
         <meta charSet="UTF-8" />
@@ -50,10 +51,7 @@ module Page = {
         />
         <script src="https://cdn.tailwindcss.com" />
       </head>
-      <body>
-        <div id="root"> children </div>
-        {scripts |> List.map(src => <script src />) |> React.list}
-      </body>
+      <body> <div id="root"> children </div> </body>
     </html>;
   };
 };
@@ -109,20 +107,31 @@ module Home = {
   };
 };
 
+module Not_found = {
+  [@react.component]
+  let make = (~path) => {
+    <div className="p-12">
+      <Shared_native.Spacer bottom=4>
+        <h1 className="font-bold text-5xl"> {React.string("Not found")} </h1>
+      </Shared_native.Spacer>
+      <span className="text-xl font-bold"> {React.string("Error 404")} </span>
+      <span className="text-xl"> {React.string(" · ")} </span>
+      <span className="text-xl"> {React.string("The requested URL")} </span>
+      <span
+        className="bg-slate-200 mx-2 py-1 px-3 no-underline rounded-full font-sans font-semibold">
+        {React.string(path)}
+      </span>
+      <span className="text-xl">
+        {React.string("was not found on this server.")}
+      </span>
+    </div>;
+  };
+};
+
 let () = {
   let server = Httpd.create();
   let addr = Httpd.addr(server);
   let port = Httpd.port(server);
-  Httpd.set_top_handler(
-    server,
-    _req => {
-      let html =
-        ReactDOM.renderToString(
-          <Page scripts=["/static/header.js"]> <Home /> </Page>,
-        );
-      Httpd.Response.make_string(Ok(html));
-    },
-  );
   Httpd.add_route_handler(
     ~meth=`GET,
     server,
@@ -203,8 +212,42 @@ let () = {
         },
       ); */
 
-  /* TODO: Render client assets via Dream.get("/static", Dream.static("./static"))
-     using https://github.com/c-cube/tiny_httpd#http_of_dir */
+  let virtual_fs = Httpd_dir.vfs_of_dir("static");
+
+  let _ =
+    Httpd_dir.add_vfs(
+      server,
+      ~prefix="static",
+      ~vfs=virtual_fs,
+      ~config=
+        Httpd_dir.config(
+          ~download=true,
+          ~upload=false,
+          ~dir_behavior=Httpd_dir.Index,
+          (),
+        ),
+    );
+
+  Httpd.set_top_handler(
+    server,
+    req => {
+      let html =
+        ReactDOM.renderToString(<Page> <Not_found path={req.path} /> </Page>);
+      Httpd.Response.make_string(Ok(html));
+    },
+  );
+
+  Httpd.add_route_handler(
+    server,
+    Httpd.Route.(return),
+    _req => {
+      let html =
+        ReactDOM.renderToString(
+          <Page scripts=["/static/header.js"]> <Home /> </Page>,
+        );
+      Httpd.Response.make_string(Ok(html));
+    },
+  );
 
   switch (
     Httpd.run(server, ~after_init=() =>

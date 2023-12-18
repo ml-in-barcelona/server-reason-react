@@ -13,18 +13,20 @@ let make = () => {
   };
 
   <div className="text-yellow-600">
-    <div
-      className={Cx.make([
-        "flex",
-        "justify-items-end",
-        "items-center",
-        "gap-4",
-      ])}>
-      <p className={Cx.make(["margin-0", "text-3xl", "font-bold"])}>
-        {React.string("Counter")}
-      </p>
-      <button onClick> {React.string(Int.to_string(count))} </button>
-    </div>
+    <Spacer bottom=3>
+      <div
+        className={Cx.make([
+          "flex",
+          "justify-items-end",
+          "items-center",
+          "gap-4",
+        ])}>
+        <p className={Cx.make(["m-0", "text-3xl", "font-bold"])}>
+          {React.string("Counter")}
+        </p>
+        <button onClick> {React.string(Int.to_string(count))} </button>
+      </div>
+    </Spacer>
     <p className="text-lg">
       {React.string(
          "The HTML (including counter value) comes first from the server"

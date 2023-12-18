@@ -15,9 +15,9 @@ let make =
       fullWidth ? "w-full" : "w-auto",
       "gap-" ++ Int.to_string(gap),
       switch (align) {
-      | `start => "align-start"
-      | `center => "align-center"
-      | `end_ => "align-end"
+      | `start => "items-start"
+      | `center => "items-center"
+      | `end_ => "items-end"
       },
       switch (justify) {
       | `around => "justify-around"

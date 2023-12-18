@@ -12,9 +12,9 @@ let make = (~h: horizontalAlign=`center, ~v: verticalAlign=`center, ~children) =
       | `right => "items-end"
       },
       switch (v) {
-      | `top => "justify-items-start"
-      | `center => "justify-items-center"
-      | `bottom => "justify-items-end"
+      | `top => "justify-start"
+      | `center => "justify-center"
+      | `bottom => "justify-end"
       },
     ]);
 

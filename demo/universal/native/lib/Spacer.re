@@ -2,7 +2,7 @@ let unsafeWhenNotZero = (prop, value) =>
   if (value == 0) {
     [];
   } else {
-    [prop ++ Int.to_string(value)];
+    [prop ++ "-" ++ Int.to_string(value)];
   };
 
 [@react.component]
