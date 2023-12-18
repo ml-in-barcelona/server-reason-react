@@ -93,15 +93,16 @@ module Link = {
 module Home = {
   [@react.component]
   let make = () => {
-    <div className="p-8">
-      <h1 className="font-bold text-2xl">
+    <div className="py-16 px-12">
+      <h1 className="font-bold text-4xl">
         {React.string("Home page of the demos")}
       </h1>
       <br />
-      <ul>
-        <li> <Link href="/markup"> "Markup" </Link> </li>
-        <li> <Link href="/string"> "String" </Link> </li>
-        <li> <Link href="/header"> "Header" </Link> </li>
+      <ul className="gap-1 flex flex-col">
+        <li>
+          <Link href="/markup"> "Tiny app with renderToStaticMarkup" </Link>
+        </li>
+        <li> <Link href="/string"> "Tiny app with renderToString" </Link> </li>
       </ul>
     </div>;
   };
@@ -241,10 +242,7 @@ let () = {
     server,
     Httpd.Route.(return),
     _req => {
-      let html =
-        ReactDOM.renderToString(
-          <Page scripts=["/static/header.js"]> <Home /> </Page>,
-        );
+      let html = ReactDOM.renderToString(<Page> <Home /> </Page>);
       Httpd.Response.make_string(Ok(html));
     },
   );

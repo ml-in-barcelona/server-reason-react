@@ -56,8 +56,7 @@ module Header = {
                  href={item.link}
                  target="_blank"
                  className={Cx.make([
-                   "text-base",
-                   Theme.text("[#9b9b9b]"),
+                   "text-primary hover:text-slate-300 focus:text-slate-300 underline transition duration-100 ease-in-out hover:decoration-inherit",
                    Theme.hover([Theme.text(Theme.Color.white)]),
                  ])}>
                  {React.string(item.label)}
