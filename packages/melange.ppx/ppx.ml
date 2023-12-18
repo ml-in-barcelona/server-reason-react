@@ -208,23 +208,21 @@ let transform_external_arrow ~loc pval_name pval_attributes pval_type =
   Ast_helper.Str.value Nonrecursive [ vb ]
 
 let transform_external pval_name pval_attributes pval_loc pval_type =
+  let loc = pval_loc in
   match pval_type.ptyp_desc with
   | Ptyp_arrow _ ->
-      transform_external_arrow ~loc:pval_loc pval_name pval_attributes pval_type
-  | Ptyp_constr _ ->
+      transform_external_arrow ~loc pval_name pval_attributes pval_type
+  | Ptyp_var _ | Ptyp_any | Ptyp_constr _ ->
       (* When mel.send.pipe is used, it's treated as a funcion *)
       if Option.is_some (get_send_pipe pval_attributes) then
-        transform_external_arrow ~loc:pval_loc pval_name pval_attributes
-          pval_type
+        transform_external_arrow ~loc pval_name pval_attributes pval_type
       else
-        let loc = pval_loc in
         let function_core_type =
-          Builder.ppat_var ~loc:pval_name.loc
-            { loc = pval_name.loc; txt = pval_name.txt }
+          Builder.ppat_var ~loc { loc; txt = pval_name.txt }
         in
         let pattern =
-          Builder.ppat_constraint ~loc:pval_type.ptyp_loc function_core_type
-            (Builder.ptyp_poly ~loc:pval_type.ptyp_loc [] pval_type)
+          Builder.ppat_constraint ~loc function_core_type
+            (Builder.ptyp_poly ~loc [] pval_type)
         in
         let pattern =
           {
@@ -239,10 +237,46 @@ let transform_external pval_name pval_attributes pval_loc pval_type =
           }
         in
         [%stri let [%p pattern] = Obj.magic ()]
-  | Ptyp_any | Ptyp_var _ | Ptyp_tuple _ | Ptyp_object _ | Ptyp_class _
-  | Ptyp_alias _ | Ptyp_variant _ | Ptyp_poly _ | Ptyp_package _
+  | Ptyp_tuple _ ->
+      [%stri
+        [%ocaml.error
+          "server-reason-react.melange_ppx: Tuples are not supported in native \
+           externals the same way as melange.ppx support them."]]
+  | Ptyp_object _ ->
+      [%stri
+        [%ocaml.error
+          "server-reason-react.melange_ppx: Objects are not supported in \
+           native externals the same way as melange.ppx support them."]]
+  | Ptyp_class _ ->
+      [%stri
+        [%ocaml.error
+          "server-reason-react.melange_ppx: Classes are not supported in \
+           native externals the same way as melange.ppx support them."]]
+  | Ptyp_variant _ ->
+      [%stri
+        [%ocaml.error
+          "server-reason-react.melange_ppx: Variants are not supported in \
+           native externals the same way as melange.ppx support them."]]
   | Ptyp_extension _ ->
-      assert false
+      [%stri
+        [%ocaml.error
+          "server-reason-react.melange_ppx: Extensions are not supported in \
+           native externals the same way as melange.ppx support them."]]
+  | Ptyp_alias _ ->
+      [%stri
+        [%ocaml.error
+          "server-reason-react.melange_ppx: Variants are not supported in \
+           native externals the same way as melange.ppx support them."]]
+  | Ptyp_poly _ ->
+      [%stri
+        [%ocaml.error
+          "server-reason-react.melange_ppx: Polyvariants are not supported in \
+           native externals the same way as melange.ppx support them."]]
+  | Ptyp_package _ ->
+      [%stri
+        [%ocaml.error
+          "server-reason-react.melange_ppx: Packages are not supported in \
+           native externals the same way as melange.ppx support them."]]
 
 class raise_exception_mapper =
   object (_self)
