@@ -264,7 +264,7 @@ class raise_exception_mapper =
           let fn_pattern =
             {
               pvb_pattern with
-              ppat_attributes = [ browser_only_alert_payload ~loc ];
+              ppat_attributes = [ browser_only_alert_mel_raw ~loc ];
             }
           in
           [%stri let [%p fn_pattern] = [%e implementation]]
@@ -285,7 +285,7 @@ class raise_exception_mapper =
           let fn_pattern =
             {
               pattern with
-              ppat_attributes = [ browser_only_alert_payload ~loc ];
+              ppat_attributes = [ browser_only_alert_mel_raw ~loc ];
             }
           in
           let function_arity = get_function_arity expression.pexp_desc in
@@ -313,7 +313,7 @@ class raise_exception_mapper =
           let fn_pattern =
             {
               constrain_pattern with
-              ppat_attributes = [ browser_only_alert_payload ~loc ];
+              ppat_attributes = [ browser_only_alert_mel_raw ~loc ];
             }
           in
           let function_arity = get_function_arity expression.pexp_desc in
