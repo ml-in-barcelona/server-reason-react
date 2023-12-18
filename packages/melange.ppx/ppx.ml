@@ -143,7 +143,12 @@ let make_implementation ~loc arity name =
   in
   make_fun ~loc arity
 
-let browser_only_alert_mel_raw ~loc =
+let browser_only_alert_mel_raw_message =
+  "Since it's a [%mel.raw ...]. This expression is marked to only run on the \
+   browser where JavaScript can run. You can only use it inside a \
+   let%browser_only function."
+
+let browser_only_alert ~loc str =
   {
     attr_name = { txt = "alert"; loc };
     attr_payload =
@@ -151,9 +156,7 @@ let browser_only_alert_mel_raw ~loc =
         [
           [%stri
             browser_only
-              "Since it's a [%mel.raw ...]. This expression is marked to only \
-               run on the browser where JavaScript can run. You can only use \
-               it inside a let%browser_only function."];
+              [%e Builder.pexp_constant ~loc (Pconst_string (str, loc, None))]];
         ];
     attr_loc = loc;
   }
@@ -223,6 +226,18 @@ let transform_external pval_name pval_attributes pval_loc pval_type =
           Builder.ppat_constraint ~loc:pval_type.ptyp_loc function_core_type
             (Builder.ptyp_poly ~loc:pval_type.ptyp_loc [] pval_type)
         in
+        let pattern =
+          {
+            pattern with
+            ppat_attributes =
+              [
+                browser_only_alert ~loc
+                  "This expression is marked to only run on the browser where \
+                   JavaScript can run. You can only use it inside a \
+                   let%browser_only function.";
+              ];
+          }
+        in
         [%stri let [%p pattern] = Obj.magic ()]
   | Ptyp_any | Ptyp_var _ | Ptyp_tuple _ | Ptyp_object _ | Ptyp_class _
   | Ptyp_alias _ | Ptyp_variant _ | Ptyp_poly _ | Ptyp_package _
@@ -264,7 +279,8 @@ class raise_exception_mapper =
           let fn_pattern =
             {
               pvb_pattern with
-              ppat_attributes = [ browser_only_alert_mel_raw ~loc ];
+              ppat_attributes =
+                [ browser_only_alert ~loc browser_only_alert_mel_raw_message ];
             }
           in
           [%stri let [%p fn_pattern] = [%e implementation]]
@@ -285,7 +301,8 @@ class raise_exception_mapper =
           let fn_pattern =
             {
               pattern with
-              ppat_attributes = [ browser_only_alert_mel_raw ~loc ];
+              ppat_attributes =
+                [ browser_only_alert ~loc browser_only_alert_mel_raw_message ];
             }
           in
           let function_arity = get_function_arity expression.pexp_desc in
@@ -313,7 +330,8 @@ class raise_exception_mapper =
           let fn_pattern =
             {
               constrain_pattern with
-              ppat_attributes = [ browser_only_alert_mel_raw ~loc ];
+              ppat_attributes =
+                [ browser_only_alert ~loc browser_only_alert_mel_raw_message ];
             }
           in
           let function_arity = get_function_arity expression.pexp_desc in

@@ -117,7 +117,12 @@ Single type (invalid OCaml, but valid in Melange)
   $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl | tee output.ml
   type keycloak
   
-  let (keycloak : keycloak) = Obj.magic ()
+  let ((keycloak : keycloak)
+      [@alert
+        browser_only
+          "This expression is marked to only run on the browser where JavaScript \
+           can run. You can only use it inside a let%browser_only function."]) =
+    Obj.magic ()
 
   $ echo "module Runtime = struct" > main.ml
   $ cat $INSIDE_DUNE/packages/runtime/runtime.ml >> main.ml
