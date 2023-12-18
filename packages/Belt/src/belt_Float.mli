@@ -3,6 +3,7 @@ external fromInt : int -> float = "%identity"
 val fromString : string -> float
 val fromString : string -> float option
 val toString : float -> string
+val toInt : float -> int
 external ( + ) : float -> float -> float = "%addfloat"
 external ( - ) : float -> float -> float = "%subfloat"
 external ( * ) : float -> float -> float = "%mulfloat"
