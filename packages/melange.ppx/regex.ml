@@ -39,13 +39,7 @@ let handler ~ctxt:_ ({ txt = payload; loc } : Ppxlib.Parsetree.payload loc) =
       @@ Location.error_extensionf ~loc
            "[%%re] should be used with an expression"
 
-let re_rule =
-  let extension =
-    Extension.V3.declare "re" Extension.Context.expression extractor handler
-  in
-  Context_free.Rule.extension extension
-
-let mel_re_rule =
+let rule =
   let extension =
     Extension.V3.declare "mel.re" Extension.Context.expression extractor handler
   in

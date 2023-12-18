@@ -339,12 +339,5 @@ end
 
 let () =
   Driver.register_transformation ~impl:structure_mapper
-    ~rules:
-      [
-        Pipe_first.rule;
-        Regex.re_rule;
-        Regex.mel_re_rule;
-        Double_hash.rule;
-        Debug.rule;
-      ]
+    ~rules:[ Pipe_first.rule; Regex.rule; Double_hash.rule; Debug.rule ]
     "melange-native-ppx"
