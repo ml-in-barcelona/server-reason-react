@@ -38,15 +38,15 @@ let re_tests =
     [
       case "captures" (fun () ->
           let abc_regex = Js.Re.fromString "abc" in
-          let result = Js.Re.exec_ abc_regex "abcdefabcdef" |> Option.get in
+          let result = Js.Re.exec ~str:"abcdefabcdef" abc_regex |> Option.get in
           let matches = Js.Re.captures result |> Array.map Option.get in
           assert_string_array matches [| "abc" |]);
       case "exec" (fun () ->
           let regex = Js.Re.fromString ".ats" in
           let input = "cats and bats" in
           let regex_and_capture =
-            Js.Re.exec_ regex input |> Option.get |> Js.Re.captures
-            |> Array.map Option.get
+            Js.Re.exec ~str:input regex
+            |> Option.get |> Js.Re.captures |> Array.map Option.get
           in
           assert_string_array regex_and_capture [| "cats" |];
           assert_string_array regex_and_capture [| "cats" |];
@@ -56,64 +56,68 @@ let re_tests =
           let input = "cats and bats and mats" in
           assert_bool (Js.Re.global regex) true;
           assert_string_array
-            (Js.Re.exec_ regex input |> Option.get |> Js.Re.captures
-           |> Array.map Option.get)
+            (Js.Re.exec ~str:input regex
+            |> Option.get |> Js.Re.captures |> Array.map Option.get)
             [| "cats" |];
           assert_string_array
-            (Js.Re.exec_ regex input |> Option.get |> Js.Re.captures
-           |> Array.map Option.get)
+            (Js.Re.exec ~str:input regex
+            |> Option.get |> Js.Re.captures |> Array.map Option.get)
             [| "bats" |];
           assert_string_array
-            (Js.Re.exec_ regex input |> Option.get |> Js.Re.captures
-           |> Array.map Option.get)
+            (Js.Re.exec ~str:input regex
+            |> Option.get |> Js.Re.captures |> Array.map Option.get)
             [| "mats" |]);
       case "modifier: end ($)" (fun () ->
           let regex = Js.Re.fromString "cat$" in
-          assert_bool (Js.Re.test_ regex "The cat and mouse") false;
-          assert_bool (Js.Re.test_ regex "The mouse and cat") true);
+          assert_bool (Js.Re.test ~str:"The cat and mouse" regex) false;
+          assert_bool (Js.Re.test ~str:"The mouse and cat" regex) true);
       case "modifier: more than one (+)" (fun () ->
           let regex = Js.Re.fromStringWithFlags ~flags:"i" "boo+(hoo+)+" in
-          assert_bool (Js.Re.test_ regex "Boohoooohoohooo") true);
+          assert_bool (Js.Re.test ~str:"Boohoooohoohooo" regex) true);
       case "global (g) and caseless (i)" (fun () ->
           let regex = Js.Re.fromStringWithFlags ~flags:"gi" "Hello" in
-          let result = Js.Re.exec_ regex "Hello gello! hello" |> Option.get in
+          let result =
+            Js.Re.exec ~str:"Hello gello! hello" regex |> Option.get
+          in
           let matches = Js.Re.captures result |> Array.map Option.get in
           assert_string_array matches [| "Hello" |];
-          let result = Js.Re.exec_ regex "Hello gello! hello" |> Option.get in
+          let result =
+            Js.Re.exec ~str:"Hello gello! hello" regex |> Option.get
+          in
           let matches = Js.Re.captures result |> Array.map Option.get in
           assert_string_array matches [| "hello" |]);
       case "modifier: or ([])" (fun () ->
           let regex = Js.Re.fromString "(\\w+)\\s(\\w+)" in
-          assert_bool (Js.Re.test_ regex "Jane Smith") true;
-          assert_bool (Js.Re.test_ regex "Wololo") false);
+          assert_bool (Js.Re.test ~str:"Jane Smith" regex) true;
+          assert_bool (Js.Re.test ~str:"Wololo" regex) false);
       case "backreferencing" (fun () ->
           let regex = Js.Re.fromString "[bt]ear" in
-          assert_bool (Js.Re.test_ regex "bear") true;
-          assert_bool (Js.Re.test_ regex "tear") true;
-          assert_bool (Js.Re.test_ regex "fear") false);
+          assert_bool (Js.Re.test ~str:"bear" regex) true;
+          assert_bool (Js.Re.test ~str:"tear" regex) true;
+          assert_bool (Js.Re.test ~str:"fear" regex) false);
       case "http|s example" (fun () ->
           let regex =
             Js.Re.fromString "^[https?]+:\\/\\/((w{3}\\.)?[\\w+]+)\\.[\\w+]+$"
           in
-          assert_bool (Js.Re.test_ regex "https://www.example.com") true;
-          assert_bool (Js.Re.test_ regex "http://example.com") true;
-          assert_bool (Js.Re.test_ regex "https://example") false);
+          assert_bool (Js.Re.test ~str:"https://www.example.com" regex) true;
+          assert_bool (Js.Re.test ~str:"http://example.com" regex) true;
+          assert_bool (Js.Re.test ~str:"https://example" regex) false);
       case "index" (fun () ->
           let regex = Js.Re.fromString "zbar" in
-          match Js.Re.exec_ regex "foobarbazbar" with
+          match Js.Re.exec ~str:"foobarbazbar" regex with
           | Some res -> assert_int (Js.Re.index res) 8
           | None -> Alcotest.fail "should have matched");
       case "lastIndex" (fun () ->
           let regex = Js.Re.fromStringWithFlags ~flags:"g" "y" in
           Js.Re.setLastIndex regex 3;
-          match Js.Re.exec_ regex "xyzzy" with
+          match Js.Re.exec ~str:"xyzzy" regex with
           | Some res ->
               assert_int (Js.Re.index res) 4;
               assert_int (Js.Re.lastIndex regex) 5
           | None -> Alcotest.fail "should have matched");
       case "input" (fun () ->
           let regex = Js.Re.fromString "zbar" in
-          match Js.Re.exec_ regex "foobarbazbar" with
+          match Js.Re.exec ~str:"foobarbazbar" regex with
           | Some res -> assert_string (Js.Re.input res) "foobarbazbar"
           | None -> Alcotest.fail "should have matched");
     ] )

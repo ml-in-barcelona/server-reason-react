@@ -456,7 +456,30 @@ end = struct
   let unsafe_set arr idx item = Stdlib.Array.unsafe_set arr idx item
 end
 
-module Re = struct
+module Re : sig
+  type t
+  type result
+
+  val captures : result -> string Nullable.t array
+  val index : result -> int
+  val input : result -> string
+  val fromString : string -> t
+  val fromStringWithFlags : string -> flags:string -> t
+  val flags : t -> string
+  val global : t -> bool
+  val ignoreCase : t -> bool
+  val lastIndex : t -> int
+  val setLastIndex : t -> int -> unit
+  val multiline : t -> bool
+  val source : t -> string
+  val sticky : t -> bool
+  val unicode : t -> bool
+  val exec : str:string -> t -> result option
+  val test : str:string -> t -> bool
+
+  val matches : result -> string array
+  (** Only available in native, not in melange *)
+end = struct
   (** Provide bindings to Js regex expression *)
 
   type flag = [ Pcre.cflag | `GLOBAL | `STICKY | `UNICODE ]
@@ -576,12 +599,12 @@ module Re = struct
       Some { substrings }
     with Not_found -> None
 
-  let exec : string -> t -> result option = fun str rex -> exec_ rex str
+  let exec : str:string -> t -> result option = fun ~str rex -> exec_ rex str
 
   let test_ : t -> string -> bool =
    fun regexp str -> Pcre.pmatch ~rex:regexp.regex str
 
-  let test : string -> t -> bool = fun str regex -> test_ regex str
+  let test : str:string -> t -> bool = fun ~str regex -> test_ regex str
 end
 
 module String : sig
@@ -729,19 +752,19 @@ end = struct
   let match_ ~regexp str =
     let wrap_option arr =
       (* TODO(jchavarri): how to emulate JS returning None for optional capture groups that are not found?
-         See related: https://github.com/melange-re/melange/commit/ccceb69d85afdf7743259bb9faca6f975ebe541f*)
+         See related: https://github.com/melange-re/melange/commit/ccceb69d85afdf7743259bb9faca6f975ebe541f *)
       Array.map ~f:(fun r -> Some r) arr
     in
 
     let match_next str regex =
-      match Re.exec_ regex str with
+      match Re.exec ~str regex with
       | None -> None
       | Some result -> Some (wrap_option (Re.matches result))
     in
 
     let rec match_all : t -> Re.t -> t nullable array nullable =
      fun str regex ->
-      match Re.exec_ regex str with
+      match Re.exec ~str regex with
       | None -> None
       | Some result ->
           Re.setLastIndex regex 0;
@@ -772,7 +795,7 @@ end = struct
 
   let replaceByRe ~regexp ~replacement str =
     let rec replace_all str =
-      match Re.exec_ regexp str with
+      match Re.exec ~str regexp with
       | None -> str
       | Some result ->
           Re.setLastIndex regexp 0;
@@ -786,7 +809,7 @@ end = struct
           prefix ^ replacement ^ replace_all suffix
     in
     let replace_first str =
-      match Re.exec_ regexp str with
+      match Re.exec ~str regexp with
       | None -> str
       | Some result ->
           let matches = Re.matches result in
@@ -831,7 +854,7 @@ end = struct
       arr |> Stdlib.Array.to_list |> Stdlib.List.rev |> Stdlib.Array.of_list
     in
     let rec split_all str acc =
-      match Re.exec_ regexp str with
+      match Re.exec ~str regexp with
       | None -> Stdlib.Array.append [| Some str |] acc |> rev_array
       | Some result ->
           Re.setLastIndex regexp 0;
@@ -847,7 +870,7 @@ end = struct
     in
 
     let split_next str acc =
-      match Re.exec_ regexp str with
+      match Re.exec ~str regexp with
       | None -> Stdlib.Array.append [| Some str |] acc |> rev_array
       | Some result ->
           Re.setLastIndex regexp 0;

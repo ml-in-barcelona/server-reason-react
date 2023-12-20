@@ -286,51 +286,28 @@ module Array : sig
 end
 
 module Re : sig
-  type flag =
-    [ `ANCHORED
-    | `AUTO_CALLOUT
-    | `CASELESS
-    | `DOLLAR_ENDONLY
-    | `DOTALL
-    | `EXTENDED
-    | `EXTRA
-    | `FIRSTLINE
-    | `GLOBAL
-    | `MULTILINE
-    | `NO_AUTO_CAPTURE
-    | `NO_UTF8_CHECK
-    | `STICKY
-    | `UNGREEDY
-    | `UNICODE
-    | `UTF8 ]
+  type t
+  type result
 
-  type t = { regex : Pcre.regexp; flags : flag list; mutable lastIndex : int }
-  type result = { substrings : Pcre.substrings }
-
-  val captures : result -> string null array
-  val matches : result -> string array
+  val captures : result -> string Nullable.t array
   val index : result -> int
   val input : result -> string
-  val source : t -> string
   val fromString : string -> t
-  val char_of_cflag : Pcre.cflag -> char null
-  val flag_of_char : char -> flag
-  val parse_flags : string -> flag list
-  val cflag_of_flag : flag -> Pcre.cflag null
   val fromStringWithFlags : string -> flags:string -> t
   val flags : t -> string
-  val flag : t -> flag -> bool
   val global : t -> bool
   val ignoreCase : t -> bool
-  val multiline : t -> bool
-  val sticky : t -> bool
-  val unicode : t -> bool
   val lastIndex : t -> int
   val setLastIndex : t -> int -> unit
-  val exec_ : t -> string -> result null
-  val exec : string -> t -> result null
-  val test_ : t -> string -> bool
-  val test : string -> t -> bool
+  val multiline : t -> bool
+  val source : t -> string
+  val sticky : t -> bool
+  val unicode : t -> bool
+  val exec : str:string -> t -> result option
+  val test : str:string -> t -> bool
+
+  val matches : result -> string array
+  (** Only available in native, not in melange *)
 end
 
 module String : sig
