@@ -5,7 +5,11 @@
   >   in
   > 
   >   let%browser_only perform ?abortController ?(base = defaultBase) (req : ('handler, 'a, 'i, 'o) Client.request) input =
+  >     Js.log Foo.var;
+  >     Js.log record.field;
+  >     Local.setHtmlFetchState value;
   >     Js.log abortController;
+  >     Js.log (fun a -> a);
   >     Js.log base;
   >     Js.log req;
   >     Js.log input
@@ -26,7 +30,11 @@ With -js flag everything keeps as it is and browser_only extension disappears
     in
     let perform ?abortController ?(base = defaultBase)
         (req : ('handler, 'a, 'i, 'o) Client.request) input =
+      Js.log Foo.var;
+      Js.log record.field;
+      Local.setHtmlFetchState value;
       Js.log abortController;
+      Js.log (fun a -> a);
       Js.log base;
       Js.log req;
       Js.log input
@@ -47,7 +55,13 @@ Without -js flag, the compilation to native replaces the expression with a raise
         [@@alert "-browser_only"]
     in
     let perform ?abortController ?base req input =
-      let _ = abortController and _ = base and _ = input and _ = req in
+      let _ = Foo.var
+      and _ = abortController
+      and _ = base
+      and _ = input
+      and _ = record
+      and _ = req
+      and _ = value in
       Runtime.fail_impossible_action_in_ssr "perform"
         [@@alert "-browser_only"]
     in

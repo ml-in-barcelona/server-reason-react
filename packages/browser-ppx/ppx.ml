@@ -138,7 +138,6 @@ let get_idents_inside expression =
     | Pexp_record (fields, None) ->
         let exprs = List.map snd fields in
         add_many exprs
-    | Pexp_field (expr, _) -> go expr payload
     | Pexp_setfield (expr1, _, expr2) -> add_many [ expr1; expr2 ]
     | Pexp_array exprs -> add_many exprs
     | Pexp_ifthenelse (expr1, expr2, None) -> add_many [ expr1; expr2 ]
@@ -163,6 +162,8 @@ let get_idents_inside expression =
     | Pexp_open (_, expr) -> go expr payload
     (* In case of lamdas, we don't want to collect idents, since the scope of them are inside the lamda, not in the scope of the function *)
     | Pexp_fun _ -> payload
+    (* We don't collect fields accessors, since we already collect the Longident from the record *)
+    | Pexp_field (expr, _ignored_longident) -> go expr payload
     | _ -> payload
   in
   go expression Collected_idents.empty
@@ -191,20 +192,6 @@ let rec last_expr_to_raise_impossible ~loc original_name expr =
             [%e Builder.estring ~loc original_name]]
 
 module Browser_only = struct
-  (* 26 unused-var (bound to a let or as) *)
-  let remove_unused_var ~loc =
-    Builder.attribute ~loc ~name:{ txt = "warning"; loc }
-      ~payload:(PStr [ [%stri "-26"] ])
-
-  (* 27 unused-var-strict (not bound to a let or as, for example a function argument)*)
-  let remove_unused_var_strict ~loc =
-    Builder.attribute ~loc ~name:{ txt = "warning"; loc }
-      ~payload:(PStr [ [%stri "-27"] ])
-
-  let remove_unused_variables ~loc =
-    Builder.attribute ~loc ~name:{ txt = "warning"; loc }
-      ~payload:(PStr [ [%stri "-26-27"] ])
-
   let get_function_name pattern =
     match pattern with Ppat_var { txt = name; _ } -> name | _ -> "<unkwnown>"
 
@@ -252,11 +239,7 @@ module Browser_only = struct
               last_expr_to_raise_impossible ~loc function_name expression
             in
             let vb = Builder.value_binding ~loc ~pat:pattern ~expr in
-            {
-              vb with
-              pvb_attributes =
-                [ remove_unused_variables ~loc; remove_alert_browser_only ~loc ];
-            }
+            { vb with pvb_attributes = [ remove_alert_browser_only ~loc ] }
         | Pexp_fun (_arg_label, _arg_expression, _fun_pattern, _expr) ->
             let function_name = get_function_name pattern.ppat_desc in
             let expr =
