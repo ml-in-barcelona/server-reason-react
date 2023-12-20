@@ -119,8 +119,6 @@ let get_idents_inside expression =
     | Pexp_function case ->
         let exprs = List.map (fun case -> case.pc_rhs) case in
         add_many exprs
-    | Pexp_fun (_, None, _, expr) -> go expr payload
-    | Pexp_fun (_, Some fun_expr, _, expr) -> add_many [ fun_expr; expr ]
     | Pexp_apply (_ignored_apply_expr, labelled_expr) ->
         let exprs = List.map snd labelled_expr in
         add_many exprs
@@ -163,6 +161,8 @@ let get_idents_inside expression =
     | Pexp_poly (expr, _) -> go expr payload
     | Pexp_newtype (_, expr) -> go expr payload
     | Pexp_open (_, expr) -> go expr payload
+    (* In case of lamdas, we don't want to collect idents, since the scope of them are inside the lamda, not in the scope of the function *)
+    | Pexp_fun _ -> payload
     | _ -> payload
   in
   go expression Collected_idents.empty

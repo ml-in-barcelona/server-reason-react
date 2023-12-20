@@ -18,7 +18,6 @@ both on the type annotation, also on the function expression.
     in
     raise (Runtime.fail_impossible_action_in_ssr "getPropertyPriority")
 
-  $ echo "type t" > main.ml
   $ echo "module Runtime = struct" >> main.ml
   $ cat $INSIDE_DUNE/packages/runtime/runtime.ml >> main.ml
   $ echo "end" >> main.ml

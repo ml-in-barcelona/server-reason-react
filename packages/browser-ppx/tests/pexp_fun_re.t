@@ -1,21 +1,21 @@
   $ cat > input.re << EOF
-  > let%browser_only getSortedWordCountsBrowserOnly =
-  >                 (words: array(string)): array((string, int)) => {
+  > let%browser_only getSortedWordCountsBrowserOnly = (words: array(string)): array((string, int)) => {
   >   words
   >   ->Js.Array2.reduce(
-  >       (acc, word) => {
-  >         Map.String.update(acc, word, count =>
-  >           switch (count) {
-  >           | Some(existingCount) => Some(existingCount + 1)
-  >           | None => Some(1)
-  >           }
-  >         )
-  >       },
-  >       Map.String.empty,
-  >     )
+  >     (acc, word) => {
+  >       Map.String.update(acc, word, count =>
+  >         switch (count) {
+  >         | Some(existingCount) => Some(existingCount + 1)
+  >         | None => Some(1)
+  >         }
+  >       )
+  >     },
+  >     Map.String.empty
+  >   )
   >   ->Map.String.toArray
   >   ->Js.Array2.sortInPlaceWith(((_, a), (_, b)) => b - a);
   > };
+  > 
   > EOF
 
   $ refmt --print ml input.re > input.ml
@@ -41,6 +41,5 @@
           "This expression is marked to only run on the browser where JavaScript \
            can run. You can only use it inside a let%browser_only function."]) =
    fun [@alert "-browser_only"] words ->
-    let _ = a and _ = b in
     Runtime.fail_impossible_action_in_ssr "getSortedWordCountsBrowserOnly"
   [@@warning "-27-32"]
