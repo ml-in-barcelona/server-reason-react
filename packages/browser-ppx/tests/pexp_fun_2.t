@@ -41,5 +41,6 @@
           "This expression is marked to only run on the browser where JavaScript \
            can run. You can only use it inside a let%browser_only function."]) =
    fun [@alert "-browser_only"] words ->
+    let _ = a and _ = b in
     Runtime.fail_impossible_action_in_ssr "getSortedWordCountsBrowserOnly"
   [@@warning "-27-32"]

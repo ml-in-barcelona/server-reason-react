@@ -89,21 +89,23 @@ Without -js flag, the compilation to native replaces the expression with a raise
           "This expression is marked to only run on the browser where JavaScript \
            can run. You can only use it inside a let%browser_only function."]) =
    fun [@alert "-browser_only"] ?abortController ?base req input ->
+    let _ = abortController and _ = base and _ = input and _ = req in
     Runtime.fail_impossible_action_in_ssr "perform"
   [@@warning "-27-32"]
   
   let make () =
     let fun_value_binding_pexp_fun_2arg evt moar_arguments =
       Runtime.fail_impossible_action_in_ssr "fun_value_binding_pexp_fun_2arg"
-        [@@warning "-26-27"] [@@alert "-browser_only"]
+        [@@alert "-browser_only"]
     in
     let perform ?abortController ?base req input =
+      let _ = abortController and _ = base and _ = input and _ = req in
       Runtime.fail_impossible_action_in_ssr "perform"
-        [@@warning "-26-27"] [@@alert "-browser_only"]
+        [@@alert "-browser_only"]
     in
     let fun_value_binding_labelled_args ~argument1 ~argument2 =
       Runtime.fail_impossible_action_in_ssr "fun_value_binding_labelled_args"
-        [@@warning "-26-27"] [@@alert "-browser_only"]
+        [@@alert "-browser_only"]
     in
     ()
 

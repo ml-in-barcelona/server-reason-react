@@ -64,11 +64,19 @@
       Js.Promise.t(unit) => unit
     ) =
     [@alert "-browser_only"]
-    (value => Runtime.fail_impossible_action_in_ssr("discard"));
+    (
+      value => {
+        let _ = value;
+        Runtime.fail_impossible_action_in_ssr("discard");
+      }
+    );
   let make = () => {
     [@warning "-26-27"]
     [@alert "-browser_only"]
-    let discard = value => Runtime.fail_impossible_action_in_ssr("discard");
+    let discard = value => {
+      let _ = value;
+      Runtime.fail_impossible_action_in_ssr("discard");
+    };
     ();
   };
   [@warning "-27-32"]
@@ -78,4 +86,10 @@
         )
       ]
       reifyStyle =
-    [@alert "-browser_only"] (x => Runtime.fail_impossible_action_in_ssr("a"));
+    [@alert "-browser_only"]
+    (
+      x => {
+        let _ = x;
+        Runtime.fail_impossible_action_in_ssr("a");
+      }
+    );

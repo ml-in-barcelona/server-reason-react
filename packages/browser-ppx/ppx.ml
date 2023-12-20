@@ -83,12 +83,97 @@ module Platform = struct
          handler)
 end
 
+module Collected_idents = Set.Make (struct
+  type t = longident
+
+  let compare a b = String.compare (Longident.name a) (Longident.name b)
+end)
+
+let make_undescored_sequence ~loc idents last_expression =
+  if Collected_idents.is_empty idents then last_expression
+  else
+    let ignored_value_bindings =
+      List.map
+        (fun ident ->
+          Builder.value_binding ~loc
+            ~pat:[%pat? _]
+            ~expr:(Builder.pexp_ident ~loc { txt = ident; loc }))
+        (Collected_idents.elements idents)
+    in
+    Builder.pexp_let ~loc Nonrecursive ignored_value_bindings last_expression
+
+let get_idents_inside expression =
+  let rec go expression payload =
+    let add_many expressions =
+      let go_and_union acc expr =
+        let ids = go expr payload in
+        Collected_idents.union ids acc
+      in
+      List.fold_left go_and_union payload expressions
+    in
+    match expression.pexp_desc with
+    | Pexp_ident { txt = ident; _ } -> Collected_idents.add ident payload
+    | Pexp_let (_, value_bindings, expr) ->
+        let exprs = List.map (fun value -> value.pvb_expr) value_bindings in
+        add_many (expr :: exprs)
+    | Pexp_function case ->
+        let exprs = List.map (fun case -> case.pc_rhs) case in
+        add_many exprs
+    | Pexp_fun (_, None, _, expr) -> go expr payload
+    | Pexp_fun (_, Some fun_expr, _, expr) -> add_many [ fun_expr; expr ]
+    | Pexp_apply (_ignored_apply_expr, labelled_expr) ->
+        let exprs = List.map snd labelled_expr in
+        add_many exprs
+    | Pexp_match (expr, cases) ->
+        let exprs = expr :: List.map (fun case -> case.pc_rhs) cases in
+        add_many exprs
+    | Pexp_try (expr, cases) ->
+        let exprs = expr :: List.map (fun case -> case.pc_rhs) cases in
+        add_many exprs
+    | Pexp_tuple exprs -> add_many exprs
+    | Pexp_construct ({ txt = Lident "None"; _ }, _) -> payload
+    | Pexp_construct (_, Some expr) -> go expr payload
+    | Pexp_variant (_, Some expr) -> go expr payload
+    | Pexp_record (fields, Some expr) ->
+        let exprs = List.map snd fields in
+        add_many (expr :: exprs)
+    | Pexp_record (fields, None) ->
+        let exprs = List.map snd fields in
+        add_many exprs
+    | Pexp_field (expr, _) -> go expr payload
+    | Pexp_setfield (expr1, _, expr2) -> add_many [ expr1; expr2 ]
+    | Pexp_array exprs -> add_many exprs
+    | Pexp_ifthenelse (expr1, expr2, None) -> add_many [ expr1; expr2 ]
+    | Pexp_ifthenelse (expr1, expr2, Some expr3) ->
+        add_many [ expr1; expr2; expr3 ]
+    | Pexp_sequence (expr, seq_expr) -> add_many [ expr; seq_expr ]
+    | Pexp_while (expr1, expr2) -> add_many [ expr1; expr2 ]
+    | Pexp_for (_, expr1, expr2, _, expr3) -> add_many [ expr1; expr2; expr3 ]
+    | Pexp_constraint (expr, _) -> go expr payload
+    | Pexp_coerce (expr, _, _) -> go expr payload
+    | Pexp_send (expr, _) -> go expr payload
+    | Pexp_setinstvar (_, expr) -> go expr payload
+    | Pexp_override fields ->
+        let exprs = List.map snd fields in
+        add_many exprs
+    | Pexp_letmodule (_, _, expr) -> go expr payload
+    | Pexp_letexception (_, expr) -> go expr payload
+    | Pexp_assert expr -> go expr payload
+    | Pexp_lazy expr -> go expr payload
+    | Pexp_poly (expr, _) -> go expr payload
+    | Pexp_newtype (_, expr) -> go expr payload
+    | Pexp_open (_, expr) -> go expr payload
+    | _ -> payload
+  in
+  go expression Collected_idents.empty
+
 let remove_type_constraint pattern =
   match pattern with
   | { ppat_desc = Ppat_constraint (pattern, _); _ } -> pattern
   | _ -> pattern
 
 let rec last_expr_to_raise_impossible ~loc original_name expr =
+  let idents = get_idents_inside expr in
   match expr.pexp_desc with
   | Pexp_constraint (expr, _) ->
       last_expr_to_raise_impossible ~loc original_name expr
@@ -100,9 +185,10 @@ let rec last_expr_to_raise_impossible ~loc original_name expr =
       in
       { fn with pexp_attributes = expr.pexp_attributes }
   | _ ->
-      [%expr
-        Runtime.fail_impossible_action_in_ssr
-          [%e Builder.estring ~loc original_name]]
+      make_undescored_sequence ~loc idents
+        [%expr
+          Runtime.fail_impossible_action_in_ssr
+            [%e Builder.estring ~loc original_name]]
 
 module Browser_only = struct
   (* 26 unused-var (bound to a let or as) *)
@@ -177,11 +263,7 @@ module Browser_only = struct
               last_expr_to_raise_impossible ~loc function_name expression
             in
             let vb = Builder.value_binding ~loc ~pat:pattern ~expr in
-            {
-              vb with
-              pvb_attributes =
-                [ remove_unused_variables ~loc; remove_alert_browser_only ~loc ];
-            }
+            { vb with pvb_attributes = [ remove_alert_browser_only ~loc ] }
         | Pexp_ident { txt = longident; loc } ->
             let stringified = Ppxlib.Longident.name longident in
             let message = Builder.estring ~loc stringified in
