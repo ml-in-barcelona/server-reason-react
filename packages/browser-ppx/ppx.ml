@@ -160,6 +160,11 @@ let is_a_pipe_first expression =
   | Pexp_ident { txt = Lident "|>"; _ } -> true
   | _ -> false
 
+let is_a_double_hash expression =
+  match expression.pexp_desc with
+  | Pexp_ident { txt = Lident "##"; _ } -> true
+  | _ -> false
+
 let is_pexp_apply expression =
   match expression.pexp_desc with Pexp_apply _ -> true | _ -> false
 
@@ -202,6 +207,12 @@ let get_idents_inside expression =
         go_many exprs
     | Pexp_apply (ignored_apply_expr, args)
       when is_a_pipe_first ignored_apply_expr -> (
+        let first_expr = get_first_arg args in
+        match first_expr with
+        | Some first_expr -> go first_expr payload
+        | None -> payload)
+    | Pexp_apply (ignored_apply_expr, args)
+      when is_a_double_hash ignored_apply_expr -> (
         let first_expr = get_first_arg args in
         match first_expr with
         | Some first_expr -> go first_expr payload

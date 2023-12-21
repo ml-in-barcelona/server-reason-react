@@ -1,4 +1,5 @@
   $ cat > input.re << EOF
+  > let%browser_only valueFromEvent = evt => React.Event.Form.target(evt)##value;
   > let%browser_only getSortedWordCountsBrowserOnly = (words: array(string)): array((string, int)) => {
   >   words->List.map->Js.log;
   > };
@@ -29,6 +30,8 @@
   $ refmt --print ml input.re > input.ml
 
   $ ./standalone.exe -impl input.ml -js | ocamlformat - --enable-outside-detected-project --impl  
+  let valueFromEvent evt = (React.Event.Form.target evt)##value
+  
   let getSortedWordCountsBrowserOnly (words : string array) : (string * int) array
       =
     words |. List.map |. Js.log
@@ -51,6 +54,16 @@
         b - a)
 
   $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl
+  let (valueFromEvent
+      [@alert
+        browser_only
+          "This expression is marked to only run on the browser where JavaScript \
+           can run. You can only use it inside a let%browser_only function."]) =
+   fun [@alert "-browser_only"] evt ->
+    let _ = evt and _ = value in
+    Runtime.fail_impossible_action_in_ssr "valueFromEvent"
+  [@@warning "-27-32"]
+  
   let (getSortedWordCountsBrowserOnly
       [@alert
         browser_only
