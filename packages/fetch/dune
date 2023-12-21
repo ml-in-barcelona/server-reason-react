@@ -1,0 +1,7 @@
+(library
+ (name fetch)
+ (public_name server-reason-react.melange-fetch)
+ (libraries js)
+ (modules Fetch)
+ (preprocess
+  (pps melange_native_ppx browser_ppx)))

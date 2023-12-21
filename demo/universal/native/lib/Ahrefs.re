@@ -134,8 +134,8 @@ module Dropdown = {
 };
 
 module Menu = {
-  let%browser_only getWindowHeight = () =>
-    Webapi.Dom.(window->Window.innerHeight);
+  module Dom = Webapi.Dom;
+  let%browser_only getWindowHeight = () => Dom.window->Dom.Window.innerHeight;
 
   let%browser_only useOnResize = () => {
     let (windowHeight, setWindowHeight) =
