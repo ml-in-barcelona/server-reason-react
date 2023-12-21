@@ -154,6 +154,22 @@ let get_pattern (collected : rec_payload) pattern =
   in
   go pattern
 
+let is_a_pipe_first expression =
+  match expression.pexp_desc with
+  | Pexp_ident { txt = Lident "|."; _ } -> true
+  | Pexp_ident { txt = Lident "|>"; _ } -> true
+  | _ -> false
+
+let is_pexp_apply expression =
+  match expression.pexp_desc with Pexp_apply _ -> true | _ -> false
+
+let get_first_arg args =
+  let label, first_arg = List.hd args in
+  match label with
+  | Labelled _ -> None
+  | Optional _ -> None
+  | Nolabel -> Some first_arg
+
 let get_idents_inside expression =
   let rec go expression payload =
     let add_one ident =
@@ -178,6 +194,15 @@ let get_idents_inside expression =
     | Pexp_function case ->
         let exprs = List.map (fun case -> case.pc_rhs) case in
         go_many exprs
+    | Pexp_apply (ignored_apply_expr, args)
+      when is_a_pipe_first ignored_apply_expr -> (
+        let first_expr = get_first_arg args in
+        match first_expr with
+        | Some first_expr -> go first_expr payload
+        | None -> payload)
+    | Pexp_apply (apply_expr, args) when is_pexp_apply apply_expr ->
+        let exprs = List.map (fun (_label, expr) -> expr) args in
+        go_many (apply_expr :: exprs)
     | Pexp_apply (_ignored_apply_expr, args) ->
         let exprs = List.map (fun (_label, expr) -> expr) args in
         go_many exprs
@@ -387,15 +412,28 @@ module Browser_only = struct
          extractor expression_handler)
 
   (* Generates a structure_item with a value binding with a pattern and an expression with all the alerts and warnings *)
-  let make_vb_with_browser_only ~loc pattern expression =
-    [%stri
-      let[@warning "-27-32"] ([%p pattern]
-          [@alert
-            browser_only
-              "This expression is marked to only run on the browser where \
-               JavaScript can run. You can only use it inside a \
-               let%browser_only function."]) =
-        ([%e expression] [@alert "-browser_only"])]
+  let make_vb_with_browser_only ~loc ?type_constraint pattern expression =
+    match type_constraint with
+    | Some type_constraint ->
+        [%stri
+          let[@warning "-27-32"] ([%p pattern] :
+                                   ([%t type_constraint]
+                                   [@alert
+                                     browser_only
+                                       "This expression is marked to only run \
+                                        on the browser where JavaScript can \
+                                        run. You can only use it inside a \
+                                        let%browser_only function."])) =
+            ([%e expression] [@alert "-browser_only"])]
+    | None ->
+        [%stri
+          let[@warning "-27-32"] ([%p pattern]
+              [@alert
+                browser_only
+                  "This expression is marked to only run on the browser where \
+                   JavaScript can run. You can only use it inside a \
+                   let%browser_only function."]) =
+            ([%e expression] [@alert "-browser_only"])]
 
   let extractor =
     let open Ast_pattern in
@@ -431,17 +469,7 @@ module Browser_only = struct
                 (last_expr_to_raise_impossible ~loc original_function_name expr)
             in
             let item = { fn with pexp_attributes = expr.pexp_attributes } in
-            [%stri
-              let[@warning "-27-32"] ([%p pattern] :
-                                       ([%t type_constraint]
-                                       [@alert
-                                         browser_only
-                                           "This expression is marked to only \
-                                            run on the browser where \
-                                            JavaScript can run. You can only \
-                                            use it inside a let%browser_only \
-                                            function."])) =
-                ([%e item] [@alert "-browser_only"])]
+            make_vb_with_browser_only ~loc ~type_constraint pattern item
         | Pexp_fun (arg_label, arg_expression, fun_pattern, expr) ->
             let original_function_name = get_function_name pattern.ppat_desc in
             let new_fun_pattern = remove_type_constraint fun_pattern in

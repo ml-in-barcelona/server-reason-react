@@ -1,5 +1,11 @@
   $ cat > input.re << EOF
-  > let%browser_only discard: Js.Promise.t(unit) => unit = value => ignore(value);
+  > let%browser_only getSortedWordCountsBrowserOnly = (words: array(string)): array((string, int)) => {
+  >   words->List.map->Js.log;
+  > };
+  > 
+  > let%browser_only getSortedWordCountsBrowserOnly = (words: array(string)): array((string, int)) => {
+  >   words |> Js.log |> List.map;
+  > };
   > 
   > let%browser_only getSortedWordCountsBrowserOnly = (words: array(string)): array((string, int)) => {
   >   words
@@ -22,8 +28,14 @@
 
   $ refmt --print ml input.re > input.ml
 
-  $ ./standalone.exe -impl input.ml -js | ocamlformat - --enable-outside-detected-project --impl
-  let discard = (fun value -> ignore value : unit Js.Promise.t -> unit)
+  $ ./standalone.exe -impl input.ml -js | ocamlformat - --enable-outside-detected-project --impl  
+  let getSortedWordCountsBrowserOnly (words : string array) : (string * int) array
+      =
+    words |. List.map |. Js.log
+  
+  let getSortedWordCountsBrowserOnly (words : string array) : (string * int) array
+      =
+    words |> Js.log |> List.map
   
   let getSortedWordCountsBrowserOnly (words : string array) : (string * int) array
       =
@@ -39,16 +51,14 @@
         b - a)
 
   $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl
-  let (discard :
-        (unit Js.Promise.t -> unit
-        [@alert
-          browser_only
-            "This expression is marked to only run on the browser where \
-             JavaScript can run. You can only use it inside a let%browser_only \
-             function."])) =
-   fun [@alert "-browser_only"] value ->
-    let _ = value in
-    Runtime.fail_impossible_action_in_ssr "discard"
+  let (getSortedWordCountsBrowserOnly
+      [@alert
+        browser_only
+          "This expression is marked to only run on the browser where JavaScript \
+           can run. You can only use it inside a let%browser_only function."]) =
+   fun [@alert "-browser_only"] words ->
+    let _ = words in
+    Runtime.fail_impossible_action_in_ssr "getSortedWordCountsBrowserOnly"
   [@@warning "-27-32"]
   
   let (getSortedWordCountsBrowserOnly
@@ -57,5 +67,16 @@
           "This expression is marked to only run on the browser where JavaScript \
            can run. You can only use it inside a let%browser_only function."]) =
    fun [@alert "-browser_only"] words ->
+    let _ = words in
+    Runtime.fail_impossible_action_in_ssr "getSortedWordCountsBrowserOnly"
+  [@@warning "-27-32"]
+  
+  let (getSortedWordCountsBrowserOnly
+      [@alert
+        browser_only
+          "This expression is marked to only run on the browser where JavaScript \
+           can run. You can only use it inside a let%browser_only function."]) =
+   fun [@alert "-browser_only"] words ->
+    let _ = Map.String.empty and _ = words in
     Runtime.fail_impossible_action_in_ssr "getSortedWordCountsBrowserOnly"
   [@@warning "-27-32"]
