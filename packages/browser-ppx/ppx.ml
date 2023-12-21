@@ -89,84 +89,154 @@ module Collected_idents = Set.Make (struct
   let compare a b = String.compare (Longident.name a) (Longident.name b)
 end)
 
+module Collected_patterns = Set.Make (struct
+  type t = string
+
+  let compare a b = compare a b
+end)
+
+type rec_payload = { ids : Collected_idents.t; patterns : Collected_patterns.t }
+
 let make_undescored_sequence ~loc idents last_expression =
-  if Collected_idents.is_empty idents then last_expression
-  else
-    let ignored_value_bindings =
-      List.map
-        (fun ident ->
-          Builder.value_binding ~loc
-            ~pat:[%pat? _]
-            ~expr:(Builder.pexp_ident ~loc { txt = ident; loc }))
-        (Collected_idents.elements idents)
+  match idents with
+  | [] -> last_expression
+  | _ ->
+      let ignored_value_bindings =
+        List.map
+          (fun ident ->
+            Builder.value_binding ~loc
+              ~pat:[%pat? _]
+              ~expr:(Builder.pexp_ident ~loc { txt = ident; loc }))
+          idents
+      in
+      Builder.pexp_let ~loc Nonrecursive ignored_value_bindings last_expression
+
+let get_pattern (collected : rec_payload) pattern =
+  let add_pattern pattern =
+    {
+      collected with
+      patterns = Collected_patterns.add pattern collected.patterns;
+    }
+  in
+  let rec go pattern =
+    let go_many patterns =
+      let collected_patterns =
+        List.fold_left
+          (fun acc pattern ->
+            let { patterns } = go pattern in
+            Collected_patterns.union patterns acc)
+          Collected_patterns.empty patterns
+      in
+      { collected with patterns = collected_patterns }
     in
-    Builder.pexp_let ~loc Nonrecursive ignored_value_bindings last_expression
+
+    match pattern.ppat_desc with
+    | Ppat_var { txt; loc = _ } -> add_pattern txt
+    | Ppat_constraint (pat, _ty) -> go pat
+    | Ppat_any -> collected
+    | Ppat_alias (_pat, _) -> collected
+    | Ppat_interval _ | Ppat_constant _ -> collected
+    | Ppat_tuple pl -> go_many pl
+    | Ppat_construct (_li, Some (_, pat)) -> go pat
+    | Ppat_construct (_li, None) -> collected
+    | Ppat_variant (_, Some pat) -> go pat
+    | Ppat_variant (_, None) -> collected
+    | Ppat_record (pl, _) -> pl |> List.map (fun (_lbl, p) -> p) |> go_many
+    | Ppat_array pl -> go_many pl
+    | Ppat_type _li -> collected
+    | Ppat_lazy pat -> go pat
+    | Ppat_unpack _id -> collected
+    | Ppat_exception pat -> go pat
+    | Ppat_extension _ -> collected
+    | Ppat_open (_, _pat) -> collected
+    (* Haven't seen this pattern, ignoring *)
+    | Ppat_or (_p1, _p2) -> collected
+  in
+  go pattern
 
 let get_idents_inside expression =
   let rec go expression payload =
-    let add_many expressions =
+    let add_one ident =
+      { payload with ids = Collected_idents.add ident payload.ids }
+    in
+    let go_many expressions =
       let go_and_union acc expr =
-        let ids = go expr payload in
-        Collected_idents.union ids acc
+        let payload = go expr payload in
+        Collected_idents.union payload.ids acc
       in
-      List.fold_left go_and_union payload expressions
+      let ids = List.fold_left go_and_union payload.ids expressions in
+      { payload with ids }
     in
     match expression.pexp_desc with
-    | Pexp_ident { txt = ident; _ } -> Collected_idents.add ident payload
-    | Pexp_let (_, value_bindings, expr) ->
-        let exprs = List.map (fun value -> value.pvb_expr) value_bindings in
-        add_many (expr :: exprs)
+    | Pexp_ident { txt = ident; _ } -> add_one ident
+    | Pexp_let (_rec_flag, [ value_binding ], expr) ->
+        let { patterns } = get_pattern payload value_binding.pvb_pat in
+        let { ids } = go_many [ expr ] in
+        { ids; patterns }
+    (* In the rare case of many value_bindings (let a = 1 and b = 2 and c = 3 and d = 4 in), we don't track patterns. This can cause a bug in browser_only detection *)
+    | Pexp_let (_rec_flag, _, expr) -> go expr payload
     | Pexp_function case ->
         let exprs = List.map (fun case -> case.pc_rhs) case in
-        add_many exprs
-    | Pexp_apply (_ignored_apply_expr, labelled_expr) ->
-        let exprs = List.map snd labelled_expr in
-        add_many exprs
+        go_many exprs
+    | Pexp_apply (_ignored_apply_expr, args) ->
+        let exprs = List.map (fun (_label, expr) -> expr) args in
+        go_many exprs
     | Pexp_match (expr, cases) ->
         let exprs = expr :: List.map (fun case -> case.pc_rhs) cases in
-        add_many exprs
+        go_many exprs
     | Pexp_try (expr, cases) ->
         let exprs = expr :: List.map (fun case -> case.pc_rhs) cases in
-        add_many exprs
-    | Pexp_tuple exprs -> add_many exprs
-    | Pexp_construct ({ txt = Lident "None"; _ }, _) -> payload
-    | Pexp_construct (_, Some expr) -> go expr payload
-    | Pexp_variant (_, Some expr) -> go expr payload
+        go_many exprs
+    | Pexp_tuple exprs -> go_many exprs
+    | Pexp_construct (_longident, Some expr) -> go expr payload
+    | Pexp_construct ({ txt = _longident; _ }, None) -> payload
+    | Pexp_variant (_label, Some expr) -> go expr payload
+    | Pexp_variant (_label, None) -> payload
     | Pexp_record (fields, Some expr) ->
         let exprs = List.map snd fields in
-        add_many (expr :: exprs)
+        go_many (expr :: exprs)
     | Pexp_record (fields, None) ->
         let exprs = List.map snd fields in
-        add_many exprs
-    | Pexp_setfield (expr1, _, expr2) -> add_many [ expr1; expr2 ]
-    | Pexp_array exprs -> add_many exprs
-    | Pexp_ifthenelse (expr1, expr2, None) -> add_many [ expr1; expr2 ]
+        go_many exprs
+    | Pexp_setfield (expr1, _longident, expr2) -> go_many [ expr1; expr2 ]
+    | Pexp_array exprs -> go_many exprs
+    | Pexp_ifthenelse (expr1, expr2, None) -> go_many [ expr1; expr2 ]
     | Pexp_ifthenelse (expr1, expr2, Some expr3) ->
-        add_many [ expr1; expr2; expr3 ]
-    | Pexp_sequence (expr, seq_expr) -> add_many [ expr; seq_expr ]
-    | Pexp_while (expr1, expr2) -> add_many [ expr1; expr2 ]
-    | Pexp_for (_, expr1, expr2, _, expr3) -> add_many [ expr1; expr2; expr3 ]
-    | Pexp_constraint (expr, _) -> go expr payload
-    | Pexp_coerce (expr, _, _) -> go expr payload
-    | Pexp_send (expr, _) -> go expr payload
-    | Pexp_setinstvar (_, expr) -> go expr payload
+        go_many [ expr1; expr2; expr3 ]
+    | Pexp_sequence (expr, seq_expr) -> go_many [ expr; seq_expr ]
+    | Pexp_while (expr1, expr2) -> go_many [ expr1; expr2 ]
+    | Pexp_for (_pattern, expr1, expr2, _direction, expr3) ->
+        go_many [ expr1; expr2; expr3 ]
+    | Pexp_constraint (expr, _core_type) -> go expr payload
+    | Pexp_coerce (expr, _core_type_opt, _core_type) -> go expr payload
+    | Pexp_send (expr, _label) -> go expr payload
+    | Pexp_setinstvar (_label, expr) -> go expr payload
     | Pexp_override fields ->
-        let exprs = List.map snd fields in
-        add_many exprs
-    | Pexp_letmodule (_, _, expr) -> go expr payload
-    | Pexp_letexception (_, expr) -> go expr payload
+        let exprs = List.map (fun (_label, field) -> field) fields in
+        go_many exprs
+    | Pexp_letmodule (_label, _module_expr, expr) -> go expr payload
+    | Pexp_letexception (_ext_constructor, expr) -> go expr payload
     | Pexp_assert expr -> go expr payload
     | Pexp_lazy expr -> go expr payload
-    | Pexp_poly (expr, _) -> go expr payload
-    | Pexp_newtype (_, expr) -> go expr payload
-    | Pexp_open (_, expr) -> go expr payload
+    | Pexp_poly (expr, _core_type) -> go expr payload
+    | Pexp_newtype (_label, expr) -> go expr payload
+    | Pexp_open (_open_declaration, expr) -> go expr payload
     (* In case of lamdas, we don't want to collect idents, since the scope of them are inside the lamda, not in the scope of the function *)
     | Pexp_fun _ -> payload
     (* We don't collect fields accessors, since we already collect the Longident from the record *)
     | Pexp_field (expr, _ignored_longident) -> go expr payload
-    | _ -> payload
+    | Pexp_unreachable | Pexp_constant _ | Pexp_new _ | Pexp_object _
+    | Pexp_pack _ | Pexp_letop _ | Pexp_extension _ ->
+        payload
   in
-  go expression Collected_idents.empty
+  go expression
+    { ids = Collected_idents.empty; patterns = Collected_patterns.empty }
+
+let collect_used_vars expression =
+  let { ids; patterns } = get_idents_inside expression in
+  let idents = Collected_idents.elements ids in
+  let _patterns = Collected_patterns.elements patterns in
+  idents
 
 let remove_type_constraint pattern =
   match pattern with
@@ -174,7 +244,7 @@ let remove_type_constraint pattern =
   | _ -> pattern
 
 let rec last_expr_to_raise_impossible ~loc original_name expr =
-  let idents = get_idents_inside expr in
+  let vars = collect_used_vars expr in
   match expr.pexp_desc with
   | Pexp_constraint (expr, _) ->
       last_expr_to_raise_impossible ~loc original_name expr
@@ -186,7 +256,7 @@ let rec last_expr_to_raise_impossible ~loc original_name expr =
       in
       { fn with pexp_attributes = expr.pexp_attributes }
   | _ ->
-      make_undescored_sequence ~loc idents
+      make_undescored_sequence ~loc vars
         [%expr
           Runtime.fail_impossible_action_in_ssr
             [%e Builder.estring ~loc original_name]]
@@ -220,6 +290,15 @@ module Browser_only = struct
   let remove_alert_browser_only ~loc =
     Builder.attribute ~loc ~name:{ txt = "alert"; loc }
       ~payload:(PStr [ [%stri "-browser_only"] ])
+
+  let browser_only_fun ~loc arg_label arg_expression pattern expression =
+    let stringified = Ppxlib.Pprintast.string_of_expression expression in
+    let message = Builder.estring ~loc stringified in
+    let fn =
+      Builder.pexp_fun ~loc arg_label arg_expression pattern
+        [%expr Runtime.fail_impossible_action_in_ssr [%e message]]
+    in
+    { fn with pexp_attributes = expression.pexp_attributes }
 
   let browser_only_value_binding pattern expression =
     let loc = pattern.ppat_loc in
@@ -279,27 +358,17 @@ module Browser_only = struct
                   Pexp_fun (arg_label, arg_expression, pattern, expression);
               },
               type_constraint ) ->
-            let stringified =
-              Ppxlib.Pprintast.string_of_expression expression
-            in
-            let message = Builder.estring ~loc stringified in
             let fn =
-              Builder.pexp_fun ~loc arg_label arg_expression pattern
-                [%expr Runtime.fail_impossible_action_in_ssr [%e message]]
+              browser_only_fun ~loc arg_label arg_expression pattern expression
             in
             Builder.pexp_constraint ~loc
               { fn with pexp_attributes = expression.pexp_attributes }
               type_constraint
-        | Pexp_fun (arg_label, arg_expression, pattern, expression) ->
-            let stringified =
-              Ppxlib.Pprintast.string_of_expression expression
-            in
-            let message = Builder.estring ~loc stringified in
-            let fn =
-              Builder.pexp_fun ~loc arg_label arg_expression pattern
-                [%expr Runtime.fail_impossible_action_in_ssr [%e message]]
-            in
-            { fn with pexp_attributes = expression.pexp_attributes }
+        | Pexp_fun (arg_label, arg_expression, pattern, expr) ->
+            let original_function_name = get_function_name pattern.ppat_desc in
+            let new_fun_pattern = remove_type_constraint pattern in
+            Builder.pexp_fun ~loc arg_label arg_expression new_fun_pattern
+              (last_expr_to_raise_impossible ~loc original_function_name expr)
         | Pexp_let (rec_flag, value_bindings, expression) ->
             let pexp_let =
               Builder.pexp_let ~loc rec_flag
