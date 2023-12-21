@@ -185,12 +185,18 @@ let get_idents_inside expression =
     in
     match expression.pexp_desc with
     | Pexp_ident { txt = ident; _ } -> add_one ident
-    | Pexp_let (_rec_flag, [ value_binding ], expr) ->
-        let { patterns } = get_pattern payload value_binding.pvb_pat in
-        let { ids } = go_many [ expr ] in
-        { ids; patterns }
-    (* In the rare case of many value_bindings (let a = 1 and b = 2 and c = 3 and d = 4 in), we don't track patterns. This can cause a bug in browser_only detection *)
-    | Pexp_let (_rec_flag, _, expr) -> go expr payload
+    | Pexp_let (_rec_flag, value_bindings, expr) ->
+        let new_payload = go expr payload in
+        let patterns =
+          List.fold_left
+            (fun acc value_binding ->
+              let { patterns } =
+                get_pattern new_payload value_binding.pvb_pat
+              in
+              Collected_patterns.union patterns acc)
+            Collected_patterns.empty value_bindings
+        in
+        { new_payload with patterns }
     | Pexp_function case ->
         let exprs = List.map (fun case -> case.pc_rhs) case in
         go_many exprs
@@ -260,8 +266,22 @@ let get_idents_inside expression =
 let collect_used_vars expression =
   let { ids; patterns } = get_idents_inside expression in
   let idents = Collected_idents.elements ids in
-  let _patterns = Collected_patterns.elements patterns in
+  let patterns = Collected_patterns.elements patterns in
+  (* print_string "(* Patterns: ";
+     List.iter
+       (fun ident ->
+         print_string ident;
+         print_string "; ")
+       patterns;
+     print_string ". Idents: ";
+     List.iter
+       (fun ident ->
+         print_string @@ Longident.name ident;
+         print_string "; ")
+       idents;
+     print_endline " *)"; *)
   idents
+  |> List.filter (fun ident -> not @@ List.mem (Longident.name ident) patterns)
 
 let remove_type_constraint pattern =
   match pattern with
@@ -296,21 +316,6 @@ module Browser_only = struct
         "browser_only works on function definitions or values. If there's \
          another case where it can be helpful, feel free to open an issue in \
          https://github.com/ml-in-barcelona/server-reason-react."]]
-
-  let _enable_alert_browser_only ~loc =
-    {
-      attr_name = { txt = "alert"; loc };
-      attr_payload =
-        PStr
-          [
-            [%stri
-              browser_only
-                "This expression is marked to only run on the browser where \
-                 JavaScript can run. You can only use it inside a \
-                 let%browser_only function."];
-          ];
-      attr_loc = loc;
-    }
 
   let remove_alert_browser_only ~loc =
     Builder.attribute ~loc ~name:{ txt = "alert"; loc }
@@ -390,10 +395,10 @@ module Browser_only = struct
               { fn with pexp_attributes = expression.pexp_attributes }
               type_constraint
         | Pexp_fun (arg_label, arg_expression, pattern, expr) ->
-            let original_function_name = get_function_name pattern.ppat_desc in
+            let function_name = get_function_name pattern.ppat_desc in
             let new_fun_pattern = remove_type_constraint pattern in
             Builder.pexp_fun ~loc arg_label arg_expression new_fun_pattern
-              (last_expr_to_raise_impossible ~loc original_function_name expr)
+              (last_expr_to_raise_impossible ~loc function_name expr)
         | Pexp_let (rec_flag, value_bindings, expression) ->
             let pexp_let =
               Builder.pexp_let ~loc rec_flag

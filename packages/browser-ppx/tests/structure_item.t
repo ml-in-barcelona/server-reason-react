@@ -81,7 +81,6 @@ With -js flag everything keeps as it is and browser_only extension disappears
           "This expression is marked to only run on the browser where JavaScript \
            can run. You can only use it inside a let%browser_only function."]) =
    fun [@alert "-browser_only"] evt moar_arguments ->
-    let _ = a in
     Runtime.fail_impossible_action_in_ssr "pexp_fun_2arg_structure_item"
   [@@warning "-27-32"]
   
@@ -91,7 +90,6 @@ With -js flag everything keeps as it is and browser_only extension disappears
           "This expression is marked to only run on the browser where JavaScript \
            can run. You can only use it inside a let%browser_only function."]) =
    fun [@alert "-browser_only"] evt moar_arguments ->
-    let _ = a in
     Runtime.fail_impossible_action_in_ssr "pexp_fun_2arg_structure_item"
   [@@warning "-27-32"]
   
