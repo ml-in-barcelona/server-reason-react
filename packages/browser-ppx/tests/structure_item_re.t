@@ -1,4 +1,6 @@
   $ cat > input.re << EOF
+  > let%browser_only discard: Js.Promise.t(unit) => unit = value => ignore(value);
+  > 
   > let%browser_only getSortedWordCountsBrowserOnly = (words: array(string)): array((string, int)) => {
   >   words
   >   ->Js.Array2.reduce(
@@ -21,6 +23,8 @@
   $ refmt --print ml input.re > input.ml
 
   $ ./standalone.exe -impl input.ml -js | ocamlformat - --enable-outside-detected-project --impl
+  let discard = (fun value -> ignore value : unit Js.Promise.t -> unit)
+  
   let getSortedWordCountsBrowserOnly (words : string array) : (string * int) array
       =
     ((words |. Js.Array2.reduce)
@@ -35,6 +39,18 @@
         b - a)
 
   $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl
+  let (discard :
+        (unit Js.Promise.t -> unit
+        [@alert
+          browser_only
+            "This expression is marked to only run on the browser where \
+             JavaScript can run. You can only use it inside a let%browser_only \
+             function."])) =
+   fun [@alert "-browser_only"] value ->
+    let _ = value in
+    Runtime.fail_impossible_action_in_ssr "discard"
+  [@@warning "-27-32"]
+  
   let (getSortedWordCountsBrowserOnly
       [@alert
         browser_only
