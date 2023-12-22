@@ -79,7 +79,6 @@
           "This expression is marked to only run on the browser where JavaScript \
            can run. You can only use it inside a let%browser_only function."]) =
    fun [@alert "-browser_only"] evt ->
-    let _ = evt in
     Runtime.fail_impossible_action_in_ssr "valueFromEvent"
   [@@warning "-27-32"]
   
@@ -89,7 +88,6 @@
           "This expression is marked to only run on the browser where JavaScript \
            can run. You can only use it inside a let%browser_only function."]) =
    fun [@alert "-browser_only"] words ->
-    let _ = words in
     Runtime.fail_impossible_action_in_ssr "getSortedWordCountsBrowserOnly"
   [@@warning "-27-32"]
   
@@ -99,7 +97,6 @@
           "This expression is marked to only run on the browser where JavaScript \
            can run. You can only use it inside a let%browser_only function."]) =
    fun [@alert "-browser_only"] component id ->
-    let _ = component and _ = id in
     Runtime.fail_impossible_action_in_ssr "renderToElementWithId"
   [@@warning "-27-32"]
   
@@ -109,7 +106,6 @@
           "This expression is marked to only run on the browser where JavaScript \
            can run. You can only use it inside a let%browser_only function."]) =
    fun [@alert "-browser_only"] words ->
-    let _ = words in
     Runtime.fail_impossible_action_in_ssr "getSortedWordCountsBrowserOnly"
   [@@warning "-27-32"]
   
@@ -119,6 +115,5 @@
           "This expression is marked to only run on the browser where JavaScript \
            can run. You can only use it inside a let%browser_only function."]) =
    fun [@alert "-browser_only"] words ->
-    let _ = Map.String.empty and _ = words in
     Runtime.fail_impossible_action_in_ssr "getSortedWordCountsBrowserOnly"
   [@@warning "-27-32"]

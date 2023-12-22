@@ -53,7 +53,6 @@ With -js flag everything keeps as it is and browser_only extension disappears
           "This expression is marked to only run on the browser where JavaScript \
            can run. You can only use it inside a let%browser_only function."]) =
    fun [@alert "-browser_only"] p f ->
-    let _ = f and _ = p in
     Runtime.fail_impossible_action_in_ssr "let+"
   [@@warning "-27-32"]
   
@@ -99,7 +98,6 @@ With -js flag everything keeps as it is and browser_only extension disappears
           "This expression is marked to only run on the browser where JavaScript \
            can run. You can only use it inside a let%browser_only function."]) =
    fun [@alert "-browser_only"] ?abortController ?base req input ->
-    let _ = abortController and _ = base and _ = input and _ = req in
     Runtime.fail_impossible_action_in_ssr "perform"
   [@@warning "-27-32"]
 

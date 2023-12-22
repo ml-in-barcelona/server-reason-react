@@ -53,10 +53,7 @@
   $ ./standalone.exe -impl input.ml | refmt --parse ml --print re
   let make = () => {
     [@alert "-browser_only"]
-    let discard = value => {
-      let _ = value;
-      Runtime.fail_impossible_action_in_ssr("discard");
-    };
+    let discard = value => Runtime.fail_impossible_action_in_ssr("discard");
     ();
   };
   [@warning "-27-32"]
@@ -66,10 +63,4 @@
         )
       ]
       reifyStyle =
-    [@alert "-browser_only"]
-    (
-      x => {
-        let _ = x;
-        Runtime.fail_impossible_action_in_ssr("a");
-      }
-    );
+    [@alert "-browser_only"] (x => Runtime.fail_impossible_action_in_ssr("a"));

@@ -55,13 +55,6 @@ Without -js flag, the compilation to native replaces the expression with a raise
         [@@alert "-browser_only"]
     in
     let perform ?abortController ?base req input =
-      let _ = Foo.var
-      and _ = abortController
-      and _ = base
-      and _ = input
-      and _ = record
-      and _ = req
-      and _ = value in
       Runtime.fail_impossible_action_in_ssr "perform"
         [@@alert "-browser_only"]
     in
