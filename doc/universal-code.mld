@@ -4,7 +4,9 @@ One big challenge of sharing code between client and server is that the server a
 
 In this aspect server-reason-react SSR is not much different than Node.js. Node.js doesn't provide a window/document/etc and leaves the user to manually check for them on each usage. In our case, we don't provide any implementation for the browser APIs but we want the code to compile.
 
-There're a few utilities that will be handy to make your frontend code work in native.
+There're a few utilities that will be handy to make your frontend code work in native (and viceversa).
+
+{1:server-reason-react Universal modules}
 
 [server-reason-react] comes with a few modules that are compatible with both server and client, to make it easier to write universal code and don't worry about the platform.
 
@@ -59,11 +61,11 @@ Since [melange.ppx] is not compatible with native, we provide [server-reason-rea
 mel.* attributes are stripped out of the native build, and transformed into raising functions to raise at server runtime.
 
 {3: Enables pipe_first [->]}
-it's a syntax sugar for pipe_last [|>], but it's not supported by default in native. [server-reason-react.melange_ppx] enables it and works perfectly fine in native.
+it's a syntax sugar for pipe_last [|>], but it's not supported by default in native. [server-reason-react.melange_ppx] enables it and works fine in native.
 
 {3: Supports RegExp [[%re "/regex/"]]}
 
-Transforms [[%re ...]] into Js.Re.t from [server-reason-react.js] and works perfectly fine in native (There might be some features missing in the implementation, such as backtracking or grouping.)
+Transforms [[%re ...]] into Js.Re.t from [server-reason-react.js] and works ok in native (There might be some features missing in the implementation, such as backtracking or grouping). Here for the issue tracking the implementation: {{:https://github.com/ml-in-barcelona/server-reason-react/issues/45}}
 
 {3: Debugger [%debugger]}
 It removes the debugger in native. It's a noop on the server context, and it's pretty uncommon to use it on shared code.
