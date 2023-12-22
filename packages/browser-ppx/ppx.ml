@@ -92,7 +92,7 @@ end)
 module Collected_patterns = Set.Make (struct
   type t = string
 
-  let compare a b = compare a b
+  let compare a b = String.compare a b
 end)
 
 type rec_payload = { ids : Collected_idents.t; patterns : Collected_patterns.t }
@@ -111,48 +111,41 @@ let make_undescored_sequence ~loc idents last_expression =
       in
       Builder.pexp_let ~loc Nonrecursive ignored_value_bindings last_expression
 
-let get_pattern (collected : rec_payload) pattern =
-  let add_pattern pattern =
-    {
-      collected with
-      patterns = Collected_patterns.add pattern collected.patterns;
-    }
-  in
-  let rec go pattern =
-    let go_many patterns =
-      let collected_patterns =
-        List.fold_left
-          (fun acc pattern ->
-            let { patterns } = go pattern in
-            Collected_patterns.union patterns acc)
-          Collected_patterns.empty patterns
-      in
-      { collected with patterns = collected_patterns }
+let get_pattern (payload : rec_payload) pattern =
+  let rec go pattern payload =
+    let go_many patterns payload =
+      List.fold_left
+        (fun acc pattern ->
+          let { patterns } = go pattern acc in
+          let new_patterns = Collected_patterns.union patterns acc.patterns in
+          { acc with patterns = new_patterns })
+        payload patterns
     in
 
     match pattern.ppat_desc with
-    | Ppat_var { txt; loc = _ } -> add_pattern txt
-    | Ppat_constraint (pat, _ty) -> go pat
-    | Ppat_any -> collected
-    | Ppat_alias (_pat, _) -> collected
-    | Ppat_interval _ | Ppat_constant _ -> collected
-    | Ppat_tuple pl -> go_many pl
-    | Ppat_construct (_li, Some (_, pat)) -> go pat
-    | Ppat_construct (_li, None) -> collected
-    | Ppat_variant (_, Some pat) -> go pat
-    | Ppat_variant (_, None) -> collected
-    | Ppat_record (pl, _) -> pl |> List.map (fun (_lbl, p) -> p) |> go_many
-    | Ppat_array pl -> go_many pl
-    | Ppat_type _li -> collected
-    | Ppat_lazy pat -> go pat
-    | Ppat_unpack _id -> collected
-    | Ppat_exception pat -> go pat
-    | Ppat_extension _ -> collected
-    | Ppat_open (_, _pat) -> collected
+    | Ppat_var { txt; loc = _ } ->
+        { payload with patterns = Collected_patterns.add txt payload.patterns }
+    | Ppat_constraint (pat, _ty) -> go pat payload
+    | Ppat_any -> payload
+    | Ppat_alias (_pat, _) -> payload
+    | Ppat_interval _ | Ppat_constant _ -> payload
+    | Ppat_tuple pl -> go_many pl payload
+    | Ppat_construct (_li, Some (_, pat)) -> go pat payload
+    | Ppat_construct (_li, None) -> payload
+    | Ppat_variant (_, Some pat) -> go pat payload
+    | Ppat_variant (_, None) -> payload
+    | Ppat_record (pl, _) -> go_many (List.map (fun (_lbl, p) -> p) pl) payload
+    | Ppat_array pl -> go_many pl payload
+    | Ppat_type _li -> payload
+    | Ppat_lazy pat -> go pat payload
+    | Ppat_unpack _id -> payload
+    | Ppat_exception pat -> go pat payload
+    | Ppat_extension _ -> payload
+    | Ppat_open (_, _pat) -> payload
     (* Haven't seen this pattern, ignoring *)
-    | Ppat_or (_p1, _p2) -> collected
+    | Ppat_or (_p1, _p2) -> payload
   in
-  go pattern
+  go pattern payload
 
 let is_a_pipe_first expression =
   match expression.pexp_desc with
@@ -177,34 +170,31 @@ let get_first_arg args =
 
 let get_idents_inside expression =
   let rec go expression payload =
-    let add_one ident =
+    let add_one ident payload =
       { payload with ids = Collected_idents.add ident payload.ids }
     in
-    let go_many expressions =
+    let go_many expressions payload =
       let go_and_union acc expr =
-        let payload = go expr payload in
-        Collected_idents.union payload.ids acc
-      in
-      let ids = List.fold_left go_and_union payload.ids expressions in
-      { payload with ids }
-    in
-    match expression.pexp_desc with
-    | Pexp_ident { txt = ident; _ } -> add_one ident
-    | Pexp_let (_rec_flag, value_bindings, expr) ->
         let new_payload = go expr payload in
-        let patterns =
+        { acc with ids = Collected_idents.union new_payload.ids acc.ids }
+      in
+      List.fold_left go_and_union payload expressions
+    in
+
+    match expression.pexp_desc with
+    | Pexp_ident { txt = ident; _ } -> add_one ident payload
+    | Pexp_let (_rec_flag, value_bindings, expr) ->
+        let new_payload =
           List.fold_left
             (fun acc value_binding ->
-              let { patterns } =
-                get_pattern new_payload value_binding.pvb_pat
-              in
-              Collected_patterns.union patterns acc)
-            Collected_patterns.empty value_bindings
+              let new_payload = get_pattern acc value_binding.pvb_pat in
+              go value_binding.pvb_expr new_payload)
+            payload value_bindings
         in
-        { new_payload with patterns }
+        go expr new_payload
     | Pexp_function case ->
         let exprs = List.map (fun case -> case.pc_rhs) case in
-        go_many exprs
+        go_many exprs payload
     | Pexp_apply (ignored_apply_expr, args)
       when is_a_pipe_first ignored_apply_expr -> (
         let first_expr = get_first_arg args in
@@ -219,43 +209,54 @@ let get_idents_inside expression =
         | None -> payload)
     | Pexp_apply (apply_expr, args) when is_pexp_apply apply_expr ->
         let exprs = List.map (fun (_label, expr) -> expr) args in
-        go_many (apply_expr :: exprs)
+        go_many (apply_expr :: exprs) payload
     | Pexp_apply (_ignored_apply_expr, args) ->
         let exprs = List.map (fun (_label, expr) -> expr) args in
-        go_many exprs
+        go_many exprs payload
     | Pexp_match (expr, cases) ->
-        let exprs = expr :: List.map (fun case -> case.pc_rhs) cases in
-        go_many exprs
+        let new_payload =
+          List.fold_left
+            (fun acc (case : case) ->
+              let payload_with_patterns = get_pattern acc case.pc_lhs in
+              let new_payload = go case.pc_rhs payload_with_patterns in
+              let new_patterns =
+                Collected_patterns.union acc.patterns new_payload.patterns
+              in
+              { patterns = new_patterns; ids = new_payload.ids })
+            payload cases
+        in
+        go expr new_payload
     | Pexp_try (expr, cases) ->
         let exprs = expr :: List.map (fun case -> case.pc_rhs) cases in
-        go_many exprs
-    | Pexp_tuple exprs -> go_many exprs
+        go_many exprs payload
+    | Pexp_tuple exprs -> go_many exprs payload
     | Pexp_construct (_longident, Some expr) -> go expr payload
     | Pexp_construct ({ txt = _longident; _ }, None) -> payload
     | Pexp_variant (_label, Some expr) -> go expr payload
     | Pexp_variant (_label, None) -> payload
     | Pexp_record (fields, Some expr) ->
         let exprs = List.map snd fields in
-        go_many (expr :: exprs)
+        go_many (expr :: exprs) payload
     | Pexp_record (fields, None) ->
         let exprs = List.map snd fields in
-        go_many exprs
-    | Pexp_setfield (expr1, _longident, expr2) -> go_many [ expr1; expr2 ]
-    | Pexp_array exprs -> go_many exprs
-    | Pexp_ifthenelse (expr1, expr2, None) -> go_many [ expr1; expr2 ]
+        go_many exprs payload
+    | Pexp_setfield (expr1, _longident, expr2) ->
+        go_many [ expr1; expr2 ] payload
+    | Pexp_array exprs -> go_many exprs payload
+    | Pexp_ifthenelse (expr1, expr2, None) -> go_many [ expr1; expr2 ] payload
     | Pexp_ifthenelse (expr1, expr2, Some expr3) ->
-        go_many [ expr1; expr2; expr3 ]
-    | Pexp_sequence (expr, seq_expr) -> go_many [ expr; seq_expr ]
-    | Pexp_while (expr1, expr2) -> go_many [ expr1; expr2 ]
+        go_many [ expr1; expr2; expr3 ] payload
+    | Pexp_sequence (expr, seq_expr) -> go_many [ expr; seq_expr ] payload
+    | Pexp_while (expr1, expr2) -> go_many [ expr1; expr2 ] payload
     | Pexp_for (_pattern, expr1, expr2, _direction, expr3) ->
-        go_many [ expr1; expr2; expr3 ]
+        go_many [ expr1; expr2; expr3 ] payload
     | Pexp_constraint (expr, _core_type) -> go expr payload
     | Pexp_coerce (expr, _core_type_opt, _core_type) -> go expr payload
     | Pexp_send (expr, _label) -> go expr payload
     | Pexp_setinstvar (_label, expr) -> go expr payload
     | Pexp_override fields ->
         let exprs = List.map (fun (_label, field) -> field) fields in
-        go_many exprs
+        go_many exprs payload
     | Pexp_letmodule (_label, _module_expr, expr) -> go expr payload
     | Pexp_letexception (_ext_constructor, expr) -> go expr payload
     | Pexp_assert expr -> go expr payload
@@ -278,19 +279,6 @@ let collect_used_vars expression =
   let { ids; patterns } = get_idents_inside expression in
   let idents = Collected_idents.elements ids in
   let patterns = Collected_patterns.elements patterns in
-  (* print_string "(* Patterns: ";
-     List.iter
-       (fun ident ->
-         print_string ident;
-         print_string "; ")
-       patterns;
-     print_string ". Idents: ";
-     List.iter
-       (fun ident ->
-         print_string @@ Longident.name ident;
-         print_string "; ")
-       idents;
-     print_endline " *)"; *)
   idents
   |> List.filter (fun ident -> not @@ List.mem (Longident.name ident) patterns)
 

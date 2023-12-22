@@ -4,6 +4,15 @@
   >   words->List.map->Js.log;
   > };
   > 
+  > let%browser_only renderToElementWithId = (component, id) => {
+  >   switch (ReactDOM.querySelector("#" ++ id)) {
+  >     | Some(node) =>
+  >       let root = ReactDOM.Client.createRoot(node);
+  >       ReactDOM.Client.render(root, component);
+  >     | None => Js.Console.error("RR.renderToElementWithId : no element of id '" ++ id ++ "' found in the HTML.")
+  >     };
+  >   };
+  > 
   > let%browser_only getSortedWordCountsBrowserOnly = (words: array(string)): array((string, int)) => {
   >   words |> Js.log |> List.map;
   > };
@@ -36,6 +45,16 @@
       =
     words |. List.map |. Js.log
   
+  let renderToElementWithId component id =
+    match ReactDOM.querySelector ("#" ^ id) with
+    | ((Some node) [@explicit_arity]) ->
+        let root = ReactDOM.Client.createRoot node in
+        ReactDOM.Client.render root component
+    | None ->
+        Js.Console.error
+          ("RR.renderToElementWithId : no element of id '" ^ id
+         ^ "' found in the HTML.")
+  
   let getSortedWordCountsBrowserOnly (words : string array) : (string * int) array
       =
     words |> Js.log |> List.map
@@ -60,7 +79,7 @@
           "This expression is marked to only run on the browser where JavaScript \
            can run. You can only use it inside a let%browser_only function."]) =
    fun [@alert "-browser_only"] evt ->
-    let _ = evt and _ = value in
+    let _ = evt in
     Runtime.fail_impossible_action_in_ssr "valueFromEvent"
   [@@warning "-27-32"]
   
@@ -72,6 +91,16 @@
    fun [@alert "-browser_only"] words ->
     let _ = words in
     Runtime.fail_impossible_action_in_ssr "getSortedWordCountsBrowserOnly"
+  [@@warning "-27-32"]
+  
+  let (renderToElementWithId
+      [@alert
+        browser_only
+          "This expression is marked to only run on the browser where JavaScript \
+           can run. You can only use it inside a let%browser_only function."]) =
+   fun [@alert "-browser_only"] component id ->
+    let _ = component and _ = id in
+    Runtime.fail_impossible_action_in_ssr "renderToElementWithId"
   [@@warning "-27-32"]
   
   let (getSortedWordCountsBrowserOnly
