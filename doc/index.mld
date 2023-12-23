@@ -59,10 +59,10 @@ Also add [server-reason-react.ppx] to your pps list in your dune files
 
 {!modules: react reactDom runtime Dom webapi Js Belt Fetch Promise URL}
 
-{1:guides Guides}
+{0:guides Guides}
 
 {ol
-{li {{!page-"code-structure"}How to structure the code}}
-{li {{!page-"universal-code"}How universal code works}}
+  {li {{!page-"universal-code"}How universal code works}}
+  {li {{!page-"code-structure"}How to structure the code}}
 }
 
