@@ -13,11 +13,11 @@ There're a few utilities that will be handy to make your frontend code work in n
 - {!Belt} is an implementation of Belt that would work on both server and client. [server-reason-react.belt]
 - {!Js} is an half-implementation of the Js module from melange.js, and many parts aren't implemented and some other parts aren't possible to implement on the server (Unstable, can raise "NOT IMPLEMENTED"). [server-reason-react.js]
 - {!Webapi} is a stripped down version of [melange-webapi] that will crash at runtime if you call those APIs on the server. [server-reason-react.webapi]
-- [Promise] is a vendored version of [aantron/promise] that will work on both server and client. [server-reason-react.promise]
 
-{2:browser_ppx Exclude client code from the native build}
+{1:browser_ppx {b let%browser_ppx}}
+{2: Exclude client code from the native build}
 
-Even when Belt, Js, and other modules might be universal, sometimes you want to discard some code from native, and only execute it on the client. For example, if you're using [Webapi] to query the DOM, you only want to run that on the client.
+Even when [Belt], [Js], and other modules are universal, sometimes you want to discard some code from native, and only execute it on the client. For example, if you're using [Webapi] to query the DOM, you only want to run that on the client, or if your piece of code uses some binding.
 
 Thanks to [browser_ppx], we can easily discard what's meant to be running on the client and avoid the execution on the server:
 
@@ -29,16 +29,29 @@ let%browser_only countDomNodes = (id) => {
 };
 ]}
 
-Add [browser_ppx] to your pps in your dune files. Don't forget to add it on both "server" and "client" dune files, since you want to discard the content and add [browser_ppx -js] only to the client.
+Add [server-reason-react.browser_ppx] into to your pps in your dune files.
+
+In order to have [browser_only] available on both libraries, you need to add it on both "server" and "client" dune files. Adding the [js] flag: [server-reason-react.browser_ppx -js] will make browser_only remove the client-only code in the native build, but leave untouched the client code on the melnage build.
 
 On client's dune:
 {[ (preprocess (pps browser_ppx -js)) ]}
 On server's dune:
 {[ (preprocess (pps browser_ppx)) ]}
 
-The method used by [browser_only] to discards the function is transforming the body of your function into a raising exception. Sometimes it can be useful to wrap it in a try/catch block to prevent the exception from crashing, or to provide a default value or do something else.
-
 For example:
+{[
+let%browser_only countDomNodes = (id) => {
+  let elements = Webapi.Element.querySelector("#" ++ id);
+  let arr_elements = Webapi.Element.toArray(elements);
+  Array.length(arr_elements);
+}
+]}
+
+The method used by [browser_only] to discards the function is transforming the body of your function with a raising exception [Runtime.Impossible_in_ssr].
+
+It can be useful to wrap your browser_only functions in a try/catch to prevent the exception from crashing, or in order to provide a default value.
+
+Continuing with the example:
 {[
 let%browser_only countDomNodes = (id) => {
   let elements = Webapi.Element.querySelector("#" ++ id);
@@ -52,25 +65,28 @@ let main = id =>
   };
 ]}
 
-{2:ppx Externals and melange.ppx attributes}
+{1:ppx Externals and melange.ppx attributes}
 
 Since [melange.ppx] is not compatible with native, we provide [server-reason-react.melange_ppx] instead.
- It allows to have the same features as [melange.ppx], so all externals, mel attributes and other features are supported.
 
-{3: Supports all [mel.] attributes}
+ It's a drop in replacement that allows us to have support for the same features as [melange.ppx], so all externals, mel attributes and other features are available. This doesn't mean it will work, in fact, most of the features won't work on the server and it will tell the compiler to wrap  it in [browser_only] functions.
+
+Here's the list of features
+
+{2: Supports all [mel.] attributes}
 mel.* attributes are stripped out of the native build, and transformed into raising functions to raise at server runtime.
 
-{3: Enables pipe_first [->]}
+{2: Enables pipe_first [->]}
 it's a syntax sugar for pipe_last [|>], but it's not supported by default in native. [server-reason-react.melange_ppx] enables it and works fine in native.
 
-{3: Supports RegExp [[%re "/regex/"]]}
+{2: Supports RegExp [[%re "/regex/"]]}
 
-Transforms [[%re ...]] into Js.Re.t from [server-reason-react.js] and works ok in native (There might be some features missing in the implementation, such as backtracking or grouping). Here for the issue tracking the implementation: {{:https://github.com/ml-in-barcelona/server-reason-react/issues/45}}
+Transforms [[%re ...]] into [Js.Re.t] from [server-reason-react.js] and works ok in native (There might be some features missing in the implementation, such as backtracking or grouping). Here for the issue tracking the implementation: {{:https://github.com/ml-in-barcelona/server-reason-react/issues/45}}
 
-{3: Debugger [%debugger]}
+{2: Debugger [%debugger]}
 It removes the debugger in native. It's a noop on the server context, and it's pretty uncommon to use it on shared code.
 
-{4: Supports Object access [##]}
+{2: Supports Object access [##]}
 Unstable. It's not supported by default in native, since ## operates on JavaScript Objects, and the interface of that isn't polished.
 
 {[ (preprocess (pps server-reason-react.melange_ppx)) ]}
