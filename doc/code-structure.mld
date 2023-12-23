@@ -208,3 +208,9 @@ However, there are a few limitations on virtual libraries:
 - {{:https://github.com/ocaml/dune/issues/7104}Some inconsistent behaviour}
 
 I found that this mechanism is not as reliable as copy_files, and it's not well supported by editors. I would recommend to use copy_files instead, while we explore better ways of doing so with the dune team.
+
+{1:next Next}
+
+{ol
+  {li {{!page-"universal-code"}How universal code works}}
+}

@@ -46,3 +46,10 @@ Add [server-reason-react.react] and [server-reason-react.reactDom] to your dune 
 
 and also [server-reason-react.ppx] to your preprocess list
 {[ (preprocess (pps server-reason-react.ppx)) ]}
+
+{1:next Next}
+
+{ol
+  {li {{!page-"universal-code"}How universal code works}}
+  {li {{!page-"code-structure"}How to structure the code}}
+}
