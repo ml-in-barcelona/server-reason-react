@@ -1,4 +1,4 @@
-(** The react library *)
+(** The React library *)
 
 type domRef
 type 'value ref = { mutable current : 'value }

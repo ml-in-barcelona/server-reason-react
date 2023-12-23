@@ -1,0 +1,48 @@
+{0:intro Introduction}
+
+This documentation will explain the different modules available in [server-reason-react], and how to use them, however it is assumed a minimum understanding of [Reason], [reason-react], [Melange] and [dune].
+
+Let's start with a component.
+
+{[
+  module Greetings = {
+    [@react.component]
+    let make = (~name) => {
+      <div>
+        <h1> {React.string("Hello " ++ name)} </h1>
+      </div>
+    }
+  };
+]}
+
+This component is both a [reason-react] component and a [server-reason-react] component, since the interface is the same.
+
+[server-reason-react] provides {!React} and {!ReactDOM} modules with the same interface as reason-react, including the {{:https://reasonml.github.io/docs/en/jsx}JSX transformation} via [server-reason-react.ppx].
+
+- {!React} (server-reason-react.react)
+- {!ReactDOM} (server-reason-react.reactDom)
+
+Note: [server-reason-react.ppx] needs to be a different ppx than [reason-react-ppx] since needs to transform props into an interal representation where the type is known ahead of time in order to render them on the server efficiently.
+
+The main difference is how it's going to render with {!ReactDOM}:
+
+{[
+  let html = ReactDOM.renderToStaticMarkup(<Greetings name="visitor" />)
+  // <div><h1>Hello visitor</h1></div>
+]}
+
+{_ This is usually part of your server code}
+
+[ReactDOM] exposes the [renderTo*] methods: {!ReactDOM.renderToStaticMarkup}, {!ReactDOM.renderToString} and {!ReactDOM.renderToLwtStream}.
+
+{1:install Install}
+
+{[
+  opam install server-reason-react
+]}
+
+Add [server-reason-react.react] and [server-reason-react.reactDom] to your dune file:
+{[ (libraries (server-reason-react.react server-reason-react.reactDom) ]}
+
+and also [server-reason-react.ppx] to your preprocess list
+{[ (preprocess (pps server-reason-react.ppx)) ]}
