@@ -24,7 +24,7 @@ Those are the core libraries of [server-reason-react].
 
 {1 Other libraries}
 
-Aside from the core libs, [server-reason-react] exposes some needed known libraryes from melange or melange-community to help make components universal.
+Aside from the core, [server-reason-react] exposes some needed known libraryes from melange or melange-community to help make components universal.
 
 {ul
   {li {!Belt} [server-reason-react.belt] (equivalent to [Belt] from [melange])}
