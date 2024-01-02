@@ -2,14 +2,15 @@
 let make = () => {
   let (count, setCount) = React.useState(() => 23);
 
-  let onClick = event => {
-    let _target = React.Event.Mouse.target(event);
-    switch%platform (Runtime.platform) {
-    | Server => print_endline("This never prints")
-    | Client => print_endline("This prints to the console ")
-    };
-    /* print_endline("Console works too! " ++ target##value); */
-    setCount(_ => count + 1);
+  switch%platform (Runtime.platform) {
+  | Server => print_endline("This prints to the terminal")
+  | Client => print_endline("This prints to the console ")
+  };
+
+  let%browser_only onClick = event => {
+    let target = React.Event.Mouse.target(event);
+    let currentValue = target##value;
+    setCount(_ => currentValue + 1);
   };
 
   <div className="text-yellow-600">
