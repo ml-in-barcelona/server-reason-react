@@ -112,9 +112,9 @@ module Not_found = {
   [@react.component]
   let make = (~path) => {
     <div className="p-12">
-      <Shared_native.Spacer bottom=4>
+      <Spacer bottom=4>
         <h1 className="font-bold text-5xl"> {React.string("Not found")} </h1>
-      </Shared_native.Spacer>
+      </Spacer>
       <span className="text-xl font-bold"> {React.string("Error 404")} </span>
       <span className="text-xl"> {React.string(" · ")} </span>
       <span className="text-xl"> {React.string("The requested URL")} </span>
@@ -140,9 +140,7 @@ let () = {
     (_name, _req) => {
       let html =
         ReactDOM.renderToString(
-          <Page scripts=["/static/header.js"]>
-            <Shared_native.Ahrefs />
-          </Page>,
+          <Page scripts=["/static/header.js"]> <Ahrefs /> </Page>,
         );
       Httpd.Response.make_string(Ok(html));
     },
@@ -154,7 +152,7 @@ let () = {
     (_name, _req) => {
       let html =
         ReactDOM.renderToStaticMarkup(
-          <Page scripts=["/static/app.js"]> <Shared_native.App /> </Page>,
+          <Page scripts=["/static/app.js"]> <App /> </Page>,
         );
       Httpd.Response.make_string(Ok(html));
     },
@@ -166,7 +164,7 @@ let () = {
     _req => {
       let html =
         ReactDOM.renderToString(
-          <Page scripts=["/static/app.js"]> <Shared_native.App /> </Page>,
+          <Page scripts=["/static/app.js"]> <App /> </Page>,
         );
       Httpd.Response.make_string(Ok(html));
     },
@@ -198,7 +196,7 @@ let () = {
         req => {
           let (_stream, _close) =
             ReactDOM.renderToLwtStream(
-              <Page scripts=["/static/app.js"]> <Shared_native.App /> </Page>,
+              <Page scripts=["/static/app.js"]> <App /> </Page>,
             );
           Lwt_stream.iter_s(
                data => {
