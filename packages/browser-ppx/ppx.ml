@@ -250,12 +250,8 @@ module Browser_only = struct
             in
             let item = { fn with pexp_attributes = expr.pexp_attributes } in
             make_vb_with_browser_only ~loc pattern item
-        | Pexp_ident { txt = longident; loc } ->
-            let stringified = Ppxlib.Longident.name longident in
-            let message = Builder.estring ~loc stringified in
-            let item =
-              [%expr Runtime.fail_impossible_action_in_ssr [%e message]]
-            in
+        | Pexp_ident { txt = _longident; loc } ->
+            let item = [%expr Obj.magic ()] in
             make_vb_with_browser_only ~loc pattern item
         | Pexp_newtype (name, expr) ->
             let original_function_name = name.txt in

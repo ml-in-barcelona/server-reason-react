@@ -61,8 +61,7 @@ With -js flag everything keeps as it is and browser_only extension disappears
         browser_only
           "This expression is marked to only run on the browser where JavaScript \
            can run. You can only use it inside a let%browser_only function."]) =
-    (Runtime.fail_impossible_action_in_ssr "Webapi__Dom__Element.asHtmlElement"
-     [@alert "-browser_only"])
+    (Obj.magic () [@alert "-browser_only"])
   [@@warning "-27-32"]
   
   let (pexp_fun_1arg_structure_item
