@@ -11,7 +11,7 @@ With -js flag everything keeps as it is and browser_only extension disappears
     let pexp_ident = Webapi__Dom__Element.asHtmlElement in
     ()
 
-Without -js flag, the compilation to native replaces the expression with `raise (Runtime.Impossible_in_ssr`
+Without -js flag, the compilation to native replaces the expression with `Runtime.fail_impossible_action_in_ssr`
 
   $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl
   let make () =
