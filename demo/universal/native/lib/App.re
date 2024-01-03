@@ -21,7 +21,7 @@ module Layout = {
   };
 };
 
-module Header = {
+module Title = {
   type item = {
     label: string,
     link: string,
@@ -89,9 +89,10 @@ let make = () => {
   });
 
   <Root background=Theme.Color.darkGrey>
+    <Header />
     <Layout>
       <Stack gap=8 justify=`start>
-        <> <Header /> <Hr /> <Counter initial=23 /> </>
+        <> <Title /> <Hr /> <Counter initial=23 /> </>
       </Stack>
     </Layout>
   </Root>;

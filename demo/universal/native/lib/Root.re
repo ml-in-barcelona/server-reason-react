@@ -7,8 +7,9 @@ let make = (~children, ~background) => {
       "w-[100vw]",
       "h-[100vh]",
       "flex",
-      "justify-center",
-      "items-start",
+      "flex-col",
+      "items-center",
+      "justify-start",
       Theme.background(background),
     ])}>
     children

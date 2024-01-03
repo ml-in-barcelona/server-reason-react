@@ -7,5 +7,3 @@
  (wrapped false)
  (preprocess
   (pps melange_native_ppx server_reason_react_ppx browser_ppx)))
-
-(copy_files# "../*.re")

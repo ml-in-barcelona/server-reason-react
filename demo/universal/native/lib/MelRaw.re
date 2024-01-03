@@ -1,4 +1,11 @@
-/* This websocket doesn't work, since the server doesn't have a reload endpoint but it could. Here is just testing a mel.raw in shared code */
+let mockInitWebsocket = () => [%mel.raw
+  {|
+  function mockInitWebsocket() {
+    console.log("Load JS");
+  }
+|}
+];
+
 let initWebsocket = () => [%mel.raw
   {|
        function initWebsocket() {

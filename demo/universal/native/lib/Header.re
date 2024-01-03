@@ -241,21 +241,13 @@ module Layout = {
 let make = () => {
   let (currentNavigate, setNavigate) = RR.useStateValue("Dashboard");
 
-  <Root background=Theme.Color.brokenWhite>
-    <Layout>
-      <Panel>
-        <Spacer bottom=3>
-          <Row justify=`start align=`center>
-            <Spacer bottom=1> <Logo /> </Spacer>
-            <Menu
-              currentNavigate
-              navigate={to_ => setNavigate(to_) |> ignore}
-            />
-          </Row>
-        </Spacer>
-        <SubHeader />
-      </Panel>
-      <Align> <h2> {React.string(currentNavigate)} </h2> </Align>
-    </Layout>
-  </Root>;
+  <Panel>
+    <Spacer bottom=3>
+      <Row justify=`start align=`center>
+        <Spacer bottom=1> <Logo /> </Spacer>
+        <Menu currentNavigate navigate={to_ => setNavigate(to_) |> ignore} />
+      </Row>
+    </Spacer>
+    <SubHeader />
+  </Panel>;
 };

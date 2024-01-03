@@ -1,4 +1,4 @@
-let _ = MelRaw.initWebsocket();
+let _ = MelRaw.mockInitWebsocket();
 
 module Counter = {
   [@react.component]

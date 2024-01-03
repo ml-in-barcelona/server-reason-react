@@ -8,49 +8,6 @@
 module Httpd = Tiny_httpd;
 module Httpd_dir = Tiny_httpd_dir;
 
-let globalStyles = {js|
-  html, body, #root {
-    margin: 0;
-    padding: 0;
-    width: 100vw;
-    height: 100vh;
-  }
-
-  * {
-    font-family: -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    box-sizing: border-box;
-  }
-|js};
-
-module Page = {
-  [@react.component]
-  let make = (~children) => {
-    <html>
-      <head>
-        <meta charSet="UTF-8" />
-        <meta
-          name="viewport"
-          content="width=device-width, initial-scale=1.0"
-        />
-        <title> {React.string("Server Reason React demo")} </title>
-        <link
-          rel="shortcut icon"
-          href="https://reasonml.github.io/img/icon_50.png"
-        />
-        <style
-          type_="text/css"
-          dangerouslySetInnerHTML={"__html": globalStyles}
-        />
-        <script src="https://cdn.tailwindcss.com" />
-        <script type_="module" src="/static/demo/client/bundle.js" />
-      </head>
-      <body> <div id="root"> children </div> </body>
-    </html>;
-  };
-};
-
 module Link = {
   [@react.component]
   let make = (~href, ~children) => {
@@ -134,7 +91,10 @@ let () = {
     server,
     Httpd.Route.(exact("markup") @/ string @/ return),
     (_name, _req) => {
-      let html = ReactDOM.renderToStaticMarkup(<Page> <App /> </Page>);
+      let html =
+        ReactDOM.renderToStaticMarkup(
+          <Page script="/static/demo/client/bundle.js"> <App /> </Page>,
+        );
       Httpd.Response.make_string(Ok(html));
     },
   );
@@ -143,7 +103,10 @@ let () = {
     server,
     Httpd.Route.(exact("string") @/ return),
     _req => {
-      let html = ReactDOM.renderToString(<Page> <App /> </Page>);
+      let html =
+        ReactDOM.renderToString(
+          <Page script="/static/demo/client/bundle.js"> <App /> </Page>,
+        );
       Httpd.Response.make_string(Ok(html));
     },
   );
