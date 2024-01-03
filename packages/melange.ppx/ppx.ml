@@ -132,10 +132,10 @@ Melange externals are bindings to JavaScript code, which can't run on the server
       (Runtime.fail_impossible_action_in_ssr
          [%e Builder.pexp_constant ~loc (Pconst_string (name, loc, None))])]
 
-let make_implementation ~loc arity name =
+let make_implementation ~loc arity =
   let rec make_fun ~loc arity =
     match arity with
-    | 0 -> [%expr [%e raise_failure ~loc name]]
+    | 0 -> [%expr Obj.magic ()]
     | _ ->
         Builder.pexp_fun ~loc Nolabel None
           (Builder.ppat_var ~loc { loc; txt = "_" })
@@ -298,7 +298,7 @@ class raise_exception_mapper =
                         (_arg_label, _arg_expression, _fun_pattern, expression);
                   } as pvb_expr;
                 pvb_pat =
-                  { ppat_desc = Ppat_var { txt = function_name; _ } } as
+                  { ppat_desc = Ppat_var { txt = _function_name; _ } } as
                   pvb_pattern;
                 pvb_attributes = _;
                 pvb_loc = _;
@@ -307,9 +307,7 @@ class raise_exception_mapper =
         when expression_has_mel_raw expression.pexp_desc ->
           let loc = item.pstr_loc in
           let function_arity = get_function_arity pvb_expr.pexp_desc in
-          let implementation =
-            make_implementation ~loc function_arity function_name
-          in
+          let implementation = make_implementation ~loc function_arity in
           let fn_pattern =
             {
               pvb_pattern with
@@ -325,7 +323,8 @@ class raise_exception_mapper =
               {
                 pvb_expr = expression;
                 pvb_pat =
-                  { ppat_desc = Ppat_var { txt = function_name; _ } } as pattern;
+                  { ppat_desc = Ppat_var { txt = _function_name; _ } } as
+                  pattern;
                 pvb_attributes = _;
                 pvb_loc = _;
               };
@@ -340,9 +339,7 @@ class raise_exception_mapper =
             }
           in
           let function_arity = get_function_arity expression.pexp_desc in
-          let implementation =
-            make_implementation ~loc function_arity function_name
-          in
+          let implementation = make_implementation ~loc function_arity in
           [%stri let [%p fn_pattern] = [%e implementation]]
       (* let a: t = [%mel.raw ...] *)
       | Pstr_value
@@ -369,7 +366,7 @@ class raise_exception_mapper =
             }
           in
           let function_arity = get_function_arity expression.pexp_desc in
-          let implementation = make_implementation ~loc function_arity "" in
+          let implementation = make_implementation ~loc function_arity in
           [%stri let [%p fn_pattern] = [%e implementation]]
       (* %mel. *)
       (* external foo: t = "{{JavaScript}}" *)

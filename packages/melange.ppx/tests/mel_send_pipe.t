@@ -153,9 +153,12 @@ Nonlabelled arguments as functions
 
 Send pipe with 'a
   $ cat > input.ml << EOF
+  > type t_window
   > external postMessage : 'a -> string -> unit = "postMessage" [@@mel.send.pipe : t_window]
 
   $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl | tee output.ml
+  type t_window
+  
   let (postMessage : 'a -> t_window -> string -> unit) =
    fun _ _ _ ->
     let () =
@@ -168,3 +171,9 @@ Send pipe with 'a
   |}
     in
     raise (Runtime.fail_impossible_action_in_ssr "postMessage")
+
+  $ echo "module Runtime = struct" > main.ml
+  $ cat $INSIDE_DUNE/packages/runtime/runtime.ml >> main.ml
+  $ echo "end" >> main.ml
+  $ cat output.ml >> main.ml
+  $ ocamlc -c main.ml
