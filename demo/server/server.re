@@ -22,17 +22,11 @@ let globalStyles = {js|
     -moz-osx-font-smoothing: grayscale;
     box-sizing: border-box;
   }
-
-  @keyframes spin {
-    to {
-      transform: rotate(360deg);
-    }
-  }
 |js};
 
 module Page = {
   [@react.component]
-  let make = (~children, ~scripts as _=[]) => {
+  let make = (~children) => {
     <html>
       <head>
         <meta charSet="UTF-8" />
@@ -50,6 +44,7 @@ module Page = {
           dangerouslySetInnerHTML={"__html": globalStyles}
         />
         <script src="https://cdn.tailwindcss.com" />
+        <script type_="module" src="/static/demo/client/bundle.js" />
       </head>
       <body> <div id="root"> children </div> </body>
     </html>;
@@ -133,27 +128,13 @@ let () = {
   let server = Httpd.create();
   let addr = Httpd.addr(server);
   let port = Httpd.port(server);
-  Httpd.add_route_handler(
-    ~meth=`GET,
-    server,
-    Httpd.Route.(exact("header") @/ string @/ return),
-    (_name, _req) => {
-      let html =
-        ReactDOM.renderToString(
-          <Page scripts=["/static/header.js"]> <Ahrefs /> </Page>,
-        );
-      Httpd.Response.make_string(Ok(html));
-    },
-  );
+
   Httpd.add_route_handler(
     ~meth=`GET,
     server,
     Httpd.Route.(exact("markup") @/ string @/ return),
     (_name, _req) => {
-      let html =
-        ReactDOM.renderToStaticMarkup(
-          <Page scripts=["/static/app.js"]> <App /> </Page>,
-        );
+      let html = ReactDOM.renderToStaticMarkup(<Page> <App /> </Page>);
       Httpd.Response.make_string(Ok(html));
     },
   );
@@ -162,13 +143,11 @@ let () = {
     server,
     Httpd.Route.(exact("string") @/ return),
     _req => {
-      let html =
-        ReactDOM.renderToString(
-          <Page scripts=["/static/app.js"]> <App /> </Page>,
-        );
+      let html = ReactDOM.renderToString(<Page> <App /> </Page>);
       Httpd.Response.make_string(Ok(html));
     },
   );
+
   /*
    TODO: Render to stream
     Dream.get("/stream", _request =>
@@ -211,21 +190,18 @@ let () = {
         },
       ); */
 
-  let virtual_fs = Httpd_dir.vfs_of_dir("static");
-
-  let _ =
-    Httpd_dir.add_vfs(
-      server,
-      ~prefix="static",
-      ~vfs=virtual_fs,
-      ~config=
-        Httpd_dir.config(
-          ~download=true,
-          ~upload=false,
-          ~dir_behavior=Httpd_dir.Index,
-          (),
-        ),
-    );
+  Httpd_dir.add_dir_path(
+    server,
+    ~prefix="static",
+    ~dir="_build/default/demo/client/app",
+    ~config=
+      Httpd_dir.config(
+        ~download=true,
+        ~upload=false,
+        ~dir_behavior=Httpd_dir.Index_or_lists,
+        (),
+      ),
+  );
 
   Httpd.set_top_handler(
     server,
@@ -246,8 +222,16 @@ let () = {
   );
 
   switch (
-    Httpd.run(server, ~after_init=() =>
-      Printf.printf("Listening on http://%s:%d\n%!", addr, port)
+    Httpd.run(
+      server,
+      ~after_init=() => {
+        Esbuild.build(
+          ~entry_point="demo/client/index.js",
+          ~outfile="demo/client/bundle.js",
+          (),
+        );
+        Printf.printf("Listening on http://%s:%d\n%!", addr, port);
+      },
     )
   ) {
   | Ok () => ()

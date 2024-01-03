@@ -1,3 +1,4 @@
+/* This websocket doesn't work, but it could reload the server/dune */
 let initWebsocket = () => [%mel.raw
   {|
        function initWebsocket() {

@@ -83,6 +83,11 @@ module Header = {
 
 [@react.component]
 let make = () => {
+  React.useEffect(() => {
+    let _ = Js.log("Hello from the client");
+    None;
+  });
+
   <Root background=Theme.Color.darkGrey>
     <Layout>
       <Stack gap=8 justify=`start>

@@ -1,13 +1,5 @@
 (executable
  (name server)
- (libraries tiny_httpd shared_native react reactDOM js lwt.unix)
- (modules :standard \ Index)
+ (libraries tiny_httpd shared_native react reactDOM js lwt.unix unix)
  (preprocess
   (pps server_reason_react_ppx browser_ppx lwt_ppx)))
-
-(executable
- (name index)
- (modules Index)
- (libraries react reactDOM belt js shared_native tiny_httpd melange.dom)
- (preprocess
-  (pps melange_native_ppx server_reason_react_ppx)))

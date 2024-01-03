@@ -7,10 +7,8 @@ let make = () => {
   | Client => print_endline("This prints to the console ")
   };
 
-  let%browser_only onClick = event => {
-    let target = React.Event.Mouse.target(event);
-    let currentValue = target##value;
-    setCount(_ => currentValue + 1);
+  let%browser_only onClick = _event => {
+    setCount(_ => count + 1);
   };
 
   <div className="text-yellow-600">

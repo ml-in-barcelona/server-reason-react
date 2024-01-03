@@ -1,19 +1,8 @@
 (melange.emit
  (alias client)
  (target app)
- (promote (until-clean))
- (modules app)
+ (modules index)
  (libraries melange shared_js reason-react)
  (preprocess
   (pps reason-react-ppx browser_ppx -js melange.ppx))
- (module_systems commonjs))
-
-(melange.emit
- (alias client)
- (target header)
- (modules header)
- (promote (until-clean))
- (libraries melange shared_js reason-react)
- (preprocess
-  (pps reason-react-ppx melange.ppx))
  (module_systems commonjs))

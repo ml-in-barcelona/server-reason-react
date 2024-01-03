@@ -1,0 +1,4 @@
+(install
+ (section bin)
+ (files
+  (node_modules/esbuild/bin/esbuild as esbuild)))

@@ -4,7 +4,7 @@ let useState = a => {
   (value, setValueStatic);
 };
 
-let _ = Shared_js.MelRaw.initWebsocket();
+let _ = MelRaw.initWebsocket();
 
 module Counter = {
   [@react.component]
@@ -26,7 +26,7 @@ module Counter = {
 
 switch (ReactDOM.querySelector("#root")) {
 | Some(el) =>
-  let _root = ReactDOM.Client.hydrateRoot(el, <Shared_js.App />);
+  let _root = ReactDOM.Client.hydrateRoot(el, <App />);
   ();
 | None => ()
 };
