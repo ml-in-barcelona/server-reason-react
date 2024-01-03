@@ -97,7 +97,7 @@ demo: ## Run demo executable
 
 .PHONY: demo-watch
 demo-watch: ## Run demo executable in watch mode
-	DUNE_CONFIG__GLOBAL_LOCK=disabled $(DUNE) build --display-separate-messages --no-print-directory --display=quiet -w @client & $(DUNE) exec demo/server/server.exe --display-separate-messages --no-print-directory --display=quiet --watch
+	$(DUNE) exec demo/server/server.exe --display-separate-messages --no-print-directory --display=quiet --watch
 
 .PHONY: subst
 subst: ## Run dune substitute

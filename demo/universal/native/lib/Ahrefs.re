@@ -1,7 +1,3 @@
-let useStateValue = (initial: 'a) => {
-  React.useReducer((_ignored, newState) => newState, initial);
-};
-
 module ExternalLinkIcon = {
   [@react.component]
   let make = () => {
@@ -84,7 +80,7 @@ module Dropdown = {
 
   [@react.component]
   let make = (~items, ~onClick) => {
-    let (isOpen, setIsOpen) = useStateValue(false);
+    let (isOpen, setIsOpen) = RR.useStateValue(false);
 
     <div className={Cx.make(["relative"])}>
       <Trigger isOpen onClick={_e => setIsOpen(!isOpen)} />
@@ -98,15 +94,6 @@ module Dropdown = {
                "p-4",
                "radius-3",
                Theme.background(Theme.Color.box),
-               /* Css.boxShadow(
-                    Css.Shadow.box(
-                      ~x=`zero,
-                      ~y=`zero,
-                      ~blur=`px(10),
-                      ~spread=`px(1),
-                      Css.rgba(0, 0, 0, `percent(30.)),
-                    ),
-                  ), */
              ])}>
              {React.array(
                 Belt.Array.mapWithIndex(items, (key, item) =>
@@ -162,7 +149,7 @@ module Menu = {
   [@react.component]
   let make = (~currentNavigate: string, ~navigate: string => unit) => {
     let (tools, _setTools) =
-      useStateValue([|
+      RR.useStateValue([|
         "Dashboard",
         "Site Explorer",
         "Keywords Explorer",
@@ -172,7 +159,7 @@ module Menu = {
       |]);
 
     let (moreTools, _setMoreTools) =
-      useStateValue([|
+      RR.useStateValue([|
         "Alerts",
         "Ahrefs Rank",
         "Batch Analysis",
@@ -252,7 +239,7 @@ module Layout = {
 
 [@react.component]
 let make = () => {
-  let (currentNavigate, setNavigate) = useStateValue("Dashboard");
+  let (currentNavigate, setNavigate) = RR.useStateValue("Dashboard");
 
   <Root background=Theme.Color.brokenWhite>
     <Layout>

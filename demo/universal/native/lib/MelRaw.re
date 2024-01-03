@@ -1,4 +1,4 @@
-/* This websocket doesn't work, but it could reload the server/dune */
+/* This websocket doesn't work, since the server doesn't have a reload endpoint but it could. Here is just testing a mel.raw in shared code */
 let initWebsocket = () => [%mel.raw
   {|
        function initWebsocket() {

@@ -1,14 +1,14 @@
 [@react.component]
-let make = () => {
-  let (count, setCount) = React.useState(() => 23);
+let make = (~initial) => {
+  let (count, setCount) = RR.useStateValue(initial);
 
   switch%platform (Runtime.platform) {
   | Server => print_endline("This prints to the terminal")
-  | Client => print_endline("This prints to the console ")
+  | Client => print_endline("This prints to the console")
   };
 
   let%browser_only onClick = _event => {
-    setCount(_ => count + 1);
+    setCount(count + 1);
   };
 
   <div className="text-yellow-600">

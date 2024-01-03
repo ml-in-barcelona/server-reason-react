@@ -1,15 +1,9 @@
-let useState = a => {
-  let (value, setValue) = React.useState(_ => a);
-  let setValueStatic = value => setValue(_ => value);
-  (value, setValueStatic);
-};
-
 let _ = MelRaw.initWebsocket();
 
 module Counter = {
   [@react.component]
   let make = () => {
-    let (count, setCount) = useState(0);
+    let (count, setCount) = RR.useStateValue(0);
 
     <div>
       <p>
