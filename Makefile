@@ -13,11 +13,11 @@ help: ## Print this help message
 
 .PHONY: build
 build: ## Build the project, including non installable libraries and executables
-	$(DUNE) build @all
+	$(DUNE) build packages
 
 .PHONY: build-prod
 build-prod: ## Build for production (--profile=prod)
-	$(DUNE) build --profile=prod @all
+	$(DUNE) build packages --profile=prod
 
 .PHONY: dev
 dev: ## Build in watch mode
@@ -93,10 +93,12 @@ lib-test: ## Run library tests
 
 .PHONY: demo
 demo: ## Run demo executable
+	$(DUNE) build demo
 	$(DUNE) exec demo/server/server.exe --display-separate-messages --no-print-directory
 
 .PHONY: demo-watch
 demo-watch: ## Run demo executable in watch mode
+	$(DUNE) build demo
 	$(DUNE) exec demo/server/server.exe --display-separate-messages --no-print-directory --display=quiet --watch
 
 .PHONY: subst
