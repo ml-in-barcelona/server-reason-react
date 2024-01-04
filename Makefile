@@ -73,7 +73,7 @@ pin: ## Pin dependencies
 	opam pin add melange-webapi.dev "git+https://github.com/melange-community/melange-webapi.git#master" -y
 
 .PHONY: init
-init: setup-githooks create-switch install pin ## Create a local dev enviroment
+init: setup-githooks create-switch pin install ## Create a local dev enviroment
 
 .PHONY: ppx-test
 ppx-test: ## Run ppx tests
@@ -91,14 +91,16 @@ ppx-test-promote: ## Prommote ppx tests snapshots
 lib-test: ## Run library tests
 	$(DUNE) exec test/test.exe
 
-.PHONY: demo
-demo: ## Run demo executable
+.PHONY: build-demo
+build-demo: ## Build demo folder
 	$(DUNE) build demo
+
+.PHONY: demo
+demo: build-demo ## Run demo executable
 	$(DUNE) exec demo/server/server.exe --display-separate-messages --no-print-directory
 
 .PHONY: demo-watch
-demo-watch: ## Run demo executable in watch mode
-	$(DUNE) build demo
+demo-watch: build-demo ## Run demo executable in watch mode
 	$(DUNE) exec demo/server/server.exe --display-separate-messages --no-print-directory --display=quiet --watch
 
 .PHONY: subst
