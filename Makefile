@@ -13,7 +13,7 @@ help: ## Print this help message
 
 .PHONY: build
 build: ## Build the project, including non installable libraries and executables
-	$(DUNE) build packages
+	$(DUNE) build packages --profile=env
 
 .PHONY: build-prod
 build-prod: ## Build for production (--profile=prod)
@@ -21,7 +21,7 @@ build-prod: ## Build for production (--profile=prod)
 
 .PHONY: dev
 dev: ## Build in watch mode
-	$(DUNE) build -w @all
+	$(DUNE) build -w --profile=env @all
 
 .PHONY: clean
 clean: ## Clean artifacts
@@ -91,16 +91,12 @@ ppx-test-promote: ## Prommote ppx tests snapshots
 lib-test: ## Run library tests
 	$(DUNE) exec test/test.exe
 
-.PHONY: build-demo
-build-demo: ## Build demo folder
-	$(DUNE) build demo
-
 .PHONY: demo
-demo: build-demo ## Run demo executable
+demo: build ## Run demo executable
 	$(DUNE) exec demo/server/server.exe --display-separate-messages --no-print-directory
 
 .PHONY: demo-watch
-demo-watch: build-demo ## Run demo executable in watch mode
+demo-watch: build ## Run demo executable in watch mode
 	$(DUNE) exec demo/server/server.exe --display-separate-messages --no-print-directory --display=quiet --watch
 
 .PHONY: subst

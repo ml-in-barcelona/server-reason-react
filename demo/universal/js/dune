@@ -6,4 +6,4 @@
  (preprocess
   (pps melange.ppx reason-react-ppx browser_ppx -js)))
 
-(copy_files# "../native/lib/*.re")
+(copy_files "../native/lib/*.re")
