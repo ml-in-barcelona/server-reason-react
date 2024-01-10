@@ -1359,7 +1359,7 @@ module Dict : Dictionary = struct
   let unsafeDeleteKey (dict : 'a t) (key : key) = Hashtbl.remove dict key
 end
 
-module Global = struct
+module Global : sig
   (** Contains functions available in the global scope
     ([window] in a browser context) *)
 
@@ -1369,12 +1369,26 @@ module Global = struct
   type timeoutId
   (** Identify timeout started by {! setTimeout} *)
 
+  val clearInterval : intervalId -> unit
+  val clearTimeout : timeoutId -> unit
+  val setInterval : f:(unit -> unit) -> int -> intervalId
+  val setIntervalFloat : f:(unit -> unit) -> float -> intervalId
+  val setTimeout : f:(unit -> unit) -> int -> timeoutId
+  val setTimeoutFloat : f:(unit -> unit) -> float -> timeoutId
+  val encodeURI : string -> string
+  val decodeURI : string -> string
+  val encodeURIComponent : string -> string
+  val decodeURIComponent : string -> string
+end = struct
+  type intervalId
+  type timeoutId
+
   let clearInterval _intervalId = notImplemented "Js.Global" "clearInterval"
   let clearTimeout _timeoutId = notImplemented "Js.Global" "clearTimeout"
-  let setInterval _ _ = notImplemented "Js.Global" "setInterval"
-  let setIntervalFloat _ _ = notImplemented "Js.Global" "setInterval"
-  let setTimeout _ _ = notImplemented "Js.Global" "setTimeout"
-  let setTimeoutFloat _ _ = notImplemented "Js.Global" "setTimeout"
+  let setInterval ~f:_ _ = notImplemented "Js.Global" "setInterval"
+  let setIntervalFloat ~f:_ _ = notImplemented "Js.Global" "setInterval"
+  let setTimeout ~f:_ _ = notImplemented "Js.Global" "setTimeout"
+  let setTimeoutFloat ~f:_ _ = notImplemented "Js.Global" "setTimeout"
   let encodeURI _string = notImplemented "Js.Global" "encodeURI"
   let decodeURI _string = notImplemented "Js.Global" "decodeURI"
 

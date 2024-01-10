@@ -843,43 +843,43 @@ module Global : sig
   type intervalId
   type timeoutId
 
-  val clearInterval : 'a -> 'b
+  val clearInterval : intervalId -> unit
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val clearTimeout : 'a -> 'b
+  val clearTimeout : timeoutId -> unit
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setInterval : 'a -> 'b -> 'c
+  val setInterval : f:(unit -> unit) -> int -> intervalId
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setIntervalFloat : 'a -> 'b -> 'c
+  val setIntervalFloat : f:(unit -> unit) -> float -> intervalId
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setTimeout : 'a -> 'b -> 'c
+  val setTimeout : f:(unit -> unit) -> int -> timeoutId
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setTimeoutFloat : 'a -> 'b -> 'c
+  val setTimeoutFloat : f:(unit -> unit) -> float -> timeoutId
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val encodeURI : 'a -> 'b
+  val encodeURI : string -> string
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val decodeURI : 'a -> 'b
+  val decodeURI : string -> string
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val encodeURIComponent : 'a -> 'b
+  val encodeURIComponent : string -> string
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val decodeURIComponent : 'a -> 'b
+  val decodeURIComponent : string -> string
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 end
