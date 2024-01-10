@@ -1551,33 +1551,6 @@ module Bigint = struct
   (** Provide utilities for bigint *)
 end
 
-module List = struct
-  type 'a t = 'a list
-  (** Provide utilities for list *)
-
-  let length _ = notImplemented "Js.List" "length"
-  let cons _ = notImplemented "Js.List" "cons"
-  let isEmpty _ = notImplemented "Js.List" "isEmpty"
-  let hd _ = notImplemented "Js.List" "hd"
-  let tl _ = notImplemented "Js.List" "tl"
-  let nth _ = notImplemented "Js.List" "nth"
-  let revAppend _ = notImplemented "Js.List" "revAppend"
-  let rev _ = notImplemented "Js.List" "rev"
-  let mapRev _ = notImplemented "Js.List" "mapRev"
-  let map _ _ = notImplemented "Js.List" "map"
-  let iter _ _ = notImplemented "Js.List" "iter"
-  let iteri _ _ = notImplemented "Js.List" "iteri"
-  let foldLeft _ _ _ = notImplemented "Js.List" "foldLeft"
-  let foldRight _ _ _ = notImplemented "Js.List" "foldRight"
-  let flatten _ = notImplemented "Js.List" "flatten"
-  let filter _ _ = notImplemented "Js.List" "filter"
-  let filterMap _ _ = notImplemented "Js.List" "filterMap"
-  let countBy _ _ = notImplemented "Js.List" "countBy"
-  let init _ _ = notImplemented "Js.List" "init"
-  let toVector _ = notImplemented "Js.List" "toVector"
-  let equal _ _ = notImplemented "Js.List" "equal"
-end
-
 module Vector = struct
   (** Provide utilities for Vector *)
 
