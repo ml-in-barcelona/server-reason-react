@@ -1486,7 +1486,67 @@ module Json = struct
     notImplemented "Js.Json" "mplemented"
 end
 
-module Math = struct
+module Math : sig
+  val _E : float
+  val _LN2 : float
+  val _LN10 : float
+  val _LOG2E : float
+  val _LOG10E : float
+  val _PI : float
+  val _SQRT1_2 : float
+  val _SQRT2 : float
+  val abs_int : int -> int
+  val abs_float : float -> float
+  val acos : float -> float
+  val acosh : float -> float
+  val asin : float -> float
+  val asinh : float -> float
+  val atan : float -> float
+  val atanh : float -> float
+  val atan2 : y:float -> x:float -> float
+  val cbrt : float -> float
+  val unsafe_ceil_int : float -> int
+  val ceil_int : float -> int
+  val ceil_float : float -> float
+  val clz32 : int -> int
+  val cos : float -> float
+  val cosh : float -> float
+  val exp : float -> float
+  val expm1 : float -> float
+  val unsafe_floor_int : float -> int
+  val floor_int : float -> int
+  val floor_float : float -> float
+  val fround : float -> float
+  val hypot : float -> float -> float
+  val hypotMany : float array -> float
+  val imul : int -> int -> int
+  val log : float -> float
+  val log1p : float -> float
+  val log10 : float -> float
+  val log2 : float -> float
+  val max_int : int -> int -> int
+  val maxMany_int : int array -> int
+  val max_float : float -> float -> float
+  val maxMany_float : float array -> float
+  val min_int : int -> int -> int
+  val minMany_int : int array -> int
+  val min_float : float -> float -> float
+  val minMany_float : float array -> float
+  val pow_float : base:float -> exp:float -> float
+  val random : unit -> float
+  val random_int : int -> int -> int
+  val unsafe_round : float -> int
+  val round : float -> float
+  val sign_int : int -> int
+  val sign_float : float -> float
+  val sin : float -> float
+  val sinh : float -> float
+  val sqrt : float -> float
+  val tan : float -> float
+  val tanh : float -> float
+  val unsafe_trunc : float -> int
+  val trunc : float -> float
+end = struct
   (** JavaScript Math API *)
 
   (** Euler's number *)
@@ -1526,9 +1586,7 @@ module Math = struct
   let atan2 ~y:_ ~x:_ = notImplemented "Js.Math" "atan2"
   let cbrt _ = notImplemented "Js.Math" "cbrt"
   let unsafe_ceil_int _ = notImplemented "Js.Math" "unsafe_ceil_int"
-  let unsafe_ceil _ = notImplemented "Js.Math" "unsafe_ceil"
-  let ceil_int _ _ = notImplemented "Js.Math" "ceil_int"
-  let ceil _ = notImplemented "Js.Math" "ceil"
+  let ceil_int _ = notImplemented "Js.Math" "ceil_int"
   let ceil_float _ = notImplemented "Js.Math" "ceil_float"
   let clz32 _ = notImplemented "Js.Math" "clz32"
   let cos _ = notImplemented "Js.Math" "cos"
@@ -1536,27 +1594,24 @@ module Math = struct
   let exp _ = notImplemented "Js.Math" "exp"
   let expm1 _ = notImplemented "Js.Math" "expm1"
   let unsafe_floor_int _ = notImplemented "Js.Math" "unsafe_floor_int"
-  let unsafe_floor _ = notImplemented "Js.Math" "unsafe_floor"
   let floor_int _f = notImplemented "Js.Math" "floor_int"
-  let floor _ = notImplemented "Js.Math" "floor"
   let floor_float _ = notImplemented "Js.Math" "floor_float"
   let fround _ = notImplemented "Js.Math" "fround"
   let hypot _ = notImplemented "Js.Math" "hypot"
-  let hypotMany _ _array = notImplemented "Js.Math" "hypotMany"
+  let hypotMany _ = notImplemented "Js.Math" "hypotMany"
   let imul _ = notImplemented "Js.Math" "imul"
   let log _ = notImplemented "Js.Math" "log"
   let log1p _ = notImplemented "Js.Math" "log1p"
   let log10 _ = notImplemented "Js.Math" "log10"
   let log2 _ = notImplemented "Js.Math" "log2"
   let max_int _ = notImplemented "Js.Math" "max_int"
-  let maxMany_int _ _array = notImplemented "Js.Math" "maxMany_int"
+  let maxMany_int _ = notImplemented "Js.Math" "maxMany_int"
   let max_float _ = notImplemented "Js.Math" "max_float"
-  let maxMany_float _ _array = notImplemented "Js.Math" "maxMany_float"
+  let maxMany_float _ = notImplemented "Js.Math" "maxMany_float"
   let min_int _ = notImplemented "Js.Math" "min_int"
-  let minMany_int _ _array = notImplemented "Js.Math" "minMany_int"
+  let minMany_int _ = notImplemented "Js.Math" "minMany_int"
   let min_float _ = notImplemented "Js.Math" "min_float"
-  let minMany_float _ _array = notImplemented "Js.Math" "minMany_float"
-  let pow_int ~base:_ ~exp:_ = notImplemented "Js.Math" "pow_int"
+  let minMany_float _ = notImplemented "Js.Math" "minMany_float"
   let pow_float ~base:_ ~exp:_ = notImplemented "Js.Math" "pow_float"
   let random _ = notImplemented "Js.Math" "random"
   let random_int _min _max = notImplemented "Js.Math" "random_int"

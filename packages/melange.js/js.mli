@@ -1055,227 +1055,207 @@ module Math : sig
   val _SQRT1_2 : float
   val _SQRT2 : float
 
-  val abs_int : 'a -> 'b
+  val abs_int : int -> int
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val abs_float : 'a -> 'b
+  val abs_float : float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val acos : 'a -> 'b
+  val acos : float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val acosh : 'a -> 'b
+  val acosh : float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val asin : 'a -> 'b
+  val asin : float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val asinh : 'a -> 'b
+  val asinh : float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val atan : 'a -> 'b
+  val atan : float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val atanh : 'a -> 'b
+  val atanh : float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val atan2 : y:'a -> x:'b -> 'c
+  val atan2 : y:float -> x:float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val cbrt : 'a -> 'b
+  val cbrt : float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val unsafe_ceil_int : 'a -> 'b
+  val unsafe_ceil_int : float -> int
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val unsafe_ceil : 'a -> 'b
+  val ceil_int : float -> int
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val ceil_int : 'a -> 'b -> 'c
+  val ceil_float : float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val ceil : 'a -> 'b
+  val clz32 : int -> int
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val ceil_float : 'a -> 'b
+  val cos : float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val clz32 : 'a -> 'b
+  val cosh : float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val cos : 'a -> 'b
+  val exp : float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val cosh : 'a -> 'b
+  val expm1 : float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val exp : 'a -> 'b
+  val unsafe_floor_int : float -> int
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val expm1 : 'a -> 'b
+  val floor_int : float -> int
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val unsafe_floor_int : 'a -> 'b
+  val floor_float : float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val unsafe_floor : 'a -> 'b
+  val fround : float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val floor_int : 'a -> 'b
+  val hypot : float -> float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val floor : 'a -> 'b
+  val hypotMany : float array -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val floor_float : 'a -> 'b
+  val imul : int -> int -> int
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val fround : 'a -> 'b
+  val log : float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val hypot : 'a -> 'b
+  val log1p : float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val hypotMany : 'a -> 'b -> 'c
+  val log10 : float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val imul : 'a -> 'b
+  val log2 : float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val log : 'a -> 'b
+  val max_int : int -> int -> int
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val log1p : 'a -> 'b
+  val maxMany_int : int array -> int
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val log10 : 'a -> 'b
+  val max_float : float -> float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val log2 : 'a -> 'b
+  val maxMany_float : float array -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val max_int : 'a -> 'b
+  val min_int : int -> int -> int
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val maxMany_int : 'a -> 'b -> 'c
+  val minMany_int : int array -> int
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val max_float : 'a -> 'b
+  val min_float : float -> float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val maxMany_float : 'a -> 'b -> 'c
+  val minMany_float : float array -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val min_int : 'a -> 'b
+  val pow_float : base:float -> exp:float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val minMany_int : 'a -> 'b -> 'c
+  val random : unit -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val min_float : 'a -> 'b
+  val random_int : int -> int -> int
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val minMany_float : 'a -> 'b -> 'c
+  val unsafe_round : float -> int
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val pow_int : base:'a -> exp:'b -> 'c
+  val round : float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val pow_float : base:'a -> exp:'b -> 'c
+  val sign_int : int -> int
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val random : 'a -> 'b
+  val sign_float : float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val random_int : 'a -> 'b -> 'c
+  val sin : float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val unsafe_round : 'a -> 'b
+  val sinh : float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val round : 'a -> 'b
+  val sqrt : float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val sign_int : 'a -> 'b
+  val tan : float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val sign_float : 'a -> 'b
+  val tanh : float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val sin : 'a -> 'b
+  val unsafe_trunc : float -> int
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val sinh : 'a -> 'b
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val sqrt : 'a -> 'b
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val tan : 'a -> 'b
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val tanh : 'a -> 'b
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val unsafe_trunc : 'a -> 'b
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val trunc : 'a -> 'b
+  val trunc : float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 end
