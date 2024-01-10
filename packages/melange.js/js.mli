@@ -444,351 +444,336 @@ end
 module Date : sig
   type t
 
-  val valueOf : 'a -> 'b
+  val valueOf : t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val make : 'a -> 'b
+  val make : unit -> t
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val fromFloat : 'a -> 'b
+  val fromString : string -> t
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val fromString : 'a -> 'b
+  val makeWithYM : year:float -> month:float -> t
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val makeWithYM : year:'a -> month:'b -> 'c -> 'd
+  val makeWithYMD : year:float -> month:float -> date:float -> t
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val makeWithYMD : year:'a -> month:'b -> date:'c -> 'd -> 'e
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val makeWithYMDH : year:'a -> month:'b -> date:'c -> hours:'d -> 'e -> 'f
+  val makeWithYMDH : year:float -> month:float -> date:float -> hours:float -> t
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
   val makeWithYMDHM :
-    year:'a -> month:'b -> date:'c -> hours:'d -> minutes:'e -> 'f -> 'g -> 'h
+    year:float -> month:float -> date:float -> hours:float -> minutes:float -> t
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
   val makeWithYMDHMS :
-    year:'a ->
-    month:'b ->
-    date:'c ->
-    hours:'d ->
-    minutes:'e ->
-    seconds:'f ->
-    'g ->
-    'h ->
-    'i
+    year:float ->
+    month:float ->
+    date:float ->
+    hours:float ->
+    minutes:float ->
+    seconds:float ->
+    t
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val utcWithYM : year:'a -> month:'b -> 'c -> 'd
+  val utcWithYM : year:float -> month:float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val utcWithYMD : year:'a -> month:'b -> date:'c -> 'd -> 'e
+  val utcWithYMD : year:float -> month:float -> date:float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val utcWithYMDH : year:'a -> month:'b -> date:'c -> hours:'d -> 'e -> 'f
+  val utcWithYMDH :
+    year:float -> month:float -> date:float -> hours:float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
   val utcWithYMDHM :
-    year:'a -> month:'b -> date:'c -> hours:'d -> minutes:'e -> 'f -> 'g -> 'h
+    year:float ->
+    month:float ->
+    date:float ->
+    hours:float ->
+    minutes:float ->
+    float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
   val utcWithYMDHMS :
-    year:'a ->
-    month:'b ->
-    date:'c ->
-    hours:'d ->
-    minutes:'e ->
-    seconds:'f ->
-    'g ->
-    'h ->
-    'i
+    year:float ->
+    month:float ->
+    date:float ->
+    hours:float ->
+    minutes:float ->
+    seconds:float ->
+    float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val now : 'a -> 'b
+  val parseAsFloat : string -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val parse : 'a -> 'b
+  val getDate : t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val parseAsFloat : 'a -> 'b
+  val getDay : t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val getDate : 'a -> 'b -> 'c
+  val getFullYear : t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val getDay : 'a -> 'b -> 'c
+  val getHours : t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val getFullYear : 'a -> 'b -> 'c
+  val getMilliseconds : t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val getHours : 'a -> 'b -> 'c
+  val getMinutes : t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val getMilliseconds : 'a -> 'b -> 'c
+  val getMonth : t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val getMinutes : 'a -> 'b -> 'c
+  val getSeconds : t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val getMonth : 'a -> 'b -> 'c
+  val getTime : t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val getSeconds : 'a -> 'b -> 'c
+  val getTimezoneOffset : t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val getTime : 'a -> 'b -> 'c
+  val getUTCDate : t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val getTimezoneOffset : 'a -> 'b -> 'c
+  val getUTCDay : t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val getUTCDate : 'a -> 'b -> 'c
+  val getUTCFullYear : t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val getUTCDay : 'a -> 'b -> 'c
+  val getUTCHours : t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val getUTCFullYear : 'a -> 'b -> 'c
+  val getUTCMilliseconds : t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val getUTCHours : 'a -> 'b -> 'c
+  val getUTCMinutes : t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val getUTCMilliseconds : 'a -> 'b -> 'c
+  val getUTCMonth : t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val getUTCMinutes : 'a -> 'b -> 'c
+  val getUTCSeconds : t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val getUTCMonth : 'a -> 'b -> 'c
+  val setDate : float -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val getUTCSeconds : 'a -> 'b -> 'c
+  val setFullYear : float -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val getYear : 'a -> 'b -> 'c
+  val setFullYearM : year:float -> month:float -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setDate : 'a -> 'b -> 'c
+  val setFullYearMD : year:float -> month:float -> date:float -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setFullYear : 'a -> 'b -> 'c
+  val setHours : float -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setFullYearM : 'a -> year:'b -> month:'c -> 'd -> 'e
+  val setHoursM : hours:float -> minutes:float -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setFullYearMD : 'a -> year:'b -> month:'c -> date:'d -> 'e -> 'f
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val setHours : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val setHoursM : 'a -> hours:'b -> minutes:'c -> 'd
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val setHoursMS : 'a -> hours:'b -> minutes:'c -> 'd
+  val setHoursMS : hours:float -> minutes:float -> seconds:float -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
   val setHoursMSMs :
-    'a -> hours:'b -> minutes:'c -> seconds:'d -> milliseconds:'e -> 'f -> 'g
-
-  val setMilliseconds : 'a -> 'b -> 'c
+    hours:float ->
+    minutes:float ->
+    seconds:float ->
+    milliseconds:float ->
+    t ->
+    float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setMinutes : 'a -> 'b -> 'c
+  val setMinutes : float -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setMinutesS : 'a -> minutes:'b -> 'c
+  val setMinutesS : minutes:float -> seconds:float -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setMinutesSMs : 'a -> minutes:'b -> 'c
+  val setMinutesSMs :
+    minutes:float -> seconds:float -> milliseconds:float -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setMonth : 'a -> 'b -> 'c
+  val setMonthD : month:float -> date:float -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setMonthD : 'a -> month:'b -> date:'c -> 'd -> 'e
+  val setSeconds : float -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setSeconds : 'a -> 'b -> 'c
+  val setSecondsMs : seconds:float -> milliseconds:float -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setSecondsMs : 'a -> seconds:'b -> milliseconds:'c -> 'd -> 'e
+  val setTime : float -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setTime : 'a -> 'b -> 'c
+  val setUTCDate : float -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setUTCDate : 'a -> 'b -> 'c
+  val setUTCFullYear : float -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setUTCFullYear : 'a -> 'b -> 'c
+  val setUTCFullYearM : year:float -> month:float -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setUTCFullYearM : 'a -> year:'b -> month:'c -> 'd -> 'e
+  val setUTCFullYearMD : year:float -> month:float -> date:float -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setUTCFullYearMD : 'a -> year:'b -> month:'c -> date:'d -> 'e -> 'f
+  val setUTCHours : float -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setUTCHours : 'a -> 'b -> 'c
+  val setUTCHoursM : hours:float -> minutes:float -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setUTCHoursM : 'a -> hours:'b -> minutes:'c -> 'd
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val setUTCHoursMS : 'a -> hours:'b -> minutes:'c -> 'd
+  val setUTCHoursMS :
+    hours:float -> minutes:float -> seconds:float -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
   val setUTCHoursMSMs :
-    'a -> hours:'b -> minutes:'c -> seconds:'d -> milliseconds:'e -> 'f -> 'g
+    hours:float ->
+    minutes:float ->
+    seconds:float ->
+    milliseconds:float ->
+    t ->
+    float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setUTCMilliseconds : 'a -> 'b -> 'c
+  val setUTCMilliseconds : float -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setUTCMinutes : 'a -> 'b -> 'c
+  val setUTCMinutes : float -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setUTCMinutesS : 'a -> minutes:'b -> 'c
+  val setUTCMinutesS : minutes:float -> seconds:float -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setUTCMinutesSMs : 'a -> minutes:'b -> 'c
+  val setUTCMinutesSMs :
+    minutes:float -> seconds:float -> milliseconds:float -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setUTCMonth : 'a -> 'b -> 'c
+  val setUTCMonth : float -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setUTCMonthD : 'a -> month:'b -> date:'c -> 'd -> 'e
+  val setUTCMonthD : month:float -> date:float -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setUTCSeconds : 'a -> 'b -> 'c
+  val setUTCSeconds : float -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setUTCSecondsMs : 'a -> seconds:'b -> 'c
+  val setUTCSecondsMs : seconds:float -> milliseconds:float -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setUTCTime : 'a -> 'b -> 'c
+  val setUTCTime : float -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setYear : 'a -> 'b -> 'c
+  val toDateString : t -> string
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val toDateString : 'a -> 'b -> 'c
+  val toISOString : t -> string
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val toGMTString : 'a -> 'b -> 'c
+  val toJSON : t -> string option
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val toISOString : 'a -> 'b -> 'c
+  val toJSONUnsafe : t -> string
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val toJSON : 'a -> 'b -> 'c
+  val toLocaleDateString : t -> string
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val toJSONUnsafe : 'a -> 'b -> 'c
+  val toLocaleString : t -> string
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val toLocaleDateString : 'a -> 'b -> 'c
+  val toLocaleTimeString : t -> string
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val toLocaleString : 'a -> 'b -> 'c
+  val toString : t -> string
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val toLocaleTimeString : 'a -> 'b -> 'c
+  val toTimeString : t -> string
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val toString : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val toTimeString : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val toUTCString : 'a -> 'b -> 'c
+  val toUTCString : t -> string
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 end
@@ -1351,94 +1336,6 @@ module Int : sig
 end
 
 module Bigint : sig end
-
-module List : sig
-  type 'a t = 'a list
-
-  val length : 'a -> 'b
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val cons : 'a -> 'b
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val isEmpty : 'a -> 'b
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val hd : 'a -> 'b
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val tl : 'a -> 'b
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val nth : 'a -> 'b
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val revAppend : 'a -> 'b
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val rev : 'a -> 'b
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val mapRev : 'a -> 'b
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val map : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val iter : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val iteri : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val foldLeft : 'a -> 'b -> 'c -> 'd
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val foldRight : 'a -> 'b -> 'c -> 'd
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val flatten : 'a -> 'b
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val filter : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val filterMap : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val countBy : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val init : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val toVector : 'a -> 'b
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val equal : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-end
 
 module Vector : sig
   type 'a t = 'a array
