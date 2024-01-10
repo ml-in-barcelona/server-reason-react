@@ -1352,58 +1352,6 @@ end
 
 module Bigint : sig end
 
-module Option : sig
-  type 'a t = 'a nullable
-
-  val some : 'a -> 'b
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val isSome : 'a -> 'b
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val isSomeValue : 'a -> 'b -> 'c -> 'd
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val isNone : 'a -> 'b
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val getExn : 'a -> 'b
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val equal : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val andThen : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val map : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val getWithDefault : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val default : 'a -> 'b
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val filter : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val firstSome : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-end
-
 module List : sig
   type 'a t = 'a list
 

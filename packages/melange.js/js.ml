@@ -1551,25 +1551,6 @@ module Bigint = struct
   (** Provide utilities for bigint *)
 end
 
-module Option = struct
-  (** Provide utilities for option *)
-
-  type 'a t = 'a option
-
-  let some _ = notImplemented "Js.Option" "some"
-  let isSome _ = notImplemented "Js.Option" "isSome"
-  let isSomeValue _ _ _ = notImplemented "Js.Option" "isSomeValue"
-  let isNone _ = notImplemented "Js.Option" "isNone"
-  let getExn _ = notImplemented "Js.Option" "getExn"
-  let equal _ _ = notImplemented "Js.Option" "equal"
-  let andThen _ _ = notImplemented "Js.Option" "andThen"
-  let map _ _ = notImplemented "Js.Option" "map"
-  let getWithDefault _ _ = notImplemented "Js.Option" "getWithDefault"
-  let default _ = notImplemented "Js.Option" "default"
-  let filter _ _ = notImplemented "Js.Option" "filter"
-  let firstSome _ _ = notImplemented "Js.Option" "firstSome"
-end
-
 module List = struct
   type 'a t = 'a list
   (** Provide utilities for list *)
