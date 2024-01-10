@@ -1007,7 +1007,137 @@ module Promise = struct
     Lwt.catch (fun () -> promise) handler
 end
 
-module Date = struct
+module Date : sig
+  type t
+
+  val valueOf : t -> float
+  val make : unit -> t
+  val fromString : string -> t
+  val makeWithYM : year:float -> month:float -> t
+  val makeWithYMD : year:float -> month:float -> date:float -> t
+  val makeWithYMDH : year:float -> month:float -> date:float -> hours:float -> t
+
+  val makeWithYMDHM :
+    year:float -> month:float -> date:float -> hours:float -> minutes:float -> t
+
+  val makeWithYMDHMS :
+    year:float ->
+    month:float ->
+    date:float ->
+    hours:float ->
+    minutes:float ->
+    seconds:float ->
+    t
+
+  val utcWithYM : year:float -> month:float -> float
+  val utcWithYMD : year:float -> month:float -> date:float -> float
+
+  val utcWithYMDH :
+    year:float -> month:float -> date:float -> hours:float -> float
+
+  val utcWithYMDHM :
+    year:float ->
+    month:float ->
+    date:float ->
+    hours:float ->
+    minutes:float ->
+    float
+
+  val utcWithYMDHMS :
+    year:float ->
+    month:float ->
+    date:float ->
+    hours:float ->
+    minutes:float ->
+    seconds:float ->
+    float
+
+  val parseAsFloat : string -> float
+  val getDate : t -> float
+  val getDay : t -> float
+  val getFullYear : t -> float
+  val getHours : t -> float
+  val getMilliseconds : t -> float
+  val getMinutes : t -> float
+  val getMonth : t -> float
+  val getSeconds : t -> float
+  val getTime : t -> float
+  val getTimezoneOffset : t -> float
+  val getUTCDate : t -> float
+  val getUTCDay : t -> float
+  val getUTCFullYear : t -> float
+  val getUTCHours : t -> float
+  val getUTCMilliseconds : t -> float
+  val getUTCMinutes : t -> float
+  val getUTCMonth : t -> float
+  val getUTCSeconds : t -> float
+  val setDate : float -> t -> float
+  val setFullYear : float -> t -> float
+  val setFullYearM : year:float -> month:float -> t -> float
+  val setFullYearMD : year:float -> month:float -> date:float -> t -> float
+  val setHours : float -> t -> float
+  val setHoursM : hours:float -> minutes:float -> t -> float
+  val setHoursMS : hours:float -> minutes:float -> seconds:float -> t -> float
+
+  val setHoursMSMs :
+    hours:float ->
+    minutes:float ->
+    seconds:float ->
+    milliseconds:float ->
+    t ->
+    float
+
+  val setMinutes : float -> t -> float
+  val setMinutesS : minutes:float -> seconds:float -> t -> float
+
+  val setMinutesSMs :
+    minutes:float -> seconds:float -> milliseconds:float -> t -> float
+
+  val setMonthD : month:float -> date:float -> t -> float
+  val setSeconds : float -> t -> float
+  val setSecondsMs : seconds:float -> milliseconds:float -> t -> float
+  val setTime : float -> t -> float
+  val setUTCDate : float -> t -> float
+  val setUTCFullYear : float -> t -> float
+  val setUTCFullYearM : year:float -> month:float -> t -> float
+  val setUTCFullYearMD : year:float -> month:float -> date:float -> t -> float
+  val setUTCHours : float -> t -> float
+  val setUTCHoursM : hours:float -> minutes:float -> t -> float
+
+  val setUTCHoursMS :
+    hours:float -> minutes:float -> seconds:float -> t -> float
+
+  val setUTCHoursMSMs :
+    hours:float ->
+    minutes:float ->
+    seconds:float ->
+    milliseconds:float ->
+    t ->
+    float
+
+  val setUTCMilliseconds : float -> t -> float
+  val setUTCMinutes : float -> t -> float
+  val setUTCMinutesS : minutes:float -> seconds:float -> t -> float
+
+  val setUTCMinutesSMs :
+    minutes:float -> seconds:float -> milliseconds:float -> t -> float
+
+  val setUTCMonth : float -> t -> float
+  val setUTCMonthD : month:float -> date:float -> t -> float
+  val setUTCSeconds : float -> t -> float
+  val setUTCSecondsMs : seconds:float -> milliseconds:float -> t -> float
+  val setUTCTime : float -> t -> float
+  val toDateString : t -> string
+  val toISOString : t -> string
+  val toJSON : t -> string option
+  val toJSONUnsafe : t -> string
+  val toLocaleDateString : t -> string
+  val toLocaleString : t -> string
+  val toLocaleTimeString : t -> string
+  val toString : t -> string
+  val toTimeString : t -> string
+  val toUTCString : t -> string
+end = struct
   type t
   (** Provide bindings for JS Date *)
 
@@ -1019,34 +1149,32 @@ module Date = struct
 
   let fromFloat _ = notImplemented "Js.Date" "fromFloat"
   let fromString _ = notImplemented "Js.Date" "fromString"
-  let makeWithYM ~year:_ ~month:_ _ = notImplemented "Js.Date" "makeWithYM"
+  let makeWithYM ~year:_ ~month:_ = notImplemented "Js.Date" "makeWithYM"
 
-  let makeWithYMD ~year:_ ~month:_ ~date:_ _ =
+  let makeWithYMD ~year:_ ~month:_ ~date:_ =
     notImplemented "Js.Date" "makeWithYMD"
 
-  let makeWithYMDH ~year:_ ~month:_ ~date:_ ~hours:__ _ =
+  let makeWithYMDH ~year:_ ~month:_ ~date:_ ~hours:_ =
     notImplemented "Js.Date" "makeWithYMDH"
 
-  let makeWithYMDHM ~year:_ ~month:_ ~date:_ ~hours:_ ~minutes:_ _ t =
+  let makeWithYMDHM ~year:_ ~month:_ ~date:_ ~hours:_ ~minutes:_ =
     notImplemented "Js.Date" "makeWithYMDHM"
 
-  let makeWithYMDHMS ~year:_ ~month:_ ~date:_ ~hours:_ ~minutes:_ ~seconds:_ _ t
-      =
+  let makeWithYMDHMS ~year:_ ~month:_ ~date:_ ~hours:_ ~minutes:_ ~seconds:_ =
     notImplemented "Js.Date" "makeWithYMDHMS"
 
-  let utcWithYM ~year:_ ~month:_ _ = notImplemented "Js.Date" "utcWithYM"
+  let utcWithYM ~year:_ ~month:_ = notImplemented "Js.Date" "utcWithYM"
 
-  let utcWithYMD ~year:_ ~month:_ ~date:_ _ =
+  let utcWithYMD ~year:_ ~month:_ ~date:_ =
     notImplemented "Js.Date" "utcWithYMD"
 
-  let utcWithYMDH ~year:_ ~month:_ ~date:_ ~hours:__ _ =
+  let utcWithYMDH ~year:_ ~month:_ ~date:_ ~hours:_ =
     notImplemented "Js.Date" "utcWithYMDH"
 
-  let utcWithYMDHM ~year:_ ~month:_ ~date:_ ~hours:_ ~minutes:_ _ float =
+  let utcWithYMDHM ~year:_ ~month:_ ~date:_ ~hours:_ ~minutes:_ =
     notImplemented "Js.Date" "utcWithYMDHM"
 
-  let utcWithYMDHMS ~year:_ ~month:_ ~date:_ ~hours:_ ~minutes:_ ~seconds:_ _
-      float =
+  let utcWithYMDHMS ~year:_ ~month:_ ~date:_ ~hours:_ ~minutes:_ ~seconds:_ =
     notImplemented "Js.Date" "utcWithYMDHMS"
 
   (** returns the number of milliseconds since Unix epoch *)
@@ -1058,131 +1186,113 @@ module Date = struct
   let parseAsFloat _ = notImplemented "Js.Date" "parseAsFloat"
 
   (** return the day of the month (1-31) *)
-  let getDate _ _float = notImplemented "Js.Date" "getDate"
+  let getDate _ = notImplemented "Js.Date" "getDate"
 
   (** returns the day of the week (0-6) *)
-  let getDay _ _float = notImplemented "Js.Date" "getDay"
+  let getDay _ = notImplemented "Js.Date" "getDay"
 
-  let getFullYear _ _float = notImplemented "Js.Date" "getFullYear"
-  let getHours _ _float = notImplemented "Js.Date" "getHours"
-  let getMilliseconds _ _float = notImplemented "Js.Date" "getMilliseconds"
-  let getMinutes _ _float = notImplemented "Js.Date" "getMinutes"
+  let getFullYear _ = notImplemented "Js.Date" "getFullYear"
+  let getHours _ = notImplemented "Js.Date" "getHours"
+  let getMilliseconds _ = notImplemented "Js.Date" "getMilliseconds"
+  let getMinutes _ = notImplemented "Js.Date" "getMinutes"
 
   (** returns the month (0-11) *)
-  let getMonth _ _float = notImplemented "Js.Date" "getMonth"
+  let getMonth _ = notImplemented "Js.Date" "getMonth"
 
-  let getSeconds _ _float = notImplemented "Js.Date" "getSeconds"
+  let getSeconds _ = notImplemented "Js.Date" "getSeconds"
 
   (** returns the number of milliseconds since Unix epoch *)
-  let getTime _ _float = notImplemented "Js.Date" "getTime"
+  let getTime _ = notImplemented "Js.Date" "getTime"
 
-  let getTimezoneOffset _ _float = notImplemented "Js.Date" "getTimezoneOffset"
+  let getTimezoneOffset _ = notImplemented "Js.Date" "getTimezoneOffset"
 
   (** return the day of the month (1-31) *)
-  let getUTCDate _ _float = notImplemented "Js.Date" "getUTCDate"
+  let getUTCDate _ = notImplemented "Js.Date" "getUTCDate"
 
   (** returns the day of the week (0-6) *)
-  let getUTCDay _ _float = notImplemented "Js.Date" "getUTCDay"
+  let getUTCDay _ = notImplemented "Js.Date" "getUTCDay"
 
-  let getUTCFullYear _ _float = notImplemented "Js.Date" "getUTCFullYear"
-  let getUTCHours _ _float = notImplemented "Js.Date" "getUTCHours"
-
-  let getUTCMilliseconds _ _float =
-    notImplemented "Js.Date" "getUTCMilliseconds"
-
-  let getUTCMinutes _ _float = notImplemented "Js.Date" "getUTCMinutes"
+  let getUTCFullYear _ = notImplemented "Js.Date" "getUTCFullYear"
+  let getUTCHours _ = notImplemented "Js.Date" "getUTCHours"
+  let getUTCMilliseconds _ = notImplemented "Js.Date" "getUTCMilliseconds"
+  let getUTCMinutes _ = notImplemented "Js.Date" "getUTCMinutes"
 
   (** returns the month (0-11) *)
-  let getUTCMonth _ _float = notImplemented "Js.Date" "getUTCMonth"
+  let getUTCMonth _ = notImplemented "Js.Date" "getUTCMonth"
 
-  let getUTCSeconds _ _float = notImplemented "Js.Date" "getUTCSeconds"
-  let getYear _ _float = notImplemented "Js.Date" "getYear"
+  let getUTCSeconds _ = notImplemented "Js.Date" "getUTCSeconds"
+  let getYear _ = notImplemented "Js.Date" "getYear"
   let setDate _ _ = notImplemented "Js.Date" "setDate"
-  let setFullYear _ _float = notImplemented "Js.Date" "setFullYear"
+  let setFullYear _ = notImplemented "Js.Date" "setFullYear"
+  let setFullYearM ~year:_ ~month:_ = notImplemented "Js.Date" "setFullYearM"
 
-  let setFullYearM _ ~year:_ ~month:_ _ =
-    notImplemented "Js.Date" "setFullYearM"
-
-  let setFullYearMD _t ~year:_ ~month:_ ~date:_ _ =
+  let setFullYearMD ~year:_ ~month:_ ~date:_ =
     notImplemented "Js.Date" "setFullYearMD"
 
-  let setHours _ _float = notImplemented "Js.Date" "setHours"
-  let setHoursM t ~hours:_ ~minutes:_ = notImplemented "Js.Date" "setHoursM"
-  let setHoursMS _t ~hours:_ ~minutes:_ = notImplemented "Js.Date" "setHoursMS"
+  let setHours _ = notImplemented "Js.Date" "setHours"
+  let setHoursM ~hours:_ ~minutes:_ = notImplemented "Js.Date" "setHoursM"
+  let setHoursMS ~hours:_ ~minutes:_ = notImplemented "Js.Date" "setHoursMS"
 
-  let setHoursMSMs _t ~hours:_ ~minutes:_ ~seconds:_ ~milliseconds:_ _ =
+  let setHoursMSMs ~hours:_ ~minutes:_ ~seconds:_ ~milliseconds:_ _ =
     notImplemented "Js.Date" "setHoursMSMs"
 
-  let setMilliseconds _ _float = notImplemented "Js.Date" "setMilliseconds"
-  let setMinutes _ _float = notImplemented "Js.Date" "setMinutes"
-  let setMinutesS _ ~minutes:_ = notImplemented "Js.Date" "setMinutesS"
-  let setMinutesSMs _t ~minutes:_ = notImplemented "Js.Date" "setMinutesSMs"
-  let setMonth _ _float = notImplemented "Js.Date" "setMonth"
-  let setMonthD t ~month:_ ~date:_ _ = notImplemented "Js.Date" "setMonthD"
-  let setSeconds _ _float = notImplemented "Js.Date" "setSeconds"
+  let setMilliseconds _ = notImplemented "Js.Date" "setMilliseconds"
+  let setMinutes _ = notImplemented "Js.Date" "setMinutes"
+  let setMinutesS ~minutes:_ = notImplemented "Js.Date" "setMinutesS"
+  let setMinutesSMs ~minutes:_ = notImplemented "Js.Date" "setMinutesSMs"
+  let setMonth _ = notImplemented "Js.Date" "setMonth"
+  let setMonthD ~month:_ ~date:_ _ = notImplemented "Js.Date" "setMonthD"
+  let setSeconds _ = notImplemented "Js.Date" "setSeconds"
 
-  let setSecondsMs _ ~seconds:_ ~milliseconds:_ _ =
+  let setSecondsMs ~seconds:_ ~milliseconds:_ _ =
     notImplemented "Js.Date" "setSecondsMs"
 
-  let setTime _ _float = notImplemented "Js.Date" "setTime"
-  let setUTCDate _ _float = notImplemented "Js.Date" "setUTCDate"
-  let setUTCFullYear _ _float = notImplemented "Js.Date" "setUTCFullYear"
+  let setTime _ = notImplemented "Js.Date" "setTime"
+  let setUTCDate _ = notImplemented "Js.Date" "setUTCDate"
+  let setUTCFullYear _ = notImplemented "Js.Date" "setUTCFullYear"
 
-  let setUTCFullYearM _ ~year:_ ~month:_ _ =
+  let setUTCFullYearM ~year:_ ~month:_ _ =
     notImplemented "Js.Date" "setUTCFullYearM"
 
-  let setUTCFullYearMD _t ~year:_ ~month:_ ~date:_ _ =
+  let setUTCFullYearMD ~year:_ ~month:_ ~date:_ _ =
     notImplemented "Js.Date" "setUTCFullYearMD"
 
-  let setUTCHours _ _float = notImplemented "Js.Date" "setUTCHours"
+  let setUTCHours _ = notImplemented "Js.Date" "setUTCHours"
+  let setUTCHoursM ~hours:_ ~minutes:_ = notImplemented "Js.Date" "setUTCHoursM"
 
-  let setUTCHoursM t ~hours:_ ~minutes:_ =
-    notImplemented "Js.Date" "setUTCHoursM"
-
-  let setUTCHoursMS _t ~hours:_ ~minutes:_ =
+  let setUTCHoursMS ~hours:_ ~minutes:_ =
     notImplemented "Js.Date" "setUTCHoursMS"
 
-  let setUTCHoursMSMs _t ~hours:_ ~minutes:_ ~seconds:_ ~milliseconds:_ _ =
+  let setUTCHoursMSMs ~hours:_ ~minutes:_ ~seconds:_ ~milliseconds:_ _ =
     notImplemented "Js.Date" "setUTCHoursMSMs"
 
-  let setUTCMilliseconds _ _float =
-    notImplemented "Js.Date" "setUTCMilliseconds"
-
-  let setUTCMinutes _ _float = notImplemented "Js.Date" "setUTCMinutes"
-  let setUTCMinutesS _ ~minutes:_ = notImplemented "Js.Date" "setUTCMinutesS"
-
-  let setUTCMinutesSMs _t ~minutes:_ =
-    notImplemented "Js.Date" "setUTCMinutesSMs"
-
-  let setUTCMonth _ _float = notImplemented "Js.Date" "setUTCMonth"
-
-  let setUTCMonthD t ~month:_ ~date:_ _ =
-    notImplemented "Js.Date" "setUTCMonthD"
-
-  let setUTCSeconds _ _float = notImplemented "Js.Date" "setUTCSeconds"
-  let setUTCSecondsMs _t ~seconds:_ = notImplemented "Js.Date" "setUTCSecondsMs"
-  let setUTCTime _ _float = notImplemented "Js.Date" "setUTCTime"
-  let setYear _ _float = notImplemented "Js.Date" "setYear"
-  let toDateString _ string = notImplemented "Js.Date" "toDateString"
-  let toGMTString _ string = notImplemented "Js.Date" "toGMTString"
-  let toISOString _ string = notImplemented "Js.Date" "toISOString"
-  let toJSON _ string = notImplemented "Js.Date" "toJSON"
-  let toJSONUnsafe _ string = notImplemented "Js.Date" "toJSONUnsafe"
-
-  let toLocaleDateString _ string =
-    notImplemented "Js.Date" "toLocaleDateString"
+  let setUTCMilliseconds _ = notImplemented "Js.Date" "setUTCMilliseconds"
+  let setUTCMinutes _ = notImplemented "Js.Date" "setUTCMinutes"
+  let setUTCMinutesS ~minutes:_ = notImplemented "Js.Date" "setUTCMinutesS"
+  let setUTCMinutesSMs ~minutes:_ = notImplemented "Js.Date" "setUTCMinutesSMs"
+  let setUTCMonth _ = notImplemented "Js.Date" "setUTCMonth"
+  let setUTCMonthD ~month:_ ~date:_ _ = notImplemented "Js.Date" "setUTCMonthD"
+  let setUTCSeconds _ = notImplemented "Js.Date" "setUTCSeconds"
+  let setUTCSecondsMs ~seconds:_ = notImplemented "Js.Date" "setUTCSecondsMs"
+  let setUTCTime _ = notImplemented "Js.Date" "setUTCTime"
+  let setYear _ = notImplemented "Js.Date" "setYear"
+  let toDateString string = notImplemented "Js.Date" "toDateString"
+  let toGMTString string = notImplemented "Js.Date" "toGMTString"
+  let toISOString string = notImplemented "Js.Date" "toISOString"
+  let toJSON string = notImplemented "Js.Date" "toJSON"
+  let toJSONUnsafe string = notImplemented "Js.Date" "toJSONUnsafe"
+  let toLocaleDateString string = notImplemented "Js.Date" "toLocaleDateString"
 
   (* TODO: has overloads with somewhat poor browser support *)
-  let toLocaleString _ string = notImplemented "Js.Date" "toLocaleString"
+  let toLocaleString string = notImplemented "Js.Date" "toLocaleString"
 
   (* TODO: has overloads with somewhat poor browser support *)
-  let toLocaleTimeString _ string =
-    notImplemented "Js.Date" "toLocaleTimeString"
+  let toLocaleTimeString string = notImplemented "Js.Date" "toLocaleTimeString"
 
   (* TODO: has overloads with somewhat poor browser support *)
-  let toString _ string = notImplemented "Js.Date" "toString"
-  let toTimeString _ string = notImplemented "Js.Date" "toTimeString"
-  let toUTCString _ string = notImplemented "Js.Date" "toUTCString"
+  let toString string = notImplemented "Js.Date" "toString"
+  let toTimeString string = notImplemented "Js.Date" "toTimeString"
+  let toUTCString string = notImplemented "Js.Date" "toUTCString"
 end
 
 module type Dictionary = sig
