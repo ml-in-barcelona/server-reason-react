@@ -1295,21 +1295,22 @@ end = struct
 end
 
 module type Dictionary = sig
-  (* Implemented as an assosiative list *)
+  (* Implemented as an associative list *)
+
   type 'a t
   type key = string
 
-  val empty : unit -> 'a t
-  val entries : 'a t -> (key * 'a) array
-  val fromArray : (key * 'a) array -> 'a t
-  val fromList : (key * 'a) list -> 'a t
-  val keys : 'a t -> key array
-  val values : 'a t -> 'a array
-  val set : 'a t -> key -> 'a -> unit
-  val get : 'a t -> key -> 'a option
+  val get : 'a t -> key -> 'a nullable
   val unsafeGet : 'a t -> key -> 'a
-  val map : ('a -> 'b) -> 'a t -> 'b t
-  val unsafeDeleteKey : 'a t -> key -> unit
+  val set : 'a t -> key -> 'a -> unit
+  val keys : 'a t -> key array
+  val empty : unit -> 'a t
+  val unsafeDeleteKey : key t -> key -> unit
+  val entries : 'a t -> (key * 'a) array
+  val values : 'a t -> 'a array
+  val fromList : (key * 'a) list -> 'a t
+  val fromArray : (key * 'a) array -> 'a t
+  val map : f:('a -> 'b) -> 'a t -> 'b t
 end
 
 module Dict : Dictionary = struct
@@ -1326,7 +1327,7 @@ module Dict : Dictionary = struct
   let get (dict : 'a t) (k : key) : 'a option =
     try Some (Hashtbl.find dict k) with Not_found -> None
 
-  let map (f : 'a -> 'b) (dict : 'a t) =
+  let map ~(f : 'a -> 'b) (dict : 'a t) =
     Hashtbl.fold
       (fun k v acc ->
         Hashtbl.add acc k (f v);

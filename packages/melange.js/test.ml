@@ -475,7 +475,7 @@ let dict_tests =
             Js.Dict.fromList [ ("pen", 1); ("book", 5); ("stapler", 7) ]
           in
           let discount price = price * 10 in
-          let salePrices = Js.Dict.map discount prices in
+          let salePrices = Js.Dict.map ~f:discount prices in
           assert_int_dict_entries
             (Js.Dict.entries salePrices)
             [| ("book", 50); ("stapler", 70); ("pen", 10) |]);
