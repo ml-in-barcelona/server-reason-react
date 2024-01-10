@@ -1012,6 +1012,7 @@ module Date : sig
 
   val valueOf : t -> float
   val make : unit -> t
+  val fromFloat : float -> t
   val fromString : string -> t
   val makeWithYM : year:float -> month:float -> t
   val makeWithYMD : year:float -> month:float -> date:float -> t
@@ -1052,6 +1053,7 @@ module Date : sig
     seconds:float ->
     float
 
+  val now : unit -> float
   val parseAsFloat : string -> float
   val getDate : t -> float
   val getDay : t -> float
@@ -1087,12 +1089,14 @@ module Date : sig
     t ->
     float
 
+  val setMilliseconds : float -> t -> float
   val setMinutes : float -> t -> float
   val setMinutesS : minutes:float -> seconds:float -> t -> float
 
   val setMinutesSMs :
     minutes:float -> seconds:float -> milliseconds:float -> t -> float
 
+  val setMonth : float -> t -> float
   val setMonthD : month:float -> date:float -> t -> float
   val setSeconds : float -> t -> float
   val setSecondsMs : seconds:float -> milliseconds:float -> t -> float
@@ -1180,8 +1184,6 @@ end = struct
   (** returns the number of milliseconds since Unix epoch *)
   let now _ = notImplemented "Js.Date" "now"
 
-  let parse _ = notImplemented "Js.Date" "parse"
-
   (** returns NaN if passed invalid date string *)
   let parseAsFloat _ = notImplemented "Js.Date" "parseAsFloat"
 
@@ -1221,7 +1223,6 @@ end = struct
   let getUTCMonth _ = notImplemented "Js.Date" "getUTCMonth"
 
   let getUTCSeconds _ = notImplemented "Js.Date" "getUTCSeconds"
-  let getYear _ = notImplemented "Js.Date" "getYear"
   let setDate _ _ = notImplemented "Js.Date" "setDate"
   let setFullYear _ = notImplemented "Js.Date" "setFullYear"
   let setFullYearM ~year:_ ~month:_ = notImplemented "Js.Date" "setFullYearM"
@@ -1275,9 +1276,7 @@ end = struct
   let setUTCSeconds _ = notImplemented "Js.Date" "setUTCSeconds"
   let setUTCSecondsMs ~seconds:_ = notImplemented "Js.Date" "setUTCSecondsMs"
   let setUTCTime _ = notImplemented "Js.Date" "setUTCTime"
-  let setYear _ = notImplemented "Js.Date" "setYear"
   let toDateString string = notImplemented "Js.Date" "toDateString"
-  let toGMTString string = notImplemented "Js.Date" "toGMTString"
   let toISOString string = notImplemented "Js.Date" "toISOString"
   let toJSON string = notImplemented "Js.Date" "toJSON"
   let toJSONUnsafe string = notImplemented "Js.Date" "toJSONUnsafe"
@@ -1600,59 +1599,52 @@ module TypedArray2 = struct
   (** Provide bindings for JS typed array *)
 end
 
-module Float = struct
+module Float : sig
   (** Provides functions for inspecting and manipulating [float]s *)
+
+  type t = float
+
+  val _NaN : t
+  val isNaN : t -> bool
+  val isFinite : t -> bool
+  val toExponential : ?digits:int -> t -> string
+  val toFixed : ?digits:int -> t -> string
+  val toPrecision : ?digits:int -> t -> string
+  val toString : ?radix:int -> t -> string
+  val fromString : string -> t
+end = struct
+  type t = float
 
   let _NaN = Stdlib.Float.nan
   let isNaN float = Stdlib.Float.is_nan float
   let isFinite float = Stdlib.Float.is_finite float
-  let toExponential _ = notImplemented "Js.Float" "toExponential"
-
-  let toExponentialWithPrecision _ ~digits:_ =
-    notImplemented "Js.Float" "toExponentialWithPrecision"
-
-  let toFixed _ = notImplemented "Js.Float" "toFixed"
-
-  let toFixedWithPrecision _ ~digits:_ =
-    notImplemented "Js.Float" "toFixedWithPrecision"
-
-  let toPrecision _ = notImplemented "Js.Float" "toPrecision"
-
-  let toPrecisionWithPrecision _ ~digits:_ =
-    notImplemented "Js.Float" "toPrecisionWithPrecision"
-
-  let toString f =
-    (* round x rounds x to the nearest integer with ties (fractional values of 0.5) rounded away from zero, regardless of the current rounding direction. If x is an integer, +0., -0., nan, or infinite, x itself is returned.
-
-       On 64-bit mingw-w64, this function may be emulated owing to a bug in the C runtime library (CRT) on this platform. *)
-    (* if round(f) == f, print the integer (since string_of_float 1.0 => "1.") *)
-    if Stdlib.Float.equal (Stdlib.Float.round f) f then
-      f |> int_of_float |> string_of_int
-    else Printf.sprintf "%g" f
-
-  let toStringWithRadix _ ~radix:_ =
-    notImplemented "Js.Float" "toStringWithRadix"
-
+  let toExponential ?digits:_ _ = notImplemented "Js.Float" "toExponential"
+  let toFixed ?digits:_ _ = notImplemented "Js.Float" "toFixed"
+  let toPrecision ?digits:_ _ = notImplemented "Js.Float" "toPrecision"
+  let toString ?radix:_ f = notImplemented "Js.Float" "toString"
   let fromString = Stdlib.float_of_string
 end
 
-module Int = struct
+module Int : sig
   (** Provides functions for inspecting and manipulating [int]s *)
 
-  let toExponential _ = notImplemented "Js.Int" "toExponential"
+  type t = int
 
-  let toExponentialWithPrecision _ ~digits:_ =
-    notImplemented "Js.Int" "toExponentialWithPrecision"
+  val toExponential : ?digits:t -> t -> string
+  val toPrecision : ?digits:t -> t -> string
+  val toString : ?radix:t -> t -> string
+  val toFloat : t -> float
+  val equal : t -> t -> bool
+  val max : t
+  val min : t
+end = struct
+  type t = int
 
-  let toPrecision _ = notImplemented "Js.Int" "toPrecision"
-
-  let toPrecisionWithPrecision _ ~digits:_ =
-    notImplemented "Js.Int" "toPrecisionWithPrecision"
-
-  let toString int = Stdlib.string_of_int int
-  let toStringWithRadix _ ~radix:_ = notImplemented "Js.Int" "toStringWithRadix"
+  let toExponential ?digits:_ _ = notImplemented "Js.Int" "toExponential"
+  let toPrecision ?digits:_ _ = notImplemented "Js.Int" "toPrecision"
+  let toString ?radix:_ int = notImplemented "Js.Int" "toString"
   let toFloat int = Stdlib.float_of_int int
-  let equal = Stdlib.String.equal
+  let equal = Stdlib.Int.equal
   let max = 2147483647
   let min = -2147483648
 end

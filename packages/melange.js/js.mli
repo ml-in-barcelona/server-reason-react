@@ -452,6 +452,10 @@ module Date : sig
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
+  val fromFloat : float -> t
+  [@@alert
+    not_implemented "is not implemented in native under server-reason-react.js"]
+
   val fromString : string -> t
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
@@ -515,6 +519,10 @@ module Date : sig
     minutes:float ->
     seconds:float ->
     float
+  [@@alert
+    not_implemented "is not implemented in native under server-reason-react.js"]
+
+  val now : unit -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
@@ -632,6 +640,10 @@ module Date : sig
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
+  val setMilliseconds : float -> t -> float
+  [@@alert
+    not_implemented "is not implemented in native under server-reason-react.js"]
+
   val setMinutes : float -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
@@ -642,6 +654,10 @@ module Date : sig
 
   val setMinutesSMs :
     minutes:float -> seconds:float -> milliseconds:float -> t -> float
+  [@@alert
+    not_implemented "is not implemented in native under server-reason-react.js"]
+
+  val setMonth : float -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
@@ -1269,37 +1285,25 @@ end
 module TypedArray2 : sig end
 
 module Float : sig
+  type t = float
+
   val _NaN : float
   val isNaN : float -> bool
   val isFinite : float -> bool
 
-  val toExponential : 'a -> 'b
+  val toExponential : ?digits:int -> t -> string
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val toExponentialWithPrecision : 'a -> digits:'b -> 'c
+  val toFixed : ?digits:int -> t -> string
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val toFixed : 'a -> 'b
+  val toPrecision : ?digits:int -> t -> string
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val toFixedWithPrecision : 'a -> digits:'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val toPrecision : 'a -> 'b
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val toPrecisionWithPrecision : 'a -> digits:'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val toString : float -> string
-
-  val toStringWithRadix : 'a -> radix:'b -> 'c
+  val toString : ?radix:int -> t -> string
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
@@ -1307,30 +1311,22 @@ module Float : sig
 end
 
 module Int : sig
-  val toExponential : 'a -> 'b
+  type t = int
+
+  val toExponential : ?digits:int -> t -> string
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val toExponentialWithPrecision : 'a -> digits:'b -> 'c
+  val toPrecision : ?digits:t -> t -> string
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val toPrecision : 'a -> 'b
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val toPrecisionWithPrecision : 'a -> digits:'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val toString : int -> string
-
-  val toStringWithRadix : 'a -> radix:'b -> 'c
+  val toString : ?radix:t -> t -> string
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
   val toFloat : int -> float
-  val equal : string -> string -> bool
+  val equal : t -> t -> bool
   val max : int
   val min : int
 end

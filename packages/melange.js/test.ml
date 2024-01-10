@@ -543,12 +543,8 @@ let float_tests =
           assert_string (string_of_float 0.5) "0.5";
           assert_string (string_of_float 80.0) "80.";
           assert_string (string_of_float 80.) "80.";
-          assert_string (Js.Float.toString 80.0) "80";
-          assert_string (Js.Float.toString 80.1) "80.1";
           assert_string (string_of_float 80.0001) "80.0001";
-          assert_string (Js.Float.toString 80.0001) "80.0001";
-          assert_string (string_of_float 80.00000000001) "80.";
-          assert_string (Js.Float.toString 80.00000000001) "80");
+          assert_string (string_of_float 80.00000000001) "80.");
     ] )
 
 let () =
