@@ -174,555 +174,242 @@ module Exn : sig
   val raiseUriError : string -> 'a
 end
 
-module Array2 : sig
+module Array : sig
   type 'a t = 'a array
   type 'a array_like
 
-  val from : 'a -> 'b
+  val from : 'a array_like -> 'a t
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val fromMap : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val isArray : 'a array -> bool
-  val length : 'a array -> int
-
-  val copyWithin : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val copyWithinFrom : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val copyWithinFromRange : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val fillInPlace : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val fillFromInPlace : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val fillRangeInPlace : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val pop : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val push : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val pushMany : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val reverseInPlace : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val sortInPlace : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val sortInPlaceWith : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val spliceInPlace : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val removeFromInPlace : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val removeCountInPlace : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val unshift : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val unshiftMany : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val append : 'a array -> 'a -> 'a array
-  val concat : 'a array -> 'a array -> 'a array
-  val concatMany : 'a array -> 'a list -> 'a array
-  val includes : 'a array -> 'a -> bool
-  val indexOf : 'a array -> 'a -> int
-  val indexOfFrom : 'a array -> 'a -> from:int -> int
-  val joinWith : string array -> string -> string
-  val join : string array -> string
-  val lastIndexOf : 'a -> 'a array -> int
-  val lastIndexOfFrom : 'a array -> 'a -> from:int -> int
-  val slice : 'a array -> start:int -> end_:int -> 'a array
-  val copy : 'a array -> 'a array
-  val sliceFrom : 'a array -> int -> 'a array
-
-  val toString : 'a -> 'b
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val toLocaleString : 'a -> 'b
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val entries : 'a array -> 'b
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val everyi : 'a array -> ('a -> int -> bool) -> bool
-  val every : 'a array -> ('a -> bool) -> bool
-  val filter : 'a array -> ('a -> bool) -> 'a array
-  val filteri : 'a array -> (int -> 'a -> bool) -> 'a array
-  val findi : 'a array -> ('a -> int -> bool) -> 'a nullable
-  val find : 'a array -> ('a -> bool) -> 'a nullable
-  val findIndexi : 'a array -> ('a -> int -> bool) -> int
-  val findIndex : 'a array -> ('a -> bool) -> int
-  val forEach : 'a array -> ('a -> unit) -> unit
-  val forEachi : 'a array -> (int -> 'a -> unit) -> unit
-  val map : 'a array -> ('a -> 'b) -> 'b array
-  val mapi : 'a array -> (int -> 'a -> 'b) -> 'b array
-  val reduce : 'a array -> ('b -> 'a -> 'b) -> 'b -> 'b
-  val reducei : 'a array -> ('b -> 'a -> int -> 'b) -> 'b -> 'b
-  val reduceRight : 'a array -> ('a -> 'b -> 'b) -> 'b -> 'b
-  val reduceRighti : 'a array -> ('a -> 'b -> int -> 'b) -> 'b -> 'b
-  val some : 'a array -> ('a -> bool) -> bool
-  val somei : 'a array -> ('a -> int -> bool) -> bool
-  val unsafe_get : 'a array -> int -> 'a
-  val unsafe_set : 'a array -> int -> 'a -> unit
-end
-
-module Array : sig
-  type 'a t = 'a array
-  type 'a array_like = 'a Array2.array_like
-
-  val from : 'a -> 'b
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val fromMap : 'a -> 'b -> 'c
+  val fromMap : 'a array_like -> f:('a -> 'b) -> 'b t
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
   val isArray : 'a array -> bool
   val length : 'a array -> int
 
-  val copyWithin : 'a -> 'b -> 'c
+  val copyWithin : to_:int -> ?start:int -> ?end_:int -> 'a t -> 'a t
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val copyWithinFrom : 'a -> 'b -> 'c
+  val fill : value:'a -> ?start:int -> ?end_:int -> 'a t -> 'a t
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val copyWithinFromRange : 'a -> 'b -> 'c
+  val pop : 'a t -> 'a nullable
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val fillInPlace : 'a -> 'b -> 'c
+  val push : value:'a -> 'a t -> int
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val fillFromInPlace : 'a -> 'b -> 'c
+  val pushMany : values:'a t -> 'a t -> int
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val fillRangeInPlace : 'a -> 'b -> 'c
+  val reverseInPlace : 'a t -> 'a t
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val pop : 'a -> 'b -> 'c
+  val shift : 'a t -> 'a option
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val push : 'a -> 'b -> 'c
+  val sortInPlace : 'a t -> 'a t
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val pushMany : 'a -> 'b -> 'c
+  val sortInPlaceWith : f:('a -> 'a -> int) -> 'a t -> 'a t
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val reverseInPlace : 'a -> 'b -> 'c
+  val spliceInPlace : start:int -> remove:int -> add:'a t -> 'a t -> 'a t
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val sortInPlace : 'a -> 'b -> 'c
+  val removeFromInPlace : start:int -> 'a t -> 'a t
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val sortInPlaceWith : 'a -> 'b -> 'c
+  val removeCountInPlace : start:int -> count:int -> 'a t -> 'a t
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val spliceInPlace : 'a -> 'b -> 'c
+  val unshift : value:'a -> 'a t -> int
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val removeFromInPlace : 'a -> 'b -> 'c
+  val unshiftMany : values:'a t -> 'a t -> int
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val removeCountInPlace : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val unshift : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val unshiftMany : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val append : 'a -> 'a array -> 'a array
-  val concat : 'a array -> 'a array -> 'a array
-  val concatMany : 'a list -> 'a array -> 'a array
-  val includes : 'a -> 'a array -> bool
-  val indexOf : 'a -> 'a array -> int
-  val indexOfFrom : 'a array -> from:int -> 'a -> int
-  val joinWith : string -> string array -> string
-  val join : string array -> string
-  val lastIndexOf : 'a array -> 'a -> int
-  val lastIndexOfFrom : 'a array -> from:int -> 'a -> int
-
-  val lastIndexOf_start : 'a -> 'a array -> 'b
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val slice : start:int -> end_:int -> 'a array -> 'a array
+  val concat : other:'a t -> 'a t -> 'a t
+  val concatMany : arrays:'a t t -> 'a t -> 'a t
+  val includes : value:'a -> 'a t -> bool
+  val indexOf : value:'a -> ?start:int -> 'a t -> int
+  val join : ?sep:string -> 'a t -> string
+  val lastIndexOf : value:'a -> 'a t -> int
+  val lastIndexOfFrom : value:'a -> start:int -> 'a t -> int
+  val slice : ?start:int -> ?end_:int -> 'a t -> 'a t
   val copy : 'a array -> 'a array
 
-  val slice_copy : unit -> 'a array -> 'b
+  val toString : 'a t -> string
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val sliceFrom : int -> 'a array -> 'a array
-
-  val slice_start : int -> 'a array -> 'b
+  val toLocaleString : 'a t -> string
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val toString : 'a -> 'b
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val toLocaleString : 'a -> 'b
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val entries : 'a array -> 'b
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val everyi : ('a -> int -> bool) -> 'a array -> bool
-  val every : ('a -> bool) -> 'a array -> bool
-  val filter : ('a -> bool) -> 'a array -> 'a array
-  val filteri : (int -> 'a -> bool) -> 'a array -> 'a array
-  val findi : ('a -> int -> bool) -> 'a array -> 'a nullable
-  val find : ('a -> bool) -> 'a array -> 'a nullable
-  val findIndexi : ('a -> int -> bool) -> 'a array -> int
-  val findIndex : ('a -> bool) -> 'a array -> int
-  val forEach : ('a -> unit) -> 'a array -> unit
-  val forEachi : (int -> 'a -> unit) -> 'a array -> unit
-  val map : ('a -> 'b) -> 'a array -> 'b array
-  val mapi : (int -> 'a -> 'b) -> 'a array -> 'b array
-  val reduce : ('a -> 'b -> 'a) -> 'a -> 'b array -> 'a
-  val reducei : ('a -> 'b -> int -> 'a) -> 'a -> 'b array -> 'a
-  val reduceRight : ('a -> 'b -> 'b) -> 'b -> 'a array -> 'b
-  val reduceRighti : ('a -> 'b -> int -> 'b) -> 'b -> 'a array -> 'b
-  val some : ('a -> bool) -> 'a array -> bool
-  val somei : ('a -> int -> bool) -> 'a array -> bool
+  val everyi : f:('a -> int -> bool) -> 'a t -> bool
+  val every : f:('a -> bool) -> 'a t -> bool
+  val filter : f:('a -> bool) -> 'a t -> 'a t
+  val filteri : f:('a -> int -> bool) -> 'a t -> 'a t
+  val findi : f:('a -> int -> bool) -> 'a t -> 'a nullable
+  val find : f:('a -> bool) -> 'a t -> 'a nullable
+  val findIndexi : f:('a -> int -> bool) -> 'a t -> int
+  val findIndex : f:('a -> bool) -> 'a t -> int
+  val forEach : f:('a -> unit) -> 'a t -> unit
+  val forEachi : f:('a -> int -> unit) -> 'a t -> unit
+  val map : f:('a -> 'b) -> 'a t -> 'b t
+  val mapi : f:('a -> int -> 'b) -> 'a t -> 'b t
+  val reduce : f:('b -> 'a -> 'b) -> init:'b -> 'a t -> 'b
+  val reducei : f:('b -> 'a -> int -> 'b) -> init:'b -> 'a t -> 'b
+  val reduceRight : f:('b -> 'a -> 'b) -> init:'b -> 'a t -> 'b
+  val reduceRighti : f:('b -> 'a -> int -> 'b) -> init:'b -> 'a t -> 'b
+  val some : f:('a -> bool) -> 'a t -> bool
+  val somei : f:('a -> int -> bool) -> 'a t -> bool
   val unsafe_get : 'a array -> int -> 'a
   val unsafe_set : 'a array -> int -> 'a -> unit
 end
 
 module Re : sig
-  type flag =
-    [ `ANCHORED
-    | `AUTO_CALLOUT
-    | `CASELESS
-    | `DOLLAR_ENDONLY
-    | `DOTALL
-    | `EXTENDED
-    | `EXTRA
-    | `FIRSTLINE
-    | `GLOBAL
-    | `MULTILINE
-    | `NO_AUTO_CAPTURE
-    | `NO_UTF8_CHECK
-    | `STICKY
-    | `UNGREEDY
-    | `UNICODE
-    | `UTF8 ]
+  type t
+  type result
 
-  type t = { regex : Pcre.regexp; flags : flag list; mutable lastIndex : int }
-  type result = { substrings : Pcre.substrings }
-
-  val captures : result -> string null array
-  val matches : result -> string array
+  val captures : result -> string Nullable.t array
   val index : result -> int
   val input : result -> string
-  val source : t -> string
   val fromString : string -> t
-  val char_of_cflag : Pcre.cflag -> char null
-  val flag_of_char : char -> flag
-  val parse_flags : string -> flag list
-  val cflag_of_flag : flag -> Pcre.cflag null
   val fromStringWithFlags : string -> flags:string -> t
   val flags : t -> string
-  val flag : t -> flag -> bool
   val global : t -> bool
   val ignoreCase : t -> bool
-  val multiline : t -> bool
-  val sticky : t -> bool
-  val unicode : t -> bool
   val lastIndex : t -> int
   val setLastIndex : t -> int -> unit
-  val exec_ : t -> string -> result null
-  val exec : string -> t -> result null
-  val test_ : t -> string -> bool
-  val test : string -> t -> bool
-end
+  val multiline : t -> bool
+  val source : t -> string
+  val sticky : t -> bool
+  val unicode : t -> bool
+  val exec : str:string -> t -> result option
+  val test : str:string -> t -> bool
 
-module String2 : sig
-  type t = string
-
-  val make : int -> char -> string
-  val fromCharCode : int -> string
-
-  val fromCharCodeMany : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val fromCodePoint : int -> string
-  val fromCodePointMany : 'a -> 'b
-  val length : string -> int
-  val get : string -> int -> string
-
-  val set : 'a -> 'b -> 'c -> 'd
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val charAt : string -> int -> string
-  val charCodeAt : string -> int -> float
-  val codePointAt : string -> int -> int nullable
-  val concat : string -> string -> string
-  val concatMany : string -> string array -> string
-  val endsWith : string -> string -> bool
-  val endsWithFrom : string -> string -> int -> bool
-  val includes : string -> string -> bool
-  val includesFrom : string -> string -> int -> bool
-  val indexOf : string -> string -> int
-  val indexOfFrom : string -> string -> int -> int
-  val lastIndexOf : string -> string -> int
-  val lastIndexOfFrom : string -> string -> int -> int
-
-  val localeCompare : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val match_ : string -> Re.t -> string array nullable
-
-  val normalize : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val normalizeByForm : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val repeat : string -> int -> string
-
-  val replace : 'a -> 'b -> 'c -> 'd
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val replaceByRe : string -> Re.t -> string -> string
-
-  val unsafeReplaceBy0 : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val unsafeReplaceBy1 : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val unsafeReplaceBy2 : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val unsafeReplaceBy3 : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val search : 'a -> 'b -> 'c
-  val slice : string -> from:int -> to_:int -> string
-  val sliceToEnd : string -> from:int -> string
-  val split : 'a -> 'b -> 'c
-
-  val splitAtMost : 'a -> 'b -> limit:'c -> 'd
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val splitByReAtMost : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val splitByRe : string -> Re.t -> string nullable array
-  val startsWith : string -> string -> bool
-
-  val startsWithFrom : 'a -> 'b -> 'c -> 'd
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val substr : string -> from:int -> string
-  val substrAtMost : string -> from:int -> length:int -> string
-  val substring : string -> from:int -> to_:int -> string
-  val substringToEnd : string -> from:int -> string
-  val toLowerCase : string -> string
-
-  val toLocaleLowerCase : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val toUpperCase : string -> string
-
-  val toLocaleUpperCase : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val trim : string -> string
-
-  val anchor : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val link : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val castToArrayLike : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
+  val matches : result -> string array
+  (** Only available in native, not in melange *)
 end
 
 module String : sig
   type t = string
 
-  val make : int -> char -> string
-  val fromCharCode : int -> string
-
-  val fromCharCodeMany : 'a -> 'b
+  val make : 'a -> t
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val fromCodePoint : int -> string
-  val fromCodePointMany : 'a -> 'b
-  val length : string -> int
-  val get : int -> string -> string
-  val charAt : int -> string -> string
-  val charCodeAt : int -> string -> float
-  val codePointAt : int -> string -> int nullable
-  val concatMany : string array -> string -> string
-  val endsWith : string -> string -> bool
-  val endsWithFrom : string -> int -> string -> bool
-  val includes : string -> string -> bool
-  val includesFrom : int -> string -> string -> bool
-  val indexOf : string -> string -> int
-  val indexOfFrom : int -> string -> string -> int
-  val localeCompare : 'a -> 'b -> 'c
-  val match_ : Re.t -> string -> string array nullable
+  val fromCharCode : int -> t
 
-  val normalize : 'a -> 'b -> 'c
+  val fromCharCodeMany : int array -> t
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val normalizeByForm : 'a -> 'b -> 'c
+  val fromCodePoint : int -> t
+
+  val fromCodePointMany : int array -> t
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val replace : 'a -> 'b -> 'c -> 'd
+  val length : t -> int
+  val get : t -> int -> t
+  val charAt : index:int -> t -> t
+  val charCodeAt : index:int -> t -> float
+  val codePointAt : index:int -> t -> int nullable
+  val concat : other:t -> t -> t
+  val concatMany : strings:t array -> t -> t
+  val endsWith : suffix:t -> ?len:int -> t -> bool
+  val includes : search:t -> ?start:int -> t -> bool
+  val indexOf : search:t -> ?start:int -> t -> int
+  val lastIndexOf : search:t -> ?start:int -> t -> int
+
+  val localeCompare : other:t -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val replaceByRe : Re.t -> string -> string -> string
+  val match_ : regexp:Re.t -> t -> t nullable array nullable
 
-  val unsafeReplaceBy0 : 'a -> 'b -> 'c
+  val normalize : ?form:[ `NFC | `NFD | `NFKC | `NFKD ] -> t -> t
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val unsafeReplaceBy1 : 'a -> 'b -> 'c
+  val repeat : count:int -> t -> t
+
+  val replace : search:t -> replacement:t -> t -> t
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val unsafeReplaceBy2 : 'a -> 'b -> 'c
+  val replaceByRe : regexp:Re.t -> replacement:t -> t -> t
+
+  val unsafeReplaceBy0 : regexp:Re.t -> f:(t -> int -> t -> t) -> t -> t
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val unsafeReplaceBy3 : 'a -> 'b -> 'c
+  val unsafeReplaceBy1 : regexp:Re.t -> f:(t -> t -> int -> t -> t) -> t -> t
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val search : 'a -> 'b -> 'c
-  val slice : from:int -> to_:int -> string -> string
-  val sliceToEnd : from:int -> string -> string
-  val split : 'a -> 'b -> 'c
-
-  val splitAtMost : 'a -> limit:'b -> 'c -> 'd
+  val unsafeReplaceBy2 :
+    regexp:Re.t -> f:(t -> t -> t -> int -> t -> t) -> t -> t
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val splitByRe : 'a -> 'b -> 'c
+  val unsafeReplaceBy3 :
+    regexp:Re.t -> f:(t -> t -> t -> t -> int -> t -> t) -> t -> t
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val splitByReAtMost : 'a -> 'b -> 'c
+  val search : regexp:Re.t -> t -> int
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val startsWith : string -> string -> bool
+  val slice : ?start:int -> ?end_:int -> t -> t
 
-  val startsWithFrom : 'a -> 'b -> 'c -> 'd
+  val split : ?sep:t -> ?limit:int -> t -> t array
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val substr : from:int -> string -> string
-  val substrAtMost : from:int -> length:int -> string -> string
-  val substring : from:int -> to_:int -> string -> string
-  val substringToEnd : from:int -> string -> string
-  val toLowerCase : string -> string
+  val splitByRe : regexp:Re.t -> ?limit:int -> t -> t nullable array
+  val startsWith : prefix:t -> ?start:int -> t -> bool
+  val substr : ?start:int -> ?len:int -> t -> t
+  val substring : ?start:int -> ?end_:int -> t -> t
+  val toLowerCase : t -> t
 
-  val toLocaleLowerCase : 'a -> 'b -> 'c
+  val toLocaleLowerCase : t -> t
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val toUpperCase : string -> string
-  val toLocaleUpperCase : 'a -> 'b -> 'c
-  val trim : string -> string
+  val toUpperCase : t -> t
 
-  val anchor : 'a -> 'b -> 'c
+  val toLocaleUpperCase : t -> t
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val link : 'a -> 'b -> 'c
+  val trim : t -> t
+
+  val anchor : name:t -> t -> t
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val castToArrayLike : 'a -> 'b -> 'c
+  val link : href:t -> t -> t
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 end
@@ -757,370 +444,397 @@ end
 module Date : sig
   type t
 
-  val valueOf : 'a -> 'b
+  val valueOf : t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val make : 'a -> 'b
+  val make : unit -> t
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val fromFloat : 'a -> 'b
+  val fromFloat : float -> t
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val fromString : 'a -> 'b
+  val fromString : string -> t
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val makeWithYM : year:'a -> month:'b -> 'c -> 'd
+  val makeWithYM : year:float -> month:float -> t
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val makeWithYMD : year:'a -> month:'b -> date:'c -> 'd -> 'e
+  val makeWithYMD : year:float -> month:float -> date:float -> t
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val makeWithYMDH : year:'a -> month:'b -> date:'c -> hours:'d -> 'e -> 'f
+  val makeWithYMDH : year:float -> month:float -> date:float -> hours:float -> t
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
   val makeWithYMDHM :
-    year:'a -> month:'b -> date:'c -> hours:'d -> minutes:'e -> 'f -> 'g -> 'h
+    year:float -> month:float -> date:float -> hours:float -> minutes:float -> t
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
   val makeWithYMDHMS :
-    year:'a ->
-    month:'b ->
-    date:'c ->
-    hours:'d ->
-    minutes:'e ->
-    seconds:'f ->
-    'g ->
-    'h ->
-    'i
+    year:float ->
+    month:float ->
+    date:float ->
+    hours:float ->
+    minutes:float ->
+    seconds:float ->
+    t
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val utcWithYM : year:'a -> month:'b -> 'c -> 'd
+  val utcWithYM : year:float -> month:float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val utcWithYMD : year:'a -> month:'b -> date:'c -> 'd -> 'e
+  val utcWithYMD : year:float -> month:float -> date:float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val utcWithYMDH : year:'a -> month:'b -> date:'c -> hours:'d -> 'e -> 'f
+  val utcWithYMDH :
+    year:float -> month:float -> date:float -> hours:float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
   val utcWithYMDHM :
-    year:'a -> month:'b -> date:'c -> hours:'d -> minutes:'e -> 'f -> 'g -> 'h
+    year:float ->
+    month:float ->
+    date:float ->
+    hours:float ->
+    minutes:float ->
+    float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
   val utcWithYMDHMS :
-    year:'a ->
-    month:'b ->
-    date:'c ->
-    hours:'d ->
-    minutes:'e ->
-    seconds:'f ->
-    'g ->
-    'h ->
-    'i
+    year:float ->
+    month:float ->
+    date:float ->
+    hours:float ->
+    minutes:float ->
+    seconds:float ->
+    float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val now : 'a -> 'b
+  val now : unit -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val parse : 'a -> 'b
+  val parseAsFloat : string -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val parseAsFloat : 'a -> 'b
+  val getDate : t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val getDate : 'a -> 'b -> 'c
+  val getDay : t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val getDay : 'a -> 'b -> 'c
+  val getFullYear : t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val getFullYear : 'a -> 'b -> 'c
+  val getHours : t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val getHours : 'a -> 'b -> 'c
+  val getMilliseconds : t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val getMilliseconds : 'a -> 'b -> 'c
+  val getMinutes : t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val getMinutes : 'a -> 'b -> 'c
+  val getMonth : t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val getMonth : 'a -> 'b -> 'c
+  val getSeconds : t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val getSeconds : 'a -> 'b -> 'c
+  val getTime : t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val getTime : 'a -> 'b -> 'c
+  val getTimezoneOffset : t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val getTimezoneOffset : 'a -> 'b -> 'c
+  val getUTCDate : t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val getUTCDate : 'a -> 'b -> 'c
+  val getUTCDay : t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val getUTCDay : 'a -> 'b -> 'c
+  val getUTCFullYear : t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val getUTCFullYear : 'a -> 'b -> 'c
+  val getUTCHours : t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val getUTCHours : 'a -> 'b -> 'c
+  val getUTCMilliseconds : t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val getUTCMilliseconds : 'a -> 'b -> 'c
+  val getUTCMinutes : t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val getUTCMinutes : 'a -> 'b -> 'c
+  val getUTCMonth : t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val getUTCMonth : 'a -> 'b -> 'c
+  val getUTCSeconds : t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val getUTCSeconds : 'a -> 'b -> 'c
+  val setDate : float -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val getYear : 'a -> 'b -> 'c
+  val setFullYear : float -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setDate : 'a -> 'b -> 'c
+  val setFullYearM : year:float -> month:float -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setFullYear : 'a -> 'b -> 'c
+  val setFullYearMD : year:float -> month:float -> date:float -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setFullYearM : 'a -> year:'b -> month:'c -> 'd -> 'e
+  val setHours : float -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setFullYearMD : 'a -> year:'b -> month:'c -> date:'d -> 'e -> 'f
+  val setHoursM : hours:float -> minutes:float -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setHours : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val setHoursM : 'a -> hours:'b -> minutes:'c -> 'd
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val setHoursMS : 'a -> hours:'b -> minutes:'c -> 'd
+  val setHoursMS : hours:float -> minutes:float -> seconds:float -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
   val setHoursMSMs :
-    'a -> hours:'b -> minutes:'c -> seconds:'d -> milliseconds:'e -> 'f -> 'g
-
-  val setMilliseconds : 'a -> 'b -> 'c
+    hours:float ->
+    minutes:float ->
+    seconds:float ->
+    milliseconds:float ->
+    t ->
+    float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setMinutes : 'a -> 'b -> 'c
+  val setMilliseconds : float -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setMinutesS : 'a -> minutes:'b -> 'c
+  val setMinutes : float -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setMinutesSMs : 'a -> minutes:'b -> 'c
+  val setMinutesS : minutes:float -> seconds:float -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setMonth : 'a -> 'b -> 'c
+  val setMinutesSMs :
+    minutes:float -> seconds:float -> milliseconds:float -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setMonthD : 'a -> month:'b -> date:'c -> 'd -> 'e
+  val setMonth : float -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setSeconds : 'a -> 'b -> 'c
+  val setMonthD : month:float -> date:float -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setSecondsMs : 'a -> seconds:'b -> milliseconds:'c -> 'd -> 'e
+  val setSeconds : float -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setTime : 'a -> 'b -> 'c
+  val setSecondsMs : seconds:float -> milliseconds:float -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setUTCDate : 'a -> 'b -> 'c
+  val setTime : float -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setUTCFullYear : 'a -> 'b -> 'c
+  val setUTCDate : float -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setUTCFullYearM : 'a -> year:'b -> month:'c -> 'd -> 'e
+  val setUTCFullYear : float -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setUTCFullYearMD : 'a -> year:'b -> month:'c -> date:'d -> 'e -> 'f
+  val setUTCFullYearM : year:float -> month:float -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setUTCHours : 'a -> 'b -> 'c
+  val setUTCFullYearMD : year:float -> month:float -> date:float -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setUTCHoursM : 'a -> hours:'b -> minutes:'c -> 'd
+  val setUTCHours : float -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setUTCHoursMS : 'a -> hours:'b -> minutes:'c -> 'd
+  val setUTCHoursM : hours:float -> minutes:float -> t -> float
+  [@@alert
+    not_implemented "is not implemented in native under server-reason-react.js"]
+
+  val setUTCHoursMS :
+    hours:float -> minutes:float -> seconds:float -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
   val setUTCHoursMSMs :
-    'a -> hours:'b -> minutes:'c -> seconds:'d -> milliseconds:'e -> 'f -> 'g
+    hours:float ->
+    minutes:float ->
+    seconds:float ->
+    milliseconds:float ->
+    t ->
+    float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setUTCMilliseconds : 'a -> 'b -> 'c
+  val setUTCMilliseconds : float -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setUTCMinutes : 'a -> 'b -> 'c
+  val setUTCMinutes : float -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setUTCMinutesS : 'a -> minutes:'b -> 'c
+  val setUTCMinutesS : minutes:float -> seconds:float -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setUTCMinutesSMs : 'a -> minutes:'b -> 'c
+  val setUTCMinutesSMs :
+    minutes:float -> seconds:float -> milliseconds:float -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setUTCMonth : 'a -> 'b -> 'c
+  val setUTCMonth : float -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setUTCMonthD : 'a -> month:'b -> date:'c -> 'd -> 'e
+  val setUTCMonthD : month:float -> date:float -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setUTCSeconds : 'a -> 'b -> 'c
+  val setUTCSeconds : float -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setUTCSecondsMs : 'a -> seconds:'b -> 'c
+  val setUTCSecondsMs : seconds:float -> milliseconds:float -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setUTCTime : 'a -> 'b -> 'c
+  val setUTCTime : float -> t -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setYear : 'a -> 'b -> 'c
+  val toDateString : t -> string
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val toDateString : 'a -> 'b -> 'c
+  val toISOString : t -> string
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val toGMTString : 'a -> 'b -> 'c
+  val toJSON : t -> string option
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val toISOString : 'a -> 'b -> 'c
+  val toJSONUnsafe : t -> string
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val toJSON : 'a -> 'b -> 'c
+  val toLocaleDateString : t -> string
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val toJSONUnsafe : 'a -> 'b -> 'c
+  val toLocaleString : t -> string
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val toLocaleDateString : 'a -> 'b -> 'c
+  val toLocaleTimeString : t -> string
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val toLocaleString : 'a -> 'b -> 'c
+  val toString : t -> string
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val toLocaleTimeString : 'a -> 'b -> 'c
+  val toTimeString : t -> string
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val toString : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val toTimeString : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val toUTCString : 'a -> 'b -> 'c
+  val toUTCString : t -> string
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 end
 
 module type Dictionary = sig
   type 'a t
+
   type key = string
+  (** Key type *)
+
+  val get : 'a t -> key -> 'a option
+  (** [get dict key] returns [None] if the [key] is not found in the
+    dictionary, [Some value] otherwise *)
+
+  val unsafeGet : 'a t -> key -> 'a
+
+  val set : 'a t -> key -> 'a -> unit
+  (** [set dict key value] sets the [key]/[value] in [dict] *)
+
+  val keys : 'a t -> string array
+  (** [keys dict] returns all the keys in the dictionary [dict]*)
 
   val empty : unit -> 'a t
+  (** [empty ()] returns an empty dictionary *)
+
+  val unsafeDeleteKey : string t -> string -> unit
+  (** Experimental internal function *)
+
   val entries : 'a t -> (key * 'a) array
-  val fromArray : (key * 'a) array -> 'a t
-  val fromList : (key * 'a) list -> 'a t
-  val keys : 'a t -> key array
+  (** [entries dict] returns the key value pairs in [dict] *)
+
   val values : 'a t -> 'a array
-  val set : 'a t -> key -> 'a -> unit
-  val get : 'a t -> key -> 'a nullable
-  val unsafeGet : 'a t -> key -> 'a
-  val map : ('a -> 'b) -> 'a t -> 'b t
-  val unsafeDeleteKey : 'a t -> key -> unit
+  (** [values dict] returns the values in [dict] *)
+
+  val fromList : (key * 'a) list -> 'a t
+  (** [fromList entries] creates a new dictionary containing each
+[(key, value)] pair in [entries] *)
+
+  val fromArray : (key * 'a) array -> 'a t
+  (** [fromArray entries] creates a new dictionary containing each
+[(key, value)] pair in [entries] *)
+
+  val map : f:('a -> 'b) -> 'a t -> 'b t
+  (** [map f dict] maps [dict] to a new dictionary with the same keys,
+using [f] to map each value *)
 end
 
 module Dict : Dictionary
@@ -1129,43 +843,43 @@ module Global : sig
   type intervalId
   type timeoutId
 
-  val clearInterval : 'a -> 'b
+  val clearInterval : intervalId -> unit
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val clearTimeout : 'a -> 'b
+  val clearTimeout : timeoutId -> unit
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setInterval : 'a -> 'b -> 'c
+  val setInterval : f:(unit -> unit) -> int -> intervalId
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setIntervalFloat : 'a -> 'b -> 'c
+  val setIntervalFloat : f:(unit -> unit) -> float -> intervalId
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setTimeout : 'a -> 'b -> 'c
+  val setTimeout : f:(unit -> unit) -> int -> timeoutId
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val setTimeoutFloat : 'a -> 'b -> 'c
+  val setTimeoutFloat : f:(unit -> unit) -> float -> timeoutId
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val encodeURI : 'a -> 'b
+  val encodeURI : string -> string
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val decodeURI : 'a -> 'b
+  val decodeURI : string -> string
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val encodeURIComponent : 'a -> 'b
+  val encodeURIComponent : string -> string
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val decodeURIComponent : 'a -> 'b
+  val decodeURIComponent : string -> string
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 end
@@ -1341,227 +1055,207 @@ module Math : sig
   val _SQRT1_2 : float
   val _SQRT2 : float
 
-  val abs_int : 'a -> 'b
+  val abs_int : int -> int
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val abs_float : 'a -> 'b
+  val abs_float : float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val acos : 'a -> 'b
+  val acos : float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val acosh : 'a -> 'b
+  val acosh : float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val asin : 'a -> 'b
+  val asin : float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val asinh : 'a -> 'b
+  val asinh : float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val atan : 'a -> 'b
+  val atan : float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val atanh : 'a -> 'b
+  val atanh : float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val atan2 : y:'a -> x:'b -> 'c
+  val atan2 : y:float -> x:float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val cbrt : 'a -> 'b
+  val cbrt : float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val unsafe_ceil_int : 'a -> 'b
+  val unsafe_ceil_int : float -> int
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val unsafe_ceil : 'a -> 'b
+  val ceil_int : float -> int
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val ceil_int : 'a -> 'b -> 'c
+  val ceil_float : float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val ceil : 'a -> 'b
+  val clz32 : int -> int
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val ceil_float : 'a -> 'b
+  val cos : float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val clz32 : 'a -> 'b
+  val cosh : float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val cos : 'a -> 'b
+  val exp : float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val cosh : 'a -> 'b
+  val expm1 : float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val exp : 'a -> 'b
+  val unsafe_floor_int : float -> int
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val expm1 : 'a -> 'b
+  val floor_int : float -> int
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val unsafe_floor_int : 'a -> 'b
+  val floor_float : float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val unsafe_floor : 'a -> 'b
+  val fround : float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val floor_int : 'a -> 'b
+  val hypot : float -> float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val floor : 'a -> 'b
+  val hypotMany : float array -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val floor_float : 'a -> 'b
+  val imul : int -> int -> int
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val fround : 'a -> 'b
+  val log : float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val hypot : 'a -> 'b
+  val log1p : float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val hypotMany : 'a -> 'b -> 'c
+  val log10 : float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val imul : 'a -> 'b
+  val log2 : float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val log : 'a -> 'b
+  val max_int : int -> int -> int
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val log1p : 'a -> 'b
+  val maxMany_int : int array -> int
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val log10 : 'a -> 'b
+  val max_float : float -> float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val log2 : 'a -> 'b
+  val maxMany_float : float array -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val max_int : 'a -> 'b
+  val min_int : int -> int -> int
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val maxMany_int : 'a -> 'b -> 'c
+  val minMany_int : int array -> int
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val max_float : 'a -> 'b
+  val min_float : float -> float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val maxMany_float : 'a -> 'b -> 'c
+  val minMany_float : float array -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val min_int : 'a -> 'b
+  val pow_float : base:float -> exp:float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val minMany_int : 'a -> 'b -> 'c
+  val random : unit -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val min_float : 'a -> 'b
+  val random_int : int -> int -> int
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val minMany_float : 'a -> 'b -> 'c
+  val unsafe_round : float -> int
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val pow_int : base:'a -> exp:'b -> 'c
+  val round : float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val pow_float : base:'a -> exp:'b -> 'c
+  val sign_int : int -> int
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val random : 'a -> 'b
+  val sign_float : float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val random_int : 'a -> 'b -> 'c
+  val sin : float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val unsafe_round : 'a -> 'b
+  val sinh : float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val round : 'a -> 'b
+  val sqrt : float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val sign_int : 'a -> 'b
+  val tan : float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val sign_float : 'a -> 'b
+  val tanh : float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val sin : 'a -> 'b
+  val unsafe_trunc : float -> int
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val sinh : 'a -> 'b
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val sqrt : 'a -> 'b
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val tan : 'a -> 'b
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val tanh : 'a -> 'b
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val unsafe_trunc : 'a -> 'b
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val trunc : 'a -> 'b
+  val trunc : float -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 end
@@ -1597,37 +1291,25 @@ end
 module TypedArray2 : sig end
 
 module Float : sig
+  type t = float
+
   val _NaN : float
   val isNaN : float -> bool
   val isFinite : float -> bool
 
-  val toExponential : 'a -> 'b
+  val toExponential : ?digits:int -> t -> string
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val toExponentialWithPrecision : 'a -> digits:'b -> 'c
+  val toFixed : ?digits:int -> t -> string
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val toFixed : 'a -> 'b
+  val toPrecision : ?digits:int -> t -> string
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val toFixedWithPrecision : 'a -> digits:'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val toPrecision : 'a -> 'b
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val toPrecisionWithPrecision : 'a -> digits:'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val toString : float -> string
-
-  val toStringWithRadix : 'a -> radix:'b -> 'c
+  val toString : ?radix:int -> t -> string
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
@@ -1635,175 +1317,27 @@ module Float : sig
 end
 
 module Int : sig
-  val toExponential : 'a -> 'b
+  type t = int
+
+  val toExponential : ?digits:int -> t -> string
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val toExponentialWithPrecision : 'a -> digits:'b -> 'c
+  val toPrecision : ?digits:t -> t -> string
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
-  val toPrecision : 'a -> 'b
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val toPrecisionWithPrecision : 'a -> digits:'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val toString : int -> string
-
-  val toStringWithRadix : 'a -> radix:'b -> 'c
+  val toString : ?radix:t -> t -> string
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
   val toFloat : int -> float
-  val equal : string -> string -> bool
+  val equal : t -> t -> bool
   val max : int
   val min : int
 end
 
 module Bigint : sig end
-
-module Option : sig
-  type 'a t = 'a nullable
-
-  val some : 'a -> 'b
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val isSome : 'a -> 'b
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val isSomeValue : 'a -> 'b -> 'c -> 'd
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val isNone : 'a -> 'b
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val getExn : 'a -> 'b
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val equal : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val andThen : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val map : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val getWithDefault : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val default : 'a -> 'b
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val filter : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val firstSome : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-end
-
-module List : sig
-  type 'a t = 'a list
-
-  val length : 'a -> 'b
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val cons : 'a -> 'b
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val isEmpty : 'a -> 'b
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val hd : 'a -> 'b
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val tl : 'a -> 'b
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val nth : 'a -> 'b
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val revAppend : 'a -> 'b
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val rev : 'a -> 'b
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val mapRev : 'a -> 'b
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val map : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val iter : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val iteri : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val foldLeft : 'a -> 'b -> 'c -> 'd
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val foldRight : 'a -> 'b -> 'c -> 'd
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val flatten : 'a -> 'b
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val filter : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val filterMap : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val countBy : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val init : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val toVector : 'a -> 'b
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
-  val equal : 'a -> 'b -> 'c
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-end
 
 module Vector : sig
   type 'a t = 'a array

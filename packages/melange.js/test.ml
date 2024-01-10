@@ -8,6 +8,7 @@ let assert_array ty left right =
   Alcotest.check (Alcotest.array ty) "should be equal" right left
 
 let assert_string_array = assert_array Alcotest.string
+let assert_string_option_array = assert_array (Alcotest.option Alcotest.string)
 let assert_array_int = assert_array Alcotest.int
 
 let assert_dict_entries type_ left right =
@@ -37,15 +38,15 @@ let re_tests =
     [
       case "captures" (fun () ->
           let abc_regex = Js.Re.fromString "abc" in
-          let result = Js.Re.exec_ abc_regex "abcdefabcdef" |> Option.get in
+          let result = Js.Re.exec ~str:"abcdefabcdef" abc_regex |> Option.get in
           let matches = Js.Re.captures result |> Array.map Option.get in
           assert_string_array matches [| "abc" |]);
       case "exec" (fun () ->
           let regex = Js.Re.fromString ".ats" in
           let input = "cats and bats" in
           let regex_and_capture =
-            Js.Re.exec_ regex input |> Option.get |> Js.Re.captures
-            |> Array.map Option.get
+            Js.Re.exec ~str:input regex
+            |> Option.get |> Js.Re.captures |> Array.map Option.get
           in
           assert_string_array regex_and_capture [| "cats" |];
           assert_string_array regex_and_capture [| "cats" |];
@@ -55,154 +56,165 @@ let re_tests =
           let input = "cats and bats and mats" in
           assert_bool (Js.Re.global regex) true;
           assert_string_array
-            (Js.Re.exec_ regex input |> Option.get |> Js.Re.captures
-           |> Array.map Option.get)
+            (Js.Re.exec ~str:input regex
+            |> Option.get |> Js.Re.captures |> Array.map Option.get)
             [| "cats" |];
           assert_string_array
-            (Js.Re.exec_ regex input |> Option.get |> Js.Re.captures
-           |> Array.map Option.get)
+            (Js.Re.exec ~str:input regex
+            |> Option.get |> Js.Re.captures |> Array.map Option.get)
             [| "bats" |];
           assert_string_array
-            (Js.Re.exec_ regex input |> Option.get |> Js.Re.captures
-           |> Array.map Option.get)
+            (Js.Re.exec ~str:input regex
+            |> Option.get |> Js.Re.captures |> Array.map Option.get)
             [| "mats" |]);
       case "modifier: end ($)" (fun () ->
           let regex = Js.Re.fromString "cat$" in
-          assert_bool (Js.Re.test_ regex "The cat and mouse") false;
-          assert_bool (Js.Re.test_ regex "The mouse and cat") true);
+          assert_bool (Js.Re.test ~str:"The cat and mouse" regex) false;
+          assert_bool (Js.Re.test ~str:"The mouse and cat" regex) true);
       case "modifier: more than one (+)" (fun () ->
           let regex = Js.Re.fromStringWithFlags ~flags:"i" "boo+(hoo+)+" in
-          assert_bool (Js.Re.test_ regex "Boohoooohoohooo") true);
+          assert_bool (Js.Re.test ~str:"Boohoooohoohooo" regex) true);
       case "global (g) and caseless (i)" (fun () ->
           let regex = Js.Re.fromStringWithFlags ~flags:"gi" "Hello" in
-          let result = Js.Re.exec_ regex "Hello gello! hello" |> Option.get in
+          let result =
+            Js.Re.exec ~str:"Hello gello! hello" regex |> Option.get
+          in
           let matches = Js.Re.captures result |> Array.map Option.get in
           assert_string_array matches [| "Hello" |];
-          let result = Js.Re.exec_ regex "Hello gello! hello" |> Option.get in
+          let result =
+            Js.Re.exec ~str:"Hello gello! hello" regex |> Option.get
+          in
           let matches = Js.Re.captures result |> Array.map Option.get in
           assert_string_array matches [| "hello" |]);
       case "modifier: or ([])" (fun () ->
           let regex = Js.Re.fromString "(\\w+)\\s(\\w+)" in
-          assert_bool (Js.Re.test_ regex "Jane Smith") true;
-          assert_bool (Js.Re.test_ regex "Wololo") false);
+          assert_bool (Js.Re.test ~str:"Jane Smith" regex) true;
+          assert_bool (Js.Re.test ~str:"Wololo" regex) false);
       case "backreferencing" (fun () ->
           let regex = Js.Re.fromString "[bt]ear" in
-          assert_bool (Js.Re.test_ regex "bear") true;
-          assert_bool (Js.Re.test_ regex "tear") true;
-          assert_bool (Js.Re.test_ regex "fear") false);
+          assert_bool (Js.Re.test ~str:"bear" regex) true;
+          assert_bool (Js.Re.test ~str:"tear" regex) true;
+          assert_bool (Js.Re.test ~str:"fear" regex) false);
       case "http|s example" (fun () ->
           let regex =
             Js.Re.fromString "^[https?]+:\\/\\/((w{3}\\.)?[\\w+]+)\\.[\\w+]+$"
           in
-          assert_bool (Js.Re.test_ regex "https://www.example.com") true;
-          assert_bool (Js.Re.test_ regex "http://example.com") true;
-          assert_bool (Js.Re.test_ regex "https://example") false);
+          assert_bool (Js.Re.test ~str:"https://www.example.com" regex) true;
+          assert_bool (Js.Re.test ~str:"http://example.com" regex) true;
+          assert_bool (Js.Re.test ~str:"https://example" regex) false);
       case "index" (fun () ->
           let regex = Js.Re.fromString "zbar" in
-          match Js.Re.exec_ regex "foobarbazbar" with
+          match Js.Re.exec ~str:"foobarbazbar" regex with
           | Some res -> assert_int (Js.Re.index res) 8
           | None -> Alcotest.fail "should have matched");
       case "lastIndex" (fun () ->
           let regex = Js.Re.fromStringWithFlags ~flags:"g" "y" in
           Js.Re.setLastIndex regex 3;
-          match Js.Re.exec_ regex "xyzzy" with
+          match Js.Re.exec ~str:"xyzzy" regex with
           | Some res ->
               assert_int (Js.Re.index res) 4;
               assert_int (Js.Re.lastIndex regex) 5
           | None -> Alcotest.fail "should have matched");
       case "input" (fun () ->
           let regex = Js.Re.fromString "zbar" in
-          match Js.Re.exec_ regex "foobarbazbar" with
+          match Js.Re.exec ~str:"foobarbazbar" regex with
           | Some res -> assert_string (Js.Re.input res) "foobarbazbar"
           | None -> Alcotest.fail "should have matched");
     ] )
 
-let string2_tests =
-  ( "Js.String2",
+let string_tests =
+  ( "Js.String",
     [
       case "make" (fun () ->
           (* assert_string (make 3.5) "3.5"; *)
           (* assert_string (make [| 1; 2; 3 |]) "1,2,3"); *)
           ());
-      case "length" (fun () -> assert_int (Js.String2.length "abcd") 4);
+      case "length" (fun () -> assert_int (Js.String.length "abcd") 4);
       case "get" (fun () ->
-          assert_string (Js.String2.get "Reason" 0) "R";
-          assert_string (Js.String2.get "Reason" 4) "o"
-          (* assert_string (Js.String2.get {js|Rẽasöń|js} 5) {js|ń|js}; *));
+          assert_string (Js.String.get "Reason" 0) "R";
+          assert_string (Js.String.get "Reason" 4) "o"
+          (* assert_string (Js.String.get {js|Rẽasöń|js} 5) {js|ń|js}; *));
       case "fromCharCode" (fun () ->
-          assert_string (Js.String2.fromCharCode 65) "A";
-          (* assert_string (Js.String2.fromCharCode 0x3c8) {js|ψ|js}; *)
-          (* assert_string (Js.String2.fromCharCode 0xd55c) {js|한|js} *)
-          (* assert_string (Js.String2.fromCharCode -64568) {js|ψ|js}; *)
+          assert_string (Js.String.fromCharCode 65) "A";
+          (* assert_string (Js.String.fromCharCode 0x3c8) {js|ψ|js}; *)
+          (* assert_string (Js.String.fromCharCode 0xd55c) {js|한|js} *)
+          (* assert_string (Js.String.fromCharCode -64568) {js|ψ|js}; *)
           ());
       case "fromCharCodeMany" (fun () ->
           (* fromCharCodeMany([|0xd55c, 0xae00, 33|]) = {js|한글!|js} *)
           ());
       case "fromCodePoint" (fun () ->
-          assert_string (Js.String2.fromCodePoint 65) "A"
-          (* assert_string (Js.String2.fromCodePoint 0x3c8) {js|ψ|js}; *)
-          (* assert_string (Js.String2.fromCodePoint 0xd55c) {js|한|js} *)
-          (* assert_string (Js.String2.fromCodePoint 0x1f63a) {js|😺|js} *));
+          assert_string (Js.String.fromCodePoint 65) "A"
+          (* assert_string (Js.String.fromCodePoint 0x3c8) {js|ψ|js}; *)
+          (* assert_string (Js.String.fromCodePoint 0xd55c) {js|한|js} *)
+          (* assert_string (Js.String.fromCodePoint 0x1f63a) {js|😺|js} *));
       case "fromCodePointMany" (fun () ->
           (* assert_string
-             (Js.String2.fromCodePointMany [| 0xd55c; 0xae00; 0x1f63a |])
+             (Js.String.fromCodePointMany [| 0xd55c; 0xae00; 0x1f63a |])
              {js|한글😺|js} *)
           ());
       case "charAt" (fun () ->
-          assert_string (Js.String2.charAt "Reason" 0) "R";
-          assert_string (Js.String2.charAt "Reason" 12) ""
-          (* assert_string (Js.String2.charAt {js|Rẽasöń|js} 5) {js|ń|js} *));
+          assert_string (Js.String.charAt "Reason" ~index:0) "R";
+          assert_string (Js.String.charAt "Reason" ~index:12) ""
+          (* assert_string (Js.String.charAt {js|Rẽasöń|js} 5) {js|ń|js} *));
       case "charCodeAt" (fun () ->
           (* charCodeAt {js|😺|js} 0) 0xd83d *)
-          assert_float (Js.String2.charCodeAt "lola" 1) 111.;
-          assert_float (Js.String2.charCodeAt "lola" 0) 108.);
+          assert_float (Js.String.charCodeAt "lola" ~index:1) 111.;
+          assert_float (Js.String.charCodeAt "lola" ~index:0) 108.);
       case "codePointAt" (fun () ->
-          assert_option_int (Js.String2.codePointAt "lola" 1) (Some 111);
-          (* assert_option_int (Js.String2.codePointAt {js|¿😺?|js} 1) (Some 0x1f63a); *)
-          assert_option_int (Js.String2.codePointAt "abc" 5) None);
+          assert_option_int (Js.String.codePointAt "lola" ~index:1) (Some 111);
+          (* assert_option_int (Js.String.codePointAt {js|¿😺?|js} 1) (Some 0x1f63a); *)
+          assert_option_int (Js.String.codePointAt "abc" ~index:5) None);
       case "concat" (fun () ->
-          assert_string (Js.String2.concat "cow" "bell") "cowbell");
+          assert_string (Js.String.concat "cow" ~other:"bell") "cowbell");
       case "concatMany" (fun () ->
           assert_string
-            (Js.String2.concatMany "1st" [| "2nd"; "3rd"; "4th" |])
+            (Js.String.concatMany "1st" ~strings:[| "2nd"; "3rd"; "4th" |])
             "1st2nd3rd4th");
       case "endsWith" (fun () ->
-          assert_bool (Js.String2.endsWith "ReScript" "Script") true;
-          assert_bool (Js.String2.endsWith "ReShoes" "Script") false);
-      case "endsWithFrom" (fun () ->
-          assert_bool (Js.String2.endsWithFrom "abcd" "cd" 4) true;
-          assert_bool (Js.String2.endsWithFrom "abcde" "cd" 3) false;
-          (* assert_bool (Js.String2.endsWithFrom "abcde" "cde" 99) true; *)
-          assert_bool (Js.String2.endsWithFrom "example.dat" "ple" 7) true);
+          assert_bool (Js.String.endsWith "ReScript" ~suffix:"Script") true;
+          assert_bool (Js.String.endsWith "ReShoes" ~suffix:"Script") false;
+          assert_bool (Js.String.endsWith "abcd" ~suffix:"cd" ~len:4) true;
+          assert_bool (Js.String.endsWith "abcde" ~suffix:"cd" ~len:3) false;
+          (* assert_bool (Js.String.endsWith "abcde" ~suffix:"cde" ~len:99) true; *)
+          assert_bool
+            (Js.String.endsWith "example.dat" ~suffix:"ple" ~len:7)
+            true);
       case "includes" (fun () ->
-          assert_bool (Js.String2.includes "programmer" "gram") true;
-          assert_bool (Js.String2.includes "programmer" "er") true;
-          assert_bool (Js.String2.includes "programmer" "pro") true;
-          assert_bool (Js.String2.includes "programmer" "xyz") false);
-      case "includesFrom" (fun () ->
-          assert_bool (Js.String2.includesFrom "programmer" "gram" 1) true;
-          assert_bool (Js.String2.includesFrom "programmer" "gram" 4) false
-          (* assert_bool (Js.String2.includesFrom {js|한|js} {js|대한민국|js} 1) true *));
+          assert_bool (Js.String.includes "programmer" ~search:"gram") true;
+          assert_bool (Js.String.includes "programmer" ~search:"er") true;
+          assert_bool (Js.String.includes "programmer" ~search:"pro") true;
+          assert_bool (Js.String.includes "programmer" ~search:"xyz") false;
+          assert_bool
+            (Js.String.includes "programmer" ~search:"gram" ~start:1)
+            true;
+          assert_bool
+            (Js.String.includes "programmer" ~search:"gram" ~start:4)
+            false
+          (* assert_bool (Js.String.includesFrom {js|한|js} {js|대한민국|js} 1) true *));
       case "indexOf" (fun () ->
-          assert_int (Js.String2.indexOf "bookseller" "ok") 2;
-          assert_int (Js.String2.indexOf "bookseller" "sell") 4;
-          assert_int (Js.String2.indexOf "beekeeper" "ee") 1;
-          assert_int (Js.String2.indexOf "bookseller" "xyz") (-1));
-      case "indexOfFrom" (fun () ->
-          assert_int (Js.String2.indexOfFrom "bookseller" "ok" 1) 2;
-          assert_int (Js.String2.indexOfFrom "bookseller" "sell" 2) 4;
-          assert_int (Js.String2.indexOfFrom "bookseller" "sell" 5) (-1);
-          assert_int (Js.String2.indexOf "bookseller" "xyz") (-1));
+          assert_int (Js.String.indexOf "bookseller" ~search:"ok") 2;
+          assert_int (Js.String.indexOf "bookseller" ~search:"sell") 4;
+          assert_int (Js.String.indexOf "beekeeper" ~search:"ee") 1;
+          assert_int (Js.String.indexOf "bookseller" ~search:"xyz") (-1);
+          assert_int (Js.String.indexOf "bookseller" ~search:"ok" ~start:1) 2;
+          assert_int (Js.String.indexOf "bookseller" ~search:"sell" ~start:2) 4;
+          assert_int
+            (Js.String.indexOf "bookseller" ~search:"sell" ~start:5)
+            (-1);
+          assert_int (Js.String.indexOf "bookseller" ~search:"xyz") (-1));
       case "lastIndexOf" (fun () ->
-          assert_int (Js.String2.lastIndexOf "bookseller" "ok") 2;
-          assert_int (Js.String2.lastIndexOf "beekeeper" "ee") 4;
-          assert_int (Js.String2.lastIndexOf "abcdefg" "xyz") (-1));
-      case "lastIndexOfFrom" (fun () ->
-          (* assert_int (Js.String2.lastIndexOfFrom "bookseller" "ok" 6) 2;
-             assert_int (Js.String2.lastIndexOfFrom "beekeeper" "ee" 8) 4;
-             assert_int (Js.String2.lastIndexOfFrom "beekeeper" "ee" 3) 1;
-             assert_int (Js.String2.lastIndexOfFrom "abcdefg" "xyz" 4) (-1) *)
-          ());
+          assert_int (Js.String.lastIndexOf "bookseller" ~search:"ok") 2;
+          assert_int (Js.String.lastIndexOf "beekeeper" ~search:"ee") 4;
+          assert_int (Js.String.lastIndexOf "abcdefg" ~search:"xyz") (-1);
+          assert_int
+            (Js.String.lastIndexOf "bookseller" ~search:"ok" ~start:6)
+            2;
+          assert_int (Js.String.lastIndexOf "beekeeper" ~search:"ee" ~start:8) 4;
+          assert_int (Js.String.lastIndexOf "beekeeper" ~search:"ee" ~start:3) 1;
+          assert_int
+            (Js.String.lastIndexOf "abcdefg" ~search:"xyz" ~start:4)
+            (-1));
       (* case "localeCompare" (fun () ->
            localeCompare "ant" "zebra" > 0.0
              localeCompare "zebra" "ant" < 0.0
@@ -211,44 +223,49 @@ let string2_tests =
           ());
       *)
       case "match" (fun () ->
-          let unsafe_match r s = Js.String2.match_ r s |> Stdlib.Option.get in
-          assert_string_array
-            (unsafe_match "The better bats" [%re "/b[aeiou]t/"])
-            [| "bet" |]);
-      case "match" (fun () ->
           let unsafe_match s r =
-            Js.String2.match_ r s |> Stdlib.Option.value ~default:[||]
+            Js.String.match_ ~regexp:r s |> Stdlib.Option.get
           in
-          assert_string_array
+          assert_string_option_array
+            (unsafe_match "The better bats" [%re "/b[aeiou]t/"])
+            [| Some "bet" |]);
+      case "match" (fun () ->
+          let unsafe_match r s =
+            Js.String.match_ ~regexp:r s |> Stdlib.Option.value ~default:[||]
+          in
+          assert_string_option_array
             (unsafe_match [%re "/b[aeiou]t/"] "The better bats")
-            [| "bet" |];
-          assert_string_array
+            [| Some "bet" |];
+          assert_string_option_array
             (unsafe_match [%re "/b[aeiou]t/g"] "The better bats")
-            [| "bet"; "bat" |];
-          assert_string_array
+            [| Some "bet"; Some "bat" |];
+          assert_string_option_array
             (unsafe_match [%re "/(\\d+)-(\\d+)-(\\d+)/"] "Today is 2018-04-05.")
-            [| "2018-04-05"; "2018"; "04"; "05" |];
-          assert_string_array
+            [| Some "2018-04-05"; Some "2018"; Some "04"; Some "05" |];
+          assert_string_option_array
             (unsafe_match [%re "/b[aeiou]g/"] "The large container.")
             [||]);
       case "repeat" (fun () ->
-          assert_string (Js.String2.repeat "ha" 3) "hahaha";
-          assert_string (Js.String2.repeat "empty" 0) "");
+          assert_string (Js.String.repeat "ha" ~count:3) "hahaha";
+          assert_string (Js.String.repeat "empty" ~count:0) "");
       case "replace" (fun () ->
-          (* assert_string (Js.String2.replace "old" "new" "old string") "new string";
+          (* assert_string (Js.String.replace "old" "new" "old string") "new string";
              assert_string
                (replace "the" "this" "the cat and the dog")
                "this cat and the dog" *)
           ());
       case "replaceByRe" (fun () ->
-          assert_string (Js.String2.replaceByRe "david" [%re "/d/"] "x") "xavid"
+          assert_string
+            (Js.String.replaceByRe "david" ~regexp:[%re "/d/"] ~replacement:"x")
+            "xavid"
           (* assert_string
-             (Js.String2.replaceByRe [%re "/(\\w+) (\\w+)/"] "$2, $1"
+             (Js.String.replaceByRe [%re "/(\\w+) (\\w+)/"] "$2, $1"
                 "Juan Fulano")
              "Fulano, Juan" *));
       case "replaceByRe with global" (fun () ->
           assert_string
-            (Js.String2.replaceByRe "vowels be gone" [%re "/[aeiou]/g"] "x")
+            (Js.String.replaceByRe "vowels be gone" ~regexp:[%re "/[aeiou]/g"]
+               ~replacement:"x")
             "vxwxls bx gxnx");
       case "unsafeReplaceBy0" (fun () ->
           (* let str = "beautiful vowels" in
@@ -282,18 +299,17 @@ let string2_tests =
              assert_string replaced "42" *)
           ());
       case "search" (fun () ->
-          (* assert_int (Js.String2.search [%re "/\\d+/"] "testing 1 2 3") 8;
-             assert_int (Js.String2.search [%re "/\\d+/"] "no numbers") (-1) *)
+          (* assert_int (Js.String.search [%re "/\\d+/"] "testing 1 2 3") 8;
+             assert_int (Js.String.search [%re "/\\d+/"] "no numbers") (-1) *)
           ());
       case "slice" (fun () ->
-          assert_string (Js.String2.slice ~from:2 ~to_:5 "abcdefg") "cde";
-          assert_string (Js.String2.slice ~from:2 ~to_:9 "abcdefg") "cdefg";
-          (* assert_string (Js.String2.slice ~from:(-4) ~to_:(-2) "abcdefg") "de"; *)
-          assert_string (Js.String2.slice ~from:5 ~to_:1 "abcdefg") "");
-      case "sliceToEnd" (fun () ->
-          assert_string (Js.String2.sliceToEnd ~from:4 "abcdefg") "efg";
-          (* assert_string (Js.String2.sliceToEnd ~from:(-2) "abcdefg") "fg"; *)
-          assert_string (Js.String2.sliceToEnd ~from:7 "abcdefg") "");
+          assert_string (Js.String.slice ~start:2 ~end_:5 "abcdefg") "cde";
+          assert_string (Js.String.slice ~start:2 ~end_:9 "abcdefg") "cdefg";
+          (* assert_string (Js.String.slice ~from:(-4) ~to_:(-2) "abcdefg") "de"; *)
+          assert_string (Js.String.slice ~start:5 ~end_:1 "abcdefg") "";
+          assert_string (Js.String.slice ~start:4 "abcdefg") "efg";
+          (* assert_string (Js.String.sliceToEnd ~from:(-2) "abcdefg") "fg"; *)
+          assert_string (Js.String.slice ~start:7 "abcdefg") "");
       case "split" (fun () ->
           (* assert_string_array (split "-" "2018-01-02") [| "2018"; "01"; "02" |];
              assert_string_array (split "," "a,b,,c") [| "a"; "b"; ""; "c" |];
@@ -316,8 +332,9 @@ let string2_tests =
                [| "ant"; "bee"; "cat"; "dog"; "elk" |] *)
           ());
       case "splitByRe" (fun () ->
-          let unsafe_splitByRe r s =
-            Js.String2.splitByRe r s |> Stdlib.Array.map Stdlib.Option.get
+          let unsafe_splitByRe s r =
+            Js.String.splitByRe ~regexp:r s
+            |> Stdlib.Array.map Stdlib.Option.get
           in
           assert_string_array
             (unsafe_splitByRe "art; bed , cog ;dad" [%re "/\\s*[,;]\\s*/"])
@@ -346,48 +363,51 @@ let string2_tests =
                [| Some "a"; Some "#"; None |] *)
           ());
       case "startsWith" (fun () ->
-          assert_bool (Js.String2.startsWith "ReScript" "Re") true;
-          assert_bool (Js.String2.startsWith "ReScript" "") true;
-          assert_bool (Js.String2.startsWith "JavaScript" "Re") false);
-      case "startsWithFrom" (fun () ->
-          (* assert_bool (Js.String2.startsWithFrom "cri" 3 "ReScript") true;
-             assert_bool (Js.String2.startsWithFrom "" 3 "ReScript") true;
-             assert_bool (Js.String2.startsWithFrom "Re" 2 "JavaScript") false *)
-          ());
+          assert_bool (Js.String.startsWith "ReScript" ~prefix:"Re") true;
+          assert_bool (Js.String.startsWith "ReScript" ~prefix:"") true;
+          assert_bool (Js.String.startsWith "JavaScript" ~prefix:"Re") false;
+          assert_bool
+            (Js.String.startsWith ~prefix:"cri" ~start:3 "ReScript")
+            true;
+          assert_bool (Js.String.startsWith ~prefix:"" ~start:3 "ReScript") true;
+          assert_bool
+            (Js.String.startsWith ~prefix:"Re" ~start:2 "JavaScript")
+            false);
       case "substr" (fun () ->
-          assert_string (Js.String2.substr ~from:3 "abcdefghij") "defghij";
-          (* assert_string (Js.String2.substr ~from:(-3) "abcdefghij") "hij"; *)
-          assert_string (Js.String2.substr ~from:12 "abcdefghij") "");
+          assert_string (Js.String.substr ~start:3 "abcdefghij") "defghij";
+          (* assert_string (Js.String.substr ~from:(-3) "abcdefghij") "hij"; *)
+          assert_string (Js.String.substr ~start:12 "abcdefghij") "");
       case "substrAtMost" (fun () ->
-          (* assert_string (Js.String2.substrAtMost ~from:3 ~length:4 "abcdefghij") "defghij"; *)
-          (* assert_string (Js.String2.substrAtMost ~from:(-3) ~length:4 "abcdefghij") "hij"; *)
-          (* assert_string (Js.String2.substrAtMost ~from:12 ~length:2 "abcdefghij") "" *)
+          (* assert_string (Js.String.substrAtMost ~from:3 ~length:4 "abcdefghij") "defghij"; *)
+          (* assert_string (Js.String.substrAtMost ~from:(-3) ~length:4 "abcdefghij") "hij"; *)
+          (* assert_string (Js.String.substrAtMost ~from:12 ~length:2 "abcdefghij") "" *)
           ());
       case "substring" (fun () ->
-          assert_string (Js.String2.substring ~from:3 ~to_:6 "playground") "ygr";
-          assert_string (Js.String2.substring ~from:6 ~to_:3 "playground") "ygr";
           assert_string
-            (Js.String2.substring ~from:4 ~to_:12 "playground")
-            "ground");
-      case "substringToEnd" (fun () ->
+            (Js.String.substring ~start:3 ~end_:6 "playground")
+            "ygr";
           assert_string
-            (Js.String2.substringToEnd ~from:4 "playground")
+            (Js.String.substring ~start:6 ~end_:3 "playground")
+            "ygr";
+          assert_string
+            (Js.String.substring ~start:4 ~end_:12 "playground")
             "ground";
+          assert_string (Js.String.substring ~start:4 "playground") "ground";
           assert_string
-            (Js.String2.substringToEnd ~from:(-3) "playground")
+            (Js.String.substring ~start:(-3) "playground")
             "playground";
-          assert_string (Js.String2.substringToEnd ~from:12 "playground") "");
+          assert_string (Js.String.substring ~start:12 "playground") "");
       case "toLowerCase" (fun () ->
-          assert_string (Js.String2.toLowerCase "ABC") "abc"
-          (* assert_string (Js.String2.toLowerCase {js|ΣΠ|js}) {js|σπ|js}; *)
-          (* assert_string (Js.String2.toLowerCase {js|ΠΣ|js}) {js|πς|js} *));
+          assert_string (Js.String.toLowerCase "ABC") "abc"
+          (* assert_string (Js.String.toLowerCase {js|ΣΠ|js}) {js|σπ|js}; *)
+          (* assert_string (Js.String.toLowerCase {js|ΠΣ|js}) {js|πς|js} *));
       case "toUpperCase" (fun () ->
-          assert_string (Js.String2.toUpperCase "abc") "ABC"
-          (* assert_string (Js.String2.toUpperCase {js|Straße|js}) {js|STRASSE|js} *)
-          (* assert_string (Js.String2.toLowerCase {js|πς|js}) {js|ΠΣ|js} *));
+          assert_string (Js.String.toUpperCase "abc") "ABC"
+          (* assert_string (Js.String.toUpperCase {js|Straße|js}) {js|STRASSE|js} *)
+          (* assert_string (Js.String.toLowerCase {js|πς|js}) {js|ΠΣ|js} *));
       case "trim" (fun () ->
-          assert_string (Js.String2.trim "   abc def   ") "abc def";
-          assert_string (Js.String2.trim "\n\r\t abc def \n\n\t\r ") "abc def");
+          assert_string (Js.String.trim "   abc def   ") "abc def";
+          assert_string (Js.String.trim "\n\r\t abc def \n\n\t\r ") "abc def");
       case "anchor" (fun () ->
           (* assert_string
              (anchor "page1" "Page One")
@@ -455,7 +475,7 @@ let dict_tests =
             Js.Dict.fromList [ ("pen", 1); ("book", 5); ("stapler", 7) ]
           in
           let discount price = price * 10 in
-          let salePrices = Js.Dict.map discount prices in
+          let salePrices = Js.Dict.map ~f:discount prices in
           assert_int_dict_entries
             (Js.Dict.entries salePrices)
             [| ("book", 50); ("stapler", 70); ("pen", 10) |]);
@@ -523,12 +543,8 @@ let float_tests =
           assert_string (string_of_float 0.5) "0.5";
           assert_string (string_of_float 80.0) "80.";
           assert_string (string_of_float 80.) "80.";
-          assert_string (Js.Float.toString 80.0) "80";
-          assert_string (Js.Float.toString 80.1) "80.1";
           assert_string (string_of_float 80.0001) "80.0001";
-          assert_string (Js.Float.toString 80.0001) "80.0001";
-          assert_string (string_of_float 80.00000000001) "80.";
-          assert_string (Js.Float.toString 80.00000000001) "80");
+          assert_string (string_of_float 80.00000000001) "80.");
     ] )
 
 let () =
@@ -536,7 +552,7 @@ let () =
     [
       promise_tests;
       float_tests;
-      string2_tests;
+      string_tests;
       re_tests;
       array_tests;
       dict_tests;
