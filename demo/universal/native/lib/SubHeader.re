@@ -1,4 +1,16 @@
-let%browser_only getStorage = () => Dom.Storage2.localStorage;
+module Cosis = {
+  [@react.component]
+  let make = (~onClick) => {
+    <div
+      onClick={_ => {
+        Js.log("asdfs");
+        onClick();
+      }}
+    />;
+  };
+};
+
+let%browser_only getStorage = () => Dom.Storage.localStorage;
 
 [@react.component]
 let make = () => {

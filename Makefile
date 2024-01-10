@@ -56,7 +56,7 @@ setup-githooks: ## Setup githooks
 
 .PHONY: create-switch
 create-switch: ## Create opam switch
-	opam switch create . 5.1.0 --deps-only --with-test -y
+	opam switch create . 5.1.1 --deps-only --with-test -y
 
 .PHONY: install
 install:
@@ -66,10 +66,9 @@ install:
 
 .PHONY: pin
 pin: ## Pin dependencies
-	opam pin add dune.dev "https://github.com/ocaml/dune.git#4c9dec68fc776d808a36bb139230a2695c619d59" -y
-	opam pin add melange.dev "https://github.com/melange-re/melange.git#2ff08be262f113fc8d28b66c272502c6f403399c" -y
-	opam pin add reason-react-ppx.dev "https://github.com/reasonml/reason-react.git#7ca984c9a406b01e906fda1898f705f135fad202" -y
-	opam pin add reason-react.dev "https://github.com/reasonml/reason-react.git#7ca984c9a406b01e906fda1898f705f135fad202" -y
+	opam pin add melange.dev "https://github.com/melange-re/melange.git#76b3b5bb9415a558c44ed712230221db45fc4a8e" -y
+	opam pin add reason-react-ppx.dev "https://github.com/reasonml/reason-react.git#4ee2eda353628090eda95e0b8dabe4e2be50f954" -y
+	opam pin add reason-react.dev "https://github.com/reasonml/reason-react.git#4ee2eda353628090eda95e0b8dabe4e2be50f954" -y
 	opam pin add melange-fetch.dev "git+https://github.com/melange-community/melange-fetch.git#master" -y
 	opam pin add melange-webapi.dev "git+https://github.com/melange-community/melange-webapi.git#master" -y
 
