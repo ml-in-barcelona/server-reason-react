@@ -9,7 +9,7 @@
   let nested_fragment_with_lower = foo =>
     React.fragment(React.list([React.createElement("div", [], [foo])]));
   module Fragment = {
-    let make = (~key as _=?) =>
+    let make = (~key as _: option(string)=?) =>
       [@warning "-16"]
       (
         (~name="", ()) =>

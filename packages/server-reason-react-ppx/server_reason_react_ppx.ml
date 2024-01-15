@@ -615,11 +615,13 @@ let make_value_binding binding =
   let key_arg = Optional "key" in
   (* default_value = None means there's no default *)
   let default_value = None in
-  let renamed_arg = ppat_var ~loc:ghost_loc { txt = "_"; loc } in
+  let key_renamed_to_underscore = ppat_var ~loc:ghost_loc { txt = "_"; loc } in
+  let core_type = [%type: string option] in
+  let key_pattern = ppat_constraint ~loc key_renamed_to_underscore core_type in
   (* Append key argument since we want to allow users of this component to set key
      (and assign it to _ since it shouldn't be used) *)
   let body_expression =
-    pexp_fun ~loc:ghost_loc key_arg default_value renamed_arg binding_expr
+    pexp_fun ~loc:ghost_loc key_arg default_value key_pattern binding_expr
   in
   Ast_helper.Vb.mk ~loc name body_expression
 
