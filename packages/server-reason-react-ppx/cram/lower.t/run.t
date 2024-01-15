@@ -3,7 +3,7 @@
   let lower_empty_attr =
     React.createElement(
       "div",
-      List.filter_map(
+      Stdlib.List.filter_map(
         Fun.id,
         [Some([@implicit_arity] React.JSX.String("class", "": string))],
       ),
@@ -12,7 +12,7 @@
   let lower_inline_styles =
     React.createElement(
       "div",
-      List.filter_map(
+      Stdlib.List.filter_map(
         Fun.id,
         [
           Some(
@@ -29,13 +29,16 @@
   let lower_inner_html =
     React.createElement(
       "div",
-      List.filter_map(Fun.id, [Some(React.JSX.DangerouslyInnerHtml(text))]),
+      Stdlib.List.filter_map(
+        Fun.id,
+        [Some(React.JSX.DangerouslyInnerHtml(text))],
+      ),
       [],
     );
   let lower_opt_attr =
     React.createElement(
       "div",
-      List.filter_map(
+      Stdlib.List.filter_map(
         Fun.id,
         [
           switch ((tabIndex: option(int))) {
@@ -52,7 +55,7 @@
   let lowerWithChildAndProps = foo =>
     React.createElement(
       "a",
-      List.filter_map(
+      Stdlib.List.filter_map(
         Fun.id,
         [
           Some(
@@ -83,7 +86,7 @@
   let lower_children_nested =
     React.createElement(
       "div",
-      List.filter_map(
+      Stdlib.List.filter_map(
         Fun.id,
         [
           Some(
@@ -95,7 +98,7 @@
       [
         React.createElement(
           "div",
-          List.filter_map(
+          Stdlib.List.filter_map(
             Fun.id,
             [
               Some(
@@ -106,7 +109,7 @@
           [
             React.createElement(
               "h2",
-              List.filter_map(
+              Stdlib.List.filter_map(
                 Fun.id,
                 [
                   Some(
@@ -119,7 +122,7 @@
             ),
             React.createElement(
               "nav",
-              List.filter_map(
+              Stdlib.List.filter_map(
                 Fun.id,
                 [
                   Some(
@@ -136,7 +139,7 @@
                     |> List.map(e =>
                          React.createElement(
                            "li",
-                           List.filter_map(
+                           Stdlib.List.filter_map(
                              Fun.id,
                              [
                                Some(
@@ -148,7 +151,7 @@
                            [
                              React.createElement(
                                "a",
-                               List.filter_map(
+                               Stdlib.List.filter_map(
                                  Fun.id,
                                  [
                                    Some(
@@ -188,7 +191,7 @@
   let lower_ref_with_children =
     React.createElement(
       "button",
-      List.filter_map(
+      Stdlib.List.filter_map(
         Fun.id,
         [
           Some(React.JSX.Ref(ref: React.domRef)),
@@ -202,7 +205,7 @@
   let lower_with_many_props =
     React.createElement(
       "div",
-      List.filter_map(
+      Stdlib.List.filter_map(
         Fun.id,
         [
           Some([@implicit_arity] React.JSX.String("translate", "yes": string)),
@@ -211,7 +214,7 @@
       [
         React.createElement(
           "picture",
-          List.filter_map(
+          Stdlib.List.filter_map(
             Fun.id,
             [
               Some(
@@ -222,7 +225,7 @@
           [
             React.createElement(
               "img",
-              List.filter_map(
+              Stdlib.List.filter_map(
                 Fun.id,
                 [
                   Some(
@@ -242,7 +245,7 @@
             ),
             React.createElement(
               "source",
-              List.filter_map(
+              Stdlib.List.filter_map(
                 Fun.id,
                 [
                   Some(
@@ -259,7 +262,7 @@
             ),
             React.createElement(
               "source",
-              List.filter_map(
+              Stdlib.List.filter_map(
                 Fun.id,
                 [
                   Some(
@@ -281,7 +284,7 @@
   let some_random_html_element =
     React.createElement(
       "text",
-      List.filter_map(
+      Stdlib.List.filter_map(
         Fun.id,
         [
           Some([@implicit_arity] React.JSX.String("dx", "1 2": string)),
@@ -293,7 +296,7 @@
   let div =
     React.createElement(
       "div",
-      List.filter_map(
+      Stdlib.List.filter_map(
         Fun.id,
         [
           switch ((onClick: option(React.Event.Mouse.t => unit))) {

@@ -15,7 +15,7 @@ We need to output ML syntax here, otherwise refmt could not parse it.
     let make ?key:_ ~children =
      fun [@warning "-16"] ~buttonRef () ->
       React.createElement "button"
-        (List.filter_map Fun.id
+        (Stdlib.List.filter_map Fun.id
            [
              Some (React.JSX.Ref (buttonRef : React.domRef));
              Some (React.JSX.String ("class", ("FancyButton" : string)));
@@ -28,7 +28,7 @@ We need to output ML syntax here, otherwise refmt could not parse it.
      fun [@warning "-16"] ?isDisabled () ->
       let onClick event = Js.log event in
       React.createElement "button"
-        (List.filter_map Fun.id
+        (Stdlib.List.filter_map Fun.id
            [
              Some (React.JSX.String ("name", (name : string)));
              Some
@@ -63,11 +63,11 @@ We need to output ML syntax here, otherwise refmt could not parse it.
           React.createElement "body" []
             [
               React.createElement "div"
-                (List.filter_map Fun.id
+                (Stdlib.List.filter_map Fun.id
                    [ Some (React.JSX.String ("id", ("root" : string))) ])
                 [ children ];
               React.createElement "script"
-                (List.filter_map Fun.id
+                (Stdlib.List.filter_map Fun.id
                    [
                      Some
                        (React.JSX.String ("src", ("/static/client.js" : string)));
@@ -81,7 +81,7 @@ We need to output ML syntax here, otherwise refmt could not parse it.
     let make ?key:_ =
      fun [@warning "-16"] ~children () ->
       React.createElement "div"
-        (List.filter_map Fun.id
+        (Stdlib.List.filter_map Fun.id
            [
              Some
                (React.JSX.String ("aria-hidden", string_of_bool ("true" : bool)));
@@ -93,7 +93,7 @@ We need to output ML syntax here, otherwise refmt could not parse it.
     let make ?key:_ =
      fun [@warning "-16"] ~children () ->
       React.createElement "form"
-        (List.filter_map Fun.id
+        (Stdlib.List.filter_map Fun.id
            [ Some (React.JSX.String ("method", ("GET" : string))) ])
         [ children ]
   end

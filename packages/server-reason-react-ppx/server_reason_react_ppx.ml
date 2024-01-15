@@ -461,7 +461,7 @@ let transform_lowercase_props ~loc ~tag_name args =
       | [%expr []] -> [%expr []]
       | _ ->
           (* We need to filter attributes since optionals are represented as None *)
-          [%expr List.filter_map Fun.id [%e list_of_attributes]])
+          [%expr Stdlib.List.filter_map Fun.id [%e list_of_attributes]])
 
 let rewrite_lowercase ~loc:exprLoc tag_name args children =
   let loc = exprLoc in
