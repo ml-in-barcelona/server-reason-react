@@ -1691,7 +1691,19 @@ end = struct
   let toExponential ?digits:_ _ = notImplemented "Js.Float" "toExponential"
   let toFixed ?digits:_ _ = notImplemented "Js.Float" "toFixed"
   let toPrecision ?digits:_ _ = notImplemented "Js.Float" "toPrecision"
-  let toString ?radix:_ f = notImplemented "Js.Float" "toString"
+
+  let toString ?radix f =
+    match radix with
+    | None ->
+        (* round x rounds x to the nearest integer with ties (fractional values of 0.5) rounded away from zero, regardless of the current rounding direction. If x is an integer, +0., -0., nan, or infinite, x itself is returned.
+
+           On 64-bit mingw-w64, this function may be emulated owing to a bug in the C runtime library (CRT) on this platform. *)
+        (* if round(f) == f, print the integer (since string_of_float 1.0 => "1.") *)
+        if Stdlib.Float.equal (Stdlib.Float.round f) f then
+          f |> int_of_float |> string_of_int
+        else Printf.sprintf "%g" f
+    | Some _ -> notImplemented "Js.Float" "toString ~radix"
+
   let fromString = Stdlib.float_of_string
 end
 
@@ -1712,7 +1724,12 @@ end = struct
 
   let toExponential ?digits:_ _ = notImplemented "Js.Int" "toExponential"
   let toPrecision ?digits:_ _ = notImplemented "Js.Int" "toPrecision"
-  let toString ?radix:_ int = notImplemented "Js.Int" "toString"
+
+  let toString ?radix int =
+    match radix with
+    | None -> Stdlib.string_of_int int
+    | Some _ -> notImplemented "Js.Int" "toString ~radix"
+
   let toFloat int = Stdlib.float_of_int int
   let equal = Stdlib.Int.equal
   let max = 2147483647
