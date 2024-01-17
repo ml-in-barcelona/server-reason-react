@@ -1237,3 +1237,5 @@ let domProps
   |> add (JSX.bool "suppressHydrationWarning") suppressHydrationWarning
 
 module Ref = React.Ref
+
+type domRef = Ref.t
