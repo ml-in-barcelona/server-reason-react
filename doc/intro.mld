@@ -37,9 +37,12 @@ The main difference is how it's going to render with {!ReactDOM}:
 
 {1:install Install}
 
+Since it's not in opam yet, you need to pin it to the [main] branch.
 {[
-  opam install server-reason-react
+  opam pin server-reason-react.dev "https://github.com/ml-in-barcelona/server-reason-react.git#main" -y
 ]}
+
+{1:usage Usage}
 
 Add [server-reason-react.react] and [server-reason-react.reactDom] to your dune file:
 {[ (libraries (server-reason-react.react server-reason-react.reactDom) ]}
