@@ -1,15 +1,7 @@
-  $ ../ppx.sh --output ml input.re
+  $ refmt --parse re --interface true --print ml ./input.rei > output.mli
+  $ ./../standalone.exe --intf output.mli -o temp.mli
+  $ ocamlformat --enable-outside-detected-project --intf temp.mli -o temp.mli
+  $ cat temp.mli
   module Greeting : sig
-    val make : ?mockup:string -> React.element
-  end = struct
-    let make ?key:(_ : string option) =
-     fun [@warning "-16"] ?(mockup : string option) () ->
-      React.createElement "button" [] [ React.string "Hello!" ]
-  end
-  
-  module MyPropIsOptionOptionBoolLetWithValSig : sig
-    val make : ?myProp:bool option -> React.element
-  end = struct
-    let make ?key:(_ : string option) =
-     fun [@warning "-16"] ?(myProp : bool option option) () -> React.null
+    val make : ?key:string option -> ?mockup:string -> React.element
   end

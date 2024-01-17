@@ -625,6 +625,42 @@ let make_value_binding binding =
   in
   Ast_helper.Vb.mk ~loc name body_expression
 
+let add_key_to_core_type core_type =
+  let loc = core_type.ptyp_loc in
+  let key_core_type = [%type: string] in
+  ptyp_arrow ~loc (Optional "key") key_core_type core_type
+
+let add_unit_to_last_core_type (core_type : core_type) =
+  let rec go core_type =
+    match core_type.ptyp_desc with
+    | Ptyp_arrow (_label, t1, t2) -> (
+        match (t1.ptyp_desc, t2.ptyp_desc) with
+        (* `constr -> arrow (constr -> constr)` gets transformed into
+           `constr -> constr -> t -> constr` *)
+        | Ptyp_constr _, Ptyp_arrow (_inner_label, _p1, p2) -> go p2
+        (* `constr -> constr` gets transformed into `constr -> t -> constr` *)
+        (* `arrow (constr -> constr) -> constr` gets transformed into,
+            `arrow (constr -> constr) -> t -> constr` *)
+        | _, _ ->
+            (* Builder.ptyp_arrow ~loc:t2.ptyp_loc label t1
+               (Builder.ptyp_arrow ~loc:t2.ptyp_loc Nolabel send_pipe_core_type
+                  t2)) *)
+            core_type)
+    | Ptyp_constr ({ txt = _; loc = _ }, _) -> core_type
+    | Ptyp_var _ -> core_type
+    | Ptyp_any | Ptyp_tuple _
+    | Ptyp_object (_, _)
+    | Ptyp_class (_, _)
+    | Ptyp_alias (_, _)
+    | Ptyp_variant (_, _, _)
+    | Ptyp_poly (_, _)
+    | Ptyp_package _ | Ptyp_extension _ ->
+        core_type
+    (* Here we ignore the Ptyp_any *)
+  in
+
+  go core_type
+
 let rewrite_signature_item signature_item =
   (* Remove the [@react.component] from the AST *)
   match signature_item with
@@ -644,7 +680,9 @@ let rewrite_signature_item signature_item =
               Psig_value
                 {
                   psig_desc with
-                  pval_type;
+                  pval_type =
+                    pval_type |> add_key_to_core_type
+                    |> add_unit_to_last_core_type;
                   pval_attributes =
                     List.filter ~f:otherAttrsPure pval_attributes;
                 };
@@ -742,4 +780,4 @@ let rewrite_jsx =
 
 let () =
   Ppxlib.Driver.register_transformation "server-reason-react.ppx"
-    ~impl:rewrite_jsx#structure
+    ~impl:rewrite_jsx#structure ~intf:rewrite_jsx#signature
