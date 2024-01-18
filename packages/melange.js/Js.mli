@@ -1310,9 +1310,6 @@ module Float : sig
     not_implemented "is not implemented in native under server-reason-react.js"]
 
   val toString : ?radix:int -> t -> string
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
   val fromString : string -> float
 end
 
@@ -1328,9 +1325,6 @@ module Int : sig
     not_implemented "is not implemented in native under server-reason-react.js"]
 
   val toString : ?radix:t -> t -> string
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
   val toFloat : int -> float
   val equal : t -> t -> bool
   val max : int
