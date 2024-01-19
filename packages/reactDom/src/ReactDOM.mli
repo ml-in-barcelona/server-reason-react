@@ -532,3 +532,5 @@ val domProps :
   React.JSX.prop list
 
 module Ref = React.Ref
+
+type domRef = Ref.t
