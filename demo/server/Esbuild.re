@@ -7,7 +7,7 @@ let build = (~entry_point, ~outfile, ()) => {
       " ",
       [
         "NODE_PATH=./demo/node_modules/",
-        "esbuild",
+        "_build/default/demo/node_modules/esbuild/bin/esbuild",
         entry,
         "--bundle",
         "--outfile=" ++ output,
