@@ -1,0 +1,8 @@
+(install
+ (enabled_if
+  (= %{profile} "dev"))
+ (section bin)
+ (files
+  (node_modules/esbuild/bin/esbuild as esbuild)))
+
+(data_only_dirs node_modules)
