@@ -4,7 +4,7 @@
   >   words->List.map->Js.log;
   > };
   > 
-  > let%browser_only renderToElementWithId = (component, id) => {
+  > let%browser_only renderToElementWithId = (~id="", component) => {
   >   switch (ReactDOM.querySelector("#" ++ id)) {
   >     | Some(node) =>
   >       let root = ReactDOM.Client.createRoot(node);
@@ -38,14 +38,14 @@
 
   $ refmt --print ml input.re > input.ml
 
-  $ ./standalone.exe -impl input.ml -js | ocamlformat - --enable-outside-detected-project --impl  
+  $ ./standalone.exe -impl input.ml -js | ocamlformat - --enable-outside-detected-project --impl
   let valueFromEvent evt = (React.Event.Form.target evt)##value
   
   let getSortedWordCountsBrowserOnly (words : string array) : (string * int) array
       =
     words |. List.map |. Js.log
   
-  let renderToElementWithId component id =
+  let renderToElementWithId ?(id = "") component =
     match ReactDOM.querySelector ("#" ^ id) with
     | ((Some node) [@explicit_arity]) ->
         let root = ReactDOM.Client.createRoot node in
@@ -96,7 +96,7 @@
         browser_only
           "This expression is marked to only run on the browser where JavaScript \
            can run. You can only use it inside a let%browser_only function."]) =
-   fun [@alert "-browser_only"] component id ->
+   fun [@alert "-browser_only"] ?id component ->
     Runtime.fail_impossible_action_in_ssr "renderToElementWithId"
   [@@warning "-27-32"]
   
