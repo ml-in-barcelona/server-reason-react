@@ -37,7 +37,7 @@ val createDOMElementVariadic :
   string -> props:React.JSX.prop list -> React.element array -> React.element
 (** Create a React.element by giving the HTML tag, an array of props and children *)
 
-type dangerouslySetInnerHTML = { __html : string } [@@boxed]
+type dangerouslySetInnerHTML = < __html : string >
 
 (* JSX props for HTML and SVG elements, including React specific ones. *)
 val domProps :

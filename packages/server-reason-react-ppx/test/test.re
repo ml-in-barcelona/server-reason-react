@@ -53,7 +53,6 @@ let style_attribute = () => {
 
 let ref_attribute = () => {
   let divRef = React.useRef(Js.Nullable.null);
-
   let div = <div ref={React.Ref.domRef(divRef)} />;
   assert_string(ReactDOM.renderToStaticMarkup(div), {|<div></div>|});
 };

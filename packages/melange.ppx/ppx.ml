@@ -278,9 +278,48 @@ let transform_external pval_name pval_attributes pval_loc pval_type =
           "server-reason-react.melange_ppx: Packages are not supported in \
            native externals the same way as melange.ppx support them."]]
 
+let tranform_record_to_object ~loc (record : (longident_loc * expression) list)
+    =
+  let fields =
+    List.map
+      (fun ((longident : longident_loc), expression) ->
+        let label =
+          match longident.txt with
+          | Lident label -> label
+          | Ldot _ | Lapply _ ->
+              Location.raise_errorf ~loc
+                "`%%mel.obj' literals only support labels"
+        in
+        Builder.pcf_method ~loc
+          ( Builder.Located.mk label ~loc,
+            Public,
+            Cfk_concrete (Fresh, expression) ))
+      record
+  in
+  Builder.pexp_object ~loc
+    (Builder.class_structure ~self:(Builder.ppat_any ~loc) ~fields)
+
 class raise_exception_mapper =
   object (_self)
     inherit Ast_traverse.map as super
+
+    method! expression expr =
+      match expr.pexp_desc with
+      | Pexp_extension
+          ( { txt = "mel.obj"; _ },
+            PStr
+              [
+                {
+                  pstr_desc =
+                    Pstr_eval
+                      ({ pexp_desc = Pexp_record (record, None); pexp_loc }, _);
+                  _;
+                };
+              ] ) ->
+          tranform_record_to_object ~loc:pexp_loc record
+      | Pexp_extension ({ txt = "mel.obj"; loc }, _) ->
+          [%expr [%ocaml.error "%%mel.obj requires a record literal"]]
+      | _ -> super#expression expr
 
     method! structure_item item =
       match item.pstr_desc with

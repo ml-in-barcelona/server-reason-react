@@ -6,4 +6,4 @@
   server-reason-react.reactDom
   server-reason-react.js)
  (preprocess
-  (pps server-reason-react.ppx)))
+  (pps server-reason-react.ppx server-reason-react.melange_ppx)))

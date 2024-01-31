@@ -348,7 +348,7 @@ module JSX = struct
   let style value = Style value
   let int key value = String (key, string_of_int value)
   let float key value = String (key, string_of_float value)
-  let dangerouslyInnerHtml value = DangerouslyInnerHtml value
+  let dangerouslyInnerHtml value = DangerouslyInnerHtml value#__html
   let ref value = Ref value
   let event key value = Event (key, value)
 
