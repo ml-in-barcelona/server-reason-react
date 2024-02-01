@@ -24,7 +24,15 @@ module Platform = struct
         Ok (second.pc_rhs, first.pc_rhs)
     | _ ->
         Error
-          [%expr [%ocaml.error "platform requires 2 cases: Server | Client"]]
+          [%expr
+            [%ocaml.error
+              "[browser_only] switch%%platform requires 2 cases: `Server` and \
+               `Client`"]]
+
+  let switch_platform_requires_a_match ~loc =
+    [%expr
+      [%ocaml.error
+        "[browser_ppx] switch%%platform requires a match expression"]]
 
   let handler ~ctxt:_ { txt = payload; loc } =
     match payload with
@@ -41,9 +49,9 @@ module Platform = struct
                     (* When it's isn't -js keep the server_expr *)
                     | Native -> server_expr)
                 | Error error_msg_expr -> error_msg_expr)
-            | _ -> [%expr [%ocaml.error ast_error_msg]])
-        | _ -> [%expr [%ocaml.error "platform requires a match expression"]])
-    | _ -> [%expr [%ocaml.error "platform requires a match expression"]]
+            | _ -> switch_platform_requires_a_match ~loc)
+        | _ -> switch_platform_requires_a_match ~loc)
+    | _ -> switch_platform_requires_a_match ~loc
 
   let rule =
     Context_free.Rule.extension
@@ -79,9 +87,9 @@ module Browser_only = struct
   let error_only_works_on ~loc =
     [%expr
       [%ocaml.error
-        "browser_only works on function definitions or values. If there's \
-         another case where it can be helpful, feel free to open an issue in \
-         https://github.com/ml-in-barcelona/server-reason-react."]]
+        "[browser_ppx] browser_only works on function definitions or values. \
+         If there's another case where it can be helpful, feel free to open an \
+         issue in https://github.com/ml-in-barcelona/server-reason-react."]]
 
   let remove_alert_browser_only ~loc =
     Builder.attribute ~loc ~name:{ txt = "alert"; loc }

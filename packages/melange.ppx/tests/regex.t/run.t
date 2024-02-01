@@ -8,4 +8,5 @@
   let scape_digis_with_global = Js.Re.fromStringWithFlags ~flags:"g" "(\\d+)"
   
   let payload_should_be_a_string =
-    [%ocaml.error "payload should be a string literal"]
+    [%ocaml.error
+      "[server-reason-react.melange_ppx] payload should be a string literal"]

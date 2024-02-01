@@ -21,8 +21,8 @@ With -js flag everything keeps as it is and browser_only extension disappears
   let make () =
     let pstr_value_binding_2 =
       [%ocaml.error
-        "browser_only works on function definitions or values. If there's \
-         another case where it can be helpful, feel free to open an issue in \
-         https://github.com/ml-in-barcelona/server-reason-react."]
+        "[browser_ppx] browser_only works on function definitions or values. If \
+         there's another case where it can be helpful, feel free to open an \
+         issue in https://github.com/ml-in-barcelona/server-reason-react."]
     in
     ()

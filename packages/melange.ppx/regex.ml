@@ -22,7 +22,9 @@ let handler ~ctxt:_ ({ txt = payload; loc } : Ppxlib.Parsetree.payload loc) =
             | Some (regex, flags) -> (regex, flags)
             | None ->
                 Location.raise_errorf ~loc:location
-                  "invalid regex: %s, expected /regex/flags" str
+                  "[server-reason-react.melange_ppx] invalid regex: %s, \
+                   expected /regex/flags"
+                  str
           in
           let regex = Builder.estring ~loc:location regex' in
           match flags' with
@@ -32,12 +34,14 @@ let handler ~ctxt:_ ({ txt = payload; loc } : Ppxlib.Parsetree.payload loc) =
               [%expr Js.Re.fromStringWithFlags ~flags:[%e flags] [%e regex]])
       | _ ->
           Builder.pexp_extension ~loc
-          @@ Location.error_extensionf ~loc "payload should be a string literal"
-      )
+          @@ Location.error_extensionf ~loc
+               "[server-reason-react.melange_ppx] payload should be a string \
+                literal")
   | _ ->
       Builder.pexp_extension ~loc
       @@ Location.error_extensionf ~loc
-           "[%%re] should be used with an expression"
+           "[server-reason-react.melange_ppx] [%%re] extension should have an \
+            expression as payload"
 
 let rule =
   let extension =
