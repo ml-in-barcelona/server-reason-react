@@ -23,7 +23,7 @@ Fail if the object is not a record
   File "input.ml", line 1, characters 8-25:
   1 | let a = [%mel.obj "hola"]
               ^^^^^^^^^^^^^^^^^
-  Error: server-reason-react.melange_ppx: Js.t objects requires a record literal
+  Error: [server-reason-react.melange_ppx] Js.t objects requires a record literal
 
   $ ocamlc -c output.ml
 
@@ -37,6 +37,6 @@ Fail if the object is not a record
   File "input.ml", line 1, characters 18-42:
   1 | let a = [%mel.obj { Lola.cositas = "hola"}]
                         ^^^^^^^^^^^^^^^^^^^^^^^^
-  Error: server-reason-react.melange_ppx: Js.t objects only support labels as keys
+  Error: [server-reason-react.melange_ppx] Js.t objects only support labels as keys
 
   $ ocamlc -c output.ml
