@@ -20,14 +20,12 @@ Fail if the object is not a record
   > EOF
 
   $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl | tee output.ml
-  let a = [%ocaml.error "%%mel.obj requires a record literal"]
+  File "input.ml", line 1, characters 8-25:
+  1 | let a = [%mel.obj "hola"]
+              ^^^^^^^^^^^^^^^^^
+  Error: server-reason-react.melange_ppx: Js.t objects requires a record literal
 
   $ ocamlc -c output.ml
-  File "output.ml", line 1, characters 10-21:
-  1 | let a = [%ocaml.error "%%mel.obj requires a record literal"]
-                ^^^^^^^^^^^
-  Error: %%mel.obj requires a record literal
-  [2]
 
 Fail if the object is not a record
 
@@ -39,6 +37,6 @@ Fail if the object is not a record
   File "input.ml", line 1, characters 18-42:
   1 | let a = [%mel.obj { Lola.cositas = "hola"}]
                         ^^^^^^^^^^^^^^^^^^^^^^^^
-  Error: `%mel.obj' literals only support labels
+  Error: server-reason-react.melange_ppx: Js.t objects only support labels as keys
 
   $ ocamlc -c output.ml

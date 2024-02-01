@@ -207,6 +207,20 @@ let transform_external_arrow ~loc pval_name pval_attributes pval_type =
   let vb = Builder.value_binding ~loc ~pat ~expr:function_expression in
   Ast_helper.Str.value Nonrecursive [ vb ]
 
+let ptyp_humanize = function
+  | Ptyp_tuple _ -> "Tuples"
+  | Ptyp_object _ -> "Objects"
+  | Ptyp_class _ -> "Classes"
+  | Ptyp_variant _ -> "Variants"
+  | Ptyp_extension _ -> "Extensions"
+  | Ptyp_alias _ -> "Alias"
+  | Ptyp_poly _ -> "Polyvariants"
+  | Ptyp_package _ -> "Packages"
+  | Ptyp_any -> "Any"
+  | Ptyp_var _ -> "Var"
+  | Ptyp_arrow _ -> "Arrow"
+  | Ptyp_constr _ -> "Constr"
+
 let transform_external pval_name pval_attributes pval_loc pval_type =
   let loc = pval_loc in
   match pval_type.ptyp_desc with
@@ -237,46 +251,11 @@ let transform_external pval_name pval_attributes pval_loc pval_type =
           }
         in
         [%stri let [%p pattern] = Obj.magic ()]
-  | Ptyp_tuple _ ->
-      [%stri
-        [%ocaml.error
-          "server-reason-react.melange_ppx: Tuples are not supported in native \
-           externals the same way as melange.ppx support them."]]
-  | Ptyp_object _ ->
-      [%stri
-        [%ocaml.error
-          "server-reason-react.melange_ppx: Objects are not supported in \
-           native externals the same way as melange.ppx support them."]]
-  | Ptyp_class _ ->
-      [%stri
-        [%ocaml.error
-          "server-reason-react.melange_ppx: Classes are not supported in \
-           native externals the same way as melange.ppx support them."]]
-  | Ptyp_variant _ ->
-      [%stri
-        [%ocaml.error
-          "server-reason-react.melange_ppx: Variants are not supported in \
-           native externals the same way as melange.ppx support them."]]
-  | Ptyp_extension _ ->
-      [%stri
-        [%ocaml.error
-          "server-reason-react.melange_ppx: Extensions are not supported in \
-           native externals the same way as melange.ppx support them."]]
-  | Ptyp_alias _ ->
-      [%stri
-        [%ocaml.error
-          "server-reason-react.melange_ppx: Variants are not supported in \
-           native externals the same way as melange.ppx support them."]]
-  | Ptyp_poly _ ->
-      [%stri
-        [%ocaml.error
-          "server-reason-react.melange_ppx: Polyvariants are not supported in \
-           native externals the same way as melange.ppx support them."]]
-  | Ptyp_package _ ->
-      [%stri
-        [%ocaml.error
-          "server-reason-react.melange_ppx: Packages are not supported in \
-           native externals the same way as melange.ppx support them."]]
+  | _ ->
+      Location.raise_errorf ~loc
+        "[server-reason-react.melange_ppx] %s are not supported in native \
+         externals the same way as melange.ppx support them."
+        (ptyp_humanize pval_type.ptyp_desc)
 
 let tranform_record_to_object ~loc (record : (longident_loc * expression) list)
     =
@@ -288,7 +267,8 @@ let tranform_record_to_object ~loc (record : (longident_loc * expression) list)
           | Lident label -> label
           | Ldot _ | Lapply _ ->
               Location.raise_errorf ~loc
-                "`%%mel.obj' literals only support labels"
+                "[server-reason-react.melange_ppx] Js.t objects only support \
+                 labels as keys"
         in
         Builder.pcf_method ~loc
           ( Builder.Located.mk label ~loc,
@@ -317,8 +297,10 @@ class raise_exception_mapper =
                 };
               ] ) ->
           tranform_record_to_object ~loc:pexp_loc record
-      | Pexp_extension ({ txt = "mel.obj"; loc }, _) ->
-          [%expr [%ocaml.error "%%mel.obj requires a record literal"]]
+      | Pexp_extension ({ txt = "mel.obj"; loc = _ }, _) ->
+          Location.raise_errorf ~loc:expr.pexp_loc
+            "[server-reason-react.melange_ppx] Js.t objects requires a record \
+             literal"
       | _ -> super#expression expr
 
     method! structure_item item =
