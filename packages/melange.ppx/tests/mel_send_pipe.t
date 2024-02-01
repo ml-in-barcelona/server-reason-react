@@ -19,7 +19,7 @@ both on the type annotation, also on the function expression.
     raise (Runtime.fail_impossible_action_in_ssr "getPropertyPriority")
 
   $ echo "module Runtime = struct" >> main.ml
-  $ cat $INSIDE_DUNE/packages/runtime/runtime.ml >> main.ml
+  $ cat $INSIDE_DUNE/packages/runtime/Runtime.ml >> main.ml
   $ echo "end" >> main.ml
   $ ocamlc -c main.ml
 
@@ -50,7 +50,7 @@ Make sure is placed correctly
   $ echo "type t" > main.ml
   $ echo "module Dom = struct type documentType end" >> main.ml
   $ echo "module Runtime = struct" >> main.ml
-  $ cat $INSIDE_DUNE/packages/runtime/runtime.ml >> main.ml
+  $ cat $INSIDE_DUNE/packages/runtime/Runtime.ml >> main.ml
   $ echo "end" >> main.ml
   $ cat output.ml >> main.ml
   $ ocamlc -c main.ml
@@ -95,7 +95,7 @@ Labelled arguments
     raise (Runtime.fail_impossible_action_in_ssr "scale")
 
   $ echo "module Runtime = struct" > main.ml
-  $ cat $INSIDE_DUNE/packages/runtime/runtime.ml >> main.ml
+  $ cat $INSIDE_DUNE/packages/runtime/Runtime.ml >> main.ml
   $ echo "end" >> main.ml
   $ cat output.ml >> main.ml
   $ ocamlc -c main.ml
@@ -122,7 +122,7 @@ Nonlabelled arguments as functions
     raise (Runtime.fail_impossible_action_in_ssr "forEach")
 
   $ echo "module Runtime = struct" > main.ml
-  $ cat $INSIDE_DUNE/packages/runtime/runtime.ml >> main.ml
+  $ cat $INSIDE_DUNE/packages/runtime/Runtime.ml >> main.ml
   $ echo "end" >> main.ml
   $ cat output.ml >> main.ml
   $ ocamlc -c main.ml
@@ -146,7 +146,7 @@ Nonlabelled arguments as functions
     raise (Runtime.fail_impossible_action_in_ssr "postMessage")
 
   $ echo "module Runtime = struct" > main.ml
-  $ cat $INSIDE_DUNE/packages/runtime/runtime.ml >> main.ml
+  $ cat $INSIDE_DUNE/packages/runtime/Runtime.ml >> main.ml
   $ echo "end" >> main.ml
   $ cat output.ml >> main.ml
   $ ocamlc -c main.ml
@@ -173,7 +173,7 @@ Send pipe with 'a
     raise (Runtime.fail_impossible_action_in_ssr "postMessage")
 
   $ echo "module Runtime = struct" > main.ml
-  $ cat $INSIDE_DUNE/packages/runtime/runtime.ml >> main.ml
+  $ cat $INSIDE_DUNE/packages/runtime/Runtime.ml >> main.ml
   $ echo "end" >> main.ml
   $ cat output.ml >> main.ml
   $ ocamlc -c main.ml

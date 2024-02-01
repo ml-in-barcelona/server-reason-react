@@ -18,7 +18,7 @@ Labelled args with @@mel.send
     raise (Runtime.fail_impossible_action_in_ssr "init")
 
   $ echo "module Runtime = struct" > main.ml
-  $ cat $INSIDE_DUNE/packages/runtime/runtime.ml >> main.ml
+  $ cat $INSIDE_DUNE/packages/runtime/Runtime.ml >> main.ml
   $ echo "end" >> main.ml
   $ cat output.ml >> main.ml
   $ ocamlc -c main.ml
@@ -44,7 +44,7 @@ Labelled and unlabelled args with @@mel.obj
     raise (Runtime.fail_impossible_action_in_ssr "makeInitParam")
 
   $ echo "module Runtime = struct" > main.ml
-  $ cat $INSIDE_DUNE/packages/runtime/runtime.ml >> main.ml
+  $ cat $INSIDE_DUNE/packages/runtime/Runtime.ml >> main.ml
   $ echo "end" >> main.ml
   $ cat output.ml >> main.ml
   $ ocamlc -c main.ml
@@ -73,7 +73,7 @@ Only unlabelled
     raise (Runtime.fail_impossible_action_in_ssr "keycloak")
 
   $ echo "module Runtime = struct" > main.ml
-  $ cat $INSIDE_DUNE/packages/runtime/runtime.ml >> main.ml
+  $ cat $INSIDE_DUNE/packages/runtime/Runtime.ml >> main.ml
   $ echo "end" >> main.ml
   $ cat output.ml >> main.ml
   $ ocamlc -c main.ml
@@ -102,7 +102,7 @@ Multiple args with optional
     raise (Runtime.fail_impossible_action_in_ssr "keycloak")
 
   $ echo "module Runtime = struct" > main.ml
-  $ cat $INSIDE_DUNE/packages/runtime/runtime.ml >> main.ml
+  $ cat $INSIDE_DUNE/packages/runtime/Runtime.ml >> main.ml
   $ echo "end" >> main.ml
   $ cat output.ml >> main.ml
   $ ocamlc -c main.ml
@@ -125,7 +125,7 @@ Single type (invalid OCaml, but valid in Melange)
     Obj.magic ()
 
   $ echo "module Runtime = struct" > main.ml
-  $ cat $INSIDE_DUNE/packages/runtime/runtime.ml >> main.ml
+  $ cat $INSIDE_DUNE/packages/runtime/Runtime.ml >> main.ml
   $ echo "end" >> main.ml
   $ cat output.ml >> main.ml
   $ ocamlc -c main.ml
@@ -154,7 +154,7 @@ mel.send
     raise (Runtime.fail_impossible_action_in_ssr "fillStyle")
 
   $ echo "module Runtime = struct" > main.ml
-  $ cat $INSIDE_DUNE/packages/runtime/runtime.ml >> main.ml
+  $ cat $INSIDE_DUNE/packages/runtime/Runtime.ml >> main.ml
   $ echo "end" >> main.ml
   $ cat output.ml >> main.ml
   $ ocamlc -c main.ml
