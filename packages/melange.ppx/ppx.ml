@@ -252,24 +252,16 @@ let transform_external pval_name pval_attributes pval_loc pval_type =
         in
         [%stri let [%p pattern] = Obj.magic ()]
   | _ ->
-      Location.raise_errorf ~loc
+      [%stri
+        [%%ocaml.error
         "[server-reason-react.melange_ppx] %s are not supported in native \
          externals the same way as melange.ppx support them."
-        (ptyp_humanize pval_type.ptyp_desc)
+          (ptyp_humanize pval_type.ptyp_desc)]]
 
-let tranform_record_to_object ~loc (record : (longident_loc * expression) list)
-    =
+let tranform_record_to_object ~loc record =
   let fields =
     List.map
-      (fun ((longident : longident_loc), expression) ->
-        let label =
-          match longident.txt with
-          | Lident label -> label
-          | Ldot _ | Lapply _ ->
-              Location.raise_errorf ~loc
-                "[server-reason-react.melange_ppx] Js.t objects only support \
-                 labels as keys"
-        in
+      (fun (label, expression) ->
         Builder.pcf_method ~loc
           ( Builder.Located.mk label ~loc,
             Public,
@@ -278,6 +270,21 @@ let tranform_record_to_object ~loc (record : (longident_loc * expression) list)
   in
   Builder.pexp_object ~loc
     (Builder.class_structure ~self:(Builder.ppat_any ~loc) ~fields)
+
+let validate_record_labels ~loc record =
+  List.fold_left
+    (fun acc (longident, expression) ->
+      match acc with
+      | Error _ as error -> error
+      | Ok acc -> (
+          match longident.txt with
+          | Lident label -> Ok ((label, expression) :: acc)
+          | Ldot _ | Lapply _ ->
+              Error
+                (Location.error_extensionf ~loc
+                   "[server-reason-react.melange_ppx] Js.t objects only \
+                    support labels as keys")))
+    (Ok []) record
 
 class raise_exception_mapper =
   object (_self)
@@ -295,12 +302,15 @@ class raise_exception_mapper =
                       ({ pexp_desc = Pexp_record (record, None); pexp_loc }, _);
                   _;
                 };
-              ] ) ->
-          tranform_record_to_object ~loc:pexp_loc record
-      | Pexp_extension ({ txt = "mel.obj"; loc = _ }, _) ->
-          Location.raise_errorf ~loc:expr.pexp_loc
-            "[server-reason-react.melange_ppx] Js.t objects requires a record \
-             literal"
+              ] ) -> (
+          match validate_record_labels ~loc:pexp_loc record with
+          | Ok record -> tranform_record_to_object ~loc:pexp_loc record
+          | Error extension -> Builder.pexp_extension ~loc:pexp_loc extension)
+      | Pexp_extension ({ txt = "mel.obj"; loc }, _) ->
+          Builder.pexp_extension ~loc
+            (Location.error_extensionf ~loc:expr.pexp_loc
+               "[server-reason-react.melange_ppx] Js.t objects requires a \
+                record literal")
       | _ -> super#expression expr
 
     method! structure_item item =

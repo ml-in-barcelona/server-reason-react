@@ -17,31 +17,31 @@ let handler ~ctxt:_ ({ txt = payload; loc } : Ppxlib.Parsetree.payload loc) =
   | PStr [ { pstr_desc = Pstr_eval (expression, _); _ } ] -> (
       match expression.pexp_desc with
       | Pexp_constant (Pconst_string (str, location, _delimiter)) -> (
-          let regex', flags' =
-            match parse_re str with
-            | Some (regex, flags) -> (regex, flags)
-            | None ->
-                Location.raise_errorf ~loc:location
-                  "[server-reason-react.melange_ppx] invalid regex: %s, \
-                   expected /regex/flags"
-                  str
-          in
-          let regex = Builder.estring ~loc:location regex' in
-          match flags' with
-          | None -> [%expr Js.Re.fromString [%e regex]]
-          | Some flags' ->
-              let flags = Builder.estring ~loc:location flags' in
-              [%expr Js.Re.fromStringWithFlags ~flags:[%e flags] [%e regex]])
+          match parse_re str with
+          | Some (regex, flags) -> (
+              let regex = Builder.estring ~loc:location regex in
+              match flags with
+              | None -> [%expr Js.Re.fromString [%e regex]]
+              | Some flags' ->
+                  let flags = Builder.estring ~loc:location flags' in
+                  [%expr Js.Re.fromStringWithFlags ~flags:[%e flags] [%e regex]]
+              )
+          | None ->
+              Builder.pexp_extension ~loc
+                (Location.error_extensionf ~loc:location
+                   "[server-reason-react.melange_ppx] invalid regex: %s, \
+                    expected /regex/flags"
+                   str))
       | _ ->
           Builder.pexp_extension ~loc
-          @@ Location.error_extensionf ~loc
+            (Location.error_extensionf ~loc
                "[server-reason-react.melange_ppx] payload should be a string \
-                literal")
+                literal"))
   | _ ->
       Builder.pexp_extension ~loc
-      @@ Location.error_extensionf ~loc
+        (Location.error_extensionf ~loc
            "[server-reason-react.melange_ppx] [%%re] extension should have an \
-            expression as payload"
+            expression as payload")
 
 let rule =
   let extension =

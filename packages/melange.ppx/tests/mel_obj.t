@@ -7,8 +7,8 @@ Transform mel.obj into OCaml object literals
   $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl | tee output.ml
   let a =
     object
-      method lola = 33
       method cositas = "hola"
+      method lola = 33
     end
 
   $ ocamlc -c output.ml
@@ -20,12 +20,17 @@ Fail if the object is not a record
   > EOF
 
   $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl | tee output.ml
-  File "input.ml", line 1, characters 8-25:
-  1 | let a = [%mel.obj "hola"]
-              ^^^^^^^^^^^^^^^^^
-  Error: [server-reason-react.melange_ppx] Js.t objects requires a record literal
+  let a =
+    [%ocaml.error
+      "[server-reason-react.melange_ppx] Js.t objects requires a record literal"]
 
   $ ocamlc -c output.ml
+  File "output.ml", line 2, characters 4-15:
+  2 |   [%ocaml.error
+          ^^^^^^^^^^^
+  Error: [server-reason-react.melange_ppx] Js.t objects requires a record
+         literal
+  [2]
 
 Fail if the object is not a record
 
@@ -34,9 +39,14 @@ Fail if the object is not a record
   > EOF
 
   $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl | tee output.ml
-  File "input.ml", line 1, characters 18-42:
-  1 | let a = [%mel.obj { Lola.cositas = "hola"}]
-                        ^^^^^^^^^^^^^^^^^^^^^^^^
-  Error: [server-reason-react.melange_ppx] Js.t objects only support labels as keys
+  let a =
+    [%ocaml.error
+      "[server-reason-react.melange_ppx] Js.t objects only support labels as keys"]
 
   $ ocamlc -c output.ml
+  File "output.ml", line 2, characters 4-15:
+  2 |   [%ocaml.error
+          ^^^^^^^^^^^
+  Error: [server-reason-react.melange_ppx] Js.t objects only support labels as
+         keys
+  [2]
