@@ -153,27 +153,13 @@ let make_prop ~is_optional ~prop attribute_name attribute_value =
         match ([%e attribute_value] : React.domRef option) with
         | None -> None
         | Some v -> Some (React.JSX.Ref v)]
-  | Attribute { type_ = DomProps.InnerHtml; _ }, false -> (
-      match attribute_value with
-      (* Even thought we dont have mel.obj in OCaml, we do in Reason.
-         We can extract the field __html and pass it to React.JSX.DangerouslyInnerHtml *)
-      | [%expr [%mel.obj { __html = [%e? inner] }]] ->
-          [%expr Some (React.JSX.DangerouslyInnerHtml [%e inner])]
-      | _ ->
-          raise_errorf ~loc
-            "jsx: unexpected expression found on dangerouslySetInnerHTML")
-  | Attribute { type_ = DomProps.InnerHtml; _ }, true -> (
-      match attribute_value with
-      (* Even thought we dont have mel.obj in OCaml, we do in Reason.
-         We can extract the field __html and pass it to React.JSX.DangerouslyInnerHtml *)
-      | [%expr [%mel.obj { __html = [%e? inner] }]] ->
-          [%expr
-            match [%e inner] with
-            | None -> None
-            | Some v -> Some (React.JSX.DangerouslyInnerHtml v)]
-      | _ ->
-          raise_errorf ~loc
-            "jsx: unexpected expression found on dangerouslySetInnerHTML")
+  | Attribute { type_ = DomProps.InnerHtml; _ }, false ->
+      [%expr Some (React.JSX.dangerouslyInnerHtml [%e attribute_value])]
+  | Attribute { type_ = DomProps.InnerHtml; _ }, true ->
+      [%expr
+        match [%e attribute_value] with
+        | None -> None
+        | Some v -> Some (React.JSX.dangerouslyInnerHtml v)]
   | Event { type_ = Mouse; jsxName }, false ->
       [%expr
         Some

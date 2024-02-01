@@ -31,7 +31,7 @@
       "div",
       Stdlib.List.filter_map(
         Fun.id,
-        [Some(React.JSX.DangerouslyInnerHtml(text))],
+        [Some(React.JSX.dangerouslyInnerHtml({"__html": text}))],
       ),
       [],
     );

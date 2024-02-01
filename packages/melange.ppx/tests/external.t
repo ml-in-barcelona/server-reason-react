@@ -16,7 +16,7 @@ mel.as attribute
     Obj.magic ()
 
   $ echo "module Runtime = struct" > main.ml
-  $ cat $INSIDE_DUNE/packages/runtime/runtime.ml >> main.ml
+  $ cat $INSIDE_DUNE/packages/runtime/Runtime.ml >> main.ml
   $ echo "end" >> main.ml
   $ cat output.ml >> main.ml
   $ ocamlc -c main.ml

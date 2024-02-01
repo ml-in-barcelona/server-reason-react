@@ -243,7 +243,7 @@ let createDOMElementVariadic (tag : string) ~props
 let add kind value map =
   match value with Some i -> map |> List.cons (kind i) | None -> map
 
-type dangerouslySetInnerHTML = { __html : string } [@@boxed]
+type dangerouslySetInnerHTML = < __html : string >
 
 (* `Booleanish_string` are JSX attributes represented as boolean values but rendered as strings on HTML https://github.com/facebook/react/blob/a17467e7e2cd8947c595d1834889b5d184459f12/packages/react-dom-bindings/src/server/ReactFizzConfigDOM.js#L1165-L1176 *)
 let booleanish_string name v = JSX.string name (string_of_bool v)
@@ -1232,7 +1232,7 @@ let domProps
   |> add (JSX.string "resource") resource
   |> add (JSX.string "typeof") typeof
   |> add (JSX.string "vocab") vocab
-  |> add (fun v -> JSX.dangerouslyInnerHtml v.__html) dangerouslySetInnerHTML
+  |> add (JSX.dangerouslyInnerHtml) dangerouslySetInnerHTML
   |> add (JSX.bool "suppressContentEditableWarning") suppressContentEditableWarning
   |> add (JSX.bool "suppressHydrationWarning") suppressHydrationWarning
 

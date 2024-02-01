@@ -527,7 +527,7 @@ module JSX : sig
   val bool : string -> bool -> prop
   val string : string -> string -> prop
   val style : string -> prop
-  val dangerouslyInnerHtml : string -> prop
+  val dangerouslyInnerHtml : < __html : string ; .. > -> prop
   val int : string -> int -> prop
   val float : string -> float -> prop
   val ref : domRef -> prop
