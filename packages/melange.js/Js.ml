@@ -1771,13 +1771,11 @@ module Vector = struct
 end
 
 module Console = struct
-  let log a = print_endline a
-  let log2 a b = print_endline (Printf.sprintf "%s %s" a b)
-  let log3 a b c = print_endline (Printf.sprintf "%s %s %s" a b c)
-  let log4 a b c d = print_endline (Printf.sprintf "%s %s %s %s" a b c d)
-
-  (* TODO: This prints different lines, not a single print *)
-  let logMany arr = Stdlib.Array.iter log arr
+  let log _ = ()
+  let log2 _ _ = ()
+  let log3 _ _ _ = ()
+  let log4 _ _ _ _ = ()
+  let logMany _arr = ()
   let info = log
   let info2 = log2
   let info3 = log3
@@ -1793,9 +1791,9 @@ module Console = struct
   let warn3 = log3
   let warn4 = log4
   let warnMany = logMany
-  let trace () = notImplemented "Js.Console" "trace"
-  let timeStart _ = notImplemented "Js.Console" "timeStart"
-  let timeEnd _ = notImplemented "Js.Console" "timeEnd"
+  let trace () = ()
+  let timeStart _ = ()
+  let timeEnd _ = ()
 end
 
 let log = Console.log
