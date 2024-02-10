@@ -30,8 +30,13 @@ end
 
 module Internal : sig end
 
+(* TODO: we shouldn't expose 'a option *)
 type 'a null = 'a option
+
+(* TODO: we shouldn't expose 'a option *)
 type 'a undefined = 'a null
+
+(* TODO: we shouldn't expose 'a option *)
 type 'a nullable = 'a undefined
 
 external toOption : 'a null -> 'a option = "%identity"
