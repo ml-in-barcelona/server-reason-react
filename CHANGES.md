@@ -1,4 +1,6 @@
-0.1.0
+# Changes
+
+## 0.1.0
 
 Initial release of server-reason-react, includes:
 
