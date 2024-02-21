@@ -2,4 +2,4 @@
  (name server)
  (libraries tiny_httpd shared_native react reactDOM js lwt.unix unix)
  (preprocess
-  (pps server_reason_react_ppx browser_ppx lwt_ppx)))
+  (pps server_reason_react_ppx melange_native_ppx browser_ppx lwt_ppx)))
