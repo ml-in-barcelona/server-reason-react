@@ -26,6 +26,7 @@ depends: [
   "ocaml-lsp-server" {with-test}
   "tiny_httpd" {with-test}
 ]
+dev-repo: "git+https://github.com/ml-in-barcelona/server-reason-react.git"
 build: [
   ["dune" "subst"] {dev}
   [
@@ -37,7 +38,6 @@ build: [
     jobs
     "@install"
     "@runtest" {with-test}
-    "@doc" {with-doc}
+    "@new-doc" {with-doc}
   ]
 ]
-dev-repo: "git+https://github.com/ml-in-barcelona/server-reason-react.git"
