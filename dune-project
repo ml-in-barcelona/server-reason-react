@@ -27,7 +27,7 @@
   ;; General system dependencies
   (ocaml (>= 5.0.0))
   (reason (>= 3.10.0))
-  melange
+  (melange (>= 3.0.0))
 
   ;; Library dependencies
   (ppxlib (and (> 0.23.0) (<= 0.31.0)))
