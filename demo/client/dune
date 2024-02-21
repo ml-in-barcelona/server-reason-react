@@ -1,6 +1,8 @@
 (melange.emit
  (alias client)
  (target app)
+ (enabled_if
+  (= %{profile} "dev"))
  (modules index)
  (libraries melange shared_js reason-react)
  (preprocess

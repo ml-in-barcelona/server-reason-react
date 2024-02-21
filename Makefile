@@ -13,7 +13,7 @@ help: ## Print this help message
 
 .PHONY: build
 build: ## Build the project, including non installable libraries and executables
-	$(DUNE) build packages --profile=env
+	$(DUNE) build packages --profile=dev
 
 .PHONY: build-prod
 build-prod: ## Build for production (--profile=prod)
@@ -21,7 +21,7 @@ build-prod: ## Build for production (--profile=prod)
 
 .PHONY: dev
 dev: ## Build in watch mode
-	$(DUNE) build -w --profile=env @all
+	$(DUNE) build -w --profile=dev @all
 
 .PHONY: clean
 clean: ## Clean artifacts
