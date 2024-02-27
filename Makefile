@@ -66,11 +66,7 @@ install:
 
 .PHONY: pin
 pin: ## Pin dependencies
-	opam pin add melange.dev "https://github.com/melange-re/melange.git#76b3b5bb9415a558c44ed712230221db45fc4a8e" -y
-	opam pin add reason-react-ppx.dev "https://github.com/reasonml/reason-react.git#4ee2eda353628090eda95e0b8dabe4e2be50f954" -y
-	opam pin add reason-react.dev "https://github.com/reasonml/reason-react.git#4ee2eda353628090eda95e0b8dabe4e2be50f954" -y
-	opam pin add melange-fetch.dev "git+https://github.com/melange-community/melange-fetch.git#master" -y
-	opam pin add melange-webapi.dev "git+https://github.com/melange-community/melange-webapi.git#master" -y
+	@echo "[Success] No pin dependencies needed"
 
 .PHONY: init
 init: setup-githooks create-switch pin install ## Create a local dev enviroment

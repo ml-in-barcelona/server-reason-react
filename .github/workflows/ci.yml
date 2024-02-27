@@ -58,7 +58,7 @@ jobs:
       - name: Install deps
         run: opam install . --deps-only --with-doc --with-test
 
-      - name: Pin dune and melange
+      - name: Pin dependencies
         run: make pin
 
       - name: Use Node.js
