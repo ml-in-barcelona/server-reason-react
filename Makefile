@@ -101,12 +101,12 @@ subst: ## Run dune substitute
 
 .PHONY: docs
 docs: ## Generate odoc documentation
-	$(DUNE) build --root . @doc-new
+	$(DUNE) build --root . @doc-new --profile=prod
 
 # Because if the hack above, we can't have watch mode
 .PHONY: docs-watch
 docs-watch: ## Generate odoc docs
-	$(DUNE) build --root . -w @doc-new
+	$(DUNE) build --root . -w @doc-new --profile=prod
 
 .PHONY: docs-open
 docs-open: ## Open odoc docs with default web browser

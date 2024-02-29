@@ -24,12 +24,12 @@
  (name server-reason-react)
  (synopsis "Rendering React components on the server natively")
  (depends
-  ;; General system dependencies
+  ; General system dependencies
   (ocaml (>= 5.0.0))
   (reason (>= 3.10.0))
   (melange (>= 3.0.0))
 
-  ;; Library dependencies
+  ; Library dependencies
   (ppxlib (> 0.23.0))
   (pcre (<= 7.5.0))
   (promise (>= 1.1.2))
@@ -37,25 +37,27 @@
   (lwt_ppx (>= 2.1.0))
   (uri (>= 4.2.0))
 
-  ;; Test dependencies
+  ; Test dependencies
   (alcotest :with-test)
   (alcotest-lwt :with-test)
   (fmt :with-test)
   (merlin :with-test)
 
-  ;; Documentation
+  ; Documentation
   (odoc :with-doc)
 
-  ;; Dev dependencies, using with-test so that consumers don't install them (until package is released in opam)
+  ; Dev dependencies, using with-test so that consumers don't install them (until package is released in opam)
   (ocamlformat
    (and
     (= 0.26.1)
     :with-test))
   (ocaml-lsp-server :with-test)
 
-  ;; Demo deps
+  ; Demo deps
+  ; :with-dev-setup when opam 2.2 is used everywhere
   (tiny_httpd :with-test)
   (melange-webapi :with-test)
   (reason-react :with-test)
+  (melange-webapi :with-test)
   (reason-react-ppx :with-test)
 ))
