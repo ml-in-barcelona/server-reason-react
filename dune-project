@@ -55,4 +55,7 @@
 
   ;; Demo deps
   (tiny_httpd :with-test)
+  (melange-webapi :with-test)
+  (reason-react :with-test)
+  (reason-react-ppx :with-test)
 ))
