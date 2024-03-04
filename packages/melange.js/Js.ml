@@ -705,14 +705,10 @@ end = struct
 
   let endsWith ~suffix ?len str =
     let str_length = Stdlib.String.length str in
-    let suffix_length = Stdlib.String.length suffix in
     let end_idx =
       match len with Some i -> Stdlib.min str_length i | None -> str_length
     in
     let sub_str = Stdlib.String.sub str 0 end_idx in
-    print_endline
-      (Printf.sprintf "Stdlib.String.sub %s (%d - %d) %d" sub_str str_length
-         suffix_length suffix_length);
     Stdlib.String.ends_with ~suffix sub_str
 
   let includes ~search ?start str =
