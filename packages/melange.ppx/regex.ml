@@ -1,14 +1,27 @@
 open Ppxlib
 module Builder = Ast_builder.Default
 
+let compile_regex ~flags str =
+  match Quickjs.RegExp.compile str flags with
+  | regex -> Ok regex
+  | exception Invalid_argument msg -> Error msg
+  | exception _ -> Error "unknown error while compiling regex"
+
 let parse_re str =
   try
     let _ = Str.search_forward (Str.regexp "/\\(.*\\)/\\(.*\\)") str 0 in
     let first = Str.matched_group 1 str in
     let second = Str.matched_group 2 str in
-    if String.length second = 0 then Some (first, None)
-    else Some (first, Some second)
-  with Not_found -> None
+    match String.length second with
+    | 0 -> (
+        match compile_regex ~flags:"" first with
+        | Ok _regex -> Ok (first, None)
+        | Error msg -> Error msg)
+    | _ -> (
+        match compile_regex ~flags:second first with
+        | Ok _regex -> Ok (first, Some second)
+        | Error msg -> Error msg)
+  with Not_found -> Error "invalid regex"
 
 let extractor = Ast_pattern.(__')
 
@@ -18,7 +31,7 @@ let handler ~ctxt:_ ({ txt = payload; loc } : Ppxlib.Parsetree.payload loc) =
       match expression.pexp_desc with
       | Pexp_constant (Pconst_string (str, location, _delimiter)) -> (
           match parse_re str with
-          | Some (regex, flags) -> (
+          | Ok (regex, flags) -> (
               let regex = Builder.estring ~loc:location regex in
               match flags with
               | None -> [%expr Js.Re.fromString [%e regex]]
@@ -26,12 +39,11 @@ let handler ~ctxt:_ ({ txt = payload; loc } : Ppxlib.Parsetree.payload loc) =
                   let flags = Builder.estring ~loc:location flags' in
                   [%expr Js.Re.fromStringWithFlags ~flags:[%e flags] [%e regex]]
               )
-          | None ->
+          | Error err ->
               Builder.pexp_extension ~loc
                 (Location.error_extensionf ~loc:location
-                   "[server-reason-react.melange_ppx] invalid regex: %s, \
-                    expected /regex/flags"
-                   str))
+                   "[server-reason-react.melange_ppx] invalid regex: %s,\n%s"
+                   err str))
       | _ ->
           Builder.pexp_extension ~loc
             (Location.error_extensionf ~loc

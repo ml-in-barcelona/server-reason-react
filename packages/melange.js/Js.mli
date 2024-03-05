@@ -294,7 +294,6 @@ module Re : sig
   type t
   type result
 
-  val captures : result -> string Nullable.t array
   val index : result -> int
   val input : result -> string
   val fromString : string -> t
@@ -310,9 +309,7 @@ module Re : sig
   val unicode : t -> bool
   val exec : str:string -> t -> result option
   val test : str:string -> t -> bool
-
-  val matches : result -> string array
-  (** Only available in native, not in melange *)
+  val captures : result -> string Nullable.t array
 end
 
 module String : sig

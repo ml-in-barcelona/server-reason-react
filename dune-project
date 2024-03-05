@@ -31,7 +31,7 @@
 
   ; Library dependencies
   (ppxlib (> 0.23.0))
-  (pcre (<= 7.5.0))
+  (quickjs (>= 0.1.0))
   (promise (>= 1.1.2))
   (lwt (>= 5.6.0))
   (lwt_ppx (>= 2.1.0))

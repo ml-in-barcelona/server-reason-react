@@ -3,7 +3,7 @@
  (public_name server-reason-react.melange_ppx)
  (ppx_runtime_libraries server-reason-react.runtime)
  (flags :standard -w -9)
- (libraries ppxlib ppxlib.astlib str)
+ (libraries ppxlib ppxlib.astlib str quickjs)
  (preprocess
   (pps ppxlib.metaquot))
  (kind ppx_rewriter))
