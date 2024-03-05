@@ -518,13 +518,13 @@ let float_tests =
   ]
 
 let () =
-  Alcotest_lwt.run "Js"
-    [
-      ("Js.Promise", promise_tests);
-      ("Js.Float", float_tests);
-      ("Js.String", string_tests);
-      ("Js.Re", re_tests);
-      ("Js.Dict", dict_tests);
-      ("Js.Array", []);
-    ]
-  |> Lwt_main.run
+  Lwt_main.run
+  @@ Alcotest_lwt.run "Js"
+       [
+         ("Js.Promise", promise_tests);
+         ("Js.Float", float_tests);
+         ("Js.String", string_tests);
+         ("Js.Re", re_tests);
+         ("Js.Dict", dict_tests);
+         ("Js.Array", []);
+       ]
