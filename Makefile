@@ -1,7 +1,4 @@
-project_name = server-reason-react
-
 DUNE = opam exec -- dune
-opam_file = $(project_name).opam
 
 .PHONY: help
 help: ## Print this help message
@@ -38,9 +35,6 @@ test-watch: ## Run the unit tests in watch mode
 .PHONY: test-promote
 test-promote: ## Updates snapshots and promotes it to correct
 	$(DUNE) build @runtest --auto-promote
-
-.PHONY: deps
-deps: $(opam_file) ## Alias to update the opam file and install the needed deps
 
 .PHONY: format
 format: ## Format the codebase with ocamlformat
