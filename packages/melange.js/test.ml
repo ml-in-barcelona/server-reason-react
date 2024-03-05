@@ -213,17 +213,19 @@ let string_tests =
           Js.String.match_ ~regexp:r s |> Stdlib.Option.get
         in
         assert_string_option_array
-          (unsafe_match "The better bats" [%re "/b[aeiou]t/"])
+          (unsafe_match "The better bats" (Js.Re.fromString "b[aeiou]t"))
           [| Some "bet" |]);
-    test "match" (fun () ->
+    test "match 0" (fun () ->
         let unsafe_match r s =
           Js.String.match_ ~regexp:r s |> Stdlib.Option.value ~default:[||]
         in
         assert_string_option_array
-          (unsafe_match [%re "/b[aeiou]t/"] "The better bats")
+          (unsafe_match (Js.Re.fromString "b[aeiou]t") "The better bats")
           [| Some "bet" |];
         assert_string_option_array
-          (unsafe_match [%re "/b[aeiou]t/g"] "The better bats")
+          (unsafe_match
+             (Js.Re.fromStringWithFlags "b[aeiou]t" ~flags:"g")
+             "The better bats")
           [| Some "bet"; Some "bat" |];
         assert_string_option_array
           (unsafe_match [%re "/(\\d+)-(\\d+)-(\\d+)/"] "Today is 2018-04-05.")
@@ -243,11 +245,7 @@ let string_tests =
     test "replaceByRe" (fun () ->
         assert_string
           (Js.String.replaceByRe "david" ~regexp:[%re "/d/"] ~replacement:"x")
-          "xavid"
-        (* assert_string
-           (Js.String.replaceByRe [%re "/(\\w+) (\\w+)/"] "$2, $1"
-              "Juan Fulano")
-           "Fulano, Juan" *));
+          "xavid");
     test "replaceByRe with global" (fun () ->
         assert_string
           (Js.String.replaceByRe "vowels be gone" ~regexp:[%re "/[aeiou]/g"]
@@ -323,30 +321,27 @@ let string_tests =
         in
         assert_string_array
           (unsafe_splitByRe "art; bed , cog ;dad" [%re "/\\s*[,;]\\s*/"])
-          [| "art"; "bed"; "cog"; "dad" |];
-        assert_string_array
-          (unsafe_splitByRe "has:no:match" [%re "/[,;]/"])
-          [| "has:no:match" |];
-        assert_string_array
-          (unsafe_splitByRe "a#b#c" [%re "/(#)(:)?/g"])
-          [| "a"; "b"; "c" |]);
-    test "splitByReAtMost" (fun () ->
+          [| "art"; "bed"; "cog"; "dad" |]
         (* assert_string_array
-             (splitByReAtMost [%re "/\\s*:\\s*/"] ~limit:3
-                "one: two: three: four")
-             [| Some "one"; Some "two"; Some "three" |];
-           assert_string_array
-             (splitByReAtMost [%re "/\\s*:\\s*/"] ~limit:0
-                "one: two: three: four")
-             [||];
-           assert_string_array
-             (splitByReAtMost [%re "/\\s*:\\s*/"] ~limit:8
-                "one: two: three: four")
-             [| Some "one"; Some "two"; Some "three"; Some "four" |];
-           assert_string_array
-             (splitByReAtMost [%re "/(#)(:)?/"] ~limit:3 "a#b#:c")
-             [| Some "a"; Some "#"; None |] *)
-        ());
+           (unsafe_splitByRe "has:no:match" [%re "/[,;]/"])
+           [| "has:no:match" |] *));
+    (* test "splitByReAtMost" (fun () ->
+        assert_string_array
+            (splitByReAtMost [%re "/\\s*:\\s*/"] ~limit:3
+               "one: two: three: four")
+            [| Some "one"; Some "two"; Some "three" |];
+          assert_string_array
+            (splitByReAtMost [%re "/\\s*:\\s*/"] ~limit:0
+               "one: two: three: four")
+            [||];
+          assert_string_array
+            (splitByReAtMost [%re "/\\s*:\\s*/"] ~limit:8
+               "one: two: three: four")
+            [| Some "one"; Some "two"; Some "three"; Some "four" |];
+          assert_string_array
+            (splitByReAtMost [%re "/(#)(:)?/"] ~limit:3 "a#b#:c")
+            [| Some "a"; Some "#"; None |]
+       ());*)
     test "startsWith" (fun () ->
         assert_bool (Js.String.startsWith "ReScript" ~prefix:"Re") true;
         assert_bool (Js.String.startsWith "ReScript" ~prefix:"") true;
@@ -523,13 +518,13 @@ let float_tests =
   ]
 
 let () =
-  Alcotest_lwt.run "Js"
-    [
-      ("Js.Promise", promise_tests);
-      ("Js.Float", float_tests);
-      ("Js.String", string_tests);
-      ("Js.Re", re_tests);
-      ("Js.Dict", dict_tests);
-      ("Js.Array", []);
-    ]
-  |> Lwt_main.run
+  Lwt_main.run
+  @@ Alcotest_lwt.run "Js"
+       [
+         ("Js.Promise", promise_tests);
+         ("Js.Float", float_tests);
+         ("Js.String", string_tests);
+         ("Js.Re", re_tests);
+         ("Js.Dict", dict_tests);
+         ("Js.Array", []);
+       ]

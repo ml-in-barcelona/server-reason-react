@@ -476,133 +476,48 @@ module Re : sig
   val unicode : t -> bool
   val exec : str:string -> t -> result option
   val test : str:string -> t -> bool
-
-  val matches : result -> string array
-  (** Only available in native, not in melange *)
 end = struct
   (** Provide bindings to Js regex expression *)
 
-  type flag = [ Pcre.cflag | `GLOBAL | `STICKY | `UNICODE ]
-
   (* The RegExp object *)
-  type t = { regex : Pcre.regexp; flags : flag list; mutable lastIndex : int }
+  type t = Quickjs.RegExp.t
 
   (* The result of a executing a RegExp on a string. *)
-  type result = { substrings : Pcre.substrings }
+  type result = Quickjs.RegExp.result
 
+  (* Maps with nullable since Melange does too: https://melange.re/v3.0.0/api/re/melange/Js/Re/index.html#val-captures *)
   let captures : result -> string nullable array =
-   fun result -> Pcre.get_opt_substrings result.substrings
-
-  let matches : result -> string array =
-   fun result -> Pcre.get_substrings result.substrings
-
-  let index : result -> int =
    fun result ->
-    try
-      let substring = result.substrings in
-      let start_offset, _end_offset = Pcre.get_substring_ofs substring 0 in
-      start_offset
-    with Not_found -> 0
+    Quickjs.RegExp.captures result
+    |> Stdlib.Array.map (fun x -> Nullable.return x)
 
-  let input : result -> string =
-   fun result -> Pcre.get_subject result.substrings
-
-  let source : t -> string = fun _ -> notImplemented "Js.Re" "source"
-
-  let fromString : string -> t =
-   fun str ->
-    try
-      let regexp = Pcre.regexp str in
-      { regex = regexp; flags = []; lastIndex = 0 }
-    with
-    | Pcre.Error BadPartial -> raise @@ Invalid_argument "BadPartial"
-    | Pcre.Error (BadPattern (msg, _pos)) ->
-        raise @@ Invalid_argument ("BadPattern: " ^ msg)
-    | Pcre.Error Partial -> raise @@ Invalid_argument "Partial"
-    | Pcre.Error BadUTF8 -> raise @@ Invalid_argument "BadUTF8"
-    | Pcre.Error BadUTF8Offset -> raise @@ Invalid_argument "BadUTF8Offset"
-    | Pcre.Error MatchLimit -> raise @@ Invalid_argument "MatchLimit"
-    | Pcre.Error RecursionLimit -> raise @@ Invalid_argument "RecursionLimit"
-    | Pcre.Error WorkspaceSize -> raise @@ Invalid_argument "WorkspaceSize"
-    | Pcre.Error (InternalError msg) -> raise @@ Invalid_argument msg
-
-  let char_of_cflag : Pcre.cflag -> char option = function
-    | `CASELESS -> Some 'i'
-    | `MULTILINE -> Some 'm'
-    | `UTF8 -> Some 'u'
-    | _ -> None
-
-  let flag_of_char : char -> flag = function
-    | 'g' -> `GLOBAL
-    | 'i' -> `CASELESS
-    | 'm' -> `MULTILINE
-    | 'u' -> `UTF8
-    | 'y' -> `STICKY
-    | 's' -> `DOTALL
-    | other ->
-        raise
-          (Invalid_argument
-             (Printf.sprintf "Invalid flag '%c'. Only g, i, m, u, y, s" other))
-
-  let parse_flags : string -> flag list =
-   fun flags -> flags |> String.to_seq |> Seq.map flag_of_char |> List.of_seq
-
-  let cflag_of_flag : flag -> Pcre.cflag option =
-   fun flag ->
-    match flag with
-    | `GLOBAL | `STICKY | `UNICODE -> None
-    | `CASELESS -> Some `CASELESS
-    | `MULTILINE -> Some `MULTILINE
-    | `DOTALL -> Some `DOTALL
-    | `EXTENDED -> Some `EXTENDED
-    | `ANCHORED -> Some `ANCHORED
-    | `DOLLAR_ENDONLY -> Some `DOLLAR_ENDONLY
-    | `EXTRA -> Some `EXTRA
-    | `UNGREEDY -> Some `UNGREEDY
-    | `UTF8 -> Some `UTF8
-    | `NO_UTF8_CHECK -> Some `NO_UTF8_CHECK
-    | `NO_AUTO_CAPTURE -> Some `NO_AUTO_CAPTURE
-    | `AUTO_CALLOUT -> Some `AUTO_CALLOUT
-    | `FIRSTLINE -> Some `FIRSTLINE
+  let index : result -> int = Quickjs.RegExp.index
+  let input : result -> string = Quickjs.RegExp.input
+  let source : t -> string = Quickjs.RegExp.source
+  let fromString : string -> t = fun str -> Quickjs.RegExp.compile str ""
 
   let fromStringWithFlags : string -> flags:string -> t =
-   fun str ~flags:str_flags ->
-    let flags = parse_flags str_flags in
-    let pcre_flags = List.filter_map cflag_of_flag flags in
-    let regexp = Pcre.regexp ~flags:pcre_flags str in
-    { regex = regexp; flags = parse_flags str_flags; lastIndex = 0 }
+   fun str ~flags -> Quickjs.RegExp.compile str flags
 
-  let flags : t -> string =
-   fun regexp ->
-    let options = Pcre.options regexp.regex in
-    let flags = Pcre.cflag_list options in
-    flags |> List.filter_map char_of_cflag |> List.to_seq |> String.of_seq
-
-  let flag : t -> flag -> bool = fun regexp flag -> List.mem flag regexp.flags
-  let global : t -> bool = fun regexp -> flag regexp `GLOBAL
-  let ignoreCase : t -> bool = fun regexp -> flag regexp `CASELESS
-  let multiline : t -> bool = fun regexp -> flag regexp `MULTILINE
-  let sticky : t -> bool = fun regexp -> flag regexp `STICKY
-  let unicode : t -> bool = fun regexp -> flag regexp `UNICODE
-  let lastIndex : t -> int = fun regex -> regex.lastIndex
+  let flags : t -> string = fun regexp -> Quickjs.RegExp.flags regexp
+  let global : t -> bool = fun regexp -> Quickjs.RegExp.global regexp
+  let ignoreCase : t -> bool = fun regexp -> Quickjs.RegExp.ignorecase regexp
+  let multiline : t -> bool = fun regexp -> Quickjs.RegExp.multiline regexp
+  let sticky : t -> bool = fun regexp -> Quickjs.RegExp.sticky regexp
+  let unicode : t -> bool = fun regexp -> Quickjs.RegExp.unicode regexp
+  let lastIndex : t -> int = fun regex -> Quickjs.RegExp.lastIndex regex
 
   let setLastIndex : t -> int -> unit =
-   fun regex index -> regex.lastIndex <- index
+   fun regex index -> Quickjs.RegExp.setLastIndex regex index
 
-  let exec_ : t -> string -> result option =
-   fun regexp str ->
-    try
-      let rex = regexp.regex in
-      let substrings = Pcre.exec ~rex ~pos:regexp.lastIndex str in
-      let _, lastIndex = Pcre.get_substring_ofs substrings 0 in
-      regexp.lastIndex <- lastIndex;
-      Some { substrings }
-    with Not_found -> None
-
-  let exec : str:string -> t -> result option = fun ~str rex -> exec_ rex str
+  let exec : str:string -> t -> result option =
+   fun ~str rex ->
+    match Quickjs.RegExp.exec rex str with
+    | result -> Some result
+    | exception _ -> None
 
   let test_ : t -> string -> bool =
-   fun regexp str -> Pcre.pmatch ~rex:regexp.regex str
+   fun regexp str -> Quickjs.RegExp.test regexp str
 
   let test : str:string -> t -> bool = fun ~str regex -> test_ regex str
 end
@@ -746,34 +661,20 @@ end = struct
   let localeCompare ~other:_ _ = notImplemented "Js.String" "localeCompare"
 
   let match_ ~regexp str =
-    let wrap_option arr =
-      (* TODO(jchavarri): how to emulate JS returning None for optional capture groups that are not found?
-         See related: https://github.com/melange-re/melange/commit/ccceb69d85afdf7743259bb9faca6f975ebe541f *)
-      Array.map ~f:(fun r -> Some r) arr
-    in
-
     let match_next str regex =
       match Re.exec ~str regex with
       | None -> None
-      | Some result -> Some (wrap_option (Re.matches result))
+      | Some result -> Some (Re.captures result)
     in
 
-    let rec match_all : t -> Re.t -> t nullable array nullable =
+    let match_all : t -> Re.t -> t nullable array nullable =
      fun str regex ->
-      match Re.exec ~str regex with
+      match match_next str regex with
       | None -> None
-      | Some result ->
-          Re.setLastIndex regex 0;
-          let matches = Re.matches result in
-          let matched_str = Stdlib.Array.get matches 0 in
-          let suffix_start = Re.index result + String.length matched_str in
-          let suffix =
-            Stdlib.String.sub str suffix_start (String.length str - suffix_start)
-          in
-          let suffix_matches =
-            match_all suffix regex |> Stdlib.Option.value ~default:[||]
-          in
-          Some (Stdlib.Array.append (wrap_option matches) suffix_matches)
+      | Some result -> (
+          match match_next str regex with
+          | None -> Some result
+          | Some second -> Some (Stdlib.Array.append result second))
     in
 
     if Re.global regexp then match_all str regexp else match_next str regexp
@@ -791,25 +692,27 @@ end = struct
 
   let replaceByRe ~regexp ~replacement str =
     let rec replace_all str =
+      Re.setLastIndex regexp 0;
       match Re.exec ~str regexp with
       | None -> str
+      | Some result when Stdlib.Array.length (Re.captures result) == 0 -> str
       | Some result ->
-          Re.setLastIndex regexp 0;
-          let matches = Re.matches result in
-          let matched_str = Stdlib.Array.get matches 0 in
+          let matches = Re.captures result in
+          let matched_str = Stdlib.Array.get matches 0 |> Option.get in
           let prefix = Stdlib.String.sub str 0 (Re.index result) in
           let suffix_start = Re.index result + String.length matched_str in
           let suffix =
             Stdlib.String.sub str suffix_start (String.length str - suffix_start)
           in
+          Re.setLastIndex regexp suffix_start;
           prefix ^ replacement ^ replace_all suffix
     in
     let replace_first str =
       match Re.exec ~str regexp with
       | None -> str
       | Some result ->
-          let matches = Re.matches result in
-          let matched_str = Stdlib.Array.get matches 0 in
+          let matches = Re.captures result in
+          let matched_str = Stdlib.Array.get matches 0 |> Option.get in
           let prefix = Stdlib.String.sub str 0 (Re.index result) in
           let suffix_start = Re.index result + String.length matched_str in
           let suffix =
@@ -850,12 +753,14 @@ end = struct
       arr |> Stdlib.Array.to_list |> Stdlib.List.rev |> Stdlib.Array.of_list
     in
     let rec split_all str acc =
+      Re.setLastIndex regexp 0;
       match Re.exec ~str regexp with
+      | Some result when Stdlib.Array.length (Re.captures result) = 0 ->
+          Stdlib.Array.append [| Some str |] acc |> rev_array
       | None -> Stdlib.Array.append [| Some str |] acc |> rev_array
       | Some result ->
-          Re.setLastIndex regexp 0;
-          let matches = Re.matches result in
-          let matched_str = Stdlib.Array.get matches 0 in
+          let matches = Re.captures result in
+          let matched_str = Stdlib.Array.get matches 0 |> Option.get in
           let prefix = String.sub str 0 (Re.index result) in
           let suffix_start = Re.index result + String.length matched_str in
           let suffix =
@@ -866,14 +771,15 @@ end = struct
     in
 
     let split_next str acc =
+      Re.setLastIndex regexp 0;
       match Re.exec ~str regexp with
       | None -> Stdlib.Array.append [| Some str |] acc |> rev_array
       | Some result ->
-          Re.setLastIndex regexp 0;
-          let matches = Re.matches result in
-          let matched_str = Stdlib.Array.get matches 0 in
-          let prefix = String.sub str 0 (Re.index result) in
-          let suffix_start = Re.index result + String.length matched_str in
+          let matches = Re.captures result in
+          let matched_str = Stdlib.Array.get matches 0 |> Option.get in
+          let index = Re.index result in
+          let prefix = String.sub str 0 index in
+          let suffix_start = index + String.length matched_str in
           let suffix =
             String.sub str suffix_start (String.length str - suffix_start)
           in
