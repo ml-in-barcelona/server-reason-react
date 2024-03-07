@@ -1,4 +1,10 @@
 (test
  (name test)
- (modules :standard)
+ (modules test)
  (libraries alcotest fmt belt js))
+
+(executable
+ (name benchmark)
+ (modules benchmark)
+ (public_name belt_benchmark)
+ (libraries belt bechamel-notty bechamel unix notty.unix))
