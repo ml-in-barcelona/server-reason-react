@@ -26,6 +26,7 @@
  (depends
   ; General system dependencies
   (ocaml (>= 5.0.0))
+  (dune (= dev))
   (reason (>= 3.10.0))
   (melange (>= 3.0.0))
 
