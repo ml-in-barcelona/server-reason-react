@@ -1,0 +1,19 @@
+(include_subdirs unqualified)
+
+(library
+ (name shared)
+ (libraries react reactDOM js belt dom webapi)
+ (flags :standard -w -26-27)
+ (enabled_if
+  (= %{context_name} "default"))
+ (preprocess
+  (pps melange_native_ppx server_reason_react_ppx browser_ppx)))
+
+(library
+ (name shared)
+ (modes melange)
+ (libraries reason-react melange-webapi melange.belt melange.dom)
+ (enabled_if
+  (= %{context_name} "melange"))
+ (preprocess
+  (pps melange.ppx reason-react-ppx browser_ppx -js)))

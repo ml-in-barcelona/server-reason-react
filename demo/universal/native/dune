@@ -1,9 +1,0 @@
-(include_subdirs unqualified)
-
-(library
- (name shared_native)
- (libraries react reactDOM js belt dom webapi)
- (flags :standard -w -26-27)
- (wrapped false)
- (preprocess
-  (pps melange_native_ppx server_reason_react_ppx browser_ppx)))

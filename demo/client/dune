@@ -2,9 +2,11 @@
  (alias client)
  (target app)
  (enabled_if
-  (= %{profile} "dev"))
+  (and
+   (= %{profile} "dev")
+   (= %{context_name} "melange")))
  (modules index)
- (libraries melange shared_js reason-react)
+ (libraries melange shared reason-react)
  (preprocess
   (pps reason-react-ppx browser_ppx -js melange.ppx))
  (module_systems commonjs))
