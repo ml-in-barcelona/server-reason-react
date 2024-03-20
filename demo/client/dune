@@ -3,8 +3,8 @@
  (target app)
  (enabled_if
   (and
-   (= %{profile} "dev")
-   (= %{context_name} "melange")))
+   (= %{profile} dev)
+   (= %{context_name} melange)))
  (modules index)
  (libraries melange shared reason-react)
  (preprocess

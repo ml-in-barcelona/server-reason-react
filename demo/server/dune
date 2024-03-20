@@ -2,8 +2,8 @@
  (name server)
  (enabled_if
   (and
-   (= %{profile} "dev")
-   (= %{context_name} "default")))
+   (= %{profile} dev)
+   (= %{context_name} default)))
  (libraries tiny_httpd shared react reactDOM js lwt.unix unix)
  (preprocess
   (pps server_reason_react_ppx melange_native_ppx browser_ppx lwt_ppx)))
