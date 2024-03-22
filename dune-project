@@ -43,11 +43,6 @@
   (fmt :with-test)
   (merlin :with-test)
 
-  ; Benchmark dependencies
-  (notty.unix :with-test)
-  (bechamel :with-test)
-  (bechamel-notty :with-test)
-
   ; Documentation
   (odoc :with-doc)
 
