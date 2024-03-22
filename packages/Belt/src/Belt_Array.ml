@@ -518,10 +518,4 @@ let joinWithU a sep toString =
 let joinWith a sep toString = joinWithU a sep (fun x -> toString x)
 let initU n f = Stdlib.Array.init n f
 let init n f = initU n (fun i -> f i)
-
-let push arr i =
-  let len = length arr in
-  setUnsafe arr (len + 1) i
-[@@deprecated
-  "You should use `concat` instead. Since in JavaScript `Array.prototype.push` \
-   mutates the array reference, and it is not possible in native OCaml."]
+let push _arr _i = `Do_not_use_Array_push_in_native
