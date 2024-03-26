@@ -7,8 +7,8 @@ license: "MIT"
 homepage: "https://github.com/ml-in-barcelona/server-reason-react"
 bug-reports: "https://github.com/ml-in-barcelona/server-reason-react/issues"
 depends: [
-  "dune" {>= "3.9"}
   "ocaml" {>= "5.0.0"}
+  "dune" {>= "3.9" & = "dev"}
   "reason" {>= "3.10.0"}
   "melange" {>= "3.0.0"}
   "ppxlib" {> "0.23.0"}
@@ -44,4 +44,7 @@ build: [
     "@runtest" {with-test}
     "@new-doc" {with-doc}
   ]
+]
+pin-depends: [
+  ["dune.dev" "https://github.com/jchavarri/dune/archive/531e4d315ea3958cf55884811de80104191d1d41.tar.gz"]
 ]

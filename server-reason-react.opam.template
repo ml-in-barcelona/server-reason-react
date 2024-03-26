@@ -12,3 +12,6 @@ build: [
     "@new-doc" {with-doc}
   ]
 ]
+pin-depends: [
+  ["dune.dev" "https://github.com/anmonteiro/dune/archive/86bd2453c7e85366e9750358bf4dff3f2cb9230d.tar.gz"]
+]

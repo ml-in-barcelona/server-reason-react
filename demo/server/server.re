@@ -7,6 +7,8 @@
 */
 module Httpd = Tiny_httpd;
 module Httpd_dir = Tiny_httpd_dir;
+module Spacer = Shared.Spacer;
+module App = Shared.App;
 
 module Link = {
   [@react.component]
