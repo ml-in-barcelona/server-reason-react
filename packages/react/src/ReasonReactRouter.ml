@@ -21,4 +21,6 @@ let url ?serverUrlString () =
 let dangerouslyGetInitialUrl = url
 let watchUrl _callback () = ()
 let unwatchUrl _watcherID = ()
-let useUrl ?serverUrl:_ () = url ()
+
+let useUrl ?(serverUrl : url option) () =
+  match serverUrl with Some serverUrl -> serverUrl | None -> url ()
