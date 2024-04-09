@@ -1,8 +1,8 @@
-{0:intro Introduction}
+{0:get Getting started with server-reason-react}
 
-This documentation will explain the different modules available in [server-reason-react], and how to use them, however it is assumed a minimum understanding of [Reason], [reason-react], [Melange] and [dune].
+This documentation will explain the different modules available in [server-reason-react], and how to use them, however it is assumed a minimum understanding of {{:https://reasonml.github.io/docs/en/what-and-why}Reason}, {{:reasonml.github.io/reason-react/}reason-react}, {{:https://melange.re/v3.0.0/what-is-melange.html}Melange} and a bit of {{:https://dune.readthedocs.io/en/stable}dune}.
 
-Let's start with a React component:
+Let's start with a React component written in Reason:
 
 {[
   module Greetings = {
@@ -15,25 +15,23 @@ Let's start with a React component:
   };
 ]}
 
-A module with a make function that returns a React.element. This component is both a [reason-react] component and a [server-reason-react] component.
+A module with a make function that returns a [React.element]. This component is both a [reason-react] component and a [server-reason-react] component.
 
-[server-reason-react] provides {!React} and {!ReactDOM} modules with the same interface as reason-react, including the {{:https://reasonml.github.io/docs/en/jsx}JSX transformation} via [server-reason-react.ppx].
+[server-reason-react] provides {!React} and {!ReactDOM} modules with the same interface as [reason-react], including the {{:https://reasonml.github.io/docs/en/jsx}JSX transformation} via [server-reason-react.ppx].
 
 - {!React} (server-reason-react.react)
 - {!ReactDOM} (server-reason-react.reactDom)
 
-Note: [server-reason-react.ppx] needs to be a different ppx than [reason-react-ppx] since needs to transform props into an interal representation where the type is known ahead of time in order to render them on the server efficiently.
-
-The main difference is, with server-reason-react you can render it on the server with {!ReactDOM} ([server-reason-react.reactDom]):
+The main difference is, with [server-reason-react] you can render it on the server with {!ReactDOM} ([server-reason-react.reactDom]):
 
 {[
   let html = ReactDOM.renderToStaticMarkup(<Greetings name="visitor" />)
   // <div><h1>Hello visitor</h1></div>
 ]}
 
-{_ This is usually part of your server code}
+{_ This is usually part of your server-side code}
 
-[ReactDOM] exposes the [renderTo*] methods: {!ReactDOM.renderToStaticMarkup}, {!ReactDOM.renderToString} and {!ReactDOM.renderToLwtStream}.
+The [ReactDOM] module exposes the [renderTo*] methods: {!ReactDOM.renderToStaticMarkup}, {!ReactDOM.renderToString} and {!ReactDOM.renderToLwtStream}.
 
 {1:install Install from opam's registry (recommended)}
 
