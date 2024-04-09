@@ -2,7 +2,7 @@
 
 This documentation will explain the different modules available in [server-reason-react], and how to use them, however it is assumed a minimum understanding of [Reason], [reason-react], [Melange] and [dune].
 
-Let's start with a component.
+Let's start with a React component:
 
 {[
   module Greetings = {
@@ -15,7 +15,7 @@ Let's start with a component.
   };
 ]}
 
-This component is both a [reason-react] component and a [server-reason-react] component, since the interface is the same.
+A module with a make function that returns a React.element. This component is both a [reason-react] component and a [server-reason-react] component.
 
 [server-reason-react] provides {!React} and {!ReactDOM} modules with the same interface as reason-react, including the {{:https://reasonml.github.io/docs/en/jsx}JSX transformation} via [server-reason-react.ppx].
 
@@ -24,7 +24,7 @@ This component is both a [reason-react] component and a [server-reason-react] co
 
 Note: [server-reason-react.ppx] needs to be a different ppx than [reason-react-ppx] since needs to transform props into an interal representation where the type is known ahead of time in order to render them on the server efficiently.
 
-The main difference is how it's going to render with {!ReactDOM}:
+The main difference is, with server-reason-react you can render it on the server with {!ReactDOM} ([server-reason-react.reactDom]):
 
 {[
   let html = ReactDOM.renderToStaticMarkup(<Greetings name="visitor" />)
@@ -35,9 +35,15 @@ The main difference is how it's going to render with {!ReactDOM}:
 
 [ReactDOM] exposes the [renderTo*] methods: {!ReactDOM.renderToStaticMarkup}, {!ReactDOM.renderToString} and {!ReactDOM.renderToLwtStream}.
 
-{1:install Install}
+{1:install Install from opam's registry (recommended)}
 
-Since it's not in opam yet, you need to pin it to the [main] branch.
+{[
+opam install server-reason-react
+]}
+
+{1:install Install from source}
+
+If you want to use the development version of server-reason-react, you can install it via opam pinning:
 {[
   opam pin server-reason-react.dev "https://github.com/ml-in-barcelona/server-reason-react.git#main" -y
 ]}
@@ -55,4 +61,5 @@ and also [server-reason-react.ppx] to your preprocess list
 {ol
   {li {{!page-"universal-code"}How universal code works}}
   {li {{!page-"code-structure"}How to structure the code}}
+  {li {{!page-"browser_only"}Exclude client code from the native build}}
 }
