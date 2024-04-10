@@ -46,5 +46,5 @@ build: [
   ]
 ]
 pin-depends: [
-  ["dune.dev" "https://github.com/jchavarri/dune/archive/531e4d315ea3958cf55884811de80104191d1d41.tar.gz"]
+  ["dune.dev" "https://github.com/ocaml/dune/archive/d19d92823c15c5c61f663076f0b50826a7d4e8ef.tar.gz"]
 ]
