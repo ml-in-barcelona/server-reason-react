@@ -1,0 +1,22 @@
+(library
+ (name url)
+ (modes melange)
+ (public_name server-reason-react.url-js)
+ (libraries melange.js)
+ (wrapped false)
+ (enabled_if
+  (and
+   (= %{context_name} melange)))
+ (preprocess
+  (pps browser_ppx -js melange.ppx)))
+
+(library
+ (name url)
+ (public_name server-reason-react.url-native)
+ (wrapped false)
+ (enabled_if
+  (and
+   (= %{context_name} default)))
+ (libraries uri js)
+ (preprocess
+  (pps browser_ppx)))

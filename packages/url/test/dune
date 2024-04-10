@@ -1,0 +1,7 @@
+(test
+ (name test_native)
+ (modules test_native)
+ (libraries alcotest url)
+ (build_if
+  (and
+   (= %{context_name} default))))
