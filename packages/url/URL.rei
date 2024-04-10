@@ -1,7 +1,3 @@
-/* ; This library is the interface URL.rei and it exists to compile it, not consume it. */
-/* ; We copy_files the module directly to the native and js directories in order */
-/* ; to type-check with each implementation */
-
 module SearchParams: {
   type t;
 
