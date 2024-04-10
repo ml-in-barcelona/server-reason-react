@@ -2,7 +2,7 @@
  [URL] module is universal and has 2 implementations with the same API:
 
   - [url_js] library is a wrapper around the [URL] API in the browser binded with Melange.
-  - [url_native] library is a native implementation with {{:https://github.com/mirage/ocaml-uri}ocaml-uri}: RFC3986 URI parsing library for OCaml.
+  - [url_native] library is a native implementation with {{:https://github.com/mirage/ocaml-uri}ocaml-uri} (RFC3986 URI parsing library for OCaml).
 
   {1 Setup with dune}
 
