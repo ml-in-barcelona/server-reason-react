@@ -1,6 +1,6 @@
 (library
  (name url_native)
- (public_name server-reason-react.url-native)
+ (public_name server-reason-react.url_native)
  (wrapped false)
  (libraries uri js))
 

@@ -1,13 +1,45 @@
-/* ; This library is the interface URL.rei and it exists to compile it, not consume it. */
-/* ; We copy_files the module directly to the native and js directories in order */
-/* ; to type-check with each implementation */
+/**
+ [URL] module is universal and has 2 implementations with the same API:
+
+  - [url_js] library is a wrapper around the [URL] API in the browser binded with Melange.
+  - [url_native] library is a native implementation with {{:https://github.com/mirage/ocaml-uri}ocaml-uri}: RFC3986 URI parsing library for OCaml.
+
+  {1 Setup with dune}
+
+  Depending on you setup, you would need to add the following dependencies to your `dune` stanzas:
+
+  {[
+  (library
+    (name ...)
+    (modes melange)
+    (libraries (server-reason-react.url_js))
+
+  (library
+    (name ...)
+    (modes native)
+    (libraries (server-reason-react.url_native))
+  ]}
+
+  {1 Usage}
+
+  {[
+      let url = URL.make("https://example.com:8080/path?query=1#hash");
+      URL.protocol(url); (* => Some("https:") *)
+      URL.hostname(url); (* => "example.com" *)
+      URL.port(url); (* => Some("8080") *)
+      URL.pathname(url); (* => "/path" *)
+      URL.search(url); (* => Some("?query=1") *)
+      URL.hash(url); (* => Some("#hash") *)
+  ]}
+
+  {1 URL.SearchParams}
+*/;
 
 module SearchParams: {
   type t;
 
   let makeExn: string => t;
   let make: string => option(t);
-  /* let makeWithDict: Js.Dict.t(string) => t; */
   let makeWithArray: array((string, string)) => t;
   let append: (t, string, string) => t;
   let delete: (t, string) => t;
@@ -22,6 +54,10 @@ module SearchParams: {
   let toString: t => string;
   let values: t => array(string);
 };
+
+/**
+  {1 URL}
+*/;
 
 type t;
 
@@ -52,7 +88,7 @@ let setSearch: (t, string) => t;
 let searchParams: t => SearchParams.t;
 let username: t => option(string);
 let setUsername: (t, string) => t;
+let toString: t => string;
 /*
  TODO: When we have a way to represent JSON universally, implement this
  let toJson: t => string; */
-let toString: t => string;
