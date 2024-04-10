@@ -4,6 +4,9 @@ module Builder = Ast_builder.Default
 type target = Native | Js
 
 let mode = ref Native
+let tag = "browser_ppx"
+let alt_tag = "platform"
+let is_platform_tag str = String.equal str tag || String.equal str alt_tag
 
 module Platform = struct
   let pattern = Ast_pattern.(__')
@@ -273,14 +276,202 @@ module Browser_only = struct
          extractor structure_item_handler)
 end
 
+module Preprocess = struct
+  (* This module is heavily based on leostera `config.ml` PPX:
+     https://github.com/ocaml-sys/config.ml/blob/d248987cc1795de99d3735c06635dbd355d4d642/config/cfg_ppx.ml*)
+
+  let eval_attr attr =
+    if not (is_platform_tag attr.attr_name.txt) then `keep
+    else
+      match (attr.attr_payload, !mode) with
+      | ( PStr
+            [
+              {
+                pstr_desc =
+                  Pstr_eval
+                    ({ pexp_desc = Pexp_ident { txt = Lident "js" } }, []);
+                _;
+              };
+            ],
+          Native )
+      | ( PStr
+            [
+              {
+                pstr_desc =
+                  Pstr_eval
+                    ({ pexp_desc = Pexp_ident { txt = Lident "native" } }, []);
+                _;
+              };
+            ],
+          Js ) ->
+          `drop
+      | _ -> `keep
+
+  let rec should_keep attrs =
+    match attrs with
+    | [] -> `keep
+    | attr :: attrs ->
+        if eval_attr attr = `drop then `drop else should_keep attrs
+
+  let rec should_keep_many list fn =
+    match list with
+    | [] -> `keep
+    | item :: list ->
+        if should_keep (fn item) = `drop then `drop
+        else should_keep_many list fn
+
+  let apply_config_on_types (tds : type_declaration list) =
+    List.filter_map
+      (fun td ->
+        match td with
+        | {
+         ptype_kind = Ptype_abstract;
+         ptype_manifest =
+           Some
+             ({ ptyp_desc = Ptyp_variant (rows, closed_flag, labels); _ } as
+              manifest);
+         _;
+        } ->
+            let rows =
+              List.filter_map
+                (fun row ->
+                  if should_keep row.prf_attributes = `keep then Some row
+                  else None)
+                rows
+            in
+
+            if rows = [] then None
+            else
+              Some
+                {
+                  td with
+                  ptype_manifest =
+                    Some
+                      {
+                        manifest with
+                        ptyp_desc = Ptyp_variant (rows, closed_flag, labels);
+                      };
+                }
+        | { ptype_kind = Ptype_variant cstrs; _ } ->
+            let cstrs =
+              List.filter_map
+                (fun cstr ->
+                  if should_keep cstr.pcd_attributes = `keep then Some cstr
+                  else None)
+                cstrs
+            in
+
+            if cstrs = [] then None
+            else Some { td with ptype_kind = Ptype_variant cstrs }
+        | { ptype_kind = Ptype_record labels; _ } ->
+            let labels =
+              List.filter_map
+                (fun label ->
+                  if should_keep label.pld_attributes = `keep then Some label
+                  else None)
+                labels
+            in
+
+            if labels = [] then None
+            else Some { td with ptype_kind = Ptype_record labels }
+        | _ -> Some td)
+      tds
+
+  let apply_config_on_structure_item stri =
+    match stri.pstr_desc with
+    | Pstr_typext { ptyext_attributes = attrs; _ }
+    | Pstr_modtype { pmtd_attributes = attrs; _ }
+    | Pstr_open { popen_attributes = attrs; _ }
+    | Pstr_include { pincl_attributes = attrs; _ }
+    | Pstr_exception { ptyexn_attributes = attrs; _ }
+    | Pstr_primitive { pval_attributes = attrs; _ }
+    | Pstr_eval (_, attrs)
+    | Pstr_module { pmb_attributes = attrs; _ } ->
+        if should_keep attrs = `keep then Some stri else None
+    | Pstr_value (_, vbs) ->
+        if should_keep_many vbs (fun vb -> vb.pvb_attributes) = `keep then
+          Some stri
+        else None
+    | Pstr_type (recflag, tds) ->
+        if should_keep_many tds (fun td -> td.ptype_attributes) = `keep then
+          let tds = apply_config_on_types tds in
+          Some { stri with pstr_desc = Pstr_type (recflag, tds) }
+        else None
+    | Pstr_recmodule md ->
+        if should_keep_many md (fun md -> md.pmb_attributes) = `keep then
+          Some stri
+        else None
+    | Pstr_class cds ->
+        if should_keep_many cds (fun cd -> cd.pci_attributes) = `keep then
+          Some stri
+        else None
+    | Pstr_class_type ctds ->
+        if should_keep_many ctds (fun ctd -> ctd.pci_attributes) = `keep then
+          Some stri
+        else None
+    | Pstr_extension _ | Pstr_attribute _ -> Some stri
+
+  let apply_config_on_signature_item sigi =
+    match sigi.psig_desc with
+    | Psig_typext { ptyext_attributes = attrs; _ }
+    | Psig_modtype { pmtd_attributes = attrs; _ }
+    | Psig_open { popen_attributes = attrs; _ }
+    | Psig_include { pincl_attributes = attrs; _ }
+    | Psig_exception { ptyexn_attributes = attrs; _ }
+    | Psig_value { pval_attributes = attrs; _ }
+    | Psig_modtypesubst { pmtd_attributes = attrs; _ }
+    | Psig_modsubst { pms_attributes = attrs; _ }
+    | Psig_module { pmd_attributes = attrs; _ } ->
+        if should_keep attrs = `keep then Some sigi else None
+    | Psig_typesubst tds ->
+        if should_keep_many tds (fun td -> td.ptype_attributes) = `keep then
+          let tds = apply_config_on_types tds in
+          Some { sigi with psig_desc = Psig_typesubst tds }
+        else None
+    | Psig_type (recflag, tds) ->
+        if should_keep_many tds (fun td -> td.ptype_attributes) = `keep then
+          let tds = apply_config_on_types tds in
+          Some { sigi with psig_desc = Psig_type (recflag, tds) }
+        else None
+    | Psig_recmodule md ->
+        if should_keep_many md (fun md -> md.pmd_attributes) = `keep then
+          Some sigi
+        else None
+    | Psig_class cds ->
+        if should_keep_many cds (fun cd -> cd.pci_attributes) = `keep then
+          Some sigi
+        else None
+    | Psig_class_type ctds ->
+        if should_keep_many ctds (fun ctd -> ctd.pci_attributes) = `keep then
+          Some sigi
+        else None
+    | Psig_extension _ | Psig_attribute _ -> Some sigi
+
+  let preprocess_impl _exp_ctxt str =
+    match str with
+    | { pstr_desc = Pstr_attribute attr; _ } :: rest
+      when is_platform_tag attr.attr_name.txt ->
+        if eval_attr attr = `keep then rest else []
+    | _ -> List.filter_map apply_config_on_structure_item str
+
+  let preprocess_intf _exp_ctxt sigi =
+    match sigi with
+    | { psig_desc = Psig_attribute attr; _ } :: rest
+      when is_platform_tag attr.attr_name.txt ->
+        if eval_attr attr = `keep then rest else []
+    | _ -> List.filter_map apply_config_on_signature_item sigi
+end
+
 let () =
   Driver.add_arg "-js"
     (Unit (fun () -> mode := Js))
     ~doc:"preprocess for js build";
-  Driver.V2.register_transformation "browser_ppx"
+  Driver.V2.register_transformation tag
     ~rules:
       [
         Browser_only.expression_rule;
         Browser_only.structure_item_rule;
         Platform.rule;
       ]
+    ~preprocess_impl:Preprocess.preprocess_impl
+    ~preprocess_intf:Preprocess.preprocess_intf

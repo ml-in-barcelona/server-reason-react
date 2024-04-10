@@ -1,0 +1,63 @@
+{0:get Getting started with server-reason-react}
+
+This documentation will explain the different modules available in [server-reason-react], and how to use them, however it is assumed a minimum understanding of {{:https://reasonml.github.io/docs/en/what-and-why}Reason}, {{:reasonml.github.io/reason-react/}reason-react}, {{:https://melange.re/v3.0.0/what-is-melange.html}Melange} and a bit of {{:https://dune.readthedocs.io/en/stable}dune}.
+
+Let's start with a React component written in Reason:
+
+{[
+  module Greetings = {
+    [@react.component]
+    let make = (~name) => {
+      <div>
+        <h1> {React.string("Hello " ++ name)} </h1>
+      </div>
+    }
+  };
+]}
+
+A module with a make function that returns a [React.element]. This component is both a [reason-react] component and a [server-reason-react] component.
+
+[server-reason-react] provides {!React} and {!ReactDOM} modules with the same interface as [reason-react], including the {{:https://reasonml.github.io/docs/en/jsx}JSX transformation} via [server-reason-react.ppx].
+
+- {!React} (server-reason-react.react)
+- {!ReactDOM} (server-reason-react.reactDom)
+
+The main difference is, with [server-reason-react] you can render it on the server with {!ReactDOM} ([server-reason-react.reactDom]):
+
+{[
+  let html = ReactDOM.renderToStaticMarkup(<Greetings name="visitor" />)
+  // <div><h1>Hello visitor</h1></div>
+]}
+
+{_ This is usually part of your server-side code}
+
+The [ReactDOM] module exposes the [renderTo*] methods: {!ReactDOM.renderToStaticMarkup}, {!ReactDOM.renderToString} and {!ReactDOM.renderToLwtStream}.
+
+{1:install Install from opam's registry (recommended)}
+
+{[
+opam install server-reason-react
+]}
+
+{1:install Install from source}
+
+If you want to use the development version of server-reason-react, you can install it via opam pinning:
+{[
+  opam pin server-reason-react.dev "https://github.com/ml-in-barcelona/server-reason-react.git#main" -y
+]}
+
+{1:usage Usage}
+
+Add [server-reason-react.react] and [server-reason-react.reactDom] to your dune file:
+{[ (libraries (server-reason-react.react server-reason-react.reactDom) ]}
+
+and also [server-reason-react.ppx] to your preprocess list
+{[ (preprocess (pps server-reason-react.ppx)) ]}
+
+{1:next Next}
+
+{ol
+  {li {{!page-"universal-code"}How universal code works}}
+  {li {{!page-"code-structure"}How to structure the code}}
+  {li {{!page-"browser_only"}Exclude client code from the native build}}
+}

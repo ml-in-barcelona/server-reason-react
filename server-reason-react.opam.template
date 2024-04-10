@@ -1,3 +1,4 @@
+# This template is to override the build command with "new-doc"
 build: [
   ["dune" "subst"] {dev}
   [

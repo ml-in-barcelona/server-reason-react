@@ -668,16 +668,10 @@ val truncateToLengthUnsafe : 'a t -> int -> 'a t
     let () = truncateToLengthUnsafe arr 3;;
     arr = [|"ant";"bee";"cat"|];;
   ]}
-
 *)
 
 val initU : int -> ((int -> 'a)[@bs]) -> 'a t
 val init : int -> (int -> 'a) -> 'a t
 
-(* external push : 'a t -> 'a -> unit = "push"
-   [@@send] *)
-val push : 'a t -> 'a -> unit
-(**
-  [arr->push(item)]
-  push element `item` into the array
-*)
+val push : 'a t -> 'a -> [ `Do_not_use_Array_push_in_native ]
+(** Using Belt.Array.push in native isn't a good idea, since OCaml's Array are fixed length and can't resize the same way as JavaScript arrays. *)

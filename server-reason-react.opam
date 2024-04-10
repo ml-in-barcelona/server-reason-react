@@ -12,7 +12,7 @@ depends: [
   "reason" {>= "3.10.0"}
   "melange" {>= "3.0.0"}
   "ppxlib" {> "0.23.0"}
-  "quickjs" {>= "0.1.0"}
+  "quickjs" {>= "0.1.1"}
   "promise" {>= "1.1.2"}
   "lwt" {>= "5.6.0"}
   "lwt_ppx" {>= "2.1.0"}
@@ -31,6 +31,7 @@ depends: [
   "reason-react-ppx" {with-test}
 ]
 dev-repo: "git+https://github.com/ml-in-barcelona/server-reason-react.git"
+# This template is to override the build command with "new-doc"
 build: [
   ["dune" "subst"] {dev}
   [

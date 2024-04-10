@@ -2,18 +2,17 @@
 
 This is the documentation and API for {{:https://github.com/ml-in-barcelona/server-reason-react}server-reason-react}, an implementation of [react], [react-dom] and [react-dom/server] to run on the server with {{:https://reasonml.github.io/}Reason}/{{:https://ocaml.org/}OCaml}, with the purpose to Server-side render HTML markup from a {{:https://reasonml.github.io/reason-react//}reason-react} application natively (for both SSR and SSG).
 
-The entire model is designed to share components (and code) between the client and the server. To achieve this goal [server-reason-react] also contains other libraries and ppxes that are useful to share code between the two architectures. Makes rendering React components on the server much simpler.
-
-{0:why Why}
+{0 Why}
 
 Explained more about the motivation in this blog post {{:https://sancho.dev/blog/server-side-rendering-react-in-ocaml}sancho.dev/blog/server-side-rendering-react-in-ocaml} and also in my talk about {{:https://www.youtube.com/watch?v=e3qY-Eg9zRY&ab_channel=ReactAlicante}Server side rendering React natively with Reason} at ReactAlicante 2023.
 
 {0:guides Guides}
 
 {ol
-  {li {{!page-"intro"}Get started}}
+  {li {{!page-"get-started"}Get started}}
   {li {{!page-"universal-code"}How universal code works}}
   {li {{!page-"code-structure"}How to structure the code}}
+  {li {{!page-"browser_only"}Exclude client code from the native build}}
 }
 
 {1 Core API}
@@ -24,7 +23,7 @@ Those are the core libraries of [server-reason-react].
 
 {1 Other libraries}
 
-Aside from the core, [server-reason-react] exposes some needed known libraryes from melange or melange-community to help make components universal.
+Aside from the core, [server-reason-react] exposes some needed known libraries from melange or melange-community to help make components universal:
 
 {ul
   {li {!Belt} [server-reason-react.belt] (equivalent to [Belt] from [melange])}
@@ -34,3 +33,7 @@ Aside from the core, [server-reason-react] exposes some needed known libraryes f
 }
 
 {_ This would eventually be extracted into their own packages}
+
+{1:next Next}
+
+{{!page-"get-started"}Get started}

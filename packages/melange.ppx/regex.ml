@@ -1,26 +1,14 @@
 open Ppxlib
 module Builder = Ast_builder.Default
 
-let compile_regex ~flags str =
-  match Quickjs.RegExp.compile str flags with
-  | regex -> Ok regex
-  | exception Invalid_argument msg -> Error msg
-  | exception _ -> Error "unknown error while compiling regex"
-
 let parse_re str =
   try
     let _ = Str.search_forward (Str.regexp "/\\(.*\\)/\\(.*\\)") str 0 in
     let first = Str.matched_group 1 str in
     let second = Str.matched_group 2 str in
     match String.length second with
-    | 0 -> (
-        match compile_regex ~flags:"" first with
-        | Ok _regex -> Ok (first, None)
-        | Error msg -> Error msg)
-    | _ -> (
-        match compile_regex ~flags:second first with
-        | Ok _regex -> Ok (first, Some second)
-        | Error msg -> Error msg)
+    | 0 -> Ok (first, None)
+    | _ -> Ok (first, Some second)
   with Not_found -> Error "invalid regex"
 
 let extractor = Ast_pattern.(__')
