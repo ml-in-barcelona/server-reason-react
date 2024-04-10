@@ -1,4 +1,4 @@
-{0:structure How to organise the universal code}
+{0 How to organise the universal code}
 
 While using [server-reason-react] it's important to know how to organise the code. Sometimes you may want to have components that are shared between the client and the server, and sometimes you want to have components that are only used by the client or the server.
 
@@ -212,5 +212,6 @@ I found that this mechanism is not as reliable as copy_files, and it's not well 
 {1:next Next}
 
 {ol
-  {li {{!page-"universal-code"}How universal code works}}
+  {li {{!page-"browser_only"}Exclude client code from the native build}}
+  {li {{!page-"externals-melange-attributes"}Externals and melange attributes}}
 }
