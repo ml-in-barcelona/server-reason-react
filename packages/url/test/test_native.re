@@ -246,4 +246,4 @@ let url_search_params_tests =
     ],
   );
 
-let () = Alcotest.run("URL", [url_tests, url_search_params_tests]);
+Alcotest.run("URL", [url_tests, url_search_params_tests]);
