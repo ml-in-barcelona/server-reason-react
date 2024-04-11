@@ -1,5 +1,12 @@
 # Changes
 
+## 0.2.0
+
+- Remove data-reactroot attr from ReactDOM.renderToString #129 by @pedrobslisboa
+- Make useUrl return the provided serverUrl #125 by @purefunctor
+- Replace Js.Re implemenation from `pcre` to quickjs b1a3e225cdad1298d705fbbd9618e15b0427ef0f by @davesnx
+- Remove Belt.Array.push #122 by @davesnx
+
 ## 0.1.0
 
 Initial release of server-reason-react, includes:
