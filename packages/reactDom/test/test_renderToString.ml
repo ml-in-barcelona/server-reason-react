@@ -3,22 +3,18 @@ let assert_string left right =
 
 let react_root_one_element () =
   let div = React.createElement "div" [] [] in
-  assert_string (ReactDOM.renderToString div) "<div data-reactroot=\"\"></div>"
+  assert_string (ReactDOM.renderToString div) "<div></div>"
 
 let react_root_two_elements () =
   let div = React.createElement "div" [] [ React.createElement "span" [] [] ] in
-  assert_string
-    (ReactDOM.renderToString div)
-    "<div data-reactroot=\"\"><span></span></div>"
+  assert_string (ReactDOM.renderToString div) "<div><span></span></div>"
 
 let text_single_node () =
   let div =
     React.createElement "div" []
       [ React.createElement "span" [] [ React.string "Hello" ] ]
   in
-  assert_string
-    (ReactDOM.renderToString div)
-    "<div data-reactroot=\"\"><span>Hello</span></div>"
+  assert_string (ReactDOM.renderToString div) "<div><span>Hello</span></div>"
 
 let consecutives_text_nodes () =
   let div =
@@ -30,7 +26,7 @@ let consecutives_text_nodes () =
   in
   assert_string
     (ReactDOM.renderToString div)
-    "<div data-reactroot=\"\"><span>Hello<!-- -->Hello</span></div>"
+    "<div><span>Hello<!-- -->Hello</span></div>"
 
 let case title fn = Alcotest_lwt.test_case_sync title `Quick fn
 
