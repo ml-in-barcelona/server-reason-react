@@ -60,9 +60,6 @@ let attributes_to_string attrs =
   | [] -> ""
   | rest -> " " ^ (rest |> String.concat " " |> String.trim)
 
-let react_root_attr_name = "data-reactroot"
-let data_react_root_attr = Printf.sprintf " %s=\"\"" react_root_attr_name
-
 type mode = String | Markup
 
 let render_to_string ~mode element =
@@ -74,9 +71,6 @@ let render_to_string ~mode element =
      <!-- --> between text nodes *)
   let previous_was_text_node = ref false in
   let rec render_element element =
-    let root_attribute =
-      match is_root.contents with true -> data_react_root_attr | false -> ""
-    in
     match element with
     | Empty -> ""
     | Provider children -> render_element children
@@ -88,11 +82,10 @@ let render_to_string ~mode element =
     | Lower_case_element { tag; attributes; _ }
       when Html.is_self_closing_tag tag ->
         is_root.contents <- false;
-        Printf.sprintf "<%s%s%s />" tag root_attribute
-          (attributes_to_string attributes)
+        Printf.sprintf "<%s%s />" tag (attributes_to_string attributes)
     | Lower_case_element { tag; attributes; children } ->
         is_root.contents <- false;
-        Printf.sprintf "<%s%s%s>%s</%s>" tag root_attribute
+        Printf.sprintf "<%s%s>%s</%s>" tag
           (attributes_to_string attributes)
           (children |> List.map render_element |> String.concat "")
           tag
