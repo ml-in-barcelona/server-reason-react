@@ -1,4 +1,4 @@
-{0:get Getting started with server-reason-react}
+{0 Getting started with server-reason-react}
 
 This documentation will explain the different modules available in [server-reason-react], and how to use them, however it is assumed a minimum understanding of {{:https://reasonml.github.io/docs/en/what-and-why}Reason}, {{:reasonml.github.io/reason-react/}reason-react}, {{:https://melange.re/v3.0.0/what-is-melange.html}Melange} and a bit of {{:https://dune.readthedocs.io/en/stable}dune}.
 
@@ -56,8 +56,4 @@ and also [server-reason-react.ppx] to your preprocess list
 
 {1:next Next}
 
-{ol
-  {li {{!page-"universal-code"}How universal code works}}
-  {li {{!page-"code-structure"}How to structure the code}}
-  {li {{!page-"browser_only"}Exclude client code from the native build}}
-}
+{{!page-"universal-code"}How universal code works}

@@ -1,3 +1,9 @@
 (documentation
  (package server-reason-react)
- (mld_files index get-started code-structure universal-code browser_only))
+ (mld_files
+  index
+  get-started
+  code-structure
+  universal-code
+  browser_only
+  externals-melange-attributes))

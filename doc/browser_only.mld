@@ -62,3 +62,7 @@ switch%platform (Runtime.platform) {
 | Client => Js.log("This prints to the console")
 };
 ]}
+
+{1:next Next}
+
+{{!page-"externals-melange-attributes"}Externals and melange attributes}

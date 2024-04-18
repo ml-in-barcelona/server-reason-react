@@ -1,0 +1,45 @@
+{0 Externals and melange attributes}
+
+[melange.ppx] is designed to preprocess Melange programs (simplifying code generation for common use cases like generating bindings or code from types). It's not compatible with native, but if you want to share a module with [melange.ppx] we provide a drop-in replacement called: [server-reason-react.melange_ppx].
+
+Most of the features are shimmed to not work on the server and the compiler will warn to wrap it in [browser_only] expressions.
+
+{1 [server-reason-react.melange_ppx] supports}
+
+{2 All [mel.] attributes}
+mel.* attributes are stripped out of the native build, and transformed into raising functions to raise at server runtime.
+
+{2 Enables pipe_first [->]}
+
+Pipe first is the operator to apply a function to a value where data is passed as the first argument. [->] is a convenient operator that allows you to "flip" your code inside-out.
+
+It's not supported in native OCaml, but [server-reason-react.melange_ppx] enables it and works as expected.
+
+{2 Supports RegExp [[%re "/regex/"]]}
+
+Transforms [[%re ...]] into [Js.Re.t] from [server-reason-react.js] and it uses a C implementation of the regex engine from QuickJS from {{:https://github.com/ml-in-barcelona/quickjs.ml}quickjs.ml}. (Experimental)
+
+{2 Debugger [%debugger]}
+It removes the debugger in native. It's a noop on the server context, and it's pretty uncommon it's usage.
+
+{2 Supports Js.t (object access [##] and mel.obj)}
+
+{[
+let john = {"name": "john", "age": 99};
+/* The type of john is `{ . "age": int, "name": string }` which represents a
+JavaScript Object. */
+let name = john##name;
+]}
+https://melange.re/v3.0.0/communicate-with-javascript.html#using-js-t-objects
+
+Object creation and object field access is designed to interact with JavaScript Objects, in native we reperesent those as OCaml Objects (which are very different) and [server-reason-react-ppx.melange_ppx] proviedes the implementation to make it work. (Experimental)
+
+{1 Usage}
+
+To use [server-reason-react.melange_ppx] you need to add it to your dune's pps field:
+
+{[ (preprocess (pps server-reason-react.melange_ppx)) ]}
+
+{1 Next}
+
+{{!page-"code-structure"}How to structure the code}

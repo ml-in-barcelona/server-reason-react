@@ -13,6 +13,7 @@ Explained more about the motivation in this blog post {{:https://sancho.dev/blog
   {li {{!page-"universal-code"}How universal code works}}
   {li {{!page-"code-structure"}How to structure the code}}
   {li {{!page-"browser_only"}Exclude client code from the native build}}
+  {li {{!page-"externals-melange-attributes"}Externals and melange attributes}}
 }
 
 {1 Core API}

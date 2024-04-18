@@ -1,19 +1,19 @@
-{0:structure How to organise the universal code}
+{0 How to organise the universal code}
 
 While using [server-reason-react] it's important to know how to organise the code. Sometimes you may want to have components that are shared between the client and the server, and sometimes you want to have components that are only used by the client or the server.
 
-In order to have universal code, we need to organise the code in a way that allows us to do so. In this guide, we will asume you are using {{:https://melange.re/v2.2.0/}Melange} and {{:https://dune.readthedocs.io/en/stable/}dune}.
+In this guide, we will asume you are using {{:https://melange.re/}Melange} and {{:https://dune.readthedocs.io/en/stable/}dune}, and will show a few examples of universal code and how to setup the dune files accordingly.
 
 {1:kinds Pure universal library}
 
-If there's a library without any client or server dependency, you can just have a library with all modes: [(modes native byte melange)]. This is common for type-only libraries or libraries that only rely on the standard library. I often refer to this as "pure universal" library.
+It's a library without any client or server dependency, you can just have a library with all modes: [(modes native byte melange)]. This is common for type-only libraries or libraries that only rely on the standard library. I often refer to this as "pure universal" library.
 
-For example, a tiny library to handle remote data called [Remote_data]:
+A tiny library to handle remote data named [Remote_data]:
 
 {[
 (library
  (name remote_data)
- (modes native melange))
+ (modes native melange)) ; Contains both modes for melange and native
 ]}
 
 {[
@@ -49,22 +49,25 @@ let isLoading =
   | _ => false;
 ]}
 
-This is a cut down version of the library for demonstration purposes, imagine here to have all sort of functions to operate on the type.
+This is a cut down version of the library for demonstration purposes, you can imagine to have all necessary functions to operate on this type.
 
-{1:kinds Same API, different implementation}
+This library can be used in both "native" and "melagne" stanzas interchangeably.
 
-There are some other cases where you want to expose the same API, but the implementation is different. For example, another tiny example: you may want to have a library that exposes a function to get the current time. On the client, you may want to use the browser API, while on the server you may want to use the system time.
+{1:kinds Same API, different implementations}
 
-dune allows to have 2 libraries with the same name, but availalbe in different modes. For example:
+There are some other cases where you want to expose the same API, but the implementation is different.
+
+For example, another tiny example: you may want to have a library that exposes a function to get the current time. On the client, you may want to use the browser API, while on the server you may want to use the system time.
+
+[dune] allows to have 2 libraries with the same name, but available in different modes. For example:
 
 {[
 (library
   (name url_js)
   (modes melange)
   (libraries melange.js)
-  (wrapped false)
   (modules Url)
-  (preprocess (pps melange.ppx))
+  (wrapped false))
 
 (library
   (name url_native)
@@ -73,8 +76,11 @@ dune allows to have 2 libraries with the same name, but availalbe in different m
   (wrapped false))
 ]}
 
-Both libraries need to be [(wrapped false)] so are exposed under the same name.
-[wrapped false] means that the library is not wrapped in a entry module, so the modules are exposed directly. In this case a `Url.re` module should exist on both libraries.
+[url_js] and [url_native] are two different libraries, but they expose the same module called [Url] with the same API.
+
+Both libraries need to be [(wrapped false)] so they expose all the modules (which in this case is only [Url]) directly.
+
+[wrapped true] means that the library is wrapped in a entry module, so the modules are exposed under the library name. In this case, [wrapped false] expose the modules directly.
 
 {1:kinds copy_files}
 
@@ -212,5 +218,6 @@ I found that this mechanism is not as reliable as copy_files, and it's not well 
 {1:next Next}
 
 {ol
-  {li {{!page-"universal-code"}How universal code works}}
+  {li {{!page-"browser_only"}Exclude client code from the native build}}
+  {li {{!page-"externals-melange-attributes"}Externals and melange attributes}}
 }
