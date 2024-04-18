@@ -1,7 +1,7 @@
 (library
  (name url)
  (modes melange)
- (public_name server-reason-react.url-js)
+ (public_name server-reason-react.url_js)
  (libraries melange.js)
  (wrapped false)
  (enabled_if
@@ -12,7 +12,7 @@
 
 (library
  (name url)
- (public_name server-reason-react.url-native)
+ (public_name server-reason-react.url_native)
  (wrapped false)
  (enabled_if
   (and
