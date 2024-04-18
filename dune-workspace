@@ -5,4 +5,4 @@
 (context
  (default
   (name melange)
-  (merlin)))
+  (generate_merlin_rules)))
