@@ -31,7 +31,7 @@ depends: [
   "reason-react-ppx" {with-test}
 ]
 dev-repo: "git+https://github.com/ml-in-barcelona/server-reason-react.git"
-# This template is to override the build command with "new-doc"
+# build command is custom to add "@new-doc"
 build: [
   ["dune" "subst"] {dev}
   [
