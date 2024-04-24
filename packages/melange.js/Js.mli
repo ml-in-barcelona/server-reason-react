@@ -1110,8 +1110,6 @@ module Math : sig
     not_implemented "is not implemented in native under server-reason-react.js"]
 
   val cos : float -> float
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
 
   val cosh : float -> float
   [@@alert
@@ -1230,8 +1228,6 @@ module Math : sig
     not_implemented "is not implemented in native under server-reason-react.js"]
 
   val sin : float -> float
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
 
   val sinh : float -> float
   [@@alert
