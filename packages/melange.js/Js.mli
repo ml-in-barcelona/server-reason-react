@@ -354,11 +354,7 @@ module String : sig
     not_implemented "is not implemented in native under server-reason-react.js"]
 
   val repeat : count:int -> t -> t
-
   val replace : search:t -> replacement:t -> t -> t
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
   val replaceByRe : regexp:Re.t -> replacement:t -> t -> t
 
   val unsafeReplaceBy0 : regexp:Re.t -> f:(t -> int -> t -> t) -> t -> t

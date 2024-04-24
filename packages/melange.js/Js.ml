@@ -688,7 +688,11 @@ end = struct
     in
     repeat' str "" count
 
-  let replace ~search:_ ~replacement:_ _ = notImplemented "Js.String" "replace"
+  (* If pattern is a string, only the first occurrence will be replaced.
+     https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/replace *)
+  let replace ~search ~replacement str =
+    let search_regexp = Str.regexp_string search in
+    Str.replace_first search_regexp replacement str
 
   let replaceByRe ~regexp ~replacement str =
     let rec replace_all str =

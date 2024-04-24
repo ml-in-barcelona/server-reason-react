@@ -237,11 +237,13 @@ let string_tests =
         assert_string (Js.String.repeat "ha" ~count:3) "hahaha";
         assert_string (Js.String.repeat "empty" ~count:0) "");
     test "replace" (fun () ->
-        (* assert_string (Js.String.replace "old" "new" "old string") "new string";
-           assert_string
-             (replace "the" "this" "the cat and the dog")
-             "this cat and the dog" *)
-        ());
+        assert_string
+          (Js.String.replace ~search:"old" ~replacement:"new" "old string")
+          "new string";
+        assert_string
+          (Js.String.replace ~search:"the" ~replacement:"this"
+             "the cat and the dog")
+          "this cat and the dog");
     test "replaceByRe" (fun () ->
         assert_string
           (Js.String.replaceByRe "david" ~regexp:[%re "/d/"] ~replacement:"x")

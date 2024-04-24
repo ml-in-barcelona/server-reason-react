@@ -7,7 +7,7 @@
  (name js)
  (modules js)
  (public_name server-reason-react.js)
- (libraries quickjs lwt)
+ (libraries quickjs lwt str)
  (preprocess
   (pps lwt_ppx)))
 
