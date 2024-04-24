@@ -417,6 +417,32 @@ module Debug = struct
          handler)
 end
 
+module Derivers = struct
+  let gen_structure_signature loc (tdcls : type_declaration list) ~str ~sig_ =
+    Ast_helper.
+      [
+        Str.include_ ~loc
+          (Incl.mk ~loc
+             (Mod.constraint_ ~loc
+                (Mod.structure ~loc (str tdcls))
+                (Mty.signature ~loc (sig_ tdcls))));
+      ]
+
+  let jsConverter =
+    let args () = Deriving.Args.(empty +> flag "newType") in
+    let str_type_decl =
+      Deriving.Generator.V2.make (args ()) (fun ~ctxt (_, tdcls) newType ->
+          let loc = Expansion_context.Deriver.derived_item_loc ctxt in
+          let str = Ast_derive_js_mapper.derive_structure ~newType
+          and sig_ = Ast_derive_js_mapper.derive_signature ~newType in
+          gen_structure_signature loc tdcls ~str ~sig_)
+    and sig_type_decl =
+      Deriving.Generator.V2.make (args ()) (fun ~ctxt:_ (_, tdcls) newType ->
+          Ast_derive_js_mapper.derive_signature ~newType tdcls)
+    in
+    Deriving.add ~str_type_decl ~sig_type_decl "jsConverter"
+end
+
 let () =
   Driver.register_transformation ~impl:structure_mapper
     ~rules:[ Pipe_first.rule; Regex.rule; Double_hash.rule; Debug.rule ]

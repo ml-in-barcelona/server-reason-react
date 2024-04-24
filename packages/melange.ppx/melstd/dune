@@ -1,0 +1,101 @@
+(library
+ (name melstd)
+ (public_name server-reason-react.melstd)
+ (modules hash_gen hash_set hash_set_gen hash_set_string map_gen map_string melstd set_gen set_string string)
+ (libraries unix pp))
+
+(rule
+ (targets hash_set_string.ml)
+ (deps hash_set.cppo.ml)
+ (action
+  (run cppo -D TYPE_STRING %{deps} -o %{targets})))
+
+(rule
+ (targets hash_set_ident.ml)
+ (deps hash_set.cppo.ml)
+ (action
+  (run cppo -D TYPE_IDENT %{deps} -o %{targets})))
+
+(rule
+ (targets hash_set.ml)
+ (deps hash_set.cppo.ml)
+ (action
+  (run cppo -D TYPE_FUNCTOR %{deps} -o %{targets})))
+
+(rule
+ (targets hash_set_poly.ml)
+ (deps hash_set.cppo.ml)
+ (action
+  (run cppo -D TYPE_POLY %{deps} -o %{targets})))
+
+(rule
+ (targets vec_int.ml)
+ (deps vec.cppo.ml)
+ (action
+  (run cppo -D TYPE_INT %{deps} -o %{targets})))
+
+(rule
+ (targets vec.ml)
+ (deps vec.cppo.ml)
+ (action
+  (run cppo -D TYPE_FUNCTOR %{deps} -o %{targets})))
+
+(rule
+ (targets set_string.ml)
+ (deps set.cppo.ml)
+ (action
+  (run cppo -D TYPE_STRING %{deps} -o %{targets})))
+
+(rule
+ (targets set_int.ml)
+ (deps set.cppo.ml)
+ (action
+  (run cppo -D TYPE_INT %{deps} -o %{targets})))
+
+(rule
+ (targets set_ident.ml)
+ (deps set.cppo.ml)
+ (action
+  (run cppo -D TYPE_IDENT %{deps} -o %{targets})))
+
+(rule
+ (targets map_string.ml)
+ (deps map.cppo.ml)
+ (action
+  (run cppo -D TYPE_STRING %{deps} -o %{targets})))
+
+(rule
+ (targets map_int.ml)
+ (deps map.cppo.ml)
+ (action
+  (run cppo -D TYPE_INT %{deps} -o %{targets})))
+
+(rule
+ (targets map_ident.ml)
+ (deps map.cppo.ml)
+ (action
+  (run cppo -D TYPE_IDENT %{deps} -o %{targets})))
+
+(rule
+ (targets ordered_hash_map_local_ident.ml)
+ (deps ordered_hash_map.cppo.ml)
+ (action
+  (run cppo -D TYPE_LOCAL_IDENT %{deps} -o %{targets})))
+
+(rule
+ (targets hash_int.ml)
+ (deps hash.cppo.ml)
+ (action
+  (run cppo -D TYPE_INT %{deps} -o %{targets})))
+
+(rule
+ (targets hash_ident.ml)
+ (deps hash.cppo.ml)
+ (action
+  (run cppo -D TYPE_IDENT %{deps} -o %{targets})))
+
+(rule
+ (targets hash.ml)
+ (deps hash.cppo.ml)
+ (action
+  (run cppo -D TYPE_FUNCTOR %{deps} -o %{targets})))
