@@ -601,15 +601,45 @@ let useLayoutEffect5 _ _ = ()
 let useLayoutEffect6 _ _ = ()
 
 module Children = struct
-  let map fn elements = Array.map fn elements
-  let mapWithIndex fn elements = Array.mapi fn elements
-  let forEach fn elements = Array.iter fn elements
-  let forEachWithIndex fn elements = Array.iteri fn elements
-  let count elements = Array.length elements
+  let map element fn =
+    match element with
+    | List children -> Array.map fn children |> Array.to_list |> list
+    | _ -> fn element
 
-  let only elements =
-    if Array.length elements >= 1 then Array.get elements 0
-    else raise (Invalid_argument "Expected at least one child")
+  let mapWithIndex element fn =
+    match element with
+    | List children ->
+        Array.mapi (fun index element -> fn element index) children
+        |> Array.to_list |> list
+    | _ -> fn element 0
+
+  let forEach element fn =
+    match element with
+    | List children -> Array.iter fn children
+    | _ ->
+        let _ = fn element in
+        ()
+
+  let forEachWithIndex element fn =
+    match element with
+    | List children ->
+        Array.iteri (fun index element -> fn element index) children
+    | _ ->
+        let _ = fn element 0 in
+        ()
+
+  let count element =
+    match element with
+    | List children -> Array.length children
+    | Empty -> 0
+    | _ -> 1
+
+  let only element =
+    match element with
+    | List children ->
+        if Array.length children >= 1 then Array.get children 0
+        else raise (Invalid_argument "Expected at least one child")
+    | _ -> element
 
   let toArray element = [| element |]
 end
