@@ -62,24 +62,26 @@ Single type (invalid OCaml, but valid in Melange)
   > EOF
 
   $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl | tee output.ml
-  type keycloak;;
+  type keycloak
   
-  [%error
-    "There's a [%mel.raw \"...\"] expression in native, which should only happen \
-     in JavaScript. You need to conditionally run it via let%browser_only or \
-     switch%platform. More info at \
-     https://ml-in-barcelona.github.io/server-reason-react/local/server-reason-react/browser_only.html"]
+  [%%ocaml.error
+  "[server-reason-react.melange_ppx] There's an external with [%mel.module \
+   \"...\"] in native, which should only happen in JavaScript. You need to \
+   conditionally run it, either by not including it on native or via \
+   let%browser_only/switch%platform. More info at \
+   https://ml-in-barcelona.github.io/server-reason-react/local/server-reason-react/browser_only.html"]
 
   $ echo "module Runtime = struct" > main.ml
   $ cat $INSIDE_DUNE/packages/runtime/Runtime.ml >> main.ml
   $ echo "end" >> main.ml
   $ cat output.ml >> main.ml
   $ ocamlc -c main.ml
-  File "main.ml", line 24, characters 2-7:
-  24 | [%error
-         ^^^^^
-  Error: There's a [%mel.raw "..."] expression in native, which should only
-         happen in JavaScript. You need to conditionally run it via
-         let%browser_only or switch%platform. More info at
+  File "main.ml", line 24, characters 3-14:
+  24 | [%%ocaml.error
+          ^^^^^^^^^^^
+  Error: [server-reason-react.melange_ppx] There's an external with
+         [%mel.module "..."] in native, which should only happen in JavaScript.
+         You need to conditionally run it, either by not including it on native
+         or via let%browser_only/switch%platform. More info at
          https://ml-in-barcelona.github.io/server-reason-react/local/server-reason-react/browser_only.html
   [2]

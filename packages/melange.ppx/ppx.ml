@@ -181,19 +181,6 @@ let mel_module_found_in_native_message ~loc payload =
   in
   Builder.pexp_constant ~loc (Pconst_string (msg, loc, None))
 
-let browser_only_alert ~loc str =
-  {
-    attr_name = { txt = "alert"; loc };
-    attr_payload =
-      PStr
-        [
-          [%stri
-            browser_only
-              [%e Builder.pexp_constant ~loc (Pconst_string (str, loc, None))]];
-        ];
-    attr_loc = loc;
-  }
-
 let get_function_arity pattern =
   let rec go arity = function
     | Pexp_fun (_, _, _, expr) -> go (arity + 1) expr.pexp_desc

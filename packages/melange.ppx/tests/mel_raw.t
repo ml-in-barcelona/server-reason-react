@@ -6,10 +6,10 @@ mel.raw as a value
 
   $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl | tee output.ml
   [%error
-    "There's a [%mel.raw \" function(element) { return element.ownerDocument; } \
-     \"] expression in native, which should only happen in JavaScript. You need \
-     to conditionally run it via let%browser_only or switch%platform. More info \
-     at \
+    "[server-reason-react.melange_ppx] There's a [%mel.raw \" function(element) \
+     { return element.ownerDocument; } \"] expression in native, which should \
+     only happen in JavaScript. You need to conditionally run it via \
+     let%browser_only or switch%platform. More info at \
      https://ml-in-barcelona.github.io/server-reason-react/local/server-reason-react/browser_only.html"]
 
 mel.raw as an unary function
@@ -20,10 +20,10 @@ mel.raw as an unary function
 
   $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl | tee output.ml
   [%error
-    "There's a [%mel.raw \" function(element) { return element.ownerDocument; } \
-     \"] expression in native, which should only happen in JavaScript. You need \
-     to conditionally run it via let%browser_only or switch%platform. More info \
-     at \
+    "[server-reason-react.melange_ppx] There's a [%mel.raw \" function(element) \
+     { return element.ownerDocument; } \"] expression in native, which should \
+     only happen in JavaScript. You need to conditionally run it via \
+     let%browser_only or switch%platform. More info at \
      https://ml-in-barcelona.github.io/server-reason-react/local/server-reason-react/browser_only.html"]
 
 mel.raw as an binary function
@@ -37,7 +37,8 @@ mel.raw as an binary function
 
   $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl | tee output.ml
   [%error
-    "There's a [%mel.raw \" function(element, number) {\n\
+    "[server-reason-react.melange_ppx] There's a [%mel.raw \" function(element, \
+     number) {\n\
     \    console.log(number);\n\
     \    return element.ownerDocument;\n\
      } \"] expression in native, which should only happen in JavaScript. You \
@@ -56,9 +57,9 @@ mel.raw with type
   type t;;
   
   [%error
-    "There's a [%mel.raw \"window\"] expression in native, which should only \
-     happen in JavaScript. You need to conditionally run it via let%browser_only \
-     or switch%platform. More info at \
+    "[server-reason-react.melange_ppx] There's a [%mel.raw \"window\"] \
+     expression in native, which should only happen in JavaScript. You need to \
+     conditionally run it via let%browser_only or switch%platform. More info at \
      https://ml-in-barcelona.github.io/server-reason-react/local/server-reason-react/browser_only.html"]
 
   $ echo "module Runtime = struct" > main.ml
@@ -69,9 +70,10 @@ mel.raw with type
   File "main.ml", line 24, characters 2-7:
   24 | [%error
          ^^^^^
-  Error: There's a [%mel.raw "window"] expression in native, which should only
-         happen in JavaScript. You need to conditionally run it via
-         let%browser_only or switch%platform. More info at
+  Error: [server-reason-react.melange_ppx] There's a [%mel.raw "window"]
+         expression in native, which should only happen in JavaScript. You need
+         to conditionally run it via let%browser_only or switch%platform. More
+         info at
          https://ml-in-barcelona.github.io/server-reason-react/local/server-reason-react/browser_only.html
   [2]
 
@@ -82,8 +84,9 @@ mel.raw as a value
   > EOF
 
   $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl | tee output.ml
-  [%error
-    "There's a [%mel.raw \" console.log(\"running in JS\"); \"] expression in \
-     native, which should only happen in JavaScript. You need to conditionally \
-     run it via let%browser_only or switch%platform. More info at \
-     https://ml-in-barcelona.github.io/server-reason-react/local/server-reason-react/browser_only.html"]
+  [%%ocaml.error
+  "[server-reason-react.melange_ppx] There's a [%mel.raw \" \
+   console.log(\"running in JS\"); \"] expression in native, which should only \
+   happen in JavaScript. You need to conditionally run it via let%browser_only \
+   or switch%platform. More info at \
+   https://ml-in-barcelona.github.io/server-reason-react/local/server-reason-react/browser_only.html"]
