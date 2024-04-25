@@ -82,4 +82,8 @@ mel.raw as a value
   > EOF
 
   $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl | tee output.ml
-  ()
+  [%error
+    "There's a [%mel.raw \" console.log(\"running in JS\"); \"] expression in \
+     native, which should only happen in JavaScript. You need to conditionally \
+     run it via let%browser_only or switch%platform. More info at \
+     https://ml-in-barcelona.github.io/server-reason-react/local/server-reason-react/browser_only.html"]

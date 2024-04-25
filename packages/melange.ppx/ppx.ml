@@ -106,25 +106,22 @@ let is_mel_raw expr =
   | Pexp_extension ({ txt = "mel.raw"; _ }, _) -> true
   | _ -> false
 
+let capture_payload expr =
+  match expr with
+  | PStr
+      [
+        {
+          pstr_desc =
+            Pstr_eval
+              ( { pexp_desc = Pexp_constant (Pconst_string (payload, _, _)); _ },
+                _ );
+          _;
+        };
+      ] ->
+      payload
+  | _ -> "..."
+
 let get_payload_from_mel_raw expr =
-  let capture_payload expr =
-    match expr with
-    | PStr
-        [
-          {
-            pstr_desc =
-              Pstr_eval
-                ( {
-                    pexp_desc = Pexp_constant (Pconst_string (payload, _, _));
-                    _;
-                  },
-                  _ );
-            _;
-          };
-        ] ->
-        payload
-    | _ -> "..."
-  in
   let rec go expr =
     match expr with
     | Pexp_extension ({ txt = "mel.raw"; _ }, pstr) -> capture_payload pstr
@@ -159,17 +156,6 @@ Melange externals are bindings to JavaScript code, which can't run on the server
     raise
       (Runtime.fail_impossible_action_in_ssr
          [%e Builder.pexp_constant ~loc (Pconst_string (name, loc, None))])]
-
-let make_implementation ~loc arity =
-  let rec make_fun ~loc arity =
-    match arity with
-    | 0 -> [%expr Obj.magic ()]
-    | _ ->
-        Builder.pexp_fun ~loc Nolabel None
-          (Builder.ppat_var ~loc { loc; txt = "_" })
-          (make_fun ~loc (arity - 1))
-  in
-  make_fun ~loc arity
 
 let mel_raw_found_in_native_message ~loc payload =
   let msg =
@@ -350,10 +336,10 @@ class raise_exception_mapper =
     method! structure_item item =
       match item.pstr_desc with
       (* [%%mel.raw ...] *)
-      | Pstr_extension (({ txt = "mel.raw"; loc }, _), _) -> [%stri ()]
-      (* TODO: Add error here *)
-      (* let loc = item.pstr_loc in
-          [%stri [%error [%e mel_raw_found_in_native_message ~loc:pvb_loc]]] *)
+      | Pstr_extension (({ txt = "mel.raw"; _ }, pstr), _) ->
+          let loc = item.pstr_loc in
+          let payload = capture_payload pstr in
+          [%stri [%error [%e mel_raw_found_in_native_message ~loc payload]]]
       (* let a _ = [%mel.raw ...] *)
       | Pstr_value
           ( Nonrecursive,
