@@ -227,7 +227,7 @@ module Array : sig
   val concat : other:'a t -> 'a t -> 'a t
   val concatMany : arrays:'a t array -> 'a t -> 'a t
   val includes : value:'a -> 'a t -> bool
-  val join : ?sep:string -> 'a t -> string
+  val join : ?sep:string -> string t -> string
   val indexOf : value:'a -> ?start:int -> 'a t -> int
   val lastIndexOf : value:'a -> 'a t -> int
   val lastIndexOfFrom : value:'a -> start:int -> 'a t -> int
@@ -313,10 +313,9 @@ end = struct
 
   let join ?sep arr =
     (* js bindings can really take in `'a array`, while native is constrained to `string array` *)
-    let any_arr = Obj.magic arr in
     match sep with
-    | None -> Stdlib.Array.to_list any_arr |> String.concat ","
-    | Some sep -> Stdlib.Array.to_list any_arr |> String.concat sep
+    | None -> Stdlib.Array.to_list arr |> String.concat ","
+    | Some sep -> Stdlib.Array.to_list arr |> String.concat sep
 
   let lastIndexOf ~value arr =
     let rec aux idx =

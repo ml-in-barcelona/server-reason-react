@@ -4,9 +4,11 @@ module Builder = Ast_builder.Default
 type target = Native | Js
 
 let mode = ref Native
-let tag = "browser_ppx"
-let alt_tag = "platform"
-let is_platform_tag str = String.equal str tag || String.equal str alt_tag
+let browser_ppx = "browser_ppx"
+let platform_tag = "platform"
+
+let is_platform_tag str =
+  String.equal str browser_ppx || String.equal str platform_tag
 
 module Platform = struct
   let pattern = Ast_pattern.(__')
@@ -466,7 +468,7 @@ let () =
   Driver.add_arg "-js"
     (Unit (fun () -> mode := Js))
     ~doc:"preprocess for js build";
-  Driver.V2.register_transformation tag
+  Driver.V2.register_transformation browser_ppx
     ~rules:
       [
         Browser_only.expression_rule;

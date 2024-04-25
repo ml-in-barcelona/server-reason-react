@@ -168,6 +168,18 @@ let mel_raw_found_in_native_message ~loc payload =
   in
   Builder.pexp_constant ~loc (Pconst_string (msg, loc, None))
 
+let mel_module_found_in_native_message ~loc payload =
+  let msg =
+    Printf.sprintf
+      "There's an external with [%%mel.module \"%s\"] in native, which should \
+       only happen in JavaScript. You need to conditionally run it, either by \
+       not including it on native or via let%%browser_only/switch%%platform. \
+       More info at \
+       https://ml-in-barcelona.github.io/server-reason-react/local/server-reason-react/browser_only.html"
+      payload
+  in
+  Builder.pexp_constant ~loc (Pconst_string (msg, loc, None))
+
 let browser_only_alert ~loc str =
   {
     attr_name = { txt = "alert"; loc };
@@ -258,7 +270,7 @@ let transform_external pval_name pval_attributes pval_loc pval_type =
           Builder.ppat_constraint ~loc function_core_type
             (Builder.ptyp_poly ~loc [] pval_type)
         in
-        let pattern =
+        let _pattern =
           {
             pattern with
             ppat_attributes =
@@ -270,7 +282,8 @@ let transform_external pval_name pval_attributes pval_loc pval_type =
               ];
           }
         in
-        [%stri let [%p pattern] = Obj.magic ()]
+        [%stri
+          [%%ocaml.error [%e mel_module_found_in_native_message ~loc "..."]]]
   | _ ->
       [%stri
         [%%ocaml.error
@@ -339,7 +352,8 @@ class raise_exception_mapper =
       | Pstr_extension (({ txt = "mel.raw"; _ }, pstr), _) ->
           let loc = item.pstr_loc in
           let payload = capture_payload pstr in
-          [%stri [%error [%e mel_raw_found_in_native_message ~loc payload]]]
+          [%stri
+            [%%ocaml.error [%e mel_raw_found_in_native_message ~loc payload]]]
       (* let a _ = [%mel.raw ...] *)
       | Pstr_value
           ( Nonrecursive,
