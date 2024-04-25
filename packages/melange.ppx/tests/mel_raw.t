@@ -5,13 +5,12 @@ mel.raw as a value
   > EOF
 
   $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl | tee output.ml
-  let (value
-      [@alert
-        browser_only
-          "Since it's a [%mel.raw ...]. This expression is marked to only run on \
-           the browser where JavaScript can run. You can only use it inside a \
-           let%browser_only function."]) =
-    Obj.magic ()
+  [%error
+    "There's a [%mel.raw \" function(element) { return element.ownerDocument; } \
+     \"] expression in native, which should only happen in JavaScript. You need \
+     to conditionally run it via let%browser_only or switch%platform. More info \
+     at \
+     https://ml-in-barcelona.github.io/server-reason-react/local/server-reason-react/browser_only.html"]
 
 mel.raw as an unary function
 
@@ -20,13 +19,12 @@ mel.raw as an unary function
   > EOF
 
   $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl | tee output.ml
-  let (unary_function
-      [@alert
-        browser_only
-          "Since it's a [%mel.raw ...]. This expression is marked to only run on \
-           the browser where JavaScript can run. You can only use it inside a \
-           let%browser_only function."]) =
-   fun _ -> Obj.magic ()
+  [%error
+    "There's a [%mel.raw \" function(element) { return element.ownerDocument; } \
+     \"] expression in native, which should only happen in JavaScript. You need \
+     to conditionally run it via let%browser_only or switch%platform. More info \
+     at \
+     https://ml-in-barcelona.github.io/server-reason-react/local/server-reason-react/browser_only.html"]
 
 mel.raw as an binary function
 
@@ -38,13 +36,14 @@ mel.raw as an binary function
   > EOF
 
   $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl | tee output.ml
-  let (binary_function
-      [@alert
-        browser_only
-          "Since it's a [%mel.raw ...]. This expression is marked to only run on \
-           the browser where JavaScript can run. You can only use it inside a \
-           let%browser_only function."]) =
-   fun _ _ -> Obj.magic ()
+  [%error
+    "There's a [%mel.raw \" function(element, number) {\n\
+    \    console.log(number);\n\
+    \    return element.ownerDocument;\n\
+     } \"] expression in native, which should only happen in JavaScript. You \
+     need to conditionally run it via let%browser_only or switch%platform. More \
+     info at \
+     https://ml-in-barcelona.github.io/server-reason-react/local/server-reason-react/browser_only.html"]
 
 mel.raw with type
 
@@ -54,21 +53,27 @@ mel.raw with type
   > EOF
 
   $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl | tee output.ml
-  type t
+  type t;;
   
-  let (global
-      [@alert
-        browser_only
-          "Since it's a [%mel.raw ...]. This expression is marked to only run on \
-           the browser where JavaScript can run. You can only use it inside a \
-           let%browser_only function."]) =
-    Obj.magic ()
+  [%error
+    "There's a [%mel.raw \"window\"] expression in native, which should only \
+     happen in JavaScript. You need to conditionally run it via let%browser_only \
+     or switch%platform. More info at \
+     https://ml-in-barcelona.github.io/server-reason-react/local/server-reason-react/browser_only.html"]
 
   $ echo "module Runtime = struct" > main.ml
   $ cat $INSIDE_DUNE/packages/runtime/Runtime.ml >> main.ml
   $ echo "end" >> main.ml
   $ cat output.ml >> main.ml
   $ ocamlc -c main.ml
+  File "main.ml", line 24, characters 2-7:
+  24 | [%error
+         ^^^^^
+  Error: There's a [%mel.raw "window"] expression in native, which should only
+         happen in JavaScript. You need to conditionally run it via
+         let%browser_only or switch%platform. More info at
+         https://ml-in-barcelona.github.io/server-reason-react/local/server-reason-react/browser_only.html
+  [2]
 
 mel.raw as a value
 
