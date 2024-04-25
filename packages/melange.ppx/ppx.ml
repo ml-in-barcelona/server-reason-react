@@ -106,6 +106,34 @@ let is_mel_raw expr =
   | Pexp_extension ({ txt = "mel.raw"; _ }, _) -> true
   | _ -> false
 
+let get_payload_from_mel_raw expr =
+  let capture_payload expr =
+    match expr with
+    | PStr
+        [
+          {
+            pstr_desc =
+              Pstr_eval
+                ( {
+                    pexp_desc = Pexp_constant (Pconst_string (payload, _, _));
+                    _;
+                  },
+                  _ );
+            _;
+          };
+        ] ->
+        payload
+    | _ -> "..."
+  in
+  let rec go expr =
+    match expr with
+    | Pexp_extension ({ txt = "mel.raw"; _ }, pstr) -> capture_payload pstr
+    | Pexp_constraint (expr, _) -> go expr.pexp_desc
+    | Pexp_fun (_, _, _, expr) -> go expr.pexp_desc
+    | _ -> "..."
+  in
+  go expr
+
 let expression_has_mel_raw expr =
   let rec go expr =
     match expr with
@@ -143,10 +171,16 @@ let make_implementation ~loc arity =
   in
   make_fun ~loc arity
 
-let browser_only_alert_mel_raw_message =
-  "Since it's a [%mel.raw ...]. This expression is marked to only run on the \
-   browser where JavaScript can run. You can only use it inside a \
-   let%browser_only function."
+let mel_raw_found_in_native_message ~loc payload =
+  let msg =
+    Printf.sprintf
+      "There's a [%%mel.raw \"%s\"] expression in native, which should only \
+       happen in JavaScript. You need to conditionally run it via \
+       let%%browser_only or switch%%platform. More info at \
+       https://ml-in-barcelona.github.io/server-reason-react/local/server-reason-react/browser_only.html"
+      payload
+  in
+  Builder.pexp_constant ~loc (Pconst_string (msg, loc, None))
 
 let browser_only_alert ~loc str =
   {
@@ -317,6 +351,9 @@ class raise_exception_mapper =
       match item.pstr_desc with
       (* [%%mel.raw ...] *)
       | Pstr_extension (({ txt = "mel.raw"; loc }, _), _) -> [%stri ()]
+      (* TODO: Add error here *)
+      (* let loc = item.pstr_loc in
+          [%stri [%error [%e mel_raw_found_in_native_message ~loc:pvb_loc]]] *)
       (* let a _ = [%mel.raw ...] *)
       | Pstr_value
           ( Nonrecursive,
@@ -327,78 +364,49 @@ class raise_exception_mapper =
                     pexp_desc =
                       Pexp_fun
                         (_arg_label, _arg_expression, _fun_pattern, expression);
-                  } as pvb_expr;
-                pvb_pat =
-                  { ppat_desc = Ppat_var { txt = _function_name; _ } } as
-                  pvb_pattern;
+                  };
+                pvb_pat = { ppat_desc = Ppat_var { txt = _function_name; _ } };
                 pvb_attributes = _;
-                pvb_loc = _;
+                pvb_loc;
               };
             ] )
         when expression_has_mel_raw expression.pexp_desc ->
           let loc = item.pstr_loc in
-          let function_arity = get_function_arity pvb_expr.pexp_desc in
-          let implementation = make_implementation ~loc function_arity in
-          let fn_pattern =
-            {
-              pvb_pattern with
-              ppat_attributes =
-                [ browser_only_alert ~loc browser_only_alert_mel_raw_message ];
-            }
-          in
-          [%stri let [%p fn_pattern] = [%e implementation]]
+          let payload = get_payload_from_mel_raw expression.pexp_desc in
+          [%stri
+            [%error [%e mel_raw_found_in_native_message ~loc:pvb_loc payload]]]
       (* let a = [%mel.raw ...] *)
       | Pstr_value
           ( Nonrecursive,
             [
               {
                 pvb_expr = expression;
-                pvb_pat =
-                  { ppat_desc = Ppat_var { txt = _function_name; _ } } as
-                  pattern;
+                pvb_pat = { ppat_desc = Ppat_var { txt = _function_name; _ } };
                 pvb_attributes = _;
-                pvb_loc = _;
+                pvb_loc;
               };
             ] )
         when expression_has_mel_raw expression.pexp_desc ->
           let loc = item.pstr_loc in
-          let fn_pattern =
-            {
-              pattern with
-              ppat_attributes =
-                [ browser_only_alert ~loc browser_only_alert_mel_raw_message ];
-            }
-          in
-          let function_arity = get_function_arity expression.pexp_desc in
-          let implementation = make_implementation ~loc function_arity in
-          [%stri let [%p fn_pattern] = [%e implementation]]
+          let payload = get_payload_from_mel_raw expression.pexp_desc in
+          [%stri
+            [%error [%e mel_raw_found_in_native_message ~loc:pvb_loc payload]]]
       (* let a: t = [%mel.raw ...] *)
       | Pstr_value
           ( Nonrecursive,
             [
               {
                 pvb_expr = expression;
-                pvb_pat =
-                  {
-                    ppat_desc =
-                      Ppat_constraint (constrain_pattern, _constrain_type);
-                  };
+                pvb_pat = { ppat_desc = _ };
                 pvb_attributes = _;
-                pvb_loc = _;
+                pvb_loc;
               };
             ] )
         when expression_has_mel_raw expression.pexp_desc ->
           let loc = item.pstr_loc in
-          let fn_pattern =
-            {
-              constrain_pattern with
-              ppat_attributes =
-                [ browser_only_alert ~loc browser_only_alert_mel_raw_message ];
-            }
-          in
-          let function_arity = get_function_arity expression.pexp_desc in
-          let implementation = make_implementation ~loc function_arity in
-          [%stri let [%p fn_pattern] = [%e implementation]]
+          let payload = get_payload_from_mel_raw expression.pexp_desc in
+          [%stri
+            [%error [%e mel_raw_found_in_native_message ~loc:pvb_loc payload]]]
       (* %mel. *)
       (* external foo: t = "{{JavaScript}}" *)
       | Pstr_primitive { pval_name; pval_attributes; pval_loc; pval_type } ->
