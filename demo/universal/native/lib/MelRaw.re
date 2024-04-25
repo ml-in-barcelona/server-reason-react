@@ -1,4 +1,4 @@
-let mockInitWebsocket = () => [%mel.raw
+let%browser_only mockInitWebsocket = () => [%mel.raw
   {|
   function mockInitWebsocket() {
     console.log("Load JS");
@@ -6,7 +6,7 @@ let mockInitWebsocket = () => [%mel.raw
 |}
 ];
 
-let initWebsocket = () => [%mel.raw
+let%browser_only initWebsocket = () => [%mel.raw
   {|
        function initWebsocket() {
          var socketUrl = "ws://" + location.host + "/_livereload";
