@@ -1,10 +1,6 @@
 open Ppxlib
 module Builder = Ast_builder.Default
 
-let is_melange_attr { attr_name = { txt = attr } } =
-  let len = 4 in
-  String.length attr > 4 && String.equal (String.sub attr 0 len) "mel."
-
 let is_send_pipe pval_attributes =
   List.exists
     (fun { attr_name = { txt = attr } } -> String.equal attr "mel.send.pipe")
@@ -33,6 +29,7 @@ let get_send_pipe pval_attributes =
   else None
 
 let has_mel_module_attr pval_attributes =
+  let is_melange_attr { attr_name = { txt = attr } } = "mel.module" = attr in
   List.exists is_melange_attr pval_attributes
 
 let has_ptyp_attribute ptyp_attributes attribute =
@@ -168,15 +165,25 @@ let mel_raw_found_in_native_message ~loc payload =
   in
   Builder.pexp_constant ~loc (Pconst_string (msg, loc, None))
 
-let mel_module_found_in_native_message ~loc payload =
+let mel_module_found_in_native_message ~loc =
   let msg =
     Printf.sprintf
       "[server-reason-react.melange_ppx] There's an external with \
-       [%%mel.module \"%s\"] in native, which should only happen in \
+       [%%mel.module \"...\"] in native, which should only happen in \
        JavaScript. You need to conditionally run it, either by not including \
        it on native or via let%%browser_only/switch%%platform. More info at \
        https://ml-in-barcelona.github.io/server-reason-react/local/server-reason-react/browser_only.html"
-      payload
+  in
+  Builder.pexp_constant ~loc (Pconst_string (msg, loc, None))
+
+let external_found_in_native_message ~loc =
+  let msg =
+    Printf.sprintf
+      "[server-reason-react.melange_ppx] There's an external in native, which \
+       should only happen in JavaScript. You need to conditionally run it, \
+       either by not including it on native or via \
+       let%%browser_only/switch%%platform. More info at \
+       https://ml-in-barcelona.github.io/server-reason-react/local/server-reason-react/browser_only.html"
   in
   Builder.pexp_constant ~loc (Pconst_string (msg, loc, None))
 
@@ -249,10 +256,9 @@ let transform_external pval_name pval_attributes pval_loc pval_type =
       (* When mel.send.pipe is used, it's treated as a funcion *)
       if Option.is_some (get_send_pipe pval_attributes) then
         transform_external_arrow ~loc pval_name pval_attributes pval_type
-      else
-        (* if it's not send.pipe, we asume it's mel.module *)
-        [%stri
-          [%%ocaml.error [%e mel_module_found_in_native_message ~loc "..."]]]
+      else if has_mel_module_attr pval_attributes then
+        [%stri [%%ocaml.error [%e mel_module_found_in_native_message ~loc]]]
+      else [%stri [%%ocaml.error [%e external_found_in_native_message ~loc]]]
   | _ ->
       [%stri
         [%%ocaml.error

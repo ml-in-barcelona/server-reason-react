@@ -9,10 +9,9 @@ mel.as attribute
   type t
   
   [%%ocaml.error
-  "[server-reason-react.melange_ppx] There's an external with [%mel.module \
-   \"...\"] in native, which should only happen in JavaScript. You need to \
-   conditionally run it, either by not including it on native or via \
-   let%browser_only/switch%platform. More info at \
+  "[server-reason-react.melange_ppx] There's an external in native, which should \
+   only happen in JavaScript. You need to conditionally run it, either by not \
+   including it on native or via let%browser_only/switch%platform. More info at \
    https://ml-in-barcelona.github.io/server-reason-react/local/server-reason-react/browser_only.html"]
 
   $ echo "module Runtime = struct" > main.ml
@@ -23,9 +22,9 @@ mel.as attribute
   File "main.ml", line 24, characters 3-14:
   24 | [%%ocaml.error
           ^^^^^^^^^^^
-  Error: [server-reason-react.melange_ppx] There's an external with
-         [%mel.module "..."] in native, which should only happen in JavaScript.
-         You need to conditionally run it, either by not including it on native
-         or via let%browser_only/switch%platform. More info at
+  Error: [server-reason-react.melange_ppx] There's an external in native, which
+         should only happen in JavaScript. You need to conditionally run it,
+         either by not including it on native or via
+         let%browser_only/switch%platform. More info at
          https://ml-in-barcelona.github.io/server-reason-react/local/server-reason-react/browser_only.html
   [2]
