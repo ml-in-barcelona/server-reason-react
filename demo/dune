@@ -1,6 +1,6 @@
 (install
  (enabled_if
-  (= %{profile} "dev"))
+  (= %{profile} dev))
  (section bin)
  (files
   (node_modules/esbuild/bin/esbuild as esbuild)))

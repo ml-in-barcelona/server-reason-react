@@ -1,0 +1,8 @@
+(lang dune 3.13)
+
+(context default)
+
+(context
+ (default
+  (name melange)
+  (generate_merlin_rules)))

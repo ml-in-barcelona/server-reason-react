@@ -12,3 +12,15 @@ let make = (~url, ~txt) => {
     {React.string(txt)}
   </a>;
 };
+
+[@platform js]
+module T = {
+  let t = Js.Json.string("foo");
+};
+
+[@platform native]
+module T = {
+  let t: string = "foo";
+};
+
+let t = T.t;
