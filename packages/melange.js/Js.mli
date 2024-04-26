@@ -254,7 +254,7 @@ module Array : sig
   val concatMany : arrays:'a t t -> 'a t -> 'a t
   val includes : value:'a -> 'a t -> bool
   val indexOf : value:'a -> ?start:int -> 'a t -> int
-  val join : ?sep:string -> 'a t -> string
+  val join : ?sep:string -> string t -> string
   val lastIndexOf : value:'a -> 'a t -> int
   val lastIndexOfFrom : value:'a -> start:int -> 'a t -> int
   val slice : ?start:int -> ?end_:int -> 'a t -> 'a t

@@ -18,24 +18,28 @@ let make = () => {
     Js.log("Click on account button");
   };
 
-  React.useEffect0(() => {
-    open Webapi.Dom;
-    let randomElement = Document.getElementById("randomId", document);
-    switch (randomElement) {
-    | None => ()
-    | Some(stylesheetEl) =>
-      let version =
-        Element.getAttribute("data-version", stylesheetEl)
-        ->Belt.Option.getWithDefault("");
-      Element.setAttribute(
-        "href",
-        Printf.sprintf("/assets/css/%s-palette.css%s", "dark", version),
-        stylesheetEl,
-      );
-    };
+  React.useEffect0(
+    [%browser_only
+      () => {
+        open Webapi.Dom;
+        let randomElement = Document.getElementById("randomId", document);
+        switch (randomElement) {
+        | None => ()
+        | Some(stylesheetEl) =>
+          let version =
+            Element.getAttribute("data-version", stylesheetEl)
+            ->Belt.Option.getWithDefault("");
+          Element.setAttribute(
+            "href",
+            Printf.sprintf("/assets/css/%s-palette.css%s", "dark", version),
+            stylesheetEl,
+          );
+        };
 
-    None;
-  });
+        None;
+      }
+    ],
+  );
 
   <div className="flex items-center justify-between gap-24">
     <form className="flex items-center gap-4 m-0">
