@@ -1,0 +1,5 @@
+(library
+ (name json)
+ (wrapped false)
+ (public_name server-reason-react.json)
+ (libraries yojson js))
