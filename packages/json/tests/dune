@@ -1,0 +1,4 @@
+(test
+ (name test)
+ (modules :standard)
+ (libraries alcotest fmt yojson js server-reason-react.json))
