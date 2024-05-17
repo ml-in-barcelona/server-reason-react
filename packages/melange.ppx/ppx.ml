@@ -1,6 +1,29 @@
 open Ppxlib
 module Builder = Ast_builder.Default
 
+module Mel_module = struct
+  let is_melange_attr { attr_name = { txt = attr } } = "mel.module" = attr
+  let has_attr attrs = List.exists is_melange_attr attrs
+
+  let asset_payload attrs =
+    let attr =
+      (* we use `find` directly even if it can raise, assuming `has_attr` has been called before *)
+      List.find is_melange_attr attrs
+    in
+    match attr.attr_payload with
+    | PStr
+        [
+          {
+            pstr_desc =
+              Pstr_eval
+                ({ pexp_desc = Pexp_constant (Pconst_string (str, _, _)) }, _);
+          };
+        ]
+      when String.length (Filename.extension str) > 0 ->
+        Some str
+    | _ -> None
+end
+
 let is_send_pipe pval_attributes =
   List.exists
     (fun { attr_name = { txt = attr } } -> String.equal attr "mel.send.pipe")
@@ -27,10 +50,6 @@ let get_send_pipe pval_attributes =
     | PTyp core_type -> Some core_type
     | _ -> None
   else None
-
-let has_mel_module_attr pval_attributes =
-  let is_melange_attr { attr_name = { txt = attr } } = "mel.module" = attr in
-  List.exists is_melange_attr pval_attributes
 
 let has_ptyp_attribute ptyp_attributes attribute =
   List.exists
@@ -247,7 +266,8 @@ let ptyp_humanize = function
   | Ptyp_arrow _ -> "Arrow"
   | Ptyp_constr _ -> "Constr"
 
-let transform_external pval_name pval_attributes pval_loc pval_type =
+let transform_external ~module_path pval_name pval_attributes pval_loc pval_type
+    =
   let loc = pval_loc in
   match pval_type.ptyp_desc with
   | Ptyp_arrow _ ->
@@ -256,8 +276,34 @@ let transform_external pval_name pval_attributes pval_loc pval_type =
       (* When mel.send.pipe is used, it's treated as a funcion *)
       if Option.is_some (get_send_pipe pval_attributes) then
         transform_external_arrow ~loc pval_name pval_attributes pval_type
-      else if has_mel_module_attr pval_attributes then
-        [%stri [%%ocaml.error [%e mel_module_found_in_native_message ~loc]]]
+      else if Mel_module.has_attr pval_attributes then
+        match Mel_module.asset_payload pval_attributes with
+        | None ->
+            (* If it doesn't have asset payload, we error out as it must be some .js module or package being imported *)
+            [%stri [%%ocaml.error [%e mel_module_found_in_native_message ~loc]]]
+        | Some str ->
+            (* If it has asset payload (file with extension), calculate hash and replace external *)
+            let name = Builder.pvar ~loc:pval_name.loc pval_name.txt in
+            let base = Filename.basename str in
+            let asset_hash =
+              let asset_path = Filename.(concat (dirname module_path) str) in
+              (* todo: maybe read line by line of buffered for large files *)
+              let ic = open_in asset_path in
+              let n = in_channel_length ic in
+              let _s = really_input_string ic n in
+              close_in ic;
+              (* todo: use _s above to calculate hash *)
+              "FDH789"
+            in
+            let path =
+              let output_name =
+                Filename.(
+                  chop_extension base ^ "-" ^ asset_hash ^ extension base)
+              in
+              let prefix = (* todo: read from config *) "/" in
+              Builder.estring ~loc Filename.(concat prefix output_name)
+            in
+            [%stri let [%p name] = [%e path]]
       else [%stri [%%ocaml.error [%e external_found_in_native_message ~loc]]]
   | _ ->
       [%stri
@@ -294,7 +340,7 @@ let validate_record_labels ~loc record =
                     support labels as keys")))
     (Ok []) record
 
-class raise_exception_mapper =
+class raise_exception_mapper (module_path : string) =
   object (_self)
     inherit Ast_traverse.map as super
 
@@ -385,11 +431,16 @@ class raise_exception_mapper =
       (* %mel. *)
       (* external foo: t = "{{JavaScript}}" *)
       | Pstr_primitive { pval_name; pval_attributes; pval_loc; pval_type } ->
-          transform_external pval_name pval_attributes pval_loc pval_type
+          transform_external ~module_path pval_name pval_attributes pval_loc
+            pval_type
       | _ -> super#structure_item item
   end
 
-let structure_mapper s = (new raise_exception_mapper)#structure s
+let structure_mapper ctxt s =
+  let module_path =
+    Code_path.file_path (Expansion_context.Base.code_path ctxt)
+  in
+  (new raise_exception_mapper module_path)#structure s
 
 module Debug = struct
   let rule =
@@ -401,6 +452,6 @@ module Debug = struct
 end
 
 let () =
-  Driver.register_transformation ~impl:structure_mapper
+  Driver.V2.register_transformation ~impl:structure_mapper
     ~rules:[ Pipe_first.rule; Regex.rule; Double_hash.rule; Debug.rule ]
     "melange-native-ppx"
