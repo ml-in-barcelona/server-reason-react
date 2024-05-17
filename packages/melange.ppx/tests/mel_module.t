@@ -95,7 +95,7 @@ Assets like svg or images (payload to mel.module includes file extension)
   > EOF
 
   $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl | tee output.ml
-  let img = "/image-FDH789.svg"
+  let img = "/image-DWDWZCEH.svg"
 
   $ echo "module Runtime = struct" > main.ml
   $ cat $INSIDE_DUNE/packages/runtime/Runtime.ml >> main.ml
@@ -116,7 +116,7 @@ Assets like svg or images with relative paths
   > EOF
 
   $ ./standalone.exe -impl $(pwd)/foo/input.ml | ocamlformat - --enable-outside-detected-project --impl | tee output.ml
-  let img = "/image-FDH789.svg"
+  let img = "/image-DWDWZCEH.svg"
 
   $ echo "module Runtime = struct" > main.ml
   $ cat $INSIDE_DUNE/packages/runtime/Runtime.ml >> main.ml

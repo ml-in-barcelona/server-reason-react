@@ -22,6 +22,40 @@ module Mel_module = struct
       when String.length (Filename.extension str) > 0 ->
         Some str
     | _ -> None
+
+  module Esbuild = struct
+    (* This code is adapted from Esbuild hashing algorithm:
+       base32: https://github.com/evanw/esbuild/blob/efa3dd2d8e895f7f9a9bef0d588560bbae7d776e/internal/bundler/bundler.go#L1174
+       sum function: https://github.com/evanw/esbuild/blob/efa3dd2d8e895f7f9a9bef0d588560bbae7d776e/internal/xxhash/xxhash.go#L104
+       the internal xxhash that esbuild uses is adapted from https://github.com/cespare/xxhash
+    *)
+    let hash_for_filename bytes =
+      String.sub (Base32.encode_string (Bytes.to_string bytes)) 0 8
+
+    let sum hex_str =
+      (* Convert hexadecimal string to Int64 *)
+      let int64_value = Int64.of_string ("0x" ^ hex_str) in
+
+      (* Create an 8-byte buffer *)
+      let bytes = Bytes.create 8 in
+
+      (* Fill the buffer with the bytes of the Int64 value *)
+      for i = 0 to 7 do
+        let byte =
+          Int64.(to_int (shift_right_logical int64_value (8 * (7 - i))))
+          land 0xFF
+        in
+        Bytes.set bytes i (char_of_int byte)
+      done;
+
+      bytes
+
+    let hash content =
+      let open XXHash in
+      let hash = XXH64.hash content in
+      let b = sum (XXH64.to_hex hash) in
+      hash_for_filename b
+  end
 end
 
 let is_send_pipe pval_attributes =
@@ -290,10 +324,9 @@ let transform_external ~module_path pval_name pval_attributes pval_loc pval_type
               (* todo: maybe read line by line of buffered for large files *)
               let ic = open_in asset_path in
               let n = in_channel_length ic in
-              let _s = really_input_string ic n in
+              let s = really_input_string ic n in
               close_in ic;
-              (* todo: use _s above to calculate hash *)
-              "FDH789"
+              Mel_module.Esbuild.hash s
             in
             let path =
               let output_name =
