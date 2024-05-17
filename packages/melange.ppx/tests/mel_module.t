@@ -83,3 +83,36 @@ Single type (invalid OCaml, but valid in Melange)
          or via let%browser_only/switch%platform. More info at
          https://ml-in-barcelona.github.io/server-reason-react/local/server-reason-react/browser_only.html
   [2]
+
+Assets like svg or images (payload to mel.module includes file extension)
+
+  $ cat > input.ml << EOF
+  > external img : string = "default" [@@mel.module "./image.svg"]
+  > EOF
+
+  $ cat > image.svg << EOF
+  > <svg xmlns="http://www.w3.org/2000/svg" height="512" width="512"><g fill-rule="evenodd" clip-path="url(#a)"><path fill="#f00" d="M0 0h192v512h-192z"/><path d="M192 340.06h576v171.94h-576z"/><path fill="#fff" d="M192 172.7h576v169.65h-576z"/><path fill="#00732f" d="M192 0h576v172.7h-576z"/></g></svg>
+  > EOF
+
+  $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl | tee output.ml
+  [%%ocaml.error
+  "[server-reason-react.melange_ppx] There's an external with [%mel.module \
+   \"...\"] in native, which should only happen in JavaScript. You need to \
+   conditionally run it, either by not including it on native or via \
+   let%browser_only/switch%platform. More info at \
+   https://ml-in-barcelona.github.io/server-reason-react/local/server-reason-react/browser_only.html"]
+
+  $ echo "module Runtime = struct" > main.ml
+  $ cat $INSIDE_DUNE/packages/runtime/Runtime.ml >> main.ml
+  $ echo "end" >> main.ml
+  $ cat output.ml >> main.ml
+  $ ocamlc -c main.ml
+  File "main.ml", line 22, characters 3-14:
+  22 | [%%ocaml.error
+          ^^^^^^^^^^^
+  Error: [server-reason-react.melange_ppx] There's an external with
+         [%mel.module "..."] in native, which should only happen in JavaScript.
+         You need to conditionally run it, either by not including it on native
+         or via let%browser_only/switch%platform. More info at
+         https://ml-in-barcelona.github.io/server-reason-react/local/server-reason-react/browser_only.html
+  [2]
