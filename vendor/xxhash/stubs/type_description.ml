@@ -1,2 +1,1 @@
-module Types (F : Ctypes.TYPE) = struct
-end
+module Types (F : Ctypes.TYPE) = struct end

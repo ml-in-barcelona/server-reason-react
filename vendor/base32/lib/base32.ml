@@ -26,7 +26,7 @@ type sub = string * int * int
 let ( // ) x y =
   if y < 1 then raise Division_by_zero;
   if x > 0 then 1 + ((x - 1) / y) else 0
-  [@@inline]
+[@@inline]
 
 let unsafe_get_uint8 input off = String.unsafe_get input off |> Char.code
 let unsafe_set_uint8 input off v = v |> Char.chr |> Bytes.unsafe_set input off

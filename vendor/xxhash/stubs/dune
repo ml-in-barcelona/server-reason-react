@@ -4,11 +4,13 @@
  (libraries integers)
  (public_name server-reason-react.xxhash_bindings)
  ; ctypes backward compatibility shims warn sometimes; suppress them
- (flags (:standard -w -9-27))
+ (flags
+  (:standard -w -9-27))
  (ctypes
   (external_library_name libxxhash)
   (build_flags_resolver pkg_config)
-  (headers (include "xxhash.h"))
+  (headers
+   (include "xxhash.h"))
   (type_description
    (instance Type)
    (functor Type_description))

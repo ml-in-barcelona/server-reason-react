@@ -28,26 +28,26 @@
 
     {e Release %%VERSION%% - %%PKG_HOMEPAGE%%} *)
 
-    type alphabet
-    (** Type of alphabet. *)
-    
-    type sub = string * int * int
-    (** Type of sub-string: [str, off, len]. *)
-    
-    val default_alphabet : alphabet
-    (** A 32-character alphabet specifying the regular Base32 alphabet. *)
-    
-    val make_alphabet : string -> alphabet
-    (** Make a new alphabet. *)
-    
-    val length_alphabet : alphabet -> int
-    (** Returns length of the alphabet, should be 64. *)
-    
-    val alphabet : alphabet -> int array
-    (** Returns the alphabet. *)
-    
-    val decode_exn : ?alphabet:alphabet -> ?off:int -> ?len:int -> string -> string
-    (** [decode_exn ?off ?len s] decodes [len] bytes (defaults to
+type alphabet
+(** Type of alphabet. *)
+
+type sub = string * int * int
+(** Type of sub-string: [str, off, len]. *)
+
+val default_alphabet : alphabet
+(** A 32-character alphabet specifying the regular Base32 alphabet. *)
+
+val make_alphabet : string -> alphabet
+(** Make a new alphabet. *)
+
+val length_alphabet : alphabet -> int
+(** Returns length of the alphabet, should be 64. *)
+
+val alphabet : alphabet -> int array
+(** Returns the alphabet. *)
+
+val decode_exn : ?alphabet:alphabet -> ?off:int -> ?len:int -> string -> string
+(** [decode_exn ?off ?len s] decodes [len] bytes (defaults to
         [String.length s - off]) of the string [s] starting from [off] (defaults to
         [0]) that is encoded in Base32 format. Will leave trailing NULLs on the
         string, padding it out to a multiple of 3 characters. [alphabet] defaults to
@@ -59,56 +59,56 @@
         best-effort but it does not ensure [decode_exn (encode ~pad:false x) = x].
     
         @raise if Invalid_argument [s] is not a valid Base32 string. *)
-    
-    val decode_sub :
-      ?alphabet:alphabet ->
-      ?off:int ->
-      ?len:int ->
-      string ->
-      (sub, [> `Msg of string ]) result
-    (** Same as {!decode_exn} but it returns a result type instead to raise an
+
+val decode_sub :
+  ?alphabet:alphabet ->
+  ?off:int ->
+  ?len:int ->
+  string ->
+  (sub, [> `Msg of string ]) result
+(** Same as {!decode_exn} but it returns a result type instead to raise an
         exception. Then, it returns a {!sub} string. Decoded input [(str, off, len)]
         will starting to [off] and will have [len] bytes - by this way, we ensure to
         allocate only one time result. *)
-    
-    val decode :
-      ?alphabet:alphabet ->
-      ?off:int ->
-      ?len:int ->
-      string ->
-      (string, [> `Msg of string ]) result
-    (** Same as {!decode_exn}, but returns an explicit error message {!result} if it
+
+val decode :
+  ?alphabet:alphabet ->
+  ?off:int ->
+  ?len:int ->
+  string ->
+  (string, [> `Msg of string ]) result
+(** Same as {!decode_exn}, but returns an explicit error message {!result} if it
         fails. *)
-    
-    val encode :
-      ?pad:bool ->
-      ?alphabet:alphabet ->
-      ?off:int ->
-      ?len:int ->
-      string ->
-      (string, [> `Msg of string ]) result
-    (** [encode s] encodes the string [s] into base32. If [pad] is false, no
+
+val encode :
+  ?pad:bool ->
+  ?alphabet:alphabet ->
+  ?off:int ->
+  ?len:int ->
+  string ->
+  (string, [> `Msg of string ]) result
+(** [encode s] encodes the string [s] into base32. If [pad] is false, no
         trailing padding is added. [pad] defaults to [true], and [alphabet] to
         {!default_alphabet}.
     
         [encode] fails when [off] and [len] do not designate a valid range of [s]. *)
-    
-    val encode_string : ?pad:bool -> ?alphabet:alphabet -> string -> string
-    (** [encode_string s] encodes the string [s] into base32. If [pad] is false, no
+
+val encode_string : ?pad:bool -> ?alphabet:alphabet -> string -> string
+(** [encode_string s] encodes the string [s] into base32. If [pad] is false, no
         trailing padding is added. [pad] defaults to [true], and [alphabet] to
         {!default_alphabet}. *)
-    
-    val encode_sub :
-      ?pad:bool ->
-      ?alphabet:alphabet ->
-      ?off:int ->
-      ?len:int ->
-      string ->
-      (sub, [> `Msg of string ]) result
-    (** Same as {!encode} but return a {!sub}-string instead a plain result. By this
+
+val encode_sub :
+  ?pad:bool ->
+  ?alphabet:alphabet ->
+  ?off:int ->
+  ?len:int ->
+  string ->
+  (sub, [> `Msg of string ]) result
+(** Same as {!encode} but return a {!sub}-string instead a plain result. By this
         way, we ensure to allocate only one time result. *)
-    
-    val encode_exn :
-      ?pad:bool -> ?alphabet:alphabet -> ?off:int -> ?len:int -> string -> string
-    (** Same as {!encode} but raises an invalid argument exception if we retrieve an
+
+val encode_exn :
+  ?pad:bool -> ?alphabet:alphabet -> ?off:int -> ?len:int -> string -> string
+(** Same as {!encode} but raises an invalid argument exception if we retrieve an
         error. *)
