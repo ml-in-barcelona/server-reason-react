@@ -2,6 +2,9 @@ open Ppxlib
 module Builder = Ast_builder.Default
 
 module Mel_module = struct
+  type bundler = Webpack | Esbuild
+
+  let bundler = ref Webpack
   let is_melange_attr { attr_name = { txt = attr } } = "mel.module" = attr
   let has_attr attrs = List.exists is_melange_attr attrs
 
@@ -55,6 +58,63 @@ module Mel_module = struct
       let hash = XXH64.hash content in
       let b = sum (XXH64.to_hex hash) in
       hash_for_filename b
+
+    let filename ~base content =
+      Filename.(chop_extension base ^ "-" ^ hash content ^ extension base)
+  end
+
+  (*
+     (* For now, rspack doesn't support real content hashes, see https://github.com/web-infra-dev/rspack/issues/6606 *)
+      module Rspack = struct
+         (* This code is adapted from Rspack hashing algorithm:
+            https://github.com/web-infra-dev/rspack/blob/0a5cf0ddf38d41c2cad58c95ee9c1d3bd95e377f/crates/rspack_hash/src/lib.rs
+         *)
+         let hex_to_little_endian hex_str =
+           (* Split the hex string into byte pairs *)
+           let rec split_into_bytes acc i =
+             if i >= String.length hex_str then List.rev acc
+             else
+               let byte = String.sub hex_str i 2 in
+               split_into_bytes (byte :: acc) (i + 2)
+           in
+           (* Join byte pairs into a single string *)
+           let join_bytes bytes = String.concat "" bytes in
+           (* Perform the transformation *)
+           let bytes = split_into_bytes [] 0 in
+           let reversed_bytes = List.rev bytes in
+           join_bytes reversed_bytes
+
+         let hash content =
+           let open XXHash in
+           let hash = XXH3_64.hash content in
+           hex_to_little_endian (XXH3_64.to_hex hash)
+       end *)
+  module Webpack = struct
+    (* Needs following config in webpack.config.js, see https://webpack.js.org/configuration/output/#outputhashfunction
+       ```
+       module.exports = {
+         //...
+         output: {
+           hashFunction: 'xxhash64',
+         },
+       };
+       ```
+       Also needs to set `realContentHash` for it to work in dev mode (see https://webpack.js.org/configuration/optimization/#optimizationrealcontenthash):
+       ```
+       module.exports = {
+         //...
+         optimization: {
+           realContentHash: false,
+         },
+       };
+       ```
+    *)
+    let hash content =
+      let open XXHash in
+      let hash = XXH64.hash content in
+      XXH64.to_hex hash
+
+    let filename ~base content = hash content ^ Filename.extension base
   end
 end
 
@@ -318,23 +378,22 @@ let transform_external ~module_path pval_name pval_attributes pval_loc pval_type
         | Some str ->
             (* If it has asset payload (file with extension), calculate hash and replace external *)
             let name = Builder.pvar ~loc:pval_name.loc pval_name.txt in
-            let base = Filename.basename str in
-            let asset_hash =
+            let path =
               let asset_path = Filename.(concat (dirname module_path) str) in
               (* todo: maybe read line by line of buffered for large files *)
               let ic = open_in asset_path in
               let n = in_channel_length ic in
               let s = really_input_string ic n in
               close_in ic;
-              Mel_module.Esbuild.hash s
-            in
-            let path =
-              let output_name =
-                Filename.(
-                  chop_extension base ^ "-" ^ asset_hash ^ extension base)
+              let filename_fn =
+                match !Mel_module.bundler with
+                | Webpack -> Mel_module.Webpack.filename
+                | Esbuild -> Mel_module.Esbuild.filename
               in
               let prefix = (* todo: read from config *) "/" in
-              Builder.estring ~loc Filename.(concat prefix output_name)
+              Builder.estring ~loc
+                Filename.(
+                  concat prefix (filename_fn ~base:(Filename.basename str) s))
             in
             [%stri let [%p name] = [%e path]]
       else [%stri [%%ocaml.error [%e external_found_in_native_message ~loc]]]
@@ -485,6 +544,20 @@ module Debug = struct
 end
 
 let () =
+  Driver.add_arg "-bundler"
+    (String
+       (fun str ->
+         match str with
+         | "webpack" -> Mel_module.bundler := Webpack
+         | "esbuild" -> Mel_module.bundler := Esbuild
+         | _ ->
+             failwith
+               (Printf.sprintf
+                  {|Unknown value %S passed as -bundler flag in melange.ppx, valid values: "webpack", "esbuild"|}
+                  str)))
+    ~doc:
+      "generate paths to assets in mel.module using the file name scheme of \
+       the bundler of choice";
   Driver.V2.register_transformation ~impl:structure_mapper
     ~rules:[ Pipe_first.rule; Regex.rule; Double_hash.rule; Debug.rule ]
     "melange-native-ppx"
