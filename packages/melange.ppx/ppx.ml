@@ -380,11 +380,9 @@ let transform_external ~module_path pval_name pval_attributes pval_loc pval_type
             let name = Builder.pvar ~loc:pval_name.loc pval_name.txt in
             let path =
               let asset_path = Filename.(concat (dirname module_path) str) in
-              (* todo: maybe read line by line of buffered for large files *)
-              let ic = open_in asset_path in
-              let n = in_channel_length ic in
-              let s = really_input_string ic n in
-              close_in ic;
+              let s =
+                In_channel.with_open_bin asset_path In_channel.input_all
+              in
               let filename_fn =
                 match !Mel_module.bundler with
                 | Webpack -> Mel_module.Webpack.filename
