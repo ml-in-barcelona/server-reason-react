@@ -1,11 +1,11 @@
 (library
- (name xxhash)
- (modules XXH64)
- (public_name server-reason-react.xxhash)
+ (name oxxhash)
+ (modules OXXH64)
+ (public_name server-reason-react.oxxhash)
  (wrapped false)
- (libraries integers base32))
+ (libraries integers base32 xxhash))
 
 (test
  (name test_xxh64)
  (modules test_xxh64)
- (libraries xxhash fmt alcotest integers))
+ (libraries oxxhash xxhash fmt alcotest integers))

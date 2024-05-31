@@ -54,6 +54,7 @@ module Mel_module = struct
       bytes
 
     let hash content =
+      let open XXHash in
       let hash = XXH64.hash content in
       let b = sum (XXH64.to_hex hash) in
       hash_for_filename b
@@ -109,6 +110,7 @@ module Mel_module = struct
        ```
     *)
     let hash content =
+      let open XXHash in
       let hash = XXH64.hash content in
       XXH64.to_hex hash
 

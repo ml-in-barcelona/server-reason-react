@@ -1,0 +1,21 @@
+(library
+ (name xxhash_bindings)
+ (wrapped false)
+ (libraries integers)
+ (public_name server-reason-react.xxhash_bindings)
+ ; ctypes backward compatibility shims warn sometimes; suppress them
+ (flags
+  (:standard -w -9-27))
+ (ctypes
+  (external_library_name libxxhash)
+  (headers
+   (include "xxhash.h"))
+  (type_description
+   (instance Type)
+   (functor Type_description))
+  (function_description
+   (concurrency unlocked)
+   (instance Function)
+   (functor Xxhash_bindings))
+  (generated_types Types_generated)
+  (generated_entry_point C)))

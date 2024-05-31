@@ -38,9 +38,12 @@ let string_to_uint64 input =
   done;
   !value
 
-let hash2 input =
+let hash input =
   let len = String.length input in
   let seed = ULLong.of_int64 0L in
+  (* let hash ?(seed = Bindings.default_seed) input =
+     Bindings.internal_of_hash seed
+     |> Bindings.hash input length |> Bindings.hash_of_internal *)
   let h =
     if len >= 32 then
       let v1 = ULLong.add seed prime1 in
@@ -63,12 +66,17 @@ let hash2 input =
     else ULLong.add seed prime5
   in
   let h = ULLong.add h (ULLong.of_int len) in
+
   let rec process_remaining i h =
     if i <= len - 8 then
       let p = String.sub input i 8 |> string_to_uint64 in
       process_remaining (i + 8) (mix2 h p)
     else h
   in
+  Printf.sprintf "OCAML" |> print_endline;
+  Printf.sprintf "len: %d" len |> print_endline;
+  Printf.sprintf "h: %s" (ULLong.to_hexstring h) |> print_endline;
+  Printf.sprintf "-----" |> print_endline;
   let h = process_remaining 0 h in
   let rec process_final i h =
     if i < len then
@@ -76,38 +84,15 @@ let hash2 input =
       process_final (i + 1) (ULLong.add h (ULLong.mul p prime5))
     else h
   in
-  finalize (process_final 0 h)
+  finalize (process_final 0 h) |> Unsigned.ULLong.to_int64
 
-let hash a =
-  try hash2 a
-  with err ->
-    Printf.eprintf "Error";
-    Printf.eprintf "Error: %s\n" (Printexc.to_string err);
-    failwith "Error in hash function"
+let to_hex hash = Printf.sprintf "%Lx" hash
 
-let to_hex hash = ULLong.to_hexstring hash
-
-let hash_for_filename bytes =
-  String.sub (Base32.encode_string (Bytes.to_string bytes)) 0 8
-
-let sum hex_str =
-  (* Convert hexadecimal string to Int64 *)
-  let int64_value = Int64.of_string ("0x" ^ hex_str) in
-
-  (* Create an 8-byte buffer *)
-  let bytes = Bytes.create 8 in
-
-  (* Fill the buffer with the bytes of the Int64 value *)
-  for i = 0 to 7 do
-    let byte =
-      Int64.(to_int (shift_right_logical int64_value (8 * (7 - i)))) land 0xFF
-    in
-    Bytes.set bytes i (char_of_int byte)
-  done;
-
-  bytes
-
-let full content =
+let o content =
   let hash = hash content in
-  let b = sum (to_hex hash) in
-  hash_for_filename b
+  to_hex hash
+
+let c content =
+  let open XXHash in
+  let hash = XXH64.hash content in
+  XXH64.to_hex hash

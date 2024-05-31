@@ -35,12 +35,13 @@ let () =
       ( "xxh64",
         [
           case "xxh64" (fun () ->
-              let input =
-                {|<svg xmlns="http://www.w3.org/2000/svg" height="512" width="512"><g fill-rule="evenodd" clip-path="url(#a)"><path fill="#f00" d="M0 0h192v512h-192z"/><path d="M192 340.06h576v171.94h-576z"/><path fill="#fff" d="M192 172.7h576v169.65h-576z"/><path fill="#00732f" d="M192 0h576v172.7h-576z"/></g></svg>|}
-              in
-              let expected = "DWDWZCEH" in
+              let input = {||} in
               (Alcotest.check Alcotest.string)
-                "xxh64" expected (input |> XXH64.full));
+                "xxh64" (input |> OXXH64.c) (input |> OXXH64.o));
+          case "xxh64" (fun () ->
+              let input = {|1|} in
+              (Alcotest.check Alcotest.string)
+                "xxh64" (input |> OXXH64.c) (input |> OXXH64.o));
         ] );
       ( "Int64",
         [
