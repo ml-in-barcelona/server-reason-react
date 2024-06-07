@@ -55,14 +55,6 @@ jobs:
           dune-cache: true
           opam-disable-sandboxing: true
 
-      - name: Install xxhash (ubuntu)
-        if: matrix.os == 'ubuntu-latest'
-        run: sudo apt-get install -y libxxhash-dev
-
-      - name: Install xxhash (macOS)
-        if: matrix.os == 'macos-latest'
-        run: env HOMEBREW_NO_AUTO_UPDATE=1 brew install xxhash
-
       - name: Install deps
         run: opam install . --deps-only --with-doc --with-test
 
