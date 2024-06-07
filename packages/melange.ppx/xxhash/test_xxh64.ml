@@ -12,22 +12,8 @@ let string_to_int64 input =
   done;
   !value
 
-let string_to_uint64 input =
-  let len = String.length input in
-  let num_bytes = min len 8 in
-  let value = ref ULLong.zero in
-  for i = 0 to num_bytes - 1 do
-    value :=
-      ULLong.logor
-        (ULLong.shift_left !value 8)
-        (ULLong.of_int (Char.code input.[i]))
-  done;
-  !value
-
 let case title fn = (title, `Quick, fn)
-let ullong = Alcotest.testable ULLong.pp ULLong.equal
 let check_int64 = Alcotest.(check int64)
-let check_ullong = Alcotest.(check ullong)
 
 let () =
   Alcotest.run "string_to_int64 tests"
@@ -36,12 +22,14 @@ let () =
         [
           case "xxh64" (fun () ->
               let input = {||} in
-              (Alcotest.check Alcotest.string)
-                "xxh64" (input |> OXXH64.c) (input |> OXXH64.o));
+              check_int64 "xxh64" (input |> XXH64.hash) Int64.zero);
           case "xxh64" (fun () ->
               let input = {|1|} in
-              (Alcotest.check Alcotest.string)
-                "xxh64" (input |> OXXH64.c) (input |> OXXH64.o));
+              check_int64 "xxh64" (input |> XXH64.hash) Int64.zero);
+          case "hex" (fun () ->
+              let input = {|1|} in
+              let hash = input |> XXH64.hash |> XXH64.to_hex in
+              Alcotest.(check string) "xxh64" hash "lola");
         ] );
       ( "Int64",
         [
@@ -59,26 +47,6 @@ let () =
               check_int64 "Longer than 8 bytes"
                 (Int64.of_string "0x4C4F4E47535452494EL")
                 (string_to_int64 "LONGSTRING")); *)
-          (* case "Non-ASCII characters" (fun () ->
-              check_int64 "Non-ASCII characters"
-                (Int64.of_string "0xE282AC21E282ACL")
-                (string_to_int64 "⊪!⊪")); *)
-        ] );
-      ( "ULLong",
-        [
-          case "Empty string" (fun () ->
-              check_ullong "Empty string" ULLong.zero (string_to_uint64 ""));
-          case "Single byte" (fun () ->
-              check_ullong "Single byte" (ULLong.of_int64 0x41L)
-                (string_to_uint64 "A"));
-          case "Multiple bytes" (fun () ->
-              check_ullong "Multiple bytes"
-                (ULLong.of_int64 0x4849204C4F4E47L)
-                (string_to_uint64 "HI LONG"));
-          (* case "Longer than 8 bytes" (fun () ->
-              check_ullong "Longer than 8 bytes"
-                (ULLong.of_string "0x4C4F4E47535452494EL")
-                (string_to_uint64 "LONGSTRING")); *)
           (* case "Non-ASCII characters" (fun () ->
               check_int64 "Non-ASCII characters"
                 (Int64.of_string "0xE282AC21E282ACL")
