@@ -1,5 +1,0 @@
-(library
- (name xxhash)
- (public_name server-reason-react.xxhash)
- (wrapped false)
- (libraries ctypes integers xxhash_bindings))
