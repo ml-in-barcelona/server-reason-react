@@ -1,42 +1,42 @@
-module ULLong = Unsigned.ULLong
+(* module ULLong = Unsigned.ULLong
 
-let prime1 = ULLong.of_int64 0x9E3779B185EBCA87L
-let prime2 = ULLong.of_int64 0xC2B2AE3D27D4EB4FL
-let prime3 = Unsigned.ULLong.of_int64 0x165667B19E3779F9L
-let prime4 = Unsigned.ULLong.of_int64 0x85EBCA77C2B2AE63L
-let prime5 = Unsigned.ULLong.of_int64 0x27D4EB2F165667C5L
+   let prime1 = ULLong.of_int64 0x9E3779B185EBCA87L
+   let prime2 = ULLong.of_int64 0xC2B2AE3D27D4EB4FL
+   let prime3 = Unsigned.ULLong.of_int64 0x165667B19E3779F9L
+   let prime4 = Unsigned.ULLong.of_int64 0x85EBCA77C2B2AE63L
+   let prime5 = Unsigned.ULLong.of_int64 0x27D4EB2F165667C5L
 
-let rotl x r =
-  ULLong.logor (ULLong.shift_left x r) (ULLong.shift_right x (64 - r))
+   let rotl x r =
+     ULLong.logor (ULLong.shift_left x r) (ULLong.shift_right x (64 - r))
 
-let mix1 v p =
-  let v = ULLong.add v (ULLong.mul p prime2) in
-  let v = rotl v 31 in
-  ULLong.mul v prime1
+   let mix1 v p =
+     let v = ULLong.add v (ULLong.mul p prime2) in
+     let v = rotl v 31 in
+     ULLong.mul v prime1
 
-let mix2 v p =
-  let v = ULLong.add v p in
-  let v = rotl v 27 in
-  ULLong.add (ULLong.mul v prime1) prime4
+   let mix2 v p =
+     let v = ULLong.add v p in
+     let v = rotl v 27 in
+     ULLong.add (ULLong.mul v prime1) prime4
 
-let finalize h =
-  let h = ULLong.logxor h (ULLong.shift_right h 33) in
-  let h = ULLong.mul h prime2 in
-  let h = ULLong.logxor h (ULLong.shift_right h 29) in
-  let h = ULLong.mul h prime3 in
-  ULLong.logxor h (ULLong.shift_right h 32)
+   let finalize h =
+     let h = ULLong.logxor h (ULLong.shift_right h 33) in
+     let h = ULLong.mul h prime2 in
+     let h = ULLong.logxor h (ULLong.shift_right h 29) in
+     let h = ULLong.mul h prime3 in
+     ULLong.logxor h (ULLong.shift_right h 32)
 
-let string_to_uint64 input =
-  let len = String.length input in
-  let num_bytes = min len 8 in
-  let value = ref ULLong.zero in
-  for i = 0 to num_bytes - 1 do
-    value :=
-      ULLong.logor
-        (ULLong.shift_left !value 8)
-        (ULLong.of_int (Char.code input.[i]))
-  done;
-  !value
+   let string_to_uint64 input =
+     let len = String.length input in
+     let num_bytes = min len 8 in
+     let value = ref ULLong.zero in
+     for i = 0 to num_bytes - 1 do
+       value :=
+         ULLong.logor
+           (ULLong.shift_left !value 8)
+           (ULLong.of_int (Char.code input.[i]))
+     done;
+     !value *)
 
 (* https://github.com/Cyan4973/xxHash/blob/dev/doc/xxhash_spec.md#xxh64-algorithm-description *)
 

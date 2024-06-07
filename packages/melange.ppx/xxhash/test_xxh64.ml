@@ -12,25 +12,37 @@ let string_to_int64 input =
   done;
   !value
 
-let case title fn = (title, `Quick, fn)
+let case title fn : unit Alcotest.test_case = (title, `Quick, fn)
 let check_int64 = Alcotest.(check int64)
 
+let data =
+  [
+    ("", 0xef46db3751d8e999L);
+    ("a", 0xd24ec4f1a98c6e5bL);
+    ("abc", 0x44bc2cf5ad770999L);
+    ("message digest", 0xe0b153045b0d3434L);
+    ("abcdefghijklmnopqrstuvwxyz", 0x7a51fd67f5839c21L);
+    ( "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789",
+      0x1f16c2b8d8c7e2e4L );
+    ( "12345678901234567890123456789012345678901234567890123456789012345678901234567890",
+      0x712e53e204e1c795L );
+    ("The quick brown fox jumps over the lazy dog", 0x0eab5433846c219fL);
+    ("The quick brown fox jumps over the lazy dog.", 0x11f24a3aa98f8eb3L);
+    ( "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod \
+       tempor incididunt ut labore et dolore magna aliqua.",
+      0xeccf9cd242dbab10L );
+  ]
+
+let test_cases =
+  List.map
+    (fun (input, expected) ->
+      case (Printf.sprintf "%S" input) (fun () ->
+          check_int64 input expected (XXH64.hash input)))
+    data
+
 let () =
-  Alcotest.run "string_to_int64 tests"
+  Alcotest.run "XXH64"
     [
-      ( "xxh64",
-        [
-          case "xxh64" (fun () ->
-              let input = {||} in
-              check_int64 "xxh64" (input |> XXH64.hash) Int64.zero);
-          case "xxh64" (fun () ->
-              let input = {|1|} in
-              check_int64 "xxh64" (input |> XXH64.hash) Int64.zero);
-          case "hex" (fun () ->
-              let input = {|1|} in
-              let hash = input |> XXH64.hash |> XXH64.to_hex in
-              Alcotest.(check string) "xxh64" hash "lola");
-        ] );
       ( "Int64",
         [
           case "Basic int64 -> uint64" (fun () ->
@@ -52,4 +64,5 @@ let () =
                 (Int64.of_string "0xE282AC21E282ACL")
                 (string_to_int64 "⊪!⊪")); *)
         ] );
+      ("hash", test_cases);
     ]
