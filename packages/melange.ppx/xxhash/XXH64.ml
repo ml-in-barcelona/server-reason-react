@@ -92,13 +92,14 @@ let hash ?(seed = Int64.zero) input =
     pos += 8
   done;
 
-  while have 4 do
+  if have 4 then (
     let lane =
-      String.get_int32_le input !pos |> Int64.of_int32 |> UInt64.of_int64
+      UInt64.logand (UInt64.of_int64 0xFF_FF_FF_FFL)
+      @@ (String.get_int32_le input !pos |> Int64.of_int32 |> UInt64.of_int64)
     in
     acc := ((logxor !acc (lane * prime64_1) <<< 23) * prime64_2) + prime64_3;
-    pos += 4
-  done;
+    pos += 4)
+  else ();
 
   while have 1 do
     let lane = UInt64.of_int @@ Char.code @@ String.get input !pos in
