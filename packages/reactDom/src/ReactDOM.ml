@@ -34,23 +34,12 @@ let attribute_to_string attr =
   (* Since we extracted the attribute as children (Element.InnerHtml),
      we don't want to render anything here *)
   | DangerouslyInnerHtml _ -> ""
-  (* We ignore events on SSR, the only exception is "_onclick" which renders as string onclick *)
-  | Event (name, Inline value) when String.equal name "_onclick" ->
-      Printf.sprintf "onclick=\"%s\"" value
   | Event _ -> ""
   | Style styles -> Printf.sprintf "style=\"%s\"" styles
   | String (k, v) -> Printf.sprintf "%s=\"%s\"" k (Html.encode v)
 
-(* We render _onclick events as string, to support an onClick but as string
-   defined as `_onclick="$(this)"` on JSX *)
-let is_onclick_event_hack attr =
-  match attr with
-  | JSX.Event (name, _) when String.equal name "_onclick" -> true
-  | _ -> false
-
 let valid_attribute_to_string attr =
   if is_react_custom_attribute attr then None
-  else if is_onclick_event_hack attr then Some (attribute_to_string attr)
   else if attribute_is_event attr then None
   else Some (attribute_to_string attr)
 

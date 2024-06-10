@@ -226,17 +226,6 @@ let className_2 () =
     (ReactDOM.renderToStaticMarkup component)
     "<div class=\"flex xs:justify-center overflow-hidden\"></div>"
 
-let _onclick_render_as_string () =
-  let component =
-    React.createElement "div"
-      [ React.JSX.Event ("_onclick", Inline "$(this).hide()") ]
-      []
-  in
-
-  assert_string
-    (ReactDOM.renderToStaticMarkup component)
-    "<div onclick=\"$(this).hide()\"></div>"
-
 let render_with_doc_type () =
   let div =
     React.createElement "div" []
@@ -345,7 +334,6 @@ let tests =
       case "use_callback" use_callback;
       case "inner_html" inner_html;
       case "event" event;
-      case "_onclick_render_as_string" _onclick_render_as_string;
       case "render_with_doc_type" render_with_doc_type;
       case "render_svg" render_svg;
     ] )

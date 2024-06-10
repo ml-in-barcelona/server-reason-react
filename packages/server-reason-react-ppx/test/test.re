@@ -196,15 +196,6 @@ let onClick_empty = () => {
   assert_string(ReactDOM.renderToStaticMarkup(div), {|<div></div>|});
 };
 
-let onclick_inline_string = () => {
-  let onClick = "console.log('clicked')";
-  let div = <div _onclick=onClick />;
-  assert_string(
-    ReactDOM.renderToStaticMarkup(div),
-    {|<div onclick="console.log('clicked')"></div>|},
-  );
-};
-
 let svg_1 = () => {
   assert_string(
     ReactDOM.renderToStaticMarkup(
@@ -429,7 +420,6 @@ let _ =
           case("test_children_uppercase", children_uppercase),
           case("test_children_lowercase", children_lowercase),
           case("event_onClick", onClick_empty),
-          case("event_onclick_inline_string", onclick_inline_string),
           case("children_one_element", children_one_element),
           case("children_multiple_elements", children_multiple_elements),
           case("createElementVariadic", create_element_variadic),

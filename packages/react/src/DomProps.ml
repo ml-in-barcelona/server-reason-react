@@ -31,7 +31,6 @@ type eventType =
   | Pointer
   | Inline
   | Drag
-(* _onclick *)
 
 type attribute = {
   type_ : attributeType;
@@ -1419,12 +1418,7 @@ let webViewHTMLAttributes =
     Attribute { name = "webPreferences"; jsxName = "webPreferences"; type_ = String };
   ]
 
-let hackAttributes =
-  [
-    Event { jsxName = "_onclick"; type_ = Inline };
-  ]
-
-let commonHtmlAttributes = elementAttributes & reactAttributes & globalAttributes & globalEventHandlers & ariaAttributes & hackAttributes
+let commonHtmlAttributes = elementAttributes & reactAttributes & globalAttributes & globalEventHandlers & ariaAttributes
 
 let htmlElements =
   [
