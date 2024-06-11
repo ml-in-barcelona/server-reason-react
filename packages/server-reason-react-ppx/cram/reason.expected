@@ -169,15 +169,3 @@ let data_attributes_should_transform_to_kebabcase =
              [];
          ])
     ()
-
-let render_onclickPropsAsString =
-  React.createElement "div"
-    ([|
-       Some
-         (React.JSX.Event
-            ("_onclick", React.JSX.Event.Inline ("alert('hello')" : string)));
-     |]
-    |> Array.to_list
-    |> List.filter_map (fun a -> a)
-    |> Array.of_list)
-    []
