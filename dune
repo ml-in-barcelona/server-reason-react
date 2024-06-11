@@ -1,4 +1,4 @@
-(dirs packages demo doc vendor)
+(dirs packages demo doc)
 
 (documentation
  (package server-reason-react))

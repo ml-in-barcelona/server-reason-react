@@ -13,7 +13,3 @@ build: [
     "@new-doc" {with-doc}
   ]
 ]
-depexts: [
-  ["xxhash"] {os = "macos" & os-distribution = "homebrew"}
-  ["libxxhash-dev"] {os-family = "debian"}
-]
