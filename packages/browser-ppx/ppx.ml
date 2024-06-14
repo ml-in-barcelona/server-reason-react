@@ -135,14 +135,6 @@ module Browser_only = struct
             in
             let vb = Builder.value_binding ~loc ~pat:pattern ~expr in
             { vb with pvb_attributes = [ remove_alert_browser_only ~loc ] }
-        | Pexp_ident { txt = longident; loc } ->
-            let stringified = Ppxlib.Longident.name longident in
-            let message = Builder.estring ~loc stringified in
-            let vb =
-              Builder.value_binding ~loc ~pat:pattern
-                ~expr:[%expr Runtime.fail_impossible_action_in_ssr [%e message]]
-            in
-            { vb with pvb_attributes = [ remove_alert_browser_only ~loc ] }
         | _ ->
             Builder.value_binding ~loc ~pat:pattern
               ~expr:(error_only_works_on ~loc))
