@@ -92,9 +92,9 @@ module Browser_only = struct
   let error_only_works_on ~loc =
     [%expr
       [%ocaml.error
-        "[browser_ppx] browser_only works on function definitions or values. \
-         If there's another case where it can be helpful, feel free to open an \
-         issue in https://github.com/ml-in-barcelona/server-reason-react."]]
+        "[browser_ppx] browser_only works on function definitions. If there's \
+         another case where it can be helpful, feel free to open an issue in \
+         https://github.com/ml-in-barcelona/server-reason-react."]]
 
   let remove_alert_browser_only ~loc =
     Builder.attribute ~loc ~name:{ txt = "alert"; loc }
