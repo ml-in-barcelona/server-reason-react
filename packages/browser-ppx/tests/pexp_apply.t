@@ -16,7 +16,10 @@ With -js flag everything keeps as it is and browser_only extension disappears
     ()
   $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl
   let pstr_value_binding =
-    Runtime.fail_impossible_action_in_ssr "Webapi.Dom.getElementById"
+    [%ocaml.error
+      "[browser_ppx] browser_only works on function definitions or values. If \
+       there's another case where it can be helpful, feel free to open an issue \
+       in https://github.com/ml-in-barcelona/server-reason-react."]
   
   let make () =
     let pstr_value_binding_2 =

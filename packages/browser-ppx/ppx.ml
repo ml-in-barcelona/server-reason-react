@@ -147,12 +147,6 @@ module Browser_only = struct
     | Js -> payload
     | Native -> (
         match payload.pexp_desc with
-        | Pexp_apply (expression, _) ->
-            let stringified =
-              Ppxlib.Pprintast.string_of_expression expression
-            in
-            let message = Builder.estring ~loc stringified in
-            [%expr Runtime.fail_impossible_action_in_ssr [%e message]]
         | Pexp_constraint
             ( {
                 pexp_desc =
