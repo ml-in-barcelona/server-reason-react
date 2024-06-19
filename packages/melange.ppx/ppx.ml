@@ -453,6 +453,13 @@ class raise_exception_mapper (module_path : string) =
             (Location.error_extensionf ~loc:expr.pexp_loc
                "[server-reason-react.melange_ppx] Js.t objects requires a \
                 record literal")
+      | Pexp_constant (Pconst_string (_, loc, (Some "j" | Some "js"))) ->
+          Builder.pexp_extension ~loc
+            (Location.error_extensionf ~loc:expr.pexp_loc
+               "[server-reason-react.melange_ppx] `j` and `js` quoted strings \
+                are not supported. Try to rewrite them as plain strings or \
+                alternatively use Printf.sprintf (note this will increase the \
+                final JavaScript bundle size on the Melange build)")
       | _ -> super#expression expr
 
     method! structure_item item =
