@@ -92,9 +92,9 @@ module Browser_only = struct
   let error_only_works_on ~loc =
     [%expr
       [%ocaml.error
-        "[browser_ppx] browser_only works on function definitions or values. \
-         If there's another case where it can be helpful, feel free to open an \
-         issue in https://github.com/ml-in-barcelona/server-reason-react."]]
+        "[browser_ppx] browser_only works on function definitions. For other \
+         cases, use switch%platform or feel free to open an issue in \
+         https://github.com/ml-in-barcelona/server-reason-react."]]
 
   let remove_alert_browser_only ~loc =
     Builder.attribute ~loc ~name:{ txt = "alert"; loc }
@@ -135,14 +135,6 @@ module Browser_only = struct
             in
             let vb = Builder.value_binding ~loc ~pat:pattern ~expr in
             { vb with pvb_attributes = [ remove_alert_browser_only ~loc ] }
-        | Pexp_ident { txt = longident; loc } ->
-            let stringified = Ppxlib.Longident.name longident in
-            let message = Builder.estring ~loc stringified in
-            let vb =
-              Builder.value_binding ~loc ~pat:pattern
-                ~expr:[%expr Runtime.fail_impossible_action_in_ssr [%e message]]
-            in
-            { vb with pvb_attributes = [ remove_alert_browser_only ~loc ] }
         | _ ->
             Builder.value_binding ~loc ~pat:pattern
               ~expr:(error_only_works_on ~loc))
@@ -155,12 +147,6 @@ module Browser_only = struct
     | Js -> payload
     | Native -> (
         match payload.pexp_desc with
-        | Pexp_apply (expression, _) ->
-            let stringified =
-              Ppxlib.Pprintast.string_of_expression expression
-            in
-            let message = Builder.estring ~loc stringified in
-            [%expr Runtime.fail_impossible_action_in_ssr [%e message]]
         | Pexp_constraint
             ( {
                 pexp_desc =
