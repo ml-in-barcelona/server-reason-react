@@ -1,6 +1,121 @@
 open Ppxlib
 module Builder = Ast_builder.Default
 
+module Mel_module = struct
+  type bundler = Webpack | Esbuild
+
+  let bundler = ref Webpack
+  let is_melange_attr { attr_name = { txt = attr } } = "mel.module" = attr
+  let has_attr attrs = List.exists is_melange_attr attrs
+
+  let asset_payload attrs =
+    let attr =
+      (* we use `find` directly even if it can raise, assuming `has_attr` has been called before *)
+      List.find is_melange_attr attrs
+    in
+    match attr.attr_payload with
+    | PStr
+        [
+          {
+            pstr_desc =
+              Pstr_eval
+                ({ pexp_desc = Pexp_constant (Pconst_string (str, _, _)) }, _);
+          };
+        ]
+      when String.length (Filename.extension str) > 0 ->
+        Some str
+    | _ -> None
+
+  module Esbuild = struct
+    (* This code is adapted from Esbuild hashing algorithm:
+       base32: https://github.com/evanw/esbuild/blob/efa3dd2d8e895f7f9a9bef0d588560bbae7d776e/internal/bundler/bundler.go#L1174
+       sum function: https://github.com/evanw/esbuild/blob/efa3dd2d8e895f7f9a9bef0d588560bbae7d776e/internal/xxhash/xxhash.go#L104
+       the internal xxhash that esbuild uses is adapted from https://github.com/cespare/xxhash
+    *)
+    let hash_for_filename bytes =
+      String.sub (Base32.encode_string (Bytes.to_string bytes)) 0 8
+
+    let sum hex_str =
+      (* Convert hexadecimal string to Int64 *)
+      let int64_value = Int64.of_string ("0x" ^ hex_str) in
+
+      (* Create an 8-byte buffer *)
+      let bytes = Bytes.create 8 in
+
+      (* Fill the buffer with the bytes of the Int64 value *)
+      for i = 0 to 7 do
+        let byte =
+          Int64.(to_int (shift_right_logical int64_value (8 * (7 - i))))
+          land 0xFF
+        in
+        Bytes.set bytes i (char_of_int byte)
+      done;
+
+      bytes
+
+    let hash content =
+      let hash = XXH64.hash content in
+      let b = sum (XXH64.to_hex hash) in
+      hash_for_filename b
+
+    let filename ~base content =
+      Filename.(chop_extension base ^ "-" ^ hash content ^ extension base)
+  end
+
+  (*
+     (* For now, rspack doesn't support real content hashes, see https://github.com/web-infra-dev/rspack/issues/6606 *)
+      module Rspack = struct
+         (* This code is adapted from Rspack hashing algorithm:
+            https://github.com/web-infra-dev/rspack/blob/0a5cf0ddf38d41c2cad58c95ee9c1d3bd95e377f/crates/rspack_hash/src/lib.rs
+         *)
+         let hex_to_little_endian hex_str =
+           (* Split the hex string into byte pairs *)
+           let rec split_into_bytes acc i =
+             if i >= String.length hex_str then List.rev acc
+             else
+               let byte = String.sub hex_str i 2 in
+               split_into_bytes (byte :: acc) (i + 2)
+           in
+           (* Join byte pairs into a single string *)
+           let join_bytes bytes = String.concat "" bytes in
+           (* Perform the transformation *)
+           let bytes = split_into_bytes [] 0 in
+           let reversed_bytes = List.rev bytes in
+           join_bytes reversed_bytes
+
+         let hash content =
+           let open XXHash in
+           let hash = XXH3_64.hash content in
+           hex_to_little_endian (XXH3_64.to_hex hash)
+       end *)
+  module Webpack = struct
+    (* Needs following config in webpack.config.js, see https://webpack.js.org/configuration/output/#outputhashfunction
+       ```
+       module.exports = {
+         //...
+         output: {
+           hashFunction: 'xxhash64',
+         },
+       };
+       ```
+       Also needs to set `realContentHash` for it to work in dev mode (see https://webpack.js.org/configuration/optimization/#optimizationrealcontenthash):
+       ```
+       module.exports = {
+         //...
+         optimization: {
+           realContentHash: false,
+         },
+       };
+       ```
+    *)
+    let hash content =
+      let hash = XXH64.hash content in
+      XXH64.to_hex hash
+
+    let filename ~base content = hash content ^ Filename.extension base
+  end
+end
+
 let is_send_pipe pval_attributes =
   List.exists
     (fun { attr_name = { txt = attr } } -> String.equal attr "mel.send.pipe")
@@ -27,10 +142,6 @@ let get_send_pipe pval_attributes =
     | PTyp core_type -> Some core_type
     | _ -> None
   else None
-
-let has_mel_module_attr pval_attributes =
-  let is_melange_attr { attr_name = { txt = attr } } = "mel.module" = attr in
-  List.exists is_melange_attr pval_attributes
 
 let has_ptyp_attribute ptyp_attributes attribute =
   List.exists
@@ -247,7 +358,8 @@ let ptyp_humanize = function
   | Ptyp_arrow _ -> "Arrow"
   | Ptyp_constr _ -> "Constr"
 
-let transform_external pval_name pval_attributes pval_loc pval_type =
+let transform_external ~module_path pval_name pval_attributes pval_loc pval_type
+    =
   let loc = pval_loc in
   match pval_type.ptyp_desc with
   | Ptyp_arrow _ ->
@@ -256,8 +368,30 @@ let transform_external pval_name pval_attributes pval_loc pval_type =
       (* When mel.send.pipe is used, it's treated as a funcion *)
       if Option.is_some (get_send_pipe pval_attributes) then
         transform_external_arrow ~loc pval_name pval_attributes pval_type
-      else if has_mel_module_attr pval_attributes then
-        [%stri [%%ocaml.error [%e mel_module_found_in_native_message ~loc]]]
+      else if Mel_module.has_attr pval_attributes then
+        match Mel_module.asset_payload pval_attributes with
+        | None ->
+            (* If it doesn't have asset payload, we error out as it must be some .js module or package being imported *)
+            [%stri [%%ocaml.error [%e mel_module_found_in_native_message ~loc]]]
+        | Some str ->
+            (* If it has asset payload (file with extension), calculate hash and replace external *)
+            let name = Builder.pvar ~loc:pval_name.loc pval_name.txt in
+            let path =
+              let asset_path = Filename.(concat (dirname module_path) str) in
+              let s =
+                In_channel.with_open_bin asset_path In_channel.input_all
+              in
+              let filename_fn =
+                match !Mel_module.bundler with
+                | Webpack -> Mel_module.Webpack.filename
+                | Esbuild -> Mel_module.Esbuild.filename
+              in
+              let prefix = (* todo: read from config *) "/" in
+              Builder.estring ~loc
+                Filename.(
+                  concat prefix (filename_fn ~base:(Filename.basename str) s))
+            in
+            [%stri let [%p name] = [%e path]]
       else [%stri [%%ocaml.error [%e external_found_in_native_message ~loc]]]
   | _ ->
       [%stri
@@ -294,7 +428,7 @@ let validate_record_labels ~loc record =
                     support labels as keys")))
     (Ok []) record
 
-class raise_exception_mapper =
+class raise_exception_mapper (module_path : string) =
   object (_self)
     inherit Ast_traverse.map as super
 
@@ -385,11 +519,16 @@ class raise_exception_mapper =
       (* %mel. *)
       (* external foo: t = "{{JavaScript}}" *)
       | Pstr_primitive { pval_name; pval_attributes; pval_loc; pval_type } ->
-          transform_external pval_name pval_attributes pval_loc pval_type
+          transform_external ~module_path pval_name pval_attributes pval_loc
+            pval_type
       | _ -> super#structure_item item
   end
 
-let structure_mapper s = (new raise_exception_mapper)#structure s
+let structure_mapper ctxt s =
+  let module_path =
+    Code_path.file_path (Expansion_context.Base.code_path ctxt)
+  in
+  (new raise_exception_mapper module_path)#structure s
 
 module Debug = struct
   let rule =
@@ -401,6 +540,20 @@ module Debug = struct
 end
 
 let () =
-  Driver.register_transformation ~impl:structure_mapper
+  Driver.add_arg "-bundler"
+    (String
+       (fun str ->
+         match str with
+         | "webpack" -> Mel_module.bundler := Webpack
+         | "esbuild" -> Mel_module.bundler := Esbuild
+         | _ ->
+             failwith
+               (Printf.sprintf
+                  {|Unknown value %S passed as -bundler flag in melange.ppx, valid values: "webpack", "esbuild"|}
+                  str)))
+    ~doc:
+      "generate paths to assets in mel.module using the file name scheme of \
+       the bundler of choice";
+  Driver.V2.register_transformation ~impl:structure_mapper
     ~rules:[ Pipe_first.rule; Regex.rule; Double_hash.rule; Debug.rule ]
     "melange-native-ppx"
