@@ -17,8 +17,8 @@ Without -js flag, the compilation to native errors out indicating that a functio
   let make () =
     let pexp_ident =
       [%ocaml.error
-        "[browser_ppx] browser_only works on function definitions. If there's \
-         another case where it can be helpful, feel free to open an issue in \
+        "[browser_ppx] browser_only works on function definitions. For other \
+         cases, use switch%platform or feel free to open an issue in \
          https://github.com/ml-in-barcelona/server-reason-react."]
     in
     ()
