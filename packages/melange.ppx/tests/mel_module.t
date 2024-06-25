@@ -179,3 +179,22 @@ Esbuild: assets like svg or images with paths outside current folder
   $ echo "end" >> main.ml
   $ cat output.ml >> main.ml
   $ ocamlc -c main.ml
+
+With prefix
+
+  $ cat > foo/input.ml << EOF
+  > external img : string = "default" [@@mel.module "../demo.txt"]
+  > EOF
+
+  $ cat > demo.txt << EOF
+  > hello
+  > EOF
+
+  $ ./standalone.exe -impl $(pwd)/foo/input.ml -bundler esbuild -prefix /foo/bar | ocamlformat - --enable-outside-detected-project --impl | tee output.ml
+  let img = "/foo/bar/demo-4TAZDUER.txt"
+
+  $ echo "module Runtime = struct" > main.ml
+  $ cat $INSIDE_DUNE/packages/runtime/Runtime.ml >> main.ml
+  $ echo "end" >> main.ml
+  $ cat output.ml >> main.ml
+  $ ocamlc -c main.ml
