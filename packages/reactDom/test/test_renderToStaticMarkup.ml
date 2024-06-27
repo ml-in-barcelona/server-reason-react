@@ -5,6 +5,12 @@ let single_empty_tag () =
   let div = React.createElement "div" [] [] in
   assert_string (ReactDOM.renderToStaticMarkup div) "<div></div>"
 
+let html_doctype () =
+  let app = React.createElement "html" [] [] in
+  assert_string
+    (ReactDOM.renderToStaticMarkup app)
+    "<!DOCTYPE html><html></html>"
+
 let empty_string_attribute () =
   let div = React.createElement "div" [ React.JSX.String ("class", "") ] [] in
   assert_string (ReactDOM.renderToStaticMarkup div) "<div class=\"\"></div>"
@@ -321,6 +327,7 @@ let case title fn = Alcotest_lwt.test_case_sync title `Quick fn
 let tests =
   ( "renderToStaticMarkup",
     [
+      case "html_doctype" html_doctype;
       case "single_empty_tag" single_empty_tag;
       case "empty_string_attribute" empty_string_attribute;
       case "bool_attributes" bool_attributes;

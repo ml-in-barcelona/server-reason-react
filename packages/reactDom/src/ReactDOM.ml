@@ -83,6 +83,13 @@ let render_to_string ~mode element =
       when Html.is_self_closing_tag tag ->
         is_root.contents <- false;
         Printf.sprintf "<%s%s />" tag (attributes_to_string attributes)
+    | Lower_case_element { tag; attributes; children }
+      when String.equal tag "html" ->
+        is_root.contents <- false;
+        Printf.sprintf "<!DOCTYPE html><%s%s>%s</%s>" tag
+          (attributes_to_string attributes)
+          (children |> List.map render_element |> String.concat "")
+          tag
     | Lower_case_element { tag; attributes; children } ->
         is_root.contents <- false;
         Printf.sprintf "<%s%s>%s</%s>" tag
