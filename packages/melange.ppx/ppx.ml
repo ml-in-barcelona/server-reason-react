@@ -5,6 +5,7 @@ module Mel_module = struct
   type bundler = Webpack | Esbuild
 
   let bundler = ref Webpack
+  let prefix = ref "/"
   let is_melange_attr { attr_name = { txt = attr } } = "mel.module" = attr
   let has_attr attrs = List.exists is_melange_attr attrs
 
@@ -717,7 +718,7 @@ let transform_external ~module_path pval_name pval_attributes pval_loc pval_type
                 | Webpack -> Mel_module.Webpack.filename
                 | Esbuild -> Mel_module.Esbuild.filename
               in
-              let prefix = (* todo: read from config *) "/" in
+              let prefix = !Mel_module.prefix in
               Builder.estring ~loc
                 Filename.(
                   concat prefix (filename_fn ~base:(Filename.basename str) s))
@@ -887,6 +888,11 @@ let () =
     ~doc:
       "generate paths to assets in mel.module using the file name scheme of \
        the bundler of choice";
+  Driver.add_arg "-prefix"
+    (String (fun str -> Mel_module.prefix := str))
+    ~doc:
+      "the paths to the generated assets will include the given prefix before \
+       the filename (default: \"/\")";
   Driver.V2.register_transformation ~impl:structure_mapper
     ~rules:[ Pipe_first.rule; Regex.rule; Double_hash.rule; Debug.rule ]
     "melange-native-ppx"
