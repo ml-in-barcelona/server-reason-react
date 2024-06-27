@@ -1593,9 +1593,45 @@ end = struct
   let _NaN = Stdlib.Float.nan
   let isNaN float = Stdlib.Float.is_nan float
   let isFinite float = Stdlib.Float.is_finite float
-  let toExponential ?digits:_ _ = notImplemented "Js.Float" "toExponential"
-  let toFixed ?digits:_ _ = notImplemented "Js.Float" "toFixed"
-  let toPrecision ?digits:_ _ = notImplemented "Js.Float" "toPrecision"
+
+  let remove_leading_zeros s =
+    (* Remove leading zero in the exponent part *)
+    let regex = Str.regexp "e\\([+-]\\)0" in
+    Str.global_replace regex "e\\1" s
+
+  let toExponential ?digits n =
+    let result =
+      match digits with
+      | None -> Printf.sprintf "%e" n
+      | Some d ->
+          if d < 0 || d > 100 then
+            invalid_arg
+              "the digits argument passed to toFixed must be between 0 and 100";
+
+          Printf.sprintf "%.*e" d n
+    in
+    remove_leading_zeros result
+
+  let toFixed ?(digits = 0) n =
+    if digits < 0 || digits > 100 then
+      invalid_arg
+        "the digits argument passed to toFixed must be between 0 and 100";
+    let factor = 10.0 ** float_of_int digits in
+    let rounded = Float.round (n *. factor) in
+    Printf.sprintf "%.*f" digits (rounded /. factor)
+
+  let toPrecision ?digits n =
+    let result =
+      match digits with
+      | None -> Printf.sprintf "%g" n
+      | Some d ->
+          if d < 0 || d > 100 then
+            invalid_arg
+              "the digits argument passed to toPrecision must be between 0 and \
+               100";
+          Printf.sprintf "%.*g" d n
+    in
+    remove_leading_zeros result
 
   let toString ?radix f =
     match radix with
@@ -1607,7 +1643,35 @@ end = struct
         if Stdlib.Float.equal (Stdlib.Float.round f) f then
           f |> int_of_float |> string_of_int
         else Printf.sprintf "%g" f
-    | Some _ -> notImplemented "Js.Float" "toString ~radix"
+    | Some radix ->
+        let module String = Stdlib.String in
+        if radix < 2 || radix > 36 then
+          invalid_arg "radix must be between 2 and 36";
+
+        let digits = "0123456789abcdefghijklmnopqrstuvwxyz" in
+
+        let rec int_to_radix n =
+          if n < radix then String.make 1 digits.[n]
+          else int_to_radix (n / radix) ^ String.make 1 digits.[n mod radix]
+        in
+
+        let rec frac_to_radix frac precision =
+          if precision = 0 then ""
+          else
+            let whole_part = int_of_float (frac *. float_of_int radix) in
+            String.make 1 digits.[whole_part]
+            ^ frac_to_radix
+                ((frac *. float_of_int radix) -. float_of_int whole_part)
+                (precision - 1)
+        in
+
+        let int_part = int_of_float f in
+        let frac_part = abs_float (f -. float_of_int int_part) in
+        let sign = if f < 0. then "-" else "" in
+
+        if frac_part = 0. then sign ^ int_to_radix (abs int_part)
+        else
+          sign ^ int_to_radix (abs int_part) ^ "." ^ frac_to_radix frac_part 12
 
   let fromString = Stdlib.float_of_string
 end

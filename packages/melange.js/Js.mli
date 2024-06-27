@@ -1290,19 +1290,9 @@ module Float : sig
   val _NaN : float
   val isNaN : float -> bool
   val isFinite : float -> bool
-
   val toExponential : ?digits:int -> t -> string
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
   val toFixed : ?digits:int -> t -> string
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
   val toPrecision : ?digits:int -> t -> string
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
   val toString : ?radix:int -> t -> string
   val fromString : string -> float
 end

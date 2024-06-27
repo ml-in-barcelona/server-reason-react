@@ -516,7 +516,33 @@ let float_tests =
         assert_string (Js.Float.toString 80.0) "80";
         assert_string (Js.Float.toString 80.) "80";
         assert_string (Js.Float.toString 80.0001) "80.0001";
-        assert_string (Js.Float.toString 80.00000000001) "80");
+        assert_string (Js.Float.toString 80.00000000001) "80";
+        assert_string (Js.Float.toString ~radix:2 10.) "1010";
+        assert_string (Js.Float.toString ~radix:16 255.) "ff";
+        assert_string (Js.Float.toString ~radix:8 8.) "10";
+        assert_string (Js.Float.toString ~radix:16 255.1231) "ff.1f837b4a2338";
+        (* todo: javascript is actually "1010.0001111010111000010100011110101110000101000111101" *)
+        assert_string (Js.Float.toString ~radix:2 10.12) "1010.000111101011");
+    test "toExponential" (fun () ->
+        assert_string (Js.Float.toExponential ~digits:2 0.005) "5.00e-3";
+        assert_string (Js.Float.toExponential ~digits:5 12345.6789) "1.23457e+4";
+        assert_string
+          (Js.Float.toExponential 12345.6789)
+          (* todo: javascript is actually "1.23456789e+4" *) "1.234568e+4";
+        assert_string (Js.Float.toExponential ~digits:1 12345.6789) "1.2e+4");
+    test "toFixed" (fun () ->
+        assert_string (Js.Float.toFixed ~digits:2 123.456) "123.46";
+        assert_string (Js.Float.toFixed ~digits:5 123.456) "123.45600";
+        assert_string (Js.Float.toFixed 123.456) "123";
+        assert_string (Js.Float.toFixed ~digits:0 123.456) "123");
+    test "toPrecision" (fun () ->
+        assert_string (Js.Float.toPrecision ~digits:4 12345.6789) "1.235e+4";
+        assert_string (Js.Float.toPrecision ~digits:2 0.00123) "0.0012";
+        assert_string (Js.Float.toPrecision ~digits:6 12345.6789) "12345.7";
+        assert_string (Js.Float.toPrecision ~digits:9 12345.6789) "12345.6789";
+        assert_string
+          (Js.Float.toPrecision 12345.6789)
+          (* todo: javascript is actually "12345.6789" *) "12345.7");
   ]
 
 let () =
