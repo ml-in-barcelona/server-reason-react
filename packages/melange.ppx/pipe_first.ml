@@ -8,7 +8,12 @@ let expander e =
     let loc = e.pexp_loc in
     match e.pexp_desc with
     | Pexp_apply
-        ( { pexp_desc = Pexp_ident { txt = Lident "|."; _ }; pexp_loc_stack },
+        ( {
+            pexp_desc = Pexp_ident { txt = Lident "|."; _ };
+            pexp_loc_stack;
+            pexp_loc = _;
+            pexp_attributes = _;
+          },
           [ (Nolabel, arg); (Nolabel, fn) ] ) -> (
         let fn = Option.value ~default:fn (expander' fn) in
         let arg = Option.value ~default:arg (expander' arg) in
@@ -33,6 +38,7 @@ let expander e =
          pexp_desc = Pexp_construct (lident, None);
          pexp_loc;
          pexp_loc_stack;
+         pexp_attributes = _;
         } ->
             Some
               {
