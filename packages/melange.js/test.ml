@@ -248,6 +248,11 @@ let string_tests =
         assert_string
           (Js.String.replaceByRe "david" ~regexp:[%re "/d/"] ~replacement:"x")
           "xavid");
+    (* test "replaceByRe with references ($n)" (fun () ->
+        assert_string
+          (Js.String.replaceByRe "david" ~regexp:[%re "/d(.*?)d/g"]
+             ~replacement:"$1")
+          "avi"); *)
     test "replaceByRe with global" (fun () ->
         assert_string
           (Js.String.replaceByRe "vowels be gone" ~regexp:[%re "/[aeiou]/g"]
