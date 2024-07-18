@@ -511,12 +511,12 @@ let () =
     (Unit (fun () -> mode := Js))
     ~doc:"preprocess for js build";
   let rules =
-    Browser_only.use_effects
-    @ [
-        Browser_only.expression_rule;
-        Browser_only.structure_item_rule;
-        Platform.rule;
-      ]
+    [
+      Browser_only.expression_rule;
+      Browser_only.structure_item_rule;
+      Platform.rule;
+    ]
+    @ Browser_only.use_effects
   in
   Driver.V2.register_transformation browser_ppx ~rules
     ~preprocess_impl:Preprocess.preprocess_impl
