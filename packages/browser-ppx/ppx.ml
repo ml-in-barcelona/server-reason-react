@@ -139,45 +139,48 @@ module Browser_only = struct
             Builder.value_binding ~loc ~pat:pattern
               ~expr:(error_only_works_on ~loc))
 
-  let extractor = Ast_pattern.(single_expr_payload __)
+  let extractor_single_payload = Ast_pattern.(single_expr_payload __)
 
   let expression_handler ~ctxt payload =
-    let loc = Expansion_context.Extension.extension_point_loc ctxt in
+    let replace_fun_body_with_raise_impossible ~loc pexp_desc =
+      match pexp_desc with
+      | Pexp_constraint
+          ( {
+              pexp_desc =
+                Pexp_fun (arg_label, _arg_expression, pattern, expression);
+            },
+            type_constraint ) ->
+          let fn = browser_only_fun ~loc arg_label pattern expression in
+          Builder.pexp_constraint ~loc
+            { fn with pexp_attributes = expression.pexp_attributes }
+            type_constraint
+      | Pexp_fun (arg_label, _arg_expression, pattern, expr) ->
+          let function_name = get_function_name pattern.ppat_desc in
+          let new_fun_pattern = remove_type_constraint pattern in
+          Builder.pexp_fun ~loc arg_label None new_fun_pattern
+            (last_expr_to_raise_impossible ~loc function_name expr)
+      | Pexp_let (rec_flag, value_bindings, expression) ->
+          let pexp_let =
+            Builder.pexp_let ~loc rec_flag
+              (List.map
+                 (fun binding ->
+                   browser_only_value_binding binding.pvb_pat binding.pvb_expr)
+                 value_bindings)
+              expression
+          in
+          [%expr [%e pexp_let]]
+      | _ -> error_only_works_on ~loc
+    in
     match !mode with
     | Js -> payload
-    | Native -> (
-        match payload.pexp_desc with
-        | Pexp_constraint
-            ( {
-                pexp_desc =
-                  Pexp_fun (arg_label, _arg_expression, pattern, expression);
-              },
-              type_constraint ) ->
-            let fn = browser_only_fun ~loc arg_label pattern expression in
-            Builder.pexp_constraint ~loc
-              { fn with pexp_attributes = expression.pexp_attributes }
-              type_constraint
-        | Pexp_fun (arg_label, _arg_expression, pattern, expr) ->
-            let function_name = get_function_name pattern.ppat_desc in
-            let new_fun_pattern = remove_type_constraint pattern in
-            Builder.pexp_fun ~loc arg_label None new_fun_pattern
-              (last_expr_to_raise_impossible ~loc function_name expr)
-        | Pexp_let (rec_flag, value_bindings, expression) ->
-            let pexp_let =
-              Builder.pexp_let ~loc rec_flag
-                (List.map
-                   (fun binding ->
-                     browser_only_value_binding binding.pvb_pat binding.pvb_expr)
-                   value_bindings)
-                expression
-            in
-            [%expr [%e pexp_let]]
-        | _ -> error_only_works_on ~loc)
+    | Native ->
+        let loc = Expansion_context.Extension.extension_point_loc ctxt in
+        replace_fun_body_with_raise_impossible ~loc payload.pexp_desc
 
   let expression_rule =
     Context_free.Rule.extension
       (Extension.V3.declare "browser_only" Extension.Context.expression
-         extractor expression_handler)
+         extractor_single_payload expression_handler)
 
   (* Generates a structure_item with a value binding with a pattern and an expression with all the alerts and warnings *)
   let make_vb_with_browser_only ~loc ?type_constraint pattern expression =
@@ -203,7 +206,7 @@ module Browser_only = struct
                    let%browser_only function."]) =
             ([%e expression] [@alert "-browser_only"])]
 
-  let extractor =
+  let extractor_vb =
     let open Ast_pattern in
     let extractor_in_let =
       pstr_value __ (value_binding ~pat:__ ~expr:__ ^:: nil)
@@ -218,50 +221,53 @@ module Browser_only = struct
       | Nonrecursive -> [%stri let [%p pattern] = [%e expression]]
     in
 
+    let add_browser_only_alert expression =
+      match expression.pexp_desc with
+      | Pexp_constraint
+          ( {
+              pexp_desc =
+                Pexp_fun (arg_label, _arg_expression, fun_pattern, expr);
+              _;
+            },
+            type_constraint ) ->
+          let original_function_name = get_function_name pattern.ppat_desc in
+          let new_fun_pattern = remove_type_constraint fun_pattern in
+          let fn =
+            Builder.pexp_fun ~loc arg_label None new_fun_pattern
+              (last_expr_to_raise_impossible ~loc original_function_name expr)
+          in
+          let item = { fn with pexp_attributes = expr.pexp_attributes } in
+          make_vb_with_browser_only ~loc ~type_constraint pattern item
+      | Pexp_fun (arg_label, _arg_expression, fun_pattern, expr) ->
+          let original_function_name = get_function_name pattern.ppat_desc in
+          let new_fun_pattern = remove_type_constraint fun_pattern in
+          let fn =
+            Builder.pexp_fun ~loc arg_label None new_fun_pattern
+              (last_expr_to_raise_impossible ~loc original_function_name expr)
+          in
+          let item = { fn with pexp_attributes = expr.pexp_attributes } in
+          make_vb_with_browser_only ~loc pattern item
+      | Pexp_ident { txt = _longident; loc } ->
+          let item = [%expr Obj.magic ()] in
+          make_vb_with_browser_only ~loc pattern item
+      | Pexp_newtype (name, expr) ->
+          let original_function_name = name.txt in
+          let item =
+            last_expr_to_raise_impossible ~loc original_function_name expr
+          in
+          make_vb_with_browser_only ~loc pattern item
+      | _expr -> do_nothing rec_flag
+    in
+
     match !mode with
     (* When it's -js, keep item as it is *)
     | Js -> do_nothing rec_flag
-    | Native -> (
-        match expression.pexp_desc with
-        | Pexp_constraint
-            ( {
-                pexp_desc =
-                  Pexp_fun (arg_label, _arg_expression, fun_pattern, expr);
-                _;
-              },
-              type_constraint ) ->
-            let original_function_name = get_function_name pattern.ppat_desc in
-            let new_fun_pattern = remove_type_constraint fun_pattern in
-            let fn =
-              Builder.pexp_fun ~loc arg_label None new_fun_pattern
-                (last_expr_to_raise_impossible ~loc original_function_name expr)
-            in
-            let item = { fn with pexp_attributes = expr.pexp_attributes } in
-            make_vb_with_browser_only ~loc ~type_constraint pattern item
-        | Pexp_fun (arg_label, _arg_expression, fun_pattern, expr) ->
-            let original_function_name = get_function_name pattern.ppat_desc in
-            let new_fun_pattern = remove_type_constraint fun_pattern in
-            let fn =
-              Builder.pexp_fun ~loc arg_label None new_fun_pattern
-                (last_expr_to_raise_impossible ~loc original_function_name expr)
-            in
-            let item = { fn with pexp_attributes = expr.pexp_attributes } in
-            make_vb_with_browser_only ~loc pattern item
-        | Pexp_ident { txt = _longident; loc } ->
-            let item = [%expr Obj.magic ()] in
-            make_vb_with_browser_only ~loc pattern item
-        | Pexp_newtype (name, expr) ->
-            let original_function_name = name.txt in
-            let item =
-              last_expr_to_raise_impossible ~loc original_function_name expr
-            in
-            make_vb_with_browser_only ~loc pattern item
-        | _expr -> do_nothing rec_flag)
+    | Native -> add_browser_only_alert expression
 
   let structure_item_rule =
     Context_free.Rule.extension
       (Extension.V3.declare "browser_only" Extension.Context.structure_item
-         extractor structure_item_handler)
+         extractor_vb structure_item_handler)
 
   let has_browser_only_attribute expr =
     match expr.pexp_desc with
@@ -269,7 +275,7 @@ module Browser_only = struct
     | _ -> false
 
   let use_effect (expr : expression) =
-    let transform expr =
+    let add_browser_only_extension expr =
       match expr.pexp_desc with
       | Pexp_apply (_, [ (Nolabel, effect_body) ])
         when has_browser_only_attribute effect_body ->
@@ -287,7 +293,7 @@ module Browser_only = struct
     match !mode with
     (* When it's -js, keep item as it is *)
     | Js -> None
-    | Native -> transform expr
+    | Native -> add_browser_only_extension expr
 
   let use_effects =
     [
