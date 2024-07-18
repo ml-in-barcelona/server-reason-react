@@ -262,6 +262,56 @@ module Browser_only = struct
     Context_free.Rule.extension
       (Extension.V3.declare "browser_only" Extension.Context.structure_item
          extractor structure_item_handler)
+
+  let has_browser_only_attribute expr =
+    match expr.pexp_desc with
+    | Pexp_extension ({ txt = "browser_only" }, _) -> true
+    | _ -> false
+
+  let use_effect (expr : expression) =
+    let transform expr =
+      match expr.pexp_desc with
+      | Pexp_apply (_, [ (Nolabel, effect_body) ])
+        when has_browser_only_attribute effect_body ->
+          None
+      | Pexp_apply (apply_expr, [ (Nolabel, effect_body); _ ])
+      | Pexp_apply (apply_expr, [ (Nolabel, effect_body) ]) ->
+          let loc = expr.pexp_loc in
+          let new_effect_body = [%expr [%browser_only [%e effect_body]]] in
+          let new_effect_fun =
+            Builder.pexp_apply ~loc apply_expr [ (Nolabel, new_effect_body) ]
+          in
+          Some new_effect_fun
+      | _ -> None
+    in
+    match !mode with
+    (* When it's -js, keep item as it is *)
+    | Js -> None
+    | Native -> transform expr
+
+  let use_effects =
+    [
+      (* useEffect *)
+      Context_free.Rule.special_function "React.useEffect" use_effect;
+      Context_free.Rule.special_function "React.useEffect0" use_effect;
+      Context_free.Rule.special_function "React.useEffect1" use_effect;
+      Context_free.Rule.special_function "React.useEffect2" use_effect;
+      Context_free.Rule.special_function "React.useEffect3" use_effect;
+      Context_free.Rule.special_function "React.useEffect4" use_effect;
+      Context_free.Rule.special_function "React.useEffect5" use_effect;
+      Context_free.Rule.special_function "React.useEffect6" use_effect;
+      Context_free.Rule.special_function "React.useEffect7" use_effect;
+      (* useLayoutEffect *)
+      Context_free.Rule.special_function "React.useLayoutEffect" use_effect;
+      Context_free.Rule.special_function "React.useLayoutEffect0" use_effect;
+      Context_free.Rule.special_function "React.useLayoutEffect1" use_effect;
+      Context_free.Rule.special_function "React.useLayoutEffect2" use_effect;
+      Context_free.Rule.special_function "React.useLayoutEffect3" use_effect;
+      Context_free.Rule.special_function "React.useLayoutEffect4" use_effect;
+      Context_free.Rule.special_function "React.useLayoutEffect5" use_effect;
+      Context_free.Rule.special_function "React.useLayoutEffect6" use_effect;
+      Context_free.Rule.special_function "React.useLayoutEffect7" use_effect;
+    ]
 end
 
 module Preprocess = struct
@@ -454,12 +504,14 @@ let () =
   Driver.add_arg "-js"
     (Unit (fun () -> mode := Js))
     ~doc:"preprocess for js build";
-  Driver.V2.register_transformation browser_ppx
-    ~rules:
-      [
+  let rules =
+    Browser_only.use_effects
+    @ [
         Browser_only.expression_rule;
         Browser_only.structure_item_rule;
         Platform.rule;
       ]
+  in
+  Driver.V2.register_transformation browser_ppx ~rules
     ~preprocess_impl:Preprocess.preprocess_impl
     ~preprocess_intf:Preprocess.preprocess_intf
