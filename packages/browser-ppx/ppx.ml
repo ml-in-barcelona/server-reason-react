@@ -247,6 +247,17 @@ module Browser_only = struct
           in
           let item = { fn with pexp_attributes = expr.pexp_attributes } in
           make_vb_with_browser_only ~loc pattern item
+      | Pexp_function _cases ->
+          (* Because pexp_function doesn't have a pattern, neither a label, we construct an empty pattern and use it to generate the vb *)
+          let original_function_name = get_function_name pattern.ppat_desc in
+          let fn =
+            Builder.pexp_fun ~loc Nolabel None
+              [%pat? _]
+              (last_expr_to_raise_impossible ~loc original_function_name
+                 expression)
+          in
+          let item = { fn with pexp_attributes = expression.pexp_attributes } in
+          make_vb_with_browser_only ~loc pattern item
       | Pexp_ident { txt = _longident; loc } ->
           let item = [%expr Obj.magic ()] in
           make_vb_with_browser_only ~loc pattern item
