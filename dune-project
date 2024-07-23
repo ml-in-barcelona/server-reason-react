@@ -47,18 +47,17 @@
   ; Documentation
   (odoc :with-doc)
 
-  ; Dev dependencies, using with-test so that consumers don't install them (until package is released in opam)
+  ; Dev dependencies
   (ocamlformat
    (and
     (= 0.26.1)
-    :with-test))
-  (ocaml-lsp-server :with-test)
+    :with-test)) ; We use ocamlformat on the tests
+  (ocaml-lsp-server :with-dev-setup)
 
   ; Demo deps
-  ; :with-dev-setup when opam 2.2 is used everywhere
-  (tiny_httpd :with-test)
-  (melange-webapi :with-test)
-  (reason-react :with-test)
-  (melange-webapi :with-test)
-  (reason-react-ppx :with-test)
+  (tiny_httpd :with-dev-setup)
+  (melange-webapi :with-dev-setup)
+  (reason-react :with-dev-setup)
+  (melange-webapi :with-dev-setup)
+  (reason-react-ppx :with-dev-setup)
 ))

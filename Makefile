@@ -60,7 +60,6 @@ create-switch: ## Create opam switch
 
 .PHONY: install
 install:
-	$(DUNE) build @install
 	opam install . --deps-only --with-test
 	cd demo && npm install
 
