@@ -1,6 +1,7 @@
 # Changes
 
 ## 0.3.1
+
 * Update quickjs dependency to 0.1.2 by @davesnx
 
 ## 0.3.0
