@@ -33,8 +33,7 @@ jobs:
           - 5.1.1
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Load opam cache when not Windows
         if: runner.os != 'Windows'
@@ -59,18 +58,14 @@ jobs:
           dune-cache: true
           opam-disable-sandboxing: true
 
-      - name: Install deps
-        run: opam install . --deps-only --with-doc --with-test
-
-      - name: Pin dependencies
-        run: make pin
-
       - name: Use Node.js
         uses: actions/setup-node@v3
 
-      - name: Install demo dependencies
-        working-directory: demo
-        run: npm install
+      - name: Install deps
+        run: make install
+
+      - name: Pin dependencies
+        run: make pin
 
       - name: Build
         run: make build
