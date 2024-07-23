@@ -9,6 +9,10 @@ on:
     # Prime the caches every Monday
     - cron: 0 1 * * MON
 
+env:
+  OPAM_VERSION: 2.2.0
+  DUNE_PROFILE: release
+
 permissions:
   contents: write
 
@@ -49,7 +53,7 @@ jobs:
           key: opam-${{ matrix.os }}-${{ matrix.ocaml-compiler }}-${{ hashFiles('**.opam') }}
 
       - name: Use OCaml ${{ matrix.ocaml-compiler }}
-        uses: ocaml/setup-ocaml@v2
+        uses: ocaml/setup-ocaml@v3
         with:
           ocaml-compiler: ${{ matrix.ocaml-compiler }}
           dune-cache: true
