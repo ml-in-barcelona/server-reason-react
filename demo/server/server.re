@@ -6,15 +6,15 @@
 
 */
 module Httpd = Tiny_httpd;
-module Httpd_dir = Tiny_httpd_dir;
+module Httpd_dir = Tiny_httpd.Dir;
 
 module Link = {
   [@react.component]
   let make = (~href, ~children) => {
-    let (useState, setState) = React.useState(() => false);
+    let (state, setState) = React.useState(() => false);
 
     React.useEffect0(() => {
-      setState(_prev => !useState);
+      setState(_prev => !state);
 
       None;
     });

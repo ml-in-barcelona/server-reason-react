@@ -1,5 +1,8 @@
 # Changes
 
+## 0.3.1
+* Update quickjs dependency to 0.1.2 by @davesnx
+
 ## 0.3.0
 
 * browser-ppx: process stritems by @jchavarri in https://github.com/ml-in-barcelona/server-reason-react/pull/127

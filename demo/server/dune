@@ -2,9 +2,11 @@
  (name server)
  (enabled_if
   (= %{profile} "dev"))
+ (flags :standard -w -26-27) ; browser_only removes code form the server, making this warning necessary
  (libraries
   tiny_httpd
   tiny_httpd.core
+  tiny_httpd.unix
   shared_native
   react
   reactDOM

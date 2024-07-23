@@ -493,10 +493,18 @@ end = struct
   let index : result -> int = Quickjs.RegExp.index
   let input : result -> string = Quickjs.RegExp.input
   let source : t -> string = Quickjs.RegExp.source
-  let fromString : string -> t = fun str -> Quickjs.RegExp.compile str ""
+
+  let fromString : string -> t =
+   fun str ->
+    match Quickjs.RegExp.compile str ~flags:"" with
+    | Ok regex -> regex
+    | Error (_, msg) -> raise (Invalid_argument msg)
 
   let fromStringWithFlags : string -> flags:string -> t =
-   fun str ~flags -> Quickjs.RegExp.compile str flags
+   fun str ~flags ->
+    match Quickjs.RegExp.compile str ~flags with
+    | Ok regex -> regex
+    | Error (_, msg) -> raise (Invalid_argument msg)
 
   let flags : t -> string = fun regexp -> Quickjs.RegExp.flags regexp
   let global : t -> bool = fun regexp -> Quickjs.RegExp.global regexp
