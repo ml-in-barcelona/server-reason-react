@@ -64,12 +64,8 @@ install:
 	opam install . --deps-only --with-test
 	cd demo && npm install
 
-.PHONY: pin
-pin: ## Pin dependencies
-	@opam pin add -y quickjs "https://github.com/ml-in-barcelona/quickjs.ml.git#0.1.1"
-
 .PHONY: init
-init: setup-githooks create-switch pin install ## Create a local dev enviroment
+init: setup-githooks create-switch install ## Create a local dev enviroment
 
 .PHONY: ppx-test
 ppx-test: ## Run ppx tests
