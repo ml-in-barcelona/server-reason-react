@@ -66,7 +66,7 @@ install:
 
 .PHONY: pin
 pin: ## Pin dependencies
-	@opam pin add -y quickjs "https://github.com/ml-in-barcelona/quickjs.ml.git#0.1.1"
+	echo "Nothing to pin"
 
 .PHONY: init
 init: setup-githooks create-switch pin install ## Create a local dev enviroment
