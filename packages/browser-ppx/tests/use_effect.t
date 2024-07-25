@@ -70,8 +70,9 @@ Without -js flag, we add the browser_only transformation and browser_only applie
 
   $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl
   let make () =
-    React.useEffect2 (fun () ->
-        Runtime.fail_impossible_action_in_ssr "<unkwnown>");
+    React.useEffect2
+      (fun () -> Runtime.fail_impossible_action_in_ssr "<unkwnown>")
+      (uiState, newPassword);
     div ~children:[] () [@JSX]
   [@@react.component]
 
@@ -121,5 +122,47 @@ Without -js flag, we add the browser_only transformation and browser_only applie
     React.useEffect2
       (fun () -> Runtime.fail_impossible_action_in_ssr "<unkwnown>")
       (focusedEntryText, delayInMs);
+    div ~children:[] () [@JSX]
+  [@@react.component]
+  $ cat > input.re << EOF
+  >  [@react.component]
+  >  let make = () => {
+  >    let (state, dispatch) = React.useReducer(reducer, initialState);
+  > 
+  >    React.useEffect1(
+  >      () => {
+  >        isFocused ? onFocusedItemChange(domRef) : ();
+  >        None;
+  >      },
+  >      [|isFocused|],
+  >    );
+  > 
+  >    <div />;
+  >  };
+  > EOF
+
+  $ refmt --parse re --print ml input.re > input.ml
+
+With -js flag everything keeps as it is
+
+  $ ./standalone.exe -impl input.ml -js | ocamlformat - --enable-outside-detected-project --impl
+  let make () =
+    let state, dispatch = React.useReducer reducer initialState in
+    React.useEffect1
+      (fun () ->
+        (match isFocused with true -> onFocusedItemChange domRef | false -> ());
+        None)
+      [| isFocused |];
+    div ~children:[] () [@JSX]
+  [@@react.component]
+
+Without -js flag, we add the browser_only transformation and browser_only applies the transformation to fail_impossible_action_in_ssr
+
+  $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl
+  let make () =
+    let state, dispatch = React.useReducer reducer initialState in
+    React.useEffect1
+      (fun () -> Runtime.fail_impossible_action_in_ssr "<unkwnown>")
+      [| isFocused |];
     div ~children:[] () [@JSX]
   [@@react.component]

@@ -292,7 +292,14 @@ module Browser_only = struct
       | Pexp_apply (_, [ (Nolabel, effect_body); _ ])
         when has_browser_only_attribute effect_body ->
           None
-      | Pexp_apply (apply_expr, [ (Nolabel, effect_body); _ ])
+      | Pexp_apply (apply_expr, [ (Nolabel, effect_body); second_arg ]) ->
+          let loc = expr.pexp_loc in
+          let new_effect_body = [%expr [%browser_only [%e effect_body]]] in
+          let new_effect_fun =
+            Builder.pexp_apply ~loc apply_expr
+              [ (Nolabel, new_effect_body); second_arg ]
+          in
+          Some new_effect_fun
       | Pexp_apply (apply_expr, [ (Nolabel, effect_body) ]) ->
           let loc = expr.pexp_loc in
           let new_effect_body = [%expr [%browser_only [%e effect_body]]] in
