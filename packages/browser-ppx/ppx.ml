@@ -289,6 +289,7 @@ module Browser_only = struct
     let add_browser_only_extension expr =
       match expr.pexp_desc with
       | Pexp_apply (_, [ (Nolabel, effect_body) ])
+      | Pexp_apply (_, [ (Nolabel, effect_body); _ ])
         when has_browser_only_attribute effect_body ->
           None
       | Pexp_apply (apply_expr, [ (Nolabel, effect_body); _ ])
