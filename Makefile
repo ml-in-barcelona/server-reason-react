@@ -19,6 +19,10 @@ build: ## Build the project, including non installable libraries and executables
 build-prod: ## Build for production (--profile=prod)
 	$(DUNE) build packages --profile=prod
 
+.PHONY: build-demo
+build-demo: ## Build the project, including non installable libraries and executables
+	$(DUNE) build packages --profile=dev @install @client
+
 .PHONY: dev
 dev: ## Build in watch mode
 	$(DUNE) build -w --profile=dev @all
@@ -87,11 +91,11 @@ lib-test: ## Run library tests
 	$(DUNE) exec test/test.exe
 
 .PHONY: demo
-demo: build ## Run demo executable
+demo: build-demo ## Run demo executable
 	$(DUNE) exec demo/server/server.exe --display-separate-messages --no-print-directory --profile=dev
 
 .PHONY: demo-watch
-demo-watch: build ## Run demo executable in watch mode
+demo-watch: build-demo ## Run demo executable in watch mode
 	$(DUNE) exec demo/server/server.exe --display-separate-messages --no-print-directory --display=quiet --watch --profile=dev
 
 .PHONY: subst
