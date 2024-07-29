@@ -4,6 +4,7 @@ let globalStyles = {js|
     padding: 0;
     width: 100vw;
     height: 100vh;
+    background-color: #292a2d;
   }
 
   * {
@@ -36,6 +37,6 @@ let make = (~children, ~script=?) => {
        | Some(src) => <script type_="module" src />
        }}
     </head>
-    <body> <div id="root"> children </div> </body>
+    <body> <main id="root" className="p-5"> children </main> </body>
   </html>;
 };

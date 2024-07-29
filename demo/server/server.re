@@ -1,13 +1,3 @@
-/**
-
-  This is a demo of a HTTP server that demostrates the possibility of Html_of_jsx.
-
-  It uses `tiny_httpd` to keep the dependencies to a minimum. It also contains a bunch of utilities to generate styles.
-
-*/
-module Httpd = Tiny_httpd;
-module Httpd_dir = Tiny_httpd.Dir;
-
 module Link = {
   [@react.component]
   let make = (~href, ~children) => {
@@ -15,13 +5,18 @@ module Link = {
 
     React.useEffect0(() => {
       setState(_prev => !state);
-
       None;
     });
 
     <a
       onClick={_e => print_endline("clicked")}
-      className="font-medium text-blue-600 hover:underline flex items-center"
+      className={Cx.make([
+        "font-medium",
+        "flex",
+        "items-center",
+        Theme.text(Theme.Color.yellow),
+        Theme.hover(["underline", Theme.text(Theme.Color.darkYellow)]),
+      ])}
       href>
       {React.string(children)}
       <svg
@@ -45,7 +40,8 @@ module Link = {
 module Home = {
   [@react.component]
   let make = () => {
-    <div className="py-16 px-12">
+    <div
+      className={Cx.make(["py-16", "px-12", Theme.text(Theme.Color.yellow)])}>
       <h1 className="font-bold text-4xl">
         {React.string("Home page of the demos")}
       </h1>
@@ -55,149 +51,111 @@ module Home = {
           <Link href="/markup"> "Tiny app with renderToStaticMarkup" </Link>
         </li>
         <li> <Link href="/string"> "Tiny app with renderToString" </Link> </li>
+        <li>
+          <Link href="/stream"> "Tiny app with renderToLwtStream" </Link>
+        </li>
       </ul>
     </div>;
   };
 };
 
-module Not_found = {
+module Error = {
   [@react.component]
-  let make = (~path) => {
+  let make = (~error, ~debugInfo, ~suggestedResponse) => {
+    let status = Dream.status(suggestedResponse);
+    let code = Dream.status_to_int(status);
+    let reason = Dream.status_to_string(status);
     <div className="p-12">
-      <Spacer bottom=4>
-        <h1 className="font-bold text-5xl"> {React.string("Not found")} </h1>
-      </Spacer>
-      <span className="text-xl font-bold"> {React.string("Error 404")} </span>
-      <span className="text-xl"> {React.string(" · ")} </span>
-      <span className="text-xl"> {React.string("The requested URL")} </span>
-      <span
-        className="bg-slate-200 mx-2 py-1 px-3 no-underline rounded-full font-sans font-semibold">
-        {React.string(path)}
-      </span>
-      <span className="text-xl">
-        {React.string("was not found on this server.")}
-      </span>
+      <main>
+        <Spacer bottom=4>
+          <h1 className="font-bold text-5xl text-slate-300">
+            {React.string(reason)}
+          </h1>
+        </Spacer>
+        <pre className="overflow-scroll">
+          <code
+            className="w-full text-sm sm:text-base inline-flex text-left items-center space-x-4 bg-stone-700 text-white rounded-lg p-4 pl-6">
+            {React.string(debugInfo)}
+          </code>
+        </pre>
+      </main>
     </div>;
   };
 };
 
-let () = {
-  let server = Httpd.create();
-  let addr = Httpd.addr(server);
-  let port = Httpd.port(server);
-
-  Httpd.add_route_handler(
-    ~meth=`GET,
-    server,
-    Httpd.Route.(exact("markup") @/ string @/ return),
-    (_name, _req) => {
-      let html =
-        ReactDOM.renderToStaticMarkup(
-          <Page script="/static/demo/client/bundle.js"> <App /> </Page>,
-        );
-      Httpd.Response.make_string(Ok(html));
-    },
-  );
-  Httpd.add_route_handler(
-    ~meth=`GET,
-    server,
-    Httpd.Route.(exact("string") @/ return),
-    _req => {
-      let html =
+let handler =
+  Dream.router([
+    Dream.get("/", _request =>
+      Dream.html(ReactDOM.renderToStaticMarkup(<Page> <Home /> </Page>))
+    ),
+    Dream.get("/string", _request =>
+      Dream.html(
         ReactDOM.renderToString(
           <Page script="/static/demo/client/bundle.js"> <App /> </Page>,
-        );
-      Httpd.Response.make_string(Ok(html));
-    },
-  );
-
-  /*
-   TODO: Render to stream
+        ),
+      )
+    ),
+    Dream.get("/markup", _request =>
+      Dream.html(
+        ReactDOM.renderToStaticMarkup(
+          <Page script="/static/demo/client/bundle.js"> <App /> </Page>,
+        ),
+      )
+    ),
     Dream.get("/stream", _request =>
-           Dream.stream(
-             ~headers=[("Content-Type", "text/html")],
-             response_stream => {
-               let (stream, _) =
-                 ReactDOM.renderToLwtStream(<Page> <Comments.App /> </Page>);
+      Dream.stream(
+        ~headers=[("Content-Type", "text/html")],
+        response_stream => {
+          let (stream, _) =
+            ReactDOM.renderToLwtStream(<Page> <Comments /> </Page>);
 
-               Lwt_stream.iter_s(
-                 data => {
-                   let%lwt () = Dream.write(response_stream, data);
-                   Dream.flush(response_stream);
-                 },
-                 stream,
-               );
-             },
-           )
-         ),
+          /* Lwt.async(() => {}); */
 
-   Httpd.add_route_handler_stream(
-        ~meth=`GET,
-        server,
-        Httpd.Route.(exact("stream") @/ return),
-        req => {
-          let (_stream, _close) =
-            ReactDOM.renderToLwtStream(
-              <Page scripts=["/static/app.js"]> <App /> </Page>,
-            );
           Lwt_stream.iter_s(
-               data => {
-                 let%lwt () = Dream.write(response_stream, data);
-                 Dream.flush(response_stream);
-               },
-               stream,
-             );
-          Tiny_httpd_stream.iter(write, req.Request.body);
-          let a = Httpd.Byte_stream.of_string("asdf");
-          Httpd.Response.make_stream(Ok(a));
+            data => {
+              let%lwt () = Dream.write(response_stream, data);
+              Dream.flush(response_stream);
+            },
+            stream,
+          );
         },
-      ); */
+      )
+    ),
+    Dream.get(
+      "/static/**",
+      Dream.static("./_build/default/demo/client/app"),
+    ),
+  ]);
 
-  Httpd_dir.add_dir_path(
-    server,
-    ~prefix="static",
-    ~dir="_build/default/demo/client/app",
-    ~config=
-      Httpd_dir.config(
-        ~download=true,
-        ~upload=false,
-        ~dir_behavior=Httpd_dir.Index_or_lists,
-        (),
-      ),
-  );
-
-  Httpd.set_top_handler(
-    server,
-    req => {
-      let html =
-        ReactDOM.renderToString(<Page> <Not_found path={req.path} /> </Page>);
-      Httpd.Response.make_string(Ok(html));
-    },
-  );
-
-  Httpd.add_route_handler(
-    server,
-    Httpd.Route.(return),
-    _req => {
-      let html = ReactDOM.renderToString(<Page> <Home /> </Page>);
-      Httpd.Response.make_string(Ok(html));
-    },
-  );
-
-  switch (
-    Httpd.run(
-      server,
-      ~after_init=() => {
-        Esbuild.build(
-          ~entry_point="demo/client/index.js",
-          ~outfile="demo/client/bundle.js",
-          (),
-        );
-        Printf.printf("Listening on http://%s:%d\n%!", addr, port);
-      },
-    )
-  ) {
-  | Ok () => ()
-  | Error(e) => raise(e)
+let interface =
+  switch (Sys.getenv_opt("SERVER_INTERFACE")) {
+  | Some(env) => env
+  | None => "localhost"
   };
-};
+
+Esbuild.build(
+  ~entry_point="demo/client/index.js",
+  ~outfile="demo/client/bundle.js",
+  (),
+);
+
+Dream.run(
+  ~port=8080,
+  ~interface,
+  ~error_handler={
+    Dream.error_template((error, debug_info, suggested_response) =>
+      Dream.html(
+        ReactDOM.renderToStaticMarkup(
+          <Page>
+            <Error
+              error
+              debugInfo=debug_info
+              suggestedResponse=suggested_response
+            />
+          </Page>,
+        ),
+      )
+    );
+  },
+  handler,
+);

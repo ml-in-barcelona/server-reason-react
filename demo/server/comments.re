@@ -61,6 +61,9 @@ module Data = {
     "Wait, it doesn't wait for React to load?",
     "How does this even work?",
     "I like marshmallows",
+    "!1!1!1! This is a comment",
+    "This is actually static from the server",
+    "But, imagine it's dynamic",
   ];
 
   let cached = ref(false);
@@ -84,23 +87,17 @@ module Comments = {
     /* Sincronous data: let comments = Data.get(); */
     let comments = React.Experimental.use(Data.promise());
 
-    <>
+    <div className="p-2 flex gap-4 flex-col">
       {comments
        |> List.mapi((i, comment) =>
             <p
               key={Int.to_string(i)}
-              style={ReactDOM.Style.make(
-                ~border="2px solid #facedd",
-                ~borderRadius="4px",
-                ~padding="8px 8px",
-                ~margin="2px",
-                (),
-              )}>
+              className="font-semibold border-2 border-yellow-200 rounded-lg p-2 bg-yellow-600 text-slate-900">
               {React.string(comment)}
             </p>
           )
        |> React.list}
-    </>;
+    </div>;
   };
 };
 
@@ -113,31 +110,50 @@ module Layout = {
   };
 };
 
-module App = {
-  let make = () => {
-    <Layout>
-      <nav> <a href="/"> {React.string("Home")} </a> </nav>
-      <main
-        style={ReactDOM.Style.make(~display="flex", ~marginTop="16px", ())}>
-        <aside
-          className="sidebar"
-          style={ReactDOM.Style.make(~marginRight="16px", ())}>
-          <Sidebar />
-        </aside>
-        <React.Suspense fallback={<Spinner />}>
-          <article className="post">
-            <h1> {React.string("Hello world")} </h1>
-            <Post />
-            <section className="comments">
-              <h3> {React.string("Comments")} </h3>
-              <React.Suspense fallback={<Spinner />}>
-                <Comments />
-              </React.Suspense>
-            </section>
-            <h2> {React.string("Thanks for reading!")} </h2>
-          </article>
-        </React.Suspense>
-      </main>
-    </Layout>;
-  };
+[@react.component]
+let make = () => {
+  <Layout>
+    <nav>
+      <a
+        className={Cx.make([
+          "text-4xl font-bold ",
+          Theme.text(Theme.Color.yellow),
+        ])}
+        href="/">
+        {React.string("Home")}
+      </a>
+    </nav>
+    <main
+      className={Theme.text(Theme.Color.yellow)}
+      style={ReactDOM.Style.make(~display="flex", ~marginTop="16px", ())}>
+      <aside style={ReactDOM.Style.make(~marginRight="16px", ())}>
+        <Sidebar />
+      </aside>
+      <React.Suspense fallback={<Spinner />}>
+        <article className="p-12 flex gap-4 flex-col">
+          <h1
+            className={Cx.make([
+              "text-4xl font-bold ",
+              Theme.text(Theme.Color.yellow),
+            ])}>
+            {React.string("Hello world")}
+          </h1>
+          <Post />
+          <section>
+            <h3
+              className={Cx.make([
+                "text-2xl font-bold mb-4",
+                Theme.text(Theme.Color.yellow),
+              ])}>
+              {React.string("Comments")}
+            </h3>
+            <React.Suspense fallback={<Spinner />}>
+              <Comments />
+            </React.Suspense>
+          </section>
+          <h2> {React.string("Thanks for reading!")} </h2>
+        </article>
+      </React.Suspense>
+    </main>
+  </Layout>;
 };
