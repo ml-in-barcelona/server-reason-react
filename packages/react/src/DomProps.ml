@@ -1074,7 +1074,7 @@ let videoHTMLAttributes =
     Attribute { name = "controls"; jsxName = "controls"; type_ = Bool };
     Attribute { name = "crossorigin"; jsxName = "crossOrigin"; type_ = String };
     Attribute { name = "height"; jsxName = "height"; type_ = String (* number | *) };
-    Attribute { name = "playsInline"; jsxName = "playsinline"; type_ = Bool };
+    Attribute { name = "playsinline"; jsxName = "playsInline"; type_ = Bool };
 
     Attribute { name = "loop"; jsxName = "loop"; type_ = Bool };
     Attribute { name = "poster"; jsxName = "poster"; type_ = String };
