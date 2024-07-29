@@ -55,7 +55,7 @@
   (ocaml-lsp-server :with-dev-setup)
 
   ; Demo deps
-  (tiny_httpd :with-dev-setup)
+  (dream :with-dev-setup)
   (melange-webapi :with-dev-setup)
   (reason-react :with-dev-setup)
   (melange-webapi :with-dev-setup)
