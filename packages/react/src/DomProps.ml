@@ -1077,6 +1077,8 @@ let videoHTMLAttributes =
     Attribute { name = "playsinline"; jsxName = "playsInline"; type_ = Bool };
 
     Attribute { name = "loop"; jsxName = "loop"; type_ = Bool };
+    Attribute { name = "muted"; jsxName = "muted"; type_ = Bool };
+    Attribute { name = "preload"; jsxName = "preload"; type_ = String };
     Attribute { name = "poster"; jsxName = "poster"; type_ = String };
     Attribute { name = "width"; jsxName = "width"; type_ = String (* number | *) };
     Attribute { name = "disablepictureinpicture"; jsxName = "disablePictureInPicture"; type_ = Bool };
