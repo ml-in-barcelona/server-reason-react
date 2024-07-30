@@ -64,7 +64,7 @@ create-switch: ## Create opam switch
 
 .PHONY: install
 install:
-	opam install . --deps-only --with-test --with-doc
+	opam install . --deps-only --with-test --with-doc --with-dev-setup
 	cd demo && npm install
 
 .PHONY: pin
