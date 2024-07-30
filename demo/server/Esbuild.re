@@ -1,5 +1,6 @@
+let build_folder = "_build/default/demo/client/app";
+
 let build = (~entry_point, ~outfile, ()) => {
-  let build_folder = "_build/default/demo/client/app";
   let output = Filename.concat(build_folder, outfile);
   let entry = Filename.concat(build_folder, entry_point);
   let command =
