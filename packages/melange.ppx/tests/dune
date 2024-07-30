@@ -1,5 +1,8 @@
 (cram
  (package server-reason-react)
+ ; Some tests print a file error (including file path) which fails on windows, since it's expected to run on a unix system
+ (enabled_if
+  (<> %{os_type} Win32))
  (deps %{bin:ocamlformat} standalone.exe))
 
 (executable
