@@ -56,7 +56,6 @@
 
   ; Demo deps
   (dream :with-dev-setup)
-  (melange-webapi :with-dev-setup)
   (reason-react :with-dev-setup)
   (melange-webapi :with-dev-setup)
   (reason-react-ppx :with-dev-setup)
