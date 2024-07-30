@@ -6,18 +6,9 @@ module Hr = {
         "block",
         "w-full",
         "h-px",
-        Theme.background("grey"),
+        Theme.background("slate-400"),
       ])}
     />;
-  };
-};
-
-module Layout = {
-  [@react.component]
-  let make = (~children) => {
-    <div spellCheck=false className={Cx.make(["max-w-2xl", "pt-16"])}>
-      children
-    </div>;
   };
 };
 
@@ -56,8 +47,12 @@ module Title = {
                  href={item.link}
                  target="_blank"
                  className={Cx.make([
-                   "text-primary hover:text-slate-300 focus:text-slate-300 underline transition duration-100 ease-in-out hover:decoration-inherit",
-                   Theme.hover([Theme.text(Theme.Color.white)]),
+                   "underline transition duration-100 ease-in-out hover:decoration-inherit",
+                   Theme.text(Theme.Color.white),
+                   Theme.hover([
+                     "underline",
+                     Theme.text(Theme.Color.brokenWhite),
+                   ]),
                  ])}>
                  {React.string(item.label)}
                </a>
@@ -70,7 +65,7 @@ module Title = {
 
   [@react.component]
   let make = () => {
-    <div className={Cx.make(["text-yellow-700", "text-xl"])}>
+    <div className={Cx.make([Theme.text(Theme.Color.white), "text-xl"])}>
       <Spacer bottom=4>
         <h1 className={Cx.make(["m-0", "text-5xl", "font-bold"])}>
           {React.string("Server Reason React")}
@@ -88,12 +83,9 @@ let make = () => {
     None;
   });
 
-  <Root background=Theme.Color.darkGrey>
-    <Header />
-    <Layout>
-      <Stack gap=8 justify=`start>
-        <> <Title /> <Hr /> <Counter initial=23 /> </>
-      </Stack>
-    </Layout>
-  </Root>;
+  <Layout background=Theme.Color.black>
+    <Stack gap=8 justify=`start>
+      <> <Title /> <Hr /> <Counter initial=23 /> </>
+    </Stack>
+  </Layout>;
 };

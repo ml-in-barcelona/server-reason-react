@@ -3,15 +3,6 @@
  (enabled_if
   (= %{profile} "dev"))
  (flags :standard -w -26-27) ; browser_only removes code form the server, making this warning necessary
- (libraries
-  tiny_httpd
-  tiny_httpd.core
-  tiny_httpd.unix
-  shared_native
-  react
-  reactDOM
-  js
-  lwt.unix
-  unix)
+ (libraries dream shared_native react reactDOM js lwt.unix unix belt)
  (preprocess
   (pps server_reason_react_ppx melange_native_ppx browser_ppx lwt_ppx)))

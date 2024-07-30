@@ -7,11 +7,11 @@ let make = (~initial) => {
   | Client => print_endline("This prints to the console")
   };
 
-  let%browser_only onClick = _event => {
+  let onClick = _event => {
     setCount(count + 1);
   };
 
-  <div className="text-yellow-600">
+  <div className={Theme.text(Theme.Color.white)}>
     <Spacer bottom=3>
       <div
         className={Cx.make([
@@ -23,7 +23,11 @@ let make = (~initial) => {
         <p className={Cx.make(["m-0", "text-3xl", "font-bold"])}>
           {React.string("Counter")}
         </p>
-        <button onClick> {React.string(Int.to_string(count))} </button>
+        <button
+          className="font-mono border-2 py-1 px-2 rounded-lg bg-yellow-950 border-yellow-700 text-yellow-200"
+          onClick>
+          {React.string(Int.to_string(count))}
+        </button>
       </div>
     </Spacer>
     <p className="text-lg">
