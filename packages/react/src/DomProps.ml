@@ -1072,15 +1072,18 @@ let videoHTMLAttributes =
   [
     Attribute { name = "autoplay"; jsxName = "autoPlay"; type_ = Bool };
     Attribute { name = "controls"; jsxName = "controls"; type_ = Bool };
+    Attribute { name = "controlslist"; jsxName = "controlsList"; type_ = String };
     Attribute { name = "crossorigin"; jsxName = "crossOrigin"; type_ = String };
-    Attribute { name = "height"; jsxName = "height"; type_ = String (* number | *) };
-    Attribute { name = "playsinline"; jsxName = "playsInline"; type_ = Bool };
-
-    Attribute { name = "loop"; jsxName = "loop"; type_ = Bool };
-    Attribute { name = "poster"; jsxName = "poster"; type_ = String };
-    Attribute { name = "width"; jsxName = "width"; type_ = String (* number | *) };
     Attribute { name = "disablepictureinpicture"; jsxName = "disablePictureInPicture"; type_ = Bool };
     Attribute { name = "disableremoteplayback"; jsxName = "disableRemotePlayback"; type_ = Bool };
+    Attribute { name = "height"; jsxName = "height"; type_ = String (* number | *) };
+    Attribute { name = "loop"; jsxName = "loop"; type_ = Bool };
+    Attribute { name = "muted"; jsxName = "muted"; type_ = Bool };
+    Attribute { name = "playsinline"; jsxName = "playsInline"; type_ = Bool };
+    Attribute { name = "poster"; jsxName = "poster"; type_ = String };
+    Attribute { name = "preload"; jsxName = "preload"; type_ = String };
+    Attribute { name = "src"; jsxName = "src"; type_ = String };
+    Attribute { name = "width"; jsxName = "width"; type_ = String (* number | *) };
   ]
 
 module SVG = struct
