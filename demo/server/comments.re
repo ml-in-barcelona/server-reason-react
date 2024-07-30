@@ -18,25 +18,6 @@ module Spinner = {
   };
 };
 
-module Sidebar = {
-  let make = () => {
-    <aside>
-      <h3> {React.string("Archive")} </h3>
-      <ul>
-        <li> {React.string("May 2021")} </li>
-        <li> {React.string("April 2021")} </li>
-        <li> {React.string("March 2021")} </li>
-        <li> {React.string("February 2021")} </li>
-        <li> {React.string("January 2021")} </li>
-        <li> {React.string("December 2020")} </li>
-        <li> {React.string("November 2020")} </li>
-        <li> {React.string("October 2020")} </li>
-        <li> {React.string("September 2020")} </li>
-      </ul>
-    </aside>;
-  };
-};
-
 module Post = {
   let make = () => {
     <section>
@@ -87,7 +68,7 @@ module Comments = {
     /* Sincronous data: let comments = Data.get(); */
     let comments = React.Experimental.use(Data.promise());
 
-    <div className="p-2 flex gap-4 flex-col">
+    <div className="flex gap-4 flex-col">
       {comments
        |> List.mapi((i, comment) =>
             <p
@@ -101,40 +82,18 @@ module Comments = {
   };
 };
 
-module Layout = {
-  [@react.component]
-  let make = (~children) => {
-    <div style={ReactDOM.Style.make(~padding="20px", ~height="100%", ())}>
-      children
-    </div>;
-  };
-};
-
 [@react.component]
 let make = () => {
-  <Layout>
-    <nav>
-      <a
-        className={Cx.make([
-          "text-4xl font-bold ",
-          Theme.text(Theme.Color.yellow),
-        ])}
-        href="/">
-        {React.string("Home")}
-      </a>
-    </nav>
+  <Layout background=Theme.Color.black>
     <main
-      className={Theme.text(Theme.Color.yellow)}
+      className={Theme.text(Theme.Color.white)}
       style={ReactDOM.Style.make(~display="flex", ~marginTop="16px", ())}>
-      <aside style={ReactDOM.Style.make(~marginRight="16px", ())}>
-        <Sidebar />
-      </aside>
       <React.Suspense fallback={<Spinner />}>
-        <article className="p-12 flex gap-4 flex-col">
+        <article className="flex gap-4 flex-col">
           <h1
             className={Cx.make([
               "text-4xl font-bold ",
-              Theme.text(Theme.Color.yellow),
+              Theme.text(Theme.Color.white),
             ])}>
             {React.string("Hello world")}
           </h1>
@@ -143,7 +102,7 @@ let make = () => {
             <h3
               className={Cx.make([
                 "text-2xl font-bold mb-4",
-                Theme.text(Theme.Color.yellow),
+                Theme.text(Theme.Color.white),
               ])}>
               {React.string("Comments")}
             </h3>

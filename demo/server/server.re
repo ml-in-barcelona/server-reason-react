@@ -1,58 +1,31 @@
-module Link = {
-  [@react.component]
-  let make = (~href, ~children) => {
-    let (state, setState) = React.useState(() => false);
-
-    React.useEffect0(() => {
-      setState(_prev => !state);
-      None;
-    });
-
-    <a
-      onClick={_e => print_endline("clicked")}
-      className={Cx.make([
-        "font-medium",
-        "flex",
-        "items-center",
-        Theme.text(Theme.Color.yellow),
-        Theme.hover(["underline", Theme.text(Theme.Color.darkYellow)]),
-      ])}
-      href>
-      {React.string(children)}
-      <svg
-        className="w-3 h-3 ms-2 rtl:rotate-180"
-        ariaHidden=true
-        xmlns="http://www.w3.org/2000/svg"
-        fill="none"
-        viewBox="0 0 14 10">
-        <path
-          stroke="currentColor"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="2"
-          d="M1 5h12m0 0L9 1m4 4L9 9"
-        />
-      </svg>
-    </a>;
-  };
-};
-
 module Home = {
   [@react.component]
   let make = () => {
-    <div
-      className={Cx.make(["py-16", "px-12", Theme.text(Theme.Color.yellow)])}>
-      <h1 className="font-bold text-4xl">
-        {React.string("Home page of the demos")}
-      </h1>
-      <br />
-      <ul className="gap-1 flex flex-col">
+    <div className={Cx.make(["py-16", "px-12"])}>
+      <Spacer bottom=8>
+        <h1
+          className={Cx.make([
+            "font-bold text-4xl",
+            Theme.text(Theme.Color.white),
+          ])}>
+          {React.string("Home of the demos")}
+        </h1>
+      </Spacer>
+      <ul className="flex flex-col gap-4">
         <li>
-          <Link href="/markup"> "Tiny app with renderToStaticMarkup" </Link>
+          <Link.WithArrow href=Router.renderToStaticMarkup>
+            Router.renderToStaticMarkup
+          </Link.WithArrow>
         </li>
-        <li> <Link href="/string"> "Tiny app with renderToString" </Link> </li>
         <li>
-          <Link href="/stream"> "Tiny app with renderToLwtStream" </Link>
+          <Link.WithArrow href=Router.renderToString>
+            Router.renderToString
+          </Link.WithArrow>
+        </li>
+        <li>
+          <Link.WithArrow href=Router.renderToLwtStream>
+            Router.renderToLwtStream
+          </Link.WithArrow>
         </li>
       </ul>
     </div>;
@@ -65,16 +38,20 @@ module Error = {
     let status = Dream.status(suggestedResponse);
     let code = Dream.status_to_int(status);
     let reason = Dream.status_to_string(status);
-    <div className="p-12">
+    <div className="py-16 px-12">
       <main>
-        <Spacer bottom=4>
-          <h1 className="font-bold text-5xl text-slate-300">
+        <Spacer bottom=8>
+          <h1
+            className={Cx.make([
+              "font-bold text-5xl",
+              Theme.text(Theme.Color.white),
+            ])}>
             {React.string(reason)}
           </h1>
         </Spacer>
         <pre className="overflow-scroll">
           <code
-            className="w-full text-sm sm:text-base inline-flex text-left items-center space-x-4 bg-stone-700 text-white rounded-lg p-4 pl-6">
+            className="w-full text-sm sm:text-base inline-flex text-left items-center space-x-4 bg-orange-900 font-bold text-white rounded-lg p-4 pl-6">
             {React.string(debugInfo)}
           </code>
         </pre>
@@ -86,28 +63,34 @@ module Error = {
 let handler =
   Dream.router([
     Dream.get("/", _request =>
-      Dream.html(ReactDOM.renderToStaticMarkup(<Page> <Home /> </Page>))
+      Dream.html(
+        ReactDOM.renderToStaticMarkup(<Document> <Home /> </Document>),
+      )
     ),
-    Dream.get("/string", _request =>
+    Dream.get(Router.renderToString, _request =>
       Dream.html(
         ReactDOM.renderToString(
-          <Page script="/static/demo/client/bundle.js"> <App /> </Page>,
+          <Document script="/static/demo/client/bundle.js">
+            <App />
+          </Document>,
         ),
       )
     ),
-    Dream.get("/markup", _request =>
+    Dream.get(Router.renderToStaticMarkup, _request =>
       Dream.html(
         ReactDOM.renderToStaticMarkup(
-          <Page script="/static/demo/client/bundle.js"> <App /> </Page>,
+          <Document script="/static/demo/client/bundle.js">
+            <App />
+          </Document>,
         ),
       )
     ),
-    Dream.get("/stream", _request =>
+    Dream.get(Router.renderToLwtStream, _request =>
       Dream.stream(
         ~headers=[("Content-Type", "text/html")],
         response_stream => {
           let (stream, _) =
-            ReactDOM.renderToLwtStream(<Page> <Comments /> </Page>);
+            ReactDOM.renderToLwtStream(<Document> <Comments /> </Document>);
 
           /* Lwt.async(() => {}); */
 
@@ -143,19 +126,15 @@ Dream.run(
   ~port=8080,
   ~interface,
   ~error_handler={
-    Dream.error_template((error, debug_info, suggested_response) =>
+    Dream.error_template((error, info, suggested) =>
       Dream.html(
         ReactDOM.renderToStaticMarkup(
-          <Page>
-            <Error
-              error
-              debugInfo=debug_info
-              suggestedResponse=suggested_response
-            />
-          </Page>,
+          <Document>
+            <Error error debugInfo=info suggestedResponse=suggested />
+          </Document>,
         ),
       )
     );
   },
-  handler,
+  Dream.livereload(handler),
 );

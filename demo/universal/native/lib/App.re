@@ -12,15 +12,6 @@ module Hr = {
   };
 };
 
-module Layout = {
-  [@react.component]
-  let make = (~children) => {
-    <div spellCheck=false className={Cx.make(["max-w-2xl", "pt-16"])}>
-      children
-    </div>;
-  };
-};
-
 module Title = {
   type item = {
     label: string,
@@ -57,10 +48,10 @@ module Title = {
                  target="_blank"
                  className={Cx.make([
                    "underline transition duration-100 ease-in-out hover:decoration-inherit",
-                   Theme.text(Theme.Color.yellow),
+                   Theme.text(Theme.Color.white),
                    Theme.hover([
                      "underline",
-                     Theme.text(Theme.Color.darkYellow),
+                     Theme.text(Theme.Color.brokenWhite),
                    ]),
                  ])}>
                  {React.string(item.label)}
@@ -74,7 +65,7 @@ module Title = {
 
   [@react.component]
   let make = () => {
-    <div className={Cx.make([Theme.text(Theme.Color.yellow), "text-xl"])}>
+    <div className={Cx.make([Theme.text(Theme.Color.white), "text-xl"])}>
       <Spacer bottom=4>
         <h1 className={Cx.make(["m-0", "text-5xl", "font-bold"])}>
           {React.string("Server Reason React")}
@@ -92,11 +83,9 @@ let make = () => {
     None;
   });
 
-  <Root background=Theme.Color.darkGrey>
-    <Layout>
-      <Stack gap=8 justify=`start>
-        <> <Title /> <Hr /> <Counter initial=23 /> </>
-      </Stack>
-    </Layout>
-  </Root>;
+  <Layout background=Theme.Color.black>
+    <Stack gap=8 justify=`start>
+      <> <Title /> <Hr /> <Counter initial=23 /> </>
+    </Stack>
+  </Layout>;
 };

@@ -4,7 +4,7 @@ let globalStyles = {js|
     padding: 0;
     width: 100vw;
     height: 100vh;
-    background-color: #292a2d;
+    background-color: #161615; /* Theme.Color.black; */
   }
 
   * {
@@ -12,6 +12,15 @@ let globalStyles = {js|
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     box-sizing: border-box;
+  }
+
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
   }
 |js};
 
@@ -31,12 +40,11 @@ let make = (~children, ~script=?) => {
         dangerouslySetInnerHTML={"__html": globalStyles}
       />
       <script src="https://cdn.tailwindcss.com" />
-      <div id="randomId" />
       {switch (script) {
        | None => React.null
        | Some(src) => <script type_="module" src />
        }}
     </head>
-    <body> <main id="root" className="p-5"> children </main> </body>
+    <body> <div id="root"> children </div> </body>
   </html>;
 };

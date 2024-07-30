@@ -1,5 +1,5 @@
-let useStateValue = a => {
-  let (value, setValue) = React.useState(_ => a);
-  let setValueStatic = value => setValue(_ => value);
-  (value, setValueStatic);
+let useStateValue = initialState => {
+  let (state, setState) = React.useState(_ => initialState);
+  let setValueStatic = newState => setState(_ => newState);
+  (state, setValueStatic);
 };

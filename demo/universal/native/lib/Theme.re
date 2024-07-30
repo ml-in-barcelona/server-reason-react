@@ -8,18 +8,15 @@ module Media = {
 };
 
 module Color = {
-  let white = "white";
-  let yellow = "yellow-600";
-  let darkYellow = "yellow-800";
-  let white01 = "slate-800";
-  let black = "black";
+  let brokenWhite = "[#a0a0a0]";
+  let white = "[#eaecee]";
+  let yellow = white;
+  let darkYellow = "[#34342f]";
+  let black = "[#161615]";
+
   let reason = "[#db4d3f]";
   let react = "[#149eca]";
   let ahrefs = "[#ff8800]";
-  let lightGrey = "[#c1c5cd]";
-  let darkGrey = "[#292a2d]";
-  let box = "[#2e3c56]";
-  let brokenWhite = "[#eaecee]";
 };
 
 let text = value => "text-" ++ value;

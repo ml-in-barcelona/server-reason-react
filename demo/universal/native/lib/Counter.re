@@ -7,11 +7,11 @@ let make = (~initial) => {
   | Client => print_endline("This prints to the console")
   };
 
-  let%browser_only onClick = _event => {
+  let onClick = _event => {
     setCount(count + 1);
   };
 
-  <div className={Theme.text(Theme.Color.yellow)}>
+  <div className={Theme.text(Theme.Color.white)}>
     <Spacer bottom=3>
       <div
         className={Cx.make([
