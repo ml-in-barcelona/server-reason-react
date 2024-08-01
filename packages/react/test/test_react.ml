@@ -56,6 +56,19 @@ let children_map_list_element () =
     (ReactDOM.renderToStaticMarkup app)
     "<div class=\"divider\">foo</div><div class=\"divider\">lola</div>"
 
+let use_ref_works () =
+  let app =
+    React.Upper_case_component
+      (fun () ->
+        let isLive = React.useRef true in
+        React.useEffect0 (fun () ->
+            isLive.current <- false;
+            None);
+        React.createElement "span" []
+          [ React.string (string_of_bool isLive.current) ])
+  in
+  assert_string (ReactDOM.renderToStaticMarkup app) "<span>true</span>"
+
 let tests =
   ( "React",
     [
@@ -63,4 +76,5 @@ let tests =
       test "useEffect" use_effect_doesnt_fire;
       test "Children.map" children_map_one_element;
       test "Children.map" children_map_list_element;
+      test "useRef" use_ref_works;
     ] )

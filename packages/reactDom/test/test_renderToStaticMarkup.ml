@@ -295,7 +295,7 @@ let render_svg () =
      z M 14 3 L 14 5 L 17.585938 5 L 8.2929688 14.292969 L 9.7070312 15.707031 \
      L 19 6.4140625 L 19 10 L 21 10 L 21 3 L 14 3 z\"></path></svg>"
 
-let case title fn = Alcotest_lwt.test_case_sync title `Quick fn
+let test title fn = Alcotest_lwt.test_case_sync title `Quick fn
 
 (* TODO: add cases for React.Suspense
    function Button() {
@@ -324,35 +324,58 @@ let case title fn = Alcotest_lwt.test_case_sync title `Quick fn
     // <!--$!--><p>This is a callback</p><!--/$-->
 *)
 
+let ref_as_callback_prop_works () =
+  let app =
+    React.Upper_case_component
+      (fun () ->
+        React.createElement "span"
+          [ React.JSX.Ref (ReactDOM.Ref.callbackDomRef (fun _ -> ())) ]
+          [ React.string "yow" ])
+  in
+  assert_string (ReactDOM.renderToStaticMarkup app) "<span>yow</span>"
+
+let ref_as_prop_works () =
+  let app =
+    React.Upper_case_component
+      (fun () ->
+        let tableRootRef = React.useRef Js.Nullable.null in
+        React.createElement "span"
+          [ React.JSX.Ref (ReactDOM.Ref.domRef tableRootRef) ]
+          [ React.string "yow" ])
+  in
+  assert_string (ReactDOM.renderToStaticMarkup app) "<span>yow</span>"
+
 let tests =
   ( "renderToStaticMarkup",
     [
-      case "html_doctype" html_doctype;
-      case "single_empty_tag" single_empty_tag;
-      case "empty_string_attribute" empty_string_attribute;
-      case "bool_attributes" bool_attributes;
-      case "truthy_attributes" truthy_attributes;
-      case "ignore_nulls" ignore_nulls;
-      case "string_attributes" string_attributes;
-      case "self_closing_tag" self_closing_tag;
-      case "dom_element_innerHtml" dom_element_innerHtml;
-      case "children" children;
-      case "className" className;
-      case "className_2" className_2;
-      case "fragment" fragment;
-      case "fragments_and_texts" fragments_and_texts;
-      case "ignored_attributes_on_jsx" ignored_attributes_on_jsx;
-      case "inline_styles" inline_styles;
-      case "encode_attributes" encode_attributes;
-      case "dom_props_should_work" dom_props_should_work;
-      case "dangerouslySetInnerHtml" dangerouslySetInnerHtml;
-      case "context" context;
-      case "use_state" use_state;
-      case "use_memo" use_memo;
-      case "use_callback" use_callback;
-      case "inner_html" inner_html;
-      case "event" event;
-      case "_onclick_render_as_string" _onclick_render_as_string;
-      case "render_with_doc_type" render_with_doc_type;
-      case "render_svg" render_svg;
+      test "html_doctype" html_doctype;
+      test "single_empty_tag" single_empty_tag;
+      test "empty_string_attribute" empty_string_attribute;
+      test "bool_attributes" bool_attributes;
+      test "truthy_attributes" truthy_attributes;
+      test "ignore_nulls" ignore_nulls;
+      test "string_attributes" string_attributes;
+      test "self_closing_tag" self_closing_tag;
+      test "dom_element_innerHtml" dom_element_innerHtml;
+      test "children" children;
+      test "className" className;
+      test "className_2" className_2;
+      test "fragment" fragment;
+      test "fragments_and_texts" fragments_and_texts;
+      test "ignored_attributes_on_jsx" ignored_attributes_on_jsx;
+      test "inline_styles" inline_styles;
+      test "encode_attributes" encode_attributes;
+      test "dom_props_should_work" dom_props_should_work;
+      test "dangerouslySetInnerHtml" dangerouslySetInnerHtml;
+      test "context" context;
+      test "use_state" use_state;
+      test "use_memo" use_memo;
+      test "use_callback" use_callback;
+      test "inner_html" inner_html;
+      test "event" event;
+      test "_onclick_render_as_string" _onclick_render_as_string;
+      test "render_with_doc_type" render_with_doc_type;
+      test "render_svg" render_svg;
+      test "ref_as_prop_works" ref_as_prop_works;
+      test "ref_as_callback_prop_works" ref_as_callback_prop_works;
     ] )
