@@ -18,10 +18,10 @@
 
 type 'a t = 'a array
 
-external length : 'a t -> int = "%array_length"
+val length : 'a t -> int
 (** [length xs] return the size of the array *)
 
-external size : 'a t -> int = "%array_length"
+val size : 'a t -> int
 (** {b See} {!length} *)
 
 val get : 'a t -> int -> 'a option
@@ -44,7 +44,7 @@ val getExn : 'a t -> int -> 'a
     {b raise} an exception if [i] is out of range;otherwise return the value at index [i] in [arr]
 *)
 
-external getUnsafe : 'a t -> int -> 'a = "%array_unsafe_get"
+val getUnsafe : 'a t -> int -> 'a
 (** [getUnsafe arr i]
 
     {b Unsafe}
@@ -73,7 +73,7 @@ val setExn : 'a t -> int -> 'a -> unit
     {b raise} an exception if [i] is out of range
 *)
 
-external setUnsafe : 'a t -> int -> 'a -> unit = "%array_unsafe_set"
+val setUnsafe : 'a t -> int -> 'a -> unit
 
 val shuffleInPlace : 'a t -> unit
 (** [shuffleInPlace arr] randomly re-orders the items in [arr] *)
