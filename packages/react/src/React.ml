@@ -10,7 +10,6 @@ module Ref = struct
   type callbackDomRef = Dom.element Js.nullable -> unit
 
   let domRef (v : currentDomRef) = CurrentDomRef v
-
   let callbackDomRef (v : callbackDomRef) = CallbackDomRef v
 end
 
