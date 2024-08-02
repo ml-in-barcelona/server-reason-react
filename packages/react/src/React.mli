@@ -8,8 +8,8 @@ module Ref : sig
   type currentDomRef = Dom.element Js.nullable ref
   type callbackDomRef = Dom.element Js.nullable -> unit
 
-  external domRef : currentDomRef -> domRef = "%identity"
-  external callbackDomRef : callbackDomRef -> domRef = "%identity"
+  val domRef : currentDomRef -> t
+  val callbackDomRef : callbackDomRef -> t
 end
 
 val createRef : unit -> 'a option ref
