@@ -1,14 +1,13 @@
 type 'a t = 'a array
 
-external length : 'a array -> int = "%array_length"
-external size : 'a array -> int = "%array_length"
-external getUnsafe : 'a array -> int -> 'a = "%array_unsafe_get"
-external setUnsafe : 'a array -> int -> 'a -> unit = "%array_unsafe_set"
+let length = Array.length
+let size = length
+let getUnsafe = Array.unsafe_get
+let setUnsafe = Array.unsafe_set
+let get = Array.get
 
 let getUndefined arr i =
   try Js.fromOpt (Some arr.(i)) with Invalid_argument _ -> Js.fromOpt None
-
-external get : 'a array -> int -> 'a = "%array_safe_get"
 
 let get arr i =
   if i >= 0 && i < length arr then Some (getUnsafe arr i) else None

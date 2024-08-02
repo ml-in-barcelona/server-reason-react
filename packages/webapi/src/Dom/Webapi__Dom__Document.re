@@ -4,21 +4,6 @@ module Impl = (T: {
   external asDocument: T.t => Dom.document = "%identity";
 
   let asHtmlDocument: T.t => option(Dom.htmlDocument) = _ => None;
-  /* let asHtmlDocument: T.t => option(Dom.htmlDocument) = [%mel.raw
-       {|
-       function(document) {
-         var defaultView = document.defaultView;
-
-         if (defaultView != null) {
-           var HTMLDocument = defaultView.HTMLDocument;
-
-           if (HTMLDocument != null && document instanceof HTMLDocument) {
-             return document;
-           }
-         }
-       }
-     |}
-     ]; */
 
   /** Unsafe cast, use [ashtmlDocument] instead */
   external unsafeAsHtmlDocument: T.t => Dom.htmlDocument = "%identity";

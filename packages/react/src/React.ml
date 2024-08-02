@@ -1,13 +1,16 @@
-type domRef
 type 'value ref = { mutable current : 'value }
+
+type domRef =
+  | CallbackDomRef of (Dom.element Js.nullable -> unit)
+  | CurrentDomRef of Dom.element Js.nullable ref
 
 module Ref = struct
   type t = domRef
   type currentDomRef = Dom.element Js.nullable ref
   type callbackDomRef = Dom.element Js.nullable -> unit
 
-  external domRef : currentDomRef -> domRef = "%identity"
-  external callbackDomRef : callbackDomRef -> domRef = "%identity"
+  let domRef (v : currentDomRef) = CurrentDomRef v
+  let callbackDomRef (v : callbackDomRef) = CallbackDomRef v
 end
 
 let createRef () = { current = None }
