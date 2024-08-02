@@ -39,5 +39,4 @@ let keepU opt f =
 let keep opt f = keepU opt (fun x -> f x)
 let forEachU opt f = match opt with Some x -> f x | None -> ()
 let forEach opt f = forEachU opt (fun x -> f x)
-
-external getUnsafe : 'a option -> 'a = "%identity"
+let getUnsafe = function Some x -> x | None -> assert false

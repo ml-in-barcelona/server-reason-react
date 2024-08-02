@@ -44,7 +44,7 @@ val getExn : 'a option -> 'a
   ]}
 *)
 
-external getUnsafe : 'a option -> 'a = "%identity"
+val getUnsafe : 'a option -> 'a
 (** [getUnsafe x] returns x
   This is an unsafe operation, it assumes x is neither not None
   or (Some (None .. ))
