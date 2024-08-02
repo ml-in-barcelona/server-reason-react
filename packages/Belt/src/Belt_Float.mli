@@ -1,10 +1,8 @@
-external toFloat : float -> float = "%identity"
-external fromInt : int -> float = "%identity"
-val fromString : string -> float
+val toInt : float -> int
+val fromInt : int -> float
 val fromString : string -> float option
 val toString : float -> string
-val toInt : float -> int
-external ( + ) : float -> float -> float = "%addfloat"
-external ( - ) : float -> float -> float = "%subfloat"
-external ( * ) : float -> float -> float = "%mulfloat"
-external ( / ) : float -> float -> float = "%divfloat"
+val ( + ) : float -> float -> float
+val ( - ) : float -> float -> float
+val ( * ) : float -> float -> float
+val ( / ) : float -> float -> float
