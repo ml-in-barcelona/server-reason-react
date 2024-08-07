@@ -296,6 +296,7 @@ let render_svg () =
      L 19 6.4140625 L 19 10 L 21 10 L 21 3 L 14 3 z\"></path></svg>"
 
 let test title fn = Alcotest_lwt.test_case_sync title `Quick fn
+let async_test title fn = Alcotest_lwt.test_case title `Quick fn
 
 (* TODO: add cases for React.Suspense
    function Button() {
@@ -345,6 +346,20 @@ let ref_as_prop_works () =
   in
   assert_string (ReactDOM.renderToStaticMarkup app) "<span>yow</span>"
 
+let async_component () =
+  let app =
+    React.Async_component
+      (fun () ->
+        Lwt.return (React.createElement "span" [] [ React.string "yow" ]))
+  in
+  Alcotest.check_raises "wat"
+    (Failure
+       "Asyncronous components can't be rendered to static markup, since \
+        rendering is syncronous. Please use `renderToLwtStream` instead.")
+    (fun () ->
+      let _ : string = ReactDOM.renderToStaticMarkup app in
+      ())
+
 let tests =
   ( "renderToStaticMarkup",
     [
@@ -378,4 +393,5 @@ let tests =
       test "render_svg" render_svg;
       test "ref_as_prop_works" ref_as_prop_works;
       test "ref_as_callback_prop_works" ref_as_callback_prop_works;
+      test "async" async_component;
     ] )

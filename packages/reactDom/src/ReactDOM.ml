@@ -70,6 +70,7 @@ let render_to_string ~mode element =
   (* previous_was_text_node is the flag to enable rendering comments
      <!-- --> between text nodes *)
   let previous_was_text_node = ref false in
+
   let rec render_element element =
     match element with
     | Empty -> ""
@@ -78,7 +79,11 @@ let render_to_string ~mode element =
     | Fragment children -> render_element children
     | List list ->
         list |> Array.map render_element |> Array.to_list |> String.concat ""
-    | Upper_case_component f -> render_element (f ())
+    | Upper_case_component component -> render_element (component ())
+    | Async_component _component ->
+        failwith
+          "Asyncronous components can't be rendered to static markup, since \
+           rendering is syncronous. Please use `renderToLwtStream` instead."
     | Lower_case_element { tag; attributes; _ }
       when Html.is_self_closing_tag tag ->
         is_root.contents <- false;
@@ -167,6 +172,7 @@ let render_to_stream ~context_state element =
     | Lower_case_element { tag; attributes; _ }
       when Html.is_self_closing_tag tag ->
         Printf.sprintf "<%s%s />" tag (attributes_to_string attributes)
+    | Async_component _ -> failwith "Async_component not implemented"
     | Lower_case_element { tag; attributes; children } ->
         Printf.sprintf "<%s%s>%s</%s>" tag
           (attributes_to_string attributes)
