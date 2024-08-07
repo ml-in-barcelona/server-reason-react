@@ -8,8 +8,6 @@ let is_self_closing_tag = function
   | _ -> false
 
 (* This function is borrowed from https://github.com/dbuenzli/htmlit/blob/62d8f21a9233791a5440311beac02a4627c3a7eb/src/htmlit.ml#L10-L28 *)
-(* Based on https://github.com/facebook/react/blob/97d75c9c8bcddb0daed1ed062101c7f5e9b825f4/packages/react-dom-bindings/src/server/escapeTextForBrowser.js#L51-L98 *)
-(* https://discuss.ocaml.org/t/html-encoding-of-string/4289/4 *)
 let escape_and_add out str =
   let add = Buffer.add_string in
   let len = String.length str in
@@ -46,13 +44,10 @@ let escape_and_add out str =
   in
   loop 0 0
 
-type attribute = string * [ `Value of string | `Present | `Omitted ]
+type attribute =
+  string * [ `Bool of bool | `Int of int | `Float of float | `String of string ]
 
-let attribute name value : attribute = (name, `Value value)
-let present name : attribute = (name, `Present)
-let omitted name : attribute = (name, `Omitted)
-
-let render_attribute out (attr : attribute) =
+let write_attribute out (attr : attribute) =
   let write_name_value name value =
     Buffer.add_char out ' ';
     Buffer.add_string out name;
@@ -61,11 +56,16 @@ let render_attribute out (attr : attribute) =
     Buffer.add_char out '"'
   in
   match attr with
-  | _name, `Omitted -> ()
-  | name, `Value value -> write_name_value name value
-  | name, `Present ->
+  | _name, `Bool false ->
+      (* false attributes don't get rendered *)
+      ()
+  | name, `Bool true ->
+      (* true attributes render solely the attribute name *)
       Buffer.add_char out ' ';
       Buffer.add_string out name
+  | name, `String value -> write_name_value name value
+  | name, `Int value -> write_name_value name (string_of_int value)
+  | name, `Float value -> write_name_value name (string_of_float value)
 
 type element =
   | Null
@@ -83,7 +83,8 @@ let raw txt = Raw txt
 let null = Null
 let int i = String (Int.to_string i)
 let float f = String (Float.to_string f)
-let list ?(separator = "") list = List (separator, list)
+let list ?(separator = "") arr = List (separator, arr)
+let fragment arr = List arr
 let node tag attributes children = Node { tag; attributes; children }
 
 let render element =
@@ -96,13 +97,13 @@ let render element =
     | Node { tag; attributes; _ } when is_self_closing_tag tag ->
         Buffer.add_char out '<';
         Buffer.add_string out tag;
-        List.iter (render_attribute out) attributes;
+        List.iter (write_attribute out) attributes;
         Buffer.add_string out " />"
     | Node { tag; attributes; children } ->
         if tag = "html" then Buffer.add_string out "<!DOCTYPE html>";
         Buffer.add_char out '<';
         Buffer.add_string out tag;
-        List.iter (render_attribute out) attributes;
+        List.iter (write_attribute out) attributes;
         Buffer.add_char out '>';
         List.iter write children;
         Buffer.add_string out "</";
