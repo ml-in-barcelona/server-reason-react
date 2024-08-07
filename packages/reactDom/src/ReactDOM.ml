@@ -8,21 +8,20 @@ let is_react_custom_attribute attr =
 let attribute_to_html attr =
   match attr with
   (* ignores "ref" prop *)
-  | React.JSX.Ref _ -> Html.omitted "ref"
-  | Bool (name, _) when is_react_custom_attribute name -> Html.omitted name
+  | React.JSX.Ref _ -> Html.omitted ()
+  | Bool (name, _) when is_react_custom_attribute name -> Html.omitted ()
   (* false attributes don't get rendered *)
-  | Bool (name, false) -> Html.omitted name
+  | Bool (_name, false) -> Html.omitted ()
   (* true attributes render solely the attribute name *)
   | Bool (name, true) -> Html.present name
   | Style styles -> Html.attribute "style" styles
-  | String (name, _value) when is_react_custom_attribute name ->
-      Html.omitted name
+  | String (name, _value) when is_react_custom_attribute name -> Html.omitted ()
   | String (name, value) -> Html.attribute name value
   (* Events don't get rendered on SSR *)
-  | Event _ -> Html.omitted "Event"
+  | Event _ -> Html.omitted ()
   (* Since we extracted the attribute as children (Element.InnerHtml) in createElement,
      we are very sure there's nothing to render here *)
-  | DangerouslyInnerHtml _ -> Html.omitted "dangerouslySetInnerHTML"
+  | DangerouslyInnerHtml _ -> Html.omitted ()
 
 let attributes_to_html attrs = attrs |> List.map attribute_to_html
 

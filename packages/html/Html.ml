@@ -44,8 +44,11 @@ let escape_and_add out str =
   in
   loop 0 0
 
-type attribute =
-  string * [ `Bool of bool | `Int of int | `Float of float | `String of string ]
+type attribute = [ `Present of string | `Value of string * string | `Omitted ]
+
+let attribute name value = `Value (name, value)
+let present name = `Present name
+let omitted () = `Omitted
 
 let write_attribute out (attr : attribute) =
   let write_name_value name value =
@@ -56,16 +59,11 @@ let write_attribute out (attr : attribute) =
     Buffer.add_char out '"'
   in
   match attr with
-  | _name, `Bool false ->
-      (* false attributes don't get rendered *)
-      ()
-  | name, `Bool true ->
-      (* true attributes render solely the attribute name *)
+  | `Omitted -> ()
+  | `Present name ->
       Buffer.add_char out ' ';
       Buffer.add_string out name
-  | name, `String value -> write_name_value name value
-  | name, `Int value -> write_name_value name (string_of_int value)
-  | name, `Float value -> write_name_value name (string_of_float value)
+  | `Value (name, value) -> write_name_value name value
 
 type element =
   | Null
