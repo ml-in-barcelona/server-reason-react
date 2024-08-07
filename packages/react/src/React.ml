@@ -423,7 +423,7 @@ let attributes_to_map attributes =
       match attr with
       | Bool (key, value) -> acc |> StringMap.add key (Bool (key, value))
       | String (key, value) -> acc |> StringMap.add key (String (key, value))
-      (* The following constructors shoudn't be part of the Map: *)
+      (* The following constructors shoudn't be part of the StringMap *)
       | DangerouslyInnerHtml _ -> acc
       | Ref _ -> acc
       | Event _ -> acc

@@ -274,7 +274,6 @@ let booleanish_string name v = JSX.string name (string_of_bool v)
 [@@@ocamlformat "disable"]
 (* domProps isn't used by the generated code from the ppx, and it's purpose is to
    allow usages from user's code via createElementVariadic and custom usages outside JSX. It needs to be in sync with domProps *)
-(* Props are added alphabetically instead of the order of  *)
 let domProps
   ?key
   ?ref
