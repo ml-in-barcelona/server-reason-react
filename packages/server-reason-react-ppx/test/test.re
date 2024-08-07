@@ -1,3 +1,5 @@
+let test = (title, fn) => Alcotest.test_case(title, `Quick, fn);
+
 let assert_string = (left, right) => {
   Alcotest.check(Alcotest.string, "should be equal", right, left);
 };
@@ -196,15 +198,6 @@ let onClick_empty = () => {
   assert_string(ReactDOM.renderToStaticMarkup(div), {|<div></div>|});
 };
 
-let onclick_inline_string = () => {
-  let onClick = "console.log('clicked')";
-  let div = <div _onclick=onClick />;
-  assert_string(
-    ReactDOM.renderToStaticMarkup(div),
-    {|<div onclick="console.log('clicked')"></div>|},
-  );
-};
-
 let svg_1 = () => {
   assert_string(
     ReactDOM.renderToStaticMarkup(
@@ -326,11 +319,6 @@ let children_multiple_elements = () => {
   );
 };
 
-let case = (title, fn) => Alcotest.test_case(title, `Quick, fn);
-
-let assert_string = (left, right) =>
-  Alcotest.check(Alcotest.string, "should be equal", right, left);
-
 module Text = {
   module Tag = {
     type t =
@@ -399,42 +387,41 @@ let _ =
       (
         "renderToStaticMarkup",
         [
-          case("div", tag),
-          case("div_empty_attr", empty_attribute),
-          case("div_bool_attr", bool_attribute),
-          case("input_bool_attrs", bool_attributes),
-          case("p_inner_html", innerhtml),
-          case("div_int_attr", int_attribute),
-          case("svg_1", svg_1),
-          case("svg_2", svg_2),
-          case("booleanish_props_with_ppx", booleanish_props_with_ppx),
-          case("booleanish_props_without_ppx", booleanish_props_without_ppx),
-          case("style_attr", style_attribute),
-          case("div_ref_attr", ref_attribute),
-          case("link_as_attr", link_as_attribute),
-          case("inner_html_attr", innerhtml_attribute),
-          case("p_inner_html", innerhtml_attribute_complex),
-          case("int_opt_attr_some", int_opt_attribute_some),
-          case("int_opt_attr_none", int_opt_attribute_none),
-          case("string_opt_attr_some", string_opt_attribute_some),
-          case("string_opt_attr_none", string_opt_attribute_none),
-          case("bool_opt_attr_some", bool_opt_attribute_some),
-          case("bool_opt_attr_none", bool_opt_attribute_none),
-          case("style_opt_attr_some", style_opt_attribute_some),
-          case("style_opt_attr_none", style_opt_attribute_none),
-          case("ref_opt_attr_some", ref_opt_attribute_some),
-          case("ref_opt_attr_none", ref_opt_attribute_none),
-          case("test_fragment", fragment),
-          case("test_fragment_with_key", fragment_with_key),
-          case("test_children_uppercase", children_uppercase),
-          case("test_children_lowercase", children_lowercase),
-          case("event_onClick", onClick_empty),
-          case("event_onclick_inline_string", onclick_inline_string),
-          case("children_one_element", children_one_element),
-          case("children_multiple_elements", children_multiple_elements),
-          case("createElementVariadic", create_element_variadic),
-          case("aria_props", aria_props),
-          case("optional_prop", optional_prop),
+          test("div", tag),
+          test("div_empty_attr", empty_attribute),
+          test("div_bool_attr", bool_attribute),
+          test("input_bool_attrs", bool_attributes),
+          test("p_inner_html", innerhtml),
+          test("div_int_attr", int_attribute),
+          test("svg_1", svg_1),
+          test("svg_2", svg_2),
+          test("booleanish_props_with_ppx", booleanish_props_with_ppx),
+          test("booleanish_props_without_ppx", booleanish_props_without_ppx),
+          test("style_attr", style_attribute),
+          test("div_ref_attr", ref_attribute),
+          test("link_as_attr", link_as_attribute),
+          test("inner_html_attr", innerhtml_attribute),
+          test("p_inner_html", innerhtml_attribute_complex),
+          test("int_opt_attr_some", int_opt_attribute_some),
+          test("int_opt_attr_none", int_opt_attribute_none),
+          test("string_opt_attr_some", string_opt_attribute_some),
+          test("string_opt_attr_none", string_opt_attribute_none),
+          test("bool_opt_attr_some", bool_opt_attribute_some),
+          test("bool_opt_attr_none", bool_opt_attribute_none),
+          test("style_opt_attr_some", style_opt_attribute_some),
+          test("style_opt_attr_none", style_opt_attribute_none),
+          test("ref_opt_attr_some", ref_opt_attribute_some),
+          test("ref_opt_attr_none", ref_opt_attribute_none),
+          test("test_fragment", fragment),
+          test("test_fragment_with_key", fragment_with_key),
+          test("test_children_uppercase", children_uppercase),
+          test("test_children_lowercase", children_lowercase),
+          test("event_onClick", onClick_empty),
+          test("children_one_element", children_one_element),
+          test("children_multiple_elements", children_multiple_elements),
+          test("createElementVariadic", create_element_variadic),
+          test("aria_props", aria_props),
+          test("optional_prop", optional_prop),
         ],
       ),
     ],
