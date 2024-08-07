@@ -261,7 +261,7 @@ module Style = ReactDOMStyle
 
 let createDOMElementVariadic (tag : string) ~props
     (childrens : React.element array) =
-  React.createElement tag props (childrens |> Array.to_list)
+  React.createElement tag props (Array.to_list childrens)
 
 let add kind value map =
   match value with Some i -> map |> List.cons (kind i) | None -> map
