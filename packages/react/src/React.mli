@@ -561,6 +561,7 @@ type lower_case_element = {
 and element =
   | Lower_case_element of lower_case_element
   | Upper_case_component of (unit -> element)
+  | Async_component of (unit -> element Lwt.t)
   | List of element array
   | Text of string
   | InnerHtml of string
