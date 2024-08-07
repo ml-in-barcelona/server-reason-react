@@ -32,11 +32,15 @@ let react_dot_async_dot_component = "react.async.component"
 
 (* Helper method to look up the [@react.component] attribute *)
 let hasAttr { attr_name; _ } comparable = attr_name.txt = comparable
-let hasReactComponentAttr { attr_name; _ } = attr_name.txt = "react.component"
+
+let hasReactComponentAttr { attr_name; _ } =
+  attr_name.txt = react_dot_component
+  || attr_name.txt = react_dot_async_dot_component
 
 (* Helper method to filter out any attribute that isn't [@react.component] *)
 let otherAttrsPure { attr_name; _ } =
-  attr_name.txt <> "react.component" && attr_name.txt <> "react.async.component"
+  attr_name.txt <> react_dot_component
+  && attr_name.txt <> react_dot_async_dot_component
 
 let hasNotAttrOnBinding { pvb_attributes } comparable =
   List.find_opt ~f:(fun attr -> hasAttr attr comparable) pvb_attributes = None
