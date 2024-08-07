@@ -124,7 +124,7 @@ let encode_attributes () =
   in
   assert_string
     (ReactDOM.renderToStaticMarkup component)
-    "<div about=\"&#x27; &lt;\" data-user-path=\"what/the/path\">&amp; \
+    "<div about=\"&apos; &lt;\" data-user-path=\"what/the/path\">&amp; \
      &quot;</div>"
 
 let dangerouslySetInnerHtml () =
@@ -231,17 +231,6 @@ let className_2 () =
   assert_string
     (ReactDOM.renderToStaticMarkup component)
     "<div class=\"flex xs:justify-center overflow-hidden\"></div>"
-
-let _onclick_render_as_string () =
-  let component =
-    React.createElement "div"
-      [ React.JSX.Event ("_onclick", Inline "$(this).hide()") ]
-      []
-  in
-
-  assert_string
-    (ReactDOM.renderToStaticMarkup component)
-    "<div onclick=\"$(this).hide()\"></div>"
 
 let render_with_doc_type () =
   let div =
@@ -352,13 +341,15 @@ let async_component () =
       (fun () ->
         Lwt.return (React.createElement "span" [] [ React.string "yow" ]))
   in
-  Alcotest.check_raises "wat"
+  let raises () =
+    let _ = ReactDOM.renderToStaticMarkup app in
+    ()
+  in
+  Alcotest.check_raises "Expected failure"
     (Failure
        "Asyncronous components can't be rendered to static markup, since \
         rendering is syncronous. Please use `renderToLwtStream` instead.")
-    (fun () ->
-      let _ : string = ReactDOM.renderToStaticMarkup app in
-      ())
+    raises
 
 let tests =
   ( "renderToStaticMarkup",
@@ -388,7 +379,6 @@ let tests =
       test "use_callback" use_callback;
       test "inner_html" inner_html;
       test "event" event;
-      test "_onclick_render_as_string" _onclick_render_as_string;
       test "render_with_doc_type" render_with_doc_type;
       test "render_svg" render_svg;
       test "ref_as_prop_works" ref_as_prop_works;

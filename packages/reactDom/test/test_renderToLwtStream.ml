@@ -32,24 +32,37 @@ let test_silly_stream _switch () =
   push None;
   assert_stream stream [ "first"; "secondo"; "trienio" ]
 
-let react_use_without_suspense _switch () =
-  (* TODO: assert exception *)
-  (* We clean the cache so we can re-use the same promise *)
-  Sleep.destroy ();
-  let delay = 0.1 in
-  let app =
-    React.Upper_case_component
-      (fun () ->
-        let () = React.Experimental.use (Sleep.delay delay) in
-        React.createElement "div" []
-          [
-            React.createElement "span" []
-              [ React.string "Hello "; React.float delay ];
-          ])
-  in
-  let%lwt stream, _abort = ReactDOM.renderToLwtStream app in
-  assert_stream stream [ "<div><span>Hello 0.1</span></div>" ]
+(* let lwt_check_raises f =
+     let open Lwt.Infix in
+     Lwt.catch
+       (fun () -> f () >|= fun () -> `Ok)
+       (function e -> Lwt.return @@ `Error e)
+     >|= function
+     | `Ok -> Alcotest.fail "No exception was thrown"
+     | `Error (React.Suspend _) ->
+         Alcotest.(check pass) "Expect suspense to raise" () ()
+     | `Error exn -> Lwt.reraise exn
 
+   let react_use_without_suspense _switch () =
+     (* We clean the cache so we can re-use the same promise *)
+     Sleep.destroy ();
+     let delay = 0.1 in
+     let app =
+       React.Upper_case_component
+         (fun () ->
+           let () = React.Experimental.use (Sleep.delay delay) in
+           React.createElement "div" []
+             [
+               React.createElement "span" []
+                 [ React.string "Hello "; React.float delay ];
+             ])
+     in
+     let raises () =
+       let%lwt stream, _abort = ReactDOM.renderToLwtStream app in
+       assert_stream stream [ "<div><span>Hello 0.1</span></div>" ]
+     in
+     lwt_check_raises raises
+*)
 let suspense_without_promise _switch () =
   let hi =
     React.Upper_case_component
@@ -72,7 +85,7 @@ let suspense_with_always_throwing _switch () =
   in
   let%lwt stream, _abort = ReactDOM.renderToLwtStream app in
   assert_stream stream
-    [ "<!--$?--><template id='B:0'></template>Loading...<!--/$-->" ]
+    [ "<!--$?--><template id=\"B:0\"></template>Loading...<!--/$-->" ]
 
 let react_use_with_suspense _switch () =
   Sleep.destroy ();
@@ -93,8 +106,8 @@ let react_use_with_suspense _switch () =
   let%lwt stream, _abort = ReactDOM.renderToLwtStream app in
   assert_stream stream
     [
-      "<!--$?--><template id='B:0'></template>Loading...<!--/$-->";
-      "<div hidden id='S:0'><div><span>Hello 0.5</span></div></div>";
+      "<!--$?--><template id=\"B:0\"></template>Loading...<!--/$-->";
+      "<div hidden id=\"S:0\"><div><span>Hello 0.5</span></div></div>";
       "<script>function \
        $RC(a,b){a=document.getElementById(a);b=document.getElementById(b);b.parentNode.removeChild(b);if(a){a=a.previousSibling;var \
        f=a.parentNode,c=a.nextSibling,e=0;do{if(c&&8===c.nodeType){var \

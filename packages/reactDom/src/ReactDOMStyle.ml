@@ -349,9 +349,9 @@ let make
   ?(rubyMerge : string option)
   ?(rubyPosition : string option)
   () =
-  (* 
+  (*
      The order of addition matters since it will need to be the same order as
-  the JS object defined in https://github.com/reasonml/reason-react/blob/3327dc214905c4b2863b19807aaac375633645cf/src/dOMStyle.re 
+  the JS object defined in https://github.com/reasonml/reason-react/blob/3327dc214905c4b2863b19807aaac375633645cf/src/dOMStyle.re
 
   The following shell script can be run from the reason-react repository to generate the calls to "add" below:
 
