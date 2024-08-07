@@ -768,4 +768,4 @@ let rewrite_jsx =
 
 let () =
   Ppxlib.Driver.register_transformation "server-reason-react.ppx"
-    ~impl:rewrite_jsx#structure
+    ~impl:rewrite_jsx#structure ~intf:rewrite_jsx#signature
