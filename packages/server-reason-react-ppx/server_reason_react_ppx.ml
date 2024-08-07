@@ -27,14 +27,22 @@ let make_string ~loc str =
   let open Ast_helper in
   Ast_helper.Exp.constant ~loc (Const.string str)
 
+let react_dot_component = "react.component"
+let react_dot_async_dot_component = "react.async.component"
+
 (* Helper method to look up the [@react.component] attribute *)
-let hasAttr { attr_name; _ } = attr_name.txt = "react.component"
+let hasAttr { attr_name; _ } comparable = attr_name.txt = comparable
+let hasReactComponentAttr { attr_name; _ } = attr_name.txt = "react.component"
 
 (* Helper method to filter out any attribute that isn't [@react.component] *)
-let otherAttrsPure { attr_name; _ } = attr_name.txt <> "react.component"
+let otherAttrsPure { attr_name; _ } =
+  attr_name.txt <> "react.component" && attr_name.txt <> "react.async.component"
 
-let hasAttrOnBinding { pvb_attributes } =
-  List.find_opt ~f:hasAttr pvb_attributes <> None
+let hasNotAttrOnBinding { pvb_attributes } comparable =
+  List.find_opt ~f:(fun attr -> hasAttr attr comparable) pvb_attributes = None
+
+let hasAttrOnBinding { pvb_attributes } comparable =
+  List.find_opt ~f:(fun attr -> hasAttr attr comparable) pvb_attributes <> None
 
 let rec unwrap_children children = function
   | { pexp_desc = Pexp_construct ({ txt = Lident "[]"; _ }, None); _ } ->
@@ -65,8 +73,7 @@ let rewrite_component ~loc tag args children =
         (Labelled "children", [%expr React.list [%e pexp_list ~loc children]])
         :: args
   in
-  [%expr
-    React.Upper_case_component (fun () -> [%e pexp_apply ~loc component props])]
+  pexp_apply ~loc component props
 
 let validate_prop ~loc id name =
   match DomProps.findByName id name with
@@ -589,7 +596,21 @@ let rec transform_function_with_warning expression =
       { expression with pexp_desc = Pexp_sequence (wrapperExpression, exp) }
   | _ -> expression
 
-let make_value_binding binding =
+let transofrm_last_expression expr fn =
+  let rec inner expr =
+    match expr.pexp_desc with
+    | Pexp_sequence (expr, sequence) ->
+        pexp_sequence ~loc:expr.pexp_loc expr (inner sequence)
+    | Pexp_let (flag, patt, expression) ->
+        pexp_let ~loc:expr.pexp_loc flag patt (inner expression)
+    | Pexp_fun (label, def, patt, expression) ->
+        pexp_fun ~loc:expr.pexp_loc label def patt (inner expression)
+    | _ -> fn expr
+  in
+
+  inner expr
+
+let make_value_binding binding wrapping =
   let loc = binding.pvb_loc in
   let ghost_loc = { binding.pvb_loc with loc_ghost = true } in
   let binding_expr = transform_function_with_warning binding.pvb_expr in
@@ -607,7 +628,8 @@ let make_value_binding binding =
   (* Append key argument since we want to allow users of this component to set key
      (and assign it to _ since it shouldn't be used) *)
   let body_expression =
-    pexp_fun ~loc:ghost_loc key_arg default_value key_pattern binding_expr
+    pexp_fun ~loc:ghost_loc key_arg default_value key_pattern
+      (transofrm_last_expression binding_expr wrapping)
   in
   Ast_helper.Vb.mk ~loc name body_expression
 
@@ -621,7 +643,7 @@ let rewrite_signature_item signature_item =
           ({ pval_name = { txt = _fnName }; pval_attributes; pval_type } as
            psig_desc);
     } as psig -> (
-      match List.filter ~f:hasAttr pval_attributes with
+      match List.filter ~f:hasReactComponentAttr pval_attributes with
       | [] -> signature_item
       | [ _ ] ->
           {
@@ -651,7 +673,13 @@ let rewrite_structure_item structure_item =
   | Pstr_primitive
       ({ pval_name = { txt = _fnName }; pval_attributes; pval_type = _ } as
        _value_description) -> (
-      match List.filter ~f:hasAttr pval_attributes with
+      match
+        List.filter
+          ~f:(fun attr ->
+            hasAttr attr react_dot_component
+            || hasAttr attr react_dot_async_dot_component)
+          pval_attributes
+      with
       | [] -> structure_item
       | _ ->
           let loc = structure_item.pstr_loc in
@@ -664,7 +692,15 @@ let rewrite_structure_item structure_item =
   (* let component = ... *)
   | Pstr_value (rec_flag, value_bindings) ->
       let map_value_binding vb =
-        if not (hasAttrOnBinding vb) then vb else make_value_binding vb
+        if hasAttrOnBinding vb react_dot_component then
+          make_value_binding vb (fun expr ->
+              let loc = expr.pexp_loc in
+              [%expr React.Upper_case_component [%e expr]])
+        else if hasAttrOnBinding vb react_dot_async_dot_component then
+          make_value_binding vb (fun expr ->
+              let loc = expr.pexp_loc in
+              [%expr React.Async_component [%e expr]])
+        else vb
       in
       let bindings = List.map ~f:map_value_binding value_bindings in
       pstr_value ~loc:structure_item.pstr_loc rec_flag bindings
@@ -674,11 +710,11 @@ let rewrite_jsx =
   object (_ : Ast_traverse.map)
     inherit Ast_traverse.map as super
 
-    method! signature_item signature_item =
-      rewrite_signature_item (super#signature_item signature_item)
-
     method! structure_item structure_item =
       rewrite_structure_item (super#structure_item structure_item)
+
+    method! signature_item signature_item =
+      rewrite_signature_item (super#signature_item signature_item)
 
     method! expression expr =
       let expr = super#expression expr in
