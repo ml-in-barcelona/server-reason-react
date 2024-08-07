@@ -10,4 +10,4 @@
   alcotest
   alcotest-lwt)
  (preprocess
-  (pps server-reason-react.ppx)))
+  (pps server-reason-react.ppx lwt_ppx)))

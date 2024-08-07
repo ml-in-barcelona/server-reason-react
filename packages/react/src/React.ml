@@ -383,6 +383,7 @@ type lower_case_element = {
 and element =
   | Lower_case_element of lower_case_element
   | Upper_case_component of (unit -> element)
+  | Async_component of (unit -> element Lwt.t)
   | List of element array
   | Text of string
   | InnerHtml of string
@@ -422,7 +423,7 @@ let attributes_to_map attributes =
       match attr with
       | Bool (key, value) -> acc |> StringMap.add key (Bool (key, value))
       | String (key, value) -> acc |> StringMap.add key (String (key, value))
-      (* The following constructors shoudn't be part of the Map: *)
+      (* The following constructors shoudn't be part of the StringMap *)
       | DangerouslyInnerHtml _ -> acc
       | Ref _ -> acc
       | Event _ -> acc
@@ -470,7 +471,8 @@ let createElement tag attributes children =
   | true -> Lower_case_element { tag; attributes; children = [] }
   | false -> create_element_inner tag attributes children
 
-(* cloneElements overrides childrens but is not always obvious what to do with
+(* cloneElements overrides childrens and props but is not clear
+   what to do with other components that are not lower_case_elements
    Provider, Consumer or Suspense. TODO: Check original (JS) implementation *)
 let cloneElement element new_attributes =
   match element with
@@ -489,6 +491,7 @@ let cloneElement element new_attributes =
   | Provider child -> Provider child
   | Consumer child -> Consumer child
   | Upper_case_component f -> Upper_case_component f
+  | Async_component f -> Async_component f
   | Suspense { fallback; children } -> Suspense { fallback; children }
 
 module Fragment = struct

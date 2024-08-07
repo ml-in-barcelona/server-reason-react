@@ -4,7 +4,7 @@ let assert_string left right =
 let assert_list ty left right =
   Alcotest.check (Alcotest.list ty) "should be equal" right left
 
-let case title fn = Alcotest_lwt.test_case title `Quick fn
+let test title fn = Alcotest_lwt.test_case title `Quick fn
 
 let assert_stream (stream : string Lwt_stream.t) expected =
   let open Lwt.Infix in
@@ -47,7 +47,7 @@ let react_use_without_suspense _switch () =
               [ React.string "Hello "; React.float delay ];
           ])
   in
-  let stream, _abort = ReactDOM.renderToLwtStream app in
+  let%lwt stream, _abort = ReactDOM.renderToLwtStream app in
   assert_stream stream [ "<div><span>Hello 0.1</span></div>" ]
 
 let suspense_without_promise _switch () =
@@ -60,7 +60,7 @@ let suspense_without_promise _switch () =
   let app =
     React.Suspense { fallback = React.string "Loading..."; children = hi }
   in
-  let stream, _abort = ReactDOM.renderToLwtStream app in
+  let%lwt stream, _abort = ReactDOM.renderToLwtStream app in
   assert_stream stream [ "<div><span>Hello</span></div>" ]
 
 let suspense_with_always_throwing _switch () =
@@ -70,7 +70,7 @@ let suspense_with_always_throwing _switch () =
   let app =
     React.Suspense { fallback = React.string "Loading..."; children = hi }
   in
-  let stream, _abort = ReactDOM.renderToLwtStream app in
+  let%lwt stream, _abort = ReactDOM.renderToLwtStream app in
   assert_stream stream
     [ "<!--$?--><template id='B:0'></template>Loading...<!--/$-->" ]
 
@@ -90,7 +90,7 @@ let react_use_with_suspense _switch () =
   let app =
     React.Suspense { fallback = React.string "Loading..."; children = time }
   in
-  let stream, _abort = ReactDOM.renderToLwtStream app in
+  let%lwt stream, _abort = ReactDOM.renderToLwtStream app in
   assert_stream stream
     [
       "<!--$?--><template id='B:0'></template>Loading...<!--/$-->";
@@ -111,7 +111,7 @@ let test_with_custom_component _switch () =
           [ React.createElement "span" [] [ React.string "Custom Component" ] ])
   in
   let app = React.createElement "div" [] [ custom_component ] in
-  let stream, _abort = ReactDOM.renderToLwtStream app in
+  let%lwt stream, _abort = ReactDOM.renderToLwtStream app in
   assert_stream stream [ "<div><div><span>Custom Component</span></div></div>" ]
 
 let test_with_multiple_custom_components _switch () =
@@ -124,19 +124,29 @@ let test_with_multiple_custom_components _switch () =
   let app =
     React.createElement "div" [] [ custom_component; custom_component ]
   in
-  let stream, _abort = ReactDOM.renderToLwtStream app in
+  let%lwt stream, _abort = ReactDOM.renderToLwtStream app in
   assert_stream stream
     [
       "<div><div><span>Custom Component</span></div><div><span>Custom \
        Component</span></div></div>";
     ]
 
+let async_component _switch () =
+  let app =
+    React.Async_component
+      (fun () ->
+        Lwt.return (React.createElement "span" [] [ React.string "yow" ]))
+  in
+  let%lwt stream, _abort = ReactDOM.renderToLwtStream app in
+  assert_stream stream [ "<span>yow</span>" ]
+
 let tests =
   ( "renderToLwtStream",
     [
-      case "test_silly_stream" test_silly_stream;
-      (* case "react_use_without_suspense" react_use_without_suspense; *)
-      case "suspense_with_always_throwing" suspense_with_always_throwing;
-      case "suspense_without_promise" suspense_without_promise;
-      case "react_use_with_suspense" react_use_with_suspense;
+      test "test_silly_stream" test_silly_stream;
+      (* test "react_use_without_suspense" react_use_without_suspense; *)
+      test "suspense_with_always_throwing" suspense_with_always_throwing;
+      test "suspense_without_promise" suspense_without_promise;
+      test "react_use_with_suspense" react_use_with_suspense;
+      test "async component" async_component;
     ] )

@@ -11,7 +11,8 @@ val renderToStaticMarkup : React.element -> string
 
 Similar to {{:https://react.dev/reference/react-dom/server/renderToStaticMarkup}} *)
 
-val renderToLwtStream : React.element -> string Lwt_stream.t * (unit -> unit)
+val renderToLwtStream :
+  React.element -> (string Lwt_stream.t * (unit -> unit)) Lwt.t
 (** renderToPipeableStream renders a React tree to a Lwt_stream.t.
 
 Similar to {{:https://react.dev/reference/react-dom/server/renderToPipeableStream}} *)

@@ -70,6 +70,7 @@ let render_to_string ~mode element =
   (* previous_was_text_node is the flag to enable rendering comments
      <!-- --> between text nodes *)
   let previous_was_text_node = ref false in
+
   let rec render_element element =
     match element with
     | Empty -> ""
@@ -78,7 +79,11 @@ let render_to_string ~mode element =
     | Fragment children -> render_element children
     | List list ->
         list |> Array.map render_element |> Array.to_list |> String.concat ""
-    | Upper_case_component f -> render_element (f ())
+    | Upper_case_component component -> render_element (component ())
+    | Async_component _component ->
+        failwith
+          "Asyncronous components can't be rendered to static markup, since \
+           rendering is syncronous. Please use `renderToLwtStream` instead."
     | Lower_case_element { tag; attributes; _ }
       when Html.is_self_closing_tag tag ->
         is_root.contents <- false;
@@ -157,23 +162,32 @@ let render_inline_rc_replacement replacements =
 let render_to_stream ~context_state element =
   let rec render_element element =
     match element with
-    | Empty -> ""
+    | Empty -> Lwt.return ""
     | Provider children -> render_element children
     | Consumer children -> render_element children
     | Fragment children -> render_element children
     | List arr ->
-        arr |> Array.to_list |> List.map render_element |> String.concat ""
+        let%lwt children_elements =
+          arr |> Array.to_list |> Lwt_list.map_p render_element
+        in
+        Lwt.return (String.concat "" children_elements)
     | Upper_case_component component -> render_element (component ())
     | Lower_case_element { tag; attributes; _ }
       when Html.is_self_closing_tag tag ->
-        Printf.sprintf "<%s%s />" tag (attributes_to_string attributes)
+        Lwt.return
+          (Printf.sprintf "<%s%s />" tag (attributes_to_string attributes))
+    | Async_component component ->
+        let%lwt element = component () in
+        render_element element
     | Lower_case_element { tag; attributes; children } ->
-        Printf.sprintf "<%s%s>%s</%s>" tag
-          (attributes_to_string attributes)
-          (children |> List.map render_element |> String.concat "")
-          tag
-    | Text text -> Html.encode text
-    | InnerHtml text -> text
+        let%lwt children_elements = children |> Lwt_list.map_p render_element in
+        Lwt.return
+          (Printf.sprintf "<%s%s>%s</%s>" tag
+             (attributes_to_string attributes)
+             (String.concat "" children_elements)
+             tag)
+    | Text text -> Lwt.return (Html.encode text)
+    | InnerHtml text -> Lwt.return text
     | Suspense { children; fallback } -> (
         match render_element children with
         | output -> output
@@ -185,11 +199,12 @@ let render_to_stream ~context_state element =
             context_state.boundary_id <- context_state.boundary_id + 1;
             (* Wait for promise to resolve *)
             Lwt.async (fun () ->
-                Lwt.map
-                  (fun _ ->
+                Lwt.bind promise (fun _ ->
                     (* Enqueue the component with resolved data *)
-                    context_state.push
-                      (render_resolved_element ~id:current_suspense_id children);
+                    let%lwt resolved =
+                      render_resolved_element ~id:current_suspense_id children
+                    in
+                    context_state.push resolved;
                     (* Enqueue the inline script that replaces fallback by resolved *)
                     context_state.push inline_complete_boundary_script;
                     context_state.push
@@ -197,18 +212,22 @@ let render_to_stream ~context_state element =
                          [ (current_boundary_id, current_suspense_id) ]);
                     context_state.waiting <- context_state.waiting - 1;
                     context_state.suspense_id <- context_state.suspense_id + 1;
-                    if context_state.waiting = 0 then context_state.close ())
-                  promise);
+                    if context_state.waiting = 0 then context_state.close ();
+                    Lwt.return_unit));
             (* Return the rendered fallback to SSR syncronous *)
             render_fallback ~boundary_id:current_boundary_id fallback
         | exception _exn ->
             (* TODO: log exn *)
             render_fallback ~boundary_id:context_state.boundary_id fallback)
   and render_resolved_element ~id element =
-    Printf.sprintf "<div hidden id='S:%i'>%s</div>" id (render_element element)
+    render_element element
+    |> Lwt.map (fun html ->
+           Printf.sprintf "<div hidden id='S:%i'>%s</div>" id html)
   and render_fallback ~boundary_id element =
-    Printf.sprintf "<!--$?--><template id='B:%i'></template>%s<!--/$-->"
-      boundary_id (render_element element)
+    render_element element
+    |> Lwt.map (fun element ->
+           Printf.sprintf "<!--$?--><template id='B:%i'></template>%s<!--/$-->"
+             boundary_id element)
   in
   render_element element
 
@@ -217,14 +236,18 @@ let renderToLwtStream element =
   let context_state =
     { stream; push; close; waiting = 0; boundary_id = 0; suspense_id = 0 }
   in
-  let shell = render_to_stream ~context_state element in
+  let%lwt shell = render_to_stream ~context_state element in
   push shell;
   if context_state.waiting = 0 then close ();
-  (* TODO: Needs to flush the remaining loading fallbacks as HTML, and will attempt to render the rest on the client. *)
-  let abort () = (* Lwt_stream.closed stream |> Lwt.ignore_result *) () in
-  (stream, abort)
+  let abort () =
+    (* TODO: Needs to flush the remaining loading fallbacks as HTML, and React.js will try to render the rest on the client. *)
+    (* Lwt_stream.closed stream |> Lwt.ignore_result *)
+    failwith "abort() isn't supported yet"
+  in
+  Lwt.return (stream, abort)
 
-let querySelector _str = None
+let querySelector _str =
+  Runtime.fail_impossible_action_in_ssr "ReactDOM.querySelector"
 
 let render _element _node =
   Runtime.fail_impossible_action_in_ssr "ReactDOM.render"
@@ -238,7 +261,7 @@ module Style = ReactDOMStyle
 
 let createDOMElementVariadic (tag : string) ~props
     (childrens : React.element array) =
-  React.createElement tag props (childrens |> Array.to_list)
+  React.createElement tag props (Array.to_list childrens)
 
 let add kind value map =
   match value with Some i -> map |> List.cons (kind i) | None -> map
@@ -251,7 +274,6 @@ let booleanish_string name v = JSX.string name (string_of_bool v)
 [@@@ocamlformat "disable"]
 (* domProps isn't used by the generated code from the ppx, and it's purpose is to
    allow usages from user's code via createElementVariadic and custom usages outside JSX. It needs to be in sync with domProps *)
-(* Props are added alphabetically instead of the order of  *)
 let domProps
   ?key
   ?ref
