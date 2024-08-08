@@ -699,11 +699,11 @@ let rewrite_structure_item structure_item =
         if hasAttrOnBinding vb react_dot_component then
           make_value_binding vb (fun expr ->
               let loc = expr.pexp_loc in
-              [%expr React.Upper_case_component [%e expr]])
+              [%expr React.Upper_case_component (fun () -> [%e expr])])
         else if hasAttrOnBinding vb react_dot_async_dot_component then
           make_value_binding vb (fun expr ->
               let loc = expr.pexp_loc in
-              [%expr React.Async_component [%e expr]])
+              [%expr React.Async_component (fun () -> Lwt.return [%e expr])])
         else vb
       in
       let bindings = List.map ~f:map_value_binding value_bindings in
