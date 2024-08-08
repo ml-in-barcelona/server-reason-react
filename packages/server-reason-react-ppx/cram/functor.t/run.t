@@ -8,8 +8,7 @@ We need to output ML syntax here, otherwise refmt could not parse it.
   module Func (M : X_int) = struct
     let x = M.x + 1
   
-    let make ?key:(_ : string option) ~a =
-     fun [@warning "-16"] ~b () ->
+    let make ?key:(_ : string option) ~a ~b () =
       print_endline "This function should be named `Test$Func`" M.x;
-      React.createElement "div" [] []
+      React.Upper_case_component (fun () -> React.createElement "div" [] [])
   end

@@ -9,10 +9,9 @@
   let nested_fragment_with_lower = foo =>
     React.fragment(React.list([React.createElement("div", [], [foo])]));
   module Fragment = {
-    let make = (~key as _: option(string)=?) =>
-      [@warning "-16"]
-      (
-        (~name="", ()) =>
+    let make = (~key as _: option(string)=?, ~name="", ()) =>
+      React.Upper_case_component(
+        () =>
           React.fragment(
             React.list([
               React.createElement(
@@ -20,15 +19,8 @@
                 [],
                 [React.string("First " ++ name)],
               ),
-              React.Upper_case_component(
-                () =>
-                  Hello.make(
-                    ~children=React.string("2nd " ++ name),
-                    ~one="1",
-                    (),
-                  ),
-              ),
+              Hello.make(~children=React.string("2nd " ++ name), ~one="1", ()),
             ]),
-          )
+          ),
       );
   };
