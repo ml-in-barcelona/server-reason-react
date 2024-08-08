@@ -117,3 +117,11 @@ docs-open: ## Open odoc docs with default web browser
 
 .PHONY: docs-serve
 docs-serve: docs docs-open ## Open odoc docs with default web browser
+
+.PHONY: bench
+bench: ## Run benchmark
+	$(DUNE) exec bench/main.exe --profile=release --display-separate-messages --no-print-directory
+
+.PHONY: bench-watch
+bench-watch: ## Run benchmark in watch mode
+	$(DUNE) exec bench/main.exe --profile=release --display-separate-messages --no-print-directory --watch
