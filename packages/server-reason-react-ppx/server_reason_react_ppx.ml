@@ -89,6 +89,13 @@ let validate_prop ~loc id name =
              If this isn't correct, please open an issue at %s." name id
             suggestion issues_url)
 
+let event_callback_expr ~loc =
+  [%expr
+    [%e
+      Ast_builder.Default.(
+        pexp_fun ~loc Nolabel None (ppat_any ~loc)
+          (pexp_construct ~loc (Located.lident ~loc "()") None))]]
+
 let make_prop ~is_optional ~prop attribute_name attribute_value =
   let loc = attribute_value.pexp_loc in
   let open DomProps in
@@ -166,14 +173,19 @@ let make_prop ~is_optional ~prop attribute_name attribute_value =
           (React.JSX.Event
              ( [%e make_string ~loc jsxName],
                React.JSX.Mouse
-                 ([%e attribute_value] : React.Event.Mouse.t -> unit) ))]
+                 ([%e event_callback_expr ~loc] : React.Event.Mouse.t -> unit)
+             ))]
   | Event { type_ = Mouse; jsxName }, true ->
       [%expr
         match ([%e attribute_value] : (React.Event.Mouse.t -> unit) option) with
         | None -> None
-        | Some v ->
+        | Some _ ->
             Some
-              (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Mouse v))]
+              (React.JSX.Event
+                 ( [%e make_string ~loc jsxName],
+                   React.JSX.Mouse
+                     ([%e event_callback_expr ~loc]
+                       : React.Event.Mouse.t -> unit) ))]
   | Event { type_ = Selection; jsxName }, false ->
       [%expr
         Some
@@ -187,10 +199,13 @@ let make_prop ~is_optional ~prop attribute_name attribute_value =
           ([%e attribute_value] : (React.Event.Selection.t -> unit) option)
         with
         | None -> None
-        | Some v ->
+        | Some _ ->
             Some
               (React.JSX.Event
-                 ([%e make_string ~loc jsxName], React.JSX.Selection v))]
+                 ( [%e make_string ~loc jsxName],
+                   React.JSX.Selection
+                     ([%e event_callback_expr ~loc]
+                       : React.Event.Mouse.t -> unit) ))]
   | Event { type_ = Touch; jsxName }, false ->
       [%expr
         Some
@@ -202,9 +217,13 @@ let make_prop ~is_optional ~prop attribute_name attribute_value =
       [%expr
         match ([%e attribute_value] : (React.Event.Touch.t -> unit) option) with
         | None -> None
-        | Some v ->
+        | Some _ ->
             Some
-              (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Touch v))]
+              (React.JSX.Event
+                 ( [%e make_string ~loc jsxName],
+                   React.JSX.Touch
+                     ([%e event_callback_expr ~loc]
+                       : React.Event.Mouse.t -> unit) ))]
   | Event { type_ = UI; jsxName }, false ->
       [%expr
         Some
@@ -215,9 +234,13 @@ let make_prop ~is_optional ~prop attribute_name attribute_value =
       [%expr
         match ([%e attribute_value] : (React.Event.UI.t -> unit) option) with
         | None -> None
-        | Some v ->
+        | Some _ ->
             Some
-              (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.UI v))]
+              (React.JSX.Event
+                 ( [%e make_string ~loc jsxName],
+                   React.JSX.UI
+                     ([%e event_callback_expr ~loc]
+                       : React.Event.Mouse.t -> unit) ))]
   | Event { type_ = Wheel; jsxName }, false ->
       [%expr
         Some
@@ -229,9 +252,13 @@ let make_prop ~is_optional ~prop attribute_name attribute_value =
       [%expr
         match ([%e attribute_value] : (React.Event.Wheel.t -> unit) option) with
         | None -> None
-        | Some v ->
+        | Some _ ->
             Some
-              (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Wheel v))]
+              (React.JSX.Event
+                 ( [%e make_string ~loc jsxName],
+                   React.JSX.Wheel
+                     ([%e event_callback_expr ~loc]
+                       : React.Event.Mouse.t -> unit) ))]
   | Event { type_ = Clipboard; jsxName }, false ->
       [%expr
         Some
@@ -245,10 +272,13 @@ let make_prop ~is_optional ~prop attribute_name attribute_value =
           ([%e attribute_value] : (React.Event.Clipboard.t -> unit) option)
         with
         | None -> None
-        | Some v ->
+        | Some _ ->
             Some
               (React.JSX.Event
-                 ([%e make_string ~loc jsxName], React.JSX.Clipboard v))]
+                 ( [%e make_string ~loc jsxName],
+                   React.JSX.Clipboard
+                     ([%e event_callback_expr ~loc]
+                       : React.Event.Mouse.t -> unit) ))]
   | Event { type_ = Composition; jsxName }, false ->
       [%expr
         Some
@@ -262,10 +292,13 @@ let make_prop ~is_optional ~prop attribute_name attribute_value =
           ([%e attribute_value] : (React.Event.Composition.t -> unit) option)
         with
         | None -> None
-        | Some v ->
+        | Some _ ->
             Some
               (React.JSX.Event
-                 ([%e make_string ~loc jsxName], React.JSX.Composition v))]
+                 ( [%e make_string ~loc jsxName],
+                   React.JSX.Composition
+                     ([%e event_callback_expr ~loc]
+                       : React.Event.Mouse.t -> unit) ))]
   | Event { type_ = Keyboard; jsxName }, false ->
       [%expr
         Some
@@ -279,10 +312,13 @@ let make_prop ~is_optional ~prop attribute_name attribute_value =
           ([%e attribute_value] : (React.Event.Keyboard.t -> unit) option)
         with
         | None -> None
-        | Some v ->
+        | Some _ ->
             Some
               (React.JSX.Event
-                 ([%e make_string ~loc jsxName], React.JSX.Keyboard v))]
+                 ( [%e make_string ~loc jsxName],
+                   React.JSX.Keyboard
+                     ([%e event_callback_expr ~loc]
+                       : React.Event.Mouse.t -> unit) ))]
   | Event { type_ = Focus; jsxName }, false ->
       [%expr
         Some
@@ -294,9 +330,13 @@ let make_prop ~is_optional ~prop attribute_name attribute_value =
       [%expr
         match ([%e attribute_value] : (React.Event.Focus.t -> unit) option) with
         | None -> None
-        | Some v ->
+        | Some _ ->
             Some
-              (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Focus v))]
+              (React.JSX.Event
+                 ( [%e make_string ~loc jsxName],
+                   React.JSX.Focus
+                     ([%e event_callback_expr ~loc]
+                       : React.Event.Mouse.t -> unit) ))]
   | Event { type_ = Form; jsxName }, false ->
       [%expr
         Some
@@ -308,9 +348,13 @@ let make_prop ~is_optional ~prop attribute_name attribute_value =
       [%expr
         match ([%e attribute_value] : (React.Event.Form.t -> unit) option) with
         | None -> None
-        | Some v ->
+        | Some _ ->
             Some
-              (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Form v))]
+              (React.JSX.Event
+                 ( [%e make_string ~loc jsxName],
+                   React.JSX.Form
+                     ([%e event_callback_expr ~loc]
+                       : React.Event.Mouse.t -> unit) ))]
   | Event { type_ = Media; jsxName }, false ->
       [%expr
         Some
@@ -322,9 +366,13 @@ let make_prop ~is_optional ~prop attribute_name attribute_value =
       [%expr
         match ([%e attribute_value] : (React.Event.Media.t -> unit) option) with
         | None -> None
-        | Some v ->
+        | Some _ ->
             Some
-              (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Media v))]
+              (React.JSX.Event
+                 ( [%e make_string ~loc jsxName],
+                   React.JSX.Media
+                     ([%e event_callback_expr ~loc]
+                       : React.Event.Mouse.t -> unit) ))]
   | Event { type_ = Inline; jsxName }, false ->
       [%expr
         Some
@@ -335,10 +383,13 @@ let make_prop ~is_optional ~prop attribute_name attribute_value =
       [%expr
         match ([%e attribute_value] : string option) with
         | None -> None
-        | Some v ->
+        | Some _ ->
             Some
               (React.JSX.Event
-                 ([%e make_string ~loc jsxName], React.JSX.Inline v))]
+                 ( [%e make_string ~loc jsxName],
+                   React.JSX.Inline
+                     ([%e event_callback_expr ~loc]
+                       : React.Event.Mouse.t -> unit) ))]
   | Event { type_ = Image; jsxName }, false ->
       [%expr
         Some
@@ -351,9 +402,13 @@ let make_prop ~is_optional ~prop attribute_name attribute_value =
       [%expr
         match ([%e attribute_value] : (React.Event.Image.t -> unit) option) with
         | None -> None
-        | Some v ->
+        | Some _ ->
             Some
-              (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Image v))]
+              (React.JSX.Event
+                 ( [%e make_string ~loc jsxName],
+                   React.JSX.Image
+                     ([%e event_callback_expr ~loc]
+                       : React.Event.Mouse.t -> unit) ))]
   | Event { type_ = Animation; jsxName }, false ->
       [%expr
         Some
@@ -367,10 +422,13 @@ let make_prop ~is_optional ~prop attribute_name attribute_value =
           ([%e attribute_value] : (React.Event.Animation.t -> unit) option)
         with
         | None -> None
-        | Some v ->
+        | Some _ ->
             Some
               (React.JSX.Event
-                 ([%e make_string ~loc jsxName], React.JSX.Animation v))]
+                 ( [%e make_string ~loc jsxName],
+                   React.JSX.Animation
+                     ([%e event_callback_expr ~loc]
+                       : React.Event.Mouse.t -> unit) ))]
   | Event { type_ = Transition; jsxName }, false ->
       [%expr
         Some
@@ -384,10 +442,13 @@ let make_prop ~is_optional ~prop attribute_name attribute_value =
           ([%e attribute_value] : (React.Event.Transition.t -> unit) option)
         with
         | None -> None
-        | Some v ->
+        | Some _ ->
             Some
               (React.JSX.Event
-                 ([%e make_string ~loc jsxName], React.JSX.Transition v))]
+                 ( [%e make_string ~loc jsxName],
+                   React.JSX.Transition
+                     ([%e event_callback_expr ~loc]
+                       : React.Event.Mouse.t -> unit) ))]
   | Event { type_ = Pointer; jsxName }, false ->
       [%expr
         Some
@@ -401,10 +462,13 @@ let make_prop ~is_optional ~prop attribute_name attribute_value =
           ([%e attribute_value] : (React.Event.Pointer.t -> unit) option)
         with
         | None -> None
-        | Some v ->
+        | Some _ ->
             Some
               (React.JSX.Event
-                 ([%e make_string ~loc jsxName], React.JSX.Pointer v))]
+                 ( [%e make_string ~loc jsxName],
+                   React.JSX.Pointer
+                     ([%e event_callback_expr ~loc]
+                       : React.Event.Mouse.t -> unit) ))]
   | Event { type_ = Drag; jsxName }, false ->
       [%expr
         Some
@@ -416,9 +480,13 @@ let make_prop ~is_optional ~prop attribute_name attribute_value =
       [%expr
         match ([%e attribute_value] : (React.Event.Drag.t -> unit) option) with
         | None -> None
-        | Some v ->
+        | Some _ ->
             Some
-              (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Drag v))]
+              (React.JSX.Event
+                 ( [%e make_string ~loc jsxName],
+                   React.JSX.Drag
+                     ([%e event_callback_expr ~loc]
+                       : React.Event.Mouse.t -> unit) ))]
 
 let is_optional = function Optional _ -> true | _ -> false
 

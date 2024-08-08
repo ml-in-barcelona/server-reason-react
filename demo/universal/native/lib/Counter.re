@@ -7,8 +7,15 @@ let make = (~initial) => {
   | Client => print_endline("This prints to the console")
   };
 
-  let onClick = _event => {
-    setCount(count + 1);
+  let onClick = () => {
+    // For sample purposes take a look on this comment and the one on line 36
+    // This Js.log(1); should throw an error
+    // because we have no browser%only or switch%platform
+    // uncomment the line below and see the error
+    // Js.log(1);
+    setCount(
+      count + 1,
+    );
   };
 
   <div className={Theme.text(Theme.Color.white)}>
@@ -25,7 +32,14 @@ let make = (~initial) => {
         </p>
         <button
           className="font-mono border-2 py-1 px-2 rounded-lg bg-yellow-950 border-yellow-700 text-yellow-200"
-          onClick>
+          onClick={_ => {
+            // For sample purposes take a look on this comment and the one on line 11
+            // This Js.log(1); should throw an error
+            // but as all event callbacks are not called on native.
+            // uncomment the line below and see that it doesn't throw any error
+            // Js.log(1);
+            onClick()
+          }}>
           {React.string(Int.to_string(count))}
         </button>
       </div>
