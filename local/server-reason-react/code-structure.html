@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title>code-structure (docs.local.server-reason-react.code-structure)</title><meta charset="utf-8"/><link rel="stylesheet" href="../../odoc.support/odoc.css"/><meta name="generator" content="odoc 2.4.2"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/><script src="../../odoc.support/highlight.pack.js"></script><script>hljs.initHighlightingOnLoad();</script></head><body class="odoc"><nav class="odoc-nav"><a href="index.html">Up</a> – <a href="../../index.html">docs</a> &#x00BB; <a href="../index.html">local</a> &#x00BB; <a href="index.html">server-reason-react</a> &#x00BB; code-structure</nav><header class="odoc-preamble"><h1 id="how-to-organise-the-universal-code"><a href="#how-to-organise-the-universal-code" class="anchor"></a>How to organise the universal code</h1><p>While using <code>server-reason-react</code> it's important to know how to organise the code. Sometimes you may want to have components that are shared between the client and the server, and sometimes you want to have components that are only used by the client or the server.</p><p>In this guide, we will asume you are using <a href="https://melange.re/">Melange</a> and <a href="https://dune.readthedocs.io/en/stable/">dune</a>, and will show a few examples of universal code and how to setup the dune files accordingly.</p></header><nav class="odoc-toc"><ul><li><a href="#kinds">Pure universal library</a></li><li><a href="#kinds_2">Same API, different implementations</a></li><li><a href="#kinds_3">copy_files</a></li><li><a href="#reason-react-and-server-reason-react">reason-react and server-reason-react</a></li><li><a href="#kinds_4">Note on virtual_libraries</a></li><li><a href="#next">Next</a></li></ul></nav><div class="odoc-content"><h2 id="kinds"><a href="#kinds" class="anchor"></a>Pure universal library</h2><p>It's a library without any client or server dependency, you can just have a library with all modes: <code>(modes native byte melange)</code>. This is common for type-only libraries or libraries that only rely on the standard library. I often refer to this as &quot;pure universal&quot; library.</p><p>A tiny library to handle remote data named <code>Remote_data</code>:</p><pre class="language-ocaml"><code>(library
+ (name remote_data)
+ (modes native melange)) ; Contains both modes for melange and native</code></pre><pre class="language-ocaml"><code>type t('data, 'error) =
+  | NotAsked
+  | InitialLoading
+  | Loading('data)
+  | Failure('error)
+  | Success('data);
+
+let map = (remoteData, fn) =&gt;
+  switch (remoteData) {
+  | NotAsked =&gt; NotAsked
+  | InitialLoading
+  | Loading(_) =&gt; InitialLoading
+  | Failure(error) =&gt; Failure(error)
+  | Success(data) =&gt; Success(fn(data))
+  };
+
+let getWithDefault = (remoteData, defaultValue) =&gt;
+  switch (remoteData) {
+  | NotAsked
+  | InitialLoading
+  | Loading(_)
+  | Failure(_) =&gt; defaultValue
+  | Success(data) =&gt; data
+  };
+
+let isLoading =
+  fun
+  | InitialLoading
+  | Loading(_) =&gt; true
+  | _ =&gt; false;</code></pre><p>This is a cut down version of the library for demonstration purposes, you can imagine to have all necessary functions to operate on this type.</p><p>This library can be used in both &quot;native&quot; and &quot;melagne&quot; stanzas interchangeably.</p><h2 id="kinds_2"><a href="#kinds_2" class="anchor"></a>Same API, different implementations</h2><p>There are some other cases where you want to expose the same API, but the implementation is different.</p><p>For example, another tiny example: you may want to have a library that exposes a function to get the current time. On the client, you may want to use the browser API, while on the server you may want to use the system time.</p><p><code>dune</code> allows to have 2 libraries with the same name, but available in different modes. For example:</p><pre class="language-ocaml"><code>(library
+  (name url_js)
+  (modes melange)
+  (libraries melange.js)
+  (modules Url)
+  (wrapped false))
+
+(library
+  (name url_native)
+  (modes native)
+  (modules Url)
+  (wrapped false))</code></pre><p><code>url_js</code> and <code>url_native</code> are two different libraries, but they expose the same module called <code>Url</code> with the same API.</p><p>Both libraries need to be <code>(wrapped false)</code> so they expose all the modules (which in this case is only <code>Url</code>) directly.</p><p><code>wrapped true</code> means that the library is wrapped in a entry module, so the modules are exposed under the library name. In this case, <code>wrapped false</code> expose the modules directly.</p><h2 id="kinds_3"><a href="#kinds_3" class="anchor"></a>copy_files</h2><p>In order to reuse the same code, you can use <a href="https://dune.readthedocs.io/en/stable/dune-files.html#copy-files">(copy_files ...)</a>. It seems hacky, and eventually we will have better ways of doing so, but is the method I found to be more reliable in terms of developer experience, mostly editor support and error messages.</p><pre class="language-ocaml"><code>- src
+  - client/
+    - dune
+  - server/
+    - shared/
+        &lt;library-code-here&gt;
+    - dune</code></pre><pre class="language-ocaml"><code>(* src/client/dune *)
+
+(library
+  (name url_js)
+  (modes melange)
+  (libraries melange.js)
+  (wrapped false)
+  (modules Url)
+  (preprocess (pps melange.ppx))
+
+(copy_files#
+ (mode fallback) ; `mode fallback` means you can override files in the client folder
+ (files &quot;../native/shared/**.{re,rei}&quot;))</code></pre><pre class="language-ocaml"><code>(* src/server/dune *)
+
+(library
+  (name url_native)
+  (modes native)
+  (modules Url)
+  (wrapped false))</code></pre><p>Here's an example <code>https://github.com/ml-in-barcelona/server-reason-react/tree/main/demo/universal</code></p><h2 id="reason-react-and-server-reason-react"><a href="#reason-react-and-server-reason-react" class="anchor"></a>reason-react and server-reason-react</h2><p>Asuming you want to share react.components between the client and the server, you can use the same technique as above.</p><pre class="language-ocaml"><code>(library
+ (name shared_js)
+ (modes melange)
+ (libraries reason_react melange.belt bs_webapi)
+ (wrapped false)
+ (preprocess
+  (pps melange.ppx reason-react-ppx)))
+
+(copy_files# &quot;../native/lib/*.re&quot;)
+
+(library
+ (name shared_native)
+ (modes native)
+ (libraries
+  server-reason-react.react
+  server-reason-react.reactDom
+  server-reason-react.belt
+  server-reason-react.webapi)
+ (wrapped false)
+ (preprocess
+  (pps
+    server-reason-react.ppx
+    server-reason-react.browser_ppx
+    server-reason-react.melange_ppx)))
+
+(copy_files# &quot;../*.re&quot;)</code></pre><p>This will expose all modules under a `Shared` module. You can then use those modules in both the client and the server.</p><pre class="language-ocaml"><code>// client.re
+
+switch (ReactDOM.querySelector(&quot;#root&quot;)) {
+| Some(el) =&gt;
+  let root = ReactDOM.Client.hydrateRoot(el);
+  ReactDOM.Client.hydrate(&lt;Shared.App /&gt;, root);
+| None =&gt; Js.log(&quot;Can't find a 'root' element&quot;)
+};</code></pre><pre class="language-ocaml"><code>// server.re
+// Given a random server library, and a random Page component
+
+module Page = {
+  [@react.component]
+  let make = (~children, ~scripts) =&gt; {
+    &lt;html&gt;
+      &lt;head&gt;
+        &lt;meta charSet=&quot;UTF-8&quot; /&gt;
+        &lt;meta
+          name=&quot;viewport&quot;
+          content=&quot;width=device-width, initial-scale=1.0&quot;
+        /&gt;
+        &lt;title&gt; {React.string(&quot;Server Reason React demo&quot;)} &lt;/title&gt;
+        &lt;link
+          rel=&quot;shortcut icon&quot;
+          href=&quot;https://reasonml.github.io/img/icon_50.png&quot;
+        /&gt;
+        &lt;script src=&quot;https://cdn.tailwindcss.com&quot; /&gt;
+      &lt;/head&gt;
+      &lt;body&gt; &lt;div id=&quot;root&quot;&gt; children &lt;/div&gt; &lt;/body&gt;
+    &lt;/html&gt;;
+  };
+};
+
+// ...
+req =&gt; {
+  let html = ReactDOM.renderToString(&lt;Page&gt; &lt;Shared.App /&gt; &lt;/Page&gt;);
+  Httpd.Response.make_string(Ok(html));
+}</code></pre><h2 id="kinds_4"><a href="#kinds_4" class="anchor"></a>Note on virtual_libraries</h2><p>There's a better mechanismo of doing the same thing by dune, which is <a href="https://dune.readthedocs.io/en/stable/variants.html">Virtual libraries</a>.</p><p>However, there are a few limitations on virtual libraries:</p><ul><li><b>Require all types to be abstract</b></li><li>There are some <a href="https://dune.readthedocs.io/en/stable/variants.html#limitations">known limitations</a></li><li><a href="https://github.com/ocaml/dune/issues/7104">Some inconsistent behaviour</a></li></ul><p>I found that this mechanism is not as reliable as copy_files, and it's not well supported by editors. I would recommend to use copy_files instead, while we explore better ways of doing so with the dune team.</p><h2 id="next"><a href="#next" class="anchor"></a>Next</h2><ol><li><a href="browser_only.html" title="browser_only">Exclude client code from the native build</a></li><li><a href="externals-melange-attributes.html" title="externals-melange-attributes">Externals and melange attributes</a></li></ol></div></body></html>

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title>browser_only (docs.local.server-reason-react.browser_only)</title><meta charset="utf-8"/><link rel="stylesheet" href="../../odoc.support/odoc.css"/><meta name="generator" content="odoc 2.4.2"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/><script src="../../odoc.support/highlight.pack.js"></script><script>hljs.initHighlightingOnLoad();</script></head><body class="odoc"><nav class="odoc-nav"><a href="index.html">Up</a> – <a href="../../index.html">docs</a> &#x00BB; <a href="../index.html">local</a> &#x00BB; <a href="index.html">server-reason-react</a> &#x00BB; browser_only</nav><header class="odoc-preamble"><h1 id="exclude-client-code-from-the-native-build"><a href="#exclude-client-code-from-the-native-build" class="anchor"></a>Exclude client code from the native build</h1><p><code>browser_only</code> is the ppx to exclude client code from the server build, making sure a library can run on both build targets.</p><p>For example, if you're using Webapi to query the DOM or using LocalStorage. This code should only run on the client, and there's no equivalent or fallback on the server, in order to compile and run successfully on the server, you can use <code>browser_only</code> or <code>switch%platform</code>.</p></header><nav class="odoc-toc"><ul><li><a href="#usage">Usage</a><ul><li><a href="#browser_only">browser_only</a></li><li><a href="#switch%platform">switch%platform</a></li></ul></li><li><a href="#next">Next</a></li></ul></nav><div class="odoc-content"><h2 id="usage"><a href="#usage" class="anchor"></a>Usage</h2><p>The ppx expose a <code>browser_only</code> attribute that can be used to discard a function or a value, and <code>switch%platform</code> to conditionally execute code based on the platform.</p><p>Add <code>server-reason-react.browser_ppx</code> into to your pps field under a dune stanzas (melange.emit, libraries or executable) in your dune files.</p><p>You would need to add it on both &quot;server&quot; and &quot;client&quot; dune files. Adding the <code>-js</code> flag <code>server-reason-react.browser_ppx -js</code> for the client and without for the server:</p><pre class="language-ocaml"><code>; server exectuable
+(executable
+ (name server)
+ (preprocess
+  (pps server-reason-react.browser_ppx)))
+
+; melange emitting JavaScript
+(melange.emit
+ (target app)
+ (preprocess
+  (pps server-reason-react.browser_ppx -js)))</code></pre><h3 id="browser_only"><a href="#browser_only" class="anchor"></a>browser_only</h3><pre class="language-ocaml"><code>let%browser_only countDomNodes = (id) =&gt; {
+  let elements = Webapi.Element.querySelector(&quot;#&quot; ++ id);
+  let arr_elements = Webapi.Element.toArray(elements);
+  Array.length(arr_elements);
+};</code></pre><p>The method tagged by <code>browser_only</code> will keep the function untouched for the client build, but for the server build, will be transformed to a function that raises the exception <code>Runtime.Impossible_in_ssr</code>.</p><p>If this function runs on the server, it will raise an exception, and the server will crash. In order to prevent this, you can use <code>try</code> to catch the exception and provide a default behaviour/value.</p><p>Following with the example from above:</p><pre class="language-ocaml"><code>let%browser_only countDomNodes = (id) =&gt; {
+  let elements = Webapi.Element.querySelector(&quot;#&quot; ++ id);
+  let arr_elements = Webapi.Element.toArray(elements);
+  Array.length(arr_elements);
+}
+
+let main = id =&gt;
+  try(countDomNodes(id)) {
+  | _ =&gt; 0
+  };</code></pre><h3 id="switch%platform"><a href="#switch%platform" class="anchor"></a>switch%platform</h3><p><code>switch%platform</code> allows to conditionally execute code based on the platform. There are some cases where you need to run a specific code only on the server or only on the client.</p><pre class="language-ocaml"><code>switch%platform (Runtime.platform) {
+| Server =&gt; print_endline(&quot;This prints to the terminal&quot;)
+| Client =&gt; Js.log(&quot;This prints to the console&quot;)
+};</code></pre><h2 id="next"><a href="#next" class="anchor"></a>Next</h2><p><a href="externals-melange-attributes.html" title="externals-melange-attributes">Externals and melange attributes</a></p></div></body></html>
