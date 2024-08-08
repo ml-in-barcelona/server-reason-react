@@ -89,7 +89,7 @@ let handler =
       Dream.stream(
         ~headers=[("Content-Type", "text/html")],
         response_stream => {
-          let%lwt (stream, _) =
+          let%lwt (stream, _abort) =
             ReactDOM.renderToLwtStream(<Document> <Comments /> </Document>);
 
           Lwt_stream.iter_s(
