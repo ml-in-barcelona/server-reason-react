@@ -38,12 +38,6 @@
   (uri (>= 4.2.0))
   integers
 
-  ; Test dependencies
-  (alcotest :with-test)
-  (alcotest-lwt :with-test)
-  (fmt :with-test)
-  (merlin :with-test)
-
   ; Documentation
   (odoc :with-doc)
 
@@ -60,4 +54,14 @@
   (reason-react :with-dev-setup)
   (melange-webapi :with-dev-setup)
   (reason-react-ppx :with-dev-setup)
+
+  ; Test dependencies
+  (alcotest :with-test)
+  (alcotest-lwt :with-test)
+  (fmt :with-test)
+  (merlin :with-test)
+
+  ; Benchmark dependencies
+  (core_unix :with-test)
+  (core_bench :with-test)
 ))

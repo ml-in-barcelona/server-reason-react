@@ -18,10 +18,6 @@ depends: [
   "lwt_ppx" {>= "2.1.0"}
   "uri" {>= "4.2.0"}
   "integers"
-  "alcotest" {with-test}
-  "alcotest-lwt" {with-test}
-  "fmt" {with-test}
-  "merlin" {with-test}
   "odoc" {with-doc}
   "ocamlformat" {= "0.26.1" & with-test}
   "ocaml-lsp-server" {with-dev-setup}
@@ -30,6 +26,12 @@ depends: [
   "reason-react" {with-dev-setup}
   "melange-webapi" {with-dev-setup}
   "reason-react-ppx" {with-dev-setup}
+  "alcotest" {with-test}
+  "alcotest-lwt" {with-test}
+  "fmt" {with-test}
+  "merlin" {with-test}
+  "core_unix" {with-test}
+  "core_bench" {with-test}
 ]
 dev-repo: "git+https://github.com/ml-in-barcelona/server-reason-react.git"
 # The template is needed since we want to add "@new-doc" into the build command
