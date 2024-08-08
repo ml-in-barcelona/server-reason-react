@@ -1,3 +1,16 @@
 (executable
- (name bench)
- (libraries core_bench core_unix.command_unix))
+ (name main)
+ (modules main)
+ (libraries
+  core_bench
+  server-reason-react.react
+  server-reason-react.reactDom)
+ (preprocess
+  (pps server-reason-react.ppx)))
+
+(executable
+ (name once)
+ (modules once)
+ (libraries server-reason-react.react server-reason-react.reactDom)
+ (preprocess
+  (pps server-reason-react.ppx)))
