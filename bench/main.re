@@ -1,20 +1,13 @@
 module Bench = Core_bench.Bench;
 
-module TinyApp = {
-  [@react.component]
-  let make = () => {
-    <html>
-      <body>
-        <h1> {React.string("Hello World")} </h1>
-        <p> {React.string("This is an example")} </p>
-      </body>
-    </html>;
-  };
-};
-
 let bench_static_markup_with_simple_app =
   Bench.Test.create(~name="bench_static_markup_with_simple_app", () =>
-    ReactDOM.renderToStaticMarkup(<TinyApp />)
+    ReactDOM.renderToStaticMarkup(<HelloWorld />)
+  );
+
+let bench_static_markup_with_demo_app =
+  Bench.Test.create(~name="bench_static_markup_with_demo_app", () =>
+    ReactDOM.renderToStaticMarkup(<App />)
   );
 
 let main = tests => {
@@ -41,4 +34,7 @@ let main = tests => {
   );
 };
 
-main([bench_static_markup_with_simple_app]);
+main([
+  bench_static_markup_with_simple_app,
+  bench_static_markup_with_demo_app,
+]);

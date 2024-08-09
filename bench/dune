@@ -3,6 +3,7 @@
  (modules main)
  (libraries
   core_bench
+  demo_shared_native
   server-reason-react.react
   server-reason-react.reactDom)
  (preprocess
@@ -11,6 +12,9 @@
 (executable
  (name once)
  (modules once)
- (libraries server-reason-react.react server-reason-react.reactDom)
+ (libraries
+  server-reason-react.react
+  server-reason-react.reactDom
+  demo_shared_native)
  (preprocess
   (pps server-reason-react.ppx)))

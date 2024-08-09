@@ -13,15 +13,15 @@ help: ## Print this help message
 
 .PHONY: build
 build: ## Build the project, including non installable libraries and executables
-	$(DUNE) build packages --profile=dev
+	$(DUNE) build --profile=dev
 
 .PHONY: build-prod
 build-prod: ## Build for production (--profile=prod)
-	$(DUNE) build packages --profile=prod
+	$(DUNE) build --profile=prod
 
 .PHONY: build-demo
 build-demo: ## Build the project, including non installable libraries and executables
-	$(DUNE) build packages --profile=dev @install @client
+	$(DUNE) build --profile=dev @install @client
 
 .PHONY: dev
 dev: ## Build in watch mode
@@ -120,7 +120,7 @@ docs-serve: docs docs-open ## Open odoc docs with default web browser
 
 .PHONY: build-bench
 build-bench: ## Run benchmark
-	$(DUNE) build bench --profile=release
+	$(DUNE) build --profile=release
 
 .PHONY: bench
 bench: build-bench ## Run benchmark

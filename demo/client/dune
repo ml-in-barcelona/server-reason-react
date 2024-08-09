@@ -4,7 +4,7 @@
  (enabled_if
   (= %{profile} "dev"))
  (modules index)
- (libraries melange shared_js reason-react)
+ (libraries melange demo_shared_js reason-react)
  (preprocess
   (pps reason-react-ppx browser_ppx -js melange.ppx))
  (module_systems commonjs))

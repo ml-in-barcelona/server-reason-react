@@ -1,13 +1,4 @@
-module TinyApp = {
-  [@react.component]
-  let make = () => {
-    <html>
-      <body>
-        <h1> {React.string("Hello World")} </h1>
-        <p> {React.string("This is an example")} </p>
-      </body>
-    </html>;
-  };
-};
-
-print_endline(ReactDOM.renderToStaticMarkup(<TinyApp />));
+Printf.printf("Rendering app to stdout");
+print_endline("");
+print_endline(ReactDOM.renderToStaticMarkup(<App />));
+print_endline("");
