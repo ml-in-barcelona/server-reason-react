@@ -510,19 +510,26 @@ module Preprocess = struct
         else None
     | Psig_extension _ | Psig_attribute _ -> Some sigi
 
-  let preprocess_impl _exp_ctxt str =
+  let preprocess_impl str =
     match str with
     | { pstr_desc = Pstr_attribute attr; _ } :: rest
       when is_platform_tag attr.attr_name.txt ->
         if eval_attr attr = `keep then rest else []
     | _ -> List.filter_map apply_config_on_structure_item str
 
-  let preprocess_intf _exp_ctxt sigi =
+  let preprocess_intf sigi =
     match sigi with
     | { psig_desc = Psig_attribute attr; _ } :: rest
       when is_platform_tag attr.attr_name.txt ->
         if eval_attr attr = `keep then rest else []
     | _ -> List.filter_map apply_config_on_signature_item sigi
+
+  let traverse =
+    object (_ : Ast_traverse.map)
+      inherit Ast_traverse.map as super
+      method! structure expr = preprocess_impl (super#structure expr)
+      method! signature sigi = preprocess_intf (super#signature sigi)
+    end
 end
 
 let () =
@@ -538,5 +545,5 @@ let () =
     @ Browser_only.use_effects
   in
   Driver.V2.register_transformation browser_ppx ~rules
-    ~preprocess_impl:Preprocess.preprocess_impl
-    ~preprocess_intf:Preprocess.preprocess_intf
+    ~preprocess_impl:(fun _ -> Preprocess.traverse#structure)
+    ~preprocess_intf:(fun _ -> Preprocess.traverse#signature)
