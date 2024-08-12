@@ -17,16 +17,24 @@ Nested
 With -js flag it picks the block with `[@@platform js]`
 
   $ ./standalone.exe -impl input.ml -js | ocamlformat - --enable-outside-detected-project --impl
-  include struct
-    type t = Js.Json.t
-  end [@@platform js]
+  module X = struct
+    include struct
+      type t = Js.Json.t
+  
+      let a = 2 + 2
+    end [@@platform js]
+  end
 
 Without -js flag, it picks the block with `[@@platform native]`
 
   $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl
-  include struct
-    type t = string
-  end [@@platform native]
+  module X = struct
+    include struct
+      type t = Js.Json.t
+  
+      let a = 4 + 4
+    end [@@platform native]
+  end
 
 Pstr_include
 
@@ -168,9 +176,7 @@ Pstr_eval (doesn't work)
   > EOF
 
   $ ./standalone.exe -impl input_primitive.ml | ocamlformat - --enable-outside-detected-project --impl
-  include struct
-    2 [@@platform js]
-  end
+  include struct end
   
   include struct
     3 [@@platform native]
@@ -181,9 +187,7 @@ Pstr_eval (doesn't work)
     2 [@@platform js]
   end
   
-  include struct
-    3 [@@platform native]
-  end
+  include struct end
 
 Pstr_type
 
