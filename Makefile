@@ -124,7 +124,7 @@ build-bench: ## Run benchmark
 
 .PHONY: bench
 bench: build-bench ## Run benchmark
-	$(DUNE) exec bench/main.exe --profile=release --display-separate-messages --no-print-directory
+	@$(DUNE) exec bench/main.exe --profile=release --display-separate-messages --no-print-directory
 
 .PHONY: bench-watch
 bench-watch: build-bench ## Run benchmark in watch mode
