@@ -510,25 +510,28 @@ module Preprocess = struct
         else None
     | Psig_extension _ | Psig_attribute _ -> Some sigi
 
-  let preprocess_impl str =
-    match str with
-    | { pstr_desc = Pstr_attribute attr; _ } :: rest
-      when is_platform_tag attr.attr_name.txt ->
-        if eval_attr attr = `keep then rest else []
-    | _ -> List.filter_map apply_config_on_structure_item str
-
-  let preprocess_intf sigi =
-    match sigi with
-    | { psig_desc = Psig_attribute attr; _ } :: rest
-      when is_platform_tag attr.attr_name.txt ->
-        if eval_attr attr = `keep then rest else []
-    | _ -> List.filter_map apply_config_on_signature_item sigi
-
   let traverse =
     object (_ : Ast_traverse.map)
       inherit Ast_traverse.map as super
-      method! structure expr = preprocess_impl (super#structure expr)
-      method! signature sigi = preprocess_intf (super#signature sigi)
+
+      method! structure str =
+        let str = super#structure str in
+        match str with
+        | { pstr_desc = Pstr_attribute attr; _ } :: rest
+          when is_platform_tag attr.attr_name.txt ->
+            if eval_attr attr = `keep then rest else []
+        | str ->
+            List.filter_map apply_config_on_structure_item (super#structure str)
+
+      method! signature sigi =
+        let sigi = super#signature sigi in
+        match sigi with
+        | { psig_desc = Psig_attribute attr; _ } :: rest
+          when is_platform_tag attr.attr_name.txt ->
+            if eval_attr attr = `keep then rest else []
+        | _ ->
+            List.filter_map apply_config_on_signature_item
+              (super#signature sigi)
     end
 end
 
