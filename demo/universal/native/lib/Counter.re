@@ -3,7 +3,7 @@ let make = (~initial) => {
   let (count, setCount) = RR.useStateValue(initial);
 
   switch%platform (Runtime.platform) {
-  | Server => print_endline("This prints to the terminal")
+  | Server => ()
   | Client => print_endline("This prints to the console")
   };
 
