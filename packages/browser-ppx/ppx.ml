@@ -520,8 +520,7 @@ module Preprocess = struct
         | { pstr_desc = Pstr_attribute attr; _ } :: rest
           when is_platform_tag attr.attr_name.txt ->
             if eval_attr attr = `keep then rest else []
-        | str ->
-            List.filter_map apply_config_on_structure_item (super#structure str)
+        | str -> List.filter_map apply_config_on_structure_item str
 
       method! signature sigi =
         let sigi = super#signature sigi in
@@ -529,9 +528,7 @@ module Preprocess = struct
         | { psig_desc = Psig_attribute attr; _ } :: rest
           when is_platform_tag attr.attr_name.txt ->
             if eval_attr attr = `keep then rest else []
-        | _ ->
-            List.filter_map apply_config_on_signature_item
-              (super#signature sigi)
+        | _ -> List.filter_map apply_config_on_signature_item sigi
     end
 end
 
