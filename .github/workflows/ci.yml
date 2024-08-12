@@ -89,6 +89,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
 
+      - name: Run benchmarks
+        run: make bench
+
       - name: Save cache when not Windows
         uses: actions/cache/save@v3
         if: steps.opam-cache.outputs.cache-hit != 'true' && runner.os != 'Windows'
