@@ -3,8 +3,8 @@ Nested
   $ cat > input.ml << EOF
   >  module X = struct
   >    include struct
-  >      type t = Js.Json.t
-  >      let a = 2 + 2
+  >    type t = Js.Json.t
+  >    let a = 2 + 2
   >    end [@@platform js]
   >  
   >    include struct
