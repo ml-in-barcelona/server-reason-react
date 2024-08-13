@@ -78,11 +78,7 @@
   let lower_children_multiple = (foo, bar) =>
     React.createElement("lower", [], [foo, bar]);
   let lower_child_with_upper_as_children =
-    React.createElement(
-      "div",
-      [],
-      [React.Upper_case_component(() => App.make())],
-    );
+    React.createElement("div", [], [App.make()]);
   let lower_children_nested =
     React.createElement(
       "div",
