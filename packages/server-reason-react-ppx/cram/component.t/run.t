@@ -111,11 +111,10 @@ We need to output ML syntax here, otherwise refmt could not parse it.
     let make ?key:(_ : string option) ~children () =
       React.Async_component
         (fun () ->
-          Lwt.return
-            (React.createElement "form"
-               (Stdlib.List.filter_map Fun.id
-                  [ Some (React.JSX.String ("method", ("GET" : string))) ])
-               [ children ]))
+          React.createElement "form"
+            (Stdlib.List.filter_map Fun.id
+               [ Some (React.JSX.String ("method", ("GET" : string))) ])
+            [ children ])
   end
   
   let a = Async_component.make ~children:(React.createElement "div" [] []) ()
