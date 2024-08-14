@@ -471,8 +471,9 @@ let createElement tag attributes children =
   | true -> Lower_case_element { tag; attributes; children = [] }
   | false -> create_element_inner tag attributes children
 
-(* cloneElements overrides childrens and props on lower case components,
-   and raises Invalid_argument for the rest. TODO: Check original (JS) implementation *)
+(* `cloneElement` overrides childrens and props on lower case components, It raises Invalid_argument for the rest.
+    React.js can clone uppercase components, since it stores their props on each element's object but since we just store the fn and don't have the props, we can't clone them).
+   TODO: Check original implementation for exact error message/exception type *)
 let cloneElement element new_attributes =
   match element with
   | Lower_case_element { tag; attributes; children } ->
