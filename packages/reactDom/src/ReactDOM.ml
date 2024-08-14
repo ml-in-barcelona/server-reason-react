@@ -76,8 +76,55 @@ let render_to_string ~mode element =
                 render_element fallback;
                 Html.raw "<!--/$-->";
               ])
+  and render_lower_case tag attributes children =
+    let dangerouslySetInnerHTML =
+      List.find_opt
+        (function React.JSX.DangerouslyInnerHtml _ -> true | _ -> false)
+        attributes
+    in
+    let children =
+      (* If there's a dangerouslySetInnerHTML prop, we render it as a children *)
+      match (dangerouslySetInnerHTML, children) with
+      | None, children -> children
+      | Some (React.JSX.DangerouslyInnerHtml innerHtml), [] ->
+          (* This adds as children the innerHTML, and we treat it differently
+             from Element.Text to avoid encoding to HTML their content *)
+          (* TODO: Remove InnerHtml and use Html.raw directly *)
+          [ InnerHtml innerHtml ]
+      | Some _, _children ->
+          raise
+            (Invalid_argument
+               "can't have both `children` and `dangerouslySetInnerHTML` prop \
+                at the same time")
+    in
+    match Html.is_self_closing_tag tag with
+    (* By the ppx, we know that a self closing tag can't have children *)
+    | true -> Html.node tag (attributes_to_html attributes) []
+    | false ->
+        Html.node tag
+          (attributes_to_html attributes)
+          (List.map render_element children)
   in
   render_element element
+
+(* let dangerouslySetInnerHTML =
+     List.find_opt
+       (function JSX.DangerouslyInnerHtml _ -> true | _ -> false)
+       attributes
+   in
+   let children =
+     match (dangerouslySetInnerHTML, children) with
+     | None, children -> children
+     | Some (JSX.DangerouslyInnerHtml innerHtml), [] ->
+         (* This adds as children the innerHTML, and we treat it differently
+            from Element.Text to avoid encoding to HTML their content *)
+         [ InnerHtml innerHtml ]
+     | Some _, _children ->
+         raise
+           (Invalid_children
+              "can't have both `children` and `dangerouslySetInnerHTML` prop at \
+               the same time")
+   in *)
 
 let renderToString element =
   (* TODO: try catch to avoid React.use usages *)

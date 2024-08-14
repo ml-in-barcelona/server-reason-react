@@ -447,30 +447,13 @@ let clone_attributes attributes new_attributes =
   |> List.flatten |> List.rev
   |> List.sort compare_attribute
 
-let create_element_inner tag attributes children =
-  let dangerouslySetInnerHTML =
-    List.find_opt
-      (function JSX.DangerouslyInnerHtml _ -> true | _ -> false)
-      attributes
-  in
-  let children =
-    match (dangerouslySetInnerHTML, children) with
-    | None, children -> children
-    | Some (JSX.DangerouslyInnerHtml innerHtml), [] ->
-        (* This adds as children the innerHTML, and we treat it differently
-           from Element.Text to avoid encoding to HTML their content *)
-        [ InnerHtml innerHtml ]
-    | Some _, _children -> raise (Invalid_children tag)
-  in
-  Lower_case_element { tag; attributes; children }
-
 let createElement tag attributes children =
   match Html.is_self_closing_tag tag with
   | true when List.length children > 0 ->
       (* TODO: Add test for this *)
-      raise @@ Invalid_children "closing tag with children isn't valid"
+      raise (Invalid_children "closing tag with children isn't valid")
   | true -> Lower_case_element { tag; attributes; children = [] }
-  | false -> create_element_inner tag attributes children
+  | false -> Lower_case_element { tag; attributes; children }
 
 (* cloneElements overrides childrens and props but is not clear
    what to do with other components that are not lower_case_elements
