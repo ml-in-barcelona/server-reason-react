@@ -380,6 +380,7 @@ type lower_case_element = {
   children : element list;
 }
 
+(* TODO: Merge Fragment and List *)
 and element =
   | Lower_case_element of lower_case_element
   | Upper_case_component of (unit -> element)
