@@ -100,15 +100,12 @@ module Stream = struct
 end
 
 type context_state = {
-  stream : Yojson.Safe.t Lwt_stream.t;
   push : Yojson.Safe.t -> unit;
   close : unit -> unit;
   mutable boundary_id : int;
   mutable suspense_id : int;
   mutable waiting : int;
 }
-[@@warning "-69"]
-(* stream isn't being used *)
 
 (* https://github.com/facebook/react/blob/493f72b0a7111b601c16b8ad8bc2649d82c184a0/packages/react-dom-bindings/src/server/fizz-instruction-set/ReactDOMFizzInstructionSetShared.js#L46 *)
 let complete_boundary_script =
@@ -257,14 +254,7 @@ let render element =
   let stream, push, close = Stream.create () in
   let push_html x = push x in
   let context_state =
-    {
-      stream;
-      push = push_html;
-      close;
-      waiting = 0;
-      boundary_id = 0;
-      suspense_id = 0;
-    }
+    { push = push_html; close; waiting = 0; boundary_id = 0; suspense_id = 0 }
   in
   let json = element_to_payload ~context_state element in
   push_html json;
