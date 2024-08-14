@@ -345,8 +345,8 @@ let async_component () =
     let _ = ReactDOM.renderToStaticMarkup app in
     ()
   in
-  Alcotest.check_raises "Expected failure"
-    (Failure
+  Alcotest.check_raises "Expected invalid argument"
+    (Invalid_argument
        "Asyncronous components can't be rendered to static markup, since \
         rendering is syncronous. Please use `renderToLwtStream` instead.")
     raises

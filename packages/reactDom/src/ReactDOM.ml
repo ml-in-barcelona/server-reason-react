@@ -39,33 +39,29 @@ let render_to_string ~mode element =
   let rec render_element element =
     match element with
     | React.Empty -> Html.null
-    | Provider children -> render_element children
-    | Consumer children -> render_element children
-    | Fragment children -> render_element children
-    | List list -> list |> Array.to_list |> List.map render_element |> Html.list
-    | Upper_case_component component -> render_element (component ())
-    | Async_component _component ->
-        failwith
-          "Asyncronous components can't be rendered to static markup, since \
-           rendering is syncronous. Please use `renderToLwtStream` instead."
-    | Lower_case_element { tag; attributes; _ }
-      when Html.is_self_closing_tag tag ->
+    | React.Provider children -> render_element children
+    | React.Consumer children -> render_element children
+    | React.Fragment children -> render_element children
+    | React.List list ->
+        list |> Array.to_list |> List.map render_element |> Html.list
+    | React.Upper_case_component component -> render_element (component ())
+    | React.Async_component _component ->
+        raise
+          (Invalid_argument
+             "Asyncronous components can't be rendered to static markup, since \
+              rendering is syncronous. Please use `renderToLwtStream` instead.")
+    | React.Lower_case_element { tag; attributes; children } ->
         is_root.contents <- false;
-        Html.node tag (attributes_to_html attributes) []
-    | Lower_case_element { tag; attributes; children } ->
-        is_root.contents <- false;
-        Html.node tag
-          (attributes_to_html attributes)
-          (List.map render_element children)
-    | Text text -> (
+        render_lower_case tag attributes children
+    | React.Text text -> (
         let is_previous_text_node = previous_was_text_node.contents in
         previous_was_text_node.contents <- true;
         match mode with
         | String when is_previous_text_node ->
             Html.list [ Html.raw "<!-- -->"; Html.string text ]
         | _ -> Html.string text)
-    | InnerHtml text -> Html.raw text
-    | Suspense { children; fallback } -> (
+    | React.InnerHtml text -> Html.raw text
+    | React.Suspense { children; fallback } -> (
         match render_element children with
         | output ->
             Html.list [ Html.raw "<!--$-->"; output; Html.raw "<!--/$-->" ]
