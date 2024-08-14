@@ -8,6 +8,7 @@
   server-reason-react.reactDom
   server-reason-react.js
   alcotest
+  yojson
   alcotest-lwt)
  (preprocess
   (pps server-reason-react.ppx lwt_ppx)))

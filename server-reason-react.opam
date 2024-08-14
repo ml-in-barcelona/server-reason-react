@@ -17,6 +17,7 @@ depends: [
   "lwt" {>= "5.6.0"}
   "lwt_ppx" {>= "2.1.0"}
   "uri" {>= "4.2.0"}
+  "yojson" {>= "2.2.0"}
   "integers"
   "odoc" {with-doc}
   "ocamlformat" {= "0.26.1" & with-test}
