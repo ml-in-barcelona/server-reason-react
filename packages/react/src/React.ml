@@ -483,7 +483,10 @@ let cloneElement element new_attributes =
           attributes = clone_attributes attributes new_attributes;
           children;
         }
-  | Fragment _childrens -> raise (Invalid_argument "can't clone a fragment")
+  | Upper_case_component _ ->
+      raise
+        (Invalid_argument "In server-reason-react, a component can't be cloned")
+  | Fragment _ -> raise (Invalid_argument "can't clone a fragment")
   | Text _ -> raise (Invalid_argument "can't clone a text element")
   | InnerHtml _ ->
       raise (Invalid_argument "can't clone a dangerouslySetInnerHTML element")
@@ -491,7 +494,6 @@ let cloneElement element new_attributes =
   | List _ -> raise (Invalid_argument "can't clone an array element")
   | Provider _ -> raise (Invalid_argument "can't clone a Provider")
   | Consumer _ -> raise (Invalid_argument "can't clone a Consumer")
-  | Upper_case_component _ -> raise (Invalid_argument "can't clone a component")
   | Async_component _ ->
       raise (Invalid_argument "can't clone an async component")
   | Suspense _ -> raise (Invalid_argument "can't clone a Supsense component")
