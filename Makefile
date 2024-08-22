@@ -19,14 +19,6 @@ build: ## Build the project, including non installable libraries and executables
 build-prod: ## Build for production (--profile=prod)
 	$(DUNE) build --profile=prod
 
-.PHONY: build-demo
-build-demo: ## Build the project, including non installable libraries and executables
-	$(DUNE) build --profile=dev @install @demo @client
-
-.PHONY: build-demo-watch
-build-demo-watch: ## Watch demo
-	$(DUNE) build --profile=dev @install @demo --force --watch
-
 .PHONY: dev
 dev: ## Build in watch mode
 	$(DUNE) build -w --profile=dev @all
@@ -94,12 +86,20 @@ ppx-test-promote: ## Prommote ppx tests snapshots
 lib-test: ## Run library tests
 	$(DUNE) exec test/test.exe
 
+.PHONY: demo-build
+demo-build: ## Build the project (client, server and universal)
+	$(DUNE) build --profile=dev @install @demo @client
+
+.PHONY: demo-build-watch
+demo-build-watch: ## Watch demo (client, server and universal)
+	$(DUNE) build --profile=dev @install @demo --force --watch
+
 .PHONY: demo
-demo: build-demo ## Run demo executable
+demo-serve: demo-build ## Serve the demo executable
 	opam exec -- _build/default/demo/server/server.exe
 
-.PHONY: demo-watch
-demo-watch: ## Run demo executable
+.PHONY: demo-serve-watch
+demo-serve-watch: ## Run demo executable on watch mode (listening to built_at.txt changes)
 	watchexec --no-ignore -w demo/.running/built_at.txt -r -c \
 	"_build/default/demo/server/server.exe"
 

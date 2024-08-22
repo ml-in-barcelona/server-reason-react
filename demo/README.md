@@ -1,10 +1,20 @@
-# server-reason-react demo
+# Usage
 
-The app consist of 3 folders: `shared`, `server` and `client`, which encapsulates each compilation target defined by dune.
+From the root of the project, run:
+```bash
+# 1 terminal with `make build-demo-watch` to compile the code
+make build-demo-watch
+# 2 terminal with `make demo-watch` to serve the demo
+make demo-serve-watch
+```
+
+# Folder explanation
+
+The app consist of 3 folders: `universal`, `server` and `client`, which contains each compilation target defined by dune.
 
 ## `client/`
 
-A folder that contains the code executed in the client only. It's defined in dune as a `melange.emit` to emit JavaScript from Reason via Melange. It uses all the ReScript goodies: Belt, Js, etc. Currently is tiny: client only renders the `Shared_js.App` component:
+A folder that contains the code executed in the client only. It's defined in dune as a `melange.emit` to emit JavaScript from Reason via Melange. It's a a tiny entrypoint to render `Shared_js.App` component.
 
 ```re
 switch (ReactDOM.querySelector("#root")) {
@@ -15,14 +25,14 @@ switch (ReactDOM.querySelector("#root")) {
 
 ## `server/`
 
-An executable that expose a dream app with a home route which serves an HTML page. Written in [server-reason-react](https://github.com/ml-in-barcelona/server-reason-react) and send it as a string with `ReactDOM.renderToString`
+An executable that expose a HTTP server using [dream](https://aantron.github.io/dream). It serves a different routes, all of them written in React and send it as a string with `ReactDOM.renderToString` or as an `application/octet-stream` with [`Dream.stream`](https://aantron.github.io/dream/#streams).
 
 ## `universal/`
 
-The folder contains the library for shared code between `client` and `server`. dune generates two libraries `Shared_js` and `Shared_native` (by using `copy_files#`) with separate dependencies for each:
+This folder contains a library for shared code between `client` and `server`. dune generates two sub-libraries `Shared_js` and `Shared_native` (by using `copy_files#`) with separate dependencies and preprocessors for each:
 
 ```dune
-; universal/js/dune
+; demo/universal/js/dune
 (library
  (name shared_js)
  (modes melange)
@@ -33,7 +43,7 @@ The folder contains the library for shared code between `client` and `server`. d
 ```
 
 ```dune
-; universal/native/dune
+; demo/universal/native/dune
 (library
  (name shared_native)
  (modes native)
@@ -46,6 +56,4 @@ The folder contains the library for shared code between `client` and `server`. d
 (copy_files# "../*.re")
 ```
 
-`Shared_js` is compiled by Melange to JavaScript while `Shared_native` compiled by OCaml to native.
-
-<!-- Link to documentation -->
+`shared_js` is used on the `client/dune` melange.emit to be compiled by Melange while `shared_native` is used in the `server/dune` executable compiled by OCaml
