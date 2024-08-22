@@ -380,11 +380,7 @@ module String : sig
     not_implemented "is not implemented in native under server-reason-react.js"]
 
   val slice : ?start:int -> ?end_:int -> t -> t
-
   val split : ?sep:t -> ?limit:int -> t -> t array
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
   val splitByRe : regexp:Re.t -> ?limit:int -> t -> t nullable array
   val startsWith : prefix:t -> ?start:int -> t -> bool
   val substr : ?start:int -> ?len:int -> t -> t
