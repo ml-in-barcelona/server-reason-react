@@ -11,6 +11,7 @@ let build = (~entry_point, ~outfile, ()) => {
         "_build/default/demo/node_modules/esbuild/bin/esbuild",
         entry,
         "--bundle",
+        "--jsx=transform",
         "--outfile=" ++ output,
         "--platform=browser",
         "--log-level=error",

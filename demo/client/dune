@@ -8,3 +8,32 @@
  (preprocess
   (pps reason-react-ppx browser_ppx -js melange.ppx))
  (module_systems commonjs))
+
+(rule
+ (alias client)
+ (action
+  (run
+   %{bin:esbuild}
+   app/demo/client/index.js
+   --external:react
+   --external:react-dom
+   --bundle
+   --platform=browser
+   --log-level=error
+   --outfile=app/demo/client/bundle.js)))
+
+(rule
+ (alias client)
+ (deps runtime.jsx)
+ (action
+  (progn
+   (run
+    %{bin:esbuild}
+    %{project_root}/demo/client/runtime.jsx
+    --external:react
+    --external:react-dom
+    --external:react-server-dom-webpack
+    --bundle
+    --platform=browser
+    --log-level=error
+    --outfile=app/demo/client/rsc.js))))

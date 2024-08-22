@@ -3,6 +3,15 @@
  (enabled_if
   (= %{profile} "dev"))
  (flags :standard -w -26-27) ; browser_only removes code form the server, making this warning necessary
- (libraries dream demo_shared_native react reactDOM js lwt.unix unix belt)
+ (libraries
+  dream
+  demo_shared_native
+  react
+  reactDOM
+  js
+  lwt.unix
+  unix
+  belt
+  yojson)
  (preprocess
   (pps server_reason_react_ppx melange_native_ppx browser_ppx lwt_ppx)))
