@@ -5,6 +5,6 @@ let () =
       Test_renderToStaticMarkup.tests;
       Test_renderToString.tests;
       Test_reactDOMStyle.tests;
-      Test_ReactServer.tests;
+      Test_ReactServerDOM.tests;
     ]
   |> Lwt_main.run

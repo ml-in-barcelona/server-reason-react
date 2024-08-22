@@ -227,28 +227,31 @@ let node ~tag ?(key = None) ~attributes children : Yojson.Safe.t =
 
 (* TODO: Add key on Lower_case_element ? *)
 let element_to_payload ~context_state:_ element : Yojson.Safe.t =
-  let rec element_to_payload_rec element =
+  let rec to_payload element =
     match element with
     | React.Empty -> `Null
     (* TODO: Should we html encode this? *)
     | React.Text t -> `String t
     | React.Lower_case_element { tag; attributes; children } ->
-        node ~key:None ~tag ~attributes
-          (List.map element_to_payload_rec children)
-    | React.Fragment children -> element_to_payload_rec children
+        node ~key:None ~tag ~attributes (List.map to_payload children)
+    | React.Fragment children -> to_payload children
     | React.List children ->
-        `List (Array.map element_to_payload_rec children |> Array.to_list)
+        `List (Array.map to_payload children |> Array.to_list)
     | React.InnerHtml text ->
         failwith
-          "It does not exist in RSC, this looks like a bug in \
-           server-reason-react"
-    | React.Upper_case_component component -> failwith "TODO"
-    | React.Async_component _component -> failwith "TODO"
-    | React.Suspense { children; fallback } -> failwith "TODO"
-    | React.Provider children -> failwith "TODO"
-    | React.Consumer children -> failwith "TODO"
+          "It does not exist in RSC, this is a bug in server-reason-react or \
+           wrongly construction of the JSX manually"
+    | React.Upper_case_component component -> to_payload (component ())
+    | React.Async_component component -> (
+        match Lwt.state (component ()) with
+        | Lwt.Return element -> to_payload element
+        | Lwt.Fail exn -> raise exn
+        | Lwt.Sleep -> failwith "TODO")
+    | React.Suspense { children; fallback } -> to_payload fallback
+    | React.Provider children -> to_payload children
+    | React.Consumer children -> to_payload children
   in
-  element_to_payload_rec element
+  to_payload element
 
 let render element =
   let stream, push, close = Stream.create () in
