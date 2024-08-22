@@ -148,7 +148,7 @@ let () = {
         Router.serverComponents,
         request => {
           let app =
-            <Document script="/demo/client/bundle.js">
+            <Document script="/static/demo/client/rsc.js">
               <div
                 className="flex flex-col items-center justify-center h-full">
                 <h1 className="text-white font-bold text-4xl">

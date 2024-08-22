@@ -5,7 +5,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "esbuild": "^0.12.24",
+    "esbuild": "^0.21.4",
     "react": "rc",
     "react-dom": "rc",
     "react-server-dom-webpack": "rc"

@@ -23,9 +23,9 @@ build-prod: ## Build for production (--profile=prod)
 build-demo: ## Build the project, including non installable libraries and executables
 	$(DUNE) build --profile=dev @install @demo @client
 
-.PHONY: watch-demo
-watch-demo: ## Watch demo
-	$(DUNE) build --profile=dev @install @demo @client -w
+.PHONY: build-demo-watch
+build-demo-watch: ## Watch demo
+	$(DUNE) build --profile=dev @install @demo --force --watch
 
 .PHONY: dev
 dev: ## Build in watch mode

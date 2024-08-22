@@ -15,7 +15,7 @@ let rsc = null;
 function App() {
   if (!rsc) {
     rsc = ReactServerDOMWebpack.createFromFetch(
-      fetch("/api/server-components", {
+      fetch("/demo/server-components", {
         headers: {
           Accept: "text/x-component",
         },
@@ -29,7 +29,7 @@ function App() {
 let root = ReactDOM.createRoot(document.getElementById("root"));
 
 root.render(
-  <Suspense fallback="Loading...">
+  <React.Suspense fallback="Loading...">
     <App />
-  </Suspense>
+  </React.Suspense>
 );

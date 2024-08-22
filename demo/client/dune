@@ -14,28 +14,29 @@
  ; Make the client rule depend on the generated file by melange.emit, so it needs to wait to be built and it's rebuilt when the file changes.
  (deps
   (alias_rec melange-app))
- (action
-  (run
-   %{bin:esbuild}
-   app/demo/client/index.js
-   --external:react
-   --external:react-dom
-   --bundle
-   --platform=browser
-   --log-level=error
-   --outfile=app/demo/client/bundle.js)))
-
-(rule
- (alias client)
- (deps runtime.jsx)
+ (enabled_if
+  (= %{profile} "dev"))
  (action
   (progn
    (run
-    %{bin:esbuild}
-    %{project_root}/demo/client/runtime.jsx
-    --external:react
-    --external:react-dom
-    --external:react-server-dom-webpack
+    esbuild
+    app/demo/client/index.js
+    --format=cjs
+    --bundle
+    --platform=browser
+    --log-level=error
+    --outfile=app/demo/client/bundle.js))))
+
+(rule
+ (alias client)
+ (deps
+  (:file runtime.jsx)
+  (alias_rec melange-app))
+ (action
+  (progn
+   (run
+    esbuild
+    %{file}
     --bundle
     --platform=browser
     --log-level=error
