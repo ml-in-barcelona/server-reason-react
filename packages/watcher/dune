@@ -1,0 +1,13 @@
+(executable
+ (name watcher)
+ (modules watcher)
+ (public_name server-reason-react.watcher)
+ (libraries lwt lwt.unix unix)
+ (preprocess
+  (pps lwt_ppx)))
+
+(executable
+ (name server)
+ (modules server)
+ (public_name server-reason-react.server)
+ (libraries unix))
