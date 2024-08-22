@@ -1,5 +1,5 @@
 (melange.emit
- (alias client)
+ (alias melange-app)
  (target app)
  (enabled_if
   (= %{profile} "dev"))
@@ -11,6 +11,9 @@
 
 (rule
  (alias client)
+ ; Make the client rule depend on the generated file by melange.emit, so it needs to wait to be built and it's rebuilt when the file changes.
+ (deps
+  (alias_rec melange-app))
  (action
   (run
    %{bin:esbuild}

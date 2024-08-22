@@ -149,7 +149,12 @@ let () = {
         request => {
           let app =
             <Document script="/demo/client/bundle.js">
-              <h1> {React.string(Unix.gethostname())} </h1>
+              <div
+                className="flex flex-col items-center justify-center h-full">
+                <h1 className="text-white font-bold text-4xl">
+                  {React.string(Unix.gethostname())}
+                </h1>
+              </div>
             </Document>;
 
           switch (Dream.header(request, "accept")) {
@@ -200,6 +205,6 @@ let () = {
         )
       );
     },
-    Dream.livereload(handler),
+    Dream.livereload(Dream.logger(handler)),
   );
 };

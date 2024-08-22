@@ -5,13 +5,6 @@
  (files
   (node_modules/esbuild/bin/esbuild as esbuild)))
 
-(install
- (enabled_if
-  (= %{profile} "dev"))
- (section bin)
- (files
-  (server/server.exe as server)))
-
 (data_only_dirs node_modules)
 
 (rule
@@ -25,31 +18,4 @@
   ; so that watchexec can read from it without issues.
   ; this means no (target), no (with-stdout-to), just a bash command with stdout
   ; redirect inside a string
-  (bash "date > %{project_root}/demo/.running/aa_last_built_at.txt")))
-
-; (rule
-; (alias demo)
-; (enabled_if
-; (= %{profile} "dev"))
-; (deps
-; (source_tree server)
-; %{bin:server}
-; (alias_rec client))
-; (action
-; (progn
-; (run ./server/server.exe))))
-
-; (rule
-; (alias demo)
-; (deps
-; (source_tree server)
-; (alias_rec client))
-; (action
-; (progn
-; (run touch log.txt)
-; (run tail -f log.txt)
-; (with-stdout-to
-; log.txt
-; (with-stderr-to
-; log.txt
-; (run ./server/server.exe))))))
+  (bash "date > %{project_root}/../../demo/.running/built_at.txt")))

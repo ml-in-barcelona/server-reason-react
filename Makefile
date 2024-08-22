@@ -21,7 +21,11 @@ build-prod: ## Build for production (--profile=prod)
 
 .PHONY: build-demo
 build-demo: ## Build the project, including non installable libraries and executables
-	$(DUNE) build --profile=dev @install @client
+	$(DUNE) build --profile=dev @install @demo @client
+
+.PHONY: watch-demo
+watch-demo: ## Watch demo
+	$(DUNE) build --profile=dev @install @demo @client -w
 
 .PHONY: dev
 dev: ## Build in watch mode
@@ -92,11 +96,12 @@ lib-test: ## Run library tests
 
 .PHONY: demo
 demo: build-demo ## Run demo executable
-	$(DUNE) exec demo/server/server.exe --display-separate-messages --no-print-directory --profile=dev
+	opam exec -- _build/default/demo/server/server.exe
 
 .PHONY: demo-watch
-demo-watch: build-demo ## Run demo executable in watch mode
-	$(DUNE) exec demo/server/server.exe --display-separate-messages --no-print-directory --display=quiet --watch --profile=dev
+demo-watch: ## Run demo executable
+	watchexec --no-ignore -w demo/.running/built_at.txt -r -c \
+	"_build/default/demo/server/server.exe"
 
 .PHONY: subst
 subst: ## Run dune substitute
