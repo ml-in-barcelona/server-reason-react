@@ -758,28 +758,25 @@ end = struct
     else Stdlib.String.sub str start_idx (end_idx - start_idx)
 
   let split ?sep ?limit str =
-    match%platform () with
-    | Client -> Js.String.split ~sep ~limit str
-    | Server -> (
-        let sep = Option.value sep ~default:str in
-        let regexp = Str.regexp_string sep in
-        let items =
-          match
-            ( Str.string_match regexp str 0,
-              Str.string_match regexp str (String.length str - String.length sep),
-              sep <> "" )
-          with
-          | true, true, true -> ("" :: Str.split regexp str) @ [ "" ]
-          | true, false, true -> "" :: Str.split regexp str
-          | false, true, true -> Str.split regexp str @ [ "" ]
-          | _ -> Str.split regexp str
-        in
-        let items = items |> Stdlib.Array.of_list in
-        let limit = Option.value limit ~default:(Stdlib.Array.length items) in
-        match limit with
-        | limit when limit >= 0 && limit < Stdlib.Array.length items ->
-            Stdlib.Array.sub items 0 limit
-        | _ -> items)
+    let sep = Option.value sep ~default:str in
+    let regexp = Str.regexp_string sep in
+    let items =
+      match
+        ( Str.string_match regexp str 0,
+          Str.string_match regexp str (String.length str - String.length sep),
+          sep <> "" )
+      with
+      | true, true, true -> ("" :: Str.split regexp str) @ [ "" ]
+      | true, false, true -> "" :: Str.split regexp str
+      | false, true, true -> Str.split regexp str @ [ "" ]
+      | _ -> Str.split regexp str
+    in
+    let items = items |> Stdlib.Array.of_list in
+    let limit = Option.value limit ~default:(Stdlib.Array.length items) in
+    match limit with
+    | limit when limit >= 0 && limit < Stdlib.Array.length items ->
+        Stdlib.Array.sub items 0 limit
+    | _ -> items
 
   let splitByRe ~regexp ?limit str =
     let rev_array arr =

@@ -9,7 +9,7 @@
  (public_name server-reason-react.js)
  (libraries quickjs lwt str)
  (preprocess
-  (pps lwt_ppx browser_ppx)))
+  (pps lwt_ppx)))
 
 (test
  (name test)
