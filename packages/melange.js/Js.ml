@@ -760,15 +760,19 @@ end = struct
   let split ?sep ?limit str =
     let sep = Option.value sep ~default:str in
     let regexp = Str.regexp_string sep in
+    let str_start_with_sep = Stdlib.String.starts_with ~prefix:sep str in
+    let str_end_with_sep = Stdlib.String.ends_with ~suffix:sep str in
     let items =
-      match
-        ( Str.string_match regexp str 0,
-          Str.string_match regexp str (String.length str - String.length sep),
-          sep <> "" )
-      with
+      (* Melange (JS) has some specific cases for splitting strings: *)
+      (* https://melange.re/unstable/playground/?language=OCaml&code=SnMubG9nKEpzLlN0cmluZy5zcGxpdCB%2Bc2VwOiJzdGFydCIgInN0YXJ0Lm9jYW1sLnJlYXNvbi5yZWFjdCIpOwpKcy5sb2coSnMuU3RyaW5nLnNwbGl0IH5zZXA6ImVuZCIgIm9jYW1sLnJlYXNvbi5yZWFjdC5lbmQiKTsKSnMubG9nKEpzLlN0cmluZy5zcGxpdCB%2Bc2VwOiJib3RoIiAiYm90aC5vY2FtbC5yZWFzb24ucmVhY3QuYm90aCIpOw%3D%3D&live=off *)
+      match (str_start_with_sep, str_end_with_sep, sep <> "") with
+      (* If the string starts and ends with the separator, we need to add an empty string at the beginning and the end *)
       | true, true, true -> ("" :: Str.split regexp str) @ [ "" ]
+      (* If the string starts with the separator, we need to add an empty string at the beginning *)
       | true, false, true -> "" :: Str.split regexp str
+      (* If the string ends with the separator, we need to add an empty string at the end *)
       | false, true, true -> Str.split regexp str @ [ "" ]
+      (* If the string doesn't start or end with the separator, we just split it *)
       | _ -> Str.split regexp str
     in
     let items = items |> Stdlib.Array.of_list in
