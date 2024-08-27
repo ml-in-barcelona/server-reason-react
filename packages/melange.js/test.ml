@@ -302,6 +302,7 @@ let string_tests =
         (* assert_string (Js.String.sliceToEnd ~from:(-2) "abcdefg") "fg"; *)
         assert_string (Js.String.slice ~start:7 "abcdefg") "");
     test "split" (fun () ->
+        assert_string_array (Js.String.split ~sep:"" "") [||];
         assert_string_array
           (Js.String.split ~sep:"-" "2018-01-02")
           [| "2018"; "01"; "02" |];
