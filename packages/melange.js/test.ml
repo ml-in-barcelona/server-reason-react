@@ -302,15 +302,45 @@ let string_tests =
         (* assert_string (Js.String.sliceToEnd ~from:(-2) "abcdefg") "fg"; *)
         assert_string (Js.String.slice ~start:7 "abcdefg") "");
     test "split" (fun () ->
-        (* assert_string_array (split "-" "2018-01-02") [| "2018"; "01"; "02" |];
-           assert_string_array (split "," "a,b,,c") [| "a"; "b"; ""; "c" |];
-           assert_string_array
-             (split "::" "good::bad as great::awful")
-             [| "good"; "bad as great"; "awful" |];
-           assert_string_array
-             (split ";" "has-no-delimiter")
-             [| "has-no-delimiter" |] *)
-        ());
+        assert_string_array (Js.String.split ~sep:"" "") [||];
+        assert_string_array
+          (Js.String.split ~sep:"-" "2018-01-02")
+          [| "2018"; "01"; "02" |];
+        assert_string_array
+          (Js.String.split ~sep:"," "a,b,,c")
+          [| "a"; "b"; ""; "c" |];
+        assert_string_array
+          (Js.String.split ~sep:"::" "good::bad as great::awful")
+          [| "good"; "bad as great"; "awful" |];
+        assert_string_array
+          (Js.String.split ~sep:";" "has-no-delimiter")
+          [| "has-no-delimiter" |];
+        assert_string_array
+          (Js.String.split ~sep:"with" "with-sep-equals-to-beginning")
+          [| ""; "-sep-equals-to-beginning" |];
+        assert_string_array
+          (Js.String.split ~sep:"end" "with-sep-equals-to-end")
+          [| "with-sep-equals-to-"; "" |];
+        assert_string_array
+          (Js.String.split ~sep:"/" "/with-sep-on-beginning-and-end/")
+          [| ""; "with-sep-on-beginning-and-end"; "" |];
+        assert_string_array
+          (Js.String.split ~sep:"" "with-empty-sep")
+          [|
+            "w"; "i"; "t"; "h"; "-"; "e"; "m"; "p"; "t"; "y"; "-"; "s"; "e"; "p";
+          |];
+        assert_string_array
+          (Js.String.split ~sep:"-" "with-limit-equals-to-zero" ~limit:0)
+          [||];
+        assert_string_array
+          (Js.String.split ~sep:"-" "with-limit-equals-to-length" ~limit:5)
+          [| "with"; "limit"; "equals"; "to"; "length" |];
+        assert_string_array
+          (Js.String.split ~sep:"-" "with-limit-greater-than-length" ~limit:100)
+          [| "with"; "limit"; "greater"; "than"; "length" |];
+        assert_string_array
+          (Js.String.split ~sep:"-" "with-limit-less-than-zero" ~limit:(-2))
+          [| "with"; "limit"; "less"; "than"; "zero" |]);
     test "splitAtMost" (fun () ->
         (* assert_string_array
              (splitAtMost "/" ~limit:3 "ant/bee/cat/dog/elk")
