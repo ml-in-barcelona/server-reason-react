@@ -1,6 +1,12 @@
+## Requirements
+
+- npm (and run `npm install` from the root of the project)
+- [watchexec](https://github.com/watchexec/watchexec)
+
 # Usage
 
-From the root of the project, run:
+From the root of the project, run
+
 ```bash
 # 1 terminal with `make build-demo-watch` to compile the code
 make build-demo-watch
