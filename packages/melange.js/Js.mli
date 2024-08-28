@@ -1164,32 +1164,24 @@ module Math : sig
     not_implemented "is not implemented in native under server-reason-react.js"]
 
   val max_int : int -> int -> int
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
 
   val maxMany_int : int array -> int
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
   val max_float : float -> float -> float
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
 
   val maxMany_float : float array -> float
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
   val min_int : int -> int -> int
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
 
   val minMany_int : int array -> int
   [@@alert
     not_implemented "is not implemented in native under server-reason-react.js"]
 
   val min_float : float -> float -> float
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
 
   val minMany_float : float array -> float
   [@@alert
