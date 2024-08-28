@@ -156,22 +156,22 @@ let () = {
                 </h1>
               </div>
             </Document>;
-
           switch (Dream.header(request, "accept")) {
           | Some(header) when String.equal(header, "text/x-component") =>
-            let headers = [("X-Content-Type-Options", "nosniff")];
+            let headers = [("Content-Type", "application/octet-stream")];
             Dream.stream(
               ~headers,
               response_stream => {
-                open Lwt.Syntax;
-                let* (stream, _abort) = ReactServerDOM.render(app);
+                let%lwt (stream, _abort) = ReactServerDOM.render(app);
 
-                stream
-                |> Lwt_stream.map(Yojson.Safe.to_string)
-                |> Lwt_stream.iter_s(data => {
-                     let* () = Dream.write(response_stream, data);
-                     Dream.flush(response_stream);
-                   });
+                let%lwt () =
+                  stream
+                  |> Lwt_stream.iter_s(data => {
+                       let%lwt () = Dream.write(response_stream, data);
+                       Dream.flush(response_stream);
+                     });
+                let%lwt _ = Dream.flush(response_stream);
+                Lwt.return();
               },
             );
           | _ =>
@@ -184,6 +184,25 @@ let () = {
         "/static/**",
         Dream.static("./_build/default/demo/client/app"),
       ),
+      Dream.post("/echo", request => {
+        let request_stream = Dream.body_stream(request);
+
+        Dream.stream(
+          ~headers=[("Content-Type", "application/octet-stream")],
+          response_stream => {
+            let rec loop = () =>
+              switch%lwt (Dream.read(request_stream)) {
+              | None => Dream.close(response_stream)
+              | Some(chunk) =>
+                let%lwt () = Dream.write(response_stream, chunk);
+                let%lwt () = Dream.flush(response_stream);
+                loop();
+              };
+
+            loop();
+          },
+        );
+      }),
     ]);
 
   Dream.run(

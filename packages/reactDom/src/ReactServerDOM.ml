@@ -100,8 +100,9 @@ module Stream = struct
 end
 
 type context_state = {
-  push : Yojson.Safe.t -> unit;
+  push : int -> Yojson.Basic.t -> unit;
   close : unit -> unit;
+  mutable id : int;
   mutable boundary_id : int;
   mutable suspense_id : int;
   mutable waiting : int;
@@ -123,86 +124,6 @@ let render_inline_rc_replacement replacements =
   in
   Html.node "script" [] [ rc_payload ]
 
-let render_to_stream ~context_state element =
-  let rec render_element element =
-    match element with
-    | React.Empty -> Lwt.return Html.null
-    | Provider children -> render_element children
-    | Consumer children -> render_element children
-    | Fragment children -> render_element children
-    | List arr ->
-        let%lwt children_elements =
-          arr |> Array.to_list |> Lwt_list.map_p render_element
-        in
-        Lwt.return (Html.list children_elements)
-    | Upper_case_component component -> render_element (component ())
-    | Lower_case_element { tag; attributes; _ }
-      when Html.is_self_closing_tag tag ->
-        Lwt.return (Html.node tag (attributes_to_html attributes) [])
-    | Lower_case_element { tag; attributes; children } ->
-        let%lwt inner = children |> Lwt_list.map_p render_element in
-        Lwt.return (Html.node tag (attributes_to_html attributes) inner)
-    | Text text -> Lwt.return (Html.string text)
-    | InnerHtml text -> Lwt.return (Html.raw text)
-    | Async_component component ->
-        let%lwt element = component () in
-        render_element element
-    | Suspense { children; fallback } -> (
-        match render_element children with
-        | output -> output
-        | exception React.Suspend (Any_promise promise) ->
-            context_state.waiting <- context_state.waiting + 1;
-            (* We store to current_*_id to bypass the increment *)
-            let current_boundary_id = context_state.boundary_id in
-            let current_suspense_id = context_state.suspense_id in
-            context_state.boundary_id <- context_state.boundary_id + 1;
-            (* Wait for promise to resolve *)
-            Lwt.async (fun () ->
-                Lwt.bind promise (fun _ ->
-                    (* Enqueue the component with resolved data *)
-                    let%lwt resolved =
-                      render_resolved_element ~id:current_suspense_id children
-                    in
-                    context_state.push resolved;
-                    (* Enqueue the inline script that replaces fallback by resolved *)
-                    (* context_state.push inline_complete_boundary_script; *)
-                    (* context_state.push
-                       (render_inline_rc_replacement
-                          [ (current_boundary_id, current_suspense_id) ]); *)
-                    context_state.waiting <- context_state.waiting - 1;
-                    context_state.suspense_id <- context_state.suspense_id + 1;
-                    if context_state.waiting = 0 then context_state.close ();
-                    Lwt.return_unit));
-            (* Return the rendered fallback to SSR syncronous *)
-            render_fallback ~boundary_id:current_boundary_id fallback
-        | exception _exn ->
-            (* TODO: log exn *)
-            render_fallback ~boundary_id:context_state.boundary_id fallback)
-  and render_resolved_element ~id:_ _element =
-    (* render_element element
-       |> Lwt.map (fun element ->
-              Html.node "div"
-                [
-                  Html.present "hidden";
-                  Html.attribute "id" (Printf.sprintf "S:%i" id);
-                ]
-                [ element ]) *)
-    Lwt.return `Null
-  and render_fallback ~boundary_id element =
-    render_element element
-    |> Lwt.map (fun element ->
-           Html.list
-             [
-               Html.raw "<!--$?-->";
-               Html.node "template"
-                 [ Html.attribute "id" (Printf.sprintf "B:%i" boundary_id) ]
-                 [];
-               element;
-               Html.raw "<!--/$-->";
-             ])
-  in
-  render_element element
-
 let prop_to_json (prop : React.JSX.prop) =
   match prop with
   | React.JSX.Bool (key, value) -> (key, `Bool value)
@@ -215,25 +136,25 @@ let prop_to_json (prop : React.JSX.prop) =
 
 let props_to_json props = List.map prop_to_json props
 
-let node ~tag ?(key = None) ~attributes children : Yojson.Safe.t =
+let node ~tag ?(key = None) ~props children : Yojson.Basic.t =
   let key = match key with None -> `Null | Some key -> `String key in
   let props =
     match children with
-    | [] -> props_to_json attributes
-    | [ one_children ] -> ("children", one_children) :: props_to_json attributes
-    | childrens -> ("children", `List childrens) :: props_to_json attributes
+    | [] -> props_to_json props
+    | [ one_children ] -> ("children", one_children) :: props_to_json props
+    | childrens -> ("children", `List childrens) :: props_to_json props
   in
   `List [ `String "$"; `String tag; key; `Assoc props ]
 
 (* TODO: Add key on Lower_case_element ? *)
-let element_to_payload ~context_state:_ element : Yojson.Safe.t =
+let element_to_payload ~context_state:_ element : Yojson.Basic.t =
   let rec to_payload element =
     match element with
     | React.Empty -> `Null
     (* TODO: Should we html encode this? *)
     | React.Text t -> `String t
     | React.Lower_case_element { tag; attributes; children } ->
-        node ~key:None ~tag ~attributes (List.map to_payload children)
+        node ~key:None ~tag ~props:attributes (List.map to_payload children)
     | React.Fragment children -> to_payload children
     | React.List children ->
         `List (Array.map to_payload children |> Array.to_list)
@@ -247,20 +168,32 @@ let element_to_payload ~context_state:_ element : Yojson.Safe.t =
         | Lwt.Return element -> to_payload element
         | Lwt.Fail exn -> raise exn
         | Lwt.Sleep -> failwith "TODO")
-    | React.Suspense { children; fallback } -> to_payload fallback
+    | React.Suspense { children; fallback } ->
+        (* TODO: Store key in tree and use it here *)
+        let key = Some "00" in
+        let fallback = to_payload fallback in
+        (* TODO: Pass fallback as prop *)
+        node ~tag:"$Sreact.suspense" ~key ~props:[] [ to_payload children ]
     | React.Provider children -> to_payload children
     | React.Consumer children -> to_payload children
   in
   to_payload element
 
+let chunk_to_string idx model =
+  let buf = Buffer.create (4 * 1024) in
+  Buffer.add_string buf (Printf.sprintf "%x:" idx);
+  Yojson.Basic.write_json buf model;
+  Buffer.add_char buf '\n';
+  Buffer.contents buf
+
 let render element =
   let stream, push, close = Stream.create () in
-  let push_html x = push x in
+  let push id x = push (chunk_to_string id x) in
   let context_state =
-    { push = push_html; close; waiting = 0; boundary_id = 0; suspense_id = 0 }
+    { push; close; waiting = 0; id = 0; boundary_id = 0; suspense_id = 0 }
   in
   let json = element_to_payload ~context_state element in
-  push_html json;
+  push context_state.id json;
   if context_state.waiting = 0 then close ();
   let abort () =
     (* TODO: Needs to flush the remaining loading fallbacks as HTML, and React.js will try to render the rest on the client. *)
