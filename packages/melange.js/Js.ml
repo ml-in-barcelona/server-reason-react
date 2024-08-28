@@ -757,7 +757,19 @@ end = struct
     if start_idx >= end_idx then ""
     else Stdlib.String.sub str start_idx (end_idx - start_idx)
 
-  let split ?sep ?limit _str = notImplemented "Js.String" "split"
+  let split ?sep ?limit str =
+    let sep = Option.value sep ~default:str in
+    let regexp = Str.regexp_string sep in
+    (* On js split, it don't return an empty string on end when separator is an empty string *)
+    (* but "split_delim" does *)
+    (* https://melange.re/unstable/playground/?language=OCaml&code=SnMubG9nKEpzLlN0cmluZy5zcGxpdCB%2Bc2VwOiIiICJzdGFydCIpOw%3D%3D&live=off *)
+    let split = if sep <> "" then Str.split_delim else Str.split in
+    let items = split regexp str |> Stdlib.Array.of_list in
+    let limit = Option.value limit ~default:(Stdlib.Array.length items) in
+    match limit with
+    | limit when limit >= 0 && limit < Stdlib.Array.length items ->
+        Stdlib.Array.sub items 0 limit
+    | _ -> items
 
   let splitByRe ~regexp ?limit str =
     let rev_array arr =
@@ -1531,13 +1543,13 @@ end = struct
   let log1p _ = notImplemented "Js.Math" "log1p"
   let log10 _ = notImplemented "Js.Math" "log10"
   let log2 _ = notImplemented "Js.Math" "log2"
-  let max_int _ = notImplemented "Js.Math" "max_int"
+  let max_int (a : int) (b : int) = Stdlib.max a b
   let maxMany_int _ = notImplemented "Js.Math" "maxMany_int"
-  let max_float _ = notImplemented "Js.Math" "max_float"
+  let max_float (a : float) (b : float) = Stdlib.max a b
   let maxMany_float _ = notImplemented "Js.Math" "maxMany_float"
-  let min_int _ = notImplemented "Js.Math" "min_int"
+  let min_int (a : int) (b : int) = Stdlib.min a b
   let minMany_int _ = notImplemented "Js.Math" "minMany_int"
-  let min_float _ = notImplemented "Js.Math" "min_float"
+  let min_float (a : float) (b : float) = Stdlib.min a b
   let minMany_float _ = notImplemented "Js.Math" "minMany_float"
   let pow_float ~base:_ ~exp:_ = notImplemented "Js.Math" "pow_float"
   let random _ = notImplemented "Js.Math" "random"
