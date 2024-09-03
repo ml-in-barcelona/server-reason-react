@@ -148,14 +148,17 @@ let () = {
         Router.serverComponents,
         request => {
           let app =
+            <div className="flex flex-col items-center justify-center h-full">
+              <h1 className="text-white font-bold text-4xl">
+                {React.string(string_of_float(Unix.gettimeofday()))}
+              </h1>
+            </div>;
+
+          let document =
             <Document script="/static/demo/client/rsc.js">
-              <div
-                className="flex flex-col items-center justify-center h-full">
-                <h1 className="text-white font-bold text-4xl">
-                  {React.string(Unix.gethostname())}
-                </h1>
-              </div>
+              React.null
             </Document>;
+
           switch (Dream.header(request, "accept")) {
           | Some(header) when String.equal(header, "text/x-component") =>
             let headers = [("Content-Type", "application/octet-stream")];
@@ -170,12 +173,11 @@ let () = {
                        let%lwt () = Dream.write(response_stream, data);
                        Dream.flush(response_stream);
                      });
-                let%lwt _ = Dream.flush(response_stream);
                 Lwt.return();
               },
             );
           | _ =>
-            let html = ReactDOM.renderToStaticMarkup(app);
+            let html = ReactDOM.renderToStaticMarkup(document);
             Dream.html(html);
           };
         },

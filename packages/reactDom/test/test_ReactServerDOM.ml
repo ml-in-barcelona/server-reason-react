@@ -6,27 +6,27 @@ let assert_list (type a) (ty : a Alcotest.testable) (left : a list)
     (right : a list) =
   Alcotest.check (Alcotest.list ty) "should be equal" right left
 
+let assert_list_of_strings (left : string list) (right : string list) =
+  Alcotest.check (Alcotest.list Alcotest.string) "should be equal" right left
+
 let test title fn =
   Alcotest_lwt.test_case title `Quick (fun _switch body -> fn body)
 
-let assert_stream (type a) (checker : a Alcotest.testable)
-    (stream : a Lwt_stream.t) (expected : a list) =
+let assert_stream (stream : string Lwt_stream.t) (expected : string list) =
   let open Lwt.Infix in
   Lwt_stream.to_list stream >>= fun content ->
   if content = [] then Lwt.return @@ Alcotest.fail "stream should not be empty"
-  else Lwt.return @@ assert_list checker content expected
-
-let json_from_string = Yojson.Safe.from_string
+  else Lwt.return @@ assert_list_of_strings content expected
 
 let null_element () =
   let app = React.null in
   let%lwt stream, _ = ReactServerDOM.render app in
-  assert_stream yojson stream [ json_from_string {|null|} ]
+  assert_stream stream [ "0:null\n" ]
 
 let lower_case_component () =
   let app = React.createElement "div" [] [] in
   let%lwt stream, _ = ReactServerDOM.render app in
-  assert_stream yojson stream [ json_from_string {|["$","div",null,{} ]|} ]
+  assert_stream stream [ "0:[\"$\",\"div\",null,{}]\n" ]
 
 let lower_case_component_with_children () =
   let app =
@@ -37,10 +37,9 @@ let lower_case_component_with_children () =
       ]
   in
   let%lwt stream, _ = ReactServerDOM.render app in
-  assert_stream yojson stream
+  assert_stream stream
     [
-      json_from_string
-        {|["$","div",null,{"children":[["$","span",null,{"children":"Home"}],["$","span",null,{"children":"Nohome"}]]}]|};
+      "0:[\"$\",\"div\",null,{\"children\":[[\"$\",\"span\",null,{\"children\":\"Home\"}],[\"$\",\"span\",null,{\"children\":\"Nohome\"}]]}]\n";
     ]
 
 let dangerouslySetInnerHtml () =
@@ -53,10 +52,9 @@ let dangerouslySetInnerHtml () =
       []
   in
   let%lwt stream, _ = ReactServerDOM.render app in
-  assert_stream yojson stream
+  assert_stream stream
     [
-      json_from_string
-        {|["$","script",null,{"type":"application/javascript","dangerouslySetInnerHTML":{"__html":"console.log('Hi!')"}}]|};
+      "0:[\"$\",\"script\",null,{\"type\":\"application/javascript\",\"dangerouslySetInnerHTML\":{\"__html\":\"console.log('Hi!')\"}}]\n";
     ]
 
 let upper_case_component () =
@@ -67,8 +65,7 @@ let upper_case_component () =
         React.createElement "span" [] [ React.string text ])
   in
   let%lwt stream, _ = ReactServerDOM.render (app true) in
-  assert_stream yojson stream
-    [ json_from_string {|[[ "$", "span", null, { "children": "foo" } ]]|} ]
+  assert_stream stream [ "0:[\"$\",\"span\",null,{\"children\":\"foo\"}]\n" ]
 
 let tests =
   ( "ReactServerDOM.render",

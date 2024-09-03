@@ -125,12 +125,12 @@ let render_to_string ~mode element =
 let renderToString element =
   (* TODO: try catch to avoid React.use usages *)
   let html = render_to_string ~mode:String element in
-  Html.render html
+  Html.to_string html
 
 let renderToStaticMarkup element =
   (* TODO: try catch to avoid React.use usages *)
   let html = render_to_string ~mode:Markup element in
-  Html.render html
+  Html.to_string html
 
 module Stream = struct
   let create () =
@@ -245,7 +245,7 @@ let render_to_stream ~context_state element =
 
 let renderToLwtStream element =
   let stream, push, close = Stream.create () in
-  let push_html html = push (Html.render html) in
+  let push_html html = push (Html.to_string html) in
   let context_state =
     { push = push_html; close; waiting = 0; boundary_id = 0; suspense_id = 0 }
   in

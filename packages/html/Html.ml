@@ -10,6 +10,7 @@ let is_self_closing_tag = function
 (* This function is borrowed from https://github.com/dbuenzli/htmlit/blob/62d8f21a9233791a5440311beac02a4627c3a7eb/src/htmlit.ml#L10-L28 *)
 let escape_and_add out str =
   let add = Buffer.add_string in
+  let getc = String.unsafe_get str in
   let len = String.length str in
   let max_index = len - 1 in
   let flush out start index =
@@ -19,7 +20,7 @@ let escape_and_add out str =
     if index > max_index then flush out start index
     else
       let next = index + 1 in
-      match String.get str index with
+      match getc index with
       | '&' ->
           flush out start index;
           add out "&amp;";
@@ -85,7 +86,7 @@ let list ?(separator = "") arr = List (separator, arr)
 let fragment arr = List arr
 let node tag attributes children = Node { tag; attributes; children }
 
-let render element =
+let to_string element =
   let out = Buffer.create 1024 in
   let rec write element =
     match element with
@@ -108,8 +109,7 @@ let render element =
         Buffer.add_string out tag;
         Buffer.add_char out '>'
     | List (separator, list) ->
-        let rec iter list =
-          match list with
+        let rec iter = function
           | [] -> ()
           | [ one ] -> write one
           | [ first; second ] ->
@@ -125,3 +125,29 @@ let render element =
   in
   write element;
   Buffer.contents out
+
+let add_single_quote_escaped b s =
+  let getc = String.unsafe_get s in
+  let adds = Buffer.add_string in
+  let len = String.length s in
+  let max_idx = len - 1 in
+  let flush b start i =
+    if start < len then Buffer.add_substring b s start (i - start)
+  in
+  let rec loop start i =
+    if i > max_idx then flush b start i
+    else
+      let next = i + 1 in
+      match getc i with
+      | '\'' ->
+          flush b start i;
+          adds b "&#x27;";
+          loop next next
+      | _ -> loop start next
+  in
+  loop 0 0
+
+let single_quote_escape data =
+  let buf = Buffer.create (String.length data) in
+  add_single_quote_escaped buf data;
+  Buffer.contents buf

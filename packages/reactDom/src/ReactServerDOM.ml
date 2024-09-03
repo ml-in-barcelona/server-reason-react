@@ -1,96 +1,3 @@
-[@@@warning "-26-27"]
-
-let is_react_custom_attribute attr =
-  match attr with
-  | "dangerouslySetInnerHTML" | "ref" | "key" | "suppressContentEditableWarning"
-  | "suppressHydrationWarning" ->
-      true
-  | _ -> false
-
-let attribute_to_html attr =
-  match attr with
-  (* ignores "ref" prop *)
-  | React.JSX.Ref _ -> Html.omitted ()
-  | Bool (name, _) when is_react_custom_attribute name -> Html.omitted ()
-  (* false attributes don't get rendered *)
-  | Bool (_name, false) -> Html.omitted ()
-  (* true attributes render solely the attribute name *)
-  | Bool (name, true) -> Html.present name
-  | Style styles -> Html.attribute "style" styles
-  | String (name, _value) when is_react_custom_attribute name -> Html.omitted ()
-  | String (name, value) -> Html.attribute name value
-  (* Events don't get rendered on SSR *)
-  | Event _ -> Html.omitted ()
-  (* Since we extracted the attribute as children (Element.InnerHtml) in createElement,
-     we are very sure there's nothing to render here *)
-  | DangerouslyInnerHtml _ -> Html.omitted ()
-
-let attributes_to_html attrs = attrs |> List.map attribute_to_html
-
-type mode = String | Markup
-
-let render_to_string ~mode element =
-  (* is_root starts at true (when renderToString) and only goes to false
-     when renders an lower-case element or closed element *)
-  let is_mode_to_string = mode = String in
-  let is_root = ref is_mode_to_string in
-  (* previous_was_text_node is the flag to enable rendering comments
-     <!-- --> between text nodes *)
-  let previous_was_text_node = ref false in
-
-  let rec render_element element =
-    match element with
-    | React.Empty -> Html.null
-    | Provider children -> render_element children
-    | Consumer children -> render_element children
-    | Fragment children -> render_element children
-    | List list -> list |> Array.to_list |> List.map render_element |> Html.list
-    | Upper_case_component component -> render_element (component ())
-    | Async_component _component ->
-        failwith
-          "Asyncronous components can't be rendered to static markup, since \
-           rendering is syncronous. Please use `renderToLwtStream` instead."
-    | Lower_case_element { tag; attributes; _ }
-      when Html.is_self_closing_tag tag ->
-        is_root.contents <- false;
-        Html.node tag (attributes_to_html attributes) []
-    | Lower_case_element { tag; attributes; children } ->
-        is_root.contents <- false;
-        Html.node tag
-          (attributes_to_html attributes)
-          (List.map render_element children)
-    | Text text -> (
-        let is_previous_text_node = previous_was_text_node.contents in
-        previous_was_text_node.contents <- true;
-        match mode with
-        | String when is_previous_text_node ->
-            Html.list [ Html.raw "<!-- -->"; Html.string text ]
-        | _ -> Html.string text)
-    | InnerHtml text -> Html.raw text
-    | Suspense { children; fallback } -> (
-        match render_element children with
-        | output ->
-            Html.list [ Html.raw "<!--$-->"; output; Html.raw "<!--/$-->" ]
-        | exception _e ->
-            Html.list
-              [
-                Html.raw "<!--$!-->";
-                render_element fallback;
-                Html.raw "<!--/$-->";
-              ])
-  in
-  render_element element
-
-let renderToString element =
-  (* TODO: try catch to avoid React.use usages *)
-  let html = render_to_string ~mode:String element in
-  Html.render html
-
-let renderToStaticMarkup element =
-  (* TODO: try catch to avoid React.use usages *)
-  let html = render_to_string ~mode:Markup element in
-  Html.render html
-
 module Stream = struct
   let create () =
     let stream, push_to_stream = Lwt_stream.create () in
@@ -102,7 +9,8 @@ end
 type context_state = {
   push : int -> Yojson.Basic.t -> unit;
   close : unit -> unit;
-  mutable id : int;
+  mutable chunk_id : int;
+  (* mutable pending_chunks : int; *)
   mutable boundary_id : int;
   mutable suspense_id : int;
   mutable waiting : int;
@@ -114,6 +22,24 @@ let complete_boundary_script =
 
 let inline_complete_boundary_script =
   Html.node "script" [] [ Html.raw complete_boundary_script ]
+
+let rsc_start_script =
+  Html.node "script" []
+    [
+      Html.raw
+        {|
+          let enc = new TextEncoder();
+          let srr_stream = (window.srr_stream = {});
+          srr_stream.push = () => {
+            let el = document.currentScript;
+            srr_stream._c.enqueue(enc.encode(el.dataset.payload))
+          };
+          srr_stream.close = () => {
+            srr_stream._c.close();
+          };
+          srr_stream.readable_stream = new ReadableStream({ start(c) { srr_stream._c = c; } });
+        |};
+    ]
 
 let render_inline_rc_replacement replacements =
   let rc_payload =
@@ -158,7 +84,7 @@ let element_to_payload ~context_state:_ element : Yojson.Basic.t =
     | React.Fragment children -> to_payload children
     | React.List children ->
         `List (Array.map to_payload children |> Array.to_list)
-    | React.InnerHtml text ->
+    | React.InnerHtml _text ->
         failwith
           "It does not exist in RSC, this is a bug in server-reason-react or \
            wrongly construction of the JSX manually"
@@ -171,7 +97,7 @@ let element_to_payload ~context_state:_ element : Yojson.Basic.t =
     | React.Suspense { children; fallback } ->
         (* TODO: Store key in tree and use it here *)
         let key = Some "00" in
-        let fallback = to_payload fallback in
+        let _fallback = to_payload fallback in
         (* TODO: Pass fallback as prop *)
         node ~tag:"$Sreact.suspense" ~key ~props:[] [ to_payload children ]
     | React.Provider children -> to_payload children
@@ -186,14 +112,30 @@ let chunk_to_string idx model =
   Buffer.add_char buf '\n';
   Buffer.contents buf
 
+let html_model index model =
+  let chunk = chunk_to_string index model in
+  Html.node "script"
+    [ Html.attribute "data-payload" chunk ]
+    [ Html.raw "window.srr_stream.push();" ]
+
+(* TODO: Add scripts and links to the output *)
 let render element =
   let stream, push, close = Stream.create () in
-  let push id x = push (chunk_to_string id x) in
+  let _push_html id x = push (Html.to_string (html_model id x)) in
+  let push_chunk id x = push (chunk_to_string id x) in
   let context_state =
-    { push; close; waiting = 0; id = 0; boundary_id = 0; suspense_id = 0 }
+    {
+      push = push_chunk;
+      close;
+      waiting = 0;
+      chunk_id = 0;
+      boundary_id = 0;
+      suspense_id = 0;
+    }
   in
   let json = element_to_payload ~context_state element in
-  push context_state.id json;
+  (* push (Html.to_string rsc_start_script); *)
+  push_chunk context_state.chunk_id json;
   if context_state.waiting = 0 then close ();
   let abort () =
     (* TODO: Needs to flush the remaining loading fallbacks as HTML, and React.js will try to render the rest on the client. *)
