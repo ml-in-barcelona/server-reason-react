@@ -232,6 +232,21 @@ let className_2 () =
     (ReactDOM.renderToStaticMarkup component)
     "<div class=\"flex xs:justify-center overflow-hidden\"></div>"
 
+let className_3 () =
+  let component =
+    React.fragment
+      (React.list
+         [
+           React.createElement "div"
+             [ React.JSX.String ("className", "flex") ]
+             [];
+           React.createElement "div" (ReactDOM.domProps ~className:"flex" ()) [];
+         ])
+  in
+  assert_string
+    (ReactDOM.renderToStaticMarkup component)
+    "<div class=\"flex\"></div><div class=\"flex\"></div>"
+
 let render_with_doc_type () =
   let div =
     React.createElement "div" []
@@ -366,6 +381,7 @@ let tests =
       test "children" children;
       test "className" className;
       test "className_2" className_2;
+      test "className_3" className_3;
       test "fragment" fragment;
       test "fragments_and_texts" fragments_and_texts;
       test "ignored_attributes_on_jsx" ignored_attributes_on_jsx;

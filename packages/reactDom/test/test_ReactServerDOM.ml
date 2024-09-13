@@ -24,9 +24,11 @@ let null_element () =
   assert_stream stream [ "0:null\n" ]
 
 let lower_case_component () =
-  let app = React.createElement "div" [] [] in
+  let app =
+    React.createElement "div" (ReactDOM.domProps ~className:"foo" ()) []
+  in
   let%lwt stream, _ = ReactServerDOM.render app in
-  assert_stream stream [ "0:[\"$\",\"div\",null,{}]\n" ]
+  assert_stream stream [ "0:[\"$\",\"div\",null,{\"className\":\"foo\"}]\n" ]
 
 let lower_case_component_with_children () =
   let app =
