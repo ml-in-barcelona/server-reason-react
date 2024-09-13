@@ -16,6 +16,10 @@ let attribute_to_html attr =
   | Bool (name, true) -> Html.present name
   | Style styles -> Html.attribute "style" styles
   | String (name, _value) when is_react_custom_attribute name -> Html.omitted ()
+  | String ("className", value) -> Html.attribute "class" value
+  | String ("defaultChecked", value) -> Html.attribute "checked" value
+  | String ("defaultSelected", value) -> Html.attribute "selected" value
+  | String ("defaultValue", value) -> Html.attribute "value" value
   | String (name, value) -> Html.attribute name value
   (* Events don't get rendered on SSR *)
   | Event _ -> Html.omitted ()
@@ -823,10 +827,10 @@ let domProps
   |> add (React.JSX.int "aria-rowindex") ariaRowindex
   |> add (React.JSX.int "aria-rowspan") ariaRowspan
   |> add (React.JSX.int "aria-setsize") ariaSetsize
-  |> add (React.JSX.bool "checked") defaultChecked
-  |> add (React.JSX.string "value") defaultValue
+  |> add (React.JSX.bool "defaultChecked") defaultChecked
+  |> add (React.JSX.string "defaultValue") defaultValue
   |> add (React.JSX.string "accesskey") accessKey
-  |> add (React.JSX.string "class") className
+  |> add (React.JSX.string "className") className
   |> add (booleanish_string "contenteditable") contentEditable
   |> add (React.JSX.string "contextmenu") contextMenu
   |> add (React.JSX.string "dir") dir
