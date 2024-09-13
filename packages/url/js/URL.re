@@ -69,7 +69,7 @@ type t;
 
 let make = str => {
   switch (makeExn(str)) {
-  | searchParams => Some(searchParams)
+  | url => Some(url)
   | exception _ => None
   };
 };
