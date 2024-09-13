@@ -5,7 +5,7 @@
       "div",
       Stdlib.List.filter_map(
         Fun.id,
-        [Some([@implicit_arity] React.JSX.String("class", "": string))],
+        [Some([@implicit_arity] React.JSX.String("className", "": string))],
       ),
       [],
     );
@@ -87,7 +87,7 @@
         [
           Some(
             [@implicit_arity]
-            React.JSX.String("class", "flex-container": string),
+            React.JSX.String("className", "flex-container": string),
           ),
         ],
       ),
@@ -98,7 +98,8 @@
             Fun.id,
             [
               Some(
-                [@implicit_arity] React.JSX.String("class", "sidebar": string),
+                [@implicit_arity]
+                React.JSX.String("className", "sidebar": string),
               ),
             ],
           ),
@@ -110,7 +111,7 @@
                 [
                   Some(
                     [@implicit_arity]
-                    React.JSX.String("class", "title": string),
+                    React.JSX.String("className", "title": string),
                   ),
                 ],
               ),
@@ -122,7 +123,8 @@
                 Fun.id,
                 [
                   Some(
-                    [@implicit_arity] React.JSX.String("class", "menu": string),
+                    [@implicit_arity]
+                    React.JSX.String("className", "menu": string),
                   ),
                 ],
               ),
@@ -192,7 +194,8 @@
         [
           Some(React.JSX.Ref(ref: React.domRef)),
           Some(
-            [@implicit_arity] React.JSX.String("class", "FancyButton": string),
+            [@implicit_arity]
+            React.JSX.String("className", "FancyButton": string),
           ),
         ],
       ),

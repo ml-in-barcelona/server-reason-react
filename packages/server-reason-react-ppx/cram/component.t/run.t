@@ -18,7 +18,7 @@ We need to output ML syntax here, otherwise refmt could not parse it.
             (Stdlib.List.filter_map Fun.id
                [
                  Some (React.JSX.Ref (buttonRef : React.domRef));
-                 Some (React.JSX.String ("class", ("FancyButton" : string)));
+                 Some (React.JSX.String ("className", ("FancyButton" : string)));
                ])
             [ children ])
   end
