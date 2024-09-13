@@ -77,7 +77,7 @@ let element_to_payload ~context_state:_ element : Yojson.Basic.t =
   let rec to_payload element =
     match element with
     | React.Empty -> `Null
-    (* TODO: Should we html encode this? *)
+    (* TODO: Should we encode this? *)
     | React.Text t -> `String t
     | React.Lower_case_element { tag; attributes; children } ->
         node ~key:None ~tag ~props:attributes (List.map to_payload children)
@@ -118,7 +118,7 @@ let html_model index model =
     [ Html.attribute "data-payload" chunk ]
     [ Html.raw "window.srr_stream.push();" ]
 
-(* TODO: Add scripts and links to the output *)
+(* TODO: Add scripts and links to the output and all options from renderToReadableStream *)
 let render element =
   let stream, push, close = Stream.create () in
   let _push_html id x = push (Html.to_string (html_model id x)) in
