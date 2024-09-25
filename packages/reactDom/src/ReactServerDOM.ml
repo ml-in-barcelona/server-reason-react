@@ -51,6 +51,7 @@ let render_inline_rc_replacement replacements =
   Html.node "script" [] [ rc_payload ]
 
 let prop_to_json (prop : React.JSX.prop) =
+  (* TODO: Add promises/sets *)
   match prop with
   | React.JSX.Bool (key, value) -> (key, `Bool value)
   | React.JSX.String (key, value) -> (key, `String value)
@@ -85,9 +86,10 @@ let element_to_payload ~context_state:_ element : Yojson.Basic.t =
     | React.List children ->
         `List (Array.map to_payload children |> Array.to_list)
     | React.InnerHtml _text ->
+        (* TODO: Don't have failwith *)
         failwith
-          "It does not exist in RSC, this is a bug in server-reason-react or \
-           wrongly construction of the JSX manually"
+          "It does not exist in RSC, this is a bug in server-reason-react or a \
+           wrong construction of JSX manually"
     | React.Upper_case_component component -> to_payload (component ())
     | React.Async_component component -> (
         match Lwt.state (component ()) with
