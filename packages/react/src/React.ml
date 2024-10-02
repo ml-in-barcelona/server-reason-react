@@ -382,14 +382,14 @@ type lower_case_element = {
 
 (* TODO: Merge Fragment and List *)
 and element =
-  | Empty
-  | Text of string
-  | List of element array
-  | InnerHtml of string
-  | Fragment of element
   | Lower_case_element of lower_case_element
   | Upper_case_component of (unit -> element)
   | Async_component of (unit -> element Lwt.t)
+  | List of element array
+  | Text of string
+  | InnerHtml of string
+  | Fragment of element
+  | Empty
   | Provider of element
   | Consumer of element
   | Suspense of { children : element; fallback : element }
