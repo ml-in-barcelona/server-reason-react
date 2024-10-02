@@ -13,6 +13,26 @@ Transform mel.obj into OCaml object literals
 
   $ ocamlc -c output.ml
 
+Transform nested mel.obj into OCaml object literals
+
+  $ cat > input.ml << EOF
+  > let a = [%mel.obj { lola = 33; cositas = [%mel.obj { value = "hola" }]}]
+  > EOF
+
+  $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl | tee output.ml
+  let a =
+    object
+      method cositas =
+        object
+          method value = "hola"
+        end
+  
+      method lola = 33
+    end
+
+  $ ocamlc -c output.ml
+
+
 Fail if the object is not a record
 
   $ cat > input.ml << EOF
