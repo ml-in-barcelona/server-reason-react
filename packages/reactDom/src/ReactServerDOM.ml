@@ -120,10 +120,8 @@ let html_model index model =
     [ Html.attribute "data-payload" chunk ]
     [ Html.raw "window.srr_stream.push();" ]
 
-(* TODO: Add scripts and links to the output and all options from renderToReadableStream *)
-let render element =
+let to_model ?subscribe element : string Lwt_stream.t Lwt.t =
   let stream, push, close = Stream.create () in
-  let _push_html id x = push (Html.to_string (html_model id x)) in
   let push_chunk id x = push (chunk_to_string id x) in
   let context_state =
     {
@@ -136,8 +134,33 @@ let render element =
     }
   in
   let json = element_to_payload ~context_state element in
-  (* push (Html.to_string rsc_start_script); *)
   push_chunk context_state.chunk_id json;
+  if context_state.waiting = 0 then close ();
+  (* TODO: Currently returns the stream to help testing, in the future we can use subscribe to capture all chunks *)
+  match subscribe with
+  | None -> Lwt.return stream
+  | Some subscribe ->
+      let%lwt _ = Lwt_stream.iter_s subscribe stream in
+      Lwt.return stream
+
+(* TODO: Add scripts and links to the output and all options from renderToReadableStream *)
+let render element =
+  let stream, push, close = Stream.create () in
+  let push_html id x = push (Html.to_string (html_model id x)) in
+  let _push_chunk id x = push (chunk_to_string id x) in
+  let context_state =
+    {
+      push = push_html;
+      close;
+      waiting = 0;
+      chunk_id = 0;
+      boundary_id = 0;
+      suspense_id = 0;
+    }
+  in
+  let json = element_to_payload ~context_state element in
+  push (Html.to_string rsc_start_script);
+  push_html context_state.chunk_id json;
   if context_state.waiting = 0 then close ();
   let abort () =
     (* TODO: Needs to flush the remaining loading fallbacks as HTML, and React.js will try to render the rest on the client. *)

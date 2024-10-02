@@ -20,14 +20,14 @@ let assert_stream (stream : string Lwt_stream.t) (expected : string list) =
 
 let null_element () =
   let app = React.null in
-  let%lwt stream, _ = ReactServerDOM.render app in
+  let%lwt stream = ReactServerDOM.to_model app in
   assert_stream stream [ "0:null\n" ]
 
 let lower_case_component () =
   let app =
     React.createElement "div" (ReactDOM.domProps ~className:"foo" ()) []
   in
-  let%lwt stream, _ = ReactServerDOM.render app in
+  let%lwt stream = ReactServerDOM.to_model app in
   assert_stream stream [ "0:[\"$\",\"div\",null,{\"className\":\"foo\"}]\n" ]
 
 let lower_case_component_with_children () =
@@ -38,7 +38,7 @@ let lower_case_component_with_children () =
         React.createElement "span" [] [ React.string "Nohome" ];
       ]
   in
-  let%lwt stream, _ = ReactServerDOM.render app in
+  let%lwt stream = ReactServerDOM.to_model app in
   assert_stream stream
     [
       "0:[\"$\",\"div\",null,{\"children\":[[\"$\",\"span\",null,{\"children\":\"Home\"}],[\"$\",\"span\",null,{\"children\":\"Nohome\"}]]}]\n";
@@ -53,7 +53,7 @@ let dangerouslySetInnerHtml () =
       ]
       []
   in
-  let%lwt stream, _ = ReactServerDOM.render app in
+  let%lwt stream = ReactServerDOM.to_model app in
   assert_stream stream
     [
       "0:[\"$\",\"script\",null,{\"type\":\"application/javascript\",\"dangerouslySetInnerHTML\":{\"__html\":\"console.log('Hi!')\"}}]\n";
@@ -66,7 +66,7 @@ let upper_case_component () =
         let text = if codition then "foo" else "bar" in
         React.createElement "span" [] [ React.string text ])
   in
-  let%lwt stream, _ = ReactServerDOM.render (app true) in
+  let%lwt stream = ReactServerDOM.to_model (app true) in
   assert_stream stream [ "0:[\"$\",\"span\",null,{\"children\":\"foo\"}]\n" ]
 
 let tests =
