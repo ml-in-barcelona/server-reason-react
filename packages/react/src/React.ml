@@ -385,6 +385,12 @@ and element =
   | Lower_case_element of lower_case_element
   | Upper_case_component of (unit -> element)
   | Async_component of (unit -> element Lwt.t)
+  | Client_component of {
+      props : client_props;
+      children : element;
+      import_module : string;
+      import_name : string;
+    }
   | List of element array
   | Text of string
   | InnerHtml of string
@@ -394,12 +400,20 @@ and element =
   | Consumer of element
   | Suspense of { children : element; fallback : element }
 
+and client_props = (string * client_prop) list
+
+and client_prop =
+  (* TODO: Do we need to add more types here? *)
+  | Json : Yojson.Basic.t -> client_prop
+  | Element : element -> client_prop
+  (* TODO: Copied from reactor, unsure about the snd *)
+  | Promise : 'a Js.Promise.t * ('a -> Yojson.Basic.t) -> client_prop
+
 exception Invalid_children of string
 
 let compare_attribute left right =
-  match (left, right) with
-  | JSX.Bool (left_key, _), JSX.Bool (right_key, _) ->
-      String.compare left_key right_key
+  match ((left : JSX.prop), (right : JSX.prop)) with
+  | Bool (left_key, _), Bool (right_key, _) -> String.compare left_key right_key
   | String (left_key, _), String (right_key, _) ->
       String.compare left_key right_key
   | Style left_styles, Style right_styles ->
@@ -481,6 +495,8 @@ let cloneElement element new_attributes =
   | Async_component _ ->
       raise (Invalid_argument "can't clone an async component")
   | Suspense _ -> raise (Invalid_argument "can't clone a Supsense component")
+  | Client_component _ ->
+      raise (Invalid_argument "can't clone a Client component")
 
 module Fragment = struct
   let make ~children ?key:_ () = Fragment children

@@ -69,8 +69,165 @@ let upper_case_component () =
   let%lwt stream = ReactServerDOM.to_model (app true) in
   assert_stream stream [ "0:[\"$\",\"span\",null,{\"children\":\"foo\"}]\n" ]
 
+let client_component_without_props () =
+  let app () =
+    React.Upper_case_component
+      (fun () ->
+        React.List
+          [|
+            React.createElement "span" [] [ React.string "Server" ];
+            React.Client_component
+              {
+                props = [];
+                children = React.string "Client";
+                import_module = "./client-component.js";
+                import_name = "Client_component";
+              };
+          |])
+  in
+  let%lwt stream = ReactServerDOM.to_model (app ()) in
+  assert_stream stream
+    [
+      "1:I[\"./client-component.js\",[],\"Client_component\"]\n";
+      "0:[[\"$\",\"span\",null,{\"children\":\"Server\"}],[\"$\",\"$1\",null,{}]]\n";
+    ]
+
+let client_component_with_props () =
+  let app () =
+    React.Upper_case_component
+      (fun () ->
+        React.List
+          [|
+            React.createElement "div" [] [ React.string "Server Content" ];
+            React.Client_component
+              {
+                props =
+                  [
+                    ("title", React.Json (`String "Title"));
+                    ("value", React.Json (`String "Value"));
+                  ];
+                children = React.string "Client with Props";
+                import_module = "./client-with-props.js";
+                import_name = "ClientWithProps";
+              };
+          |])
+  in
+  let%lwt stream = ReactServerDOM.to_model (app ()) in
+  assert_stream stream
+    [
+      "1:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n";
+      "0:[[\"$\",\"div\",null,{\"children\":\"Server \
+       Content\"}],[\"$\",\"$1\",null,{\"title\":\"Title\",\"value\":\"Value\"}]]\n";
+    ]
+
+(* let nested_client_components () =
+   let app () =
+     React.Upper_case_component
+       (fun () ->
+         React.Client_component
+           {
+             props = [];
+             children =
+               React.Client_component
+                 {
+                   props = [];
+                   children = React.string "Inner Client";
+                   import_module = "./inner-client.js";
+                   import_name = "InnerClient";
+                 };
+             import_module = "./outer-client.js";
+             import_name = "OuterClient";
+           })
+   in
+   let%lwt stream = ReactServerDOM.to_model (app ()) in
+   assert_stream stream
+     [
+       "1:I[\"./inner-client.js\",[],\"InnerClient\"]\n";
+       "2:I[\"./outer-client.js\",[],\"OuterClient\"]\n";
+       "0:[[\"$\",\"$2\",null,{}]]\n";
+     ] *)
+
+let mixed_server_and_client () =
+  let app () =
+    React.Upper_case_component
+      (fun () ->
+        React.List
+          [|
+            React.createElement "header" [] [ React.string "Server Header" ];
+            React.Client_component
+              {
+                props = [];
+                children = React.string "Client 1";
+                import_module = "./client-1.js";
+                import_name = "Client1";
+              };
+            React.createElement "footer" [] [ React.string "Server Footer" ];
+            React.Client_component
+              {
+                props = [];
+                children = React.string "Client 2";
+                import_module = "./client-2.js";
+                import_name = "Client2";
+              };
+          |])
+  in
+  let%lwt stream = ReactServerDOM.to_model (app ()) in
+  assert_stream stream
+    [
+      "1:I[\"./client-1.js\",[],\"Client1\"]\n";
+      "2:I[\"./client-2.js\",[],\"Client2\"]\n";
+      "0:[[\"$\",\"header\",null,{\"children\":\"Server \
+       Header\"}],[\"$\",\"$1\",null,{}],[\"$\",\"footer\",null,{\"children\":\"Server \
+       Footer\"}],[\"$\",\"$2\",null,{}]]\n";
+    ]
+
+(* let client_component_with_list_as_element () =
+   let app () =
+     React.Upper_case_component
+       (fun () ->
+         React.Client_component
+           {
+             props = [];
+             children =
+               React.List
+                 [|
+                   React.string "Client List Item 1";
+                   React.string "Client List Item 2";
+                   React.string "Client List Item 3";
+                 |];
+             import_module = "./client-list.js";
+             import_name = "ClientList";
+           })
+   in
+   let%lwt stream = ReactServerDOM.to_model (app ()) in
+   assert_stream stream
+     [
+       "1:I[\"./client-list.js\",[],\"ClientList\"]\n";
+       "0:[[\"$\",\"$1\",null,{}]]\n";
+     ] *)
+
+let deeply_nested_server_content () =
+  let app () =
+    React.Upper_case_component
+      (fun () ->
+        React.createElement "div" []
+          [
+            React.createElement "section" []
+              [
+                React.createElement "article" []
+                  [ React.string "Deep Server Content" ];
+              ];
+          ])
+  in
+  let%lwt stream = ReactServerDOM.to_model (app ()) in
+  assert_stream stream
+    [
+      "0:[\"$\",\"div\",null,{\"children\":[\"$\",\"section\",null,{\"children\":[\"$\",\"article\",null,{\"children\":\"Deep \
+       Server Content\"}]}]}]\n";
+    ]
+
 let tests =
-  ( "ReactServerDOM.render",
+  ( "ReactServerDOM.to_model",
     [
       test "null_element" null_element;
       test "lower_case_component" lower_case_component;
@@ -78,4 +235,11 @@ let tests =
         lower_case_component_with_children;
       test "dangerouslySetInnerHtml" dangerouslySetInnerHtml;
       test "upper_case_component" upper_case_component;
+      test "client_component_without_props" client_component_without_props;
+      test "client_component_with_props" client_component_with_props;
+      (* test "nested_client_components" nested_client_components; *)
+      test "mixed_server_and_client" mixed_server_and_client;
+      (* test "client_component_with_list_as_element"
+         client_component_with_list_as_element; *)
+      test "deeply_nested_server_content" deeply_nested_server_content;
     ] )
