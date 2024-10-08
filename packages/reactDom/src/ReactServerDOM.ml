@@ -35,9 +35,8 @@ let rsc_start_script =
         {|
           let enc = new TextEncoder();
           let srr_stream = (window.srr_stream = {});
-          srr_stream.push = () => {
-            let el = document.currentScript;
-            srr_stream._c.enqueue(enc.encode(el.dataset.payload))
+          srr_stream.push = (payload) => {
+            srr_stream._c.enqueue(enc.encode(payload))
           };
           srr_stream.close = () => {
             srr_stream._c.close();
@@ -177,15 +176,13 @@ let element_to_model ~context index element =
                 raise exn))
       props
   in
-  let model = to_payload element in
-  context.push index (Chunk_value model);
+  context.push index (Chunk_value (to_payload element));
   if context.pending = 0 then context.close ()
 
 let html_model index model =
   let chunk = payload_to_chunk index model in
-  Html.node "script"
-    [ Html.attribute "data-payload" chunk ]
-    [ Html.raw "window.srr_stream.push();" ]
+  Html.node "script" []
+    [ Html.raw (Printf.sprintf "window.srr_stream.push(%s);" chunk) ]
 
 let to_model ?subscribe element : string Lwt_stream.t Lwt.t =
   let stream, push, close = Stream.create () in
