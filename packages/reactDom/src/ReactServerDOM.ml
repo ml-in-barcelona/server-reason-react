@@ -107,13 +107,13 @@ let client_reference_to_chunk id ref =
   Buffer.add_char buf '\n';
   Buffer.contents buf
 
-(* TODO: Add key on Lower_case_element ? *)
 let element_to_model ~context index element =
   let rec to_payload element =
     match (element : React.element) with
     | Empty -> `Null
     (* TODO: Do we need to encode this? *)
     | Text t -> `String t
+    (* TODO: Add key here on the element type "" ? *)
     | Lower_case_element { tag; attributes; children } ->
         let props = List.map prop_to_json attributes in
         node ~key:None ~tag ~props (List.map to_payload children)

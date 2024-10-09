@@ -16,6 +16,6 @@ let fetchXcomponent = () => {
 };
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
-let rsc = ReactServerDOMWebpack.createFromFetch(fetchXcomponent());
-console.log("createFromFetch", rsc);
-root.render(rsc);
+ReactServerDOMWebpack.createFromFetch(fetchXcomponent()).then(rsc => {
+  root.render(rsc);
+});

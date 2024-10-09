@@ -41,28 +41,39 @@ let () = {
       Dream.get(
         Router.serverComponentsWithoutClient,
         request => {
+          let isRSCheader =
+            Dream.header(request, "Accept") == Some("text/x-component");
+
           let app =
-            <Document script="/static/demo/client/rsc.js">
-              <div
-                className="flex flex-col items-center justify-center h-full">
-                <h1 className="text-white font-bold text-4xl">
-                  {React.string(string_of_float(Unix.gettimeofday()))}
-                </h1>
-              </div>
-            </Document>;
+            <div className="flex flex-col items-center justify-center h-full">
+              <h1 className="text-white font-bold text-4xl">
+                {React.string(string_of_float(Unix.gettimeofday()))}
+              </h1>
+            </div>;
 
-          Dream.stream(
-            ~headers=[("Content-Type", "text/html")],
-            response_stream => {
-              let%lwt (stream, _abort) = ReactServerDOM.render(app);
-
-              /* TODO: Maybe we could make this iter inside ReactServerDOM */
-              stream
-              |> Lwt_stream.iter_s(data => {
-                   Dream.write(response_stream, data)
-                 });
-            },
-          );
+          if (isRSCheader) {
+            Dream.stream(response_stream => {
+              let%lwt initial =
+                ReactServerDOM.to_model(
+                  ~subscribe=data => Dream.write(response_stream, data),
+                  app,
+                );
+              let%lwt () =
+                Lwt_stream.iter_s(
+                  data => Dream.write(response_stream, data),
+                  initial,
+                );
+              Lwt.return();
+            });
+          } else {
+            Dream.html(
+              ReactDOM.renderToString(
+                <Document script="/static/demo/client/rsc.js">
+                  React.null
+                </Document>,
+              ),
+            );
+          };
         },
       ),
       Dream.get(

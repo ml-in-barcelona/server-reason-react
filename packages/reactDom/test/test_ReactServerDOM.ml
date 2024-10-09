@@ -237,9 +237,9 @@ let tests =
       test "upper_case_component" upper_case_component;
       test "client_component_without_props" client_component_without_props;
       test "client_component_with_props" client_component_with_props;
-      (* test "nested_client_components" nested_client_components; *)
       test "mixed_server_and_client" mixed_server_and_client;
+      test "deeply_nested_server_content" deeply_nested_server_content;
       (* test "client_component_with_list_as_element"
          client_component_with_list_as_element; *)
-      test "deeply_nested_server_content" deeply_nested_server_content;
+      (* test "nested_client_components" nested_client_components; *)
     ] )
