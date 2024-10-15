@@ -12,15 +12,19 @@ let html_doctype () =
     "<!DOCTYPE html><html></html>"
 
 let empty_string_attribute () =
-  let div = React.createElement "div" [ React.JSX.String ("class", "") ] [] in
+  let div =
+    React.createElement "div"
+      [ React.JSX.String (("class", "className"), "") ]
+      []
+  in
   assert_string (ReactDOM.renderToStaticMarkup div) "<div class=\"\"></div>"
 
 let string_attributes () =
   let a =
     React.createElement "a"
       [
-        React.JSX.String ("href", "google.html");
-        React.JSX.String ("target", "_blank");
+        React.JSX.String (("href", "href"), "google.html");
+        React.JSX.String (("target", "target"), "_blank");
       ]
       []
   in
@@ -32,10 +36,10 @@ let bool_attributes () =
   let a =
     React.createElement "input"
       [
-        React.JSX.String ("type", "checkbox");
-        React.JSX.String ("name", "cheese");
-        React.JSX.Bool ("checked", true);
-        React.JSX.Bool ("disabled", false);
+        React.JSX.String (("type", "type"), "checkbox");
+        React.JSX.String (("name", "name"), "cheese");
+        React.JSX.Bool (("checked", "checked"), true);
+        React.JSX.Bool (("disabled", "disabled"), false);
       ]
       []
   in
@@ -45,7 +49,9 @@ let bool_attributes () =
 
 let truthy_attributes () =
   let component =
-    React.createElement "input" [ React.JSX.String ("aria-hidden", "true") ] []
+    React.createElement "input"
+      [ React.JSX.String (("aria-hidden", "ariaHidden"), "true") ]
+      []
   in
   assert_string
     (ReactDOM.renderToStaticMarkup component)
@@ -68,8 +74,10 @@ let ignored_attributes_on_jsx () =
   let div =
     React.createElement "div"
       [
-        React.JSX.String ("key", "uniqueKeyId");
-        React.JSX.Bool ("suppressContentEditableWarning", true);
+        React.JSX.String (("key", "key"), "uniqueKeyId");
+        React.JSX.Bool
+          ( ("suppressContentEditableWarning", "suppressContentEditableWarning"),
+            true );
       ]
       []
   in
@@ -117,8 +125,8 @@ let encode_attributes () =
   let component =
     React.createElement "div"
       [
-        React.JSX.String ("about", "\' <");
-        React.JSX.String ("data-user-path", "what/the/path");
+        React.JSX.String (("about", "about"), "\' <");
+        React.JSX.String (("data-user-path", "data-user-path"), "what/the/path");
       ]
       [ React.string "& \"" ]
   in
@@ -131,7 +139,7 @@ let dangerouslySetInnerHtml () =
   let component =
     React.createElement "script"
       [
-        React.JSX.String ("type", "application/javascript");
+        React.JSX.String (("type", "type"), "application/javascript");
         React.JSX.DangerouslyInnerHtml "console.log(\"Hi!\")";
       ]
       []
@@ -205,7 +213,7 @@ let make ~name () =
   let onClick (event : React.Event.Mouse.t) : unit = ignore event in
   React.createElement "button"
     [
-      React.JSX.String ("name", (name : string));
+      React.JSX.String (("name", "name"), (name : string));
       React.JSX.Event
         ("onClick", React.JSX.Mouse (onClick : React.Event.Mouse.t -> unit));
     ]
@@ -218,14 +226,19 @@ let event () =
 
 let className () =
   let div =
-    React.createElement "div" [ React.JSX.String ("class", "lol") ] []
+    React.createElement "div"
+      [ React.JSX.String (("class", "className"), "lol") ]
+      []
   in
   assert_string (ReactDOM.renderToStaticMarkup div) "<div class=\"lol\"></div>"
 
 let className_2 () =
   let component =
     React.createElement "div"
-      [ React.JSX.String ("class", "flex xs:justify-center overflow-hidden") ]
+      [
+        React.JSX.String
+          (("class", "className"), "flex xs:justify-center overflow-hidden");
+      ]
       []
   in
   assert_string
@@ -256,7 +269,7 @@ let render_svg () =
     React.createElement "path"
       [
         React.JSX.String
-          ( "d",
+          ( ("d", "d"),
             "M 5 3 C 3.9069372 3 3 3.9069372 3 5 L 3 19 C 3 20.093063 \
              3.9069372 21 5 21 L 19 21 C 20.093063 21 21 20.093063 21 19 L 21 \
              12 L 19 12 L 19 19 L 5 19 L 5 5 L 12 5 L 12 3 L 5 3 z M 14 3 L 14 \
@@ -268,10 +281,10 @@ let render_svg () =
   let svg =
     React.createElement "svg"
       [
-        React.JSX.String ("xmlns", "http://www.w3.org/2000/svg");
-        React.JSX.String ("viewBox", "0 0 24 24");
-        React.JSX.String ("width", "24px");
-        React.JSX.String ("height", "24px");
+        React.JSX.String (("xmlns", "xmlns"), "http://www.w3.org/2000/svg");
+        React.JSX.String (("viewBox", "viewBox"), "0 0 24 24");
+        React.JSX.String (("width", "width"), "24px");
+        React.JSX.String (("height", "height"), "24px");
       ]
       [ path ]
   in

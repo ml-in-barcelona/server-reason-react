@@ -32,7 +32,7 @@ module Gap = struct
         if element = React.null then React.null
         else
           React.createElement "div"
-            [ React.JSX.String ("class", "divider") ]
+            [ React.JSX.String (("class", "className"), "divider") ]
             [ element ])
 end
 

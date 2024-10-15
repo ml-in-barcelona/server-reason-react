@@ -339,8 +339,8 @@ module JSX = struct
     | Inline of string
 
   type prop =
-    | Bool of (string * bool)
-    | String of (string * string)
+    | Bool of ((string * string) * bool)
+    | String of ((string * string) * string)
     | Style of string
     | DangerouslyInnerHtml of string
     | Ref of Ref.t
@@ -397,9 +397,8 @@ exception Invalid_children of string
 
 let compare_attribute left right =
   match (left, right) with
-  | JSX.Bool (left_key, _), JSX.Bool (right_key, _) ->
-      String.compare left_key right_key
-  | String (left_key, _), String (right_key, _) ->
+  | JSX.Bool ((left_key, _), _), JSX.Bool ((right_key, _), _)
+  | String ((left_key, _), _), String ((right_key, _), _) ->
       String.compare left_key right_key
   | Style left_styles, Style right_styles ->
       String.compare left_styles right_styles
@@ -421,8 +420,8 @@ let attributes_to_map attributes =
   List.fold_left
     (fun acc attr ->
       match attr with
-      | Bool (key, value) -> acc |> StringMap.add key (Bool (key, value))
-      | String (key, value) -> acc |> StringMap.add key (String (key, value))
+      | (Bool ((key, _), _) | String ((key, _), _)) as prop ->
+          acc |> StringMap.add key prop
       (* The following constructors shoudn't be part of the StringMap *)
       | DangerouslyInnerHtml _ -> acc
       | Ref _ -> acc
