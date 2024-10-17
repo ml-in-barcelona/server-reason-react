@@ -80,7 +80,7 @@ let rewrite_component ~loc tag args children =
   pexp_apply ~loc component props
 
 let validate_prop ~loc id name =
-  match DomProps.findByName id name with
+  match DomProps.findByJsxName ~tag:id name with
   | Ok p -> p
   | Error `ElementNotFound ->
       raise_errorf ~loc
@@ -100,52 +100,75 @@ let validate_prop ~loc id name =
              If this isn't correct, please open an issue at %s." name id
             suggestion issues_url)
 
-let make_prop ~is_optional ~prop attribute_name attribute_value =
+let make_prop ~is_optional ~prop attribute_value =
   let loc = attribute_value.pexp_loc in
   let open DomProps in
   match (prop, is_optional) with
-  | Attribute { type_ = DomProps.String; _ }, false ->
+  | Attribute { type_ = DomProps.String; name; jsxName }, false ->
       [%expr
         Some
           (React.JSX.String
-             ([%e attribute_name], ([%e attribute_value] : string)))]
-  | Attribute { type_ = DomProps.String; _ }, true ->
+             ( [%e estring ~loc name],
+               [%e estring ~loc jsxName],
+               ([%e attribute_value] : string) ))]
+  | Attribute { type_ = DomProps.String; name; jsxName }, true ->
       [%expr
         match ([%e attribute_value] : string option) with
         | None -> None
-        | Some v -> Some (React.JSX.String ([%e attribute_name], v))]
-  | Attribute { type_ = DomProps.Int; _ }, false ->
+        | Some v ->
+            Some
+              (React.JSX.String
+                 ([%e estring ~loc name], [%e estring ~loc jsxName], v))]
+  | Attribute { type_ = DomProps.Int; name; jsxName }, false ->
       [%expr
         Some
           (React.JSX.String
-             ([%e attribute_name], string_of_int ([%e attribute_value] : int)))]
-  | Attribute { type_ = DomProps.Int; _ }, true ->
+             ( [%e estring ~loc name],
+               [%e estring ~loc jsxName],
+               string_of_int ([%e attribute_value] : int) ))]
+  | Attribute { type_ = DomProps.Int; name; jsxName }, true ->
       [%expr
         match ([%e attribute_value] : int option) with
         | None -> None
         | Some v ->
-            Some (React.JSX.String ([%e attribute_name], string_of_int v))]
-  | Attribute { type_ = DomProps.Bool; _ }, false ->
+            Some
+              (React.JSX.String
+                 ( [%e estring ~loc name],
+                   [%e estring ~loc jsxName],
+                   string_of_int v ))]
+  | Attribute { type_ = DomProps.Bool; name; jsxName }, false ->
       [%expr
         Some
-          (React.JSX.Bool ([%e attribute_name], ([%e attribute_value] : bool)))]
-  | Attribute { type_ = DomProps.Bool; _ }, true ->
-      [%expr
-        match ([%e attribute_value] : bool option) with
-        | None -> None
-        | Some v -> Some (React.JSX.Bool ([%e attribute_name], v))]
-  (* BooleanishString needs to transform bool into string *)
-  | Attribute { type_ = DomProps.BooleanishString; _ }, false ->
-      [%expr
-        Some
-          (React.JSX.String
-             ([%e attribute_name], string_of_bool ([%e attribute_value] : bool)))]
-  | Attribute { type_ = DomProps.BooleanishString; _ }, true ->
+          (React.JSX.Bool
+             ( [%e estring ~loc name],
+               [%e estring ~loc jsxName],
+               ([%e attribute_value] : bool) ))]
+  | Attribute { type_ = DomProps.Bool; name; jsxName }, true ->
       [%expr
         match ([%e attribute_value] : bool option) with
         | None -> None
         | Some v ->
-            Some (React.JSX.String ([%e attribute_name], string_of_bool v))]
+            Some
+              (React.JSX.Bool
+                 ([%e estring ~loc name], [%e estring ~loc jsxName], v))]
+  (* BooleanishString needs to transform bool into string *)
+  | Attribute { type_ = DomProps.BooleanishString; name; jsxName }, false ->
+      [%expr
+        Some
+          (React.JSX.String
+             ( [%e estring ~loc name],
+               [%e estring ~loc jsxName],
+               string_of_bool ([%e attribute_value] : bool) ))]
+  | Attribute { type_ = DomProps.BooleanishString; name; jsxName }, true ->
+      [%expr
+        match ([%e attribute_value] : bool option) with
+        | None -> None
+        | Some v ->
+            Some
+              (React.JSX.String
+                 ( [%e estring ~loc name],
+                   [%e estring ~loc jsxName],
+                   string_of_bool v ))]
   | Attribute { type_ = DomProps.Style; _ }, false ->
       [%expr
         Some
@@ -440,8 +463,7 @@ let transform_labelled ~loc ~tag_name (prop_label, (runtime_value : expression))
   | Optional name | Labelled name ->
       let is_optional = is_optional prop_label in
       let prop = validate_prop ~loc tag_name name in
-      let name = estring ~loc (DomProps.getName prop) in
-      let new_prop = make_prop ~is_optional ~prop name runtime_value in
+      let new_prop = make_prop ~is_optional ~prop runtime_value in
       [%expr [%e new_prop] :: [%e props]]
 
 let transform_lowercase_props ~loc ~tag_name args =

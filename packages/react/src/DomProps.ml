@@ -1659,7 +1659,7 @@ let camelcaseToKebabcase str =
   in
   str |> chars_of_string |> loop [] |> List.rev |> string_of_chars
 
-let findByName tag jsxName =
+let findByJsxName ~tag jsxName =
   let byName p = getJSXName p = jsxName in
   if isDataAttribute jsxName then
     let name = camelcaseToKebabcase jsxName in
