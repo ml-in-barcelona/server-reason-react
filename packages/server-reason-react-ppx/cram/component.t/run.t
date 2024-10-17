@@ -20,7 +20,7 @@ We need to output ML syntax here, otherwise refmt could not parse it.
                  Some (React.JSX.Ref (buttonRef : React.domRef));
                  Some
                    (React.JSX.String
-                      (("class", "className"), ("FancyButton" : string)));
+                      ("class", "className", ("FancyButton" : string)));
                ])
             [ children ])
   end
@@ -33,13 +33,13 @@ We need to output ML syntax here, otherwise refmt could not parse it.
           React.createElement "button"
             (Stdlib.List.filter_map Fun.id
                [
-                 Some (React.JSX.String (("name", "name"), (name : string)));
+                 Some (React.JSX.String ("name", "name", (name : string)));
                  Some
                    (React.JSX.Event
                       ( "onClick",
                         React.JSX.Mouse (onClick : React.Event.Mouse.t -> unit) ));
                  Some
-                   (React.JSX.Bool (("disabled", "disabled"), (isDisabled : bool)));
+                   (React.JSX.Bool ("disabled", "disabled", (isDisabled : bool)));
                ])
             [])
   end
@@ -70,16 +70,14 @@ We need to output ML syntax here, otherwise refmt could not parse it.
                 [
                   React.createElement "div"
                     (Stdlib.List.filter_map Fun.id
-                       [
-                         Some (React.JSX.String (("id", "id"), ("root" : string)));
-                       ])
+                       [ Some (React.JSX.String ("id", "id", ("root" : string))) ])
                     [ children ];
                   React.createElement "script"
                     (Stdlib.List.filter_map Fun.id
                        [
                          Some
                            (React.JSX.String
-                              (("src", "src"), ("/static/client.js" : string)));
+                              ("src", "src", ("/static/client.js" : string)));
                        ])
                     [];
                 ];
@@ -95,8 +93,7 @@ We need to output ML syntax here, otherwise refmt could not parse it.
                [
                  Some
                    (React.JSX.String
-                      ( ("aria-hidden", "ariaHidden"),
-                        string_of_bool ("true" : bool) ));
+                      ("aria-hidden", "ariaHidden", string_of_bool ("true" : bool)));
                ])
             [ children ])
   end
@@ -107,9 +104,7 @@ We need to output ML syntax here, otherwise refmt could not parse it.
         (fun () ->
           React.createElement "form"
             (Stdlib.List.filter_map Fun.id
-               [
-                 Some (React.JSX.String (("method", "method_"), ("GET" : string)));
-               ])
+               [ Some (React.JSX.String ("method", "method_", ("GET" : string))) ])
             [ children ])
   end
   
@@ -121,9 +116,7 @@ We need to output ML syntax here, otherwise refmt could not parse it.
         (fun () ->
           React.createElement "form"
             (Stdlib.List.filter_map Fun.id
-               [
-                 Some (React.JSX.String (("method", "method_"), ("GET" : string)));
-               ])
+               [ Some (React.JSX.String ("method", "method_", ("GET" : string))) ])
             [ children ])
   end
   

@@ -8,7 +8,7 @@
         [
           Some(
             [@implicit_arity]
-            React.JSX.String(("class", "className"), "": string),
+            React.JSX.String("class", "className", "": string),
           ),
         ],
       ),
@@ -51,7 +51,7 @@
           | Some(v) =>
             Some(
               [@implicit_arity]
-              React.JSX.String(("tabindex", "tabIndex"), string_of_int(v)),
+              React.JSX.String("tabindex", "tabIndex", string_of_int(v)),
             )
           },
         ],
@@ -66,11 +66,11 @@
         [
           Some(
             [@implicit_arity]
-            React.JSX.String(("tabindex", "tabIndex"), string_of_int(1: int)),
+            React.JSX.String("tabindex", "tabIndex", string_of_int(1: int)),
           ),
           Some(
             [@implicit_arity]
-            React.JSX.String(("href", "href"), "https://example.com": string),
+            React.JSX.String("href", "href", "https://example.com": string),
           ),
         ],
       ),
@@ -93,7 +93,7 @@
         [
           Some(
             [@implicit_arity]
-            React.JSX.String(("class", "className"), "flex-container": string),
+            React.JSX.String("class", "className", "flex-container": string),
           ),
         ],
       ),
@@ -105,7 +105,7 @@
             [
               Some(
                 [@implicit_arity]
-                React.JSX.String(("class", "className"), "sidebar": string),
+                React.JSX.String("class", "className", "sidebar": string),
               ),
             ],
           ),
@@ -117,7 +117,7 @@
                 [
                   Some(
                     [@implicit_arity]
-                    React.JSX.String(("class", "className"), "title": string),
+                    React.JSX.String("class", "className", "title": string),
                   ),
                 ],
               ),
@@ -130,7 +130,7 @@
                 [
                   Some(
                     [@implicit_arity]
-                    React.JSX.String(("class", "className"), "menu": string),
+                    React.JSX.String("class", "className", "menu": string),
                   ),
                 ],
               ),
@@ -148,10 +148,7 @@
                              [
                                Some(
                                  [@implicit_arity]
-                                 React.JSX.String(
-                                   ("key", "key"),
-                                   e.path: string,
-                                 ),
+                                 React.JSX.String("key", "key", e.path: string),
                                ),
                              ],
                            ),
@@ -164,7 +161,8 @@
                                    Some(
                                      [@implicit_arity]
                                      React.JSX.String(
-                                       ("href", "href"),
+                                       "href",
+                                       "href",
                                        e.path: string,
                                      ),
                                    ),
@@ -207,7 +205,7 @@
           Some(React.JSX.Ref(ref: React.domRef)),
           Some(
             [@implicit_arity]
-            React.JSX.String(("class", "className"), "FancyButton": string),
+            React.JSX.String("class", "className", "FancyButton": string),
           ),
         ],
       ),
@@ -221,7 +219,7 @@
         [
           Some(
             [@implicit_arity]
-            React.JSX.String(("translate", "translate"), "yes": string),
+            React.JSX.String("translate", "translate", "yes": string),
           ),
         ],
       ),
@@ -233,7 +231,7 @@
             [
               Some(
                 [@implicit_arity]
-                React.JSX.String(("id", "id"), "idpicture": string),
+                React.JSX.String("id", "id", "idpicture": string),
               ),
             ],
           ),
@@ -245,21 +243,19 @@
                 [
                   Some(
                     [@implicit_arity]
-                    React.JSX.String(
-                      ("src", "src"),
-                      "picture/img.png": string,
-                    ),
+                    React.JSX.String("src", "src", "picture/img.png": string),
                   ),
                   Some(
                     [@implicit_arity]
                     React.JSX.String(
-                      ("alt", "alt"),
+                      "alt",
+                      "alt",
                       "test picture/img.png": string,
                     ),
                   ),
                   Some(
                     [@implicit_arity]
-                    React.JSX.String(("id", "id"), "idimg": string),
+                    React.JSX.String("id", "id", "idimg": string),
                   ),
                 ],
               ),
@@ -272,14 +268,11 @@
                 [
                   Some(
                     [@implicit_arity]
-                    React.JSX.String(("type", "type_"), "image/webp": string),
+                    React.JSX.String("type", "type_", "image/webp": string),
                   ),
                   Some(
                     [@implicit_arity]
-                    React.JSX.String(
-                      ("src", "src"),
-                      "picture/img1.webp": string,
-                    ),
+                    React.JSX.String("src", "src", "picture/img1.webp": string),
                   ),
                 ],
               ),
@@ -292,14 +285,11 @@
                 [
                   Some(
                     [@implicit_arity]
-                    React.JSX.String(("type", "type_"), "image/jpeg": string),
+                    React.JSX.String("type", "type_", "image/jpeg": string),
                   ),
                   Some(
                     [@implicit_arity]
-                    React.JSX.String(
-                      ("src", "src"),
-                      "picture/img2.jpg": string,
-                    ),
+                    React.JSX.String("src", "src", "picture/img2.jpg": string),
                   ),
                 ],
               ),
@@ -315,12 +305,8 @@
       Stdlib.List.filter_map(
         Fun.id,
         [
-          Some(
-            [@implicit_arity] React.JSX.String(("dx", "dx"), "1 2": string),
-          ),
-          Some(
-            [@implicit_arity] React.JSX.String(("dy", "dy"), "3 4": string),
-          ),
+          Some([@implicit_arity] React.JSX.String("dx", "dx", "1 2": string)),
+          Some([@implicit_arity] React.JSX.String("dy", "dy", "3 4": string)),
         ],
       ),
       [],

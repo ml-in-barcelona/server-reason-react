@@ -9,15 +9,15 @@ let attribute_to_html attr =
   match attr with
   (* ignores "ref" prop *)
   | React.JSX.Ref _ -> Html.omitted ()
-  | Bool ((name, _), _) when is_react_custom_attribute name -> Html.omitted ()
+  | Bool (name, _, _) when is_react_custom_attribute name -> Html.omitted ()
   (* false attributes don't get rendered *)
-  | Bool (_name, false) -> Html.omitted ()
+  | Bool (_name, _, false) -> Html.omitted ()
   (* true attributes render solely the attribute name *)
-  | Bool ((name, _), true) -> Html.present name
+  | Bool (name, _, true) -> Html.present name
   | Style styles -> Html.attribute "style" styles
-  | String ((name, _), _value) when is_react_custom_attribute name ->
+  | String (name, _, _value) when is_react_custom_attribute name ->
       Html.omitted ()
-  | String ((name, _), value) -> Html.attribute name value
+  | String (name, _, value) -> Html.attribute name value
   (* Events don't get rendered on SSR *)
   | Event _ -> Html.omitted ()
   (* Since we extracted the attribute as children (Element.InnerHtml) in createElement,
@@ -250,19 +250,8 @@ let add kind value map =
 type dangerouslySetInnerHTML = < __html : string >
 
 (* `Booleanish_string` are JSX attributes represented as boolean values but rendered as strings on HTML https://github.com/facebook/react/blob/a17467e7e2cd8947c595d1834889b5d184459f12/packages/react-dom-bindings/src/server/ReactFizzConfigDOM.js#L1165-L1176 *)
-let getPropByName name =
-  match DomProps.findByName name with
-  | Ok prop -> (name, DomProps.getJSXName prop)
-  | Error _ -> failwith "Invalid prop"
-
-let string name v = React.JSX.string (getPropByName name) v
-let int name v = React.JSX.int (getPropByName name) v
-let bool name v = React.JSX.bool (getPropByName name) v
-
-let booleanish_string name v =
-  React.JSX.string (getPropByName name) (string_of_bool v)
-
-let float name v = React.JSX.float (getPropByName name) v
+let booleanish_string name jsxName v =
+  React.JSX.string name jsxName (string_of_bool v)
 
 [@@@ocamlformat "disable"]
 (* domProps isn't used by the generated code from the ppx, and it's purpose is to
@@ -762,164 +751,164 @@ let domProps
   ?suppressHydrationWarning
   () =
   []
-  |> add (string "key") key
+  |> add (React.JSX.string "key" "key") key
   |> add React.JSX.ref ref
-  |> add (string "aria-details") ariaDetails
-  |> add (booleanish_string "aria-disabled") ariaDisabled
-  |> add (booleanish_string "aria-hidden") ariaHidden
-  |> add (string "aria-keyshortcuts") ariaKeyshortcuts
-  |> add (string "aria-label") ariaLabel
-  |> add (string "aria-roledescription") ariaRoledescription
-  |> add (booleanish_string "aria-expanded") ariaExpanded
-  |> add (int "aria-level") ariaLevel
-  |> add (booleanish_string "aria-modal") ariaModal
-  |> add (booleanish_string "aria-multiline") ariaMultiline
-  |> add (booleanish_string "aria-multiselectable") ariaMultiselectable
-  |> add (string "aria-placeholder") ariaPlaceholder
-  |> add (booleanish_string "aria-readonly") ariaReadonly
-  |> add (booleanish_string "aria-required") ariaRequired
-  |> add (booleanish_string "aria-selected") ariaSelected
-  |> add (string "aria-sort") ariaSort
-  |> add (float "aria-valuemax") ariaValuemax
-  |> add (float "aria-valuemin") ariaValuemin
-  |> add (float "aria-valuenow") ariaValuenow
-  |> add (string "aria-valuetext") ariaValuetext
-  |> add (booleanish_string "aria-atomic") ariaAtomic
-  |> add (booleanish_string "aria-busy") ariaBusy
-  |> add (string "aria-relevant") ariaRelevant
-  |> add (bool "aria-grabbed") ariaGrabbed
-  |> add (string "aria-activedescendant") ariaActivedescendant
-  |> add (int "aria-colcount") ariaColcount
-  |> add (int "aria-colindex") ariaColindex
-  |> add (int "aria-colspan") ariaColspan
-  |> add (string "aria-controls") ariaControls
-  |> add (string "aria-describedby") ariaDescribedby
-  |> add (string "aria-errormessage") ariaErrormessage
-  |> add (string "aria-flowto") ariaFlowto
-  |> add (string "aria-labelledby") ariaLabelledby
-  |> add (string "aria-owns") ariaOwns
-  |> add (int "aria-posinset") ariaPosinset
-  |> add (int "aria-rowcount") ariaRowcount
-  |> add (int "aria-rowindex") ariaRowindex
-  |> add (int "aria-rowspan") ariaRowspan
-  |> add (int "aria-setsize") ariaSetsize
-  |> add (bool "checked") defaultChecked
-  |> add (string "value") defaultValue
-  |> add (string "accesskey") accessKey
-  |> add (string "class") className
-  |> add (booleanish_string "contenteditable") contentEditable
-  |> add (string "contextmenu") contextMenu
-  |> add (string "dir") dir
-  |> add (booleanish_string "draggable") draggable
-  |> add (bool "hidden") hidden
-  |> add (string "id") id
-  |> add (string "lang") lang
-  |> add (string "role") role
+  |> add (React.JSX.string "aria-details" "ariaDetails") ariaDetails
+  |> add (booleanish_string "aria-disabled" "ariaDisabled") ariaDisabled
+  |> add (booleanish_string "aria-hidden" "ariaHidden") ariaHidden
+  |> add (React.JSX.string "aria-keyshortcuts" "ariaKeyshortcuts") ariaKeyshortcuts
+  |> add (React.JSX.string "aria-label" "ariaLabel") ariaLabel
+  |> add (React.JSX.string "aria-roledescription" "ariaRoledescription") ariaRoledescription
+  |> add (booleanish_string "aria-expanded" "ariaExpanded") ariaExpanded
+  |> add (React.JSX.int "aria-level" "ariaLevel") ariaLevel
+  |> add (booleanish_string "aria-modal" "ariaModal") ariaModal
+  |> add (booleanish_string "aria-multiline" "ariaMultiline") ariaMultiline
+  |> add (booleanish_string "aria-multiselectable" "ariaMultiselectable") ariaMultiselectable
+  |> add (React.JSX.string "aria-placeholder" "ariaPlaceholder") ariaPlaceholder
+  |> add (booleanish_string "aria-readonly" "ariaReadonly") ariaReadonly
+  |> add (booleanish_string "aria-required" "ariaRequired") ariaRequired
+  |> add (booleanish_string "aria-selected" "ariaSelected") ariaSelected
+  |> add (React.JSX.string "aria-sort" "ariaSort") ariaSort
+  |> add (React.JSX.float "aria-valuemax" "ariaValuemax") ariaValuemax
+  |> add (React.JSX.float "aria-valuemin" "ariaValuemin") ariaValuemin
+  |> add (React.JSX.float "aria-valuenow" "ariaValuenow") ariaValuenow
+  |> add (React.JSX.string "aria-valuetext" "ariaValuetext") ariaValuetext
+  |> add (booleanish_string "aria-atomic" "ariaAtomic") ariaAtomic
+  |> add (booleanish_string "aria-busy" "ariaBusy") ariaBusy
+  |> add (React.JSX.string "aria-relevant" "ariaRelevant") ariaRelevant
+  |> add (React.JSX.bool "aria-grabbed" "ariaGrabbed") ariaGrabbed
+  |> add (React.JSX.string "aria-activedescendant" "ariaActivedescendant") ariaActivedescendant
+  |> add (React.JSX.int "aria-colcount" "ariaColcount") ariaColcount
+  |> add (React.JSX.int "aria-colindex" "ariaColindex") ariaColindex
+  |> add (React.JSX.int "aria-colspan" "ariaColspan") ariaColspan
+  |> add (React.JSX.string "aria-controls" "ariaControls") ariaControls
+  |> add (React.JSX.string "aria-describedby" "ariaDescribedby") ariaDescribedby
+  |> add (React.JSX.string "aria-errormessage" "ariaErrormessage") ariaErrormessage
+  |> add (React.JSX.string "aria-flowto" "ariaFlowto") ariaFlowto
+  |> add (React.JSX.string "aria-labelledby" "ariaLabelledby") ariaLabelledby
+  |> add (React.JSX.string "aria-owns" "ariaOwns") ariaOwns
+  |> add (React.JSX.int "aria-posinset" "ariaPosinset") ariaPosinset
+  |> add (React.JSX.int "aria-rowcount" "ariaRowcount") ariaRowcount
+  |> add (React.JSX.int "aria-rowindex" "ariaRowindex") ariaRowindex
+  |> add (React.JSX.int "aria-rowspan" "ariaRowspan") ariaRowspan
+  |> add (React.JSX.int "aria-setsize" "ariaSetsize") ariaSetsize
+  |> add (React.JSX.bool "checked" "defaultChecked") defaultChecked
+  |> add (React.JSX.string "value" "defaultValue") defaultValue
+  |> add (React.JSX.string "accesskey" "accessKey") accessKey
+  |> add (React.JSX.string "class" "className") className
+  |> add (booleanish_string "contenteditable" "contentEditable") contentEditable
+  |> add (React.JSX.string "contextmenu" "contextMenu") contextMenu
+  |> add (React.JSX.string "dir" "dir") dir
+  |> add (booleanish_string "draggable" "draggable") draggable
+  |> add (React.JSX.bool "hidden" "hidden") hidden
+  |> add (React.JSX.string "id" "id") id
+  |> add (React.JSX.string "lang" "lang") lang
+  |> add (React.JSX.string "role" "role") role
   |> add (fun v -> React.JSX.style (ReactDOMStyle.to_string v)) style
-  |> add (booleanish_string "spellcheck") spellCheck
-  |> add (int "tabindex") tabIndex
-  |> add (string "title") title
-  |> add (string "itemid") itemID
-  |> add (string "itemorop") itemProp
-  |> add (string "itemref") itemRef
-  |> add (bool "itemccope") itemScope
-  |> add (string "itemtype") itemType
-  |> add (string "accept") accept
-  |> add (string "accept-charset") acceptCharset
-  |> add (string "action") action
-  |> add (bool "allowfullscreen") allowFullScreen
-  |> add (string "alt") alt
-  |> add (bool "async") async
-  |> add (string "autocomplete") autoComplete
-  |> add (string "autocapitalize") autoCapitalize
-  |> add (bool "autofocus") autoFocus
-  |> add (bool "autoplay") autoPlay
-  |> add (string "challenge") challenge
-  |> add (string "charSet") charSet
-  |> add (bool "checked") checked
-  |> add (string "cite") cite
-  |> add (string "crossorigin") crossOrigin
-  |> add (int "cols") cols
-  |> add (int "colspan") colSpan
-  |> add (string "content") content
-  |> add (bool "controls") controls
-  |> add (string "coords") coords
-  |> add (string "data") data
-  |> add (string "datetime") dateTime
-  |> add (bool "default") default
-  |> add (bool "defer") defer
-  |> add (bool "disabled") disabled
-  |> add (string "download") download
-  |> add (string "enctype") encType
-  |> add (string "form") form
-  |> add (string "formction") formAction
-  |> add (string "formtarget") formTarget
-  |> add (string "formmethod") formMethod
-  |> add (string "headers") headers
-  |> add (string "height") height
-  |> add (int "high") high
-  |> add (string "href") href
-  |> add (string "hreflang") hrefLang
-  |> add (string "for") htmlFor
-  |> add (string "http-eequiv") httpEquiv
-  |> add (string "icon") icon
-  |> add (string "inputmode") inputMode
-  |> add (string "integrity") integrity
-  |> add (string "keytype") keyType
-  |> add (string "kind") kind
-  |> add (string "label") label
-  |> add (string "list") list
-  |> add (bool "loop") loop
-  |> add (int "low") low
-  |> add (string "manifest") manifest
-  |> add (string "max") max
-  |> add (int "maxlength") maxLength
-  |> add (string "media") media
-  |> add (string "mediagroup") mediaGroup
-  |> add (string "method") method_
-  |> add (string "min") min
-  |> add (int "minlength") minLength
-  |> add (bool "multiple") multiple
-  |> add (bool "muted") muted
-  |> add (string "name") name
-  |> add (string "nonce") nonce
-  |> add (bool "noValidate") noValidate
-  |> add (bool "open") open_
-  |> add (int "optimum") optimum
-  |> add (string "pattern") pattern
-  |> add (string "placeholder") placeholder
-  |> add (bool "playsInline") playsInline
-  |> add (string "poster") poster
-  |> add (string "preload") preload
-  |> add (string "radioGroup") radioGroup (* Unsure if it exists? *)
-  |> add (bool "readonly") readOnly
-  |> add (string "rel") rel
-  |> add (bool "required") required
-  |> add (bool "reversed") reversed
-  |> add (int "rows") rows
-  |> add (int "rowspan") rowSpan
-  |> add (string "sandbox") sandbox
-  |> add (string "scope") scope
-  |> add (bool "scoped") scoped
-  |> add (string "scrolling") scrolling
-  |> add (bool "selected") selected
-  |> add (string "shape") shape
-  |> add (int "size") size
-  |> add (string "sizes") sizes
-  |> add (int "span") span
-  |> add (string "src") src
-  |> add (string "srcdoc") srcDoc
-  |> add (string "srclang") srcLang
-  |> add (string "srcset") srcSet
-  |> add (int "start") start
-  |> add (float "step") step
-  |> add (string "summary") summary
-  |> add (string "target") target
-  |> add (string "type") type_
-  |> add (string "useMap") useMap
-  |> add (string "value") value
-  |> add (string "width") width
-  |> add (string "wrap") wrap
+  |> add (booleanish_string "spellcheck" "spellCheck") spellCheck
+  |> add (React.JSX.int "tabindex" "tabIndex") tabIndex
+  |> add (React.JSX.string "title" "title") title
+  |> add (React.JSX.string "itemid" "itemID") itemID
+  |> add (React.JSX.string "itemorop" "itemProp") itemProp
+  |> add (React.JSX.string "itemref" "itemRef") itemRef
+  |> add (React.JSX.bool "itemccope" "itemScope") itemScope
+  |> add (React.JSX.string "itemtype" "itemType") itemType
+  |> add (React.JSX.string "accept" "accept") accept
+  |> add (React.JSX.string "accept-charset" "acceptCharset") acceptCharset
+  |> add (React.JSX.string "action" "action") action
+  |> add (React.JSX.bool "allowfullscreen" "allowFullScreen") allowFullScreen
+  |> add (React.JSX.string "alt" "alt") alt
+  |> add (React.JSX.bool "async" "async") async
+  |> add (React.JSX.string "autocomplete" "autoComplete") autoComplete
+  |> add (React.JSX.string "autocapitalize" "autoCapitalize") autoCapitalize
+  |> add (React.JSX.bool "autofocus" "autoFocus") autoFocus
+  |> add (React.JSX.bool "autoplay" "autoPlay") autoPlay
+  |> add (React.JSX.string "challenge" "challenge") challenge
+  |> add (React.JSX.string "charSet" "charSet") charSet
+  |> add (React.JSX.bool "checked" "checked") checked
+  |> add (React.JSX.string "cite" "cite") cite
+  |> add (React.JSX.string "crossorigin" "crossOrigin") crossOrigin
+  |> add (React.JSX.int "cols" "cols") cols
+  |> add (React.JSX.int "colspan" "colSpan") colSpan
+  |> add (React.JSX.string "content" "content") content
+  |> add (React.JSX.bool "controls" "controls") controls
+  |> add (React.JSX.string "coords" "coords") coords
+  |> add (React.JSX.string "data" "data") data
+  |> add (React.JSX.string "datetime" "dateTime") dateTime
+  |> add (React.JSX.bool "default" "default") default
+  |> add (React.JSX.bool "defer" "defer") defer
+  |> add (React.JSX.bool "disabled" "disabled") disabled
+  |> add (React.JSX.string "download" "download") download
+  |> add (React.JSX.string "enctype" "encType") encType
+  |> add (React.JSX.string "form" "form") form
+  |> add (React.JSX.string "formction" "formAction") formAction
+  |> add (React.JSX.string "formtarget" "formTarget") formTarget
+  |> add (React.JSX.string "formmethod" "formMethod") formMethod
+  |> add (React.JSX.string "headers" "headers") headers
+  |> add (React.JSX.string "height" "height") height
+  |> add (React.JSX.int "high" "high") high
+  |> add (React.JSX.string "href" "href") href
+  |> add (React.JSX.string "hreflang" "hrefLang") hrefLang
+  |> add (React.JSX.string "for" "htmlFor") htmlFor
+  |> add (React.JSX.string "http-eequiv" "httpEquiv") httpEquiv
+  |> add (React.JSX.string "icon" "icon") icon
+  |> add (React.JSX.string "inputmode" "inputMode") inputMode
+  |> add (React.JSX.string "integrity" "integrity") integrity
+  |> add (React.JSX.string "keytype" "keyType") keyType
+  |> add (React.JSX.string "kind" "kind") kind
+  |> add (React.JSX.string "label" "label") label
+  |> add (React.JSX.string "list" "list") list
+  |> add (React.JSX.bool "loop" "loop") loop
+  |> add (React.JSX.int "low" "low") low
+  |> add (React.JSX.string "manifest" "manifest") manifest
+  |> add (React.JSX.string "max" "max") max
+  |> add (React.JSX.int "maxlength" "maxLength") maxLength
+  |> add (React.JSX.string "media" "media") media
+  |> add (React.JSX.string "mediagroup" "mediaGroup") mediaGroup
+  |> add (React.JSX.string "method" "method_") method_
+  |> add (React.JSX.string "min" "min") min
+  |> add (React.JSX.int "minlength" "minLength") minLength
+  |> add (React.JSX.bool "multiple" "multiple") multiple
+  |> add (React.JSX.bool "muted" "muted") muted
+  |> add (React.JSX.string "name" "name") name
+  |> add (React.JSX.string "nonce" "nonce") nonce
+  |> add (React.JSX.bool "noValidate" "noValidate") noValidate
+  |> add (React.JSX.bool "open" "open_") open_
+  |> add (React.JSX.int "optimum" "optimum") optimum
+  |> add (React.JSX.string "pattern" "pattern") pattern
+  |> add (React.JSX.string "placeholder" "placeholder") placeholder
+  |> add (React.JSX.bool "playsInline" "playsInline") playsInline
+  |> add (React.JSX.string "poster" "poster") poster
+  |> add (React.JSX.string "preload" "preload") preload
+  |> add (React.JSX.string "radioGroup" "radioGroup") radioGroup (* Unsure if it exists? *)
+  |> add (React.JSX.bool "readonly" "readOnly") readOnly
+  |> add (React.JSX.string "rel" "rel") rel
+  |> add (React.JSX.bool "required" "required") required
+  |> add (React.JSX.bool "reversed" "reversed") reversed
+  |> add (React.JSX.int "rows" "rows") rows
+  |> add (React.JSX.int "rowspan" "rowSpan") rowSpan
+  |> add (React.JSX.string "sandbox" "sandbox") sandbox
+  |> add (React.JSX.string "scope" "scope") scope
+  |> add (React.JSX.bool "scoped" "scoped") scoped
+  |> add (React.JSX.string "scrolling" "scrolling") scrolling
+  |> add (React.JSX.bool "selected" "selected") selected
+  |> add (React.JSX.string "shape" "shape") shape
+  |> add (React.JSX.int "size" "size") size
+  |> add (React.JSX.string "sizes" "sizes") sizes
+  |> add (React.JSX.int "span" "span") span
+  |> add (React.JSX.string "src" "src") src
+  |> add (React.JSX.string "srcdoc" "srcDoc") srcDoc
+  |> add (React.JSX.string "srclang" "srcLang") srcLang
+  |> add (React.JSX.string "srcset" "srcSet") srcSet
+  |> add (React.JSX.int "start" "start") start
+  |> add (React.JSX.float "step" "step") step
+  |> add (React.JSX.string "summary" "summary") summary
+  |> add (React.JSX.string "target" "target") target
+  |> add (React.JSX.string "type" "type_") type_
+  |> add (React.JSX.string "useMap" "useMap") useMap
+  |> add (React.JSX.string "value" "value") value
+  |> add (React.JSX.string "width" "width") width
+  |> add (React.JSX.string "wrap" "wrap") wrap
   |> add (React.JSX.Event.clipboard "onCopy") onCopy
   |> add (React.JSX.Event.clipboard "onCut") onCut
   |> add (React.JSX.Event.clipboard "onPaste") onPaste
@@ -997,259 +986,259 @@ let domProps
   |> add (React.JSX.Event.animation "onAnimationEnd") onAnimationEnd
   |> add (React.JSX.Event.animation "onAnimationIteration") onAnimationIteration
   |> add (React.JSX.Event.transition "onTransitionEnd") onTransitionEnd
-  |> add (string "accent-height") accentHeight
-  |> add (string "accumulate") accumulate
-  |> add (string "additive") additive
-  |> add (string "alignment-baseline") alignmentBaseline
-  |> add (string "allowReorder") allowReorder (* Does it exist? *)
-  |> add (string "alphabetic") alphabetic
-  |> add (string "amplitude") amplitude
-  |> add (string "arabic-form") arabicForm
-  |> add (string "ascent") ascent
-  |> add (string "attributeName") attributeName
-  |> add (string "attributeType") attributeType
-  |> add (string "autoReverse") autoReverse (* Does it exist? *)
-  |> add (string "azimuth") azimuth
-  |> add (string "baseFrequency") baseFrequency
-  |> add (string "baseProfile") baseProfile
-  |> add (string "baselineShift") baselineShift
-  |> add (string "bbox") bbox
-  |> add (string "begin") begin_
-  |> add (string "bias") bias
-  |> add (string "by") by
-  |> add (string "calcMode") calcMode
-  |> add (string "capHeight") capHeight
-  |> add (string "clip") clip
-  |> add (string "clipPath") clipPath
-  |> add (string "clipPathUnits") clipPathUnits
-  |> add (string "clipRule") clipRule
-  |> add (string "colorInterpolation") colorInterpolation
-  |> add (string "colorInterpolationFilters") colorInterpolationFilters
-  |> add (string "colorProfile") colorProfile
-  |> add (string "colorRendering") colorRendering
-  |> add (string "contentScriptType") contentScriptType
-  |> add (string "contentStyleType") contentStyleType
-  |> add (string "cursor") cursor
-  |> add (string "cx") cx
-  |> add (string "cy") cy
-  |> add (string "d") d
-  |> add (string "decelerate") decelerate
-  |> add (string "descent") descent
-  |> add (string "diffuseConstant") diffuseConstant
-  |> add (string "direction") direction
-  |> add (string "display") display
-  |> add (string "divisor") divisor
-  |> add (string "dominantBaseline") dominantBaseline
-  |> add (string "dur") dur
-  |> add (string "dx") dx
-  |> add (string "dy") dy
-  |> add (string "edgeMode") edgeMode
-  |> add (string "elevation") elevation
-  |> add (string "enableBackground") enableBackground
-  |> add (string "end") end_
-  |> add (string "exponent") exponent
-  |> add (string "externalResourcesRequired") externalResourcesRequired
-  |> add (string "fill") fill
-  |> add (string "fillOpacity") fillOpacity
-  |> add (string "fillRule") fillRule
-  |> add (string "filter") filter
-  |> add (string "filterRes") filterRes
-  |> add (string "filterUnits") filterUnits
-  |> add (string "flood-color") floodColor
-  |> add (string "flood-opacity") floodOpacity
-  |> add (string "focusable") focusable
-  |> add (string "font-family") fontFamily
-  |> add (string "font-size") fontSize
-  |> add (string "font-size-adjust") fontSizeAdjust
-  |> add (string "font-stretch") fontStretch
-  |> add (string "font-style") fontStyle
-  |> add (string "font-variant") fontVariant
-  |> add (string "font-weight") fontWeight
-  |> add (string "fomat") fomat
-  |> add (string "from") from
-  |> add (string "fx") fx
-  |> add (string "fy") fy
-  |> add (string "g1") g1
-  |> add (string "g2") g2
-  |> add (string "glyph-name") glyphName
-  |> add (string "glyph-orientation-horizontal") glyphOrientationHorizontal
-  |> add (string "glyph-orientation-vertical") glyphOrientationVertical
-  |> add (string "glyphRef") glyphRef
-  |> add (string "gradientTransform") gradientTransform
-  |> add (string "gradientUnits") gradientUnits
-  |> add (string "hanging") hanging
-  |> add (string "horiz-adv-x") horizAdvX
-  |> add (string "horiz-origin-x") horizOriginX
-  (* |> add (string "horiz-origin-y") horizOriginY *) (* Should be added *)
-  |> add (string "ideographic") ideographic
-  |> add (string "image-rendering") imageRendering
-  |> add (string "in") in_
-  |> add (string "in2") in2
-  |> add (string "intercept") intercept
-  |> add (string "k") k
-  |> add (string "k1") k1
-  |> add (string "k2") k2
-  |> add (string "k3") k3
-  |> add (string "k4") k4
-  |> add (string "kernelMatrix") kernelMatrix
-  |> add (string "kernelUnitLength") kernelUnitLength
-  |> add (string "kerning") kerning
-  |> add (string "keyPoints") keyPoints
-  |> add (string "keySplines") keySplines
-  |> add (string "keyTimes") keyTimes
-  |> add (string "lengthAdjust") lengthAdjust
-  |> add (string "letterSpacing") letterSpacing
-  |> add (string "lightingColor") lightingColor
-  |> add (string "limitingConeAngle") limitingConeAngle
-  |> add (string "local") local
-  |> add (string "marker-end") markerEnd
-  |> add (string "marker-height") markerHeight
-  |> add (string "marker-mid") markerMid
-  |> add (string "marker-start") markerStart
-  |> add (string "marker-units") markerUnits
-  |> add (string "markerWidth") markerWidth
-  |> add (string "mask") mask
-  |> add (string "maskContentUnits") maskContentUnits
-  |> add (string "maskUnits") maskUnits
-  |> add (string "mathematical") mathematical
-  |> add (string "mode") mode
-  |> add (string "numOctaves") numOctaves
-  |> add (string "offset") offset
-  |> add (string "opacity") opacity
-  |> add (string "operator") operator
-  |> add (string "order") order
-  |> add (string "orient") orient
-  |> add (string "orientation") orientation
-  |> add (string "origin") origin
-  |> add (string "overflow") overflow
-  |> add (string "overflowX") overflowX
-  |> add (string "overflowY") overflowY
-  |> add (string "overline-position") overlinePosition
-  |> add (string "overline-thickness") overlineThickness
-  |> add (string "paint-order") paintOrder
-  |> add (string "panose1") panose1
-  |> add (string "pathLength") pathLength
-  |> add (string "patternContentUnits") patternContentUnits
-  |> add (string "patternTransform") patternTransform
-  |> add (string "patternUnits") patternUnits
-  |> add (string "pointerEvents") pointerEvents
-  |> add (string "points") points
-  |> add (string "pointsAtX") pointsAtX
-  |> add (string "pointsAtY") pointsAtY
-  |> add (string "pointsAtZ") pointsAtZ
-  |> add (string "preserveAlpha") preserveAlpha
-  |> add (string "preserveAspectRatio") preserveAspectRatio
-  |> add (string "primitiveUnits") primitiveUnits
-  |> add (string "r") r
-  |> add (string "radius") radius
-  |> add (string "refX") refX
-  |> add (string "refY") refY
-  |> add (string "renderingIntent") renderingIntent (* Does it exist? *)
-  |> add (string "repeatCount") repeatCount
-  |> add (string "repeatDur") repeatDur
-  |> add (string "requiredExtensions") requiredExtensions (* Does it exists? *)
-  |> add (string "requiredFeatures") requiredFeatures
-  |> add (string "restart") restart
-  |> add (string "result") result
-  |> add (string "rotate") rotate
-  |> add (string "rx") rx
-  |> add (string "ry") ry
-  |> add (string "scale") scale
-  |> add (string "seed") seed
-  |> add (string "shape-rendering") shapeRendering
-  |> add (string "slope") slope
-  |> add (string "spacing") spacing
-  |> add (string "specularConstant") specularConstant
-  |> add (string "specularExponent") specularExponent
-  |> add (string "speed") speed
-  |> add (string "spreadMethod") spreadMethod
-  |> add (string "startOffset") startOffset
-  |> add (string "stdDeviation") stdDeviation
-  |> add (string "stemh") stemh
-  |> add (string "stemv") stemv
-  |> add (string "stitchTiles") stitchTiles
-  |> add (string "stopColor") stopColor
-  |> add (string "stopOpacity") stopOpacity
-  |> add (string "strikethrough-position") strikethroughPosition
-  |> add (string "strikethrough-thickness") strikethroughThickness
-  |> add (string "stroke") stroke
-  |> add (string "stroke-dasharray") strokeDasharray
-  |> add (string "stroke-dashoffset") strokeDashoffset
-  |> add (string "stroke-linecap") strokeLinecap
-  |> add (string "stroke-linejoin") strokeLinejoin
-  |> add (string "stroke-miterlimit") strokeMiterlimit
-  |> add (string "stroke-opacity") strokeOpacity
-  |> add (string "stroke-width") strokeWidth
-  |> add (string "surfaceScale") surfaceScale
-  |> add (string "systemLanguage") systemLanguage
-  |> add (string "tableValues") tableValues
-  |> add (string "targetX") targetX
-  |> add (string "targetY") targetY
-  |> add (string "text-anchor") textAnchor
-  |> add (string "text-decoration") textDecoration
-  |> add (string "textLength") textLength
-  |> add (string "text-rendering") textRendering
-  |> add (string "to") to_
-  |> add (string "transform") transform
-  |> add (string "u1") u1
-  |> add (string "u2") u2
-  |> add (string "underline-position") underlinePosition
-  |> add (string "underline-thickness") underlineThickness
-  |> add (string "unicode") unicode
-  |> add (string "unicode-bidi") unicodeBidi
-  |> add (string "unicode-range") unicodeRange
-  |> add (string "units-per-em") unitsPerEm
-  |> add (string "v-alphabetic") vAlphabetic
-  |> add (string "v-hanging") vHanging
-  |> add (string "v-ideographic") vIdeographic
-  |> add (string "vMathematical") vMathematical (* Does it exists? *)
-  |> add (string "values") values
-  |> add (string "vector-effect") vectorEffect
-  |> add (string "version") version
-  |> add (string "vert-adv-x") vertAdvX
-  |> add (string "vert-adv-y") vertAdvY
-  |> add (string "vert-origin-x") vertOriginX
-  |> add (string "vert-origin-y") vertOriginY
-  |> add (string "viewBox") viewBox
-  |> add (string "viewTarget") viewTarget
-  |> add (string "visibility") visibility
-  |> add (string "widths") widths
-  |> add (string "word-spacing") wordSpacing
-  |> add (string "writing-mode") writingMode
-  |> add (string "x") x
-  |> add (string "x1") x1
-  |> add (string "x2") x2
-  |> add (string "xChannelSelector") xChannelSelector
-  |> add (string "x-height") xHeight
-  |> add (string "xlink:arcrole") xlinkActuate
-  |> add (string "xlinkArcrole") xlinkArcrole
-  |> add (string "xlink:href") xlinkHref
-  |> add (string "xlink:role") xlinkRole
-  |> add (string "xlink:show") xlinkShow
-  |> add (string "xlink:title") xlinkTitle
-  |> add (string "xlink:type") xlinkType
-  |> add (string "xmlns") xmlns
-  |> add (string "xmlnsXlink") xmlnsXlink
-  |> add (string "xml:base") xmlBase
-  |> add (string "xml:lang") xmlLang
-  |> add (string "xml:space") xmlSpace
-  |> add (string "y") y
-  |> add (string "y1") y1
-  |> add (string "y2") y2
-  |> add (string "yChannelSelector") yChannelSelector
-  |> add (string "z") z
-  |> add (string "zoomAndPan") zoomAndPan
-  |> add (string "about") about
-  |> add (string "datatype") datatype
-  |> add (string "inlist") inlist
-  |> add (string "prefix") prefix
-  |> add (string "property") property
-  |> add (string "resource") resource
-  |> add (string "typeof") typeof
-  |> add (string "vocab") vocab
+  |> add (React.JSX.string "accent-height" "accentHeight") accentHeight
+  |> add (React.JSX.string "accumulate" "accumulate") accumulate
+  |> add (React.JSX.string "additive" "additive") additive
+  |> add (React.JSX.string "alignment-baseline" "alignmentBaseline") alignmentBaseline
+  |> add (React.JSX.string "allowReorder" "allowReorder") allowReorder (* Does it exist? *)
+  |> add (React.JSX.string "alphabetic" "alphabetic") alphabetic
+  |> add (React.JSX.string "amplitude" "amplitude") amplitude
+  |> add (React.JSX.string "arabic-form" "arabicForm") arabicForm
+  |> add (React.JSX.string "ascent" "ascent") ascent
+  |> add (React.JSX.string "attributeName" "attributeName") attributeName
+  |> add (React.JSX.string "attributeType" "attributeType") attributeType
+  |> add (React.JSX.string "autoReverse" "autoReverse") autoReverse (* Does it exist? *)
+  |> add (React.JSX.string "azimuth" "azimuth") azimuth
+  |> add (React.JSX.string "baseFrequency" "baseFrequency") baseFrequency
+  |> add (React.JSX.string "baseProfile" "baseProfile") baseProfile
+  |> add (React.JSX.string "baselineShift" "baselineShift") baselineShift
+  |> add (React.JSX.string "bbox" "bbox") bbox
+  |> add (React.JSX.string "begin" "begin_") begin_
+  |> add (React.JSX.string "bias" "bias") bias
+  |> add (React.JSX.string "by" "by") by
+  |> add (React.JSX.string "calcMode" "calcMode") calcMode
+  |> add (React.JSX.string "capHeight" "capHeight") capHeight
+  |> add (React.JSX.string "clip" "clip") clip
+  |> add (React.JSX.string "clipPath" "clipPath") clipPath
+  |> add (React.JSX.string "clipPathUnits" "clipPathUnits") clipPathUnits
+  |> add (React.JSX.string "clipRule" "clipRule") clipRule
+  |> add (React.JSX.string "colorInterpolation" "colorInterpolation") colorInterpolation
+  |> add (React.JSX.string "colorInterpolationFilters" "colorInterpolationFilters") colorInterpolationFilters
+  |> add (React.JSX.string "colorProfile" "colorProfile") colorProfile
+  |> add (React.JSX.string "colorRendering" "colorRendering") colorRendering
+  |> add (React.JSX.string "contentScriptType" "contentScriptType") contentScriptType
+  |> add (React.JSX.string "contentStyleType" "contentStyleType") contentStyleType
+  |> add (React.JSX.string "cursor" "cursor") cursor
+  |> add (React.JSX.string "cx" "cx") cx
+  |> add (React.JSX.string "cy" "cy") cy
+  |> add (React.JSX.string "d" "d") d
+  |> add (React.JSX.string "decelerate" "decelerate") decelerate
+  |> add (React.JSX.string "descent" "descent") descent
+  |> add (React.JSX.string "diffuseConstant" "diffuseConstant") diffuseConstant
+  |> add (React.JSX.string "direction" "direction") direction
+  |> add (React.JSX.string "display" "display") display
+  |> add (React.JSX.string "divisor" "divisor") divisor
+  |> add (React.JSX.string "dominantBaseline" "dominantBaseline") dominantBaseline
+  |> add (React.JSX.string "dur" "dur") dur
+  |> add (React.JSX.string "dx" "dx") dx
+  |> add (React.JSX.string "dy" "dy") dy
+  |> add (React.JSX.string "edgeMode" "edgeMode") edgeMode
+  |> add (React.JSX.string "elevation" "elevation") elevation
+  |> add (React.JSX.string "enableBackground" "enableBackground") enableBackground
+  |> add (React.JSX.string "end" "end_") end_
+  |> add (React.JSX.string "exponent" "exponent") exponent
+  |> add (React.JSX.string "externalResourcesRequired" "externalResourcesRequired") externalResourcesRequired
+  |> add (React.JSX.string "fill" "fill") fill
+  |> add (React.JSX.string "fillOpacity" "fillOpacity") fillOpacity
+  |> add (React.JSX.string "fillRule" "fillRule") fillRule
+  |> add (React.JSX.string "filter" "filter") filter
+  |> add (React.JSX.string "filterRes" "filterRes") filterRes
+  |> add (React.JSX.string "filterUnits" "filterUnits") filterUnits
+  |> add (React.JSX.string "flood-color" "floodColor") floodColor
+  |> add (React.JSX.string "flood-opacity" "floodOpacity") floodOpacity
+  |> add (React.JSX.string "focusable" "focusable") focusable
+  |> add (React.JSX.string "font-family" "fontFamily") fontFamily
+  |> add (React.JSX.string "font-size" "fontSize") fontSize
+  |> add (React.JSX.string "font-size-adjust" "fontSizeAdjust") fontSizeAdjust
+  |> add (React.JSX.string "font-stretch" "fontStretch") fontStretch
+  |> add (React.JSX.string "font-style" "fontStyle") fontStyle
+  |> add (React.JSX.string "font-variant" "fontVariant") fontVariant
+  |> add (React.JSX.string "font-weight" "fontWeight") fontWeight
+  |> add (React.JSX.string "fomat" "fomat") fomat
+  |> add (React.JSX.string "from" "from") from
+  |> add (React.JSX.string "fx" "fx") fx
+  |> add (React.JSX.string "fy" "fy") fy
+  |> add (React.JSX.string "g1" "g1") g1
+  |> add (React.JSX.string "g2" "g2") g2
+  |> add (React.JSX.string "glyph-name" "glyphName") glyphName
+  |> add (React.JSX.string "glyph-orientation-horizontal" "glyphOrientationHorizontal") glyphOrientationHorizontal
+  |> add (React.JSX.string "glyph-orientation-vertical" "glyphOrientationVertical") glyphOrientationVertical
+  |> add (React.JSX.string "glyphRef" "glyphRef") glyphRef
+  |> add (React.JSX.string "gradientTransform" "gradientTransform") gradientTransform
+  |> add (React.JSX.string "gradientUnits" "gradientUnits") gradientUnits
+  |> add (React.JSX.string "hanging" "hanging") hanging
+  |> add (React.JSX.string "horiz-adv-x" "horizAdvX") horizAdvX
+  |> add (React.JSX.string "horiz-origin-x" "horizOriginX") horizOriginX
+  (* |> add (React.JSX.string "horiz-origin-y" "horizOriginY") horizOriginY *) (* Should be added *)
+  |> add (React.JSX.string "ideographic" "ideographic") ideographic
+  |> add (React.JSX.string "image-rendering" "imageRendering") imageRendering
+  |> add (React.JSX.string "in" "in_") in_
+  |> add (React.JSX.string "in2" "in2") in2
+  |> add (React.JSX.string "intercept" "intercept") intercept
+  |> add (React.JSX.string "k" "k") k
+  |> add (React.JSX.string "k1" "k1") k1
+  |> add (React.JSX.string "k2" "k2") k2
+  |> add (React.JSX.string "k3" "k3") k3
+  |> add (React.JSX.string "k4" "k4") k4
+  |> add (React.JSX.string "kernelMatrix" "kernelMatrix") kernelMatrix
+  |> add (React.JSX.string "kernelUnitLength" "kernelUnitLength") kernelUnitLength
+  |> add (React.JSX.string "kerning" "kerning") kerning
+  |> add (React.JSX.string "keyPoints" "keyPoints") keyPoints
+  |> add (React.JSX.string "keySplines" "keySplines") keySplines
+  |> add (React.JSX.string "keyTimes" "keyTimes") keyTimes
+  |> add (React.JSX.string "lengthAdjust" "lengthAdjust") lengthAdjust
+  |> add (React.JSX.string "letterSpacing" "letterSpacing") letterSpacing
+  |> add (React.JSX.string "lightingColor" "lightingColor") lightingColor
+  |> add (React.JSX.string "limitingConeAngle" "limitingConeAngle") limitingConeAngle
+  |> add (React.JSX.string "local" "local") local
+  |> add (React.JSX.string "marker-end" "markerEnd") markerEnd
+  |> add (React.JSX.string "marker-height" "markerHeight") markerHeight
+  |> add (React.JSX.string "marker-mid" "markerMid") markerMid
+  |> add (React.JSX.string "marker-start" "markerStart") markerStart
+  |> add (React.JSX.string "marker-units" "markerUnits") markerUnits
+  |> add (React.JSX.string "markerWidth" "markerWidth") markerWidth
+  |> add (React.JSX.string "mask" "mask") mask
+  |> add (React.JSX.string "maskContentUnits" "maskContentUnits") maskContentUnits
+  |> add (React.JSX.string "maskUnits" "maskUnits") maskUnits
+  |> add (React.JSX.string "mathematical" "mathematical") mathematical
+  |> add (React.JSX.string "mode" "mode") mode
+  |> add (React.JSX.string "numOctaves" "numOctaves") numOctaves
+  |> add (React.JSX.string "offset" "offset") offset
+  |> add (React.JSX.string "opacity" "opacity") opacity
+  |> add (React.JSX.string "operator" "operator") operator
+  |> add (React.JSX.string "order" "order") order
+  |> add (React.JSX.string "orient" "orient") orient
+  |> add (React.JSX.string "orientation" "orientation") orientation
+  |> add (React.JSX.string "origin" "origin") origin
+  |> add (React.JSX.string "overflow" "overflow") overflow
+  |> add (React.JSX.string "overflowX" "overflowX") overflowX
+  |> add (React.JSX.string "overflowY" "overflowY") overflowY
+  |> add (React.JSX.string "overline-position" "overlinePosition") overlinePosition
+  |> add (React.JSX.string "overline-thickness" "overlineThickness") overlineThickness
+  |> add (React.JSX.string "paint-order" "paintOrder") paintOrder
+  |> add (React.JSX.string "panose1" "panose1") panose1
+  |> add (React.JSX.string "pathLength" "pathLength") pathLength
+  |> add (React.JSX.string "patternContentUnits" "patternContentUnits") patternContentUnits
+  |> add (React.JSX.string "patternTransform" "patternTransform") patternTransform
+  |> add (React.JSX.string "patternUnits" "patternUnits") patternUnits
+  |> add (React.JSX.string "pointerEvents" "pointerEvents") pointerEvents
+  |> add (React.JSX.string "points" "points") points
+  |> add (React.JSX.string "pointsAtX" "pointsAtX") pointsAtX
+  |> add (React.JSX.string "pointsAtY" "pointsAtY") pointsAtY
+  |> add (React.JSX.string "pointsAtZ" "pointsAtZ") pointsAtZ
+  |> add (React.JSX.string "preserveAlpha" "preserveAlpha") preserveAlpha
+  |> add (React.JSX.string "preserveAspectRatio" "preserveAspectRatio") preserveAspectRatio
+  |> add (React.JSX.string "primitiveUnits" "primitiveUnits") primitiveUnits
+  |> add (React.JSX.string "r" "r") r
+  |> add (React.JSX.string "radius" "radius") radius
+  |> add (React.JSX.string "refX" "refX") refX
+  |> add (React.JSX.string "refY" "refY") refY
+  |> add (React.JSX.string "renderingIntent" "renderingIntent") renderingIntent (* Does it exist? *)
+  |> add (React.JSX.string "repeatCount" "repeatCount") repeatCount
+  |> add (React.JSX.string "repeatDur" "repeatDur") repeatDur
+  |> add (React.JSX.string "requiredExtensions" "requiredExtensions") requiredExtensions (* Does it exists? *)
+  |> add (React.JSX.string "requiredFeatures" "requiredFeatures") requiredFeatures
+  |> add (React.JSX.string "restart" "restart") restart
+  |> add (React.JSX.string "result" "result") result
+  |> add (React.JSX.string "rotate" "rotate") rotate
+  |> add (React.JSX.string "rx" "rx") rx
+  |> add (React.JSX.string "ry" "ry") ry
+  |> add (React.JSX.string "scale" "scale") scale
+  |> add (React.JSX.string "seed" "seed") seed
+  |> add (React.JSX.string "shape-rendering" "shapeRendering") shapeRendering
+  |> add (React.JSX.string "slope" "slope") slope
+  |> add (React.JSX.string "spacing" "spacing") spacing
+  |> add (React.JSX.string "specularConstant" "specularConstant") specularConstant
+  |> add (React.JSX.string "specularExponent" "specularExponent") specularExponent
+  |> add (React.JSX.string "speed" "speed") speed
+  |> add (React.JSX.string "spreadMethod" "spreadMethod") spreadMethod
+  |> add (React.JSX.string "startOffset" "startOffset") startOffset
+  |> add (React.JSX.string "stdDeviation" "stdDeviation") stdDeviation
+  |> add (React.JSX.string "stemh" "stemh") stemh
+  |> add (React.JSX.string "stemv" "stemv") stemv
+  |> add (React.JSX.string "stitchTiles" "stitchTiles") stitchTiles
+  |> add (React.JSX.string "stopColor" "stopColor") stopColor
+  |> add (React.JSX.string "stopOpacity" "stopOpacity") stopOpacity
+  |> add (React.JSX.string "strikethrough-position" "strikethroughPosition") strikethroughPosition
+  |> add (React.JSX.string "strikethrough-thickness" "strikethroughThickness") strikethroughThickness
+  |> add (React.JSX.string "stroke" "stroke") stroke
+  |> add (React.JSX.string "stroke-dasharray" "strokeDasharray") strokeDasharray
+  |> add (React.JSX.string "stroke-dashoffset" "strokeDashoffset") strokeDashoffset
+  |> add (React.JSX.string "stroke-linecap" "strokeLinecap") strokeLinecap
+  |> add (React.JSX.string "stroke-linejoin" "strokeLinejoin") strokeLinejoin
+  |> add (React.JSX.string "stroke-miterlimit" "strokeMiterlimit") strokeMiterlimit
+  |> add (React.JSX.string "stroke-opacity" "strokeOpacity") strokeOpacity
+  |> add (React.JSX.string "stroke-width" "strokeWidth") strokeWidth
+  |> add (React.JSX.string "surfaceScale" "surfaceScale") surfaceScale
+  |> add (React.JSX.string "systemLanguage" "systemLanguage") systemLanguage
+  |> add (React.JSX.string "tableValues" "tableValues") tableValues
+  |> add (React.JSX.string "targetX" "targetX") targetX
+  |> add (React.JSX.string "targetY" "targetY") targetY
+  |> add (React.JSX.string "text-anchor" "textAnchor") textAnchor
+  |> add (React.JSX.string "text-decoration" "textDecoration") textDecoration
+  |> add (React.JSX.string "textLength" "textLength") textLength
+  |> add (React.JSX.string "text-rendering" "textRendering") textRendering
+  |> add (React.JSX.string "to" "to_") to_
+  |> add (React.JSX.string "transform" "transform") transform
+  |> add (React.JSX.string "u1" "u1") u1
+  |> add (React.JSX.string "u2" "u2") u2
+  |> add (React.JSX.string "underline-position" "underlinePosition") underlinePosition
+  |> add (React.JSX.string "underline-thickness" "underlineThickness") underlineThickness
+  |> add (React.JSX.string "unicode" "unicode") unicode
+  |> add (React.JSX.string "unicode-bidi" "unicodeBidi") unicodeBidi
+  |> add (React.JSX.string "unicode-range" "unicodeRange") unicodeRange
+  |> add (React.JSX.string "units-per-em" "unitsPerEm") unitsPerEm
+  |> add (React.JSX.string "v-alphabetic" "vAlphabetic") vAlphabetic
+  |> add (React.JSX.string "v-hanging" "vHanging") vHanging
+  |> add (React.JSX.string "v-ideographic" "vIdeographic") vIdeographic
+  |> add (React.JSX.string "vMathematical" "vMathematical") vMathematical (* Does it exists? *)
+  |> add (React.JSX.string "values" "values") values
+  |> add (React.JSX.string "vector-effect" "vectorEffect") vectorEffect
+  |> add (React.JSX.string "version" "version") version
+  |> add (React.JSX.string "vert-adv-x" "vertAdvX") vertAdvX
+  |> add (React.JSX.string "vert-adv-y" "vertAdvY") vertAdvY
+  |> add (React.JSX.string "vert-origin-x" "vertOriginX") vertOriginX
+  |> add (React.JSX.string "vert-origin-y" "vertOriginY") vertOriginY
+  |> add (React.JSX.string "viewBox" "viewBox") viewBox
+  |> add (React.JSX.string "viewTarget" "viewTarget") viewTarget
+  |> add (React.JSX.string "visibility" "visibility") visibility
+  |> add (React.JSX.string "widths" "widths") widths
+  |> add (React.JSX.string "word-spacing" "wordSpacing") wordSpacing
+  |> add (React.JSX.string "writing-mode" "writingMode") writingMode
+  |> add (React.JSX.string "x" "x") x
+  |> add (React.JSX.string "x1" "x1") x1
+  |> add (React.JSX.string "x2" "x2") x2
+  |> add (React.JSX.string "xChannelSelector" "xChannelSelector") xChannelSelector
+  |> add (React.JSX.string "x-height" "xHeight") xHeight
+  |> add (React.JSX.string "xlink:arcrole" "xlinkActuate") xlinkActuate
+  |> add (React.JSX.string "xlinkArcrole" "xlinkArcrole") xlinkArcrole
+  |> add (React.JSX.string "xlink:href" "xlinkHref") xlinkHref
+  |> add (React.JSX.string "xlink:role" "xlinkRole") xlinkRole
+  |> add (React.JSX.string "xlink:show" "xlinkShow") xlinkShow
+  |> add (React.JSX.string "xlink:title" "xlinkTitle") xlinkTitle
+  |> add (React.JSX.string "xlink:type" "xlinkType") xlinkType
+  |> add (React.JSX.string "xmlns" "xmlns") xmlns
+  |> add (React.JSX.string "xmlnsXlink" "xmlnsXlink") xmlnsXlink
+  |> add (React.JSX.string "xml:base" "xmlBase") xmlBase
+  |> add (React.JSX.string "xml:lang" "xmlLang") xmlLang
+  |> add (React.JSX.string "xml:space" "xmlSpace") xmlSpace
+  |> add (React.JSX.string "y" "y") y
+  |> add (React.JSX.string "y1" "y1") y1
+  |> add (React.JSX.string "y2" "y2") y2
+  |> add (React.JSX.string "yChannelSelector" "yChannelSelector") yChannelSelector
+  |> add (React.JSX.string "z" "z") z
+  |> add (React.JSX.string "zoomAndPan" "zoomAndPan") zoomAndPan
+  |> add (React.JSX.string "about" "about") about
+  |> add (React.JSX.string "datatype" "datatype") datatype
+  |> add (React.JSX.string "inlist" "inlist") inlist
+  |> add (React.JSX.string "prefix" "prefix") prefix
+  |> add (React.JSX.string "property" "property") property
+  |> add (React.JSX.string "resource" "resource") resource
+  |> add (React.JSX.string "typeof" "typeof") typeof
+  |> add (React.JSX.string "vocab" "vocab") vocab
   |> add (React.JSX.dangerouslyInnerHtml) dangerouslySetInnerHTML
-  |> add (bool "suppressContentEditableWarning") suppressContentEditableWarning
-  |> add (bool "suppressHydrationWarning") suppressHydrationWarning
+  |> add (React.JSX.bool "suppressContentEditableWarning" "suppressContentEditableWarning") suppressContentEditableWarning
+  |> add (React.JSX.bool "suppressHydrationWarning" "suppressHydrationWarning") suppressHydrationWarning
 
 module Ref = React.Ref
 

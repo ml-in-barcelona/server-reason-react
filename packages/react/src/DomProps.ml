@@ -1659,13 +1659,6 @@ let camelcaseToKebabcase str =
   in
   str |> chars_of_string |> loop [] |> List.rev |> string_of_chars
 
-let findByName name =
-  let byName p = getName p = name in
-  let prop =
-    List.find_map (fun value -> List.find_opt byName value.attributes) elements
-  in
-  prop |> Option.to_result ~none:`AttributeNotFound
-
 let findByJsxName ~tag jsxName =
   let byName p = getJSXName p = jsxName in
   if isDataAttribute jsxName then

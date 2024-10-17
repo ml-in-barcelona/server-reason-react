@@ -515,8 +515,8 @@ module JSX : sig
 
   (** JSX.prop is the representation of HTML/SVG attributes and DOM events *)
   type prop =
-    | Bool of ((string * string) * bool)
-    | String of ((string * string) * string)
+    | Bool of (string * string * bool)
+    | String of (string * string * string)
     | Style of string
     | DangerouslyInnerHtml of string
     | Ref of domRef
@@ -524,12 +524,12 @@ module JSX : sig
 
   (** Helpers to create JSX.prop without variants, helpful for function application *)
 
-  val bool : string * string -> bool -> prop
-  val string : string * string -> string -> prop
+  val bool : string -> string -> bool -> prop
+  val string : string -> string -> string -> prop
   val style : string -> prop
   val dangerouslyInnerHtml : < __html : string ; .. > -> prop
-  val int : string * string -> int -> prop
-  val float : string * string -> float -> prop
+  val int : string -> string -> int -> prop
+  val float : string -> string -> float -> prop
   val ref : domRef -> prop
   val event : string -> event -> prop
 

@@ -34,7 +34,6 @@ type errors = [ `ElementNotFound | `AttributeNotFound ]
 
 val getJSXName : prop -> string
 val getName : prop -> string
-val findByName : string -> (prop, errors) result
 val findByJsxName : tag:string -> string -> (prop, errors) result
 val isReactValidProp : string -> bool
 val find_closest_name : string -> string option
