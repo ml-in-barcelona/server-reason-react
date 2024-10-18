@@ -1,9 +1,8 @@
 [@react.component]
-let make = () => {
+let make = () =>
   <html>
     <body>
-      <h1> {React.string("Hello World")} </h1>
+      <h1> {React.string(Js.String.toLowerCase("Hello World"))} </h1>
       <p> {React.string("This is an example")} </p>
     </body>
   </html>;
-};

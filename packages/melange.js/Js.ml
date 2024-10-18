@@ -842,9 +842,23 @@ end = struct
       Stdlib.String.sub str end_idx (start_idx - end_idx)
     else Stdlib.String.sub str start_idx (end_idx - start_idx)
 
-  let toLowerCase = Stdlib.String.lowercase_ascii
+  let case_to_utf_8 case_map s =
+    let rec loop buf s i max =
+      if i > max then Buffer.contents buf
+      else
+        let dec = String.get_utf_8_uchar s i in
+        let u = Uchar.utf_decode_uchar dec in
+        (match case_map u with
+        | `Self -> Buffer.add_utf_8_uchar buf u
+        | `Uchars us -> List.iter (Buffer.add_utf_8_uchar buf) us);
+        loop buf s (i + Uchar.utf_decode_length dec) max
+    in
+    let buf = Buffer.create (String.length s * 2) in
+    loop buf s 0 (String.length s - 1)
+
+  let toLowerCase s = case_to_utf_8 Uucp.Case.Map.to_lower s
   let toLocaleLowerCase _ = notImplemented "Js.String" "toLocaleLowerCase"
-  let toUpperCase = Stdlib.String.uppercase_ascii
+  let toUpperCase s = case_to_utf_8 Uucp.Case.Map.to_upper s
   let toLocaleUpperCase _ = notImplemented "Js.String" "toLocaleUpperCase"
 
   let trim str =
