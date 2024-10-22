@@ -6,8 +6,8 @@
   },
   "license": "MIT",
   "dependencies": {
-    "@emotion/hash": "^0.9.0",
-    "react": "^16.13.1",
-    "react-dom": "^16.13.1"
+    "react": "^19.0.0-rc-69d4b800-20241021",
+    "react-dom": "^19.0.0-rc-69d4b800-20241021",
+    "react-server-dom-webpack": "^19.0.0-rc-69d4b800-20241021"
   }
 }
