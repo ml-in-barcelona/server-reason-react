@@ -672,7 +672,7 @@ module Experimental = struct
   let use promise =
     match Lwt.state promise with
     | Sleep -> raise (Suspend (Any_promise promise))
-    (* TODO: Fail should raise a FailedSupense and catch at renderTo* *)
+    (* TODO: Fail should raise a FailedSupense and catch at renderTo*? *)
     | Fail e -> raise e
     | Return v -> v
 end

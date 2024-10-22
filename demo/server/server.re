@@ -44,11 +44,13 @@ let serverComponentsWithoutClient =
         Dream.header(request, "Accept") == Some("text/x-component");
 
       let app =
-        <div className="flex flex-col items-center justify-center h-full">
-          <h1 className="text-white font-bold text-4xl">
-            {React.string(string_of_float(Unix.gettimeofday()))}
-          </h1>
-        </div>;
+        <Layout background=Theme.Color.black>
+          <div className="flex flex-col items-center justify-center h-full">
+            <h1 className="text-white font-bold text-4xl">
+              {React.string(string_of_float(Unix.gettimeofday()))}
+            </h1>
+          </div>
+        </Layout>;
 
       if (isRSCheader) {
         Dream.stream(response_stream => {
@@ -121,6 +123,7 @@ let router = [
 
 let () = {
   Dream.run(
+    ~adjust_terminal=true,
     ~port=8080,
     ~interface={
       switch (Sys.getenv_opt("SERVER_INTERFACE")) {

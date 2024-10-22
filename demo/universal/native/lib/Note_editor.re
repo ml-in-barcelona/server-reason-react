@@ -7,15 +7,13 @@ let make = (~title: string, ~body: string) => {
   let (body, setBody) = useState(() => body);
 
   let%browser_only updateTitle = event => {
-    Js.log("UPDATE TITLE");
     let value = Event.Form.target(event)##value;
     setTitle(_ => value);
   };
 
   let%browser_only updateBody = event => {
-    Js.log("UPDATE BODY");
     let value = Event.Form.target(event)##value;
-    setBody(_ => value ++ "!");
+    setBody(_ => value);
   };
 
   let submit = _ => {

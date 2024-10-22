@@ -1,5 +1,6 @@
 window.__webpack_require__ = async (id) => {
   let component = window.__exported_components[id];
+  console.log("REQUIRE", id, component);
   if (component === undefined) {
     throw new Error(`Component "${id}" not found`);
   }

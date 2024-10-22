@@ -31,7 +31,7 @@ let make = () => {
       </p>
       <Note_editor title="Hello" body="World" />
       <Hr />
-      <Counter initial=23 />
+      <Counter initial=0 />
     </Stack>
   </Layout>;
 };
