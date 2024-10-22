@@ -21,13 +21,6 @@ let get_id context =
   context.chunk_id <- context.chunk_id + 1;
   context.chunk_id
 
-(* https://github.com/facebook/react/blob/493f72b0a7111b601c16b8ad8bc2649d82c184a0/packages/react-dom-bindings/src/server/fizz-instruction-set/ReactDOMFizzInstructionSetShared.js#L46 *)
-let complete_boundary_script =
-  {|function $RC(a,b){a=document.getElementById(a);b=document.getElementById(b);b.parentNode.removeChild(b);if(a){a=a.previousSibling;var f=a.parentNode,c=a.nextSibling,e=0;do{if(c&&8===c.nodeType){var d=c.data;if("/$"===d)if(0===e)break;else e--;else"$"!==d&&"$?"!==d&&"$!"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data="$";a._reactRetry&&a._reactRetry()}}|}
-
-let inline_complete_boundary_script =
-  Html.node "script" [] [ Html.raw complete_boundary_script ]
-
 let rsc_start_script =
   Html.node "script" []
     [
@@ -45,17 +38,8 @@ let rsc_start_script =
         |};
     ]
 
-let render_inline_rc_replacement replacements =
-  let rc_payload =
-    replacements
-    |> List.map (fun (b, s) ->
-           Html.raw (Printf.sprintf "$RC('B:%i','S:%i')" b s))
-    |> Html.list ~separator:";"
-  in
-  Html.node "script" [] [ rc_payload ]
-
 let prop_to_json (prop : React.JSX.prop) =
-  (* TODO: Add promises/sets *)
+  (* TODO: Add promises/sets/others ??? *)
   match prop with
   | React.JSX.Bool (key, value) -> (key, `Bool value)
   | React.JSX.String (key, value) -> (key, `String value)
