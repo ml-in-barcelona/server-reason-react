@@ -207,7 +207,8 @@ let render_to_stream ~context_state element =
                 Lwt.bind promise (fun _ ->
                     (* Enqueue the component with resolved data *)
                     let%lwt resolved =
-                      render_resolved_element ~id:current_suspense_id children
+                      render_suspense_resolved_element ~id:current_suspense_id
+                        children
                     in
                     context_state.push resolved;
                     (* Enqueue the inline script that replaces fallback by resolved *)
@@ -220,11 +221,12 @@ let render_to_stream ~context_state element =
                     if context_state.waiting = 0 then context_state.close ();
                     Lwt.return_unit));
             (* Return the rendered fallback to SSR syncronous *)
-            render_fallback ~boundary_id:current_boundary_id fallback
+            render_suspense_fallback ~boundary_id:current_boundary_id fallback
         | exception _exn ->
             (* TODO: log exn *)
-            render_fallback ~boundary_id:context_state.boundary_id fallback)
-  and render_resolved_element ~id element =
+            render_suspense_fallback ~boundary_id:context_state.boundary_id
+              fallback)
+  and render_suspense_resolved_element ~id element =
     render_element element
     |> Lwt.map (fun element ->
            Html.node "div"
@@ -233,7 +235,7 @@ let render_to_stream ~context_state element =
                Html.attribute "id" (Printf.sprintf "S:%i" id);
              ]
              [ element ])
-  and render_fallback ~boundary_id element =
+  and render_suspense_fallback ~boundary_id element =
     render_element element
     |> Lwt.map (fun element ->
            Html.list

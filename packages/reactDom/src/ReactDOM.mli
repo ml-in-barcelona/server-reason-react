@@ -535,3 +535,6 @@ val domProps :
 module Ref = React.Ref
 
 type domRef = Ref.t
+
+(* unsure if it fits in this interface *)
+val attribute_to_html : React.JSX.prop -> Html.attribute
