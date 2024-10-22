@@ -2,7 +2,7 @@
  (name demo_shared_js)
  (modes melange)
  (wrapped false)
- (libraries reason-react melange-webapi melange.belt melange.dom)
+ (libraries reason-react melange-webapi melange.belt melange.js melange.dom)
  (preprocess
   (pps melange.ppx reason-react-ppx browser_ppx -js)))
 

@@ -79,7 +79,7 @@ module Title = {
 [@react.component]
 let make = () => {
   React.useEffect(() => {
-    let _ = Js.log("Hello from the client");
+    Js.log("Client mounted");
     None;
   });
 

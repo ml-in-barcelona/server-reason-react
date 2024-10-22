@@ -2,8 +2,9 @@
 let make = (~children, ~background) => {
   <div
     className={Cx.make([
-      "margin-0",
-      "padding-0",
+      "max-w-2xl",
+      "m-0",
+      "p-8",
       "w-[100vw]",
       "h-[100vh]",
       "flex",

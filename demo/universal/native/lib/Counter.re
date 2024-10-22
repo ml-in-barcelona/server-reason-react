@@ -8,8 +8,19 @@ let make = (~initial) => {
   };
 
   let onClick = _event => {
+    Js.log2("CLICKED!", Int.to_string(count));
     setCount(count + 1);
   };
+
+  React.useEffect0(() => {
+    Js.log2("Use effect, count is", Int.to_string(count));
+    None;
+  });
+
+  React.useEffect(() => {
+    Js.log2("count is", Int.to_string(count));
+    None;
+  });
 
   <div className={Theme.text(Theme.Color.white)}>
     <Spacer bottom=3>
@@ -24,8 +35,8 @@ let make = (~initial) => {
           {React.string("Counter")}
         </p>
         <button
-          className="font-mono border-2 py-1 px-2 rounded-lg bg-yellow-950 border-yellow-700 text-yellow-200"
-          onClick>
+          onClick
+          className="font-mono border-2 py-1 px-2 rounded-lg bg-yellow-950 border-yellow-700 text-yellow-200">
           {React.string(Int.to_string(count))}
         </button>
       </div>
