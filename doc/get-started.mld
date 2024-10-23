@@ -31,7 +31,7 @@ The main difference is, with [server-reason-react] you can render it on the serv
 
 {_ This is usually part of your server-side code}
 
-The [ReactDOM] module exposes the [renderTo*] methods: {!ReactDOM.renderToStaticMarkup}, {!ReactDOM.renderToString} and {!ReactDOM.renderToLwtStream}.
+The [ReactDOM] module exposes the [renderTo*] methods: {!ReactDOM.renderToStaticMarkup}, {!ReactDOM.renderToString} and {!ReactDOM.renderToStream}.
 
 {1:install Install from opam's registry (recommended)}
 

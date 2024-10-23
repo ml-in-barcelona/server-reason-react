@@ -53,7 +53,7 @@ let render_to_string ~mode element =
         raise
           (Invalid_argument
              "Asyncronous components can't be rendered to static markup, since \
-              rendering is syncronous. Please use `renderToLwtStream` instead.")
+              rendering is syncronous. Please use `renderToStream` instead.")
     | Lower_case_element { tag; attributes; children } ->
         is_root.contents <- false;
         render_lower_case tag attributes children
@@ -250,7 +250,7 @@ let render_to_stream ~context_state element =
   in
   render_element element
 
-let renderToLwtStream element =
+let renderToStream element =
   let stream, push, close = Stream.create () in
   let push_html html = push (Html.to_string html) in
   let context_state =

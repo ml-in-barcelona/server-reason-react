@@ -16,14 +16,13 @@ let renderToStaticMarkup =
     )
   );
 
-let renderToLwtStream =
-  Dream.get(Router.renderToLwtStream, _request =>
+let renderToStream =
+  Dream.get(Router.renderToStream, _request =>
     Dream.stream(
       ~headers=[("Content-Type", "text/html")],
       response_stream => {
-        open Lwt.Syntax;
-        let* (stream, _abort) =
-          ReactDOM.renderToLwtStream(<Document> <Comments /> </Document>);
+        let%lwt (stream, _abort) =
+          ReactDOM.renderToStream(<Document> <Comments /> </Document>);
 
         Lwt_stream.iter_s(
           data => {
@@ -45,7 +44,15 @@ let serverComponentsWithoutClient =
 
       let app =
         <Layout background=Theme.Color.black>
-          <div className="flex flex-col items-center justify-center h-full">
+          <div
+            className="flex flex-col items-center justify-center h-full gap-4">
+            <span className="text-gray-400 text-center">
+              {React.string(
+                 "Return, from the server, the current time (in seconds) since",
+               )}
+              <br />
+              {React.string("00:00:00 GMT, Jan. 1, 1970")}
+            </span>
             <h1 className="text-white font-bold text-4xl">
               {React.string(string_of_float(Unix.gettimeofday()))}
             </h1>
@@ -116,7 +123,7 @@ let router = [
   Dream.get("/static/**", Dream.static("./_build/default/demo/client/app")),
   renderToString,
   renderToStaticMarkup,
-  renderToLwtStream,
+  renderToStream,
   serverComponentsWithoutClient,
   serverComponents,
 ];

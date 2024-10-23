@@ -58,7 +58,7 @@ let test_silly_stream _switch () =
              ])
      in
      let raises () =
-       let%lwt stream, _abort = ReactDOM.renderToLwtStream app in
+       let%lwt stream, _abort = ReactDOM.renderToStream app in
        assert_stream stream [ "<div><span>Hello 0.1</span></div>" ]
      in
      lwt_check_raises raises
@@ -73,7 +73,7 @@ let suspense_without_promise _switch () =
   let app =
     React.Suspense { fallback = React.string "Loading..."; children = hi }
   in
-  let%lwt stream, _abort = ReactDOM.renderToLwtStream app in
+  let%lwt stream, _abort = ReactDOM.renderToStream app in
   assert_stream stream [ "<div><span>Hello</span></div>" ]
 
 let suspense_with_always_throwing _switch () =
@@ -83,7 +83,7 @@ let suspense_with_always_throwing _switch () =
   let app =
     React.Suspense { fallback = React.string "Loading..."; children = hi }
   in
-  let%lwt stream, _abort = ReactDOM.renderToLwtStream app in
+  let%lwt stream, _abort = ReactDOM.renderToStream app in
   assert_stream stream
     [ "<!--$?--><template id=\"B:0\"></template>Loading...<!--/$-->" ]
 
@@ -103,7 +103,7 @@ let react_use_with_suspense _switch () =
   let app =
     React.Suspense { fallback = React.string "Loading..."; children = time }
   in
-  let%lwt stream, _abort = ReactDOM.renderToLwtStream app in
+  let%lwt stream, _abort = ReactDOM.renderToStream app in
   assert_stream stream
     [
       "<!--$?--><template id=\"B:0\"></template>Loading...<!--/$-->";
@@ -124,7 +124,7 @@ let test_with_custom_component _switch () =
           [ React.createElement "span" [] [ React.string "Custom Component" ] ])
   in
   let app = React.createElement "div" [] [ custom_component ] in
-  let%lwt stream, _abort = ReactDOM.renderToLwtStream app in
+  let%lwt stream, _abort = ReactDOM.renderToStream app in
   assert_stream stream [ "<div><div><span>Custom Component</span></div></div>" ]
 
 let test_with_multiple_custom_components _switch () =
@@ -137,7 +137,7 @@ let test_with_multiple_custom_components _switch () =
   let app =
     React.createElement "div" [] [ custom_component; custom_component ]
   in
-  let%lwt stream, _abort = ReactDOM.renderToLwtStream app in
+  let%lwt stream, _abort = ReactDOM.renderToStream app in
   assert_stream stream
     [
       "<div><div><span>Custom Component</span></div><div><span>Custom \
@@ -150,7 +150,7 @@ let async_component _switch () =
       (fun () ->
         Lwt.return (React.createElement "span" [] [ React.string "yow" ]))
   in
-  let%lwt stream, _abort = ReactDOM.renderToLwtStream app in
+  let%lwt stream, _abort = ReactDOM.renderToStream app in
   assert_stream stream [ "<span>yow</span>" ]
 
 let tests =
