@@ -30,6 +30,7 @@
   (melange (>= 3.0.0))
 
   ; Library dependencies
+  (camomile (>= 2.0.0))
   (ppxlib (> 0.23.0))
   (quickjs (>= 0.1.2))
   (promise (>= 1.1.2))

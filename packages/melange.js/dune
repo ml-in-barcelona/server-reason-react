@@ -7,7 +7,7 @@
  (name js)
  (modules js)
  (public_name server-reason-react.js)
- (libraries quickjs lwt str)
+ (libraries quickjs lwt str camomile camomile.lib)
  (preprocess
   (pps lwt_ppx)))
 

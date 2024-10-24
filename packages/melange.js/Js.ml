@@ -1,3 +1,5 @@
+module CamomileCaseMape = Camomile.CaseMap.Make (Camomile.UTF8)
+
 exception Not_implemented of string
 
 let notImplemented module_ function_ =
@@ -842,9 +844,9 @@ end = struct
       Stdlib.String.sub str end_idx (start_idx - end_idx)
     else Stdlib.String.sub str start_idx (end_idx - start_idx)
 
-  let toLowerCase = Stdlib.String.lowercase_ascii
+  let toLowerCase s = CamomileCaseMape.lowercase s
   let toLocaleLowerCase _ = notImplemented "Js.String" "toLocaleLowerCase"
-  let toUpperCase = Stdlib.String.uppercase_ascii
+  let toUpperCase s = CamomileCaseMape.uppercase s
   let toLocaleUpperCase _ = notImplemented "Js.String" "toLocaleUpperCase"
 
   let trim str =
