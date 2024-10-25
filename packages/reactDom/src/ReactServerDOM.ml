@@ -30,8 +30,10 @@ module Model = struct
     | React.JSX.Style value -> ("style", `String value)
     | React.JSX.DangerouslyInnerHtml html ->
         ("dangerouslySetInnerHTML", `Assoc [ ("__html", `String html) ])
-    | React.JSX.Ref _ -> failwith "TODO ref"
-    | React.JSX.Event _ -> failwith "TODO event"
+    (* TODO: What does ref mean *)
+    | React.JSX.Ref _ -> ("ref", `Null)
+    (* TODO: What does event even mean *)
+    | React.JSX.Event (key, _) -> (key, `Null)
 
   let node ~tag ?(key = None) ~props children : json =
     let key = match key with None -> `Null | Some key -> `String key in
@@ -67,14 +69,14 @@ module Model = struct
     let buf = Buffer.create (4 * 1024) in
     Buffer.add_string buf (Printf.sprintf "%x:" id);
     Yojson.Basic.write_json buf model;
-    Buffer.add_char buf '\n';
+    (* Buffer.add_char buf '\n'; *)
     Buffer.contents buf
 
   let client_reference_to_chunk id ref =
     let buf = Buffer.create 256 in
     Buffer.add_string buf (Printf.sprintf "%x:I" id);
     Yojson.Basic.write_json buf ref;
-    Buffer.add_char buf '\n';
+    (* Buffer.add_char buf '\n'; *)
     Buffer.contents buf
 
   let element_to_model ~context index element =
@@ -197,7 +199,7 @@ module Html = struct
   let chunk_model_script index model =
     let chunk = Model.payload_to_chunk index model in
     Html.node "script" []
-      [ Html.raw (Printf.sprintf "window.srr_stream.push(%s);" chunk) ]
+      [ Html.raw (Printf.sprintf "window.srr_stream.push('%s');" chunk) ]
 
   let chunk_stream_end_script =
     Html.node "script" [] [ Html.raw "window.srr_stream.close();" ]
@@ -265,33 +267,34 @@ module Html = struct
     Lwt.return (Html.list htmls, `List model)
 
   type rendering =
-    | Finish of { html : Html.element }
-    | Streaming of {
+    | Done of Html.element
+    | Async of {
         shell : Html.element;
-        values : (Html.element -> unit Lwt.t) -> unit Lwt.t;
+        subscribe : (Html.element -> unit Lwt.t) -> unit Lwt.t;
       }
 
-  (* TODO: Add "Finish" when implementing async components, suspense, etc. *)
   (* TODO: Do we need to disable the model rendering? Can we do something better than a boolean? *)
   (* TODO: Do we need to disable streaming based on some timeout? *)
   (* TODO: Add scripts and links to the output, also all options from renderToReadableStream *)
+  (* TODO: Add Async for async/suspense/etc. *)
   let render element =
-    let stream, push, _ = Stream.make () in
+    let _stream, push, _ = Stream.make () in
     let index = 0 in
     let%lwt html, model = to_html ~push element in
     let shell =
       let initial_model_element = chunk_model_script index model in
-      Html.list [ initial_model_element; html ]
+      Html.list [ rsc_start_script; initial_model_element; html ]
     in
-    let html_iter fn =
-      let%lwt () = Lwt_stream.iter_s fn stream in
-      fn chunk_stream_end_script
-    in
-    let html_shell =
-      if not true then Html.list [ rc_function_script; shell ]
-      else Html.list [ rsc_start_script; rc_function_script; shell ]
-    in
-    Lwt.return (Streaming { shell = html_shell; values = html_iter })
+    (* let html_iter fn =
+         let%lwt () = Lwt_stream.iter_s fn stream in
+         fn chunk_stream_end_script
+       in
+       let html_shell =
+         if not true then Html.list [ rc_function_script; shell ]
+         else Html.list [ rsc_start_script; rc_function_script; shell ]
+       in
+       Lwt.return (Async { shell = html_shell; subscribe = html_iter }) *)
+    Lwt.return (Done shell)
   (* match async with
      | None ->
          let html =
@@ -303,5 +306,5 @@ module Html = struct
      | Some async -> *)
 end
 
-let to_model = Model.render
-let to_html = Html.render
+let render_to_model = Model.render
+let render_to_html = Html.render
