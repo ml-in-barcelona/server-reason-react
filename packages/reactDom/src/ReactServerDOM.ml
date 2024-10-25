@@ -3,8 +3,8 @@ type json = Yojson.Basic.t
 module Stream = struct
   let make () =
     let stream, push_into = Lwt_stream.create () in
-    let push v = push_into @@ Some v in
-    let close () = push_into @@ None in
+    let push v = push_into (Some v) in
+    let close () = push_into None in
     (stream, push, close)
 end
 
@@ -55,10 +55,10 @@ module Model = struct
     node ~tag:"$Sreact.suspense" ~key ~props []
 
   let component_ref ~module_ ~name =
-    `List
-      [
-        `String module_ (* id *); `List [] (* chunks *); `String name (* name *);
-      ]
+    let id = `String module_ in
+    let chunks = `List [] in
+    let component_name = `String name in
+    `List [ id; chunks; component_name ]
 
   let lazy_value id = Printf.sprintf "$L%x" id
   let promise_value id = Printf.sprintf "$@%x" id

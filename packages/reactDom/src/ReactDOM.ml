@@ -1,3 +1,8 @@
+module Style = ReactDOMStyle
+module Ref = React.Ref
+
+type domRef = Ref.t
+
 let is_react_custom_attribute attr =
   match attr with
   | "dangerouslySetInnerHTML" | "ref" | "key" | "suppressContentEditableWarning"
@@ -226,6 +231,7 @@ let render_to_stream ~context_state element =
             (* TODO: log exn *)
             render_suspense_fallback ~boundary_id:context_state.boundary_id
               fallback)
+  (* TODO: Move this outside of the recursivity *)
   and render_suspense_resolved_element ~id element =
     render_element element
     |> Lwt.map (fun element ->
@@ -235,6 +241,7 @@ let render_to_stream ~context_state element =
                Html.attribute "id" (Printf.sprintf "S:%i" id);
              ]
              [ element ])
+  (* TODO: Move this outside of the recursivity *)
   and render_suspense_fallback ~boundary_id element =
     render_element element
     |> Lwt.map (fun element ->
@@ -275,9 +282,8 @@ let render _element _node =
 let hydrate _element _node =
   Runtime.fail_impossible_action_in_ssr "ReactDOM.hydrate"
 
+(* TODO: Should this fail_impossible_action_in_ssr? *)
 let createPortal _reactElement _domElement = _reactElement
-
-module Style = ReactDOMStyle
 
 let createDOMElementVariadic (tag : string) ~props
     (childrens : React.element array) =
@@ -1277,7 +1283,3 @@ let domProps
   |> add (React.JSX.dangerouslyInnerHtml) dangerouslySetInnerHTML
   |> add (React.JSX.bool "suppressContentEditableWarning") suppressContentEditableWarning
   |> add (React.JSX.bool "suppressHydrationWarning") suppressHydrationWarning
-
-module Ref = React.Ref
-
-type domRef = Ref.t

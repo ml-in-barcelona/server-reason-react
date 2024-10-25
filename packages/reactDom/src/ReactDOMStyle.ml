@@ -711,6 +711,7 @@ let make
   |> add "ruby-position" rubyPosition
 [@@@ocamlformat "enable"]
 
+(* This is used only for testing. It needs to be here since it uses the internal representation of `t` which is abstract on the interface *)
 let to_string (styles : t) : string =
   let size = List.length styles in
   let buff = Buffer.create size in
@@ -727,6 +728,7 @@ let to_string (styles : t) : string =
            Buffer.add_string buff ";"));
   Buffer.contents buff
 
+(* TODO: Remove conversion to sequences, can do List.combine *)
 let combine (styles1 : t) (styles2 : t) : t =
   let seq1 = styles1 |> List.to_seq in
   let seq2 = styles2 |> List.to_seq in
@@ -750,7 +752,7 @@ let camelcaseToKebabcase str =
   in
   str |> chars_of_string |> loop [] |> List.rev |> string_of_chars
 
-let unsafeAddProp styles (key : string) (value : string) : t =
+let unsafeAddProp styles key value : t =
   (* Adds the (key,value) into last position *)
   (camelcaseToKebabcase key, value) :: styles
 
