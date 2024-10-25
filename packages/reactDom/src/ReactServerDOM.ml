@@ -273,10 +273,10 @@ module Html = struct
         subscribe : (Html.element -> unit Lwt.t) -> unit Lwt.t;
       }
 
-  (* TODO: Do we need to disable the model rendering? Can we do something better than a boolean? *)
-  (* TODO: Do we need to disable streaming based on some timeout? *)
-  (* TODO: Add scripts and links to the output, also all options from renderToReadableStream *)
   (* TODO: Add Async for async/suspense/etc. *)
+  (* TODO: Do we need to disable streaming based on some timeout? *)
+  (* TODO: Do we need to disable the model rendering? Can we do something better than a boolean? *)
+  (* TODO: Add scripts and links to the output, also all options from renderToReadableStream *)
   let render element =
     let _stream, push, _ = Stream.make () in
     let index = 0 in
@@ -295,15 +295,6 @@ module Html = struct
        in
        Lwt.return (Async { shell = html_shell; subscribe = html_iter }) *)
     Lwt.return (Done shell)
-  (* match async with
-     | None ->
-         let html =
-           if not true then html_shell
-           else
-             Html.list [ rsc_start_script; html_shell; chunk_stream_end_script ]
-         in
-         Finish { html }
-     | Some async -> *)
 end
 
 let render_to_model = Model.render

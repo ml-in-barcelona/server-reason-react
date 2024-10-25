@@ -63,19 +63,6 @@ let serverComponentsWithoutClientHandler = request => {
 let is_react_component_header = str =>
   String.equal(str, "application/react.component");
 
-type response = {
-  write: string => Lwt.t(unit),
-  flush: unit => Lwt.t(unit),
-};
-
-let writeChunk = (stream, data) => {
-  let len = String.length(data);
-  let lenHeader = Printf.sprintf("%x\r\n", len);
-  let%lwt () = Dream.write(stream, lenHeader);
-  let%lwt () = Dream.write(stream, data);
-  Dream.write(stream, "\r\n");
-};
-
 let stream_rsc = fn => {
   Dream.stream(
     ~headers=[
@@ -83,20 +70,14 @@ let stream_rsc = fn => {
       ("X-Content-Type-Options", "nosniff"),
     ],
     stream => {
-      let response = {
-        write: data => writeChunk(stream, data),
-        flush: () => Dream.flush(stream),
-      };
-
-      let%lwt () = fn(response);
+      let%lwt () = fn(stream);
       let%lwt () = Dream.write(stream, "0\r\n\r\n");
-      Dream.flush(stream);
+      Lwt.return();
     },
   );
 };
 
 let stream_html = (~scripts, ~styles, fn) => {
-  Dream.log("stream_html");
   let style_links =
     List.map(
       href => Printf.sprintf({|<link href="%s" rel="stylesheet">|}, href),
@@ -114,18 +95,10 @@ let stream_html = (~scripts, ~styles, fn) => {
   Dream.stream(
     ~headers=[("Content-Type", "text/html")],
     stream => {
-      Dream.log("calling fn from stream_html");
-      let response = {
-        write: data => Dream.write(stream, data),
-        flush: () => Dream.flush(stream),
-      };
-
-      let%lwt () = response.write(htmlPrelude);
-      Dream.log("write %s to response", htmlPrelude);
-      let%lwt () = fn(response);
-      Dream.log("write %s to response", htmlScripts);
-      let%lwt () = response.write(htmlScripts);
-      Dream.flush(stream);
+      let%lwt () = Dream.write(stream, htmlPrelude);
+      let%lwt () = fn(stream);
+      let%lwt () = Dream.write(stream, htmlScripts);
+      Lwt.return();
     },
   );
 };
@@ -134,12 +107,16 @@ let serverComponentsHandler = request => {
   let app = <div id="root"> <Noter /> </div>;
   switch (Dream.header(request, "Accept")) {
   | Some(accept) when is_react_component_header(accept) =>
-    stream_rsc(response => {
+    stream_rsc(stream => {
       let%lwt initial =
         ReactServerDOM.render_to_model(
           app,
           ~subscribe=chunk => {
-            let%lwt () = response.write(chunk);
+            let length_header =
+              Printf.sprintf("%x\r\n", String.length(chunk));
+            let%lwt () = Dream.write(stream, length_header);
+            let%lwt () = Dream.write(stream, chunk);
+            let%lwt () = Dream.write(stream, "\r\n");
             Lwt.return();
           },
         );
@@ -153,16 +130,15 @@ let serverComponentsHandler = request => {
         "https://cdn.tailwindcss.com",
       ],
       ~styles=[],
-      response => {
+      stream => {
       switch%lwt (ReactServerDOM.render_to_html(app)) {
       | ReactServerDOM.Html.Done(html) =>
-        response.write(Html.to_string(html))
+        Dream.write(stream, Html.to_string(html))
       | ReactServerDOM.Html.Async({shell, subscribe}) =>
-        Dream.log("async bitx");
-        let%lwt () = response.write(Html.to_string(shell));
+        let%lwt () = Dream.write(stream, Html.to_string(shell));
         subscribe(chunk => {
-          let%lwt () = response.write(Html.to_string(chunk));
-          response.flush();
+          let%lwt () = Dream.write(stream, Html.to_string(chunk));
+          Lwt.return();
         });
       }
     })
