@@ -41,8 +41,7 @@ let render_to_string ~mode element =
      when renders an lower-case element or closed element *)
   let is_mode_to_string = mode = String in
   let is_root = ref is_mode_to_string in
-  (* previous_was_text_node is the flag to enable rendering comments
-     <!-- --> between text nodes *)
+  (* This flag is used to enable rendering comments <!-- --> between text nodes *)
   let previous_was_text_node = ref false in
 
   let rec render_element element =

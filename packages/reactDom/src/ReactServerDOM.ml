@@ -1,5 +1,132 @@
 type json = Yojson.Basic.t
 
+module Fiber
+(* : sig
+     type t
+
+     val root :
+       (t * int -> Html.element Lwt.t) ->
+       (Html.element * Html.element Lwt_stream.t option) Lwt.t
+
+     val fork :
+       t ->
+       (t -> [ `Fail of exn | `Fork of Html.element Lwt.t * 'a | `Sync of 'a ]) ->
+       'a Lwt.t
+
+     val update_ctx : t -> 'a React_model.context -> 'a -> t
+     val with_ctx : t -> (unit -> 'a) -> 'a * Remote.Context.batch
+
+     val with_ctx_async :
+       t -> (unit -> 'a Lwt.t) -> ('a * Remote.Context.batch) Lwt.t
+
+     val use_idx : t -> int
+     val emit_html : t -> Html.element -> unit
+     val emit_batch : t -> Remote.Context.batch -> unit Lwt.t
+   end *) =
+struct
+  type context = {
+    mutable index : int;
+    mutable pending : int;
+    push : Html.element -> unit; (* remote_ctx : Remote.Context.t; *)
+    close : unit -> unit;
+  }
+
+  type t = {
+    context : context;
+    (* react_ctx : Hmap.t; *)
+    finished : unit Lwt.t;
+    (* QUESTION: Why do I need emit_html as mutable? I see parent  *)
+    mutable emit_html : Html.element -> unit;
+  }
+
+  let update_ctx _t _ctx _v =
+    (* let react_ctx = Hmap.add ctx.React_model.key v t.react_ctx in
+       { t with react_ctx } *)
+    failwith "TODO"
+
+  let with_ctx _t _f =
+    (* let f () = React_model.with_context t.react_ctx f in
+       Remote.Context.with_ctx t.ctx.remote_ctx f *)
+    failwith "TODO"
+
+  let with_ctx_async _t _f =
+    (* let f () = React_model.with_context t.react_ctx f in
+       Remote.Context.with_ctx_async t.ctx.remote_ctx f *)
+    failwith "TODO"
+
+  let use_idx t =
+    t.context.index <- t.context.index + 1;
+    t.context.index
+
+  let emit_html t html = t.emit_html html
+
+  let emit_batch _t _batch =
+    (* Remote.Context.batch_to_html t.ctx.remote_ctx batch >|= fun html ->
+       emit_html t html *)
+    failwith "TODO"
+
+  let root fn =
+    let stream, push, close = Push_stream.make () in
+    let initial_index = 0 in
+    let context = { push; close; pending = 1; index = initial_index } in
+    let htmls = ref (Some []) in
+    let finished, parent_done = Lwt.wait () in
+    let emit_html chunk =
+      match !htmls with
+      | Some chunks -> htmls := Some (chunk :: chunks)
+      | None -> failwith "invariant violation: root computation finished"
+    in
+    let%lwt html =
+      fn
+        ( { context; emit_html; finished (* react_ctx = Hmap.empty *) },
+          initial_index )
+    in
+    let htmls =
+      match !htmls with
+      | Some chunks ->
+          htmls := None;
+          chunks
+      | None -> assert false
+    in
+    let shell = Html.list [ Html.list htmls; html ] in
+    Lwt.wakeup_later parent_done ();
+    context.pending <- context.pending - 1;
+    match context.pending = 0 with
+    | true ->
+        context.close ();
+        Lwt.return (shell, None)
+    | false -> Lwt.return (shell, Some stream)
+
+  let fork parent fn =
+    let context = parent.context in
+    let finished, parent_done = Lwt.wait () in
+    let t =
+      {
+        context;
+        emit_html = parent.emit_html;
+        (* react_ctx = parent.react_ctx; *)
+        finished;
+      }
+    in
+    match fn t with
+    | `Fork (async, sync) ->
+        context.pending <- context.pending + 1;
+        t.emit_html <- (fun html -> context.push html);
+        Lwt.async (fun () ->
+            let%lwt () = parent.finished in
+            let%lwt html = async in
+            context.push html;
+            Lwt.wakeup_later parent_done ();
+            context.pending <- context.pending - 1;
+            if context.pending = 0 then context.close ();
+            Lwt.return ());
+        Lwt.return sync
+    | `Sync sync ->
+        Lwt.wakeup_later parent_done ();
+        Lwt.return sync
+    | `Fail exn -> Lwt.fail exn
+end
+
 module Model = struct
   type chunk_type = Chunk_value of json | Chunk_component_ref of json
 
@@ -37,31 +164,33 @@ module Model = struct
     in
     `List [ `String "$"; `String tag; key; `Assoc props ]
 
-  (* Not reusing node because we need to add fallback prop as model directly *)
+  let lazy_value idx = Printf.sprintf "$L%x" idx
+  let promise_value id = Printf.sprintf "$@%x" id
+
+  (* Not reusing node because we need to add fallback prop as json directly *)
   let suspense_node ~key ~fallback children : json =
     let fallback_prop = ("fallback", fallback) in
-    let children_prop =
+    let props =
       match children with
-      | [ one ] -> ("children", one)
-      | _ -> ("children", `List children)
+      | [] -> [ fallback_prop ]
+      | [ one ] -> [ fallback_prop; ("children", one) ]
+      | _ -> [ fallback_prop; ("children", `List children) ]
     in
-    let props = [ fallback_prop; children_prop ] in
     node ~tag:"$Sreact.suspense" ~key ~props []
 
-  (* TODO: Add chunks *)
-  let component_ref ~module_ ~name =
+  let suspense_placeholder ~key ~fallback index =
+    suspense_node ~key ~fallback [ `String (lazy_value index) ]
+
+  let component_ref ~chunks ~module_ ~name =
     let id = `String module_ in
-    let chunks = `List [] in
+    let chunks = `List chunks in
     let component_name = `String name in
     `List [ id; chunks; component_name ]
 
-  let lazy_value id = Printf.sprintf "$L%x" id
-  let promise_value id = Printf.sprintf "$@%x" id
-
-  let payload_to_chunk id model =
+  let payload_to_chunk id json =
     let buf = Buffer.create (4 * 1024) in
     Buffer.add_string buf (Printf.sprintf "%x:" id);
-    Yojson.Basic.write_json buf model;
+    Yojson.Basic.write_json buf json;
     (* Buffer.add_char buf '\n'; *)
     Buffer.contents buf
 
@@ -102,7 +231,10 @@ module Model = struct
           suspense_node ~key ~fallback [ to_payload children ]
       | Client_component { import_module; import_name; props; children = _ } ->
           let id = get_id context in
-          let ref = component_ref ~module_:import_module ~name:import_name in
+          (* TODO: Add chunks *)
+          let ref =
+            component_ref ~chunks:[] ~module_:import_module ~name:import_name
+          in
           context.push id (Chunk_component_ref ref);
           let props = client_props_to_json props in
           node ~tag:(Printf.sprintf "$%x" id) ~key:None ~props []
@@ -193,6 +325,10 @@ let chunk_model_script index model =
   Html.node "script" []
     [ Html.raw (Printf.sprintf "window.srr_stream.push('%s');" chunk) ]
 
+let chunk_script script =
+  Html.node "script" []
+    [ Html.raw (Printf.sprintf "window.srr_stream.push('%s');" script) ]
+
 let chunk_stream_end_script =
   Html.node "script" [] [ Html.raw "window.srr_stream.close();" ]
 
@@ -215,42 +351,158 @@ let chunk_html_script index html =
 let html_suspense inner =
   Html.list [ Html.raw "<!--$?-->"; inner; Html.raw "<!--/$-->" ]
 
-let html_suspense_placeholder element id =
+let html_suspense_placeholder ~fallback id =
   Html.list
     [
       Html.raw "<!--$?-->";
       Html.node "template" [ Html.attribute "id" (Printf.sprintf "B:%i" id) ] [];
-      element;
+      fallback;
       Html.raw "<!--/$-->";
     ]
 
+let rec client_to_html ~fiber (element : React.element) =
+  match element with
+  | Empty -> Lwt.return Html.null
+  | Text text -> Lwt.return (Html.string text)
+  | Fragment children -> client_to_html ~fiber children
+  | List childrens ->
+      let%lwt html =
+        childrens |> Array.to_list |> Lwt_list.map_p (client_to_html ~fiber)
+      in
+      Lwt.return (Html.list html)
+  | Lower_case_element { tag; attributes; _ } when Html.is_self_closing_tag tag
+    ->
+      let html_props = List.map ReactDOM.attribute_to_html attributes in
+      Lwt.return (Html.node tag html_props [])
+  | Lower_case_element { tag; attributes; children } ->
+      let html_props = List.map ReactDOM.attribute_to_html attributes in
+      let%lwt html = children |> Lwt_list.map_p (client_to_html ~fiber) in
+      Lwt.return (Html.node tag html_props html)
+  (* | El_html { tag_name; key = _; props; children = None } ->
+         Lwt.return (Htmlgen.node tag_name props [])
+     | El_html
+         { tag_name; key = _; props; children = Some (Html_children children) } ->
+         client_to_html t children >|= fun children ->
+         Htmlgen.node tag_name props [ children ]
+     | El_html
+         {
+           tag_name;
+           key = _;
+           props;
+           children = Some (Html_children_raw { __html });
+         } ->
+         Lwt.return (Htmlgen.node tag_name props [ Htmlgen.unsafe_raw __html ]) *)
+  | Upper_case_component _component ->
+      (* TODO: Add support for upper case components *)
+      failwith "TODO"
+  | Async_component _component ->
+      (* async components can't be interleaved in client components *)
+      assert false
+  | Suspense { children = _; fallback } ->
+      let%lwt _fallback = client_to_html ~fiber fallback in
+      (* let%lwt children = client_to_html ~push children in *)
+      failwith "TODO"
+      (* Fiber.fork t @@ fun t ->
+         let idx = Fiber.use_idx t in
+         let async = client_to_html t children >|= Emit_html.html_chunk idx in
+         `Fork (async, Emit_html.html_suspense_placeholder fallback idx) *)
+  | Client_component { import_module = _; import_name = _; props = _; children }
+    ->
+      client_to_html ~fiber children
+  (* TODO: Need to do something for those? *)
+  | Provider children -> client_to_html ~fiber children
+  | Consumer children -> client_to_html ~fiber children
+  | InnerHtml innerHtml -> Lwt.return (Html.raw innerHtml)
+
 (* TODO: Push is to be used for streaming, when implementing async components, suspense, etc. *)
-let rec to_html ~push (element : React.element) : (Html.element * json) Lwt.t =
+let rec to_html ~(fiber : Fiber.t) (element : React.element) :
+    (Html.element * json) Lwt.t =
   (* TODO: Add key into Lower_case elements? *)
   let key = Some "0" in
   match element with
   | Empty -> Lwt.return (Html.null, `Null)
   | Text s -> Lwt.return (Html.string s, if not true then `Null else `String s)
-  | Fragment children -> to_html ~push children
-  | Upper_case_component component -> to_html ~push (component ())
+  | Fragment children -> to_html ~fiber children
+  | List list -> elements_to_html ~fiber (Array.to_list list)
+  | Upper_case_component component -> to_html ~fiber (component ())
   | Lower_case_element { tag; attributes; _ } when Html.is_self_closing_tag tag
     ->
       let html_props = List.map ReactDOM.attribute_to_html attributes in
       let json_props = List.map Model.prop_to_json attributes in
       Lwt.return
         (Html.node tag html_props [], Model.node ~tag ~key ~props:json_props [])
-  | List list -> elements_to_html ~push (Array.to_list list)
   | Lower_case_element { tag; attributes; children } ->
       let html_props = List.map ReactDOM.attribute_to_html attributes in
       let json_props = List.map Model.prop_to_json attributes in
-      let%lwt html, model = elements_to_html ~push children in
+      let%lwt html, model = elements_to_html ~fiber children in
       Lwt.return
         ( Html.node tag html_props [ html ],
           Model.node ~tag ~key ~props:json_props [ model ] )
-  | _ -> failwith "todo!"
+  | Async_component component ->
+      let%lwt element = component () in
+      to_html ~fiber element
+  | Client_component { import_module; import_name; props = _; children } ->
+      (* TODO: Transform props to json *)
+      let lwt_props = Lwt.return [] in
+      (* let props =
+           Lwt_list.map_p
+             (fun (name, jsony) ->
+               match jsony with
+               | React_model.Element element ->
+                   server_to_html ~render_model t element
+                   >|= fun (_html, model) -> name, model
+               | Promise (promise, value_to_json) ->
+                   Fiber.fork t @@ fun t ->
+                   let idx = Fiber.use_idx t in
+                   let sync =
+                     ( name,
+                       if not render_model then Render_to_model.null
+                       else Render_to_model.promise_value idx )
+                   in
+                   let async =
+                     promise >|= fun value ->
+                     let json = value_to_json value in
+                     Emit_model.html_model (idx, C_value json)
+                   in
+                   `Fork (async, sync)
+               | Json json -> Lwt.return (name, json))
+             props
+         in *)
+      let lwt_html = client_to_html ~fiber children in
+      (* NOTE: this Lwt.pause () is important as we resolve client component in
+               an async way we need to suspend above, otherwise React.js runtime won't work *)
+      let%lwt () = Lwt.pause () in
+      let%lwt html, props = Lwt.both lwt_html lwt_props in
+      let model =
+        let index = 0 in
+        let ref : json =
+          Model.component_ref ~chunks:[] ~module_:import_module
+            ~name:import_name
+        in
+        fiber.emit_html
+          (chunk_script (Model.client_reference_to_chunk index ref));
+        Model.node ~tag:(Printf.sprintf "$%x" index) ~key:None ~props []
+      in
+      Lwt.return (html, model)
+  | Suspense { children; fallback } -> (
+      let%lwt _html_fallback, model_fallback = to_html ~fiber fallback in
+      (* FORK *)
+      let promise = to_html ~fiber children in
+      match Lwt.state promise with
+      | Lwt.Return (html, model) ->
+          let model =
+            Model.suspense_node ~key ~fallback:model_fallback [ model ]
+          in
+          Lwt.return (html_suspense html, model)
+      | Lwt.Fail _exn -> failwith "TODO"
+      | Lwt.Sleep -> failwith "TODO")
+  | Provider children -> to_html ~fiber children
+  | Consumer children -> to_html ~fiber children
+  (* TODO: There's a task to remove InnerHtml in ReactDOM  and use Html.raw directly. Here is still unclear what do to since we assing dangerouslySetInnerHTML to the right prop on the model. Also, should this model be `Null? *)
+  | InnerHtml innerHtml -> Lwt.return (Html.raw innerHtml, `Null)
 
-and elements_to_html ~push elements =
-  let%lwt html_and_models = elements |> Lwt_list.map_p (to_html ~push) in
+and elements_to_html ~fiber elements =
+  let%lwt html_and_models = elements |> Lwt_list.map_p (to_html ~fiber) in
   let htmls, model = List.split html_and_models in
   Lwt.return (Html.list htmls, `List model)
 
@@ -261,27 +513,34 @@ type rendering =
       subscribe : (Html.element -> unit Lwt.t) -> unit Lwt.t;
     }
 
-(* TODO: Add Async for async/suspense/etc. *)
-(* TODO: Do we need to disable streaming based on some timeout? *)
+(* TODO: Add Async for async/suspense/client components *)
+(* TODO: Do we need to disable streaming based on some timeout? abortion? *)
 (* TODO: Do we need to disable the model rendering? Can we do something better than a boolean? *)
 (* TODO: Add scripts and links to the output, also all options from renderToReadableStream *)
 let render_to_html element =
-  let _stream, push, _ = Push_stream.make () in
-  let index = 0 in
-  let%lwt html, model = to_html ~push element in
-  let shell =
-    let initial_model_element = chunk_model_script index model in
-    Html.list [ rsc_start_script; initial_model_element; html ]
+  let _stream, _push, _ = Push_stream.make () in
+  let%lwt html_shell, html_async =
+    Fiber.root (fun (fiber, index) ->
+        let%lwt html, model = to_html ~fiber element in
+        let first_chunk =
+          chunk_script (Model.client_reference_to_chunk index model)
+        in
+        Lwt.return (Html.list [ first_chunk; html ]))
   in
-  (* let html_iter fn =
-       let%lwt () = Lwt_stream.iter_s fn stream in
-       fn chunk_stream_end_script
-     in
-     let html_shell =
-       if not true then Html.list [ rc_function_script; shell ]
-       else Html.list [ rsc_start_script; rc_function_script; shell ]
-     in
-     Lwt.return (Async { shell = html_shell; subscribe = html_iter }) *)
-  Lwt.return (Done shell)
+  match html_async with
+  | None ->
+      let sync_shell =
+        Html.list [ rsc_start_script; html_shell; chunk_stream_end_script ]
+      in
+      Lwt.return (Done sync_shell)
+  | Some stream ->
+      let html_iter fn =
+        let%lwt () = Lwt_stream.iter_s fn stream in
+        fn chunk_stream_end_script
+      in
+      let html_shell =
+        Html.list [ rsc_start_script; rc_function_script; html_shell ]
+      in
+      Lwt.return (Async { shell = html_shell; subscribe = html_iter })
 
 let render_to_model = Model.render
