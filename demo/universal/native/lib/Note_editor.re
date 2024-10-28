@@ -1,19 +1,18 @@
 [@warning "-27"];
-open React;
 
 [@react.component]
 let make = (~title: string, ~body: string) => {
-  let (title, setTitle) = useState(() => title);
-  let (body, setBody) = useState(() => body);
+  let (title, setTitle) = RR.useStateValue(title);
+  let (body, setBody) = RR.useStateValue(body);
 
   let%browser_only updateTitle = event => {
-    let value = Event.Form.target(event)##value;
-    setTitle(_ => value);
+    let value = React.Event.Form.target(event)##value;
+    setTitle(value);
   };
 
   let%browser_only updateBody = event => {
-    let value = Event.Form.target(event)##value;
-    setBody(_ => value);
+    let value = React.Event.Form.target(event)##value;
+    setBody(value);
   };
 
   let submit = _ => {

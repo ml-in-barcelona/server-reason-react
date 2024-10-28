@@ -13,7 +13,7 @@ let ReactDOM = require("react-dom/client");
 let Noter = require("./app/demo/universal/js/Noter.js");
 
 try {
-  ReactDOM.hydrateRoot(document.getElementById("root"), <Noter.make />);
+  let _ = ReactDOM.hydrateRoot(document.getElementById("root"), <Noter.make />);
 } catch (e) {
   console.error(e);
 }
