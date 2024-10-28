@@ -132,9 +132,9 @@ let serverComponentsHandler = request => {
       ~styles=[],
       stream => {
       switch%lwt (ReactServerDOM.render_to_html(app)) {
-      | ReactServerDOM.Html.Done(html) =>
+      | ReactServerDOM.Done(html) =>
         Dream.write(stream, Html.to_string(html))
-      | ReactServerDOM.Html.Async({shell, subscribe}) =>
+      | ReactServerDOM.Async({shell, subscribe}) =>
         let%lwt () = Dream.write(stream, Html.to_string(shell));
         subscribe(chunk => {
           let%lwt () = Dream.write(stream, Html.to_string(chunk));

@@ -12,22 +12,21 @@ let assert_list_of_strings (left : string list) (right : string list) =
 let test title fn =
   Alcotest_lwt.test_case title `Quick (fun _switch body -> fn body)
 
-let assert_stream (stream : string Lwt_stream.t) (expected : string list) =
-  let open Lwt.Infix in
-  Lwt_stream.to_list stream >>= fun content ->
+let assert_stream (stream : string Push_stream.t) (expected : string list) =
+  let%lwt content = Push_stream.to_list stream in
   if content = [] then Lwt.return @@ Alcotest.fail "stream should not be empty"
   else Lwt.return @@ assert_list_of_strings content expected
 
 let null_element () =
   let app = React.null in
-  let%lwt stream = ReactServerDOM.to_model app in
+  let%lwt stream = ReactServerDOM.render_to_model app in
   assert_stream stream [ "0:null\n" ]
 
 let lower_case_component () =
   let app =
     React.createElement "div" (ReactDOM.domProps ~className:"foo" ()) []
   in
-  let%lwt stream = ReactServerDOM.to_model app in
+  let%lwt stream = ReactServerDOM.render_to_model app in
   assert_stream stream [ "0:[\"$\",\"div\",null,{\"className\":\"foo\"}]\n" ]
 
 let lower_case_component_with_children () =
@@ -38,7 +37,7 @@ let lower_case_component_with_children () =
         React.createElement "span" [] [ React.string "Nohome" ];
       ]
   in
-  let%lwt stream = ReactServerDOM.to_model app in
+  let%lwt stream = ReactServerDOM.render_to_model app in
   assert_stream stream
     [
       "0:[\"$\",\"div\",null,{\"children\":[[\"$\",\"span\",null,{\"children\":\"Home\"}],[\"$\",\"span\",null,{\"children\":\"Nohome\"}]]}]\n";
@@ -53,7 +52,7 @@ let dangerouslySetInnerHtml () =
       ]
       []
   in
-  let%lwt stream = ReactServerDOM.to_model app in
+  let%lwt stream = ReactServerDOM.render_to_model app in
   assert_stream stream
     [
       "0:[\"$\",\"script\",null,{\"type\":\"application/javascript\",\"dangerouslySetInnerHTML\":{\"__html\":\"console.log('Hi!')\"}}]\n";
@@ -66,7 +65,7 @@ let upper_case_component () =
         let text = if codition then "foo" else "bar" in
         React.createElement "span" [] [ React.string text ])
   in
-  let%lwt stream = ReactServerDOM.to_model (app true) in
+  let%lwt stream = ReactServerDOM.render_to_model (app true) in
   assert_stream stream [ "0:[\"$\",\"span\",null,{\"children\":\"foo\"}]\n" ]
 
 let client_component_without_props () =
@@ -85,7 +84,7 @@ let client_component_without_props () =
               };
           |])
   in
-  let%lwt stream = ReactServerDOM.to_model (app ()) in
+  let%lwt stream = ReactServerDOM.render_to_model (app ()) in
   assert_stream stream
     [
       "1:I[\"./client-component.js\",[],\"Client_component\"]\n";
@@ -112,7 +111,7 @@ let client_component_with_props () =
               };
           |])
   in
-  let%lwt stream = ReactServerDOM.to_model (app ()) in
+  let%lwt stream = ReactServerDOM.render_to_model (app ()) in
   assert_stream stream
     [
       "1:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n";
@@ -139,7 +138,7 @@ let client_component_with_props () =
              import_name = "OuterClient";
            })
    in
-   let%lwt stream = ReactServerDOM.to_model (app ()) in
+   let%lwt stream = ReactServerDOM.render_to_model (app ()) in
    assert_stream stream
      [
        "1:I[\"./inner-client.js\",[],\"InnerClient\"]\n";
@@ -171,7 +170,7 @@ let mixed_server_and_client () =
               };
           |])
   in
-  let%lwt stream = ReactServerDOM.to_model (app ()) in
+  let%lwt stream = ReactServerDOM.render_to_model (app ()) in
   assert_stream stream
     [
       "1:I[\"./client-1.js\",[],\"Client1\"]\n";
@@ -199,7 +198,7 @@ let mixed_server_and_client () =
              import_name = "ClientList";
            })
    in
-   let%lwt stream = ReactServerDOM.to_model (app ()) in
+   let%lwt stream = ReactServerDOM.render_to_model (app ()) in
    assert_stream stream
      [
        "1:I[\"./client-list.js\",[],\"ClientList\"]\n";
@@ -219,7 +218,7 @@ let deeply_nested_server_content () =
               ];
           ])
   in
-  let%lwt stream = ReactServerDOM.to_model (app ()) in
+  let%lwt stream = ReactServerDOM.render_to_model (app ()) in
   assert_stream stream
     [
       "0:[\"$\",\"div\",null,{\"children\":[\"$\",\"section\",null,{\"children\":[\"$\",\"article\",null,{\"children\":\"Deep \
@@ -227,7 +226,7 @@ let deeply_nested_server_content () =
     ]
 
 let tests =
-  ( "ReactServerDOM.to_model",
+  ( "ReactServerDOM.render_to_model",
     [
       test "null_element" null_element;
       test "lower_case_component" lower_case_component;

@@ -141,14 +141,6 @@ let renderToStaticMarkup element =
   let html = render_to_string ~mode:Markup element in
   Html.to_string html
 
-module Stream = struct
-  let create () =
-    let stream, push_to_stream = Lwt_stream.create () in
-    let push v = push_to_stream @@ Some v in
-    let close () = push_to_stream @@ None in
-    (stream, push, close)
-end
-
 type context_state = {
   push : Html.element -> unit;
   close : unit -> unit;
@@ -258,7 +250,7 @@ let render_to_stream ~context_state element =
   render_element element
 
 let renderToStream element =
-  let stream, push, close = Stream.create () in
+  let stream, push, close = Push_stream.make () in
   let push_html html = push (Html.to_string html) in
   let context_state =
     { push = push_html; close; waiting = 0; boundary_id = 0; suspense_id = 0 }
