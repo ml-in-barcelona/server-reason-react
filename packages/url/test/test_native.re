@@ -107,8 +107,18 @@ let url_tests = (
       assert_option_string(URL.search(url), Some("?lang=en"));
       let url = URL.makeExn("https://www.google.es?lang=en&region=cat");
       assert_option_string(URL.search(url), Some("?lang=en&region=cat"));
-      let url = URL.setSearch(url, "x=1&y=2");
+      let url = URL.setSearchAsString(url, "x=1&y=2");
       assert_string(URL.toString(url), "https://www.google.es?x=1&y=2");
+      let search_params =
+        URL.SearchParams.makeWithArray([|
+          ("name", "John"),
+          ("last_name", "Doe"),
+        |]);
+      let url = URL.setSearch(url, search_params);
+      assert_string(
+        URL.toString(url),
+        "https://www.google.es?name=John&last_name=Doe",
+      );
     }),
     case("protocol", () => {
       let url = URL.makeExn("//cdn.example.com/somewhere/something.js");
