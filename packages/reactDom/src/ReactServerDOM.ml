@@ -345,34 +345,34 @@ let rec client_to_html ~fiber (element : React.element) =
       let html_props = List.map ReactDOM.attribute_to_html attributes in
       let%lwt html = children |> Lwt_list.map_p (client_to_html ~fiber) in
       Lwt.return (Html.node tag html_props html)
-  (* | El_html { tag_name; key = _; props; children = None } ->
-         Lwt.return (Htmlgen.node tag_name props [])
-     | El_html
-         { tag_name; key = _; props; children = Some (Html_children children) } ->
-         client_to_html t children >|= fun children ->
-         Htmlgen.node tag_name props [ children ]
-     | El_html
-         {
-           tag_name;
-           key = _;
-           props;
-           children = Some (Html_children_raw { __html });
-         } ->
-         Lwt.return (Htmlgen.node tag_name props [ Htmlgen.unsafe_raw __html ]) *)
-  | Upper_case_component _component ->
-      (* TODO: Add support for upper case components *)
-      failwith "TODO"
+  | Upper_case_component component ->
+      let rec wait_for_suspense_to_resolve () =
+        match component () with
+        | exception React.Suspend (Any_promise promise) ->
+            let%lwt _ = promise in
+            wait_for_suspense_to_resolve ()
+        | output ->
+            (* TODO: Do we need to care about batching? *)
+            client_to_html ~fiber output
+      in
+      wait_for_suspense_to_resolve ()
   | Async_component _component ->
-      (* async components can't be interleaved in client components *)
-      assert false
-  | Suspense { children = _; fallback } ->
-      let%lwt _fallback = client_to_html ~fiber fallback in
-      (* let%lwt children = client_to_html ~push children in *)
-      failwith "TODO"
-      (* Fiber.fork t @@ fun t ->
-         let idx = Fiber.use_idx t in
-         let async = client_to_html t children >|= Emit_html.html_chunk idx in
-         `Fork (async, Emit_html.html_suspense_placeholder fallback idx) *)
+      (* async components can't be interleaved in client components, for now *)
+      failwith
+        "async components can't be part of a client component. This should \
+         never raise, the ppx should catch it"
+  | Suspense { children; fallback } ->
+      let%lwt fallback = client_to_html ~fiber fallback in
+      Fiber.fork fiber (fun fiber ->
+          let index = Fiber.use_index fiber in
+          let async =
+            children |> client_to_html ~fiber
+            |> Lwt.map (chunk_html_script index)
+          in
+          let fallback_as_placeholder =
+            html_suspense_placeholder ~fallback index
+          in
+          `Fork (async, fallback_as_placeholder))
   | Client_component { import_module = _; import_name = _; props = _; children }
     ->
       client_to_html ~fiber children
@@ -381,10 +381,8 @@ let rec client_to_html ~fiber (element : React.element) =
   | Consumer children -> client_to_html ~fiber children
   | InnerHtml innerHtml -> Lwt.return (Html.raw innerHtml)
 
-(* TODO: Push is to be used for streaming, when implementing async components, suspense, etc. *)
-let rec to_html ~(fiber : Fiber.t) (element : React.element) :
-    (Html.element * json) Lwt.t =
-  (* TODO: Add key into Lower_case elements? *)
+let rec to_html ~fiber (element : React.element) : (Html.element * json) Lwt.t =
+  (* TODO: Add key into Lower_case elements and Suspense *)
   let key = Some "0" in
   match element with
   | Empty -> Lwt.return (Html.null, `Null)
@@ -408,36 +406,32 @@ let rec to_html ~(fiber : Fiber.t) (element : React.element) :
   | Async_component component ->
       let%lwt element = component () in
       to_html ~fiber element
-  | Client_component { import_module; import_name; props = _; children } ->
-      (* TODO: Transform props to json *)
-      let lwt_props = Lwt.return [] in
-      (* let props =
-           Lwt_list.map_p
-             (fun (name, jsony) ->
-               match jsony with
-               | React_model.Element element ->
-                   server_to_html ~render_model t element
-                   >|= fun (_html, model) -> name, model
-               | Promise (promise, value_to_json) ->
-                   Fiber.fork t @@ fun t ->
-                   let idx = Fiber.use_idx t in
-                   let sync =
-                     ( name,
-                       if not render_model then Render_to_model.null
-                       else Render_to_model.promise_value idx )
-                   in
+  | Client_component { import_module; import_name; props; children } ->
+      let lwt_props =
+        Lwt_list.map_p
+          (fun (name, value) ->
+            match (value : React.client_prop) with
+            | Element element ->
+                let%lwt _html, model = to_html ~fiber element in
+                Lwt.return (name, model)
+            | Promise (_promise, _value_to_json) ->
+                (* Fiber.fork fiber @@ fun fiber ->
+                   let index = Fiber.use_index fiber in
+                   let sync = (name, Model.promise_value index) in
                    let async =
-                     promise >|= fun value ->
+                     let%lwt value = promise in
                      let json = value_to_json value in
-                     Emit_model.html_model (idx, C_value json)
+                     Lwt.return
+                       (chunk_script (Model.client_reference_to_chunk index json))
                    in
-                   `Fork (async, sync)
-               | Json json -> Lwt.return (name, json))
-             props
-         in *)
+                   `Fork (async, sync) *)
+                Lwt.return (name, `Null)
+            | Json json -> Lwt.return (name, json))
+          props
+      in
       let lwt_html = client_to_html ~fiber children in
       (* NOTE: this Lwt.pause () is important as we resolve client component in
-               an async way we need to suspend above, otherwise React.js runtime won't work *)
+         an async way we need to suspend above, otherwise React.js runtime won't work *)
       let%lwt () = Lwt.pause () in
       let%lwt html, props = Lwt.both lwt_html lwt_props in
       let model =
@@ -446,26 +440,41 @@ let rec to_html ~(fiber : Fiber.t) (element : React.element) :
           Model.component_ref ~chunks:[] ~module_:import_module
             ~name:import_name
         in
-        fiber.emit_html
-          (chunk_script (Model.client_reference_to_chunk index ref));
+        fiber.emit_html (client_reference_chunk_script index ref);
         Model.node ~tag:(Printf.sprintf "$%x" index) ~key:None ~props []
       in
       Lwt.return (html, model)
-  | Suspense { children; fallback } -> (
-      let%lwt _html_fallback, model_fallback = to_html ~fiber fallback in
-      (* FORK *)
-      let promise = to_html ~fiber children in
-      match Lwt.state promise with
-      | Lwt.Return (html, model) ->
-          let model =
-            Model.suspense_node ~key ~fallback:model_fallback [ model ]
-          in
-          Lwt.return (html_suspense html, model)
-      | Lwt.Fail _exn -> failwith "TODO"
-      | Lwt.Sleep -> failwith "TODO")
+  | Suspense { children; fallback } ->
+      let%lwt html_fallback, model_fallback = to_html ~fiber fallback in
+      Fiber.fork fiber (fun fiber ->
+          let promise = to_html ~fiber children in
+          match Lwt.state promise with
+          | Sleep ->
+              let index = Fiber.use_index fiber in
+              let async_html =
+                let%lwt html, model = promise in
+                Lwt.return
+                  (Html.list
+                     [
+                       chunk_html_script index html;
+                       client_value_chunk_script index model;
+                     ])
+              in
+              let sync_html =
+                ( html_suspense_placeholder ~fallback:html_fallback index,
+                  Model.suspense_placeholder ~key ~fallback:model_fallback index
+                )
+              in
+              `Fork (async_html, sync_html)
+          | Return (html, model) ->
+              let model =
+                Model.suspense_node ~key ~fallback:model_fallback [ model ]
+              in
+              `Sync (html_suspense html, model)
+          | Fail exn -> `Fail exn)
   | Provider children -> to_html ~fiber children
   | Consumer children -> to_html ~fiber children
-  (* TODO: There's a task to remove InnerHtml in ReactDOM  and use Html.raw directly. Here is still unclear what do to since we assing dangerouslySetInnerHTML to the right prop on the model. Also, should this model be `Null? *)
+  (* TODO: There's a task to remove InnerHtml in ReactDOM and use Html.raw directly. Here is still unclear what do to since we assing dangerouslySetInnerHTML to the right prop on the model. Also, should this model be `Null? *)
   | InnerHtml innerHtml -> Lwt.return (Html.raw innerHtml, `Null)
 
 and elements_to_html ~fiber elements =
@@ -480,18 +489,14 @@ type rendering =
       subscribe : (Html.element -> unit Lwt.t) -> unit Lwt.t;
     }
 
-(* TODO: Add Async for async/suspense/client components *)
 (* TODO: Do we need to disable streaming based on some timeout? abortion? *)
 (* TODO: Do we need to disable the model rendering? Can we do something better than a boolean? *)
 (* TODO: Add scripts and links to the output, also all options from renderToReadableStream *)
 let render_to_html element =
-  let _stream, _push, _ = Push_stream.make () in
   let%lwt html_shell, html_async =
     Fiber.root (fun (fiber, index) ->
         let%lwt html, model = to_html ~fiber element in
-        let first_chunk =
-          chunk_script (Model.client_reference_to_chunk index model)
-        in
+        let first_chunk = client_reference_chunk_script index model in
         Lwt.return (Html.list [ first_chunk; html ]))
   in
   match html_async with
@@ -502,7 +507,7 @@ let render_to_html element =
       Lwt.return (Done sync_shell)
   | Some stream ->
       let html_iter fn =
-        let%lwt () = Lwt_stream.iter_s fn stream in
+        let%lwt () = Push_stream.subscribe ~fn stream in
         fn chunk_stream_end_script
       in
       let html_shell =
