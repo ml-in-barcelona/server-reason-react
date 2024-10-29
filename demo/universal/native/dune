@@ -2,7 +2,7 @@
 
 (library
  (name demo_shared_native)
- (libraries react reactDOM js belt dom webapi)
+ (libraries react reactDOM js belt dom webapi yojson)
  (wrapped false)
  (preprocess
   (pps melange_native_ppx server_reason_react_ppx browser_ppx)))

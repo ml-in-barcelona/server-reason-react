@@ -1,29 +1,6 @@
 type json = Yojson.Basic.t
 
-module Fiber
-(* : sig
-     type t
-
-     val root :
-       (t * int -> Html.element Lwt.t) ->
-       (Html.element * Html.element Lwt_stream.t option) Lwt.t
-
-     val fork :
-       t ->
-       (t -> [ `Fail of exn | `Fork of Html.element Lwt.t * 'a | `Sync of 'a ]) ->
-       'a Lwt.t
-
-     val update_ctx : t -> 'a React_model.context -> 'a -> t
-     val with_ctx : t -> (unit -> 'a) -> 'a * Remote.Context.batch
-
-     val with_ctx_async :
-       t -> (unit -> 'a Lwt.t) -> ('a * Remote.Context.batch) Lwt.t
-
-     val use_idx : t -> int
-     val emit_html : t -> Html.element -> unit
-     val emit_batch : t -> Remote.Context.batch -> unit Lwt.t
-   end *) =
-struct
+module Fiber = struct
   type context = {
     mutable index : int;
     mutable pending : int;
@@ -35,7 +12,7 @@ struct
     context : context;
     (* react_ctx : Hmap.t; *)
     finished : unit Lwt.t;
-    (* QUESTION: Why do I need emit_html as mutable? I see parent  *)
+    (* QUESTION: Why do I need emit_html as mutable? I see parent, but why overriding? *)
     mutable emit_html : Html.element -> unit;
   }
 
@@ -54,7 +31,7 @@ struct
        Remote.Context.with_ctx_async t.ctx.remote_ctx f *)
     failwith "TODO"
 
-  let use_idx t =
+  let use_index t =
     t.context.index <- t.context.index + 1;
     t.context.index
 
@@ -69,26 +46,15 @@ struct
     let stream, push, close = Push_stream.make () in
     let initial_index = 0 in
     let context = { push; close; pending = 1; index = initial_index } in
-    let htmls = ref (Some []) in
+    let htmls = ref [] in
     let finished, parent_done = Lwt.wait () in
-    let emit_html chunk =
-      match !htmls with
-      | Some chunks -> htmls := Some (chunk :: chunks)
-      | None -> failwith "invariant violation: root computation finished"
-    in
+    let emit_html chunk = htmls := chunk :: !htmls in
     let%lwt html =
       fn
         ( { context; emit_html; finished (* react_ctx = Hmap.empty *) },
           initial_index )
     in
-    let htmls =
-      match !htmls with
-      | Some chunks ->
-          htmls := None;
-          chunks
-      | None -> assert false
-    in
-    let shell = Html.list [ Html.list htmls; html ] in
+    let shell = Html.list [ Html.list !htmls; html ] in
     Lwt.wakeup_later parent_done ();
     context.pending <- context.pending - 1;
     match context.pending = 0 with
@@ -100,7 +66,7 @@ struct
   let fork parent fn =
     let context = parent.context in
     let finished, parent_done = Lwt.wait () in
-    let t =
+    let current_fiber =
       {
         context;
         emit_html = parent.emit_html;
@@ -108,10 +74,10 @@ struct
         finished;
       }
     in
-    match fn t with
+    match fn current_fiber with
     | `Fork (async, sync) ->
         context.pending <- context.pending + 1;
-        t.emit_html <- (fun html -> context.push html);
+        current_fiber.emit_html <- (fun html -> context.push html);
         Lwt.async (fun () ->
             let%lwt () = parent.finished in
             let%lwt html = async in
@@ -137,7 +103,7 @@ module Model = struct
     mutable chunk_id : int;
   }
 
-  let get_id context =
+  let use_index context =
     context.chunk_id <- context.chunk_id + 1;
     context.chunk_id
 
@@ -187,7 +153,7 @@ module Model = struct
     let component_name = `String name in
     `List [ id; chunks; component_name ]
 
-  let payload_to_chunk id json =
+  let model_to_chunk id json =
     let buf = Buffer.create (4 * 1024) in
     Buffer.add_string buf (Printf.sprintf "%x:" id);
     Yojson.Basic.write_json buf json;
@@ -230,7 +196,7 @@ module Model = struct
           let fallback = to_payload fallback in
           suspense_node ~key ~fallback [ to_payload children ]
       | Client_component { import_module; import_name; props; children = _ } ->
-          let id = get_id context in
+          let id = use_index context in
           (* TODO: Add chunks *)
           let ref =
             component_ref ~chunks:[] ~module_:import_module ~name:import_name
@@ -252,13 +218,13 @@ module Model = struct
           | name, Promise (promise, value_to_json) -> (
               match Lwt.state promise with
               | Return value ->
-                  let chunk_id = get_id context in
+                  let chunk_id = use_index context in
                   let json = value_to_json value in
                   (* TODO: Make sure why we need a chunk here *)
                   context.push context.chunk_id (Chunk_value json);
                   (name, `String (promise_value chunk_id))
               | Sleep ->
-                  let chunk_id = get_id context in
+                  let chunk_id = use_index context in
                   context.pending <- context.pending + 1;
                   Lwt.async (fun () ->
                       let%lwt value = promise in
@@ -280,7 +246,7 @@ module Model = struct
     let stream, push, close = Push_stream.make () in
     let push_chunk id chunk =
       match chunk with
-      | Chunk_value json -> push (payload_to_chunk id json)
+      | Chunk_value json -> push (model_to_chunk id json)
       | Chunk_component_ref json -> push (client_reference_to_chunk id json)
     in
     let context : stream_context =
@@ -320,14 +286,15 @@ let rc_function_definition =
 let rc_function_script =
   Html.node "script" [] [ Html.raw rc_function_definition ]
 
-let chunk_model_script index model =
-  let chunk = Model.payload_to_chunk index model in
-  Html.node "script" []
-    [ Html.raw (Printf.sprintf "window.srr_stream.push('%s');" chunk) ]
-
 let chunk_script script =
   Html.node "script" []
     [ Html.raw (Printf.sprintf "window.srr_stream.push('%s');" script) ]
+
+let client_reference_chunk_script index json =
+  chunk_script (Model.client_reference_to_chunk index json)
+
+let client_value_chunk_script index json =
+  chunk_script (Model.model_to_chunk index json)
 
 let chunk_stream_end_script =
   Html.node "script" [] [ Html.raw "window.srr_stream.close();" ]

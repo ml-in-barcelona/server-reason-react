@@ -77,27 +77,29 @@ let stream_rsc = fn => {
   );
 };
 
-let stream_html = (~scripts, ~styles, fn) => {
-  let style_links =
-    List.map(
-      href => Printf.sprintf({|<link href="%s" rel="stylesheet">|}, href),
-      styles,
-    )
-    |> String.concat("\n");
+let stream_html = (~async_scripts, ~scripts, fn) => {
   let htmlPrelude = "<!DOCTYPE html><meta charset=\"utf-8\">";
   let htmlScripts =
-    List.map(
-      src => Printf.sprintf({|<script src="%s" async></script>|}, src),
-      scripts,
-    )
-    |> String.concat("\n");
+    String.concat(
+      "\n",
+      List.map(Printf.sprintf({|<script src="%s"></script>|}), scripts),
+    );
+  let htmlAsyncScripts =
+    String.concat(
+      "\n",
+      List.map(
+        Printf.sprintf({|<script src="%s" async></script>|}),
+        async_scripts,
+      ),
+    );
 
   Dream.stream(
     ~headers=[("Content-Type", "text/html")],
     stream => {
       let%lwt () = Dream.write(stream, htmlPrelude);
-      let%lwt () = fn(stream);
       let%lwt () = Dream.write(stream, htmlScripts);
+      let%lwt () = Dream.write(stream, htmlAsyncScripts);
+      let%lwt () = fn(stream);
       Lwt.return();
     },
   );
@@ -125,18 +127,21 @@ let serverComponentsHandler = request => {
     })
   | _ =>
     stream_html(
-      ~scripts=[
-        "/static/demo/client/rsc-with-client.js",
-        "https://cdn.tailwindcss.com",
-      ],
-      ~styles=[],
+      ~async_scripts=["/static/demo/client/rsc-with-client.js"],
+      ~scripts=["https://cdn.tailwindcss.com"],
       stream => {
       switch%lwt (ReactServerDOM.render_to_html(app)) {
       | ReactServerDOM.Done(html) =>
-        Dream.write(stream, Html.to_string(html))
+        Dream.log("Done");
+        Dream.log("%s", Html.to_string(html));
+        Dream.write(stream, Html.to_string(html));
       | ReactServerDOM.Async({shell, subscribe}) =>
         let%lwt () = Dream.write(stream, Html.to_string(shell));
+        Dream.log("Async");
+        Dream.log("%s", Html.to_string(shell));
         subscribe(chunk => {
+          Dream.log("Chunk");
+          Dream.log("%s", Html.to_string(chunk));
           let%lwt () = Dream.write(stream, Html.to_string(chunk));
           Lwt.return();
         });
