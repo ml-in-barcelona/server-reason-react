@@ -339,18 +339,18 @@ module JSX = struct
     | Inline of string
 
   type prop =
-    | Bool of (string * bool)
-    | String of (string * string)
+    | Bool of (string * string * bool)
+    | String of (string * string * string)
     | Style of string
     | DangerouslyInnerHtml of string
     | Ref of Ref.t
     | Event of string * event
 
-  let bool key value = Bool (key, value)
-  let string key value = String (key, value)
+  let bool name jsxName value = Bool (name, jsxName, value)
+  let string name jsxName value = String (name, jsxName, value)
   let style value = Style value
-  let int key value = String (key, string_of_int value)
-  let float key value = String (key, string_of_float value)
+  let int name jsxName value = String (name, jsxName, string_of_int value)
+  let float name jsxName value = String (name, jsxName, string_of_float value)
   let dangerouslyInnerHtml value = DangerouslyInnerHtml value#__html
   let ref value = Ref value
   let event key value = Event (key, value)
@@ -411,9 +411,20 @@ and client_prop =
 exception Invalid_children of string
 
 let compare_attribute left right =
+<<<<<<< HEAD
   match ((left : JSX.prop), (right : JSX.prop)) with
   | Bool (left_key, _), Bool (right_key, _) -> String.compare left_key right_key
   | String (left_key, _), String (right_key, _) ->
+||||||| fb683604
+  match (left, right) with
+  | JSX.Bool (left_key, _), JSX.Bool (right_key, _) ->
+      String.compare left_key right_key
+  | String (left_key, _), String (right_key, _) ->
+=======
+  match (left, right) with
+  | JSX.Bool (left_key, _, _), JSX.Bool (right_key, _, _)
+  | String (left_key, _, _), String (right_key, _, _) ->
+>>>>>>> 904d2ca17dc77ede7a65412cbeb91d146efb7a75
       String.compare left_key right_key
   | Style left_styles, Style right_styles ->
       String.compare left_styles right_styles
@@ -422,10 +433,9 @@ let compare_attribute left right =
 let clone_attribute acc attr new_attr =
   let open JSX in
   match (attr, new_attr) with
-  | Bool (left, _), Bool (right, value) when left == right ->
-      Bool (left, value) :: acc
-  | String (left, _), String (right, value) when left == right ->
-      String (left, value) :: acc
+  | Bool (left, _, _), Bool (right, _, _) when left == right -> new_attr :: acc
+  | String (left, _, _), String (right, _, _) when left == right ->
+      new_attr :: acc
   | _ -> new_attr :: acc
 
 module StringMap = Map.Make (String)
@@ -435,8 +445,8 @@ let attributes_to_map attributes =
   List.fold_left
     (fun acc attr ->
       match attr with
-      | Bool (key, value) -> acc |> StringMap.add key (Bool (key, value))
-      | String (key, value) -> acc |> StringMap.add key (String (key, value))
+      | (Bool (key, _, _) | String (key, _, _)) as prop ->
+          acc |> StringMap.add key prop
       (* The following constructors shoudn't be part of the StringMap *)
       | DangerouslyInnerHtml _ -> acc
       | Ref _ -> acc

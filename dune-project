@@ -26,10 +26,11 @@
  (depends
   ; General system dependencies
   (ocaml (>= 5.0.0))
-  (reason (>= 3.10.0))
+  (reason (= 3.10.0))
   (melange (>= 3.0.0))
 
   ; Library dependencies
+  (uucp (>= 16.0.0))
   (ppxlib (> 0.23.0))
   (quickjs (>= 0.1.2))
   (promise (>= 1.1.2))

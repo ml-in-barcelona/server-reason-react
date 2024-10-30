@@ -411,13 +411,31 @@ let string_tests =
           "playground";
         assert_string (Js.String.substring ~start:12 "playground") "");
     test "toLowerCase" (fun () ->
-        assert_string (Js.String.toLowerCase "ABC") "abc"
-        (* assert_string (Js.String.toLowerCase {js|ΣΠ|js}) {js|σπ|js}; *)
-        (* assert_string (Js.String.toLowerCase {js|ΠΣ|js}) {js|πς|js} *));
+        assert_string (Js.String.toLowerCase "") "";
+        assert_string (Js.String.toLowerCase "ASCII: ABC") "ascii: abc";
+        assert_string (Js.String.toLowerCase "Non ASCII: ΣΠ") "non ascii: σπ";
+        assert_string
+          (Js.String.toLowerCase "Unicode Σ: \u{03a3}")
+          "unicode σ: \u{03c3}";
+        assert_string
+          (Js.String.toLowerCase
+             "Unicode Mongolian separator + Σ + Mongolian separator: \u{180E} \
+              + \u{03a3} + \u{180E}")
+          "unicode mongolian separator + σ + mongolian separator: \u{180E} + \
+           \u{03c3} + \u{180E}");
     test "toUpperCase" (fun () ->
-        assert_string (Js.String.toUpperCase "abc") "ABC"
-        (* assert_string (Js.String.toUpperCase {js|Straße|js}) {js|STRASSE|js} *)
-        (* assert_string (Js.String.toLowerCase {js|πς|js}) {js|ΠΣ|js} *));
+        assert_string (Js.String.toUpperCase "") "";
+        assert_string (Js.String.toUpperCase "abc") "ABC";
+        assert_string (Js.String.toUpperCase "Non ASCII: σπ") "NON ASCII: ΣΠ";
+        assert_string
+          (Js.String.toUpperCase "Unicode: \u{03c3}")
+          "UNICODE: \u{03a3}";
+        assert_string
+          (Js.String.toUpperCase
+             "Unicode Mongolian separator + σ + Mongolian separator: \u{180E} \
+              + \u{03c3} + \u{180E}")
+          "UNICODE MONGOLIAN SEPARATOR + Σ + MONGOLIAN SEPARATOR: \u{180E} + \
+           \u{03a3} + \u{180E}");
     test "trim" (fun () ->
         assert_string (Js.String.trim "   abc def   ") "abc def";
         assert_string (Js.String.trim "\n\r\t abc def \n\n\t\r ") "abc def");

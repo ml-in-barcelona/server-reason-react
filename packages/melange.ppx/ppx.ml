@@ -765,6 +765,7 @@ class raise_exception_mapper (module_path : string) =
     inherit Ast_traverse.map as super
 
     method! expression expr =
+      let expr = super#expression expr in
       match expr.pexp_desc with
       | Pexp_extension
           ( { txt = "mel.obj"; _ },
@@ -787,7 +788,7 @@ class raise_exception_mapper (module_path : string) =
                 record literal")
       | Pexp_constant (Pconst_string (s, loc, Some "j")) ->
           String_interpolation.transform ~loc expr s
-      | _ -> super#expression expr
+      | _ -> expr
 
     method! structure_item item =
       match item.pstr_desc with

@@ -869,7 +869,7 @@ let metaHTMLAttributes =
   [
     Attribute { name = "charset"; jsxName = "charSet"; type_ = String };
     Attribute { name = "content"; jsxName = "content"; type_ = String };
-    Attribute { name = "http-eequiv"; jsxName = "httpEquiv"; type_ = String };
+    Attribute { name = "http-equiv"; jsxName = "httpEquiv"; type_ = String };
     Attribute { name = "name"; jsxName = "name"; type_ = String };
     Attribute { name = "media"; jsxName = "media"; type_ = String };
   ]
@@ -1659,7 +1659,7 @@ let camelcaseToKebabcase str =
   in
   str |> chars_of_string |> loop [] |> List.rev |> string_of_chars
 
-let findByName tag jsxName =
+let findByJsxName ~tag jsxName =
   let byName p = getJSXName p = jsxName in
   if isDataAttribute jsxName then
     let name = camelcaseToKebabcase jsxName in

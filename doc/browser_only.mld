@@ -63,6 +63,29 @@ switch%platform (Runtime.platform) {
 };
 ]}
 
+{2 @platform attribute}
+
+The [@platform] attribute allows to specify code blocks that should only be included in the JavaScript or native build, respectively. This is useful when you have code that is specific to one platform and should not be included in the other.
+
+For example, you can define two modules, but only one of them should be kept in the final build based on the platform.
+{[
+[@platform js]
+module X = {
+  type t = Js.Json.t;
+
+  let a = 2 + 2;
+};
+
+[@platform native]
+module Y = {
+  type t = Js.Json.t;
+
+  let a = 4 + 4;
+};
+]}
+
+When compiling with the `-js` flag, only the block with [[@platform js]] (module X) is kept, and when compiling without it, only the block with [[@platform native]] (module Y) is kept.
+
 {1:next Next}
 
 {{!page-"externals-melange-attributes"}Externals and melange attributes}
