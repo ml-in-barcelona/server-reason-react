@@ -58,7 +58,7 @@ let render_to_string ~mode element =
           (Invalid_argument
              "Asyncronous components can't be rendered to static markup, since \
               rendering is syncronous. Please use `renderToStream` instead.")
-    | Lower_case_element { tag; attributes; children } ->
+    | Lower_case_element { key = _; tag; attributes; children } ->
         is_root.contents <- false;
         render_lower_case tag attributes children
     | Text text -> (
@@ -69,7 +69,7 @@ let render_to_string ~mode element =
             Html.list [ Html.raw "<!-- -->"; Html.string text ]
         | _ -> Html.string text)
     | InnerHtml text -> Html.raw text
-    | Suspense { children; fallback } -> (
+    | Suspense { key = _; children; fallback } -> (
         match render_element children with
         | output ->
             Html.list [ Html.raw "<!--$-->"; output; Html.raw "<!--/$-->" ]
@@ -181,7 +181,7 @@ let render_to_stream ~context_state element =
     | Lower_case_element { tag; attributes; _ }
       when Html.is_self_closing_tag tag ->
         Lwt.return (Html.node tag (attributes_to_html attributes) [])
-    | Lower_case_element { tag; attributes; children } ->
+    | Lower_case_element { key = _; tag; attributes; children } ->
         let%lwt inner = children |> Lwt_list.map_p render_element in
         Lwt.return (Html.node tag (attributes_to_html attributes) inner)
     | Text text -> Lwt.return (Html.string text)
@@ -189,7 +189,7 @@ let render_to_stream ~context_state element =
     | Async_component component ->
         let%lwt element = component () in
         render_element element
-    | Suspense { children; fallback } -> (
+    | Suspense { key = _; children; fallback } -> (
         match render_element children with
         | output -> output
         | exception React.Suspend (Any_promise promise) ->

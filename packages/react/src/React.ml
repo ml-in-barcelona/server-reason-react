@@ -374,15 +374,14 @@ module JSX = struct
   end
 end
 
-type lower_case_element = {
-  tag : string;
-  attributes : JSX.prop list;
-  children : element list;
-}
-
 (* TODO: Merge Fragment and List *)
-and element =
-  | Lower_case_element of lower_case_element
+type element =
+  | Lower_case_element of {
+      key : string;
+      tag : string;
+      attributes : JSX.prop list;
+      children : element list;
+    }
   | Upper_case_component of (unit -> element)
   | Async_component of (unit -> element Lwt.t)
   | Client_component of {
@@ -398,7 +397,7 @@ and element =
   | Empty
   | Provider of element
   | Consumer of element
-  | Suspense of { children : element; fallback : element }
+  | Suspense of { key : string; children : element; fallback : element }
 
 and client_props = (string * client_prop) list
 
@@ -461,22 +460,23 @@ let clone_attributes attributes new_attributes =
   |> List.flatten |> List.rev
   |> List.sort compare_attribute
 
-let createElement tag attributes children =
+let createElement ?(key = "0") tag attributes children =
   match Html.is_self_closing_tag tag with
   | true when List.length children > 0 ->
       (* TODO: Add test for this *)
       raise (Invalid_children "closing tag with children isn't valid")
-  | true -> Lower_case_element { tag; attributes; children = [] }
-  | false -> Lower_case_element { tag; attributes; children }
+  | true -> Lower_case_element { key; tag; attributes; children = [] }
+  | false -> Lower_case_element { key; tag; attributes; children }
 
 (* `cloneElement` overrides childrens and props on lower case components, It raises Invalid_argument for the rest.
     React.js can clone uppercase components, since it stores their props on each element's object but since we just store the fn and don't have the props, we can't clone them).
    TODO: Check original implementation for exact error message/exception type *)
 let cloneElement element new_attributes =
   match element with
-  | Lower_case_element { tag; attributes; children } ->
+  | Lower_case_element { key; tag; attributes; children } ->
       Lower_case_element
         {
+          key;
           tag;
           attributes = clone_attributes attributes new_attributes;
           children;
@@ -552,9 +552,13 @@ let createContext (initial_value : 'a) : 'a Context.t =
 module Suspense = struct
   let or_react_null = function None -> null | Some x -> x
 
-  let make ?fallback ?children () =
+  let make ?(key = "0") ?fallback ?children () =
     Suspense
-      { fallback = or_react_null fallback; children = or_react_null children }
+      {
+        key;
+        fallback = or_react_null fallback;
+        children = or_react_null children;
+      }
 end
 
 (* let memo f : 'props * 'props -> bool = f

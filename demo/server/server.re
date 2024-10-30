@@ -100,13 +100,61 @@ let stream_html = (~async_scripts, ~scripts, fn) => {
       let%lwt () = Dream.write(stream, htmlScripts);
       let%lwt () = Dream.write(stream, htmlAsyncScripts);
       let%lwt () = fn(stream);
-      Lwt.return();
+      Dream.flush(stream);
     },
   );
 };
 
 let serverComponentsHandler = request => {
-  let app = <div id="root"> <Noter /> </div>;
+  let app =
+    React.createElement(
+      "div",
+      Stdlib.List.filter_map(
+        Fun.id,
+        [
+          Some([@implicit_arity] React.JSX.String("id", "root": string)),
+          Some(),
+        ],
+      ),
+      [
+        React.createElement(
+          "div",
+          [],
+          [
+            React.createElement(
+              "div",
+              [],
+              [React.string("This is Light Server Component")],
+            ),
+            React.createElement(
+              "div",
+              [],
+              [
+                React.createElement(
+                  "div",
+                  Stdlib.List.filter_map(
+                    Fun.id,
+                    [
+                      Some(
+                        [@implicit_arity]
+                        React.JSX.String("title", "Light Component": string),
+                      ),
+                    ],
+                  ),
+                  [],
+                ),
+              ],
+            ),
+          ],
+        ),
+        React.createElement(
+          "div",
+          [],
+          [React.string("Heavy Server Component")],
+        ),
+      ],
+    );
+  /* let app = <div id="root"> <Noter /> </div>; */
   switch (Dream.header(request, "Accept")) {
   | Some(accept) when is_react_component_header(accept) =>
     stream_rsc(stream => {
@@ -114,16 +162,18 @@ let serverComponentsHandler = request => {
         ReactServerDOM.render_to_model(
           app,
           ~subscribe=chunk => {
+            Dream.log("Chunk");
+            Dream.log("%s", chunk);
             let length_header =
               Printf.sprintf("%x\r\n", String.length(chunk));
             let%lwt () = Dream.write(stream, length_header);
             let%lwt () = Dream.write(stream, chunk);
             let%lwt () = Dream.write(stream, "\r\n");
-            Lwt.return();
+            Dream.flush(stream);
           },
         );
 
-      Lwt.return();
+      Dream.flush(stream);
     })
   | _ =>
     stream_html(
@@ -132,18 +182,19 @@ let serverComponentsHandler = request => {
       stream => {
       switch%lwt (ReactServerDOM.render_to_html(app)) {
       | ReactServerDOM.Done(html) =>
-        Dream.log("Done");
-        Dream.log("%s", Html.to_string(html));
-        Dream.write(stream, Html.to_string(html));
+        /* Dream.log("Done"); */
+        /* Dream.log("%s", Html.to_string(html)); */
+        let%lwt () = Dream.write(stream, Html.to_string(html));
+        Dream.flush(stream);
       | ReactServerDOM.Async({shell, subscribe}) =>
         let%lwt () = Dream.write(stream, Html.to_string(shell));
-        Dream.log("Async");
-        Dream.log("%s", Html.to_string(shell));
+        /* Dream.log("Async"); */
+        /* Dream.log("%s", Html.to_string(shell)); */
         subscribe(chunk => {
           Dream.log("Chunk");
           Dream.log("%s", Html.to_string(chunk));
           let%lwt () = Dream.write(stream, Html.to_string(chunk));
-          Lwt.return();
+          Dream.flush(stream);
         });
       }
     })

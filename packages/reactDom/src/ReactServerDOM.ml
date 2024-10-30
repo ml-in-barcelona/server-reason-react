@@ -157,14 +157,14 @@ module Model = struct
     let buf = Buffer.create (4 * 1024) in
     Buffer.add_string buf (Printf.sprintf "%x:" id);
     Yojson.Basic.write_json buf json;
-    (* Buffer.add_char buf '\n'; *)
+    (* Buffer.add_string buf "\\n"; *)
     Buffer.contents buf
 
   let client_reference_to_chunk id ref =
     let buf = Buffer.create 256 in
     Buffer.add_string buf (Printf.sprintf "%x:I" id);
     Yojson.Basic.write_json buf ref;
-    (* Buffer.add_char buf '\n'; *)
+    (* Buffer.add_string buf "\\n"; *)
     Buffer.contents buf
 
   let element_to_model ~context index element =
@@ -174,9 +174,9 @@ module Model = struct
       (* TODO: Do we need to html encode this? *)
       | Text t -> `String t
       (* TODO: Add key on the element type? *)
-      | Lower_case_element { tag; attributes; children } ->
+      | Lower_case_element { key; tag; attributes; children } ->
           let props = List.map prop_to_json attributes in
-          node ~key:None ~tag ~props (List.map to_payload children)
+          node ~key:(Some key) ~tag ~props (List.map to_payload children)
       | Fragment children -> to_payload children
       | List children -> `List (Array.map to_payload children |> Array.to_list)
       | InnerHtml _text ->
@@ -190,11 +190,9 @@ module Model = struct
           | Lwt.Return element -> to_payload element
           | Lwt.Fail exn -> raise exn
           | Lwt.Sleep -> failwith "TODO")
-      | Suspense { children; fallback } ->
-          (* TODO: Store key in the tree and use it here ? *)
-          let key = Some "0" in
+      | Suspense { key; children; fallback } ->
           let fallback = to_payload fallback in
-          suspense_node ~key ~fallback [ to_payload children ]
+          suspense_node ~key:(Some key) ~fallback [ to_payload children ]
       | Client_component { import_module; import_name; props; children = _ } ->
           let id = use_index context in
           (* TODO: Add chunks *)
@@ -341,7 +339,7 @@ let rec client_to_html ~fiber (element : React.element) =
     ->
       let html_props = List.map ReactDOM.attribute_to_html attributes in
       Lwt.return (Html.node tag html_props [])
-  | Lower_case_element { tag; attributes; children } ->
+  | Lower_case_element { key = _; tag; attributes; children } ->
       let html_props = List.map ReactDOM.attribute_to_html attributes in
       let%lwt html = children |> Lwt_list.map_p (client_to_html ~fiber) in
       Lwt.return (Html.node tag html_props html)
@@ -361,7 +359,8 @@ let rec client_to_html ~fiber (element : React.element) =
       failwith
         "async components can't be part of a client component. This should \
          never raise, the ppx should catch it"
-  | Suspense { children; fallback } ->
+  | Suspense { key = _; children; fallback } ->
+      (* TODO: Do we need the key here? *)
       let%lwt fallback = client_to_html ~fiber fallback in
       Fiber.fork fiber (fun fiber ->
           let index = Fiber.use_index fiber in
@@ -382,27 +381,26 @@ let rec client_to_html ~fiber (element : React.element) =
   | InnerHtml innerHtml -> Lwt.return (Html.raw innerHtml)
 
 let rec to_html ~fiber (element : React.element) : (Html.element * json) Lwt.t =
-  (* TODO: Add key into Lower_case elements and Suspense *)
-  let key = Some "0" in
   match element with
   | Empty -> Lwt.return (Html.null, `Null)
   | Text s -> Lwt.return (Html.string s, if not true then `Null else `String s)
   | Fragment children -> to_html ~fiber children
   | List list -> elements_to_html ~fiber (Array.to_list list)
   | Upper_case_component component -> to_html ~fiber (component ())
-  | Lower_case_element { tag; attributes; _ } when Html.is_self_closing_tag tag
-    ->
+  | Lower_case_element { key; tag; attributes; _ }
+    when Html.is_self_closing_tag tag ->
       let html_props = List.map ReactDOM.attribute_to_html attributes in
       let json_props = List.map Model.prop_to_json attributes in
       Lwt.return
-        (Html.node tag html_props [], Model.node ~tag ~key ~props:json_props [])
-  | Lower_case_element { tag; attributes; children } ->
+        ( Html.node tag html_props [],
+          Model.node ~tag ~key:(Some key) ~props:json_props [] )
+  | Lower_case_element { key; tag; attributes; children } ->
       let html_props = List.map ReactDOM.attribute_to_html attributes in
       let json_props = List.map Model.prop_to_json attributes in
       let%lwt html, model = elements_to_html ~fiber children in
       Lwt.return
         ( Html.node tag html_props [ html ],
-          Model.node ~tag ~key ~props:json_props [ model ] )
+          Model.node ~tag ~key:(Some key) ~props:json_props [ model ] )
   | Async_component component ->
       let%lwt element = component () in
       to_html ~fiber element
@@ -444,7 +442,7 @@ let rec to_html ~fiber (element : React.element) : (Html.element * json) Lwt.t =
         Model.node ~tag:(Printf.sprintf "$%x" index) ~key:None ~props []
       in
       Lwt.return (html, model)
-  | Suspense { children; fallback } ->
+  | Suspense { key; children; fallback } ->
       let%lwt html_fallback, model_fallback = to_html ~fiber fallback in
       Fiber.fork fiber (fun fiber ->
           let promise = to_html ~fiber children in
@@ -462,13 +460,14 @@ let rec to_html ~fiber (element : React.element) : (Html.element * json) Lwt.t =
               in
               let sync_html =
                 ( html_suspense_placeholder ~fallback:html_fallback index,
-                  Model.suspense_placeholder ~key ~fallback:model_fallback index
-                )
+                  Model.suspense_placeholder ~key:(Some key)
+                    ~fallback:model_fallback index )
               in
               `Fork (async_html, sync_html)
           | Return (html, model) ->
               let model =
-                Model.suspense_node ~key ~fallback:model_fallback [ model ]
+                Model.suspense_node ~key:(Some key) ~fallback:model_fallback
+                  [ model ]
               in
               `Sync (html_suspense html, model)
           | Fail exn -> `Fail exn)
