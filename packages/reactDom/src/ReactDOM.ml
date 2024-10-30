@@ -20,21 +20,9 @@ let attribute_to_html attr =
   (* true attributes render solely the attribute name *)
   | Bool (name, _, true) -> Html.present name
   | Style styles -> Html.attribute "style" styles
-<<<<<<< HEAD
-  | String (name, _value) when is_react_custom_attribute name -> Html.omitted ()
-  | String ("className", value) -> Html.attribute "class" value
-  | String ("defaultChecked", value) -> Html.attribute "checked" value
-  | String ("defaultSelected", value) -> Html.attribute "selected" value
-  | String ("defaultValue", value) -> Html.attribute "value" value
-  | String (name, value) -> Html.attribute name value
-||||||| fb683604
-  | String (name, _value) when is_react_custom_attribute name -> Html.omitted ()
-  | String (name, value) -> Html.attribute name value
-=======
   | String (name, _, _value) when is_react_custom_attribute name ->
       Html.omitted ()
   | String (name, _, value) -> Html.attribute name value
->>>>>>> 904d2ca17dc77ede7a65412cbeb91d146efb7a75
   (* Events don't get rendered on SSR *)
   | Event _ -> Html.omitted ()
   (* Since we extracted the attribute as children (Element.InnerHtml) in createElement,

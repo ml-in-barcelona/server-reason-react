@@ -410,28 +410,16 @@ and client_prop =
 
 exception Invalid_children of string
 
-let compare_attribute left right =
-<<<<<<< HEAD
-  match ((left : JSX.prop), (right : JSX.prop)) with
-  | Bool (left_key, _), Bool (right_key, _) -> String.compare left_key right_key
-  | String (left_key, _), String (right_key, _) ->
-||||||| fb683604
+let compare_attribute (left : JSX.prop) (right : JSX.prop) =
   match (left, right) with
-  | JSX.Bool (left_key, _), JSX.Bool (right_key, _) ->
-      String.compare left_key right_key
-  | String (left_key, _), String (right_key, _) ->
-=======
-  match (left, right) with
-  | JSX.Bool (left_key, _, _), JSX.Bool (right_key, _, _)
+  | Bool (left_key, _, _), Bool (right_key, _, _)
   | String (left_key, _, _), String (right_key, _, _) ->
->>>>>>> 904d2ca17dc77ede7a65412cbeb91d146efb7a75
       String.compare left_key right_key
   | Style left_styles, Style right_styles ->
       String.compare left_styles right_styles
   | _ -> 0
 
-let clone_attribute acc attr new_attr =
-  let open JSX in
+let clone_attribute acc (attr : JSX.prop) (new_attr : JSX.prop) =
   match (attr, new_attr) with
   | Bool (left, _, _), Bool (right, _, _) when left == right -> new_attr :: acc
   | String (left, _, _), String (right, _, _) when left == right ->
@@ -441,9 +429,8 @@ let clone_attribute acc attr new_attr =
 module StringMap = Map.Make (String)
 
 let attributes_to_map attributes =
-  let open JSX in
   List.fold_left
-    (fun acc attr ->
+    (fun acc (attr : JSX.prop) ->
       match attr with
       | (Bool (key, _, _) | String (key, _, _)) as prop ->
           acc |> StringMap.add key prop

@@ -110,8 +110,9 @@ module Model = struct
   let prop_to_json (prop : React.JSX.prop) =
     (* TODO: Add promises/sets/others ??? *)
     match prop with
-    | React.JSX.Bool (key, value) -> (key, `Bool value)
-    | React.JSX.String (key, value) -> (key, `String value)
+    (* We ignore the HTML name, and only use the JSX name *)
+    | React.JSX.Bool (key, _, value) -> (key, `Bool value)
+    | React.JSX.String (key, _, value) -> (key, `String value)
     | React.JSX.Style value -> ("style", `String value)
     | React.JSX.DangerouslyInnerHtml html ->
         ("dangerouslySetInnerHTML", `Assoc [ ("__html", `String html) ])

@@ -109,13 +109,7 @@ let serverComponentsHandler = request => {
   let app =
     React.createElement(
       "div",
-      Stdlib.List.filter_map(
-        Fun.id,
-        [
-          Some([@implicit_arity] React.JSX.String("id", "root": string)),
-          Some(),
-        ],
-      ),
+      [React.JSX.String(("id", "id", "root": string))],
       [
         React.createElement(
           "div",
@@ -136,8 +130,11 @@ let serverComponentsHandler = request => {
                     Fun.id,
                     [
                       Some(
-                        [@implicit_arity]
-                        React.JSX.String("title", "Light Component": string),
+                        React.JSX.String((
+                          "title",
+                          "title",
+                          "Light Component": string,
+                        )),
                       ),
                     ],
                   ),
