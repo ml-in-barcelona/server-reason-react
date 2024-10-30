@@ -192,10 +192,14 @@ let search = url => {
   };
 };
 [@mel.set] external setSearchInPlace: (t, string) => unit = "search";
-let setSearch = (url, newSearch) => {
+let setSearchAsString = (url, searchString) => {
   let newUrl = makeExn(toString(url));
-  let () = setSearchInPlace(newUrl, newSearch);
+  let () = setSearchInPlace(newUrl, searchString);
   newUrl;
+};
+let setSearch = (url, searchParams) => {
+  let queryString = SearchParams.toString(searchParams);
+  setSearchAsString(url, queryString);
 };
 
 [@mel.get] external getUsername: t => string = "username";

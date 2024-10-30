@@ -214,9 +214,10 @@ let search = url => {
   | _ => Some("?" ++ Uri.encoded_of_query(~scheme, query))
   };
 };
-let setSearch = (t, string) => {
-  Uri.with_query(t, Uri.query_of_encoded(string));
+let setSearchAsString = (t, searchString) => {
+  Uri.with_query(t, Uri.query_of_encoded(searchString));
 };
+let setSearch = Uri.with_query;
 let searchParams = _url => assert(false);
 let username = url => {
   switch (Uri.user(url)) {
