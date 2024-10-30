@@ -632,6 +632,22 @@ val useCallback5 : 'a -> 'b -> 'a
 val useCallback6 : 'a -> 'b -> 'a
 val useId : unit -> string
 
+type ('input, 'output) callback = 'input -> 'output
+
+val useSyncExternalStore :
+  subscribe:((unit -> unit) -> (unit, unit) callback) ->
+  getSnapshot:(unit -> 'snapshot) ->
+  'snapshot
+[@@deprecated
+  "Use useSyncExternalStoreWithServer instead. More info at \
+   https://github.com/facebook/react/blob/603e6108f39c6663ec703eed34a89ff1bf0cb70c/packages/react-server/src/ReactFizzHooks.js#L561-L566"]
+
+val useSyncExternalStoreWithServer :
+  subscribe:((unit -> unit) -> (unit, unit) callback) ->
+  getSnapshot:(unit -> 'snapshot) ->
+  getServerSnapshot:(unit -> 'snapshot) ->
+  'snapshot
+
 val useReducer :
   ('state -> 'action -> 'state) -> 'state -> 'state * ('action -> unit)
 

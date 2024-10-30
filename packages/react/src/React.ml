@@ -570,6 +570,14 @@ let useState (make_initial_value : unit -> 'state) =
   in
   (initial_value, setState)
 
+type ('input, 'output) callback = 'input -> 'output
+
+let useSyncExternalStore ~subscribe:_ ~getSnapshot = getSnapshot ()
+
+let useSyncExternalStoreWithServer ~subscribe:_ ~getSnapshot:_
+    ~getServerSnapshot =
+  getServerSnapshot ()
+
 let internal_id = ref 0
 
 let useId () =

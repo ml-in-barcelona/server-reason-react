@@ -14,6 +14,20 @@ let use_state_doesnt_fire () =
   in
   assert_string (ReactDOM.renderToStaticMarkup app) "<div>foo</div>"
 
+let use_sync_external_store_with_server () =
+  let app =
+    React.Upper_case_component
+      (fun () ->
+        let value =
+          React.useSyncExternalStoreWithServer
+            ~getServerSnapshot:(fun () -> "foo")
+            ~subscribe:(fun _ () -> ())
+            ~getSnapshot:(fun _ -> "bar")
+        in
+        React.createElement "div" [] [ React.string value ])
+  in
+  assert_string (ReactDOM.renderToStaticMarkup app) "<div>foo</div>"
+
 let use_effect_doesnt_fire () =
   let app =
     React.Upper_case_component
@@ -73,6 +87,7 @@ let tests =
   ( "React",
     [
       test "useState" use_state_doesnt_fire;
+      test "useSyncExternalStoreWithServer" use_sync_external_store_with_server;
       test "useEffect" use_effect_doesnt_fire;
       test "Children.map" children_map_one_element;
       test "Children.map" children_map_list_element;
