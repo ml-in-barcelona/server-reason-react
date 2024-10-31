@@ -1,9 +1,13 @@
-window.__webpack_require__ = async (id) => {
+window.__webpack_require__ = (id) => {
   let component = window.__exported_components[id];
-  console.log("REQUIRE", id, component);
+  console.log("REQUIRE ---");
+  console.log(id);
+  console.log(component);
+  console.log("---");
   if (component === undefined) {
     throw new Error(`Component "${id}" not found`);
   }
+  /* return {__esModule: true, default: component}; */
   return component;
 };
 
@@ -74,28 +78,59 @@ try {
         , `7: [["$", "ul", null, { "className": "space-y-6 md:space-y-8", "children": [["$", "li", null, { "className": "flex md:flex-row items-start sm:items-center space-x-4", "children": [["$", "div", null, { "className": "min-w-[120px]", "children": ["$", "$L9", null, { "image": { "asset": { "_id": "image-591e25a3975b7cce87abb2652ce75b80001ffbfb-3245x2000-png", "metadata": { "lqip": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAMCAYAAABiDJ37AAAACXBIWXMAAAsTAAALEwEAmpwYAAABD0lEQVQokbVSy0rDUBDNTzXNq72PZBJLa0DUVJOGWGO13XSna3EtuBH8AsG/PDL3FhN3onFxGObAnDnzcFxPwvUHgifh9InxAKJOPxl5FoMI+qGEEAqTqcI4sPZHP4TbM+FwEkQSp3mMfZvhpiJkpDEV6qsBQ0gFKZXhOefIuRAKYSStCRbkDlorPOyO8PGS4+1pgXVJKE4S1AWhPEtQnSdYXxLaitAsyfCrggzXLAmLmTamOkGlcL/N8P58jNfHOa4urOB1SQZceFun2DYp7uoUm1VqOI5tScjncSdoRg6lIbmIuyexHTnWFvoQmbfoOK0Voslh7/2jeIE0u+DjmPf59VH872/z10f/38ceAp9y5aLUMyVXKAAAAABJRU5ErkJggg==", "dimensions": { "width": 3245, "height": 2000 } } } }, "className": "border-2 border-imgborder rounded-xl object-cover", "width": 120, "height": 75, "priority": true, "alt": "Scoreboarder banner" }] }], ["$", "div", null, { "className": "-m-1", "children": [["$", "h4", null, { "className": "text-xl font-subheading font-semibold break-all mb-1", "children": ["$", "$L5", null, { "href": "https://scoreboarder.xyz", "target": "_blank", "rel": "noreferrer", "children": "Scoreboarder" }] }], ["$", "p", null, { "children": "Website for Discord bot managing scoreboards" }]] }]] }], ["$", "li", null, { "className": "flex md:flex-row items-start sm:items-center space-x-4", "children": [["$", "div", null, { "className": "min-w-[120px]", "children": ["$", "$L9", null, { "image": { "asset": { "_id": "image-a7367e3a460ed37db301d49a7ff011a3367e0bba-902x507-jpg", "metadata": { "lqip": "data:image/jpeg;base64,/9j/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAALABQDASIAAhEBAxEB/8QAGQAAAgMBAAAAAAAAAAAAAAAAAAcEBQYI/8QAJBAAAgEDAgYDAAAAAAAAAAAAAQIDAAQFERMGBxIhMWEUFTP/xAAVAQEBAAAAAAAAAAAAAAAAAAADBP/EAB0RAAEEAgMAAAAAAAAAAAAAAAABAgMREiExUfD/2gAMAwEAAhEDEQA/AFpwthY722iY3Nqss8m2scqEke61lrwE86R63eLQNIY9Sh1HupvKyCJ8Fjy8aMTdkEka0y7aONNlVjjA+Sx06RRW6y9Yo8G62vuzl/P4/wCry91ZbqzbLletewNFWXMHvxjlPH7HwKKUhXk//9k=", "dimensions": { "width": 902, "height": 507 } } } }, "className": "border-2 border-imgborder rounded-xl object-cover", "width": 120, "height": 75, "priority": true, "alt": "next-banner banner" }] }], ["$", "div", null, { "className": "-m-1", "children": [["$", "h4", null, { "className": "text-xl font-subheading font-semibold break-all mb-1", "children": ["$", "$L5", null, { "href": "https://github.com/alvarlagerlof/next-banner", "target": "_blank", "rel": "noreferrer", "children": "next-banner" }] }], ["$", "p", null, { "children": "Generate Open Graph images for Next.js at build" }]] }]] }], ["$", "li", null, { "className": "flex md:flex-row items-start sm:items-center space-x-4", "childr
 
 
-
-
 en": [["$", "div", null, { "className": "min-w-[120px]", "children": ["$", "$L9", null, { "image": { "asset": { "_id": "image-b9052ea6be1d8ed8483759d56dd80262800c6114-828x480-png", "metadata": { "lqip": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAMCAIAAADtbgqsAAAACXBIWXMAAAsTAAALEwEAmpwYAAAA0UlEQVQokc2RTYvCMBRF+///ldRYRxA0aR1xFpq8j35gWze2mVZSiWJx4cDgZgbO4iZwwn0vwVDR2wR/Lbv6J/gp8D0P9ZPsSuxy05K2bGyqbWosmxb1GfYN6pZ0g7rBg2Wfz2b/zdod0cuupr6A0+eOI5UtkmK5yRZJOo9RSDNZQbjGmUQhIZQcKZz6y1Ju+wyGigNX0aWA0/ZrlNOPmCNFQnlTSJoprwlJU4mhf6hOdn0OY23qchhrt3yDHjyODR7uU3Q5uPJXC3vNP/nn9+Qr6jyYUW4JwRcAAAAASUVORK5CYII=", "dimensions": { "width": 828, "height": 480 } } } }, "className": "border-2 border-imgborder rounded-xl object-cover", "width": 120, "height": 75, "priority": true, "alt": "Neurodiversity Wiki banner" }] }], ["$", "div", null, { "className": "-m-1", "children": [["$", "h4", null, { "className": "text-xl font-subheading font-semibold break-all mb-1", "children": ["$", "$L5", null, { "href": "https://neurodiversity.wiki?utm_source=alvar.dev", "target": "_blank", "rel": "noreferrer", "children": "Neurodiversity Wiki" }] }], ["$", "p", null, { "children": "Website educating the public about neurodiversity" }]] }]] }]] }], ["$", "h4", null, { "className": "text-xl font-subheading mt-12", "children": ["$", "$L5", null, { "href": "/projects", "target": "_self", "rel": "", "className": "text-primary font-semibold no-underline hover:underline", "children": ["All projects", " â†’"] }] }]]`
       ]; */
 
   /* const mockPayload = [`1:"$Sreact.suspense"\n
 0:["$","html",null,{"children":[["$","head",null,{"children":["$","title",null,{"children":"Test"}]}],["$","body",null,{"children":[["$","a",null,{"href":"/","children":"Go home"}]," | ",["$","a",null,{"href":"/about","children":"Go to about"}],["$","$1",null,{"children":["$","div",null,{"children":["$","h1",null,{"children":"Home"}]}]}]]}]]}]`]; */
-  /* const mockPayload = ["0:[\"$\",\"div\",null,{\"className\":\"foo\"}]\n", "1:null\n"]; */
+  /* const mockPayload = ["0:["$","div",null,{"className":"foo"}]\n", "1:null\n"]; */
   /* const mockPayload = [`0:[null]\n`, `1:"$Sreact.suspense"\n`]; */
   /* <h1> {"Hello"} </h1> */
   /* window.srr_stream.push('0:I["$","div","0",{"children":[["$","h1","0",{"children":["Hellowww"]}]],"id":"root"}]'); */
   /* const mockPayload = [`0:["$","h1",null,{"children":["Hellowww"]}]\n`]; */
   /* const mockPayload = [`0:I["$","div","0",{"children":[["$","h1","0",{"children":["Hellowww"]}]],"id":"root"}]\n`]; */
-  const mockPayload = [
+  /* const mockPayload = [
     `0:I["$","div","0",{"children":[["$","div","0",{"children":[["$","div","0",{"children":["This is Light Server Component"]}],["$","div","0",{"children":[["$","div","0",{"children":[],"title":"Light Component"}]]}]]}],["$","div","0",{"children":["Heavy Server Component"]}]],"id":"root"}]\n`,
+  ]; */
+
+  /* const mockPayload = [
+    `a:["$","div",null,{"children":["Sleep ",1,"s","$undefined"]}]\n`,
+    `1:["$L7",["$","div",null,{"children":["Home Page",["$","$8",null,{"fallback":"Fallback 1","children":"$L9"}]]}],null]\n`,
+    `9:["$","div",null,{"children":["Sleep ",1,"s",["$","$8",null,{"fallback":"Fallback 2","children":"$La"}]]}]\n`,
+    `7:"$Sreact.suspense"\n`,
+  ]; */
+  /* const mockPayload = [
+    `7:"$Sreact.suspense"\n`,
+    `1:["$L7",["$","div",null,{"children":["Home Page",["$","$8",null,{"fallback":"Fallback 1","children":"$L9"}]]}],null]\n`,
+    `9:["$","div",null,{"children":["Sleep ",1,"s",["$","$8",null,{"fallback":"Fallback 2","children":"$La"}]]}]\n`,
+    `a:["$","div",null,{"children":["Sleep ",1,"s","$undefined"]}]\n`,
+  ]; */
+  /*  const rscPayload = [
+     `7:"$Sreact.suspense"`,
+     `1:["$L7",["$","div",null,{"children":["Home Page",["$","$8",null,{"fallback":"Fallback 1","children":"$L9"}]]}],null]`,
+     `9:["$","div",null,{"children":["Sleep ",1,"s",["$","$8",null,{"fallback":"Fallback 2","children":"$La"}]]}]`,
+     `a:["$","div",null,{"children":["Sleep ",1,"s","$undefined"]}]`
+   ]; */
+
+  const rscPayload = [
+    /* `0:["$","div",null,{"children":["Hello"]}]`, */
+    /* "0:[\"$\",\"div\",null,{\"children\":[[\"$\",\"span\",null,{\"children\":\"Home\"}],[\"$\",\"span\",null,{\"children\":\"Nohome\"}]]}]", */
+    "1:I[\"./client-component.js\",[],\"Client_component\"]",
+    "0:[[\"$\",\"span\",null,{\"children\":\"Hello!!!\"}],[\"$\",\"$1\",null,{}]]",
   ];
 
-  const encoder = new TextEncoder();
+  /* let result = MyReactServerDOM.to_model (xxxxxxxxx) */
+  /* load into file (result) */
+  /* node debug-rsc.js (result) */
+  /* cram test */
+
+  /** @type {ReadableStream<Uint8Array>} */
   let mockReadableStream = new ReadableStream({
     start(stream) {
-      for (let chunk of mockPayload) {
-        stream.enqueue(encoder.encode(chunk));
+      const textEncoder = new TextEncoder();
+
+      for (let chunk of rscPayload) {
+        stream.enqueue(textEncoder.encode(chunk + '\n'));
       }
       stream.close();
     }
@@ -117,15 +152,22 @@ en": [["$", "div", null, { "className": "min-w-[120px]", "children": ["$", "$L9"
   let promise = ReactServerDOM.createFromReadableStream(mockReadableStream);
   console.log(promise);
 
+  window.__exported_components["./client-component.js"] = { Client_component: () => <div>Client</div> };
+
   React.startTransition(() => {
     let element = document.getElementById("root");
-    root = ReactDOM.hydrateRoot(
+    root = ReactDOM.createRoot(element);
+    root.render(<React.Suspense fallback={"LOADING?!?!?!?!"}>
+      <Use promise={promise} />
+    </React.Suspense>);
+    /* root = ReactDOM.hydrateRoot(
       element,
       <React.Suspense fallback={"LOADING?!?!?!?!"}>
         <Use promise={promise} />
       </React.Suspense>
-    );
+    ); */
   });
+
 } catch (e) {
   console.error(e);
 }

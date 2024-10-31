@@ -110,6 +110,12 @@ let serverComponentsHandler = request => {
     React.createElement(
       "div",
       [React.JSX.String(("id", "id", "root": string))],
+      [],
+    );
+  /* let app =
+    React.createElement(
+      "div",
+      [React.JSX.String(("id", "id", "root": string))],
       [
         React.createElement(
           "div",
@@ -150,7 +156,7 @@ let serverComponentsHandler = request => {
           [React.string("Heavy Server Component")],
         ),
       ],
-    );
+    ); */
   /* let app = <div id="root"> <Noter /> </div>; */
   switch (Dream.header(request, "Accept")) {
   | Some(accept) when is_react_component_header(accept) =>
@@ -197,46 +203,6 @@ let serverComponentsHandler = request => {
     })
   };
 };
-
-/* request => {
-     let isRSCheader =
-       Dream.header(request, "Accept") == Some("text/x-component");
-
-     if (isRSCheader) {
-       Dream.stream(response_stream => {
-         let%lwt initial =
-           ReactServerDOM.to_model(
-             ~subscribe=data => Dream.write(response_stream, data),
-             <Noter />,
-           );
-         let%lwt () =
-           Lwt_stream.iter_s(
-             data => Dream.write(response_stream, data),
-             initial,
-           );
-         Lwt.return();
-       });
-     } else {
-       /* let header =
-          Htmlgen.(splice [html_prelude; html_shell; html_scripts]); */
-       switch%lwt (
-         ReactServerDOM.to_html(
-           <Document script="/static/demo/client/rsc-with-client.js">
-             <Noter />
-           </Document>,
-         )
-       ) {
-       | ReactServerDOM.Html.Finish(html) => Dream.html(html)
-       | ReactServerDOM.Html.Streaming({shell, values}) =>
-         let header = Html.to_string(shell);
-         /* Dream.html(header); */
-         Dream.stream(response_stream => {
-           let%lwt () = Dream.write(response_stream, header);
-           Lwt.return();
-         });
-       };
-     };
-   }, */
 
 let router = [
   Dream.get("/", Home.handler),

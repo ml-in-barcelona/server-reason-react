@@ -26,7 +26,7 @@ let attribute_to_html attr =
   (* Events don't get rendered on SSR *)
   | Event _ -> Html.omitted ()
   (* Since we extracted the attribute as children (Element.InnerHtml) in createElement,
-     we are very sure there's nothing to render here *)
+     we are sure there's nothing to render here *)
   | DangerouslyInnerHtml _ -> Html.omitted ()
 
 let attributes_to_html attrs = attrs |> List.map attribute_to_html
