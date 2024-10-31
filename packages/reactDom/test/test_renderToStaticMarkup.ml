@@ -250,7 +250,7 @@ let className_3 () =
       (React.list
          [
            React.createElement "div"
-             [ React.JSX.String ("className", "flex") ]
+             [ React.JSX.String ("class", "className", "flex") ]
              [];
            React.createElement "div" (ReactDOM.domProps ~className:"flex" ()) [];
          ])
@@ -376,7 +376,7 @@ let async_component () =
   Alcotest.check_raises "Expected invalid argument"
     (Invalid_argument
        "Asyncronous components can't be rendered to static markup, since \
-        rendering is syncronous. Please use `renderToLwtStream` instead.")
+        rendering is syncronous. Please use `renderToStream` instead.")
     raises
 
 let tests =

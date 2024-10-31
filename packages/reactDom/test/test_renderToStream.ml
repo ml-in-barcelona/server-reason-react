@@ -71,7 +71,7 @@ let suspense_without_promise _switch () =
           [ React.createElement "span" [] [ React.string "Hello" ] ])
   in
   let app =
-    React.Suspense { fallback = React.string "Loading..."; children = hi }
+    React.Suspense.make ~fallback:(React.string "Loading...") ~children:hi ()
   in
   let%lwt stream, _abort = ReactDOM.renderToStream app in
   assert_stream stream [ "<div><span>Hello</span></div>" ]
@@ -81,7 +81,7 @@ let suspense_with_always_throwing _switch () =
     React.Upper_case_component (fun () -> raise (Failure "always throwing"))
   in
   let app =
-    React.Suspense { fallback = React.string "Loading..."; children = hi }
+    React.Suspense.make ~fallback:(React.string "Loading...") ~children:hi ()
   in
   let%lwt stream, _abort = ReactDOM.renderToStream app in
   assert_stream stream
@@ -101,7 +101,7 @@ let react_use_with_suspense _switch () =
           ])
   in
   let app =
-    React.Suspense { fallback = React.string "Loading..."; children = time }
+    React.Suspense.make ~fallback:(React.string "Loading...") ~children:time ()
   in
   let%lwt stream, _abort = ReactDOM.renderToStream app in
   assert_stream stream

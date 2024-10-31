@@ -12,8 +12,8 @@ let assert_list_of_strings (left : string list) (right : string list) =
 let test title fn =
   Alcotest_lwt.test_case title `Quick (fun _switch body -> fn body)
 
-let assert_stream (stream : string Push_stream.t) (expected : string list) =
-  let%lwt content = Push_stream.to_list stream in
+let assert_stream (stream : string Lwt_stream.t) (expected : string list) =
+  let%lwt content = Lwt_stream.to_list stream in
   if content = [] then Lwt.return @@ Alcotest.fail "stream should not be empty"
   else Lwt.return @@ assert_list_of_strings content expected
 
@@ -21,6 +21,11 @@ let null_element () =
   let app = React.null in
   let%lwt stream = ReactServerDOM.render_to_model app in
   assert_stream stream [ "0:null\n" ]
+
+let string_element () =
+  let app = React.string "hi" in
+  let%lwt stream = ReactServerDOM.render_to_model app in
+  assert_stream stream [ "0:\"hi\"\n" ]
 
 let lower_case_component () =
   let app =
@@ -47,7 +52,7 @@ let dangerouslySetInnerHtml () =
   let app =
     React.createElement "script"
       [
-        React.JSX.String ("type", "application/javascript");
+        React.JSX.String ("type", "type", "application/javascript");
         React.JSX.DangerouslyInnerHtml "console.log('Hi!')";
       ]
       []
@@ -229,6 +234,7 @@ let tests =
   ( "ReactServerDOM.render_to_model",
     [
       test "null_element" null_element;
+      test "string_element" string_element;
       test "lower_case_component" lower_case_component;
       test "lower_case_component_with_children"
         lower_case_component_with_children;

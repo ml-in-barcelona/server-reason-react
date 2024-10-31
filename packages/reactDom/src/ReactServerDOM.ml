@@ -111,8 +111,8 @@ module Model = struct
     (* TODO: Add promises/sets/others ??? *)
     match prop with
     (* We ignore the HTML name, and only use the JSX name *)
-    | React.JSX.Bool (key, _, value) -> (key, `Bool value)
-    | React.JSX.String (key, _, value) -> (key, `String value)
+    | React.JSX.Bool (_, key, value) -> (key, `Bool value)
+    | React.JSX.String (_, key, value) -> (key, `String value)
     | React.JSX.Style value -> ("style", `String value)
     | React.JSX.DangerouslyInnerHtml html ->
         ("dangerouslySetInnerHTML", `Assoc [ ("__html", `String html) ])
@@ -158,14 +158,14 @@ module Model = struct
     let buf = Buffer.create (4 * 1024) in
     Buffer.add_string buf (Printf.sprintf "%x:" id);
     Yojson.Basic.write_json buf json;
-    (* Buffer.add_string buf "\\n"; *)
+    Buffer.add_string buf "\n";
     Buffer.contents buf
 
   let client_reference_to_chunk id ref =
     let buf = Buffer.create 256 in
     Buffer.add_string buf (Printf.sprintf "%x:I" id);
     Yojson.Basic.write_json buf ref;
-    (* Buffer.add_string buf "\\n"; *)
+    Buffer.add_string buf "\n";
     Buffer.contents buf
 
   let element_to_model ~context index element =
@@ -177,7 +177,7 @@ module Model = struct
       (* TODO: Add key on the element type? *)
       | Lower_case_element { key; tag; attributes; children } ->
           let props = List.map prop_to_json attributes in
-          node ~key:(Some key) ~tag ~props (List.map to_payload children)
+          node ~key ~tag ~props (List.map to_payload children)
       | Fragment children -> to_payload children
       | List children -> `List (Array.map to_payload children |> Array.to_list)
       | InnerHtml _text ->
@@ -393,15 +393,14 @@ let rec to_html ~fiber (element : React.element) : (Html.element * json) Lwt.t =
       let html_props = List.map ReactDOM.attribute_to_html attributes in
       let json_props = List.map Model.prop_to_json attributes in
       Lwt.return
-        ( Html.node tag html_props [],
-          Model.node ~tag ~key:(Some key) ~props:json_props [] )
+        (Html.node tag html_props [], Model.node ~tag ~key ~props:json_props [])
   | Lower_case_element { key; tag; attributes; children } ->
       let html_props = List.map ReactDOM.attribute_to_html attributes in
       let json_props = List.map Model.prop_to_json attributes in
       let%lwt html, model = elements_to_html ~fiber children in
       Lwt.return
         ( Html.node tag html_props [ html ],
-          Model.node ~tag ~key:(Some key) ~props:json_props [ model ] )
+          Model.node ~tag ~key ~props:json_props [ model ] )
   | Async_component component ->
       let%lwt element = component () in
       to_html ~fiber element
