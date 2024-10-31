@@ -153,6 +153,40 @@ let async_component _switch () =
   let%lwt stream, _abort = ReactDOM.renderToStream app in
   assert_stream stream [ "<span>yow</span>" ]
 
+(*
+TODO: Add this test
+
+const DefferedComponent = async ({
+  sleep,
+  children,
+}: {
+  sleep: number;
+  children?: ReactNode;
+}) => {
+  await new Promise<void>((res) => setTimeout(() => res(), sleep * 1000));
+  return (
+    <div>
+      Sleep {sleep}s
+      {children}
+    </div>
+  );
+};
+
+export default function Home() {
+  return (
+    <div>
+      Home Page
+      <Suspense fallback='Fallback 1'>
+        <DefferedComponent sleep={1}>
+          <Suspense fallback='Fallback 2'>
+            <DefferedComponent sleep={1}></DefferedComponent>
+          </Suspense>
+        </DefferedComponent>
+      </Suspense>
+    </div>
+  );
+} *)
+
 let tests =
   ( "renderToLwtStream",
     [
