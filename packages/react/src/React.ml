@@ -377,7 +377,7 @@ end
 (* TODO: Merge Fragment and List *)
 type element =
   | Lower_case_element of {
-      key : string;
+      key : string option;
       tag : string;
       attributes : JSX.prop list;
       children : element list;
@@ -457,7 +457,7 @@ let clone_attributes attributes new_attributes =
   |> List.flatten |> List.rev
   |> List.sort compare_attribute
 
-let createElement ?(key = "0") tag attributes children =
+let createElement ?(key = None) tag attributes children =
   match Html.is_self_closing_tag tag with
   | true when List.length children > 0 ->
       (* TODO: Add test for this *)
