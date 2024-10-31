@@ -103,6 +103,7 @@
           Stdlib.List.filter_map(
             Fun.id,
             [
+              Some(
                 [@implicit_arity]
                 React.JSX.String("class", "className", "sidebar": string),
               ),
