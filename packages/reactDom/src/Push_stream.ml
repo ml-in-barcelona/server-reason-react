@@ -4,5 +4,4 @@ let make () =
   let close () = push_to_stream None in
   (stream, push, close)
 
-let to_list stream = Lwt_stream.to_list stream
 let subscribe ~fn stream = Lwt_stream.iter_s fn stream
