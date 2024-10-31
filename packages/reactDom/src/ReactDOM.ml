@@ -784,7 +784,6 @@ let domProps
   ?suppressHydrationWarning
   () =
   []
-  (* TODO: Check if JSX props need to be underscored "to" -> "to_" (I don't think so!) *)
   |> add (React.JSX.string "key" "key") key
   |> add React.JSX.ref ref
   |> add (React.JSX.string "aria-details" "ariaDetails") ariaDetails
@@ -899,7 +898,7 @@ let domProps
   |> add (React.JSX.int "maxlength" "maxLength") maxLength
   |> add (React.JSX.string "media" "media") media
   |> add (React.JSX.string "mediagroup" "mediaGroup") mediaGroup
-  |> add (React.JSX.string "method" "method_") method_
+  |> add (React.JSX.string "method" "method") method_
   |> add (React.JSX.string "min" "min") min
   |> add (React.JSX.int "minlength" "minLength") minLength
   |> add (React.JSX.bool "multiple" "multiple") multiple
@@ -907,7 +906,7 @@ let domProps
   |> add (React.JSX.string "name" "name") name
   |> add (React.JSX.string "nonce" "nonce") nonce
   |> add (React.JSX.bool "noValidate" "noValidate") noValidate
-  |> add (React.JSX.bool "open" "open_") open_
+  |> add (React.JSX.bool "open" "open") open_
   |> add (React.JSX.int "optimum" "optimum") optimum
   |> add (React.JSX.string "pattern" "pattern") pattern
   |> add (React.JSX.string "placeholder" "placeholder") placeholder
@@ -938,7 +937,7 @@ let domProps
   |> add (React.JSX.float "step" "step") step
   |> add (React.JSX.string "summary" "summary") summary
   |> add (React.JSX.string "target" "target") target
-  |> add (React.JSX.string "type" "type_") type_
+  |> add (React.JSX.string "type" "type") type_
   |> add (React.JSX.string "useMap" "useMap") useMap
   |> add (React.JSX.string "value" "value") value
   |> add (React.JSX.string "width" "width") width
@@ -1037,7 +1036,7 @@ let domProps
   |> add (React.JSX.string "baseProfile" "baseProfile") baseProfile
   |> add (React.JSX.string "baselineShift" "baselineShift") baselineShift
   |> add (React.JSX.string "bbox" "bbox") bbox
-  |> add (React.JSX.string "begin" "begin_") begin_
+  |> add (React.JSX.string "begin" "begin") begin_
   |> add (React.JSX.string "bias" "bias") bias
   |> add (React.JSX.string "by" "by") by
   |> add (React.JSX.string "calcMode" "calcMode") calcMode
@@ -1069,7 +1068,7 @@ let domProps
   |> add (React.JSX.string "edgeMode" "edgeMode") edgeMode
   |> add (React.JSX.string "elevation" "elevation") elevation
   |> add (React.JSX.string "enableBackground" "enableBackground") enableBackground
-  |> add (React.JSX.string "end" "end_") end_
+  |> add (React.JSX.string "end" "end") end_
   |> add (React.JSX.string "exponent" "exponent") exponent
   |> add (React.JSX.string "externalResourcesRequired" "externalResourcesRequired") externalResourcesRequired
   |> add (React.JSX.string "fill" "fill") fill
@@ -1106,7 +1105,7 @@ let domProps
   (* |> add (React.JSX.string "horiz-origin-y" "horizOriginY") horizOriginY *) (* Should be added *)
   |> add (React.JSX.string "ideographic" "ideographic") ideographic
   |> add (React.JSX.string "image-rendering" "imageRendering") imageRendering
-  |> add (React.JSX.string "in" "in_") in_
+  |> add (React.JSX.string "in" "in") in_
   |> add (React.JSX.string "in2" "in2") in2
   |> add (React.JSX.string "intercept" "intercept") intercept
   |> add (React.JSX.string "k" "k") k
@@ -1212,7 +1211,7 @@ let domProps
   |> add (React.JSX.string "text-decoration" "textDecoration") textDecoration
   |> add (React.JSX.string "textLength" "textLength") textLength
   |> add (React.JSX.string "text-rendering" "textRendering") textRendering
-  |> add (React.JSX.string "to" "to_") to_
+  |> add (React.JSX.string "to" "to") to_
   |> add (React.JSX.string "transform" "transform") transform
   |> add (React.JSX.string "u1" "u1") u1
   |> add (React.JSX.string "u2" "u2") u2
