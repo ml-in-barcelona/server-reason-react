@@ -1,5 +1,4 @@
 const React = require("react");
-const utils = require("util");
 const ReactDOM = require("react-dom/server");
 
 let first = React.createElement(
