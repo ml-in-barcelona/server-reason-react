@@ -26,7 +26,7 @@
  (depends
   ; General system dependencies
   (ocaml (>= 5.0.0))
-  (reason (= 3.10.0))
+  (reason (>= 3.11.0))
   (melange (>= 3.0.0))
 
   ; Library dependencies
