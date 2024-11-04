@@ -862,20 +862,9 @@ module Global : sig
     not_implemented "is not implemented in native under server-reason-react.js"]
 
   val encodeURI : string -> string
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
   val decodeURI : string -> string
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
   val encodeURIComponent : string -> string
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
-
   val decodeURIComponent : string -> string
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
 end
 
 module Types : sig

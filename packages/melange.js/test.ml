@@ -451,6 +451,141 @@ let string_tests =
         ());
   ]
 
+let global_tests =
+  [
+    test "decodeURI" (fun () ->
+        assert_string
+          (Js.Global.decodeURI "http:%2f%2Funipro.ru")
+          "http:%2f%2Funipro.ru";
+        assert_string
+          (Js.Global.decodeURI
+             "http://www.google.ru/support/jobs/bin/static.py%3Fpage%3dwhy-ru.html%26sid%3Dliveandwork")
+          "http://www.google.ru/support/jobs/bin/static.py%3Fpage%3dwhy-ru.html%26sid%3Dliveandwork";
+        assert_string
+          (Js.Global.decodeURI
+             "http://ru.wikipedia.org/wiki/%d0%AE%D0%BD%D0%B8%D0%BA%D0%BE%D0%B4")
+          "http://ru.wikipedia.org/wiki/Юникод";
+        assert_string
+          (Js.Global.decodeURI
+             "http://ru.wikipedia.org/wiki/%D0%AE%D0%BD%D0%B8%D0%BA%D0%BE%D0%B4%23%D0%92%D0%B5%D1%80%D1%81%D0%B8%D0%B8%20%D0%AE%D0%BD%D0%B8%D0%BA%D0%BE%D0%B4%D0%B0")
+          "http://ru.wikipedia.org/wiki/Юникод%23Версии Юникода";
+        assert_string
+          (Js.Global.decodeURI "http://unipro.ru/0123456789")
+          "http://unipro.ru/0123456789";
+        assert_string
+          (Js.Global.decodeURI
+             "%41%42%43%44%45%46%47%48%49%4A%4B%4C%4D%4E%4F%50%51%52%53%54%55%56%57%58%59%5A")
+          "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        assert_string
+          (Js.Global.decodeURI
+             "%61%62%63%64%65%66%67%68%69%6A%6B%6C%6D%6E%6F%70%71%72%73%74%75%76%77%78%79%7A")
+          "abcdefghijklmnopqrstuvwxyz";
+        assert_string
+          (Js.Global.decodeURI "http://unipro.ru/%0Aabout")
+          "http://unipro.ru/\nabout";
+        (* assert_string
+             (Js.Global.decodeURI "http://unipro.ru/%0Babout")
+             "http://unipro.ru/\vabout";
+           assert_string
+             (Js.Global.decodeURI "http://unipro.ru/%0Cabout")
+             "http://unipro.ru/\fabout"; *)
+        assert_string
+          (Js.Global.decodeURI "http://unipro.ru/%0Dabout")
+          "http://unipro.ru/\rabout");
+    test "decodeURIComponent" (fun () ->
+        assert_string
+          (Js.Global.decodeURIComponent "http%3A%2F%2Funipro.ru")
+          "http://unipro.ru";
+        assert_string
+          (Js.Global.decodeURIComponent
+             "http%3A%2F%2Fwww.google.ru%2Fsupport%2Fjobs%2Fbin%2Fstatic.py%3Fpage%3Dwhy-ru.html%26sid%3Dliveandwork")
+          "http://www.google.ru/support/jobs/bin/static.py?page=why-ru.html&sid=liveandwork";
+        assert_string
+          (Js.Global.decodeURIComponent
+             "%41%42%43%44%45%46%47%48%49%4A%4B%4C%4D%4E%4F%50%51%52%53%54%55%56%57%58%59%5A")
+          "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        assert_string
+          (Js.Global.decodeURIComponent
+             "%61%62%63%64%65%66%67%68%69%6A%6B%6C%6D%6E%6F%70%71%72%73%74%75%76%77%78%79%7A")
+          "abcdefghijklmnopqrstuvwxyz";
+        assert_string
+          (Js.Global.decodeURIComponent "http%3A%2F%2Funipro.ru%2F%0Aabout")
+          "http://unipro.ru/\nabout";
+        assert_string
+          (Js.Global.decodeURIComponent "http://unipro.ru/%0Dabout")
+          "http://unipro.ru/\rabout");
+    (* \v and \f are not supported in ocaml
+       assert_string
+         (Js.Global.decodeURIComponent "http://unipro.ru/%0Babout")
+          "http://unipro.ru/\vabout";
+        assert_string
+          (Js.Global.decodeURIComponent "http://unipro.ru/%0Cabout")
+          "http://unipro.ru/\fabout"; *)
+    test "encodeURI" (fun () ->
+        assert_string
+          (Js.Global.encodeURI "http://ru.wikipedia.org/wiki/Юникод")
+          "http://ru.wikipedia.org/wiki/%D0%AE%D0%BD%D0%B8%D0%BA%D0%BE%D0%B4";
+        assert_string
+          (Js.Global.encodeURI "http://unipro.ru/0123456789")
+          "http://unipro.ru/0123456789";
+        assert_string
+          (Js.Global.encodeURI "ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+          "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        assert_string
+          (Js.Global.encodeURI "abcdefghijklmnopqrstuvwxyz")
+          "abcdefghijklmnopqrstuvwxyz";
+        assert_string
+          (Js.Global.encodeURI
+             "http://www.google.ru/support/jobs/bin/static.py?page=why-ru.html&sid=liveandwork")
+          "http://www.google.ru/support/jobs/bin/static.py?page=why-ru.html&sid=liveandwork";
+        assert_string
+          (Js.Global.encodeURI "ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+          "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        assert_string
+          (Js.Global.encodeURI "abcdefghijklmnopqrstuvwxyz")
+          "abcdefghijklmnopqrstuvwxyz";
+        assert_string
+          (Js.Global.encodeURI "http://unipro.ru/\nabout")
+          "http://unipro.ru/%0Aabout";
+        assert_string
+          (Js.Global.encodeURI "http://unipro.ru/\rabout")
+          "http://unipro.ru/%0Dabout");
+    (* \v and \f are not supported in ocaml
+        assert_string
+          (Js.Global.encodeURI "http://unipro.ru/\vabout")
+          "http://unipro.ru/%0Babout";
+        assert_string
+          (Js.Global.encodeURI "http://unipro.ru/\fabout")
+          "http://unipro.ru/%0Cabout"; *)
+    test "encodeURIComponent" (fun () ->
+        assert_string
+          (Js.Global.encodeURIComponent "http://unipro.ru")
+          "http%3A%2F%2Funipro.ru";
+        assert_string
+          (Js.Global.encodeURIComponent
+             "http://www.google.ru/support/jobs/bin/static.py?page=why-ru.html&sid=liveandwork")
+          "http%3A%2F%2Fwww.google.ru%2Fsupport%2Fjobs%2Fbin%2Fstatic.py%3Fpage%3Dwhy-ru.html%26sid%3Dliveandwork";
+        assert_string
+          (Js.Global.encodeURIComponent "ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+          "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        assert_string
+          (Js.Global.encodeURIComponent "abcdefghijklmnopqrstuvwxyz")
+          "abcdefghijklmnopqrstuvwxyz";
+        assert_string
+          (Js.Global.encodeURIComponent "http://unipro.ru/\nabout")
+          "http%3A%2F%2Funipro.ru%2F%0Aabout";
+        assert_string
+          (Js.Global.encodeURIComponent "http://unipro.ru/\rabout")
+          "http%3A%2F%2Funipro.ru%2F%0Dabout");
+    (* \v and \f are not supported in ocaml
+       assert_string
+         (Js.Global.encodeURIComponent "http://unipro.ru/\vabout")
+         "http%3A%2F%2Funipro.ru%2F%0Babout";
+       assert_string
+         (Js.Global.encodeURIComponent "http://unipro.ru/\fabout")
+         "http%3A%2F%2Funipro.ru%2F%0Cabout"; *)
+  ]
+
 let obj () = Js.Dict.fromList [ ("foo", 43); ("bar", 86) ]
 let long_obj () = Js.Dict.fromList [ ("david", 99); ("foo", 43); ("bar", 86) ]
 
@@ -576,6 +711,7 @@ let () =
   Lwt_main.run
   @@ Alcotest_lwt.run "Js"
        [
+         ("Js.Global", global_tests);
          ("Js.Promise", promise_tests);
          ("Js.Float", float_tests);
          ("Js.String", string_tests);
