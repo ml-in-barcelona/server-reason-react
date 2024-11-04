@@ -97,11 +97,12 @@ try {
    ]; */
 
   const rscPayload = [
-    /* `0:["$","div",null,{"children":["Hello"]}]`, */
-    /* "0:[\"$\",\"div\",null,{\"children\":[[\"$\",\"span\",null,{\"children\":\"Home\"}],[\"$\",\"span\",null,{\"children\":\"Nohome\"}]]}]", */
+    "0:[[\"$\",\"span\",null,{\"children\":\"hi\"}],[\"$\",\"span\",null,{\"children\":\"hola\"}]]\n"
+  ];
+  /* const rscPayload = [
     "1:I[\"./client-component.js\",[],\"Client_component\"]",
     "0:[[\"$\",\"span\",null,{\"children\":\"Hello!!!\"}],[\"$\",\"$1\",null,{}]]",
-  ];
+  ]; */
 
   /* let result = MyReactServerDOM.to_model (xxxxxxxxx) */
   /* load into file (result) */

@@ -349,8 +349,8 @@ module JSX = struct
   let bool name jsxName value = Bool (name, jsxName, value)
   let string name jsxName value = String (name, jsxName, value)
   let style value = Style value
-  let int name jsxName value = String (name, jsxName, string_of_int value)
-  let float name jsxName value = String (name, jsxName, string_of_float value)
+  let int name jsxName value = String (name, jsxName, Int.to_string value)
+  let float name jsxName value = String (name, jsxName, Float.to_string value)
   let dangerouslyInnerHtml value = DangerouslyInnerHtml value#__html
   let ref value = Ref value
   let event key value = Event (key, value)
@@ -397,7 +397,7 @@ type element =
   | Empty
   | Provider of element
   | Consumer of element
-  | Suspense of { key : string; children : element; fallback : element }
+  | Suspense of { key : string option; children : element; fallback : element }
 
 and client_props = (string * client_prop) list
 
@@ -549,7 +549,7 @@ let createContext (initial_value : 'a) : 'a Context.t =
 module Suspense = struct
   let or_react_null = function None -> null | Some x -> x
 
-  let make ?(key = "0") ?fallback ?children () =
+  let make ?(key = None) ?fallback ?children () =
     Suspense
       {
         key;

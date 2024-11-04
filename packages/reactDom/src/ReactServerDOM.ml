@@ -187,13 +187,24 @@ module Model = struct
              a wrong construction of JSX manually"
       | Upper_case_component component -> to_payload (component ())
       | Async_component component -> (
-          match Lwt.state (component ()) with
-          | Lwt.Return element -> to_payload element
-          | Lwt.Fail exn -> raise exn
-          | Lwt.Sleep -> failwith "TODO")
+          let promise = component () in
+          match Lwt.state promise with
+          | Fail exn -> raise exn
+          | Return element -> to_payload element
+          | Sleep ->
+              let index = use_index context in
+              context.pending <- context.pending + 1;
+              Lwt.async (fun () ->
+                  let%lwt element = promise in
+                  context.pending <- context.pending - 1;
+                  context.push index (Chunk_value (to_payload element));
+                  if context.pending = 0 then context.close ();
+                  Lwt.return ());
+              `String (lazy_value index))
       | Suspense { key; children; fallback } ->
           let fallback = to_payload fallback in
-          suspense_node ~key:(Some key) ~fallback [ to_payload children ]
+          (* TODO: Do we need to care if there's Any_promise raising ? *)
+          suspense_node ~key ~fallback [ to_payload children ]
       | Client_component { import_module; import_name; props; children = _ } ->
           let id = use_index context in
           (* TODO: Add chunks *)
@@ -286,8 +297,9 @@ let rc_function_script =
   Html.node "script" [] [ Html.raw rc_function_definition ]
 
 let chunk_script script =
-  Html.node "script" []
-    [ Html.raw (Printf.sprintf "window.srr_stream.push('%s');" script) ]
+  Html.node "script"
+    [ Html.attribute "data-payload" (Html.single_quote_escape script) ]
+    [ Html.raw "window.srr_stream.push();" ]
 
 let client_reference_chunk_script index json =
   chunk_script (Model.client_reference_to_chunk index json)
@@ -357,11 +369,12 @@ let rec client_to_html ~fiber (element : React.element) =
       wait_for_suspense_to_resolve ()
   | Async_component _component ->
       (* async components can't be interleaved in client components, for now *)
+      (* TODO: Remove failwith *)
       failwith
         "async components can't be part of a client component. This should \
          never raise, the ppx should catch it"
   | Suspense { key = _; children; fallback } ->
-      (* TODO: Do we need the key here? *)
+      (* TODO: Do we need to care if there's Any_promise raising ? *)
       let%lwt fallback = client_to_html ~fiber fallback in
       Fiber.fork fiber (fun fiber ->
           let index = Fiber.use_index fiber in
@@ -460,14 +473,13 @@ let rec to_html ~fiber (element : React.element) : (Html.element * json) Lwt.t =
               in
               let sync_html =
                 ( html_suspense_placeholder ~fallback:html_fallback index,
-                  Model.suspense_placeholder ~key:(Some key)
-                    ~fallback:model_fallback index )
+                  Model.suspense_placeholder ~key ~fallback:model_fallback index
+                )
               in
               `Fork (async_html, sync_html)
           | Return (html, model) ->
               let model =
-                Model.suspense_node ~key:(Some key) ~fallback:model_fallback
-                  [ model ]
+                Model.suspense_node ~key ~fallback:model_fallback [ model ]
               in
               `Sync (html_suspense html, model)
           | Fail exn -> `Fail exn)

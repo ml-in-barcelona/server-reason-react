@@ -9,13 +9,49 @@ let assert_list (type a) (ty : a Alcotest.testable) (left : a list)
 let assert_list_of_strings (left : string list) (right : string list) =
   Alcotest.check (Alcotest.list Alcotest.string) "should be equal" right left
 
-let test title fn =
-  Alcotest_lwt.test_case title `Quick (fun _switch body -> fn body)
+let lwt_state_to_string = function
+  | Lwt.Return _ -> "Return"
+  | Lwt.Fail _ -> "Fail"
+  | Lwt.Sleep -> "Sleep"
+
+let test title (fn : unit -> unit Lwt.t) =
+  Alcotest_lwt.test_case title `Quick (fun _switch () ->
+      try
+        (* let _timeout = Lwt_unix.sleep 2.0 in *)
+        let start = Unix.gettimeofday () in
+        let promise = fn () in
+        let%lwt test_promise = promise in
+
+        (* let%lwt () =
+             Lwt.pick
+               [
+                 Lwt.bind test_promise (fun _ -> Lwt.return ());
+                 (let%lwt () = timeout in
+                  Alcotest.failf "Test '%s' timed out" title);
+               ]
+           in *)
+        let duration = Unix.gettimeofday () -. start in
+        Printf.printf "Test '%s' took %.3f seconds\n%!" title duration;
+        Lwt.return test_promise
+      with ex ->
+        Printf.printf "Exception in test '%s': %s\n%!" title
+          (Printexc.to_string ex);
+        Lwt.fail ex)
 
 let assert_stream (stream : string Lwt_stream.t) (expected : string list) =
   let%lwt content = Lwt_stream.to_list stream in
   if content = [] then Lwt.return @@ Alcotest.fail "stream should not be empty"
   else Lwt.return @@ assert_list_of_strings content expected
+
+let test_silly_stream () =
+  let stream, push = Lwt_stream.create () in
+  push (Some "first");
+  let%lwt () = Lwt_unix.sleep 0.1 in
+  push (Some "secondo");
+  let%lwt () = Lwt_unix.sleep 0.1 in
+  push (Some "trienio");
+  push None;
+  assert_stream stream [ "first"; "secondo"; "trienio" ]
 
 let null_element () =
   let app = React.null in
@@ -72,6 +108,113 @@ let upper_case_component () =
   in
   let%lwt stream = ReactServerDOM.render_to_model (app true) in
   assert_stream stream [ "0:[\"$\",\"span\",null,{\"children\":\"foo\"}]\n" ]
+
+let text ~children () = React.createElement "span" [] children
+
+let nested_upper_case_component () =
+  let app () =
+    React.list
+      [
+        React.Upper_case_component (text ~children:[ React.string "hi" ]);
+        React.Upper_case_component (text ~children:[ React.string "hola" ]);
+      ]
+  in
+  let main = React.Upper_case_component app in
+
+  let%lwt stream = ReactServerDOM.render_to_model main in
+  assert_stream stream
+    [
+      "0:[[\"$\",\"span\",null,{\"children\":\"hi\"}],[\"$\",\"span\",null,{\"children\":\"hola\"}]]\n";
+    ]
+
+let nested_upper_case_component_2 () =
+  let app () =
+    React.createElement "div" []
+      [
+        React.Upper_case_component (text ~children:[ React.string "hi" ]);
+        React.Upper_case_component (text ~children:[ React.string "hola" ]);
+      ]
+  in
+  let main = React.Upper_case_component app in
+
+  let%lwt stream = ReactServerDOM.render_to_model main in
+  assert_stream stream
+    [
+      "0:[\"$\",\"div\",null,{\"children\":[[\"$\",\"span\",null,{\"children\":\"hi\"}],[\"$\",\"span\",null,{\"children\":\"hola\"}]]}]\n";
+    ]
+
+let suspense_without_promise () =
+  let app () =
+    React.Suspense.make
+      ~fallback:(React.string "Loading...")
+      ~children:
+        (React.createElement "div" []
+           [
+             React.Upper_case_component (text ~children:[ React.string "hi" ]);
+             React.Upper_case_component (text ~children:[ React.string "hola" ]);
+           ])
+      ()
+  in
+  let main = React.Upper_case_component app in
+
+  let%lwt stream = ReactServerDOM.render_to_model main in
+  assert_stream stream
+    [
+      "0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":[\"$\",\"div\",null,{\"children\":[[\"$\",\"span\",null,{\"children\":\"hi\"}],[\"$\",\"span\",null,{\"children\":\"hola\"}]]}]}]\n";
+    ]
+
+let immediate_suspense () =
+  let suspended_component =
+    React.Async_component
+      (fun () ->
+        let value = "DONE :)" in
+        Lwt.return (React.string value))
+  in
+  let app () =
+    React.Suspense.make
+      ~fallback:(React.string "Loading...")
+      ~children:suspended_component ()
+  in
+  let main = React.Upper_case_component app in
+
+  let%lwt stream = ReactServerDOM.render_to_model main in
+  assert_stream stream
+    [
+      "0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"DONE \
+       :)\"}]\n";
+    ]
+
+let delayed_promise value =
+  let%lwt () = Lwt_unix.sleep 0.1 in
+  Lwt.return value
+
+let suspense () =
+  let suspended_component =
+    React.Async_component
+      (fun () ->
+        Printf.printf "Inside async component\n%!";
+        let%lwt value =
+          Printf.printf "Before delayed promise\n%!";
+          delayed_promise "DONE :)"
+        in
+        Printf.printf "After delayed promise: %s\n%!" value;
+        Lwt.return (React.string value))
+  in
+  let app () =
+    React.Suspense.make
+      ~fallback:(React.string "Loading...")
+      ~children:suspended_component ()
+  in
+  let main = React.Upper_case_component app in
+
+  Printf.printf "Before render_to_model\n%!";
+  let%lwt stream = ReactServerDOM.render_to_model main in
+  Printf.printf "After render_to_model\n%!";
+  assert_stream stream
+    [
+      "0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"}]\n";
+      "1:\"DONE :)\"\n";
+    ]
 
 let client_component_without_props () =
   let app () =

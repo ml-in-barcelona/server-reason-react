@@ -4,7 +4,10 @@ let assert_string left right =
 let assert_list ty left right =
   Alcotest.check (Alcotest.list ty) "should be equal" right left
 
-let test title fn = Alcotest_lwt.test_case title `Quick fn
+let test_with_switch title fn = Alcotest_lwt.test_case title `Quick fn
+
+let test title fn =
+  Alcotest_lwt.test_case title `Quick (fun _switch body -> fn body)
 
 let assert_stream (stream : string Lwt_stream.t) expected =
   let open Lwt.Infix in
@@ -24,7 +27,7 @@ module Sleep = struct
       Lwt_unix.sleep v >>= fun () -> Lwt.return ()
 end
 
-let test_silly_stream _switch () =
+let test_silly_stream () =
   let stream, push = Lwt_stream.create () in
   push (Some "first");
   push (Some "secondo");
@@ -43,7 +46,7 @@ let test_silly_stream _switch () =
          Alcotest.(check pass) "Expect suspense to raise" () ()
      | `Error exn -> Lwt.reraise exn
 
-   let react_use_without_suspense _switch () =
+   let react_use_without_suspense () =
      (* We clean the cache so we can re-use the same promise *)
      Sleep.destroy ();
      let delay = 0.1 in
@@ -63,7 +66,7 @@ let test_silly_stream _switch () =
      in
      lwt_check_raises raises
 *)
-let suspense_without_promise _switch () =
+let suspense_without_promise () =
   let hi =
     React.Upper_case_component
       (fun () ->
@@ -76,7 +79,7 @@ let suspense_without_promise _switch () =
   let%lwt stream, _abort = ReactDOM.renderToStream app in
   assert_stream stream [ "<div><span>Hello</span></div>" ]
 
-let suspense_with_always_throwing _switch () =
+let suspense_with_always_throwing () =
   let hi =
     React.Upper_case_component (fun () -> raise (Failure "always throwing"))
   in
@@ -87,7 +90,7 @@ let suspense_with_always_throwing _switch () =
   assert_stream stream
     [ "<!--$?--><template id=\"B:0\"></template>Loading...<!--/$-->" ]
 
-let react_use_with_suspense _switch () =
+let react_use_with_suspense () =
   Sleep.destroy ();
   let delay = 0.5 in
   let time =
@@ -116,7 +119,7 @@ let react_use_with_suspense _switch () =
       "<script>$RC('B:0','S:0')</script>";
     ]
 
-let test_with_custom_component _switch () =
+let test_with_custom_component () =
   let custom_component =
     React.Upper_case_component
       (fun () ->
@@ -127,7 +130,7 @@ let test_with_custom_component _switch () =
   let%lwt stream, _abort = ReactDOM.renderToStream app in
   assert_stream stream [ "<div><div><span>Custom Component</span></div></div>" ]
 
-let test_with_multiple_custom_components _switch () =
+let test_with_multiple_custom_components () =
   let custom_component =
     React.Upper_case_component
       (fun () ->
@@ -144,7 +147,7 @@ let test_with_multiple_custom_components _switch () =
        Component</span></div></div>";
     ]
 
-let async_component _switch () =
+let async_component () =
   let app =
     React.Async_component
       (fun () ->
