@@ -6,14 +6,21 @@ let elm = document |> Document.createElement("strong");
 
 Element.addSelectionChangeEventListenerWithOptions(
   handleSelection,
-  {"passive": true, "once": true, "capture": false},
+  {
+    "passive": true,
+    "once": true,
+    "capture": false,
+  },
   elm,
 );
 Element.addSelectionChangeEventListenerUseCapture(handleSelection, elm);
 Element.removeSelectionChangeEventListener(handleSelection, elm);
 Element.removeSelectionChangeEventListenerWithOptions(
   handleSelection,
-  {"passive": true, "capture": false},
+  {
+    "passive": true,
+    "capture": false,
+  },
   elm,
 );
 Element.removeSelectionChangeEventListenerUseCapture(handleSelection, elm);
@@ -26,7 +33,11 @@ let htmlElm =
 
 HtmlElement.addSelectionChangeEventListenerWithOptions(
   handleSelection,
-  {"passive": true, "once": true, "capture": false},
+  {
+    "passive": true,
+    "once": true,
+    "capture": false,
+  },
   htmlElm,
 );
 HtmlElement.addSelectionChangeEventListenerUseCapture(
@@ -36,7 +47,10 @@ HtmlElement.addSelectionChangeEventListenerUseCapture(
 HtmlElement.removeSelectionChangeEventListener(handleSelection, htmlElm);
 HtmlElement.removeSelectionChangeEventListenerWithOptions(
   handleSelection,
-  {"passive": true, "capture": false},
+  {
+    "passive": true,
+    "capture": false,
+  },
   htmlElm,
 );
 HtmlElement.removeSelectionChangeEventListenerUseCapture(
@@ -49,7 +63,11 @@ let htmlDoc =
 
 HtmlDocument.addSelectionChangeEventListenerWithOptions(
   handleSelection,
-  {"passive": true, "once": true, "capture": false},
+  {
+    "passive": true,
+    "once": true,
+    "capture": false,
+  },
   htmlDoc,
 );
 HtmlDocument.addSelectionChangeEventListenerUseCapture(
@@ -59,7 +77,10 @@ HtmlDocument.addSelectionChangeEventListenerUseCapture(
 HtmlDocument.removeSelectionChangeEventListener(handleSelection, htmlDoc);
 HtmlDocument.removeSelectionChangeEventListenerWithOptions(
   handleSelection,
-  {"passive": true, "capture": false},
+  {
+    "passive": true,
+    "capture": false,
+  },
   htmlDoc,
 );
 HtmlDocument.removeSelectionChangeEventListenerUseCapture(
@@ -69,14 +90,21 @@ HtmlDocument.removeSelectionChangeEventListenerUseCapture(
 
 Window.addSelectionChangeEventListenerWithOptions(
   handleSelection,
-  {"passive": true, "once": true, "capture": false},
+  {
+    "passive": true,
+    "once": true,
+    "capture": false,
+  },
   window,
 );
 Window.addSelectionChangeEventListenerUseCapture(handleSelection, window);
 Window.removeSelectionChangeEventListener(handleSelection, window);
 Window.removeSelectionChangeEventListenerWithOptions(
   handleSelection,
-  {"passive": true, "capture": false},
+  {
+    "passive": true,
+    "capture": false,
+  },
   window,
 );
 Window.removeSelectionChangeEventListenerUseCapture(handleSelection, window);

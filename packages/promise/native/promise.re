@@ -39,7 +39,13 @@ module MutableList: MutableList = {
     mutable last: node('a),
   };
 
-  type list('a) = ref([ | `Empty | `NonEmpty(listEnds('a))]);
+  type list('a) =
+    ref(
+      [
+        | `Empty
+        | `NonEmpty(listEnds('a))
+      ],
+    );
 
   let create = () => ref(`Empty);
 
@@ -48,12 +54,24 @@ module MutableList: MutableList = {
   let append = (list, value) =>
     switch (list^) {
     | `Empty =>
-      let node = {previous: None, next: None, content: value};
-      list := `NonEmpty({first: node, last: node});
+      let node = {
+        previous: None,
+        next: None,
+        content: value,
+      };
+      list :=
+        `NonEmpty({
+          first: node,
+          last: node,
+        });
       node;
 
     | `NonEmpty(ends) =>
-      let node = {previous: Some(ends.last), next: None, content: value};
+      let node = {
+        previous: Some(ends.last),
+        next: None,
+        content: value,
+      };
       ends.last.next = Some(node);
       ends.last = node;
       node;
