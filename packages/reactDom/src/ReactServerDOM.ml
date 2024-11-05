@@ -131,8 +131,9 @@ module Model = struct
     in
     `List [ `String "$"; `String tag; key; `Assoc props ]
 
-  let lazy_value idx = Printf.sprintf "$L%x" idx
+  let lazy_value id = Printf.sprintf "$L%x" id
   let promise_value id = Printf.sprintf "$@%x" id
+  let ref_value id = Printf.sprintf "$%x" id
 
   (* Not reusing node because we need to add fallback prop as json directly *)
   let suspense_node ~key ~fallback children : json =
@@ -191,7 +192,7 @@ module Model = struct
              This is how `react-server-dom-webpack/server` renderToPipeableStream works *)
           let index = use_index context in
           context.push index (Chunk_value (to_payload element));
-          `String (Printf.sprintf "$%x" index)
+          `String (ref_value index)
       | Async_component component -> (
           let promise = component () in
           match Lwt.state promise with
@@ -219,7 +220,7 @@ module Model = struct
           in
           context.push id (Chunk_component_ref ref);
           let props = client_props_to_json props in
-          node ~tag:(Printf.sprintf "$%x" id) ~key:None ~props []
+          node ~tag:(ref_value id) ~key:None ~props []
       (* TODO: Dow we need to do anything with Provider and Consumer? *)
       | Provider children -> to_payload children
       | Consumer children -> to_payload children
@@ -432,6 +433,7 @@ let rec to_html ~fiber (element : React.element) : (Html.element * json) Lwt.t =
                 let%lwt _html, model = to_html ~fiber element in
                 Lwt.return (name, model)
             | Promise (_promise, _value_to_json) ->
+                (* TODO: Implement promise as prop *)
                 (* Fiber.fork fiber @@ fun fiber ->
                    let index = Fiber.use_index fiber in
                    let sync = (name, Model.promise_value index) in
@@ -458,7 +460,7 @@ let rec to_html ~fiber (element : React.element) : (Html.element * json) Lwt.t =
             ~name:import_name
         in
         fiber.emit_html (client_reference_chunk_script index ref);
-        Model.node ~tag:(Printf.sprintf "$%x" index) ~key:None ~props []
+        Model.node ~tag:(Model.ref_value index) ~key:None ~props []
       in
       Lwt.return (html, model)
   | Suspense { key; children; fallback } ->

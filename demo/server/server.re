@@ -113,50 +113,50 @@ let serverComponentsHandler = request => {
       [],
     );
   /* let app =
-    React.createElement(
-      "div",
-      [React.JSX.String(("id", "id", "root": string))],
-      [
-        React.createElement(
-          "div",
-          [],
-          [
-            React.createElement(
-              "div",
-              [],
-              [React.string("This is Light Server Component")],
-            ),
-            React.createElement(
-              "div",
-              [],
-              [
-                React.createElement(
-                  "div",
-                  Stdlib.List.filter_map(
-                    Fun.id,
-                    [
-                      Some(
-                        React.JSX.String((
-                          "title",
-                          "title",
-                          "Light Component": string,
-                        )),
-                      ),
-                    ],
-                  ),
-                  [],
-                ),
-              ],
-            ),
-          ],
-        ),
-        React.createElement(
-          "div",
-          [],
-          [React.string("Heavy Server Component")],
-        ),
-      ],
-    ); */
+     React.createElement(
+       "div",
+       [React.JSX.String(("id", "id", "root": string))],
+       [
+         React.createElement(
+           "div",
+           [],
+           [
+             React.createElement(
+               "div",
+               [],
+               [React.string("This is Light Server Component")],
+             ),
+             React.createElement(
+               "div",
+               [],
+               [
+                 React.createElement(
+                   "div",
+                   Stdlib.List.filter_map(
+                     Fun.id,
+                     [
+                       Some(
+                         React.JSX.String((
+                           "title",
+                           "title",
+                           "Light Component": string,
+                         )),
+                       ),
+                     ],
+                   ),
+                   [],
+                 ),
+               ],
+             ),
+           ],
+         ),
+         React.createElement(
+           "div",
+           [],
+           [React.string("Heavy Server Component")],
+         ),
+       ],
+     ); */
   /* let app = <div id="root"> <Noter /> </div>; */
   switch (Dream.header(request, "Accept")) {
   | Some(accept) when is_react_component_header(accept) =>
