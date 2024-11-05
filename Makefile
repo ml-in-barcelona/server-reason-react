@@ -44,11 +44,11 @@ deps: $(opam_file) ## Alias to update the opam file and install the needed deps
 
 .PHONY: format
 format: ## Format the codebase with ocamlformat
-	DUNE_CONFIG__GLOBAL_LOCK=disabled $(DUNE) build @fmt --auto-promote
+	@DUNE_CONFIG__GLOBAL_LOCK=disabled $(DUNE) build @fmt --auto-promote
 
 .PHONY: format-check
 format-check: ## Checks if format is correct
-	DUNE_CONFIG__GLOBAL_LOCK=disabled $(DUNE) build @fmt
+	@DUNE_CONFIG__GLOBAL_LOCK=disabled $(DUNE) build @fmt
 
 .PHONY: init
 setup-githooks: ## Setup githooks
