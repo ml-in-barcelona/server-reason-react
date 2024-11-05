@@ -4,43 +4,22 @@ module Fiber = struct
   type context = {
     mutable index : int;
     mutable pending : int;
-    push : Html.element -> unit; (* remote_ctx : Remote.Context.t; *)
+    push : Html.element -> unit;
     close : unit -> unit;
   }
 
   type t = {
     context : context;
-    (* react_ctx : Hmap.t; *)
     finished : unit Lwt.t;
     (* QUESTION: Why do I need emit_html as mutable? I see parent, but why overriding? *)
     mutable emit_html : Html.element -> unit;
   }
-
-  let update_ctx _t _ctx _v =
-    (* let react_ctx = Hmap.add ctx.React_model.key v t.react_ctx in
-       { t with react_ctx } *)
-    failwith "TODO"
-
-  let with_ctx _t _f =
-    (* let f () = React_model.with_context t.react_ctx f in
-       Remote.Context.with_ctx t.ctx.remote_ctx f *)
-    failwith "TODO"
-
-  let with_ctx_async _t _f =
-    (* let f () = React_model.with_context t.react_ctx f in
-       Remote.Context.with_ctx_async t.ctx.remote_ctx f *)
-    failwith "TODO"
 
   let use_index t =
     t.context.index <- t.context.index + 1;
     t.context.index
 
   let emit_html t html = t.emit_html html
-
-  let emit_batch _t _batch =
-    (* Remote.Context.batch_to_html t.ctx.remote_ctx batch >|= fun html ->
-       emit_html t html *)
-    failwith "TODO"
 
   let make fn =
     let stream, push, close = Push_stream.make () in
@@ -49,11 +28,7 @@ module Fiber = struct
     let htmls = ref [] in
     let finished, parent_done = Lwt.wait () in
     let emit_html chunk = htmls := chunk :: !htmls in
-    let%lwt html =
-      fn
-        ( { context; emit_html; finished (* react_ctx = Hmap.empty *) },
-          initial_index )
-    in
+    let%lwt html = fn ({ context; emit_html; finished }, initial_index) in
     let shell = Html.list [ Html.list !htmls; html ] in
     Lwt.wakeup_later parent_done ();
     context.pending <- context.pending - 1;
@@ -66,14 +41,7 @@ module Fiber = struct
   let task parent fn =
     let context = parent.context in
     let finished, parent_done = Lwt.wait () in
-    let current_fiber =
-      {
-        context;
-        emit_html = parent.emit_html;
-        (* react_ctx = parent.react_ctx; *)
-        finished;
-      }
-    in
+    let current_fiber = { context; emit_html = parent.emit_html; finished } in
     match fn current_fiber with
     | `Fork (async, sync) ->
         context.pending <- context.pending + 1;
