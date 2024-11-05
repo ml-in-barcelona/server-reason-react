@@ -191,7 +191,7 @@ let render_to_stream ~context_state element =
         | output -> output
         | exception React.Suspend (Any_promise promise) ->
             context_state.waiting <- context_state.waiting + 1;
-            (* We store to current_*_id to bypass the increment *)
+            (* We store to current_boundary_id, current_suspense_id to bypass the increment + mutation below *)
             let current_boundary_id = context_state.boundary_id in
             let current_suspense_id = context_state.suspense_id in
             context_state.boundary_id <- context_state.boundary_id + 1;

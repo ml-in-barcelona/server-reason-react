@@ -42,7 +42,7 @@ module Fiber = struct
        emit_html t html *)
     failwith "TODO"
 
-  let root fn =
+  let make fn =
     let stream, push, close = Push_stream.make () in
     let initial_index = 0 in
     let context = { push; close; pending = 1; index = initial_index } in
@@ -63,7 +63,7 @@ module Fiber = struct
         Lwt.return (shell, None)
     | false -> Lwt.return (shell, Some stream)
 
-  let fork parent fn =
+  let task parent fn =
     let context = parent.context in
     let finished, parent_done = Lwt.wait () in
     let current_fiber =
@@ -125,7 +125,7 @@ module Model = struct
     let key = match key with None -> `Null | Some key -> `String key in
     let props =
       match children with
-      | [] -> props
+      | [] -> ("children", `List []) :: props
       | [ one_children ] -> ("children", one_children) :: props
       | childrens -> ("children", `List childrens) :: props
     in
@@ -185,7 +185,13 @@ module Model = struct
           failwith
             "It does not exist in RSC, this is a bug in server-reason-react or \
              a wrong construction of JSX manually"
-      | Upper_case_component component -> to_payload (component ())
+      | Upper_case_component component ->
+          let element = component () in
+          (* Instead of returning the payload directly, we push it, and return a reference to it.
+             This is how `react-server-dom-webpack/server` renderToPipeableStream works *)
+          let index = use_index context in
+          context.push index (Chunk_value (to_payload element));
+          `String (Printf.sprintf "$%x" index)
       | Async_component component -> (
           let promise = component () in
           match Lwt.state promise with
@@ -202,13 +208,13 @@ module Model = struct
                   Lwt.return ());
               `String (lazy_value index))
       | Suspense { key; children; fallback } ->
+          (* TODO: Maybe we need to push suspense index and suspense node separately *)
           let fallback = to_payload fallback in
-          (* TODO: Do we need to care if there's Any_promise raising ? *)
           suspense_node ~key ~fallback [ to_payload children ]
       | Client_component { import_module; import_name; props; children = _ } ->
           let id = use_index context in
-          (* TODO: Add chunks *)
           let ref =
+            (* chunks is a webpack thing, we don't need it for now *)
             component_ref ~chunks:[] ~module_:import_module ~name:import_name
           in
           context.push id (Chunk_component_ref ref);
@@ -376,7 +382,7 @@ let rec client_to_html ~fiber (element : React.element) =
   | Suspense { key = _; children; fallback } ->
       (* TODO: Do we need to care if there's Any_promise raising ? *)
       let%lwt fallback = client_to_html ~fiber fallback in
-      Fiber.fork fiber (fun fiber ->
+      Fiber.task fiber (fun fiber ->
           let index = Fiber.use_index fiber in
           let async =
             children |> client_to_html ~fiber
@@ -457,7 +463,7 @@ let rec to_html ~fiber (element : React.element) : (Html.element * json) Lwt.t =
       Lwt.return (html, model)
   | Suspense { key; children; fallback } ->
       let%lwt html_fallback, model_fallback = to_html ~fiber fallback in
-      Fiber.fork fiber (fun fiber ->
+      Fiber.task fiber (fun fiber ->
           let promise = to_html ~fiber children in
           match Lwt.state promise with
           | Sleep ->
@@ -505,7 +511,7 @@ type rendering =
 (* TODO: Add scripts and links to the output, also all options from renderToReadableStream *)
 let render_to_html element =
   let%lwt html_shell, html_async =
-    Fiber.root (fun (fiber, index) ->
+    Fiber.make (fun (fiber, index) ->
         let%lwt html, model = to_html ~fiber element in
         let first_chunk = client_reference_chunk_script index model in
         Lwt.return (Html.list [ first_chunk; html ]))
