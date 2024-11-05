@@ -1284,8 +1284,6 @@ module Float : sig
     not_implemented "is not implemented in native under server-reason-react.js"]
 
   val toFixed : ?digits:int -> t -> string
-  [@@alert
-    not_implemented "is not implemented in native under server-reason-react.js"]
 
   val toPrecision : ?digits:int -> t -> string
   [@@alert

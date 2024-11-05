@@ -1628,7 +1628,12 @@ end = struct
   let isNaN float = Stdlib.Float.is_nan float
   let isFinite float = Stdlib.Float.is_finite float
   let toExponential ?digits:_ _ = notImplemented "Js.Float" "toExponential"
-  let toFixed ?digits:_ _ = notImplemented "Js.Float" "toFixed"
+
+  let toFixed ?(digits = 0) f =
+    if digits < 0 || digits > 100 then
+      raise (Failure "toFixed() digits argument must be between 0 and 100")
+    else Printf.sprintf "%.*f" digits f
+
   let toPrecision ?digits:_ _ = notImplemented "Js.Float" "toPrecision"
 
   let toString ?radix f =

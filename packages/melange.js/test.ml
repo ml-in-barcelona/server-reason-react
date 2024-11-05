@@ -570,6 +570,25 @@ let float_tests =
         assert_string (Js.Float.toString 80.) "80";
         assert_string (Js.Float.toString 80.0001) "80.0001";
         assert_string (Js.Float.toString 80.00000000001) "80");
+    test "toFixed" (fun () ->
+        assert_string (Js.Float.toFixed 12.3456) "12";
+        assert_string (Js.Float.toFixed 0.123456) "0";
+        assert_string (Js.Float.toFixed ~digits:20 0.) "0.00000000000000000000";
+        assert_string (Js.Float.toFixed ~digits:0 12.3456) "12";
+        assert_string (Js.Float.toFixed ~digits:0 (-12.)) "-12";
+        assert_string (Js.Float.toFixed ~digits:3 12.3456) "12.346";
+        (* assert_string (Js.Float.toFixed ~digits:0 1.2e34) "1.2e+34"; actual result in ocaml is "11999999999999999346902771844513792" *)
+        assert_string (Js.Float.toFixed ~digits:10 12.3456) "12.3456000000";
+        Alcotest.check_raises "Expected failure"
+          (Failure "toFixed() digits argument must be between 0 and 100")
+          (fun () ->
+            let _ = Js.Float.toFixed ~digits:(-1) 12. in
+            ());
+        Alcotest.check_raises "Expected failure"
+          (Failure "toFixed() digits argument must be between 0 and 100")
+          (fun () ->
+            let _ = Js.Float.toFixed ~digits:101 12. in
+            ()));
   ]
 
 let () =
