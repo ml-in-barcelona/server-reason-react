@@ -21,7 +21,7 @@ module Fiber = struct
 
   let emit_html t html = t.emit_html html
 
-  let make fn =
+  let root fn =
     let stream, push, close = Push_stream.make () in
     let initial_index = 0 in
     let context = { push; close; pending = 1; index = initial_index } in
@@ -41,11 +41,10 @@ module Fiber = struct
   let task parent fn =
     let context = parent.context in
     let finished, parent_done = Lwt.wait () in
-    let current_fiber = { context; emit_html = parent.emit_html; finished } in
-    match fn current_fiber with
+    match fn { context; emit_html = parent.emit_html; finished } with
     | `Fork (async, sync) ->
         context.pending <- context.pending + 1;
-        current_fiber.emit_html <- (fun html -> context.push html);
+        parent.emit_html <- (fun html -> context.push html);
         Lwt.async (fun () ->
             let%lwt () = parent.finished in
             let%lwt html = async in
@@ -93,7 +92,7 @@ module Model = struct
     let key = match key with None -> `Null | Some key -> `String key in
     let props =
       match children with
-      | [] -> ("children", `List []) :: props
+      | [] -> props
       | [ one_children ] -> ("children", one_children) :: props
       | childrens -> ("children", `List childrens) :: props
     in
@@ -108,7 +107,7 @@ module Model = struct
     let fallback_prop = ("fallback", fallback) in
     let props =
       match children with
-      | [] -> [ fallback_prop ]
+      | [] -> [ fallback_prop; ("children", `List []) ]
       | [ one ] -> [ fallback_prop; ("children", one) ]
       | _ -> [ fallback_prop; ("children", `List children) ]
     in
@@ -180,15 +179,15 @@ module Model = struct
           (* TODO: Maybe we need to push suspense index and suspense node separately *)
           let fallback = to_payload fallback in
           suspense_node ~key ~fallback [ to_payload children ]
-      | Client_component { import_module; import_name; props; children = _ } ->
+      | Client_component { import_module; import_name; props; client = _ } ->
           let id = use_index context in
           let ref =
             (* chunks is a webpack thing, we don't need it for now *)
             component_ref ~chunks:[] ~module_:import_module ~name:import_name
           in
           context.push id (Chunk_component_ref ref);
-          let props = client_props_to_json props in
-          node ~tag:(ref_value id) ~key:None ~props []
+          let client_props = client_props_to_json props in
+          node ~tag:(ref_value id) ~key:None ~props:client_props []
       (* TODO: Dow we need to do anything with Provider and Consumer? *)
       | Provider children -> to_payload children
       | Consumer children -> to_payload children
@@ -361,9 +360,9 @@ let rec client_to_html ~fiber (element : React.element) =
             html_suspense_placeholder ~fallback index
           in
           `Fork (async, fallback_as_placeholder))
-  | Client_component { import_module = _; import_name = _; props = _; children }
+  | Client_component { import_module = _; import_name = _; props = _; client }
     ->
-      client_to_html ~fiber children
+      client_to_html ~fiber client
   (* TODO: Need to do something for those? *)
   | Provider children -> client_to_html ~fiber children
   | Consumer children -> client_to_html ~fiber children
@@ -392,31 +391,31 @@ let rec to_html ~fiber (element : React.element) : (Html.element * json) Lwt.t =
   | Async_component component ->
       let%lwt element = component () in
       to_html ~fiber element
-  | Client_component { import_module; import_name; props; children } ->
+  | Client_component { import_module; import_name; props; client } ->
       let lwt_props =
         Lwt_list.map_p
-          (fun (name, value) ->
+          (fun ((name : string), value) ->
             match (value : React.client_prop) with
             | Element element ->
                 let%lwt _html, model = to_html ~fiber element in
                 Lwt.return (name, model)
-            | Promise (_promise, _value_to_json) ->
-                (* TODO: Implement promise as prop *)
-                (* Fiber.fork fiber @@ fun fiber ->
-                   let index = Fiber.use_index fiber in
-                   let sync = (name, Model.promise_value index) in
-                   let async =
-                     let%lwt value = promise in
-                     let json = value_to_json value in
-                     Lwt.return
-                       (chunk_script (Model.client_reference_to_chunk index json))
-                   in
-                   `Fork (async, sync) *)
-                Lwt.return (name, `Null)
+            | Promise (promise, value_to_json) ->
+                Fiber.task fiber @@ fun fiber ->
+                let index = Fiber.use_index fiber in
+                let sync = (name, `String (Model.promise_value index)) in
+                let async : Html.element Lwt.t =
+                  let%lwt value = promise in
+                  let json = value_to_json value in
+                  let ret =
+                    chunk_script (Model.client_reference_to_chunk index json)
+                  in
+                  Lwt.return ret
+                in
+                `Fork (async, sync)
             | Json json -> Lwt.return (name, json))
           props
       in
-      let lwt_html = client_to_html ~fiber children in
+      let lwt_html = client_to_html ~fiber client in
       (* NOTE: this Lwt.pause () is important as we resolve client component in
          an async way we need to suspend above, otherwise React.js runtime won't work *)
       let%lwt () = Lwt.pause () in
@@ -481,7 +480,7 @@ type rendering =
 (* TODO: Add scripts and links to the output, also all options from renderToReadableStream *)
 let render_to_html element =
   let%lwt html_shell, html_async =
-    Fiber.make (fun (fiber, index) ->
+    Fiber.root (fun (fiber, index) ->
         let%lwt html, model = to_html ~fiber element in
         let first_chunk = client_reference_chunk_script index model in
         Lwt.return (Html.list [ first_chunk; html ]))

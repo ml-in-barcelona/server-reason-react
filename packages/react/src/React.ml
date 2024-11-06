@@ -386,7 +386,7 @@ type element =
   | Async_component of (unit -> element Lwt.t)
   | Client_component of {
       props : client_props;
-      children : element;
+      client : element;
       import_module : string;
       import_name : string;
     }
