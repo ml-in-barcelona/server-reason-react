@@ -14,8 +14,28 @@ window.__webpack_require__ = (id) => {
 let React = require("react");
 let ReactDOM = require("react-dom/client");
 let ReactServerDOM = require("react-server-dom-webpack/client");
-let { make: Noter } = require("./app/demo/universal/js/Noter.js");
-let { make: Static_small } = require("./app/demo/universal/js/Static_small.js");
+
+window.__exported_components = {};
+
+let register = (name, render) => {
+  window.__exported_components[name] = render;
+};
+
+register("Note_editor", () => {
+  return "null"
+});
+
+register("Counter", () => {
+  return "null"
+});
+
+/* register("Note_editor", () => {
+  return React.lazy(() => import("./app/demo/universal/js/Note_editor.js").then(v => v.make));
+});
+
+register("Counter", () => {
+  return React.lazy(() => import("./app/demo/universal/js/Counter.js").then(v => v.make));
+}); */
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -165,7 +185,7 @@ try {
 
   const stream = window.srr_stream.readable_stream;
   const promise = ReactServerDOM.createFromReadableStream(stream);
-  let app = <Use promise={promise} />;
+  let app = <ErrorBoundary><Use promise={promise} /></ErrorBoundary>;
   let element = document.getElementById("root");
   ReactDOM.hydrateRoot(element, app);
 } catch (e) {

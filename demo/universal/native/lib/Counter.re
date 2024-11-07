@@ -1,28 +1,11 @@
-type state = {count: int};
+[@warning "-27"];
 
-[@react.component]
 let make = (~initial) => {
-  let (state, setCount) = RR.useStateValue({count: initial});
-
-  switch%platform (Runtime.platform) {
-  | Server => ()
-  | Client => print_endline("This prints to the console")
-  };
+  let (state, setCount) = RR.useStateValue(initial);
 
   let onClick = _event => {
-    Js.log2("CLICKED!", Int.to_string(state.count));
-    setCount({count: state.count + 1});
+    setCount(state + 1);
   };
-
-  React.useEffect0(() => {
-    Js.log2("Use effect, count is", Int.to_string(state.count));
-    None;
-  });
-
-  React.useEffect(() => {
-    Js.log2("count is", Int.to_string(state.count));
-    None;
-  });
 
   <div className={Theme.text(Theme.Color.white)}>
     <Spacer bottom=3>
@@ -39,7 +22,7 @@ let make = (~initial) => {
         <button
           onClick
           className="font-mono border-2 py-1 px-2 rounded-lg bg-yellow-950 border-yellow-700 text-yellow-200">
-          {React.string(Int.to_string(state.count))}
+          {React.string(Int.to_string(state))}
         </button>
       </div>
     </Spacer>
@@ -50,4 +33,25 @@ let make = (~initial) => {
        )}
     </p>
   </div>;
+};
+
+[@react.component]
+let make = (~initial) =>
+  switch%platform (Runtime.platform) {
+  | Server =>
+    React.Client_component({
+      import_module: "Counter",
+      import_name: "",
+      props: [("initial", React.Json(`Int(initial)))],
+      client: make(~initial),
+    })
+  | Client => make(~initial)
+  };
+
+switch%platform (Runtime.platform) {
+| Server => ()
+| Client =>
+  Components.register("Counter", (props: Js.t({..})) => {
+    React.jsx(make, makeProps(~initial=props##initial, ()))
+  })
 };

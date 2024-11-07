@@ -29,7 +29,10 @@ let make = () => {
         ])}>
         {React.string("This is a small form")}
       </p>
+      /* <React.Suspense
+         fallback={<div> {React.string("the form is loading...")} </div>}> */
       <Note_editor title="Hello" body="World" />
+      /* </React.Suspense> */
       <Hr />
       <Counter initial=0 />
     </Stack>

@@ -78,8 +78,7 @@ let stream_rsc = fn => {
 };
 
 let serverComponentsHandler = request => {
-  let app = <Static_small />;
-  /* let app = <div id="root"> <Noter /> </div>; */
+  let app = <Noter />;
   switch (Dream.header(request, "Accept")) {
   | Some(accept) when is_react_component_header(accept) =>
     stream_rsc(stream => {
@@ -119,7 +118,7 @@ let serverComponentsHandler = request => {
     let headers = [("Content-Type", "text/html")];
     Dream.stream(~headers, stream => {
       switch%lwt (ReactServerDOM.render_to_html(app)) {
-      | ReactServerDOM.Done({head_scripts: scripts, body:root, end_script}) =>
+      | ReactServerDOM.Done({head_scripts: scripts, body: root, end_script}) =>
         Dream.log("Done: %s", Html.to_string(root));
         let%lwt () =
           Dream.write(
