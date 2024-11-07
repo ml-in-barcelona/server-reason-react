@@ -468,7 +468,11 @@ and elements_to_html ~fiber elements =
   Lwt.return (Html.list htmls, `List model)
 
 type rendering =
-  | Done of Html.element
+  | Done of {
+      head_scripts : Html.element;
+      body : Html.element;
+      end_script : Html.element;
+    }
   | Async of {
       shell : Html.element;
       subscribe : (Html.element -> unit Lwt.t) -> unit Lwt.t;
@@ -482,22 +486,23 @@ let render_to_html element =
     Fiber.root (fun (fiber, index) ->
         let%lwt html, model = to_html ~fiber element in
         let first_chunk = client_value_chunk_script index model in
-        Lwt.return (Html.list [ first_chunk; html ]))
+        Lwt.return (Html.list [ html; first_chunk ]))
   in
   match html_async with
   | None ->
-      let sync_shell =
-        Html.list [ rsc_start_script; html_shell; chunk_stream_end_script ]
-      in
-      Lwt.return (Done sync_shell)
+      Lwt.return
+        (Done
+           {
+             head_scripts = rsc_start_script;
+             body = html_shell;
+             end_script = chunk_stream_end_script;
+           })
   | Some stream ->
       let html_iter fn =
         let%lwt () = Push_stream.subscribe ~fn stream in
         fn chunk_stream_end_script
       in
-      let html_shell =
-        Html.list [ rsc_start_script; rc_function_script; html_shell ]
-      in
+      let html_shell = Html.list [ rc_function_script; html_shell ] in
       Lwt.return (Async { shell = html_shell; subscribe = html_iter })
 
 let render_to_model = Model.render

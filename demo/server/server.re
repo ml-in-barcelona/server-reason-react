@@ -77,81 +77,8 @@ let stream_rsc = fn => {
   );
 };
 
-let stream_html = (~async_scripts, ~scripts, fn) => {
-  let htmlPrelude = "<!DOCTYPE html><meta charset=\"utf-8\">";
-  let htmlScripts =
-    String.concat(
-      "\n",
-      List.map(Printf.sprintf({|<script src="%s"></script>|}), scripts),
-    );
-  let htmlAsyncScripts =
-    String.concat(
-      "\n",
-      List.map(
-        Printf.sprintf({|<script src="%s" async></script>|}),
-        async_scripts,
-      ),
-    );
-
-  Dream.stream(
-    ~headers=[("Content-Type", "text/html")],
-    stream => {
-      let%lwt () = Dream.write(stream, htmlPrelude);
-      let%lwt () = Dream.write(stream, htmlScripts);
-      let%lwt () = Dream.write(stream, htmlAsyncScripts);
-      let%lwt () = fn(stream);
-      Dream.flush(stream);
-    },
-  );
-};
-
 let serverComponentsHandler = request => {
-  let app =
-    React.createElement(
-      "div",
-      [React.JSX.String(("id", "id", "root": string))],
-      [
-        React.createElement(
-          "div",
-          [],
-          [
-            React.createElement(
-              "div",
-              [],
-              [React.string("This is Light Server Component")],
-            ),
-            React.createElement(
-              "div",
-              [],
-              [
-                React.createElement(
-                  "div",
-                  Stdlib.List.filter_map(
-                    Fun.id,
-                    [
-                      Some(
-                        React.JSX.String((
-                          "title",
-                          "title",
-                          "Light Component": string,
-                        )),
-                      ),
-                    ],
-                  ),
-                  [],
-                ),
-              ],
-            ),
-          ],
-        ),
-        React.createElement(
-          "div",
-          [],
-          [React.string("Heavy Server Component")],
-        ),
-      ],
-    );
-
+  let app = <Static_small />;
   /* let app = <div id="root"> <Noter /> </div>; */
   switch (Dream.header(request, "Accept")) {
   | Some(accept) when is_react_component_header(accept) =>
@@ -174,14 +101,39 @@ let serverComponentsHandler = request => {
       Dream.flush(stream);
     })
   | _ =>
-    stream_html(
-      ~async_scripts=["/static/demo/client/rsc-with-client.js"],
-      ~scripts=["https://cdn.tailwindcss.com"],
-      stream => {
+    let async_scripts = ["/static/demo/client/rsc-with-client.js"];
+    let scripts = ["https://cdn.tailwindcss.com"];
+    let htmlScripts =
+      String.concat(
+        "\n",
+        List.map(Printf.sprintf({|<script src="%s"></script>|}), scripts),
+      );
+    let htmlAsyncScripts =
+      String.concat(
+        "\n",
+        List.map(
+          Printf.sprintf({|<script src="%s" async></script>|}),
+          async_scripts,
+        ),
+      );
+    let headers = [("Content-Type", "text/html")];
+    Dream.stream(~headers, stream => {
       switch%lwt (ReactServerDOM.render_to_html(app)) {
-      | ReactServerDOM.Done(html) =>
-        Dream.log("Done: %s", Html.to_string(html));
-        let%lwt () = Dream.write(stream, Html.to_string(html));
+      | ReactServerDOM.Done({head_scripts: scripts, body:root, end_script}) =>
+        Dream.log("Done: %s", Html.to_string(root));
+        let%lwt () =
+          Dream.write(
+            stream,
+            "<!DOCTYPE html><head><meta charset=\"utf-8\"/><title>React Server DOM</title>",
+          );
+        let%lwt () = Dream.write(stream, htmlScripts);
+        let%lwt () = Dream.write(stream, htmlAsyncScripts);
+        let%lwt () = Dream.write(stream, Html.to_string(scripts));
+        let%lwt () = Dream.write(stream, "</head><body><div id=\"root\">");
+        let%lwt () = Dream.write(stream, Html.to_string(root));
+        let%lwt () = Dream.write(stream, "</div>");
+        let%lwt () = Dream.write(stream, Html.to_string(end_script));
+        let%lwt () = Dream.write(stream, "</body></html>");
         Dream.flush(stream);
       | ReactServerDOM.Async({shell, subscribe}) =>
         let%lwt () = Dream.write(stream, Html.to_string(shell));
@@ -193,7 +145,7 @@ let serverComponentsHandler = request => {
           Dream.flush(stream);
         });
       }
-    })
+    });
   };
 };
 
@@ -233,6 +185,6 @@ let () = {
       };
     },
     ~error_handler=Error.handler,
-    Dream.livereload(Dream.logger(Dream.router(router))),
+    Dream.logger(Dream.router(router)),
   );
 };

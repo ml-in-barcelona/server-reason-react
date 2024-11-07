@@ -14,7 +14,8 @@ window.__webpack_require__ = (id) => {
 let React = require("react");
 let ReactDOM = require("react-dom/client");
 let ReactServerDOM = require("react-server-dom-webpack/client");
-let Noter = require("./app/demo/universal/js/Noter.js");
+let { make: Noter } = require("./app/demo/universal/js/Noter.js");
+let { make: Static_small } = require("./app/demo/universal/js/Static_small.js");
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -45,7 +46,8 @@ function Use({ promise }) {
   try {
     let tree = React.use(promise);
     return tree;
-  } catch (e) {
+} catch (e) {
+    if (e instanceof Promise) throw e; // Suspense boundary catch
     console.error(e);
     return <h1>Something went wrong</h1>;
   }
@@ -126,9 +128,6 @@ try {
      `a:["$","div",null,{"children":["Sleep ",1,"s","$undefined"]}]`
    ]; */
 
-  const rscPayload = [
-    "0:[[\"$\",\"span\",null,{\"children\":\"hi\"}],[\"$\",\"span\",null,{\"children\":\"hola\"}]]\n"
-  ];
   /* const rscPayload = [
     "1:I[\"./client-component.js\",[],\"Client_component\"]",
     "0:[[\"$\",\"span\",null,{\"children\":\"Hello!!!\"}],[\"$\",\"$1\",null,{}]]",
@@ -166,16 +165,9 @@ try {
 
   const stream = window.srr_stream.readable_stream;
   const promise = ReactServerDOM.createFromReadableStream(stream);
-  const element = document.getElementById("root");
-  const root = ReactDOM.hydrateRoot(element);
-
-  root.render(
-    <ErrorBoundary>
-      <React.Suspense fallback={"LOADING?!?!?!?!"}>
-        <Use promise={promise} />
-      </React.Suspense>
-    </ErrorBoundary>
-  );
+  let app = <Use promise={promise} />;
+  let element = document.getElementById("root");
+  ReactDOM.hydrateRoot(element, app);
 } catch (e) {
   console.error(e);
 }
