@@ -1,5 +1,5 @@
 window.__webpack_require__ = (id) => {
-  let component = window.__exported_components[id];
+  let component = window.__client_manifest_map[id];
   console.log("REQUIRE ---");
   console.log(id);
   console.log(component);
@@ -15,10 +15,10 @@ let React = require("react");
 let ReactDOM = require("react-dom/client");
 let ReactServerDOM = require("react-server-dom-webpack/client");
 
-window.__exported_components = {};
+window.__client_manifest_map = {};
 
 let register = (name, render) => {
-  window.__exported_components[name] = render;
+  window.__client_manifest_map[name] = render;
 };
 
 register("Note_editor", () => {
