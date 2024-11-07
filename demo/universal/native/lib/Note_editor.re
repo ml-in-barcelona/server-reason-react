@@ -8,7 +8,7 @@ module Client_component = {
         ("title", React.Json(`String(title))),
         ("body", React.Json(`String(body))),
       ],
-      children: React.null,
+      client: React.null,
     });
 };
 

@@ -116,9 +116,10 @@ module Model = struct
   let suspense_placeholder ~key ~fallback index =
     suspense_node ~key ~fallback [ `String (lazy_value index) ]
 
-  let component_ref ~chunks ~module_ ~name =
+  let component_ref ~module_ ~name =
     let id = `String module_ in
-    let chunks = `List chunks in
+    (* chunks is a webpack thing, we don't need it for now *)
+    let chunks = `List [] in
     let component_name = `String name in
     `List [ id; chunks; component_name ]
 
@@ -181,10 +182,7 @@ module Model = struct
           suspense_node ~key ~fallback [ to_payload children ]
       | Client_component { import_module; import_name; props; client = _ } ->
           let id = use_index context in
-          let ref =
-            (* chunks is a webpack thing, we don't need it for now *)
-            component_ref ~chunks:[] ~module_:import_module ~name:import_name
-          in
+          let ref = component_ref ~module_:import_module ~name:import_name in
           context.push id (Chunk_component_ref ref);
           let client_props = client_props_to_json props in
           node ~tag:(ref_value id) ~key:None ~props:client_props []
@@ -250,15 +248,15 @@ let rsc_start_script =
     [
       Html.raw
         {|
-          let enc = new TextEncoder();
-          let srr_stream = (window.srr_stream = {});
-          srr_stream.push = (payload) => {
-            srr_stream._c.enqueue(enc.encode(payload))
-          };
-          srr_stream.close = () => {
-            srr_stream._c.close();
-          };
-          srr_stream.readable_stream = new ReadableStream({ start(c) { srr_stream._c = c; } });
+let enc = new TextEncoder();
+let srr_stream = (window.srr_stream = {});
+srr_stream.push = (value) => {
+  srr_stream._c.enqueue(enc.encode(value))
+};
+srr_stream.close = () => {
+  srr_stream._c.close();
+};
+srr_stream.readable_stream = new ReadableStream({ start(c) { srr_stream._c = c; } });
         |};
     ]
 
@@ -273,7 +271,9 @@ let rc_function_script =
 let chunk_script script =
   Html.node "script"
     [ Html.attribute "data-payload" (Html.single_quote_escape script) ]
-    [ Html.raw "window.srr_stream.push();" ]
+    [
+      Html.raw "window.srr_stream.push(document.currentScript.dataset.payload);";
+    ]
 
 let client_reference_chunk_script index json =
   chunk_script (Model.client_reference_to_chunk index json)
@@ -421,10 +421,9 @@ let rec to_html ~fiber (element : React.element) : (Html.element * json) Lwt.t =
       let%lwt () = Lwt.pause () in
       let%lwt html, props = Lwt.both lwt_html lwt_props in
       let model =
-        let index = 0 in
+        let index = Fiber.use_index fiber in
         let ref : json =
-          Model.component_ref ~chunks:[] ~module_:import_module
-            ~name:import_name
+          Model.component_ref ~module_:import_module ~name:import_name
         in
         fiber.emit_html (client_reference_chunk_script index ref);
         Model.node ~tag:(Model.ref_value index) ~key:None ~props []
@@ -482,7 +481,7 @@ let render_to_html element =
   let%lwt html_shell, html_async =
     Fiber.root (fun (fiber, index) ->
         let%lwt html, model = to_html ~fiber element in
-        let first_chunk = client_reference_chunk_script index model in
+        let first_chunk = client_value_chunk_script index model in
         Lwt.return (Html.list [ first_chunk; html ]))
   in
   match html_async with
