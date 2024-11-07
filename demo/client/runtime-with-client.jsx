@@ -16,10 +16,40 @@ let ReactDOM = require("react-dom/client");
 let ReactServerDOM = require("react-server-dom-webpack/client");
 let Noter = require("./app/demo/universal/js/Noter.js");
 
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error) {
+    // Update state so the next render will show the fallback UI.
+    return { hasError: true };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    // You can also log the error to an error reporting service
+    console.error(error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return <h1>Something went wrong</h1>;
+    }
+
+    return this.props.children;
+  }
+}
+
 function Use({ promise }) {
-  let tree = React.use(promise);
-  return tree;
-};
+  try {
+    let tree = React.use(promise);
+    return tree;
+  } catch (e) {
+    console.error(e);
+    return <h1>Something went wrong</h1>;
+  }
+}
 
 try {
   /* let _ = ReactDOM.hydrateRoot(document.getElementById("root"), <Noter.make />); */
@@ -110,7 +140,7 @@ try {
   /* cram test */
 
   /** @type {ReadableStream<Uint8Array>} */
-  let mockReadableStream = new ReadableStream({
+  /* let mockReadableStream = new ReadableStream({
     start(stream) {
       const textEncoder = new TextEncoder();
 
@@ -119,7 +149,7 @@ try {
       }
       stream.close();
     }
-  });
+  }); */
 
   const debug = readableStream => {
     const reader = readableStream.getReader();
@@ -134,17 +164,18 @@ try {
     reader.read().then(debugReader);
   };
 
-  const promise = ReactServerDOM.createFromReadableStream(mockReadableStream);
-  console.log(promise);
-
-  window.__exported_components["./client-component.js"] = { Client_component: () => <div>Client</div> };
-
+  const stream = window.srr_stream.readable_stream;
+  const promise = ReactServerDOM.createFromReadableStream(stream);
   const element = document.getElementById("root");
-  root = ReactDOM.createRoot(element);
-  root.render(<React.Suspense fallback={"LOADING?!?!?!?!"}>
-    <Use promise={promise} />
-  </React.Suspense>);
+  const root = ReactDOM.hydrateRoot(element);
 
+  root.render(
+    <ErrorBoundary>
+      <React.Suspense fallback={"LOADING?!?!?!?!"}>
+        <Use promise={promise} />
+      </React.Suspense>
+    </ErrorBoundary>
+  );
 } catch (e) {
   console.error(e);
 }
