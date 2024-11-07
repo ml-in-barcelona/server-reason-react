@@ -110,53 +110,48 @@ let serverComponentsHandler = request => {
     React.createElement(
       "div",
       [React.JSX.String(("id", "id", "root": string))],
-      [],
+      [
+        React.createElement(
+          "div",
+          [],
+          [
+            React.createElement(
+              "div",
+              [],
+              [React.string("This is Light Server Component")],
+            ),
+            React.createElement(
+              "div",
+              [],
+              [
+                React.createElement(
+                  "div",
+                  Stdlib.List.filter_map(
+                    Fun.id,
+                    [
+                      Some(
+                        React.JSX.String((
+                          "title",
+                          "title",
+                          "Light Component": string,
+                        )),
+                      ),
+                    ],
+                  ),
+                  [],
+                ),
+              ],
+            ),
+          ],
+        ),
+        React.createElement(
+          "div",
+          [],
+          [React.string("Heavy Server Component")],
+        ),
+      ],
     );
-  /* let app =
-     React.createElement(
-       "div",
-       [React.JSX.String(("id", "id", "root": string))],
-       [
-         React.createElement(
-           "div",
-           [],
-           [
-             React.createElement(
-               "div",
-               [],
-               [React.string("This is Light Server Component")],
-             ),
-             React.createElement(
-               "div",
-               [],
-               [
-                 React.createElement(
-                   "div",
-                   Stdlib.List.filter_map(
-                     Fun.id,
-                     [
-                       Some(
-                         React.JSX.String((
-                           "title",
-                           "title",
-                           "Light Component": string,
-                         )),
-                       ),
-                     ],
-                   ),
-                   [],
-                 ),
-               ],
-             ),
-           ],
-         ),
-         React.createElement(
-           "div",
-           [],
-           [React.string("Heavy Server Component")],
-         ),
-       ],
-     ); */
+
   /* let app = <div id="root"> <Noter /> </div>; */
   switch (Dream.header(request, "Accept")) {
   | Some(accept) when is_react_component_header(accept) =>
@@ -185,14 +180,12 @@ let serverComponentsHandler = request => {
       stream => {
       switch%lwt (ReactServerDOM.render_to_html(app)) {
       | ReactServerDOM.Done(html) =>
-        /* Dream.log("Done"); */
-        /* Dream.log("%s", Html.to_string(html)); */
+        Dream.log("Done: %s", Html.to_string(html));
         let%lwt () = Dream.write(stream, Html.to_string(html));
         Dream.flush(stream);
       | ReactServerDOM.Async({shell, subscribe}) =>
         let%lwt () = Dream.write(stream, Html.to_string(shell));
-        /* Dream.log("Async"); */
-        /* Dream.log("%s", Html.to_string(shell)); */
+        Dream.log("Async: %s", Html.to_string(shell));
         subscribe(chunk => {
           Dream.log("Chunk");
           Dream.log("%s", Html.to_string(chunk));
