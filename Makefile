@@ -96,11 +96,11 @@ demo-build-watch: ## Watch demo (client, server and universal)
 
 .PHONY: demo
 demo-serve: demo-build ## Serve the demo executable
-	opam exec -- _build/default/demo/server/server.exe
+	@opam exec -- _build/default/demo/server/server.exe
 
 .PHONY: demo-serve-watch
 demo-serve-watch: ## Run demo executable on watch mode (listening to built_at.txt changes)
-	watchexec --no-ignore -w demo/.running/built_at.txt -r -c \
+	@watchexec --no-ignore -w demo/.running/built_at.txt -r -c \
 	"_build/default/demo/server/server.exe"
 
 .PHONY: subst
@@ -133,7 +133,7 @@ bench: build-bench ## Run benchmark
 
 .PHONY: bench-watch
 bench-watch: build-bench ## Run benchmark in watch mode
-	$(DUNE) exec bench/main.exe --profile=release --display-separate-messages --no-print-directory --watch
+	@$(DUNE) exec bench/main.exe --profile=release --display-separate-messages --no-print-directory --watch
 
 .PHONY: once
 once: build-bench ## Run benchmark once
