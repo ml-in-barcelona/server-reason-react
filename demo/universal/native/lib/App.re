@@ -90,7 +90,7 @@ let make = () => {
     <Stack gap=8 justify=`start>
       <Title />
       <Hr />
-      <Counter initial=23 />
+      <Counter initial=23 onClick={_ => print_endline("Clicked")} />
     </Stack>
   </Layout>;
 };

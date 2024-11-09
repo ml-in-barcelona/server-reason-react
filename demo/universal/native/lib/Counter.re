@@ -1,10 +1,13 @@
-[@warning "-27"];
+let make = (~initial, ~onClick as [@platform js] onClick) => {
+  let (count, [@platform js] setCount) = RR.useStateValue(initial);
 
-let make = (~initial) => {
-  let (state, setCount) = RR.useStateValue(initial);
+  [@platform js]
+  let onClick = e => {
+    setCount(count + 1);
 
-  let onClick = _event => {
-    setCount(state + 1);
+    Js.log2("Printing count", count);
+
+    onClick(e);
   };
 
   <div className={Theme.text(Theme.Color.white)}>
@@ -20,9 +23,9 @@ let make = (~initial) => {
           {React.string("Counter")}
         </p>
         <button
-          onClick
-          className="font-mono border-2 py-1 px-2 rounded-lg bg-yellow-950 border-yellow-700 text-yellow-200">
-          {React.string(Int.to_string(state))}
+          className="font-mono border-2 py-1 px-2 rounded-lg bg-yellow-950 border-yellow-700 text-yellow-200"
+          onClick={[@platform js] e => onClick(e)}>
+          {React.string(Int.to_string(count))}
         </button>
       </div>
     </Spacer>
@@ -36,16 +39,16 @@ let make = (~initial) => {
 };
 
 [@react.component]
-let make = (~initial) =>
+let make = (~initial, ~onClick as [@platform js] onClick) =>
   switch%platform (Runtime.platform) {
   | Server =>
     React.Client_component({
       import_module: "Counter",
       import_name: "",
       props: [("initial", React.Json(`Int(initial)))],
-      client: make(~initial),
+      client: make(~initial, ~onClick=_ => ()),
     })
-  | Client => make(~initial)
+  | Client => make(~initial, ~onClick)
   };
 
 let default = make;

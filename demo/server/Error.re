@@ -1,7 +1,7 @@
 let handler =
-  Dream.error_template((error, info, suggested) => {
+  Dream.error_template((_error, info, suggested) => {
     let status = Dream.status(suggested);
-    let code = Dream.status_to_int(status);
+    let _code = Dream.status_to_int(status);
     let reason = Dream.status_to_string(status);
     Dream.html(
       ReactDOM.renderToStaticMarkup(

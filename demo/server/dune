@@ -2,7 +2,6 @@
  (name server)
  (enabled_if
   (= %{profile} "dev"))
- (flags :standard -w -26-27) ; browser_only removes code form the server, making this warning necessary
  (libraries
   dream
   demo_shared_native

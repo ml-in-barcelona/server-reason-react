@@ -6,7 +6,7 @@ let renderToStreamHandler = _ =>
         let%lwt () = Dream.write(response_stream, data);
         Dream.flush(response_stream);
       };
-      let%lwt (stream, _abort) =
+      let%lwt (_stream, _abort) =
         ReactDOM.renderToStream(~pipe, <Document> <Comments /> </Document>);
       Lwt.return();
     },

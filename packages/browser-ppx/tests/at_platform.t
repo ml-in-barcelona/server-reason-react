@@ -124,6 +124,71 @@ Pstr_value
   $ ./standalone.exe -impl input_let.ml -js | ocamlformat - --enable-outside-detected-project --impl
   let x = 42 [@@platform js]
 
+Pexp_let
+
+  $ cat > input_let.ml << EOF
+  > let x =
+  >   let y = 42 [@@platform js] in
+  >   let y = 44 [@@platform native] in
+  >   y
+  > EOF
+
+  $ ./standalone.exe -impl input_let.ml | ocamlformat - --enable-outside-detected-project --impl
+  let x =
+    let y = 44 [@@platform native] in
+    y
+
+  $ ./standalone.exe -impl input_let.ml -js | ocamlformat - --enable-outside-detected-project --impl
+  let x =
+    let y = 42 [@@platform js] in
+    y
+
+Pexp_let
+
+  $ cat > input_let.ml << EOF
+  > let x =
+  >   let y = 42 [@@platform js] in
+  >   let y = 44 [@@platform native] in
+  >   y
+  > EOF
+
+  $ ./standalone.exe -impl input_let.ml | ocamlformat - --enable-outside-detected-project --impl
+  let x =
+    let y = 44 [@@platform native] in
+    y
+
+  $ ./standalone.exe -impl input_let.ml -js | ocamlformat - --enable-outside-detected-project --impl
+  let x =
+    let y = 42 [@@platform js] in
+    y
+
+Ppat_tuple
+
+  $ cat > input_let.ml << EOF
+  > let (x [@platform native], y [@platform js]) = (42, 44)
+  > EOF
+
+  $ ./standalone.exe -impl input_let.ml | ocamlformat - --enable-outside-detected-project --impl
+  let (x [@platform native]), _ = (42, 44)
+
+  $ ./standalone.exe -impl input_let.ml -js | ocamlformat - --enable-outside-detected-project --impl
+  let _, (y [@platform js]) = (42, 44)
+
+Ppat_var
+
+  $ cat > input_let.ml << EOF
+  > let y (onClick [@platform native]) = 24
+  > let x ~onClick:(onClick [@platform js]) = 42
+  > EOF
+
+  $ ./standalone.exe -impl input_let.ml | ocamlformat - --enable-outside-detected-project --impl
+  let y (onClick [@platform native]) = 24
+  let x ~onClick:_ = 42
+
+  $ ./standalone.exe -impl input_let.ml -js | ocamlformat - --enable-outside-detected-project --impl
+  let y _ = 24
+  let x ~onClick:(onClick [@platform js]) = 42
+
 Pstr_open
 
   $ cat > input_open.ml << EOF

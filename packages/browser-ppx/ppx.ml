@@ -383,6 +383,32 @@ module Preprocess = struct
         | { psig_desc = Psig_attribute attr; _ } :: rest when is_platform_tag attr.attr_name.txt ->
             if eval_attr attr = `keep then rest else []
         | _ -> List.filter_map apply_config_on_signature_item sigi
+
+      method! expression expr =
+        let expr = super#expression expr in
+        match expr.pexp_desc with
+        | Pexp_let (_, [ { pvb_attributes = attrs; _ } ], body) -> if should_keep attrs = `keep then expr else body
+        | Pexp_fun _ ->
+            if should_keep expr.pexp_attributes = `keep then expr
+            else
+              let rec inner expr' =
+                match expr'.pexp_desc with
+                | Pexp_fun (label, def, _, expression) ->
+                    Builder.pexp_fun ~loc:expr'.pexp_loc label def (Builder.ppat_any ~loc:expr'.pexp_loc)
+                      (inner expression)
+                | _ ->
+                    let loc = expr'.pexp_loc in
+                    [%expr
+                      Runtime.fail_impossible_action_in_ssr
+                        [%e Builder.estring ~loc (Astlib.Pprintast.string_of_expression expr)]]
+              in
+              inner expr
+        | _ -> expr
+
+      method! pattern pat =
+        let pat = super#pattern pat in
+        let loc = pat.ppat_loc in
+        if should_keep pat.ppat_attributes = `keep then pat else [%pat? _]
     end
 end
 
