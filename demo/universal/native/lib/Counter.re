@@ -48,10 +48,11 @@ let make = (~initial) =>
   | Client => make(~initial)
   };
 
-switch%platform (Runtime.platform) {
-| Server => ()
-| Client =>
-  Components.register("Counter", (props: Js.t({..})) => {
-    React.jsx(make, makeProps(~initial=props##initial, ()))
-  })
-};
+/* switch%platform (Runtime.platform) {
+   | Server => ()
+   | Client =>
+     Components.register("Counter", (props: Js.t({..})) => {
+       React.jsx(make, makeProps(~initial=props##initial, ()))
+     })
+   };
+    */

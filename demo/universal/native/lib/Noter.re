@@ -1,7 +1,7 @@
 module Hr = {
   [@react.component]
   let make = () => {
-    <span
+    <hr
       className={Cx.make([
         "block",
         "w-full",
@@ -29,12 +29,9 @@ let make = () => {
         ])}>
         {React.string("This is a small form")}
       </p>
-      /* <React.Suspense
-         fallback={<div> {React.string("the form is loading...")} </div>}> */
       <Note_editor title="Hello" body="World" />
-      /* </React.Suspense> */
       <Hr />
-      <Counter initial=0 />
+      <Counter initial=22 />
     </Stack>
   </Layout>;
 };

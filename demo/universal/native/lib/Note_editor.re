@@ -39,7 +39,7 @@ let make = (~title, ~body) =>
   switch%platform (Runtime.platform) {
   | Server =>
     React.Client_component({
-      import_module: "Counter",
+      import_module: "Note_editor",
       import_name: "",
       props: [
         ("title", React.Json(`String(title))),

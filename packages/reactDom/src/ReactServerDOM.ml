@@ -285,8 +285,7 @@ let chunk_stream_end_script =
   Html.node "script" [] [ Html.raw "window.srr_stream.close();" ]
 
 let rc_replacement b s =
-  Html.node "script" []
-    [ Html.raw (Printf.sprintf "<script>$RC('B:%x', 'S:%x')</script>" b s) ]
+  Html.node "script" [] [ Html.raw (Printf.sprintf "$RC('B:%x', 'S:%x')" b s) ]
 
 let chunk_html_script index html =
   Html.list ~separator:"\n"
@@ -469,11 +468,12 @@ and elements_to_html ~fiber elements =
 
 type rendering =
   | Done of {
-      head_scripts : Html.element;
+      head : Html.element;
       body : Html.element;
       end_script : Html.element;
     }
   | Async of {
+      head : Html.element;
       shell : Html.element;
       subscribe : (Html.element -> unit Lwt.t) -> unit Lwt.t;
     }
@@ -493,7 +493,7 @@ let render_to_html element =
       Lwt.return
         (Done
            {
-             head_scripts = rsc_start_script;
+             head = rsc_start_script;
              body = html_shell;
              end_script = chunk_stream_end_script;
            })
@@ -502,7 +502,12 @@ let render_to_html element =
         let%lwt () = Push_stream.subscribe ~fn stream in
         fn chunk_stream_end_script
       in
-      let html_shell = Html.list [ rc_function_script; html_shell ] in
-      Lwt.return (Async { shell = html_shell; subscribe = html_iter })
+      Lwt.return
+        (Async
+           {
+             shell = html_shell;
+             head = Html.list [ rc_function_script; rsc_start_script ];
+             subscribe = html_iter;
+           })
 
 let render_to_model = Model.render

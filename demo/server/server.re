@@ -82,7 +82,7 @@ let serverComponentsHandler = request => {
   switch (Dream.header(request, "Accept")) {
   | Some(accept) when is_react_component_header(accept) =>
     stream_rsc(stream => {
-      let%lwt initial =
+      let%lwt _initial =
         ReactServerDOM.render_to_model(
           app,
           ~subscribe=chunk => {
@@ -100,49 +100,74 @@ let serverComponentsHandler = request => {
       Dream.flush(stream);
     })
   | _ =>
-    let async_scripts = ["/static/demo/client/rsc-with-client.js"];
-    let scripts = ["https://cdn.tailwindcss.com"];
-    let htmlScripts =
-      String.concat(
-        "\n",
-        List.map(Printf.sprintf({|<script src="%s"></script>|}), scripts),
+    let doctype = Html.raw("<!DOCTYPE html>");
+    let head = children => {
+      Html.node(
+        "head",
+        [],
+        [
+          Html.node("meta", [Html.attribute("charset", "utf-8")], []),
+          Html.node("title", [], [Html.string("React Server DOM")]),
+          ...children,
+        ],
       );
-    let htmlAsyncScripts =
-      String.concat(
-        "\n",
-        List.map(
-          Printf.sprintf({|<script src="%s" async></script>|}),
-          async_scripts,
-        ),
+    };
+    let sync_scripts =
+      Html.node(
+        "script",
+        [Html.attribute("src", "https://cdn.tailwindcss.com")],
+        [],
+      );
+    let async_scripts =
+      Html.node(
+        "script",
+        [
+          Html.attribute("src", "/static/demo/client/rsc-with-client.js"),
+          Html.attribute("async", "true"),
+        ],
+        [],
       );
     let headers = [("Content-Type", "text/html")];
     Dream.stream(~headers, stream => {
       switch%lwt (ReactServerDOM.render_to_html(app)) {
-      | ReactServerDOM.Done({head_scripts: scripts, body: root, end_script}) =>
+      | ReactServerDOM.Done({head: head_children, body: root, end_script}) =>
         Dream.log("Done: %s", Html.to_string(root));
+        let%lwt () = Dream.write(stream, Html.to_string(doctype));
         let%lwt () =
           Dream.write(
             stream,
-            "<!DOCTYPE html><head><meta charset=\"utf-8\"/><title>React Server DOM</title>",
+            Html.to_string(
+              head([sync_scripts, async_scripts, head_children]),
+            ),
           );
-        let%lwt () = Dream.write(stream, htmlScripts);
-        let%lwt () = Dream.write(stream, htmlAsyncScripts);
-        let%lwt () = Dream.write(stream, Html.to_string(scripts));
-        let%lwt () = Dream.write(stream, "</head><body><div id=\"root\">");
+        let%lwt () = Dream.write(stream, "<body><div id=\"root\">");
         let%lwt () = Dream.write(stream, Html.to_string(root));
         let%lwt () = Dream.write(stream, "</div>");
         let%lwt () = Dream.write(stream, Html.to_string(end_script));
         let%lwt () = Dream.write(stream, "</body></html>");
         Dream.flush(stream);
-      | ReactServerDOM.Async({shell, subscribe}) =>
-        let%lwt () = Dream.write(stream, Html.to_string(shell));
-        Dream.log("Async: %s", Html.to_string(shell));
-        subscribe(chunk => {
-          Dream.log("Chunk");
-          Dream.log("%s", Html.to_string(chunk));
-          let%lwt () = Dream.write(stream, Html.to_string(chunk));
-          Dream.flush(stream);
-        });
+      | ReactServerDOM.Async({head: head_children, shell: root, subscribe}) =>
+        let%lwt () = Dream.write(stream, Html.to_string(doctype));
+        let%lwt () =
+          Dream.write(
+            stream,
+            Html.to_string(
+              head([sync_scripts, async_scripts, head_children]),
+            ),
+          );
+        let%lwt () = Dream.write(stream, "<body><div id=\"root\">");
+        let%lwt () = Dream.write(stream, Html.to_string(root));
+        let%lwt () = Dream.write(stream, "</div>");
+        let%lwt () = Dream.flush(stream);
+        let%lwt () =
+          subscribe(chunk => {
+            Dream.log("Chunk");
+            Dream.log("%s", Html.to_string(chunk));
+            let%lwt () = Dream.write(stream, Html.to_string(chunk));
+            Dream.flush(stream);
+          });
+        let%lwt () = Dream.write(stream, "</body></html>");
+        Dream.flush(stream);
       }
     });
   };
