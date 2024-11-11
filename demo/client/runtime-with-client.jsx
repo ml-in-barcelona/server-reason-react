@@ -17,21 +17,24 @@ let React = require("react");
 let ReactDOM = require("react-dom/client");
 let ReactServerDOM = require("react-server-dom-webpack/client");
 
+/* bootstrap.js */
+const { make: Note_editor } = require("./app/demo/universal/js/Note_editor.js");
+const { make: Counter } = require("./app/demo/universal/js/Counter.js");
+
 window.__client_manifest_map = {};
 
 let register = (name, render) => {
 	window.__client_manifest_map[name] = render;
 };
 
-register("Note_editor", () => {
-	let { make: Note_editor } = import("./app/demo/universal/js/Note_editor.js");
-	return Note_editor;
-});
+register("Note_editor", Note_editor);
 
-register("Counter", () => {
-	let { make: Counter } = import("./app/demo/universal/js/Counter.js");
-	return Counter;
-});
+register("Counter", Counter);
+
+/* If lazy */
+/* let { make: Counter } = import("./app/demo/universal/js/Counter.js"); */
+
+/* end bootstrap.js */
 
 class ErrorBoundary extends React.Component {
 	constructor(props) {

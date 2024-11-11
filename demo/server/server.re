@@ -130,8 +130,8 @@ let serverComponentsHandler = request => {
     let headers = [("Content-Type", "text/html")];
     Dream.stream(~headers, stream => {
       switch%lwt (ReactServerDOM.render_to_html(app)) {
-      | ReactServerDOM.Done({head: head_children, body: root, end_script}) =>
-        Dream.log("Done: %s", Html.to_string(root));
+      | ReactServerDOM.Done({head: head_children, body, end_script}) =>
+        Dream.log("Done: %s", Html.to_string(body));
         let%lwt () = Dream.write(stream, Html.to_string(doctype));
         let%lwt () =
           Dream.write(
@@ -141,12 +141,12 @@ let serverComponentsHandler = request => {
             ),
           );
         let%lwt () = Dream.write(stream, "<body><div id=\"root\">");
-        let%lwt () = Dream.write(stream, Html.to_string(root));
+        let%lwt () = Dream.write(stream, Html.to_string(body));
         let%lwt () = Dream.write(stream, "</div>");
         let%lwt () = Dream.write(stream, Html.to_string(end_script));
         let%lwt () = Dream.write(stream, "</body></html>");
         Dream.flush(stream);
-      | ReactServerDOM.Async({head: head_children, shell: root, subscribe}) =>
+      | ReactServerDOM.Async({head: head_children, shell: body, subscribe}) =>
         let%lwt () = Dream.write(stream, Html.to_string(doctype));
         let%lwt () =
           Dream.write(
@@ -156,7 +156,7 @@ let serverComponentsHandler = request => {
             ),
           );
         let%lwt () = Dream.write(stream, "<body><div id=\"root\">");
-        let%lwt () = Dream.write(stream, Html.to_string(root));
+        let%lwt () = Dream.write(stream, Html.to_string(body));
         let%lwt () = Dream.write(stream, "</div>");
         let%lwt () = Dream.flush(stream);
         let%lwt () =
