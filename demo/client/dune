@@ -7,7 +7,7 @@
  (libraries melange demo_shared_js reason-react)
  (preprocess
   (pps reason-react-ppx browser_ppx -js melange.ppx))
- (module_systems commonjs))
+ (module_systems es6))
 
 (rule
  (alias client)
@@ -27,20 +27,22 @@
     --log-level=error
     --outfile=app/demo/client/app.js))))
 
-(rule
- (alias client)
- (deps
-  (:file runtime-without-client.jsx)
-  (alias_rec melange-app))
- (action
-  (progn
-   (run
-    esbuild
-    %{file}
-    --bundle
-    --platform=browser
-    --log-level=error
-    --outfile=app/demo/client/rsc-without-client.js))))
+; (rule
+; (alias client)
+; (deps
+; (:file runtime-without-client.jsx)
+; (alias_rec melange-app))
+; (action
+; (progn
+; (run
+; esbuild
+; %{file}
+; --bundle
+; --platform=browser
+; --splitting
+; --outdir=app/demo/client
+; --format=esm
+; --log-level=error))))
 
 (rule
  (alias client)
@@ -54,5 +56,7 @@
     %{file}
     --bundle
     --platform=browser
+    --format=esm
+    --splitting
     --log-level=error
-    --outfile=app/demo/client/rsc-with-client.js))))
+    --outdir=app/demo/client))))

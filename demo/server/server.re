@@ -52,7 +52,7 @@ let serverComponentsWithoutClientHandler = request => {
   } else {
     Dream.html(
       ReactDOM.renderToString(
-        <Document script="/static/demo/client/rsc-without-client.js">
+        <Document script="/static/demo/client/runtime-without-client.js">
           React.null
         </Document>,
       ),
@@ -78,7 +78,11 @@ let stream_rsc = fn => {
 };
 
 let serverComponentsHandler = request => {
-  let app = <Noter />;
+  let sleep = (~ms, value) => {
+    let%lwt () = Lwt_unix.sleep(ms /. 1000.);
+    Lwt.return(value);
+  };
+  let app = <Noter valueIn3seconds={sleep(~ms=300., "PROMISE VALUE HERE")} />;
   switch (Dream.header(request, "Accept")) {
   | Some(accept) when is_react_component_header(accept) =>
     stream_rsc(stream => {
@@ -122,8 +126,9 @@ let serverComponentsHandler = request => {
       Html.node(
         "script",
         [
-          Html.attribute("src", "/static/demo/client/rsc-with-client.js"),
+          Html.attribute("src", "/static/demo/client/runtime-with-client.js"),
           Html.attribute("async", "true"),
+          Html.attribute("type", "module"),
         ],
         [],
       );

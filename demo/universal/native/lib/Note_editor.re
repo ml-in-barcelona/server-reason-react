@@ -50,6 +50,8 @@ let make = (~title, ~body) =>
   | Client => make(~title, ~body)
   };
 
+let default = make;
+
 /* switch%platform (Runtime.platform) {
    | Server => ()
    | Client =>

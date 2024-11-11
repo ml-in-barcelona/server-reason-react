@@ -4,22 +4,29 @@ window.__webpack_require__ = (id) => {
 	console.log(id);
 	console.log(component);
 	console.log("---");
-	return { __esModule: true, default: component };
+	/* return { __esModule: true, default: component }; */
+	return component;
 };
 
-window.__webpack_chunk_load__ = (id) => {
-	console.log("CHUNK LOAD ---");
-	console.log(id);
-	console.log("---");
-};
 
 let React = require("react");
 let ReactDOM = require("react-dom/client");
 let ReactServerDOM = require("react-server-dom-webpack/client");
 
+/*
+melange_manifest.json
+
+[
+	"Note_editor": ["./app/demo/universal/js/Note_editor.js", {"melange.belt/List"}],
+	["Counter", "Counter.js"],
+	["Promise_renderer", "Promise_renderer.js"],
+]
+*/
+
 /* bootstrap.js */
-const { make: Note_editor } = require("./app/demo/universal/js/Note_editor.js");
+/* const { make: Note_editor } = require("./app/demo/universal/js/Note_editor.js"); */
 const { make: Counter } = require("./app/demo/universal/js/Counter.js");
+const { make: PR } = require("./app/demo/universal/js/Promise_renderer.js");
 
 window.__client_manifest_map = {};
 
@@ -27,9 +34,17 @@ let register = (name, render) => {
 	window.__client_manifest_map[name] = render;
 };
 
-register("Note_editor", Note_editor);
-
-register("Counter", Counter);
+register(
+	"Note_editor",
+	React.lazy(() => import("./app/demo/universal/js/Note_editor.js")));
+register(
+	"Counter",
+	React.lazy(() => import("./app/demo/universal/js/Counter.js"))
+);
+register(
+	"Promise_renderer",
+	React.lazy(() => import("./app/demo/universal/js/Promise_renderer.js"))
+);
 
 /* If lazy */
 /* let { make: Counter } = import("./app/demo/universal/js/Counter.js"); */
@@ -78,7 +93,6 @@ try {
 	React.startTransition(() => {
 		ReactDOM.hydrateRoot(element, app);
 	});
-	console.log(__client_manifest_map);
 } catch (e) {
 	console.error(e);
 }

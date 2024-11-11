@@ -13,7 +13,7 @@ module Hr = {
 };
 
 [@react.component]
-let make = () => {
+let make = (~valueIn3seconds as _) => {
   React.useEffect(() => {
     let _ = Js.log("Hello from the client");
     None;
@@ -31,7 +31,10 @@ let make = () => {
       </p>
       <Note_editor title="Hello" body="World" />
       <Hr />
-      <Counter initial=22 />
+      <Hr />
     </Stack>
   </Layout>;
 };
+
+/* <Counter initial=22 /> */
+/* <Promise_renderer promise=valueIn3seconds /> */
