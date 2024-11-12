@@ -18,15 +18,15 @@ let make = (~title: string, ~body: string) => {
     Js.log("SUBMIT!");
   };
 
-  <form className="flex gap-4" action="/" onSubmit=submit>
+  <form className="flex gap-4 flex-wrap w-full" action="/" onSubmit=submit>
     <input
-      className="border-2 rounded-md p-2 border-gray-700 bg-transparent text-gray-200"
+      className="flex-1 border-2 rounded-md p-2 border-gray-700 bg-transparent text-gray-200"
       name="title"
       onChange=updateTitle
       value=title
     />
     <input
-      className="border-2 rounded-md p-2 border-gray-700 bg-transparent text-gray-200"
+      className="flex-1 border-2 rounded-md p-2 border-gray-700 bg-transparent text-gray-200"
       name="body"
       onChange=updateBody
       value=body

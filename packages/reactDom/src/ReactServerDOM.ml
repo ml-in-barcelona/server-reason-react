@@ -433,7 +433,7 @@ let rec to_html ~fiber (element : React.element) : (Html.element * json) Lwt.t =
       Fiber.task fiber (fun fiber ->
           let promise = to_html ~fiber children in
           match Lwt.state promise with
-          | Sleep ->
+          | Lwt.Sleep ->
               let index = Fiber.use_index fiber in
               let async_html =
                 let%lwt html, model = promise in
@@ -450,12 +450,12 @@ let rec to_html ~fiber (element : React.element) : (Html.element * json) Lwt.t =
                 )
               in
               `Fork (async_html, sync_html)
-          | Return (html, model) ->
+          | Lwt.Return (html, model) ->
               let model =
                 Model.suspense_node ~key ~fallback:model_fallback [ model ]
               in
               `Sync (html_suspense html, model)
-          | Fail exn -> `Fail exn)
+          | Lwt.Fail exn -> `Fail exn)
   | Provider children -> to_html ~fiber children
   | Consumer children -> to_html ~fiber children
   (* TODO: There's a task to remove InnerHtml in ReactDOM and use Html.raw directly. Here is still unclear what do to since we assing dangerouslySetInnerHTML to the right prop on the model. Also, should this model be `Null? *)

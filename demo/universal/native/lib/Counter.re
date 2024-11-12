@@ -28,8 +28,8 @@ let make = (~initial) => {
     </Spacer>
     <p className="text-lg">
       {React.string(
-         "The HTML (including counter value) comes first from the server"
-         ++ " then is updated by React after render or hydration (depending if you are running ReactDOM.render or ReactDOM.hydrate on the client).",
+         "The HTML comes from the server"
+         ++ " then is updated by the client after React runs. Via render or hydration (when using ReactDOM.hydrateRoot).",
        )}
     </p>
   </div>;
@@ -47,6 +47,8 @@ let make = (~initial) =>
     })
   | Client => make(~initial)
   };
+
+let default = make;
 
 /* switch%platform (Runtime.platform) {
    | Server => ()

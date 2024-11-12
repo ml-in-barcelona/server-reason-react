@@ -31,10 +31,8 @@ let make = (~valueIn3seconds as _) => {
       </p>
       <Note_editor title="Hello" body="World" />
       <Hr />
+      <Counter initial=22 />
       <Hr />
     </Stack>
   </Layout>;
 };
-
-/* <Counter initial=22 /> */
-/* <Promise_renderer promise=valueIn3seconds /> */

@@ -27,22 +27,22 @@
     --log-level=error
     --outfile=app/demo/client/app.js))))
 
-; (rule
-; (alias client)
-; (deps
-; (:file runtime-without-client.jsx)
-; (alias_rec melange-app))
-; (action
-; (progn
-; (run
-; esbuild
-; %{file}
-; --bundle
-; --platform=browser
-; --splitting
-; --outdir=app/demo/client
-; --format=esm
-; --log-level=error))))
+(rule
+ (alias client)
+ (deps
+  (:file create-from-fetch.jsx)
+  (alias_rec melange-app))
+ (action
+  (progn
+   (run
+    esbuild
+    %{file}
+    --bundle
+    --platform=browser
+    --splitting
+    --outdir=app/demo/client
+    --format=esm
+    --log-level=error))))
 
 (rule
  (alias client)

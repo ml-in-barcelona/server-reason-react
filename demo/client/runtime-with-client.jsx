@@ -8,25 +8,11 @@ window.__webpack_require__ = (id) => {
 	return component;
 };
 
-
 let React = require("react");
 let ReactDOM = require("react-dom/client");
 let ReactServerDOM = require("react-server-dom-webpack/client");
 
-/*
-melange_manifest.json
-
-[
-	"Note_editor": ["./app/demo/universal/js/Note_editor.js", {"melange.belt/List"}],
-	["Counter", "Counter.js"],
-	["Promise_renderer", "Promise_renderer.js"],
-]
-*/
-
 /* bootstrap.js */
-/* const { make: Note_editor } = require("./app/demo/universal/js/Note_editor.js"); */
-const { make: Counter } = require("./app/demo/universal/js/Counter.js");
-const { make: PR } = require("./app/demo/universal/js/Promise_renderer.js");
 
 window.__client_manifest_map = {};
 
@@ -45,10 +31,6 @@ register(
 	"Promise_renderer",
 	React.lazy(() => import("./app/demo/universal/js/Promise_renderer.js"))
 );
-
-/* If lazy */
-/* let { make: Counter } = import("./app/demo/universal/js/Counter.js"); */
-
 /* end bootstrap.js */
 
 class ErrorBoundary extends React.Component {

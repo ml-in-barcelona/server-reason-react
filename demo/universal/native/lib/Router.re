@@ -8,9 +8,12 @@ let serverComponents = "/demo/server-components";
 let links = [|
   ("Render to static markup (SSR)", renderToStaticMarkup),
   ("Render to string (SSR)", renderToString),
-  ("Render to Lwt_stream (SSR)", renderToStream),
-  ("Server components without client", serverComponentsWithoutClient),
-  ("Server components", serverComponents),
+  ("Render to Stream (SSR)", renderToStream),
+  (
+    "Server components without client (createFromFetch)",
+    serverComponentsWithoutClient,
+  ),
+  ("Server components (RSC + SSR)", serverComponents),
 |];
 
 module Menu = {

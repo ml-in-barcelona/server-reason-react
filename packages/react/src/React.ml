@@ -677,10 +677,12 @@ type any_promise = Any_promise : 'a Lwt.t -> any_promise
 
 exception Suspend of any_promise
 
+let suspend promise = raise (Suspend (Any_promise promise))
+
 module Experimental = struct
   let use promise =
     match Lwt.state promise with
-    | Sleep -> raise (Suspend (Any_promise promise))
+    | Sleep -> suspend promise
     (* TODO: Fail should raise a FailedSupense and catch at renderTo*? *)
     | Fail e -> raise e
     | Return v -> v

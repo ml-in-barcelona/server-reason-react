@@ -3,7 +3,7 @@ window.__webpack_require__ = async (_id) => {
 };
 
 let ReactDOM = require("react-dom/client");
-let ReactServerDOMWebpack = require("react-server-dom-webpack/client");
+let ReactServerDOM = require("react-server-dom-webpack/client");
 
 let fetchXcomponent = () => {
   return fetch("/demo/server-components-without-client", {
@@ -16,6 +16,6 @@ let fetchXcomponent = () => {
 
 let root = ReactDOM.createRoot(document.getElementById("root"));
 
-ReactServerDOMWebpack.createFromFetch(fetchXcomponent()).then(element => {
+ReactServerDOM.createFromFetch(fetchXcomponent()).then(element => {
   root.render(element);
 });

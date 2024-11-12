@@ -162,9 +162,11 @@ let render_inline_rc_replacement replacements =
   Html.node "script" [] [ rc_payload ]
 
 let render_to_stream ~context_state element =
+  (* let exception Suspend_async of React.elemet Lwt.t in *)
   let rec render_element element =
     match (element : React.element) with
     | Empty -> Lwt.return Html.null
+    (* TODO: Check if this breaks in the client. Maybe should throw an error/exn? *)
     | Client_component _ -> Lwt.return Html.null
     | Provider children -> render_element children
     | Consumer children -> render_element children
@@ -174,51 +176,48 @@ let render_to_stream ~context_state element =
           arr |> Array.to_list |> Lwt_list.map_p render_element
         in
         Lwt.return (Html.list children_elements)
-    | Upper_case_component component -> render_element (component ())
+    | Upper_case_component component ->
+        let rec wait_for_suspense_to_resolve () =
+          match component () with
+          | exception React.Suspend (Any_promise promise) ->
+              let%lwt _ = promise in
+              wait_for_suspense_to_resolve ()
+          | output -> render_element output
+          | exception exn -> raise exn
+        in
+        wait_for_suspense_to_resolve ()
     | Lower_case_element { tag; attributes; _ }
       when Html.is_self_closing_tag tag ->
         Lwt.return (Html.node tag (attributes_to_html attributes) [])
     | Lower_case_element { key = _; tag; attributes; children } ->
-        let%lwt inner = children |> Lwt_list.map_p render_element in
-        Lwt.return (Html.node tag (attributes_to_html attributes) inner)
+        let%lwt inner = Lwt_list.map_p render_element children in
+        let html_attributes = attributes_to_html attributes in
+        Lwt.return (Html.node tag html_attributes inner)
     | Text text -> Lwt.return (Html.string text)
     | InnerHtml text -> Lwt.return (Html.raw text)
     | Async_component component ->
-        let%lwt element = component () in
-        render_element element
-    | Suspense { key = _; children; fallback } -> (
-        match render_element children with
-        | output -> output
-        | exception React.Suspend (Any_promise promise) ->
-            context_state.waiting <- context_state.waiting + 1;
-            (* We store to current_boundary_id, current_suspense_id to bypass the increment + mutation below *)
-            let current_boundary_id = context_state.boundary_id in
-            let current_suspense_id = context_state.suspense_id in
-            context_state.boundary_id <- context_state.boundary_id + 1;
-            (* Wait for promise to resolve *)
-            Lwt.async (fun () ->
-                Lwt.bind promise (fun _ ->
-                    (* Enqueue the component with resolved data *)
-                    let%lwt resolved =
-                      render_suspense_resolved_element ~id:current_suspense_id
-                        children
-                    in
-                    context_state.push resolved;
-                    (* Enqueue the inline script that replaces fallback by resolved *)
-                    context_state.push inline_complete_boundary_script;
-                    context_state.push
-                      (render_inline_rc_replacement
-                         [ (current_boundary_id, current_suspense_id) ]);
-                    context_state.waiting <- context_state.waiting - 1;
-                    context_state.suspense_id <- context_state.suspense_id + 1;
-                    if context_state.waiting = 0 then context_state.close ();
-                    Lwt.return_unit));
-            (* Return the rendered fallback to SSR syncronous *)
-            render_suspense_fallback ~boundary_id:current_boundary_id fallback
-        | exception _exn ->
-            (* TODO: log exn *)
-            render_suspense_fallback ~boundary_id:context_state.boundary_id
-              fallback)
+        let%lwt async_element = component () in
+        render_element async_element
+    | Suspense { key = _; children; fallback } ->
+        let current_boundary_id = context_state.boundary_id in
+        let current_suspense_id = context_state.suspense_id in
+        context_state.waiting <- context_state.waiting + 1;
+        Lwt.async (fun () ->
+            (* Enqueue the component with resolved data *)
+            let%lwt resolved =
+              render_suspense_resolved_element ~id:current_suspense_id children
+            in
+            context_state.push resolved;
+            (* Enqueue the inline script that replaces fallback by resolved *)
+            context_state.push inline_complete_boundary_script;
+            context_state.push
+              (render_inline_rc_replacement
+                 [ (current_boundary_id, current_suspense_id) ]);
+            context_state.waiting <- context_state.waiting - 1;
+            context_state.suspense_id <- context_state.suspense_id + 1;
+            if context_state.waiting = 0 then context_state.close ();
+            Lwt.return ());
+        render_suspense_fallback ~boundary_id:current_boundary_id fallback
   (* TODO: Move this outside of the recursivity *)
   and render_suspense_resolved_element ~id element =
     render_element element
@@ -244,8 +243,16 @@ let render_to_stream ~context_state element =
              ])
   in
   render_element element
+(* | exception React.Suspend (Any_promise _promise) ->
+    failwith
+      "It looks like there's a promise that hasn't resolved yet and isn't \
+       wrapped in a Suspense boundary. Please add <React.Suspense> to \
+       capture the promise when it resolves and fails." *)
+(* | exception React.Suspend (Any_promise promise) ->
+    let%lwt element = promise in
+    render_element element *)
 
-let renderToStream element =
+let renderToStream ?pipe element =
   let stream, push, close = Push_stream.make () in
   let push_html html = push (Html.to_string html) in
   let context_state =
@@ -253,11 +260,15 @@ let renderToStream element =
   in
   let%lwt html = render_to_stream ~context_state element in
   push_html html;
+  let%lwt () =
+    match pipe with
+    | None -> Lwt.return ()
+    | Some pipe -> Lwt_stream.iter_s pipe stream
+  in
   if context_state.waiting = 0 then close ();
   let abort () =
     (* TODO: Needs to flush the remaining loading fallbacks as HTML, and React.js will try to render the rest on the client. *)
-    (* Lwt_stream.closed stream |> Lwt.ignore_result *)
-    failwith "abort() isn't supported yet"
+    Lwt_stream.closed stream |> Lwt.ignore_result
   in
   Lwt.return (stream, abort)
 

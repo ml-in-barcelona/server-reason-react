@@ -5,26 +5,40 @@ let assert_list ty left right =
   Alcotest.check (Alcotest.list ty) "should be equal" right left
 
 let test_with_switch title fn = Alcotest_lwt.test_case title `Quick fn
+let is_not_zero x epsilon = abs_float x >= epsilon
 
-let test title fn =
-  Alcotest_lwt.test_case title `Quick (fun _switch body -> fn body)
+let test title (fn : unit -> unit Lwt.t) =
+  Alcotest_lwt.test_case title `Quick (fun _switch () ->
+      let start = Unix.gettimeofday () in
+      let timeout =
+        let%lwt () = Lwt_unix.sleep 3.0 in
+        Alcotest.failf "Test '%s' timed out" title
+      in
+      let%lwt test_promise = Lwt.pick [ fn (); timeout ] in
+      let epsilon = 0.001 in
+      let duration = Unix.gettimeofday () -. start in
+      if is_not_zero duration epsilon then
+        Printf.printf
+          "\027[1m\027[33m[WARNING]\027[0m Test '%s' took %.3f seconds\n" title
+          duration
+      else ();
+      Lwt.return test_promise)
 
 let assert_stream (stream : string Lwt_stream.t) expected =
-  let open Lwt.Infix in
-  Lwt_stream.to_list stream >>= fun content ->
-  if content = [] then Lwt.return @@ Alcotest.fail "stream should not be empty"
-  else Lwt.return @@ assert_list Alcotest.string content expected
+  let%lwt content = Lwt_stream.to_list stream in
+  if content = [] then Lwt.return (Alcotest.fail "stream should not be empty")
+  else Lwt.return (assert_list Alcotest.string content expected)
 
 module Sleep = struct
   let cached = ref false
   let destroy () = cached := false
 
   let delay v =
-    if cached.contents then Lwt.return ()
-    else
-      let open Lwt.Infix in
+    if cached.contents then Lwt.return v
+    else (
       cached.contents <- true;
-      Lwt_unix.sleep v >>= fun () -> Lwt.return ()
+      let%lwt () = Lwt_unix.sleep v in
+      Lwt.return v)
 end
 
 let test_silly_stream () =
@@ -35,37 +49,28 @@ let test_silly_stream () =
   push None;
   assert_stream stream [ "first"; "secondo"; "trienio" ]
 
-(* let lwt_check_raises f =
-     let open Lwt.Infix in
-     Lwt.catch
-       (fun () -> f () >|= fun () -> `Ok)
-       (function e -> Lwt.return @@ `Error e)
-     >|= function
-     | `Ok -> Alcotest.fail "No exception was thrown"
-     | `Error (React.Suspend _) ->
-         Alcotest.(check pass) "Expect suspense to raise" () ()
-     | `Error exn -> Lwt.reraise exn
+let react_use_without_suspense () =
+  Sleep.destroy ();
+  let app =
+    React.Upper_case_component
+      (fun () ->
+        let delay = React.Experimental.use (Sleep.delay 0.01) in
+        React.createElement "div" []
+          [
+            React.createElement "span" []
+              [ React.string "Hello "; React.float delay ];
+          ])
+  in
+  let%lwt stream, _abort = ReactDOM.renderToStream app in
+  assert_stream stream [ "<div><span>Hello 0.01</span></div>" ]
 
-   let react_use_without_suspense () =
-     (* We clean the cache so we can re-use the same promise *)
-     Sleep.destroy ();
-     let delay = 0.1 in
-     let app =
-       React.Upper_case_component
-         (fun () ->
-           let () = React.Experimental.use (Sleep.delay delay) in
-           React.createElement "div" []
-             [
-               React.createElement "span" []
-                 [ React.string "Hello "; React.float delay ];
-             ])
-     in
-     let raises () =
-       let%lwt stream, _abort = ReactDOM.renderToStream app in
-       assert_stream stream [ "<div><span>Hello 0.1</span></div>" ]
-     in
-     lwt_check_raises raises
-*)
+let rsc_script =
+  "<script>function \
+   $RC(a,b){a=document.getElementById(a);b=document.getElementById(b);b.parentNode.removeChild(b);if(a){a=a.previousSibling;var \
+   f=a.parentNode,c=a.nextSibling,e=0;do{if(c&&8===c.nodeType){var \
+   d=c.data;if(\"/$\"===d)if(0===e)break;else \
+   e--;else\"$\"!==d&&\"$?\"!==d&&\"$!\"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data=\"$\";a._reactRetry&&a._reactRetry()}}</script>"
+
 let suspense_without_promise () =
   let hi =
     React.Upper_case_component
@@ -73,49 +78,63 @@ let suspense_without_promise () =
         React.createElement "div" []
           [ React.createElement "span" [] [ React.string "Hello" ] ])
   in
-  let app =
+  let app () =
     React.Suspense.make ~fallback:(React.string "Loading...") ~children:hi ()
   in
-  let%lwt stream, _abort = ReactDOM.renderToStream app in
+  let%lwt stream, _abort =
+    ReactDOM.renderToStream (React.Upper_case_component app)
+  in
   assert_stream stream [ "<div><span>Hello</span></div>" ]
 
-let suspense_with_always_throwing () =
-  let hi =
+let assert_raises exn fn =
+  match%lwt fn () with
+  | exception exn ->
+      Lwt.return
+        (assert_string (Printexc.to_string exn) (Printexc.to_string exn))
+  | _ -> Alcotest.failf "Expected exception %s" (Printexc.to_string exn)
+
+let component_always_throwing () =
+  let app () =
     React.Upper_case_component (fun () -> raise (Failure "always throwing"))
   in
-  let app =
-    React.Suspense.make ~fallback:(React.string "Loading...") ~children:hi ()
-  in
-  let%lwt stream, _abort = ReactDOM.renderToStream app in
-  assert_stream stream
-    [ "<!--$?--><template id=\"B:0\"></template>Loading...<!--/$-->" ]
+  assert_raises (Failure "always throwing") (fun () ->
+      ReactDOM.renderToStream (React.Upper_case_component app))
 
-let react_use_with_suspense () =
+(* let suspense_with_always_throwing () =
+   let hi =
+     React.Upper_case_component (fun () -> raise (Failure "always throwing"))
+   in
+   let app () =
+     React.Suspense.make ~fallback:(React.string "Loading...") ~children:hi ()
+   in
+   let%lwt stream, _abort =
+     ReactDOM.renderToStream (React.Upper_case_component app)
+   in
+   assert_stream stream [ "<div><!--$!--><template data-ms" ] *)
+
+let suspense_with_react_use () =
   Sleep.destroy ();
-  let delay = 0.5 in
   let time =
     React.Upper_case_component
       (fun () ->
-        let () = React.Experimental.use (Sleep.delay delay) in
+        let delay = React.Experimental.use (Sleep.delay 0.05) in
         React.createElement "div" []
           [
             React.createElement "span" []
               [ React.string "Hello "; React.float delay ];
           ])
   in
-  let app =
+  let app () =
     React.Suspense.make ~fallback:(React.string "Loading...") ~children:time ()
   in
-  let%lwt stream, _abort = ReactDOM.renderToStream app in
+  let%lwt stream, _abort =
+    ReactDOM.renderToStream (React.Upper_case_component app)
+  in
   assert_stream stream
     [
       "<!--$?--><template id=\"B:0\"></template>Loading...<!--/$-->";
-      "<div hidden id=\"S:0\"><div><span>Hello 0.5</span></div></div>";
-      "<script>function \
-       $RC(a,b){a=document.getElementById(a);b=document.getElementById(b);b.parentNode.removeChild(b);if(a){a=a.previousSibling;var \
-       f=a.parentNode,c=a.nextSibling,e=0;do{if(c&&8===c.nodeType){var \
-       d=c.data;if(\"/$\"===d)if(0===e)break;else \
-       e--;else\"$\"!==d&&\"$?\"!==d&&\"$!\"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data=\"$\";a._reactRetry&&a._reactRetry()}}</script>";
+      "<div hidden id=\"S:0\"><div><span>Hello 0.05</span></div></div>";
+      rsc_script;
       "<script>$RC('B:0','S:0')</script>";
     ]
 
@@ -126,8 +145,10 @@ let test_with_custom_component () =
         React.createElement "div" []
           [ React.createElement "span" [] [ React.string "Custom Component" ] ])
   in
-  let app = React.createElement "div" [] [ custom_component ] in
-  let%lwt stream, _abort = ReactDOM.renderToStream app in
+  let app () = React.createElement "div" [] [ custom_component ] in
+  let%lwt stream, _abort =
+    ReactDOM.renderToStream (React.Upper_case_component app)
+  in
   assert_stream stream [ "<div><div><span>Custom Component</span></div></div>" ]
 
 let test_with_multiple_custom_components () =
@@ -137,10 +158,12 @@ let test_with_multiple_custom_components () =
         React.createElement "div" []
           [ React.createElement "span" [] [ React.string "Custom Component" ] ])
   in
-  let app =
+  let app () =
     React.createElement "div" [] [ custom_component; custom_component ]
   in
-  let%lwt stream, _abort = ReactDOM.renderToStream app in
+  let%lwt stream, _abort =
+    ReactDOM.renderToStream (React.Upper_case_component app)
+  in
   assert_stream stream
     [
       "<div><div><span>Custom Component</span></div><div><span>Custom \
@@ -148,55 +171,84 @@ let test_with_multiple_custom_components () =
     ]
 
 let async_component () =
-  let app =
+  let app () =
     React.Async_component
       (fun () ->
         Lwt.return (React.createElement "span" [] [ React.string "yow" ]))
   in
-  let%lwt stream, _abort = ReactDOM.renderToStream app in
+  let%lwt stream, _abort =
+    ReactDOM.renderToStream (React.Upper_case_component app)
+  in
   assert_stream stream [ "<span>yow</span>" ]
 
-(*
-TODO: Add this test
+let suspense_with_async_component () =
+  let deffered_component ~seconds ~children () =
+    let cached_promise =
+      let%lwt () = Lwt_unix.sleep seconds in
+      Lwt.return
+        (React.createElement "div" []
+           [
+             React.string ("Sleep " ^ Float.to_string seconds ^ " seconds");
+             React.string ", ";
+             children;
+           ])
+    in
+    React.Async_component (fun () -> cached_promise)
+  in
+  let app () =
+    React.createElement "div" []
+      [
+        React.Suspense.make
+          ~fallback:(React.string "Fallback 1")
+          ~children:
+            (deffered_component ~seconds:0.02 ~children:(React.string "lol") ())
+          ();
+      ]
+  in
+  let%lwt stream, _abort =
+    ReactDOM.renderToStream (React.Upper_case_component app)
+  in
+  assert_stream stream
+    [
+      "<div><!--$?--><template id=\"B:0\"></template>Fallback 1<!--/$--></div>";
+      "<div hidden id=\"S:0\"><div>Sleep 0.02 seconds, lol</div></div>";
+      rsc_script;
+      "<script>$RC('B:0','S:0')</script>";
+    ]
 
-const DefferedComponent = async ({
-  sleep,
-  children,
-}: {
-  sleep: number;
-  children?: ReactNode;
-}) => {
-  await new Promise<void>((res) => setTimeout(() => res(), sleep * 1000));
-  return (
-    <div>
-      Sleep {sleep}s
-      {children}
-    </div>
-  );
-};
-
-export default function Home() {
-  return (
-    <div>
-      Home Page
-      <Suspense fallback='Fallback 1'>
-        <DefferedComponent sleep={1}>
-          <Suspense fallback='Fallback 2'>
-            <DefferedComponent sleep={1}></DefferedComponent>
-          </Suspense>
-        </DefferedComponent>
-      </Suspense>
-    </div>
-  );
-} *)
+let async_component_without_suspense () =
+  let deffered_component ~seconds ~children () =
+    let cached_promise =
+      let%lwt () = Lwt_unix.sleep seconds in
+      Lwt.return
+        (React.createElement "div" []
+           [
+             React.string ("Sleep " ^ Float.to_string seconds ^ " seconds");
+             React.string ", ";
+             children;
+           ])
+    in
+    React.Async_component (fun () -> cached_promise)
+  in
+  let app () =
+    React.createElement "div" []
+      [ deffered_component ~seconds:0.02 ~children:(React.string "lol") () ]
+  in
+  let%lwt stream, _abort =
+    ReactDOM.renderToStream (React.Upper_case_component app)
+  in
+  assert_stream stream [ "<div><div>Sleep 0.02 seconds, lol</div></div>" ]
 
 let tests =
   ( "renderToLwtStream",
     [
       test "test_silly_stream" test_silly_stream;
-      (* test "react_use_without_suspense" react_use_without_suspense; *)
-      test "suspense_with_always_throwing" suspense_with_always_throwing;
-      test "suspense_without_promise" suspense_without_promise;
-      test "react_use_with_suspense" react_use_with_suspense;
+      test "react_use_without_suspense" react_use_without_suspense;
+      test "component_always_throwing" component_always_throwing;
+      test "suspense_with_react_use" suspense_with_react_use;
       test "async component" async_component;
+      test "async_component_without_suspense" async_component_without_suspense;
+      test "suspense_with_async_component" suspense_with_async_component;
+      (* test "suspense_with_always_throwing" suspense_with_always_throwing; *)
+      (* test "suspense_without_promise" suspense_without_promise; *)
     ] )

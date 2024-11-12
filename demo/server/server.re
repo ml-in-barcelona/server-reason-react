@@ -2,16 +2,13 @@ let renderToStreamHandler = _ =>
   Dream.stream(
     ~headers=[("Content-Type", "text/html")],
     response_stream => {
+      let pipe = data => {
+        let%lwt () = Dream.write(response_stream, data);
+        Dream.flush(response_stream);
+      };
       let%lwt (stream, _abort) =
-        ReactDOM.renderToStream(<Document> <Comments /> </Document>);
-
-      Lwt_stream.iter_s(
-        data => {
-          let%lwt () = Dream.write(response_stream, data);
-          Dream.flush(response_stream);
-        },
-        stream,
-      );
+        ReactDOM.renderToStream(~pipe, <Document> <Comments /> </Document>);
+      Lwt.return();
     },
   );
 
@@ -52,7 +49,7 @@ let serverComponentsWithoutClientHandler = request => {
   } else {
     Dream.html(
       ReactDOM.renderToString(
-        <Document script="/static/demo/client/runtime-without-client.js">
+        <Document script="/static/demo/client/create-from-fetch.js">
           React.null
         </Document>,
       ),

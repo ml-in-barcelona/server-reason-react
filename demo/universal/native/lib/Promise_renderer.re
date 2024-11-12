@@ -20,12 +20,13 @@ let make = (~promise: Js.Promise.t(string)) =>
 let make = (~promise) =>
   switch%platform (Runtime.platform) {
   | Server =>
-    Js.log("Server");
     React.Client_component({
       import_module: "Promise_renderer",
       import_name: "",
       props: [("promise", React.Promise(promise, v => `String(v)))],
       client: make(~promise),
-    });
+    })
   | Client => make(~promise)
   };
+
+let default = make;
