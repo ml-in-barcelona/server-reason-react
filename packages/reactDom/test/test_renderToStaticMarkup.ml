@@ -312,9 +312,6 @@ let render_svg () =
      z M 14 3 L 14 5 L 17.585938 5 L 8.2929688 14.292969 L 9.7070312 15.707031 \
      L 19 6.4140625 L 19 10 L 21 10 L 21 3 L 14 3 z\"></path></svg>"
 
-let test title fn = Alcotest_lwt.test_case_sync title `Quick fn
-let async_test title fn = Alcotest_lwt.test_case title `Quick fn
-
 (* TODO: add cases for React.Suspense
    function Button() {
       return <button>0</button>;
@@ -379,38 +376,41 @@ let async_component () =
         rendering is syncronous. Please use `renderToStream` instead.")
     raises
 
+let test title fn =
+  ( Printf.sprintf "ReactDOM.renderToStaticMarkup / %s" title,
+    [ Alcotest_lwt.test_case_sync "" `Quick fn ] )
+
 let tests =
-  ( "renderToStaticMarkup",
-    [
-      test "html_doctype" html_doctype;
-      test "single_empty_tag" single_empty_tag;
-      test "empty_string_attribute" empty_string_attribute;
-      test "bool_attributes" bool_attributes;
-      test "truthy_attributes" truthy_attributes;
-      test "ignore_nulls" ignore_nulls;
-      test "string_attributes" string_attributes;
-      test "self_closing_tag" self_closing_tag;
-      test "dom_element_innerHtml" dom_element_innerHtml;
-      test "children" children;
-      test "className" className;
-      test "className_2" className_2;
-      test "className_3" className_3;
-      test "fragment" fragment;
-      test "fragments_and_texts" fragments_and_texts;
-      test "ignored_attributes_on_jsx" ignored_attributes_on_jsx;
-      test "inline_styles" inline_styles;
-      test "encode_attributes" encode_attributes;
-      test "dom_props_should_work" dom_props_should_work;
-      test "dangerouslySetInnerHtml" dangerouslySetInnerHtml;
-      test "context" context;
-      test "use_state" use_state;
-      test "use_memo" use_memo;
-      test "use_callback" use_callback;
-      test "inner_html" inner_html;
-      test "event" event;
-      test "render_with_doc_type" render_with_doc_type;
-      test "render_svg" render_svg;
-      test "ref_as_prop_works" ref_as_prop_works;
-      test "ref_as_callback_prop_works" ref_as_callback_prop_works;
-      test "async" async_component;
-    ] )
+  [
+    test "html_doctype" html_doctype;
+    test "single_empty_tag" single_empty_tag;
+    test "empty_string_attribute" empty_string_attribute;
+    test "bool_attributes" bool_attributes;
+    test "truthy_attributes" truthy_attributes;
+    test "ignore_nulls" ignore_nulls;
+    test "string_attributes" string_attributes;
+    test "self_closing_tag" self_closing_tag;
+    test "dom_element_innerHtml" dom_element_innerHtml;
+    test "children" children;
+    test "className" className;
+    test "className_2" className_2;
+    test "className_3" className_3;
+    test "fragment" fragment;
+    test "fragments_and_texts" fragments_and_texts;
+    test "ignored_attributes_on_jsx" ignored_attributes_on_jsx;
+    test "inline_styles" inline_styles;
+    test "encode_attributes" encode_attributes;
+    test "dom_props_should_work" dom_props_should_work;
+    test "dangerouslySetInnerHtml" dangerouslySetInnerHtml;
+    test "context" context;
+    test "use_state" use_state;
+    test "use_memo" use_memo;
+    test "use_callback" use_callback;
+    test "inner_html" inner_html;
+    test "event" event;
+    test "render_with_doc_type" render_with_doc_type;
+    test "render_svg" render_svg;
+    test "ref_as_prop_works" ref_as_prop_works;
+    test "ref_as_callback_prop_works" ref_as_callback_prop_works;
+    test "async" async_component;
+  ]

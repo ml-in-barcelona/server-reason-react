@@ -4,25 +4,25 @@ let assert_string left right =
 let assert_list ty left right =
   Alcotest.check (Alcotest.list ty) "should be equal" right left
 
-let test_with_switch title fn = Alcotest_lwt.test_case title `Quick fn
-let is_not_zero x epsilon = abs_float x >= epsilon
-
-let test title (fn : unit -> unit Lwt.t) =
-  Alcotest_lwt.test_case title `Quick (fun _switch () ->
-      let start = Unix.gettimeofday () in
-      let timeout =
-        let%lwt () = Lwt_unix.sleep 3.0 in
-        Alcotest.failf "Test '%s' timed out" title
-      in
-      let%lwt test_promise = Lwt.pick [ fn (); timeout ] in
-      let epsilon = 0.001 in
-      let duration = Unix.gettimeofday () -. start in
-      if is_not_zero duration epsilon then
-        Printf.printf
-          "\027[1m\027[33m[WARNING]\027[0m Test '%s' took %.3f seconds\n" title
-          duration
-      else ();
-      Lwt.return test_promise)
+let test title fn =
+  ( Printf.sprintf "ReactDOM.renderToStream / %s" title,
+    [
+      Alcotest_lwt.test_case "" `Quick (fun _switch () ->
+          let start = Unix.gettimeofday () in
+          let timeout =
+            let%lwt () = Lwt_unix.sleep 3.0 in
+            Alcotest.failf "Test '%s' timed out" title
+          in
+          let%lwt test_promise = Lwt.pick [ fn (); timeout ] in
+          let epsilon = 0.001 in
+          let duration = Unix.gettimeofday () -. start in
+          if abs_float duration >= epsilon then
+            Printf.printf
+              "\027[1m\027[33m[WARNING]\027[0m Test '%s' took %.3f seconds\n"
+              title duration
+          else ();
+          Lwt.return test_promise);
+    ] )
 
 let assert_stream (stream : string Lwt_stream.t) expected =
   let%lwt content = Lwt_stream.to_list stream in
@@ -64,12 +64,14 @@ let react_use_without_suspense () =
   let%lwt stream, _abort = ReactDOM.renderToStream app in
   assert_stream stream [ "<div><span>Hello 0.01</span></div>" ]
 
-let rsc_script =
-  "<script>function \
-   $RC(a,b){a=document.getElementById(a);b=document.getElementById(b);b.parentNode.removeChild(b);if(a){a=a.previousSibling;var \
-   f=a.parentNode,c=a.nextSibling,e=0;do{if(c&&8===c.nodeType){var \
-   d=c.data;if(\"/$\"===d)if(0===e)break;else \
-   e--;else\"$\"!==d&&\"$?\"!==d&&\"$!\"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data=\"$\";a._reactRetry&&a._reactRetry()}}</script>"
+let rsc_script replacement =
+  Printf.sprintf
+    "<script>function \
+     $RC(a,b){a=document.getElementById(a);b=document.getElementById(b);b.parentNode.removeChild(b);if(a){a=a.previousSibling;var \
+     f=a.parentNode,c=a.nextSibling,e=0;do{if(c&&8===c.nodeType){var \
+     d=c.data;if(\"/$\"===d)if(0===e)break;else \
+     e--;else\"$\"!==d&&\"$?\"!==d&&\"$!\"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data=\"$\";a._reactRetry&&a._reactRetry()}}%s</script>"
+    replacement
 
 let suspense_without_promise () =
   let hi =
@@ -100,17 +102,18 @@ let component_always_throwing () =
   assert_raises (Failure "always throwing") (fun () ->
       ReactDOM.renderToStream (React.Upper_case_component app))
 
-(* let suspense_with_always_throwing () =
-   let hi =
-     React.Upper_case_component (fun () -> raise (Failure "always throwing"))
-   in
-   let app () =
-     React.Suspense.make ~fallback:(React.string "Loading...") ~children:hi ()
-   in
-   let%lwt stream, _abort =
-     ReactDOM.renderToStream (React.Upper_case_component app)
-   in
-   assert_stream stream [ "<div><!--$!--><template data-ms" ] *)
+let suspense_with_always_throwing () =
+  let hi =
+    React.Upper_case_component (fun () -> raise (Failure "always throwing"))
+  in
+  let app () =
+    React.Suspense.make ~fallback:(React.string "Loading...") ~children:hi ()
+  in
+  let%lwt stream, _abort =
+    ReactDOM.renderToStream (React.Upper_case_component app)
+  in
+  assert_stream stream
+    [ "<div><!--$!--><template data-msg=\"data raised\"></template>" ]
 
 let suspense_with_react_use () =
   Sleep.destroy ();
@@ -134,8 +137,7 @@ let suspense_with_react_use () =
     [
       "<!--$?--><template id=\"B:0\"></template>Loading...<!--/$-->";
       "<div hidden id=\"S:0\"><div><span>Hello 0.05</span></div></div>";
-      rsc_script;
-      "<script>$RC('B:0','S:0')</script>";
+      rsc_script "$RC('B:0','S:0')";
     ]
 
 let test_with_custom_component () =
@@ -212,8 +214,7 @@ let suspense_with_async_component () =
     [
       "<div><!--$?--><template id=\"B:0\"></template>Fallback 1<!--/$--></div>";
       "<div hidden id=\"S:0\"><div>Sleep 0.02 seconds, lol</div></div>";
-      rsc_script;
-      "<script>$RC('B:0','S:0')</script>";
+      rsc_script "$RC('B:0','S:0')";
     ]
 
 let async_component_without_suspense () =
@@ -240,15 +241,14 @@ let async_component_without_suspense () =
   assert_stream stream [ "<div><div>Sleep 0.02 seconds, lol</div></div>" ]
 
 let tests =
-  ( "renderToLwtStream",
-    [
-      test "test_silly_stream" test_silly_stream;
-      test "react_use_without_suspense" react_use_without_suspense;
-      test "component_always_throwing" component_always_throwing;
-      test "suspense_with_react_use" suspense_with_react_use;
-      test "async component" async_component;
-      test "async_component_without_suspense" async_component_without_suspense;
-      test "suspense_with_async_component" suspense_with_async_component;
-      (* test "suspense_with_always_throwing" suspense_with_always_throwing; *)
-      (* test "suspense_without_promise" suspense_without_promise; *)
-    ] )
+  [
+    test "silly_stream" test_silly_stream;
+    test "react_use_without_suspense" react_use_without_suspense;
+    test "component_always_throwing" component_always_throwing;
+    test "suspense_with_react_use" suspense_with_react_use;
+    test "async component" async_component;
+    test "async_component_without_suspense" async_component_without_suspense;
+    test "suspense_with_async_component" suspense_with_async_component;
+    (* test "suspense_with_always_throwing" suspense_with_always_throwing; *)
+    test "suspense_without_promise" suspense_without_promise;
+  ]

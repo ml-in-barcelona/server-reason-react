@@ -9,24 +9,25 @@ let assert_list (type a) (ty : a Alcotest.testable) (left : a list)
 let assert_list_of_strings (left : string list) (right : string list) =
   Alcotest.check (Alcotest.list Alcotest.string) "should be equal" right left
 
-let is_not_zero x epsilon = abs_float x >= epsilon
-
-let test title (fn : unit -> unit Lwt.t) =
-  Alcotest_lwt.test_case title `Quick (fun _switch () ->
-      let start = Unix.gettimeofday () in
-      let timeout =
-        let%lwt () = Lwt_unix.sleep 3.0 in
-        Alcotest.failf "Test '%s' timed out" title
-      in
-      let%lwt test_promise = Lwt.pick [ fn (); timeout ] in
-      let epsilon = 0.001 in
-      let duration = Unix.gettimeofday () -. start in
-      if is_not_zero duration epsilon then
-        Printf.printf
-          "\027[1m\027[33m[WARNING]\027[0m Test '%s' took %.3f seconds\n" title
-          duration
-      else ();
-      Lwt.return test_promise)
+let test title fn =
+  ( Printf.sprintf "ReactServerDOM.render_to_model / %s" title,
+    [
+      Alcotest_lwt.test_case "" `Quick (fun _switch () ->
+          let start = Unix.gettimeofday () in
+          let timeout =
+            let%lwt () = Lwt_unix.sleep 3.0 in
+            Alcotest.failf "Test '%s' timed out" title
+          in
+          let%lwt test_promise = Lwt.pick [ fn (); timeout ] in
+          let epsilon = 0.001 in
+          let duration = Unix.gettimeofday () -. start in
+          if abs_float duration >= epsilon then
+            Printf.printf
+              "\027[1m\027[33m[WARNING]\027[0m Test '%s' took %.3f seconds\n"
+              title duration
+          else ();
+          Lwt.return test_promise);
+    ] )
 
 let assert_stream (stream : string Lwt_stream.t) (expected : string list) =
   let%lwt content = Lwt_stream.to_list stream in
@@ -392,23 +393,22 @@ let mixed_server_and_client () =
     ]
 
 let tests =
-  ( "ReactServerDOM.render_to_model",
-    [
-      test "null_element" null_element;
-      test "string_element" string_element;
-      test "lower_case_component" lower_case_component;
-      test "lower_case_component_nested" lower_case_component_nested;
-      test "lower_case_with_children" lower_case_with_children;
-      test "dangerouslySetInnerHtml" dangerouslySetInnerHtml;
-      test "upper_case_component" upper_case_component;
-      test "upper_case_with_list" upper_case_with_list;
-      test "upper_case_with_children" upper_case_with_children;
-      test "suspense_without_promise" suspense_without_promise;
-      test "immediate_suspense" immediate_suspense;
-      test "suspense" suspense;
-      test "mixed_server_and_client" mixed_server_and_client;
-      test "client_with_json_props" client_with_json_props;
-      test "client_without_props" client_without_props;
-      test "client_with_element_props" client_with_element_props;
-      test "client_with_promise_props" client_with_promise_props;
-    ] )
+  [
+    test "null_element" null_element;
+    test "string_element" string_element;
+    test "lower_case_component" lower_case_component;
+    test "lower_case_component_nested" lower_case_component_nested;
+    test "lower_case_with_children" lower_case_with_children;
+    test "dangerouslySetInnerHtml" dangerouslySetInnerHtml;
+    test "upper_case_component" upper_case_component;
+    test "upper_case_with_list" upper_case_with_list;
+    test "upper_case_with_children" upper_case_with_children;
+    test "suspense_without_promise" suspense_without_promise;
+    test "immediate_suspense" immediate_suspense;
+    test "suspense" suspense;
+    test "mixed_server_and_client" mixed_server_and_client;
+    test "client_with_json_props" client_with_json_props;
+    test "client_without_props" client_without_props;
+    test "client_with_element_props" client_with_element_props;
+    test "client_with_promise_props" client_with_promise_props;
+  ]

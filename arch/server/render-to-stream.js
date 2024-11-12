@@ -42,15 +42,10 @@ const sleep = (seconds) =>
 		<React.Suspense fallback="Fallback 1">"lol"</React.Suspense>
 	</div>
 ); */
-const Always_throw = () => {
-	throw new Error("Always throw");
-};
 
 const App = () => (
 	<div>
-		<React.Suspense fallback="Fallback 1">
-			<Always_throw />
-		</React.Suspense>
+		<React.Suspense fallback="Fallback 1">"lola"</React.Suspense>
 	</div>
 );
 
