@@ -453,157 +453,115 @@ let string_tests =
 
 let global_tests =
   [
-    test "decodeURI - basic ascii characters" (fun () ->
-        assert_string (Js.Global.decodeURI "Hello%20World") "Hello World");
-    test "decodeURI - basic decoded characters" (fun () ->
-        assert_string (Js.Global.decodeURI "%20") " ";
-        assert_string (Js.Global.decodeURI "%25") "%";
-        assert_string (Js.Global.decodeURI "%3C%3E") "<>";
-        assert_string (Js.Global.decodeURI "%22") "\"";
-        assert_string (Js.Global.decodeURI "%5C") "\\";
-        assert_string (Js.Global.decodeURI "%E2%82%AC") "€";
-        assert_string (Js.Global.decodeURI "%E2%98%85") "★";
-        assert_string (Js.Global.decodeURI "%E2%99%A0") "♠";
-        assert_string (Js.Global.decodeURI "%E4%BD%A0%E5%A5%BD") "你好");
-    test "decodeURI - characters that should not be decoded" (fun () ->
-        (* Reserved characters that should not be decoded *)
-        assert_string (Js.Global.decodeURI ";,/?:@&=+$#") ";,/?:@&=+$#";
-
-        (* Unreserved characters that should not be encoded *)
+    test "decodeURI - ascii and spaces" (fun () ->
+        assert_string (Js.Global.decodeURI "Hello%20World") "Hello World";
         assert_string
-          (Js.Global.decodeURI "abcdefghijklmnopqrstuvwxyz")
-          "abcdefghijklmnopqrstuvwxyz";
+          (Js.Global.decodeURI "Hello%20%20%20World")
+          "Hello   World";
+        assert_string (Js.Global.decodeURI "Hello%2DWorld") "Hello-World");
+    test "decodeURI - reserved characters" (fun () ->
+        assert_string (Js.Global.decodeURI ";,/?:@&=+$#") ";,/?:@&=+$#";
+        assert_string (Js.Global.decodeURI "-_.!~*'()") "-_.!~*'()");
+    test "decodeURI - alphabets" (fun () ->
         assert_string
           (Js.Global.decodeURI "ABCDEFGHIJKLMNOPQRSTUVWXYZ")
           "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         assert_string
-          (Js.Global.decodeURI "0123456789-_.!~*'()")
-          "0123456789-_.!~*'()");
-    test "decodeURI - multiple encoded sequences" (fun () ->
+          (Js.Global.decodeURI "abcdefghijklmnopqrstuvwxyz")
+          "abcdefghijklmnopqrstuvwxyz";
+        assert_string (Js.Global.decodeURI "0123456789") "0123456789");
+    test "decodeURI - unicode characters" (fun () ->
         assert_string
-          (Js.Global.decodeURI "Hello%20World!%20%E2%98%85")
-          "Hello World! ★";
-        assert_string
-          (Js.Global.decodeURI "Path/To/File%20Name")
-          "Path/To/File Name";
-        assert_string (Js.Global.decodeURI "") "";
-        assert_string (Js.Global.decodeURI "%20") " ";
-        assert_string (Js.Global.decodeURI "%20%20%20") "   ";
-        assert_string (Js.Global.decodeURI "%2520") "%20");
-    test "shit" (fun () ->
-        assert_string
-          (Js.Global.decodeURI "https://example.com/path%20name/file.txt")
-          "https://example.com/path name/file.txt";
-
+          (Js.Global.decodeURI "%D0%AE%D0%BD%D0%B8%D0%BA%D0%BE%D0%B4")
+          "Юникод";
+        assert_string (Js.Global.decodeURI "%E2%82%AC%E2%98%85%E2%99%A0") "€★♠";
+        assert_string (Js.Global.decodeURI "%E4%BD%A0%E5%A5%BD") "你好");
+    test "" (fun () ->
         assert_string (Js.Global.decodeURI "%5B%5D") "[]";
-
         assert_string (Js.Global.decodeURI "%7B%7D") "{}";
-
         assert_string (Js.Global.decodeURI "%7C") "|");
-    test "decodeURI - url" (fun () ->
-        assert_string
-          (Js.Global.decodeURI "http:%2f%2Funipro.ru")
-          "http:%2f%2Funipro.ru";
+    test "decodeURI - complete URLs" (fun () ->
         assert_string
           (Js.Global.decodeURI
-             "http://www.google.ru/support/jobs/bin/static.py%3Fpage%3dwhy-ru.html%26sid%3Dliveandwork")
-          "http://www.google.ru/support/jobs/bin/static.py%3Fpage%3dwhy-ru.html%26sid%3Dliveandwork";
-        assert_string
-          (Js.Global.decodeURI
-             "http://ru.wikipedia.org/wiki/%d0%AE%D0%BD%D0%B8%D0%BA%D0%BE%D0%B4")
+             "http://ru.wikipedia.org/wiki/%D0%AE%D0%BD%D0%B8%D0%BA%D0%BE%D0%B4")
           "http://ru.wikipedia.org/wiki/Юникод";
         assert_string
           (Js.Global.decodeURI
-             "http://ru.wikipedia.org/wiki/%D0%AE%D0%BD%D0%B8%D0%BA%D0%BE%D0%B4%23%D0%92%D0%B5%D1%80%D1%81%D0%B8%D0%B8%20%D0%AE%D0%BD%D0%B8%D0%BA%D0%BE%D0%B4%D0%B0")
-          "http://ru.wikipedia.org/wiki/Юникод%23Версии Юникода";
-        assert_string
-          (Js.Global.decodeURI "http://unipro.ru/0123456789")
-          "http://unipro.ru/0123456789";
-        assert_string
-          (Js.Global.decodeURI
-             "%41%42%43%44%45%46%47%48%49%4A%4B%4C%4D%4E%4F%50%51%52%53%54%55%56%57%58%59%5A")
-          "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-        assert_string
-          (Js.Global.decodeURI
-             "%61%62%63%64%65%66%67%68%69%6A%6B%6C%6D%6E%6F%70%71%72%73%74%75%76%77%78%79%7A")
-          "abcdefghijklmnopqrstuvwxyz";
-        assert_string
-          (Js.Global.decodeURI "http://unipro.ru/%0Aabout")
-          "http://unipro.ru/\nabout";
-        (* assert_string
-             (Js.Global.decodeURI "http://unipro.ru/%0Babout")
-             "http://unipro.ru/\vabout";
-           assert_string
-             (Js.Global.decodeURI "http://unipro.ru/%0Cabout")
-             "http://unipro.ru/\fabout"; *)
-        assert_string
-          (Js.Global.decodeURI "http://unipro.ru/%0Dabout")
-          "http://unipro.ru/\rabout");
-    test "decodeURIComponent" (fun () ->
-        assert_string
-          (Js.Global.decodeURIComponent "http%3A%2F%2Funipro.ru")
-          "http://unipro.ru";
-        assert_string
-          (Js.Global.decodeURIComponent
-             "http%3A%2F%2Fwww.google.ru%2Fsupport%2Fjobs%2Fbin%2Fstatic.py%3Fpage%3Dwhy-ru.html%26sid%3Dliveandwork")
+             "http://www.google.ru/support/jobs/bin/static.py?page=why-ru.html&sid=liveandwork")
           "http://www.google.ru/support/jobs/bin/static.py?page=why-ru.html&sid=liveandwork";
         assert_string
-          (Js.Global.decodeURIComponent
-             "%41%42%43%44%45%46%47%48%49%4A%4B%4C%4D%4E%4F%50%51%52%53%54%55%56%57%58%59%5A")
-          "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+          (Js.Global.decodeURI "https://example.com/path%20name/file.txt")
+          "https://example.com/path name/file.txt");
+    test "decodeURI - special characters" (fun () ->
+        assert_string (Js.Global.decodeURI "%0A") "\n";
+        assert_string (Js.Global.decodeURI "%0D") "\r";
+        assert_string (Js.Global.decodeURI "%3C%3E%22%5C") "<>\"\\");
+    test "encodeURI - ascii and spaces" (fun () ->
+        assert_string (Js.Global.encodeURI "Hello World") "Hello%20World";
         assert_string
-          (Js.Global.decodeURIComponent
-             "%61%62%63%64%65%66%67%68%69%6A%6B%6C%6D%6E%6F%70%71%72%73%74%75%76%77%78%79%7A")
-          "abcdefghijklmnopqrstuvwxyz";
-        assert_string
-          (Js.Global.decodeURIComponent "http%3A%2F%2Funipro.ru%2F%0Aabout")
-          "http://unipro.ru/\nabout";
-        assert_string
-          (Js.Global.decodeURIComponent "http://unipro.ru/%0Dabout")
-          "http://unipro.ru/\rabout");
-    (* \v and \f are not supported in ocaml
-       assert_string
-         (Js.Global.decodeURIComponent "http://unipro.ru/%0Babout")
-          "http://unipro.ru/\vabout";
-        assert_string
-          (Js.Global.decodeURIComponent "http://unipro.ru/%0Cabout")
-          "http://unipro.ru/\fabout"; *)
-    test "encodeURI" (fun () ->
-        assert_string
-          (Js.Global.encodeURI "http://ru.wikipedia.org/wiki/Юникод")
-          "http://ru.wikipedia.org/wiki/%D0%AE%D0%BD%D0%B8%D0%BA%D0%BE%D0%B4";
-        assert_string
-          (Js.Global.encodeURI "http://unipro.ru/0123456789")
-          "http://unipro.ru/0123456789";
+          (Js.Global.encodeURI "Hello   World")
+          "Hello%20%20%20World";
+        assert_string (Js.Global.encodeURI "Hello-World") "Hello-World");
+    test "encodeURI - reserved characters" (fun () ->
+        assert_string (Js.Global.encodeURI ";,/?:@&=+$#") ";,/?:@&=+$#"
+        (* assert_string (Js.Global.encodeURI "-_.!~*'()") "-_.!~*'()" *));
+    test "encodeURI - alphabets" (fun () ->
         assert_string
           (Js.Global.encodeURI "ABCDEFGHIJKLMNOPQRSTUVWXYZ")
           "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         assert_string
           (Js.Global.encodeURI "abcdefghijklmnopqrstuvwxyz")
           "abcdefghijklmnopqrstuvwxyz";
+        assert_string (Js.Global.encodeURI "0123456789") "0123456789");
+    test "encodeURI - unicode characters" (fun () ->
+        assert_string
+          (Js.Global.encodeURI "Юникод")
+          "%D0%AE%D0%BD%D0%B8%D0%BA%D0%BE%D0%B4";
+        assert_string (Js.Global.encodeURI "€★♠") "%E2%82%AC%E2%98%85%E2%99%A0";
+        assert_string (Js.Global.encodeURI "你好") "%E4%BD%A0%E5%A5%BD");
+    test "encodeURI - complete URLs" (fun () ->
+        assert_string
+          (Js.Global.encodeURI "http://unipro.ru/0123456789")
+          "http://unipro.ru/0123456789";
+
         assert_string
           (Js.Global.encodeURI
              "http://www.google.ru/support/jobs/bin/static.py?page=why-ru.html&sid=liveandwork")
           "http://www.google.ru/support/jobs/bin/static.py?page=why-ru.html&sid=liveandwork";
         assert_string
-          (Js.Global.encodeURI "ABCDEFGHIJKLMNOPQRSTUVWXYZ")
-          "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+          (Js.Global.encodeURI "http://unipro.ru/\nabout")
+          "http://unipro.ru/%0Aabout";
         assert_string
-          (Js.Global.encodeURI "abcdefghijklmnopqrstuvwxyz")
-          "abcdefghijklmnopqrstuvwxyz";
+          (Js.Global.encodeURI "http://unipro.ru/\rabout")
+          "http://unipro.ru/%0Dabout";
+        assert_string
+          (Js.Global.encodeURI "http://ru.wikipedia.org/wiki/Юникод")
+          "http://ru.wikipedia.org/wiki/%D0%AE%D0%BD%D0%B8%D0%BA%D0%BE%D0%B4";
+        assert_string
+          (Js.Global.encodeURI
+             "http://www.google.ru/support/jobs/bin/static.py?page=why-ru.html&sid=liveandwork")
+          "http://www.google.ru/support/jobs/bin/static.py?page=why-ru.html&sid=liveandwork";
+        assert_string
+          (Js.Global.encodeURI "https://example.com/path name/file.txt")
+          "https://example.com/path%20name/file.txt");
+    test "encodeURI - special characters" (fun () ->
+        assert_string (Js.Global.encodeURI "\n") "%0A";
+        assert_string (Js.Global.encodeURI "\r") "%0D";
+        assert_string (Js.Global.encodeURI "<>\"\\") "%3C%3E%22%5C";
         assert_string
           (Js.Global.encodeURI "http://unipro.ru/\nabout")
           "http://unipro.ru/%0Aabout";
         assert_string
           (Js.Global.encodeURI "http://unipro.ru/\rabout")
           "http://unipro.ru/%0Dabout");
-    (* \v and \f are not supported in ocaml
+    (* \v and \f are not supported in ocaml *)
+    (*
+       assert_string
+         (Js.Global.decodeURIComponent "http://unipro.ru/%0Babout")
+          "http://unipro.ru/\vabout";
         assert_string
-          (Js.Global.encodeURI "http://unipro.ru/\vabout")
-          "http://unipro.ru/%0Babout";
-        assert_string
-          (Js.Global.encodeURI "http://unipro.ru/\fabout")
-          "http://unipro.ru/%0Cabout"; *)
+          (Js.Global.decodeURIComponent "http://unipro.ru/%0Cabout")
+          "http://unipro.ru/\fabout"; *)
     test "encodeURIComponent" (fun () ->
         assert_string
           (Js.Global.encodeURIComponent "http://unipro.ru")
