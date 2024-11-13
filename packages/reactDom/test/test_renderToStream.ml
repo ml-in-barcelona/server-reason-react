@@ -103,6 +103,9 @@ let component_always_throwing () =
       ReactDOM.renderToStream (React.Upper_case_component app))
 
 let suspense_with_always_throwing () =
+  (* This test is very fragile since it relies on the stack trace being the same (so line numbers and methods should match).
+     We disable backtracing to avoid having to match the backtrace *)
+  Printexc.record_backtrace false;
   let hi =
     React.Upper_case_component (fun () -> raise (Failure "always throwing"))
   in
@@ -112,8 +115,13 @@ let suspense_with_always_throwing () =
   let%lwt stream, _abort =
     ReactDOM.renderToStream (React.Upper_case_component app)
   in
+  (* and we need to enable it back, I guess! *)
+  Printexc.record_backtrace true;
   assert_stream stream
-    [ "<div><!--$!--><template data-msg=\"data raised\"></template>" ]
+    [
+      "<!--$!--><template data-msg=\"Failure(&quot;always throwing&quot;)\n\
+       \"></template>Loading...<!--/$-->";
+    ]
 
 let suspense_with_react_use () =
   Sleep.destroy ();
@@ -249,6 +257,6 @@ let tests =
     test "async component" async_component;
     test "async_component_without_suspense" async_component_without_suspense;
     test "suspense_with_async_component" suspense_with_async_component;
-    (* test "suspense_with_always_throwing" suspense_with_always_throwing; *)
+    test "suspense_with_always_throwing" suspense_with_always_throwing;
     test "suspense_without_promise" suspense_without_promise;
   ]

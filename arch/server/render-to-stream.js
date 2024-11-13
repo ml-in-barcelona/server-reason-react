@@ -43,11 +43,7 @@ const sleep = (seconds) =>
 	</div>
 ); */
 
-const App = () => (
-	<div>
-		<React.Suspense fallback="Fallback 1">"lola"</React.Suspense>
-	</div>
-);
+const App = () => <React.Suspense fallback="Fallback 1">"lola"</React.Suspense>;
 
 ReactDOM.renderToReadableStream(<App />).then((stream) => {
 	debug(stream);

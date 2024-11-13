@@ -184,6 +184,17 @@ let render_suspense_fallback ~boundary_id element =
       Html.raw "<!--/$-->";
     ]
 
+let render_suspense_fallback_error ~exn element =
+  let backtrace = Printexc.get_backtrace () in
+  let data_msg = Printf.sprintf "%s\n%s" (Printexc.to_string exn) backtrace in
+  Html.list
+    [
+      Html.raw "<!--$!-->";
+      Html.node "template" [ Html.attribute "data-msg" data_msg ] [];
+      element;
+      Html.raw "<!--/$-->";
+    ]
+
 let render_to_stream ~context_state element =
   (* let exception Suspend_async of React.elemet Lwt.t in *)
   let rec render_element element =
@@ -222,57 +233,53 @@ let render_to_stream ~context_state element =
         let%lwt async_element = component () in
         render_element async_element
     | Suspense { key = _; children; fallback } -> (
-        let current_boundary_id = context_state.boundary_id in
-        let current_suspense_id = context_state.suspense_id in
-        let children_promise = render_element children in
-        (* assume fallback doesn't contain promises *)
+        (* assume fallback doesn't contain promises, neither errors *)
         let%lwt fallback_element = render_element fallback in
+        try%lwt
+          let current_boundary_id = context_state.boundary_id in
+          let current_suspense_id = context_state.suspense_id in
+          let children_promise = render_element children in
 
-        (* First check if children are already resolved before setting up async handling *)
-        match Lwt.state children_promise with
-        | Lwt.Fail exn ->
-            ignore @@ failwith "Children failed to resolve";
-            context_state.waiting <- context_state.waiting - 1;
-            raise exn
-        (* In case of a resolved promise, we don't render fallback and render children straight away *)
-        | Lwt.Return element ->
-            context_state.suspense_id <- context_state.suspense_id + 1;
-            Lwt.return element
-        | Lwt.Sleep ->
-            context_state.waiting <- context_state.waiting + 1;
+          (* First check if children are already resolved before setting up async handling *)
+          match Lwt.state children_promise with
+          | Lwt.Fail exn ->
+              ignore @@ failwith "Children failed to resolve";
+              context_state.waiting <- context_state.waiting - 1;
+              raise exn
+          (* In case of a resolved promise, we don't render fallback and render children straight away *)
+          | Lwt.Return element ->
+              context_state.suspense_id <- context_state.suspense_id + 1;
+              Lwt.return element
+          | Lwt.Sleep ->
+              context_state.waiting <- context_state.waiting + 1;
 
-            (* Start the async work but don't wait for it *)
-            Lwt.async (fun () ->
-                let%lwt resolved = children_promise in
-                context_state.waiting <- context_state.waiting - 1;
+              (* Start the async work but don't wait for it *)
+              Lwt.async (fun () ->
+                  let%lwt resolved = children_promise in
+                  context_state.waiting <- context_state.waiting - 1;
 
-                (* Only push updates if the stream is still open *)
-                if not context_state.closed then (
-                  context_state.push
-                    (render_suspense_resolved_element ~id:current_suspense_id
-                       resolved);
-                  context_state.push
-                    (inline_complete_boundary_script current_boundary_id
-                       current_suspense_id);
-                  context_state.suspense_id <- context_state.suspense_id + 1)
-                else ();
+                  (* Only push updates if the stream is still open *)
+                  if not context_state.closed then (
+                    context_state.push
+                      (render_suspense_resolved_element ~id:current_suspense_id
+                         resolved);
+                    context_state.push
+                      (inline_complete_boundary_script current_boundary_id
+                         current_suspense_id);
+                    context_state.suspense_id <- context_state.suspense_id + 1)
+                  else ();
 
-                if context_state.waiting = 0 then context_state.close ();
-                Lwt.return ());
+                  if context_state.waiting = 0 then context_state.close ();
+                  Lwt.return ());
 
-            Lwt.return
-              (render_suspense_fallback ~boundary_id:current_boundary_id
-                 fallback_element))
+              Lwt.return
+                (render_suspense_fallback ~boundary_id:current_boundary_id
+                   fallback_element)
+        with exn ->
+          Lwt.return (render_suspense_fallback_error ~exn fallback_element))
   in
+
   render_element element
-(* | exception React.Suspend (Any_promise _promise) ->
-    failwith
-      "It looks like there's a promise that hasn't resolved yet and isn't \
-       wrapped in a Suspense boundary. Please add <React.Suspense> to \
-       capture the promise when it resolves and fails." *)
-(* | exception React.Suspend (Any_promise promise) ->
-    let%lwt element = promise in
-    render_element element *)
 
 let renderToStream ?pipe element =
   let stream, push_to_stream, close = Push_stream.make () in
