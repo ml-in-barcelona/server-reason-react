@@ -19,7 +19,7 @@ module Fiber = struct
     t.context.index <- t.context.index + 1;
     t.context.index
 
-  let emit_html t html = t.emit_html html
+  (* let emit_html t html = t.emit_html html *)
 
   let root fn =
     let stream, push, close = Push_stream.make () in

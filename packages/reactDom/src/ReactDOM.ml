@@ -10,6 +10,7 @@ let is_react_custom_attribute attr =
       true
   | _ -> false
 
+(* TODO: Maybe this should not be under ReactDOM? *)
 let attribute_to_html attr =
   match attr with
   (* ignores "ref" prop *)
@@ -269,7 +270,9 @@ let render_to_stream ~context_state element =
                          current_suspense_id))
                   else ();
 
-                  if context_state.waiting = 0 then context_state.close ();
+                  if context_state.waiting = 0 then (
+                    context_state.closed <- true;
+                    context_state.close ());
                   Lwt.return ());
 
               Lwt.return

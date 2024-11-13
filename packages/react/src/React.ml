@@ -405,7 +405,6 @@ and client_prop =
   (* TODO: Do we need to add more types here? *)
   | Json : Yojson.Basic.t -> client_prop
   | Element : element -> client_prop
-  (* TODO: Copied from reactor, unsure about the snd *)
   | Promise : 'a Js.Promise.t * ('a -> Yojson.Basic.t) -> client_prop
 
 exception Invalid_children of string
@@ -457,13 +456,16 @@ let clone_attributes attributes new_attributes =
   |> List.flatten |> List.rev
   |> List.sort compare_attribute
 
-let createElement ?(key = None) tag attributes children =
+let create_element_with_key ?(key = None) tag attributes children =
   match Html.is_self_closing_tag tag with
   | true when List.length children > 0 ->
       (* TODO: Add test for this *)
       raise (Invalid_children "closing tag with children isn't valid")
   | true -> Lower_case_element { key; tag; attributes; children = [] }
   | false -> Lower_case_element { key; tag; attributes; children }
+
+let createElement = create_element_with_key ~key:None
+let createElementWithKey = create_element_with_key
 
 (* `cloneElement` overrides childrens and props on lower case components, It raises Invalid_argument for the rest.
     React.js can clone uppercase components, since it stores their props on each element's object but since we just store the fn and don't have the props, we can't clone them).
