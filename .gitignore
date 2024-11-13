@@ -114,3 +114,4 @@ dune.mel
 dist/
 
 .direnv/
+demo/.running/*

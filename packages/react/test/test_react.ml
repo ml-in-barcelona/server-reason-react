@@ -7,9 +7,9 @@ let use_state_doesnt_fire () =
   let app =
     React.Upper_case_component
       (fun () ->
-        let state, set_state = React.useState (fun () -> "foo") in
+        let state, setState = React.useState (fun () -> "foo") in
         (* You wouldn't have this code in prod, but just for testing purposes *)
-        set_state (fun _prev -> "bar");
+        setState (fun _prev -> "bar");
         React.createElement "div" [] [ React.string state ])
   in
   assert_string (ReactDOM.renderToStaticMarkup app) "<div>foo</div>"

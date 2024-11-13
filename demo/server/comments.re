@@ -47,26 +47,17 @@ module Data = {
     "But, imagine it's dynamic",
   ];
 
-  let cached = ref(false);
-  let destroy = () => cached := false;
-
   let promise = () => {
-    cached.contents
-      ? Lwt.return(fakeData)
-      : {
-        cached.contents = true;
-        let%lwt () = Lwt_unix.sleep(delay);
-        Lwt.return(fakeData);
-      };
+    let%lwt () = Lwt_unix.sleep(delay);
+    Lwt.return(fakeData);
   };
-
-  let get = () => fakeData;
 };
 
 module Comments = {
   let make = () => {
     /* Sincronous data: let comments = Data.get(); */
-    let comments = React.Experimental.use(Data.promise());
+    /* let comments = React.Experimental.use(Data.promise()); */
+    let comments = ["a", "b"];
 
     <div className="flex gap-4 flex-col">
       {comments
@@ -88,31 +79,29 @@ let make = () => {
     <main
       className={Theme.text(Theme.Color.white)}
       style={ReactDOM.Style.make(~display="flex", ~marginTop="16px", ())}>
-      <React.Suspense fallback={<Spinner />}>
-        <article className="flex gap-4 flex-col">
-          <h1
+      <article className="flex gap-4 flex-col">
+        <h1
+          className={Cx.make([
+            "text-4xl font-bold ",
+            Theme.text(Theme.Color.white),
+          ])}>
+          {React.string("Hello world")}
+        </h1>
+        <Post />
+        <section>
+          <h3
             className={Cx.make([
-              "text-4xl font-bold ",
+              "text-2xl font-bold mb-4",
               Theme.text(Theme.Color.white),
             ])}>
-            {React.string("Hello world")}
-          </h1>
-          <Post />
-          <section>
-            <h3
-              className={Cx.make([
-                "text-2xl font-bold mb-4",
-                Theme.text(Theme.Color.white),
-              ])}>
-              {React.string("Comments")}
-            </h3>
-            <React.Suspense fallback={<Spinner />}>
-              <Comments />
-            </React.Suspense>
-          </section>
-          <h2> {React.string("Thanks for reading!")} </h2>
-        </article>
-      </React.Suspense>
+            {React.string("Comments")}
+          </h3>
+          <React.Suspense fallback={<Spinner />}>
+            <Comments />
+          </React.Suspense>
+        </section>
+        <h2> {React.string("Thanks for reading!")} </h2>
+      </article>
     </main>
   </Layout>;
 };

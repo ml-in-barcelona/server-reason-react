@@ -25,7 +25,6 @@ type eventType =
   | Pointer
   | Inline
   | Drag
-(* _onclick *)
 
 type attribute = { type_ : attributeType; name : string; jsxName : string }
 type event = { type_ : eventType; jsxName : string }

@@ -1,5 +1,5 @@
 (melange.emit
- (alias client)
+ (alias melange-app)
  (target app)
  (enabled_if
   (= %{profile} "dev"))
@@ -7,4 +7,56 @@
  (libraries melange demo_shared_js reason-react)
  (preprocess
   (pps reason-react-ppx browser_ppx -js melange.ppx))
- (module_systems commonjs))
+ (module_systems es6))
+
+(rule
+ (alias client)
+ ; Make the client rule depend on the generated file by melange.emit, so it needs to wait to be built and it's rebuilt when the file changes.
+ (deps
+  (alias_rec melange-app))
+ (enabled_if
+  (= %{profile} "dev"))
+ (action
+  (progn
+   (run
+    esbuild
+    app/demo/client/index.js
+    --format=cjs
+    --bundle
+    --platform=browser
+    --log-level=error
+    --outfile=app/demo/client/app.js))))
+
+(rule
+ (alias client)
+ (deps
+  (:file create-from-fetch.jsx)
+  (alias_rec melange-app))
+ (action
+  (progn
+   (run
+    esbuild
+    %{file}
+    --bundle
+    --platform=browser
+    --splitting
+    --outdir=app/demo/client
+    --format=esm
+    --log-level=error))))
+
+(rule
+ (alias client)
+ (deps
+  (:file runtime-with-client.jsx)
+  (alias_rec melange-app))
+ (action
+  (progn
+   (run
+    esbuild
+    %{file}
+    --bundle
+    --platform=browser
+    --format=esm
+    --splitting
+    --log-level=error
+    --outdir=app/demo/client))))

@@ -28,13 +28,14 @@ let consecutives_text_nodes () =
     (ReactDOM.renderToString div)
     "<div><span>Hello<!-- -->Hello</span></div>"
 
-let test title fn = Alcotest_lwt.test_case_sync title `Quick fn
+let test title fn =
+  ( Printf.sprintf "ReactDOM.renderToString / %s" title,
+    [ Alcotest_lwt.test_case_sync "" `Quick fn ] )
 
 let tests =
-  ( "renderToString",
-    [
-      test "react root" react_root_one_element;
-      test "react root in two" react_root_two_elements;
-      test "one text node should not add <!-- -->" text_single_node;
-      test "consecutive text nodes should add <!-- -->" consecutives_text_nodes;
-    ] )
+  [
+    test "react root" react_root_one_element;
+    test "react root in two" react_root_two_elements;
+    test "one text node should not add <!-- -->" text_single_node;
+    test "consecutive text nodes should add <!-- -->" consecutives_text_nodes;
+  ]

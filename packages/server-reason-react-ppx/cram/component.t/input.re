@@ -4,7 +4,6 @@ module React_component_with_props = {
     <div> {React.string(lola)} </div>;
   };
 };
-
 let react_component_with_props = <React_component_with_props lola="flores" />;
 
 /* module Using_React_memo = {

@@ -82,13 +82,15 @@ module Title = {
 [@react.component]
 let make = () => {
   React.useEffect(() => {
-    let _ = Js.log("Hello from the client");
+    Js.log("Client mounted");
     None;
   });
 
   <Layout background=Theme.Color.black>
     <Stack gap=8 justify=`start>
-      <> <Title /> <Hr /> <Counter initial=23 /> </>
+      <Title />
+      <Hr />
+      <Counter initial=23 />
     </Stack>
   </Layout>;
 };

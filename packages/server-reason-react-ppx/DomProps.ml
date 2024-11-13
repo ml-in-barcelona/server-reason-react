@@ -473,9 +473,9 @@ let ariaRole = String
 let reactValidHtml =
   [
     Attribute { name = "class"; jsxName = "className"; type_ = String };
-    Attribute { name = "checked"; jsxName = "defaultChecked"; type_ = Bool };
-    Attribute { name = "selected"; jsxName = "defaultSelected"; type_ = Bool };
-    Attribute { name = "value"; jsxName = "defaultValue"; type_ = String (* | number | ReadonlyArray<String> *) };
+    Attribute { name = "defaultChecked"; jsxName = "defaultChecked"; type_ = Bool };
+    Attribute { name = "defaultSelected"; jsxName = "defaultSelected"; type_ = Bool };
+    Attribute { name = "defaultValue"; jsxName = "defaultValue"; type_ = String (* | number | ReadonlyArray<String> *) };
   ]
 
 let reactAttributes =
@@ -869,7 +869,7 @@ let metaHTMLAttributes =
   [
     Attribute { name = "charset"; jsxName = "charSet"; type_ = String };
     Attribute { name = "content"; jsxName = "content"; type_ = String };
-    Attribute { name = "http-eequiv"; jsxName = "httpEquiv"; type_ = String };
+    Attribute { name = "http-equiv"; jsxName = "httpEquiv"; type_ = String };
     Attribute { name = "name"; jsxName = "name"; type_ = String };
     Attribute { name = "media"; jsxName = "media"; type_ = String };
   ]

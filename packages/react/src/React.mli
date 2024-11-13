@@ -552,16 +552,21 @@ module JSX : sig
   end
 end
 
-type lower_case_element = {
-  tag : string;
-  attributes : JSX.prop list;
-  children : element list;
-}
-
-and element =
-  | Lower_case_element of lower_case_element
+type element =
+  | Lower_case_element of {
+      key : string option;
+      tag : string;
+      attributes : JSX.prop list;
+      children : element list;
+    }
   | Upper_case_component of (unit -> element)
   | Async_component of (unit -> element Lwt.t)
+  | Client_component of {
+      props : client_props;
+      client : element;
+      import_module : string;
+      import_name : string;
+    }
   | List of element array
   | Text of string
   | InnerHtml of string
@@ -569,7 +574,14 @@ and element =
   | Empty
   | Provider of element
   | Consumer of element
-  | Suspense of { children : element; fallback : element }
+  | Suspense of { key : string option; children : element; fallback : element }
+
+and client_props = (string * client_prop) list
+
+and client_prop =
+  | Json : Yojson.Basic.t -> client_prop
+  | Element : element -> client_prop
+  | Promise : 'a Js.Promise.t * ('a -> Yojson.Basic.t) -> client_prop
 
 exception Invalid_children of string
 
@@ -578,6 +590,10 @@ module Fragment : sig
 end
 
 val createElement : string -> JSX.prop list -> element list -> element
+
+val createElementWithKey :
+  ?key:string option -> string -> JSX.prop list -> element list -> element
+
 val fragment : element -> element
 val cloneElement : element -> JSX.prop list -> element
 val string : string -> element
@@ -604,7 +620,12 @@ end
 val createContext : 'a -> 'a Context.t
 
 module Suspense : sig
-  val make : ?fallback:element -> ?children:element -> unit -> element
+  val make :
+    ?key:string option ->
+    ?fallback:element ->
+    ?children:element ->
+    unit ->
+    element
 end
 
 type any_promise = Any_promise : 'a Lwt.t -> any_promise
@@ -733,6 +754,8 @@ module Children : sig
   val only : element -> element
   val toArray : element -> element array
 end
+
+val suspend : 'a Lwt.t -> unit
 
 module Experimental : sig
   val use : 'a Lwt.t -> 'a

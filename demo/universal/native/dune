@@ -2,8 +2,7 @@
 
 (library
  (name demo_shared_native)
- (libraries react reactDOM js belt dom webapi)
- (flags :standard -w -26-27)
+ (libraries react reactDOM js belt dom webapi yojson lwt)
  (wrapped false)
  (preprocess
   (pps melange_native_ppx server_reason_react_ppx browser_ppx)))

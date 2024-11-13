@@ -1,11 +1,11 @@
 {
-  "name": "test_browser",
-  "version": "0.0.1",
-  "scripts": {
-    "start": "node index.js"
-  },
-  "license": "MIT",
+  "name": "client",
+  "version": "0.0.0",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
   "dependencies": {
+    "esbuild": "^0.21.4",
     "react": "^19.0.0-rc-69d4b800-20241021",
     "react-dom": "^19.0.0-rc-69d4b800-20241021",
     "react-server-dom-webpack": "^19.0.0-rc-69d4b800-20241021"

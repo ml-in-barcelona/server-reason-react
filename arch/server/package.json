@@ -2,12 +2,14 @@
   "name": "app",
   "version": "0.0.1",
   "scripts": {
-    "start": "node index.js"
+    "react-dom-server": "node react-dom-server.js",
+    "render-to-stream": "bun render-to-stream.js",
+    "react-server-dom-webpack": "node --conditions react-server react-server-dom-webpack.js"
   },
   "license": "MIT",
   "dependencies": {
-    "@emotion/hash": "^0.9.0",
-    "react": "^16.13.1",
-    "react-dom": "^16.13.1"
+    "react": "^19.0.0-rc-69d4b800-20241021",
+    "react-dom": "^19.0.0-rc-69d4b800-20241021",
+    "react-server-dom-webpack": "^19.0.0-rc-69d4b800-20241021"
   }
 }

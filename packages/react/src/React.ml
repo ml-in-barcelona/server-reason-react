@@ -349,8 +349,8 @@ module JSX = struct
   let bool name jsxName value = Bool (name, jsxName, value)
   let string name jsxName value = String (name, jsxName, value)
   let style value = Style value
-  let int name jsxName value = String (name, jsxName, string_of_int value)
-  let float name jsxName value = String (name, jsxName, string_of_float value)
+  let int name jsxName value = String (name, jsxName, Int.to_string value)
+  let float name jsxName value = String (name, jsxName, Float.to_string value)
   let dangerouslyInnerHtml value = DangerouslyInnerHtml value#__html
   let ref value = Ref value
   let event key value = Event (key, value)
@@ -374,16 +374,22 @@ module JSX = struct
   end
 end
 
-type lower_case_element = {
-  tag : string;
-  attributes : JSX.prop list;
-  children : element list;
-}
-
-and element =
-  | Lower_case_element of lower_case_element
+(* TODO: Merge Fragment and List *)
+type element =
+  | Lower_case_element of {
+      key : string option;
+      tag : string;
+      attributes : JSX.prop list;
+      children : element list;
+    }
   | Upper_case_component of (unit -> element)
   | Async_component of (unit -> element Lwt.t)
+  | Client_component of {
+      props : client_props;
+      client : element;
+      import_module : string;
+      import_name : string;
+    }
   | List of element array
   | Text of string
   | InnerHtml of string
@@ -391,21 +397,28 @@ and element =
   | Empty
   | Provider of element
   | Consumer of element
-  | Suspense of { children : element; fallback : element }
+  | Suspense of { key : string option; children : element; fallback : element }
+
+and client_props = (string * client_prop) list
+
+and client_prop =
+  (* TODO: Do we need to add more types here? *)
+  | Json : Yojson.Basic.t -> client_prop
+  | Element : element -> client_prop
+  | Promise : 'a Js.Promise.t * ('a -> Yojson.Basic.t) -> client_prop
 
 exception Invalid_children of string
 
-let compare_attribute left right =
+let compare_attribute (left : JSX.prop) (right : JSX.prop) =
   match (left, right) with
-  | JSX.Bool (left_key, _, _), JSX.Bool (right_key, _, _)
+  | Bool (left_key, _, _), Bool (right_key, _, _)
   | String (left_key, _, _), String (right_key, _, _) ->
       String.compare left_key right_key
   | Style left_styles, Style right_styles ->
       String.compare left_styles right_styles
   | _ -> 0
 
-let clone_attribute acc attr new_attr =
-  let open JSX in
+let clone_attribute acc (attr : JSX.prop) (new_attr : JSX.prop) =
   match (attr, new_attr) with
   | Bool (left, _, _), Bool (right, _, _) when left == right -> new_attr :: acc
   | String (left, _, _), String (right, _, _) when left == right ->
@@ -415,9 +428,8 @@ let clone_attribute acc attr new_attr =
 module StringMap = Map.Make (String)
 
 let attributes_to_map attributes =
-  let open JSX in
   List.fold_left
-    (fun acc attr ->
+    (fun acc (attr : JSX.prop) ->
       match attr with
       | (Bool (key, _, _) | String (key, _, _)) as prop ->
           acc |> StringMap.add key prop
@@ -444,39 +456,26 @@ let clone_attributes attributes new_attributes =
   |> List.flatten |> List.rev
   |> List.sort compare_attribute
 
-let create_element_inner tag attributes children =
-  let dangerouslySetInnerHTML =
-    List.find_opt
-      (function JSX.DangerouslyInnerHtml _ -> true | _ -> false)
-      attributes
-  in
-  let children =
-    match (dangerouslySetInnerHTML, children) with
-    | None, children -> children
-    | Some (JSX.DangerouslyInnerHtml innerHtml), [] ->
-        (* This adds as children the innerHTML, and we treat it differently
-           from Element.Text to avoid encoding to HTML their content *)
-        [ InnerHtml innerHtml ]
-    | Some _, _children -> raise (Invalid_children tag)
-  in
-  Lower_case_element { tag; attributes; children }
-
-let createElement tag attributes children =
+let create_element_with_key ?(key = None) tag attributes children =
   match Html.is_self_closing_tag tag with
   | true when List.length children > 0 ->
       (* TODO: Add test for this *)
-      raise @@ Invalid_children "closing tag with children isn't valid"
-  | true -> Lower_case_element { tag; attributes; children = [] }
-  | false -> create_element_inner tag attributes children
+      raise (Invalid_children "closing tag with children isn't valid")
+  | true -> Lower_case_element { key; tag; attributes; children = [] }
+  | false -> Lower_case_element { key; tag; attributes; children }
+
+let createElement = create_element_with_key ~key:None
+let createElementWithKey = create_element_with_key
 
 (* `cloneElement` overrides childrens and props on lower case components, It raises Invalid_argument for the rest.
     React.js can clone uppercase components, since it stores their props on each element's object but since we just store the fn and don't have the props, we can't clone them).
    TODO: Check original implementation for exact error message/exception type *)
 let cloneElement element new_attributes =
   match element with
-  | Lower_case_element { tag; attributes; children } ->
+  | Lower_case_element { key; tag; attributes; children } ->
       Lower_case_element
         {
+          key;
           tag;
           attributes = clone_attributes attributes new_attributes;
           children;
@@ -495,6 +494,8 @@ let cloneElement element new_attributes =
   | Async_component _ ->
       raise (Invalid_argument "can't clone an async component")
   | Suspense _ -> raise (Invalid_argument "can't clone a Supsense component")
+  | Client_component _ ->
+      raise (Invalid_argument "can't clone a Client component")
 
 module Fragment = struct
   let make ~children ?key:_ () = Fragment children
@@ -550,9 +551,13 @@ let createContext (initial_value : 'a) : 'a Context.t =
 module Suspense = struct
   let or_react_null = function None -> null | Some x -> x
 
-  let make ?fallback ?children () =
+  let make ?(key = None) ?fallback ?children () =
     Suspense
-      { fallback = or_react_null fallback; children = or_react_null children }
+      {
+        key;
+        fallback = or_react_null fallback;
+        children = or_react_null children;
+      }
 end
 
 (* let memo f : 'props * 'props -> bool = f
@@ -674,11 +679,13 @@ type any_promise = Any_promise : 'a Lwt.t -> any_promise
 
 exception Suspend of any_promise
 
+let suspend promise = raise (Suspend (Any_promise promise))
+
 module Experimental = struct
   let use promise =
     match Lwt.state promise with
-    | Sleep -> raise (Suspend (Any_promise promise))
-    (* TODO: Fail should raise a FailedSupense and catch at renderTo* *)
+    | Sleep -> suspend promise
+    (* TODO: Fail should raise a FailedSupense and catch at renderTo*? *)
     | Fail e -> raise e
     | Return v -> v
 end

@@ -11,25 +11,33 @@ val renderToStaticMarkup : React.element -> string
 
 Similar to {{:https://react.dev/reference/react-dom/server/renderToStaticMarkup}} *)
 
-val renderToLwtStream :
-  React.element -> (string Lwt_stream.t * (unit -> unit)) Lwt.t
-(** renderToPipeableStream renders a React tree to a Lwt_stream.t.
+val renderToStream :
+  ?pipe:(string -> unit Lwt.t) ->
+  React.element ->
+  (string Lwt_stream.t * (unit -> unit)) Lwt.t
+(** renderToStream renders a React tree into a Lwt_stream.t.
 
 Similar to {{:https://react.dev/reference/react-dom/server/renderToPipeableStream}} *)
 
+val attribute_to_html : React.JSX.prop -> Html.attribute
+
 (** {2: The rest of the API is there for compatibility with ReactDOM's reason-react} *)
 
+module Ref = React.Ref
+
+type domRef = Ref.t
+
 val querySelector : 'a -> 'b option
-(** Do nothing on the server, always returns None *)
+(** Does nothing on the server, always returns None *)
 
 val render : 'a -> 'b -> 'c
-(** Do nothing on the server *)
+(** Does nothing on the server *)
 
 val hydrate : 'a -> 'b -> 'c
-(** Do nothing on the server *)
+(** Does nothing on the server *)
 
 val createPortal : 'a -> 'b -> 'a
-(** Do nothing on the server *)
+(** Does nothing on the server *)
 
 module Style = ReactDOMStyle
 (** ReactDOM.Style generates the inline styles for the `style` prop. *)
@@ -531,7 +539,3 @@ val domProps :
   ?suppressHydrationWarning:bool ->
   unit ->
   React.JSX.prop list
-
-module Ref = React.Ref
-
-type domRef = Ref.t

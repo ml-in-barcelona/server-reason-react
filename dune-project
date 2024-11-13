@@ -37,6 +37,7 @@
   (lwt (>= 5.6.0))
   (lwt_ppx (>= 2.1.0))
   (uri (>= 4.2.0))
+  (yojson (>= 2.2.0))
   integers
 
   ; Documentation

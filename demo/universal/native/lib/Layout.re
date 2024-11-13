@@ -2,8 +2,8 @@
 let make = (~children, ~background) => {
   <div
     className={Cx.make([
-      "margin-0",
-      "padding-0",
+      "m-0",
+      "p-8",
       "w-[100vw]",
       "h-[100vh]",
       "flex",
@@ -12,20 +12,22 @@ let make = (~children, ~background) => {
       "justify-start",
       Theme.background(background),
     ])}>
-    <nav className="max-w-2xl w-full mt-10">
-      <a
-        className={Cx.make([
-          "text-s font-bold inline-flex items-center justify-between gap-2",
-          Theme.text(Theme.Color.white),
-          Theme.hover([Theme.text(Theme.Color.brokenWhite)]),
-        ])}
-        href=Router.home>
-        <Arrow direction=Left />
-        {React.string("Home")}
-      </a>
-    </nav>
-    <div spellCheck=false className={Cx.make(["max-w-2xl", "pt-12"])}>
-      children
+    <div className="w-full max-w-[800px]">
+      <nav className="w-full mt-10">
+        <a
+          className={Cx.make([
+            "text-s font-bold inline-flex items-center justify-between gap-2",
+            Theme.text(Theme.Color.white),
+            Theme.hover([Theme.text(Theme.Color.brokenWhite)]),
+          ])}
+          href=Router.home>
+          <Arrow direction=Left />
+          {React.string("Home")}
+        </a>
+      </nav>
+      <div spellCheck=false className={Cx.make(["w-full", "pt-12"])}>
+        children
+      </div>
     </div>
   </div>;
 };

@@ -1,8 +1,18 @@
-(install
+;(flags
+; (-alert ++browser_only -alert ++not_implemented -warn-error +A-d))
+
+(rule
+ (alias demo)
  (enabled_if
   (= %{profile} "dev"))
- (section bin)
- (files
-  (node_modules/esbuild/bin/esbuild as esbuild)))
-
-(data_only_dirs node_modules)
+ (deps
+  server/server.exe
+  (alias_rec client)
+  (alias_rec melange-app))
+ (action
+  (progn
+   ; we want dune to write the file but not attach any fsevents listeners to it,
+   ; so that watchexec can read from it without issues.
+   ; this means no (target), no (with-stdout-to), just a bash command with stdout
+   ; redirect inside a string
+   (bash "date > %{project_root}/../../demo/.running/built_at.txt"))))

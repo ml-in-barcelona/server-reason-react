@@ -19,10 +19,6 @@ build: ## Build the project, including non installable libraries and executables
 build-prod: ## Build for production (--profile=prod)
 	$(DUNE) build --profile=prod
 
-.PHONY: build-demo
-build-demo: ## Build the project, including non installable libraries and executables
-	$(DUNE) build --profile=dev @install @client
-
 .PHONY: dev
 dev: ## Build in watch mode
 	$(DUNE) build -w --profile=dev @all
@@ -48,11 +44,11 @@ deps: $(opam_file) ## Alias to update the opam file and install the needed deps
 
 .PHONY: format
 format: ## Format the codebase with ocamlformat
-	$(DUNE) build @fmt --auto-promote
+	@DUNE_CONFIG__GLOBAL_LOCK=disabled $(DUNE) build @fmt --auto-promote
 
 .PHONY: format-check
 format-check: ## Checks if format is correct
-	$(DUNE) build @fmt
+	@DUNE_CONFIG__GLOBAL_LOCK=disabled $(DUNE) build @fmt
 
 .PHONY: init
 setup-githooks: ## Setup githooks
@@ -90,13 +86,22 @@ ppx-test-promote: ## Prommote ppx tests snapshots
 lib-test: ## Run library tests
 	$(DUNE) exec test/test.exe
 
-.PHONY: demo
-demo: build-demo ## Run demo executable
-	$(DUNE) exec demo/server/server.exe --display-separate-messages --no-print-directory --profile=dev
+.PHONY: demo-build
+demo-build: ## Build the project (client, server and universal)
+	$(DUNE) build --profile=dev @install @demo @client
 
-.PHONY: demo-watch
-demo-watch: build-demo ## Run demo executable in watch mode
-	$(DUNE) exec demo/server/server.exe --display-separate-messages --no-print-directory --display=quiet --watch --profile=dev
+.PHONY: demo-build-watch
+demo-build-watch: ## Watch demo (client, server and universal)
+	$(DUNE) build --profile=dev @install @demo --force --watch
+
+.PHONY: demo
+demo-serve: demo-build ## Serve the demo executable
+	@opam exec -- _build/default/demo/server/server.exe
+
+.PHONY: demo-serve-watch
+demo-serve-watch: ## Run demo executable on watch mode (listening to built_at.txt changes)
+	@watchexec --no-ignore -w demo/.running/built_at.txt -r -c \
+	"_build/default/demo/server/server.exe"
 
 .PHONY: subst
 subst: ## Run dune substitute
@@ -128,7 +133,7 @@ bench: build-bench ## Run benchmark
 
 .PHONY: bench-watch
 bench-watch: build-bench ## Run benchmark in watch mode
-	$(DUNE) exec bench/main.exe --profile=release --display-separate-messages --no-print-directory --watch
+	@$(DUNE) exec bench/main.exe --profile=release --display-separate-messages --no-print-directory --watch
 
 .PHONY: once
 once: build-bench ## Run benchmark once

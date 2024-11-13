@@ -1,3 +1,8 @@
+module Style = ReactDOMStyle
+module Ref = React.Ref
+
+type domRef = Ref.t
+
 let is_react_custom_attribute attr =
   match attr with
   | "dangerouslySetInnerHTML" | "ref" | "key" | "suppressContentEditableWarning"
@@ -5,6 +10,7 @@ let is_react_custom_attribute attr =
       true
   | _ -> false
 
+(* TODO: Maybe this should not be under ReactDOM? *)
 let attribute_to_html attr =
   match attr with
   (* ignores "ref" prop *)
@@ -21,7 +27,7 @@ let attribute_to_html attr =
   (* Events don't get rendered on SSR *)
   | Event _ -> Html.omitted ()
   (* Since we extracted the attribute as children (Element.InnerHtml) in createElement,
-     we are very sure there's nothing to render here *)
+     we are sure there's nothing to render here *)
   | DangerouslyInnerHtml _ -> Html.omitted ()
 
 let attributes_to_html attrs = attrs |> List.map attribute_to_html
@@ -33,31 +39,26 @@ let render_to_string ~mode element =
      when renders an lower-case element or closed element *)
   let is_mode_to_string = mode = String in
   let is_root = ref is_mode_to_string in
-  (* previous_was_text_node is the flag to enable rendering comments
-     <!-- --> between text nodes *)
+  (* This flag is used to enable rendering comments <!-- --> between text nodes *)
   let previous_was_text_node = ref false in
 
   let rec render_element element =
-    match element with
-    | React.Empty -> Html.null
+    match (element : React.element) with
+    | Empty -> Html.null
+    | Client_component _ -> Html.null
     | Provider children -> render_element children
     | Consumer children -> render_element children
     | Fragment children -> render_element children
     | List list -> list |> Array.to_list |> List.map render_element |> Html.list
     | Upper_case_component component -> render_element (component ())
     | Async_component _component ->
-        failwith
-          "Asyncronous components can't be rendered to static markup, since \
-           rendering is syncronous. Please use `renderToLwtStream` instead."
-    | Lower_case_element { tag; attributes; _ }
-      when Html.is_self_closing_tag tag ->
+        raise
+          (Invalid_argument
+             "Asyncronous components can't be rendered to static markup, since \
+              rendering is syncronous. Please use `renderToStream` instead.")
+    | Lower_case_element { key = _; tag; attributes; children } ->
         is_root.contents <- false;
-        Html.node tag (attributes_to_html attributes) []
-    | Lower_case_element { tag; attributes; children } ->
-        is_root.contents <- false;
-        Html.node tag
-          (attributes_to_html attributes)
-          (List.map render_element children)
+        render_lower_case tag attributes children
     | Text text -> (
         let is_previous_text_node = previous_was_text_node.contents in
         previous_was_text_node.contents <- true;
@@ -66,7 +67,7 @@ let render_to_string ~mode element =
             Html.list [ Html.raw "<!-- -->"; Html.string text ]
         | _ -> Html.string text)
     | InnerHtml text -> Html.raw text
-    | Suspense { children; fallback } -> (
+    | Suspense { key = _; children; fallback } -> (
         match render_element children with
         | output ->
             Html.list [ Html.raw "<!--$-->"; output; Html.raw "<!--/$-->" ]
@@ -77,58 +78,134 @@ let render_to_string ~mode element =
                 render_element fallback;
                 Html.raw "<!--/$-->";
               ])
+  and render_lower_case tag attributes children =
+    let dangerouslySetInnerHTML =
+      List.find_opt
+        (function React.JSX.DangerouslyInnerHtml _ -> true | _ -> false)
+        attributes
+    in
+    let children =
+      (* If there's a dangerouslySetInnerHTML prop, we render it as a children *)
+      match (dangerouslySetInnerHTML, children) with
+      | None, children -> children
+      | Some (React.JSX.DangerouslyInnerHtml innerHtml), [] ->
+          (* This adds as children the innerHTML, and we treat it differently
+             from Element.Text to avoid encoding to HTML their content *)
+          (* TODO: Remove InnerHtml and use Html.raw directly *)
+          [ InnerHtml innerHtml ]
+      | Some _, _children ->
+          raise
+            (Invalid_argument
+               "can't have both `children` and `dangerouslySetInnerHTML` prop \
+                at the same time")
+    in
+    match Html.is_self_closing_tag tag with
+    (* By the ppx, we know that a self closing tag can't have children *)
+    | true -> Html.node tag (attributes_to_html attributes) []
+    | false ->
+        Html.node tag
+          (attributes_to_html attributes)
+          (List.map render_element children)
   in
   render_element element
+
+(* let dangerouslySetInnerHTML =
+     List.find_opt
+       (function JSX.DangerouslyInnerHtml _ -> true | _ -> false)
+       attributes
+   in
+   let children =
+     match (dangerouslySetInnerHTML, children) with
+     | None, children -> children
+     | Some (JSX.DangerouslyInnerHtml innerHtml), [] ->
+         (* This adds as children the innerHTML, and we treat it differently
+            from Element.Text to avoid encoding to HTML their content *)
+         [ InnerHtml innerHtml ]
+     | Some _, _children ->
+         raise
+           (Invalid_children
+              "can't have both `children` and `dangerouslySetInnerHTML` prop at \
+               the same time")
+   in *)
 
 let renderToString element =
   (* TODO: try catch to avoid React.use usages *)
   let html = render_to_string ~mode:String element in
-  Html.render html
+  Html.to_string html
 
 let renderToStaticMarkup element =
   (* TODO: try catch to avoid React.use usages *)
   let html = render_to_string ~mode:Markup element in
-  Html.render html
-
-module Stream = struct
-  let create () =
-    let stream, push_to_stream = Lwt_stream.create () in
-    let push v = push_to_stream @@ Some v in
-    let close () = push_to_stream @@ None in
-    (stream, push, close)
-end
+  Html.to_string html
 
 type context_state = {
-  stream : string Lwt_stream.t;
   push : Html.element -> unit;
   close : unit -> unit;
+  mutable closed : bool;
   mutable boundary_id : int;
   mutable suspense_id : int;
   mutable waiting : int;
 }
-[@@warning "-69"]
-(* stream isn't being used *)
 
 (* https://github.com/facebook/react/blob/493f72b0a7111b601c16b8ad8bc2649d82c184a0/packages/react-dom-bindings/src/server/fizz-instruction-set/ReactDOMFizzInstructionSetShared.js#L46 *)
 let complete_boundary_script =
   {|function $RC(a,b){a=document.getElementById(a);b=document.getElementById(b);b.parentNode.removeChild(b);if(a){a=a.previousSibling;var f=a.parentNode,c=a.nextSibling,e=0;do{if(c&&8===c.nodeType){var d=c.data;if("/$"===d)if(0===e)break;else e--;else"$"!==d&&"$?"!==d&&"$!"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data="$";a._reactRetry&&a._reactRetry()}}|}
 
-let inline_complete_boundary_script =
-  Html.node "script" [] [ Html.raw complete_boundary_script ]
+let replacement b s = Printf.sprintf "$RC('B:%i','S:%i')" b s
 
-let render_inline_rc_replacement replacements =
-  let rc_payload =
-    replacements
-    |> List.map (fun (b, s) ->
-           Html.raw (Printf.sprintf "$RC('B:%i','S:%i')" b s))
-    |> Html.list ~separator:";"
-  in
-  Html.node "script" [] [ rc_payload ]
+let inline_complete_boundary_script boundary_id suspense_id =
+  (* TODO: it's always correct to asume that the first suspense_id is 0? Maybe we can have 2 suspense parallely and it's not the case anymore? *)
+  if boundary_id = 0 && suspense_id = 0 then
+    Html.node "script" []
+      [
+        Html.raw complete_boundary_script;
+        Html.raw (replacement boundary_id suspense_id);
+      ]
+  else Html.node "script" [] [ Html.raw (replacement boundary_id suspense_id) ]
+
+(* let render_inline_rc_replacement replacements =
+   let rc_payload =
+     replacements
+     |> List.map (fun (b, s) ->
+            Html.raw (Printf.sprintf "$RC('B:%i','S:%i')" b s))
+     |> Html.list ~separator:";"
+   in
+   Html.node "script" [] [ rc_payload ] *)
+
+let render_suspense_resolved_element ~id element =
+  Html.node "div"
+    [ Html.present "hidden"; Html.attribute "id" (Printf.sprintf "S:%i" id) ]
+    [ element ]
+
+let render_suspense_fallback ~boundary_id element =
+  Html.list
+    [
+      Html.raw "<!--$?-->";
+      Html.node "template"
+        [ Html.attribute "id" (Printf.sprintf "B:%i" boundary_id) ]
+        [];
+      element;
+      Html.raw "<!--/$-->";
+    ]
+
+let render_suspense_fallback_error ~exn element =
+  let backtrace = Printexc.get_backtrace () in
+  let data_msg = Printf.sprintf "%s\n%s" (Printexc.to_string exn) backtrace in
+  Html.list
+    [
+      Html.raw "<!--$!-->";
+      Html.node "template" [ Html.attribute "data-msg" data_msg ] [];
+      element;
+      Html.raw "<!--/$-->";
+    ]
 
 let render_to_stream ~context_state element =
+  (* let exception Suspend_async of React.elemet Lwt.t in *)
   let rec render_element element =
-    match element with
-    | React.Empty -> Lwt.return Html.null
+    match (element : React.element) with
+    | Empty -> Lwt.return Html.null
+    (* TODO: Check if this breaks in the client. Maybe should throw an error/exn? *)
+    | Client_component _ -> Lwt.return Html.null
     | Provider children -> render_element children
     | Consumer children -> render_element children
     | Fragment children -> render_element children
@@ -137,93 +214,100 @@ let render_to_stream ~context_state element =
           arr |> Array.to_list |> Lwt_list.map_p render_element
         in
         Lwt.return (Html.list children_elements)
-    | Upper_case_component component -> render_element (component ())
+    | Upper_case_component component ->
+        let rec wait_for_suspense_to_resolve () =
+          match component () with
+          | exception React.Suspend (Any_promise promise) ->
+              let%lwt _ = promise in
+              wait_for_suspense_to_resolve ()
+          | exception exn -> raise exn
+          | output -> render_element output
+        in
+        wait_for_suspense_to_resolve ()
     | Lower_case_element { tag; attributes; _ }
       when Html.is_self_closing_tag tag ->
         Lwt.return (Html.node tag (attributes_to_html attributes) [])
-    | Lower_case_element { tag; attributes; children } ->
-        let%lwt inner = children |> Lwt_list.map_p render_element in
-        Lwt.return (Html.node tag (attributes_to_html attributes) inner)
+    | Lower_case_element { key = _; tag; attributes; children } ->
+        let%lwt inner = Lwt_list.map_p render_element children in
+        let html_attributes = attributes_to_html attributes in
+        Lwt.return (Html.node tag html_attributes inner)
     | Text text -> Lwt.return (Html.string text)
     | InnerHtml text -> Lwt.return (Html.raw text)
     | Async_component component ->
-        let%lwt element = component () in
-        render_element element
-    | Suspense { children; fallback } -> (
-        match render_element children with
-        | output -> output
-        | exception React.Suspend (Any_promise promise) ->
-            context_state.waiting <- context_state.waiting + 1;
-            (* We store to current_*_id to bypass the increment *)
-            let current_boundary_id = context_state.boundary_id in
-            let current_suspense_id = context_state.suspense_id in
-            context_state.boundary_id <- context_state.boundary_id + 1;
-            (* Wait for promise to resolve *)
-            Lwt.async (fun () ->
-                Lwt.bind promise (fun _ ->
-                    (* Enqueue the component with resolved data *)
-                    let%lwt resolved =
-                      render_resolved_element ~id:current_suspense_id children
-                    in
-                    context_state.push resolved;
-                    (* Enqueue the inline script that replaces fallback by resolved *)
-                    context_state.push inline_complete_boundary_script;
+        let%lwt async_element = component () in
+        render_element async_element
+    | Suspense { key = _; children; fallback } -> (
+        (* assume fallback doesn't contain promises, neither errors *)
+        let%lwt fallback_element = render_element fallback in
+        try%lwt
+          let current_boundary_id = context_state.boundary_id in
+          let current_suspense_id = context_state.suspense_id in
+          context_state.boundary_id <- context_state.boundary_id + 1;
+          context_state.suspense_id <- context_state.suspense_id + 1;
+          let children_promise = render_element children in
+
+          match Lwt.state children_promise with
+          (* In case of a resolved promise, we don't render fallback and render children straight away *)
+          | Lwt.Return element -> Lwt.return element
+          | Lwt.Fail exn ->
+              context_state.waiting <- context_state.waiting - 1;
+              raise exn
+          | Lwt.Sleep ->
+              context_state.waiting <- context_state.waiting + 1;
+
+              (* Start the async work but don't wait for it *)
+              Lwt.async (fun () ->
+                  let%lwt resolved = children_promise in
+                  context_state.waiting <- context_state.waiting - 1;
+
+                  (* Only push updates if the stream is still open *)
+                  if not context_state.closed then (
                     context_state.push
-                      (render_inline_rc_replacement
-                         [ (current_boundary_id, current_suspense_id) ]);
-                    context_state.waiting <- context_state.waiting - 1;
-                    context_state.suspense_id <- context_state.suspense_id + 1;
-                    if context_state.waiting = 0 then context_state.close ();
-                    Lwt.return_unit));
-            (* Return the rendered fallback to SSR syncronous *)
-            render_fallback ~boundary_id:current_boundary_id fallback
-        | exception _exn ->
-            (* TODO: log exn *)
-            render_fallback ~boundary_id:context_state.boundary_id fallback)
-  and render_resolved_element ~id element =
-    render_element element
-    |> Lwt.map (fun element ->
-           Html.node "div"
-             [
-               Html.present "hidden";
-               Html.attribute "id" (Printf.sprintf "S:%i" id);
-             ]
-             [ element ])
-  and render_fallback ~boundary_id element =
-    render_element element
-    |> Lwt.map (fun element ->
-           Html.list
-             [
-               Html.raw "<!--$?-->";
-               Html.node "template"
-                 [ Html.attribute "id" (Printf.sprintf "B:%i" boundary_id) ]
-                 [];
-               element;
-               Html.raw "<!--/$-->";
-             ])
+                      (render_suspense_resolved_element ~id:current_suspense_id
+                         resolved);
+                    context_state.push
+                      (inline_complete_boundary_script current_boundary_id
+                         current_suspense_id))
+                  else ();
+
+                  if context_state.waiting = 0 then (
+                    context_state.closed <- true;
+                    context_state.close ());
+                  Lwt.return ());
+
+              Lwt.return
+                (render_suspense_fallback ~boundary_id:current_boundary_id
+                   fallback_element)
+        with exn ->
+          Lwt.return (render_suspense_fallback_error ~exn fallback_element))
   in
+
   render_element element
 
-let renderToLwtStream element =
-  let stream, push, close = Stream.create () in
-  let push_html html = push (Html.render html) in
+let renderToStream ?pipe element =
+  let stream, push_to_stream, close = Push_stream.make () in
+  let push html = push_to_stream (Html.to_string html) in
   let context_state =
     {
-      stream;
-      push = push_html;
+      push;
       close;
+      closed = false;
       waiting = 0;
       boundary_id = 0;
       suspense_id = 0;
     }
   in
   let%lwt html = render_to_stream ~context_state element in
-  push_html html;
+  push html;
+  let%lwt () =
+    match pipe with
+    | None -> Lwt.return ()
+    | Some pipe -> Lwt_stream.iter_s pipe stream
+  in
   if context_state.waiting = 0 then close ();
   let abort () =
     (* TODO: Needs to flush the remaining loading fallbacks as HTML, and React.js will try to render the rest on the client. *)
-    (* Lwt_stream.closed stream |> Lwt.ignore_result *)
-    failwith "abort() isn't supported yet"
+    Lwt_stream.closed stream |> Lwt.ignore_result
   in
   Lwt.return (stream, abort)
 
@@ -236,9 +320,8 @@ let render _element _node =
 let hydrate _element _node =
   Runtime.fail_impossible_action_in_ssr "ReactDOM.hydrate"
 
+(* TODO: Should this fail_impossible_action_in_ssr? *)
 let createPortal _reactElement _domElement = _reactElement
-
-module Style = ReactDOMStyle
 
 let createDOMElementVariadic (tag : string) ~props
     (childrens : React.element array) =
@@ -850,7 +933,7 @@ let domProps
   |> add (React.JSX.string "href" "href") href
   |> add (React.JSX.string "hreflang" "hrefLang") hrefLang
   |> add (React.JSX.string "for" "htmlFor") htmlFor
-  |> add (React.JSX.string "http-eequiv" "httpEquiv") httpEquiv
+  |> add (React.JSX.string "http-equiv" "httpEquiv") httpEquiv
   |> add (React.JSX.string "icon" "icon") icon
   |> add (React.JSX.string "inputmode" "inputMode") inputMode
   |> add (React.JSX.string "integrity" "integrity") integrity
@@ -865,7 +948,7 @@ let domProps
   |> add (React.JSX.int "maxlength" "maxLength") maxLength
   |> add (React.JSX.string "media" "media") media
   |> add (React.JSX.string "mediagroup" "mediaGroup") mediaGroup
-  |> add (React.JSX.string "method" "method_") method_
+  |> add (React.JSX.string "method" "method") method_
   |> add (React.JSX.string "min" "min") min
   |> add (React.JSX.int "minlength" "minLength") minLength
   |> add (React.JSX.bool "multiple" "multiple") multiple
@@ -873,7 +956,7 @@ let domProps
   |> add (React.JSX.string "name" "name") name
   |> add (React.JSX.string "nonce" "nonce") nonce
   |> add (React.JSX.bool "noValidate" "noValidate") noValidate
-  |> add (React.JSX.bool "open" "open_") open_
+  |> add (React.JSX.bool "open" "open") open_
   |> add (React.JSX.int "optimum" "optimum") optimum
   |> add (React.JSX.string "pattern" "pattern") pattern
   |> add (React.JSX.string "placeholder" "placeholder") placeholder
@@ -904,7 +987,7 @@ let domProps
   |> add (React.JSX.float "step" "step") step
   |> add (React.JSX.string "summary" "summary") summary
   |> add (React.JSX.string "target" "target") target
-  |> add (React.JSX.string "type" "type_") type_
+  |> add (React.JSX.string "type" "type") type_
   |> add (React.JSX.string "useMap" "useMap") useMap
   |> add (React.JSX.string "value" "value") value
   |> add (React.JSX.string "width" "width") width
@@ -1003,7 +1086,7 @@ let domProps
   |> add (React.JSX.string "baseProfile" "baseProfile") baseProfile
   |> add (React.JSX.string "baselineShift" "baselineShift") baselineShift
   |> add (React.JSX.string "bbox" "bbox") bbox
-  |> add (React.JSX.string "begin" "begin_") begin_
+  |> add (React.JSX.string "begin" "begin") begin_
   |> add (React.JSX.string "bias" "bias") bias
   |> add (React.JSX.string "by" "by") by
   |> add (React.JSX.string "calcMode" "calcMode") calcMode
@@ -1035,7 +1118,7 @@ let domProps
   |> add (React.JSX.string "edgeMode" "edgeMode") edgeMode
   |> add (React.JSX.string "elevation" "elevation") elevation
   |> add (React.JSX.string "enableBackground" "enableBackground") enableBackground
-  |> add (React.JSX.string "end" "end_") end_
+  |> add (React.JSX.string "end" "end") end_
   |> add (React.JSX.string "exponent" "exponent") exponent
   |> add (React.JSX.string "externalResourcesRequired" "externalResourcesRequired") externalResourcesRequired
   |> add (React.JSX.string "fill" "fill") fill
@@ -1072,7 +1155,7 @@ let domProps
   (* |> add (React.JSX.string "horiz-origin-y" "horizOriginY") horizOriginY *) (* Should be added *)
   |> add (React.JSX.string "ideographic" "ideographic") ideographic
   |> add (React.JSX.string "image-rendering" "imageRendering") imageRendering
-  |> add (React.JSX.string "in" "in_") in_
+  |> add (React.JSX.string "in" "in") in_
   |> add (React.JSX.string "in2" "in2") in2
   |> add (React.JSX.string "intercept" "intercept") intercept
   |> add (React.JSX.string "k" "k") k
@@ -1178,7 +1261,7 @@ let domProps
   |> add (React.JSX.string "text-decoration" "textDecoration") textDecoration
   |> add (React.JSX.string "textLength" "textLength") textLength
   |> add (React.JSX.string "text-rendering" "textRendering") textRendering
-  |> add (React.JSX.string "to" "to_") to_
+  |> add (React.JSX.string "to" "to") to_
   |> add (React.JSX.string "transform" "transform") transform
   |> add (React.JSX.string "u1" "u1") u1
   |> add (React.JSX.string "u2" "u2") u2
@@ -1239,7 +1322,3 @@ let domProps
   |> add (React.JSX.dangerouslyInnerHtml) dangerouslySetInnerHTML
   |> add (React.JSX.bool "suppressContentEditableWarning" "suppressContentEditableWarning") suppressContentEditableWarning
   |> add (React.JSX.bool "suppressHydrationWarning" "suppressHydrationWarning") suppressHydrationWarning
-
-module Ref = React.Ref
-
-type domRef = Ref.t
