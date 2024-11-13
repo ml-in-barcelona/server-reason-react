@@ -453,7 +453,54 @@ let string_tests =
 
 let global_tests =
   [
-    test "decodeURI" (fun () ->
+    test "decodeURI - basic ascii characters" (fun () ->
+        assert_string (Js.Global.decodeURI "Hello%20World") "Hello World");
+    test "decodeURI - basic decoded characters" (fun () ->
+        assert_string (Js.Global.decodeURI "%20") " ";
+        assert_string (Js.Global.decodeURI "%25") "%";
+        assert_string (Js.Global.decodeURI "%3C%3E") "<>";
+        assert_string (Js.Global.decodeURI "%22") "\"";
+        assert_string (Js.Global.decodeURI "%5C") "\\";
+        assert_string (Js.Global.decodeURI "%E2%82%AC") "€";
+        assert_string (Js.Global.decodeURI "%E2%98%85") "★";
+        assert_string (Js.Global.decodeURI "%E2%99%A0") "♠";
+        assert_string (Js.Global.decodeURI "%E4%BD%A0%E5%A5%BD") "你好");
+    test "decodeURI - characters that should not be decoded" (fun () ->
+        (* Reserved characters that should not be decoded *)
+        assert_string (Js.Global.decodeURI ";,/?:@&=+$#") ";,/?:@&=+$#";
+
+        (* Unreserved characters that should not be encoded *)
+        assert_string
+          (Js.Global.decodeURI "abcdefghijklmnopqrstuvwxyz")
+          "abcdefghijklmnopqrstuvwxyz";
+        assert_string
+          (Js.Global.decodeURI "ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+          "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        assert_string
+          (Js.Global.decodeURI "0123456789-_.!~*'()")
+          "0123456789-_.!~*'()");
+    test "decodeURI - multiple encoded sequences" (fun () ->
+        assert_string
+          (Js.Global.decodeURI "Hello%20World!%20%E2%98%85")
+          "Hello World! ★";
+        assert_string
+          (Js.Global.decodeURI "Path/To/File%20Name")
+          "Path/To/File Name";
+        assert_string (Js.Global.decodeURI "") "";
+        assert_string (Js.Global.decodeURI "%20") " ";
+        assert_string (Js.Global.decodeURI "%20%20%20") "   ";
+        assert_string (Js.Global.decodeURI "%2520") "%20");
+    test "shit" (fun () ->
+        assert_string
+          (Js.Global.decodeURI "https://example.com/path%20name/file.txt")
+          "https://example.com/path name/file.txt";
+
+        assert_string (Js.Global.decodeURI "%5B%5D") "[]";
+
+        assert_string (Js.Global.decodeURI "%7B%7D") "{}";
+
+        assert_string (Js.Global.decodeURI "%7C") "|");
+    test "decodeURI - url" (fun () ->
         assert_string
           (Js.Global.decodeURI "http:%2f%2Funipro.ru")
           "http:%2f%2Funipro.ru";
