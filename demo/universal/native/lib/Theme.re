@@ -1,5 +1,16 @@
-type align = [ | `start | `center | `end_];
-type justify = [ | `around | `between | `evenly | `start | `center | `end_];
+type align = [
+  | `start
+  | `center
+  | `end_
+];
+type justify = [
+  | `around
+  | `between
+  | `evenly
+  | `start
+  | `center
+  | `end_
+];
 
 module Media = {
   let onDesktop = rules => {
