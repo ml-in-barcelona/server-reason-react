@@ -1,5 +1,13 @@
-type verticalAlign = [ | `top | `center | `bottom];
-type horizontalAlign = [ | `left | `center | `right];
+type verticalAlign = [
+  | `top
+  | `center
+  | `bottom
+];
+type horizontalAlign = [
+  | `left
+  | `center
+  | `right
+];
 
 [@react.component]
 let make = (~h: horizontalAlign=`center, ~v: verticalAlign=`center, ~children) => {

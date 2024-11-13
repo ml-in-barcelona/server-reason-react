@@ -68,7 +68,13 @@ let _ = scrollIntoView(el);
 /*let _ = scrollIntoViewNoAlignToTop(el);*/
 let _ = scrollIntoViewNoAlignToTop(el);
 let _ =
-  scrollIntoViewWithOptions({"block": "end", "behavior": "smooth"}, el);
+  scrollIntoViewWithOptions(
+    {
+      "block": "end",
+      "behavior": "smooth",
+    },
+    el,
+  );
 let _ = setAttribute("href", "http://...", el);
 let _ = setAttributeNS("http://...", "foo", "bar", el);
 let _ = setPointerCapture(PointerEvent.pointerId(event), el);

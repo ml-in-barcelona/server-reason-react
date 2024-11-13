@@ -30,7 +30,10 @@ module Title = {
           label: "Issues",
           link: "https://github.com/ml-in-barcelona/server-reason-react/issues",
         },
-        {label: "About", link: "https://twitter.com/davesnx"},
+        {
+          label: "About",
+          link: "https://twitter.com/davesnx",
+        },
       |];
 
       <div
