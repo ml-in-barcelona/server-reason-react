@@ -8,28 +8,29 @@ window.__webpack_require__ = (id) => {
 	return component;
 };
 
-let React = require("react");
-let ReactDOM = require("react-dom/client");
-let ReactServerDOM = require("react-server-dom-webpack/client");
+const React = require("react");
+const ReactDOM = require("react-dom/client");
+const ReactServerDOM = require("react-server-dom-webpack/client");
 
 /* bootstrap.js */
 
 window.__client_manifest_map = {};
 
-let register = (name, render) => {
+const register = (name, render) => {
 	window.__client_manifest_map[name] = render;
 };
 
 register(
 	"Note_editor",
-	React.lazy(() => import("./app/demo/universal/js/Note_editor.js")));
+	React.lazy(() => import("./app/demo/universal/js/Note_editor.js")),
+);
 register(
 	"Counter",
-	React.lazy(() => import("./app/demo/universal/js/Counter.js"))
+	React.lazy(() => import("./app/demo/universal/js/Counter.js")),
 );
 register(
 	"Promise_renderer",
-	React.lazy(() => import("./app/demo/universal/js/Promise_renderer.js"))
+	React.lazy(() => import("./app/demo/universal/js/Promise_renderer.js")),
 );
 /* end bootstrap.js */
 
@@ -59,15 +60,15 @@ class ErrorBoundary extends React.Component {
 }
 
 function Use({ promise }) {
-	let tree = React.use(promise);
+	const tree = React.use(promise);
 	return tree;
 }
 
 try {
 	const stream = window.srr_stream.readable_stream;
 	const promise = ReactServerDOM.createFromReadableStream(stream);
-	let element = document.getElementById("root");
-	let app = (
+	const element = document.getElementById("root");
+	const app = (
 		<ErrorBoundary>
 			<Use promise={promise} />
 		</ErrorBoundary>
