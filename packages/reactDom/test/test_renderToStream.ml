@@ -193,17 +193,16 @@ let async_component () =
 
 let suspense_with_async_component () =
   let deffered_component ~seconds ~children () =
-    let cached_promise =
-      let%lwt () = Lwt_unix.sleep seconds in
-      Lwt.return
-        (React.createElement "div" []
-           [
-             React.string ("Sleep " ^ Float.to_string seconds ^ " seconds");
-             React.string ", ";
-             children;
-           ])
-    in
-    React.Async_component (fun () -> cached_promise)
+    React.Async_component
+      (fun () ->
+        let%lwt () = Lwt_unix.sleep seconds in
+        Lwt.return
+          (React.createElement "div" []
+             [
+               React.string ("Sleep " ^ Float.to_string seconds ^ " seconds");
+               React.string ", ";
+               children;
+             ]))
   in
   let app () =
     React.createElement "div" []
@@ -223,6 +222,47 @@ let suspense_with_async_component () =
       "<div><!--$?--><template id=\"B:0\"></template>Fallback 1<!--/$--></div>";
       "<div hidden id=\"S:0\"><div>Sleep 0.02 seconds, lol</div></div>";
       rsc_script "$RC('B:0','S:0')";
+    ]
+
+let suspense_with_nested_suspense () =
+  let deffered_component ~seconds ~children () =
+    React.Async_component
+      (fun () ->
+        let%lwt () = Lwt_unix.sleep seconds in
+        Lwt.return
+          (React.createElement "div" []
+             [
+               React.string ("Sleep " ^ Float.to_string seconds ^ " seconds");
+               React.string ", ";
+               children;
+             ]))
+  in
+  let app () =
+    React.Suspense.make
+      ~fallback:(React.string "Fallback 1")
+      ~children:
+        (deffered_component ~seconds:0.02
+           ~children:
+             (React.Suspense.make
+                ~fallback:(React.string "Fallback 2")
+                ~children:
+                  (deffered_component ~seconds:0.02
+                     ~children:(React.string "lol") ())
+                ())
+           ())
+      ()
+  in
+  let%lwt stream, _abort =
+    ReactDOM.renderToStream (React.Upper_case_component app)
+  in
+  assert_stream stream
+    [
+      "<!--$?--><template id=\"B:0\"></template>Fallback 1<!--/$-->";
+      "<div hidden id=\"S:0\"><div>Sleep 0.02 seconds, <!--$?--><template \
+       id=\"B:1\"></template>Fallback 2<!--/$--></div></div>";
+      rsc_script "$RC('B:0','S:0')";
+      "<div hidden id=\"S:1\"><div>Sleep 0.02 seconds, lol</div></div>";
+      "<script>$RC('B:1','S:1')</script>";
     ]
 
 let async_component_without_suspense () =
@@ -259,4 +299,5 @@ let tests =
     test "suspense_with_async_component" suspense_with_async_component;
     test "suspense_with_always_throwing" suspense_with_always_throwing;
     test "suspense_without_promise" suspense_without_promise;
+    test "suspense_with_nested_suspense" suspense_with_nested_suspense;
   ]

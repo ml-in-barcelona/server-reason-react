@@ -37,13 +37,15 @@ const debug = (readableStream) => {
 const sleep = (seconds) =>
 	new Promise((res) => setTimeout(res, seconds * 1000));
 
-/* const App = () => (
-	<div>
-		<React.Suspense fallback="Fallback 1">"lol"</React.Suspense>
-	</div>
-); */
-
-const App = () => <React.Suspense fallback="Fallback 1">"lola"</React.Suspense>;
+const App = () => (
+	<React.Suspense fallback="Fallback 1">
+		<DefferedComponent sleep={1}>
+			<React.Suspense fallback="Fallback 2">
+				<DefferedComponent sleep={1}>"lol"</DefferedComponent>
+			</React.Suspense>
+		</DefferedComponent>
+	</React.Suspense>
+);
 
 ReactDOM.renderToReadableStream(<App />).then((stream) => {
 	debug(stream);

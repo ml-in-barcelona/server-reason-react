@@ -153,11 +153,14 @@ let complete_boundary_script =
 let replacement b s = Printf.sprintf "$RC('B:%i','S:%i')" b s
 
 let inline_complete_boundary_script boundary_id suspense_id =
-  Html.node "script" []
-    [
-      Html.raw complete_boundary_script;
-      Html.raw (replacement boundary_id suspense_id);
-    ]
+  (* TODO: it's always correct to asume that the first suspense_id is 0? Maybe we can have 2 suspense parallely and it's not the case anymore? *)
+  if boundary_id = 0 && suspense_id = 0 then
+    Html.node "script" []
+      [
+        Html.raw complete_boundary_script;
+        Html.raw (replacement boundary_id suspense_id);
+      ]
+  else Html.node "script" [] [ Html.raw (replacement boundary_id suspense_id) ]
 
 (* let render_inline_rc_replacement replacements =
    let rc_payload =
@@ -238,18 +241,16 @@ let render_to_stream ~context_state element =
         try%lwt
           let current_boundary_id = context_state.boundary_id in
           let current_suspense_id = context_state.suspense_id in
+          context_state.boundary_id <- context_state.boundary_id + 1;
+          context_state.suspense_id <- context_state.suspense_id + 1;
           let children_promise = render_element children in
 
-          (* First check if children are already resolved before setting up async handling *)
           match Lwt.state children_promise with
+          (* In case of a resolved promise, we don't render fallback and render children straight away *)
+          | Lwt.Return element -> Lwt.return element
           | Lwt.Fail exn ->
-              ignore @@ failwith "Children failed to resolve";
               context_state.waiting <- context_state.waiting - 1;
               raise exn
-          (* In case of a resolved promise, we don't render fallback and render children straight away *)
-          | Lwt.Return element ->
-              context_state.suspense_id <- context_state.suspense_id + 1;
-              Lwt.return element
           | Lwt.Sleep ->
               context_state.waiting <- context_state.waiting + 1;
 
@@ -265,8 +266,7 @@ let render_to_stream ~context_state element =
                          resolved);
                     context_state.push
                       (inline_complete_boundary_script current_boundary_id
-                         current_suspense_id);
-                    context_state.suspense_id <- context_state.suspense_id + 1)
+                         current_suspense_id))
                   else ();
 
                   if context_state.waiting = 0 then context_state.close ();
