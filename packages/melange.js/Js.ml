@@ -1419,6 +1419,16 @@ end = struct
           Ok (Printf.sprintf "%%%c%c" first_digit second_digit)
       | _ -> Error (Printf.sprintf "Invalid hex encoding: %d" value)
 
+    let uri_char_escaped c =
+      match c with
+      | '\'' -> "'" (* treat single quote as a regular character *)
+      | c ->
+          (* use Char.escaped for other special characters that need escaping *)
+          let escaped = Char.escaped c in
+          if c = '\\' then
+            Stdlib.String.sub escaped 1 (String.length escaped - 1)
+          else escaped
+
     let encode_uri ~component s =
       let buf = Buffer.create (String.length s * 3) in
       let rec loop pos =
@@ -1429,7 +1439,7 @@ end = struct
             let new_pos = pos + 1 in
             if is_uri_unescaped c component then
               let encoded_char =
-                try Ok (Char.chr c |> Char.escaped)
+                try Ok (Char.chr c |> uri_char_escaped)
                 with _ -> raise (Invalid_argument "invalid character")
               in
               (new_pos, encoded_char)
