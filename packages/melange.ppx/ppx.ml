@@ -19,10 +19,10 @@ module Private = struct
             _;
           } ->
           true
-          (* FIX #4881
+          (* FIX https://github.com/rescript-lang/rescript/issues/4881
              generated code from:
              {[
-               external %private x : int -> int =  "x"
+               external %private x : int -> int = "x"
                [@@mel.module "./x"]
              ]}
           *)
