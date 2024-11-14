@@ -19,13 +19,12 @@ type eventType =
   | Inline
   | Drag
 
-type attribute = { type_ : attributeType; name : string; jsxName : string }
+type attribute = { type_ : attributeType; name : string; jsxName : string; reasonJsxName : string }
 type event = { type_ : eventType; jsxName : string }
 type prop = Attribute of attribute | Event of event
 type errors = [ `ElementNotFound | `AttributeNotFound ]
 
 val getJSXName : prop -> string
-val getName : prop -> string
 val findByJsxName : tag:string -> string -> (prop, errors) result
 val isReactValidProp : string -> bool
-val find_closest_name : string -> string option
+val findClosestName : string -> string option

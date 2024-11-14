@@ -70,7 +70,7 @@ let validate_prop ~loc id name =
       raise_errorf ~loc "jsx: HTML tag '%s' doesn't exist.\nIf this isn't correct, please open an issue at %s" id
         issues_url
   | Error `AttributeNotFound -> (
-      match DomProps.find_closest_name name with
+      match DomProps.findClosestName name with
       | None ->
           raise_errorf ~loc
             "jsx: prop '%s' isn't valid on a '%s' element.\nIf this isn't correct, please open an issue at %s." name id

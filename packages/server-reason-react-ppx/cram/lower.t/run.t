@@ -268,7 +268,7 @@
                 [
                   Some(
                     [@implicit_arity]
-                    React.JSX.String("type", "type_", "image/webp": string),
+                    React.JSX.String("type", "type", "image/webp": string),
                   ),
                   Some(
                     [@implicit_arity]
@@ -285,7 +285,7 @@
                 [
                   Some(
                     [@implicit_arity]
-                    React.JSX.String("type", "type_", "image/jpeg": string),
+                    React.JSX.String("type", "type", "image/jpeg": string),
                   ),
                   Some(
                     [@implicit_arity]
