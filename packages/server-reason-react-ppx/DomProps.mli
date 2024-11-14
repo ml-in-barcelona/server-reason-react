@@ -19,7 +19,7 @@ type eventType =
   | Inline
   | Drag
 
-type attribute = { type_ : attributeType; name : string; jsxName : string }
+type attribute = { type_ : attributeType; name : string; jsxName : string; reasonJsxName : string }
 type event = { type_ : eventType; jsxName : string }
 type prop = Attribute of attribute | Event of event
 type errors = [ `ElementNotFound | `AttributeNotFound ]

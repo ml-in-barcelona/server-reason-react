@@ -93,7 +93,9 @@ We need to output ML syntax here, otherwise refmt could not parse it.
                [
                  Some
                    (React.JSX.String
-                      ("aria-hidden", "ariaHidden", string_of_bool ("true" : bool)));
+                      ( "aria-hidden",
+                        "aria-hidden",
+                        string_of_bool ("true" : bool) ));
                ])
             [ children ])
   end
