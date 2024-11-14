@@ -1,6 +1,63 @@
 open Ppxlib
 module Builder = Ast_builder.Default
 
+module Private = struct
+  module Typemod_hide = struct
+    let no_type_defined (x : structure_item) =
+      match x.pstr_desc with
+      | Pstr_eval _ | Pstr_value _ | Pstr_primitive _ | Pstr_typext _ | Pstr_exception _
+      (* | Pstr_module {pmb_expr = {pmod_desc = Pmod_ident _} }  *) ->
+          true
+      | Pstr_include
+          {
+            pincl_mod =
+              {
+                pmod_desc =
+                  Pmod_constraint ({ pmod_desc = Pmod_structure [ { pstr_desc = Pstr_primitive _; _ } ]; _ }, _);
+                _;
+              };
+            _;
+          } ->
+          true
+          (* FIX #4881
+             generated code from:
+             {[
+               external %private x : int -> int =  "x"
+               [@@mel.module "./x"]
+             ]}
+          *)
+      | _ -> false
+
+    let check (x : structure) =
+      List.iter
+        (fun x ->
+          if not (no_type_defined x) then
+            Location.raise_errorf ~loc:x.pstr_loc "the structure is not supported in local extension")
+        x
+  end
+
+  let rule =
+    let expand (stru : structure) =
+      Typemod_hide.check stru;
+      let last_loc = (List.hd stru).pstr_loc in
+      let first_loc = (List.hd stru).pstr_loc in
+      let loc = { first_loc with loc_end = last_loc.loc_end } in
+      Ast_helper.[ Str.open_ (Opn.mk ~override:Override (Mod.structure ~loc stru)) ] |> List.hd
+    in
+    let rule label =
+      let extractor = Ast_pattern.__' in
+      let handler ~ctxt:_ { txt = payload; loc } =
+        match payload with
+        | PStr work -> expand work
+        | PSig _ | PTyp _ | PPat _ -> Location.raise_errorf ~loc "private extension is not support"
+      in
+
+      let extender = Extension.V3.declare label Structure_item extractor handler in
+      Context_free.Rule.extension extender
+    in
+    rule "private"
+end
+
 module Mel_module = struct
   type bundler = Webpack | Esbuild
 
@@ -728,5 +785,5 @@ let () =
     (String (fun str -> Mel_module.prefix := str))
     ~doc:"the paths to the generated assets will include the given prefix before the filename (default: \"/\")";
   Driver.V2.register_transformation ~impl:structure_mapper
-    ~rules:[ Pipe_first.rule; Regex.rule; Double_hash.rule; Debug.rule ]
+    ~rules:[ Pipe_first.rule; Regex.rule; Double_hash.rule; Debug.rule; Private.rule ]
     "melange-native-ppx"
