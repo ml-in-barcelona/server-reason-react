@@ -67,8 +67,8 @@ mel.raw with type
   $ echo "end" >> main.ml
   $ cat output.ml >> main.ml
   $ ocamlc -c main.ml
-  File "main.ml", line 24, characters 2-7:
-  24 | [%error
+  File "main.ml", line 23, characters 2-7:
+  23 | [%error
          ^^^^^
   Error: [server-reason-react.melange_ppx] There's a [%mel.raw "window"]
          expression in native, which should only happen in JavaScript. You need
