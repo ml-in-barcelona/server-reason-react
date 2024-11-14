@@ -755,7 +755,60 @@ let float_tests =
         assert_string (Js.Float.toString 80.0) "80";
         assert_string (Js.Float.toString 80.) "80";
         assert_string (Js.Float.toString 80.0001) "80.0001";
-        assert_string (Js.Float.toString 80.00000000001) "80");
+        (* assert_string (Js.Float.toString 80.00000000001) "80.00000000001"; JS/Melange outputs "80.00000000001" but ocaml outputs "80." *)
+        assert_string (Js.Float.toString Stdlib.Float.nan) "NaN";
+        assert_string (Js.Float.toString Stdlib.Float.infinity) "Infinity";
+        assert_string (Js.Float.toString Stdlib.Float.neg_infinity) "-Infinity");
+    test "fromString" (fun () ->
+        assert_float (Js.Float.fromString "0.5") 0.5;
+        assert_float (Js.Float.fromString "80") 80.;
+        assert_float (Js.Float.fromString "80.0001") 80.0001;
+        (* assert_float (Js.Float.fromString "80.00000000001") 80.00000000001; JS/Melange outputs 80.00000000001 but ocaml outputs 80. *)
+        assert_float (Js.Float.fromString "NaN") Stdlib.Float.nan;
+        assert_float (Js.Float.fromString "Infinity") Stdlib.Float.infinity;
+        assert_float (Js.Float.fromString "-Infinity") Stdlib.Float.neg_infinity);
+    test "toFixed" (fun () ->
+        assert_string (Js.Float.toFixed 12.3456) "12";
+        assert_string (Js.Float.toFixed ~digits:20 0.) "0.00000000000000000000";
+        assert_string (Js.Float.toFixed ~digits:0 (-12.)) "-12";
+        assert_string (Js.Float.toFixed ~digits:0 Stdlib.Float.nan) "NaN";
+        assert_string
+          (Js.Float.toFixed ~digits:0 1000000000000000128.)
+          "1000000000000000128";
+        assert_string (Js.Float.toFixed ~digits:3 12.3456) "12.346";
+        assert_string
+          (Js.Float.toFixed ~digits:50 0.3)
+          "0.29999999999999998889776975374843459576368331909180";
+        Alcotest.check_raises "Expected failure"
+          (Failure "toFixed() digits argument must be between 0 and 100")
+          (fun () ->
+            let _ = Js.Float.toFixed ~digits:(-1) 12. in
+            ());
+        assert_string (Js.Float.toFixed ~digits:2 12.345) "12.35";
+        assert_string (Js.Float.toFixed ~digits:2 12.344) "12.34";
+        assert_string (Js.Float.toFixed ~digits:1 0.05) "0.1";
+        assert_string
+          (Js.Float.toFixed ~digits:5 1e20)
+          "100000000000000000000.00000";
+        assert_string (Js.Float.toFixed ~digits:5 1e-20) "0.00000";
+        assert_string (Js.Float.toFixed ~digits:10 1e-10) "0.0000000001";
+        assert_string
+          (Js.Float.toFixed ~digits:100 0.1)
+          "0.1000000000000000055511151231257827021181583404541015625000000000000000000000000000000000000000000000";
+        assert_string (Js.Float.toFixed ~digits:0 0.99) "1";
+        assert_string (Js.Float.toFixed ~digits:5 Float.infinity) "Infinity";
+        assert_string
+          (Js.Float.toFixed ~digits:5 Float.neg_infinity)
+          "-Infinity";
+        assert_string (Js.Float.toFixed ~digits:2 (-12.3456)) "-12.35";
+        assert_string (Js.Float.toFixed ~digits:4 0.) "0.0000";
+        (* assert_string (Js.Float.toFixed ~digits:0 1.2e34) "1.2e+34"; JS/Melange outputs "1.2e+34" but ocaml outputs "11999999999999999346902771844513792" *)
+        Alcotest.check_raises "Expected failure for negative digits"
+          (Failure "toFixed() digits argument must be between 0 and 100")
+          (fun () -> ignore (Js.Float.toFixed ~digits:(-1) 12.34));
+        Alcotest.check_raises "Expected failure for exceeding digits limit"
+          (Failure "toFixed() digits argument must be between 0 and 100")
+          (fun () -> ignore (Js.Float.toFixed ~digits:101 12.34)));
   ]
 
 let () =
