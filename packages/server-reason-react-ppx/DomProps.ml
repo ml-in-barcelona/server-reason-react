@@ -31,16 +31,19 @@ type eventType =
   | Pointer
   | Inline
   | Drag
-(* _onclick *)
 
+(* Attribute is a record to define the 3 string formats for HTML attributes, JSX props and Reason's JSX props *)
 type attribute = {
   type_ : attributeType;
-  name : string;
-  jsxName : string;
+  name : string; (* HTML name *)
+  jsxName : string; (* JSX name *)
+  reasonJsxName : string; (* ReasonJSX name, this is the name that appears on the Reason/OCaml files, which can't be reserved keywords from OCaml (https://ocaml.org/manual/5.2/lex.html#sss:keywords) or Reason syntax (https://github.com/reasonml/reason/blob/master/src/reason-parser/reason_declarative_lexer.mll#L85-L144). Currently the only appearances comes from the OCaml list, since there's no Reason specific keyword that appears on the HTML spec. *)
 }
 
 type event = {
   type_ : eventType;
+  (* in case of events, jsxName is the same as the reasonJsxName name.
+     also HTML events aren't used in the ppx, neither the runtime *)
   jsxName : string;
 }
 
