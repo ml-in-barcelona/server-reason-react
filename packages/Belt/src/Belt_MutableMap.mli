@@ -21,8 +21,7 @@ val cmp : ('k, 'a, 'id) t -> ('k, 'a, 'id) t -> ('a -> 'a -> int) -> int
     compare by key, value pair
 *)
 
-val eqU :
-  ('k, 'a, 'id) t -> ('k, 'a, 'id) t -> (('a -> 'a -> bool)[@bs]) -> bool
+val eqU : ('k, 'a, 'id) t -> ('k, 'a, 'id) t -> (('a -> 'a -> bool)[@bs]) -> bool
 
 val eq : ('k, 'a, 'id) t -> ('k, 'a, 'id) t -> ('a -> 'a -> bool) -> bool
 (** [eq m1 m2 eqf] tests whether the maps [m1] and [m2] are

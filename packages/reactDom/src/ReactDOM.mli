@@ -11,10 +11,7 @@ val renderToStaticMarkup : React.element -> string
 
 Similar to {{:https://react.dev/reference/react-dom/server/renderToStaticMarkup}} *)
 
-val renderToStream :
-  ?pipe:(string -> unit Lwt.t) ->
-  React.element ->
-  (string Lwt_stream.t * (unit -> unit)) Lwt.t
+val renderToStream : ?pipe:(string -> unit Lwt.t) -> React.element -> (string Lwt_stream.t * (unit -> unit)) Lwt.t
 (** renderToStream renders a React tree into a Lwt_stream.t.
 
 Similar to {{:https://react.dev/reference/react-dom/server/renderToPipeableStream}} *)
@@ -42,8 +39,7 @@ val createPortal : 'a -> 'b -> 'a
 module Style = ReactDOMStyle
 (** ReactDOM.Style generates the inline styles for the `style` prop. *)
 
-val createDOMElementVariadic :
-  string -> props:React.JSX.prop list -> React.element array -> React.element
+val createDOMElementVariadic : string -> props:React.JSX.prop list -> React.element array -> React.element
 (** Create a React.element by giving the HTML tag, an array of props and children *)
 
 type dangerouslySetInnerHTML = < __html : string >

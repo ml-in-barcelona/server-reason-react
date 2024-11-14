@@ -15,8 +15,7 @@ let equal_components (c1 : React.element) (c2 : React.element) =
         lc1.tag == lc2.tag
         && List.for_all2 equal_rec lc1.children lc2.children
         && List.for_all2 equal_attrs lc1.attributes lc2.attributes
-    | Upper_case_component cf1, Upper_case_component cf2 ->
-        equal_rec (cf1 ()) (cf2 ())
+    | Upper_case_component cf1, Upper_case_component cf2 -> equal_rec (cf1 ()) (cf2 ())
     | List cl1, List cl2 -> Array.for_all2 equal_rec cl1 cl2
     | Text t1, Text t2 -> t1 == t2
     | Fragment fl1, Fragment fl2 -> equal_rec fl1 fl2
@@ -27,56 +26,32 @@ let equal_components (c1 : React.element) (c2 : React.element) =
 
 let component =
   Alcotest.testable
-    (fun ppf v ->
-      Fmt.string ppf (Printf.sprintf "%s" (ReactDOM.renderToStaticMarkup v)))
+    (fun ppf v -> Fmt.string ppf (Printf.sprintf "%s" (ReactDOM.renderToStaticMarkup v)))
     equal_components
 
-let assert_component left right =
-  (Alcotest.check component) "should be equal" right left
+let assert_component left right = (Alcotest.check component) "should be equal" right left
 
 let clone_empty () =
-  let component =
-    React.createElement "div" [ React.JSX.Bool ("hidden", "hidden", true) ] []
-  in
+  let component = React.createElement "div" [ React.JSX.Bool ("hidden", "hidden", true) ] [] in
   assert_component component (React.cloneElement component [])
 
 let clone_attributes () =
-  let component =
-    React.createElement "div" [ React.JSX.String ("val", "val", "33") ] []
-  in
+  let component = React.createElement "div" [ React.JSX.String ("val", "val", "33") ] [] in
   let expected =
-    React.createElement "div"
-      [
-        React.JSX.String ("val", "val", "31");
-        React.JSX.Bool ("lola", "lola", true);
-      ]
-      []
+    React.createElement "div" [ React.JSX.String ("val", "val", "31"); React.JSX.Bool ("lola", "lola", true) ] []
   in
   let cloned =
-    React.cloneElement component
-      [
-        React.JSX.Bool ("lola", "lola", true);
-        React.JSX.String ("val", "val", "31");
-      ]
+    React.cloneElement component [ React.JSX.Bool ("lola", "lola", true); React.JSX.String ("val", "val", "31") ]
   in
   assert_component cloned expected
 
 let clone_order_attributes () =
   let component = React.createElement "div" [] [] in
   let expected =
-    React.createElement "div"
-      [
-        React.JSX.String ("val", "val", "31");
-        React.JSX.Bool ("lola", "lola", true);
-      ]
-      []
+    React.createElement "div" [ React.JSX.String ("val", "val", "31"); React.JSX.Bool ("lola", "lola", true) ] []
   in
   let cloned =
-    React.cloneElement component
-      [
-        React.JSX.Bool ("lola", "lola", true);
-        React.JSX.String ("val", "val", "31");
-      ]
+    React.cloneElement component [ React.JSX.Bool ("lola", "lola", true); React.JSX.String ("val", "val", "31") ]
   in
   assert_component cloned expected
 

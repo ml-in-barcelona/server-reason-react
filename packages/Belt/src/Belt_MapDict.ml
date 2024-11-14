@@ -56,13 +56,11 @@ let rec set (t : _ t) newK newD ~cmp =
       if c = 0 then N.return (N.updateValue n newD)
       else
         let l, r, v = (N.left n, N.right n, N.value n) in
-        if c < 0 then N.bal (set ~cmp l newK newD) k v r
-        else N.bal l k v (set ~cmp r newK newD)
+        if c < 0 then N.bal (set ~cmp l newK newD) k v r else N.bal l k v (set ~cmp r newK newD)
 
 let rec updateU (t : _ t) newK f ~cmp : _ t =
   match N.toOpt t with
-  | None -> (
-      match f None with None -> t | Some newD -> N.singleton newK newD)
+  | None -> ( match f None with None -> t | Some newD -> N.singleton newK newD)
   | Some n ->
       let k = N.key n in
       let c = (Belt_Id.getCmpInternal cmp) newK k in
@@ -116,8 +114,7 @@ let rec removeAux0 n x ~cmp =
         let rr = removeAux0 ~cmp right x in
         if rr == r then N.return n else N.bal l v (N.value n) rr
 
-let remove n x ~cmp =
-  match N.toOpt n with None -> N.empty | Some n -> removeAux0 n x ~cmp
+let remove n x ~cmp = match N.toOpt n with None -> N.empty | Some n -> removeAux0 n x ~cmp
 
 let mergeMany h arr ~cmp =
   let len = A.length arr in
@@ -205,16 +202,12 @@ let rec removeMany0 t xs i len ~cmp =
   if i < len then
     let ele = A.getUnsafe xs i in
     let u = removeAux0 t ele ~cmp in
-    match N.toOpt u with
-    | None -> u
-    | Some t -> removeMany0 t xs (i + 1) len ~cmp
+    match N.toOpt u with None -> u | Some t -> removeMany0 t xs (i + 1) len ~cmp
   else N.return t
 
 let removeMany t keys ~cmp =
   let len = A.length keys in
-  match N.toOpt t with
-  | None -> N.empty
-  | Some t -> removeMany0 t keys 0 len ~cmp
+  match N.toOpt t with None -> N.empty | Some t -> removeMany0 t keys 0 len ~cmp
 
 let findFirstByU = N.findFirstByU
 let findFirstBy = N.findFirstBy

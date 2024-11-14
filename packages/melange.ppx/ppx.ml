@@ -15,14 +15,7 @@ module Mel_module = struct
       List.find is_melange_attr attrs
     in
     match attr.attr_payload with
-    | PStr
-        [
-          {
-            pstr_desc =
-              Pstr_eval
-                ({ pexp_desc = Pexp_constant (Pconst_string (str, _, _)) }, _);
-          };
-        ]
+    | PStr [ { pstr_desc = Pstr_eval ({ pexp_desc = Pexp_constant (Pconst_string (str, _, _)) }, _) } ]
       when String.length (Filename.extension str) > 0 ->
         Some str
     | _ -> None
@@ -33,8 +26,7 @@ module Mel_module = struct
        sum function: https://github.com/evanw/esbuild/blob/efa3dd2d8e895f7f9a9bef0d588560bbae7d776e/internal/xxhash/xxhash.go#L104
        the internal xxhash that esbuild uses is adapted from https://github.com/cespare/xxhash
     *)
-    let hash_for_filename bytes =
-      String.sub (Base32.encode_string (Bytes.to_string bytes)) 0 8
+    let hash_for_filename bytes = String.sub (Base32.encode_string (Bytes.to_string bytes)) 0 8
 
     let sum hex_str =
       (* Convert hexadecimal string to Int64 *)
@@ -45,10 +37,7 @@ module Mel_module = struct
 
       (* Fill the buffer with the bytes of the Int64 value *)
       for i = 0 to 7 do
-        let byte =
-          Int64.(to_int (shift_right_logical int64_value (8 * (7 - i))))
-          land 0xFF
-        in
+        let byte = Int64.(to_int (shift_right_logical int64_value (8 * (7 - i)))) land 0xFF in
         Bytes.set bytes i (char_of_int byte)
       done;
 
@@ -59,8 +48,7 @@ module Mel_module = struct
       let b = sum (XXH64.to_hex hash) in
       hash_for_filename b
 
-    let filename ~base content =
-      Filename.(chop_extension base ^ "-" ^ hash content ^ extension base)
+    let filename ~base content = Filename.(chop_extension base ^ "-" ^ hash content ^ extension base)
   end
 
   (*
@@ -138,8 +126,7 @@ module String_interpolation = struct
       else if (* c 0b1111_0___*)
               c land 0b0000_0100 = 0 then Leading (4, c land 0b0000_0011)
       else if (* c 0b1111_10__*)
-              c land 0b0000_0010 = 0 then Leading (5, c land 0b0000_0001)
-        (* c 0b1111_110__ *)
+              c land 0b0000_0010 = 0 then Leading (5, c land 0b0000_0001) (* c 0b1111_110__ *)
       else Invalid
   end
 
@@ -159,8 +146,7 @@ module String_interpolation = struct
   type pos = {
     lnum : int;
     offset : int;
-    byte_bol : int;
-        (* Note it actually needs to be in sync with OCaml's lexing semantics *)
+    byte_bol : int; (* Note it actually needs to be in sync with OCaml's lexing semantics *)
   }
 
   type segment = { start : pos; finish : pos; kind : kind; content : string }
@@ -185,42 +171,29 @@ module String_interpolation = struct
     | Unterminated_backslash -> "\\ ended unexpectedly"
     | Unterminated_variable -> "$ unterminated"
     | Unmatched_paren -> "Unmatched paren"
-    | Invalid_syntax_of_var s ->
-        "`" ^ s ^ "' is not a valid syntax of interpolated identifer"
+    | Invalid_syntax_of_var s -> "`" ^ s ^ "' is not a valid syntax of interpolated identifer"
 
-  let valid_lead_identifier_char x =
-    match x with 'a' .. 'z' | '_' -> true | _ -> false
-
-  let valid_identifier_char x =
-    match x with
-    | 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' | '_' | '\'' -> true
-    | _ -> false
+  let valid_lead_identifier_char x = match x with 'a' .. 'z' | '_' -> true | _ -> false
+  let valid_identifier_char x = match x with 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' | '_' | '\'' -> true | _ -> false
 
   (* Invariant: [valid_lead_identifier] has to be [valid_identifier] *)
   let valid_identifier =
     let for_all_from =
       let rec unsafe_for_all_range s ~start ~finish p =
-        start > finish
-        || p (String.unsafe_get s start)
-           && unsafe_for_all_range s ~start:(start + 1) ~finish p
+        start > finish || (p (String.unsafe_get s start) && unsafe_for_all_range s ~start:(start + 1) ~finish p)
       in
       fun s start p ->
         let len = String.length s in
-        if start < 0 then invalid_arg "for_all_from"
-        else unsafe_for_all_range s ~start ~finish:(len - 1) p
+        if start < 0 then invalid_arg "for_all_from" else unsafe_for_all_range s ~start ~finish:(len - 1) p
     in
     fun s ->
       let s_len = String.length s in
-      if s_len = 0 then false
-      else
-        valid_lead_identifier_char s.[0]
-        && for_all_from s 1 valid_identifier_char
+      if s_len = 0 then false else valid_lead_identifier_char s.[0] && for_all_from s 1 valid_identifier_char
 
   (* FIXME: multiple line offset
      if there is no line offset. Note {|{j||} border will never trigger a new
      line *)
-  let update_position border { lnum; offset; byte_bol } (pos : Lexing.position)
-      =
+  let update_position border { lnum; offset; byte_bol } (pos : Lexing.position) =
     if lnum = 0 then { pos with pos_cnum = pos.pos_cnum + border + offset }
       (* When no newline, the column number is [border + offset] *)
     else
@@ -234,42 +207,19 @@ module String_interpolation = struct
 
   let update border start finish (loc : Location.t) =
     let start_pos = loc.loc_start in
-    {
-      loc with
-      loc_start = update_position border start start_pos;
-      loc_end = update_position border finish start_pos;
-    }
+    { loc with loc_start = update_position border start start_pos; loc_end = update_position border finish start_pos }
 
   let pos_error cxt ~loc error =
     raise
-      (Error
-         ( cxt.segment_start,
-           {
-             lnum = cxt.pos_lnum;
-             offset = loc - cxt.pos_bol;
-             byte_bol = cxt.byte_bol;
-           },
-           error ))
+      (Error (cxt.segment_start, { lnum = cxt.pos_lnum; offset = loc - cxt.pos_bol; byte_bol = cxt.byte_bol }, error))
 
   let add_var_segment cxt loc loffset roffset =
     let content = Buffer.contents cxt.buf in
     Buffer.clear cxt.buf;
-    let next_loc =
-      {
-        lnum = cxt.pos_lnum;
-        offset = loc - cxt.pos_bol;
-        byte_bol = cxt.byte_bol;
-      }
-    in
+    let next_loc = { lnum = cxt.pos_lnum; offset = loc - cxt.pos_bol; byte_bol = cxt.byte_bol } in
     if valid_identifier content then (
       cxt.segments <-
-        {
-          start = cxt.segment_start;
-          finish = next_loc;
-          kind = Var (loffset, roffset);
-          content;
-        }
-        :: cxt.segments;
+        { start = cxt.segment_start; finish = next_loc; kind = Var (loffset, roffset); content } :: cxt.segments;
       cxt.segment_start <- next_loc)
     else
       let cxt =
@@ -282,12 +232,8 @@ module String_interpolation = struct
               segment_start =
                 {
                   cxt.segment_start with
-                  offset =
-                    (match cxt.segment_start.offset with 0 -> 0 | n -> n - 3);
-                  byte_bol =
-                    (match cxt.segment_start.byte_bol with
-                    | 0 -> 0
-                    | n -> n - 3);
+                  offset = (match cxt.segment_start.offset with 0 -> 0 | n -> n - 3);
+                  byte_bol = (match cxt.segment_start.byte_bol with 0 -> 0 | n -> n - 3);
                 };
               pos_bol = cxt.pos_bol + 3;
               byte_bol = cxt.byte_bol + 3;
@@ -299,16 +245,8 @@ module String_interpolation = struct
   let add_str_segment cxt loc =
     let content = Buffer.contents cxt.buf in
     Buffer.clear cxt.buf;
-    let next_loc =
-      {
-        lnum = cxt.pos_lnum;
-        offset = loc - cxt.pos_bol;
-        byte_bol = cxt.byte_bol;
-      }
-    in
-    cxt.segments <-
-      { start = cxt.segment_start; finish = next_loc; kind = String; content }
-      :: cxt.segments;
+    let next_loc = { lnum = cxt.pos_lnum; offset = loc - cxt.pos_bol; byte_bol = cxt.byte_bol } in
+    cxt.segments <- { start = cxt.segment_start; finish = next_loc; kind = String; content } :: cxt.segments;
     cxt.segment_start <- next_loc
 
   let rec check_and_transform loc s byte_offset ({ s_len; buf; _ } as cxt) =
@@ -319,8 +257,7 @@ module String_interpolation = struct
       | Single 92 (* '\\' *) ->
           let loc = loc + 1 in
           let offset = byte_offset + 1 in
-          if offset >= s_len then pos_error cxt ~loc Unterminated_backslash
-          else Buffer.add_char buf '\\';
+          if offset >= s_len then pos_error cxt ~loc Unterminated_backslash else Buffer.add_char buf '\\';
           let cur_char = s.[offset] in
           Buffer.add_char buf cur_char;
           check_and_transform (loc + 1) s (offset + 1) cxt
@@ -388,8 +325,7 @@ module String_interpolation = struct
       else if r.loc_ghost then l
       else
         match (l, r) with
-        | { loc_start; _ }, { loc_end; _ } (* TODO: improve*) ->
-            { loc_start; loc_end; loc_ghost = false }
+        | { loc_start; _ }, { loc_end; _ } (* TODO: improve*) -> { loc_start; loc_end; loc_ghost = false }
     in
     let aux loc segment =
       match segment with
@@ -402,19 +338,15 @@ module String_interpolation = struct
               let loc =
                 {
                   loc with
-                  loc_start =
-                    update_position (soffset + border) start loc.loc_start;
-                  loc_end =
-                    update_position (foffset + border) finish loc.loc_start;
+                  loc_start = update_position (soffset + border) start loc.loc_start;
+                  loc_end = update_position (foffset + border) finish loc.loc_start;
                 }
               in
               Exp.ident ~loc { loc; txt = Lident content })
     in
     let concat_exp a_loc x ~(lhs : expression) =
       let loc = merge_loc a_loc lhs.pexp_loc in
-      Exp.apply
-        (Exp.ident { txt = concat_ident; loc })
-        [ (Nolabel, lhs); (Nolabel, aux loc x) ]
+      Exp.apply (Exp.ident { txt = concat_ident; loc }) [ (Nolabel, lhs); (Nolabel, aux loc x) ]
     in
     fun loc rev_segments ->
       match rev_segments with
@@ -449,9 +381,7 @@ module String_interpolation = struct
 end
 
 let is_send_pipe pval_attributes =
-  List.exists
-    (fun { attr_name = { txt = attr } } -> String.equal attr "mel.send.pipe")
-    pval_attributes
+  List.exists (fun { attr_name = { txt = attr } } -> String.equal attr "mel.send.pipe") pval_attributes
 
 let get_function_name pattern =
   let rec go pattern =
@@ -462,28 +392,21 @@ let get_function_name pattern =
   in
   go pattern
 
-let get_label = function
-  | Ptyp_constr ({ txt = Lident label; _ }, _) -> Some label
-  | _ -> None
+let get_label = function Ptyp_constr ({ txt = Lident label; _ }, _) -> Some label | _ -> None
 
 (* Extract the `t` from [@mel.send.pipe: t] *)
 let get_send_pipe pval_attributes =
   if is_send_pipe pval_attributes then
     let first_attribute = List.hd pval_attributes in
-    match first_attribute.attr_payload with
-    | PTyp core_type -> Some core_type
-    | _ -> None
+    match first_attribute.attr_payload with PTyp core_type -> Some core_type | _ -> None
   else None
 
 let has_ptyp_attribute ptyp_attributes attribute =
-  List.exists
-    (fun { attr_name = { txt = attr } } -> attr = attribute)
-    ptyp_attributes
+  List.exists (fun { attr_name = { txt = attr } } -> attr = attribute) ptyp_attributes
 
 let is_mel_as core_type =
   match core_type with
-  | { ptyp_desc = Ptyp_any; ptyp_attributes; _ } ->
-      has_ptyp_attribute ptyp_attributes "mel.as"
+  | { ptyp_desc = Ptyp_any; ptyp_attributes; _ } -> has_ptyp_attribute ptyp_attributes "mel.as"
   | _ -> false
 
 let extract_args_labels_types acc pval_type =
@@ -491,13 +414,9 @@ let extract_args_labels_types acc pval_type =
     (* In case of being mel.as, ignore those *)
     | { ptyp_desc = Ptyp_arrow (_label, t1, _t2); _ } when is_mel_as t1 -> acc
     | { ptyp_desc = Ptyp_arrow (_label, _t1, t2); _ } when is_mel_as t2 -> acc
-    | { ptyp_desc = Ptyp_arrow (_label, t1, t2); _ }
-      when is_mel_as t1 && is_mel_as t2 ->
-        acc
+    | { ptyp_desc = Ptyp_arrow (_label, t1, t2); _ } when is_mel_as t1 && is_mel_as t2 -> acc
     | { ptyp_desc = Ptyp_arrow (label, t1, t2); _ } ->
-        let pattern =
-          Builder.ppat_var ~loc:t1.ptyp_loc { loc = t1.ptyp_loc; txt = "_" }
-        in
+        let pattern = Builder.ppat_var ~loc:t1.ptyp_loc { loc = t1.ptyp_loc; txt = "_" } in
         go ((label, pattern, t1) :: acc) t2
     | _ -> acc
   in
@@ -518,18 +437,15 @@ let construct_pval_with_send_pipe send_pipe_core_type pval_type =
         (* `constr -> arrow (constr -> constr)` gets transformed into
            `constr -> constr -> t -> constr` *)
         | Ptyp_constr _, Ptyp_arrow (_inner_label, _p1, _p2) ->
-            Builder.ptyp_arrow ~loc:t1.ptyp_loc label t1
-              (insert_core_type_in_arrow t2)
+            Builder.ptyp_arrow ~loc:t1.ptyp_loc label t1 (insert_core_type_in_arrow t2)
         (* `constr -> constr` gets transformed into `constr -> t -> constr` *)
         (* `arrow (constr -> constr) -> constr` gets transformed into,
             `arrow (constr -> constr) -> t -> constr` *)
         | _, _ ->
             Builder.ptyp_arrow ~loc:t2.ptyp_loc label t1
-              (Builder.ptyp_arrow ~loc:t2.ptyp_loc Nolabel send_pipe_core_type
-                 t2))
+              (Builder.ptyp_arrow ~loc:t2.ptyp_loc Nolabel send_pipe_core_type t2))
     (* In case of being a single ptyp_* turn into ptyp_* -> t *)
-    | { ptyp_desc = Ptyp_constr ({ txt = _; loc }, _); _ }
-    | { ptyp_desc = Ptyp_var _; ptyp_loc = loc; _ } ->
+    | { ptyp_desc = Ptyp_constr ({ txt = _; loc }, _); _ } | { ptyp_desc = Ptyp_var _; ptyp_loc = loc; _ } ->
         Builder.ptyp_arrow ~loc Nolabel core_type send_pipe_core_type
     (* Here we ignore the Ptyp_any *)
     | _ -> core_type
@@ -537,27 +453,13 @@ let construct_pval_with_send_pipe send_pipe_core_type pval_type =
   insert_core_type_in_arrow pval_type
 
 let inject_send_pipe_as_last_argument pipe_type args_labels =
-  match pipe_type with
-  | None -> args_labels
-  | Some pipe_core_type -> pipe_core_type :: args_labels
+  match pipe_type with None -> args_labels | Some pipe_core_type -> pipe_core_type :: args_labels
 
-let is_mel_raw expr =
-  match expr with
-  | Pexp_extension ({ txt = "mel.raw"; _ }, _) -> true
-  | _ -> false
+let is_mel_raw expr = match expr with Pexp_extension ({ txt = "mel.raw"; _ }, _) -> true | _ -> false
 
 let capture_payload expr =
   match expr with
-  | PStr
-      [
-        {
-          pstr_desc =
-            Pstr_eval
-              ( { pexp_desc = Pexp_constant (Pconst_string (payload, _, _)); _ },
-                _ );
-          _;
-        };
-      ] ->
+  | PStr [ { pstr_desc = Pstr_eval ({ pexp_desc = Pexp_constant (Pconst_string (payload, _, _)); _ }, _); _ } ] ->
       payload
   | _ -> "..."
 
@@ -574,8 +476,7 @@ let get_payload_from_mel_raw expr =
 let expression_has_mel_raw expr =
   let rec go expr =
     match expr with
-    | Pexp_extension ({ txt = "mel.raw"; _ }, _) as pexp_desc ->
-        is_mel_raw pexp_desc
+    | Pexp_extension ({ txt = "mel.raw"; _ }, _) as pexp_desc -> is_mel_raw pexp_desc
     | Pexp_constraint (expr, _) -> is_mel_raw expr.pexp_desc
     | Pexp_fun (_, _, _, expr) -> go expr.pexp_desc
     | _ -> false
@@ -592,17 +493,13 @@ There is a Melange's external (for example: [@mel.get]) call from native code.
 Melange externals are bindings to JavaScript code, which can't run on the server and should be wrapped with browser_only ppx or only run it only on the client side. If there's any issue, try wrapping the expression with a try/catch as a workaround.
 |}
     in
-    raise
-      (Runtime.fail_impossible_action_in_ssr
-         [%e Builder.pexp_constant ~loc (Pconst_string (name, loc, None))])]
+    raise (Runtime.fail_impossible_action_in_ssr [%e Builder.pexp_constant ~loc (Pconst_string (name, loc, None))])]
 
 let mel_raw_found_in_native_message ~loc payload =
   let msg =
     Printf.sprintf
-      "[server-reason-react.melange_ppx] There's a [%%mel.raw \"%s\"] \
-       expression in native, which should only happen in JavaScript. You need \
-       to conditionally run it via let%%browser_only or switch%%platform. More \
-       info at \
+      "[server-reason-react.melange_ppx] There's a [%%mel.raw \"%s\"] expression in native, which should only happen \
+       in JavaScript. You need to conditionally run it via let%%browser_only or switch%%platform. More info at \
        https://ml-in-barcelona.github.io/server-reason-react/local/server-reason-react/browser_only.html"
       payload
   in
@@ -611,10 +508,9 @@ let mel_raw_found_in_native_message ~loc payload =
 let mel_module_found_in_native_message ~loc =
   let msg =
     Printf.sprintf
-      "[server-reason-react.melange_ppx] There's an external with \
-       [%%mel.module \"...\"] in native, which should only happen in \
-       JavaScript. You need to conditionally run it, either by not including \
-       it on native or via let%%browser_only/switch%%platform. More info at \
+      "[server-reason-react.melange_ppx] There's an external with [%%mel.module \"...\"] in native, which should only \
+       happen in JavaScript. You need to conditionally run it, either by not including it on native or via \
+       let%%browser_only/switch%%platform. More info at \
        https://ml-in-barcelona.github.io/server-reason-react/local/server-reason-react/browser_only.html"
   in
   Builder.pexp_constant ~loc (Pconst_string (msg, loc, None))
@@ -622,54 +518,39 @@ let mel_module_found_in_native_message ~loc =
 let external_found_in_native_message ~loc =
   let msg =
     Printf.sprintf
-      "[server-reason-react.melange_ppx] There's an external in native, which \
-       should only happen in JavaScript. You need to conditionally run it, \
-       either by not including it on native or via \
-       let%%browser_only/switch%%platform. More info at \
-       https://ml-in-barcelona.github.io/server-reason-react/local/server-reason-react/browser_only.html"
+      "[server-reason-react.melange_ppx] There's an external in native, which should only happen in JavaScript. You \
+       need to conditionally run it, either by not including it on native or via let%%browser_only/switch%%platform. \
+       More info at https://ml-in-barcelona.github.io/server-reason-react/local/server-reason-react/browser_only.html"
   in
   Builder.pexp_constant ~loc (Pconst_string (msg, loc, None))
 
 let get_function_arity pattern =
-  let rec go arity = function
-    | Pexp_fun (_, _, _, expr) -> go (arity + 1) expr.pexp_desc
-    | _ -> arity
-  in
+  let rec go arity = function Pexp_fun (_, _, _, expr) -> go (arity + 1) expr.pexp_desc | _ -> arity in
   go 0 pattern
 
 let transform_external_arrow ~loc pval_name pval_attributes pval_type =
   let pipe_type =
     match get_send_pipe pval_attributes with
     | Some core_type ->
-        let pattern =
-          Builder.ppat_var ~loc:core_type.ptyp_loc
-            { loc = core_type.ptyp_loc; txt = "_" }
-        in
+        let pattern = Builder.ppat_var ~loc:core_type.ptyp_loc { loc = core_type.ptyp_loc; txt = "_" } in
         Some (Nolabel, pattern, core_type)
     | None -> None
   in
   let args_labels_types = extract_args_labels_types [] pval_type in
-  let function_core_type =
-    Builder.ppat_var ~loc:pval_name.loc
-      { loc = pval_name.loc; txt = pval_name.txt }
-  in
+  let function_core_type = Builder.ppat_var ~loc:pval_name.loc { loc = pval_name.loc; txt = pval_name.txt } in
   let pval_type_piped =
     match pipe_type with
     | None -> pval_type
-    | Some (_, _, pipe_type) ->
-        construct_pval_with_send_pipe pipe_type pval_type
+    | Some (_, _, pipe_type) -> construct_pval_with_send_pipe pipe_type pval_type
   in
   let pat =
     Builder.ppat_constraint ~loc:pval_type.ptyp_loc function_core_type
       (Builder.ptyp_poly ~loc:pval_type.ptyp_loc [] pval_type_piped)
   in
-  let arg_labels =
-    inject_send_pipe_as_last_argument pipe_type args_labels_types
-  in
+  let arg_labels = inject_send_pipe_as_last_argument pipe_type args_labels_types in
   let function_expression =
     List.fold_left
-      (fun acc (label, arg_pat, arg_type) ->
-        Builder.pexp_fun ~loc:arg_type.ptyp_loc label None arg_pat acc)
+      (fun acc (label, arg_pat, arg_type) -> Builder.pexp_fun ~loc:arg_type.ptyp_loc label None arg_pat acc)
       (raise_failure ~loc:pval_type.ptyp_loc pval_name.txt)
       arg_labels
   in
@@ -690,12 +571,10 @@ let ptyp_humanize = function
   | Ptyp_arrow _ -> "Arrow"
   | Ptyp_constr _ -> "Constr"
 
-let transform_external ~module_path pval_name pval_attributes pval_loc pval_type
-    =
+let transform_external ~module_path pval_name pval_attributes pval_loc pval_type =
   let loc = pval_loc in
   match pval_type.ptyp_desc with
-  | Ptyp_arrow _ ->
-      transform_external_arrow ~loc pval_name pval_attributes pval_type
+  | Ptyp_arrow _ -> transform_external_arrow ~loc pval_name pval_attributes pval_type
   | Ptyp_var _ | Ptyp_any | Ptyp_constr _ ->
       (* When mel.send.pipe is used, it's treated as a funcion *)
       if Option.is_some (get_send_pipe pval_attributes) then
@@ -710,40 +589,32 @@ let transform_external ~module_path pval_name pval_attributes pval_loc pval_type
             let name = Builder.pvar ~loc:pval_name.loc pval_name.txt in
             let path =
               let asset_path = Filename.(concat (dirname module_path) str) in
-              let s =
-                In_channel.with_open_bin asset_path In_channel.input_all
-              in
+              let s = In_channel.with_open_bin asset_path In_channel.input_all in
               let filename_fn =
                 match !Mel_module.bundler with
                 | Webpack -> Mel_module.Webpack.filename
                 | Esbuild -> Mel_module.Esbuild.filename
               in
               let prefix = !Mel_module.prefix in
-              Builder.estring ~loc
-                Filename.(
-                  concat prefix (filename_fn ~base:(Filename.basename str) s))
+              Builder.estring ~loc Filename.(concat prefix (filename_fn ~base:(Filename.basename str) s))
             in
             [%stri let [%p name] = [%e path]]
       else [%stri [%%ocaml.error [%e external_found_in_native_message ~loc]]]
   | _ ->
       [%stri
         [%%ocaml.error
-        "[server-reason-react.melange_ppx] %s are not supported in native \
-         externals the same way as melange.ppx support them."
-          (ptyp_humanize pval_type.ptyp_desc)]]
+        "[server-reason-react.melange_ppx] %s are not supported in native externals the same way as melange.ppx \
+         support them."
+        (ptyp_humanize pval_type.ptyp_desc)]]
 
 let tranform_record_to_object ~loc record =
   let fields =
     List.map
       (fun (label, expression) ->
-        Builder.pcf_method ~loc
-          ( Builder.Located.mk label ~loc,
-            Public,
-            Cfk_concrete (Fresh, expression) ))
+        Builder.pcf_method ~loc (Builder.Located.mk label ~loc, Public, Cfk_concrete (Fresh, expression)))
       record
   in
-  Builder.pexp_object ~loc
-    (Builder.class_structure ~self:(Builder.ppat_any ~loc) ~fields)
+  Builder.pexp_object ~loc (Builder.class_structure ~self:(Builder.ppat_any ~loc) ~fields)
 
 let validate_record_labels ~loc record =
   List.fold_left
@@ -756,8 +627,7 @@ let validate_record_labels ~loc record =
           | Ldot _ | Lapply _ ->
               Error
                 (Location.error_extensionf ~loc
-                   "[server-reason-react.melange_ppx] Js.t objects only \
-                    support labels as keys")))
+                   "[server-reason-react.melange_ppx] Js.t objects only support labels as keys")))
     (Ok []) record
 
 class raise_exception_mapper (module_path : string) =
@@ -769,25 +639,15 @@ class raise_exception_mapper (module_path : string) =
       match expr.pexp_desc with
       | Pexp_extension
           ( { txt = "mel.obj"; _ },
-            PStr
-              [
-                {
-                  pstr_desc =
-                    Pstr_eval
-                      ({ pexp_desc = Pexp_record (record, None); pexp_loc }, _);
-                  _;
-                };
-              ] ) -> (
+            PStr [ { pstr_desc = Pstr_eval ({ pexp_desc = Pexp_record (record, None); pexp_loc }, _); _ } ] ) -> (
           match validate_record_labels ~loc:pexp_loc record with
           | Ok record -> tranform_record_to_object ~loc:pexp_loc record
           | Error extension -> Builder.pexp_extension ~loc:pexp_loc extension)
       | Pexp_extension ({ txt = "mel.obj"; loc }, _) ->
           Builder.pexp_extension ~loc
             (Location.error_extensionf ~loc:expr.pexp_loc
-               "[server-reason-react.melange_ppx] Js.t objects requires a \
-                record literal")
-      | Pexp_constant (Pconst_string (s, loc, Some "j")) ->
-          String_interpolation.transform ~loc expr s
+               "[server-reason-react.melange_ppx] Js.t objects requires a record literal")
+      | Pexp_constant (Pconst_string (s, loc, Some "j")) -> String_interpolation.transform ~loc expr s
       | _ -> expr
 
     method! structure_item item =
@@ -796,19 +656,13 @@ class raise_exception_mapper (module_path : string) =
       | Pstr_extension (({ txt = "mel.raw"; _ }, pstr), _) ->
           let loc = item.pstr_loc in
           let payload = capture_payload pstr in
-          [%stri
-            [%%ocaml.error [%e mel_raw_found_in_native_message ~loc payload]]]
+          [%stri [%%ocaml.error [%e mel_raw_found_in_native_message ~loc payload]]]
       (* let a _ = [%mel.raw ...] *)
       | Pstr_value
           ( Nonrecursive,
             [
               {
-                pvb_expr =
-                  {
-                    pexp_desc =
-                      Pexp_fun
-                        (_arg_label, _arg_expression, _fun_pattern, expression);
-                  };
+                pvb_expr = { pexp_desc = Pexp_fun (_arg_label, _arg_expression, _fun_pattern, expression) };
                 pvb_pat = { ppat_desc = Ppat_var { txt = _function_name; _ } };
                 pvb_attributes = _;
                 pvb_loc;
@@ -817,8 +671,7 @@ class raise_exception_mapper (module_path : string) =
         when expression_has_mel_raw expression.pexp_desc ->
           let loc = item.pstr_loc in
           let payload = get_payload_from_mel_raw expression.pexp_desc in
-          [%stri
-            [%error [%e mel_raw_found_in_native_message ~loc:pvb_loc payload]]]
+          [%stri [%error [%e mel_raw_found_in_native_message ~loc:pvb_loc payload]]]
       (* let a = [%mel.raw ...] *)
       | Pstr_value
           ( Nonrecursive,
@@ -833,45 +686,30 @@ class raise_exception_mapper (module_path : string) =
         when expression_has_mel_raw expression.pexp_desc ->
           let loc = item.pstr_loc in
           let payload = get_payload_from_mel_raw expression.pexp_desc in
-          [%stri
-            [%error [%e mel_raw_found_in_native_message ~loc:pvb_loc payload]]]
+          [%stri [%error [%e mel_raw_found_in_native_message ~loc:pvb_loc payload]]]
       (* let a: t = [%mel.raw ...] *)
       | Pstr_value
-          ( Nonrecursive,
-            [
-              {
-                pvb_expr = expression;
-                pvb_pat = { ppat_desc = _ };
-                pvb_attributes = _;
-                pvb_loc;
-              };
-            ] )
+          (Nonrecursive, [ { pvb_expr = expression; pvb_pat = { ppat_desc = _ }; pvb_attributes = _; pvb_loc } ])
         when expression_has_mel_raw expression.pexp_desc ->
           let loc = item.pstr_loc in
           let payload = get_payload_from_mel_raw expression.pexp_desc in
-          [%stri
-            [%error [%e mel_raw_found_in_native_message ~loc:pvb_loc payload]]]
+          [%stri [%error [%e mel_raw_found_in_native_message ~loc:pvb_loc payload]]]
       (* %mel. *)
       (* external foo: t = "{{JavaScript}}" *)
       | Pstr_primitive { pval_name; pval_attributes; pval_loc; pval_type } ->
-          transform_external ~module_path pval_name pval_attributes pval_loc
-            pval_type
+          transform_external ~module_path pval_name pval_attributes pval_loc pval_type
       | _ -> super#structure_item item
   end
 
 let structure_mapper ctxt s =
-  let module_path =
-    Code_path.file_path (Expansion_context.Base.code_path ctxt)
-  in
+  let module_path = Code_path.file_path (Expansion_context.Base.code_path ctxt) in
   (new raise_exception_mapper module_path)#structure s
 
 module Debug = struct
   let rule =
     let extractor = Ast_pattern.(__') in
     let handler ~ctxt:_ { loc } = [%expr ()] in
-    Context_free.Rule.extension
-      (Extension.V3.declare "debug" Extension.Context.expression extractor
-         handler)
+    Context_free.Rule.extension (Extension.V3.declare "debug" Extension.Context.expression extractor handler)
 end
 
 let () =
@@ -884,16 +722,11 @@ let () =
          | _ ->
              failwith
                (Printf.sprintf
-                  {|Unknown value %S passed as -bundler flag in melange.ppx, valid values: "webpack", "esbuild"|}
-                  str)))
-    ~doc:
-      "generate paths to assets in mel.module using the file name scheme of \
-       the bundler of choice";
+                  {|Unknown value %S passed as -bundler flag in melange.ppx, valid values: "webpack", "esbuild"|} str)))
+    ~doc:"generate paths to assets in mel.module using the file name scheme of the bundler of choice";
   Driver.add_arg "-prefix"
     (String (fun str -> Mel_module.prefix := str))
-    ~doc:
-      "the paths to the generated assets will include the given prefix before \
-       the filename (default: \"/\")";
+    ~doc:"the paths to the generated assets will include the given prefix before the filename (default: \"/\")";
   Driver.V2.register_transformation ~impl:structure_mapper
     ~rules:[ Pipe_first.rule; Regex.rule; Double_hash.rule; Debug.rule ]
     "melange-native-ppx"

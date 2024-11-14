@@ -1,7 +1,6 @@
 type t = (string * string) list
 
-let add name item (map : t) =
-  match item with Some i -> (name, i) :: map | None -> map
+let add name item (map : t) = match item with Some i -> (name, i) :: map | None -> map
 
 [@@@ocamlformat "disable"]
 
@@ -746,8 +745,7 @@ let camelcaseToKebabcase str =
     | [] -> acc
     | [ x ] -> x :: acc
     | x :: y :: xs ->
-        if Char.uppercase_ascii y == y then
-          loop ('-' :: x :: acc) (Char.lowercase_ascii y :: xs)
+        if Char.uppercase_ascii y == y then loop ('-' :: x :: acc) (Char.lowercase_ascii y :: xs)
         else loop (x :: acc) (y :: xs)
   in
   str |> chars_of_string |> loop [] |> List.rev |> string_of_chars

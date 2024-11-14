@@ -43,8 +43,7 @@ let get_int64_le str i = UInt64.of_int64 (String.get_int64_le str i)
     acc  = acc xor round(0, accN);
     acc  = acc * PRIME64_1;
     return acc + PRIME64_4; *)
-let merge accN acc =
-  (logxor acc (round UInt64.zero !accN) * prime64_1) + prime64_4
+let merge accN acc = (logxor acc (round UInt64.zero !accN) * prime64_1) + prime64_4
 
 let hash ?(seed = Int64.zero) input =
   let seed = UInt64.of_int64 seed in
@@ -77,9 +76,7 @@ let hash ?(seed = Int64.zero) input =
       acc = mergeAccumulator(acc, acc3);
       acc = mergeAccumulator(acc, acc4);
     *)
-      let acc =
-        (!acc1 <<< 1) + (!acc2 <<< 7) + (!acc3 <<< 12) + (!acc4 <<< 18)
-      in
+      let acc = (!acc1 <<< 1) + (!acc2 <<< 7) + (!acc3 <<< 12) + (!acc4 <<< 18) in
       acc |> merge acc1 |> merge acc2 |> merge acc3 |> merge acc4
   in
 
@@ -87,8 +84,7 @@ let hash ?(seed = Int64.zero) input =
 
   while have 8 do
     let lane = get_int64_le input !pos in
-    acc :=
-      ((logxor !acc (round UInt64.zero lane) <<< 27) * prime64_1) + prime64_4;
+    acc := ((logxor !acc (round UInt64.zero lane) <<< 27) * prime64_1) + prime64_4;
     pos += 8
   done;
 

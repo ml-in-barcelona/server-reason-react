@@ -4,12 +4,10 @@ let notImplemented module_ function_ =
   raise
     (Not_implemented
        (Printf.sprintf
-          "'%s.%s' is not implemented in native on `server-reason-react.js`. \
-           You are running code that depends on the browser, this is not \
-           supported. If this case should run on native and there's no browser \
-           dependency, please open an issue at %s"
-          module_ function_
-          "https://github.com/ml-in-barcelona/server-reason-react/issues"))
+          "'%s.%s' is not implemented in native on `server-reason-react.js`. You are running code that depends on the \
+           browser, this is not supported. If this case should run on native and there's no browser dependency, please \
+           open an issue at %s"
+          module_ function_ "https://github.com/ml-in-barcelona/server-reason-react/issues"))
 
 type 'a t = < .. > as 'a
 
@@ -158,10 +156,7 @@ module Nullable = struct
   let isNullable : 'a t -> bool = function Some _ -> false | None -> true
   let null : 'a t = None
   let undefined : 'a t = None
-
-  let bind x f =
-    match to_opt x with None -> ((x : 'a t) : 'b t) | Some x -> return (f x)
-
+  let bind x f = match to_opt x with None -> ((x : 'a t) : 'b t) | Some x -> return (f x)
   let iter x f = match to_opt x with None -> () | Some x -> f x
   let fromOption x = match x with None -> undefined | Some x -> return x
   let from_opt = fromOption
@@ -187,10 +182,7 @@ module Exn = struct
   let name _ = notImplemented "Js.Exn" "name"
   let fileName _ = notImplemented "Js.Exn" "fileName"
   let anyToExnInternal _ = notImplemented "Js.Exn" "anyToExnInternal"
-
-  let isCamlExceptionOrOpenVariant _ =
-    notImplemented "Js.Exn" "isCamlExceptionOrOpenVariant"
-
+  let isCamlExceptionOrOpenVariant _ = notImplemented "Js.Exn" "isCamlExceptionOrOpenVariant"
   let raiseError str = raise (Error str)
   let raiseEvalError str = raise (EvalError str)
   let raiseRangeError str = raise (RangeError str)
@@ -268,9 +260,7 @@ end = struct
   let length arr = Stdlib.Array.length arr
 
   (* Mutator functions *)
-  let copyWithin ~to_:_ ?start:_ ?end_:_ _ =
-    notImplemented "Js.Array" "copyWithin"
-
+  let copyWithin ~to_:_ ?start:_ ?end_:_ _ = notImplemented "Js.Array" "copyWithin"
   let fill ~value:_ ?start:_ ?end_:_ _ = notImplemented "Js.Array" "fill"
   let pop _ = notImplemented "Js.Array" "pop"
   let push ~value:_ _ = notImplemented "Js.Array" "push"
@@ -278,38 +268,21 @@ end = struct
   let reverseInPlace _ = notImplemented "Js.Array" "reverseInPlace"
   let sortInPlace _ = notImplemented "Js.Array" "sortInPlace"
   let sortInPlaceWith ~f:_ _ = notImplemented "Js.Array" "sortInPlaceWith"
-
-  let spliceInPlace ~start:_ ~remove:_ ~add:_ _ =
-    notImplemented "Js.Array" "spliceInPlace"
-
-  let removeFromInPlace ~start:_ _ =
-    notImplemented "Js.Array" "removeFromInPlace"
-
-  let removeCountInPlace ~start:_ ~count:_ _ =
-    notImplemented "Js.Array" "removeCountInPlace"
-
+  let spliceInPlace ~start:_ ~remove:_ ~add:_ _ = notImplemented "Js.Array" "spliceInPlace"
+  let removeFromInPlace ~start:_ _ = notImplemented "Js.Array" "removeFromInPlace"
+  let removeCountInPlace ~start:_ ~count:_ _ = notImplemented "Js.Array" "removeCountInPlace"
   let shift _ = notImplemented "Js.Array" "shift"
   let unshift ~value:_ _ = notImplemented "Js.Array" "unshift"
   let unshiftMany ~values:_ _ = notImplemented "Js.Array" "unshiftMany"
 
   (* Accessor functions *)
   let concat ~other:second first = Stdlib.Array.append first second
-
-  let concatMany ~arrays arr =
-    Stdlib.Array.concat (arr :: Stdlib.Array.to_list arrays)
-
+  let concatMany ~arrays arr = Stdlib.Array.concat (arr :: Stdlib.Array.to_list arrays)
   let includes ~value arr = Stdlib.Array.exists (fun x -> x = value) arr
 
   let indexOf ~value ?start arr =
-    let rec aux idx =
-      if idx >= Stdlib.Array.length arr then -1
-      else if arr.(idx) = value then idx
-      else aux (idx + 1)
-    in
-    match start with
-    | None -> aux 0
-    | Some from ->
-        if from < 0 || from >= Stdlib.Array.length arr then -1 else aux from
+    let rec aux idx = if idx >= Stdlib.Array.length arr then -1 else if arr.(idx) = value then idx else aux (idx + 1) in
+    match start with None -> aux 0 | Some from -> if from < 0 || from >= Stdlib.Array.length arr then -1 else aux from
 
   let join ?sep arr =
     (* js bindings can really take in `'a array`, while native is constrained to `string array` *)
@@ -318,23 +291,17 @@ end = struct
     | Some sep -> Stdlib.Array.to_list arr |> String.concat sep
 
   let lastIndexOf ~value arr =
-    let rec aux idx =
-      if idx < 0 then -1 else if arr.(idx) = value then idx else aux (idx - 1)
-    in
+    let rec aux idx = if idx < 0 then -1 else if arr.(idx) = value then idx else aux (idx - 1) in
     aux (Stdlib.Array.length arr - 1)
 
   let lastIndexOfFrom ~value ~start arr =
-    let rec aux idx =
-      if idx < 0 then -1 else if arr.(idx) = value then idx else aux (idx - 1)
-    in
+    let rec aux idx = if idx < 0 then -1 else if arr.(idx) = value then idx else aux (idx - 1) in
     if start < 0 || start >= Stdlib.Array.length arr then -1 else aux start
 
   let slice ?start ?end_ arr =
     let len = Stdlib.Array.length arr in
     let start = match start with None -> 0 | Some s -> s in
-    let end_ =
-      match end_ with None -> Stdlib.Array.length arr | Some e -> e
-    in
+    let end_ = match end_ with None -> Stdlib.Array.length arr | Some e -> e in
     let s = max 0 (if start < 0 then len + start else start) in
     let e = min len (if end_ < 0 then len + end_ else end_) in
     if s >= e then [||] else Stdlib.Array.sub arr s (e - s)
@@ -346,58 +313,35 @@ end = struct
   (* Iteration functions *)
   let everyi ~f arr =
     let len = Stdlib.Array.length arr in
-    let rec aux idx =
-      if idx >= len then true
-      else if f arr.(idx) idx then aux (idx + 1)
-      else false
-    in
+    let rec aux idx = if idx >= len then true else if f arr.(idx) idx then aux (idx + 1) else false in
     aux 0
 
   let every ~f arr =
     let len = Stdlib.Array.length arr in
-    let rec aux idx =
-      if idx >= len then true else if f arr.(idx) then aux (idx + 1) else false
-    in
+    let rec aux idx = if idx >= len then true else if f arr.(idx) then aux (idx + 1) else false in
     aux 0
 
-  let filter ~f arr =
-    arr |> Stdlib.Array.to_list |> List.filter f |> Stdlib.Array.of_list
-
-  let filteri ~f arr =
-    arr |> Stdlib.Array.to_list
-    |> List.filteri (fun i a -> f a i)
-    |> Stdlib.Array.of_list
+  let filter ~f arr = arr |> Stdlib.Array.to_list |> List.filter f |> Stdlib.Array.of_list
+  let filteri ~f arr = arr |> Stdlib.Array.to_list |> List.filteri (fun i a -> f a i) |> Stdlib.Array.of_list
 
   let findi ~f arr =
     let len = Stdlib.Array.length arr in
-    let rec aux idx =
-      if idx >= len then None
-      else if f arr.(idx) idx then Some arr.(idx)
-      else aux (idx + 1)
-    in
+    let rec aux idx = if idx >= len then None else if f arr.(idx) idx then Some arr.(idx) else aux (idx + 1) in
     aux 0
 
   let find ~f arr =
     let len = Stdlib.Array.length arr in
-    let rec aux idx =
-      if idx >= len then None
-      else if f arr.(idx) then Some arr.(idx)
-      else aux (idx + 1)
-    in
+    let rec aux idx = if idx >= len then None else if f arr.(idx) then Some arr.(idx) else aux (idx + 1) in
     aux 0
 
   let findIndexi ~f arr =
     let len = Stdlib.Array.length arr in
-    let rec aux idx =
-      if idx >= len then -1 else if f arr.(idx) idx then idx else aux (idx + 1)
-    in
+    let rec aux idx = if idx >= len then -1 else if f arr.(idx) idx then idx else aux (idx + 1) in
     aux 0
 
   let findIndex ~f arr =
     let len = Stdlib.Array.length arr in
-    let rec aux idx =
-      if idx >= len then -1 else if f arr.(idx) then idx else aux (idx + 1)
-    in
+    let rec aux idx = if idx >= len then -1 else if f arr.(idx) then idx else aux (idx + 1) in
     aux 0
 
   let forEach ~f arr = Stdlib.Array.iter f arr
@@ -435,20 +379,12 @@ end = struct
 
   let some ~f arr =
     let n = Stdlib.Array.length arr in
-    let rec loop i =
-      if i = n then false
-      else if f (Stdlib.Array.unsafe_get arr i) then true
-      else loop (succ i)
-    in
+    let rec loop i = if i = n then false else if f (Stdlib.Array.unsafe_get arr i) then true else loop (succ i) in
     loop 0
 
   let somei ~f arr =
     let n = Stdlib.Array.length arr in
-    let rec loop i =
-      if i = n then false
-      else if f (Stdlib.Array.unsafe_get arr i) i then true
-      else loop (succ i)
-    in
+    let rec loop i = if i = n then false else if f (Stdlib.Array.unsafe_get arr i) i then true else loop (succ i) in
     loop 0
 
   let unsafe_get arr idx = Stdlib.Array.unsafe_get arr idx
@@ -486,9 +422,7 @@ end = struct
 
   (* Maps with nullable since Melange does too: https://melange.re/v3.0.0/api/re/melange/Js/Re/index.html#val-captures *)
   let captures : result -> string nullable array =
-   fun result ->
-    Quickjs.RegExp.captures result
-    |> Stdlib.Array.map (fun x -> Nullable.return x)
+   fun result -> Quickjs.RegExp.captures result |> Stdlib.Array.map (fun x -> Nullable.return x)
 
   let index : result -> int = Quickjs.RegExp.index
   let input : result -> string = Quickjs.RegExp.input
@@ -496,15 +430,11 @@ end = struct
 
   let fromString : string -> t =
    fun str ->
-    match Quickjs.RegExp.compile str ~flags:"" with
-    | Ok regex -> regex
-    | Error (_, msg) -> raise (Invalid_argument msg)
+    match Quickjs.RegExp.compile str ~flags:"" with Ok regex -> regex | Error (_, msg) -> raise (Invalid_argument msg)
 
   let fromStringWithFlags : string -> flags:string -> t =
    fun str ~flags ->
-    match Quickjs.RegExp.compile str ~flags with
-    | Ok regex -> regex
-    | Error (_, msg) -> raise (Invalid_argument msg)
+    match Quickjs.RegExp.compile str ~flags with Ok regex -> regex | Error (_, msg) -> raise (Invalid_argument msg)
 
   let flags : t -> string = fun regexp -> Quickjs.RegExp.flags regexp
   let global : t -> bool = fun regexp -> Quickjs.RegExp.global regexp
@@ -513,19 +443,12 @@ end = struct
   let sticky : t -> bool = fun regexp -> Quickjs.RegExp.sticky regexp
   let unicode : t -> bool = fun regexp -> Quickjs.RegExp.unicode regexp
   let lastIndex : t -> int = fun regex -> Quickjs.RegExp.lastIndex regex
-
-  let setLastIndex : t -> int -> unit =
-   fun regex index -> Quickjs.RegExp.setLastIndex regex index
+  let setLastIndex : t -> int -> unit = fun regex index -> Quickjs.RegExp.setLastIndex regex index
 
   let exec : str:string -> t -> result option =
-   fun ~str rex ->
-    match Quickjs.RegExp.exec rex str with
-    | result -> Some result
-    | exception _ -> None
+   fun ~str rex -> match Quickjs.RegExp.exec rex str with result -> Some result | exception _ -> None
 
-  let test_ : t -> string -> bool =
-   fun regexp str -> Quickjs.RegExp.test regexp str
-
+  let test_ : t -> string -> bool = fun regexp str -> Quickjs.RegExp.test regexp str
   let test : str:string -> t -> bool = fun ~str regex -> test_ regex str
 end
 
@@ -556,13 +479,8 @@ module String : sig
   val replaceByRe : regexp:Re.t -> replacement:t -> t -> t
   val unsafeReplaceBy0 : regexp:Re.t -> f:(t -> int -> t -> t) -> t -> t
   val unsafeReplaceBy1 : regexp:Re.t -> f:(t -> t -> int -> t -> t) -> t -> t
-
-  val unsafeReplaceBy2 :
-    regexp:Re.t -> f:(t -> t -> t -> int -> t -> t) -> t -> t
-
-  val unsafeReplaceBy3 :
-    regexp:Re.t -> f:(t -> t -> t -> t -> int -> t -> t) -> t -> t
-
+  val unsafeReplaceBy2 : regexp:Re.t -> f:(t -> t -> t -> int -> t -> t) -> t -> t
+  val unsafeReplaceBy3 : regexp:Re.t -> f:(t -> t -> t -> t -> int -> t -> t) -> t -> t
   val search : regexp:Re.t -> t -> int
   val slice : ?start:int -> ?end_:int -> t -> t
   val split : ?sep:t -> ?limit:int -> t -> t array
@@ -609,8 +527,7 @@ end = struct
       Stdlib.String.make 1 ch
 
   let charCodeAt ~index:n s =
-    if n < 0 || n >= Stdlib.String.length s then nan
-    else float_of_int (Stdlib.Char.code (Stdlib.String.get s n))
+    if n < 0 || n >= Stdlib.String.length s then nan else float_of_int (Stdlib.Char.code (Stdlib.String.get s n))
 
   let codePointAt ~index str =
     let str_length = Stdlib.String.length str in
@@ -627,9 +544,7 @@ end = struct
 
   let endsWith ~suffix ?len str =
     let str_length = Stdlib.String.length str in
-    let end_idx =
-      match len with Some i -> Stdlib.min str_length i | None -> str_length
-    in
+    let end_idx = match len with Some i -> Stdlib.min str_length i | None -> str_length in
     let sub_str = Stdlib.String.sub str 0 end_idx in
     Stdlib.String.ends_with ~suffix sub_str
 
@@ -669,9 +584,7 @@ end = struct
 
   let match_ ~regexp str =
     let match_next str regex =
-      match Re.exec ~str regex with
-      | None -> None
-      | Some result -> Some (Re.captures result)
+      match Re.exec ~str regex with None -> None | Some result -> Some (Re.captures result)
     in
 
     let match_all : t -> Re.t -> t nullable array nullable =
@@ -690,9 +603,7 @@ end = struct
 
   (* TODO(davesnx): RangeError *)
   let repeat ~count str =
-    let rec repeat' str acc remaining =
-      if remaining <= 0 then acc else repeat' str (str ^ acc) (remaining - 1)
-    in
+    let rec repeat' str acc remaining = if remaining <= 0 then acc else repeat' str (str ^ acc) (remaining - 1) in
     repeat' str "" count
 
   (* If pattern is a string, only the first occurrence will be replaced.
@@ -712,9 +623,7 @@ end = struct
           let matched_str = Stdlib.Array.get matches 0 |> Option.get in
           let prefix = Stdlib.String.sub str 0 (Re.index result) in
           let suffix_start = Re.index result + String.length matched_str in
-          let suffix =
-            Stdlib.String.sub str suffix_start (String.length str - suffix_start)
-          in
+          let suffix = Stdlib.String.sub str suffix_start (String.length str - suffix_start) in
           Re.setLastIndex regexp suffix_start;
           prefix ^ replacement ^ replace_all suffix
     in
@@ -726,26 +635,16 @@ end = struct
           let matched_str = Stdlib.Array.get matches 0 |> Option.get in
           let prefix = Stdlib.String.sub str 0 (Re.index result) in
           let suffix_start = Re.index result + String.length matched_str in
-          let suffix =
-            Stdlib.String.sub str suffix_start (String.length str - suffix_start)
-          in
+          let suffix = Stdlib.String.sub str suffix_start (String.length str - suffix_start) in
           prefix ^ replacement ^ suffix
     in
 
     if Re.global regexp then replace_all str else replace_first str
 
-  let unsafeReplaceBy0 ~regexp:_ ~f:_ _ =
-    notImplemented "Js.String" "unsafeReplaceBy0"
-
-  let unsafeReplaceBy1 ~regexp:_ ~f:_ _ =
-    notImplemented "Js.String" "unsafeReplaceBy1"
-
-  let unsafeReplaceBy2 ~regexp:_ ~f:_ _ =
-    notImplemented "Js.String" "unsafeReplaceBy2"
-
-  let unsafeReplaceBy3 ~regexp:_ ~f:_ _ =
-    notImplemented "Js.String" "unsafeReplaceBy3"
-
+  let unsafeReplaceBy0 ~regexp:_ ~f:_ _ = notImplemented "Js.String" "unsafeReplaceBy0"
+  let unsafeReplaceBy1 ~regexp:_ ~f:_ _ = notImplemented "Js.String" "unsafeReplaceBy1"
+  let unsafeReplaceBy2 ~regexp:_ ~f:_ _ = notImplemented "Js.String" "unsafeReplaceBy2"
+  let unsafeReplaceBy3 ~regexp:_ ~f:_ _ = notImplemented "Js.String" "unsafeReplaceBy3"
   let search ~regexp:_ _ = notImplemented "Js.String" "search"
 
   let slice ?start ?end_ str =
@@ -754,8 +653,7 @@ end = struct
     let end_ = match end_ with None -> str_length | Some s -> s in
     let start_idx = Stdlib.max 0 (Stdlib.min start str_length) in
     let end_idx = Stdlib.max start_idx (Stdlib.min end_ str_length) in
-    if start_idx >= end_idx then ""
-    else Stdlib.String.sub str start_idx (end_idx - start_idx)
+    if start_idx >= end_idx then "" else Stdlib.String.sub str start_idx (end_idx - start_idx)
 
   let split ?sep ?limit str =
     let sep = Option.value sep ~default:str in
@@ -767,14 +665,11 @@ end = struct
     let items = split regexp str |> Stdlib.Array.of_list in
     let limit = Option.value limit ~default:(Stdlib.Array.length items) in
     match limit with
-    | limit when limit >= 0 && limit < Stdlib.Array.length items ->
-        Stdlib.Array.sub items 0 limit
+    | limit when limit >= 0 && limit < Stdlib.Array.length items -> Stdlib.Array.sub items 0 limit
     | _ -> items
 
   let splitByRe ~regexp ?limit str =
-    let rev_array arr =
-      arr |> Stdlib.Array.to_list |> Stdlib.List.rev |> Stdlib.Array.of_list
-    in
+    let rev_array arr = arr |> Stdlib.Array.to_list |> Stdlib.List.rev |> Stdlib.Array.of_list in
     let rec split_all str acc =
       Re.setLastIndex regexp 0;
       match Re.exec ~str regexp with
@@ -786,9 +681,7 @@ end = struct
           let matched_str = Stdlib.Array.get matches 0 |> Option.get in
           let prefix = String.sub str 0 (Re.index result) in
           let suffix_start = Re.index result + String.length matched_str in
-          let suffix =
-            String.sub str suffix_start (String.length str - suffix_start)
-          in
+          let suffix = String.sub str suffix_start (String.length str - suffix_start) in
           let suffix_matches = Stdlib.Array.append [| Some prefix |] acc in
           split_all suffix suffix_matches
     in
@@ -803,9 +696,7 @@ end = struct
           let index = Re.index result in
           let prefix = String.sub str 0 index in
           let suffix_start = index + String.length matched_str in
-          let suffix =
-            String.sub str suffix_start (String.length str - suffix_start)
-          in
+          let suffix = String.sub str suffix_start (String.length str - suffix_start) in
           Stdlib.Array.append [| Some prefix |] (split_all suffix acc)
     in
 
@@ -817,10 +708,7 @@ end = struct
     if start < 0 || start > len_str then false
     else
       let rec compare_prefix i =
-        i = len_prefix
-        || i < len_str
-           && prefix.[i] = str.[start + i]
-           && compare_prefix (i + 1)
+        i = len_prefix || (i < len_str && prefix.[i] = str.[start + i] && compare_prefix (i + 1))
       in
       compare_prefix 0
 
@@ -829,8 +717,7 @@ end = struct
     let len = match len with None -> str_length | Some s -> s in
     let start_idx = max 0 (min start str_length) in
     let end_idx = min (start_idx + len) str_length in
-    if start_idx >= end_idx then ""
-    else Stdlib.String.sub str start_idx (end_idx - start_idx)
+    if start_idx >= end_idx then "" else Stdlib.String.sub str start_idx (end_idx - start_idx)
 
   let substring ?start ?end_ str =
     let str_length = Stdlib.String.length str in
@@ -838,8 +725,7 @@ end = struct
     let end_ = match end_ with None -> str_length | Some s -> s in
     let start_idx = max 0 (min start str_length) in
     let end_idx = max 0 (min end_ str_length) in
-    if start_idx >= end_idx then
-      Stdlib.String.sub str end_idx (start_idx - end_idx)
+    if start_idx >= end_idx then Stdlib.String.sub str end_idx (start_idx - end_idx)
     else Stdlib.String.sub str start_idx (end_idx - start_idx)
 
   let case_to_utf_8 case_map s =
@@ -866,20 +752,14 @@ end = struct
     let is_whitespace c = Stdlib.String.contains whitespace c in
     let length = Stdlib.String.length str in
     let rec trim_start idx =
-      if idx >= length then length
-      else if is_whitespace (Stdlib.String.get str idx) then trim_start (idx + 1)
-      else idx
+      if idx >= length then length else if is_whitespace (Stdlib.String.get str idx) then trim_start (idx + 1) else idx
     in
     let rec trim_end idx =
-      if idx <= 0 then 0
-      else if is_whitespace (Stdlib.String.get str (idx - 1)) then
-        trim_end (idx - 1)
-      else idx
+      if idx <= 0 then 0 else if is_whitespace (Stdlib.String.get str (idx - 1)) then trim_end (idx - 1) else idx
     in
     let start_idx = trim_start 0 in
     let end_idx = trim_end length in
-    if start_idx >= end_idx then ""
-    else Stdlib.String.sub str start_idx (end_idx - start_idx)
+    if start_idx >= end_idx then "" else Stdlib.String.sub str start_idx (end_idx - start_idx)
 
   let anchor ~name:_ _ = notImplemented "Js.String" "anchor"
   let link ~href:_ _ = notImplemented "Js.String" "link"
@@ -898,9 +778,7 @@ module Promise = struct
 
   let resolve = Lwt.return
   let reject = Lwt.fail
-
-  let all (promises : 'a t array) : 'a array t =
-    Lwt.map Stdlib.Array.of_list (Lwt.all (Stdlib.Array.to_list promises))
+  let all (promises : 'a t array) : 'a array t = Lwt.map Stdlib.Array.of_list (Lwt.all (Stdlib.Array.to_list promises))
 
   let all2 (a, b) =
     let%lwt res_a = a in
@@ -937,13 +815,9 @@ module Promise = struct
     let%lwt res_f = f in
     Lwt.return (res_a, res_b, res_c, res_d, res_e, res_f)
 
-  let race (promises : 'a t array) : 'a t =
-    Lwt.pick (Stdlib.Array.to_list promises)
-
+  let race (promises : 'a t array) : 'a t = Lwt.pick (Stdlib.Array.to_list promises)
   let then_ p fn = Lwt.bind fn p
-
-  let catch (handler : exn -> 'a t) (promise : 'a t) : 'a t =
-    Lwt.catch (fun () -> promise) handler
+  let catch (handler : exn -> 'a t) (promise : 'a t) : 'a t = Lwt.catch (fun () -> promise) handler
 end
 
 module Date : sig
@@ -956,42 +830,13 @@ module Date : sig
   val makeWithYM : year:float -> month:float -> t
   val makeWithYMD : year:float -> month:float -> date:float -> t
   val makeWithYMDH : year:float -> month:float -> date:float -> hours:float -> t
-
-  val makeWithYMDHM :
-    year:float -> month:float -> date:float -> hours:float -> minutes:float -> t
-
-  val makeWithYMDHMS :
-    year:float ->
-    month:float ->
-    date:float ->
-    hours:float ->
-    minutes:float ->
-    seconds:float ->
-    t
-
+  val makeWithYMDHM : year:float -> month:float -> date:float -> hours:float -> minutes:float -> t
+  val makeWithYMDHMS : year:float -> month:float -> date:float -> hours:float -> minutes:float -> seconds:float -> t
   val utcWithYM : year:float -> month:float -> float
   val utcWithYMD : year:float -> month:float -> date:float -> float
-
-  val utcWithYMDH :
-    year:float -> month:float -> date:float -> hours:float -> float
-
-  val utcWithYMDHM :
-    year:float ->
-    month:float ->
-    date:float ->
-    hours:float ->
-    minutes:float ->
-    float
-
-  val utcWithYMDHMS :
-    year:float ->
-    month:float ->
-    date:float ->
-    hours:float ->
-    minutes:float ->
-    seconds:float ->
-    float
-
+  val utcWithYMDH : year:float -> month:float -> date:float -> hours:float -> float
+  val utcWithYMDHM : year:float -> month:float -> date:float -> hours:float -> minutes:float -> float
+  val utcWithYMDHMS : year:float -> month:float -> date:float -> hours:float -> minutes:float -> seconds:float -> float
   val now : unit -> float
   val parseAsFloat : string -> float
   val getDate : t -> float
@@ -1019,22 +864,11 @@ module Date : sig
   val setHours : float -> t -> float
   val setHoursM : hours:float -> minutes:float -> t -> float
   val setHoursMS : hours:float -> minutes:float -> seconds:float -> t -> float
-
-  val setHoursMSMs :
-    hours:float ->
-    minutes:float ->
-    seconds:float ->
-    milliseconds:float ->
-    t ->
-    float
-
+  val setHoursMSMs : hours:float -> minutes:float -> seconds:float -> milliseconds:float -> t -> float
   val setMilliseconds : float -> t -> float
   val setMinutes : float -> t -> float
   val setMinutesS : minutes:float -> seconds:float -> t -> float
-
-  val setMinutesSMs :
-    minutes:float -> seconds:float -> milliseconds:float -> t -> float
-
+  val setMinutesSMs : minutes:float -> seconds:float -> milliseconds:float -> t -> float
   val setMonth : float -> t -> float
   val setMonthD : month:float -> date:float -> t -> float
   val setSeconds : float -> t -> float
@@ -1046,25 +880,12 @@ module Date : sig
   val setUTCFullYearMD : year:float -> month:float -> date:float -> t -> float
   val setUTCHours : float -> t -> float
   val setUTCHoursM : hours:float -> minutes:float -> t -> float
-
-  val setUTCHoursMS :
-    hours:float -> minutes:float -> seconds:float -> t -> float
-
-  val setUTCHoursMSMs :
-    hours:float ->
-    minutes:float ->
-    seconds:float ->
-    milliseconds:float ->
-    t ->
-    float
-
+  val setUTCHoursMS : hours:float -> minutes:float -> seconds:float -> t -> float
+  val setUTCHoursMSMs : hours:float -> minutes:float -> seconds:float -> milliseconds:float -> t -> float
   val setUTCMilliseconds : float -> t -> float
   val setUTCMinutes : float -> t -> float
   val setUTCMinutesS : minutes:float -> seconds:float -> t -> float
-
-  val setUTCMinutesSMs :
-    minutes:float -> seconds:float -> milliseconds:float -> t -> float
-
+  val setUTCMinutesSMs : minutes:float -> seconds:float -> milliseconds:float -> t -> float
   val setUTCMonth : float -> t -> float
   val setUTCMonthD : month:float -> date:float -> t -> float
   val setUTCSeconds : float -> t -> float
@@ -1093,32 +914,15 @@ end = struct
   let fromFloat _ = notImplemented "Js.Date" "fromFloat"
   let fromString _ = notImplemented "Js.Date" "fromString"
   let makeWithYM ~year:_ ~month:_ = notImplemented "Js.Date" "makeWithYM"
-
-  let makeWithYMD ~year:_ ~month:_ ~date:_ =
-    notImplemented "Js.Date" "makeWithYMD"
-
-  let makeWithYMDH ~year:_ ~month:_ ~date:_ ~hours:_ =
-    notImplemented "Js.Date" "makeWithYMDH"
-
-  let makeWithYMDHM ~year:_ ~month:_ ~date:_ ~hours:_ ~minutes:_ =
-    notImplemented "Js.Date" "makeWithYMDHM"
-
-  let makeWithYMDHMS ~year:_ ~month:_ ~date:_ ~hours:_ ~minutes:_ ~seconds:_ =
-    notImplemented "Js.Date" "makeWithYMDHMS"
-
+  let makeWithYMD ~year:_ ~month:_ ~date:_ = notImplemented "Js.Date" "makeWithYMD"
+  let makeWithYMDH ~year:_ ~month:_ ~date:_ ~hours:_ = notImplemented "Js.Date" "makeWithYMDH"
+  let makeWithYMDHM ~year:_ ~month:_ ~date:_ ~hours:_ ~minutes:_ = notImplemented "Js.Date" "makeWithYMDHM"
+  let makeWithYMDHMS ~year:_ ~month:_ ~date:_ ~hours:_ ~minutes:_ ~seconds:_ = notImplemented "Js.Date" "makeWithYMDHMS"
   let utcWithYM ~year:_ ~month:_ = notImplemented "Js.Date" "utcWithYM"
-
-  let utcWithYMD ~year:_ ~month:_ ~date:_ =
-    notImplemented "Js.Date" "utcWithYMD"
-
-  let utcWithYMDH ~year:_ ~month:_ ~date:_ ~hours:_ =
-    notImplemented "Js.Date" "utcWithYMDH"
-
-  let utcWithYMDHM ~year:_ ~month:_ ~date:_ ~hours:_ ~minutes:_ =
-    notImplemented "Js.Date" "utcWithYMDHM"
-
-  let utcWithYMDHMS ~year:_ ~month:_ ~date:_ ~hours:_ ~minutes:_ ~seconds:_ =
-    notImplemented "Js.Date" "utcWithYMDHMS"
+  let utcWithYMD ~year:_ ~month:_ ~date:_ = notImplemented "Js.Date" "utcWithYMD"
+  let utcWithYMDH ~year:_ ~month:_ ~date:_ ~hours:_ = notImplemented "Js.Date" "utcWithYMDH"
+  let utcWithYMDHM ~year:_ ~month:_ ~date:_ ~hours:_ ~minutes:_ = notImplemented "Js.Date" "utcWithYMDHM"
+  let utcWithYMDHMS ~year:_ ~month:_ ~date:_ ~hours:_ ~minutes:_ ~seconds:_ = notImplemented "Js.Date" "utcWithYMDHMS"
 
   (** returns the number of milliseconds since Unix epoch *)
   let now _ = notImplemented "Js.Date" "now"
@@ -1165,17 +969,11 @@ end = struct
   let setDate _ _ = notImplemented "Js.Date" "setDate"
   let setFullYear _ = notImplemented "Js.Date" "setFullYear"
   let setFullYearM ~year:_ ~month:_ = notImplemented "Js.Date" "setFullYearM"
-
-  let setFullYearMD ~year:_ ~month:_ ~date:_ =
-    notImplemented "Js.Date" "setFullYearMD"
-
+  let setFullYearMD ~year:_ ~month:_ ~date:_ = notImplemented "Js.Date" "setFullYearMD"
   let setHours _ = notImplemented "Js.Date" "setHours"
   let setHoursM ~hours:_ ~minutes:_ = notImplemented "Js.Date" "setHoursM"
   let setHoursMS ~hours:_ ~minutes:_ = notImplemented "Js.Date" "setHoursMS"
-
-  let setHoursMSMs ~hours:_ ~minutes:_ ~seconds:_ ~milliseconds:_ _ =
-    notImplemented "Js.Date" "setHoursMSMs"
-
+  let setHoursMSMs ~hours:_ ~minutes:_ ~seconds:_ ~milliseconds:_ _ = notImplemented "Js.Date" "setHoursMSMs"
   let setMilliseconds _ = notImplemented "Js.Date" "setMilliseconds"
   let setMinutes _ = notImplemented "Js.Date" "setMinutes"
   let setMinutesS ~minutes:_ = notImplemented "Js.Date" "setMinutesS"
@@ -1183,29 +981,16 @@ end = struct
   let setMonth _ = notImplemented "Js.Date" "setMonth"
   let setMonthD ~month:_ ~date:_ _ = notImplemented "Js.Date" "setMonthD"
   let setSeconds _ = notImplemented "Js.Date" "setSeconds"
-
-  let setSecondsMs ~seconds:_ ~milliseconds:_ _ =
-    notImplemented "Js.Date" "setSecondsMs"
-
+  let setSecondsMs ~seconds:_ ~milliseconds:_ _ = notImplemented "Js.Date" "setSecondsMs"
   let setTime _ = notImplemented "Js.Date" "setTime"
   let setUTCDate _ = notImplemented "Js.Date" "setUTCDate"
   let setUTCFullYear _ = notImplemented "Js.Date" "setUTCFullYear"
-
-  let setUTCFullYearM ~year:_ ~month:_ _ =
-    notImplemented "Js.Date" "setUTCFullYearM"
-
-  let setUTCFullYearMD ~year:_ ~month:_ ~date:_ _ =
-    notImplemented "Js.Date" "setUTCFullYearMD"
-
+  let setUTCFullYearM ~year:_ ~month:_ _ = notImplemented "Js.Date" "setUTCFullYearM"
+  let setUTCFullYearMD ~year:_ ~month:_ ~date:_ _ = notImplemented "Js.Date" "setUTCFullYearMD"
   let setUTCHours _ = notImplemented "Js.Date" "setUTCHours"
   let setUTCHoursM ~hours:_ ~minutes:_ = notImplemented "Js.Date" "setUTCHoursM"
-
-  let setUTCHoursMS ~hours:_ ~minutes:_ =
-    notImplemented "Js.Date" "setUTCHoursMS"
-
-  let setUTCHoursMSMs ~hours:_ ~minutes:_ ~seconds:_ ~milliseconds:_ _ =
-    notImplemented "Js.Date" "setUTCHoursMSMs"
-
+  let setUTCHoursMS ~hours:_ ~minutes:_ = notImplemented "Js.Date" "setUTCHoursMS"
+  let setUTCHoursMSMs ~hours:_ ~minutes:_ ~seconds:_ ~milliseconds:_ _ = notImplemented "Js.Date" "setUTCHoursMSMs"
   let setUTCMilliseconds _ = notImplemented "Js.Date" "setUTCMilliseconds"
   let setUTCMinutes _ = notImplemented "Js.Date" "setUTCMinutes"
   let setUTCMinutesS ~minutes:_ = notImplemented "Js.Date" "setUTCMinutesS"
@@ -1263,8 +1048,7 @@ module Dict : Dictionary = struct
   let entries (dict : 'a t) : (string * 'a) array =
     Hashtbl.fold (fun k v acc -> (k, v) :: acc) dict [] |> Stdlib.Array.of_list
 
-  let get (dict : 'a t) (k : key) : 'a option =
-    try Some (Hashtbl.find dict k) with Not_found -> None
+  let get (dict : 'a t) (k : key) : 'a option = try Some (Hashtbl.find dict k) with Not_found -> None
 
   let map ~(f : 'a -> 'b) (dict : 'a t) =
     Hashtbl.fold
@@ -1287,13 +1071,8 @@ module Dict : Dictionary = struct
     Stdlib.Array.iter (fun (k, v) -> Hashtbl.add dict k v) arr;
     dict
 
-  let keys (dict : 'a t) =
-    Hashtbl.fold (fun k _ acc -> k :: acc) dict [] |> Stdlib.Array.of_list
-
-  let values (dict : 'a t) =
-    Hashtbl.fold (fun _k value acc -> value :: acc) dict []
-    |> Stdlib.Array.of_list
-
+  let keys (dict : 'a t) = Hashtbl.fold (fun k _ acc -> k :: acc) dict [] |> Stdlib.Array.of_list
+  let values (dict : 'a t) = Hashtbl.fold (fun _k value acc -> value :: acc) dict [] |> Stdlib.Array.of_list
   let unsafeGet (dict : 'a t) (k : key) : 'a = Hashtbl.find dict k
   let unsafeDeleteKey (dict : 'a t) (key : key) = Hashtbl.remove dict key
 end
@@ -1330,8 +1109,7 @@ end = struct
   let setTimeoutFloat ~f:_ _ = notImplemented "Js.Global" "setTimeout"
 
   module URI = struct
-    let int_of_hex_opt str =
-      try Some (Scanf.sscanf str "%x%!" (fun x -> x)) with _ -> None
+    let int_of_hex_opt str = try Some (Scanf.sscanf str "%x%!" (fun x -> x)) with _ -> None
 
     let hex_decode str pos =
       if pos + 2 >= String.length str then Error "Expecting Hex digit"
@@ -1351,14 +1129,11 @@ end = struct
           if n <= 0 then Some (pos, char)
           else
             match hex_decode s pos with
-            | Ok c1 when c1 land 0xc0 = 0x80 ->
-                loop (pos + 3) ((char lsl 6) lor (c1 land 0x3f)) (n - 1)
+            | Ok c1 when c1 land 0xc0 = 0x80 -> loop (pos + 3) ((char lsl 6) lor (c1 land 0x3f)) (n - 1)
             | _ -> raise (Invalid_argument "Invalid hex encoding")
         in
         match loop pos char n with
-        | Some (new_pos, char)
-          when char >= c_min && char <= 0x10FFFF
-               && (char < 0xd800 || char >= 0xe000) ->
+        | Some (new_pos, char) when char >= c_min && char <= 0x10FFFF && (char < 0xd800 || char >= 0xe000) ->
             (new_pos, char)
         | _ -> raise (Invalid_argument "Malformed UTF-8")
       in
@@ -1380,12 +1155,9 @@ end = struct
                       loop (pos + 3))
                   else
                     let new_pos, decoded_char =
-                      if hex >= 0xc0 && hex <= 0xdf then
-                        decode_utf8 (pos + 3) (hex land 0x1f) 1 0x80
-                      else if hex >= 0xe0 && hex <= 0xef then
-                        decode_utf8 (pos + 3) (hex land 0x0f) 2 0x800
-                      else if hex >= 0xf0 && hex <= 0xf7 then
-                        decode_utf8 (pos + 3) (hex land 0x07) 3 0x10000
+                      if hex >= 0xc0 && hex <= 0xdf then decode_utf8 (pos + 3) (hex land 0x1f) 1 0x80
+                      else if hex >= 0xe0 && hex <= 0xef then decode_utf8 (pos + 3) (hex land 0x0f) 2 0x800
+                      else if hex >= 0xf0 && hex <= 0xf7 then decode_utf8 (pos + 3) (hex land 0x07) 3 0x10000
                       else raise (Invalid_argument "Invalid UTF-8 start byte")
                     in
                     Buffer.add_utf_8_uchar buf (Uchar.of_int decoded_char);
@@ -1406,17 +1178,14 @@ end = struct
          || ((not is_component) && is_uri_reserved (Char.chr c)))
 
     let hex_of_int_opt c =
-      let char_code =
-        if c < 10 then Char.code '0' + c else Char.code 'A' + (c - 10)
-      in
+      let char_code = if c < 10 then Char.code '0' + c else Char.code 'A' + (c - 10) in
       try Some (Char.chr char_code) with _ -> None
 
     let encode_hex value =
       let first_digit = hex_of_int_opt (value lsr 4) in
       let second_digit = hex_of_int_opt (value land 0x0F) in
       match (first_digit, second_digit) with
-      | Some first_digit, Some second_digit ->
-          Ok (Printf.sprintf "%%%c%c" first_digit second_digit)
+      | Some first_digit, Some second_digit -> Ok (Printf.sprintf "%%%c%c" first_digit second_digit)
       | _ -> Error (Printf.sprintf "Invalid hex encoding: %d" value)
 
     let uri_char_escaped c =
@@ -1425,9 +1194,7 @@ end = struct
       | c ->
           (* use Char.escaped for other special characters that need escaping *)
           let escaped = Char.escaped c in
-          if c = '\\' then
-            Stdlib.String.sub escaped 1 (String.length escaped - 1)
-          else escaped
+          if c = '\\' then Stdlib.String.sub escaped 1 (String.length escaped - 1) else escaped
 
     let encode_uri ~component s =
       let buf = Buffer.create (String.length s * 3) in
@@ -1439,18 +1206,14 @@ end = struct
             let new_pos = pos + 1 in
             if is_uri_unescaped c component then
               let encoded_char =
-                try Ok (Char.chr c |> uri_char_escaped)
-                with _ -> raise (Invalid_argument "invalid character")
+                try Ok (Char.chr c |> uri_char_escaped) with _ -> raise (Invalid_argument "invalid character")
               in
               (new_pos, encoded_char)
-            else if c >= 0xdc00 && c <= 0xdfff then
-              raise (Invalid_argument "invalid character")
+            else if c >= 0xdc00 && c <= 0xdfff then raise (Invalid_argument "invalid character")
             else if c >= 0xd800 && c <= 0xdbff then (
-              if new_pos >= String.length s then
-                raise (Invalid_argument "expecting surrogate pair");
+              if new_pos >= String.length s then raise (Invalid_argument "expecting surrogate pair");
               let c1 = Char.code (Stdlib.String.get s new_pos) in
-              if c1 < 0xdc00 || c1 > 0xdfff then
-                raise (Invalid_argument "expecting surrogate pair");
+              if c1 < 0xdc00 || c1 > 0xdfff then raise (Invalid_argument "expecting surrogate pair");
               let c = (((c land 0x3ff) lsl 10) lor (c1 land 0x3ff)) + 0x10000 in
               (new_pos + 1, encode_hex c))
             else (new_pos, encode_hex c)
@@ -1567,9 +1330,7 @@ module Json = struct
   let stringifyWithSpace _ = notImplemented "Js.Json" "stringifyWithSpace"
   let patch _ = notImplemented "Js.Json" "patch"
   let serializeExn (_x : t) : string = notImplemented "Js.Json" "serializeExn"
-
-  let deserializeUnsafe (s : string) : 'a =
-    notImplemented "Js.Json" "mplemented"
+  let deserializeUnsafe (s : string) : 'a = notImplemented "Js.Json" "mplemented"
 end
 
 module Math : sig
@@ -1783,8 +1544,7 @@ end = struct
   let toFixed ?(digits = 0) f =
     try SpecialValues.toString f
     with _ ->
-      if digits < 0 || digits > 100 then
-        raise (Failure "toFixed() digits argument must be between 0 and 100")
+      if digits < 0 || digits > 100 then raise (Failure "toFixed() digits argument must be between 0 and 100")
       else Printf.sprintf "%.*f" digits f
 
   let toPrecision ?digits:_ _ = notImplemented "Js.Float" "toPrecision"
@@ -1798,13 +1558,11 @@ end = struct
 
              On 64-bit mingw-w64, this function may be emulated owing to a bug in the C runtime library (CRT) on this platform. *)
           (* if round(f) == f, print the integer (since string_of_float 1.0 => "1.") *)
-          if Stdlib.Float.equal (Stdlib.Float.round f) f then
-            f |> int_of_float |> string_of_int
+          if Stdlib.Float.equal (Stdlib.Float.round f) f then f |> int_of_float |> string_of_int
           else Printf.sprintf "%g" f
       | Some _ -> notImplemented "Js.Float" "toString ~radix")
 
-  let fromString str =
-    try SpecialValues.fromString str with _ -> Stdlib.float_of_string str
+  let fromString str = try SpecialValues.fromString str with _ -> Stdlib.float_of_string str
 end
 
 module Int : sig
@@ -1826,9 +1584,7 @@ end = struct
   let toPrecision ?digits:_ _ = notImplemented "Js.Int" "toPrecision"
 
   let toString ?radix int =
-    match radix with
-    | None -> Stdlib.string_of_int int
-    | Some _ -> notImplemented "Js.Int" "toString ~radix"
+    match radix with None -> Stdlib.string_of_int int | Some _ -> notImplemented "Js.Int" "toString ~radix"
 
   let toFloat int = Stdlib.float_of_int int
   let equal = Stdlib.Int.equal

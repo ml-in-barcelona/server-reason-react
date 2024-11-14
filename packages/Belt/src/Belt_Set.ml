@@ -46,10 +46,7 @@ let add m e =
   if newData == data then m else { cmp; data = newData }
 
 let mergeMany ({ cmp; _ } as m) e = { cmp; data = Dict.mergeMany ~cmp m.data e }
-
-let removeMany ({ cmp; _ } as m) e =
-  { cmp; data = Dict.removeMany ~cmp m.data e }
-
+let removeMany ({ cmp; _ } as m) e = { cmp; data = Dict.removeMany ~cmp m.data e }
 let union ({ cmp; _ } as m) n = { data = Dict.union ~cmp m.data n.data; cmp }
 
 let intersect m n =
@@ -109,15 +106,13 @@ let getUndefined m e = Dict.getUndefined ~cmp:m.cmp m.data e
 let getExn m e = Dict.getExn ~cmp:m.cmp m.data e
 let has m e = Dict.has ~cmp:m.cmp m.data e
 
-let fromSortedArrayUnsafe (type value identity) xs ~(id : (value, identity) id)
-    =
+let fromSortedArrayUnsafe (type value identity) xs ~(id : (value, identity) id) =
   let module M = (val id) in
   { cmp = M.cmp; data = Dict.fromSortedArrayUnsafe xs }
 
 let getData m = m.data
 
-let getId (type value identity) (m : (value, identity) t) : (value, identity) id
-    =
+let getId (type value identity) (m : (value, identity) t) : (value, identity) id =
   let module T = struct
     type nonrec identity = identity
     type nonrec t = value

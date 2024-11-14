@@ -86,8 +86,7 @@ val forEach : ('key, 'value, 'id) t -> ('key -> 'value -> unit) -> unit
     as second argument. Each binding is presented exactly once to [f].
 *)
 
-val reduceU :
-  ('key, 'value, 'id) t -> 'c -> (('c -> 'key -> 'value -> 'c)[@bs]) -> 'c
+val reduceU : ('key, 'value, 'id) t -> 'c -> (('c -> 'key -> 'value -> 'c)[@bs]) -> 'c
 
 val reduce : ('key, 'value, 'id) t -> 'c -> ('c -> 'key -> 'value -> 'c) -> 'c
 (** [reduce  tbl init f] computes
@@ -102,11 +101,8 @@ val reduce : ('key, 'value, 'id) t -> 'c -> ('c -> 'key -> 'value -> 'c) -> 'c
     the most recent binding is passed first.
 *)
 
-val keepMapInPlaceU :
-  ('key, 'value, 'id) t -> (('key -> 'value -> 'value option)[@bs]) -> unit
-
-val keepMapInPlace :
-  ('key, 'value, 'id) t -> ('key -> 'value -> 'value option) -> unit
+val keepMapInPlaceU : ('key, 'value, 'id) t -> (('key -> 'value -> 'value option)[@bs]) -> unit
+val keepMapInPlace : ('key, 'value, 'id) t -> ('key -> 'value -> 'value option) -> unit
 
 val size : _ t -> int
 (** [size tbl] returns the number of bindings in [tbl].
@@ -115,10 +111,7 @@ val size : _ t -> int
 val toArray : ('key, 'value, 'id) t -> ('key * 'value) array
 val keysToArray : ('key, _, _) t -> 'key array
 val valuesToArray : (_, 'value, _) t -> 'value array
-
-val fromArray :
-  ('key * 'value) array -> id:('key, 'id) id -> ('key, 'value, 'id) t
-
+val fromArray : ('key * 'value) array -> id:('key, 'id) id -> ('key, 'value, 'id) t
 val mergeMany : ('key, 'value, 'id) t -> ('key * 'value) array -> unit
 val getBucketHistogram : _ t -> int array
 val logStats : _ t -> unit

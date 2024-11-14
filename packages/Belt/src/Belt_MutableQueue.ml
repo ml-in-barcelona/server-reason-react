@@ -4,23 +4,13 @@ include (
   struct
     type 'a node = { content : 'a; mutable next : 'a cell }
     and 'a cell = 'a node Js.null
+    and 'a t = { mutable length : int; mutable first : 'a cell; mutable last : 'a cell }
 
-    and 'a t = {
-      mutable length : int;
-      mutable first : 'a cell;
-      mutable last : 'a cell;
-    }
-
-    let node : content:'a -> next:'a cell -> 'a node =
-     fun ~content ~next -> { content; next }
-
+    let node : content:'a -> next:'a cell -> 'a node = fun ~content ~next -> { content; next }
     let content : 'a node -> 'a = fun o -> o.content
     let nextSet : 'a node -> 'a cell -> unit = fun o v -> o.next <- v
     let next : 'a node -> 'a cell = fun o -> o.next
-
-    let t : length:int -> first:'a cell -> last:'a cell -> 'a t =
-     fun ~length ~first ~last -> { length; first; last }
-
+    let t : length:int -> first:'a cell -> last:'a cell -> 'a t = fun ~length ~first ~last -> { length; first; last }
     let lengthSet : 'a t -> int -> unit = fun o v -> o.length <- v
     let length : 'a t -> int = fun o -> o.length
     let firstSet : 'a t -> 'a cell -> unit = fun o v -> o.first <- v
@@ -67,15 +57,10 @@ let add q x =
       nextSet last cell;
       lastSet q cell
 
-let peek q =
-  match Js.nullToOption (first q) with
-  | None -> None
-  | Some v -> Some (content v)
+let peek q = match Js.nullToOption (first q) with None -> None | Some v -> Some (content v)
 
 let peekUndefined q =
-  match Js.nullToOption (first q) with
-  | None -> Js.undefined
-  | Some v -> Js.Undefined.return (content v)
+  match Js.nullToOption (first q) with None -> Js.undefined | Some v -> Js.Undefined.return (content v)
 
 let peekExn q =
   match Js.nullToOption (first q) with
@@ -133,13 +118,10 @@ let rec copyAux qRes prev cell =
   | Some x ->
       let content = content x in
       let res = return @@ node ~content ~next:null in
-      (match Js.nullToOption prev with
-      | None -> firstSet qRes res
-      | Some p -> nextSet p res);
+      (match Js.nullToOption prev with None -> firstSet qRes res | Some p -> nextSet p res);
       copyAux qRes res (next x)
 
-let copy q =
-  copyAux (t ~length:(length q) ~first:null ~last:null) null (first q)
+let copy q = copyAux (t ~length:(length q) ~first:null ~last:null) null (first q)
 
 let rec copyMapAux qRes prev cell f =
   match Js.nullToOption cell with
@@ -149,14 +131,10 @@ let rec copyMapAux qRes prev cell f =
   | Some x ->
       let content = f (content x) in
       let res = return @@ node ~content ~next:null in
-      (match Js.nullToOption prev with
-      | None -> firstSet qRes res
-      | Some p -> nextSet p res);
+      (match Js.nullToOption prev with None -> firstSet qRes res | Some p -> nextSet p res);
       copyMapAux qRes res (next x) f
 
-let mapU q f =
-  copyMapAux (t ~length:(length q) ~first:null ~last:null) null (first q) f
-
+let mapU q f = copyMapAux (t ~length:(length q) ~first:null ~last:null) null (first q) f
 let map q f = mapU q (fun a -> f a)
 let isEmpty q = length q = 0
 let size q = length q
@@ -204,9 +182,7 @@ let rec fillAux i arr cell =
 
 let toArray x =
   let v =
-    match Js.Null.toOption (first x) with
-    | None -> [||]
-    | Some y -> A.makeUninitializedUnsafe (length x) (content y)
+    match Js.Null.toOption (first x) with None -> [||] | Some y -> A.makeUninitializedUnsafe (length x) (content y)
   in
   fillAux 0 v (first x);
   v

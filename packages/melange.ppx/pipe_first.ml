@@ -8,12 +8,7 @@ let expander e =
     let loc = e.pexp_loc in
     match e.pexp_desc with
     | Pexp_apply
-        ( {
-            pexp_desc = Pexp_ident { txt = Lident "|."; _ };
-            pexp_loc_stack;
-            pexp_loc = _;
-            pexp_attributes = _;
-          },
+        ( { pexp_desc = Pexp_ident { txt = Lident "|."; _ }; pexp_loc_stack; pexp_loc = _; pexp_attributes = _ },
           [ (Nolabel, arg); (Nolabel, fn) ] ) -> (
         let fn = Option.value ~default:fn (expander' fn) in
         let arg = Option.value ~default:arg (expander' arg) in
@@ -21,32 +16,12 @@ let expander e =
         | { pexp_desc = Pexp_apply (fn, args); pexp_loc; _ } ->
             let args =
               List.filter_map
-                (fun (lab, exp) ->
-                  match expander' exp with
-                  | Some e -> Some (lab, e)
-                  | None -> Some (lab, exp))
+                (fun (lab, exp) -> match expander' exp with Some e -> Some (lab, e) | None -> Some (lab, exp))
                 args
             in
-            Some
-              {
-                pexp_desc = Pexp_apply (fn, (Nolabel, arg) :: args);
-                pexp_attributes = [];
-                pexp_loc;
-                pexp_loc_stack;
-              }
-        | {
-         pexp_desc = Pexp_construct (lident, None);
-         pexp_loc;
-         pexp_loc_stack;
-         pexp_attributes = _;
-        } ->
-            Some
-              {
-                pexp_desc = Pexp_construct (lident, Some arg);
-                pexp_attributes = [];
-                pexp_loc;
-                pexp_loc_stack;
-              }
+            Some { pexp_desc = Pexp_apply (fn, (Nolabel, arg) :: args); pexp_attributes = []; pexp_loc; pexp_loc_stack }
+        | { pexp_desc = Pexp_construct (lident, None); pexp_loc; pexp_loc_stack; pexp_attributes = _ } ->
+            Some { pexp_desc = Pexp_construct (lident, Some arg); pexp_attributes = []; pexp_loc; pexp_loc_stack }
         | _ -> Some (Ast_builder.Default.pexp_apply ~loc fn [ (Nolabel, arg) ]))
     | _ -> None
   in

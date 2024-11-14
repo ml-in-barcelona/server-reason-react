@@ -13,8 +13,7 @@ module type Comparable = sig
   val cmp : (t, identity) cmp
 end
 
-type ('key, 'id) comparable =
-  (module Comparable with type identity = 'id and type t = 'key)
+type ('key, 'id) comparable = (module Comparable with type identity = 'id and type t = 'key)
 
 module MakeComparableU : functor
   (M : sig
@@ -42,11 +41,8 @@ module MakeComparable : functor
   val cmp : M.t -> M.t -> int
 end
 
-val comparableU :
-  cmp:('key -> 'key -> int) -> (module Comparable with type t = 'key)
-
-val comparable :
-  cmp:('key -> 'key -> int) -> (module Comparable with type t = 'key)
+val comparableU : cmp:('key -> 'key -> int) -> (module Comparable with type t = 'key)
+val comparable : cmp:('key -> 'key -> int) -> (module Comparable with type t = 'key)
 
 module type Hashable = sig
   type identity
@@ -56,8 +52,7 @@ module type Hashable = sig
   val eq : (t, identity) eq
 end
 
-type ('key, 'id) hashable =
-  (module Hashable with type identity = 'id and type t = 'key)
+type ('key, 'id) hashable = (module Hashable with type identity = 'id and type t = 'key)
 
 module MakeHashableU : functor
   (M : sig
@@ -89,12 +84,5 @@ module MakeHashable : functor
   val eq : M.t -> M.t -> bool
 end
 
-val hashableU :
-  hash:('key -> int) ->
-  eq:('key -> 'key -> bool) ->
-  (module Hashable with type t = 'key)
-
-val hashable :
-  hash:('key -> int) ->
-  eq:('key -> 'key -> bool) ->
-  (module Hashable with type t = 'key)
+val hashableU : hash:('key -> int) -> eq:('key -> 'key -> bool) -> (module Hashable with type t = 'key)
+val hashable : hash:('key -> int) -> eq:('key -> 'key -> bool) -> (module Hashable with type t = 'key)

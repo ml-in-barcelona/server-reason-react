@@ -1,6 +1,4 @@
-let assert_styles styles str =
-  Alcotest.check Alcotest.string "should be equal" str
-    (ReactDOM.Style.to_string styles)
+let assert_styles styles str = Alcotest.check Alcotest.string "should be equal" str (ReactDOM.Style.to_string styles)
 
 let one_styles () =
   let styles = ReactDOM.Style.make ~background:"#333" () in
@@ -20,30 +18,18 @@ let emtpy_value () =
   assert_styles styles "background: ;"
 
 let unsafe_add_prop () =
-  let styles =
-    ReactDOM.Style.unsafeAddProp
-      (ReactDOM.Style.make ~background:"#333" ())
-      "colorScheme" "dark"
-  in
+  let styles = ReactDOM.Style.unsafeAddProp (ReactDOM.Style.make ~background:"#333" ()) "colorScheme" "dark" in
   assert_styles styles "background:#333;color-scheme:dark"
 
 let style_order_matters () =
-  let styles =
-    ReactDOM.Style.make ~lineBreak:"100px" ~overflowWrap:"break-word" ()
-  in
+  let styles = ReactDOM.Style.make ~lineBreak:"100px" ~overflowWrap:"break-word" () in
   assert_styles styles "line-break:100px;overflow-wrap:break-word"
 
 let style_order_matters_2 () =
-  let styles =
-    ReactDOM.Style.make ~opacity:"1.0" ~stress:"0" ~width:"20"
-      ~backgroundColor:"red" ~columnGap:"2px" ()
-  in
-  assert_styles styles
-    "background-color:red;stress:0;width:20;opacity:1.0;column-gap:2px"
+  let styles = ReactDOM.Style.make ~opacity:"1.0" ~stress:"0" ~width:"20" ~backgroundColor:"red" ~columnGap:"2px" () in
+  assert_styles styles "background-color:red;stress:0;width:20;opacity:1.0;column-gap:2px"
 
-let test title fn =
-  ( Printf.sprintf "ReactDOM.Style.make / %s" title,
-    [ Alcotest_lwt.test_case_sync "" `Quick fn ] )
+let test title fn = (Printf.sprintf "ReactDOM.Style.make / %s" title, [ Alcotest_lwt.test_case_sync "" `Quick fn ])
 
 let tests =
   [

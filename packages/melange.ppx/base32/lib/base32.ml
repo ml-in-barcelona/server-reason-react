@@ -36,13 +36,9 @@ let none = -1
    array]). So we consider the [none] value as [-1]. *)
 
 let make_alphabet alphabet =
-  if String.length alphabet <> 32 then
-    invalid_arg "Length of alphabet must be 32";
-  if String.contains alphabet '=' then
-    invalid_arg "Alphabet can not contain padding character";
-  let emap =
-    Array.init (String.length alphabet) (fun i -> Char.code alphabet.[i])
-  in
+  if String.length alphabet <> 32 then invalid_arg "Length of alphabet must be 32";
+  if String.contains alphabet '=' then invalid_arg "Alphabet can not contain padding character";
+  let emap = Array.init (String.length alphabet) (fun i -> Char.code alphabet.[i]) in
   let dmap = Array.make 256 none in
   String.iteri (fun idx chr -> dmap.(Char.code chr) <- idx) alphabet;
   { emap; dmap }
@@ -54,12 +50,9 @@ let padding = int_of_char '='
 let error_msgf fmt = Format.ksprintf (fun err -> Error (`Msg err)) fmt
 
 let encode_sub pad { emap; _ } ?(off = 0) ?len input =
-  let len =
-    match len with Some len -> len | None -> String.length input - off
-  in
+  let len = match len with Some len -> len | None -> String.length input - off in
 
-  if len < 0 || off < 0 || off > String.length input - len then
-    error_msgf "Invalid bounds"
+  if len < 0 || off < 0 || off > String.length input - len then error_msgf "Invalid bounds"
   else
     let n = len in
     let n' = n // 5 * 8 in
@@ -70,27 +63,19 @@ let encode_sub pad { emap; _ } ?(off = 0) ?len input =
     (* the bit magic - takes 5 bytes and reads 5-bits at a time *)
     let emit b1 b2 b3 b4 b5 i =
       unsafe_set_uint8 res i (emap ((0b11111000 land b1) lsr 3));
-      unsafe_set_uint8 res (i + 1)
-        (emap (((0b00000111 land b1) lsl 2) lor ((0b11000000 land b2) lsr 6)));
+      unsafe_set_uint8 res (i + 1) (emap (((0b00000111 land b1) lsl 2) lor ((0b11000000 land b2) lsr 6)));
       unsafe_set_uint8 res (i + 2) (emap ((0b00111110 land b2) lsr 1));
-      unsafe_set_uint8 res (i + 3)
-        (emap (((0b00000001 land b2) lsl 4) lor ((0b11110000 land b3) lsr 4)));
-      unsafe_set_uint8 res (i + 4)
-        (emap (((0b00001111 land b3) lsl 1) lor ((0b10000000 land b4) lsr 7)));
+      unsafe_set_uint8 res (i + 3) (emap (((0b00000001 land b2) lsl 4) lor ((0b11110000 land b3) lsr 4)));
+      unsafe_set_uint8 res (i + 4) (emap (((0b00001111 land b3) lsl 1) lor ((0b10000000 land b4) lsr 7)));
       unsafe_set_uint8 res (i + 5) (emap ((0b01111100 land b4) lsr 2));
-      unsafe_set_uint8 res (i + 6)
-        (emap (((0b00000011 land b4) lsl 3) lor ((0b11100000 land b5) lsr 5)));
+      unsafe_set_uint8 res (i + 6) (emap (((0b00000011 land b4) lsl 3) lor ((0b11100000 land b5) lsr 5)));
       unsafe_set_uint8 res (i + 7) (emap (0b00011111 land b5))
     in
 
     let rec enc j i =
       if i = len then ()
       else if i = n - 1 then emit (unsafe_get_uint8 input (off + i)) 0 0 0 0 j
-      else if i = n - 2 then
-        emit
-          (unsafe_get_uint8 input (off + i))
-          (unsafe_get_uint8 input (off + i + 1))
-          0 0 0 j
+      else if i = n - 2 then emit (unsafe_get_uint8 input (off + i)) (unsafe_get_uint8 input (off + i + 1)) 0 0 0 j
       else if i = n - 3 then
         emit
           (unsafe_get_uint8 input (off + i))
@@ -125,9 +110,7 @@ let encode_sub pad { emap; _ } ?(off = 0) ?len input =
     enc 0 0;
 
     (* amount of padding required *)
-    let pad_to_write =
-      match n mod 5 with 0 -> 0 | 1 -> 6 | 2 -> 4 | 3 -> 3 | 4 -> 1 | _ -> 0
-    in
+    let pad_to_write = match n mod 5 with 0 -> 0 | 1 -> 6 | 2 -> 4 | 3 -> 3 | 4 -> 1 | _ -> 0 in
 
     if pad then (
       unsafe_fix pad_to_write;
@@ -140,38 +123,27 @@ let encode ?(pad = true) ?(alphabet = default_alphabet) ?off ?len input =
   | Error _ as err -> err
 
 let encode_string ?pad ?alphabet input =
-  match encode ?pad ?alphabet input with
-  | Ok res -> res
-  | Error _ -> assert false
+  match encode ?pad ?alphabet input with Ok res -> res | Error _ -> assert false
 
-let encode_sub ?(pad = true) ?(alphabet = default_alphabet) ?off ?len input =
-  encode_sub pad alphabet ?off ?len input
+let encode_sub ?(pad = true) ?(alphabet = default_alphabet) ?off ?len input = encode_sub pad alphabet ?off ?len input
 
 let encode_exn ?pad ?alphabet ?off ?len input =
-  match encode ?pad ?alphabet ?off ?len input with
-  | Ok v -> v
-  | Error (`Msg err) -> invalid_arg err
+  match encode ?pad ?alphabet ?off ?len input with Ok v -> v | Error (`Msg err) -> invalid_arg err
 
 let decode_sub { dmap; _ } ?(off = 0) ?len input =
-  let len =
-    match len with Some len -> len | None -> String.length input - off
-  in
+  let len = match len with Some len -> len | None -> String.length input - off in
 
-  if len < 0 || off < 0 || off > String.length input - len then
-    error_msgf "Invalid bounds"
+  if len < 0 || off < 0 || off > String.length input - len then error_msgf "Invalid bounds"
   else
     let n = len // 8 * 8 in
     let n' = n // 8 * 5 in
     let res = Bytes.create n' in
 
-    let get_uint8 t i =
-      if i < len then Char.code (String.unsafe_get t (off + i)) else padding
-    in
+    let get_uint8 t i = if i < len then Char.code (String.unsafe_get t (off + i)) else padding in
 
     let set_uint8 t off v =
       (* Format.printf "set_uint8 %d\n" (v land 0xff); *)
-      if off < 0 || off >= Bytes.length t then ()
-      else unsafe_set_uint8 t off (v land 0xff)
+      if off < 0 || off >= Bytes.length t then () else unsafe_set_uint8 t off (v land 0xff)
     in
 
     let emit b0 b1 b2 b3 b4 b5 b6 b7 j =
@@ -203,10 +175,7 @@ let decode_sub { dmap; _ } ?(off = 0) ?len input =
         let b5, pad5 = get_uint8_with_padding input (i + 5) 2 in
         let b6, pad6 = get_uint8_with_padding input (i + 6) 2 in
         let b7, pad7 = get_uint8_with_padding input (i + 7) 1 in
-        let pad =
-          List.fold_left max 0
-            [ pad0; pad1; pad2; pad3; pad4; pad5; pad6; pad7 ]
-        in
+        let pad = List.fold_left max 0 [ pad0; pad1; pad2; pad3; pad4; pad5; pad6; pad7 ] in
 
         (* Format.printf "emit %d %d %d %d %d %d %d %d\n" b0 b1 b2 b3 b4 b5 b6 b7; *)
         emit b0 b1 b2 b3 b4 b5 b6 b7 j;
@@ -222,10 +191,7 @@ let decode ?(alphabet = default_alphabet) ?off ?len input =
   | Ok (res, off, len) -> Ok (String.sub res off len)
   | Error _ as err -> err
 
-let decode_sub ?(alphabet = default_alphabet) ?off ?len input =
-  decode_sub alphabet ?off ?len input
+let decode_sub ?(alphabet = default_alphabet) ?off ?len input = decode_sub alphabet ?off ?len input
 
 let decode_exn ?alphabet ?off ?len input =
-  match decode ?alphabet ?off ?len input with
-  | Ok res -> res
-  | Error (`Msg err) -> invalid_arg err
+  match decode ?alphabet ?off ?len input with Ok res -> res | Error (`Msg err) -> invalid_arg err

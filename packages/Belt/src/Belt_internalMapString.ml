@@ -14,42 +14,35 @@ let rec add t (x : key) (data : _) =
       if x = k then N.return (N.updateValue n data)
       else
         let v = N.value n in
-        if x < k then N.bal (add (N.left n) x data) k v (N.right n)
-        else N.bal (N.left n) k v (add (N.right n) x data)
+        if x < k then N.bal (add (N.left n) x data) k v (N.right n) else N.bal (N.left n) k v (add (N.right n) x data)
 
 let rec get n (x : key) =
   match N.toOpt n with
   | None -> None
   | Some n ->
       let v = N.key n in
-      if x = v then Some (N.value n)
-      else get (if x < v then N.left n else N.right n) x
+      if x = v then Some (N.value n) else get (if x < v then N.left n else N.right n) x
 
 let rec getUndefined n (x : key) =
   match N.toOpt n with
   | None -> Js.undefined
   | Some n ->
       let v = N.key n in
-      if x = v then Js.Undefined.return (N.value n)
-      else getUndefined (if x < v then N.left n else N.right n) x
+      if x = v then Js.Undefined.return (N.value n) else getUndefined (if x < v then N.left n else N.right n) x
 
 let rec getExn n (x : key) =
   match N.toOpt n with
-  | None ->
-      Js.Exn.raiseError
-        "File \"../others/internal_map.cppo.ml\", line 51, characters 14-20"
+  | None -> Js.Exn.raiseError "File \"../others/internal_map.cppo.ml\", line 51, characters 14-20"
   | Some n ->
       let v = N.key n in
-      if x = v then N.value n
-      else getExn (if x < v then N.left n else N.right n) x
+      if x = v then N.value n else getExn (if x < v then N.left n else N.right n) x
 
 let rec getWithDefault n (x : key) def =
   match N.toOpt n with
   | None -> def
   | Some n ->
       let v = N.key n in
-      if x = v then N.value n
-      else getWithDefault (if x < v then N.left n else N.right n) x def
+      if x = v then N.value n else getWithDefault (if x < v then N.left n else N.right n) x def
 
 let rec has n (x : key) =
   match N.toOpt n with
@@ -143,21 +136,13 @@ let rec compareAux e1 e2 vcmp =
       let c = Stdlib.compare (N.key h1 : key) (N.key h2) in
       if c = 0 then
         let cx = vcmp (N.value h1) (N.value h2) in
-        if cx = 0 then
-          compareAux
-            (N.stackAllLeft (N.right h1) t1)
-            (N.stackAllLeft (N.right h2) t2)
-            vcmp
-        else cx
+        if cx = 0 then compareAux (N.stackAllLeft (N.right h1) t1) (N.stackAllLeft (N.right h2) t2) vcmp else cx
       else c
   | _, _ -> 0
 
 let cmpU s1 s2 cmp =
   let len1, len2 = (N.size s1, N.size s2) in
-  if len1 = len2 then
-    compareAux (N.stackAllLeft s1 []) (N.stackAllLeft s2 []) cmp
-  else if len1 < len2 then -1
-  else 1
+  if len1 = len2 then compareAux (N.stackAllLeft s1 []) (N.stackAllLeft s2 []) cmp else if len1 < len2 then -1 else 1
 
 let cmp s1 s2 f = cmpU s1 s2 (fun a b -> f a b)
 
@@ -165,17 +150,13 @@ let rec eqAux e1 e2 eq =
   match (e1, e2) with
   | h1 :: t1, h2 :: t2 ->
       if (N.key h1 : key) = N.key h2 && eq (N.value h1) (N.value h2) then
-        eqAux
-          (N.stackAllLeft (N.right h1) t1)
-          (N.stackAllLeft (N.right h2) t2)
-          eq
+        eqAux (N.stackAllLeft (N.right h1) t1) (N.stackAllLeft (N.right h2) t2) eq
       else false
   | _, _ -> true
 
 let eqU s1 s2 eq =
   let len1, len2 = (N.size s1, N.size s2) in
-  if len1 = len2 then eqAux (N.stackAllLeft s1 []) (N.stackAllLeft s2 []) eq
-  else false
+  if len1 = len2 then eqAux (N.stackAllLeft s1 []) (N.stackAllLeft s2 []) eq else false
 
 let eq s1 s2 f = eqU s1 s2 (fun a b -> f a b)
 
@@ -200,9 +181,7 @@ let fromArray (xs : (key * _) array) =
   let len = A.length xs in
   if len = 0 then N.empty
   else
-    let next =
-      ref (S.strictlySortedLengthU xs (fun (x0, _) (y0, _) -> x0 < y0))
-    in
+    let next = ref (S.strictlySortedLengthU xs (fun (x0, _) (y0, _) -> x0 < y0)) in
     let result =
       ref
         (if !next >= 0 then N.fromSortedArrayAux xs 0 !next

@@ -1,39 +1,25 @@
-let assert_string left right =
-  Alcotest.check Alcotest.string "should be equal" right left
-
-let assert_option x left right =
-  Alcotest.check (Alcotest.option x) "should be equal" right left
-
-let assert_array ty left right =
-  Alcotest.check (Alcotest.array ty) "should be equal" right left
-
+let assert_string left right = Alcotest.check Alcotest.string "should be equal" right left
+let assert_option x left right = Alcotest.check (Alcotest.option x) "should be equal" right left
+let assert_array ty left right = Alcotest.check (Alcotest.array ty) "should be equal" right left
 let assert_string_array = assert_array Alcotest.string
 let assert_string_option_array = assert_array (Alcotest.option Alcotest.string)
 let assert_array_int = assert_array Alcotest.int
 
 let assert_dict_entries type_ left right =
-  Alcotest.check
-    (Alcotest.array (Alcotest.pair Alcotest.string type_))
-    "should be equal" right left
+  Alcotest.check (Alcotest.array (Alcotest.pair Alcotest.string type_)) "should be equal" right left
 
 let assert_int_dict_entries = assert_dict_entries Alcotest.int
 let assert_string_dict_entries = assert_dict_entries Alcotest.string
 let assert_option_int = assert_option Alcotest.int
 (* let assert_option_string = assert_option Alcotest.string *)
 
-let assert_int left right =
-  Alcotest.check Alcotest.int "should be equal" right left
-
-let assert_float left right =
-  Alcotest.check (Alcotest.float 2.) "should be equal" right left
-
-let assert_bool left right =
-  Alcotest.check Alcotest.bool "should be equal" right left
+let assert_int left right = Alcotest.check Alcotest.int "should be equal" right left
+let assert_float left right = Alcotest.check (Alcotest.float 2.) "should be equal" right left
+let assert_bool left right = Alcotest.check Alcotest.bool "should be equal" right left
 
 let assert_raises fn exn =
   match fn () with
-  | exception exn ->
-      assert_string (Printexc.to_string exn) (Printexc.to_string exn)
+  | exception exn -> assert_string (Printexc.to_string exn) (Printexc.to_string exn)
   | _ -> Alcotest.failf "Expected exception %s" (Printexc.to_string exn)
 
 let test title fn = Alcotest_lwt.test_case_sync title `Quick fn
@@ -49,10 +35,7 @@ let re_tests =
     test "exec" (fun () ->
         let regex = Js.Re.fromString ".ats" in
         let input = "cats and bats" in
-        let regex_and_capture =
-          Js.Re.exec ~str:input regex
-          |> Option.get |> Js.Re.captures |> Array.map Option.get
-        in
+        let regex_and_capture = Js.Re.exec ~str:input regex |> Option.get |> Js.Re.captures |> Array.map Option.get in
         assert_string_array regex_and_capture [| "cats" |];
         assert_string_array regex_and_capture [| "cats" |];
         assert_string_array regex_and_capture [| "cats" |]);
@@ -61,16 +44,13 @@ let re_tests =
         let input = "cats and bats and mats" in
         assert_bool (Js.Re.global regex) true;
         assert_string_array
-          (Js.Re.exec ~str:input regex
-          |> Option.get |> Js.Re.captures |> Array.map Option.get)
+          (Js.Re.exec ~str:input regex |> Option.get |> Js.Re.captures |> Array.map Option.get)
           [| "cats" |];
         assert_string_array
-          (Js.Re.exec ~str:input regex
-          |> Option.get |> Js.Re.captures |> Array.map Option.get)
+          (Js.Re.exec ~str:input regex |> Option.get |> Js.Re.captures |> Array.map Option.get)
           [| "bats" |];
         assert_string_array
-          (Js.Re.exec ~str:input regex
-          |> Option.get |> Js.Re.captures |> Array.map Option.get)
+          (Js.Re.exec ~str:input regex |> Option.get |> Js.Re.captures |> Array.map Option.get)
           [| "mats" |]);
     test "modifier: end ($)" (fun () ->
         let regex = Js.Re.fromString "cat$" in
@@ -97,9 +77,7 @@ let re_tests =
         assert_bool (Js.Re.test ~str:"tear" regex) true;
         assert_bool (Js.Re.test ~str:"fear" regex) false);
     test "http|s example" (fun () ->
-        let regex =
-          Js.Re.fromString "^[https?]+:\\/\\/((w{3}\\.)?[\\w+]+)\\.[\\w+]+$"
-        in
+        let regex = Js.Re.fromString "^[https?]+:\\/\\/((w{3}\\.)?[\\w+]+)\\.[\\w+]+$" in
         assert_bool (Js.Re.test ~str:"https://www.example.com" regex) true;
         assert_bool (Js.Re.test ~str:"http://example.com" regex) true;
         assert_bool (Js.Re.test ~str:"https://example" regex) false);
@@ -132,17 +110,15 @@ let string_tests =
     test "length" (fun () -> assert_int (Js.String.length "abcd") 4);
     test "get" (fun () ->
         assert_string (Js.String.get "Reason" 0) "R";
-        assert_string (Js.String.get "Reason" 4) "o"
-        (* assert_string (Js.String.get {js|Rẽasöń|js} 5) {js|ń|js}; *));
+        assert_string (Js.String.get "Reason" 4) "o" (* assert_string (Js.String.get {js|Rẽasöń|js} 5) {js|ń|js}; *));
     test "fromCharCode" (fun () ->
         assert_string (Js.String.fromCharCode 65) "A";
         (* assert_string (Js.String.fromCharCode 0x3c8) {js|ψ|js}; *)
         (* assert_string (Js.String.fromCharCode 0xd55c) {js|한|js} *)
         (* assert_string (Js.String.fromCharCode -64568) {js|ψ|js}; *)
         ());
-    test "fromCharCodeMany" (fun () ->
-        (* fromCharCodeMany([|0xd55c, 0xae00, 33|]) = {js|한글!|js} *)
-        ());
+    test "fromCharCodeMany" (fun () -> (* fromCharCodeMany([|0xd55c, 0xae00, 33|]) = {js|한글!|js} *)
+                                       ());
     test "fromCodePoint" (fun () ->
         assert_string (Js.String.fromCodePoint 65) "A"
         (* assert_string (Js.String.fromCodePoint 0x3c8) {js|ψ|js}; *)
@@ -165,12 +141,9 @@ let string_tests =
         assert_option_int (Js.String.codePointAt "lola" ~index:1) (Some 111);
         (* assert_option_int (Js.String.codePointAt {js|¿😺?|js} 1) (Some 0x1f63a); *)
         assert_option_int (Js.String.codePointAt "abc" ~index:5) None);
-    test "concat" (fun () ->
-        assert_string (Js.String.concat "cow" ~other:"bell") "cowbell");
+    test "concat" (fun () -> assert_string (Js.String.concat "cow" ~other:"bell") "cowbell");
     test "concatMany" (fun () ->
-        assert_string
-          (Js.String.concatMany "1st" ~strings:[| "2nd"; "3rd"; "4th" |])
-          "1st2nd3rd4th");
+        assert_string (Js.String.concatMany "1st" ~strings:[| "2nd"; "3rd"; "4th" |]) "1st2nd3rd4th");
     test "endsWith" (fun () ->
         assert_bool (Js.String.endsWith "ReScript" ~suffix:"Script") true;
         assert_bool (Js.String.endsWith "ReShoes" ~suffix:"Script") false;
@@ -183,12 +156,8 @@ let string_tests =
         assert_bool (Js.String.includes "programmer" ~search:"er") true;
         assert_bool (Js.String.includes "programmer" ~search:"pro") true;
         assert_bool (Js.String.includes "programmer" ~search:"xyz") false;
-        assert_bool
-          (Js.String.includes "programmer" ~search:"gram" ~start:1)
-          true;
-        assert_bool
-          (Js.String.includes "programmer" ~search:"gram" ~start:4)
-          false
+        assert_bool (Js.String.includes "programmer" ~search:"gram" ~start:1) true;
+        assert_bool (Js.String.includes "programmer" ~search:"gram" ~start:4) false
         (* assert_bool (Js.String.includesFrom {js|한|js} {js|대한민국|js} 1) true *));
     test "indexOf" (fun () ->
         assert_int (Js.String.indexOf "bookseller" ~search:"ok") 2;
@@ -215,45 +184,26 @@ let string_tests =
         ());
     *)
     test "match" (fun () ->
-        let unsafe_match s r =
-          Js.String.match_ ~regexp:r s |> Stdlib.Option.get
-        in
-        assert_string_option_array
-          (unsafe_match "The better bats" (Js.Re.fromString "b[aeiou]t"))
-          [| Some "bet" |]);
+        let unsafe_match s r = Js.String.match_ ~regexp:r s |> Stdlib.Option.get in
+        assert_string_option_array (unsafe_match "The better bats" (Js.Re.fromString "b[aeiou]t")) [| Some "bet" |]);
     test "match 0" (fun () ->
-        let unsafe_match r s =
-          Js.String.match_ ~regexp:r s |> Stdlib.Option.value ~default:[||]
-        in
+        let unsafe_match r s = Js.String.match_ ~regexp:r s |> Stdlib.Option.value ~default:[||] in
+        assert_string_option_array (unsafe_match (Js.Re.fromString "b[aeiou]t") "The better bats") [| Some "bet" |];
         assert_string_option_array
-          (unsafe_match (Js.Re.fromString "b[aeiou]t") "The better bats")
-          [| Some "bet" |];
-        assert_string_option_array
-          (unsafe_match
-             (Js.Re.fromStringWithFlags "b[aeiou]t" ~flags:"g")
-             "The better bats")
+          (unsafe_match (Js.Re.fromStringWithFlags "b[aeiou]t" ~flags:"g") "The better bats")
           [| Some "bet"; Some "bat" |];
         assert_string_option_array
           (unsafe_match [%re "/(\\d+)-(\\d+)-(\\d+)/"] "Today is 2018-04-05.")
           [| Some "2018-04-05"; Some "2018"; Some "04"; Some "05" |];
-        assert_string_option_array
-          (unsafe_match [%re "/b[aeiou]g/"] "The large container.")
-          [||]);
+        assert_string_option_array (unsafe_match [%re "/b[aeiou]g/"] "The large container.") [||]);
     test "repeat" (fun () ->
         assert_string (Js.String.repeat "ha" ~count:3) "hahaha";
         assert_string (Js.String.repeat "empty" ~count:0) "");
     test "replace" (fun () ->
-        assert_string
-          (Js.String.replace ~search:"old" ~replacement:"new" "old string")
-          "new string";
-        assert_string
-          (Js.String.replace ~search:"the" ~replacement:"this"
-             "the cat and the dog")
-          "this cat and the dog");
+        assert_string (Js.String.replace ~search:"old" ~replacement:"new" "old string") "new string";
+        assert_string (Js.String.replace ~search:"the" ~replacement:"this" "the cat and the dog") "this cat and the dog");
     test "replaceByRe" (fun () ->
-        assert_string
-          (Js.String.replaceByRe "david" ~regexp:[%re "/d/"] ~replacement:"x")
-          "xavid");
+        assert_string (Js.String.replaceByRe "david" ~regexp:[%re "/d/"] ~replacement:"x") "xavid");
     (* test "replaceByRe with references ($n)" (fun () ->
         assert_string
           (Js.String.replaceByRe "david" ~regexp:[%re "/d(.*?)d/g"]
@@ -261,8 +211,7 @@ let string_tests =
           "avi"); *)
     test "replaceByRe with global" (fun () ->
         assert_string
-          (Js.String.replaceByRe "vowels be gone" ~regexp:[%re "/[aeiou]/g"]
-             ~replacement:"x")
+          (Js.String.replaceByRe "vowels be gone" ~regexp:[%re "/[aeiou]/g"] ~replacement:"x")
           "vxwxls bx gxnx");
     test "unsafeReplaceBy0" (fun () ->
         (* let str = "beautiful vowels" in
@@ -309,35 +258,23 @@ let string_tests =
         assert_string (Js.String.slice ~start:7 "abcdefg") "");
     test "split" (fun () ->
         assert_string_array (Js.String.split ~sep:"" "") [||];
-        assert_string_array
-          (Js.String.split ~sep:"-" "2018-01-02")
-          [| "2018"; "01"; "02" |];
-        assert_string_array
-          (Js.String.split ~sep:"," "a,b,,c")
-          [| "a"; "b"; ""; "c" |];
+        assert_string_array (Js.String.split ~sep:"-" "2018-01-02") [| "2018"; "01"; "02" |];
+        assert_string_array (Js.String.split ~sep:"," "a,b,,c") [| "a"; "b"; ""; "c" |];
         assert_string_array
           (Js.String.split ~sep:"::" "good::bad as great::awful")
           [| "good"; "bad as great"; "awful" |];
-        assert_string_array
-          (Js.String.split ~sep:";" "has-no-delimiter")
-          [| "has-no-delimiter" |];
+        assert_string_array (Js.String.split ~sep:";" "has-no-delimiter") [| "has-no-delimiter" |];
         assert_string_array
           (Js.String.split ~sep:"with" "with-sep-equals-to-beginning")
           [| ""; "-sep-equals-to-beginning" |];
-        assert_string_array
-          (Js.String.split ~sep:"end" "with-sep-equals-to-end")
-          [| "with-sep-equals-to-"; "" |];
+        assert_string_array (Js.String.split ~sep:"end" "with-sep-equals-to-end") [| "with-sep-equals-to-"; "" |];
         assert_string_array
           (Js.String.split ~sep:"/" "/with-sep-on-beginning-and-end/")
           [| ""; "with-sep-on-beginning-and-end"; "" |];
         assert_string_array
           (Js.String.split ~sep:"" "with-empty-sep")
-          [|
-            "w"; "i"; "t"; "h"; "-"; "e"; "m"; "p"; "t"; "y"; "-"; "s"; "e"; "p";
-          |];
-        assert_string_array
-          (Js.String.split ~sep:"-" "with-limit-equals-to-zero" ~limit:0)
-          [||];
+          [| "w"; "i"; "t"; "h"; "-"; "e"; "m"; "p"; "t"; "y"; "-"; "s"; "e"; "p" |];
+        assert_string_array (Js.String.split ~sep:"-" "with-limit-equals-to-zero" ~limit:0) [||];
         assert_string_array
           (Js.String.split ~sep:"-" "with-limit-equals-to-length" ~limit:5)
           [| "with"; "limit"; "equals"; "to"; "length" |];
@@ -359,9 +296,7 @@ let string_tests =
              [| "ant"; "bee"; "cat"; "dog"; "elk" |] *)
         ());
     test "splitByRe" (fun () ->
-        let unsafe_splitByRe s r =
-          Js.String.splitByRe ~regexp:r s |> Stdlib.Array.map Stdlib.Option.get
-        in
+        let unsafe_splitByRe s r = Js.String.splitByRe ~regexp:r s |> Stdlib.Array.map Stdlib.Option.get in
         assert_string_array
           (unsafe_splitByRe "art; bed , cog ;dad" [%re "/\\s*[,;]\\s*/"])
           [| "art"; "bed"; "cog"; "dad" |]
@@ -389,13 +324,9 @@ let string_tests =
         assert_bool (Js.String.startsWith "ReScript" ~prefix:"Re") true;
         assert_bool (Js.String.startsWith "ReScript" ~prefix:"") true;
         assert_bool (Js.String.startsWith "JavaScript" ~prefix:"Re") false;
-        assert_bool
-          (Js.String.startsWith ~prefix:"cri" ~start:3 "ReScript")
-          true;
+        assert_bool (Js.String.startsWith ~prefix:"cri" ~start:3 "ReScript") true;
         assert_bool (Js.String.startsWith ~prefix:"" ~start:3 "ReScript") true;
-        assert_bool
-          (Js.String.startsWith ~prefix:"Re" ~start:2 "JavaScript")
-          false);
+        assert_bool (Js.String.startsWith ~prefix:"Re" ~start:2 "JavaScript") false);
     test "substr" (fun () ->
         assert_string (Js.String.substr ~start:3 "abcdefghij") "defghij";
         (* assert_string (Js.String.substr ~from:(-3) "abcdefghij") "hij"; *)
@@ -408,40 +339,26 @@ let string_tests =
     test "substring" (fun () ->
         assert_string (Js.String.substring ~start:3 ~end_:6 "playground") "ygr";
         assert_string (Js.String.substring ~start:6 ~end_:3 "playground") "ygr";
-        assert_string
-          (Js.String.substring ~start:4 ~end_:12 "playground")
-          "ground";
+        assert_string (Js.String.substring ~start:4 ~end_:12 "playground") "ground";
         assert_string (Js.String.substring ~start:4 "playground") "ground";
-        assert_string
-          (Js.String.substring ~start:(-3) "playground")
-          "playground";
+        assert_string (Js.String.substring ~start:(-3) "playground") "playground";
         assert_string (Js.String.substring ~start:12 "playground") "");
     test "toLowerCase" (fun () ->
         assert_string (Js.String.toLowerCase "") "";
         assert_string (Js.String.toLowerCase "ASCII: ABC") "ascii: abc";
         assert_string (Js.String.toLowerCase "Non ASCII: ΣΠ") "non ascii: σπ";
+        assert_string (Js.String.toLowerCase "Unicode Σ: \u{03a3}") "unicode σ: \u{03c3}";
         assert_string
-          (Js.String.toLowerCase "Unicode Σ: \u{03a3}")
-          "unicode σ: \u{03c3}";
-        assert_string
-          (Js.String.toLowerCase
-             "Unicode Mongolian separator + Σ + Mongolian separator: \u{180E} \
-              + \u{03a3} + \u{180E}")
-          "unicode mongolian separator + σ + mongolian separator: \u{180E} + \
-           \u{03c3} + \u{180E}");
+          (Js.String.toLowerCase "Unicode Mongolian separator + Σ + Mongolian separator: \u{180E} + \u{03a3} + \u{180E}")
+          "unicode mongolian separator + σ + mongolian separator: \u{180E} + \u{03c3} + \u{180E}");
     test "toUpperCase" (fun () ->
         assert_string (Js.String.toUpperCase "") "";
         assert_string (Js.String.toUpperCase "abc") "ABC";
         assert_string (Js.String.toUpperCase "Non ASCII: σπ") "NON ASCII: ΣΠ";
+        assert_string (Js.String.toUpperCase "Unicode: \u{03c3}") "UNICODE: \u{03a3}";
         assert_string
-          (Js.String.toUpperCase "Unicode: \u{03c3}")
-          "UNICODE: \u{03a3}";
-        assert_string
-          (Js.String.toUpperCase
-             "Unicode Mongolian separator + σ + Mongolian separator: \u{180E} \
-              + \u{03c3} + \u{180E}")
-          "UNICODE MONGOLIAN SEPARATOR + Σ + MONGOLIAN SEPARATOR: \u{180E} + \
-           \u{03a3} + \u{180E}");
+          (Js.String.toUpperCase "Unicode Mongolian separator + σ + Mongolian separator: \u{180E} + \u{03c3} + \u{180E}")
+          "UNICODE MONGOLIAN SEPARATOR + Σ + MONGOLIAN SEPARATOR: \u{180E} + \u{03a3} + \u{180E}");
     test "trim" (fun () ->
         assert_string (Js.String.trim "   abc def   ") "abc def";
         assert_string (Js.String.trim "\n\r\t abc def \n\n\t\r ") "abc def");
@@ -461,9 +378,7 @@ let global_tests =
   [
     test "decodeURI - ascii and spaces" (fun () ->
         assert_string (Js.Global.decodeURI "Hello%20World") "Hello World";
-        assert_string
-          (Js.Global.decodeURI "Hello%20%20%20World")
-          "Hello   World";
+        assert_string (Js.Global.decodeURI "Hello%20%20%20World") "Hello   World";
         assert_string (Js.Global.decodeURI "Hello%2DWorld") "Hello-World");
     test "decodeURI - reserved characters" (fun () ->
         assert_string (Js.Global.decodeURI ";,/?:@&=+$#") ";,/?:@&=+$#";
@@ -472,34 +387,22 @@ let global_tests =
         assert_string (Js.Global.decodeURI "%7B%7D") "{}";
         assert_string (Js.Global.decodeURI "%7C") "|");
     test "decodeURI - alphabets" (fun () ->
-        assert_string
-          (Js.Global.decodeURI "ABCDEFGHIJKLMNOPQRSTUVWXYZ")
-          "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-        assert_string
-          (Js.Global.decodeURI "abcdefghijklmnopqrstuvwxyz")
-          "abcdefghijklmnopqrstuvwxyz";
+        assert_string (Js.Global.decodeURI "ABCDEFGHIJKLMNOPQRSTUVWXYZ") "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        assert_string (Js.Global.decodeURI "abcdefghijklmnopqrstuvwxyz") "abcdefghijklmnopqrstuvwxyz";
         assert_string (Js.Global.decodeURI "0123456789") "0123456789");
     test "decodeURI - unicode characters" (fun () ->
-        assert_string
-          (Js.Global.decodeURI "%D0%AE%D0%BD%D0%B8%D0%BA%D0%BE%D0%B4")
-          "Юникод";
+        assert_string (Js.Global.decodeURI "%D0%AE%D0%BD%D0%B8%D0%BA%D0%BE%D0%B4") "Юникод";
         assert_string (Js.Global.decodeURI "%E2%82%AC%E2%98%85%E2%99%A0") "€★♠";
         assert_string (Js.Global.decodeURI "%E4%BD%A0%E5%A5%BD") "你好");
     test "decodeURI - mixed percent encodings and Unicode" (fun () ->
-        assert_string
-          (Js.Global.decodeURI "Hello%20%E4%BD%A0%E5%A5%BD%20World")
-          "Hello 你好 World";
-        assert_string
-          (Js.Global.decodeURI "%E2%82%AC%20%24%20%C2%A3%20%C2%A5")
-          "€ %24 £ ¥");
+        assert_string (Js.Global.decodeURI "Hello%20%E4%BD%A0%E5%A5%BD%20World") "Hello 你好 World";
+        assert_string (Js.Global.decodeURI "%E2%82%AC%20%24%20%C2%A3%20%C2%A5") "€ %24 £ ¥");
     test "decodeURI - complete URLs" (fun () ->
         assert_string
-          (Js.Global.decodeURI
-             "http://ru.wikipedia.org/wiki/%D0%AE%D0%BD%D0%B8%D0%BA%D0%BE%D0%B4")
+          (Js.Global.decodeURI "http://ru.wikipedia.org/wiki/%D0%AE%D0%BD%D0%B8%D0%BA%D0%BE%D0%B4")
           "http://ru.wikipedia.org/wiki/Юникод";
         assert_string
-          (Js.Global.decodeURI
-             "http://www.google.ru/support/jobs/bin/static.py?page=why-ru.html&sid=liveandwork")
+          (Js.Global.decodeURI "http://www.google.ru/support/jobs/bin/static.py?page=why-ru.html&sid=liveandwork")
           "http://www.google.ru/support/jobs/bin/static.py?page=why-ru.html&sid=liveandwork";
         assert_string
           (Js.Global.decodeURI "https://example.com/path%20name/file.txt")
@@ -512,60 +415,38 @@ let global_tests =
         assert_string (Js.Global.decodeURI "%0D") "\r";
         assert_string (Js.Global.decodeURI "%3C%3E%22%5C") "<>\"\\");
     test "decodeURI - beyond U+10FFFF" (fun () ->
-        assert_raises
-          (fun () -> Js.Global.decodeURI "%F4%90%80%80")
-          (Failure "decodeURI: malformed URI sequence"));
+        assert_raises (fun () -> Js.Global.decodeURI "%F4%90%80%80") (Failure "decodeURI: malformed URI sequence"));
     test "decodeURI - partial sequences" (fun () ->
         (* Incomplete or malformed sequences *)
-        assert_raises
-          (fun () -> Js.Global.decodeURI "%E4")
-          (Failure "decodeURI: malformed URI sequence");
-        assert_raises
-          (fun () -> Js.Global.decodeURI "%E4%A")
-          (Failure "decodeURI: malformed URI sequence"));
+        assert_raises (fun () -> Js.Global.decodeURI "%E4") (Failure "decodeURI: malformed URI sequence");
+        assert_raises (fun () -> Js.Global.decodeURI "%E4%A") (Failure "decodeURI: malformed URI sequence"));
     test "encodeURI - ascii and spaces" (fun () ->
         assert_string (Js.Global.encodeURI "Hello World") "Hello%20World";
-        assert_string
-          (Js.Global.encodeURI "Hello   World")
-          "Hello%20%20%20World";
+        assert_string (Js.Global.encodeURI "Hello   World") "Hello%20%20%20World";
         assert_string (Js.Global.encodeURI "Hello-World") "Hello-World");
     test "encodeURI - reserved characters" (fun () ->
         assert_string (Js.Global.encodeURI ";,/?:@&=+$#") ";,/?:@&=+$#";
         assert_string (Js.Global.encodeURI "-_.!~*'()") "-_.!~*'()");
     test "encodeURI - alphabets" (fun () ->
-        assert_string
-          (Js.Global.encodeURI "ABCDEFGHIJKLMNOPQRSTUVWXYZ")
-          "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-        assert_string
-          (Js.Global.encodeURI "abcdefghijklmnopqrstuvwxyz")
-          "abcdefghijklmnopqrstuvwxyz";
+        assert_string (Js.Global.encodeURI "ABCDEFGHIJKLMNOPQRSTUVWXYZ") "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        assert_string (Js.Global.encodeURI "abcdefghijklmnopqrstuvwxyz") "abcdefghijklmnopqrstuvwxyz";
         assert_string (Js.Global.encodeURI "0123456789") "0123456789");
     test "encodeURI - unicode characters" (fun () ->
-        assert_string
-          (Js.Global.encodeURI "Юникод")
-          "%D0%AE%D0%BD%D0%B8%D0%BA%D0%BE%D0%B4";
+        assert_string (Js.Global.encodeURI "Юникод") "%D0%AE%D0%BD%D0%B8%D0%BA%D0%BE%D0%B4";
         assert_string (Js.Global.encodeURI "€★♠") "%E2%82%AC%E2%98%85%E2%99%A0";
         assert_string (Js.Global.encodeURI "你好") "%E4%BD%A0%E5%A5%BD");
     test "encodeURI - complete URLs" (fun () ->
+        assert_string (Js.Global.encodeURI "http://unipro.ru/0123456789") "http://unipro.ru/0123456789";
         assert_string
-          (Js.Global.encodeURI "http://unipro.ru/0123456789")
-          "http://unipro.ru/0123456789";
-        assert_string
-          (Js.Global.encodeURI
-             "http://www.google.ru/support/jobs/bin/static.py?page=why-ru.html&sid=liveandwork")
+          (Js.Global.encodeURI "http://www.google.ru/support/jobs/bin/static.py?page=why-ru.html&sid=liveandwork")
           "http://www.google.ru/support/jobs/bin/static.py?page=why-ru.html&sid=liveandwork";
-        assert_string
-          (Js.Global.encodeURI "http://unipro.ru/\nabout")
-          "http://unipro.ru/%0Aabout";
-        assert_string
-          (Js.Global.encodeURI "http://unipro.ru/\rabout")
-          "http://unipro.ru/%0Dabout";
+        assert_string (Js.Global.encodeURI "http://unipro.ru/\nabout") "http://unipro.ru/%0Aabout";
+        assert_string (Js.Global.encodeURI "http://unipro.ru/\rabout") "http://unipro.ru/%0Dabout";
         assert_string
           (Js.Global.encodeURI "http://ru.wikipedia.org/wiki/Юникод")
           "http://ru.wikipedia.org/wiki/%D0%AE%D0%BD%D0%B8%D0%BA%D0%BE%D0%B4";
         assert_string
-          (Js.Global.encodeURI
-             "http://www.google.ru/support/jobs/bin/static.py?page=why-ru.html&sid=liveandwork")
+          (Js.Global.encodeURI "http://www.google.ru/support/jobs/bin/static.py?page=why-ru.html&sid=liveandwork")
           "http://www.google.ru/support/jobs/bin/static.py?page=why-ru.html&sid=liveandwork";
         assert_string
           (Js.Global.encodeURI "https://example.com/path name/file.txt")
@@ -574,28 +455,16 @@ let global_tests =
         assert_string (Js.Global.encodeURI "\n") "%0A";
         assert_string (Js.Global.encodeURI "\r") "%0D";
         assert_string (Js.Global.encodeURI "<>\"\\") "%3C%3E%22%5C";
-        assert_string
-          (Js.Global.encodeURI "http://unipro.ru/\nabout")
-          "http://unipro.ru/%0Aabout";
-        assert_string
-          (Js.Global.encodeURI "http://unipro.ru/\rabout")
-          "http://unipro.ru/%0Dabout");
+        assert_string (Js.Global.encodeURI "http://unipro.ru/\nabout") "http://unipro.ru/%0Aabout";
+        assert_string (Js.Global.encodeURI "http://unipro.ru/\rabout") "http://unipro.ru/%0Dabout");
     test "encodeURI - combining characters" (fun () ->
         (* Characters with combining diacritical marks *)
-        assert_string
-          (Js.Global.encodeURI "é") (* e + acute accent as single char *)
-          "%C3%A9";
-        assert_string
-          (Js.Global.encodeURI "e\u{0301}") (* e + combining acute accent *)
-          "e%CC%81";
-        assert_string
-          (Js.Global.encodeURI "ế") (* e + circumflex + acute *)
-          "%E1%BA%BF");
+        assert_string (Js.Global.encodeURI "é") (* e + acute accent as single char *) "%C3%A9";
+        assert_string (Js.Global.encodeURI "e\u{0301}") (* e + combining acute accent *) "e%CC%81";
+        assert_string (Js.Global.encodeURI "ế") (* e + circumflex + acute *) "%E1%BA%BF");
     test "encodeURI - Surrogate pairs" (fun () ->
         (* Surrogate pairs for emoji and complex Unicode *)
-        assert_string
-          (Js.Global.encodeURI "𝌆") (* Musical symbol *)
-          "%F0%9D%8C%86";
+        assert_string (Js.Global.encodeURI "𝌆") (* Musical symbol *) "%F0%9D%8C%86";
         assert_string (Js.Global.encodeURI "🌍") (* Earth globe *) "%F0%9F%8C%8D";
         assert_string
           (Js.Global.encodeURI "👨‍👩‍👧‍👦") (* Family emoji with ZWJ sequences *)
@@ -609,25 +478,15 @@ let global_tests =
           (Js.Global.decodeURIComponent "http://unipro.ru/%0Cabout")
           "http://unipro.ru/\fabout"; *)
     test "encodeURIComponent" (fun () ->
-        assert_string
-          (Js.Global.encodeURIComponent "http://unipro.ru")
-          "http%3A%2F%2Funipro.ru";
+        assert_string (Js.Global.encodeURIComponent "http://unipro.ru") "http%3A%2F%2Funipro.ru";
         assert_string
           (Js.Global.encodeURIComponent
              "http://www.google.ru/support/jobs/bin/static.py?page=why-ru.html&sid=liveandwork")
           "http%3A%2F%2Fwww.google.ru%2Fsupport%2Fjobs%2Fbin%2Fstatic.py%3Fpage%3Dwhy-ru.html%26sid%3Dliveandwork";
-        assert_string
-          (Js.Global.encodeURIComponent "ABCDEFGHIJKLMNOPQRSTUVWXYZ")
-          "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-        assert_string
-          (Js.Global.encodeURIComponent "abcdefghijklmnopqrstuvwxyz")
-          "abcdefghijklmnopqrstuvwxyz";
-        assert_string
-          (Js.Global.encodeURIComponent "http://unipro.ru/\nabout")
-          "http%3A%2F%2Funipro.ru%2F%0Aabout";
-        assert_string
-          (Js.Global.encodeURIComponent "http://unipro.ru/\rabout")
-          "http%3A%2F%2Funipro.ru%2F%0Dabout");
+        assert_string (Js.Global.encodeURIComponent "ABCDEFGHIJKLMNOPQRSTUVWXYZ") "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        assert_string (Js.Global.encodeURIComponent "abcdefghijklmnopqrstuvwxyz") "abcdefghijklmnopqrstuvwxyz";
+        assert_string (Js.Global.encodeURIComponent "http://unipro.ru/\nabout") "http%3A%2F%2Funipro.ru%2F%0Aabout";
+        assert_string (Js.Global.encodeURIComponent "http://unipro.ru/\rabout") "http%3A%2F%2Funipro.ru%2F%0Dabout");
     (* \v and \f are not supported in ocaml
        assert_string
          (Js.Global.encodeURIComponent "http://unipro.ru/\vabout")
@@ -639,61 +498,36 @@ let global_tests =
 
 let obj () = Js.Dict.fromList [ ("foo", 43); ("bar", 86) ]
 let long_obj () = Js.Dict.fromList [ ("david", 99); ("foo", 43); ("bar", 86) ]
-
-let obj_duplicated () =
-  Js.Dict.fromList [ ("foo", 43); ("bar", 86); ("bar", 1) ]
+let obj_duplicated () = Js.Dict.fromList [ ("foo", 43); ("bar", 86); ("bar", 1) ]
 
 let dict_tests =
   [
-    test "empty" (fun _ ->
-        assert_string_dict_entries (Js.Dict.entries (Js.Dict.empty ())) [||]);
-    test "get" (fun _ ->
-        assert_option_int (Js.Dict.get (obj ()) "foo") (Some 43));
-    test "get from missing property" (fun _ ->
-        assert_option_int (Js.Dict.get (obj ()) "baz") None);
-    test "unsafe_get" (fun _ ->
-        assert_int (Js.Dict.unsafeGet (obj ()) "foo") 43);
+    test "empty" (fun _ -> assert_string_dict_entries (Js.Dict.entries (Js.Dict.empty ())) [||]);
+    test "get" (fun _ -> assert_option_int (Js.Dict.get (obj ()) "foo") (Some 43));
+    test "get from missing property" (fun _ -> assert_option_int (Js.Dict.get (obj ()) "baz") None);
+    test "unsafe_get" (fun _ -> assert_int (Js.Dict.unsafeGet (obj ()) "foo") 43);
     test "set" (fun _ ->
         let o = Js.Dict.empty () in
         Js.Dict.set o "foo" 36;
         assert_option_int (Js.Dict.get o "foo") (Some 36));
-    test "keys" (fun _ ->
-        assert_string_array
-          (Js.Dict.keys (long_obj ()))
-          [| "bar"; "david"; "foo" |]);
-    test "keys duplicated" (fun _ ->
-        assert_string_array
-          (Js.Dict.keys (obj_duplicated ()))
-          [| "bar"; "bar"; "foo" |]);
-    test "entries" (fun _ ->
-        assert_int_dict_entries
-          (Js.Dict.entries (obj ()))
-          [| ("bar", 86); ("foo", 43) |]);
-    test "values" (fun _ ->
-        assert_array_int (Js.Dict.values (obj ())) [| 86; 43 |]);
-    test "values duplicated" (fun _ ->
-        assert_array_int (Js.Dict.values (obj_duplicated ())) [| 86; 1; 43 |]);
-    test "fromList - []" (fun _ ->
-        assert_int_dict_entries (Js.Dict.entries (Js.Dict.fromList [])) [||]);
+    test "keys" (fun _ -> assert_string_array (Js.Dict.keys (long_obj ())) [| "bar"; "david"; "foo" |]);
+    test "keys duplicated" (fun _ -> assert_string_array (Js.Dict.keys (obj_duplicated ())) [| "bar"; "bar"; "foo" |]);
+    test "entries" (fun _ -> assert_int_dict_entries (Js.Dict.entries (obj ())) [| ("bar", 86); ("foo", 43) |]);
+    test "values" (fun _ -> assert_array_int (Js.Dict.values (obj ())) [| 86; 43 |]);
+    test "values duplicated" (fun _ -> assert_array_int (Js.Dict.values (obj_duplicated ())) [| 86; 1; 43 |]);
+    test "fromList - []" (fun _ -> assert_int_dict_entries (Js.Dict.entries (Js.Dict.fromList [])) [||]);
     test "fromList" (fun _ ->
-        assert_int_dict_entries
-          (Js.Dict.entries (Js.Dict.fromList [ ("x", 23); ("y", 46) ]))
-          [| ("x", 23); ("y", 46) |]);
-    test "fromArray - []" (fun _ ->
-        assert_int_dict_entries (Js.Dict.entries (Js.Dict.fromArray [||])) [||]);
+        assert_int_dict_entries (Js.Dict.entries (Js.Dict.fromList [ ("x", 23); ("y", 46) ])) [| ("x", 23); ("y", 46) |]);
+    test "fromArray - []" (fun _ -> assert_int_dict_entries (Js.Dict.entries (Js.Dict.fromArray [||])) [||]);
     test "fromArray" (fun _ ->
         assert_int_dict_entries
           (Js.Dict.entries (Js.Dict.fromArray [| ("x", 23); ("y", 46) |]))
           [| ("x", 23); ("y", 46) |]);
     test "map" (fun _ ->
-        let prices =
-          Js.Dict.fromList [ ("pen", 1); ("book", 5); ("stapler", 7) ]
-        in
+        let prices = Js.Dict.fromList [ ("pen", 1); ("book", 5); ("stapler", 7) ] in
         let discount price = price * 10 in
         let salePrices = Js.Dict.map ~f:discount prices in
-        assert_int_dict_entries
-          (Js.Dict.entries salePrices)
-          [| ("book", 50); ("stapler", 70); ("pen", 10) |]);
+        assert_int_dict_entries (Js.Dict.entries salePrices) [| ("book", 50); ("stapler", 70); ("pen", 10) |]);
   ]
 
 let promise_to_lwt (p : 'a Js.Promise.t) : 'a Lwt.t = Obj.magic p
@@ -719,25 +553,13 @@ let promise_tests =
         let resolved = Js.Promise.all [| p0; p1 |] in
         resolved |> promise_to_lwt |> Lwt.map (assert_array_int [| 5; 10 |]));
     test_async "all_async" (fun _switch () ->
-        let p0 =
-          Js.Promise.make (fun ~resolve ~reject:_ ->
-              set_timeout (fun () -> resolve 5) 0.5)
-        in
-        let p1 =
-          Js.Promise.make (fun ~resolve ~reject:_ ->
-              set_timeout (fun () -> resolve 99) 0.3)
-        in
+        let p0 = Js.Promise.make (fun ~resolve ~reject:_ -> set_timeout (fun () -> resolve 5) 0.5) in
+        let p1 = Js.Promise.make (fun ~resolve ~reject:_ -> set_timeout (fun () -> resolve 99) 0.3) in
         let resolved = Js.Promise.all [| p0; p1 |] in
         resolved |> promise_to_lwt |> Lwt.map (assert_array_int [| 5; 99 |]));
     test_async "race_async" (fun _switch () ->
-        let p0 =
-          Js.Promise.make (fun ~resolve ~reject:_ ->
-              set_timeout (fun () -> resolve "second") 0.5)
-        in
-        let p1 =
-          Js.Promise.make (fun ~resolve ~reject:_ ->
-              set_timeout (fun () -> resolve "first") 0.3)
-        in
+        let p0 = Js.Promise.make (fun ~resolve ~reject:_ -> set_timeout (fun () -> resolve "second") 0.5) in
+        let p1 = Js.Promise.make (fun ~resolve ~reject:_ -> set_timeout (fun () -> resolve "first") 0.3) in
         let resolved = Js.Promise.race [| p0; p1 |] in
         resolved |> promise_to_lwt |> Lwt.map (assert_string "first"));
   ]
@@ -772,43 +594,33 @@ let float_tests =
         assert_string (Js.Float.toFixed ~digits:20 0.) "0.00000000000000000000";
         assert_string (Js.Float.toFixed ~digits:0 (-12.)) "-12";
         assert_string (Js.Float.toFixed ~digits:0 Stdlib.Float.nan) "NaN";
-        assert_string
-          (Js.Float.toFixed ~digits:0 1000000000000000128.)
-          "1000000000000000128";
+        assert_string (Js.Float.toFixed ~digits:0 1000000000000000128.) "1000000000000000128";
         assert_string (Js.Float.toFixed ~digits:3 12.3456) "12.346";
-        assert_string
-          (Js.Float.toFixed ~digits:50 0.3)
-          "0.29999999999999998889776975374843459576368331909180";
-        Alcotest.check_raises "Expected failure"
-          (Failure "toFixed() digits argument must be between 0 and 100")
+        assert_string (Js.Float.toFixed ~digits:50 0.3) "0.29999999999999998889776975374843459576368331909180";
+        Alcotest.check_raises "Expected failure" (Failure "toFixed() digits argument must be between 0 and 100")
           (fun () ->
             let _ = Js.Float.toFixed ~digits:(-1) 12. in
             ());
         assert_string (Js.Float.toFixed ~digits:2 12.345) "12.35";
         assert_string (Js.Float.toFixed ~digits:2 12.344) "12.34";
         assert_string (Js.Float.toFixed ~digits:1 0.05) "0.1";
-        assert_string
-          (Js.Float.toFixed ~digits:5 1e20)
-          "100000000000000000000.00000";
+        assert_string (Js.Float.toFixed ~digits:5 1e20) "100000000000000000000.00000";
         assert_string (Js.Float.toFixed ~digits:5 1e-20) "0.00000";
         assert_string (Js.Float.toFixed ~digits:10 1e-10) "0.0000000001";
-        assert_string
-          (Js.Float.toFixed ~digits:100 0.1)
+        assert_string (Js.Float.toFixed ~digits:100 0.1)
           "0.1000000000000000055511151231257827021181583404541015625000000000000000000000000000000000000000000000";
         assert_string (Js.Float.toFixed ~digits:0 0.99) "1";
         assert_string (Js.Float.toFixed ~digits:5 Float.infinity) "Infinity";
-        assert_string
-          (Js.Float.toFixed ~digits:5 Float.neg_infinity)
-          "-Infinity";
+        assert_string (Js.Float.toFixed ~digits:5 Float.neg_infinity) "-Infinity";
         assert_string (Js.Float.toFixed ~digits:2 (-12.3456)) "-12.35";
         assert_string (Js.Float.toFixed ~digits:4 0.) "0.0000";
         (* assert_string (Js.Float.toFixed ~digits:0 1.2e34) "1.2e+34"; JS/Melange outputs "1.2e+34" but ocaml outputs "11999999999999999346902771844513792" *)
         Alcotest.check_raises "Expected failure for negative digits"
-          (Failure "toFixed() digits argument must be between 0 and 100")
-          (fun () -> ignore (Js.Float.toFixed ~digits:(-1) 12.34));
+          (Failure "toFixed() digits argument must be between 0 and 100") (fun () ->
+            ignore (Js.Float.toFixed ~digits:(-1) 12.34));
         Alcotest.check_raises "Expected failure for exceeding digits limit"
-          (Failure "toFixed() digits argument must be between 0 and 100")
-          (fun () -> ignore (Js.Float.toFixed ~digits:101 12.34)));
+          (Failure "toFixed() digits argument must be between 0 and 100") (fun () ->
+            ignore (Js.Float.toFixed ~digits:101 12.34)));
   ]
 
 let () =

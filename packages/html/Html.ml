@@ -1,9 +1,8 @@
 let is_self_closing_tag = function
   (* Take the list from
      https://github.com/facebook/react/blob/97d75c9c8bcddb0daed1ed062101c7f5e9b825f4/packages/react-dom-bindings/src/shared/omittedCloseTags.js but found https://github.com/wooorm/html-void-elements to be more complete. *)
-  | "area" | "base" | "basefont" | "bgsound" | "br" | "col" | "command"
-  | "embed" | "frame" | "hr" | "image" | "img" | "input" | "keygen"
-  | "link" (* | "menuitem" *) | "meta" | "param" | "source" | "track" | "wbr" ->
+  | "area" | "base" | "basefont" | "bgsound" | "br" | "col" | "command" | "embed" | "frame" | "hr" | "image" | "img"
+  | "input" | "keygen" | "link" (* | "menuitem" *) | "meta" | "param" | "source" | "track" | "wbr" ->
       true
   | _ -> false
 
@@ -13,9 +12,7 @@ let escape_and_add out str =
   let getc = String.unsafe_get str in
   let len = String.length str in
   let max_index = len - 1 in
-  let flush out start index =
-    if start < len then Buffer.add_substring out str start (index - start)
-  in
+  let flush out start index = if start < len then Buffer.add_substring out str start (index - start) in
   let rec loop start index =
     if index > max_index then flush out start index
     else
@@ -70,11 +67,7 @@ type element =
   | Null
   | String of string
   | Raw of string (* text without encoding *)
-  | Node of {
-      tag : string;
-      attributes : attribute list;
-      children : element list;
-    }
+  | Node of { tag : string; attributes : attribute list; children : element list }
   | List of (string * element list)
 
 let string txt = String txt
@@ -131,9 +124,7 @@ let add_single_quote_escaped b s =
   let adds = Buffer.add_string in
   let len = String.length s in
   let max_idx = len - 1 in
-  let flush b start i =
-    if start < len then Buffer.add_substring b s start (i - start)
-  in
+  let flush b start i = if start < len then Buffer.add_substring b s start (i - start) in
   let rec loop start i =
     if i > max_idx then flush b start i
     else

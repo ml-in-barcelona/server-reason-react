@@ -5,9 +5,7 @@ type domRef = Ref.t
 
 let is_react_custom_attribute attr =
   match attr with
-  | "dangerouslySetInnerHTML" | "ref" | "key" | "suppressContentEditableWarning"
-  | "suppressHydrationWarning" ->
-      true
+  | "dangerouslySetInnerHTML" | "ref" | "key" | "suppressContentEditableWarning" | "suppressHydrationWarning" -> true
   | _ -> false
 
 (* TODO: Maybe this should not be under ReactDOM? *)
@@ -21,8 +19,7 @@ let attribute_to_html attr =
   (* true attributes render solely the attribute name *)
   | Bool (name, _, true) -> Html.present name
   | Style styles -> Html.attribute "style" styles
-  | String (name, _, _value) when is_react_custom_attribute name ->
-      Html.omitted ()
+  | String (name, _, _value) when is_react_custom_attribute name -> Html.omitted ()
   | String (name, _, value) -> Html.attribute name value
   (* Events don't get rendered on SSR *)
   | Event _ -> Html.omitted ()
@@ -54,8 +51,8 @@ let render_to_string ~mode element =
     | Async_component _component ->
         raise
           (Invalid_argument
-             "Asyncronous components can't be rendered to static markup, since \
-              rendering is syncronous. Please use `renderToStream` instead.")
+             "Asyncronous components can't be rendered to static markup, since rendering is syncronous. Please use \
+              `renderToStream` instead.")
     | Lower_case_element { key = _; tag; attributes; children } ->
         is_root.contents <- false;
         render_lower_case tag attributes children
@@ -63,26 +60,16 @@ let render_to_string ~mode element =
         let is_previous_text_node = previous_was_text_node.contents in
         previous_was_text_node.contents <- true;
         match mode with
-        | String when is_previous_text_node ->
-            Html.list [ Html.raw "<!-- -->"; Html.string text ]
+        | String when is_previous_text_node -> Html.list [ Html.raw "<!-- -->"; Html.string text ]
         | _ -> Html.string text)
     | InnerHtml text -> Html.raw text
     | Suspense { key = _; children; fallback } -> (
         match render_element children with
-        | output ->
-            Html.list [ Html.raw "<!--$-->"; output; Html.raw "<!--/$-->" ]
-        | exception _e ->
-            Html.list
-              [
-                Html.raw "<!--$!-->";
-                render_element fallback;
-                Html.raw "<!--/$-->";
-              ])
+        | output -> Html.list [ Html.raw "<!--$-->"; output; Html.raw "<!--/$-->" ]
+        | exception _e -> Html.list [ Html.raw "<!--$!-->"; render_element fallback; Html.raw "<!--/$-->" ])
   and render_lower_case tag attributes children =
     let dangerouslySetInnerHTML =
-      List.find_opt
-        (function React.JSX.DangerouslyInnerHtml _ -> true | _ -> false)
-        attributes
+      List.find_opt (function React.JSX.DangerouslyInnerHtml _ -> true | _ -> false) attributes
     in
     let children =
       (* If there's a dangerouslySetInnerHTML prop, we render it as a children *)
@@ -94,18 +81,12 @@ let render_to_string ~mode element =
           (* TODO: Remove InnerHtml and use Html.raw directly *)
           [ InnerHtml innerHtml ]
       | Some _, _children ->
-          raise
-            (Invalid_argument
-               "can't have both `children` and `dangerouslySetInnerHTML` prop \
-                at the same time")
+          raise (Invalid_argument "can't have both `children` and `dangerouslySetInnerHTML` prop at the same time")
     in
     match Html.is_self_closing_tag tag with
     (* By the ppx, we know that a self closing tag can't have children *)
     | true -> Html.node tag (attributes_to_html attributes) []
-    | false ->
-        Html.node tag
-          (attributes_to_html attributes)
-          (List.map render_element children)
+    | false -> Html.node tag (attributes_to_html attributes) (List.map render_element children)
   in
   render_element element
 
@@ -156,11 +137,7 @@ let replacement b s = Printf.sprintf "$RC('B:%i','S:%i')" b s
 let inline_complete_boundary_script boundary_id suspense_id =
   (* TODO: it's always correct to asume that the first suspense_id is 0? Maybe we can have 2 suspense parallely and it's not the case anymore? *)
   if boundary_id = 0 && suspense_id = 0 then
-    Html.node "script" []
-      [
-        Html.raw complete_boundary_script;
-        Html.raw (replacement boundary_id suspense_id);
-      ]
+    Html.node "script" [] [ Html.raw complete_boundary_script; Html.raw (replacement boundary_id suspense_id) ]
   else Html.node "script" [] [ Html.raw (replacement boundary_id suspense_id) ]
 
 (* let render_inline_rc_replacement replacements =
@@ -173,17 +150,13 @@ let inline_complete_boundary_script boundary_id suspense_id =
    Html.node "script" [] [ rc_payload ] *)
 
 let render_suspense_resolved_element ~id element =
-  Html.node "div"
-    [ Html.present "hidden"; Html.attribute "id" (Printf.sprintf "S:%i" id) ]
-    [ element ]
+  Html.node "div" [ Html.present "hidden"; Html.attribute "id" (Printf.sprintf "S:%i" id) ] [ element ]
 
 let render_suspense_fallback ~boundary_id element =
   Html.list
     [
       Html.raw "<!--$?-->";
-      Html.node "template"
-        [ Html.attribute "id" (Printf.sprintf "B:%i" boundary_id) ]
-        [];
+      Html.node "template" [ Html.attribute "id" (Printf.sprintf "B:%i" boundary_id) ] [];
       element;
       Html.raw "<!--/$-->";
     ]
@@ -210,9 +183,7 @@ let render_to_stream ~context_state element =
     | Consumer children -> render_element children
     | Fragment children -> render_element children
     | List arr ->
-        let%lwt children_elements =
-          arr |> Array.to_list |> Lwt_list.map_p render_element
-        in
+        let%lwt children_elements = arr |> Array.to_list |> Lwt_list.map_p render_element in
         Lwt.return (Html.list children_elements)
     | Upper_case_component component ->
         let rec wait_for_suspense_to_resolve () =
@@ -224,8 +195,7 @@ let render_to_stream ~context_state element =
           | output -> render_element output
         in
         wait_for_suspense_to_resolve ()
-    | Lower_case_element { tag; attributes; _ }
-      when Html.is_self_closing_tag tag ->
+    | Lower_case_element { tag; attributes; _ } when Html.is_self_closing_tag tag ->
         Lwt.return (Html.node tag (attributes_to_html attributes) [])
     | Lower_case_element { key = _; tag; attributes; children } ->
         let%lwt inner = Lwt_list.map_p render_element children in
@@ -262,12 +232,8 @@ let render_to_stream ~context_state element =
 
                   (* Only push updates if the stream is still open *)
                   if not context_state.closed then (
-                    context_state.push
-                      (render_suspense_resolved_element ~id:current_suspense_id
-                         resolved);
-                    context_state.push
-                      (inline_complete_boundary_script current_boundary_id
-                         current_suspense_id))
+                    context_state.push (render_suspense_resolved_element ~id:current_suspense_id resolved);
+                    context_state.push (inline_complete_boundary_script current_boundary_id current_suspense_id))
                   else ();
 
                   if context_state.waiting = 0 then (
@@ -275,11 +241,8 @@ let render_to_stream ~context_state element =
                     context_state.close ());
                   Lwt.return ());
 
-              Lwt.return
-                (render_suspense_fallback ~boundary_id:current_boundary_id
-                   fallback_element)
-        with exn ->
-          Lwt.return (render_suspense_fallback_error ~exn fallback_element))
+              Lwt.return (render_suspense_fallback ~boundary_id:current_boundary_id fallback_element)
+        with exn -> Lwt.return (render_suspense_fallback_error ~exn fallback_element))
   in
 
   render_element element
@@ -287,23 +250,10 @@ let render_to_stream ~context_state element =
 let renderToStream ?pipe element =
   let stream, push_to_stream, close = Push_stream.make () in
   let push html = push_to_stream (Html.to_string html) in
-  let context_state =
-    {
-      push;
-      close;
-      closed = false;
-      waiting = 0;
-      boundary_id = 0;
-      suspense_id = 0;
-    }
-  in
+  let context_state = { push; close; closed = false; waiting = 0; boundary_id = 0; suspense_id = 0 } in
   let%lwt html = render_to_stream ~context_state element in
   push html;
-  let%lwt () =
-    match pipe with
-    | None -> Lwt.return ()
-    | Some pipe -> Lwt_stream.iter_s pipe stream
-  in
+  let%lwt () = match pipe with None -> Lwt.return () | Some pipe -> Lwt_stream.iter_s pipe stream in
   if context_state.waiting = 0 then close ();
   let abort () =
     (* TODO: Needs to flush the remaining loading fallbacks as HTML, and React.js will try to render the rest on the client. *)
@@ -311,30 +261,22 @@ let renderToStream ?pipe element =
   in
   Lwt.return (stream, abort)
 
-let querySelector _str =
-  Runtime.fail_impossible_action_in_ssr "ReactDOM.querySelector"
-
-let render _element _node =
-  Runtime.fail_impossible_action_in_ssr "ReactDOM.render"
-
-let hydrate _element _node =
-  Runtime.fail_impossible_action_in_ssr "ReactDOM.hydrate"
+let querySelector _str = Runtime.fail_impossible_action_in_ssr "ReactDOM.querySelector"
+let render _element _node = Runtime.fail_impossible_action_in_ssr "ReactDOM.render"
+let hydrate _element _node = Runtime.fail_impossible_action_in_ssr "ReactDOM.hydrate"
 
 (* TODO: Should this fail_impossible_action_in_ssr? *)
 let createPortal _reactElement _domElement = _reactElement
 
-let createDOMElementVariadic (tag : string) ~props
-    (childrens : React.element array) =
+let createDOMElementVariadic (tag : string) ~props (childrens : React.element array) =
   React.createElement tag props (Array.to_list childrens)
 
-let add kind value map =
-  match value with Some i -> map |> List.cons (kind i) | None -> map
+let add kind value map = match value with Some i -> map |> List.cons (kind i) | None -> map
 
 type dangerouslySetInnerHTML = < __html : string >
 
 (* `Booleanish_string` are JSX attributes represented as boolean values but rendered as strings on HTML https://github.com/facebook/react/blob/a17467e7e2cd8947c595d1834889b5d184459f12/packages/react-dom-bindings/src/server/ReactFizzConfigDOM.js#L1165-L1176 *)
-let booleanish_string name jsxName v =
-  React.JSX.string name jsxName (string_of_bool v)
+let booleanish_string name jsxName v = React.JSX.string name jsxName (string_of_bool v)
 
 [@@@ocamlformat "disable"]
 (* domProps isn't used by the generated code from the ppx, and it's purpose is to

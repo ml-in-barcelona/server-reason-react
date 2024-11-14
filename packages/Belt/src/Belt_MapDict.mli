@@ -4,41 +4,17 @@ type ('key, 'id) cmp = ('key, 'id) Belt_Id.cmp
 val empty : ('k, 'v, 'id) t
 val isEmpty : ('k, 'v, 'id) t -> bool
 val has : ('k, 'a, 'id) t -> 'k -> cmp:('k, 'id) cmp -> bool
+val cmpU : ('k, 'v, 'id) t -> ('k, 'v, 'id) t -> kcmp:('k, 'id) cmp -> vcmp:(('v -> 'v -> int)[@bs]) -> int
+val cmp : ('k, 'v, 'id) t -> ('k, 'v, 'id) t -> kcmp:('k, 'id) cmp -> vcmp:('v -> 'v -> int) -> int
+val eqU : ('k, 'a, 'id) t -> ('k, 'a, 'id) t -> kcmp:('k, 'id) cmp -> veq:(('a -> 'a -> bool)[@bs]) -> bool
 
-val cmpU :
-  ('k, 'v, 'id) t ->
-  ('k, 'v, 'id) t ->
-  kcmp:('k, 'id) cmp ->
-  vcmp:(('v -> 'v -> int)[@bs]) ->
-  int
-
-val cmp :
-  ('k, 'v, 'id) t ->
-  ('k, 'v, 'id) t ->
-  kcmp:('k, 'id) cmp ->
-  vcmp:('v -> 'v -> int) ->
-  int
-
-val eqU :
-  ('k, 'a, 'id) t ->
-  ('k, 'a, 'id) t ->
-  kcmp:('k, 'id) cmp ->
-  veq:(('a -> 'a -> bool)[@bs]) ->
-  bool
-
-val eq :
-  ('k, 'a, 'id) t ->
-  ('k, 'a, 'id) t ->
-  kcmp:('k, 'id) cmp ->
-  veq:('a -> 'a -> bool) ->
-  bool
+val eq : ('k, 'a, 'id) t -> ('k, 'a, 'id) t -> kcmp:('k, 'id) cmp -> veq:('a -> 'a -> bool) -> bool
 (** [eq m1 m2 cmp] tests whether the maps [m1] and [m2] are
     equal, that is, contain equal keys and associate them with
     equal data.  [cmp] is the equality predicate used to compare
     the data associated with the keys. *)
 
-val findFirstByU :
-  ('k, 'v, 'id) t -> (('k -> 'v -> bool)[@bs]) -> ('k * 'v) option
+val findFirstByU : ('k, 'v, 'id) t -> (('k -> 'v -> bool)[@bs]) -> ('k * 'v) option
 
 val findFirstBy : ('k, 'v, 'id) t -> ('k -> 'v -> bool) -> ('k * 'v) option
 (** [findFirstBy m p] uses funcion [f] to find the first key value pair
@@ -108,27 +84,15 @@ val remove : ('a, 'b, 'id) t -> 'a -> cmp:('a, 'id) cmp -> ('a, 'b, 'id) t
 (** [remove m x] returns a map containing the same bindings as
    [m], except for [x] which is unbound in the returned map. *)
 
-val removeMany :
-  ('a, 'b, 'id) t -> 'a array -> cmp:('a, 'id) cmp -> ('a, 'b, 'id) t
+val removeMany : ('a, 'b, 'id) t -> 'a array -> cmp:('a, 'id) cmp -> ('a, 'b, 'id) t
 
 val set : ('a, 'b, 'id) t -> 'a -> 'b -> cmp:('a, 'id) cmp -> ('a, 'b, 'id) t
 (** [set m x y] returns a map containing the same bindings as
    [m], plus a binding of [x] to [y]. If [x] was already bound
    in [m], its previous binding disappears. *)
 
-val updateU :
-  ('a, 'b, 'id) t ->
-  'a ->
-  (('b option -> 'b option)[@bs]) ->
-  cmp:('a, 'id) cmp ->
-  ('a, 'b, 'id) t
-
-val update :
-  ('a, 'b, 'id) t ->
-  'a ->
-  ('b option -> 'b option) ->
-  cmp:('a, 'id) cmp ->
-  ('a, 'b, 'id) t
+val updateU : ('a, 'b, 'id) t -> 'a -> (('b option -> 'b option)[@bs]) -> cmp:('a, 'id) cmp -> ('a, 'b, 'id) t
+val update : ('a, 'b, 'id) t -> 'a -> ('b option -> 'b option) -> cmp:('a, 'id) cmp -> ('a, 'b, 'id) t
 
 val mergeU :
   ('a, 'b, 'id) t ->
@@ -148,33 +112,23 @@ val merge :
     value, is determined with the function [f].
  *)
 
-val mergeMany :
-  ('a, 'b, 'id) t -> ('a * 'b) array -> cmp:('a, 'id) cmp -> ('a, 'b, 'id) t
-
+val mergeMany : ('a, 'b, 'id) t -> ('a * 'b) array -> cmp:('a, 'id) cmp -> ('a, 'b, 'id) t
 val keepU : ('k, 'a, 'id) t -> (('k -> 'a -> bool)[@bs]) -> ('k, 'a, 'id) t
 
 val keep : ('k, 'a, 'id) t -> ('k -> 'a -> bool) -> ('k, 'a, 'id) t
 (** [keep m p] returns the map with all the bindings in [m]
     that satisfy predicate [p]. *)
 
-val partitionU :
-  ('k, 'a, 'id) t ->
-  (('k -> 'a -> bool)[@bs]) ->
-  ('k, 'a, 'id) t * ('k, 'a, 'id) t
+val partitionU : ('k, 'a, 'id) t -> (('k -> 'a -> bool)[@bs]) -> ('k, 'a, 'id) t * ('k, 'a, 'id) t
 
-val partition :
-  ('k, 'a, 'id) t -> ('k -> 'a -> bool) -> ('k, 'a, 'id) t * ('k, 'a, 'id) t
+val partition : ('k, 'a, 'id) t -> ('k -> 'a -> bool) -> ('k, 'a, 'id) t * ('k, 'a, 'id) t
 (** [partition m p] returns a pair of maps [(m1, m2)], where
     [m1] contains all the bindings of [s] that satisfy the
     predicate [p], and [m2] is the map with all the bindings of
     [s] that do not satisfy [p].
 *)
 
-val split :
-  ('a, 'b, 'id) t ->
-  'a ->
-  cmp:('a, 'id) cmp ->
-  (('a, 'b, 'id) t * ('a, 'b, 'id) t) * 'b option
+val split : ('a, 'b, 'id) t -> 'a -> cmp:('a, 'id) cmp -> (('a, 'b, 'id) t * ('a, 'b, 'id) t) * 'b option
 (** [split x m] returns a triple [(l, data, r)], where
       [l] is the map with all the bindings of [m] whose key
     is strictly less than [x];

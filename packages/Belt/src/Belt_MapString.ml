@@ -108,8 +108,7 @@ let rec removeAux n (x : key) =
         let rr = removeAux right x in
         N.bal l v (N.value n) rr
 
-let remove n x =
-  match N.toOpt n with None -> N.empty | Some n -> removeAux n x
+let remove n x = match N.toOpt n with None -> N.empty | Some n -> removeAux n x
 
 let rec removeMany0 t xs i len =
   if i < len then

@@ -1,15 +1,7 @@
-type 'value node = {
-  mutable value : 'value;
-  mutable height : int;
-  mutable left : 'value t;
-  mutable right : 'value t;
-}
-
+type 'value node = { mutable value : 'value; mutable height : int; mutable left : 'value t; mutable right : 'value t }
 and 'value t = 'value node option
 
-val node :
-  value:'value -> height:int -> left:'value t -> right:'value t -> 'value node
-
+val node : value:'value -> height:int -> left:'value t -> right:'value t -> 'value node
 val valueSet : 'value node -> 'value -> unit
 val value : 'value node -> 'value
 val heightSet : 'value node -> int -> unit
@@ -56,13 +48,8 @@ val addMinElement : 'a node option -> 'a -> 'a node option
 val addMaxElement : 'a node option -> 'a -> 'a node option
 val joinShared : 'a node option -> 'a -> 'a node option -> 'a node option
 val concatShared : 'a node option -> 'a node option -> 'a node option
-
-val partitionSharedU :
-  'a node option -> ('a -> bool) -> 'a node option * 'a node option
-
-val partitionShared :
-  'a node option -> ('a -> bool) -> 'a node option * 'a node option
-
+val partitionSharedU : 'a node option -> ('a -> bool) -> 'a node option * 'a node option
+val partitionShared : 'a node option -> ('a -> bool) -> 'a node option * 'a node option
 val lengthNode : 'a node -> int
 val size : 'a node option -> int
 val toListAux : 'a node option -> 'a list -> 'a list
@@ -87,13 +74,8 @@ val keepSharedU : 'a node option -> ('a -> bool) -> 'a t
 val keepShared : 'a node option -> ('a -> bool) -> 'a t
 val keepCopyU : 'a node option -> ('a -> bool) -> 'a t
 val keepCopy : 'a node option -> ('a -> bool) -> 'a t
-
-val partitionCopyU :
-  'a node option -> ('a -> bool) -> 'a node option * 'a node option
-
-val partitionCopy :
-  'a node option -> ('a -> bool) -> 'a node option * 'a node option
-
+val partitionCopyU : 'a node option -> ('a -> bool) -> 'a node option * 'a node option
+val partitionCopy : 'a node option -> ('a -> bool) -> 'a node option * 'a node option
 val has : 'a t -> 'a -> cmp:('a -> 'a -> int) -> bool
 val compareAux : 'a node list -> 'a node list -> cmp:('a -> 'a -> int) -> int
 val cmp : 'a node option -> 'a node option -> cmp:('a -> 'a -> int) -> int

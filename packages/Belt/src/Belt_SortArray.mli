@@ -76,29 +76,9 @@ val binarySearchBy : 'a array -> 'a -> ('a -> 'a -> int) -> int
 
 (**/**)
 
-val unionU :
-  'a array ->
-  int ->
-  int ->
-  'a array ->
-  int ->
-  int ->
-  'a array ->
-  int ->
-  (('a -> 'a -> int)[@bs]) ->
-  int
+val unionU : 'a array -> int -> int -> 'a array -> int -> int -> 'a array -> int -> (('a -> 'a -> int)[@bs]) -> int
 
-val union :
-  'a array ->
-  int ->
-  int ->
-  'a array ->
-  int ->
-  int ->
-  'a array ->
-  int ->
-  ('a -> 'a -> int) ->
-  int
+val union : 'a array -> int -> int -> 'a array -> int -> int -> 'a array -> int -> ('a -> 'a -> int) -> int
 (**
   [union src src1ofs src1len src2 src2ofs src2len dst dstofs cmp]
   assume [src] and [src2] is strictly sorted.
@@ -106,55 +86,14 @@ val union :
   also assume that [dst] is large enough to store all elements
 *)
 
-val intersectU :
-  'a array ->
-  int ->
-  int ->
-  'a array ->
-  int ->
-  int ->
-  'a array ->
-  int ->
-  (('a -> 'a -> int)[@bs]) ->
-  int
+val intersectU : 'a array -> int -> int -> 'a array -> int -> int -> 'a array -> int -> (('a -> 'a -> int)[@bs]) -> int
 
-val intersect :
-  'a array ->
-  int ->
-  int ->
-  'a array ->
-  int ->
-  int ->
-  'a array ->
-  int ->
-  ('a -> 'a -> int) ->
-  int
+val intersect : 'a array -> int -> int -> 'a array -> int -> int -> 'a array -> int -> ('a -> 'a -> int) -> int
 (** [union src src1ofs src1len src2 src2ofs src2len dst dstofs cmp]
   return the [offset] in the output array
 *)
 
-val diffU :
-  'a array ->
-  int ->
-  int ->
-  'a array ->
-  int ->
-  int ->
-  'a array ->
-  int ->
-  (('a -> 'a -> int)[@bs]) ->
-  int
-
-val diff :
-  'a array ->
-  int ->
-  int ->
-  'a array ->
-  int ->
-  int ->
-  'a array ->
-  int ->
-  ('a -> 'a -> int) ->
-  int
+val diffU : 'a array -> int -> int -> 'a array -> int -> int -> 'a array -> int -> (('a -> 'a -> int)[@bs]) -> int
+val diff : 'a array -> int -> int -> 'a array -> int -> int -> 'a array -> int -> ('a -> 'a -> int) -> int
 
 (**/**)

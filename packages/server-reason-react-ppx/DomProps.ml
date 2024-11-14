@@ -1618,14 +1618,8 @@ let svgElements =
 [@@@ocamlformat "enable"]
 
 let elements = svgElements & htmlElements
-
-let getJSXName = function
-  | Attribute { jsxName; _ } -> jsxName
-  | Event { jsxName; _ } -> jsxName
-
-let getName = function
-  | Attribute { name; _ } -> name
-  | Event { jsxName; _ } -> jsxName
+let getJSXName = function Attribute { jsxName; _ } -> jsxName | Event { jsxName; _ } -> jsxName
+let getName = function Attribute { name; _ } -> name | Event { jsxName; _ } -> jsxName
 
 let domPropNames =
   (commonSvgAttributes & commonHtmlAttributes)
@@ -1636,8 +1630,7 @@ let domPropNames =
 type errors = [ `ElementNotFound | `AttributeNotFound ]
 
 let getAttributes tag =
-  List.find_opt (fun element -> element.tag = tag) elements
-  |> Option.to_result ~none:`ElementNotFound
+  List.find_opt (fun element -> element.tag = tag) elements |> Option.to_result ~none:`ElementNotFound
 
 let isDataAttribute = String.starts_with ~prefix:"data"
 
@@ -1653,8 +1646,7 @@ let camelcaseToKebabcase str =
     | [] -> acc
     | [ x ] -> x :: acc
     | x :: y :: xs ->
-        if Char.uppercase_ascii y == y then
-          loop ('-' :: x :: acc) (Char.lowercase_ascii y :: xs)
+        if Char.uppercase_ascii y == y then loop ('-' :: x :: acc) (Char.lowercase_ascii y :: xs)
         else loop (x :: acc) (y :: xs)
   in
   str |> chars_of_string |> loop [] |> List.rev |> string_of_chars
@@ -1666,9 +1658,7 @@ let findByJsxName ~tag jsxName =
     Ok (Attribute { name; jsxName; type_ = String })
   else
     match getAttributes tag with
-    | Ok { attributes; _ } ->
-        List.find_opt byName attributes
-        |> Option.to_result ~none:`AttributeNotFound
+    | Ok { attributes; _ } -> List.find_opt byName attributes |> Option.to_result ~none:`AttributeNotFound
     | Error err -> Error err
 
 let isReactValidProp name =
@@ -1692,12 +1682,7 @@ module Levenshtein = struct
     for j = 1 to second do
       for i = 1 to first do
         if s.[i - 1] = t.[j - 1] then matrix.(i).(j) <- matrix.(i - 1).(j - 1)
-        else
-          matrix.(i).(j) <-
-            minimum
-              (matrix.(i - 1).(j) + 1)
-              (matrix.(i).(j - 1) + 1)
-              (matrix.(i - 1).(j - 1) + 1)
+        else matrix.(i).(j) <- minimum (matrix.(i - 1).(j) + 1) (matrix.(i).(j - 1) + 1) (matrix.(i - 1).(j - 1) + 1)
       done
     done;
     matrix.(first).(second)
@@ -1708,12 +1693,7 @@ type closest = { name : string; distance : int }
 let find_closest_name invalid =
   let accumulate_distance name bestMatch =
     let distance = Levenshtein.distance invalid name in
-    match distance < bestMatch.distance with
-    | true -> { name; distance }
-    | false -> bestMatch
+    match distance < bestMatch.distance with true -> { name; distance } | false -> bestMatch
   in
-  let { name; distance } =
-    List.fold_right accumulate_distance domPropNames
-      { name = ""; distance = max_int }
-  in
+  let { name; distance } = List.fold_right accumulate_distance domPropNames { name = ""; distance = max_int } in
   if distance > 2 then None else Some name

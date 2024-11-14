@@ -5,9 +5,7 @@ include (
     type 'a bucket = { mutable key : 'a; mutable next : 'a bucket C.opt }
     and ('hash, 'eq, 'a) t = ('hash, 'eq, 'a bucket) C.container
 
-    let bucket : key:'a -> next:'a bucket C.opt -> 'a bucket =
-     fun ~key ~next -> { key; next }
-
+    let bucket : key:'a -> next:'a bucket C.opt -> 'a bucket = fun ~key ~next -> { key; next }
     let keySet : 'a bucket -> 'a -> unit = fun o v -> o.key <- v
     let key : 'a bucket -> 'a = fun o -> o.key
     let nextSet : 'a bucket -> 'a bucket C.opt -> unit = fun o v -> o.next <- v
@@ -27,15 +25,11 @@ include (
 module A = Belt_Array
 
 let rec copy (x : _ t) : _ t =
-  C.container ~hash:(C.hash x) ~eq:(C.eq x) ~size:(C.size x)
-    ~buckets:(copyBuckets (C.buckets x))
+  C.container ~hash:(C.hash x) ~eq:(C.eq x) ~size:(C.size x) ~buckets:(copyBuckets (C.buckets x))
 
 and copyBuckets (buckets : _ bucket C.opt array) =
   let len = A.length buckets in
-  let newBuckets =
-    if len > 0 then A.makeUninitializedUnsafe len (A.getUnsafe buckets 0)
-    else [||]
-  in
+  let newBuckets = if len > 0 then A.makeUninitializedUnsafe len (A.getUnsafe buckets 0) else [||] in
   for i = 0 to len - 1 do
     A.setUnsafe newBuckets i (copyBucket (A.getUnsafe buckets i))
   done;
@@ -58,9 +52,7 @@ and copyAuxCont c prec =
       copyAuxCont (next nc) ncopy
 
 let rec bucketLength accu buckets =
-  match C.toOpt buckets with
-  | None -> accu
-  | Some cell -> bucketLength (accu + 1) (next cell)
+  match C.toOpt buckets with None -> accu | Some cell -> bucketLength (accu + 1) (next cell)
 
 let rec doBucketIter ~f buckets =
   match C.toOpt buckets with
@@ -79,9 +71,7 @@ let forEach h f = forEachU h (fun a -> f a)
 
 let rec fillArray i arr cell =
   A.setUnsafe arr i (key cell);
-  match C.toOpt (next cell) with
-  | None -> i + 1
-  | Some v -> fillArray (i + 1) arr v
+  match C.toOpt (next cell) with None -> i + 1 | Some v -> fillArray (i + 1) arr v
 
 let toArray h =
   let d = C.buckets h in
@@ -105,9 +95,7 @@ let toArray h =
   match !arr with None -> [||] | Some arr -> arr
 
 let rec doBucketFold ~f b accu =
-  match C.toOpt b with
-  | None -> accu
-  | Some cell -> doBucketFold ~f (next cell) (f accu (key cell))
+  match C.toOpt b with None -> accu | Some cell -> doBucketFold ~f (next cell) (f accu (key cell))
 
 let reduceU h init f =
   let d = C.buckets h in
@@ -134,7 +122,6 @@ let getBucketHistogram h =
 
 let logStats h =
   let histogram = getBucketHistogram h in
-  Printf.printf "{\n\tbindings: %d,\n\tbuckets: %d\n\thistogram: %s\n}"
-    (C.size h)
+  Printf.printf "{\n\tbindings: %d,\n\tbuckets: %d\n\thistogram: %s\n}" (C.size h)
     (A.length (C.buckets h))
     (A.reduceU histogram "" (fun acc x -> acc ^ string_of_int x))

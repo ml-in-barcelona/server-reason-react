@@ -1,5 +1,4 @@
-let assert_string left right =
-  Alcotest.check Alcotest.string "should be equal" right left
+let assert_string left right = Alcotest.check Alcotest.string "should be equal" right left
 
 let react_root_one_element () =
   let div = React.createElement "div" [] [] in
@@ -10,27 +9,16 @@ let react_root_two_elements () =
   assert_string (ReactDOM.renderToString div) "<div><span></span></div>"
 
 let text_single_node () =
-  let div =
-    React.createElement "div" []
-      [ React.createElement "span" [] [ React.string "Hello" ] ]
-  in
+  let div = React.createElement "div" [] [ React.createElement "span" [] [ React.string "Hello" ] ] in
   assert_string (ReactDOM.renderToString div) "<div><span>Hello</span></div>"
 
 let consecutives_text_nodes () =
   let div =
-    React.createElement "div" []
-      [
-        React.createElement "span" []
-          [ React.string "Hello"; React.string "Hello" ];
-      ]
+    React.createElement "div" [] [ React.createElement "span" [] [ React.string "Hello"; React.string "Hello" ] ]
   in
-  assert_string
-    (ReactDOM.renderToString div)
-    "<div><span>Hello<!-- -->Hello</span></div>"
+  assert_string (ReactDOM.renderToString div) "<div><span>Hello<!-- -->Hello</span></div>"
 
-let test title fn =
-  ( Printf.sprintf "ReactDOM.renderToString / %s" title,
-    [ Alcotest_lwt.test_case_sync "" `Quick fn ] )
+let test title fn = (Printf.sprintf "ReactDOM.renderToString / %s" title, [ Alcotest_lwt.test_case_sync "" `Quick fn ])
 
 let tests =
   [

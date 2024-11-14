@@ -14,8 +14,7 @@ open Bechamel
 let static_array = [| 33 |]
 
 let test =
-  Test.make_indexed ~name:"Belt.Array.push" ~fmt:"%s %d"
-    ~args:[ 0; 100; 500; 1000; 10000 ] (fun words ->
+  Test.make_indexed ~name:"Belt.Array.push" ~fmt:"%s %d" ~args:[ 0; 100; 500; 1000; 10000 ] (fun words ->
       Staged.stage @@ fun () -> Belt.Array.push static_array words)
 
 (* From our test, we can start to benchmark it!
@@ -47,19 +46,11 @@ let test =
    mostly what you want: a synthesis of /samples/. *)
 
 let benchmark () =
-  let ols =
-    Analyze.ols ~bootstrap:0 ~r_square:true ~predictors:Measure.[| run |]
-  in
-  let instances =
-    Toolkit.Instance.[ minor_allocated; major_allocated; monotonic_clock ]
-  in
-  let cfg =
-    Benchmark.cfg ~limit:2000 ~quota:(Time.second 0.5) ~kde:(Some 1000) ()
-  in
+  let ols = Analyze.ols ~bootstrap:0 ~r_square:true ~predictors:Measure.[| run |] in
+  let instances = Toolkit.Instance.[ minor_allocated; major_allocated; monotonic_clock ] in
+  let cfg = Benchmark.cfg ~limit:2000 ~quota:(Time.second 0.5) ~kde:(Some 1000) () in
   let raw_results = Benchmark.all cfg instances test in
-  let results =
-    List.map (fun instance -> Analyze.all ols instance raw_results) instances
-  in
+  let results = List.map (fun instance -> Analyze.all ols instance raw_results) instances in
   let results = Analyze.merge ols instances results in
   (results, raw_results)
 
@@ -68,17 +59,13 @@ let () =
     (fun v -> Bechamel_notty.Unit.add v (Measure.unit v))
     Toolkit.Instance.[ minor_allocated; major_allocated; monotonic_clock ]
 
-let img (window, results) =
-  Bechamel_notty.Multiple.image_of_ols_results ~rect:window
-    ~predictor:Measure.run results
+let img (window, results) = Bechamel_notty.Multiple.image_of_ols_results ~rect:window ~predictor:Measure.run results
 
 open Notty_unix
 
 let () =
   let window =
-    match winsize Unix.stdout with
-    | Some (w, h) -> { Bechamel_notty.w; h }
-    | None -> { Bechamel_notty.w = 80; h = 1 }
+    match winsize Unix.stdout with Some (w, h) -> { Bechamel_notty.w; h } | None -> { Bechamel_notty.w = 80; h = 1 }
   in
   let results, _ = benchmark () in
   img (window, results) |> eol |> output_image

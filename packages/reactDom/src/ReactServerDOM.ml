@@ -1,12 +1,7 @@
 type json = Yojson.Basic.t
 
 module Fiber = struct
-  type context = {
-    mutable index : int;
-    mutable pending : int;
-    push : Html.element -> unit;
-    close : unit -> unit;
-  }
+  type context = { mutable index : int; mutable pending : int; push : Html.element -> unit; close : unit -> unit }
 
   type t = {
     context : context;
@@ -81,8 +76,7 @@ module Model = struct
     | React.JSX.Bool (_, key, value) -> (key, `Bool value)
     | React.JSX.String (_, key, value) -> (key, `String value)
     | React.JSX.Style value -> ("style", `String value)
-    | React.JSX.DangerouslyInnerHtml html ->
-        ("dangerouslySetInnerHTML", `Assoc [ ("__html", `String html) ])
+    | React.JSX.DangerouslyInnerHtml html -> ("dangerouslySetInnerHTML", `Assoc [ ("__html", `String html) ])
     (* TODO: What does ref mean *)
     | React.JSX.Ref _ -> ("ref", `Null)
     (* TODO: What does event even mean *)
@@ -113,8 +107,7 @@ module Model = struct
     in
     node ~tag:"$Sreact.suspense" ~key ~props []
 
-  let suspense_placeholder ~key ~fallback index =
-    suspense_node ~key ~fallback [ `String (lazy_value index) ]
+  let suspense_placeholder ~key ~fallback index = suspense_node ~key ~fallback [ `String (lazy_value index) ]
 
   let component_ref ~module_ ~name =
     let id = `String module_ in
@@ -152,8 +145,7 @@ module Model = struct
       | InnerHtml _text ->
           (* TODO: Don't have failwith *)
           failwith
-            "It does not exist in RSC, this is a bug in server-reason-react or \
-             a wrong construction of JSX manually"
+            "It does not exist in RSC, this is a bug in server-reason-react or a wrong construction of JSX manually"
       | Upper_case_component component ->
           let element = component () in
           (* Instead of returning the payload directly, we push it, and return a reference to it.
@@ -231,9 +223,7 @@ module Model = struct
       | Chunk_value json -> push (model_to_chunk id json)
       | Chunk_component_ref json -> push (client_reference_to_chunk id json)
     in
-    let context : stream_context =
-      { push = push_chunk; close; chunk_id = 0; pending = 0 }
-    in
+    let context : stream_context = { push = push_chunk; close; chunk_id = 0; pending = 0 } in
     element_to_model ~context context.chunk_id element;
     (* TODO: Currently returns the stream because of testing, in the future we can use subscribe to capture all chunks *)
     match subscribe with
@@ -265,42 +255,26 @@ srr_stream.readable_stream = new ReadableStream({ start(c) { srr_stream._c = c; 
 let rc_function_definition =
   {|function $RC(a,b){a=document.getElementById(a);b=document.getElementById(b);b.parentNode.removeChild(b);if(a){a=a.previousSibling;var f=a.parentNode,c=a.nextSibling,e=0;do{if(c&&8===c.nodeType){var d=c.data;if("/$"===d)if(0===e)break;else e--;else"$"!==d&&"$?"!==d&&"$!"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data="$";a._reactRetry&&a._reactRetry()}}|}
 
-let rc_function_script =
-  Html.node "script" [] [ Html.raw rc_function_definition ]
+let rc_function_script = Html.node "script" [] [ Html.raw rc_function_definition ]
 
 let chunk_script script =
   Html.node "script"
     [ Html.attribute "data-payload" (Html.single_quote_escape script) ]
-    [
-      Html.raw "window.srr_stream.push(document.currentScript.dataset.payload);";
-    ]
+    [ Html.raw "window.srr_stream.push(document.currentScript.dataset.payload);" ]
 
-let client_reference_chunk_script index json =
-  chunk_script (Model.client_reference_to_chunk index json)
-
-let client_value_chunk_script index json =
-  chunk_script (Model.model_to_chunk index json)
-
-let chunk_stream_end_script =
-  Html.node "script" [] [ Html.raw "window.srr_stream.close();" ]
-
-let rc_replacement b s =
-  Html.node "script" [] [ Html.raw (Printf.sprintf "$RC('B:%x', 'S:%x')" b s) ]
+let client_reference_chunk_script index json = chunk_script (Model.client_reference_to_chunk index json)
+let client_value_chunk_script index json = chunk_script (Model.model_to_chunk index json)
+let chunk_stream_end_script = Html.node "script" [] [ Html.raw "window.srr_stream.close();" ]
+let rc_replacement b s = Html.node "script" [] [ Html.raw (Printf.sprintf "$RC('B:%x', 'S:%x')" b s) ]
 
 let chunk_html_script index html =
   Html.list ~separator:"\n"
     [
-      Html.node "div"
-        [
-          Html.attribute "hidden" "true";
-          Html.attribute "id" (Printf.sprintf "S:%x" index);
-        ]
-        [ html ];
+      Html.node "div" [ Html.attribute "hidden" "true"; Html.attribute "id" (Printf.sprintf "S:%x" index) ] [ html ];
       rc_replacement index index;
     ]
 
-let html_suspense inner =
-  Html.list [ Html.raw "<!--$?-->"; inner; Html.raw "<!--/$-->" ]
+let html_suspense inner = Html.list [ Html.raw "<!--$?-->"; inner; Html.raw "<!--/$-->" ]
 
 let html_suspense_placeholder ~fallback id =
   Html.list
@@ -317,12 +291,9 @@ let rec client_to_html ~fiber (element : React.element) =
   | Text text -> Lwt.return (Html.string text)
   | Fragment children -> client_to_html ~fiber children
   | List childrens ->
-      let%lwt html =
-        childrens |> Array.to_list |> Lwt_list.map_p (client_to_html ~fiber)
-      in
+      let%lwt html = childrens |> Array.to_list |> Lwt_list.map_p (client_to_html ~fiber) in
       Lwt.return (Html.list html)
-  | Lower_case_element { tag; attributes; _ } when Html.is_self_closing_tag tag
-    ->
+  | Lower_case_element { tag; attributes; _ } when Html.is_self_closing_tag tag ->
       let html_props = List.map ReactDOM.attribute_to_html attributes in
       Lwt.return (Html.node tag html_props [])
   | Lower_case_element { key = _; tag; attributes; children } ->
@@ -343,25 +314,16 @@ let rec client_to_html ~fiber (element : React.element) =
   | Async_component _component ->
       (* async components can't be interleaved in client components, for now *)
       (* TODO: Remove failwith *)
-      failwith
-        "async components can't be part of a client component. This should \
-         never raise, the ppx should catch it"
+      failwith "async components can't be part of a client component. This should never raise, the ppx should catch it"
   | Suspense { key = _; children; fallback } ->
       (* TODO: Do we need to care if there's Any_promise raising ? *)
       let%lwt fallback = client_to_html ~fiber fallback in
       Fiber.task fiber (fun fiber ->
           let index = Fiber.use_index fiber in
-          let async =
-            children |> client_to_html ~fiber
-            |> Lwt.map (chunk_html_script index)
-          in
-          let fallback_as_placeholder =
-            html_suspense_placeholder ~fallback index
-          in
+          let async = children |> client_to_html ~fiber |> Lwt.map (chunk_html_script index) in
+          let fallback_as_placeholder = html_suspense_placeholder ~fallback index in
           `Fork (async, fallback_as_placeholder))
-  | Client_component { import_module = _; import_name = _; props = _; client }
-    ->
-      client_to_html ~fiber client
+  | Client_component { import_module = _; import_name = _; props = _; client } -> client_to_html ~fiber client
   (* TODO: Need to do something for those? *)
   | Provider children -> client_to_html ~fiber children
   | Consumer children -> client_to_html ~fiber children
@@ -374,19 +336,15 @@ let rec to_html ~fiber (element : React.element) : (Html.element * json) Lwt.t =
   | Fragment children -> to_html ~fiber children
   | List list -> elements_to_html ~fiber (Array.to_list list)
   | Upper_case_component component -> to_html ~fiber (component ())
-  | Lower_case_element { key; tag; attributes; _ }
-    when Html.is_self_closing_tag tag ->
+  | Lower_case_element { key; tag; attributes; _ } when Html.is_self_closing_tag tag ->
       let html_props = List.map ReactDOM.attribute_to_html attributes in
       let json_props = List.map Model.prop_to_json attributes in
-      Lwt.return
-        (Html.node tag html_props [], Model.node ~tag ~key ~props:json_props [])
+      Lwt.return (Html.node tag html_props [], Model.node ~tag ~key ~props:json_props [])
   | Lower_case_element { key; tag; attributes; children } ->
       let html_props = List.map ReactDOM.attribute_to_html attributes in
       let json_props = List.map Model.prop_to_json attributes in
       let%lwt html, model = elements_to_html ~fiber children in
-      Lwt.return
-        ( Html.node tag html_props [ html ],
-          Model.node ~tag ~key ~props:json_props [ model ] )
+      Lwt.return (Html.node tag html_props [ html ], Model.node ~tag ~key ~props:json_props [ model ])
   | Async_component component ->
       let%lwt element = component () in
       to_html ~fiber element
@@ -405,9 +363,7 @@ let rec to_html ~fiber (element : React.element) : (Html.element * json) Lwt.t =
                 let async : Html.element Lwt.t =
                   let%lwt value = promise in
                   let json = value_to_json value in
-                  let ret =
-                    chunk_script (Model.client_reference_to_chunk index json)
-                  in
+                  let ret = chunk_script (Model.client_reference_to_chunk index json) in
                   Lwt.return ret
                 in
                 `Fork (async, sync)
@@ -421,9 +377,7 @@ let rec to_html ~fiber (element : React.element) : (Html.element * json) Lwt.t =
       let%lwt html, props = Lwt.both lwt_html lwt_props in
       let model =
         let index = Fiber.use_index fiber in
-        let ref : json =
-          Model.component_ref ~module_:import_module ~name:import_name
-        in
+        let ref : json = Model.component_ref ~module_:import_module ~name:import_name in
         fiber.emit_html (client_reference_chunk_script index ref);
         Model.node ~tag:(Model.ref_value index) ~key:None ~props []
       in
@@ -437,23 +391,15 @@ let rec to_html ~fiber (element : React.element) : (Html.element * json) Lwt.t =
               let index = Fiber.use_index fiber in
               let async_html =
                 let%lwt html, model = promise in
-                Lwt.return
-                  (Html.list
-                     [
-                       chunk_html_script index html;
-                       client_value_chunk_script index model;
-                     ])
+                Lwt.return (Html.list [ chunk_html_script index html; client_value_chunk_script index model ])
               in
               let sync_html =
                 ( html_suspense_placeholder ~fallback:html_fallback index,
-                  Model.suspense_placeholder ~key ~fallback:model_fallback index
-                )
+                  Model.suspense_placeholder ~key ~fallback:model_fallback index )
               in
               `Fork (async_html, sync_html)
           | Lwt.Return (html, model) ->
-              let model =
-                Model.suspense_node ~key ~fallback:model_fallback [ model ]
-              in
+              let model = Model.suspense_node ~key ~fallback:model_fallback [ model ] in
               `Sync (html_suspense html, model)
           | Lwt.Fail exn -> `Fail exn)
   | Provider children -> to_html ~fiber children
@@ -467,16 +413,8 @@ and elements_to_html ~fiber elements =
   Lwt.return (Html.list htmls, `List model)
 
 type rendering =
-  | Done of {
-      head : Html.element;
-      body : Html.element;
-      end_script : Html.element;
-    }
-  | Async of {
-      head : Html.element;
-      shell : Html.element;
-      subscribe : (Html.element -> unit Lwt.t) -> unit Lwt.t;
-    }
+  | Done of { head : Html.element; body : Html.element; end_script : Html.element }
+  | Async of { head : Html.element; shell : Html.element; subscribe : (Html.element -> unit Lwt.t) -> unit Lwt.t }
 
 (* TODO: Do we need to disable streaming based on some timeout? abortion? *)
 (* TODO: Do we need to disable the model rendering? Can we do something better than a boolean? *)
@@ -489,25 +427,13 @@ let render_to_html element =
         Lwt.return (Html.list [ html; first_chunk ]))
   in
   match html_async with
-  | None ->
-      Lwt.return
-        (Done
-           {
-             head = rsc_start_script;
-             body = html_shell;
-             end_script = chunk_stream_end_script;
-           })
+  | None -> Lwt.return (Done { head = rsc_start_script; body = html_shell; end_script = chunk_stream_end_script })
   | Some stream ->
       let html_iter fn =
         let%lwt () = Push_stream.subscribe ~fn stream in
         fn chunk_stream_end_script
       in
       Lwt.return
-        (Async
-           {
-             shell = html_shell;
-             head = Html.list [ rc_function_script; rsc_start_script ];
-             subscribe = html_iter;
-           })
+        (Async { shell = html_shell; head = Html.list [ rc_function_script; rsc_start_script ]; subscribe = html_iter })
 
 let render_to_model = Model.render

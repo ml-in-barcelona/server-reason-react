@@ -5,12 +5,8 @@ let size = length
 let getUnsafe = Array.unsafe_get
 let setUnsafe = Array.unsafe_set
 let get = Array.get
-
-let getUndefined arr i =
-  try Js.fromOpt (Some arr.(i)) with Invalid_argument _ -> Js.fromOpt None
-
-let get arr i =
-  if i >= 0 && i < length arr then Some (getUnsafe arr i) else None
+let getUndefined arr i = try Js.fromOpt (Some arr.(i)) with Invalid_argument _ -> Js.fromOpt None
+let get arr i = if i >= 0 && i < length arr then Some (getUnsafe arr i) else None
 
 let getExn arr i =
   (if Stdlib.not (i >= 0 && i < length arr) then
@@ -77,9 +73,7 @@ let make l f =
 
 let reverse xs =
   let len = length xs in
-  let result =
-    if len > 0 then makeUninitializedUnsafe len (getUnsafe xs 0) else [||]
-  in
+  let result = if len > 0 then makeUninitializedUnsafe len (getUnsafe xs 0) else [||] in
   for i = 0 to len - 1 do
     setUnsafe result i (getUnsafe xs (len - 1 - i))
   done;
@@ -129,10 +123,7 @@ let rangeBy start finish ~step =
 let zip xs ys =
   let lenx, leny = (length xs, length ys) in
   let len = Stdlib.min lenx leny in
-  let s =
-    if len > 0 then makeUninitializedUnsafe len (getUnsafe xs 0, getUnsafe ys 0)
-    else [||]
-  in
+  let s = if len > 0 then makeUninitializedUnsafe len (getUnsafe xs 0, getUnsafe ys 0) else [||] in
   for i = 0 to len - 1 do
     setUnsafe s i (getUnsafe xs i, getUnsafe ys i)
   done;
@@ -141,11 +132,7 @@ let zip xs ys =
 let zipByU xs ys f =
   let lenx, leny = (length xs, length ys) in
   let len = Stdlib.min lenx leny in
-  let s =
-    if len > 0 then
-      makeUninitializedUnsafe len (f (getUnsafe xs 0) (getUnsafe ys 0))
-    else [||]
-  in
+  let s = if len > 0 then makeUninitializedUnsafe len (f (getUnsafe xs 0) (getUnsafe ys 0)) else [||] in
   for i = 0 to len - 1 do
     setUnsafe s i (f (getUnsafe xs i) (getUnsafe ys i))
   done;
@@ -156,9 +143,7 @@ let zipBy xs ys f = zipByU xs ys (fun a b -> f a b)
 let concat a1 a2 =
   let l1 = length a1 in
   let l2 = length a2 in
-  let a1a2 =
-    if l1 > 0 then makeUninitializedUnsafe (l1 + l2) (getUnsafe a1 0) else [||]
-  in
+  let a1a2 = if l1 > 0 then makeUninitializedUnsafe (l1 + l2) (getUnsafe a1 0) else [||] in
   for i = 0 to l1 - 1 do
     setUnsafe a1a2 i (getUnsafe a1 i)
   done;
@@ -174,8 +159,7 @@ let concatMany arrs =
   for i = 0 to lenArrs - 1 do
     let len = length (getUnsafe arrs i) in
     totalLen := !totalLen + len;
-    if len > 0 && !firstArrWithLengthMoreThanZero = None then
-      firstArrWithLengthMoreThanZero := Some (getUnsafe arrs i)
+    if len > 0 && !firstArrWithLengthMoreThanZero = None then firstArrWithLengthMoreThanZero := Some (getUnsafe arrs i)
   done;
   match !firstArrWithLengthMoreThanZero with
   | None -> [||]
@@ -200,10 +184,7 @@ let slice a ~offset ~len =
     let copyLength = min hasLen len in
     if copyLength <= 0 then [||]
     else
-      let result =
-        if lena > 0 then makeUninitializedUnsafe copyLength (getUnsafe a 0)
-        else [||]
-      in
+      let result = if lena > 0 then makeUninitializedUnsafe copyLength (getUnsafe a 0) else [||] in
       for i = 0 to copyLength - 1 do
         setUnsafe result i (getUnsafe a (ofs + i))
       done;
@@ -220,8 +201,7 @@ let fill a ~offset ~len v =
         setUnsafe a i v
       done
 
-let blitUnsafe ~src:a1 ~srcOffset:srcofs1 ~dst:a2 ~dstOffset:srcofs2
-    ~len:blitLength =
+let blitUnsafe ~src:a1 ~srcOffset:srcofs1 ~dst:a2 ~dstOffset:srcofs2 ~len:blitLength =
   if srcofs2 <= srcofs1 then
     for j = 0 to blitLength - 1 do
       setUnsafe a2 (j + srcofs2) (getUnsafe a1 (j + srcofs1))
@@ -255,9 +235,7 @@ let forEach a f = forEachU a (fun a -> f a)
 
 let mapU a f =
   let l = length a in
-  let r =
-    if l > 0 then makeUninitializedUnsafe l (f (getUnsafe a 0)) else [||]
-  in
+  let r = if l > 0 then makeUninitializedUnsafe l (f (getUnsafe a 0)) else [||] in
   for i = 0 to l - 1 do
     setUnsafe r i (f (getUnsafe a i))
   done;
@@ -326,9 +304,7 @@ let forEachWithIndex a f = forEachWithIndexU a (fun a b -> f a b)
 
 let mapWithIndexU a f =
   let l = length a in
-  let r =
-    if l > 0 then makeUninitializedUnsafe l (f 0 (getUnsafe a 0)) else [||]
-  in
+  let r = if l > 0 then makeUninitializedUnsafe l (f 0 (getUnsafe a 0)) else [||] in
   for i = 0 to l - 1 do
     setUnsafe r i (f i (getUnsafe a i))
   done;
@@ -365,14 +341,9 @@ let reduceReverse2U a b x f =
 let reduceReverse2 a b x f = reduceReverse2U a b x (fun a b c -> f a b c)
 
 let rec everyAux arr i b len =
-  if i = len then true
-  else if b (getUnsafe arr i) then everyAux arr (i + 1) b len
-  else false
+  if i = len then true else if b (getUnsafe arr i) then everyAux arr (i + 1) b len else false
 
-let rec someAux arr i b len =
-  if i = len then false
-  else if b (getUnsafe arr i) then true
-  else someAux arr (i + 1) b len
+let rec someAux arr i b len = if i = len then false else if b (getUnsafe arr i) then true else someAux arr (i + 1) b len
 
 let everyU arr b =
   let len = length arr in
@@ -387,15 +358,10 @@ let someU arr b =
 let some arr f = someU arr (fun b -> f b)
 
 let rec everyAux2 arr1 arr2 i b len =
-  if i = len then true
-  else if b (getUnsafe arr1 i) (getUnsafe arr2 i) then
-    everyAux2 arr1 arr2 (i + 1) b len
-  else false
+  if i = len then true else if b (getUnsafe arr1 i) (getUnsafe arr2 i) then everyAux2 arr1 arr2 (i + 1) b len else false
 
 let rec someAux2 arr1 arr2 i b len =
-  if i = len then false
-  else if b (getUnsafe arr1 i) (getUnsafe arr2 i) then true
-  else someAux2 arr1 arr2 (i + 1) b len
+  if i = len then false else if b (getUnsafe arr1 i) (getUnsafe arr2 i) then true else someAux2 arr1 arr2 (i + 1) b len
 
 let every2U a b p = everyAux2 a b 0 p (min (length a) (length b))
 let every2 a b p = every2U a b (fun a b -> p a b)
@@ -418,9 +384,7 @@ let rec everyCmpAux2 arr1 arr2 i b len =
 let cmpU a b p =
   let lena = length a in
   let lenb = length b in
-  if lena > lenb then 1
-  else if lena < lenb then -1
-  else everyCmpAux2 a b 0 p lena
+  if lena > lenb then 1 else if lena < lenb then -1 else everyCmpAux2 a b 0 p lena
 
 let cmp a b p = cmpU a b (fun a b -> p a b)
 
@@ -509,8 +473,7 @@ let joinWithU a sep toString =
       let lastIndex = l - 1 in
       let rec aux i res =
         let v = getUnsafe a i in
-        if i = lastIndex then res ^ toString v
-        else aux (i + 1) (res ^ toString v ^ sep)
+        if i = lastIndex then res ^ toString v else aux (i + 1) (res ^ toString v ^ sep)
       in
       aux 0 ""
 

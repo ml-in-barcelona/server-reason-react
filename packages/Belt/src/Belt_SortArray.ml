@@ -28,8 +28,7 @@ let strictlySortedLength xs lt = strictlySortedLengthU xs (fun x y -> lt x y)
 
 let rec isSortedAux a i cmp last_bound =
   if i = last_bound then true
-  else if cmp (A.getUnsafe a i) (A.getUnsafe a (i + 1)) <= 0 then
-    isSortedAux a (i + 1) cmp last_bound
+  else if cmp (A.getUnsafe a i) (A.getUnsafe a (i + 1)) <= 0 then isSortedAux a (i + 1) cmp last_bound
   else false
 
 let isSortedU a cmp =
@@ -45,16 +44,13 @@ let merge src src1ofs src1len src2 src2ofs src2len dst dstofs cmp =
     if cmp s1 s2 <= 0 then (
       A.setUnsafe dst d s1;
       let i1 = i1 + 1 in
-      if i1 < src1r then loop i1 (A.getUnsafe src i1) i2 s2 (d + 1)
-      else A.blitUnsafe src2 i2 dst (d + 1) (src2r - i2))
+      if i1 < src1r then loop i1 (A.getUnsafe src i1) i2 s2 (d + 1) else A.blitUnsafe src2 i2 dst (d + 1) (src2r - i2))
     else (
       A.setUnsafe dst d s2;
       let i2 = i2 + 1 in
-      if i2 < src2r then loop i1 s1 i2 (A.getUnsafe src2 i2) (d + 1)
-      else A.blitUnsafe src i1 dst (d + 1) (src1r - i1))
+      if i2 < src2r then loop i1 s1 i2 (A.getUnsafe src2 i2) (d + 1) else A.blitUnsafe src i1 dst (d + 1) (src1r - i1))
   in
-  loop src1ofs (A.getUnsafe src src1ofs) src2ofs (A.getUnsafe src2 src2ofs)
-    dstofs
+  loop src1ofs (A.getUnsafe src src1ofs) src2ofs (A.getUnsafe src2 src2ofs) dstofs
 
 let unionU src src1ofs src1len src2 src2ofs src2len dst dstofs cmp =
   let src1r = src1ofs + src1len in
@@ -74,8 +70,7 @@ let unionU src src1ofs src1len src2 src2ofs src2len dst dstofs cmp =
       let i1 = i1 + 1 in
       let i2 = i2 + 1 in
       let d = d + 1 in
-      if i1 < src1r && i2 < src2r then
-        loop i1 (A.getUnsafe src i1) i2 (A.getUnsafe src2 i2) d
+      if i1 < src1r && i2 < src2r then loop i1 (A.getUnsafe src i1) i2 (A.getUnsafe src2 i2) d
       else if i1 = src1r then (
         A.blitUnsafe src2 i2 dst d (src2r - i2);
         d + src2r - i2)
@@ -91,12 +86,10 @@ let unionU src src1ofs src1len src2 src2ofs src2len dst dstofs cmp =
         A.blitUnsafe src i1 dst d (src1r - i1);
         d + src1r - i1))
   in
-  loop src1ofs (A.getUnsafe src src1ofs) src2ofs (A.getUnsafe src2 src2ofs)
-    dstofs
+  loop src1ofs (A.getUnsafe src src1ofs) src2ofs (A.getUnsafe src2 src2ofs) dstofs
 
 let union src src1ofs src1len src2 src2ofs src2len dst dstofs cmp =
-  unionU src src1ofs src1len src2 src2ofs src2len dst dstofs (fun x y ->
-      cmp x y)
+  unionU src src1ofs src1len src2 src2ofs src2len dst dstofs (fun x y -> cmp x y)
 
 let intersectU src src1ofs src1len src2 src2ofs src2len dst dstofs cmp =
   let src1r = src1ofs + src1len in
@@ -111,19 +104,15 @@ let intersectU src src1ofs src1len src2 src2ofs src2len dst dstofs cmp =
       let i1 = i1 + 1 in
       let i2 = i2 + 1 in
       let d = d + 1 in
-      if i1 < src1r && i2 < src2r then
-        loop i1 (A.getUnsafe src i1) i2 (A.getUnsafe src2 i2) d
-      else d)
+      if i1 < src1r && i2 < src2r then loop i1 (A.getUnsafe src i1) i2 (A.getUnsafe src2 i2) d else d)
     else
       let i2 = i2 + 1 in
       if i2 < src2r then loop i1 s1 i2 (A.getUnsafe src2 i2) d else d
   in
-  loop src1ofs (A.getUnsafe src src1ofs) src2ofs (A.getUnsafe src2 src2ofs)
-    dstofs
+  loop src1ofs (A.getUnsafe src src1ofs) src2ofs (A.getUnsafe src2 src2ofs) dstofs
 
 let intersect src src1ofs src1len src2 src2ofs src2len dst dstofs cmp =
-  intersectU src src1ofs src1len src2 src2ofs src2len dst dstofs (fun x y ->
-      cmp x y)
+  intersectU src src1ofs src1len src2 src2ofs src2len dst dstofs (fun x y -> cmp x y)
 
 let diffU src src1ofs src1len src2 src2ofs src2len dst dstofs cmp =
   let src1r = src1ofs + src1len in
@@ -138,8 +127,7 @@ let diffU src src1ofs src1len src2 src2ofs src2len dst dstofs cmp =
     else if c = 0 then
       let i1 = i1 + 1 in
       let i2 = i2 + 1 in
-      if i1 < src1r && i2 < src2r then
-        loop i1 (A.getUnsafe src i1) i2 (A.getUnsafe src2 i2) d
+      if i1 < src1r && i2 < src2r then loop i1 (A.getUnsafe src i1) i2 (A.getUnsafe src2 i2) d
       else if i1 = src1r then d
       else (
         A.blitUnsafe src i1 dst d (src1r - i1);
@@ -151,8 +139,7 @@ let diffU src src1ofs src1len src2 src2ofs src2len dst dstofs cmp =
         A.blitUnsafe src i1 dst d (src1r - i1);
         d + src1r - i1)
   in
-  loop src1ofs (A.getUnsafe src src1ofs) src2ofs (A.getUnsafe src2 src2ofs)
-    dstofs
+  loop src1ofs (A.getUnsafe src src1ofs) src2ofs (A.getUnsafe src2 src2ofs) dstofs
 
 let diff src src1ofs src1len src2 src2ofs src2len dst dstofs cmp =
   diffU src src1ofs src1len src2 src2ofs src2len dst dstofs (fun x y -> cmp x y)
@@ -203,10 +190,8 @@ let rec binarySearchAux arr lo hi key cmp =
   let c = cmp key midVal in
   if c = 0 then mid
   else if c < 0 then
-    if hi = mid then if cmp (A.getUnsafe arr lo) key = 0 then lo else -(hi + 1)
-    else binarySearchAux arr lo mid key cmp
-  else if lo = mid then
-    if cmp (A.getUnsafe arr hi) key = 0 then hi else -(hi + 1)
+    if hi = mid then if cmp (A.getUnsafe arr lo) key = 0 then lo else -(hi + 1) else binarySearchAux arr lo mid key cmp
+  else if lo = mid then if cmp (A.getUnsafe arr hi) key = 0 then hi else -(hi + 1)
   else binarySearchAux arr mid hi key cmp
 
 let binarySearchByU sorted key cmp : int =
@@ -221,5 +206,4 @@ let binarySearchByU sorted key cmp : int =
       let c2 = cmp key hi in
       if c2 > 0 then -(len + 1) else binarySearchAux sorted 0 (len - 1) key cmp
 
-let binarySearchBy sorted key cmp =
-  binarySearchByU sorted key (fun x y -> cmp x y)
+let binarySearchBy sorted key cmp = binarySearchByU sorted key (fun x y -> cmp x y)

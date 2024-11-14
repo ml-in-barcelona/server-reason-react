@@ -13,9 +13,7 @@ let rec copyBucket ~hash ~h_buckets ~ndata_tail old_bucket =
   match C.toOpt old_bucket with
   | None -> ()
   | Some cell ->
-      let nidx =
-        (Belt_Id.getHashInternal hash) (N.key cell) land (A.length h_buckets - 1)
-      in
+      let nidx = (Belt_Id.getHashInternal hash) (N.key cell) land (A.length h_buckets - 1) in
       let v = C.return cell in
       (match C.toOpt (A.getUnsafe ndata_tail nidx) with
       | None -> A.setUnsafe h_buckets nidx v
@@ -35,9 +33,7 @@ let tryDoubleResize ~hash h =
       copyBucket ~hash ~h_buckets ~ndata_tail (A.getUnsafe odata i)
     done;
     for i = 0 to nsize - 1 do
-      match C.toOpt (A.getUnsafe ndata_tail i) with
-      | None -> ()
-      | Some tail -> N.nextSet tail C.emptyOpt
+      match C.toOpt (A.getUnsafe ndata_tail i) with None -> () | Some tail -> N.nextSet tail C.emptyOpt
     done)
 
 let rec removeBucket ~eq h h_buckets i key prec cell =
@@ -45,17 +41,12 @@ let rec removeBucket ~eq h h_buckets i key prec cell =
   if (Belt_Id.getEqInternal eq) (N.key cell) key then (
     N.nextSet prec cell_next;
     C.sizeSet h (C.size h - 1))
-  else
-    match C.toOpt cell_next with
-    | None -> ()
-    | Some cell_next -> removeBucket ~eq h h_buckets i key cell cell_next
+  else match C.toOpt cell_next with None -> () | Some cell_next -> removeBucket ~eq h h_buckets i key cell cell_next
 
 let remove h key =
   let eq = C.eq h in
   let h_buckets = C.buckets h in
-  let i =
-    (Belt_Id.getHashInternal (C.hash h)) key land (A.length h_buckets - 1)
-  in
+  let i = (Belt_Id.getHashInternal (C.hash h)) key land (A.length h_buckets - 1) in
   let l = A.getUnsafe h_buckets i in
   match C.toOpt l with
   | None -> ()
@@ -65,9 +56,7 @@ let remove h key =
         C.sizeSet h (C.size h - 1);
         A.setUnsafe h_buckets i next_cell)
       else
-        match C.toOpt next_cell with
-        | None -> ()
-        | Some next_cell -> removeBucket ~eq h h_buckets i key cell next_cell)
+        match C.toOpt next_cell with None -> () | Some next_cell -> removeBucket ~eq h h_buckets i key cell next_cell)
 
 let rec addBucket h key cell ~eq =
   if not ((Belt_Id.getEqInternal eq) (N.key cell) key) then
@@ -94,20 +83,13 @@ let add h key = add0 ~hash:(C.hash h) ~eq:(C.eq h) h key
 
 let rec memInBucket ~eq key cell =
   (Belt_Id.getEqInternal eq) (N.key cell) key
-  ||
-  match C.toOpt (N.next cell) with
-  | None -> false
-  | Some nextCell -> memInBucket ~eq key nextCell
+  || match C.toOpt (N.next cell) with None -> false | Some nextCell -> memInBucket ~eq key nextCell
 
 let has h key =
   let eq, h_buckets = (C.eq h, C.buckets h) in
-  let nid =
-    (Belt_Id.getHashInternal (C.hash h)) key land (A.length h_buckets - 1)
-  in
+  let nid = (Belt_Id.getHashInternal (C.hash h)) key land (A.length h_buckets - 1) in
   let bucket = A.getUnsafe h_buckets nid in
-  match C.toOpt bucket with
-  | None -> false
-  | Some bucket -> memInBucket ~eq key bucket
+  match C.toOpt bucket with None -> false | Some bucket -> memInBucket ~eq key bucket
 
 let make (type value identity) ~hintSize ~(id : (value, identity) id) =
   let module M = (val id) in

@@ -7,10 +7,7 @@ include (
     let t : root:'a opt_cell -> 'a t = fun ~root -> { root }
     let rootSet : 'a t -> 'a opt_cell -> unit = fun o v -> o.root <- v
     let root : 'a t -> 'a opt_cell = fun o -> o.root
-
-    let cell : head:'a -> tail:'a opt_cell -> 'a cell =
-     fun ~head ~tail -> { head; tail }
-
+    let cell : head:'a -> tail:'a opt_cell -> 'a cell = fun ~head ~tail -> { head; tail }
     let head : 'a cell -> 'a = fun o -> o.head
     let tail : 'a cell -> 'a opt_cell = fun o -> o.tail
   end :
@@ -33,13 +30,9 @@ let copy (s : _ t) : _ t = t ~root:(root s)
 let push s x = rootSet s (Js.Null.return @@ cell ~head:x ~tail:(root s))
 
 let topUndefined (s : 'a t) =
-  match Js.nullToOption (root s) with
-  | None -> Js.undefined
-  | Some x -> Js.Undefined.return (head x)
+  match Js.nullToOption (root s) with None -> Js.undefined | Some x -> Js.Undefined.return (head x)
 
-let top s =
-  match Js.nullToOption (root s) with None -> None | Some x -> Some (head x)
-
+let top s = match Js.nullToOption (root s) with None -> None | Some x -> Some (head x)
 let isEmpty s = root s = Js.null
 
 let popUndefined s =
@@ -57,12 +50,9 @@ let pop s =
       Some (head x)
 
 let rec lengthAux (x : _ cell) acc =
-  match Js.nullToOption (tail x) with
-  | None -> acc + 1
-  | Some x -> lengthAux x (acc + 1)
+  match Js.nullToOption (tail x) with None -> acc + 1 | Some x -> lengthAux x (acc + 1)
 
-let size s =
-  match Js.nullToOption (root s) with None -> 0 | Some x -> lengthAux x 0
+let size s = match Js.nullToOption (root s) with None -> 0 | Some x -> lengthAux x 0
 
 let rec iterAux (s : _ opt_cell) f =
   match Js.nullToOption s with

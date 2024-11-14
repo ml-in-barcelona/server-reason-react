@@ -10,19 +10,11 @@ type ('key, 'id) cmp = ('key, 'id) Belt_Id.cmp
 module S = struct
   include (
     struct
-      type ('value, 'id) t = {
-        cmp : ('value, 'id) cmp;
-        mutable data : 'value N.t;
-      }
+      type ('value, 'id) t = { cmp : ('value, 'id) cmp; mutable data : 'value N.t }
 
-      let t : cmp:('value, 'id) cmp -> data:'value N.t -> ('value, 'id) t =
-       fun ~cmp ~data -> { cmp; data }
-
+      let t : cmp:('value, 'id) cmp -> data:'value N.t -> ('value, 'id) t = fun ~cmp ~data -> { cmp; data }
       let cmp : ('value, 'id) t -> ('value, 'id) cmp = fun o -> o.cmp
-
-      let dataSet : ('value, 'id) t -> 'value N.t -> unit =
-       fun o v -> o.data <- v
-
+      let dataSet : ('value, 'id) t -> 'value N.t -> unit = fun o v -> o.data <- v
       let data : ('value, 'id) t -> 'value N.t = fun o -> o.data
     end :
       sig
@@ -72,18 +64,14 @@ let remove d v =
   match N.toOpt oldRoot with
   | None -> ()
   | Some oldRoot2 ->
-      let newRoot =
-        remove0 ~cmp:(Belt_Id.getCmpInternal (S.cmp d)) oldRoot2 v
-      in
+      let newRoot = remove0 ~cmp:(Belt_Id.getCmpInternal (S.cmp d)) oldRoot2 v in
       if newRoot != oldRoot then S.dataSet d newRoot
 
 let rec removeMany0 t xs i len ~cmp =
   if i < len then
     let ele = A.getUnsafe xs i in
     let u = remove0 t ele ~cmp in
-    match N.toOpt u with
-    | None -> N.empty
-    | Some t -> removeMany0 t xs (i + 1) len ~cmp
+    match N.toOpt u with None -> N.empty | Some t -> removeMany0 t xs (i + 1) len ~cmp
   else N.return t
 
 let removeMany d xs =
@@ -92,8 +80,7 @@ let removeMany d xs =
   | None -> ()
   | Some nt ->
       let len = A.length xs in
-      S.dataSet d
-        (removeMany0 nt xs 0 len ~cmp:(Belt_Id.getCmpInternal (S.cmp d)))
+      S.dataSet d (removeMany0 nt xs 0 len ~cmp:(Belt_Id.getCmpInternal (S.cmp d)))
 
 let rec removeCheck0 nt x removed ~cmp =
   let k = N.value nt in
@@ -159,9 +146,7 @@ let rec addCheck0 t x added ~cmp =
 let addCheck m e =
   let oldRoot = S.data m in
   let added = ref false in
-  let newRoot =
-    addCheck0 ~cmp:(Belt_Id.getCmpInternal (S.cmp m)) oldRoot e added
-  in
+  let newRoot = addCheck0 ~cmp:(Belt_Id.getCmpInternal (S.cmp m)) oldRoot e added in
   if newRoot != oldRoot then S.dataSet m newRoot;
   !added
 
@@ -200,8 +185,7 @@ let size d = N.size (S.data d)
 let toList d = N.toList (S.data d)
 let toArray d = N.toArray (S.data d)
 
-let fromSortedArrayUnsafe (type value identity) xs ~(id : (value, identity) id)
-    : _ t =
+let fromSortedArrayUnsafe (type value identity) xs ~(id : (value, identity) id) : _ t =
   let module M = (val id) in
   S.t ~data:(N.fromSortedArrayUnsafe xs) ~cmp:M.cmp
 
@@ -225,12 +209,10 @@ let split d key =
   let len = A.length arr in
   if i < 0 then
     let next = -i - 1 in
-    ( ( S.t ~data:(N.fromSortedArrayAux arr 0 next) ~cmp,
-        S.t ~data:(N.fromSortedArrayAux arr next (len - next)) ~cmp ),
+    ( (S.t ~data:(N.fromSortedArrayAux arr 0 next) ~cmp, S.t ~data:(N.fromSortedArrayAux arr next (len - next)) ~cmp),
       false )
   else
-    ( ( S.t ~data:(N.fromSortedArrayAux arr 0 i) ~cmp,
-        S.t ~data:(N.fromSortedArrayAux arr (i + 1) (len - i - 1)) ~cmp ),
+    ( (S.t ~data:(N.fromSortedArrayAux arr 0 i) ~cmp, S.t ~data:(N.fromSortedArrayAux arr (i + 1) (len - i - 1)) ~cmp),
       true )
 
 let keepU d p = S.t ~data:(N.keepCopyU (S.data d) p) ~cmp:(S.cmp d)
@@ -261,9 +243,7 @@ let intersect a b : _ t =
         || p (A.getUnsafe tmp (totalSize - 1)) (A.getUnsafe tmp 0) < 0
       then S.t ~cmp ~data:N.empty
       else
-        let tmp2 =
-          A.makeUninitializedUnsafe (min sizea sizeb) (N.value dataa0)
-        in
+        let tmp2 = A.makeUninitializedUnsafe (min sizea sizeb) (N.value dataa0) in
         let k = Sort.intersectU tmp 0 sizea tmp sizea sizeb tmp2 0 p in
         S.t ~data:(N.fromSortedArrayAux tmp2 0 k) ~cmp
 

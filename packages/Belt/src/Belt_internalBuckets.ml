@@ -1,42 +1,28 @@
-[@@@ocaml.text
-"  Adapted by Authors of BuckleScript 2017                           "]
+[@@@ocaml.text "  Adapted by Authors of BuckleScript 2017                           "]
 
 module C = Belt_internalBucketsType
 
-type ('a, 'b) bucket = {
-  mutable key : 'a;
-  mutable value : 'b;
-  mutable next : ('a, 'b) bucket C.opt;
-}
-
+type ('a, 'b) bucket = { mutable key : 'a; mutable value : 'b; mutable next : ('a, 'b) bucket C.opt }
 and ('hash, 'eq, 'a, 'b) t = ('hash, 'eq, ('a, 'b) bucket) C.container
 
-let bucket : key:'a -> value:'b -> next:('a, 'b) bucket C.opt -> ('a, 'b) bucket
-    =
+let bucket : key:'a -> value:'b -> next:('a, 'b) bucket C.opt -> ('a, 'b) bucket =
  fun ~key ~value ~next -> { key; value; next }
 
 let keySet : ('a, 'b) bucket -> 'a -> unit = fun o v -> o.key <- v
 let key : ('a, 'b) bucket -> 'a = fun o -> o.key
 let valueSet : ('a, 'b) bucket -> 'b -> unit = fun o v -> o.value <- v
 let value : ('a, 'b) bucket -> 'b = fun o -> o.value
-
-let nextSet : ('a, 'b) bucket -> ('a, 'b) bucket C.opt -> unit =
- fun o v -> o.next <- v
-
+let nextSet : ('a, 'b) bucket -> ('a, 'b) bucket C.opt -> unit = fun o v -> o.next <- v
 let next : ('a, 'b) bucket -> ('a, 'b) bucket C.opt = fun o -> o.next
 
 module A = Belt_Array
 
 let rec copy (x : _ t) : _ t =
-  C.container ~hash:(C.hash x) ~eq:(C.eq x) ~size:(C.size x)
-    ~buckets:(copyBuckets (C.buckets x))
+  C.container ~hash:(C.hash x) ~eq:(C.eq x) ~size:(C.size x) ~buckets:(copyBuckets (C.buckets x))
 
 and copyBuckets (buckets : _ bucket C.opt array) =
   let len = A.length buckets in
-  let newBuckets =
-    if len > 0 then A.makeUninitializedUnsafe len (A.getUnsafe buckets 0)
-    else [||]
-  in
+  let newBuckets = if len > 0 then A.makeUninitializedUnsafe len (A.getUnsafe buckets 0) else [||] in
   for i = 0 to len - 1 do
     A.setUnsafe newBuckets i (copyBucket (A.getUnsafe buckets i))
   done;
@@ -59,9 +45,7 @@ and copyAuxCont c prec =
       copyAuxCont (next nc) ncopy
 
 let rec bucketLength accu buckets =
-  match C.toOpt buckets with
-  | None -> accu
-  | Some cell -> bucketLength (accu + 1) (next cell)
+  match C.toOpt buckets with None -> accu | Some cell -> bucketLength (accu + 1) (next cell)
 
 let rec do_bucket_iter ~f buckets =
   match C.toOpt buckets with
@@ -79,9 +63,7 @@ let forEachU h f =
 let forEach h f = forEachU h (fun a b -> f a b)
 
 let rec do_bucket_fold ~f b accu =
-  match C.toOpt b with
-  | None -> accu
-  | Some cell -> do_bucket_fold ~f (next cell) (f accu (key cell) (value cell))
+  match C.toOpt b with None -> accu | Some cell -> do_bucket_fold ~f (next cell) (f accu (key cell) (value cell))
 
 let reduceU h init f =
   let d = C.buckets h in
@@ -108,8 +90,7 @@ let getBucketHistogram h =
 
 let logStats h =
   let histogram = getBucketHistogram h in
-  Printf.printf "{\n\tbindings: %d,\n\tbuckets: %d\n\thistogram: %s\n}"
-    (C.size h)
+  Printf.printf "{\n\tbindings: %d,\n\tbuckets: %d\n\thistogram: %s\n}" (C.size h)
     (A.length (C.buckets h))
     (A.reduceU histogram "" (fun acc x -> acc ^ string_of_int x))
 
@@ -120,37 +101,26 @@ let rec filterMapInplaceBucket f h i prec cell =
       C.sizeSet h (C.size h - 1);
       match C.toOpt n with
       | Some nextCell -> filterMapInplaceBucket f h i prec nextCell
-      | None -> (
-          match C.toOpt prec with
-          | None -> A.setUnsafe (C.buckets h) i prec
-          | Some cell -> nextSet cell n))
+      | None -> ( match C.toOpt prec with None -> A.setUnsafe (C.buckets h) i prec | Some cell -> nextSet cell n))
   | Some data -> (
       let bucket = C.return cell in
-      (match C.toOpt prec with
-      | None -> A.setUnsafe (C.buckets h) i bucket
-      | Some c -> nextSet cell bucket);
+      (match C.toOpt prec with None -> A.setUnsafe (C.buckets h) i bucket | Some c -> nextSet cell bucket);
       valueSet cell data;
-      match C.toOpt n with
-      | None -> nextSet cell n
-      | Some nextCell -> filterMapInplaceBucket f h i bucket nextCell)
+      match C.toOpt n with None -> nextSet cell n | Some nextCell -> filterMapInplaceBucket f h i bucket nextCell)
 [@@ocaml.doc " iterate the Buckets, in place remove the elements "]
 
 let keepMapInPlaceU h f =
   let h_buckets = C.buckets h in
   for i = 0 to A.length h_buckets - 1 do
     let v = A.getUnsafe h_buckets i in
-    match C.toOpt v with
-    | None -> ()
-    | Some v -> filterMapInplaceBucket f h i C.emptyOpt v
+    match C.toOpt v with None -> () | Some v -> filterMapInplaceBucket f h i C.emptyOpt v
   done
 
 let keepMapInPlace h f = keepMapInPlaceU h (fun a b -> f a b)
 
 let rec fillArray i arr cell =
   A.setUnsafe arr i (key cell, value cell);
-  match C.toOpt (next cell) with
-  | None -> i + 1
-  | Some v -> fillArray (i + 1) arr v
+  match C.toOpt (next cell) with None -> i + 1 | Some v -> fillArray (i + 1) arr v
 
 let toArray h =
   let d = C.buckets h in
@@ -164,9 +134,7 @@ let toArray h =
         let arr =
           match !arr with
           | None ->
-              let a =
-                A.makeUninitializedUnsafe (C.size h) (key cell, value cell)
-              in
+              let a = A.makeUninitializedUnsafe (C.size h) (key cell, value cell) in
               arr := Some a;
               a
           | Some arr -> arr
@@ -177,9 +145,7 @@ let toArray h =
 
 let rec fillArrayMap i arr cell f =
   A.setUnsafe arr i (f cell);
-  match C.toOpt (next cell) with
-  | None -> i + 1
-  | Some v -> fillArrayMap (i + 1) arr v f
+  match C.toOpt (next cell) with None -> i + 1 | Some v -> fillArrayMap (i + 1) arr v f
 
 let linear h f =
   let d = C.buckets h in

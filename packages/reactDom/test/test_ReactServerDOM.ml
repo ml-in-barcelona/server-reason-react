@@ -2,8 +2,7 @@ let yojson = Alcotest.testable Yojson.Safe.pretty_print ( = )
 let check_json = Alcotest.check yojson "should be equal"
 let assert_json left right = Alcotest.check yojson "should be equal" right left
 
-let assert_list (type a) (ty : a Alcotest.testable) (left : a list)
-    (right : a list) =
+let assert_list (type a) (ty : a Alcotest.testable) (left : a list) (right : a list) =
   Alcotest.check (Alcotest.list ty) "should be equal" right left
 
 let assert_list_of_strings (left : string list) (right : string list) =
@@ -22,9 +21,7 @@ let test title fn =
           let epsilon = 0.001 in
           let duration = Unix.gettimeofday () -. start in
           if abs_float duration >= epsilon then
-            Printf.printf
-              "\027[1m\027[33m[WARNING]\027[0m Test '%s' took %.3f seconds\n"
-              title duration
+            Printf.printf "\027[1m\027[33m[WARNING]\027[0m Test '%s' took %.3f seconds\n" title duration
           else ();
           Lwt.return test_promise);
     ] )
@@ -55,19 +52,14 @@ let string_element () =
   assert_stream stream [ "0:\"hi\"\n" ]
 
 let lower_case_component () =
-  let app =
-    React.createElement "div" (ReactDOM.domProps ~className:"foo" ()) []
-  in
+  let app = React.createElement "div" (ReactDOM.domProps ~className:"foo" ()) [] in
   let%lwt stream = ReactServerDOM.render_to_model app in
   assert_stream stream [ "0:[\"$\",\"div\",null,{\"className\":\"foo\"}]\n" ]
 
 let lower_case_with_children () =
   let app =
     React.createElement "div" []
-      [
-        React.createElement "span" [] [ React.string "Home" ];
-        React.createElement "span" [] [ React.string "Nohome" ];
-      ]
+      [ React.createElement "span" [] [ React.string "Home" ]; React.createElement "span" [] [ React.string "Nohome" ] ]
   in
   let%lwt stream = ReactServerDOM.render_to_model app in
   assert_stream stream
@@ -81,11 +73,7 @@ let lower_case_component_nested () =
       (fun () ->
         React.createElement "div" []
           [
-            React.createElement "section" []
-              [
-                React.createElement "article" []
-                  [ React.string "Deep Server Content" ];
-              ];
+            React.createElement "section" [] [ React.createElement "article" [] [ React.string "Deep Server Content" ] ];
           ])
   in
   let%lwt stream = ReactServerDOM.render_to_model (app ()) in
@@ -100,8 +88,7 @@ let dangerouslySetInnerHtml () =
   let app =
     React.createElement "script"
       [
-        React.JSX.String ("type", "type", "application/javascript");
-        React.JSX.DangerouslyInnerHtml "console.log('Hi!')";
+        React.JSX.String ("type", "type", "application/javascript"); React.JSX.DangerouslyInnerHtml "console.log('Hi!')";
       ]
       []
   in
@@ -119,8 +106,7 @@ let upper_case_component () =
         React.createElement "span" [] [ React.string text ])
   in
   let%lwt stream = ReactServerDOM.render_to_model (app true) in
-  assert_stream stream
-    [ "1:[\"$\",\"span\",null,{\"children\":\"foo\"}]\n"; "0:\"$1\"\n" ]
+  assert_stream stream [ "1:[\"$\",\"span\",null,{\"children\":\"foo\"}]\n"; "0:\"$1\"\n" ]
 
 let text ~children () = React.createElement "span" [] children
 
@@ -163,8 +149,7 @@ let upper_case_with_children () =
 
 let suspense_without_promise () =
   let app () =
-    React.Suspense.make
-      ~fallback:(React.string "Loading...")
+    React.Suspense.make ~fallback:(React.string "Loading...")
       ~children:
         (React.createElement "div" []
            [
@@ -190,19 +175,11 @@ let immediate_suspense () =
         let value = "DONE :)" in
         Lwt.return (React.string value))
   in
-  let app () =
-    React.Suspense.make
-      ~fallback:(React.string "Loading...")
-      ~children:suspended_component ()
-  in
+  let app () = React.Suspense.make ~fallback:(React.string "Loading...") ~children:suspended_component () in
   let main = React.Upper_case_component app in
   let%lwt stream = ReactServerDOM.render_to_model main in
   assert_stream stream
-    [
-      "1:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"DONE \
-       :)\"}]\n";
-      "0:\"$1\"\n";
-    ]
+    [ "1:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"DONE :)\"}]\n"; "0:\"$1\"\n" ]
 
 let delayed_value ?(ms = 100) value =
   let%lwt () = Lwt_unix.sleep (Int.to_float ms /. 100.0) in
@@ -216,11 +193,7 @@ let suspense () =
         let+ value = delayed_value "DONE :)" in
         React.string value)
   in
-  let app () =
-    React.Suspense.make
-      ~fallback:(React.string "Loading...")
-      ~children:suspended_component ()
-  in
+  let app () = React.Suspense.make ~fallback:(React.string "Loading...") ~children:suspended_component () in
   let main = React.Upper_case_component app in
   let%lwt stream = ReactServerDOM.render_to_model main in
   assert_stream stream
@@ -250,8 +223,7 @@ let client_without_props () =
   assert_stream stream
     [
       "2:I[\"./client-without-props.js\",[],\"ClientWithoutProps\"]\n";
-      "1:[[\"$\",\"div\",null,{\"children\":\"Server \
-       Content\"}],[\"$\",\"$2\",null,{}]]\n";
+      "1:[[\"$\",\"div\",null,{\"children\":\"Server Content\"}],[\"$\",\"$2\",null,{}]]\n";
       "0:\"$1\"\n";
     ]
 
@@ -272,13 +244,8 @@ let client_with_json_props () =
                     ("float", React.Json (`Float 1.1));
                     ("bool true", React.Json (`Bool true));
                     ("bool false", React.Json (`Bool false));
-                    ( "string list",
-                      React.Json (`List [ `String "Item 1"; `String "Item 2" ])
-                    );
-                    ( "object",
-                      React.Json
-                        (`Assoc [ ("name", `String "John"); ("age", `Int 30) ])
-                    );
+                    ("string list", React.Json (`List [ `String "Item 1"; `String "Item 2" ]));
+                    ("object", React.Json (`Assoc [ ("name", `String "John"); ("age", `Int 30) ]));
                   ];
                 client = React.string "Client with Props";
                 import_module = "./client-with-props.js";
@@ -306,10 +273,7 @@ let client_with_element_props () =
             React.createElement "div" [] [ React.string "Server Content" ];
             React.Client_component
               {
-                props =
-                  [
-                    ("children", React.Element (React.string "Client Content"));
-                  ];
+                props = [ ("children", React.Element (React.string "Client Content")) ];
                 client = React.string "Client with Props";
                 import_module = "./client-with-props.js";
                 import_name = "ClientWithProps";
@@ -320,8 +284,7 @@ let client_with_element_props () =
   assert_stream stream
     [
       "2:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n";
-      "1:[[\"$\",\"div\",null,{\"children\":\"Server \
-       Content\"}],[\"$\",\"$2\",null,{\"children\":\"Client Content\"}]]\n";
+      "1:[[\"$\",\"div\",null,{\"children\":\"Server Content\"}],[\"$\",\"$2\",null,{\"children\":\"Client Content\"}]]\n";
       "0:\"$1\"\n";
     ]
 
@@ -335,12 +298,7 @@ let client_with_promise_props () =
             React.Client_component
               {
                 props =
-                  [
-                    ( "promise",
-                      React.Promise
-                        ( delayed_value ~ms:200 "||| Resolved |||",
-                          fun res -> `String res ) );
-                  ];
+                  [ ("promise", React.Promise (delayed_value ~ms:200 "||| Resolved |||", fun res -> `String res)) ];
                 client = React.string "Client with Props";
                 import_module = "./client-with-props.js";
                 import_name = "ClientWithProps";
@@ -351,8 +309,7 @@ let client_with_promise_props () =
   assert_stream stream
     [
       "2:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n";
-      "1:[[\"$\",\"div\",null,{\"children\":\"Server \
-       Content\"}],[\"$\",\"$2\",null,{\"promise\":\"$@3\"}]]\n";
+      "1:[[\"$\",\"div\",null,{\"children\":\"Server Content\"}],[\"$\",\"$2\",null,{\"promise\":\"$@3\"}]]\n";
       "0:\"$1\"\n";
       "3:\"||| Resolved |||\"\n";
     ]
@@ -365,20 +322,10 @@ let mixed_server_and_client () =
           [|
             React.createElement "header" [] [ React.string "Server Header" ];
             React.Client_component
-              {
-                props = [];
-                client = React.string "Client 1";
-                import_module = "./client-1.js";
-                import_name = "Client1";
-              };
+              { props = []; client = React.string "Client 1"; import_module = "./client-1.js"; import_name = "Client1" };
             React.createElement "footer" [] [ React.string "Server Footer" ];
             React.Client_component
-              {
-                props = [];
-                client = React.string "Client 2";
-                import_module = "./client-2.js";
-                import_name = "Client2";
-              };
+              { props = []; client = React.string "Client 2"; import_module = "./client-2.js"; import_name = "Client2" };
           |])
   in
   let%lwt stream = ReactServerDOM.render_to_model (app ()) in

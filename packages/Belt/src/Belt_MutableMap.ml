@@ -9,19 +9,11 @@ type ('key, 'id) cmp = ('key, 'id) Belt_Id.cmp
 module S = struct
   include (
     struct
-      type ('k, 'v, 'id) t = {
-        cmp : ('k, 'id) cmp;
-        mutable data : ('k, 'v) N.t;
-      }
+      type ('k, 'v, 'id) t = { cmp : ('k, 'id) cmp; mutable data : ('k, 'v) N.t }
 
-      let t : cmp:('k, 'id) cmp -> data:('k, 'v) N.t -> ('k, 'v, 'id) t =
-       fun ~cmp ~data -> { cmp; data }
-
+      let t : cmp:('k, 'id) cmp -> data:('k, 'v) N.t -> ('k, 'v, 'id) t = fun ~cmp ~data -> { cmp; data }
       let cmp : ('k, 'v, 'id) t -> ('k, 'id) cmp = fun o -> o.cmp
-
-      let dataSet : ('k, 'v, 'id) t -> ('k, 'v) N.t -> unit =
-       fun o v -> o.data <- v
-
+      let dataSet : ('k, 'v, 'id) t -> ('k, 'v) N.t -> unit = fun o v -> o.data <- v
       let data : ('k, 'v, 'id) t -> ('k, 'v) N.t = fun o -> o.data
     end :
       sig
@@ -78,9 +70,7 @@ let rec removeArrayMutateAux t xs i len ~cmp =
   if i < len then
     let ele = A.getUnsafe xs i in
     let u = removeMutateAux t ele ~cmp in
-    match N.toOpt u with
-    | None -> N.empty
-    | Some t -> removeArrayMutateAux t xs (i + 1) len ~cmp
+    match N.toOpt u with None -> N.empty | Some t -> removeArrayMutateAux t xs (i + 1) len ~cmp
   else N.return t
 
 let removeMany d xs =
@@ -157,8 +147,7 @@ let toArray d = N.toArray (S.data d)
 let keysToArray d = N.keysToArray (S.data d)
 let valuesToArray d = N.valuesToArray (S.data d)
 
-let fromSortedArrayUnsafe (type key identity) ~(id : (key, identity) id) xs :
-    _ t =
+let fromSortedArrayUnsafe (type key identity) ~(id : (key, identity) id) xs : _ t =
   let module M = (val id) in
   S.t ~data:(N.fromSortedArrayUnsafe xs) ~cmp:M.cmp
 

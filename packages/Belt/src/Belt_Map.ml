@@ -19,17 +19,12 @@ type ('k, 'v, 'id) t = { cmp : ('k, 'id) cmp; data : ('k, 'v, 'id) Dict.t }
 module S = struct
   include (
     struct
-      let t : cmp:('k, 'id) cmp -> data:('k, 'v, 'id) Dict.t -> ('k, 'v, 'id) t
-          =
-       fun ~cmp ~data -> { cmp; data }
-
+      let t : cmp:('k, 'id) cmp -> data:('k, 'v, 'id) Dict.t -> ('k, 'v, 'id) t = fun ~cmp ~data -> { cmp; data }
       let cmp : ('k, 'v, 'id) t -> ('k, 'id) cmp = fun o -> o.cmp
       let data : ('k, 'v, 'id) t -> ('k, 'v, 'id) Dict.t = fun o -> o.data
     end :
       sig
-        val t :
-          cmp:('k, 'id) cmp -> data:('k, 'v, 'id) Dict.t -> ('k, 'v, 'id) t
-
+        val t : cmp:('k, 'id) cmp -> data:('k, 'v, 'id) Dict.t -> ('k, 'v, 'id) t
         val cmp : ('k, 'v, 'id) t -> ('k, 'id) cmp
         val data : ('k, 'v, 'id) t -> ('k, 'v, 'id) Dict.t
       end)
@@ -119,10 +114,7 @@ let maximum m = Dict.maximum (S.data m)
 let maxUndefined m = Dict.maxUndefined (S.data m)
 let get map x = Dict.get ~cmp:(S.cmp map) (S.data map) x
 let getUndefined map x = Dict.getUndefined ~cmp:(S.cmp map) (S.data map) x
-
-let getWithDefault map x def =
-  Dict.getWithDefault ~cmp:(S.cmp map) (S.data map) x def
-
+let getWithDefault map x def = Dict.getWithDefault ~cmp:(S.cmp map) (S.data map) x def
 let getExn map x = Dict.getExn ~cmp:(S.cmp map) (S.data map) x
 let has map x = Dict.has ~cmp:(S.cmp map) (S.data map) x
 let checkInvariantInternal m = Dict.checkInvariantInternal (S.data m)

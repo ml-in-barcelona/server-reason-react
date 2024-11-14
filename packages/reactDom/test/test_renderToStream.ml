@@ -1,8 +1,5 @@
-let assert_string left right =
-  Alcotest.check Alcotest.string "should be equal" right left
-
-let assert_list ty left right =
-  Alcotest.check (Alcotest.list ty) "should be equal" right left
+let assert_string left right = Alcotest.check Alcotest.string "should be equal" right left
+let assert_list ty left right = Alcotest.check (Alcotest.list ty) "should be equal" right left
 
 let test title fn =
   ( Printf.sprintf "ReactDOM.renderToStream / %s" title,
@@ -17,9 +14,7 @@ let test title fn =
           let epsilon = 0.001 in
           let duration = Unix.gettimeofday () -. start in
           if abs_float duration >= epsilon then
-            Printf.printf
-              "\027[1m\027[33m[WARNING]\027[0m Test '%s' took %.3f seconds\n"
-              title duration
+            Printf.printf "\027[1m\027[33m[WARNING]\027[0m Test '%s' took %.3f seconds\n" title duration
           else ();
           Lwt.return test_promise);
     ] )
@@ -55,11 +50,7 @@ let react_use_without_suspense () =
     React.Upper_case_component
       (fun () ->
         let delay = React.Experimental.use (Sleep.delay 0.01) in
-        React.createElement "div" []
-          [
-            React.createElement "span" []
-              [ React.string "Hello "; React.float delay ];
-          ])
+        React.createElement "div" [] [ React.createElement "span" [] [ React.string "Hello "; React.float delay ] ])
   in
   let%lwt stream, _abort = ReactDOM.renderToStream app in
   assert_stream stream [ "<div><span>Hello 0.01</span></div>" ]
@@ -68,60 +59,39 @@ let rsc_script replacement =
   Printf.sprintf
     "<script>function \
      $RC(a,b){a=document.getElementById(a);b=document.getElementById(b);b.parentNode.removeChild(b);if(a){a=a.previousSibling;var \
-     f=a.parentNode,c=a.nextSibling,e=0;do{if(c&&8===c.nodeType){var \
-     d=c.data;if(\"/$\"===d)if(0===e)break;else \
+     f=a.parentNode,c=a.nextSibling,e=0;do{if(c&&8===c.nodeType){var d=c.data;if(\"/$\"===d)if(0===e)break;else \
      e--;else\"$\"!==d&&\"$?\"!==d&&\"$!\"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data=\"$\";a._reactRetry&&a._reactRetry()}}%s</script>"
     replacement
 
 let suspense_without_promise () =
   let hi =
     React.Upper_case_component
-      (fun () ->
-        React.createElement "div" []
-          [ React.createElement "span" [] [ React.string "Hello" ] ])
+      (fun () -> React.createElement "div" [] [ React.createElement "span" [] [ React.string "Hello" ] ])
   in
-  let app () =
-    React.Suspense.make ~fallback:(React.string "Loading...") ~children:hi ()
-  in
-  let%lwt stream, _abort =
-    ReactDOM.renderToStream (React.Upper_case_component app)
-  in
+  let app () = React.Suspense.make ~fallback:(React.string "Loading...") ~children:hi () in
+  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component app) in
   assert_stream stream [ "<div><span>Hello</span></div>" ]
 
 let assert_raises exn fn =
   match%lwt fn () with
-  | exception exn ->
-      Lwt.return
-        (assert_string (Printexc.to_string exn) (Printexc.to_string exn))
+  | exception exn -> Lwt.return (assert_string (Printexc.to_string exn) (Printexc.to_string exn))
   | _ -> Alcotest.failf "Expected exception %s" (Printexc.to_string exn)
 
 let component_always_throwing () =
-  let app () =
-    React.Upper_case_component (fun () -> raise (Failure "always throwing"))
-  in
-  assert_raises (Failure "always throwing") (fun () ->
-      ReactDOM.renderToStream (React.Upper_case_component app))
+  let app () = React.Upper_case_component (fun () -> raise (Failure "always throwing")) in
+  assert_raises (Failure "always throwing") (fun () -> ReactDOM.renderToStream (React.Upper_case_component app))
 
 let suspense_with_always_throwing () =
   (* This test is very fragile since it relies on the stack trace being the same (so line numbers and methods should match).
      We disable backtracing to avoid having to match the backtrace *)
   Printexc.record_backtrace false;
-  let hi =
-    React.Upper_case_component (fun () -> raise (Failure "always throwing"))
-  in
-  let app () =
-    React.Suspense.make ~fallback:(React.string "Loading...") ~children:hi ()
-  in
-  let%lwt stream, _abort =
-    ReactDOM.renderToStream (React.Upper_case_component app)
-  in
+  let hi = React.Upper_case_component (fun () -> raise (Failure "always throwing")) in
+  let app () = React.Suspense.make ~fallback:(React.string "Loading...") ~children:hi () in
+  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component app) in
   (* and we need to enable it back, I guess! *)
   Printexc.record_backtrace true;
   assert_stream stream
-    [
-      "<!--$!--><template data-msg=\"Failure(&quot;always throwing&quot;)\n\
-       \"></template>Loading...<!--/$-->";
-    ]
+    [ "<!--$!--><template data-msg=\"Failure(&quot;always throwing&quot;)\n\"></template>Loading...<!--/$-->" ]
 
 let suspense_with_react_use () =
   Sleep.destroy ();
@@ -129,18 +99,10 @@ let suspense_with_react_use () =
     React.Upper_case_component
       (fun () ->
         let delay = React.Experimental.use (Sleep.delay 0.05) in
-        React.createElement "div" []
-          [
-            React.createElement "span" []
-              [ React.string "Hello "; React.float delay ];
-          ])
+        React.createElement "div" [] [ React.createElement "span" [] [ React.string "Hello "; React.float delay ] ])
   in
-  let app () =
-    React.Suspense.make ~fallback:(React.string "Loading...") ~children:time ()
-  in
-  let%lwt stream, _abort =
-    ReactDOM.renderToStream (React.Upper_case_component app)
-  in
+  let app () = React.Suspense.make ~fallback:(React.string "Loading...") ~children:time () in
+  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component app) in
   assert_stream stream
     [
       "<!--$?--><template id=\"B:0\"></template>Loading...<!--/$-->";
@@ -151,44 +113,24 @@ let suspense_with_react_use () =
 let test_with_custom_component () =
   let custom_component =
     React.Upper_case_component
-      (fun () ->
-        React.createElement "div" []
-          [ React.createElement "span" [] [ React.string "Custom Component" ] ])
+      (fun () -> React.createElement "div" [] [ React.createElement "span" [] [ React.string "Custom Component" ] ])
   in
   let app () = React.createElement "div" [] [ custom_component ] in
-  let%lwt stream, _abort =
-    ReactDOM.renderToStream (React.Upper_case_component app)
-  in
+  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component app) in
   assert_stream stream [ "<div><div><span>Custom Component</span></div></div>" ]
 
 let test_with_multiple_custom_components () =
   let custom_component =
     React.Upper_case_component
-      (fun () ->
-        React.createElement "div" []
-          [ React.createElement "span" [] [ React.string "Custom Component" ] ])
+      (fun () -> React.createElement "div" [] [ React.createElement "span" [] [ React.string "Custom Component" ] ])
   in
-  let app () =
-    React.createElement "div" [] [ custom_component; custom_component ]
-  in
-  let%lwt stream, _abort =
-    ReactDOM.renderToStream (React.Upper_case_component app)
-  in
-  assert_stream stream
-    [
-      "<div><div><span>Custom Component</span></div><div><span>Custom \
-       Component</span></div></div>";
-    ]
+  let app () = React.createElement "div" [] [ custom_component; custom_component ] in
+  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component app) in
+  assert_stream stream [ "<div><div><span>Custom Component</span></div><div><span>Custom Component</span></div></div>" ]
 
 let async_component () =
-  let app () =
-    React.Async_component
-      (fun () ->
-        Lwt.return (React.createElement "span" [] [ React.string "yow" ]))
-  in
-  let%lwt stream, _abort =
-    ReactDOM.renderToStream (React.Upper_case_component app)
-  in
+  let app () = React.Async_component (fun () -> Lwt.return (React.createElement "span" [] [ React.string "yow" ])) in
+  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component app) in
   assert_stream stream [ "<span>yow</span>" ]
 
 let suspense_with_async_component () =
@@ -198,25 +140,17 @@ let suspense_with_async_component () =
         let%lwt () = Lwt_unix.sleep seconds in
         Lwt.return
           (React.createElement "div" []
-             [
-               React.string ("Sleep " ^ Float.to_string seconds ^ " seconds");
-               React.string ", ";
-               children;
-             ]))
+             [ React.string ("Sleep " ^ Float.to_string seconds ^ " seconds"); React.string ", "; children ]))
   in
   let app () =
     React.createElement "div" []
       [
-        React.Suspense.make
-          ~fallback:(React.string "Fallback 1")
-          ~children:
-            (deffered_component ~seconds:0.02 ~children:(React.string "lol") ())
+        React.Suspense.make ~fallback:(React.string "Fallback 1")
+          ~children:(deffered_component ~seconds:0.02 ~children:(React.string "lol") ())
           ();
       ]
   in
-  let%lwt stream, _abort =
-    ReactDOM.renderToStream (React.Upper_case_component app)
-  in
+  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component app) in
   assert_stream stream
     [
       "<div><!--$?--><template id=\"B:0\"></template>Fallback 1<!--/$--></div>";
@@ -231,35 +165,25 @@ let suspense_with_nested_suspense () =
         let%lwt () = Lwt_unix.sleep seconds in
         Lwt.return
           (React.createElement "div" []
-             [
-               React.string ("Sleep " ^ Float.to_string seconds ^ " seconds");
-               React.string ", ";
-               children;
-             ]))
+             [ React.string ("Sleep " ^ Float.to_string seconds ^ " seconds"); React.string ", "; children ]))
   in
   let app () =
-    React.Suspense.make
-      ~fallback:(React.string "Fallback 1")
+    React.Suspense.make ~fallback:(React.string "Fallback 1")
       ~children:
         (deffered_component ~seconds:0.02
            ~children:
-             (React.Suspense.make
-                ~fallback:(React.string "Fallback 2")
-                ~children:
-                  (deffered_component ~seconds:0.02
-                     ~children:(React.string "lol") ())
+             (React.Suspense.make ~fallback:(React.string "Fallback 2")
+                ~children:(deffered_component ~seconds:0.02 ~children:(React.string "lol") ())
                 ())
            ())
       ()
   in
-  let%lwt stream, _abort =
-    ReactDOM.renderToStream (React.Upper_case_component app)
-  in
+  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component app) in
   assert_stream stream
     [
       "<!--$?--><template id=\"B:0\"></template>Fallback 1<!--/$-->";
-      "<div hidden id=\"S:0\"><div>Sleep 0.02 seconds, <!--$?--><template \
-       id=\"B:1\"></template>Fallback 2<!--/$--></div></div>";
+      "<div hidden id=\"S:0\"><div>Sleep 0.02 seconds, <!--$?--><template id=\"B:1\"></template>Fallback \
+       2<!--/$--></div></div>";
       rsc_script "$RC('B:0','S:0')";
       "<div hidden id=\"S:1\"><div>Sleep 0.02 seconds, lol</div></div>";
       "<script>$RC('B:1','S:1')</script>";
@@ -271,21 +195,12 @@ let async_component_without_suspense () =
       let%lwt () = Lwt_unix.sleep seconds in
       Lwt.return
         (React.createElement "div" []
-           [
-             React.string ("Sleep " ^ Float.to_string seconds ^ " seconds");
-             React.string ", ";
-             children;
-           ])
+           [ React.string ("Sleep " ^ Float.to_string seconds ^ " seconds"); React.string ", "; children ])
     in
     React.Async_component (fun () -> cached_promise)
   in
-  let app () =
-    React.createElement "div" []
-      [ deffered_component ~seconds:0.02 ~children:(React.string "lol") () ]
-  in
-  let%lwt stream, _abort =
-    ReactDOM.renderToStream (React.Upper_case_component app)
-  in
+  let app () = React.createElement "div" [] [ deffered_component ~seconds:0.02 ~children:(React.string "lol") () ] in
+  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component app) in
   assert_stream stream [ "<div><div>Sleep 0.02 seconds, lol</div></div>" ]
 
 let tests =

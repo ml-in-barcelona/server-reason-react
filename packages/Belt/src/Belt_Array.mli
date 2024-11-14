@@ -305,8 +305,7 @@ val fill : 'a t -> offset:int -> len:int -> 'a -> unit
     ]}
  *)
 
-val blit :
-  src:'a t -> srcOffset:int -> dst:'a t -> dstOffset:int -> len:int -> unit
+val blit : src:'a t -> srcOffset:int -> dst:'a t -> dstOffset:int -> len:int -> unit
 (** [blit ~src:v1 ~srcOffset:o1 ~dst:v2 ~dstOffset:o2 ~len]
 
     copies [len] elements
@@ -332,8 +331,7 @@ val blit :
 
 *)
 
-val blitUnsafe :
-  src:'a t -> srcOffset:int -> dst:'a t -> dstOffset:int -> len:int -> unit
+val blitUnsafe : src:'a t -> srcOffset:int -> dst:'a t -> dstOffset:int -> len:int -> unit
 (**
    {b Unsafe} blit without bounds checking
 *)
@@ -521,8 +519,7 @@ val reduceReverse : 'b array -> 'a -> ('a -> 'b -> 'a) -> 'a
     ]}
 *)
 
-val reduceReverse2U :
-  'a t -> 'b array -> 'c -> (('c -> 'a -> 'b -> 'c)[@bs]) -> 'c
+val reduceReverse2U : 'a t -> 'b array -> 'c -> (('c -> 'a -> 'b -> 'c)[@bs]) -> 'c
 
 val reduceReverse2 : 'a t -> 'b array -> 'c -> ('c -> 'a -> 'b -> 'c) -> 'c
 (**

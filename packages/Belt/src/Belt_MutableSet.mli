@@ -20,20 +20,9 @@ type ('k, 'id) t = ('k, 'id) S.t
 
 val remove0 : 'a N.node -> 'b -> cmp:('b -> 'a -> int) -> 'a N.t
 val remove : ('a, 'b) S.t -> 'a -> unit
-
-val removeMany0 :
-  'a N.node ->
-  'weak237 A.t ->
-  int ->
-  int ->
-  cmp:('weak237 -> 'a -> int) ->
-  'a N.node option
-
+val removeMany0 : 'a N.node -> 'weak237 A.t -> int -> int -> cmp:('weak237 -> 'a -> int) -> 'a N.node option
 val removeMany : ('a, 'b) S.t -> 'a A.t -> unit
-
-val removeCheck0 :
-  'a N.node -> 'a -> bool ref -> cmp:('a -> 'a -> int) -> 'a N.t
-
+val removeCheck0 : 'a N.node -> 'a -> bool ref -> cmp:('a -> 'a -> int) -> 'a N.t
 val removeCheck : ('a, 'b) S.t -> 'a -> bool
 val addCheck0 : 'a N.t -> 'a -> bool ref -> cmp:('a -> 'a -> int) -> 'a N.t
 val addCheck : ('a, 'b) S.t -> 'a -> bool
@@ -57,10 +46,7 @@ val some : ('a, 'b) S.t -> ('a -> bool) -> bool
 val size : ('a, 'b) S.t -> int
 val toList : ('a, 'b) S.t -> 'a list
 val toArray : ('a, 'b) S.t -> 'a array
-
-val fromSortedArrayUnsafe :
-  'value A.t -> id:('value, 'identity) id -> ('value, 'a) t
-
+val fromSortedArrayUnsafe : 'value A.t -> id:('value, 'identity) id -> ('value, 'a) t
 val checkInvariantInternal : ('a, 'b) S.t -> unit
 val fromArray : 'value array -> id:('value, 'identity) id -> ('value, 'a) S.t
 val cmp : ('a, 'b) S.t -> ('a, 'c) S.t -> int

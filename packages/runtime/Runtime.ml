@@ -13,7 +13,6 @@ Here's the raw callstack:
 |}
       fn raw_callstack
   in
-  raise
-    (Impossible_in_ssr (Printf.sprintf {|'%s' shouldn't run on the server|} fn))
+  raise (Impossible_in_ssr (Printf.sprintf {|'%s' shouldn't run on the server|} fn))
 
 type platform = Server | Client

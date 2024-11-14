@@ -1,8 +1,5 @@
 type 'value ref = { mutable current : 'value }
-
-type domRef =
-  | CallbackDomRef of (Dom.element Js.nullable -> unit)
-  | CurrentDomRef of Dom.element Js.nullable ref
+type domRef = CallbackDomRef of (Dom.element Js.nullable -> unit) | CurrentDomRef of Dom.element Js.nullable ref
 
 module Ref = struct
   type t = domRef
@@ -376,20 +373,10 @@ end
 
 (* TODO: Merge Fragment and List *)
 type element =
-  | Lower_case_element of {
-      key : string option;
-      tag : string;
-      attributes : JSX.prop list;
-      children : element list;
-    }
+  | Lower_case_element of { key : string option; tag : string; attributes : JSX.prop list; children : element list }
   | Upper_case_component of (unit -> element)
   | Async_component of (unit -> element Lwt.t)
-  | Client_component of {
-      props : client_props;
-      client : element;
-      import_module : string;
-      import_name : string;
-    }
+  | Client_component of { props : client_props; client : element; import_module : string; import_name : string }
   | List of element array
   | Text of string
   | InnerHtml of string
@@ -411,18 +398,15 @@ exception Invalid_children of string
 
 let compare_attribute (left : JSX.prop) (right : JSX.prop) =
   match (left, right) with
-  | Bool (left_key, _, _), Bool (right_key, _, _)
-  | String (left_key, _, _), String (right_key, _, _) ->
+  | Bool (left_key, _, _), Bool (right_key, _, _) | String (left_key, _, _), String (right_key, _, _) ->
       String.compare left_key right_key
-  | Style left_styles, Style right_styles ->
-      String.compare left_styles right_styles
+  | Style left_styles, Style right_styles -> String.compare left_styles right_styles
   | _ -> 0
 
 let clone_attribute acc (attr : JSX.prop) (new_attr : JSX.prop) =
   match (attr, new_attr) with
   | Bool (left, _, _), Bool (right, _, _) when left == right -> new_attr :: acc
-  | String (left, _, _), String (right, _, _) when left == right ->
-      new_attr :: acc
+  | String (left, _, _), String (right, _, _) when left == right -> new_attr :: acc
   | _ -> new_attr :: acc
 
 module StringMap = Map.Make (String)
@@ -431,8 +415,7 @@ let attributes_to_map attributes =
   List.fold_left
     (fun acc (attr : JSX.prop) ->
       match attr with
-      | (Bool (key, _, _) | String (key, _, _)) as prop ->
-          acc |> StringMap.add key prop
+      | (Bool (key, _, _) | String (key, _, _)) as prop -> acc |> StringMap.add key prop
       (* The following constructors shoudn't be part of the StringMap *)
       | DangerouslyInnerHtml _ -> acc
       | Ref _ -> acc
@@ -453,8 +436,7 @@ let clone_attributes attributes new_attributes =
     attribute_map new_attribute_map
   |> StringMap.bindings
   |> List.map (fun (_, attrs) -> attrs)
-  |> List.flatten |> List.rev
-  |> List.sort compare_attribute
+  |> List.flatten |> List.rev |> List.sort compare_attribute
 
 let create_element_with_key ?(key = None) tag attributes children =
   match Html.is_self_closing_tag tag with
@@ -473,29 +455,18 @@ let createElementWithKey = create_element_with_key
 let cloneElement element new_attributes =
   match element with
   | Lower_case_element { key; tag; attributes; children } ->
-      Lower_case_element
-        {
-          key;
-          tag;
-          attributes = clone_attributes attributes new_attributes;
-          children;
-        }
-  | Upper_case_component _ ->
-      raise
-        (Invalid_argument "In server-reason-react, a component can't be cloned")
+      Lower_case_element { key; tag; attributes = clone_attributes attributes new_attributes; children }
+  | Upper_case_component _ -> raise (Invalid_argument "In server-reason-react, a component can't be cloned")
   | Fragment _ -> raise (Invalid_argument "can't clone a fragment")
   | Text _ -> raise (Invalid_argument "can't clone a text element")
-  | InnerHtml _ ->
-      raise (Invalid_argument "can't clone a dangerouslySetInnerHTML element")
+  | InnerHtml _ -> raise (Invalid_argument "can't clone a dangerouslySetInnerHTML element")
   | Empty -> raise (Invalid_argument "can't clone a null element")
   | List _ -> raise (Invalid_argument "can't clone an array element")
   | Provider _ -> raise (Invalid_argument "can't clone a Provider")
   | Consumer _ -> raise (Invalid_argument "can't clone a Consumer")
-  | Async_component _ ->
-      raise (Invalid_argument "can't clone an async component")
+  | Async_component _ -> raise (Invalid_argument "can't clone an async component")
   | Suspense _ -> raise (Invalid_argument "can't clone a Supsense component")
-  | Client_component _ ->
-      raise (Invalid_argument "can't clone a Client component")
+  | Client_component _ -> raise (Invalid_argument "can't clone a Client component")
 
 module Fragment = struct
   let make ~children ?key:_ () = Fragment children
@@ -526,12 +497,7 @@ let list_to_array list =
 let list l = List (list_to_array l)
 
 type 'a provider = value:'a -> children:element -> unit -> element
-
-type 'a context = {
-  current_value : 'a ref;
-  provider : 'a provider;
-  consumer : children:element -> element;
-}
+type 'a context = { current_value : 'a ref; provider : 'a provider; consumer : children:element -> element }
 
 module Context = struct
   type 'a t = 'a context
@@ -552,12 +518,7 @@ module Suspense = struct
   let or_react_null = function None -> null | Some x -> x
 
   let make ?(key = None) ?fallback ?children () =
-    Suspense
-      {
-        key;
-        fallback = or_react_null fallback;
-        children = or_react_null children;
-      }
+    Suspense { key; fallback = or_react_null fallback; children = or_react_null children }
 end
 
 (* let memo f : 'props * 'props -> bool = f
@@ -576,11 +537,7 @@ let useState (make_initial_value : unit -> 'state) =
 type ('input, 'output) callback = 'input -> 'output
 
 let useSyncExternalStore ~subscribe:_ ~getSnapshot = getSnapshot ()
-
-let useSyncExternalStoreWithServer ~subscribe:_ ~getSnapshot:_
-    ~getServerSnapshot =
-  getServerSnapshot ()
-
+let useSyncExternalStoreWithServer ~subscribe:_ ~getSnapshot:_ ~getServerSnapshot = getServerSnapshot ()
 let internal_id = ref 0
 
 let useId () =
@@ -623,15 +580,11 @@ let useLayoutEffect6 _ _ = ()
 
 module Children = struct
   let map element fn =
-    match element with
-    | List children -> Array.map fn children |> Array.to_list |> list
-    | _ -> fn element
+    match element with List children -> Array.map fn children |> Array.to_list |> list | _ -> fn element
 
   let mapWithIndex element fn =
     match element with
-    | List children ->
-        Array.mapi (fun index element -> fn element index) children
-        |> Array.to_list |> list
+    | List children -> Array.mapi (fun index element -> fn element index) children |> Array.to_list |> list
     | _ -> fn element 0
 
   let forEach element fn =
@@ -643,17 +596,12 @@ module Children = struct
 
   let forEachWithIndex element fn =
     match element with
-    | List children ->
-        Array.iteri (fun index element -> fn element index) children
+    | List children -> Array.iteri (fun index element -> fn element index) children
     | _ ->
         let _ = fn element 0 in
         ()
 
-  let count element =
-    match element with
-    | List children -> Array.length children
-    | Empty -> 0
-    | _ -> 1
+  let count element = match element with List children -> Array.length children | Empty -> 0 | _ -> 1
 
   let only element =
     match element with
@@ -667,10 +615,7 @@ end
 
 let setDisplayName _ _ = ()
 let useTransition () = (false, fun (_cb : unit -> unit) -> ())
-
-let useDebugValue : 'value -> ?format:('value -> string) -> unit =
- fun [@warning "-16"] _ ?format:_ -> ()
-
+let useDebugValue : 'value -> ?format:('value -> string) -> unit = fun [@warning "-16"] _ ?format:_ -> ()
 let useDeferredValue value = value
 
 (* `exception Suspend of 'a Lwt`

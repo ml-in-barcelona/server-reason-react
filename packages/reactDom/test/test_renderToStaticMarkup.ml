@@ -1,5 +1,4 @@
-let assert_string left right =
-  Alcotest.check Alcotest.string "should be equal" right left
+let assert_string left right = Alcotest.check Alcotest.string "should be equal" right left
 
 let single_empty_tag () =
   let div = React.createElement "div" [] [] in
@@ -7,28 +6,19 @@ let single_empty_tag () =
 
 let html_doctype () =
   let app = React.createElement "html" [] [] in
-  assert_string
-    (ReactDOM.renderToStaticMarkup app)
-    "<!DOCTYPE html><html></html>"
+  assert_string (ReactDOM.renderToStaticMarkup app) "<!DOCTYPE html><html></html>"
 
 let empty_string_attribute () =
-  let div =
-    React.createElement "div" [ React.JSX.String ("class", "className", "") ] []
-  in
+  let div = React.createElement "div" [ React.JSX.String ("class", "className", "") ] [] in
   assert_string (ReactDOM.renderToStaticMarkup div) "<div class=\"\"></div>"
 
 let string_attributes () =
   let a =
     React.createElement "a"
-      [
-        React.JSX.String ("href", "href", "google.html");
-        React.JSX.String ("target", "target", "_blank");
-      ]
+      [ React.JSX.String ("href", "href", "google.html"); React.JSX.String ("target", "target", "_blank") ]
       []
   in
-  assert_string
-    (ReactDOM.renderToStaticMarkup a)
-    "<a href=\"google.html\" target=\"_blank\"></a>"
+  assert_string (ReactDOM.renderToStaticMarkup a) "<a href=\"google.html\" target=\"_blank\"></a>"
 
 let bool_attributes () =
   let a =
@@ -41,19 +31,11 @@ let bool_attributes () =
       ]
       []
   in
-  assert_string
-    (ReactDOM.renderToStaticMarkup a)
-    "<input type=\"checkbox\" name=\"cheese\" checked />"
+  assert_string (ReactDOM.renderToStaticMarkup a) "<input type=\"checkbox\" name=\"cheese\" checked />"
 
 let truthy_attributes () =
-  let component =
-    React.createElement "input"
-      [ React.JSX.String ("aria-hidden", "ariaHidden", "true") ]
-      []
-  in
-  assert_string
-    (ReactDOM.renderToStaticMarkup component)
-    "<input aria-hidden=\"true\" />"
+  let component = React.createElement "input" [ React.JSX.String ("aria-hidden", "ariaHidden", "true") ] [] in
+  assert_string (ReactDOM.renderToStaticMarkup component) "<input aria-hidden=\"true\" />"
 
 let self_closing_tag () =
   let input = React.createElement "input" [] [] in
@@ -73,10 +55,7 @@ let ignored_attributes_on_jsx () =
     React.createElement "div"
       [
         React.JSX.String ("key", "key", "uniqueKeyId");
-        React.JSX.Bool
-          ( "suppressContentEditableWarning",
-            "suppressContentEditableWarning",
-            true );
+        React.JSX.Bool ("suppressContentEditableWarning", "suppressContentEditableWarning", true);
       ]
       []
   in
@@ -85,40 +64,24 @@ let ignored_attributes_on_jsx () =
 let fragment () =
   let div = React.createElement "div" [] [] in
   let component = React.fragment (React.list [ div; div ]) in
-  assert_string
-    (ReactDOM.renderToStaticMarkup component)
-    "<div></div><div></div>"
+  assert_string (ReactDOM.renderToStaticMarkup component) "<div></div><div></div>"
 
 let ignore_nulls () =
   let div = React.createElement "div" [] [] in
   let span = React.createElement "span" [] [] in
   let component = React.createElement "div" [] [ div; span; React.null ] in
-  assert_string
-    (ReactDOM.renderToStaticMarkup component)
-    "<div><div></div><span></span></div>"
+  assert_string (ReactDOM.renderToStaticMarkup component) "<div><div></div><span></span></div>"
 
 let fragments_and_texts () =
   let component =
     React.createElement "div" []
-      [
-        React.fragment (React.list [ React.string "foo" ]);
-        React.string "bar";
-        React.createElement "b" [] [];
-      ]
+      [ React.fragment (React.list [ React.string "foo" ]); React.string "bar"; React.createElement "b" [] [] ]
   in
-  assert_string
-    (ReactDOM.renderToStaticMarkup component)
-    "<div>foobar<b></b></div>"
+  assert_string (ReactDOM.renderToStaticMarkup component) "<div>foobar<b></b></div>"
 
 let inline_styles () =
-  let component =
-    React.createElement "button"
-      [ React.JSX.Style "color: red; border: none" ]
-      []
-  in
-  assert_string
-    (ReactDOM.renderToStaticMarkup component)
-    "<button style=\"color: red; border: none\"></button>"
+  let component = React.createElement "button" [ React.JSX.Style "color: red; border: none" ] [] in
+  assert_string (ReactDOM.renderToStaticMarkup component) "<button style=\"color: red; border: none\"></button>"
 
 let encode_attributes () =
   let component =
@@ -131,8 +94,7 @@ let encode_attributes () =
   in
   assert_string
     (ReactDOM.renderToStaticMarkup component)
-    "<div about=\"&apos; &lt;\" data-user-path=\"what/the/path\">&amp; \
-     &quot;</div>"
+    "<div about=\"&apos; &lt;\" data-user-path=\"what/the/path\">&amp; &quot;</div>"
 
 let dangerouslySetInnerHtml () =
   let component =
@@ -165,14 +127,9 @@ let context () =
   let component =
     React.Upper_case_component
       (fun () ->
-        ContextProvider.make ~value:20
-          ~children:
-            (React.Upper_case_component (fun () -> ContextConsumer.make ()))
-          ())
+        ContextProvider.make ~value:20 ~children:(React.Upper_case_component (fun () -> ContextConsumer.make ())) ())
   in
-  assert_string
-    (ReactDOM.renderToStaticMarkup component)
-    "<section>20</section>"
+  assert_string (ReactDOM.renderToStaticMarkup component) "<section>20</section>"
 
 let use_state () =
   let state, setState = React.useState (fun () -> "LOL") in
@@ -182,15 +139,11 @@ let use_state () =
   let component =
     React.createElement "div" []
       [
-        React.createElement "button"
-          [ React.JSX.Event ("onClick", Mouse onClick) ]
-          [];
+        React.createElement "button" [ React.JSX.Event ("onClick", Mouse onClick) ] [];
         React.createElement "span" [] [ React.string state ];
       ]
   in
-  assert_string
-    (ReactDOM.renderToStaticMarkup component)
-    "<div><button></button><span>LOL</span></div>"
+  assert_string (ReactDOM.renderToStaticMarkup component) "<div><button></button><span>LOL</span></div>"
 
 let use_memo () =
   let memo = React.useMemo (fun () -> 23) in
@@ -203,9 +156,7 @@ let use_callback () =
   assert_string (ReactDOM.renderToStaticMarkup component) "<header>23</header>"
 
 let inner_html () =
-  let component =
-    React.createElement "div" [ React.JSX.DangerouslyInnerHtml "foo" ] []
-  in
+  let component = React.createElement "div" [ React.JSX.DangerouslyInnerHtml "foo" ] [] in
   assert_string (ReactDOM.renderToStaticMarkup component) "<div>foo</div>"
 
 let make ~name () =
@@ -213,70 +164,40 @@ let make ~name () =
   React.createElement "button"
     [
       React.JSX.String ("name", "name", (name : string));
-      React.JSX.Event
-        ("onClick", React.JSX.Mouse (onClick : React.Event.Mouse.t -> unit));
+      React.JSX.Event ("onClick", React.JSX.Mouse (onClick : React.Event.Mouse.t -> unit));
     ]
     []
 
-let event () =
-  assert_string
-    (ReactDOM.renderToStaticMarkup (make ~name:"json" ()))
-    "<button name=\"json\"></button>"
+let event () = assert_string (ReactDOM.renderToStaticMarkup (make ~name:"json" ())) "<button name=\"json\"></button>"
 
 let className () =
-  let div =
-    React.createElement "div"
-      [ React.JSX.String ("class", "className", "lol") ]
-      []
-  in
+  let div = React.createElement "div" [ React.JSX.String ("class", "className", "lol") ] [] in
   assert_string (ReactDOM.renderToStaticMarkup div) "<div class=\"lol\"></div>"
 
 let className_2 () =
   let component =
-    React.createElement "div"
-      [
-        React.JSX.String
-          ("class", "className", "flex xs:justify-center overflow-hidden");
-      ]
-      []
+    React.createElement "div" [ React.JSX.String ("class", "className", "flex xs:justify-center overflow-hidden") ] []
   in
-  assert_string
-    (ReactDOM.renderToStaticMarkup component)
-    "<div class=\"flex xs:justify-center overflow-hidden\"></div>"
+  assert_string (ReactDOM.renderToStaticMarkup component) "<div class=\"flex xs:justify-center overflow-hidden\"></div>"
 
 let className_3 () =
   let component =
     React.fragment
       (React.list
          [
-           React.createElement "div"
-             [ React.JSX.String ("class", "className", "flex") ]
-             [];
+           React.createElement "div" [ React.JSX.String ("class", "className", "flex") ] [];
            React.createElement "div" (ReactDOM.domProps ~className:"flex" ()) [];
          ])
   in
-  assert_string
-    (ReactDOM.renderToStaticMarkup component)
-    "<div class=\"flex\"></div><div class=\"flex\"></div>"
+  assert_string (ReactDOM.renderToStaticMarkup component) "<div class=\"flex\"></div><div class=\"flex\"></div>"
 
 let render_with_doc_type () =
-  let div =
-    React.createElement "div" []
-      [ React.createElement "span" [] [ React.string "This is valid HTML5" ] ]
-  in
-  assert_string
-    (ReactDOM.renderToStaticMarkup div)
-    "<div><span>This is valid HTML5</span></div>"
+  let div = React.createElement "div" [] [ React.createElement "span" [] [ React.string "This is valid HTML5" ] ] in
+  assert_string (ReactDOM.renderToStaticMarkup div) "<div><span>This is valid HTML5</span></div>"
 
 let dom_props_should_work () =
-  let div =
-    React.createElement "div"
-      (ReactDOM.domProps ~key:"uniq" ~className:"mabutton" ())
-      []
-  in
-  assert_string
-    (ReactDOM.renderToStaticMarkup div)
-    "<div class=\"mabutton\"></div>"
+  let div = React.createElement "div" (ReactDOM.domProps ~key:"uniq" ~className:"mabutton" ()) [] in
+  assert_string (ReactDOM.renderToStaticMarkup div) "<div class=\"mabutton\"></div>"
 
 let render_svg () =
   let path =
@@ -285,11 +206,9 @@ let render_svg () =
         React.JSX.String
           ( "d",
             "d",
-            "M 5 3 C 3.9069372 3 3 3.9069372 3 5 L 3 19 C 3 20.093063 \
-             3.9069372 21 5 21 L 19 21 C 20.093063 21 21 20.093063 21 19 L 21 \
-             12 L 19 12 L 19 19 L 5 19 L 5 5 L 12 5 L 12 3 L 5 3 z M 14 3 L 14 \
-             5 L 17.585938 5 L 8.2929688 14.292969 L 9.7070312 15.707031 L 19 \
-             6.4140625 L 19 10 L 21 10 L 21 3 L 14 3 z" );
+            "M 5 3 C 3.9069372 3 3 3.9069372 3 5 L 3 19 C 3 20.093063 3.9069372 21 5 21 L 19 21 C 20.093063 21 21 \
+             20.093063 21 19 L 21 12 L 19 12 L 19 19 L 5 19 L 5 5 L 12 5 L 12 3 L 5 3 z M 14 3 L 14 5 L 17.585938 5 L \
+             8.2929688 14.292969 L 9.7070312 15.707031 L 19 6.4140625 L 19 10 L 21 10 L 21 3 L 14 3 z" );
       ]
       []
   in
@@ -303,14 +222,11 @@ let render_svg () =
       ]
       [ path ]
   in
-  assert_string
-    (ReactDOM.renderToStaticMarkup svg)
-    "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" \
-     width=\"24px\" height=\"24px\"><path d=\"M 5 3 C 3.9069372 3 3 3.9069372 \
-     3 5 L 3 19 C 3 20.093063 3.9069372 21 5 21 L 19 21 C 20.093063 21 21 \
-     20.093063 21 19 L 21 12 L 19 12 L 19 19 L 5 19 L 5 5 L 12 5 L 12 3 L 5 3 \
-     z M 14 3 L 14 5 L 17.585938 5 L 8.2929688 14.292969 L 9.7070312 15.707031 \
-     L 19 6.4140625 L 19 10 L 21 10 L 21 3 L 14 3 z\"></path></svg>"
+  assert_string (ReactDOM.renderToStaticMarkup svg)
+    "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" width=\"24px\" height=\"24px\"><path d=\"M 5 3 C \
+     3.9069372 3 3 3.9069372 3 5 L 3 19 C 3 20.093063 3.9069372 21 5 21 L 19 21 C 20.093063 21 21 20.093063 21 19 L 21 \
+     12 L 19 12 L 19 19 L 5 19 L 5 5 L 12 5 L 12 3 L 5 3 z M 14 3 L 14 5 L 17.585938 5 L 8.2929688 14.292969 L \
+     9.7070312 15.707031 L 19 6.4140625 L 19 10 L 21 10 L 21 3 L 14 3 z\"></path></svg>"
 
 (* TODO: add cases for React.Suspense
    function Button() {
@@ -343,9 +259,7 @@ let ref_as_callback_prop_works () =
   let app =
     React.Upper_case_component
       (fun () ->
-        React.createElement "span"
-          [ React.JSX.Ref (ReactDOM.Ref.callbackDomRef (fun _ -> ())) ]
-          [ React.string "yow" ])
+        React.createElement "span" [ React.JSX.Ref (ReactDOM.Ref.callbackDomRef (fun _ -> ())) ] [ React.string "yow" ])
   in
   assert_string (ReactDOM.renderToStaticMarkup app) "<span>yow</span>"
 
@@ -354,31 +268,24 @@ let ref_as_prop_works () =
     React.Upper_case_component
       (fun () ->
         let tableRootRef = React.useRef Js.Nullable.null in
-        React.createElement "span"
-          [ React.JSX.Ref (ReactDOM.Ref.domRef tableRootRef) ]
-          [ React.string "yow" ])
+        React.createElement "span" [ React.JSX.Ref (ReactDOM.Ref.domRef tableRootRef) ] [ React.string "yow" ])
   in
   assert_string (ReactDOM.renderToStaticMarkup app) "<span>yow</span>"
 
 let async_component () =
-  let app =
-    React.Async_component
-      (fun () ->
-        Lwt.return (React.createElement "span" [] [ React.string "yow" ]))
-  in
+  let app = React.Async_component (fun () -> Lwt.return (React.createElement "span" [] [ React.string "yow" ])) in
   let raises () =
     let _ = ReactDOM.renderToStaticMarkup app in
     ()
   in
   Alcotest.check_raises "Expected invalid argument"
     (Invalid_argument
-       "Asyncronous components can't be rendered to static markup, since \
-        rendering is syncronous. Please use `renderToStream` instead.")
+       "Asyncronous components can't be rendered to static markup, since rendering is syncronous. Please use \
+        `renderToStream` instead.")
     raises
 
 let test title fn =
-  ( Printf.sprintf "ReactDOM.renderToStaticMarkup / %s" title,
-    [ Alcotest_lwt.test_case_sync "" `Quick fn ] )
+  (Printf.sprintf "ReactDOM.renderToStaticMarkup / %s" title, [ Alcotest_lwt.test_case_sync "" `Quick fn ])
 
 let tests =
   [

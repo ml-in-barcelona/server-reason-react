@@ -13,8 +13,7 @@ module type Comparable = sig
   val cmp : (t, identity) cmp
 end
 
-type ('key, 'id) comparable =
-  (module Comparable with type t = 'key and type identity = 'id)
+type ('key, 'id) comparable = (module Comparable with type t = 'key and type identity = 'id)
 
 module MakeComparableU (M : sig
   type t
@@ -66,8 +65,7 @@ module type Hashable = sig
   val eq : (t, identity) eq
 end
 
-type ('key, 'id) hashable =
-  (module Hashable with type t = 'key and type identity = 'id)
+type ('key, 'id) hashable = (module Hashable with type t = 'key and type identity = 'id)
 
 module MakeHashableU (M : sig
   type t

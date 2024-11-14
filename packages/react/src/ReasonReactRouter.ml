@@ -11,16 +11,8 @@ let replace (_path : string) = ()
 type url = { path : string list; hash : string; search : string }
 type watcherID = unit -> unit
 
-let url ?serverUrlString () =
-  {
-    path = path ?serverUrlString ();
-    hash = hash ();
-    search = search ?serverUrlString ();
-  }
-
+let url ?serverUrlString () = { path = path ?serverUrlString (); hash = hash (); search = search ?serverUrlString () }
 let dangerouslyGetInitialUrl = url
 let watchUrl _callback () = ()
 let unwatchUrl _watcherID = ()
-
-let useUrl ?(serverUrl : url option) () =
-  match serverUrl with Some serverUrl -> serverUrl | None -> url ()
+let useUrl ?(serverUrl : url option) () = match serverUrl with Some serverUrl -> serverUrl | None -> url ()

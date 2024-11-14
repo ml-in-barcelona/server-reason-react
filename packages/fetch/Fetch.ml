@@ -5,13 +5,7 @@ type headersInit
 type response
 type request
 type requestInit
-
-type signal = {
-  aborted : bool;
-  onabort : (unit -> unit) option;
-  reason : string option;
-}
-
+type signal = { aborted : bool; onabort : (unit -> unit) option; reason : string option }
 type abortController = { signal : signal; abort : unit -> unit }
 
 (* external *)
@@ -33,24 +27,10 @@ module AbortController = struct
   let abort controller = controller.abort ()
 
   (* external make : unit -> t = "AbortController" [@@mel.new] *)
-  let make () =
-    {
-      signal = { aborted = false; onabort = None; reason = None };
-      abort = (fun _ -> ());
-    }
+  let make () = { signal = { aborted = false; onabort = None; reason = None }; abort = (fun _ -> ()) }
 end
 
-type requestMethod =
-  | Get
-  | Head
-  | Post
-  | Put
-  | Delete
-  | Connect
-  | Options
-  | Trace
-  | Patch
-  | Other of string
+type requestMethod = Get | Head | Post | Put | Delete | Connect | Options | Trace | Patch | Other of string
 
 let encodeRequestMethod = (* internal *)
   function
@@ -204,13 +184,7 @@ let decodeRequestCredentials = (* internal *)
   | "include" -> Include
   | e -> raise (Failure ("Unknown requestCredentials: " ^ e))
 
-type requestCache =
-  | Default
-  | NoStore
-  | Reload
-  | NoCache
-  | ForceCache
-  | OnlyIfCached
+type requestCache = Default | NoStore | Reload | NoCache | ForceCache | OnlyIfCached
 
 let encodeRequestCache = (* internal *)
   function
@@ -234,10 +208,7 @@ let decodeRequestCache = (* internal *)
 type requestRedirect = Follow | Error | Manual
 
 let encodeRequestRedirect = (* internal *)
-  function
-  | Follow -> "follow"
-  | Error -> "error"
-  | Manual -> "manual"
+  function Follow -> "follow" | Error -> "error" | Manual -> "manual"
 
 let decodeRequestRedirect = (* internal *)
   function
@@ -272,9 +243,7 @@ module Headers = struct
   (* entries *)
   (* very experimental *)
 
-  external get : string -> string option = "get"
-  [@@mel.send.pipe: t] [@@mel.return { null_to_opt }]
-
+  external get : string -> string option = "get" [@@mel.send.pipe: t] [@@mel.return { null_to_opt }]
   external has : string -> bool = "has" [@@mel.send.pipe: t]
   (* keys *)
   (* very experimental *)
@@ -301,15 +270,9 @@ module Body = struct
   struct
     external body : T.t -> readableStream = "body" [@@mel.get]
     external bodyUsed : T.t -> bool = "bodyUsed" [@@mel.get]
-
-    external arrayBuffer : arrayBuffer Js.Promise.t = "arrayBuffer"
-    [@@mel.send.pipe: T.t]
-
+    external arrayBuffer : arrayBuffer Js.Promise.t = "arrayBuffer" [@@mel.send.pipe: T.t]
     external blob : blob Js.Promise.t = "blob" [@@mel.send.pipe: T.t]
-
-    external formData : formData Js.Promise.t = "formData"
-    [@@mel.send.pipe: T.t]
-
+    external formData : formData Js.Promise.t = "formData" [@@mel.send.pipe: T.t]
     external json : Js.Json.t Js.Promise.t = "json" [@@mel.send.pipe: T.t]
     external text : string Js.Promise.t = "text" [@@mel.send.pipe: T.t]
   end
@@ -344,21 +307,14 @@ module RequestInit = struct
     requestInit = ""
   [@@mel.obj]
 
-  let make ?(method_ : requestMethod option) ?(headers : headersInit option)
-      ?(body : bodyInit option) ?(referrer : string option)
-      ?(referrerPolicy : referrerPolicy = None) ?(mode : requestMode option)
-      ?(credentials : requestCredentials option) ?(cache : requestCache option)
-      ?(redirect : requestRedirect option) ?(integrity : string = "")
-      ?(keepalive : bool option) ?(signal : signal option) =
-    make
-      ?_method:(map encodeRequestMethod method_)
-      ?headers ?body ?referrer
-      ~referrerPolicy:(encodeReferrerPolicy referrerPolicy)
-      ?mode:(map encodeRequestMode mode)
+  let make ?(method_ : requestMethod option) ?(headers : headersInit option) ?(body : bodyInit option)
+      ?(referrer : string option) ?(referrerPolicy : referrerPolicy = None) ?(mode : requestMode option)
+      ?(credentials : requestCredentials option) ?(cache : requestCache option) ?(redirect : requestRedirect option)
+      ?(integrity : string = "") ?(keepalive : bool option) ?(signal : signal option) =
+    make ?_method:(map encodeRequestMethod method_) ?headers ?body ?referrer
+      ~referrerPolicy:(encodeReferrerPolicy referrerPolicy) ?mode:(map encodeRequestMode mode)
       ?credentials:(map encodeRequestCredentials credentials)
-      ?cache:(map encodeRequestCache cache)
-      ?redirect:(map encodeRequestRedirect redirect)
-      ~integrity ?keepalive ?signal
+      ?cache:(map encodeRequestCache cache) ?redirect:(map encodeRequestRedirect redirect) ~integrity ?keepalive ?signal
 end
 
 module Request = struct
@@ -374,8 +330,7 @@ module Request = struct
   external makeWithRequestInit : t -> requestInit -> t = "Request" [@@mel.new]
   external method_ : t -> string = "method" [@@mel.get]
 
-  let method_ : t -> requestMethod =
-   fun self -> decodeRequestMethod (method_ self)
+  let method_ : t -> requestMethod = fun self -> decodeRequestMethod (method_ self)
 
   external url : t -> string = "url" [@@mel.get]
   external headers : t -> headers = "headers" [@@mel.get]
@@ -385,14 +340,12 @@ module Request = struct
 
   external destination : t -> string = "destination" [@@mel.get]
 
-  let destination : t -> requestDestination =
-   fun self -> decodeRequestDestination (destination self)
+  let destination : t -> requestDestination = fun self -> decodeRequestDestination (destination self)
 
   external referrer : t -> string = "referrer" [@@mel.get]
   external referrerPolicy : t -> string = "referrerPolicy" [@@mel.get]
 
-  let referrerPolicy : t -> referrerPolicy =
-   fun self -> decodeReferrerPolicy (referrerPolicy self)
+  let referrerPolicy : t -> referrerPolicy = fun self -> decodeReferrerPolicy (referrerPolicy self)
 
   external mode : t -> string = "mode" [@@mel.get]
 
@@ -400,8 +353,7 @@ module Request = struct
 
   external credentials : t -> string = "credentials" [@@mel.get]
 
-  let credentials : t -> requestCredentials =
-   fun self -> decodeRequestCredentials (credentials self)
+  let credentials : t -> requestCredentials = fun self -> decodeRequestCredentials (credentials self)
 
   external cache : t -> string = "cache" [@@mel.get]
 
@@ -409,8 +361,7 @@ module Request = struct
 
   external redirect : t -> string = "redirect" [@@mel.get]
 
-  let redirect : t -> requestRedirect =
-   fun self -> decodeRequestRedirect (redirect self)
+  let redirect : t -> requestRedirect = fun self -> decodeRequestRedirect (redirect self)
 
   external integrity : t -> string = "integrity" [@@mel.get]
   external keepalive : t -> bool = "keepalive" [@@mel.get]
@@ -441,9 +392,7 @@ module FormData = struct
   module EntryValue = struct
     type t
 
-    let%browser_only classify t =
-      if Js.typeof t = "string" then `String (Obj.magic t)
-      else `File (Obj.magic t)
+    let%browser_only classify t = if Js.typeof t = "string" then `String (Obj.magic t) else `File (Obj.magic t)
   end
 
   module Iterator = struct
@@ -451,9 +400,7 @@ module FormData = struct
       type 'a t
 
       external done_ : _ t -> bool option = "done" [@@mel.get]
-
-      external value : 'a t -> 'a option = "value"
-      [@@mel.get] [@@mel.return nullable]
+      external value : 'a t -> 'a option = "value" [@@mel.get] [@@mel.return nullable]
     end
 
     type 'a t
@@ -482,36 +429,16 @@ module FormData = struct
   external has : string -> bool = "has" [@@mel.send.pipe: t]
   external keys : t -> string Iterator.t = "keys" [@@mel.send]
   external values : t -> EntryValue.t Iterator.t = "values" [@@mel.send]
-
-  external appendObject : string -> < .. > Js.t -> ?filename:string -> unit
-    = "append"
-  [@@mel.send.pipe: t]
-
-  external appendBlob : string -> blob -> ?filename:string -> unit = "append"
-  [@@mel.send.pipe: t]
-
-  external appendFile : string -> file -> ?filename:string -> unit = "append"
-  [@@mel.send.pipe: t]
-
-  external setObject : string -> < .. > Js.t -> ?filename:string -> unit = "set"
-  [@@mel.send.pipe: t]
-
-  external setBlob : string -> blob -> ?filename:string -> unit = "set"
-  [@@mel.send.pipe: t]
-
-  external setFile : string -> file -> ?filename:string -> unit = "set"
-  [@@mel.send.pipe: t]
-
-  external entries : t -> (string * EntryValue.t) Iterator.t = "entries"
-  [@@mel.send]
+  external appendObject : string -> < .. > Js.t -> ?filename:string -> unit = "append" [@@mel.send.pipe: t]
+  external appendBlob : string -> blob -> ?filename:string -> unit = "append" [@@mel.send.pipe: t]
+  external appendFile : string -> file -> ?filename:string -> unit = "append" [@@mel.send.pipe: t]
+  external setObject : string -> < .. > Js.t -> ?filename:string -> unit = "set" [@@mel.send.pipe: t]
+  external setBlob : string -> blob -> ?filename:string -> unit = "set" [@@mel.send.pipe: t]
+  external setFile : string -> file -> ?filename:string -> unit = "set" [@@mel.send.pipe: t]
+  external entries : t -> (string * EntryValue.t) Iterator.t = "entries" [@@mel.send]
 end
 
 external fetch : string -> response Js.Promise.t = "fetch"
-
-external fetchWithInit : string -> requestInit -> response Js.Promise.t
-  = "fetch"
-
+external fetchWithInit : string -> requestInit -> response Js.Promise.t = "fetch"
 external fetchWithRequest : request -> response Js.Promise.t = "fetch"
-
-external fetchWithRequestInit : request -> requestInit -> response Js.Promise.t
-  = "fetch"
+external fetchWithRequestInit : request -> requestInit -> response Js.Promise.t = "fetch"

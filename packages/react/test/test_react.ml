@@ -1,7 +1,5 @@
 let test title fn = Alcotest.test_case title `Quick fn
-
-let assert_string left right =
-  Alcotest.check Alcotest.string "should be equal" right left
+let assert_string left right = Alcotest.check Alcotest.string "should be equal" right left
 
 let use_state_doesnt_fire () =
   let app =
@@ -44,31 +42,18 @@ module Gap = struct
   let make ~children =
     React.Children.map children (fun element ->
         if element = React.null then React.null
-        else
-          React.createElement "div"
-            [ React.JSX.String ("class", "className", "divider") ]
-            [ element ])
+        else React.createElement "div" [ React.JSX.String ("class", "className", "divider") ] [ element ])
 end
 
 let children_map_one_element () =
-  let app =
-    React.Upper_case_component
-      (fun () -> Gap.make ~children:(React.string "foo"))
-  in
-  assert_string
-    (ReactDOM.renderToStaticMarkup app)
-    "<div class=\"divider\">foo</div>"
+  let app = React.Upper_case_component (fun () -> Gap.make ~children:(React.string "foo")) in
+  assert_string (ReactDOM.renderToStaticMarkup app) "<div class=\"divider\">foo</div>"
 
 let children_map_list_element () =
   let app =
-    React.Upper_case_component
-      (fun () ->
-        Gap.make
-          ~children:(React.list [ React.string "foo"; React.string "lola" ]))
+    React.Upper_case_component (fun () -> Gap.make ~children:(React.list [ React.string "foo"; React.string "lola" ]))
   in
-  assert_string
-    (ReactDOM.renderToStaticMarkup app)
-    "<div class=\"divider\">foo</div><div class=\"divider\">lola</div>"
+  assert_string (ReactDOM.renderToStaticMarkup app) "<div class=\"divider\">foo</div><div class=\"divider\">lola</div>"
 
 let use_ref_works () =
   let app =
@@ -78,8 +63,7 @@ let use_ref_works () =
         React.useEffect0 (fun () ->
             isLive.current <- false;
             None);
-        React.createElement "span" []
-          [ React.string (string_of_bool isLive.current) ])
+        React.createElement "span" [] [ React.string (string_of_bool isLive.current) ])
   in
   assert_string (ReactDOM.renderToStaticMarkup app) "<span>true</span>"
 

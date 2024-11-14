@@ -1,19 +1,9 @@
 let case title fn = Alcotest.test_case title `Quick fn
-
-let assert_string left right =
-  Alcotest.check Alcotest.string "should be equal" right left
-
-let assert_int left right =
-  Alcotest.check Alcotest.int "should be equal" right left
-
-let assert_option ty left right =
-  Alcotest.check (Alcotest.option ty) "should be equal" right left
-
-let assert_array ty left right =
-  Alcotest.check (Alcotest.array ty) "should be equal" right left
-
-let assert_list ty left right =
-  Alcotest.check (Alcotest.list ty) "should be equal" right left
+let assert_string left right = Alcotest.check Alcotest.string "should be equal" right left
+let assert_int left right = Alcotest.check Alcotest.int "should be equal" right left
+let assert_option ty left right = Alcotest.check (Alcotest.option ty) "should be equal" right left
+let assert_array ty left right = Alcotest.check (Alcotest.array ty) "should be equal" right left
+let assert_list ty left right = Alcotest.check (Alcotest.list ty) "should be equal" right left
 
 module Example = struct
   include (
@@ -57,9 +47,7 @@ let concat () =
   assert_list Alcotest.int [ 1; 2; 3; 4 ] result
 
 let map () =
-  let result =
-    Belt.List.map [ 3.0; 4.0 ] (fun x -> "Number: " ^ string_of_float x)
-  in
+  let result = Belt.List.map [ 3.0; 4.0 ] (fun x -> "Number: " ^ string_of_float x) in
   assert_list Alcotest.string [ "Number: 3."; "Number: 4." ] result
 
 let keep_1 () =
@@ -76,9 +64,7 @@ let keep_3 () =
 
 let fromString () =
   let ten = Belt.Int.fromString "10" in
-  match ten with
-  | Some t -> assert_string "10" (Belt.Int.toString t)
-  | None -> Alcotest.fail "fromString returned None"
+  match ten with Some t -> assert_string "10" (Belt.Int.toString t) | None -> Alcotest.fail "fromString returned None"
 
 let toString () =
   let ten = Belt.Int.toString 10 in
@@ -108,14 +94,7 @@ let () =
           case "length" length;
         ] );
       ( "List",
-        [
-          case "eq" eq;
-          case "map" map;
-          case "mapU" mapU;
-          case "mapWithIndex" mapWithIndex;
-          case "concat" concat;
-        ] );
+        [ case "eq" eq; case "map" map; case "mapU" mapU; case "mapWithIndex" mapWithIndex; case "concat" concat ] );
       ("Int", [ case "fromString" fromString; case "toString" toString ]);
-      ( "Option",
-        [ case "keep_1" keep_1; case "keep_2" keep_2; case "keep_3" keep_3 ] );
+      ("Option", [ case "keep_1" keep_1; case "keep_2" keep_2; case "keep_3" keep_3 ]);
     ]

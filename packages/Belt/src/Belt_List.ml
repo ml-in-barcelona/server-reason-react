@@ -25,11 +25,7 @@ let tailExn x =
   | _ :: t -> t
 
 let add xs x = x :: xs
-
-let rec nthAux x n =
-  match x with
-  | h :: t -> if n = 0 then Some h else nthAux t (n - 1)
-  | _ -> None
+let rec nthAux x n = match x with h :: t -> if n = 0 then Some h else nthAux t (n - 1) | _ -> None
 
 let rec nthAuxAssert x n =
   match x with
@@ -184,10 +180,7 @@ let take lst n =
         let has = takeAux (n - 1) xs cell in
         if has then Some cell else None
 
-let rec dropAux l n =
-  if n = 0 then Some l
-  else match l with _ :: tl -> dropAux tl (n - 1) | [] -> None
-
+let rec dropAux l n = if n = 0 then Some l else match l with _ :: tl -> dropAux tl (n - 1) | [] -> None
 let drop lst n = if n < 0 then None else dropAux lst n
 
 let splitAt lst n =
@@ -269,9 +262,7 @@ let make n v =
     done;
     headX
 
-let rec lengthAux x acc =
-  match x with [] -> acc | _ :: t -> lengthAux t (acc + 1)
-
+let rec lengthAux x acc = match x with [] -> acc | _ :: t -> lengthAux t (acc + 1)
 let length xs = lengthAux xs 0
 let size = length
 
@@ -282,16 +273,12 @@ let rec fillAux arr i x =
       A.setUnsafe arr i h;
       fillAux arr (i + 1) t
 
-let rec fromArrayAux a i res =
-  if i < 0 then res else fromArrayAux a (i - 1) (A.getUnsafe a i :: res)
-
+let rec fromArrayAux a i res = if i < 0 then res else fromArrayAux a (i - 1) (A.getUnsafe a i :: res)
 let fromArray a = fromArrayAux a (A.length a - 1) []
 
 let toArray (x : _ t) =
   let len = length x in
-  let arr =
-    match x with x :: _ -> A.makeUninitializedUnsafe len x | _ -> [||]
-  in
+  let arr = match x with x :: _ -> A.makeUninitializedUnsafe len x | _ -> [||] in
   fillAux arr 0 x;
   arr
 
@@ -307,15 +294,11 @@ let rec fillAuxMap arr i x f =
       A.setUnsafe arr i (f h);
       fillAuxMap arr (i + 1) t f
 
-let rec reverseConcat l1 l2 =
-  match l1 with [] -> l2 | a :: l -> reverseConcat l (a :: l2)
-
+let rec reverseConcat l1 l2 = match l1 with [] -> l2 | a :: l -> reverseConcat l (a :: l2)
 let reverse l = reverseConcat l []
 
 let rec flattenAux prec xs =
-  match xs with
-  | [] -> unsafeMutateTail prec []
-  | h :: r -> flattenAux (copyAuxCont h prec) r
+  match xs with [] -> unsafeMutateTail prec [] | h :: r -> flattenAux (copyAuxCont h prec) r
 
 let rec flatten xs =
   match xs with
@@ -338,9 +321,7 @@ let concatMany xs =
       done;
       !v
 
-let rec mapRevAux f accu xs =
-  match xs with [] -> accu | a :: l -> mapRevAux f (f a :: accu) l
-
+let rec mapRevAux f accu xs = match xs with [] -> accu | a :: l -> mapRevAux f (f a :: accu) l
 let mapReverseU l f = mapRevAux f [] l
 let mapReverse l f = mapReverseU l (fun x -> f x)
 
@@ -362,26 +343,18 @@ let rec iteri xs i f =
 
 let forEachWithIndexU l f = iteri l 0 f
 let forEachWithIndex l f = forEachWithIndexU l (fun i x -> f i x)
-
-let rec reduceU l accu f =
-  match l with [] -> accu | a :: l -> reduceU l (f accu a) f
-
+let rec reduceU l accu f = match l with [] -> accu | a :: l -> reduceU l (f accu a) f
 let reduce l accu f = reduceU l accu (fun acc x -> f acc x)
-
-let rec reduceReverseUnsafeU l accu f =
-  match l with [] -> accu | a :: l -> f (reduceReverseUnsafeU l accu f) a
+let rec reduceReverseUnsafeU l accu f = match l with [] -> accu | a :: l -> f (reduceReverseUnsafeU l accu f) a
 
 let reduceReverseU (type a b) (l : a list) (acc : b) f =
   let len = length l in
-  if len < 1000 then reduceReverseUnsafeU l acc f
-  else A.reduceReverseU (toArray l) acc f
+  if len < 1000 then reduceReverseUnsafeU l acc f else A.reduceReverseU (toArray l) acc f
 
 let reduceReverse l accu f = reduceReverseU l accu (fun a b -> f a b)
 
 let rec mapRevAux2 l1 l2 accu f =
-  match (l1, l2) with
-  | a1 :: l1, a2 :: l2 -> mapRevAux2 l1 l2 (f a1 a2 :: accu) f
-  | _, [] | [], _ -> accu
+  match (l1, l2) with a1 :: l1, a2 :: l2 -> mapRevAux2 l1 l2 (f a1 a2 :: accu) f | _, [] | [], _ -> accu
 
 let mapReverse2U l1 l2 f = mapRevAux2 l1 l2 [] f
 let mapReverse2 l1 l2 f = mapReverse2U l1 l2 (fun a b -> f a b)
@@ -396,9 +369,7 @@ let rec forEach2U l1 l2 f =
 let forEach2 l1 l2 f = forEach2U l1 l2 (fun a b -> f a b)
 
 let rec reduce2U l1 l2 accu f =
-  match (l1, l2) with
-  | a1 :: l1, a2 :: l2 -> reduce2U l1 l2 (f accu a1 a2) f
-  | [], _ | _, [] -> accu
+  match (l1, l2) with a1 :: l1, a2 :: l2 -> reduce2U l1 l2 (f accu a1 a2) f | [], _ | _, [] -> accu
 
 let reduce2 l1 l2 acc f = reduce2U l1 l2 acc (fun a b c -> f a b c)
 
@@ -410,30 +381,18 @@ let rec reduceReverse2UnsafeU l1 l2 accu f =
 
 let reduceReverse2U (type a b c) (l1 : a list) (l2 : b list) (acc : c) f =
   let len = length l1 in
-  if len < 1000 then reduceReverse2UnsafeU l1 l2 acc f
-  else A.reduceReverse2U (toArray l1) (toArray l2) acc f
+  if len < 1000 then reduceReverse2UnsafeU l1 l2 acc f else A.reduceReverse2U (toArray l1) (toArray l2) acc f
 
-let reduceReverse2 l1 l2 acc f =
-  reduceReverse2U l1 l2 acc (fun a b c -> f a b c)
-
+let reduceReverse2 l1 l2 acc f = reduceReverse2U l1 l2 acc (fun a b c -> f a b c)
 let rec everyU xs p = match xs with [] -> true | a :: l -> p a && everyU l p
 let every xs p = everyU xs (fun x -> p x)
 let rec someU xs p = match xs with [] -> false | a :: l -> p a || someU l p
 let some xs p = someU xs (fun x -> p x)
-
-let rec every2U l1 l2 p =
-  match (l1, l2) with
-  | _, [] | [], _ -> true
-  | a1 :: l1, a2 :: l2 -> p a1 a2 && every2U l1 l2 p
-
+let rec every2U l1 l2 p = match (l1, l2) with _, [] | [], _ -> true | a1 :: l1, a2 :: l2 -> p a1 a2 && every2U l1 l2 p
 let every2 l1 l2 p = every2U l1 l2 (fun a b -> p a b)
 
 let rec cmpByLength l1 l2 =
-  match (l1, l2) with
-  | [], [] -> 0
-  | _, [] -> 1
-  | [], _ -> -1
-  | _ :: l1s, _ :: l2s -> cmpByLength l1s l2s
+  match (l1, l2) with [], [] -> 0 | _, [] -> 1 | [], _ -> -1 | _ :: l1s, _ :: l2s -> cmpByLength l1s l2s
 
 let rec cmpU l1 l2 p =
   match (l1, l2) with
@@ -453,29 +412,13 @@ let rec eqU l1 l2 p =
   | a1 :: l1, a2 :: l2 -> if p a1 a2 then eqU l1 l2 p else false
 
 let eq l1 l2 f = eqU l1 l2 (fun x y -> f x y)
-
-let rec some2U l1 l2 p =
-  match (l1, l2) with
-  | [], _ | _, [] -> false
-  | a1 :: l1, a2 :: l2 -> p a1 a2 || some2U l1 l2 p
-
+let rec some2U l1 l2 p = match (l1, l2) with [], _ | _, [] -> false | a1 :: l1, a2 :: l2 -> p a1 a2 || some2U l1 l2 p
 let some2 l1 l2 p = some2U l1 l2 (fun a b -> p a b)
-
-let rec hasU xs x eq =
-  match xs with [] -> false | a :: l -> eq a x || hasU l x eq
-
+let rec hasU xs x eq = match xs with [] -> false | a :: l -> eq a x || hasU l x eq
 let has xs x eq = hasU xs x (fun a b -> eq a b)
-
-let rec getAssocU xs x eq =
-  match xs with
-  | [] -> None
-  | (a, b) :: l -> if eq a x then Some b else getAssocU l x eq
-
+let rec getAssocU xs x eq = match xs with [] -> None | (a, b) :: l -> if eq a x then Some b else getAssocU l x eq
 let getAssoc xs x eq = getAssocU xs x (fun a b -> eq a b)
-
-let rec hasAssocU xs x eq =
-  match xs with [] -> false | (a, b) :: l -> eq a x || hasAssocU l x eq
-
+let rec hasAssocU xs x eq = match xs with [] -> false | (a, b) :: l -> eq a x || hasAssocU l x eq
 let hasAssoc xs x eq = hasAssocU xs x (fun a b -> eq a b)
 
 let removeAssocU xs x eq =
@@ -508,10 +451,7 @@ let sortU xs cmp =
   fromArray arr
 
 let sort xs cmp = sortU xs (fun x y -> cmp x y)
-
-let rec getByU xs p =
-  match xs with [] -> None | x :: l -> if p x then Some x else getByU l p
-
+let rec getByU xs p = match xs with [] -> None | x :: l -> if p x then Some x else getByU l p
 let getBy xs p = getByU xs (fun a -> p a)
 
 let rec keepU xs p =
@@ -605,14 +545,9 @@ let rec zip l1 l2 =
       cell
 
 let rec reduceWithIndexAuxU l acc f i =
-  match l with
-  | [] -> acc
-  | x :: xs -> reduceWithIndexAuxU xs (f acc x i [@bs]) f (i + 1)
+  match l with [] -> acc | x :: xs -> reduceWithIndexAuxU xs (f acc x i [@bs]) f (i + 1)
 
 let reduceWithIndexU l acc f = reduceWithIndexAuxU l acc f 0
-
-let reduceWithIndex l acc f =
-  reduceWithIndexU l acc (fun [@bs] acc x i -> f acc x i)
-
+let reduceWithIndex l acc f = reduceWithIndexU l acc (fun [@bs] acc x i -> f acc x i)
 let filter = keep
 let filterWithIndex = keepWithIndexU

@@ -553,20 +553,10 @@ module JSX : sig
 end
 
 type element =
-  | Lower_case_element of {
-      key : string option;
-      tag : string;
-      attributes : JSX.prop list;
-      children : element list;
-    }
+  | Lower_case_element of { key : string option; tag : string; attributes : JSX.prop list; children : element list }
   | Upper_case_component of (unit -> element)
   | Async_component of (unit -> element Lwt.t)
-  | Client_component of {
-      props : client_props;
-      client : element;
-      import_module : string;
-      import_name : string;
-    }
+  | Client_component of { props : client_props; client : element; import_module : string; import_name : string }
   | List of element array
   | Text of string
   | InnerHtml of string
@@ -590,10 +580,7 @@ module Fragment : sig
 end
 
 val createElement : string -> JSX.prop list -> element list -> element
-
-val createElementWithKey :
-  ?key:string option -> string -> JSX.prop list -> element list -> element
-
+val createElementWithKey : ?key:string option -> string -> JSX.prop list -> element list -> element
 val fragment : element -> element
 val cloneElement : element -> JSX.prop list -> element
 val string : string -> element
@@ -604,12 +591,7 @@ val array : element array -> element
 val list : element list -> element
 
 type 'a provider = value:'a -> children:element -> unit -> element
-
-type 'a context = {
-  current_value : 'a ref;
-  provider : 'a provider;
-  consumer : children:element -> element;
-}
+type 'a context = { current_value : 'a ref; provider : 'a provider; consumer : children:element -> element }
 
 module Context : sig
   type 'a t = 'a context
@@ -620,12 +602,7 @@ end
 val createContext : 'a -> 'a Context.t
 
 module Suspense : sig
-  val make :
-    ?key:string option ->
-    ?fallback:element ->
-    ?children:element ->
-    unit ->
-    element
+  val make : ?key:string option -> ?fallback:element -> ?children:element -> unit -> element
 end
 
 type any_promise = Any_promise : 'a Lwt.t -> any_promise
@@ -656,9 +633,7 @@ val useId : unit -> string
 type ('input, 'output) callback = 'input -> 'output
 
 val useSyncExternalStore :
-  subscribe:((unit -> unit) -> (unit, unit) callback) ->
-  getSnapshot:(unit -> 'snapshot) ->
-  'snapshot
+  subscribe:((unit -> unit) -> (unit, unit) callback) -> getSnapshot:(unit -> 'snapshot) -> 'snapshot
 [@@deprecated
   "Use useSyncExternalStoreWithServer instead. More info at \
    https://github.com/facebook/react/blob/603e6108f39c6663ec703eed34a89ff1bf0cb70c/packages/react-server/src/ReactFizzHooks.js#L561-L566"]
@@ -669,78 +644,40 @@ val useSyncExternalStoreWithServer :
   getServerSnapshot:(unit -> 'snapshot) ->
   'snapshot
 
-val useReducer :
-  ('state -> 'action -> 'state) -> 'state -> 'state * ('action -> unit)
+val useReducer : ('state -> 'action -> 'state) -> 'state -> 'state * ('action -> unit)
 
 val useReducerWithMapState :
-  ('state -> 'action -> 'initialState) ->
-  'initialState ->
-  ('initialState -> 'state) ->
-  'state * ('action -> unit)
+  ('state -> 'action -> 'initialState) -> 'initialState -> ('initialState -> 'state) -> 'state * ('action -> unit)
 
 val useEffect : (unit -> (unit -> unit) option) -> unit
 val useEffect0 : (unit -> (unit -> unit) option) -> unit
 val useEffect1 : (unit -> (unit -> unit) option) -> 'dependency array -> unit
-
-val useEffect2 :
-  (unit -> (unit -> unit) option) -> 'dependency1 * 'dependency2 -> unit
-
-val useEffect3 :
-  (unit -> (unit -> unit) option) ->
-  'dependency1 * 'dependency2 * 'dependency3 ->
-  unit
-
-val useEffect4 :
-  (unit -> (unit -> unit) option) ->
-  'dependency1 * 'dependency2 * 'dependency3 * 'dependency4 ->
-  unit
+val useEffect2 : (unit -> (unit -> unit) option) -> 'dependency1 * 'dependency2 -> unit
+val useEffect3 : (unit -> (unit -> unit) option) -> 'dependency1 * 'dependency2 * 'dependency3 -> unit
+val useEffect4 : (unit -> (unit -> unit) option) -> 'dependency1 * 'dependency2 * 'dependency3 * 'dependency4 -> unit
 
 val useEffect5 :
-  (unit -> (unit -> unit) option) ->
-  'dependency1 * 'dependency2 * 'dependency3 * 'dependency4 * 'dependency5 ->
-  unit
+  (unit -> (unit -> unit) option) -> 'dependency1 * 'dependency2 * 'dependency3 * 'dependency4 * 'dependency5 -> unit
 
 val useEffect6 :
   (unit -> (unit -> unit) option) ->
-  'dependency1
-  * 'dependency2
-  * 'dependency3
-  * 'dependency4
-  * 'dependency5
-  * 'dependency6 ->
+  'dependency1 * 'dependency2 * 'dependency3 * 'dependency4 * 'dependency5 * 'dependency6 ->
   unit
 
 val useLayoutEffect0 : (unit -> (unit -> unit) option) -> unit
-
-val useLayoutEffect1 :
-  (unit -> (unit -> unit) option) -> 'dependency array -> unit
-
-val useLayoutEffect2 :
-  (unit -> (unit -> unit) option) -> 'dependency1 * 'dependency2 -> unit
-
-val useLayoutEffect3 :
-  (unit -> (unit -> unit) option) ->
-  'dependency1 * 'dependency2 * 'dependency3 ->
-  unit
+val useLayoutEffect1 : (unit -> (unit -> unit) option) -> 'dependency array -> unit
+val useLayoutEffect2 : (unit -> (unit -> unit) option) -> 'dependency1 * 'dependency2 -> unit
+val useLayoutEffect3 : (unit -> (unit -> unit) option) -> 'dependency1 * 'dependency2 * 'dependency3 -> unit
 
 val useLayoutEffect4 :
-  (unit -> (unit -> unit) option) ->
-  'dependency1 * 'dependency2 * 'dependency3 * 'dependency4 ->
-  unit
+  (unit -> (unit -> unit) option) -> 'dependency1 * 'dependency2 * 'dependency3 * 'dependency4 -> unit
 
 val useLayoutEffect5 :
-  (unit -> (unit -> unit) option) ->
-  'dependency1 * 'dependency2 * 'dependency3 * 'dependency4 * 'dependency5 ->
-  unit
+  (unit -> (unit -> unit) option) -> 'dependency1 * 'dependency2 * 'dependency3 * 'dependency4 * 'dependency5 -> unit
 
 val useLayoutEffect6 :
   (unit -> (unit -> unit) option) ->
-  'dependency1
-  * 'dependency2
-  * 'dependency3
-  * 'dependency4
-  * 'dependency5
-  * 'dependency6 ->
+  'dependency1 * 'dependency2 * 'dependency3 * 'dependency4 * 'dependency5 * 'dependency6 ->
   unit
 
 val setDisplayName : 'component -> string -> unit

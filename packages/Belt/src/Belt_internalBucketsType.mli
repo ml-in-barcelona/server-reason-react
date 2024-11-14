@@ -1,13 +1,7 @@
 type 'a opt = 'a option
 type ('hash, 'eq, 'c) container
 
-val container :
-  size:int ->
-  buckets:'c opt array ->
-  hash:'hash ->
-  eq:'eq ->
-  ('hash, 'eq, 'c) container
-
+val container : size:int -> buckets:'c opt array -> hash:'hash -> eq:'eq -> ('hash, 'eq, 'c) container
 val sizeSet : ('hash, 'eq, 'c) container -> int -> unit
 val size : ('hash, 'eq, 'c) container -> int
 val bucketsSet : ('hash, 'eq, 'c) container -> 'c opt array -> unit
