@@ -1422,12 +1422,7 @@ let webViewHTMLAttributes =
     Attribute { name = "webPreferences"; jsxName = "webPreferences"; type_ = String };
   ]
 
-let hackAttributes =
-  [
-    Event { jsxName = "_onclick"; type_ = Inline };
-  ]
-
-let commonHtmlAttributes = elementAttributes & reactAttributes & globalAttributes & globalEventHandlers & ariaAttributes & hackAttributes
+let commonHtmlAttributes = elementAttributes & reactAttributes & globalAttributes & globalEventHandlers & ariaAttributes
 
 let htmlElements =
   [
@@ -1617,15 +1612,11 @@ let svgElements =
   ]
 [@@@ocamlformat "enable"]
 
+let domAttributes = commonSvgAttributes & commonHtmlAttributes
 let elements = svgElements & htmlElements
 let getJSXName = function Attribute { jsxName; _ } -> jsxName | Event { jsxName; _ } -> jsxName
 let getName = function Attribute { name; _ } -> name | Event { jsxName; _ } -> jsxName
-
-let domPropNames =
-  (commonSvgAttributes & commonHtmlAttributes)
-  |> List.map getJSXName
-  (* We ignore prefixed names such as "hackAttributes prop list" *)
-  |> List.filter (fun name -> not (String.starts_with ~prefix:"_" name))
+let domPropNames = List.map getJSXName domAttributes
 
 type errors = [ `ElementNotFound | `AttributeNotFound ]
 
