@@ -30,6 +30,12 @@ let assert_float left right =
 let assert_bool left right =
   Alcotest.check Alcotest.bool "should be equal" right left
 
+let assert_raises fn exn =
+  match fn () with
+  | exception exn ->
+      assert_string (Printexc.to_string exn) (Printexc.to_string exn)
+  | _ -> Alcotest.failf "Expected exception %s" (Printexc.to_string exn)
+
 let test title fn = Alcotest_lwt.test_case_sync title `Quick fn
 let test_async title fn = Alcotest_lwt.test_case title `Quick fn
 
@@ -451,6 +457,186 @@ let string_tests =
         ());
   ]
 
+let global_tests =
+  [
+    test "decodeURI - ascii and spaces" (fun () ->
+        assert_string (Js.Global.decodeURI "Hello%20World") "Hello World";
+        assert_string
+          (Js.Global.decodeURI "Hello%20%20%20World")
+          "Hello   World";
+        assert_string (Js.Global.decodeURI "Hello%2DWorld") "Hello-World");
+    test "decodeURI - reserved characters" (fun () ->
+        assert_string (Js.Global.decodeURI ";,/?:@&=+$#") ";,/?:@&=+$#";
+        assert_string (Js.Global.decodeURI "-_.!~*'()") "-_.!~*'()";
+        assert_string (Js.Global.decodeURI "%5B%5D") "[]";
+        assert_string (Js.Global.decodeURI "%7B%7D") "{}";
+        assert_string (Js.Global.decodeURI "%7C") "|");
+    test "decodeURI - alphabets" (fun () ->
+        assert_string
+          (Js.Global.decodeURI "ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+          "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        assert_string
+          (Js.Global.decodeURI "abcdefghijklmnopqrstuvwxyz")
+          "abcdefghijklmnopqrstuvwxyz";
+        assert_string (Js.Global.decodeURI "0123456789") "0123456789");
+    test "decodeURI - unicode characters" (fun () ->
+        assert_string
+          (Js.Global.decodeURI "%D0%AE%D0%BD%D0%B8%D0%BA%D0%BE%D0%B4")
+          "Юникод";
+        assert_string (Js.Global.decodeURI "%E2%82%AC%E2%98%85%E2%99%A0") "€★♠";
+        assert_string (Js.Global.decodeURI "%E4%BD%A0%E5%A5%BD") "你好");
+    test "decodeURI - mixed percent encodings and Unicode" (fun () ->
+        assert_string
+          (Js.Global.decodeURI "Hello%20%E4%BD%A0%E5%A5%BD%20World")
+          "Hello 你好 World";
+        assert_string
+          (Js.Global.decodeURI "%E2%82%AC%20%24%20%C2%A3%20%C2%A5")
+          "€ %24 £ ¥");
+    test "decodeURI - complete URLs" (fun () ->
+        assert_string
+          (Js.Global.decodeURI
+             "http://ru.wikipedia.org/wiki/%D0%AE%D0%BD%D0%B8%D0%BA%D0%BE%D0%B4")
+          "http://ru.wikipedia.org/wiki/Юникод";
+        assert_string
+          (Js.Global.decodeURI
+             "http://www.google.ru/support/jobs/bin/static.py?page=why-ru.html&sid=liveandwork")
+          "http://www.google.ru/support/jobs/bin/static.py?page=why-ru.html&sid=liveandwork";
+        assert_string
+          (Js.Global.decodeURI "https://example.com/path%20name/file.txt")
+          "https://example.com/path name/file.txt");
+    test "decodeURI - overencoded sequences" (fun () ->
+        assert_string (Js.Global.decodeURI "Hello%2520World") "Hello%20World";
+        assert_string (Js.Global.decodeURI "%25252525") "%252525");
+    test "decodeURI - special characters" (fun () ->
+        assert_string (Js.Global.decodeURI "%0A") "\n";
+        assert_string (Js.Global.decodeURI "%0D") "\r";
+        assert_string (Js.Global.decodeURI "%3C%3E%22%5C") "<>\"\\");
+    test "decodeURI - beyond U+10FFFF" (fun () ->
+        assert_raises
+          (fun () -> Js.Global.decodeURI "%F4%90%80%80")
+          (Failure "decodeURI: malformed URI sequence"));
+    test "decodeURI - partial sequences" (fun () ->
+        (* Incomplete or malformed sequences *)
+        assert_raises
+          (fun () -> Js.Global.decodeURI "%E4")
+          (Failure "decodeURI: malformed URI sequence");
+        assert_raises
+          (fun () -> Js.Global.decodeURI "%E4%A")
+          (Failure "decodeURI: malformed URI sequence"));
+    test "encodeURI - ascii and spaces" (fun () ->
+        assert_string (Js.Global.encodeURI "Hello World") "Hello%20World";
+        assert_string
+          (Js.Global.encodeURI "Hello   World")
+          "Hello%20%20%20World";
+        assert_string (Js.Global.encodeURI "Hello-World") "Hello-World");
+    test "encodeURI - reserved characters" (fun () ->
+        assert_string (Js.Global.encodeURI ";,/?:@&=+$#") ";,/?:@&=+$#";
+        assert_string (Js.Global.encodeURI "-_.!~*'()") "-_.!~*'()");
+    test "encodeURI - alphabets" (fun () ->
+        assert_string
+          (Js.Global.encodeURI "ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+          "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        assert_string
+          (Js.Global.encodeURI "abcdefghijklmnopqrstuvwxyz")
+          "abcdefghijklmnopqrstuvwxyz";
+        assert_string (Js.Global.encodeURI "0123456789") "0123456789");
+    test "encodeURI - unicode characters" (fun () ->
+        assert_string
+          (Js.Global.encodeURI "Юникод")
+          "%D0%AE%D0%BD%D0%B8%D0%BA%D0%BE%D0%B4";
+        assert_string (Js.Global.encodeURI "€★♠") "%E2%82%AC%E2%98%85%E2%99%A0";
+        assert_string (Js.Global.encodeURI "你好") "%E4%BD%A0%E5%A5%BD");
+    test "encodeURI - complete URLs" (fun () ->
+        assert_string
+          (Js.Global.encodeURI "http://unipro.ru/0123456789")
+          "http://unipro.ru/0123456789";
+        assert_string
+          (Js.Global.encodeURI
+             "http://www.google.ru/support/jobs/bin/static.py?page=why-ru.html&sid=liveandwork")
+          "http://www.google.ru/support/jobs/bin/static.py?page=why-ru.html&sid=liveandwork";
+        assert_string
+          (Js.Global.encodeURI "http://unipro.ru/\nabout")
+          "http://unipro.ru/%0Aabout";
+        assert_string
+          (Js.Global.encodeURI "http://unipro.ru/\rabout")
+          "http://unipro.ru/%0Dabout";
+        assert_string
+          (Js.Global.encodeURI "http://ru.wikipedia.org/wiki/Юникод")
+          "http://ru.wikipedia.org/wiki/%D0%AE%D0%BD%D0%B8%D0%BA%D0%BE%D0%B4";
+        assert_string
+          (Js.Global.encodeURI
+             "http://www.google.ru/support/jobs/bin/static.py?page=why-ru.html&sid=liveandwork")
+          "http://www.google.ru/support/jobs/bin/static.py?page=why-ru.html&sid=liveandwork";
+        assert_string
+          (Js.Global.encodeURI "https://example.com/path name/file.txt")
+          "https://example.com/path%20name/file.txt");
+    test "encodeURI - special characters" (fun () ->
+        assert_string (Js.Global.encodeURI "\n") "%0A";
+        assert_string (Js.Global.encodeURI "\r") "%0D";
+        assert_string (Js.Global.encodeURI "<>\"\\") "%3C%3E%22%5C";
+        assert_string
+          (Js.Global.encodeURI "http://unipro.ru/\nabout")
+          "http://unipro.ru/%0Aabout";
+        assert_string
+          (Js.Global.encodeURI "http://unipro.ru/\rabout")
+          "http://unipro.ru/%0Dabout");
+    test "encodeURI - combining characters" (fun () ->
+        (* Characters with combining diacritical marks *)
+        assert_string
+          (Js.Global.encodeURI "é") (* e + acute accent as single char *)
+          "%C3%A9";
+        assert_string
+          (Js.Global.encodeURI "e\u{0301}") (* e + combining acute accent *)
+          "e%CC%81";
+        assert_string
+          (Js.Global.encodeURI "ế") (* e + circumflex + acute *)
+          "%E1%BA%BF");
+    test "encodeURI - Surrogate pairs" (fun () ->
+        (* Surrogate pairs for emoji and complex Unicode *)
+        assert_string
+          (Js.Global.encodeURI "𝌆") (* Musical symbol *)
+          "%F0%9D%8C%86";
+        assert_string (Js.Global.encodeURI "🌍") (* Earth globe *) "%F0%9F%8C%8D";
+        assert_string
+          (Js.Global.encodeURI "👨‍👩‍👧‍👦") (* Family emoji with ZWJ sequences *)
+          "%F0%9F%91%A8%E2%80%8D%F0%9F%91%A9%E2%80%8D%F0%9F%91%A7%E2%80%8D%F0%9F%91%A6");
+    (* \v and \f are not supported in ocaml *)
+    (*
+       assert_string
+         (Js.Global.decodeURIComponent "http://unipro.ru/%0Babout")
+          "http://unipro.ru/\vabout";
+        assert_string
+          (Js.Global.decodeURIComponent "http://unipro.ru/%0Cabout")
+          "http://unipro.ru/\fabout"; *)
+    test "encodeURIComponent" (fun () ->
+        assert_string
+          (Js.Global.encodeURIComponent "http://unipro.ru")
+          "http%3A%2F%2Funipro.ru";
+        assert_string
+          (Js.Global.encodeURIComponent
+             "http://www.google.ru/support/jobs/bin/static.py?page=why-ru.html&sid=liveandwork")
+          "http%3A%2F%2Fwww.google.ru%2Fsupport%2Fjobs%2Fbin%2Fstatic.py%3Fpage%3Dwhy-ru.html%26sid%3Dliveandwork";
+        assert_string
+          (Js.Global.encodeURIComponent "ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+          "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        assert_string
+          (Js.Global.encodeURIComponent "abcdefghijklmnopqrstuvwxyz")
+          "abcdefghijklmnopqrstuvwxyz";
+        assert_string
+          (Js.Global.encodeURIComponent "http://unipro.ru/\nabout")
+          "http%3A%2F%2Funipro.ru%2F%0Aabout";
+        assert_string
+          (Js.Global.encodeURIComponent "http://unipro.ru/\rabout")
+          "http%3A%2F%2Funipro.ru%2F%0Dabout");
+    (* \v and \f are not supported in ocaml
+       assert_string
+         (Js.Global.encodeURIComponent "http://unipro.ru/\vabout")
+         "http%3A%2F%2Funipro.ru%2F%0Babout";
+       assert_string
+         (Js.Global.encodeURIComponent "http://unipro.ru/\fabout")
+         "http%3A%2F%2Funipro.ru%2F%0Cabout"; *)
+  ]
+
 let obj () = Js.Dict.fromList [ ("foo", 43); ("bar", 86) ]
 let long_obj () = Js.Dict.fromList [ ("david", 99); ("foo", 43); ("bar", 86) ]
 
@@ -576,6 +762,7 @@ let () =
   Lwt_main.run
   @@ Alcotest_lwt.run "Js"
        [
+         ("Js.Global", global_tests);
          ("Js.Promise", promise_tests);
          ("Js.Float", float_tests);
          ("Js.String", string_tests);
