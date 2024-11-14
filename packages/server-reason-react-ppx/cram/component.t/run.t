@@ -104,7 +104,7 @@ We need to output ML syntax here, otherwise refmt could not parse it.
         (fun () ->
           React.createElement "form"
             (Stdlib.List.filter_map Fun.id
-               [ Some (React.JSX.String ("method", "method_", ("GET" : string))) ])
+               [ Some (React.JSX.String ("method", "method", ("GET" : string))) ])
             [ children ])
   end
   
@@ -116,7 +116,7 @@ We need to output ML syntax here, otherwise refmt could not parse it.
         (fun () ->
           React.createElement "form"
             (Stdlib.List.filter_map Fun.id
-               [ Some (React.JSX.String ("method", "method_", ("GET" : string))) ])
+               [ Some (React.JSX.String ("method", "method", ("GET" : string))) ])
             [ children ])
   end
   

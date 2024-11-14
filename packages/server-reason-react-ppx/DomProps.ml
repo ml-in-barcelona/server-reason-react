@@ -569,7 +569,7 @@ let anchorHTMLAttributes =
     Attribute { name = "ping"; jsxName = "ping"; type_ = String };
     Attribute { name = "rel"; jsxName = "rel"; type_ = String };
     Attribute { name = "target"; jsxName = "target"; type_ = attributeAnchorTarget };
-    Attribute { name = "type"; jsxName = "type_"; type_ = String };
+    Attribute { name = "type"; jsxName = "type"; type_ = String };
     Attribute { name = "referrerpolicy"; jsxName = "referrerPolicy"; type_ = attributeReferrerPolicy };
   ]
 
@@ -614,7 +614,7 @@ let buttonHTMLAttributes =
     Attribute { name = "name"; jsxName = "name"; type_ = String };
     Attribute { name = "popovertarget"; jsxName = "popoverTarget"; type_ = String };
     Attribute { name = "popovertargetaction"; jsxName = "popoverTargetAction"; type_ = String };
-    Attribute { name = "type"; jsxName = "type_"; type_ = String (* 'submit' | 'reset' | 'button' *) };
+    Attribute { name = "type"; jsxName = "type"; type_ = String (* 'submit' | 'reset' | 'button' *) };
     Attribute { name = "value"; jsxName = "value"; type_ = String (* | ReadonlyArray<String> | number *) };
   ]
 
@@ -687,7 +687,7 @@ let formHTMLAttributes =
     Attribute { name = "rel"; jsxName = "rel"; type_ = String };
     Attribute { name = "enctype"; jsxName = "encType"; type_ = String };
     Attribute { name = "action"; jsxName = "action"; type_ = String };
-    Attribute { name = "method"; jsxName = "method_"; type_ = String };
+    Attribute { name = "method"; jsxName = "method"; type_ = String };
     Attribute { name = "novalidate"; jsxName = "noValidate"; type_ = Bool };
     Attribute { name = "target"; jsxName = "target"; type_ = String };
   ]
@@ -787,7 +787,7 @@ let inputHTMLAttributes =
     Attribute { name = "size"; jsxName = "size"; type_ = Int (* number *) };
     Attribute { name = "src"; jsxName = "src"; type_ = String };
     Attribute { name = "step"; jsxName = "step"; type_ = String (* number | *) };
-    Attribute { name = "type"; jsxName = "type_"; type_ = inputTypeAttribute };
+    Attribute { name = "type"; jsxName = "type"; type_ = inputTypeAttribute };
     Attribute { name = "value"; jsxName = "value"; type_ = String (* | ReadonlyArray<String> | number *) };
     Attribute { name = "width"; jsxName = "width"; type_ = String (* number | *) };
     (* Added by React, oninput is the HTML *)
@@ -819,7 +819,7 @@ let liHTMLAttributes =
 (* https://developer.mozilla.org/en-US/docs/Web/HTML/Element/link *)
 let linkHTMLAttributes =
   [
-    Attribute { name = "as"; jsxName = "as_"; type_ = String };
+    Attribute { name = "as"; jsxName = "as"; type_ = String };
     Attribute { name = "crossorigin"; jsxName = "crossOrigin"; type_ = String };
     Attribute { name = "blocking"; jsxName = "blocking"; type_ = Bool }; (* Experimental *)
     Attribute { name = "disabled"; jsxName = "disabled"; type_ = Bool }; (* Deprecated *)
@@ -834,7 +834,7 @@ let linkHTMLAttributes =
     Attribute { name = "rel"; jsxName = "rel"; type_ = String };
     Attribute { name = "title"; jsxName = "title"; type_ = String };
     Attribute { name = "sizes"; jsxName = "sizes"; type_ = String };
-    Attribute { name = "type"; jsxName = "type_"; type_ = String };
+    Attribute { name = "type"; jsxName = "type"; type_ = String };
     Attribute { name = "charset"; jsxName = "charSet"; type_ = String }; (* non standard *)
   ]
 
@@ -845,7 +845,7 @@ let mapHTMLAttributes =
 
 let menuHTMLAttributes =
   [
-    Attribute { name = "type"; jsxName = "type_"; type_ = String };
+    Attribute { name = "type"; jsxName = "type"; type_ = String };
   ]
 
 (* isn't validated with mdn *)
@@ -899,7 +899,7 @@ let objectHTMLAttributes =
     Attribute { name = "form"; jsxName = "form"; type_ = String };
     Attribute { name = "height"; jsxName = "height"; type_ = String (* number | *) };
     Attribute { name = "name"; jsxName = "name"; type_ = String };
-    Attribute { name = "type"; jsxName = "type_"; type_ = String };
+    Attribute { name = "type"; jsxName = "type"; type_ = String };
     Attribute { name = "usemap"; jsxName = "useMap"; type_ = String };
     Attribute { name = "width"; jsxName = "width"; type_ = String (* number | *) };
     Attribute { name = "wmode"; jsxName = "wmode"; type_ = String };
@@ -909,7 +909,7 @@ let olHTMLAttributes =
   [
     Attribute { name = "reversed"; jsxName = "reversed"; type_ = Bool };
     Attribute { name = "start"; jsxName = "start"; type_ = Int (* number *) };
-    Attribute { name = "type"; jsxName = "type_"; type_ = String (* '1' | 'a' | 'A' | 'i' | 'I' *) };
+    Attribute { name = "type"; jsxName = "type"; type_ = String (* '1' | 'a' | 'A' | 'i' | 'I' *) };
   ]
 
 let optgroupHTMLAttributes =
@@ -961,7 +961,7 @@ let scriptHTMLAttributes =
     Attribute { name = "nomodule"; jsxName = "noModule"; type_ = Bool };
     Attribute { name = "nonce"; jsxName = "nonce"; type_ = String };
     Attribute { name = "src"; jsxName = "src"; type_ = String };
-    Attribute { name = "type"; jsxName = "type_"; type_ = String };
+    Attribute { name = "type"; jsxName = "type"; type_ = String };
   ]
 
 let selectHTMLAttributes =
@@ -985,7 +985,7 @@ let sourceHTMLAttributes =
     Attribute { name = "sizes"; jsxName = "sizes"; type_ = String };
     Attribute { name = "src"; jsxName = "src"; type_ = String };
     Attribute { name = "srcset"; jsxName = "srcSet"; type_ = String };
-    Attribute { name = "type"; jsxName = "type_"; type_ = String };
+    Attribute { name = "type"; jsxName = "type"; type_ = String };
     Attribute { name = "width"; jsxName = "width"; type_ = String (* number | *) };
   ]
 
@@ -994,7 +994,7 @@ let styleHTMLAttributes =
     Attribute { name = "media"; jsxName = "media"; type_ = String };
     Attribute { name = "nonce"; jsxName = "nonce"; type_ = String };
     Attribute { name = "scoped"; jsxName = "scoped"; type_ = Bool };
-    Attribute { name = "type"; jsxName = "type_"; type_ = String }
+    Attribute { name = "type"; jsxName = "type"; type_ = String }
   ]
 
 (* https://developer.mozilla.org/en-US/docs/Web/HTML/Element/table *)
@@ -1189,7 +1189,7 @@ module SVG = struct
       Attribute { name = "y"; jsxName = "y"; type_ = String (* number | *) };
       (* Transfer function attributes type, tableValues, slope, intercept,
          amplitude, exponent, offset *)
-      Attribute { name = "type"; jsxName = "type_"; type_ = String };
+      Attribute { name = "type"; jsxName = "type"; type_ = String };
       Attribute { name = "exponent"; jsxName = "exponent"; type_ = String (* number | *) };
       Attribute { name = "slope"; jsxName = "slope"; type_ = String (* number | *) };
       Attribute { name = "amplitude"; jsxName = "amplitude"; type_ = String (* number | *) };
@@ -1240,7 +1240,7 @@ module SVG = struct
       Attribute { name = "id"; jsxName = "id"; type_ = String };
       Attribute { name = "lang"; jsxName = "lang"; type_ = String };
       Attribute { name = "media"; jsxName = "media"; type_ = String };
-      Attribute { name = "method"; jsxName = "method_"; type_ = String };
+      Attribute { name = "method"; jsxName = "method"; type_ = String };
       Attribute { name = "name"; jsxName = "name"; type_ = String };
       Attribute { name = "style"; jsxName = "style"; type_ = Style };
       Attribute { name = "target"; jsxName = "target"; type_ = String };
@@ -1292,7 +1292,7 @@ module SVG = struct
       Attribute { name = "horiz-origin-y"; jsxName = "horizOriginY"; type_ = String (* number | *) };
       Attribute { name = "ideographic"; jsxName = "ideographic"; type_ = String (* number | *) };
       Attribute { name = "in2"; jsxName = "in2"; type_ = String (* number | *) };
-      Attribute { name = "in"; jsxName = "in_"; type_ = String };
+      Attribute { name = "in"; jsxName = "in"; type_ = String };
       Attribute { name = "k1"; jsxName = "k1"; type_ = String (* number | *) };
       Attribute { name = "k2"; jsxName = "k2"; type_ = String (* number | *) };
       Attribute { name = "k3"; jsxName = "k3"; type_ = String (* number | *) };
@@ -1615,7 +1615,6 @@ let svgElements =
 let domAttributes = commonSvgAttributes & commonHtmlAttributes
 let elements = svgElements & htmlElements
 let getJSXName = function Attribute { jsxName; _ } -> jsxName | Event { jsxName; _ } -> jsxName
-let getName = function Attribute { name; _ } -> name | Event { jsxName; _ } -> jsxName
 let domPropNames = List.map getJSXName domAttributes
 
 type errors = [ `ElementNotFound | `AttributeNotFound ]
@@ -1642,19 +1641,38 @@ let camelcaseToKebabcase str =
   in
   str |> chars_of_string |> loop [] |> List.rev |> string_of_chars
 
-let findByJsxName ~tag jsxName =
+(* We store domProps as valid HTML attributes. From the ppx we receive the name
+   that's valid on Reason files. To do so, we remove the underscores from the names. *)
+let drop_underscore = function
+  (* This are the list of OCaml keywords that are reserved and appear on the HTML spec *)
+  (* Full list: https://ocaml.org/manual/5.2/lex.html#sss:keywords *)
+  | "as_" -> "as"
+  | "begin_" -> "begin"
+  | "class_" -> "class"
+  | "end_" -> "end"
+  | "for_" -> "for"
+  | "in_" -> "in"
+  | "method_" -> "method"
+  | "open_" -> "open"
+  | "to_" -> "to"
+  | "type_" -> "type"
+  | name -> name
+
+let findByJsxName ~tag name =
+  let jsxName = drop_underscore name in
   let byName p = getJSXName p = jsxName in
   if isDataAttribute jsxName then
     let name = camelcaseToKebabcase jsxName in
     Ok (Attribute { name; jsxName; type_ = String })
   else
     match getAttributes tag with
-    | Ok { attributes; _ } -> List.find_opt byName attributes |> Option.to_result ~none:`AttributeNotFound
+    | Ok { attributes; _ } -> (
+        match List.find_opt byName attributes with Some p -> Ok p | None -> Error `AttributeNotFound)
     | Error err -> Error err
 
 let isReactValidProp name =
   let byName p = getJSXName p = name in
-  reactValidHtml |> List.exists byName
+  List.exists byName reactValidHtml
 
 module Levenshtein = struct
   (* Levenshtein distance from
@@ -1681,7 +1699,7 @@ end
 
 type closest = { name : string; distance : int }
 
-let find_closest_name invalid =
+let findClosestName invalid =
   let accumulate_distance name bestMatch =
     let distance = Levenshtein.distance invalid name in
     match distance < bestMatch.distance with true -> { name; distance } | false -> bestMatch

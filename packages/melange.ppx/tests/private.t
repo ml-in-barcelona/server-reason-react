@@ -7,7 +7,7 @@ let%private attribute
   $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl | tee output.ml
   open! struct
     let privi = 22
-  end [@internal.local]
+  end
   
   let print () = Js.log privi
 
