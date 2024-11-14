@@ -30,6 +30,12 @@ let assert_float left right =
 let assert_bool left right =
   Alcotest.check Alcotest.bool "should be equal" right left
 
+let assert_raises fn exn =
+  match fn () with
+  | exception exn ->
+      assert_string (Printexc.to_string exn) (Printexc.to_string exn)
+  | _ -> Alcotest.failf "Expected exception %s" (Printexc.to_string exn)
+
 let test title fn = Alcotest_lwt.test_case_sync title `Quick fn
 let test_async title fn = Alcotest_lwt.test_case title `Quick fn
 
@@ -461,7 +467,10 @@ let global_tests =
         assert_string (Js.Global.decodeURI "Hello%2DWorld") "Hello-World");
     test "decodeURI - reserved characters" (fun () ->
         assert_string (Js.Global.decodeURI ";,/?:@&=+$#") ";,/?:@&=+$#";
-        assert_string (Js.Global.decodeURI "-_.!~*'()") "-_.!~*'()");
+        assert_string (Js.Global.decodeURI "-_.!~*'()") "-_.!~*'()";
+        assert_string (Js.Global.decodeURI "%5B%5D") "[]";
+        assert_string (Js.Global.decodeURI "%7B%7D") "{}";
+        assert_string (Js.Global.decodeURI "%7C") "|");
     test "decodeURI - alphabets" (fun () ->
         assert_string
           (Js.Global.decodeURI "ABCDEFGHIJKLMNOPQRSTUVWXYZ")
@@ -476,10 +485,6 @@ let global_tests =
           "Юникод";
         assert_string (Js.Global.decodeURI "%E2%82%AC%E2%98%85%E2%99%A0") "€★♠";
         assert_string (Js.Global.decodeURI "%E4%BD%A0%E5%A5%BD") "你好");
-    test "" (fun () ->
-        assert_string (Js.Global.decodeURI "%5B%5D") "[]";
-        assert_string (Js.Global.decodeURI "%7B%7D") "{}";
-        assert_string (Js.Global.decodeURI "%7C") "|");
     test "decodeURI - mixed percent encodings and Unicode" (fun () ->
         assert_string
           (Js.Global.decodeURI "Hello%20%E4%BD%A0%E5%A5%BD%20World")
@@ -506,6 +511,18 @@ let global_tests =
         assert_string (Js.Global.decodeURI "%0A") "\n";
         assert_string (Js.Global.decodeURI "%0D") "\r";
         assert_string (Js.Global.decodeURI "%3C%3E%22%5C") "<>\"\\");
+    test "decodeURI - beyond U+10FFFF" (fun () ->
+        assert_raises
+          (fun () -> Js.Global.decodeURI "%F4%90%80%80")
+          (Failure "decodeURI: malformed URI sequence"));
+    test "decodeURI - partial sequences" (fun () ->
+        (* Incomplete or malformed sequences *)
+        assert_raises
+          (fun () -> Js.Global.decodeURI "%E4")
+          (Failure "decodeURI: malformed URI sequence");
+        assert_raises
+          (fun () -> Js.Global.decodeURI "%E4%A")
+          (Failure "decodeURI: malformed URI sequence"));
     test "encodeURI - ascii and spaces" (fun () ->
         assert_string (Js.Global.encodeURI "Hello World") "Hello%20World";
         assert_string
