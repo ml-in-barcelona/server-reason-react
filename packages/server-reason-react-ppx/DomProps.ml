@@ -477,16 +477,11 @@ let ariaRole = String
    Tablist | Tabpanel | Term | Textbox | Timer | Toolbar | Tooltip | Tree |
    Treegrid | Treeitem | Custom of String *)
 
-let reactValidHtml =
+let reactAttributes =
   [
     Attribute { name = "class"; jsxName = "className"; reasonJsxName = "className"; type_ = String };
     Attribute { name = "defaultChecked"; jsxName = "defaultChecked"; reasonJsxName = "defaultChecked"; type_ = Bool };
-    Attribute { name = "defaultSelected"; jsxName = "defaultSelected"; reasonJsxName = "defaultSelected"; type_ = Bool };
     Attribute { name = "defaultValue"; jsxName = "defaultValue"; reasonJsxName = "defaultValue"; type_ = String (* | number | ReadonlyArray<String> *) };
-  ]
-
-let reactAttributes =
-  [
     (* https://reactjs.org/docs/dom-elements.html *)
     Attribute { name = "dangerouslySetInnerHTML"; jsxName = "dangerouslySetInnerHTML"; reasonJsxName = "dangerouslySetInnerHTML"; type_ = InnerHtml };
     Attribute { name = "ref"; jsxName = "ref"; reasonJsxName = "ref"; type_ = Ref };
@@ -494,7 +489,6 @@ let reactAttributes =
     Attribute { name = "suppressContentEditableWarning"; jsxName = "suppressContentEditableWarning"; reasonJsxName = "suppressContentEditableWarning"; type_ = Bool };
     Attribute { name = "suppressHydrationWarning"; jsxName = "suppressHydrationWarning"; reasonJsxName = "suppressHydrationWarning"; type_ = Bool };
   ]
-  & reactValidHtml
 
 let globalAttributes =
   [
@@ -1411,7 +1405,6 @@ end
 let webViewHTMLAttributes =
   [
     Attribute { name = "allowfullcreen"; jsxName = "allowFullScreen"; reasonJsxName = "allowFullScreen"; type_ = Bool };
-    (* Attribute { name = "allowPopups"; jsxName = "allowPopups"; reasonJsxName = "allowPopups"; type_ = Bool }; Does it exist? *)
     Attribute { name = "autofocus"; jsxName = "autoFocus"; reasonJsxName = "autoFocus"; type_ = Bool };
     Attribute { name = "autoSize"; jsxName = "autoSize"; reasonJsxName = "autoSize"; type_ = Bool };
     Attribute { name = "blinkFeatures"; jsxName = "blinkFeatures"; reasonJsxName = "blinkFeatures"; type_ = String };
@@ -1661,10 +1654,6 @@ let findByJsxName ~tag name =
         match List.find_opt byReasonName attributes with Some p -> Ok p | None -> Error `AttributeNotFound)
     | Error err -> Error err
 
-let isReactValidProp name =
-  let byName p = getJSXName p = name in
-  List.exists byName reactValidHtml
-
 module Levenshtein = struct
   (* Levenshtein distance from
      https://rosettacode.org/wiki/Levenshtein_distance *)
@@ -1688,12 +1677,10 @@ module Levenshtein = struct
     matrix.(first).(second)
 end
 
-type closest = { name : string; distance : int }
-
 let findClosestName invalid =
-  let accumulate_distance name bestMatch =
+  let accumulate_distance name (bestName, bestDistance) =
     let distance = Levenshtein.distance invalid name in
-    match distance < bestMatch.distance with true -> { name; distance } | false -> bestMatch
+    match distance < bestDistance with true -> (name, distance) | false -> (bestName, bestDistance)
   in
-  let { name; distance } = List.fold_right accumulate_distance domPropNames { name = ""; distance = max_int } in
+  let name, distance = List.fold_right accumulate_distance domPropNames ("", max_int) in
   if distance > 2 then None else Some name
