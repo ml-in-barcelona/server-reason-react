@@ -32,18 +32,22 @@ type eventType =
   | Inline
   | Drag
 
-(* Attribute is a record to define the 3 string formats for HTML attributes, JSX props and Reason's JSX props *)
+(* In React, all DOM properties and attributes (including event handlers) should be camelCased. For example, the HTML attribute tabindex corresponds to the attribute tabIndex in React. The exception is aria-* and data-* attributes, which should be lowercased. For example, you can keep aria-label as aria-label.
+  More info about it: https://legacy.reactjs.org/docs/dom-elements.html *)
+(* In `attribute` we store the 3 formats for DOM (HTML and SVG) attributes, JSX props and Reason's JSX props *)
 type attribute = {
   type_ : attributeType;
   name : string; (* HTML name *)
   jsxName : string; (* JSX name *)
-  reasonJsxName : string; (* ReasonJSX name, this is the name that appears on the Reason/OCaml files, which can't be reserved keywords from OCaml (https://ocaml.org/manual/5.2/lex.html#sss:keywords) or Reason syntax (https://github.com/reasonml/reason/blob/master/src/reason-parser/reason_declarative_lexer.mll#L85-L144). Currently the only appearances comes from the OCaml list, since there's no Reason specific keyword that appears on the HTML spec. *)
+  reasonJsxName : string; (* Reason's JSX name is the format that appears on Reason/OCaml files, which are must not
+  match with reserved keywords from OCaml (https://ocaml.org/manual/5.2/lex.html#sss:keywords) or Reason syntax (https://github.com/reasonml/reason/blob/master/src/reason-parser/reason_declarative_lexer.mll#L85-L144).
+  Currently all reserved words used in HTML come from OCaml (and inheritly in Reason), but there's none that comes from Reason. *)
 }
 
 type event = {
   type_ : eventType;
-  (* in case of events, jsxName is the same as the reasonJsxName name.
-     also HTML events aren't used in the ppx, neither the runtime *)
+  (* event handlers should be camelCased and they don't collied with any reserved words from the language.
+     also we don't use the HTML format in the ppx, neither int the runtime *)
   jsxName : string;
 }
 
