@@ -2,10 +2,11 @@
   "name": "test_browser",
   "version": "0.0.1",
   "scripts": {
-    "start": "node index.js"
+    "serve": "http-server -p 1234 ."
   },
   "license": "MIT",
   "dependencies": {
+    "http-server": "^14.1.1",
     "react": "^19.0.0-rc-69d4b800-20241021",
     "react-dom": "^19.0.0-rc-69d4b800-20241021",
     "react-server-dom-webpack": "^19.0.0-rc-69d4b800-20241021"
