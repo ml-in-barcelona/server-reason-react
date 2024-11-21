@@ -116,7 +116,6 @@ jobs:
           cache: 'npm'
 
       - name: Install opam deps
-        if: steps.opam-cache.outputs.cache-hit != 'true'
         run: make install
 
       - name: Install npm deps
