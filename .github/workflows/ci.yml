@@ -50,6 +50,7 @@ jobs:
             brew update
             brew upgrade
             brew install pkgconf
+            brew link --overwrite pkgconf
           fi
 
       - name: Load opam cache
@@ -65,14 +66,14 @@ jobs:
 
       - name: Use OCaml ${{ matrix.ocaml-compiler }}
         uses: ocaml/setup-ocaml@v3.0.15
-        if: steps.opam-cache.outputs.cache-hit != 'true'
+        # if: steps.opam-cache.outputs.cache-hit != 'true'
         with:
           ocaml-compiler: ${{ matrix.ocaml-compiler }}
           dune-cache: false
           opam-disable-sandboxing: true
 
       - name: Get OPAM executable path
-        if: steps.opam-cache.outputs.cache-hit != 'true'
+        # if: steps.opam-cache.outputs.cache-hit != 'true'
         uses: actions/github-script@v7
         with:
           script: |
@@ -109,11 +110,11 @@ jobs:
             demo/package-lock.json
 
       - name: Install deps
-        if: steps.opam-cache.outputs.cache-hit != 'true'
+        # if: steps.opam-cache.outputs.cache-hit != 'true'
         run: make install
 
       - name: Pin dependencies
-        if: steps.opam-cache.outputs.cache-hit != 'true'
+        # if: steps.opam-cache.outputs.cache-hit != 'true'
         run: make pin
 
       - name: Build
@@ -143,7 +144,7 @@ jobs:
 
       - name: Save cache
         uses: actions/cache/save@v4
-        if: steps.opam-cache.outputs.cache-hit != 'true'
+        # if: steps.opam-cache.outputs.cache-hit != 'true'
         with:
           path: |
             ${{ runner.tool_cache }}/opam
