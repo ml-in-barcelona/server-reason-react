@@ -4,8 +4,9 @@
 
 # server-reason-react
 
-Re-implementation of `react`, `react-dom` and `react-dom/server` to run on the server and a few related libraries in Reason/OCaml, to enable Server-side Rendering for reason-react applications.
+Re-implementation of `react`, `react-dom` and `react-dom/server` to run on the server and also, a [few related libraries](https://ml-in-barcelona.github.io/server-reason-react/local/server-reason-react/index.html#other-libraries) to enable Server-side Rendering for reason-react applications.
 
+## Why
 Explained more details in this blog post [sancho.dev/blog/server-side-rendering-react-in-ocaml](https://sancho.dev/blog/server-side-rendering-react-in-ocaml)
 
-### [Documentation](https://ml-in-barcelona.github.io/server-reason-react/local/server-reason-react/index.html)
+## [Documentation](https://ml-in-barcelona.github.io/server-reason-react/local/server-reason-react/index.html)
