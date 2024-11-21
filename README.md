@@ -1,6 +1,6 @@
 > **Warning**
-> This repo contains a few parts that are considered alpha-stage and not ready for production. The parts that are more stable are used in production at [app.ahrefs.com](https://app.ahrefs.com) for all users and [wordcount.com](https://wordcount.com), but `Belt`, `Js` modules have missing APIs and non-implemented functions.
-> This project enables sharing ReasonReact code between native and JavaScript and there's a lot of interesting pieces from this architecture. If you are interested, feel free to contact me in [Discord](https://discord.com/users/122441959414431745) or [Twitter](https://www.twitter.com/davesnx).
+> This repo contains a few parts that are considered experimental. The stable parts are used in production at [app.ahrefs.com](https://app.ahrefs.com) for all users and [wordcount.com](https://wordcount.com), but `Belt`, `Js` modules have missing APIs. non-implemented functions and unsafe code. Use it at your own risk.
+> This project enables sharing ReasonReact code between native (compiled to machine code) and Melange (compiled to JavaScript). There are a lot of interesting pieces from this architecture and stack. If you are interested, feel free to contact me in [Discord](https://discord.com/users/122441959414431745) or [Twitter](https://www.twitter.com/davesnx).
 
 # server-reason-react
 
