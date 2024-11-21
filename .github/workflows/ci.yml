@@ -145,5 +145,5 @@ jobs:
             ${{ runner.tool_cache }}/opam
             ~/.opam
             _opam
+            .opam-path
           key: opam-${{ matrix.os }}-${{ matrix.ocaml-compiler }}-${{ hashFiles('**.opam') }}
-
