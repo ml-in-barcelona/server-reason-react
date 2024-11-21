@@ -73,8 +73,6 @@ jobs:
         run: |
           echo "DEBUUUUUG"
           echo $OPAM_PATH
-          echo "---"
-          cat .opam-path
           echo "END DEBUUUUUG BEFORE"
 
       - name: Get OPAM executable path
