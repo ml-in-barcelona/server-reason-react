@@ -106,9 +106,14 @@ jobs:
 
       - name: Use Node.js
         uses: actions/setup-node@v4
+        with:
+          cache: 'npm'
+          cache-dependency-path: |
+            ./package-lock.json
+            demo/package-lock.json
 
       - name: Install deps
-        if: steps.opam-cache.outputs.cache-hit != 'true'
+        # if: steps.opam-cache.outputs.cache-hit != 'true'
         run: make install
 
       - name: Pin dependencies
