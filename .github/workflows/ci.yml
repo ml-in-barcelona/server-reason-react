@@ -46,9 +46,11 @@ jobs:
       - name: Fix MacOS (by installing pkgconf) # https://github.com/ocaml/setup-ocaml/issues/897
         if: matrix.os == 'macos-latest'
         run: |
-          brew update
-          brew upgrade
-          brew install pkgconf
+          if ! brew list pkgconf &> /dev/null; then
+            brew update
+            brew upgrade
+            brew install pkgconf
+          fi
 
       - name: Load opam cache
         id: opam-cache
@@ -107,7 +109,7 @@ jobs:
             demo/package-lock.json
 
       - name: Install deps
-        # if: steps.opam-cache.outputs.cache-hit != 'true'
+        if: steps.opam-cache.outputs.cache-hit != 'true'
         run: make install
 
       - name: Pin dependencies
