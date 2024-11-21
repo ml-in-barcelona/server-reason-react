@@ -5,16 +5,17 @@ on:
     branches:
     - main
   pull_request:
-  schedule:
-    # Prime the caches every Monday
-    - cron: 0 1 * * MON
 
 env:
-  OPAM_VERSION: 2.2.0
+  OPAM_VERSION: 2.3.0
   DUNE_PROFILE: release
 
 permissions:
   contents: write
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build:
@@ -33,33 +34,27 @@ jobs:
           - 5.1.1
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - name: Load opam cache when not Windows
-        if: runner.os != 'Windows'
+      - name: Load opam cache
         id: opam-cache
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
-          path: ~/.opam
-          key: opam-${{ matrix.os }}-${{ matrix.ocaml-compiler }}-${{ hashFiles('**.opam') }}
-
-      - name: Load opam cache when Windows
-        if: runner.os == 'Windows'
-        id: opam-cache-windows
-        uses: actions/cache/restore@v3
-        with:
-          path: _opam
+          path: |
+            ${{ runner.tool_cache }}/opam
+            ~/.opam
+            _opam
           key: opam-${{ matrix.os }}-${{ matrix.ocaml-compiler }}-${{ hashFiles('**.opam') }}
 
       - name: Use OCaml ${{ matrix.ocaml-compiler }}
-        uses: ocaml/setup-ocaml@v3
+        uses: ocaml/setup-ocaml@v3.0.15
         with:
           ocaml-compiler: ${{ matrix.ocaml-compiler }}
           dune-cache: true
           opam-disable-sandboxing: true
 
       - name: Use Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
 
       - name: Install deps
         run: make install
@@ -92,16 +87,13 @@ jobs:
       - name: Run benchmarks
         run: make bench
 
-      - name: Save cache when not Windows
-        uses: actions/cache/save@v3
-        if: steps.opam-cache.outputs.cache-hit != 'true' && runner.os != 'Windows'
+      - name: Save cache
+        uses: actions/cache/save@v4
+        if: steps.opam-cache.outputs.cache-hit != 'true'
         with:
-          path: ~/.opam
+          path: |
+            ${{ runner.tool_cache }}/opam
+            ~/.opam
+            _opam
           key: opam-${{ matrix.os }}-${{ matrix.ocaml-compiler }}-${{ hashFiles('**.opam') }}
 
-      - name: Save cache when Windows
-        uses: actions/cache/save@v3
-        if: steps.opam-cache-windows.outputs.cache-hit != 'true' && runner.os == 'Windows'
-        with:
-          path: _opam
-          key: opam-${{ matrix.os }}-${{ matrix.ocaml-compiler }}-${{ hashFiles('**.opam') }}
