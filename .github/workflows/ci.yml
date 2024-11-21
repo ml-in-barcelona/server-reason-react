@@ -49,6 +49,13 @@ jobs:
             .opam-path
           key: opam-${{ matrix.os }}-${{ matrix.ocaml-compiler }}-${{ hashFiles('**.opam') }}
 
+      - name: Fix MacOS
+        if: matrix.os == 'macos-latest'
+        run: |
+          brew update
+          brew upgrade
+          brew install pkgconf
+
       - name: Use OCaml ${{ matrix.ocaml-compiler }}
         uses: ocaml/setup-ocaml@v3.0.15
         if: steps.opam-cache.outputs.cache-hit != 'true'
