@@ -56,6 +56,24 @@ jobs:
           dune-cache: true
           opam-disable-sandboxing: true
 
+      - name: Debug cache
+        run: |
+          echo "DEBUUUUUG"
+          ls -la ${{ runner.tool_cache }}/opam
+          echo "---"
+          ls -la ${{ runner.tool_cache }}/opam/2.3.0
+          echo "---"
+          ls -la ~/.opam
+          echo "---"
+          ls -la _opam
+          echo "---"
+          ls -la _opam/bin
+          echo "---"
+          opam --version
+          opam exec dune --version
+          echo "cache-hit: ${{ steps.opam-cache.outputs.cache-hit }}"
+          echo "END DEBUUUUUG"
+
       - name: Use Node.js
         uses: actions/setup-node@v4
 
