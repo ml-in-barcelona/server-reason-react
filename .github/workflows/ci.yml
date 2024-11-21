@@ -50,6 +50,7 @@ jobs:
 
       - name: Use OCaml ${{ matrix.ocaml-compiler }}
         uses: ocaml/setup-ocaml@v3.0.15
+        if: steps.opam-cache.outputs.cache-hit != 'true'
         with:
           ocaml-compiler: ${{ matrix.ocaml-compiler }}
           dune-cache: true
@@ -59,9 +60,11 @@ jobs:
         uses: actions/setup-node@v4
 
       - name: Install deps
+        if: steps.opam-cache.outputs.cache-hit != 'true'
         run: make install
 
       - name: Pin dependencies
+        if: steps.opam-cache.outputs.cache-hit != 'true'
         run: make pin
 
       - name: Build
