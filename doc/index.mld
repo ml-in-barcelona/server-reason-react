@@ -31,9 +31,10 @@ Aside from the core, [server-reason-react] exposes some needed known libraries f
   {li {!Js} [server-reason-react.js] (equivalent to [Js] from [melange], very unsafe)}
   {li {!URL} [server-reason-react.url]}
   {li {!Webapi} [server-reason-react.webapi] (equivalent to [Webapi] from [melange-webapi])}
+  {li {!Dom} [server-reason-react.dom] (equivalent to [Dom] from [melange-dom])}
 }
 
-{_ This would eventually be extracted into their own packages}
+{_ This libraries would eventually be extracted into their own packages/repositories}
 
 {1:next Next}
 
