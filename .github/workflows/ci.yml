@@ -69,18 +69,27 @@ jobs:
           dune-cache: false
           opam-disable-sandboxing: true
 
+      - name: Debug cache before
+        run: |
+          echo "DEBUUUUUG"
+          echo $OPAM_PATH
+          echo "---"
+          cat .opam-path
+          echo "END DEBUUUUUG BEFORE"
+
       - name: Get OPAM executable path
         uses: actions/github-script@v7
+        if: steps.opam-cache.outputs.cache-hit != 'true'
         with:
           script: |
-            const opamPath = await io.which('opam', true);
-            console.log('opam executable found: %s', opamPath);
-
-            const fs = require('fs/promises');
-            await fs.writeFile('.opam-path', opamPath, 'utf-8');
+            const opam_path = await io.which('opam', true);
+            console.log('opam executable found: %s', opam_path);
+            const Fs = require('fs/promises');
+            await Fs.writeFile('.opam-path', opam_path, 'utf-8');
             console.log('stored path to .opam-path');
 
       - name: Use cached OPAM environment
+        if: steps.opam-cache.outputs.cache-hit == 'true'
         shell: bash
         run: |
           # https://github.com/ocaml/setup-ocaml/blob/b2105f9/packages/setup-ocaml/src/installer.ts#L33
