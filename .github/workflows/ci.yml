@@ -71,7 +71,6 @@ jobs:
 
       - name: Get OPAM executable path
         uses: actions/github-script@v7
-        if: steps.opam-cache.outputs.cache-hit != 'true'
         with:
           script: |
             const opam_path = await io.which('opam', true);
@@ -81,7 +80,6 @@ jobs:
             console.log('stored path to .opam-path');
 
       - name: Use cached OPAM environment
-        if: steps.opam-cache.outputs.cache-hit == 'true'
         shell: bash
         run: |
           # https://github.com/ocaml/setup-ocaml/blob/b2105f9/packages/setup-ocaml/src/installer.ts#L33
@@ -92,7 +90,7 @@ jobs:
           echo "OPAMPRECISETRACKING=1"       >> "$GITHUB_ENV"
           echo "OPAMYES=1"                   >> "$GITHUB_ENV"
 
-          echo "OPAMROOT=$HOME/.opam"      >> "$GITHUB_ENV"
+          echo "OPAMROOT=$HOME/.opam"        >> "$GITHUB_ENV"
 
           OPAM_PATH="$(cat .opam-path)"
           chmod +x "$OPAM_PATH"
@@ -101,7 +99,6 @@ jobs:
       - name: Debug cache
         run: |
           echo "DEBUUUUUG"
-          echo $OPAM_PATH
           echo "---"
           cat .opam-path
           echo "---"
