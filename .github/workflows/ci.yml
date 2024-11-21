@@ -62,7 +62,7 @@ jobs:
           echo "---"
           echo "OPAM_PATH: $OPAM_PATH"
           echo "---"
-          ls -la $OPAM_PATH
+          ls -la .opam-path
           echo "---"
           ls -la ${{ runner.tool_cache }}/opam
           echo "---"
