@@ -5,6 +5,8 @@ on:
     branches:
     - main
   pull_request:
+    branches:
+    - main
 
 env:
   OPAM_VERSION: 2.3.0
