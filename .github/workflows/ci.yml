@@ -43,6 +43,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Fix MacOS (by installing pkgconf) # https://github.com/ocaml/setup-ocaml/issues/897
+        if: matrix.os == 'macos-latest'
+        run: |
+          brew update
+          brew upgrade
+          brew install pkgconf
+
       - name: Load opam cache
         id: opam-cache
         uses: actions/cache/restore@v4
@@ -90,19 +97,6 @@ jobs:
           OPAM_PATH="$(cat .opam-path)"
           chmod +x "$OPAM_PATH"
           dirname "$OPAM_PATH" >> "$GITHUB_PATH"
-
-      - name: Debug cache
-        run: |
-          echo "DEBUUUUUG"
-          echo "---"
-          cat .opam-path
-          echo "---"
-          opam --version
-          echo "---"
-          opam exec dune --version
-          echo "---"
-          echo "cache-hit: ${{ steps.opam-cache.outputs.cache-hit }}"
-          echo "END DEBUUUUUG"
 
       - name: Use Node.js
         uses: actions/setup-node@v4
