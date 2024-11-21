@@ -69,12 +69,6 @@ jobs:
           dune-cache: false
           opam-disable-sandboxing: true
 
-      - name: Debug cache before
-        run: |
-          echo "DEBUUUUUG"
-          echo $OPAM_PATH
-          echo "END DEBUUUUUG BEFORE"
-
       - name: Get OPAM executable path
         uses: actions/github-script@v7
         if: steps.opam-cache.outputs.cache-hit != 'true'
