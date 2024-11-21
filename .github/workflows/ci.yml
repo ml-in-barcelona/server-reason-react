@@ -62,8 +62,16 @@ jobs:
             ~/.opam
             _opam
             .opam-path
-            node_modules
           key: opam-${{ matrix.os }}-${{ matrix.ocaml-compiler }}-${{ hashFiles('**.opam') }}
+
+      - name: Load npm cache
+        id: npm-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            node_modules
+            demo/node_modules
+          key: npm-${{ matrix.os }}-${{ hashFiles('package.json') }}
 
       - name: Use OCaml ${{ matrix.ocaml-compiler }}
         uses: ocaml/setup-ocaml@v3.0.15
@@ -106,13 +114,14 @@ jobs:
         uses: actions/setup-node@v4
         with:
           cache: 'npm'
-          cache-dependency-path: |
-            ./package-lock.json
-            demo/package-lock.json
 
-      - name: Install deps
+      - name: Install opam deps
         # if: steps.opam-cache.outputs.cache-hit != 'true'
         run: make install
+
+      - name: Install npm deps
+        # if: steps.npm-cache.outputs.cache-hit != 'true'
+        run: make install-npm
 
       - name: Pin dependencies
         # if: steps.opam-cache.outputs.cache-hit != 'true'
@@ -143,7 +152,7 @@ jobs:
       - name: Run benchmarks
         run: make bench
 
-      - name: Save cache
+      - name: Save opam cache
         uses: actions/cache/save@v4
         # if: steps.opam-cache.outputs.cache-hit != 'true'
         with:
@@ -152,5 +161,10 @@ jobs:
             ~/.opam
             _opam
             .opam-path
-            node_modules
           key: opam-${{ matrix.os }}-${{ matrix.ocaml-compiler }}-${{ hashFiles('**.opam') }}
+
+      - name: Save npm cache
+        uses: actions/cache/save@v4
+        with:
+          path: node_modules
+          key: npm-${{ matrix.os }}-${{ hashFiles('package.json') }}

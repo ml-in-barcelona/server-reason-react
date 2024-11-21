@@ -61,6 +61,10 @@ create-switch: ## Create opam switch
 .PHONY: install
 install:
 	opam install . --deps-only --with-test --with-doc --with-dev-setup
+
+.PHONY: install-npm
+install-npm:
+	npm install
 	cd demo && npm install
 
 .PHONY: pin
@@ -68,7 +72,7 @@ pin: ## Pin dependencies
 	echo "Nothing to pin"
 
 .PHONY: init
-init: setup-githooks create-switch pin install ## Create a local dev enviroment
+init: setup-githooks create-switch pin install install-npm ## Create a local dev enviroment
 
 .PHONY: ppx-test
 ppx-test: ## Run ppx tests
