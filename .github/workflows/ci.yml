@@ -62,18 +62,19 @@ jobs:
             ~/.opam
             _opam
             .opam-path
+            node_modules
           key: opam-${{ matrix.os }}-${{ matrix.ocaml-compiler }}-${{ hashFiles('**.opam') }}
 
       - name: Use OCaml ${{ matrix.ocaml-compiler }}
         uses: ocaml/setup-ocaml@v3.0.15
-        if: steps.opam-cache.outputs.cache-hit != 'true'
+        # if: steps.opam-cache.outputs.cache-hit != 'true'
         with:
           ocaml-compiler: ${{ matrix.ocaml-compiler }}
           dune-cache: false
           opam-disable-sandboxing: true
 
       - name: Get OPAM executable path
-        if: steps.opam-cache.outputs.cache-hit != 'true'
+        # if: steps.opam-cache.outputs.cache-hit != 'true'
         uses: actions/github-script@v7
         with:
           script: |
@@ -84,7 +85,7 @@ jobs:
             console.log('stored path to .opam-path');
 
       - name: Use cached OPAM environment
-        if: steps.opam-cache.outputs.cache-hit == 'true'
+        # if: steps.opam-cache.outputs.cache-hit == 'true'
         shell: bash
         run: |
           # https://github.com/ocaml/setup-ocaml/blob/b2105f9/packages/setup-ocaml/src/installer.ts#L33
@@ -110,11 +111,11 @@ jobs:
             demo/package-lock.json
 
       - name: Install deps
-        if: steps.opam-cache.outputs.cache-hit != 'true'
+        # if: steps.opam-cache.outputs.cache-hit != 'true'
         run: make install
 
       - name: Pin dependencies
-        if: steps.opam-cache.outputs.cache-hit != 'true'
+        # if: steps.opam-cache.outputs.cache-hit != 'true'
         run: make pin
 
       - name: Build
@@ -144,11 +145,12 @@ jobs:
 
       - name: Save cache
         uses: actions/cache/save@v4
-        if: steps.opam-cache.outputs.cache-hit != 'true'
+        # if: steps.opam-cache.outputs.cache-hit != 'true'
         with:
           path: |
             ${{ runner.tool_cache }}/opam
             ~/.opam
             _opam
             .opam-path
+            node_modules
           key: opam-${{ matrix.os }}-${{ matrix.ocaml-compiler }}-${{ hashFiles('**.opam') }}
