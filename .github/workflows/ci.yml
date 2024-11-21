@@ -59,6 +59,11 @@ jobs:
       - name: Debug cache
         run: |
           echo "DEBUUUUUG"
+          echo "---"
+          echo "OPAM_PATH: $OPAM_PATH"
+          echo "---"
+          ls -la $OPAM_PATH
+          echo "---"
           ls -la ${{ runner.tool_cache }}/opam
           echo "---"
           ls -la ${{ runner.tool_cache }}/opam/2.3.0
@@ -70,7 +75,9 @@ jobs:
           ls -la _opam/bin
           echo "---"
           opam --version
+          echo "---"
           opam exec dune --version
+          echo "---"
           echo "cache-hit: ${{ steps.opam-cache.outputs.cache-hit }}"
           echo "END DEBUUUUUG"
 
