@@ -29,9 +29,9 @@ Aside from the core, [server-reason-react] exposes some needed known libraries f
 {ul
   {li {!Belt} [server-reason-react.belt] (equivalent to [Belt] from [melange])}
   {li {!Js} [server-reason-react.js] (equivalent to [Js] from [melange], very unsafe)}
-  {li {!URL} [server-reason-react.url]}
+  {li {!URL} [server-reason-react.url]} a universal module for managing URLs
   {li {!Webapi} [server-reason-react.webapi] (equivalent to [Webapi] from [melange-webapi])}
-  {li {!Dom} [server-reason-react.dom] (equivalent to [Dom] from [melange-dom])}
+  {li {!Dom} [server-reason-react.dom] (equivalent to [Dom] from [melange-dom], but with melange_native_ppx)}
 }
 
 {_ This libraries would eventually be extracted into their own packages/repositories}
