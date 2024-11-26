@@ -12,8 +12,34 @@ module Hr = {
   };
 };
 
+module Promise_example = {
+  [@react.component]
+  let make = (~valueIn3seconds) => {
+    <div
+      className={Cx.make([
+        Theme.text(Theme.Color.white),
+        "flex",
+        "flex-col",
+        "gap-4",
+      ])}>
+      <Spacer bottom=2>
+        <p className={Cx.make(["m-0", "text-3xl", "font-bold"])}>
+          {React.string("Promise from the server")}
+        </p>
+      </Spacer>
+      <React.Suspense
+        fallback={React.string("Waiting for promise to resolve...")}>
+        <Promise_renderer value=valueIn3seconds />
+      </React.Suspense>
+      <p className="text-lg">
+        {React.string("The promise is created on the server (as a Lwt.t)")}
+      </p>
+    </div>;
+  };
+};
+
 [@react.component]
-let make = (~valueIn3seconds as _) => {
+let make = (~valueIn3seconds) => {
   React.useEffect(() => {
     let _ = Js.log("Hello from the client");
     None;
@@ -33,6 +59,7 @@ let make = (~valueIn3seconds as _) => {
       <Hr />
       <Counter initial=22 />
       <Hr />
+      <Promise_example valueIn3seconds />
     </Stack>
   </Layout>;
 };

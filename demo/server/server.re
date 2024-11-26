@@ -149,6 +149,7 @@ let serverComponentsHandler = request => {
         let%lwt () = Dream.write(stream, "</body></html>");
         Dream.flush(stream);
       | ReactServerDOM.Async({head: head_children, shell: body, subscribe}) =>
+        Dream.log("Asumc: ???");
         let%lwt () = Dream.write(stream, Html.to_string(doctype));
         let%lwt () =
           Dream.write(
@@ -202,7 +203,6 @@ let router = [
 
 let () = {
   Dream.run(
-    ~adjust_terminal=true,
     ~port=8080,
     ~interface={
       switch (Sys.getenv_opt("SERVER_INTERFACE")) {

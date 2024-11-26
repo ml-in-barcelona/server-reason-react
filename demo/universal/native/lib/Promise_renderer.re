@@ -4,29 +4,24 @@ module Await = {
   [@react.component]
   let make = (~promise: Js.Promise.t(string)) => {
     let value = React.Experimental.use(promise);
-    <div> {React.string("Promise resolved: " ++ value)} </div>;
+    React.string("[RESOLVED] " ++ value);
   };
 };
 
-let make = (~promise: Js.Promise.t(string)) =>
-  <div>
-    <div> {React.string("Waiting for promise to resolve:")} </div>
-    <React.Suspense fallback={<div> {React.string("Loading...")} </div>}>
-      <Await promise />
-    </React.Suspense>
-  </div>;
+let make = (~value: Js.Promise.t(string)) =>
+  <span> {React.string("Promise: ")} <Await promise=value /> </span>;
 
 [@react.component]
-let make = (~promise) =>
+let make = (~value) =>
   switch%platform (Runtime.platform) {
   | Server =>
     React.Client_component({
       import_module: "Promise_renderer",
       import_name: "",
-      props: [("promise", React.Promise(promise, v => `String(v)))],
-      client: make(~promise),
+      props: [("value", React.Promise(value, v => `String(v)))],
+      client: make(~value),
     })
-  | Client => make(~promise)
+  | Client => make(~value)
   };
 
 let default = make;

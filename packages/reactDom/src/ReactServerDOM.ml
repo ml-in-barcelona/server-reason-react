@@ -14,45 +14,8 @@ module Fiber = struct
     t.context.index <- t.context.index + 1;
     t.context.index
 
+  let get_context t = t.context
   (* let emit_html t html = t.emit_html html *)
-
-  let root fn =
-    let stream, push, close = Push_stream.make () in
-    let initial_index = 0 in
-    let context = { push; close; pending = 1; index = initial_index } in
-    let htmls = ref [] in
-    let finished, parent_done = Lwt.wait () in
-    let emit_html chunk = htmls := chunk :: !htmls in
-    let%lwt html = fn ({ context; emit_html; finished }, initial_index) in
-    let shell = Html.list [ Html.list !htmls; html ] in
-    Lwt.wakeup_later parent_done ();
-    context.pending <- context.pending - 1;
-    match context.pending = 0 with
-    | true ->
-        context.close ();
-        Lwt.return (shell, None)
-    | false -> Lwt.return (shell, Some stream)
-
-  let task parent fn =
-    let context = parent.context in
-    let finished, parent_done = Lwt.wait () in
-    match fn { context; emit_html = parent.emit_html; finished } with
-    | `Fork (async, sync) ->
-        context.pending <- context.pending + 1;
-        parent.emit_html <- (fun html -> context.push html);
-        Lwt.async (fun () ->
-            let%lwt () = parent.finished in
-            let%lwt html = async in
-            context.push html;
-            Lwt.wakeup_later parent_done ();
-            context.pending <- context.pending - 1;
-            if context.pending = 0 then context.close ();
-            Lwt.return ());
-        Lwt.return sync
-    | `Sync sync ->
-        Lwt.wakeup_later parent_done ();
-        Lwt.return sync
-    | `Fail exn -> Lwt.fail exn
 end
 
 module Model = struct
@@ -318,11 +281,22 @@ let rec client_to_html ~fiber (element : React.element) =
   | Suspense { key = _; children; fallback } ->
       (* TODO: Do we need to care if there's Any_promise raising ? *)
       let%lwt fallback = client_to_html ~fiber fallback in
-      Fiber.task fiber (fun fiber ->
-          let index = Fiber.use_index fiber in
-          let async = children |> client_to_html ~fiber |> Lwt.map (chunk_html_script index) in
-          let fallback_as_placeholder = html_suspense_placeholder ~fallback index in
-          `Fork (async, fallback_as_placeholder))
+      let context = Fiber.get_context fiber in
+      let _finished, parent_done = Lwt.wait () in
+      let index = Fiber.use_index fiber in
+      let async = children |> client_to_html ~fiber |> Lwt.map (chunk_html_script index) in
+      let sync = html_suspense_placeholder ~fallback index in
+      context.pending <- context.pending + 1;
+      fiber.emit_html <- (fun html -> context.push html);
+      Lwt.async (fun () ->
+          let%lwt () = fiber.finished in
+          let%lwt html = async in
+          context.push html;
+          Lwt.wakeup_later parent_done ();
+          context.pending <- context.pending - 1;
+          if context.pending = 0 then context.close ();
+          Lwt.return ());
+      Lwt.return sync
   | Client_component { import_module = _; import_name = _; props = _; client } -> client_to_html ~fiber client
   (* TODO: Need to do something for those? *)
   | Provider children -> client_to_html ~fiber children
@@ -357,7 +331,8 @@ let rec to_html ~fiber (element : React.element) : (Html.element * json) Lwt.t =
                 let%lwt _html, model = to_html ~fiber element in
                 Lwt.return (name, model)
             | Promise (promise, value_to_json) ->
-                Fiber.task fiber @@ fun fiber ->
+                let context = Fiber.get_context fiber in
+                let _finished, parent_done = Lwt.wait () in
                 let index = Fiber.use_index fiber in
                 let sync = (name, `String (Model.promise_value index)) in
                 let async : Html.element Lwt.t =
@@ -366,7 +341,17 @@ let rec to_html ~fiber (element : React.element) : (Html.element * json) Lwt.t =
                   let ret = chunk_script (Model.client_reference_to_chunk index json) in
                   Lwt.return ret
                 in
-                `Fork (async, sync)
+                context.pending <- context.pending + 1;
+                fiber.emit_html <- (fun html -> context.push html);
+                Lwt.async (fun () ->
+                    let%lwt () = fiber.finished in
+                    let%lwt html = async in
+                    context.push html;
+                    Lwt.wakeup_later parent_done ();
+                    context.pending <- context.pending - 1;
+                    if context.pending = 0 then context.close ();
+                    Lwt.return ());
+                Lwt.return sync
             | Json json -> Lwt.return (name, json))
           props
       in
@@ -382,26 +367,32 @@ let rec to_html ~fiber (element : React.element) : (Html.element * json) Lwt.t =
         Model.node ~tag:(Model.ref_value index) ~key:None ~props []
       in
       Lwt.return (html, model)
-  | Suspense { key; children; fallback } ->
+  | Suspense { key; children; fallback } -> (
       let%lwt html_fallback, model_fallback = to_html ~fiber fallback in
-      Fiber.task fiber (fun fiber ->
-          let promise = to_html ~fiber children in
-          match Lwt.state promise with
-          | Lwt.Sleep ->
-              let index = Fiber.use_index fiber in
-              let async_html =
-                let%lwt html, model = promise in
-                Lwt.return (Html.list [ chunk_html_script index html; client_value_chunk_script index model ])
-              in
-              let sync_html =
-                ( html_suspense_placeholder ~fallback:html_fallback index,
-                  Model.suspense_placeholder ~key ~fallback:model_fallback index )
-              in
-              `Fork (async_html, sync_html)
-          | Lwt.Return (html, model) ->
-              let model = Model.suspense_node ~key ~fallback:model_fallback [ model ] in
-              `Sync (html_suspense html, model)
-          | Lwt.Fail exn -> `Fail exn)
+      let context = fiber.context in
+      let _finished, parent_done = Lwt.wait () in
+      let promise = to_html ~fiber children in
+      match Lwt.state promise with
+      | Lwt.Sleep ->
+          let index = Fiber.use_index fiber in
+          context.pending <- context.pending + 1;
+          fiber.emit_html <- (fun html -> context.push html);
+          Lwt.async (fun () ->
+              let%lwt () = fiber.finished in
+              let%lwt html, _model = promise in
+              context.push html;
+              Lwt.wakeup_later parent_done ();
+              context.pending <- context.pending - 1;
+              if context.pending = 0 then context.close ();
+              Lwt.return ());
+          Lwt.return
+            ( html_suspense_placeholder ~fallback:html_fallback index,
+              Model.suspense_placeholder ~key ~fallback:model_fallback index )
+      | Lwt.Return (html, model) ->
+          let model = Model.suspense_node ~key ~fallback:model_fallback [ model ] in
+          Lwt.wakeup_later parent_done ();
+          Lwt.return (html_suspense html, model)
+      | Lwt.Fail exn -> Lwt.fail exn)
   | Provider children -> to_html ~fiber children
   | Consumer children -> to_html ~fiber children
   (* TODO: There's a task to remove InnerHtml in ReactDOM and use Html.raw directly. Here is still unclear what do to since we assing dangerouslySetInnerHTML to the right prop on the model. Also, should this model be `Null? *)
@@ -420,11 +411,27 @@ type rendering =
 (* TODO: Do we need to disable the model rendering? Can we do something better than a boolean? *)
 (* TODO: Add scripts and links to the output, also all options from renderToReadableStream *)
 let render_to_html element =
+  let stream, push, close = Push_stream.make () in
+  let initial_index = 0 in
+  let context : Fiber.context = { push; close; pending = 1; index = initial_index } in
+  let finished, parent_done = Lwt.wait () in
+  let htmls = ref [] in
+  let emit_html chunk = htmls := chunk :: !htmls in
+  let fiber : Fiber.t = { context; emit_html; finished } in
+  let%lwt html =
+    let%lwt html, model = to_html ~fiber element in
+    let first_chunk = client_value_chunk_script initial_index model in
+    Lwt.return (Html.list [ html; first_chunk ])
+  in
+  let shell = Html.list [ Html.list !htmls; html ] in
+  Lwt.wakeup_later parent_done ();
+  context.pending <- context.pending - 1;
   let%lwt html_shell, html_async =
-    Fiber.root (fun (fiber, index) ->
-        let%lwt html, model = to_html ~fiber element in
-        let first_chunk = client_value_chunk_script index model in
-        Lwt.return (Html.list [ html; first_chunk ]))
+    match context.pending = 0 with
+    | true ->
+        context.close ();
+        Lwt.return (shell, None)
+    | false -> Lwt.return (shell, Some stream)
   in
   match html_async with
   | None -> Lwt.return (Done { head = rsc_start_script; body = html_shell; end_script = chunk_stream_end_script })
