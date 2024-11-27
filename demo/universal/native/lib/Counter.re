@@ -1,10 +1,9 @@
-let make = (~initial, ~onClick as [@platform js] onClick) => {
-  let (count, [@platform js] setCount) = RR.useStateValue(initial);
+let make = (~initial, ~onClick as [@browser_only] onClick) => {
+  let (count, [@browser_only] setCount) = RR.useStateValue(initial);
 
-  [@platform js]
+  [@browser_only]
   let onClick = e => {
     setCount(count + 1);
-
     Js.log2("Printing count", count);
 
     onClick(e);
@@ -24,7 +23,7 @@ let make = (~initial, ~onClick as [@platform js] onClick) => {
         </p>
         <button
           className="font-mono border-2 py-1 px-2 rounded-lg bg-yellow-950 border-yellow-700 text-yellow-200"
-          onClick={[@platform js] e => onClick(e)}>
+          onClick={[@browser_only] e => onClick(e)}>
           {React.string(Int.to_string(count))}
         </button>
       </div>
@@ -39,7 +38,7 @@ let make = (~initial, ~onClick as [@platform js] onClick) => {
 };
 
 [@react.component]
-let make = (~initial, ~onClick as [@platform js] onClick) =>
+let make = (~initial, ~onClick as [@browser_only] onClick) =>
   switch%platform (Runtime.platform) {
   | Server =>
     React.Client_component({

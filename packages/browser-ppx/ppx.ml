@@ -5,8 +5,9 @@ type target = Native | Js
 
 let mode = ref Native
 let browser_ppx = "browser_ppx"
+let browser_only = "browser_only"
 let platform_tag = "platform"
-let is_platform_tag str = String.equal str browser_ppx || String.equal str platform_tag
+let is_platform_tag str = String.equal str browser_ppx || String.equal str browser_only || String.equal str platform_tag
 
 module Platform = struct
   let pattern = Ast_pattern.(__')
@@ -269,9 +270,11 @@ module Preprocess = struct
   let eval_attr attr =
     if not (is_platform_tag attr.attr_name.txt) then `keep
     else
-      match (attr.attr_payload, !mode) with
-      | PStr [ { pstr_desc = Pstr_eval ({ pexp_desc = Pexp_ident { txt = Lident "js" } }, []); _ } ], Native
-      | PStr [ { pstr_desc = Pstr_eval ({ pexp_desc = Pexp_ident { txt = Lident "native" } }, []); _ } ], Js ->
+      match (attr.attr_name.txt, attr.attr_payload, !mode) with
+      | "browser_only", _, Native
+      | "platform", PStr [ { pstr_desc = Pstr_eval ({ pexp_desc = Pexp_ident { txt = Lident "js" } }, []); _ } ], Native
+      | "platform", PStr [ { pstr_desc = Pstr_eval ({ pexp_desc = Pexp_ident { txt = Lident "native" } }, []); _ } ], Js
+        ->
           `drop
       | _ -> `keep
 
@@ -387,6 +390,10 @@ module Preprocess = struct
       method! expression expr =
         let expr = super#expression expr in
         match expr.pexp_desc with
+        | Pexp_apply _ 
+        | Pexp_constant _ ->
+            let loc = expr.pexp_loc in
+            if should_keep expr.pexp_attributes = `keep then expr else [%expr ()]
         | Pexp_let (_, [ { pvb_attributes = attrs; _ } ], body) -> if should_keep attrs = `keep then expr else body
         | Pexp_fun _ ->
             if should_keep expr.pexp_attributes = `keep then expr
