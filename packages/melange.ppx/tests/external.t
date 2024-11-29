@@ -19,8 +19,8 @@ mel.as attribute
   $ echo "end" >> main.ml
   $ cat output.ml >> main.ml
   $ ocamlc -c main.ml
-  File "main.ml", line 40, characters 3-14:
-  40 | [%%ocaml.error
+  File "main.ml", line 23, characters 3-14:
+  23 | [%%ocaml.error
           ^^^^^^^^^^^
   Error: [server-reason-react.melange_ppx] There's an external in native, which
          should only happen in JavaScript. You need to conditionally run it,
