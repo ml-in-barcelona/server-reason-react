@@ -1,10 +1,11 @@
 const React = require("react");
 const ReactServerDOM = require("react-server-dom-webpack/server");
 
-let sleep = (ms, value) => new Promise(resolve => setTimeout(() => resolve(value), ms));
+let sleep = (ms, value) =>
+  new Promise((resolve) => setTimeout(() => resolve(value), ms));
 
+let Text = ({ children }) => React.createElement("span", {}, children);
 
-let Text = ({children}) => React.createElement("span", {}, children);
 /* let App = () => {
   return React.createElement("div", null, [
     React.createElement("span", {key: "home"}, ["Home"]),
@@ -39,7 +40,7 @@ let main = React.createElement(App, {}, []);
   return React.createElement("div", {dangerouslySetInnerHTML: {__html: "console.log(\"hi\")"}}, []);
 }; */
 
-  /* let app codition =
+/* let app codition =
     React.Upper_case_component
       (fun () ->
         let text = if codition then "foo" else "bar" in
@@ -78,7 +79,7 @@ let App = () =>
     ],
   ); */
 
-  /* let app () =
+/* let app () =
     React.Suspense.make
       ~fallback:(React.string "Loading...")
       ~children:
@@ -93,14 +94,14 @@ let App = () =>
   let%lwt stream = ReactServerDOM.render_to_model main in */
 
 let App = () => {
-  return React.createElement(React.Suspense, {fallback: "Loading..."}, [
+  return React.createElement(React.Suspense, { fallback: "Loading..." }, [
     React.createElement("div", null, [
       React.createElement(Text, null, "hi"),
       React.createElement(Text, null, "hola"),
-]),
+    ]),
   ]);
 };
 
-let {pipe} = ReactServerDOM.renderToPipeableStream(App());
+let { pipe } = ReactServerDOM.renderToPipeableStream(App());
 
 pipe(process.stdout);
