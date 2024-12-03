@@ -1,12 +1,13 @@
-let%browser_only mockInitWebsocket = () =>
-  {%mel.raw |
+let%browser_only mockInitWebsocket = () => [%mel.raw
+  {|
   function mockInitWebsocket() {
     console.log("Load JS");
   }
-|};
+|}
+];
 
-let%browser_only initWebsocket = () =>
-  {%mel.raw |
+let%browser_only initWebsocket = () => [%mel.raw
+  {|
        function initWebsocket() {
          var socketUrl = "ws://" + location.host + "/_livereload";
          var s = new WebSocket(socketUrl);
@@ -39,6 +40,7 @@ let%browser_only initWebsocket = () =>
            console.debug("Live reload: WebSocket error:", event);
          };
        }
-   |};
+   |}
+];
 
 let x = 22;
