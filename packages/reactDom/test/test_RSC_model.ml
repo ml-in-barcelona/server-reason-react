@@ -31,16 +31,6 @@ let assert_stream (stream : string Lwt_stream.t) (expected : string list) =
   if content = [] then Lwt.return @@ Alcotest.fail "stream should not be empty"
   else Lwt.return @@ assert_list_of_strings content expected
 
-let test_silly_stream () =
-  let stream, push = Lwt_stream.create () in
-  push (Some "first");
-  let%lwt () = Lwt_unix.sleep 0.1 in
-  push (Some "secondo");
-  let%lwt () = Lwt_unix.sleep 0.1 in
-  push (Some "trienio");
-  push None;
-  assert_stream stream [ "first"; "secondo"; "trienio" ]
-
 let null_element () =
   let app = React.null in
   let%lwt stream = ReactServerDOM.render_to_model app in
@@ -168,20 +158,39 @@ let suspense_without_promise () =
       "0:\"$1\"\n";
     ]
 
-let immediate_suspense () =
-  let suspended_component =
+let suspense_with_promise () =
+  let app () =
+    React.Suspense.make ~fallback:(React.string "Loading...")
+      ~children:
+        (React.Async_component
+           (fun () ->
+             let%lwt () = Lwt_unix.sleep 1.0 in
+             Lwt.return (React.string "lol")))
+      ()
+  in
+  let main = React.Upper_case_component app in
+  let%lwt stream = ReactServerDOM.render_to_model main in
+  assert_stream stream
+    [
+      "1:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L2\"}]\n";
+      "0:\"$1\"\n";
+      "2:\"lol\"\n";
+    ]
+
+let suspense_with_immediate_promise () =
+  let resolved_component =
     React.Async_component
       (fun () ->
         let value = "DONE :)" in
         Lwt.return (React.string value))
   in
-  let app () = React.Suspense.make ~fallback:(React.string "Loading...") ~children:suspended_component () in
+  let app = React.Suspense.make ~fallback:(React.string "Loading...") ~children:resolved_component in
   let main = React.Upper_case_component app in
   let%lwt stream = ReactServerDOM.render_to_model main in
   assert_stream stream
     [ "1:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"DONE :)\"}]\n"; "0:\"$1\"\n" ]
 
-let delayed_value ?(ms = 100) value =
+let delayed_value ~ms value =
   let%lwt () = Lwt_unix.sleep (Int.to_float ms /. 100.0) in
   Lwt.return value
 
@@ -189,9 +198,8 @@ let suspense () =
   let suspended_component =
     React.Async_component
       (fun () ->
-        let open Lwt.Syntax in
-        let+ value = delayed_value "DONE :)" in
-        React.string value)
+        let%lwt value = delayed_value ~ms:100 "DONE :)" in
+        Lwt.return (React.string value))
   in
   let app () = React.Suspense.make ~fallback:(React.string "Loading...") ~children:suspended_component () in
   let main = React.Upper_case_component app in
@@ -202,6 +210,44 @@ let suspense () =
       "0:\"$1\"\n";
       "2:\"DONE :)\"\n";
     ]
+
+let nested_suspense () =
+  let deffered_component =
+    React.Async_component
+      (fun () ->
+        let%lwt value = delayed_value ~ms:200 "DONE :)" in
+        Lwt.return (React.string value))
+  in
+  let app () = React.Suspense.make ~fallback:(React.string "Loading...") ~children:deffered_component () in
+  let main = React.Upper_case_component app in
+  let%lwt stream = ReactServerDOM.render_to_model main in
+  assert_stream stream
+    [
+      "1:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L2\"}]\n";
+      "0:\"$1\"\n";
+      "2:\"DONE :)\"\n";
+    ]
+
+let async_component_without_suspense () =
+  (* Because there's no Suspense. We await for the promise to resolve before rendering the component *)
+  let app =
+    React.Async_component
+      (fun () ->
+        let%lwt value = delayed_value ~ms:100 "DONE :)" in
+        Lwt.return (React.string value))
+  in
+  let%lwt stream = ReactServerDOM.render_to_model app in
+  assert_stream stream [ "0:\"$L1\"\n"; "1:\"DONE :)\"\n" ]
+
+let async_component_without_suspense_immediate () =
+  let app =
+    React.Async_component
+      (fun () ->
+        let%lwt value = delayed_value ~ms:0 "DONE :)" in
+        Lwt.return (React.string value))
+  in
+  let%lwt stream = ReactServerDOM.render_to_model app in
+  assert_stream stream [ "0:\"$L1\"\n"; "1:\"DONE :)\"\n" ]
 
 let client_without_props () =
   let app () =
@@ -351,8 +397,11 @@ let tests =
     test "upper_case_with_list" upper_case_with_list;
     test "upper_case_with_children" upper_case_with_children;
     test "suspense_without_promise" suspense_without_promise;
-    test "immediate_suspense" immediate_suspense;
+    test "suspense_with_promise" suspense_with_promise;
+    test "suspense_with_immediate_promise" suspense_with_immediate_promise;
     test "suspense" suspense;
+    test "async_component_without_suspense" async_component_without_suspense;
+    test "async_component_without_suspense_immediate" async_component_without_suspense_immediate;
     test "mixed_server_and_client" mixed_server_and_client;
     test "client_with_json_props" client_with_json_props;
     test "client_without_props" client_without_props;
