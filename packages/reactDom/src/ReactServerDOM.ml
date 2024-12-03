@@ -14,6 +14,7 @@ module Fiber = struct
     t.context.index <- t.context.index + 1;
     t.context.index
 
+  let get_index t = t.context.index
   let get_context t = t.context
   (* let emit_html t html = t.emit_html html *)
 end
@@ -59,7 +60,7 @@ module Model = struct
   let promise_value id = Printf.sprintf "$@%x" id
   let ref_value id = Printf.sprintf "$%x" id
 
-  (* Not reusing node because we need to add fallback prop as json directly *)
+  (* Not reusing `node` because we need to add fallback prop as json directly *)
   let suspense_node ~key ~fallback children : json =
     let fallback_prop = ("fallback", fallback) in
     let props =
@@ -411,19 +412,16 @@ type rendering =
 (* TODO: Do we need to disable the model rendering? Can we do something better than a boolean? *)
 (* TODO: Add scripts and links to the output, also all options from renderToReadableStream *)
 let render_to_html element =
-  let stream, push, close = Push_stream.make () in
   let initial_index = 0 in
-  let context : Fiber.context = { push; close; pending = 1; index = initial_index } in
-  let finished, parent_done = Lwt.wait () in
   let htmls = ref [] in
   let emit_html chunk = htmls := chunk :: !htmls in
+  let stream, push, close = Push_stream.make () in
+  let context : Fiber.context = { push; close; pending = 1; index = initial_index } in
+  let finished, parent_done = Lwt.wait () in
   let fiber : Fiber.t = { context; emit_html; finished } in
-  let%lwt html =
-    let%lwt html, model = to_html ~fiber element in
-    let first_chunk = client_value_chunk_script initial_index model in
-    Lwt.return (Html.list [ html; first_chunk ])
-  in
-  let shell = Html.list [ Html.list !htmls; html ] in
+  let%lwt root_html, root_model = to_html ~fiber element in
+  let root_chunk = client_value_chunk_script context.index root_model in
+  let shell = Html.list [ Html.list !htmls; root_html; root_chunk ] in
   Lwt.wakeup_later parent_done ();
   context.pending <- context.pending - 1;
   let%lwt html_shell, html_async =
