@@ -74,12 +74,38 @@ let stream_rsc = fn => {
   );
 };
 
+let _sleep = (~ms, value) => {
+  let%lwt () = Lwt_unix.sleep(ms /. 1000.);
+  Lwt.return(value);
+};
+
+module Page = {
+  let make = () =>
+    React.Async_component(
+      () =>
+        Lwt.return(
+          <Layout background=Theme.Color.black>
+            <Stack gap=8 justify=`start>
+              <p
+                className={Cx.make([
+                  "text-3xl",
+                  "font-bold",
+                  Theme.text(Theme.Color.white),
+                ])}>
+                {React.string("This is a small form")}
+              </p>
+              <Note_editor title="Hello" body="World" />
+              <Hr />
+              /* <Counter initial=22 /> */
+              <Hr />
+            </Stack>
+          </Layout>,
+        ),
+    );
+};
+
 let serverComponentsHandler = request => {
-  let sleep = (~ms, value) => {
-    let%lwt () = Lwt_unix.sleep(ms /. 1000.);
-    Lwt.return(value);
-  };
-  let app = <Noter valueIn3seconds={sleep(~ms=300., "PROMISE VALUE HERE")} />;
+  let app = <Page />;
   switch (Dream.header(request, "Accept")) {
   | Some(accept) when is_react_component_header(accept) =>
     stream_rsc(stream => {
@@ -149,7 +175,6 @@ let serverComponentsHandler = request => {
         let%lwt () = Dream.write(stream, "</body></html>");
         Dream.flush(stream);
       | ReactServerDOM.Async({head: head_children, shell: body, subscribe}) =>
-        Dream.log("Asumc: ???");
         let%lwt () = Dream.write(stream, Html.to_string(doctype));
         let%lwt () =
           Dream.write(

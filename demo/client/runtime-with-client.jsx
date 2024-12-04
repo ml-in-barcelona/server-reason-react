@@ -28,10 +28,10 @@ register(
 	"Counter",
 	React.lazy(() => import("./app/demo/universal/js/Counter.js")),
 );
-register(
+/* register(
 	"Promise_renderer",
 	React.lazy(() => import("./app/demo/universal/js/Promise_renderer.js")),
-);
+); */
 /* end bootstrap.js */
 
 class ErrorBoundary extends React.Component {

@@ -14,7 +14,6 @@ module Fiber = struct
     t.context.index <- t.context.index + 1;
     t.context.index
 
-  let get_index t = t.context.index
   let get_context t = t.context
   (* let emit_html t html = t.emit_html html *)
 end
@@ -268,8 +267,9 @@ let rec client_to_html ~fiber (element : React.element) =
       let rec wait_for_suspense_to_resolve () =
         match component () with
         | exception React.Suspend (Any_promise promise) ->
-            let%lwt _ = promise in
-            wait_for_suspense_to_resolve ()
+            let open Lwt.Infix in
+            promise >>= fun _ -> wait_for_suspense_to_resolve ()
+        | exception _exn -> Lwt.return Html.null
         | output ->
             (* TODO: Do we need to care about batching? *)
             client_to_html ~fiber output
@@ -404,6 +404,8 @@ and elements_to_html ~fiber elements =
   let htmls, model = List.split html_and_models in
   Lwt.return (Html.list htmls, `List model)
 
+(* TODO: We could use only the Async case, where head and shell handle all the sync while subscribe handles the async,
+   also we might want to implement "resources" instead of head. *)
 type rendering =
   | Done of { head : Html.element; body : Html.element; end_script : Html.element }
   | Async of { head : Html.element; shell : Html.element; subscribe : (Html.element -> unit Lwt.t) -> unit Lwt.t }

@@ -49,12 +49,3 @@ let make = (~initial) =>
   };
 
 let default = make;
-
-/* switch%platform (Runtime.platform) {
-   | Server => ()
-   | Client =>
-     Components.register("Counter", (props: Js.t({..})) => {
-       React.jsx(make, makeProps(~initial=props##initial, ()))
-     })
-   };
-    */
