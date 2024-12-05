@@ -39,8 +39,8 @@ let text_encoder_script =
   "<script>\n\
    let enc = new TextEncoder();\n\
    let srr_stream = (window.srr_stream = {});\n\
-   srr_stream.push = (value) => {\n\
-  \  srr_stream._c.enqueue(enc.encode(value))\n\
+   srr_stream.push = () => {\n\
+  \  srr_stream._c.enqueue(enc.encode(document.currentScript.dataset.payload));\n\
    };\n\
    srr_stream.close = () => {\n\
   \  srr_stream._c.close();\n\
@@ -52,19 +52,10 @@ let rc_function_script =
   "<script>function \
    $RC(a,b){a=document.getElementById(a);b=document.getElementById(b);b.parentNode.removeChild(b);if(a){a=a.previousSibling;var \
    f=a.parentNode,c=a.nextSibling,e=0;do{if(c&&8===c.nodeType){var d=c.data;if(\"/$\"===d)if(0===e)break;else \
-   e--;else\"$\"!==d&&\"$?\"!==d&&\"$!\"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data=\"$\";a._reactRetry&&a._reactRetry()}}</script><script>\n\
-   let enc = new TextEncoder();\n\
-   let srr_stream = (window.srr_stream = {});\n\
-   srr_stream.push = (value) => {\n\
-  \  srr_stream._c.enqueue(enc.encode(value))\n\
-   };\n\
-   srr_stream.close = () => {\n\
-  \  srr_stream._c.close();\n\
-   };\n\
-   srr_stream.readable_stream = new ReadableStream({ start(c) { srr_stream._c = c; } });\n\
-  \        </script>"
+   e--;else\"$\"!==d&&\"$?\"!==d&&\"$!\"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data=\"$\";a._reactRetry&&a._reactRetry()}}</script>"
+  ^ text_encoder_script
 
-let stream_close_script = "<script>window.srr_stream.close();</script>"
+let stream_close_script = "<script>window.srr_stream.close()</script>"
 
 let assert_sync_payload app sync_body =
   match%lwt ReactServerDOM.render_to_html app with
@@ -105,8 +96,7 @@ let loading_suspense ~children () = React.Suspense.make ~fallback:(React.string 
 
 let null_element () =
   let app = React.null in
-  assert_sync_payload app
-    "<script data-payload=\"0:null\n\">window.srr_stream.push(document.currentScript.dataset.payload);</script>"
+  assert_sync_payload app "<script data-payload='0:null\n'>window.srr_stream.push()</script>"
 
 let upper_case_component () =
   let app =
@@ -119,9 +109,9 @@ let upper_case_component () =
   in
   assert_sync_payload app
     "<div><section><article>Deep Server Content</article></section></div><script \
-     data-payload=\"0:[&quot;$&quot;,&quot;div&quot;,null,{&quot;children&quot;:[[&quot;$&quot;,&quot;section&quot;,null,{&quot;children&quot;:[[&quot;$&quot;,&quot;article&quot;,null,{&quot;children&quot;:[&quot;Deep \
-     Server Content&quot;]}]]}]]}]\n\
-     \">window.srr_stream.push(document.currentScript.dataset.payload);</script>"
+     data-payload='0:[\"$\",\"div\",null,{\"children\":[[\"$\",\"section\",null,{\"children\":[[\"$\",\"article\",null,{\"children\":[\"Deep \
+     Server Content\"]}]]}]]}]\n\
+     '>window.srr_stream.push()</script>"
 
 let async_component_without_promise () =
   let app =
@@ -136,16 +126,16 @@ let async_component_without_promise () =
   in
   assert_sync_payload app
     "<div><section><article>Deep Server Content</article></section></div><script \
-     data-payload=\"0:[&quot;$&quot;,&quot;div&quot;,null,{&quot;children&quot;:[[&quot;$&quot;,&quot;section&quot;,null,{&quot;children&quot;:[[&quot;$&quot;,&quot;article&quot;,null,{&quot;children&quot;:[&quot;Deep \
-     Server Content&quot;]}]]}]]}]\n\
-     \">window.srr_stream.push(document.currentScript.dataset.payload);</script>"
+     data-payload='0:[\"$\",\"div\",null,{\"children\":[[\"$\",\"section\",null,{\"children\":[[\"$\",\"article\",null,{\"children\":[\"Deep \
+     Server Content\"]}]]}]]}]\n\
+     '>window.srr_stream.push()</script>"
 
 let suspense_without_promise () =
   let app () = loading_suspense ~children:(React.string "Resolved") () in
   assert_sync_payload (app ())
     "<!--$?-->Resolved<!--/$--><script \
-     data-payload=\"0:[&quot;$&quot;,&quot;$Sreact.suspense&quot;,null,{&quot;fallback&quot;:&quot;Loading...&quot;,&quot;children&quot;:&quot;Resolved&quot;}]\n\
-     \">window.srr_stream.push(document.currentScript.dataset.payload);</script>"
+     data-payload='0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"Resolved\"}]\n\
+     '>window.srr_stream.push()</script>"
 
 let with_sleepy_promise () =
   let app =
@@ -164,8 +154,8 @@ let with_sleepy_promise () =
   assert_async_payload (app ())
     ~shell:
       "<!--$?--><template id=\"B:1\"></template>Loading...<!--/$--><script \
-       data-payload=\"1:[&quot;$&quot;,&quot;$Sreact.suspense&quot;,null,{&quot;fallback&quot;:&quot;Loading...&quot;,&quot;children&quot;:&quot;$L1&quot;}]\n\
-       \">window.srr_stream.push(document.currentScript.dataset.payload);</script>"
+       data-payload='0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"}]\n\
+       '>window.srr_stream.push()</script>"
     [ "<div><section><article>Deep Server Content</article></section></div>"; stream_close_script ]
 
 let tests =

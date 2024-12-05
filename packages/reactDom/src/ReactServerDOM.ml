@@ -28,9 +28,11 @@ module Model = struct
     mutable chunk_id : int;
   }
 
-  let use_index context =
+  let use_chunk_id context =
     context.chunk_id <- context.chunk_id + 1;
     context.chunk_id
+
+  let get_chunk_id context = context.chunk_id
 
   let prop_to_json (prop : React.JSX.prop) =
     (* TODO: Add promises/sets/others ??? *)
@@ -74,7 +76,6 @@ module Model = struct
 
   let component_ref ~module_ ~name =
     let id = `String module_ in
-    (* chunks is a webpack thing, we don't need it for now *)
     let chunks = `List [] in
     let component_name = `String name in
     `List [ id; chunks; component_name ]
@@ -93,7 +94,7 @@ module Model = struct
     Buffer.add_string buf "\n";
     Buffer.contents buf
 
-  let element_to_model ~context index element =
+  let element_to_model ~context element =
     let rec to_payload element =
       match (element : React.element) with
       | Empty -> `Null
@@ -113,7 +114,7 @@ module Model = struct
           let element = component () in
           (* Instead of returning the payload directly, we push it, and return a reference to it.
              This is how `react-server-dom-webpack/server` renderToPipeableStream works *)
-          let index = use_index context in
+          let index = use_chunk_id context in
           context.push index (Chunk_value (to_payload element));
           `String (ref_value index)
       | Async_component component -> (
@@ -122,7 +123,7 @@ module Model = struct
           | Fail exn -> raise exn
           | Return element -> to_payload element
           | Sleep ->
-              let index = use_index context in
+              let index = use_chunk_id context in
               context.pending <- context.pending + 1;
               Lwt.async (fun () ->
                   let%lwt element = promise in
@@ -136,7 +137,7 @@ module Model = struct
           let fallback = to_payload fallback in
           suspense_node ~key ~fallback [ to_payload children ]
       | Client_component { import_module; import_name; props; client = _ } ->
-          let id = use_index context in
+          let id = use_chunk_id context in
           let ref = component_ref ~module_:import_module ~name:import_name in
           context.push id (Chunk_component_ref ref);
           let client_props = client_props_to_json props in
@@ -155,13 +156,13 @@ module Model = struct
           | name, Promise (promise, value_to_json) -> (
               match Lwt.state promise with
               | Return value ->
-                  let chunk_id = use_index context in
+                  let chunk_id = use_chunk_id context in
                   let json = value_to_json value in
                   (* TODO: Make sure why we need a chunk here *)
                   context.push context.chunk_id (Chunk_value json);
                   (name, `String (promise_value chunk_id))
               | Sleep ->
-                  let chunk_id = use_index context in
+                  let chunk_id = use_chunk_id context in
                   context.pending <- context.pending + 1;
                   Lwt.async (fun () ->
                       let%lwt value = promise in
@@ -176,18 +177,20 @@ module Model = struct
                   raise exn))
         props
     in
-    context.push index (Chunk_value (to_payload element));
+    let initial_chunk_id = get_chunk_id context in
+    context.push initial_chunk_id (Chunk_value (to_payload element));
     if context.pending = 0 then context.close ()
 
   let render ?subscribe element : string Lwt_stream.t Lwt.t =
+    let initial_chunk_id = 0 in
     let stream, push, close = Push_stream.make () in
     let push_chunk id chunk =
       match chunk with
       | Chunk_value json -> push (model_to_chunk id json)
       | Chunk_component_ref json -> push (client_reference_to_chunk id json)
     in
-    let context : stream_context = { push = push_chunk; close; chunk_id = 0; pending = 0 } in
-    element_to_model ~context context.chunk_id element;
+    let context : stream_context = { push = push_chunk; close; chunk_id = initial_chunk_id; pending = 0 } in
+    element_to_model ~context element;
     (* TODO: Currently returns the stream because of testing, in the future we can use subscribe to capture all chunks *)
     match subscribe with
     | None -> Lwt.return stream
@@ -203,8 +206,8 @@ let rsc_start_script =
         {|
 let enc = new TextEncoder();
 let srr_stream = (window.srr_stream = {});
-srr_stream.push = (value) => {
-  srr_stream._c.enqueue(enc.encode(value))
+srr_stream.push = () => {
+  srr_stream._c.enqueue(enc.encode(document.currentScript.dataset.payload));
 };
 srr_stream.close = () => {
   srr_stream._c.close();
@@ -221,13 +224,12 @@ let rc_function_definition =
 let rc_function_script = Html.node "script" [] [ Html.raw rc_function_definition ]
 
 let chunk_script script =
-  Html.node "script"
-    [ Html.attribute "data-payload" (Html.single_quote_escape script) ]
-    [ Html.raw "window.srr_stream.push(document.currentScript.dataset.payload);" ]
+  Html.raw
+    (Printf.sprintf "<script data-payload='%s'>window.srr_stream.push()</script>" (Html.single_quote_escape script))
 
 let client_reference_chunk_script index json = chunk_script (Model.client_reference_to_chunk index json)
 let client_value_chunk_script index json = chunk_script (Model.model_to_chunk index json)
-let chunk_stream_end_script = Html.node "script" [] [ Html.raw "window.srr_stream.close();" ]
+let chunk_stream_end_script = Html.node "script" [] [ Html.raw "window.srr_stream.close()" ]
 let rc_replacement b s = Html.node "script" [] [ Html.raw (Printf.sprintf "$RC('B:%x', 'S:%x')" b s) ]
 
 let chunk_html_script index html =
@@ -357,16 +359,12 @@ let rec to_html ~fiber (element : React.element) : (Html.element * json) Lwt.t =
           props
       in
       let lwt_html = client_to_html ~fiber client in
-      (* NOTE: this Lwt.pause () is important as we resolve client component in
-         an async way we need to suspend above, otherwise React.js runtime won't work *)
       let%lwt () = Lwt.pause () in
+      let index = Fiber.use_index fiber in
+      let ref : json = Model.component_ref ~module_:import_module ~name:import_name in
+      fiber.emit_html (client_reference_chunk_script index ref);
       let%lwt html, props = Lwt.both lwt_html lwt_props in
-      let model =
-        let index = Fiber.use_index fiber in
-        let ref : json = Model.component_ref ~module_:import_module ~name:import_name in
-        fiber.emit_html (client_reference_chunk_script index ref);
-        Model.node ~tag:(Model.ref_value index) ~key:None ~props []
-      in
+      let model = Model.node ~tag:(Model.ref_value index) ~key:None ~props [] in
       Lwt.return (html, model)
   | Suspense { key; children; fallback } -> (
       let%lwt html_fallback, model_fallback = to_html ~fiber fallback in
@@ -422,7 +420,7 @@ let render_to_html element =
   let finished, parent_done = Lwt.wait () in
   let fiber : Fiber.t = { context; emit_html; finished } in
   let%lwt root_html, root_model = to_html ~fiber element in
-  let root_chunk = client_value_chunk_script context.index root_model in
+  let root_chunk = client_value_chunk_script initial_index root_model in
   let shell = Html.list [ Html.list !htmls; root_html; root_chunk ] in
   Lwt.wakeup_later parent_done ();
   context.pending <- context.pending - 1;

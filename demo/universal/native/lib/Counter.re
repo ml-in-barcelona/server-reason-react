@@ -1,3 +1,5 @@
+[@warning "-27"];
+
 let make = (~initial) => {
   let (state, setCount) = RR.useStateValue(initial);
 
