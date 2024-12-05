@@ -14,17 +14,13 @@ let pexp_list ~loc xs =
 exception Error of expression
 
 let raise_errorf ~loc fmt =
-  let open Ast_builder.Default in
   Printf.ksprintf
     (fun msg ->
       let expr = pexp_extension ~loc (Location.error_extensionf ~loc "%s" msg) in
       raise (Error expr))
     fmt
 
-let make_string ~loc str =
-  let open Ast_helper in
-  Ast_helper.Exp.constant ~loc (Const.string str)
-
+let make_string ~loc str = Ast_helper.Exp.constant ~loc (Ast_helper.Const.string str)
 let react_dot_component = "react.component"
 let react_dot_async_dot_component = "react.async.component"
 
@@ -400,56 +396,42 @@ let get_function_name binding =
   | { pvb_pat = { ppat_desc = Ppat_var { txt } } } -> txt
   | _ -> raise_errorf ~loc:binding.pvb_loc "react.component calls cannot be destructured."
 
-(* TODO: there is a long-tail of unsupported features inside of blocks - Pexp_letmodule , Pexp_letexception , Pexp_ifthenelse *)
-let rec transform_function_with_warning expression =
+(* TODO: there are a few unsupported features inside of blocks - Pexp_letmodule , Pexp_letexception , Pexp_ifthenelse *)
+let add_unit_at_the_last_argument expression =
   let loc = expression.pexp_loc in
-  match expression.pexp_desc with
-  (* let make = (~prop) => ... with no final unit *)
-  | Pexp_fun (((Labelled _ | Optional _) as label), default, pattern, ({ pexp_desc = Pexp_fun _ } as internalExpression))
-    ->
-      let exp = transform_function_with_warning internalExpression in
-      { expression with pexp_desc = Pexp_fun (label, default, pattern, exp) }
-  (* let make = (()) => ... *)
-  (* let make = (_) => ... *)
-  | Pexp_fun
-      (Nolabel, _default, { ppat_desc = Ppat_construct ({ txt = Lident "()" }, _) | Ppat_any }, _internalExpression) ->
-      expression
-  (* let make = (~prop) => ... *)
-  | Pexp_fun (label, default, pattern, internalExpression) ->
-      {
-        expression with
-        pexp_attributes = remove_warning_16_optional_argument_cannot_be_erased ~loc :: expression.pexp_attributes;
-        pexp_desc =
-          Pexp_fun
-            ( label,
-              default,
-              pattern,
-              {
-                pexp_loc = expression.pexp_loc;
-                pexp_desc = Pexp_fun (Nolabel, None, [%pat? ()], internalExpression);
-                pexp_loc_stack = [];
-                pexp_attributes = [];
-              } );
-      }
-  (* let make = {let foo = bar in (~prop) => ...} *)
-  | Pexp_let (recursive, vbs, internalExpression) ->
-      (* here's where we spelunk! *)
-      let exp = transform_function_with_warning internalExpression in
-      { expression with pexp_desc = Pexp_let (recursive, vbs, exp) }
-  (* let make = React.forwardRef((~prop) => ...) *)
-  | Pexp_apply (_wrapperExpression, [ (Nolabel, internalExpression) ]) ->
-      transform_function_with_warning internalExpression
-  (* let make = React.memoCustomCompareProps((~prop) => ..., (prevPros, nextProps) => true) *)
-  | Pexp_apply
-      (_wrapperExpression, [ (Nolabel, internalExpression); ((Nolabel, { pexp_desc = Pexp_fun _ }) as _compareProps) ])
-    ->
-      transform_function_with_warning internalExpression
-  | Pexp_sequence (wrapperExpression, internalExpression) ->
-      let exp = transform_function_with_warning internalExpression in
-      { expression with pexp_desc = Pexp_sequence (wrapperExpression, exp) }
-  | _ -> expression
+  let rec inner expression =
+    match expression.pexp_desc with
+    (* let make = (~prop) => ... with no final unit *)
+    | Pexp_fun
+        (((Labelled _ | Optional _) as label), default, pattern, ({ pexp_desc = Pexp_fun _ } as internalExpression)) ->
+        pexp_fun ~loc:expression.pexp_loc label default pattern (inner internalExpression)
+    (* let make = (()) => ... *)
+    (* let make = (_) => ... *)
+    | Pexp_fun (Nolabel, _, { ppat_desc = Ppat_construct ({ txt = Lident "()" }, _) | Ppat_any }, _) -> expression
+    (* let make = (~prop) => ... *)
+    | Pexp_fun (label, default, pattern, internalExpression) ->
+        {
+          expression with
+          pexp_attributes = remove_warning_16_optional_argument_cannot_be_erased ~loc :: expression.pexp_attributes;
+          pexp_desc =
+            Pexp_fun
+              (label, default, pattern, pexp_fun ~loc:expression.pexp_loc Nolabel None [%pat? ()] internalExpression);
+        }
+    (* let make = {let foo = bar in (~prop) => ...} *)
+    | Pexp_let (recursive, vbs, internalExpression) ->
+        pexp_let ~loc:expression.pexp_loc recursive vbs (inner internalExpression)
+    (* let make = React.forwardRef((~prop) => ...) *)
+    | Pexp_apply (_, [ (Nolabel, internalExpression) ]) -> inner internalExpression
+    (* let make = React.memoCustomCompareProps((~prop) => ..., (prevPros, nextProps) => true) *)
+    | Pexp_apply (_, [ (Nolabel, internalExpression); ((Nolabel, { pexp_desc = Pexp_fun _ }) as _compareProps) ]) ->
+        inner internalExpression
+    | Pexp_sequence (wrapperExpression, internalExpression) ->
+        pexp_sequence ~loc:expression.pexp_loc wrapperExpression (inner internalExpression)
+    | _ -> expression
+  in
+  inner expression
 
-let transform_last_expression expr fn =
+let transform_fun_body_expression expr fn =
   let rec inner expr =
     match expr.pexp_desc with
     | Pexp_fun (label, def, patt, expression) -> pexp_fun ~loc:expr.pexp_loc label def patt (inner expression)
@@ -458,10 +440,11 @@ let transform_last_expression expr fn =
 
   inner expr
 
-let make_value_binding binding wrapping =
+let make_value_binding binding react_element_variant_wrapping =
   let loc = binding.pvb_loc in
   let ghost_loc = { binding.pvb_loc with loc_ghost = true } in
-  let binding_expr = transform_function_with_warning binding.pvb_expr in
+  let binding_with_unit = add_unit_at_the_last_argument binding.pvb_expr in
+  let binding_expr = transform_fun_body_expression binding_with_unit react_element_variant_wrapping in
   (* Builds an AST node for the modified `make` function *)
   let name = Ast_helper.Pat.mk ~loc:ghost_loc (Ppat_var { txt = get_function_name binding; loc = ghost_loc }) in
   let key_arg = Optional "key" in
@@ -472,10 +455,8 @@ let make_value_binding binding wrapping =
   let key_pattern = ppat_constraint ~loc key_renamed_to_underscore core_type in
   (* Append key argument since we want to allow users of this component to set key
      (and assign it to _ since it shouldn't be used) *)
-  let body_expression =
-    pexp_fun ~loc:ghost_loc key_arg default_value key_pattern (transform_last_expression binding_expr wrapping)
-  in
-  Ast_helper.Vb.mk ~loc name body_expression
+  let function_body = pexp_fun ~loc:ghost_loc key_arg default_value key_pattern binding_expr in
+  Ast_helper.Vb.mk ~loc name function_body
 
 let rewrite_signature_item signature_item =
   (* Remove the [@react.component] from the AST *)
@@ -496,9 +477,9 @@ let rewrite_signature_item signature_item =
           let loc = signature_item.psig_loc in
           [%sigi:
             [%%ocaml.error
-            "externals aren't supported on server-reason-react. externals are used to bind to React components defined \
-             in JavaScript, in the server, that doesn't make sense. If you need to render this on the server, \
-             implement a placeholder or an empty element"]])
+            "externals aren't supported on server-reason-react. externals are used to bind to React components from \
+             JavaScript. In the server, that doesn't make sense. If you need to render this on the server, implement a \
+             stub component or an empty element (React.null)"]])
   | _signature_item -> signature_item
 
 let rewrite_structure_item structure_item =
