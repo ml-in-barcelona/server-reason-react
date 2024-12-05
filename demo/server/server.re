@@ -74,34 +74,30 @@ let stream_rsc = fn => {
   );
 };
 
-let _sleep = (~ms, value) => {
-  let%lwt () = Lwt_unix.sleep(ms /. 1000.);
-  Lwt.return(value);
-};
-
 module Page = {
-  let make = () =>
-    React.Async_component(
-      () =>
-        Lwt.return(
-          <Layout background=Theme.Color.black>
-            <Stack gap=8 justify=`start>
-              <p
-                className={Cx.make([
-                  "text-3xl",
-                  "font-bold",
-                  Theme.text(Theme.Color.white),
-                ])}>
-                {React.string("This is a small form")}
-              </p>
-              <Note_editor title="Hello" body="World" />
-              <Hr />
-              /* <Counter initial=22 /> */
-              <Hr />
-            </Stack>
-          </Layout>,
-        ),
+  [@react.async.component]
+  let make = () => {
+    let%lwt () = Lwt_unix.sleep(1.0);
+    Lwt.return(
+      <Layout background=Theme.Color.black>
+        <Stack gap=8 justify=`start>
+          <p
+            className={Cx.make([
+              "text-3xl",
+              "font-bold",
+              Theme.text(Theme.Color.white),
+            ])}>
+            {React.string("This is a small form")}
+          </p>
+          /* TODO: payload is wrong in client components */
+          <Note_editor title="Hello" body="World" />
+          <Hr />
+          <Counter initial=123 />
+          <Hr />
+        </Stack>
+      </Layout>,
     );
+  };
 };
 
 let serverComponentsHandler = request => {

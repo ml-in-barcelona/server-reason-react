@@ -5,7 +5,7 @@ let make = () => {
       "block",
       "w-full",
       "h-px",
-      Theme.background("gray-800"),
+      Theme.border("gray-700"),
     ])}
   />;
 };

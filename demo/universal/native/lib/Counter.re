@@ -1,5 +1,3 @@
-[@warning "-27"];
-
 let make = (~initial) => {
   let (state, setCount) = RR.useStateValue(initial);
 
@@ -8,7 +6,7 @@ let make = (~initial) => {
   };
 
   <div className={Theme.text(Theme.Color.white)}>
-    <Spacer bottom=3>
+    <Spacer bottom=0>
       <div
         className={Cx.make([
           "flex",
@@ -26,17 +24,11 @@ let make = (~initial) => {
         </button>
       </div>
     </Spacer>
-    <p className="text-lg">
-      {React.string(
-         "The HTML comes from the server"
-         ++ " then is updated by the client after React runs. Via render or hydration (when using ReactDOM.hydrateRoot).",
-       )}
-    </p>
   </div>;
 };
 
 [@react.component]
-let make = (~initial) =>
+let make = (~initial: int) =>
   switch%platform (Runtime.platform) {
   | Server =>
     React.Client_component({

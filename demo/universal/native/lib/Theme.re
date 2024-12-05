@@ -32,5 +32,6 @@ module Color = {
 
 let text = value => "text-" ++ value;
 let background = value => "bg-" ++ value;
+let border = value => "border-" ++ value;
 
 let hover = value => "hover:" ++ String.concat(" hover:", value);

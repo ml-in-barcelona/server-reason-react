@@ -1,11 +1,10 @@
 window.__webpack_require__ = (id) => {
-	const component = window.__client_manifest_map[id];
 	console.log("REQUIRE ---");
+	const component = window.__client_manifest_map[id];
 	console.log(id);
 	console.log(component);
 	console.log("---");
-	/* return { __esModule: true, default: component }; */
-	return component;
+	return { __esModule: true, default: component };
 };
 
 const React = require("react");
@@ -21,17 +20,20 @@ const register = (name, render) => {
 };
 
 register(
+  "Counter",
+  React.lazy(() => import("./app/demo/universal/js/Counter.js"))
+);
+
+register(
 	"Note_editor",
 	React.lazy(() => import("./app/demo/universal/js/Note_editor.js")),
 );
-register(
-	"Counter",
-	React.lazy(() => import("./app/demo/universal/js/Counter.js")),
-);
+
 /* register(
 	"Promise_renderer",
 	React.lazy(() => import("./app/demo/universal/js/Promise_renderer.js")),
 ); */
+
 /* end bootstrap.js */
 
 class ErrorBoundary extends React.Component {
@@ -68,14 +70,17 @@ try {
 	const stream = window.srr_stream.readable_stream;
 	const promise = ReactServerDOM.createFromReadableStream(stream);
 	const element = document.getElementById("root");
-	const app = (
-		<ErrorBoundary>
-			<Use promise={promise} />
-		</ErrorBoundary>
-	);
+
 	React.startTransition(() => {
+		const app = (
+			<ErrorBoundary>
+				<Use promise={promise} />
+			</ErrorBoundary>
+		);
 		ReactDOM.hydrateRoot(element, app);
 	});
 } catch (e) {
-	console.error(e);
+  console.error("Error type:", e.constructor.name);
+	console.error("Full error:", e);
+	console.error("Stack:", e.stack);
 }
