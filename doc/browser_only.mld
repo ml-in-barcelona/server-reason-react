@@ -6,12 +6,12 @@ For example, if you're using Webapi to query the DOM or using LocalStorage. This
 
 {1 Usage}
 
-The ppx expose a [browser_only] attribute that can be used to discard a function or a value, and [switch%platform] to conditionally execute code based on the platform.
+The ppx expose a [[@browser_only]] attribute that can be used to discard functions, values, arguments, etc, and [[switch%platform]] to conditionally execute code based on the platform.
 
-Add [server-reason-react.browser_ppx] into to your pps field under a dune stanzas (melange.emit, libraries or executable) in your dune files.
+Add [[server-reason-react.browser_ppx]] into to your pps field under a dune stanzas (melange.emit, libraries or executable) in your dune files.
 
 You would need to add it on both "server" and "client" dune files. Adding the [-js] flag [server-reason-react.browser_ppx -js] for the client and without for the server:
-{[
+{@txt[
 ; server exectuable
 (executable
  (name server)
@@ -26,30 +26,49 @@ You would need to add it on both "server" and "client" dune files. Adding the [-
 ]}
 
 {2 browser_only}
+
+A code with [[@browser_only]] attribute will keep the function untouched for the client build, but for the server build, will be transformed into to a dead code. If you try to run it on the server, it will fail as it does not exist on the server, and the compiler will crash.
+
 {[
-let%browser_only countDomNodes = (id) => {
-  let elements = Webapi.Element.querySelector("#" ++ id);
-  let arr_elements = Webapi.Element.toArray(elements);
-  Array.length(arr_elements);
-};
+[@browser_only]
+let sayHello = () => "Hello";
+
+sayHello();
 ]}
 
-The method tagged by [browser_only] will keep the function untouched for the client build, but for the server build, will be transformed to a function that raises the exception [Runtime.Impossible_in_ssr].
+Error:
+{@txt[
+20 |   sayHello();
+       ^^^^^^^^
+Error: Unbound value sayHello
+]}
 
-If this function runs on the server, it will raise an exception, and the server will crash. In order to prevent this, you can use [try] to catch the exception and provide a default behaviour/value.
+The [[@browser_only]] attribute can be used in any kind of code, including let bindings, function, module, args, etc. Checkout the {{:https://github.com/ml-in-barcelona/server-reason-react/blob/main/packages/browser-ppx/tests/at_browser_only.t}browser_only tests} for more examples.
 
-Following with the example from above:
+Checkout the following example:
 {[
-let%browser_only countDomNodes = (id) => {
-  let elements = Webapi.Element.querySelector("#" ++ id);
-  let arr_elements = Webapi.Element.toArray(elements);
-  Array.length(arr_elements);
-}
+[@browser_only]
+let getName = (person) => person.name;
 
-let main = id =>
-  try(countDomNodes(id)) {
-  | _ => 0
-  };
+let getLastName = ([@browser_only] person) => {
+  [@browser_only]
+  let lastName = _ => person.last_name;
+
+  "Doe";
+};
+
+let hello_world = "Hello world";
+]}
+
+The final result of the code above, on server, will be:
+{[
+();
+
+let getLastName = (_) => {
+  "Doe";
+};
+
+let hello_world = "Hello world";
 ]}
 
 {2 switch%platform}
@@ -57,7 +76,7 @@ let main = id =>
 [switch%platform] allows to conditionally execute code based on the platform. There are some cases where you need to run a specific code only on the server or only on the client.
 
 {[
-switch%platform (Runtime.platform) {
+switch%platform () {
 | Server => print_endline("This prints to the terminal")
 | Client => Js.log("This prints to the console")
 };
@@ -65,7 +84,7 @@ switch%platform (Runtime.platform) {
 
 {2 @platform attribute}
 
-The [@platform] attribute allows to specify code blocks that should only be included in the JavaScript or native build, respectively. This is useful when you have code that is specific to one platform and should not be included in the other.
+The [[@platform]] attribute allows to specify code blocks that should only be included in the JavaScript or native build, respectively. This is useful when you have code that is specific to one platform and should not be included in the other.
 
 For example, you can define two modules, but only one of them should be kept in the final build based on the platform.
 {[

@@ -449,7 +449,7 @@ let rec transform_function_with_warning expression =
       { expression with pexp_desc = Pexp_sequence (wrapperExpression, exp) }
   | _ -> expression
 
-let transofrm_last_expression expr fn =
+let transform_last_expression expr fn =
   let rec inner expr =
     match expr.pexp_desc with
     | Pexp_sequence (expr, sequence) -> pexp_sequence ~loc:expr.pexp_loc expr (inner sequence)
@@ -475,7 +475,7 @@ let make_value_binding binding wrapping =
   (* Append key argument since we want to allow users of this component to set key
      (and assign it to _ since it shouldn't be used) *)
   let body_expression =
-    pexp_fun ~loc:ghost_loc key_arg default_value key_pattern (transofrm_last_expression binding_expr wrapping)
+    pexp_fun ~loc:ghost_loc key_arg default_value key_pattern (transform_last_expression binding_expr wrapping)
   in
   Ast_helper.Vb.mk ~loc name body_expression
 

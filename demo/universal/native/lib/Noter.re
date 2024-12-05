@@ -31,7 +31,7 @@ let make = (~valueIn3seconds as _) => {
       </p>
       <Note_editor title="Hello" body="World" />
       <Hr />
-      <Counter initial=22 />
+      <Counter initial=22 onClick={_ => print_endline("Clicked")} />
       <Hr />
     </Stack>
   </Layout>;
