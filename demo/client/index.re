@@ -1,6 +1,8 @@
 let _ = MelRaw.mockInitWebsocket();
 
-switch (ReactDOM.querySelector("#root")) {
+let element = Webapi.Dom.Document.querySelector("#root", Webapi.Dom.document);
+
+switch (element) {
 | Some(el) =>
   let _ = ReactDOM.Client.hydrateRoot(el, <App />);
   ();
