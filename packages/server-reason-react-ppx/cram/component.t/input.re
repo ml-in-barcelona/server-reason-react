@@ -81,3 +81,25 @@ module Async_component = {
 };
 
 let a = <Async_component> <div /> </Async_component>;
+
+module Sequence = {
+  [@react.component]
+  let make = (~lola) => {
+    let (state, setState) = React.useState(lola);
+
+    React.useEffect(() => {
+      setState(lola);
+      None;
+    });
+
+    <div> {React.string(state)} </div>;
+  };
+};
+
+module Use_context = {
+  [@react.component]
+  let make = () => {
+    let captured = React.useContext(Context.value);
+    <div> {React.string(captured)} </div>;
+  };
+};
