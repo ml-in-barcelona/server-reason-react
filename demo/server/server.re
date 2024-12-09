@@ -74,12 +74,34 @@ let stream_rsc = fn => {
   );
 };
 
-let serverComponentsHandler = request => {
-  let sleep = (~ms, value) => {
-    let%lwt () = Lwt_unix.sleep(ms /. 1000.);
-    Lwt.return(value);
+module Page = {
+  [@react.async.component]
+  let make = () => {
+    let%lwt () = Lwt_unix.sleep(1.0);
+    Lwt.return(
+      <Layout background=Theme.Color.black>
+        <Stack gap=8 justify=`start>
+          <p
+            className={Cx.make([
+              "text-3xl",
+              "font-bold",
+              Theme.text(Theme.Color.white),
+            ])}>
+            {React.string("This is a small form")}
+          </p>
+          /* TODO: payload is wrong in client components */
+          <Note_editor title="Hello" body="World" />
+          <Hr />
+          <Counter initial=123 />
+          <Hr />
+        </Stack>
+      </Layout>,
+    );
   };
-  let app = <Noter valueIn3seconds={sleep(~ms=300., "PROMISE VALUE HERE")} />;
+};
+
+let serverComponentsHandler = request => {
+  let app = <Page />;
   switch (Dream.header(request, "Accept")) {
   | Some(accept) when is_react_component_header(accept) =>
     stream_rsc(stream => {
@@ -202,7 +224,6 @@ let router = [
 
 let () = {
   Dream.run(
-    ~adjust_terminal=true,
     ~port=8080,
     ~interface={
       switch (Sys.getenv_opt("SERVER_INTERFACE")) {

@@ -51,12 +51,3 @@ let make = (~title, ~body) =>
   };
 
 let default = make;
-
-/* switch%platform (Runtime.platform) {
-   | Server => ()
-   | Client =>
-     Components.register("Note_editor", (props: Js.t({..})) => {
-       React.jsx(make, makeProps(~title=props##title, ~body=props##body, ()))
-     })
-   };
-    */
