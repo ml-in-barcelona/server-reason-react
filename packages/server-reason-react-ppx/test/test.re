@@ -1,25 +1,25 @@
-let test = (title, fn) => Alcotest.test_case(title, `Quick, fn);
+let test = (title, fn) => (title, [Alcotest.test_case("", `Quick, fn)]);
 
 let assert_string = (left, right) => {
   Alcotest.check(Alcotest.string, "should be equal", right, left);
 };
 
 let tag = () => {
-  let div = <div />;
-  assert_string(ReactDOM.renderToStaticMarkup(div), {|<div></div>|});
+  assert_string(ReactDOM.renderToStaticMarkup(<div />), {|<div></div>|});
 };
 
 let empty_attribute = () => {
-  let div = <div className="" />;
   assert_string(
-    ReactDOM.renderToStaticMarkup(div),
+    ReactDOM.renderToStaticMarkup(<div className="" />),
     {|<div class=""></div>|},
   );
 };
 
 let bool_attribute = () => {
-  let div = <div hidden=true />;
-  assert_string(ReactDOM.renderToStaticMarkup(div), {|<div hidden></div>|});
+  assert_string(
+    ReactDOM.renderToStaticMarkup(<div hidden=true />),
+    {|<div hidden></div>|},
+  );
 };
 
 let bool_attributes = () => {
@@ -68,15 +68,15 @@ let link_as_attribute = () => {
 };
 
 let innerhtml_attribute = () => {
-  let div = <div dangerouslySetInnerHTML={"__html": "foo"} />;
-  assert_string(ReactDOM.renderToStaticMarkup(div), {|<div>foo</div>|});
+  let app = <div dangerouslySetInnerHTML={"__html": "foo"} />;
+  assert_string(ReactDOM.renderToStaticMarkup(app), {|<div>foo</div>|});
 };
 
 let innerhtml_attribute_complex = () => {
-  let div =
+  let app =
     <div dangerouslySetInnerHTML={"__html": {|console.log("Lola")|}} />;
   assert_string(
-    ReactDOM.renderToStaticMarkup(div),
+    ReactDOM.renderToStaticMarkup(app),
     {|<div>console.log("Lola")</div>|},
   );
 };
@@ -97,21 +97,21 @@ let int_opt_attribute_none = () => {
 };
 
 let fragment = () => {
-  let div = <> <div className="md:w-1/3" /> <div className="md:w-2/3" /> </>;
+  let app = <> <div className="md:w-1/3" /> <div className="md:w-2/3" /> </>;
   assert_string(
-    ReactDOM.renderToStaticMarkup(div),
+    ReactDOM.renderToStaticMarkup(app),
     {|<div class="md:w-1/3"></div><div class="md:w-2/3"></div>|},
   );
 };
 
 let fragment_with_key = () => {
-  let div =
+  let app =
     <React.Fragment key="asd">
       <div className="md:w-1/3" />
       <div className="md:w-2/3" />
     </React.Fragment>;
   assert_string(
-    ReactDOM.renderToStaticMarkup(div),
+    ReactDOM.renderToStaticMarkup(app),
     {|<div class="md:w-1/3"></div><div class="md:w-2/3"></div>|},
   );
 };
@@ -380,49 +380,94 @@ let optional_prop = () => {
   );
 };
 
-let _ =
-  Alcotest.run(
-    "server-reason-react.ppx",
-    [
-      (
-        "renderToStaticMarkup",
-        [
-          test("div", tag),
-          test("div_empty_attr", empty_attribute),
-          test("div_bool_attr", bool_attribute),
-          test("input_bool_attrs", bool_attributes),
-          test("p_inner_html", innerhtml),
-          test("div_int_attr", int_attribute),
-          test("svg_1", svg_1),
-          test("svg_2", svg_2),
-          test("booleanish_props_with_ppx", booleanish_props_with_ppx),
-          test("booleanish_props_without_ppx", booleanish_props_without_ppx),
-          test("style_attr", style_attribute),
-          test("div_ref_attr", ref_attribute),
-          test("link_as_attr", link_as_attribute),
-          test("inner_html_attr", innerhtml_attribute),
-          test("p_inner_html", innerhtml_attribute_complex),
-          test("int_opt_attr_some", int_opt_attribute_some),
-          test("int_opt_attr_none", int_opt_attribute_none),
-          test("string_opt_attr_some", string_opt_attribute_some),
-          test("string_opt_attr_none", string_opt_attribute_none),
-          test("bool_opt_attr_some", bool_opt_attribute_some),
-          test("bool_opt_attr_none", bool_opt_attribute_none),
-          test("style_opt_attr_some", style_opt_attribute_some),
-          test("style_opt_attr_none", style_opt_attribute_none),
-          test("ref_opt_attr_some", ref_opt_attribute_some),
-          test("ref_opt_attr_none", ref_opt_attribute_none),
-          test("test_fragment", fragment),
-          test("test_fragment_with_key", fragment_with_key),
-          test("test_children_uppercase", children_uppercase),
-          test("test_children_lowercase", children_lowercase),
-          test("event_onClick", onClick_empty),
-          test("children_one_element", children_one_element),
-          test("children_multiple_elements", children_multiple_elements),
-          test("createElementVariadic", create_element_variadic),
-          test("aria_props", aria_props),
-          test("optional_prop", optional_prop),
-        ],
-      ),
-    ],
+let context = React.createContext(10);
+
+module ContextProvider = {
+  include React.Context;
+  let make = React.Context.provider(context);
+};
+
+module ContextConsumer = {
+  [@react.component]
+  let make = () => {
+    let value = React.useContext(context);
+    <section> {React.int(value)} </section>;
+  };
+};
+
+let context = () => {
+  let component =
+    <ContextProvider value=20> <ContextConsumer /> </ContextProvider>;
+
+  assert_string(
+    ReactDOM.renderToStaticMarkup(component),
+    "<section>20</section>",
   );
+};
+
+let context_2 = () => {
+  let component =
+    <ContextProvider value=30> <ContextConsumer /> </ContextProvider>;
+
+  assert_string(
+    ReactDOM.renderToStaticMarkup(component),
+    "<section>30</section>",
+  );
+};
+
+let multiple_contexts = () => {
+  let _component =
+    <ContextProvider value=20> <ContextConsumer /> </ContextProvider>;
+
+  let component =
+    <ContextProvider value=30> <ContextConsumer /> </ContextProvider>;
+
+  assert_string(
+    ReactDOM.renderToStaticMarkup(component),
+    "<section>30</section>",
+  );
+};
+
+Alcotest.run(
+  "server-reason-react.ppx",
+  [
+    test("tag", tag),
+    test("empty_attribute", empty_attribute),
+    test("bool_attribute", bool_attribute),
+    test("bool_attributes", bool_attributes),
+    test("innerhtml", innerhtml),
+    test("int_attribute", int_attribute),
+    test("svg_1", svg_1),
+    test("svg_2", svg_2),
+    test("booleanish_props_with_ppx", booleanish_props_with_ppx),
+    test("booleanish_props_without_ppx", booleanish_props_without_ppx),
+    test("style_attribute", style_attribute),
+    test("ref_attribute", ref_attribute),
+    test("link_as_attribute", link_as_attribute),
+    test("inner_html_attribute", innerhtml_attribute),
+    test("inner_html_attribute_complex", innerhtml_attribute_complex),
+    test("int_opt_attr_some", int_opt_attribute_some),
+    test("int_opt_attribute_none", int_opt_attribute_none),
+    test("string_opt_attribute_some", string_opt_attribute_some),
+    test("string_opt_attribute_none", string_opt_attribute_none),
+    test("bool_opt_attribute_some", bool_opt_attribute_some),
+    test("bool_opt_attribute_none", bool_opt_attribute_none),
+    test("style_opt_attribute_some", style_opt_attribute_some),
+    test("style_opt_attribute_none", style_opt_attribute_none),
+    test("ref_opt_attribute_some", ref_opt_attribute_some),
+    test("ref_opt_attribute_none", ref_opt_attribute_none),
+    test("fragment", fragment),
+    test("fragment_with_key", fragment_with_key),
+    test("children_uppercase", children_uppercase),
+    test("children_lowercase", children_lowercase),
+    test("event_onClick", onClick_empty),
+    test("children_one_element", children_one_element),
+    test("children_multiple_elements", children_multiple_elements),
+    test("create_element_variadic", create_element_variadic),
+    test("aria_props", aria_props),
+    test("optional_prop", optional_prop),
+    test("context", context),
+    test("context_2", context_2),
+    test("multiple_contexts", multiple_contexts),
+  ],
+);

@@ -27,9 +27,9 @@ We need to output ML syntax here, otherwise refmt could not parse it.
   
   module Onclick_handler_button = struct
     let make ?key:(_ : string option) ~name ?isDisabled () =
-      let onClick event = Js.log event in
       React.Upper_case_component
         (fun () ->
+          let onClick event = Js.log event in
           React.createElement "button"
             (Stdlib.List.filter_map Fun.id
                [
@@ -123,3 +123,22 @@ We need to output ML syntax here, otherwise refmt could not parse it.
   end
   
   let a = Async_component.make ~children:(React.createElement "div" [] []) ()
+  
+  module Sequence = struct
+    let make ?key:(_ : string option) ~lola () =
+      React.Upper_case_component
+        (fun () ->
+          let state, setState = React.useState lola in
+          React.useEffect (fun () ->
+              setState lola;
+              None);
+          React.createElement "div" [] [ React.string state ])
+  end
+  
+  module Use_context = struct
+    let make ?key:(_ : string option) () =
+      React.Upper_case_component
+        (fun () ->
+          let captured = React.useContext Context.value in
+          React.createElement "div" [] [ React.string captured ])
+  end
