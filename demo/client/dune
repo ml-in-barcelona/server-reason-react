@@ -1,62 +1,49 @@
 (melange.emit
  (alias melange-app)
  (target app)
- (enabled_if
-  (= %{profile} "dev"))
  (modules index)
  (libraries melange demo_shared_js reason-react melange.dom melange-webapi)
  (preprocess
   (pps reason-react-ppx browser_ppx -js melange.ppx))
- (module_systems es6))
+ (module_systems
+  (es6 js))
+ (enabled_if
+  (= %{profile} "dev")))
 
 (rule
  (alias client)
  ; Make the client rule depend on the generated file by melange.emit, so it needs to wait to be built and it's rebuilt when the file changes.
  (deps
-  (alias_rec melange-app))
+  (alias_rec melange-app)
+  (:script bundle.mjs))
+ (target bundled.js)
+ (action
+  (progn
+   (run node %{script} app/demo/client/index.js %{target})
+   (run cp %{target} app/demo/client/)))
  (enabled_if
-  (= %{profile} "dev"))
- (action
-  (progn
-   (run
-    esbuild
-    app/demo/client/index.js
-    --format=cjs
-    --bundle
-    --platform=browser
-    --log-level=error
-    --outfile=app/demo/client/app.js))))
+  (= %{profile} "dev")))
 
 (rule
  (alias client)
  (deps
-  (:file create-from-fetch.jsx)
-  (alias_rec melange-app))
+  (alias_rec melange-app)
+  (:input create-from-fetch.jsx)
+  (:script bundle.mjs))
  (action
   (progn
-   (run
-    esbuild
-    %{file}
-    --bundle
-    --platform=browser
-    --splitting
-    --outdir=app/demo/client
-    --format=esm
-    --log-level=error))))
+   (run node %{script} %{input} "app/demo/client/")))
+ (enabled_if
+  (= %{profile} "dev")))
 
 (rule
  (alias client)
  (deps
-  (:file runtime-with-client.jsx)
-  (alias_rec melange-app))
+  (alias_rec melange-app)
+  (:input runtime-with-client.jsx)
+  (:script bundle.mjs))
  (action
   (progn
-   (run
-    esbuild
-    %{file}
-    --bundle
-    --platform=browser
-    --format=esm
-    --splitting
-    --log-level=error
-    --outdir=app/demo/client))))
+   (run node %{script} %{input} "app/demo/client/")))
+ (enabled_if
+  (= %{profile} "dev")))
