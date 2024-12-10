@@ -14,7 +14,7 @@ let onUnhandledException =
     Js.Console.error(exn);
   });
 
-[%mel.raw
+[%%mel.raw
   {|
 function PromiseBox(p) {
     this.nested = p;
