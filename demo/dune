@@ -1,6 +1,3 @@
-;(flags
-; (-alert ++browser_only -alert ++not_implemented -warn-error +A-d))
-
 (rule
  (alias demo)
  (enabled_if

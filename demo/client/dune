@@ -42,6 +42,7 @@
   (:script build.mjs))
  (action
   (progn
+   ;(run melange_file_mapper)
    (run node %{script} %{input} "app/demo/client/")))
  (enabled_if
   (= %{profile} "dev")))

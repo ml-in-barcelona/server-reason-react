@@ -41,7 +41,7 @@ register("Promise_renderer", React.lazy(() => import("./app/demo/universal/js/Pr
 register("Promise_renderer", React.lazy(() => import("./app/demo/universal/js/Promise_renderer.js")));
           ^^^^^^^^^^^^^^^^
 ```
-The "name" is currently the file name. In reason-react, the name is the module name (and some $ in the name for nested modules), but that's not a problem. In the RSC model, we can specify the exported name and this logic is already implemented in reason-react-ppx.
+The "name" is currently the file name without the extension ("Counter"). In reason-react, it handles nested modules and adds $ on each level, but that's not a problem. In the RSC model, we are free to specify this name with whatever we want, both using __FILE__ (which is the relative path to the file: "./demo/universal/native/lib/Counter.re") or have the same logic as reason-react-ppx.
 
 ```
 register("Promise_renderer", React.lazy(() => import("./app/demo/universal/js/Promise_renderer.js")));
@@ -52,7 +52,15 @@ The resultant JS file is the one that we need to know about, and don't have a go
 
 ### What I have tried
 
-1) Try to get the rules from a particular file: `dune rules demo/universal/js/Counter.re` gives me the copy files action
+Running a program after the compilation, but before the bundle to generate a manifest with all the map. So during the bundling, I can generate the registration.
+
+```
+["Counter", "./app/demo/universal/js/Counter.js"]
+["Note_editor", "./app/demo/universal/js/Note_editor.js"]
+["Promise_renderer", "./app/demo/universal/js/Promise_renderer.js"]
+```
+
+1) Try to get the rules from a particular file `dune rules demo/universal/js/Counter.re` gives me the copy files action, which is expected.
 ```clojure
   ((File (In_build_dir _build/default/demo/universal/native/lib/Counter.re))))
  (targets
@@ -64,9 +72,13 @@ The resultant JS file is the one that we need to know about, and don't have a go
    (copy demo/universal/native/lib/Counter.re demo/universal/js/Counter.re))))
 ```
 
-2) Try to get the rules from a particular melange.emit and gives me [./melange.rules](./melange.rules) which contains references to `_build/default/demo/client/app/demo/universal/js/Counter.js` but no clear way to know if those JS files are the ones that contain the client components, or are the same files as
+2) Try to get the rules from a particular melange.emit `dune rules -r @melange-app` and gives me [./melange-emit.rules](./melange-emit.rules) which contains references to `_build/default/demo/client/app/demo/universal/js/Counter.js`, and also to `counter.cmj` but it's either: parsing the rules and the run actions commands and try building the map "backwards", but apparently there's no clear way to know if those JS files are the ones that contain the client components. (I tried this approach of making an executable that parses sexp in [packages/melange-file-mapper/Melange_file_mapper.ml](./packages/melange-file-mapper/Melange_file_mapper.ml) but I stopped when I was parsing the strings of the actions).
 
-3) Try to get the rules from a particular alias (?) `dune rules -m @melange-app` and gives me [./melange-target.rules](./melange-target.rules) which contains a the list of melange files that are part of the target, as JavaScript files.
+3) Randomly, trying to get the rules for a makefile `dune rules -m @melange-app` and gives me [./melange-makefile.rules](./melange-makefile.rules) which contains a the list of melange files that are part of the target, but only the JavaScript files.
+
+### Looking at melange_rules.ml
+
+There seems to be a place where we generate all rules for a melange.emit, and have access to all information needed: https://github.com/ocaml/dune/blob/5b695d66de4471e6df6268b715de9aabbad51d5b/src/dune_rules/melange/melange_rules.ml#L156
 
 ### Similar issue
 
