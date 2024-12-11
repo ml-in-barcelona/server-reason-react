@@ -1,4 +1,4 @@
-let make = (~initial, ~onClick as [@browser_only] onClick) => {
+let make = (~initial, ~onClick as [@browser_only] onClick=?, ()) => {
   let (count, [@browser_only] setCount) = RR.useStateValue(initial);
 
   [@browser_only]
@@ -6,11 +6,14 @@ let make = (~initial, ~onClick as [@browser_only] onClick) => {
     setCount(count + 1);
     Js.log2("Printing count", count);
 
-    onClick(e);
+    switch (onClick) {
+    | Some(onClick) => onClick(e)
+    | None => ()
+    };
   };
 
   <div className={Theme.text(Theme.Color.white)}>
-    <Spacer bottom=3>
+    <Spacer bottom=0>
       <div
         className={Cx.make([
           "flex",
@@ -28,35 +31,20 @@ let make = (~initial, ~onClick as [@browser_only] onClick) => {
         </button>
       </div>
     </Spacer>
-    <p className="text-lg">
-      {React.string(
-         "The HTML comes from the server"
-         ++ " then is updated by the client after React runs. Via render or hydration (when using ReactDOM.hydrateRoot).",
-       )}
-    </p>
   </div>;
 };
 
 [@react.component]
-let make = (~initial, ~onClick as [@browser_only] onClick) =>
+let make = (~initial, ~onClick as [@browser_only] onClick=?) =>
   switch%platform (Runtime.platform) {
   | Server =>
     React.Client_component({
       import_module: "Counter",
       import_name: "",
       props: [("initial", React.Json(`Int(initial)))],
-      client: make(~initial, ~onClick=_ => ()),
+      client: make(~initial, ~onClick=_ => (), ()),
     })
-  | Client => make(~initial, ~onClick)
+  | Client => make(~initial, ~onClick?, ())
   };
 
 let default = make;
-
-/* switch%platform (Runtime.platform) {
-   | Server => ()
-   | Client =>
-     Components.register("Counter", (props: Js.t({..})) => {
-       React.jsx(make, makeProps(~initial=props##initial, ()))
-     })
-   };
-    */

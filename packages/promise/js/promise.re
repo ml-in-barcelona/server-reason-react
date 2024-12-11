@@ -14,7 +14,8 @@ let onUnhandledException =
     Js.Console.error(exn);
   });
 
-{%%mel.raw |
+[%%mel.raw
+  {|
 function PromiseBox(p) {
     this.nested = p;
 };
@@ -71,7 +72,8 @@ function catch_(promise, callback) {
 
     return promise.catch(safeCallback);
 };
-|};
+|}
+];
 
 module Js_ = {
   type t('a, 'e) = rejectable('a, 'e);

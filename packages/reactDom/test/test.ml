@@ -7,5 +7,6 @@ let () =
             Test_renderToStaticMarkup.tests;
             Test_renderToString.tests;
             Test_reactDOMStyle.tests;
-            Test_ReactServerDOM.tests;
+            Test_RSC_model.tests;
+            Test_RSC_html.tests;
           ]))
