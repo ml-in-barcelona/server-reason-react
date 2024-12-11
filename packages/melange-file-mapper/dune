@@ -1,0 +1,3 @@
+(executable
+ (name melange_file_mapper)
+ (libraries sexplib))
