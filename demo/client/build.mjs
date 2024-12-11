@@ -1,4 +1,4 @@
-import esbuild from 'esbuild/lib/main.js';
+import esbuild from 'esbuild';
 import Fs from 'fs/promises';
 import Path from 'path';
 
@@ -12,11 +12,8 @@ const bootstrapPlugin = {
     build.onEnd(async (result) => {
       if (result.errors.length > 0) return;
 
-      // Get the output directory from build options
       const outputDir = build.initialOptions.outdir || Path.dirname(build.initialOptions.outfile);
 
-      console.log("\nesbuild plugin\n");
-      // Read all generated files
       const outputs = result.outputFiles || [];
       for (const file of outputs) {
         const relativePath = Path.relative(outputDir, file.path);

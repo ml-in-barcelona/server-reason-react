@@ -44,7 +44,7 @@
   (:script build.mjs))
  (action
   (progn
-   (run %{mapper})
+   ; (run %{mapper})
    (run node %{script} %{input} "app/demo/client/")))
  (enabled_if
   (= %{profile} "dev")))
