@@ -15,12 +15,13 @@ const bootstrapPlugin = {
       // Get the output directory from build options
       const outputDir = build.initialOptions.outdir || Path.dirname(build.initialOptions.outfile);
 
+      console.log("\nesbuild plugin\n");
       // Read all generated files
       const outputs = result.outputFiles || [];
       for (const file of outputs) {
         const relativePath = Path.relative(outputDir, file.path);
-        console.log(JSON.stringify(Object.keys(file)));
-        console.log(relativePath);
+        /* console.log(JSON.stringify(Object.keys(file))); */
+        console.log("  ", relativePath);
         bundleContents.set(relativePath, file.hash);
         Fs.writeFile(Path.join(outputDir, relativePath), file.text);
       }
@@ -72,10 +73,10 @@ async function build(input, output) {
       metafile: true, // Generate metadata about the build
     });
 
-    console.log('Build completed successfully');
+    console.log('\nBuild completed successfully');
     return result;
   } catch (error) {
-    console.error('Build failed:', error);
+    console.error('\nBuild failed:', error);
     process.exit(1);
   }
 }

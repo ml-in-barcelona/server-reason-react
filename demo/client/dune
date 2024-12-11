@@ -39,10 +39,12 @@
  (deps
   (alias_rec melange-app)
   (:input runtime-with-client.jsx)
+  (:mapper
+   %{workspace_root}/packages/melange-file-mapper/melange_file_mapper.exe)
   (:script build.mjs))
  (action
   (progn
-   ;(run melange_file_mapper)
+   (run %{mapper})
    (run node %{script} %{input} "app/demo/client/")))
  (enabled_if
   (= %{profile} "dev")))
