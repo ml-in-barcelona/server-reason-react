@@ -6,8 +6,10 @@
   "license": "ISC",
   "dependencies": {
     "esbuild": "^0.21.4",
+    "melange-ffi": "github:dmmulroy/melange-ffi",
     "react": "^19.0.0-rc-69d4b800-20241021",
     "react-dom": "^19.0.0-rc-69d4b800-20241021",
-    "react-server-dom-webpack": "^19.0.0-rc-69d4b800-20241021"
+    "react-server-dom-webpack": "^19.0.0-rc-69d4b800-20241021",
+    "s-tier": "^1.0.1"
   }
 }

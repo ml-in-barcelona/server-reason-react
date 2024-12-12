@@ -1,12 +1,27 @@
+// @ts-check
 import esbuild from 'esbuild';
 import Fs from 'fs/promises';
 import Path from 'path';
+import * as STier from "s-tier";
+import * as Melange from "melange-ffi";
 
-const melangeManifest = {
-  "Counter": "./app/demo/universal/js/Counter.js",
-  "Note_editor": "./app/demo/universal/js/Note_editor.js",
-  "Promise_renderer": "./app/demo/universal/js/Promise_renderer.js",
-};
+/** @type {Melange.Result<STier.Sexp, string>} */
+let deserialized = STier.deserialize(
+  `(
+    (app/demo/universal/native/lib/Counter.re (app/demo/universal/js/Counter.js))
+    (app/demo/universal/native/lib/Note_editor.re (app/demo/universal/js/Note_editor.js))
+    (app/demo/universal/native/lib/Promise_renderer.re (app/demo/universal/js/Promise_renderer.js))
+  )`
+);
+
+let data /* @type {STier.Sexp} */ = Melange.Result.unwrap(deserialized)
+const b = Melange.List.toArray(data._0);
+const sexpManifest = b.map(item => [item._0.hd._0, item._0.tl.hd._0.hd._0]);
+
+const melangeManifest = sexpManifest.reduce((acc, [re, js]) => {
+  acc[re] = `./${js}`;
+  return acc;
+}, {});
 
 let writeRegisterFile = async (outputDir, melangeManifest) => {
   const registerClientComponents = Object.entries(melangeManifest).map(([name, path]) => `register("${name}", React.lazy(() => import("${path}")))`).join(';\n');

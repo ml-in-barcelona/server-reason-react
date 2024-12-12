@@ -16,7 +16,7 @@ let make = (~value) =>
   switch%platform (Runtime.platform) {
   | Server =>
     React.Client_component({
-      import_module: "Promise_renderer",
+      import_module: __FILE__,
       import_name: "",
       props: [("value", React.Promise(value, v => `String(v)))],
       client: make(~value),

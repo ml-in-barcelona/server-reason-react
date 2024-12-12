@@ -34,7 +34,7 @@ let make = (~initial: int) =>
   switch%platform (Runtime.platform) {
   | Server =>
     React.Client_component({
-      import_module: "Counter",
+      import_module: __FILE__,
       import_name: "",
       props: [("initial", React.Json(`Int(initial)))],
       client: make(~initial),
