@@ -385,6 +385,58 @@ let mixed_server_and_client () =
       "0:\"$1\"\n";
     ]
 
+let client_with_server_children () =
+  let server_child () = React.createElement "div" [] [ React.string "Server Component Inside Client" ] in
+  let app () =
+    React.Upper_case_component
+      (fun () ->
+        React.List
+          [|
+            React.createElement "div" [] [ React.string "Server Content" ];
+            React.Client_component
+              {
+                props = [ ("children", React.Element (React.Upper_case_component server_child)) ];
+                client = React.string "Client with Server Children";
+                import_module = "./client-with-server-children.js";
+                import_name = "ClientWithServerChildren";
+              };
+          |])
+  in
+  let%lwt stream = ReactServerDOM.render_to_model (app ()) in
+  assert_stream stream
+    [
+      "2:I[\"./client-with-server-children.js\",[],\"ClientWithServerChildren\"]\n";
+      "3:[\"$\",\"div\",null,{\"children\":\"Server Component Inside Client\"}]\n";
+      "1:[[\"$\",\"div\",null,{\"children\":\"Server Content\"}],[\"$\",\"$2\",null,{\"children\":\"$3\"}]]\n";
+      "0:\"$1\"\n";
+    ]
+
+let client_with_server_children () =
+  let server_child () = React.createElement "div" [] [ React.string "Server Component Inside Client" ] in
+  let app () =
+    React.Upper_case_component
+      (fun () ->
+        React.List
+          [|
+            React.createElement "div" [] [ React.string "Server Content" ];
+            React.Client_component
+              {
+                props = [ ("children", React.Element (React.Upper_case_component server_child)) ];
+                client = React.string "Client with Server Children";
+                import_module = "./client-with-server-children.js";
+                import_name = "ClientWithServerChildren";
+              };
+          |])
+  in
+  let%lwt stream = ReactServerDOM.render_to_model (app ()) in
+  assert_stream stream
+    [
+      "2:I[\"./client-with-server-children.js\",[],\"ClientWithServerChildren\"]\n";
+      "3:[\"$\",\"div\",null,{\"children\":\"Server Component Inside Client\"}]\n";
+      "1:[[\"$\",\"div\",null,{\"children\":\"Server Content\"}],[\"$\",\"$2\",null,{\"children\":\"$3\"}]]\n";
+      "0:\"$1\"\n";
+    ]
+
 let tests =
   [
     test "null_element" null_element;
@@ -407,4 +459,5 @@ let tests =
     test "client_without_props" client_without_props;
     test "client_with_element_props" client_with_element_props;
     test "client_with_promise_props" client_with_promise_props;
+    test "client_with_server_children" client_with_server_children;
   ]
