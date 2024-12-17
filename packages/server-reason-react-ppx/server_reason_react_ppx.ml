@@ -464,6 +464,54 @@ let make_value_binding binding react_element_variant_wrapping =
   let function_body = pexp_fun ~loc:ghost_loc key_arg default_value key_pattern binding_expr in
   Ast_helper.Vb.mk ~loc name function_body
 
+let get_labelled_arguments binding =
+  let rec go acc = function
+    | Pexp_fun (label, default, patt, expr) -> go ((label, default, patt) :: acc) expr.pexp_desc
+    (* | Pexp_fun (label, default, patt, expr) -> (
+        match expr.pexp_desc with
+        | Pexp_fun (_label, _default, _patt, expr) -> go ([ (label, default, patt) ] :: acc) expr.pexp_desc
+        | _ -> acc) *)
+    | _ -> acc
+  in
+  go [] binding.pvb_expr.pexp_desc
+
+let make_client_component_value_binding binding =
+  let loc = binding.pvb_loc in
+  let ghost_loc = { binding.pvb_loc with loc_ghost = true } in
+  let binding_with_unit = add_unit_at_the_last_argument binding.pvb_expr in
+  let react_element_variant_wrapping expr =
+    let loc = expr.pexp_loc in
+    let import_module = pexp_ident ~loc { txt = Lident "__MODULE__"; loc } in
+    let labelled_arguments = get_labelled_arguments binding in
+    let label_to_ident label =
+      match label with
+      | Nolabel -> assert false
+      | Labelled name | Optional name -> pexp_ident ~loc { txt = Lident name; loc }
+    in
+    let prop_arguments =
+      List.map ~f:(fun (label, _default, _patt) -> (label, label_to_ident label)) labelled_arguments
+      @ [ (Nolabel, [%expr ()]) ]
+    in
+    (* We transform the arguments from the value binding into a list of arguments for props_to_json *)
+    let props = pexp_apply ~loc [%expr props_to_json] prop_arguments in
+    [%expr
+      React.Client_component
+        { import_module = [%e import_module]; import_name = ""; props = [%e props]; client = [%e expr] }]
+  in
+  let binding_expr = transform_fun_body_expression binding_with_unit react_element_variant_wrapping in
+  (* Builds an AST node for the modified `make` function *)
+  let name = Ast_helper.Pat.mk ~loc:ghost_loc (Ppat_var { txt = get_function_name binding; loc }) in
+  let key_arg = Optional "key" in
+  (* default_value = None means there's no default *)
+  let default_value = None in
+  let key_renamed_to_underscore = ppat_var ~loc:ghost_loc { txt = "_"; loc } in
+  let core_type = [%type: string option] in
+  let key_pattern = ppat_constraint ~loc key_renamed_to_underscore core_type in
+  (* Append key argument since we want to allow users of this component to set key
+     (and assign it to _ since it shouldn't be used) *)
+  let function_body = pexp_fun ~loc:ghost_loc key_arg default_value key_pattern binding_expr in
+  Ast_helper.Vb.mk ~loc name function_body
+
 let rewrite_signature_item signature_item =
   (* Remove the [@react.component] from the AST *)
   match signature_item with
@@ -509,7 +557,8 @@ let rewrite_structure_item structure_item =
   (* let component = ... *)
   | Pstr_value (rec_flag, value_bindings) ->
       let map_value_binding vb =
-        if isReactComponentBinding vb then
+        if isReactClientComponentBinding vb then make_client_component_value_binding vb
+        else if isReactComponentBinding vb then
           make_value_binding vb (fun expr ->
               let loc = expr.pexp_loc in
               [%expr React.Upper_case_component (fun () -> [%e expr])])
