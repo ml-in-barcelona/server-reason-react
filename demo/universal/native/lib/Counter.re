@@ -1,12 +1,3 @@
-let props_to_json = (~initial, ()) => {
-  switch%platform (Runtime.platform) {
-  | Server => [("initial", React.Json(`Int(initial)))]
-  | Client =>
-    Js.log(initial);
-    [];
-  };
-};
-
 [@react.component]
 [@react.client.component]
 let make = (~initial: int) => {
