@@ -8,7 +8,15 @@
       React.Client_component({
         import_module: __MODULE__,
         import_name: "",
-        props: props_to_json(~lola, ()),
+        props: [
+          (
+            "lola",
+            {
+              let json = [%to_json: int](lola);
+              React.Json(json);
+            },
+          ),
+        ],
         client: {
           let (state, setState) = React.useState(lola);
           React.useEffect(() => {

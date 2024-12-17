@@ -20,6 +20,8 @@ let raise_errorf ~loc fmt =
       raise (Error expr))
     fmt
 
+let longident label = { txt = Lident label.txt; loc = label.loc }
+let ident label = pexp_ident ~loc:label.loc (longident label)
 let make_string ~loc str = Ast_helper.Exp.constant ~loc (Ast_helper.Const.string str)
 let react_dot_component = "react.component"
 let react_dot_async_dot_component = "react.async.component"
@@ -464,53 +466,12 @@ let make_value_binding binding react_element_variant_wrapping =
   let function_body = pexp_fun ~loc:ghost_loc key_arg default_value key_pattern binding_expr in
   Ast_helper.Vb.mk ~loc name function_body
 
-let get_labelled_arguments binding =
+let get_labelled_arguments pvb_expr =
   let rec go acc = function
-    | Pexp_fun (label, default, patt, expr) -> go ((label, default, patt) :: acc) expr.pexp_desc
-    (* | Pexp_fun (label, default, patt, expr) -> (
-        match expr.pexp_desc with
-        | Pexp_fun (_label, _default, _patt, expr) -> go ([ (label, default, patt) ] :: acc) expr.pexp_desc
-        | _ -> acc) *)
+    | Pexp_fun (label, _default, patt, expr) -> go ((label, patt) :: acc) expr.pexp_desc
     | _ -> acc
   in
-  go [] binding.pvb_expr.pexp_desc
-
-let make_client_component_value_binding binding =
-  let loc = binding.pvb_loc in
-  let ghost_loc = { binding.pvb_loc with loc_ghost = true } in
-  let binding_with_unit = add_unit_at_the_last_argument binding.pvb_expr in
-  let react_element_variant_wrapping expr =
-    let loc = expr.pexp_loc in
-    let import_module = pexp_ident ~loc { txt = Lident "__MODULE__"; loc } in
-    let labelled_arguments = get_labelled_arguments binding in
-    let label_to_ident label =
-      match label with
-      | Nolabel -> assert false
-      | Labelled name | Optional name -> pexp_ident ~loc { txt = Lident name; loc }
-    in
-    let prop_arguments =
-      List.map ~f:(fun (label, _default, _patt) -> (label, label_to_ident label)) labelled_arguments
-      @ [ (Nolabel, [%expr ()]) ]
-    in
-    (* We transform the arguments from the value binding into a list of arguments for props_to_json *)
-    let props = pexp_apply ~loc [%expr props_to_json] prop_arguments in
-    [%expr
-      React.Client_component
-        { import_module = [%e import_module]; import_name = ""; props = [%e props]; client = [%e expr] }]
-  in
-  let binding_expr = transform_fun_body_expression binding_with_unit react_element_variant_wrapping in
-  (* Builds an AST node for the modified `make` function *)
-  let name = Ast_helper.Pat.mk ~loc:ghost_loc (Ppat_var { txt = get_function_name binding; loc }) in
-  let key_arg = Optional "key" in
-  (* default_value = None means there's no default *)
-  let default_value = None in
-  let key_renamed_to_underscore = ppat_var ~loc:ghost_loc { txt = "_"; loc } in
-  let core_type = [%type: string option] in
-  let key_pattern = ppat_constraint ~loc key_renamed_to_underscore core_type in
-  (* Append key argument since we want to allow users of this component to set key
-     (and assign it to _ since it shouldn't be used) *)
-  let function_body = pexp_fun ~loc:ghost_loc key_arg default_value key_pattern binding_expr in
-  Ast_helper.Vb.mk ~loc name function_body
+  go [] pvb_expr.pexp_desc
 
 let rewrite_signature_item signature_item =
   (* Remove the [@react.component] from the AST *)
@@ -537,6 +498,33 @@ let rewrite_signature_item signature_item =
              stub component or an empty element (React.null)"]])
   | _signature_item -> signature_item
 
+let props_to_model ~loc (props : (arg_label * pattern) list) =
+  List.fold_left ~init:[%expr []]
+    ~f:(fun acc (arg_label, pattern) ->
+      let type_ =
+        match pattern.ppat_desc with
+        | Ppat_constraint (_, type_) -> type_
+        | _ -> raise_errorf ~loc:pattern.ppat_loc "missing type annotation"
+      in
+      let label : string =
+        match arg_label with
+        | Nolabel -> raise_errorf ~loc:pattern.ppat_loc "only labelled arguments are supported"
+        | Labelled name | Optional name -> name
+      in
+      let name = estring ~loc label in
+      let prop = pexp_ident ~loc (longident { loc; txt = label }) in
+      let value =
+        match type_ with
+        | [%type: React.element] -> [%expr React.Element [%e prop]]
+        | [%type: [%t? t] Js.Promise.t] -> [%expr React.Promise ([%e prop], [%to_json: [%t t]])]
+        | _ ->
+            [%expr
+              let json = [%to_json: [%t type_]] [%e prop] in
+              React.Json json]
+      in
+      [%expr ([%e name], [%e value]) :: [%e acc]])
+    props
+
 let rewrite_structure_item structure_item =
   match structure_item.pstr_desc with
   (* external *)
@@ -557,7 +545,16 @@ let rewrite_structure_item structure_item =
   (* let component = ... *)
   | Pstr_value (rec_flag, value_bindings) ->
       let map_value_binding vb =
-        if isReactClientComponentBinding vb then make_client_component_value_binding vb
+        if isReactClientComponentBinding vb then
+          make_value_binding vb (fun expr ->
+              let loc = expr.pexp_loc in
+              let import_module = pexp_ident ~loc { txt = Lident "__MODULE__"; loc } in
+              let labelled_arguments = get_labelled_arguments vb.pvb_expr in
+              (* We transform the arguments from the value binding into React.client_props *)
+              let props = props_to_model ~loc labelled_arguments in
+              [%expr
+                React.Client_component
+                  { import_module = [%e import_module]; import_name = ""; props = [%e props]; client = [%e expr] }])
         else if isReactComponentBinding vb then
           make_value_binding vb (fun expr ->
               let loc = expr.pexp_loc in
