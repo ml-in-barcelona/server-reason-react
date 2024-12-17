@@ -49,5 +49,3 @@ let make = (~title, ~body) =>
     })
   | Client => make(~title, ~body)
   };
-
-let default = make;
