@@ -498,11 +498,49 @@ let rewrite_signature_item signature_item =
              stub component or an empty element (React.null)"]])
   | _signature_item -> signature_item
 
-let make_to_yojson ~loc type_ =
+let rec make_to_yojson ~loc type_ value =
   match type_ with
-  | [%type: int] -> [%expr `Int]
-  | [%type: string] -> [%expr `String]
-  | _ -> [%expr [%to_json: [%t type_]]]
+  | [%type: int] -> pexp_variant ~loc:value.pexp_loc "Int" (Some value)
+  | [%type: string] -> pexp_variant ~loc:value.pexp_loc "String" (Some value)
+  | [%type: bool] -> pexp_variant ~loc:value.pexp_loc "Bool" (Some value)
+  | [%type: float] -> pexp_variant ~loc:value.pexp_loc "Float" (Some value)
+  | [%type: [%t? inner] list] ->
+      let mapped = [%expr List.map (fun x -> [%e make_to_yojson ~loc inner [%expr x]]) [%e value]] in
+      pexp_variant ~loc:value.pexp_loc "List" (Some mapped)
+  | [%type: [%t? inner] array] ->
+      let mapped = [%expr Array.map (fun x -> [%e make_to_yojson ~loc inner [%expr x]]) [%e value]] in
+      let as_list = [%expr Array.to_list [%e mapped]] in
+      pexp_variant ~loc:value.pexp_loc "List" (Some as_list)
+  | [%type: [%t? inner] option] ->
+      let matched =
+        [%expr match [%e value] with None -> `Null | Some x -> [%e make_to_yojson ~loc inner [%expr x]]]
+      in
+      matched
+  | [%type: unit] -> pexp_variant ~loc:value.pexp_loc "Null" None
+  | [%type: [%t? t1] * [%t? t2]] ->
+      (* 2-tuple case *)
+      let tuple_to_list =
+        [%expr
+          let x1, x2 = [%e value] in
+          `List [ [%e make_to_yojson ~loc t1 [%expr x1]]; [%e make_to_yojson ~loc t2 [%expr x2]] ]]
+      in
+      tuple_to_list
+  | [%type: [%t? t1] * [%t? t2] * [%t? t3]] ->
+      (* 3-tuple case *)
+      let tuple_to_list =
+        [%expr
+          let x1, x2, x3 = [%e value] in
+          `List
+            [
+              [%e make_to_yojson ~loc t1 [%expr x1]];
+              [%e make_to_yojson ~loc t2 [%expr x2]];
+              [%e make_to_yojson ~loc t3 [%expr x3]];
+            ]]
+      in
+      tuple_to_list
+  | { ptyp_desc = Ptyp_constr (_, [ type_ ]) } -> make_to_yojson ~loc type_ value
+  | [%type: Yojson.Basic.t] -> pexp_variant ~loc:value.pexp_loc "Yojson" (Some value)
+  | _ -> make_to_yojson ~loc type_ value
 
 let props_to_model ~loc (props : (arg_label * pattern) list) =
   List.fold_left ~init:[%expr []]
@@ -521,11 +559,11 @@ let props_to_model ~loc (props : (arg_label * pattern) list) =
                 match type_ with
                 | [%type: React.element] -> [%expr React.Element [%e prop]]
                 | [%type: [%t? t] Js.Promise.t] ->
-                    let to_json = make_to_yojson ~loc t in
-                    [%expr React.Promise ([%e prop], [%e to_json] [%e prop])]
+                    let json = make_to_yojson ~loc t prop in
+                    [%expr React.Promise ([%e prop], [%e json])]
                 | _ ->
-                    let to_json = make_to_yojson ~loc type_ in
-                    [%expr React.Json ([%e to_json] [%e prop])]
+                    let json = make_to_yojson ~loc type_ prop in
+                    [%expr React.Json [%e json]]
               in
               [%expr ([%e name], [%e value]) :: [%e acc]])
       | _ ->
