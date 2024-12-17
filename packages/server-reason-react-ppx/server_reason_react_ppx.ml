@@ -498,31 +498,39 @@ let rewrite_signature_item signature_item =
              stub component or an empty element (React.null)"]])
   | _signature_item -> signature_item
 
+let make_to_yojson ~loc type_ =
+  match type_ with
+  | [%type: int] -> [%expr `Int]
+  | [%type: string] -> [%expr `String]
+  | _ -> [%expr [%to_json: [%t type_]]]
+
 let props_to_model ~loc (props : (arg_label * pattern) list) =
   List.fold_left ~init:[%expr []]
     ~f:(fun acc (arg_label, pattern) ->
-      let type_ =
-        match pattern.ppat_desc with
-        | Ppat_constraint (_, type_) -> type_
-        | _ -> raise_errorf ~loc:pattern.ppat_loc "missing type annotation"
-      in
-      let label : string =
-        match arg_label with
-        | Nolabel -> raise_errorf ~loc:pattern.ppat_loc "only labelled arguments are supported"
-        | Labelled name | Optional name -> name
-      in
-      let name = estring ~loc label in
-      let prop = pexp_ident ~loc (longident { loc; txt = label }) in
-      let value =
-        match type_ with
-        | [%type: React.element] -> [%expr React.Element [%e prop]]
-        | [%type: [%t? t] Js.Promise.t] -> [%expr React.Promise ([%e prop], [%to_json: [%t t]])]
-        | _ ->
-            [%expr
-              let json = [%to_json: [%t type_]] [%e prop] in
-              React.Json json]
-      in
-      [%expr ([%e name], [%e value]) :: [%e acc]])
+      match pattern.ppat_desc with
+      | Ppat_constraint (_, type_) -> (
+          match arg_label with
+          | Nolabel ->
+              (* This error raises by reason-react-ppx as well *)
+              let loc = pattern.ppat_loc in
+              [%expr [%error "props need to be labelled arguments"] :: [%e acc]]
+          | Labelled label | Optional label ->
+              let name = estring ~loc label in
+              let prop = pexp_ident ~loc (longident { loc; txt = label }) in
+              let value =
+                match type_ with
+                | [%type: React.element] -> [%expr React.Element [%e prop]]
+                | [%type: [%t? t] Js.Promise.t] ->
+                    let to_json = make_to_yojson ~loc t in
+                    [%expr React.Promise ([%e prop], [%e to_json] [%e prop])]
+                | _ ->
+                    let to_json = make_to_yojson ~loc type_ in
+                    [%expr React.Json ([%e to_json] [%e prop])]
+              in
+              [%expr ([%e name], [%e value]) :: [%e acc]])
+      | _ ->
+          let loc = pattern.ppat_loc in
+          [%expr [%error "server-reason-react: client components need type annotations"] :: [%e acc]])
     props
 
 let rewrite_structure_item structure_item =
