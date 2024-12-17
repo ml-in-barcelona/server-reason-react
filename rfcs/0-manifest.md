@@ -85,4 +85,4 @@ There seems to be a place where we generate all rules for a melange.emit, and ha
 
 ### Similar issue
 
-In https://github.com/davesnx/meleange, I have a similar issue. Where the build needs to know all dependencies of a melange file. Adding it here, just in case we design a manfiest and can expand with this use-case in the future and not break hard.
+In https://github.com/davesnx/melange, I have a similar issue. Where the build needs to know all dependencies of a melange file. Adding it here, just in case we design a manfiest and can expand with this use-case in the future and not break hard.
