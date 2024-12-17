@@ -23,22 +23,28 @@ let raise_errorf ~loc fmt =
 let make_string ~loc str = Ast_helper.Exp.constant ~loc (Ast_helper.Const.string str)
 let react_dot_component = "react.component"
 let react_dot_async_dot_component = "react.async.component"
+let react_dot_client_dot_component = "react.client.component"
 
 (* Helper method to look up the [@react.component] attribute *)
 let hasAttr { attr_name; _ } comparable = attr_name.txt = comparable
 
-let hasReactComponentAttr { attr_name; _ } =
-  attr_name.txt = react_dot_component || attr_name.txt = react_dot_async_dot_component
+let hasAnyReactComponentAttribute { attr_name; _ } =
+  attr_name.txt = react_dot_component
+  || attr_name.txt = react_dot_async_dot_component
+  || attr_name.txt = react_dot_client_dot_component
 
 (* Helper method to filter out any attribute that isn't [@react.component] *)
-let otherAttrsPure { attr_name; _ } =
-  attr_name.txt <> react_dot_component && attr_name.txt <> react_dot_async_dot_component
-
-let hasNotAttrOnBinding { pvb_attributes } comparable =
-  List.find_opt ~f:(fun attr -> hasAttr attr comparable) pvb_attributes = None
+let nonReactAttributes { attr_name; _ } =
+  attr_name.txt <> react_dot_component
+  && attr_name.txt <> react_dot_async_dot_component
+  && attr_name.txt <> react_dot_client_dot_component
 
 let hasAttrOnBinding { pvb_attributes } comparable =
   List.find_opt ~f:(fun attr -> hasAttr attr comparable) pvb_attributes <> None
+
+let isReactComponentBinding vb = hasAttrOnBinding vb react_dot_component
+let isReactAsyncComponentBinding vb = hasAttrOnBinding vb react_dot_async_dot_component
+let isReactClientComponentBinding vb = hasAttrOnBinding vb react_dot_client_dot_component
 
 let rec unwrap_children children = function
   | { pexp_desc = Pexp_construct ({ txt = Lident "[]"; _ }, None); _ } -> List.rev children
@@ -465,13 +471,14 @@ let rewrite_signature_item signature_item =
       psig_loc = _;
       psig_desc = Psig_value ({ pval_name = { txt = _fnName }; pval_attributes; pval_type } as psig_desc);
     } as psig -> (
-      match List.filter ~f:hasReactComponentAttr pval_attributes with
+      match List.filter ~f:hasAnyReactComponentAttribute pval_attributes with
       | [] -> signature_item
       | [ _ ] ->
           {
             psig with
             psig_desc =
-              Psig_value { psig_desc with pval_type; pval_attributes = List.filter ~f:otherAttrsPure pval_attributes };
+              Psig_value
+                { psig_desc with pval_type; pval_attributes = List.filter ~f:nonReactAttributes pval_attributes };
           }
       | _ ->
           let loc = signature_item.psig_loc in
@@ -502,11 +509,11 @@ let rewrite_structure_item structure_item =
   (* let component = ... *)
   | Pstr_value (rec_flag, value_bindings) ->
       let map_value_binding vb =
-        if hasAttrOnBinding vb react_dot_component then
+        if isReactComponentBinding vb then
           make_value_binding vb (fun expr ->
               let loc = expr.pexp_loc in
               [%expr React.Upper_case_component (fun () -> [%e expr])])
-        else if hasAttrOnBinding vb react_dot_async_dot_component then
+        else if isReactAsyncComponentBinding vb then
           make_value_binding vb (fun expr ->
               let loc = expr.pexp_loc in
               [%expr React.Async_component (fun () -> [%e expr])])
