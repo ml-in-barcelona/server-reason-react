@@ -498,49 +498,78 @@ let rewrite_signature_item signature_item =
              stub component or an empty element (React.null)"]])
   | _signature_item -> signature_item
 
-let rec make_to_yojson ~loc type_ value =
-  match type_ with
-  | [%type: int] -> pexp_variant ~loc:value.pexp_loc "Int" (Some value)
-  | [%type: string] -> pexp_variant ~loc:value.pexp_loc "String" (Some value)
-  | [%type: bool] -> pexp_variant ~loc:value.pexp_loc "Bool" (Some value)
-  | [%type: float] -> pexp_variant ~loc:value.pexp_loc "Float" (Some value)
-  | [%type: [%t? inner] list] ->
-      let mapped = [%expr List.map (fun x -> [%e make_to_yojson ~loc inner [%expr x]]) [%e value]] in
+let rec make_to_yojson ~loc (type_ : core_type) value =
+  match type_.ptyp_desc with
+  | Ptyp_constr ({ txt = Lident "int"; _ }, _) -> pexp_variant ~loc:value.pexp_loc "Int" (Some value)
+  | Ptyp_constr ({ txt = Lident "string"; _ }, _) -> pexp_variant ~loc:value.pexp_loc "String" (Some value)
+  | Ptyp_constr ({ txt = Lident "bool"; _ }, _) -> pexp_variant ~loc:value.pexp_loc "Bool" (Some value)
+  | Ptyp_constr ({ txt = Lident "float"; _ }, _) -> pexp_variant ~loc:value.pexp_loc "Float" (Some value)
+  | Ptyp_constr ({ txt = Lident "list"; _ }, list) ->
+      let inner = List.hd list in
+      let mapped = [%expr Stdlib.List.map (fun x -> [%e make_to_yojson ~loc inner [%expr x]]) [%e value]] in
       pexp_variant ~loc:value.pexp_loc "List" (Some mapped)
-  | [%type: [%t? inner] array] ->
-      let mapped = [%expr Array.map (fun x -> [%e make_to_yojson ~loc inner [%expr x]]) [%e value]] in
-      let as_list = [%expr Array.to_list [%e mapped]] in
+  | Ptyp_constr ({ txt = Lident "array"; _ }, array) ->
+      let inner = List.hd array in
+      let mapped = [%expr Stdlib.Array.map (fun x -> [%e make_to_yojson ~loc inner [%expr x]]) [%e value]] in
+      let as_list = [%expr Stdlib.Array.to_list [%e mapped]] in
       pexp_variant ~loc:value.pexp_loc "List" (Some as_list)
-  | [%type: [%t? inner] option] ->
+  | Ptyp_constr ({ txt = Lident "option"; _ }, option) ->
+      let inner = List.hd option in
       let matched =
         [%expr match [%e value] with None -> `Null | Some x -> [%e make_to_yojson ~loc inner [%expr x]]]
       in
       matched
-  | [%type: unit] -> pexp_variant ~loc:value.pexp_loc "Null" None
-  | [%type: [%t? t1] * [%t? t2]] ->
-      (* 2-tuple case *)
-      let tuple_to_list =
-        [%expr
-          let x1, x2 = [%e value] in
-          `List [ [%e make_to_yojson ~loc t1 [%expr x1]]; [%e make_to_yojson ~loc t2 [%expr x2]] ]]
+  | Ptyp_constr ({ txt = Lident "unit"; _ }, _) -> pexp_variant ~loc:value.pexp_loc "Null" None
+  (* Maybe add json/yojson *)
+  (* | [%type: Yojson.Basic.t] -> pexp_variant ~loc:value.pexp_loc "Yojson" (Some value) *)
+  | Ptyp_constr ({ txt = lident; _ }, _) ->
+      let rec make_to_json_fn lident =
+        match lident with
+        | Lident name -> Lident (Printf.sprintf "%s_to_json" name)
+        | Ldot (modulePath, name) -> Ldot (modulePath, Printf.sprintf "%s_to_json" name)
+        | Lapply (apply, longident) -> Lapply (apply, make_to_json_fn longident)
       in
-      tuple_to_list
-  | [%type: [%t? t1] * [%t? t2] * [%t? t3]] ->
-      (* 3-tuple case *)
-      let tuple_to_list =
-        [%expr
-          let x1, x2, x3 = [%e value] in
-          `List
-            [
-              [%e make_to_yojson ~loc t1 [%expr x1]];
-              [%e make_to_yojson ~loc t2 [%expr x2]];
-              [%e make_to_yojson ~loc t3 [%expr x3]];
-            ]]
+      pexp_apply ~loc:value.pexp_loc (pexp_ident ~loc { txt = make_to_json_fn lident; loc }) [ (Nolabel, value) ]
+  | Ptyp_tuple tuple ->
+      let item_name index = "x" ^ Int.to_string index in
+      let loc = value.pexp_loc in
+      let descructuring =
+        ppat_tuple ~loc (List.mapi ~f:(fun index _ -> ppat_var ~loc { txt = item_name index; loc }) tuple)
       in
-      tuple_to_list
-  | { ptyp_desc = Ptyp_constr (_, [ type_ ]) } -> make_to_yojson ~loc type_ value
-  | [%type: Yojson.Basic.t] -> pexp_variant ~loc:value.pexp_loc "Yojson" (Some value)
-  | _ -> make_to_yojson ~loc type_ value
+      let list =
+        List.mapi
+          ~f:(fun index t ->
+            let identifier = pexp_ident ~loc { txt = Lident (item_name index); loc } in
+            make_to_yojson ~loc [%type: [%t t]] identifier)
+          tuple
+      in
+      pexp_let ~loc Nonrecursive
+        [ value_binding ~loc ~pat:descructuring ~expr:value ]
+        [%expr `List [%e pexp_list ~loc list]]
+  | Ptyp_any ->
+      let loc = value.pexp_loc in
+      [%expr [%ocaml.error "server-reason-react: '_' annotation is not valid as a client prop"]]
+  | Ptyp_var name ->
+      let loc = value.pexp_loc in
+      let msg = Printf.sprintf "server-reason-react: unsupported type: '%s" name in
+      [%expr [%ocaml.error [%e estring ~loc msg]]]
+  | Ptyp_arrow _ ->
+      let loc = value.pexp_loc in
+      [%expr
+        [%ocaml.error
+          "server-reason-react: callbacks are not supported in client components. We can't serialize functions into \
+           the client."]]
+  | Ptyp_object _ -> [%expr [%ocaml.error "server-reason-react: objects aren't supported in client components."]]
+  | Ptyp_class _ -> [%expr [%ocaml.error "server-reason-react: classes aren't supported in client components."]]
+  | Ptyp_alias _ -> [%expr [%ocaml.error "server-reason-react: aliases aren't supported in client components."]]
+  | Ptyp_variant _ ->
+      [%expr
+        [%ocaml.error
+          "server-reason-react: inline types such as polyvariants, need to be a type with a json encoder 'to_json'."]]
+  | Ptyp_package _ -> [%expr [%ocaml.error "server-reason-react: modules aren't supported in client components."]]
+  | Ptyp_extension _extension ->
+      [%expr [%ocaml.error "server-reason-react: extensions aren't supported in client components."]]
+  | Ptyp_poly _ -> [%expr [%ocaml.error "server-reason-react: unsupported type"]]
 
 let props_to_model ~loc (props : (arg_label * pattern) list) =
   List.fold_left ~init:[%expr []]
@@ -551,7 +580,7 @@ let props_to_model ~loc (props : (arg_label * pattern) list) =
           | Nolabel ->
               (* This error raises by reason-react-ppx as well *)
               let loc = pattern.ppat_loc in
-              [%expr [%error "props need to be labelled arguments"] :: [%e acc]]
+              [%expr [%ocaml.error "props need to be labelled arguments"] :: [%e acc]]
           | Labelled label | Optional label ->
               let name = estring ~loc label in
               let prop = pexp_ident ~loc (longident { loc; txt = label }) in
@@ -566,9 +595,21 @@ let props_to_model ~loc (props : (arg_label * pattern) list) =
                     [%expr React.Json [%e json]]
               in
               [%expr ([%e name], [%e value]) :: [%e acc]])
+      (* TODO: Add all ppat_desc possibilities *)
       | _ ->
           let loc = pattern.ppat_loc in
-          [%expr [%error "server-reason-react: client components need type annotations"] :: [%e acc]])
+          let expr =
+            match arg_label with
+            | Nolabel -> [%expr [%ocaml.error "server-reason-react: client components need type annotations"]]
+            | Labelled label | Optional label ->
+                let msg =
+                  Printf.sprintf
+                    "server-reason-react: client components need type annotations. Missing annotation for '%s'" label
+                in
+                let msg_expr = estring ~loc msg in
+                [%expr [%ocaml.error [%e msg_expr]]]
+          in
+          [%expr [%e expr] :: [%e acc]])
     props
 
 let rewrite_structure_item structure_item =
