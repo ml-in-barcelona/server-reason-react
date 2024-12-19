@@ -1,5 +1,5 @@
 window.__webpack_require__ = (id) => {
-	console.log("REQUIRE ---");
+	console.log("__webpack_require__");
 	const component = window.__client_manifest_map[id];
 	console.log(id);
 	console.log(component);
@@ -16,17 +16,18 @@ const ReactServerDOM = require("react-server-dom-webpack/client");
 window.__client_manifest_map = {};
 
 const register = (name, render) => {
+	console.log("Client ref registered:", name);
 	window.__client_manifest_map[name] = render;
 };
 
 register(
   "Counter",
-  React.lazy(() => import("./app/demo/universal/js/Counter.js"))
+  React.lazy(() => import("./app/demo/universal/js/Counter.js").then(module => ({ default: module.make })))
 );
 
 register(
 	"Note_editor",
-	React.lazy(() => import("./app/demo/universal/js/Note_editor.js")),
+	React.lazy(() => import("./app/demo/universal/js/Note_editor.js").then(module => ({ default: module.make }))),
 );
 
 /* register(

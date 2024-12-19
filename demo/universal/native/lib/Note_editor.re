@@ -1,5 +1,7 @@
 [@warning "-27"];
 
+[@client]
+[@react.component]
 let make = (~title: string, ~body: string) => {
   let (title, setTitle) = RR.useStateValue(title);
   let (body, setBody) = RR.useStateValue(body);
@@ -33,21 +35,3 @@ let make = (~title: string, ~body: string) => {
     />
   </form>;
 };
-
-[@react.component]
-let make = (~title, ~body) =>
-  switch%platform (Runtime.platform) {
-  | Server =>
-    React.Client_component({
-      import_module: "Note_editor",
-      import_name: "",
-      props: [
-        ("title", React.Json(`String(title))),
-        ("body", React.Json(`String(body))),
-      ],
-      client: make(~title, ~body),
-    })
-  | Client => make(~title, ~body)
-  };
-
-let default = make;

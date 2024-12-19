@@ -1,6 +1,6 @@
-[@warning "-27"];
-
-let make = (~initial) => {
+[@client]
+[@react.component]
+let make = (~initial: int) => {
   let (state, setCount) = RR.useStateValue(initial);
 
   let onClick = _event => {
@@ -28,18 +28,3 @@ let make = (~initial) => {
     </Spacer>
   </div>;
 };
-
-[@react.component]
-let make = (~initial: int) =>
-  switch%platform (Runtime.platform) {
-  | Server =>
-    React.Client_component({
-      import_module: "Counter",
-      import_name: "",
-      props: [("initial", React.Json(`Int(initial)))],
-      client: make(~initial),
-    })
-  | Client => make(~initial)
-  };
-
-let default = make;
