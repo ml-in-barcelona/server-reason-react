@@ -3,7 +3,7 @@ open Ast_builder.Default
 module List = ListLabels
 
 let repo_url = "https://github.com/ml-in-barcelona/server-reason-react"
-let issues_url = repo_url |> Printf.sprintf "%s/issues"
+let issues_url = Printf.sprintf "%s/issues" repo_url
 
 (* There's no pexp_list on Ppxlib since isn't a constructor of the Parsetree *)
 let pexp_list ~loc xs =
@@ -498,6 +498,25 @@ let rewrite_signature_item signature_item =
              stub component or an empty element (React.null)"]])
   | _signature_item -> signature_item
 
+let error_cannot_create_json_encoder ~loc ~type_name =
+  let msg =
+    Printf.sprintf
+      "server-reason-react: inline types such as %s, need to be a type definition with a json encoder. If the type is \
+       named 't' the encoder should be named 't_to_json', if the type is named 'foo' the encoder should be named \
+       'foo_to_json'."
+      type_name
+  in
+  [%expr [%ocaml.error [%e estring ~loc msg]]]
+
+let error_not_supported ~loc ~type_name =
+  let msg =
+    Printf.sprintf
+      "server-reason-react: %s aren't supported in client components. Try using a type definition with a json encoder \
+       but there's no guarantee that it will work. Open an issue if you need it."
+      type_name
+  in
+  [%expr [%ocaml.error [%e estring ~loc msg]]]
+
 let rec make_to_yojson ~loc (type_ : core_type) value =
   match type_.ptyp_desc with
   | Ptyp_constr ({ txt = Lident "int"; _ }, _) -> pexp_variant ~loc:value.pexp_loc "Int" (Some value)
@@ -520,7 +539,7 @@ let rec make_to_yojson ~loc (type_ : core_type) value =
       in
       matched
   | Ptyp_constr ({ txt = Lident "unit"; _ }, _) -> pexp_variant ~loc:value.pexp_loc "Null" None
-  (* Maybe add json/yojson *)
+  (* TODO: Add json/yojson *)
   (* | [%type: Yojson.Basic.t] -> pexp_variant ~loc:value.pexp_loc "Yojson" (Some value) *)
   | Ptyp_constr ({ txt = lident; _ }, _) ->
       let rec make_to_json_fn lident =
@@ -546,52 +565,44 @@ let rec make_to_yojson ~loc (type_ : core_type) value =
       pexp_let ~loc Nonrecursive
         [ value_binding ~loc ~pat:descructuring ~expr:value ]
         [%expr `List [%e pexp_list ~loc list]]
-  | Ptyp_any ->
-      let loc = value.pexp_loc in
-      [%expr [%ocaml.error "server-reason-react: '_' annotation is not valid as a client prop"]]
   | Ptyp_var name ->
-      let loc = value.pexp_loc in
       let msg = Printf.sprintf "server-reason-react: unsupported type: '%s" name in
       [%expr [%ocaml.error [%e estring ~loc msg]]]
   | Ptyp_arrow _ ->
-      let loc = value.pexp_loc in
       [%expr
         [%ocaml.error
-          "server-reason-react: callbacks are not supported in client components. We can't serialize functions into \
-           the client."]]
-  | Ptyp_object _ -> [%expr [%ocaml.error "server-reason-react: objects aren't supported in client components."]]
-  | Ptyp_class _ -> [%expr [%ocaml.error "server-reason-react: classes aren't supported in client components."]]
-  | Ptyp_alias _ -> [%expr [%ocaml.error "server-reason-react: aliases aren't supported in client components."]]
-  | Ptyp_variant _ ->
-      [%expr
-        [%ocaml.error
-          "server-reason-react: inline types such as polyvariants, need to be a type with a json encoder 'to_json'."]]
-  | Ptyp_package _ -> [%expr [%ocaml.error "server-reason-react: modules aren't supported in client components."]]
-  | Ptyp_extension _extension ->
-      [%expr [%ocaml.error "server-reason-react: extensions aren't supported in client components."]]
-  | Ptyp_poly _ -> [%expr [%ocaml.error "server-reason-react: unsupported type"]]
+          "server-reason-react: callbacks are not supported in client components. Functions can't be serialized to the \
+           client."]]
+  | Ptyp_object _ -> error_cannot_create_json_encoder ~loc ~type_name:"objects"
+  | Ptyp_class _ -> error_cannot_create_json_encoder ~loc ~type_name:"classes"
+  | Ptyp_variant _ -> error_cannot_create_json_encoder ~loc ~type_name:"polyvariants"
+  | Ptyp_alias _ -> error_not_supported ~loc ~type_name:"aliases"
+  | Ptyp_extension _ -> error_not_supported ~loc ~type_name:"extensions"
+  | Ptyp_package _ -> error_not_supported ~loc ~type_name:"modules"
+  | Ptyp_poly _ -> error_not_supported ~loc ~type_name:"polymorphic types"
+  | Ptyp_any -> error_not_supported ~loc ~type_name:"'_' annotations"
 
 let props_to_model ~loc (props : (arg_label * pattern) list) =
   List.fold_left ~init:[%expr []]
     ~f:(fun acc (arg_label, pattern) ->
       match pattern.ppat_desc with
-      | Ppat_constraint (_, type_) -> (
+      | Ppat_constraint (_, core_type) -> (
           match arg_label with
           | Nolabel ->
-              (* This error raises by reason-react-ppx as well *)
+              (* This error is raised by reason-react-ppx as well *)
               let loc = pattern.ppat_loc in
               [%expr [%ocaml.error "props need to be labelled arguments"] :: [%e acc]]
           | Labelled label | Optional label ->
               let name = estring ~loc label in
               let prop = pexp_ident ~loc (longident { loc; txt = label }) in
               let value =
-                match type_ with
+                match core_type with
                 | [%type: React.element] -> [%expr React.Element [%e prop]]
-                | [%type: [%t? t] Js.Promise.t] ->
-                    let json = make_to_yojson ~loc t prop in
+                | [%type: [%t? inner_type] Js.Promise.t] ->
+                    let json = make_to_yojson ~loc inner_type prop in
                     [%expr React.Promise ([%e prop], [%e json])]
                 | _ ->
-                    let json = make_to_yojson ~loc type_ prop in
+                    let json = make_to_yojson ~loc core_type prop in
                     [%expr React.Json [%e json]]
               in
               [%expr ([%e name], [%e value]) :: [%e acc]])

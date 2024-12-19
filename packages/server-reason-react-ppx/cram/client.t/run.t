@@ -77,7 +77,7 @@
             "underscore",
             React.Json(
               [%ocaml.error
-                "server-reason-react: '_' annotation is not valid as a client prop"
+                "server-reason-react: '_' annotations aren't supported in client components. Try using a type definition with a json encoder but there's no guarantee that it will work. Open an issue if you need it."
               ],
             ),
           ),
@@ -109,7 +109,7 @@
             "polyvariants",
             React.Json(
               [%ocaml.error
-                "server-reason-react: inline types such as polyvariants, need to be a type with a json encoder 'to_json'."
+                "server-reason-react: inline types such as polyvariants, need to be a type definition with a json encoder. If the type is named 't' the encoder should be named 't_to_json', if the type is named 'foo' the encoder should be named 'foo_to_json'."
               ],
             ),
           ),
