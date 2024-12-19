@@ -1,5 +1,5 @@
+[@client]
 [@react.component]
-[@react.client.component]
 let make = (~initial: int) => {
   let (state, setCount) = RR.useStateValue(initial);
 

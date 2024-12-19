@@ -25,7 +25,7 @@ let ident label = pexp_ident ~loc:label.loc (longident label)
 let make_string ~loc str = Ast_helper.Exp.constant ~loc (Ast_helper.Const.string str)
 let react_dot_component = "react.component"
 let react_dot_async_dot_component = "react.async.component"
-let react_dot_client_dot_component = "react.client.component"
+let client_attribute = "client"
 
 (* Helper method to look up the [@react.component] attribute *)
 let hasAttr { attr_name; _ } comparable = attr_name.txt = comparable
@@ -33,20 +33,20 @@ let hasAttr { attr_name; _ } comparable = attr_name.txt = comparable
 let hasAnyReactComponentAttribute { attr_name; _ } =
   attr_name.txt = react_dot_component
   || attr_name.txt = react_dot_async_dot_component
-  || attr_name.txt = react_dot_client_dot_component
+  || attr_name.txt = client_attribute
 
 (* Helper method to filter out any attribute that isn't [@react.component] *)
 let nonReactAttributes { attr_name; _ } =
   attr_name.txt <> react_dot_component
   && attr_name.txt <> react_dot_async_dot_component
-  && attr_name.txt <> react_dot_client_dot_component
+  && attr_name.txt <> client_attribute
 
 let hasAttrOnBinding { pvb_attributes } comparable =
   List.find_opt ~f:(fun attr -> hasAttr attr comparable) pvb_attributes <> None
 
 let isReactComponentBinding vb = hasAttrOnBinding vb react_dot_component
 let isReactAsyncComponentBinding vb = hasAttrOnBinding vb react_dot_async_dot_component
-let isReactClientComponentBinding vb = hasAttrOnBinding vb react_dot_client_dot_component
+let isReactClientComponentBinding vb = hasAttrOnBinding vb client_attribute
 
 let rec unwrap_children children = function
   | { pexp_desc = Pexp_construct ({ txt = Lident "[]"; _ }, None); _ } -> List.rev children
@@ -544,7 +544,9 @@ let rec make_to_yojson ~loc (type_ : core_type) value =
   | Ptyp_constr ({ txt = lident; _ }, _) ->
       let rec make_to_json_fn lident =
         match lident with
+        | Lident name when name = "t" -> Lident "to_json"
         | Lident name -> Lident (Printf.sprintf "%s_to_json" name)
+        | Ldot (modulePath, name) when name = "t" -> Ldot (modulePath, "to_json")
         | Ldot (modulePath, name) -> Ldot (modulePath, Printf.sprintf "%s_to_json" name)
         | Lapply (apply, longident) -> Lapply (apply, make_to_json_fn longident)
       in

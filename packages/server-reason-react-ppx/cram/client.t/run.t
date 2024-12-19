@@ -137,7 +137,7 @@
             "ldotdotlident",
             React.Json(Module.Inner.lola_to_json(ldotdotlident)),
           ),
-          ("lapply", React.Json(Label.t_to_json(lapply))),
+          ("lapply", React.Json(Label.to_json(lapply))),
         ],
         client: React.null,
       });
