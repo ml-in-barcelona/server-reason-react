@@ -59,7 +59,7 @@ external fromOpt : 'a option -> 'a undefined = "%identity"
 
 (* external undefined : 'a undefined = "#undefined" *)
 
-(** The same as  [empty] {!Js.Undefined} will be compiled as [undefined]*)
+(** The same as [empty] {!Js.Undefined} will be compiled as [undefined]*)
 let undefined = None
 
 (* external null : 'a null = "#null" *)
@@ -84,16 +84,15 @@ type (+'a, +'e) promise
    | Some _ -> false
    | None -> true *)
 
-(** [typeof x] will be compiled as [typeof x] in JS
-    Please consider functions in {!Types} for a type safe way of reflection *)
+(** [typeof x] will be compiled as [typeof x] in JS Please consider functions in {!Types} for a type safe way of
+    reflection *)
 let typeof _ = notImplemented "Js" "typeof"
 
-(** {4 operators }*)
+(** {4 operators}*)
 
 (* external unsafe_lt : 'a -> 'a -> bool = "#unsafe_lt" *)
-(** [unsafe_lt a b] will be compiled as [a < b].
-    It is marked as unsafe, since it is impossible
-    to give a proper semantics for comparision which applies to any type *)
+(** [unsafe_lt a b] will be compiled as [a < b]. It is marked as unsafe, since it is impossible to give a proper
+    semantics for comparision which applies to any type *)
 
 (* external unsafe_le : 'a -> 'a -> bool = "#unsafe_le" *)
 (**  [unsafe_le a b] will be compiled as [a <= b].
@@ -1078,8 +1077,7 @@ module Dict : Dictionary = struct
 end
 
 module Global : sig
-  (** Contains functions available in the global scope
-    ([window] in a browser context) *)
+  (** Contains functions available in the global scope ([window] in a browser context) *)
 
   type intervalId
   (** Identify an interval started by {! setInterval} *)
@@ -1265,8 +1263,8 @@ module Types = struct
     | BigInt : bigint_val t
 
   (** {[
-  test "x" String = true
-  ]}*)
+        test "x" String = true
+      ]}*)
   let test _ _ = notImplemented "Js.Types" "test"
 
   type tagged_t =

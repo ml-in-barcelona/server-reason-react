@@ -1,16 +1,11 @@
 module Int = Belt_MapInt
-(** specalized when key type is [int], more efficient
-    than the generic type
-*)
+(** specalized when key type is [int], more efficient than the generic type *)
 
 module String = Belt_MapString
-(** specalized when key type is [string], more efficient
-    than the generic type *)
+(** specalized when key type is [string], more efficient than the generic type *)
 
 module Dict = Belt_MapDict
-(** seprate function from data, a more verboe but slightly
-    more efficient
-*)
+(** seprate function from data, a more verboe but slightly more efficient *)
 
 type ('key, 'id) id = ('key, 'id) Belt_Id.comparable
 type ('key, 'id) cmp = ('key, 'id) Belt_Id.cmp

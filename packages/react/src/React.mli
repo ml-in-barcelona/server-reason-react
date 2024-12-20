@@ -492,7 +492,9 @@ module Event : sig
   end
 end
 
-(** All of those types are used by the server-reason-react.ppx internally to represent valid React code from the server. It currently different from reason-react-ppx due to a need for knowing the types since ReactDOM needs to render differently depending on the type. *)
+(** All of those types are used by the server-reason-react.ppx internally to represent valid React code from the server.
+    It currently different from reason-react-ppx due to a need for knowing the types since ReactDOM needs to render
+    differently depending on the type. *)
 module JSX : sig
   (** All event callbacks *)
   type event =
