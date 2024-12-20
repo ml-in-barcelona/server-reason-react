@@ -3,7 +3,7 @@ open Ast_builder.Default
 module List = ListLabels
 
 let repo_url = "https://github.com/ml-in-barcelona/server-reason-react"
-let issues_url = repo_url |> Printf.sprintf "%s/issues"
+let issues_url = Printf.sprintf "%s/issues" repo_url
 
 (* There's no pexp_list on Ppxlib since isn't a constructor of the Parsetree *)
 let pexp_list ~loc xs =
@@ -20,25 +20,33 @@ let raise_errorf ~loc fmt =
       raise (Error expr))
     fmt
 
+let longident label = { txt = Lident label.txt; loc = label.loc }
+let ident label = pexp_ident ~loc:label.loc (longident label)
 let make_string ~loc str = Ast_helper.Exp.constant ~loc (Ast_helper.Const.string str)
 let react_dot_component = "react.component"
 let react_dot_async_dot_component = "react.async.component"
+let client_attribute = "client"
 
 (* Helper method to look up the [@react.component] attribute *)
 let hasAttr { attr_name; _ } comparable = attr_name.txt = comparable
 
-let hasReactComponentAttr { attr_name; _ } =
-  attr_name.txt = react_dot_component || attr_name.txt = react_dot_async_dot_component
+let hasAnyReactComponentAttribute { attr_name; _ } =
+  attr_name.txt = react_dot_component
+  || attr_name.txt = react_dot_async_dot_component
+  || attr_name.txt = client_attribute
 
 (* Helper method to filter out any attribute that isn't [@react.component] *)
-let otherAttrsPure { attr_name; _ } =
-  attr_name.txt <> react_dot_component && attr_name.txt <> react_dot_async_dot_component
-
-let hasNotAttrOnBinding { pvb_attributes } comparable =
-  List.find_opt ~f:(fun attr -> hasAttr attr comparable) pvb_attributes = None
+let nonReactAttributes { attr_name; _ } =
+  attr_name.txt <> react_dot_component
+  && attr_name.txt <> react_dot_async_dot_component
+  && attr_name.txt <> client_attribute
 
 let hasAttrOnBinding { pvb_attributes } comparable =
   List.find_opt ~f:(fun attr -> hasAttr attr comparable) pvb_attributes <> None
+
+let isReactComponentBinding vb = hasAttrOnBinding vb react_dot_component
+let isReactAsyncComponentBinding vb = hasAttrOnBinding vb react_dot_async_dot_component
+let isReactClientComponentBinding vb = hasAttrOnBinding vb client_attribute
 
 let rec unwrap_children children = function
   | { pexp_desc = Pexp_construct ({ txt = Lident "[]"; _ }, None); _ } -> List.rev children
@@ -458,6 +466,13 @@ let make_value_binding binding react_element_variant_wrapping =
   let function_body = pexp_fun ~loc:ghost_loc key_arg default_value key_pattern binding_expr in
   Ast_helper.Vb.mk ~loc name function_body
 
+let get_labelled_arguments pvb_expr =
+  let rec go acc = function
+    | Pexp_fun (label, _default, patt, expr) -> go ((label, patt) :: acc) expr.pexp_desc
+    | _ -> acc
+  in
+  go [] pvb_expr.pexp_desc
+
 let rewrite_signature_item signature_item =
   (* Remove the [@react.component] from the AST *)
   match signature_item with
@@ -465,13 +480,14 @@ let rewrite_signature_item signature_item =
       psig_loc = _;
       psig_desc = Psig_value ({ pval_name = { txt = _fnName }; pval_attributes; pval_type } as psig_desc);
     } as psig -> (
-      match List.filter ~f:hasReactComponentAttr pval_attributes with
+      match List.filter ~f:hasAnyReactComponentAttribute pval_attributes with
       | [] -> signature_item
       | [ _ ] ->
           {
             psig with
             psig_desc =
-              Psig_value { psig_desc with pval_type; pval_attributes = List.filter ~f:otherAttrsPure pval_attributes };
+              Psig_value
+                { psig_desc with pval_type; pval_attributes = List.filter ~f:nonReactAttributes pval_attributes };
           }
       | _ ->
           let loc = signature_item.psig_loc in
@@ -481,6 +497,133 @@ let rewrite_signature_item signature_item =
              JavaScript. In the server, that doesn't make sense. If you need to render this on the server, implement a \
              stub component or an empty element (React.null)"]])
   | _signature_item -> signature_item
+
+let error_cannot_create_json_encoder ~loc ~type_name =
+  let msg =
+    Printf.sprintf
+      "server-reason-react: inline types such as %s, need to be a type definition with a json encoder. If the type is \
+       named 't' the encoder should be named 't_to_json', if the type is named 'foo' the encoder should be named \
+       'foo_to_json'."
+      type_name
+  in
+  [%expr [%ocaml.error [%e estring ~loc msg]]]
+
+let error_not_supported ~loc ~type_name =
+  let msg =
+    Printf.sprintf
+      "server-reason-react: %s aren't supported in client components. Try using a type definition with a json encoder \
+       but there's no guarantee that it will work. Open an issue if you need it."
+      type_name
+  in
+  [%expr [%ocaml.error [%e estring ~loc msg]]]
+
+let rec make_to_yojson ~loc (type_ : core_type) value =
+  match type_.ptyp_desc with
+  | Ptyp_constr ({ txt = Lident "int"; _ }, _) -> pexp_variant ~loc:value.pexp_loc "Int" (Some value)
+  | Ptyp_constr ({ txt = Lident "string"; _ }, _) -> pexp_variant ~loc:value.pexp_loc "String" (Some value)
+  | Ptyp_constr ({ txt = Lident "bool"; _ }, _) -> pexp_variant ~loc:value.pexp_loc "Bool" (Some value)
+  | Ptyp_constr ({ txt = Lident "float"; _ }, _) -> pexp_variant ~loc:value.pexp_loc "Float" (Some value)
+  | Ptyp_constr ({ txt = Lident "list"; _ }, list) ->
+      let inner = List.hd list in
+      let mapped = [%expr Stdlib.List.map (fun x -> [%e make_to_yojson ~loc inner [%expr x]]) [%e value]] in
+      pexp_variant ~loc:value.pexp_loc "List" (Some mapped)
+  | Ptyp_constr ({ txt = Lident "array"; _ }, array) ->
+      let inner = List.hd array in
+      let mapped = [%expr Stdlib.Array.map (fun x -> [%e make_to_yojson ~loc inner [%expr x]]) [%e value]] in
+      let as_list = [%expr Stdlib.Array.to_list [%e mapped]] in
+      pexp_variant ~loc:value.pexp_loc "List" (Some as_list)
+  | Ptyp_constr ({ txt = Lident "option"; _ }, option) ->
+      let inner = List.hd option in
+      let matched =
+        [%expr match [%e value] with None -> `Null | Some x -> [%e make_to_yojson ~loc inner [%expr x]]]
+      in
+      matched
+  | Ptyp_constr ({ txt = Lident "unit"; _ }, _) -> pexp_variant ~loc:value.pexp_loc "Null" None
+  (* TODO: Add json/yojson *)
+  (* | [%type: Yojson.Basic.t] -> pexp_variant ~loc:value.pexp_loc "Yojson" (Some value) *)
+  | Ptyp_constr ({ txt = lident; _ }, _) ->
+      let rec make_to_json_fn lident =
+        match lident with
+        | Lident name when name = "t" -> Lident "to_json"
+        | Lident name -> Lident (Printf.sprintf "%s_to_json" name)
+        | Ldot (modulePath, name) when name = "t" -> Ldot (modulePath, "to_json")
+        | Ldot (modulePath, name) -> Ldot (modulePath, Printf.sprintf "%s_to_json" name)
+        | Lapply (apply, longident) -> Lapply (apply, make_to_json_fn longident)
+      in
+      pexp_apply ~loc:value.pexp_loc (pexp_ident ~loc { txt = make_to_json_fn lident; loc }) [ (Nolabel, value) ]
+  | Ptyp_tuple tuple ->
+      let item_name index = "x" ^ Int.to_string index in
+      let loc = value.pexp_loc in
+      let descructuring =
+        ppat_tuple ~loc (List.mapi ~f:(fun index _ -> ppat_var ~loc { txt = item_name index; loc }) tuple)
+      in
+      let list =
+        List.mapi
+          ~f:(fun index t ->
+            let identifier = pexp_ident ~loc { txt = Lident (item_name index); loc } in
+            make_to_yojson ~loc [%type: [%t t]] identifier)
+          tuple
+      in
+      pexp_let ~loc Nonrecursive
+        [ value_binding ~loc ~pat:descructuring ~expr:value ]
+        [%expr `List [%e pexp_list ~loc list]]
+  | Ptyp_var name ->
+      let msg = Printf.sprintf "server-reason-react: unsupported type: '%s" name in
+      [%expr [%ocaml.error [%e estring ~loc msg]]]
+  | Ptyp_arrow _ ->
+      [%expr
+        [%ocaml.error
+          "server-reason-react: callbacks are not supported in client components. Functions can't be serialized to the \
+           client."]]
+  | Ptyp_object _ -> error_cannot_create_json_encoder ~loc ~type_name:"objects"
+  | Ptyp_class _ -> error_cannot_create_json_encoder ~loc ~type_name:"classes"
+  | Ptyp_variant _ -> error_cannot_create_json_encoder ~loc ~type_name:"polyvariants"
+  | Ptyp_alias _ -> error_not_supported ~loc ~type_name:"aliases"
+  | Ptyp_extension _ -> error_not_supported ~loc ~type_name:"extensions"
+  | Ptyp_package _ -> error_not_supported ~loc ~type_name:"modules"
+  | Ptyp_poly _ -> error_not_supported ~loc ~type_name:"polymorphic types"
+  | Ptyp_any -> error_not_supported ~loc ~type_name:"'_' annotations"
+
+let props_to_model ~loc (props : (arg_label * pattern) list) =
+  List.fold_left ~init:[%expr []]
+    ~f:(fun acc (arg_label, pattern) ->
+      match pattern.ppat_desc with
+      | Ppat_constraint (_, core_type) -> (
+          match arg_label with
+          | Nolabel ->
+              (* This error is raised by reason-react-ppx as well *)
+              let loc = pattern.ppat_loc in
+              [%expr [%ocaml.error "props need to be labelled arguments"] :: [%e acc]]
+          | Labelled label | Optional label ->
+              let name = estring ~loc label in
+              let prop = pexp_ident ~loc (longident { loc; txt = label }) in
+              let value =
+                match core_type with
+                | [%type: React.element] -> [%expr React.Element [%e prop]]
+                | [%type: [%t? inner_type] Js.Promise.t] ->
+                    let json = make_to_yojson ~loc inner_type prop in
+                    [%expr React.Promise ([%e prop], [%e json])]
+                | _ ->
+                    let json = make_to_yojson ~loc core_type prop in
+                    [%expr React.Json [%e json]]
+              in
+              [%expr ([%e name], [%e value]) :: [%e acc]])
+      (* TODO: Add all ppat_desc possibilities *)
+      | _ ->
+          let loc = pattern.ppat_loc in
+          let expr =
+            match arg_label with
+            | Nolabel -> [%expr [%ocaml.error "server-reason-react: client components need type annotations"]]
+            | Labelled label | Optional label ->
+                let msg =
+                  Printf.sprintf
+                    "server-reason-react: client components need type annotations. Missing annotation for '%s'" label
+                in
+                let msg_expr = estring ~loc msg in
+                [%expr [%ocaml.error [%e msg_expr]]]
+          in
+          [%expr [%e expr] :: [%e acc]])
+    props
 
 let rewrite_structure_item structure_item =
   match structure_item.pstr_desc with
@@ -502,11 +645,21 @@ let rewrite_structure_item structure_item =
   (* let component = ... *)
   | Pstr_value (rec_flag, value_bindings) ->
       let map_value_binding vb =
-        if hasAttrOnBinding vb react_dot_component then
+        if isReactClientComponentBinding vb then
+          make_value_binding vb (fun expr ->
+              let loc = expr.pexp_loc in
+              let import_module = pexp_ident ~loc { txt = Lident "__MODULE__"; loc } in
+              let labelled_arguments = get_labelled_arguments vb.pvb_expr in
+              (* We transform the arguments from the value binding into React.client_props *)
+              let props = props_to_model ~loc labelled_arguments in
+              [%expr
+                React.Client_component
+                  { import_module = [%e import_module]; import_name = ""; props = [%e props]; client = [%e expr] }])
+        else if isReactComponentBinding vb then
           make_value_binding vb (fun expr ->
               let loc = expr.pexp_loc in
               [%expr React.Upper_case_component (fun () -> [%e expr])])
-        else if hasAttrOnBinding vb react_dot_async_dot_component then
+        else if isReactAsyncComponentBinding vb then
           make_value_binding vb (fun expr ->
               let loc = expr.pexp_loc in
               [%expr React.Async_component (fun () -> [%e expr])])

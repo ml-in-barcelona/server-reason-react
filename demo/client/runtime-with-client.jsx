@@ -1,5 +1,5 @@
 window.__webpack_require__ = (id) => {
-	console.log("REQUIRE ---");
+	console.log("__webpack_require__");
 	const component = window.__client_manifest_map[id];
 	console.log(id);
 	console.log(component);
