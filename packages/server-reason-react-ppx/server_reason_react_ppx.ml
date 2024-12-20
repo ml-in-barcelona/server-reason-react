@@ -648,7 +648,7 @@ let rewrite_structure_item structure_item =
         if isReactClientComponentBinding vb then
           make_value_binding vb (fun expr ->
               let loc = expr.pexp_loc in
-              let import_module = pexp_ident ~loc { txt = Lident "__MODULE__"; loc } in
+              let import_module = pexp_ident ~loc { txt = Lident "__FILE__"; loc } in
               let labelled_arguments = get_labelled_arguments vb.pvb_expr in
               (* We transform the arguments from the value binding into React.client_props *)
               let props = props_to_model ~loc labelled_arguments in

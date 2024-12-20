@@ -30,7 +30,10 @@ let write_file (path : string) (content : string) : unit =
 let render_manifest ~path (manifest : (string * string) list) =
   let register_client_components =
     List.map manifest ~f:(fun (name, path) ->
-        Printf.sprintf "window.__client_manifest_map[\"%s\"] = React.lazy(() => import(\"./%s\"))" name path)
+        Printf.sprintf
+          "window.__client_manifest_map[\"%s\"] = React.lazy(() => import(\"./%s\").then(module => ({ default: \
+           module.make })))"
+          name path)
   in
   let content =
     Printf.sprintf

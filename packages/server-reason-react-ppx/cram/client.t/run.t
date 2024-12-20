@@ -15,7 +15,7 @@
           (),
         ) =>
       React.Client_component({
-        import_module: __MODULE__,
+        import_module: __FILE__,
         import_name: "",
         props: [
           ("prop", React.Json(`Int(prop))),
@@ -56,7 +56,7 @@
   module Prop_without_annotation = {
     let make = (~key as _: option(string)=?, ~prop_without_annotation, ()) =>
       React.Client_component({
-        import_module: __MODULE__,
+        import_module: __FILE__,
         import_name: "",
         props: [
           [%ocaml.error
@@ -70,7 +70,7 @@
     let make =
         (~key as _: option(string)=?, ~underscore: _, ~alpha_types: 'a, ()) =>
       React.Client_component({
-        import_module: __MODULE__,
+        import_module: __FILE__,
         import_name: "",
         props: [
           (
@@ -102,7 +102,7 @@
           (),
         ) =>
       React.Client_component({
-        import_module: __MODULE__,
+        import_module: __FILE__,
         import_name: "",
         props: [
           (
@@ -128,7 +128,7 @@
           (),
         ) =>
       React.Client_component({
-        import_module: __MODULE__,
+        import_module: __FILE__,
         import_name: "",
         props: [
           ("lident", React.Json(lola_to_json(lident))),
