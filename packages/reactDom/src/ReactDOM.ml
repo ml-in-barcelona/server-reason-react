@@ -51,7 +51,7 @@ let render_to_string ~mode element =
     | Async_component _component ->
         raise
           (Invalid_argument
-             "Asyncronous components can't be rendered to static markup, since rendering is syncronous. Please use \
+             "Async components can't be rendered to static markup, since rendering is synchronous. Please use \
               `renderToStream` instead.")
     | Lower_case_element { key = _; tag; attributes; children } ->
         is_root.contents <- false;
