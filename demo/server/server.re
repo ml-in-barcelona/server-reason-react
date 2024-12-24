@@ -92,7 +92,7 @@ module Page = {
           /* TODO: payload is wrong in client components */
           <Note_editor title="Hello" body="World" />
           <Hr />
-          <Counter initial=123 />
+          <Counter initial=123 lola=Mucha />
           <Hr />
         </Stack>
       </Layout>,
