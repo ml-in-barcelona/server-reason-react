@@ -2,9 +2,6 @@ open Ppxlib
 open Ast_builder.Default
 module List = ListLabels
 
-type target = Native | Js
-
-let mode = ref Native
 let repo_url = "https://github.com/ml-in-barcelona/server-reason-react"
 let issues_url = Printf.sprintf "%s/issues" repo_url
 
@@ -451,7 +448,7 @@ let transform_fun_body_expression expr fn =
 
   inner expr
 
-let expand_make_binding binding react_element_variant_wrapping =
+let make_value_binding binding react_element_variant_wrapping =
   let loc = binding.pvb_loc in
   let ghost_loc = { binding.pvb_loc with loc_ghost = true } in
   let binding_with_unit = add_unit_at_the_last_argument binding.pvb_expr in
@@ -468,23 +465,6 @@ let expand_make_binding binding react_element_variant_wrapping =
      (and assign it to _ since it shouldn't be used) *)
   let function_body = pexp_fun ~loc:ghost_loc key_arg default_value key_pattern binding_expr in
   Ast_helper.Vb.mk ~loc name function_body
-
-let expand_make_binding_to_client binding =
-  let loc = binding.pvb_loc in
-  let ghost_loc = { binding.pvb_loc with loc_ghost = true } in
-  let binding_expr = add_unit_at_the_last_argument binding.pvb_expr in
-  (* Builds an AST node for the modified `make` function *)
-  let name = Ast_helper.Pat.mk ~loc:ghost_loc (Ppat_var { txt = "_client"; loc = ghost_loc }) in
-  let key_arg = Optional "key" in
-  (* default_value = None means there's no default *)
-  let default_value = None in
-  let key_renamed_to_underscore = ppat_var ~loc:ghost_loc { txt = "_"; loc } in
-  let core_type = [%type: string option] in
-  let key_pattern = ppat_constraint ~loc key_renamed_to_underscore core_type in
-  (* Append key argument since we want to allow users of this component to set key
-     (and assign it to _ since it shouldn't be used) *)
-  let function_body = pexp_fun ~loc:ghost_loc key_arg default_value key_pattern binding_expr in
-  [ binding; Ast_helper.Vb.mk ~loc name function_body ]
 
 let get_labelled_arguments pvb_expr =
   let rec go acc = function
@@ -662,99 +642,76 @@ let rewrite_structure_item structure_item =
             "externals aren't supported on server-reason-react. externals are used to bind to React components defined \
              in JavaScript, in the server, that doesn't make sense. If you need to render this on the server, \
              implement a placeholder or an empty element"]])
-  (* let make = ... *)
+  (* let component = ... *)
   | Pstr_value (rec_flag, value_bindings) ->
       let map_value_binding vb =
         if isReactClientComponentBinding vb then
-          expand_make_binding vb (fun expr ->
+          make_value_binding vb (fun expr ->
               let loc = expr.pexp_loc in
-              let import_module = pexp_ident ~loc { txt = Lident "__FILE__"; loc } in
+              let import_module = pexp_ident ~loc { txt = Lident "__MODULE__"; loc } in
               let labelled_arguments = get_labelled_arguments vb.pvb_expr in
               (* We transform the arguments from the value binding into React.client_props *)
               let props = props_to_model ~loc labelled_arguments in
               [%expr
                 React.Client_component
                   { import_module = [%e import_module]; import_name = ""; props = [%e props]; client = [%e expr] }])
+        else if isReactComponentBinding vb then
+          make_value_binding vb (fun expr ->
+              let loc = expr.pexp_loc in
+              [%expr React.Upper_case_component (fun () -> [%e expr])])
+        else if isReactAsyncComponentBinding vb then
+          make_value_binding vb (fun expr ->
+              let loc = expr.pexp_loc in
+              [%expr React.Async_component (fun () -> [%e expr])])
         else vb
       in
       let bindings = List.map ~f:map_value_binding value_bindings in
       pstr_value ~loc:structure_item.pstr_loc rec_flag bindings
   | _ -> structure_item
 
-let rewrite_structure_item_for_js structure_item =
-  match structure_item.pstr_desc with
-  (* external *)
-  | Pstr_primitive ({ pval_name = { txt = _fnName }; pval_attributes; pval_type = _ } as _value_description) -> (
-      match List.filter ~f:(fun attr -> hasAttr attr client_attribute) pval_attributes with
-      | [] -> structure_item
-      | _ ->
-          let loc = structure_item.pstr_loc in
-          [%stri [%%ocaml.error "server-reason-react: externals aren't supported on client components yet"]])
-  (* let make = ... *)
-  | Pstr_value (rec_flag, value_bindings) ->
-      let map_value_binding vb =
-        if isReactClientComponentBinding vb then expand_make_binding_to_client vb else [ vb ]
-      in
-      let bindings = List.flatten (List.map ~f:map_value_binding value_bindings) in
-      pstr_value ~loc:structure_item.pstr_loc rec_flag bindings
-  | Pstr_module module_binding ->
-      let _expr = module_binding.pmb_expr in
-      let _loc = structure_item.pstr_loc in
-      structure_item
-  | _ -> structure_item
-
 let rewrite_jsx =
   object (_ : Ast_traverse.map)
     inherit Ast_traverse.map as super
-
-    method! structure_item structure_item =
-      if mode.contents == Native then rewrite_structure_item (super#structure_item structure_item)
-      else rewrite_structure_item_for_js (super#structure_item structure_item)
-
-    method! signature_item signature_item =
-      if mode.contents == Native then rewrite_signature_item (super#signature_item signature_item)
-      else super#signature_item signature_item
+    method! structure_item structure_item = rewrite_structure_item (super#structure_item structure_item)
+    method! signature_item signature_item = rewrite_signature_item (super#signature_item signature_item)
 
     method! expression expr =
-      if mode.contents == Native then
-        let expr = super#expression expr in
-        try
-          match expr.pexp_desc with
-          | Pexp_apply (({ pexp_desc = Pexp_ident _; _ } as tag), args) when has_jsx_attr expr.pexp_attributes -> (
-              let children, rest_of_args = split_args args in
-              match tag.pexp_desc with
-              (* div() [@JSX] *)
-              | Pexp_ident { txt = Lident name; loc = _name_loc } ->
-                  rewrite_lowercase ~loc:expr.pexp_loc name rest_of_args children
-              (* Reason adds `createElement` as default when an uppercase is found,
-                 we change it back to make *)
-              (* Foo.createElement() [@JSX] *)
-              | Pexp_ident { txt = Ldot (modulePath, ("createElement" | "make")); loc } ->
-                  let id = { loc; txt = Ldot (modulePath, "make") } in
-                  rewrite_component ~loc:expr.pexp_loc id rest_of_args children
-              (* local_function() [@JSX] *)
-              | Pexp_ident id -> rewrite_component ~loc:expr.pexp_loc id rest_of_args children
-              | _ -> assert false)
-          (* div() [@JSX] *)
-          | Pexp_apply (tag, _props) when has_jsx_attr expr.pexp_attributes ->
-              raise_errorf ~loc:expr.pexp_loc "jsx: %s should be an identifier, not an expression"
-                (Ppxlib_ast.Pprintast.string_of_expression tag)
-          (* <> </> is represented as a list in the Parsetree with [@JSX] *)
-          | Pexp_construct ({ txt = Lident "::"; loc }, Some { pexp_desc = Pexp_tuple _; _ })
-          | Pexp_construct ({ txt = Lident "[]"; loc }, None) -> (
-              let jsx_attr, rest_attributes = List.partition ~f:is_jsx expr.pexp_attributes in
-              match (jsx_attr, rest_attributes) with
-              | [], _ -> expr
-              | _, rest_attributes ->
-                  let children = transform_items_of_list ~loc expr in
-                  let new_expr = [%expr React.fragment (React.list [%e children])] in
-                  { new_expr with pexp_attributes = rest_attributes })
-          | _ -> expr
-        with Error err -> [%expr [%e err]]
-      else super#expression expr
+      let expr = super#expression expr in
+      try
+        match expr.pexp_desc with
+        | Pexp_apply (({ pexp_desc = Pexp_ident _; _ } as tag), args) when has_jsx_attr expr.pexp_attributes -> (
+            let children, rest_of_args = split_args args in
+            match tag.pexp_desc with
+            (* div() [@JSX] *)
+            | Pexp_ident { txt = Lident name; loc = _name_loc } ->
+                rewrite_lowercase ~loc:expr.pexp_loc name rest_of_args children
+            (* Reason adds `createElement` as default when an uppercase is found,
+               we change it back to make *)
+            (* Foo.createElement() [@JSX] *)
+            | Pexp_ident { txt = Ldot (modulePath, ("createElement" | "make")); loc } ->
+                let id = { loc; txt = Ldot (modulePath, "make") } in
+                rewrite_component ~loc:expr.pexp_loc id rest_of_args children
+            (* local_function() [@JSX] *)
+            | Pexp_ident id -> rewrite_component ~loc:expr.pexp_loc id rest_of_args children
+            | _ -> assert false)
+        (* div() [@JSX] *)
+        | Pexp_apply (tag, _props) when has_jsx_attr expr.pexp_attributes ->
+            raise_errorf ~loc:expr.pexp_loc "jsx: %s should be an identifier, not an expression"
+              (Ppxlib_ast.Pprintast.string_of_expression tag)
+        (* <> </> is represented as a list in the Parsetree with [@JSX] *)
+        | Pexp_construct ({ txt = Lident "::"; loc }, Some { pexp_desc = Pexp_tuple _; _ })
+        | Pexp_construct ({ txt = Lident "[]"; loc }, None) -> (
+            let jsx_attr, rest_attributes = List.partition ~f:is_jsx expr.pexp_attributes in
+            match (jsx_attr, rest_attributes) with
+            | [], _ -> expr
+            | _, rest_attributes ->
+                let children = transform_items_of_list ~loc expr in
+                let new_expr = [%expr React.fragment (React.list [%e children])] in
+                { new_expr with pexp_attributes = rest_attributes })
+        | _ -> expr
+      with Error err -> [%expr [%e err]]
   end
 
 let () =
-  (* Driver.add_arg "-js" (Unit (fun () -> mode := Js)) ~doc:"preprocess for js build"; *)
   Ppxlib.Driver.register_transformation "server-reason-react.ppx" ~impl:rewrite_jsx#structure
     ~intf:rewrite_jsx#signature

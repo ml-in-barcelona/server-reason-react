@@ -29,11 +29,16 @@ let write_file (path : string) (content : string) : unit =
 
 let render_manifest ~path (manifest : (string * string) list) =
   let register_client_components =
-    List.map manifest ~f:(fun (name, path) ->
+    List.map manifest ~f:(fun (original_path, compiled_js_path) ->
+        let _module_name =
+          original_path |> Filename.basename (* Gets "xxx.re" from the full path *)
+          |> Filename.remove_extension (* Removes ".re" extension *)
+        in
         Printf.sprintf
-          "window.__client_manifest_map[\"%s\"] = React.lazy(() => import(\"./%s\").then(module => ({ default: \
-           module.make })))"
-          name path)
+          "window.__client_manifest_map[\"%s\"] = React.lazy(() => import(\"./%s\").then(module => {\n\
+          \  return { default: module.make_client }\n\
+           }))"
+          original_path compiled_js_path)
   in
   let content =
     Printf.sprintf

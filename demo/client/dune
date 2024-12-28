@@ -4,7 +4,7 @@
  (modules index)
  (libraries melange demo_shared_js reason-react melange.dom melange-webapi)
  (preprocess
-  (pps reason-react-ppx browser_ppx -js melange.ppx))
+  (pps browser_ppx -js reason-react-ppx melange.ppx))
  (module_systems
   (es6 js))
  (enabled_if

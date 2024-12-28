@@ -89,10 +89,24 @@ module Page = {
             ])}>
             {React.string("This is a small form")}
           </p>
-          /* TODO: payload is wrong in client components */
-          <Note_editor title="Hello" body="World" />
           <Hr />
-          <Counter initial=123 lola=Mucha />
+          <div className="text-white">
+            <Counter
+              string="Title"
+              int=1
+              float=1.1
+              bool_true=true
+              bool_false=false
+              string_array=[|"Item 1", "Item 2"|]
+              string_list=["Item 1", "Item 2"]
+              object_={
+                        `Assoc([
+                          ("name", `String("John")),
+                          ("age", `Int(30)),
+                        ])
+                      }
+            />
+          </div>
           <Hr />
         </Stack>
       </Layout>,
