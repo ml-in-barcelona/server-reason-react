@@ -3,12 +3,12 @@
   module Prop_with_many_annotation = {
     include {
               [@react.component]
-              let make = (~type_alias: a_type_alias, ~second: string) =>
-                <div> {React.string(prop.name)} </div>;
-              let _client = props =>
+              let make = (~initial: int, ~lola: lola) =>
+                <div> {React.string(lola.name)} {React.int(initial)} </div>;
+              let make_client = props =>
                 make({
-                  "second": props##second,
-                  "type_alias": a_type_alias_of_json(props##type_alias),
+                  "lola": [%of_json: lola](props##lola),
+                  "initial": [%of_json: int](props##initial),
                 });
             };
   };
