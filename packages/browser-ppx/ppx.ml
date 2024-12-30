@@ -390,10 +390,13 @@ module Preprocess = struct
       method! expression expr =
         let expr = super#expression expr in
         match expr.pexp_desc with
-        | Pexp_apply _ | Pexp_constant _ ->
+        | Pexp_let (_, [ { pvb_attributes = attrs; _ } ], body) ->
+            let loc = expr.pexp_loc in
+            if should_keep expr.pexp_attributes = `keep then if should_keep attrs = `keep then expr else body
+            else [%expr ()]
+        | Pexp_apply _ | Pexp_constant _ | Pexp_ident _ ->
             let loc = expr.pexp_loc in
             if should_keep expr.pexp_attributes = `keep then expr else [%expr ()]
-        | Pexp_let (_, [ { pvb_attributes = attrs; _ } ], body) -> if should_keep attrs = `keep then expr else body
         | Pexp_fun _ ->
             if should_keep expr.pexp_attributes = `keep then expr
             else

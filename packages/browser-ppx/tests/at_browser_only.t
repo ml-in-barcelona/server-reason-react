@@ -131,17 +131,19 @@ Ppat_tuple
 Pexp_apply
 
   $ cat > input_apply.ml << EOF
-  > foo (42 [@browser_only]) ((fun () -> ())[@browser_only]) 24
+  > foo ((pexp_ident_var) [@browser_only]) ((42) [@browser_only]) ((fun () -> ())[@browser_only]) 24
   > EOF
 
   $ ./standalone.exe -impl input_apply.ml | ocamlformat - --enable-outside-detected-project --impl
-  foo ()
+  foo () ()
     (fun _ ->
       Runtime.fail_impossible_action_in_ssr "((fun () -> ())[@browser_only ])")
     24
 
   $ ./standalone.exe -impl input_apply.ml -js | ocamlformat - --enable-outside-detected-project --impl
-  foo (42 [@browser_only]) (fun [@browser_only] () -> ()) 24
+  foo (pexp_ident_var [@browser_only]) (42 [@browser_only])
+    (fun [@browser_only] () -> ())
+    24
 
 Ppat_var
 
