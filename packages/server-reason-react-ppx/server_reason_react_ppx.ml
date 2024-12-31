@@ -75,7 +75,8 @@ let validate_prop ~loc id name =
           raise_errorf ~loc
             "jsx: prop '%s' isn't valid on a '%s' element.\n\
              Hint: Maybe you mean '%s'?\n\n\
-             If this isn't correct, please open an issue at %s." name id suggestion issues_url)
+             If this isn't correct, please open an issue at %s."
+            name id suggestion issues_url)
 
 let make_prop ~is_optional ~prop attribute_value =
   let loc = attribute_value.pexp_loc in

@@ -46,7 +46,7 @@
   ; Dev dependencies
   (ocamlformat
    (and
-    (= 0.26.2)
+    (= 0.27.0)
     :with-test)) ; We use ocamlformat on the tests
   (ocaml-lsp-server :with-dev-setup)
 

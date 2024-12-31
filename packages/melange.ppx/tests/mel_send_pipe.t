@@ -6,16 +6,17 @@ both on the type annotation, also on the function expression.
 
   $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl | tee output.ml
   let (getPropertyPriority : string -> t -> string) =
-   fun _ _ ->
-    let () =
-      Printf.printf
-        {|
+   fun _ ->
+    fun _ ->
+     let () =
+       Printf.printf
+         {|
   There is a Melange's external (for example: [@mel.get]) call from native code.
   
   Melange externals are bindings to JavaScript code, which can't run on the server and should be wrapped with browser_only ppx or only run it only on the client side. If there's any issue, try wrapping the expression with a try/catch as a workaround.
   |}
-    in
-    raise (Runtime.fail_impossible_action_in_ssr "getPropertyPriority")
+     in
+     raise (Runtime.fail_impossible_action_in_ssr "getPropertyPriority")
 
   $ echo "module Runtime = struct" >> main.ml
   $ cat $INSIDE_DUNE/packages/runtime/Runtime.ml >> main.ml
@@ -34,16 +35,19 @@ Make sure is placed correctly
         systemId:string ->
         t ->
         Dom.documentType) =
-   fun ~qualifiedName:_ ~publicId:_ ~systemId:_ _ ->
-    let () =
-      Printf.printf
-        {|
+   fun ~qualifiedName:_ ->
+    fun ~publicId:_ ->
+     fun ~systemId:_ ->
+      fun _ ->
+       let () =
+         Printf.printf
+           {|
   There is a Melange's external (for example: [@mel.get]) call from native code.
   
   Melange externals are bindings to JavaScript code, which can't run on the server and should be wrapped with browser_only ppx or only run it only on the client side. If there's any issue, try wrapping the expression with a try/catch as a workaround.
   |}
-    in
-    raise (Runtime.fail_impossible_action_in_ssr "createDocumentType")
+       in
+       raise (Runtime.fail_impossible_action_in_ssr "createDocumentType")
 
   $ echo "type t" > main.ml
   $ echo "module Dom = struct type documentType end" >> main.ml
@@ -79,16 +83,18 @@ Labelled arguments
   type t
   
   let (scale : x:float -> y:float -> t -> unit) =
-   fun ~x:_ ~y:_ _ ->
-    let () =
-      Printf.printf
-        {|
+   fun ~x:_ ->
+    fun ~y:_ ->
+     fun _ ->
+      let () =
+        Printf.printf
+          {|
   There is a Melange's external (for example: [@mel.get]) call from native code.
   
   Melange externals are bindings to JavaScript code, which can't run on the server and should be wrapped with browser_only ppx or only run it only on the client side. If there's any issue, try wrapping the expression with a try/catch as a workaround.
   |}
-    in
-    raise (Runtime.fail_impossible_action_in_ssr "scale")
+      in
+      raise (Runtime.fail_impossible_action_in_ssr "scale")
 
   $ echo "module Runtime = struct" > main.ml
   $ cat $INSIDE_DUNE/packages/runtime/Runtime.ml >> main.ml
@@ -105,16 +111,17 @@ Nonlabelled arguments as functions
   type t
   
   let (forEach : (string -> int -> unit) -> t -> unit) =
-   fun _ _ ->
-    let () =
-      Printf.printf
-        {|
+   fun _ ->
+    fun _ ->
+     let () =
+       Printf.printf
+         {|
   There is a Melange's external (for example: [@mel.get]) call from native code.
   
   Melange externals are bindings to JavaScript code, which can't run on the server and should be wrapped with browser_only ppx or only run it only on the client side. If there's any issue, try wrapping the expression with a try/catch as a workaround.
   |}
-    in
-    raise (Runtime.fail_impossible_action_in_ssr "forEach")
+     in
+     raise (Runtime.fail_impossible_action_in_ssr "forEach")
 
   $ echo "module Runtime = struct" > main.ml
   $ cat $INSIDE_DUNE/packages/runtime/Runtime.ml >> main.ml
@@ -128,16 +135,17 @@ Nonlabelled arguments as functions
 
   $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl | tee output.ml
   let (postMessage : 'a -> string -> unit) =
-   fun _ _ ->
-    let () =
-      Printf.printf
-        {|
+   fun _ ->
+    fun _ ->
+     let () =
+       Printf.printf
+         {|
   There is a Melange's external (for example: [@mel.get]) call from native code.
   
   Melange externals are bindings to JavaScript code, which can't run on the server and should be wrapped with browser_only ppx or only run it only on the client side. If there's any issue, try wrapping the expression with a try/catch as a workaround.
   |}
-    in
-    raise (Runtime.fail_impossible_action_in_ssr "postMessage")
+     in
+     raise (Runtime.fail_impossible_action_in_ssr "postMessage")
 
   $ echo "module Runtime = struct" > main.ml
   $ cat $INSIDE_DUNE/packages/runtime/Runtime.ml >> main.ml
@@ -154,16 +162,18 @@ Send pipe with 'a
   type t_window
   
   let (postMessage : 'a -> t_window -> string -> unit) =
-   fun _ _ _ ->
-    let () =
-      Printf.printf
-        {|
+   fun _ ->
+    fun _ ->
+     fun _ ->
+      let () =
+        Printf.printf
+          {|
   There is a Melange's external (for example: [@mel.get]) call from native code.
   
   Melange externals are bindings to JavaScript code, which can't run on the server and should be wrapped with browser_only ppx or only run it only on the client side. If there's any issue, try wrapping the expression with a try/catch as a workaround.
   |}
-    in
-    raise (Runtime.fail_impossible_action_in_ssr "postMessage")
+      in
+      raise (Runtime.fail_impossible_action_in_ssr "postMessage")
 
   $ echo "module Runtime = struct" > main.ml
   $ cat $INSIDE_DUNE/packages/runtime/Runtime.ml >> main.ml

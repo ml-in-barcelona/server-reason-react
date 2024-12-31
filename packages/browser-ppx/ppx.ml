@@ -141,15 +141,15 @@ module Browser_only = struct
                                      browser_only
                                        "This expression is marked to only run on the browser where JavaScript can run. \
                                         You can only use it inside a let%browser_only function."])) =
-            ([%e expression] [@alert "-browser_only"])]
+            [%e expression] [@alert "-browser_only"]]
     | None ->
         [%stri
           let[@warning "-27-32"] ([%p pattern]
-              [@alert
-                browser_only
-                  "This expression is marked to only run on the browser where JavaScript can run. You can only use it \
-                   inside a let%browser_only function."]) =
-            ([%e expression] [@alert "-browser_only"])]
+                                  [@alert
+                                    browser_only
+                                      "This expression is marked to only run on the browser where JavaScript can run. \
+                                       You can only use it inside a let%browser_only function."]) =
+            [%e expression] [@alert "-browser_only"]]
 
   let extractor_vb =
     let open Ast_pattern in
@@ -235,8 +235,10 @@ module Browser_only = struct
           Some new_effect_fun
       | _ -> None
     in
-    match !mode with (* When it's -js, keep item as it is *)
-    | Js -> None | Native -> add_browser_only_extension expr
+    match !mode with
+    (* When it's -js, keep item as it is *)
+    | Js -> None
+    | Native -> add_browser_only_extension expr
 
   let use_effects =
     [

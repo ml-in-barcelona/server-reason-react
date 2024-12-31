@@ -1,8 +1,7 @@
 (** A {b mutable} Hash set which allows customized [hash] behavior.
 
-    All data are parameterized by not its only type but also a unique identity in
-    the time of initialization, so that two {i HashSets of ints} initialized with different
-    {i hash} functions will have different type.
+    All data are parameterized by not its only type but also a unique identity in the time of initialization, so that
+    two {i HashSets of ints} initialized with different {i hash} functions will have different type.
 
     For example:
     {[
@@ -21,36 +20,30 @@
       let s1 = make ~id:(module I1) ~hintSize:40
     ]}
 
-    The invariant must be held: for two elements who are {i equal},
-    their hashed value should be the same
+    The invariant must be held: for two elements who are {i equal}, their hashed value should be the same
 
-    Here the compiler would infer [s0] and [s1] having different type so that
-    it would not mix.
+    Here the compiler would infer [s0] and [s1] having different type so that it would not mix.
 
     {[
-      val s0 :  (int, I0.identity) t
-      val s1 :  (int, I1.identity) t
+      val s0 : (int, I0.identity) t
+      val s1 : (int, I1.identity) t
     ]}
 
     We can add elements to the collection:
 
     {[
-
       let () =
         add s1 0;
         add s1 1
     ]}
 
-    Since this is an mutable data strucure, [s1] will contain two pairs.
-*)
+    Since this is an mutable data strucure, [s1] will contain two pairs. *)
 
 module Int = Belt_HashSetInt
-(** Specalized when key type is [int], more efficient
-    than the generic type *)
+(** Specalized when key type is [int], more efficient than the generic type *)
 
 module String = Belt_HashSetString
-(** Specalized when key type is [string], more efficient
-    than the generic type *)
+(** Specalized when key type is [string], more efficient than the generic type *)
 
 (* TODO: add a poly module
    module Poly = Belt_HashSetPoly
