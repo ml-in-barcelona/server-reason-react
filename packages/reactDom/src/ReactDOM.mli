@@ -3,18 +3,17 @@
 val renderToString : React.element -> string
 (** renderToString renders a React tree to as an HTML string.
 
-Similar to
-{{:https://react.dev/reference/react-dom/server/renderToString}} *)
+    Similar to {:https://react.dev/reference/react-dom/server/renderToString} *)
 
 val renderToStaticMarkup : React.element -> string
 (** renderToStaticMarkup renders a non-interactive React tree to an HTML string.
 
-Similar to {{:https://react.dev/reference/react-dom/server/renderToStaticMarkup}} *)
+    Similar to {:https://react.dev/reference/react-dom/server/renderToStaticMarkup} *)
 
 val renderToStream : ?pipe:(string -> unit Lwt.t) -> React.element -> (string Lwt_stream.t * (unit -> unit)) Lwt.t
 (** renderToStream renders a React tree into a Lwt_stream.t.
 
-Similar to {{:https://react.dev/reference/react-dom/server/renderToPipeableStream}} *)
+    Similar to {:https://react.dev/reference/react-dom/server/renderToPipeableStream} *)
 
 val attribute_to_html : React.JSX.prop -> Html.attribute
 

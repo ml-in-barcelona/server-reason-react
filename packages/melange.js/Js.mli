@@ -521,8 +521,7 @@ module type Dictionary = sig
   (** Key type *)
 
   val get : 'a t -> key -> 'a option
-  (** [get dict key] returns [None] if the [key] is not found in the
-    dictionary, [Some value] otherwise *)
+  (** [get dict key] returns [None] if the [key] is not found in the dictionary, [Some value] otherwise *)
 
   val unsafeGet : 'a t -> key -> 'a
 
@@ -545,16 +544,13 @@ module type Dictionary = sig
   (** [values dict] returns the values in [dict] *)
 
   val fromList : (key * 'a) list -> 'a t
-  (** [fromList entries] creates a new dictionary containing each
-[(key, value)] pair in [entries] *)
+  (** [fromList entries] creates a new dictionary containing each [(key, value)] pair in [entries] *)
 
   val fromArray : (key * 'a) array -> 'a t
-  (** [fromArray entries] creates a new dictionary containing each
-[(key, value)] pair in [entries] *)
+  (** [fromArray entries] creates a new dictionary containing each [(key, value)] pair in [entries] *)
 
   val map : f:('a -> 'b) -> 'a t -> 'b t
-  (** [map f dict] maps [dict] to a new dictionary with the same keys,
-using [f] to map each value *)
+  (** [map f dict] maps [dict] to a new dictionary with the same keys, using [f] to map each value *)
 end
 
 module Dict : Dictionary

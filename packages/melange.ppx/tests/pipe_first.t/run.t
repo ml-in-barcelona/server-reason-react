@@ -1,9 +1,9 @@
   $ ../standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl
   let f1 : int -> int = fun x -> x + 1
-  let f2 : int -> int -> int = fun a b -> a + b
-  let f3 : int -> b:int -> c:int -> int = fun a ~b ~c -> a + b + c
-  let f4 : int -> int -> int = fun a b -> a + b
-  let f5 : int -> int -> int -> int = fun a b c -> a + b + c
+  let f2 : int -> int -> int = fun a -> fun b -> a + b
+  let f3 : int -> b:int -> c:int -> int = fun a -> fun ~b -> fun ~c -> a + b + c
+  let f4 : int -> int -> int = fun a -> fun b -> a + b
+  let f5 : int -> int -> int -> int = fun a -> fun b -> fun c -> a + b + c
   
   let () =
     let x : int option = Some 1 in
@@ -21,7 +21,9 @@
     match x with 2, 2, 2 -> assert true | _ -> assert false
   
   let () =
-    let f : int -> a:int -> b:int -> int = fun x ~a ~b -> x + a + b in
+    let f : int -> a:int -> b:int -> int =
+     fun x -> fun ~a -> fun ~b -> x + a + b
+    in
     let x : int * int * int = (f ~a:2 ~b:3, f ~a:2 ~b:3, f ~a:2 ~b:3) 1 in
     match x with 6, 6, 6 -> assert true | _ -> assert false
   
