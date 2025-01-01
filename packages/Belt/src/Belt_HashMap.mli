@@ -1,8 +1,7 @@
 (** A {b mutable} Hash map which allows customized [hash] behavior.
 
-    All data are parameterized by not its only type but also a unique identity in
-    the time of initialization, so that two {i HashMaps of ints} initialized with different
-    [hash] functions will have different type.
+    All data are parameterized by not its only type but also a unique identity in the time of initialization, so that
+    two {i HashMaps of ints} initialized with different [hash] functions will have different type.
 
     For example:
     {[
@@ -21,36 +20,30 @@
       let s1 : (_, string,_) t = make ~hintSize:40 ~id:(module I1)
     ]}
 
-    The invariant must be held: for two elements who are {i equal},
-    their hashed value should be the same
+    The invariant must be held: for two elements who are {i equal}, their hashed value should be the same
 
-    Here the compiler would infer [s0] and [s1] having different type so that
-    it would not mix.
+    Here the compiler would infer [s0] and [s1] having different type so that it would not mix.
 
     {[
-      val s0 :  (int, I0.identity) t
-      val s1 :  (int, I1.identity) t
+      val s0 : (int, I0.identity) t
+      val s1 : (int, I1.identity) t
     ]}
 
     We can add elements to the collection:
 
     {[
-
       let () =
         add s1 0 "3";
         add s1 1 "3"
     ]}
 
-    Since this is an mutable data strucure, [s1] will contain two pairs.
-*)
+    Since this is an mutable data strucure, [s1] will contain two pairs. *)
 
 module Int = Belt_HashMapInt
-(** Specalized when key type is [int], more efficient
-    than the generic type *)
+(** Specalized when key type is [int], more efficient than the generic type *)
 
 module String = Belt_HashMapString
-(** Specalized when key type is [string], more efficient
-    than the generic type *)
+(** Specalized when key type is [string], more efficient than the generic type *)
 
 type ('key, 'value, 'id) t
 (** The type of hash tables from type ['key] to type ['value]. *)
@@ -66,10 +59,7 @@ val clear : ('key, 'value, 'id) t -> unit
 val isEmpty : _ t -> bool
 
 val set : ('key, 'value, 'id) t -> 'key -> 'value -> unit
-(** [set tbl k v] if [k] does not exist,
-     add the binding [k,v], otherwise, update the old value with the new
-     [v]
-*)
+(** [set tbl k v] if [k] does not exist, add the binding [k,v], otherwise, update the old value with the new [v] *)
 
 val copy : ('key, 'value, 'id) t -> ('key, 'value, 'id) t
 val get : ('key, 'value, 'id) t -> 'key -> 'value option
@@ -81,32 +71,24 @@ val remove : ('key, 'value, 'id) t -> 'key -> unit
 val forEachU : ('key, 'value, 'id) t -> (('key -> 'value -> unit)[@bs]) -> unit
 
 val forEach : ('key, 'value, 'id) t -> ('key -> 'value -> unit) -> unit
-(** [forEach tbl f] applies [f] to all bindings in table [tbl].
-    [f] receives the key as first argument, and the associated value
-    as second argument. Each binding is presented exactly once to [f].
-*)
+(** [forEach tbl f] applies [f] to all bindings in table [tbl]. [f] receives the key as first argument, and the
+    associated value as second argument. Each binding is presented exactly once to [f]. *)
 
 val reduceU : ('key, 'value, 'id) t -> 'c -> (('c -> 'key -> 'value -> 'c)[@bs]) -> 'c
 
 val reduce : ('key, 'value, 'id) t -> 'c -> ('c -> 'key -> 'value -> 'c) -> 'c
-(** [reduce  tbl init f] computes
-    [(f kN dN ... (f k1 d1 init)...)],
-    where [k1 ... kN] are the keys of all bindings in [tbl],
-    and [d1 ... dN] are the associated values.
-    Each binding is presented exactly once to [f].
+(** [reduce  tbl init f] computes [(f kN dN ... (f k1 d1 init)...)], where [k1 ... kN] are the keys of all bindings in
+    [tbl], and [d1 ... dN] are the associated values. Each binding is presented exactly once to [f].
 
-    The order in which the bindings are passed to [f] is unspecified.
-    However, if the table contains several bindings for the same key,
-    they are passed to [f] in reverse order of introduction, that is,
-    the most recent binding is passed first.
-*)
+    The order in which the bindings are passed to [f] is unspecified. However, if the table contains several bindings
+    for the same key, they are passed to [f] in reverse order of introduction, that is, the most recent binding is
+    passed first. *)
 
 val keepMapInPlaceU : ('key, 'value, 'id) t -> (('key -> 'value -> 'value option)[@bs]) -> unit
 val keepMapInPlace : ('key, 'value, 'id) t -> ('key -> 'value -> 'value option) -> unit
 
 val size : _ t -> int
-(** [size tbl] returns the number of bindings in [tbl].
-    It takes constant time. *)
+(** [size tbl] returns the number of bindings in [tbl]. It takes constant time. *)
 
 val toArray : ('key, 'value, 'id) t -> ('key * 'value) array
 val keysToArray : ('key, _, _) t -> 'key array

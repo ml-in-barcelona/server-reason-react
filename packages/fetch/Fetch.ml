@@ -32,7 +32,8 @@ end
 
 type requestMethod = Get | Head | Post | Put | Delete | Connect | Options | Trace | Patch | Other of string
 
-let encodeRequestMethod = (* internal *)
+let encodeRequestMethod =
+  (* internal *)
   function
   | Get -> "GET"
   | Head -> "HEAD"
@@ -45,7 +46,8 @@ let encodeRequestMethod = (* internal *)
   | Patch -> "PATCH"
   | Other method_ -> method_
 
-let decodeRequestMethod = (* internal *)
+let decodeRequestMethod =
+  (* internal *)
   function
   | "GET" -> Get
   | "HEAD" -> Head
@@ -69,7 +71,8 @@ type referrerPolicy =
   | StrictOriginWhenCrossOrigin
   | UnsafeUrl
 
-let encodeReferrerPolicy = (* internal *)
+let encodeReferrerPolicy =
+  (* internal *)
   function
   | NoReferrer -> "no-referrer"
   | None -> ""
@@ -81,7 +84,8 @@ let encodeReferrerPolicy = (* internal *)
   | StrictOriginWhenCrossOrigin -> "strict-origin-when-cross-origin"
   | UnsafeUrl -> "unsafe-url"
 
-let decodeReferrerPolicy = (* internal *)
+let decodeReferrerPolicy =
+  (* internal *)
   function
   | "no-referrer" -> NoReferrer
   | "" -> None
@@ -104,7 +108,8 @@ type requestType =
   | Track
   | Video
 
-let decodeRequestType = (* internal *)
+let decodeRequestType =
+  (* internal *)
   function
   | "audio" -> Audio
   | "" -> None
@@ -133,7 +138,8 @@ type requestDestination =
   | Worker
   | Xslt
 
-let decodeRequestDestination = (* internal *)
+let decodeRequestDestination =
+  (* internal *)
   function
   | "document" -> Document
   | "" -> None
@@ -154,14 +160,16 @@ let decodeRequestDestination = (* internal *)
 
 type requestMode = Navigate | SameOrigin | NoCORS | CORS
 
-let encodeRequestMode = (* internal *)
+let encodeRequestMode =
+  (* internal *)
   function
   | Navigate -> "navigate"
   | SameOrigin -> "same-origin"
   | NoCORS -> "no-cors"
   | CORS -> "cors"
 
-let decodeRequestMode = (* internal *)
+let decodeRequestMode =
+  (* internal *)
   function
   | "navigate" -> Navigate
   | "same-origin" -> SameOrigin
@@ -171,13 +179,15 @@ let decodeRequestMode = (* internal *)
 
 type requestCredentials = Omit | SameOrigin | Include
 
-let encodeRequestCredentials = (* internal *)
+let encodeRequestCredentials =
+  (* internal *)
   function
   | Omit -> "omit"
   | SameOrigin -> "same-origin"
   | Include -> "include"
 
-let decodeRequestCredentials = (* internal *)
+let decodeRequestCredentials =
+  (* internal *)
   function
   | "omit" -> Omit
   | "same-origin" -> SameOrigin
@@ -186,7 +196,8 @@ let decodeRequestCredentials = (* internal *)
 
 type requestCache = Default | NoStore | Reload | NoCache | ForceCache | OnlyIfCached
 
-let encodeRequestCache = (* internal *)
+let encodeRequestCache =
+  (* internal *)
   function
   | Default -> "default"
   | NoStore -> "no-store"
@@ -195,7 +206,8 @@ let encodeRequestCache = (* internal *)
   | ForceCache -> "force-cache"
   | OnlyIfCached -> "only-if-cached"
 
-let decodeRequestCache = (* internal *)
+let decodeRequestCache =
+  (* internal *)
   function
   | "default" -> Default
   | "no-store" -> NoStore
@@ -207,10 +219,15 @@ let decodeRequestCache = (* internal *)
 
 type requestRedirect = Follow | Error | Manual
 
-let encodeRequestRedirect = (* internal *)
-  function Follow -> "follow" | Error -> "error" | Manual -> "manual"
+let encodeRequestRedirect =
+  (* internal *)
+  function
+  | Follow -> "follow"
+  | Error -> "error"
+  | Manual -> "manual"
 
-let decodeRequestRedirect = (* internal *)
+let decodeRequestRedirect =
+  (* internal *)
   function
   | "follow" -> Follow
   | "error" -> Error
@@ -287,8 +304,10 @@ end
 module RequestInit = struct
   type t = requestInit
 
-  let map f = function (* internal *)
-    | Some v -> Some (f v) | None -> None
+  let map f = function
+    (* internal *)
+    | Some v -> Some (f v)
+    | None -> None
 
   external make :
     ?_method:string ->

@@ -2,7 +2,8 @@ val push : string -> unit
 (** update the url with the string path. Example: `push("/book/1")`, `push("/books#title")` *)
 
 val replace : string -> unit
-(** update the url with the string path. modifies the current history entry instead of creating a new one. Example: `replace("/book/1")`, `replace("/books#title")` *)
+(** update the url with the string path. modifies the current history entry instead of creating a new one. Example:
+    `replace("/book/1")`, `replace("/books#title")` *)
 
 type watcherID
 
@@ -16,25 +17,24 @@ type url = {
 }
 
 val watchUrl : (url -> unit) -> watcherID
-(** start watching for URL changes. Returns a subscription token. Upon url change, calls the callback and passes it the url record *)
+(** start watching for URL changes. Returns a subscription token. Upon url change, calls the callback and passes it the
+    url record *)
 
 (** stop watching for URL changes *)
 val unwatchUrl : watcherID -> unit
 (** this is marked as "dangerous" because you technically shouldn't be accessing the URL outside of watchUrl's callback
-      you'd read a potentially stale url, instead of the fresh one inside watchUrl.
+    you'd read a potentially stale url, instead of the fresh one inside watchUrl.
 
-      But this helper is sometimes needed, if you'd like to initialize a page whose display/state depends on the URL,
-      instead of reading from it in watchUrl's callback, which you'd probably have put inside didMount (aka too late,
-      the page's already rendered).
+    But this helper is sometimes needed, if you'd like to initialize a page whose display/state depends on the URL,
+    instead of reading from it in watchUrl's callback, which you'd probably have put inside didMount (aka too late, the
+    page's already rendered).
 
-      So, the correct (and idiomatic) usage of this helper is to only use it in a component that's also subscribed to
-      watchUrl. Please see https://github.com/reasonml-community/reason-react-example/blob/master/src/todomvc/TodoItem.re
-      for an example.
-      *)
+    So, the correct (and idiomatic) usage of this helper is to only use it in a component that's also subscribed to
+    watchUrl. Please see https://github.com/reasonml-community/reason-react-example/blob/master/src/todomvc/TodoItem.re
+    for an example. *)
 
 val dangerouslyGetInitialUrl : ?serverUrlString:string -> unit -> url
 
 val useUrl : ?serverUrl:url -> unit -> url
-(** hook for watching url changes.
- * serverUrl is used for ssr. it allows you to specify the url without relying on browser apis existing/working as expected
- *)
+(** hook for watching url changes. * serverUrl is used for ssr. it allows you to specify the url without relying on
+    browser apis existing/working as expected *)

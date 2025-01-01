@@ -21,7 +21,7 @@ depends: [
   "yojson" {>= "2.2.0"}
   "integers" {>= "0.7.0"}
   "odoc" {with-doc}
-  "ocamlformat" {= "0.26.2" & with-test}
+  "ocamlformat" {= "0.27.0" & with-test}
   "ocaml-lsp-server" {with-dev-setup}
   "dream" {with-dev-setup}
   "melange-webapi" {with-dev-setup}
