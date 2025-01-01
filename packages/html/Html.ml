@@ -97,7 +97,8 @@ let to_string element =
         Buffer.add_string out tag;
         List.iter (write_attribute out) attributes;
         Buffer.add_char out '>';
-        List.iter write children;
+        (* QUESTION: Do we need to add this separator to all children? *)
+        write (List ("<!-- -->", children));
         Buffer.add_string out "</";
         Buffer.add_string out tag;
         Buffer.add_char out '>'
