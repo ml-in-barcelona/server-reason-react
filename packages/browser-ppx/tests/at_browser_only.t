@@ -261,3 +261,18 @@ Pstr_class_type
   end [@@browser_only]
 
   $ ./standalone.exe -impl input_class_type.ml | ocamlformat - --enable-outside-detected-project --impl
+
+Core_type
+
+  $ cat > input_constr.ml << EOF
+  > type t = int [@browser_only]
+  > type u = { x : (bool [@browser_only]) }
+  > EOF
+
+  $ ./standalone.exe -impl input_constr.ml -js | ocamlformat - --enable-outside-detected-project --impl
+  type t = (int[@browser_only])
+  type u = { x : (bool[@browser_only]) }
+
+  $ ./standalone.exe -impl input_constr.ml | ocamlformat - --enable-outside-detected-project --impl
+  type t = unit
+  type u = { x : unit }

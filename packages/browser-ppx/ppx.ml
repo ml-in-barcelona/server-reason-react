@@ -420,6 +420,11 @@ module Preprocess = struct
         let pat = super#pattern pat in
         let loc = pat.ppat_loc in
         if should_keep pat.ppat_attributes = `keep then pat else [%pat? _]
+
+      method! core_type ct =
+        let ct = super#core_type ct in
+        let loc = ct.ptyp_loc in
+        if should_keep ct.ptyp_attributes = `keep then ct else [%type: unit]
     end
 end
 
