@@ -262,6 +262,18 @@ Pstr_class_type
 
   $ ./standalone.exe -impl input_class_type.ml | ocamlformat - --enable-outside-detected-project --impl
 
+Ppat_constraint
+
+  $ cat > input_constr.ml << EOF
+  > let foo ~on:((on [@browser_only]): unit -> string) = 0
+  > EOF
+
+  $ ./standalone.exe -impl input_constr.ml -js | ocamlformat - --enable-outside-detected-project --impl
+  let foo ~on:((on [@browser_only]) : unit -> string) = 0
+
+  $ ./standalone.exe -impl input_constr.ml | ocamlformat - --enable-outside-detected-project --impl
+  let foo ~on:_ = 0
+
 Core_type
 
   $ cat > input_constr.ml << EOF
@@ -276,3 +288,4 @@ Core_type
   $ ./standalone.exe -impl input_constr.ml | ocamlformat - --enable-outside-detected-project --impl
   type t = unit
   type u = { x : unit }
+

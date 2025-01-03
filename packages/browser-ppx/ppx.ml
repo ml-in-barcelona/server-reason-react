@@ -417,9 +417,14 @@ module Preprocess = struct
         | _ -> expr
 
       method! pattern pat =
-        let pat = super#pattern pat in
-        let loc = pat.ppat_loc in
-        if should_keep pat.ppat_attributes = `keep then pat else [%pat? _]
+        match pat.ppat_desc with
+        | Ppat_constraint (inner_pat, _) ->
+            let loc = pat.ppat_loc in
+            if should_keep inner_pat.ppat_attributes = `keep then super#pattern pat else [%pat? _]
+        | _ ->
+            let pat = super#pattern pat in
+            let loc = pat.ppat_loc in
+            if should_keep pat.ppat_attributes = `keep then pat else [%pat? _]
 
       method! core_type ct =
         let ct = super#core_type ct in
