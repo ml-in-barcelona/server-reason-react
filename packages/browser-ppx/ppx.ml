@@ -396,30 +396,20 @@ module Preprocess = struct
             let loc = expr.pexp_loc in
             if should_keep expr.pexp_attributes = `keep then if should_keep attrs = `keep then expr else body
             else [%expr ()]
-        | Pexp_apply _ | Pexp_constant _ | Pexp_ident _ ->
+        | Pexp_apply _ | Pexp_constant _ | Pexp_ident _ | Pexp_fun _->
             let loc = expr.pexp_loc in
             if should_keep expr.pexp_attributes = `keep then expr else [%expr ()]
-        | Pexp_fun _ ->
-            if should_keep expr.pexp_attributes = `keep then expr
-            else
-              let rec inner expr' =
-                match expr'.pexp_desc with
-                | Pexp_fun (label, def, _, expression) ->
-                    Builder.pexp_fun ~loc:expr'.pexp_loc label def (Builder.ppat_any ~loc:expr'.pexp_loc)
-                      (inner expression)
-                | _ ->
-                    let loc = expr'.pexp_loc in
-                    [%expr
-                      Runtime.fail_impossible_action_in_ssr
-                        [%e Builder.estring ~loc (Astlib.Pprintast.string_of_expression expr)]]
-              in
-              inner expr
         | _ -> expr
 
       method! pattern pat =
-        let pat = super#pattern pat in
-        let loc = pat.ppat_loc in
-        if should_keep pat.ppat_attributes = `keep then pat else [%pat? _]
+        match pat.ppat_desc with
+        | Ppat_constraint (inner_pat, _) ->
+            let loc = pat.ppat_loc in
+            if should_keep inner_pat.ppat_attributes = `keep then super#pattern pat else [%pat? _]
+        | _ ->
+            let pat = super#pattern pat in
+            let loc = pat.ppat_loc in
+            if should_keep pat.ppat_attributes = `keep then pat else [%pat? _]
 
       method! core_type ct =
         let ct = super#core_type ct in

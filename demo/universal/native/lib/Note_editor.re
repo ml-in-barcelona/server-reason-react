@@ -4,16 +4,19 @@ let make = (~title: string, ~body: string) => {
   let (title, setTitle) = RR.useStateValue(title);
   let (body, setBody) = RR.useStateValue(body);
 
-  let%browser_only updateTitle = event => {
+  [@browser_only]
+  let updateTitle = event => {
     let value = React.Event.Form.target(event)##value;
     setTitle(value);
   };
 
-  let%browser_only updateBody = event => {
+  [@browser_only]
+  let updateBody = event => {
     let value = React.Event.Form.target(event)##value;
     setBody(value);
   };
 
+  [@browser_only]
   let submit = _ => {
     Js.log("SUBMIT!");
   };

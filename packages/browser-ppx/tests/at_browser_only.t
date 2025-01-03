@@ -135,10 +135,7 @@ Pexp_apply
   > EOF
 
   $ ./standalone.exe -impl input_apply.ml | ocamlformat - --enable-outside-detected-project --impl
-  foo () ()
-    (fun _ ->
-      Runtime.fail_impossible_action_in_ssr "((fun () -> ())[@browser_only ])")
-    24
+  foo () () () 24
 
   $ ./standalone.exe -impl input_apply.ml -js | ocamlformat - --enable-outside-detected-project --impl
   foo (pexp_ident_var [@browser_only]) (42 [@browser_only])
@@ -262,17 +259,71 @@ Pstr_class_type
 
   $ ./standalone.exe -impl input_class_type.ml | ocamlformat - --enable-outside-detected-project --impl
 
+Ppat_constraint
+
+  $ cat > input_constr.ml << EOF
+  > let foo ~on:((on [@browser_only]): unit -> string) ?opt:((opt [@browser_only])=42) = 0
+  > EOF
+
+  $ ./standalone.exe -impl input_constr.ml -js | ocamlformat - --enable-outside-detected-project --impl
+  let foo ~on:((on [@browser_only]) : unit -> string)
+      ?opt:((opt [@browser_only]) = 42) =
+    0
+ 
+  $ ./standalone.exe -impl input_constr.ml | ocamlformat - --enable-outside-detected-project --impl
+  let foo ~on:_ ?opt:(_ = 42) = 0
+
 Core_type
 
   $ cat > input_constr.ml << EOF
   > type t = int [@browser_only]
   > type u = { x : (bool [@browser_only]) }
+  > type toggleButtonFields =
+  >   {
+  >     isOpen: bool ;
+  >     domRef: RRef.domRef option ;
+  >     onClick: ((React.Event.Mouse.t -> unit)[@browser_only]);
+  >     onKeyDown: (((React.Event.Keyboard.t -> unit) option)[@browser_only]) 
+  >   }
+  > 
+  > let foo = {
+  >   isOpen = true;
+  >   domRef = None;
+  >   onClick = (fun _ -> ())[@browser_only];
+  >   onKeyDown = None;
+  > }
   > EOF
 
   $ ./standalone.exe -impl input_constr.ml -js | ocamlformat - --enable-outside-detected-project --impl
   type t = (int[@browser_only])
   type u = { x : (bool[@browser_only]) }
+  
+  type toggleButtonFields = {
+    isOpen : bool;
+    domRef : RRef.domRef option;
+    onClick : (React.Event.Mouse.t -> unit[@browser_only]);
+    onKeyDown : ((React.Event.Keyboard.t -> unit) option[@browser_only]);
+  }
+  
+  let foo =
+    {
+      isOpen = true;
+      domRef = None;
+      onClick = (fun [@browser_only] _ -> ());
+      onKeyDown = None;
+    }
+ 
 
   $ ./standalone.exe -impl input_constr.ml | ocamlformat - --enable-outside-detected-project --impl
   type t = unit
   type u = { x : unit }
+  
+  type toggleButtonFields = {
+    isOpen : bool;
+    domRef : RRef.domRef option;
+    onClick : unit;
+    onKeyDown : unit;
+  }
+  
+  let foo = { isOpen = true; domRef = None; onClick = (); onKeyDown = None }
+

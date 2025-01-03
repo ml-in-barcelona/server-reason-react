@@ -171,12 +171,7 @@
                                      React.JSX.Event(
                                        "onClick",
                                        React.JSX.Mouse(
-                                         event => {
-                                           React.Event.Mouse.preventDefault(
-                                             event,
-                                           );
-                                           ReactRouter.push(e.path);
-                                         }: React.Event.Mouse.t => unit,
+                                         _ => (): React.Event.Mouse.t => unit,
                                        ),
                                      ),
                                    ),
@@ -319,9 +314,10 @@
         [
           switch ((onClick: option(React.Event.Mouse.t => unit))) {
           | None => None
-          | Some(v) =>
+          | Some(_) =>
             Some(
-              [@implicit_arity] React.JSX.Event("onClick", React.JSX.Mouse(v)),
+              [@implicit_arity]
+              React.JSX.Event("onClick", React.JSX.Mouse(_ => ())),
             )
           },
         ],
