@@ -9,3 +9,6 @@ module Prop_with_many_annotation = {
     <div> {React.string(lola.name)} {React.int(initial)} </div>;
   };
 };
+
+/* To force make to be used */
+let _ = Prop_with_many_annotation.make(~initial=1, ~lola={name: "lola"}, ());
