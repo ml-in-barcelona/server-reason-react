@@ -823,6 +823,7 @@ let rewrite_jsx =
     method! expression expr =
       let expr = super#expression expr in
       match mode.contents with
+      | Js -> expr
       | Native -> (
           try
             match expr.pexp_desc with
@@ -857,7 +858,6 @@ let rewrite_jsx =
                     { new_expr with pexp_attributes = rest_attributes })
             | _ -> expr
           with Error err -> [%expr [%e err]])
-      | Js -> expr
   end
 
 let () =
