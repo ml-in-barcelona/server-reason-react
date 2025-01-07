@@ -1,5 +1,5 @@
 module Prop_with_many_annotation = {
-  [@client]
+  [@react.client.component]
   let make =
       (
         ~prop: int,
@@ -14,17 +14,17 @@ module Prop_with_many_annotation = {
 };
 
 module Prop_without_annotation = {
-  [@client]
+  [@react.client.component]
   let make = (~prop_without_annotation) => React.null;
 };
 
 module Prop_with_unsupported_annotation = {
-  [@client]
+  [@react.client.component]
   let make = (~underscore: _, ~alpha_types: 'a) => React.null;
 };
 
 module Prop_with_annotation_that_need_to_be_type_alias = {
-  [@client]
+  [@react.client.component]
   let make =
       (
         ~polyvariants: [
@@ -35,7 +35,7 @@ module Prop_with_annotation_that_need_to_be_type_alias = {
 };
 
 module Prop_with_unknown_annotation = {
-  [@client]
+  [@react.client.component]
   let make =
       (
         ~lident: lola,

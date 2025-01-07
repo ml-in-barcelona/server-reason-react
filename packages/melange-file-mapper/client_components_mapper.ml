@@ -58,7 +58,7 @@ let () =
     Sexp.of_string
       "((demo/universal/native/lib/Counter.re (app/demo/universal/js/Counter.js))\n\
        (demo/universal/native/lib/Note_editor.re (app/demo/universal/js/Note_editor.js))\n\
-       (demo/universal/native/lib/Promise_renderer.re (app/demo/universal/js/Promise_renderer.js))\n\
+       (demo/universal/native/lib/Debug_props.re (app/demo/universal/js/Debug_props.js))\n\
        )"
   in
   match decode sexp with

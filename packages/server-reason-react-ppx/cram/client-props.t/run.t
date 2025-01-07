@@ -18,37 +18,14 @@
         import_module: __FILE__,
         import_name: "",
         props: [
-          ("prop", React.Json(`Int(prop))),
-          ("lola", React.Json(`List(Stdlib.List.map(x => `Int(x), lola)))),
-          (
-            "mona",
-            React.Json(
-              `List(
-                Stdlib.Array.to_list(Stdlib.Array.map(x => `Float(x), mona)),
-              ),
-            ),
-          ),
-          ("lolo", React.Json(`String(lolo))),
-          ("lili", React.Json(`Bool(lili))),
-          ("lulu", React.Json(`Float(lulu))),
-          (
-            "tuple2",
-            React.Json(
-              {
-                let (x0, x1) = tuple2;
-                `List([`Int(x0), `Int(x1)]);
-              },
-            ),
-          ),
-          (
-            "tuple3",
-            React.Json(
-              {
-                let (x0, x1, x2) = tuple3;
-                `List([`Int(x0), `String(x1), `Float(x2)]);
-              },
-            ),
-          ),
+          ("prop", React.Json([%to_json: int](prop))),
+          ("lola", React.Json([%to_json: list(int)](lola))),
+          ("mona", React.Json([%to_json: array(float)](mona))),
+          ("lolo", React.Json([%to_json: string](lolo))),
+          ("lili", React.Json([%to_json: bool](lili))),
+          ("lulu", React.Json([%to_json: float](lulu))),
+          ("tuple2", React.Json([%to_json: (int, int)](tuple2))),
+          ("tuple3", React.Json([%to_json: (int, string, float)](tuple3))),
         ],
         client: React.null,
       });
@@ -73,20 +50,8 @@
         import_module: __FILE__,
         import_name: "",
         props: [
-          (
-            "underscore",
-            React.Json(
-              [%ocaml.error
-                "server-reason-react: '_' annotations aren't supported in client components. Try using a type definition with a json encoder but there's no guarantee that it will work. Open an issue if you need it."
-              ],
-            ),
-          ),
-          (
-            "alpha_types",
-            React.Json(
-              [%ocaml.error "server-reason-react: unsupported type: 'a"],
-            ),
-          ),
+          ("underscore", React.Json([%to_json: _](underscore))),
+          ("alpha_types", React.Json([%to_json: 'a](alpha_types))),
         ],
         client: React.null,
       });
@@ -108,9 +73,12 @@
           (
             "polyvariants",
             React.Json(
-              [%ocaml.error
-                "server-reason-react: inline types such as polyvariants, need to be a type definition with a json encoder. If the type is named 't' the encoder should be named 't_to_json', if the type is named 'foo' the encoder should be named 'foo_to_json'."
-              ],
+              [%to_json:
+                [
+                  | `A
+                  | `B
+                ]
+              ](polyvariants),
             ),
           ),
         ],
@@ -131,13 +99,13 @@
         import_module: __FILE__,
         import_name: "",
         props: [
-          ("lident", React.Json(lola_to_json(lident))),
-          ("ldotlident", React.Json(Module.lola_to_json(ldotlident))),
+          ("lident", React.Json([%to_json: lola](lident))),
+          ("ldotlident", React.Json([%to_json: Module.lola](ldotlident))),
           (
             "ldotdotlident",
-            React.Json(Module.Inner.lola_to_json(ldotdotlident)),
+            React.Json([%to_json: Module.Inner.lola](ldotdotlident)),
           ),
-          ("lapply", React.Json(Label.to_json(lapply))),
+          ("lapply", React.Json([%to_json: Label.t(int, string)](lapply))),
         ],
         client: React.null,
       });

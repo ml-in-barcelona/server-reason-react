@@ -10,7 +10,12 @@
   melange.dom
   melange-json)
  (preprocess
-  (pps melange.ppx reason-react-ppx browser_ppx -js melange-json.ppx)))
+  (pps
+   melange.ppx
+   reason-react-ppx
+   melange-json.ppx
+   server-reason-react.ppx
+   -js)))
 
 (copy_files
  (mode fallback)

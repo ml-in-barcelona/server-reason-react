@@ -15,4 +15,4 @@
   belt
   yojson)
  (preprocess
-  (pps server_reason_react_ppx melange_native_ppx browser_ppx lwt_ppx)))
+  (pps server_reason_react_ppx melange_native_ppx lwt_ppx)))

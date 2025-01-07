@@ -573,20 +573,17 @@ let mel_obj ~loc fields =
   let stri = pstr_eval ~loc record [] in
   [%expr [%mel.obj [%%i stri]]]
 
-let expand_make_binding_to_client bindings =
-  bindings
-  |> List.filter ~f:isReactClientComponentBinding
-  |> List.map ~f:(fun binding ->
-         let loc = binding.pvb_loc in
-         let ghost_loc = { binding.pvb_loc with loc_ghost = true } in
-         let labelled_arguments = get_labelled_arguments binding.pvb_expr in
-         let props_as_object_with_decoders = mel_obj ~loc (props_of_json ~loc labelled_arguments) in
-         let make_argument = [ (Nolabel, props_as_object_with_decoders) ] in
-         let make_call = pexp_apply ~loc:ghost_loc [%expr make] make_argument in
-         let name = ppat_var ~loc:ghost_loc { txt = "make_client"; loc = ghost_loc } in
-         let client_single_argument = ppat_var ~loc:ghost_loc { txt = "props"; loc } in
-         let function_body = pexp_fun ~loc:ghost_loc Nolabel None client_single_argument make_call in
-         value_binding ~loc:ghost_loc ~pat:name ~expr:function_body)
+let expand_make_binding_to_client binding =
+  let loc = binding.pvb_loc in
+  let ghost_loc = { binding.pvb_loc with loc_ghost = true } in
+  let labelled_arguments = get_labelled_arguments binding.pvb_expr in
+  let props_as_object_with_decoders = mel_obj ~loc (props_of_json ~loc labelled_arguments) in
+  let make_argument = [ (Nolabel, props_as_object_with_decoders) ] in
+  let make_call = pexp_apply ~loc:ghost_loc [%expr make] make_argument in
+  let name = ppat_var ~loc:ghost_loc { txt = "make_client"; loc = ghost_loc } in
+  let client_single_argument = ppat_var ~loc:ghost_loc { txt = "props"; loc } in
+  let function_body = pexp_fun ~loc:ghost_loc Nolabel None client_single_argument make_call in
+  value_binding ~loc:ghost_loc ~pat:name ~expr:function_body
 
 let rewrite_signature_item signature_item =
   (* Remove the [@react.component] from the AST *)
@@ -787,6 +784,10 @@ let rewrite_structure_item structure_item =
       pstr_value ~loc:structure_item.pstr_loc rec_flag bindings
   | _ -> structure_item
 
+let isClientComponentBinding value_bindings =
+  let first_binding = List.hd value_bindings in
+  isReactClientComponentBinding first_binding
+
 let rewrite_structure_item_for_js structure_item =
   match structure_item.pstr_desc with
   (* external *)
@@ -797,20 +798,18 @@ let rewrite_structure_item_for_js structure_item =
           let loc = structure_item.pstr_loc in
           [%stri [%%ocaml.error "server-reason-react: externals aren't supported on client components yet"]])
   (* let make = ... *)
-  | Pstr_value (rec_flag, value_bindings) ->
-      let client_function = expand_make_binding_to_client value_bindings in
-      let client_vb = pstr_value ~loc:structure_item.pstr_loc rec_flag client_function in
-      let original_value_bindings =
-        value_bindings
-        |> List.filter ~f:isReactClientComponentBinding
-        |> List.map ~f:(fun vb -> { vb with pvb_attributes = [ react_component_attribute ~loc:vb.pvb_loc ] })
+  | Pstr_value (rec_flag, value_bindings) when isClientComponentBinding value_bindings ->
+      let first_value_binding = List.hd value_bindings in
+      let make_client = expand_make_binding_to_client first_value_binding in
+      let make_client_binding = pstr_value ~loc:structure_item.pstr_loc rec_flag [ make_client ] in
+      let original_value_binding =
+        { first_value_binding with pvb_attributes = [ react_component_attribute ~loc:first_value_binding.pvb_loc ] }
       in
-      let original_vb = pstr_value ~loc:structure_item.pstr_loc rec_flag original_value_bindings in
       let loc = structure_item.pstr_loc in
       [%stri
         include struct
-          [%%i original_vb]
-          [%%i client_vb]
+          [%%i pstr_value ~loc:structure_item.pstr_loc rec_flag [ original_value_binding ]]
+          [%%i make_client_binding]
         end]
   | _ -> structure_item
 
