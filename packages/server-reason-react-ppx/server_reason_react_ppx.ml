@@ -773,6 +773,14 @@ let rewrite_structure_item structure_item =
               [%expr
                 React.Client_component
                   { import_module = [%e import_module]; import_name = ""; props = [%e props]; client = [%e expr] }])
+        else if isReactComponentBinding vb then
+          expand_make_binding vb (fun expr ->
+              let loc = expr.pexp_loc in
+              [%expr React.Upper_case_component (fun () -> [%e expr])])
+        else if isReactAsyncComponentBinding vb then
+          expand_make_binding vb (fun expr ->
+              let loc = expr.pexp_loc in
+              [%expr React.Async_component (fun () -> [%e expr])])
         else vb
       in
       let bindings = List.map ~f:map_value_binding value_bindings in
