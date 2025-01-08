@@ -72,7 +72,7 @@
                       ),
                     )) {
                   [@ocaml.warning "-ignored-extra-argument"]
-                  Ppx_deriving_json_runtime.of_json_msg_error(
+                  Ppx_deriving_json_runtime.of_json_error(
                     "expected a JSON object",
                   );
                 };
@@ -92,8 +92,7 @@
                     | Stdlib.Option.None =>
                       [@ocaml.warning "-ignored-extra-argument"]
                       Ppx_deriving_json_runtime.of_json_error(
-                        ~json=x,
-                        "expected field \"name\" to be present",
+                        "missing field \"name\"",
                       )
                     },
                 };
@@ -251,11 +250,11 @@
   
   function lola_of_json(x) {
     if (!(typeof x === "object" && !Array.isArray(x) && x !== null)) {
-      Ppx_deriving_json_runtime.of_json_msg_error("expected a JSON object");
+      Ppx_deriving_json_runtime.of_json_error("expected a JSON object");
     }
     var v = x.name;
     return {
-            name: v !== undefined ? Ppx_deriving_json_runtime.Primitives.string_of_json(v) : Ppx_deriving_json_runtime.of_json_error(undefined, undefined, x, "expected field \"name\" to be present")
+            name: v !== undefined ? Ppx_deriving_json_runtime.Primitives.string_of_json(v) : Ppx_deriving_json_runtime.of_json_error("missing field \"name\"")
           };
   }
   

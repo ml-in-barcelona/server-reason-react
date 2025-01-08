@@ -53,11 +53,7 @@
                           x_name := Stdlib.Option.Some(string_of_json(v))
                         | name =>
                           Ppx_deriving_json_runtime.of_json_error(
-                            ~json=x,
-                            Stdlib.Printf.sprintf(
-                              {|did not expect field "%s"|},
-                              name,
-                            ),
+                            Stdlib.Printf.sprintf("unknown field: %s", name),
                           )
                         };
                         iter(fs);
@@ -70,14 +66,12 @@
                       | Stdlib.Option.Some(v) => v
                       | Stdlib.Option.None =>
                         Ppx_deriving_json_runtime.of_json_error(
-                          ~json=x,
-                          "expected field \"name\"",
+                          "missing field \"name\"",
                         )
                       },
                   };
                 | _ =>
                   Ppx_deriving_json_runtime.of_json_error(
-                    ~json=x,
                     "expected a JSON object",
                   )
                 };
@@ -87,16 +81,7 @@
               x =>
                 switch (x) {
                 | {name: x_name} =>
-                  `Assoc(
-                    {
-                      let bnds__001_ = [];
-                      let bnds__001_ = [
-                        ("name", string_to_json(x_name)),
-                        ...bnds__001_,
-                      ];
-                      bnds__001_;
-                    },
-                  )
+                  `Assoc([("name", string_to_json(x_name))])
                 };
             let _ = lola_to_json;
           };
