@@ -47,7 +47,6 @@ Multiple args with optional
   |}
       in
       raise (Runtime.fail_impossible_action_in_ssr "keycloak")
-
   $ echo "module Runtime = struct" > main.ml
   $ cat $INSIDE_DUNE/packages/runtime/Runtime.ml >> main.ml
   $ echo "end" >> main.ml

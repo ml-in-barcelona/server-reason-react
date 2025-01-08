@@ -108,7 +108,6 @@ With -js flag everything keeps as it is and browser_only extension disappears
     fun ?base ->
      fun req -> fun input -> Runtime.fail_impossible_action_in_ssr "perform"
   [@@warning "-27-32"]
-
 Replace Runtime.fail_impossible_action_in_ssr with print_endline so ocamlc can compile it without the Runtime module dependency
   $ echo "module Runtime = struct" >> output.ml
   $ cat $INSIDE_DUNE/packages/runtime/Runtime.ml >> output.ml
