@@ -11,31 +11,7 @@ const React = require("react");
 const ReactDOM = require("react-dom/client");
 const ReactServerDOM = require("react-server-dom-webpack/client");
 
-/* bootstrap.js */
-
-window.__client_manifest_map = {};
-
-const register = (name, render) => {
-	console.log("Client ref registered:", name);
-	window.__client_manifest_map[name] = render;
-};
-
-register(
-  "Counter",
-  React.lazy(() => import("./app/demo/universal/js/Counter.js").then(module => ({ default: module.make })))
-);
-
-register(
-	"Note_editor",
-	React.lazy(() => import("./app/demo/universal/js/Note_editor.js").then(module => ({ default: module.make }))),
-);
-
-/* register(
-	"Promise_renderer",
-	React.lazy(() => import("./app/demo/universal/js/Promise_renderer.js")),
-); */
-
-/* end bootstrap.js */
+require("./bootstrap.js");
 
 class ErrorBoundary extends React.Component {
 	constructor(props) {

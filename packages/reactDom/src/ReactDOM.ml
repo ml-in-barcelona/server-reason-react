@@ -36,8 +36,6 @@ let render_to_string ~mode element =
      when renders an lower-case element or closed element *)
   let is_mode_to_string = mode = String in
   let is_root = ref is_mode_to_string in
-  (* This flag is used to enable rendering comments <!-- --> between text nodes *)
-  let previous_was_text_node = ref false in
 
   let rec render_element element =
     match (element : React.element) with
@@ -56,12 +54,7 @@ let render_to_string ~mode element =
     | Lower_case_element { key = _; tag; attributes; children } ->
         is_root.contents <- false;
         render_lower_case tag attributes children
-    | Text text -> (
-        let is_previous_text_node = previous_was_text_node.contents in
-        previous_was_text_node.contents <- true;
-        match mode with
-        | String when is_previous_text_node -> Html.list [ Html.raw "<!-- -->"; Html.string text ]
-        | _ -> Html.string text)
+    | Text text -> Html.string text
     | InnerHtml text -> Html.raw text
     | Suspense { key = _; children; fallback } -> (
         match render_element children with
@@ -117,7 +110,7 @@ let renderToString element =
 let renderToStaticMarkup element =
   (* TODO: try catch to avoid React.use usages *)
   let html = render_to_string ~mode:Markup element in
-  Html.to_string html
+  Html.to_string ~add_separator_between_text_nodes:false html
 
 type context_state = {
   push : Html.element -> unit;
@@ -137,8 +130,8 @@ let replacement b s = Printf.sprintf "$RC('B:%i','S:%i')" b s
 let inline_complete_boundary_script boundary_id suspense_id =
   (* TODO: it's always correct to asume that the first suspense_id is 0? Maybe we can have 2 suspense parallely and it's not the case anymore? *)
   if boundary_id = 0 && suspense_id = 0 then
-    Html.node "script" [] [ Html.raw complete_boundary_script; Html.raw (replacement boundary_id suspense_id) ]
-  else Html.node "script" [] [ Html.raw (replacement boundary_id suspense_id) ]
+    Html.raw (Printf.sprintf "<script>%s%s</script>" complete_boundary_script (replacement boundary_id suspense_id))
+  else Html.raw (Printf.sprintf "<script>%s</script>" (replacement boundary_id suspense_id))
 
 (* let render_inline_rc_replacement replacements =
    let rc_payload =

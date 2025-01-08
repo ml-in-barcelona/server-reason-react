@@ -39,13 +39,20 @@ const sleep = (seconds) =>
 	</React.Suspense>
 ); */
 
-const App = () => (
+/* const App = () => (
 	<div>
 		<React.Suspense fallback="Fallback 1">
 			<DefferedComponent sleep={1}>"lol"</DefferedComponent>
 		</React.Suspense>
 	</div>
-);
+); */
+
+  const App = () =>
+        <>
+<main>
+		<span>{"Hi"} {"chat"}</span>
+	</main>
+</>
 
 
 ReactDOM.renderToReadableStream(<App />).then((stream) => {

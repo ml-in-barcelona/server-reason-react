@@ -74,6 +74,30 @@ let stream_rsc = fn => {
   );
 };
 
+module Section = {
+  [@react.component]
+  let make = (~title, ~children, ~description=?) => {
+    <Stack gap=2 justify=`start>
+      <h2
+        className={Cx.make([
+          "text-3xl",
+          "font-bold",
+          Theme.text(Theme.Color.white),
+        ])}>
+        {React.string(title)}
+      </h2>
+      {switch (description) {
+       | Some(description) =>
+         <p className={Theme.text(Theme.Color.brokenWhite)}>
+           {React.string(description)}
+         </p>
+       | None => React.null
+       }}
+      children
+    </Stack>;
+  };
+};
+
 module Page = {
   [@react.async.component]
   let make = () => {
@@ -81,18 +105,30 @@ module Page = {
     Lwt.return(
       <Layout background=Theme.Color.black>
         <Stack gap=8 justify=`start>
-          <p
-            className={Cx.make([
-              "text-3xl",
-              "font-bold",
-              Theme.text(Theme.Color.white),
-            ])}>
-            {React.string("This is a small form")}
-          </p>
-          /* TODO: payload is wrong in client components */
-          <Note_editor title="Hello" body="World" />
+          <Section
+            title="This is a demo page"
+            description="used to debug server-side RSC and client-side client components and their client props!">
+            React.null
+          </Section>
           <Hr />
-          <Counter initial=123 />
+          <Section
+            title="Counter" description="Passing int into a client component">
+            <Counter initial=45 />
+          </Section>
+          <Hr />
+          <Section
+            title="Debug primitive props"
+            description="Passing primitive props into a client component">
+            <Debug_props
+              string="Title"
+              int=1
+              float=1.1
+              bool_true=true
+              bool_false=false
+              string_array=[|"Item 1", "Item 2"|]
+              string_list=["Item 1", "Item 2"]
+            />
+          </Section>
           <Hr />
         </Stack>
       </Layout>,

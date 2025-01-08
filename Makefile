@@ -92,11 +92,11 @@ lib-test: ## Run library tests
 
 .PHONY: demo-build
 demo-build: ## Build the project (client, server and universal)
-	$(DUNE) build --profile=dev @install @demo @client
+	$(DUNE) build --profile=dev @demo @client
 
 .PHONY: demo-build-watch
 demo-build-watch: ## Watch demo (client, server and universal)
-	$(DUNE) build --profile=dev @install @demo --force --watch
+	$(DUNE) build --profile=dev @demo --force --watch
 
 .PHONY: demo
 demo-serve: demo-build ## Serve the demo executable
@@ -140,5 +140,5 @@ bench-watch: build-bench ## Run benchmark in watch mode
 	@$(DUNE) exec bench/main.exe --profile=release --display-separate-messages --no-print-directory --watch
 
 .PHONY: once
-once: build-bench ## Run benchmark once
-	@time _build/default/bench/once.exe
+once: ## Run benchmark once
+	@$(DUNE) exec _build/default/bench/once.exe

@@ -87,10 +87,6 @@ let make = () => {
   });
 
   <Layout background=Theme.Color.black>
-    <Stack gap=8 justify=`start>
-      <Title />
-      <Hr />
-      <Counter initial=22 />
-    </Stack>
+    <Stack gap=8 justify=`start> <Title /> </Stack>
   </Layout>;
 };
