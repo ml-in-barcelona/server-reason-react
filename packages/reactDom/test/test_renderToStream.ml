@@ -53,7 +53,7 @@ let react_use_without_suspense () =
         React.createElement "div" [] [ React.createElement "span" [] [ React.string "Hello "; React.float delay ] ])
   in
   let%lwt stream, _abort = ReactDOM.renderToStream app in
-  assert_stream stream [ "<div><span>Hello 0.01</span></div>" ]
+  assert_stream stream [ "<div><span>Hello <!-- -->0.01</span></div>" ]
 
 let rsc_script replacement =
   Printf.sprintf
