@@ -106,7 +106,7 @@ let suspense_with_react_use () =
   assert_stream stream
     [
       "<!--$?--><template id=\"B:0\"></template>Loading...<!--/$-->";
-      "<div hidden id=\"S:0\"><div><span>Hello 0.05</span></div></div>";
+      "<div hidden id=\"S:0\"><div><span>Hello <!-- -->0.05</span></div></div>";
       rsc_script "$RC('B:0','S:0')";
     ]
 
@@ -154,7 +154,7 @@ let suspense_with_async_component () =
   assert_stream stream
     [
       "<div><!--$?--><template id=\"B:0\"></template>Fallback 1<!--/$--></div>";
-      "<div hidden id=\"S:0\"><div>Sleep 0.02 seconds, lol</div></div>";
+      "<div hidden id=\"S:0\"><div>Sleep 0.02 seconds<!-- -->, <!-- -->lol</div></div>";
       rsc_script "$RC('B:0','S:0')";
     ]
 
@@ -182,10 +182,10 @@ let suspense_with_nested_suspense () =
   assert_stream stream
     [
       "<!--$?--><template id=\"B:0\"></template>Fallback 1<!--/$-->";
-      "<div hidden id=\"S:0\"><div>Sleep 0.02 seconds, <!--$?--><template id=\"B:1\"></template>Fallback \
+      "<div hidden id=\"S:0\"><div>Sleep 0.02 seconds<!-- -->, <!--$?--><template id=\"B:1\"></template>Fallback \
        2<!--/$--></div></div>";
       rsc_script "$RC('B:0','S:0')";
-      "<div hidden id=\"S:1\"><div>Sleep 0.02 seconds, lol</div></div>";
+      "<div hidden id=\"S:1\"><div>Sleep 0.02 seconds<!-- -->, <!-- -->lol</div></div>";
       "<script>$RC('B:1','S:1')</script>";
     ]
 
@@ -201,7 +201,7 @@ let async_component_without_suspense () =
   in
   let app () = React.createElement "div" [] [ deffered_component ~seconds:0.02 ~children:(React.string "lol") () ] in
   let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component app) in
-  assert_stream stream [ "<div><div>Sleep 0.02 seconds, lol</div></div>" ]
+  assert_stream stream [ "<div><div>Sleep 0.02 seconds<!-- -->, <!-- -->lol</div></div>" ]
 
 let tests =
   [

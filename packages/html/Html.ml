@@ -79,12 +79,19 @@ let list ?(separator = "") arr = List (separator, arr)
 let fragment arr = List arr
 let node tag attributes children = Node { tag; attributes; children }
 
-let to_string element =
+let to_string ?(add_separator_between_text_nodes = true) element =
   let out = Buffer.create 1024 in
+  (* This ref is used to enable rendering comments <!-- --> between text nodes
+     and can be disabled by `add_separator_between_text_nodes` *)
+  let previous_was_text_node = ref false in
   let rec write element =
     match element with
     | Null -> ()
-    | String text -> escape_and_add out text
+    | String text ->
+        let is_previous_text_node = previous_was_text_node.contents in
+        previous_was_text_node.contents <- true;
+        if is_previous_text_node && add_separator_between_text_nodes then Buffer.add_string out "<!-- -->";
+        escape_and_add out text
     | Raw text -> Buffer.add_string out text
     | Node { tag; attributes; _ } when is_self_closing_tag tag ->
         Buffer.add_char out '<';
@@ -92,13 +99,15 @@ let to_string element =
         List.iter (write_attribute out) attributes;
         Buffer.add_string out " />"
     | Node { tag; attributes; children } ->
+        (* If the previous node was text, but from another parent node, then the comment shouldn't be added.
+           Check `separated_text_nodes_by_other_nodes` in test_renderToString.ml *)
+        if add_separator_between_text_nodes then previous_was_text_node.contents <- false;
         if tag = "html" then Buffer.add_string out "<!DOCTYPE html>";
         Buffer.add_char out '<';
         Buffer.add_string out tag;
         List.iter (write_attribute out) attributes;
         Buffer.add_char out '>';
-        (* QUESTION: Do we need to add this separator to all children? *)
-        write (List ("<!-- -->", children));
+        List.iter write children;
         Buffer.add_string out "</";
         Buffer.add_string out tag;
         Buffer.add_char out '>'

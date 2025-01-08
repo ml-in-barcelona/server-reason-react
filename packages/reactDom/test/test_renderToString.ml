@@ -18,12 +18,24 @@ let consecutives_text_nodes () =
   in
   assert_string (ReactDOM.renderToString div) "<div><span>Hello<!-- -->Hello</span></div>"
 
+let separated_text_nodes_by_other_parents () =
+  let app () =
+    React.Upper_case_component
+      (fun () ->
+        React.List
+          [|
+            React.createElement "main" [] [ React.string "Hi"; React.createElement "span" [] [ React.string "chat" ] ];
+          |])
+  in
+  assert_string (ReactDOM.renderToString (app ())) "<main>Hi<span>chat</span></main>"
+
 let test title fn = (Printf.sprintf "ReactDOM.renderToString / %s" title, [ Alcotest_lwt.test_case_sync "" `Quick fn ])
 
 let tests =
   [
-    test "react root" react_root_one_element;
-    test "react root in two" react_root_two_elements;
-    test "one text node should not add <!-- -->" text_single_node;
-    test "consecutive text nodes should add <!-- -->" consecutives_text_nodes;
+    test "react_root_one_element" react_root_one_element;
+    test "react_root_two_elements" react_root_two_elements;
+    test "text_single_node should not add <!-- -->" text_single_node;
+    test "consecutives_text_nodes should add <!-- -->" consecutives_text_nodes;
+    test "separated_text_nodes_by_other_parents" separated_text_nodes_by_other_parents;
   ]
