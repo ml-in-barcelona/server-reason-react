@@ -20,6 +20,8 @@ depends: [
   "uri" {>= "4.2.0"}
   "yojson" {>= "2.2.0"}
   "integers" {>= "0.7.0"}
+  "melange-json" {>= "1.3.0"}
+  "melange-json-native" {>= "1.3.0"}
   "odoc" {with-doc}
   "ocamlformat" {= "0.26.2" & with-test}
   "ocaml-lsp-server" {with-dev-setup}

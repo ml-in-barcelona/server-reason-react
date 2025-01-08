@@ -39,6 +39,8 @@
   (uri (>= 4.2.0))
   (yojson (>= 2.2.0))
   (integers (>= 0.7.0))
+  (melange-json (>= 1.3.0))
+  (melange-json-native (>= 1.3.0))
 
   ; Documentation
   (odoc :with-doc)
