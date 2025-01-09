@@ -126,8 +126,14 @@ module Page = {
               bool_true=true
               bool_false=false
               string_array=[|"Item 1", "Item 2"|]
-              string_list=["Item 1", "Item 2"]
-            />
+              header={<div> {React.string("H E A D E R")} </div>}
+              string_list=["Item 1", "Item 2"]>
+              <div>
+                {React.string(
+                   "This footer is a React.element as a server component into client prop, yay!",
+                 )}
+              </div>
+            </Debug_props>
           </Section>
           <Hr />
         </Stack>

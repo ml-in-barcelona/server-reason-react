@@ -562,7 +562,7 @@ let props_of_model ~loc (props : (arg_label * pattern) list) : (longident loc * 
               let prop = [%expr props##[%e ident ~loc label]] in
               let value =
                 match core_type with
-                | [%type: React.element] -> [%expr (Obj.magic [%e prop] : React.element)]
+                | [%type: React.element] -> [%expr [%e prop]]
                 (* | [%type: [%t? t] Js.Promise.t] ->
                     [%expr
                       let promise = [%e prop] in

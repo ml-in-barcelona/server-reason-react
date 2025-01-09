@@ -12,8 +12,15 @@ let make =
       ~bool_false: bool,
       ~string_array: [@deriving json] array(string),
       ~string_list: [@deriving json] list(string),
+      ~header: option(React.element)=?,
+      ~children: React.element,
     ) => {
   <div className="text-white">
+    {switch (header) {
+     | Some(header) => <header> header </header>
+     | None => React.null
+     }}
+    <br />
     <code>
       <pre>
         <span> {React.string("string - ")} </span>
@@ -53,5 +60,7 @@ let make =
         </p>
       </pre>
     </code>
+    <br />
+    children
   </div>;
 };
