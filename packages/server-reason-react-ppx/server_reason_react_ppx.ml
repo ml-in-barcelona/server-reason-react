@@ -547,7 +547,7 @@ let rec make_of_json ~loc (type_ : core_type) value =
    | _ -> [%expr [%ocaml.error "server-reason-react: unsupported type"]]
 *)
 
-let props_of_json ~loc (props : (arg_label * pattern) list) : (longident loc * expression) list =
+let props_of_model ~loc (props : (arg_label * pattern) list) : (longident loc * expression) list =
   List.map
     ~f:(fun (arg_label, pattern) ->
       match pattern.ppat_desc with
@@ -560,10 +560,41 @@ let props_of_json ~loc (props : (arg_label * pattern) list) : (longident loc * e
           | Labelled label | Optional label ->
               let _name = estring ~loc label in
               let prop = [%expr props##[%e ident ~loc label]] in
-              (* let _fn = make_of_json ~loc core_type prop in *)
-              let fn = [%expr [%of_json: [%t core_type]] [%e prop]] in
-              (longident ~loc label, pexp_apply ~loc:pattern.ppat_loc fn []))
-      | _ -> (longident ~loc "error", [%expr "FAIL HARD"]))
+              let value =
+                match core_type with
+                | [%type: React.element] -> [%expr (Obj.magic [%e prop] : React.element)]
+                (* | [%type: [%t? t] Js.Promise.t] ->
+                    [%expr
+                      let promise = [%e prop] in
+                      let promise' = (Obj.magic promise : [%t t] Js.Promise.t Js.Dict.t) in
+                      match Js.Dict.get promise' "__promise" with
+                      | Some promise -> promise
+                      | None ->
+                          let promise =
+                            Promise.(
+                              let* json = (Obj.magic (Js.Promise.resolve promise) : Realm.Json.t Promise.t) in
+                              let data = [%of_json: [%t t]] json in
+                              return data)
+                          in
+                          Js.Dict.set promise' "__promise" promise;
+                          promise] *)
+                | type_ -> [%expr [%of_json: [%t type_]] [%e prop]]
+              in
+              (longident ~loc label, value))
+      | _ ->
+          let loc = pattern.ppat_loc in
+          let expr =
+            match arg_label with
+            | Nolabel -> [%expr [%ocaml.error "server-reason-react: client components need type annotations"]]
+            | Labelled label | Optional label ->
+                let msg =
+                  Printf.sprintf
+                    "server-reason-react: client components need type annotations. Missing annotation for '%s'" label
+                in
+                let msg_expr = estring ~loc msg in
+                [%expr [%ocaml.error [%e msg_expr]]]
+          in
+          (longident ~loc "error", expr))
     props
 
 let react_component_attribute ~loc =
@@ -578,7 +609,7 @@ let expand_make_binding_to_client binding =
   let loc = binding.pvb_loc in
   let ghost_loc = { binding.pvb_loc with loc_ghost = true } in
   let labelled_arguments = get_labelled_arguments binding.pvb_expr in
-  let props_as_object_with_decoders = mel_obj ~loc (props_of_json ~loc labelled_arguments) in
+  let props_as_object_with_decoders = mel_obj ~loc (props_of_model ~loc labelled_arguments) in
   let make_argument = [ (Nolabel, props_as_object_with_decoders) ] in
   let make_call = pexp_apply ~loc:ghost_loc [%expr make] make_argument in
   let name = ppat_var ~loc:ghost_loc { txt = "make_client"; loc = ghost_loc } in
