@@ -133,7 +133,27 @@ module Page = {
             float=1.1
             bool_true=true
             bool_false=false
-            header={<div> {React.string("H E A D E R")} </div>}
+            header={Some(<div> {React.string("H E A D E R")} </div>)}
+            string_list=["Item 1", "Item 2"]
+            promise>
+            <div>
+              {React.string(
+                 "This footer is a React.element as a server component into client prop, yay!",
+               )}
+            </div>
+          </Debug_props>
+        </Section>
+        <Hr />
+        <Section
+          title="Debug primitive props"
+          description="Passing primitive props into a client component">
+          <Debug_props
+            string="Title"
+            int=1
+            float=1.1
+            bool_true=true
+            bool_false=false
+            header=None
             string_list=["Item 1", "Item 2"]
             promise>
             <div>

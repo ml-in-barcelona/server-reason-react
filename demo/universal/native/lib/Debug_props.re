@@ -19,12 +19,15 @@ let make =
       ~bool_true: bool,
       ~bool_false: bool,
       ~string_list: list(string),
-      ~header: React.element,
+      ~header: option(React.element),
       ~children: React.element,
       ~promise: Js.Promise.t(string),
     ) => {
   <div className="text-white">
-    <header> header </header>
+    {switch (header) {
+     | Some(header) => <header> header </header>
+     | None => React.null
+     }}
     <br />
     <code>
       <pre>

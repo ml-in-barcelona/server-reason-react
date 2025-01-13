@@ -546,6 +546,29 @@ let rec make_of_json ~loc (type_ : core_type) value =
       | Ptyp_any -> error_not_supported ~loc ~type_name:"'_' annotations" *)
    | _ -> [%expr [%ocaml.error "server-reason-react: unsupported type"]]
 *)
+let make_of_json ~loc (core_type : core_type) prop =
+  match core_type with
+  (* QUESTION: How can we handle optionals and others? Need a [@deriving rsc] for them? We currently encode None's as React.Json `Null, should be enought *)
+  | [%type: React.element] -> [%expr ([%e prop] : React.element)]
+  | [%type: React.element option] -> [%expr ([%e prop] : React.element option)]
+  (* TODO: Add promise caching? When is it needed? *)
+  (* | [%type: [%t? t] Js.Promise.t] ->
+    [%expr
+      let promise = [%e prop] in
+      let promise' = (Obj.magic promise : [%t t] Js.Promise.t Js.Dict.t) in
+      match Js.Dict.get promise' "__promise" with
+      | Some promise -> promise
+      | None ->
+          let promise =
+            Promise.(
+              let* json = (Obj.magic (Js.Promise.resolve promise) : Realm.Json.t Promise.t) in
+              let data = [%of_json: [%t t]] json in
+              return data)
+          in
+          Js.Dict.set promise' "__promise" promise;
+          promise] *)
+  | [%type: [%t? t] Js.Promise.t] -> [%expr ([%e prop] : [%t t] Js.Promise.t)]
+  | type_ -> [%expr [%of_json: [%t type_]] [%e prop]]
 
 let props_of_model ~loc (props : (arg_label * pattern) list) : (longident loc * expression) list =
   List.map
@@ -560,29 +583,7 @@ let props_of_model ~loc (props : (arg_label * pattern) list) : (longident loc * 
           | Labelled label | Optional label ->
               let _name = estring ~loc label in
               let prop = [%expr props##[%e ident ~loc label]] in
-              let value =
-                match core_type with
-                (* QUESTION: How can we handle optionals and others? Need a [@deriving rsc] for them? *)
-                | [%type: React.element] -> [%expr ([%e prop] : React.element)]
-                (* TODO: Add promise caching? *)
-                (* | [%type: [%t? t] Js.Promise.t] ->
-                    [%expr
-                      let promise = [%e prop] in
-                      let promise' = (Obj.magic promise : [%t t] Js.Promise.t Js.Dict.t) in
-                      match Js.Dict.get promise' "__promise" with
-                      | Some promise -> promise
-                      | None ->
-                          let promise =
-                            Promise.(
-                              let* json = (Obj.magic (Js.Promise.resolve promise) : Realm.Json.t Promise.t) in
-                              let data = [%of_json: [%t t]] json in
-                              return data)
-                          in
-                          Js.Dict.set promise' "__promise" promise;
-                          promise] *)
-                | [%type: [%t? t] Js.Promise.t] -> [%expr ([%e prop] : [%t t] Js.Promise.t)]
-                | type_ -> [%expr [%of_json: [%t type_]] [%e prop]]
-              in
+              let value = make_of_json ~loc core_type prop in
               (longident ~loc label, value))
       | _ ->
           let loc = pattern.ppat_loc in
@@ -731,6 +732,21 @@ let error_not_supported ~loc ~type_name =
    | Ptyp_package _ -> error_not_supported ~loc ~type_name:"modules"
    | Ptyp_poly _ -> error_not_supported ~loc ~type_name:"polymorphic types"
    | Ptyp_any -> error_not_supported ~loc ~type_name:"'_' annotations" *)
+let make_to_json ~loc (core_type : core_type) prop =
+  match core_type with
+  | [%type: React.element] -> [%expr React.Element ([%e prop] : React.element)]
+  | [%type: React.element option] ->
+      [%expr match [%e prop] with Some prop -> React.Element (prop : React.element) | None -> React.Json `Null]
+  | [%type: [%t? inner_type] Js.Promise.t] ->
+      let json = [%expr [%to_json: [%t inner_type]]] in
+      [%expr React.Promise ([%e prop], [%e json])]
+  | [%type: [%t? inner_type] Js.Promise.t option] ->
+      let json = [%expr [%to_json: [%t inner_type]]] in
+      [%expr
+        match [%e prop] with Some prop -> [%expr React.Promise ([%e prop], [%e json])] | None -> React.Json `Null]
+  | _ ->
+      let json = [%expr [%to_json: [%t core_type]] [%e prop]] in
+      [%expr React.Json [%e json]]
 
 let props_to_model ~loc (props : (arg_label * pattern) list) =
   List.fold_left ~init:[%expr []]
@@ -743,20 +759,9 @@ let props_to_model ~loc (props : (arg_label * pattern) list) =
               let loc = pattern.ppat_loc in
               [%expr [%ocaml.error "props need to be labelled arguments"] :: [%e acc]]
           | Labelled label | Optional label ->
-              let name = estring ~loc label in
               let prop = ident ~loc label in
-              let value =
-                match core_type with
-                | [%type: React.element] -> [%expr React.Element [%e prop]]
-                | [%type: [%t? inner_type] Js.Promise.t] ->
-                    (* let json = make_to_yojson ~loc inner_type prop in *)
-                    let json = [%expr [%to_json: [%t inner_type]]] in
-                    [%expr React.Promise ([%e prop], [%e json])]
-                | _ ->
-                    (* let json = make_to_yojson ~loc core_type prop in *)
-                    let json = [%expr [%to_json: [%t core_type]] [%e prop]] in
-                    [%expr React.Json [%e json]]
-              in
+              let value = make_to_json ~loc core_type prop in
+              let name = estring ~loc label in
               [%expr ([%e name], [%e value]) :: [%e acc]])
       (* TODO: Add all ppat_desc possibilities *)
       | _ ->
