@@ -5,10 +5,14 @@ type lola = {name: string};
 
 module Prop_with_many_annotation = {
   [@react.client.component]
-  let make = (~initial: int, ~lola: lola) => {
-    <div> {React.string(lola.name)} {React.int(initial)} </div>;
+  let make = (~initial: int, ~lola: lola, ~children: React.element) => {
+    <section>
+      <h1> {React.string(lola.name)} </h1>
+      <p> {React.int(initial)} </p>
+      <div> children </div>
+    </section>;
   };
 };
 
-/* To force make to be used */
-let _ = Prop_with_many_annotation.make(~initial=1, ~lola={name: "lola"}, ());
+// to avoid unused error on "make"
+let _ = Prop_with_many_annotation.make;

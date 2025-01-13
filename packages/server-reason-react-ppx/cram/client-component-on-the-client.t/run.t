@@ -44,7 +44,7 @@
                 </section>;
               let make_client = props =>
                 make({
-                  "children": (Obj.magic(props##children): React.element),
+                  "children": (props##children: React.element),
                   "lola": [%of_json: lola](props##lola),
                   "initial": [%of_json: int](props##initial),
                 });

@@ -562,7 +562,9 @@ let props_of_model ~loc (props : (arg_label * pattern) list) : (longident loc * 
               let prop = [%expr props##[%e ident ~loc label]] in
               let value =
                 match core_type with
-                | [%type: React.element] -> [%expr [%e prop]]
+                (* QUESTION: How can we handle optionals and others? Need a [@deriving rsc] for them? *)
+                | [%type: React.element] -> [%expr ([%e prop] : React.element)]
+                (* TODO: Add promise caching? *)
                 (* | [%type: [%t? t] Js.Promise.t] ->
                     [%expr
                       let promise = [%e prop] in
@@ -578,6 +580,7 @@ let props_of_model ~loc (props : (arg_label * pattern) list) : (longident loc * 
                           in
                           Js.Dict.set promise' "__promise" promise;
                           promise] *)
+                | [%type: [%t? t] Js.Promise.t] -> [%expr ([%e prop] : [%t t] Js.Promise.t)]
                 | type_ -> [%expr [%of_json: [%t type_]] [%e prop]]
               in
               (longident ~loc label, value))
@@ -747,7 +750,7 @@ let props_to_model ~loc (props : (arg_label * pattern) list) =
                 | [%type: React.element] -> [%expr React.Element [%e prop]]
                 | [%type: [%t? inner_type] Js.Promise.t] ->
                     (* let json = make_to_yojson ~loc inner_type prop in *)
-                    let json = [%expr [%to_json: [%t inner_type]] [%e prop]] in
+                    let json = [%expr [%to_json: [%t inner_type]]] in
                     [%expr React.Promise ([%e prop], [%e json])]
                 | _ ->
                     (* let json = make_to_yojson ~loc core_type prop in *)

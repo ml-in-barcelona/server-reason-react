@@ -98,56 +98,63 @@ module Section = {
   };
 };
 
+module AppRouter = {
+  [@react.component]
+  let make = (~children) => {
+    <Layout background=Theme.Color.black> children </Layout>;
+  };
+};
+
 module Page = {
   [@react.async.component]
   let make = () => {
-    let%lwt () = Lwt_unix.sleep(1.0);
+    let promise =
+      Lwt.bind(Lwt_unix.sleep(4.0), _ => Lwt.return("Solusionao!"));
+
     Lwt.return(
-      <Layout background=Theme.Color.black>
-        <Stack gap=8 justify=`start>
-          <Section
-            title="This is a demo page"
-            description="used to debug server-side RSC and client-side client components and their client props!">
-            React.null
-          </Section>
-          <Hr />
-          <Section
-            title="Counter" description="Passing int into a client component">
-            <Counter initial=45 />
-          </Section>
-          <Hr />
-          <Section
-            title="Debug primitive props"
-            description="Passing primitive props into a client component">
-            <Debug_props
-              string="Title"
-              int=1
-              float=1.1
-              bool_true=true
-              bool_false=false
-              string_array=[|"Item 1", "Item 2"|]
-              header={<div> {React.string("H E A D E R")} </div>}
-              string_list=["Item 1", "Item 2"]>
-              <div>
-                {React.string(
-                   "This footer is a React.element as a server component into client prop, yay!",
-                 )}
-              </div>
-            </Debug_props>
-          </Section>
-          <Hr />
-        </Stack>
-      </Layout>,
+      <Stack gap=8 justify=`start>
+        <Section
+          title="This is a demo page"
+          description="used to debug server-side RSC and client-side client components and their client props!">
+          React.null
+        </Section>
+        <Hr />
+        <Section
+          title="Counter" description="Passing int into a client component">
+          <Counter initial=45 />
+        </Section>
+        <Hr />
+        <Section
+          title="Debug primitive props"
+          description="Passing primitive props into a client component">
+          <Debug_props
+            string="Title"
+            int=1
+            float=1.1
+            bool_true=true
+            bool_false=false
+            header={<div> {React.string("H E A D E R")} </div>}
+            string_list=["Item 1", "Item 2"]
+            promise>
+            <div>
+              {React.string(
+                 "This footer is a React.element as a server component into client prop, yay!",
+               )}
+            </div>
+          </Debug_props>
+        </Section>
+        <Hr />
+      </Stack>,
     );
   };
 };
 
 let serverComponentsHandler = request => {
-  let app = <Page />;
+  let app = <AppRouter> <Page /> </AppRouter>;
   switch (Dream.header(request, "Accept")) {
   | Some(accept) when is_react_component_header(accept) =>
     stream_rsc(stream => {
-      let%lwt _initial =
+      let%lwt _stream =
         ReactServerDOM.render_to_model(
           app,
           ~subscribe=chunk => {

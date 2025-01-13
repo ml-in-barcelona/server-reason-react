@@ -6,7 +6,7 @@
   > (executable
   >  (name input)
   >  (libraries server-reason-react.react server-reason-react.reactDom melange-json)
-  >  (preprocess (pps server-reason-react.ppx server-reason-react.melange_ppx)))
+  >  (preprocess (pps server-reason-react.ppx server-reason-react.melange_ppx melange-json-native.ppx)))
   > EOF
 
   $ dune build
@@ -87,21 +87,33 @@
           };
   
   module Prop_with_many_annotation = {
-    let make = (~key as _: option(string)=?, ~initial: int, ~lola: lola, ()) =>
+    let make =
+        (
+          ~key as _: option(string)=?,
+          ~initial: int,
+          ~lola: lola,
+          ~children: React.element,
+          (),
+        ) =>
       React.Client_component({
         import_module: __FILE__,
         import_name: "",
         props: [
           ("initial", React.Json(int_to_json(initial))),
           ("lola", React.Json(lola_to_json(lola))),
+          ("children", React.Element(children)),
         ],
         client:
           React.createElement(
-            "div",
+            "section",
             [],
-            [React.string(lola.name), React.int(initial)],
+            [
+              React.createElement("h1", [], [React.string(lola.name)]),
+              React.createElement("p", [], [React.int(initial)]),
+              React.createElement("div", [], [children]),
+            ],
           ),
       });
   };
   
-  let _ = Prop_with_many_annotation.make(~initial=1, ~lola={name: "lola"}, ());
+  let _ = Prop_with_many_annotation.make;
