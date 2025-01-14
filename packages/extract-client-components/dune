@@ -1,0 +1,3 @@
+(executable
+ (name client_components_mapper)
+ (libraries unix))
