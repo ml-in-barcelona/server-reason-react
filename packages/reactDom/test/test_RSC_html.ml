@@ -188,7 +188,7 @@ let client_with_promise_props () =
     [
       "<script data-payload='2:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n\
        '>window.srr_stream.push()</script>";
-      "<script data-payload='1:I\"||| Resolved |||\"\n'>window.srr_stream.push()</script>";
+      "<script data-payload='1:\"||| Resolved |||\"\n'>window.srr_stream.push()</script>";
       stream_close_script;
     ]
 
