@@ -33,21 +33,21 @@
   [@deriving json]
   type lola = {name: string};
   
-  module Prop_with_many_annotation = {
-    include {
-              [%%raw "// extract-client input.re"];
-              [@react.component]
-              let make = (~initial: int, ~lola: lola, ~children: React.element) =>
-                <section>
-                  <h1> {React.string(lola.name)} </h1>
-                  <p> {React.int(initial)} </p>
-                  <div> children </div>
-                </section>;
-              let make_client = props =>
-                make({
-                  "children": (props##children: React.element),
-                  "lola": [%of_json: lola](props##lola),
-                  "initial": [%of_json: int](props##initial),
-                });
-            };
-  };
+  include {
+            [%%raw "// extract-client input.re"];
+            [@react.component]
+            let make = (~initial: int, ~lola: lola, ~children: React.element) =>
+              <section>
+                <h1> {React.string(lola.name)} </h1>
+                <p> {React.int(initial)} </p>
+                <div> children </div>
+              </section>;
+            let make_client = props =>
+              make({
+                "children": (props##children: React.element),
+                "lola": [%of_json: lola](props##lola),
+                "initial": [%of_json: int](props##initial),
+              });
+          };
+  
+  let _ = make;
