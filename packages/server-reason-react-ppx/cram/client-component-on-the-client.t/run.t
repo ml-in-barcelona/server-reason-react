@@ -35,6 +35,7 @@
   
   module Prop_with_many_annotation = {
     include {
+              [%%raw "// extract-info input.re"];
               [@react.component]
               let make = (~initial: int, ~lola: lola, ~children: React.element) =>
                 <section>

@@ -10,7 +10,6 @@ module Prop_with_many_annotation = {
         ~initial: int,
         ~lola: lola,
         ~children: React.element,
-        ~maybe_children: option(React.element),
         ~promise: Js.Promise.t(string),
       ) => {
     let value = React.Experimental.use(promise);
@@ -18,10 +17,6 @@ module Prop_with_many_annotation = {
       {React.string(lola.name)}
       {React.int(initial)}
       children
-      {switch (maybe_children) {
-       | Some(children) => children
-       | None => React.null
-       }}
       {React.string(value)}
     </div>;
   };
