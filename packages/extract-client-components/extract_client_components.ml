@@ -39,7 +39,7 @@ let render_manifest ~path (manifest : manifest) =
           | None -> "make_client"
         in
         Printf.sprintf
-          "window.__client_manifest_map[\"%s\"] = React.lazy(() => import(\"./%s\").then(module => {\n\
+          "window.__client_manifest_map[\"%s\"] = React.lazy(() => import(\"%s\").then(module => {\n\
           \  return { default: module.%s }\n\
            }))"
           original_path compiled_js_path export)
@@ -87,37 +87,34 @@ let capture_all_client_component_files_in_target path =
     | e -> Error (Printf.sprintf "Unexpected error: %s" (Printexc.to_string e))
   in
   traverse_fs path
-(* Process file *)
-(* let process_file filepath =
-  try
-    let content = In_channel.with_open_text filepath In_channel.input_all in
-    Ok (process_content content)
-  with e ->
-    Error (Printf.sprintf "Error reading file: %s" (Printexc.to_string e)) *)
 
-let () =
+open Cmdliner
+
+(* Command-line arguments *)
+let melange_target =
+  let doc = "Path to the melange target directory (melange.emit (target xxx))" in
+  Arg.(required & pos 0 (some string) None & info [] ~docv:"MELANGE_TARGET" ~doc)
+
+let output_path =
+  let doc = "Output path for the generated manifest (defaults to './bootstrap.js')" in
+  Arg.(value & opt string "./bootstrap.js" & info [ "o"; "out" ] ~docv:"PATH" ~doc)
+
+let extract_components target path =
   let current_dir = Sys.getcwd () in
-  let argv = Array.to_list Sys.argv in
-  (* extract-client-components --target melange_target --out path *)
-  let first_argument = List.nth_opt argv 1 in
-  let second_arg = List.nth_opt argv 2 in
-  let path = Option.value ~default:"./bootstrap.js" second_arg in
-
-  let melange_target =
-    match first_argument with
-    | Some v -> Filename.concat current_dir v
-    | None -> failwith "Add a 'melange-target' to extract components from. It can't be empty"
-  in
+  let melange_target = Filename.concat current_dir target in
   match capture_all_client_component_files_in_target melange_target with
-  | Ok manifest -> render_manifest ~path manifest
-  | Error msg -> print_endline msg
+  | Ok manifest ->
+      render_manifest ~path manifest;
+      Ok ()
+  | Error msg ->
+      prerr_endline msg;
+      Error (`Msg msg)
 
-(* match decode sexp with
-  | manifest -> render_manifest ~path manifest
-  | exception Invalid_sexp message ->
-      Printf.printf "Invalid sexp: %s. Generated an empty bootstrap.js file" message;
-      render_manifest ~path []
-  | exception exn ->
-      Printf.printf "Unexpected error: %s. Generated an empty bootstrap.js file" (Printexc.to_string exn);
-      render_manifest ~path []
- *)
+let extract_cmd =
+  let doc = "Extract all client components from a Melange target folder" in
+  let sdocs = Manpage.s_common_options in
+  let info = Cmd.info "extract-client-components" ~version:"1.0.0" ~doc ~sdocs in
+  let term = Term.(term_result (const extract_components $ melange_target $ output_path)) in
+  Cmd.v info term
+
+let () = exit (Cmd.eval extract_cmd)

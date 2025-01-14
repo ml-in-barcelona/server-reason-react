@@ -93,6 +93,7 @@
           ~initial: int,
           ~lola: lola,
           ~children: React.element,
+          ~maybe_children: option(React.element),
           (),
         ) =>
       React.Client_component({
@@ -101,7 +102,14 @@
         props: [
           ("initial", React.Json(int_to_json(initial))),
           ("lola", React.Json(lola_to_json(lola))),
-          ("children", React.Element(children)),
+          ("children", React.Element(children: React.element)),
+          (
+            "maybe_children",
+            switch (maybe_children) {
+            | Some(prop) => React.Element(prop: React.element)
+            | None => React.Json(`Null)
+            },
+          ),
         ],
         client:
           React.createElement(
@@ -111,6 +119,10 @@
               React.createElement("h1", [], [React.string(lola.name)]),
               React.createElement("p", [], [React.int(initial)]),
               React.createElement("div", [], [children]),
+              switch (maybe_children) {
+              | Some(children) => children
+              | None => React.null
+              },
             ],
           ),
       });

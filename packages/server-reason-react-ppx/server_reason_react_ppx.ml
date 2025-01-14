@@ -850,6 +850,8 @@ let rewrite_structure_item_for_js ctx structure_item =
       let fileName =
         if String.ends_with ~suffix:".re.ml" fileName then Filename.chop_extension fileName else fileName
       in
+      (* We need to add a nasty hack here, since have different files for native and melange. We assume that the file structure is native/lib and js, and replace the name directly. This is supposed to be temporal, during dune implements the https://github.com/ocaml/dune/issues/10630 *)
+      let fileName = Str.replace_first (Str.regexp {|/js/|}) "/native/lib/" fileName in
       let comment = Printf.sprintf "// extract-client %s" fileName in
       let raw = estring ~loc comment in
       let extract_client_raw = [%stri [%%raw [%e raw]]] in

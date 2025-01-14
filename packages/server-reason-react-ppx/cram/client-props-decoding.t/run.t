@@ -34,6 +34,15 @@
   module Prop_with_many_annotation = {
     [@warning "-27"];
     include {
+              {
+                module J = {
+                  [@ocaml.warning "-unboxable-type-in-prim-decl"]
+                  external unsafe_expr: _ => _ = "#raw_stmt";
+                };
+                [@ocaml.warning "-ignored-extra-argument"]
+                J.unsafe_expr("// extract-client input.re");
+              };
+  
               [@react.component]
               let make =
                   (
