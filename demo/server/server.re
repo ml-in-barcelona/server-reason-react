@@ -21,8 +21,10 @@ let serverComponentsWithoutClientHandler = request => {
       <div className="flex flex-col items-center justify-center h-full gap-4">
         <span className="text-gray-400 text-center">
           {React.string(
-             "Return, from the server, the current time (in seconds) since",
+             "The client will fetch the server component from the server and run createFromFetch",
            )}
+          <br />
+          {React.string("asking for the current time (in seconds) since")}
           <br />
           {React.string("00:00:00 GMT, Jan. 1, 1970")}
         </span>
@@ -93,6 +95,7 @@ module Section = {
          </p>
        | None => React.null
        }}
+      <Spacer bottom=4 />
       children
     </Stack>;
   };
@@ -120,11 +123,21 @@ module Page = {
 
     Lwt.return(
       <Stack gap=8 justify=`start>
-        <Section
-          title="This is a demo page"
-          description="used to debug server-side RSC and client-side client components and their client props!">
-          React.null
-        </Section>
+        <Stack gap=2 justify=`start>
+          <h1
+            className={Cx.make([
+              "text-5xl",
+              "font-bold",
+              Theme.text(Theme.Color.white),
+            ])}>
+            {React.string("RSC + SSR demo page")}
+          </h1>
+          <p className={Theme.text(Theme.Color.brokenWhite)}>
+            {React.string(
+               "Page to debug server-side RSC and client-side client components and their client props encodings",
+             )}
+          </p>
+        </Stack>
         <Hr />
         <Section
           title="Counter" description="Passing int into a client component">
@@ -156,7 +169,6 @@ module Page = {
           description="Sending a promise from the server to the client">
           <Promise_renderer promise=promiseIn4 />
         </Section>
-        <Hr />
       </Stack>,
     );
   };
