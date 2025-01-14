@@ -50,7 +50,7 @@ let make =
         <p>
           {string_list
            |> Array.of_list
-           |> Array.map(item => <span> {React.string(item)} </span>)
+           |> Array.map(item => <span key=item> {React.string(item)} </span>)
            |> React.array}
         </p>
       </pre>
