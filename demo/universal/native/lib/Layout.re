@@ -4,9 +4,10 @@ let make = (~children, ~background) => {
     className={Cx.make([
       "m-0",
       "p-8",
-      "w-[100vw]",
+      "min-w-[100vw]",
+      "w-full",
       "min-h-[100vh]",
-      "h-[100%]",
+      "h-full",
       "flex",
       "flex-col",
       "items-center",

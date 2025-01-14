@@ -2,14 +2,6 @@
 
 open Ppx_deriving_json_runtime.Primitives;
 
-module Promise_renderer = {
-  [@react.component]
-  let make = (~promise: Js.Promise.t(string)) => {
-    let value = React.Experimental.use(promise);
-    <div> {React.string(value)} </div>;
-  };
-};
-
 [@react.client.component]
 let make =
     (
@@ -68,9 +60,7 @@ let make =
       <pre>
         <span> {React.string("Promise")} </span>
         <br />
-        <React.Suspense fallback={<div> {React.string("Loading...")} </div>}>
-          <Promise_renderer promise />
-        </React.Suspense>
+        <Promise_renderer promise />
       </pre>
     </code>
   </div>;
