@@ -28,7 +28,7 @@ let ident ~loc txt = pexp_ident ~loc (longident ~loc txt)
 let make_string ~loc str = Ast_helper.Exp.constant ~loc (Ast_helper.Const.string str)
 let react_dot_component = "react.component"
 let react_dot_async_dot_component = "react.async.component"
-let client_attribute = "react.client.component"
+let react_client_component = "react.client.component"
 
 (* Helper method to look up the [@react.component] attribute *)
 let hasAttr { attr_name; _ } comparable = attr_name.txt = comparable
@@ -36,20 +36,20 @@ let hasAttr { attr_name; _ } comparable = attr_name.txt = comparable
 let hasAnyReactComponentAttribute { attr_name; _ } =
   attr_name.txt = react_dot_component
   || attr_name.txt = react_dot_async_dot_component
-  || attr_name.txt = client_attribute
+  || attr_name.txt = react_client_component
 
 (* Helper method to filter out any attribute that isn't [@react.component] *)
 let nonReactAttributes { attr_name; _ } =
   attr_name.txt <> react_dot_component
   && attr_name.txt <> react_dot_async_dot_component
-  && attr_name.txt <> client_attribute
+  && attr_name.txt <> react_client_component
 
 let hasAttrOnBinding { pvb_attributes } comparable =
   List.find_opt ~f:(fun attr -> hasAttr attr comparable) pvb_attributes <> None
 
 let isReactComponentBinding vb = hasAttrOnBinding vb react_dot_component
 let isReactAsyncComponentBinding vb = hasAttrOnBinding vb react_dot_async_dot_component
-let isReactClientComponentBinding vb = hasAttrOnBinding vb client_attribute
+let isReactClientComponentBinding vb = hasAttrOnBinding vb react_client_component
 
 let rec unwrap_children children = function
   | { pexp_desc = Pexp_construct ({ txt = Lident "[]"; _ }, None); _ } -> List.rev children
@@ -832,7 +832,7 @@ let rewrite_structure_item_for_js ctx structure_item =
   match structure_item.pstr_desc with
   (* external *)
   | Pstr_primitive ({ pval_name = { txt = _fnName }; pval_attributes; pval_type = _ } as _value_description) -> (
-      match List.filter ~f:(fun attr -> hasAttr attr client_attribute) pval_attributes with
+      match List.filter ~f:(fun attr -> hasAttr attr react_client_component) pval_attributes with
       | [] -> structure_item
       | _ ->
           let loc = structure_item.pstr_loc in
@@ -863,6 +863,29 @@ let rewrite_structure_item_for_js ctx structure_item =
         end]
   | _ -> structure_item
 
+let contains_client_component structure =
+  List.exists
+    ~f:(fun structure_item ->
+      match structure_item.pstr_desc with
+      | Pstr_value (_, value_bindings) -> List.exists ~f:isReactClientComponentBinding value_bindings
+      | _ -> false)
+    structure
+
+let raise_usage_of_client_components module_expr =
+  match module_expr.pmod_desc with
+  | Pmod_structure structure when contains_client_component structure ->
+      let loc = module_expr.pmod_loc in
+      Ast_builder.Default.pmod_structure ~loc
+        [
+          pstr_eval ~loc
+            [%expr
+              [%error
+                "can't use [@react.client.component] inside a module, only on the toplevel. Please move the make \
+                 function outside of the module."]]
+            [];
+        ]
+  | _ -> module_expr
+
 let rewrite_jsx =
   object (_)
     inherit [Expansion_context.Base.t] Ppxlib.Ast_traverse.map_with_context as super
@@ -875,7 +898,12 @@ let rewrite_jsx =
     method! signature_item ctx signature_item =
       match mode.contents with
       | Native -> rewrite_signature_item (super#signature_item ctx signature_item)
-      | Js -> signature_item
+      | Js -> super#signature_item ctx signature_item
+
+    method! module_expr ctx module_expr =
+      match mode.contents with
+      | Js -> super#module_expr ctx (raise_usage_of_client_components module_expr)
+      | Native -> super#module_expr ctx module_expr
 
     method! expression ctx expr =
       let expr = super#expression ctx expr in
