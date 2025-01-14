@@ -11,16 +11,11 @@ type manifest_item = { original_path : string; compiled_js_path : string; module
 type manifest = manifest_item list
 
 (* // extract-client input.re Prop_with_many_annotation *)
-(* Parse a single line using Scanf *)
 let parse_line line =
   try
-    (* Try to parse with prop_name *)
-    Scanf.sscanf line "// extract-client %s %s" (fun filename prop_name -> Ok (filename, Some prop_name))
-  with End_of_file | Scanf.Scan_failure _ -> (
-    try
-      (* Try to parse without prop_name *)
-      Scanf.sscanf line "// extract-client %s" (fun filename -> Ok (filename, None))
-    with End_of_file | Scanf.Scan_failure _ -> Error "Invalid extract command format")
+    Scanf.sscanf line "// extract-client %s %s" (fun filename module_name ->
+        Ok (filename, if module_name = "" then None else Some module_name))
+  with End_of_file | Scanf.Scan_failure _ -> Error "Invalid extract command format"
 
 let parse_manifest_data ~path content : manifest_item list =
   String.split_on_char '\n' content
@@ -37,7 +32,11 @@ let render_manifest ~path (manifest : manifest) =
           |> Filename.remove_extension (* Removes ".re" extension *)
         in *)
         let export =
-          match module_name with Some name -> Printf.sprintf "%s.make_client" name | None -> "make_client"
+          match module_name with
+          | Some name ->
+              ignore @@ failwith @@ Printf.sprintf "module name is '%s'" name;
+              Printf.sprintf "%s.make_client" name
+          | None -> "make_client"
         in
         Printf.sprintf
           "window.__client_manifest_map[\"%s\"] = React.lazy(() => import(\"./%s\").then(module => {\n\

@@ -850,7 +850,7 @@ let rewrite_structure_item_for_js ctx structure_item =
       let fileName =
         if String.ends_with ~suffix:".re.ml" fileName then Filename.chop_extension fileName else fileName
       in
-      let comment = Printf.sprintf "// extract-info %s" fileName in
+      let comment = Printf.sprintf "// extract-client %s" fileName in
       let raw = estring ~loc comment in
       let extract_client_raw = [%stri [%%raw [%e raw]]] in
       [%stri

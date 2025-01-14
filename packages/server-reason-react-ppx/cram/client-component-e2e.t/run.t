@@ -134,199 +134,185 @@
             let _ = lola_to_json;
           };
   
-  module Prop_with_many_annotation = {
-    include {
-              {
-                module J = {
-                  [@ocaml.warning "-unboxable-type-in-prim-decl"]
-                  external unsafe_expr: _ => _ = "#raw_stmt";
-                };
-                [@ocaml.warning "-ignored-extra-argument"]
-                J.unsafe_expr("// extract-info input.re");
+  include {
+            {
+              module J = {
+                [@ocaml.warning "-unboxable-type-in-prim-decl"]
+                external unsafe_expr: _ => _ = "#raw_stmt";
               };
+              [@ocaml.warning "-ignored-extra-argument"]
+              J.unsafe_expr("// extract-client input.re");
+            };
   
-              [@ocaml.warning "-unboxable-type-in-prim-decl"]
-              external makeProps:
-                (
-                  ~initial: int,
-                  ~lola: lola,
-                  ~children: React.element,
-                  ~promise: Js.Promise.t(string),
-                  ~key: string=?,
-                  unit
-                ) =>
-                {
-                  .
-                  "initial": int,
-                  "lola": lola,
-                  "children": React.element,
-                  "promise": Js.Promise.t(string),
-                } =
-                ""
-                "\132\149\166\190\000\000\000=\000\000\000\023\000\000\000@\000\000\000<\145\160\160A\144'initial\160\160A\144$lola\160\160A\144(children\160\160A\144'promise\160\160A\161#key@\160\160@@@";
-              let make =
-                [@warning "-16"]
-                (
-                  (~initial: int) =>
-                    [@warning "-16"]
-                    (
-                      (~lola: lola) =>
-                        [@warning "-16"]
-                        (
-                          (~children: React.element) =>
-                            [@warning "-16"]
-                            (
-                              (~promise: Js.Promise.t(string)) => {
-                                let value =
-                                  [@ocaml.warning "-ignored-extra-argument"]
-                                  [@ocaml.warning "-ignored-extra-argument"]
-                                  React.Experimental.use(promise);
+            [@ocaml.warning "-unboxable-type-in-prim-decl"]
+            external makeProps:
+              (
+                ~initial: int,
+                ~lola: lola,
+                ~children: React.element,
+                ~promise: Js.Promise.t(string),
+                ~key: string=?,
+                unit
+              ) =>
+              {
+                .
+                "initial": int,
+                "lola": lola,
+                "children": React.element,
+                "promise": Js.Promise.t(string),
+              } =
+              ""
+              "\132\149\166\190\000\000\000=\000\000\000\023\000\000\000@\000\000\000<\145\160\160A\144'initial\160\160A\144$lola\160\160A\144(children\160\160A\144'promise\160\160A\161#key@\160\160@@@";
+            let make =
+              [@warning "-16"]
+              (
+                (~initial: int) =>
+                  [@warning "-16"]
+                  (
+                    (~lola: lola) =>
+                      [@warning "-16"]
+                      (
+                        (~children: React.element) =>
+                          [@warning "-16"]
+                          (
+                            (~promise: Js.Promise.t(string)) => {
+                              let value =
                                 [@ocaml.warning "-ignored-extra-argument"]
                                 [@ocaml.warning "-ignored-extra-argument"]
-                                ReactDOM.jsxs(
-                                  "div",
-                                  [@ocaml.warning "-ignored-extra-argument"]
-                                  [@ocaml.warning "-ignored-extra-argument"]
-                                  ([@merlin.hide] ReactDOM.domProps)(
-                                    ~children=
+                                React.Experimental.use(promise);
+                              [@ocaml.warning "-ignored-extra-argument"]
+                              [@ocaml.warning "-ignored-extra-argument"]
+                              ReactDOM.jsxs(
+                                "div",
+                                [@ocaml.warning "-ignored-extra-argument"]
+                                [@ocaml.warning "-ignored-extra-argument"]
+                                ([@merlin.hide] ReactDOM.domProps)(
+                                  ~children=
+                                    [@ocaml.warning "-ignored-extra-argument"]
+                                    [@ocaml.warning "-ignored-extra-argument"]
+                                    React.array([|
                                       [@ocaml.warning "-ignored-extra-argument"]
                                       [@ocaml.warning "-ignored-extra-argument"]
-                                      React.array([|
-                                        [@ocaml.warning
-                                          "-ignored-extra-argument"
-                                        ]
-                                        [@ocaml.warning
-                                          "-ignored-extra-argument"
-                                        ]
-                                        React.string(lola.name),
-                                        [@ocaml.warning
-                                          "-ignored-extra-argument"
-                                        ]
-                                        [@ocaml.warning
-                                          "-ignored-extra-argument"
-                                        ]
-                                        React.int(initial),
-                                        children,
-                                        [@ocaml.warning
-                                          "-ignored-extra-argument"
-                                        ]
-                                        [@ocaml.warning
-                                          "-ignored-extra-argument"
-                                        ]
-                                        React.string(value),
-                                      |]),
-                                    (),
-                                  ),
-                                );
-                              }
-                            )
-                        )
-                    )
-                );
-              let make = {
-                let Input$Prop_with_many_annotation =
-                    (
-                      Props: {
-                        .
-                        "initial": int,
-                        "lola": lola,
-                        "children": React.element,
-                        "promise": Js.Promise.t(string),
-                      },
-                    ) =>
-                  [@ocaml.warning "-ignored-extra-argument"]
-                  [@ocaml.warning "-ignored-extra-argument"]
-                  make(
-                    ~promise=
-                      (
-                        [@ocaml.warning "-ignored-extra-argument"]
-                        Js.Private.Js_OO.unsafe_downgrade(Props)
-                      )#
-                        promise,
-                    ~children=
-                      (
-                        [@ocaml.warning "-ignored-extra-argument"]
-                        Js.Private.Js_OO.unsafe_downgrade(Props)
-                      )#
-                        children,
-                    ~lola=
-                      (
-                        [@ocaml.warning "-ignored-extra-argument"]
-                        Js.Private.Js_OO.unsafe_downgrade(Props)
-                      )#
-                        lola,
-                    ~initial=
-                      (
-                        [@ocaml.warning "-ignored-extra-argument"]
-                        Js.Private.Js_OO.unsafe_downgrade(Props)
-                      )#
-                        initial,
-                  );
-                Input$Prop_with_many_annotation;
-              };
-              let make_client = props =>
+                                      React.string(lola.name),
+                                      [@ocaml.warning "-ignored-extra-argument"]
+                                      [@ocaml.warning "-ignored-extra-argument"]
+                                      React.int(initial),
+                                      children,
+                                      [@ocaml.warning "-ignored-extra-argument"]
+                                      [@ocaml.warning "-ignored-extra-argument"]
+                                      React.string(value),
+                                    |]),
+                                  (),
+                                ),
+                              );
+                            }
+                          )
+                      )
+                  )
+              );
+            let make = {
+              let Input =
+                  (
+                    Props: {
+                      .
+                      "initial": int,
+                      "lola": lola,
+                      "children": React.element,
+                      "promise": Js.Promise.t(string),
+                    },
+                  ) =>
                 [@ocaml.warning "-ignored-extra-argument"]
                 [@ocaml.warning "-ignored-extra-argument"]
                 make(
-                  {
-                    module J = {
-                      [@ocaml.warning "-unboxable-type-in-prim-decl"]
-                      [@ocaml.warning "-unboxable-type-in-prim-decl"]
-                      external unsafe_expr:
-                        (
-                          ~promise: 'a0,
-                          ~children: 'a1,
-                          ~lola: 'a2,
-                          ~initial: 'a3
-                        ) =>
-                        {
-                          .
-                          "promise": 'a0,
-                          "children": 'a1,
-                          "lola": 'a2,
-                          "initial": 'a3,
-                        } =
-                        ""
-                        "\132\149\166\190\000\000\0000\000\000\000\017\000\000\000/\000\000\000+\145\160\160A\144'promise\160\160A\144(children\160\160A\144$lola\160\160A\144'initial@";
-                    };
-                    [@ocaml.warning "-ignored-extra-argument"]
-                    [@ocaml.warning "-ignored-extra-argument"]
-                    J.unsafe_expr(
-                      ~promise=(
-                                 [@ocaml.warning "-ignored-extra-argument"]
-                                 Js.Private.Js_OO.unsafe_downgrade(props)
-                               )#
-                                 promise: Js.Promise.t(string),
-                      ~children=(
-                                  [@ocaml.warning "-ignored-extra-argument"]
-                                  Js.Private.Js_OO.unsafe_downgrade(props)
-                                )#
-                                  children: React.element,
-                      ~lola=
-                        [@ocaml.warning "-ignored-extra-argument"]
-                        [@ocaml.warning "-ignored-extra-argument"]
-                        lola_of_json(
-                          (
-                            [@ocaml.warning "-ignored-extra-argument"]
-                            Js.Private.Js_OO.unsafe_downgrade(props)
-                          )#
-                            lola,
-                        ),
-                      ~initial=
-                        [@ocaml.warning "-ignored-extra-argument"]
-                        [@ocaml.warning "-ignored-extra-argument"]
-                        int_of_json(
-                          (
-                            [@ocaml.warning "-ignored-extra-argument"]
-                            Js.Private.Js_OO.unsafe_downgrade(props)
-                          )#
-                            initial,
-                        ),
-                    );
-                  },
+                  ~promise=
+                    (
+                      [@ocaml.warning "-ignored-extra-argument"]
+                      Js.Private.Js_OO.unsafe_downgrade(Props)
+                    )#
+                      promise,
+                  ~children=
+                    (
+                      [@ocaml.warning "-ignored-extra-argument"]
+                      Js.Private.Js_OO.unsafe_downgrade(Props)
+                    )#
+                      children,
+                  ~lola=
+                    (
+                      [@ocaml.warning "-ignored-extra-argument"]
+                      Js.Private.Js_OO.unsafe_downgrade(Props)
+                    )#
+                      lola,
+                  ~initial=
+                    (
+                      [@ocaml.warning "-ignored-extra-argument"]
+                      Js.Private.Js_OO.unsafe_downgrade(Props)
+                    )#
+                      initial,
                 );
+              Input;
             };
-  };
+            let make_client = props =>
+              [@ocaml.warning "-ignored-extra-argument"]
+              [@ocaml.warning "-ignored-extra-argument"]
+              make(
+                {
+                  module J = {
+                    [@ocaml.warning "-unboxable-type-in-prim-decl"]
+                    [@ocaml.warning "-unboxable-type-in-prim-decl"]
+                    external unsafe_expr:
+                      (
+                        ~promise: 'a0,
+                        ~children: 'a1,
+                        ~lola: 'a2,
+                        ~initial: 'a3
+                      ) =>
+                      {
+                        .
+                        "promise": 'a0,
+                        "children": 'a1,
+                        "lola": 'a2,
+                        "initial": 'a3,
+                      } =
+                      ""
+                      "\132\149\166\190\000\000\0000\000\000\000\017\000\000\000/\000\000\000+\145\160\160A\144'promise\160\160A\144(children\160\160A\144$lola\160\160A\144'initial@";
+                  };
+                  [@ocaml.warning "-ignored-extra-argument"]
+                  [@ocaml.warning "-ignored-extra-argument"]
+                  J.unsafe_expr(
+                    ~promise=(
+                               [@ocaml.warning "-ignored-extra-argument"]
+                               Js.Private.Js_OO.unsafe_downgrade(props)
+                             )#
+                               promise: Js.Promise.t(string),
+                    ~children=(
+                                [@ocaml.warning "-ignored-extra-argument"]
+                                Js.Private.Js_OO.unsafe_downgrade(props)
+                              )#
+                                children: React.element,
+                    ~lola=
+                      [@ocaml.warning "-ignored-extra-argument"]
+                      [@ocaml.warning "-ignored-extra-argument"]
+                      lola_of_json(
+                        (
+                          [@ocaml.warning "-ignored-extra-argument"]
+                          Js.Private.Js_OO.unsafe_downgrade(props)
+                        )#
+                          lola,
+                      ),
+                    ~initial=
+                      [@ocaml.warning "-ignored-extra-argument"]
+                      [@ocaml.warning "-ignored-extra-argument"]
+                      int_of_json(
+                        (
+                          [@ocaml.warning "-ignored-extra-argument"]
+                          Js.Private.Js_OO.unsafe_downgrade(props)
+                        )#
+                          initial,
+                      ),
+                  );
+                },
+              );
+          };
 
   $ cat _build/default/js/input.js
   // Generated by Melange
@@ -352,9 +338,9 @@
           };
   }
   
-  // extract-info input.re
+  // extract-client input.re
   
-  function Input$Prop_with_many_annotation(Props) {
+  function Input(Props) {
     var initial = Props.initial;
     var lola = Props.lola;
     var children = Props.children;
@@ -371,7 +357,7 @@
   }
   
   function make_client(props) {
-    return Input$Prop_with_many_annotation({
+    return Input({
                 promise: props.promise,
                 children: props.children,
                 lola: lola_of_json(props.lola),
@@ -379,17 +365,18 @@
               });
   }
   
-  var Prop_with_many_annotation = {
-    make: Input$Prop_with_many_annotation,
-    make_client: make_client
-  };
+  var make = Input;
   
   exports.lola_of_json = lola_of_json;
   exports.lola_to_json = lola_to_json;
-  exports.Prop_with_many_annotation = Prop_with_many_annotation;
+  exports.make = make;
+  exports.make_client = make_client;
   /* react Not a pure module */
 
   $ cat _build/default/boostrap.js
   // Generated by client_components_mapper
   const React = require("react");
   window.__client_manifest_map = window.__client_manifest_map || {};
+  window.__client_manifest_map["input.re"] = React.lazy(() => import(".//Users/davesnx/Code/github/ml-in-barcelona/server-reason-react/_build/.sandbox/08cfceceef3f7c532b45a6162b4c93cd/default/packages/server-reason-react-ppx/cram/client-component-e2e.t/_build/default/js/input.js").then(module => {
+    return { default: module.make_client }
+  }))
