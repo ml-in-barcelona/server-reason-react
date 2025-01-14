@@ -828,7 +828,7 @@ let isClientComponentBinding value_bindings =
   let first_binding = List.hd value_bindings in
   isReactClientComponentBinding first_binding
 
-let rewrite_structure_item_for_js structure_item =
+let rewrite_structure_item_for_js ctx structure_item =
   match structure_item.pstr_desc with
   (* external *)
   | Pstr_primitive ({ pval_name = { txt = _fnName }; pval_attributes; pval_type = _ } as _value_description) -> (
@@ -846,29 +846,37 @@ let rewrite_structure_item_for_js structure_item =
         { first_value_binding with pvb_attributes = [ react_component_attribute ~loc:first_value_binding.pvb_loc ] }
       in
       let loc = structure_item.pstr_loc in
+      let fileName = Expansion_context.Base.input_name ctx in
+      let fileName =
+        if String.ends_with ~suffix:".re.ml" fileName then Filename.chop_extension fileName else fileName
+      in
+      let comment = Printf.sprintf "// extract-info %s" fileName in
+      let raw = estring ~loc comment in
+      let extract_client_raw = [%stri [%%raw [%e raw]]] in
       [%stri
         include struct
+          [%%i extract_client_raw]
           [%%i pstr_value ~loc:structure_item.pstr_loc rec_flag [ original_value_binding ]]
           [%%i make_client_binding]
         end]
   | _ -> structure_item
 
 let rewrite_jsx =
-  object (_ : Ast_traverse.map)
-    inherit Ast_traverse.map as super
+  object (_)
+    inherit [Expansion_context.Base.t] Ppxlib.Ast_traverse.map_with_context as super
 
-    method! structure_item structure_item =
+    method! structure_item ctx structure_item =
       match mode.contents with
-      | Native -> rewrite_structure_item (super#structure_item structure_item)
-      | Js -> rewrite_structure_item_for_js (super#structure_item structure_item)
+      | Native -> rewrite_structure_item (super#structure_item ctx structure_item)
+      | Js -> rewrite_structure_item_for_js ctx (super#structure_item ctx structure_item)
 
-    method! signature_item signature_item =
+    method! signature_item ctx signature_item =
       match mode.contents with
-      | Native -> rewrite_signature_item (super#signature_item signature_item)
+      | Native -> rewrite_signature_item (super#signature_item ctx signature_item)
       | Js -> signature_item
 
-    method! expression expr =
-      let expr = super#expression expr in
+    method! expression ctx expr =
+      let expr = super#expression ctx expr in
       match mode.contents with
       | Js -> expr
       | Native -> (
@@ -909,5 +917,5 @@ let rewrite_jsx =
 
 let () =
   Driver.add_arg "-js" (Unit (fun () -> mode := Js)) ~doc:"preprocess for js build";
-  Ppxlib.Driver.register_transformation "server-reason-react.ppx" ~preprocess_impl:rewrite_jsx#structure
+  Ppxlib.Driver.V2.register_transformation "server-reason-react.ppx" ~preprocess_impl:rewrite_jsx#structure
     ~preprocess_intf:rewrite_jsx#signature
