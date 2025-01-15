@@ -21,8 +21,10 @@ let serverComponentsWithoutClientHandler = request => {
       <div className="flex flex-col items-center justify-center h-full gap-4">
         <span className="text-gray-400 text-center">
           {React.string(
-             "Return, from the server, the current time (in seconds) since",
+             "The client will fetch the server component from the server and run createFromFetch",
            )}
+          <br />
+          {React.string("asking for the current time (in seconds) since")}
           <br />
           {React.string("00:00:00 GMT, Jan. 1, 1970")}
         </span>
@@ -93,55 +95,91 @@ module Section = {
          </p>
        | None => React.null
        }}
+      <Spacer bottom=4 />
       children
     </Stack>;
+  };
+};
+
+module AppRouter = {
+  [@react.component]
+  let make = (~children) => {
+    <Layout background=Theme.Color.black> children </Layout>;
   };
 };
 
 module Page = {
   [@react.async.component]
   let make = () => {
-    let%lwt () = Lwt_unix.sleep(1.0);
+    let promiseIn2 =
+      Lwt.bind(Lwt_unix.sleep(2.0), _ =>
+        Lwt.return("Solusionao in 2 seconds!")
+      );
+
+    let promiseIn4 =
+      Lwt.bind(Lwt_unix.sleep(4.0), _ =>
+        Lwt.return("Solusionao in 4 seconds!")
+      );
+
     Lwt.return(
-      <Layout background=Theme.Color.black>
-        <Stack gap=8 justify=`start>
-          <Section
-            title="This is a demo page"
-            description="used to debug server-side RSC and client-side client components and their client props!">
-            React.null
-          </Section>
-          <Hr />
-          <Section
-            title="Counter" description="Passing int into a client component">
-            <Counter initial=45 />
-          </Section>
-          <Hr />
-          <Section
-            title="Debug primitive props"
-            description="Passing primitive props into a client component">
-            <Debug_props
-              string="Title"
-              int=1
-              float=1.1
-              bool_true=true
-              bool_false=false
-              string_array=[|"Item 1", "Item 2"|]
-              string_list=["Item 1", "Item 2"]
-            />
-          </Section>
-          <Hr />
+      <Stack gap=8 justify=`start>
+        <Stack gap=2 justify=`start>
+          <h1
+            className={Cx.make([
+              "text-5xl",
+              "font-bold",
+              Theme.text(Theme.Color.white),
+            ])}>
+            {React.string("RSC + SSR demo page")}
+          </h1>
+          <p className={Theme.text(Theme.Color.brokenWhite)}>
+            {React.string(
+               "Page to debug server-side RSC and client-side client components and their client props encodings",
+             )}
+          </p>
         </Stack>
-      </Layout>,
+        <Hr />
+        <Section
+          title="Counter" description="Passing int into a client component">
+          <Counter initial=45 />
+        </Section>
+        <Hr />
+        <Section
+          title="Debug client props"
+          description="Passing client props into a client component">
+          <Debug_props
+            string="Title"
+            int=1
+            float=1.1
+            bool_true=true
+            bool_false=false
+            header={Some(<div> {React.string("H E A D E R")} </div>)}
+            string_list=["Item 1", "Item 2"]
+            promise=promiseIn2>
+            <div>
+              {React.string(
+                 "This footer is a React.element as a server component into client prop, yay!",
+               )}
+            </div>
+          </Debug_props>
+        </Section>
+        <Hr />
+        <Section
+          title="Pass another promise prop"
+          description="Sending a promise from the server to the client">
+          <Promise_renderer promise=promiseIn4 />
+        </Section>
+      </Stack>,
     );
   };
 };
 
 let serverComponentsHandler = request => {
-  let app = <Page />;
+  let app = <AppRouter> <Page /> </AppRouter>;
   switch (Dream.header(request, "Accept")) {
   | Some(accept) when is_react_component_header(accept) =>
     stream_rsc(stream => {
-      let%lwt _initial =
+      let%lwt _stream =
         ReactServerDOM.render_to_model(
           app,
           ~subscribe=chunk => {

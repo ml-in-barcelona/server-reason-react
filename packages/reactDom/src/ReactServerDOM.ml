@@ -341,7 +341,7 @@ let rec to_html ~fiber (element : React.element) : (Html.element * json) Lwt.t =
                 let async : Html.element Lwt.t =
                   let%lwt value = promise in
                   let json = value_to_json value in
-                  let ret = chunk_script (Model.client_reference_to_chunk index json) in
+                  let ret = chunk_script (Model.model_to_chunk index json) in
                   Lwt.return ret
                 in
                 context.pending <- context.pending + 1;

@@ -86,22 +86,44 @@
             let _ = lola_to_json;
           };
   
-  module Prop_with_many_annotation = {
-    let make = (~key as _: option(string)=?, ~initial: int, ~lola: lola, ()) =>
-      React.Client_component({
-        import_module: __FILE__,
-        import_name: "",
-        props: [
-          ("initial", React.Json(int_to_json(initial))),
-          ("lola", React.Json(lola_to_json(lola))),
-        ],
-        client:
-          React.createElement(
-            "div",
-            [],
-            [React.string(lola.name), React.int(initial)],
-          ),
-      });
-  };
+  let make =
+      (
+        ~key as _: option(string)=?,
+        ~initial: int,
+        ~lola: lola,
+        ~children: React.element,
+        ~maybe_children: option(React.element),
+        (),
+      ) =>
+    React.Client_component({
+      import_module: __FILE__,
+      import_name: "",
+      props: [
+        ("initial", React.Json(int_to_json(initial))),
+        ("lola", React.Json(lola_to_json(lola))),
+        ("children", React.Element(children: React.element)),
+        (
+          "maybe_children",
+          switch (maybe_children) {
+          | Some(prop) => React.Element(prop: React.element)
+          | None => React.Json(`Null)
+          },
+        ),
+      ],
+      client:
+        React.createElement(
+          "section",
+          [],
+          [
+            React.createElement("h1", [], [React.string(lola.name)]),
+            React.createElement("p", [], [React.int(initial)]),
+            React.createElement("div", [], [children]),
+            switch (maybe_children) {
+            | Some(children) => children
+            | None => React.null
+            },
+          ],
+        ),
+    });
   
-  let _ = Prop_with_many_annotation.make(~initial=1, ~lola={name: "lola"}, ());
+  let _ = make;

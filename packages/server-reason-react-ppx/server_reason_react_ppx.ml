@@ -28,7 +28,7 @@ let ident ~loc txt = pexp_ident ~loc (longident ~loc txt)
 let make_string ~loc str = Ast_helper.Exp.constant ~loc (Ast_helper.Const.string str)
 let react_dot_component = "react.component"
 let react_dot_async_dot_component = "react.async.component"
-let client_attribute = "react.client.component"
+let react_client_component = "react.client.component"
 
 (* Helper method to look up the [@react.component] attribute *)
 let hasAttr { attr_name; _ } comparable = attr_name.txt = comparable
@@ -36,20 +36,20 @@ let hasAttr { attr_name; _ } comparable = attr_name.txt = comparable
 let hasAnyReactComponentAttribute { attr_name; _ } =
   attr_name.txt = react_dot_component
   || attr_name.txt = react_dot_async_dot_component
-  || attr_name.txt = client_attribute
+  || attr_name.txt = react_client_component
 
 (* Helper method to filter out any attribute that isn't [@react.component] *)
 let nonReactAttributes { attr_name; _ } =
   attr_name.txt <> react_dot_component
   && attr_name.txt <> react_dot_async_dot_component
-  && attr_name.txt <> client_attribute
+  && attr_name.txt <> react_client_component
 
 let hasAttrOnBinding { pvb_attributes } comparable =
   List.find_opt ~f:(fun attr -> hasAttr attr comparable) pvb_attributes <> None
 
 let isReactComponentBinding vb = hasAttrOnBinding vb react_dot_component
 let isReactAsyncComponentBinding vb = hasAttrOnBinding vb react_dot_async_dot_component
-let isReactClientComponentBinding vb = hasAttrOnBinding vb client_attribute
+let isReactClientComponentBinding vb = hasAttrOnBinding vb react_client_component
 
 let rec unwrap_children children = function
   | { pexp_desc = Pexp_construct ({ txt = Lident "[]"; _ }, None); _ } -> List.rev children
@@ -546,8 +546,31 @@ let rec make_of_json ~loc (type_ : core_type) value =
       | Ptyp_any -> error_not_supported ~loc ~type_name:"'_' annotations" *)
    | _ -> [%expr [%ocaml.error "server-reason-react: unsupported type"]]
 *)
+let make_of_json ~loc (core_type : core_type) prop =
+  match core_type with
+  (* QUESTION: How can we handle optionals and others? Need a [@deriving rsc] for them? We currently encode None's as React.Json `Null, should be enought *)
+  | [%type: React.element] -> [%expr ([%e prop] : React.element)]
+  | [%type: React.element option] -> [%expr ([%e prop] : React.element option)]
+  (* TODO: Add promise caching? When is it needed? *)
+  (* | [%type: [%t? t] Js.Promise.t] ->
+    [%expr
+      let promise = [%e prop] in
+      let promise' = (Obj.magic promise : [%t t] Js.Promise.t Js.Dict.t) in
+      match Js.Dict.get promise' "__promise" with
+      | Some promise -> promise
+      | None ->
+          let promise =
+            Promise.(
+              let* json = (Obj.magic (Js.Promise.resolve promise) : Realm.Json.t Promise.t) in
+              let data = [%of_json: [%t t]] json in
+              return data)
+          in
+          Js.Dict.set promise' "__promise" promise;
+          promise] *)
+  | [%type: [%t? t] Js.Promise.t] -> [%expr ([%e prop] : [%t t] Js.Promise.t)]
+  | type_ -> [%expr [%of_json: [%t type_]] [%e prop]]
 
-let props_of_json ~loc (props : (arg_label * pattern) list) : (longident loc * expression) list =
+let props_of_model ~loc (props : (arg_label * pattern) list) : (longident loc * expression) list =
   List.map
     ~f:(fun (arg_label, pattern) ->
       match pattern.ppat_desc with
@@ -560,10 +583,22 @@ let props_of_json ~loc (props : (arg_label * pattern) list) : (longident loc * e
           | Labelled label | Optional label ->
               let _name = estring ~loc label in
               let prop = [%expr props##[%e ident ~loc label]] in
-              (* let _fn = make_of_json ~loc core_type prop in *)
-              let fn = [%expr [%of_json: [%t core_type]] [%e prop]] in
-              (longident ~loc label, pexp_apply ~loc:pattern.ppat_loc fn []))
-      | _ -> (longident ~loc "error", [%expr "FAIL HARD"]))
+              let value = make_of_json ~loc core_type prop in
+              (longident ~loc label, value))
+      | _ ->
+          let loc = pattern.ppat_loc in
+          let expr =
+            match arg_label with
+            | Nolabel -> [%expr [%ocaml.error "server-reason-react: client components need type annotations"]]
+            | Labelled label | Optional label ->
+                let msg =
+                  Printf.sprintf
+                    "server-reason-react: client components need type annotations. Missing annotation for '%s'" label
+                in
+                let msg_expr = estring ~loc msg in
+                [%expr [%ocaml.error [%e msg_expr]]]
+          in
+          (longident ~loc "error", expr))
     props
 
 let react_component_attribute ~loc =
@@ -578,7 +613,7 @@ let expand_make_binding_to_client binding =
   let loc = binding.pvb_loc in
   let ghost_loc = { binding.pvb_loc with loc_ghost = true } in
   let labelled_arguments = get_labelled_arguments binding.pvb_expr in
-  let props_as_object_with_decoders = mel_obj ~loc (props_of_json ~loc labelled_arguments) in
+  let props_as_object_with_decoders = mel_obj ~loc (props_of_model ~loc labelled_arguments) in
   let make_argument = [ (Nolabel, props_as_object_with_decoders) ] in
   let make_call = pexp_apply ~loc:ghost_loc [%expr make] make_argument in
   let name = ppat_var ~loc:ghost_loc { txt = "make_client"; loc = ghost_loc } in
@@ -697,6 +732,21 @@ let error_not_supported ~loc ~type_name =
    | Ptyp_package _ -> error_not_supported ~loc ~type_name:"modules"
    | Ptyp_poly _ -> error_not_supported ~loc ~type_name:"polymorphic types"
    | Ptyp_any -> error_not_supported ~loc ~type_name:"'_' annotations" *)
+let make_to_json ~loc (core_type : core_type) prop =
+  match core_type with
+  | [%type: React.element] -> [%expr React.Element ([%e prop] : React.element)]
+  | [%type: React.element option] ->
+      [%expr match [%e prop] with Some prop -> React.Element (prop : React.element) | None -> React.Json `Null]
+  | [%type: [%t? inner_type] Js.Promise.t] ->
+      let json = [%expr [%to_json: [%t inner_type]]] in
+      [%expr React.Promise ([%e prop], [%e json])]
+  | [%type: [%t? inner_type] Js.Promise.t option] ->
+      let json = [%expr [%to_json: [%t inner_type]]] in
+      [%expr
+        match [%e prop] with Some prop -> [%expr React.Promise ([%e prop], [%e json])] | None -> React.Json `Null]
+  | _ ->
+      let json = [%expr [%to_json: [%t core_type]] [%e prop]] in
+      [%expr React.Json [%e json]]
 
 let props_to_model ~loc (props : (arg_label * pattern) list) =
   List.fold_left ~init:[%expr []]
@@ -709,20 +759,9 @@ let props_to_model ~loc (props : (arg_label * pattern) list) =
               let loc = pattern.ppat_loc in
               [%expr [%ocaml.error "props need to be labelled arguments"] :: [%e acc]]
           | Labelled label | Optional label ->
-              let name = estring ~loc label in
               let prop = ident ~loc label in
-              let value =
-                match core_type with
-                | [%type: React.element] -> [%expr React.Element [%e prop]]
-                | [%type: [%t? inner_type] Js.Promise.t] ->
-                    (* let json = make_to_yojson ~loc inner_type prop in *)
-                    let json = [%expr [%to_json: [%t inner_type]] [%e prop]] in
-                    [%expr React.Promise ([%e prop], [%e json])]
-                | _ ->
-                    (* let json = make_to_yojson ~loc core_type prop in *)
-                    let json = [%expr [%to_json: [%t core_type]] [%e prop]] in
-                    [%expr React.Json [%e json]]
-              in
+              let value = make_to_json ~loc core_type prop in
+              let name = estring ~loc label in
               [%expr ([%e name], [%e value]) :: [%e acc]])
       (* TODO: Add all ppat_desc possibilities *)
       | _ ->
@@ -789,11 +828,11 @@ let isClientComponentBinding value_bindings =
   let first_binding = List.hd value_bindings in
   isReactClientComponentBinding first_binding
 
-let rewrite_structure_item_for_js structure_item =
+let rewrite_structure_item_for_js ctx structure_item =
   match structure_item.pstr_desc with
   (* external *)
   | Pstr_primitive ({ pval_name = { txt = _fnName }; pval_attributes; pval_type = _ } as _value_description) -> (
-      match List.filter ~f:(fun attr -> hasAttr attr client_attribute) pval_attributes with
+      match List.filter ~f:(fun attr -> hasAttr attr react_client_component) pval_attributes with
       | [] -> structure_item
       | _ ->
           let loc = structure_item.pstr_loc in
@@ -807,29 +846,67 @@ let rewrite_structure_item_for_js structure_item =
         { first_value_binding with pvb_attributes = [ react_component_attribute ~loc:first_value_binding.pvb_loc ] }
       in
       let loc = structure_item.pstr_loc in
+      let fileName = Expansion_context.Base.input_name ctx in
+      let fileName =
+        if String.ends_with ~suffix:".re.ml" fileName then Filename.chop_extension fileName else fileName
+      in
+      (* We need to add a nasty hack here, since have different files for native and melange. We assume that the file structure is native/lib and js, and replace the name directly. This is supposed to be temporal, during dune implements the https://github.com/ocaml/dune/issues/10630 *)
+      let fileName = Str.replace_first (Str.regexp {|/js/|}) "/native/lib/" fileName in
+      let comment = Printf.sprintf "// extract-client %s" fileName in
+      let raw = estring ~loc comment in
+      let extract_client_raw = [%stri [%%raw [%e raw]]] in
       [%stri
         include struct
+          [%%i extract_client_raw]
           [%%i pstr_value ~loc:structure_item.pstr_loc rec_flag [ original_value_binding ]]
           [%%i make_client_binding]
         end]
   | _ -> structure_item
 
+let contains_client_component structure =
+  List.exists
+    ~f:(fun structure_item ->
+      match structure_item.pstr_desc with
+      | Pstr_value (_, value_bindings) -> List.exists ~f:isReactClientComponentBinding value_bindings
+      | _ -> false)
+    structure
+
+let raise_usage_of_client_components module_expr =
+  match module_expr.pmod_desc with
+  | Pmod_structure structure when contains_client_component structure ->
+      let loc = module_expr.pmod_loc in
+      Ast_builder.Default.pmod_structure ~loc
+        [
+          pstr_eval ~loc
+            [%expr
+              [%error
+                "can't use [@react.client.component] inside a module, only on the toplevel. Please move the make \
+                 function outside of the module."]]
+            [];
+        ]
+  | _ -> module_expr
+
 let rewrite_jsx =
-  object (_ : Ast_traverse.map)
-    inherit Ast_traverse.map as super
+  object (_)
+    inherit [Expansion_context.Base.t] Ppxlib.Ast_traverse.map_with_context as super
 
-    method! structure_item structure_item =
+    method! structure_item ctx structure_item =
       match mode.contents with
-      | Native -> rewrite_structure_item (super#structure_item structure_item)
-      | Js -> rewrite_structure_item_for_js (super#structure_item structure_item)
+      | Native -> rewrite_structure_item (super#structure_item ctx structure_item)
+      | Js -> rewrite_structure_item_for_js ctx (super#structure_item ctx structure_item)
 
-    method! signature_item signature_item =
+    method! signature_item ctx signature_item =
       match mode.contents with
-      | Native -> rewrite_signature_item (super#signature_item signature_item)
-      | Js -> signature_item
+      | Native -> rewrite_signature_item (super#signature_item ctx signature_item)
+      | Js -> super#signature_item ctx signature_item
 
-    method! expression expr =
-      let expr = super#expression expr in
+    method! module_expr ctx module_expr =
+      match mode.contents with
+      | Js -> super#module_expr ctx (raise_usage_of_client_components module_expr)
+      | Native -> super#module_expr ctx module_expr
+
+    method! expression ctx expr =
+      let expr = super#expression ctx expr in
       match mode.contents with
       | Js -> expr
       | Native -> (
@@ -870,5 +947,5 @@ let rewrite_jsx =
 
 let () =
   Driver.add_arg "-js" (Unit (fun () -> mode := Js)) ~doc:"preprocess for js build";
-  Ppxlib.Driver.register_transformation "server-reason-react.ppx" ~preprocess_impl:rewrite_jsx#structure
+  Ppxlib.Driver.V2.register_transformation "server-reason-react.ppx" ~preprocess_impl:rewrite_jsx#structure
     ~preprocess_intf:rewrite_jsx#signature

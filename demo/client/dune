@@ -36,15 +36,15 @@
 
 (rule
  (alias client)
+ (target bootstrap.js)
  (deps
   (alias_rec melange-app)
   (:input runtime-with-client.jsx)
   (:script build.mjs)
-  (:mapper
-   %{workspace_root}/packages/melange-file-mapper/client_components_mapper.exe))
+  (:extract %{bin:server_reason_react.extract_client_components}))
  (action
   (progn
-   (run %{mapper} bootstrap.js)
+   (run %{extract} app --out %{target})
    (run node %{script} %{input} "app/demo/client/")))
  (enabled_if
   (= %{profile} "dev")))
