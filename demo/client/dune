@@ -1,4 +1,6 @@
 (melange.emit
+ (enabled_if
+  (= %{profile} "dev"))
  (alias melange-app)
  (target app)
  (modules index)
@@ -6,11 +8,11 @@
  (preprocess
   (pps browser_ppx -js reason-react-ppx melange.ppx))
  (module_systems
-  (es6 js))
- (enabled_if
-  (= %{profile} "dev")))
+  (es6 js)))
 
 (rule
+ (enabled_if
+  (= %{profile} "dev"))
  (alias client)
  (deps
   (alias_rec melange-app)
@@ -18,11 +20,11 @@
  (target app.js)
  (action
   (progn
-   (run node %{script} app/demo/client/index.js %{target})))
- (enabled_if
-  (= %{profile} "dev")))
+   (run node %{script} app/demo/client/index.js %{target}))))
 
 (rule
+ (enabled_if
+  (= %{profile} "dev"))
  (alias client)
  (deps
   (alias_rec melange-app)
@@ -30,21 +32,19 @@
   (:script build.mjs))
  (action
   (progn
-   (run node %{script} %{input} "app/demo/client/")))
- (enabled_if
-  (= %{profile} "dev")))
+   (run node %{script} %{input} "app/demo/client/"))))
 
 (rule
+ (enabled_if
+  (= %{profile} "dev"))
  (alias client)
  (target bootstrap.js)
  (deps
   (alias_rec melange-app)
-  (:input runtime-with-client.jsx)
+  (:input create-from-readable-stream.jsx)
   (:script build.mjs)
   (:extract %{bin:server_reason_react.extract_client_components}))
  (action
   (progn
    (run %{extract} app --out %{target})
-   (run node %{script} %{input} "app/demo/client/")))
- (enabled_if
-  (= %{profile} "dev")))
+   (run node %{script} %{input} "app/demo/client/"))))

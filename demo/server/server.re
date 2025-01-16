@@ -219,7 +219,10 @@ let serverComponentsHandler = request => {
       Html.node(
         "script",
         [
-          Html.attribute("src", "/static/demo/client/runtime-with-client.js"),
+          Html.attribute(
+            "src",
+            "/static/demo/client/create-from-readable-stream.js",
+          ),
           Html.attribute("async", "true"),
           Html.attribute("type", "module"),
         ],

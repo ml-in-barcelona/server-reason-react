@@ -8,9 +8,9 @@
 From the root of the project, run
 
 ```bash
-# 1 terminal with `make build-demo-watch` to compile the code
-make build-demo-watch
-# 2 terminal with `make demo-watch` to serve the demo
+# 1 terminal to compile the code
+make demo-build-watch
+# 2 terminal to run the server
 make demo-serve-watch
 ```
 
