@@ -13,11 +13,11 @@ help: ## Print this help message
 
 .PHONY: build
 build: ## Build the project, including non installable libraries and executables
-	$(DUNE) build --profile=dev
+	$(DUNE) build @all --profile=dev
 
 .PHONY: build-prod
 build-prod: ## Build for production (--profile=prod)
-	$(DUNE) build --profile=prod
+	$(DUNE) build @all --profile=prod
 
 .PHONY: dev
 dev: ## Build in watch mode
