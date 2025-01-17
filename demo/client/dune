@@ -46,5 +46,7 @@
   (:extract %{bin:server_reason_react.extract_client_components}))
  (action
   (progn
-   (run %{extract} app --out %{target})
+   (with-stdout-to
+    %{target}
+    (run %{extract} app))
    (run node %{script} %{input} "app/demo/client/"))))

@@ -1,4 +1,36 @@
 import esbuild from 'esbuild';
+import Fs from 'fs/promises';
+import { execSync } from 'child_process';
+
+let extractClientComponents = (config) => ({
+  name: 'extract-client-components',
+  setup(build) {
+    build.onStart(async () => {
+      if (!config.target) {
+        console.error('target is required');
+        return;
+      }
+      if (typeof config.target !== 'string') {
+        console.error('target must be a string');
+        return;
+      }
+      const target = config.target;
+      let bootstrapContent = undefined;
+      try {
+        bootstrapContent = execSync(`server_reason_react.extract_client_components ${target}`, { encoding: 'utf8' });
+        await Fs.writeFile(
+          './boostrap.js',
+          bootstrapContent,
+          'utf8'
+        )
+      } catch (e) {
+        console.log('Extraction of client components failed:');
+        console.error(e);
+        return;
+      }
+    })
+  }
+});
 
 async function build(input, output) {
   let outdir = undefined;
@@ -23,7 +55,7 @@ async function build(input, output) {
       logLevel: 'error',
       outdir: outdir,
       outfile: outfile,
-      plugins: [],
+      plugins: [extractClientComponents({ target: 'app' })],
       write: true,
       metafile: true,
     });
