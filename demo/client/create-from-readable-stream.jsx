@@ -1,17 +1,6 @@
-window.__webpack_require__ = (id) => {
-	console.log("__webpack_require__");
-	const component = window.__client_manifest_map[id];
-	console.log(id);
-	console.log(component);
-	console.log("---");
-	return { __esModule: true, default: component };
-};
-
 const React = require("react");
 const ReactDOM = require("react-dom/client");
 const ReactServerDOM = require("react-server-dom-webpack/client");
-
-/* require("./bootstrap.js"); */
 
 class ErrorBoundary extends React.Component {
 	constructor(props) {
