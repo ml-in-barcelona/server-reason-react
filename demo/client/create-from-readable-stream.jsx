@@ -11,7 +11,7 @@ const React = require("react");
 const ReactDOM = require("react-dom/client");
 const ReactServerDOM = require("react-server-dom-webpack/client");
 
-require("./bootstrap.js");
+/* require("./bootstrap.js"); */
 
 class ErrorBoundary extends React.Component {
 	constructor(props) {

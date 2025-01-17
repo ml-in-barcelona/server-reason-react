@@ -38,11 +38,11 @@
  (enabled_if
   (= %{profile} dev))
  (alias client)
- (target bootstrap.js)
  (deps
   (alias_rec melange-app)
   (:input create-from-readable-stream.jsx)
   (:script build.mjs)
+  ../../packages/extract-client-components/esbuild-plugin.mjs
   (:extract %{bin:server_reason_react.extract_client_components}))
  (action
   (progn
