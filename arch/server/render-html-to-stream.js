@@ -1,11 +1,14 @@
 import React from "react";
 import ReactDOM from "react-dom/server";
 
-const DefferedComponent = async ({ sleep, children }) => {
-	await new Promise((res) => setTimeout(() => res(), sleep * 1000));
+const sleep = (seconds) =>
+	new Promise((res) => setTimeout(res, seconds * 1000));
+
+const DefferedComponent = async ({ by, children }) => {
+	await sleep(by);
 	return (
 		<div>
-			Sleep {sleep}s, {children}
+			Sleep {by}s, {children}
 		</div>
 	);
 };
@@ -26,14 +29,11 @@ const debug = (readableStream) => {
 	reader.read().then(debugReader);
 };
 
-const sleep = (seconds) =>
-	new Promise((res) => setTimeout(res, seconds * 1000));
-
 /* const App = () => (
 	<React.Suspense fallback="Fallback 1">
-		<DefferedComponent sleep={1}>
+		<DefferedComponent by={1}>
 			<React.Suspense fallback="Fallback 2">
-				<DefferedComponent sleep={1}>"lol"</DefferedComponent>
+				<DefferedComponent by={1}>"lol"</DefferedComponent>
 			</React.Suspense>
 		</DefferedComponent>
 	</React.Suspense>
@@ -42,17 +42,18 @@ const sleep = (seconds) =>
 /* const App = () => (
 	<div>
 		<React.Suspense fallback="Fallback 1">
-			<DefferedComponent sleep={1}>"lol"</DefferedComponent>
+			<DefferedComponent by={0}>"lol"</DefferedComponent>
 		</React.Suspense>
 	</div>
 ); */
 
-  const App = () =>
-        <>
-<main>
-		<span>{"Hi"} {"chat"}</span>
+const App = () =>
+<head>
+	<main>
+		<span>{"Hi"}</span>
+		<link href="/static/demo/client/app.css" rel="stylesheet" />
 	</main>
-</>
+</head>
 
 
 ReactDOM.renderToReadableStream(<App />).then((stream) => {
