@@ -1,6 +1,6 @@
 (melange.emit
  (enabled_if
-  (= %{profile} "dev"))
+  (= %{profile} dev))
  (alias melange-app)
  (target app)
  (modules index)
@@ -12,7 +12,7 @@
 
 (rule
  (enabled_if
-  (= %{profile} "dev"))
+  (= %{profile} dev))
  (alias client)
  (deps
   (alias_rec melange-app)
@@ -24,7 +24,7 @@
 
 (rule
  (enabled_if
-  (= %{profile} "dev"))
+  (= %{profile} dev))
  (alias client)
  (deps
   (alias_rec melange-app)
@@ -32,11 +32,11 @@
   (:script build.mjs))
  (action
   (progn
-   (run node %{script} %{input} "app/demo/client/"))))
+   (run node %{script} %{input} app/demo/client/))))
 
 (rule
  (enabled_if
-  (= %{profile} "dev"))
+  (= %{profile} dev))
  (alias client)
  (target bootstrap.js)
  (deps
@@ -49,4 +49,4 @@
    (with-stdout-to
     %{target}
     (run %{extract} app))
-   (run node %{script} %{input} "app/demo/client/"))))
+   (run node %{script} %{input} app/demo/client/))))
