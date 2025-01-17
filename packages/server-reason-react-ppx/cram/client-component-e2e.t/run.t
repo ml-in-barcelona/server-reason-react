@@ -16,7 +16,8 @@
   >  (target boostrap.js)
   >   (action
   >    (progn
-  >     (run server_reason_react.extract_client_components js --out %{target}))))
+  >     (with-stdout-to %{target}
+  >      (run server_reason_react.extract_client_components js)))))
   > EOF
 
   $ dune build
