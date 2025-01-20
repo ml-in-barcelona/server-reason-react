@@ -1,49 +1,55 @@
+;; index.re
+
 (melange.emit
  (enabled_if
   (= %{profile} dev))
- (alias melange-app)
  (target app)
  (modules index)
- (libraries melange demo_shared_js reason-react melange.dom melange-webapi)
- (preprocess
-  (pps browser_ppx -js reason-react-ppx melange.ppx))
  (module_systems
-  (es6 js)))
+  (es6 js))
+ (libraries melange reason-react melange.dom melange-webapi demo_shared_js)
+ (preprocess
+  (pps browser_ppx -js reason-react-ppx melange.ppx)))
 
 (rule
  (enabled_if
   (= %{profile} dev))
  (alias client)
  (deps
-  (alias_rec melange-app)
+  (alias_rec melange)
   (:script build.mjs))
  (target app.js)
  (action
   (progn
    (run node %{script} app/demo/client/index.js %{target}))))
 
-(rule
- (enabled_if
-  (= %{profile} dev))
- (alias client)
- (deps
-  (alias_rec melange-app)
-  (:input create-from-fetch.jsx)
-  (:script build.mjs))
- (action
-  (progn
-   (run node %{script} %{input} app/demo/client/))))
+;; create-from-fetch.jsx
 
 (rule
  (enabled_if
   (= %{profile} dev))
  (alias client)
  (deps
-  (alias_rec melange-app)
+  (alias_rec melange)
+  (:input create-from-fetch.jsx)
+  (:script build.mjs))
+ (action
+  (progn
+   (run node %{script} %{input} app/demo/client/))))
+
+;; create-from-readable-stream.jsx
+
+(rule
+ (enabled_if
+  (= %{profile} dev))
+ (alias client)
+ (deps
+  (alias_rec melange)
   (:input create-from-readable-stream.jsx)
   (:script build.mjs)
   ../../packages/extract-client-components/esbuild-plugin.mjs
-  (:extract %{bin:server_reason_react.extract_client_components}))
+  ; (:extract %{bin:server_reason_react.extract_client_components})
+  )
  (action
   (progn
    ; (with-stdout-to

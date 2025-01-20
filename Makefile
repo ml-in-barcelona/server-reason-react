@@ -92,7 +92,7 @@ lib-test: ## Run library tests
 
 .PHONY: demo-build
 demo-build: ## Build the project (client, server and universal)
-	$(DUNE) build --profile=dev @demo @client
+	$(DUNE) build --profile=dev @demo
 
 .PHONY: demo-build-watch
 demo-build-watch: ## Watch demo (client, server and universal)

@@ -1,7 +1,3 @@
-window.__webpack_require__ = async (_id) => {
-  throw new Error("This should never be called in this demo");
-};
-
 let ReactDOM = require("react-dom/client");
 let ReactServerDOM = require("react-server-dom-webpack/client");
 

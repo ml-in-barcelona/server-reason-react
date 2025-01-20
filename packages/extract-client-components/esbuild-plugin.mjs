@@ -60,7 +60,6 @@ export function plugin(config) {
       });
 
       build.onResolve({ filter: /.*/ }, (args) => {
-        /* console.log(build.initialOptions.entryPoints, args.path); */
         /* question: not sure if this is enough or even a solid approach to detect the entrypoint */
         const isEntryPoint = isTheEntryPoint(build.initialOptions.entryPoints, args.path);
 
