@@ -64,8 +64,7 @@ install:
 
 .PHONY: install-npm
 install-npm:
-	npm install
-	cd demo && npm install
+	cd demo/client && npm install
 
 .PHONY: pin
 pin: ## Pin dependencies

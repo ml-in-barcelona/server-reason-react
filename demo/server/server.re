@@ -280,14 +280,14 @@ let router = [
   Dream.get(Router.renderToString, _request =>
     Dream.html(
       ReactDOM.renderToString(
-        <Document script="/static/demo/client/app.js"> <App /> </Document>,
+        <Document script="/static/demo/client/index.js"> <App /> </Document>,
       ),
     )
   ),
   Dream.get(Router.renderToStaticMarkup, _request =>
     Dream.html(
       ReactDOM.renderToStaticMarkup(
-        <Document script="/static/demo/client/app.js"> <App /> </Document>,
+        <Document script="/static/demo/client/index.js"> <App /> </Document>,
       ),
     )
   ),

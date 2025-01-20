@@ -23,7 +23,7 @@
   (source_tree node_modules)
   (file package.json)
   (source_tree ../../packages/extract-client-components))
- (target app.js)
+ (target index.js)
  (action
   (progn
    (run node %{script} %{input} %{target}))))
@@ -40,11 +40,10 @@
   (:input create-from-fetch.jsx)
   (:script build.mjs)
   (file package.json)
-  (source_tree node_modules)
-  (source_tree ../../packages/extract-client-components))
+  (source_tree node_modules))
  (action
   (progn
-   (run node %{script} %{input} app/demo/client/ --extract=true))))
+   (run node %{script} %{input} app/demo/client/))))
 
 ;; create-from-readable-stream.jsx
 
@@ -62,7 +61,4 @@
   (source_tree ../../packages/extract-client-components))
  (action
   (progn
-   ; (with-stdout-to
-   ; %{target}
-   ; (run %{extract} app))
    (run node %{script} %{input} app/demo/client/ --extract=true))))
