@@ -13,11 +13,11 @@ help: ## Print this help message
 
 .PHONY: build
 build: ## Build the project, including non installable libraries and executables
-	$(DUNE) build --profile=dev
+	$(DUNE) build @all --profile=dev
 
 .PHONY: build-prod
 build-prod: ## Build for production (--profile=prod)
-	$(DUNE) build --profile=prod
+	$(DUNE) build @all --profile=prod
 
 .PHONY: dev
 dev: ## Build in watch mode
@@ -64,8 +64,7 @@ install:
 
 .PHONY: install-npm
 install-npm:
-	npm install
-	cd demo && npm install
+	cd demo/client && npm install
 
 .PHONY: pin
 pin: ## Pin dependencies
@@ -92,7 +91,7 @@ lib-test: ## Run library tests
 
 .PHONY: demo-build
 demo-build: ## Build the project (client, server and universal)
-	$(DUNE) build --profile=dev @demo @client
+	$(DUNE) build --profile=dev @demo
 
 .PHONY: demo-build-watch
 demo-build-watch: ## Watch demo (client, server and universal)

@@ -1,6 +1,7 @@
 import esbuild from 'esbuild';
+import { plugin as extractClientComponents } from '../../packages/extract-client-components/esbuild-plugin.mjs';
 
-async function build(input, output) {
+async function build(input, output, extract) {
   let outdir = undefined;
   let outfile = undefined;
   let splitting = false;
@@ -13,6 +14,12 @@ async function build(input, output) {
     outfile = output;
     splitting = false;
   }
+
+  let plugins = [];
+  if (extract) {
+    plugins.push(extractClientComponents({ target: 'app' }));
+  }
+
   try {
     const result = await esbuild.build({
       entryPoints: [input],
@@ -23,7 +30,7 @@ async function build(input, output) {
       logLevel: 'error',
       outdir: outdir,
       outfile: outfile,
-      plugins: [],
+      plugins,
       write: true,
       metafile: true,
     });
@@ -39,9 +46,21 @@ async function build(input, output) {
 const input = process.argv[2];
 const output = process.argv[3];
 
+let parseExtract = (arg) => {
+  if (typeof arg == "string") {
+    if (arg.startsWith("--extract=")) {
+      return arg.split("--extract=")[1] === "true";
+    }
+  }
+
+  return false;
+};
+
+const extract = parseExtract(process.argv[4]);
+
 if (!input) {
   console.error('Please provide an input file path');
   process.exit(1);
 }
 
-build(input, output);
+build(input, output, extract);

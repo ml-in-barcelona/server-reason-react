@@ -14,7 +14,7 @@ make demo-build-watch
 make demo-serve-watch
 ```
 
-# Folder explanation
+# fs explanation
 
 The app consist of 3 folders: `universal`, `server` and `client`, which contains each compilation target defined by dune.
 
@@ -58,8 +58,6 @@ This folder contains a library for shared code between `client` and `server`. du
   server-reason-react.reactDom)
  (preprocess
   (pps server-reason-react.ppx)))
-
-(copy_files# "../*.re")
 ```
 
 `shared_js` is used on the `client/dune` melange.emit to be compiled by Melange while `shared_native` is used in the `server/dune` executable compiled by OCaml

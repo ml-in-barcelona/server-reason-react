@@ -4,8 +4,7 @@
   (= %{profile} "dev"))
  (deps
   server/server.exe
-  (alias_rec client)
-  (alias_rec melange-app))
+  (alias_rec client))
  (action
   (progn
    ; we want dune to write the file but not attach any fsevents listeners to it,
