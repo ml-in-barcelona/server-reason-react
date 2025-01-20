@@ -46,7 +46,7 @@ try {
 		ReactDOM.hydrateRoot(element, app);
 	});
 } catch (e) {
-  console.error("Error type:", e.constructor.name);
+	console.error("Error type:", e.constructor.name);
 	console.error("Full error:", e);
 	console.error("Stack:", e.stack);
 }

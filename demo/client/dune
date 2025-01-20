@@ -16,12 +16,17 @@
   (= %{profile} dev))
  (alias client)
  (deps
+  (package server-reason-react)
   (alias_rec melange)
-  (:script build.mjs))
+  (:script build.mjs)
+  (:input app/demo/client/index.js)
+  (source_tree node_modules)
+  (file package.json)
+  (source_tree ../../packages/extract-client-components))
  (target app.js)
  (action
   (progn
-   (run node %{script} app/demo/client/index.js %{target}))))
+   (run node %{script} %{input} %{target}))))
 
 ;; create-from-fetch.jsx
 
@@ -30,12 +35,16 @@
   (= %{profile} dev))
  (alias client)
  (deps
+  (package server-reason-react)
   (alias_rec melange)
   (:input create-from-fetch.jsx)
-  (:script build.mjs))
+  (:script build.mjs)
+  (file package.json)
+  (source_tree node_modules)
+  (source_tree ../../packages/extract-client-components))
  (action
   (progn
-   (run node %{script} %{input} app/demo/client/))))
+   (run node %{script} %{input} app/demo/client/ --extract=true))))
 
 ;; create-from-readable-stream.jsx
 
@@ -44,15 +53,16 @@
   (= %{profile} dev))
  (alias client)
  (deps
+  (package server-reason-react)
   (alias_rec melange)
   (:input create-from-readable-stream.jsx)
   (:script build.mjs)
-  ../../packages/extract-client-components/esbuild-plugin.mjs
-  ; (:extract %{bin:server_reason_react.extract_client_components})
-  )
+  (file package.json)
+  (source_tree node_modules)
+  (source_tree ../../packages/extract-client-components))
  (action
   (progn
    ; (with-stdout-to
    ; %{target}
    ; (run %{extract} app))
-   (run node %{script} %{input} app/demo/client/))))
+   (run node %{script} %{input} app/demo/client/ --extract=true))))
