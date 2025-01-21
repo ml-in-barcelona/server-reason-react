@@ -269,8 +269,8 @@ let rec client_to_html ~fiber (element : React.element) =
       let rec wait_for_suspense_to_resolve () =
         match component () with
         | exception React.Suspend (Any_promise promise) ->
-            let open Lwt.Infix in
-            promise >>= fun _ -> wait_for_suspense_to_resolve ()
+            let%lwt _ = promise in
+            wait_for_suspense_to_resolve ()
         | exception _exn -> Lwt.return Html.null
         | output ->
             (* TODO: Do we need to care about batching? *)
