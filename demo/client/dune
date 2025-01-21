@@ -19,10 +19,10 @@
   (package server-reason-react)
   (alias_rec melange)
   (:script build.mjs)
-  (:input "app/demo/client/index.js")
+  (:input app/demo/client/index.js)
   (source_tree node_modules)
   (file package.json)
-  (source_tree %{project_root}/packages/extract-client-components))
+  (source_tree ../../packages/extract-client-components))
  (target index.js)
  (action
   (progn
@@ -58,7 +58,7 @@
   (:script build.mjs)
   (file package.json)
   (source_tree node_modules)
-  (source_tree %{project_root}/packages/extract-client-components))
+  (source_tree ../../packages/extract-client-components))
  (action
   (progn
    (run node %{script} %{input} app/demo/client/ --extract=true))))
