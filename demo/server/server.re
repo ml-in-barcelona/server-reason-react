@@ -2,19 +2,15 @@ let renderToStreamHandler = _ =>
   Dream.stream(
     ~headers=[("Content-Type", "text/html")],
     response_stream => {
-      Dream.log("RenderToStream");
-
       Comments.Data.destroy();
 
       let pipe = data => {
-        Dream.log("Pipe");
         let%lwt () = Dream.write(response_stream, data);
         Dream.flush(response_stream);
       };
 
       let%lwt (stream, _abort) =
         ReactDOM.renderToStream(~pipe, <Document> <Comments /> </Document>);
-      Dream.log("AFTER RenderToStream");
 
       Lwt_stream.iter_s(pipe, stream);
     },
