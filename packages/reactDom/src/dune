@@ -3,6 +3,6 @@
  (wrapped false)
  (public_name server-reason-react.reactDom)
  (private_modules Push_stream)
- (libraries react js html lwt yojson runtime dream)
+ (libraries react js html lwt yojson runtime)
  (preprocess
   (pps lwt_ppx)))

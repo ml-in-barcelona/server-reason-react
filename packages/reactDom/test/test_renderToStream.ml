@@ -7,7 +7,7 @@ let test title fn =
       Alcotest_lwt.test_case "" `Quick (fun _switch () ->
           let start = Unix.gettimeofday () in
           let timeout =
-            let%lwt () = Lwt_unix.sleep 30.0 in
+            let%lwt () = Lwt_unix.sleep 3.0 in
             Alcotest.failf "Test '%s' timed out" title
           in
           let%lwt test_promise = Lwt.pick [ fn (); timeout ] in
@@ -97,7 +97,7 @@ let suspense_with_always_throwing () =
   Printexc.record_backtrace false;
   let app () = React.Suspense.make ~fallback:(React.string "Loading...") ~children:(always_throwing_component ()) () in
   let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component app) in
-  (* and we need to enable it back, I guess! *)
+  (* and we need to enable it back for the next test *)
   Printexc.record_backtrace true;
   assert_stream stream
     [ "<!--$!--><template data-msg=\"Failure(&quot;always throwing&quot;)\n\"></template>Loading...<!--/$-->" ]
@@ -188,20 +188,18 @@ let suspense_with_nested_suspense_with_error () =
       ~children:
         (deffered_component ~seconds:0.02
            ~children:
-             (React.Suspense.make ~fallback:(React.string "Fallback 2") ~children:(always_throwing_component ()) ())
+             (let _ = Printexc.record_backtrace false in
+              React.Suspense.make ~fallback:(React.string "Fallback 2") ~children:(always_throwing_component ()) ())
            ())
       ()
   in
+  Printexc.record_backtrace true;
   let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component app) in
   assert_stream stream
     [
       "<!--$?--><template id=\"B:0\"></template>Fallback 1<!--/$-->";
       "<div hidden id=\"S:0\"><div>Sleep 0.02 seconds<!-- -->, <!--$!--><template data-msg=\"Failure(&quot;always \
        throwing&quot;)\n\
-       Raised at Stdlib__String.rindex_rec in file &quot;string.ml&quot;, line 145, characters 16-31\n\
-       Called from Stdlib__String.rindex in file &quot;string.ml&quot; (inlined), line 149, characters 17-46\n\
-       Called from Dream__server__Log.reporter.report.(fun) in file &quot;src/server/log.ml&quot;, line 195, \
-       characters 26-50\n\
        \"></template>Fallback 2<!--/$--></div></div>";
       rsc_script "$RC('B:0','S:0')";
     ]

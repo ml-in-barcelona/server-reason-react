@@ -108,7 +108,7 @@ let complete_boundary_script =
 let replacement b s = Printf.sprintf "$RC('B:%i','S:%i')" b s
 
 let inline_complete_boundary_script boundary_id suspense_id =
-  (* TODO: it's always correct to asume that the first suspense_id is 0? Maybe we can have 2 suspense parallely and it's not the case anymore? *)
+  (* TODO: it's correct to asume that the first suspense_id is 0? *)
   if boundary_id = 0 && suspense_id = 0 then
     Html.raw (Printf.sprintf "<script>%s%s</script>" complete_boundary_script (replacement boundary_id suspense_id))
   else Html.raw (Printf.sprintf "<script>%s</script>" (replacement boundary_id suspense_id))
@@ -138,20 +138,6 @@ let render_suspense_fallback_error ~exn element =
 
 let rec render_to_stream ~context_state element =
   let rec render_element element =
-    Dream.log "Rendering element type: %s"
-      (match (element : React.element) with
-      | Empty -> "Empty"
-      | Client_component _ -> "Client_component"
-      | Provider _ -> "Provider"
-      | Consumer _ -> "Consumer"
-      | Fragment _ -> "Fragment"
-      | List _ -> "List"
-      | Upper_case_component _ -> "Upper_case_component"
-      | Lower_case_element _ -> "Lower_case_element"
-      | Text _ -> "Text"
-      | InnerHtml _ -> "InnerHtml"
-      | Async_component _ -> "Async_component"
-      | Suspense _ -> "Suspense");
     match (element : React.element) with
     | Empty -> Lwt.return Html.null
     (* TODO: Check if this breaks in the client. Maybe should throw an error/exn? *)
@@ -162,20 +148,6 @@ let rec render_to_stream ~context_state element =
     | List arr ->
         let%lwt childrens = arr |> Array.to_list |> Lwt_list.map_p render_element in
         Lwt.return (Html.list childrens)
-    | Upper_case_component component -> (
-        Dream.log "RENDER - Upper_case_component start";
-        try
-          Dream.log "RENDER - Upper_case_component try";
-          let element = component () in
-          Dream.log "RENDER - Upper_case_component got element";
-          render_element element
-        with
-        | React.Suspend _ as exn ->
-            Dream.log "RENDER - Upper_case_component caught suspension";
-            raise exn
-        | exn ->
-            Dream.log "RENDER - Upper_case_component caught other: %s" (Printexc.to_string exn);
-            raise exn)
     | Lower_case_element { tag; attributes; _ } when Html.is_self_closing_tag tag ->
         Lwt.return (Html.node tag (attributes_to_html attributes) [])
     | Lower_case_element { key = _; tag; attributes; children } ->
@@ -184,66 +156,49 @@ let rec render_to_stream ~context_state element =
         Lwt.return (Html.node tag html_attributes inner)
     | Text text -> Lwt.return (Html.string text)
     | InnerHtml text -> Lwt.return (Html.raw text)
+    | Upper_case_component component -> (
+        try
+          let element = component () in
+          render_element element
+        with exn -> raise_notrace exn)
     | Async_component component -> (
-        Dream.log "Rendering element type: Async_component";
         let promise = component () in
         match Lwt.state promise with
-        | Lwt.Return element ->
-            Dream.log "Async_component already resolved";
-            render_element element
-        | Lwt.Fail exn ->
-            Dream.log "Async_component failed";
-            raise exn
-        | Lwt.Sleep ->
-            Dream.log "Async_component sleeping";
-            raise (React.Suspend (Any_promise promise)))
+        | Lwt.Return element -> render_element element
+        | Lwt.Fail exn -> raise_notrace exn
+        | Lwt.Sleep -> raise_notrace (React.Suspend (Any_promise promise)))
     | Suspense { children; fallback; _ } -> (
+        (* assume fallback can't have errors or suspensions *)
+        let%lwt fallback_element = render_element fallback in
         try%lwt
           let%lwt element = render_element children in
           Lwt.return element
         with
         | React.Suspend (Any_promise promise) -> (
             match Lwt.state promise with
-            | Lwt.Return _ ->
-                Dream.log "Promise already resolved, rendering immediately";
-                let%lwt _ = promise in
-                render_element children
-            | Lwt.Fail exn ->
-                Dream.log "Promise failed";
-                let%lwt fallback_element = render_element fallback in
-                Lwt.return (render_suspense_fallback_error ~exn fallback_element)
+            | Lwt.Return _ -> render_element children
+            | Lwt.Fail exn -> Lwt.return (render_suspense_fallback_error ~exn fallback_element)
             | Lwt.Sleep ->
-                Dream.log "Promise pending, setting up streaming";
-                let%lwt fallback_element = render_element fallback in
                 let current_boundary_id = context_state.boundary_id in
                 let current_suspense_id = context_state.suspense_id in
                 context_state.boundary_id <- context_state.boundary_id + 1;
                 context_state.suspense_id <- context_state.suspense_id + 1;
-                Dream.log "About to increment waiting";
                 context_state.waiting <- context_state.waiting + 1;
-                Dream.log "Waiting count: %s" (string_of_int context_state.waiting);
+
                 Lwt.async (fun () ->
-                    Dream.log "Started async resolution for boundary %d" current_boundary_id;
                     let%lwt _ = promise in
-                    Dream.log "Promise resolved for boundary %d" current_boundary_id;
                     let%lwt resolved_html = render_with_resolved ~context_state children in
-                    Dream.log "Children re-rendered in async";
                     context_state.waiting <- context_state.waiting - 1;
-                    Dream.log "Waiting count after resolve: %d" context_state.waiting;
                     if not context_state.closed then (
-                      Dream.log "Stream still open, pushing updates";
                       context_state.push (render_suspense_resolved_element ~id:current_suspense_id resolved_html);
                       context_state.push (inline_complete_boundary_script current_boundary_id current_suspense_id));
-                    Dream.log "Updates pushed";
                     if context_state.waiting = 0 then (
                       context_state.closed <- true;
                       context_state.close ());
-                    Dream.log "Async work complete";
-                    Lwt.return_unit);
-                Dream.log "Returning fallback";
+                    Lwt.return ());
+
                 Lwt.return (render_suspense_fallback ~boundary_id:current_boundary_id fallback_element))
         | exn ->
-            Dream.log "Error in Suspense boundary: %s" (Printexc.to_string exn);
             let%lwt fallback_element = render_element fallback in
             Lwt.return (render_suspense_fallback_error ~exn fallback_element))
   in
@@ -251,22 +206,7 @@ let rec render_to_stream ~context_state element =
   render_element element
 
 and render_with_resolved ~context_state element =
-  Dream.log "RENDER - render_with_resolved start";
   let rec render_element element =
-    Dream.log "Rendering element type: %s"
-      (match (element : React.element) with
-      | Empty -> "Empty"
-      | Client_component _ -> "Client_component"
-      | Provider _ -> "Provider"
-      | Consumer _ -> "Consumer"
-      | Fragment _ -> "Fragment"
-      | List _ -> "List"
-      | Upper_case_component _ -> "Upper_case_component"
-      | Lower_case_element _ -> "Lower_case_element"
-      | Text _ -> "Text"
-      | InnerHtml _ -> "InnerHtml"
-      | Async_component _ -> "Async_component"
-      | Suspense _ -> "Suspense");
     match (element : React.element) with
     | Empty -> Lwt.return Html.null
     | Client_component _ -> Lwt.return Html.null
@@ -288,11 +228,10 @@ and render_with_resolved ~context_state element =
     | Text text -> Lwt.return (Html.string text)
     | InnerHtml text -> Lwt.return (Html.raw text)
     | Async_component component -> (
-        Dream.log "RENDER - render_with_resolved Async_component";
         let promise = component () in
         match Lwt.state promise with
         | Lwt.Return resolved -> render_element resolved
-        | Lwt.Fail exn -> raise exn
+        | Lwt.Fail exn -> raise_notrace exn
         | Lwt.Sleep ->
             let%lwt resolved = promise in
             render_element resolved)
@@ -302,11 +241,7 @@ and render_with_resolved ~context_state element =
 
 let renderToStream ?pipe:_ element =
   let stream, push_to_stream, close = Push_stream.make () in
-  let push html =
-    Dream.log "PUSH";
-    Dream.log "%s" (Html.to_string html);
-    push_to_stream (Html.to_string html)
-  in
+  let push html = push_to_stream (Html.to_string html) in
   let context_state = { push; close; closed = false; waiting = 0; boundary_id = 0; suspense_id = 0 } in
   let abort () =
     (* TODO: Needs to flush the remaining loading fallbacks as HTML, and React.js will try to render the rest on the client. *)
@@ -319,6 +254,7 @@ let renderToStream ?pipe:_ element =
     Lwt.return (stream, abort)
   with
   | React.Suspend (Any_promise promise) ->
+      (* In case of getting a React.Suspend exn means that either an async component is being rendered without React.Suspense or React.use is being used without a Suspense boundary. In both cases, we need to await for the promise to resolve and then render the resolved element. *)
       let%lwt _ = promise in
       let%lwt html = render_with_resolved ~context_state element in
       push html;
