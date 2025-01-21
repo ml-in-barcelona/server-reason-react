@@ -50,16 +50,16 @@ let render_to_string ~mode element =
           (Invalid_argument
              "Async components can't be rendered to static markup, since rendering is synchronous. Please use \
               `renderToStream` instead.")
-    | Lower_case_element { key = _; tag; attributes; children } ->
+    | Lower_case_element { key; tag; attributes; children } ->
         is_root.contents <- false;
-        render_lower_case tag attributes children
+        render_lower_case ~key tag attributes children
     | Text text -> Html.string text
     | InnerHtml text -> Html.raw text
     | Suspense { key = _; children; fallback } -> (
         match render_element children with
         | output -> Html.list [ Html.raw "<!--$-->"; output; Html.raw "<!--/$-->" ]
         | exception _e -> Html.list [ Html.raw "<!--$!-->"; render_element fallback; Html.raw "<!--/$-->" ])
-  and render_lower_case tag attributes children =
+  and render_lower_case ~key:_ tag attributes children =
     let dangerouslySetInnerHTML =
       List.find_opt (function React.JSX.DangerouslyInnerHtml _ -> true | _ -> false) attributes
     in
@@ -148,12 +148,7 @@ let rec render_to_stream ~context_state element =
     | List arr ->
         let%lwt childrens = arr |> Array.to_list |> Lwt_list.map_p render_element in
         Lwt.return (Html.list childrens)
-    | Lower_case_element { tag; attributes; _ } when Html.is_self_closing_tag tag ->
-        Lwt.return (Html.node tag (attributes_to_html attributes) [])
-    | Lower_case_element { key = _; tag; attributes; children } ->
-        let%lwt inner = Lwt_list.map_p render_element children in
-        let html_attributes = attributes_to_html attributes in
-        Lwt.return (Html.node tag html_attributes inner)
+    | Lower_case_element { key; tag; attributes; children } -> render_lower_case ~key tag attributes children
     | Text text -> Lwt.return (Html.string text)
     | InnerHtml text -> Lwt.return (Html.raw text)
     | Upper_case_component component -> (
@@ -201,6 +196,28 @@ let rec render_to_stream ~context_state element =
         | exn ->
             let%lwt fallback_element = render_element fallback in
             Lwt.return (render_suspense_fallback_error ~exn fallback_element))
+  and render_lower_case ~key:_ tag attributes children =
+    let dangerouslySetInnerHTML =
+      List.find_opt (function React.JSX.DangerouslyInnerHtml _ -> true | _ -> false) attributes
+    in
+    let children =
+      (* If there's a dangerouslySetInnerHTML prop, we render it as a children *)
+      match (dangerouslySetInnerHTML, children) with
+      | None, children -> children
+      | Some (React.JSX.DangerouslyInnerHtml innerHtml), [] ->
+          (* This adds as children the innerHTML, and we treat it differently
+             from Element.Text to avoid encoding to HTML their content *)
+          (* TODO: Remove InnerHtml and use Html.raw directly *)
+          [ InnerHtml innerHtml ]
+      | Some _, _children ->
+          raise (Invalid_argument "can't have both `children` and `dangerouslySetInnerHTML` prop at the same time")
+    in
+    match Html.is_self_closing_tag tag with
+    | true -> Lwt.return (Html.node tag (attributes_to_html attributes) [])
+    | false ->
+        let%lwt inner = Lwt_list.map_p render_element children in
+        let html_attributes = attributes_to_html attributes in
+        Lwt.return (Html.node tag html_attributes inner)
   in
 
   render_element element
@@ -216,15 +233,8 @@ and render_with_resolved ~context_state element =
     | List arr ->
         let%lwt childrens = arr |> Array.to_list |> Lwt_list.map_p render_element in
         Lwt.return (Html.list childrens)
-    | Upper_case_component component ->
-        let element = component () in
-        render_element element
-    | Lower_case_element { tag; attributes; _ } when Html.is_self_closing_tag tag ->
-        Lwt.return (Html.node tag (attributes_to_html attributes) [])
-    | Lower_case_element { key = _; tag; attributes; children } ->
-        let%lwt inner = Lwt_list.map_p render_element children in
-        let html_attributes = attributes_to_html attributes in
-        Lwt.return (Html.node tag html_attributes inner)
+    | Upper_case_component component -> render_element (component ())
+    | Lower_case_element { key; tag; attributes; children } -> render_lower_case ~key tag attributes children
     | Text text -> Lwt.return (Html.string text)
     | InnerHtml text -> Lwt.return (Html.raw text)
     | Async_component component -> (
@@ -236,6 +246,28 @@ and render_with_resolved ~context_state element =
             let%lwt resolved = promise in
             render_element resolved)
     | Suspense _ -> render_to_stream ~context_state element
+  and render_lower_case ~key:_ tag attributes children =
+    let dangerouslySetInnerHTML =
+      List.find_opt (function React.JSX.DangerouslyInnerHtml _ -> true | _ -> false) attributes
+    in
+    let children =
+      (* If there's a dangerouslySetInnerHTML prop, we render it as a children *)
+      match (dangerouslySetInnerHTML, children) with
+      | None, children -> children
+      | Some (React.JSX.DangerouslyInnerHtml innerHtml), [] ->
+          (* This adds as children the innerHTML, and we treat it differently
+             from Element.Text to avoid encoding to HTML their content *)
+          (* TODO: Remove InnerHtml and use Html.raw directly *)
+          [ InnerHtml innerHtml ]
+      | Some _, _children ->
+          raise (Invalid_argument "can't have both `children` and `dangerouslySetInnerHTML` prop at the same time")
+    in
+    match Html.is_self_closing_tag tag with
+    | true -> Lwt.return (Html.node tag (attributes_to_html attributes) [])
+    | false ->
+        let%lwt inner = Lwt_list.map_p render_element children in
+        let html_attributes = attributes_to_html attributes in
+        Lwt.return (Html.node tag html_attributes inner)
   in
   render_element element
 

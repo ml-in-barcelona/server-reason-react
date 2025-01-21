@@ -5,6 +5,7 @@ let renderToStreamHandler = _ =>
       Comments.Data.destroy();
 
       let pipe = data => {
+        Dream.log("Pipe: %s", data);
         let%lwt () = Dream.write(response_stream, data);
         Dream.flush(response_stream);
       };

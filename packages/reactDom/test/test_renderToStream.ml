@@ -209,9 +209,29 @@ let async_component_without_suspense () =
   let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component app) in
   assert_stream stream [ "<main><div>Sleep 0.02 seconds<!-- -->, <!-- -->lol</div></main>" ]
 
+let render_inner_html () =
+  let globalStyles = "* { color: red; }" in
+  let style =
+    React.createElement "style"
+      (Stdlib.List.filter_map Fun.id
+         [
+           Some (React.JSX.String ("type", "type", ("text/css" : string)));
+           Some
+             (React.JSX.dangerouslyInnerHtml
+                (object
+                   method __html = globalStyles
+                end));
+         ])
+      []
+  in
+  let app () = React.createElement "html" [] [ style ] in
+  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component app) in
+  assert_stream stream [ "<!DOCTYPE html><html><style type=\"text/css\">* { color: red; }</style></html>" ]
+
 let tests =
   [
     test "silly_stream" test_silly_stream;
+    test "render_inner_html" render_inner_html;
     test "react_use_without_suspense" react_use_without_suspense;
     test "uppercase_component_always_throwing" uppercase_component_always_throwing;
     test "suspense_with_react_use" suspense_with_react_use;
