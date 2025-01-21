@@ -19,6 +19,8 @@
  (modules once)
  (libraries
   unix
+  lwt
+  lwt.unix
   server-reason-react.react
   server-reason-react.reactDom
   demo_shared_native)
