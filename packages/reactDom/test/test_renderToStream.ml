@@ -85,16 +85,17 @@ let assert_raises exn fn =
   | exception exn -> Lwt.return (assert_string (Printexc.to_string exn) (Printexc.to_string exn))
   | _ -> Alcotest.failf "Expected exception %s" (Printexc.to_string exn)
 
-let component_always_throwing () =
-  let app () = React.Upper_case_component (fun () -> raise (Failure "always throwing")) in
+let always_throwing_component () = React.Upper_case_component (fun () -> raise (Failure "always throwing"))
+
+let uppercase_component_always_throwing () =
+  let app () = always_throwing_component () in
   assert_raises (Failure "always throwing") (fun () -> ReactDOM.renderToStream (React.Upper_case_component app))
 
 let suspense_with_always_throwing () =
   (* This test is very fragile since it relies on the stack trace being the same (so line numbers and methods should match).
      We disable backtracing to avoid having to match the backtrace *)
   Printexc.record_backtrace false;
-  let hi = React.Upper_case_component (fun () -> raise (Failure "always throwing")) in
-  let app () = React.Suspense.make ~fallback:(React.string "Loading...") ~children:hi () in
+  let app () = React.Suspense.make ~fallback:(React.string "Loading...") ~children:(always_throwing_component ()) () in
   let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component app) in
   (* and we need to enable it back, I guess! *)
   Printexc.record_backtrace true;
@@ -174,10 +175,35 @@ let suspense_with_nested_suspense () =
   assert_stream stream
     [
       "<!--$?--><template id=\"B:0\"></template>Fallback 1<!--/$-->";
-      "<div hidden id=\"S:0\"><div>Sleep 0.02 seconds<!-- -->, <!--$?--><template id=\"B:1\"></template>Fallback 2<!--/$--></div></div>";
+      "<div hidden id=\"S:0\"><div>Sleep 0.02 seconds<!-- -->, <!--$?--><template id=\"B:1\"></template>Fallback \
+       2<!--/$--></div></div>";
       rsc_script "$RC('B:0','S:0')";
       "<div hidden id=\"S:1\"><div>Sleep 0.02 seconds<!-- -->, <!-- -->lol</div></div>";
       "<script>$RC('B:1','S:1')</script>";
+    ]
+
+let suspense_with_nested_suspense_with_error () =
+  let app () =
+    React.Suspense.make ~fallback:(React.string "Fallback 1")
+      ~children:
+        (deffered_component ~seconds:0.02
+           ~children:
+             (React.Suspense.make ~fallback:(React.string "Fallback 2") ~children:(always_throwing_component ()) ())
+           ())
+      ()
+  in
+  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component app) in
+  assert_stream stream
+    [
+      "<!--$?--><template id=\"B:0\"></template>Fallback 1<!--/$-->";
+      "<div hidden id=\"S:0\"><div>Sleep 0.02 seconds<!-- -->, <!--$!--><template data-msg=\"Failure(&quot;always \
+       throwing&quot;)\n\
+       Raised at Stdlib__String.rindex_rec in file &quot;string.ml&quot;, line 145, characters 16-31\n\
+       Called from Stdlib__String.rindex in file &quot;string.ml&quot; (inlined), line 149, characters 17-46\n\
+       Called from Dream__server__Log.reporter.report.(fun) in file &quot;src/server/log.ml&quot;, line 195, \
+       characters 26-50\n\
+       \"></template>Fallback 2<!--/$--></div></div>";
+      rsc_script "$RC('B:0','S:0')";
     ]
 
 let async_component_without_suspense () =
@@ -189,7 +215,7 @@ let tests =
   [
     test "silly_stream" test_silly_stream;
     test "react_use_without_suspense" react_use_without_suspense;
-    test "component_always_throwing" component_always_throwing;
+    test "uppercase_component_always_throwing" uppercase_component_always_throwing;
     test "suspense_with_react_use" suspense_with_react_use;
     test "async component" async_component;
     test "suspense_without_promise" suspense_without_promise;
@@ -197,4 +223,5 @@ let tests =
     test "suspense_with_async_component" suspense_with_async_component;
     test "suspense_with_always_throwing" suspense_with_always_throwing;
     test "suspense_with_nested_suspense" suspense_with_nested_suspense;
+    test "suspense_with_nested_suspense_with_error" suspense_with_nested_suspense_with_error;
   ]

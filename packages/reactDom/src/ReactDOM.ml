@@ -249,6 +249,7 @@ let rec render_to_stream ~context_state element =
   in
 
   render_element element
+
 and render_with_resolved ~context_state element =
   Dream.log "RENDER - render_with_resolved start";
   let rec render_element element =
@@ -275,10 +276,9 @@ and render_with_resolved ~context_state element =
     | List arr ->
         let%lwt childrens = arr |> Array.to_list |> Lwt_list.map_p render_element in
         Lwt.return (Html.list childrens)
-    | Upper_case_component component -> (
-          let element = component () in
-          render_element element
-)
+    | Upper_case_component component ->
+        let element = component () in
+        render_element element
     | Lower_case_element { tag; attributes; _ } when Html.is_self_closing_tag tag ->
         Lwt.return (Html.node tag (attributes_to_html attributes) [])
     | Lower_case_element { key = _; tag; attributes; children } ->
@@ -287,10 +287,10 @@ and render_with_resolved ~context_state element =
         Lwt.return (Html.node tag html_attributes inner)
     | Text text -> Lwt.return (Html.string text)
     | InnerHtml text -> Lwt.return (Html.raw text)
-    | Async_component component ->
+    | Async_component component -> (
         Dream.log "RENDER - render_with_resolved Async_component";
         let promise = component () in
-        (match Lwt.state promise with
+        match Lwt.state promise with
         | Lwt.Return resolved -> render_element resolved
         | Lwt.Fail exn -> raise exn
         | Lwt.Sleep ->
@@ -307,14 +307,7 @@ let renderToStream ?pipe:_ element =
     Dream.log "%s" (Html.to_string html);
     push_to_stream (Html.to_string html)
   in
-  let context_state = {
-    push;
-    close;
-    closed = false;
-    waiting = 0;
-    boundary_id = 0;
-    suspense_id = 0;
-  } in
+  let context_state = { push; close; closed = false; waiting = 0; boundary_id = 0; suspense_id = 0 } in
   let abort () =
     (* TODO: Needs to flush the remaining loading fallbacks as HTML, and React.js will try to render the rest on the client. *)
     Lwt_stream.closed stream |> Lwt.ignore_result
@@ -331,7 +324,7 @@ let renderToStream ?pipe:_ element =
       push html;
       if context_state.waiting = 0 then close ();
       Lwt.return (stream, abort)
-  | exn -> (* non-Suspend exceptions propagate *) Lwt.fail exn
+  | exn -> (* non suspend exceptions propagate to the parent *) Lwt.fail exn
 
 let querySelector _str = Runtime.fail_impossible_action_in_ssr "ReactDOM.querySelector"
 let render _element _node = Runtime.fail_impossible_action_in_ssr "ReactDOM.render"

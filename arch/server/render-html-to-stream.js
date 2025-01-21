@@ -65,8 +65,23 @@ const App = () => (
 	</React.Suspense>
 ); */
 
-const App = () => (
+/* const App = () => (
 		<DefferedComponent by={1}>"lol"</DefferedComponent>
+); */
+
+
+const AlwaysThrow = () => {
+	throw new Error("always throwing");
+};
+
+const App = () => (
+	<React.Suspense fallback="Fallback 1">
+		<DefferedComponent by={1}>
+			<React.Suspense fallback="Fallback 2">
+				<AlwaysThrow/>
+			</React.Suspense>
+		</DefferedComponent>
+	</React.Suspense>
 );
 
 ReactDOM.renderToReadableStream(<App />).then((stream) => {
