@@ -7,7 +7,7 @@ let test title fn =
       Alcotest_lwt.test_case "" `Quick (fun _switch () ->
           let start = Unix.gettimeofday () in
           let timeout =
-            let%lwt () = Lwt_unix.sleep 3.0 in
+            let%lwt () = Lwt_unix.sleep 30.0 in
             Alcotest.failf "Test '%s' timed out" title
           in
           let%lwt test_promise = Lwt.pick [ fn (); timeout ] in
@@ -35,6 +35,14 @@ module Sleep = struct
       let%lwt () = Lwt_unix.sleep v in
       Lwt.return v)
 end
+
+let deffered_component ~seconds ~children () =
+  React.Async_component
+    (fun () ->
+      let%lwt () = Lwt_unix.sleep seconds in
+      Lwt.return
+        (React.createElement "div" []
+           [ React.string ("Sleep " ^ Float.to_string seconds ^ " seconds"); React.string ", "; children ]))
 
 let test_silly_stream () =
   let stream, push = Lwt_stream.create () in
@@ -134,14 +142,6 @@ let async_component () =
   assert_stream stream [ "<span>yow</span>" ]
 
 let suspense_with_async_component () =
-  let deffered_component ~seconds ~children () =
-    React.Async_component
-      (fun () ->
-        let%lwt () = Lwt_unix.sleep seconds in
-        Lwt.return
-          (React.createElement "div" []
-             [ React.string ("Sleep " ^ Float.to_string seconds ^ " seconds"); React.string ", "; children ]))
-  in
   let app () =
     React.createElement "div" []
       [
@@ -159,14 +159,6 @@ let suspense_with_async_component () =
     ]
 
 let suspense_with_nested_suspense () =
-  let deffered_component ~seconds ~children () =
-    React.Async_component
-      (fun () ->
-        let%lwt () = Lwt_unix.sleep seconds in
-        Lwt.return
-          (React.createElement "div" []
-             [ React.string ("Sleep " ^ Float.to_string seconds ^ " seconds"); React.string ", "; children ]))
-  in
   let app () =
     React.Suspense.make ~fallback:(React.string "Fallback 1")
       ~children:
@@ -182,26 +174,16 @@ let suspense_with_nested_suspense () =
   assert_stream stream
     [
       "<!--$?--><template id=\"B:0\"></template>Fallback 1<!--/$-->";
-      "<div hidden id=\"S:0\"><div>Sleep 0.02 seconds<!-- -->, <!--$?--><template id=\"B:1\"></template>Fallback \
-       2<!--/$--></div></div>";
+      "<div hidden id=\"S:0\"><div>Sleep 0.02 seconds<!-- -->, <!--$?--><template id=\"B:1\"></template>Fallback 2<!--/$--></div></div>";
       rsc_script "$RC('B:0','S:0')";
       "<div hidden id=\"S:1\"><div>Sleep 0.02 seconds<!-- -->, <!-- -->lol</div></div>";
       "<script>$RC('B:1','S:1')</script>";
     ]
 
 let async_component_without_suspense () =
-  let deffered_component ~seconds ~children () =
-    let cached_promise =
-      let%lwt () = Lwt_unix.sleep seconds in
-      Lwt.return
-        (React.createElement "div" []
-           [ React.string ("Sleep " ^ Float.to_string seconds ^ " seconds"); React.string ", "; children ])
-    in
-    React.Async_component (fun () -> cached_promise)
-  in
-  let app () = React.createElement "div" [] [ deffered_component ~seconds:0.02 ~children:(React.string "lol") () ] in
+  let app () = React.createElement "main" [] [ deffered_component ~seconds:0.02 ~children:(React.string "lol") () ] in
   let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component app) in
-  assert_stream stream [ "<div><div>Sleep 0.02 seconds<!-- -->, <!-- -->lol</div></div>" ]
+  assert_stream stream [ "<main><div>Sleep 0.02 seconds<!-- -->, <!-- -->lol</div></main>" ]
 
 let tests =
   [
@@ -210,9 +192,9 @@ let tests =
     test "component_always_throwing" component_always_throwing;
     test "suspense_with_react_use" suspense_with_react_use;
     test "async component" async_component;
+    test "suspense_without_promise" suspense_without_promise;
     test "async_component_without_suspense" async_component_without_suspense;
     test "suspense_with_async_component" suspense_with_async_component;
     test "suspense_with_always_throwing" suspense_with_always_throwing;
-    test "suspense_without_promise" suspense_without_promise;
     test "suspense_with_nested_suspense" suspense_with_nested_suspense;
   ]

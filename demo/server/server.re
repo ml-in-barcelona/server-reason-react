@@ -2,17 +2,25 @@ let renderToStreamHandler = _ =>
   Dream.stream(
     ~headers=[("Content-Type", "text/html")],
     response_stream => {
+      Dream.log("RenderToStream");
+
+      Comments.Data.destroy();
+
       let pipe = data => {
+        Dream.log("Pipe");
         let%lwt () = Dream.write(response_stream, data);
         Dream.flush(response_stream);
       };
+
       let%lwt (stream, _abort) =
         ReactDOM.renderToStream(~pipe, <Document> <Comments /> </Document>);
-      Lwt.return();
+      Dream.log("AFTER RenderToStream");
+
+      Lwt_stream.iter_s(pipe, stream);
     },
   );
 
-let serverComponentsWithoutClientHandler = request => {
+let createFromFetchHandler = request => {
   let isRSCheader =
     Dream.header(request, "Accept") == Some("text/x-component");
 
@@ -174,7 +182,7 @@ module Page = {
   };
 };
 
-let serverComponentsHandler = request => {
+let createFromReadableStreamHandler = request => {
   let app = <AppRouter> <Page /> </AppRouter>;
   switch (Dream.header(request, "Accept")) {
   | Some(accept) when is_react_component_header(accept) =>
@@ -292,11 +300,8 @@ let router = [
     )
   ),
   Dream.get(Router.renderToStream, renderToStreamHandler),
-  Dream.get(
-    Router.serverComponentsWithoutClient,
-    serverComponentsWithoutClientHandler,
-  ),
-  Dream.get(Router.serverComponents, serverComponentsHandler),
+  Dream.get(Router.createFromFetch, createFromFetchHandler),
+  Dream.get(Router.createFromReadableStream, createFromReadableStreamHandler),
 ];
 
 let () = {
