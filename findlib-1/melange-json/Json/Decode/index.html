@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Decode (docs.findlib-1.melange-json.Json.Decode)</title><meta charset="utf-8"/><link rel="stylesheet" href="../../../../odoc.support/odoc.css"/><meta name="generator" content="odoc 2.4.4"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/><script src="../../../../odoc.support/highlight.pack.js"></script><script>hljs.initHighlightingOnLoad();</script></head><body class="odoc"><nav class="odoc-nav"><a href="../index.html">Up</a> – <a href="../../../../index.html">docs</a> &#x00BB; <a href="../../../index.html">findlib-1</a> &#x00BB; <a href="../../index.html">melange-json</a> &#x00BB; <a href="../index.html">Json</a> &#x00BB; Decode</nav><header class="odoc-preamble"><h1>Module <code><span>Json.Decode</span></code></h1><p>Provides a set of low level combinator primitives to decode Js.Json.t data structures A decoder combinator will return the decoded value if successful, or raise a <code>DecodeError of string</code> if unsuccessful, where the string argument contains the error message. Decoders are designed to be combined to produce more complex decoders that can decode arbitrary data structures, though the emphasis for this library is for it to be <i>possible</i> to decode any given data structure, not necessarily for it to be <i>convenient</i>. For convenience you should look towards opinionated third-party libraries.</p></header><div class="odoc-content"><div class="odoc-spec"><div class="spec type anchored" id="type-decoder"><a href="#type-decoder" class="anchor"></a><code><span><span class="keyword">type</span> <span>'a decoder</span></span><span> = <span><span class="xref-unresolved">Js</span>.Json.t <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'a</span></span></code></div><div class="spec-doc"><p>The type of a decoder combinator</p></div></div><div class="odoc-spec"><div class="spec exception anchored" id="exception-DecodeError"><a href="#exception-DecodeError" class="anchor"></a><code><span><span class="keyword">exception</span> </span><span><span class="exception">DecodeError</span> <span class="keyword">of</span> string</span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-id"><a href="#val-id" class="anchor"></a><code><span><span class="keyword">val</span> id : <span><span class="xref-unresolved">Js</span>.Json.t <a href="#type-decoder">decoder</a></span></span></code></div><div class="spec-doc"><p>Identity decoder.</p><p><b>Returns</b> the input JSON value.</p><p>Always succeeds. You would use this if you wanted to partially decode some JSON in stages; in the first stage you could decode some portion of the input, while using <code>id</code> to keep the rest as JSON and decoding that in subsequent stages.</p><p>@example </p><pre class="language-ocaml"><code>open Json
+(* returns [(1 : int, {&quot;a&quot;: true} : Js.Json.t)] *)
+let json = parseOrRaise {|{&quot;id&quot;: 1, {&quot;a&quot;: true}}|}
+let _ = Decode.(int json, id json)</code></pre></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-bool"><a href="#val-bool" class="anchor"></a><code><span><span class="keyword">val</span> bool : <span>bool <a href="#type-decoder">decoder</a></span></span></code></div><div class="spec-doc"><p>Decodes a JSON value into a <code>bool</code></p><p><b>Returns</b> a <code>bool</code> if the JSON value is a <code>true</code> or <code>false</code>.</p><ul class="at-tags"><li class="raises"><span class="at-tag">raises</span> <code>[DecodeError]</code> <p>if unsuccessful</p><p>@example </p><pre class="language-ocaml"><code>open Json
+(* returns true *)
+let _ = Json.parseOrRaise &quot;true&quot; |&gt; Decode.bool
+(* returns false *)
+let _ = Json.parseOrRaise &quot;false&quot; |&gt; Decode.bool
+(* raises DecodeError *)
+let _ = Json.parseOrRaise &quot;123&quot; |&gt; Decode.bool
+(* raises DecodeError *)
+let _ = Json.parseOrRaise &quot;null&quot; |&gt; Decode.bool</code></pre></li></ul></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-float"><a href="#val-float" class="anchor"></a><code><span><span class="keyword">val</span> float : <span>float <a href="#type-decoder">decoder</a></span></span></code></div><div class="spec-doc"><p>Decodes a JSON value into a <code>float</code></p><p><b>Returns</b> a <code>float</code> if the JSON value is a number.</p><ul class="at-tags"><li class="raises"><span class="at-tag">raises</span> <code>[DecodeError]</code> <p>if unsuccessful</p><p>@example </p><pre class="language-ocaml"><code>open Json
+(* returns 1.23 *)
+let _ = Json.parseOrRaise &quot;1.23&quot; |&gt; Decode.float
+(* returns 23. *)
+let _ = Json.parseOrRaise &quot;23&quot; |&gt; Decode.float
+(* raises DecodeError *)
+let _ = Json.parseOrRaise &quot;true&quot; |&gt; Decode.float
+(* raises DecodeError *)
+let _ = Json.parseOrRaise &quot;null&quot; |&gt; Decode.float</code></pre></li></ul></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-int"><a href="#val-int" class="anchor"></a><code><span><span class="keyword">val</span> int : <span>int <a href="#type-decoder">decoder</a></span></span></code></div><div class="spec-doc"><p>Decodes a JSON value into an <code>int</code></p><p><b>Returns</b> an <code>int</code> if the JSON value is a number.</p><ul class="at-tags"><li class="raises"><span class="at-tag">raises</span> <code>[DecodeError]</code> <p>if unsuccessful</p><p>@example </p><pre class="language-ocaml"><code>open Json
+(* returns 23 *)
+let _ = Json.parseOrRaise &quot;23&quot; |&gt; Decode.int
+(* raises DecodeError *)
+let _ = Json.parseOrRaise &quot;1.23&quot; |&gt; Decode.int
+(* raises DecodeError *)
+let _ = Json.parseOrRaise &quot;true&quot; |&gt; Decode.int
+(* raises DecodeError *)
+let _ = Json.parseOrRaise &quot;null&quot; |&gt; Decode.int</code></pre></li></ul></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-string"><a href="#val-string" class="anchor"></a><code><span><span class="keyword">val</span> string : <span>string <a href="#type-decoder">decoder</a></span></span></code></div><div class="spec-doc"><p>Decodes a JSON value into a <code>string</code></p><p><b>Returns</b> a <code>string</code> if the JSON value is a string.</p><ul class="at-tags"><li class="raises"><span class="at-tag">raises</span> <code>[DecodeError]</code> <p>if unsuccessful</p><p>@example </p><pre class="language-ocaml"><code>open Json
+(* returns &quot;foo&quot; *)
+let _ = Json.parseOrRaise &quot;\&quot;foo\&quot;&quot; |&gt; Decode.string
+(* raises DecodeError *)
+let _ = Json.parseOrRaise &quot;1.23&quot; |&gt; Decode.string
+(* raises DecodeError *)
+let _ = Json.parseOrRaise &quot;null&quot; |&gt; Decode.string</code></pre></li></ul></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-char"><a href="#val-char" class="anchor"></a><code><span><span class="keyword">val</span> char : <span>char <a href="#type-decoder">decoder</a></span></span></code></div><div class="spec-doc"><p>Decodes a JSON value into a <code>char</code></p><p><b>Returns</b> a <code>char</code> if the JSON value is a single-character string.</p><ul class="at-tags"><li class="raises"><span class="at-tag">raises</span> <code>[DecodeError]</code> <p>if unsuccessful.</p><p>@example </p><pre class="language-ocaml"><code>open Json
+(* returns 'a' *)
+let _ = Json.parseOrRaise &quot;\&quot;a\&quot;&quot; |&gt; Decode.char
+(* raises DecodeError *)
+let _ = Json.parseOrRaise &quot;\&quot;abc\&quot;&quot; |&gt; Decode.char
+(* raises DecodeError *)
+let _ = Json.parseOrRaise &quot;null&quot; |&gt; Decode.char</code></pre></li></ul></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-date"><a href="#val-date" class="anchor"></a><code><span><span class="keyword">val</span> date : <span><span class="xref-unresolved">Js</span>.Date.t <a href="#type-decoder">decoder</a></span></span></code></div><div class="spec-doc"><p>Decodes an ISO8601-formatted JSON string into a <code>Js.Date.t</code></p><p><b>Returns</b> a <code>Js.Date.t</code> if the JSON value is an IS8601-formatted string.</p><ul class="at-tags"><li class="raises"><span class="at-tag">raises</span> <code>[DecodeError]</code> <p>if unsuccessful</p></li></ul></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-nullable"><a href="#val-nullable" class="anchor"></a><code><span><span class="keyword">val</span> nullable : <span><span><span class="type-var">'a</span> <a href="#type-decoder">decoder</a></span> <span class="arrow">&#45;&gt;</span></span> <span><span><span class="type-var">'a</span> <span class="xref-unresolved">Js</span>.null</span> <a href="#type-decoder">decoder</a></span></span></code></div><div class="spec-doc"><p>Decodes a JSON value into an <code>'a Js.null</code></p><p><b>Returns</b> <code>Js.null</code> if the JSON value is <code>null</code>, or an <code>'a Js.null</code> if the given decoder succeeds,</p><ul class="at-tags"><li class="raises"><span class="at-tag">raises</span> <code>[DecodeError]</code> <p>if unsuccessful</p><p>@example </p><pre class="language-ocaml"><code>open Json
+(* returns (Js.Null.return 23) *)
+let _ = Json.parseOrRaise &quot;23&quot; |&gt; Decode.(nullable int)
+(* raises DecodeError *)
+let _ = Json.parseOrRaise &quot;1.23&quot; |&gt; Decode.(nullable int)
+(* returns Js.null *)
+let _ = Json.parseOrRaise &quot;null&quot; |&gt; Decode.(nullable int)</code></pre></li></ul></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-nullAs"><a href="#val-nullAs" class="anchor"></a><code><span><span class="keyword">val</span> nullAs : <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'a</span> <a href="#type-decoder">decoder</a></span></span></code></div><div class="spec-doc"><p>Returns the given value if the JSON value is <code>null</code></p><p><b>Returns</b> an <code>'a</code> if the JSON value is <code>null</code>.</p><ul class="at-tags"><li class="raises"><span class="at-tag">raises</span> <code>[DecodeError]</code> <p>if unsuccessful</p><p>@example </p><pre class="language-ocaml"><code>open Json
+(* raises DecodeError *)
+let _ = Json.parseOrRaise &quot;\&quot;x\&quot;&quot; |&gt; Decode.nullAs &quot;x&quot;
+(* returns &quot;x&quot; *)
+let _ = Json.parseOrRaise &quot;null&quot; |&gt; Decode.nullAs &quot;x&quot;
+(* returns None *)
+let _ = Json.parseOrRaise &quot;null&quot; |&gt; Decode.nullAs None</code></pre></li></ul></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-array"><a href="#val-array" class="anchor"></a><code><span><span class="keyword">val</span> array : <span><span><span class="type-var">'a</span> <a href="#type-decoder">decoder</a></span> <span class="arrow">&#45;&gt;</span></span> <span><span><span class="type-var">'a</span> array</span> <a href="#type-decoder">decoder</a></span></span></code></div><div class="spec-doc"><p>Decodes a JSON array into an <code>'a array</code> using the given decoder on each element</p><p><b>Returns</b> an <code>'a array</code> if the JSON value is a JSON array and all its elements are successfully decoded.</p><ul class="at-tags"><li class="raises"><span class="at-tag">raises</span> <code>[DecodeError]</code> <p>if unsuccessful</p><p>@example </p><pre class="language-ocaml"><code>open Json
+(* returns [| 1; 2; 3 |] *)
+let _ = Json.parseOrRaise &quot;[1, 2, 3]&quot; |&gt; Decode.(array int)
+(* raises DecodeError *)
+let _ = Json.parseOrRaise &quot;[1, 2, &quot;c&quot;]&quot; |&gt; Decode.(array int)
+(* raises DecodeError *)
+let _ = Json.parseOrRaise &quot;123&quot; |&gt; Decode.(array int)
+(* raises DecodeError *)
+let _ = Json.parseOrRaise &quot;null&quot; |&gt; Decode.(array int)</code></pre></li></ul></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-list"><a href="#val-list" class="anchor"></a><code><span><span class="keyword">val</span> list : <span><span><span class="type-var">'a</span> <a href="#type-decoder">decoder</a></span> <span class="arrow">&#45;&gt;</span></span> <span><span><span class="type-var">'a</span> list</span> <a href="#type-decoder">decoder</a></span></span></code></div><div class="spec-doc"><p>Decodes a JSON array into an <code>'a list</code> using the given decoder on each element</p><p><b>Returns</b> an <code>'a list</code> if the JSON value is a JSON array and all its elements are successfully decoded.</p><ul class="at-tags"><li class="raises"><span class="at-tag">raises</span> <code>[DecodeError]</code> <p>if unsuccessful</p><p>@example </p><pre class="language-ocaml"><code>open Json
+(* returns [1; 2; 3] *)
+let _ = Json.parseOrRaise &quot;[1, 2, 3]&quot; |&gt; Decode.(list int)
+(* raises DecodeError *)
+let _ = Json.parseOrRaise &quot;[1, 2, &quot;c&quot;]&quot; |&gt; Decode.(list int)
+(* raises DecodeError *)
+let _ = Json.parseOrRaise &quot;123&quot; |&gt; Decode.(list int)
+(* raises DecodeError *)
+let _ = Json.parseOrRaise &quot;null&quot; |&gt; Decode.(list int)</code></pre></li></ul></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-pair"><a href="#val-pair" class="anchor"></a><code><span><span class="keyword">val</span> pair : <span><span><span class="type-var">'a</span> <a href="#type-decoder">decoder</a></span> <span class="arrow">&#45;&gt;</span></span> <span><span><span class="type-var">'b</span> <a href="#type-decoder">decoder</a></span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span class="type-var">'a</span> * <span class="type-var">'b</span>)</span> <a href="#type-decoder">decoder</a></span></span></code></div><div class="spec-doc"><p>Decodes a JSON array with two elements into an <code>'a * 'b</code> tuple using each of the given decoders in order.</p><p><b>Returns</b> an <code>'a * 'b</code> if the JSON value is a JSON array of length 2 and both its elements are successfully decoded.</p><ul class="at-tags"><li class="raises"><span class="at-tag">raises</span> <code>[DecodeError]</code> <p>if unsuccessful</p><p>@example </p><pre class="language-ocaml"><code>open Json
+(* returns (1, &quot;bar&quot;) *)
+let _ = Json.parseOrRaise &quot;[1, \&quot;bar\&quot;]&quot; |&gt; Decode.(pair int string)
+(* raises DecodeError *)
+let _ = Json.parseOrRaise &quot;[1, 2]&quot; |&gt; Decode.(pair int string)
+(* raises DecodeError *)
+let _ = Json.parseOrRaise &quot;[1, 2, 3]&quot; |&gt; Decode.(pair int int)</code></pre></li></ul></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-tuple2"><a href="#val-tuple2" class="anchor"></a><code><span><span class="keyword">val</span> tuple2 : <span><span><span class="type-var">'a</span> <a href="#type-decoder">decoder</a></span> <span class="arrow">&#45;&gt;</span></span> <span><span><span class="type-var">'b</span> <a href="#type-decoder">decoder</a></span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span class="type-var">'a</span> * <span class="type-var">'b</span>)</span> <a href="#type-decoder">decoder</a></span></span></code></div><div class="spec-doc"><p>Decodes a JSON array with two elements into an <code>'a * 'b</code> tuple using each of the given decoders in order.</p><p><b>Alias of <code>pair</code></b></p><p><b>Returns</b> an <code>'a * 'b</code> if the JSON value is a JSON array of length 2 and both its elements are successfully decoded.</p><ul class="at-tags"><li class="raises"><span class="at-tag">raises</span> <code>[DecodeError]</code> <p>if unsuccessful</p><p>@example </p><pre class="language-ocaml"><code>open Json
+(* returns (1, &quot;bar&quot;) *)
+let _ = Json.parseOrRaise &quot;[1, \&quot;bar\&quot;]&quot; |&gt; Decode.(tuple2 int string)
+(* raises DecodeError *)
+let _ = Json.parseOrRaise &quot;[1, 2]&quot; |&gt; Decode.(tuple2 int string)
+(* raises DecodeError *)
+let _ = Json.parseOrRaise &quot;[1, 2, 3]&quot; |&gt; Decode.(tuple2 int int)</code></pre></li></ul></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-tuple3"><a href="#val-tuple3" class="anchor"></a><code><span><span class="keyword">val</span> tuple3 : <span><span><span class="type-var">'a</span> <a href="#type-decoder">decoder</a></span> <span class="arrow">&#45;&gt;</span></span> <span><span><span class="type-var">'b</span> <a href="#type-decoder">decoder</a></span> <span class="arrow">&#45;&gt;</span></span> <span><span><span class="type-var">'c</span> <a href="#type-decoder">decoder</a></span> <span class="arrow">&#45;&gt;</span></span> <span><span>(<span class="type-var">'a</span> * <span class="type-var">'b</span> * <span class="type-var">'c</span>)</span> <a href="#type-decoder">decoder</a></span></span></code></div><div class="spec-doc"><p>Decodes a JSON array with three elements into an <code>'a * 'b * 'c</code> tuple using each of the given decoders in order.</p><p><b>Returns</b> an <code>'a * 'b * 'c</code> if the JSON value is a JSON array of length 3 and all its elements are successfully decoded.</p><ul class="at-tags"><li class="raises"><span class="at-tag">raises</span> <code>[DecodeError]</code> <p>if unsuccessful</p></li></ul></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-tuple4"><a href="#val-tuple4" class="anchor"></a><code><span><span class="keyword">val</span> tuple4 : 
+  <span><span><span class="type-var">'a</span> <a href="#type-decoder">decoder</a></span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span class="type-var">'b</span> <a href="#type-decoder">decoder</a></span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span class="type-var">'c</span> <a href="#type-decoder">decoder</a></span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span><span class="type-var">'d</span> <a href="#type-decoder">decoder</a></span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(<span class="type-var">'a</span> * <span class="type-var">'b</span> * <span class="type-var">'c</span> * <span class="type-var">'d</span>)</span> <a href="#type-decoder">decoder</a></span></span></code></div><div class="spec-doc"><p>Decodes a JSON array with four elements into an <code>'a * 'b * 'c * 'd</code> tuple using each of the given decoders in order.</p><p><b>Returns</b> an <code>'a * 'b * 'c * 'd</code> if the JSON value is a JSON array of length 4 and all its elements are successfully decoded.</p><ul class="at-tags"><li class="raises"><span class="at-tag">raises</span> <code>[DecodeError]</code> <p>if unsuccessful</p></li></ul></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-dict"><a href="#val-dict" class="anchor"></a><code><span><span class="keyword">val</span> dict : <span><span><span class="type-var">'a</span> <a href="#type-decoder">decoder</a></span> <span class="arrow">&#45;&gt;</span></span> <span><span><span class="type-var">'a</span> <span class="xref-unresolved">Js</span>.Dict.t</span> <a href="#type-decoder">decoder</a></span></span></code></div><div class="spec-doc"><p>Decodes a JSON object into a dict using the given decoder on each of its values</p><p><b>Returns</b> an <code>'a Js.Dict.t</code> if the JSON value is a JSON object and all its values are successfully decoded.</p><ul class="at-tags"><li class="raises"><span class="at-tag">raises</span> <code>[DecodeError]</code> <p>if unsuccessful</p><p>@example </p><pre class="language-ocaml"><code>open Json
+(* returns (Js.Dict.fromList [(&quot;x&quot;, 23); (&quot;y&quot;, 42)]) *)
+let _ = Json.parseOrRaise {| { &quot;x&quot;: 23, &quot;y&quot;: 42 } |} |&gt; Decode.(dict int)
+(* raises DecodeError *)
+let _ = Json.parseOrRaise {| { &quot;x&quot;: 23, &quot;y&quot;: &quot;b&quot; } |} |&gt; Decode.(dict int)
+(* raises DecodeError *)
+let _ = Json.parseOrRaise &quot;123&quot; |&gt; Decode.(dict int)
+(* raises DecodeError *)
+let _ = Json.parseOrRaise &quot;null&quot; |&gt; Decode.(dict int)</code></pre></li></ul></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-field"><a href="#val-field" class="anchor"></a><code><span><span class="keyword">val</span> field : <span>string <span class="arrow">&#45;&gt;</span></span> <span><span><span class="type-var">'a</span> <a href="#type-decoder">decoder</a></span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'a</span> <a href="#type-decoder">decoder</a></span></span></code></div><div class="spec-doc"><p>Decodes a JSON object with a specific field into the value of that field</p><p><b>Returns</b> an <code>'a</code> if the JSON value is a JSON object with the given field and a value that is successfully decoded with the given decoder.</p><ul class="at-tags"><li class="raises"><span class="at-tag">raises</span> <code>[DecodeError]</code> <p>if unsuccessful</p><p>@example </p><pre class="language-ocaml"><code>open Json
+(* returns 23 *)
+let _ = Json.parseOrRaise {| { &quot;x&quot;: 23, &quot;y&quot;: 42 } |} |&gt; Decode.(field &quot;x&quot; int)
+(* returns 23 *)
+let _ = Json.parseOrRaise {| { &quot;x&quot;: 23, &quot;y&quot;: &quot;b&quot; } |} |&gt; Decode.(field &quot;x&quot; int)
+(* raises DecodeError *)
+let _ = Json.parseOrRaise {| { &quot;x&quot;: 23, &quot;y&quot;: &quot;b&quot; } |} |&gt; Decode.(field &quot;y&quot; int)
+(* raises DecodeError *)
+let _ = Json.parseOrRaise &quot;123&quot; |&gt; Decode.(field &quot;x&quot; int)
+(* raises DecodeError *)
+let _ = Json.parseOrRaise &quot;null&quot; |&gt; Decode.(field &quot;x&quot; int)</code></pre></li></ul></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-at"><a href="#val-at" class="anchor"></a><code><span><span class="keyword">val</span> at : <span><span>string list</span> <span class="arrow">&#45;&gt;</span></span> <span><span><span class="type-var">'a</span> <a href="#type-decoder">decoder</a></span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'a</span> <a href="#type-decoder">decoder</a></span></span></code></div><div class="spec-doc"><p>Same as <code>field</code> but takes a top level field and a list of nested fields for decoding nested values.</p><p><b>Returns</b> an <code>'a</code> if the JSON value is a JSON object with the given field and a value that is successfully decoded with the given decoder.</p><ul class="at-tags"><li class="raises"><span class="at-tag">raises</span> <code>[DecodeError]</code> <p>if unsuccessful</p></li></ul><ul class="at-tags"><li class="raises"><span class="at-tag">raises</span> <code>[Invalid_argument]</code> <p>if list of fields is empty</p><p>@example </p><pre class="language-ocaml"><code>open Json
+(* returns 23 *)
+let _ = Json.parseOrRaise {| { &quot;x&quot;: {&quot;foo&quot;: 23}, &quot;y&quot;: 42 } |} |&gt; Decode.(at [&quot;x&quot;; &quot;foo&quot;] int)
+(* raises DecodeError *)
+let _ = Json.parseOrRaise {| { &quot;x&quot;: null, &quot;y&quot;: &quot;b&quot; } |} |&gt; Decode.(at [&quot;x&quot;; &quot;foo&quot;] int)</code></pre></li></ul></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-optional"><a href="#val-optional" class="anchor"></a><code><span><span class="keyword">val</span> optional : <span><span><span class="type-var">'a</span> <a href="#type-decoder">decoder</a></span> <span class="arrow">&#45;&gt;</span></span> <span><span><span class="type-var">'a</span> option</span> <a href="#type-decoder">decoder</a></span></span></code></div><div class="spec-doc"><p>Maps a decoder <code>result</code> to an option</p><p><b>Returns</b> <code>Some of 'a</code> if the given decoder is successful, <code>None</code> if it is not.</p><p>This decoder will never raise a <code>DecodeError</code>. Its purpose is to catch and transform <code>DecodeError</code>'s of a given decoder into <code>None</code>s by mapping its <code>result</code> into an <code>option</code>. This prevents a decoder error from terminating a composite decoder, and is useful to decode optional JSON object fields.</p><p>@example </p><pre class="language-ocaml"><code>open Json
+(* returns (Some 23) *)
+let _ = Json.parseOrRaise &quot;23&quot; |&gt; Decode.(optional int)
+(* returns None *)
+let _ = Json.parseOrRaise 1.23 |&gt; Decode.(optional int)
+(* returns None *)
+let _ = Json.parseOrRaise &quot;null&quot; |&gt; Decode.(optional int)
+(* returns (Some 23) *)
+let _ = Json.parseOrRaise {| { &quot;x&quot;: 23, &quot;y&quot;: &quot;b&quot; } |} |&gt; Decode.(optional (field &quot;x&quot; int))
+(* returns None *)
+let _ = Json.parseOrRaise {| { &quot;x&quot;: 23, &quot;y&quot;: &quot;b&quot; } |} |&gt; Decode.(optional (field &quot;y&quot; int))
+(* returns None *)
+let _ = Json.parseOrRaise {| { &quot;x&quot;: 23, &quot;y&quot;: &quot;b&quot; } |} |&gt; Decode.(optional (field &quot;z&quot; int))
+(* returns (Some 23) *)
+let _ = Json.parseOrRaise {| { &quot;x&quot;: 23, &quot;y&quot;: &quot;b&quot; } |} |&gt; Decode.(field &quot;x&quot; (optional int))
+(* returns None *)
+let _ = Json.parseOrRaise {| { &quot;x&quot;: 23, &quot;y&quot;: &quot;b&quot; } |} |&gt; Decode.(field &quot;y&quot; (optional int))
+(* raises DecodeError *)
+let _ = Json.parseOrRaise {| { &quot;x&quot;: 23, &quot;y&quot;: &quot;b&quot; } |} |&gt; Decode.(field &quot;z&quot; (optional int))</code></pre></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-oneOf"><a href="#val-oneOf" class="anchor"></a><code><span><span class="keyword">val</span> oneOf : <span><span><span><span class="type-var">'a</span> <a href="#type-decoder">decoder</a></span> list</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'a</span> <a href="#type-decoder">decoder</a></span></span></code></div><div class="spec-doc"><p>Tries each <code>decoder</code> in order, retunring the result of the first that succeeds</p><p><b>Returns</b> an <code>'a</code> if one of the decoders succeed.</p><ul class="at-tags"><li class="raises"><span class="at-tag">raises</span> <code>[DecodeError]</code> <p>if unsuccessful</p><p>@example </p><pre class="language-ocaml"><code>open Json
+(* returns 23 *)
+let _ = Json.parseOrRaise &quot;23&quot; |&gt; Decode.(oneOf [int; field &quot;x&quot; int])
+(* returns 42 *)
+let _ = Json.parseOrRaise {| { &quot;x&quot;: 42 } |}  |&gt; Decode.(oneOf [int; field &quot;x&quot; int])
+(* raises DecodeError *)
+let _ = Json.parseOrRaise &quot;null&quot; |&gt; Decode.(oneOf [int; field &quot;x&quot; int]</code></pre></li></ul></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-either"><a href="#val-either" class="anchor"></a><code><span><span class="keyword">val</span> either : <span><span><span class="type-var">'a</span> <a href="#type-decoder">decoder</a></span> <span class="arrow">&#45;&gt;</span></span> <span><span><span class="type-var">'a</span> <a href="#type-decoder">decoder</a></span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'a</span> <a href="#type-decoder">decoder</a></span></span></code></div><div class="spec-doc"><p>Tries each <code>decoder</code> in order, retunring the result of the first that succeeds</p><p><b>Returns</b> an <code>'a</code> if one of the decoders succeed.</p><ul class="at-tags"><li class="raises"><span class="at-tag">raises</span> <code>[DecodeError]</code> <p>if unsuccessful</p><p>@example </p><pre class="language-ocaml"><code>open Json
+(* returns 23 *)
+let _ = Json.parseOrRaise &quot;23&quot; |&gt; Decode.(either int (field &quot;x&quot; int))
+(* returns 42 *)
+let _ = Json.parseOrRaise {| { &quot;x&quot;: 42 } |}  |&gt; Decode.(either int (field &quot;x&quot; int))
+(* raises DecodeError *)
+let _ = Json.parseOrRaise &quot;null&quot; |&gt; Decode.(either int (field &quot;x&quot; int))</code></pre></li></ul></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-withDefault"><a href="#val-withDefault" class="anchor"></a><code><span><span class="keyword">val</span> withDefault : <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> <span><span><span class="type-var">'a</span> <a href="#type-decoder">decoder</a></span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'a</span> <a href="#type-decoder">decoder</a></span></span></code></div><div class="spec-doc"><p>Tries the given <code>decoder</code> and returns its result if it succeeds, or the given default value if it fails.</p><p><b>Returns</b> an <code>'a</code>.</p><p>@example </p><pre class="language-ocaml"><code>open Json
+(* returns 23 *)
+let _ = Json.parseOrRaise &quot;23&quot; |&gt; Decode.withDefault 0 int
+(* returns 0 *)
+let _ = Json.parseOrRaise &quot;\&quot;x\&quot;&quot; |&gt; Decode.withDefault 0 int
+(* returns 0 *)
+let _ = Json.parseOrRaise &quot;null&quot; |&gt; Decode.withDefault 0 int</code></pre></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-map"><a href="#val-map" class="anchor"></a><code><span><span class="keyword">val</span> map : <span><span>(<span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'b</span>)</span> <span class="arrow">&#45;&gt;</span></span> <span><span><span class="type-var">'a</span> <a href="#type-decoder">decoder</a></span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'b</span> <a href="#type-decoder">decoder</a></span></span></code></div><div class="spec-doc"><p>Returns a decoder that maps the result of the given decoder if successful</p><p><b>Returns</b> a <code>'b</code> if the given decoder succeeds.</p><p>@example </p><pre class="language-ocaml"><code>open Json
+(* returns 46 *)
+let _ = Json.parseOrRaise &quot;23&quot; |&gt; Decode.map (fun x -&gt; x + x) int</code></pre></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-andThen"><a href="#val-andThen" class="anchor"></a><code><span><span class="keyword">val</span> andThen : <span><span>(<span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'b</span> <a href="#type-decoder">decoder</a></span>)</span> <span class="arrow">&#45;&gt;</span></span> <span><span><span class="type-var">'a</span> <a href="#type-decoder">decoder</a></span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'b</span> <a href="#type-decoder">decoder</a></span></span></code></div><div class="spec-doc"><p>Returns a decoder that maps the result of the given decoder if successful</p><p><b>Returns</b> an <code>'a</code> if both decoders succeed.</p><p>@example </p><pre class="language-ocaml"><code>(* Decode a JSON tree structure *)
+type 'a tree =
+| Node of 'a * 'a tree list
+| Leaf of 'a
+
+module Decode = struct
+  open Json.Decode
+
+  let rec tree decoder =
+    field &quot;type&quot; string |&gt; andThen (
+      function | &quot;node&quot; -&gt; node decoder
+              | &quot;leaf&quot; -&gt; leaf decoder
+              | _      -&gt; failwith &quot;unknown node type&quot;
+    )
+
+  and node decoder json =
+    Node (
+      (json |&gt; field &quot;value&quot; decoder),
+      (json |&gt; field &quot;children&quot; (array (tree decoder) |&gt; map Array.to_list))
+    )
+
+  and leaf decoder json =
+    Leaf (json |&gt; field &quot;value&quot; decoder)
+end
+
+let json = {| {
+  &quot;type&quot;: &quot;node&quot;,
+  &quot;value&quot;: 9,
+  &quot;children&quot;: [{
+    &quot;type&quot;: &quot;node&quot;,
+    &quot;value&quot;: 5,
+    &quot;children&quot;: [{
+      &quot;type&quot;: &quot;leaf&quot;,
+      &quot;value&quot;: 3
+    }, {
+      &quot;type&quot;: &quot;leaf&quot;,
+      &quot;value&quot;: 2
+    }]
+  }, {
+      &quot;type&quot;: &quot;leaf&quot;,
+      &quot;value&quot;: 4
+  }]
+} |}
+
+let myTree =
+  json |&gt; Json.parseOrRaise 
+      |&gt; Decode.tree Json.Decode.int</code></pre></div></div></div></body></html>
