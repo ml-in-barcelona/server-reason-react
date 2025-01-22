@@ -7,7 +7,7 @@ let test title fn =
       Alcotest_lwt.test_case "" `Quick (fun _switch () ->
           let start = Unix.gettimeofday () in
           let timeout =
-            let%lwt () = Lwt_unix.sleep 3.0 in
+            let%lwt () = Lwt_unix.sleep 0.30 in
             Alcotest.failf "Test '%s' timed out" title
           in
           let%lwt test_promise = Lwt.pick [ fn (); timeout ] in
@@ -44,7 +44,7 @@ let deffered_component ~seconds ~children () =
         (React.createElement "div" []
            [ React.string ("Sleep " ^ Float.to_string seconds ^ " seconds"); React.string ", "; children ]))
 
-let test_silly_stream () =
+let silly_stream () =
   let stream, push = Lwt_stream.create () in
   push (Some "first");
   push (Some "secondo");
@@ -114,7 +114,7 @@ let suspense_with_react_use () =
        e--;else\"$\"!==d&&\"$?\"!==d&&\"$!\"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data=\"$\";a._reactRetry&&a._reactRetry()}}$RC('B:0','S:0')</script>";
     ]
 
-let test_with_custom_component () =
+let with_custom_component () =
   let custom_component =
     React.Upper_case_component
       (fun () -> React.createElement "div" [] [ React.createElement "span" [] [ React.string "Custom Component" ] ])
@@ -123,7 +123,7 @@ let test_with_custom_component () =
   let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component app) in
   assert_stream stream [ "<div><div><span>Custom Component</span></div></div>" ]
 
-let test_with_multiple_custom_components () =
+let with_multiple_custom_components () =
   let custom_component =
     React.Upper_case_component
       (fun () -> React.createElement "div" [] [ React.createElement "span" [] [ React.string "Custom Component" ] ])
@@ -237,13 +237,13 @@ let suspense_with_multiple_children () =
     React.createElement "div" []
       [
         React.Suspense.make ~fallback:(React.string "Loading 1")
-          ~children:(deffered_component ~seconds:0.1 ~children:(React.string "First") ())
+          ~children:(deffered_component ~seconds:0.01 ~children:(React.string "First") ())
           ();
         React.Suspense.make ~fallback:(React.string "Loading 2")
-          ~children:(deffered_component ~seconds:0.2 ~children:(React.string "Second") ())
+          ~children:(deffered_component ~seconds:0.02 ~children:(React.string "Second") ())
           ();
         React.Suspense.make ~fallback:(React.string "Loading 3")
-          ~children:(deffered_component ~seconds:0.3 ~children:(React.string "Third") ())
+          ~children:(deffered_component ~seconds:0.03 ~children:(React.string "Third") ())
           ();
       ]
   in
@@ -252,14 +252,14 @@ let suspense_with_multiple_children () =
     [
       "<div><!--$?--><template id=\"B:0\"></template>Loading 1<!--/$--><!--$?--><template \
        id=\"B:1\"></template>Loading 2<!--/$--><!--$?--><template id=\"B:2\"></template>Loading 3<!--/$--></div>";
-      "<div hidden id=\"S:0\"><div>Sleep 0.1 seconds<!-- -->, <!-- -->First</div></div>";
+      "<div hidden id=\"S:0\"><div>Sleep 0.01 seconds<!-- -->, <!-- -->First</div></div>";
       "<script>function \
        $RC(a,b){a=document.getElementById(a);b=document.getElementById(b);b.parentNode.removeChild(b);if(a){a=a.previousSibling;var \
        f=a.parentNode,c=a.nextSibling,e=0;do{if(c&&8===c.nodeType){var d=c.data;if(\"/$\"===d)if(0===e)break;else \
        e--;else\"$\"!==d&&\"$?\"!==d&&\"$!\"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data=\"$\";a._reactRetry&&a._reactRetry()}}$RC('B:0','S:0')</script>";
-      "<div hidden id=\"S:1\"><div>Sleep 0.2 seconds<!-- -->, <!-- -->Second</div></div>";
+      "<div hidden id=\"S:1\"><div>Sleep 0.02 seconds<!-- -->, <!-- -->Second</div></div>";
       "<script>$RC('B:1','S:1')</script>";
-      "<div hidden id=\"S:2\"><div>Sleep 0.3 seconds<!-- -->, <!-- -->Third</div></div>";
+      "<div hidden id=\"S:2\"><div>Sleep 0.03 seconds<!-- -->, <!-- -->Third</div></div>";
       "<script>$RC('B:2','S:2')</script>";
     ]
 
@@ -268,13 +268,13 @@ let suspense_with_multiple_children_reordered () =
     React.createElement "div" []
       [
         React.Suspense.make ~fallback:(React.string "Loading 3")
-          ~children:(deffered_component ~seconds:0.3 ~children:(React.string "Third") ())
+          ~children:(deffered_component ~seconds:0.03 ~children:(React.string "Third") ())
           ();
         React.Suspense.make ~fallback:(React.string "Loading 1")
-          ~children:(deffered_component ~seconds:0.1 ~children:(React.string "First") ())
+          ~children:(deffered_component ~seconds:0.01 ~children:(React.string "First") ())
           ();
         React.Suspense.make ~fallback:(React.string "Loading 2")
-          ~children:(deffered_component ~seconds:0.2 ~children:(React.string "Second") ())
+          ~children:(deffered_component ~seconds:0.02 ~children:(React.string "Second") ())
           ();
       ]
   in
@@ -283,18 +283,18 @@ let suspense_with_multiple_children_reordered () =
     [
       "<div><!--$?--><template id=\"B:0\"></template>Loading 3<!--/$--><!--$?--><template \
        id=\"B:1\"></template>Loading 1<!--/$--><!--$?--><template id=\"B:2\"></template>Loading 2<!--/$--></div>";
-      "<div hidden id=\"S:1\"><div>Sleep 0.1 seconds<!-- -->, <!-- -->First</div></div>";
+      "<div hidden id=\"S:1\"><div>Sleep 0.01 seconds<!-- -->, <!-- -->First</div></div>";
       "<script>function \
        $RC(a,b){a=document.getElementById(a);b=document.getElementById(b);b.parentNode.removeChild(b);if(a){a=a.previousSibling;var \
        f=a.parentNode,c=a.nextSibling,e=0;do{if(c&&8===c.nodeType){var d=c.data;if(\"/$\"===d)if(0===e)break;else \
        e--;else\"$\"!==d&&\"$?\"!==d&&\"$!\"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data=\"$\";a._reactRetry&&a._reactRetry()}}$RC('B:1','S:1')</script>";
-      "<div hidden id=\"S:2\"><div>Sleep 0.2 seconds<!-- -->, <!-- -->Second</div></div>";
+      "<div hidden id=\"S:2\"><div>Sleep 0.02 seconds<!-- -->, <!-- -->Second</div></div>";
       "<script>$RC('B:2','S:2')</script>";
-      "<div hidden id=\"S:0\"><div>Sleep 0.3 seconds<!-- -->, <!-- -->Third</div></div>";
+      "<div hidden id=\"S:0\"><div>Sleep 0.03 seconds<!-- -->, <!-- -->Third</div></div>";
       "<script>$RC('B:0','S:0')</script>";
     ]
 
-let multiple_nested_suspenses () =
+let suspense_with_nested_suspenses () =
   let app () =
     React.Suspense.make ~fallback:(React.string "Outer loading")
       ~children:
@@ -324,7 +324,7 @@ let multiple_nested_suspenses () =
       "<script>$RC('B:1','S:1')</script>";
     ]
 
-let concurrent_suspense () =
+let suspense_with_concurrent_suspenses () =
   let app () =
     React.createElement "div" []
       [
@@ -380,23 +380,77 @@ let suspense_with_comments () =
        e--;else\"$\"!==d&&\"$?\"!==d&&\"$!\"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data=\"$\";a._reactRetry&&a._reactRetry()}}$RC('B:0','S:0')</script>";
     ]
 
+let abort_streaming () =
+  let app () =
+    React.createElement "div" []
+      [
+        React.Suspense.make ~fallback:(React.string "Loading 1")
+          ~children:(deffered_component ~seconds:0.05 ~children:(React.string "Content 1") ())
+          ();
+        React.Suspense.make ~fallback:(React.string "Loading 2")
+          ~children:(deffered_component ~seconds:0.10 ~children:(React.string "Content 2") ())
+          ();
+      ]
+  in
+  let%lwt stream, abort = ReactDOM.renderToStream (React.Upper_case_component app) in
+  let%lwt first_chunk = Lwt_stream.get stream in
+  (* Abort after first chunk *)
+  abort ();
+  let%lwt remaining = Lwt_stream.to_list stream in
+  assert_list Alcotest.string remaining [];
+  match first_chunk with
+  | Some chunk ->
+      Lwt.return
+        (assert_string chunk
+           "<div><!--$?--><template id=\"B:0\"></template>Loading 1<!--/$--><!--$?--><template \
+            id=\"B:1\"></template>Loading 2<!--/$--></div>")
+  | None -> Alcotest.fail "Expected at least one chunk before abort"
+
+let dangerous_html_in_suspense () =
+  let app () =
+    React.Suspense.make ~fallback:(React.string "Loading...")
+      ~children:
+        (React.Async_component
+           (fun () ->
+             let%lwt () = Lwt_unix.sleep 0.01 in
+             Lwt.return
+               (React.createElement "div"
+                  [
+                    React.JSX.dangerouslyInnerHtml
+                      (let html_content = "<div>Dangerous HTML</div>" in
+                       object
+                         method __html = html_content
+                       end);
+                  ]
+                  [])))
+      ()
+  in
+  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component app) in
+  assert_stream stream
+    [
+      "<!--$?--><template id=\"B:0\"></template>Loading...<!--/$-->";
+      "<div hidden id=\"S:0\"><div><div>Dangerous HTML</div></div></div>";
+      "<script>function $RC(a,b){...}$RC('B:0','S:0')</script>";
+    ]
+
 let tests =
   [
-    test "silly_stream" test_silly_stream;
+    test "silly_stream" silly_stream;
     test "render_inner_html" render_inner_html;
     test "react_use_without_suspense" react_use_without_suspense;
     test "uppercase_component_always_throwing" uppercase_component_always_throwing;
     test "suspense_with_react_use" suspense_with_react_use;
     test "async component" async_component;
-    test "suspense_without_promise" suspense_without_promise;
     test "async_component_without_suspense" async_component_without_suspense;
+    test "suspense_without_promise" suspense_without_promise;
     test "suspense_with_async_component" suspense_with_async_component;
     test "suspense_with_always_throwing" suspense_with_always_throwing;
     test "suspense_with_nested_suspense" suspense_with_nested_suspense;
+    test "suspense_with_nested_suspenses" suspense_with_nested_suspenses;
     test "suspense_with_nested_suspense_with_error" suspense_with_nested_suspense_with_error;
     test "suspense_with_multiple_children" suspense_with_multiple_children;
     test "suspense_with_multiple_children_reordered" suspense_with_multiple_children_reordered;
-    test "multiple_nested_suspenses" multiple_nested_suspenses;
-    test "concurrent_suspense" concurrent_suspense;
+    test "suspense_with_concurrent_suspenses" suspense_with_concurrent_suspenses;
     test "suspense_with_comments" suspense_with_comments;
+    (* test "abort_streaming" abort_streaming; *)
   ]
