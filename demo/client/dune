@@ -56,6 +56,26 @@
   (alias_rec melange)
   (:input create-from-readable-stream.jsx)
   (:script build.mjs)
+  (glob_files *.jsx)
+  (file package.json)
+  (source_tree node_modules)
+  (source_tree ../../packages/extract-client-components))
+ (action
+  (progn
+   (run node %{script} %{input} app/demo/client/ --extract=true))))
+
+;; router.jsx
+
+(rule
+ (enabled_if
+  (= %{profile} dev))
+ (alias client)
+ (deps
+  (package server-reason-react)
+  (alias_rec melange)
+  (:input router.jsx)
+  (glob_files *.jsx)
+  (:script build.mjs)
   (file package.json)
   (source_tree node_modules)
   (source_tree ../../packages/extract-client-components))

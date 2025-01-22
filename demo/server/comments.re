@@ -83,35 +83,56 @@ module Comments = {
   };
 };
 
-[@react.component]
-let make = () => {
-  <Layout background=Theme.Color.black>
-    <main
-      className={Theme.text(Theme.Color.white)}
-      style={ReactDOM.Style.make(~display="flex", ~marginTop="16px", ())}>
-      <article className="flex gap-4 flex-col">
-        <h1
-          className={Cx.make([
-            "text-4xl font-bold ",
-            Theme.text(Theme.Color.white),
-          ])}>
-          {React.string("Rendering React.Suspense on the server")}
-        </h1>
-        <Post />
-        <section>
-          <h3
+module Page = {
+  [@react.component]
+  let make = () => {
+    <Layout background=Theme.Color.black>
+      <main
+        className={Theme.text(Theme.Color.white)}
+        style={ReactDOM.Style.make(~display="flex", ~marginTop="16px", ())}>
+        <article className="flex gap-4 flex-col">
+          <h1
             className={Cx.make([
-              "text-2xl font-bold mb-4",
+              "text-4xl font-bold ",
               Theme.text(Theme.Color.white),
             ])}>
-            {React.string("Comments")}
-          </h3>
-          <React.Suspense fallback={<Spinner />}>
-            <Comments />
-          </React.Suspense>
-        </section>
-        <h2> {React.string("Thanks for reading!")} </h2>
-      </article>
-    </main>
-  </Layout>;
+            {React.string("Rendering React.Suspense on the server")}
+          </h1>
+          <Post />
+          <section>
+            <h3
+              className={Cx.make([
+                "text-2xl font-bold mb-4",
+                Theme.text(Theme.Color.white),
+              ])}>
+              {React.string("Comments")}
+            </h3>
+            <React.Suspense fallback={<Spinner />}>
+              <Comments />
+            </React.Suspense>
+          </section>
+          <h2> {React.string("Thanks for reading!")} </h2>
+        </article>
+      </main>
+    </Layout>;
+  };
+};
+
+let handler = _request => {
+  Dream.stream(
+    ~headers=[("Content-Type", "text/html")],
+    response_stream => {
+      Data.destroy();
+
+      let pipe = data => {
+        let%lwt () = Dream.write(response_stream, data);
+        Dream.flush(response_stream);
+      };
+
+      let%lwt (stream, _abort) =
+        ReactDOM.renderToStream(~pipe, <Document> <Page /> </Document>);
+
+      Lwt_stream.iter_s(pipe, stream);
+    },
+  );
 };

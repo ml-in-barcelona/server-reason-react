@@ -1,19 +1,21 @@
 let home = "/";
-let renderToStaticMarkup = "/demo/renderToStaticMarkup";
-let renderToString = "/demo/renderToString";
-let renderToStream = "/demo/renderToStream";
-let createFromFetch = "/demo/server-components-without-client";
-let createFromReadableStream = "/demo/server-components";
+let demoRenderToStaticMarkup = "/demo/renderToStaticMarkup";
+let demoRenderToString = "/demo/renderToString";
+let demoRenderToStream = "/demo/renderToStream";
+let demoCreateFromFetch = "/demo/server-components-without-client";
+let demoCreateFromReadableStream = "/demo/server-components";
+let demoRouter = "/demo/router";
 
 let links = [|
-  ("Render to static markup (SSR)", renderToStaticMarkup),
-  ("Render to string (SSR)", renderToString),
-  ("Render to stream (SSR)", renderToStream),
-  ("Server components without client (createFromFetch)", createFromFetch),
+  ("Render to static markup (SSR)", demoRenderToStaticMarkup),
+  ("Render to string (SSR)", demoRenderToString),
+  ("Render to stream (SSR)", demoRenderToStream),
+  ("Server components without client (createFromFetch)", demoCreateFromFetch),
   (
     "Server components with createFromReadableStream (RSC + SSR)",
-    createFromReadableStream,
+    demoCreateFromReadableStream,
   ),
+  ("Router", demoRouter),
 |];
 
 module Menu = {
