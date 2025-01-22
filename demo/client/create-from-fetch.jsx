@@ -1,3 +1,7 @@
+window.__webpack_require__ = () => {
+  throw new Error("__webpack_require__ should not be called on this demo");
+};
+
 let ReactDOM = require("react-dom/client");
 let ReactServerDOM = require("react-server-dom-webpack/client");
 
