@@ -39,7 +39,13 @@ let render_to_string ~mode element =
   let rec render_element element =
     match (element : React.element) with
     | Empty -> Html.null
-    | Client_component _ -> Html.null
+    | Client_component { import_module; _ } ->
+        raise
+          (Invalid_argument
+             (Printf.sprintf
+                "Client components can't be rendered on the server via renderToString or renderToStaticMarkup. Please \
+                 use the React server components API instead. module: %s"
+                import_module))
     | Provider children -> render_element children
     | Consumer children -> render_element children
     | Fragment children -> render_element children
@@ -140,8 +146,13 @@ let rec render_to_stream ~context_state element =
   let rec render_element element =
     match (element : React.element) with
     | Empty -> Lwt.return Html.null
-    (* TODO: Check if this breaks in the client. Maybe should throw an error/exn? *)
-    | Client_component _ -> Lwt.return Html.null
+    | Client_component { import_module; _ } ->
+        raise
+          (Invalid_argument
+             (Printf.sprintf
+                "Client components can't be rendered on the server via renderToStream. Please use the React server \
+                 components API instead. module: %s"
+                import_module))
     | Provider children -> render_element children
     | Consumer children -> render_element children
     | Fragment children -> render_element children
@@ -226,7 +237,13 @@ and render_with_resolved ~context_state element =
   let rec render_element element =
     match (element : React.element) with
     | Empty -> Lwt.return Html.null
-    | Client_component _ -> Lwt.return Html.null
+    | Client_component { import_module; _ } ->
+        raise
+          (Invalid_argument
+             (Printf.sprintf
+                "Client components can't be rendered on the server via renderToStream. Please use the React server \
+                 components API instead. module: %s"
+                import_module))
     | Provider children -> render_element children
     | Consumer children -> render_element children
     | Fragment children -> render_element children
