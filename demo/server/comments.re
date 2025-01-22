@@ -36,7 +36,7 @@ module Post = {
 };
 
 module Data = {
-  let delay = 1.0;
+  let delay = 4.0;
 
   let fakeData = [
     "Wait, it doesn't wait for React to load?",
@@ -47,29 +47,39 @@ module Data = {
     "But, imagine it's dynamic",
   ];
 
+  let get = () => fakeData;
+
+  let cached = ref(false);
+  let destroy = () => cached := false;
   let promise = () => {
-    let%lwt () = Lwt_unix.sleep(delay);
-    Lwt.return(fakeData);
+    cached.contents
+      ? Lwt.return(fakeData)
+      : {
+        let%lwt () = Lwt_unix.sleep(delay);
+        cached.contents = true;
+        Lwt.return(fakeData);
+      };
   };
 };
 
 module Comments = {
+  [@react.async.component]
   let make = () => {
-    /* Sincronous data: let comments = Data.get(); */
-    /* let comments = React.Experimental.use(Data.promise()); */
-    let comments = ["a", "b"];
+    let comments = React.Experimental.use(Data.promise());
 
-    <div className="flex gap-4 flex-col">
-      {comments
-       |> List.mapi((i, comment) =>
-            <p
-              key={Int.to_string(i)}
-              className="font-semibold border-2 border-yellow-200 rounded-lg p-2 bg-yellow-600 text-slate-900">
-              {React.string(comment)}
-            </p>
-          )
-       |> React.list}
-    </div>;
+    Lwt.return(
+      <div className="flex gap-4 flex-col">
+        {comments
+         |> List.mapi((i, comment) =>
+              <p
+                key={Int.to_string(i)}
+                className="font-semibold border-2 border-yellow-200 rounded-lg p-2 bg-yellow-600 text-slate-900">
+                {React.string(comment)}
+              </p>
+            )
+         |> React.list}
+      </div>,
+    );
   };
 };
 
@@ -85,7 +95,7 @@ let make = () => {
             "text-4xl font-bold ",
             Theme.text(Theme.Color.white),
           ])}>
-          {React.string("Hello world")}
+          {React.string("Rendering React.Suspense on the server")}
         </h1>
         <Post />
         <section>

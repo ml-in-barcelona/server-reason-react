@@ -2,11 +2,3 @@
  (name extract_client_components)
  (public_name server_reason_react.extract_client_components)
  (libraries unix cmdliner))
-
-; add a rule to `all` to copy the plugin to the build directory
-; so demo/client/build.mjs can import it
-
-(rule
- (alias all)
- (deps ./esbuild-plugin.mjs)
- (action (progn)))
