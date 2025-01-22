@@ -1,4 +1,4 @@
-import React from "react";
+import React, { Suspense } from "react";
 import ReactDOM from "react-dom/server";
 
 const sleep = (seconds) =>
@@ -62,20 +62,22 @@ const App = () => (
 ); */
 
 function App() {
-  return (
-    <div>
-      <React.Suspense fallback="Loading 1">
-        <DeferredComponent seconds={1.0}>First</DeferredComponent>
-      </React.Suspense>
-      <React.Suspense fallback="Loading 2">
-        <DeferredComponent seconds={2.0}>Second</DeferredComponent>
-      </React.Suspense>
-      <React.Suspense fallback="Loading 3">
-        <DeferredComponent seconds={3.0}>Third</DeferredComponent>
-      </React.Suspense>
-    </div>
-  );
-}
+    return React.createElement(
+      Suspense,
+      { fallback: "Fallback 1" },
+      React.createElement(DeferredComponent,
+        { by: 0.02 },
+        React.createElement(
+          Suspense,
+          { fallback: "Fallback 2" },
+          React.createElement(DeferredComponent,
+            { by: 0.02 },
+            "lol"
+          )
+        )
+      )
+    );
+  }
 
 ReactDOM.renderToReadableStream(<App />).then((stream) => {
 	debug(stream);
