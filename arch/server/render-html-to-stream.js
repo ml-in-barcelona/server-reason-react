@@ -4,7 +4,7 @@ import ReactDOM from "react-dom/server";
 const sleep = (seconds) =>
 	new Promise((res) => setTimeout(res, seconds * 1000));
 
-const DefferedComponent = async ({ by, children }) => {
+const DeferredComponent = async ({ by, children }) => {
 	await sleep(by);
 	return (
 		<div>
@@ -31,35 +31,51 @@ const debug = (readableStream) => {
 
 /* const App = () => (
 	<React.Suspense fallback="Fallback 1">
-		<DefferedComponent by={1}>
+		<DeferredComponent by={1}>
 			<React.Suspense fallback="Fallback 2">
-				<DefferedComponent by={1}>"lol"</DefferedComponent>
+				<DeferredComponent by={1}>"lol"</DeferredComponent>
 			</React.Suspense>
-		</DefferedComponent>
+		</DeferredComponent>
 	</React.Suspense>
 ); */
 
 /* const App = () => (
 	<div>
 		<React.Suspense fallback="Fallback 1">
-			<DefferedComponent by={0}>"lol"</DefferedComponent>
+			<DeferredComponent by={0}>"lol"</DeferredComponent>
 		</React.Suspense>
 	</div>
 ); */
 
-const AlwaysThrow = () => {
+/* const AlwaysThrow = () => {
 	throw new Error("always throwing");
 };
 
 const App = () => (
 	<React.Suspense fallback="Fallback 1">
-		<DefferedComponent by={1}>
+		<DeferredComponent by={1}>
 			<React.Suspense fallback="Fallback 2">
 				<AlwaysThrow/>
 			</React.Suspense>
-		</DefferedComponent>
+		</DeferredComponent>
 	</React.Suspense>
-);
+); */
+
+function App() {
+  return (
+    <div>
+      <React.Suspense fallback="Loading 1">
+        <DeferredComponent seconds={1.0}>First</DeferredComponent>
+      </React.Suspense>
+      <React.Suspense fallback="Loading 2">
+        <DeferredComponent seconds={2.0}>Second</DeferredComponent>
+      </React.Suspense>
+      <React.Suspense fallback="Loading 3">
+        <DeferredComponent seconds={3.0}>Third</DeferredComponent>
+      </React.Suspense>
+    </div>
+  );
+}
 
 ReactDOM.renderToReadableStream(<App />).then((stream) => {
 	debug(stream);
