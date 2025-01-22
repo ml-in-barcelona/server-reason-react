@@ -263,6 +263,37 @@ let suspense_with_multiple_children () =
       "<script>$RC('B:2','S:2')</script>";
     ]
 
+let suspense_with_multiple_children_reordered () =
+  let app () =
+    React.createElement "div" []
+      [
+        React.Suspense.make ~fallback:(React.string "Loading 3")
+          ~children:(deffered_component ~seconds:0.3 ~children:(React.string "Third") ())
+          ();
+        React.Suspense.make ~fallback:(React.string "Loading 1")
+          ~children:(deffered_component ~seconds:0.1 ~children:(React.string "First") ())
+          ();
+        React.Suspense.make ~fallback:(React.string "Loading 2")
+          ~children:(deffered_component ~seconds:0.2 ~children:(React.string "Second") ())
+          ();
+      ]
+  in
+  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component app) in
+  assert_stream stream
+    [
+      "<div><!--$?--><template id=\"B:0\"></template>Loading 3<!--/$--><!--$?--><template \
+       id=\"B:1\"></template>Loading 1<!--/$--><!--$?--><template id=\"B:2\"></template>Loading 2<!--/$--></div>";
+      "<div hidden id=\"S:1\"><div>Sleep 0.1 seconds<!-- -->, <!-- -->First</div></div>";
+      "<script>function \
+       $RC(a,b){a=document.getElementById(a);b=document.getElementById(b);b.parentNode.removeChild(b);if(a){a=a.previousSibling;var \
+       f=a.parentNode,c=a.nextSibling,e=0;do{if(c&&8===c.nodeType){var d=c.data;if(\"/$\"===d)if(0===e)break;else \
+       e--;else\"$\"!==d&&\"$?\"!==d&&\"$!\"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data=\"$\";a._reactRetry&&a._reactRetry()}}$RC('B:1','S:1')</script>";
+      "<div hidden id=\"S:2\"><div>Sleep 0.2 seconds<!-- -->, <!-- -->Second</div></div>";
+      "<script>$RC('B:2','S:2')</script>";
+      "<div hidden id=\"S:0\"><div>Sleep 0.3 seconds<!-- -->, <!-- -->Third</div></div>";
+      "<script>$RC('B:0','S:0')</script>";
+    ]
+
 let tests =
   [
     test "silly_stream" test_silly_stream;
@@ -278,4 +309,5 @@ let tests =
     test "suspense_with_nested_suspense" suspense_with_nested_suspense;
     test "suspense_with_nested_suspense_with_error" suspense_with_nested_suspense_with_error;
     test "suspense_with_multiple_children" suspense_with_multiple_children;
+    test "suspense_with_multiple_children_reordered" suspense_with_multiple_children_reordered;
   ]

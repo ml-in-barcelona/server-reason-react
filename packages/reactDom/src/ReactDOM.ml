@@ -102,6 +102,7 @@ type context_state = {
   push : Html.element -> unit;
   close : unit -> unit;
   mutable closed : bool;
+  mutable has_rc_script_been_injected : bool;
   mutable boundary_id : int;
   mutable suspense_id : int;
   mutable waiting : int;
@@ -113,9 +114,9 @@ let complete_boundary_script =
 
 let replacement b s = Printf.sprintf "$RC('B:%i','S:%i')" b s
 
-let inline_complete_boundary_script boundary_id suspense_id =
+let inline_complete_boundary_script has_rc_script_been_injected boundary_id suspense_id =
   (* TODO: it's correct to asume that the first suspense_id is 0? *)
-  if boundary_id = 0 && suspense_id = 0 then
+  if not has_rc_script_been_injected then
     Html.raw (Printf.sprintf "<script>%s%s</script>" complete_boundary_script (replacement boundary_id suspense_id))
   else Html.raw (Printf.sprintf "<script>%s</script>" (replacement boundary_id suspense_id))
 
@@ -197,7 +198,10 @@ let rec render_to_stream ~context_state element =
                     context_state.waiting <- context_state.waiting - 1;
                     if not context_state.closed then (
                       context_state.push (render_suspense_resolved_element ~id:current_suspense_id resolved_html);
-                      context_state.push (inline_complete_boundary_script current_boundary_id current_suspense_id));
+                      context_state.push
+                        (inline_complete_boundary_script context_state.has_rc_script_been_injected current_boundary_id
+                           current_suspense_id));
+                    context_state.has_rc_script_been_injected <- true;
                     if context_state.waiting = 0 then (
                       context_state.closed <- true;
                       context_state.close ());
@@ -291,7 +295,9 @@ and render_with_resolved ~context_state element =
 let renderToStream ?pipe:_ element =
   let stream, push_to_stream, close = Push_stream.make () in
   let push html = push_to_stream (Html.to_string html) in
-  let context_state = { push; close; closed = false; waiting = 0; boundary_id = 0; suspense_id = 0 } in
+  let context_state =
+    { push; close; closed = false; waiting = 0; boundary_id = 0; suspense_id = 0; has_rc_script_been_injected = false }
+  in
   let abort () =
     (* TODO: Needs to flush the remaining loading fallbacks as HTML, and React.js will try to render the rest on the client. *)
     Lwt_stream.closed stream |> Lwt.ignore_result
