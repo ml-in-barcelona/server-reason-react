@@ -97,7 +97,6 @@ let make = () => {
           ])}>
           {React.string("Rendering React.Suspense on the server")}
         </h1>
-        <Counter initial=2 />
         <Post />
         <section>
           <h3
