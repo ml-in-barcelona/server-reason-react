@@ -424,13 +424,17 @@ let key_renders_outside_of_props () =
        Notes\"}],\"className\":\"sidebar-header\"}]\n";
     ]
 
-(* 0:[["$","section","important key",{"className":"sidebar-header","children":["$","strong",null,{"children":"React Notes"},"$1"]},"$1"]] *)
+let style_as_json () =
+  let app = React.createElement "div" [ React.JSX.Style [ ("color", "red"); ("background", "blue") ] ] [] in
+  let%lwt stream = ReactServerDOM.render_model app in
+  assert_stream stream [ "0:[\"$\",\"div\",null,{\"style\":{\"color\":\"red\",\"background\":\"blue\"}}]\n" ]
 
 let tests =
   [
     test "null_element" null_element;
     test "string_element" string_element;
     test "key_renders_outside_of_props" key_renders_outside_of_props;
+    test "style_as_json" style_as_json;
     test "lower_case_component" lower_case_component;
     test "lower_case_component_nested" lower_case_component_nested;
     test "lower_case_with_children" lower_case_with_children;
