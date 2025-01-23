@@ -17,7 +17,7 @@ let attribute_to_html attr =
   | Bool (_name, _, false) -> Html.omitted ()
   (* true attributes render solely the attribute name *)
   | Bool (name, _, true) -> Html.present name
-  | Style styles -> Html.attribute "style" styles
+  | Style styles -> Html.attribute "style" (ReactDOMStyle.to_string styles)
   | String (name, _, _value) when is_react_custom_attribute name -> Html.omitted ()
   | String (name, _, value) -> Html.attribute name value
   (* Events don't get rendered on SSR *)
@@ -885,7 +885,7 @@ let domProps
   |> add (React.JSX.string "id" "id") id
   |> add (React.JSX.string "lang" "lang") lang
   |> add (React.JSX.string "role" "role") role
-  |> add (fun v -> React.JSX.style (ReactDOMStyle.to_string v)) style
+  |> add (React.JSX.style) style
   |> add (booleanish_string "spellcheck" "spellCheck") spellCheck
   |> add (React.JSX.int "tabindex" "tabIndex") tabIndex
   |> add (React.JSX.string "title" "title") title

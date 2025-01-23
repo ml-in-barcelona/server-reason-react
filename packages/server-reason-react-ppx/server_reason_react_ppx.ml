@@ -130,12 +130,10 @@ let make_prop ~is_optional ~prop attribute_value =
         | None -> None
         | Some v -> Some (React.JSX.String ([%e estring ~loc name], [%e estring ~loc jsxName], string_of_bool v))]
   | Attribute { type_ = DomProps.Style; _ }, false ->
-      [%expr Some (React.JSX.Style (ReactDOM.Style.to_string ([%e attribute_value] : ReactDOM.Style.t)))]
+      [%expr Some (React.JSX.Style ([%e attribute_value] : ReactDOM.Style.t))]
   | Attribute { type_ = DomProps.Style; _ }, true ->
       [%expr
-        match ([%e attribute_value] : ReactDOM.Style.t option) with
-        | None -> None
-        | Some v -> Some (React.JSX.Style (ReactDOM.Style.to_string v))]
+        match ([%e attribute_value] : ReactDOM.Style.t option) with None -> None | Some v -> Some (React.JSX.Style v)]
   | Attribute { type_ = DomProps.Ref; _ }, false -> [%expr Some (React.JSX.Ref ([%e attribute_value] : React.domRef))]
   | Attribute { type_ = DomProps.Ref; _ }, true ->
       [%expr match ([%e attribute_value] : React.domRef option) with None -> None | Some v -> Some (React.JSX.Ref v)]
@@ -317,6 +315,7 @@ let make_prop ~is_optional ~prop attribute_value =
         | Some v -> Some (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Drag v))]
 
 let is_optional = function Optional _ -> true | _ -> false
+let get_label = function Nolabel -> "" | Optional name | Labelled name -> name
 
 let transform_labelled ~loc ~tag_name (prop_label, (runtime_value : expression)) props =
   match prop_label with
@@ -341,12 +340,16 @@ let transform_lowercase_props ~loc ~tag_name args =
 let rewrite_lowercase ~loc:exprLoc tag_name args children =
   let loc = exprLoc in
   let dom_node_name = estring ~loc:exprLoc tag_name in
+  let key_prop =
+    args |> List.find_opt ~f:(fun (label, _) -> get_label label = "key") |> Option.map (fun (_, value) -> value)
+  in
+  let key = match key_prop with None -> [%expr None] | Some key -> [%expr Some [%e key]] in
   let props = transform_lowercase_props ~loc:exprLoc ~tag_name args in
   match children with
   | Some children ->
       let childrens = pexp_list ~loc children in
-      [%expr React.createElement [%e dom_node_name] [%e props] [%e childrens]]
-  | None -> [%expr React.createElement [%e dom_node_name] [%e props] []]
+      [%expr React.createElementWithKey ~key:[%e key] [%e dom_node_name] [%e props] [%e childrens]]
+  | None -> [%expr React.createElementWithKey ~key:[%e key] [%e dom_node_name] [%e props] []]
 
 let split_args args =
   let children = ref (Location.none, []) in
@@ -946,6 +949,6 @@ let rewrite_jsx =
   end
 
 let () =
-  Driver.add_arg "-js" (Unit (fun () -> mode := Js)) ~doc:"preprocess for js build";
+  Driver.add_arg "-melange" (Unit (fun () -> mode := Js)) ~doc:"preprocess for js build";
   Ppxlib.Driver.V2.register_transformation "server-reason-react.ppx" ~preprocess_impl:rewrite_jsx#structure
     ~preprocess_intf:rewrite_jsx#signature

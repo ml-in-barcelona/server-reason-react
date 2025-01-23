@@ -33,19 +33,21 @@ module Model = struct
     context.chunk_id
 
   let get_chunk_id context = context.chunk_id
+  let style_to_json style = `Assoc (List.map (fun (key, value) -> (key, `String value)) style)
 
   let prop_to_json (prop : React.JSX.prop) =
-    (* TODO: Add promises/sets/others ??? *)
     match prop with
     (* We ignore the HTML name, and only use the JSX name *)
-    | React.JSX.Bool (_, key, value) -> (key, `Bool value)
-    | React.JSX.String (_, key, value) -> (key, `String value)
-    | React.JSX.Style value -> ("style", `String value)
-    | React.JSX.DangerouslyInnerHtml html -> ("dangerouslySetInnerHTML", `Assoc [ ("__html", `String html) ])
-    (* TODO: What does ref mean *)
-    | React.JSX.Ref _ -> ("ref", `Null)
-    (* TODO: What does event even mean *)
-    | React.JSX.Event (key, _) -> (key, `Null)
+    | React.JSX.Bool (_, key, value) -> Some (key, `Bool value)
+    (* We exclude 'key' from props, since it's outside of the props object *)
+    | React.JSX.String (_, key, _) when key = "key" -> None
+    | React.JSX.String (_, key, value) -> Some (key, `String value)
+    | React.JSX.Style value -> Some ("style", style_to_json value)
+    | React.JSX.DangerouslyInnerHtml html -> Some ("dangerouslySetInnerHTML", `Assoc [ ("__html", `String html) ])
+    | React.JSX.Ref _ -> None
+    | React.JSX.Event _ -> None
+
+  let props_to_json props = List.filter_map prop_to_json props
 
   let node ~tag ?(key = None) ~props children : json =
     let key = match key with None -> `Null | Some key -> `String key in
@@ -98,11 +100,10 @@ module Model = struct
     let rec to_payload element =
       match (element : React.element) with
       | Empty -> `Null
-      (* TODO: Do we need to html encode this? *)
+      (* TODO: Do we need to html encode the model or only the html? *)
       | Text t -> `String t
-      (* TODO: Add key on the element type? *)
       | Lower_case_element { key; tag; attributes; children } ->
-          let props = List.map prop_to_json attributes in
+          let props = props_to_json attributes in
           node ~key ~tag ~props (List.map to_payload children)
       | Fragment children -> to_payload children
       | List children -> `List (Array.map to_payload children |> Array.to_list)
@@ -315,11 +316,11 @@ let rec to_html ~fiber (element : React.element) : (Html.element * json) Lwt.t =
   | Upper_case_component component -> to_html ~fiber (component ())
   | Lower_case_element { key; tag; attributes; _ } when Html.is_self_closing_tag tag ->
       let html_props = List.map ReactDOM.attribute_to_html attributes in
-      let json_props = List.map Model.prop_to_json attributes in
+      let json_props = Model.props_to_json attributes in
       Lwt.return (Html.node tag html_props [], Model.node ~tag ~key ~props:json_props [])
   | Lower_case_element { key; tag; attributes; children } ->
       let html_props = List.map ReactDOM.attribute_to_html attributes in
-      let json_props = List.map Model.prop_to_json attributes in
+      let json_props = Model.props_to_json attributes in
       let%lwt html, model = elements_to_html ~fiber children in
       Lwt.return (Html.node tag html_props [ html ], Model.node ~tag ~key ~props:json_props [ model ])
   | Async_component component ->
@@ -402,16 +403,16 @@ and elements_to_html ~fiber elements =
   let htmls, model = List.split html_and_models in
   Lwt.return (Html.list htmls, `List model)
 
-(* TODO: We could use only the Async case, where head and shell handle all the sync while subscribe handles the async,
-   also we might want to implement "resources" instead of head. *)
+(* TODO: We could use only the Async case, where head and shell handle all the sync while subscribe handles the async? *)
+(* TODO: we might want to implement "resources" instead of head *)
 type rendering =
   | Done of { head : Html.element; body : Html.element; end_script : Html.element }
   | Async of { head : Html.element; shell : Html.element; subscribe : (Html.element -> unit Lwt.t) -> unit Lwt.t }
 
 (* TODO: Do we need to disable streaming based on some timeout? abortion? *)
-(* TODO: Do we need to disable the model rendering? Can we do something better than a boolean? *)
+(* TODO: Do we need to disable the model rendering or can we do it outside? *)
 (* TODO: Add scripts and links to the output, also all options from renderToReadableStream *)
-let render_to_html element =
+let render_html element =
   let initial_index = 0 in
   let htmls = ref [] in
   let emit_html chunk = htmls := chunk :: !htmls in
@@ -441,4 +442,4 @@ let render_to_html element =
       Lwt.return
         (Async { shell = html_shell; head = Html.list [ rc_function_script; rsc_start_script ]; subscribe = html_iter })
 
-let render_to_model = Model.render
+let render_model = Model.render

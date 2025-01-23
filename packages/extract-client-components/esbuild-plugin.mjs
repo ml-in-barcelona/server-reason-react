@@ -72,26 +72,32 @@ export function plugin(config) {
         return null;
       });
 
-      build.onLoad({ filter: /.*/, namespace: 'entrypoint' }, async (args) => {
-        const entryPointContents = await Fs.readFile(args.path, 'utf8');
-
-        const contents = `
-require("${output}");
-
+      build.initialOptions.banner = {
+        js: `
 window.__webpack_require__ = (id) => {
   const component = window.__client_manifest_map[id];
+  if (!component) {
+    throw new Error(\`Could not find client component with id: \${id}\`);
+  }
   return { __esModule: true, default: component };
 };
+window.__client_manifest_map = window.__client_manifest_map || {};`
+      };
 
+      build.onLoad({ filter: /.*/, namespace: 'entrypoint' }, async (args) => {
+        const filePath = args.path.replace(/^entrypoint:/, '');
+        const entryPointContents = await Fs.readFile(filePath, 'utf8');
+
+        const contents = `
+import "${output}";
 ${entryPointContents}`;
 
         return {
           loader: 'jsx',
-          contents: contents,
-          resolveDir: Path.dirname(Path.resolve(process.cwd(), args.path))
+          contents,
+          resolveDir: Path.dirname(Path.resolve(process.cwd(), filePath))
         };
       });
     }
   };
 }
-

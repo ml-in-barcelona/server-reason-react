@@ -9,7 +9,7 @@ let assert_list_of_strings (left : string list) (right : string list) =
   Alcotest.check (Alcotest.list Alcotest.string) "should be equal" right left
 
 let test title fn =
-  ( Printf.sprintf "ReactServerDOM.render_to_html / %s" title,
+  ( Printf.sprintf "ReactServerDOM.render_html / %s" title,
     [
       Alcotest_lwt.test_case "" `Quick (fun _switch () ->
           let start = Unix.gettimeofday () in
@@ -58,7 +58,7 @@ let rc_function_script =
 let stream_close_script = "<script>window.srr_stream.close()</script>"
 
 let assert_sync_payload app sync_body =
-  match%lwt ReactServerDOM.render_to_html app with
+  match%lwt ReactServerDOM.render_html app with
   | Done { head; body; end_script } ->
       assert_html head text_encoder_script;
       assert_html body sync_body;
@@ -70,7 +70,7 @@ let assert_html_list (elements : Html.element list) (expected : string list) =
   assert_list_of_strings (List.map Html.to_string elements) expected
 
 let assert_async_payload element ~shell assertion_list =
-  match%lwt ReactServerDOM.render_to_html element with
+  match%lwt ReactServerDOM.render_html element with
   | Done _ -> Lwt.return (Alcotest.fail "Sync should be returned by render_to_html")
   | Async { head; shell = outcome_shell; subscribe } ->
       assert_html head rc_function_script;

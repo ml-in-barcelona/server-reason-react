@@ -710,13 +710,13 @@ let make
   |> add "ruby-position" rubyPosition
 [@@@ocamlformat "enable"]
 
-(* This is used only for testing. It needs to be here since it uses the internal representation of `t` which is abstract on the interface *)
 let to_string (styles : t) : string =
   let size = List.length styles in
   let buff = Buffer.create size in
-  List.rev styles |> List.to_seq
+  styles |> List.to_seq
   |> Seq.iteri (fun index (k, v) ->
-         if index == size - 1 then (
+         if v == "" then ()
+         else if index == size - 1 then (
            Buffer.add_string buff k;
            Buffer.add_string buff ":";
            Buffer.add_string buff (String.trim v))

@@ -44,7 +44,7 @@ window.__client_manifest_map = window.__client_manifest_map || {};
 (* TODO: Add parameter to allow users to configure the extension of the files *)
 let is_js_file path =
   let ext = Filename.extension path in
-  ext = ".js" || ext = ".bs.js"
+  ext = ".js" || ext = ".bs.js" || ext = ".jsx"
 
 (* TODO: refactor path to be a Filepath, not a string *)
 let capture_all_client_component_files_in_target path =
