@@ -9,7 +9,7 @@
   > (melange.emit
   >  (target js)
   >  (libraries reason-react)
-  >  (preprocess (pps reason-react-ppx melange.ppx melange-json.ppx server-reason-react.ppx -js)))
+  >  (preprocess (pps reason-react-ppx melange.ppx melange-json.ppx server-reason-react.ppx -melange)))
   > 
   > (rule
   >  (deps (alias melange))
