@@ -1,8 +1,10 @@
 const React = require("react");
 const ReactDOM = require("react-dom/client");
 const ReactServerDOM = require("react-server-dom-webpack/client");
-const ErrorBoundary = require("./error-boundary");
-const Use = require("./use");
+
+function Use({ promise }) {
+	return React.use(promise);
+}
 
 try {
 	const stream = window.srr_stream.readable_stream;
@@ -10,11 +12,7 @@ try {
 	const element = document.getElementById("root");
 
 	React.startTransition(() => {
-		const app = (
-			<ErrorBoundary>
-				<Use promise={promise} />
-			</ErrorBoundary>
-		);
+		const app = (<Use promise={promise} />);
 		ReactDOM.hydrateRoot(element, app);
 	});
 } catch (e) {

@@ -97,7 +97,7 @@ module Page = {
 };
 
 let handler = request =>
-  Dream_rsc.createFromRequest(
+  DreamRSC.createFromRequest(
     <Root> <Page /> </Root>,
     "/static/demo/client/create-from-readable-stream.js",
     request,

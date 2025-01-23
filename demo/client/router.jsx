@@ -1,18 +1,16 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import ReactServerDOM from "react-server-dom-webpack/client";
-import ErrorBoundary from "./error-boundary";
-import Page from "./use";
+
+function Page({ promise }) {
+	return React.use(promise);
+}
 
 let abortController = null;
 
 const App = ({ promise }) => {
   return (
-    <React.StrictMode>
-      <ErrorBoundary>
-        <Page promise={promise} />
-      </ErrorBoundary>
-    </React.StrictMode>
+    <React.StrictMode><Page promise={promise} /></React.StrictMode>
   );
 };
 

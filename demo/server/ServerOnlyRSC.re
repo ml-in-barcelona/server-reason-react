@@ -23,7 +23,7 @@ let handler = request => {
   if (isRSCheader) {
     Dream.stream(response_stream => {
       let%lwt initial =
-        ReactServerDOM.render_to_model(
+        ReactServerDOM.render_model(
           ~subscribe=data => Dream.write(response_stream, data),
           app,
         );

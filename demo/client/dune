@@ -1,10 +1,10 @@
-;; index.re
+;; hydrate.re
 
 (melange.emit
  (enabled_if
   (= %{profile} dev))
  (target app)
- (modules index)
+ (modules hydrate)
  (module_systems
   (es6 js))
  (libraries melange reason-react melange.dom melange-webapi demo_shared_js)
@@ -19,7 +19,7 @@
   (package server-reason-react)
   (alias_rec melange)
   (:script build.mjs)
-  (:input app/demo/client/index.js)
+  (:input app/demo/client/Hydrate.js)
   (source_tree node_modules)
   (file package.json)
   (source_tree ../../packages/extract-client-components))

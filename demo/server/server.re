@@ -25,9 +25,9 @@ let server =
         )
       ),
       Dream.get(Router.demoRenderToStream, Comments.handler),
-      Dream.get(Router.demoCreateFromFetch, Server_only_rsc.handler),
-      Dream.get(Router.demoCreateFromReadableStream, Single_page_rsc.handler),
-      Dream.get(Router.demoRouter, App_rsc.handler),
+      Dream.get(Router.demoCreateFromFetch, ServerOnlyRSC.handler),
+      Dream.get(Router.demoCreateFromReadableStream, SinglePageRSC.handler),
+      Dream.get(Router.demoRouter, RouterRSC.handler),
     ]),
   );
 

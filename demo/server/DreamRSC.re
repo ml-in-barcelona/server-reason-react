@@ -20,7 +20,7 @@ let createFromRequest = (app, script, request) => {
   | Some(accept) when String.equal("application/react.component", accept) =>
     stream_rsc(stream => {
       let%lwt _stream =
-        ReactServerDOM.render_to_model(
+        ReactServerDOM.render_model(
           app,
           ~subscribe=chunk => {
             Dream.log("Chunk");
@@ -67,7 +67,7 @@ let createFromRequest = (app, script, request) => {
       );
     let headers = [("Content-Type", "text/html")];
     Dream.stream(~headers, stream => {
-      switch%lwt (ReactServerDOM.render_to_html(app)) {
+      switch%lwt (ReactServerDOM.render_html(app)) {
       | ReactServerDOM.Done({head: head_children, body, end_script}) =>
         Dream.log("Done: %s", Html.to_string(body));
         let%lwt () = Dream.write(stream, Html.to_string(doctype));
