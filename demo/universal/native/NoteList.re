@@ -1,10 +1,25 @@
 open Lwt.Syntax;
 
-let readNotes = path => {
-  let* content = Lwt_io.with_file(~mode=Lwt_io.Input, path, Lwt_io.read);
-  let json = Yojson.Safe.from_string(content);
+let readFile = file => {
+  let (/) = Filename.concat;
+  let path = Sys.getcwd() / "demo" / "server" / "db" / file;
+  Lwt_io.with_file(~mode=Lwt_io.Input, path, Lwt_io.read);
+};
 
-  switch (json) {
+let _createFile = (path, content: string) => {
+  Lwt_io.with_file(
+    ~mode=Lwt_io.Output,
+    path,
+    oc => {
+      let%lwt () = Lwt_io.write(oc, content);
+      let%lwt () = Lwt_io.flush(oc);
+      Lwt.return();
+    },
+  );
+};
+
+let parseNotes = json => {
+  switch (Yojson.Safe.from_string(json)) {
   | `List(notes) =>
     notes
     |> List.filter_map(note =>
@@ -26,27 +41,22 @@ let readNotes = path => {
          | _ => None
          }
        )
-    |> Lwt_result.return
-  | _ => Lwt_result.fail("Invalid notes file format")
+    |> Result.ok
+  | _ => Result.error("Invalid notes file format")
+  };
+};
+
+let readNotes = path => {
+  switch%lwt (readFile(path)) {
+  | json => Lwt_result.lift(parseNotes(json))
+  /* When something fails, treat it as an empty note db */
+  | exception _error => Lwt.return_ok([])
   };
 };
 
 [@react.async.component]
 let make = (~searchText) => {
-  // const notes = await (await fetch('http://localhost:4000/notes')).json();
-  // WARNING: This is for demo purposes only.
-  // We don't encourage this in real apps. There are far safer ways to access
-  // data in a real application!
-  /* const notes = (
-       await db.query(
-         `select * from notes where title ilike $1 order by id desc`,
-         ['%' + searchText + '%']
-       )
-     ).rows; */
-  // Now let's see how the Suspense boundary above lets us not block on this.
-  // await fetch('http://localhost:4000/sleep/3000');
-
-  let+ notes = readNotes("notes.json");
+  let+ notes = readNotes("./notes.json");
 
   switch (notes) {
   | Error(error) =>

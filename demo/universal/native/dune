@@ -18,6 +18,7 @@
  (wrapped false)
  (preprocess
   (pps
+   lwt_ppx
    melange_native_ppx
    server_reason_react_ppx
    browser_ppx

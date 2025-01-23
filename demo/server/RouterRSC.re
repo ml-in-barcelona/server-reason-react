@@ -5,15 +5,10 @@ module App = {
       <div className="main">
         <section className="col sidebar" key="sidebar">
           <section className="sidebar-header" key="sidebar-header">
-            <img
-              className="logo"
-              src="logo.svg"
-              width="22px"
-              height="20px"
-              alt=""
-              role="presentation"
-            />
             <strong> {React.string("React Notes")} </strong>
+            <span>
+              {React.string("migrated to (server)-reason-react and Melange")}
+            </span>
           </section>
           <section className="sidebar-menu" role="menubar" key="menubar">
             <SearchField />
