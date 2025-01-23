@@ -61,7 +61,7 @@ const App = () => (
 	</React.Suspense>
 ); */
 
-function App() {
+/* function App() {
     return React.createElement(
       Suspense,
       { fallback: "Fallback 1" },
@@ -77,7 +77,11 @@ function App() {
         )
       )
     );
-  }
+  } */
+
+function App() {
+	return <div key="33">lol</div>;
+}
 
 ReactDOM.renderToReadableStream(<App />).then((stream) => {
 	debug(stream);

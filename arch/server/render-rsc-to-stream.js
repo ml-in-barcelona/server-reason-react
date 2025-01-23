@@ -25,7 +25,7 @@ const debug = (readableStream) => {
 const sleep = (seconds) =>
 	new Promise((res) => setTimeout(res, seconds * 1000));
 
-const App = () => (
+/* const App = () => (
 	<React.Suspense fallback="Fallback 1">
 		<DefferedComponent sleep={1}>
 			<React.Suspense fallback="Fallback 2">
@@ -34,6 +34,16 @@ const App = () => (
 		</DefferedComponent>
 	</React.Suspense>
 );
+ */
+
+function App() {
+	/*   let app =
+    React.createElementWithKey ~key:(Some "important key") "section"
+      [ React.JSX.String ("className", "className", "sidebar-header") ]
+      [ React.createElement "strong" [] [ React.string "React Notes" ] ]
+  in */
+	return <section key="important key" className="sidebar-header"><strong>React Notes</strong></section>;
+}
 
 const { pipe } = renderToPipeableStream(<App />);
 
