@@ -12,8 +12,10 @@
   melange-json)
  (preprocess
   (pps
-   browser_ppx -js
-   server-reason-react.ppx -melange
+   browser_ppx
+   -js
+   server-reason-react.ppx
+   -melange
    melange.ppx
    reason-react-ppx
    melange-json.ppx)))
