@@ -66,7 +66,7 @@ module Comments = {
 module Page = {
   [@react.component]
   let make = () => {
-    <Layout background=Theme.Color.black>
+    <DemoLayout background=Theme.Color.black>
       <main
         className={Theme.text(Theme.Color.white)}
         style={ReactDOM.Style.make(~display="flex", ~marginTop="16px", ())}>
@@ -94,7 +94,7 @@ module Page = {
           <h2> {React.string("Thanks for reading!")} </h2>
         </article>
       </main>
-    </Layout>;
+    </DemoLayout>;
   };
 };
 

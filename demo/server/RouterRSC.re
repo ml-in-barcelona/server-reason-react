@@ -1,7 +1,7 @@
 module App = {
   [@react.component]
   let make = (~selectedId, ~isEditing, ~searchText) => {
-    <Layout background=Theme.Color.black>
+    <DemoLayout background=Theme.Color.black mode=FullScreen>
       <div className="main">
         <section className="col sidebar" key="sidebar">
           <section className="sidebar-header" key="sidebar-header">
@@ -26,7 +26,7 @@ module App = {
           </React.Suspense>
         </section>
       </div>
-    </Layout>;
+    </DemoLayout>;
   };
 };
 

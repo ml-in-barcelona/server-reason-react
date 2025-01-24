@@ -1,7 +1,7 @@
 module Root = {
   [@react.component]
   let make = (~children) => {
-    <Layout background=Theme.Color.black> children </Layout>;
+    <DemoLayout background=Theme.Color.black> children </DemoLayout>;
   };
 };
 

@@ -12,7 +12,6 @@
   melange-fetch
   yojson
   unix
-  str
   lwt
   lwt.unix)
  (wrapped false)

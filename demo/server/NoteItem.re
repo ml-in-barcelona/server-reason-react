@@ -25,6 +25,7 @@ let make = (~selectedId: option(string), ~isEditing: bool) => {
       );
     }
   | Some(id) =>
+    /* let+ note: Note.t = Fetch.fetchNote(id); */
     let+ note =
       Lwt.return({
         Note.id,
@@ -32,7 +33,6 @@ let make = (~selectedId: option(string), ~isEditing: bool) => {
         content: "Test",
         updated_at: 1716604800.0,
       });
-    /* let+ note: Note.t = Fetch.fetchNote(id); */
 
     if (isEditing) {
       <NoteEditor

@@ -60,13 +60,13 @@ let make = (~searchText) => {
 
   switch (notes) {
   | Error(error) =>
-    <div className="notes-empty">
+    <div className="notes-error">
       {React.string("Couldn't read notes file: " ++ error)}
     </div>
   | Ok(notes) when notes->List.length == 0 =>
     <div className="notes-empty">
       {React.string(
-         searchText == ""
+         searchText != ""
            ? "Couldn't find any notes titled " ++ searchText
            : "No notes created yet!",
        )}
