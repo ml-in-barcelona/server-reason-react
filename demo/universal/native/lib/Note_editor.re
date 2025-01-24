@@ -1,20 +1,23 @@
 [@react.component]
 let make = (~title: string, ~body: string) => {
-  let (title, setTitle) = RR.useStateValue(title);
-  let (body, setBody) = RR.useStateValue(body);
+  let (title, [@browser_only] setTitle) = RR.useStateValue(title);
+  let (body, [@browser_only] setBody) = RR.useStateValue(body);
 
+  [@browser_only]
   let updateTitle = _event => {
     /* let value = React.Event.Form.target(event)##value; */
     let value = "33";
     setTitle(value);
   };
 
+  [@browser_only]
   let updateBody = _event => {
     /* let value = React.Event.Form.target(event)##value; */
     let value = "34";
     setBody(value);
   };
 
+  [@browser_only]
   let submit = _ => {
     Js.log("SUBMIT!");
   };
