@@ -1,40 +1,6 @@
-window.__webpack_require__ = (id) => {
-	console.log("REQUIRE ---");
-	const component = window.__client_manifest_map[id];
-	console.log(id);
-	console.log(component);
-	console.log("---");
-	return { __esModule: true, default: component };
-};
-
 const React = require("react");
 const ReactDOM = require("react-dom/client");
 const ReactServerDOM = require("react-server-dom-webpack/client");
-
-/* bootstrap.js */
-
-window.__client_manifest_map = {};
-
-const register = (name, render) => {
-	window.__client_manifest_map[name] = render;
-};
-
-register(
-  "Counter",
-  React.lazy(() => import("./app/demo/universal/js/Counter.js"))
-);
-
-register(
-	"Note_editor",
-	React.lazy(() => import("./app/demo/universal/js/Note_editor.js")),
-);
-
-/* register(
-	"Promise_renderer",
-	React.lazy(() => import("./app/demo/universal/js/Promise_renderer.js")),
-); */
-
-/* end bootstrap.js */
 
 class ErrorBoundary extends React.Component {
 	constructor(props) {
@@ -80,7 +46,7 @@ try {
 		ReactDOM.hydrateRoot(element, app);
 	});
 } catch (e) {
-  console.error("Error type:", e.constructor.name);
+	console.error("Error type:", e.constructor.name);
 	console.error("Full error:", e);
 	console.error("Stack:", e.stack);
 }

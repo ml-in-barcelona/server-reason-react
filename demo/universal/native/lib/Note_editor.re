@@ -1,18 +1,19 @@
-[@warning "-27"];
-
+[@react.component]
 let make = (~title: string, ~body: string) => {
-  let (title, setTitle) = RR.useStateValue(title);
-  let (body, setBody) = RR.useStateValue(body);
+  let (title, [@browser_only] setTitle) = RR.useStateValue(title);
+  let (body, [@browser_only] setBody) = RR.useStateValue(body);
 
   [@browser_only]
-  let updateTitle = event => {
-    let value = React.Event.Form.target(event)##value;
+  let updateTitle = _event => {
+    /* let value = React.Event.Form.target(event)##value; */
+    let value = "33";
     setTitle(value);
   };
 
   [@browser_only]
-  let updateBody = event => {
-    let value = React.Event.Form.target(event)##value;
+  let updateBody = _event => {
+    /* let value = React.Event.Form.target(event)##value; */
+    let value = "34";
     setBody(value);
   };
 
@@ -36,21 +37,3 @@ let make = (~title: string, ~body: string) => {
     />
   </form>;
 };
-
-[@react.component]
-let make = (~title, ~body) =>
-  switch%platform (Runtime.platform) {
-  | Server =>
-    React.Client_component({
-      import_module: "Note_editor",
-      import_name: "",
-      props: [
-        ("title", React.Json(`String(title))),
-        ("body", React.Json(`String(body))),
-      ],
-      client: make(~title, ~body),
-    })
-  | Client => make(~title, ~body)
-  };
-
-let default = make;

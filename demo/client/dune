@@ -1,62 +1,64 @@
+;; index.re
+
 (melange.emit
- (alias melange-app)
+ (enabled_if
+  (= %{profile} dev))
  (target app)
- (enabled_if
-  (= %{profile} "dev"))
  (modules index)
- (libraries melange demo_shared_js reason-react melange.dom melange-webapi)
+ (module_systems
+  (es6 js))
+ (libraries melange reason-react melange.dom melange-webapi demo_shared_js)
  (preprocess
-  (pps reason-react-ppx browser_ppx -js melange.ppx))
- (module_systems es6))
+  (pps browser_ppx -js reason-react-ppx melange.ppx)))
 
 (rule
- (alias client)
- ; Make the client rule depend on the generated file by melange.emit, so it needs to wait to be built and it's rebuilt when the file changes.
- (deps
-  (alias_rec melange-app))
  (enabled_if
-  (= %{profile} "dev"))
- (action
-  (progn
-   (run
-    esbuild
-    app/demo/client/index.js
-    --format=cjs
-    --bundle
-    --platform=browser
-    --log-level=error
-    --outfile=app/demo/client/app.js))))
-
-(rule
+  (= %{profile} dev))
  (alias client)
  (deps
-  (:file create-from-fetch.jsx)
-  (alias_rec melange-app))
+  (package server-reason-react)
+  (alias_rec melange)
+  (:script build.mjs)
+  (:input app/demo/client/index.js)
+  (source_tree node_modules)
+  (file package.json)
+  (source_tree ../../packages/extract-client-components))
+ (target index.js)
  (action
   (progn
-   (run
-    esbuild
-    %{file}
-    --bundle
-    --platform=browser
-    --splitting
-    --outdir=app/demo/client
-    --format=esm
-    --log-level=error))))
+   (run node %{script} %{input} %{target}))))
+
+;; create-from-fetch.jsx
 
 (rule
+ (enabled_if
+  (= %{profile} dev))
  (alias client)
  (deps
-  (:file runtime-with-client.jsx)
-  (alias_rec melange-app))
+  (package server-reason-react)
+  (alias_rec melange)
+  (:input create-from-fetch.jsx)
+  (:script build.mjs)
+  (file package.json)
+  (source_tree node_modules))
  (action
   (progn
-   (run
-    esbuild
-    %{file}
-    --bundle
-    --platform=browser
-    --format=esm
-    --splitting
-    --log-level=error
-    --outdir=app/demo/client))))
+   (run node %{script} %{input} app/demo/client/))))
+
+;; create-from-readable-stream.jsx
+
+(rule
+ (enabled_if
+  (= %{profile} dev))
+ (alias client)
+ (deps
+  (package server-reason-react)
+  (alias_rec melange)
+  (:input create-from-readable-stream.jsx)
+  (:script build.mjs)
+  (file package.json)
+  (source_tree node_modules)
+  (source_tree ../../packages/extract-client-components))
+ (action
+  (progn
+   (run node %{script} %{input} app/demo/client/ --extract=true))))

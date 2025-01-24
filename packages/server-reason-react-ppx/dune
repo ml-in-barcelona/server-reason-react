@@ -8,6 +8,7 @@
  (public_name server-reason-react.ppx)
  (kind ppx_rewriter)
  (libraries
+  str
   compiler-libs.common
   ppxlib
   ppxlib.astlib

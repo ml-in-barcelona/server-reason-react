@@ -158,6 +158,40 @@ let with_sleepy_promise () =
        '>window.srr_stream.push()</script>"
     [ "<div><section><article>Deep Server Content</article></section></div>"; stream_close_script ]
 
+let client_with_promise_props () =
+  let delayed_value ~ms value =
+    let%lwt () = Lwt_unix.sleep (Int.to_float ms /. 100.0) in
+    Lwt.return value
+  in
+  let app () =
+    React.Upper_case_component
+      (fun () ->
+        React.List
+          [|
+            React.createElement "div" [] [ React.string "Server Content" ];
+            React.Client_component
+              {
+                props =
+                  [ ("promise", React.Promise (delayed_value ~ms:200 "||| Resolved |||", fun res -> `String res)) ];
+                client = React.string "Client with Props";
+                import_module = "./client-with-props.js";
+                import_name = "ClientWithProps";
+              };
+          |])
+  in
+  assert_async_payload (app ())
+    ~shell:
+      "<div>Server Content</div><!-- -->Client with Props<script \
+       data-payload='0:[[\"$\",\"div\",null,{\"children\":[\"Server \
+       Content\"]}],[\"$\",\"$2\",null,{\"promise\":\"$@1\"}]]\n\
+       '>window.srr_stream.push()</script>"
+    [
+      "<script data-payload='2:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n\
+       '>window.srr_stream.push()</script>";
+      "<script data-payload='1:\"||| Resolved |||\"\n'>window.srr_stream.push()</script>";
+      stream_close_script;
+    ]
+
 let tests =
   [
     test "null_element" null_element;
@@ -165,4 +199,5 @@ let tests =
     test "async_component_without_promise" async_component_without_promise;
     test "suspense_without_promise" suspense_without_promise;
     test "with_sleepy_promise" with_sleepy_promise;
+    test "client_with_promise_props" client_with_promise_props;
   ]

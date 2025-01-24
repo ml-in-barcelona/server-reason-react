@@ -424,5 +424,5 @@ let () =
     [ Browser_only.expression_rule; Browser_only.structure_item_rule; Platform.rule ] @ Browser_only.use_effects
   in
   Driver.V2.register_transformation browser_ppx ~rules
-    ~preprocess_impl:(fun _ -> Preprocess.traverse#structure)
-    ~preprocess_intf:(fun _ -> Preprocess.traverse#signature)
+    ~impl:(fun _ -> Preprocess.traverse#structure)
+    ~intf:(fun _ -> Preprocess.traverse#signature)

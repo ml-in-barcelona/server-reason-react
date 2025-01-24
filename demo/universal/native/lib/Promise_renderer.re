@@ -1,27 +1,20 @@
-[@warning "-27"];
+[@warning "-33"];
 
-module Await = {
+open Ppx_deriving_json_runtime.Primitives;
+
+module Reader = {
   [@react.component]
   let make = (~promise: Js.Promise.t(string)) => {
     let value = React.Experimental.use(promise);
-    React.string("[RESOLVED] " ++ value);
+    <div> {React.string(value)} </div>;
   };
 };
 
-let make = (~value: Js.Promise.t(string)) =>
-  <span> {React.string("Promise: ")} <Await promise=value /> </span>;
-
-[@react.component]
-let make = (~value) =>
-  switch%platform (Runtime.platform) {
-  | Server =>
-    React.Client_component({
-      import_module: "Promise_renderer",
-      import_name: "",
-      props: [("value", React.Promise(value, v => `String(v)))],
-      client: make(~value),
-    })
-  | Client => make(~value)
-  };
-
-let default = make;
+[@react.client.component]
+let make = (~promise: Js.Promise.t(string)) => {
+  <div className="text-white">
+    <React.Suspense fallback={<div> {React.string("Loading...")} </div>}>
+      <Reader promise />
+    </React.Suspense>
+  </div>;
+};

@@ -1,11 +1,14 @@
-import React from "react";
+import React, { Suspense } from "react";
 import ReactDOM from "react-dom/server";
 
-const DefferedComponent = async ({ sleep, children }) => {
-	await new Promise((res) => setTimeout(() => res(), sleep * 1000));
+const sleep = (seconds) =>
+	new Promise((res) => setTimeout(res, seconds * 1000));
+
+const DeferredComponent = async ({ by, children }) => {
+	await sleep(by);
 	return (
 		<div>
-			Sleep {sleep}s, {children}
+			Sleep {by}s, {children}
 		</div>
 	);
 };
@@ -26,27 +29,55 @@ const debug = (readableStream) => {
 	reader.read().then(debugReader);
 };
 
-const sleep = (seconds) =>
-	new Promise((res) => setTimeout(res, seconds * 1000));
-
 /* const App = () => (
 	<React.Suspense fallback="Fallback 1">
-		<DefferedComponent sleep={1}>
+		<DeferredComponent by={1}>
 			<React.Suspense fallback="Fallback 2">
-				<DefferedComponent sleep={1}>"lol"</DefferedComponent>
+				<DeferredComponent by={1}>"lol"</DeferredComponent>
 			</React.Suspense>
-		</DefferedComponent>
+		</DeferredComponent>
 	</React.Suspense>
 ); */
 
-const App = () => (
+/* const App = () => (
 	<div>
 		<React.Suspense fallback="Fallback 1">
-			<DefferedComponent sleep={1}>"lol"</DefferedComponent>
+			<DeferredComponent by={0}>"lol"</DeferredComponent>
 		</React.Suspense>
 	</div>
-);
+); */
 
+/* const AlwaysThrow = () => {
+	throw new Error("always throwing");
+};
+
+const App = () => (
+	<React.Suspense fallback="Fallback 1">
+		<DeferredComponent by={1}>
+			<React.Suspense fallback="Fallback 2">
+				<AlwaysThrow/>
+			</React.Suspense>
+		</DeferredComponent>
+	</React.Suspense>
+); */
+
+function App() {
+    return React.createElement(
+      Suspense,
+      { fallback: "Fallback 1" },
+      React.createElement(DeferredComponent,
+        { by: 0.02 },
+        React.createElement(
+          Suspense,
+          { fallback: "Fallback 2" },
+          React.createElement(DeferredComponent,
+            { by: 0.02 },
+            "lol"
+          )
+        )
+      )
+    );
+  }
 
 ReactDOM.renderToReadableStream(<App />).then((stream) => {
 	debug(stream);

@@ -87,10 +87,6 @@ let make = () => {
   });
 
   <Layout background=Theme.Color.black>
-    <Stack gap=8 justify=`start>
-      <Title />
-      <Hr />
-      <Counter initial=22 onClick={_ => print_endline("Clicked")} />
-    </Stack>
+    <Stack gap=8 justify=`start> <Title /> </Stack>
   </Layout>;
 };

@@ -1,5 +1,5 @@
-window.__webpack_require__ = async (_id) => {
-  throw new Error("This should never be called in this demo");
+window.__webpack_require__ = () => {
+  throw new Error("__webpack_require__ should not be called on this demo");
 };
 
 let ReactDOM = require("react-dom/client");

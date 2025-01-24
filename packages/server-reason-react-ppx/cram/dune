@@ -1,6 +1,12 @@
 (cram
  (package server-reason-react)
- (deps standalone.exe %{bin:refmt} %{bin:ocamlformat} ppx.sh))
+ (deps
+  (package server-reason-react)
+  standalone.exe
+  %{bin:refmt}
+  %{bin:ocamlformat}
+  %{bin:server_reason_react.extract_client_components}
+  ppx.sh))
 
 (executable
  (name standalone)

@@ -1,4 +1,12 @@
-let _ = MelRaw.mockInitWebsocket();
+let%browser_only mockInitWebsocket = () => [%mel.raw
+  {|
+  function mockInitWebsocket() {
+    console.log("Load JS");
+  }
+|}
+];
+
+let _ = mockInitWebsocket();
 
 let element = Webapi.Dom.Document.querySelector("#root", Webapi.Dom.document);
 
