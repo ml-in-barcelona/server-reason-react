@@ -396,7 +396,7 @@ module Preprocess = struct
             let loc = expr.pexp_loc in
             if should_keep expr.pexp_attributes = `keep then if should_keep attrs = `keep then expr else body
             else [%expr ()]
-        | Pexp_apply _ | Pexp_constant _ | Pexp_ident _ | Pexp_fun _->
+        | Pexp_apply _ | Pexp_constant _ | Pexp_ident _ | Pexp_fun _ ->
             let loc = expr.pexp_loc in
             if should_keep expr.pexp_attributes = `keep then expr else [%expr ()]
         | _ -> expr

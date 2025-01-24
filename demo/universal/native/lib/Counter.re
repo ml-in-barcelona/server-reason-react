@@ -3,9 +3,9 @@ open Ppx_deriving_json_runtime.Primitives;
 [@react.client.component]
 let make = (~initial: int) => {
   let (state, [@browser_only] setCount) = RR.useStateValue(initial);
-  
+
   [@browser_only]
-  let onClick = (_) => {
+  let onClick = _ => {
     setCount(state + 1);
     Js.log2("Printing count", state);
   };

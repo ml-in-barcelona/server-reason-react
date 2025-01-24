@@ -71,6 +71,36 @@ let getLastName = (_) => {
 let hello_world = "Hello world";
 ]}
 
+{3 %browser_only deprecated}
+
+The [%browser_only] extension is deprecated, but for compatibility reasons, it's still available.
+
+{[
+let%browser_only countDomNodes = (id) => {
+  let elements = Webapi.Element.querySelector("#" ++ id);
+  let arr_elements = Webapi.Element.toArray(elements);
+  Array.length(arr_elements);
+};
+]}
+
+The method tagged by [browser_only] will keep the function untouched for the client build, but for the server build, will be transformed to a function that raises the exception [Runtime.Impossible_in_ssr].
+
+If this function runs on the server, it will raise an exception, and the server will crash. In order to prevent this, you can use [try] to catch the exception and provide a default behaviour/value.
+
+Following with the example from above:
+{[
+let%browser_only countDomNodes = (id) => {
+  let elements = Webapi.Element.querySelector("#" ++ id);
+  let arr_elements = Webapi.Element.toArray(elements);
+  Array.length(arr_elements);
+}
+
+let main = id =>
+  try(countDomNodes(id)) {
+  | _ => 0
+  };
+]}
+
 {2 switch%platform}
 
 [switch%platform] allows to conditionally execute code based on the platform. There are some cases where you need to run a specific code only on the server or only on the client.

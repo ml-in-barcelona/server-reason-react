@@ -146,8 +146,7 @@ let make_prop ~is_optional ~prop attribute_value =
   | Event { type_ = Mouse; jsxName }, false ->
       [%expr
         Some
-          (React.JSX.Event
-             ([%e make_string ~loc jsxName], React.JSX.Mouse (fun _ -> () : React.Event.Mouse.t -> unit)))]
+          (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Mouse (fun _ -> () : React.Event.Mouse.t -> unit)))]
   | Event { type_ = Mouse; jsxName }, true ->
       [%expr
         match ([%e attribute_value] : (React.Event.Mouse.t -> unit) option) with
@@ -166,8 +165,7 @@ let make_prop ~is_optional ~prop attribute_value =
   | Event { type_ = Touch; jsxName }, false ->
       [%expr
         Some
-          (React.JSX.Event
-             ([%e make_string ~loc jsxName], React.JSX.Touch (fun _ -> () : React.Event.Touch.t -> unit)))]
+          (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Touch (fun _ -> () : React.Event.Touch.t -> unit)))]
   | Event { type_ = Touch; jsxName }, true ->
       [%expr
         match ([%e attribute_value] : (React.Event.Touch.t -> unit) option) with
@@ -175,9 +173,7 @@ let make_prop ~is_optional ~prop attribute_value =
         | Some _ -> Some (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Touch (fun _ -> ())))]
   | Event { type_ = UI; jsxName }, false ->
       [%expr
-        Some
-          (React.JSX.Event
-             ([%e make_string ~loc jsxName], React.JSX.UI (fun _ -> () : React.Event.UI.t -> unit)))]
+        Some (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.UI (fun _ -> () : React.Event.UI.t -> unit)))]
   | Event { type_ = UI; jsxName }, true ->
       [%expr
         match ([%e attribute_value] : (React.Event.UI.t -> unit) option) with
@@ -186,8 +182,7 @@ let make_prop ~is_optional ~prop attribute_value =
   | Event { type_ = Wheel; jsxName }, false ->
       [%expr
         Some
-          (React.JSX.Event
-             ([%e make_string ~loc jsxName], React.JSX.Wheel (fun _ -> () : React.Event.Wheel.t -> unit)))]
+          (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Wheel (fun _ -> () : React.Event.Wheel.t -> unit)))]
   | Event { type_ = Wheel; jsxName }, true ->
       [%expr
         match ([%e attribute_value] : (React.Event.Wheel.t -> unit) option) with
@@ -197,8 +192,7 @@ let make_prop ~is_optional ~prop attribute_value =
       [%expr
         Some
           (React.JSX.Event
-             ( [%e make_string ~loc jsxName],
-               React.JSX.Clipboard (fun _ -> () : React.Event.Clipboard.t -> unit) ))]
+             ([%e make_string ~loc jsxName], React.JSX.Clipboard (fun _ -> () : React.Event.Clipboard.t -> unit)))]
   | Event { type_ = Clipboard; jsxName }, true ->
       [%expr
         match ([%e attribute_value] : (React.Event.Clipboard.t -> unit) option) with
@@ -208,8 +202,7 @@ let make_prop ~is_optional ~prop attribute_value =
       [%expr
         Some
           (React.JSX.Event
-             ( [%e make_string ~loc jsxName],
-               React.JSX.Composition (fun _ -> () : React.Event.Composition.t -> unit) ))]
+             ([%e make_string ~loc jsxName], React.JSX.Composition (fun _ -> () : React.Event.Composition.t -> unit)))]
   | Event { type_ = Composition; jsxName }, true ->
       [%expr
         match ([%e attribute_value] : (React.Event.Composition.t -> unit) option) with
@@ -228,8 +221,7 @@ let make_prop ~is_optional ~prop attribute_value =
   | Event { type_ = Focus; jsxName }, false ->
       [%expr
         Some
-          (React.JSX.Event
-             ([%e make_string ~loc jsxName], React.JSX.Focus (fun _ -> () : React.Event.Focus.t -> unit)))]
+          (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Focus (fun _ -> () : React.Event.Focus.t -> unit)))]
   | Event { type_ = Focus; jsxName }, true ->
       [%expr
         match ([%e attribute_value] : (React.Event.Focus.t -> unit) option) with
@@ -238,8 +230,7 @@ let make_prop ~is_optional ~prop attribute_value =
   | Event { type_ = Form; jsxName }, false ->
       [%expr
         Some
-          (React.JSX.Event
-             ([%e make_string ~loc jsxName], React.JSX.Form (fun _ -> () : React.Event.Form.t -> unit)))]
+          (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Form (fun _ -> () : React.Event.Form.t -> unit)))]
   | Event { type_ = Form; jsxName }, true ->
       [%expr
         match ([%e attribute_value] : (React.Event.Form.t -> unit) option) with
@@ -248,8 +239,7 @@ let make_prop ~is_optional ~prop attribute_value =
   | Event { type_ = Media; jsxName }, false ->
       [%expr
         Some
-          (React.JSX.Event
-             ([%e make_string ~loc jsxName], React.JSX.Media (fun _ -> () : React.Event.Media.t -> unit)))]
+          (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Media (fun _ -> () : React.Event.Media.t -> unit)))]
   | Event { type_ = Media; jsxName }, true ->
       [%expr
         match ([%e attribute_value] : (React.Event.Media.t -> unit) option) with
@@ -277,8 +267,7 @@ let make_prop ~is_optional ~prop attribute_value =
       [%expr
         Some
           (React.JSX.Event
-             ( [%e make_string ~loc jsxName],
-               React.JSX.Animation (fun _ -> () : React.Event.Animation.t -> unit) ))]
+             ([%e make_string ~loc jsxName], React.JSX.Animation (fun _ -> () : React.Event.Animation.t -> unit)))]
   | Event { type_ = Animation; jsxName }, true ->
       [%expr
         match ([%e attribute_value] : (React.Event.Animation.t -> unit) option) with
@@ -288,8 +277,7 @@ let make_prop ~is_optional ~prop attribute_value =
       [%expr
         Some
           (React.JSX.Event
-             ( [%e make_string ~loc jsxName],
-               React.JSX.Transition (fun _ -> () : React.Event.Transition.t -> unit) ))]
+             ([%e make_string ~loc jsxName], React.JSX.Transition (fun _ -> () : React.Event.Transition.t -> unit)))]
   | Event { type_ = Transition; jsxName }, true ->
       [%expr
         match ([%e attribute_value] : (React.Event.Transition.t -> unit) option) with
@@ -308,8 +296,7 @@ let make_prop ~is_optional ~prop attribute_value =
   | Event { type_ = Drag; jsxName }, false ->
       [%expr
         Some
-          (React.JSX.Event
-             ([%e make_string ~loc jsxName], React.JSX.Drag (fun _ -> () : React.Event.Drag.t -> unit)))]
+          (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Drag (fun _ -> () : React.Event.Drag.t -> unit)))]
   | Event { type_ = Drag; jsxName }, true ->
       [%expr
         match ([%e attribute_value] : (React.Event.Drag.t -> unit) option) with
