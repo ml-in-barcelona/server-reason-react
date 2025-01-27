@@ -66,14 +66,13 @@ export function plugin(config) {
         if (isEntryPoint) {
           return {
             path: args.path,
-            namespace: 'entrypoint'
+            namespace: 'entrypoint',
           };
         }
         return null;
       });
 
-      build.initialOptions.banner = {
-        js: `
+    let webpackRequireMock = `
 window.__webpack_require__ = (id) => {
   const component = window.__client_manifest_map[id];
   if (!component) {
@@ -81,7 +80,10 @@ window.__webpack_require__ = (id) => {
   }
   return { __esModule: true, default: component };
 };
-window.__client_manifest_map = window.__client_manifest_map || {};`
+window.__client_manifest_map = window.__client_manifest_map || {};`;
+
+      build.initialOptions.banner = {
+        js: webpackRequireMock
       };
 
       build.onLoad({ filter: /.*/, namespace: 'entrypoint' }, async (args) => {
