@@ -21,9 +21,8 @@
   (:script build.mjs)
   (:input app/demo/client/Hydrate.js)
   (source_tree node_modules)
-  (file package.json)
-  (source_tree ../../packages/extract-client-components))
- (target index.js)
+  (file package.json))
+ (target hydrate-static-html.js)
  (action
   (progn
    (run node %{script} %{input} %{target}))))

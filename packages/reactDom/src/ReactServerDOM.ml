@@ -371,6 +371,8 @@ let rec to_html ~fiber (element : React.element) : (Html.element * json) Lwt.t =
       let%lwt html_fallback, model_fallback = to_html ~fiber fallback in
       let context = fiber.context in
       let _finished, parent_done = Lwt.wait () in
+      (* XXX: Add suspense_resolved_element *)
+      (* chunk_html_script *)
       let promise = to_html ~fiber children in
       match Lwt.state promise with
       | Lwt.Sleep ->
@@ -380,7 +382,7 @@ let rec to_html ~fiber (element : React.element) : (Html.element * json) Lwt.t =
           Lwt.async (fun () ->
               let%lwt () = fiber.finished in
               let%lwt html, _model = promise in
-              context.push html;
+              context.push (chunk_html_script index html);
               Lwt.wakeup_later parent_done ();
               context.pending <- context.pending - 1;
               if context.pending = 0 then context.close ();
