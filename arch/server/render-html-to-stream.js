@@ -80,9 +80,18 @@ const App = () => (
   } */
 
 function App() {
-	return <div key="33">lol</div>;
+	return (
+		<html>
+			<body>
+				<head>"asdf"</head>
+				<div key="33">lol</div>
+			</body>
+		</html>
+	);
 }
 
-ReactDOM.renderToReadableStream(<App />).then((stream) => {
+ReactDOM.renderToReadableStream(<App />, {
+	bootstrapModules: ["/static/demo/client/router.js"],
+}).then((stream) => {
 	debug(stream);
 });

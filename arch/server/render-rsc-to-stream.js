@@ -3,7 +3,11 @@ import { renderToPipeableStream } from "react-server-dom-webpack/server";
 
 const DefferedComponent = async ({ sleep, children }) => {
 	await new Promise((res) => setTimeout(() => res(), sleep * 1000));
-	return <span>Sleep {sleep}s, {children}</span>;
+	return (
+		<span>
+			Sleep {sleep}s, {children}
+		</span>
+	);
 };
 
 const decoder = new TextDecoder();
@@ -42,7 +46,11 @@ function App() {
       [ React.JSX.String ("className", "className", "sidebar-header") ]
       [ React.createElement "strong" [] [ React.string "React Notes" ] ]
   in */
-	return <section key="important key" className="sidebar-header"><strong>React Notes</strong></section>;
+	return (
+		<section key="important key" className="sidebar-header">
+			<strong>React Notes</strong>
+		</section>
+	);
 }
 
 const { pipe } = renderToPipeableStream(<App />);
