@@ -26,11 +26,12 @@ type align =
 [@react.component]
 let make =
     (
-      ~color,
+      ~color=Theme.Color.white,
       ~size: size=Small,
       ~weight: weight=Regular,
       ~align=Left,
       ~children,
+      ~role=?,
     ) => {
   let className =
     Cx.make([
@@ -62,5 +63,5 @@ let make =
       },
     ]);
 
-  <span className> {React.string(children)} </span>;
+  <span className ?role> {React.string(children)} </span>;
 };

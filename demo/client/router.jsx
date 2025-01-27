@@ -2,64 +2,92 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import ReactServerDOM from "react-server-dom-webpack/client";
 
-function Page({ promise }) {
-	return React.use(promise);
-}
-
+let updateRoot = null;
 let abortController = null;
 
-const App = ({ promise }) => {
-  return (
-    <React.StrictMode><Page promise={promise} /></React.StrictMode>
-  );
-};
-
-const fetchRSC = (path) => {
-  return fetch(path, {
-    method: 'GET',
-    headers: {
-      Accept: "text/x-component",
-    },
-    signal: abortController.signal,
-  });
-};
-
-const renderPage = (pathname, search) => {
-  React.startTransition(() => {
-    if (abortController != null) {
-      abortController.abort();
-    }
-    abortController = new AbortController();
-
-    ReactServerDOM.createFromFetch(fetchRSC(pathname + search)).then(element => {
-      let root = ReactDOM.createRoot(element);
-
-      root.render(<App promise={promise} />);
-  });
-    /* let {pathname, search} = window.location;
-    if (pathname + search !== path)
-      window.history.pushState({}, null, path); */
-  });
+function Page({ data }) {
+	// Store the current root element in state, along with a callback
+	// to call once rendering is complete.
+	let [[root, cb], setRoot] = React.useState([React.use(data), null]);
+	updateRoot = (root, cb) => setRoot([root, cb]);
+	React.useInsertionEffect(() => cb?.());
+	return root;
 }
+
+const App = ({ data }) => {
+	return (
+		<React.StrictMode>
+			<Page data={data} />
+		</React.StrictMode>
+	);
+};
 
 const callServer = (_id, _args) => {
-  throw new Error(`callServer is not supported yet`);
-}
+	throw new Error(`callServer is not supported yet`);
+};
 
 const element = document.getElementById("root");
 const stream = window.srr_stream && window.srr_stream.readable_stream;
 
 if (stream) {
-  const promise = ReactServerDOM.createFromReadableStream(stream, { callServer });
-  React.startTransition(() => {
-    ReactDOM.hydrateRoot(element, <App promise={promise} />);
-  });
+	const data = ReactServerDOM.createFromReadableStream(stream, { callServer });
+	React.startTransition(() => {
+		ReactDOM.hydrateRoot(element, <App data={data} />);
+	});
 } else {
-  let { pathname, search } = window.location;
-  renderPage(pathname + search);
+	/* when does stream not exist? */
+	let { pathname, search } = window.location;
+	navigate(pathname + search);
 }
 
-window.addEventListener("popstate", (_event) => {
-  let {pathname, search} = window.location;
-  renderPage(pathname + search);
+// Simple router's navigation. On navigate, fetch the RSC payload from the server,
+// and in a React transition, stream in the new page. Once complete, we'll pushState to
+// update the URL in the browser.
+async function navigate(pathname, push) {
+	if (abortController != null) {
+		abortController.abort();
+	}
+	abortController = new AbortController();
+	let res = fetch(pathname, {
+		headers: {
+			Accept: "text/x-component",
+		},
+		signal: abortController.signal,
+	});
+	let root = await ReactServerDOM.createFromFetch(res);
+	React.startTransition(() => {
+		updateRoot(root, () => {
+			if (push) {
+				history.pushState(null, "", pathname);
+				push = false;
+			}
+		});
+	});
+}
+
+// Intercept link clicks to perform RSC navigation.
+document.addEventListener("click", (e) => {
+	let link = e.target.closest("a");
+	if (
+		link &&
+		link instanceof HTMLAnchorElement &&
+		link.href &&
+		(!link.target || link.target === "_self") &&
+		link.origin === location.origin &&
+		!link.hasAttribute("download") &&
+		e.button === 0 && // left clicks only
+		!e.metaKey && // open in new tab (mac)
+		!e.ctrlKey && // open in new tab (windows)
+		!e.altKey && // download
+		!e.shiftKey &&
+		!e.defaultPrevented
+	) {
+		e.preventDefault();
+		navigate(link.pathname, true);
+	}
+});
+
+// When the user clicks the back button, navigate with RSC.
+window.addEventListener("popstate", (e) => {
+	navigate(location.pathname);
 });

@@ -9,7 +9,7 @@ let server =
       Dream.get(Router.demoRenderToString, _request =>
         Dream.html(
           ReactDOM.renderToString(
-            <Document script="/static/demo/client/index.js">
+            <Document script="/static/demo/client/hydrate-static-html.js">
               <App />
             </Document>,
           ),
@@ -18,7 +18,7 @@ let server =
       Dream.get(Router.demoRenderToStaticMarkup, _request =>
         Dream.html(
           ReactDOM.renderToStaticMarkup(
-            <Document script="/static/demo/client/index.js">
+            <Document script="/static/demo/client/hydrate-static-html.js">
               <App />
             </Document>,
           ),
@@ -38,4 +38,4 @@ let interface = {
   };
 };
 
-Dream.run(~port=8080, ~interface, ~error_handler=Error.handler, server);
+Dream.run(~port=8080, ~interface, server);

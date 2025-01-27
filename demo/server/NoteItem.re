@@ -17,10 +17,8 @@ let make = (~selectedId: option(string), ~isEditing: bool) => {
       );
     } else {
       Lwt.return(
-        <div className="note--empty-state">
-          <span className="note-text--empty-state">
-            {React.string("Click a note on the left to view something! 🥺")}
-          </span>
+        <div className="flex h-full items-center justify-center">
+          <Text> "Click a note on the left to view something! 🥺" </Text>
         </div>,
       );
     }
@@ -45,12 +43,8 @@ let make = (~selectedId: option(string), ~isEditing: bool) => {
         <div className="note-header">
           <h1 className="note-title"> {React.string(note.title)} </h1>
           <div className="note-menu" role="menubar">
-            <small className="note-updated-at" role="status">
-              {React.string(
-                 "Last updated on ",
-                 /* ++ DateFns.format(updatedAt, "d MMM yyyy 'at' h:mm bb"), */
-               )}
-            </small>
+            <Text size=Small role="status"> "Last updated on " </Text>
+            /* ++ DateFns.format(updatedAt, "d MMM yyyy 'at' h:mm bb"), */
             <EditButton noteId={Some(note.id)}>
               {React.string("Edit")}
             </EditButton>

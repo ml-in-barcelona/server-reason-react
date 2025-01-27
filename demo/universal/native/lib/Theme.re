@@ -24,12 +24,14 @@ module Color = {
   let yellow = white;
   let darkYellow = "[#34342f]";
   let black = "[#161615]";
+  let fadedBlack = "[#262626]";
 
   let reason = "[#db4d3f]";
   let react = "[#149eca]";
   let ahrefs = "[#ff8800]";
 };
 
+let none = "none";
 let text = value => "text-" ++ value;
 let background = value => "bg-" ++ value;
 let border = value => "border-" ++ value;

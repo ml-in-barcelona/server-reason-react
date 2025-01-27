@@ -1,4 +1,4 @@
-[@warning "-33-26"];
+[@warning "-26-27-33"];
 
 open Ppx_deriving_json_runtime.Primitives;
 
@@ -39,13 +39,14 @@ let make =
     [|title|],
   );
 
-  let baseClassName = "sidebar-note-list-item";
-  let expandedClassName = isExpanded ? " note-expanded" : "";
-  let className = baseClassName ++ expandedClassName;
+  let baseClassName = "relative mb-3 p-4 w-full flex justify-between items-start flex-wrap transition-[max-height] duration-250 ease-out scale-100";
+  let expandedClassName =
+    isExpanded
+      ? " max-h-[300px] transition-[max-height] duration-500 ease-linear" : "";
 
   <div
     ref={ReactDOM.Ref.domRef(itemRef)}
-    className
+    className={Cx.make([baseClassName, expandedClassName])}
     onAnimationEnd={_ => {
       switch (Js.Nullable.toOption(itemRef.current)) {
       | Some(element) =>
@@ -57,19 +58,12 @@ let make =
     }}>
     children
     <button
-      className="sidebar-note-open"
-      style={ReactDOM.Style.make(
-        ~backgroundColor=
-          switch (isPending, isActive) {
-          | (true, _) => "var(--gray-80)"
-          | (_, true) => "var(--tertiary-blue)"
-          | _ => ""
-          },
-        ~border=
-          isActive
-            ? "1px solid var(--primary-border)" : "1px solid transparent",
-        (),
-      )}
+      className={Cx.make([
+        "absolute inset-0 w-full z-0 rounded-md text-left cursor-pointer text-transparent text-[0px] outline-none",
+        Theme.background(Theme.Color.fadedBlack),
+        isActive
+          ? Theme.border(Theme.Color.darkYellow) : Theme.border(Theme.none),
+      ])}
       onClick={_ => {
         startTransition(() => {
           router.navigate({

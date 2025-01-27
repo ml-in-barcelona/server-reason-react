@@ -27,7 +27,7 @@ let make = () => {
 
   <form className="search" role="search" onSubmit>
     <label className="offscreen" htmlFor="sidebar-search-input">
-      {React.string("Search for a note by title")}
+      <Text> "Search for a note by title" </Text>
     </label>
     /* <input id="sidebar-search-input" placeholder="Search" value onChange /> */
     <Spinner active=isSearching />

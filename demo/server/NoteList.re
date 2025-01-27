@@ -72,7 +72,7 @@ let make = (~searchText) => {
        )}
     </div>
   | Ok(notes) =>
-    <ul className="notes-list">
+    <ul className="p-2">
       {notes
        |> List.map((note: Note.t) =>
             <li key={note.id}> <SidebarNote note /> </li>

@@ -9,6 +9,7 @@ let make = (~noteId: option(string), ~children) => {
       ~sep=" ",
       [|
         "edit-button",
+        Theme.text(Theme.Color.white),
         isDraft ? "edit-button--solid" : "edit-button--outline",
       |],
     );

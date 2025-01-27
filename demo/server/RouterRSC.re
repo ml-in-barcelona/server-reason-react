@@ -2,13 +2,13 @@ module App = {
   [@react.component]
   let make = (~selectedId, ~isEditing, ~searchText) => {
     <DemoLayout background=Theme.Color.black mode=FullScreen>
-      <div className="main">
-        <section className="col sidebar" key="sidebar">
-          <section className="sidebar-header" key="sidebar-header">
-            <strong> {React.string("React Notes")} </strong>
-            <span>
-              {React.string("migrated to (server)-reason-react and Melange")}
-            </span>
+      <div className="flex flex-row gap-8">
+        <section className="flex-1 basis-1/4 gap-4" key="sidebar">
+          <section
+            className="flex flex-col gap-1 z-1 max-w-[85%] pointer-events-none"
+            key="sidebar-header">
+            <Text size=XLarge weight=Bold> "React Notes" </Text>
+            <Text> "migrated to (server)-reason-react and Melange" </Text>
           </section>
           <section className="sidebar-menu" role="menubar" key="menubar">
             <SearchField />
@@ -20,7 +20,7 @@ module App = {
             </React.Suspense>
           </nav>
         </section>
-        <section key="note-viewer" className="col note-viewer">
+        <section key="note-viewer" className="flex-1 basis-3/4">
           <React.Suspense fallback={<NoteSkeleton isEditing />}>
             <NoteItem selectedId isEditing />
           </React.Suspense>

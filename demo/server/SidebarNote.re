@@ -21,9 +21,13 @@ let make = (~note: Note.t) => {
          }}
       </p>
     }>
-    <header className="sidebar-note-header">
-      <strong> {React.string(note.title)} </strong>
-      <small> {React.string(lastUpdatedAt)} </small>
+    <header
+      className={Cx.make([
+        "max-w-[85%] pointer-events-none flex flex-col gap-1",
+      ])}
+      style={ReactDOM.Style.make(~zIndex="1", ())}>
+      <Text size=Large weight=Bold> {note.title} </Text>
+      <Text size=Small> lastUpdatedAt </Text>
     </header>
   </SidebarNoteContent>;
 };
