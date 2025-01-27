@@ -574,20 +574,21 @@ let make_of_json ~loc (core_type : core_type) prop =
   | type_ -> [%expr [%of_json: [%t type_]] [%e prop]]
 
 let props_of_model ~loc (props : (arg_label * pattern) list) : (longident loc * expression) list =
-  List.map
+  List.filter_map
     ~f:(fun (arg_label, pattern) ->
       match pattern.ppat_desc with
+      | Ppat_construct ({ txt = Lident "()"; _ }, None) -> None
       | Ppat_constraint (_, core_type) -> (
           match arg_label with
           | Nolabel ->
               (* This error is raised by reason-react-ppx as well *)
               let loc = pattern.ppat_loc in
-              (longident ~loc "error", [%expr [%ocaml.error "props need to be labelled arguments"]])
+              Some (longident ~loc "error", [%expr [%ocaml.error "props need to be labelled arguments"]])
           | Labelled label | Optional label ->
               let _name = estring ~loc label in
               let prop = [%expr props##[%e ident ~loc label]] in
               let value = make_of_json ~loc core_type prop in
-              (longident ~loc label, value))
+              Some (longident ~loc label, value))
       | _ ->
           let loc = pattern.ppat_loc in
           let expr =
@@ -601,16 +602,19 @@ let props_of_model ~loc (props : (arg_label * pattern) list) : (longident loc * 
                 let msg_expr = estring ~loc msg in
                 [%expr [%ocaml.error [%e msg_expr]]]
           in
-          (longident ~loc "error", expr))
+          Some (longident ~loc "error", expr))
     props
 
 let react_component_attribute ~loc =
   { attr_name = { txt = "react.component"; loc }; attr_payload = PStr []; attr_loc = loc }
 
 let mel_obj ~loc fields =
-  let record = pexp_record ~loc fields None in
-  let stri = pstr_eval ~loc record [] in
-  [%expr [%mel.obj [%%i stri]]]
+  match fields with
+  | [] -> [%expr Js.Obj.empty ()]
+  | _ ->
+      let record = pexp_record ~loc fields None in
+      let stri = pstr_eval ~loc record [] in
+      [%expr [%mel.obj [%%i stri]]]
 
 let expand_make_binding_to_client binding =
   let loc = binding.pvb_loc in
@@ -755,6 +759,7 @@ let props_to_model ~loc (props : (arg_label * pattern) list) =
   List.fold_left ~init:[%expr []]
     ~f:(fun acc (arg_label, pattern) ->
       match pattern.ppat_desc with
+      | Ppat_construct ({ txt = Lident "()"; _ }, None) -> acc
       | Ppat_constraint (_, core_type) -> (
           match arg_label with
           | Nolabel ->
