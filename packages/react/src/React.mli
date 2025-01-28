@@ -519,7 +519,7 @@ module JSX : sig
   type prop =
     | Bool of (string * string * bool)
     | String of (string * string * string)
-    | Style of (string * string) list
+    | Style of (string * string * string) list
     | DangerouslyInnerHtml of string
     | Ref of domRef
     | Event of string * event
@@ -528,7 +528,7 @@ module JSX : sig
 
   val bool : string -> string -> bool -> prop
   val string : string -> string -> string -> prop
-  val style : (string * string) list -> prop
+  val style : (string * string * string) list -> prop
   val dangerouslyInnerHtml : < __html : string ; .. > -> prop
   val int : string -> string -> int -> prop
   val float : string -> string -> float -> prop

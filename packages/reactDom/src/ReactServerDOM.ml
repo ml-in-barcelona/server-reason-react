@@ -33,7 +33,7 @@ module Model = struct
     context.chunk_id
 
   let get_chunk_id context = context.chunk_id
-  let style_to_json style = `Assoc (List.map (fun (key, value) -> (key, `String value)) style)
+  let style_to_json style = `Assoc (List.map (fun (_key, jsxKey, value) -> (jsxKey, `String value)) style)
 
   let prop_to_json (prop : React.JSX.prop) =
     match prop with

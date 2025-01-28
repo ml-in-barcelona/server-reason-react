@@ -338,7 +338,7 @@ module JSX = struct
   type prop =
     | Bool of (string * string * bool)
     | String of (string * string * string)
-    | Style of (string * string) list
+    | Style of (string * string * string) list
     | DangerouslyInnerHtml of string
     | Ref of Ref.t
     | Event of string * event
@@ -402,7 +402,7 @@ let compare_attribute (left : JSX.prop) (right : JSX.prop) =
       String.compare left_key right_key
   | Style left_styles, Style right_styles ->
       List.compare
-        (fun (left_property, left_value) (right_property, right_value) ->
+        (fun (left_property, _, left_value) (right_property, _, right_value) ->
           Int.compare (String.compare left_property right_property) (String.compare left_value right_value))
         left_styles right_styles
   | _ -> 0

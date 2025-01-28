@@ -1,4 +1,4 @@
-type t = (string * string) list
+type t = (string * string * string) list
 
 val make :
   ?azimuth:string ->

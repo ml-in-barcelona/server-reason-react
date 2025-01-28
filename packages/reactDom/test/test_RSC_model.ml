@@ -425,9 +425,14 @@ let key_renders_outside_of_props () =
     ]
 
 let style_as_json () =
-  let app = React.createElement "div" [ React.JSX.Style [ ("color", "red"); ("background", "blue") ] ] [] in
+  let app =
+    React.createElement "div"
+      [ React.JSX.style (ReactDOMStyle.make ~color:"red" ~background:"blue" ~zIndex:"34" ()) ]
+      []
+  in
   let%lwt stream = ReactServerDOM.render_model app in
-  assert_stream stream [ "0:[\"$\",\"div\",null,{\"style\":{\"color\":\"red\",\"background\":\"blue\"}}]\n" ]
+  assert_stream stream
+    [ "0:[\"$\",\"div\",null,{\"style\":{\"color\":\"red\",\"background\":\"blue\",\"zIndex\":34}}]\n" ]
 
 let tests =
   [
