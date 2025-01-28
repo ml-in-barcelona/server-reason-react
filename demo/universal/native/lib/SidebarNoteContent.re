@@ -1,6 +1,22 @@
+[@warning "-26-27-32"];
+
 open Ppx_deriving_json_runtime.Primitives;
 
-Js.log("SNC, loaded???");
+module Square = {
+  [@react.component]
+  let make = (~isExpanded) => {
+    <div
+      className={Cx.make([
+        isExpanded ? "" : "rotate-180",
+        "w-6 h-6 rounded-md border-2 flex items-center justify-center pt-1 text-white text-sm select-none",
+        "transition-[background-color] duration-250 ease-out",
+        Theme.background(Theme.Color.fadedBlack),
+        Theme.hover([Theme.background(Theme.Color.darkYellow)]),
+      ])}>
+      {React.string("^")}
+    </div>;
+  };
+};
 
 [@react.client.component]
 let make =
@@ -15,21 +31,26 @@ let make =
 
   let router = ClientRouter.useRouter();
   let (isPending, startTransition) = React.useTransition();
-  ignore(isPending);
   let (isExpanded, setIsExpanded) = React.useState(() => false);
-  let isActive =
-    switch (router.location.selectedId) {
-    | Some(id) => id == id
-    | None => false
-    };
+  let isActive = false;
+  /* let isActive =
+     switch (router.location.selectedId) {
+     | Some(id) => id == id
+     | None => false
+     }; */
 
-  let baseClassName = "relative mb-3 p-4 w-full flex justify-between items-start flex-wrap transition-[max-height] duration-250 ease-out scale-100";
-  let expandedClassName =
-    isExpanded
-      ? " max-h-[300px] transition-[max-height] duration-500 ease-linear" : "";
+  let baseClassName = "relative mb-3 p-4 w-full flex justify-between items-start flex-wrap transition-[max-height] duration-250 ease-out scale-100 rounded-md";
 
   <div
-    className={Cx.make([baseClassName, expandedClassName])}
+    className={Cx.make([
+      /* isExpanded
+         ? "max-h-[300px] transition-[max-height] duration-500 ease-linear" : "", */
+      isActive
+        ? Theme.border(Theme.Color.darkYellow) : Theme.border(Theme.none),
+      baseClassName,
+      Theme.background(Theme.Color.fadedBlack),
+    ])}
+    onMouseEnter={_ => {Js.log("onMouseEnter!!!!!!!!!!!!!!!!!!!!!!!")}}
     onClick={_ => {
       Js.log("onClick");
       startTransition(() => {
@@ -42,33 +63,14 @@ let make =
       });
     }}>
     children
-    <button
-      className={Cx.make([
-        "absolute inset-0 w-full z-0 rounded-md text-left text-transparent text-[0px] outline-none",
-        Theme.background(Theme.Color.fadedBlack),
-        isActive
-          ? Theme.border(Theme.Color.darkYellow) : Theme.border(Theme.none),
-      ])}>
-      {React.string("Open note for preview")}
-    </button>
-    <button
-      className="sidebar-note-toggle-expand"
+    <div
+      className="outline-none cursor-pointer"
       onClick={e => {
         Js.log("EXPANDDDD");
-        React.Event.Mouse.stopPropagation(e);
         setIsExpanded(prev => !prev);
       }}>
-      {if (isExpanded) {
-         <img
-           src="chevron-down.svg"
-           width="10px"
-           height="10px"
-           alt="Collapse"
-         />;
-       } else {
-         <img src="chevron-up.svg" width="10px" height="10px" alt="Expand" />;
-       }}
-    </button>
+      <Square isExpanded />
+    </div>
     {isExpanded ? expandedChildren : React.null}
   </div>;
 };

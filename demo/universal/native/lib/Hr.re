@@ -4,7 +4,8 @@ let make = () => {
     className={Cx.make([
       "block",
       "w-full",
-      "h-px",
+      "h-[1px]",
+      "border-0 border-b-2",
       Theme.border("gray-700"),
     ])}
   />;

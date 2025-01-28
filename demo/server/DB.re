@@ -1,4 +1,9 @@
-let db_cache = ref(None);
+module Cache = {
+  let db_cache = ref(None);
+  let set = value => db_cache := Some(value);
+  let read = () => db_cache^;
+  let delete = () => db_cache := None;
+};
 
 let readFile = file => {
   let (/) = Filename.concat;
@@ -49,18 +54,26 @@ let parseNotes = json => {
 let readNotes = path => {
   switch%lwt (readFile(path)) {
   | json =>
-    db_cache := Some(parseNotes(json));
+    Cache.set(parseNotes(json));
     Lwt_result.lift(parseNotes(json));
   /* When something fails, treat it as an empty note db */
   | exception _error => Lwt.return_ok([])
   };
 };
 
+let findOne = (notes, id) => {
+  notes |> List.find((note: Note.t) => note.id == id);
+};
+
 let fetchNote = id => {
-  switch (db_cache^) {
-  | Some(Ok(notes)) =>
-    notes |> List.find((note: Note.t) => note.id == id) |> Lwt_result.return
+  switch (Cache.read()) {
+  | Some(Ok(notes)) => findOne(notes, id) |> Lwt_result.return
   | Some(Error(e)) => Lwt_result.fail(e)
-  | None => Lwt_result.fail("note not found")
+  | None =>
+    let%lwt notes = readNotes("notes.json");
+    switch (notes) {
+    | Ok(notes) => findOne(notes, id) |> Lwt_result.return
+    | Error(e) => Lwt_result.fail(e)
+    };
   };
 };

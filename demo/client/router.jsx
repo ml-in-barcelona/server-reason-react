@@ -56,11 +56,10 @@ const element = document.getElementById("root");
 const stream = window.srr_stream && window.srr_stream.readable_stream;
 
 if (stream) {
-	console.log("Client manifest map:", window.__client_manifest_map);
+	console.log("__client_manifest_map", window.__client_manifest_map);
 	const data = ReactServerDOM.createFromReadableStream(stream, { callServer });
 	React.startTransition(() => {
 		const app = <App data={data} />;
-		console.log(app);
 		ReactDOM.hydrateRoot(element, app);
 	});
 } else {

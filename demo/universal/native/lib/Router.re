@@ -38,22 +38,19 @@ type location = {
 };
 
 let locationToString = location =>
-  "selectedId="
-  ++ (
+  [
     switch (location.selectedId) {
-    | Some(id) => id
-    | None => "None"
-    }
-  )
-  ++ "&isEditing="
-  ++ (location.isEditing ? "true" : "false")
-  ++ "&searchText="
-  ++ (
+    | Some(id) => "selectedId=" ++ id
+    | None => ""
+    },
+    "isEditing=" ++ (location.isEditing ? "true" : "false"),
     switch (location.searchText) {
-    | Some(id) => id
-    | None => "None"
-    }
-  );
+    | Some(text) => "searchText=" ++ text
+    | None => ""
+    },
+  ]
+  |> List.filter(s => s != "")
+  |> String.concat("&");
 
 let initialLocation = {
   selectedId: None,

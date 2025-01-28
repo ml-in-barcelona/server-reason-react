@@ -32,7 +32,7 @@ let make = (~children, ~background=Theme.Color.black, ~mode=Fit800px) => {
         {React.string("Home")}
       </a>
     </nav>
-    <div spellCheck=false className={Cx.make(["w-full", "pt-12"])}>
+    <div spellCheck=false className={Cx.make(["w-full", "pt-6"])}>
       children
     </div>
   </div>;

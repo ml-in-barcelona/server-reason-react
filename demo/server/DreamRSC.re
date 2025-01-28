@@ -6,11 +6,10 @@ let stream_rsc = (request, fn) => {
     ~headers=[
       ("Content-Type", "application/react.component"),
       ("X-Content-Type-Options", "nosniff"),
-      /* ("X-Location", Dream.to_path(request)), */
+      ("X-Location", Dream.target(request)),
     ],
     stream => {
       let%lwt () = fn(stream);
-      /* let%lwt () = Dream.write(stream, "0\r\n\r\n"); */
       Lwt.return();
     },
   );
@@ -88,7 +87,7 @@ let render_shell = (app, script) => {
 
 let createFromRequest = (app, script, request) => {
   switch (Dream.header(request, "Accept")) {
-  | Some(accept) when String.equal("application/react.component", accept) =>
+  | Some(accept) when is_react_component_header(accept) =>
     stream_rsc(
       request,
       stream => {

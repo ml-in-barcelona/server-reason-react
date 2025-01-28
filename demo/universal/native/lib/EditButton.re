@@ -6,6 +6,11 @@ let make = (~noteId: option(string), ~children: React.element) => {
   let {navigate, _}: ClientRouter.t = ClientRouter.useRouter();
   let isDraft = Belt.Option.isNone(noteId);
 
+  React.useEffect(() => {
+    Js.log("EDIT BUTTON MOUNTED");
+    None;
+  });
+
   let className =
     Js.Array.join(
       ~sep=" ",
