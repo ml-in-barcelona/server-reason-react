@@ -432,7 +432,7 @@ let style_as_json () =
   in
   let%lwt stream = ReactServerDOM.render_model app in
   assert_stream stream
-    ["0:[\"$\",\"div\",null,{\"style\":{\"zIndex\":\"34\",\"color\":\"red\",\"background\":\"blue\"}}]\n"]
+    [ "0:[\"$\",\"div\",null,{\"style\":{\"zIndex\":\"34\",\"color\":\"red\",\"background\":\"blue\"}}]\n" ]
 
 let tests =
   [

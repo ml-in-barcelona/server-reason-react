@@ -31,17 +31,17 @@ let make =
   let (isExpanded, setIsExpanded) = React.useState(() => false);
 
   let isActive =
-     switch (router.location.selectedId) {
-     | Some(selectedId) => selectedId == id
-     | None => false
-     };
+    switch (router.location.selectedId) {
+    | Some(selectedId) => selectedId == id
+    | None => false
+    };
 
   let baseClassName = "relative mb-3 p-4 w-full flex justify-between items-start flex-wrap transition-[max-height] duration-250 ease-out scale-100 rounded-md";
 
   <div
     className={Cx.make([
       isExpanded
-         ? "max-h-[300px] transition-[max-height] duration-500 ease-linear" : "",
+        ? "max-h-[300px] transition-[max-height] duration-500 ease-linear" : "",
       isActive
         ? Theme.border(Theme.Color.darkYellow) : Theme.border(Theme.none),
       baseClassName,

@@ -41,9 +41,7 @@ class ErrorBoundary extends React.Component {
 const App = ({ data }) => {
 	return (
 		<ErrorBoundary>
-			<React.StrictMode>
-				<Page data={data} />
-			</React.StrictMode>
+			<Page data={data} />
 		</ErrorBoundary>
 	);
 };

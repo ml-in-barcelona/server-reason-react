@@ -12,9 +12,9 @@ module App = {
             <Text> "migrated to (server)-reason-react and Melange" </Text>
           </section>
           <section className="sidebar-menu" role="menubar" key="menubar">
-             <SearchField />
-             <EditButton noteId=None> {React.string("New")} </EditButton>
-           </section>
+            <SearchField />
+            <EditButton noteId=None> {React.string("New")} </EditButton>
+          </section>
           <Hr />
           <nav className="mt-4">
             <React.Suspense fallback={<NoteListSkeleton />}>
