@@ -1,18 +1,18 @@
 [
   {
-    "id": "1",
+    "id": 1,
     "title": "Let's do a bit of work today",
     "content": "Long description of the work",
     "updated_at": 1716604800
   },
   {
-    "id": "2",
+    "id": 2,
     "title": "Another important note",
     "content": "This is a very important note",
     "updated_at": 1716804800
   },
   {
-    "id": "3",
+    "id": 3,
     "title": "A third note",
     "content": "A less important note, but still here!",
     "updated_at": 1716904800

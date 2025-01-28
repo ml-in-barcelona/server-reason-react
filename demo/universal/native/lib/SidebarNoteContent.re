@@ -21,14 +21,11 @@ module Square = {
 [@react.client.component]
 let make =
     (
-      ~id: string,
+      ~id: int,
       ~title: string,
       ~children: React.element,
       ~expandedChildren: React.element,
     ) => {
-  Js.log("AAA!!!");
-  Js.log(title);
-
   let router = ClientRouter.useRouter();
   let (isPending, startTransition) = React.useTransition();
   let (isExpanded, setIsExpanded) = React.useState(() => false);
@@ -52,21 +49,20 @@ let make =
     ])}
     onMouseEnter={_ => {Js.log("onMouseEnter!!!!!!!!!!!!!!!!!!!!!!!")}}
     onClick={_ => {
-      Js.log("onClick");
       startTransition(() => {
-        Js.log("onClick");
         router.navigate({
           selectedId: Some(id),
           isEditing: false,
           searchText: None,
-        });
-      });
+        })
+      })
     }}>
     children
     <div
       className="outline-none cursor-pointer"
       onClick={e => {
         Js.log("EXPANDDDD");
+        React.Event.Mouse.stopPropagation(e);
         setIsExpanded(prev => !prev);
       }}>
       <Square isExpanded />

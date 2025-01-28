@@ -8,7 +8,7 @@ module NotePreview = {
 };
 
 [@react.async.component]
-let make = (~selectedId: option(string), ~isEditing: bool) => {
+let make = (~selectedId: option(int), ~isEditing: bool) => {
   switch (selectedId) {
   | None =>
     if (isEditing) {

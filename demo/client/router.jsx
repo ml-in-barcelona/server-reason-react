@@ -72,7 +72,9 @@ if (stream) {
 // and in a React transition, stream in the new page. Once complete, we'll pushState to
 // update the URL in the browser.
 async function navigate(search) {
+	console.log("navigate", search);
 	let pathname = window.location.pathname;
+	console.log("pathname", pathname);
 	let url = new URL(window.location.href + "?" + search);
 	console.log("url", url);
 	if (abortController != null) {
@@ -88,10 +90,7 @@ async function navigate(search) {
 	let root = await ReactServerDOM.createFromFetch(res);
 	React.startTransition(() => {
 		updateRoot(root, () => {
-			/* if (push) {
-				history.pushState(null, "", pathname);
-				push = false;
-			} */
+			history.pushState(null, "", url.pathname + url.search);
 		});
 	});
 }

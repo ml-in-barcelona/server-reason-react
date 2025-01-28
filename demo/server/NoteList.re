@@ -2,7 +2,7 @@ open Lwt.Syntax;
 
 [@react.async.component]
 let make = (~searchText) => {
-  let+ notes = DB.readNotes("./notes.json");
+  let+ notes = DB.readNotes();
 
   switch (notes) {
   | Error(error) =>
@@ -21,7 +21,7 @@ let make = (~searchText) => {
     <ul>
       {notes
        |> List.map((note: Note.t) =>
-            <li key={note.id}> <SidebarNote note /> </li>
+            <li key={Int.to_string(note.id)}> <SidebarNote note /> </li>
           )
        |> React.list}
     </ul>

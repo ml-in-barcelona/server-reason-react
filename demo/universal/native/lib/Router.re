@@ -32,7 +32,7 @@ module Menu = {
 };
 
 type location = {
-  selectedId: option(string),
+  selectedId: option(int),
   isEditing: bool,
   searchText: option(string),
 };
@@ -40,7 +40,7 @@ type location = {
 let locationToString = location =>
   [
     switch (location.selectedId) {
-    | Some(id) => "selectedId=" ++ id
+    | Some(id) => "selectedId=" ++ Int.to_string(id)
     | None => ""
     },
     "isEditing=" ++ (location.isEditing ? "true" : "false"),
@@ -62,7 +62,9 @@ let locationFromString = str => {
   switch (URL.make(str)) {
   | Some(url) =>
     let searchParams = URL.searchParams(url);
-    let selectedId = URL.SearchParams.get(searchParams, "selectedId");
+    let selectedId =
+      URL.SearchParams.get(searchParams, "selectedId")
+      |> Option.map(id => int_of_string(id));
     let searchText = URL.SearchParams.get(searchParams, "searchText");
 
     let isEditing =

@@ -1,6 +1,6 @@
 [@react.component]
 let make =
-    (~noteId: option(string), ~initialTitle: string, ~initialBody: string) => {
+    (~noteId: option(int), ~initialTitle: string, ~initialBody: string) => {
   ignore(noteId);
   ignore(initialTitle);
   ignore(initialBody);

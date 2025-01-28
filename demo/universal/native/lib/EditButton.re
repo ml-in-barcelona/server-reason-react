@@ -1,7 +1,7 @@
 open Ppx_deriving_json_runtime.Primitives;
 
 [@react.client.component]
-let make = (~noteId: option(string), ~children: React.element) => {
+let make = (~noteId: option(int), ~children: React.element) => {
   let (isPending, startTransition) = React.useTransition();
   let {navigate, _}: ClientRouter.t = ClientRouter.useRouter();
   let isDraft = Belt.Option.isNone(noteId);

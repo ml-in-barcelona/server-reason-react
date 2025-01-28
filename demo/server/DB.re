@@ -1,3 +1,5 @@
+open Lwt.Syntax;
+
 module Cache = {
   let db_cache = ref(None);
   let set = value => db_cache := Some(value);
@@ -11,18 +13,6 @@ let readFile = file => {
   Lwt_io.with_file(~mode=Lwt_io.Input, path, Lwt_io.read);
 };
 
-let _createFile = (path, content: string) => {
-  Lwt_io.with_file(
-    ~mode=Lwt_io.Output,
-    path,
-    oc => {
-      let%lwt () = Lwt_io.write(oc, content);
-      let%lwt () = Lwt_io.flush(oc);
-      Lwt.return();
-    },
-  );
-};
-
 let parseNotes = json => {
   switch (Yojson.Safe.from_string(json)) {
   | `List(notes) =>
@@ -32,7 +22,11 @@ let parseNotes = json => {
          | `Assoc(fields) =>
            Some(
              {
-               id: fields |> List.assoc("id") |> Yojson.Safe.to_string,
+               id:
+                 fields
+                 |> List.assoc("id")
+                 |> Yojson.Safe.to_string
+                 |> int_of_string,
                title: fields |> List.assoc("title") |> Yojson.Safe.to_string,
                content:
                  fields |> List.assoc("content") |> Yojson.Safe.to_string,
@@ -51,8 +45,8 @@ let parseNotes = json => {
   };
 };
 
-let readNotes = path => {
-  switch%lwt (readFile(path)) {
+let readNotes = () => {
+  switch%lwt (readFile("./notes.json")) {
   | json =>
     Cache.set(parseNotes(json));
     Lwt_result.lift(parseNotes(json));
@@ -70,7 +64,7 @@ let fetchNote = id => {
   | Some(Ok(notes)) => findOne(notes, id) |> Lwt_result.return
   | Some(Error(e)) => Lwt_result.fail(e)
   | None =>
-    let%lwt notes = readNotes("notes.json");
+    let* notes = readNotes();
     switch (notes) {
     | Ok(notes) => findOne(notes, id) |> Lwt_result.return
     | Error(e) => Lwt_result.fail(e)
