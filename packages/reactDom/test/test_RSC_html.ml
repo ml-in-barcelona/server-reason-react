@@ -249,12 +249,12 @@ let client_with_promise_props () =
 
 let tests =
   [
-    (* test "null_element" null_element; *)
-    (* test "upper_case_component" upper_case_component; *)
-    (* test "async_component_without_promise" async_component_without_promise; *)
-    (* test "suspense_without_promise" suspense_without_promise; *)
-    (* test "with_sleepy_promise" with_sleepy_promise; *)
-    (* test "client_with_promise_props" client_with_promise_props; *)
-    (* test "async_component_with_promise" async_component_with_promise; *)
+    test "null_element" null_element;
+    test "upper_case_component" upper_case_component;
+    test "async_component_without_promise" async_component_without_promise;
+    test "suspense_without_promise" suspense_without_promise;
+    test "with_sleepy_promise" with_sleepy_promise;
+    test "client_with_promise_props" client_with_promise_props;
+    test "async_component_with_promise" async_component_with_promise;
     test "async_component_and_client_component_with_suspense" async_component_and_client_component_with_suspense;
   ]
