@@ -11,10 +11,10 @@ module App = {
             <Text size=XLarge weight=Bold> "React Notes" </Text>
             <Text> "migrated to (server)-reason-react and Melange" </Text>
           </section>
-          /* <section className="sidebar-menu" role="menubar" key="menubar">
-               <SearchField />
-               <EditButton noteId=None> {React.string("New")} </EditButton>
-             </section> */
+          <section className="sidebar-menu" role="menubar" key="menubar">
+             <SearchField />
+             <EditButton noteId=None> {React.string("New")} </EditButton>
+           </section>
           <Hr />
           <nav className="mt-4">
             <React.Suspense fallback={<NoteListSkeleton />}>
@@ -45,6 +45,7 @@ let handler = request => {
     |> Option.value(~default=false);
   let searchText =
     Dream.query(request, "searchText") |> Option.value(~default="");
+
   DreamRSC.createFromRequest(
     <App selectedId isEditing searchText />,
     "/static/demo/client/router.js",

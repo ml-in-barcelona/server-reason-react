@@ -32,11 +32,10 @@ let render_manifest manifest =
         Printf.sprintf
           "window.__client_manifest_map[\"%s\"] = React.lazy(() => import(\"%s\").then(module => {\n\
           \  return { default: module.%s }\n\
-           }))"
+           }).catch(err => { console.error(err); return { default: null }; }))"
           original_path compiled_js_path export)
   in
-  Printf.sprintf
-    {|const React = require("react");
+  Printf.sprintf {|import React from "react";
 window.__client_manifest_map = window.__client_manifest_map || {};
 %s|}
     (String.concat "\n" register_client_components)

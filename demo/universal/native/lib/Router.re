@@ -88,7 +88,7 @@ let locationFromString = str => {
   };
 };
 
-/* a is melange-fetch's response in melange */
+/* 'a is melange-fetch's response in melange */
 type t('a) = {
   location,
   navigate: location => unit,

@@ -73,9 +73,10 @@ if (stream) {
 // update the URL in the browser.
 async function navigate(search) {
 	console.log("navigate", search);
+	let origin = window.location.origin;
 	let pathname = window.location.pathname;
 	console.log("pathname", pathname);
-	let url = new URL(window.location.href + "?" + search);
+	let url = new URL(origin + pathname + "?" + search);
 	console.log("url", url);
 	if (abortController != null) {
 		abortController.abort();

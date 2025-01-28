@@ -379,8 +379,9 @@ let rec to_html ~fiber (element : React.element) : (Html.element * json) Lwt.t =
           fiber.emit_html <- (fun html -> context.push html);
           Lwt.async (fun () ->
               let%lwt () = fiber.finished in
-              let%lwt html, _model = promise in
+              let%lwt html, model = promise in
               context.push (chunk_html_script index html);
+              context.push (client_value_chunk_script index model);
               Lwt.wakeup_later parent_done ();
               context.pending <- context.pending - 1;
               if context.pending = 0 then context.close ();

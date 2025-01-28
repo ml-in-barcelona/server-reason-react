@@ -10,8 +10,6 @@ let make = (~note: Note.t) => {
   let summary =
     note.content |> Markdown.extract_text |> Markdown.summarize(~words=20);
 
-  Dream.log("summary: %s", summary);
-
   <SidebarNoteContent
     id={note.id}
     title={note.title}

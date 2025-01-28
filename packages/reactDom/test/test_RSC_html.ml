@@ -150,6 +150,41 @@ let async_component_with_promise () =
       "<script>window.srr_stream.close()</script>";
     ]
 
+let async_component_and_client_component_with_suspense () =
+  let app () =
+    React.Suspense.make ~fallback:(React.string "Loading...")
+      ~children:
+        (React.Async_component
+           (fun () ->
+             let%lwt () = Lwt_unix.sleep 0.1 in
+             Lwt.return
+               (React.createElement "span" []
+                  [
+                    React.Client_component
+                      {
+                        props = [];
+                        client = React.string "Only the client";
+                        import_module = "./client-with-props.js";
+                        import_name = "";
+                      };
+                    React.string "Part of async component";
+                  ])))
+      ()
+  in
+  assert_async_payload (app ())
+    ~shell:
+      "<!--$?--><template id=\"B:1\"></template>Loading...<!--/$--><script \
+       data-payload='0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"}]\n\
+       '>window.srr_stream.push()</script>"
+    [
+      "<script data-payload='2:I[\"./client-with-props.js\",[],\"\"]\n'>window.srr_stream.push()</script>";
+      "<div hidden=\"true\" id=\"S:1\"><span>Only the client<!-- -->Part of async component</span></div>\n\
+       <script>$RC('B:1', 'S:1')</script>";
+      "<script data-payload='1:[\"$\",\"span\",null,{\"children\":[[\"$\",\"$2\",null,{}],\"Part of async component\"]}]\n\
+       '>window.srr_stream.push()</script>";
+      "<script>window.srr_stream.close()</script>";
+    ]
+
 let suspense_without_promise () =
   let app () = loading_suspense ~children:(React.string "Resolved") () in
   assert_sync_payload (app ())
@@ -220,5 +255,6 @@ let tests =
     (* test "suspense_without_promise" suspense_without_promise; *)
     (* test "with_sleepy_promise" with_sleepy_promise; *)
     (* test "client_with_promise_props" client_with_promise_props; *)
-    test "async_component_with_promise" async_component_with_promise;
+    (* test "async_component_with_promise" async_component_with_promise; *)
+    test "async_component_and_client_component_with_suspense" async_component_and_client_component_with_suspense;
   ]

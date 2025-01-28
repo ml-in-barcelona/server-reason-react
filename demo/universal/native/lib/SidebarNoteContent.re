@@ -29,25 +29,24 @@ let make =
   let router = ClientRouter.useRouter();
   let (isPending, startTransition) = React.useTransition();
   let (isExpanded, setIsExpanded) = React.useState(() => false);
-  let isActive = false;
-  /* let isActive =
+
+  let isActive =
      switch (router.location.selectedId) {
-     | Some(id) => id == id
+     | Some(selectedId) => selectedId == id
      | None => false
-     }; */
+     };
 
   let baseClassName = "relative mb-3 p-4 w-full flex justify-between items-start flex-wrap transition-[max-height] duration-250 ease-out scale-100 rounded-md";
 
   <div
     className={Cx.make([
-      /* isExpanded
-         ? "max-h-[300px] transition-[max-height] duration-500 ease-linear" : "", */
+      isExpanded
+         ? "max-h-[300px] transition-[max-height] duration-500 ease-linear" : "",
       isActive
         ? Theme.border(Theme.Color.darkYellow) : Theme.border(Theme.none),
       baseClassName,
       Theme.background(Theme.Color.fadedBlack),
     ])}
-    onMouseEnter={_ => {Js.log("onMouseEnter!!!!!!!!!!!!!!!!!!!!!!!")}}
     onClick={_ => {
       startTransition(() => {
         router.navigate({
@@ -61,7 +60,6 @@ let make =
     <div
       className="outline-none cursor-pointer"
       onClick={e => {
-        Js.log("EXPANDDDD");
         React.Event.Mouse.stopPropagation(e);
         setIsExpanded(prev => !prev);
       }}>
