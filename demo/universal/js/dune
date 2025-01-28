@@ -9,6 +9,7 @@
   melange.js
   melange-fetch
   melange.dom
+  url_js
   melange-json)
  (preprocess
   (pps

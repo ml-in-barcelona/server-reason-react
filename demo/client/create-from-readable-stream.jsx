@@ -12,7 +12,7 @@ try {
 	const element = document.getElementById("root");
 
 	React.startTransition(() => {
-		const app = (<Use promise={promise} />);
+		const app = <Use promise={promise} />;
 		ReactDOM.hydrateRoot(element, app);
 	});
 } catch (e) {

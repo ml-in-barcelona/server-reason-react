@@ -1,15 +1,16 @@
 let is_react_component_header = str =>
   String.equal(str, "application/react.component");
 
-let stream_rsc = fn => {
+let stream_rsc = (request, fn) => {
   Dream.stream(
     ~headers=[
       ("Content-Type", "application/react.component"),
       ("X-Content-Type-Options", "nosniff"),
+      /* ("X-Location", Dream.to_path(request)), */
     ],
     stream => {
       let%lwt () = fn(stream);
-      let%lwt () = Dream.write(stream, "0\r\n\r\n");
+      /* let%lwt () = Dream.write(stream, "0\r\n\r\n"); */
       Lwt.return();
     },
   );
@@ -88,24 +89,23 @@ let render_shell = (app, script) => {
 let createFromRequest = (app, script, request) => {
   switch (Dream.header(request, "Accept")) {
   | Some(accept) when String.equal("application/react.component", accept) =>
-    stream_rsc(stream => {
-      let%lwt _stream =
-        ReactServerDOM.render_model(
-          app,
-          ~subscribe=chunk => {
-            Dream.log("Chunk");
-            Dream.log("%s", chunk);
-            let length_header =
-              Printf.sprintf("%x\r\n", String.length(chunk));
-            let%lwt () = Dream.write(stream, length_header);
-            let%lwt () = Dream.write(stream, chunk);
-            let%lwt () = Dream.write(stream, "\r\n");
-            Dream.flush(stream);
-          },
-        );
+    stream_rsc(
+      request,
+      stream => {
+        let%lwt _stream =
+          ReactServerDOM.render_model(
+            app,
+            ~subscribe=chunk => {
+              Dream.log("Chunk");
+              Dream.log("%s", chunk);
+              let%lwt () = Dream.write(stream, chunk);
+              Dream.flush(stream);
+            },
+          );
 
-      Dream.flush(stream);
-    })
+        Dream.flush(stream);
+      },
+    )
   | _ => render_shell(app, script)
   };
 };

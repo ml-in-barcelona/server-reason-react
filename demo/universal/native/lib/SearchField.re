@@ -4,7 +4,7 @@
 let make = () => {
   let (text, setText) = React.useState(() => None);
   let (isSearching, startSearching) = React.useTransition();
-  let {navigate, _}: Router.t = Router.useRouter();
+  let {navigate, _}: ClientRouter.t = ClientRouter.useRouter();
 
   let onSubmit = event => {
     React.Event.Form.preventDefault(event);

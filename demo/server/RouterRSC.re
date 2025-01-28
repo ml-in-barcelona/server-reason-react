@@ -2,6 +2,11 @@ module App = {
   [@react.component]
   let make = (~selectedId, ~isEditing, ~searchText) => {
     <DemoLayout background=Theme.Color.black mode=FullScreen>
+      <section key="note-viewer" className="flex-1 basis-3/4">
+        <React.Suspense fallback={<NoteSkeleton isEditing />}>
+          <NoteItem selectedId isEditing />
+        </React.Suspense>
+      </section>
       <div className="flex flex-row gap-8">
         <section className="flex-1 basis-1/4 gap-4" key="sidebar">
           <section
@@ -19,11 +24,6 @@ module App = {
               <NoteList searchText />
             </React.Suspense>
           </nav>
-        </section>
-        <section key="note-viewer" className="flex-1 basis-3/4">
-          <React.Suspense fallback={<NoteSkeleton isEditing />}>
-            <NoteItem selectedId isEditing />
-          </React.Suspense>
         </section>
       </div>
     </DemoLayout>;

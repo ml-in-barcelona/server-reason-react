@@ -55,7 +55,6 @@
   (alias_rec melange)
   (:input create-from-readable-stream.jsx)
   (:script build.mjs)
-  (glob_files *.jsx)
   (file package.json)
   (source_tree node_modules)
   (source_tree ../../packages/extract-client-components))
@@ -73,10 +72,10 @@
   (package server-reason-react)
   (alias_rec melange)
   (:input router.jsx)
-  (glob_files *.jsx)
   (:script build.mjs)
   (file package.json)
   (source_tree node_modules)
+  (source_tree ../../demo/universal/native)
   (source_tree ../../packages/extract-client-components))
  (action
   (progn

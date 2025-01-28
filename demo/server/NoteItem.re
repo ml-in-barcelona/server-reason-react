@@ -23,35 +23,35 @@ let make = (~selectedId: option(string), ~isEditing: bool) => {
       );
     }
   | Some(id) =>
-    /* let+ note: Note.t = Fetch.fetchNote(id); */
-    let+ note =
-      Lwt.return({
-        Note.id,
-        title: "Test",
-        content: "Test",
-        updated_at: 1716604800.0,
-      });
+    let+ note: result(Note.t, string) = DB.fetchNote(id);
 
-    if (isEditing) {
-      <NoteEditor
-        noteId={Some(note.id)}
-        initialTitle={note.title}
-        initialBody={note.content}
-      />;
-    } else {
-      <div className="note">
-        <div className="note-header">
-          <h1 className="note-title"> {React.string(note.title)} </h1>
-          <div className="note-menu" role="menubar">
-            <Text size=Small role="status"> "Last updated on " </Text>
-            /* ++ DateFns.format(updatedAt, "d MMM yyyy 'at' h:mm bb"), */
-            <EditButton noteId={Some(note.id)}>
-              {React.string("Edit")}
-            </EditButton>
+    switch (note) {
+    | Ok(note) =>
+      if (isEditing) {
+        <NoteEditor
+          noteId={Some(note.id)}
+          initialTitle={note.title}
+          initialBody={note.content}
+        />;
+      } else {
+        <div className="note">
+          <div className="note-header">
+            <h1 className="note-title"> {React.string(note.title)} </h1>
+            <div className="note-menu" role="menubar">
+              <Text size=Small role="status"> "Last updated on " </Text>
+              /* ++ DateFns.format(updatedAt, "d MMM yyyy 'at' h:mm bb"), */
+              <EditButton noteId={Some(note.id)}>
+                {React.string("Edit")}
+              </EditButton>
+            </div>
           </div>
-        </div>
-        <NotePreview body={note.content} />
-      </div>;
+          <NotePreview body={note.content} />
+        </div>;
+      }
+    | Error(error) =>
+      <div className="notes-error">
+        {React.string("Couldn't read notes file: " ++ error)}
+      </div>
     };
   };
 };

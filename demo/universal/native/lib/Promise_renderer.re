@@ -6,7 +6,10 @@ module Reader = {
   [@react.component]
   let make = (~promise: Js.Promise.t(string)) => {
     let value = React.Experimental.use(promise);
-    <div> {React.string(value)} </div>;
+    let%browser_only onMouseOver = _ev => {
+      Js.log("Over the promise!");
+    };
+    <div className="cursor-pointer" onMouseOver> {React.string(value)} </div>;
   };
 };
 

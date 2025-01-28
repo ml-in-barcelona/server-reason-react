@@ -12,6 +12,8 @@
   melange-fetch
   yojson
   unix
+  dream
+  url_native
   lwt
   lwt.unix)
  (wrapped false)
