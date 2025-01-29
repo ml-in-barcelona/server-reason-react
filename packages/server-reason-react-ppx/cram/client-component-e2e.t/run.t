@@ -377,8 +377,8 @@
   /* react Not a pure module */
 
   $ cat _build/default/boostrap.js
-  const React = require("react");
+  import React from "react";
   window.__client_manifest_map = window.__client_manifest_map || {};
   window.__client_manifest_map["input.re"] = React.lazy(() => import("$TESTCASE_ROOT/_build/default/js/input.js").then(module => {
     return { default: module.make_client }
-  }))
+  }).catch(err => { console.error(err); return { default: null }; }))

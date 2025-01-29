@@ -12,6 +12,7 @@ let make = (~active) => {
       ~borderRadius="50%",
       ~borderTopColor="#fff",
       ~animation={active ? "spin 1s ease-in-out infinite" : "none"},
+      ~opacity={active ? "1" : "0"},
       (),
     )}
   />;

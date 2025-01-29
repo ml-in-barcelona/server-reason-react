@@ -147,6 +147,8 @@ let async_component_with_promise () =
        '>window.srr_stream.push()</script>"
     [
       "<div hidden=\"true\" id=\"S:1\"><span>Sleep resolved</span></div>\n<script>$RC('B:1', 'S:1')</script>";
+      "<script data-payload='1:[\"$\",\"span\",null,{\"children\":[\"Sleep resolved\"]}]\n\
+       '>window.srr_stream.push()</script>";
       "<script>window.srr_stream.close()</script>";
     ]
 
@@ -211,7 +213,15 @@ let with_sleepy_promise () =
       "<!--$?--><template id=\"B:1\"></template>Loading...<!--/$--><script \
        data-payload='0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"}]\n\
        '>window.srr_stream.push()</script>"
-    [ "<div><section><article>Deep Server Content</article></section></div>"; stream_close_script ]
+    [
+      "<div hidden=\"true\" id=\"S:1\"><div><section><article>Deep Server Content</article></section></div></div>\n\
+       <script>$RC('B:1', 'S:1')</script>";
+      "<script \
+       data-payload='1:[\"$\",\"div\",null,{\"children\":[[\"$\",\"section\",null,{\"children\":[[\"$\",\"article\",null,{\"children\":[\"Deep \
+       Server Content\"]}]]}]]}]\n\
+       '>window.srr_stream.push()</script>";
+      "<script>window.srr_stream.close()</script>";
+    ]
 
 let client_with_promise_props () =
   let delayed_value ~ms value =

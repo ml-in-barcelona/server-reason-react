@@ -3,7 +3,7 @@ open Lwt.Syntax;
 module NotePreview = {
   [@react.component]
   let make = (~body: string) => {
-    <div> {React.string(body)} </div>;
+    <Text> body </Text>;
   };
 };
 
@@ -36,10 +36,11 @@ let make = (~selectedId: option(int), ~isEditing: bool) => {
       } else {
         <div className="note">
           <div className="note-header">
-            <h1 className="note-title"> {React.string(note.title)} </h1>
+            <Text size=Large> {note.title} </Text>
             <div className="note-menu" role="menubar">
-              <Text size=Small role="status"> "Last updated on " </Text>
-              /* ++ DateFns.format(updatedAt, "d MMM yyyy 'at' h:mm bb"), */
+              <Text size=Small role="status">
+                {"Last updated on " ++ Date.format_date(note.updated_at)}
+              </Text>
               <EditButton noteId={Some(note.id)}>
                 {React.string("Edit")}
               </EditButton>
