@@ -41,32 +41,92 @@
       cookies: [],
     }
   ];
-  let make = (~key as _: option(string)=?, ()) =>
-    React.Client_component({
-      import_module: __FILE__,
-      import_name: "",
-      props: [],
-      client:
-        React.createElementWithKey(
-          ~key=None,
-          "section",
-          [],
-          [
-            React.createElementWithKey(
-              ~key=None,
-              "h1",
-              [],
-              [React.string("lola")],
-            ),
-            React.createElementWithKey(~key=None, "p", [], [React.int(1)]),
-            React.createElementWithKey(
-              ~key=None,
-              "div",
-              [],
-              [React.string("children")],
-            ),
-          ],
-        ),
-    });
+  include {
+            {
+              module J = {
+                [@ocaml.warning "-unboxable-type-in-prim-decl"]
+                external unsafe_expr: _ => _ = "#raw_stmt";
+              };
+              [@ocaml.warning "-ignored-extra-argument"]
+              J.unsafe_expr("// extract-client input.re");
+            };
+            [@ocaml.warning "-unboxable-type-in-prim-decl"]
+            external makeProps: (~key: string=?, unit) => Js.t({.}) =
+              ""
+              "\132\149\166\190\000\000\000\015\000\000\000\007\000\000\000\019\000\000\000\019\145\160\160A\161#key@\160\160@@@";
+            let make = () =>
+              [@ocaml.warning "-ignored-extra-argument"]
+              [@ocaml.warning "-ignored-extra-argument"]
+              ReactDOM.jsxs(
+                "section",
+                [@ocaml.warning "-ignored-extra-argument"]
+                [@ocaml.warning "-ignored-extra-argument"]
+                ([@merlin.hide] ReactDOM.domProps)(
+                  ~children=
+                    [@ocaml.warning "-ignored-extra-argument"]
+                    [@ocaml.warning "-ignored-extra-argument"]
+                    React.array([|
+                      [@ocaml.warning "-ignored-extra-argument"]
+                      [@ocaml.warning "-ignored-extra-argument"]
+                      ReactDOM.jsx(
+                        "h1",
+                        [@ocaml.warning "-ignored-extra-argument"]
+                        [@ocaml.warning "-ignored-extra-argument"]
+                        ([@merlin.hide] ReactDOM.domProps)(
+                          ~children=
+                            [@ocaml.warning "-ignored-extra-argument"]
+                            [@ocaml.warning "-ignored-extra-argument"]
+                            React.string("lola"),
+                          (),
+                        ),
+                      ),
+                      [@ocaml.warning "-ignored-extra-argument"]
+                      [@ocaml.warning "-ignored-extra-argument"]
+                      ReactDOM.jsx(
+                        "p",
+                        [@ocaml.warning "-ignored-extra-argument"]
+                        [@ocaml.warning "-ignored-extra-argument"]
+                        ([@merlin.hide] ReactDOM.domProps)(
+                          ~children=
+                            [@ocaml.warning "-ignored-extra-argument"]
+                            [@ocaml.warning "-ignored-extra-argument"]
+                            React.int(1),
+                          (),
+                        ),
+                      ),
+                      [@ocaml.warning "-ignored-extra-argument"]
+                      [@ocaml.warning "-ignored-extra-argument"]
+                      ReactDOM.jsx(
+                        "div",
+                        [@ocaml.warning "-ignored-extra-argument"]
+                        [@ocaml.warning "-ignored-extra-argument"]
+                        ([@merlin.hide] ReactDOM.domProps)(
+                          ~children=
+                            [@ocaml.warning "-ignored-extra-argument"]
+                            [@ocaml.warning "-ignored-extra-argument"]
+                            React.string("children"),
+                          (),
+                        ),
+                      ),
+                    |]),
+                  (),
+                ),
+              );
+            let make = {
+              let Input = (Props: Js.t({.})) =>
+                [@ocaml.warning "-ignored-extra-argument"]
+                [@ocaml.warning "-ignored-extra-argument"]
+                make();
+              Input;
+            };
+            let make_client = props =>
+              [@ocaml.warning "-ignored-extra-argument"]
+              [@ocaml.warning "-ignored-extra-argument"]
+              make(
+                [@ocaml.warning "-ignored-extra-argument"]
+                [@ocaml.warning "-ignored-extra-argument"]
+                Js.Obj.empty(),
+              );
+          };
   
   let _ = make;

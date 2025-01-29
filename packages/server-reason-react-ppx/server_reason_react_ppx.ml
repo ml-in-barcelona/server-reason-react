@@ -610,6 +610,7 @@ let react_component_attribute ~loc =
 
 let mel_obj ~loc fields =
   match fields with
+  (* QUESTION: Maybe unit would work here best, for correctness? *)
   | [] -> [%expr Js.Obj.empty ()]
   | _ ->
       let record = pexp_record ~loc fields None in
