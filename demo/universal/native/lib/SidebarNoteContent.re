@@ -8,10 +8,11 @@ module Square = {
     <div
       className={Cx.make([
         isExpanded ? "" : "rotate-180",
-        "w-6 h-6 rounded-md border-2 flex items-center justify-center pt-1 text-white text-sm select-none",
+        "w-full rounded-md flex items-center justify-center pt-1 text-sm select-none",
         "transition-[background-color] duration-250 ease-out",
-        Theme.background(Theme.Color.fadedBlack),
-        Theme.hover([Theme.background(Theme.Color.darkYellow)]),
+        Theme.text(Theme.Color.Gray11),
+        Theme.background(Theme.Color.Gray5),
+        Theme.hover([Theme.background(Theme.Color.Gray7)]),
       ])}>
       {React.string("^")}
     </div>;
@@ -27,8 +28,8 @@ let make =
       ~expandedChildren: React.element,
     ) => {
   let router = ClientRouter.useRouter();
+  let (isExpanded, setIsExpanded) = RR.useStateValue(false);
   let (isPending, startTransition) = React.useTransition();
-  let (isExpanded, setIsExpanded) = React.useState(() => false);
 
   let isActive =
     switch (router.location.selectedId) {
@@ -36,35 +37,33 @@ let make =
     | None => false
     };
 
-  let baseClassName = "relative mb-3 p-4 w-full flex justify-between items-start flex-wrap transition-[max-height] duration-250 ease-out scale-100 rounded-md";
-
   <div
     className={Cx.make([
-      isExpanded
-        ? "max-h-[300px] transition-[max-height] duration-500 ease-linear" : "",
+      "mb-3 flex flex-col rounded-md",
+      Theme.background(Theme.Color.Gray4),
       isActive
-        ? Theme.border(Theme.Color.darkYellow) : Theme.border(Theme.none),
-      baseClassName,
-      Theme.background(Theme.Color.fadedBlack),
-    ])}
-    onClick={_ => {
-      startTransition(() => {
-        router.navigate({
-          selectedId: Some(id),
-          isEditing: false,
-          searchText: None,
-        })
-      })
-    }}>
-    children
+        ? Theme.border(Theme.Color.Gray8) : Theme.border(Theme.Color.None),
+    ])}>
     <div
-      className="outline-none cursor-pointer"
-      onClick={e => {
-        React.Event.Mouse.stopPropagation(e);
-        setIsExpanded(prev => !prev);
+      className={Cx.make([
+        "relative p-4 w-full justify-between items-start flex-wrap transition-[max-height] duration-250 ease-out scale-100 flex flex-col gap-1 cursor-pointer",
+      ])}
+      onClick={_ => {
+        startTransition(() => {
+          router.navigate({
+            selectedId: Some(id),
+            isEditing: false,
+            searchText: None,
+          })
+        })
       }}>
+      children
+      {isExpanded ? expandedChildren : React.null}
+    </div>
+    <div
+      className="px-4 mt-1 mb-4 outline-none cursor-pointer self-center w-full"
+      onClick={_ => setIsExpanded(!isExpanded)}>
       <Square isExpanded />
     </div>
-    {isExpanded ? expandedChildren : React.null}
   </div>;
 };

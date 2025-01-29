@@ -7,14 +7,10 @@ let make = (~noteId: option(int), ~children: React.element) => {
   let isDraft = Belt.Option.isNone(noteId);
 
   let className =
-    Js.Array.join(
-      ~sep=" ",
-      [|
-        "edit-button",
-        Theme.text(Theme.Color.white),
-        isDraft ? "edit-button--solid" : "edit-button--outline",
-      |],
-    );
+    Cx.make([
+      Theme.button,
+      isDraft ? "edit-button--solid" : "edit-button--outline",
+    ]);
 
   <button
     className

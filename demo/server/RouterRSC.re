@@ -1,30 +1,43 @@
 module App = {
   [@react.component]
   let make = (~selectedId, ~isEditing, ~searchText) => {
-    <DemoLayout background=Theme.Color.black mode=FullScreen>
+    <DemoLayout background=Theme.Color.Gray2 mode=FullScreen>
       <div className="flex flex-row gap-8">
         <section
           className="flex-1 basis-1/4 gap-4 min-w-[300px]" key="sidebar">
           <section
             className="flex flex-col gap-1 z-1 max-w-[85%] pointer-events-none mb-6"
             key="sidebar-header">
-            <Text size=XLarge weight=Bold> "React Notes" </Text>
-            <Text> "migrated to (server)-reason-react and Melange" </Text>
+            <Text size=Large weight=Bold> "server-reason-react notes" </Text>
+            <p>
+              <Text color=Theme.Color.Gray10> "migrated from " </Text>
+              <Link.Text
+                size=Text.Small
+                href="https://github.com/reactjs/server-components-demo">
+                "server-components-demo"
+              </Link.Text>
+              <Text color=Theme.Color.Gray10>
+                " with (server)-reason-react and Melange"
+              </Text>
+            </p>
           </section>
-          <section className="sidebar-menu" role="menubar" key="menubar">
+          <section
+            className="mt-4 mb-4 flex flex-row gap-2"
+            role="menubar"
+            key="menubar">
             <SearchField />
-            <EditButton noteId=None> {React.string("New")} </EditButton>
           </section>
           <Hr />
           <nav className="mt-4">
             <React.Suspense fallback={<NoteListSkeleton />}>
               <NoteList searchText />
             </React.Suspense>
+            <div className="mt-4">
+              <Button noteId=None> {React.string("Create a note")} </Button>
+            </div>
           </nav>
-          <Hr />
-          <Counter initial=3 />
         </section>
-        <section key="note-viewer" className="flex-1 basis-3/4">
+        <section key="note-viewer" className="flex-1 basis-3/4 max-w-[75%]">
           <React.Suspense fallback={<NoteSkeleton isEditing />}>
             <NoteItem selectedId isEditing />
           </React.Suspense>

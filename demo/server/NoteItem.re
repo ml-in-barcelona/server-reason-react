@@ -1,12 +1,5 @@
 open Lwt.Syntax;
 
-module NotePreview = {
-  [@react.component]
-  let make = (~body: string) => {
-    <Text> body </Text>;
-  };
-};
-
 [@react.async.component]
 let make = (~selectedId: option(int), ~isEditing: bool) => {
   switch (selectedId) {
@@ -34,19 +27,24 @@ let make = (~selectedId: option(int), ~isEditing: bool) => {
           initialBody={note.content}
         />;
       } else {
-        <div className="note">
-          <div className="note-header">
-            <Text size=Large> {note.title} </Text>
-            <div className="note-menu" role="menubar">
-              <Text size=Small role="status">
+        <div className="h-full">
+          <div
+            className="flex flex-row items-center w-full mb-8 justify-between gap-4">
+            <div className="flex flex-col items-left gap-4" role="menubar">
+              <h1
+                className={Cx.make([
+                  "text-4xl font-bold",
+                  Theme.text(Theme.Color.Gray12),
+                ])}>
+                {React.string(note.title)}
+              </h1>
+              <Text size=Small role="status" color=Theme.Color.Gray10>
                 {"Last updated on " ++ Date.format_date(note.updated_at)}
               </Text>
-              <EditButton noteId={Some(note.id)}>
-                {React.string("Edit")}
-              </EditButton>
             </div>
+            <Button noteId={Some(note.id)}> {React.string("Edit")} </Button>
           </div>
-          <NotePreview body={note.content} />
+          <NotePreview body={Markdown.markdown_to_html(note.content)} />
         </div>;
       }
     | Error(error) =>

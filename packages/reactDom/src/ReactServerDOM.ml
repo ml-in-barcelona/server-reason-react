@@ -314,15 +314,7 @@ let rec to_html ~fiber (element : React.element) : (Html.element * json) Lwt.t =
   | Fragment children -> to_html ~fiber children
   | List list -> elements_to_html ~fiber (Array.to_list list)
   | Upper_case_component component -> to_html ~fiber (component ())
-  | Lower_case_element { key; tag; attributes; _ } when Html.is_self_closing_tag tag ->
-      let html_props = List.map ReactDOM.attribute_to_html attributes in
-      let json_props = Model.props_to_json attributes in
-      Lwt.return (Html.node tag html_props [], Model.node ~tag ~key ~props:json_props [])
-  | Lower_case_element { key; tag; attributes; children } ->
-      let html_props = List.map ReactDOM.attribute_to_html attributes in
-      let json_props = Model.props_to_json attributes in
-      let%lwt html, model = elements_to_html ~fiber children in
-      Lwt.return (Html.node tag html_props [ html ], Model.node ~tag ~key ~props:json_props [ model ])
+  | Lower_case_element { key; tag; attributes; children } -> render_lower_case ~fiber ~key ~tag ~attributes ~children
   | Async_component component ->
       let%lwt element = component () in
       to_html ~fiber element
@@ -398,6 +390,32 @@ let rec to_html ~fiber (element : React.element) : (Html.element * json) Lwt.t =
   | Consumer children -> to_html ~fiber children
   (* TODO: There's a task to remove InnerHtml in ReactDOM and use Html.raw directly. Here is still unclear what do to since we assing dangerouslySetInnerHTML to the right prop on the model. Also, should this model be `Null? *)
   | InnerHtml innerHtml -> Lwt.return (Html.raw innerHtml, `Null)
+
+and render_lower_case ~fiber ~key ~tag ~attributes ~children =
+  let dangerouslySetInnerHTML =
+    List.find_opt (function React.JSX.DangerouslyInnerHtml _ -> true | _ -> false) attributes
+  in
+  let children =
+    (* If there's a dangerouslySetInnerHTML prop, we render it as a children *)
+    match (dangerouslySetInnerHTML, children) with
+    | None, children -> children
+    | Some (React.JSX.DangerouslyInnerHtml innerHtml), [] ->
+        (* This adds as children the innerHTML, and we treat it differently
+             from Element.Text to avoid encoding to HTML their content *)
+        (* TODO: Remove InnerHtml and use Html.raw directly *)
+        [ InnerHtml innerHtml ]
+    | Some _, _children ->
+        raise (Invalid_argument "can't have both `children` and `dangerouslySetInnerHTML` prop at the same time")
+  in
+  if Html.is_self_closing_tag tag then
+    let html_props = List.map ReactDOM.attribute_to_html attributes in
+    let json_props = Model.props_to_json attributes in
+    Lwt.return (Html.node tag html_props [], Model.node ~tag ~key ~props:json_props [])
+  else
+    let html_props = List.map ReactDOM.attribute_to_html attributes in
+    let json_props = Model.props_to_json attributes in
+    let%lwt html, model = elements_to_html ~fiber children in
+    Lwt.return (Html.node tag html_props [ html ], Model.node ~tag ~key ~props:json_props [ model ])
 
 and elements_to_html ~fiber elements =
   let%lwt html_and_models = elements |> Lwt_list.map_p (to_html ~fiber) in

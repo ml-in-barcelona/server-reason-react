@@ -7,15 +7,21 @@ let demoCreateFromReadableStream = "/demo/server-components";
 let demoRouter = "/demo/router";
 
 let links = [|
-  ("Render to static markup (SSR)", demoRenderToStaticMarkup),
-  ("Render to string (SSR)", demoRenderToString),
-  ("Render to stream (SSR)", demoRenderToStream),
+  ("Render to string (renderToString)", demoRenderToString),
+  (
+    "Render to static markup (renderToStaticMarkup)",
+    demoRenderToStaticMarkup,
+  ),
+  ("Render to stream (renderToStream)", demoRenderToStream),
   ("Server components without client (createFromFetch)", demoCreateFromFetch),
   (
     "Server components with createFromReadableStream (RSC + SSR)",
     demoCreateFromReadableStream,
   ),
-  ("Router", demoRouter),
+  (
+    "Single page router with navigations (createFromFetch + createFromReadableStream)",
+    demoRouter,
+  ),
 |];
 
 module Menu = {
@@ -88,15 +94,22 @@ let locationFromString = str => {
   };
 };
 
+type payload = {
+  body: string,
+  title: string,
+};
+
 /* 'a is melange-fetch's response in melange */
 type t('a) = {
   location,
   navigate: location => unit,
+  useAction: (string, string) => ((payload, location) => unit, bool),
   refresh: option('a) => unit,
 };
 
 let useRouter = () => {
   location: initialLocation,
   navigate: _ => (),
+  useAction: (_, _) => ((_, _) => (), false),
   refresh: _ => (),
 };

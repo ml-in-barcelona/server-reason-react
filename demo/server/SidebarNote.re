@@ -14,17 +14,15 @@ let make = (~note: Note.t) => {
     id={note.id}
     title={note.title}
     expandedChildren={
-      <p className="sidebar-note-excerpt">
+      <div className="mt-2">
         {switch (String.trim(summary)) {
          | "" => <i> {React.string("(No content)")} </i>
-         | s => React.string(s)
+         | s => <Text size=Small color=Theme.Color.Gray11> s </Text>
          }}
-      </p>
+      </div>
     }>
     <header
-      className={Cx.make([
-        "max-w-[85%] pointer-events-none flex flex-col gap-1",
-      ])}
+      className={Cx.make(["max-w-[85%] flex flex-col gap-2"])}
       style={ReactDOM.Style.make(~zIndex="1", ())}>
       <Text size=Large weight=Bold> {note.title} </Text>
       <Text size=Small> lastUpdatedAt </Text>

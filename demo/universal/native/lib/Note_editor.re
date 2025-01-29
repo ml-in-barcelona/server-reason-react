@@ -21,13 +21,21 @@ let make = (~title: string, ~body: string) => {
 
   <form className="flex gap-4 flex-wrap w-full" action="/" onSubmit=submit>
     <input
-      className="flex-1 border-2 rounded-md p-2 border-gray-700 bg-transparent text-gray-200"
+      className={Cx.make([
+        "flex-1 border-2 rounded-md p-2 border-gray-700 bg-transparent",
+        Theme.border(Theme.Color.Gray7),
+        Theme.text(Theme.Color.Gray2),
+      ])}
       name="title"
       onChange=updateTitle
       value=title
     />
     <input
-      className="flex-1 border-2 rounded-md p-2 border-gray-700 bg-transparent text-gray-200"
+      className={Cx.make([
+        "flex-1 border-2 rounded-md p-2 border-gray-700 bg-transparent",
+        Theme.border(Theme.Color.Gray7),
+        Theme.text(Theme.Color.Gray2),
+      ])}
       name="body"
       onChange=updateBody
       value=body

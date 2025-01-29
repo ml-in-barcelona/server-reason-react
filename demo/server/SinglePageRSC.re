@@ -1,7 +1,7 @@
 module Root = {
   [@react.component]
   let make = (~children) => {
-    <DemoLayout background=Theme.Color.black> children </DemoLayout>;
+    <DemoLayout background=Theme.Color.Gray2> children </DemoLayout>;
   };
 };
 
@@ -13,13 +13,13 @@ module Section = {
         className={Cx.make([
           "text-3xl",
           "font-bold",
-          Theme.text(Theme.Color.white),
+          Theme.text(Theme.Color.Gray11),
         ])}>
         {React.string(title)}
       </h2>
       {switch (description) {
        | Some(description) =>
-         <p className={Theme.text(Theme.Color.brokenWhite)}>
+         <p className={Theme.text(Theme.Color.Gray7)}>
            {React.string(description)}
          </p>
        | None => React.null
@@ -50,14 +50,14 @@ module Page = {
             className={Cx.make([
               "text-5xl",
               "font-bold",
-              Theme.text(Theme.Color.white),
+              Theme.text(Theme.Color.Gray11),
             ])}>
-            {React.string("RSC + SSR demo page")}
-          </h1>
-          <p className={Theme.text(Theme.Color.brokenWhite)}>
             {React.string(
-               "Page to debug server-side RSC and client-side client components and their client props encodings",
+               "Server side rendering server components and client components",
              )}
+          </h1>
+          <p className={Theme.text(Theme.Color.Gray7)}>
+            {React.string("RSC and CC and their client props encodings")}
           </p>
         </Stack>
         <Hr />

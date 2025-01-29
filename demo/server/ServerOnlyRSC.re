@@ -3,7 +3,7 @@ let handler = request => {
     Dream.header(request, "Accept") == Some("text/x-component");
 
   let app =
-    <DemoLayout background=Theme.Color.black>
+    <DemoLayout background=Theme.Color.Gray2>
       <div className="flex flex-col items-center justify-center h-full gap-4">
         <span className="text-gray-400 text-center">
           {React.string(
@@ -14,7 +14,11 @@ let handler = request => {
           <br />
           {React.string("00:00:00 GMT, Jan. 1, 1970")}
         </span>
-        <h1 className="text-white font-bold text-4xl">
+        <h1
+          className={Cx.make([
+            "font-bold text-4xl",
+            Theme.text(Theme.Color.Gray11),
+          ])}>
           {React.string(string_of_float(Unix.gettimeofday()))}
         </h1>
       </div>

@@ -98,6 +98,13 @@ let null_element () =
   let app = React.null in
   assert_sync_payload app "<script data-payload='0:null\n'>window.srr_stream.push()</script>"
 
+let element_with_dangerously_set_inner_html () =
+  let app = React.createElement "div" [ React.JSX.DangerouslyInnerHtml "<h1>Hello</h1>" ] [] in
+  assert_sync_payload app
+    "<div><h1>Hello</h1></div><script \
+     data-payload='0:[\"$\",\"div\",null,{\"children\":[null],\"dangerouslySetInnerHTML\":{\"__html\":\"<h1>Hello</h1>\"}}]\n\
+     '>window.srr_stream.push()</script>"
+
 let upper_case_component () =
   let app =
     React.Upper_case_component
@@ -260,6 +267,7 @@ let client_with_promise_props () =
 let tests =
   [
     test "null_element" null_element;
+    test "element_with_dangerously_set_inner_html" element_with_dangerously_set_inner_html;
     test "upper_case_component" upper_case_component;
     test "async_component_without_promise" async_component_without_promise;
     test "suspense_without_promise" suspense_without_promise;

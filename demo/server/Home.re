@@ -6,10 +6,28 @@ let handler = _request => {
           <h1
             className={Cx.make([
               "font-bold text-4xl",
-              Theme.text(Theme.Color.white),
+              Theme.text(Theme.Color.Gray11),
             ])}>
-            {React.string("Home of the demos")}
+            {React.string("demo for server-reason-react")}
           </h1>
+          <Spacer top=2>
+            <Text size=Medium>
+              "This is a list of links to all the demos for server-reason-react's features."
+            </Text>
+            <br />
+            <Text size=Medium>
+              "Useful to manual test, not really if you are looking at "
+            </Text>
+            <Link.Text
+              href="https://ml-in-barcelona.github.io/server-reason-react/local/server-reason-react/index.html">
+              "documentation"
+            </Link.Text>
+            <Text size=Medium> " or " </Text>
+            <Link.Text
+              href="https://github.com/ml-in-barcelona/server-reason-react">
+              "source code"
+            </Link.Text>
+          </Spacer>
         </Spacer>
         <Router.Menu />
       </div>

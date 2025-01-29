@@ -66,15 +66,15 @@ module Comments = {
 module Page = {
   [@react.component]
   let make = () => {
-    <DemoLayout background=Theme.Color.black>
+    <DemoLayout background=Theme.Color.Gray2>
       <main
-        className={Theme.text(Theme.Color.white)}
+        className={Theme.text(Theme.Color.Gray11)}
         style={ReactDOM.Style.make(~display="flex", ~marginTop="16px", ())}>
         <article className="flex gap-4 flex-col">
           <h1
             className={Cx.make([
               "text-4xl font-bold ",
-              Theme.text(Theme.Color.white),
+              Theme.text(Theme.Color.Gray11),
             ])}>
             {React.string("Rendering React.Suspense on the server")}
           </h1>
@@ -83,7 +83,7 @@ module Page = {
             <h3
               className={Cx.make([
                 "text-2xl font-bold mb-4",
-                Theme.text(Theme.Color.white),
+                Theme.text(Theme.Color.Gray11),
               ])}>
               {React.string("Comments")}
             </h3>

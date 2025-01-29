@@ -27,9 +27,10 @@ let parseNotes = json => {
                  |> List.assoc("id")
                  |> Yojson.Safe.to_string
                  |> int_of_string,
-               title: fields |> List.assoc("title") |> Yojson.Safe.to_string,
+               title:
+                 fields |> List.assoc("title") |> Yojson.Safe.Util.to_string,
                content:
-                 fields |> List.assoc("content") |> Yojson.Safe.to_string,
+                 fields |> List.assoc("content") |> Yojson.Safe.Util.to_string,
                updated_at:
                  fields
                  |> List.assoc("updated_at")
@@ -42,6 +43,7 @@ let parseNotes = json => {
        )
     |> Result.ok
   | _ => Result.error("Invalid notes file format")
+  | exception _ => Result.error("Invalid JSON format format")
   };
 };
 

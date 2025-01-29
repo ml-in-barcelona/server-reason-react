@@ -15,7 +15,7 @@ module Reader = {
 
 [@react.client.component]
 let make = (~promise: Js.Promise.t(string)) => {
-  <div className="text-white">
+  <div className={Cx.make([Theme.text(Theme.Color.Gray4)])}>
     <React.Suspense fallback={<div> {React.string("Loading...")} </div>}>
       <Reader promise />
     </React.Suspense>

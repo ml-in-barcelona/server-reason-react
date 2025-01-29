@@ -75,7 +75,6 @@ async function navigate(search) {
 	let pathname = window.location.pathname;
 	console.log("pathname", pathname);
 	let url = new URL(origin + pathname + "?" + search);
-	console.log("url", url);
 	if (abortController != null) {
 		abortController.abort();
 	}
@@ -94,8 +93,50 @@ async function navigate(search) {
 	});
 }
 
+function useAction(endpoint, method) {
+	const { refresh } = useRouter();
+	const [isSaving, setIsSaving] = React.useState(false);
+	const [didError, setDidError] = React.useState(false);
+	const [error, setError] = React.useState(null);
+
+	if (didError) {
+		// Let the nearest error boundary handle errors while saving.
+		throw error;
+	}
+
+	async function performMutation(payload, requestedLocation) {
+		setIsSaving(true);
+		try {
+			const response = await fetch(
+				`${endpoint}?location=${encodeURIComponent(
+					JSON.stringify(requestedLocation),
+				)}`,
+				{
+					method,
+					body: JSON.stringify(payload),
+					headers: {
+						"Content-Type": "application/json",
+					},
+				},
+			);
+			if (!response.ok) {
+				throw new Error(await response.text());
+			}
+			refresh(response);
+		} catch (e) {
+			setDidError(true);
+			setError(e);
+		} finally {
+			setIsSaving(false);
+		}
+	}
+
+	return [isSaving, performMutation];
+}
+
 /* Publish navigate to window, to avoid circular dependency. Once the implementation of router is migrated into a library, we can remove this and use "navigate" directly  */
-window.__navigate_rsc = navigate;
+window.__navigate = navigate;
+window.__useAction = useAction;
 
 // Intercept link clicks to perform RSC navigation.
 /* document.addEventListener("click", (e) => {

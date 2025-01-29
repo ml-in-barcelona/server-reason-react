@@ -6,7 +6,7 @@ module Hr = {
         "block",
         "w-full",
         "h-px",
-        Theme.background("slate-400"),
+        Theme.background(Theme.Color.Gray4),
       ])}
     />;
   };
@@ -51,11 +51,8 @@ module Title = {
                  target="_blank"
                  className={Cx.make([
                    "underline transition duration-100 ease-in-out hover:decoration-inherit",
-                   Theme.text(Theme.Color.white),
-                   Theme.hover([
-                     "underline",
-                     Theme.text(Theme.Color.brokenWhite),
-                   ]),
+                   Theme.text(Theme.Color.Gray11),
+                   Theme.hover(["underline", Theme.text(Theme.Color.Gray7)]),
                  ])}>
                  {React.string(item.label)}
                </a>
@@ -68,7 +65,7 @@ module Title = {
 
   [@react.component]
   let make = () => {
-    <div className={Cx.make([Theme.text(Theme.Color.white), "text-xl"])}>
+    <div className={Cx.make([Theme.text(Theme.Color.Gray11), "text-xl"])}>
       <Spacer bottom=4>
         <h1 className={Cx.make(["m-0", "text-5xl", "font-bold"])}>
           {React.string("Server Reason React")}
@@ -86,7 +83,7 @@ let make = () => {
     None;
   });
 
-  <DemoLayout background=Theme.Color.black>
+  <DemoLayout background=Theme.Color.Gray2>
     <Stack gap=8 justify=`start> <Title /> </Stack>
   </DemoLayout>;
 };

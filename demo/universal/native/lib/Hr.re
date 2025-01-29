@@ -6,7 +6,7 @@ let make = () => {
       "w-full",
       "h-[1px]",
       "border-0 border-b-2",
-      Theme.border("gray-700"),
+      Theme.border(Theme.Color.Gray7),
     ])}
   />;
 };

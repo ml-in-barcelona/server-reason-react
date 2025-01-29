@@ -3,7 +3,7 @@ type mode =
   | Fit800px;
 
 [@react.component]
-let make = (~children, ~background=Theme.Color.black, ~mode=Fit800px) => {
+let make = (~children, ~background=Theme.Color.Gray2, ~mode=Fit800px) => {
   <div
     className={Cx.make([
       "m-0",
@@ -24,15 +24,15 @@ let make = (~children, ~background=Theme.Color.black, ~mode=Fit800px) => {
       <a
         className={Cx.make([
           "text-s font-bold inline-flex items-center justify-between gap-2",
-          Theme.text(Theme.Color.white),
-          Theme.hover([Theme.text(Theme.Color.brokenWhite)]),
+          Theme.text(Theme.Color.Gray12),
+          Theme.hover([Theme.text(Theme.Color.Gray10)]),
         ])}
         href=Router.home>
         <Arrow direction=Left />
         {React.string("Home")}
       </a>
     </nav>
-    <div spellCheck=false className={Cx.make(["w-full", "pt-6"])}>
+    <div spellCheck=false className="w-full pt-6 max-w-[1200px]">
       children
     </div>
   </div>;

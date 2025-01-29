@@ -4,7 +4,7 @@ let globalStyles = {js|
     padding: 0;
     width: 100vw;
     height: 100vh;
-    background-color: #161615; /* Theme.Color.black; */
+    background-color: #161615; /* Theme.Color.Gray12; */
   }
 
   * {
