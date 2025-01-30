@@ -121,12 +121,12 @@ module App = {
               </Text>
             </p>
           </section>
-          /* <section
-               className="mt-4 mb-4 flex flex-row gap-2"
-               role="menubar"
-               key="menubar">
-               <SearchField searchText selectedId isEditing />
-             </section> */
+          <section
+            className="mt-4 mb-4 flex flex-row gap-2"
+            role="menubar"
+            key="menubar">
+            <SearchField searchText selectedId isEditing />
+          </section>
           <nav className="mt-4">
             <div className="mb-4"> <Hr /> </div>
             <div className="mb-4">
