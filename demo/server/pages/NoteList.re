@@ -14,7 +14,7 @@ let make = () => {
       <Text> "There's no notes created yet!" </Text>
     </div>
   | Ok(notes) =>
-    <ul>
+    <ul className="mt-8">
       {notes
        |> List.map((note: Note.t) =>
             <li key={Int.to_string(note.id)}> <SidebarNote note /> </li>

@@ -127,14 +127,15 @@ module App = {
                key="menubar">
                <SearchField searchText selectedId isEditing />
              </section> */
-          <Hr />
           <nav className="mt-4">
+            <div className="mb-4"> <Hr /> </div>
+            <div className="mb-4">
+              <Button noteId=None> {React.string("Create a note")} </Button>
+            </div>
+            <Hr />
             <React.Suspense fallback={<NoteListSkeleton />}>
               <NoteList />
             </React.Suspense>
-            <div className="mt-4">
-              <Button noteId=None> {React.string("Create a note")} </Button>
-            </div>
           </nav>
         </section>
         <section key="note-viewer" className="flex-1 basis-3/4 max-w-[75%]">

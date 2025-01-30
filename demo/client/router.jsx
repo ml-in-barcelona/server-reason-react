@@ -93,7 +93,7 @@ async function navigate(search) {
 	});
 }
 
-function useAction(endpoint, method) {
+/* function useAction(endpoint, method) {
 	console.log("useAction", endpoint, method);
 	const { refresh } = useRouter();
 	const [isSaving, setIsSaving] = React.useState(false);
@@ -133,43 +133,8 @@ function useAction(endpoint, method) {
 	}
 
 	return [performMutation, isSaving];
-}
+} */
 
 /* Publish navigate to window, to avoid circular dependency. Once the implementation of router is migrated into a library, we can remove this and use "navigate" directly  */
 window.__navigate = navigate;
-window.__useAction = useAction;
-
-// Intercept link clicks to perform RSC navigation.
-/* document.addEventListener("click", (e) => {
-	console.log("event click");
-	if (e.target.closest("button")) {
-		console.log("event BUTTON!");
-	}
-	let link = e.target.closest("a");
-	if (
-		link &&
-		link instanceof HTMLAnchorElement &&
-		link.href &&
-		(!link.target || link.target === "_self") &&
-		link.origin === location.origin &&
-		!link.hasAttribute("download") &&
-		e.button === 0 && // left clicks only
-		!e.metaKey && // open in new tab (mac)
-		!e.ctrlKey && // open in new tab (windows)
-		!e.altKey && // download
-		!e.shiftKey &&
-		!e.defaultPrevented
-	) {
-		if (!link.pathname.startsWith("/demo/router")) {
-			return;
-		}
-		e.preventDefault();
-		navigate(link.pathname, true);
-	}
-});
-
-// When the user clicks the back button, navigate with RSC.
-window.addEventListener("popstate", (e) => {
-	navigate(location.pathname);
-});
- */
+/* window.__useAction = useAction; */

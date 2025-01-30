@@ -1,23 +1,29 @@
 [@react.component]
 let make = () => {
-  <div>
-    <ul className="p-2 skeleton-container">
+  <div className="mt-8">
+    <ul className="flex flex-col">
       <li className="v-stack">
         <div
-          className="relative mb-3 p-4 w-full flex justify-between items-start flex-wrap max-h-[100px] transition-[max-height] duration-250 ease-out scale-100 skeleton"
-          style={ReactDOM.Style.make(~height="5em", ())}
+          className={Cx.make([
+            Theme.background(Theme.Color.Gray4),
+            "animate-pulse relative mb-3 p-4 w-full flex justify-between items-start flex-wrap h-[150px] transition-[max-height] ease-out rounded-md",
+          ])}
         />
       </li>
       <li className="v-stack">
         <div
-          className="relative mb-3 p-4 w-full flex justify-between items-start flex-wrap max-h-[100px] transition-[max-height] duration-250 ease-out scale-100 skeleton"
-          style={ReactDOM.Style.make(~height="5em", ())}
+          className={Cx.make([
+            Theme.background(Theme.Color.Gray4),
+            "animate-pulse relative mb-3 p-4 w-full flex justify-between items-start flex-wrap h-[150px] transition-[max-height] ease-out rounded-md",
+          ])}
         />
       </li>
       <li className="v-stack">
         <div
-          className="relative mb-3 p-4 w-full flex justify-between items-start flex-wrap max-h-[100px] transition-[max-height] duration-250 ease-out scale-100 skeleton"
-          style={ReactDOM.Style.make(~height="5em", ())}
+          className={Cx.make([
+            Theme.background(Theme.Color.Gray4),
+            "animate-pulse relative mb-3 p-4 w-full flex justify-between items-start flex-wrap h-[150px] transition-[max-height] ease-out rounded-md",
+          ])}
         />
       </li>
     </ul>
