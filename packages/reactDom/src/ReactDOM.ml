@@ -28,6 +28,22 @@ let attribute_to_html attr =
 
 let attributes_to_html attrs = attrs |> List.map attribute_to_html
 
+let moveDangerouslyInnerHtmlAsChildren attributes children =
+  let dangerouslySetInnerHTML =
+    List.find_opt (function React.JSX.DangerouslyInnerHtml _ -> true | _ -> false) attributes
+  in
+
+  (* If there's a dangerouslySetInnerHTML prop, we render it as a children *)
+  match (dangerouslySetInnerHTML, children) with
+  | None, children -> children
+  | Some (React.JSX.DangerouslyInnerHtml innerHtml), [] ->
+      (* This adds as children the innerHTML, and we treat it differently
+             from Element.Text to avoid encoding to HTML their content *)
+      (* TODO: Remove InnerHtml and use Html.raw directly *)
+      [ React.InnerHtml innerHtml ]
+  | Some _, _children ->
+      raise (Invalid_argument "can't have both `children` and `dangerouslySetInnerHTML` prop at the same time")
+
 type mode = String | Markup
 
 let render_to_string ~mode element =
@@ -66,21 +82,7 @@ let render_to_string ~mode element =
         | output -> Html.list [ Html.raw "<!--$-->"; output; Html.raw "<!--/$-->" ]
         | exception _e -> Html.list [ Html.raw "<!--$!-->"; render_element fallback; Html.raw "<!--/$-->" ])
   and render_lower_case ~key:_ tag attributes children =
-    let dangerouslySetInnerHTML =
-      List.find_opt (function React.JSX.DangerouslyInnerHtml _ -> true | _ -> false) attributes
-    in
-    let children =
-      (* If there's a dangerouslySetInnerHTML prop, we render it as a children *)
-      match (dangerouslySetInnerHTML, children) with
-      | None, children -> children
-      | Some (React.JSX.DangerouslyInnerHtml innerHtml), [] ->
-          (* This adds as children the innerHTML, and we treat it differently
-             from Element.Text to avoid encoding to HTML their content *)
-          (* TODO: Remove InnerHtml and use Html.raw directly *)
-          [ InnerHtml innerHtml ]
-      | Some _, _children ->
-          raise (Invalid_argument "can't have both `children` and `dangerouslySetInnerHTML` prop at the same time")
-    in
+    let children = moveDangerouslyInnerHtmlAsChildren attributes children in
     match Html.is_self_closing_tag tag with
     (* the ppx ensures that a self closing tag can't have children *)
     | true -> Html.node tag (attributes_to_html attributes) []
@@ -212,21 +214,7 @@ let rec render_to_stream ~context_state element =
             let%lwt fallback_element = render_element fallback in
             Lwt.return (render_suspense_fallback_error ~exn fallback_element))
   and render_lower_case ~key:_ tag attributes children =
-    let dangerouslySetInnerHTML =
-      List.find_opt (function React.JSX.DangerouslyInnerHtml _ -> true | _ -> false) attributes
-    in
-    let children =
-      (* If there's a dangerouslySetInnerHTML prop, we render it as a children *)
-      match (dangerouslySetInnerHTML, children) with
-      | None, children -> children
-      | Some (React.JSX.DangerouslyInnerHtml innerHtml), [] ->
-          (* This adds as children the innerHTML, and we treat it differently
-             from Element.Text to avoid encoding to HTML their content *)
-          (* TODO: Remove InnerHtml and use Html.raw directly *)
-          [ InnerHtml innerHtml ]
-      | Some _, _children ->
-          raise (Invalid_argument "can't have both `children` and `dangerouslySetInnerHTML` prop at the same time")
-    in
+    let children = moveDangerouslyInnerHtmlAsChildren attributes children in
     match Html.is_self_closing_tag tag with
     | true -> Lwt.return (Html.node tag (attributes_to_html attributes) [])
     | false ->
@@ -268,21 +256,7 @@ and render_with_resolved ~context_state element =
             render_element resolved)
     | Suspense _ -> render_to_stream ~context_state element
   and render_lower_case ~key:_ tag attributes children =
-    let dangerouslySetInnerHTML =
-      List.find_opt (function React.JSX.DangerouslyInnerHtml _ -> true | _ -> false) attributes
-    in
-    let children =
-      (* If there's a dangerouslySetInnerHTML prop, we render it as a children *)
-      match (dangerouslySetInnerHTML, children) with
-      | None, children -> children
-      | Some (React.JSX.DangerouslyInnerHtml innerHtml), [] ->
-          (* This adds as children the innerHTML, and we treat it differently
-             from Element.Text to avoid encoding to HTML their content *)
-          (* TODO: Remove InnerHtml and use Html.raw directly *)
-          [ InnerHtml innerHtml ]
-      | Some _, _children ->
-          raise (Invalid_argument "can't have both `children` and `dangerouslySetInnerHTML` prop at the same time")
-    in
+    let children = moveDangerouslyInnerHtmlAsChildren attributes children in
     match Html.is_self_closing_tag tag with
     | true -> Lwt.return (Html.node tag (attributes_to_html attributes) [])
     | false ->

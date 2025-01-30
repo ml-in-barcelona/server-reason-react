@@ -259,13 +259,7 @@ let rec client_to_html ~fiber (element : React.element) =
   | List childrens ->
       let%lwt html = childrens |> Array.to_list |> Lwt_list.map_p (client_to_html ~fiber) in
       Lwt.return (Html.list html)
-  | Lower_case_element { tag; attributes; _ } when Html.is_self_closing_tag tag ->
-      let html_props = List.map ReactDOM.attribute_to_html attributes in
-      Lwt.return (Html.node tag html_props [])
-  | Lower_case_element { key = _; tag; attributes; children } ->
-      let html_props = List.map ReactDOM.attribute_to_html attributes in
-      let%lwt html = children |> Lwt_list.map_p (client_to_html ~fiber) in
-      Lwt.return (Html.node tag html_props html)
+  | Lower_case_element { key; tag; attributes; children } -> render_lower_case ~fiber ~key ~tag ~attributes ~children
   | Upper_case_component component ->
       let rec wait_for_suspense_to_resolve () =
         match component () with
@@ -306,6 +300,16 @@ let rec client_to_html ~fiber (element : React.element) =
   | Provider children -> client_to_html ~fiber children
   | Consumer children -> client_to_html ~fiber children
   | InnerHtml innerHtml -> Lwt.return (Html.raw innerHtml)
+
+and render_lower_case ~fiber ~key:_ ~tag ~attributes ~children =
+  if Html.is_self_closing_tag tag then
+    let html_props = List.map ReactDOM.attribute_to_html attributes in
+    Lwt.return (Html.node tag html_props [])
+  else
+    let html_props = List.map ReactDOM.attribute_to_html attributes in
+    let children = ReactDOM.moveDangerouslyInnerHtmlAsChildren attributes children in
+    let%lwt html = children |> Lwt_list.map_p (client_to_html ~fiber) in
+    Lwt.return (Html.node tag html_props html)
 
 let rec to_html ~fiber (element : React.element) : (Html.element * json) Lwt.t =
   match element with
@@ -392,21 +396,8 @@ let rec to_html ~fiber (element : React.element) : (Html.element * json) Lwt.t =
   | InnerHtml innerHtml -> Lwt.return (Html.raw innerHtml, `Null)
 
 and render_lower_case ~fiber ~key ~tag ~attributes ~children =
-  let dangerouslySetInnerHTML =
-    List.find_opt (function React.JSX.DangerouslyInnerHtml _ -> true | _ -> false) attributes
-  in
-  let children =
-    (* If there's a dangerouslySetInnerHTML prop, we render it as a children *)
-    match (dangerouslySetInnerHTML, children) with
-    | None, children -> children
-    | Some (React.JSX.DangerouslyInnerHtml innerHtml), [] ->
-        (* This adds as children the innerHTML, and we treat it differently
-             from Element.Text to avoid encoding to HTML their content *)
-        (* TODO: Remove InnerHtml and use Html.raw directly *)
-        [ InnerHtml innerHtml ]
-    | Some _, _children ->
-        raise (Invalid_argument "can't have both `children` and `dangerouslySetInnerHTML` prop at the same time")
-  in
+  let children = ReactDOM.moveDangerouslyInnerHtmlAsChildren attributes children in
+
   if Html.is_self_closing_tag tag then
     let html_props = List.map ReactDOM.attribute_to_html attributes in
     let json_props = Model.props_to_json attributes in
