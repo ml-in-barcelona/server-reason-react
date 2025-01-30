@@ -9,7 +9,7 @@ module Reader = {
     let%browser_only onMouseOver = _ev => {
       Js.log("Over the promise!");
     };
-    <div className="cursor-pointer" onMouseOver> {React.string(value)} </div>;
+    <div className="cursor-pointer" onMouseOver> <Text> value </Text> </div>;
   };
 };
 

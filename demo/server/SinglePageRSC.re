@@ -19,9 +19,7 @@ module Section = {
       </h2>
       {switch (description) {
        | Some(description) =>
-         <p className={Theme.text(Theme.Color.Gray7)}>
-           {React.string(description)}
-         </p>
+         <Text color=Theme.Color.Gray10> description </Text>
        | None => React.null
        }}
       <Spacer bottom=4 />
@@ -56,9 +54,9 @@ module Page = {
                "Server side rendering server components and client components",
              )}
           </h1>
-          <p className={Theme.text(Theme.Color.Gray7)}>
-            {React.string("RSC and CC and their client props encodings")}
-          </p>
+          <Text color=Theme.Color.Gray10>
+            "RSC and CC and their client props encodings"
+          </Text>
         </Stack>
         <Hr />
         <Section
@@ -71,7 +69,6 @@ module Page = {
           description="Passing client props into a client component">
           <Debug_props
             string="Title"
-            int=1
             float=1.1
             bool_true=true
             bool_false=false
@@ -91,7 +88,7 @@ module Page = {
           description="Passing client props into a client component">
           <Debug_props
             string="Title"
-            int=1
+            int=99
             float=1.1
             bool_true=true
             bool_false=false

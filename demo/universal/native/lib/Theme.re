@@ -35,7 +35,30 @@ module Color = {
     | Gray10
     | Gray11
     | Gray12
+    | Gray13
+    | Gray14
     | Primary;
+
+  let oneScaleUp = color => {
+    switch (color) {
+    | Gray0 => Gray1
+    | Gray1 => Gray2
+    | Gray2 => Gray3
+    | Gray3 => Gray4
+    | Gray4 => Gray5
+    | Gray5 => Gray6
+    | Gray6 => Gray7
+    | Gray7 => Gray8
+    | Gray8 => Gray9
+    | Gray9 => Gray10
+    | Gray10 => Gray11
+    | Gray11 => Gray12
+    | Gray12 => Gray13
+    | Gray13 => Gray14
+    | Gray14 => Gray14
+    | _ => color
+    };
+  };
 
   let primary = "#FFC53D";
   let gray0 = "#080808";
@@ -51,6 +74,8 @@ module Color = {
   let gray10 = "#6E6E6E";
   let gray11 = "#B4B4B4";
   let gray12 = "#EEEEEE";
+  let gray13 = "#F5F5F5";
+  let gray14 = "#FFFFFF";
 
   let brokenWhite = gray10;
   let white = gray12;
@@ -89,6 +114,8 @@ let color = (~kind, value) =>
   | Gray10 => to_string(kind) ++ "-[" ++ Color.gray10 ++ "]"
   | Gray11 => to_string(kind) ++ "-[" ++ Color.gray11 ++ "]"
   | Gray12 => to_string(kind) ++ "-[" ++ Color.gray12 ++ "]"
+  | Gray13 => to_string(kind) ++ "-[" ++ Color.gray13 ++ "]"
+  | Gray14 => to_string(kind) ++ "-[" ++ Color.gray14 ++ "]"
   | Primary => to_string(kind) ++ "-[" ++ Color.primary ++ "]"
   };
 

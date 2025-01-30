@@ -4,7 +4,7 @@ module App = {
     <DemoLayout background=Theme.Color.Gray2 mode=FullScreen>
       <div className="flex flex-row gap-8">
         <section
-          className="flex-1 basis-1/4 gap-4 min-w-[300px]" key="sidebar">
+          className="flex-1 basis-1/4 gap-4 min-w-[400px]" key="sidebar">
           <section
             className="flex flex-col gap-1 z-1 max-w-[85%] pointer-events-none mb-6"
             key="sidebar-header">
@@ -14,7 +14,7 @@ module App = {
               <Link.Text
                 size=Text.Small
                 href="https://github.com/reactjs/server-components-demo">
-                "server-components-demo"
+                "reactjs/server-components-demo"
               </Link.Text>
               <Text color=Theme.Color.Gray10>
                 " with (server)-reason-react and Melange"

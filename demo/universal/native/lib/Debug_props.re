@@ -6,7 +6,7 @@ open Ppx_deriving_json_runtime.Primitives;
 let make =
     (
       ~string: string,
-      ~int: int,
+      ~int: int=999999,
       ~float: float,
       ~bool_true: bool,
       ~bool_false: bool,

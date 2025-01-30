@@ -46,16 +46,9 @@ module Title = {
         {React.array(
            Belt.Array.mapWithIndex(data, (key, item) =>
              <div className={Cx.make(["block"])} key={Int.to_string(key)}>
-               <a
-                 href={item.link}
-                 target="_blank"
-                 className={Cx.make([
-                   "underline transition duration-100 ease-in-out hover:decoration-inherit",
-                   Theme.text(Theme.Color.Gray11),
-                   Theme.hover(["underline", Theme.text(Theme.Color.Gray7)]),
-                 ])}>
-                 {React.string(item.label)}
-               </a>
+               <Link.Text href={item.link} target="_blank">
+                 {item.label}
+               </Link.Text>
              </div>
            ),
          )}
@@ -65,14 +58,20 @@ module Title = {
 
   [@react.component]
   let make = () => {
-    <div className={Cx.make([Theme.text(Theme.Color.Gray11), "text-xl"])}>
+    <section>
       <Spacer bottom=4>
-        <h1 className={Cx.make(["m-0", "text-5xl", "font-bold"])}>
+        <h1
+          className={Cx.make([
+            "m-0",
+            "text-5xl",
+            "font-bold",
+            Theme.text(Theme.Color.Gray13),
+          ])}>
           {React.string("Server Reason React")}
         </h1>
       </Spacer>
       <Menu />
-    </div>;
+    </section>;
   };
 };
 
