@@ -7,6 +7,7 @@ external alert: string => unit = "window.alert";
 [@react.client.component]
 let make =
     (~noteId: option(int), ~initialTitle: string, ~initialBody: string) => {
+  let isDraft = Belt.Option.isNone(noteId);
   let (title, setTitle) = RR.useStateValue(initialTitle);
   let (body, setBody) = RR.useStateValue(initialBody);
   let router = Router.useRouter();
@@ -35,7 +36,7 @@ let make =
       "DELETE",
     );
 
-  let%browser_only handleSave = () => {
+  let%browser_only _handleSave = () => {
     let payload: Router.payload = {
       title,
       body,
@@ -50,7 +51,7 @@ let make =
     saveNote(payload, requestedLocation, ());
   };
 
-  let handleDelete = () => {
+  let%browser_only _handleDelete = () => {
     let payload: Router.payload = {
       title: "",
       body: "",
@@ -62,8 +63,6 @@ let make =
     };
     deleteNote(payload, requestedLocation, ());
   };
-
-  let isDraft = Belt.Option.isNone(noteId);
 
   let%browser_only onChangeTitle = e => {
     let newValue = React.Event.Form.target(e)##value;
@@ -88,7 +87,7 @@ let make =
         <button
           className=Theme.button
           disabled={isSaving || isNavigating}
-          onClick={_ => alert("Actions aren't implemented yet")}
+          onClick={_ => alert("Server actions aren't implemented yet")}
           role="menuitem">
           {React.string("Done")}
         </button>
@@ -96,7 +95,7 @@ let make =
            ? <button
                className=Theme.button
                disabled={isDeleting || isNavigating}
-               onClick={_ => alert("Actions aren't implemented yet")}
+               onClick={_ => alert("Server actions aren't implemented yet")}
                role="menuitem">
                {React.string("Delete")}
              </button>
