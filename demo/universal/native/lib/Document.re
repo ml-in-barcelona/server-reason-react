@@ -25,7 +25,7 @@ let globalStyles =
     }
   }
 |js},
-    Theme.Color.gray12,
+    Theme.Color.gray2,
   );
 
 [@react.component]

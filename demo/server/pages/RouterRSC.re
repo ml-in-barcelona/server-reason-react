@@ -1,7 +1,107 @@
+let proseStyles = (~background, ~text) => {
+  {|
+.prose h1 {
+  font-size: 2.25rem;
+  font-weight: bold;
+  line-height: 2.5;
+}
+
+.prose h2 {
+  font-size: 1.875rem;
+  font-weight: bold;
+  line-height: 2.5;
+}
+
+.prose h3 {
+  font-size: 1.5rem;
+  font-weight: bold;
+  line-height: 2.5;
+}
+
+.prose h4 {
+  font-size: 1.25rem;
+  font-weight: bold;
+  line-height: 2.5;
+}
+
+.prose h5 {
+  font-size: 1.125rem;
+  font-weight: bold;
+  line-height: 2.5;
+}
+
+.prose h6 {
+  font-size: 1rem;
+  font-weight: bold;
+  line-height: 2.5;
+}
+
+.prose p {
+  font-size: 1rem;
+  margin-bottom: 1rem;
+}
+
+.prose ul, .prose ol {
+  padding-left: 2rem;
+  margin-bottom: 1rem;
+}
+
+.prose li {
+  margin-bottom: 0.5rem;
+}
+
+.prose blockquote {
+  border-left: 4px solid |}
+  ++ background
+  ++ {|;
+  padding-left: 1rem;
+  margin: 1.5rem 0;
+  font-style: italic;
+}
+
+.prose pre {
+  padding: 1rem;
+  margin: 1.5rem 0;
+  background-color: |}
+  ++ background
+  ++ {|;
+  color: |}
+  ++ text
+  ++ {|;
+  border-radius: 0.375rem;
+}
+
+.prose code {
+  display: block;
+  margin: 1rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
+  font-family: monospace;
+  background-color: |}
+  ++ background
+  ++ {|;
+  color: |}
+  ++ text
+  ++ {|;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+}
+|};
+};
+
 module App = {
   [@react.component]
   let make = (~selectedId, ~isEditing, ~searchText) => {
     <DemoLayout background=Theme.Color.Gray2 mode=FullScreen>
+      <style
+        dangerouslySetInnerHTML={
+          "__html":
+            proseStyles(
+              ~background=Theme.Color.gray2,
+              ~text=Theme.Color.gray12,
+            ),
+        }
+      />
       <div className="flex flex-row gap-8">
         <section
           className="flex-1 basis-1/4 gap-4 min-w-[400px]" key="sidebar">

@@ -1,6 +1,8 @@
 [@warning "-26-27-32"];
 
-[@react.component]
+open Ppx_deriving_json_runtime.Primitives;
+
+[@react.client.component]
 let make =
     (~noteId: option(int), ~initialTitle: string, ~initialBody: string) => {
   let (title, setTitle) = RR.useStateValue(initialTitle);
@@ -31,7 +33,7 @@ let make =
       "DELETE",
     );
 
-  let handleSave = () => {
+  let%browser_only handleSave = () => {
     let payload: Router.payload = {
       title,
       body,
@@ -41,7 +43,9 @@ let make =
       isEditing: false,
       searchText: router.location.searchText,
     };
-    saveNote(payload, requestedLocation)->ignore;
+    Js.log(requestedLocation);
+    Js.log(saveNote);
+    saveNote(payload, requestedLocation, ());
   };
 
   let handleDelete = () => {
@@ -54,7 +58,7 @@ let make =
       isEditing: false,
       searchText: router.location.searchText,
     };
-    deleteNote(payload, requestedLocation)->ignore;
+    deleteNote(payload, requestedLocation, ());
   };
 
   let isDraft = Belt.Option.isNone(noteId);
@@ -117,7 +121,7 @@ let make =
              </button>
            : React.null}
       </div>
-      <NotePreview body />
+      <NotePreview key="note-preview" body />
     </div>
   </div>;
 };

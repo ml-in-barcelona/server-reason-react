@@ -75,6 +75,8 @@ module Title = {
   };
 };
 
+[@warning "-26-27-32"];
+
 [@react.component]
 let make = () => {
   React.useEffect(() => {
@@ -82,7 +84,26 @@ let make = () => {
     None;
   });
 
+  let (title, setTitle) = RR.useStateValue("Server Reason React");
+
+  let%browser_only onChangeTitle = e => {
+    let value = React.Event.Form.target(e)##value;
+    setTitle(value);
+  };
+
   <DemoLayout background=Theme.Color.Gray2>
     <Stack gap=8 justify=`start> <Title /> </Stack>
+    <input
+      className={Cx.make([
+        "m-0 py-2 px-4",
+        "rounded-md",
+        "text-4xl font-bold",
+        Theme.background(Theme.Color.Gray1),
+        Theme.text(Theme.Color.Gray12),
+      ])}
+      type_="text"
+      value=title
+      onChange=onChangeTitle
+    />
   </DemoLayout>;
 };

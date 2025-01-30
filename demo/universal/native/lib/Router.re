@@ -103,13 +103,13 @@ type payload = {
 type t('a) = {
   location,
   navigate: location => unit,
-  useAction: (string, string) => ((payload, location) => unit, bool),
+  useAction: (string, string) => ((payload, location, unit) => unit, bool),
   refresh: option('a) => unit,
 };
 
 let useRouter = () => {
   location: initialLocation,
   navigate: _ => (),
-  useAction: (_, _) => ((_, _) => (), false),
+  useAction: (_, _) => ((_, _, _) => (), false),
   refresh: _ => (),
 };

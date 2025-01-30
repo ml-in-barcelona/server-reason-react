@@ -94,6 +94,7 @@ async function navigate(search) {
 }
 
 function useAction(endpoint, method) {
+	console.log("useAction", endpoint, method);
 	const { refresh } = useRouter();
 	const [isSaving, setIsSaving] = React.useState(false);
 	const [didError, setDidError] = React.useState(false);
@@ -131,7 +132,7 @@ function useAction(endpoint, method) {
 		}
 	}
 
-	return [isSaving, performMutation];
+	return [performMutation, isSaving];
 }
 
 /* Publish navigate to window, to avoid circular dependency. Once the implementation of router is migrated into a library, we can remove this and use "navigate" directly  */
