@@ -44,7 +44,10 @@ let make = (~selectedId: option(int), ~isEditing: bool) => {
             </div>
             <Button noteId={Some(note.id)}> {React.string("Edit")} </Button>
           </div>
-          <NotePreview key="note-preview" body={note.content} />
+          <NotePreview
+            key="note-preview"
+            body={Markdown.toHTML(note.content)}
+          />
         </div>;
       }
     | Error(error) =>

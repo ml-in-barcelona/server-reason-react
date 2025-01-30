@@ -1,7 +1,7 @@
 open Lwt.Syntax;
 
 [@react.async.component]
-let make = (~searchText) => {
+let make = () => {
   let+ notes = DB.readNotes();
 
   switch (notes) {
@@ -12,10 +12,6 @@ let make = (~searchText) => {
   | Ok(notes) when notes->List.length == 0 =>
     <div className="notes-empty">
       <Text> "There's no notes created yet!" </Text>
-    </div>
-  | Ok(notes) when searchText != "" =>
-    <div className="notes-empty">
-      <Text> {"Couldn't find any notes titled " ++ searchText} </Text>
     </div>
   | Ok(notes) =>
     <ul>

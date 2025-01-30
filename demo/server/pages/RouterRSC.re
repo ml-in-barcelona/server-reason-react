@@ -1,56 +1,56 @@
-let proseStyles = (~background, ~text) => {
+let markdownStyles = (~background, ~text) => {
   {|
-.prose h1 {
+.markdown h1 {
   font-size: 2.25rem;
   font-weight: bold;
   line-height: 2.5;
 }
 
-.prose h2 {
+.markdown h2 {
   font-size: 1.875rem;
   font-weight: bold;
   line-height: 2.5;
 }
 
-.prose h3 {
+.markdown h3 {
   font-size: 1.5rem;
   font-weight: bold;
   line-height: 2.5;
 }
 
-.prose h4 {
+.markdown h4 {
   font-size: 1.25rem;
   font-weight: bold;
   line-height: 2.5;
 }
 
-.prose h5 {
+.markdown h5 {
   font-size: 1.125rem;
   font-weight: bold;
   line-height: 2.5;
 }
 
-.prose h6 {
+.markdown h6 {
   font-size: 1rem;
   font-weight: bold;
   line-height: 2.5;
 }
 
-.prose p {
+.markdown p {
   font-size: 1rem;
   margin-bottom: 1rem;
 }
 
-.prose ul, .prose ol {
+.markdown ul, .markdown ol {
   padding-left: 2rem;
   margin-bottom: 1rem;
 }
 
-.prose li {
+.markdown li {
   margin-bottom: 0.5rem;
 }
 
-.prose blockquote {
+.markdown blockquote {
   border-left: 4px solid |}
   ++ background
   ++ {|;
@@ -59,7 +59,7 @@ let proseStyles = (~background, ~text) => {
   font-style: italic;
 }
 
-.prose pre {
+.markdown pre {
   padding: 1rem;
   margin: 1.5rem 0;
   background-color: |}
@@ -71,7 +71,7 @@ let proseStyles = (~background, ~text) => {
   border-radius: 0.375rem;
 }
 
-.prose code {
+.markdown code {
   display: block;
   margin: 1rem;
   padding-left: 1rem;
@@ -96,7 +96,7 @@ module App = {
       <style
         dangerouslySetInnerHTML={
           "__html":
-            proseStyles(
+            markdownStyles(
               ~background=Theme.Color.gray2,
               ~text=Theme.Color.gray12,
             ),
@@ -121,16 +121,16 @@ module App = {
               </Text>
             </p>
           </section>
-          <section
-            className="mt-4 mb-4 flex flex-row gap-2"
-            role="menubar"
-            key="menubar">
-            <SearchField />
-          </section>
+          /* <section
+               className="mt-4 mb-4 flex flex-row gap-2"
+               role="menubar"
+               key="menubar">
+               <SearchField searchText selectedId isEditing />
+             </section> */
           <Hr />
           <nav className="mt-4">
             <React.Suspense fallback={<NoteListSkeleton />}>
-              <NoteList searchText />
+              <NoteList />
             </React.Suspense>
             <div className="mt-4">
               <Button noteId=None> {React.string("Create a note")} </Button>

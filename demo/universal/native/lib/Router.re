@@ -36,7 +36,6 @@ module Menu = {
     </ul>;
   };
 };
-
 type location = {
   selectedId: option(int),
   isEditing: bool,

@@ -191,7 +191,7 @@ let convert_paragraphs = text => {
   lines |> wrap_paragraphs |> String.concat("\n");
 };
 
-let markdown_to_html = markdown => {
+let toHTML = markdown => {
   markdown
   |> convert_headings
   |> convert_emphasis

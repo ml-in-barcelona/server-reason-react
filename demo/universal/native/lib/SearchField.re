@@ -1,10 +1,18 @@
 [@warning "-26-27"];
 
+open Ppx_deriving_json_runtime.Primitives;
+
 [@react.client.component]
-let make = () => {
-  let (text, setText) = RR.useStateValue(None);
-  let {navigate, location, _}: ClientRouter.t = ClientRouter.useRouter();
+let make = (~searchText: string, ~selectedId: option(int), ~isEditing: bool) => {
+  let {navigate, _}: ClientRouter.t = ClientRouter.useRouter();
+  let (text, setText) =
+    RR.useStateValue(searchText == "" ? None : Some(searchText));
   let (isSearching, startSearching) = React.useTransition();
+
+  React.useEffect(() => {
+    Js.log2("searchText", searchText);
+    None;
+  });
 
   let onSubmit = event => {
     React.Event.Form.preventDefault(event);
@@ -17,8 +25,8 @@ let make = () => {
     startSearching(() =>
       navigate({
         searchText: Some(newText),
-        selectedId: location.selectedId,
-        isEditing: location.isEditing,
+        selectedId,
+        isEditing,
       })
     );
   };
