@@ -19,7 +19,7 @@
   (package server-reason-react)
   (alias_rec melange)
   (:script build.mjs)
-  (:input app/demo/client/Hydrate.js)
+  (:input "app/demo/client/Hydrate.js")
   (source_tree node_modules)
   (file package.json)
   (source_tree ../../packages/extract-client-components))
