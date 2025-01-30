@@ -1,10 +1,10 @@
 [@warning "-26-27"];
 
-[@react.component]
+[@react.client.component]
 let make = () => {
-  let (text, setText) = React.useState(() => None);
+  let (text, setText) = RR.useStateValue(None);
+  let {navigate, location, _}: ClientRouter.t = ClientRouter.useRouter();
   let (isSearching, startSearching) = React.useTransition();
-  let {navigate, _}: ClientRouter.t = ClientRouter.useRouter();
 
   let onSubmit = event => {
     React.Event.Form.preventDefault(event);
@@ -13,9 +13,14 @@ let make = () => {
   let%browser_only onChange = event => {
     let target = React.Event.Form.target(event);
     let newText = target##value;
-    Js.log(newText);
-    /* setText(() => Some(newText)); */
-    /* startSearching(() => navigate({searchText: newText})); */
+    setText(Some(newText));
+    startSearching(() =>
+      navigate({
+        searchText: Some(newText),
+        selectedId: location.selectedId,
+        isEditing: location.isEditing,
+      })
+    );
   };
 
   let value = {
@@ -26,15 +31,10 @@ let make = () => {
   };
 
   <form className="search" role="search" onSubmit>
-    <label className="offscreen" htmlFor="sidebar-search-input">
+    <label className="offscreen mr-4" htmlFor="sidebar-search-input">
       <Text> "Search for a note by title" </Text>
     </label>
-    /* <input
-         id="sidebar-search-input"
-         placeholder="Search"
-         defaultValue=value
-         onChange
-       /> */
+    <InputText id="sidebar-search-input" placeholder="Search" value onChange />
     <Spinner active=isSearching />
   </form>;
 };

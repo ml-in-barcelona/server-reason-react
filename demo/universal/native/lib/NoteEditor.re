@@ -78,29 +78,8 @@ let make =
       className="flex flex-col gap-2"
       autoComplete="off"
       onSubmit={e => React.Event.Form.preventDefault(e)}>
-      <input
-        className={Cx.make([
-          "m-0 py-2 px-4",
-          "rounded-md",
-          "text-4xl font-bold",
-          Theme.background(Theme.Color.Gray1),
-          Theme.text(Theme.Color.Gray12),
-        ])}
-        type_="text"
-        value=title
-        onChange=onChangeTitle
-      />
-      <textarea
-        rows=10
-        className={Cx.make([
-          "m-0 py-2 px-4",
-          "rounded-md",
-          Theme.background(Theme.Color.Gray1),
-          Theme.text(Theme.Color.Gray12),
-        ])}
-        value=body
-        onChange=onChangeBody
-      />
+      <InputText value=title onChange=onChangeTitle />
+      <Textarea rows=10 value=body onChange=onChangeBody />
     </form>
     <div className="flex flex-col gap-4">
       <div className="flex flex-row gap-2" role="menubar">

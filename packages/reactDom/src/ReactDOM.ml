@@ -847,8 +847,8 @@ let domProps
   |> add (React.JSX.int "aria-rowindex" "aria-rowindex") ariaRowindex
   |> add (React.JSX.int "aria-rowspan" "aria-rowspan") ariaRowspan
   |> add (React.JSX.int "aria-setsize" "aria-setsize") ariaSetsize
-  |> add (React.JSX.bool "checked" "defaultChecked") defaultChecked
-  |> add (React.JSX.string "value" "defaultValue") defaultValue
+  |> add (React.JSX.bool "defaultChecked" "defaultChecked") defaultChecked
+  |> add (React.JSX.string "defaultValue" "defaultValue") defaultValue
   |> add (React.JSX.string "accesskey" "accessKey") accessKey
   |> add (React.JSX.string "class" "className") className
   |> add (booleanish_string "contenteditable" "contentEditable") contentEditable

@@ -41,13 +41,9 @@ const sleep = (seconds) =>
  */
 
 function App() {
-	return (
-		<style
-			dangerouslySetInnerHTML={{
-				__html: "lola",
-			}}
-		/>
-	);
+	let value = "asdfasdf";
+	let onChange = () => {};
+	return <input id="sidebar-search-input" placeholder="Search" value={value} />;
 }
 
 const { pipe } = renderToPipeableStream(<App />);

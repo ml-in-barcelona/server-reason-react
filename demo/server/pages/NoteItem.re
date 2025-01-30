@@ -49,7 +49,9 @@ let make = (~selectedId: option(int), ~isEditing: bool) => {
       }
     | Error(error) =>
       <div className="notes-error">
-        {React.string("Couldn't read notes file: " ++ error)}
+        {React.string(
+           "There's an error while reading a single note: " ++ error,
+         )}
       </div>
     };
   };

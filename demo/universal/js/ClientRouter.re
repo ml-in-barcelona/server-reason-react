@@ -13,11 +13,9 @@ let useRouter: unit => t =
         navigate(Router.locationToString(str));
       },
       useAction: (endpoint, method) => {
-        Js.log("useaction!");
         useAction(endpoint, method);
       },
       refresh: str => {
-        Js.log("REFRESHSHSHSSHSHSH!");
         Js.log(str);
       },
     };

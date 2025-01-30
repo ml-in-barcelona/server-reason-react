@@ -105,6 +105,10 @@ let element_with_dangerously_set_inner_html () =
      data-payload='0:[\"$\",\"div\",null,{\"children\":[null],\"dangerouslySetInnerHTML\":{\"__html\":\"<h1>Hello</h1>\"}}]\n\
      '>window.srr_stream.push()</script>"
 
+let input_element_with_value () =
+  let app = React.createElement "input" [ React.JSX.String ("value", "value", "application") ] [] in
+  assert_sync_payload app "0:[\"$\",\"input\",null,{\"value\":\"application\"}]\n"
+
 let upper_case_component () =
   let app =
     React.Upper_case_component
@@ -268,6 +272,7 @@ let tests =
   [
     test "null_element" null_element;
     test "element_with_dangerously_set_inner_html" element_with_dangerously_set_inner_html;
+    test "input_element_with_value" input_element_with_value;
     test "upper_case_component" upper_case_component;
     test "async_component_without_promise" async_component_without_promise;
     test "suspense_without_promise" suspense_without_promise;

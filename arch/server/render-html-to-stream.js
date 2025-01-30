@@ -1,5 +1,5 @@
 import React, { Suspense } from "react";
-import ReactDOM from "react-dom/server";
+import * as ReactDOM from "react-dom/server";
 
 const sleep = (seconds) =>
 	new Promise((res) => setTimeout(res, seconds * 1000));
@@ -90,12 +90,15 @@ const App = () => (
 	);
 }
  */
+
 function App() {
+	let value = "asdfasdf";
 	return (
-		<style
-			dangerouslySetInnerHTML={{
-				__html: "lola",
-			}}
+		<input
+			id="sidebar-search-input"
+			placeholder="Search"
+			defaultValue={"L??"}
+			onChange={() => {}}
 		/>
 	);
 }
