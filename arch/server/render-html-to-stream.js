@@ -79,7 +79,7 @@ const App = () => (
     );
   } */
 
-function App() {
+/* function App() {
 	return (
 		<html>
 			<body>
@@ -89,9 +89,17 @@ function App() {
 		</html>
 	);
 }
+ */
+function App() {
+	return (
+		<style
+			dangerouslySetInnerHTML={{
+				__html: "lola",
+			}}
+		/>
+	);
+}
 
-ReactDOM.renderToReadableStream(<App />, {
-	bootstrapModules: ["/static/demo/client/router.js"],
-}).then((stream) => {
+ReactDOM.renderToReadableStream(<App />, {}).then((stream) => {
 	debug(stream);
 });

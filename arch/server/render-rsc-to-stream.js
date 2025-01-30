@@ -41,15 +41,12 @@ const sleep = (seconds) =>
  */
 
 function App() {
-	/*   let app =
-    React.createElementWithKey ~key:(Some "important key") "section"
-      [ React.JSX.String ("className", "className", "sidebar-header") ]
-      [ React.createElement "strong" [] [ React.string "React Notes" ] ]
-  in */
 	return (
-		<section key="important key" className="sidebar-header">
-			<strong>React Notes</strong>
-		</section>
+		<style
+			dangerouslySetInnerHTML={{
+				__html: "lola",
+			}}
+		/>
 	);
 }
 
