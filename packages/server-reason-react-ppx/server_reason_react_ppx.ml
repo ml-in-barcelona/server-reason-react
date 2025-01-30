@@ -475,7 +475,7 @@ let expand_make_binding binding react_element_variant_wrapping =
 
 let get_labelled_arguments pvb_expr =
   let rec go acc = function
-    | Pexp_fun (label, _default, patt, expr) -> go ((label, patt) :: acc) expr.pexp_desc
+    | Pexp_fun (label, default, patt, expr) -> go ((label, default, patt) :: acc) expr.pexp_desc
     | _ -> acc
   in
   go [] pvb_expr.pexp_desc
@@ -573,9 +573,9 @@ let make_of_json ~loc (core_type : core_type) prop =
   | [%type: [%t? t] Js.Promise.t] -> [%expr ([%e prop] : [%t t] Js.Promise.t)]
   | type_ -> [%expr [%of_json: [%t type_]] [%e prop]]
 
-let props_of_model ~loc (props : (arg_label * pattern) list) : (longident loc * expression) list =
+let props_of_model ~loc (props : (arg_label * expression option * pattern) list) : (longident loc * expression) list =
   List.filter_map
-    ~f:(fun (arg_label, pattern) ->
+    ~f:(fun (arg_label, default, pattern) ->
       match pattern.ppat_desc with
       | Ppat_construct ({ txt = Lident "()"; _ }, None) -> None
       | Ppat_constraint (_, core_type) -> (
@@ -585,7 +585,7 @@ let props_of_model ~loc (props : (arg_label * pattern) list) : (longident loc * 
               let loc = pattern.ppat_loc in
               Some (longident ~loc "error", [%expr [%ocaml.error "props need to be labelled arguments"]])
           | Labelled label | Optional label ->
-              let _name = estring ~loc label in
+              let core_type = match default with Some _ -> [%type: [%t core_type] option] | None -> core_type in
               let prop = [%expr props##[%e ident ~loc label]] in
               let value = make_of_json ~loc core_type prop in
               Some (longident ~loc label, value))
@@ -756,9 +756,9 @@ let make_to_json ~loc (core_type : core_type) prop =
       let json = [%expr [%to_json: [%t core_type]] [%e prop]] in
       [%expr React.Json [%e json]]
 
-let props_to_model ~loc (props : (arg_label * pattern) list) =
+let props_to_model ~loc (props : (arg_label * expression option * pattern) list) =
   List.fold_left ~init:[%expr []]
-    ~f:(fun acc (arg_label, pattern) ->
+    ~f:(fun acc (arg_label, _default, pattern) ->
       match pattern.ppat_desc with
       | Ppat_construct ({ txt = Lident "()"; _ }, None) -> acc
       | Ppat_constraint (_, core_type) -> (
@@ -859,7 +859,7 @@ let rewrite_structure_item_for_js ctx structure_item =
       let fileName =
         if String.ends_with ~suffix:".re.ml" fileName then Filename.chop_extension fileName else fileName
       in
-      (* We need to add a nasty hack here, since have different files for native and melange. We assume that the file structure is native/lib and js, and replace the name directly. This is supposed to be temporal, during dune implements the https://github.com/ocaml/dune/issues/10630 *)
+      (* We need to add a nasty hack here, since have different files for native and melange.Assume that the file structure is native/lib and js, and replace the name directly. This is supposed to be temporal, until dune implements https://github.com/ocaml/dune/issues/10630 *)
       let fileName = Str.replace_first (Str.regexp {|/js/|}) "/native/lib/" fileName in
       let comment = Printf.sprintf "// extract-client %s" fileName in
       let raw = estring ~loc comment in
