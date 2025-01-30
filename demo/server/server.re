@@ -1,7 +1,7 @@
 let server =
   Dream.logger(
     Dream.router([
-      Dream.get("/", Home.handler),
+      Dream.get("/", Pages.Home.handler),
       Dream.get(
         "/static/**",
         Dream.static("./_build/default/demo/client/app"),
@@ -24,10 +24,13 @@ let server =
           ),
         )
       ),
-      Dream.get(Router.demoRenderToStream, Comments.handler),
-      Dream.get(Router.demoCreateFromFetch, ServerOnlyRSC.handler),
-      Dream.get(Router.demoCreateFromReadableStream, SinglePageRSC.handler),
-      Dream.get(Router.demoRouter, RouterRSC.handler),
+      Dream.get(Router.demoRenderToStream, Pages.Comments.handler),
+      Dream.get(Router.demoCreateFromFetch, Pages.ServerOnlyRSC.handler),
+      Dream.get(
+        Router.demoCreateFromReadableStream,
+        Pages.SinglePageRSC.handler,
+      ),
+      Dream.get(Router.demoRouter, Pages.RouterRSC.handler),
     ]),
   );
 
