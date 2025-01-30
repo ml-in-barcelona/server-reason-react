@@ -2,6 +2,8 @@
 
 open Ppx_deriving_json_runtime.Primitives;
 
+external alert: string => unit = "window.alert";
+
 [@react.client.component]
 let make =
     (~noteId: option(int), ~initialTitle: string, ~initialBody: string) => {
@@ -86,7 +88,7 @@ let make =
         <button
           className=Theme.button
           disabled={isSaving || isNavigating}
-          onClick={_ => handleSave()}
+          onClick={_ => alert("Actions aren't implemented yet")}
           role="menuitem">
           {React.string("Done")}
         </button>
@@ -94,7 +96,7 @@ let make =
            ? <button
                className=Theme.button
                disabled={isDeleting || isNavigating}
-               onClick={_ => handleDelete()}
+               onClick={_ => alert("Actions aren't implemented yet")}
                role="menuitem">
                {React.string("Delete")}
              </button>
