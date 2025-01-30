@@ -3,7 +3,12 @@ open Lwt.Syntax;
 let readFile = file => {
   let (/) = Filename.concat;
   let path = Sys.getcwd() / "demo" / "server" / "db" / file;
-  Lwt_io.with_file(~mode=Lwt_io.Input, path, Lwt_io.read);
+  switch%lwt (Lwt_io.with_file(~mode=Lwt_io.Input, path, Lwt_io.read)) {
+  | v => Lwt_result.return(v)
+  | exception e =>
+    Dream.log("Error reading file %s: %s", path, Printexc.to_string(e));
+    Lwt.return_error(e);
+  };
 };
 
 let parseNotes = json => {
@@ -53,9 +58,10 @@ let readNotes = () => {
   | Some(Error(e)) => Lwt_result.fail(e)
   | None =>
     switch%lwt (readFile("./notes.json")) {
-    | json =>
+    | Ok(json) =>
       Cache.set(parseNotes(json));
       Lwt_result.lift(parseNotes(json));
+    | Error(e) => Lwt.return_error("Error reading notes file")
     }
   /* When something fails, treat it as an empty note db */
   | exception _error => Lwt.return_ok([])
@@ -63,17 +69,21 @@ let readNotes = () => {
 };
 
 let findOne = (notes, id) => {
-  notes |> List.find((note: Note.t) => note.id == id);
+  switch (notes |> List.find_opt((note: Note.t) => note.id == id)) {
+  | Some(note) => Lwt_result.return(note)
+  | None =>
+    Lwt_result.fail("Note with id " ++ Int.to_string(id) ++ " not found")
+  };
 };
 
 let fetchNote = id => {
   switch (Cache.read()) {
-  | Some(Ok(notes)) => findOne(notes, id) |> Lwt_result.return
+  | Some(Ok(notes)) => findOne(notes, id)
   | Some(Error(e)) => Lwt_result.fail(e)
   | None =>
     let* notes = readNotes();
     switch (notes) {
-    | Ok(notes) => findOne(notes, id) |> Lwt_result.return
+    | Ok(notes) => findOne(notes, id)
     | Error(e) => Lwt_result.fail(e)
     };
   };
