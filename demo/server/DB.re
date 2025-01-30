@@ -1,12 +1,5 @@
 open Lwt.Syntax;
 
-module Cache = {
-  let db_cache = ref(None);
-  let set = value => db_cache := Some(value);
-  let read = () => db_cache^;
-  let delete = () => db_cache := None;
-};
-
 let readFile = file => {
   let (/) = Filename.concat;
   let path = Sys.getcwd() / "demo" / "server" / "db" / file;
@@ -47,11 +40,23 @@ let parseNotes = json => {
   };
 };
 
+module Cache = {
+  let db_cache = ref(None);
+  let set = value => db_cache := Some(value);
+  let read = () => db_cache^;
+  let delete = () => db_cache := None;
+};
+
 let readNotes = () => {
-  switch%lwt (readFile("./notes.json")) {
-  | json =>
-    Cache.set(parseNotes(json));
-    Lwt_result.lift(parseNotes(json));
+  switch (Cache.read()) {
+  | Some(Ok(notes)) => Lwt_result.return(notes)
+  | Some(Error(e)) => Lwt_result.fail(e)
+  | None =>
+    switch%lwt (readFile("./notes.json")) {
+    | json =>
+      Cache.set(parseNotes(json));
+      Lwt_result.lift(parseNotes(json));
+    }
   /* When something fails, treat it as an empty note db */
   | exception _error => Lwt.return_ok([])
   };

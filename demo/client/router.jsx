@@ -70,11 +70,15 @@ if (stream) {
 // and in a React transition, stream in the new page. Once complete, we'll pushState to
 // update the URL in the browser.
 async function navigate(search) {
+	let queryStrings = "?" + search;
+	if (window.location.search === queryStrings) {
+		return;
+	}
 	console.log("navigate", search);
 	let origin = window.location.origin;
 	let pathname = window.location.pathname;
 	console.log("pathname", pathname);
-	let url = new URL(origin + pathname + "?" + search);
+	let url = new URL(origin + pathname + queryStrings);
 	if (abortController != null) {
 		abortController.abort();
 	}

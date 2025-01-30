@@ -9,11 +9,6 @@ let make = (~searchText: string, ~selectedId: option(int), ~isEditing: bool) => 
     RR.useStateValue(searchText == "" ? None : Some(searchText));
   let (isSearching, startSearching) = React.useTransition();
 
-  React.useEffect(() => {
-    Js.log2("searchText", searchText);
-    None;
-  });
-
   let onSubmit = event => {
     React.Event.Form.preventDefault(event);
   };

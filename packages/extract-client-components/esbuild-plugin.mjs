@@ -79,13 +79,13 @@ export function plugin(config) {
 			});
 
 			let webpackRequireMock = `
-window.__webpack_require__ = (id) => {
+window.__webpack_require__ = window.__webpack_require__ || ((id) => {
   const component = window.__client_manifest_map[id];
   if (!component) {
     throw new Error(\`Could not find client component with id: \${id}\`);
   }
   return { __esModule: true, default: component };
-};
+});
 window.__client_manifest_map = window.__client_manifest_map || {};`;
 
 			build.initialOptions.banner = {
