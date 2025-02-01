@@ -107,7 +107,9 @@ let element_with_dangerously_set_inner_html () =
 
 let input_element_with_value () =
   let app = React.createElement "input" [ React.JSX.String ("value", "value", "application") ] [] in
-  assert_sync_payload app "0:[\"$\",\"input\",null,{\"value\":\"application\"}]\n"
+  assert_sync_payload app
+    "<input value=\"application\" /><script data-payload='0:[\"$\",\"input\",null,{\"value\":\"application\"}]\n\
+     '>window.srr_stream.push()</script>"
 
 let upper_case_component () =
   let app =
