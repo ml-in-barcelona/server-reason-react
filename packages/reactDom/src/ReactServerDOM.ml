@@ -108,9 +108,10 @@ module Model = struct
       | Fragment children -> to_payload children
       | List children -> `List (Array.map to_payload children |> Array.to_list)
       | InnerHtml _text ->
-          (* TODO: Don't have failwith *)
-          failwith
-            "It does not exist in RSC, this is a bug in server-reason-react or a wrong construction of JSX manually"
+          raise
+            (Invalid_argument
+               "InnerHtml does not exist in RSC, this is a bug in server-reason-react.ppx or a wrong construction of \
+                JSX manually")
       | Upper_case_component component ->
           let element = component () in
           (* Instead of returning the payload directly, we push it, and return a reference to it.
@@ -274,8 +275,9 @@ let rec client_to_html ~fiber (element : React.element) =
       wait_for_suspense_to_resolve ()
   | Async_component _component ->
       (* async components can't be interleaved in client components, for now *)
-      (* TODO: Remove failwith *)
-      failwith "async components can't be part of a client component. This should never raise, the ppx should catch it"
+      raise
+        (Invalid_argument
+           "async components can't be part of a client component. This should never raise, the ppx should catch it")
   | Suspense { key = _; children; fallback } ->
       (* TODO: Do we need to care if there's Any_promise raising ? *)
       let%lwt fallback = client_to_html ~fiber fallback in
