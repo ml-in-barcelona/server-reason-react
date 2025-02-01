@@ -111,13 +111,24 @@
         ),
       ],
       client:
-        React.createElement(
+        React.createElementWithKey(
+          ~key=None,
           "section",
           [],
           [
-            React.createElement("h1", [], [React.string(lola.name)]),
-            React.createElement("p", [], [React.int(initial)]),
-            React.createElement("div", [], [children]),
+            React.createElementWithKey(
+              ~key=None,
+              "h1",
+              [],
+              [React.string(lola.name)],
+            ),
+            React.createElementWithKey(
+              ~key=None,
+              "p",
+              [],
+              [React.int(initial)],
+            ),
+            React.createElementWithKey(~key=None, "div", [], [children]),
             switch (maybe_children) {
             | Some(children) => children
             | None => React.null

@@ -12,5 +12,5 @@ We need to output ML syntax here, otherwise refmt could not parse it.
       React.Upper_case_component
         (fun () ->
           print_endline "This function should be named `Test$Func`" M.x;
-          React.createElement "div" [] [])
+          React.createElementWithKey ~key:None "div" [] [])
   end

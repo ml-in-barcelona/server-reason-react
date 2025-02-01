@@ -4,7 +4,9 @@
   end = struct
     let make ?key:(_ : string option) ?(mockup : string option) () =
       React.Upper_case_component
-        (fun () -> React.createElement "button" [] [ React.string "Hello!" ])
+        (fun () ->
+          React.createElementWithKey ~key:None "button" []
+            [ React.string "Hello!" ])
   end
   
   module MyPropIsOptionOptionBoolLetWithValSig : sig

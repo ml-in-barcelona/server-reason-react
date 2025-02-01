@@ -16,6 +16,7 @@ val renderToStream : ?pipe:(string -> unit Lwt.t) -> React.element -> (string Lw
     Similar to {:https://react.dev/reference/react-dom/server/renderToPipeableStream} *)
 
 val attribute_to_html : React.JSX.prop -> Html.attribute
+val moveDangerouslyInnerHtmlAsChildren : React.JSX.prop list -> React.element list -> React.element list
 
 (** {2: The rest of the API is there for compatibility with ReactDOM's reason-react} *)
 

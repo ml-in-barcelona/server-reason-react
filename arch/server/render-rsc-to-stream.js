@@ -3,7 +3,11 @@ import { renderToPipeableStream } from "react-server-dom-webpack/server";
 
 const DefferedComponent = async ({ sleep, children }) => {
 	await new Promise((res) => setTimeout(() => res(), sleep * 1000));
-	return <span>Sleep {sleep}s, {children}</span>;
+	return (
+		<span>
+			Sleep {sleep}s, {children}
+		</span>
+	);
 };
 
 const decoder = new TextDecoder();
@@ -25,7 +29,7 @@ const debug = (readableStream) => {
 const sleep = (seconds) =>
 	new Promise((res) => setTimeout(res, seconds * 1000));
 
-const App = () => (
+/* const App = () => (
 	<React.Suspense fallback="Fallback 1">
 		<DefferedComponent sleep={1}>
 			<React.Suspense fallback="Fallback 2">
@@ -34,6 +38,13 @@ const App = () => (
 		</DefferedComponent>
 	</React.Suspense>
 );
+ */
+
+function App() {
+	let value = "asdfasdf";
+	let onChange = () => {};
+	return <input id="sidebar-search-input" placeholder="Search" value={value} />;
+}
 
 const { pipe } = renderToPipeableStream(<App />);
 

@@ -1,5 +1,5 @@
 import React, { Suspense } from "react";
-import ReactDOM from "react-dom/server";
+import * as ReactDOM from "react-dom/server";
 
 const sleep = (seconds) =>
 	new Promise((res) => setTimeout(res, seconds * 1000));
@@ -61,7 +61,7 @@ const App = () => (
 	</React.Suspense>
 ); */
 
-function App() {
+/* function App() {
     return React.createElement(
       Suspense,
       { fallback: "Fallback 1" },
@@ -77,8 +77,32 @@ function App() {
         )
       )
     );
-  }
+  } */
 
-ReactDOM.renderToReadableStream(<App />).then((stream) => {
+/* function App() {
+	return (
+		<html>
+			<body>
+				<head>"asdf"</head>
+				<div key="33">lol</div>
+			</body>
+		</html>
+	);
+}
+ */
+
+function App() {
+	let value = "asdfasdf";
+	return (
+		<input
+			id="sidebar-search-input"
+			placeholder="Search"
+			defaultValue={"L??"}
+			onChange={() => {}}
+		/>
+	);
+}
+
+ReactDOM.renderToReadableStream(<App />, {}).then((stream) => {
 	debug(stream);
 });

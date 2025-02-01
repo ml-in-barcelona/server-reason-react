@@ -1,10 +1,10 @@
-;; index.re
+;; hydrate.re
 
 (melange.emit
  (enabled_if
   (= %{profile} dev))
  (target app)
- (modules index)
+ (modules hydrate)
  (module_systems
   (es6 js))
  (libraries melange reason-react melange.dom melange-webapi demo_shared_js)
@@ -19,11 +19,11 @@
   (package server-reason-react)
   (alias_rec melange)
   (:script build.mjs)
-  (:input app/demo/client/index.js)
+  (:input "app/demo/client/Hydrate.js")
   (source_tree node_modules)
   (file package.json)
   (source_tree ../../packages/extract-client-components))
- (target index.js)
+ (target hydrate-static-html.js)
  (action
   (progn
    (run node %{script} %{input} %{target}))))
@@ -58,6 +58,25 @@
   (:script build.mjs)
   (file package.json)
   (source_tree node_modules)
+  (source_tree ../../packages/extract-client-components))
+ (action
+  (progn
+   (run node %{script} %{input} app/demo/client/ --extract=true))))
+
+;; router.jsx
+
+(rule
+ (enabled_if
+  (= %{profile} dev))
+ (alias client)
+ (deps
+  (package server-reason-react)
+  (alias_rec melange)
+  (:input router.jsx)
+  (:script build.mjs)
+  (file package.json)
+  (source_tree node_modules)
+  (source_tree ../../demo/universal/native)
   (source_tree ../../packages/extract-client-components))
  (action
   (progn

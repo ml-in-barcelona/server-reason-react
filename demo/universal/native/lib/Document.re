@@ -1,10 +1,12 @@
-let globalStyles = {js|
+let globalStyles =
+  Printf.sprintf(
+    {js|
   html, body, #root {
     margin: 0;
     padding: 0;
     width: 100vw;
     height: 100vh;
-    background-color: #161615; /* Theme.Color.black; */
+    background-color: %s;
   }
 
   * {
@@ -22,7 +24,9 @@ let globalStyles = {js|
       transform: rotate(360deg);
     }
   }
-|js};
+|js},
+    Theme.Color.gray2,
+  );
 
 [@react.component]
 let make = (~children, ~script=?) => {

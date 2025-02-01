@@ -2,12 +2,13 @@ let assert_string left right = Alcotest.check Alcotest.string "should be equal" 
 let assert_list ty left right = Alcotest.check (Alcotest.list ty) "should be equal" right left
 
 let test title fn =
+  let isCI = match Sys.getenv_opt "CI" with Some _ -> true | None -> false in
   ( Printf.sprintf "ReactDOM.renderToStream / %s" title,
     [
       Alcotest_lwt.test_case "" `Quick (fun _switch () ->
           let start = Unix.gettimeofday () in
           let timeout =
-            let%lwt () = Lwt_unix.sleep 0.30 in
+            let%lwt () = Lwt_unix.sleep (if isCI then 1.0 else 0.3) in
             Alcotest.failf "Test '%s' timed out" title
           in
           let%lwt test_promise = Lwt.pick [ fn (); timeout ] in

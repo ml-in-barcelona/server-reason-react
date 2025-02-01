@@ -95,16 +95,13 @@ let typeof _ = notImplemented "Js" "typeof"
     semantics for comparision which applies to any type *)
 
 (* external unsafe_le : 'a -> 'a -> bool = "#unsafe_le" *)
-(**  [unsafe_le a b] will be compiled as [a <= b].
-     See also {unsafe_lt} *)
+(** [unsafe_le a b] will be compiled as [a <= b]. See also {!unsafe_lt} *)
 
 (* external unsafe_gt : 'a -> 'a -> bool = "#unsafe_gt" *)
-(**  [unsafe_gt a b] will be compiled as [a > b].
-     See also {unsafe_lt} *)
+(** [unsafe_gt a b] will be compiled as [a > b]. See also {!unsafe_lt} *)
 
 (* external unsafe_ge : 'a -> 'a -> bool = "#unsafe_ge" *)
-(**  [unsafe_ge a b] will be compiled as [a >= b].
-     See also {unsafe_lt} *)
+(** [unsafe_ge a b] will be compiled as [a >= b]. See also {!unsafe_lt} *)
 
 (** {12 nested modules}*)
 

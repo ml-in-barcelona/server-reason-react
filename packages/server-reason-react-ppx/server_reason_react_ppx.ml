@@ -130,12 +130,10 @@ let make_prop ~is_optional ~prop attribute_value =
         | None -> None
         | Some v -> Some (React.JSX.String ([%e estring ~loc name], [%e estring ~loc jsxName], string_of_bool v))]
   | Attribute { type_ = DomProps.Style; _ }, false ->
-      [%expr Some (React.JSX.Style (ReactDOM.Style.to_string ([%e attribute_value] : ReactDOM.Style.t)))]
+      [%expr Some (React.JSX.Style ([%e attribute_value] : ReactDOM.Style.t))]
   | Attribute { type_ = DomProps.Style; _ }, true ->
       [%expr
-        match ([%e attribute_value] : ReactDOM.Style.t option) with
-        | None -> None
-        | Some v -> Some (React.JSX.Style (ReactDOM.Style.to_string v))]
+        match ([%e attribute_value] : ReactDOM.Style.t option) with None -> None | Some v -> Some (React.JSX.Style v)]
   | Attribute { type_ = DomProps.Ref; _ }, false -> [%expr Some (React.JSX.Ref ([%e attribute_value] : React.domRef))]
   | Attribute { type_ = DomProps.Ref; _ }, true ->
       [%expr match ([%e attribute_value] : React.domRef option) with None -> None | Some v -> Some (React.JSX.Ref v)]
@@ -317,6 +315,7 @@ let make_prop ~is_optional ~prop attribute_value =
         | Some v -> Some (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Drag v))]
 
 let is_optional = function Optional _ -> true | _ -> false
+let get_label = function Nolabel -> "" | Optional name | Labelled name -> name
 
 let transform_labelled ~loc ~tag_name (prop_label, (runtime_value : expression)) props =
   match prop_label with
@@ -341,12 +340,16 @@ let transform_lowercase_props ~loc ~tag_name args =
 let rewrite_lowercase ~loc:exprLoc tag_name args children =
   let loc = exprLoc in
   let dom_node_name = estring ~loc:exprLoc tag_name in
+  let key_prop =
+    args |> List.find_opt ~f:(fun (label, _) -> get_label label = "key") |> Option.map (fun (_, value) -> value)
+  in
+  let key = match key_prop with None -> [%expr None] | Some key -> [%expr Some [%e key]] in
   let props = transform_lowercase_props ~loc:exprLoc ~tag_name args in
   match children with
   | Some children ->
       let childrens = pexp_list ~loc children in
-      [%expr React.createElement [%e dom_node_name] [%e props] [%e childrens]]
-  | None -> [%expr React.createElement [%e dom_node_name] [%e props] []]
+      [%expr React.createElementWithKey ~key:[%e key] [%e dom_node_name] [%e props] [%e childrens]]
+  | None -> [%expr React.createElementWithKey ~key:[%e key] [%e dom_node_name] [%e props] []]
 
 let split_args args =
   let children = ref (Location.none, []) in
@@ -472,7 +475,7 @@ let expand_make_binding binding react_element_variant_wrapping =
 
 let get_labelled_arguments pvb_expr =
   let rec go acc = function
-    | Pexp_fun (label, _default, patt, expr) -> go ((label, patt) :: acc) expr.pexp_desc
+    | Pexp_fun (label, default, patt, expr) -> go ((label, default, patt) :: acc) expr.pexp_desc
     | _ -> acc
   in
   go [] pvb_expr.pexp_desc
@@ -570,21 +573,22 @@ let make_of_json ~loc (core_type : core_type) prop =
   | [%type: [%t? t] Js.Promise.t] -> [%expr ([%e prop] : [%t t] Js.Promise.t)]
   | type_ -> [%expr [%of_json: [%t type_]] [%e prop]]
 
-let props_of_model ~loc (props : (arg_label * pattern) list) : (longident loc * expression) list =
-  List.map
-    ~f:(fun (arg_label, pattern) ->
+let props_of_model ~loc (props : (arg_label * expression option * pattern) list) : (longident loc * expression) list =
+  List.filter_map
+    ~f:(fun (arg_label, default, pattern) ->
       match pattern.ppat_desc with
+      | Ppat_construct ({ txt = Lident "()"; _ }, None) -> None
       | Ppat_constraint (_, core_type) -> (
           match arg_label with
           | Nolabel ->
               (* This error is raised by reason-react-ppx as well *)
               let loc = pattern.ppat_loc in
-              (longident ~loc "error", [%expr [%ocaml.error "props need to be labelled arguments"]])
+              Some (longident ~loc "error", [%expr [%ocaml.error "props need to be labelled arguments"]])
           | Labelled label | Optional label ->
-              let _name = estring ~loc label in
+              let core_type = match default with Some _ -> [%type: [%t core_type] option] | None -> core_type in
               let prop = [%expr props##[%e ident ~loc label]] in
               let value = make_of_json ~loc core_type prop in
-              (longident ~loc label, value))
+              Some (longident ~loc label, value))
       | _ ->
           let loc = pattern.ppat_loc in
           let expr =
@@ -598,16 +602,20 @@ let props_of_model ~loc (props : (arg_label * pattern) list) : (longident loc * 
                 let msg_expr = estring ~loc msg in
                 [%expr [%ocaml.error [%e msg_expr]]]
           in
-          (longident ~loc "error", expr))
+          Some (longident ~loc "error", expr))
     props
 
 let react_component_attribute ~loc =
   { attr_name = { txt = "react.component"; loc }; attr_payload = PStr []; attr_loc = loc }
 
 let mel_obj ~loc fields =
-  let record = pexp_record ~loc fields None in
-  let stri = pstr_eval ~loc record [] in
-  [%expr [%mel.obj [%%i stri]]]
+  match fields with
+  (* QUESTION: Maybe unit would work here best, for correctness? *)
+  | [] -> [%expr Js.Obj.empty ()]
+  | _ ->
+      let record = pexp_record ~loc fields None in
+      let stri = pstr_eval ~loc record [] in
+      [%expr [%mel.obj [%%i stri]]]
 
 let expand_make_binding_to_client binding =
   let loc = binding.pvb_loc in
@@ -748,10 +756,11 @@ let make_to_json ~loc (core_type : core_type) prop =
       let json = [%expr [%to_json: [%t core_type]] [%e prop]] in
       [%expr React.Json [%e json]]
 
-let props_to_model ~loc (props : (arg_label * pattern) list) =
+let props_to_model ~loc (props : (arg_label * expression option * pattern) list) =
   List.fold_left ~init:[%expr []]
-    ~f:(fun acc (arg_label, pattern) ->
+    ~f:(fun acc (arg_label, _default, pattern) ->
       match pattern.ppat_desc with
+      | Ppat_construct ({ txt = Lident "()"; _ }, None) -> acc
       | Ppat_constraint (_, core_type) -> (
           match arg_label with
           | Nolabel ->
@@ -850,7 +859,7 @@ let rewrite_structure_item_for_js ctx structure_item =
       let fileName =
         if String.ends_with ~suffix:".re.ml" fileName then Filename.chop_extension fileName else fileName
       in
-      (* We need to add a nasty hack here, since have different files for native and melange. We assume that the file structure is native/lib and js, and replace the name directly. This is supposed to be temporal, during dune implements the https://github.com/ocaml/dune/issues/10630 *)
+      (* We need to add a nasty hack here, since have different files for native and melange.Assume that the file structure is native/lib and js, and replace the name directly. This is supposed to be temporal, until dune implements https://github.com/ocaml/dune/issues/10630 *)
       let fileName = Str.replace_first (Str.regexp {|/js/|}) "/native/lib/" fileName in
       let comment = Printf.sprintf "// extract-client %s" fileName in
       let raw = estring ~loc comment in
@@ -946,6 +955,6 @@ let rewrite_jsx =
   end
 
 let () =
-  Driver.add_arg "-js" (Unit (fun () -> mode := Js)) ~doc:"preprocess for js build";
+  Driver.add_arg "-melange" (Unit (fun () -> mode := Js)) ~doc:"preprocess for js build";
   Ppxlib.Driver.V2.register_transformation "server-reason-react.ppx" ~preprocess_impl:rewrite_jsx#structure
     ~preprocess_intf:rewrite_jsx#signature

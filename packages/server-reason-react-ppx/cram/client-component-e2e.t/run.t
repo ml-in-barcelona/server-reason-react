@@ -9,7 +9,7 @@
   > (melange.emit
   >  (target js)
   >  (libraries reason-react)
-  >  (preprocess (pps reason-react-ppx melange.ppx melange-json.ppx server-reason-react.ppx -js)))
+  >  (preprocess (pps reason-react-ppx melange.ppx melange-json.ppx server-reason-react.ppx -melange)))
   > 
   > (rule
   >  (deps (alias melange))
@@ -150,6 +150,7 @@
               (
                 ~initial: int,
                 ~lola: lola,
+                ~default: int=?,
                 ~children: React.element,
                 ~promise: Js.Promise.t(string),
                 ~key: string=?,
@@ -159,11 +160,12 @@
                 .
                 "initial": int,
                 "lola": lola,
+                "default": option(int),
                 "children": React.element,
                 "promise": Js.Promise.t(string),
               } =
               ""
-              "\132\149\166\190\000\000\000=\000\000\000\023\000\000\000@\000\000\000<\145\160\160A\144'initial\160\160A\144$lola\160\160A\144(children\160\160A\144'promise\160\160A\161#key@\160\160@@@";
+              "\132\149\166\190\000\000\000J\000\000\000\027\000\000\000L\000\000\000G\145\160\160A\144'initial\160\160A\144$lola\160\160A\161'default@\160\160A\144(children\160\160A\144'promise\160\160A\161#key@\160\160@@@";
             let make =
               [@warning "-16"]
               (
@@ -173,40 +175,67 @@
                     (~lola: lola) =>
                       [@warning "-16"]
                       (
-                        (~children: React.element) =>
+                        (~default: int=23) =>
                           [@warning "-16"]
                           (
-                            (~promise: Js.Promise.t(string)) => {
-                              let value =
-                                [@ocaml.warning "-ignored-extra-argument"]
-                                [@ocaml.warning "-ignored-extra-argument"]
-                                React.Experimental.use(promise);
-                              [@ocaml.warning "-ignored-extra-argument"]
-                              [@ocaml.warning "-ignored-extra-argument"]
-                              ReactDOM.jsxs(
-                                "div",
-                                [@ocaml.warning "-ignored-extra-argument"]
-                                [@ocaml.warning "-ignored-extra-argument"]
-                                ([@merlin.hide] ReactDOM.domProps)(
-                                  ~children=
+                            (~children: React.element) =>
+                              [@warning "-16"]
+                              (
+                                (~promise: Js.Promise.t(string)) => {
+                                  let value =
                                     [@ocaml.warning "-ignored-extra-argument"]
                                     [@ocaml.warning "-ignored-extra-argument"]
-                                    React.array([|
-                                      [@ocaml.warning "-ignored-extra-argument"]
-                                      [@ocaml.warning "-ignored-extra-argument"]
-                                      React.string(lola.name),
-                                      [@ocaml.warning "-ignored-extra-argument"]
-                                      [@ocaml.warning "-ignored-extra-argument"]
-                                      React.int(initial),
-                                      children,
-                                      [@ocaml.warning "-ignored-extra-argument"]
-                                      [@ocaml.warning "-ignored-extra-argument"]
-                                      React.string(value),
-                                    |]),
-                                  (),
-                                ),
-                              );
-                            }
+                                    React.Experimental.use(promise);
+                                  [@ocaml.warning "-ignored-extra-argument"]
+                                  [@ocaml.warning "-ignored-extra-argument"]
+                                  ReactDOM.jsxs(
+                                    "div",
+                                    [@ocaml.warning "-ignored-extra-argument"]
+                                    [@ocaml.warning "-ignored-extra-argument"]
+                                    ([@merlin.hide] ReactDOM.domProps)(
+                                      ~children=
+                                        [@ocaml.warning
+                                          "-ignored-extra-argument"
+                                        ]
+                                        [@ocaml.warning
+                                          "-ignored-extra-argument"
+                                        ]
+                                        React.array([|
+                                          [@ocaml.warning
+                                            "-ignored-extra-argument"
+                                          ]
+                                          [@ocaml.warning
+                                            "-ignored-extra-argument"
+                                          ]
+                                          React.string(lola.name),
+                                          [@ocaml.warning
+                                            "-ignored-extra-argument"
+                                          ]
+                                          [@ocaml.warning
+                                            "-ignored-extra-argument"
+                                          ]
+                                          React.int(initial),
+                                          [@ocaml.warning
+                                            "-ignored-extra-argument"
+                                          ]
+                                          [@ocaml.warning
+                                            "-ignored-extra-argument"
+                                          ]
+                                          React.int(default),
+                                          children,
+                                          [@ocaml.warning
+                                            "-ignored-extra-argument"
+                                          ]
+                                          [@ocaml.warning
+                                            "-ignored-extra-argument"
+                                          ]
+                                          React.string(value),
+                                        |]),
+                                      (),
+                                    ),
+                                  );
+                                }
+                              )
                           )
                       )
                   )
@@ -218,6 +247,7 @@
                       .
                       "initial": int,
                       "lola": lola,
+                      "default": option(int),
                       "children": React.element,
                       "promise": Js.Promise.t(string),
                     },
@@ -237,6 +267,12 @@
                       Js.Private.Js_OO.unsafe_downgrade(Props)
                     )#
                       children,
+                  ~default=?
+                    (
+                      [@ocaml.warning "-ignored-extra-argument"]
+                      Js.Private.Js_OO.unsafe_downgrade(Props)
+                    )#
+                      default,
                   ~lola=
                     (
                       [@ocaml.warning "-ignored-extra-argument"]
@@ -264,18 +300,20 @@
                       (
                         ~promise: 'a0,
                         ~children: 'a1,
-                        ~lola: 'a2,
-                        ~initial: 'a3
+                        ~default: 'a2,
+                        ~lola: 'a3,
+                        ~initial: 'a4
                       ) =>
                       {
                         .
                         "promise": 'a0,
                         "children": 'a1,
-                        "lola": 'a2,
-                        "initial": 'a3,
+                        "default": 'a2,
+                        "lola": 'a3,
+                        "initial": 'a4,
                       } =
                       ""
-                      "\132\149\166\190\000\000\0000\000\000\000\017\000\000\000/\000\000\000+\145\160\160A\144'promise\160\160A\144(children\160\160A\144$lola\160\160A\144'initial@";
+                      "\132\149\166\190\000\000\000<\000\000\000\021\000\000\000:\000\000\0005\145\160\160A\144'promise\160\160A\144(children\160\160A\144'default\160\160A\144$lola\160\160A\144'initial@";
                   };
                   [@ocaml.warning "-ignored-extra-argument"]
                   [@ocaml.warning "-ignored-extra-argument"]
@@ -290,6 +328,20 @@
                                 Js.Private.Js_OO.unsafe_downgrade(props)
                               )#
                                 children: React.element,
+                    ~default=
+                      [@ocaml.warning "-ignored-extra-argument"]
+                      [@ocaml.warning "-ignored-extra-argument"]
+                      (
+                        [@ocaml.warning "-ignored-extra-argument"]
+                        [@ocaml.warning "-ignored-extra-argument"]
+                        option_of_json(int_of_json)
+                      )(
+                        (
+                          [@ocaml.warning "-ignored-extra-argument"]
+                          Js.Private.Js_OO.unsafe_downgrade(props)
+                        )#
+                          default,
+                      ),
                     ~lola=
                       [@ocaml.warning "-ignored-extra-argument"]
                       [@ocaml.warning "-ignored-extra-argument"]
@@ -346,13 +398,16 @@
   function Input(Props) {
     var initial = Props.initial;
     var lola = Props.lola;
+    var defaultOpt = Props.default;
     var children = Props.children;
     var promise = Props.promise;
+    var $$default = defaultOpt !== undefined ? defaultOpt : 23;
     var value = React.use(promise);
     return JsxRuntime.jsxs("div", {
                 children: [
                   lola.name,
                   initial,
+                  $$default,
                   children,
                   value
                 ]
@@ -363,6 +418,7 @@
     return Input({
                 promise: props.promise,
                 children: props.children,
+                default: Ppx_deriving_json_runtime.Primitives.option_of_json(Ppx_deriving_json_runtime.Primitives.int_of_json, props.default),
                 lola: lola_of_json(props.lola),
                 initial: Ppx_deriving_json_runtime.Primitives.int_of_json(props.initial)
               });
@@ -377,8 +433,8 @@
   /* react Not a pure module */
 
   $ cat _build/default/boostrap.js
-  const React = require("react");
+  import React from "react";
   window.__client_manifest_map = window.__client_manifest_map || {};
   window.__client_manifest_map["input.re"] = React.lazy(() => import("$TESTCASE_ROOT/_build/default/js/input.js").then(module => {
     return { default: module.make_client }
-  }))
+  }).catch(err => { console.error(err); return { default: null }; }))

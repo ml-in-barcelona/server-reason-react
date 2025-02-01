@@ -1,15 +1,21 @@
+let defaultSize = Text.Medium;
+
 module Base = {
   [@react.component]
-  let make = (~href, ~children) => {
+  let make = (~size, ~color, ~href, ~children, ~underline, ~target=?) => {
     <a
       href
-      onClick={_e => print_endline("clicked")}
+      ?target
       className={Cx.make([
-        "font-medium",
-        "flex",
-        "items-center",
-        Theme.text(Theme.Color.white),
-        Theme.hover(["underline", Theme.text(Theme.Color.brokenWhite)]),
+        Text.size_to_string(size),
+        "inline-flex items-center",
+        underline ? "underline" : "",
+        "transition-colors duration-250 ease-out",
+        Theme.text(color),
+        Theme.hover([
+          Theme.text(Theme.Color.oneScaleUp(color)),
+          underline ? "underline" : "",
+        ]),
       ])}>
       children
     </a>;
@@ -18,14 +24,33 @@ module Base = {
 
 module Text = {
   [@react.component]
-  let make = (~href, ~children) => {
-    <Base href> {React.string(children)} </Base>;
+  let make =
+      (
+        ~color=Theme.Color.Gray13,
+        ~size=defaultSize,
+        ~href,
+        ~children,
+        ~target=?,
+      ) => {
+    <Base size href color ?target underline=true>
+      {React.string(children)}
+    </Base>;
   };
 };
 
 module WithArrow = {
   [@react.component]
-  let make = (~href, ~children) => {
-    <Base href> {React.string(children)} <Arrow /> </Base>;
+  let make =
+      (
+        ~color=Theme.Color.Gray13,
+        ~size=defaultSize,
+        ~href,
+        ~children,
+        ~target=?,
+      ) => {
+    <Base size href color ?target underline=false>
+      {React.string(children)}
+      <Arrow />
+    </Base>;
   };
 };

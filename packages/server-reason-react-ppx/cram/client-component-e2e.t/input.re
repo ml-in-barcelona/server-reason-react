@@ -8,6 +8,7 @@ let make =
     (
       ~initial: int,
       ~lola: lola,
+      ~default: int=23,
       ~children: React.element,
       ~promise: Js.Promise.t(string),
     ) => {
@@ -15,6 +16,7 @@ let make =
   <div>
     {React.string(lola.name)}
     {React.int(initial)}
+    {React.int(default)}
     children
     {React.string(value)}
   </div>;
