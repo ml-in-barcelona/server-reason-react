@@ -7,39 +7,35 @@ let readFile = file => {
   | v => Lwt_result.return(v)
   | exception e =>
     Dream.log("Error reading file %s: %s", path, Printexc.to_string(e));
-    Lwt.return_error(e);
+    Lwt.return_error(Printexc.to_string(e));
   };
 };
 
+let parseNote = (note: Yojson.Safe.t): option(Note.t) =>
+  switch (note) {
+  | `Assoc(fields) =>
+    let id =
+      fields |> List.assoc("id") |> Yojson.Safe.to_string |> int_of_string;
+    let title = fields |> List.assoc("title") |> Yojson.Safe.Util.to_string;
+    let content =
+      fields |> List.assoc("content") |> Yojson.Safe.Util.to_string;
+    let updated_at =
+      fields
+      |> List.assoc("updated_at")
+      |> Yojson.Safe.to_string
+      |> float_of_string;
+    Some({
+      id,
+      title,
+      content,
+      updated_at,
+    });
+  | _ => None
+  };
+
 let parseNotes = json => {
   switch (Yojson.Safe.from_string(json)) {
-  | `List(notes) =>
-    notes
-    |> List.filter_map(note =>
-         switch (note) {
-         | `Assoc(fields) =>
-           Some(
-             {
-               id:
-                 fields
-                 |> List.assoc("id")
-                 |> Yojson.Safe.to_string
-                 |> int_of_string,
-               title:
-                 fields |> List.assoc("title") |> Yojson.Safe.Util.to_string,
-               content:
-                 fields |> List.assoc("content") |> Yojson.Safe.Util.to_string,
-               updated_at:
-                 fields
-                 |> List.assoc("updated_at")
-                 |> Yojson.Safe.to_string
-                 |> float_of_string,
-             }: Note.t,
-           )
-         | _ => None
-         }
-       )
-    |> Result.ok
+  | `List(notes) => notes |> List.filter_map(parseNote) |> Result.ok
   | _ => Result.error("Invalid notes file format")
   | exception _ => Result.error("Invalid JSON format format")
   };
