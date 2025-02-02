@@ -7,7 +7,7 @@
   > (melange.emit
   >  (target js)
   >  (libraries reason-react melange-json)
-  >  (preprocess (pps melange.ppx melange-json.ppx server-reason-react.ppx -js)))
+  >  (preprocess (pps melange.ppx melange-json.ppx server-reason-react.ppx -melange)))
   > EOF
 
   $ dune describe pp input.re

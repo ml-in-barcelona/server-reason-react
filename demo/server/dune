@@ -1,7 +1,9 @@
+(include_subdirs qualified)
+
 (executable
- (name server)
  (enabled_if
   (= %{profile} "dev"))
+ (name server)
  (libraries
   dream
   demo_shared_native
@@ -10,6 +12,7 @@
   html
   js
   lwt.unix
+  str
   unix
   belt
   yojson)

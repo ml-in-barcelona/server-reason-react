@@ -2,4 +2,9 @@
  (name react)
  (wrapped false)
  (public_name server-reason-react.react)
- (libraries js html lwt yojson server-reason-react.dom))
+ (libraries
+  server-reason-react.js
+  server-reason-react.html
+  server-reason-react.dom
+  lwt
+  yojson))

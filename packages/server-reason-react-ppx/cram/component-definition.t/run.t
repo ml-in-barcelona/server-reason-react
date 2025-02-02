@@ -4,7 +4,8 @@ We need to output ML syntax here, otherwise refmt could not parse it.
   module React_component_with_props = struct
     let make ?key:(_ : string option) ~lola () =
       React.Upper_case_component
-        (fun () -> React.createElement "div" [] [ React.string lola ])
+        (fun () ->
+          React.createElementWithKey ~key:None "div" [] [ React.string lola ])
   end
   
   let react_component_with_props =
@@ -14,7 +15,7 @@ We need to output ML syntax here, otherwise refmt could not parse it.
     let make ?key:(_ : string option) ~children ~buttonRef () =
       React.Upper_case_component
         (fun () ->
-          React.createElement "button"
+          React.createElementWithKey ~key:None "button"
             (Stdlib.List.filter_map Fun.id
                [
                  Some (React.JSX.Ref (buttonRef : React.domRef));
@@ -30,7 +31,7 @@ We need to output ML syntax here, otherwise refmt could not parse it.
       React.Upper_case_component
         (fun () ->
           let onClick event = Js.log event in
-          React.createElement "button"
+          React.createElementWithKey ~key:None "button"
             (Stdlib.List.filter_map Fun.id
                [
                  Some (React.JSX.String ("name", "name", (name : string)));
@@ -49,7 +50,7 @@ We need to output ML syntax here, otherwise refmt could not parse it.
     let make ?key:(_ : string option) ?(name = "joe") () =
       React.Upper_case_component
         (fun () ->
-          React.createElement "div" []
+          React.createElementWithKey ~key:None "div" []
             [ Printf.sprintf "`name` is %s" name |> React.string ])
   end
   
@@ -60,20 +61,20 @@ We need to output ML syntax here, otherwise refmt could not parse it.
     let make ?key:(_ : string option) ~children ~moreProps () =
       React.Upper_case_component
         (fun () ->
-          React.createElement "html" []
+          React.createElementWithKey ~key:None "html" []
             [
-              React.createElement "head" []
+              React.createElementWithKey ~key:None "head" []
                 [
-                  React.createElement "title" []
+                  React.createElementWithKey ~key:None "title" []
                     [ React.string ("SSR React " ^ moreProps) ];
                 ];
-              React.createElement "body" []
+              React.createElementWithKey ~key:None "body" []
                 [
-                  React.createElement "div"
+                  React.createElementWithKey ~key:None "div"
                     (Stdlib.List.filter_map Fun.id
                        [ Some (React.JSX.String ("id", "id", ("root" : string))) ])
                     [ children ];
-                  React.createElement "script"
+                  React.createElementWithKey ~key:None "script"
                     (Stdlib.List.filter_map Fun.id
                        [
                          Some
@@ -89,7 +90,7 @@ We need to output ML syntax here, otherwise refmt could not parse it.
     let make ?key:(_ : string option) ~children () =
       React.Upper_case_component
         (fun () ->
-          React.createElement "div"
+          React.createElementWithKey ~key:None "div"
             (Stdlib.List.filter_map Fun.id
                [
                  Some
@@ -105,25 +106,29 @@ We need to output ML syntax here, otherwise refmt could not parse it.
     let make ?key:(_ : string option) ~children () =
       React.Upper_case_component
         (fun () ->
-          React.createElement "form"
+          React.createElementWithKey ~key:None "form"
             (Stdlib.List.filter_map Fun.id
                [ Some (React.JSX.String ("method", "method", ("GET" : string))) ])
             [ children ])
   end
   
-  let a = Uppercase.make ~children:(React.createElement "div" [] []) ()
+  let a =
+    Uppercase.make ~children:(React.createElementWithKey ~key:None "div" [] []) ()
   
   module Async_component = struct
     let make ?key:(_ : string option) ~children () =
       React.Async_component
         (fun () ->
-          React.createElement "form"
+          React.createElementWithKey ~key:None "form"
             (Stdlib.List.filter_map Fun.id
                [ Some (React.JSX.String ("method", "method", ("GET" : string))) ])
             [ children ])
   end
   
-  let a = Async_component.make ~children:(React.createElement "div" [] []) ()
+  let a =
+    Async_component.make
+      ~children:(React.createElementWithKey ~key:None "div" [] [])
+      ()
   
   module Sequence = struct
     let make ?key:(_ : string option) ~lola () =
@@ -133,7 +138,7 @@ We need to output ML syntax here, otherwise refmt could not parse it.
           React.useEffect (fun () ->
               setState lola;
               None);
-          React.createElement "div" [] [ React.string state ])
+          React.createElementWithKey ~key:None "div" [] [ React.string state ])
   end
   
   module Use_context = struct
@@ -141,5 +146,5 @@ We need to output ML syntax here, otherwise refmt could not parse it.
       React.Upper_case_component
         (fun () ->
           let captured = React.useContext Context.value in
-          React.createElement "div" [] [ React.string captured ])
+          React.createElementWithKey ~key:None "div" [] [ React.string captured ])
   end

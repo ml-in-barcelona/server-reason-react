@@ -5,4 +5,4 @@
   (names stubs))
  (flags :standard -w -A)
  (public_name server-reason-react.belt)
- (libraries js))
+ (libraries server-reason-react.js))

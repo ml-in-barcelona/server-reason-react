@@ -2,10 +2,24 @@
 
 (library
  (name demo_shared_native)
- (libraries react reactDOM js belt dom webapi yojson lwt)
+ (libraries
+  react
+  reactDOM
+  js
+  belt
+  dom
+  webapi
+  melange-fetch
+  yojson
+  unix
+  dream
+  url_native
+  lwt
+  lwt.unix)
  (wrapped false)
  (preprocess
   (pps
+   lwt_ppx
    melange_native_ppx
    server_reason_react_ppx
    browser_ppx

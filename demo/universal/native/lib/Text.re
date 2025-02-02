@@ -7,11 +7,21 @@ type size =
   | XXLarge
   | XXXLarge;
 
+let size_to_string = size =>
+  switch (size) {
+  | XSmall => "text-xs"
+  | Small => "text-sm"
+  | Medium => "text-base"
+  | Large => "text-lg"
+  | XLarge => "text-xl"
+  | XXLarge => "text-2xl"
+  | XXXLarge => "text-3xl"
+  };
+
 type weight =
   | Thin
   | Light
   | Regular
-  | Medium
   | Semibold
   | Bold
   | Extrabold
@@ -26,29 +36,21 @@ type align =
 [@react.component]
 let make =
     (
-      ~color,
+      ~color=Theme.Color.Gray12,
       ~size: size=Small,
       ~weight: weight=Regular,
       ~align=Left,
       ~children,
+      ~role=?,
     ) => {
   let className =
     Cx.make([
       Theme.text(color),
-      switch (size) {
-      | XSmall => "text-xs"
-      | Small => "text-sm"
-      | Medium => "text-base"
-      | Large => "text-lg"
-      | XLarge => "text-xl"
-      | XXLarge => "text-2xl"
-      | XXXLarge => "text-3xl"
-      },
+      size_to_string(size),
       switch (weight) {
       | Thin => "font-thin"
       | Light => "font-light"
       | Regular => "font-normal"
-      | Medium => "font-medium"
       | Semibold => "font-semibold"
       | Bold => "font-bold"
       | Extrabold => "font-extrabold"
@@ -62,5 +64,5 @@ let make =
       },
     ]);
 
-  <span className> {React.string(children)} </span>;
+  <span className ?role> {React.string(children)} </span>;
 };

@@ -59,7 +59,8 @@
             ]),
           );
   
-        React.createElement(
+        React.createElementWithKey(
+          ~key=None,
           "div",
           Stdlib.List.filter_map(
             Fun.id,

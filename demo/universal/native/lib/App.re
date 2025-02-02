@@ -6,7 +6,7 @@ module Hr = {
         "block",
         "w-full",
         "h-px",
-        Theme.background("slate-400"),
+        Theme.background(Theme.Color.Gray4),
       ])}
     />;
   };
@@ -46,19 +46,9 @@ module Title = {
         {React.array(
            Belt.Array.mapWithIndex(data, (key, item) =>
              <div className={Cx.make(["block"])} key={Int.to_string(key)}>
-               <a
-                 href={item.link}
-                 target="_blank"
-                 className={Cx.make([
-                   "underline transition duration-100 ease-in-out hover:decoration-inherit",
-                   Theme.text(Theme.Color.white),
-                   Theme.hover([
-                     "underline",
-                     Theme.text(Theme.Color.brokenWhite),
-                   ]),
-                 ])}>
-                 {React.string(item.label)}
-               </a>
+               <Link.Text href={item.link} target="_blank">
+                 {item.label}
+               </Link.Text>
              </div>
            ),
          )}
@@ -68,16 +58,24 @@ module Title = {
 
   [@react.component]
   let make = () => {
-    <div className={Cx.make([Theme.text(Theme.Color.white), "text-xl"])}>
+    <section>
       <Spacer bottom=4>
-        <h1 className={Cx.make(["m-0", "text-5xl", "font-bold"])}>
+        <h1
+          className={Cx.make([
+            "m-0",
+            "text-5xl",
+            "font-bold",
+            Theme.text(Theme.Color.Gray13),
+          ])}>
           {React.string("Server Reason React")}
         </h1>
       </Spacer>
       <Menu />
-    </div>;
+    </section>;
   };
 };
+
+[@warning "-26-27-32"];
 
 [@react.component]
 let make = () => {
@@ -86,7 +84,15 @@ let make = () => {
     None;
   });
 
-  <Layout background=Theme.Color.black>
+  let (title, setTitle) = RR.useStateValue("Server Reason React");
+
+  let%browser_only onChangeTitle = e => {
+    let value = React.Event.Form.target(e)##value;
+    setTitle(value);
+  };
+
+  <DemoLayout background=Theme.Color.Gray2>
     <Stack gap=8 justify=`start> <Title /> </Stack>
-  </Layout>;
+    <InputText value=title onChange=onChangeTitle />
+  </DemoLayout>;
 };

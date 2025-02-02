@@ -1,7 +1,8 @@
   $ ../ppx.sh --output re input.re
-  let lower = React.createElement("div", [], []);
+  let lower = React.createElementWithKey(~key=None, "div", [], []);
   let lower_empty_attr =
-    React.createElement(
+    React.createElementWithKey(
+      ~key=None,
       "div",
       Stdlib.List.filter_map(
         Fun.id,
@@ -15,16 +16,15 @@
       [],
     );
   let lower_inline_styles =
-    React.createElement(
+    React.createElementWithKey(
+      ~key=None,
       "div",
       Stdlib.List.filter_map(
         Fun.id,
         [
           Some(
             React.JSX.Style(
-              ReactDOM.Style.to_string(
-                ReactDOM.Style.make(~backgroundColor="gainsboro", ()): ReactDOM.Style.t,
-              ),
+              ReactDOM.Style.make(~backgroundColor="gainsboro", ()): ReactDOM.Style.t,
             ),
           ),
         ],
@@ -32,7 +32,8 @@
       [],
     );
   let lower_inner_html =
-    React.createElement(
+    React.createElementWithKey(
+      ~key=None,
       "div",
       Stdlib.List.filter_map(
         Fun.id,
@@ -41,7 +42,8 @@
       [],
     );
   let lower_opt_attr =
-    React.createElement(
+    React.createElementWithKey(
+      ~key=None,
       "div",
       Stdlib.List.filter_map(
         Fun.id,
@@ -59,7 +61,8 @@
       [],
     );
   let lowerWithChildAndProps = foo =>
-    React.createElement(
+    React.createElementWithKey(
+      ~key=None,
       "a",
       Stdlib.List.filter_map(
         Fun.id,
@@ -77,16 +80,28 @@
       [foo],
     );
   let lower_child_static =
-    React.createElement("div", [], [React.createElement("span", [], [])]);
-  let lower_child_ident = React.createElement("div", [], [lolaspa]);
+    React.createElementWithKey(
+      ~key=None,
+      "div",
+      [],
+      [React.createElementWithKey(~key=None, "span", [], [])],
+    );
+  let lower_child_ident =
+    React.createElementWithKey(~key=None, "div", [], [lolaspa]);
   let lower_child_single =
-    React.createElement("div", [], [React.createElement("div", [], [])]);
+    React.createElementWithKey(
+      ~key=None,
+      "div",
+      [],
+      [React.createElementWithKey(~key=None, "div", [], [])],
+    );
   let lower_children_multiple = (foo, bar) =>
-    React.createElement("lower", [], [foo, bar]);
+    React.createElementWithKey(~key=None, "lower", [], [foo, bar]);
   let lower_child_with_upper_as_children =
-    React.createElement("div", [], [App.make()]);
+    React.createElementWithKey(~key=None, "div", [], [App.make()]);
   let lower_children_nested =
-    React.createElement(
+    React.createElementWithKey(
+      ~key=None,
       "div",
       Stdlib.List.filter_map(
         Fun.id,
@@ -98,7 +113,8 @@
         ],
       ),
       [
-        React.createElement(
+        React.createElementWithKey(
+          ~key=None,
           "div",
           Stdlib.List.filter_map(
             Fun.id,
@@ -110,7 +126,8 @@
             ],
           ),
           [
-            React.createElement(
+            React.createElementWithKey(
+              ~key=None,
               "h2",
               Stdlib.List.filter_map(
                 Fun.id,
@@ -123,7 +140,8 @@
               ),
               ["jsoo-react" |> s],
             ),
-            React.createElement(
+            React.createElementWithKey(
+              ~key=None,
               "nav",
               Stdlib.List.filter_map(
                 Fun.id,
@@ -135,13 +153,15 @@
                 ],
               ),
               [
-                React.createElement(
+                React.createElementWithKey(
+                  ~key=None,
                   "ul",
                   [],
                   [
                     examples
                     |> List.map(e =>
-                         React.createElement(
+                         React.createElementWithKey(
+                           ~key=Some(e.path),
                            "li",
                            Stdlib.List.filter_map(
                              Fun.id,
@@ -153,7 +173,8 @@
                              ],
                            ),
                            [
-                             React.createElement(
+                             React.createElementWithKey(
+                               ~key=None,
                                "a",
                                Stdlib.List.filter_map(
                                  Fun.id,
@@ -192,7 +213,8 @@
       ],
     );
   let lower_ref_with_children =
-    React.createElement(
+    React.createElementWithKey(
+      ~key=None,
       "button",
       Stdlib.List.filter_map(
         Fun.id,
@@ -207,7 +229,8 @@
       [children],
     );
   let lower_with_many_props =
-    React.createElement(
+    React.createElementWithKey(
+      ~key=None,
       "div",
       Stdlib.List.filter_map(
         Fun.id,
@@ -219,7 +242,8 @@
         ],
       ),
       [
-        React.createElement(
+        React.createElementWithKey(
+          ~key=None,
           "picture",
           Stdlib.List.filter_map(
             Fun.id,
@@ -231,7 +255,8 @@
             ],
           ),
           [
-            React.createElement(
+            React.createElementWithKey(
+              ~key=None,
               "img",
               Stdlib.List.filter_map(
                 Fun.id,
@@ -256,7 +281,8 @@
               ),
               [],
             ),
-            React.createElement(
+            React.createElementWithKey(
+              ~key=None,
               "source",
               Stdlib.List.filter_map(
                 Fun.id,
@@ -273,7 +299,8 @@
               ),
               [],
             ),
-            React.createElement(
+            React.createElementWithKey(
+              ~key=None,
               "source",
               Stdlib.List.filter_map(
                 Fun.id,
@@ -295,7 +322,8 @@
       ],
     );
   let some_random_html_element =
-    React.createElement(
+    React.createElementWithKey(
+      ~key=None,
       "text",
       Stdlib.List.filter_map(
         Fun.id,
@@ -307,7 +335,8 @@
       [],
     );
   let div =
-    React.createElement(
+    React.createElementWithKey(
+      ~key=None,
       "div",
       Stdlib.List.filter_map(
         Fun.id,

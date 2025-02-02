@@ -33,12 +33,14 @@ let run = (tests: list(Bench.Test.t)) => {
 
 let test_component =
   Bench.Test.create(~name="renderToStaticMarkup_component", () => {
-    ignore(ReactDOM.renderToStaticMarkup(<HelloWorld />))
+    let _element = ReactDOM.renderToStaticMarkup(<Static_small />);
+    ();
   });
 
 let test_app =
   Bench.Test.create(~name="renderToStaticMarkup_app", () => {
-    ignore(ReactDOM.renderToStaticMarkup(<App />))
+    let _element = ReactDOM.renderToStaticMarkup(<App />);
+    ();
   });
 
 run([test_component, test_app]);

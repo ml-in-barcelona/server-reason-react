@@ -7,15 +7,19 @@
   melange-webapi
   melange.belt
   melange.js
+  melange-fetch
   melange.dom
+  url_js
   melange-json)
  (preprocess
   (pps
+   browser_ppx
+   -js
+   server-reason-react.ppx
+   -melange
    melange.ppx
    reason-react-ppx
-   melange-json.ppx
-   server-reason-react.ppx
-   -js)))
+   melange-json.ppx)))
 
 (copy_files
  (mode fallback)

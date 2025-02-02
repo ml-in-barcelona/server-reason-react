@@ -80,8 +80,10 @@ let fragments_and_texts () =
   assert_string (ReactDOM.renderToStaticMarkup component) "<div>foobar<b></b></div>"
 
 let inline_styles () =
-  let component = React.createElement "button" [ React.JSX.Style "color: red; border: none" ] [] in
-  assert_string (ReactDOM.renderToStaticMarkup component) "<button style=\"color: red; border: none\"></button>"
+  let component =
+    React.createElement "button" [ React.JSX.style (ReactDOMStyle.make ~color:"red" ~border:"none" ()) ] []
+  in
+  assert_string (ReactDOM.renderToStaticMarkup component) "<button style=\"color:red;border:none\"></button>"
 
 let encode_attributes () =
   let component =

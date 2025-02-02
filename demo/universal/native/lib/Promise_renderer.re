@@ -6,13 +6,16 @@ module Reader = {
   [@react.component]
   let make = (~promise: Js.Promise.t(string)) => {
     let value = React.Experimental.use(promise);
-    <div> {React.string(value)} </div>;
+    let%browser_only onMouseOver = _ev => {
+      Js.log("Over the promise!");
+    };
+    <div className="cursor-pointer" onMouseOver> <Text> value </Text> </div>;
   };
 };
 
 [@react.client.component]
 let make = (~promise: Js.Promise.t(string)) => {
-  <div className="text-white">
+  <div className={Cx.make([Theme.text(Theme.Color.Gray4)])}>
     <React.Suspense fallback={<div> {React.string("Loading...")} </div>}>
       <Reader promise />
     </React.Suspense>

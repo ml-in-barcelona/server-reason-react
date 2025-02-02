@@ -1,5 +1,4 @@
-type t
-(** Abstract type for Styles. ReactDOM.Style.make to generate `t` *)
+type t = (string * string * string) list
 
 val make :
   ?azimuth:string ->
