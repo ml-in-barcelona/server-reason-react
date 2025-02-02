@@ -81,7 +81,7 @@ let convert_lists = text => {
         } else {
           aux([line, ...acc], [], rest);
         }
-      | ([hd, ...tl] as items, [line, ...rest]) =>
+      | (_ as items, [line, ...rest]) =>
         if (Str.string_match(Str.regexp("^<li>"), line, 0)) {
           aux(acc, [line, ...current_list], rest);
         } else {

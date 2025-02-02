@@ -144,112 +144,122 @@ let make_prop ~is_optional ~prop attribute_value =
   | Event { type_ = Mouse; jsxName }, false ->
       [%expr
         Some
-          (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Mouse (fun _ -> () : React.Event.Mouse.t -> unit)))]
+          (React.JSX.Event
+             ([%e make_string ~loc jsxName], React.JSX.Mouse ([%e attribute_value] : React.Event.Mouse.t -> unit)))]
   | Event { type_ = Mouse; jsxName }, true ->
       [%expr
         match ([%e attribute_value] : (React.Event.Mouse.t -> unit) option) with
         | None -> None
-        | Some _ -> Some (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Mouse (fun _ -> ())))]
+        | Some v -> Some (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Mouse v))]
   | Event { type_ = Selection; jsxName }, false ->
       [%expr
         Some
           (React.JSX.Event
-             ([%e make_string ~loc jsxName], React.JSX.Selection (fun _ -> () : React.Event.Mouse.t -> unit)))]
+             ([%e make_string ~loc jsxName], React.JSX.Selection ([%e attribute_value] : React.Event.Mouse.t -> unit)))]
   | Event { type_ = Selection; jsxName }, true ->
       [%expr
         match ([%e attribute_value] : (React.Event.Selection.t -> unit) option) with
         | None -> None
-        | Some _ -> Some (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Selection (fun _ -> ())))]
+        | Some v -> Some (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Selection v))]
   | Event { type_ = Touch; jsxName }, false ->
       [%expr
         Some
-          (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Touch (fun _ -> () : React.Event.Touch.t -> unit)))]
+          (React.JSX.Event
+             ([%e make_string ~loc jsxName], React.JSX.Touch ([%e attribute_value] : React.Event.Touch.t -> unit)))]
   | Event { type_ = Touch; jsxName }, true ->
       [%expr
         match ([%e attribute_value] : (React.Event.Touch.t -> unit) option) with
         | None -> None
-        | Some _ -> Some (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Touch (fun _ -> ())))]
+        | Some v -> Some (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Touch v))]
   | Event { type_ = UI; jsxName }, false ->
       [%expr
-        Some (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.UI (fun _ -> () : React.Event.UI.t -> unit)))]
+        Some
+          (React.JSX.Event
+             ([%e make_string ~loc jsxName], React.JSX.UI ([%e attribute_value] : React.Event.UI.t -> unit)))]
   | Event { type_ = UI; jsxName }, true ->
       [%expr
         match ([%e attribute_value] : (React.Event.UI.t -> unit) option) with
         | None -> None
-        | Some _ -> Some (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.UI (fun _ -> ())))]
+        | Some v -> Some (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.UI v))]
   | Event { type_ = Wheel; jsxName }, false ->
       [%expr
         Some
-          (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Wheel (fun _ -> () : React.Event.Wheel.t -> unit)))]
+          (React.JSX.Event
+             ([%e make_string ~loc jsxName], React.JSX.Wheel ([%e attribute_value] : React.Event.Wheel.t -> unit)))]
   | Event { type_ = Wheel; jsxName }, true ->
       [%expr
         match ([%e attribute_value] : (React.Event.Wheel.t -> unit) option) with
         | None -> None
-        | Some _ -> Some (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Wheel (fun _ -> ())))]
+        | Some v -> Some (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Wheel v))]
   | Event { type_ = Clipboard; jsxName }, false ->
       [%expr
         Some
           (React.JSX.Event
-             ([%e make_string ~loc jsxName], React.JSX.Clipboard (fun _ -> () : React.Event.Clipboard.t -> unit)))]
+             ( [%e make_string ~loc jsxName],
+               React.JSX.Clipboard ([%e attribute_value] : React.Event.Clipboard.t -> unit) ))]
   | Event { type_ = Clipboard; jsxName }, true ->
       [%expr
         match ([%e attribute_value] : (React.Event.Clipboard.t -> unit) option) with
         | None -> None
-        | Some _ -> Some (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Clipboard (fun _ -> ())))]
+        | Some v -> Some (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Clipboard v))]
   | Event { type_ = Composition; jsxName }, false ->
       [%expr
         Some
           (React.JSX.Event
-             ([%e make_string ~loc jsxName], React.JSX.Composition (fun _ -> () : React.Event.Composition.t -> unit)))]
+             ( [%e make_string ~loc jsxName],
+               React.JSX.Composition ([%e attribute_value] : React.Event.Composition.t -> unit) ))]
   | Event { type_ = Composition; jsxName }, true ->
       [%expr
         match ([%e attribute_value] : (React.Event.Composition.t -> unit) option) with
         | None -> None
-        | Some _ -> Some (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Composition (fun _ -> ())))]
+        | Some v -> Some (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Composition v))]
   | Event { type_ = Keyboard; jsxName }, false ->
       [%expr
         Some
           (React.JSX.Event
-             ([%e make_string ~loc jsxName], React.JSX.Keyboard (fun _ -> () : React.Event.Keyboard.t -> unit)))]
+             ([%e make_string ~loc jsxName], React.JSX.Keyboard ([%e attribute_value] : React.Event.Keyboard.t -> unit)))]
   | Event { type_ = Keyboard; jsxName }, true ->
       [%expr
         match ([%e attribute_value] : (React.Event.Keyboard.t -> unit) option) with
         | None -> None
-        | Some _ -> Some (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Keyboard (fun _ -> ())))]
+        | Some v -> Some (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Keyboard v))]
   | Event { type_ = Focus; jsxName }, false ->
       [%expr
         Some
-          (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Focus (fun _ -> () : React.Event.Focus.t -> unit)))]
+          (React.JSX.Event
+             ([%e make_string ~loc jsxName], React.JSX.Focus ([%e attribute_value] : React.Event.Focus.t -> unit)))]
   | Event { type_ = Focus; jsxName }, true ->
       [%expr
         match ([%e attribute_value] : (React.Event.Focus.t -> unit) option) with
         | None -> None
-        | Some _ -> Some (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Focus (fun _ -> ())))]
+        | Some v -> Some (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Focus v))]
   | Event { type_ = Form; jsxName }, false ->
       [%expr
         Some
-          (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Form (fun _ -> () : React.Event.Form.t -> unit)))]
+          (React.JSX.Event
+             ([%e make_string ~loc jsxName], React.JSX.Form ([%e attribute_value] : React.Event.Form.t -> unit)))]
   | Event { type_ = Form; jsxName }, true ->
       [%expr
         match ([%e attribute_value] : (React.Event.Form.t -> unit) option) with
         | None -> None
-        | Some _ -> Some (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Form (fun _ -> ())))]
+        | Some v -> Some (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Form v))]
   | Event { type_ = Media; jsxName }, false ->
       [%expr
         Some
-          (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Media (fun _ -> () : React.Event.Media.t -> unit)))]
+          (React.JSX.Event
+             ([%e make_string ~loc jsxName], React.JSX.Media ([%e attribute_value] : React.Event.Media.t -> unit)))]
   | Event { type_ = Media; jsxName }, true ->
       [%expr
         match ([%e attribute_value] : (React.Event.Media.t -> unit) option) with
         | None -> None
-        | Some _ -> Some (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Media (fun _ -> ())))]
+        | Some v -> Some (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Media v))]
   | Event { type_ = Inline; jsxName }, false ->
       [%expr Some (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Inline ([%e attribute_value] : string)))]
   | Event { type_ = Inline; jsxName }, true ->
       [%expr
         match ([%e attribute_value] : string option) with
         | None -> None
-        | Some _ -> Some (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Inline (fun _ -> ())))]
+        | Some v -> Some (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Inline v))]
   | Event { type_ = Image; jsxName }, false ->
       [%expr
         Some
@@ -260,46 +270,49 @@ let make_prop ~is_optional ~prop attribute_value =
       [%expr
         match ([%e attribute_value] : (React.Event.Image.t -> unit) option) with
         | None -> None
-        | Some _ -> Some (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Image (fun _ -> ())))]
+        | Some v -> Some (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Image v))]
   | Event { type_ = Animation; jsxName }, false ->
       [%expr
         Some
           (React.JSX.Event
-             ([%e make_string ~loc jsxName], React.JSX.Animation (fun _ -> () : React.Event.Animation.t -> unit)))]
+             ( [%e make_string ~loc jsxName],
+               React.JSX.Animation ([%e attribute_value] : React.Event.Animation.t -> unit) ))]
   | Event { type_ = Animation; jsxName }, true ->
       [%expr
         match ([%e attribute_value] : (React.Event.Animation.t -> unit) option) with
         | None -> None
-        | Some _ -> Some (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Animation (fun _ -> ())))]
+        | Some v -> Some (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Animation v))]
   | Event { type_ = Transition; jsxName }, false ->
       [%expr
         Some
           (React.JSX.Event
-             ([%e make_string ~loc jsxName], React.JSX.Transition (fun _ -> () : React.Event.Transition.t -> unit)))]
+             ( [%e make_string ~loc jsxName],
+               React.JSX.Transition ([%e attribute_value] : React.Event.Transition.t -> unit) ))]
   | Event { type_ = Transition; jsxName }, true ->
       [%expr
         match ([%e attribute_value] : (React.Event.Transition.t -> unit) option) with
         | None -> None
-        | Some _ -> Some (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Transition (fun _ -> ())))]
+        | Some v -> Some (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Transition v))]
   | Event { type_ = Pointer; jsxName }, false ->
       [%expr
         Some
           (React.JSX.Event
-             ([%e make_string ~loc jsxName], React.JSX.Pointer (fun _ -> () : React.Event.Pointer.t -> unit)))]
+             ([%e make_string ~loc jsxName], React.JSX.Pointer ([%e attribute_value] : React.Event.Pointer.t -> unit)))]
   | Event { type_ = Pointer; jsxName }, true ->
       [%expr
         match ([%e attribute_value] : (React.Event.Pointer.t -> unit) option) with
         | None -> None
-        | Some _ -> Some (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Pointer (fun _ -> ())))]
+        | Some v -> Some (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Pointer v))]
   | Event { type_ = Drag; jsxName }, false ->
       [%expr
         Some
-          (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Drag (fun _ -> () : React.Event.Drag.t -> unit)))]
+          (React.JSX.Event
+             ([%e make_string ~loc jsxName], React.JSX.Drag ([%e attribute_value] : React.Event.Drag.t -> unit)))]
   | Event { type_ = Drag; jsxName }, true ->
       [%expr
         match ([%e attribute_value] : (React.Event.Drag.t -> unit) option) with
         | None -> None
-        | Some _ -> Some (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Drag (fun _ -> ())))]
+        | Some v -> Some (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Drag v))]
 
 let is_optional = function Optional _ -> true | _ -> false
 let get_label = function Nolabel -> "" | Optional name | Labelled name -> name
