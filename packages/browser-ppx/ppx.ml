@@ -390,16 +390,20 @@ module Preprocess = struct
         | _ -> List.filter_map apply_config_on_signature_item sigi
 
       method! expression expr =
-        let expr = super#expression expr in
         match expr.pexp_desc with
-        | Pexp_let (_, [ { pvb_attributes = attrs; _ } ], body) ->
-            let loc = expr.pexp_loc in
-            if should_keep expr.pexp_attributes = `keep then if should_keep attrs = `keep then expr else body
-            else [%expr ()]
-        | Pexp_apply _ | Pexp_constant _ | Pexp_ident _ | Pexp_fun _ ->
-            let loc = expr.pexp_loc in
-            if should_keep expr.pexp_attributes = `keep then expr else [%expr ()]
-        | _ -> expr
+        | Pexp_sequence (expr', body) ->
+            if should_keep expr'.pexp_attributes = `keep then super#expression expr else body
+        | _ -> (
+            let expr = super#expression expr in
+            match expr.pexp_desc with
+            | Pexp_let (_, [ { pvb_attributes = attrs; _ } ], body) ->
+                let loc = expr.pexp_loc in
+                if should_keep expr.pexp_attributes = `keep then if should_keep attrs = `keep then expr else body
+                else [%expr Obj.magic ()]
+            | Pexp_apply _ | Pexp_construct _ | Pexp_constant _ | Pexp_ident _ | Pexp_fun _ ->
+                let loc = expr.pexp_loc in
+                if should_keep expr.pexp_attributes = `keep then expr else [%expr Obj.magic ()]
+            | _ -> expr)
 
       method! pattern pat =
         match pat.ppat_desc with
@@ -414,7 +418,7 @@ module Preprocess = struct
       method! core_type ct =
         let ct = super#core_type ct in
         let loc = ct.ptyp_loc in
-        if should_keep ct.ptyp_attributes = `keep then ct else [%type: unit]
+        if should_keep ct.ptyp_attributes = `keep then ct else [%type: Obj.t]
     end
 end
 

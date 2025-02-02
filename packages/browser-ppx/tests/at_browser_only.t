@@ -86,7 +86,6 @@ Pexp_apply
 
   $ ./standalone.exe -impl input_apply.ml | ocamlformat - --enable-outside-detected-project --impl
   let x =
-    ();
     let y = 44 in
     y
 
@@ -95,6 +94,8 @@ Pexp_apply
     print_endline "hello" [@browser_only];
     let y = 44 in
     y
+
+  $ ./standalone.exe -impl input_apply.ml > input_apply_server.ml && ocamlc -c input_apply_server.ml
 
 Pexp_let
 
@@ -116,6 +117,8 @@ Pexp_let
     let y = 44 in
     y
 
+  $ ./standalone.exe -impl input_let.ml > input_let_server.ml && ocamlc -c input_let_server.ml
+
 Ppat_tuple
 
   $ cat > input_tuple.ml << EOF
@@ -128,19 +131,28 @@ Ppat_tuple
   $ ./standalone.exe -impl input_tuple.ml -js | ocamlformat - --enable-outside-detected-project --impl
   let x, (y [@browser_only]) = (42, 44)
 
+  $ ./standalone.exe -impl input_let.ml > input_let_server.ml && ocamlc -c input_let_server.ml
+
 Pexp_apply
 
   $ cat > input_apply.ml << EOF
-  > foo ((pexp_ident_var) [@browser_only]) ((42) [@browser_only]) ((fun () -> ())[@browser_only]) 24
+  > let foo (_: int) (_: int) (_: (unit -> unit) [@browser_only]) (_: int) = ()
+  > let _ = foo ((24) [@browser_only]) ((42) [@browser_only]) ((fun () -> ())[@browser_only]) 24
   > EOF
 
   $ ./standalone.exe -impl input_apply.ml | ocamlformat - --enable-outside-detected-project --impl
-  foo () () () 24
+  let foo (_ : int) (_ : int) (_ : Obj.t) (_ : int) = ()
+  let _ = foo (Obj.magic ()) (Obj.magic ()) (Obj.magic ()) 24
 
   $ ./standalone.exe -impl input_apply.ml -js | ocamlformat - --enable-outside-detected-project --impl
-  foo (pexp_ident_var [@browser_only]) (42 [@browser_only])
-    (fun [@browser_only] () -> ())
-    24
+  let foo (_ : int) (_ : int) (_ : (unit -> unit[@browser_only])) (_ : int) = ()
+  
+  let _ =
+    foo (24 [@browser_only]) (42 [@browser_only])
+      (fun [@browser_only] () -> ())
+      24
+
+  $ ./standalone.exe -impl input_apply.ml > input_apply_server.ml && ocamlc -c input_apply_server.ml
 
 Ppat_var
 
@@ -157,6 +169,8 @@ Ppat_var
   let x (onClick [@browser_only]) = 24
   let y ~onClick:(onClick [@browser_only]) = 42
 
+  $ ./standalone.exe -impl input_var.ml > input_var_server.ml && ocamlc -c input_var_server.ml
+
 Pstr_open
 
   $ cat > input_open.ml << EOF
@@ -167,6 +181,8 @@ Pstr_open
 
   $ ./standalone.exe -impl input_open.ml -js | ocamlformat - --enable-outside-detected-project --impl
   open Printf [@@browser_only]
+
+  $ ./standalone.exe -impl input_open.ml > input_open_server.ml && ocamlc -c input_open_server.ml
 
 Pstr_exception
 
@@ -179,6 +195,8 @@ Pstr_exception
 
   $ ./standalone.exe -impl input_exception.ml | ocamlformat - --enable-outside-detected-project --impl
 
+  $ ./standalone.exe -impl input_exception.ml > input_exception_server.ml && ocamlc -c input_exception_server.ml
+
 Pstr_primitive
 
   $ cat > input_primitive.ml << EOF
@@ -189,6 +207,8 @@ Pstr_primitive
   external add : int -> int -> int = "caml_add_int" [@@browser_only]
 
   $ ./standalone.exe -impl input_primitive.ml | ocamlformat - --enable-outside-detected-project --impl
+
+  $ ./standalone.exe -impl input_primitive.ml > input_primitive_server.ml && ocamlc -c input_primitive_server.ml
 
 Pstr_eval
 
@@ -201,6 +221,8 @@ Pstr_eval
 
   $ ./standalone.exe -impl input_primitive.ml | ocamlformat - --enable-outside-detected-project --impl
 
+  $ ./standalone.exe -impl input_primitive.ml > input_primitive_server.ml && ocamlc -c input_primitive_server.ml
+
 Pstr_type
 
   $ cat > input_type.ml << EOF
@@ -211,6 +233,8 @@ Pstr_type
   type point = { x : int; y : int } [@@browser_only]
 
   $ ./standalone.exe -impl input_type.ml | ocamlformat - --enable-outside-detected-project --impl
+
+  $ ./standalone.exe -impl input_type.ml > input_type_server.ml && ocamlc -c input_type_server.ml
 
 Pstr_recmodule
 
@@ -259,6 +283,8 @@ Pstr_class_type
 
   $ ./standalone.exe -impl input_class_type.ml | ocamlformat - --enable-outside-detected-project --impl
 
+  $ ./standalone.exe -impl input_class_type.ml > input_class_type_server.ml && ocamlc -c input_class_type_server.ml
+
 Ppat_constraint
 
   $ cat > input_constr.ml << EOF
@@ -280,18 +306,18 @@ Core_type
   > type u = { x : (bool [@browser_only]) }
   > type toggleButtonFields =
   >   {
-  >     isOpen: bool ;
-  >     domRef: RRef.domRef option ;
-  >     onClick: ((React.Event.Mouse.t -> unit)[@browser_only]);
-  >     onKeyDown: (((React.Event.Keyboard.t -> unit) option)[@browser_only]) 
+  >     x: bool;
+  >     y: (unit -> unit[@browser_only]);
+  >     z: ((unit -> unit) option[@browser_only]);
   >   }
   > 
   > let foo = {
-  >   isOpen = true;
-  >   domRef = None;
-  >   onClick = (fun _ -> ())[@browser_only];
-  >   onKeyDown = None;
+  >   x = true;
+  >   y = (fun _ -> ())[@browser_only];
+  >   z = (None[@browser_only])
   > }
+  > 
+  > let bar = if foo.x then (1 [@browser_only]) else 2
   > EOF
 
   $ ./standalone.exe -impl input_constr.ml -js | ocamlformat - --enable-outside-detected-project --impl
@@ -299,31 +325,110 @@ Core_type
   type u = { x : (bool[@browser_only]) }
   
   type toggleButtonFields = {
-    isOpen : bool;
-    domRef : RRef.domRef option;
-    onClick : (React.Event.Mouse.t -> unit[@browser_only]);
-    onKeyDown : ((React.Event.Keyboard.t -> unit) option[@browser_only]);
+    x : bool;
+    y : (unit -> unit[@browser_only]);
+    z : ((unit -> unit) option[@browser_only]);
   }
   
   let foo =
-    {
-      isOpen = true;
-      domRef = None;
-      onClick = (fun [@browser_only] _ -> ());
-      onKeyDown = None;
-    }
- 
+    { x = true; y = (fun [@browser_only] _ -> ()); z = None [@browser_only] }
+  
+  let bar = if foo.x then (1 [@browser_only]) else 2
 
   $ ./standalone.exe -impl input_constr.ml | ocamlformat - --enable-outside-detected-project --impl
-  type t = unit
-  type u = { x : unit }
+  type t = Obj.t
+  type u = { x : Obj.t }
+  type toggleButtonFields = { x : bool; y : Obj.t; z : Obj.t }
   
-  type toggleButtonFields = {
-    isOpen : bool;
-    domRef : RRef.domRef option;
-    onClick : unit;
-    onKeyDown : unit;
-  }
-  
-  let foo = { isOpen = true; domRef = None; onClick = (); onKeyDown = None }
+  let foo = { x = true; y = Obj.magic (); z = Obj.magic () }
+  let bar = if foo.x then Obj.magic () else 2
 
+  $ ./standalone.exe -impl input_constr.ml > input_constr_server.ml && ocamlc -c input_constr_server.ml
+
+Core_type error
+
+  $ cat > input_constr.ml << EOF
+  > type t = int [@browser_only]
+  > let bar: t = if true then (1 [@browser_only]) else 2
+  > EOF
+
+  $ ./standalone.exe -impl input_constr.ml -js | ocamlformat - --enable-outside-detected-project --impl
+  type t = (int[@browser_only])
+  
+  let bar : t = if true then (1 [@browser_only]) else 2
+
+  $ ./standalone.exe -impl input_constr.ml | ocamlformat - --enable-outside-detected-project --impl
+  type t = Obj.t
+  
+  let bar : t = if true then Obj.magic () else 2
+
+  $ ./standalone.exe -impl input_constr.ml > input_constr_server.ml && ocamlc -c input_constr_server.ml
+  File "input_constr_server.ml", line 2, characters 45-46:
+  2 | let bar : t = if true then Obj.magic () else 2
+                                                   ^
+  Error: This expression has type int but an expression was expected of type
+           t = Obj.t
+  [2]
+
+If the else
+
+  $ cat > input_constr.ml << EOF
+  > let foo = if true then (42 [@browser_only]) else 24
+  > EOF
+
+  $ ./standalone.exe -impl input_constr.ml -js | ocamlformat - --enable-outside-detected-project --impl
+  let foo = if true then (42 [@browser_only]) else 24
+
+  $ ./standalone.exe -impl input_constr.ml | ocamlformat - --enable-outside-detected-project --impl
+  let foo = if true then Obj.magic () else 24
+
+  $ ./standalone.exe -impl input_constr.ml > input_constr_server.ml && ocamlc -c input_constr_server.ml
+
+Pexp_match
+
+  $ cat > input_match.ml << EOF
+  > let x = 2
+  > let foo = match x with
+  >   | 1 -> "1"
+  >   | 2 -> "2" [@browser_only]
+  >   | _ -> "0"
+  > EOF
+
+  $ ./standalone.exe -impl input_match.ml -js | ocamlformat - --enable-outside-detected-project --impl
+  let x = 2
+  let foo = match x with 1 -> "1" | 2 -> ("2" [@browser_only]) | _ -> "0"
+
+  $ ./standalone.exe -impl input_match.ml | ocamlformat - --enable-outside-detected-project --impl
+  let x = 2
+  let foo = match x with 1 -> "1" | 2 -> Obj.magic () | _ -> "0"
+
+  $ ./standalone.exe -impl input_match.ml | ocamlc -c input_match.ml
+
+Pexp_match
+
+  $ cat > input_match.ml << EOF
+  > let x = 2
+  > let foo = match x with
+  >   | 1 -> "1"
+  >   | 2 -> "2" [@browser_only]
+  >   | 3 -> "3" [@browser_only]
+  >   | _ -> "0"
+  > EOF
+
+  $ ./standalone.exe -impl input_match.ml -js | ocamlformat - --enable-outside-detected-project --impl
+  let x = 2
+  
+  let foo =
+    match x with
+    | 1 -> "1"
+    | 2 -> ("2" [@browser_only])
+    | 3 -> ("3" [@browser_only])
+    | _ -> "0"
+
+  $ ./standalone.exe -impl input_match.ml | ocamlformat - --enable-outside-detected-project --impl
+  let x = 2
+  
+  let foo =
+    match x with 1 -> "1" | 2 -> Obj.magic () | 3 -> Obj.magic () | _ -> "0"
+
+  $ ./standalone.exe -impl input_match.ml | ocamlc -c input_match.ml
