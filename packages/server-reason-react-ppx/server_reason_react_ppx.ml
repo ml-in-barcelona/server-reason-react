@@ -560,6 +560,18 @@ let expand_make_binding_to_client binding =
   let function_body = pexp_fun ~loc:ghost_loc Nolabel None client_single_argument make_call in
   value_binding ~loc:ghost_loc ~pat:name ~expr:function_body
 
+let rec add_unit_at_the_last_argument_in_core_type core_type =
+  match core_type.ptyp_desc with
+  | Ptyp_arrow (arg_label, core_type_1, core_type_2) ->
+      {
+        core_type with
+        ptyp_desc = Ptyp_arrow (arg_label, core_type_1, add_unit_at_the_last_argument_in_core_type core_type_2);
+      }
+  | Ptyp_constr _ ->
+      let loc = core_type.ptyp_loc in
+      { core_type with ptyp_desc = Ptyp_arrow (Nolabel, [%type: unit], core_type) }
+  | _ -> core_type
+
 let rewrite_signature_item signature_item =
   (* Removes the [@react.component] from the AST *)
   match signature_item with
@@ -567,6 +579,16 @@ let rewrite_signature_item signature_item =
       psig_loc = _;
       psig_desc = Psig_value ({ pval_name = { txt = _fnName }; pval_attributes; pval_type } as psig_desc);
     } as psig -> (
+      let new_ptyp_desc =
+        match pval_type.ptyp_desc with
+        | Ptyp_arrow (arg_label, core_type_1, core_type_2) ->
+            let loc = pval_type.ptyp_loc in
+            let original_core_type = { pval_type with ptyp_desc = Ptyp_arrow (arg_label, core_type_1, core_type_2) } in
+            let new_core_type = add_unit_at_the_last_argument_in_core_type original_core_type in
+            Ptyp_arrow (Optional "key", [%type: string option], new_core_type)
+        | ptyp_desc -> ptyp_desc
+      in
+      let new_core_type = { pval_type with ptyp_desc = new_ptyp_desc } in
       match List.filter ~f:hasAnyReactComponentAttribute pval_attributes with
       | [] -> signature_item
       | [ _ ] ->
@@ -574,15 +596,16 @@ let rewrite_signature_item signature_item =
             psig with
             psig_desc =
               Psig_value
-                { psig_desc with pval_type; pval_attributes = List.filter ~f:nonReactAttributes pval_attributes };
+                {
+                  psig_desc with
+                  pval_type = new_core_type;
+                  pval_attributes = List.filter ~f:nonReactAttributes pval_attributes;
+                };
           }
       | _ ->
           let loc = signature_item.psig_loc in
           [%sigi:
-            [%%ocaml.error
-            "externals aren't supported on server-reason-react. externals are used to bind to React components from \
-             JavaScript. In the server, that doesn't make sense. If you need to render this on the server, implement a \
-             stub component or an empty element (React.null)"]])
+            [%%ocaml.error "server-reason-react-ppx: there's seems to be an error in the signature of the component."]])
   | _ -> signature_item
 
 let make_to_json ~loc (core_type : core_type) prop =

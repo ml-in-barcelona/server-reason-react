@@ -1,6 +1,6 @@
   $ ../ppx.sh --output ml input.re
   module Greeting : sig
-    val make : ?mockup:string -> React.element
+    val make : ?key:string option -> ?mockup:string -> unit -> React.element
   end = struct
     let make ?key:(_ : string option) ?(mockup : string option) () =
       React.Upper_case_component
@@ -10,7 +10,7 @@
   end
   
   module MyPropIsOptionOptionBoolLetWithValSig : sig
-    val make : ?myProp:bool option -> React.element
+    val make : ?key:string option -> ?myProp:bool option -> unit -> React.element
   end = struct
     let make ?key:(_ : string option) ?(myProp : bool option option) () =
       React.Upper_case_component (fun () -> React.null)
