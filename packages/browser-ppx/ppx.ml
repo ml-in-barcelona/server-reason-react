@@ -390,20 +390,16 @@ module Preprocess = struct
         | _ -> List.filter_map apply_config_on_signature_item sigi
 
       method! expression expr =
+        let expr = super#expression expr in
+        let loc = expr.pexp_loc in
         match expr.pexp_desc with
-        | Pexp_sequence (expr', body) ->
-            if should_keep expr'.pexp_attributes = `keep then super#expression expr else body
-        | _ -> (
-            let expr = super#expression expr in
-            match expr.pexp_desc with
-            | Pexp_let (_, [ { pvb_attributes = attrs; _ } ], body) ->
-                let loc = expr.pexp_loc in
-                if should_keep expr.pexp_attributes = `keep then if should_keep attrs = `keep then expr else body
-                else [%expr Obj.magic ()]
-            | Pexp_apply _ | Pexp_construct _ | Pexp_constant _ | Pexp_ident _ | Pexp_fun _ ->
-                let loc = expr.pexp_loc in
-                if should_keep expr.pexp_attributes = `keep then expr else [%expr Obj.magic ()]
-            | _ -> expr)
+        | Pexp_let (_, [ { pvb_attributes = attrs; _ } ], _) ->
+            let loc = expr.pexp_loc in
+            if should_keep attrs = `keep then expr
+            else [%expr [%ocaml.error "Don't use browser_only on expressions, use switch%platform instead"]]
+        | _ ->
+            if should_keep expr.pexp_attributes = `keep then expr
+            else [%expr [%ocaml.error "Don't use browser_only on expressions, use switch%platform instead"]]
 
       method! pattern pat =
         match pat.ppat_desc with
@@ -414,11 +410,6 @@ module Preprocess = struct
             let pat = super#pattern pat in
             let loc = pat.ppat_loc in
             if should_keep pat.ppat_attributes = `keep then pat else [%pat? _]
-
-      method! core_type ct =
-        let ct = super#core_type ct in
-        let loc = ct.ptyp_loc in
-        if should_keep ct.ptyp_attributes = `keep then ct else [%type: Obj.t]
     end
 end
 

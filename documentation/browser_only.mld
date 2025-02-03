@@ -6,7 +6,7 @@ For example, if you're using Webapi to query the DOM or using LocalStorage. This
 
 {1 Usage}
 
-The ppx expose a [[@browser_only]] attribute that can be used to discard functions, values, arguments, etc, and [[switch%platform]] to conditionally execute code based on the platform.
+The ppx expose a [[@browser_only]] attribute that can be used to discard strucutres and patterns, like modules, destructuring, arguments, etc, and [[switch%platform]] to conditionally execute code based on the platform.
 
 Add [[server-reason-react.browser_ppx]] into to your pps field under a dune stanzas (melange.emit, libraries or executable) in your dune files.
 
@@ -23,82 +23,6 @@ You would need to add it on both "server" and "client" dune files. Adding the [-
  (target app)
  (preprocess
   (pps server-reason-react.browser_ppx -js)))
-]}
-
-{2 browser_only}
-
-A code with [[@browser_only]] attribute will keep the function untouched for the client build, but for the server build, will be transformed into to a dead code. If you try to run it on the server, it will fail as it does not exist on the server, and the compiler will crash.
-
-{[
-[@browser_only]
-let sayHello = () => "Hello";
-
-sayHello();
-]}
-
-Error:
-{@txt[
-20 |   sayHello();
-       ^^^^^^^^
-Error: Unbound value sayHello
-]}
-
-The [[@browser_only]] attribute can be used in any kind of code, including let bindings, function, module, args, etc. Checkout the {{:https://github.com/ml-in-barcelona/server-reason-react/blob/main/packages/browser-ppx/tests/at_browser_only.t}browser_only tests} for more examples.
-
-Checkout the following example:
-{[
-[@browser_only]
-let getName = (person) => person.name;
-
-let getLastName = ([@browser_only] person) => {
-  [@browser_only]
-  let lastName = _ => person.last_name;
-
-  "Doe";
-};
-
-let hello_world = "Hello world";
-]}
-
-The final result of the code above, on server, will be:
-{[
-();
-
-let getLastName = (_) => {
-  "Doe";
-};
-
-let hello_world = "Hello world";
-]}
-
-{3 %browser_only deprecated}
-
-The [%browser_only] extension is deprecated, but for compatibility reasons, it's still available.
-
-{[
-let%browser_only countDomNodes = (id) => {
-  let elements = Webapi.Element.querySelector("#" ++ id);
-  let arr_elements = Webapi.Element.toArray(elements);
-  Array.length(arr_elements);
-};
-]}
-
-The method tagged by [browser_only] will keep the function untouched for the client build, but for the server build, will be transformed to a function that raises the exception [Runtime.Impossible_in_ssr].
-
-If this function runs on the server, it will raise an exception, and the server will crash. In order to prevent this, you can use [try] to catch the exception and provide a default behaviour/value.
-
-Following with the example from above:
-{[
-let%browser_only countDomNodes = (id) => {
-  let elements = Webapi.Element.querySelector("#" ++ id);
-  let arr_elements = Webapi.Element.toArray(elements);
-  Array.length(arr_elements);
-}
-
-let main = id =>
-  try(countDomNodes(id)) {
-  | _ => 0
-  };
 ]}
 
 {2 switch%platform}
@@ -134,6 +58,79 @@ module Y = {
 ]}
 
 When compiling with the `-js` flag, only the block with [[@platform js]] (module X) is kept, and when compiling without it, only the block with [[@platform native]] (module Y) is kept.
+{2 browser_only}
+
+A code with [[@browser_only]] attribute will keep the pattern and strucutures untouched for the client build, but for the server build, will be transformed into to a dead code (_ for patterns and deleting the code for structures). It will be unavailable on the server, and the compiler will crash if you try to use it without the [switch%platform].
+
+{reasonml[
+[@browser_only]
+module M = {
+  let x = 2;
+};
+
+let x = M.x;
+/** Error: 
+File "input_let_server.ml", line 1, characters 8-11:
+1 | let x = M.x
+            ^^^
+Error: Unbound module M
+*/
+
+let sayHello = ([@browser_only] some_arg) => some_arg;
+/** Error: 
+1 | let sayHello _ = some_arg
+                     ^^^^^^^^
+Error: Unbound value some_arg
+*/
+]}
+
+The [[@browser_only]] attribute must be used only on patterns and structures, like tuples, records, arguments, etc. For expressions, use [[switch%platform]] instead.
+Checkout the {{:https://github.com/ml-in-barcelona/server-reason-react/blob/main/packages/browser-ppx/tests/at_browser_only.t}browser_only tests} for more examples.
+
+Checkout the following example:
+{[
+let sayHello = ([@browser_only] name) => {
+  switch%platform () {
+  | Server => "Hello"
+  | Client => "Hello, " ++ name
+  };
+};
+]}
+
+The final result of the code above, on server, will be:
+{[
+let sayHello = (_) => "Hello";
+]}
+
+{3 %browser_only deprecated}
+
+The [%browser_only] extension is deprecated, but for compatibility reasons, it's still available.
+
+{[
+let%browser_only countDomNodes = (id) => {
+  let elements = Webapi.Element.querySelector("#" ++ id);
+  let arr_elements = Webapi.Element.toArray(elements);
+  Array.length(arr_elements);
+};
+]}
+
+The method tagged by [browser_only] will keep the function untouched for the client build, but for the server build, will be transformed to a function that raises the exception [Runtime.Impossible_in_ssr].
+
+If this function runs on the server, it will raise an exception, and the server will crash. In order to prevent this, you can use [try] to catch the exception and provide a default behaviour/value.
+
+Following with the example from above:
+{[
+let%browser_only countDomNodes = (id) => {
+  let elements = Webapi.Element.querySelector("#" ++ id);
+  let arr_elements = Webapi.Element.toArray(elements);
+  Array.length(arr_elements);
+}
+
+let main = id =>
+  try(countDomNodes(id)) {
+  | _ => 0
+  };
+]}
 
 {1:next Next}
 
