@@ -1,6 +1,6 @@
-import Fs from "fs/promises";
-import Path from "path";
-import { execSync } from "child_process";
+import Fs from "node:fs/promises";
+import Path from "node:path";
+import { execSync } from "node:child_process";
 
 async function generateBootstrapFile (output, content) {
 	let previousContent = undefined;

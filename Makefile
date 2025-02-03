@@ -141,3 +141,14 @@ bench-watch: build-bench ## Run benchmark in watch mode
 .PHONY: once
 once: ## Run benchmark once
 	@$(DUNE) exec _build/default/bench/once.exe
+
+name = server-reason-react-demo
+current_hash = $(shell git rev-parse HEAD | cut -c1-7)
+
+.PHONY: docker-build
+docker-build: ## docker build
+	@docker build . --tag "$(name):$(current_hash)" --platform linux/amd64 --progress=plain
+
+.PHONY: docker-run
+docker-run: ## docker run
+	@docker run -d --platform linux/amd64 $(name):$(current_hash)
