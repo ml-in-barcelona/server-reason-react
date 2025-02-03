@@ -2,7 +2,7 @@ import Fs from "fs/promises";
 import Path from "path";
 import { execSync } from "child_process";
 
-let generateBootstrapFile = async (output, content) => {
+async function generateBootstrapFile (output, content) {
 	let previousContent = undefined;
 	try {
 		previousContent = await Fs.readFile(output, "utf8");
@@ -15,16 +15,6 @@ let generateBootstrapFile = async (output, content) => {
 	if (contentHasChanged) {
 		await Fs.writeFile(output, content, "utf8");
 	}
-};
-
-function pathsAreEqual(path1, path2) {
-	const normalized1 = Path.normalize(path1);
-	const normalized2 = Path.normalize(path2);
-	return normalized1 === normalized2;
-}
-
-const isTheEntryPoint = (entryPoints, path) => {
-	return entryPoints.some((entryPoint) => pathsAreEqual(path, entryPoint));
 };
 
 export function plugin(config) {
@@ -63,11 +53,7 @@ export function plugin(config) {
 			});
 
 			build.onResolve({ filter: /.*/ }, (args) => {
-				/* question: not sure if this is enough or even a solid approach to detect the entrypoint */
-				const isEntryPoint = isTheEntryPoint(
-					build.initialOptions.entryPoints,
-					args.path,
-				);
+				const isEntryPoint = args.kind === "entry-point";
 
 				if (isEntryPoint) {
 					return {
