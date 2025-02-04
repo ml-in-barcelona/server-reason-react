@@ -3,7 +3,7 @@
  (mld_files
   index
   get-started
-  code-structure
   universal-code
+  how-to-organise-universal-code
   browser_only
   externals-melange-attributes))

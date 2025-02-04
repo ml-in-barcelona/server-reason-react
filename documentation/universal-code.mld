@@ -1,18 +1,171 @@
 {0 What does universal code mean}
 
-The goal of [server-reason-react] is to enable running your client components in the server, but not only that, it also makes it easier to write code that can be shared between the server and the client. This is what we call universal code.
+One of the goals of [server-reason-react] is to make easier to write code that can be shared between native and JavaScript.
 
-{1 Challenges of universal code}
+A library (or module) is universal if:
 
-One of the challenges of sharing code is that the server and the client platforms have different APIs available. You can't use browser's APIs on the server, such as [document.querySelectorAll] and you can't use server related APIs on the client such as any filsystem operations.
+- Compiles correctly for both platforms
+- Exposes a common interface to both platforms
+- Respects the semantics of the library on each platform
 
-In this aspect server-reason-react is not much different than Node.js. Node.js doesn't provide the global window/document objects and leaves the user to ensure the usages of those are handled manually.
+This is what we call universal code, but let me explain each point a bit better
 
-In our case, we don't have any implementation for the browser APIs but we need the code to compile, so we provide a few utilities to make it easier to have code compiled.
+{2 Compiles correctly for both platforms}
 
-{1 Universal modules from server-reason-react}
+One of the first challenges of sharing code is that both platforms have different APIs available. You can't use browser's APIs on the server, for example [document.querySelectorAll]. Also, you can't use server related APIs on the client such as any filsystem operations, for example [Unix.getpid].
 
-[server-reason-react] comes with a few modules that are compatible with both server and client, to make it easier to write universal code and don't worry about the platform.
+In this aspect server-reason-react is not much different than Node.js. For example, Node.js doesn't provide the global window/document objects in Node and enforces the user to handle those cases manually. [if typeof window !== "undefined" { ... }]
+
+In our case, those browser APIs don't exist on native, but the difference with Node.js is that we need the code to compile, meanwhile Node.js (being JIT) will raise an error at runtime if your code tries to use those APIs. In OCaml, those modules need to be present.
+
+Which makes those modules either present but stubbed on native or discarded with [browser_ppx].
+
+{2 Exposes a common interface to both platforms}
+
+Exposes a common interface to both platforms but it can also expose platform specific implementations on each side. Let's give a simple example:
+
+{[
+// Let's imagine we have a module "Math" that we want to be universal
+module type Math_interface = {
+  let sum: (int, int) => int;
+};
+
+// a "Math_native" module that implements the interface for the server
+module Math_native: Math_interface = {
+  let sum = (a, b) => a + b;
+  // For the sake of the example, we want a async sum
+  let async = (a, b) => Lwt.return(a + b);
+};
+
+// a "Math_js" module that implements the interface for the client
+// Asuming that Math_native.async is only used in native code, we don't need to implement "async"
+module Math_js: Math_interface = {
+  let sum = (a, b) => a + b;
+};
+]}
+
+This example is a bit silly, since the sum function is the same on both platforms. But it shows the idea: implement platform specific parts on each module.
+
+{2 Respects the semantics of the library on each platform}
+
+There's cases where the semantics of the library are different on each platform, but the behaviour is the same. Let's give a real example from the server-reason-react codebase:
+
+{[
+module ReasonReact = {
+  module React = {
+    type element; // an abstract type
+
+    // a bind to the react.js createElement function, melange will inline the function
+    // React.createElement when compiling to JavaScript
+    [@mel.module "react"]
+    external createElement: string => React.element = "createElement";
+  };
+};
+
+module ServerReasonReact = {
+  module React = {
+    // in the server-reason-react version, the element type isn't abstract
+    // because we need to know the kind of element to render in ReactDOM.renderToString for example. I could make it abstract on the interface, but I don't need to (for correctness is a good idea to maintain the exact interface).
+
+    type element =
+      | Element(string)
+      | Text(string)
+      | Component(unit => element)
+      | Fragment(array(element));
+
+    // createElement is a function that returns a React.element
+    let createElement = name => React.Element(string);
+  };
+};
+]}
+
+In both "createElement" functions the semantics are the same, but the implementation is different. There's plenty of cases like this one, but I consider those cases useful for adapting a JavaScript library to native, in a world where you start a library with universality in mind, this might not be needed.
+
+{1:kinds Kinds of universal libraries}
+
+
+
+{2:pure Pure universal library}
+
+It's a library without any client or server dependency, you can have a library with all modes: [(modes native byte melange)]. This is common for type-only libraries or libraries that only rely on the standard library. I often refer to this as "pure universal" library.
+
+For example, a library to handle remote data named [Remote_data]. Represented here as a cut down version of the library for demo purposes, you can imagine to have all necessary functions to operate on this type:
+
+{[
+(* dune *)
+(library
+ (name RemoteData)
+ (modes native melange)) (* Contains both modes for melange and native *)
+]}
+
+{[
+(* RemoteData.re *)
+type t('data, 'error) =
+  | NotAsked
+  | InitialLoading
+  | Loading('data)
+  | Failure('error)
+  | Success('data);
+
+let map = (remoteData, fn) =>
+  switch (remoteData) {
+  | NotAsked => NotAsked
+  | InitialLoading
+  | Loading(_) => InitialLoading
+  | Failure(error) => Failure(error)
+  | Success(data) => Success(fn(data))
+  };
+
+let getWithDefault = (remoteData, defaultValue) =>
+  switch (remoteData) {
+  | NotAsked
+  | InitialLoading
+  | Loading(_)
+  | Failure(_) => defaultValue
+  | Success(data) => data
+  };
+
+let isLoading =
+  fun
+  | InitialLoading
+  | Loading(_) => true
+  | _ => false;
+]}
+
+This library can be used in both "native" and "melagne" stanzas interchangeably.
+
+{2:same-api Same API, different implementations}
+
+There are some other cases where you want to expose the same API, but the implementation is different.
+
+For example, another tiny example: you may want to have a library that exposes a function to get the current time. On the client, you may want to use the browser API, while on the server you may want to use the system time.
+
+[dune] allows to have 2 libraries with the same name, but available in different modes. For example:
+
+{[
+(library
+  (name url_js)
+  (modes melange)
+  (libraries melange.js)
+  (modules Url)
+  (wrapped false))
+
+(library
+  (name url_native)
+  (modes native)
+  (modules Url)
+  (wrapped false))
+]}
+
+[url_js] and [url_native] are two different libraries, but they expose the same module called [Url] with the same API.
+
+Both libraries need to be [(wrapped false)] so they expose all the modules (which in this case is only [Url]) directly.
+
+[wrapped true] means that the library is wrapped in a entry module, so the modules are exposed under the library name. In this case, [wrapped false] expose the modules directly.
+
+{1:examples Examples of universal libraries from server-reason-react}
+
+As explained before, [server-reason-react] exposes a few modules that aren't React itself, such as {!Belt} or {!Js}. Those are native implementations of those libraries, which the user would need to add both server-reason-react.belt and melange.belt in any library.
 
 - {!Belt} is an implementation of [Belt] that would work on both server and client. [server-reason-react.belt] (Unstable)
 - {!Js} is an half-implementation of the [Js] module from melange.js, and many parts aren't implemented and some other parts aren't possible to implement on the server (Unstable, it raises "NOT IMPLEMENTED" for missing functions). [server-reason-react.js]
