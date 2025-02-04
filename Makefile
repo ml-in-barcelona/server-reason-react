@@ -110,7 +110,7 @@ subst: ## Run dune substitute
 .PHONY: docs
 docs: ## Generate odoc documentation
 	$(DUNE) build @install
-	dune exec -- odoc_driver server-reason-react
+	$(DUNE) exec -- odoc_driver server-reason-react
 
 # Because if the hack above, we can't have watch mode
 .PHONY: docs-watch
