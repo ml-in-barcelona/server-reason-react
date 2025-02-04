@@ -1,6 +1,3 @@
-@children_order get-started universal-code code-structure browser_only externals-melange-attributes
-@short_title The server-reason-react documentation
-
 {0 server-reason-react}
 
 This site is the documentation page and API references for {{:https://github.com/ml-in-barcelona/server-reason-react}server-reason-react}, an implementation of [react], [react-dom] and [react-dom/server] to run on the server with {{:https://reasonml.github.io/}Reason}/{{:https://ocaml.org/}OCaml}, with the purpose to Server-side render HTML markup from a {{:https://reasonml.github.io/reason-react//}reason-react} application natively (for both SSR and SSG).
