@@ -92,7 +92,9 @@ let make = () => {
   };
 
   <DemoLayout background=Theme.Color.Gray2>
-    <Stack gap=8 justify=`start> <Title /> </Stack>
-    <InputText value=title onChange=onChangeTitle />
+    <Stack gap=8 justify=`start>
+      <Title />
+      <InputText value=title onChange=onChangeTitle />
+    </Stack>
   </DemoLayout>;
 };

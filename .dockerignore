@@ -2,3 +2,10 @@ _build/
 .git/
 **/.merlin
 *.install
+
+README.md
+CHANGELOG.md
+benchmark/
+arch/
+.github/
+_opam/**

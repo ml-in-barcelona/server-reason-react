@@ -1,6 +1,3 @@
-@children_order get-started universal-code code-structure browser_only externals-melange-attributes
-@short_title The server-reason-react documentation
-
 {0 server-reason-react}
 
 This site is the documentation page and API references for {{:https://github.com/ml-in-barcelona/server-reason-react}server-reason-react}, an implementation of [react], [react-dom] and [react-dom/server] to run on the server with {{:https://reasonml.github.io/}Reason}/{{:https://ocaml.org/}OCaml}, with the purpose to Server-side render HTML markup from a {{:https://reasonml.github.io/reason-react//}reason-react} application natively (for both SSR and SSG).
@@ -24,47 +21,6 @@ Explained more about the motivation in this blog post {{:https://sancho.dev/blog
 Those are the core libraries of [server-reason-react].
 
 {!modules: React ReactDOM}
-
-{2 Other libraries}
-
-Aside from the core, [server-reason-react] exposes some common melange libraries to ensure components are universal:
-
-Some of them are reimplementations of those libraries,
-
-{table
-  {tr
-    {th }
-    {th melange library}
-    {th native equivalent library (exposed by [server-reason-react])}
-    {th }
-  }
-  {tr
-    {td {!Belt}}
-    {td [melange.belt]}
-    {td [server-reason-react.belt]}
-    {td An implementation of the [Belt] library for native. Unsafe, use with caution}
-  }
-  {tr
-    {td {!Js}}
-    {td [melange.js]}
-    {td [server-reason-react.js]}
-    {td A implementation of the [Js] library for native. Very unsafe, it can raise "notImplemented" exceptions, use with caution.}
-  }
-  {tr
-    {td {!Webapi}}
-    {td [melange-webapi]}
-    {td [server-reason-react.webapi]}
-    {td A stub version of [webapi] library, to ensure code compiles in native (using browser_ppx)}
-  }
-  {tr
-    {td {!Dom}}
-    {td [melange-dom]}
-    {td [server-reason-react.dom]}
-    {td [melange-dom] is mostly types and bindings. Our [server-reason-react.dom] library is the same code (those types) and bindings but with the [browser_ppx] attached}
-  }
-}
-
-{_ This libraries would eventually be extracted into their own packages and repositories}
 
 {2:next Next}
 
