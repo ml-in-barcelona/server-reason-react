@@ -1,19 +1,17 @@
 # server-reason-react
 
-Build universal React applications in OCaml/Reason
+Native React's server-side rendering (SSR) and React Server Components (RSC) architecture for Reason.
 
-Native OCaml/Reason React's server-side rendering (SSR) and React Server Components (RSC) architecture.
+Designed to be used with [reason-react](https://github.com/reasonml/reason-react) and [Melange](https://github.com/melange-re/melange). Together it enables developers to write efficient React components using a single language, while target both native executable and JavaScript.
 
-Designed to be used with [reason-react](https://github.com/reasonml/reason-react) and [Melange](https://github.com/melange-re/melange). Together it enables developers to write efficient React components using a single language, Reason, while target both native executables and JavaScript (which binds to React.js, thanks to reason-react and Melange).
-
-## Includes
+## Features
 
 - **Server-side rendering HTML** with `ReactDOM.renderToString`/`ReactDOM.renderToStaticMarkup`
 - Server-side rendering **streaming HTML** with `ReactDOM.renderToStream` (similar to react@18 `renderToReadableStream`)
 - Includes **`React.Suspense`** and **`React.use()`** implementations
 - **server-reason-react-ppx** - A ppx transformation to support JSX on native
-- All ReasonReact APIs are either implemented or stubbed (some of those stubs aren't used on the server!)
-- **React Server Components** - A ReactServerDOM module for streaming RSC payload, an esbuild plugin to enhance the bundle with client-components mappings, a Dream middleware to serve the RSC endpoint and a dummy implementation of a router (still [work in progress](https://github.com/ml-in-barcelona/server-reason-react/issues/204)).
+- All reason-react interface is either implemented or stubbed (some of the methods, like React.useState need to be stubbed because they aren't used on the server!)
+- **React Server Components** - A ReactServerDOM module for streaming RSC payload, an esbuild plugin to enhance the bundle with client-components mappings, a Dream middleware to serve the RSC endpoint and a dummy implementation of a router (still [work in progress](https://github.com/ml-in-barcelona/server-reason-react/issues/204))
 
 > Warning: This repo contains a few parts that are considered experimental and there's no guarantee of stability. Most of the stable parts are used in production at ahrefs.com, app.ahrefs.com and wordcount.com. Check each module's documentation for more details.
 
@@ -36,26 +34,14 @@ Explained more about the motivation in [this blog post](https://sancho.dev/blog/
 
 ## Other libraries inside this repo
 
-Aside from the core, server-reason-react repo contains some common melange libraries to ensure components are universal. Some of them are reimplementations in native of those libraries, and others are new implementations.
-
-but eventually will be moved out
-
-- [**browser ppx**](https://ml-in-barcelona.github.io/server-reason-react/server-reason-react/browser_only.html) - the ppx to discard code for each platform with different attributes: `let%browser_only`, `switch%platform` and `@platform`. Available under `server-reason-react.browser_ppx`
-- [**melange native ppx**](https://ml-in-barcelona.github.io/server-reason-react/server-reason-react/externals-melange-attributes.html) - a ppx to add the melange attributes to native code. Available under `server-reason-react.melange_ppx`
-- [**universal URL**](https://ml-in-barcelona.github.io/server-reason-react/server-reason-react/server-reason-react.url_native/URL/index.html) - a universal URL module: binds to `window.URL` in the browser while implemented with [`opam-uri`](https://github.com/mirage/ocaml-uri) (RFC3986 URI parsing library for OCaml) in native. Available under `server-reason-react.url_js` and `server-reason-react.url_native` respectively.
-- **Promise** - a vendored version of [aantron/promise](https://github.com/aantron/promise) but with [melange support](https://github.com/aantron/promise/pull/80). Available under `server-reason-react.promise`
-- **Webapi** - a stub version of [melange.webapi](https://github.com/melange-community/melange-webapi) library, to ensure code compiles in native (using browser_ppx). Available under `server-reason-react.webapi`
-- **belt native** - an implementation of [melange.belt](https://melange.re/v4.0.0/api/ml/melange/Belt) for native [API reference](https://ml-in-barcelona.github.io/server-reason-react/server-reason-react/server-reason-react.belt_native/Belt/index.html). May contain unsafe portions and not be complete. Available under `server-reason-react.belt`
-- **js native** - an implementation of [melange.js](https://melange.re/v4.0.0/api/ml/melange/Js) library for native. Very unsafe, and very incomplete. It can raise "notImplemented" exceptions, use with a lot of caution. Available under `server-reason-react.js`
-
-Here's the table with an additional empty column for you to specify what information you'd like to include. Just let me know what kind of information you want in the new column and I'll fill it in:
+Aside from the core (`React`, `ReactDOM` and `ReactServerDOM`), server-reason-react repo contains some common melange libraries to ensure components are universal. Some of them are reimplementations in native of those libraries, and others are new implementations. Currently they are part of the repository, but eventually will be moved out to their own opam packages and repositories.
 
 | Name | Description | Melange equivalent library | |
 |---------|-------------|---------|--|
 | [`server-reason-react.browser_ppx`](https://ml-in-barcelona.github.io/server-reason-react/server-reason-react/browser_only.html) | A ppx to discard code for each platform with different attributes: `let%browser_only`, `switch%platform` and `@platform` | | |
 | [`server-reason-react.url_js` and `server-reason-react.url_native`](https://ml-in-barcelona.github.io/server-reason-react/server-reason-react/server-reason-react.url_native/URL/index.html) | Universal URL module: binds to `window.URL` in browser, implemented with [`opam-uri`](https://github.com/mirage/ocaml-uri) in native | | |
-| [`server-reason-react.melange_ppx`](https://ml-in-barcelona.github.io/server-reason-react/server-reason-react/externals-melange-attributes.html) | A ppx to add the melange attributes to native code | [melange.ppx]() | |
-| `server-reason-react.promise` | Vendored version of [aantron/promise](https://github.com/aantron/promise) with [melange support](https://github.com/aantron/promise/pull/80) | promise | |
+| [`server-reason-react.melange_ppx`](https://ml-in-barcelona.github.io/server-reason-react/server-reason-react/externals-melange-attributes.html) | A ppx to add the melange attributes to native code | [melange.ppx](https://melange.re/v4.0.0/) | |
+| `server-reason-react.promise` | Vendored version of [aantron/promise](https://github.com/aantron/promise) with melange support [PR#80](https://github.com/aantron/promise/pull/80) | [promise](https://github.com/aantron/promise) | |
 | `server-reason-react.belt` | Implementation of Belt for native [API reference](https://ml-in-barcelona.github.io/server-reason-react/server-reason-react/server-reason-react.belt_native/Belt/index.html) | [melange.belt](https://melange.re/v4.0.0/api/ml/melange/Belt) | |
 | `server-reason-react.js` | Implementation of `Js` library for native (unsafe/incomplete) | [melange.js](https://melange.re/v4.0.0/api/ml/melange/Js) | |
 | `server-reason-react.fetch` | Stub of fetch with browser_ppx to compile in native | [melange.fetch](https://github.com/melange-community/melange-fetch) | |
