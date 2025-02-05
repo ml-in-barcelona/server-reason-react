@@ -1,10 +1,8 @@
 {0 server-reason-react}
 
-This site is the documentation page and API references for {{:https://github.com/ml-in-barcelona/server-reason-react}server-reason-react}, an implementation of [react], [react-dom] and [react-dom/server] to run on the server with {{:https://reasonml.github.io/}Reason}/{{:https://ocaml.org/}OCaml}, with the purpose to Server-side render HTML markup from a {{:https://reasonml.github.io/reason-react//}reason-react} application natively (for both SSR and SSG).
+This site is the documentation page and API references for {{:https://github.com/ml-in-barcelona/server-reason-react}server-reason-react}, server-reason-react is a Native implementation of React's server-side rendering (SSR) and React Server Components (RSC) architecture for {{:https://reasonml.github.io/}Reason}.
 
-{1:why Why}
-
-Explained more about the motivation in this blog post {{:https://sancho.dev/blog/server-side-rendering-react-in-ocaml}sancho.dev/blog/server-side-rendering-react-in-ocaml} and also in my talk about {{:https://www.youtube.com/watch?v=e3qY-Eg9zRY&ab_channel=ReactAlicante}Server side rendering React natively with Reason} at ReactAlicante 2023.
+Designed to be used with {{:https://reasonml.github.io/reason-react//}reason-react} and {{:https://github.com/melange-re/melange}Melange}. Together it enables developers to write efficient React components using a single language, while target both native executable and JavaScript.
 
 {1:guides Guides}
 

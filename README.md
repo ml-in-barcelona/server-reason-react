@@ -1,6 +1,6 @@
 # server-reason-react
 
-Native React's server-side rendering (SSR) and React Server Components (RSC) architecture for Reason.
+Native implementation of React's server-side rendering (SSR) and React Server Components (RSC) architecture for Reason.
 
 Designed to be used with [reason-react](https://github.com/reasonml/reason-react) and [Melange](https://github.com/melange-re/melange). Together it enables developers to write efficient React components using a single language, while target both native executable and JavaScript.
 
