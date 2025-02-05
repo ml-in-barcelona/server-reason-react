@@ -57,7 +57,7 @@ let readNotes = () => {
     | Ok(json) =>
       Cache.set(parseNotes(json));
       Lwt_result.lift(parseNotes(json));
-    | Error(e) => Lwt.return_error("Error reading notes file")
+    | Error(_) => Lwt.return_error("Error reading notes file")
     }
   /* When something fails, treat it as an empty note db */
   | exception _error => Lwt.return_ok([])
