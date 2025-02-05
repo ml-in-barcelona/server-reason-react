@@ -2,18 +2,6 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import ReactServerDOM from "react-server-dom-webpack/client";
 
-let updateRoot = null;
-let abortController = null;
-
-function Page({ data }) {
-	// Store the current root element in state, along with a callback
-	// to call once rendering is complete.
-	let [[root, cb], setRoot] = React.useState([React.use(data), null]);
-	updateRoot = (root, cb) => setRoot([root, cb]);
-	React.useInsertionEffect(() => cb?.());
-	return root;
-}
-
 class ErrorBoundary extends React.Component {
 	constructor(props) {
 		super(props);
@@ -38,63 +26,57 @@ class ErrorBoundary extends React.Component {
 		return this.props.children;
 	}
 }
-const App = ({ data }) => {
-	return (
-		<ErrorBoundary>
-			<Page data={data} />
-		</ErrorBoundary>
-	);
-};
 
 const callServer = (_id, _args) => {
 	throw new Error(`callServer is not supported yet`);
 };
 
-const element = document.getElementById("root");
 const stream = window.srr_stream && window.srr_stream.readable_stream;
+const initialData = ReactServerDOM.createFromReadableStream(stream, {
+	callServer,
+});
 
-if (stream) {
-	console.log("__client_manifest_map", window.__client_manifest_map);
-	const data = ReactServerDOM.createFromReadableStream(stream, { callServer });
-	React.startTransition(() => {
-		const app = <App data={data} />;
-		ReactDOM.hydrateRoot(element, app);
-	});
-} else {
-	/* when does stream not exist? */
-	let { pathname, search } = window.location;
-	navigate(pathname + search);
-}
+function App() {
+	const [data, setData] = React.useState(() => initialData);
 
-// Simple router's navigation. On navigate, fetch the RSC payload from the server,
-// and in a React transition, stream in the new page. Once complete, we'll pushState to
-// update the URL in the browser.
-async function navigate(search) {
-	let queryStrings = "?" + search;
-	if (window.location.search === queryStrings) {
-		return;
-	}
-	console.log("navigate", search);
-	let origin = window.location.origin;
-	let pathname = window.location.pathname;
-	console.log("pathname", pathname);
-	let url = new URL(origin + pathname + queryStrings);
-	if (abortController != null) {
-		abortController.abort();
-	}
-	abortController = new AbortController();
-	let res = fetch(url.toString(), {
-		headers: {
-			Accept: "application/react.component",
-		},
-		signal: abortController.signal,
-	});
-	let root = await ReactServerDOM.createFromFetch(res);
-	React.startTransition(() => {
-		updateRoot(root, () => {
+	/* Publish navigate to window, to avoid circular dependency. Once the implementation of router is migrated into a library, we can remove this and use "navigate" directly  */
+	window.__navigate = async (search) => {
+		// Simple router's navigation. On navigate, fetch the RSC payload from the server,
+		// and in a React transition, stream in the new page. Once complete, we'll pushState to
+		// update the URL in the browser.
+		let queryStrings = "?" + search;
+		if (window.location.search === queryStrings) {
+			return;
+		}
+		console.log("navigate", search);
+		let origin = window.location.origin;
+		let pathname = window.location.pathname;
+		console.log("pathname", pathname);
+		let url = new URL(origin + pathname + queryStrings);
+		let response = fetch(url.toString(), {
+			headers: {
+				Accept: "application/react.component",
+			},
+		});
+		let newRoot = await ReactServerDOM.createFromFetch(response);
+		React.startTransition(() => {
+			setData(newRoot);
 			history.pushState(null, "", url.pathname + url.search);
 		});
+	};
+
+	return <ErrorBoundary>{data}</ErrorBoundary>;
+}
+
+if (stream) {
+	const element = document.getElementById("root");
+	console.log("__client_manifest_map", window.__client_manifest_map);
+	React.startTransition(() => {
+		ReactDOM.hydrateRoot(element, <App />);
 	});
+} else {
+	let { pathname, search } = window.location;
+	navigate(pathname + search);
 }
 
 /* function useAction(endpoint, method) {
@@ -139,6 +121,4 @@ async function navigate(search) {
 	return [performMutation, isSaving];
 } */
 
-/* Publish navigate to window, to avoid circular dependency. Once the implementation of router is migrated into a library, we can remove this and use "navigate" directly  */
-window.__navigate = navigate;
 /* window.__useAction = useAction; */
