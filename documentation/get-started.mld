@@ -33,13 +33,13 @@ The main difference is, with [server-reason-react] you can render it on the serv
 
 The [ReactDOM] module exposes the [renderTo*] methods: {!ReactDOM.renderToStaticMarkup}, {!ReactDOM.renderToString} and {!ReactDOM.renderToStream}.
 
-{1:install Install from opam's registry (recommended)}
+{1:install-opam Install from opam's registry (recommended)}
 
 {[
 opam install server-reason-react
 ]}
 
-{1:install Install from source}
+{1:install-source Install from source}
 
 If you want to use the development version of server-reason-react, you can install it via opam pinning:
 {[
@@ -54,6 +54,6 @@ Add [server-reason-react.react] and [server-reason-react.reactDom] to your dune 
 and also [server-reason-react.ppx] to your preprocess list
 {[ (preprocess (pps server-reason-react.ppx)) ]}
 
-{1:next Next}
+{2:next Next}
 
 {{!page-"universal-code"}How universal code works}

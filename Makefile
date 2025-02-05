@@ -109,7 +109,8 @@ subst: ## Run dune substitute
 
 .PHONY: docs
 docs: ## Generate odoc documentation
-	$(DUNE) build --root . @doc-new --profile=prod
+	$(DUNE) build @install
+	$(DUNE) exec -- odoc_driver server-reason-react
 
 # Because if the hack above, we can't have watch mode
 .PHONY: docs-watch
@@ -118,7 +119,8 @@ docs-watch: ## Generate odoc docs
 
 .PHONY: docs-open
 docs-open: ## Open odoc docs with default web browser
-	open _build/default/_doc_new/html/docs/local/server-reason-react/index.html
+# open _build/default/_doc_new/html/docs/local/server-reason-react/index.html
+	open _html/server-reason-react/index.html
 
 .PHONY: docs-serve
 docs-serve: docs docs-open ## Open odoc docs with default web browser

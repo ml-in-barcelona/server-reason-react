@@ -30,6 +30,7 @@ depends: [
   "reason-react" {with-dev-setup}
   "melange-webapi" {with-dev-setup}
   "reason-react-ppx" {with-dev-setup}
+  "odoc-driver" {with-dev-setup}
   "alcotest" {with-test}
   "alcotest-lwt" {with-test}
   "fmt" {with-test}
