@@ -13,24 +13,17 @@ RUN sudo ln -sf /usr/bin/opam-2.3 /usr/bin/opam && opam init --reinit -n
 
 WORKDIR /app
 
-RUN opam --version
+RUN opam remote set-url default https://opam.ocaml.org
+
+RUN cd ~/opam-repository && git fetch -q origin master && git reset --hard 278df338effcd8a80241fbf6902ef949a850372c && opam update -y
 
 COPY *.opam ./
 COPY *.opam.template ./
+COPY dune ./
+COPY dune-project ./
 
-RUN cd ~/opam-repository && git pull origin master && git reset --hard 278df338effcd8a80241fbf6902ef949a850372c && opam update -y
-
-RUN opam list
-RUN opam repository list --all
-RUN opam repo
-RUN opam config list
-RUN opam switch show
 RUN opam install . --deps-only --with-test --with-doc --with-dev-setup -y
-RUN opam list
-RUN opam repository list --all
-RUN opam repo
-RUN opam config list
-RUN opam switch show
+RUN opam install quickjs.0.1.2 dream melange-json melange-json-native -y
 
 WORKDIR "/app/demo/client"
 

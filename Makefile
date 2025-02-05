@@ -146,7 +146,7 @@ current_hash = $(shell git rev-parse HEAD | cut -c1-7)
 
 .PHONY: docker-build
 docker-build: ## docker build
-	@docker build . --tag "$(name):$(current_hash)" --platform linux/amd64 --progress=plain
+	DOCKER_BUILDKIT=0 docker build . --tag "$(name):$(current_hash)" --platform linux/amd64
 
 .PHONY: docker-run
 docker-run: ## docker run
