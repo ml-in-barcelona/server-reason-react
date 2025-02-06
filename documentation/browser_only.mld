@@ -85,7 +85,3 @@ module Y = {
 ]}
 
 When compiling with the `-js` flag, only the block with [[@platform js]] (module X) is kept, and when compiling without it, only the block with [[@platform native]] (module Y) is kept.
-
-{1:next Next}
-
-{{!page-"externals-melange-attributes"}Externals and melange attributes}

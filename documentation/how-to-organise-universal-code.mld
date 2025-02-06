@@ -141,10 +141,3 @@ I found that this mechanism is not as reliable as copy_files, and it's not well 
 We know that the copy_file hack is not the best way, and we are exploring better ways of doing so with the dune.
 
 Current efforts are focused on an RFC, to enable single-context Universal Libraries {{:https://github.com/ocaml/dune/issues/10630}dune#10630}.
-
-{1:next Next}
-
-{ol
-  {li {{!page-"browser_only"}Exclude client code from the native build}}
-  {li {{!page-"externals-melange-attributes"}Externals and melange attributes}}
-}
