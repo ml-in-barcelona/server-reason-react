@@ -58,6 +58,7 @@
   (reason-react :with-dev-setup)
   (melange-webapi :with-dev-setup)
   (reason-react-ppx :with-dev-setup)
+  (odoc-driver :with-dev-setup)
 
   ; Test dependencies
   (alcotest :with-test)

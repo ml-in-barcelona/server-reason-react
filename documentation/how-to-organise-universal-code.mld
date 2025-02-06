@@ -1,0 +1,143 @@
+{0 How to organise universal code}
+
+While using [server-reason-react] it's important to know how to organise the code. Sometimes you may want to have components that are shared between the client and the server, and sometimes you want to have components that are only used by the client or by the server.
+
+In this guide will show how to setup the dune files accordingly.
+
+{1:copy_files The copy_files hack}
+
+In order to reuse the same code, you can use {{:https://dune.readthedocs.io/en/stable/dune-files.html#copy-files}(copy_files ...)}. It seems hacky, and eventually we will have better ways of doing so, but is the method I found to be more reliable in terms of developer experience, mostly editor support and error messages.
+
+{[
+- src
+  - client/
+    - dune
+  - server/
+    - shared/
+        <library-code-here>
+    - dune
+
+]}
+
+{[
+(* client/dune *)
+(library
+  (name url_js)
+  (modes melange)
+  (libraries melange.js)
+  (wrapped false)
+  (modules Url)
+  (preprocess (pps melange.ppx))
+
+(copy_files#
+ (source_only)
+ (mode fallback) ; `mode fallback` means you can override files in the client folder
+ (files "../native/shared/**.{re,rei}"))
+]}
+
+{[
+(* server/dune *)
+(library
+  (name url_native)
+  (modes native)
+  (modules Url)
+  (wrapped false))
+]}
+
+Here's an example {https://github.com/ml-in-barcelona/server-reason-react/tree/main/demo/universal}
+
+{1:components reason-react and server-reason-react}
+
+Asuming you want to share react.components between the client and the server, you can use the same technique as above.
+
+{[
+(library
+ (name shared_js)
+ (modes melange)
+ (libraries reason_react melange.belt bs_webapi)
+ (wrapped false)
+ (preprocess
+  (pps melange.ppx reason-react-ppx)))
+
+(copy_files# "../native/lib/*.re")
+
+(library
+ (name shared_native)
+ (modes native)
+ (libraries
+  server-reason-react.react
+  server-reason-react.reactDom
+  server-reason-react.belt
+  server-reason-react.webapi)
+ (wrapped false)
+ (preprocess
+  (pps
+    server-reason-react.ppx
+    server-reason-react.browser_ppx
+    server-reason-react.melange_ppx)))
+
+(copy_files# "../*.re")
+]}
+
+This will expose all modules under a `Shared` module. You can then use those modules in both the client and the server.
+
+{[
+  // client.re
+
+  switch (ReactDOM.querySelector("#root")) {
+  | Some(el) =>
+    let root = ReactDOM.Client.hydrateRoot(el);
+    ReactDOM.Client.hydrate(<Shared.App />, root);
+  | None => Js.log("Can't find a 'root' element")
+  };
+]}
+
+{[
+  // server.re
+  // Given a random server library, and a random Page component
+
+  module Page = {
+    [@react.component]
+    let make = (~children, ~scripts) => {
+      <html>
+        <head>
+          <meta charSet="UTF-8" />
+          <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0"
+          />
+          <title> {React.string("Server Reason React demo")} </title>
+          <link
+            rel="shortcut icon"
+            href="https://reasonml.github.io/img/icon_50.png"
+          />
+          <script src="https://cdn.tailwindcss.com" />
+        </head>
+        <body> <div id="root"> children </div> </body>
+      </html>;
+    };
+  };
+
+  // ...
+  req => {
+    let html = ReactDOM.renderToString(<Page> <Shared.App /> </Page>);
+    Httpd.Response.make_string(Ok(html));
+  }
+]}
+
+{1:virtual Note on virtual_libraries}
+
+There's a better mechanism of doing the same thing by dune, which is {{:https://dune.readthedocs.io/en/stable/variants.html}Virtual libraries}.
+
+However, there are a few limitations on virtual libraries:
+- {b Require all types to be abstract}
+- There are some {{:https://dune.readthedocs.io/en/stable/variants.html#limitations}known limitations}
+- {{:https://github.com/ocaml/dune/issues/7104}Some inconsistent behaviour}
+
+I found that this mechanism is not as reliable as copy_files, and it's not well supported by editors. I would recommend to use copy_files instead, while we explore better ways of doing so with the dune team.
+
+{1:future Future}
+
+We know that the copy_file hack is not the best way, and we are exploring better ways of doing so with the dune.
+
+Current efforts are focused on an RFC, to enable single-context Universal Libraries {{:https://github.com/ocaml/dune/issues/10630}dune#10630}.

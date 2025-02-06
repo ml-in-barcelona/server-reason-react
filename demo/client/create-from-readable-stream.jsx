@@ -2,7 +2,7 @@ const React = require("react");
 const ReactDOM = require("react-dom/client");
 const ReactServerDOM = require("react-server-dom-webpack/client");
 
-function Use({ promise }) {
+function App({ promise }) {
 	return React.use(promise);
 }
 
@@ -12,7 +12,7 @@ try {
 	const element = document.getElementById("root");
 
 	React.startTransition(() => {
-		const app = <Use promise={promise} />;
+		const app = <App promise={promise} />;
 		ReactDOM.hydrateRoot(element, app);
 	});
 } catch (e) {

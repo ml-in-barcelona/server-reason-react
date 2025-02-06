@@ -135,7 +135,7 @@ module App = {
               </div>
               <Hr />
               <React.Suspense fallback={<NoteListSkeleton />}>
-                <NoteList />
+                <NoteList searchText />
               </React.Suspense>
             </nav>
           </section>
