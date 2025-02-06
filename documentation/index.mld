@@ -8,7 +8,6 @@ Designed to be used with {{:https://reasonml.github.io/reason-react//}reason-rea
 
 {ol
   {li {{!page-"get-started"}Get started}}
-  {li {{!page-"basic-usage"}Basic usage}}
   {li {{!page-"universal-code"}What does universal code mean?}}
   {li {{!page-"how-to-organise-universal-code"}How to organise universal code}}
   {li {{!page-"browser_ppx"}Exclude client code from the native build}}

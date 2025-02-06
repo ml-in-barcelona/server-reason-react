@@ -6,7 +6,7 @@ In this guide will show how to setup the dune files accordingly.
 
 {1:copy_files The copy_files hack}
 
-In order to reuse the same code, you can use {{:https://dune.readthedocs.io/en/stable/dune-files.html#copy-files}(copy_files ...)}. It seems hacky, and eventually we will have better ways of doing so, but is the method I found to be more reliable in terms of developer experience, mostly editor support and error messages.
+In order to reuse the same code, you can use {{:https://dune.readthedocs.io/en/stable/reference/dune/copy_files.html}(copy_files ...)}. It seems hacky, and eventually we will have better ways of doing so, but is the method I found to be more reliable in terms of developer experience, mostly editor support and error messages.
 
 {[
 - src

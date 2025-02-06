@@ -23,7 +23,7 @@ To use the development version, install via opam pinning:
 opam pin server-reason-react.dev "https://github.com/ml-in-barcelona/server-reason-react.git#main" -y
 ]}
 
-{1 Project Setup}
+{1 Setup}
 
 Add to your dune file:
 {[
@@ -31,11 +31,11 @@ Add to your dune file:
 (preprocess (pps server-reason-react.ppx))
 ]}
 
-{1 Basic Usage}
+{1 Usage}
 
 [server-reason-react] provides {!React} and {!ReactDOM} modules with the same interface as [reason-react], including JSX transformation via [server-reason-react.ppx]. Components follow the standard [reason-react] API as explained in their {{:https://reasonml.github.io/reason-react/docs/en/components}official documentation}.
 
-Here's a simple example:
+Here's a simple component:
 
 {[
 module Greetings = {
@@ -50,7 +50,7 @@ module Greetings = {
 
 Components are functions that return a [React.element] and are annotated with [@react.component]. By convention, they are named `make`. When used in JSX, they can be written without the `make` prefix, using just the module name.
 
-Here's a more complex example with state:
+Here's a longer component with state:
 
 {[
 module Counter = {
