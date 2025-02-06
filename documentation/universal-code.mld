@@ -170,7 +170,3 @@ As explained before, [server-reason-react] exposes a few modules that aren't Rea
 - {!Belt} is an implementation of [Belt] that would work on both server and client. [server-reason-react.belt] (Unstable)
 - {!Js} is an half-implementation of the [Js] module from melange.js, and many parts aren't implemented and some other parts aren't possible to implement on the server (Unstable, it raises "NOT IMPLEMENTED" for missing functions). [server-reason-react.js]
 - {!Webapi} is a shimmed version of [melange-webapi] that works  crash at runtime if you call those APIs on the server. [server-reason-react.webapi]
-
-{1 Next}
-
-{{!page-"code-structure"}How to structure the code}

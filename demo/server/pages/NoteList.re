@@ -1,7 +1,25 @@
 open Lwt.Syntax;
 
+let is_substring = (a, b) => {
+  let len_a = String.length(a);
+  let len_b = String.length(b);
+  if (len_a > len_b) {
+    false;
+  } else {
+    let rec check = start =>
+      if (start > len_b - len_a) {
+        false;
+      } else if (String.sub(b, start, len_a) == a) {
+        true;
+      } else {
+        check(start + 1);
+      };
+    check(0);
+  };
+};
+
 [@react.async.component]
-let make = () => {
+let make = (~searchText: string) => {
   let+ notes = DB.readNotes();
 
   switch (notes) {
@@ -19,6 +37,9 @@ let make = () => {
   | Ok(notes) =>
     <ul className="mt-8">
       {notes
+       |> List.filter((note: Note.t) =>
+            is_substring(searchText, note.title)
+          )
        |> List.map((note: Note.t) =>
             <li key={Int.to_string(note.id)}> <SidebarNote note /> </li>
           )

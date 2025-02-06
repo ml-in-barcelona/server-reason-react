@@ -110,7 +110,7 @@ subst: ## Run dune substitute
 .PHONY: docs
 docs: ## Generate odoc documentation
 	$(DUNE) build @install
-	$(DUNE) exec -- odoc_driver server-reason-react
+	$(DUNE) exec -- odoc_driver server-reason-react --remap
 
 # Because if the hack above, we can't have watch mode
 .PHONY: docs-watch
@@ -146,7 +146,7 @@ current_hash = $(shell git rev-parse HEAD | cut -c1-7)
 
 .PHONY: docker-build
 docker-build: ## docker build
-	@docker build . --tag "$(name):$(current_hash)" --platform linux/amd64 --progress=plain
+	DOCKER_BUILDKIT=0 docker build . --tag "$(name):$(current_hash)" --platform linux/amd64
 
 .PHONY: docker-run
 docker-run: ## docker run

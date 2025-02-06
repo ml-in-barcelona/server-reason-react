@@ -53,7 +53,7 @@ let make =
           router.navigate({
             selectedId: Some(id),
             isEditing: false,
-            searchText: None,
+            searchText: router.location.searchText,
           })
         })
       }}>
