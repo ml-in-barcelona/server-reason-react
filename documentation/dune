@@ -3,7 +3,6 @@
  (mld_files
   index
   get-started
-  basic-usage
   universal-code
   how-to-organise-universal-code
   browser_ppx
