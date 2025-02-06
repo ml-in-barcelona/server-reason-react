@@ -43,7 +43,7 @@ Aside from the core (`React`, `ReactDOM` and `ReactServerDOM`), server-reason-re
 | [`server-reason-react.melange_ppx`](https://ml-in-barcelona.github.io/server-reason-react/server-reason-react/externals-melange-attributes.html) | A ppx to add the melange attributes to native code | [melange.ppx](https://melange.re/v4.0.0/) |
 | `server-reason-react.promise` | Vendored version of [aantron/promise](https://github.com/aantron/promise) with melange support [PR#80](https://github.com/aantron/promise/pull/80) | [promise](https://github.com/aantron/promise) |
 | `server-reason-react.belt` | Implementation of Belt for native [API reference](https://ml-in-barcelona.github.io/server-reason-react/server-reason-react/server-reason-react.belt_native/Belt/index.html) | [melange.belt](https://melange.re/v4.0.0/api/ml/melange/Belt) |
-| `server-reason-react.js` | Implementation of `Js` library for native (unsafe/incomplete) | [melange.js](https://melange.re/v4.0.0/api/ml/melange/Js) |
+| `server-reason-react.js` | Implementation of `Js` library for native (unsafe/incomplete). Check the issue [#110](https://github.com/ml-in-barcelona/server-reason-react/issues/110) for more details | [melange.js](https://melange.re/v4.0.0/api/ml/melange/Js) |
 | `server-reason-react.fetch` | Stub of fetch with browser_ppx to compile in native | [melange.fetch](https://github.com/melange-community/melange-fetch) |
 | `server-reason-react.webapi` | Stub version of Webapi library for native code compilation | [melange-webapi](https://github.com/melange-community/melange-webapi) |
 | `server-reason-react.dom` | Stub version of Dom library for native code compilation | [melange-dom](https://melange.re/v4.0.0/) |

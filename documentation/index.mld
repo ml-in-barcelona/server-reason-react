@@ -2,15 +2,16 @@
 
 This site is the documentation page and API references for {{:https://github.com/ml-in-barcelona/server-reason-react}server-reason-react}, server-reason-react is a Native implementation of React's server-side rendering (SSR) and React Server Components (RSC) architecture for {{:https://reasonml.github.io/}Reason}.
 
-Designed to be used with {{:https://reasonml.github.io/reason-react//}reason-react} and {{:https://github.com/melange-re/melange}Melange}. Together it enables developers to write efficient React components using a single language, while target both native executable and JavaScript.
+Designed to be used with {{:https://reasonml.github.io/reason-react//}reason-react} and {{:https://github.com/melange-re/melange}Melange}. Together it enables developers to write efficient React components using a single language, while building for both native executables and JavaScript.
 
 {1:guides Guides}
 
 {ol
   {li {{!page-"get-started"}Get started}}
+  {li {{!page-"basic-usage"}Basic usage}}
   {li {{!page-"universal-code"}What does universal code mean?}}
   {li {{!page-"how-to-organise-universal-code"}How to organise universal code}}
-  {li {{!page-"browser_only"}Exclude client code from the native build}}
+  {li {{!page-"browser_ppx"}Exclude client code from the native build}}
   {li {{!page-"externals-melange-attributes"}Externals and melange attributes}}
 }
 
