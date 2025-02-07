@@ -1,3 +1,5 @@
+@children_order get-started universal-code how-to-organise-universal-code browser_ppx externals-melange-attributes
+
 {0 server-reason-react}
 
 This site is the documentation page and API references for {{:https://github.com/ml-in-barcelona/server-reason-react}server-reason-react}, server-reason-react is a Native implementation of React's server-side rendering (SSR) and React Server Components (RSC) architecture for {{:https://reasonml.github.io/}Reason}.
