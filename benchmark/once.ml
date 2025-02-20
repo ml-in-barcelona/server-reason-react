@@ -41,8 +41,15 @@ let main () =
     let _ = ReactDOM.renderToStaticMarkup (Static_small.make ()) in
     ()
   in
+
   let render_app () =
     let _ = ReactDOM.renderToStaticMarkup (App.make ()) in
+    ()
+  in
+
+  let render_React_list () =
+    let list = React.list (List.init 50 (fun i -> React.string (Printf.sprintf "index: %d" i))) in
+    let _ = ReactDOM.renderToStaticMarkup (React.createElement "div" [] [ list ]) in
     ()
   in
 
@@ -50,6 +57,7 @@ let main () =
   measure_alloc "Use list direct style" (fun () -> loop 10000 direct_style);
   measure_alloc "Render <HelloWorld />" (fun () -> loop 10000 render_hello_world);
   measure_alloc "Render <App />" (fun () -> loop 10000 render_app);
+  measure_alloc "Render React.list" (fun () -> loop 10000 render_React_list);
   Lwt.return ()
 
 let () = Lwt_main.run (main ())

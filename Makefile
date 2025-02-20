@@ -138,16 +138,16 @@ bench-watch: build-bench ## Run benchmark in watch mode
 	@$(DUNE) exec benchmark/main.exe --profile=release --display-separate-messages --no-print-directory --watch
 
 .PHONY: once
-once: ## Run benchmark once
-	@$(DUNE) exec _build/default/bench/once.exe
+bench-once: ## Run benchmark once
+	@$(DUNE) exec _build/default/benchmark/once.exe
 
-name = server-reason-react-demo
+container_name = server-reason-react-demo
 current_hash = $(shell git rev-parse HEAD | cut -c1-7)
 
 .PHONY: docker-build
 docker-build: ## docker build
-	DOCKER_BUILDKIT=0 docker build . --tag "$(name):$(current_hash)" --platform linux/amd64
+	DOCKER_BUILDKIT=0 docker build . --tag "$(container_name):$(current_hash)" --platform linux/amd64
 
 .PHONY: docker-run
 docker-run: ## docker run
-	@docker run -d --platform linux/amd64 $(name):$(current_hash)
+	@docker run -d --platform linux/amd64 $(container_name):$(current_hash)
