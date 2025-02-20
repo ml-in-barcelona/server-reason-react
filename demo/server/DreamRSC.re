@@ -15,7 +15,8 @@ let stream_rsc = (request, fn) => {
   );
 };
 
-let render_shell = (app, script) => {
+let render_html =
+    (~bootstrapScriptContent, ~bootstrapScripts, ~bootstrapModules, app) => {
   let doctype = Html.raw("<!DOCTYPE html>");
   let head = children => {
     Html.node(
@@ -28,45 +29,49 @@ let render_shell = (app, script) => {
       ],
     );
   };
-  let sync_scripts =
-    Html.node(
-      "script",
-      [Html.attribute("src", "https://cdn.tailwindcss.com")],
-      [],
-    );
-  let async_scripts =
-    Html.node(
-      "script",
-      [
-        Html.attribute("src", script),
-        Html.attribute("async", "true"),
-        Html.attribute("type", "module"),
-      ],
-      [],
-    );
-  let headers = [("Content-Type", "text/html")];
-  Dream.stream(~headers, stream => {
+  let htmlBootstrapScriptContent =
+    if (bootstrapScriptContent == "") {
+      Html.null;
+    } else {
+      Html.node("script", [], [Html.raw(bootstrapScriptContent)]);
+    };
+  let htmlBootstrapScripts =
+    bootstrapScripts
+    |> List.map(script =>
+         Html.node(
+           "script",
+           [Html.attribute("src", script), Html.attribute("async", "true")],
+           [],
+         )
+       )
+    |> Html.list;
+  let htmlBootstrapModules =
+    bootstrapModules
+    |> List.map(script =>
+         Html.node(
+           "script",
+           [
+             Html.attribute("src", script),
+             Html.attribute("async", "true"),
+             Html.attribute("type", "module"),
+           ],
+           [],
+         )
+       )
+    |> Html.list;
+  Dream.stream(~headers=[("Content-Type", "text/html")], stream => {
     switch%lwt (ReactServerDOM.render_html(app)) {
-    | ReactServerDOM.Done({head: head_children, body, end_script}) =>
-      Dream.log("Done: %s", Html.to_string(body));
-      let%lwt () = Dream.write(stream, Html.to_string(doctype));
-      let%lwt () =
-        Dream.write(
-          stream,
-          Html.to_string(head([sync_scripts, async_scripts, head_children])),
-        );
-      let%lwt () = Dream.write(stream, "<body><div id=\"root\">");
-      let%lwt () = Dream.write(stream, Html.to_string(body));
-      let%lwt () = Dream.write(stream, "</div>");
-      let%lwt () = Dream.write(stream, Html.to_string(end_script));
-      let%lwt () = Dream.write(stream, "</body></html>");
+    | ReactServerDOM.Done({app, head: head_children, body, end_script}) =>
+      let%lwt () = Dream.write(stream, app);
       Dream.flush(stream);
     | ReactServerDOM.Async({head: head_children, shell: body, subscribe}) =>
       let%lwt () = Dream.write(stream, Html.to_string(doctype));
       let%lwt () =
         Dream.write(
           stream,
-          Html.to_string(head([sync_scripts, async_scripts, head_children])),
+          Html.to_string(
+            head([htmlBootstrapScripts, htmlBootstrapModules, head_children]),
+          ),
         );
       let%lwt () = Dream.write(stream, "<body><div id=\"root\">");
       let%lwt () = Dream.write(stream, Html.to_string(body));
@@ -85,7 +90,14 @@ let render_shell = (app, script) => {
   });
 };
 
-let createFromRequest = (app, script, request) => {
+let createFromRequest =
+    (
+      ~bootstrapModules=[],
+      ~bootstrapScripts=[],
+      ~bootstrapScriptContent="",
+      app,
+      request,
+    ) => {
   switch (Dream.header(request, "Accept")) {
   | Some(accept) when is_react_component_header(accept) =>
     stream_rsc(
@@ -105,6 +117,12 @@ let createFromRequest = (app, script, request) => {
         Dream.flush(stream);
       },
     )
-  | _ => render_shell(app, script)
+  | _ =>
+    render_html(
+      ~bootstrapScriptContent,
+      ~bootstrapScripts,
+      ~bootstrapModules,
+      app,
+    )
   };
 };
