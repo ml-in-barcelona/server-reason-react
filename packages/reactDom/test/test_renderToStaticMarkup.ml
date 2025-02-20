@@ -79,6 +79,20 @@ let fragments_and_texts () =
   in
   assert_string (ReactDOM.renderToStaticMarkup component) "<div>foobar<b></b></div>"
 
+let lists_and_arrays () =
+  let component =
+    React.createElement "div" []
+      [
+        React.fragment (React.list [ React.string "This feels "; React.int 100 ]);
+        React.createElement "br" [] [];
+        React.fragment
+          (React.array [| React.string "This doesn't "; React.string "feel right"; React.string " but it works." |]);
+      ]
+  in
+  assert_string
+    (ReactDOM.renderToStaticMarkup component)
+    "<div>This feels 100<br />This doesn&apos;t feel right but it works.</div>"
+
 let inline_styles () =
   let component =
     React.createElement "button" [ React.JSX.style (ReactDOMStyle.make ~color:"red" ~border:"none" ()) ] []
@@ -322,4 +336,5 @@ let tests =
     test "ref_as_prop_works" ref_as_prop_works;
     test "ref_as_callback_prop_works" ref_as_callback_prop_works;
     test "async" async_component;
+    test "lists_and_arrays" lists_and_arrays;
   ]

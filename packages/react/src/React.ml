@@ -371,7 +371,6 @@ module JSX = struct
   end
 end
 
-(* TODO: Merge Fragment and List *)
 type element =
   | Lower_case_element of { key : string option; tag : string; attributes : JSX.prop list; children : element list }
   | Upper_case_component of (unit -> element)

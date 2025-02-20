@@ -69,13 +69,15 @@ type element =
   | Raw of string (* text without encoding *)
   | Node of { tag : string; attributes : attribute list; children : element list }
   | List of (string * element list)
+  | Array of element array
 
 let string txt = String txt
 let raw txt = Raw txt
 let null = Null
 let int i = String (Int.to_string i)
 let float f = String (Float.to_string f)
-let list ?(separator = "") arr = List (separator, arr)
+let list ?(separator = "") list = List (separator, list)
+let array arr = Array arr
 let fragment arr = List arr
 let node tag attributes children = Node { tag; attributes; children }
 
@@ -125,6 +127,7 @@ let to_string ?(add_separator_between_text_nodes = true) element =
               iter rest
         in
         iter list
+    | Array elements -> Array.iter write elements
   in
   write element;
   Buffer.contents out
