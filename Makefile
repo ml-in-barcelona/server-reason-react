@@ -141,6 +141,10 @@ bench-watch: build-bench ## Run benchmark in watch mode
 bench-once: ## Run benchmark once
 	@$(DUNE) exec _build/default/benchmark/once.exe
 
+.PHONY: bench-once-watch
+bench-once-watch: ## Run benchmark once in watch mode
+	@$(DUNE) exec _build/default/benchmark/once.exe --watch
+
 container_name = server-reason-react-demo
 current_hash = $(shell git rev-parse HEAD | cut -c1-7)
 
