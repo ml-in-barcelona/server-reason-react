@@ -65,7 +65,9 @@ let render_to_string ~mode element =
     | Provider children -> render_element children
     | Consumer children -> render_element children
     | Fragment children -> render_element children
-    | List list -> list |> Array.to_list |> List.map render_element |> Html.list
+    | List list -> list |> List.map render_element |> Html.list
+    (* TODO: Create Html.array *)
+    | Array arr -> arr |> Array.to_list |> List.map render_element |> Html.list
     | Upper_case_component component -> render_element (component ())
     | Async_component _component ->
         raise
@@ -159,7 +161,11 @@ let rec render_to_stream ~context_state element =
     | Provider children -> render_element children
     | Consumer children -> render_element children
     | Fragment children -> render_element children
-    | List arr ->
+    | List list ->
+        let%lwt childrens = Lwt_list.map_p render_element list in
+        Lwt.return (Html.list childrens)
+    | Array arr ->
+        (* TODO: with Html.array and Lwt_array.map_p *)
         let%lwt childrens = arr |> Array.to_list |> Lwt_list.map_p render_element in
         Lwt.return (Html.list childrens)
     | Lower_case_element { key; tag; attributes; children } -> render_lower_case ~key tag attributes children
@@ -239,7 +245,10 @@ and render_with_resolved ~context_state element =
     | Provider children -> render_element children
     | Consumer children -> render_element children
     | Fragment children -> render_element children
-    | List arr ->
+    | List list ->
+        let%lwt childrens = Lwt_list.map_p render_element list in
+        Lwt.return (Html.list childrens)
+    | Array arr ->
         let%lwt childrens = arr |> Array.to_list |> Lwt_list.map_p render_element in
         Lwt.return (Html.list childrens)
     | Upper_case_component component -> render_element (component ())

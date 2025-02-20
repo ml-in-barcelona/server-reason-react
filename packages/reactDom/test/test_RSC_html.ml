@@ -59,10 +59,11 @@ let stream_close_script = "<script>window.srr_stream.close()</script>"
 
 let assert_sync_payload app sync_body =
   match%lwt ReactServerDOM.render_html app with
-  | Done { head; body; end_script } ->
+  | Done { head; body; end_script; app = _ } ->
       assert_html head text_encoder_script;
       assert_html body sync_body;
       assert_html end_script stream_close_script;
+      (* TODO: assert_html app app; *)
       Lwt.return ()
   | Async _ -> Lwt.return (Alcotest.fail "Async should not be returned by render_to_html")
 
@@ -244,8 +245,8 @@ let client_with_promise_props () =
   let app () =
     React.Upper_case_component
       (fun () ->
-        React.List
-          [|
+        React.list
+          [
             React.createElement "div" [] [ React.string "Server Content" ];
             React.Client_component
               {
@@ -255,7 +256,7 @@ let client_with_promise_props () =
                 import_module = "./client-with-props.js";
                 import_name = "ClientWithProps";
               };
-          |])
+          ])
   in
   assert_async_payload (app ())
     ~shell:

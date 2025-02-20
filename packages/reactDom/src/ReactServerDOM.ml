@@ -106,7 +106,8 @@ module Model = struct
           let props = props_to_json attributes in
           node ~key ~tag ~props (List.map to_payload children)
       | Fragment children -> to_payload children
-      | List children -> `List (Array.map to_payload children |> Array.to_list)
+      | List children -> `List (List.map to_payload children)
+      | Array children -> `List (Array.map to_payload children |> Array.to_list)
       | InnerHtml _text ->
           raise
             (Invalid_argument
@@ -258,6 +259,9 @@ let rec client_to_html ~fiber (element : React.element) =
   | Text text -> Lwt.return (Html.string text)
   | Fragment children -> client_to_html ~fiber children
   | List childrens ->
+      let%lwt html = Lwt_list.map_p (client_to_html ~fiber) childrens in
+      Lwt.return (Html.list html)
+  | Array childrens ->
       let%lwt html = childrens |> Array.to_list |> Lwt_list.map_p (client_to_html ~fiber) in
       Lwt.return (Html.list html)
   | Lower_case_element { key; tag; attributes; children } -> render_lower_case ~fiber ~key ~tag ~attributes ~children
@@ -318,7 +322,8 @@ let rec to_html ~fiber (element : React.element) : (Html.element * json) Lwt.t =
   | Empty -> Lwt.return (Html.null, `Null)
   | Text s -> Lwt.return (Html.string s, if not true then `Null else `String s)
   | Fragment children -> to_html ~fiber children
-  | List list -> elements_to_html ~fiber (Array.to_list list)
+  | List list -> elements_to_html ~fiber list
+  | Array arr -> elements_to_html ~fiber (Array.to_list arr)
   | Upper_case_component component -> to_html ~fiber (component ())
   | Lower_case_element { key; tag; attributes; children } -> render_lower_case ~fiber ~key ~tag ~attributes ~children
   | Async_component component ->
