@@ -418,7 +418,7 @@ and elements_to_html ~fiber elements =
 (* TODO: We could use only the Async case, where head and shell handle all the sync while subscribe handles the async? *)
 (* TODO: we might want to implement "resources" instead of head *)
 type rendering =
-  | Done of { head : Html.element; body : Html.element; end_script : Html.element }
+  | Done of { app : string; head : Html.element; body : Html.element; end_script : Html.element }
   | Async of { head : Html.element; shell : Html.element; subscribe : (Html.element -> unit Lwt.t) -> unit Lwt.t }
 
 (* TODO: Do we need to disable streaming based on some timeout? abortion? *)
@@ -445,13 +445,21 @@ let render_html element =
     | false -> Lwt.return (shell, Some stream)
   in
   match html_async with
-  | None -> Lwt.return (Done { head = rsc_start_script; body = html_shell; end_script = chunk_stream_end_script })
+  | None ->
+      Lwt.return
+        (Done
+           {
+             app = Html.to_string html_shell;
+             head = rsc_start_script;
+             body = html_shell;
+             end_script = chunk_stream_end_script;
+           })
   | Some stream ->
       let html_iter fn =
         let%lwt () = Push_stream.subscribe ~fn stream in
         fn chunk_stream_end_script
       in
       Lwt.return
-        (Async { shell = html_shell; head = Html.list [ rc_function_script; rsc_start_script ]; subscribe = html_iter })
+        (Async { head = Html.list [ rc_function_script; rsc_start_script ]; shell = html_shell; subscribe = html_iter })
 
 let render_model = Model.render
