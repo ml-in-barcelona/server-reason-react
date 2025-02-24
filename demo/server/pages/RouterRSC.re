@@ -163,7 +163,7 @@ let handler = request => {
     Dream.query(request, "searchText") |> Option.value(~default="");
 
   DreamRSC.createFromRequest(
-    ~bootstrapModules=["/static/demo/client/router.js"],
+    ~bootstrapModules=["/static/demo/ClientRouter.re.js"],
     ~bootstrapScripts=["https://cdn.tailwindcss.com"],
     <App selectedId isEditing searchText />,
     request,

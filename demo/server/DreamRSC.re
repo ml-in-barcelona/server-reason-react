@@ -24,7 +24,6 @@ let render_html =
       [],
       [
         Html.node("meta", [Html.attribute("charset", "utf-8")], []),
-        Html.node("title", [], [Html.string("React Server DOM")]),
         ...children,
       ],
     );

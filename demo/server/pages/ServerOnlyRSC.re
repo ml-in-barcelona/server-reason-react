@@ -1,6 +1,6 @@
 let handler = request => {
   let isRSCheader =
-    Dream.header(request, "Accept") == Some("text/x-component");
+    Dream.header(request, "Accept") == Some("application/react.component");
 
   let app =
     <DemoLayout background=Theme.Color.Gray2>
@@ -41,7 +41,7 @@ let handler = request => {
   } else {
     Dream.html(
       ReactDOM.renderToString(
-        <Document script="/static/demo/client/create-from-fetch.js">
+        <Document script="/static/demo/CreateFromFetch.re.js">
           React.null
         </Document>,
       ),
