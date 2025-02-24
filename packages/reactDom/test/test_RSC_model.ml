@@ -253,8 +253,8 @@ let client_without_props () =
   let app () =
     React.Upper_case_component
       (fun () ->
-        React.List
-          [|
+        React.list
+          [
             React.createElement "div" [] [ React.string "Server Content" ];
             React.Client_component
               {
@@ -263,7 +263,7 @@ let client_without_props () =
                 import_module = "./client-without-props.js";
                 import_name = "ClientWithoutProps";
               };
-          |])
+          ])
   in
   let%lwt stream = ReactServerDOM.render_model (app ()) in
   assert_stream stream
@@ -277,8 +277,8 @@ let client_with_json_props () =
   let app () =
     React.Upper_case_component
       (fun () ->
-        React.List
-          [|
+        React.list
+          [
             React.createElement "div" [] [ React.string "Server Content" ];
             React.Client_component
               {
@@ -297,7 +297,7 @@ let client_with_json_props () =
                 import_module = "./client-with-props.js";
                 import_name = "ClientWithProps";
               };
-          |])
+          ])
   in
   let%lwt stream = ReactServerDOM.render_model (app ()) in
   assert_stream stream
@@ -314,8 +314,8 @@ let client_with_element_props () =
   let app () =
     React.Upper_case_component
       (fun () ->
-        React.List
-          [|
+        React.list
+          [
             React.createElement "div" [] [ React.string "Server Content" ];
             React.Client_component
               {
@@ -324,7 +324,7 @@ let client_with_element_props () =
                 import_module = "./client-with-props.js";
                 import_name = "ClientWithProps";
               };
-          |])
+          ])
   in
   let%lwt stream = ReactServerDOM.render_model (app ()) in
   assert_stream stream
@@ -338,8 +338,8 @@ let client_with_promise_props () =
   let app () =
     React.Upper_case_component
       (fun () ->
-        React.List
-          [|
+        React.list
+          [
             React.createElement "div" [] [ React.string "Server Content" ];
             React.Client_component
               {
@@ -349,7 +349,7 @@ let client_with_promise_props () =
                 import_module = "./client-with-props.js";
                 import_name = "ClientWithProps";
               };
-          |])
+          ])
   in
   let%lwt stream = ReactServerDOM.render_model (app ()) in
   assert_stream stream
@@ -364,15 +364,15 @@ let mixed_server_and_client () =
   let app () =
     React.Upper_case_component
       (fun () ->
-        React.List
-          [|
+        React.list
+          [
             React.createElement "header" [] [ React.string "Server Header" ];
             React.Client_component
               { props = []; client = React.string "Client 1"; import_module = "./client-1.js"; import_name = "Client1" };
             React.createElement "footer" [] [ React.string "Server Footer" ];
             React.Client_component
               { props = []; client = React.string "Client 2"; import_module = "./client-2.js"; import_name = "Client2" };
-          |])
+          ])
   in
   let%lwt stream = ReactServerDOM.render_model (app ()) in
   assert_stream stream
@@ -390,8 +390,8 @@ let client_with_server_children () =
   let app () =
     React.Upper_case_component
       (fun () ->
-        React.List
-          [|
+        React.list
+          [
             React.createElement "div" [] [ React.string "Server Content" ];
             React.Client_component
               {
@@ -400,7 +400,7 @@ let client_with_server_children () =
                 import_module = "./client-with-server-children.js";
                 import_name = "ClientWithServerChildren";
               };
-          |])
+          ])
   in
   let%lwt stream = ReactServerDOM.render_model (app ()) in
   assert_stream stream

@@ -106,7 +106,8 @@ module Model = struct
           let props = props_to_json attributes in
           node ~key ~tag ~props (List.map to_payload children)
       | Fragment children -> to_payload children
-      | List children -> `List (Array.map to_payload children |> Array.to_list)
+      | List children -> `List (List.map to_payload children)
+      | Array children -> `List (Array.map to_payload children |> Array.to_list)
       | InnerHtml _text ->
           raise
             (Invalid_argument
@@ -258,6 +259,9 @@ let rec client_to_html ~fiber (element : React.element) =
   | Text text -> Lwt.return (Html.string text)
   | Fragment children -> client_to_html ~fiber children
   | List childrens ->
+      let%lwt html = Lwt_list.map_p (client_to_html ~fiber) childrens in
+      Lwt.return (Html.list html)
+  | Array childrens ->
       let%lwt html = childrens |> Array.to_list |> Lwt_list.map_p (client_to_html ~fiber) in
       Lwt.return (Html.list html)
   | Lower_case_element { key; tag; attributes; children } -> render_lower_case ~fiber ~key ~tag ~attributes ~children
@@ -318,7 +322,8 @@ let rec to_html ~fiber (element : React.element) : (Html.element * json) Lwt.t =
   | Empty -> Lwt.return (Html.null, `Null)
   | Text s -> Lwt.return (Html.string s, if not true then `Null else `String s)
   | Fragment children -> to_html ~fiber children
-  | List list -> elements_to_html ~fiber (Array.to_list list)
+  | List list -> elements_to_html ~fiber list
+  | Array arr -> elements_to_html ~fiber (Array.to_list arr)
   | Upper_case_component component -> to_html ~fiber (component ())
   | Lower_case_element { key; tag; attributes; children } -> render_lower_case ~fiber ~key ~tag ~attributes ~children
   | Async_component component ->
@@ -418,7 +423,7 @@ and elements_to_html ~fiber elements =
 (* TODO: We could use only the Async case, where head and shell handle all the sync while subscribe handles the async? *)
 (* TODO: we might want to implement "resources" instead of head *)
 type rendering =
-  | Done of { head : Html.element; body : Html.element; end_script : Html.element }
+  | Done of { app : string; head : Html.element; body : Html.element; end_script : Html.element }
   | Async of { head : Html.element; shell : Html.element; subscribe : (Html.element -> unit Lwt.t) -> unit Lwt.t }
 
 (* TODO: Do we need to disable streaming based on some timeout? abortion? *)
@@ -445,13 +450,21 @@ let render_html element =
     | false -> Lwt.return (shell, Some stream)
   in
   match html_async with
-  | None -> Lwt.return (Done { head = rsc_start_script; body = html_shell; end_script = chunk_stream_end_script })
+  | None ->
+      Lwt.return
+        (Done
+           {
+             app = Html.to_string html_shell;
+             head = rsc_start_script;
+             body = html_shell;
+             end_script = chunk_stream_end_script;
+           })
   | Some stream ->
       let html_iter fn =
         let%lwt () = Push_stream.subscribe ~fn stream in
         fn chunk_stream_end_script
       in
       Lwt.return
-        (Async { shell = html_shell; head = Html.list [ rc_function_script; rsc_start_script ]; subscribe = html_iter })
+        (Async { head = Html.list [ rc_function_script; rsc_start_script ]; shell = html_shell; subscribe = html_iter })
 
 let render_model = Model.render

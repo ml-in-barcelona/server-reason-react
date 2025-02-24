@@ -371,13 +371,13 @@ module JSX = struct
   end
 end
 
-(* TODO: Merge Fragment and List *)
 type element =
   | Lower_case_element of { key : string option; tag : string; attributes : JSX.prop list; children : element list }
   | Upper_case_component of (unit -> element)
   | Async_component of (unit -> element Lwt.t)
   | Client_component of { props : client_props; client : element; import_module : string; import_name : string }
-  | List of element array
+  | List of element list
+  | Array of element array
   | Text of string
   | InnerHtml of string
   | Fragment of element
@@ -465,7 +465,8 @@ let cloneElement element new_attributes =
   | Text _ -> raise (Invalid_argument "can't clone a text element")
   | InnerHtml _ -> raise (Invalid_argument "can't clone a dangerouslySetInnerHTML element")
   | Empty -> raise (Invalid_argument "can't clone a null element")
-  | List _ -> raise (Invalid_argument "can't clone an array element")
+  | List _ -> raise (Invalid_argument "can't clone a list element")
+  | Array _ -> raise (Invalid_argument "can't clone an array element")
   | Provider _ -> raise (Invalid_argument "can't clone a Provider")
   | Consumer _ -> raise (Invalid_argument "can't clone a Consumer")
   | Async_component _ -> raise (Invalid_argument "can't clone an async component")
@@ -485,20 +486,8 @@ let int i = Text (string_of_int i)
 
 (* FIXME: float_of_string might be different from the browser *)
 let float f = Text (string_of_float f)
-let array arr = List arr
-
-let list_to_array list =
-  let rec to_array i res =
-    match i < 0 with
-    | true -> res
-    | false ->
-        let item = List.nth list i in
-        let rest = Array.append [| item |] res in
-        to_array (i - 1) rest
-  in
-  to_array (List.length list - 1) [||]
-
-let list l = List (list_to_array l)
+let array arr = Array arr
+let list l = List l
 
 type 'a provider = value:'a -> children:element -> unit -> element
 type 'a context = { current_value : 'a ref; provider : 'a provider; consumer : children:element -> element }
@@ -584,36 +573,50 @@ let useLayoutEffect6 _ _ = ()
 
 module Children = struct
   let map element fn =
-    match element with List children -> Array.map fn children |> Array.to_list |> list | _ -> fn element
+    match element with
+    | List children -> List.map fn children |> list
+    | Array children -> Array.map fn children |> array
+    | _ -> fn element
 
   let mapWithIndex element fn =
     match element with
-    | List children -> Array.mapi (fun index element -> fn element index) children |> Array.to_list |> list
+    | List children -> List.mapi (fun index element -> fn element index) children |> list
+    | Array children -> Array.mapi (fun index element -> fn element index) children |> array
     | _ -> fn element 0
 
   let forEach element fn =
     match element with
-    | List children -> Array.iter fn children
+    | List children -> List.iter fn children
+    | Array children -> Array.iter fn children
     | _ ->
         let _ = fn element in
         ()
 
   let forEachWithIndex element fn =
     match element with
-    | List children -> Array.iteri (fun index element -> fn element index) children
+    | List children -> List.iteri (fun index element -> fn element index) children
+    | Array children -> Array.iteri (fun index element -> fn element index) children
     | _ ->
         let _ = fn element 0 in
         ()
 
-  let count element = match element with List children -> Array.length children | Empty -> 0 | _ -> 1
+  let count element =
+    match element with
+    | List children -> List.length children
+    | Array children -> Array.length children
+    | Empty -> 0
+    | _ -> 1
 
   let only element =
     match element with
     | List children ->
+        if List.length children >= 1 then List.hd children else raise (Invalid_argument "Expected at least one child")
+    | Array children ->
         if Array.length children >= 1 then Array.get children 0
         else raise (Invalid_argument "Expected at least one child")
     | _ -> element
 
+  (* TODO: silly way to convert children to array, but isn't necessary in most cases *)
   let toArray element = [| element |]
 end
 

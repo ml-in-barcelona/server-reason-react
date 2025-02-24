@@ -559,7 +559,8 @@ type element =
   | Upper_case_component of (unit -> element)
   | Async_component of (unit -> element Lwt.t)
   | Client_component of { props : client_props; client : element; import_module : string; import_name : string }
-  | List of element array
+  | List of element list
+  | Array of element array
   | Text of string
   | InnerHtml of string
   | Fragment of element
