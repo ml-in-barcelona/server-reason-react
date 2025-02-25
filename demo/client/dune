@@ -4,7 +4,14 @@
  (target app)
  (module_systems
   (es6 re.js))
- (libraries melange reason-react melange.dom melange-webapi demo_shared_js)
+ (libraries
+  melange
+  reason-react
+  melange.dom
+  melange-webapi
+  url_js
+  melange-fetch
+  demo_shared_js)
  (preprocess
   (pps browser_ppx -js reason-react-ppx melange.ppx)))
 
@@ -18,64 +25,20 @@
   (package server-reason-react)
   (alias_rec melange)
   (:script build.mjs)
-  (:input "app/demo/client/Hydrate.re.js")
+  (:entrypoints
+   "app/demo/client/Hydrate.re.js"
+   "app/demo/client/CreateFromReadableStream.re.js"
+   "app/demo/client/CreateFromFetch.re.js"
+   "app/demo/client/ClientRouter.re.js")
   (source_tree node_modules)
   (file package.json)
   (source_tree ../../packages/extract-client-components))
  (action
   (progn
-   (run node %{script} %{input} app/demo/client/Hydrate.js))))
-
-;; create-from-fetch.jsx
-
-(rule
- (enabled_if
-  (= %{profile} dev))
- (alias client)
- (deps
-  (package server-reason-react)
-  (alias_rec melange)
-  (:input create-from-fetch.jsx)
-  (:script build.mjs)
-  (file package.json)
-  (source_tree node_modules))
- (action
-  (progn
-   (run node %{script} %{input} app/demo/client/))))
-
-;; create-from-readable-stream.jsx
-
-(rule
- (enabled_if
-  (= %{profile} dev))
- (alias client)
- (deps
-  (package server-reason-react)
-  (alias_rec melange)
-  (:input create-from-readable-stream.jsx)
-  (:script build.mjs)
-  (file package.json)
-  (source_tree node_modules)
-  (source_tree ../../packages/extract-client-components))
- (action
-  (progn
-   (run node %{script} %{input} app/demo/client/ --extract=true))))
-
-;; router.jsx
-
-(rule
- (enabled_if
-  (= %{profile} dev))
- (alias client)
- (deps
-  (package server-reason-react)
-  (alias_rec melange)
-  (:input router.jsx)
-  (:script build.mjs)
-  (file package.json)
-  (source_tree node_modules)
-  (source_tree ../../demo/universal/native)
-  (source_tree ../../packages/extract-client-components))
- (action
-  (progn
-   (run node %{script} %{input} app/demo/client/ --extract=true))))
+   (run
+    node
+    %{script}
+    %{entrypoints}
+    --output=app/demo/client/
+    --extract=true
+    --mock-webpack-require=true))))

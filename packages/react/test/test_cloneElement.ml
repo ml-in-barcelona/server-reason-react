@@ -16,7 +16,8 @@ let equal_components (c1 : React.element) (c2 : React.element) =
         && List.for_all2 equal_rec lc1.children lc2.children
         && List.for_all2 equal_attrs lc1.attributes lc2.attributes
     | Upper_case_component cf1, Upper_case_component cf2 -> equal_rec (cf1 ()) (cf2 ())
-    | List cl1, List cl2 -> Array.for_all2 equal_rec cl1 cl2
+    | List cl1, List cl2 -> List.for_all2 equal_rec cl1 cl2
+    | Array cl1, Array cl2 -> Array.for_all2 equal_rec cl1 cl2
     | Text t1, Text t2 -> t1 == t2
     | Fragment fl1, Fragment fl2 -> equal_rec fl1 fl2
     | Empty, Empty -> true
