@@ -113,6 +113,7 @@ let to_string ?(add_separator_between_text_nodes = true) element =
         Buffer.add_string out "</";
         Buffer.add_string out tag;
         Buffer.add_char out '>'
+    | List ("", list) -> List.iter write list
     | List (separator, list) ->
         let rec iter = function
           | [] -> ()
