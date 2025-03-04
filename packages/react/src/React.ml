@@ -609,8 +609,8 @@ module Children = struct
 
   let only element =
     match element with
-    | List children ->
-        if List.length children >= 1 then List.hd children else raise (Invalid_argument "Expected at least one child")
+    | List (child :: _) -> child
+    | List [] -> raise (Invalid_argument "Expected at least one child")
     | Array children ->
         if Array.length children >= 1 then Array.get children 0
         else raise (Invalid_argument "Expected at least one child")
