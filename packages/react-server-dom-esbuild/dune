@@ -1,0 +1,5 @@
+(library
+ (name ReactServerDOMEsbuildClient)
+ (libraries reason-react melange-webapi)
+ (preprocess
+  (pps melange.ppx)))
