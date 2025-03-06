@@ -1,10 +1,22 @@
 open Ppx_deriving_json_runtime.Primitives;
 
+[@react.server.action]
+let onClickServerAction =
+    (~foo as a: string, ~bar: int): Js.Promise.t(string) => {
+  Js.Promise.resolve(a ++ string_of_int(bar));
+};
+
 [@react.client.component]
 let make = (~initial: int) => {
   let (state, setCount) = RR.useStateValue(initial);
 
   let onClick = _event => {
+    onClickServerAction(~foo="foo", ~bar=1)
+    |> Js.Promise.then_(result => {
+         Js.log("############" ++ result);
+         Js.Promise.resolve();
+       })
+    |> ignore;
     setCount(state + 1);
   };
 

@@ -9,7 +9,7 @@ function usage() {
   echo "       $(basename "$0") --output ml -js [file.re]"
 }
 
-js_flag=""
+melange_flag=""
 output_format=""
 input_file=""
 
@@ -20,8 +20,8 @@ while [[ $# -gt 0 ]]; do
       output_format="$2"
       shift 2
       ;;
-    -js)
-      js_flag="-js"
+     -melange)
+      melange_flag="-melange"
       shift
       ;;
     *)
@@ -38,7 +38,7 @@ if [ -z "$output_format" ] || [ -z "$input_file" ]; then
 fi
 
 refmt --parse re --print ml "$input_file" > output.ml
-./../standalone.exe --impl output.ml $js_flag -o temp.ml
+./../standalone.exe --impl output.ml $melange_flag -o temp.ml
 
 if [ "$output_format" == "ml" ]; then
   ocamlformat --enable-outside-detected-project --impl temp.ml -o temp.ml
