@@ -307,18 +307,52 @@ let allOkArray = promises => {
 let allOk = promises =>
   mapOk(allOkArray(Belt.List.toArray(promises)), Belt.List.fromArray);
 
-let unsafeAllOkArray = Obj.magic(allOkArray);
+let allOk2 =
+    (p1: promise(result('a, 'err)), p2: promise(result('b, 'err)))
+    : promise(result(('a, 'b), 'err)) =>
+  Obj.magic(allOkArray, (p1, p2));
 
-let allOk2 = (p1, p2) => unsafeAllOkArray((p1, p2));
+let allOk3 =
+    (
+      p1: promise(result('a, 'err)),
+      p2: promise(result('b, 'err)),
+      p3: promise(result('c, 'err)),
+    )
+    : promise(result(('a, 'b, 'c), 'err)) =>
+  Obj.magic(allOkArray, (p1, p2, p3));
 
-let allOk3 = (p1, p2, p3) => unsafeAllOkArray((p1, p2, p3));
+let allOk4 =
+    (
+      p1: promise(result('a, 'err)),
+      p2: promise(result('b, 'err)),
+      p3: promise(result('c, 'err)),
+      p4: promise(result('d, 'err)),
+    )
+    : promise(result(('a, 'b, 'c, 'd), 'err)) =>
+  Obj.magic(allOkArray, (p1, p2, p3, p4));
 
-let allOk4 = (p1, p2, p3, p4) => unsafeAllOkArray((p1, p2, p3, p4));
+let allOk5 =
+    (
+      p1: promise(result('a, 'err)),
+      p2: promise(result('b, 'err)),
+      p3: promise(result('c, 'err)),
+      p4: promise(result('d, 'err)),
+      p5: promise(result('e, 'err)),
+    )
+    : promise(result(('a, 'b, 'c, 'd, 'e), 'err)) =>
+  Obj.magic(allOkArray, (p1, p2, p3, p4, p5));
 
-let allOk5 = (p1, p2, p3, p4, p5) => unsafeAllOkArray((p1, p2, p3, p4, p5));
-
-let allOk6 = (p1, p2, p3, p4, p5, p6) =>
-  unsafeAllOkArray((p1, p2, p3, p4, p5, p6));
+let allOk6 =
+    (
+      p1: promise(result('a, 'err)),
+      p2: promise(result('b, 'err)),
+      p3: promise(result('c, 'err)),
+      p4: promise(result('d, 'err)),
+      p5: promise(result('e, 'err)),
+      p6: promise(result('f, 'err)),
+    )
+    : promise(result(('a, 'b, 'c, 'd, 'e, 'f), 'err)) =>
+  Obj.magic(allOkArray, (p1, p2, p3, p4, p5, p6));
 
 module Operators = {
   let (>|=) = mapOk;
