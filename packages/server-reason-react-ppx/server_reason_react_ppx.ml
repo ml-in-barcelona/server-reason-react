@@ -29,6 +29,7 @@ let make_string ~loc str = Ast_helper.Exp.constant ~loc (Ast_helper.Const.string
 let react_dot_component = "react.component"
 let react_dot_async_dot_component = "react.async.component"
 let react_client_component = "react.client.component"
+let react_server_action = "react.server.action"
 
 (* Helper method to look up the [@react.component] attribute *)
 let hasAttr { attr_name; _ } comparable = attr_name.txt = comparable
@@ -42,7 +43,7 @@ let hasAnyReactComponentAttribute { attr_name; _ } =
 let nonReactAttributes { attr_name; _ } =
   attr_name.txt <> react_dot_component
   && attr_name.txt <> react_dot_async_dot_component
-  && attr_name.txt <> react_client_component
+  && attr_name.txt <> react_client_component && attr_name.txt <> react_server_action
 
 let hasAttrOnBinding { pvb_attributes } comparable =
   List.find_opt ~f:(fun attr -> hasAttr attr comparable) pvb_attributes <> None
@@ -50,6 +51,7 @@ let hasAttrOnBinding { pvb_attributes } comparable =
 let isReactComponentBinding vb = hasAttrOnBinding vb react_dot_component
 let isReactAsyncComponentBinding vb = hasAttrOnBinding vb react_dot_async_dot_component
 let isReactClientComponentBinding vb = hasAttrOnBinding vb react_client_component
+let isReactServerActionBinding vb = hasAttrOnBinding vb react_server_action
 
 let rec unwrap_children children = function
   | { pexp_desc = Pexp_construct ({ txt = Lident "[]"; _ }, None); _ } -> List.rev children
@@ -409,7 +411,7 @@ let remove_warning_27_unused_var_strict ~loc =
 let get_function_name binding =
   match binding with
   | { pvb_pat = { ppat_desc = Ppat_var { txt } } } -> txt
-  | _ -> raise_errorf ~loc:binding.pvb_loc "react.component calls cannot be destructured."
+  | _ -> raise_errorf ~loc:binding.pvb_loc "No name found for the function"
 
 (* TODO: there are a few unsupported features inside of blocks - Pexp_letmodule , Pexp_letexception , Pexp_ifthenelse *)
 let add_unit_at_the_last_argument expression =
@@ -473,7 +475,7 @@ let expand_make_binding binding react_element_variant_wrapping =
   let function_body = pexp_fun ~loc:ghost_loc key_arg default_value key_pattern binding_expr in
   value_binding ~loc:ghost_loc ~pat:name ~expr:function_body
 
-let get_labelled_arguments pvb_expr =
+let get_arguments pvb_expr =
   let rec go acc = function
     | Pexp_fun (label, default, patt, expr) -> go ((label, default, patt) :: acc) expr.pexp_desc
     | _ -> acc
@@ -551,8 +553,8 @@ let mel_obj ~loc fields =
 let expand_make_binding_to_client binding =
   let loc = binding.pvb_loc in
   let ghost_loc = { binding.pvb_loc with loc_ghost = true } in
-  let labelled_arguments = get_labelled_arguments binding.pvb_expr in
-  let props_as_object_with_decoders = mel_obj ~loc (props_of_model ~loc labelled_arguments) in
+  let arguments = get_arguments binding.pvb_expr in
+  let props_as_object_with_decoders = mel_obj ~loc (props_of_model ~loc arguments) in
   let make_argument = [ (Nolabel, props_as_object_with_decoders) ] in
   let make_call = pexp_apply ~loc:ghost_loc [%expr make] make_argument in
   let name = ppat_var ~loc:ghost_loc { txt = "make_client"; loc = ghost_loc } in
@@ -681,7 +683,7 @@ let rewrite_structure_item structure_item =
           expand_make_binding vb (fun expr ->
               let loc = expr.pexp_loc in
               let import_module = pexp_ident ~loc { txt = Lident "__FILE__"; loc } in
-              let labelled_arguments = get_labelled_arguments vb.pvb_expr in
+              let labelled_arguments = get_arguments vb.pvb_expr in
               (* We transform the arguments from the value binding into React.client_props *)
               let props = props_to_model ~loc labelled_arguments in
               [%expr
@@ -822,7 +824,182 @@ let rewrite_jsx =
           with Error err -> [%expr [%e err]])
   end
 
+module Server_action = struct
+  type action_config = { name : string; args : (arg_label * expression option * pattern) list; return_type : core_type }
+
+  let generate_route_path ~name ~loc =
+    (* We need to add a nasty hack here, since have different files for native and melange.Assume that the file structure is native/lib and js, and replace the name directly. This is supposed to be temporal, until dune implements https://github.com/ocaml/dune/issues/10630 *)
+    let file_path = loc.loc_start.pos_fname |> Str.replace_first (Str.regexp {|/js/|}) "/native/lib/" in
+    let hash = Printf.sprintf "%s_%s_%d" name file_path loc.loc_start.pos_lnum |> Hashtbl.hash |> string_of_int in
+    hash
+
+  (* For this first version, we only support labelled *)
+  let map_labelled_args_to ~loc ~f args =
+    let rec aux acc = function
+      | [] -> acc
+      | (arg_label, default, pattern) :: rest ->
+          let new_expr =
+            match (arg_label, pattern.ppat_desc) with
+            | Labelled arg_name, Ppat_constraint ({ ppat_desc = Ppat_var { txt = pattern_name }; _ }, core_type)
+            | Optional arg_name, Ppat_constraint ({ ppat_desc = Ppat_var { txt = pattern_name }; _ }, core_type) ->
+                f ~loc ~pattern_name ~arg_name ~core_type ~default
+            | Nolabel, _ ->
+                let loc = pattern.ppat_loc in
+                raise_errorf ~loc "server-reason-react: action args need to be labelled arguments"
+            | _, _ ->
+                let loc = pattern.ppat_loc in
+                raise_errorf ~loc "server-reason-react: action args need to be type annotated labelled arguments"
+          in
+          aux (new_expr :: acc) rest
+    in
+    aux [] args
+
+  let client_action_expr ~loc ~args ~route ~return_type =
+    let decoder = [%expr [%of_json: [%t return_type]]] in
+    let encoded_args =
+      map_labelled_args_to ~loc
+        ~f:(fun ~loc ~pattern_name ~arg_name:_ ~core_type ~default:_ ->
+          let arg = ident ~loc pattern_name in
+          let value = [%expr Ppx_deriving_json_runtime.to_string ([%to_json: [%t core_type]] [%e arg])] in
+          let name = estring ~loc pattern_name in
+          [%expr [%e name], [%e value]])
+        args
+    in
+    [%expr
+      let location = Webapi.Dom.window |> Webapi.Dom.Window.location in
+      let encodeArgs =
+        "{" ^ String.concat "," (List.map (fun (key, value) -> key ^ ":" ^ value) [%e elist ~loc encoded_args]) ^ "}"
+      in
+      let body = Fetch.BodyInit.make encodeArgs in
+      let basePath = match SRRServer.baseRoute with Some baseRoute -> baseRoute | None -> "" in
+
+      Fetch.fetchWithInit
+        (Webapi.Dom.Location.origin location ^ basePath ^ [%e estring ~loc route])
+        (Fetch.RequestInit.make ~method_:Post ~credentials:Include ~body ())
+      |> Js.Promise.then_ (fun result -> try Fetch.Response.json result with exn -> Js.Promise.reject exn)
+      |> Js.Promise.then_ (fun json -> Js.Promise.resolve ([%e decoder] json))]
+
+  let server_handler_expr ~loc ~args ~handler_name ~return_type =
+    let encoder = [%expr [%to_json: [%t return_type]]] in
+    let decoded_args =
+      map_labelled_args_to ~loc
+        ~f:(fun ~loc ~pattern_name ~arg_name ~core_type ~default ->
+          let core_type = match default with Some _ -> [%type: [%t core_type] option] | None -> core_type in
+          let arg = [%expr Yojson.Basic.Util.member [%e estring ~loc pattern_name] args] in
+          let value = [%expr [%of_json: [%t core_type]] [%e arg]] in
+          (Labelled arg_name, value))
+        args
+    in
+    let handler_call = pexp_apply ~loc [%expr [%e evar ~loc handler_name]] decoded_args in
+
+    [%expr
+      fun body ->
+        let args = Yojson.Basic.from_string body in
+        let%lwt result = [%e handler_call] in
+        Js.Promise.resolve (Ppx_deriving_json_runtime.to_string ([%e encoder] result))]
+
+  let rec get_fun_return_type expr =
+    match expr.pexp_desc with
+    | Pexp_fun (_, _, _, body) -> get_fun_return_type body
+    | Pexp_constraint (exp, return_type) -> (
+        let loc = exp.pexp_loc in
+        match return_type with
+        | [%type: [%t? inner_type] Js.Promise.t] -> inner_type
+        | _ -> raise_errorf ~loc "server_action: expected a function that returns a Js.Promise.t")
+    | _ ->
+        let loc = expr.pexp_loc in
+        raise_errorf ~loc "server_action: expected a function with return type annotation"
+
+  let extract_action_info vb =
+    { name = get_function_name vb; args = get_arguments vb.pvb_expr; return_type = get_fun_return_type vb.pvb_expr }
+
+  let make_fun_expr ~loc ~args ~route ~return_type expression =
+    let rec aux ~loc expression =
+      match expression.pexp_desc with
+      | Pexp_constraint (expr, _) -> aux ~loc expr
+      | Pexp_fun (arg_label, _, fun_pattern, expression) ->
+          let fn = pexp_fun ~loc arg_label None fun_pattern (aux ~loc expression) in
+          { fn with pexp_attributes = expression.pexp_attributes }
+      | _ -> client_action_expr ~loc ~args ~route ~return_type
+    in
+    aux ~loc expression
+
+  let register_action_expr ~loc ~handler endpoint =
+    [%stri
+      SRRServer.register_action
+        ~route:
+          (let basePath = match SRRServer.baseRoute with Some baseRoute -> baseRoute | None -> "" in
+           basePath ^ [%e estring ~loc endpoint])
+        ~handler:[%e handler]]
+
+  let traverse =
+    object (self)
+      inherit [Expansion_context.Base.t] Ppxlib.Ast_traverse.map_with_context as super
+
+      method! structure ctx structure =
+        let structure = super#structure ctx structure in
+        match !mode with
+        | Native -> structure |> List.map ~f:self#append_server_actions |> List.flatten
+        | Js -> structure |> List.map ~f:self#transform_client_actions
+
+      method transform_client_actions structure_item =
+        match structure_item.pstr_desc with
+        | Pstr_value (rec_flag, value_bindings) ->
+            let map_action_binding vb =
+              if isReactServerActionBinding vb then
+                let loc = vb.pvb_loc in
+                match vb.pvb_expr.pexp_desc with
+                | Pexp_fun _ -> (
+                    try
+                      let action_info = extract_action_info vb in
+                      let route = generate_route_path ~name:action_info.name ~loc in
+
+                      let client_expr =
+                        make_fun_expr ~loc ~args:action_info.args ~route ~return_type:action_info.return_type
+                          vb.pvb_expr
+                      in
+                      value_binding ~loc ~pat:vb.pvb_pat ~expr:client_expr
+                    with Error err -> value_binding ~loc ~pat:vb.pvb_pat ~expr:err)
+                | _ ->
+                    value_binding ~loc ~pat:vb.pvb_pat
+                      ~expr:[%expr [%ocaml.error "server_action works on function definitions."]]
+              else vb
+            in
+            let transformed_bindings = value_bindings |> List.map ~f:map_action_binding in
+            pstr_value ~loc:structure_item.pstr_loc rec_flag transformed_bindings
+        | _ -> structure_item
+
+      method append_server_actions structure_item =
+        match structure_item.pstr_desc with
+        | Pstr_value (_, value_bindings) ->
+            let server_actions =
+              value_bindings
+              |> List.filter_map ~f:(fun vb ->
+                     if isReactServerActionBinding vb then
+                       let loc = vb.pvb_loc in
+                       try
+                         let config = extract_action_info vb in
+
+                         let route = generate_route_path ~name:config.name ~loc in
+                         let handler =
+                           server_handler_expr ~loc ~args:config.args ~handler_name:config.name
+                             ~return_type:config.return_type
+                         in
+
+                         Some (register_action_expr ~loc ~handler route)
+                       with Error err -> Some [%stri [%e err]]
+                     else None)
+            in
+            structure_item :: server_actions
+        | _ -> [ structure_item ]
+    end
+end
+
 let () =
   Driver.add_arg "-melange" (Unit (fun () -> mode := Js)) ~doc:"preprocess for js build";
-  Ppxlib.Driver.V2.register_transformation "server-reason-react.ppx" ~preprocess_impl:rewrite_jsx#structure
-    ~preprocess_intf:rewrite_jsx#signature
+  Ppxlib.Driver.V2.register_transformation "server-reason-react.ppx"
+    ~preprocess_impl:(fun ctx structure ->
+      let rewritten = rewrite_jsx#structure ctx structure in
+      let actions = Server_action.traverse#structure ctx rewritten in
+      actions)
+    ~preprocess_intf:(fun ctx signature -> rewrite_jsx#signature ctx signature)

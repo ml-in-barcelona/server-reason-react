@@ -27,6 +27,7 @@ let server =
         Pages.SinglePageRSC.handler,
       ),
       Dream.get(Router.demoRouter, Pages.RouterRSC.handler),
+      ...SRRServer.get_action_routes(),
     ]),
   );
 
