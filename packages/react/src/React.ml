@@ -393,6 +393,7 @@ and client_prop =
   | Json : Yojson.Basic.t -> client_prop
   | Element : element -> client_prop
   | Promise : 'a Js.Promise.t * ('a -> Yojson.Basic.t) -> client_prop
+  | Function : { id : string; name : string; args : string list } -> client_prop
 
 exception Invalid_children of string
 

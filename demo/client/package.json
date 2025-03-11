@@ -8,6 +8,7 @@
     "esbuild": "^0.21.4",
     "react": "^19.0.0-rc-69d4b800-20241021",
     "react-dom": "^19.0.0-rc-69d4b800-20241021",
-    "react-server-dom-webpack": "^19.0.0-rc-69d4b800-20241021"
+    "react-server-dom-webpack": "^19.0.0-rc-69d4b800-20241021",
+    "react-client": "https://github.com/facebook/react/raw/main/packages/react-client"
   }
 }
