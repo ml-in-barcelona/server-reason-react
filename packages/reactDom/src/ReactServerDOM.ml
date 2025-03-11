@@ -153,6 +153,7 @@ module Model = struct
         (fun (name, value) ->
           match (name, (value : React.client_prop)) with
           | name, Json json -> (name, json)
+          | prop_name, Function { id; name = _; args = _ } -> (prop_name, `String (Printf.sprintf "$F%s" id))
           | name, Element element ->
               (* TODO: Probably a silly question, but do I need to push this client_ref? (What if it's a client_ref?) In case of server, no need to do anything I guess *)
               (name, to_payload element)
@@ -334,6 +335,7 @@ let rec to_html ~fiber (element : React.element) : (Html.element * json) Lwt.t =
         Lwt_list.map_p
           (fun ((name : string), value) ->
             match (value : React.client_prop) with
+            | Function { id = _; name = _; args = _ } -> failwith "TODO"
             | Element element ->
                 let%lwt _html, model = to_html ~fiber element in
                 Lwt.return (name, model)

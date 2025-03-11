@@ -23,7 +23,7 @@ let fetchApp = url => {
 
 module App = {
   let initialData =
-    ReactServerDOMWebpack.createFromReadableStream(readable_stream);
+    ReactServerDOMEsbuild.createFromReadableStream(readable_stream);
 
   [@react.component]
   let make = () => {
@@ -41,7 +41,7 @@ module App = {
         let currentURL = origin ++ pathname;
         let url = URL.makeExn(currentURL)->URL.setSearchAsString(search);
         let app = fetchApp(URL.toString(url));
-        let element = ReactServerDOMWebpack.createFromFetch(app);
+        let element = ReactServerDOMEsbuild.createFromFetch(app);
         startTransition(() => {
           setData(. _ => element);
           History.pushState(
