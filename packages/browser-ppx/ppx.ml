@@ -52,11 +52,10 @@ let remove_type_constraint pattern =
 let rec last_expr_to_raise_impossible ~loc original_name expr =
   match expr.pexp_desc with
   | Pexp_constraint (expr, _) -> last_expr_to_raise_impossible ~loc original_name expr
-  | Pexp_fun (arg_label, _arg_expression, fun_pattern, expression) ->
+  | Pexp_function (params, _, Pfunction_body body) ->
       let new_fun_pattern = remove_type_constraint fun_pattern in
       let fn =
-        Builder.pexp_fun ~loc arg_label None new_fun_pattern
-          (last_expr_to_raise_impossible ~loc original_name expression)
+        Builder.pexp_fun ~loc arg_label None new_fun_pattern (last_expr_to_raise_impossible ~loc original_name body)
       in
       { fn with pexp_attributes = expr.pexp_attributes }
   | _ -> [%expr Runtime.fail_impossible_action_in_ssr [%e Builder.estring ~loc original_name]]
@@ -140,15 +139,15 @@ module Browser_only = struct
                                      browser_only
                                        "This expression is marked to only run on the browser where JavaScript can run. \
                                         You can only use it inside a let%browser_only function."])) =
-            [%e expression] [@alert "-browser_only"]]
+            ([%e expression] [@alert "-browser_only"])]
     | None ->
         [%stri
           let[@warning "-27-32"] ([%p pattern]
-                                  [@alert
-                                    browser_only
-                                      "This expression is marked to only run on the browser where JavaScript can run. \
-                                       You can only use it inside a let%browser_only function."]) =
-            [%e expression] [@alert "-browser_only"]]
+              [@alert
+                browser_only
+                  "This expression is marked to only run on the browser where JavaScript can run. You can only use it \
+                   inside a let%browser_only function."]) =
+            ([%e expression] [@alert "-browser_only"])]
 
   let extractor_vb =
     let open Ast_pattern in
@@ -234,10 +233,8 @@ module Browser_only = struct
           Some new_effect_fun
       | _ -> None
     in
-    match !mode with
-    (* When it's -js, keep item as it is *)
-    | Js -> None
-    | Native -> add_browser_only_extension expr
+    match !mode with (* When it's -js, keep item as it is *)
+    | Js -> None | Native -> add_browser_only_extension expr
 
   let use_effects =
     [
