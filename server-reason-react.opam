@@ -8,7 +8,7 @@ homepage: "https://github.com/ml-in-barcelona/server-reason-react"
 bug-reports: "https://github.com/ml-in-barcelona/server-reason-react/issues"
 depends: [
   "dune" {>= "3.9"}
-  "ocaml" {>= "5.0.0"}
+  "ocaml" {>= "4.14.1"}
   "reason" {>= "3.14.0"}
   "melange" {>= "3.0.0" & < "4.0.0"}
   "uucp" {>= "16.0.0"}

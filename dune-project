@@ -25,7 +25,7 @@
  (synopsis "Rendering React components on the server natively")
  (depends
   ; General system dependencies
-  (ocaml (>= 5.0.0))
+  (ocaml (>= 4.14.1))
   (reason (>= 3.14.0))
   (melange (and (>= 3.0.0) (< 4.0.0)))
 
