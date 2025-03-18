@@ -99,14 +99,14 @@
       import_module: __FILE__,
       import_name: "",
       props: [
-        ("initial", React.Json(int_to_json(initial))),
-        ("lola", React.Json(lola_to_json(lola))),
-        ("children", React.Element(children: React.element)),
+        ("initial", React.RSC_value_Json(int_to_json(initial))),
+        ("lola", React.RSC_value_Json(lola_to_json(lola))),
+        ("children", React.RSC_value_Element(children: React.element)),
         (
           "maybe_children",
           switch (maybe_children) {
-          | Some(prop) => React.Element(prop: React.element)
-          | None => React.Json(`Null)
+          | Some(prop) => React.RSC_value_Element(prop: React.element)
+          | None => React.RSC_value_Json(`Null)
           },
         ),
       ],

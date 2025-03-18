@@ -251,7 +251,11 @@ let client_with_promise_props () =
             React.Client_component
               {
                 props =
-                  [ ("promise", React.Promise (delayed_value ~ms:200 "||| Resolved |||", fun res -> `String res)) ];
+                  [
+                    ( "promise",
+                      React.RSC_value_Promise
+                        (delayed_value ~ms:200 "||| Resolved |||", fun res -> RSC_value_Json (`String res)) );
+                  ];
                 client = React.string "Client with Props";
                 import_module = "./client-with-props.js";
                 import_name = "ClientWithProps";

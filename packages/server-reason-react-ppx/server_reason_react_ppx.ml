@@ -482,7 +482,12 @@ let get_labelled_arguments pvb_expr =
 
 let make_of_json ~loc (core_type : core_type) prop =
   match core_type with
-  (* QUESTION: How can we handle optionals and others? Need a [@deriving rsc] for them? We currently encode None's as React.Json `Null, should be enought *)
+  (* QUESTION: How do we handle especial types on props, 
+     like `("someProp"), `List([React.element, string]). 
+     We already support it, but not with the ppx. 
+     Checkout the client_with_complex_props test in test_RSC_model.ml for more details. *)
+  (* QUESTION: How can we handle optionals and others? Need a [@deriving rsc] for them? 
+     We currently encode None's as React.RSC_value_Json `Null, should be enought *)
   | [%type: React.element] -> [%expr ([%e prop] : React.element)]
   | [%type: React.element option] -> [%expr ([%e prop] : React.element option)]
   (* TODO: Add promise caching? When is it needed? *)
@@ -608,21 +613,26 @@ let rewrite_signature_item signature_item =
             [%%ocaml.error "server-reason-react-ppx: there's seems to be an error in the signature of the component."]])
   | _ -> signature_item
 
-let make_to_json ~loc (core_type : core_type) prop =
+let rec make_to_json ~loc (core_type : core_type) (prop : string) =
   match core_type with
-  | [%type: React.element] -> [%expr React.Element ([%e prop] : React.element)]
+  | [%type: React.element] -> [%expr React.RSC_value_Element ([%e evar ~loc prop] : React.element)]
   | [%type: React.element option] ->
-      [%expr match [%e prop] with Some prop -> React.Element (prop : React.element) | None -> React.Json `Null]
+      [%expr
+        match [%e evar ~loc prop] with
+        | Some prop -> React.RSC_value_Element (prop : React.element)
+        | None -> React.RSC_value_Json `Null]
   | [%type: [%t? inner_type] Js.Promise.t] ->
       let json = [%expr [%to_json: [%t inner_type]]] in
       [%expr React.Promise ([%e prop], [%e json])]
   | [%type: [%t? inner_type] Js.Promise.t option] ->
-      let json = [%expr [%to_json: [%t inner_type]]] in
+      let json = make_to_json ~loc inner_type prop in
       [%expr
-        match [%e prop] with Some prop -> [%expr React.Promise ([%e prop], [%e json])] | None -> React.Json `Null]
+        match [%e evar ~loc prop] with
+        | Some prop -> [%expr React.RSC_value_Promise ([%e evar ~loc prop], fun [%p pvar ~loc prop] -> [%e json])]
+        | None -> React.RSC_value_Json `Null]
   | _ ->
-      let json = [%expr [%to_json: [%t core_type]] [%e prop]] in
-      [%expr React.Json [%e json]]
+      let json = [%expr [%to_json: [%t core_type]] [%e evar ~loc prop]] in
+      [%expr React.RSC_value_Json [%e json]]
 
 let props_to_model ~loc (props : (arg_label * expression option * pattern) list) =
   List.fold_left ~init:[%expr []]
@@ -636,8 +646,7 @@ let props_to_model ~loc (props : (arg_label * expression option * pattern) list)
               let loc = pattern.ppat_loc in
               [%expr [%ocaml.error "props need to be labelled arguments"] :: [%e acc]]
           | Labelled label | Optional label ->
-              let prop = ident ~loc label in
-              let value = make_to_json ~loc core_type prop in
+              let value = make_to_json ~loc core_type label in
               let name = estring ~loc label in
               [%expr ([%e name], [%e value]) :: [%e acc]])
       (* TODO: Add all ppat_desc possibilities *)
