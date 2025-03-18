@@ -27,6 +27,8 @@ let server =
         Pages.SinglePageRSC.handler,
       ),
       Dream.get(Router.demoRouter, Pages.RouterRSC.handler),
+      Dream.get(Router.demoCreateFromFetch, Pages.ServerOnlyRSC.handler),
+      Dream.post("/actions", Actions.Route.actionsRoute),
     ]),
   );
 

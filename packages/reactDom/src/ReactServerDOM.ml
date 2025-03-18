@@ -217,6 +217,22 @@ module Model = struct
     | Some subscribe ->
         let%lwt _ = Lwt_stream.iter_s subscribe stream in
         Lwt.return stream
+
+  let act ?subscribe values =
+    let initial_chunk_id = 0 in
+    let stream, push, close = Push_stream.make () in
+    let push_chunk id chunk =
+      match chunk with
+      | Chunk_value json -> push (model_to_chunk id json)
+      | Chunk_component_ref json -> push (client_reference_to_chunk id json)
+    in
+    let context : stream_context = { push = push_chunk; close; chunk_id = initial_chunk_id; pending = 0 } in
+    value_to_model ~context values;
+    match subscribe with
+    | None -> Lwt.return stream
+    | Some subscribe ->
+        let%lwt _ = Lwt_stream.iter_s subscribe stream in
+        Lwt.return stream
 end
 
 let rsc_start_script =
@@ -492,3 +508,4 @@ let render_html element =
         (Async { head = Html.list [ rc_function_script; rsc_start_script ]; shell = html_shell; subscribe = html_iter })
 
 let render_model = Model.render
+let act = Model.act

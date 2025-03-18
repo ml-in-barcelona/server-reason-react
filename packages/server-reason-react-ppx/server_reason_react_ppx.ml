@@ -485,9 +485,8 @@ let make_of_json ~loc (core_type : core_type) prop =
   (* QUESTION: How do we handle especial types on props, 
      like `("someProp"), `List([React.element, string]). 
      We already support it, but not with the ppx. 
-     Checkout the client_with_complex_props test in test_RSC_model.ml for more details. *)
-  (* QUESTION: How can we handle optionals and others? Need a [@deriving rsc] for them? 
-     We currently encode None's as React.RSC_value_Json `Null, should be enought *)
+     Checkout the test_RSC_model.ml for more details. packages/reactDom/test/test_RSC_html.ml *)
+  (* QUESTION: How can we handle optionals and others? Need a [@deriving rsc] for them? We currently encode None's as React.RSC_value_Json `Null, should be enought *)
   | [%type: React.element] -> [%expr ([%e prop] : React.element)]
   | [%type: React.element option] -> [%expr ([%e prop] : React.element option)]
   (* TODO: Add promise caching? When is it needed? *)
@@ -622,8 +621,8 @@ let rec make_to_json ~loc (core_type : core_type) (prop : string) =
         | Some prop -> React.RSC_value_Element (prop : React.element)
         | None -> React.RSC_value_Json `Null]
   | [%type: [%t? inner_type] Js.Promise.t] ->
-      let json = [%expr [%to_json: [%t inner_type]]] in
-      [%expr React.Promise ([%e prop], [%e json])]
+      let json = make_to_json ~loc inner_type prop in
+      [%expr React.RSC_value_Promise ([%e evar ~loc prop], fun [%p pvar ~loc prop] -> [%e json])]
   | [%type: [%t? inner_type] Js.Promise.t option] ->
       let json = make_to_json ~loc inner_type prop in
       [%expr
