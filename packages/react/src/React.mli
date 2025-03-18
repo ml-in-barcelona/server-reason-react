@@ -572,9 +572,11 @@ type element =
 and client_props = (string * client_prop) list
 
 and client_prop =
+  | PropList : client_prop list -> client_prop
+  | Assoc : (string * client_prop) list -> client_prop
   | Json : Yojson.Basic.t -> client_prop
   | Element : element -> client_prop
-  | Promise : 'a Js.Promise.t * ('a -> Yojson.Basic.t) -> client_prop
+  | Promise : 'a Js.Promise.t * ('a -> client_prop) -> client_prop
 
 exception Invalid_children of string
 

@@ -25,7 +25,10 @@
           ("lili", React.Json([%to_json: bool](lili))),
           ("lulu", React.Json([%to_json: float](lulu))),
           ("tuple2", React.Json([%to_json: (int, int)](tuple2))),
-          ("tuple3", React.Json([%to_json: (int, string, float)](tuple3))),
+          (
+            "tuple3",
+            React.Json([%to_json: (int, string, float)](tuple3)),
+          ),
         ],
         client: React.null,
       });
@@ -100,12 +103,18 @@
         import_name: "",
         props: [
           ("lident", React.Json([%to_json: lola](lident))),
-          ("ldotlident", React.Json([%to_json: Module.lola](ldotlident))),
+          (
+            "ldotlident",
+            React.Json([%to_json: Module.lola](ldotlident)),
+          ),
           (
             "ldotdotlident",
             React.Json([%to_json: Module.Inner.lola](ldotdotlident)),
           ),
-          ("lapply", React.Json([%to_json: Label.t(int, string)](lapply))),
+          (
+            "lapply",
+            React.Json([%to_json: Label.t(int, string)](lapply)),
+          ),
         ],
         client: React.null,
       });

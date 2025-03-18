@@ -116,7 +116,7 @@ module Model = struct
       | Upper_case_component component ->
           let element = component () in
           (* Instead of returning the payload directly, we push it, and return a reference to it.
-             This is how `react-server-dom-webpack/server` renderToPipeableStream works *)
+           This is how `react-server-dom-webpack/server` renderToPipeableStream works *)
           let index = use_chunk_id context in
           context.push index (Chunk_value (to_payload element));
           `String (ref_value index)
@@ -143,43 +143,53 @@ module Model = struct
           let id = use_chunk_id context in
           let ref = component_ref ~module_:import_module ~name:import_name in
           context.push id (Chunk_component_ref ref);
-          let client_props = client_props_to_json props in
+          let client_props = client_values_to_json props in
           node ~tag:(ref_value id) ~key:None ~props:client_props []
       (* TODO: Dow we need to do anything with Provider and Consumer? *)
       | Provider children -> to_payload children
       | Consumer children -> to_payload children
-    and client_props_to_json props =
+    and client_value_to_json value =
+      match (value : React.client_prop) with
+      | Assoc props ->
+          let json = List.map (fun (name, value) -> (name, client_value_to_json value)) props in
+          `Assoc json
+      | PropList props ->
+          let json = List.map (fun value -> client_value_to_json value) props in
+          `List json
+      | Json json -> json
+      | Element element ->
+          (* TODO: Probably a silly question, but do I need to push this client_ref? (What if it's a client_ref?) In case of server, no need to do anything I guess *)
+          to_payload element
+      | Promise (promise, value_to_json) -> (
+          match Lwt.state promise with
+          | Return value ->
+              let chunk_id = use_chunk_id context in
+              let json = value_to_json value |> client_value_to_json in
+              (* TODO: Make sure why we need a chunk here *)
+              context.push context.chunk_id (Chunk_value json);
+              `String (promise_value chunk_id)
+          | Sleep ->
+              let chunk_id = use_chunk_id context in
+              context.pending <- context.pending + 1;
+              Lwt.async (fun () ->
+                  let%lwt value = promise in
+                  let json = value_to_json value |> client_value_to_json in
+                  context.pending <- context.pending - 1;
+                  context.push chunk_id (Chunk_value json);
+                  if context.pending = 0 then context.close ();
+                  Lwt.return ());
+              `String (promise_value chunk_id)
+          | Fail exn ->
+              (* TODO: Can we check if raise is good heres? *)
+              raise exn)
+    and client_values_to_json props =
       List.map
         (fun (name, value) ->
-          match (name, (value : React.client_prop)) with
-          | name, Json json -> (name, json)
-          | name, Element element ->
-              (* TODO: Probably a silly question, but do I need to push this client_ref? (What if it's a client_ref?) In case of server, no need to do anything I guess *)
-              (name, to_payload element)
-          | name, Promise (promise, value_to_json) -> (
-              match Lwt.state promise with
-              | Return value ->
-                  let chunk_id = use_chunk_id context in
-                  let json = value_to_json value in
-                  (* TODO: Make sure why we need a chunk here *)
-                  context.push context.chunk_id (Chunk_value json);
-                  (name, `String (promise_value chunk_id))
-              | Sleep ->
-                  let chunk_id = use_chunk_id context in
-                  context.pending <- context.pending + 1;
-                  Lwt.async (fun () ->
-                      let%lwt value = promise in
-                      let json = value_to_json value in
-                      context.pending <- context.pending - 1;
-                      context.push chunk_id (Chunk_value json);
-                      if context.pending = 0 then context.close ();
-                      Lwt.return ());
-                  (name, `String (promise_value chunk_id))
-              | Fail exn ->
-                  (* TODO: Can we check if raise is good heres? *)
-                  raise exn))
+          let jsonValue = client_value_to_json value in
+          (name, jsonValue))
         props
     in
+
     let initial_chunk_id = get_chunk_id context in
     context.push initial_chunk_id (Chunk_value (to_payload element));
     if context.pending = 0 then context.close ()
@@ -334,17 +344,20 @@ let rec to_html ~fiber (element : React.element) : (Html.element * json) Lwt.t =
         Lwt_list.map_p
           (fun ((name : string), value) ->
             match (value : React.client_prop) with
-            | Element element ->
+            | React.Element element ->
                 let%lwt _html, model = to_html ~fiber element in
                 Lwt.return (name, model)
-            | Promise (promise, value_to_json) ->
+            | React.Promise (promise, value_to_json) ->
                 let context = Fiber.get_context fiber in
                 let _finished, parent_done = Lwt.wait () in
                 let index = Fiber.use_index fiber in
                 let sync = (name, `String (Model.promise_value index)) in
                 let async : Html.element Lwt.t =
+                  (* TODO: Add support for React.List, React.Assoc *)
                   let%lwt value = promise in
-                  let json = value_to_json value in
+                  let json =
+                    match value_to_json value with React.Json json -> json | _ -> failwith "Unsupported promise type"
+                  in
                   let ret = chunk_script (Model.model_to_chunk index json) in
                   Lwt.return ret
                 in
@@ -359,7 +372,9 @@ let rec to_html ~fiber (element : React.element) : (Html.element * json) Lwt.t =
                     if context.pending = 0 then context.close ();
                     Lwt.return ());
                 Lwt.return sync
-            | Json json -> Lwt.return (name, json))
+            | React.Json json -> Lwt.return (name, json)
+            (* TODO: Add support for React.List, React.Assoc *)
+            | _ -> failwith "Unsupported client prop type")
           props
       in
       let lwt_html = client_to_html ~fiber client in
