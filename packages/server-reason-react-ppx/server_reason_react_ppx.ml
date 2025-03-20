@@ -486,7 +486,7 @@ let make_of_json ~loc (core_type : core_type) prop =
      like `("someProp"), `List([React.element, string]). 
      We already support it, but not with the ppx. 
      Checkout the test_RSC_model.ml for more details. packages/reactDom/test/test_RSC_html.ml *)
-  (* QUESTION: How can we handle optionals and others? Need a [@deriving rsc] for them? We currently encode None's as React.RSC_value_Json `Null, should be enought *)
+  (* QUESTION: How can we handle optionals and others? Need a [@deriving rsc] for them? We currently encode None's as React.Json `Null, should be enought *)
   | [%type: React.element] -> [%expr ([%e prop] : React.element)]
   | [%type: React.element option] -> [%expr ([%e prop] : React.element option)]
   (* TODO: Add promise caching? When is it needed? *)
@@ -614,24 +614,22 @@ let rewrite_signature_item signature_item =
 
 let rec make_to_json ~loc (core_type : core_type) (prop : string) =
   match core_type with
-  | [%type: React.element] -> [%expr React.RSC_value_Element ([%e evar ~loc prop] : React.element)]
+  | [%type: React.element] -> [%expr React.Element ([%e evar ~loc prop] : React.element)]
   | [%type: React.element option] ->
       [%expr
-        match [%e evar ~loc prop] with
-        | Some prop -> React.RSC_value_Element (prop : React.element)
-        | None -> React.RSC_value_Json `Null]
+        match [%e evar ~loc prop] with Some prop -> React.Element (prop : React.element) | None -> React.Json `Null]
   | [%type: [%t? inner_type] Js.Promise.t] ->
       let json = make_to_json ~loc inner_type prop in
-      [%expr React.RSC_value_Promise ([%e evar ~loc prop], fun [%p pvar ~loc prop] -> [%e json])]
+      [%expr React.Promise ([%e evar ~loc prop], fun [%p pvar ~loc prop] -> [%e json])]
   | [%type: [%t? inner_type] Js.Promise.t option] ->
       let json = make_to_json ~loc inner_type prop in
       [%expr
         match [%e evar ~loc prop] with
-        | Some prop -> [%expr React.RSC_value_Promise ([%e evar ~loc prop], fun [%p pvar ~loc prop] -> [%e json])]
-        | None -> React.RSC_value_Json `Null]
+        | Some prop -> [%expr React.Promise ([%e evar ~loc prop], fun [%p pvar ~loc prop] -> [%e json])]
+        | None -> React.Json `Null]
   | _ ->
       let json = [%expr [%to_json: [%t core_type]] [%e evar ~loc prop]] in
-      [%expr React.RSC_value_Json [%e json]]
+      [%expr React.Json [%e json]]
 
 let props_to_model ~loc (props : (arg_label * expression option * pattern) list) =
   List.fold_left ~init:[%expr []]

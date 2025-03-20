@@ -284,14 +284,14 @@ let client_with_json_props () =
               {
                 props =
                   [
-                    ("null", React.RSC_value_Json `Null);
-                    ("string", React.RSC_value_Json (`String "Title"));
-                    ("int", React.RSC_value_Json (`Int 1));
-                    ("float", React.RSC_value_Json (`Float 1.1));
-                    ("bool true", React.RSC_value_Json (`Bool true));
-                    ("bool false", React.RSC_value_Json (`Bool false));
-                    ("string list", React.RSC_value_Json (`List [ `String "Item 1"; `String "Item 2" ]));
-                    ("object", React.RSC_value_Json (`Assoc [ ("name", `String "John"); ("age", `Int 30) ]));
+                    ("null", React.Json `Null);
+                    ("string", React.Json (`String "Title"));
+                    ("int", React.Json (`Int 1));
+                    ("float", React.Json (`Float 1.1));
+                    ("bool true", React.Json (`Bool true));
+                    ("bool false", React.Json (`Bool false));
+                    ("string list", React.Json (`List [ `String "Item 1"; `String "Item 2" ]));
+                    ("object", React.Json (`Assoc [ ("name", `String "John"); ("age", `Int 30) ]));
                   ];
                 client = React.string "Client with Props";
                 import_module = "./client-with-props.js";
@@ -321,18 +321,16 @@ let client_with_complex_props () =
               {
                 props =
                   [
-                    ("simple_prop", React.RSC_value_Json (`String "Simple string"));
+                    ("simple_prop", React.Json (`String "Simple string"));
                     ( "promise_with_element",
-                      React.RSC_value_Promise
+                      React.Promise
                         ( delayed_value ~ms:200 "||| Element in a promise |||",
-                          fun res -> React.RSC_value_Element (React.createElement "div" [] [ React.string res ]) ) );
+                          fun res -> React.Element (React.createElement "div" [] [ React.string res ]) ) );
                     ( "list_with_element",
-                      React.RSC_value_List
+                      React.ValueList
                         [
-                          React.RSC_value_Element
-                            (React.createElement "div" [] [ React.string "||| Element 1 in a list |||" ]);
-                          React.RSC_value_Element
-                            (React.createElement "div" [] [ React.string "||| Element 2 in a list |||" ]);
+                          React.Element (React.createElement "div" [] [ React.string "||| Element 1 in a list |||" ]);
+                          React.Element (React.createElement "div" [] [ React.string "||| Element 2 in a list |||" ]);
                         ] );
                   ];
                 client = React.string "Client with Complex Props";
@@ -361,7 +359,7 @@ let client_with_element_props () =
             React.createElement "div" [] [ React.string "Server Content" ];
             React.Client_component
               {
-                props = [ ("children", React.RSC_value_Element (React.string "Client Content")) ];
+                props = [ ("children", React.Element (React.string "Client Content")) ];
                 client = React.string "Client with Props";
                 import_module = "./client-with-props.js";
                 import_name = "ClientWithProps";
@@ -388,8 +386,7 @@ let client_with_promise_props () =
                 props =
                   [
                     ( "promise",
-                      React.RSC_value_Promise
-                        (delayed_value ~ms:200 "||| Resolved |||", fun res -> React.RSC_value_Json (`String res)) );
+                      React.Promise (delayed_value ~ms:200 "||| Resolved |||", fun res -> React.Json (`String res)) );
                   ];
                 client = React.string "Client with Props";
                 import_module = "./client-with-props.js";
@@ -441,7 +438,7 @@ let client_with_server_children () =
             React.createElement "div" [] [ React.string "Server Content" ];
             React.Client_component
               {
-                props = [ ("children", React.RSC_value_Element (React.Upper_case_component server_child)) ];
+                props = [ ("children", React.Element (React.Upper_case_component server_child)) ];
                 client = React.string "Client with Server Children";
                 import_module = "./client-with-server-children.js";
                 import_name = "ClientWithServerChildren";
@@ -481,23 +478,21 @@ let style_as_json () =
     [ "0:[\"$\",\"div\",null,{\"style\":{\"zIndex\":\"34\",\"color\":\"red\",\"background\":\"blue\"}}]\n" ]
 
 let act_with_simple_response () =
-  let response = React.RSC_value_Json (`String "Server Content") in
+  let response = React.Json (`String "Server Content") in
   let%lwt stream = ReactServerDOM.act response in
   assert_stream stream [ "0:\"Server Content\"\n" ]
 
 let act_with_complex_response () =
   let response =
-    React.RSC_value_Assoc
+    React.Assoc
       [
-        ("string", React.RSC_value_Json (`String "Server Content"));
-        ( "promise",
-          React.RSC_value_Promise
-            (delayed_value ~ms:200 "||| Resolved |||", fun res -> React.RSC_value_Json (`String res)) );
-        ("element", React.RSC_value_Element (React.string "Server Element"));
+        ("string", React.Json (`String "Server Content"));
+        ("promise", React.Promise (delayed_value ~ms:200 "||| Resolved |||", fun res -> React.Json (`String res)));
+        ("element", React.Element (React.string "Server Element"));
         ( "promise_with_element",
-          React.RSC_value_Promise
+          React.Promise
             ( delayed_value ~ms:200 "||| Element in a promise |||",
-              fun res -> React.RSC_value_Element (React.createElement "div" [] [ React.string res ]) ) );
+              fun res -> React.Element (React.createElement "div" [] [ React.string res ]) ) );
       ]
   in
   let%lwt stream = ReactServerDOM.act response in

@@ -390,11 +390,11 @@ and client_props = (string * rsc_value) list
 
 and rsc_value =
   (* TODO: Do we need to add more types here? *)
-  | RSC_value_List : rsc_value list -> rsc_value
-  | RSC_value_Assoc : (string * rsc_value) list -> rsc_value
-  | RSC_value_Json : Yojson.Basic.t -> rsc_value
-  | RSC_value_Element : element -> rsc_value
-  | RSC_value_Promise : 'a Js.Promise.t * ('a -> rsc_value) -> rsc_value
+  | ValueList : rsc_value list -> rsc_value
+  | Assoc : (string * rsc_value) list -> rsc_value
+  | Json : Yojson.Basic.t -> rsc_value
+  | Element : element -> rsc_value
+  | Promise : 'a Js.Promise.t * ('a -> rsc_value) -> rsc_value
 
 exception Invalid_children of string
 

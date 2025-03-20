@@ -150,17 +150,17 @@ module Model = struct
 
   and client_value_to_json ~context value =
     match (value : React.rsc_value) with
-    | React.RSC_value_Assoc props ->
+    | React.Assoc props ->
         let json = List.map (fun (name, value) -> (name, client_value_to_json ~context value)) props in
         `Assoc json
-    | React.RSC_value_List props ->
+    | React.ValueList props ->
         let json = List.map (fun value -> client_value_to_json ~context value) props in
         `List json
-    | React.RSC_value_Json json -> json
-    | React.RSC_value_Element element ->
+    | React.Json json -> json
+    | React.Element element ->
         (* TODO: Probably a silly question, but do I need to push this client_ref? (What if it's a client_ref?) In case of server, no need to do anything I guess *)
         element_to_payload ~context element
-    | React.RSC_value_Promise (promise, value_to_json) -> (
+    | React.Promise (promise, value_to_json) -> (
         match Lwt.state promise with
         | Return value ->
             let chunk_id = use_chunk_id context in
@@ -367,21 +367,19 @@ let rec to_html ~fiber (element : React.element) : (Html.element * json) Lwt.t =
         Lwt_list.map_p
           (fun ((name : string), value) ->
             match (value : React.rsc_value) with
-            | React.RSC_value_Element element ->
+            | React.Element element ->
                 let%lwt _html, model = to_html ~fiber element in
                 Lwt.return (name, model)
-            | React.RSC_value_Promise (promise, value_to_json) ->
+            | React.Promise (promise, value_to_json) ->
                 let context = Fiber.get_context fiber in
                 let _finished, parent_done = Lwt.wait () in
                 let index = Fiber.use_index fiber in
                 let sync = (name, `String (Model.promise_value index)) in
                 let async : Html.element Lwt.t =
-                  (* TODO: Add support for React.RSC_value_List, React.RSC_value_Assoc *)
+                  (* TODO: Add support for React.ValueList, React.Assoc *)
                   let%lwt value = promise in
                   let json =
-                    match value_to_json value with
-                    | React.RSC_value_Json json -> json
-                    | _ -> failwith "Unsupported promise type"
+                    match value_to_json value with React.Json json -> json | _ -> failwith "Unsupported promise type"
                   in
                   let ret = chunk_script (Model.model_to_chunk index json) in
                   Lwt.return ret
@@ -397,8 +395,8 @@ let rec to_html ~fiber (element : React.element) : (Html.element * json) Lwt.t =
                     if context.pending = 0 then context.close ();
                     Lwt.return ());
                 Lwt.return sync
-            | React.RSC_value_Json json -> Lwt.return (name, json)
-            (* TODO: Add support for React.RSC_value_List, React.RSC_value_Assoc *)
+            | React.Json json -> Lwt.return (name, json)
+            (* TODO: Add support for React.ValueList, React.Assoc *)
             | _ -> failwith "Unsupported client prop type")
           props
       in

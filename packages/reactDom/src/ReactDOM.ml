@@ -304,7 +304,7 @@ let render _element _node = Runtime.fail_impossible_action_in_ssr "ReactDOM.rend
 let hydrate _element _node = Runtime.fail_impossible_action_in_ssr "ReactDOM.hydrate"
 
 (* TODO: Should this fail_impossible_action_in_ssr? *)
-let createPortal _reactElement _domElement = _reactElement
+let createPortal _ReactElement _domElement = _ReactElement
 
 let createDOMElementVariadic (tag : string) ~props (childrens : React.element array) =
   React.createElement tag props (Array.to_list childrens)

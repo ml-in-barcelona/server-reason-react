@@ -24,21 +24,21 @@ let formData = formData => {
   let response =
     Printf.sprintf("Hello %s %s, you are %s years old", name, lastName, age);
 
-  Lwt.return(React.RSC_value_Json(`String(response)));
+  Lwt.return(React.Json(`String(response)));
 };
 
 let simpleResponse = _ => {
-  let response = React.RSC_value_Json(`String("Hello"));
+  let response = React.Json(`String("Hello"));
   Lwt.return(response);
 };
 
 let complexResponse = _ => {
   let response =
-    React.RSC_value_List([
-      React.RSC_value_Json(`String("Hello world")),
-      React.RSC_value_Promise(
+    React.ValueList([
+      React.Json(`String("Hello world")),
+      React.Promise(
         delayed_value(~ms=5000, "Hello after 5 seconds"),
-        res => React.RSC_value_Json(`String(res)),
+        res => React.Json(`String(res)),
       ),
     ]);
   Lwt.return(response);

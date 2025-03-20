@@ -18,16 +18,16 @@
         import_module: __FILE__,
         import_name: "",
         props: [
-          ("prop", React.RSC_value_Json([%to_json: int](prop))),
-          ("lola", React.RSC_value_Json([%to_json: list(int)](lola))),
-          ("mona", React.RSC_value_Json([%to_json: array(float)](mona))),
-          ("lolo", React.RSC_value_Json([%to_json: string](lolo))),
-          ("lili", React.RSC_value_Json([%to_json: bool](lili))),
-          ("lulu", React.RSC_value_Json([%to_json: float](lulu))),
-          ("tuple2", React.RSC_value_Json([%to_json: (int, int)](tuple2))),
+          ("prop", React.Json([%to_json: int](prop))),
+          ("lola", React.Json([%to_json: list(int)](lola))),
+          ("mona", React.Json([%to_json: array(float)](mona))),
+          ("lolo", React.Json([%to_json: string](lolo))),
+          ("lili", React.Json([%to_json: bool](lili))),
+          ("lulu", React.Json([%to_json: float](lulu))),
+          ("tuple2", React.Json([%to_json: (int, int)](tuple2))),
           (
             "tuple3",
-            React.RSC_value_Json([%to_json: (int, string, float)](tuple3)),
+            React.Json([%to_json: (int, string, float)](tuple3)),
           ),
         ],
         client: React.null,
@@ -53,8 +53,8 @@
         import_module: __FILE__,
         import_name: "",
         props: [
-          ("underscore", React.RSC_value_Json([%to_json: _](underscore))),
-          ("alpha_types", React.RSC_value_Json([%to_json: 'a](alpha_types))),
+          ("underscore", React.Json([%to_json: _](underscore))),
+          ("alpha_types", React.Json([%to_json: 'a](alpha_types))),
         ],
         client: React.null,
       });
@@ -75,7 +75,7 @@
         props: [
           (
             "polyvariants",
-            React.RSC_value_Json(
+            React.Json(
               [%to_json:
                 [
                   | `A
@@ -102,18 +102,22 @@
         import_module: __FILE__,
         import_name: "",
         props: [
-          ("lident", React.RSC_value_Json([%to_json: lola](lident))),
+          ("lident", React.Json([%to_json: lola](lident))),
           (
             "ldotlident",
-            React.RSC_value_Json([%to_json: Module.lola](ldotlident)),
+            React.Json([%to_json: Module.lola](ldotlident)),
           ),
           (
             "ldotdotlident",
-            React.RSC_value_Json([%to_json: Module.Inner.lola](ldotdotlident)),
+            React.Json([%to_json: Module.Inner.lola](ldotdotlident)),
           ),
           (
             "lapply",
-            React.RSC_value_Json([%to_json: Label.t(int, string)](lapply)),
+            React.Json([%to_json: Label.t(int, string)](lapply)),
+          ),
+          (
+            "lapply",
+            React.Json([%to_json: Label.t(int, string)](lapply)),
           ),
         ],
         client: React.null,

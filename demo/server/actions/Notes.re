@@ -4,7 +4,7 @@ let delayed_value = (~ms, value) => {
 };
 
 let createNoteResponse = note => {
-  React.RSC_value_Json(
+  React.Json(
     Note.(
       `Assoc([
         ("id", `Int(note.id)),
@@ -27,7 +27,7 @@ let create = body => {
   let%lwt response =
     switch%lwt (note) {
     | Ok(note) => Lwt.return(createNoteResponse(note))
-    | Error(e) => Lwt.return(React.RSC_value_Json(`String(e)))
+    | Error(e) => Lwt.return(React.Json(`String(e)))
     };
 
   let%lwt response = delayed_value(~ms=1000, response);
@@ -46,7 +46,7 @@ let edit = body => {
   let%lwt response =
     switch%lwt (note) {
     | Ok(note) => Lwt.return(createNoteResponse(note))
-    | Error(e) => Lwt.return(React.RSC_value_Json(`String(e)))
+    | Error(e) => Lwt.return(React.Json(`String(e)))
     };
 
   let%lwt response = delayed_value(~ms=1000, response);
@@ -57,7 +57,7 @@ let delete = body => {
   let body = Yojson.Basic.from_string(body);
   let id = body |> Yojson.Basic.Util.member("id") |> Yojson.Basic.Util.to_int;
   let _ = DB.deleteNote(id);
-  let response = React.RSC_value_Json(`String("Note deleted"));
+  let response = React.Json(`String("Note deleted"));
 
   let%lwt response = delayed_value(~ms=1000, response);
   Lwt.return(response);
