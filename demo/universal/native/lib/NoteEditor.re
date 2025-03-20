@@ -4,65 +4,72 @@ open Ppx_deriving_json_runtime.Primitives;
 
 external alert: string => unit = "window.alert";
 
+// This would be created by a ppx
+// Making sure to encode the args correctly
+let%browser_only createNote = (~title, ~content) => {
+  let currentURL = Router.demoActionCreateNote;
+  let encodeArgs =
+    "{"
+    ++ String.concat(
+         ",",
+         List.map(
+           ((key, value)) => key ++ ":" ++ value,
+           [
+             (
+               "title",
+               // This to_string and string_to_json is not necessary
+               // I'm just simulating encoding args
+               Ppx_deriving_json_runtime.to_string(string_to_json(title)),
+             ),
+             // This to_string and string_to_json is not necessary
+             // I'm just simulating encoding args
+             (
+               "content",
+               Ppx_deriving_json_runtime.to_string(string_to_json(content)),
+             ),
+           ],
+         ),
+       )
+    ++ "}";
+  FetchHelpers.fetchAction(currentURL, encodeArgs);
+};
+
+// This would be created by a ppx
+// Making sure to encode the args correctly
+let%browser_only editNote = (~id, ~title, ~content) => {
+  let currentURL = Router.demoActionEditNote;
+  let encodeArgs =
+    "{"
+    ++ String.concat(
+         ",",
+         List.map(
+           ((key, value)) => key ++ ":" ++ value,
+           [
+             ("id", Ppx_deriving_json_runtime.to_string(int_to_json(id))),
+             (
+               "title",
+               Ppx_deriving_json_runtime.to_string(string_to_json(title)),
+             ),
+             (
+               "content",
+               Ppx_deriving_json_runtime.to_string(string_to_json(content)),
+             ),
+           ],
+         ),
+       )
+    ++ "}";
+  FetchHelpers.fetchAction(currentURL, encodeArgs);
+};
+
 [@react.client.component]
 let make =
     (~noteId: option(int), ~initialTitle: string, ~initialBody: string) => {
-  let isDraft = Belt.Option.isNone(noteId);
+  let {navigate, _}: ClientRouter.t = ClientRouter.useRouter();
   let (title, setTitle) = RR.useStateValue(initialTitle);
   let (body, setBody) = RR.useStateValue(initialBody);
+  let (isSaving, setIsSaving) = RR.useStateValue(false);
   let router = Router.useRouter();
-  let (isNavigating, _startNavigating) = React.useTransition();
-
-  let endpoint =
-    switch (noteId) {
-    | Some(id) => "/notes/" ++ Int.to_string(id)
-    | None => "/notes"
-    };
-
-  let method_ =
-    switch (noteId) {
-    | Some(_) => "PUT"
-    | None => "POST"
-    };
-
-  let (saveNote, isSaving) = router.useAction(endpoint, method_);
-
-  let (deleteNote, isDeleting) =
-    router.useAction(
-      switch (noteId) {
-      | Some(id) => "/notes/" ++ Int.to_string(id)
-      | None => "/notes"
-      },
-      "DELETE",
-    );
-
-  let%browser_only _handleSave = () => {
-    let payload: Router.payload = {
-      title,
-      body,
-    };
-    let requestedLocation: Router.location = {
-      selectedId: noteId,
-      isEditing: false,
-      searchText: router.location.searchText,
-    };
-    Js.log(requestedLocation);
-    Js.log(saveNote);
-    saveNote(payload, requestedLocation, ());
-  };
-
-  let%browser_only _handleDelete = () => {
-    let payload: Router.payload = {
-      title: "",
-      body: "",
-    };
-    let requestedLocation: Router.location = {
-      selectedId: None,
-      isEditing: false,
-      searchText: router.location.searchText,
-    };
-    deleteNote(payload, requestedLocation, ());
-  };
+  let (isNavigating, startNavigating) = React.useTransition();
 
   let%browser_only onChangeTitle = e => {
     let newValue = React.Event.Form.target(e)##value;
@@ -87,19 +94,33 @@ let make =
         <button
           className=Theme.button
           disabled={isSaving || isNavigating}
-          onClick={_ => alert("Server actions aren't implemented yet")}
+          onClick=[%browser_only
+            _ => {
+              let action = () =>
+                switch (noteId) {
+                | Some(id) => editNote(~id, ~title, ~content=body)
+                | None => createNote(~title, ~content=body)
+                };
+
+              action()
+              |> Js.Promise.then_((note: Note.t) => {
+                   navigate({
+                     selectedId: Some(note.id),
+                     isEditing: false,
+                     searchText: router.location.searchText,
+                   });
+                   Js.Promise.resolve();
+                 })
+              |> ignore;
+            }
+          ]
           role="menuitem">
           {React.string("Done")}
         </button>
-        {!isDraft
-           ? <button
-               className=Theme.button
-               disabled={isDeleting || isNavigating}
-               onClick={_ => alert("Server actions aren't implemented yet")}
-               role="menuitem">
-               {React.string("Delete")}
-             </button>
-           : React.null}
+        {switch (noteId) {
+         | Some(id) => <DeleteNoteButton noteId=id />
+         | None => React.null
+         }}
       </div>
       <NotePreview key="note-preview" body />
     </div>

@@ -569,14 +569,14 @@ type element =
   | Consumer of element
   | Suspense of { key : string option; children : element; fallback : element }
 
-and client_props = (string * client_prop) list
+and client_props = (string * rsc_value) list
 
-and client_prop =
-  | PropList : client_prop list -> client_prop
-  | Assoc : (string * client_prop) list -> client_prop
-  | Json : Yojson.Basic.t -> client_prop
-  | Element : element -> client_prop
-  | Promise : 'a Js.Promise.t * ('a -> client_prop) -> client_prop
+and rsc_value =
+  | ValueList : rsc_value list -> rsc_value
+  | Assoc : (string * rsc_value) list -> rsc_value
+  | Json : Yojson.Basic.t -> rsc_value
+  | Element : element -> rsc_value
+  | Promise : 'a Js.Promise.t * ('a -> rsc_value) -> rsc_value
 
 exception Invalid_children of string
 

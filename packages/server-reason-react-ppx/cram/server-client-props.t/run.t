@@ -115,6 +115,10 @@
             "lapply",
             React.Json([%to_json: Label.t(int, string)](lapply)),
           ),
+          (
+            "lapply",
+            React.Json([%to_json: Label.t(int, string)](lapply)),
+          ),
         ],
         client: React.null,
       });
