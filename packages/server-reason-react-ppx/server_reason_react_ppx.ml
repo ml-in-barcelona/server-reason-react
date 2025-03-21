@@ -86,8 +86,7 @@ let validate_prop ~loc id name =
           raise_errorf ~loc
             "jsx: prop '%s' isn't valid on a '%s' element.\n\
              Hint: Maybe you mean '%s'?\n\n\
-             If this isn't correct, please open an issue at %s."
-            name id suggestion issues_url)
+             If this isn't correct, please open an issue at %s." name id suggestion issues_url)
 
 let make_prop ~is_optional ~prop attribute_value =
   let loc = attribute_value.pexp_loc in
@@ -487,20 +486,20 @@ let make_of_json ~loc (core_type : core_type) prop =
   | [%type: React.element option] -> [%expr ([%e prop] : React.element option)]
   (* TODO: Add promise caching? When is it needed? *)
   (* | [%type: [%t? t] Js.Promise.t] ->
-    [%expr
-      let promise = [%e prop] in
-      let promise' = (Obj.magic promise : [%t t] Js.Promise.t Js.Dict.t) in
-      match Js.Dict.get promise' "__promise" with
-      | Some promise -> promise
-      | None ->
-          let promise =
-            Promise.(
-              let* json = (Obj.magic (Js.Promise.resolve promise) : Realm.Json.t Promise.t) in
-              let data = [%of_json: [%t t]] json in
-              return data)
-          in
-          Js.Dict.set promise' "__promise" promise;
-          promise] *)
+     [%expr
+       let promise = [%e prop] in
+       let promise' = (Obj.magic promise : [%t t] Js.Promise.t Js.Dict.t) in
+       match Js.Dict.get promise' "__promise" with
+       | Some promise -> promise
+       | None ->
+           let promise =
+             Promise.(
+               let* json = (Obj.magic (Js.Promise.resolve promise) : Realm.Json.t Promise.t) in
+               let data = [%of_json: [%t t]] json in
+               return data)
+           in
+           Js.Dict.set promise' "__promise" promise;
+           promise] *)
   | [%type: [%t? t] Js.Promise.t] -> [%expr ([%e prop] : [%t t] Js.Promise.t)]
   | type_ -> [%expr [%of_json: [%t type_]] [%e prop]]
 
@@ -517,7 +516,7 @@ let props_of_model ~loc (props : (arg_label * expression option * pattern) list)
               Some (longident ~loc "error", [%expr [%ocaml.error "props need to be labelled arguments"]])
           | Labelled label | Optional label ->
               let core_type = match default with Some _ -> [%type: [%t core_type] option] | None -> core_type in
-              let prop = [%expr props##[%e ident ~loc label]] in
+              let prop = [%expr props ## [%e ident ~loc label]] in
               let value = make_of_json ~loc core_type prop in
               Some (longident ~loc label, value))
       | _ ->
