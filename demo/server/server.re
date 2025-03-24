@@ -1,32 +1,58 @@
+// This make possible to handle progressive enhancment on pages.
+// If there is no JS or hydration the page will make a POST request to the server
+// handling the action on the server and returning the page.
+let getAndPost = (path, handler) =>
+  Dream.scope(
+    "/",
+    [],
+    [
+      Dream.get(path, handler),
+      Dream.post(
+        path,
+        request => {
+          let actionId = Dream.header(request, "ACTION_ID");
+          switch (actionId) {
+          | Some(actionId) =>
+            Dream.log("Action ID: %s", actionId);
+            Server_actions.Route.actionsRoute(request);
+          | None =>
+            let%lwt _ = Server_actions.Route.actionsRoute(request);
+            handler(request);
+          };
+        },
+      ),
+    ],
+  );
+
 let server =
   Dream.logger(
     Dream.router([
-      Dream.get("/", Pages.Home.handler),
+      getAndPost("/", Pages.Home.handler),
       Dream.get(
         "/static/**",
         Dream.static("./_build/default/demo/client/app"),
       ),
-      Dream.get(Router.demoRenderToString, _request =>
+      getAndPost(Router.demoRenderToString, _request =>
         Dream.html(
           ReactDOM.renderToString(
             <Document script="/static/demo/Hydrate.re.js"> <App /> </Document>,
           ),
         )
       ),
-      Dream.get(Router.demoRenderToStaticMarkup, _request =>
+      getAndPost(Router.demoRenderToStaticMarkup, _request =>
         Dream.html(
           ReactDOM.renderToStaticMarkup(
             <Document script="/static/demo/Hydrate.re.js"> <App /> </Document>,
           ),
         )
       ),
-      Dream.get(Router.demoRenderToStream, Pages.Comments.handler),
-      Dream.get(Router.demoCreateFromFetch, Pages.ServerOnlyRSC.handler),
-      Dream.get(
+      getAndPost(Router.demoRenderToStream, Pages.Comments.handler),
+      getAndPost(
         Router.demoCreateFromReadableStream,
         Pages.SinglePageRSC.handler,
       ),
-      Dream.get(Router.demoRouter, Pages.RouterRSC.handler),
+      getAndPost(Router.demoRouter, Pages.RouterRSC.handler),
+      getAndPost(Router.demoCreateFromFetch, Pages.ServerOnlyRSC.handler),
     ]),
   );
 

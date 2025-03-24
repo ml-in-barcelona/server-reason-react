@@ -482,6 +482,10 @@ let get_labelled_arguments pvb_expr =
 
 let make_of_json ~loc (core_type : core_type) prop =
   match core_type with
+  (* QUESTION: How do we handle especial types on props, 
+     like `("someProp"), `List([React.element, string]). 
+     We already support it, but not with the ppx. 
+     Checkout the test_RSC_model.ml for more details. packages/reactDom/test/test_RSC_html.ml *)
   (* QUESTION: How can we handle optionals and others? Need a [@deriving rsc] for them? We currently encode None's as React.Json `Null, should be enought *)
   | [%type: React.element] -> [%expr ([%e prop] : React.element)]
   | [%type: React.element option] -> [%expr ([%e prop] : React.element option)]

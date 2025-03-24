@@ -19,6 +19,7 @@ module NoteView = {
           </Text>
         </div>
         <Button noteId={Some(note.id)}> {React.string("Edit")} </Button>
+        <DeleteNoteButton noteId={note.id} />
       </div>
       <NotePreview key="note-preview" body={Markdown.toHTML(note.content)} />
     </div>;
