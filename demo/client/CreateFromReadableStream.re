@@ -13,7 +13,11 @@ external startTransition: (unit => unit) => unit = "startTransition";
 
 try({
   let promise =
-    ReactServerDOMWebpack.createFromReadableStream(readable_stream);
+    ReactServerDOMWebpack.createFromReadableStream(
+      readable_stream,
+      ~options={callServer: ReactServerDOMWebpack.callServer},
+      (),
+    );
   let element =
     Webapi.Dom.document |> Webapi.Dom.Document.querySelector("#root");
 

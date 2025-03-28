@@ -1,6 +1,4 @@
 [@warning "-33"];
-open Webapi.Dom;
-open EventTarget;
 open Ppx_deriving_json_runtime.Primitives;
 
 [@deriving json]
@@ -10,27 +8,26 @@ type formData = {
   age: string,
 };
 
-[@mel.module "react"]
-external startTransition: (unit => unit) => unit = "startTransition";
-
 module Form = {
-  [@warning "-27"]
+  [@warning "-27"];
   [@react.component]
-  let make = (~children) =>
+  let make = (~children=React.null) =>
     switch%platform () {
     | Server =>
-      <form actionFn=(Router.demoActionFormDataSample, "null")>
+      // The contract for actionFn is (actionId, bound)
+      // For now I'm not handling the bound part, we can do it later
+      <form actionFn=(Router.demoActionFormDataServerOnly, "null")>
         children
       </form>
-    | Client =>
-      <form action={Obj.magic(Actions.Samples.formData)}> children </form>
+    // This is a server component, but we need switch%platform to make it compile
+    | Client => React.null
     };
 };
 
 [@warning "-26-27-32"];
-[@react.client.component]
+[@react.component]
 let make = () => {
-  <div className={Cx.make([Theme.text(Theme.Color.Gray4)])}>
+  <div>
     <Form>
       <input
         name="name"

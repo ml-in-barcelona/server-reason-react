@@ -23,7 +23,11 @@ let fetchApp = url => {
 
 module App = {
   let initialData =
-    ReactServerDOMWebpack.createFromReadableStream(readable_stream);
+    ReactServerDOMWebpack.createFromReadableStream(
+      readable_stream,
+      ~options={callServer: ReactServerDOMWebpack.callServer},
+      (),
+    );
 
   [@react.component]
   let make = () => {
@@ -41,7 +45,12 @@ module App = {
         let currentURL = origin ++ pathname;
         let url = URL.makeExn(currentURL)->URL.setSearchAsString(search);
         let app = fetchApp(URL.toString(url));
-        let element = ReactServerDOMWebpack.createFromFetch(app);
+        let element =
+          ReactServerDOMWebpack.createFromFetch(
+            app,
+            ~options={callServer: ReactServerDOMWebpack.callServer},
+            (),
+          );
         startTransition(() => {
           setData(. _ => element);
           History.pushState(
