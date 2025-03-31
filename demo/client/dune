@@ -30,6 +30,7 @@
    "app/demo/client/CreateFromReadableStream.re.js"
    "app/demo/client/CreateFromFetch.re.js"
    "app/demo/client/ClientRouter.re.js")
+  (file ReactServerDOMEsbuild.js)
   (source_tree node_modules)
   (file package.json)
   (source_tree ../../packages/extract-client-components))
