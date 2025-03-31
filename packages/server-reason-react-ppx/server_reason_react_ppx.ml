@@ -455,6 +455,7 @@ let transform_fun_body_expression expr fn =
   inner expr
 
 let expand_make_binding binding react_element_variant_wrapping =
+  let attributers = binding.pvb_attributes in
   let loc = binding.pvb_loc in
   let ghost_loc = { binding.pvb_loc with loc_ghost = true } in
   let binding_with_unit = add_unit_at_the_last_argument binding.pvb_expr in
@@ -470,7 +471,8 @@ let expand_make_binding binding react_element_variant_wrapping =
   (* Append key argument since we want to allow users of this component to set key
      (and assign it to _ since it shouldn't be used) *)
   let function_body = pexp_fun ~loc:ghost_loc key_arg default_value key_pattern binding_expr in
-  value_binding ~loc:ghost_loc ~pat:name ~expr:function_body
+  (* Since expand_make_binding is called on both native and js contexts, we need to keep the attributes *)
+  { (value_binding ~loc:ghost_loc ~pat:name ~expr:function_body) with pvb_attributes = attributers }
 
 let get_labelled_arguments pvb_expr =
   let rec go acc = function

@@ -96,7 +96,7 @@
                         module J = {
                           [@ocaml.warning "-unboxable-type-in-prim-decl"]
                           [@mel.internal.ffi
-                            "„•¦¾\000\000\000\011\000\000\000\005\000\000\000\r\000\000\000\012‘  A$name@"
+                            "ï¿½ï¿½ï¿½ï¿½\000\000\000\011\000\000\000\005\000\000\000\r\000\000\000\012ï¿½ï¿½ï¿½Aï¿½$name@"
                           ]
                           external unsafe_expr: (~name: 'a0) => {. "name": 'a0} =
                             "" "";
@@ -120,7 +120,7 @@
   
             [@ocaml.warning "-unboxable-type-in-prim-decl"]
             [@mel.internal.ffi
-              "„•¦¾\000\000\000J\000\000\000\027\000\000\000L\000\000\000G‘  A'initial  A$lola  A¡'default@  A(children  A'promise  A¡#key@  @@@"
+              "ï¿½ï¿½ï¿½ï¿½\000\000\000J\000\000\000\027\000\000\000L\000\000\000Gï¿½ï¿½ï¿½Aï¿½'initialï¿½ï¿½Aï¿½$lolaï¿½ï¿½Aï¿½'default@ï¿½ï¿½Aï¿½(childrenï¿½ï¿½Aï¿½'promiseï¿½ï¿½Aï¿½#key@ï¿½ï¿½@@@"
             ]
             external makeProps:
               (
@@ -206,7 +206,7 @@
                     [@ocaml.warning "-unboxable-type-in-prim-decl"]
                     [@ocaml.warning "-unboxable-type-in-prim-decl"]
                     [@mel.internal.ffi
-                      "„•¦¾\000\000\000<\000\000\000\021\000\000\000:\000\000\0005‘  A'promise  A(children  A'default  A$lola  A'initial@"
+                      "ï¿½ï¿½ï¿½ï¿½\000\000\000<\000\000\000\021\000\000\000:\000\000\0005ï¿½ï¿½ï¿½Aï¿½'promiseï¿½ï¿½Aï¿½(childrenï¿½ï¿½Aï¿½'defaultï¿½ï¿½Aï¿½$lolaï¿½ï¿½Aï¿½'initial@"
                     ]
                     external unsafe_expr:
                       (
