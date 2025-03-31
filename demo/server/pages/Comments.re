@@ -110,7 +110,7 @@ let handler = _request => {
       };
 
       let%lwt (stream, _abort) =
-        ReactDOM.renderToStream(~pipe, <Document> <Page /> </Document>);
+        ReactDOM.renderToStream(<Document> <Page /> </Document>);
 
       Lwt_stream.iter_s(pipe, stream);
     },

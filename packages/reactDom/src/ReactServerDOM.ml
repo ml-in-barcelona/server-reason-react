@@ -497,3 +497,5 @@ let render_html element =
 
 let render_model = Model.render
 let act = Model.act
+
+module Html = Html

@@ -57,7 +57,7 @@ create-switch: ## Create opam switch
 
 .PHONY: install
 install:
-	opam install . --deps-only --with-test --with-doc --with-dev-setup
+	opam install . --deps-only --with-test --with-doc --with-dev-setup -y
 
 .PHONY: install-npm
 install-npm:

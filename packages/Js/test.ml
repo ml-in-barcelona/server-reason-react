@@ -117,9 +117,8 @@ let string_tests =
         (* assert_string (Js.String.fromCharCode 0xd55c) {js|한|js} *)
         (* assert_string (Js.String.fromCharCode -64568) {js|ψ|js}; *)
         ());
-    test "fromCharCodeMany" (fun () ->
-        (* fromCharCodeMany([|0xd55c, 0xae00, 33|]) = {js|한글!|js} *)
-        ());
+    test "fromCharCodeMany" (fun () -> (* fromCharCodeMany([|0xd55c, 0xae00, 33|]) = {js|한글!|js} *)
+                                       ());
     test "fromCodePoint" (fun () ->
         assert_string (Js.String.fromCodePoint 65) "A"
         (* assert_string (Js.String.fromCodePoint 0x3c8) {js|ψ|js}; *)

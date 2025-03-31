@@ -5,3 +5,5 @@ type rendering =
 val render_html : React.element -> rendering Lwt.t
 val render_model : ?subscribe:(string -> unit Lwt.t) -> React.element -> string Lwt_stream.t Lwt.t
 val act : ?subscribe:(string -> unit Lwt.t) -> React.rsc_value -> string Lwt_stream.t Lwt.t
+
+module Html : module type of Html
