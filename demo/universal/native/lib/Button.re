@@ -1,4 +1,4 @@
-open Ppx_deriving_json_runtime.Primitives;
+open Melange_json.Primitives;
 
 [@react.client.component]
 let make = (~noteId: option(int), ~children: React.element) => {

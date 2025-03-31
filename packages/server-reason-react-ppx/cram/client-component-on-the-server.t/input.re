@@ -1,4 +1,4 @@
-open Ppx_deriving_json_runtime.Primitives;
+open Melange_json.Primitives;
 
 [@deriving json]
 type lola = {name: string};

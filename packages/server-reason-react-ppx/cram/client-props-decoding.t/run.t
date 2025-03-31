@@ -29,7 +29,7 @@
       cookies: [],
     }
   ];
-  open Ppx_deriving_json_runtime.Primitives;
+  open Melange_json.Primitives;
   
   [@warning "-27"];
   include {
@@ -59,7 +59,7 @@
                     [@ocaml.warning "-unboxable-type-in-prim-decl"]
                     [@ocaml.warning "-unboxable-type-in-prim-decl"]
                     [@mel.internal.ffi
-                      "„•¦¾\000\000\000E\000\000\000\029\000\000\000O\000\000\000H‘  A&tuple3  A&tuple2  A$lulu  A$lili  A$lolo  A$lola  A$prop@"
+                      "ï¿½ï¿½ï¿½ï¿½\000\000\000E\000\000\000\029\000\000\000O\000\000\000Hï¿½ï¿½ï¿½Aï¿½&tuple3ï¿½ï¿½Aï¿½&tuple2ï¿½ï¿½Aï¿½$luluï¿½ï¿½Aï¿½$liliï¿½ï¿½Aï¿½$loloï¿½ï¿½Aï¿½$lolaï¿½ï¿½Aï¿½$prop@"
                     ]
                     external unsafe_expr:
                       (

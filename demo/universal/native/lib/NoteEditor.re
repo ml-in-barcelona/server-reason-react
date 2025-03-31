@@ -1,6 +1,6 @@
 [@warning "-26-27-32"];
 
-open Ppx_deriving_json_runtime.Primitives;
+open Melange_json.Primitives;
 
 external alert: string => unit = "window.alert";
 
