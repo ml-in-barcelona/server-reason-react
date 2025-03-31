@@ -424,12 +424,19 @@ and elements_to_html ~fiber elements =
 (* TODO: we might want to implement "resources" instead of head *)
 type rendering =
   | Done of { app : string; head : Html.element; body : Html.element; end_script : Html.element }
-  | Async of { head : Html.element; shell : Html.element; subscribe : (Html.element -> unit Lwt.t) -> unit Lwt.t }
+  | Async of {
+      everything : string;
+      head : Html.element;
+      shell : Html.element;
+      subscribe : (Html.element -> unit Lwt.t) -> unit Lwt.t;
+    }
+
+let head children = Html.node "head" [] (Html.node "meta" [ Html.attribute "charset" "utf-8" ] [] :: children)
 
 (* TODO: Do we need to disable streaming based on some timeout? abortion? *)
 (* TODO: Do we need to disable the model rendering or can we do it outside? *)
 (* TODO: Add scripts and links to the output, also all options from renderToReadableStream *)
-let render_html element =
+let render_html ~bootstrapScriptContent ~bootstrapScripts ~bootstrapModules element =
   let initial_index = 0 in
   let htmls = ref [] in
   let emit_html chunk = htmls := chunk :: !htmls in
@@ -460,13 +467,45 @@ let render_html element =
              end_script = chunk_stream_end_script;
            })
   | Some stream ->
-      let html_iter fn =
+      let html_bootstrap_script_content =
+        if bootstrapScriptContent = "" then Html.null else Html.node "script" [] [ Html.raw bootstrapScriptContent ]
+      in
+      let html_bootstrap_scripts =
+        bootstrapScripts
+        |> List.map (fun script -> Html.node "script" [ Html.attribute "src" script; Html.attribute "async" "true" ] [])
+        |> Html.list
+      in
+      let html_bootstrap_modules =
+        bootstrapModules
+        |> List.map (fun script ->
+               Html.node "script"
+                 [ Html.attribute "src" script; Html.attribute "async" "true"; Html.attribute "type" "module" ]
+                 [])
+        |> Html.list
+      in
+      let head =
+        head
+          [
+            rc_function_script;
+            rsc_start_script;
+            html_bootstrap_script_content;
+            html_bootstrap_scripts;
+            html_bootstrap_modules;
+          ]
+      in
+      let body = Html.node "body" [] [ html_shell ] in
+      let html = Html.node "html" [] [ head; body ] in
+      let subscribe fn =
         let%lwt () = Push_stream.subscribe ~fn stream in
         fn chunk_stream_end_script
       in
       Lwt.return
-        (Async { head = Html.list [ rc_function_script; rsc_start_script ]; shell = html_shell; subscribe = html_iter })
+        (Async
+           {
+             everything = Html.to_string html;
+             head = Html.list [ rc_function_script; rsc_start_script ];
+             shell = html_shell;
+             subscribe;
+           })
 
 let render_model = Model.render
-
-module Html = Html
