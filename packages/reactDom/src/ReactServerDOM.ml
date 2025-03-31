@@ -468,3 +468,5 @@ let render_html element =
         (Async { head = Html.list [ rc_function_script; rsc_start_script ]; shell = html_shell; subscribe = html_iter })
 
 let render_model = Model.render
+
+module Html = Html
