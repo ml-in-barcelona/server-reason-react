@@ -1,36 +1,54 @@
 let is_react_component_header = str =>
   String.equal(str, "application/react.component");
 
-let render_html =
+let stream_model = (~location, app) =>
+  Dream.stream(
+    ~headers=[
+      ("Content-Type", "application/react.component"),
+      ("X-Content-Type-Options", "nosniff"),
+      ("X-Location", location),
+    ],
+    stream => {
+      let%lwt _stream: Lwt.t(Lwt_stream.t(string)) =
+        ReactServerDOM.render_model(
+          app,
+          ~subscribe=chunk => {
+            Dream.log("Chunk");
+            Dream.log("%s", chunk);
+            let%lwt () = Dream.write(stream, chunk);
+            Dream.flush(stream);
+          },
+        );
+
+      Dream.flush(stream);
+    },
+  );
+
+let stream_html =
     (~bootstrapScriptContent, ~bootstrapScripts, ~bootstrapModules, app) => {
-  Dream.stream(~headers=[("Content-Type", "text/html")], stream => {
-    switch%lwt (
-      ReactServerDOM.render_html(
-        ~bootstrapScriptContent,
-        ~bootstrapScripts,
-        ~bootstrapModules,
-        app,
-      )
-    ) {
-    | ReactServerDOM.Async({
-        everything,
-        head: _head_children,
-        shell: _body,
-        subscribe,
-      }) =>
+  Dream.stream(
+    ~headers=[("Content-Type", "text/html")],
+    stream => {
       let%lwt () = Dream.write(stream, "<!DOCTYPE html>");
-      let%lwt () = Dream.write(stream, everything);
+      let%lwt (html, subscribe) =
+        ReactServerDOM.render_html(
+          ~bootstrapScriptContent,
+          ~bootstrapScripts,
+          ~bootstrapModules,
+          app,
+        );
+      let%lwt () = Dream.write(stream, html);
+      let%lwt () = Dream.flush(stream);
       let%lwt () =
         subscribe(chunk => {
           Dream.log("Chunk");
-          Dream.log("%s", Html.to_string(chunk));
-          let%lwt () = Dream.write(stream, Html.to_string(chunk));
+          Dream.log("%s", chunk);
+          let%lwt () = Dream.write(stream, chunk);
           Dream.flush(stream);
         });
-      let%lwt () = Dream.write(stream, "</body></html>");
       Dream.flush(stream);
-    }
-  });
+    },
+  );
 };
 
 let createFromRequest =
@@ -43,25 +61,9 @@ let createFromRequest =
     ) => {
   switch (Dream.header(request, "Accept")) {
   | Some(accept) when is_react_component_header(accept) =>
-    stream_rsc(
-      request,
-      stream => {
-        let%lwt _stream =
-          ReactServerDOM.render_model(
-            app,
-            ~subscribe=chunk => {
-              Dream.log("Chunk");
-              Dream.log("%s", chunk);
-              let%lwt () = Dream.write(stream, chunk);
-              Dream.flush(stream);
-            },
-          );
-
-        Dream.flush(stream);
-      },
-    )
+    stream_model(~location=Dream.target(request), app)
   | _ =>
-    render_html(
+    stream_html(
       ~bootstrapScriptContent,
       ~bootstrapScripts,
       ~bootstrapModules,

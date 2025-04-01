@@ -33,57 +33,37 @@ let assert_stream (stream : string Lwt_stream.t) (expected : string list) =
   if content = [] then Lwt.return @@ Alcotest.fail "stream should not be empty"
   else Lwt.return @@ assert_list_of_strings content expected
 
-let assert_html (left : Html.element) (right : string) = assert_string (Html.to_string left) right
-
-let text_encoder_script =
-  "<script>\n\
-   let enc = new TextEncoder();\n\
-   let srr_stream = (window.srr_stream = {});\n\
-   srr_stream.push = () => {\n\
-  \  srr_stream._c.enqueue(enc.encode(document.currentScript.dataset.payload));\n\
-   };\n\
-   srr_stream.close = () => {\n\
-  \  srr_stream._c.close();\n\
-   };\n\
-   srr_stream.readable_stream = new ReadableStream({ start(c) { srr_stream._c = c; } });\n\
-  \        </script>"
-
-let rc_function_script =
-  "<script>function \
-   $RC(a,b){a=document.getElementById(a);b=document.getElementById(b);b.parentNode.removeChild(b);if(a){a=a.previousSibling;var \
-   f=a.parentNode,c=a.nextSibling,e=0;do{if(c&&8===c.nodeType){var d=c.data;if(\"/$\"===d)if(0===e)break;else \
-   e--;else\"$\"!==d&&\"$?\"!==d&&\"$!\"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data=\"$\";a._reactRetry&&a._reactRetry()}}</script>"
-  ^ text_encoder_script
-
 let stream_close_script = "<script>window.srr_stream.close()</script>"
 
-let assert_sync_payload app sync_body =
-  match%lwt ReactServerDOM.render_html app with
-  | Done { head; body; end_script; app = _ } ->
-      assert_html head text_encoder_script;
-      assert_html body sync_body;
-      assert_html end_script stream_close_script;
-      (* TODO: assert_html app app; *)
-      Lwt.return ()
-  | Async _ -> Lwt.return (Alcotest.fail "Async should not be returned by render_to_html")
-
-let assert_html_list (elements : Html.element list) (expected : string list) =
-  assert_list_of_strings (List.map Html.to_string elements) expected
-
-let assert_async_payload element ~shell assertion_list =
-  match%lwt ReactServerDOM.render_html element with
-  | Done _ -> Lwt.return (Alcotest.fail "Sync should be returned by render_to_html")
-  | Async { head; shell = outcome_shell; subscribe } ->
-      assert_html head rc_function_script;
-      assert_html outcome_shell shell;
-      let subscribed_elements = ref [] in
-      let%lwt () =
-        subscribe (fun element ->
-            subscribed_elements := !subscribed_elements @ [ element ];
-            Lwt.return ())
-      in
-      assert_html_list subscribed_elements.contents assertion_list;
-      Lwt.return ()
+let assert_html element ~shell assertion_list =
+  let entire_html =
+    Printf.sprintf
+      "<!DOCTYPE html><html><head><meta charset=\"utf-8\" /><script>function \
+       $RC(a,b){a=document.getElementById(a);b=document.getElementById(b);b.parentNode.removeChild(b);if(a){a=a.previousSibling;var \
+       f=a.parentNode,c=a.nextSibling,e=0;do{if(c&&8===c.nodeType){var d=c.data;if(\"/$\"===d)if(0===e)break;else \
+       e--;else\"$\"!==d&&\"$?\"!==d&&\"$!\"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data=\"$\";a._reactRetry&&a._reactRetry()}}</script><script>\n\
+       let enc = new TextEncoder();\n\
+       let srr_stream = (window.srr_stream = {});\n\
+       srr_stream.push = () => {\n\
+      \  srr_stream._c.enqueue(enc.encode(document.currentScript.dataset.payload));\n\
+       };\n\
+       srr_stream.close = () => {\n\
+      \  srr_stream._c.close();\n\
+       };\n\
+       srr_stream.readable_stream = new ReadableStream({ start(c) { srr_stream._c = c; } });\n\
+      \        </script></head><body>%s</body></html>"
+      shell
+  in
+  let subscribed_elements = ref [] in
+  let%lwt html, subscribe = ReactServerDOM.render_html element in
+  let%lwt () =
+    subscribe (fun element ->
+        subscribed_elements := !subscribed_elements @ [ element ];
+        Lwt.return ())
+  in
+  assert_string entire_html html;
+  assert_list_of_strings subscribed_elements.contents assertion_list;
+  Lwt.return ()
 
 let layout ~children () =
   React.Upper_case_component
@@ -97,20 +77,24 @@ let loading_suspense ~children () = React.Suspense.make ~fallback:(React.string 
 
 let null_element () =
   let app = React.null in
-  assert_sync_payload app "<script data-payload='0:null\n'>window.srr_stream.push()</script>"
+  assert_html ~shell:"<script data-payload='0:null\n'>window.srr_stream.push()</script>" app [ stream_close_script ]
 
 let element_with_dangerously_set_inner_html () =
   let app = React.createElement "div" [ React.JSX.DangerouslyInnerHtml "<h1>Hello</h1>" ] [] in
-  assert_sync_payload app
-    "<div><h1>Hello</h1></div><script \
-     data-payload='0:[\"$\",\"div\",null,{\"children\":[null],\"dangerouslySetInnerHTML\":{\"__html\":\"<h1>Hello</h1>\"}}]\n\
-     '>window.srr_stream.push()</script>"
+  assert_html
+    ~shell:
+      "<div><h1>Hello</h1></div><script \
+       data-payload='0:[\"$\",\"div\",null,{\"children\":[null],\"dangerouslySetInnerHTML\":{\"__html\":\"<h1>Hello</h1>\"}}]\n\
+       '>window.srr_stream.push()</script>"
+    app [ stream_close_script ]
 
 let input_element_with_value () =
   let app = React.createElement "input" [ React.JSX.String ("value", "value", "application") ] [] in
-  assert_sync_payload app
-    "<input value=\"application\" /><script data-payload='0:[\"$\",\"input\",null,{\"value\":\"application\"}]\n\
-     '>window.srr_stream.push()</script>"
+  assert_html
+    ~shell:
+      "<input value=\"application\" /><script data-payload='0:[\"$\",\"input\",null,{\"value\":\"application\"}]\n\
+       '>window.srr_stream.push()</script>"
+    app [ stream_close_script ]
 
 let upper_case_component () =
   let app =
@@ -121,11 +105,13 @@ let upper_case_component () =
             React.createElement "section" [] [ React.createElement "article" [] [ React.string "Deep Server Content" ] ];
           ])
   in
-  assert_sync_payload app
-    "<div><section><article>Deep Server Content</article></section></div><script \
-     data-payload='0:[\"$\",\"div\",null,{\"children\":[[\"$\",\"section\",null,{\"children\":[[\"$\",\"article\",null,{\"children\":[\"Deep \
-     Server Content\"]}]]}]]}]\n\
-     '>window.srr_stream.push()</script>"
+  assert_html
+    ~shell:
+      "<div><section><article>Deep Server Content</article></section></div><script \
+       data-payload='0:[\"$\",\"div\",null,{\"children\":[[\"$\",\"section\",null,{\"children\":[[\"$\",\"article\",null,{\"children\":[\"Deep \
+       Server Content\"]}]]}]]}]\n\
+       '>window.srr_stream.push()</script>"
+    app [ stream_close_script ]
 
 let async_component_without_promise () =
   let app =
@@ -138,11 +124,13 @@ let async_component_without_promise () =
                  [ React.createElement "article" [] [ React.string "Deep Server Content" ] ];
              ]))
   in
-  assert_sync_payload app
-    "<div><section><article>Deep Server Content</article></section></div><script \
-     data-payload='0:[\"$\",\"div\",null,{\"children\":[[\"$\",\"section\",null,{\"children\":[[\"$\",\"article\",null,{\"children\":[\"Deep \
-     Server Content\"]}]]}]]}]\n\
-     '>window.srr_stream.push()</script>"
+  assert_html
+    ~shell:
+      "<div><section><article>Deep Server Content</article></section></div><script \
+       data-payload='0:[\"$\",\"div\",null,{\"children\":[[\"$\",\"section\",null,{\"children\":[[\"$\",\"article\",null,{\"children\":[\"Deep \
+       Server Content\"]}]]}]]}]\n\
+       '>window.srr_stream.push()</script>"
+    app [ stream_close_script ]
 
 let async_component_with_promise () =
   let app () =
@@ -154,7 +142,7 @@ let async_component_with_promise () =
              Lwt.return (React.createElement "span" [] [ React.string "Sleep resolved" ])))
       ()
   in
-  assert_async_payload (app ())
+  assert_html (app ())
     ~shell:
       "<!--$?--><template id=\"B:1\"></template>Loading...<!--/$--><script \
        data-payload='0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"}]\n\
@@ -187,7 +175,7 @@ let async_component_and_client_component_with_suspense () =
                   ])))
       ()
   in
-  assert_async_payload (app ())
+  assert_html (app ())
     ~shell:
       "<!--$?--><template id=\"B:1\"></template>Loading...<!--/$--><script \
        data-payload='0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"}]\n\
@@ -203,10 +191,12 @@ let async_component_and_client_component_with_suspense () =
 
 let suspense_without_promise () =
   let app () = loading_suspense ~children:(React.string "Resolved") () in
-  assert_sync_payload (app ())
-    "<!--$?-->Resolved<!--/$--><script \
-     data-payload='0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"Resolved\"}]\n\
-     '>window.srr_stream.push()</script>"
+  assert_html
+    ~shell:
+      "<!--$?-->Resolved<!--/$--><script \
+       data-payload='0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"Resolved\"}]\n\
+       '>window.srr_stream.push()</script>"
+    (app ()) [ stream_close_script ]
 
 let with_sleepy_promise () =
   let app =
@@ -222,7 +212,7 @@ let with_sleepy_promise () =
                       [ React.createElement "article" [] [ React.string "Deep Server Content" ] ];
                   ])))
   in
-  assert_async_payload (app ())
+  assert_html (app ())
     ~shell:
       "<!--$?--><template id=\"B:1\"></template>Loading...<!--/$--><script \
        data-payload='0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"}]\n\
@@ -258,7 +248,7 @@ let client_with_promise_props () =
               };
           ])
   in
-  assert_async_payload (app ())
+  assert_html (app ())
     ~shell:
       "<div>Server Content</div><!-- -->Client with Props<script \
        data-payload='0:[[\"$\",\"div\",null,{\"children\":[\"Server \
