@@ -51,7 +51,7 @@ let assert_html element ~shell assertion_list =
       \  srr_stream._c.close();\n\
        };\n\
        srr_stream.readable_stream = new ReadableStream({ start(c) { srr_stream._c = c; } });\n\
-      \        </script></head><body>%s</body></html>"
+      \        </script></head>%s</html>"
       shell
   in
   let subscribed_elements = ref [] in

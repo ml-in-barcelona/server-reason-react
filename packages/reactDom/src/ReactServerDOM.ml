@@ -474,8 +474,7 @@ let render_html ?(bootstrapScriptContent = "") ?(bootstrapScripts = []) ?(bootst
         html_bootstrap_modules;
       ]
   in
-  let body = Html.node "body" [] [ html_shell ] in
-  let html = Html.node "html" [] [ head; body ] in
+  let html = Html.node "html" [] [ head; html_shell ] in
   let subscribe fn =
     let fn_with_to_string v = fn (Html.to_string v) in
     let%lwt () = Push_stream.subscribe ~fn:fn_with_to_string stream in
