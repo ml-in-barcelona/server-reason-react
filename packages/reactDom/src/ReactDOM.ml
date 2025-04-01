@@ -18,6 +18,8 @@ let attribute_to_html attr =
   (* true attributes render solely the attribute name *)
   | Bool (name, _, true) -> Html.present name
   | Style styles -> Html.attribute "style" (ReactDOMStyle.to_string styles)
+  (* ActionFunction should be always with empty value on the markup *)
+  | ActionFunction (name, _, _) -> Html.attribute name ""
   | String (name, _, _value) when is_react_custom_attribute name -> Html.omitted ()
   | String (name, _, value) -> Html.attribute name value
   (* Events don't get rendered on SSR *)

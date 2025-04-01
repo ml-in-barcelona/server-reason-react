@@ -11,13 +11,27 @@ let getAndPost = (path, handler) =>
         path,
         request => {
           let actionId = Dream.header(request, "ACTION_ID");
-          switch (actionId) {
-          | Some(actionId) =>
-            Dream.log("Action ID: %s", actionId);
-            Server_actions.Route.actionsRoute(request);
-          | None =>
-            let%lwt _ = Server_actions.Route.actionsRoute(request);
-            handler(request);
+          let contentType = Dream.header(request, "Content-Type");
+          switch (contentType) {
+          | Some(contentType) =>
+            let response =
+              Server_actions.Route.actionsHandler(contentType, actionId);
+            switch (response) {
+            | `FormData(handler') =>
+              switch%lwt (Dream.multipart(request, ~csrf=false)) {
+              | `Ok(formData) =>
+                let%lwt response = handler'(formData);
+                ActionsRSC.createFromRequest(request, response);
+              | _ => failwith("Missing body")
+              }
+            | `Body(handler') =>
+              let%lwt body = Dream.body(request);
+              // QUESTION: Should we handle the response somewhere?
+              let%lwt _ = handler'(body);
+              handler(request);
+            | `Error(error) => Dream.html(error)
+            };
+          | None => failwith("Missing Content-Type")
           };
         },
       ),

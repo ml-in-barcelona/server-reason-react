@@ -1,3 +1,5 @@
+type callServerCallback('a, 'b) = (string, 'a) => Js.Promise.t('b);
+type options('a, 'b) = {callServer: callServerCallback('a, 'b)};
 /* TODO: Move this bindings into reason-react */
 /* Before it was:
       [@mel.module "react-server-dom-webpack/client"]
@@ -9,11 +11,15 @@
       And server actions can also use it, so I changed it to return React.element
    */
 [@mel.module "react-server-dom-webpack/client"]
-external createFromReadableStream: Webapi.ReadableStream.t => Js.Promise.t('a) =
+external createFromReadableStream:
+  (Webapi.ReadableStream.t, ~options: options('a, 'b)=?, unit) =>
+  Js.Promise.t('a) =
   "createFromReadableStream";
 
 [@mel.module "react-server-dom-webpack/client"]
-external createFromFetch: Js.Promise.t(Fetch.response) => React.element =
+external createFromFetch:
+  (Js.Promise.t(Fetch.response), ~options: options('a, 'b)=?, unit) =>
+  React.element =
   "createFromFetch";
 
 type encodeFormAction = {
@@ -29,7 +35,7 @@ type encodeFormAction = {
 external createServerReferenceImpl:
   (
     string, // ServerReferenceId
-    (string, 'b) => Js.Promise.t('d), // CallServerCallback
+    callServerCallback('a, 'b), // CallServerCallback
     option(('a, 'b) => encodeFormAction), // EncodeFormActionCallback (optional)
     option('e => string), // FindSourceMapURLCallback (optional, DEV-only)
     option(string)
@@ -55,7 +61,7 @@ let callServer = (path, args) => {
        )
        |> Js.Promise.then_(result => {
             let body = Fetch.Response.body(result);
-            createFromReadableStream(body);
+            createFromReadableStream(body, ());
           });
      });
 };

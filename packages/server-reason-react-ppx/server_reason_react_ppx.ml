@@ -92,6 +92,16 @@ let make_prop ~is_optional ~prop attribute_value =
   let loc = attribute_value.pexp_loc in
   let open DomProps in
   match (prop, is_optional) with
+  | Attribute { type_ = DomProps.ActionFunction; name; jsxName }, false ->
+      [%expr
+        Some
+          (React.JSX.ActionFunction
+             ([%e estring ~loc name], [%e estring ~loc jsxName], ([%e attribute_value] : string * string)))]
+  | Attribute { type_ = DomProps.ActionFunction; name; jsxName }, true ->
+      [%expr
+        match ([%e attribute_value] : string option) with
+        | None -> None
+        | Some v -> Some (React.JSX.ActionFunction ([%e estring ~loc name], [%e estring ~loc jsxName], v))]
   | Attribute { type_ = DomProps.String; name; jsxName }, false ->
       [%expr
         Some (React.JSX.String ([%e estring ~loc name], [%e estring ~loc jsxName], ([%e attribute_value] : string)))]
@@ -336,6 +346,15 @@ let transform_lowercase_props ~loc ~tag_name args =
           (* We need to filter attributes since optionals are represented as None *)
           [%expr Stdlib.List.filter_map Fun.id [%e list_of_attributes]])
 
+let form_action_metadata tag attributes =
+  match (tag, attributes) with
+  | "form", attributes ->
+      List.fold_left
+        ~f:(fun acc (name, value) ->
+          match name with Optional "actionFn" | Labelled "actionFn" -> Some value | _ -> acc)
+        ~init:None attributes
+  | _ -> None
+
 let rewrite_lowercase ~loc:exprLoc tag_name args children =
   let loc = exprLoc in
   let dom_node_name = estring ~loc:exprLoc tag_name in
@@ -344,6 +363,33 @@ let rewrite_lowercase ~loc:exprLoc tag_name args children =
   in
   let key = match key_prop with None -> [%expr None] | Some key -> [%expr Some [%e key]] in
   let props = transform_lowercase_props ~loc:exprLoc ~tag_name args in
+  let form_metadata = form_action_metadata tag_name args in
+  let props =
+    match form_metadata with
+    | Some _ ->
+        (* If the form has a action function we append to the props the method and enctype for the progressive enhancement *)
+        props
+    | None -> props
+  in
+  let children =
+    Option.map
+      (fun children ->
+        (* If the form has a action function we append the input with action id for the progressive enhancement *)
+        match form_metadata with
+        | Some metadata ->
+            [%expr
+              React.createElement "input"
+                (let action_id, _ = [%e metadata] in
+                 [
+                   React.JSX.String ("name", "name", "$ACTION_ID");
+                   React.JSX.String ("type", "type", "hidden");
+                   React.JSX.String ("value", "value", action_id);
+                 ])
+                []]
+            :: children
+        | None -> children)
+      children
+  in
   match children with
   | Some children ->
       let childrens = pexp_list ~loc children in

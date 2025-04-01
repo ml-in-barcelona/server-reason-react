@@ -335,7 +335,11 @@ module JSX = struct
     | Media of (Event.Media.t -> unit)
     | Inline of string
 
+  (* TODO: Talk to check if ActionFunction is a proper name *)
   type prop =
+    | ActionFunction of (string * string * (string * string))
+    (* (name, jsxName, (action_id, bound)) *)
+    (* TODO: Handle bound *)
     | Bool of (string * string * bool)
     | String of (string * string * string)
     | Style of (string * string * string) list
@@ -390,6 +394,7 @@ and client_props = (string * rsc_value) list
 
 and rsc_value =
   (* TODO: Do we need to add more types here? *)
+  | ActionFunction : string -> rsc_value
   | Json : Yojson.Basic.t -> rsc_value
   | Element : element -> rsc_value
   | Promise : 'a Js.Promise.t * ('a -> Yojson.Basic.t) -> rsc_value
@@ -424,7 +429,8 @@ let attributes_to_map attributes =
       | DangerouslyInnerHtml _ -> acc
       | Ref _ -> acc
       | Event _ -> acc
-      | Style _ -> acc)
+      | Style _ -> acc
+      | ActionFunction _ -> acc)
     StringMap.empty attributes
 
 let clone_attributes attributes new_attributes =

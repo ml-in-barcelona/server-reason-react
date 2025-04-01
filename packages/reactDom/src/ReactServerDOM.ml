@@ -35,29 +35,58 @@ module Model = struct
   let get_chunk_id context = context.chunk_id
   let style_to_json style = `Assoc (List.map (fun (_key, jsxKey, value) -> (jsxKey, `String value)) style)
 
-  let prop_to_json (prop : React.JSX.prop) =
+  let prop_to_json ~context (prop : React.JSX.prop) =
     match prop with
     (* We ignore the HTML name, and only use the JSX name *)
     | React.JSX.Bool (_, key, value) -> Some (key, `Bool value)
-    (* We exclude 'key' from props, since it's outside of the props object *)
-    | React.JSX.String (_, key, _) when key = "key" -> None
     | React.JSX.String (_, key, value) -> Some (key, `String value)
     | React.JSX.Style value -> Some ("style", style_to_json value)
     | React.JSX.DangerouslyInnerHtml html -> Some ("dangerouslySetInnerHTML", `Assoc [ ("__html", `String html) ])
     | React.JSX.Ref _ -> None
     | React.JSX.Event _ -> None
+    | React.JSX.ActionFunction (_, key, (action_id, _)) ->
+        context.chunk_id <- context.chunk_id + 1;
+        let id = context.chunk_id in
+        context.push id (Chunk_value (`Assoc [ ("id", `String action_id); ("bound", `Null) ]));
+        Some (key, `String (Printf.sprintf "$F%x" id))
 
-  let props_to_json props = List.filter_map prop_to_json props
+  let props_to_json ~context props = List.filter_map (prop_to_json ~context) props
+
+  (*
+    The extra input for actionFn is only needed for the initial render to have progressive enhancement. With SPA navigation, the react will be available and the extra input is not needed.
+    Sending this input with the $ACTION_ID though the wire is not needed, and will break the react process as '$' is a special character for react.
+  *)
+  let is_input_action_input ~tag ~attributes =
+    tag = "input" && List.exists (function "name", `String "$ACTION_ID" -> true | _ -> false) attributes
+
+  let sanitized_attributes ~tag ~attributes =
+    let _is_form_with_action_fn =
+      tag = "form" && List.exists (function React.JSX.ActionFunction _ -> true | _ -> false) attributes
+    in
+    List.filter
+      (function
+        (*
+          On client react will handle the action prop as function and will handle the POST and enctype.
+          If we provide the method and enctype here, the react will complain about it.
+          Then we just provide the method and enctype on the initial render for progressive enhancement.
+        *)
+        (* | React.JSX.String (_, ("method" | "enctype"), _) when is_form_with_action_fn -> false *)
+        (* We exclude 'key' from props, since it's outside of the props object *)
+        | React.JSX.String (_, "key", _) -> false
+        | _ -> true)
+      attributes
 
   let node ~tag ?(key = None) ~props children : json =
-    let key = match key with None -> `Null | Some key -> `String key in
-    let props =
-      match children with
-      | [] -> props
-      | [ one_children ] -> ("children", one_children) :: props
-      | childrens -> ("children", `List childrens) :: props
-    in
-    `List [ `String "$"; `String tag; key; `Assoc props ]
+    if is_input_action_input ~tag ~attributes:props then `Null
+    else
+      let key = match key with None -> `Null | Some key -> `String key in
+      let props =
+        match children with
+        | [] -> props
+        | [ one_children ] -> ("children", one_children) :: props
+        | childrens -> ("children", `List childrens) :: props
+      in
+      `List [ `String "$"; `String tag; key; `Assoc props ]
 
   let lazy_value id = Printf.sprintf "$L%x" id
   let promise_value id = Printf.sprintf "$@%x" id
@@ -102,7 +131,8 @@ module Model = struct
     (* TODO: Do we need to html encode the model or only the html? *)
     | Text t -> `String t
     | Lower_case_element { key; tag; attributes; children } ->
-        let props = props_to_json attributes in
+        let attributes = sanitized_attributes ~tag ~attributes in
+        let props = props_to_json ~context attributes in
         node ~key ~tag ~props (List.map (element_to_payload ~context) children)
     | Fragment children -> (element_to_payload ~context) children
     | List children -> `List (List.map (element_to_payload ~context) children)
@@ -176,6 +206,8 @@ module Model = struct
         | Fail exn ->
             (* TODO: Can we check if raise is good heres? *)
             raise exn)
+    (* TODO: Implement ActionFunction for props ($T) *)
+    | React.ActionFunction _ -> failwith "ActionFunction not implemented"
 
   and client_values_to_json ~context props =
     List.map
@@ -352,7 +384,9 @@ let rec to_html ~fiber (element : React.element) : (Html.element * json) Lwt.t =
   | List list -> elements_to_html ~fiber list
   | Array arr -> elements_to_html ~fiber (Array.to_list arr)
   | Upper_case_component component -> to_html ~fiber (component ())
-  | Lower_case_element { key; tag; attributes; children } -> render_lower_case ~fiber ~key ~tag ~attributes ~children
+  | Lower_case_element { key; tag; attributes; children } ->
+      let%lwt root, json = render_lower_case ~fiber ~key ~tag ~attributes ~children in
+      Lwt.return (root, json)
   | Async_component component ->
       let%lwt element = component () in
       to_html ~fiber element
@@ -387,7 +421,8 @@ let rec to_html ~fiber (element : React.element) : (Html.element * json) Lwt.t =
                     if context.pending = 0 then context.close ();
                     Lwt.return ());
                 Lwt.return sync
-            | React.Json json -> Lwt.return (name, json))
+            | React.Json json -> Lwt.return (name, json)
+            | React.ActionFunction action_function -> Lwt.return (name, `String action_function))
           props
       in
       let lwt_html = client_to_html ~fiber client in
@@ -432,14 +467,28 @@ let rec to_html ~fiber (element : React.element) : (Html.element * json) Lwt.t =
 
 and render_lower_case ~fiber ~key ~tag ~attributes ~children =
   let children = ReactDOM.moveDangerouslyInnerHtmlAsChildren attributes children in
-
+  let context = Fiber.get_context fiber in
+  let push_chunk id chunk =
+    match chunk with
+    | Model.Chunk_value json ->
+        context.index <- id;
+        context.push (client_value_chunk_script id json)
+    | Model.Chunk_component_ref json ->
+        context.index <- id;
+        context.push (client_reference_chunk_script id json)
+  in
+  let context : Model.stream_context =
+    { push = push_chunk; close = context.close; chunk_id = context.index; pending = 0 }
+  in
   if Html.is_self_closing_tag tag then
     let html_props = List.map ReactDOM.attribute_to_html attributes in
-    let json_props = Model.props_to_json attributes in
+    let attributes = Model.sanitized_attributes ~tag ~attributes in
+    let json_props = Model.props_to_json ~context attributes in
     Lwt.return (Html.node tag html_props [], Model.node ~tag ~key ~props:json_props [])
   else
     let html_props = List.map ReactDOM.attribute_to_html attributes in
-    let json_props = Model.props_to_json attributes in
+    let attributes = Model.sanitized_attributes ~tag ~attributes in
+    let json_props = Model.props_to_json ~context attributes in
     let%lwt html, model = elements_to_html ~fiber children in
     Lwt.return (Html.node tag html_props [ html ], Model.node ~tag ~key ~props:json_props [ model ])
 
