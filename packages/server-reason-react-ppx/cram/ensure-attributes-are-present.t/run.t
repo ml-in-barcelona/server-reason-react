@@ -3,4 +3,4 @@
     React.Upper_case_component
       (fun () ->
         React.createElementWithKey ~key:None "div" [] [ React.string "lol" ])
-  [@@platform js] [@@react.component]
+  [@@platform js]

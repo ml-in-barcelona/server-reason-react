@@ -10,11 +10,6 @@
   > EOF
 
   $ dune build
-  File "input.re", line 1, characters 5-41:
-  1 | open Melange_json.Primitives;
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Error: Unbound module Ppx_deriving_json_runtime
-  [1]
 
   $ dune describe pp input.re
   [@ocaml.ppx.context
