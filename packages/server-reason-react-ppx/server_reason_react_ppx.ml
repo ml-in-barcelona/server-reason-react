@@ -86,7 +86,8 @@ let validate_prop ~loc id name =
           raise_errorf ~loc
             "jsx: prop '%s' isn't valid on a '%s' element.\n\
              Hint: Maybe you mean '%s'?\n\n\
-             If this isn't correct, please open an issue at %s." name id suggestion issues_url)
+             If this isn't correct, please open an issue at %s."
+            name id suggestion issues_url)
 
 let make_prop ~is_optional ~prop attribute_value =
   let loc = attribute_value.pexp_loc in
@@ -518,7 +519,7 @@ let props_of_model ~loc (props : (arg_label * expression option * pattern) list)
               Some (longident ~loc "error", [%expr [%ocaml.error "props need to be labelled arguments"]])
           | Labelled label | Optional label ->
               let core_type = match default with Some _ -> [%type: [%t core_type] option] | None -> core_type in
-              let prop = [%expr props ## [%e ident ~loc label]] in
+              let prop = [%expr props##[%e ident ~loc label]] in
               let value = make_of_json ~loc core_type prop in
               Some (longident ~loc label, value))
       | _ ->
