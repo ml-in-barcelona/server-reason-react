@@ -1,10 +1,10 @@
 // QUESTION: How should we create this manifest automatically?
 let actionsManifest = (id: string) => {
   switch (id) {
-  | id when Router.demoActionCreateNote == id => Actions.Notes.create
-  | id when Router.demoActionEditNote == id => Actions.Notes.edit
-  | id when Router.demoActionDeleteNote == id => Actions.Notes.delete
-  | id when Router.demoActionSimpleResponse == id => Actions.Samples.simpleResponse
+  | id when Router.demoActionCreateNote == id => Actions.Notes.createRouteHandler
+  | id when Router.demoActionEditNote == id => Actions.Notes.editRouteHandler
+  | id when Router.demoActionDeleteNote == id => Actions.Notes.deleteRouteHandler
+  | id when Router.demoActionSimpleResponse == id => Actions.Samples.simpleResponseRouteHandler
   | _ => failwith("No action")
   };
 };
@@ -12,23 +12,26 @@ let actionsManifest = (id: string) => {
 // QUESTION: How should we create this manifest automatically?
 let formDataManifest = (id: string) => {
   switch (id) {
-  | id when Router.demoActionFormDataSample == id => Actions.Samples.formData
+  | id when Router.demoActionFormDataSample == id => Actions.Samples.formDataRouteHandler
+  | id when Router.demoActionFormDataServerOnly == id => Actions.Samples.formDataServerOnlyRouteHandler
   | _ => failwith("No action")
   };
 };
 
-let actionsRoute = request => {
-  let body = Dream.header(request, "Content-Type");
+type actionContent =
+  | FormData(list((string, list((option(string), string)))))
+  | Body(string);
 
-  switch (body) {
-  | Some(contentType)
-      when String.starts_with(contentType, ~prefix="multipart/form-data") =>
+// This handler is agnostic to the server framework
+// The user of the code passes the content defined by the type actionContent and the actionId
+let actionsHandler = (contentType, actionId) => {
+  switch (contentType, actionId) {
+  | (FormData(formData), actionId) =>
     // Getting the actionId from the formData as next.js does
-    switch%lwt (Dream.multipart(request, ~csrf=false)) {
-    // react-server-dom-webpack encode formData and put the first value as model reference E.g.:["@K1"], 1 is the id
-    // QUESTION: Why is it like this? Is there a change to it be other than "@K"? Is there a way to get more ids?
-    | `Ok([(_, [(_, modelId)]), (key, [(_, actionId)]), ...formData])
-        when String.ends_with(key, ~suffix="$ACTION_ID") =>
+    switch (formData, actionId) {
+    // react-server-dom-webpack encode formData and put the first value as model reference E.g.:["$K1"], 1 is the id
+    // QUESTION: Why is it like this? Is there a change to it be other than "$K"? Is there a way to get more ids?
+    | ([(_, [(_, modelId)]), ...formData], Some(actionId)) =>
       let chunkId = Yojson.Basic.from_string(modelId);
       let chunkId =
         chunkId
@@ -55,35 +58,24 @@ let actionsRoute = request => {
       // have a better way to handle it
       let formData = formData |> List.to_seq |> Hashtbl.of_seq;
       let action = formDataManifest(actionId);
-      let%lwt response = action(formData);
-
-      ActionsRSC.createFromRequest(request, response);
+      action(formData);
     // without JS enabled or hydration
-    | `Ok([(key, [(_, actionId)]), ...formData])
-        when String.ends_with(key, ~suffix="$ACTION_ID") =>
+    | ([(_, [(_, actionId)]), ...formData], None)
+        when actionId == "$ACTION_ID" =>
       let formData = formData |> List.to_seq |> Hashtbl.of_seq;
       let action = formDataManifest(actionId);
-      let%lwt response = action(formData);
-      ActionsRSC.createFromRequest(request, response);
-    | `Ok(formData) =>
-      List.iter(
-        ((key, value)) => {
-          List.iter(
-            ((_, value)) => {Dream.log("Key: %s, Value: %s", key, value)},
-            value,
-          )
-        },
-        formData,
-      );
-      failwith("Something went wrong but ok");
-    | _ => failwith("Something went wrong")
+      action(formData);
+    | _ =>
+      failwith(
+        "Missing $ACTION_ID, this formData was not created by server-reason-react",
+      )
     }
-  | _ =>
-    let actionId = Dream.header(request, "ACTION_ID");
-    let actionId = Option.get(actionId);
-    let%lwt body = Dream.body(request);
+  | (Body(body), Some(actionId)) =>
     let action = actionsManifest(actionId);
-    let%lwt response = action(body);
-    ActionsRSC.createFromRequest(request, response);
+    action(body);
+  | _ =>
+    failwith(
+      "Missing $ACTION_ID, this formData was not created by server-reason-react",
+    )
   };
 };

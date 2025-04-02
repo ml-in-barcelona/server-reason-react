@@ -9,6 +9,7 @@ let demoActionCreateNote = "create_note";
 let demoActionEditNote = "edit_note";
 let demoActionDeleteNote = "delete_note";
 let demoActionFormDataSample = "samples/form-data";
+let demoActionFormDataServerOnly = "samples/form-data-server-only";
 let demoActionSimpleResponse = "samples/simple-response";
 let demoActionComplexResponse = "samples/complex-response";
 

@@ -1,6 +1,8 @@
-// This make possible to handle progressive enhancment on pages.
+// This will make possible to handle progressive enhancment on pages.
 // If there is no JS or hydration the page will make a POST request to the server
 // handling the action on the server and returning the page.
+// If there is JS, the page will make a POST request to the server with the action ID
+// and the server will return the action response.
 let getAndPost = (path, handler) =>
   Dream.scope(
     "/",
@@ -11,13 +13,33 @@ let getAndPost = (path, handler) =>
         path,
         request => {
           let actionId = Dream.header(request, "ACTION_ID");
+          let contentType = Dream.header(request, "Content-Type");
+          let action_response =
+            switch%lwt (Dream.multipart(request, ~csrf=false)) {
+            | `Ok(formData) =>
+              let%lwt response =
+                Server_actions.Route.actionsHandler(
+                  FormData(formData),
+                  actionId,
+                );
+              DreamRSC.createActionFromRequest(request, response);
+            | _ =>
+              let%lwt body = Dream.body(request);
+              let%lwt response =
+                Server_actions.Route.actionsHandler(Body(body), actionId);
+              DreamRSC.createActionFromRequest(request, response);
+            };
+
           switch (actionId) {
           | Some(actionId) =>
-            Dream.log("Action ID: %s", actionId);
-            Server_actions.Route.actionsRoute(request);
+            // If there is no action ID means that the page does not hydrate or has no JS.
+            // Then we can execute the action and return the page.
+            action_response
           | None =>
-            let%lwt _ = Server_actions.Route.actionsRoute(request);
-            handler(request);
+            // If there is no action ID means that the page does not hydrate or has no JS.
+            // Then we can execute the action and return the page.
+            // QUESTION: Should we handle the response here?
+            handler(request)
           };
         },
       ),

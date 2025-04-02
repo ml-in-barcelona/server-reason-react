@@ -517,6 +517,7 @@ module JSX : sig
 
   (** JSX.prop is the representation of HTML/SVG attributes and DOM events *)
   type prop =
+    | Action of (string * string * string)
     | Bool of (string * string * bool)
     | String of (string * string * string)
     | Style of (string * string * string) list
@@ -572,6 +573,7 @@ type element =
 and client_props = (string * rsc_value) list
 
 and rsc_value =
+  | Action : string -> rsc_value
   | Json : Yojson.Basic.t -> rsc_value
   | Element : element -> rsc_value
   | Promise : 'a Js.Promise.t * ('a -> Yojson.Basic.t) -> rsc_value

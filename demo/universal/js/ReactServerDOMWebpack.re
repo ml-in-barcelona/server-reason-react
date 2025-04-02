@@ -1,40 +1,33 @@
 /* TODO: Move this bindings into reason-react */
-/* Before it was:
-      [@mel.module "react-server-dom-webpack/client"]
-       external createFromReadableStream:
-         Webapi.ReadableStream.t => Js.Promise.t('a) =
-         "createFromReadableStream";
-
-      But in the react code it does not strict requires to be Js.Promise.t(React.element), but a generic type.1
-      And server actions can also use it, so I changed it to return React.element
-   */
+type callServerCallback('a, 'b) = (string, list('a)) => Js.Promise.t('b);
+type options('a, 'b) = {callServer: callServerCallback('a, 'b)};
+type actionCallback('a, 'b) = 'a => Js.Promise.t('b);
 [@mel.module "react-server-dom-webpack/client"]
-external createFromReadableStream: Webapi.ReadableStream.t => Js.Promise.t('a) =
+external createFromReadableStream:
+  (Webapi.ReadableStream.t, ~options: options('a, 'b)=?, unit) =>
+  Js.Promise.t('a) =
   "createFromReadableStream";
 
 [@mel.module "react-server-dom-webpack/client"]
-external createFromFetch: Js.Promise.t(Fetch.response) => React.element =
+external createFromFetch:
+  (Js.Promise.t(Fetch.response), ~options: options('a, 'b)=?, unit) =>
+  React.element =
   "createFromFetch";
-
-type encodeFormAction = {
-  name: option(string),
-  value: option(string),
-  encType: option(string),
-  method: option(string),
-  target: option(string),
-  body: option(array(string)),
-};
 
 [@mel.module "react-server-dom-webpack/client"]
 external createServerReferenceImpl:
   (
     string, // ServerReferenceId
-    (string, 'b) => Js.Promise.t('d), // CallServerCallback
-    option(('a, 'b) => encodeFormAction), // EncodeFormActionCallback (optional)
-    option('e => string), // FindSourceMapURLCallback (optional, DEV-only)
+    // CallServerCallback
+    callServerCallback('a, 'b),
+    // EncodeFormActionCallback (optional)
+    option(('a, 'b) => 'c),
+    // FindSourceMapURLCallback (optional, DEV-only)
+    option('e => string),
+    // functionName (optional)
     option(string)
-  ) => // functionName (optional)
-  'f =
+  ) =>
+  actionCallback('d, 'b) =
   "createServerReference";
 
 [@mel.module "react-server-dom-webpack/client"]
@@ -55,7 +48,7 @@ let callServer = (path, args) => {
        )
        |> Js.Promise.then_(result => {
             let body = Fetch.Response.body(result);
-            createFromReadableStream(body);
+            createFromReadableStream(body, ());
           });
      });
 };
