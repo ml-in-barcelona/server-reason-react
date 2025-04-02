@@ -101,8 +101,8 @@ Note: [Lwt] is required. See {{:https://github.com/ml-in-barcelona/server-reason
 
 {1 React Server Components}
 
-React Server Components (RSC) is an architecture that allows you to render React components exclusively on the server, using Server-side code (such as Database queries or Filesystem operations). It allows to strip all client components (those components that require interactivity) from the JavaScript bundle sent to the client.
+React Server Components (RSC) is an architecture that allows you to render React components exclusively on the server, using server-side code (such as query the database or access the filesystem). It also, allows to differentiate server and client components (those components that require interactivity). Making sure that server ones are stripped from the JavaScript bundle sent to the client, while client components are loaded only when needed.
 
-There's a entire area of improvements that RSC bring to the table, such as lazy loading client components only when they are needed, remove fetching data with useEffect hooks (by passing promises to those client components), and removing state by lifting it to the URL.
+There's a entire area of improvements that RSC bring to the table, such as decreasing the bundle size by lazy loading client components, remove data fetching with useEffect hooks (by passing just promises), removing state by lifting it to the URL and allowing data to be "just there" and no need to be fetched.
 
-This library supports it, but many pieces are being polished, check the {{:https://github.com/ml-in-barcelona/server-reason-react/tree/main/demo}demo folder} for more information or the {{:https://github.com/ml-in-barcelona/server-reason-react/issues/204}umbrella issue}.
+This library supports it, but many pieces are being polished right now, check the {{:https://github.com/ml-in-barcelona/server-reason-react/tree/main/demo}demo folder} for more information or the {{:https://github.com/ml-in-barcelona/server-reason-react/issues/204}umbrella issue}.
