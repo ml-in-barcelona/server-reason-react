@@ -103,6 +103,6 @@ Note: [Lwt] is required. See {{:https://github.com/ml-in-barcelona/server-reason
 
 React Server Components (RSC) is an architecture that allows you to render React components exclusively on the server, using server-side code (such as query the database or access the filesystem). It also, allows to differentiate server and client components (those components that require interactivity). Making sure that server ones are stripped from the JavaScript bundle sent to the client, while client components are loaded only when needed.
 
-There's a entire area of improvements that RSC bring to the table, such as decreasing the bundle size by lazy loading client components, remove data fetching with useEffect hooks (by passing just promises), removing state by lifting it to the URL and allowing data to be "just there" and no need to be fetched.
+There's a entire area of improvements that RSC bring to the table, such as decreasing the bundle size by lazy loading client components, remove data fetching with useEffect hooks (by passing just promises), streaming the result of the server rendering of the page or stream the RSC payload, removes state by lifting it to the URL, to name the most notable ones.
 
 This library supports it, but many pieces are being polished right now, check the {{:https://github.com/ml-in-barcelona/server-reason-react/tree/main/demo}demo folder} for more information or the {{:https://github.com/ml-in-barcelona/server-reason-react/issues/204}umbrella issue}.
