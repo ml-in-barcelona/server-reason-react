@@ -1,14 +1,7 @@
 [@warning "-33"];
 open Webapi.Dom;
 open EventTarget;
-open Ppx_deriving_json_runtime.Primitives;
-
-[@deriving json]
-type formData = {
-  name: string,
-  lastName: string,
-  age: string,
-};
+open Melange_json.Primitives;
 
 [@mel.module "react"]
 external startTransition: (unit => unit) => unit = "startTransition";
