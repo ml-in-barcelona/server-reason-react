@@ -10,11 +10,6 @@
   > EOF
 
   $ dune build
-  File "input.re", line 1, characters 5-41:
-  1 | open Ppx_deriving_json_runtime.Primitives;
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Error: Unbound module Ppx_deriving_json_runtime
-  [1]
 
   $ dune describe pp input.re
   [@ocaml.ppx.context
@@ -35,7 +30,7 @@
       cookies: [],
     }
   ];
-  open Ppx_deriving_json_runtime.Primitives;
+  open Melange_json.Primitives;
   
   [@deriving json]
   type lola = {name: string};

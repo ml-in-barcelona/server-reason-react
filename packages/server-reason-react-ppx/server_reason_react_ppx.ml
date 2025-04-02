@@ -28,7 +28,7 @@ let ident ~loc txt = pexp_ident ~loc (longident ~loc txt)
 let make_string ~loc str = Ast_helper.Exp.constant ~loc (Ast_helper.Const.string str)
 let react_dot_component = "react.component"
 let react_dot_async_dot_component = "react.async.component"
-let react_client_component = "react.client.component"
+let react_dot_client_dot_component = "react.client.component"
 
 (* Helper method to look up the [@react.component] attribute *)
 let hasAttr { attr_name; _ } comparable = attr_name.txt = comparable
@@ -36,20 +36,20 @@ let hasAttr { attr_name; _ } comparable = attr_name.txt = comparable
 let hasAnyReactComponentAttribute { attr_name; _ } =
   attr_name.txt = react_dot_component
   || attr_name.txt = react_dot_async_dot_component
-  || attr_name.txt = react_client_component
+  || attr_name.txt = react_dot_client_dot_component
 
 (* Helper method to filter out any attribute that isn't [@react.component] *)
 let nonReactAttributes { attr_name; _ } =
   attr_name.txt <> react_dot_component
   && attr_name.txt <> react_dot_async_dot_component
-  && attr_name.txt <> react_client_component
+  && attr_name.txt <> react_dot_client_dot_component
 
 let hasAttrOnBinding { pvb_attributes } comparable =
   List.find_opt ~f:(fun attr -> hasAttr attr comparable) pvb_attributes <> None
 
 let isReactComponentBinding vb = hasAttrOnBinding vb react_dot_component
 let isReactAsyncComponentBinding vb = hasAttrOnBinding vb react_dot_async_dot_component
-let isReactClientComponentBinding vb = hasAttrOnBinding vb react_client_component
+let isReactClientComponentBinding vb = hasAttrOnBinding vb react_dot_client_dot_component
 
 let rec unwrap_children children = function
   | { pexp_desc = Pexp_construct ({ txt = Lident "[]"; _ }, None); _ } -> List.rev children
@@ -86,7 +86,8 @@ let validate_prop ~loc id name =
           raise_errorf ~loc
             "jsx: prop '%s' isn't valid on a '%s' element.\n\
              Hint: Maybe you mean '%s'?\n\n\
-             If this isn't correct, please open an issue at %s." name id suggestion issues_url)
+             If this isn't correct, please open an issue at %s."
+            name id suggestion issues_url)
 
 let make_prop ~is_optional ~prop attribute_value =
   let loc = attribute_value.pexp_loc in
@@ -463,6 +464,7 @@ let transform_fun_body_expression expr fn =
   inner expr
 
 let expand_make_binding binding react_element_variant_wrapping =
+  let attributers = binding.pvb_attributes |> List.filter ~f:nonReactAttributes in
   let loc = binding.pvb_loc in
   let ghost_loc = { binding.pvb_loc with loc_ghost = true } in
   let binding_with_unit = add_unit_at_the_last_argument binding.pvb_expr in
@@ -478,7 +480,8 @@ let expand_make_binding binding react_element_variant_wrapping =
   (* Append key argument since we want to allow users of this component to set key
      (and assign it to _ since it shouldn't be used) *)
   let function_body = pexp_fun ~loc:ghost_loc key_arg default_value key_pattern binding_expr in
-  value_binding ~loc:ghost_loc ~pat:name ~expr:function_body
+  (* Since expand_make_binding is called on both native and js contexts, we need to keep the attributes *)
+  { (value_binding ~loc:ghost_loc ~pat:name ~expr:function_body) with pvb_attributes = attributers }
 
 let get_labelled_arguments pvb_expr =
   let rec go acc = function
@@ -528,7 +531,7 @@ let props_of_model ~loc (props : (arg_label * expression option * pattern) list)
               Some (longident ~loc "error", [%expr [%ocaml.error "props need to be labelled arguments"]])
           | Labelled label | Optional label ->
               let core_type = match default with Some _ -> [%type: [%t core_type] option] | None -> core_type in
-              let prop = [%expr props ## [%e ident ~loc label]] in
+              let prop = [%expr props##[%e ident ~loc label]] in
               let value = make_of_json ~loc core_type prop in
               Some (longident ~loc label, value))
       | _ ->
@@ -720,7 +723,7 @@ let rewrite_structure_item_for_js ctx structure_item =
   match structure_item.pstr_desc with
   (* external *)
   | Pstr_primitive ({ pval_name = { txt = _fnName }; pval_attributes; pval_type = _ } as _value_description) -> (
-      match List.filter ~f:(fun attr -> hasAttr attr react_client_component) pval_attributes with
+      match List.filter ~f:(fun attr -> hasAttr attr react_dot_client_dot_component) pval_attributes with
       | [] -> structure_item
       | _ ->
           let loc = structure_item.pstr_loc in

@@ -74,7 +74,12 @@ module App = {
   };
 };
 
-switch (Webapi.Dom.Document.getElementById("root", Webapi.Dom.document)) {
+let body =
+  Webapi.Dom.document
+  ->Webapi.Dom.Document.asHtmlDocument
+  ->Option.bind(Webapi.Dom.HtmlDocument.body);
+
+switch (body) {
 | Some(element) =>
   startTransition(() => {
     let _ = ReactDOM.Client.hydrateRoot(element, <App />);

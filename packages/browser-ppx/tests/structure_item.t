@@ -48,56 +48,65 @@ With -js flag everything keeps as it is and browser_only extension disappears
 
   $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl
   let (( let+ )
-      [@alert
-        browser_only
-          "This expression is marked to only run on the browser where JavaScript \
-           can run. You can only use it inside a let%browser_only function."]) =
-   fun [@alert "-browser_only"] p f ->
-    Runtime.fail_impossible_action_in_ssr "let+"
+       [@alert
+         browser_only
+           "This expression is marked to only run on the browser where \
+            JavaScript can run. You can only use it inside a let%browser_only \
+            function."]) =
+   fun [@alert "-browser_only"] p ->
+    fun f -> Runtime.fail_impossible_action_in_ssr "let+"
   [@@warning "-27-32"]
   
   let (pexp_ident
-      [@alert
-        browser_only
-          "This expression is marked to only run on the browser where JavaScript \
-           can run. You can only use it inside a let%browser_only function."]) =
-    (Obj.magic () [@alert "-browser_only"])
+       [@alert
+         browser_only
+           "This expression is marked to only run on the browser where \
+            JavaScript can run. You can only use it inside a let%browser_only \
+            function."]) =
+    Obj.magic () [@alert "-browser_only"]
   [@@warning "-27-32"]
   
   let (pexp_fun_1arg_structure_item
-      [@alert
-        browser_only
-          "This expression is marked to only run on the browser where JavaScript \
-           can run. You can only use it inside a let%browser_only function."]) =
+       [@alert
+         browser_only
+           "This expression is marked to only run on the browser where \
+            JavaScript can run. You can only use it inside a let%browser_only \
+            function."]) =
    fun [@alert "-browser_only"] evt ->
     Runtime.fail_impossible_action_in_ssr "pexp_fun_1arg_structure_item"
   [@@warning "-27-32"]
   
   let (pexp_fun_2arg_structure_item
-      [@alert
-        browser_only
-          "This expression is marked to only run on the browser where JavaScript \
-           can run. You can only use it inside a let%browser_only function."]) =
-   fun [@alert "-browser_only"] evt moar_arguments ->
-    Runtime.fail_impossible_action_in_ssr "pexp_fun_2arg_structure_item"
+       [@alert
+         browser_only
+           "This expression is marked to only run on the browser where \
+            JavaScript can run. You can only use it inside a let%browser_only \
+            function."]) =
+   fun [@alert "-browser_only"] evt ->
+    fun moar_arguments ->
+     Runtime.fail_impossible_action_in_ssr "pexp_fun_2arg_structure_item"
   [@@warning "-27-32"]
   
   let (pexp_fun_2arg_structure_item
-      [@alert
-        browser_only
-          "This expression is marked to only run on the browser where JavaScript \
-           can run. You can only use it inside a let%browser_only function."]) =
-   fun [@alert "-browser_only"] evt moar_arguments ->
-    Runtime.fail_impossible_action_in_ssr "pexp_fun_2arg_structure_item"
+       [@alert
+         browser_only
+           "This expression is marked to only run on the browser where \
+            JavaScript can run. You can only use it inside a let%browser_only \
+            function."]) =
+   fun [@alert "-browser_only"] evt ->
+    fun moar_arguments ->
+     Runtime.fail_impossible_action_in_ssr "pexp_fun_2arg_structure_item"
   [@@warning "-27-32"]
   
   let (perform
-      [@alert
-        browser_only
-          "This expression is marked to only run on the browser where JavaScript \
-           can run. You can only use it inside a let%browser_only function."]) =
-   fun [@alert "-browser_only"] ?abortController ?base req input ->
-    Runtime.fail_impossible_action_in_ssr "perform"
+       [@alert
+         browser_only
+           "This expression is marked to only run on the browser where \
+            JavaScript can run. You can only use it inside a let%browser_only \
+            function."]) =
+   fun [@alert "-browser_only"] ?abortController ->
+    fun ?base ->
+     fun req -> fun input -> Runtime.fail_impossible_action_in_ssr "perform"
   [@@warning "-27-32"]
 Replace Runtime.fail_impossible_action_in_ssr with print_endline so ocamlc can compile it without the Runtime module dependency
   $ echo "module Runtime = struct" >> output.ml
