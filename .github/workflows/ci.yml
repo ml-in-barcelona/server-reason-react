@@ -74,7 +74,7 @@ jobs:
           key: npm-${{ matrix.os }}-${{ hashFiles('package.json') }}
 
       - name: Use OCaml ${{ matrix.ocaml-compiler }}
-        uses: ocaml/setup-ocaml@v3.0.15
+        uses: ocaml/setup-ocaml@v3.2.5
         if: steps.opam-cache.outputs.cache-hit != 'true'
         with:
           ocaml-compiler: ${{ matrix.ocaml-compiler }}
@@ -146,7 +146,7 @@ jobs:
         if: github.ref == 'refs/heads/main'
         with:
           target_branch: gh-pages
-          build_dir: _build/default/_doc_new/html/documentation/
+          build_dir: _html
         env:
           GITHUB_TOKEN: ${{ github.token }}
 

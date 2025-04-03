@@ -22,10 +22,8 @@ let separated_text_nodes_by_other_parents () =
   let app () =
     React.Upper_case_component
       (fun () ->
-        React.List
-          [|
-            React.createElement "main" [] [ React.string "Hi"; React.createElement "span" [] [ React.string "chat" ] ];
-          |])
+        React.list
+          [ React.createElement "main" [] [ React.string "Hi"; React.createElement "span" [] [ React.string "chat" ] ] ])
   in
   assert_string (ReactDOM.renderToString (app ())) "<main>Hi<span>chat</span></main>"
 

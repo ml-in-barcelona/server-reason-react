@@ -115,7 +115,8 @@ module Page = {
 
 let handler = request =>
   DreamRSC.createFromRequest(
-    <Root> <Page /> </Root>,
-    "/static/demo/client/create-from-readable-stream.js",
+    ~bootstrapModules=["/static/demo/CreateFromReadableStream.re.js"],
+    ~bootstrapScripts=["https://cdn.tailwindcss.com"],
+    <body> <div id="root"> <Root> <Page /> </Root> </div> </body>,
     request,
   );

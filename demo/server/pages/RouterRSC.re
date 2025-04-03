@@ -135,7 +135,7 @@ module App = {
               </div>
               <Hr />
               <React.Suspense fallback={<NoteListSkeleton />}>
-                <NoteList />
+                <NoteList searchText />
               </React.Suspense>
             </nav>
           </section>
@@ -163,8 +163,11 @@ let handler = request => {
     Dream.query(request, "searchText") |> Option.value(~default="");
 
   DreamRSC.createFromRequest(
-    <App selectedId isEditing searchText />,
-    "/static/demo/client/router.js",
+    ~bootstrapModules=["/static/demo/ClientRouter.re.js"],
+    ~bootstrapScripts=["https://cdn.tailwindcss.com"],
+    <body>
+      <div id="root"> <App selectedId isEditing searchText /> </div>
+    </body>,
     request,
   );
 };

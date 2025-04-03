@@ -7,7 +7,7 @@
  (libraries
   server-reason-react.js
   server-reason-react.dom
-  server-reason-react.melange-fetch)
+  server-reason-react.fetch)
  (flags
   :standard
   -w

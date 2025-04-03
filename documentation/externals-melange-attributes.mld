@@ -39,7 +39,3 @@ Object creation and object field access is designed to interact with JavaScript 
 To use [server-reason-react.melange_ppx] you need to add it to your dune's pps field:
 
 {[ (preprocess (pps server-reason-react.melange_ppx)) ]}
-
-{1 Next}
-
-{{!page-"code-structure"}How to structure the code}

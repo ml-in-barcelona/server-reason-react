@@ -30,7 +30,7 @@
       cookies: [],
     }
   ];
-  open Ppx_deriving_json_runtime.Primitives;
+  open Melange_json.Primitives;
   
   [@deriving json]
   type lola = {name: string};
@@ -52,8 +52,12 @@
                         | "name" =>
                           x_name := Stdlib.Option.Some(string_of_json(v))
                         | name =>
-                          Ppx_deriving_json_runtime.of_json_error(
-                            Stdlib.Printf.sprintf("unknown field: %s", name),
+                          Melange_json.of_json_error(
+                            ~json=x,
+                            Stdlib.Printf.sprintf(
+                              {|did not expect field "%s"|},
+                              name,
+                            ),
                           )
                         };
                         iter(fs);
@@ -65,15 +69,14 @@
                       switch (Stdlib.(^)(x_name)) {
                       | Stdlib.Option.Some(v) => v
                       | Stdlib.Option.None =>
-                        Ppx_deriving_json_runtime.of_json_error(
-                          "missing field \"name\"",
+                        Melange_json.of_json_error(
+                          ~json=x,
+                          "expected field \"name\"",
                         )
                       },
                   };
                 | _ =>
-                  Ppx_deriving_json_runtime.of_json_error(
-                    "expected a JSON object",
-                  )
+                  Melange_json.of_json_error(~json=x, "expected a JSON object")
                 };
             let _ = lola_of_json;
             [@ocaml.warning "-39-11-27"];
@@ -81,7 +84,16 @@
               x =>
                 switch (x) {
                 | {name: x_name} =>
-                  `Assoc([("name", string_to_json(x_name))])
+                  `Assoc(
+                    {
+                      let bnds__001_ = [];
+                      let bnds__001_ = [
+                        ("name", string_to_json(x_name)),
+                        ...bnds__001_,
+                      ];
+                      bnds__001_;
+                    },
+                  )
                 };
             let _ = lola_to_json;
           };

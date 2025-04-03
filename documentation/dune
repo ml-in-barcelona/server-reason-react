@@ -3,7 +3,15 @@
  (mld_files
   index
   get-started
-  code-structure
   universal-code
-  browser_only
-  externals-melange-attributes))
+  how-to-organise-universal-code
+  browser_ppx
+  externals-melange-attributes
+  ssr-and-hydration))
+
+(install
+ (section doc)
+ (files
+  (ssr-hydrate-issue.png as odoc-pages/ssr-hydrate-issue.png)
+  (ssr-no-hydrate-issue.png as odoc-pages/ssr-no-hydrate-issue.png))
+ (package server-reason-react))

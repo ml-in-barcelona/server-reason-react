@@ -23,11 +23,7 @@ let render_manifest manifest =
   let register_client_components =
     List.map manifest ~f:(fun { original_path; compiled_js_path; module_name } ->
         let export =
-          match module_name with
-          | Some name ->
-              ignore @@ failwith @@ Printf.sprintf "module name is '%s'" name;
-              Printf.sprintf "%s.make_client" name
-          | None -> "make_client"
+          match module_name with Some name -> Printf.sprintf "%s.make_client" name | None -> "make_client"
         in
         Printf.sprintf
           "window.__client_manifest_map[\"%s\"] = React.lazy(() => import(\"%s\").then(module => {\n\

@@ -28,7 +28,7 @@ let ident ~loc txt = pexp_ident ~loc (longident ~loc txt)
 let make_string ~loc str = Ast_helper.Exp.constant ~loc (Ast_helper.Const.string str)
 let react_dot_component = "react.component"
 let react_dot_async_dot_component = "react.async.component"
-let react_client_component = "react.client.component"
+let react_dot_client_dot_component = "react.client.component"
 
 (* Helper method to look up the [@react.component] attribute *)
 let hasAttr { attr_name; _ } comparable = attr_name.txt = comparable
@@ -36,20 +36,20 @@ let hasAttr { attr_name; _ } comparable = attr_name.txt = comparable
 let hasAnyReactComponentAttribute { attr_name; _ } =
   attr_name.txt = react_dot_component
   || attr_name.txt = react_dot_async_dot_component
-  || attr_name.txt = react_client_component
+  || attr_name.txt = react_dot_client_dot_component
 
 (* Helper method to filter out any attribute that isn't [@react.component] *)
 let nonReactAttributes { attr_name; _ } =
   attr_name.txt <> react_dot_component
   && attr_name.txt <> react_dot_async_dot_component
-  && attr_name.txt <> react_client_component
+  && attr_name.txt <> react_dot_client_dot_component
 
 let hasAttrOnBinding { pvb_attributes } comparable =
   List.find_opt ~f:(fun attr -> hasAttr attr comparable) pvb_attributes <> None
 
 let isReactComponentBinding vb = hasAttrOnBinding vb react_dot_component
 let isReactAsyncComponentBinding vb = hasAttrOnBinding vb react_dot_async_dot_component
-let isReactClientComponentBinding vb = hasAttrOnBinding vb react_client_component
+let isReactClientComponentBinding vb = hasAttrOnBinding vb react_dot_client_dot_component
 
 let rec unwrap_children children = function
   | { pexp_desc = Pexp_construct ({ txt = Lident "[]"; _ }, None); _ } -> List.rev children
@@ -456,6 +456,7 @@ let transform_fun_body_expression expr fn =
   inner expr
 
 let expand_make_binding binding react_element_variant_wrapping =
+  let attributers = binding.pvb_attributes |> List.filter ~f:nonReactAttributes in
   let loc = binding.pvb_loc in
   let ghost_loc = { binding.pvb_loc with loc_ghost = true } in
   let binding_with_unit = add_unit_at_the_last_argument binding.pvb_expr in
@@ -471,7 +472,8 @@ let expand_make_binding binding react_element_variant_wrapping =
   (* Append key argument since we want to allow users of this component to set key
      (and assign it to _ since it shouldn't be used) *)
   let function_body = pexp_fun ~loc:ghost_loc key_arg default_value key_pattern binding_expr in
-  value_binding ~loc:ghost_loc ~pat:name ~expr:function_body
+  (* Since expand_make_binding is called on both native and js contexts, we need to keep the attributes *)
+  { (value_binding ~loc:ghost_loc ~pat:name ~expr:function_body) with pvb_attributes = attributers }
 
 let get_labelled_arguments pvb_expr =
   let rec go acc = function
@@ -480,75 +482,6 @@ let get_labelled_arguments pvb_expr =
   in
   go [] pvb_expr.pexp_desc
 
-(*
-TODO: If we want to remove the dependency on of_json, we need to implement the json decoder manually.
-TODO: Maybe use a custom deriving called "rsc" or similar where it handles the JSON/Promise/React.element.
-let rec make_of_json ~loc (type_ : core_type) value =
-   match type_.ptyp_desc with
-   | Ptyp_constr ({ txt = Lident "int"; _ }, _) -> value
-   | Ptyp_constr ({ txt = Lident "string"; _ }, _) -> value
-   | Ptyp_constr ({ txt = Lident "bool"; _ }, _) -> value
-   | Ptyp_constr ({ txt = Lident "float"; _ }, _) -> value
-   | Ptyp_constr ({ txt = Lident "unit"; _ }, _) -> value
-   | Ptyp_constr ({ txt = Lident "list"; _ }, list) ->
-       let inner = List.hd list in
-       let mapped = [%expr Stdlib.List.map (fun x -> [%e make_of_json ~loc inner [%expr x]]) [%e value]] in
-       pexp_variant ~loc:value.pexp_loc "List" (Some mapped)
-   | Ptyp_constr ({ txt = Lident "array"; _ }, array) ->
-       let inner = List.hd array in
-       let mapped = [%expr Stdlib.Array.map (fun x -> [%e make_of_json ~loc inner [%expr x]]) [%e value]] in
-       let as_list = [%expr Stdlib.Array.to_list [%e mapped]] in
-       pexp_variant ~loc:value.pexp_loc "List" (Some as_list)
-   | Ptyp_constr ({ txt = Lident "option"; _ }, option) ->
-       let inner = List.hd option in
-       let matched = [%expr match [%e value] with None -> `Null | Some x -> [%e make_of_json ~loc inner [%expr x]]] in
-       matched
-   (* TODO: Add json/yojson *)
-   (* | [%type: Yojson.Basic.t] -> pexp_variant ~loc:value.pexp_loc "Yojson" (Some value) *)
-   | Ptyp_constr ({ txt = lident; _ }, _) ->
-       let rec make_of_json_fn lident =
-         match lident with
-         | Lident name when name = "t" -> Lident "of_json"
-         | Lident name -> Lident (Printf.sprintf "%s_of_json" name)
-         | Ldot (modulePath, name) when name = "t" -> Ldot (modulePath, "of_json")
-         | Ldot (modulePath, name) -> Ldot (modulePath, Printf.sprintf "%s_of_json" name)
-         | Lapply (apply, longident) -> Lapply (apply, make_of_json_fn longident)
-       in
-       pexp_apply ~loc:value.pexp_loc (pexp_ident ~loc { txt = make_of_json_fn lident; loc }) [ (Nolabel, value) ]
-   | Ptyp_tuple tuple ->
-       let item_name index = "x" ^ Int.to_string index in
-       let loc = value.pexp_loc in
-       let descructuring =
-         ppat_tuple ~loc (List.mapi ~f:(fun index _ -> ppat_var ~loc { txt = item_name index; loc }) tuple)
-       in
-       let list =
-         List.mapi
-           ~f:(fun index t ->
-             let identifier = pexp_ident ~loc { txt = Lident (item_name index); loc } in
-             make_of_json ~loc [%type: [%t t]] identifier)
-           tuple
-       in
-       pexp_let ~loc Nonrecursive
-         [ value_binding ~loc ~pat:descructuring ~expr:value ]
-         [%expr `List [%e pexp_list ~loc list]]
-   | Ptyp_var name ->
-       let msg = Printf.sprintf "server-reason-react: unsupported type: '%s" name in
-       [%expr [%ocaml.error [%e estring ~loc msg]]]
-   | Ptyp_arrow _ ->
-       [%expr
-         [%ocaml.error
-           "server-reason-react: callbacks are not supported in client components. Functions can't be serialized to the \
-            client."]]
-   (* | Ptyp_object _ -> error_cannot_create_json_encoder ~loc ~type_name:"objects"
-      | Ptyp_class _ -> error_cannot_create_json_encoder ~loc ~type_name:"classes"
-      | Ptyp_variant _ -> error_cannot_create_json_encoder ~loc ~type_name:"polyvariants"
-      | Ptyp_alias _ -> error_not_supported ~loc ~type_name:"aliases"
-      | Ptyp_extension _ -> error_not_supported ~loc ~type_name:"extensions"
-      | Ptyp_package _ -> error_not_supported ~loc ~type_name:"modules"
-      | Ptyp_poly _ -> error_not_supported ~loc ~type_name:"polymorphic types"
-      | Ptyp_any -> error_not_supported ~loc ~type_name:"'_' annotations" *)
-   | _ -> [%expr [%ocaml.error "server-reason-react: unsupported type"]]
-*)
 let make_of_json ~loc (core_type : core_type) prop =
   match core_type with
   (* QUESTION: How can we handle optionals and others? Need a [@deriving rsc] for them? We currently encode None's as React.Json `Null, should be enought *)
@@ -556,20 +489,20 @@ let make_of_json ~loc (core_type : core_type) prop =
   | [%type: React.element option] -> [%expr ([%e prop] : React.element option)]
   (* TODO: Add promise caching? When is it needed? *)
   (* | [%type: [%t? t] Js.Promise.t] ->
-    [%expr
-      let promise = [%e prop] in
-      let promise' = (Obj.magic promise : [%t t] Js.Promise.t Js.Dict.t) in
-      match Js.Dict.get promise' "__promise" with
-      | Some promise -> promise
-      | None ->
-          let promise =
-            Promise.(
-              let* json = (Obj.magic (Js.Promise.resolve promise) : Realm.Json.t Promise.t) in
-              let data = [%of_json: [%t t]] json in
-              return data)
-          in
-          Js.Dict.set promise' "__promise" promise;
-          promise] *)
+     [%expr
+       let promise = [%e prop] in
+       let promise' = (Obj.magic promise : [%t t] Js.Promise.t Js.Dict.t) in
+       match Js.Dict.get promise' "__promise" with
+       | Some promise -> promise
+       | None ->
+           let promise =
+             Promise.(
+               let* json = (Obj.magic (Js.Promise.resolve promise) : Realm.Json.t Promise.t) in
+               let data = [%of_json: [%t t]] json in
+               return data)
+           in
+           Js.Dict.set promise' "__promise" promise;
+           promise] *)
   | [%type: [%t? t] Js.Promise.t] -> [%expr ([%e prop] : [%t t] Js.Promise.t)]
   | type_ -> [%expr [%of_json: [%t type_]] [%e prop]]
 
@@ -629,13 +562,35 @@ let expand_make_binding_to_client binding =
   let function_body = pexp_fun ~loc:ghost_loc Nolabel None client_single_argument make_call in
   value_binding ~loc:ghost_loc ~pat:name ~expr:function_body
 
+let rec add_unit_at_the_last_argument_in_core_type core_type =
+  match core_type.ptyp_desc with
+  | Ptyp_arrow (arg_label, core_type_1, core_type_2) ->
+      {
+        core_type with
+        ptyp_desc = Ptyp_arrow (arg_label, core_type_1, add_unit_at_the_last_argument_in_core_type core_type_2);
+      }
+  | Ptyp_constr _ ->
+      let loc = core_type.ptyp_loc in
+      { core_type with ptyp_desc = Ptyp_arrow (Nolabel, [%type: unit], core_type) }
+  | _ -> core_type
+
 let rewrite_signature_item signature_item =
-  (* Remove the [@react.component] from the AST *)
+  (* Removes the [@react.component] from the AST *)
   match signature_item with
   | {
       psig_loc = _;
       psig_desc = Psig_value ({ pval_name = { txt = _fnName }; pval_attributes; pval_type } as psig_desc);
     } as psig -> (
+      let new_ptyp_desc =
+        match pval_type.ptyp_desc with
+        | Ptyp_arrow (arg_label, core_type_1, core_type_2) ->
+            let loc = pval_type.ptyp_loc in
+            let original_core_type = { pval_type with ptyp_desc = Ptyp_arrow (arg_label, core_type_1, core_type_2) } in
+            let new_core_type = add_unit_at_the_last_argument_in_core_type original_core_type in
+            Ptyp_arrow (Optional "key", [%type: string option], new_core_type)
+        | ptyp_desc -> ptyp_desc
+      in
+      let new_core_type = { pval_type with ptyp_desc = new_ptyp_desc } in
       match List.filter ~f:hasAnyReactComponentAttribute pval_attributes with
       | [] -> signature_item
       | [ _ ] ->
@@ -643,103 +598,18 @@ let rewrite_signature_item signature_item =
             psig with
             psig_desc =
               Psig_value
-                { psig_desc with pval_type; pval_attributes = List.filter ~f:nonReactAttributes pval_attributes };
+                {
+                  psig_desc with
+                  pval_type = new_core_type;
+                  pval_attributes = List.filter ~f:nonReactAttributes pval_attributes;
+                };
           }
       | _ ->
           let loc = signature_item.psig_loc in
           [%sigi:
-            [%%ocaml.error
-            "externals aren't supported on server-reason-react. externals are used to bind to React components from \
-             JavaScript. In the server, that doesn't make sense. If you need to render this on the server, implement a \
-             stub component or an empty element (React.null)"]])
-  | _signature_item -> signature_item
+            [%%ocaml.error "server-reason-react-ppx: there's seems to be an error in the signature of the component."]])
+  | _ -> signature_item
 
-let error_cannot_create_json_encoder ~loc ~type_name =
-  let msg =
-    Printf.sprintf
-      "server-reason-react: inline types such as %s, need to be a type definition with a json encoder. If the type is \
-       named 't' the encoder should be named 't_to_json', if the type is named 'foo' the encoder should be named \
-       'foo_to_json'."
-      type_name
-  in
-  [%expr [%ocaml.error [%e estring ~loc msg]]]
-
-let error_not_supported ~loc ~type_name =
-  let msg =
-    Printf.sprintf
-      "server-reason-react: %s aren't supported in client components. Try using a type definition with a json encoder \
-       but there's no guarantee that it will work. Open an issue if you need it."
-      type_name
-  in
-  [%expr [%ocaml.error [%e estring ~loc msg]]]
-
-(* TODO: If we want to remove the dependency on to_json, we need to implement the json encoder manually. *)
-(* let rec make_to_yojson ~loc (type_ : core_type) value =
-   match type_.ptyp_desc with
-   | Ptyp_constr ({ txt = Lident "int"; _ }, _) -> pexp_variant ~loc:value.pexp_loc "Int" (Some value)
-   | Ptyp_constr ({ txt = Lident "string"; _ }, _) -> pexp_variant ~loc:value.pexp_loc "String" (Some value)
-   | Ptyp_constr ({ txt = Lident "bool"; _ }, _) -> pexp_variant ~loc:value.pexp_loc "Bool" (Some value)
-   | Ptyp_constr ({ txt = Lident "float"; _ }, _) -> pexp_variant ~loc:value.pexp_loc "Float" (Some value)
-   | Ptyp_constr ({ txt = Lident "list"; _ }, list) ->
-       let inner = List.hd list in
-       let mapped = [%expr Stdlib.List.map (fun x -> [%e make_to_yojson ~loc inner [%expr x]]) [%e value]] in
-       pexp_variant ~loc:value.pexp_loc "List" (Some mapped)
-   | Ptyp_constr ({ txt = Lident "array"; _ }, array) ->
-       let inner = List.hd array in
-       let mapped = [%expr Stdlib.Array.map (fun x -> [%e make_to_yojson ~loc inner [%expr x]]) [%e value]] in
-       let as_list = [%expr Stdlib.Array.to_list [%e mapped]] in
-       pexp_variant ~loc:value.pexp_loc "List" (Some as_list)
-   | Ptyp_constr ({ txt = Lident "option"; _ }, option) ->
-       let inner = List.hd option in
-       let matched =
-         [%expr match [%e value] with None -> `Null | Some x -> [%e make_to_yojson ~loc inner [%expr x]]]
-       in
-       matched
-   | Ptyp_constr ({ txt = Lident "unit"; _ }, _) -> pexp_variant ~loc:value.pexp_loc "Null" None
-   (* TODO: Add json/yojson *)
-   (* | [%type: Yojson.Basic.t] -> pexp_variant ~loc:value.pexp_loc "Yojson" (Some value) *)
-   | Ptyp_constr ({ txt = lident; _ }, _) ->
-       let rec make_to_json_fn lident =
-         match lident with
-         | Lident name when name = "t" -> Lident "to_json"
-         | Lident name -> Lident (Printf.sprintf "%s_to_json" name)
-         | Ldot (modulePath, name) when name = "t" -> Ldot (modulePath, "to_json")
-         | Ldot (modulePath, name) -> Ldot (modulePath, Printf.sprintf "%s_to_json" name)
-         | Lapply (apply, longident) -> Lapply (apply, make_to_json_fn longident)
-       in
-       pexp_apply ~loc:value.pexp_loc (pexp_ident ~loc { txt = make_to_json_fn lident; loc }) [ (Nolabel, value) ]
-   | Ptyp_tuple tuple ->
-       let item_name index = "x" ^ Int.to_string index in
-       let loc = value.pexp_loc in
-       let descructuring =
-         ppat_tuple ~loc (List.mapi ~f:(fun index _ -> ppat_var ~loc { txt = item_name index; loc }) tuple)
-       in
-       let list =
-         List.mapi
-           ~f:(fun index t ->
-             let identifier = pexp_ident ~loc { txt = Lident (item_name index); loc } in
-             make_to_yojson ~loc [%type: [%t t]] identifier)
-           tuple
-       in
-       pexp_let ~loc Nonrecursive
-         [ value_binding ~loc ~pat:descructuring ~expr:value ]
-         [%expr `List [%e pexp_list ~loc list]]
-   | Ptyp_var name ->
-       let msg = Printf.sprintf "server-reason-react: unsupported type: '%s" name in
-       [%expr [%ocaml.error [%e estring ~loc msg]]]
-   | Ptyp_arrow _ ->
-       [%expr
-         [%ocaml.error
-           "server-reason-react: callbacks are not supported in client components. Functions can't be serialized to the \
-            client."]]
-   | Ptyp_object _ -> error_cannot_create_json_encoder ~loc ~type_name:"objects"
-   | Ptyp_class _ -> error_cannot_create_json_encoder ~loc ~type_name:"classes"
-   | Ptyp_variant _ -> error_cannot_create_json_encoder ~loc ~type_name:"polyvariants"
-   | Ptyp_alias _ -> error_not_supported ~loc ~type_name:"aliases"
-   | Ptyp_extension _ -> error_not_supported ~loc ~type_name:"extensions"
-   | Ptyp_package _ -> error_not_supported ~loc ~type_name:"modules"
-   | Ptyp_poly _ -> error_not_supported ~loc ~type_name:"polymorphic types"
-   | Ptyp_any -> error_not_supported ~loc ~type_name:"'_' annotations" *)
 let make_to_json ~loc (core_type : core_type) prop =
   match core_type with
   | [%type: React.element] -> [%expr React.Element ([%e prop] : React.element)]
@@ -841,7 +711,7 @@ let rewrite_structure_item_for_js ctx structure_item =
   match structure_item.pstr_desc with
   (* external *)
   | Pstr_primitive ({ pval_name = { txt = _fnName }; pval_attributes; pval_type = _ } as _value_description) -> (
-      match List.filter ~f:(fun attr -> hasAttr attr react_client_component) pval_attributes with
+      match List.filter ~f:(fun attr -> hasAttr attr react_dot_client_dot_component) pval_attributes with
       | [] -> structure_item
       | _ ->
           let loc = structure_item.pstr_loc in

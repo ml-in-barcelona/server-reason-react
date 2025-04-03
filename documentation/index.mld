@@ -1,41 +1,28 @@
+@children_order get-started universal-code how-to-organise-universal-code browser_ppx externals-melange-attributes
+
 {0 server-reason-react}
 
-This is the documentation and API for {{:https://github.com/ml-in-barcelona/server-reason-react}server-reason-react}, an implementation of [react], [react-dom] and [react-dom/server] to run on the server with {{:https://reasonml.github.io/}Reason}/{{:https://ocaml.org/}OCaml}, with the purpose to Server-side render HTML markup from a {{:https://reasonml.github.io/reason-react//}reason-react} application natively (for both SSR and SSG).
+This site is the documentation page and API references for {{:https://github.com/ml-in-barcelona/server-reason-react}server-reason-react}, server-reason-react is a Native implementation of React's server-side rendering (SSR) and React Server Components (RSC) architecture for {{:https://reasonml.github.io/}Reason}.
 
-{0 Why}
+Designed to be used with {{:https://reasonml.github.io/reason-react//}reason-react} and {{:https://github.com/melange-re/melange}Melange}. Together it enables developers to write efficient React components using a single language, while building for both native executables and JavaScript.
 
-Explained more about the motivation in this blog post {{:https://sancho.dev/blog/server-side-rendering-react-in-ocaml}sancho.dev/blog/server-side-rendering-react-in-ocaml} and also in my talk about {{:https://www.youtube.com/watch?v=e3qY-Eg9zRY&ab_channel=ReactAlicante}Server side rendering React natively with Reason} at ReactAlicante 2023.
-
-{0:guides Guides}
+{1:guides Guides}
 
 {ol
   {li {{!page-"get-started"}Get started}}
-  {li {{!page-"universal-code"}How universal code works}}
-  {li {{!page-"code-structure"}How to structure the code}}
-  {li {{!page-"browser_only"}Exclude client code from the native build}}
+  {li {{!page-"universal-code"}What does universal code mean?}}
+  {li {{!page-"how-to-organise-universal-code"}How to organise universal code}}
+  {li {{!page-"browser_ppx"}Exclude client code from the native build}}
   {li {{!page-"externals-melange-attributes"}Externals and melange attributes}}
+  {li {{!page-"ssr-and-hydration"}SSR and hydration}}
 }
 
-{1 Core API}
+{2 Core API}
 
 Those are the core libraries of [server-reason-react].
 
-{!modules: react reactDom}
+{!modules: React ReactDOM}
 
-{1 Other libraries}
-
-Aside from the core, [server-reason-react] exposes some needed known libraries from melange or melange-community to help make components universal:
-
-{ul
-  {li {!Belt} [server-reason-react.belt] (equivalent to [Belt] from [melange])}
-  {li {!Js} [server-reason-react.js] (equivalent to [Js] from [melange], very unsafe)}
-  {li {!URL} [server-reason-react.url]} a universal module for managing URLs
-  {li {!Webapi} [server-reason-react.webapi] (equivalent to [Webapi] from [melange-webapi])}
-  {li {!Dom} [server-reason-react.dom] (equivalent to [Dom] from [melange-dom], but with melange_native_ppx)}
-}
-
-{_ This libraries would eventually be extracted into their own packages/repositories}
-
-{1:next Next}
+{2:next Next}
 
 {{!page-"get-started"}Get started}

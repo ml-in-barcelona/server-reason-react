@@ -1,0 +1,11 @@
+**/_build
+**/_opam
+**/.merlin
+*.install
+.git/
+
+README.md
+CHANGELOG.md
+benchmark/
+arch/
+.github/

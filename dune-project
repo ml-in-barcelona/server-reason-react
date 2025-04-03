@@ -25,9 +25,9 @@
  (synopsis "Rendering React components on the server natively")
  (depends
   ; General system dependencies
-  (ocaml (>= 5.0.0))
+  (ocaml (>= 4.14.1))
   (reason (>= 3.14.0))
-  (melange (and (>= 3.0.0) (< 4.0.0)))
+  (melange (>= 3.0.0))
 
   ; Library dependencies
   (uucp (>= 16.0.0))
@@ -39,8 +39,8 @@
   (uri (>= 4.2.0))
   (yojson (>= 2.2.0))
   (integers (>= 0.7.0))
-  (melange-json (>= 1.3.0))
-  (melange-json-native (>= 1.3.0))
+  (melange-json (>= 2.0.0))
+  (melange-json-native (>= 2.0.0))
 
   ; Documentation
   (odoc :with-doc)
@@ -58,6 +58,7 @@
   (reason-react :with-dev-setup)
   (melange-webapi :with-dev-setup)
   (reason-react-ppx :with-dev-setup)
+  (odoc-driver :with-dev-setup)
 
   ; Test dependencies
   (alcotest :with-test)

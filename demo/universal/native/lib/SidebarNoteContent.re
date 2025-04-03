@@ -1,6 +1,6 @@
 [@warning "-26-27-32"];
 
-open Ppx_deriving_json_runtime.Primitives;
+open Melange_json.Primitives;
 
 module Square = {
   [@react.component]
@@ -53,7 +53,7 @@ let make =
           router.navigate({
             selectedId: Some(id),
             isEditing: false,
-            searchText: None,
+            searchText: router.location.searchText,
           })
         })
       }}>

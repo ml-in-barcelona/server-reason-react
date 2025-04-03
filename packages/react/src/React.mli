@@ -559,7 +559,8 @@ type element =
   | Upper_case_component of (unit -> element)
   | Async_component of (unit -> element Lwt.t)
   | Client_component of { props : client_props; client : element; import_module : string; import_name : string }
-  | List of element array
+  | List of element list
+  | Array of element array
   | Text of string
   | InnerHtml of string
   | Fragment of element
@@ -636,9 +637,7 @@ type ('input, 'output) callback = 'input -> 'output
 
 val useSyncExternalStore :
   subscribe:((unit -> unit) -> (unit, unit) callback) -> getSnapshot:(unit -> 'snapshot) -> 'snapshot
-[@@deprecated
-  "Use useSyncExternalStoreWithServer instead. More info at \
-   https://github.com/facebook/react/blob/603e6108f39c6663ec703eed34a89ff1bf0cb70c/packages/react-server/src/ReactFizzHooks.js#L561-L566"]
+[@@deprecated "Use useSyncExternalStoreWithServer instead"]
 
 val useSyncExternalStoreWithServer :
   subscribe:((unit -> unit) -> (unit, unit) callback) ->

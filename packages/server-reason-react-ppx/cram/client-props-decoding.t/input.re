@@ -1,4 +1,4 @@
-open Ppx_deriving_json_runtime.Primitives;
+open Melange_json.Primitives;
 
 [@warning "-27"];
 [@react.client.component]

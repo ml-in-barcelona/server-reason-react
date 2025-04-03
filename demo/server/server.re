@@ -9,18 +9,14 @@ let server =
       Dream.get(Router.demoRenderToString, _request =>
         Dream.html(
           ReactDOM.renderToString(
-            <Document script="/static/demo/client/hydrate-static-html.js">
-              <App />
-            </Document>,
+            <Document script="/static/demo/Hydrate.re.js"> <App /> </Document>,
           ),
         )
       ),
       Dream.get(Router.demoRenderToStaticMarkup, _request =>
         Dream.html(
           ReactDOM.renderToStaticMarkup(
-            <Document script="/static/demo/client/hydrate-static-html.js">
-              <App />
-            </Document>,
+            <Document script="/static/demo/Hydrate.re.js"> <App /> </Document>,
           ),
         )
       ),

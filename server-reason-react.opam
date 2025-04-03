@@ -8,9 +8,9 @@ homepage: "https://github.com/ml-in-barcelona/server-reason-react"
 bug-reports: "https://github.com/ml-in-barcelona/server-reason-react/issues"
 depends: [
   "dune" {>= "3.9"}
-  "ocaml" {>= "5.0.0"}
+  "ocaml" {>= "4.14.1"}
   "reason" {>= "3.14.0"}
-  "melange" {>= "3.0.0" & < "4.0.0"}
+  "melange" {>= "3.0.0"}
   "uucp" {>= "16.0.0"}
   "ppxlib" {> "0.23.0"}
   "quickjs" {>= "0.1.2"}
@@ -20,8 +20,8 @@ depends: [
   "uri" {>= "4.2.0"}
   "yojson" {>= "2.2.0"}
   "integers" {>= "0.7.0"}
-  "melange-json" {>= "1.3.0"}
-  "melange-json-native" {>= "1.3.0"}
+  "melange-json" {>= "2.0.0"}
+  "melange-json-native" {>= "2.0.0"}
   "odoc" {with-doc}
   "ocamlformat" {= "0.27.0" & with-test}
   "ocaml-lsp-server" {with-dev-setup}
@@ -30,6 +30,7 @@ depends: [
   "reason-react" {with-dev-setup}
   "melange-webapi" {with-dev-setup}
   "reason-react-ppx" {with-dev-setup}
+  "odoc-driver" {with-dev-setup}
   "alcotest" {with-test}
   "alcotest-lwt" {with-test}
   "fmt" {with-test}
@@ -37,8 +38,6 @@ depends: [
   "core_unix" {with-test}
   "core_bench" {with-test}
 ]
-dev-repo: "git+https://github.com/ml-in-barcelona/server-reason-react.git"
-# The template is needed since we want to add "@new-doc" into the build command
 build: [
   ["dune" "subst"] {dev}
   [
@@ -50,6 +49,7 @@ build: [
     jobs
     "@install"
     "@runtest" {with-test}
-    "@new-doc" {with-doc}
+    "@doc" {with-doc}
   ]
 ]
+dev-repo: "git+https://github.com/ml-in-barcelona/server-reason-react.git"

@@ -39,9 +39,6 @@ test-watch: ## Run the unit tests in watch mode
 test-promote: ## Updates snapshots and promotes it to correct
 	$(DUNE) build @runtest --auto-promote
 
-.PHONY: deps
-deps: $(opam_file) ## Alias to update the opam file and install the needed deps
-
 .PHONY: format
 format: ## Format the codebase with ocamlformat
 	@DUNE_CONFIG__GLOBAL_LOCK=disabled $(DUNE) build @fmt --auto-promote
@@ -60,7 +57,7 @@ create-switch: ## Create opam switch
 
 .PHONY: install
 install:
-	opam install . --deps-only --with-test --with-doc --with-dev-setup
+	opam install . --deps-only --with-test --with-doc --with-dev-setup -y
 
 .PHONY: install-npm
 install-npm:
@@ -112,7 +109,8 @@ subst: ## Run dune substitute
 
 .PHONY: docs
 docs: ## Generate odoc documentation
-	$(DUNE) build --root . @doc-new --profile=prod
+	$(DUNE) build @install
+	$(DUNE) exec -- odoc_driver server-reason-react --remap
 
 # Because if the hack above, we can't have watch mode
 .PHONY: docs-watch
@@ -121,7 +119,8 @@ docs-watch: ## Generate odoc docs
 
 .PHONY: docs-open
 docs-open: ## Open odoc docs with default web browser
-	open _build/default/_doc_new/html/documentation/local/server-reason-react/index.html
+# open _build/default/_doc_new/html/docs/local/server-reason-react/index.html
+	open _html/server-reason-react/index.html
 
 .PHONY: docs-serve
 docs-serve: docs docs-open ## Open odoc docs with default web browser
@@ -139,5 +138,20 @@ bench-watch: build-bench ## Run benchmark in watch mode
 	@$(DUNE) exec benchmark/main.exe --profile=release --display-separate-messages --no-print-directory --watch
 
 .PHONY: once
-once: ## Run benchmark once
-	@$(DUNE) exec _build/default/bench/once.exe
+bench-once: ## Run benchmark once
+	@$(DUNE) exec _build/default/benchmark/once.exe
+
+.PHONY: bench-once-watch
+bench-once-watch: ## Run benchmark once in watch mode
+	@$(DUNE) exec _build/default/benchmark/once.exe --watch
+
+container_name = server-reason-react-demo
+current_hash = $(shell git rev-parse HEAD | cut -c1-7)
+
+.PHONY: docker-build
+docker-build: ## docker build
+	DOCKER_BUILDKIT=0 docker build . --tag "$(container_name):$(current_hash)" --platform linux/amd64
+
+.PHONY: docker-run
+docker-run: ## docker run
+	@docker run -d --platform linux/amd64 $(container_name):$(current_hash)

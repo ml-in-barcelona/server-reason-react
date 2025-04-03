@@ -29,7 +29,7 @@
       cookies: [],
     }
   ];
-  open Ppx_deriving_json_runtime.Primitives;
+  open Melange_json.Primitives;
   
   [@warning "-27"];
   include {
@@ -38,7 +38,6 @@
                 [@ocaml.warning "-unboxable-type-in-prim-decl"]
                 external unsafe_expr: _ => _ = "#raw_stmt";
               };
-              [@ocaml.warning "-ignored-extra-argument"]
               J.unsafe_expr("// extract-client input.re");
             };
   
@@ -54,13 +53,14 @@
                   ~tuple3: (int, string, float),
                 ) => React.null;
             let make_client = props =>
-              [@ocaml.warning "-ignored-extra-argument"]
-              [@ocaml.warning "-ignored-extra-argument"]
               make(
                 {
                   module J = {
                     [@ocaml.warning "-unboxable-type-in-prim-decl"]
                     [@ocaml.warning "-unboxable-type-in-prim-decl"]
+                    [@mel.internal.ffi
+                      "„•¦¾\000\000\000E\000\000\000\029\000\000\000O\000\000\000H‘  A&tuple3  A&tuple2  A$lulu  A$lili  A$lolo  A$lola  A$prop@"
+                    ]
                     external unsafe_expr:
                       (
                         ~tuple3: 'a0,
@@ -81,189 +81,70 @@
                         "lola": 'a5,
                         "prop": 'a6,
                       } =
-                      ""
-                      "\132\149\166\190\000\000\000E\000\000\000\029\000\000\000O\000\000\000H\145\160\160A\144&tuple3\160\160A\144&tuple2\160\160A\144$lulu\160\160A\144$lili\160\160A\144$lolo\160\160A\144$lola\160\160A\144$prop@";
+                      "" "";
                   };
-                  [@ocaml.warning "-ignored-extra-argument"]
-                  [@ocaml.warning "-ignored-extra-argument"]
                   J.unsafe_expr(
                     ~tuple3=
-                      [@ocaml.warning "-ignored-extra-argument"]
-                      [@ocaml.warning "-ignored-extra-argument"]
                       (
                         x =>
-                          if ([@ocaml.warning "-ignored-extra-argument"]
-                              [@ocaml.warning "-ignored-extra-argument"]
-                              Stdlib.(&&)(
-                                [@ocaml.warning "-ignored-extra-argument"]
-                                [@ocaml.warning "-ignored-extra-argument"]
+                          if (Stdlib.(&&)(
                                 Js.Array.isArray(x),
-                                [@ocaml.warning "-ignored-extra-argument"]
-                                [@ocaml.warning "-ignored-extra-argument"]
                                 Stdlib.(==)(
-                                  [@ocaml.warning "-ignored-extra-argument"]
-                                  [@ocaml.warning "-ignored-extra-argument"]
                                   Js.Array.length(
-                                    [@ocaml.warning "-ignored-extra-argument"]
-                                    [@ocaml.warning "-ignored-extra-argument"]
                                     Obj.magic(x): array(Js.Json.t),
                                   ),
                                   3,
                                 ),
                               )) {
-                            let es: array(Js.Json.t) =
-                              [@ocaml.warning "-ignored-extra-argument"]
-                              [@ocaml.warning "-ignored-extra-argument"]
-                              Obj.magic(x);
+                            let es: array(Js.Json.t) = Obj.magic(x);
                             (
-                              [@ocaml.warning "-ignored-extra-argument"]
-                              [@ocaml.warning "-ignored-extra-argument"]
-                              int_of_json(
-                                [@ocaml.warning "-ignored-extra-argument"]
-                                [@ocaml.warning "-ignored-extra-argument"]
-                                Js.Array.unsafe_get(es, 0),
-                              ),
-                              [@ocaml.warning "-ignored-extra-argument"]
-                              [@ocaml.warning "-ignored-extra-argument"]
-                              string_of_json(
-                                [@ocaml.warning "-ignored-extra-argument"]
-                                [@ocaml.warning "-ignored-extra-argument"]
-                                Js.Array.unsafe_get(es, 1),
-                              ),
-                              [@ocaml.warning "-ignored-extra-argument"]
-                              [@ocaml.warning "-ignored-extra-argument"]
-                              float_of_json(
-                                [@ocaml.warning "-ignored-extra-argument"]
-                                [@ocaml.warning "-ignored-extra-argument"]
-                                Js.Array.unsafe_get(es, 2),
-                              ),
+                              int_of_json(Js.Array.unsafe_get(es, 0)),
+                              string_of_json(Js.Array.unsafe_get(es, 1)),
+                              float_of_json(Js.Array.unsafe_get(es, 2)),
                             );
                           } else {
-                            [@ocaml.warning "-ignored-extra-argument"]
-                            [@ocaml.warning "-ignored-extra-argument"]
-                            Ppx_deriving_json_runtime.of_json_error(
+                            Melange_json.of_json_error(
+                              ~json=x,
                               "expected a JSON array of length 3",
                             );
                           }
                       )(
-                        (
-                          [@ocaml.warning "-ignored-extra-argument"]
-                          Js.Private.Js_OO.unsafe_downgrade(props)
-                        )#
-                          tuple3,
+                        Js.OO.unsafe_downgrade(props)#tuple3,
                       ),
                     ~tuple2=
-                      [@ocaml.warning "-ignored-extra-argument"]
-                      [@ocaml.warning "-ignored-extra-argument"]
                       (
                         x =>
-                          if ([@ocaml.warning "-ignored-extra-argument"]
-                              [@ocaml.warning "-ignored-extra-argument"]
-                              Stdlib.(&&)(
-                                [@ocaml.warning "-ignored-extra-argument"]
-                                [@ocaml.warning "-ignored-extra-argument"]
+                          if (Stdlib.(&&)(
                                 Js.Array.isArray(x),
-                                [@ocaml.warning "-ignored-extra-argument"]
-                                [@ocaml.warning "-ignored-extra-argument"]
                                 Stdlib.(==)(
-                                  [@ocaml.warning "-ignored-extra-argument"]
-                                  [@ocaml.warning "-ignored-extra-argument"]
                                   Js.Array.length(
-                                    [@ocaml.warning "-ignored-extra-argument"]
-                                    [@ocaml.warning "-ignored-extra-argument"]
                                     Obj.magic(x): array(Js.Json.t),
                                   ),
                                   2,
                                 ),
                               )) {
-                            let es: array(Js.Json.t) =
-                              [@ocaml.warning "-ignored-extra-argument"]
-                              [@ocaml.warning "-ignored-extra-argument"]
-                              Obj.magic(x);
+                            let es: array(Js.Json.t) = Obj.magic(x);
                             (
-                              [@ocaml.warning "-ignored-extra-argument"]
-                              [@ocaml.warning "-ignored-extra-argument"]
-                              int_of_json(
-                                [@ocaml.warning "-ignored-extra-argument"]
-                                [@ocaml.warning "-ignored-extra-argument"]
-                                Js.Array.unsafe_get(es, 0),
-                              ),
-                              [@ocaml.warning "-ignored-extra-argument"]
-                              [@ocaml.warning "-ignored-extra-argument"]
-                              int_of_json(
-                                [@ocaml.warning "-ignored-extra-argument"]
-                                [@ocaml.warning "-ignored-extra-argument"]
-                                Js.Array.unsafe_get(es, 1),
-                              ),
+                              int_of_json(Js.Array.unsafe_get(es, 0)),
+                              int_of_json(Js.Array.unsafe_get(es, 1)),
                             );
                           } else {
-                            [@ocaml.warning "-ignored-extra-argument"]
-                            [@ocaml.warning "-ignored-extra-argument"]
-                            Ppx_deriving_json_runtime.of_json_error(
+                            Melange_json.of_json_error(
+                              ~json=x,
                               "expected a JSON array of length 2",
                             );
                           }
                       )(
-                        (
-                          [@ocaml.warning "-ignored-extra-argument"]
-                          Js.Private.Js_OO.unsafe_downgrade(props)
-                        )#
-                          tuple2,
+                        Js.OO.unsafe_downgrade(props)#tuple2,
                       ),
-                    ~lulu=
-                      [@ocaml.warning "-ignored-extra-argument"]
-                      [@ocaml.warning "-ignored-extra-argument"]
-                      float_of_json(
-                        (
-                          [@ocaml.warning "-ignored-extra-argument"]
-                          Js.Private.Js_OO.unsafe_downgrade(props)
-                        )#
-                          lulu,
-                      ),
-                    ~lili=
-                      [@ocaml.warning "-ignored-extra-argument"]
-                      [@ocaml.warning "-ignored-extra-argument"]
-                      bool_of_json(
-                        (
-                          [@ocaml.warning "-ignored-extra-argument"]
-                          Js.Private.Js_OO.unsafe_downgrade(props)
-                        )#
-                          lili,
-                      ),
-                    ~lolo=
-                      [@ocaml.warning "-ignored-extra-argument"]
-                      [@ocaml.warning "-ignored-extra-argument"]
-                      string_of_json(
-                        (
-                          [@ocaml.warning "-ignored-extra-argument"]
-                          Js.Private.Js_OO.unsafe_downgrade(props)
-                        )#
-                          lolo,
-                      ),
+                    ~lulu=float_of_json(Js.OO.unsafe_downgrade(props)#lulu),
+                    ~lili=bool_of_json(Js.OO.unsafe_downgrade(props)#lili),
+                    ~lolo=string_of_json(Js.OO.unsafe_downgrade(props)#lolo),
                     ~lola=
-                      [@ocaml.warning "-ignored-extra-argument"]
-                      [@ocaml.warning "-ignored-extra-argument"]
-                      (
-                        [@ocaml.warning "-ignored-extra-argument"]
-                        [@ocaml.warning "-ignored-extra-argument"]
-                        list_of_json(int_of_json)
-                      )(
-                        (
-                          [@ocaml.warning "-ignored-extra-argument"]
-                          Js.Private.Js_OO.unsafe_downgrade(props)
-                        )#
-                          lola,
+                      (list_of_json(int_of_json))(
+                        Js.OO.unsafe_downgrade(props)#lola,
                       ),
-                    ~prop=
-                      [@ocaml.warning "-ignored-extra-argument"]
-                      [@ocaml.warning "-ignored-extra-argument"]
-                      int_of_json(
-                        (
-                          [@ocaml.warning "-ignored-extra-argument"]
-                          Js.Private.Js_OO.unsafe_downgrade(props)
-                        )#
-                          prop,
-                      ),
+                    ~prop=int_of_json(Js.OO.unsafe_downgrade(props)#prop),
                   );
                 },
               );

@@ -1,6 +1,6 @@
 let handler = request => {
   let isRSCheader =
-    Dream.header(request, "Accept") == Some("text/x-component");
+    Dream.header(request, "Accept") == Some("application/react.component");
 
   let app =
     <DemoLayout background=Theme.Color.Gray2>
@@ -26,22 +26,17 @@ let handler = request => {
 
   if (isRSCheader) {
     Dream.stream(response_stream => {
-      let%lwt stream =
+      let%lwt _stream =
         ReactServerDOM.render_model(
           ~subscribe=data => Dream.write(response_stream, data),
           app,
-        );
-      let%lwt () =
-        Lwt_stream.iter_s(
-          data => Dream.write(response_stream, data),
-          stream,
         );
       Lwt.return();
     });
   } else {
     Dream.html(
       ReactDOM.renderToString(
-        <Document script="/static/demo/client/create-from-fetch.js">
+        <Document script="/static/demo/CreateFromFetch.re.js">
           React.null
         </Document>,
       ),
