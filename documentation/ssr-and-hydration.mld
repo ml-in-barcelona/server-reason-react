@@ -1,6 +1,6 @@
-{0 SSR and hydration}
+{0 Server-side rendering and hydration}
 
-{1 How does React handle SSR markup?}
+{1 How does React.js work with SSR from server-reason-react?}
 
 [server-reason-react] via [ReactDOM.renderToString], [ReactDOM.renderToStaticMarkup] or [ReactDOM.renderToStream] generate the HTML markup on the server. When the page loads in the browser, React.js performs a process called "hydration".
 
@@ -43,29 +43,29 @@ let make = () => {
 
 We use [switch%platform] to provide different values on the server and client. To understand how [switch%platform] works, look at the {{!page-"browser_ppx"} browser_ppx page}.
 
-And let's see the diagram above, which shows how the code will behave on each SSR step:
+And let's see the diagram below, which shows how the code will behave:
 
-{%html:<img src="./ssr-hydrate-issue.png" alt='Hydrate error' style="max-width: 100%; height: auto; vertical-align: middle;">%}
+{%html:<img src="./ssr-and-hydration-pipeline.png" alt='Hydrate error' style="max-width: 100%; height: auto; vertical-align: middle;">%}
 
-* As we can see, there is a difference between III and IV, that will cause React to complain about content mismatch.
+* React to complain about a hydration error because of the content of className attribute from the server is [className="red"] (IV) and what it expects on the client during hydration is [className="blue"] (V).
 
-This hydration error occurs because React detects a mismatch between the server-rendered markup ([background-color: red](IV)) and what it expects on the client during hydration ([background-color: blue](V)).
-
-To fix these errors, you must either ensure the server and client render the same markup, or use helpers that detect when the client has been hydrated before making client-specific changes at the markup level.
+To fix this, the server and client render must provide the same markup.
 
 {2 Possible solution: check if the client is mounted}
 
-If we want different values on the server and client, we must do it after React hydrates the client or, commonly said, after *mount*.
+There are cases where your server doesn't have all the information needed to render the same markup on the client. For example, the client can access the DOM and run some calculations like [window.innerWidth] or [getBoundingClientRect].
 
-To work on it we must check if the client mounted and then change this value. This can be done with a hook that will be executed only after the client is hydrated.
+The trick here is to make sure the server-render and the first client-render have the same markup, while the second client-render can have any value. This way, React will be happy with the first client-render and will not throw a hydration error.
+
+To make it happen, we can check if the client is mounted and then change apply the final value. This is often done with a hook that will be executed only after the client is mounted.
 
 {@reasonml[
-module IsClientMounted = {
+module UseMounted = {
   let use = () => {
     let (isMounted, setIsMounted) = React.useState(() => false);
 
     React.useEffect0(() => {
-      // This will be executed only on the client and after the hydration
+      // The useEffect hook will be executed only on the client and after the hydration
       setIsMounted(_ => true);
       None;
     });
@@ -76,7 +76,7 @@ module IsClientMounted = {
 
 [@react.component]
 let make = () => {
-  let isClientMounted = IsClientMounted.use();
+  let isClientMounted = UseMounted.use();
   let backgroundColor = isClientMounted ? "blue" : "red"
 
   <div className=backgroundColor />;
@@ -85,17 +85,19 @@ let make = () => {
 
 With a code like this one, the flow will be:
 
-{%html:<img src="./ssr-no-hydrate-issue.png" alt='Hydrate without issue' style="max-width: 100%; height: auto; vertical-align: middle;">%}
+{%html:<img src="./ssr-and-hydration-pipeline-fixed.png" alt='Hydrate error' style="max-width: 100%; height: auto; vertical-align: middle;">%}
 
-** As we can see, there is no difference between III and IV, and React will be happy with it.
+** As we can see, isClientMounted is false on III, IV and V and eventually true on VI. So there is no difference between III and IV, and React will be happy with it.
 
-In this case, we don't even need [switch%platform] to know if it's on client or native as [useEffects] only runs on client and the value is provided on the client and the content "blue" and "red" are native compatible.
+In this case, we don't even need [switch%platform], as [useEffects] only runs on client and the value is provided on the client.
 
-{1 Helpers that you can use}
+{1 Some helpers that you can create}
 
-{2 IsClientMounted}
+Those helpers are useful, but [server-reason-react] doesn't provide any, this code should live in your project.
 
-[IsClientMounted] is a hook helper that you can create to check if the client is mounted.
+{2 UseMounted}
+
+[UseMounted] is a hook to check if the component has mounted.
 
 {@reasonml[
 let use = () => {
@@ -112,7 +114,7 @@ let use = () => {
 
 {3 When using it:}
 
-You should use [IsClientMounted] whenever you have to deal with variables inside a component. For React markup, take a look at {{!section-"server-or-client-render"} <ServerOrClientRender/>} or {{!section-"client-only"} <ClientOnly/>}.
+You should use [UseMounted] whenever you have to deal with variables inside a component. For different JSX, take a look at {{!section-"server-or-client-render"} <ServerOrClientRender/>} or {{!section-"client-only"} <ClientOnly/>}.
 
 Example:
 
@@ -121,7 +123,7 @@ let isFocusable =
   isClientMounted ? children->isFocusableElement : false;
 ]}
 
-Even with [isClientMounted], the content {b MUST} compile on [native]. If the client content is not [native] compatible, you must use [%browser_only].
+Even with [isClientMounted], the content {b MUST} compile on [native]. If the client content is not [native] compatible, you can use [%browser_only].
 
 {@reasonml[
 let%browser_only getAnswer = () => 42
@@ -144,13 +146,11 @@ let%browser_only getAnswer = () => 42
 let answer = isClientMounted ? [%browser_only () => getAnswer()]() : 0;
 ]}
 
-{3 Using [switch%platform] and [%browser_only] with [isClientMounted]}
+{3 Combine [switch%platform] and [%browser_only] with [isClientMounted]}
 
-[switch%platform] and [browser_only] are helpers that allow us to keep the same file for both native and js without breaking the compiler (read more about them here: {{!page-"browser_ppx"} browser_ppx page}).
+[switch%platform] and [browser_only] are extensions that help us discarting parts of the same file for both native and JavaScript without breaking the compiler (read more about them here: {{!page-"browser_ppx"} browser_ppx page}).
 
-So we should use [switch%platform] only when we don't have a universal way to provide the same value. Then, if there is no way to provide the same value on native, you will probably not use those features.
-
-If there is a way to provide the same value, but not in a universal way, you'll need [switch%platform] :
+So we should use [switch%platform] when we don't have a single way to provide the same value. If there is a way to provide the same value, but not in a single way, you'll need [switch%platform] like following:
 
 {@reasonml[
 let foo = switch%platform () {
@@ -159,9 +159,9 @@ let foo = switch%platform () {
 }
 ]}
 
-In this case, as [foo] will have the same value on Server and Client, you won't need [isClientMounted] because Hydrate will never throw an error. We can conclude that if you need [switch%platform], it's probably because you can provide the exact value of a client, and then you will never need [switch%platform] and [isClientMounted] together.
+Here, [foo] will have the same value on both targets. There's no need for [isClientMounted] because Hydrate will never throw an error.
 
-In the case of the usage of [browser_only], sometimes the usage of [isClientMounted] does not avoid compiler error because even running only on the client, it compiles on native. So sometimes you will need it on the "client code":
+The usage of [isClientMounted] forces the execution of the code to behave proeprly, but it does not avoid compiler error because the code needs to compile on both targets. So, you will need [isClientMounted] and [browser_only] together:
 
 {@reasonml[
 let%browser_only foo_cant_compile_on_native = () => "Hey"
@@ -171,8 +171,6 @@ let value = isClientMounted
   : "Yah"
 ]}
 
-So, [isClientMounted] does not replace the need for [browser_only] and vice-versa.
-
 {%html:
   <div style="border-left: 4px solid #0366d6; padding: 0.2em 1em;">
     <strong>✏️ Note</strong>
@@ -180,28 +178,21 @@ So, [isClientMounted] does not replace the need for [browser_only] and vice-vers
   </div>
 %}
 
-{2:server-or-client-render <ServerOrClientRender/>}
+{2:server-or-client-render <ServerOrClientRender /> component}
 
 {@reasonml[
 [@react.component]
-let make = (
-  ~renderServerEl: unit => React.element,
-  ~renderClientEl: unit => React.element
-  ) => {
-  let isClientMounted = UseIsClientMounted.use();
+let make = (~server: unit => React.element, ~client: unit => React.element) => {
+  let isClientMounted = UseMounted.use();
 
   switch (isClientMounted) {
-  | false => renderServerEl()
-  | true => renderClientEl()
+  | false => server()
+  | true => client()
   };
 };
 ]}
 
-[ServerOrClientRender] is a React Component that helps to provide native (server) and client content powered by [UseIsClientMounted] to avoid hydrate issues.
-
-{3 When using it:}
-
-You should use [<ServerOrClientRender/>] when working on React markup with different outputs on [native] and [client].
+[ServerOrClientRender] is a React Component that helps to provide different JSX markup on server and client powered by [UseMounted] to avoid hydrate issues.
 
 Example:
 
@@ -209,93 +200,58 @@ Example:
 [@react.component]
 let make = () => {
   <ServerOrClientRender
-    renderServerEl={() => <RedComponent />}
-    renderClientEl={() => <BlueComponent />}
+    server={() => <RedComponent />}
+    client={() => <BlueComponent />}
   />;
 };
 ]}
 
-Even with [ServerOrClientRender], the content {b MUST} compile on [native]. If the client content is not [native] compatible, you must use [%browser_only].
+Again, even with [ServerOrClientRender], the content {b MUST} compile on [native]. If the client content is not [native] compatible, you must use [%browser_only].
 
 {@reasonml[
-// BlueComponent.re: Client Only File
-[@react.component]
-let make = () => <BlueComponent />
+// Imagine a BlueComponent.re being a client only component
 
-// Foo.re: Universal File
+// Foo.re: a universal file
 <ServerOrClientRender
-  renderServerEl={() => <RedComponent />}
-  renderClientEl={() => <BlueClientComponentOnly />}
+  server={() => <RedComponent />}
+  client={() => <BlueComponent />}
 />
 ]}
 
 {@text[
-1 |         <BlueClientComponentOnly
-             ^^^^^^^^^^^^^^^^^^^^^^^
-**Error**: Unbound module BlueClientComponentOnly
+1 |         <BlueComponent
+             ^^^^^^^^^^^^^
+**Error**: Unbound module BlueComponent
 ]}
 
-As you can see, [BlueClientComponentOnly] is not available on [native], cause it's client only and must run under a [%browser_only]:
+As you can see, [BlueComponent] is not available on [native], cause it's client only and must run under a [%browser_only]:
 
 {@reasonml[
 <ServerOrClientRender
-  renderServerEl={() => <RedComponent />}
-  renderClientEl={
+  server={() => <RedComponent />}
+  client={
     [%browser_only () => <BlueClientComponentOnly />]
   }
 />
 ]}
 
-{2:client-only <ClientOnly/>}
+{2:client-only <ClientOnly />}
 
-The [ClientOnly] component is built on top of [ServerOrClientRender]. It provides a helper to easily apply client-side content without hydration issues.
+The [ClientOnly] component is built on top of [ServerOrClientRender]. It provides a helper to easily apply client-side content.
 
 {[
 [@react.component]
 let make = (~children: unit => React.element) => {
-  <ServerOrClientRender renderClientEl=children renderServerEl={() => RR.null} />;
+  <ServerOrClientRender client=children server={() => RR.null} />;
 };
 ]}
 
-{3 When using it:}
-
-You must use [<ClientOnly/>] when working with React markup that should output nothing ([RR.null]) on the server and only render content on the client side.
+Use [<ClientOnly/>] when the server JSX can be empty ([RR.null]) and only want to render JSX on the client side.
 
 {@reasonml[
 <ClientOnly>
-  {() => "Hello World" -> RR.s}
+  {() => React.string("Hello World")}
 </ClientOnly>
 ]}
 
-Even when using [ClientOnly], the content {b MUST} compile on [native]. If the client content is not [native] compatible, you must use [%browser_only].
-
-The following code will fail on native:
-
-{@reasonml[
-// ClientOnlyComponent.re: Client Only File
-[@react.component]
-let make = () => <div> "Hello World" -> RR.s </div>
-
-// Foo.re:Universal File
-
-<ClientOnly>
-  {() => <ClientOnlyComponent />}
-</ClientOnly>
-]}
-
-This results in the error:
-
-{@text[
-1 |         {() => <ClientOnlyComponent />}
-                    ^^^^^^^^^^^^^^^^^^^
-**Error**: Unbound module ClientOnlyComponent
-]}
-
-To fix this, wrap the client-only content with [%browser_only]:
-
-{@reasonml[
-<ClientOnly>
-  [%browser_only
-    () => <ClientOnlyComponent />]
-</ClientOnly>
-]}
+Again, we should use [%browser_only] even when using [ClientOnly] since the content {b MUST} compile on [native].
