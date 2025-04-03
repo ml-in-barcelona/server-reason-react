@@ -41,7 +41,8 @@ let make = () => {
 };
 ]}
 
-To understand how [switch%platform] works, look at the {{!page-"browser_ppx"} browser_ppx page}
+We use [switch%platform] to provide different values on the server and client. To understand how [switch%platform] works, look at the {{!page-"browser_ppx"} browser_ppx page}.
+
 And let's see the diagram above, which shows how the code will behave on each SSR step:
 
 {%html:<img src="./ssr-hydrate-issue.png" alt='Hydrate error' style="max-width: 100%; height: auto; vertical-align: middle;">%}
@@ -77,7 +78,7 @@ module IsClientMounted = {
 let make = () => {
   let isClientMounted = IsClientMounted.use();
   let backgroundColor = isClientMounted ? "blue" : "red"
-  
+
   <div className=backgroundColor />;
 };
 ]}
@@ -184,7 +185,7 @@ So, [isClientMounted] does not replace the need for [browser_only] and vice-vers
 {@reasonml[
 [@react.component]
 let make = (
-  ~renderServerEl: unit => React.element, 
+  ~renderServerEl: unit => React.element,
   ~renderClientEl: unit => React.element
   ) => {
   let isClientMounted = UseIsClientMounted.use();
@@ -294,7 +295,7 @@ To fix this, wrap the client-only content with [%browser_only]:
 
 {@reasonml[
 <ClientOnly>
-  [%browser_only 
+  [%browser_only
     () => <ClientOnlyComponent />]
 </ClientOnly>
 ]}
