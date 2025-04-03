@@ -14,6 +14,7 @@ Designed to be used with {{:https://reasonml.github.io/reason-react//}reason-rea
   {li {{!page-"how-to-organise-universal-code"}How to organise universal code}}
   {li {{!page-"browser_ppx"}Exclude client code from the native build}}
   {li {{!page-"externals-melange-attributes"}Externals and melange attributes}}
+  {li {{!page-"ssr-and-hydration"}SSR and hydration}}
 }
 
 {2 Core API}
