@@ -4,7 +4,7 @@
 
 For example, if you're using [Webapi] to query the DOM and extract some data from it. This code should only run on the client, and there's no equivalent or fallback on the server.
 
-The ppx expose a [%browser_only] extension and [@browser_only] attribute that can be used to discard functions and values, and [switch%platform] to conditionally compile and execute code based on the platform.
+The ppx expose the [[%browser_only]] extension and [[@browser_only]] attribute that can be used to discard functions and values, and [[switch%platform]] to conditionally compile and execute code based on the platform.
 
 {1 Example}
 
@@ -99,9 +99,9 @@ let howManyColumns =
 
 Note that the expression is evaluated for each platform, but the type needs to be the same for all the branches.
 
-{2 @platform attribute}
+{2 [[@platform]] attribute}
 
-The [@platform] attribute allows to specify code blocks that should only be included in the JavaScript or native build, respectively. The [@platform] attribute works the same way as the [switch%platform], but applied to entire modules.
+The [[@platform]] attribute allows to specify code blocks that should only be included in the JavaScript or native build, respectively. The [[@platform]] attribute works the same way as the [[switch%platform]], but applied to entire modules.
 
 Again, this is useful when you have code that is specific to one platform and should not be included in the other, but all packaged into a single module.
 
