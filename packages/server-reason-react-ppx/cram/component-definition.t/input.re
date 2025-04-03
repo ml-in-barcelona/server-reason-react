@@ -77,6 +77,11 @@ module Upper_with_aria = {
 //   let make = (~children) => <form method="GET"> children </form>;
 // };
 
+module Form_with_action = {
+  [@react.component]
+  let make = (~children) => <form actionFn="action_id"> children </form>;
+};
+
 let a = <Uppercase> <div /> </Uppercase>;
 
 module Async_component = {

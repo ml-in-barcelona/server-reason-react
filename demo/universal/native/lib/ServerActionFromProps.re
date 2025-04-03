@@ -1,6 +1,3 @@
-[@warning "-33"];
-open Melange_json.Primitives;
-
 module Form = {
   [@warning "-27"];
   [@react.component]

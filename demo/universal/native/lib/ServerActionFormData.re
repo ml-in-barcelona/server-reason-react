@@ -1,18 +1,13 @@
-[@warning "-33"];
-open Webapi.Dom;
-open EventTarget;
-open Melange_json.Primitives;
-
-[@mel.module "react"]
-external startTransition: (unit => unit) => unit = "startTransition";
-
 module Form = {
   [@warning "-27"]
   [@react.component]
   let make = (~children) =>
     switch%platform () {
+    // The contract for actionFn is a string for the actionId
+    // For now we are not handling the bound part, required by the react, we can do it later
     | Server => <form actionFn=Actions.Samples.formData> children </form>
     | Client =>
+      // As react-reason does not support action as a function, we need to use Obj.magic
       <form action={Obj.magic(Actions.Samples.formData)}> children </form>
     };
 };
