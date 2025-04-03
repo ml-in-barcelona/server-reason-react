@@ -1,14 +1,12 @@
 {0 Exclude client code from the native build}
 
-[browser_only] is the ppx to exclude client code from the server build, making sure a library can run on both build targets. It also allows to conditionally execute code based on the platform.
+[browser_only] is the ppx to exclude client code from the server build and conditionally execute code based on each platform.
 
-For example, if you're using Webapi to query the DOM and extract some data from it. This code should only run on the client, and there's no equivalent or fallback on the server.
+For example, if you're using [Webapi] to query the DOM and extract some data from it. This code should only run on the client, and there's no equivalent or fallback on the server.
 
-In order to compile and run successfully on the server, you can use [let%browser_only],[switch%platform] or the [@platform]. This page explains how to use them.
+The ppx expose a [%browser_only] extension and [@browser_only] attribute that can be used to discard functions and values, and [switch%platform] to conditionally compile and execute code based on the platform.
 
 {1 Example}
-
-The ppx expose a [%browser_only] attribute that can be used to discard a function, and [switch%platform] to conditionally execute code based on the platform.
 
 {[
 let%browser_only countDomNodes = (id) => {
@@ -29,7 +27,7 @@ switch%platform (Runtime.platform) {
 
 Add [server-reason-react.browser_ppx] into to your pps field under a dune stanzas (melange.emit, libraries or executable) in your dune files.
 
-You would need to add it on both "server" and "client" dune files. Adding the [-js] flag [server-reason-react.browser_ppx -js] for the client and without for the server:
+You would need to add it on both "server" and "client" dune files. Adding the [-js] flag [server-reason-react.browser_ppx -js] for the client and without the flag for the server:
 {[
 ; server exectuable
 (executable
@@ -55,11 +53,11 @@ let%browser_only countDomNodes = (id) => {
 };
 ]}
 
-The method tagged by [browser_only] will keep the function for the client build, but will be discarded for the server build. In more detail, the body of function will be transformed to a [Runtime.Impossible_in_ssr] exception (and
+The method tagged by [browser_only] and it will keep the function for the client build, but will be discarded for the server build. On the server build, the ppx transforms the body of function into a [Runtime.Impossible_in_ssr] exception.
 
-If this function ever runs on the server by accident, it will raise the exception. If this exception isn't caught, the server will crash. Calling a function on the server that should only run on the client, it's very unlikely to happen.
+If this function ever runs on the server accidentally, it will raise the exception. If this exception isn't caught, the server will obviously crash. This situation is very unlikely to happen, but in case of not being sure, it's good to be prepared for it and add a try catch block.
 
-In any case, there may be cases where catch the exception and provide a default behaviour/value, can be useful.
+There may be other cases where catching the exception might be useful. For example, if you want to provide a default value or a fallback.
 
 Following with the example from above:
 {[
@@ -75,10 +73,13 @@ let main = id =>
   };
 ]}
 
-{2 switch%platform to conditionally exclude an expression for each platform}
+Now, the function [main] will return 0 if the function [countDomNodes] raises the [Runtime.Impossible_in_ssr] exception, and is "safe" (as in, it won't crash) to run on the server.
+
+{2 switch%platform to conditionally execute code based on the platform}
 
 [switch%platform] allows to conditionally execute code based on the platform. There are some cases where you need to run a specific code only on the server or only on the client.
 
+An example is worth a thousand words:
 {[
 switch%platform (Runtime.platform) {
 | Server => print_endline("This prints to the terminal")
@@ -86,7 +87,7 @@ switch%platform (Runtime.platform) {
 };
 ]}
 
-Not only executing code, but any expression can be part of the switch.
+Because Reason (and also OCaml) is a language where everything is an expression, not only can execute code, but any expression can be part of the switch.
 
 {[
 let howManyColumns =
@@ -96,27 +97,43 @@ let howManyColumns =
   };
 ]}
 
-Note that the expression is evaluated for each platform, but the type needs to be the same for all the branches
+Note that the expression is evaluated for each platform, but the type needs to be the same for all the branches.
 
 {2 @platform attribute}
 
-The [@platform] attribute allows to specify code blocks that should only be included in the JavaScript or native build, respectively. This is useful when you have code that is specific to one platform and should not be included in the other.
+The [@platform] attribute allows to specify code blocks that should only be included in the JavaScript or native build, respectively. The [@platform] attribute works the same way as the [switch%platform], but applied to entire modules.
+
+Again, this is useful when you have code that is specific to one platform and should not be included in the other, but all packaged into a single module.
 
 For example, you can define two modules, but only one of them should be kept in the final build based on the platform.
 {[
 [@platform js]
 module X = {
   type t = Js.Json.t;
-
   let a = 2 + 2;
 };
 
 [@platform native]
 module Y = {
   type t = Js.Json.t;
-
   let a = 4 + 4;
 };
 ]}
 
-When compiling with the `-js` flag, only the block with [[@platform js]] (module X) is kept, and when compiling without it, only the block with [[@platform native]] (module Y) is kept. If you name the modules the same, the compiler won't complain and you would get a single module available in both targets.
+When compiling with the `-js` flag, only the block with [[@platform js]] (module X) is kept, and when compiling without it, only the block with [[@platform native]] (module Y) is kept.
+
+If you name the modules the same, the compiler won't complain, since you would get a single module available in both targets, respectively.
+
+{[
+[@platform js]
+module X = {
+  type t = Js.Json.t;
+  let a = 2 + 2;
+};
+
+[@platform native]
+module X = {
+  type t = Yojson.Basic.t;
+  let a = 4 + 4;
+};
+]}
