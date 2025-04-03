@@ -57,7 +57,7 @@ let readNotes = () => {
     | Ok(json) =>
       Cache.set(parseNotes(json));
       Lwt_result.lift(parseNotes(json));
-    | Error(e) => Lwt.return_error("Error reading notes file")
+    | Error(_) => Lwt.return_error("Error reading notes file")
     }
   /* When something fails, treat it as an empty note db */
   | exception _error => Lwt.return_ok([])
@@ -70,6 +70,63 @@ let findOne = (notes, id) => {
   | None =>
     Lwt_result.fail("Note with id " ++ Int.to_string(id) ++ " not found")
   };
+};
+let addNote = (~title, ~content) => {
+  let%lwt notes = readNotes();
+  let notes =
+    Result.map(
+      notes => {
+        let length = List.length(notes);
+        let note: Note.t = {
+          id: length,
+          title,
+          content,
+          updated_at: Unix.time(),
+        };
+        [note, ...notes];
+      },
+      notes,
+    );
+  Cache.set(notes);
+  Lwt_result.lift(notes |> Result.map(notes => notes |> List.hd));
+};
+
+let editNote = (~id, ~title, ~content) => {
+  let%lwt notes = readNotes();
+  let notes =
+    Result.map(
+      notes => {
+        let notes =
+          notes
+          |> List.map((currentNote: Note.t) =>
+               if (currentNote.id == id) {
+                 {
+                   ...currentNote,
+                   title,
+                   content,
+                   updated_at: Unix.time(),
+                 };
+               } else {
+                 currentNote;
+               }
+             );
+        notes;
+      },
+      notes,
+    );
+  Cache.set(notes);
+  Lwt_result.lift(notes |> Result.map(notes => notes |> List.hd));
+};
+
+let deleteNote = id => {
+  let%lwt notes = readNotes();
+  let notes =
+    Result.map(
+      notes => notes |> List.filter((note: Note.t) => note.id != id),
+      notes,
+    );
+  Cache.set(notes);
+  Lwt_result.lift(notes);
 };
 
 let fetchNote = id => {

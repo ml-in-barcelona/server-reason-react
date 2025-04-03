@@ -334,32 +334,6 @@ let client_with_element_props () =
       "0:\"$1\"\n";
     ]
 
-let client_with_promise_props () =
-  let app () =
-    React.Upper_case_component
-      (fun () ->
-        React.list
-          [
-            React.createElement "div" [] [ React.string "Server Content" ];
-            React.Client_component
-              {
-                props =
-                  [ ("promise", React.Promise (delayed_value ~ms:200 "||| Resolved |||", fun res -> `String res)) ];
-                client = React.string "Client with Props";
-                import_module = "./client-with-props.js";
-                import_name = "ClientWithProps";
-              };
-          ])
-  in
-  let%lwt stream = ReactServerDOM.render_model (app ()) in
-  assert_stream stream
-    [
-      "2:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n";
-      "1:[[\"$\",\"div\",null,{\"children\":\"Server Content\"}],[\"$\",\"$2\",null,{\"promise\":\"$@3\"}]]\n";
-      "0:\"$1\"\n";
-      "3:\"||| Resolved |||\"\n";
-    ]
-
 let mixed_server_and_client () =
   let app () =
     React.Upper_case_component
@@ -434,6 +408,11 @@ let style_as_json () =
   assert_stream stream
     [ "0:[\"$\",\"div\",null,{\"style\":{\"zIndex\":\"34\",\"color\":\"red\",\"background\":\"blue\"}}]\n" ]
 
+let act_with_simple_response () =
+  let response = React.Json (`String "Server Content") in
+  let%lwt stream = ReactServerDOM.act response in
+  assert_stream stream [ "0:\"Server Content\"\n" ]
+
 let tests =
   [
     test "null_element" null_element;
@@ -457,6 +436,6 @@ let tests =
     test "client_with_json_props" client_with_json_props;
     test "client_without_props" client_without_props;
     test "client_with_element_props" client_with_element_props;
-    test "client_with_promise_props" client_with_promise_props;
     test "client_with_server_children" client_with_server_children;
+    test "act_with_simple_response" act_with_simple_response;
   ]

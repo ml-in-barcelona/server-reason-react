@@ -68,16 +68,25 @@ module Upper_with_aria = {
   let make = (~children) => <div ariaHidden="true"> children </div>;
 };
 
-module Form_with_method = {
+// As the ppx does not runs as preprocessor, using method will break, like the error below:
+// +  File "output.ml", line 62, characters 33-41:
+// +  62 |     let make ~children  = ((form ~method:"GET" ~children:[children] ())
+// So I commented this for know and added a test at ../test.re
+// module Form_with_method = {
+//   [@react.component]
+//   let make = (~children) => <form method="GET"> children </form>;
+// };
+
+module Form_with_action = {
   [@react.component]
-  let make = (~children) => <form method_="GET"> children </form>;
+  let make = (~children) => <form actionFn="action_id"> children </form>;
 };
 
 let a = <Uppercase> <div /> </Uppercase>;
 
 module Async_component = {
   [@react.async.component]
-  let make = (~children) => <form method_="GET"> children </form>;
+  let make = (~children) => <div className="async-component"> children </div>;
 };
 
 let a = <Async_component> <div /> </Async_component>;

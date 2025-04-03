@@ -18,4 +18,8 @@
   belt
   yojson)
  (preprocess
-  (pps server_reason_react_ppx melange_native_ppx lwt_ppx)))
+  (pps
+   server_reason_react_ppx
+   melange_native_ppx
+   melange-json-native.ppx
+   lwt_ppx)))

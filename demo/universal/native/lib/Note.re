@@ -1,3 +1,6 @@
+open Melange_json.Primitives;
+
+[@deriving json]
 type t = {
   id: int,
   title: string,

@@ -101,13 +101,16 @@ We need to output ML syntax here, otherwise refmt could not parse it.
             [ children ])
   end
   
-  module Form_with_method = struct
+  module Form_with_action = struct
     let make ?key:(_ : string option) ~children () =
       React.Upper_case_component
         (fun () ->
           React.createElementWithKey ~key:None "form"
             (Stdlib.List.filter_map Fun.id
-               [ Some (React.JSX.String ("method", "method", ("GET" : string))) ])
+               [
+                 Some
+                   (React.JSX.Action ("action", "action", ("action_id" : string)));
+               ])
             [ children ])
   end
   
@@ -118,9 +121,13 @@ We need to output ML syntax here, otherwise refmt could not parse it.
     let make ?key:(_ : string option) ~children () =
       React.Async_component
         (fun () ->
-          React.createElementWithKey ~key:None "form"
+          React.createElementWithKey ~key:None "div"
             (Stdlib.List.filter_map Fun.id
-               [ Some (React.JSX.String ("method", "method", ("GET" : string))) ])
+               [
+                 Some
+                   (React.JSX.String
+                      ("class", "className", ("async-component" : string)));
+               ])
             [ children ])
   end
   
