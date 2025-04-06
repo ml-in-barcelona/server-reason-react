@@ -37,7 +37,7 @@ let stream_html =
           ~bootstrapModules,
           app,
         );
-      let%lwt () = Dream.write(stream, html);
+      let%lwt () = Dream.write(stream, "<body>" ++ html ++ "</body>");
       let%lwt () = Dream.flush(stream);
       let%lwt () =
         subscribe(chunk => {

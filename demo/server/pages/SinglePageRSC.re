@@ -134,6 +134,6 @@ let handler = request =>
   DreamRSC.createFromRequest(
     ~bootstrapModules=["/static/demo/CreateFromReadableStream.re.js"],
     ~bootstrapScripts=["https://cdn.tailwindcss.com"],
-    <body> <div id="root"> <Root> <Page /> </Root> </div> </body>,
+    <Root> <Page /> </Root>,
     request,
   );
