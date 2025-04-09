@@ -517,6 +517,7 @@ module JSX : sig
 
   (** JSX.prop is the representation of HTML/SVG attributes and DOM events *)
   type prop =
+    (* Action prop makes difference between a action as a string and a action as a server action *)
     | Action of (string * string * string)
     | Bool of (string * string * bool)
     | String of (string * string * string)

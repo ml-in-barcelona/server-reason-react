@@ -436,7 +436,7 @@ let style_as_json () =
 
 let act_with_simple_response () =
   let response = React.Json (`String "Server Content") in
-  let%lwt stream = ReactServerDOM.act response in
+  let%lwt stream = ReactServerDOM.create_action_response response in
   assert_stream stream [ "0:\"Server Content\"\n" ]
 
 let tests =

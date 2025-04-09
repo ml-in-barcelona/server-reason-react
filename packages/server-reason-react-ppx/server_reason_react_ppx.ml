@@ -29,7 +29,6 @@ let make_string ~loc str = Ast_helper.Exp.constant ~loc (Ast_helper.Const.string
 let react_dot_component = "react.component"
 let react_dot_async_dot_component = "react.async.component"
 let react_dot_client_dot_component = "react.client.component"
-let react_dot_server_dot_action = "react.server.action"
 
 (* Helper method to look up the [@react.component] attribute *)
 let hasAttr { attr_name; _ } comparable = attr_name.txt = comparable
@@ -59,9 +58,7 @@ let rec unwrap_children children = function
   | e -> raise_errorf ~loc:e.pexp_loc "jsx: children prop should be a list"
 
 let is_jsx = function { attr_name = { txt = "JSX"; _ }; _ } -> true | _ -> false
-let is_server_action = function { attr_name = { txt = "server.action"; _ }; _ } -> true | _ -> false
 let has_jsx_attr attrs = List.exists ~f:is_jsx attrs
-let has_server_action_attr attrs = List.exists ~f:is_server_action attrs
 
 let rewrite_component ~loc tag args children =
   let component = pexp_ident ~loc tag in
@@ -466,6 +463,23 @@ let transform_fun_body_expression expr fn =
 
   inner expr
 
+let transform_fun_arguments expr fn =
+  let rec inner expr =
+    match expr.pexp_desc with
+    | Pexp_fun (label, def, patt, expression) -> pexp_fun ~loc:expr.pexp_loc label def (fn patt) (inner expression)
+    | _ -> expr
+  in
+  inner expr
+
+let transform_labelled_arguments_type (core_type : core_type) fn =
+  let rec inner core_type =
+    match core_type.ptyp_desc with
+    | Ptyp_arrow (label, core_type_1, core_type_2) ->
+        ptyp_arrow ~loc:core_type.ptyp_loc label (fn core_type_1) (inner core_type_2)
+    | _ -> core_type
+  in
+  inner core_type
+
 let expand_make_binding binding react_element_variant_wrapping =
   let attributers = binding.pvb_attributes |> List.filter ~f:nonReactAttributes in
   let loc = binding.pvb_loc in
@@ -632,9 +646,6 @@ let rewrite_signature_item signature_item =
             [%%ocaml.error "server-reason-react-ppx: there's seems to be an error in the signature of the component."]])
   | _ -> signature_item
 
-(*
-  QUESTION: Does the name make_to_json still make sense?
-*)
 let make_to_json ~loc (core_type : core_type) prop =
   match core_type with
   | [%type: React.element] -> [%expr React.Element ([%e prop] : React.element)]
@@ -647,18 +658,18 @@ let make_to_json ~loc (core_type : core_type) prop =
       let json = [%expr [%to_json: [%t inner_type]]] in
       [%expr
         match [%e prop] with Some prop -> [%expr React.Promise ([%e prop], [%e json])] | None -> React.Json `Null]
-  | type_ when has_server_action_attr type_.ptyp_attributes -> (
-      match type_ with
-      | [%type: [%t? type_] option] ->
-          [%expr match ([%e prop] : [%t type_]) with Some prop -> React.Action prop | None -> React.Action "null"]
-      | type_ -> [%expr React.Action ([%e prop] : [%t type_])])
+  | [%type: [%t? inner_type] option] as type_ -> (
+      match inner_type.ptyp_desc with
+      | Ptyp_arrow (_, _, _) ->
+          (* We need Obj.magic here because the type is not the same declared on the component *)
+          [%expr match [%e prop] with Some prop -> React.Action (Obj.magic prop) | None -> React.Json `Null]
+      | _ ->
+          let json = [%expr [%to_json: [%t type_]] [%e prop]] in
+          [%expr React.Json [%e json]])
   | type_ -> (
       match type_.ptyp_desc with
-      (* 
-        We must not send functions to the client cause they can't be serialized, so we return a Json.Null 
-        The client will get it from the js chunk.
-      *)
-      | Ptyp_arrow (_, _, _) -> [%expr React.Json `Null]
+      (* We need Obj.magic here because the type is not the same declared on the component *)
+      | Ptyp_arrow (_, _, _) -> [%expr React.Action (Obj.magic [%e prop])]
       | _ ->
           let json = [%expr [%to_json: [%t type_]] [%e prop]] in
           [%expr React.Json [%e json]])
@@ -668,7 +679,7 @@ let props_to_model ~loc (props : (arg_label * expression option * pattern) list)
     ~f:(fun acc (arg_label, _default, pattern) ->
       match pattern.ppat_desc with
       | Ppat_construct ({ txt = Lident "()"; _ }, None) -> acc
-      | Ppat_constraint (pattern, core_type) -> (
+      | Ppat_constraint (_, core_type) -> (
           match arg_label with
           | Nolabel ->
               (* This error is raised by reason-react-ppx as well *)
@@ -802,34 +813,6 @@ let raise_usage_of_client_components module_expr =
         ]
   | _ -> module_expr
 
-(*
-  TODO: Move this to the Server Action Ppx in the future?
-  This is a way to allow server actions to be used in JSX without interfering with common functions
-  because server actions on Native must be strings.
-*)
-let transform_pattern pattern =
-  let loc = pattern.ppat_loc in
-  match (mode.contents, pattern.ppat_desc) with
-  (* Here we need to change the type to string, since the server actions are IDs on Native *)
-  | Native, Ppat_constraint (inner_pattern, core_type) when has_server_action_attr core_type.ptyp_attributes ->
-      ppat_constraint ~loc:pattern.ppat_loc inner_pattern { core_type with ptyp_desc = Ptyp_var "string" }
-  (* Here we just ensure that the type is correct on JS *)
-  | Js, Ppat_constraint (_, core_type) when has_server_action_attr core_type.ptyp_attributes -> (
-      let return_type =
-        match core_type.ptyp_desc with
-        | Ptyp_arrow (_, _, core_type) -> core_type
-        | _ -> Location.raise_errorf ~loc "jsx: alias types are not supported for server actions yet"
-      in
-      match return_type with
-      | [%type: [%t? _] Js.Promise.t option] -> pattern
-      | [%type: [%t? _] Js.Promise.t] -> pattern
-      | _ ->
-          let loc = pattern.ppat_loc in
-          Location.raise_errorf ~loc
-            "jsx: server actions must return a Js.Promise.t('a), wrap your result in a promise: Js.Promise.t(%s)"
-            (Stdlib.Format.asprintf "%a" Ppxlib_ast.Pprintast.core_type return_type))
-  | _ -> pattern
-
 let rewrite_jsx =
   object (_)
     inherit [Expansion_context.Base.t] Ppxlib.Ast_traverse.map_with_context as super
@@ -838,24 +821,6 @@ let rewrite_jsx =
       match mode.contents with
       | Native -> rewrite_structure_item (super#structure_item ctx structure_item)
       | Js -> rewrite_structure_item_for_js ctx (super#structure_item ctx structure_item)
-
-    method! value_binding ctx value_binding =
-      let value_binding = super#value_binding ctx value_binding in
-      let transform_fun_argument expr =
-        let rec inner expr =
-          match expr.pexp_desc with
-          | Pexp_fun (label, def, patt, expression) ->
-              pexp_fun ~loc:expr.pexp_loc label def (transform_pattern patt) (inner expression)
-          | _ -> expr
-        in
-        inner expr
-      in
-      match mode.contents with
-      | Native ->
-          if isReactClientComponentBinding value_binding then
-            { value_binding with pvb_expr = transform_fun_argument value_binding.pvb_expr }
-          else value_binding
-      | Js -> value_binding
 
     method! signature_item ctx signature_item =
       match mode.contents with

@@ -139,7 +139,8 @@ module Page = {
           title="Server action from props on a Client Component"
           description="Server action via props on a Client Component, in this case the action reference is created on the client">
           <ServerActionFromPropsClient
-            actionOnClick=Actions.Samples.simpleResponse
+            // We need Obj.magic here because the type here is a string and does not match the type declared on the component
+            actionOnClick={Obj.magic(Actions.Samples.simpleResponse)}
           />
         </Section>
         <Hr />
@@ -151,9 +152,10 @@ module Page = {
         <Hr />
         <Section
           title="Server action with Dream.request"
-          description="Server action with Dream.request">
+          description="Server action with Dream.request that will execute a log with Dream.log">
           <ServerActionWithDreamRequest
-            logOnServer=Actions.Samples.simpleResponseWithRequest
+            // We need Obj.magic here because the type here is a string and does not match the type declared on the component
+            logOnServer={Obj.magic(Actions.Samples.log)}
           />
         </Section>
       </Stack>,

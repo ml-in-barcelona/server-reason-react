@@ -69,7 +69,7 @@ let createActionFromRequest = (request, values) => {
     request,
     stream => {
       let%lwt _stream =
-        ReactServerDOM.act(
+        ReactServerDOM.create_action_response(
           values,
           ~subscribe=chunk => {
             Dream.log("Action response");

@@ -214,7 +214,7 @@ module Model = struct
         let%lwt _ = Lwt_stream.iter_s subscribe stream in
         Lwt.return stream
 
-  let act ?subscribe value =
+  let create_action_response ?subscribe value =
     let initial_chunk_id = 0 in
     let stream, push, close = Push_stream.make () in
     let push_chunk id chunk =
@@ -537,4 +537,4 @@ let render_html ?(bootstrapScriptContent = "") ?(bootstrapScripts = []) ?(bootst
   Lwt.return (Html.to_string html, subscribe)
 
 let render_model = Model.render
-let act = Model.act
+let create_action_response = Model.create_action_response

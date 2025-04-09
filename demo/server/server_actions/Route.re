@@ -13,7 +13,6 @@ let actionsManifest = (id: string) => {
 let formDataManifest = (id: string) => {
   switch (id) {
   | id when Actions.demoActionFormDataSample == id => Actions.Samples.formDataRouteHandler
-  | id when Actions.demoActionFormDataServerOnly == id => Actions.Samples.formDataServerOnlyRouteHandler
   | _ => failwith("No action")
   };
 };
@@ -55,7 +54,8 @@ let actionsHandler = (~request, content, actionId) => {
         List.map(
           ((name, value)) => {
             // react-server-dom-webpack prefix the name with the id E.g.: ["1_name", "1_value"]
-            let form_prefix = chunkId ++ "_";
+            let form_prefix =
+              String.sub(chunkId, 2, String.length(chunkId) - 2) ++ "_";
             let key =
               String.sub(
                 name,

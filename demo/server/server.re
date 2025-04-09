@@ -28,7 +28,10 @@ let getAndPost = (path, handler) =>
                     FormData(formData),
                     actionId,
                   );
-                DreamRSC.createActionFromRequest(request, response);
+                DreamRSC.createActionFromRequest(
+                  request,
+                  React.Json(response),
+                );
               | _ => failwith("Something went wrong")
               }
             | _ =>
@@ -39,7 +42,10 @@ let getAndPost = (path, handler) =>
                   Body(body),
                   actionId,
                 );
-              DreamRSC.createActionFromRequest(request, response);
+              DreamRSC.createActionFromRequest(
+                request,
+                React.Json(response),
+              );
             };
 
           switch (actionId) {

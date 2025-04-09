@@ -6,7 +6,7 @@ module Form = {
     | Server =>
       // The contract for actionFn is a string for the actionId
       // For now I'm not handling the bound part, required by the react, we can do it later
-      <form actionFn=Actions.Samples.formDataServerOnly> children </form>
+      <form actionFn=Actions.Samples.formData> children </form>
     // This is a server component, but we need switch%platform to make it compile
     | Client => React.null
     };
