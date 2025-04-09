@@ -5,13 +5,6 @@ let demoRenderToStream = "/demo/renderToStream";
 let demoCreateFromFetch = "/demo/server-components-without-client";
 let demoCreateFromReadableStream = "/demo/server-components";
 let demoRouter = "/demo/router";
-let demoActionCreateNote = "create_note";
-let demoActionEditNote = "edit_note";
-let demoActionDeleteNote = "delete_note";
-let demoActionFormDataSample = "samples/form-data";
-let demoActionFormDataServerOnly = "samples/form-data-server-only";
-let demoActionSimpleResponse = "samples/simple-response";
-let demoActionComplexResponse = "samples/complex-response";
 
 let links = [|
   ("Render to string (renderToString)", demoRenderToString),

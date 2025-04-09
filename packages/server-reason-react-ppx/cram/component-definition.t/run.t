@@ -101,6 +101,16 @@ We need to output ML syntax here, otherwise refmt could not parse it.
             [ children ])
   end
   
+  module Form_with_method = struct
+    let make ?key:(_ : string option) ~children () =
+      React.Upper_case_component
+        (fun () ->
+          React.createElementWithKey ~key:None "form"
+            (Stdlib.List.filter_map Fun.id
+               [ Some (React.JSX.String ("method", "method", ("GET" : string))) ])
+            [ children ])
+  end
+  
   module Form_with_action = struct
     let make ?key:(_ : string option) ~children () =
       React.Upper_case_component

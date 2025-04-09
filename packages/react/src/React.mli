@@ -570,13 +570,13 @@ type element =
   | Consumer of element
   | Suspense of { key : string option; children : element; fallback : element }
 
-and client_props = (string * rsc_value) list
+and client_props = (string * client_value) list
 
-and rsc_value =
-  | Action : string -> rsc_value
-  | Json : Yojson.Basic.t -> rsc_value
-  | Element : element -> rsc_value
-  | Promise : 'a Js.Promise.t * ('a -> Yojson.Basic.t) -> rsc_value
+and client_value =
+  | Action : string -> client_value
+  | Json : Yojson.Basic.t -> client_value
+  | Element : element -> client_value
+  | Promise : 'a Js.Promise.t * ('a -> Yojson.Basic.t) -> client_value
 
 exception Invalid_children of string
 

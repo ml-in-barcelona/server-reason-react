@@ -15,23 +15,35 @@ let getAndPost = (path, handler) =>
           let actionId = Dream.header(request, "ACTION_ID");
           let contentType = Dream.header(request, "Content-Type");
           let action_response =
-            switch%lwt (Dream.multipart(request, ~csrf=false)) {
-            | `Ok(formData) =>
-              let%lwt response =
-                Server_actions.Route.actionsHandler(
-                  FormData(formData),
-                  actionId,
-                );
-              DreamRSC.createActionFromRequest(request, response);
+            switch (contentType) {
+            | Some(contentType)
+                when
+                  contentType
+                  |> String.starts_with(~prefix="multipart/form-data") =>
+              switch%lwt (Dream.multipart(request, ~csrf=false)) {
+              | `Ok(formData) =>
+                let%lwt response =
+                  Server_actions.Route.actionsHandler(
+                    ~request,
+                    FormData(formData),
+                    actionId,
+                  );
+                DreamRSC.createActionFromRequest(request, response);
+              | _ => failwith("Something went wrong")
+              }
             | _ =>
               let%lwt body = Dream.body(request);
               let%lwt response =
-                Server_actions.Route.actionsHandler(Body(body), actionId);
+                Server_actions.Route.actionsHandler(
+                  ~request,
+                  Body(body),
+                  actionId,
+                );
               DreamRSC.createActionFromRequest(request, response);
             };
 
           switch (actionId) {
-          | Some(actionId) =>
+          | Some(_) =>
             // If there is no action ID means that the page does not hydrate or has no JS.
             // Then we can execute the action and return the page.
             action_response

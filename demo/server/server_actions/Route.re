@@ -1,10 +1,10 @@
 // QUESTION: How should we create this manifest automatically?
 let actionsManifest = (id: string) => {
   switch (id) {
-  | id when Router.demoActionCreateNote == id => Actions.Notes.createRouteHandler
-  | id when Router.demoActionEditNote == id => Actions.Notes.editRouteHandler
-  | id when Router.demoActionDeleteNote == id => Actions.Notes.deleteRouteHandler
-  | id when Router.demoActionSimpleResponse == id => Actions.Samples.simpleResponseRouteHandler
+  | id when Actions.demoActionCreateNote == id => Actions.Notes.createRouteHandler
+  | id when Actions.demoActionEditNote == id => Actions.Notes.editRouteHandler
+  | id when Actions.demoActionDeleteNote == id => Actions.Notes.deleteRouteHandler
+  | id when Actions.demoActionSimpleResponse == id => Actions.Samples.simpleResponseRouteHandler
   | _ => failwith("No action")
   };
 };
@@ -12,9 +12,24 @@ let actionsManifest = (id: string) => {
 // QUESTION: How should we create this manifest automatically?
 let formDataManifest = (id: string) => {
   switch (id) {
-  | id when Router.demoActionFormDataSample == id => Actions.Samples.formDataRouteHandler
-  | id when Router.demoActionFormDataServerOnly == id => Actions.Samples.formDataServerOnlyRouteHandler
+  | id when Actions.demoActionFormDataSample == id => Actions.Samples.formDataRouteHandler
+  | id when Actions.demoActionFormDataServerOnly == id => Actions.Samples.formDataServerOnlyRouteHandler
   | _ => failwith("No action")
+  };
+};
+
+/*
+   Due to the issues that you can see at Actions.create (line 71), Actions.edit (line 136) and Actions.delete (line 192) functions we will have the args always as a list of a single list of args.
+   To parse it we need to get this first item that will indeed be the args and pass it further
+ */
+[@platform native]
+let getArgs = body => {
+  switch (Yojson.Basic.from_string(body)) {
+  | `List([`List(args)]) => args
+  | _ =>
+    failwith(
+      "Invalid args, this request was not created by server-reason-react",
+    )
   };
 };
 
@@ -22,23 +37,20 @@ type actionContent =
   | FormData(list((string, list((option(string), string)))))
   | Body(string);
 
-// This handler is agnostic to the server framework
 // The user of the code passes the content defined by the type actionContent and the actionId
-let actionsHandler = (contentType, actionId) => {
-  switch (contentType, actionId) {
+let actionsHandler = (~request, content, actionId) => {
+  switch (content, actionId) {
   | (FormData(formData), actionId) =>
-    // Getting the actionId from the formData as next.js does
     switch (formData, actionId) {
     // react-server-dom-webpack encode formData and put the first value as model reference E.g.:["$K1"], 1 is the id
     // QUESTION: Why is it like this? Is there a change to it be other than "$K"? Is there a way to get more ids?
     | ([(_, [(_, modelId)]), ...formData], Some(actionId)) =>
       let chunkId = Yojson.Basic.from_string(modelId);
       let chunkId =
-        chunkId
-        |> Yojson.Basic.Util.to_list
-        |> List.hd
-        |> Yojson.Basic.Util.to_string;
-      let chunkId = chunkId->String.sub(2, String.length(chunkId) - 2);
+        switch (chunkId) {
+        | `List([`String(chunkId)]) => chunkId
+        | _ => failwith("Invalid chunkId")
+        };
       let formData =
         List.map(
           ((name, value)) => {
@@ -58,24 +70,25 @@ let actionsHandler = (contentType, actionId) => {
       // have a better way to handle it
       let formData = formData |> List.to_seq |> Hashtbl.of_seq;
       let action = formDataManifest(actionId);
-      action(formData);
+      action(~request, formData);
     // without JS enabled or hydration
     | ([(_, [(_, actionId)]), ...formData], None)
         when actionId == "$ACTION_ID" =>
       let formData = formData |> List.to_seq |> Hashtbl.of_seq;
       let action = formDataManifest(actionId);
-      action(formData);
+      action(~request, formData);
     | _ =>
       failwith(
         "Missing $ACTION_ID, this formData was not created by server-reason-react",
       )
     }
+
   | (Body(body), Some(actionId)) =>
     let action = actionsManifest(actionId);
-    action(body);
+    action(~request, getArgs(body));
   | _ =>
     failwith(
-      "Missing $ACTION_ID, this formData was not created by server-reason-react",
+      "Missing ACTION_ID, this request was not created by server-reason-react",
     )
   };
 };

@@ -334,6 +334,32 @@ let client_with_element_props () =
       "0:\"$1\"\n";
     ]
 
+let client_with_promise_props () =
+  let app () =
+    React.Upper_case_component
+      (fun () ->
+        React.list
+          [
+            React.createElement "div" [] [ React.string "Server Content" ];
+            React.Client_component
+              {
+                props =
+                  [ ("promise", React.Promise (delayed_value ~ms:200 "||| Resolved |||", fun res -> `String res)) ];
+                client = React.string "Client with Props";
+                import_module = "./client-with-props.js";
+                import_name = "ClientWithProps";
+              };
+          ])
+  in
+  let%lwt stream = ReactServerDOM.render_model (app ()) in
+  assert_stream stream
+    [
+      "2:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n";
+      "1:[[\"$\",\"div\",null,{\"children\":\"Server Content\"}],[\"$\",\"$2\",null,{\"promise\":\"$@3\"}]]\n";
+      "0:\"$1\"\n";
+      "3:\"||| Resolved |||\"\n";
+    ]
+
 let mixed_server_and_client () =
   let app () =
     React.Upper_case_component
@@ -431,6 +457,7 @@ let tests =
     test "suspense_with_immediate_promise" suspense_with_immediate_promise;
     test "suspense" suspense;
     test "async_component_without_suspense" async_component_without_suspense;
+    test "client_with_promise_props" client_with_promise_props;
     test "async_component_without_suspense_immediate" async_component_without_suspense_immediate;
     test "mixed_server_and_client" mixed_server_and_client;
     test "client_with_json_props" client_with_json_props;

@@ -8,14 +8,6 @@ let tag = () => {
   assert_string(ReactDOM.renderToStaticMarkup(<div />), {|<div></div>|});
 };
 
-// Ensure that the method attribute is not breaking the code.
-let tag_with_method = () => {
-  assert_string(
-    ReactDOM.renderToStaticMarkup(<form method="GET" />),
-    {|<form method="GET"></form>|},
-  );
-};
-
 let empty_attribute = () => {
   assert_string(
     ReactDOM.renderToStaticMarkup(<div className="" />),
@@ -440,7 +432,6 @@ Alcotest.run(
   "server-reason-react.ppx",
   [
     test("tag", tag),
-    test("tag_with_method", tag_with_method),
     test("empty_attribute", empty_attribute),
     test("bool_attribute", bool_attribute),
     test("bool_attributes", bool_attributes),

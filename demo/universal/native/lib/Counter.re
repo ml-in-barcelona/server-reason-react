@@ -13,6 +13,7 @@ let make = (~initial: int) => {
 
   <Row align=`center gap=2>
     <Text color=Theme.Color.Gray11> "A classic counter" </Text>
+    <Button noteId=None> {React.string("Click me")} </Button>
     <button
       onClick={e => onClick(e)}
       className="font-mono border-2 py-1 px-2 rounded-lg bg-yellow-950 border-yellow-700 text-yellow-200 hover:bg-yellow-800">

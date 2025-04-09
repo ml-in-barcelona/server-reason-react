@@ -1,16 +1,19 @@
 /* TODO: Move this bindings into reason-react */
-type callServerCallback('a, 'b) = (string, list('a)) => Js.Promise.t('b);
-type options('a, 'b) = {callServer: callServerCallback('a, 'b)};
-type actionCallback('a, 'b) = 'a => Js.Promise.t('b);
+type callServerCallback('arg, 'result) =
+  (string, list('arg)) => Js.Promise.t('result);
+type options('arg, 'result) = {
+  callServer: callServerCallback('arg, 'result),
+};
+type actionCallback('arg, 'result) = 'arg => Js.Promise.t('result);
 [@mel.module "react-server-dom-webpack/client"]
 external createFromReadableStream:
-  (Webapi.ReadableStream.t, ~options: options('a, 'b)=?, unit) =>
-  Js.Promise.t('a) =
+  (Webapi.ReadableStream.t, ~options: options('arg, 'result)=?, unit) =>
+  Js.Promise.t('result) =
   "createFromReadableStream";
 
 [@mel.module "react-server-dom-webpack/client"]
 external createFromFetch:
-  (Js.Promise.t(Fetch.response), ~options: options('a, 'b)=?, unit) =>
+  (Js.Promise.t(Fetch.response), ~options: options('arg, 'result)=?, unit) =>
   React.element =
   "createFromFetch";
 
@@ -19,19 +22,19 @@ external createServerReferenceImpl:
   (
     string, // ServerReferenceId
     // CallServerCallback
-    callServerCallback('a, 'b),
-    // EncodeFormActionCallback (optional)
-    option(('a, 'b) => 'c),
-    // FindSourceMapURLCallback (optional, DEV-only)
-    option('e => string),
+    callServerCallback('arg, 'result),
+    // EncodeFormActionCallback (optional) (We're not using this right now)
+    option('encodeFormActionCallback),
+    // FindSourceMapURLCallback (optional, DEV-only) (We're not using this right now)
+    option('findSourceMapURLCallback),
     // functionName (optional)
     option(string)
   ) =>
-  actionCallback('d, 'b) =
+  actionCallback('arg, 'result) =
   "createServerReference";
 
 [@mel.module "react-server-dom-webpack/client"]
-external encodeReply: 'a => Js.Promise.t('b) = "encodeReply";
+external encodeReply: list('arg) => Js.Promise.t(string) = "encodeReply";
 
 let callServer = (path, args) => {
   let headers =

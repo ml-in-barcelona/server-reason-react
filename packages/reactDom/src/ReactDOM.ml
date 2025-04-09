@@ -18,10 +18,7 @@ let attribute_to_html attr =
   (* true attributes render solely the attribute name *)
   | Bool (name, _, true) -> Html.present name
   | Style styles -> Html.attribute "style" (ReactDOMStyle.to_string styles)
-  (*
-     When we have a Action prop, means that we have a `server action` and not a `string action` in this prop, them we don't render it
-     because the server action will be provided as a model and react will handle the rest.
-  *)
+  (* Action don't get rendered on SSR since they are handled by React from a chunk in the browser *)
   | Action (_name, _, _) -> Html.omitted ()
   | String (name, _, _value) when is_react_custom_attribute name -> Html.omitted ()
   | String (name, _, value) -> Html.attribute name value

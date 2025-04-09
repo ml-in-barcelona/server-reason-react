@@ -690,7 +690,7 @@ let formHTMLAttributes =
     Attribute { name = "enctype"; jsxName = "encType"; reasonJsxName = "encType"; type_ = String };
     Attribute { name = "action"; jsxName = "action"; reasonJsxName = "action"; type_ = String };
     Attribute { name = "action"; jsxName = "action"; reasonJsxName = "actionFn"; type_ = Action };
-    Attribute { name = "method"; jsxName = "method"; reasonJsxName = "method"; type_ = String };
+    Attribute { name = "method"; jsxName = "method"; reasonJsxName = "method_"; type_ = String };
     Attribute { name = "novalidate"; jsxName = "noValidate"; reasonJsxName = "noValidate"; type_ = Bool };
     Attribute { name = "target"; jsxName = "target"; reasonJsxName = "target"; type_ = String };
   ]

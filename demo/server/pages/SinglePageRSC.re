@@ -63,6 +63,11 @@ module Page = {
           title="Counter" description="Passing int into a client component">
           <Counter initial=45 />
         </Section>
+        <Section
+          title="Simple client component that uses a function prop"
+          description="This is a simple client component that consumes another client component and passes a function prop to it">
+          <ClientComponentWithFunctionProp />
+        </Section>
         <Hr />
         <Section
           title="Debug client props"
@@ -109,21 +114,47 @@ module Page = {
           <Promise_renderer promise=promiseIn4 />
         </Section>
         <Hr />
+        <h1
+          className={Cx.make([
+            "text-5xl",
+            "font-bold",
+            Theme.text(Theme.Color.Gray11),
+          ])}>
+          {React.string("Server actions")}
+        </h1>
+        <Hr />
         <Section
           title="Client component importing actions"
           description="Client component importing actions">
           <ServerActionFormData />
         </Section>
+        <Hr />
         <Section
           title="Server action from props on a Server Component"
-          description="Server action from props on a Server Component, in this case the action is never created on the client">
+          description="Server action via props on a Server Component, in this case the action is never created on the client">
           <ServerActionFromProps />
+        </Section>
+        <Hr />
+        <Section
+          title="Server action from props on a Client Component"
+          description="Server action via props on a Client Component, in this case the action reference is created on the client">
+          <ServerActionFromPropsClient
+            actionOnClick=Actions.Samples.simpleResponse
+          />
         </Section>
         <Hr />
         <Section
           title="Server action with simple response"
           description="Server action with simple response">
           <ServerActionWithSimpleResponse />
+        </Section>
+        <Hr />
+        <Section
+          title="Server action with Dream.request"
+          description="Server action with Dream.request">
+          <ServerActionWithDreamRequest
+            logOnServer=Actions.Samples.simpleResponseWithRequest
+          />
         </Section>
       </Stack>,
     );

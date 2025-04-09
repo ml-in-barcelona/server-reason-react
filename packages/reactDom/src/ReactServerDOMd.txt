@@ -18,8 +18,10 @@ module Fiber = struct
   (* let emit_html t html = t.emit_html html *)
 end
 
+let error name message = Printf.sprintf "E{ \"name\": \"%s\", \"message\": \"%s\" }" name message
+
 module Model = struct
-  type chunk_type = Chunk_value of json | Chunk_component_ref of json
+  type chunk_type = Chunk_value of (json, string) result | Chunk_component_ref of json
 
   type stream_context = {
     push : int -> chunk_type -> unit;
@@ -36,6 +38,7 @@ module Model = struct
   let style_to_json style = `Assoc (List.map (fun (_key, jsxKey, value) -> (jsxKey, `String value)) style)
   let lazy_value id = Printf.sprintf "$L%x" id
   let promise_value id = Printf.sprintf "$@%x" id
+  let error_value id = Printf.sprintf "$%x" id
   let ref_value id = Printf.sprintf "$%x" id
   let action_value id = Printf.sprintf "$F%x" id
 
@@ -54,7 +57,7 @@ module Model = struct
         context.chunk_id <- context.chunk_id + 1;
         let id = context.chunk_id in
         (* TODO: Handle the bound part, is a required field, for now we are passing null just to make it work *)
-        context.push id (Chunk_value (`Assoc [ ("id", `String action_id); ("bound", `Null) ]));
+        context.push id (Chunk_value (Ok (`Assoc [ ("id", `String action_id); ("bound", `Null) ])));
         Some (key, `String (action_value id))
 
   let props_to_json ~context props = List.filter_map (prop_to_json ~context) props
@@ -91,7 +94,7 @@ module Model = struct
   let model_to_chunk id json =
     let buf = Buffer.create (4 * 1024) in
     Buffer.add_string buf (Printf.sprintf "%x:" id);
-    Yojson.Basic.write_json buf json;
+    (match json with Ok json -> Yojson.Basic.write_json buf json | Error error -> Buffer.add_string buf error);
     Buffer.add_string buf "\n";
     Buffer.contents buf
 
@@ -123,7 +126,7 @@ module Model = struct
         (* Instead of returning the payload directly, we push it, and return a reference to it.
            This is how `react-server-dom-webpack/server` renderToPipeableStream works *)
         let index = use_chunk_id context in
-        context.push index (Chunk_value (element_to_payload ~context element));
+        context.push index (Chunk_value (Ok (element_to_payload ~context element)));
         `String (ref_value index)
     | Async_component component -> (
         let promise = component () in
@@ -136,7 +139,7 @@ module Model = struct
             Lwt.async (fun () ->
                 let%lwt element = promise in
                 context.pending <- context.pending - 1;
-                context.push index (Chunk_value (element_to_payload ~context element));
+                context.push index (Chunk_value (Ok (element_to_payload ~context element)));
                 if context.pending = 0 then context.close ();
                 Lwt.return ());
             `String (lazy_value index))
@@ -166,7 +169,7 @@ module Model = struct
             let chunk_id = use_chunk_id context in
             let json = value_to_json value in
             (* TODO: Make sure why we need a chunk here *)
-            context.push context.chunk_id (Chunk_value json);
+            context.push context.chunk_id (Chunk_value (Ok json));
             `String (promise_value chunk_id)
         | Sleep ->
             let chunk_id = use_chunk_id context in
@@ -175,7 +178,7 @@ module Model = struct
                 let%lwt value = promise in
                 let json = value_to_json value in
                 context.pending <- context.pending - 1;
-                context.push chunk_id (Chunk_value json);
+                context.push chunk_id (Chunk_value (Ok json));
                 if context.pending = 0 then context.close ();
                 Lwt.return ());
             `String (promise_value chunk_id)
@@ -185,8 +188,12 @@ module Model = struct
     | React.Action action_id ->
         let chunk_id = use_chunk_id context in
         let action_id = action_id in
-        context.push chunk_id (Chunk_value (`Assoc [ ("id", `String action_id); ("bound", `Null) ]));
+        context.push chunk_id (Chunk_value (Ok (`Assoc [ ("id", `String action_id); ("bound", `Null) ])));
         `String (action_value chunk_id)
+    | React.Error message ->
+        let chunk_id = use_chunk_id context in
+        context.push chunk_id (Chunk_value (Error (error "foo" message)));
+        `String (error_value chunk_id)
 
   and client_values_to_json ~context props =
     List.map
@@ -205,7 +212,7 @@ module Model = struct
     in
     let context : stream_context = { push = push_chunk; close; chunk_id = initial_chunk_id; pending = 0 } in
     let initial_chunk_id = get_chunk_id context in
-    context.push initial_chunk_id (Chunk_value (element_to_payload ~context element));
+    context.push initial_chunk_id (Chunk_value (Ok (element_to_payload ~context element)));
     if context.pending = 0 then context.close ();
     (* TODO: Currently returns the stream because of testing, in the future we can use subscribe to capture all chunks *)
     match subscribe with
@@ -225,7 +232,7 @@ module Model = struct
     let context : stream_context = { push = push_chunk; close; chunk_id = initial_chunk_id; pending = 0 } in
     let initial_chunk_id = get_chunk_id context in
     let json = client_value_to_json ~context value in
-    context.push initial_chunk_id (Chunk_value json);
+    context.push initial_chunk_id (Chunk_value (Ok json));
     if context.pending = 0 then context.close ();
     match subscribe with
     | None -> Lwt.return stream
@@ -375,10 +382,9 @@ let rec to_html ~fiber (element : React.element) : (Html.element * json) Lwt.t =
                 let index = Fiber.use_index fiber in
                 let sync = (name, `String (Model.promise_value index)) in
                 let async : Html.element Lwt.t =
-                  (* TODO: Add support for React.List, React.Assoc *)
                   let%lwt value = promise in
                   let json = value_to_json value in
-                  let ret = chunk_script (Model.model_to_chunk index json) in
+                  let ret = chunk_script (Model.model_to_chunk index (Ok json)) in
                   Lwt.return ret
                 in
                 context.pending <- context.pending + 1;
@@ -398,10 +404,17 @@ let rec to_html ~fiber (element : React.element) : (Html.element * json) Lwt.t =
                 let index = Fiber.use_index fiber in
                 let action_id = action in
                 let html =
-                  chunk_script (Model.model_to_chunk index (`Assoc [ ("id", `String action_id); ("bound", `Null) ]))
+                  chunk_script
+                    (Model.model_to_chunk index (Ok (`Assoc [ ("id", `String action_id); ("bound", `Null) ])))
                 in
                 context.push html;
-                Lwt.return (name, `String (Model.action_value index)))
+                Lwt.return (name, `String (Model.action_value index))
+            | React.Error message ->
+                let context = Fiber.get_context fiber in
+                let index = Fiber.use_index fiber in
+                let html = chunk_script (Model.model_to_chunk index (Error (error "foo" message))) in
+                context.push html;
+                Lwt.return (name, `String (Model.error_value index)))
           props
       in
       let lwt_html = client_to_html ~fiber client in
@@ -426,7 +439,7 @@ let rec to_html ~fiber (element : React.element) : (Html.element * json) Lwt.t =
               let%lwt () = fiber.finished in
               let%lwt html, model = promise in
               context.push (chunk_html_script index html);
-              context.push (client_value_chunk_script index model);
+              context.push (client_value_chunk_script index (Ok model));
               Lwt.wakeup_later parent_done ();
               context.pending <- context.pending - 1;
               if context.pending = 0 then context.close ();
@@ -488,7 +501,7 @@ let render_html ?(bootstrapScriptContent = "") ?(bootstrapScripts = []) ?(bootst
   let finished, parent_done = Lwt.wait () in
   let fiber : Fiber.t = { context; emit_html; finished } in
   let%lwt root_html, root_model = to_html ~fiber element in
-  let root_chunk = client_value_chunk_script initial_index root_model in
+  let root_chunk = client_value_chunk_script initial_index (Ok root_model) in
   let html_shell = Html.list [ Html.list !htmls; root_html; root_chunk ] in
   Lwt.wakeup_later parent_done ();
   context.pending <- context.pending - 1;
