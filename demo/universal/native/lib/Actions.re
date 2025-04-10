@@ -128,7 +128,6 @@ module Notes = {
     let%lwt response =
       switch%lwt (note) {
       | Ok(note) => Lwt.return(createNoteResponse(note))
-      // TODO: We need to handle the errors on React with React.client_value
       | Error(e) => failwith(e)
       };
 

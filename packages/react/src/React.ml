@@ -335,7 +335,6 @@ module JSX = struct
     | Media of (Event.Media.t -> unit)
     | Inline of string
 
-  (* TODO: Talk to check if Action is a proper name *)
   type prop =
     (* Action prop makes difference between a action as a string and a action as a server action *)
     (* (name, jsxName, action_id) *)

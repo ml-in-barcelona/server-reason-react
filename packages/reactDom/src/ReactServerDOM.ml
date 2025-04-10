@@ -53,7 +53,6 @@ module Model = struct
     | React.JSX.Action (_, key, action_id) ->
         context.chunk_id <- context.chunk_id + 1;
         let id = context.chunk_id in
-        (* TODO: Handle the bound part, is a required field, for now we are passing null just to make it work *)
         context.push id (Chunk_value (`Assoc [ ("id", `String action_id); ("bound", `Null) ]));
         Some (key, `String (action_value id))
 
@@ -375,7 +374,6 @@ let rec to_html ~fiber (element : React.element) : (Html.element * json) Lwt.t =
                 let index = Fiber.use_index fiber in
                 let sync = (name, `String (Model.promise_value index)) in
                 let async : Html.element Lwt.t =
-                  (* TODO: Add support for React.List, React.Assoc *)
                   let%lwt value = promise in
                   let json = value_to_json value in
                   let ret = chunk_script (Model.model_to_chunk index json) in
