@@ -434,6 +434,11 @@ let style_as_json () =
   assert_stream stream
     [ "0:[\"$\",\"div\",null,{\"style\":{\"zIndex\":\"34\",\"color\":\"red\",\"background\":\"blue\"}}]\n" ]
 
+let act_with_simple_response () =
+  let response = React.Json (`String "Server Content") in
+  let%lwt stream = ReactServerDOM.create_action_response response in
+  assert_stream stream [ "0:\"Server Content\"\n" ]
+
 let tests =
   [
     test "null_element" null_element;
@@ -452,11 +457,12 @@ let tests =
     test "suspense_with_immediate_promise" suspense_with_immediate_promise;
     test "suspense" suspense;
     test "async_component_without_suspense" async_component_without_suspense;
+    test "client_with_promise_props" client_with_promise_props;
     test "async_component_without_suspense_immediate" async_component_without_suspense_immediate;
     test "mixed_server_and_client" mixed_server_and_client;
     test "client_with_json_props" client_with_json_props;
     test "client_without_props" client_without_props;
     test "client_with_element_props" client_with_element_props;
-    test "client_with_promise_props" client_with_promise_props;
     test "client_with_server_children" client_with_server_children;
+    test "act_with_simple_response" act_with_simple_response;
   ]

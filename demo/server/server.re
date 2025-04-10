@@ -1,32 +1,98 @@
+// This will make possible to handle progressive enhancment on pages.
+// If there is no JS or hydration the page will make a POST request to the server
+// handling the action on the server and returning the page.
+// If there is JS, the page will make a POST request to the server with the action ID
+// and the server will return the action response.
+let getAndPost = (path, handler) =>
+  Dream.scope(
+    "/",
+    [],
+    [
+      Dream.get(path, handler),
+      Dream.post(
+        path,
+        request => {
+          let actionId = Dream.header(request, "ACTION_ID");
+          let contentType = Dream.header(request, "Content-Type");
+          let action_response =
+            switch (contentType) {
+            | Some(contentType)
+                when
+                  contentType
+                  |> String.starts_with(~prefix="multipart/form-data") =>
+              switch%lwt (Dream.multipart(request, ~csrf=false)) {
+              | `Ok(formData) =>
+                let%lwt response =
+                  Server_actions.Route.actionsHandler(
+                    ~request,
+                    FormData(formData),
+                    actionId,
+                  );
+                DreamRSC.createActionFromRequest(
+                  request,
+                  React.Json(response),
+                );
+              | _ => failwith("Something went wrong")
+              }
+            | _ =>
+              let%lwt body = Dream.body(request);
+              let%lwt response =
+                Server_actions.Route.actionsHandler(
+                  ~request,
+                  Body(body),
+                  actionId,
+                );
+              DreamRSC.createActionFromRequest(
+                request,
+                React.Json(response),
+              );
+            };
+
+          switch (actionId) {
+          | Some(_) =>
+            // If there is no action ID means that the page does not hydrate or has no JS.
+            // Then we can execute the action and return the page.
+            action_response
+          | None =>
+            // If there is no action ID means that the page does not hydrate or has no JS.
+            // Then we can execute the action and return the page.
+            // QUESTION: Should we handle the response here?
+            handler(request)
+          };
+        },
+      ),
+    ],
+  );
+
 let server =
   Dream.logger(
     Dream.router([
-      Dream.get("/", Pages.Home.handler),
+      getAndPost("/", Pages.Home.handler),
       Dream.get(
         "/static/**",
         Dream.static("./_build/default/demo/client/app"),
       ),
-      Dream.get(Router.demoRenderToString, _request =>
+      getAndPost(Router.demoRenderToString, _request =>
         Dream.html(
           ReactDOM.renderToString(
             <Document script="/static/demo/Hydrate.re.js"> <App /> </Document>,
           ),
         )
       ),
-      Dream.get(Router.demoRenderToStaticMarkup, _request =>
+      getAndPost(Router.demoRenderToStaticMarkup, _request =>
         Dream.html(
           ReactDOM.renderToStaticMarkup(
             <Document script="/static/demo/Hydrate.re.js"> <App /> </Document>,
           ),
         )
       ),
-      Dream.get(Router.demoRenderToStream, Pages.Comments.handler),
-      Dream.get(Router.demoCreateFromFetch, Pages.ServerOnlyRSC.handler),
-      Dream.get(
+      getAndPost(Router.demoRenderToStream, Pages.Comments.handler),
+      getAndPost(
         Router.demoCreateFromReadableStream,
         Pages.SinglePageRSC.handler,
       ),
-      Dream.get(Router.demoRouter, Pages.RouterRSC.handler),
+      getAndPost(Router.demoRouter, Pages.RouterRSC.handler),
+      getAndPost(Router.demoCreateFromFetch, Pages.ServerOnlyRSC.handler),
     ]),
   );
 

@@ -108,6 +108,51 @@ module Page = {
           description="Sending a promise from the server to the client">
           <Promise_renderer promise=promiseIn4 />
         </Section>
+        <Hr />
+        <h1
+          className={Cx.make([
+            "text-5xl",
+            "font-bold",
+            Theme.text(Theme.Color.Gray11),
+          ])}>
+          {React.string("Server actions")}
+        </h1>
+        <Hr />
+        <Section
+          title="Client component importing actions"
+          description="Client component importing actions">
+          <ServerActionFormData />
+        </Section>
+        <Hr />
+        <Section
+          title="Server action from props on a Server Component"
+          description="Server action via props on a Server Component, in this case the action is never created on the client">
+          <ServerActionFromProps />
+        </Section>
+        <Hr />
+        <Section
+          title="Server action from props on a Client Component"
+          description="Server action via props on a Client Component, in this case the action reference is created on the client">
+          <ServerActionFromPropsClient
+            // We need Obj.magic here because the type here is a string and does not match the type declared on the component
+            actionOnClick={Obj.magic(Actions.Samples.simpleResponse)}
+          />
+        </Section>
+        <Hr />
+        <Section
+          title="Server action with simple response"
+          description="Server action with simple response">
+          <ServerActionWithSimpleResponse />
+        </Section>
+        <Hr />
+        <Section
+          title="Server action with Dream.request"
+          description="Server action with Dream.request that will execute a log with Dream.log">
+          <ServerActionWithDreamRequest
+            // We need Obj.magic here because the type here is a string and does not match the type declared on the component
+            logOnServer={Obj.magic(Actions.Samples.log)}
+          />
+        </Section>
       </Stack>,
     );
   };
