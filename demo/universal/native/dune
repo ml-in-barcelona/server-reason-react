@@ -2,6 +2,7 @@
 
 (library
  (name demo_shared_native)
+ (flags :standard -w -26-27) ; browser_only removes code form the server, making this warning necessary
  (libraries
   react
   reactDOM

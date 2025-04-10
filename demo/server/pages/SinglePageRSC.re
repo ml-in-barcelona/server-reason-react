@@ -108,6 +108,27 @@ module Page = {
           description="Sending a promise from the server to the client">
           <Promise_renderer promise=promiseIn4 />
         </Section>
+        <Hr />
+        <h1
+          className={Cx.make([
+            "text-5xl",
+            "font-bold",
+            Theme.text(Theme.Color.Gray11),
+          ])}>
+          {React.string("Server actions")}
+        </h1>
+        <Hr />
+        <Section
+          title="Client component importing FormData actions"
+          description="Client component importing FormData actions">
+          <ServerActionFormData />
+        </Section>
+        <Hr />
+        <Section
+          title="Server action with simple response"
+          description="Server action with simple response">
+          <ServerActionWithSimpleResponse />
+        </Section>
       </Stack>,
     );
   };

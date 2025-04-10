@@ -7,62 +7,12 @@ external alert: string => unit = "window.alert";
 [@react.client.component]
 let make =
     (~noteId: option(int), ~initialTitle: string, ~initialBody: string) => {
-  let isDraft = Belt.Option.isNone(noteId);
+  let {navigate, _}: ClientRouter.t = ClientRouter.useRouter();
   let (title, setTitle) = RR.useStateValue(initialTitle);
   let (body, setBody) = RR.useStateValue(initialBody);
+  let (isSaving, setIsSaving) = RR.useStateValue(false);
   let router = Router.useRouter();
-  let (isNavigating, _startNavigating) = React.useTransition();
-
-  let endpoint =
-    switch (noteId) {
-    | Some(id) => "/notes/" ++ Int.to_string(id)
-    | None => "/notes"
-    };
-
-  let method_ =
-    switch (noteId) {
-    | Some(_) => "PUT"
-    | None => "POST"
-    };
-
-  let (saveNote, isSaving) = router.useAction(endpoint, method_);
-
-  let (deleteNote, isDeleting) =
-    router.useAction(
-      switch (noteId) {
-      | Some(id) => "/notes/" ++ Int.to_string(id)
-      | None => "/notes"
-      },
-      "DELETE",
-    );
-
-  let%browser_only _handleSave = () => {
-    let payload: Router.payload = {
-      title,
-      body,
-    };
-    let requestedLocation: Router.location = {
-      selectedId: noteId,
-      isEditing: false,
-      searchText: router.location.searchText,
-    };
-    Js.log(requestedLocation);
-    Js.log(saveNote);
-    saveNote(payload, requestedLocation, ());
-  };
-
-  let%browser_only _handleDelete = () => {
-    let payload: Router.payload = {
-      title: "",
-      body: "",
-    };
-    let requestedLocation: Router.location = {
-      selectedId: None,
-      isEditing: false,
-      searchText: router.location.searchText,
-    };
-    deleteNote(payload, requestedLocation, ());
-  };
+  let (isNavigating, startNavigating) = React.useTransition();
 
   let%browser_only onChangeTitle = e => {
     let newValue = React.Event.Form.target(e)##value;
@@ -87,19 +37,34 @@ let make =
         <button
           className=Theme.button
           disabled={isSaving || isNavigating}
-          onClick={_ => alert("Server actions aren't implemented yet")}
+          onClick=[%browser_only
+            _ => {
+              let action =
+                switch (noteId) {
+                | Some(id) => Actions.Notes.edit(~id, ~title, ~content=body)
+                | None => Actions.Notes.create(~title, ~content=body)
+                };
+
+              action
+              |> Js.Promise.then_((result: Note.t) => {
+                   let id = result.id;
+                   navigate({
+                     selectedId: Some(id),
+                     isEditing: false,
+                     searchText: None,
+                   });
+                   Js.Promise.resolve();
+                 })
+              |> ignore;
+            }
+          ]
           role="menuitem">
           {React.string("Done")}
         </button>
-        {!isDraft
-           ? <button
-               className=Theme.button
-               disabled={isDeleting || isNavigating}
-               onClick={_ => alert("Server actions aren't implemented yet")}
-               role="menuitem">
-               {React.string("Delete")}
-             </button>
-           : React.null}
+        {switch (noteId) {
+         | Some(id) => <DeleteNoteButton noteId=id />
+         | None => React.null
+         }}
       </div>
       <NotePreview key="note-preview" body />
     </div>

@@ -386,13 +386,14 @@ type element =
   | Consumer of element
   | Suspense of { key : string option; children : element; fallback : element }
 
-and client_props = (string * client_prop) list
+and client_props = (string * client_value) list
 
-and client_prop =
+and client_value =
   (* TODO: Do we need to add more types here? *)
-  | Json : Yojson.Basic.t -> client_prop
-  | Element : element -> client_prop
-  | Promise : 'a Js.Promise.t * ('a -> Yojson.Basic.t) -> client_prop
+  | Action : string -> client_value
+  | Json : Yojson.Basic.t -> client_value
+  | Element : element -> client_value
+  | Promise : 'a Js.Promise.t * ('a -> Yojson.Basic.t) -> client_value
 
 exception Invalid_children of string
 

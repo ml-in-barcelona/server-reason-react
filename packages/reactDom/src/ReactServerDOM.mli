@@ -6,3 +6,4 @@ val render_html :
   (string * ((string -> unit Lwt.t) -> unit Lwt.t)) Lwt.t
 
 val render_model : ?subscribe:(string -> unit Lwt.t) -> React.element -> string Lwt_stream.t Lwt.t
+val createActionResponse : ?subscribe:(string -> unit Lwt.t) -> React.client_value -> string Lwt_stream.t Lwt.t
