@@ -11,10 +11,5 @@ let fetch =
     Router.demoCreateFromFetch,
     Fetch.RequestInit.make(~method_=Fetch.Get, ~headers, ()),
   );
-let app =
-  ReactServerDOMWebpack.createFromFetch(
-    fetch,
-    ~options={callServer: ReactServerDOMWebpack.callServer},
-    (),
-  );
+let app = ReactServerDOMWebpack.createFromFetch(fetch);
 ReactDOM.Client.render(root, app);

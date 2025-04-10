@@ -63,11 +63,6 @@ module Page = {
           title="Counter" description="Passing int into a client component">
           <Counter initial=45 />
         </Section>
-        <Section
-          title="Simple client component that uses a function prop"
-          description="This is a simple client component that consumes another client component and passes a function prop to it">
-          <ClientComponentWithFunctionProp />
-        </Section>
         <Hr />
         <Section
           title="Debug client props"

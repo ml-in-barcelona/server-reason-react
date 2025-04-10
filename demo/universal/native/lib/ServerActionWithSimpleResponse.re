@@ -22,7 +22,7 @@ let make = () => {
           |> ignore;
         }
       ]>
-      {React.string("Action with Promise")}
+      {React.string("Action with simple response")}
     </button>
   </div>;
 };

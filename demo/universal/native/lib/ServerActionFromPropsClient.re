@@ -1,6 +1,5 @@
 [@react.client.component]
-let make =
-    (~actionOnClick: [@react.server.action] (unit => Js.Promise.t(string))) => {
+let make = (~actionOnClick: unit => Js.Promise.t(string)) => {
   let (isLoading, setIsLoading) = RR.useStateValue(false);
   let (message, setMessage) = RR.useStateValue("");
   <div>

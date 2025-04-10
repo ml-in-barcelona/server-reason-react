@@ -6,13 +6,13 @@ type options('arg, 'result) = {
 };
 type actionCallback('arg, 'result) = 'arg => Js.Promise.t('result);
 [@mel.module "react-server-dom-webpack/client"]
-external createFromReadableStream:
+external createFromReadableStreamImpl:
   (Webapi.ReadableStream.t, ~options: options('arg, 'result)=?, unit) =>
   Js.Promise.t('result) =
   "createFromReadableStream";
 
 [@mel.module "react-server-dom-webpack/client"]
-external createFromFetch:
+external createFromFetchImpl:
   (Js.Promise.t(Fetch.response), ~options: options('arg, 'result)=?, unit) =>
   React.element =
   "createFromFetch";
@@ -51,9 +51,21 @@ let callServer = (path, args) => {
        )
        |> Js.Promise.then_(result => {
             let body = Fetch.Response.body(result);
-            createFromReadableStream(body, ());
+            createFromReadableStreamImpl(body, ());
           });
      });
+};
+
+let createFromReadableStream = stream => {
+  createFromReadableStreamImpl(
+    stream,
+    ~options={callServer: callServer},
+    (),
+  );
+};
+
+let createFromFetch = promise => {
+  createFromFetchImpl(promise, ~options={callServer: callServer}, ());
 };
 
 let createServerReference = (serverReferenceId, functionName) => {

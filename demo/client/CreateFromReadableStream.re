@@ -13,11 +13,7 @@ external startTransition: (unit => unit) => unit = "startTransition";
 
 try({
   let promise =
-    ReactServerDOMWebpack.createFromReadableStream(
-      readable_stream,
-      ~options={callServer: ReactServerDOMWebpack.callServer},
-      (),
-    );
+    ReactServerDOMWebpack.createFromReadableStream(readable_stream);
   let body =
     Webapi.Dom.document
     ->Webapi.Dom.Document.asHtmlDocument
