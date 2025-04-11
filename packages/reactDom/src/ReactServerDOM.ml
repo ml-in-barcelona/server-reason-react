@@ -181,7 +181,7 @@ module Model = struct
         | Fail exn ->
             (* TODO: Can we check if raise is good heres? *)
             raise exn)
-    | React.Action action_id ->
+    | React.Function action_id ->
         let chunk_id = use_chunk_id context in
         let action_id = action_id in
         context.push chunk_id (Chunk_value (`Assoc [ ("id", `String action_id); ("bound", `Null) ]));
@@ -391,7 +391,7 @@ let rec to_html ~fiber (element : React.element) : (Html.element * json) Lwt.t =
                     Lwt.return ());
                 Lwt.return sync
             | React.Json json -> Lwt.return (name, json)
-            | React.Action action ->
+            | React.Function action ->
                 let context = Fiber.get_context fiber in
                 let index = Fiber.use_index fiber in
                 let action_id = action in

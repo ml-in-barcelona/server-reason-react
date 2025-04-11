@@ -662,14 +662,14 @@ let make_to_json ~loc (core_type : core_type) prop =
       match inner_type.ptyp_desc with
       | Ptyp_arrow (_, _, _) ->
           (* We need Obj.magic here because the type is not the same declared on the component *)
-          [%expr match [%e prop] with Some prop -> React.Action (Obj.magic prop) | None -> React.Json `Null]
+          [%expr match [%e prop] with Some prop -> React.Function (Obj.magic prop) | None -> React.Json `Null]
       | _ ->
           let json = [%expr [%to_json: [%t type_]] [%e prop]] in
           [%expr React.Json [%e json]])
   | type_ -> (
       match type_.ptyp_desc with
       (* We need Obj.magic here because the type is not the same declared on the component *)
-      | Ptyp_arrow (_, _, _) -> [%expr React.Action (Obj.magic [%e prop])]
+      | Ptyp_arrow (_, _, _) -> [%expr React.Function (Obj.magic [%e prop])]
       | _ ->
           let json = [%expr [%to_json: [%t type_]] [%e prop]] in
           [%expr React.Json [%e json]])
