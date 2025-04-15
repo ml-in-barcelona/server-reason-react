@@ -24,9 +24,10 @@ let formDataManifest = (id: string) => {
 [@platform native]
 let getArgs = body => {
   switch (Yojson.Basic.from_string(body)) {
-  | `List([`List(args)]) => args
   // When there is no args, the react will send a list with a single string "$undefined"
+  // TODO: Create a Helper to "parse" special values like "$undefined"
   | `List([`String("$undefined")]) => []
+  | `List(args) => args
   | _ =>
     failwith(
       "Invalid args, this request was not created by server-reason-react",

@@ -4,7 +4,7 @@ type callServerCallback('arg, 'result) =
 type options('arg, 'result) = {
   callServer: callServerCallback('arg, 'result),
 };
-type actionCallback('arg, 'result) = 'arg => Js.Promise.t('result);
+
 [@mel.module "react-server-dom-webpack/client"]
 external createFromReadableStreamImpl:
   (Webapi.ReadableStream.t, ~options: options('arg, 'result)=?, unit) =>
@@ -30,7 +30,9 @@ external createServerReferenceImpl:
     // functionName (optional)
     option(string)
   ) =>
-  actionCallback('arg, 'result) =
+  // actionCallback is a function that takes N arguments and returns a promise
+  // As we don't have control over the number of arguments, we need to pass it as 'actionCallback
+  'actionCallback =
   "createServerReference";
 
 [@mel.module "react-server-dom-webpack/client"]
