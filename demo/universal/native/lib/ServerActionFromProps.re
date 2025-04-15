@@ -1,22 +1,10 @@
-module Form = {
-  [@warning "-27"];
-  [@react.component]
-  let make = (~children=React.null) =>
-    switch%platform () {
-    | Server =>
-      // The contract for actionFn is a string for the actionId
-      // For now I'm not handling the bound part, required by the react, we can do it later
-      <form actionFn=Actions.Samples.formData> children </form>
-    // This is a server component, but we need switch%platform to make it compile
-    | Client => React.null
-    };
-};
-
 [@warning "-26-27-32"];
+[@platform native]
 [@react.component]
+// Just here to avoid the warning about the actionFn on JS
 let make = () => {
   <div>
-    <Form>
+    <form actionFn=Actions.Samples.formDataId>
       <input
         name="name"
         className="w-full mb-2 font-sans border border-gray-300 py-2 px-4 rounded-md bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
@@ -37,6 +25,6 @@ let make = () => {
         type_="submit">
         {React.string("Send Form Data")}
       </button>
-    </Form>
+    </form>
   </div>;
 };

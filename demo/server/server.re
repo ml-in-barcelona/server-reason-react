@@ -24,7 +24,6 @@ let getAndPost = (path, handler) =>
               | `Ok(formData) =>
                 let%lwt response =
                   Server_actions.Route.actionsHandler(
-                    ~request,
                     FormData(formData),
                     actionId,
                   );
@@ -37,11 +36,7 @@ let getAndPost = (path, handler) =>
             | _ =>
               let%lwt body = Dream.body(request);
               let%lwt response =
-                Server_actions.Route.actionsHandler(
-                  ~request,
-                  Body(body),
-                  actionId,
-                );
+                Server_actions.Route.actionsHandler(Body(body), actionId);
               DreamRSC.createActionFromRequest(
                 request,
                 React.Json(response),

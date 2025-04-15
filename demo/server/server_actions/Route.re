@@ -1,10 +1,10 @@
 // QUESTION: How should we create this manifest automatically?
 let actionsManifest = (id: string) => {
   switch (id) {
-  | id when Actions.demoActionCreateNote == id => Actions.Notes.createRouteHandler
-  | id when Actions.demoActionEditNote == id => Actions.Notes.editRouteHandler
-  | id when Actions.demoActionDeleteNote == id => Actions.Notes.deleteRouteHandler
-  | id when Actions.demoActionSimpleResponse == id => Actions.Samples.simpleResponseRouteHandler
+  | id when Actions.Notes.createId == id => Actions.Notes.createRouteHandler
+  | id when Actions.Notes.editId == id => Actions.Notes.editRouteHandler
+  | id when Actions.Notes.deleteId == id => Actions.Notes.deleteRouteHandler
+  | id when Actions.Samples.simpleResponseId == id => Actions.Samples.simpleResponseRouteHandler
   | _ => failwith("No action")
   };
 };
@@ -12,7 +12,7 @@ let actionsManifest = (id: string) => {
 // QUESTION: How should we create this manifest automatically?
 let formDataManifest = (id: string) => {
   switch (id) {
-  | id when Actions.demoActionFormDataSample == id => Actions.Samples.formDataRouteHandler
+  | id when Actions.Samples.formDataId == id => Actions.Samples.formDataRouteHandler
   | _ => failwith("No action")
   };
 };
@@ -24,9 +24,9 @@ let formDataManifest = (id: string) => {
 [@platform native]
 let getArgs = body => {
   switch (Yojson.Basic.from_string(body)) {
-  | `List([`List(args)]) => args
   // When there is no args, the react will send a list with a single string "$undefined"
   | `List([`String("$undefined")]) => []
+  | `List(args) => args
   | _ =>
     failwith(
       "Invalid args, this request was not created by server-reason-react",
@@ -39,7 +39,7 @@ type actionContent =
   | Body(string);
 
 // The user of the code passes the content defined by the type actionContent and the actionId
-let actionsHandler = (~request, content, actionId) => {
+let actionsHandler = (content, actionId) => {
   switch (content, actionId) {
   | (FormData(formData), actionId) =>
     switch (formData, actionId) {
@@ -72,13 +72,13 @@ let actionsHandler = (~request, content, actionId) => {
       // have a better way to handle it
       let formData = formData |> List.to_seq |> Hashtbl.of_seq;
       let action = formDataManifest(actionId);
-      action(~request, formData);
+      action(formData);
     // without JS enabled or hydration
     | ([(_, [(_, actionId)]), ...formData], None)
         when actionId == "$ACTION_ID" =>
       let formData = formData |> List.to_seq |> Hashtbl.of_seq;
       let action = formDataManifest(actionId);
-      action(~request, formData);
+      action(formData);
     | _ =>
       failwith(
         "Missing $ACTION_ID, this formData was not created by server-reason-react",
@@ -87,7 +87,7 @@ let actionsHandler = (~request, content, actionId) => {
 
   | (Body(body), Some(actionId)) =>
     let action = actionsManifest(actionId);
-    action(~request, getArgs(body));
+    action(getArgs(body));
   | _ =>
     failwith(
       "Missing ACTION_ID, this request was not created by server-reason-react",
