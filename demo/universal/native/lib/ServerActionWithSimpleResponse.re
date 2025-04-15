@@ -24,5 +24,6 @@ let make = () => {
       ]>
       {React.string("Action with simple response")}
     </button>
+    <div> <Text> message </Text> </div>
   </div>;
 };

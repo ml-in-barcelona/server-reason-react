@@ -393,7 +393,6 @@ and client_props = (string * client_value) list
 
 and client_value =
   (* TODO: Do we need to add more types here? *)
-  | Action : string -> client_value
   | Json : Yojson.Basic.t -> client_value
   | Element : element -> client_value
   | Promise : 'a Js.Promise.t * ('a -> Yojson.Basic.t) -> client_value
