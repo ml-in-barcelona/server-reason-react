@@ -25,6 +25,7 @@ let formDataManifest = (id: string) => {
 let getArgs = body => {
   switch (Yojson.Basic.from_string(body)) {
   // When there is no args, the react will send a list with a single string "$undefined"
+  // TODO: Create a Helper to "parse" special values like "$undefined"
   | `List([`String("$undefined")]) => []
   | `List(args) => args
   | _ =>
