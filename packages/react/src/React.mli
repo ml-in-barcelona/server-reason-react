@@ -518,7 +518,7 @@ module JSX : sig
   (** JSX.prop is the representation of HTML/SVG attributes and DOM events *)
   type prop =
     (* Action prop makes difference between a action as a string and a action as a server action *)
-    | Action of (string * string * string)
+    | Action : (string * string * 'f Runtime.React.server_function) -> prop
     | Bool of (string * string * bool)
     | String of (string * string * string)
     | Style of (string * string * string) list
@@ -574,6 +574,7 @@ type element =
 and client_props = (string * client_value) list
 
 and client_value =
+  | Function : 'f Runtime.React.server_function -> client_value
   | Json : Yojson.Basic.t -> client_value
   | Element : element -> client_value
   | Promise : 'a Js.Promise.t * ('a -> Yojson.Basic.t) -> client_value

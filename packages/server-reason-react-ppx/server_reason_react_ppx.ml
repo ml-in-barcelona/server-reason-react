@@ -95,10 +95,14 @@ let make_prop ~is_optional ~prop attribute_value =
   match (prop, is_optional) with
   | Attribute { type_ = DomProps.Action; name; jsxName }, false ->
       [%expr
-        Some (React.JSX.Action ([%e estring ~loc name], [%e estring ~loc jsxName], ([%e attribute_value] : string)))]
+        Some
+          (React.JSX.Action
+             ( [%e estring ~loc name],
+               [%e estring ~loc jsxName],
+               ([%e attribute_value] : 'callback Runtime.React.server_function) ))]
   | Attribute { type_ = DomProps.Action; name; jsxName }, true ->
       [%expr
-        match ([%e attribute_value] : string option) with
+        match ([%e attribute_value] : 'callback Runtime.React.server_function option) with
         | None -> None
         | Some v -> Some (React.JSX.Action ([%e estring ~loc name], [%e estring ~loc jsxName], v))]
   | Attribute { type_ = DomProps.String; name; jsxName }, false ->
@@ -533,14 +537,8 @@ let make_of_json ~loc (core_type : core_type) prop =
            Js.Dict.set promise' "__promise" promise;
            promise] *)
   | [%type: [%t? t] Js.Promise.t] -> [%expr ([%e prop] : [%t t] Js.Promise.t)]
-  | [%type: [%t? inner_type] option] as type_ -> (
-      match inner_type.ptyp_desc with
-      | Ptyp_arrow (_, _, _) -> [%expr ([%e prop] : [%t type_])]
-      | _ -> [%expr [%of_json: [%t type_]] [%e prop]])
-  | type_ -> (
-      match type_.ptyp_desc with
-      | Ptyp_arrow (_, _, _) -> [%expr ([%e prop] : [%t type_])]
-      | _ -> [%expr [%of_json: [%t type_]] [%e prop]])
+  | [%type: [%t? t] Runtime.React.server_function] -> [%expr ([%e prop] : [%t t] Runtime.React.server_function)]
+  | type_ -> [%expr [%of_json: [%t type_]] [%e prop]]
 
 let props_of_model ~loc (props : (arg_label * expression option * pattern) list) : (longident loc * expression) list =
   List.filter_map
@@ -658,6 +656,7 @@ let make_to_json ~loc (core_type : core_type) prop =
       let json = [%expr [%to_json: [%t inner_type]]] in
       [%expr
         match [%e prop] with Some prop -> [%expr React.Promise ([%e prop], [%e json])] | None -> React.Json `Null]
+  | [%type: [%t? _] Runtime.React.server_function] -> [%expr React.Function [%e prop]]
   | type_ ->
       let json = [%expr [%to_json: [%t type_]] [%e prop]] in
       [%expr React.Json [%e json]]

@@ -125,6 +125,14 @@ module Page = {
         </Section>
         <Hr />
         <Section
+          title="Server action from props on a Client Component"
+          description="Server action via props on a Client Component, in this case the action is never created on the client">
+          <ServerActionFromPropsClient
+            actionOnClick=Actions.Samples.simpleResponse
+          />
+        </Section>
+        <Hr />
+        <Section
           title="Server action from props on a Server Component"
           description="Server action via props on a Server Component, in this case the action is never created on the client">
           <ServerActionFromProps />

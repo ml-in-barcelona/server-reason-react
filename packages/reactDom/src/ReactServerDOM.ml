@@ -50,9 +50,10 @@ module Model = struct
     | React.JSX.DangerouslyInnerHtml html -> Some ("dangerouslySetInnerHTML", `Assoc [ ("__html", `String html) ])
     | React.JSX.Ref _ -> None
     | React.JSX.Event _ -> None
-    | React.JSX.Action (_, key, action_id) ->
+    | React.JSX.Action (_, key, action) ->
         context.chunk_id <- context.chunk_id + 1;
         let id = context.chunk_id in
+        let action_id = match action.id with Some id -> id | None -> failwith "Action ID is required" in
         context.push id (Chunk_value (`Assoc [ ("id", `String action_id); ("bound", `Null) ]));
         Some (key, `String (action_value id))
 
@@ -181,6 +182,13 @@ module Model = struct
         | Fail exn ->
             (* TODO: Can we check if raise is good heres? *)
             raise exn)
+    | React.Function action ->
+        let chunk_id = use_chunk_id context in
+        let action_id =
+          match action.id with Some id -> id | None -> raise (Invalid_argument "Action ID is required")
+        in
+        context.push chunk_id (Chunk_value (`Assoc [ ("id", `String action_id); ("bound", `Null) ]));
+        `String (action_value chunk_id)
 
   and client_values_to_json ~context props =
     List.map
@@ -385,7 +393,18 @@ let rec to_html ~fiber (element : React.element) : (Html.element * json) Lwt.t =
                     if context.pending = 0 then context.close ();
                     Lwt.return ());
                 Lwt.return sync
-            | React.Json json -> Lwt.return (name, json))
+            | React.Json json -> Lwt.return (name, json)
+            | React.Function action ->
+                let context = Fiber.get_context fiber in
+                let index = Fiber.use_index fiber in
+                let action_id =
+                  match action.id with Some id -> id | None -> raise (Invalid_argument "Action ID is required")
+                in
+                let html =
+                  chunk_script (Model.model_to_chunk index (`Assoc [ ("id", `String action_id); ("bound", `Null) ]))
+                in
+                context.push html;
+                Lwt.return (name, `String (Model.action_value index)))
           props
       in
       let lwt_html = client_to_html ~fiber client in

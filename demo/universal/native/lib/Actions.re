@@ -32,7 +32,7 @@ module Notes = {
     let note = DB.addNote(~title, ~content);
     let%lwt response =
       switch%lwt (note) {
-      | Ok(note) => Lwt.return(createNoteResponse(note))
+      | Ok(note) => Lwt.return(note)
       | Error(e) => failwith(e)
       };
     Lwt.return(response);
@@ -62,24 +62,29 @@ module Notes = {
         )
       };
 
-    createHandler(~title, ~content);
+    createHandler(~title, ~content) |> Lwt.map(createNoteResponse);
   };
 
   // This is the action generated to be used under the hood for the server and client
   let create =
     switch%platform () {
-    | Server => createHandler
-    | Client => (
-        (~title, ~content) => {
-          // Register the action for the client
-          let action =
-            ReactServerDOMWebpack.createServerReference(
-              createId,
-              Some("create"),
-            );
-          action(. title, content);
-        }
-      )
+    | Server => {
+        Runtime.React.id: Some(createId),
+        call: ((. ~title, ~content) => createHandler(~title, ~content)),
+      }
+    | Client => {
+        Runtime.React.id: Some(createId),
+        call: (
+          (. ~title, ~content) => {
+            let action =
+              ReactServerDOMWebpack.createServerReference(
+                createId,
+                Some("create"),
+              );
+            action(. title, content);
+          }
+        ),
+      }
     };
 
   // Lets say this is the server action declared by the end-user
@@ -103,7 +108,7 @@ module Notes = {
     let note = DB.editNote(~id, ~title, ~content);
     let%lwt response =
       switch%lwt (note) {
-      | Ok(note) => Lwt.return(createNoteResponse(note))
+      | Ok(note) => Lwt.return(note)
       | Error(e) => failwith(e)
       };
 
@@ -136,24 +141,31 @@ module Notes = {
         )
       };
 
-    editHandler(~id, ~title, ~content);
+    editHandler(. ~id, ~title, ~content) |> Lwt.map(createNoteResponse);
   };
 
   // This is the action generated to be used under the hood for the server and client
   let edit =
     switch%platform () {
-    | Server => editHandler
-    | Client => (
-        (~id, ~title, ~content) => {
-          let action =
-            ReactServerDOMWebpack.createServerReference(
-              editId,
-              Some("edit"),
-            );
-
-          action(. id, title, content);
-        }
-      )
+    | Server => {
+        Runtime.React.id: Some(editId),
+        call: (
+          (. ~id, ~title, ~content) => editHandler(. ~id, ~title, ~content)
+        ),
+      }
+    | Client => {
+        Runtime.React.id: Some(editId),
+        call: (
+          (. ~id, ~title, ~content) => {
+            let action =
+              ReactServerDOMWebpack.createServerReference(
+                editId,
+                Some("edit"),
+              );
+            action(. id, title, content);
+          }
+        ),
+      }
     };
 
   // Lets say this is the server action declared by the end-user
@@ -171,8 +183,7 @@ module Notes = {
   [@platform native]
   let deleteHandler = (~id) => {
     let _ = DB.deleteNote(id);
-    let response = `String("Note deleted");
-    Lwt.return(response);
+    Lwt.return("Note deleted");
   };
 
   // This is the router  handler that will handle parsing the args and calling the handler the user declared
@@ -197,24 +208,30 @@ module Notes = {
         )
       };
 
-    deleteHandler(~id);
+    deleteHandler(~id) |> Lwt.map(response => `String(response));
   };
 
   // This is the action generated to be used under the hood for the server and client
   let delete =
     switch%platform () {
-    | Server => deleteHandler
-    | Client => (
-        (~id) => {
-          let action =
-            ReactServerDOMWebpack.createServerReference(
-              deleteId,
-              Some("delete"),
-            );
+    | Server => {
+        Runtime.React.id: Some(deleteId),
+        call: ((. ~id) => deleteHandler(~id)),
+      }
+    | Client => {
+        Runtime.React.id: Some(deleteId),
+        call: (
+          (. ~id) => {
+            let action =
+              ReactServerDOMWebpack.createServerReference(
+                deleteId,
+                Some("delete"),
+              );
 
-          action(. [|id|]);
-        }
-      )
+            action(. id);
+          }
+        ),
+      }
     };
 };
 
@@ -247,7 +264,7 @@ module Samples = {
 
     Dream.log("Hello %s %s, you are %s years old", name, lastName, age);
 
-    Lwt.return(`String("Hello from server with form data action"));
+    Lwt.return("Hello from server with form data action");
   };
 
   // This is the router  handler that will handle parsing the args and calling the handler the user declared
@@ -255,22 +272,28 @@ module Samples = {
   // As the user didn't declare a request on the action, we don't need to pass it to the handler
   [@platform native]
   let formDataRouteHandler = formData => {
-    formDataHandler(formData);
+    formDataHandler(formData) |> Lwt.map(response => `String(response));
   };
 
   let formData =
     switch%platform () {
-    | Server => formDataHandler
-    | Client => (
-        formData => {
-          let action =
-            ReactServerDOMWebpack.createServerReference(
-              formDataId,
-              Some("formData"),
-            );
-          action(. formData);
-        }
-      )
+    | Server => {
+        Runtime.React.id: Some(formDataId),
+        call: ((. formData) => formDataHandler(formData)),
+      }
+    | Client => {
+        Runtime.React.id: Some(formDataId),
+        call: (
+          (. formData) => {
+            let action =
+              ReactServerDOMWebpack.createServerReference(
+                formDataId,
+                Some("formData"),
+              );
+            action(. formData);
+          }
+        ),
+      }
     };
 
   // Lets say this is the server action declared by the end-user
@@ -286,66 +309,48 @@ module Samples = {
   let simpleResponseId = "id/samples/simpleResponse";
 
   [@platform native]
-  let simpleResponseHandler = () => {
-    Lwt.return(`String("Hello from server with simple response action"));
-  };
+  let simpleResponseHandler =
+    (. ~name, ~age) => {
+      Lwt.return(
+        Printf.sprintf("Hello %s, you are %d years old", name, age),
+      );
+    };
 
   // This is the router  handler that will handle parsing the args and calling the handler the user declared
   // This code will be generated by the ppx automatically
   // As the user didn't declare a request on the action, we don't need to pass it to the handler
   [@platform native]
-  let simpleResponseRouteHandler = _args => simpleResponseHandler();
+  let simpleResponseRouteHandler = args => {
+    let (name, age) =
+      switch (args) {
+      | [name, age] => (
+          name |> Yojson.Basic.Util.to_string,
+          age |> Yojson.Basic.Util.to_int,
+        )
+      | _ => failwith("Invalid arguments")
+      };
+    simpleResponseHandler(~name, ~age)
+    |> Lwt.map(response => `String(response));
+  };
 
   let simpleResponse =
     switch%platform () {
-    | Server => simpleResponseId
-    | Client => (
-        _ => {
-          let action =
-            ReactServerDOMWebpack.createServerReference(
-              simpleResponseId,
-              Some("simpleResponse"),
-            );
-          action(.);
-        }
-      )
-    };
-
-  // Lets say this is the server action declared by the end-user
-  /**
-    [@react.server.action]
-    let log = (~request, message) => {
-      Dream.log("Logging: %s", message);
-      Lwt.return_none;
-    };
-  */
-  // It's going to be on top to this that we are going to generate the codes bellow
-
-  // As soon the user declare the action with a request, we pass it from the router to the handler,
-  [@platform native]
-  let logHandler = (~request, _args) => {
-    Dream.log("Logging: Hello on server");
-    Lwt.return_none;
-  };
-
-  // This is the router  handler that will handle parsing the args and calling the handler the user declared
-  // This code will be generated by the ppx automatically
-  // As the user declare the action with a request, we pass it from the router to the handler
-  [@platform native]
-  let logRouteHandler = (~request, _args) => logHandler(~request, _args);
-
-  let log =
-    switch%platform () {
-    | Server => simpleResponseId
-    | Client => (
-        _ => {
-          let action =
-            ReactServerDOMWebpack.createServerReference(
-              simpleResponseId,
-              Some("simpleResponse"),
-            );
-          action(.);
-        }
-      )
+    | Server => {
+        Runtime.React.id: Some(simpleResponseId),
+        call: ((. ~name, ~age) => simpleResponseHandler(. ~name, ~age)),
+      }
+    | Client => {
+        Runtime.React.id: Some(simpleResponseId),
+        call: (
+          (. ~name, ~age) => {
+            let action =
+              ReactServerDOMWebpack.createServerReference(
+                simpleResponseId,
+                Some("simpleResponse"),
+              );
+            action(. ~name, ~age);
+          }
+        ),
+      }
     };
 };

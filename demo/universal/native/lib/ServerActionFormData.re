@@ -1,15 +1,7 @@
-[@warning "-26-27-32"];
 [@react.client.component]
 let make = () => {
   <div className={Cx.make([Theme.text(Theme.Color.Gray4)])}>
-    <form
-      action={
-        switch%platform () {
-        | Client => Obj.magic(Actions.Samples.formData)
-        // In this case the Server Function is imported in the client, so we don't need to pass the action
-        | Server => ""
-        }
-      }>
+    <form action={Obj.magic(Actions.Samples.formData.call)}>
       <input
         name="name"
         className="w-full mb-2 font-sans border border-gray-300 py-2 px-4 rounded-md bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
