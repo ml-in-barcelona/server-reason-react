@@ -336,6 +336,9 @@ module JSX = struct
     | Inline of string
 
   type prop =
+    (* Action prop makes difference between a action as a string and a action as a server action *)
+    (* (name, jsxName, action_id) *)
+    | Action of (string * string * string)
     | Bool of (string * string * bool)
     | String of (string * string * string)
     | Style of (string * string * string) list
@@ -386,14 +389,24 @@ type element =
   | Consumer of element
   | Suspense of { key : string option; children : element; fallback : element }
 
-and client_props = (string * client_prop) list
+and client_props = (string * client_value) list
 
-and client_prop =
+and client_value =
   (* TODO: Do we need to add more types here? *)
+<<<<<<< HEAD
   | Json : Yojson.Basic.t -> client_prop
   | Element : element -> client_prop
   | Promise : 'a Js.Promise.t * ('a -> Yojson.Basic.t) -> client_prop
   | Function : { id : string; name : string; args : string list } -> client_prop
+||||||| 03ea46d2
+  | Json : Yojson.Basic.t -> client_prop
+  | Element : element -> client_prop
+  | Promise : 'a Js.Promise.t * ('a -> Yojson.Basic.t) -> client_prop
+=======
+  | Json : Yojson.Basic.t -> client_value
+  | Element : element -> client_value
+  | Promise : 'a Js.Promise.t * ('a -> Yojson.Basic.t) -> client_value
+>>>>>>> 1f2fd624f992ef98bbc096125960e92e18980db8
 
 exception Invalid_children of string
 
@@ -425,7 +438,8 @@ let attributes_to_map attributes =
       | DangerouslyInnerHtml _ -> acc
       | Ref _ -> acc
       | Event _ -> acc
-      | Style _ -> acc)
+      | Style _ -> acc
+      | Action _ -> acc)
     StringMap.empty attributes
 
 let clone_attributes attributes new_attributes =

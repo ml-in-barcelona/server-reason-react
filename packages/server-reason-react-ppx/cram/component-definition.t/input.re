@@ -73,11 +73,16 @@ module Form_with_method = {
   let make = (~children) => <form method_="GET"> children </form>;
 };
 
+module Form_with_action = {
+  [@react.component]
+  let make = (~children) => <form actionFn="action_id"> children </form>;
+};
+
 let a = <Uppercase> <div /> </Uppercase>;
 
 module Async_component = {
   [@react.async.component]
-  let make = (~children) => <form method_="GET"> children </form>;
+  let make = (~children) => <div className="async-component"> children </div>;
 };
 
 let a = <Async_component> <div /> </Async_component>;

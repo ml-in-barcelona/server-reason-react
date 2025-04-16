@@ -1,6 +1,6 @@
 [@warning "-26-27"];
 
-open Ppx_deriving_json_runtime.Primitives;
+open Melange_json.Primitives;
 
 [@react.client.component]
 let make = (~searchText: string, ~selectedId: option(int), ~isEditing: bool) => {

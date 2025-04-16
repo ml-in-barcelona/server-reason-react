@@ -1,6 +1,6 @@
 [@warning "-33"];
 
-open Ppx_deriving_json_runtime.Primitives;
+open Melange_json.Primitives;
 
 module Reader = {
   [@react.component]
@@ -16,7 +16,12 @@ module Reader = {
 [@react.client.component]
 let make = (~promise: Js.Promise.t(string)) => {
   <div className={Cx.make([Theme.text(Theme.Color.Gray4)])}>
-    <React.Suspense fallback={<div> {React.string("Loading...")} </div>}>
+    <React.Suspense
+      fallback={
+        <div className={Cx.make([Theme.text(Theme.Color.Gray14)])}>
+          {React.string("Loading...")}
+        </div>
+      }>
       <Reader promise />
     </React.Suspense>
   </div>;

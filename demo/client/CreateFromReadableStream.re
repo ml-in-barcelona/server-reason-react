@@ -14,10 +14,12 @@ external startTransition: (unit => unit) => unit = "startTransition";
 try({
   let promise =
     ReactServerDOMWebpack.createFromReadableStream(readable_stream);
-  let element =
-    Webapi.Dom.document |> Webapi.Dom.Document.querySelector("#root");
+  let body =
+    Webapi.Dom.document
+    ->Webapi.Dom.Document.asHtmlDocument
+    ->Option.bind(Webapi.Dom.HtmlDocument.body);
 
-  switch (element) {
+  switch (body) {
   | Some(elem) =>
     startTransition(() => {
       let app = <App promise />;

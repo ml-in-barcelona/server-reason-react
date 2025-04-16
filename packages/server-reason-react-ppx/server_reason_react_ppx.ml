@@ -28,7 +28,7 @@ let ident ~loc txt = pexp_ident ~loc (longident ~loc txt)
 let make_string ~loc str = Ast_helper.Exp.constant ~loc (Ast_helper.Const.string str)
 let react_dot_component = "react.component"
 let react_dot_async_dot_component = "react.async.component"
-let react_client_component = "react.client.component"
+let react_dot_client_dot_component = "react.client.component"
 
 (* Helper method to look up the [@react.component] attribute *)
 let hasAttr { attr_name; _ } comparable = attr_name.txt = comparable
@@ -36,20 +36,20 @@ let hasAttr { attr_name; _ } comparable = attr_name.txt = comparable
 let hasAnyReactComponentAttribute { attr_name; _ } =
   attr_name.txt = react_dot_component
   || attr_name.txt = react_dot_async_dot_component
-  || attr_name.txt = react_client_component
+  || attr_name.txt = react_dot_client_dot_component
 
 (* Helper method to filter out any attribute that isn't [@react.component] *)
 let nonReactAttributes { attr_name; _ } =
   attr_name.txt <> react_dot_component
   && attr_name.txt <> react_dot_async_dot_component
-  && attr_name.txt <> react_client_component
+  && attr_name.txt <> react_dot_client_dot_component
 
 let hasAttrOnBinding { pvb_attributes } comparable =
   List.find_opt ~f:(fun attr -> hasAttr attr comparable) pvb_attributes <> None
 
 let isReactComponentBinding vb = hasAttrOnBinding vb react_dot_component
 let isReactAsyncComponentBinding vb = hasAttrOnBinding vb react_dot_async_dot_component
-let isReactClientComponentBinding vb = hasAttrOnBinding vb react_client_component
+let isReactClientComponentBinding vb = hasAttrOnBinding vb react_dot_client_dot_component
 
 let rec unwrap_children children = function
   | { pexp_desc = Pexp_construct ({ txt = Lident "[]"; _ }, None); _ } -> List.rev children
@@ -93,6 +93,14 @@ let make_prop ~is_optional ~prop attribute_value =
   let loc = attribute_value.pexp_loc in
   let open DomProps in
   match (prop, is_optional) with
+  | Attribute { type_ = DomProps.Action; name; jsxName }, false ->
+      [%expr
+        Some (React.JSX.Action ([%e estring ~loc name], [%e estring ~loc jsxName], ([%e attribute_value] : string)))]
+  | Attribute { type_ = DomProps.Action; name; jsxName }, true ->
+      [%expr
+        match ([%e attribute_value] : string option) with
+        | None -> None
+        | Some v -> Some (React.JSX.Action ([%e estring ~loc name], [%e estring ~loc jsxName], v))]
   | Attribute { type_ = DomProps.String; name; jsxName }, false ->
       [%expr
         Some (React.JSX.String ([%e estring ~loc name], [%e estring ~loc jsxName], ([%e attribute_value] : string)))]
@@ -455,7 +463,25 @@ let transform_fun_body_expression expr fn =
 
   inner expr
 
+let transform_fun_arguments expr fn =
+  let rec inner expr =
+    match expr.pexp_desc with
+    | Pexp_fun (label, def, patt, expression) -> pexp_fun ~loc:expr.pexp_loc label def (fn patt) (inner expression)
+    | _ -> expr
+  in
+  inner expr
+
+let transform_labelled_arguments_type (core_type : core_type) fn =
+  let rec inner core_type =
+    match core_type.ptyp_desc with
+    | Ptyp_arrow (label, core_type_1, core_type_2) ->
+        ptyp_arrow ~loc:core_type.ptyp_loc label (fn core_type_1) (inner core_type_2)
+    | _ -> core_type
+  in
+  inner core_type
+
 let expand_make_binding binding react_element_variant_wrapping =
+  let attributers = binding.pvb_attributes |> List.filter ~f:nonReactAttributes in
   let loc = binding.pvb_loc in
   let ghost_loc = { binding.pvb_loc with loc_ghost = true } in
   let binding_with_unit = add_unit_at_the_last_argument binding.pvb_expr in
@@ -471,7 +497,8 @@ let expand_make_binding binding react_element_variant_wrapping =
   (* Append key argument since we want to allow users of this component to set key
      (and assign it to _ since it shouldn't be used) *)
   let function_body = pexp_fun ~loc:ghost_loc key_arg default_value key_pattern binding_expr in
-  value_binding ~loc:ghost_loc ~pat:name ~expr:function_body
+  (* Since expand_make_binding is called on both native and js contexts, we need to keep the attributes *)
+  { (value_binding ~loc:ghost_loc ~pat:name ~expr:function_body) with pvb_attributes = attributers }
 
 let get_labelled_arguments pvb_expr =
   let rec go acc = function
@@ -482,27 +509,38 @@ let get_labelled_arguments pvb_expr =
 
 let make_of_json ~loc (core_type : core_type) prop =
   match core_type with
+  (* QUESTION: How do we handle especial types on props,
+     like `("someProp"), `List([React.element, string]).
+     We already support it, but not with the ppx.
+     Checkout the test_RSC_model.ml for more details. packages/reactDom/test/test_RSC_html.ml *)
   (* QUESTION: How can we handle optionals and others? Need a [@deriving rsc] for them? We currently encode None's as React.Json `Null, should be enought *)
   | [%type: React.element] -> [%expr ([%e prop] : React.element)]
   | [%type: React.element option] -> [%expr ([%e prop] : React.element option)]
   (* TODO: Add promise caching? When is it needed? *)
   (* | [%type: [%t? t] Js.Promise.t] ->
-    [%expr
-      let promise = [%e prop] in
-      let promise' = (Obj.magic promise : [%t t] Js.Promise.t Js.Dict.t) in
-      match Js.Dict.get promise' "__promise" with
-      | Some promise -> promise
-      | None ->
-          let promise =
-            Promise.(
-              let* json = (Obj.magic (Js.Promise.resolve promise) : Realm.Json.t Promise.t) in
-              let data = [%of_json: [%t t]] json in
-              return data)
-          in
-          Js.Dict.set promise' "__promise" promise;
-          promise] *)
+     [%expr
+       let promise = [%e prop] in
+       let promise' = (Obj.magic promise : [%t t] Js.Promise.t Js.Dict.t) in
+       match Js.Dict.get promise' "__promise" with
+       | Some promise -> promise
+       | None ->
+           let promise =
+             Promise.(
+               let* json = (Obj.magic (Js.Promise.resolve promise) : Realm.Json.t Promise.t) in
+               let data = [%of_json: [%t t]] json in
+               return data)
+           in
+           Js.Dict.set promise' "__promise" promise;
+           promise] *)
   | [%type: [%t? t] Js.Promise.t] -> [%expr ([%e prop] : [%t t] Js.Promise.t)]
-  | type_ -> [%expr [%of_json: [%t type_]] [%e prop]]
+  | [%type: [%t? inner_type] option] as type_ -> (
+      match inner_type.ptyp_desc with
+      | Ptyp_arrow (_, _, _) -> [%expr ([%e prop] : [%t type_])]
+      | _ -> [%expr [%of_json: [%t type_]] [%e prop]])
+  | type_ -> (
+      match type_.ptyp_desc with
+      | Ptyp_arrow (_, _, _) -> [%expr ([%e prop] : [%t type_])]
+      | _ -> [%expr [%of_json: [%t type_]] [%e prop]])
 
 let props_of_model ~loc (props : (arg_label * expression option * pattern) list) : (longident loc * expression) list =
   List.filter_map
@@ -620,8 +658,13 @@ let make_to_json ~loc (core_type : core_type) prop =
       let json = [%expr [%to_json: [%t inner_type]]] in
       [%expr
         match [%e prop] with Some prop -> [%expr React.Promise ([%e prop], [%e json])] | None -> React.Json `Null]
-  | _ ->
-      let json = [%expr [%to_json: [%t core_type]] [%e prop]] in
+  | { ptyp_desc = Ptyp_arrow (_, _, _) } ->
+      let loc = core_type.ptyp_loc in
+      [%expr
+        [%ocaml.error
+          "server-reason-react: you can't pass functions into client components. Functions aren't serialisable to JSON."]]
+  | type_ ->
+      let json = [%expr [%to_json: [%t type_]] [%e prop]] in
       [%expr React.Json [%e json]]
 
 let props_to_model ~loc (props : (arg_label * expression option * pattern) list) =
@@ -709,7 +752,7 @@ let rewrite_structure_item_for_js ctx structure_item =
   match structure_item.pstr_desc with
   (* external *)
   | Pstr_primitive ({ pval_name = { txt = _fnName }; pval_attributes; pval_type = _ } as _value_description) -> (
-      match List.filter ~f:(fun attr -> hasAttr attr react_client_component) pval_attributes with
+      match List.filter ~f:(fun attr -> hasAttr attr react_dot_client_dot_component) pval_attributes with
       | [] -> structure_item
       | _ ->
           let loc = structure_item.pstr_loc in

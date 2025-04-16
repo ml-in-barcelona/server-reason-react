@@ -6,4 +6,16 @@
   universal-code
   how-to-organise-universal-code
   browser_ppx
-  externals-melange-attributes))
+  externals-melange-attributes
+  ssr-and-hydration))
+
+(install
+ (section doc)
+ (files
+  (ssr-and-hydration-pipeline.png
+   as
+   odoc-pages/ssr-and-hydration-pipeline.png)
+  (ssr-and-hydration-pipeline-fixed.png
+   as
+   odoc-pages/ssr-and-hydration-pipeline-fixed.png))
+ (package server-reason-react))

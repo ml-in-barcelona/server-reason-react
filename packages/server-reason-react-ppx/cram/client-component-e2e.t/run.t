@@ -41,7 +41,7 @@
       cookies: [],
     }
   ];
-  open Ppx_deriving_json_runtime.Primitives;
+  open Melange_json.Primitives;
   
   [@deriving json]
   type lola = {name: string};
@@ -52,57 +52,30 @@
             [@ocaml.warning "-39-11-27"];
             let rec lola_of_json: Js.Json.t => lola =
               x => {
-                if ([@ocaml.warning "-ignored-extra-argument"]
-                    Stdlib.(!)(
-                      [@ocaml.warning "-ignored-extra-argument"]
+                if (Stdlib.(!)(
                       Stdlib.(&&)(
-                        [@ocaml.warning "-ignored-extra-argument"]
-                        Stdlib.(==)(
-                          [@ocaml.warning "-ignored-extra-argument"]
-                          Js.typeof(x),
-                          "object",
-                        ),
-                        [@ocaml.warning "-ignored-extra-argument"]
+                        Stdlib.(==)(Js.typeof(x), "object"),
                         Stdlib.(&&)(
-                          [@ocaml.warning "-ignored-extra-argument"]
+                          Stdlib.(!)(Js.Array.isArray(x)),
                           Stdlib.(!)(
-                            [@ocaml.warning "-ignored-extra-argument"]
-                            Js.Array.isArray(x),
-                          ),
-                          [@ocaml.warning "-ignored-extra-argument"]
-                          Stdlib.(!)(
-                            [@ocaml.warning "-ignored-extra-argument"]
-                            Stdlib.(===)(
-                              [@ocaml.warning "-ignored-extra-argument"]
-                              Obj.magic(x): Js.null('a),
-                              Js.null,
-                            ),
+                            Stdlib.(===)(Obj.magic(x): Js.null('a), Js.null),
                           ),
                         ),
                       ),
                     )) {
-                  [@ocaml.warning "-ignored-extra-argument"]
-                  Ppx_deriving_json_runtime.of_json_error(
-                    "expected a JSON object",
-                  );
+                  Melange_json.of_json_error(~json=x, "expected a JSON object");
                 };
-                let fs: {. "name": Js.undefined(Js.Json.t)} =
-                  [@ocaml.warning "-ignored-extra-argument"] Obj.magic(x);
+                let fs: {. "name": Js.undefined(Js.Json.t)} = Obj.magic(x);
                 {
                   name:
                     switch (
-                      [@ocaml.warning "-ignored-extra-argument"]
-                      Js.Undefined.toOption(
-                        Js.Private.Js_OO.unsafe_downgrade(fs)#name,
-                      )
+                      Js.Undefined.toOption(Js.OO.unsafe_downgrade(fs)#name)
                     ) {
-                    | Stdlib.Option.Some(v) =>
-                      [@ocaml.warning "-ignored-extra-argument"]
-                      string_of_json(v)
+                    | Stdlib.Option.Some(v) => string_of_json(v)
                     | Stdlib.Option.None =>
-                      [@ocaml.warning "-ignored-extra-argument"]
-                      Ppx_deriving_json_runtime.of_json_error(
-                        "missing field \"name\"",
+                      Melange_json.of_json_error(
+                        ~json=x,
+                        "expected field \"name\" to be present",
                       )
                     },
                 };
@@ -113,21 +86,17 @@
               x =>
                 switch (x) {
                 | {name: x_name} => (
-                    [@ocaml.warning "-ignored-extra-argument"]
                     Obj.magic(
                       {
                         module J = {
                           [@ocaml.warning "-unboxable-type-in-prim-decl"]
+                          [@mel.internal.ffi
+                            "„•¦¾\000\000\000\011\000\000\000\005\000\000\000\r\000\000\000\012‘  A$name@"
+                          ]
                           external unsafe_expr: (~name: 'a0) => {. "name": 'a0} =
-                            ""
-                            "\132\149\166\190\000\000\000\011\000\000\000\005\000\000\000\r\000\000\000\012\145\160\160A\144$name@";
+                            "" "";
                         };
-                        [@ocaml.warning "-ignored-extra-argument"]
-                        J.unsafe_expr(
-                          ~name=
-                            [@ocaml.warning "-ignored-extra-argument"]
-                            string_to_json(x_name),
-                        );
+                        J.unsafe_expr(~name=string_to_json(x_name));
                       },
                     ): Js.Json.t
                   )
@@ -141,11 +110,13 @@
                 [@ocaml.warning "-unboxable-type-in-prim-decl"]
                 external unsafe_expr: _ => _ = "#raw_stmt";
               };
-              [@ocaml.warning "-ignored-extra-argument"]
               J.unsafe_expr("// extract-client input.re");
             };
   
             [@ocaml.warning "-unboxable-type-in-prim-decl"]
+            [@mel.internal.ffi
+              "„•¦¾\000\000\000J\000\000\000\027\000\000\000L\000\000\000G‘  A'initial  A$lola  A¡'default@  A(children  A'promise  A¡#key@  @@@"
+            ]
             external makeProps:
               (
                 ~initial: int,
@@ -164,8 +135,7 @@
                 "children": React.element,
                 "promise": Js.Promise.t(string),
               } =
-              ""
-              "\132\149\166\190\000\000\000J\000\000\000\027\000\000\000L\000\000\000G\145\160\160A\144'initial\160\160A\144$lola\160\160A\161'default@\160\160A\144(children\160\160A\144'promise\160\160A\161#key@\160\160@@@";
+              "" "";
             let make =
               [@warning "-16"]
               (
@@ -182,53 +152,16 @@
                               [@warning "-16"]
                               (
                                 (~promise: Js.Promise.t(string)) => {
-                                  let value =
-                                    [@ocaml.warning "-ignored-extra-argument"]
-                                    [@ocaml.warning "-ignored-extra-argument"]
-                                    React.Experimental.use(promise);
-                                  [@ocaml.warning "-ignored-extra-argument"]
-                                  [@ocaml.warning "-ignored-extra-argument"]
+                                  let value = React.Experimental.use(promise);
                                   ReactDOM.jsxs(
                                     "div",
-                                    [@ocaml.warning "-ignored-extra-argument"]
-                                    [@ocaml.warning "-ignored-extra-argument"]
                                     ([@merlin.hide] ReactDOM.domProps)(
                                       ~children=
-                                        [@ocaml.warning
-                                          "-ignored-extra-argument"
-                                        ]
-                                        [@ocaml.warning
-                                          "-ignored-extra-argument"
-                                        ]
                                         React.array([|
-                                          [@ocaml.warning
-                                            "-ignored-extra-argument"
-                                          ]
-                                          [@ocaml.warning
-                                            "-ignored-extra-argument"
-                                          ]
                                           React.string(lola.name),
-                                          [@ocaml.warning
-                                            "-ignored-extra-argument"
-                                          ]
-                                          [@ocaml.warning
-                                            "-ignored-extra-argument"
-                                          ]
                                           React.int(initial),
-                                          [@ocaml.warning
-                                            "-ignored-extra-argument"
-                                          ]
-                                          [@ocaml.warning
-                                            "-ignored-extra-argument"
-                                          ]
                                           React.int(default),
                                           children,
-                                          [@ocaml.warning
-                                            "-ignored-extra-argument"
-                                          ]
-                                          [@ocaml.warning
-                                            "-ignored-extra-argument"
-                                          ]
                                           React.string(value),
                                         |]),
                                       (),
@@ -252,50 +185,24 @@
                       "promise": Js.Promise.t(string),
                     },
                   ) =>
-                [@ocaml.warning "-ignored-extra-argument"]
-                [@ocaml.warning "-ignored-extra-argument"]
                 make(
-                  ~promise=
-                    (
-                      [@ocaml.warning "-ignored-extra-argument"]
-                      Js.Private.Js_OO.unsafe_downgrade(Props)
-                    )#
-                      promise,
-                  ~children=
-                    (
-                      [@ocaml.warning "-ignored-extra-argument"]
-                      Js.Private.Js_OO.unsafe_downgrade(Props)
-                    )#
-                      children,
-                  ~default=?
-                    (
-                      [@ocaml.warning "-ignored-extra-argument"]
-                      Js.Private.Js_OO.unsafe_downgrade(Props)
-                    )#
-                      default,
-                  ~lola=
-                    (
-                      [@ocaml.warning "-ignored-extra-argument"]
-                      Js.Private.Js_OO.unsafe_downgrade(Props)
-                    )#
-                      lola,
-                  ~initial=
-                    (
-                      [@ocaml.warning "-ignored-extra-argument"]
-                      Js.Private.Js_OO.unsafe_downgrade(Props)
-                    )#
-                      initial,
+                  ~promise=Js.OO.unsafe_downgrade(Props)#promise,
+                  ~children=Js.OO.unsafe_downgrade(Props)#children,
+                  ~default=?Js.OO.unsafe_downgrade(Props)#default,
+                  ~lola=Js.OO.unsafe_downgrade(Props)#lola,
+                  ~initial=Js.OO.unsafe_downgrade(Props)#initial,
                 );
               Input;
             };
             let make_client = props =>
-              [@ocaml.warning "-ignored-extra-argument"]
-              [@ocaml.warning "-ignored-extra-argument"]
               make(
                 {
                   module J = {
                     [@ocaml.warning "-unboxable-type-in-prim-decl"]
                     [@ocaml.warning "-unboxable-type-in-prim-decl"]
+                    [@mel.internal.ffi
+                      "„•¦¾\000\000\000<\000\000\000\021\000\000\000:\000\000\0005‘  A'promise  A(children  A'default  A$lola  A'initial@"
+                    ]
                     external unsafe_expr:
                       (
                         ~promise: 'a0,
@@ -312,56 +219,21 @@
                         "lola": 'a3,
                         "initial": 'a4,
                       } =
-                      ""
-                      "\132\149\166\190\000\000\000<\000\000\000\021\000\000\000:\000\000\0005\145\160\160A\144'promise\160\160A\144(children\160\160A\144'default\160\160A\144$lola\160\160A\144'initial@";
+                      "" "";
                   };
-                  [@ocaml.warning "-ignored-extra-argument"]
-                  [@ocaml.warning "-ignored-extra-argument"]
                   J.unsafe_expr(
-                    ~promise=(
-                               [@ocaml.warning "-ignored-extra-argument"]
-                               Js.Private.Js_OO.unsafe_downgrade(props)
-                             )#
-                               promise: Js.Promise.t(string),
-                    ~children=(
-                                [@ocaml.warning "-ignored-extra-argument"]
-                                Js.Private.Js_OO.unsafe_downgrade(props)
-                              )#
-                                children: React.element,
+                    ~promise=Js.OO.unsafe_downgrade(props)#promise:
+                                                                     Js.Promise.t(
+                                                                      string,
+                                                                     ),
+                    ~children=Js.OO.unsafe_downgrade(props)#children: React.element,
                     ~default=
-                      [@ocaml.warning "-ignored-extra-argument"]
-                      [@ocaml.warning "-ignored-extra-argument"]
-                      (
-                        [@ocaml.warning "-ignored-extra-argument"]
-                        [@ocaml.warning "-ignored-extra-argument"]
-                        option_of_json(int_of_json)
-                      )(
-                        (
-                          [@ocaml.warning "-ignored-extra-argument"]
-                          Js.Private.Js_OO.unsafe_downgrade(props)
-                        )#
-                          default,
+                      (option_of_json(int_of_json))(
+                        Js.OO.unsafe_downgrade(props)#default,
                       ),
-                    ~lola=
-                      [@ocaml.warning "-ignored-extra-argument"]
-                      [@ocaml.warning "-ignored-extra-argument"]
-                      lola_of_json(
-                        (
-                          [@ocaml.warning "-ignored-extra-argument"]
-                          Js.Private.Js_OO.unsafe_downgrade(props)
-                        )#
-                          lola,
-                      ),
+                    ~lola=lola_of_json(Js.OO.unsafe_downgrade(props)#lola),
                     ~initial=
-                      [@ocaml.warning "-ignored-extra-argument"]
-                      [@ocaml.warning "-ignored-extra-argument"]
-                      int_of_json(
-                        (
-                          [@ocaml.warning "-ignored-extra-argument"]
-                          Js.Private.Js_OO.unsafe_downgrade(props)
-                        )#
-                          initial,
-                      ),
+                      int_of_json(Js.OO.unsafe_downgrade(props)#initial),
                   );
                 },
               );
@@ -373,64 +245,66 @@
   // Generated by Melange
   'use strict';
   
-  var Ppx_deriving_json_runtime = require("melange-json.ppx-runtime/ppx_deriving_json_runtime.js");
-  var React = require("react");
-  var JsxRuntime = require("react/jsx-runtime");
+  const Melange_json = require("melange-json/melange_json.js");
+  const React = require("react");
+  const JsxRuntime = require("react/jsx-runtime");
   
   function lola_of_json(x) {
     if (!(typeof x === "object" && !Array.isArray(x) && x !== null)) {
-      Ppx_deriving_json_runtime.of_json_error("expected a JSON object");
+      Melange_json.of_json_error(undefined, undefined, x, "expected a JSON object");
     }
-    var v = x.name;
+    const v = x.name;
     return {
-            name: v !== undefined ? Ppx_deriving_json_runtime.Primitives.string_of_json(v) : Ppx_deriving_json_runtime.of_json_error("missing field \"name\"")
-          };
+      name: v !== undefined ? Melange_json.Primitives.string_of_json(v) : Melange_json.of_json_error(undefined, undefined, x, "expected field \"name\" to be present")
+    };
   }
   
   function lola_to_json(x) {
     return {
-            name: x.name
-          };
+      name: Melange_json.Primitives.string_to_json(x.name)
+    };
   }
   
   // extract-client input.re
   
   function Input(Props) {
-    var initial = Props.initial;
-    var lola = Props.lola;
-    var defaultOpt = Props.default;
-    var children = Props.children;
-    var promise = Props.promise;
-    var $$default = defaultOpt !== undefined ? defaultOpt : 23;
-    var value = React.use(promise);
+    let initial = Props.initial;
+    let lola = Props.lola;
+    let defaultOpt = Props.default;
+    let children = Props.children;
+    let promise = Props.promise;
+    const $$default = defaultOpt !== undefined ? defaultOpt : 23;
+    const value = React.use(promise);
     return JsxRuntime.jsxs("div", {
-                children: [
-                  lola.name,
-                  initial,
-                  $$default,
-                  children,
-                  value
-                ]
-              });
+      children: [
+        lola.name,
+        initial,
+        $$default,
+        children,
+        value
+      ]
+    });
   }
   
   function make_client(props) {
     return Input({
-                promise: props.promise,
-                children: props.children,
-                default: Ppx_deriving_json_runtime.Primitives.option_of_json(Ppx_deriving_json_runtime.Primitives.int_of_json, props.default),
-                lola: lola_of_json(props.lola),
-                initial: Ppx_deriving_json_runtime.Primitives.int_of_json(props.initial)
-              });
+      promise: props.promise,
+      children: props.children,
+      default: Melange_json.Primitives.option_of_json(Melange_json.Primitives.int_of_json, props.default),
+      lola: lola_of_json(props.lola),
+      initial: Melange_json.Primitives.int_of_json(props.initial)
+    });
   }
   
-  var make = Input;
+  const make = Input;
   
-  exports.lola_of_json = lola_of_json;
-  exports.lola_to_json = lola_to_json;
-  exports.make = make;
-  exports.make_client = make_client;
-  /* react Not a pure module */
+  module.exports = {
+    lola_of_json,
+    lola_to_json,
+    make,
+    make_client,
+  }
+  /* Melange_json Not a pure module */
 
   $ cat _build/default/boostrap.js
   import React from "react";
