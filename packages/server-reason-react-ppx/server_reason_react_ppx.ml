@@ -658,6 +658,11 @@ let make_to_json ~loc (core_type : core_type) prop =
       let json = [%expr [%to_json: [%t inner_type]]] in
       [%expr
         match [%e prop] with Some prop -> [%expr React.Promise ([%e prop], [%e json])] | None -> React.Json `Null]
+  | { ptyp_desc = Ptyp_arrow (_, _, _) } ->
+      let loc = core_type.ptyp_loc in
+      [%expr
+        [%ocaml.error
+          "server-reason-react: you can't pass functions into client components. Functions aren't serialisable to JSON."]]
   | type_ ->
       let json = [%expr [%to_json: [%t type_]] [%e prop]] in
       [%expr React.Json [%e json]]
