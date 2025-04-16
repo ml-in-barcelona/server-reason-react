@@ -155,11 +155,11 @@ module Model = struct
 
   and client_value_to_json ~context value =
     match (value : React.client_value) with
-    | React.Json json -> json
-    | React.Element element ->
+    | Json json -> json
+    | Element element ->
         (* TODO: Probably a silly question, but do I need to push this client_ref? (What if it's a client_ref?) In case of server, no need to do anything I guess *)
         element_to_payload ~context element
-    | React.Promise (promise, value_to_json) -> (
+    | Promise (promise, value_to_json) -> (
         match Lwt.state promise with
         | Return value ->
             let chunk_id = use_chunk_id context in
@@ -360,10 +360,10 @@ let rec to_html ~fiber (element : React.element) : (Html.element * json) Lwt.t =
         Lwt_list.map_p
           (fun ((name : string), value) ->
             match (value : React.client_value) with
-            | React.Element element ->
+            | Element element ->
                 let%lwt _html, model = to_html ~fiber element in
                 Lwt.return (name, model)
-            | React.Promise (promise, value_to_json) ->
+            | Promise (promise, value_to_json) ->
                 let context = Fiber.get_context fiber in
                 let _finished, parent_done = Lwt.wait () in
                 let index = Fiber.use_index fiber in
@@ -385,7 +385,7 @@ let rec to_html ~fiber (element : React.element) : (Html.element * json) Lwt.t =
                     if context.pending = 0 then context.close ();
                     Lwt.return ());
                 Lwt.return sync
-            | React.Json json -> Lwt.return (name, json))
+            | Json json -> Lwt.return (name, json))
           props
       in
       let lwt_html = client_to_html ~fiber client in

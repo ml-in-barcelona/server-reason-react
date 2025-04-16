@@ -393,20 +393,9 @@ and client_props = (string * client_value) list
 
 and client_value =
   (* TODO: Do we need to add more types here? *)
-<<<<<<< HEAD
-  | Json : Yojson.Basic.t -> client_prop
-  | Element : element -> client_prop
-  | Promise : 'a Js.Promise.t * ('a -> Yojson.Basic.t) -> client_prop
-  | Function : { id : string; name : string; args : string list } -> client_prop
-||||||| 03ea46d2
-  | Json : Yojson.Basic.t -> client_prop
-  | Element : element -> client_prop
-  | Promise : 'a Js.Promise.t * ('a -> Yojson.Basic.t) -> client_prop
-=======
   | Json : Yojson.Basic.t -> client_value
   | Element : element -> client_value
   | Promise : 'a Js.Promise.t * ('a -> Yojson.Basic.t) -> client_value
->>>>>>> 1f2fd624f992ef98bbc096125960e92e18980db8
 
 exception Invalid_children of string
 
