@@ -298,12 +298,12 @@ module Samples = {
 
   let simpleResponse =
     switch%platform () {
-    | Server => demoActionSimpleResponse
+    | Server => simpleResponseId
     | Client => (
         _ => {
           let action =
             ReactServerDOMWebpack.createServerReference(
-              demoActionSimpleResponse,
+              simpleResponseId,
               Some("simpleResponse"),
             );
           action(.);
@@ -336,7 +336,7 @@ module Samples = {
 
   let log =
     switch%platform () {
-    | Server => demoActionSimpleResponse
+    | Server => simpleResponseId
     | Client => (
         _ => {
           let action =
