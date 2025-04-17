@@ -4,12 +4,7 @@ import {
 	reportGlobalError,
 	processBinaryChunk,
 	close,
-} from "react-client/src/ReactFlightClient";
-
-/* import {
-	processReply,
-	createServerReference as createServerReferenceImpl,
-} from "react-client/src/ReactFlightReplyClient"; */
+} from "@matthamlin/react-client/flight";
 
 function startReadingFromStream(response, stream) {
 	const reader = stream.getReader();
