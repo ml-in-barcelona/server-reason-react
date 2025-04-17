@@ -1,5 +1,5 @@
 import ReactClientFlight from "@matthamlin/react-client/flight";
-import {encodeReply as encodeReplyFromWebpack }from  "react-server-dom-webpack/client";
+import { encodeReply as encodeReplyFromWebpack } from "react-server-dom-webpack/client";
 
 const ReactFlightClientStreamConfigWeb = {
   createStringDecoder() {
@@ -43,8 +43,7 @@ const ReactClientConsoleConfigBrowser = {
       case "groupEnd":
       case "table": {
         // These methods cannot be colorized because they don't take a formatting string.
-        // $FlowFixMe
-        return bind.apply(console[methodName], [console].concat(args)); // eslint-disable-line react-internal/no-production-logging
+        return bind.apply(console[methodName], [console].concat(args));
       }
       case "assert": {
         // assert takes formatting options as the second argument.
@@ -76,8 +75,7 @@ const ReactClientConsoleConfigBrowser = {
     // The "this" binding in the "bind";
     newArgs.unshift(console);
 
-    // $FlowFixMe
-    return bind.apply(console[methodName], newArgs); // eslint-disable-line react-internal/no-production-logging
+    return bind.apply(console[methodName], newArgs);
   },
 };
 
@@ -115,7 +113,7 @@ const ReactFlightClientConfigBundlerEsbuild = {
   },
 
   preloadModule(metadata) {
-    /* TODO: Implement */
+    /* TODO: Does it make sense to preload a module in esbuild? */
     return undefined;
   },
 
@@ -130,6 +128,7 @@ const ReactFlightClientConfigBundlerEsbuild = {
   },
 };
 
+/* TODO: Can we use the real thing, instead of mocks/vendored code here? */
 const ReactServerDOMEsbuildConfig = {
   ...ReactFlightClientStreamConfigWeb,
   ...ReactClientConsoleConfigBrowser,
@@ -247,4 +246,5 @@ export function createServerReference(id, callServer) {
   return action;
 }
 
+/* TODO: In order to have full control, we need to ??? with ReactFlightReply */
 export const encodeReply = encodeReplyFromWebpack;
