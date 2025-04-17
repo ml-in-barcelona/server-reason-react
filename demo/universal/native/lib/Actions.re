@@ -73,14 +73,14 @@ module Notes = {
         (~title, ~content) => {
           // Register the action for the client
           let action =
-            ReactServerDOMWebpack.createServerReference(
+            ReactServerDOMEsbuild.createServerReference(
               createId,
               Some("create"),
             );
           /**
             Under the hoods if we call action(id, title, content), melange will do this:
                 function create(title, content) {
-                  var action = ReactServerDOMWebpack.createServerReference(createId, "create");
+                  var action = ReactServerDOMEsbuild.createServerReference(createId, "create");
                   return Curry._2(action, title, content);
                 }
 
@@ -164,14 +164,14 @@ module Notes = {
     | Client => (
         (~id, ~title, ~content) => {
           let action =
-            ReactServerDOMWebpack.createServerReference(
+            ReactServerDOMEsbuild.createServerReference(
               editId,
               Some("edit"),
             );
           /**
             Under the hoods if we call action(id, title, content), melange will do this:
                 function edit(id, title, content) {
-                  var action = ReactServerDOMWebpack.createServerReference(editId, "edit");
+                  var action = ReactServerDOMEsbuild.createServerReference(editId, "edit");
                   return Curry._3(action, id, title, content);
                 }
 
@@ -242,14 +242,14 @@ module Notes = {
     | Client => (
         (~id) => {
           let action =
-            ReactServerDOMWebpack.createServerReference(
+            ReactServerDOMEsbuild.createServerReference(
               deleteId,
               Some("delete"),
             );
           /**
             Under the hoods if we call action(id, title, content), melange will do this:
                 function edit(id) {
-                  var action = ReactServerDOMWebpack.createServerReference(deleteId, "delete");
+                  var action = ReactServerDOMEsbuild.createServerReference(deleteId, "delete");
                   return Curry._1(action, id);
                 }
 
@@ -319,7 +319,7 @@ module Samples = {
     | Client => (
         formData => {
           let action =
-            ReactServerDOMWebpack.createServerReference(
+            ReactServerDOMEsbuild.createServerReference(
               formDataId,
               Some("formData"),
             );
@@ -357,7 +357,7 @@ module Samples = {
     | Client => (
         _ => {
           let action =
-            ReactServerDOMWebpack.createServerReference(
+            ReactServerDOMEsbuild.createServerReference(
               simpleResponseId,
               Some("simpleResponse"),
             );
