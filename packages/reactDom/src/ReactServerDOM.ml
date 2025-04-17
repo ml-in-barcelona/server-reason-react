@@ -199,6 +199,10 @@ module Model = struct
     in
     let context : stream_context = { push = push_chunk; close; chunk_id = initial_chunk_id; pending = 0 } in
     let initial_chunk_id = get_chunk_id context in
+    (match Sys.getenv_opt "NODE_ENV" with
+    (* TODO: Add debug items, here's theres an app:xxx, env:xxx, etc... *)
+    | Some "development" -> context.push initial_chunk_id (Chunk_value (element_to_payload ~context element))
+    | _ -> ());
     context.push initial_chunk_id (Chunk_value (element_to_payload ~context element));
     if context.pending = 0 then context.close ();
     (* TODO: Currently returns the stream because of testing, in the future we can use subscribe to capture all chunks *)
