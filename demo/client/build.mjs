@@ -32,6 +32,9 @@ async function build(entryPoints, { output, extract, mockWebpackRequire }) {
 			outdir,
 			plugins,
 			write: true,
+			define: {
+				"process.env.NODE_ENV": `"development"`,
+			},
 		});
 
 		entryPoints.forEach((entryPoint) => {
