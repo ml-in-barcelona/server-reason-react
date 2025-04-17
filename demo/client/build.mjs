@@ -33,7 +33,7 @@ async function build(entryPoints, { output, extract, mockWebpackRequire }) {
 			plugins,
 			write: true,
 			define: {
-				"process.env.NODE_ENV": `"development"`,
+				"process.env.NODE_ENV": `"production"`,
 			},
 		});
 
