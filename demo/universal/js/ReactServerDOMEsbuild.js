@@ -1,5 +1,4 @@
-import ReactClientFlight from "@matthamlin/react-client/flight";
-import {encodeReply as encodeReplyFromWebpack }from  "react-server-dom-webpack/client";
+import ReactClientFlight from "@pedrobslisboa/react-client/flight";
 
 const ReactFlightClientStreamConfigWeb = {
   createStringDecoder() {
@@ -141,6 +140,8 @@ const ReactServerDOMEsbuildConfig = {
 
 const {
   createResponse,
+  createServerReference: createServerReferenceImpl,
+  processReply,
   getRoot,
   reportGlobalError,
   processBinaryChunk,
@@ -239,12 +240,35 @@ async function resolveClientReference(id) {
   return { __esModule: true, default: component };
 }
 
-export function createServerReference(id, callServer) {
-  let action = function () {
-    const args = Array.prototype.slice.call(arguments);
-    return callServer(id, args);
-  };
-  return action;
+
+export const createServerReference = (id, callServer) => createServerReferenceImpl(id, callServer, undefined, undefined, undefined)
+
+export const encodeReply = (
+  value,
+  options = { temporaryReferences: undefined, signal: undefined },
+) => {
+  return new Promise((resolve, reject) => {
+    const abort = processReply(
+      value,
+      '',
+      options && options.temporaryReferences
+        ? options.temporaryReferences
+        : undefined,
+      resolve,
+      reject,
+    );
+    if (options && options.signal) {
+      const signal = options.signal;
+      if (signal.aborted) {
+        abort((signal).reason);
+      } else {
+        const listener = () => {
+          abort((signal).reason);
+          signal.removeEventListener('abort', listener);
+        };
+        signal.addEventListener('abort', listener);
+      }
+    }
+  });
 }
 
-export const encodeReply = encodeReplyFromWebpack;
