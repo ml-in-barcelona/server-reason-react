@@ -1,10 +1,12 @@
 /* TODO: Move this bindings into reason-react */
-type callServerCallback('arg, 'result) =
+
+type callServer('arg, 'result) =
   (string, list('arg)) => Js.Promise.t('result);
-type options('arg, 'result) = {
-  callServer: callServerCallback('arg, 'result),
-};
-type actionCallback('arg, 'result) = 'arg => Js.Promise.t('result);
+
+type options('arg, 'result) = {callServer: callServer('arg, 'result)};
+
+type action('arg, 'result) = 'arg => Js.Promise.t('result);
+
 [@mel.module "react-server-dom-webpack/client"]
 external createFromReadableStreamImpl:
   (Webapi.ReadableStream.t, ~options: options('arg, 'result)=?, unit) =>
@@ -22,7 +24,7 @@ external createServerReferenceImpl:
   (
     string, // ServerReferenceId
     // CallServerCallback
-    callServerCallback('arg, 'result),
+    callServer('arg, 'result),
     // EncodeFormActionCallback (optional) (We're not using this right now)
     option('encodeFormActionCallback),
     // FindSourceMapURLCallback (optional, DEV-only) (We're not using this right now)
@@ -30,7 +32,7 @@ external createServerReferenceImpl:
     // functionName (optional)
     option(string)
   ) =>
-  actionCallback('arg, 'result) =
+  action('arg, 'result) =
   "createServerReference";
 
 [@mel.module "react-server-dom-webpack/client"]
