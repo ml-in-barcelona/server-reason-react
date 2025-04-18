@@ -1,11 +1,10 @@
 import ReactClientFlight from "@pedrobslisboa/react-client/flight";
 
 const ReactFlightClientStreamConfigWeb = {
+  decoderOptions: { stream: true },
   createStringDecoder() {
     return new TextDecoder();
   },
-
-  decoderOptions: { stream: true },
 
   readPartialStringChunk(decoder, buffer) {
     return decoder.decode(buffer, decoderOptions);
@@ -84,11 +83,13 @@ const BUNDLES = 2;
 
 const ReactFlightClientConfigBundlerEsbuild = {
   prepareDestinationForModule(moduleLoading, nonce, metadata) {
+    console.log("prepareDestinationForModule", moduleLoading, nonce, metadata);
     return;
   },
 
   resolveClientReference(bundlerConfig, metadata) {
-    // Reference is already resolved during the build.
+    console.log("resolveClientReference", bundlerConfig, metadata);
+    // Reference is already resolved during the build
     return {
       id: metadata[ID],
       name: metadata[NAME],
@@ -97,6 +98,7 @@ const ReactFlightClientConfigBundlerEsbuild = {
   },
 
   resolveServerReference(bundlerConfig, ref) {
+    console.log("resolveServerReference", ref);
     const idx = ref.lastIndexOf("#");
     const id = ref.slice(0, idx);
     const name = ref.slice(idx + 1);
@@ -112,6 +114,7 @@ const ReactFlightClientConfigBundlerEsbuild = {
   },
 
   preloadModule(metadata) {
+    console.log("preloadModule", metadata);
     /* TODO: Does it make sense to preload a module in esbuild? */
     return undefined;
   },
@@ -201,44 +204,44 @@ function createResponseFromOptions(options) {
   );
 }
 
-export function createFromFetch(promise, options){
+export function createFromFetch(promise, options) {
   const response = createResponseFromOptions(options);
   promise.then(
     function (r) {
-      startReadingFromStream(response, (r.body));
+      startReadingFromStream(response, r.body);
     },
     function (e) {
       reportGlobalError(response, e);
-    },
+    }
   );
   return getRoot(response);
 }
 
 export const encodeReply = (
   value,
-  options = { temporaryReferences: undefined, signal: undefined },
+  options = { temporaryReferences: undefined, signal: undefined }
 ) => {
   return new Promise((resolve, reject) => {
     const abort = processReply(
       value,
-      '',
+      "",
       options && options.temporaryReferences
         ? options.temporaryReferences
         : undefined,
       resolve,
-      reject,
+      reject
     );
     if (options && options.signal) {
       const signal = options.signal;
       if (signal.aborted) {
-        abort((signal).reason);
+        abort(signal.reason);
       } else {
         const listener = () => {
-          abort((signal).reason);
-          signal.removeEventListener('abort', listener);
+          abort(signal.reason);
+          signal.removeEventListener("abort", listener);
         };
-        signal.addEventListener('abort', listener);
+        signal.addEventListener("abort", listener);
       }
     }
   });
-}
+};
