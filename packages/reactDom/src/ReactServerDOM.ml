@@ -1,14 +1,18 @@
-[@@@warning "-26-27-32"]
-
 type json = Yojson.Basic.t
 
 module Fiber = struct
-  type context = { mutable index : int; mutable pending : int; push : Html.element -> unit; close : unit -> unit }
+  type[@warning "-69"] context = {
+    mutable index : int;
+    mutable pending : int;
+    push : Html.element -> unit;
+    close : unit -> unit;
+    debug : bool;
+  }
 
   type t = {
     context : context;
     finished : unit Lwt.t;
-    (* QUESTION: Why do I need emit_html as mutable? I see parent, but why overriding? *)
+    (* QUESTION: Why do I need emit_html as mutable?  *)
     mutable emit_html : Html.element -> unit;
   }
 
@@ -28,7 +32,7 @@ module Model = struct
     close : unit -> unit;
     mutable pending : int;
     mutable chunk_id : int;
-    debug_info : bool;
+    debug : bool;
   }
 
   let use_chunk_id context =
@@ -123,7 +127,6 @@ module Model = struct
         (* We don't have access to the props of uppercase components, since we treat it as a closure and don't encode the props. Here pass empty object *)
         ("props", `Assoc []);
       ]
-  (* 1:{"name":"App","env":"Server","key":null,"owner":null,"stack":[["module code","/Users/davesnx/Code/github/ml-in-barcelona/server-reason-react/arch/server/render-rsc-to-stream.js",41,42]],"props":{}} *)
 
   let rec element_to_payload ~context element =
     match (element : React.element) with
@@ -141,20 +144,17 @@ module Model = struct
           (Invalid_argument
              "InnerHtml does not exist in RSC, this is a bug in server-reason-react.ppx or a wrong construction of JSX \
               manually")
-    | Upper_case_component component ->
-        let name = "UPPER" in
+    | Upper_case_component (name, component) ->
         let element = component () in
+        let index = use_chunk_id context in
+        if context.debug then (
+          let debug_info_index = use_chunk_id context in
+          let debug_info_ref : json = `String (Printf.sprintf "$%x" debug_info_index) in
+          context.push debug_info_index (Chunk_value (make_debug_info name));
+          context.push index (Debug_info_map debug_info_ref);
+          ());
         (* Instead of returning the payload directly, we push it, and return a reference to it.
            This is how `react-server-dom-webpack/server` renderToPipeableStream works *)
-        let index = use_chunk_id context in
-        if context.debug_info then (
-          let debug_info_index = use_chunk_id context in
-          let debug_info = make_debug_info "UPPER" in
-          context.push debug_info_index (Chunk_value debug_info);
-          let debug_info_ref : json = `String (Printf.sprintf "$%x" debug_info_index) in
-          context.push index (Debug_info_map debug_info_ref);
-          ())
-        else ();
         context.push index (Chunk_value (element_to_payload ~context element));
         `String (ref_value index)
     | Async_component component -> (
@@ -222,7 +222,7 @@ module Model = struct
         (name, jsonValue))
       props
 
-  let render ?__DEV__ ?subscribe element : string Lwt_stream.t Lwt.t =
+  let render ?(debug = false) ?subscribe element =
     let initial_chunk_id = 0 in
     let stream, push, close = Push_stream.make () in
     let push_chunk id chunk =
@@ -231,10 +231,9 @@ module Model = struct
       | Debug_info_map json -> push (debug_info_to_chunk id json)
       | Chunk_component_ref json -> push (client_reference_to_chunk id json)
     in
-    let debug_info = match __DEV__ with Some "development" -> true | _ -> false in
-    let context : stream_context = { push = push_chunk; close; chunk_id = initial_chunk_id; pending = 0; debug_info } in
-    let chunk_id_zero = get_chunk_id context in
-    context.push chunk_id_zero (Chunk_value (element_to_payload ~context element));
+    let context : stream_context = { push = push_chunk; close; chunk_id = initial_chunk_id; pending = 0; debug } in
+    let initial_chunk_id = get_chunk_id context in
+    context.push initial_chunk_id (Chunk_value (element_to_payload ~context element));
     if context.pending = 0 then context.close ();
     (* TODO: Currently returns the stream because of testing, in the future we can use subscribe to capture all chunks *)
     match subscribe with
@@ -243,7 +242,7 @@ module Model = struct
         let%lwt _ = Lwt_stream.iter_s subscribe stream in
         Lwt.return stream
 
-  let create_action_response ?__DEV__ ?subscribe value =
+  let create_action_response ?(debug = false) ?subscribe value =
     let initial_chunk_id = 0 in
     let stream, push, close = Push_stream.make () in
     let push_chunk id chunk =
@@ -252,8 +251,7 @@ module Model = struct
       | Debug_info_map json -> push (debug_info_to_chunk id json)
       | Chunk_component_ref json -> push (client_reference_to_chunk id json)
     in
-    let debug_info = match __DEV__ with Some "development" -> true | _ -> false in
-    let context : stream_context = { push = push_chunk; close; chunk_id = initial_chunk_id; pending = 0; debug_info } in
+    let context : stream_context = { push = push_chunk; close; chunk_id = initial_chunk_id; pending = 0; debug } in
     let initial_chunk_id = get_chunk_id context in
     let json = client_value_to_json ~context value in
     context.push initial_chunk_id (Chunk_value json);
@@ -329,7 +327,7 @@ let rec client_to_html ~fiber (element : React.element) =
       let%lwt html = childrens |> Array.to_list |> Lwt_list.map_p (client_to_html ~fiber) in
       Lwt.return (Html.list html)
   | Lower_case_element { key; tag; attributes; children } -> render_lower_case ~fiber ~key ~tag ~attributes ~children
-  | Upper_case_component component ->
+  | Upper_case_component (_, component) ->
       let rec wait_for_suspense_to_resolve () =
         match component () with
         | exception React.Suspend (Any_promise promise) ->
@@ -381,25 +379,47 @@ and render_lower_case ~fiber ~key:_ ~tag ~attributes ~children =
     let%lwt html = children |> Lwt_list.map_p (client_to_html ~fiber) in
     Lwt.return (Html.node tag html_props html)
 
-let rec to_html ~fiber (element : React.element) : (Html.element * json) Lwt.t =
+let rec to_html ~debug ~fiber (element : React.element) : (Html.element * json) Lwt.t =
+  let context = Fiber.get_context fiber in
+  let push id chunk =
+    match (chunk : Model.chunk_type) with
+    | Chunk_value json ->
+        context.index <- id;
+        context.push (client_value_chunk_script id json)
+    | Debug_info_map json ->
+        context.index <- id;
+        context.push (debug_info_chunk_script id json)
+    | Chunk_component_ref json ->
+        context.index <- id;
+        context.push (client_reference_chunk_script id json)
+  in
+  let context : Model.stream_context = { push; close = context.close; chunk_id = context.index; pending = 0; debug } in
   match element with
   | Empty -> Lwt.return (Html.null, `Null)
   | Text s -> Lwt.return (Html.string s, if not true then `Null else `String s)
-  | Fragment children -> to_html ~fiber children
-  | List list -> elements_to_html ~fiber list
-  | Array arr -> elements_to_html ~fiber (Array.to_list arr)
-  | Upper_case_component component -> to_html ~fiber (component ())
-  | Lower_case_element { key; tag; attributes; children } -> render_lower_case ~fiber ~key ~tag ~attributes ~children
+  | Fragment children -> to_html ~debug ~fiber children
+  | List list -> elements_to_html ~debug ~fiber list
+  | Array arr -> elements_to_html ~debug ~fiber (Array.to_list arr)
+  | Upper_case_component (name, component) ->
+      if context.debug then (
+        let debug_info_index = Fiber.use_index fiber in
+        let debug_info_ref : json = `String (Printf.sprintf "$%x" debug_info_index) in
+        context.push debug_info_index (Model.Chunk_value (Model.make_debug_info name));
+        context.push debug_info_index (Model.Debug_info_map debug_info_ref);
+        ());
+      to_html ~debug ~fiber (component ())
+  | Lower_case_element { key; tag; attributes; children } ->
+      render_lower_case ~debug ~fiber ~context ~key ~tag ~attributes ~children
   | Async_component component ->
       let%lwt element = component () in
-      to_html ~fiber element
+      to_html ~debug ~fiber element
   | Client_component { import_module; import_name; props; client } ->
       let lwt_props =
         Lwt_list.map_p
-          (fun ((name : string), value) ->
+          (fun (name, value) ->
             match (value : React.client_value) with
             | Element element ->
-                let%lwt _html, model = to_html ~fiber element in
+                let%lwt _html, model = to_html ~debug ~fiber element in
                 Lwt.return (name, model)
             | Promise (promise, value_to_json) ->
                 let context = Fiber.get_context fiber in
@@ -435,10 +455,10 @@ let rec to_html ~fiber (element : React.element) : (Html.element * json) Lwt.t =
       let model = Model.node ~tag:(Model.ref_value index) ~key:None ~props [] in
       Lwt.return (html, model)
   | Suspense { key; children; fallback } -> (
-      let%lwt html_fallback, model_fallback = to_html ~fiber fallback in
+      let%lwt html_fallback, model_fallback = to_html ~debug ~fiber fallback in
       let context = fiber.context in
       let _finished, parent_done = Lwt.wait () in
-      let promise = to_html ~fiber children in
+      let promise = to_html ~debug ~fiber children in
       match Lwt.state promise with
       | Lwt.Sleep ->
           let index = Fiber.use_index fiber in
@@ -461,63 +481,50 @@ let rec to_html ~fiber (element : React.element) : (Html.element * json) Lwt.t =
           Lwt.wakeup_later parent_done ();
           Lwt.return (html_suspense html, model)
       | Lwt.Fail exn -> Lwt.fail exn)
-  | Provider children -> to_html ~fiber children
-  | Consumer children -> to_html ~fiber children
+  | Provider children -> to_html ~debug ~fiber children
+  | Consumer children -> to_html ~debug ~fiber children
   (* TODO: There's a task to remove InnerHtml in ReactDOM and use Html.raw directly. Here is still unclear what do to since we assing dangerouslySetInnerHTML to the right prop on the model. Also, should this model be `Null? *)
   | InnerHtml innerHtml -> Lwt.return (Html.raw innerHtml, `Null)
 
-and render_lower_case ~fiber ~key ~tag ~attributes ~children =
+and render_lower_case ~debug ~fiber ~context ~key ~tag ~attributes ~children =
   let children = ReactDOM.moveDangerouslyInnerHtmlAsChildren attributes children in
-  let context = Fiber.get_context fiber in
-  let push_chunk id chunk =
-    match (chunk : Model.chunk_type) with
-    | Chunk_value json ->
-        context.index <- id;
-        context.push (client_value_chunk_script id json)
-    | Debug_info_map json ->
-        context.index <- id;
-        context.push (debug_info_chunk_script id json)
-    | Chunk_component_ref json ->
-        context.index <- id;
-        context.push (client_reference_chunk_script id json)
-  in
-  let context : Model.stream_context =
-    { push = push_chunk; close = context.close; chunk_id = context.index; pending = 0; debug_info = true }
-  in
   if Html.is_self_closing_tag tag then
     let html_props = List.map ReactDOM.attribute_to_html attributes in
     let json_props = Model.props_to_json ~context attributes in
-    Lwt.return (Html.node tag html_props [], Model.node ~tag ~key ~props:json_props [])
+    let empty_children = (* there's no children for self closing tags *) [] in
+    Lwt.return (Html.node tag html_props empty_children, Model.node ~tag ~key ~props:json_props empty_children)
   else
     let html_props = List.map ReactDOM.attribute_to_html attributes in
     let json_props = Model.props_to_json ~context attributes in
-    let%lwt html, model = elements_to_html ~fiber children in
+    let%lwt html, model = elements_to_html ~debug ~fiber children in
     Lwt.return (Html.node tag html_props [ html ], Model.node ~tag ~key ~props:json_props [ model ])
 
-and elements_to_html ~fiber elements =
-  let%lwt html_and_models = elements |> Lwt_list.map_p (to_html ~fiber) in
+and elements_to_html ~debug ~fiber elements =
+  let%lwt html_and_models = elements |> Lwt_list.map_p (to_html ~debug ~fiber) in
   let htmls, model = List.split html_and_models in
   Lwt.return (Html.list htmls, `List model)
 
 let head children = Html.node "head" [] (Html.node "meta" [ Html.attribute "charset" "utf-8" ] [] :: children)
 
 (* TODO: Do we need to disable streaming based on some timeout? abortion? *)
+(* TODO: Do we want to add a flag to disable ssr? *)
 (* TODO: Do we need to disable the model rendering or can we do it outside? *)
 (* TODO: Add scripts and links to the output, also all options from renderToReadableStream *)
-let render_html ?(bootstrapScriptContent = "") ?(bootstrapScripts = []) ?(bootstrapModules = []) element =
+let render_html ?(debug = false) ?(bootstrapScriptContent = "") ?(bootstrapScripts = []) ?(bootstrapModules = [])
+    element =
   let initial_index = 0 in
   let htmls = ref [] in
   let emit_html chunk = htmls := chunk :: !htmls in
   let stream, push, close = Push_stream.make () in
-  let context : Fiber.context = { push; close; pending = 1; index = initial_index } in
+  let context : Fiber.context = { push; close; pending = 1; index = initial_index; debug } in
   let finished, parent_done = Lwt.wait () in
   let fiber : Fiber.t = { context; emit_html; finished } in
-  let%lwt root_html, root_model = to_html ~fiber element in
+  let%lwt root_html, root_model = to_html ~debug ~fiber element in
   let root_chunk = client_value_chunk_script initial_index root_model in
   let html_shell = Html.list [ Html.list !htmls; root_html; root_chunk ] in
   Lwt.wakeup_later parent_done ();
   context.pending <- context.pending - 1;
-  (* In case of not having any task pending, we can close the stream  *)
+  (* In case of not having any task pending, we can close the stream *)
   (match context.pending = 0 with
   | true -> context.close ()
   | false -> ());
