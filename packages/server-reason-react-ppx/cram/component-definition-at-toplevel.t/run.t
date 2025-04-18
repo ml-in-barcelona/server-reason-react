@@ -46,7 +46,9 @@
         ~all=0,
         (),
       ) =>
+    [@implicit_arity]
     React.Upper_case_component(
+      __FUNCTION__,
       () => {
         let className =
           Cx.make(
