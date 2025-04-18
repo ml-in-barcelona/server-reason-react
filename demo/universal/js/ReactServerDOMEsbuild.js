@@ -217,6 +217,8 @@ export function createFromFetch(promise, options) {
   return getRoot(response);
 }
 
+export const createServerReference = createServerReferenceImpl;
+
 export const encodeReply = (
   value,
   options = { temporaryReferences: undefined, signal: undefined }
