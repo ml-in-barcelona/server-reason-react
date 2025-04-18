@@ -440,10 +440,35 @@ let act_with_simple_response () =
   assert_stream stream [ "0:\"Server Content\"\n" ]
 
 let ensure_dev_adds_debug_info () =
-  let app = React.createElement "h1" [] [ React.string "Hello :)" ] in
+  let app =
+    React.Upper_case_component
+      (fun () ->
+        let value = "my friend" in
+        React.Fragment
+          (React.List
+             [
+               React.createElement "input"
+                 [
+                   React.JSX.String ("id", "id", "sidebar-search-input");
+                   React.JSX.String ("placeholder", "placeholder", "Search");
+                   React.JSX.String ("value", "value", value);
+                 ]
+                 [];
+               React.Upper_case_component (fun () -> React.createElement "h1" [] [ React.string "Hello :)" ]);
+             ]))
+  in
   let%lwt stream = ReactServerDOM.render_model ~__DEV__:"development" app in
   assert_stream stream
-    [ "0:[\"$\",\"div\",null,{\"style\":{\"zIndex\":\"34\",\"color\":\"red\",\"background\":\"blue\"}}]\n" ]
+    [
+      "2:{\"name\":\"UPPER\",\"env\":\"Server\",\"key\":null,\"owner\":null,\"stack\":[],\"props\":{}}\n";
+      "1:D\"$2\"\n";
+      "4:{\"name\":\"UPPER\",\"env\":\"Server\",\"key\":null,\"owner\":null,\"stack\":[],\"props\":{}}\n";
+      "3:D\"$4\"\n";
+      "3:[\"$\",\"h1\",null,{\"children\":\"Hello :)\"}]\n";
+      "1:[[\"$\",\"input\",null,{\"id\":\"sidebar-search-input\",\"placeholder\":\"Search\",\"value\":\"my \
+       friend\"}],\"$3\"]\n";
+      "0:\"$1\"\n";
+    ]
 
 let tests =
   [

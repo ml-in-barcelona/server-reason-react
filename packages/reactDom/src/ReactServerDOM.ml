@@ -1,3 +1,5 @@
+[@@@warning "-26-27-32"]
+
 type json = Yojson.Basic.t
 
 module Fiber = struct
@@ -19,7 +21,7 @@ module Fiber = struct
 end
 
 module Model = struct
-  type chunk_type = Chunk_value of json | Chunk_component_ref of json
+  type chunk_type = Chunk_value of json | Chunk_component_ref of json | Debug_info_map of json
 
   type stream_context = {
     push : int -> chunk_type -> unit;
@@ -95,6 +97,13 @@ module Model = struct
     Buffer.add_string buf "\n";
     Buffer.contents buf
 
+  let debug_info_to_chunk id json =
+    let buf = Buffer.create (4 * 1024) in
+    Buffer.add_string buf (Printf.sprintf "%x:D" id);
+    Yojson.Basic.write_json buf json;
+    Buffer.add_string buf "\n";
+    Buffer.contents buf
+
   let client_reference_to_chunk id ref =
     let buf = Buffer.create 256 in
     Buffer.add_string buf (Printf.sprintf "%x:I" id);
@@ -102,14 +111,16 @@ module Model = struct
     Buffer.add_string buf "\n";
     Buffer.contents buf
 
-  let debug_info name env =
+  let make_debug_info ?ownerName name =
+    let owner = match ownerName with Some owner -> `String owner | None -> `Null in
     `Assoc
       [
         ("name", `String name);
-        ("env", `String env);
+        ("env", `String "Server");
         ("key", `Null);
-        ("owner", `Null);
+        ("owner", owner);
         ("stack", `List []);
+        (* We don't have access to the props of uppercase components, since we treat it as a closure and don't encode the props. Here pass empty object *)
         ("props", `Assoc []);
       ]
   (* 1:{"name":"App","env":"Server","key":null,"owner":null,"stack":[["module code","/Users/davesnx/Code/github/ml-in-barcelona/server-reason-react/arch/server/render-rsc-to-stream.js",41,42]],"props":{}} *)
@@ -131,10 +142,19 @@ module Model = struct
              "InnerHtml does not exist in RSC, this is a bug in server-reason-react.ppx or a wrong construction of JSX \
               manually")
     | Upper_case_component component ->
+        let name = "UPPER" in
         let element = component () in
         (* Instead of returning the payload directly, we push it, and return a reference to it.
            This is how `react-server-dom-webpack/server` renderToPipeableStream works *)
         let index = use_chunk_id context in
+        if context.debug_info then (
+          let debug_info_index = use_chunk_id context in
+          let debug_info = make_debug_info "UPPER" in
+          context.push debug_info_index (Chunk_value debug_info);
+          let debug_info_ref : json = `String (Printf.sprintf "$%x" debug_info_index) in
+          context.push index (Debug_info_map debug_info_ref);
+          ())
+        else ();
         context.push index (Chunk_value (element_to_payload ~context element));
         `String (ref_value index)
     | Async_component component -> (
@@ -208,6 +228,7 @@ module Model = struct
     let push_chunk id chunk =
       match chunk with
       | Chunk_value json -> push (model_to_chunk id json)
+      | Debug_info_map json -> push (debug_info_to_chunk id json)
       | Chunk_component_ref json -> push (client_reference_to_chunk id json)
     in
     let debug_info = match __DEV__ with Some "development" -> true | _ -> false in
@@ -228,6 +249,7 @@ module Model = struct
     let push_chunk id chunk =
       match chunk with
       | Chunk_value json -> push (model_to_chunk id json)
+      | Debug_info_map json -> push (debug_info_to_chunk id json)
       | Chunk_component_ref json -> push (client_reference_to_chunk id json)
     in
     let debug_info = match __DEV__ with Some "development" -> true | _ -> false in
@@ -273,6 +295,7 @@ let chunk_script script =
 
 let client_reference_chunk_script index json = chunk_script (Model.client_reference_to_chunk index json)
 let client_value_chunk_script index json = chunk_script (Model.model_to_chunk index json)
+let debug_info_chunk_script index json = chunk_script (Model.debug_info_to_chunk index json)
 let chunk_stream_end_script = Html.node "script" [] [ Html.raw "window.srr_stream.close()" ]
 let rc_replacement b s = Html.node "script" [] [ Html.raw (Printf.sprintf "$RC('B:%x', 'S:%x')" b s) ]
 
@@ -447,11 +470,14 @@ and render_lower_case ~fiber ~key ~tag ~attributes ~children =
   let children = ReactDOM.moveDangerouslyInnerHtmlAsChildren attributes children in
   let context = Fiber.get_context fiber in
   let push_chunk id chunk =
-    match chunk with
-    | Model.Chunk_value json ->
+    match (chunk : Model.chunk_type) with
+    | Chunk_value json ->
         context.index <- id;
         context.push (client_value_chunk_script id json)
-    | Model.Chunk_component_ref json ->
+    | Debug_info_map json ->
+        context.index <- id;
+        context.push (debug_info_chunk_script id json)
+    | Chunk_component_ref json ->
         context.index <- id;
         context.push (client_reference_chunk_script id json)
   in

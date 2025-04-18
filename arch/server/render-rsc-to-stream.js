@@ -40,8 +40,8 @@ const sleep = (seconds) =>
 );
  */
 
-function Comp() {
-	return <h1>Hello</h1>;
+function Comp({ name }) {
+	return <h1>Hello {name}</h1>;
 }
 
 function App() {
@@ -49,7 +49,7 @@ function App() {
 	return (
 		<>
 			<input id="sidebar-search-input" placeholder="Search" value={value} />
-			<Comp />
+			<Comp name={value} />
 		</>
 	);
 }
