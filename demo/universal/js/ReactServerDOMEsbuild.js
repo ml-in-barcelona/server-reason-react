@@ -119,6 +119,7 @@ const ReactFlightClientConfigBundlerEsbuild = {
   requireModule(metadata) {
     const component = window.__client_manifest_map[metadata.id];
     if (!component) {
+      /* TODO: use reportGlobalError? */
       throw new Error(
         `Could not find client component with id: ${metadata.id}`
       );
@@ -176,11 +177,17 @@ function callCurrentServerCallback(callServer) {
 }
 
 export function createFromReadableStream(stream, options) {
-  const response = createResponse(
+  const response = createResponseFromOptions(options);
+  startReadingFromStream(response, stream);
+  return getRoot(response);
+}
+
+function createResponseFromOptions(options) {
+  return createResponse(
     null, // bundlerConfig
     null, // serverReferenceConfig
     null, // moduleLoading
-    callCurrentServerCallback(options ? options.callServer : null),
+    callCurrentServerCallback(options ? options.callServer : undefined),
     undefined, // encodeFormAction
     undefined, // nonce
     options && options.temporaryReferences
@@ -192,56 +199,20 @@ export function createFromReadableStream(stream, options) {
 			? options.environmentName
 			: undefined */
   );
-  startReadingFromStream(response, stream);
+}
+
+export function createFromFetch(promise, options){
+  const response = createResponseFromOptions(options);
+  promise.then(
+    function (r) {
+      startReadingFromStream(response, (r.body));
+    },
+    function (e) {
+      reportGlobalError(response, e);
+    },
+  );
   return getRoot(response);
 }
-
-export const hydrateRoot = (container, initialChildren) => {
-  console.log("hydrateRoot", container, initialChildren);
-  // Delegate to react-dom
-  import("react-dom/client").then(({ hydrateRoot }) => {
-    hydrateRoot(container, initialChildren);
-  });
-};
-
-async function parseRSCStream(stream) {
-  console.log("parseRSCStream", stream);
-  const chunks = [];
-  const reader = stream.getReader();
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    chunks.push(new TextDecoder().decode(value));
-  }
-  /* const data = chunks
-    .join("")
-    .split("\n")
-    .map((line) => JSON.parse(line));
-  return data.map((item) => {
-    if (item["$"] === "react.client.reference") {
-      return resolveClientReference(item.id);
-    }
-    return item; // Server component placeholder
-  }); */
-  return chunks;
-}
-
-export const createFromFetch = (fetch) => {
-  console.log("createFromFetch", fetch);
-  return fetch.then((res) => parseRSCStream(res.body));
-};
-
-async function resolveClientReference(id) {
-  console.log("resolveClientReference", id);
-  const component = window.__client_manifest_map[id];
-  if (!component) {
-    throw new Error(`Could not find client component with id: ${id}`);
-  }
-  return { __esModule: true, default: component };
-}
-
-
-export const createServerReference = (id, callServer) => createServerReferenceImpl(id, callServer, undefined, undefined, undefined)
 
 export const encodeReply = (
   value,
