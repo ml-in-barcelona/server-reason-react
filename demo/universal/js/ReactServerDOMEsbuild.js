@@ -212,7 +212,7 @@ async function parseRSCStream(stream) {
     if (done) break;
     chunks.push(new TextDecoder().decode(value));
   }
-  const data = chunks
+  /* const data = chunks
     .join("")
     .split("\n")
     .map((line) => JSON.parse(line));
@@ -221,7 +221,8 @@ async function parseRSCStream(stream) {
       return resolveClientReference(item.id);
     }
     return item; // Server component placeholder
-  });
+  }); */
+  return chunks;
 }
 
 export const createFromFetch = (fetch) => {
