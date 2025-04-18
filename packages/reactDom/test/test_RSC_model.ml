@@ -439,6 +439,12 @@ let act_with_simple_response () =
   let%lwt stream = ReactServerDOM.create_action_response response in
   assert_stream stream [ "0:\"Server Content\"\n" ]
 
+let ensure_dev_adds_debug_info () =
+  let app = React.createElement "h1" [] [ React.string "Hello :)" ] in
+  let%lwt stream = ReactServerDOM.render_model ~__DEV__:"development" app in
+  assert_stream stream
+    [ "0:[\"$\",\"div\",null,{\"style\":{\"zIndex\":\"34\",\"color\":\"red\",\"background\":\"blue\"}}]\n" ]
+
 let tests =
   [
     test "null_element" null_element;
@@ -465,4 +471,5 @@ let tests =
     test "client_with_element_props" client_with_element_props;
     test "client_with_server_children" client_with_server_children;
     test "act_with_simple_response" act_with_simple_response;
+    test "ensure_dev_adds_debug_info" ensure_dev_adds_debug_info;
   ]

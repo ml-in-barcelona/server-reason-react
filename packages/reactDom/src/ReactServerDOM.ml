@@ -26,6 +26,7 @@ module Model = struct
     close : unit -> unit;
     mutable pending : int;
     mutable chunk_id : int;
+    debug_info : bool;
   }
 
   let use_chunk_id context =
@@ -100,6 +101,18 @@ module Model = struct
     Yojson.Basic.write_json buf ref;
     Buffer.add_string buf "\n";
     Buffer.contents buf
+
+  let debug_info name env =
+    `Assoc
+      [
+        ("name", `String name);
+        ("env", `String env);
+        ("key", `Null);
+        ("owner", `Null);
+        ("stack", `List []);
+        ("props", `Assoc []);
+      ]
+  (* 1:{"name":"App","env":"Server","key":null,"owner":null,"stack":[["module code","/Users/davesnx/Code/github/ml-in-barcelona/server-reason-react/arch/server/render-rsc-to-stream.js",41,42]],"props":{}} *)
 
   let rec element_to_payload ~context element =
     match (element : React.element) with
@@ -189,7 +202,7 @@ module Model = struct
         (name, jsonValue))
       props
 
-  let render ?subscribe element : string Lwt_stream.t Lwt.t =
+  let render ?__DEV__ ?subscribe element : string Lwt_stream.t Lwt.t =
     let initial_chunk_id = 0 in
     let stream, push, close = Push_stream.make () in
     let push_chunk id chunk =
@@ -197,13 +210,10 @@ module Model = struct
       | Chunk_value json -> push (model_to_chunk id json)
       | Chunk_component_ref json -> push (client_reference_to_chunk id json)
     in
-    let context : stream_context = { push = push_chunk; close; chunk_id = initial_chunk_id; pending = 0 } in
-    let initial_chunk_id = get_chunk_id context in
-    (match Sys.getenv_opt "NODE_ENV" with
-    (* TODO: Add debug items, here's theres an app:xxx, env:xxx, etc... *)
-    | Some "development" -> context.push initial_chunk_id (Chunk_value (element_to_payload ~context element))
-    | _ -> ());
-    context.push initial_chunk_id (Chunk_value (element_to_payload ~context element));
+    let debug_info = match __DEV__ with Some "development" -> true | _ -> false in
+    let context : stream_context = { push = push_chunk; close; chunk_id = initial_chunk_id; pending = 0; debug_info } in
+    let chunk_id_zero = get_chunk_id context in
+    context.push chunk_id_zero (Chunk_value (element_to_payload ~context element));
     if context.pending = 0 then context.close ();
     (* TODO: Currently returns the stream because of testing, in the future we can use subscribe to capture all chunks *)
     match subscribe with
@@ -212,7 +222,7 @@ module Model = struct
         let%lwt _ = Lwt_stream.iter_s subscribe stream in
         Lwt.return stream
 
-  let create_action_response ?subscribe value =
+  let create_action_response ?__DEV__ ?subscribe value =
     let initial_chunk_id = 0 in
     let stream, push, close = Push_stream.make () in
     let push_chunk id chunk =
@@ -220,7 +230,8 @@ module Model = struct
       | Chunk_value json -> push (model_to_chunk id json)
       | Chunk_component_ref json -> push (client_reference_to_chunk id json)
     in
-    let context : stream_context = { push = push_chunk; close; chunk_id = initial_chunk_id; pending = 0 } in
+    let debug_info = match __DEV__ with Some "development" -> true | _ -> false in
+    let context : stream_context = { push = push_chunk; close; chunk_id = initial_chunk_id; pending = 0; debug_info } in
     let initial_chunk_id = get_chunk_id context in
     let json = client_value_to_json ~context value in
     context.push initial_chunk_id (Chunk_value json);
@@ -445,7 +456,7 @@ and render_lower_case ~fiber ~key ~tag ~attributes ~children =
         context.push (client_reference_chunk_script id json)
   in
   let context : Model.stream_context =
-    { push = push_chunk; close = context.close; chunk_id = context.index; pending = 0 }
+    { push = push_chunk; close = context.close; chunk_id = context.index; pending = 0; debug_info = true }
   in
   if Html.is_self_closing_tag tag then
     let html_props = List.map ReactDOM.attribute_to_html attributes in
