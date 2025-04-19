@@ -35,39 +35,43 @@ let assert_stream (stream : string Lwt_stream.t) (expected : string list) =
 
 let stream_close_script = "<script>window.srr_stream.close()</script>"
 
-let assert_html element ~shell assertion_list =
-  let entire_html =
+let assert_html element ?debug ~shell assertion_list =
+  let begin_html =
     Printf.sprintf
-      "<!DOCTYPE html><html><head><meta charset=\"utf-8\" /><script>function \
-       $RC(a,b){a=document.getElementById(a);b=document.getElementById(b);b.parentNode.removeChild(b);if(a){a=a.previousSibling;var \
-       f=a.parentNode,c=a.nextSibling,e=0;do{if(c&&8===c.nodeType){var d=c.data;if(\"/$\"===d)if(0===e)break;else \
-       e--;else\"$\"!==d&&\"$?\"!==d&&\"$!\"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data=\"$\";a._reactRetry&&a._reactRetry()}}</script><script>\n\
-       let enc = new TextEncoder();\n\
-       let srr_stream = (window.srr_stream = {});\n\
-       srr_stream.push = () => {\n\
-      \  srr_stream._c.enqueue(enc.encode(document.currentScript.dataset.payload));\n\
-       };\n\
-       srr_stream.close = () => {\n\
-      \  srr_stream._c.close();\n\
-       };\n\
-       srr_stream.readable_stream = new ReadableStream({ start(c) { srr_stream._c = c; } });\n\
-      \        </script></head>%s</html>"
-      shell
+      {|<!DOCTYPE html><html><head><meta charset="utf-8" /><script>function $RC(a,b){a=document.getElementById(a);b=document.getElementById(b);b.parentNode.removeChild(b);if(a){a=a.previousSibling;var f=a.parentNode,c=a.nextSibling,e=0;do{if(c&&8===c.nodeType){var d=c.data;if("/$"===d)if(0===e)break;else e--;else"$"!==d&&"$?"!==d&&"$!"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data="$";a._reactRetry&&a._reactRetry()}}</script><script>
+let enc = new TextEncoder();
+let srr_stream = (window.srr_stream = {});
+srr_stream.push = () => {
+  srr_stream._c.enqueue(enc.encode(document.currentScript.dataset.payload));
+};
+srr_stream.close = () => {
+  srr_stream._c.close();
+};
+srr_stream.readable_stream = new ReadableStream({ start(c) { srr_stream._c = c; } });
+</script></head>|}
   in
+  let end_html = "</html>" in
   let subscribed_elements = ref [] in
-  let%lwt html, subscribe = ReactServerDOM.render_html element in
+  let%lwt html, subscribe = ReactServerDOM.render_html ?debug element in
   let%lwt () =
     subscribe (fun element ->
         subscribed_elements := !subscribed_elements @ [ element ];
         Lwt.return ())
   in
-  assert_string entire_html html;
+  let remove_begin_and_end str =
+    let diff = Str.replace_first (Str.regexp_string begin_html) "" str in
+    Str.replace_first (Str.regexp_string end_html) "" diff
+  in
+  let diff = remove_begin_and_end html in
+  assert_string diff shell;
   assert_list_of_strings subscribed_elements.contents assertion_list;
   Lwt.return ()
 
 let layout ~children () =
   React.Upper_case_component
-    (fun () -> React.createElement "div" [] [ React.createElement "p" [] [ React.string "Awesome webpage"; children ] ])
+    ( "layout",
+      fun () -> React.createElement "div" [] [ React.createElement "p" [] [ React.string "Awesome webpage"; children ] ]
+    )
 
 let loading_suspense ~children () = React.Suspense.make ~fallback:(React.string "Loading...") ~children ()
 
@@ -88,6 +92,44 @@ let element_with_dangerously_set_inner_html () =
        '>window.srr_stream.push()</script>"
     app [ stream_close_script ]
 
+let debug_adds_debug_info () =
+  let app =
+    React.Upper_case_component
+      ( "app",
+        fun () ->
+          let value = "my friend" in
+          React.Fragment
+            (React.List
+               [
+                 React.createElement "input"
+                   [
+                     React.JSX.String ("id", "id", "sidebar-search-input");
+                     React.JSX.String ("placeholder", "placeholder", "Search");
+                     React.JSX.String ("value", "value", value);
+                   ]
+                   [];
+                 React.Upper_case_component ("Hello", fun () -> React.createElement "h1" [] [ React.string "Hello :)" ]);
+               ]) )
+  in
+  assert_html ~debug:true
+    ~shell:
+      "<input id=\"sidebar-search-input\" placeholder=\"Search\" value=\"my friend\" /><h1>Hello :)</h1><script \
+       data-payload='0:[[\"$\",\"input\",null,{\"id\":\"sidebar-search-input\",\"placeholder\":\"Search\",\"value\":\"my \
+       friend\"}],[\"$\",\"h1\",null,{\"children\":[\"Hello :)\"]}]]\n\
+       '>window.srr_stream.push()</script>"
+    app
+    [
+      "<script \
+       data-payload='1:{\"name\":\"app\",\"env\":\"Server\",\"key\":null,\"owner\":null,\"stack\":[],\"props\":{}}\n\
+       '>window.srr_stream.push()</script>";
+      "<script data-payload='1:D\"$1\"\n'>window.srr_stream.push()</script>";
+      "<script \
+       data-payload='2:{\"name\":\"Hello\",\"env\":\"Server\",\"key\":null,\"owner\":null,\"stack\":[],\"props\":{}}\n\
+       '>window.srr_stream.push()</script>";
+      "<script data-payload='2:D\"$2\"\n'>window.srr_stream.push()</script>";
+      stream_close_script;
+    ]
+
 let input_element_with_value () =
   let app = React.createElement "input" [ React.JSX.String ("value", "value", "application") ] [] in
   assert_html
@@ -99,11 +141,13 @@ let input_element_with_value () =
 let upper_case_component () =
   let app =
     React.Upper_case_component
-      (fun () ->
-        React.createElement "div" []
-          [
-            React.createElement "section" [] [ React.createElement "article" [] [ React.string "Deep Server Content" ] ];
-          ])
+      ( "app",
+        fun () ->
+          React.createElement "div" []
+            [
+              React.createElement "section" []
+                [ React.createElement "article" [] [ React.string "Deep Server Content" ] ];
+            ] )
   in
   assert_html
     ~shell:
@@ -234,19 +278,20 @@ let client_with_promise_props () =
   in
   let app () =
     React.Upper_case_component
-      (fun () ->
-        React.list
-          [
-            React.createElement "div" [] [ React.string "Server Content" ];
-            React.Client_component
-              {
-                props =
-                  [ ("promise", React.Promise (delayed_value ~ms:200 "||| Resolved |||", fun res -> `String res)) ];
-                client = React.string "Client with Props";
-                import_module = "./client-with-props.js";
-                import_name = "ClientWithProps";
-              };
-          ])
+      ( "app",
+        fun () ->
+          React.list
+            [
+              React.createElement "div" [] [ React.string "Server Content" ];
+              React.Client_component
+                {
+                  props =
+                    [ ("promise", React.Promise (delayed_value ~ms:200 "||| Resolved |||", fun res -> `String res)) ];
+                  client = React.string "Client with Props";
+                  import_module = "./client-with-props.js";
+                  import_name = "ClientWithProps";
+                };
+            ] )
   in
   assert_html (app ())
     ~shell:
@@ -264,6 +309,7 @@ let client_with_promise_props () =
 let tests =
   [
     test "null_element" null_element;
+    test "debug_adds_debug_info" debug_adds_debug_info;
     test "element_with_dangerously_set_inner_html" element_with_dangerously_set_inner_html;
     test "input_element_with_value" input_element_with_value;
     test "upper_case_component" upper_case_component;

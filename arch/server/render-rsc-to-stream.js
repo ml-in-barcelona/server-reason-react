@@ -40,10 +40,18 @@ const sleep = (seconds) =>
 );
  */
 
+function Comp({ name }) {
+	return <h1>Hello {name}</h1>;
+}
+
 function App() {
 	let value = "asdfasdf";
-	let onChange = () => {};
-	return <input id="sidebar-search-input" placeholder="Search" value={value} />;
+	return (
+		<>
+			<input id="sidebar-search-input" placeholder="Search" value={value} />
+			<Comp name={value} />
+		</>
+	);
 }
 
 const { pipe } = renderToPipeableStream(<App />);

@@ -1,28 +1,26 @@
-/* TODO: Move this bindings into reason-react */
-type callServerCallback('arg, 'result) =
+type callServer('arg, 'result) =
   (string, list('arg)) => Js.Promise.t('result);
-type options('arg, 'result) = {
-  callServer: callServerCallback('arg, 'result),
-};
 
-[@mel.module "react-server-dom-webpack/client"]
+type options('arg, 'result) = {callServer: callServer('arg, 'result)};
+
+[@mel.module "./ReactServerDOMEsbuild.js"]
 external createFromReadableStreamImpl:
   (Webapi.ReadableStream.t, ~options: options('arg, 'result)=?, unit) =>
   Js.Promise.t('result) =
   "createFromReadableStream";
 
-[@mel.module "react-server-dom-webpack/client"]
+[@mel.module "./ReactServerDOMEsbuild.js"]
 external createFromFetchImpl:
   (Js.Promise.t(Fetch.response), ~options: options('arg, 'result)=?, unit) =>
   React.element =
   "createFromFetch";
 
-[@mel.module "react-server-dom-webpack/client"]
+[@mel.module "./ReactServerDOMEsbuild.js"]
 external createServerReferenceImpl:
   (
     string, // ServerReferenceId
     // CallServerCallback
-    callServerCallback('arg, 'result),
+    callServer('arg, 'result),
     // EncodeFormActionCallback (optional) (We're not using this right now)
     option('encodeFormActionCallback),
     // FindSourceMapURLCallback (optional, DEV-only) (We're not using this right now)
@@ -32,10 +30,10 @@ external createServerReferenceImpl:
   ) =>
   // actionCallback is a function that takes N arguments and returns a promise
   // As we don't have control over the number of arguments, we need to pass it as 'actionCallback
-  'actionCallback =
+  'action =
   "createServerReference";
 
-[@mel.module "react-server-dom-webpack/client"]
+[@mel.module "./ReactServerDOMEsbuild.js"]
 external encodeReply: list('arg) => Js.Promise.t(string) = "encodeReply";
 
 let callServer = (path, args) => {

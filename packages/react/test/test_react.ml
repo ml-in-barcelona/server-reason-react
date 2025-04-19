@@ -4,37 +4,40 @@ let assert_string left right = Alcotest.check Alcotest.string "should be equal" 
 let use_state_doesnt_fire () =
   let app =
     React.Upper_case_component
-      (fun () ->
-        let state, setState = React.useState (fun () -> "foo") in
-        (* You wouldn't have this code in prod, but just for testing purposes *)
-        setState (fun _prev -> "bar");
-        React.createElement "div" [] [ React.string state ])
+      ( "app",
+        fun () ->
+          let state, setState = React.useState (fun () -> "foo") in
+          (* You wouldn't have this code in prod, but just for testing purposes *)
+          setState (fun _prev -> "bar");
+          React.createElement "div" [] [ React.string state ] )
   in
   assert_string (ReactDOM.renderToStaticMarkup app) "<div>foo</div>"
 
 let use_sync_external_store_with_server () =
   let app =
     React.Upper_case_component
-      (fun () ->
-        let value =
-          React.useSyncExternalStoreWithServer
-            ~getServerSnapshot:(fun () -> "foo")
-            ~subscribe:(fun _ () -> ())
-            ~getSnapshot:(fun _ -> "bar")
-        in
-        React.createElement "div" [] [ React.string value ])
+      ( "app",
+        fun () ->
+          let value =
+            React.useSyncExternalStoreWithServer
+              ~getServerSnapshot:(fun () -> "foo")
+              ~subscribe:(fun _ () -> ())
+              ~getSnapshot:(fun _ -> "bar")
+          in
+          React.createElement "div" [] [ React.string value ] )
   in
   assert_string (ReactDOM.renderToStaticMarkup app) "<div>foo</div>"
 
 let use_effect_doesnt_fire () =
   let app =
     React.Upper_case_component
-      (fun () ->
-        let ref = React.useRef "foo" in
-        React.useEffect0 (fun () ->
-            ref.current <- "bar";
-            None);
-        React.createElement "div" [] [ React.string ref.current ])
+      ( "app",
+        fun () ->
+          let ref = React.useRef "foo" in
+          React.useEffect0 (fun () ->
+              ref.current <- "bar";
+              None);
+          React.createElement "div" [] [ React.string ref.current ] )
   in
   assert_string (ReactDOM.renderToStaticMarkup app) "<div>foo</div>"
 
@@ -46,24 +49,26 @@ module Gap = struct
 end
 
 let children_map_one_element () =
-  let app = React.Upper_case_component (fun () -> Gap.make ~children:(React.string "foo")) in
+  let app = React.Upper_case_component ("app", fun () -> Gap.make ~children:(React.string "foo")) in
   assert_string (ReactDOM.renderToStaticMarkup app) "<div class=\"divider\">foo</div>"
 
 let children_map_list_element () =
   let app =
-    React.Upper_case_component (fun () -> Gap.make ~children:(React.list [ React.string "foo"; React.string "lola" ]))
+    React.Upper_case_component
+      ("app", fun () -> Gap.make ~children:(React.list [ React.string "foo"; React.string "lola" ]))
   in
   assert_string (ReactDOM.renderToStaticMarkup app) "<div class=\"divider\">foo</div><div class=\"divider\">lola</div>"
 
 let use_ref_works () =
   let app =
     React.Upper_case_component
-      (fun () ->
-        let isLive = React.useRef true in
-        React.useEffect0 (fun () ->
-            isLive.current <- false;
-            None);
-        React.createElement "span" [] [ React.string (string_of_bool isLive.current) ])
+      ( "app",
+        fun () ->
+          let isLive = React.useRef true in
+          React.useEffect0 (fun () ->
+              isLive.current <- false;
+              None);
+          React.createElement "span" [] [ React.string (string_of_bool isLive.current) ] )
   in
   assert_string (ReactDOM.renderToStaticMarkup app) "<span>true</span>"
 

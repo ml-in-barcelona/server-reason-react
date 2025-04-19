@@ -1,8 +1,6 @@
-// This will make possible to handle progressive enhancment on pages.
-// If there is no JS or hydration the page will make a POST request to the server
-// handling the action on the server and returning the page.
-// If there is JS, the page will make a POST request to the server with the action ID
-// and the server will return the action response.
+// Allow GET and POST from the same handler enables progressive enhancement.
+// When JS is disabled, the browser will make a POST request into the same page (instead of a GET). The server should handle the form action and return the page.
+// When JS is enabled, the page will make a POST request to the server with the action ID and the server will return the action response.
 let getAndPost = (path, handler) =>
   Dream.scope(
     "/",

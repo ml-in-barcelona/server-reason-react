@@ -376,7 +376,7 @@ end
 
 type element =
   | Lower_case_element of { key : string option; tag : string; attributes : JSX.prop list; children : element list }
-  | Upper_case_component of (unit -> element)
+  | Upper_case_component of string * (unit -> element)
   | Async_component of (unit -> element Lwt.t)
   | Client_component of { props : client_props; client : element; import_module : string; import_name : string }
   | List of element list

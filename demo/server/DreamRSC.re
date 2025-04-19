@@ -1,3 +1,5 @@
+let debug = false;
+
 let is_react_component_header = str =>
   String.equal(str, "application/react.component");
 
@@ -11,13 +13,15 @@ let stream_model = (~location, app) =>
     stream => {
       let%lwt _stream: Lwt.t(Lwt_stream.t(string)) =
         ReactServerDOM.render_model(
+          ~debug,
+          ~subscribe=
+            chunk => {
+              Dream.log("Chunk");
+              Dream.log("%s", chunk);
+              let%lwt () = Dream.write(stream, chunk);
+              Dream.flush(stream);
+            },
           app,
-          ~subscribe=chunk => {
-            Dream.log("Chunk");
-            Dream.log("%s", chunk);
-            let%lwt () = Dream.write(stream, chunk);
-            Dream.flush(stream);
-          },
         );
 
       Dream.flush(stream);
@@ -35,6 +39,7 @@ let stream_html =
           ~bootstrapScriptContent,
           ~bootstrapScripts,
           ~bootstrapModules,
+          ~debug,
           app,
         );
       let%lwt () = Dream.write(stream, "<body>" ++ html ++ "</body>");
@@ -70,13 +75,14 @@ let createActionFromRequest = (request, values) => {
     stream => {
       let%lwt _stream =
         ReactServerDOM.create_action_response(
+          ~subscribe=
+            chunk => {
+              Dream.log("Action response");
+              Dream.log("%s", chunk);
+              let%lwt () = Dream.write(stream, chunk);
+              Dream.flush(stream);
+            },
           values,
-          ~subscribe=chunk => {
-            Dream.log("Action response");
-            Dream.log("%s", chunk);
-            let%lwt () = Dream.write(stream, chunk);
-            Dream.flush(stream);
-          },
         );
 
       Dream.flush(stream);

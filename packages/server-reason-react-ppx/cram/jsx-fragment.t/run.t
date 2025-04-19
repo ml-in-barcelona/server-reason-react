@@ -12,7 +12,9 @@
     );
   module Fragment = {
     let make = (~key as _: option(string)=?, ~name="", ()) =>
+      [@implicit_arity]
       React.Upper_case_component(
+        __FUNCTION__,
         () =>
           React.fragment(
             React.list([
