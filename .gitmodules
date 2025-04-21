@@ -1,3 +1,0 @@
-[submodule "demo/client/vendor/react"]
-	path = demo/client/vendor/react
-	url = https://github.com/facebook/react.git
