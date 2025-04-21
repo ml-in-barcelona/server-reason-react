@@ -11,7 +11,7 @@ let stream_model = (~location, app) =>
       ("X-Location", location),
     ],
     stream => {
-      let%lwt _stream: Lwt.t(Lwt_stream.t(string)) =
+      let%lwt () =
         ReactServerDOM.render_model(
           ~debug,
           ~subscribe=

@@ -21,7 +21,6 @@ external createFromFetchImpl:
 external createServerReferenceImpl:
   (
     string, // ServerReferenceId
-    // CallServerCallback
     callServer('arg, 'result),
     // EncodeFormActionCallback (optional) (We're not using this right now)
     option('encodeFormActionCallback),
@@ -36,7 +35,7 @@ external createServerReferenceImpl:
 [@mel.module "./ReactServerDOMEsbuild.js"]
 external encodeReply: list('arg) => Js.Promise.t(string) = "encodeReply";
 
-let callServer = (path, args) => {
+let callServer = (path: string, args) => {
   let headers =
     Fetch.HeadersInit.make({
       "Accept": "application/react.action",

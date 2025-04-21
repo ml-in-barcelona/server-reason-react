@@ -12,7 +12,7 @@ module Fiber = struct
   type t = {
     context : context;
     finished : unit Lwt.t;
-    (* QUESTION: Why do I need emit_html as mutable?  *)
+    (* QUESTION: Why do I need emit_html to be mutable? *)
     mutable emit_html : Html.element -> unit;
   }
 
@@ -21,7 +21,6 @@ module Fiber = struct
     t.context.index
 
   let get_context t = t.context
-  (* let emit_html t html = t.emit_html html *)
 end
 
 module Model = struct
@@ -46,18 +45,18 @@ module Model = struct
   let ref_value id = Printf.sprintf "$%x" id
   let action_value id = Printf.sprintf "$F%x" id
 
-  let prop_to_json ~context (prop : React.JSX.prop) =
-    match prop with
+  let prop_to_json ~context prop =
+    match (prop : React.JSX.prop) with
     (* We ignore the HTML name, and only use the JSX name *)
-    | React.JSX.Bool (_, key, value) -> Some (key, `Bool value)
+    | Bool (_, key, value) -> Some (key, `Bool value)
     (* We exclude 'key' from props, since it's outside of the props object *)
-    | React.JSX.String (_, key, _) when key = "key" -> None
-    | React.JSX.String (_, key, value) -> Some (key, `String value)
-    | React.JSX.Style value -> Some ("style", style_to_json value)
-    | React.JSX.DangerouslyInnerHtml html -> Some ("dangerouslySetInnerHTML", `Assoc [ ("__html", `String html) ])
-    | React.JSX.Ref _ -> None
-    | React.JSX.Event _ -> None
-    | React.JSX.Action (_, key, action_id) ->
+    | String (_, key, _) when key = "key" -> None
+    | String (_, key, value) -> Some (key, `String value)
+    | Style value -> Some ("style", style_to_json value)
+    | DangerouslyInnerHtml html -> Some ("dangerouslySetInnerHTML", `Assoc [ ("__html", `String html) ])
+    | Ref _ -> None
+    | Event _ -> None
+    | Action (_, key, action_id) ->
         context.chunk_id <- context.chunk_id + 1;
         let id = context.chunk_id in
         context.push id (Chunk_value (`Assoc [ ("id", `String action_id); ("bound", `Null) ]));
@@ -124,7 +123,7 @@ module Model = struct
         ("key", `Null);
         ("owner", owner);
         ("stack", `List []);
-        (* We don't have access to the props of uppercase components, since we treat it as a closure and don't encode the props. Here pass empty object *)
+        (* We don't have access to the props of uppercase components, since we treat it as a closure and don't encode the props and pass an empty object *)
         ("props", `Assoc []);
       ]
 
@@ -136,7 +135,7 @@ module Model = struct
     | Lower_case_element { key; tag; attributes; children } ->
         let props = props_to_json ~context attributes in
         node ~key ~tag ~props (List.map (element_to_payload ~context) children)
-    | Fragment children -> (element_to_payload ~context) children
+    | Fragment children -> element_to_payload ~context children
     | List children -> `List (List.map (element_to_payload ~context) children)
     | Array children -> `List (Array.map (element_to_payload ~context) children |> Array.to_list)
     | InnerHtml _text ->
@@ -235,12 +234,12 @@ module Model = struct
     let initial_chunk_id = get_chunk_id context in
     context.push initial_chunk_id (Chunk_value (element_to_payload ~context element));
     if context.pending = 0 then context.close ();
-    (* TODO: Currently returns the stream because of testing, in the future we can use subscribe to capture all chunks *)
+    (* TODO: Currently returns the stream because of testing *)
     match subscribe with
-    | None -> Lwt.return stream
+    | None -> Lwt.return ()
     | Some subscribe ->
         let%lwt _ = Lwt_stream.iter_s subscribe stream in
-        Lwt.return stream
+        Lwt.return ()
 
   let create_action_response ?(debug = false) ?subscribe value =
     let initial_chunk_id = 0 in
@@ -251,16 +250,16 @@ module Model = struct
       | Debug_info_map json -> push (debug_info_to_chunk id json)
       | Chunk_component_ref json -> push (client_reference_to_chunk id json)
     in
-    let context : stream_context = { push = push_chunk; close; chunk_id = initial_chunk_id; pending = 0; debug } in
+    let context = { push = push_chunk; close; chunk_id = initial_chunk_id; pending = 0; debug } in
     let initial_chunk_id = get_chunk_id context in
     let json = client_value_to_json ~context value in
     context.push initial_chunk_id (Chunk_value json);
     if context.pending = 0 then context.close ();
     match subscribe with
-    | None -> Lwt.return stream
+    | None -> Lwt.return ()
     | Some subscribe ->
         let%lwt _ = Lwt_stream.iter_s subscribe stream in
-        Lwt.return stream
+        Lwt.return ()
 end
 
 let rsc_start_script =
@@ -504,14 +503,15 @@ and elements_to_html ~debug ~fiber elements =
 
 let head children = Html.node "head" [] (Html.node "meta" [ Html.attribute "charset" "utf-8" ] [] :: children)
 
-(* TODO: Do we need to disable streaming based on some timeout? abortion? *)
-(* TODO: Do we want to add a flag to disable ssr? *)
-(* TODO: Do we need to disable the model rendering or can we do it outside? *)
-(* TODO: Add scripts and links to the output, also all options from renderToReadableStream *)
+(* TODO: Do we need to stop streaming based on some timeout? abortion? *)
+(* TODO: Do we need to ensure chunks are of a certain size? minimum but also maximum? Saw react caring about this *)
+(* TODO: Do we want to add a flag to disable ssr? Do we need to disable the model rendering or can we do it outside? *)
+(* TODO: Add all options from renderToReadableStream *)
 let render_html ?(debug = false) ?(bootstrapScriptContent = "") ?(bootstrapScripts = []) ?(bootstrapModules = [])
     element =
   let initial_index = 0 in
   let htmls = ref [] in
+  (* TODO: Cleanup emit_html and use the push function directly? *)
   let emit_html chunk = htmls := chunk :: !htmls in
   let stream, push, close = Push_stream.make () in
   let context : Fiber.context = { push; close; pending = 1; index = initial_index; debug } in
