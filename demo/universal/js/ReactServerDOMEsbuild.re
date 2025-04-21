@@ -3,8 +3,6 @@ type callServer('arg, 'result) =
 
 type options('arg, 'result) = {callServer: callServer('arg, 'result)};
 
-type action('arg, 'result) = 'arg => Js.Promise.t('result);
-
 [@mel.module "./ReactServerDOMEsbuild.js"]
 external createFromReadableStreamImpl:
   (Webapi.ReadableStream.t, ~options: options('arg, 'result)=?, unit) =>
@@ -29,7 +27,9 @@ external createServerReferenceImpl:
     // functionName (optional)
     option(string)
   ) =>
-  action('arg, 'result) =
+  // actionCallback is a function that takes N arguments and returns a promise
+  // As we don't have control over the number of arguments, we need to pass it as 'actionCallback
+  'action =
   "createServerReference";
 
 [@mel.module "./ReactServerDOMEsbuild.js"]
