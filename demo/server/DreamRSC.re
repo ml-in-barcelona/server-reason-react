@@ -1,4 +1,4 @@
-let debug = false;
+let debug = Sys.getenv_opt("DEMO_ENV") === Some("development");
 
 let is_react_component_header = str =>
   String.equal(str, "application/react.component");
@@ -11,7 +11,7 @@ let stream_model = (~location, app) =>
       ("X-Location", location),
     ],
     stream => {
-      let%lwt _stream: Lwt.t(Lwt_stream.t(string)) =
+      let%lwt () =
         ReactServerDOM.render_model(
           ~debug,
           ~subscribe=

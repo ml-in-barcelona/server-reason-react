@@ -47,10 +47,7 @@ function Comp({ name }) {
 function App() {
 	let value = "asdfasdf";
 	return (
-		<>
-			<input id="sidebar-search-input" placeholder="Search" value={value} />
-			<Comp name={value} />
-		</>
+		<input type="text" value={value} />
 	);
 }
 
