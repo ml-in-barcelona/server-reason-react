@@ -142,8 +142,11 @@ end
 let context () =
   let component =
     React.Upper_case_component
-      (fun () ->
-        ContextProvider.make ~value:20 ~children:(React.Upper_case_component (fun () -> ContextConsumer.make ())) ())
+      ( "component",
+        fun () ->
+          ContextProvider.make ~value:20
+            ~children:(React.Upper_case_component ("context", fun () -> ContextConsumer.make ()))
+            () )
   in
   assert_string (ReactDOM.renderToStaticMarkup component) "<section>20</section>"
 
@@ -274,17 +277,21 @@ let render_svg () =
 let ref_as_callback_prop_works () =
   let app =
     React.Upper_case_component
-      (fun () ->
-        React.createElement "span" [ React.JSX.Ref (ReactDOM.Ref.callbackDomRef (fun _ -> ())) ] [ React.string "yow" ])
+      ( "app",
+        fun () ->
+          React.createElement "span"
+            [ React.JSX.Ref (ReactDOM.Ref.callbackDomRef (fun _ -> ())) ]
+            [ React.string "yow" ] )
   in
   assert_string (ReactDOM.renderToStaticMarkup app) "<span>yow</span>"
 
 let ref_as_prop_works () =
   let app =
     React.Upper_case_component
-      (fun () ->
-        let tableRootRef = React.useRef Js.Nullable.null in
-        React.createElement "span" [ React.JSX.Ref (ReactDOM.Ref.domRef tableRootRef) ] [ React.string "yow" ])
+      ( "app",
+        fun () ->
+          let tableRootRef = React.useRef Js.Nullable.null in
+          React.createElement "span" [ React.JSX.Ref (ReactDOM.Ref.domRef tableRootRef) ] [ React.string "yow" ] )
   in
   assert_string (ReactDOM.renderToStaticMarkup app) "<span>yow</span>"
 

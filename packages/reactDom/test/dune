@@ -2,8 +2,9 @@
  (name test)
  (modules :standard)
  (libraries
-  fmt
+  str
   unix
+  fmt
   lwt
   server-reason-react.react
   server-reason-react.reactDom

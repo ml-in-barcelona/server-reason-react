@@ -77,7 +77,7 @@ module Notes = {
         call: (
           (. ~title, ~content) => {
             let action =
-              ReactServerDOMWebpack.createServerReference(
+              ReactServerDOMEsbuild.createServerReference(
                 createId,
                 Some("create"),
               );
@@ -158,7 +158,7 @@ module Notes = {
         call: (
           (. ~id, ~title, ~content) => {
             let action =
-              ReactServerDOMWebpack.createServerReference(
+              ReactServerDOMEsbuild.createServerReference(
                 editId,
                 Some("edit"),
               );
@@ -223,7 +223,7 @@ module Notes = {
         call: (
           (. ~id) => {
             let action =
-              ReactServerDOMWebpack.createServerReference(
+              ReactServerDOMEsbuild.createServerReference(
                 deleteId,
                 Some("delete"),
               );
@@ -286,7 +286,7 @@ module Samples = {
         call: (
           (. formData) => {
             let action =
-              ReactServerDOMWebpack.createServerReference(
+              ReactServerDOMEsbuild.createServerReference(
                 formDataId,
                 Some("formData"),
               );
@@ -344,7 +344,7 @@ module Samples = {
         call: (
           (. ~name, ~age) => {
             let action =
-              ReactServerDOMWebpack.createServerReference(
+              ReactServerDOMEsbuild.createServerReference(
                 simpleResponseId,
                 Some("simpleResponse"),
               );

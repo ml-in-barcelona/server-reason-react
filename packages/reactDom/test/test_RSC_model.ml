@@ -60,11 +60,13 @@ let lower_case_with_children () =
 let lower_case_component_nested () =
   let app () =
     React.Upper_case_component
-      (fun () ->
-        React.createElement "div" []
-          [
-            React.createElement "section" [] [ React.createElement "article" [] [ React.string "Deep Server Content" ] ];
-          ])
+      ( "app",
+        fun () ->
+          React.createElement "div" []
+            [
+              React.createElement "section" []
+                [ React.createElement "article" [] [ React.string "Deep Server Content" ] ];
+            ] )
   in
   let%lwt stream = ReactServerDOM.render_model (app ()) in
   assert_stream stream
@@ -91,9 +93,10 @@ let dangerouslySetInnerHtml () =
 let upper_case_component () =
   let app codition =
     React.Upper_case_component
-      (fun () ->
-        let text = if codition then "foo" else "bar" in
-        React.createElement "span" [] [ React.string text ])
+      ( "app",
+        fun () ->
+          let text = if codition then "foo" else "bar" in
+          React.createElement "span" [] [ React.string text ] )
   in
   let%lwt stream = ReactServerDOM.render_model (app true) in
   assert_stream stream [ "1:[\"$\",\"span\",null,{\"children\":\"foo\"}]\n"; "0:\"$1\"\n" ]
@@ -105,8 +108,8 @@ let upper_case_with_list () =
     React.Fragment
       (React.list
          [
-           React.Upper_case_component (text ~children:[ React.string "hi" ]);
-           React.Upper_case_component (text ~children:[ React.string "hola" ]);
+           React.Upper_case_component ("Text", text ~children:[ React.string "hi" ]);
+           React.Upper_case_component ("Text", text ~children:[ React.string "hola" ]);
          ])
   in
   let%lwt stream = ReactServerDOM.render_model (app ()) in
@@ -121,12 +124,13 @@ let upper_case_with_children () =
   let layout ~children () = React.createElement "div" [] children in
   let app () =
     React.Upper_case_component
-      (layout
-         ~children:
-           [
-             React.Upper_case_component (text ~children:[ React.string "hi" ]);
-             React.Upper_case_component (text ~children:[ React.string "hola" ]);
-           ])
+      ( "Layout",
+        layout
+          ~children:
+            [
+              React.Upper_case_component ("Text", text ~children:[ React.string "hi" ]);
+              React.Upper_case_component ("Text", text ~children:[ React.string "hola" ]);
+            ] )
   in
   let%lwt stream = ReactServerDOM.render_model (app ()) in
   assert_stream stream
@@ -143,12 +147,12 @@ let suspense_without_promise () =
       ~children:
         (React.createElement "div" []
            [
-             React.Upper_case_component (text ~children:[ React.string "hi" ]);
-             React.Upper_case_component (text ~children:[ React.string "hola" ]);
+             React.Upper_case_component ("Text", text ~children:[ React.string "hi" ]);
+             React.Upper_case_component ("Text", text ~children:[ React.string "hola" ]);
            ])
       ()
   in
-  let main = React.Upper_case_component app in
+  let main = React.Upper_case_component ("App", app) in
   let%lwt stream = ReactServerDOM.render_model main in
   assert_stream stream
     [
@@ -168,7 +172,7 @@ let suspense_with_promise () =
              Lwt.return (React.string "lol")))
       ()
   in
-  let main = React.Upper_case_component app in
+  let main = React.Upper_case_component ("app", app) in
   let%lwt stream = ReactServerDOM.render_model main in
   assert_stream stream
     [
@@ -185,7 +189,7 @@ let suspense_with_immediate_promise () =
         Lwt.return (React.string value))
   in
   let app = React.Suspense.make ~fallback:(React.string "Loading...") ~children:resolved_component in
-  let main = React.Upper_case_component app in
+  let main = React.Upper_case_component ("app", app) in
   let%lwt stream = ReactServerDOM.render_model main in
   assert_stream stream
     [ "1:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"DONE :)\"}]\n"; "0:\"$1\"\n" ]
@@ -202,7 +206,7 @@ let suspense () =
         Lwt.return (React.string value))
   in
   let app () = React.Suspense.make ~fallback:(React.string "Loading...") ~children:suspended_component () in
-  let main = React.Upper_case_component app in
+  let main = React.Upper_case_component ("app", app) in
   let%lwt stream = ReactServerDOM.render_model main in
   assert_stream stream
     [
@@ -219,7 +223,7 @@ let nested_suspense () =
         Lwt.return (React.string value))
   in
   let app () = React.Suspense.make ~fallback:(React.string "Loading...") ~children:deffered_component () in
-  let main = React.Upper_case_component app in
+  let main = React.Upper_case_component ("app", app) in
   let%lwt stream = ReactServerDOM.render_model main in
   assert_stream stream
     [
@@ -252,18 +256,19 @@ let async_component_without_suspense_immediate () =
 let client_without_props () =
   let app () =
     React.Upper_case_component
-      (fun () ->
-        React.list
-          [
-            React.createElement "div" [] [ React.string "Server Content" ];
-            React.Client_component
-              {
-                props = [];
-                client = React.string "Client without Props";
-                import_module = "./client-without-props.js";
-                import_name = "ClientWithoutProps";
-              };
-          ])
+      ( "app",
+        fun () ->
+          React.list
+            [
+              React.createElement "div" [] [ React.string "Server Content" ];
+              React.Client_component
+                {
+                  props = [];
+                  client = React.string "Client without Props";
+                  import_module = "./client-without-props.js";
+                  import_name = "ClientWithoutProps";
+                };
+            ] )
   in
   let%lwt stream = ReactServerDOM.render_model (app ()) in
   assert_stream stream
@@ -276,28 +281,29 @@ let client_without_props () =
 let client_with_json_props () =
   let app () =
     React.Upper_case_component
-      (fun () ->
-        React.list
-          [
-            React.createElement "div" [] [ React.string "Server Content" ];
-            React.Client_component
-              {
-                props =
-                  [
-                    ("null", React.Json `Null);
-                    ("string", React.Json (`String "Title"));
-                    ("int", React.Json (`Int 1));
-                    ("float", React.Json (`Float 1.1));
-                    ("bool true", React.Json (`Bool true));
-                    ("bool false", React.Json (`Bool false));
-                    ("string list", React.Json (`List [ `String "Item 1"; `String "Item 2" ]));
-                    ("object", React.Json (`Assoc [ ("name", `String "John"); ("age", `Int 30) ]));
-                  ];
-                client = React.string "Client with Props";
-                import_module = "./client-with-props.js";
-                import_name = "ClientWithProps";
-              };
-          ])
+      ( "app",
+        fun () ->
+          React.list
+            [
+              React.createElement "div" [] [ React.string "Server Content" ];
+              React.Client_component
+                {
+                  props =
+                    [
+                      ("null", React.Json `Null);
+                      ("string", React.Json (`String "Title"));
+                      ("int", React.Json (`Int 1));
+                      ("float", React.Json (`Float 1.1));
+                      ("bool true", React.Json (`Bool true));
+                      ("bool false", React.Json (`Bool false));
+                      ("string list", React.Json (`List [ `String "Item 1"; `String "Item 2" ]));
+                      ("object", React.Json (`Assoc [ ("name", `String "John"); ("age", `Int 30) ]));
+                    ];
+                  client = React.string "Client with Props";
+                  import_module = "./client-with-props.js";
+                  import_name = "ClientWithProps";
+                };
+            ] )
   in
   let%lwt stream = ReactServerDOM.render_model (app ()) in
   assert_stream stream
@@ -313,18 +319,19 @@ let client_with_json_props () =
 let client_with_element_props () =
   let app () =
     React.Upper_case_component
-      (fun () ->
-        React.list
-          [
-            React.createElement "div" [] [ React.string "Server Content" ];
-            React.Client_component
-              {
-                props = [ ("children", React.Element (React.string "Client Content")) ];
-                client = React.string "Client with Props";
-                import_module = "./client-with-props.js";
-                import_name = "ClientWithProps";
-              };
-          ])
+      ( "app",
+        fun () ->
+          React.list
+            [
+              React.createElement "div" [] [ React.string "Server Content" ];
+              React.Client_component
+                {
+                  props = [ ("children", React.Element (React.string "Client Content")) ];
+                  client = React.string "Client with Props";
+                  import_module = "./client-with-props.js";
+                  import_name = "ClientWithProps";
+                };
+            ] )
   in
   let%lwt stream = ReactServerDOM.render_model (app ()) in
   assert_stream stream
@@ -337,19 +344,20 @@ let client_with_element_props () =
 let client_with_promise_props () =
   let app () =
     React.Upper_case_component
-      (fun () ->
-        React.list
-          [
-            React.createElement "div" [] [ React.string "Server Content" ];
-            React.Client_component
-              {
-                props =
-                  [ ("promise", React.Promise (delayed_value ~ms:200 "||| Resolved |||", fun res -> `String res)) ];
-                client = React.string "Client with Props";
-                import_module = "./client-with-props.js";
-                import_name = "ClientWithProps";
-              };
-          ])
+      ( "app",
+        fun () ->
+          React.list
+            [
+              React.createElement "div" [] [ React.string "Server Content" ];
+              React.Client_component
+                {
+                  props =
+                    [ ("promise", React.Promise (delayed_value ~ms:200 "||| Resolved |||", fun res -> `String res)) ];
+                  client = React.string "Client with Props";
+                  import_module = "./client-with-props.js";
+                  import_name = "ClientWithProps";
+                };
+            ] )
   in
   let%lwt stream = ReactServerDOM.render_model (app ()) in
   assert_stream stream
@@ -363,10 +371,11 @@ let client_with_promise_props () =
 let client_with_action_props () =
   let app () =
     React.Upper_case_component
-      (fun () ->
-        React.list
-          [
-            React.createElement "div" [] [ React.string "Server Content" ];
+      ( "app",
+        fun () ->
+          React.list
+            [
+              React.createElement "div" [] [ React.string "Server Content" ];
             React.Client_component
               {
                 props =
@@ -394,16 +403,27 @@ let client_with_action_props () =
 let mixed_server_and_client () =
   let app () =
     React.Upper_case_component
-      (fun () ->
-        React.list
-          [
-            React.createElement "header" [] [ React.string "Server Header" ];
-            React.Client_component
-              { props = []; client = React.string "Client 1"; import_module = "./client-1.js"; import_name = "Client1" };
-            React.createElement "footer" [] [ React.string "Server Footer" ];
-            React.Client_component
-              { props = []; client = React.string "Client 2"; import_module = "./client-2.js"; import_name = "Client2" };
-          ])
+      ( "app",
+        fun () ->
+          React.list
+            [
+              React.createElement "header" [] [ React.string "Server Header" ];
+              React.Client_component
+                {
+                  props = [];
+                  client = React.string "Client 1";
+                  import_module = "./client-1.js";
+                  import_name = "Client1";
+                };
+              React.createElement "footer" [] [ React.string "Server Footer" ];
+              React.Client_component
+                {
+                  props = [];
+                  client = React.string "Client 2";
+                  import_module = "./client-2.js";
+                  import_name = "Client2";
+                };
+            ] )
   in
   let%lwt stream = ReactServerDOM.render_model (app ()) in
   assert_stream stream
@@ -420,18 +440,19 @@ let client_with_server_children () =
   let server_child () = React.createElement "div" [] [ React.string "Server Component Inside Client" ] in
   let app () =
     React.Upper_case_component
-      (fun () ->
-        React.list
-          [
-            React.createElement "div" [] [ React.string "Server Content" ];
-            React.Client_component
-              {
-                props = [ ("children", React.Element (React.Upper_case_component server_child)) ];
-                client = React.string "Client with Server Children";
-                import_module = "./client-with-server-children.js";
-                import_name = "ClientWithServerChildren";
-              };
-          ])
+      ( "app",
+        fun () ->
+          React.list
+            [
+              React.createElement "div" [] [ React.string "Server Content" ];
+              React.Client_component
+                {
+                  props = [ ("children", React.Element (React.Upper_case_component ("Server", server_child))) ];
+                  client = React.string "Client with Server Children";
+                  import_module = "./client-with-server-children.js";
+                  import_name = "ClientWithServerChildren";
+                };
+            ] )
   in
   let%lwt stream = ReactServerDOM.render_model (app ()) in
   assert_stream stream
@@ -470,6 +491,38 @@ let act_with_simple_response () =
   let%lwt stream = ReactServerDOM.create_action_response response in
   assert_stream stream [ "0:\"Server Content\"\n" ]
 
+let env_development_adds_debug_info () =
+  let app =
+    React.Upper_case_component
+      ( "app",
+        fun () ->
+          let value = "my friend" in
+          React.Fragment
+            (React.List
+               [
+                 React.createElement "input"
+                   [
+                     React.JSX.String ("id", "id", "sidebar-search-input");
+                     React.JSX.String ("placeholder", "placeholder", "Search");
+                     React.JSX.String ("value", "value", value);
+                   ]
+                   [];
+                 React.Upper_case_component ("Hello", fun () -> React.createElement "h1" [] [ React.string "Hello :)" ]);
+               ]) )
+  in
+  let%lwt stream = ReactServerDOM.render_model ~debug:true app in
+  assert_stream stream
+    [
+      "2:{\"name\":\"app\",\"env\":\"Server\",\"key\":null,\"owner\":null,\"stack\":[],\"props\":{}}\n";
+      "1:D\"$2\"\n";
+      "4:{\"name\":\"Hello\",\"env\":\"Server\",\"key\":null,\"owner\":null,\"stack\":[],\"props\":{}}\n";
+      "3:D\"$4\"\n";
+      "3:[\"$\",\"h1\",null,{\"children\":\"Hello :)\"}]\n";
+      "1:[[\"$\",\"input\",null,{\"id\":\"sidebar-search-input\",\"placeholder\":\"Search\",\"value\":\"my \
+       friend\"}],\"$3\"]\n";
+      "0:\"$1\"\n";
+    ]
+
 let tests =
   [
     test "null_element" null_element;
@@ -496,4 +549,5 @@ let tests =
     test "client_with_element_props" client_with_element_props;
     test "client_with_server_children" client_with_server_children;
     test "act_with_simple_response" act_with_simple_response;
+    test "env_development_adds_debug_info" env_development_adds_debug_info;
   ]
