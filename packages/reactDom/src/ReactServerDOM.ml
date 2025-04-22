@@ -120,7 +120,7 @@ module Model = struct
       [
         ("name", `String name);
         ("env", `String "Server");
-        ("key", `Null);
+        ("key", `String name);
         ("owner", owner);
         ("stack", `List []);
         (* We don't have access to the props of uppercase components, since we treat it as a closure and don't encode the props and pass an empty object *)

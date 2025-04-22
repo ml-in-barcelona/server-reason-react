@@ -28,7 +28,7 @@ module Section = {
   };
 };
 
-module Page = {
+/* module Page = {
   [@react.async.component]
   let make = () => {
     let promiseIn2 =
@@ -137,6 +137,15 @@ module Page = {
         </Section>
       </Stack>,
     );
+  };
+}; */
+
+module Page = {
+  [@react.component]
+  let make = () => {
+    <div className="bg-red-500 w-full h-full text-white p-4">
+      {React.string("Hello")}
+    </div>;
   };
 };
 

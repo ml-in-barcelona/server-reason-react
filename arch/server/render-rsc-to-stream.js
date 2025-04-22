@@ -47,10 +47,12 @@ function Comp({ name }) {
 function App() {
 	let value = "asdfasdf";
 	return (
-		<>
-			<input id="sidebar-search-input" placeholder="Search" value={value} />
-			<Comp name={value} />
-		</>
+		<div>
+			<section>
+				<h1>Hello {"name"}</h1>
+				<Comp name={value} />
+			</section>
+		</div>
 	);
 }
 

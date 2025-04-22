@@ -1,4 +1,4 @@
-let debug = false;
+let debug = true;
 
 let is_react_component_header = str =>
   String.equal(str, "application/react.component");
