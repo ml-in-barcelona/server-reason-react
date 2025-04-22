@@ -1,5 +1,11 @@
 import ReactClientFlight from "@pedrobslisboa/react-client/flight";
 
+const debug = (...args) => {
+  if (process.env.NODE_ENV === "development") {
+    console.log(...args);
+  }
+};
+
 const ReactFlightClientStreamConfigWeb = {
   decoderOptions: { stream: true },
   createStringDecoder() {
@@ -83,12 +89,12 @@ const BUNDLES = 2;
 
 const ReactFlightClientConfigBundlerEsbuild = {
   prepareDestinationForModule(moduleLoading, nonce, metadata) {
-    console.log("prepareDestinationForModule", moduleLoading, nonce, metadata);
+    debug("prepareDestinationForModule", moduleLoading, nonce, metadata);
     return;
   },
 
   resolveClientReference(bundlerConfig, metadata) {
-    console.log("resolveClientReference", bundlerConfig, metadata);
+    debug("resolveClientReference", bundlerConfig, metadata);
     // Reference is already resolved during the build
     return {
       id: metadata[ID],
@@ -98,7 +104,7 @@ const ReactFlightClientConfigBundlerEsbuild = {
   },
 
   resolveServerReference(bundlerConfig, ref) {
-    console.log("resolveServerReference", ref);
+    debug("resolveServerReference", ref);
     const idx = ref.lastIndexOf("#");
     const id = ref.slice(0, idx);
     const name = ref.slice(idx + 1);
@@ -114,7 +120,7 @@ const ReactFlightClientConfigBundlerEsbuild = {
   },
 
   preloadModule(metadata) {
-    console.log("preloadModule", metadata);
+    debug("preloadModule", metadata);
     /* TODO: Does it make sense to preload a module in esbuild? */
     return undefined;
   },

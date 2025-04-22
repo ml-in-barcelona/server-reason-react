@@ -1,4 +1,7 @@
-(env (_ (env-vars ("DEMO_ENV" "development"))))
+(env
+ (_
+  (env-vars
+   ("DEMO_ENV" "development"))))
 
 (melange.emit
  (enabled_if
