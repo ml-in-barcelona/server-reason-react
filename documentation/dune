@@ -12,6 +12,10 @@
 (install
  (section doc)
  (files
-  (ssr-hydrate-issue.png as odoc-pages/ssr-hydrate-issue.png)
-  (ssr-no-hydrate-issue.png as odoc-pages/ssr-no-hydrate-issue.png))
+  (ssr-and-hydration-pipeline.png
+   as
+   odoc-pages/ssr-and-hydration-pipeline.png)
+  (ssr-and-hydration-pipeline-fixed.png
+   as
+   odoc-pages/ssr-and-hydration-pipeline-fixed.png))
  (package server-reason-react))

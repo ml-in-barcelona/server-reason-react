@@ -44,7 +44,7 @@ In order to reuse the same code, you can use {{:https://dune.readthedocs.io/en/s
   (wrapped false))
 ]}
 
-Here's an example {https://github.com/ml-in-barcelona/server-reason-react/tree/main/demo/universal}
+Here's the {{:https://github.com/ml-in-barcelona/server-reason-react/tree/main/demo/universal} universal demo}
 
 {1:components reason-react and server-reason-react}
 
