@@ -39,11 +39,12 @@ end
 
 let deffered_component ~seconds ~children () =
   React.Async_component
-    ("deffered_component", fun () ->
-      let%lwt () = Lwt_unix.sleep seconds in
-      Lwt.return
-        (React.createElement "div" []
-           [ React.string ("Sleep " ^ Float.to_string seconds ^ " seconds"); React.string ", "; children ]))
+    ( "deffered_component",
+      fun () ->
+        let%lwt () = Lwt_unix.sleep seconds in
+        Lwt.return
+          (React.createElement "div" []
+             [ React.string ("Sleep " ^ Float.to_string seconds ^ " seconds"); React.string ", "; children ]) )
 
 let silly_stream () =
   let stream, push = Lwt_stream.create () in
@@ -140,7 +141,9 @@ let with_multiple_custom_components () =
   assert_stream stream [ "<div><div><span>Custom Component</span></div><div><span>Custom Component</span></div></div>" ]
 
 let async_component () =
-  let app () = React.Async_component ("app", fun () -> Lwt.return (React.createElement "span" [] [ React.string "yow" ])) in
+  let app () =
+    React.Async_component ("app", fun () -> Lwt.return (React.createElement "span" [] [ React.string "yow" ]))
+  in
   let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
   assert_stream stream [ "<span>yow</span>" ]
 
@@ -418,18 +421,19 @@ let dangerous_html_in_suspense () =
     React.Suspense.make ~fallback:(React.string "Loading...")
       ~children:
         (React.Async_component
-           ("Dangerous and sleep", fun () ->
-             let%lwt () = Lwt_unix.sleep 0.01 in
-             Lwt.return
-               (React.createElement "div"
-                  [
-                    React.JSX.dangerouslyInnerHtml
-                      (let html_content = "<div>Dangerous HTML</div>" in
-                       object
-                         method __html = html_content
-                       end);
-                  ]
-                  [])))
+           ( "Dangerous and sleep",
+             fun () ->
+               let%lwt () = Lwt_unix.sleep 0.01 in
+               Lwt.return
+                 (React.createElement "div"
+                    [
+                      React.JSX.dangerouslyInnerHtml
+                        (let html_content = "<div>Dangerous HTML</div>" in
+                         object
+                           method __html = html_content
+                         end);
+                    ]
+                    []) ))
       ()
   in
   let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in

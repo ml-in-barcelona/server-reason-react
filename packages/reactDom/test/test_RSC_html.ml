@@ -165,13 +165,14 @@ let upper_case_component () =
 let async_component_without_promise () =
   let app =
     React.Async_component
-      (__FUNCTION__, fun () ->
-        Lwt.return
-          (React.createElement "div" []
-             [
-               React.createElement "section" []
-                 [ React.createElement "article" [] [ React.string "Deep Server Content" ] ];
-             ]))
+      ( __FUNCTION__,
+        fun () ->
+          Lwt.return
+            (React.createElement "div" []
+               [
+                 React.createElement "section" []
+                   [ React.createElement "article" [] [ React.string "Deep Server Content" ] ];
+               ]) )
   in
   assert_html
     ~shell:
@@ -186,9 +187,10 @@ let async_component_with_promise () =
     React.Suspense.make ~fallback:(React.string "Loading...")
       ~children:
         (React.Async_component
-           (__FUNCTION__, fun () ->
-             let%lwt () = lwt_sleep ~ms:10 in
-             Lwt.return (React.createElement "span" [] [ React.string "Sleep resolved" ])))
+           ( __FUNCTION__,
+             fun () ->
+               let%lwt () = lwt_sleep ~ms:10 in
+               Lwt.return (React.createElement "span" [] [ React.string "Sleep resolved" ]) ))
       ()
   in
   assert_html (app ())
@@ -208,20 +210,21 @@ let async_component_and_client_component_with_suspense () =
     React.Suspense.make ~fallback:(React.string "Loading...")
       ~children:
         (React.Async_component
-           (__FUNCTION__, fun () ->
-             let%lwt () = lwt_sleep ~ms:10 in
-             Lwt.return
-               (React.createElement "span" []
-                  [
-                    React.Client_component
-                      {
-                        props = [];
-                        client = React.string "Only the client";
-                        import_module = "./client-with-props.js";
-                        import_name = "";
-                      };
-                    React.string "Part of async component";
-                  ])))
+           ( __FUNCTION__,
+             fun () ->
+               let%lwt () = lwt_sleep ~ms:10 in
+               Lwt.return
+                 (React.createElement "span" []
+                    [
+                      React.Client_component
+                        {
+                          props = [];
+                          client = React.string "Only the client";
+                          import_module = "./client-with-props.js";
+                          import_name = "";
+                        };
+                      React.string "Part of async component";
+                    ]) ))
       ()
   in
   assert_html (app ())
@@ -253,14 +256,15 @@ let with_sleepy_promise () =
     loading_suspense
       ~children:
         (React.Async_component
-           (__FUNCTION__, fun () ->
-             let%lwt () = lwt_sleep ~ms:10 in
-             Lwt.return
-               (React.createElement "div" []
-                  [
-                    React.createElement "section" []
-                      [ React.createElement "article" [] [ React.string "Deep Server Content" ] ];
-                  ])))
+           ( __FUNCTION__,
+             fun () ->
+               let%lwt () = lwt_sleep ~ms:10 in
+               Lwt.return
+                 (React.createElement "div" []
+                    [
+                      React.createElement "section" []
+                        [ React.createElement "article" [] [ React.string "Deep Server Content" ] ];
+                    ]) ))
   in
   assert_html (app ())
     ~shell:
