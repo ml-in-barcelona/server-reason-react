@@ -2,7 +2,7 @@ import Esbuild from "esbuild";
 import Path from "path";
 import { plugin as extractClientComponents } from "../../packages/extract-client-components/esbuild-plugin.mjs";
 
-async function build(entryPoints, { env = "production", output, extract, mockWebpackRequire }) {
+async function build(entryPoints, { env, output, extract, mockWebpackRequire }) {
 	const outfile = output;
 	const outdir = Path.dirname(outfile);
 	const splitting = true;
