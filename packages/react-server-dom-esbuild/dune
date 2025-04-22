@@ -1,6 +1,0 @@
-(library
- (name ReactServerDOMEsbuildClient)
- (modes melange)
- (libraries reason-react melange.dom melange-webapi melange-fetch)
- (preprocess
-  (pps melange.ppx)))
