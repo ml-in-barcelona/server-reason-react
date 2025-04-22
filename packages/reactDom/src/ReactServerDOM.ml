@@ -64,15 +64,22 @@ module Model = struct
 
   let props_to_json ~context props = List.filter_map (prop_to_json ~context) props
 
-  let node ~tag ?(key = None) ~props children : json =
+  let node ~tag ?(key = None) ~props ?(source = None) ?(debugId = None) ?(owner = None) children : json =
     let key = match key with None -> `Null | Some key -> `String key in
+    let debugId = match debugId with None -> `Null | Some debugId -> `String debugId in
+    let source = match source with None -> `List [] | Some source -> `List source in
+    let owner =
+      match owner with
+      | None -> (* TODO: what's the default value for owner? 0 here implies the root? *) `String "0"
+      | Some owner -> `String owner
+    in
     let props =
       match children with
       | [] -> props
       | [ one_children ] -> ("children", one_children) :: props
       | childrens -> ("children", `List childrens) :: props
     in
-    `List [ `String "$"; `String tag; key; `Assoc props ]
+    `List [ `String "$"; `String tag; key; `Assoc props; debugId; source; owner ]
 
   (* Not reusing `node` because we need to add fallback prop as json directly *)
   let suspense_node ~key ~fallback children : json =
@@ -114,13 +121,15 @@ module Model = struct
     Buffer.add_string buf "\n";
     Buffer.contents buf
 
+  (* TODO: currently it's implemented only `ReactComponentInfo` from https://github.com/facebook/react/blob/152080276c61873fdfc88db7f5856332742ddb02/packages/react-server/src/ReactFlightServer.js#L3208-L3216, it lacks other types *)
+  (* TODO: Add props, stack and parentName *)
   let make_debug_info ?ownerName name =
     let owner = match ownerName with Some owner -> `String owner | None -> `Null in
     `Assoc
       [
         ("name", `String name);
         ("env", `String "Server");
-        ("key", `String name);
+        ("key", `Null);
         ("owner", owner);
         ("stack", `List []);
         (* We don't have access to the props of uppercase components, since we treat it as a closure and don't encode the props and pass an empty object *)
@@ -128,61 +137,79 @@ module Model = struct
       ]
 
   let rec element_to_payload ~context element =
-    match (element : React.element) with
-    | Empty -> `Null
-    (* TODO: Do we need to html encode the model or only the html? *)
-    | Text t -> `String t
-    | Lower_case_element { key; tag; attributes; children } ->
-        let props = props_to_json ~context attributes in
-        node ~key ~tag ~props (List.map (element_to_payload ~context) children)
-    | Fragment children -> element_to_payload ~context children
-    | List children -> `List (List.map (element_to_payload ~context) children)
-    | Array children -> `List (Array.map (element_to_payload ~context) children |> Array.to_list)
-    | InnerHtml _text ->
-        raise
-          (Invalid_argument
-             "InnerHtml does not exist in RSC, this is a bug in server-reason-react.ppx or a wrong construction of JSX \
-              manually")
-    | Upper_case_component (name, component) ->
-        let element = component () in
-        let index = use_chunk_id context in
-        if context.debug then (
-          let debug_info_index = use_chunk_id context in
-          let debug_info_ref : json = `String (Printf.sprintf "$%x" debug_info_index) in
-          context.push debug_info_index (Chunk_value (make_debug_info name));
-          context.push index (Debug_info_map debug_info_ref);
-          ());
-        (* Instead of returning the payload directly, we push the result into the stream, and return the reference directly. This is how `react-server-dom-xxx/server` renderToPipeableStream works *)
-        context.push index (Chunk_value (element_to_payload ~context element));
-        `String (ref_value index)
-    | Async_component component -> (
-        let promise = component () in
-        match Lwt.state promise with
-        | Fail exn -> raise exn
-        | Return element -> element_to_payload ~context element
-        | Sleep ->
+    let is_root = ref true in
+    let rec turn_element_into_payload ~context element =
+      match (element : React.element) with
+      | Empty -> `Null
+      (* TODO: Do we need to html encode the model or only the html? *)
+      | Text t -> `String t
+      | Lower_case_element { key; tag; attributes; children } ->
+          let props = props_to_json ~context attributes in
+          node ~key ~tag ~props (List.map (turn_element_into_payload ~context) children)
+      | Fragment children ->
+          if is_root.contents then is_root := false;
+          turn_element_into_payload ~context children
+      | List children ->
+          if is_root.contents then is_root := false;
+          `List (List.map (turn_element_into_payload ~context) children)
+      | Array children ->
+          if is_root.contents then is_root := false;
+          `List (Array.map (turn_element_into_payload ~context) children |> Array.to_list)
+      | InnerHtml _text ->
+          raise
+            (Invalid_argument
+               "InnerHtml does not exist in RSC, this is a bug in server-reason-react.ppx or a wrong construction of \
+                JSX manually")
+      | Upper_case_component (name, component) ->
+          let element = component () in
+          if context.debug then (
+            let index = get_chunk_id context in
+            let debug_info_index = use_chunk_id context in
+            let debug_info_ref : json = `String (Printf.sprintf "$%x" debug_info_index) in
+            context.push debug_info_index (Chunk_value (make_debug_info name));
+            context.push index (Debug_info_map debug_info_ref);
+            ());
+
+          if is_root.contents then (
+            is_root := false;
+            turn_element_into_payload ~context element)
+          else
             let index = use_chunk_id context in
-            context.pending <- context.pending + 1;
-            Lwt.async (fun () ->
-                let%lwt element = promise in
-                context.pending <- context.pending - 1;
-                context.push index (Chunk_value (element_to_payload ~context element));
-                if context.pending = 0 then context.close ();
-                Lwt.return ());
-            `String (lazy_value index))
-    | Suspense { key; children; fallback } ->
-        (* TODO: Maybe we need to push suspense index and suspense node separately *)
-        let fallback = element_to_payload ~context fallback in
-        suspense_node ~key ~fallback [ element_to_payload ~context children ]
-    | Client_component { import_module; import_name; props; client = _ } ->
-        let id = use_chunk_id context in
-        let ref = component_ref ~module_:import_module ~name:import_name in
-        context.push id (Chunk_component_ref ref);
-        let client_props = client_values_to_json ~context props in
-        node ~tag:(ref_value id) ~key:None ~props:client_props []
-    (* TODO: Dow we need to do anything with Provider and Consumer? *)
-    | Provider children -> element_to_payload ~context children
-    | Consumer children -> element_to_payload ~context children
+            (* Instead of returning the payload directly, we push the result into the stream, and return the reference directly. This is how `react-server-dom-xxx/server` renderToPipeableStream works *)
+            context.push index (Chunk_value (turn_element_into_payload ~context element));
+            `String (ref_value index)
+      | Async_component component -> (
+          (* TODO: Need to check for is_root? *)
+          let promise = component () in
+          match Lwt.state promise with
+          | Fail exn -> raise exn
+          | Return element -> turn_element_into_payload ~context element
+          | Sleep ->
+              let index = use_chunk_id context in
+              context.pending <- context.pending + 1;
+              Lwt.async (fun () ->
+                  let%lwt element = promise in
+                  context.pending <- context.pending - 1;
+                  context.push index (Chunk_value (turn_element_into_payload ~context element));
+                  if context.pending = 0 then context.close ();
+                  Lwt.return ());
+              `String (lazy_value index))
+      | Suspense { key; children; fallback } ->
+          (* TODO: Need to check for is_root? *)
+          (* TODO: Maybe we need to push suspense index and suspense node separately *)
+          let fallback = turn_element_into_payload ~context fallback in
+          suspense_node ~key ~fallback [ turn_element_into_payload ~context children ]
+      | Client_component { import_module; import_name; props; client = _ } ->
+          let id = use_chunk_id context in
+          let ref = component_ref ~module_:import_module ~name:import_name in
+          context.push id (Chunk_component_ref ref);
+          let client_props = client_values_to_json ~context props in
+          node ~tag:(ref_value id) ~key:None ~props:client_props []
+      (* TODO: Dow we need to do anything with Provider and Consumer? *)
+      | Provider children -> turn_element_into_payload ~context children
+      | Consumer children -> turn_element_into_payload ~context children
+    in
+    turn_element_into_payload ~context element
 
   and client_value_to_json ~context value =
     match (value : React.client_value) with
@@ -323,7 +350,7 @@ let rec client_to_html ~fiber (element : React.element) =
       let%lwt html = childrens |> Array.to_list |> Lwt_list.map_p (client_to_html ~fiber) in
       Lwt.return (Html.list html)
   | Lower_case_element { key; tag; attributes; children } -> render_lower_case ~fiber ~key ~tag ~attributes ~children
-  | Upper_case_component (_, component) ->
+  | Upper_case_component (_name, component) ->
       let rec wait_for_suspense_to_resolve () =
         match component () with
         | exception React.Suspend (Any_promise promise) ->

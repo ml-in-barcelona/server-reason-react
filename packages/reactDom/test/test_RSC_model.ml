@@ -89,9 +89,8 @@ let lower_case_component_nested () =
   let%lwt () = ReactServerDOM.render_model ~subscribe (app ()) in
   assert_list_of_strings !output
     [
-      "1:[\"$\",\"div\",null,{\"children\":[\"$\",\"section\",null,{\"children\":[\"$\",\"article\",null,{\"children\":\"Deep \
+      "0:[\"$\",\"div\",null,{\"children\":[\"$\",\"section\",null,{\"children\":[\"$\",\"article\",null,{\"children\":\"Deep \
        Server Content\"}]}]}]\n";
-      "0:\"$1\"\n";
     ];
   Lwt.return ()
 
@@ -121,7 +120,7 @@ let upper_case_component () =
   in
   let output, subscribe = capture_stream () in
   let%lwt () = ReactServerDOM.render_model ~subscribe (app true) in
-  assert_list_of_strings !output [ "1:[\"$\",\"span\",null,{\"children\":\"foo\"}]\n"; "0:\"$1\"\n" ];
+  assert_list_of_strings !output [ "0:[\"$\",\"span\",null,{\"children\":\"foo\"}]\n" ];
   Lwt.return ()
 
 let text ~children () = React.createElement "span" [] children
@@ -161,10 +160,9 @@ let upper_case_with_children () =
   let%lwt () = ReactServerDOM.render_model ~subscribe (app ()) in
   assert_list_of_strings !output
     [
-      "2:[\"$\",\"span\",null,{\"children\":\"hi\"}]\n";
-      "3:[\"$\",\"span\",null,{\"children\":\"hola\"}]\n";
-      "1:[\"$\",\"div\",null,{\"children\":[\"$2\",\"$3\"]}]\n";
-      "0:\"$1\"\n";
+      "1:[\"$\",\"span\",null,{\"children\":\"hi\"}]\n";
+      "2:[\"$\",\"span\",null,{\"children\":\"hola\"}]\n";
+      "0:[\"$\",\"div\",null,{\"children\":[\"$1\",\"$2\"]}]\n";
     ];
   Lwt.return ()
 
@@ -184,10 +182,9 @@ let suspense_without_promise () =
   let%lwt () = ReactServerDOM.render_model ~subscribe main in
   assert_list_of_strings !output
     [
-      "2:[\"$\",\"span\",null,{\"children\":\"hi\"}]\n";
-      "3:[\"$\",\"span\",null,{\"children\":\"hola\"}]\n";
-      "1:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":[\"$\",\"div\",null,{\"children\":[\"$2\",\"$3\"]}]}]\n";
-      "0:\"$1\"\n";
+      "1:[\"$\",\"span\",null,{\"children\":\"hi\"}]\n";
+      "2:[\"$\",\"span\",null,{\"children\":\"hola\"}]\n";
+      "0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":[\"$\",\"div\",null,{\"children\":[\"$1\",\"$2\"]}]}]\n";
     ];
   Lwt.return ()
 
@@ -197,7 +194,7 @@ let suspense_with_promise () =
       ~children:
         (React.Async_component
            (fun () ->
-             let%lwt () = Lwt_unix.sleep 1.0 in
+             let%lwt () = Lwt_unix.sleep 0.1 in
              Lwt.return (React.string "lol")))
       ()
   in
@@ -205,11 +202,7 @@ let suspense_with_promise () =
   let output, subscribe = capture_stream () in
   let%lwt () = ReactServerDOM.render_model ~subscribe main in
   assert_list_of_strings !output
-    [
-      "1:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L2\"}]\n";
-      "0:\"$1\"\n";
-      "2:\"lol\"\n";
-    ];
+    [ "0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"}]\n"; "1:\"lol\"\n" ];
   Lwt.return ()
 
 let suspense_with_immediate_promise () =
@@ -224,11 +217,11 @@ let suspense_with_immediate_promise () =
   let output, subscribe = capture_stream () in
   let%lwt () = ReactServerDOM.render_model ~subscribe main in
   assert_list_of_strings !output
-    [ "1:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"DONE :)\"}]\n"; "0:\"$1\"\n" ];
+    [ "0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"DONE :)\"}]\n" ];
   Lwt.return ()
 
 let delayed_value ~ms value =
-  let%lwt () = Lwt_unix.sleep (Int.to_float ms /. 100.0) in
+  let%lwt () = Lwt_unix.sleep (Int.to_float ms /. 1000.0) in
   Lwt.return value
 
 let suspense () =
@@ -243,11 +236,7 @@ let suspense () =
   let output, subscribe = capture_stream () in
   let%lwt () = ReactServerDOM.render_model ~subscribe main in
   assert_list_of_strings !output
-    [
-      "1:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L2\"}]\n";
-      "0:\"$1\"\n";
-      "2:\"DONE :)\"\n";
-    ];
+    [ "0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"}]\n"; "1:\"DONE :)\"\n" ];
   Lwt.return ()
 
 let nested_suspense () =
@@ -262,11 +251,7 @@ let nested_suspense () =
   let output, subscribe = capture_stream () in
   let%lwt () = ReactServerDOM.render_model ~subscribe main in
   assert_list_of_strings !output
-    [
-      "1:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L2\"}]\n";
-      "0:\"$1\"\n";
-      "2:\"DONE :)\"\n";
-    ];
+    [ "0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L2\"}]\n"; "1:\"DONE :)\"\n" ];
   Lwt.return ()
 
 let async_component_without_suspense () =
@@ -315,9 +300,8 @@ let client_without_props () =
   let%lwt () = ReactServerDOM.render_model ~subscribe (app ()) in
   assert_list_of_strings !output
     [
-      "2:I[\"./client-without-props.js\",[],\"ClientWithoutProps\"]\n";
-      "1:[[\"$\",\"div\",null,{\"children\":\"Server Content\"}],[\"$\",\"$2\",null,{}]]\n";
-      "0:\"$1\"\n";
+      "1:I[\"./client-without-props.js\",[],\"ClientWithoutProps\"]\n";
+      "0:[[\"$\",\"div\",null,{\"children\":\"Server Content\"}],[\"$\",\"$1\",null,{}]]\n";
     ];
   Lwt.return ()
 
@@ -352,12 +336,11 @@ let client_with_json_props () =
   let%lwt () = ReactServerDOM.render_model ~subscribe (app ()) in
   assert_list_of_strings !output
     [
-      "2:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n";
-      "1:[[\"$\",\"div\",null,{\"children\":\"Server \
-       Content\"}],[\"$\",\"$2\",null,{\"null\":null,\"string\":\"Title\",\"int\":1,\"float\":1.1,\"bool \
+      "1:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n";
+      "0:[[\"$\",\"div\",null,{\"children\":\"Server \
+       Content\"}],[\"$\",\"$1\",null,{\"null\":null,\"string\":\"Title\",\"int\":1,\"float\":1.1,\"bool \
        true\":true,\"bool false\":false,\"string list\":[\"Item 1\",\"Item \
        2\"],\"object\":{\"name\":\"John\",\"age\":30}}]]\n";
-      "0:\"$1\"\n";
     ];
   Lwt.return ()
 
@@ -382,9 +365,8 @@ let client_with_element_props () =
   let%lwt () = ReactServerDOM.render_model ~subscribe (app ()) in
   assert_list_of_strings !output
     [
-      "2:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n";
-      "1:[[\"$\",\"div\",null,{\"children\":\"Server Content\"}],[\"$\",\"$2\",null,{\"children\":\"Client Content\"}]]\n";
-      "0:\"$1\"\n";
+      "1:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n";
+      "0:[[\"$\",\"div\",null,{\"children\":\"Server Content\"}],[\"$\",\"$1\",null,{\"children\":\"Client Content\"}]]\n";
     ];
   Lwt.return ()
 
@@ -410,10 +392,9 @@ let client_with_promise_props () =
   let%lwt () = ReactServerDOM.render_model ~subscribe (app ()) in
   assert_list_of_strings !output
     [
-      "2:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n";
-      "1:[[\"$\",\"div\",null,{\"children\":\"Server Content\"}],[\"$\",\"$2\",null,{\"promise\":\"$@3\"}]]\n";
-      "0:\"$1\"\n";
-      "3:\"||| Resolved |||\"\n";
+      "1:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n";
+      "0:[[\"$\",\"div\",null,{\"children\":\"Server Content\"}],[\"$\",\"$1\",null,{\"promise\":\"$@2\"}]]\n";
+      "2:\"||| Resolved |||\"\n";
     ];
   Lwt.return ()
 
@@ -446,12 +427,11 @@ let mixed_server_and_client () =
   let%lwt () = ReactServerDOM.render_model ~subscribe (app ()) in
   assert_list_of_strings !output
     [
-      "2:I[\"./client-1.js\",[],\"Client1\"]\n";
-      "3:I[\"./client-2.js\",[],\"Client2\"]\n";
-      "1:[[\"$\",\"header\",null,{\"children\":\"Server \
-       Header\"}],[\"$\",\"$2\",null,{}],[\"$\",\"footer\",null,{\"children\":\"Server \
-       Footer\"}],[\"$\",\"$3\",null,{}]]\n";
-      "0:\"$1\"\n";
+      "1:I[\"./client-1.js\",[],\"Client1\"]\n";
+      "2:I[\"./client-2.js\",[],\"Client2\"]\n";
+      "0:[[\"$\",\"header\",null,{\"children\":\"Server \
+       Header\"}],[\"$\",\"$1\",null,{}],[\"$\",\"footer\",null,{\"children\":\"Server \
+       Footer\"}],[\"$\",\"$2\",null,{}]]\n";
     ];
   Lwt.return ()
 
@@ -477,10 +457,10 @@ let client_with_server_children () =
   let%lwt () = ReactServerDOM.render_model ~subscribe (app ()) in
   assert_list_of_strings !output
     [
-      "2:I[\"./client-with-server-children.js\",[],\"ClientWithServerChildren\"]\n";
-      "3:[\"$\",\"div\",null,{\"children\":\"Server Component Inside Client\"}]\n";
-      "1:[[\"$\",\"div\",null,{\"children\":\"Server Content\"}],[\"$\",\"$2\",null,{\"children\":\"$3\"}]]\n";
-      "0:\"$1\"\n";
+      "1:I[\"./client-with-server-children.js\",[],\"ClientWithServerChildren\"]\n";
+      "0:[[\"$\",\"div\",null,{\"children\":\"Server \
+       Content\"}],[\"$\",\"$1\",null,{\"children\":[\"$\",\"div\",null,{\"children\":\"Server Component Inside \
+       Client\"}]}]]\n";
     ];
   Lwt.return ()
 
