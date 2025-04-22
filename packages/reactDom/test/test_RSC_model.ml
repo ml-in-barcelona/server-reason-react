@@ -1,20 +1,17 @@
 let yojson = Alcotest.testable Yojson.Safe.pretty_print ( = )
-
 let check_json = Alcotest.check yojson "should be equal"
-
 let assert_json left right = Alcotest.check yojson "should be equal" right left
 
 let assert_list (type a) (ty : a Alcotest.testable) (left : a list) (right : a list) =
   Alcotest.check (Alcotest.list ty) "should be equal" right left
 
-let assert_list_of_strings left right =
-  Alcotest.check (Alcotest.list Alcotest.string) "should be equal" right left
+let assert_list_of_strings left right = Alcotest.check (Alcotest.list Alcotest.string) "should be equal" right left
 
 let test title fn =
   let test_case _switch () =
     let start = Unix.gettimeofday () in
     let timeout =
-      let%lwt () = Lwt_unix.sleep 3.0 in
+      let%lwt () = Lwt_unix.sleep 0.5 in
       Alcotest.failf "Test '%s' timed out" title
     in
     let%lwt test_promise = Lwt.pick [ fn (); timeout ] in
@@ -25,7 +22,7 @@ let test title fn =
     else ();
     Lwt.return test_promise
   in
-  ( Printf.sprintf "ReactServerDOM.render_model / %s" title, [ Alcotest_lwt.test_case "" `Quick test_case; ] )
+  (Printf.sprintf "ReactServerDOM.render_model / %s" title, [ Alcotest_lwt.test_case "" `Quick test_case ])
 
 let assert_stream (stream : string Lwt_stream.t) expected =
   let%lwt content = Lwt_stream.to_list stream in
