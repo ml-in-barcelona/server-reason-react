@@ -1,3 +1,5 @@
+(env (_ (env-vars ("DEMO_ENV" "development"))))
+
 (melange.emit
  (enabled_if
   (= %{profile} dev))
@@ -41,5 +43,5 @@
     %{entrypoints}
     --output=app/demo/client/
     --extract=true
-    --env=development
+    --env=%{env:DEMO_ENV='production'}
     --mock-webpack-require=true))))

@@ -1,4 +1,4 @@
-let debug = true;
+let debug = Sys.getenv_opt("DEMO_ENV") === Some("development");
 
 let is_react_component_header = str =>
   String.equal(str, "application/react.component");
