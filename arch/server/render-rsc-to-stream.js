@@ -47,12 +47,7 @@ function Comp({ name }) {
 function App() {
 	let value = "asdfasdf";
 	return (
-		<div>
-			<section>
-				<h1>Hello {"name"}</h1>
-				<Comp name={value} />
-			</section>
-		</div>
+		<input type="text" value={value} />
 	);
 }
 
