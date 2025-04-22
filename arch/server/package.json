@@ -4,8 +4,7 @@
   "scripts": {
     "react-dom-server": "bun react-dom-server.js",
     "render-html-to-stream": "bun render-html-to-stream.js",
-    "render-rsc-to-stream": "bun --conditions react-server render-rsc-to-stream.js",
-    "react-server-dom-webpack": "node --conditions react-server react-server-dom-webpack.js"
+    "render-rsc-to-stream": "bun --conditions react-server render-rsc-to-stream.js"
   },
   "license": "MIT",
   "dependencies": {
