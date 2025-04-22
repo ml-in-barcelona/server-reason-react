@@ -2,7 +2,7 @@ import Esbuild from "esbuild";
 import Path from "path";
 import { plugin as extractClientComponents } from "../../packages/extract-client-components/esbuild-plugin.mjs";
 
-async function build(entryPoints, { output, extract, mockWebpackRequire }) {
+async function build(entryPoints, { env = "production", output, extract, mockWebpackRequire }) {
 	const outfile = output;
 	const outdir = Path.dirname(outfile);
 	const splitting = true;
@@ -20,6 +20,8 @@ async function build(entryPoints, { output, extract, mockWebpackRequire }) {
 		);
 	}
 
+	const isDev = env === "development";
+
 	try {
 		const result = await Esbuild.build({
 			entryPoints,
@@ -32,8 +34,11 @@ async function build(entryPoints, { output, extract, mockWebpackRequire }) {
 			outdir,
 			plugins,
 			write: true,
+			treeShaking: isDev ? false : true,
+			minify: isDev ? false : true,
 			define: {
-				"process.env.NODE_ENV": `"production"`,
+				"process.env.NODE_ENV": `"${env}"`,
+				"__DEV__": `"${isDev}"`, /* __DEV__ is used by react-client code */
 			},
 		});
 
