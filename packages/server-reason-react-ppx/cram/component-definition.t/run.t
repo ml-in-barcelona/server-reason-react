@@ -143,15 +143,16 @@ We need to output ML syntax here, otherwise refmt could not parse it.
   module Async_component = struct
     let make ?key:(_ : string option) ~children () =
       React.Async_component
-        (fun () ->
-          React.createElementWithKey ~key:None "div"
-            (Stdlib.List.filter_map Fun.id
-               [
-                 Some
-                   (React.JSX.String
-                      ("class", "className", ("async-component" : string)));
-               ])
-            [ children ])
+        ( __FUNCTION__,
+          fun () ->
+            React.createElementWithKey ~key:None "div"
+              (Stdlib.List.filter_map Fun.id
+                 [
+                   Some
+                     (React.JSX.String
+                        ("class", "className", ("async-component" : string)));
+                 ])
+              [ children ] )
   end
   
   let a =
