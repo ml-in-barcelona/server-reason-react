@@ -14,7 +14,7 @@ let test title fn =
       Alcotest_lwt.test_case "" `Quick (fun _switch () ->
           let start = Unix.gettimeofday () in
           let timeout =
-            let%lwt () = Lwt_unix.sleep 3.0 in
+            let%lwt () = Lwt_unix.sleep 1.0 in
             Alcotest.failf "Test '%s' timed out" title
           in
           let%lwt test_promise = Lwt.pick [ fn (); timeout ] in
