@@ -75,7 +75,7 @@ module Form_with_method = {
 
 module Form_with_action = {
   [@react.component]
-  let make = (~children) => <form actionFn="action_id"> children </form>;
+  let make = (~children) => <form actionFn={id: "action_id", call: (fun () => Lwt.return("Server Action Response"))}> children </form>;
 };
 
 let a = <Uppercase> <div /> </Uppercase>;

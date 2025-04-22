@@ -360,6 +360,37 @@ let client_with_promise_props () =
       "3:\"||| Resolved |||\"\n";
     ]
 
+let client_with_action_props () =
+  let app () =
+    React.Upper_case_component
+      (fun () ->
+        React.list
+          [
+            React.createElement "div" [] [ React.string "Server Content" ];
+            React.Client_component
+              {
+                props =
+                  [
+                    ( "action",
+                      React.Function
+                        Runtime.React.{ id = Some "ACTION_ID"; call = (fun () -> Lwt.return "Server Action Response") }
+                    );
+                  ];
+                client = React.string "Client with Action Prop";
+                import_module = "./client-with-action-prop.js";
+                import_name = "ClientWithActionProp";
+              };
+          ])
+  in
+  let%lwt stream = ReactServerDOM.render_model (app ()) in
+  assert_stream stream
+    [
+      "2:I[\"./client-with-action-prop.js\",[],\"ClientWithActionProp\"]\n";
+      "1:[[\"$\",\"div\",null,{\"children\":\"Server Content\"}],[\"$\",\"$2\",null,{\"action\":\"$F3\"}]]\n";
+      "0:\"$1\"\n";
+      "3:\"{\"id\":\"ACTION_ID\",\"bound\":null}\"\n";
+    ]
+
 let mixed_server_and_client () =
   let app () =
     React.Upper_case_component

@@ -119,7 +119,14 @@ We need to output ML syntax here, otherwise refmt could not parse it.
             (Stdlib.List.filter_map Fun.id
                [
                  Some
-                   (React.JSX.Action ("action", "action", ("action_id" : string)));
+                   (React.JSX.Action
+                      ( "action",
+                        "action",
+                        ({
+                           id = "action_id";
+                           call = (fun () -> Lwt.return "Server Action Response");
+                         }
+                          : 'callback Runtime.React.server_function) ));
                ])
             [ children ])
   end
