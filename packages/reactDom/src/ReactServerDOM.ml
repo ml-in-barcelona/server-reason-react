@@ -152,8 +152,7 @@ module Model = struct
           context.push debug_info_index (Chunk_value (make_debug_info name));
           context.push index (Debug_info_map debug_info_ref);
           ());
-        (* Instead of returning the payload directly, we push it, and return a reference to it.
-           This is how `react-server-dom-webpack/server` renderToPipeableStream works *)
+        (* Instead of returning the payload directly, we push the result into the stream, and return the reference directly. This is how `react-server-dom-xxx/server` renderToPipeableStream works *)
         context.push index (Chunk_value (element_to_payload ~context element));
         `String (ref_value index)
     | Async_component component -> (
@@ -504,7 +503,7 @@ and elements_to_html ~debug ~fiber elements =
 let head children = Html.node "head" [] (Html.node "meta" [ Html.attribute "charset" "utf-8" ] [] :: children)
 
 (* TODO: Do we need to stop streaming based on some timeout? abortion? *)
-(* TODO: Do we need to ensure chunks are of a certain size? minimum but also maximum? Saw react caring about this *)
+(* TODO: Do we need to ensure chunks are of a certain minimum size but also maximum? Saw react caring about this *)
 (* TODO: Do we want to add a flag to disable ssr? Do we need to disable the model rendering or can we do it outside? *)
 (* TODO: Add all options from renderToReadableStream *)
 let render_html ?(debug = false) ?(bootstrapScriptContent = "") ?(bootstrapScripts = []) ?(bootstrapModules = [])

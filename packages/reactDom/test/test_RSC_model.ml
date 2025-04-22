@@ -1,32 +1,33 @@
 let yojson = Alcotest.testable Yojson.Safe.pretty_print ( = )
+
 let check_json = Alcotest.check yojson "should be equal"
+
 let assert_json left right = Alcotest.check yojson "should be equal" right left
 
 let assert_list (type a) (ty : a Alcotest.testable) (left : a list) (right : a list) =
   Alcotest.check (Alcotest.list ty) "should be equal" right left
 
-let assert_list_of_strings (left : string list) (right : string list) =
+let assert_list_of_strings left right =
   Alcotest.check (Alcotest.list Alcotest.string) "should be equal" right left
 
 let test title fn =
-  ( Printf.sprintf "ReactServerDOM.render_model / %s" title,
-    [
-      Alcotest_lwt.test_case "" `Quick (fun _switch () ->
-          let start = Unix.gettimeofday () in
-          let timeout =
-            let%lwt () = Lwt_unix.sleep 3.0 in
-            Alcotest.failf "Test '%s' timed out" title
-          in
-          let%lwt test_promise = Lwt.pick [ fn (); timeout ] in
-          let epsilon = 0.001 in
-          let duration = Unix.gettimeofday () -. start in
-          if abs_float duration >= epsilon then
-            Printf.printf "\027[1m\027[33m[WARNING]\027[0m Test '%s' took %.3f seconds\n" title duration
-          else ();
-          Lwt.return test_promise);
-    ] )
+  let test_case _switch () =
+    let start = Unix.gettimeofday () in
+    let timeout =
+      let%lwt () = Lwt_unix.sleep 3.0 in
+      Alcotest.failf "Test '%s' timed out" title
+    in
+    let%lwt test_promise = Lwt.pick [ fn (); timeout ] in
+    let epsilon = 0.001 in
+    let duration = Unix.gettimeofday () -. start in
+    if abs_float duration >= epsilon then
+      Printf.printf "\027[1m\027[33m[WARNING]\027[0m Test '%s' took %.3f seconds\n" title duration
+    else ();
+    Lwt.return test_promise
+  in
+  ( Printf.sprintf "ReactServerDOM.render_model / %s" title, [ Alcotest_lwt.test_case "" `Quick test_case; ] )
 
-let assert_stream (stream : string Lwt_stream.t) (expected : string list) =
+let assert_stream (stream : string Lwt_stream.t) expected =
   let%lwt content = Lwt_stream.to_list stream in
   if content = [] then Lwt.return @@ Alcotest.fail "stream should not be empty"
   else Lwt.return @@ assert_list_of_strings content expected
@@ -523,6 +524,32 @@ let env_development_adds_debug_info () =
       ( "app",
         fun () ->
           let value = "my friend" in
+         React.createElement "input"
+           [
+             React.JSX.String ("id", "id", "sidebar-search-input");
+             React.JSX.String ("placeholder", "placeholder", "Search");
+             React.JSX.String ("value", "value", value);
+           ]
+           [];
+      )
+  in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~subscribe ~debug:true app in
+  assert_list_of_strings !output
+    [
+      "2:{\"name\":\"app\",\"env\":\"Server\",\"key\":null,\"owner\":null,\"stack\":[],\"props\":{}}\n";
+      "1:D\"$2\"\n";
+      "1:[\"$\",\"input\",null,{\"id\":\"sidebar-search-input\",\"placeholder\":\"Search\",\"value\":\"my friend\"}]\n";
+      "0:\"$1\"\n";
+    ];
+  Lwt.return ()
+
+let env_development_adds_debug_info_2 () =
+  let app =
+    React.Upper_case_component
+      ( "app",
+        fun () ->
+          let value = "my friend" in
           React.Fragment
             (React.List
                [
@@ -578,4 +605,5 @@ let tests =
     test "client_with_server_children" client_with_server_children;
     test "act_with_simple_response" act_with_simple_response;
     test "env_development_adds_debug_info" env_development_adds_debug_info;
+    (* test "env_development_adds_debug_info_2" env_development_adds_debug_info_2; *)
   ]
