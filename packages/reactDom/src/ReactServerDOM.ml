@@ -427,6 +427,7 @@ let rec to_html ~debug ~fiber (element : React.element) : (Html.element * json) 
       if context.debug then (
         let debug_info_index = Fiber.use_index fiber in
         let debug_info_ref : json = `String (Printf.sprintf "$%x" debug_info_index) in
+        (* TODO: Chunks might need to be pushed in the same row *)
         context.push debug_info_index (Model.Chunk_value (Model.make_debug_info name));
         context.push debug_info_index (Model.Debug_info_map debug_info_ref);
         ());

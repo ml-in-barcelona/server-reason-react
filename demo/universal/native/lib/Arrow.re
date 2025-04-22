@@ -3,8 +3,8 @@ type direction =
   | Right;
 
 [@react.component]
-let make = (~direction as _: direction=Right) => {
-  /* <svg
+let make = (~direction: direction=Right) => {
+  <svg
     className={Cx.make([
       "w-3 h-3 ms-2",
       switch (direction) {
@@ -23,6 +23,5 @@ let make = (~direction as _: direction=Right) => {
       strokeWidth="2"
       d="M1 5h12m0 0L9 1m4 4L9 9"
     />
-  </svg>; */
-  React.null;
+  </svg>;
 };
