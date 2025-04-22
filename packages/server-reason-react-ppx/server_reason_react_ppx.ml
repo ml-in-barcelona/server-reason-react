@@ -737,7 +737,7 @@ let rewrite_structure_item structure_item =
         else if isReactAsyncComponentBinding vb then
           expand_make_binding vb (fun expr ->
               let loc = expr.pexp_loc in
-              [%expr React.Async_component (fun () -> [%e expr])])
+              [%expr React.Async_component (__FUNCTION__, fun () -> [%e expr])])
         else vb
       in
       let bindings = List.map ~f:map_value_binding value_bindings in

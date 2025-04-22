@@ -178,7 +178,7 @@ module Model = struct
             (* Instead of returning the payload directly, we push the result into the stream, and return the reference directly. This is how `react-server-dom-xxx/server` renderToPipeableStream works *)
             context.push index (Chunk_value (turn_element_into_payload ~context element));
             `String (ref_value index)
-      | Async_component component -> (
+      | Async_component (_, component) -> (
           (* TODO: Need to check for is_root? *)
           let promise = component () in
           match Lwt.state promise with
@@ -362,7 +362,7 @@ let rec client_to_html ~fiber (element : React.element) =
             client_to_html ~fiber output
       in
       wait_for_suspense_to_resolve ()
-  | Async_component _component ->
+  | Async_component (_, _component) ->
       (* async components can't be interleaved in client components, for now *)
       raise
         (Invalid_argument
@@ -434,7 +434,7 @@ let rec to_html ~debug ~fiber (element : React.element) : (Html.element * json) 
       to_html ~debug ~fiber (component ())
   | Lower_case_element { key; tag; attributes; children } ->
       render_lower_case ~debug ~fiber ~context ~key ~tag ~attributes ~children
-  | Async_component component ->
+  | Async_component (_, component) ->
       let%lwt element = component () in
       to_html ~debug ~fiber element
   | Client_component { import_module; import_name; props; client } ->

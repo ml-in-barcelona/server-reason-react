@@ -296,7 +296,7 @@ let ref_as_prop_works () =
   assert_string (ReactDOM.renderToStaticMarkup app) "<span>yow</span>"
 
 let async_component () =
-  let app = React.Async_component (fun () -> Lwt.return (React.createElement "span" [] [ React.string "yow" ])) in
+  let app = React.Async_component ("app", fun () -> Lwt.return (React.createElement "span" [] [ React.string "yow" ])) in
   let raises () =
     let _ = ReactDOM.renderToStaticMarkup app in
     ()

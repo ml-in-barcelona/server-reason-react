@@ -165,7 +165,7 @@ let upper_case_component () =
 let async_component_without_promise () =
   let app =
     React.Async_component
-      (fun () ->
+      (__FUNCTION__, fun () ->
         Lwt.return
           (React.createElement "div" []
              [
@@ -186,7 +186,7 @@ let async_component_with_promise () =
     React.Suspense.make ~fallback:(React.string "Loading...")
       ~children:
         (React.Async_component
-           (fun () ->
+           (__FUNCTION__, fun () ->
              let%lwt () = lwt_sleep ~ms:10 in
              Lwt.return (React.createElement "span" [] [ React.string "Sleep resolved" ])))
       ()
@@ -208,7 +208,7 @@ let async_component_and_client_component_with_suspense () =
     React.Suspense.make ~fallback:(React.string "Loading...")
       ~children:
         (React.Async_component
-           (fun () ->
+           (__FUNCTION__, fun () ->
              let%lwt () = lwt_sleep ~ms:10 in
              Lwt.return
                (React.createElement "span" []
@@ -253,7 +253,7 @@ let with_sleepy_promise () =
     loading_suspense
       ~children:
         (React.Async_component
-           (fun () ->
+           (__FUNCTION__, fun () ->
              let%lwt () = lwt_sleep ~ms:10 in
              Lwt.return
                (React.createElement "div" []

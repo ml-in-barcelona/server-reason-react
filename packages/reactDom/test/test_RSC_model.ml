@@ -198,7 +198,7 @@ let suspense_with_promise () =
     React.Suspense.make ~fallback:(React.string "Loading...")
       ~children:
         (React.Async_component
-           (fun () ->
+           ("suspense_with_promise", fun () ->
              let%lwt () = lwt_sleep ~ms:10 in
              Lwt.return (React.string "lol")))
       ()
@@ -216,7 +216,7 @@ let suspense_with_promise () =
 let suspense_with_immediate_promise () =
   let resolved_component =
     React.Async_component
-      (fun () ->
+      (__FUNCTION__, fun () ->
         let value = "DONE :)" in
         Lwt.return (React.string value))
   in
@@ -235,7 +235,7 @@ let delayed_value ~ms value =
 let suspense () =
   let suspended_component =
     React.Async_component
-      (fun () ->
+      (__FUNCTION__, fun () ->
         let%lwt value = delayed_value ~ms:10 "DONE :)" in
         Lwt.return (React.string value))
   in
@@ -253,7 +253,7 @@ let suspense () =
 let nested_suspense () =
   let deffered_component =
     React.Async_component
-      (fun () ->
+      (__FUNCTION__, fun () ->
         let%lwt value = delayed_value ~ms:20 "DONE :)" in
         Lwt.return (React.string value))
   in
@@ -269,7 +269,7 @@ let async_component_without_suspense () =
   (* Because there's no Suspense. We await for the promise to resolve before rendering the component *)
   let app =
     React.Async_component
-      (fun () ->
+      (__FUNCTION__, fun () ->
         let%lwt value = delayed_value ~ms:10 "DONE :)" in
         Lwt.return (React.string value))
   in
@@ -281,7 +281,7 @@ let async_component_without_suspense () =
 let async_component_without_suspense_immediate () =
   let app =
     React.Async_component
-      (fun () ->
+      (__FUNCTION__, fun () ->
         let%lwt value = delayed_value ~ms:0 "DONE :)" in
         Lwt.return (React.string value))
   in
