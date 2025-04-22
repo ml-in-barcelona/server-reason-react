@@ -8,13 +8,17 @@ let assert_list (type a) (ty : a Alcotest.testable) (left : a list) (right : a l
 let assert_list_of_strings (left : string list) (right : string list) =
   Alcotest.check (Alcotest.list Alcotest.string) "should be equal" right left
 
+let lwt_sleep ~ms =
+  let%lwt () = Lwt_unix.sleep (Int.to_float ms /. 1000.0) in
+  Lwt.return ()
+
 let test title fn =
   ( Printf.sprintf "ReactServerDOM.render_html / %s" title,
     [
       Alcotest_lwt.test_case "" `Quick (fun _switch () ->
           let start = Unix.gettimeofday () in
           let timeout =
-            let%lwt () = Lwt_unix.sleep 1.0 in
+            let%lwt () = lwt_sleep ~ms:100 in
             Alcotest.failf "Test '%s' timed out" title
           in
           let%lwt test_promise = Lwt.pick [ fn (); timeout ] in
@@ -183,7 +187,7 @@ let async_component_with_promise () =
       ~children:
         (React.Async_component
            (fun () ->
-             let%lwt () = Lwt_unix.sleep 0.1 in
+             let%lwt () = lwt_sleep ~ms:10 in
              Lwt.return (React.createElement "span" [] [ React.string "Sleep resolved" ])))
       ()
   in
@@ -205,7 +209,7 @@ let async_component_and_client_component_with_suspense () =
       ~children:
         (React.Async_component
            (fun () ->
-             let%lwt () = Lwt_unix.sleep 0.1 in
+             let%lwt () = lwt_sleep ~ms:10 in
              Lwt.return
                (React.createElement "span" []
                   [
@@ -250,7 +254,7 @@ let with_sleepy_promise () =
       ~children:
         (React.Async_component
            (fun () ->
-             let%lwt () = Lwt_unix.sleep 0.1 in
+             let%lwt () = lwt_sleep ~ms:10 in
              Lwt.return
                (React.createElement "div" []
                   [
@@ -275,7 +279,7 @@ let with_sleepy_promise () =
 
 let client_with_promise_props () =
   let delayed_value ~ms value =
-    let%lwt () = Lwt_unix.sleep (Int.to_float ms /. 1000.0) in
+    let%lwt () = lwt_sleep ~ms in
     Lwt.return value
   in
   let app () =
@@ -288,7 +292,7 @@ let client_with_promise_props () =
               React.Client_component
                 {
                   props =
-                    [ ("promise", React.Promise (delayed_value ~ms:200 "||| Resolved |||", fun res -> `String res)) ];
+                    [ ("promise", React.Promise (delayed_value ~ms:20 "||| Resolved |||", fun res -> `String res)) ];
                   client = React.string "Client with Props";
                   import_module = "./client-with-props.js";
                   import_name = "ClientWithProps";

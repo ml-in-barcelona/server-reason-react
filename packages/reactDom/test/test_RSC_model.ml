@@ -7,11 +7,15 @@ let assert_list (type a) (ty : a Alcotest.testable) (left : a list) (right : a l
 
 let assert_list_of_strings left right = Alcotest.check (Alcotest.list Alcotest.string) "should be equal" right left
 
+let lwt_sleep ~ms =
+  let%lwt () = Lwt_unix.sleep (Int.to_float ms /. 1000.0) in
+  Lwt.return ()
+
 let test title fn =
   let test_case _switch () =
     let start = Unix.gettimeofday () in
     let timeout =
-      let%lwt () = Lwt_unix.sleep 0.5 in
+      let%lwt () = lwt_sleep ~ms:100 in
       Alcotest.failf "Test '%s' timed out" title
     in
     let%lwt test_promise = Lwt.pick [ fn (); timeout ] in
@@ -36,6 +40,12 @@ let capture_stream () =
     Lwt.return ()
   in
   (output, subscribe)
+
+let text ~children () = React.createElement "span" [] children
+
+(* ***** *)
+(* Tests *)
+(* ***** *)
 
 let null_element () =
   let app = React.null in
