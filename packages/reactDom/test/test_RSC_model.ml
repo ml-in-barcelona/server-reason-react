@@ -368,7 +368,7 @@ let client_with_promise_props () =
       "3:\"||| Resolved |||\"\n";
     ]
 
-let client_with_action_props () =
+let client_with_server_function () =
   let app () =
     React.Upper_case_component
       ( "app",
@@ -380,24 +380,24 @@ let client_with_action_props () =
                 {
                   props =
                     [
-                      ( "action",
+                      ( "serverFunction",
                         React.Function
                           Runtime.React.
-                            { id = Some "ACTION_ID"; call = (fun () -> Lwt.return "Server Action Response") } );
+                            { id = Some "FUNCTION_ID"; call = (fun () -> Lwt.return "Server Action Response") } );
                     ];
-                  client = React.string "Client with Action Prop";
-                  import_module = "./client-with-action-prop.js";
-                  import_name = "ClientWithActionProp";
+                  client = React.string "Client with Server Function";
+                  import_module = "./client-with-server-function.js";
+                  import_name = "ClientWithServerFunction";
                 };
             ] )
   in
   let%lwt stream = ReactServerDOM.render_model (app ()) in
   assert_stream stream
     [
-      "2:I[\"./client-with-action-prop.js\",[],\"ClientWithActionProp\"]\n";
-      "1:[[\"$\",\"div\",null,{\"children\":\"Server Content\"}],[\"$\",\"$2\",null,{\"action\":\"$F3\"}]]\n";
+      "2:I[\"./client-with-server-function.js\",[],\"ClientWithServerFunction\"]\n";
+      "3:{\"id\":\"FUNCTION_ID\",\"bound\":null}\n";
+      "1:[[\"$\",\"div\",null,{\"children\":\"Server Content\"}],[\"$\",\"$2\",null,{\"serverFunction\":\"$F3\"}]]\n";
       "0:\"$1\"\n";
-      "3:\"{\"id\":\"ACTION_ID\",\"bound\":null}\"\n";
     ]
 
 let mixed_server_and_client () =
@@ -547,6 +547,7 @@ let tests =
     test "client_with_json_props" client_with_json_props;
     test "client_without_props" client_without_props;
     test "client_with_element_props" client_with_element_props;
+    test "client_with_server_function" client_with_server_function;
     test "client_with_server_children" client_with_server_children;
     test "act_with_simple_response" act_with_simple_response;
     test "env_development_adds_debug_info" env_development_adds_debug_info;

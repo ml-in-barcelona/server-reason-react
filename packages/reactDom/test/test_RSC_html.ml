@@ -157,6 +157,33 @@ let upper_case_component () =
        '>window.srr_stream.push()</script>"
     app [ stream_close_script ]
 
+let upper_case_component_with_server_function () =
+  let app =
+    React.Upper_case_component
+      ( "app",
+        fun () ->
+          React.createElement "form"
+            [
+              React.JSX.Action
+                ("actionFn", "", { id = Some "ACTION_ID"; call = (fun () -> Lwt.return "Server Action Response") });
+            ]
+            [
+              React.createElement "input" [ React.JSX.String ("name", "name", "name") ] [];
+              React.createElement "input" [ React.JSX.String ("email", "email", "email") ] [];
+              React.createElement "button" [ React.JSX.String ("type", "type", "submit") ] [ React.string "Submit" ];
+            ] )
+  in
+  assert_html
+    ~shell:
+      "<form><input name=\"name\" /><input email=\"email\" /><button type=\"submit\">Submit</button></form><script \
+       data-payload='0:[\"$\",\"form\",null,{\"children\":[[\"$\",\"input\",null,{\"name\":\"name\"}],[\"$\",\"input\",null,{\"email\":\"email\"}],[\"$\",\"button\",null,{\"children\":[\"Submit\"],\"type\":\"submit\"}]],\"\":\"$F1\"}]\n\
+       '>window.srr_stream.push()</script>"
+    app
+    [
+      "<script data-payload='1:{\"id\":\"ACTION_ID\",\"bound\":null}\n'>window.srr_stream.push()</script>";
+      stream_close_script;
+    ]
+
 let async_component_without_promise () =
   let app =
     React.Async_component
@@ -306,6 +333,41 @@ let client_with_promise_props () =
       stream_close_script;
     ]
 
+let client_with_server_function () =
+  let app () =
+    React.Upper_case_component
+      ( "app",
+        fun () ->
+          React.list
+            [
+              React.createElement "div" [] [ React.string "Server Content" ];
+              React.Client_component
+                {
+                  props =
+                    [
+                      ( "serverFunction",
+                        React.Function
+                          Runtime.React.
+                            { id = Some "FUNCTION_ID"; call = (fun () -> Lwt.return "Server Action Response") } );
+                    ];
+                  client = React.string "Client with Server Function";
+                  import_module = "./client-with-server-function.js";
+                  import_name = "ClientWithServerFunction";
+                };
+            ] )
+  in
+  assert_html (app ())
+    ~shell:
+      "<script data-payload='2:I[\"./client-with-server-function.js\",[],\"ClientWithServerFunction\"]\n\
+       '>window.srr_stream.push()</script><div>Server Content</div><!-- -->Client with Server Function<script \
+       data-payload='0:[[\"$\",\"div\",null,{\"children\":[\"Server \
+       Content\"]}],[\"$\",\"$2\",null,{\"serverFunction\":\"$F1\"}]]\n\
+       '>window.srr_stream.push()</script>"
+    [
+      "<script data-payload='1:{\"id\":\"FUNCTION_ID\",\"bound\":null}\n'>window.srr_stream.push()</script>";
+      stream_close_script;
+    ]
+
 let tests =
   [
     test "null_element" null_element;
@@ -313,10 +375,12 @@ let tests =
     test "element_with_dangerously_set_inner_html" element_with_dangerously_set_inner_html;
     test "input_element_with_value" input_element_with_value;
     test "upper_case_component" upper_case_component;
+    test "upper_case_component_with_server_function" upper_case_component_with_server_function;
     test "async_component_without_promise" async_component_without_promise;
     test "suspense_without_promise" suspense_without_promise;
     test "with_sleepy_promise" with_sleepy_promise;
     test "client_with_promise_props" client_with_promise_props;
+    test "client_with_server_function" client_with_server_function;
     test "async_component_with_promise" async_component_with_promise;
     test "async_component_and_client_component_with_suspense" async_component_and_client_component_with_suspense;
   ]

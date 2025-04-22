@@ -220,7 +220,7 @@ function createResponseFromOptions(options) {
       modelParsed.call = modelParsed;
       modelParsed.id = actionDetails.id;
     }
-    return model;
+    return modelParsed;
   };
 
   return response;
