@@ -212,7 +212,7 @@ module Notes = {
               Some("delete"),
             );
 
-          action(. [|id|]);
+          action(. id);
         }
       )
     };
