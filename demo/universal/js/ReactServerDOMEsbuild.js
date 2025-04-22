@@ -186,7 +186,7 @@ export function createFromReadableStream(stream, options) {
 }
 
 function createResponseFromOptions(options) {
-  return createResponse(
+  let response = createResponse(
     null, // bundlerConfig
     null, // serverReferenceConfig
     null, // moduleLoading
@@ -202,6 +202,28 @@ function createResponseFromOptions(options) {
 			? options.environmentName
 			: undefined */
   );
+  let fromJSON = response._fromJSON;
+  let chunks = response._chunks;
+
+  // Little hack to make the Server Function on client aligned to the server-reason-react contract
+  /*
+  {
+    call: (...args) =>  action(...args)
+    id: string
+  }
+  */
+  response._fromJSON = (key, value) => {
+    let modelParsed = fromJSON(key, value);
+    // If the value is a reference_id prefixed by $F, it's a Server Function
+    if (typeof value === "string" && value.startsWith("$F")) {
+      let actionDetails = chunks.get(parseInt(value.substring(2)));
+      modelParsed.call = modelParsed;
+      modelParsed.id = actionDetails.id;
+    }
+    return model;
+  };
+
+  return response;
 }
 
 export function createFromFetch(promise, options) {

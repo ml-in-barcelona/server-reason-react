@@ -376,20 +376,20 @@ let client_with_action_props () =
           React.list
             [
               React.createElement "div" [] [ React.string "Server Content" ];
-            React.Client_component
-              {
-                props =
-                  [
-                    ( "action",
-                      React.Function
-                        Runtime.React.{ id = Some "ACTION_ID"; call = (fun () -> Lwt.return "Server Action Response") }
-                    );
-                  ];
-                client = React.string "Client with Action Prop";
-                import_module = "./client-with-action-prop.js";
-                import_name = "ClientWithActionProp";
-              };
-          ])
+              React.Client_component
+                {
+                  props =
+                    [
+                      ( "action",
+                        React.Function
+                          Runtime.React.
+                            { id = Some "ACTION_ID"; call = (fun () -> Lwt.return "Server Action Response") } );
+                    ];
+                  client = React.string "Client with Action Prop";
+                  import_module = "./client-with-action-prop.js";
+                  import_name = "ClientWithActionProp";
+                };
+            ] )
   in
   let%lwt stream = ReactServerDOM.render_model (app ()) in
   assert_stream stream
