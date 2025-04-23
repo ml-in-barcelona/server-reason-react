@@ -4,13 +4,12 @@
   "scripts": {
     "react-dom-server": "bun react-dom-server.js",
     "render-html-to-stream": "bun render-html-to-stream.js",
-    "render-rsc-to-stream": "bun --conditions react-server render-rsc-to-stream.js",
-    "react-server-dom-webpack": "node --conditions react-server react-server-dom-webpack.js"
+    "render-rsc-to-stream": "bun --conditions react-server render-rsc-to-stream.js"
   },
   "license": "MIT",
   "dependencies": {
-    "react": "^19.0.0-rc-69d4b800-20241021",
-    "react-dom": "^19.0.0-rc-69d4b800-20241021",
-    "react-server-dom-webpack": "^19.0.0-rc-69d4b800-20241021"
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-server-dom-webpack": "^19.1.0"
   }
 }

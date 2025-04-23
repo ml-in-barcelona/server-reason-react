@@ -69,8 +69,8 @@ let render_to_string ~mode element =
     | Fragment children -> render_element children
     | List list -> list |> List.map render_element |> Html.list
     | Array arr -> arr |> Array.map render_element |> Html.array
-    | Upper_case_component component -> render_element (component ())
-    | Async_component _component ->
+    | Upper_case_component (_, component) -> render_element (component ())
+    | Async_component (_name, _component) ->
         raise
           (Invalid_argument
              "Async components can't be rendered to static markup, since rendering is synchronous. Please use \
@@ -171,12 +171,12 @@ let rec render_to_stream ~context_state element =
     | Lower_case_element { key; tag; attributes; children } -> render_lower_case ~key tag attributes children
     | Text text -> Lwt.return (Html.string text)
     | InnerHtml text -> Lwt.return (Html.raw text)
-    | Upper_case_component component -> (
+    | Upper_case_component (_, component) -> (
         try
           let element = component () in
           render_element element
         with exn -> raise_notrace exn)
-    | Async_component component -> (
+    | Async_component (_, component) -> (
         let promise = component () in
         match Lwt.state promise with
         | Lwt.Return element -> render_element element
@@ -252,11 +252,11 @@ and render_with_resolved ~context_state element =
         (* TODO: Lwt_array doesn't exist *)
         let%lwt childrens = arr |> Array.to_list |> Lwt_list.map_p render_element in
         Lwt.return (Html.list childrens)
-    | Upper_case_component component -> render_element (component ())
+    | Upper_case_component (_, component) -> render_element (component ())
     | Lower_case_element { key; tag; attributes; children } -> render_lower_case ~key tag attributes children
     | Text text -> Lwt.return (Html.string text)
     | InnerHtml text -> Lwt.return (Html.raw text)
-    | Async_component component -> (
+    | Async_component (_, component) -> (
         let promise = component () in
         match Lwt.state promise with
         | Lwt.Return resolved -> render_element resolved

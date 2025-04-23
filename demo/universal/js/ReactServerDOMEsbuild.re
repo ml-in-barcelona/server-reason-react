@@ -3,19 +3,19 @@ type callServer('arg, 'result) =
 
 type options('arg, 'result) = {callServer: callServer('arg, 'result)};
 
-[@mel.module "react-server-dom-webpack/client"]
+[@mel.module "./ReactServerDOMEsbuild.js"]
 external createFromReadableStreamImpl:
   (Webapi.ReadableStream.t, ~options: options('arg, 'result)=?, unit) =>
   Js.Promise.t('result) =
   "createFromReadableStream";
 
-[@mel.module "react-server-dom-webpack/client"]
+[@mel.module "./ReactServerDOMEsbuild.js"]
 external createFromFetchImpl:
   (Js.Promise.t(Fetch.response), ~options: options('arg, 'result)=?, unit) =>
   React.element =
   "createFromFetch";
 
-[@mel.module "react-server-dom-webpack/client"]
+[@mel.module "./ReactServerDOMEsbuild.js"]
 external createServerReferenceImpl:
   (
     string, // ServerReferenceId
@@ -32,7 +32,7 @@ external createServerReferenceImpl:
   'action =
   "createServerReference";
 
-[@mel.module "react-server-dom-webpack/client"]
+[@mel.module "./ReactServerDOMEsbuild.js"]
 external encodeReply: list('arg) => Js.Promise.t(string) = "encodeReply";
 
 let callServer = (path: string, args) => {

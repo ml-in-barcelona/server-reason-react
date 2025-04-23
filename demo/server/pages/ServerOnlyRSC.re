@@ -28,6 +28,7 @@ let handler = request => {
     Dream.stream(response_stream => {
       let%lwt _stream =
         ReactServerDOM.render_model(
+          ~debug=true,
           ~subscribe=data => Dream.write(response_stream, data),
           app,
         );

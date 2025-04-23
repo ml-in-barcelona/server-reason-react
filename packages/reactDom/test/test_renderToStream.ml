@@ -39,11 +39,12 @@ end
 
 let deffered_component ~seconds ~children () =
   React.Async_component
-    (fun () ->
-      let%lwt () = Lwt_unix.sleep seconds in
-      Lwt.return
-        (React.createElement "div" []
-           [ React.string ("Sleep " ^ Float.to_string seconds ^ " seconds"); React.string ", "; children ]))
+    ( "deffered_component",
+      fun () ->
+        let%lwt () = Lwt_unix.sleep seconds in
+        Lwt.return
+          (React.createElement "div" []
+             [ React.string ("Sleep " ^ Float.to_string seconds ^ " seconds"); React.string ", "; children ]) )
 
 let silly_stream () =
   let stream, push = Lwt_stream.create () in
@@ -57,9 +58,10 @@ let react_use_without_suspense () =
   Sleep.destroy ();
   let app =
     React.Upper_case_component
-      (fun () ->
-        let delay = React.Experimental.use (Sleep.delay 0.01) in
-        React.createElement "div" [] [ React.createElement "span" [] [ React.string "Hello "; React.float delay ] ])
+      ( "app",
+        fun () ->
+          let delay = React.Experimental.use (Sleep.delay 0.01) in
+          React.createElement "div" [] [ React.createElement "span" [] [ React.string "Hello "; React.float delay ] ] )
   in
   let%lwt stream, _abort = ReactDOM.renderToStream app in
   assert_stream stream [ "<div><span>Hello <!-- -->0.01</span></div>" ]
@@ -67,10 +69,10 @@ let react_use_without_suspense () =
 let suspense_without_promise () =
   let hi =
     React.Upper_case_component
-      (fun () -> React.createElement "div" [] [ React.createElement "span" [] [ React.string "Hello" ] ])
+      ("hi", fun () -> React.createElement "div" [] [ React.createElement "span" [] [ React.string "Hello" ] ])
   in
   let app () = React.Suspense.make ~fallback:(React.string "Loading...") ~children:hi () in
-  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component app) in
+  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
   assert_stream stream [ "<div><span>Hello</span></div>" ]
 
 let assert_raises exn fn =
@@ -78,18 +80,20 @@ let assert_raises exn fn =
   | exception exn -> Lwt.return (assert_string (Printexc.to_string exn) (Printexc.to_string exn))
   | _ -> Alcotest.failf "Expected exception %s" (Printexc.to_string exn)
 
-let always_throwing_component () = React.Upper_case_component (fun () -> raise (Failure "always throwing"))
+let always_throwing_component () =
+  React.Upper_case_component ("always throwing", fun () -> raise (Failure "always throwing"))
 
 let uppercase_component_always_throwing () =
   let app () = always_throwing_component () in
-  assert_raises (Failure "always throwing") (fun () -> ReactDOM.renderToStream (React.Upper_case_component app))
+  assert_raises (Failure "always throwing") (fun () ->
+      ReactDOM.renderToStream (React.Upper_case_component ("app", app)))
 
 let suspense_with_always_throwing () =
   (* This test is very fragile since it relies on the stack trace being the same (so line numbers and methods should match).
      We disable backtracing to avoid having to match the backtrace *)
   Printexc.record_backtrace false;
   let app () = React.Suspense.make ~fallback:(React.string "Loading...") ~children:(always_throwing_component ()) () in
-  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component app) in
+  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
   (* and we need to enable it back for the next test *)
   Printexc.record_backtrace true;
   assert_stream stream
@@ -99,12 +103,13 @@ let suspense_with_react_use () =
   Sleep.destroy ();
   let time =
     React.Upper_case_component
-      (fun () ->
-        let delay = React.Experimental.use (Sleep.delay 0.05) in
-        React.createElement "div" [] [ React.createElement "span" [] [ React.string "Hello "; React.float delay ] ])
+      ( "time",
+        fun () ->
+          let delay = React.Experimental.use (Sleep.delay 0.05) in
+          React.createElement "div" [] [ React.createElement "span" [] [ React.string "Hello "; React.float delay ] ] )
   in
   let app () = React.Suspense.make ~fallback:(React.string "Loading...") ~children:time () in
-  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component app) in
+  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
   assert_stream stream
     [
       "<!--$?--><template id=\"B:0\"></template>Loading...<!--/$-->";
@@ -118,24 +123,28 @@ let suspense_with_react_use () =
 let with_custom_component () =
   let custom_component =
     React.Upper_case_component
-      (fun () -> React.createElement "div" [] [ React.createElement "span" [] [ React.string "Custom Component" ] ])
+      ( "custom component",
+        fun () -> React.createElement "div" [] [ React.createElement "span" [] [ React.string "Custom Component" ] ] )
   in
   let app () = React.createElement "div" [] [ custom_component ] in
-  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component app) in
+  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
   assert_stream stream [ "<div><div><span>Custom Component</span></div></div>" ]
 
 let with_multiple_custom_components () =
   let custom_component =
     React.Upper_case_component
-      (fun () -> React.createElement "div" [] [ React.createElement "span" [] [ React.string "Custom Component" ] ])
+      ( "custom component",
+        fun () -> React.createElement "div" [] [ React.createElement "span" [] [ React.string "Custom Component" ] ] )
   in
   let app () = React.createElement "div" [] [ custom_component; custom_component ] in
-  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component app) in
+  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
   assert_stream stream [ "<div><div><span>Custom Component</span></div><div><span>Custom Component</span></div></div>" ]
 
 let async_component () =
-  let app () = React.Async_component (fun () -> Lwt.return (React.createElement "span" [] [ React.string "yow" ])) in
-  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component app) in
+  let app () =
+    React.Async_component ("app", fun () -> Lwt.return (React.createElement "span" [] [ React.string "yow" ]))
+  in
+  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
   assert_stream stream [ "<span>yow</span>" ]
 
 let suspense_with_async_component () =
@@ -147,7 +156,7 @@ let suspense_with_async_component () =
           ();
       ]
   in
-  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component app) in
+  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
   assert_stream stream
     [
       "<div><!--$?--><template id=\"B:0\"></template>Fallback 1<!--/$--></div>";
@@ -170,7 +179,7 @@ let suspense_with_nested_suspense () =
            ())
       ()
   in
-  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component app) in
+  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
   assert_stream stream
     [
       "<!--$?--><template id=\"B:0\"></template>Fallback 1<!--/$-->";
@@ -196,7 +205,7 @@ let suspense_with_nested_suspense_with_error () =
       ()
   in
   Printexc.record_backtrace true;
-  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component app) in
+  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
   assert_stream stream
     [
       "<!--$?--><template id=\"B:0\"></template>Fallback 1<!--/$-->";
@@ -211,7 +220,7 @@ let suspense_with_nested_suspense_with_error () =
 
 let async_component_without_suspense () =
   let app () = React.createElement "main" [] [ deffered_component ~seconds:0.02 ~children:(React.string "lol") () ] in
-  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component app) in
+  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
   assert_stream stream [ "<main><div>Sleep 0.02 seconds<!-- -->, <!-- -->lol</div></main>" ]
 
 let render_inner_html () =
@@ -230,7 +239,7 @@ let render_inner_html () =
       []
   in
   let app () = React.createElement "html" [] [ style ] in
-  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component app) in
+  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
   assert_stream stream [ "<!DOCTYPE html><html><style type=\"text/css\">* { color: red; }</style></html>" ]
 
 let suspense_with_multiple_children () =
@@ -248,7 +257,7 @@ let suspense_with_multiple_children () =
           ();
       ]
   in
-  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component app) in
+  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
   assert_stream stream
     [
       "<div><!--$?--><template id=\"B:0\"></template>Loading 1<!--/$--><!--$?--><template \
@@ -279,7 +288,7 @@ let suspense_with_multiple_children_reordered () =
           ();
       ]
   in
-  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component app) in
+  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
   assert_stream stream
     [
       "<div><!--$?--><template id=\"B:0\"></template>Loading 3<!--/$--><!--$?--><template \
@@ -311,7 +320,7 @@ let suspense_with_nested_suspenses () =
            ])
       ()
   in
-  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component app) in
+  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
   assert_stream stream
     [
       "<div>Before<!--$?--><template id=\"B:0\"></template>Inner loading 1<!--/$--><!--$?--><template \
@@ -346,7 +355,7 @@ let suspense_with_concurrent_suspenses () =
           ];
       ]
   in
-  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component app) in
+  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
   assert_stream stream
     [
       "<div>Static content<div id=\"hydrate1\"><!--$?--><template id=\"B:0\"></template>Loading 1<!--/$--></div><div \
@@ -370,7 +379,7 @@ let suspense_with_comments () =
           ();
       ]
   in
-  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component app) in
+  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
   assert_stream stream
     [
       "<div><div>&lt;!-- tricky comment --&gt;</div><!--$?--><template id=\"B:0\"></template>Loading<!--/$--></div>";
@@ -393,7 +402,7 @@ let abort_streaming () =
           ();
       ]
   in
-  let%lwt stream, abort = ReactDOM.renderToStream (React.Upper_case_component app) in
+  let%lwt stream, abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
   let%lwt first_chunk = Lwt_stream.get stream in
   (* Abort after first chunk *)
   abort ();
@@ -412,21 +421,22 @@ let dangerous_html_in_suspense () =
     React.Suspense.make ~fallback:(React.string "Loading...")
       ~children:
         (React.Async_component
-           (fun () ->
-             let%lwt () = Lwt_unix.sleep 0.01 in
-             Lwt.return
-               (React.createElement "div"
-                  [
-                    React.JSX.dangerouslyInnerHtml
-                      (let html_content = "<div>Dangerous HTML</div>" in
-                       object
-                         method __html = html_content
-                       end);
-                  ]
-                  [])))
+           ( "Dangerous and sleep",
+             fun () ->
+               let%lwt () = Lwt_unix.sleep 0.01 in
+               Lwt.return
+                 (React.createElement "div"
+                    [
+                      React.JSX.dangerouslyInnerHtml
+                        (let html_content = "<div>Dangerous HTML</div>" in
+                         object
+                           method __html = html_content
+                         end);
+                    ]
+                    []) ))
       ()
   in
-  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component app) in
+  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
   assert_stream stream
     [
       "<!--$?--><template id=\"B:0\"></template>Loading...<!--/$-->";

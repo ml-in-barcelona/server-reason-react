@@ -73,7 +73,7 @@ module Notes = {
         (~title, ~content) => {
           // Register the action for the client
           let action =
-            ReactServerDOMWebpack.createServerReference(
+            ReactServerDOMEsbuild.createServerReference(
               createId,
               Some("create"),
             );
@@ -146,7 +146,7 @@ module Notes = {
     | Client => (
         (~id, ~title, ~content) => {
           let action =
-            ReactServerDOMWebpack.createServerReference(
+            ReactServerDOMEsbuild.createServerReference(
               editId,
               Some("edit"),
             );
@@ -207,7 +207,7 @@ module Notes = {
     | Client => (
         (~id) => {
           let action =
-            ReactServerDOMWebpack.createServerReference(
+            ReactServerDOMEsbuild.createServerReference(
               deleteId,
               Some("delete"),
             );
@@ -264,7 +264,7 @@ module Samples = {
     | Client => (
         formData => {
           let action =
-            ReactServerDOMWebpack.createServerReference(
+            ReactServerDOMEsbuild.createServerReference(
               formDataId,
               Some("formData"),
             );
@@ -302,7 +302,7 @@ module Samples = {
     | Client => (
         _ => {
           let action =
-            ReactServerDOMWebpack.createServerReference(
+            ReactServerDOMEsbuild.createServerReference(
               simpleResponseId,
               Some("simpleResponse"),
             );
@@ -340,7 +340,7 @@ module Samples = {
     | Client => (
         _ => {
           let action =
-            ReactServerDOMWebpack.createServerReference(
+            ReactServerDOMEsbuild.createServerReference(
               simpleResponseId,
               Some("simpleResponse"),
             );
