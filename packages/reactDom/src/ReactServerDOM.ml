@@ -43,26 +43,20 @@ module Model = struct
   let lazy_value id = Printf.sprintf "$L%x" id
   let promise_value id = Printf.sprintf "$@%x" id
   let ref_value id = Printf.sprintf "$%x" id
-  let action_value id = Printf.sprintf "$F%x" id
 
-  let prop_to_json ~context prop =
-    match (prop : React.JSX.prop) with
+  let prop_to_json (prop : React.JSX.prop) =
+    match prop with
     (* We ignore the HTML name, and only use the JSX name *)
     | Bool (_, key, value) -> Some (key, `Bool value)
     (* We exclude 'key' from props, since it's outside of the props object *)
-    | String (_, key, _) when key = "key" -> None
-    | String (_, key, value) -> Some (key, `String value)
-    | Style value -> Some ("style", style_to_json value)
-    | DangerouslyInnerHtml html -> Some ("dangerouslySetInnerHTML", `Assoc [ ("__html", `String html) ])
-    | Ref _ -> None
-    | Event _ -> None
-    | Action (_, key, action_id) ->
-        context.chunk_id <- context.chunk_id + 1;
-        let id = context.chunk_id in
-        context.push id (Chunk_value (`Assoc [ ("id", `String action_id); ("bound", `Null) ]));
-        Some (key, `String (action_value id))
+    | React.JSX.String (_, key, _) when key = "key" -> None
+    | React.JSX.String (_, key, value) -> Some (key, `String value)
+    | React.JSX.Style value -> Some ("style", style_to_json value)
+    | React.JSX.DangerouslyInnerHtml html -> Some ("dangerouslySetInnerHTML", `Assoc [ ("__html", `String html) ])
+    | React.JSX.Ref _ -> None
+    | React.JSX.Event _ -> None
 
-  let props_to_json ~context props = List.filter_map (prop_to_json ~context) props
+  let props_to_json props = List.filter_map prop_to_json props
 
   let node ~tag ?(key = None) ~props ?(source = None) ?(debugId = None) ?(owner = None) children : json =
     let key = match key with None -> `Null | Some key -> `String key in
@@ -145,7 +139,7 @@ module Model = struct
       (* TODO: Do we need to html encode the model or only the html? *)
       | Text t -> `String t
       | Lower_case_element { key; tag; attributes; children } ->
-          let props = props_to_json ~context attributes in
+          let props = props_to_json attributes in
           node ~key ~tag ~props (List.map (turn_element_into_payload ~context) children)
       | Fragment children ->
           if is_root.contents then is_root := false;
@@ -434,7 +428,7 @@ let rec to_html ~debug ~fiber (element : React.element) : (Html.element * json) 
         ());
       to_html ~debug ~fiber (component ())
   | Lower_case_element { key; tag; attributes; children } ->
-      render_lower_case ~debug ~fiber ~context ~key ~tag ~attributes ~children
+      render_lower_case ~debug ~fiber ~key ~tag ~attributes ~children
   | Async_component (_, component) ->
       let%lwt element = component () in
       to_html ~debug ~fiber element
@@ -511,16 +505,16 @@ let rec to_html ~debug ~fiber (element : React.element) : (Html.element * json) 
   (* TODO: There's a task to remove InnerHtml in ReactDOM and use Html.raw directly. Here is still unclear what do to since we assing dangerouslySetInnerHTML to the right prop on the model. Also, should this model be `Null? *)
   | InnerHtml innerHtml -> Lwt.return (Html.raw innerHtml, `Null)
 
-and render_lower_case ~debug ~fiber ~context ~key ~tag ~attributes ~children =
+and render_lower_case ~debug ~fiber ~key ~tag ~attributes ~children =
   let children = ReactDOM.moveDangerouslyInnerHtmlAsChildren attributes children in
   if Html.is_self_closing_tag tag then
     let html_props = List.map ReactDOM.attribute_to_html attributes in
-    let json_props = Model.props_to_json ~context attributes in
+    let json_props = Model.props_to_json attributes in
     let empty_children = (* there's no children for self closing tags *) [] in
     Lwt.return (Html.node tag html_props empty_children, Model.node ~tag ~key ~props:json_props empty_children)
   else
     let html_props = List.map ReactDOM.attribute_to_html attributes in
-    let json_props = Model.props_to_json ~context attributes in
+    let json_props = Model.props_to_json attributes in
     let%lwt html, model = elements_to_html ~debug ~fiber children in
     Lwt.return (Html.node tag html_props [ html ], Model.node ~tag ~key ~props:json_props [ model ])
 

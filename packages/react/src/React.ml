@@ -336,9 +336,6 @@ module JSX = struct
     | Inline of string
 
   type prop =
-    (* Action prop makes difference between a action as a string and a action as a server action *)
-    (* (name, jsxName, action_id) *)
-    | Action of (string * string * string)
     | Bool of (string * string * bool)
     | String of (string * string * string)
     | Style of (string * string * string) list
@@ -427,8 +424,7 @@ let attributes_to_map attributes =
       | DangerouslyInnerHtml _ -> acc
       | Ref _ -> acc
       | Event _ -> acc
-      | Style _ -> acc
-      | Action _ -> acc)
+      | Style _ -> acc)
     StringMap.empty attributes
 
 let clone_attributes attributes new_attributes =
