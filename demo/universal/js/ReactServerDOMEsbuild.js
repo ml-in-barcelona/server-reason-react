@@ -1,3 +1,19 @@
+/*
+ * This file is a bundler integration between react (react-client/flight), esbuild and server-reason-react.
+ *
+ * Similar resources
+ * **react-server-dom-webpack**
+ * - https://github.com/facebook/react/blob/5c56b873efb300b4d1afc4ba6f16acf17e4e5800/packages/react-server-dom-webpack/src/ReactFlightWebpackPlugin.js#L156-L194
+ * - https://github.com/facebook/react/blob/main/packages/react-server-dom-webpack/src/client/ReactFlightClientConfigBundlerWebpack.js
+ *
+ * Take a look at new’s react-server-dom-parcel https://github.com/facebook/react/pull/31725
+ *
+ * What’s possible with esbuild
+ *
+ * - RSC server + client https://github.com/jacob-ebey/oneup/blob/main/packages/cli/index.ts
+ * - https://github.com/jfortunato/esbuild-plugin-manifest/blob/master/src/index.ts
+*/
+
 import ReactClientFlight from "@pedrobslisboa/react-client/flight";
 
 const debug = (...args) => {
@@ -210,7 +226,6 @@ function createResponseFromOptions(options) {
   );
   let fromJSON = response._fromJSON;
   let chunks = response._chunks;
-
   // Little hack to make the Server Function on client aligned to the server-reason-react contract
   /*
   {

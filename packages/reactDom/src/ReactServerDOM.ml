@@ -71,8 +71,9 @@ module Model = struct
     let source = match source with None -> `List [] | Some source -> `List source in
     let owner =
       match owner with
-      | None -> (* TODO: what's the default value for owner? 0 here implies the root? *) `String "0"
-      | Some owner -> `String owner
+      | None -> `Assoc []
+      (* TODO: debugOwner is a ReactComponentInfo itself *)
+      | Some owner -> `Assoc [ ("name", `String owner) ]
     in
     let props =
       match children with
