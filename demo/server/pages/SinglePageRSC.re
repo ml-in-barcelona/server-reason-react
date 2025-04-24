@@ -46,7 +46,7 @@ module Page = {
         <Stack gap=2 justify=`start>
           <h1
             className={Cx.make([
-              "text-5xl",
+              "text-3xl",
               "font-bold",
               Theme.text(Theme.Color.Gray11),
             ])}>
@@ -55,7 +55,7 @@ module Page = {
              )}
           </h1>
           <Text color=Theme.Color.Gray10>
-            "RSC and CC and their client props encodings"
+            "React server components. Lazy loading of client components. Client props encodings, such as promises, React elements, and primitive types."
           </Text>
         </Stack>
         <Hr />

@@ -1,4 +1,4 @@
 export default {
-  content: ["./**/*.re", "../server/**/*.re", "../server/pages/*.re", "../universal/**/*.re"],
+  content: ["../server/**/*.{re,js}", "../server/pages/*.{re,js}", "../universal/**/*.{re,js}"],
   plugins: {},
 }

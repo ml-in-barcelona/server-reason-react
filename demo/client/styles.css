@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/preflight.css" layer(base);
+@import "tailwindcss/utilities.css" layer(utilities);
+
 @source inline("{text,bg,border}-[#FFC53D]");
 @source inline("{text,bg,border}-[#080808]");
 @source inline("{text,bg,border}-[#0F0F0F]");
@@ -43,3 +47,4 @@
 @source inline("{rounded}-{full,lg,md,sm}");
 @source inline("{border}-{0..20}");
 @source inline("{border-width}-{0..20}");
+@source inline("max-w-[75%]");
