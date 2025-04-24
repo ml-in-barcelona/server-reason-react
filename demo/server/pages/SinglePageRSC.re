@@ -22,7 +22,7 @@ module Section = {
          <Text color=Theme.Color.Gray10> description </Text>
        | None => React.null
        }}
-      <Spacer bottom=4 />
+      <div className="mb-4" />
       children
     </Stack>;
   };
@@ -131,7 +131,7 @@ module Page = {
 let handler = request =>
   DreamRSC.createFromRequest(
     ~bootstrapModules=["/static/demo/CreateFromReadableStream.re.js"],
-    ~bootstrapScripts=["https://cdn.tailwindcss.com"],
+    ~bootstrapStylesheets=["/static/demo/output.css"],
     <Root> <Page /> </Root>,
     request,
   );

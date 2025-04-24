@@ -3,6 +3,13 @@
   (env-vars
    ("DEMO_ENV" "development"))))
 
+(install
+ (section bin)
+ (enabled_if
+  (= %{profile} dev))
+ (files
+  ("./node_modules/@tailwindcss/cli/dist/index.mjs" as tailwind)))
+
 (melange.emit
  (enabled_if
   (= %{profile} dev))
@@ -19,8 +26,6 @@
   demo_shared_js)
  (preprocess
   (pps browser_ppx -js reason-react-ppx melange.ppx)))
-
-;; Hydrate.re.js
 
 (rule
  (enabled_if
@@ -39,12 +44,29 @@
   (file package.json)
   (source_tree ../../packages/extract-client-components))
  (action
-  (progn
-   (run
-    node
-    %{script}
-    %{entrypoints}
-    --output=app/demo/client/
-    --extract=true
-    --env=%{env:DEMO_ENV='production'}
-    --mock-webpack-require=true))))
+  (run
+   node
+   %{script}
+   %{entrypoints}
+   --output=app/demo/client/
+   --extract=true
+   --env=%{env:DEMO_ENV='production'}
+   --mock-webpack-require=true)))
+
+(subdir
+ app
+ (subdir
+  demo
+  (rule
+   (target output.css)
+   (enabled_if
+    (= %{profile} dev))
+   (alias client)
+   (deps
+    (source_tree ../../../)
+    (source_tree ../../../server)
+    (:config ./../../tailwind.config.js)
+    (:input ./../../styles.css))
+   (action
+    (progn
+     (run tailwind -c %{config} -i %{input} -o %{target}))))))

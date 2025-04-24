@@ -3,6 +3,7 @@ val render_html :
   ?bootstrapScriptContent:string ->
   ?bootstrapScripts:string list ->
   ?bootstrapModules:string list ->
+  ?bootstrapStylesheets:string list ->
   React.element ->
   (string * ((string -> unit Lwt.t) -> unit Lwt.t)) Lwt.t
 

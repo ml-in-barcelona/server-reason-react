@@ -2,15 +2,15 @@ let handler = _request => {
   let app =
     <Document>
       <div className={Cx.make(["py-16", "px-12"])}>
-        <Spacer bottom=8>
+        <div className="mb-8">
           <h1
             className={Cx.make([
-              "font-bold text-4xl",
+              "font-bold text-3xl",
               Theme.text(Theme.Color.Gray14),
             ])}>
             {React.string("demo for server-reason-react")}
           </h1>
-          <Spacer top=2>
+          <div className="mt-8">
             <Text size=Medium>
               "This is a list of links to all the demos for server-reason-react's features."
             </Text>
@@ -25,12 +25,13 @@ let handler = _request => {
             </Link.Text>
             <Text size=Medium> " or " </Text>
             <Link.Text
+              color=Theme.Color.Gray12
               target="_blank"
               href="https://github.com/ml-in-barcelona/server-reason-react">
               "source code"
             </Link.Text>
-          </Spacer>
-        </Spacer>
+          </div>
+        </div>
         <Router.Menu />
       </div>
     </Document>;

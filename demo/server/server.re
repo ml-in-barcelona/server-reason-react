@@ -25,20 +25,14 @@ let getAndPost = (path, handler) =>
                     FormData(formData),
                     actionId,
                   );
-                DreamRSC.createActionFromRequest(
-                  request,
-                  React.Json(response),
-                );
+                DreamRSC.streamResponse(React.Json(response));
               | _ => failwith("Something went wrong")
               }
             | _ =>
               let%lwt body = Dream.body(request);
               let%lwt response =
                 Server_actions.Route.actionsHandler(Body(body), actionId);
-              DreamRSC.createActionFromRequest(
-                request,
-                React.Json(response),
-              );
+              DreamRSC.streamResponse(React.Json(response));
             };
 
           switch (actionId) {
