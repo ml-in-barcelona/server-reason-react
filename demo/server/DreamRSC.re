@@ -1,3 +1,8 @@
+// [QUESTION] could it be added by a PPX?
+// [%include_server_functions_register]
+include Actions.Notes.Registers;
+include Actions.Samples.Registers;
+
 let debug = Sys.getenv_opt("DEMO_ENV") === Some("development");
 
 let is_react_component_header = str =>
