@@ -43,7 +43,7 @@ let make = (~children, ~script=?) => {
         type_="text/css"
         dangerouslySetInnerHTML={"__html": globalStyles}
       />
-      <link rel="stylesheet" href="/static/demo/output.css" />
+      <link rel="stylesheet" href="/output.css" />
       {switch (script) {
        | None => React.null
        | Some(src) => <script type_="module" src />

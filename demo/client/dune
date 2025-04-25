@@ -3,13 +3,6 @@
   (env-vars
    ("DEMO_ENV" "development"))))
 
-(install
- (section bin)
- (enabled_if
-  (= %{profile} dev))
- (files
-  ("./node_modules/@tailwindcss/cli/dist/index.mjs" as tailwind)))
-
 (melange.emit
  (enabled_if
   (= %{profile} dev))
@@ -52,21 +45,3 @@
    --extract=true
    --env=%{env:DEMO_ENV='production'}
    --mock-webpack-require=true)))
-
-(subdir
- app
- (subdir
-  demo
-  (rule
-   (target output.css)
-   (enabled_if
-    (= %{profile} dev))
-   (alias client)
-   (deps
-    (source_tree ../../../)
-    (source_tree ../../../server)
-    (:config ./../../tailwind.config.js)
-    (:input ./../../styles.css))
-   (action
-    (progn
-     (run tailwind -c %{config} -i %{input} -o %{target}))))))

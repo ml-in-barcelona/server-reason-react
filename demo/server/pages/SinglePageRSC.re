@@ -131,7 +131,7 @@ module Page = {
 let handler = request =>
   DreamRSC.createFromRequest(
     ~bootstrapModules=["/static/demo/CreateFromReadableStream.re.js"],
-    ~bootstrapStylesheets=["/static/demo/output.css"],
+    ~bootstrapStylesheets=["/output.css"],
     <Root> <Page /> </Root>,
     request,
   );

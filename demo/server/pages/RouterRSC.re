@@ -164,7 +164,7 @@ let handler = request => {
 
   DreamRSC.createFromRequest(
     ~bootstrapModules=["/static/demo/ClientRouter.re.js"],
-    ~bootstrapStylesheets=["/static/demo/output.css"],
+    ~bootstrapStylesheets=["/output.css"],
     <App selectedId isEditing searchText />,
     request,
   );

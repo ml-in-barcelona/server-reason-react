@@ -59,6 +59,10 @@ let server =
         "/static/**",
         Dream.static("./_build/default/demo/client/app"),
       ),
+      Dream.get(
+        "/output.css",
+        Dream.from_filesystem("./_build/default/demo", "output.css"),
+      ),
       getAndPost(Router.demoRenderToString, _request =>
         Dream.html(
           ReactDOM.renderToString(
