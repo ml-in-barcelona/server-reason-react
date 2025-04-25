@@ -56,12 +56,12 @@ let server =
     Dream.router([
       getAndPost("/", Pages.Home.handler),
       Dream.get(
-        "/static/**",
-        Dream.static("./_build/default/demo/client/app"),
-      ),
-      Dream.get(
         "/output.css",
         Dream.from_filesystem("./_build/default/demo", "output.css"),
+      ),
+      Dream.get(
+        "/static/**",
+        Dream.static("./_build/default/demo/client/app"),
       ),
       getAndPost(Router.demoRenderToString, _request =>
         Dream.html(
