@@ -1,5 +1,6 @@
 @import "tailwindcss";
 
+/* Since we use dynamic classNames on Theme.re, we need to inline the colors here. This can cause tailwind to not generate some classes if there's a missing variant here or we add new colors. */
 @source inline("{hover:,}{text,bg,border}-[#FFC53D]");
 @source inline("{hover:,}{text,bg,border}-[#080808]");
 @source inline("{hover:,}{text,bg,border}-[#0F0F0F]");
