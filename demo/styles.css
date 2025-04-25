@@ -1,0 +1,20 @@
+@import "tailwindcss";
+
+/* Since we use dynamic classNames on Theme.re, we need to inline the colors here. This can cause tailwind to not generate some classes if there's a missing variant here or we add new colors. */
+@source inline("{hover:,}{text,bg,border}-[#FFC53D]");
+@source inline("{hover:,}{text,bg,border}-[#080808]");
+@source inline("{hover:,}{text,bg,border}-[#0F0F0F]");
+@source inline("{hover:,}{text,bg,border}-[#151515]");
+@source inline("{hover:,}{text,bg,border}-[#191919]");
+@source inline("{hover:,}{text,bg,border}-[#1E1E1E]");
+@source inline("{hover:,}{text,bg,border}-[#252525]");
+@source inline("{hover:,}{text,bg,border}-[#2A2A2A]");
+@source inline("{hover:,}{text,bg,border}-[#313131]");
+@source inline("{hover:,}{text,bg,border}-[#3A3A3A]");
+@source inline("{hover:,}{text,bg,border}-[#484848]");
+@source inline("{hover:,}{text,bg,border}-[#6E6E6E]");
+@source inline("{hover:,}{text,bg,border}-[#B4B4B4]");
+@source inline("{hover:,}{text,bg,border}-[#EEEEEE]");
+@source inline("{hover:,}{text,bg,border}-[#F5F5F5]");
+@source inline("{hover:,}{text,bg,border}-[#FFFFFF]");
+@source inline("{hover:,focus:,active:,disabled:,}{text,bg,border}-primary");

@@ -43,7 +43,7 @@ let make = (~children, ~script=?) => {
         type_="text/css"
         dangerouslySetInnerHTML={"__html": globalStyles}
       />
-      <script src="https://cdn.tailwindcss.com" />
+      <link rel="stylesheet" href="/output.css" />
       {switch (script) {
        | None => React.null
        | Some(src) => <script type_="module" src />

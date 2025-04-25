@@ -530,7 +530,7 @@ let head children = Html.node "head" [] (Html.node "meta" [ Html.attribute "char
 (* TODO: Do we want to add a flag to disable ssr? Do we need to disable the model rendering or can we do it outside? *)
 (* TODO: Add all options from renderToReadableStream *)
 let render_html ?(debug = false) ?(bootstrapScriptContent = "") ?(bootstrapScripts = []) ?(bootstrapModules = [])
-    element =
+    ?(bootstrapStylesheets = []) element =
   let initial_index = 0 in
   let htmls = ref [] in
   (* TODO: Cleanup emit_html and use the push function directly? *)
@@ -570,6 +570,15 @@ let render_html ?(debug = false) ?(bootstrapScriptContent = "") ?(bootstrapScrip
                  [])
         |> Html.list
   in
+  let html_bootstrap_stylesheets =
+    match bootstrapStylesheets with
+    | [] -> Html.null
+    | stylesheets ->
+        stylesheets
+        |> List.map (fun stylesheet ->
+               Html.node "link" [ Html.attribute "href" stylesheet; Html.attribute "rel" "stylesheet" ] [])
+        |> Html.list
+  in
   let head =
     head
       [
@@ -578,6 +587,7 @@ let render_html ?(debug = false) ?(bootstrapScriptContent = "") ?(bootstrapScrip
         html_bootstrap_script_content;
         html_bootstrap_scripts;
         html_bootstrap_modules;
+        html_bootstrap_stylesheets;
       ]
   in
   let html = Html.node "html" [] [ head; html_shell ] in

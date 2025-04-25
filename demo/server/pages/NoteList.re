@@ -38,7 +38,10 @@ let make = (~searchText: string) => {
     <ul className="mt-8">
       {notes
        |> List.filter((note: Note.t) =>
-            is_substring(searchText, note.title)
+            is_substring(
+              String.lowercase_ascii(searchText),
+              String.lowercase_ascii(note.title),
+            )
           )
        |> List.map((note: Note.t) =>
             <li key={Int.to_string(note.id)}> <SidebarNote note /> </li>

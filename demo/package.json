@@ -1,0 +1,9 @@
+{
+  "name": "server-reason-react-demo",
+  "version": "0.0.0",
+  "description": "",
+  "dependencies": {
+    "@tailwindcss/cli": "^4.1.4",
+    "tailwindcss": "^4.1.4"
+  }
+}

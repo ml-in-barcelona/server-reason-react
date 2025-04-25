@@ -29,7 +29,13 @@ let stream_model = (~location, app) =>
   );
 
 let stream_html =
-    (~bootstrapScriptContent, ~bootstrapScripts, ~bootstrapModules, app) => {
+    (
+      ~bootstrapScriptContent,
+      ~bootstrapScripts,
+      ~bootstrapModules,
+      ~bootstrapStylesheets,
+      app,
+    ) => {
   Dream.stream(
     ~headers=[("Content-Type", "text/html")],
     stream => {
@@ -39,6 +45,7 @@ let stream_html =
           ~bootstrapScriptContent,
           ~bootstrapScripts,
           ~bootstrapModules,
+          ~bootstrapStylesheets,
           ~debug,
           app,
         );
@@ -56,12 +63,9 @@ let stream_html =
   );
 };
 
-let stream_server_action = (request, fn) => {
+let stream_server_action = fn => {
   Dream.stream(
-    ~headers=[
-      ("Content-Type", "application/react.action"),
-      ("X-Location", Dream.target(request)),
-    ],
+    ~headers=[("Content-Type", "application/react.action")],
     stream => {
       let%lwt () = fn(stream);
       Lwt.return();
@@ -69,25 +73,22 @@ let stream_server_action = (request, fn) => {
   );
 };
 
-let createActionFromRequest = (request, values) => {
-  stream_server_action(
-    request,
-    stream => {
-      let%lwt _stream =
-        ReactServerDOM.create_action_response(
-          ~subscribe=
-            chunk => {
-              Dream.log("Action response");
-              Dream.log("%s", chunk);
-              let%lwt () = Dream.write(stream, chunk);
-              Dream.flush(stream);
-            },
-          values,
-        );
+let streamResponse = values => {
+  stream_server_action(stream => {
+    let%lwt _stream =
+      ReactServerDOM.create_action_response(
+        ~subscribe=
+          chunk => {
+            Dream.log("Action response");
+            Dream.log("%s", chunk);
+            let%lwt () = Dream.write(stream, chunk);
+            Dream.flush(stream);
+          },
+        values,
+      );
 
-      Dream.flush(stream);
-    },
-  );
+    Dream.flush(stream);
+  });
 };
 
 let createFromRequest =
@@ -95,6 +96,7 @@ let createFromRequest =
       ~bootstrapModules=[],
       ~bootstrapScripts=[],
       ~bootstrapScriptContent="",
+      ~bootstrapStylesheets=[],
       app,
       request,
     ) => {
@@ -106,6 +108,7 @@ let createFromRequest =
       ~bootstrapScriptContent,
       ~bootstrapScripts,
       ~bootstrapModules,
+      ~bootstrapStylesheets,
       app,
     )
   };
