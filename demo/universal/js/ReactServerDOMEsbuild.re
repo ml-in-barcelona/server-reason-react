@@ -67,12 +67,6 @@ let createFromFetch = promise => {
   createFromFetchImpl(promise, ~options={callServer: callServer}, ());
 };
 
-let createServerReference = (serverReferenceId, functionName) => {
-  createServerReferenceImpl(
-    serverReferenceId,
-    callServer,
-    None,
-    None,
-    functionName,
-  );
+let createServerReference = serverReferenceId => {
+  createServerReferenceImpl(serverReferenceId, callServer, None, None, None);
 };
