@@ -41,8 +41,9 @@ let make =
             _ => {
               let action =
                 switch (noteId) {
-                | Some(id) => Actions.Notes.edit(~id, ~title, ~content=body)
-                | None => Actions.Notes.create(~title, ~content=body)
+                | Some(id) =>
+                  ServerFunctions.Notes.edit(~id, ~title, ~content=body)
+                | None => ServerFunctions.Notes.create(~title, ~content=body)
                 };
 
               action

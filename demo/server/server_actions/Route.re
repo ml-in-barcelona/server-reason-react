@@ -1,10 +1,10 @@
 // QUESTION: How should we create this manifest automatically?
 let actionsManifest = (id: string) => {
   switch (id) {
-  | id when Actions.Notes.createId == id => Actions.Notes.createRouteHandler
-  | id when Actions.Notes.editId == id => Actions.Notes.editRouteHandler
-  | id when Actions.Notes.deleteId == id => Actions.Notes.deleteRouteHandler
-  | id when Actions.Samples.simpleResponseId == id => Actions.Samples.simpleResponseRouteHandler
+  | id when ServerFunctions.Notes.createId == id => ServerFunctions.Notes.createRouteHandler
+  | id when ServerFunctions.Notes.editId == id => ServerFunctions.Notes.editRouteHandler
+  | id when ServerFunctions.Notes.deleteId == id => ServerFunctions.Notes.deleteRouteHandler
+  | id when ServerFunctions.Samples.simpleResponseId == id => ServerFunctions.Samples.simpleResponseRouteHandler
   | _ => failwith("No action")
   };
 };
