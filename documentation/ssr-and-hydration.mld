@@ -45,7 +45,7 @@ We use [switch%platform] to provide different values on the server and client. T
 
 And let's see the diagram below, which shows how the code will behave:
 
-{%html:<img src="ssr-and-hydration-pipeline.png" alt='Hydrate error' style="max-width: 100%; height: auto; vertical-align: middle;">%}
+{%html:<img src="ssr-and-hydration-pipeline.svg" alt='Hydrate error' style="max-width: 100%; height: auto; vertical-align: middle;">%}
 
 * React to complain about a hydration error because of the content of className attribute from the server is [className="red"] (IV) and what it expects on the client during hydration is [className="blue"] (V).
 
@@ -85,7 +85,7 @@ let make = () => {
 
 With a code like this one, the flow will be:
 
-{%html:<img src="ssr-and-hydration-pipeline-fixed.png" alt='Hydrate error' style="max-width: 100%; height: auto; vertical-align: middle;">%}
+{%html:<img src="ssr-and-hydration-pipeline-fixed.svg" alt='Hydrate error' style="max-width: 100%; height: auto; vertical-align: middle;">%}
 
 ** As we can see, isClientMounted is false on III, IV and V and eventually true on VI. So there is no difference between III and IV, and React will be happy with it.
 
