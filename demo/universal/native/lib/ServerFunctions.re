@@ -68,15 +68,12 @@ module Notes = {
   // This is the action generated to be used under the hood for the server and client
   let create =
     switch%platform () {
-    | Server => createHandler
+    | Server =>
+      failwith("We don't support Server Functions on server side yet")
     | Client => (
         (~title, ~content) => {
           // Register the action for the client
-          let action =
-            ReactServerDOMEsbuild.createServerReference(
-              createId,
-              Some("create"),
-            );
+          let action = ReactServerDOMEsbuild.createServerReference(createId);
           action(. title, content);
         }
       )
@@ -142,14 +139,10 @@ module Notes = {
   // This is the action generated to be used under the hood for the server and client
   let edit =
     switch%platform () {
-    | Server => editHandler
+    | Server => failwith("We don't support Server Functions on server ")
     | Client => (
         (~id, ~title, ~content) => {
-          let action =
-            ReactServerDOMEsbuild.createServerReference(
-              editId,
-              Some("edit"),
-            );
+          let action = ReactServerDOMEsbuild.createServerReference(editId);
 
           action(. id, title, content);
         }
@@ -202,14 +195,10 @@ module Notes = {
   // This is the action generated to be used under the hood for the server and client
   let delete =
     switch%platform () {
-    | Server => deleteHandler
+    | Server => failwith("We don't support Server Functions on server ")
     | Client => (
         (~id) => {
-          let action =
-            ReactServerDOMEsbuild.createServerReference(
-              deleteId,
-              Some("delete"),
-            );
+          let action = ReactServerDOMEsbuild.createServerReference(deleteId);
 
           action(. id);
         }
@@ -254,21 +243,13 @@ module Samples = {
 
   let simpleResponse =
     switch%platform () {
-    | Server => simpleResponseId
+    | Server => failwith("We don't support Server Functions on server ")
     | Client => (
         _ => {
           let action =
-            ReactServerDOMEsbuild.createServerReference(
-              simpleResponseId,
-              Some("simpleResponse"),
-            );
+            ReactServerDOMEsbuild.createServerReference(simpleResponseId);
           action(.);
         }
       )
     };
-
-  module Registers = {
-    [@platform native]
-    ServerReference.register(simpleResponseId, simpleResponseRouteHandler);
-  };
 };
