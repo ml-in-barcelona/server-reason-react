@@ -1,18 +1,10 @@
 // QUESTION: How should we create this manifest automatically?
 let actionsManifest = (id: string) => {
   switch (id) {
-  | id when Actions.Notes.createId == id => Actions.Notes.createRouteHandler
-  | id when Actions.Notes.editId == id => Actions.Notes.editRouteHandler
-  | id when Actions.Notes.deleteId == id => Actions.Notes.deleteRouteHandler
-  | id when Actions.Samples.simpleResponseId == id => Actions.Samples.simpleResponseRouteHandler
-  | _ => failwith("No action")
-  };
-};
-
-// QUESTION: How should we create this manifest automatically?
-let formDataManifest = (id: string) => {
-  switch (id) {
-  | id when Actions.Samples.formDataId == id => Actions.Samples.formDataRouteHandler
+  | id when ServerFunctions.Notes.createId == id => ServerFunctions.Notes.createRouteHandler
+  | id when ServerFunctions.Notes.editId == id => ServerFunctions.Notes.editRouteHandler
+  | id when ServerFunctions.Notes.deleteId == id => ServerFunctions.Notes.deleteRouteHandler
+  | id when ServerFunctions.Samples.simpleResponseId == id => ServerFunctions.Samples.simpleResponseRouteHandler
   | _ => failwith("No action")
   };
 };
@@ -42,50 +34,8 @@ type actionContent =
 // The user of the code passes the content defined by the type actionContent and the actionId
 let actionsHandler = (content, actionId) => {
   switch (content, actionId) {
-  | (FormData(formData), actionId) =>
-    switch (formData, actionId) {
-    // react-server-dom-webpack encode formData and put the first value as model reference E.g.:["$K1"], 1 is the id
-    // QUESTION: Why is it like this? Is there a change to it be other than "$K"? Is there a way to get more ids?
-    | ([(_, [(_, modelId)]), ...formData], Some(actionId)) =>
-      let chunkId = Yojson.Basic.from_string(modelId);
-      let chunkId =
-        switch (chunkId) {
-        | `List([`String(chunkId)]) => chunkId
-        | _ => failwith("Invalid chunkId")
-        };
-      let formData =
-        List.map(
-          ((name, value)) => {
-            // react-server-dom-webpack prefix the name with the id E.g.: ["1_name", "1_value"]
-            let form_prefix =
-              String.sub(chunkId, 2, String.length(chunkId) - 2) ++ "_";
-            let key =
-              String.sub(
-                name,
-                String.length(form_prefix),
-                String.length(name) - String.length(form_prefix),
-              );
-            (key, value);
-          },
-          formData,
-        );
-      // Passing the formData as a hashtable to make it easier to handle as Dream don't
-      // have a better way to handle it
-      let formData = formData |> List.to_seq |> Hashtbl.of_seq;
-      let action = formDataManifest(actionId);
-      action(formData);
-    // without JS enabled or hydration
-    | ([(_, [(_, actionId)]), ...formData], None)
-        when actionId == "$ACTION_ID" =>
-      let formData = formData |> List.to_seq |> Hashtbl.of_seq;
-      let action = formDataManifest(actionId);
-      action(formData);
-    | _ =>
-      failwith(
-        "Missing $ACTION_ID, this formData was not created by server-reason-react",
-      )
-    }
-
+  | (FormData(_), _) =>
+    failwith("We don't support form data in server actions yet")
   | (Body(body), Some(actionId)) =>
     let action = actionsManifest(actionId);
     action(getArgs(body));

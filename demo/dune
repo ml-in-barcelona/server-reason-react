@@ -12,3 +12,24 @@
    ; this means no (target), no (with-stdout-to), just a bash command with stdout
    ; redirect inside a string
    (bash "date > %{project_root}/../../demo/.running/built_at.txt"))))
+
+(install
+ (section bin)
+ (enabled_if
+  (= %{profile} dev))
+ (files
+  ("./node_modules/@tailwindcss/cli/dist/index.mjs" as tailwind)))
+
+(rule
+ (target output.css)
+ (enabled_if
+  (= %{profile} dev))
+ (alias client)
+ (deps
+  (source_tree ./)
+  (source_tree ./../server)
+  (:config tailwind.config.js)
+  (:input styles.css))
+ (action
+  (progn
+   (run tailwind --config=%{config} --input=%{input} --output=%{target}))))

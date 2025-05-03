@@ -20,8 +20,6 @@
  (preprocess
   (pps browser_ppx -js reason-react-ppx melange.ppx)))
 
-;; Hydrate.re.js
-
 (rule
  (enabled_if
   (= %{profile} dev))
@@ -39,12 +37,11 @@
   (file package.json)
   (source_tree ../../packages/extract-client-components))
  (action
-  (progn
-   (run
-    node
-    %{script}
-    %{entrypoints}
-    --output=app/demo/client/
-    --extract=true
-    --env=%{env:DEMO_ENV='production'}
-    --mock-webpack-require=true))))
+  (run
+   node
+   %{script}
+   %{entrypoints}
+   --output=app/demo/client/
+   --extract=true
+   --env=%{env:DEMO_ENV='production'}
+   --mock-webpack-require=true)))

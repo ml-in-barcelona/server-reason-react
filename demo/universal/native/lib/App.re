@@ -59,7 +59,7 @@ module Title = {
   [@react.component]
   let make = () => {
     <section>
-      <Spacer bottom=4>
+      <div className="mb-4">
         <h1
           className={Cx.make([
             "m-0",
@@ -69,7 +69,7 @@ module Title = {
           ])}>
           {React.string("Server Reason React")}
         </h1>
-      </Spacer>
+      </div>
       <Menu />
     </section>;
   };

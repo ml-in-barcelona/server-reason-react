@@ -25,20 +25,14 @@ let getAndPost = (path, handler) =>
                     FormData(formData),
                     actionId,
                   );
-                DreamRSC.createActionFromRequest(
-                  request,
-                  React.Json(response),
-                );
+                DreamRSC.streamResponse(React.Json(response));
               | _ => failwith("Something went wrong")
               }
             | _ =>
               let%lwt body = Dream.body(request);
               let%lwt response =
                 Server_actions.Route.actionsHandler(Body(body), actionId);
-              DreamRSC.createActionFromRequest(
-                request,
-                React.Json(response),
-              );
+              DreamRSC.streamResponse(React.Json(response));
             };
 
           switch (actionId) {
@@ -61,6 +55,10 @@ let server =
   Dream.logger(
     Dream.router([
       getAndPost("/", Pages.Home.handler),
+      Dream.get(
+        "/output.css",
+        Dream.from_filesystem("./_build/default/demo", "output.css"),
+      ),
       Dream.get(
         "/static/**",
         Dream.static("./_build/default/demo/client/app"),

@@ -18,8 +18,6 @@ let attribute_to_html attr =
   (* true attributes render solely the attribute name *)
   | Bool (name, _, true) -> Html.present name
   | Style styles -> Html.attribute "style" (ReactDOMStyle.to_string styles)
-  (* Action don't get rendered on SSR since they are handled by React from a chunk in the browser *)
-  | Action (_name, _, _) -> Html.omitted ()
   | String (name, _, _value) when is_react_custom_attribute name -> Html.omitted ()
   | String (name, _, value) -> Html.attribute name value
   (* Events don't get rendered on SSR *)

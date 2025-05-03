@@ -12,21 +12,23 @@ let make = (~noteId: int) => {
   <button
     className
     disabled={isNavigating || isDeleting}
-    onClick={_ => {
-      Actions.Notes.delete.call(. ~id=noteId)
-      |> Js.Promise.then_(_ => {
-           setIsDeleting(false);
-           startNavigating(() => {
-             navigate({
-               selectedId: None,
-               isEditing: false,
-               searchText: None,
-             })
-           });
-           Js.Promise.resolve();
-         })
-      |> ignore
-    }}
+    onClick=[%browser_only
+      _ => {
+        ServerFunctions.Notes.delete(~id=noteId)
+        |> Js.Promise.then_(_ => {
+             setIsDeleting(false);
+             startNavigating(() => {
+               navigate({
+                 selectedId: None,
+                 isEditing: false,
+                 searchText: None,
+               })
+             });
+             Js.Promise.resolve();
+           })
+        |> ignore;
+      }
+    ]
     role="menuitem">
     {React.string("Delete")}
   </button>;

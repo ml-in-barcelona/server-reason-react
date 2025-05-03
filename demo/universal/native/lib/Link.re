@@ -26,7 +26,7 @@ module Text = {
   [@react.component]
   let make =
       (
-        ~color=Theme.Color.Gray13,
+        ~color=Theme.Color.Gray12,
         ~size=defaultSize,
         ~href,
         ~children,

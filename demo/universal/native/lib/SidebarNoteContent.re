@@ -61,7 +61,7 @@ let make =
       {isExpanded ? expandedChildren : React.null}
     </div>
     <div
-      className="px-4 mt-1 mb-4 outline-none cursor-pointer self-center w-full"
+      className="px-4 mt-1 mb-4 cursor-pointer self-center w-full"
       onClick={_ => setIsExpanded(!isExpanded)}>
       <Square isExpanded />
     </div>
