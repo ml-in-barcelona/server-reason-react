@@ -67,8 +67,10 @@ module Notes = {
   // This is the action generated to be used under the hood for the server and client
   let create =
     switch%platform () {
-    | Server =>
-      failwith("We don't support Server Functions on server side yet")
+    | Server => (
+        (~title, ~content) =>
+          failwith("We don't support Server Functions on server side yet")
+      )
     | Client => (
         (~title, ~content) => {
           // Register the action for the client
@@ -137,7 +139,10 @@ module Notes = {
   // This is the action generated to be used under the hood for the server and client
   let edit =
     switch%platform () {
-    | Server => failwith("We don't support Server Functions on server ")
+    | Server => (
+        (~id, ~title, ~content) =>
+          failwith("We don't support Server Functions on server ")
+      )
     | Client => (
         (~id, ~title, ~content) => {
           let action = ReactServerDOMEsbuild.createServerReference(editId);
@@ -193,7 +198,9 @@ module Notes = {
   // This is the action generated to be used under the hood for the server and client
   let delete =
     switch%platform () {
-    | Server => failwith("We don't support Server Functions on server ")
+    | Server => (
+        (~id) => failwith("We don't support Server Functions on server ")
+      )
     | Client => (
         (~id) => {
           let action = ReactServerDOMEsbuild.createServerReference(deleteId);
@@ -229,7 +236,9 @@ module Samples = {
 
   let simpleResponse =
     switch%platform () {
-    | Server => failwith("We don't support Server Functions on server ")
+    | Server => (
+        _ => failwith("We don't support Server Functions on server ")
+      )
     | Client => (
         _ => {
           let action =
