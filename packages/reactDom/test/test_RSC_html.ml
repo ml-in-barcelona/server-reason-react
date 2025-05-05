@@ -162,33 +162,6 @@ let upper_case_component () =
        '>window.srr_stream.push()</script>"
     app [ stream_close_script ]
 
-let upper_case_component_with_server_function () =
-  let app =
-    React.Upper_case_component
-      ( "app",
-        fun () ->
-          React.createElement "form"
-            [
-              React.JSX.Action
-                ("actionFn", "", { id = Some "ACTION_ID"; call = (fun () -> Lwt.return "Server Action Response") });
-            ]
-            [
-              React.createElement "input" [ React.JSX.String ("name", "name", "name") ] [];
-              React.createElement "input" [ React.JSX.String ("email", "email", "email") ] [];
-              React.createElement "button" [ React.JSX.String ("type", "type", "submit") ] [ React.string "Submit" ];
-            ] )
-  in
-  assert_html
-    ~shell:
-      "<form><input name=\"name\" /><input email=\"email\" /><button type=\"submit\">Submit</button></form><script \
-       data-payload='0:[\"$\",\"form\",null,{\"children\":[[\"$\",\"input\",null,{\"name\":\"name\"},null,[],{}],[\"$\",\"input\",null,{\"email\":\"email\"},null,[],{}],[\"$\",\"button\",null,{\"children\":[\"Submit\"],\"type\":\"submit\"},null,[],{}]],\"\":\"$F1\"},null,[],{}]\n\
-       '>window.srr_stream.push()</script>"
-    app
-    [
-      "<script data-payload='1:{\"id\":\"ACTION_ID\",\"bound\":null}\n'>window.srr_stream.push()</script>";
-      stream_close_script;
-    ]
-
 let async_component_without_promise () =
   let app =
     React.Async_component

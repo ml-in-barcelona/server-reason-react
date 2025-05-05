@@ -61,7 +61,11 @@ module Notes = {
         )
       };
 
-    createHandler(~title, ~content) |> Lwt.map(createNoteResponse);
+    //encode the response to json
+    let encodeResponse = response =>
+      React.Json(createNoteResponse(response));
+
+    createHandler(~title, ~content) |> Lwt.map(encodeResponse);
   };
 
   // This is the action generated to be used under the hood for the server and client
@@ -76,10 +80,7 @@ module Notes = {
         call: (
           (. ~title, ~content) => {
             let action =
-              ReactServerDOMEsbuild.createServerReference(
-                createId,
-                Some("create"),
-              );
+              ReactServerDOMEsbuild.createServerReference(createId);
             action(. title, content);
           }
         ),
@@ -139,7 +140,11 @@ module Notes = {
         )
       };
 
-    editHandler(. ~id, ~title, ~content) |> Lwt.map(createNoteResponse);
+    //encode the response to json
+    let encodeResponse = response =>
+      React.Json(createNoteResponse(response));
+
+    editHandler(. ~id, ~title, ~content) |> Lwt.map(encodeResponse);
   };
 
   // This is the action generated to be used under the hood for the server and client
@@ -155,11 +160,7 @@ module Notes = {
         Runtime.React.id: Some(editId),
         call: (
           (. ~id, ~title, ~content) => {
-            let action =
-              ReactServerDOMEsbuild.createServerReference(
-                editId,
-                Some("edit"),
-              );
+            let action = ReactServerDOMEsbuild.createServerReference(editId);
             action(. id, title, content);
           }
         ),
@@ -205,7 +206,10 @@ module Notes = {
         )
       };
 
-    deleteHandler(~id) |> Lwt.map(response => `String(response));
+    //encode the response to json
+    let encodeResponse = response => React.Json(`String(response));
+
+    deleteHandler(~id) |> Lwt.map(encodeResponse);
   };
 
   // This is the action generated to be used under the hood for the server and client
@@ -220,16 +224,24 @@ module Notes = {
         call: (
           (. ~id) => {
             let action =
-              ReactServerDOMEsbuild.createServerReference(
-                deleteId,
-                Some("delete"),
-              );
+              ReactServerDOMEsbuild.createServerReference(deleteId);
 
             action(. id);
           }
         ),
       }
     };
+
+  module Registers = {
+    [@platform native]
+    ServerReference.register(createId, createRouteHandler);
+
+    [@platform native]
+    ServerReference.register(editId, editRouteHandler);
+
+    [@platform native]
+    ServerReference.register(deleteId, deleteRouteHandler);
+  };
 };
 
 module Samples = {
@@ -283,10 +295,7 @@ module Samples = {
         call: (
           (. formData) => {
             let action =
-              ReactServerDOMEsbuild.createServerReference(
-                formDataId,
-                Some("formData"),
-              );
+              ReactServerDOMEsbuild.createServerReference(formDataId);
             action(. formData);
           }
         ),
@@ -325,8 +334,11 @@ module Samples = {
         )
       | _ => failwith("Invalid arguments")
       };
-    simpleResponseHandler(~name, ~age)
-    |> Lwt.map(response => `String(response));
+
+    //encode the response to json
+    let encodeResponse = response => React.Json(`String(response));
+
+    simpleResponseHandler(~name, ~age) |> Lwt.map(encodeResponse);
   };
 
   let simpleResponse =
@@ -340,13 +352,15 @@ module Samples = {
         call: (
           (. ~name, ~age) => {
             let action =
-              ReactServerDOMEsbuild.createServerReference(
-                simpleResponseId,
-                Some("simpleResponse"),
-              );
+              ReactServerDOMEsbuild.createServerReference(simpleResponseId);
             action(. ~name, ~age);
           }
         ),
       }
     };
+
+  module Registers = {
+    [@platform native]
+    ServerReference.register(simpleResponseId, simpleResponseRouteHandler);
+  };
 };

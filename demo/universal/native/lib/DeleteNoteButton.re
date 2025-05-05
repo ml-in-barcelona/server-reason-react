@@ -14,7 +14,7 @@ let make = (~noteId: int) => {
     disabled={isNavigating || isDeleting}
     onClick=[%browser_only
       _ => {
-        ServerFunctions.Notes.delete(~id=noteId)
+        ServerFunctions.Notes.delete.call(. ~id=noteId)
         |> Js.Promise.then_(_ => {
              setIsDeleting(false);
              startNavigating(() => {

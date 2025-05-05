@@ -119,16 +119,10 @@ module Page = {
         </h1>
         <Hr />
         <Section
-          title="Client component importing actions"
-          description="Client component importing actions">
-          <ServerActionFormData />
-        </Section>
-        <Hr />
-        <Section
           title="Server action from props on a Client Component"
           description="Server action via props on a Client Component, in this case the action is never created on the client">
           <ServerActionFromPropsClient
-            actionOnClick=Actions.Samples.simpleResponse
+            actionOnClick=ServerFunctions.Samples.simpleResponse
           />
         </Section>
         <Hr />

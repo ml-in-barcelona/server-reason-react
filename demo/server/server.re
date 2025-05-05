@@ -11,40 +11,17 @@ let getAndPost = (path, handler) =>
         path,
         request => {
           let actionId = Dream.header(request, "ACTION_ID");
-          let contentType = Dream.header(request, "Content-Type");
-          let action_response =
-            switch (contentType) {
-            | Some(contentType)
-                when
-                  contentType
-                  |> String.starts_with(~prefix="multipart/form-data") =>
-              switch%lwt (Dream.multipart(request, ~csrf=false)) {
-              | `Ok(formData) =>
-                let%lwt response =
-                  Server_actions.Route.actionsHandler(
-                    FormData(formData),
-                    actionId,
-                  );
-                DreamRSC.streamResponse(React.Json(response));
-              | _ => failwith("Something went wrong")
-              }
-            | _ =>
-              let%lwt body = Dream.body(request);
-              let%lwt response =
-                Server_actions.Route.actionsHandler(Body(body), actionId);
-              DreamRSC.streamResponse(React.Json(response));
-            };
 
           switch (actionId) {
-          | Some(_) =>
-            // If there is no action ID means that the page does not hydrate or has no JS.
-            // Then we can execute the action and return the page.
-            action_response
-          | None =>
-            // If there is no action ID means that the page does not hydrate or has no JS.
-            // Then we can execute the action and return the page.
-            // QUESTION: Should we handle the response here?
-            handler(request)
+          | Some(actionId) =>
+            let%lwt body = Dream.body(request);
+            let serverFunction = ServerReference.handler(actionId);
+            let%lwt response = serverFunction(body);
+            DreamRSC.streamResponse(response);
+          | _ =>
+            failwith(
+              "No action ID, we don't support progressive enhancement yet",
+            )
           };
         },
       ),

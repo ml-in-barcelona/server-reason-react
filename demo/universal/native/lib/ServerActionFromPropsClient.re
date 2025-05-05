@@ -24,7 +24,6 @@ let make =
       }}>
       {React.string("Click me to get a message from the server")}
     </button>
-    <Spacer bottom=4 />
     <div> <Text> {isLoading ? "Loading..." : message} </Text> </div>
   </div>;
 };

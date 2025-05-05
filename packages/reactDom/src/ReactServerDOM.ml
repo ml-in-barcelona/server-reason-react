@@ -43,6 +43,7 @@ module Model = struct
   let lazy_value id = Printf.sprintf "$L%x" id
   let promise_value id = Printf.sprintf "$@%x" id
   let ref_value id = Printf.sprintf "$%x" id
+  let action_value id = Printf.sprintf "$F%x" id
 
   let prop_to_json (prop : React.JSX.prop) =
     match prop with
