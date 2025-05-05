@@ -43,6 +43,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install openssl
+        if: matrix.os == 'macos-latest'
+        run: |
+          pkg-config --modversion openssl
+
       - name: Load opam cache
         id: opam-cache
         uses: actions/cache/restore@v4
