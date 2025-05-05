@@ -43,15 +43,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Fix MacOS (by installing pkgconf) # https://github.com/ocaml/setup-ocaml/issues/897
+      - name: Install openssl
         if: matrix.os == 'macos-latest'
         run: |
-          if ! brew list pkgconf &> /dev/null; then
-            brew update
-            brew upgrade
-            brew install pkgconf
-            brew link --overwrite pkgconf
-          fi
+          pkg-config --modversion openssl
 
       - name: Load opam cache
         id: opam-cache
