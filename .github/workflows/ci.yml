@@ -43,6 +43,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install openssl
+        if: matrix.os == 'macos-latest'
+        run: |
+          brew install openssl@3
+          tree /opt/homebrew/Cellar/openssl@3
+
       - name: Load opam cache
         id: opam-cache
         uses: actions/cache/restore@v4
@@ -64,7 +70,7 @@ jobs:
           key: npm-${{ matrix.os }}-${{ hashFiles('package.json') }}
 
       - name: Use OCaml ${{ matrix.ocaml-compiler }}
-        uses: ocaml/setup-ocaml@v3.3.1
+        uses: ocaml/setup-ocaml@v3.2.5
         if: steps.opam-cache.outputs.cache-hit != 'true'
         with:
           ocaml-compiler: ${{ matrix.ocaml-compiler }}
