@@ -43,24 +43,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Fix MacOS (by installing pkgconf) # https://github.com/ocaml/setup-ocaml/issues/897
-        if: matrix.os == 'macos-latest'
-        run: |
-          if ! brew list pkgconf &> /dev/null; then
-            brew update
-            brew upgrade
-            brew install pkgconf
-            brew link --overwrite pkgconf
-          fi
-
-      - name: Install and expose OpenSSL
-        if: matrix.os == 'macos-latest'
-        run: |
-          brew install openssl@3
-          echo "PKG_CONFIG_PATH=$(brew --prefix openssl@3)/lib/pkgconfig" >> $GITHUB_ENV
-          echo "CFLAGS=-I$(brew --prefix openssl@3)/include" >> $GITHUB_ENV
-          echo "LDFLAGS=-L$(brew --prefix openssl@3)/lib" >> $GITHUB_ENV
-
       - name: Load opam cache
         id: opam-cache
         uses: actions/cache/restore@v4
