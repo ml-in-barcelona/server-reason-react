@@ -1,3 +1,5 @@
+[@@@warning "-26-27-32-69"]
+
 type json = Yojson.Basic.t
 
 module Fiber = struct
@@ -9,11 +11,21 @@ module Fiber = struct
     debug : bool;
   }
 
+  type options = {
+    bootstrap_scripts : string list option;
+    bootstrap_modules : string list option;
+    bootstrap_script_content : string option;
+  }
+
   type t = {
     context : context;
     finished : unit Lwt.t;
+    mutable head : Html.element option;
+    mutable body : Html.element option;
+    mutable is_root_html_node : bool;
     (* QUESTION: Why do I need emit_html to be mutable? *)
     mutable emit_html : Html.element -> unit;
+    options : options;
   }
 
   let use_index t =
@@ -39,7 +51,7 @@ module Model = struct
     context.chunk_id
 
   let get_chunk_id context = context.chunk_id
-  let style_to_json style = `Assoc (List.map (fun (_key, jsxKey, value) -> (jsxKey, `String value)) style)
+  let style_to_json style = `Assoc (List.map (fun (_, jsxKey, value) -> (jsxKey, `String value)) style)
   let lazy_value id = Printf.sprintf "$L%x" id
   let promise_value id = Printf.sprintf "$@%x" id
   let ref_value id = Printf.sprintf "$%x" id
@@ -76,7 +88,7 @@ module Model = struct
     in
     `List [ `String "$"; `String tag; key; `Assoc props; debugId; source; owner ]
 
-  (* Not reusing `node` because we need to add fallback prop as json directly *)
+  (* Not using `node` because we need to add fallback prop as json directly *)
   let suspense_node ~key ~fallback children : json =
     let fallback_prop = ("fallback", fallback) in
     let props =
@@ -397,35 +409,70 @@ and render_lower_case ~fiber ~key:_ ~tag ~attributes ~children =
     let%lwt html = children |> Lwt_list.map_p (client_to_html ~fiber) in
     Lwt.return (Html.node tag html_props html)
 
-let rec to_html ~debug ~fiber (element : React.element) : (Html.element * json) Lwt.t =
-  let context = Fiber.get_context fiber in
-  let push id chunk =
-    match (chunk : Model.chunk_type) with
-    | Chunk_value json ->
-        context.index <- id;
-        context.push (client_value_chunk_script id json)
-    | Debug_info_map json ->
-        context.index <- id;
-        context.push (debug_info_chunk_script id json)
-    | Chunk_component_ref json ->
-        context.index <- id;
-        context.push (client_reference_chunk_script id json)
+(* let bootstrap_script_content =
+    match bootstrapScriptContent with
+    | None -> Html.null
+    | Some bootstrapScriptContent -> Html.node "script" [] [ Html.raw bootstrapScriptContent ]
   in
-  let context : Model.stream_context = { push; close = context.close; chunk_id = context.index; pending = 0; debug } in
+  let scripts =
+    match bootstrapScripts with
+    | None -> Html.null
+    | Some scripts ->
+        scripts
+        |> List.map (fun script -> Html.node "script" [ Html.attribute "src" script; Html.attribute "async" "true" ] [])
+        |> Html.list
+  in
+  let modules =
+    match bootstrapModules with
+    | None -> Html.null
+    | Some modules ->
+        modules
+        |> List.map (fun script ->
+               Html.node "script"
+                 [ Html.attribute "src" script; Html.attribute "async" "true"; Html.attribute "type" "module" ]
+                 [])
+        |> Html.list
+  in
+  let stylesheets =
+    match bootstrapStylesheets with
+    | None -> Html.null
+    | Some stylesheets ->
+        stylesheets
+        |> List.map (fun stylesheet ->
+               Html.node "link" [ Html.attribute "href" stylesheet; Html.attribute "rel" "stylesheet" ] [])
+        |> Html.list
+  in
+  let default_head_children =
+    if has_pending_tasks then
+      [ rc_function_script; rsc_start_script; bootstrap_script_content; scripts; modules; stylesheets ]
+    else [ bootstrap_script_content; scripts; modules; stylesheets ]
+  in
+  let head =
+    match (head, is_root_html_node) with
+    | Some _head, true -> (* Html.node "head" head.attributes (head.children @ default_head_children) *) Html.null
+    | Some head, false -> Html.null
+    | None, true -> Html.null
+    | None, false -> Html.list default_head_children
+  in
+  let html_shell = Html.list [ Html.list htmls; root_html ] in
+  Html.list [ head; html_shell ] *)
+
+let rec to_html ~debug ~fiber (element : React.element) : (Html.element * json) Lwt.t =
+  let is_first_element = ref true in
   match element with
   | Empty -> Lwt.return (Html.null, `Null)
-  | Text s -> Lwt.return (Html.string s, if not true then `Null else `String s)
+  | Text s -> Lwt.return (Html.string s, `String s)
   | Fragment children -> to_html ~debug ~fiber children
   | List list -> elements_to_html ~debug ~fiber list
   | Array arr -> elements_to_html ~debug ~fiber (Array.to_list arr)
-  | Upper_case_component (name, component) ->
-      if context.debug then (
+  | Upper_case_component (_name, component) ->
+      (* if debug then (
         let debug_info_index = Fiber.use_index fiber in
         let debug_info_ref : json = `String (Printf.sprintf "$%x" debug_info_index) in
         (* TODO: Chunks might need to be pushed in the same row *)
         context.push debug_info_index (Model.Chunk_value (Model.make_debug_info name));
         context.push debug_info_index (Model.Debug_info_map debug_info_ref);
-        ());
+        ()); *)
       to_html ~debug ~fiber (component ())
   | Lower_case_element { key; tag; attributes; children } ->
       render_lower_case ~debug ~fiber ~key ~tag ~attributes ~children
@@ -523,14 +570,30 @@ and elements_to_html ~debug ~fiber elements =
   let htmls, model = List.split html_and_models in
   Lwt.return (Html.list htmls, `List model)
 
-let head children = Html.node "head" [] (Html.node "meta" [ Html.attribute "charset" "utf-8" ] [] :: children)
+(* let get_html_structure node =
+  let get_html_structure carry = function
+    | Html.Node { tag = "html"; children; _ } ->
+        (* TODO: Instead of asume the default structure, need to fold over children and check *)
+        let head =
+          match List.nth_opt children 0 with Some (Html.Node ({ tag = "head"; _ } as node)) -> Some node | _ -> None
+        in
+        let body =
+          match List.nth_opt children 1 with Some (Html.Node ({ tag = "body"; _ } as node)) -> Some node | _ -> None
+        in
+        { is_root_html_node = true; head; body }
+    | Html.Node ({ tag = "head"; _ } as node) -> { carry with head = Some node; is_root_html_node = false }
+    | Html.Node ({ tag = "body"; _ } as node) -> { carry with body = Some node; is_root_html_node = false }
+    (* TODO: Iterate over List/Array for more complex cases *)
+    | _ -> carry
+  in
+  get_html_structure { head = None; body = None; is_root_html_node = false } node *)
 
 (* TODO: Do we need to stop streaming based on some timeout? abortion? *)
 (* TODO: Do we need to ensure chunks are of a certain minimum size but also maximum? Saw react caring about this *)
 (* TODO: Do we want to add a flag to disable ssr? Do we need to disable the model rendering or can we do it outside? *)
 (* TODO: Add all options from renderToReadableStream *)
-let render_html ?(debug = false) ?(bootstrapScriptContent = "") ?(bootstrapScripts = []) ?(bootstrapModules = [])
-    ?(bootstrapStylesheets = []) element =
+let render_html ?(debug = false) ?bootstrapScriptContent ?bootstrapScripts ?bootstrapModules ?bootstrapStylesheets
+    element =
   let initial_index = 0 in
   let htmls = ref [] in
   (* TODO: Cleanup emit_html and use the push function directly? *)
@@ -538,59 +601,28 @@ let render_html ?(debug = false) ?(bootstrapScriptContent = "") ?(bootstrapScrip
   let stream, push, close = Push_stream.make () in
   let context : Fiber.context = { push; close; pending = 1; index = initial_index; debug } in
   let finished, parent_done = Lwt.wait () in
-  let fiber : Fiber.t = { context; emit_html; finished } in
-  let%lwt root_html, root_model = to_html ~debug ~fiber element in
-  let root_chunk = client_value_chunk_script initial_index root_model in
-  let html_shell = Html.list [ Html.list !htmls; root_html; root_chunk ] in
+  let options : Fiber.options =
+    {
+      bootstrap_scripts = bootstrapScripts;
+      bootstrap_modules = bootstrapModules;
+      bootstrap_script_content = bootstrapScriptContent;
+    }
+  in
+  let fiber : Fiber.t =
+    { context; emit_html; finished; head = None; body = None; is_root_html_node = false; options }
+  in
+  let%lwt root_html, _root_model = to_html ~debug ~fiber element in
+  (* let root_chunk = client_value_chunk_script initial_index root_model in *)
   Lwt.wakeup_later parent_done ();
+  print_endline (Printf.sprintf "pending: %d" context.pending);
   context.pending <- context.pending - 1;
+  print_endline (Printf.sprintf "pending: %d" context.pending);
   (* In case of not having any task pending, we can close the stream *)
   (match context.pending = 0 with
   | true -> context.close ()
   | false -> ());
-  let html_bootstrap_script_content =
-    if bootstrapScriptContent = "" then Html.null else Html.node "script" [] [ Html.raw bootstrapScriptContent ]
-  in
-  let html_bootstrap_scripts =
-    match bootstrapScripts with
-    | [] -> Html.null
-    | scripts ->
-        scripts
-        |> List.map (fun script -> Html.node "script" [ Html.attribute "src" script; Html.attribute "async" "true" ] [])
-        |> Html.list
-  in
-  let html_bootstrap_modules =
-    match bootstrapModules with
-    | [] -> Html.null
-    | modules ->
-        modules
-        |> List.map (fun script ->
-               Html.node "script"
-                 [ Html.attribute "src" script; Html.attribute "async" "true"; Html.attribute "type" "module" ]
-                 [])
-        |> Html.list
-  in
-  let html_bootstrap_stylesheets =
-    match bootstrapStylesheets with
-    | [] -> Html.null
-    | stylesheets ->
-        stylesheets
-        |> List.map (fun stylesheet ->
-               Html.node "link" [ Html.attribute "href" stylesheet; Html.attribute "rel" "stylesheet" ] [])
-        |> Html.list
-  in
-  let head =
-    head
-      [
-        rc_function_script;
-        rsc_start_script;
-        html_bootstrap_script_content;
-        html_bootstrap_scripts;
-        html_bootstrap_modules;
-        html_bootstrap_stylesheets;
-      ]
-  in
-  let html = Html.node "html" [] [ head; html_shell ] in
+  print_endline (Printf.sprintf "pending: %d" context.pending);
+  let html = root_html in
   let subscribe fn =
     let fn_with_to_string v = fn (Html.to_string v) in
     let%lwt () = Push_stream.subscribe ~fn:fn_with_to_string stream in

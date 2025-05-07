@@ -53,7 +53,7 @@ let stream_html =
           ~debug,
           app,
         );
-      let%lwt () = Dream.write(stream, "<body>" ++ html ++ "</body>");
+      let%lwt () = Dream.write(stream, html);
       let%lwt () = Dream.flush(stream);
       let%lwt () =
         subscribe(chunk => {
