@@ -66,6 +66,17 @@ module Notes = {
   };
 
   // This is the action generated to be used under the hood for the server and client
+  // Melange don't display the comment after compilation
+  // This is a little hack while we don't have the ppx to generate the comment
+  switch%platform () {
+  | Server => ()
+  | Client => [%mel.raw
+     {|
+    // extract-server-function id/notes/create create Notes
+    ''
+    |}
+    ]
+  };
   let create =
     switch%platform () {
     | Server => (
@@ -139,6 +150,17 @@ module Notes = {
   };
 
   // This is the action generated to be used under the hood for the server and client
+  // Melange don't display the comment after compilation
+  // This is a little hack while we don't have the ppx to generate the comment
+  switch%platform () {
+  | Server => ()
+  | Client => [%mel.raw
+     {|
+    // extract-server-function id/notes/edit edit Notes
+    ''
+    |}
+    ]
+  };
   let edit =
     switch%platform () {
     | Server => (
@@ -198,6 +220,17 @@ module Notes = {
   };
 
   // This is the action generated to be used under the hood for the server and client
+  // Melange don't display the comment after compilation
+  // This is a little hack while we don't have the ppx to generate the comment
+  switch%platform () {
+  | Server => ()
+  | Client => [%mel.raw
+     {|
+    // extract-server-function id/notes/delete $$delete Notes
+    ''
+    |}
+    ]
+  };
   let delete =
     switch%platform () {
     | Server => (
@@ -248,6 +281,20 @@ module Samples = {
   let simpleResponseRouteHandler = _args =>
     simpleResponseHandler() |> Lwt.map(response => React.Json(response));
 
+  // This is the action generated to be used under the hood for the server and client
+  // Melange don't display the comment after compilation
+  // This is a little hack while we don't have the ppx to generate the comment
+  switch%platform () {
+  | Server => ()
+  | Client =>
+    // Comment to esbuild create the manifest
+    [%mel.raw
+     {|
+    // extract-server-function id/samples/simpleResponse simpleResponse Samples
+    ''
+    |}
+    ]
+  };
   let simpleResponse =
     switch%platform () {
     | Server => (
