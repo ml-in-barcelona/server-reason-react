@@ -16,3 +16,8 @@ Here's the raw callstack:
   raise (Impossible_in_ssr (Printf.sprintf {|'%s' shouldn't run on the server|} fn))
 
 type platform = Server | Client
+
+module React = struct
+  (* QUESTION: Can we create a lint ensuring that the callback function is uncurried? *)
+  type 'callback server_function = { id : string option; call : 'callback }
+end

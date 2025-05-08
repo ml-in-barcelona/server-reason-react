@@ -43,6 +43,7 @@ module Model = struct
   let lazy_value id = Printf.sprintf "$L%x" id
   let promise_value id = Printf.sprintf "$@%x" id
   let ref_value id = Printf.sprintf "$%x" id
+  let action_value id = Printf.sprintf "$F%x" id
 
   let prop_to_json (prop : React.JSX.prop) =
     match prop with
@@ -234,6 +235,13 @@ module Model = struct
         | Fail exn ->
             (* TODO: Can we check if raise is good heres? *)
             raise exn)
+    | React.Function action ->
+        let chunk_id = use_chunk_id context in
+        let action_id =
+          match action.id with Some id -> id | None -> raise (Invalid_argument "Action ID is required")
+        in
+        context.push chunk_id (Chunk_value (`Assoc [ ("id", `String action_id); ("bound", `Null) ]));
+        `String (action_value chunk_id)
 
   and client_values_to_json ~context props =
     List.map
@@ -462,7 +470,18 @@ let rec to_html ~debug ~fiber (element : React.element) : (Html.element * json) 
                     if context.pending = 0 then context.close ();
                     Lwt.return ());
                 Lwt.return sync
-            | Json json -> Lwt.return (name, json))
+            | React.Json json -> Lwt.return (name, json)
+            | React.Function action ->
+                let context = Fiber.get_context fiber in
+                let index = Fiber.use_index fiber in
+                let action_id =
+                  match action.id with Some id -> id | None -> raise (Invalid_argument "Action ID is required")
+                in
+                let html =
+                  chunk_script (Model.model_to_chunk index (`Assoc [ ("id", `String action_id); ("bound", `Null) ]))
+                in
+                context.push html;
+                Lwt.return (name, `String (Model.action_value index)))
           props
       in
       let lwt_html = client_to_html ~fiber client in
