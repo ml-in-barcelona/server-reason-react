@@ -123,20 +123,6 @@ We need to output ML syntax here, otherwise refmt could not parse it.
               [ children ] )
   end
   
-  module Form_with_action = struct
-    let make ?key:(_ : string option) ~children () =
-      React.Upper_case_component
-        ( __FUNCTION__,
-          fun () ->
-            React.createElementWithKey ~key:None "form"
-              (Stdlib.List.filter_map Fun.id
-                 [
-                   Some
-                     (React.JSX.Action ("action", "action", ("action_id" : string)));
-                 ])
-              [ children ] )
-  end
-  
   let a =
     Uppercase.make ~children:(React.createElementWithKey ~key:None "div" [] []) ()
   
