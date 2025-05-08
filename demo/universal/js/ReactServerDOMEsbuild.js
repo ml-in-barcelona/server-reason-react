@@ -113,6 +113,7 @@ const ReactFlightClientConfigBundlerEsbuild = {
     debug("resolveClientReference", bundlerConfig, metadata);
     // Reference is already resolved during the build
     return {
+      type: "ClientComponent",
       id: metadata[ID],
       name: metadata[NAME],
       bundles: metadata[BUNDLES],
@@ -120,18 +121,11 @@ const ReactFlightClientConfigBundlerEsbuild = {
   },
 
   resolveServerReference(bundlerConfig, ref) {
-    debug("resolveServerReference", ref);
-    const idx = ref.lastIndexOf("#");
-    const id = ref.slice(0, idx);
-    const name = ref.slice(idx + 1);
-    const bundles = bundlerConfig[id];
-    if (!bundles) {
-      throw new Error("Invalid server action: " + ref);
-    }
+    debug("resolveServerReference", bundlerConfig, ref);
+
     return {
-      id,
-      name,
-      bundles,
+      type: "ServerFunction",
+      id: ref,
     };
   },
 
@@ -142,14 +136,25 @@ const ReactFlightClientConfigBundlerEsbuild = {
   },
 
   requireModule(metadata) {
-    const component = window.__client_manifest_map[metadata.id];
-    if (!component) {
-      /* TODO: use reportGlobalError? */
-      throw new Error(
-        `Could not find client component with id: ${metadata.id}`
-      );
+    const getModule = (type, id) => {
+      switch (type) {
+        case "ServerFunction":
+          const fn = window.__server_functions_manifest_map[id];
+
+          return fn;
+        case "ClientComponent":
+          const component = window.__client_manifest_map[id];
+
+          return component
+      }
     }
-    return component;
+
+    const module = getModule(metadata.type, metadata.id);
+    if (!module) {
+      throw new Error(`Could not find module of type ${metadata.type} with id: ${metadata.id}`);
+    }
+
+    return module
   },
 };
 
@@ -210,7 +215,9 @@ export function createFromReadableStream(stream, options) {
 function createResponseFromOptions(options) {
   let response = createResponse(
     null, // bundlerConfig
-    null, // serverReferenceConfig
+    // serverFunctionsConfig, this is the manifest that can contain configs related to server functions
+    // Unfortunatelly, react requires it to not be null, to run resolveServerReference
+    {},
     null, // moduleLoading
     callCurrentServerCallback(options ? options.callServer : undefined),
     undefined, // encodeFormAction
@@ -224,25 +231,6 @@ function createResponseFromOptions(options) {
 			? options.environmentName
 			: undefined */
   );
-  let fromJSON = response._fromJSON;
-  let chunks = response._chunks;
-  // Little hack to make the Server Function on client aligned to the server-reason-react contract
-  /*
-  {
-    call: (...args) =>  action(...args)
-    id: string
-  }
-  */
-  response._fromJSON = (key, value) => {
-    let modelParsed = fromJSON(key, value);
-    // If the value is a reference_id prefixed by $F, it's a Server Function
-    if (typeof value === "string" && value.startsWith("$F")) {
-      let actionDetails = chunks.get(parseInt(value.substring(2)));
-      modelParsed.call = modelParsed;
-      modelParsed.id = actionDetails.id;
-    }
-    return modelParsed;
-  };
 
   return response;
 }
