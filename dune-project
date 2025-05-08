@@ -54,6 +54,12 @@
 
   ; Demo deps
   (dream :with-dev-setup)
+
+  (dream
+   (and
+    (= 1.0.0~alpha8)
+    :with-dev-setup)) ; We use dream on the demo
+
   (melange-webapi :with-dev-setup)
   (reason-react :with-dev-setup)
   (melange-fetch :with-dev-setup)

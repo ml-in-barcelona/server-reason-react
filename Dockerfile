@@ -25,6 +25,12 @@ COPY dune-project ./
 RUN opam install . --deps-only --with-test --with-doc --with-dev-setup -y
 RUN opam install quickjs.0.1.2 dream melange-json melange-json-native -y
 
+WORKDIR "/app/demo"
+
+COPY demo/package.json ./package.json
+
+RUN sudo npm install
+
 WORKDIR "/app/demo/client"
 
 COPY demo/client/package.json ./package.json
