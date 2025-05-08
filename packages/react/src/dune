@@ -3,6 +3,7 @@
  (wrapped false)
  (public_name server-reason-react.react)
  (libraries
+  server-reason-react.runtime
   server-reason-react.js
   server-reason-react.html
   server-reason-react.dom
