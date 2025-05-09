@@ -372,7 +372,7 @@ module JSX = struct
 end
 
 type element =
-  | Lower_case_element of { key : string option; tag : string; attributes : JSX.prop list; children : element list }
+  | Lower_case_element of lower_case_element
   | Upper_case_component of string * (unit -> element)
   | Async_component of string * (unit -> element Lwt.t)
   | Client_component of { props : client_props; client : element; import_module : string; import_name : string }
@@ -386,6 +386,7 @@ type element =
   | Consumer of element
   | Suspense of { key : string option; children : element; fallback : element }
 
+and lower_case_element = { key : string option; tag : string; attributes : JSX.prop list; children : element list }
 and client_props = (string * client_value) list
 
 and client_value =
