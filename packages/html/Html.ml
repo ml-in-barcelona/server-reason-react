@@ -43,6 +43,7 @@ let escape_and_add out str =
   loop 0 0
 
 type attribute = [ `Present of string | `Value of string * string | `Omitted ]
+type attribute_list = attribute list
 
 let attribute name value = `Value (name, value)
 let present name = `Present name

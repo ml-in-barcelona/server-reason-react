@@ -11,12 +11,6 @@ module Fiber = struct
     debug : bool;
   }
 
-  type options = {
-    bootstrap_scripts : string list option;
-    bootstrap_modules : string list option;
-    bootstrap_script_content : string option;
-  }
-
   (* TODO: What should we do with captured attributes, merge them? ignore them? Right now we just capture one head element *)
   type hoisted_head = Html.attribute_list * Html.element list
 
@@ -29,7 +23,6 @@ module Fiber = struct
     mutable is_root_html_node : bool;
     (* QUESTION: Why do I need emit_html to be mutable? *)
     mutable emit_html : Html.element -> unit;
-    options : options;
   }
 
   let push_hoisted_head ~fiber html_attributes children = fiber.hoisted_head <- Some (html_attributes, children)
@@ -418,54 +411,6 @@ and render_lower_case ~fiber ~key:_ ~tag ~attributes ~children =
     let%lwt html = children |> Lwt_list.map_p (client_to_html ~fiber) in
     Lwt.return (Html.node tag html_props html)
 
-(* let bootstrap_script_content =
-    match bootstrapScriptContent with
-    | None -> Html.null
-    | Some bootstrapScriptContent -> Html.node "script" [] [ Html.raw bootstrapScriptContent ]
-  in
-  let scripts =
-    match bootstrapScripts with
-    | None -> Html.null
-    | Some scripts ->
-        scripts
-        |> List.map (fun script -> Html.node "script" [ Html.attribute "src" script; Html.attribute "async" "true" ] [])
-        |> Html.list
-  in
-  let modules =
-    match bootstrapModules with
-    | None -> Html.null
-    | Some modules ->
-        modules
-        |> List.map (fun script ->
-               Html.node "script"
-                 [ Html.attribute "src" script; Html.attribute "async" "true"; Html.attribute "type" "module" ]
-                 [])
-        |> Html.list
-  in
-  let stylesheets =
-    match bootstrapStylesheets with
-    | None -> Html.null
-    | Some stylesheets ->
-        stylesheets
-        |> List.map (fun stylesheet ->
-               Html.node "link" [ Html.attribute "href" stylesheet; Html.attribute "rel" "stylesheet" ] [])
-        |> Html.list
-  in
-  let default_head_children =
-    if has_pending_tasks then
-      [ rc_function_script; rsc_start_script; bootstrap_script_content; scripts; modules; stylesheets ]
-    else [ bootstrap_script_content; scripts; modules; stylesheets ]
-  in
-  let head =
-    match (head, is_root_html_node) with
-    | Some _head, true -> (* Html.node "head" head.attributes (head.children @ default_head_children) *) Html.null
-    | Some head, false -> Html.null
-    | None, true -> Html.null
-    | None, false -> Html.list default_head_children
-  in
-  let html_shell = Html.list [ Html.list htmls; root_html ] in
-  Html.list [ head; html_shell ] *)
-
 (* TODO: Complete this list *)
 let is_a_head_child_tag tag = tag = "title" || tag = "meta" || tag = "link" || tag = "style"
 
@@ -597,29 +542,26 @@ and elements_to_html ~debug ~fiber elements =
   let htmls, model = List.split html_and_models in
   Lwt.return (Html.list htmls, `List model)
 
-(* let get_html_structure node =
-  let get_html_structure carry = function
-    | Html.Node { tag = "html"; children; _ } ->
-        (* TODO: Instead of asume the default structure, need to fold over children and check *)
-        let head =
-          match List.nth_opt children 0 with Some (Html.Node ({ tag = "head"; _ } as node)) -> Some node | _ -> None
-        in
-        let body =
-          match List.nth_opt children 1 with Some (Html.Node ({ tag = "body"; _ } as node)) -> Some node | _ -> None
-        in
-        { is_root_html_node = true; head; body }
-    | Html.Node ({ tag = "head"; _ } as node) -> { carry with head = Some node; is_root_html_node = false }
-    | Html.Node ({ tag = "body"; _ } as node) -> { carry with body = Some node; is_root_html_node = false }
-    (* TODO: Iterate over List/Array for more complex cases *)
-    | _ -> carry
-  in
-  get_html_structure { head = None; body = None; is_root_html_node = false } node *)
-
-let get_is_root_html_node element =
+let is_root_html_node element =
   match (element : React.element) with
   | Lower_case_element { tag; _ } -> tag = "html"
   | React.Fragment (React.List [ Lower_case_element { tag = "html"; _ }; _ ]) -> true
   | _ -> false
+
+let is_body element =
+  match (element : Html.element) with
+  | Html.Node { tag = "body"; _ } -> true
+  (* TODO: Look where we set Html.List for one element? *)
+  | Html.List (_, [ Html.Node { tag = "body"; _ } ]) -> true
+  | _ -> false
+
+let push_children_into html new_children =
+  match html with
+  | Html.Node { tag; children; attributes } -> Html.Node { tag; attributes; children = children @ new_children }
+  (* TODO: Look where we set Html.List for one element? *)
+  | Html.List (separator, [ Html.Node { tag; children; attributes } ]) ->
+      Html.List (separator, [ Html.Node { tag; attributes; children = children @ new_children } ])
+  | _ -> html
 
 (* TODO: Do we need to stop streaming based on some timeout? abortion? *)
 (* TODO: Do we need to ensure chunks are of a certain minimum size but also maximum? Saw react caring about this *)
@@ -634,52 +576,71 @@ let render_html ?(debug = false) ?bootstrapScriptContent ?bootstrapScripts ?boot
   let stream, push, close = Push_stream.make () in
   let context : Fiber.context = { push; close; pending = 1; index = initial_index; debug } in
   let finished, parent_done = Lwt.wait () in
-  let options : Fiber.options =
-    {
-      bootstrap_scripts = bootstrapScripts;
-      bootstrap_modules = bootstrapModules;
-      bootstrap_script_content = bootstrapScriptContent;
-    }
-  in
-  let is_root_html_node = get_is_root_html_node element in
+  let is_root_html_node = is_root_html_node element in
   let fiber : Fiber.t =
-    (* TODO: Move the creation of the fiber to Fiber.make  *)
-    {
-      context;
-      emit_html;
-      finished;
-      hoisted_head = None;
-      hoisted_head_childrens = [];
-      body = None;
-      is_root_html_node;
-      options;
-    }
+    (* TODO: Move the creation of the fiber to Fiber.make *)
+    { context; emit_html; finished; hoisted_head = None; hoisted_head_childrens = []; body = None; is_root_html_node }
   in
   let%lwt root_html, _root_model = to_html ~debug ~fiber element in
-  (* let root_chunk = client_value_chunk_script initial_index root_model in *)
   Lwt.wakeup_later parent_done ();
-  (* print_endline (Printf.sprintf "pending: %d" context.pending); *)
   context.pending <- context.pending - 1;
-  (* print_endline (Printf.sprintf "pending: %d" context.pending); *)
   (* In case of not having any task pending, we can close the stream *)
   (match context.pending = 0 with
   | true -> context.close ()
   | false -> ());
+  let bootstrap_script_content =
+    match bootstrapScriptContent with
+    | None -> Html.null
+    | Some bootstrapScriptContent -> Html.node "script" [] [ Html.raw bootstrapScriptContent ]
+  in
+  let scripts =
+    match bootstrapScripts with
+    | None -> Html.null
+    | Some scripts ->
+        scripts
+        |> List.map (fun script -> Html.node "script" [ Html.attribute "src" script; Html.attribute "async" "" ] [])
+        |> Html.list
+  in
+  let modules =
+    match bootstrapModules with
+    | None -> Html.null
+    | Some modules ->
+        modules
+        |> List.map (fun script ->
+               Html.node "script"
+                 [ Html.attribute "src" script; Html.attribute "async" ""; Html.attribute "type" "module" ]
+                 [])
+        |> Html.list
+  in
+  let stylesheets =
+    match bootstrapStylesheets with
+    | None -> Html.null
+    | Some stylesheets ->
+        stylesheets
+        |> List.map (fun stylesheet ->
+               Html.node "link" [ Html.attribute "href" stylesheet; Html.attribute "rel" "stylesheet" ] [])
+        |> Html.list
+  in
+  let user_scripts =
+    if context.pending <> 0 then
+      (* TODO: Where rc function and start should be? *)
+      [ (* rc_function_script; rsc_start_script; *) bootstrap_script_content; scripts; modules; stylesheets ]
+    else [ bootstrap_script_content; scripts; modules; stylesheets ]
+  in
   let html =
-    if is_root_html_node then (
+    if is_root_html_node then
+      let body =
+        match is_body root_html with
+        | true -> push_children_into root_html user_scripts
+        | false -> Html.list (root_html :: user_scripts)
+      in
       let hoisted_head_childrens = List.rev fiber.hoisted_head_childrens in
       match fiber.hoisted_head with
       | Some (attribute_list, children) ->
-          print_endline "with hoisted head";
-          print_endline (Html.to_string (Html.list hoisted_head_childrens));
           let head = Html.node "head" attribute_list (children @ hoisted_head_childrens) in
-          Html.node "html" [] [ head; root_html ]
-      | None ->
-          print_endline "without hoisted head";
-          Html.node "html" [] [ Html.node "head" [] hoisted_head_childrens; root_html ])
-    else (
-      print_endline "no hoisted";
-      root_html)
+          Html.node "html" [] [ head; body ]
+      | None -> Html.node "html" [] [ Html.node "head" [] hoisted_head_childrens; body ]
+    else Html.list (root_html :: user_scripts)
   in
   let subscribe fn =
     let fn_with_to_string v = fn (Html.to_string v) in

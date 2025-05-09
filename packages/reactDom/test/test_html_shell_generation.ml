@@ -103,6 +103,44 @@ let html_with_head_like_elements_not_in_head () =
   assert_string html "<!DOCTYPE html><html><head><meta charset=\"utf-8\" /><title>Implicit Head?</title></head></html>";
   Lwt.return ()
 
+let html_without_body_and_bootstrap_scritpts () =
+  let app = html [ lower "input" ~attributes:[ React.JSX.String ("id", "id", "sidebar-search-input") ] () ] in
+  let%lwt html, _ =
+    ReactServerDOM.render_html ~bootstrapModules:[ "react"; "react-dom" ] ~bootstrapScriptContent:"console.log('hello')"
+      app
+  in
+  assert_string html
+    "<!DOCTYPE html><html><head></head><input id=\"sidebar-search-input\" \
+     /><script>console.log('hello')</script><script src=\"react\" async=\"\" type=\"module\"></script><script \
+     src=\"react-dom\" async=\"\" type=\"module\"></script></html>";
+  Lwt.return ()
+
+let html_with_body_and_bootstrap_scripts () =
+  let app =
+    html
+      [ body ~children:[ lower "input" ~attributes:[ React.JSX.String ("id", "id", "sidebar-search-input") ] () ] () ]
+  in
+  let%lwt html, _ =
+    ReactServerDOM.render_html ~bootstrapModules:[ "react"; "react-dom" ] ~bootstrapScriptContent:"console.log('hello')"
+      app
+  in
+  assert_string html
+    "<!DOCTYPE html><html><head></head><body><input id=\"sidebar-search-input\" \
+     /><script>console.log('hello')</script><script src=\"react\" async=\"\" type=\"module\"></script><script \
+     src=\"react-dom\" async=\"\" type=\"module\"></script></body></html>";
+  Lwt.return ()
+
+let input_and_bootstrap_scripts () =
+  let app = lower "input" ~attributes:[ React.JSX.String ("id", "id", "sidebar-search-input") ] () in
+  let%lwt html, _ =
+    ReactServerDOM.render_html ~bootstrapModules:[ "react"; "react-dom" ] ~bootstrapScriptContent:"console.log('hello')"
+      app
+  in
+  assert_string html
+    "<input id=\"sidebar-search-input\" /><script>console.log('hello')</script><script src=\"react\" async=\"\" \
+     type=\"module\"></script><script src=\"react-dom\" async=\"\" type=\"module\"></script>";
+  Lwt.return ()
+
 let tests =
   [
     test "doctype" doctype;
@@ -114,4 +152,7 @@ let tests =
     test "head_with_content" head_with_content;
     test "html_with_only_a_body" html_with_only_a_body;
     test "html_with_head_like_elements_not_in_head" html_with_head_like_elements_not_in_head;
+    test "html_without_body_and_bootstrap_scritpts" html_without_body_and_bootstrap_scritpts;
+    test "html_with_body_and_bootstrap_scripts" html_with_body_and_bootstrap_scripts;
+    test "input_and_bootstrap_scripts" input_and_bootstrap_scripts;
   ]
