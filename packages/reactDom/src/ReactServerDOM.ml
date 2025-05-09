@@ -17,16 +17,25 @@ module Fiber = struct
     bootstrap_script_content : string option;
   }
 
+  (* TODO: What should we do with captured attributes, merge them? ignore them? Right now we just capture one head element *)
+  type hoisted_head = Html.attribute_list * Html.element list
+
   type t = {
     context : context;
     finished : unit Lwt.t;
-    mutable head : Html.element option;
+    mutable hoisted_head : hoisted_head option;
+    mutable hoisted_head_childrens : Html.element list;
     mutable body : Html.element option;
     mutable is_root_html_node : bool;
     (* QUESTION: Why do I need emit_html to be mutable? *)
     mutable emit_html : Html.element -> unit;
     options : options;
   }
+
+  let push_hoisted_head ~fiber html_attributes children = fiber.hoisted_head <- Some (html_attributes, children)
+
+  let push_hoisted_head_childrens ~fiber children =
+    fiber.hoisted_head_childrens <- children :: fiber.hoisted_head_childrens
 
   let use_index t =
     t.context.index <- t.context.index + 1;
@@ -457,7 +466,10 @@ and render_lower_case ~fiber ~key:_ ~tag ~attributes ~children =
   let html_shell = Html.list [ Html.list htmls; root_html ] in
   Html.list [ head; html_shell ] *)
 
-let rec to_html ~debug ~fiber (element : React.element) : (Html.element * json) Lwt.t =
+(* TODO: Complete this list *)
+let is_a_head_child_tag tag = tag = "title" || tag = "meta" || tag = "link" || tag = "style"
+
+let rec to_html ~debug ~(fiber : Fiber.t) (element : React.element) : (Html.element * json) Lwt.t =
   let is_first_element = ref true in
   match element with
   | Empty -> Lwt.return (Html.null, `Null)
@@ -475,7 +487,34 @@ let rec to_html ~debug ~fiber (element : React.element) : (Html.element * json) 
         ()); *)
       to_html ~debug ~fiber (component ())
   | Lower_case_element { key; tag; attributes; children } ->
-      render_lower_case ~debug ~fiber ~key ~tag ~attributes ~children
+      if fiber.is_root_html_node && tag = "head" then (
+        (* in case of finding a head element, we need to hoist it to the top of the document, and avoid rendering it in the current node *)
+        let html_attributes = List.map ReactDOM.attribute_to_html attributes in
+        let%lwt html_and_json = children |> Lwt_list.map_p (to_html ~debug ~fiber) in
+        let html = List.map (fun (html, _) -> html) html_and_json in
+        Fiber.push_hoisted_head ~fiber html_attributes html;
+        Lwt.return (Html.null, `Null))
+      else if fiber.is_root_html_node && is_a_head_child_tag tag then (
+        let html_props = List.map ReactDOM.attribute_to_html attributes in
+        let%lwt children, _ = elements_to_html ~debug ~fiber children in
+        let html = Html.node tag html_props [ children ] in
+        Fiber.push_hoisted_head_childrens ~fiber html;
+        Lwt.return (Html.null, `Null))
+      else if fiber.is_root_html_node && tag = "html" then
+        (* Since we want to reconstruct the document outside of to_html (in case of root being the html tag), we keep rendering the childrens and avoid rendering html element *)
+        to_html ~debug ~fiber (React.List children)
+      else
+        let children = ReactDOM.moveDangerouslyInnerHtmlAsChildren attributes children in
+        if Html.is_self_closing_tag tag then
+          let html_props = List.map ReactDOM.attribute_to_html attributes in
+          let json_props = Model.props_to_json attributes in
+          let empty_children = (* there's no children for self closing tags *) [] in
+          Lwt.return (Html.node tag html_props empty_children, Model.node ~tag ~key ~props:json_props empty_children)
+        else
+          let html_props = List.map ReactDOM.attribute_to_html attributes in
+          let json_props = Model.props_to_json attributes in
+          let%lwt html, model = elements_to_html ~debug ~fiber children in
+          Lwt.return (Html.node tag html_props [ html ], Model.node ~tag ~key ~props:json_props [ model ])
   | Async_component (_, component) ->
       let%lwt element = component () in
       to_html ~debug ~fiber element
@@ -552,21 +591,9 @@ let rec to_html ~debug ~fiber (element : React.element) : (Html.element * json) 
   (* TODO: There's a task to remove InnerHtml in ReactDOM and use Html.raw directly. Here is still unclear what do to since we assing dangerouslySetInnerHTML to the right prop on the model. Also, should this model be `Null? *)
   | InnerHtml innerHtml -> Lwt.return (Html.raw innerHtml, `Null)
 
-and render_lower_case ~debug ~fiber ~key ~tag ~attributes ~children =
-  let children = ReactDOM.moveDangerouslyInnerHtmlAsChildren attributes children in
-  if Html.is_self_closing_tag tag then
-    let html_props = List.map ReactDOM.attribute_to_html attributes in
-    let json_props = Model.props_to_json attributes in
-    let empty_children = (* there's no children for self closing tags *) [] in
-    Lwt.return (Html.node tag html_props empty_children, Model.node ~tag ~key ~props:json_props empty_children)
-  else
-    let html_props = List.map ReactDOM.attribute_to_html attributes in
-    let json_props = Model.props_to_json attributes in
-    let%lwt html, model = elements_to_html ~debug ~fiber children in
-    Lwt.return (Html.node tag html_props [ html ], Model.node ~tag ~key ~props:json_props [ model ])
-
 and elements_to_html ~debug ~fiber elements =
   let%lwt html_and_models = elements |> Lwt_list.map_p (to_html ~debug ~fiber) in
+  (* TODO: List.split is not tail recursive *)
   let htmls, model = List.split html_and_models in
   Lwt.return (Html.list htmls, `List model)
 
@@ -588,6 +615,12 @@ and elements_to_html ~debug ~fiber elements =
   in
   get_html_structure { head = None; body = None; is_root_html_node = false } node *)
 
+let get_is_root_html_node element =
+  match (element : React.element) with
+  | Lower_case_element { tag; _ } -> tag = "html"
+  | React.Fragment (React.List [ Lower_case_element { tag = "html"; _ }; _ ]) -> true
+  | _ -> false
+
 (* TODO: Do we need to stop streaming based on some timeout? abortion? *)
 (* TODO: Do we need to ensure chunks are of a certain minimum size but also maximum? Saw react caring about this *)
 (* TODO: Do we want to add a flag to disable ssr? Do we need to disable the model rendering or can we do it outside? *)
@@ -608,21 +641,46 @@ let render_html ?(debug = false) ?bootstrapScriptContent ?bootstrapScripts ?boot
       bootstrap_script_content = bootstrapScriptContent;
     }
   in
+  let is_root_html_node = get_is_root_html_node element in
   let fiber : Fiber.t =
-    { context; emit_html; finished; head = None; body = None; is_root_html_node = false; options }
+    (* TODO: Move the creation of the fiber to Fiber.make  *)
+    {
+      context;
+      emit_html;
+      finished;
+      hoisted_head = None;
+      hoisted_head_childrens = [];
+      body = None;
+      is_root_html_node;
+      options;
+    }
   in
   let%lwt root_html, _root_model = to_html ~debug ~fiber element in
   (* let root_chunk = client_value_chunk_script initial_index root_model in *)
   Lwt.wakeup_later parent_done ();
-  print_endline (Printf.sprintf "pending: %d" context.pending);
+  (* print_endline (Printf.sprintf "pending: %d" context.pending); *)
   context.pending <- context.pending - 1;
-  print_endline (Printf.sprintf "pending: %d" context.pending);
+  (* print_endline (Printf.sprintf "pending: %d" context.pending); *)
   (* In case of not having any task pending, we can close the stream *)
   (match context.pending = 0 with
   | true -> context.close ()
   | false -> ());
-  print_endline (Printf.sprintf "pending: %d" context.pending);
-  let html = root_html in
+  let html =
+    if is_root_html_node then (
+      let hoisted_head_childrens = List.rev fiber.hoisted_head_childrens in
+      match fiber.hoisted_head with
+      | Some (attribute_list, children) ->
+          print_endline "with hoisted head";
+          print_endline (Html.to_string (Html.list hoisted_head_childrens));
+          let head = Html.node "head" attribute_list (children @ hoisted_head_childrens) in
+          Html.node "html" [] [ head; root_html ]
+      | None ->
+          print_endline "without hoisted head";
+          Html.node "html" [] [ Html.node "head" [] hoisted_head_childrens; root_html ])
+    else (
+      print_endline "no hoisted";
+      root_html)
+  in
   let subscribe fn =
     let fn_with_to_string v = fn (Html.to_string v) in
     let%lwt () = Push_stream.subscribe ~fn:fn_with_to_string stream in

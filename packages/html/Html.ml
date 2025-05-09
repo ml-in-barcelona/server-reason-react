@@ -71,7 +71,7 @@ type element =
   | List of (string * element list)
   | Array of element array
 
-and node = { tag : string; attributes : attribute list; children : element list }
+and node = { tag : string; attributes : attribute_list; children : element list }
 
 let string txt = String txt
 let raw txt = Raw txt
