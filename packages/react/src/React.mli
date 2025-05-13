@@ -573,6 +573,7 @@ and client_props = (string * client_value) list
 
 and client_value =
   | Json : Yojson.Basic.t -> client_value
+  | Error : { message : string; stack : Yojson.Basic.t; env : string; digest : string } -> client_value
   | Element : element -> client_value
   | Promise : 'a Js.Promise.t * ('a -> Yojson.Basic.t) -> client_value
 

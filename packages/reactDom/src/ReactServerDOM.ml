@@ -24,7 +24,7 @@ module Fiber = struct
 end
 
 module Model = struct
-  type chunk_type = Chunk_value of json | Chunk_component_ref of json | Debug_info_map of json
+  type chunk_type = Chunk_value of json | Chunk_component_ref of json | Debug_info_map of json | Chunk_error of json
 
   type stream_context = {
     push : int -> chunk_type -> unit;
@@ -43,6 +43,7 @@ module Model = struct
   let lazy_value id = Printf.sprintf "$L%x" id
   let promise_value id = Printf.sprintf "$@%x" id
   let ref_value id = Printf.sprintf "$%x" id
+  let error_value id = Printf.sprintf "$Z%x" id
 
   let prop_to_json (prop : React.JSX.prop) =
     match prop with
@@ -113,6 +114,13 @@ module Model = struct
     let buf = Buffer.create 256 in
     Buffer.add_string buf (Printf.sprintf "%x:I" id);
     Yojson.Basic.write_json buf ref;
+    Buffer.add_string buf "\n";
+    Buffer.contents buf
+
+  let error_to_chunk id error =
+    let buf = Buffer.create 256 in
+    Buffer.add_string buf (Printf.sprintf "%x:E" id);
+    Yojson.Basic.write_json buf error;
     Buffer.add_string buf "\n";
     Buffer.contents buf
 
@@ -209,6 +217,19 @@ module Model = struct
   and client_value_to_json ~context value =
     match (value : React.client_value) with
     | Json json -> json
+    | React.Error error ->
+        let chunk_id = use_chunk_id context in
+        let error_json =
+          `Assoc
+            [
+              ("message", `String error.message);
+              ("stack", error.stack);
+              ("env", `String error.env);
+              ("digest", `String error.digest);
+            ]
+        in
+        context.push chunk_id (Chunk_error error_json);
+        `String (error_value context.chunk_id)
     | Element element ->
         (* TODO: Probably a silly question, but do I need to push this client_ref? (What if it's a client_ref?) In case of server, no need to do anything I guess *)
         element_to_payload ~context element
@@ -250,6 +271,7 @@ module Model = struct
       | Chunk_value json -> push (model_to_chunk id json)
       | Debug_info_map json -> push (debug_info_to_chunk id json)
       | Chunk_component_ref json -> push (client_reference_to_chunk id json)
+      | Chunk_error json -> push (error_to_chunk id json)
     in
     let context : stream_context = { push = push_chunk; close; chunk_id = initial_chunk_id; pending = 0; debug } in
     let initial_chunk_id = get_chunk_id context in
@@ -270,6 +292,7 @@ module Model = struct
       | Chunk_value json -> push (model_to_chunk id json)
       | Debug_info_map json -> push (debug_info_to_chunk id json)
       | Chunk_component_ref json -> push (client_reference_to_chunk id json)
+      | Chunk_error json -> push (error_to_chunk id json)
     in
     let context = { push = push_chunk; close; chunk_id = initial_chunk_id; pending = 0; debug } in
     let initial_chunk_id = get_chunk_id context in
@@ -311,6 +334,7 @@ let chunk_script script =
 
 let client_reference_chunk_script index json = chunk_script (Model.client_reference_to_chunk index json)
 let client_value_chunk_script index json = chunk_script (Model.model_to_chunk index json)
+let error_chunk_script index json = chunk_script (Model.error_to_chunk index json)
 let debug_info_chunk_script index json = chunk_script (Model.debug_info_to_chunk index json)
 let chunk_stream_end_script = Html.node "script" [] [ Html.raw "window.srr_stream.close()" ]
 let rc_replacement b s = Html.node "script" [] [ Html.raw (Printf.sprintf "$RC('B:%x', 'S:%x')" b s) ]
@@ -410,6 +434,9 @@ let rec to_html ~debug ~fiber (element : React.element) : (Html.element * json) 
     | Chunk_component_ref json ->
         context.index <- id;
         context.push (client_reference_chunk_script id json)
+    | Chunk_error json ->
+        context.index <- id;
+        context.push (error_chunk_script id json)
   in
   let context : Model.stream_context = { push; close = context.close; chunk_id = context.index; pending = 0; debug } in
   match element with
@@ -462,7 +489,21 @@ let rec to_html ~debug ~fiber (element : React.element) : (Html.element * json) 
                     if context.pending = 0 then context.close ();
                     Lwt.return ());
                 Lwt.return sync
-            | Json json -> Lwt.return (name, json))
+            | Json json -> Lwt.return (name, json)
+            | Error error ->
+                let context = Fiber.get_context fiber in
+                let index = Fiber.use_index fiber in
+                let error_json =
+                  `Assoc
+                    [
+                      ("message", `String error.message);
+                      ("stack", error.stack);
+                      ("env", `String error.env);
+                      ("digest", `String error.digest);
+                    ]
+                in
+                context.push (error_chunk_script index error_json);
+                Lwt.return (name, error_json))
           props
       in
       let lwt_html = client_to_html ~fiber client in

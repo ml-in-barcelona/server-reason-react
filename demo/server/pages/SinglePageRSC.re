@@ -123,6 +123,12 @@ module Page = {
           description="Server action with simple response">
           <ServerActionWithSimpleResponse />
         </Section>
+        <Hr />
+        <Section
+          title="Server action with error"
+          description="Server action with error">
+          <ServerActionWithError />
+        </Section>
       </Stack>,
     );
   };
