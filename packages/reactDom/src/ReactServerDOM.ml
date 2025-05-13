@@ -1,5 +1,3 @@
-[@@@warning "-26-27-32-69"]
-
 type json = Yojson.Basic.t
 
 module Fiber = struct
@@ -17,10 +15,9 @@ module Fiber = struct
   type t = {
     context : context;
     finished : unit Lwt.t;
+    is_root_html_node : bool;
     mutable hoisted_head : hoisted_head option;
     mutable hoisted_head_childrens : Html.element list;
-    mutable body : Html.element option;
-    mutable is_root_html_node : bool;
     (* QUESTION: Why do I need emit_html to be mutable? *)
     mutable emit_html : Html.element -> unit;
   }
@@ -325,7 +322,6 @@ let chunk_script script =
 
 let client_reference_chunk_script index json = chunk_script (Model.client_reference_to_chunk index json)
 let client_value_chunk_script index json = chunk_script (Model.model_to_chunk index json)
-let debug_info_chunk_script index json = chunk_script (Model.debug_info_to_chunk index json)
 let chunk_stream_end_script = Html.node "script" [] [ Html.raw "window.srr_stream.close()" ]
 let rc_replacement b s = Html.node "script" [] [ Html.raw (Printf.sprintf "$RC('B:%x', 'S:%x')" b s) ]
 
@@ -415,7 +411,6 @@ and render_lower_case ~fiber ~key:_ ~tag ~attributes ~children =
 let is_a_head_child_tag tag = tag = "title" || tag = "meta" || tag = "link" || tag = "style"
 
 let rec to_html ~debug ~(fiber : Fiber.t) (element : React.element) : (Html.element * json) Lwt.t =
-  let is_first_element = ref true in
   match element with
   | Empty -> Lwt.return (Html.null, `Null)
   | Text s -> Lwt.return (Html.string s, `String s)
@@ -577,8 +572,7 @@ let render_html ?(debug = false) ?bootstrapScriptContent ?bootstrapScripts ?boot
   let finished, parent_done = Lwt.wait () in
   let is_root_html_node = is_root_html_node element in
   let fiber : Fiber.t =
-    (* TODO: Move the creation of the fiber to Fiber.make *)
-    { context; emit_html; finished; hoisted_head = None; hoisted_head_childrens = []; body = None; is_root_html_node }
+    { context; emit_html; finished; hoisted_head = None; hoisted_head_childrens = []; is_root_html_node }
   in
   let%lwt root_html, root_model = to_html ~debug ~fiber element in
   let root_chunk = client_value_chunk_script initial_index root_model in
