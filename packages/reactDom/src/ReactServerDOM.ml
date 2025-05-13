@@ -624,7 +624,7 @@ let render_html ?(debug = false) ?bootstrapScriptContent ?bootstrapScripts ?boot
   let user_scripts =
     if context.pending <> 0 then
       (* TODO: Where rc function and start should be? *)
-      [ (* rc_function_script; rsc_start_script; *) bootstrap_script_content; scripts; modules; stylesheets ]
+      [ rc_function_script; rsc_start_script; bootstrap_script_content; scripts; modules; stylesheets ]
     else [ bootstrap_script_content; scripts; modules; stylesheets ]
   in
   let html =

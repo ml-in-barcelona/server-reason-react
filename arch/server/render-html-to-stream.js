@@ -1,4 +1,4 @@
-import React, { Suspense } from "react";
+import React from "react";
 import * as ReactDOM from "react-dom/server";
 
 const sleep = (seconds) =>
@@ -62,22 +62,22 @@ const App = () => (
 ); */
 
 /* function App() {
-    return React.createElement(
-      Suspense,
-      { fallback: "Fallback 1" },
-      React.createElement(DeferredComponent,
-        { by: 0.02 },
-        React.createElement(
-          Suspense,
-          { fallback: "Fallback 2" },
-          React.createElement(DeferredComponent,
-            { by: 0.02 },
-            "lol"
-          )
-        )
-      )
-    );
-  } */
+		return React.createElement(
+			Suspense,
+			{ fallback: "Fallback 1" },
+			React.createElement(DeferredComponent,
+				{ by: 0.02 },
+				React.createElement(
+					Suspense,
+					{ fallback: "Fallback 2" },
+					React.createElement(DeferredComponent,
+						{ by: 0.02 },
+						"lol"
+					)
+				)
+			)
+		);
+	} */
 
 /* function App() {
 	return (
@@ -93,17 +93,17 @@ const App = () => (
 
 function App() {
 	return (
-<>
-<html>
-			<input
-				id="sidebar-search-input"
-				placeholder="Search"
-				defaultValue={"L??"}
-				onChange={() => {}}
-			/>
-			<div>Content inside body</div>
-		</html>
-</>
+		<>
+			<html>
+				<input
+					id="sidebar-search-input"
+					placeholder="Search"
+					defaultValue={"L??"}
+					onChange={() => { }}
+				/>
+				<div>Content inside body</div>
+			</html>
+		</>
 	);
 }
 
