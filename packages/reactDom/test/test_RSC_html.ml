@@ -162,11 +162,11 @@ let async_component_with_promise () =
                Lwt.return (React.createElement "span" [] [ React.string "Sleep resolved" ]) ))
       ()
   in
-  assert_html (app ()) ~shell:"<!--$?--><template id=\"B:1\"></template>Loading...<!--/$-->"
-    (* ~shell:
+  assert_html (app ())
+    ~shell:
       "<!--$?--><template id=\"B:1\"></template>Loading...<!--/$--><script \
        data-payload='0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,[],{}]\n\
-       '>window.srr_stream.push()</script>" *)
+       '>window.srr_stream.push()</script>"
     [
       "<div hidden=\"true\" id=\"S:1\"><span>Sleep resolved</span></div>\n<script>$RC('B:1', 'S:1')</script>";
       "<script data-payload='1:[\"$\",\"span\",null,{\"children\":[\"Sleep resolved\"]},null,[],{}]\n\
@@ -196,11 +196,11 @@ let async_component_and_client_component_with_suspense () =
                     ]) ))
       ()
   in
-  assert_html (app ()) ~shell:"<!--$?--><template id=\"B:1\"></template>Loading...<!--/$-->"
-    (* ~shell:
+  assert_html (app ())
+    ~shell:
       "<!--$?--><template id=\"B:1\"></template>Loading...<!--/$--><script \
        data-payload='0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,[],{}]\n\
-       '>window.srr_stream.push()</script>" *)
+       '>window.srr_stream.push()</script>"
     [
       "<script data-payload='2:I[\"./client-with-props.js\",[],\"\"]\n'>window.srr_stream.push()</script>";
       "<div hidden=\"true\" id=\"S:1\"><span>Only the client<!-- -->Part of async component</span></div>\n\
@@ -230,11 +230,11 @@ let with_sleepy_promise () =
                         [ React.createElement "article" [] [ React.string "Deep Server Content" ] ];
                     ]) ))
   in
-  assert_html (app ()) ~shell:"<!--$?--><template id=\"B:1\"></template>Loading...<!--/$-->"
-    (* ~shell:
+  assert_html (app ())
+    ~shell:
       "<!--$?--><template id=\"B:1\"></template>Loading...<!--/$--><script \
        data-payload='0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,[],{}]\n\
-       '>window.srr_stream.push()</script>" *)
+       '>window.srr_stream.push()</script>"
     [
       "<div hidden=\"true\" id=\"S:1\"><div><section><article>Deep Server Content</article></section></div></div>\n\
        <script>$RC('B:1', 'S:1')</script>";
@@ -267,12 +267,12 @@ let client_with_promise_props () =
                 };
             ] )
   in
-  assert_html (app ()) ~shell:"<div>Server Content</div><!-- -->Client with Props"
-    (* ~shell:
+  assert_html (app ())
+    ~shell:
       "<div>Server Content</div><!-- -->Client with Props<script \
        data-payload='0:[[\"$\",\"div\",null,{\"children\":[\"Server \
        Content\"]},null,[],{}],[\"$\",\"$2\",null,{\"promise\":\"$@1\"},null,[],{}]]\n\
-       '>window.srr_stream.push()</script>" *)
+       '>window.srr_stream.push()</script>"
     [
       "<script data-payload='2:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n\
        '>window.srr_stream.push()</script>";

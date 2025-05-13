@@ -581,7 +581,8 @@ let render_html ?(debug = false) ?bootstrapScriptContent ?bootstrapScripts ?boot
     (* TODO: Move the creation of the fiber to Fiber.make *)
     { context; emit_html; finished; hoisted_head = None; hoisted_head_childrens = []; body = None; is_root_html_node }
   in
-  let%lwt root_html, _root_model = to_html ~debug ~fiber element in
+  let%lwt root_html, root_model = to_html ~debug ~fiber element in
+  let root_chunk = client_value_chunk_script initial_index root_model in
   Lwt.wakeup_later parent_done ();
   context.pending <- context.pending - 1;
   (* In case of not having any task pending, we can close the stream *)
@@ -623,8 +624,8 @@ let render_html ?(debug = false) ?bootstrapScriptContent ?bootstrapScripts ?boot
   in
   let user_scripts =
     if context.pending <> 0 then
-      (* TODO: Where rc function and start should be? *)
-      [ rc_function_script; rsc_start_script; bootstrap_script_content; scripts; modules; stylesheets ]
+      (* TODO: Where rc_function and start_script and start should be? *)
+      [ rc_function_script; rsc_start_script; root_chunk; bootstrap_script_content; scripts; modules; stylesheets ]
     else [ bootstrap_script_content; scripts; modules; stylesheets ]
   in
   let html =
