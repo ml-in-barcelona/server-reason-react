@@ -3,8 +3,6 @@ val render_html :
   ?bootstrapScriptContent:string ->
   ?bootstrapScripts:string list ->
   ?bootstrapModules:string list ->
-  (* This is a bad API, stylesheets should be managed automatically by precedence by ReactServerDOM. TODO: Remove this label *)
-  ?bootstrapStylesheets:string list ->
   React.element ->
   (string * ((string -> unit Lwt.t) -> unit Lwt.t)) Lwt.t
 

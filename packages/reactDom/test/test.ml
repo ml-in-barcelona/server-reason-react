@@ -9,4 +9,5 @@ let () =
             Test_reactDOMStyle.tests;
             Test_RSC_model.tests;
             Test_RSC_html.tests;
+            Test_html_shell_generation.tests;
           ]))

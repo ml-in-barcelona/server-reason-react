@@ -18,7 +18,7 @@ import ReactClientFlight from "@pedrobslisboa/react-client/flight";
 
 const debug = (...args) => {
   if (process.env.NODE_ENV === "development") {
-    console.log(...args);
+    /* console.log(...args); */
   }
 };
 
@@ -218,7 +218,7 @@ function createResponseFromOptions(options) {
     null, // bundlerConfig
     // serverFunctionsConfig, this is the manifest that can contain configs related to server functions
     // Unfortunatelly, react requires it to not be null, to run resolveServerReference
-    {}, 
+    {},
     null, // moduleLoading
     callCurrentServerCallback(options ? options.callServer : undefined),
     undefined, // encodeFormAction

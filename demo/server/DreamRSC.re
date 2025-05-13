@@ -33,27 +33,19 @@ let stream_model = (~location, app) =>
   );
 
 let stream_html =
-    (
-      ~bootstrapScriptContent,
-      ~bootstrapScripts,
-      ~bootstrapModules,
-      ~bootstrapStylesheets,
-      app,
-    ) => {
+    (~bootstrapScriptContent, ~bootstrapScripts, ~bootstrapModules, app) => {
   Dream.stream(
     ~headers=[("Content-Type", "text/html")],
     stream => {
-      let%lwt () = Dream.write(stream, "<!DOCTYPE html>");
       let%lwt (html, subscribe) =
         ReactServerDOM.render_html(
           ~bootstrapScriptContent,
           ~bootstrapScripts,
           ~bootstrapModules,
-          ~bootstrapStylesheets,
           ~debug,
           app,
         );
-      let%lwt () = Dream.write(stream, "<body>" ++ html ++ "</body>");
+      let%lwt () = Dream.write(stream, html);
       let%lwt () = Dream.flush(stream);
       let%lwt () =
         subscribe(chunk => {
@@ -79,7 +71,7 @@ let stream_server_action = fn => {
 
 let streamResponse = values => {
   stream_server_action(stream => {
-    let%lwt _stream =
+    let%lwt () =
       ReactServerDOM.create_action_response(
         ~subscribe=
           chunk => {
@@ -100,7 +92,6 @@ let createFromRequest =
       ~bootstrapModules=[],
       ~bootstrapScripts=[],
       ~bootstrapScriptContent="",
-      ~bootstrapStylesheets=[],
       app,
       request,
     ) => {
@@ -112,7 +103,6 @@ let createFromRequest =
       ~bootstrapScriptContent,
       ~bootstrapScripts,
       ~bootstrapModules,
-      ~bootstrapStylesheets,
       app,
     )
   };
