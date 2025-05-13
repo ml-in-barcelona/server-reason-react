@@ -567,8 +567,7 @@ let push_children_into html new_children =
 (* TODO: Do we need to ensure chunks are of a certain minimum size but also maximum? Saw react caring about this *)
 (* TODO: Do we want to add a flag to disable ssr? Do we need to disable the model rendering or can we do it outside? *)
 (* TODO: Add all options from renderToReadableStream *)
-let render_html ?(debug = false) ?bootstrapScriptContent ?bootstrapScripts ?bootstrapModules ?bootstrapStylesheets
-    element =
+let render_html ?(debug = false) ?bootstrapScriptContent ?bootstrapScripts ?bootstrapModules element =
   let initial_index = 0 in
   let htmls = ref [] in
   (* TODO: Cleanup emit_html and use the push function directly? *)
@@ -613,20 +612,11 @@ let render_html ?(debug = false) ?bootstrapScriptContent ?bootstrapScripts ?boot
                  [])
         |> Html.list
   in
-  let stylesheets =
-    match bootstrapStylesheets with
-    | None -> Html.null
-    | Some stylesheets ->
-        stylesheets
-        |> List.map (fun stylesheet ->
-               Html.node "link" [ Html.attribute "href" stylesheet; Html.attribute "rel" "stylesheet" ] [])
-        |> Html.list
-  in
   let user_scripts =
     if context.pending <> 0 then
       (* TODO: Where rc_function and start_script and start should be? *)
-      [ rc_function_script; rsc_start_script; root_chunk; bootstrap_script_content; scripts; modules; stylesheets ]
-    else [ bootstrap_script_content; scripts; modules; stylesheets ]
+      [ rc_function_script; rsc_start_script; root_chunk; bootstrap_script_content; scripts; modules ]
+    else [ bootstrap_script_content; scripts; modules ]
   in
   let html =
     if is_root_html_node then

@@ -155,16 +155,17 @@ let handler = request => {
     Dream.query(request, "selectedId")
     |> Option.map(string => int_of_string_opt(string))
     |> Option.value(~default=None);
+
   let isEditing =
     Dream.query(request, "isEditing")
     |> Option.map(v => v == "true")
     |> Option.value(~default=false);
+
   let searchText =
     Dream.query(request, "searchText") |> Option.value(~default="");
 
   DreamRSC.createFromRequest(
     ~bootstrapModules=["/static/demo/ClientRouter.re.js"],
-    ~bootstrapStylesheets=["/output.css"],
     <App selectedId isEditing searchText />,
     request,
   );
