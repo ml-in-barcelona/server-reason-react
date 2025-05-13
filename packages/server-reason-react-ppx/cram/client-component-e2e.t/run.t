@@ -22,7 +22,7 @@
 
   $ dune build
 
-  $ dune describe pp input.re
+  $ dune describe pp input.re | sed '/\[@mel.internal.ffi/,/\]/d'
   [@ocaml.ppx.context
     {
       tool_name: "ppx_driver",
@@ -90,9 +90,6 @@
                       {
                         module J = {
                           [@ocaml.warning "-unboxable-type-in-prim-decl"]
-                          [@mel.internal.ffi
-                            "Ñï¶æ\000\000\000\011\000\000\000\005\000\000\000\r\000\000\000\012ë††Aê$name@"
-                          ]
                           external unsafe_expr: (~name: 'a0) => {. "name": 'a0} =
                             "" "";
                         };
@@ -114,9 +111,6 @@
             };
   
             [@ocaml.warning "-unboxable-type-in-prim-decl"]
-            [@mel.internal.ffi
-              "Ñï¶æ\000\000\000J\000\000\000\027\000\000\000L\000\000\000Gë††Aê'initial††Aê$lola††A°'default@††Aê(children††Aê'promise††A°#key@††@@@"
-            ]
             external makeProps:
               (
                 ~initial: int,
@@ -200,9 +194,6 @@
                   module J = {
                     [@ocaml.warning "-unboxable-type-in-prim-decl"]
                     [@ocaml.warning "-unboxable-type-in-prim-decl"]
-                    [@mel.internal.ffi
-                      "Ñï¶æ\000\000\000<\000\000\000\021\000\000\000:\000\000\0005ë††Aê'promise††Aê(children††Aê'default††Aê$lola††Aê'initial@"
-                    ]
                     external unsafe_expr:
                       (
                         ~promise: 'a0,
@@ -309,6 +300,7 @@
   $ cat _build/default/boostrap.js
   import React from "react";
   window.__client_manifest_map = window.__client_manifest_map || {};
+  window.__server_functions_manifest_map = window.__server_functions_manifest_map || {};
   window.__client_manifest_map["input.re"] = React.lazy(() => import("$TESTCASE_ROOT/_build/default/js/input.js").then(module => {
     return { default: module.make_client }
   }).catch(err => { console.error(err); return { default: null }; }))

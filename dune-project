@@ -52,9 +52,6 @@
     :with-test)) ; We use ocamlformat on the tests
   (ocaml-lsp-server :with-dev-setup)
 
-  ; Demo deps
-  (dream :with-dev-setup)
-
   (dream
    (and
     (= 1.0.0~alpha8)
