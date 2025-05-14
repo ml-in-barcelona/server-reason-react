@@ -70,10 +70,23 @@ let body =
   ->Webapi.Dom.Document.asHtmlDocument
   ->Option.bind(Webapi.Dom.HtmlDocument.body);
 
+[@mel.module "react-dom/client"]
+external hydrateRoot:
+  (Dom.element, React.element, Js.t({..})) => ReactDOM.Client.root =
+  "hydrateRoot";
+
 switch (body) {
 | Some(element) =>
   startTransition(() => {
-    let _ = ReactDOM.Client.hydrateRoot(element, <App />);
+    let onRecoverableError = (error, errorInfo) => {
+      Js.log2(error, errorInfo);
+    };
+    let _ =
+      hydrateRoot(
+        element,
+        <App />,
+        {"onRecoverableError": onRecoverableError},
+      );
     ();
   })
 | None => Js.log("Root element not found")

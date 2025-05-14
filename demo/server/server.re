@@ -16,7 +16,7 @@ let getAndPost = (path, handler) =>
           | Some(actionId) =>
             let%lwt body = Dream.body(request);
             let serverFunction = ServerReference.handler(actionId);
-            let%lwt response = serverFunction(body);
+            let response = serverFunction(body);
             DreamRSC.streamResponse(response);
           | _ =>
             failwith(

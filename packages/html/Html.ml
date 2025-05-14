@@ -43,6 +43,7 @@ let escape_and_add out str =
   loop 0 0
 
 type attribute = [ `Present of string | `Value of string * string | `Omitted ]
+type attribute_list = attribute list
 
 let attribute name value = `Value (name, value)
 let present name = `Present name
@@ -67,9 +68,11 @@ type element =
   | Null
   | String of string
   | Raw of string (* text without encoding *)
-  | Node of { tag : string; attributes : attribute list; children : element list }
+  | Node of node
   | List of (string * element list)
   | Array of element array
+
+and node = { tag : string; attributes : attribute_list; children : element list }
 
 let string txt = String txt
 let raw txt = Raw txt
@@ -86,25 +89,34 @@ let to_string ?(add_separator_between_text_nodes = true) element =
   (* This ref is used to enable rendering comments <!-- --> between text nodes
      and can be disabled by `add_separator_between_text_nodes` *)
   let previous_was_text_node = ref false in
+  (* *)
+  let should_add_doctype_to_html = ref true in
   let rec write element =
     match element with
-    | Null -> ()
+    | Null -> should_add_doctype_to_html.contents <- false
     | String text ->
         let is_previous_text_node = previous_was_text_node.contents in
         previous_was_text_node.contents <- true;
         if is_previous_text_node && add_separator_between_text_nodes then Buffer.add_string out "<!-- -->";
-        escape_and_add out text
-    | Raw text -> Buffer.add_string out text
+        escape_and_add out text;
+        should_add_doctype_to_html.contents <- false
+    | Raw text ->
+        Buffer.add_string out text;
+        should_add_doctype_to_html.contents <- false
     | Node { tag; attributes; _ } when is_self_closing_tag tag ->
         Buffer.add_char out '<';
         Buffer.add_string out tag;
         List.iter (write_attribute out) attributes;
-        Buffer.add_string out " />"
+        Buffer.add_string out " />";
+        should_add_doctype_to_html.contents <- false
     | Node { tag; attributes; children } ->
+        (* capturing the value of should_add_doctype_to_html before setting it to false, so the first thing is set to false and use the captured value *)
+        let should_add_doctype = should_add_doctype_to_html.contents in
+        should_add_doctype_to_html.contents <- false;
         (* If the previous node was text, but from another parent node, then the comment shouldn't be added.
            Check `separated_text_nodes_by_other_nodes` in test_renderToString.ml *)
         if add_separator_between_text_nodes then previous_was_text_node.contents <- false;
-        if tag = "html" then Buffer.add_string out "<!DOCTYPE html>";
+        if tag = "html" && should_add_doctype then Buffer.add_string out "<!DOCTYPE html>";
         Buffer.add_char out '<';
         Buffer.add_string out tag;
         List.iter (write_attribute out) attributes;
