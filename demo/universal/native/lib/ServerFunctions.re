@@ -32,7 +32,7 @@ module Notes = {
     let note = DB.addNote(~title, ~content);
     let%lwt response =
       switch%lwt (note) {
-      | Ok(note) => Lwt.return(createNoteResponse(note))
+      | Ok(note) => Lwt.return(note)
       | Error(e) => failwith(e)
       };
     Lwt.return(response);
@@ -61,8 +61,10 @@ module Notes = {
         )
       };
 
-    createHandler(~title, ~content)
-    |> Lwt.map(response => React.Json(response));
+    let encodeResponse = response =>
+      React.Json(createNoteResponse(response));
+
+    createHandler(~title, ~content) |> Lwt.map(encodeResponse);
   };
 
   // This is the action generated to be used under the hood for the server and client
@@ -79,17 +81,20 @@ module Notes = {
   };
   let create =
     switch%platform () {
-    | Server => (
-        (~title, ~content) =>
-          failwith("We don't support Server Functions on server side yet")
-      )
-    | Client => (
-        (~title, ~content) => {
-          // Register the action for the client
-          let action = ReactServerDOMEsbuild.createServerReference(createId);
-          action(. title, content);
-        }
-      )
+    | Server => {
+        Runtime.id: createId,
+        call: ((. ~title, ~content) => createHandler(~title, ~content)),
+      }
+    | Client => {
+        Runtime.id: createId,
+        call: (
+          (. ~title, ~content) => {
+            let action =
+              ReactServerDOMEsbuild.createServerReference(createId);
+            action(. title, content);
+          }
+        ),
+      }
     };
 
   // Lets say this is the server action declared by the end-user
@@ -113,7 +118,7 @@ module Notes = {
     let note = DB.editNote(~id, ~title, ~content);
     let%lwt response =
       switch%lwt (note) {
-      | Ok(note) => Lwt.return(createNoteResponse(note))
+      | Ok(note) => Lwt.return(note)
       | Error(e) => failwith(e)
       };
 
@@ -145,8 +150,10 @@ module Notes = {
         )
       };
 
-    editHandler(~id, ~title, ~content)
-    |> Lwt.map(response => React.Json(response));
+    let encodeResponse = response =>
+      React.Json(createNoteResponse(response));
+
+    editHandler(. ~id, ~title, ~content) |> Lwt.map(encodeResponse);
   };
 
   // This is the action generated to be used under the hood for the server and client
@@ -163,17 +170,21 @@ module Notes = {
   };
   let edit =
     switch%platform () {
-    | Server => (
-        (~id, ~title, ~content) =>
-          failwith("We don't support Server Functions on server ")
-      )
-    | Client => (
-        (~id, ~title, ~content) => {
-          let action = ReactServerDOMEsbuild.createServerReference(editId);
-
-          action(. id, title, content);
-        }
-      )
+    | Server => {
+        Runtime.id: editId,
+        call: (
+          (. ~id, ~title, ~content) => editHandler(. ~id, ~title, ~content)
+        ),
+      }
+    | Client => {
+        Runtime.id: editId,
+        call: (
+          (. ~id, ~title, ~content) => {
+            let action = ReactServerDOMEsbuild.createServerReference(editId);
+            action(. id, title, content);
+          }
+        ),
+      }
     };
 
   // Lets say this is the server action declared by the end-user
@@ -191,8 +202,7 @@ module Notes = {
   [@platform native]
   let deleteHandler = (~id) => {
     let _ = DB.deleteNote(id);
-    let response = `String("Note deleted");
-    Lwt.return(response);
+    Lwt.return("Note deleted");
   };
 
   // This is the router  handler that will handle parsing the args and calling the handler the user declared
@@ -216,7 +226,9 @@ module Notes = {
         )
       };
 
-    deleteHandler(~id) |> Lwt.map(response => React.Json(response));
+    let encodeResponse = response => React.Json(`String(response));
+
+    deleteHandler(~id) |> Lwt.map(encodeResponse);
   };
 
   // This is the action generated to be used under the hood for the server and client
@@ -233,16 +245,21 @@ module Notes = {
   };
   let delete =
     switch%platform () {
-    | Server => (
-        (~id) => failwith("We don't support Server Functions on server ")
-      )
-    | Client => (
-        (~id) => {
-          let action = ReactServerDOMEsbuild.createServerReference(deleteId);
+    | Server => {
+        Runtime.id: deleteId,
+        call: ((. ~id) => deleteHandler(~id)),
+      }
+    | Client => {
+        Runtime.id: deleteId,
+        call: (
+          (. ~id) => {
+            let action =
+              ReactServerDOMEsbuild.createServerReference(deleteId);
 
-          action(. id);
-        }
-      )
+            action(. id);
+          }
+        ),
+      }
     };
 
   module Registers = {
@@ -271,15 +288,29 @@ module Samples = {
   let simpleResponseId = "id/samples/simpleResponse";
 
   [@platform native]
-  let simpleResponseHandler = () => {
-    Lwt.return(`String("Hello from server with simple response action"));
-  };
+  let simpleResponseHandler =
+    (. ~name, ~age) => {
+      Lwt.return(
+        Printf.sprintf("Hello %s, you are %d years old", name, age),
+      );
+    };
 
   // This is the router  handler that will handle parsing the args and calling the handler the user declared
   // This code will be generated by the ppx automatically
   [@platform native]
-  let simpleResponseRouteHandler = _args =>
-    simpleResponseHandler() |> Lwt.map(response => React.Json(response));
+  let simpleResponseRouteHandler = args => {
+    let (name, age) =
+      switch (args) {
+      | [name, age] => (
+          name |> Yojson.Basic.Util.to_string,
+          age |> Yojson.Basic.Util.to_int,
+        )
+      | _ => failwith("Invalid arguments")
+      };
+
+    let encodeResponse = response => React.Json(`String(response));
+    simpleResponseHandler(~name, ~age) |> Lwt.map(encodeResponse);
+  };
 
   // This is the action generated to be used under the hood for the server and client
   // Melange don't display the comment after compilation
@@ -297,16 +328,21 @@ module Samples = {
   };
   let simpleResponse =
     switch%platform () {
-    | Server => (
-        _ => failwith("We don't support Server Functions on server ")
-      )
-    | Client => (
-        _ => {
-          let action =
-            ReactServerDOMEsbuild.createServerReference(simpleResponseId);
-          action(.);
-        }
-      )
+    | Server => {
+        Runtime.id: simpleResponseId,
+        call: ((. ~name, ~age) => simpleResponseHandler(. ~name, ~age)),
+      }
+    | Client => {
+        Runtime.id: simpleResponseId,
+        call: (
+          (. ~name, ~age) => {
+            let action =
+              ReactServerDOMEsbuild.createServerReference(simpleResponseId);
+
+            action(. ~name, ~age);
+          }
+        ),
+      }
     };
 
   module Registers = {

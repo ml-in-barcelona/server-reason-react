@@ -525,6 +525,7 @@ let make_of_json ~loc (core_type : core_type) prop =
            Js.Dict.set promise' "__promise" promise;
            promise] *)
   | [%type: [%t? t] Js.Promise.t] -> [%expr ([%e prop] : [%t t] Js.Promise.t)]
+  | [%type: [%t? t] Runtime.server_function] -> [%expr ([%e prop] : [%t t] Runtime.server_function)]
   | [%type: [%t? inner_type] option] as type_ -> (
       match inner_type.ptyp_desc with
       | Ptyp_arrow (_, _, _) -> [%expr ([%e prop] : [%t type_])]
@@ -655,6 +656,7 @@ let make_to_json ~loc (core_type : core_type) prop =
       [%expr
         [%ocaml.error
           "server-reason-react: you can't pass functions into client components. Functions aren't serialisable to JSON."]]
+  | [%type: [%t? _] Runtime.server_function] -> [%expr React.Function [%e prop]]
   | type_ ->
       let json = [%expr [%to_json: [%t type_]] [%e prop]] in
       [%expr React.Json [%e json]]
