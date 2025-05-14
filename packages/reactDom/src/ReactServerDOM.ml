@@ -332,7 +332,7 @@ let chunk_html_script index html =
       rc_replacement index index;
     ]
 
-let html_suspense inner = Html.list [ Html.raw "<!--$-->"; inner; Html.raw "<!--/$-->" ]
+let html_suspense_immediate inner = Html.list [ Html.raw "<!--$-->"; inner; Html.raw "<!--/$-->" ]
 
 let html_suspense_placeholder ~fallback id =
   Html.list
@@ -524,7 +524,7 @@ let rec to_html ~debug ~(fiber : Fiber.t) (element : React.element) : (Html.elem
       | Lwt.Return (html, model) ->
           let model = Model.suspense_node ~key ~fallback:model_fallback [ model ] in
           Lwt.wakeup_later parent_done ();
-          Lwt.return (html_suspense html, model)
+          Lwt.return (html_suspense_immediate html, model)
       | Lwt.Fail exn -> Lwt.fail exn)
   | Provider children -> to_html ~debug ~fiber children
   | Consumer children -> to_html ~debug ~fiber children
