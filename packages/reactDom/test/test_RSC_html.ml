@@ -210,7 +210,7 @@ let async_component_and_client_component_with_suspense () =
 
 let suspense_without_promise () =
   let app () = loading_suspense ~children:(React.string "Resolved") () in
-  assert_html ~shell:"<!--$?-->Resolved<!--/$-->" (app ()) []
+  assert_html ~shell:"<!--$-->Resolved<!--/$-->" (app ()) []
 
 let with_sleepy_promise () =
   let app =
