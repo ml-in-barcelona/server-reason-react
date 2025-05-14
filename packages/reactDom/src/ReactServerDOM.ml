@@ -332,7 +332,7 @@ let chunk_html_script index html =
       rc_replacement index index;
     ]
 
-let html_suspense inner = Html.list [ Html.raw "<!--$?-->"; inner; Html.raw "<!--/$-->" ]
+let html_suspense inner = Html.list [ Html.raw "<!--$-->"; inner; Html.raw "<!--/$-->" ]
 
 let html_suspense_placeholder ~fallback id =
   Html.list
