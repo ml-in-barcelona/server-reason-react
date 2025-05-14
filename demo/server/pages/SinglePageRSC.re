@@ -1,10 +1,3 @@
-module Root = {
-  [@react.component]
-  let make = (~children) => {
-    <DemoLayout background=Theme.Color.Gray2> children </DemoLayout>;
-  };
-};
-
 module Section = {
   [@react.component]
   let make = (~title, ~children, ~description=?) => {
@@ -136,10 +129,26 @@ module Page = {
   };
 };
 
+module App = {
+  [@react.component]
+  let make = () => {
+    <html>
+      <head>
+        <meta charSet="utf-8" />
+        <link rel="stylesheet" href="/output.css" />
+      </head>
+      <body>
+        <div id="root">
+          <DemoLayout background=Theme.Color.Gray2> <Page /> </DemoLayout>
+        </div>
+      </body>
+    </html>;
+  };
+};
+
 let handler = request =>
   DreamRSC.createFromRequest(
     ~bootstrapModules=["/static/demo/CreateFromReadableStream.re.js"],
-    ~bootstrapStylesheets=["/output.css"],
-    <Root> <Page /> </Root>,
+    <App />,
     request,
   );
