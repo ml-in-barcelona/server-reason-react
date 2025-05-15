@@ -29,7 +29,7 @@ const ReactFlightClientStreamConfigWeb = {
   },
 
   readPartialStringChunk(decoder, buffer) {
-    return decoder.decode(buffer, decoderOptions);
+    return decoder.decode(buffer, this.decoderOptions);
   },
 
   readFinalStringChunk(decoder, buffer) {
