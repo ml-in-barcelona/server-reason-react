@@ -108,12 +108,20 @@ module Page = {
             "font-bold",
             Theme.text(Theme.Color.Gray11),
           ])}>
-          {React.string("Server actions")}
+          {React.string("Server functions")}
         </h1>
         <Hr />
         <Section
-          title="Server action with simple response"
-          description="Server action with simple response">
+          title="Server function from props on a Client Component"
+          description="In this case, react will use the server function from the window.__server_functions_manifest_map">
+          <ServerActionFromPropsClient
+            actionOnClick=ServerFunctions.Samples.simpleResponse
+          />
+        </Section>
+        <Hr />
+        <Section
+          title="Server function with simple response"
+          description="Server function imported and called directly on a client component">
           <ServerActionWithSimpleResponse />
         </Section>
         <Hr />

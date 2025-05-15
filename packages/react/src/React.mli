@@ -575,6 +575,7 @@ and lower_case_element = { key : string option; tag : string; attributes : JSX.p
 and client_props = (string * client_value) list
 
 and client_value =
+  | Function : 'server_function Runtime.server_function -> client_value
   | Json : Yojson.Basic.t -> client_value
   | Error : error -> client_value
   | Element : element -> client_value

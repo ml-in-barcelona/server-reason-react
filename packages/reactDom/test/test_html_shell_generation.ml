@@ -141,6 +141,16 @@ let input_and_bootstrap_scripts () =
      type=\"module\"></script><script src=\"react-dom\" async=\"\" type=\"module\"></script>";
   Lwt.return ()
 
+let title_populates_to_a_head () =
+  let app =
+    html [ body ~children:[ head ~children:[ lower "title" ~children:[ React.string "Hey Yah" ] () ] () ] () ]
+  in
+  let%lwt html, _ = ReactServerDOM.render_html ~bootstrapModules:[ "jquery"; "jquery-mobile" ] app in
+  assert_string html
+    "<!DOCTYPE html><html><head><title>Hey Yah</title></head><body><script src=\"jquery\" async=\"\" \
+     type=\"module\"></script><script src=\"jquery-mobile\" async=\"\" type=\"module\"></script></body></html>";
+  Lwt.return ()
+
 let tests =
   [
     test "doctype" doctype;
@@ -155,4 +165,5 @@ let tests =
     test "html_without_body_and_bootstrap_scritpts" html_without_body_and_bootstrap_scritpts;
     test "html_with_body_and_bootstrap_scripts" html_with_body_and_bootstrap_scripts;
     test "input_and_bootstrap_scripts" input_and_bootstrap_scripts;
+    test "title_populates_to_a_head" title_populates_to_a_head;
   ]

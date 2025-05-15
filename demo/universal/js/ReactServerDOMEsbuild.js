@@ -16,20 +16,21 @@
 
 import ReactClientFlight from "@pedrobslisboa/react-client/flight";
 
+const is_debug = false;
+
 const debug = (...args) => {
-  if (process.env.NODE_ENV === "development") {
-    /* console.log(...args); */
+  if (is_debug && process.env.NODE_ENV === "development") {
+    console.log(...args);
   }
 };
 
 const ReactFlightClientStreamConfigWeb = {
-  decoderOptions: { stream: true },
   createStringDecoder() {
     return new TextDecoder();
   },
 
   readPartialStringChunk(decoder, buffer) {
-    return decoder.decode(buffer, decoderOptions);
+    return decoder.decode(buffer, { stream: true });
   },
 
   readFinalStringChunk(decoder, buffer) {

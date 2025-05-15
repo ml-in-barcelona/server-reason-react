@@ -2,16 +2,12 @@
 
 open Melange_json.Primitives;
 
-external alert: string => unit = "window.alert";
-
 [@react.client.component]
 let make =
     (~noteId: option(int), ~initialTitle: string, ~initialBody: string) => {
-  let {navigate, _}: ClientRouter.t = ClientRouter.useRouter();
+  let router: ClientRouter.t = ClientRouter.useRouter();
   let (title, setTitle) = RR.useStateValue(initialTitle);
   let (body, setBody) = RR.useStateValue(initialBody);
-  let (isSaving, setIsSaving) = RR.useStateValue(false);
-  let router = Router.useRouter();
   let (isNavigating, startNavigating) = React.useTransition();
 
   let%browser_only onChangeTitle = e => {
@@ -36,20 +32,25 @@ let make =
       <div className="flex flex-row gap-2" role="menubar">
         <button
           className=Theme.button
-          disabled={isSaving || isNavigating}
+          disabled=isNavigating
           onClick=[%browser_only
             _ => {
               let action =
                 switch (noteId) {
                 | Some(id) =>
-                  ServerFunctions.Notes.edit(~id, ~title, ~content=body)
-                | None => ServerFunctions.Notes.create(~title, ~content=body)
+                  ServerFunctions.Notes.edit.call(.
+                    ~id,
+                    ~title,
+                    ~content=body,
+                  )
+                | None =>
+                  ServerFunctions.Notes.create.call(. ~title, ~content=body)
                 };
 
               action
               |> Js.Promise.then_((result: Note.t) => {
                    let id = result.id;
-                   navigate({
+                   router.navigate({
                      selectedId: Some(id),
                      isEditing: false,
                      searchText: None,

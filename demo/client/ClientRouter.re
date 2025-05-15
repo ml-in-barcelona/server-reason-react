@@ -65,6 +65,8 @@ module App = {
   };
 };
 
+let document: option(Webapi.Dom.Element.t) = [%mel.raw "window.document"];
+
 let body =
   Webapi.Dom.document
   ->Webapi.Dom.Document.asHtmlDocument
@@ -75,7 +77,7 @@ external hydrateRoot:
   (Dom.element, React.element, Js.t({..})) => ReactDOM.Client.root =
   "hydrateRoot";
 
-switch (body) {
+switch (document) {
 | Some(element) =>
   startTransition(() => {
     let onRecoverableError = (error, errorInfo) => {

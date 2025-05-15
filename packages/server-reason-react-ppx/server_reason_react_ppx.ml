@@ -8,7 +8,7 @@ let mode = ref Native
 let repo_url = "https://github.com/ml-in-barcelona/server-reason-react"
 let issues_url = Printf.sprintf "%s/issues" repo_url
 
-(* There's no pexp_list on Ppxlib since isn't a constructor of the Parsetree *)
+(* There's no Ppxlib.pexp_list since isn't a parsetree constructor *)
 let pexp_list ~loc xs =
   List.fold_left (List.rev xs) ~init:[%expr []] ~f:(fun xs x ->
       let loc = x.pexp_loc in
@@ -525,6 +525,7 @@ let make_of_json ~loc (core_type : core_type) prop =
            Js.Dict.set promise' "__promise" promise;
            promise] *)
   | [%type: [%t? t] Js.Promise.t] -> [%expr ([%e prop] : [%t t] Js.Promise.t)]
+  | [%type: [%t? t] Runtime.server_function] -> [%expr ([%e prop] : [%t t] Runtime.server_function)]
   | [%type: [%t? inner_type] option] as type_ -> (
       match inner_type.ptyp_desc with
       | Ptyp_arrow (_, _, _) -> [%expr ([%e prop] : [%t type_])]
@@ -655,6 +656,7 @@ let make_to_json ~loc (core_type : core_type) prop =
       [%expr
         [%ocaml.error
           "server-reason-react: you can't pass functions into client components. Functions aren't serialisable to JSON."]]
+  | [%type: [%t? _] Runtime.server_function] -> [%expr React.Function [%e prop]]
   | type_ ->
       let json = [%expr [%to_json: [%t type_]] [%e prop]] in
       [%expr React.Json [%e json]]

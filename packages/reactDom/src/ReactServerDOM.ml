@@ -20,9 +20,9 @@ module Error = struct
       ]
 
   let create_stack_trace () =
-    let stack = Printexc.backtrace_slots (Printexc.get_raw_backtrace ()) |> Option.get |> Array.to_list in
+    let stack = Printexc.backtrace_slots (Printexc.get_raw_backtrace ()) |> Option.value ~default:[||] in
     `List
-      (List.map
+      (Array.map
          (fun slot ->
            let location = Printexc.Slot.location slot in
            let name = Printexc.Slot.name slot in
@@ -36,11 +36,13 @@ module Error = struct
                    `Int location.Printexc.start_char;
                  ]
            | _, _ -> `List [ `String "Unknown function name"; `String "Unknown filename"; `Int 0; `Int 0 ])
-         stack)
+         stack
+      |> Array.to_list)
 
   let make_error ~env exn =
     let message = Printexc.to_string exn in
     let stack = create_stack_trace () in
+    (* TODO: Improve it to be an UUID *)
     let digest = stack |> Yojson.Basic.to_string |> Hashtbl.hash |> string_of_int in
     React.Error { message; stack; env = Env.to_string env; digest }
 end
@@ -102,6 +104,7 @@ module Model = struct
   let promise_value id = Printf.sprintf "$@%x" id
   let ref_value id = Printf.sprintf "$%x" id
   let error_value id = Printf.sprintf "$Z%x" id
+  let action_value id = Printf.sprintf "$F%x" id
 
   let prop_to_json (prop : React.JSX.prop) =
     match prop with
@@ -322,6 +325,10 @@ module Model = struct
         | Fail exn ->
             (* TODO: Can we check if raise is good heres? *)
             raise exn)
+    | Function action ->
+        let chunk_id = use_chunk_id context in
+        context.push chunk_id (Chunk_value (`Assoc [ ("id", `String action.id); ("bound", `Null) ]));
+        `String (action_value chunk_id)
 
   and client_values_to_json ~context props =
     List.map
@@ -413,7 +420,7 @@ let chunk_html_script index html =
       rc_replacement index index;
     ]
 
-let html_suspense inner = Html.list [ Html.raw "<!--$?-->"; inner; Html.raw "<!--/$-->" ]
+let html_suspense_immediate inner = Html.list [ Html.raw "<!--$-->"; inner; Html.raw "<!--/$-->" ]
 
 let html_suspense_placeholder ~fallback id =
   Html.list
@@ -575,7 +582,15 @@ let rec to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * j
                 let index = Fiber.use_index fiber in
                 let error_json = Error.to_json error in
                 context.push (error_chunk_script index error_json);
-                Lwt.return (name, error_json))
+                Lwt.return (name, error_json)
+            | Function action ->
+                let context = Fiber.get_context fiber in
+                let index = Fiber.use_index fiber in
+                let html =
+                  chunk_script (Model.model_to_chunk index (`Assoc [ ("id", `String action.id); ("bound", `Null) ]))
+                in
+                context.push html;
+                Lwt.return (name, `String (Model.action_value index)))
           props
       in
       let lwt_html = client_to_html ~fiber client in
@@ -611,7 +626,7 @@ let rec to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * j
       | Lwt.Return (html, model) ->
           let model = Model.suspense_node ~key ~fallback:model_fallback [ model ] in
           Lwt.wakeup_later parent_done ();
-          Lwt.return (html_suspense html, model)
+          Lwt.return (html_suspense_immediate html, model)
       | Lwt.Fail exn -> Lwt.fail exn)
   | Provider children -> to_html ~fiber children
   | Consumer children -> to_html ~fiber children
