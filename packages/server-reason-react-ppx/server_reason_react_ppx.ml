@@ -8,7 +8,7 @@ let mode = ref Native
 let repo_url = "https://github.com/ml-in-barcelona/server-reason-react"
 let issues_url = Printf.sprintf "%s/issues" repo_url
 
-(* There's no pexp_list on Ppxlib since isn't a constructor of the Parsetree *)
+(* There's no Ppxlib.pexp_list since isn't a parsetree constructor *)
 let pexp_list ~loc xs =
   List.fold_left (List.rev xs) ~init:[%expr []] ~f:(fun xs x ->
       let loc = x.pexp_loc in
