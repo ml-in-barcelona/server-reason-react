@@ -275,40 +275,6 @@ let client_with_promise_props () =
       "<script data-payload='1:\"||| Resolved |||\"\n'>window.srr_stream.push()</script>";
     ]
 
-let client_with_error () =
-  let delayed_value ~ms value =
-    let%lwt () = lwt_sleep ~ms in
-    Lwt.return value
-  in
-  let app () =
-    React.Upper_case_component
-      ( "app",
-        fun () ->
-          React.list
-            [
-              React.createElement "div" [] [ React.string "Server Content" ];
-              React.Client_component
-                {
-                  props =
-                    [ ("promise", React.Promise (delayed_value ~ms:20 "||| Resolved |||", fun res -> `String res)) ];
-                  client = React.string "Client with Props";
-                  import_module = "./client-with-props.js";
-                  import_name = "ClientWithProps";
-                };
-            ] )
-  in
-  assert_html (app ())
-    ~shell:
-      "<div>Server Content</div><!-- -->Client with Props<script \
-       data-payload='0:[[\"$\",\"div\",null,{\"children\":[\"Server \
-       Content\"]},null,[],{}],[\"$\",\"$2\",null,{\"promise\":\"$@1\"},null,[],{}]]\n\
-       '>window.srr_stream.push()</script>"
-    [
-      "<script data-payload='2:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n\
-       '>window.srr_stream.push()</script>";
-      "<script data-payload='1:\"||| Resolved |||\"\n'>window.srr_stream.push()</script>";
-    ]
-
 let tests =
   [
     test "null_element" null_element;

@@ -517,20 +517,16 @@ let act_with_simple_response () =
   assert_list_of_strings !output [ "0:\"Server Content\"\n" ];
   Lwt.return ()
 
-let fail_function () = failwith "Error"
-
 let act_with_error () =
   let output, subscribe = capture_stream () in
-  try fail_function ()
-  with exn ->
-    let response = Lwt.fail exn in
-    let%lwt () = ReactServerDOM.create_action_response ~subscribe response in
-    assert_list_of_strings !output
-      [
-        "1:E{\"message\":\"Failure(\\\"Error\\\")\",\"stack\":[],\"env\":\"development\",\"digest\":\"1000123519\"}\n";
-        "0:\"$Z1\"\n";
-      ];
-    Lwt.return ()
+  let response = Lwt.fail (Failure "Error") in
+  let%lwt () = ReactServerDOM.create_action_response ~subscribe response in
+  assert_list_of_strings !output
+    [
+      "1:E{\"message\":\"Failure(\\\"Error\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"1000123519\"}\n";
+      "0:\"$Z1\"\n";
+    ];
+  Lwt.return ()
 
 let env_development_adds_debug_info () =
   let app =
