@@ -511,10 +511,21 @@ let style_as_json () =
   Lwt.return ()
 
 let act_with_simple_response () =
-  let response = React.Json (`String "Server Content") in
+  let response = Lwt.return (React.Json (`String "Server Content")) in
   let output, subscribe = capture_stream () in
   let%lwt () = ReactServerDOM.create_action_response ~subscribe response in
   assert_list_of_strings !output [ "0:\"Server Content\"\n" ];
+  Lwt.return ()
+
+let act_with_error () =
+  let output, subscribe = capture_stream () in
+  let response = Lwt.fail (Failure "Error") in
+  let%lwt () = ReactServerDOM.create_action_response ~subscribe response in
+  assert_list_of_strings !output
+    [
+      "1:E{\"message\":\"Failure(\\\"Error\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"1000123519\"}\n";
+      "0:\"$Z1\"\n";
+    ];
   Lwt.return ()
 
 let env_development_adds_debug_info () =
@@ -595,5 +606,6 @@ let tests =
     test "client_with_server_children" client_with_server_children;
     test "act_with_simple_response" act_with_simple_response;
     test "env_development_adds_debug_info" env_development_adds_debug_info;
+    test "act_with_error" act_with_error;
     (* test "env_development_adds_debug_info_2" env_development_adds_debug_info_2; *)
   ]
