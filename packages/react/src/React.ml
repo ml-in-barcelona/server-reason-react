@@ -371,6 +371,8 @@ module JSX = struct
   end
 end
 
+type error = { message : string; stack : Yojson.Basic.t; env : string; digest : string }
+
 type element =
   | Lower_case_element of lower_case_element
   | Upper_case_component of string * (unit -> element)
@@ -393,6 +395,7 @@ and client_value =
   (* TODO: Do we need to add more types here? *)
   | Function : 'f Runtime.server_function -> client_value
   | Json : Yojson.Basic.t -> client_value
+  | Error : error -> client_value
   | Element : element -> client_value
   | Promise : 'a Js.Promise.t * ('a -> Yojson.Basic.t) -> client_value
 
