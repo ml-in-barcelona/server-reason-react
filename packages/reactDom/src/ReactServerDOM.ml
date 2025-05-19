@@ -239,7 +239,7 @@ module Model = struct
           if context.debug then (
             let index = get_chunk_id context in
             let debug_info_index = use_chunk_id context in
-            let debug_info_ref : json = `String (Printf.sprintf "$%x" debug_info_index) in
+            let debug_info_ref : json = `String (ref_value debug_info_index) in
             context.push debug_info_index (Chunk_value (make_debug_info name));
             context.push index (Debug_info_map debug_info_ref);
             ());
