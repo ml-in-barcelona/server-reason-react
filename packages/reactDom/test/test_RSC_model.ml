@@ -249,7 +249,7 @@ let suspense_with_error_under_lowercase () =
   assert_list_of_strings !output
     [
       "1:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n";
-      "0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,[],{}]\n";
+      "0:[\"$\",\"div\",null,{\"children\":[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,[],{}]},null,[],{}]\n";
     ];
   Lwt.return ()
 
@@ -265,6 +265,15 @@ let error_without_suspense () =
 let error_in_toplevel () =
   let app () = raise (Failure "lol") in
   let main = React.Upper_case_component ("app", app) in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~subscribe main in
+  assert_list_of_strings !output
+    [ "1:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n"; "0:\"$L1\"\n" ];
+  Lwt.return ()
+
+let error_in_toplevel_in_async () =
+  let app () = Lwt.fail (Failure "lol") in
+  let main = React.Async_component ("app", app) in
   let output, subscribe = capture_stream () in
   let%lwt () = ReactServerDOM.render_model ~subscribe main in
   assert_list_of_strings !output
@@ -324,6 +333,11 @@ let suspense_in_a_list_with_error () =
   assert_list_of_strings !output
     [
       "0:[[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,[],{}],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L2\"},null,[],{}],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L3\"},null,[],{}],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L4\"},null,[],{}],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L5\"},null,[],{}]]\n";
+      "1:\"A\"\n";
+      "4:\"D\"\n";
+      "5:\"E\"\n";
+      "2:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n";
+      "3:\"C\"\n";
     ];
   Lwt.return ()
 
@@ -724,7 +738,8 @@ let tests =
     test "act_with_error" act_with_error;
     test "error_without_suspense" error_without_suspense;
     test "error_in_toplevel" error_in_toplevel;
+    test "error_in_toplevel_in_async" error_in_toplevel_in_async;
     (* test "env_development_adds_debug_info_2" env_development_adds_debug_info_2; *)
-    (* test "suspense_in_a_list_with_error" suspense_in_a_list_with_error; *)
-    (* test "suspense_with_error_under_lowercase" suspense_with_error_under_lowercase; *)
+    test "suspense_in_a_list_with_error" suspense_in_a_list_with_error;
+    test "suspense_with_error_under_lowercase" suspense_with_error_under_lowercase;
   ]

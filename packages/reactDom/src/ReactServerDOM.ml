@@ -285,7 +285,11 @@ module Model = struct
                     if context.pending = 0 then context.close ();
                     Lwt.return ()
                   with exn ->
-                    context.push index (Chunk_value (`Assoc [ ("error", `String (Printexc.to_string exn)) ]));
+                    let message = Printexc.to_string exn in
+                    let stack = create_stack_trace () in
+                    let error_json = exn_to_json ~env:context.env ~message ~stack ~digest:"" in
+                    context.push index (Chunk_error error_json);
+                    context.pending <- context.pending - 1;
                     (* if context.pending = 0 then context.close (); *)
                     Lwt.return ());
               `String (lazy_value index))
