@@ -26,7 +26,7 @@ let create_stack_trace () =
 let exn_to_error exn =
   let message = Printexc.to_string exn in
   let stack = create_stack_trace () in
-  (* TODO: digest s *)
+  (* TODO: digest could be a UUID, but in react.js those errors point to the documentation. We don't have a setup like theirs for this. Maybe we should use their codes.json? *)
   let digest = stack |> Yojson.Basic.to_string |> Hashtbl.hash |> Int.to_string in
   React.Error { message; stack; env = "Server"; digest }
 
