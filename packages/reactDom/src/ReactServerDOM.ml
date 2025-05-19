@@ -304,7 +304,7 @@ module Model = struct
           context.push id (Chunk_component_ref ref);
           let client_props = client_values_to_json ~context props in
           node ~tag:(ref_value id) ~key:None ~props:client_props []
-      (* TODO: Dow we need to do anything with Provider and Consumer? *)
+      (* TODO: Do we need to do anything with Provider and Consumer? *)
       | Provider children -> turn_element_into_payload ~context children
       | Consumer children -> turn_element_into_payload ~context children
     in
