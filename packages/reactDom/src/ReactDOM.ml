@@ -46,7 +46,7 @@ let moveDangerouslyInnerHtmlAsChildren attributes children =
 
 type mode = String | Markup
 
-let render_to_string ~mode element =
+let render ~mode element =
   (* is_root starts at true (when renderToString) and only goes to false
      when renders an lower-case element or closed element *)
   let is_mode_to_string = mode = String in
@@ -93,15 +93,15 @@ let render_to_string ~mode element =
 
 let renderToString element =
   (* TODO: try catch to avoid React.use usages *)
-  let html = render_to_string ~mode:String element in
+  let html = render ~mode:String element in
   Html.to_string html
 
 let renderToStaticMarkup element =
   (* TODO: try catch to avoid React.use usages *)
-  let html = render_to_string ~mode:Markup element in
+  let html = render ~mode:Markup element in
   Html.to_string ~add_separator_between_text_nodes:false html
 
-type context_state = {
+type stream_context = {
   push : Html.element -> unit;
   close : unit -> unit;
   mutable closed : bool;
@@ -146,7 +146,7 @@ let render_suspense_fallback_error ~exn element =
       Html.raw "<!--/$-->";
     ]
 
-let rec render_to_stream ~context_state element =
+let rec render_to_stream ~stream_context element =
   let rec render_element element =
     match (element : React.element) with
     | Empty -> Lwt.return Html.null
@@ -181,7 +181,7 @@ let rec render_to_stream ~context_state element =
         | Lwt.Fail exn -> raise_notrace exn
         | Lwt.Sleep -> raise_notrace (React.Suspend (Any_promise promise)))
     | Suspense { children; fallback; _ } -> (
-        (* assume fallback can't have errors or suspensions *)
+        (* TODO: assume fallback can't have errors or suspensions, it might not be the case *)
         let%lwt fallback_element = render_element fallback in
         try%lwt
           let%lwt element = render_element children in
@@ -192,25 +192,25 @@ let rec render_to_stream ~context_state element =
             | Lwt.Return _ -> render_element children
             | Lwt.Fail exn -> Lwt.return (render_suspense_fallback_error ~exn fallback_element)
             | Lwt.Sleep ->
-                let current_boundary_id = context_state.boundary_id in
-                let current_suspense_id = context_state.suspense_id in
-                context_state.boundary_id <- context_state.boundary_id + 1;
-                context_state.suspense_id <- context_state.suspense_id + 1;
-                context_state.waiting <- context_state.waiting + 1;
+                let current_boundary_id = stream_context.boundary_id in
+                let current_suspense_id = stream_context.suspense_id in
+                stream_context.boundary_id <- stream_context.boundary_id + 1;
+                stream_context.suspense_id <- stream_context.suspense_id + 1;
+                stream_context.waiting <- stream_context.waiting + 1;
 
                 Lwt.async (fun () ->
                     let%lwt _ = promise in
-                    let%lwt resolved_html = render_with_resolved ~context_state children in
-                    context_state.waiting <- context_state.waiting - 1;
-                    if not context_state.closed then (
-                      context_state.push (render_suspense_resolved_element ~id:current_suspense_id resolved_html);
-                      context_state.push
-                        (inline_complete_boundary_script context_state.has_rc_script_been_injected current_boundary_id
+                    let%lwt resolved_html = render_with_resolved ~stream_context children in
+                    stream_context.waiting <- stream_context.waiting - 1;
+                    if not stream_context.closed then (
+                      stream_context.push (render_suspense_resolved_element ~id:current_suspense_id resolved_html);
+                      stream_context.push
+                        (inline_complete_boundary_script stream_context.has_rc_script_been_injected current_boundary_id
                            current_suspense_id));
-                    context_state.has_rc_script_been_injected <- true;
-                    if context_state.waiting = 0 then (
-                      context_state.closed <- true;
-                      context_state.close ());
+                    stream_context.has_rc_script_been_injected <- true;
+                    if stream_context.waiting = 0 then (
+                      stream_context.closed <- true;
+                      stream_context.close ());
                     Lwt.return ());
 
                 Lwt.return (render_suspense_fallback ~boundary_id:current_boundary_id fallback_element))
@@ -226,10 +226,9 @@ let rec render_to_stream ~context_state element =
         let html_attributes = attributes_to_html attributes in
         Lwt.return (Html.node tag html_attributes inner)
   in
-
   render_element element
 
-and render_with_resolved ~context_state element =
+and render_with_resolved ~stream_context element =
   let rec render_element element =
     match (element : React.element) with
     | Empty -> Lwt.return Html.null
@@ -262,7 +261,7 @@ and render_with_resolved ~context_state element =
         | Lwt.Sleep ->
             let%lwt resolved = promise in
             render_element resolved)
-    | Suspense _ -> render_to_stream ~context_state element
+    | Suspense _ -> render_to_stream ~stream_context element
   and render_lower_case ~key:_ tag attributes children =
     let children = moveDangerouslyInnerHtmlAsChildren attributes children in
     match Html.is_self_closing_tag tag with
@@ -277,7 +276,7 @@ and render_with_resolved ~context_state element =
 let renderToStream ?pipe:_ element =
   let stream, push_to_stream, close = Push_stream.make () in
   let push html = push_to_stream (Html.to_string html) in
-  let context_state =
+  let stream_context =
     { push; close; closed = false; waiting = 0; boundary_id = 0; suspense_id = 0; has_rc_script_been_injected = false }
   in
   let abort () =
@@ -285,17 +284,17 @@ let renderToStream ?pipe:_ element =
     Lwt_stream.closed stream |> Lwt.ignore_result
   in
   try%lwt
-    let%lwt html = render_to_stream ~context_state element in
+    let%lwt html = render_to_stream ~stream_context element in
     push html;
-    if context_state.waiting = 0 then close ();
+    if stream_context.waiting = 0 then close ();
     Lwt.return (stream, abort)
   with
   | React.Suspend (Any_promise promise) ->
       (* In case of getting a React.Suspend exn means that either an async component is being rendered without React.Suspense or React.use is being used without a Suspense boundary. In both cases, we need to await for the promise to resolve and then render the resolved element. *)
       let%lwt _ = promise in
-      let%lwt html = render_with_resolved ~context_state element in
+      let%lwt html = render_with_resolved ~stream_context element in
       push html;
-      if context_state.waiting = 0 then close ();
+      if stream_context.waiting = 0 then close ();
       Lwt.return (stream, abort)
   | exn -> (* non suspend exceptions propagate to the parent *) Lwt.fail exn
 
