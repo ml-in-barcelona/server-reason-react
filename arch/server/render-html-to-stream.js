@@ -95,18 +95,17 @@ function App() {
 	return (
 		<>
 			<html>
-				<input
-					id="sidebar-search-input"
-					placeholder="Search"
-					defaultValue={"L??"}
-					onChange={() => { }}
-				/>
-				<div>Content inside body</div>
+				<body>
+					<head>
+						<title>Hey Yah</title>
+					</head>
+					<div>Content inside body</div>
+				</body>
 			</html>
 		</>
 	);
 }
 
-ReactDOM.renderToReadableStream(<App />, { bootstrap_modules: ["react", "react-dom"] }).then((stream) => {
+ReactDOM.renderToReadableStream(<App />, { bootstrapModules: ["react", "react-dom"] }).then((stream) => {
 	debug(stream);
 });
