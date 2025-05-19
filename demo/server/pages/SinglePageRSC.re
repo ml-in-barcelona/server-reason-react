@@ -124,6 +124,12 @@ module Page = {
           description="Server function imported and called directly on a client component">
           <ServerActionWithSimpleResponse />
         </Section>
+        <Hr />
+        <Section
+          title="Server action with error"
+          description="Server action with error">
+          <ServerActionWithError />
+        </Section>
       </Stack>,
     );
   };
