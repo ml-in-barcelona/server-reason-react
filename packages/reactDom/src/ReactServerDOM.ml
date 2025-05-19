@@ -151,16 +151,6 @@ module Model = struct
 
   let suspense_placeholder ~key ~fallback index = suspense_node ~key ~fallback [ `String (lazy_value index) ]
 
-  let suspense_error _index : json =
-    `Assoc
-      [
-        ("digest", `String "");
-        ("name", `String "Error");
-        ("message", `String "lol");
-        ("stack", `List []);
-        ("env", `String "Server");
-      ]
-
   let component_ref ~module_ ~name =
     let id = `String module_ in
     let chunks = `List [] in
@@ -276,7 +266,10 @@ module Model = struct
           try suspense_node ~key ~fallback [ turn_element_into_payload ~context children ]
           with _exn ->
             let index = use_chunk_id context in
-            suspense_error index)
+            let error : React.error = { message = "Error"; stack = `List []; env = "Server"; digest = "" } in
+            let error_json = error_to_json ~env:context.env error in
+            context.push index (Chunk_error error_json);
+            suspense_placeholder ~key ~fallback index)
       | Client_component { import_module; import_name; props; client = _ } ->
           let id = use_chunk_id context in
           let ref = component_ref ~module_:import_module ~name:import_name in
