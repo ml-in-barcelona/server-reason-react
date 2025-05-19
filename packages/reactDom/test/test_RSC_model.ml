@@ -229,7 +229,7 @@ let suspense_with_error () =
   let%lwt () = ReactServerDOM.render_model ~subscribe main in
   assert_list_of_strings !output
     [
-      "1:E{\"message\":\"Error\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n";
+      "1:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n";
       "0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,[],{}]\n";
     ];
   Lwt.return ()
@@ -241,6 +241,67 @@ let error_without_suspense () =
   let%lwt () = ReactServerDOM.render_model ~subscribe main in
   assert_list_of_strings !output
     [ "0:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n" ];
+  Lwt.return ()
+
+let await_tick ?(raise = false) num =
+  React.Async_component
+    ( "await_tick",
+      fun () ->
+        let%lwt () = lwt_sleep ~ms:(Random.int 10) in
+        if raise then Lwt.fail (Failure "lol") else Lwt.return (React.string num) )
+
+let suspense_in_a_list () =
+  let fallback = React.string "Loading..." in
+  let app () =
+    React.Fragment
+      (React.list
+         [
+           React.Suspense.make ~fallback ~children:(await_tick "A") ();
+           React.Suspense.make ~fallback ~children:(await_tick "B") ();
+           React.Suspense.make ~fallback ~children:(await_tick "C") ();
+           React.Suspense.make ~fallback ~children:(await_tick "D") ();
+           React.Suspense.make ~fallback ~children:(await_tick "E") ();
+         ])
+  in
+  let main = React.Upper_case_component ("app", app) in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~subscribe main in
+  assert_list_of_strings !output
+    [
+      "0:[[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,[],{}],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L2\"},null,[],{}],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L3\"},null,[],{}],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L4\"},null,[],{}],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L5\"},null,[],{}]]\n";
+      "3:\"C\"\n";
+      "2:\"B\"\n";
+      "1:\"A\"\n";
+      "4:\"D\"\n";
+      "5:\"E\"\n";
+    ];
+  Lwt.return ()
+
+let suspense_in_a_list_with_error () =
+  let fallback = React.string "Loading..." in
+  let app () =
+    React.Fragment
+      (React.list
+         [
+           React.Suspense.make ~fallback ~children:(await_tick "A") ();
+           React.Suspense.make ~fallback ~children:(await_tick ~raise:true "B") ();
+           React.Suspense.make ~fallback ~children:(await_tick "C") ();
+           React.Suspense.make ~fallback ~children:(await_tick "D") ();
+           React.Suspense.make ~fallback ~children:(await_tick "E") ();
+         ])
+  in
+  let main = React.Upper_case_component ("app", app) in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~subscribe main in
+  assert_list_of_strings !output
+    [
+      "0:[[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,[],{}],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L2\"},null,[],{}],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L3\"},null,[],{}],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L4\"},null,[],{}],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L5\"},null,[],{}]]\n";
+      "3:\"C\"\n";
+      "2:\"B\"\n";
+      "1:\"A\"\n";
+      "4:\"D\"\n";
+      "5:\"E\"\n";
+    ];
   Lwt.return ()
 
 let suspense_with_immediate_promise () =
@@ -610,33 +671,35 @@ let env_development_adds_debug_info () =
 
 let tests =
   [
-    skip "null_element" null_element;
-    skip "string_element" string_element;
-    skip "key_renders_outside_of_props" key_renders_outside_of_props;
-    skip "style_as_json" style_as_json;
-    skip "lower_case_component" lower_case_component;
-    skip "lower_case_component_nested" lower_case_component_nested;
-    skip "lower_case_with_children" lower_case_with_children;
-    skip "dangerouslySetInnerHtml" dangerouslySetInnerHtml;
-    skip "upper_case_component" upper_case_component;
-    skip "upper_case_with_list" upper_case_with_list;
-    skip "upper_case_with_children" upper_case_with_children;
-    skip "suspense_without_promise" suspense_without_promise;
-    skip "suspense_with_promise" suspense_with_promise;
-    skip "suspense_with_error" suspense_with_error;
-    skip "suspense_with_immediate_promise" suspense_with_immediate_promise;
-    skip "suspense" suspense;
-    skip "async_component_without_suspense" async_component_without_suspense;
-    skip "client_with_promise_props" client_with_promise_props;
+    test "null_element" null_element;
+    test "string_element" string_element;
+    test "key_renders_outside_of_props" key_renders_outside_of_props;
+    test "style_as_json" style_as_json;
+    test "lower_case_component" lower_case_component;
+    test "lower_case_component_nested" lower_case_component_nested;
+    test "lower_case_with_children" lower_case_with_children;
+    test "dangerouslySetInnerHtml" dangerouslySetInnerHtml;
+    test "upper_case_component" upper_case_component;
+    test "upper_case_with_list" upper_case_with_list;
+    test "upper_case_with_children" upper_case_with_children;
+    test "suspense_without_promise" suspense_without_promise;
+    test "suspense_with_promise" suspense_with_promise;
+    test "suspense_with_error" suspense_with_error;
+    test "suspense_with_immediate_promise" suspense_with_immediate_promise;
+    test "suspense" suspense;
+    test "async_component_without_suspense" async_component_without_suspense;
+    test "suspense_in_a_list" suspense_in_a_list;
+    test "suspense_in_a_list_with_error" suspense_in_a_list_with_error;
+    test "client_with_promise_props" client_with_promise_props;
     test "async_component_without_suspense_immediate" async_component_without_suspense_immediate;
-    skip "mixed_server_and_client" mixed_server_and_client;
-    skip "client_with_json_props" client_with_json_props;
-    skip "client_without_props" client_without_props;
-    skip "client_with_element_props" client_with_element_props;
-    skip "client_with_server_children" client_with_server_children;
-    skip "act_with_simple_response" act_with_simple_response;
-    skip "env_development_adds_debug_info" env_development_adds_debug_info;
-    skip "act_with_error" act_with_error;
+    test "mixed_server_and_client" mixed_server_and_client;
+    test "client_with_json_props" client_with_json_props;
+    test "client_without_props" client_without_props;
+    test "client_with_element_props" client_with_element_props;
+    test "client_with_server_children" client_with_server_children;
+    test "act_with_simple_response" act_with_simple_response;
+    test "env_development_adds_debug_info" env_development_adds_debug_info;
+    test "act_with_error" act_with_error;
     test "error_without_suspense" error_without_suspense;
     (* test "env_development_adds_debug_info_2" env_development_adds_debug_info_2; *)
   ]
