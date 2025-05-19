@@ -221,6 +221,22 @@ let suspense_with_promise () =
 let suspense_with_error () =
   let app () =
     React.Suspense.make ~fallback:(React.string "Loading...")
+      ~children:(React.Upper_case_component (__FUNCTION__, fun () -> raise (Failure "lol")))
+      ()
+  in
+  let main = React.Upper_case_component ("app", app) in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~subscribe main in
+  assert_list_of_strings !output
+    [
+      "1:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n";
+      "0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,[],{}]\n";
+    ];
+  Lwt.return ()
+
+let suspense_with_error_in_async () =
+  let app () =
+    React.Suspense.make ~fallback:(React.string "Loading...")
       ~children:(React.Async_component (__FUNCTION__, fun () -> Lwt.fail (Failure "lol")))
       ()
   in
@@ -722,6 +738,7 @@ let tests =
     test "suspense_without_promise" suspense_without_promise;
     test "suspense_with_promise" suspense_with_promise;
     test "suspense_with_error" suspense_with_error;
+    test "suspense_with_error_in_async" suspense_with_error_in_async;
     test "suspense_with_immediate_promise" suspense_with_immediate_promise;
     test "suspense" suspense;
     test "async_component_without_suspense" async_component_without_suspense;

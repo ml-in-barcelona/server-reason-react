@@ -37,34 +37,17 @@ const AlwaysError = () => {
 };
 
 let Await_tick = async ({ num }) => {
-	if (num === "C") {
-		await reject();
-	}
-	await sleep(Math.random() * 10);
-	return num
+	let wait = sleep(Math.random() * 10);
+	let value = await wait;
+	return value + num;
 }
 
-const Raise = () => {
-	throw new Error("lol");
-};
-
 const App = () => (
-	<div>
-		<Raise num="C" />
-	</div>
-	/* 	<main>
-			<React.Suspense fallback="Fallback 1">
-			</React.Suspense>
-			<React.Suspense fallback="Fallback 2">
-				<Await_tick num="B" />
-			</React.Suspense>
-			<React.Suspense fallback="Fallback 3">
-				<Await_tick num="C" />
-			</React.Suspense>
-			<React.Suspense fallback="Fallback 4">
-				<Await_tick num="D" />
-			</React.Suspense>
-		</main> */
+	<body>
+		<React.Suspense fallback="Fallback 1">
+			<Await_tick num="A" />
+		</React.Suspense>
+	</body>
 );
 
 const { pipe } = renderToPipeableStream(<App />);
