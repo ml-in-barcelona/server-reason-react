@@ -84,22 +84,16 @@ module Model = struct
   let get_chunk_id context = context.chunk_id
   let style_to_json style = `Assoc (List.map (fun (_, jsxKey, value) -> (jsxKey, `String value)) style)
 
-  let error_to_json ~env (error : React.error) =
+  let error_to_json ~env ~message ~stack ~digest : json =
     match is_dev env with
     | true ->
-        `Assoc
-          [
-            ("message", `String error.message);
-            ("stack", error.stack);
-            ("env", `String error.env);
-            ("digest", `String error.digest);
-          ]
+        `Assoc [ ("message", `String message); ("stack", stack); ("env", `String "Server"); ("digest", `String digest) ]
     (*
       In prod we don't emit any information about this Error object to avoid
       unintentional leaks. Use the digest to identify the registered error.
       REF: https://github.com/facebook/react/blob/e81fcfe3f201a8f626e892fb52ccbd0edba627cb/packages/react-client/src/ReactFlightClient.js#L2086-L2101
     *)
-    | false -> `Assoc [ ("digest", `String error.digest) ]
+    | false -> `Assoc [ ("digest", `String digest) ]
 
   let lazy_value id = Printf.sprintf "$L%x" id
   let promise_value id = Printf.sprintf "$@%x" id
@@ -266,8 +260,9 @@ module Model = struct
           try suspense_node ~key ~fallback [ turn_element_into_payload ~context children ]
           with _exn ->
             let index = use_chunk_id context in
-            let error : React.error = { message = "Error"; stack = `List []; env = "Server"; digest = "" } in
-            let error_json = error_to_json ~env:context.env error in
+            let error_json =
+              error_to_json ~env:context.env ~message:"Error" ~stack:(create_stack_trace ()) ~digest:""
+            in
             context.push index (Chunk_error error_json);
             suspense_placeholder ~key ~fallback index)
       | Client_component { import_module; import_name; props; client = _ } ->
@@ -287,7 +282,9 @@ module Model = struct
     | Json json -> json
     | Error error ->
         let chunk_id = use_chunk_id context in
-        let error_json = error_to_json ~env:context.env error in
+        let error_json =
+          error_to_json ~env:context.env ~message:error.message ~stack:error.stack ~digest:error.digest
+        in
         context.push chunk_id (Chunk_error error_json);
         `String (error_value context.chunk_id)
     | Element element ->
@@ -576,7 +573,9 @@ let rec to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * j
             | Error error ->
                 let context = Fiber.get_context fiber in
                 let index = Fiber.use_index fiber in
-                let error_json = Model.error_to_json ~env:context.env error in
+                let error_json =
+                  Model.error_to_json ~env:context.env ~message:error.message ~stack:error.stack ~digest:error.digest
+                in
                 context.push (error_chunk_script index error_json);
                 Lwt.return (name, `String (Model.error_value index))
             | Function action ->

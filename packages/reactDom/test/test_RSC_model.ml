@@ -227,7 +227,8 @@ let suspense_with_error () =
   let%lwt () = ReactServerDOM.render_model ~subscribe main in
   assert_list_of_strings !output
     [
-      "0:E{\"digest\":\"\",\"name\":\"Error\",\"message\":\"lol\",\"stack\":[[\"AlwaysError\",\"/Users/davesnx/Code/github/ml-in-barcelona/server-reason-react/arch/server/render-rsc-to-stream.js\",35,6]],\"env\":\"Server\"}";
+      "1:E{\"message\":\"Error\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n";
+      "0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,[],{}]\n";
     ];
   Lwt.return ()
 
