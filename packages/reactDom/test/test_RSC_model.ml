@@ -28,6 +28,8 @@ let test title fn =
   in
   (Printf.sprintf "ReactServerDOM.render_model / %s" title, [ Alcotest_lwt.test_case "" `Quick test_case ])
 
+let[@warning "-27"] skip title _fn = (Printf.sprintf "ReactServerDOM.render_model / %s" title, [ Alcotest.skip () ])
+
 let assert_stream (stream : string Lwt_stream.t) expected =
   let%lwt content = Lwt_stream.to_list stream in
   if content = [] then Lwt.return @@ Alcotest.fail "stream should not be empty"
@@ -202,6 +204,22 @@ let suspense_with_promise () =
              fun () ->
                let%lwt () = lwt_sleep ~ms:10 in
                Lwt.return (React.string "lol") ))
+      ()
+  in
+  let main = React.Upper_case_component ("app", app) in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~subscribe main in
+  assert_list_of_strings !output
+    [
+      "0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,[],{}]\n";
+      "1:\"lol\"\n";
+    ];
+  Lwt.return ()
+
+let suspense_with_error () =
+  let app () =
+    React.Suspense.make ~fallback:(React.string "Loading...")
+      ~children:(React.Async_component (__FUNCTION__, fun () -> Lwt.fail (Failure "lol")))
       ()
   in
   let main = React.Upper_case_component ("app", app) in
@@ -583,6 +601,7 @@ let tests =
     test "upper_case_with_children" upper_case_with_children;
     test "suspense_without_promise" suspense_without_promise;
     test "suspense_with_promise" suspense_with_promise;
+    test "suspense_with_error" suspense_with_error;
     test "suspense_with_immediate_promise" suspense_with_immediate_promise;
     test "suspense" suspense;
     test "async_component_without_suspense" async_component_without_suspense;

@@ -9,7 +9,7 @@ module Fiber = struct
     debug : bool;
   }
 
-  (* TODO: What should we do with captured attributes, merge them? ignore them? Right now we just capture one head element *)
+  (* TODO: What should we do with all captured attributes, merge them? keep last? ignore them? Right now we just capture one head element, but we need to capture all of them *)
   type hoisted_head = Html.attribute_list * Html.element list
 
   type t = {
@@ -35,7 +35,7 @@ module Fiber = struct
 end
 
 module Model = struct
-  type chunk_type = Chunk_value of json | Chunk_component_ref of json | Debug_info_map of json
+  type chunk_type = Chunk_value of json | Chunk_component_ref of json | Debug_info_map of json | Error_value of json
 
   type stream_context = {
     push : int -> chunk_type -> unit;
@@ -88,7 +88,6 @@ module Model = struct
     in
     `List [ `String "$"; `String tag; key; `Assoc props; debugId; source; owner ]
 
-  (* Not using `node` because we need to add fallback prop as json directly *)
   let suspense_node ~key ~fallback children : json =
     let fallback_prop = ("fallback", fallback) in
     let props =
@@ -100,6 +99,16 @@ module Model = struct
     node ~tag:"$Sreact.suspense" ~key ~props []
 
   let suspense_placeholder ~key ~fallback index = suspense_node ~key ~fallback [ `String (lazy_value index) ]
+
+  let suspense_error _index : json =
+    `Assoc
+      [
+        ("digest", `String "");
+        ("name", `String "Error");
+        ("message", `String "lol");
+        ("stack", `List []);
+        ("env", `String "Server");
+      ]
 
   let component_ref ~module_ ~name =
     let id = `String module_ in
@@ -201,11 +210,15 @@ module Model = struct
                   if context.pending = 0 then context.close ();
                   Lwt.return ());
               `String (lazy_value index))
-      | Suspense { key; children; fallback } ->
-          (* TODO: Need to check for is_root? *)
+      | Suspense { key; children; fallback } -> (
+          (* TODO: There's suttle difference between Suspense being at the root and not, probably need to handle it. Not very common case, though *)
           (* TODO: Maybe we need to push suspense index and suspense node separately *)
+          (* TODO: Add try catch for fallback *)
           let fallback = turn_element_into_payload ~context fallback in
-          suspense_node ~key ~fallback [ turn_element_into_payload ~context children ]
+          try suspense_node ~key ~fallback [ turn_element_into_payload ~context children ]
+          with _exn ->
+            let index = use_chunk_id context in
+            suspense_error index)
       | Client_component { import_module; import_name; props; client = _ } ->
           let id = use_chunk_id context in
           let ref = component_ref ~module_:import_module ~name:import_name in
@@ -339,6 +352,10 @@ let chunk_html_script index html =
 
 let html_suspense_immediate inner = Html.list [ Html.raw "<!--$-->"; inner; Html.raw "<!--/$-->" ]
 
+(* let html_suspense_error ~fallback ~exn:_ =
+  (* exn could be used for data-msg if client JS uses it *)
+  Html.list [ Html.raw "<!--$!-->"; fallback; Html.raw "<!--/$-->" ] *)
+
 let html_suspense_placeholder ~fallback id =
   Html.list
     [
@@ -440,6 +457,7 @@ let rec to_html ~debug ~(fiber : Fiber.t) (element : React.element) : (Html.elem
         Fiber.push_hoisted_head ~fiber html_attributes html;
         Lwt.return (Html.null, `Null))
       else if fiber.is_root_html_node && is_a_head_child_tag tag then (
+        (* in case of finding a head-like element, we need to hoist it to the top of the document, and avoid rendering it in the current node *)
         let html_props = List.map ReactDOM.attribute_to_html attributes in
         let%lwt children, _ = elements_to_html ~debug ~fiber children in
         let html = Html.node tag html_props [ children ] in
