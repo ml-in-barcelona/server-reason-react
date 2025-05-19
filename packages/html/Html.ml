@@ -50,19 +50,17 @@ let present name = `Present name
 let omitted () = `Omitted
 
 let write_attribute out (attr : attribute) =
-  let write_name_value name value =
-    Buffer.add_char out ' ';
-    Buffer.add_string out name;
-    Buffer.add_string out "=\"";
-    escape_and_add out value;
-    Buffer.add_char out '"'
-  in
   match attr with
   | `Omitted -> ()
   | `Present name ->
       Buffer.add_char out ' ';
       Buffer.add_string out name
-  | `Value (name, value) -> write_name_value name value
+  | `Value (name, value) ->
+      Buffer.add_char out ' ';
+      Buffer.add_string out name;
+      Buffer.add_string out "=\"";
+      escape_and_add out value;
+      Buffer.add_char out '"'
 
 type element =
   | Null

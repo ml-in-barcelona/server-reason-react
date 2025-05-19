@@ -26,7 +26,7 @@ let attribute_to_html attr =
      we are sure there's nothing to render here *)
   | DangerouslyInnerHtml _ -> Html.omitted ()
 
-let attributes_to_html attrs = attrs |> List.map attribute_to_html
+let attributes_to_html attrs = List.map attribute_to_html attrs
 
 let moveDangerouslyInnerHtmlAsChildren attributes children =
   let dangerouslySetInnerHTML =
@@ -181,7 +181,7 @@ let rec render_to_stream ~stream_context element =
         | Lwt.Fail exn -> raise_notrace exn
         | Lwt.Sleep -> raise_notrace (React.Suspend (Any_promise promise)))
     | Suspense { children; fallback; _ } -> (
-        (* TODO: assume fallback can't have errors or suspensions, it might not be the case *)
+        (* TODO: We assume fallback can't have errors or suspensions, it might not be the case *)
         let%lwt fallback_element = render_element fallback in
         try%lwt
           let%lwt element = render_element children in

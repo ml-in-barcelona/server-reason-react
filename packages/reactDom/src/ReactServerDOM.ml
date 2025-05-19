@@ -23,11 +23,11 @@ let create_stack_trace () =
        stack
     |> Array.to_list)
 
-let make_client_value_error exn =
+let exn_to_error exn =
   let message = Printexc.to_string exn in
   let stack = create_stack_trace () in
-  (* TODO: digest could be a UUID, but in react.js those errors point to the documentation. We don't have a setup like theirs for this. Maybe we should use their codes.json? *)
-  let digest = stack |> Yojson.Basic.to_string |> Hashtbl.hash |> Int.to_string in
+  (* TODO: Improve it to be an UUID *)
+  let digest = stack |> Yojson.Basic.to_string |> Hashtbl.hash |> string_of_int in
   React.Error { message; stack; env = "Server"; digest }
 
 module Fiber = struct
@@ -40,7 +40,7 @@ module Fiber = struct
     debug : bool;
   }
 
-  (* TODO: What should we do with all captured attributes, merge them? keep last? ignore them? Right now we just capture one head element, but we need to capture all of them *)
+  (* TODO: What should we do with captured attributes, merge them? ignore them? Right now we just capture one head element *)
   type hoisted_head = Html.attribute_list * Html.element list
 
   type t = {
@@ -95,6 +95,23 @@ module Model = struct
     *)
     | false -> `Assoc [ ("digest", `String digest) ]
 
+  let error_to_json ~env (error : React.error) =
+    match is_dev env with
+    | true ->
+        `Assoc
+          [
+            ("message", `String error.message);
+            ("stack", error.stack);
+            ("env", `String error.env);
+            ("digest", `String error.digest);
+          ]
+    (*
+      In prod we don't emit any information about this Error object to avoid
+      unintentional leaks. Use the digest to identify the registered error.
+      REF: https://github.com/facebook/react/blob/e81fcfe3f201a8f626e892fb52ccbd0edba627cb/packages/react-client/src/ReactFlightClient.js#L2086-L2101
+    *)
+    | false -> `Assoc [ ("digest", `String error.digest) ]
+
   let lazy_value id = Printf.sprintf "$L%x" id
   let promise_value id = Printf.sprintf "$@%x" id
   let ref_value id = Printf.sprintf "$%x" id
@@ -133,6 +150,7 @@ module Model = struct
     in
     `List [ `String "$"; `String tag; key; `Assoc props; debugId; source; owner ]
 
+  (* Not using `node` because we need to add fallback prop as json directly *)
   let suspense_node ~key ~fallback children : json =
     let fallback_prop = ("fallback", fallback) in
     let props =
@@ -198,85 +216,90 @@ module Model = struct
     let is_root = ref true in
     let rec turn_element_into_payload ~context element =
       match (element : React.element) with
-      | Empty -> Lwt.return `Null
+      | Empty -> `Null
       (* TODO: Do we need to html encode the model or only the html? *)
-      | Text t -> Lwt.return (`String t)
+      | Text t -> `String t
       | Lower_case_element { key; tag; attributes; children } ->
           let props = props_to_json attributes in
-          let%lwt children = Lwt_list.map_p (turn_element_into_payload ~context) children in
-          Lwt.return (node ~key ~tag ~props children)
+          node ~key ~tag ~props (List.map (turn_element_into_payload ~context) children)
       | Fragment children ->
           if is_root.contents then is_root := false;
           turn_element_into_payload ~context children
       | List children ->
           if is_root.contents then is_root := false;
-          let%lwt children = Lwt_list.map_p (turn_element_into_payload ~context) children in
-          Lwt.return (`List children)
+          `List (List.map (turn_element_into_payload ~context) children)
       | Array children ->
           if is_root.contents then is_root := false;
-          let%lwt children = Lwt_list.map_p (turn_element_into_payload ~context) (Array.to_list children) in
-          Lwt.return (`List children)
+          `List (Array.map (turn_element_into_payload ~context) children |> Array.to_list)
       | InnerHtml _text ->
           raise
             (Invalid_argument
                "InnerHtml does not exist in RSC, this is a bug in server-reason-react.ppx or a wrong construction of \
                 JSX manually")
-      | Upper_case_component (name, component) ->
-          let element = component () in
-          if context.debug then (
-            let index = get_chunk_id context in
-            let debug_info_index = use_chunk_id context in
-            let debug_info_ref : json = `String (ref_value debug_info_index) in
-            context.push debug_info_index (Chunk_value (make_debug_info name));
-            context.push index (Debug_info_map debug_info_ref);
-            ());
+      | Upper_case_component (name, component) -> (
+          match component () with
+          | element ->
+              if context.debug then (
+                let index = get_chunk_id context in
+                let debug_info_index = use_chunk_id context in
+                let debug_info_ref : json = `String (Printf.sprintf "$%x" debug_info_index) in
+                context.push debug_info_index (Chunk_value (make_debug_info name));
+                context.push index (Debug_info_map debug_info_ref);
+                ());
 
-          if is_root.contents then (
-            is_root := false;
-            turn_element_into_payload ~context element)
-          else
-            let index = use_chunk_id context in
-            (* Instead of returning the payload directly, we push the result into the stream, and return the reference directly. This is how `react-server-dom-xxx/server` renderToPipeableStream works *)
-            let%lwt value = turn_element_into_payload ~context element in
-            context.push index (Chunk_value value);
-            Lwt.return (`String (ref_value index))
-      | Async_component (_, component) -> (
-          (* TODO: Need to check for is_root? *)
-          let promise = component () in
-          match Lwt.state promise with
-          | Fail exn -> raise exn
-          | Return element -> turn_element_into_payload ~context element
-          | Sleep ->
-              let index = use_chunk_id context in
-              context.pending <- context.pending + 1;
-              Lwt.async (fun () ->
-                  let%lwt element = promise in
-                  context.pending <- context.pending - 1;
-                  let%lwt value = turn_element_into_payload ~context element in
-                  context.push index (Chunk_value value);
-                  if context.pending = 0 then context.close ();
-                  Lwt.return ());
-              Lwt.return (`String (lazy_value index)))
-      | Suspense { key; children; fallback } -> (
-          (* TODO: There's suttle difference between Suspense being at the root and not, probably need to handle it. Not very common case, though *)
-          (* TODO: Maybe we need to push suspense index and suspense node separately *)
-          (* TODO: Add try catch for fallback *)
-          let%lwt fallback = turn_element_into_payload ~context fallback in
-          match%lwt turn_element_into_payload ~context children with
-          | children -> Lwt.return (suspense_node ~key ~fallback [ children ])
+              if is_root.contents then (
+                is_root := false;
+                turn_element_into_payload ~context element)
+              else
+                let index = use_chunk_id context in
+                (* Instead of returning the payload directly, we push the result into the stream, and return the reference directly. This is how `react-server-dom-xxx/server` renderToPipeableStream works *)
+                context.push index (Chunk_value (turn_element_into_payload ~context element));
+                `String (ref_value index)
           | exception exn ->
               let index = use_chunk_id context in
               let message = Printexc.to_string exn in
               let stack = create_stack_trace () in
               let error_json = exn_to_json ~env:context.env ~message ~stack ~digest:"" in
               context.push index (Chunk_error error_json);
-              Lwt.return (suspense_placeholder ~key ~fallback index))
+              `String (lazy_value index))
+      | Async_component (_, component) -> (
+          (* TODO: Need to check for is_root? *)
+          let promise = component () in
+          match Lwt.state promise with
+          | Fail exn ->
+              let index = use_chunk_id context in
+              let message = Printexc.to_string exn in
+              let stack = create_stack_trace () in
+              let error_json = exn_to_json ~env:context.env ~message ~stack ~digest:"" in
+              context.push index (Chunk_error error_json);
+              `String (lazy_value index)
+          | Return element -> turn_element_into_payload ~context element
+          | Sleep ->
+              let index = use_chunk_id context in
+              context.pending <- context.pending + 1;
+              Lwt.async (fun () ->
+                  try%lwt
+                    let%lwt element = promise in
+                    context.pending <- context.pending - 1;
+                    context.push index (Chunk_value (turn_element_into_payload ~context element));
+                    if context.pending = 0 then context.close ();
+                    Lwt.return ()
+                  with exn ->
+                    context.push index (Chunk_value (`Assoc [ ("error", `String (Printexc.to_string exn)) ]));
+                    (* if context.pending = 0 then context.close (); *)
+                    Lwt.return ());
+              `String (lazy_value index))
+      | Suspense { key; children; fallback } ->
+          (* TODO: Need to check for is_root? *)
+          (* TODO: Maybe we need to push suspense index and suspense node separately *)
+          let fallback = turn_element_into_payload ~context fallback in
+          suspense_node ~key ~fallback [ turn_element_into_payload ~context children ]
       | Client_component { import_module; import_name; props; client = _ } ->
           let id = use_chunk_id context in
           let ref = component_ref ~module_:import_module ~name:import_name in
           context.push id (Chunk_component_ref ref);
-          let%lwt client_props = client_values_to_json ~context props in
-          Lwt.return (node ~tag:(ref_value id) ~key:None ~props:client_props [])
+          let client_props = client_values_to_json ~context props in
+          node ~tag:(ref_value id) ~key:None ~props:client_props []
       (* TODO: Dow we need to do anything with Provider and Consumer? *)
       | Provider children -> turn_element_into_payload ~context children
       | Consumer children -> turn_element_into_payload ~context children
@@ -285,23 +308,23 @@ module Model = struct
 
   and client_value_to_json ~context value =
     match (value : React.client_value) with
-    | Json json -> Lwt.return json
+    | Json json -> json
     | Error error ->
         let chunk_id = use_chunk_id context in
-        let error_json = exn_to_json ~env:context.env ~message:error.message ~stack:error.stack ~digest:error.digest in
+        let error_json = error_to_json ~env:context.env error in
         context.push chunk_id (Chunk_error error_json);
-        Lwt.return (`String (error_value context.chunk_id))
+        `String (error_value context.chunk_id)
     | Element element ->
-        (* TODO: Do I need to push this client_ref? (What if it's a client_ref?) In case of server, no need to do anything I guess *)
+        (* TODO: Probably a silly question, but do I need to push this client_ref? (What if it's a client_ref?) In case of server, no need to do anything I guess *)
         element_to_payload ~context element
     | Promise (promise, value_to_json) -> (
         match Lwt.state promise with
         | Return value ->
             let chunk_id = use_chunk_id context in
             let json = value_to_json value in
-            (* TODO: Make sure if there's any reason we need a chunk here or we can inline the promise_value *)
+            (* TODO: Make sure why we need a chunk here *)
             context.push context.chunk_id (Chunk_value json);
-            Lwt.return (`String (promise_value chunk_id))
+            `String (promise_value chunk_id)
         | Sleep ->
             let chunk_id = use_chunk_id context in
             context.pending <- context.pending + 1;
@@ -312,20 +335,20 @@ module Model = struct
                 context.push chunk_id (Chunk_value json);
                 if context.pending = 0 then context.close ();
                 Lwt.return ());
-            Lwt.return (`String (promise_value chunk_id))
+            `String (promise_value chunk_id)
         | Fail exn ->
             (* TODO: Can we check if raise is good heres? *)
             raise exn)
     | Function action ->
         let chunk_id = use_chunk_id context in
         context.push chunk_id (Chunk_value (`Assoc [ ("id", `String action.id); ("bound", `Null) ]));
-        Lwt.return (`String (action_value chunk_id))
+        `String (action_value chunk_id)
 
   and client_values_to_json ~context props =
-    Lwt_list.map_p
+    List.map
       (fun (name, value) ->
-        let%lwt json = client_value_to_json ~context value in
-        Lwt.return (name, json))
+        let jsonValue = client_value_to_json ~context value in
+        (name, jsonValue))
       props
 
   let render ?(env = `Dev) ?(debug = false) ?subscribe element =
@@ -340,18 +363,7 @@ module Model = struct
     in
     let context : stream_context = { push = push_chunk; close; chunk_id = initial_chunk_id; pending = 0; debug; env } in
     let initial_chunk_id = get_chunk_id context in
-    let%lwt () =
-      match%lwt element_to_payload ~context element with
-      | value ->
-          context.push initial_chunk_id (Chunk_value value);
-          Lwt.return ()
-      | exception exn ->
-          let message = Printexc.to_string exn in
-          let stack = create_stack_trace () in
-          let error_json = exn_to_json ~env ~message ~stack ~digest:"" in
-          context.push initial_chunk_id (Chunk_error error_json);
-          Lwt.return ()
-    in
+    context.push initial_chunk_id (Chunk_value (element_to_payload ~context element));
     if context.pending = 0 then context.close ();
     (* TODO: Currently returns the stream because of testing *)
     match subscribe with
@@ -361,7 +373,7 @@ module Model = struct
         Lwt.return ()
 
   let create_action_response ?(env = `Dev) ?(debug = false) ?subscribe response =
-    let%lwt response = try%lwt response with exn -> Lwt.return (make_client_value_error exn) in
+    let%lwt response = try%lwt response with exn -> Lwt.return (exn_to_error exn) in
     let initial_chunk_id = 0 in
     let stream, push, close = Push_stream.make () in
     let push_chunk id chunk =
@@ -373,7 +385,7 @@ module Model = struct
     in
     let context = { push = push_chunk; close; chunk_id = initial_chunk_id; pending = 0; debug; env } in
     let initial_chunk_id = get_chunk_id context in
-    let%lwt json = client_value_to_json ~context response in
+    let json = client_value_to_json ~context response in
     context.push initial_chunk_id (Chunk_value json);
     if context.pending = 0 then context.close ();
     match subscribe with
@@ -423,10 +435,6 @@ let chunk_html_script index html =
     ]
 
 let html_suspense_immediate inner = Html.list [ Html.raw "<!--$-->"; inner; Html.raw "<!--/$-->" ]
-
-(* let html_suspense_error ~fallback ~exn:_ =
-  (* exn could be used for data-msg if client JS uses it *)
-  Html.list [ Html.raw "<!--$!-->"; fallback; Html.raw "<!--/$-->" ] *)
 
 let html_suspense_placeholder ~fallback id =
   Html.list
@@ -529,7 +537,6 @@ let rec to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * j
         Fiber.push_hoisted_head ~fiber html_attributes html;
         Lwt.return (Html.null, `Null))
       else if fiber.is_root_html_node && is_a_head_child_tag tag then (
-        (* in case of finding a head-like element, we need to hoist it to the top of the document, and avoid rendering it in the current node *)
         let html_props = List.map ReactDOM.attribute_to_html attributes in
         let%lwt children, _ = elements_to_html ~fiber children in
         let html = Html.node tag html_props [ children ] in
@@ -588,9 +595,7 @@ let rec to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * j
             | Error error ->
                 let context = Fiber.get_context fiber in
                 let index = Fiber.use_index fiber in
-                let error_json =
-                  Model.exn_to_json ~env:context.env ~message:error.message ~stack:error.stack ~digest:error.digest
-                in
+                let error_json = Model.error_to_json ~env:context.env error in
                 context.push (error_chunk_script index error_json);
                 Lwt.return (name, `String (Model.error_value index))
             | Function action ->

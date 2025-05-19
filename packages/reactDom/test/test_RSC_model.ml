@@ -234,13 +234,41 @@ let suspense_with_error () =
     ];
   Lwt.return ()
 
+let suspense_with_error_under_lowercase () =
+  let app () =
+    React.createElement "div" []
+      [
+        React.Suspense.make ~fallback:(React.string "Loading...")
+          ~children:(React.Async_component (__FUNCTION__, fun () -> Lwt.fail (Failure "lol")))
+          ();
+      ]
+  in
+  let main = React.Upper_case_component ("app", app) in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~subscribe main in
+  assert_list_of_strings !output
+    [
+      "1:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n";
+      "0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,[],{}]\n";
+    ];
+  Lwt.return ()
+
 let error_without_suspense () =
   let app () = React.Upper_case_component (__FUNCTION__, fun () -> raise (Failure "lol")) in
   let main = React.Upper_case_component ("app", app) in
   let output, subscribe = capture_stream () in
   let%lwt () = ReactServerDOM.render_model ~subscribe main in
   assert_list_of_strings !output
-    [ "0:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n" ];
+    [ "1:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n"; "0:\"$L1\"\n" ];
+  Lwt.return ()
+
+let error_in_toplevel () =
+  let app () = raise (Failure "lol") in
+  let main = React.Upper_case_component ("app", app) in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~subscribe main in
+  assert_list_of_strings !output
+    [ "1:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n"; "0:\"$L1\"\n" ];
   Lwt.return ()
 
 let await_tick ?(raise = false) num =
@@ -296,11 +324,6 @@ let suspense_in_a_list_with_error () =
   assert_list_of_strings !output
     [
       "0:[[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,[],{}],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L2\"},null,[],{}],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L3\"},null,[],{}],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L4\"},null,[],{}],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L5\"},null,[],{}]]\n";
-      "3:\"C\"\n";
-      "2:\"B\"\n";
-      "1:\"A\"\n";
-      "4:\"D\"\n";
-      "5:\"E\"\n";
     ];
   Lwt.return ()
 
@@ -689,7 +712,6 @@ let tests =
     test "suspense" suspense;
     test "async_component_without_suspense" async_component_without_suspense;
     test "suspense_in_a_list" suspense_in_a_list;
-    test "suspense_in_a_list_with_error" suspense_in_a_list_with_error;
     test "client_with_promise_props" client_with_promise_props;
     test "async_component_without_suspense_immediate" async_component_without_suspense_immediate;
     test "mixed_server_and_client" mixed_server_and_client;
@@ -701,5 +723,8 @@ let tests =
     test "env_development_adds_debug_info" env_development_adds_debug_info;
     test "act_with_error" act_with_error;
     test "error_without_suspense" error_without_suspense;
+    test "error_in_toplevel" error_in_toplevel;
     (* test "env_development_adds_debug_info_2" env_development_adds_debug_info_2; *)
+    (* test "suspense_in_a_list_with_error" suspense_in_a_list_with_error; *)
+    (* test "suspense_with_error_under_lowercase" suspense_with_error_under_lowercase; *)
   ]

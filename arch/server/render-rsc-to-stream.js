@@ -29,14 +29,42 @@ const debug = (readableStream) => {
 const sleep = (seconds) =>
 	new Promise((res) => setTimeout(res, seconds * 1000));
 
+const reject = (_) =>
+	new Promise((_res, rej) => { return rej(0) });
+
 const AlwaysError = () => {
 	throw new Error("lol");
 };
 
+let Await_tick = async ({ num }) => {
+	if (num === "C") {
+		await reject();
+	}
+	await sleep(Math.random() * 10);
+	return num
+}
+
+const Raise = () => {
+	throw new Error("lol");
+};
+
 const App = () => (
-	<React.Suspense fallback="Fallback 1">
-		<AlwaysError />
-	</React.Suspense>
+	<div>
+		<Raise num="C" />
+	</div>
+	/* 	<main>
+			<React.Suspense fallback="Fallback 1">
+			</React.Suspense>
+			<React.Suspense fallback="Fallback 2">
+				<Await_tick num="B" />
+			</React.Suspense>
+			<React.Suspense fallback="Fallback 3">
+				<Await_tick num="C" />
+			</React.Suspense>
+			<React.Suspense fallback="Fallback 4">
+				<Await_tick num="D" />
+			</React.Suspense>
+		</main> */
 );
 
 const { pipe } = renderToPipeableStream(<App />);
