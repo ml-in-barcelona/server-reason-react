@@ -291,7 +291,6 @@ module Model = struct
                     let error_json = exn_to_json ~env:context.env ~message ~stack ~digest:"" in
                     context.push index (Chunk_error error_json);
                     context.pending <- context.pending - 1;
-                    (* if context.pending = 0 then context.close (); *)
                     Lwt.return ());
               `String (lazy_value index))
       | Suspense { key; children; fallback } ->
@@ -483,7 +482,6 @@ let rec client_to_html ~fiber (element : React.element) =
       (* TODO: Do we need to care if there's Any_promise raising ? *)
       let%lwt fallback = client_to_html ~fiber fallback in
       let context = Fiber.get_context fiber in
-      let _finished, parent_done = Lwt.wait () in
       let index = Fiber.use_index fiber in
       let async = children |> client_to_html ~fiber |> Lwt.map (chunk_html_script index) in
       let sync = html_suspense_placeholder ~fallback index in
@@ -493,7 +491,6 @@ let rec client_to_html ~fiber (element : React.element) =
           let%lwt () = fiber.finished in
           let%lwt html = async in
           context.push html;
-          Lwt.wakeup_later parent_done ();
           context.pending <- context.pending - 1;
           if context.pending = 0 then context.close ();
           Lwt.return ());
@@ -577,7 +574,6 @@ let rec to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * j
                 Lwt.return (name, model)
             | Promise (promise, value_to_json) ->
                 let context = Fiber.get_context fiber in
-                let _finished, parent_done = Lwt.wait () in
                 let index = Fiber.use_index fiber in
                 let sync = (name, `String (Model.promise_value index)) in
                 let async : Html.element Lwt.t =
@@ -591,7 +587,6 @@ let rec to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * j
                     let%lwt () = fiber.finished in
                     let%lwt html = async in
                     context.push html;
-                    Lwt.wakeup_later parent_done ();
                     context.pending <- context.pending - 1;
                     if context.pending = 0 then context.close ();
                     Lwt.return ());
