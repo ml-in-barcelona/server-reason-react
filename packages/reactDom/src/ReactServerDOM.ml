@@ -26,8 +26,8 @@ let create_stack_trace () =
 let exn_to_error exn =
   let message = Printexc.to_string exn in
   let stack = create_stack_trace () in
-  (* TODO: Improve it to be an UUID *)
-  let digest = stack |> Yojson.Basic.to_string |> Hashtbl.hash |> string_of_int in
+  (* TODO: digest s *)
+  let digest = stack |> Yojson.Basic.to_string |> Hashtbl.hash |> Int.to_string in
   React.Error { message; stack; env = "Server"; digest }
 
 module Fiber = struct
