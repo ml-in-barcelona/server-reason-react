@@ -23,7 +23,7 @@ let create_stack_trace () =
        stack
     |> Array.to_list)
 
-let exn_to_error exn =
+let make_client_value_error exn =
   let message = Printexc.to_string exn in
   let stack = create_stack_trace () in
   (* TODO: digest could be a UUID, but in react.js those errors point to the documentation. We don't have a setup like theirs for this. Maybe we should use their codes.json? *)
@@ -84,7 +84,7 @@ module Model = struct
   let get_chunk_id context = context.chunk_id
   let style_to_json style = `Assoc (List.map (fun (_, jsxKey, value) -> (jsxKey, `String value)) style)
 
-  let error_to_json ~env ~message ~stack ~digest : json =
+  let exn_to_json ~env ~message ~stack ~digest : json =
     match is_dev env with
     | true ->
         `Assoc [ ("message", `String message); ("stack", stack); ("env", `String "Server"); ("digest", `String digest) ]
@@ -258,11 +258,11 @@ module Model = struct
           (* TODO: Add try catch for fallback *)
           let fallback = turn_element_into_payload ~context fallback in
           try suspense_node ~key ~fallback [ turn_element_into_payload ~context children ]
-          with _exn ->
+          with exn ->
             let index = use_chunk_id context in
-            let error_json =
-              error_to_json ~env:context.env ~message:"Error" ~stack:(create_stack_trace ()) ~digest:""
-            in
+            let message = Printexc.to_string exn in
+            let stack = create_stack_trace () in
+            let error_json = exn_to_json ~env:context.env ~message ~stack ~digest:"" in
             context.push index (Chunk_error error_json);
             suspense_placeholder ~key ~fallback index)
       | Client_component { import_module; import_name; props; client = _ } ->
@@ -282,9 +282,7 @@ module Model = struct
     | Json json -> json
     | Error error ->
         let chunk_id = use_chunk_id context in
-        let error_json =
-          error_to_json ~env:context.env ~message:error.message ~stack:error.stack ~digest:error.digest
-        in
+        let error_json = exn_to_json ~env:context.env ~message:error.message ~stack:error.stack ~digest:error.digest in
         context.push chunk_id (Chunk_error error_json);
         `String (error_value context.chunk_id)
     | Element element ->
@@ -336,7 +334,13 @@ module Model = struct
     in
     let context : stream_context = { push = push_chunk; close; chunk_id = initial_chunk_id; pending = 0; debug; env } in
     let initial_chunk_id = get_chunk_id context in
-    context.push initial_chunk_id (Chunk_value (element_to_payload ~context element));
+    (match element_to_payload ~context element with
+    | value -> context.push initial_chunk_id (Chunk_value value)
+    | exception exn ->
+        let message = Printexc.to_string exn in
+        let stack = create_stack_trace () in
+        let error_json = exn_to_json ~env ~message ~stack ~digest:"" in
+        context.push initial_chunk_id (Chunk_error error_json));
     if context.pending = 0 then context.close ();
     (* TODO: Currently returns the stream because of testing *)
     match subscribe with
@@ -346,7 +350,7 @@ module Model = struct
         Lwt.return ()
 
   let create_action_response ?(env = `Dev) ?(debug = false) ?subscribe response =
-    let%lwt response = try%lwt response with exn -> Lwt.return (exn_to_error exn) in
+    let%lwt response = try%lwt response with exn -> Lwt.return (make_client_value_error exn) in
     let initial_chunk_id = 0 in
     let stream, push, close = Push_stream.make () in
     let push_chunk id chunk =
@@ -574,7 +578,7 @@ let rec to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * j
                 let context = Fiber.get_context fiber in
                 let index = Fiber.use_index fiber in
                 let error_json =
-                  Model.error_to_json ~env:context.env ~message:error.message ~stack:error.stack ~digest:error.digest
+                  Model.exn_to_json ~env:context.env ~message:error.message ~stack:error.stack ~digest:error.digest
                 in
                 context.push (error_chunk_script index error_json);
                 Lwt.return (name, `String (Model.error_value index))
