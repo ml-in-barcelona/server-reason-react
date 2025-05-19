@@ -247,6 +247,7 @@ module Model = struct
                 context.push index (Debug_info_map debug_info_ref);
                 ());
 
+              (* TODO: Can we remove the is_root difference. It currently align with react.js behavior, but it's not clear what is the purpose of it *)
               if is_root.contents then (
                 is_root := false;
                 turn_element_into_payload ~context element)
@@ -626,7 +627,7 @@ let rec to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * j
       let _finished, parent_done = Lwt.wait () in
       let promise = to_html ~fiber children in
       match Lwt.state promise with
-      | Lwt.Sleep ->
+      | Sleep ->
           let index = Fiber.use_index fiber in
           context.pending <- context.pending + 1;
           fiber.emit_html <- (fun html -> context.push html);
@@ -642,7 +643,7 @@ let rec to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * j
           Lwt.return
             ( html_suspense_placeholder ~fallback:html_fallback index,
               Model.suspense_placeholder ~key ~fallback:model_fallback index )
-      | Lwt.Return (html, model) ->
+      | Return (html, model) ->
           let model = Model.suspense_node ~key ~fallback:model_fallback [ model ] in
           Lwt.wakeup_later parent_done ();
           Lwt.return (html_suspense_immediate html, model)
