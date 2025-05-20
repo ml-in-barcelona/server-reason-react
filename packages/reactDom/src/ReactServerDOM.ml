@@ -503,10 +503,10 @@ let rec client_to_html ~fiber (element : React.element) =
 
 and render_lower_case ~fiber ~key:_ ~tag ~attributes ~children =
   if Html.is_self_closing_tag tag then
-    let html_props = List.map ReactDOM.attribute_to_html attributes in
+    let html_props = ReactDOM.attributes_to_html attributes in
     Lwt.return (Html.node tag html_props [])
   else
-    let html_props = List.map ReactDOM.attribute_to_html attributes in
+    let html_props = ReactDOM.attributes_to_html attributes in
     let children = ReactDOM.moveDangerouslyInnerHtmlAsChildren attributes children in
     let%lwt html = children |> Lwt_list.map_p (client_to_html ~fiber) in
     Lwt.return (Html.node tag html_props html)
@@ -532,14 +532,14 @@ let rec to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * j
       to_html ~fiber (component ())
   | Lower_case_element { key; tag; attributes; children } ->
       if fiber.is_root_html_node && tag = "head" then (
-        (* in case of finding a head element, we need to hoist it to the top of the document, and avoid rendering it in the current node *)
-        let html_attributes = List.map ReactDOM.attribute_to_html attributes in
+        (* in case of a head element, we hoist it to the top of the document, and avoid rendering it in the current node *)
+        let html_attributes = ReactDOM.attributes_to_html attributes in
         let%lwt html_and_json = children |> Lwt_list.map_p (to_html ~fiber) in
         let html = List.map (fun (html, _) -> html) html_and_json in
         Fiber.push_hoisted_head ~fiber html_attributes html;
         Lwt.return (Html.null, `Null))
       else if fiber.is_root_html_node && is_a_head_child_tag tag then (
-        let html_props = List.map ReactDOM.attribute_to_html attributes in
+        let html_props = ReactDOM.attributes_to_html attributes in
         let%lwt children, _ = elements_to_html ~fiber children in
         let html = Html.node tag html_props [ children ] in
         Fiber.push_hoisted_head_childrens ~fiber html;
@@ -550,12 +550,12 @@ let rec to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * j
       else
         let children = ReactDOM.moveDangerouslyInnerHtmlAsChildren attributes children in
         if Html.is_self_closing_tag tag then
-          let html_props = List.map ReactDOM.attribute_to_html attributes in
+          let html_props = ReactDOM.attributes_to_html attributes in
           let json_props = Model.props_to_json attributes in
           let empty_children = (* there's no children for self closing tags *) [] in
           Lwt.return (Html.node tag html_props empty_children, Model.node ~tag ~key ~props:json_props empty_children)
         else
-          let html_props = List.map ReactDOM.attribute_to_html attributes in
+          let html_props = ReactDOM.attributes_to_html attributes in
           let json_props = Model.props_to_json attributes in
           let%lwt html, model = elements_to_html ~fiber children in
           Lwt.return (Html.node tag html_props [ html ], Model.node ~tag ~key ~props:json_props [ model ])
