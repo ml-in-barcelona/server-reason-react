@@ -22,13 +22,12 @@ let create_stack_trace () =
   `List (Array.to_list (Array.map make_locations slots))
 
 module Fiber = struct
-  type[@warning "-69"] context = {
+  type context = {
     mutable index : int;
     mutable pending : int;
     push : Html.element -> unit;
     close : unit -> unit;
     env : env;
-    debug : bool;
   }
 
   (* TODO: What should we do with captured attributes, merge them? ignore them? Right now we just capture one head element *)
@@ -36,12 +35,9 @@ module Fiber = struct
 
   type t = {
     context : context;
-    finished : unit Lwt.t;
     is_root_html_node : bool;
     mutable hoisted_head : hoisted_head option;
     mutable hoisted_head_childrens : Html.element list;
-    (* QUESTION: Why do I need emit_html to be mutable? *)
-    mutable emit_html : Html.element -> unit;
   }
 
   let push_hoisted_head ~fiber html_attributes children = fiber.hoisted_head <- Some (html_attributes, children)
@@ -475,9 +471,7 @@ let rec client_to_html ~fiber (element : React.element) =
       let async = children |> client_to_html ~fiber |> Lwt.map (chunk_html_script index) in
       let sync = html_suspense_placeholder ~fallback index in
       context.pending <- context.pending + 1;
-      fiber.emit_html <- (fun html -> context.push html);
       Lwt.async (fun () ->
-          let%lwt () = fiber.finished in
           let%lwt html = async in
           context.push html;
           context.pending <- context.pending - 1;
@@ -553,7 +547,6 @@ let rec to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * j
       to_html ~fiber element
   | Client_component { import_module; import_name; props; client } ->
       let context = Fiber.get_context fiber in
-      fiber.emit_html <- (fun html -> context.push html);
       let lwt_props =
         Lwt_list.map_p
           (fun (name, value) ->
@@ -562,7 +555,6 @@ let rec to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * j
                 let%lwt _html, model = to_html ~fiber element in
                 Lwt.return (name, model)
             | Promise (promise, value_to_json) ->
-                let context = Fiber.get_context fiber in
                 let index = Fiber.use_index fiber in
                 let sync = (name, `String (Model.promise_value index)) in
                 let async : Html.element Lwt.t =
@@ -573,7 +565,6 @@ let rec to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * j
                 in
                 context.pending <- context.pending + 1;
                 Lwt.async (fun () ->
-                    let%lwt () = fiber.finished in
                     let%lwt html = async in
                     context.push html;
                     context.pending <- context.pending - 1;
@@ -582,7 +573,6 @@ let rec to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * j
                 Lwt.return sync
             | Json json -> Lwt.return (name, json)
             | Error error ->
-                let context = Fiber.get_context fiber in
                 let index = Fiber.use_index fiber in
                 let error_json =
                   Model.make_error_json ~env:context.env ~stack:error.stack ~message:error.message ~digest:error.digest
@@ -590,7 +580,6 @@ let rec to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * j
                 context.push (error_chunk_script index error_json);
                 Lwt.return (name, `String (Model.error_value index))
             | Function action ->
-                let context = Fiber.get_context fiber in
                 let index = Fiber.use_index fiber in
                 let html =
                   chunk_script (Model.model_to_chunk index (`Assoc [ ("id", `String action.id); ("bound", `Null) ]))
@@ -670,21 +659,14 @@ let push_children_into html new_children =
 (* TODO: Do we need to ensure chunks are of a certain minimum size but also maximum? Saw react caring about this *)
 (* TODO: Do we want to add a flag to disable ssr? Do we need to disable the model rendering or can we do it outside? *)
 (* TODO: Add all options from renderToReadableStream *)
-let render_html ?(env = `Dev) ?(debug = false) ?bootstrapScriptContent ?bootstrapScripts ?bootstrapModules element =
+let render_html ?(env = `Dev) ?debug:(_ = false) ?bootstrapScriptContent ?bootstrapScripts ?bootstrapModules element =
   let initial_index = 0 in
-  let htmls = ref [] in
-  (* TODO: Cleanup emit_html and use the push function directly? *)
-  let emit_html chunk = htmls := chunk :: !htmls in
   let stream, push, close = Push_stream.make () in
-  let context : Fiber.context = { push; close; pending = 1; index = initial_index; debug; env } in
-  let finished, parent_done = Lwt.wait () in
+  let context : Fiber.context = { push; close; pending = 1; index = initial_index; env } in
   let is_root_html_node = is_root_html_node element in
-  let fiber : Fiber.t =
-    { context; emit_html; finished; hoisted_head = None; hoisted_head_childrens = []; is_root_html_node }
-  in
+  let fiber : Fiber.t = { context; hoisted_head = None; hoisted_head_childrens = []; is_root_html_node } in
   let%lwt root_html, root_model = to_html ~fiber element in
   let root_chunk = client_value_chunk_script initial_index root_model in
-  Lwt.wakeup_later parent_done ();
   context.pending <- context.pending - 1;
   (* In case of not having any task pending, we can close the stream *)
   (match context.pending = 0 with

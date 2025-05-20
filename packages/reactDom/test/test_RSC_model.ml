@@ -756,7 +756,7 @@ let tests =
     test "error_without_suspense" error_without_suspense;
     test "error_in_toplevel" error_in_toplevel;
     test "error_in_toplevel_in_async" error_in_toplevel_in_async;
-    (* test "env_development_adds_debug_info_2" env_development_adds_debug_info_2; *)
     test "suspense_in_a_list_with_error" suspense_in_a_list_with_error;
     test "suspense_with_error_under_lowercase" suspense_with_error_under_lowercase;
+    (* test "env_development_adds_debug_info_2" env_development_adds_debug_info_2; *)
   ]

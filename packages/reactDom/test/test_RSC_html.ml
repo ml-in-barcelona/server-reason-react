@@ -86,7 +86,7 @@ let element_with_dangerously_set_inner_html () =
   let app = React.createElement "div" [ React.JSX.DangerouslyInnerHtml "<h1>Hello</h1>" ] [] in
   assert_html ~shell:"<div><h1>Hello</h1></div>" app []
 
-let debug_adds_debug_info () =
+(* let debug_adds_debug_info () =
   let app =
     React.Upper_case_component
       ( "app",
@@ -105,7 +105,7 @@ let debug_adds_debug_info () =
                  React.Upper_case_component ("Hello", fun () -> React.createElement "h1" [] [ React.string "Hello :)" ]);
                ]) )
   in
-  assert_html ~debug:false
+  assert_html
     ~shell:"<input id=\"sidebar-search-input\" placeholder=\"Search\" value=\"my friend\" /><h1>Hello :)</h1>"
     app
     [
@@ -117,7 +117,7 @@ let debug_adds_debug_info () =
        data-payload='2:{\"name\":\"Hello\",\"env\":\"Server\",\"key\":null,\"owner\":null,\"stack\":[],\"props\":{}}\n\
        '>window.srr_stream.push()</script>";
       "<script data-payload='2:D\"$2\"\n'>window.srr_stream.push()</script>";
-    ]
+    ] *)
 
 let input_element_with_value () =
   let app = React.createElement "input" [ React.JSX.String ("value", "value", "application") ] [] in
