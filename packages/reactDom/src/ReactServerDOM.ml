@@ -4,31 +4,22 @@ type env = [ `Dev | `Prod ]
 let is_dev = function `Dev -> true | `Prod -> false
 
 let create_stack_trace () =
-  let stack = Printexc.backtrace_slots (Printexc.get_raw_backtrace ()) |> Option.value ~default:[||] in
-  `List
-    (Array.map
-       (fun slot ->
-         let location = Printexc.Slot.location slot in
-         let name = Printexc.Slot.name slot in
-         match (location, name) with
-         | Some location, Some name ->
-             `List
-               [
-                 `String (Printf.sprintf "[SERVER] %s" name);
-                 `String location.Printexc.filename;
-                 `Int location.Printexc.line_number;
-                 `Int location.Printexc.start_char;
-               ]
-         | _, _ -> `List [ `String "Unknown function name"; `String "Unknown filename"; `Int 0; `Int 0 ])
-       stack
-    |> Array.to_list)
-
-let exn_to_error exn =
-  let message = Printexc.to_string exn in
-  let stack = create_stack_trace () in
-  (* TODO: Improve it to be an UUID *)
-  let digest = stack |> Yojson.Basic.to_string |> Hashtbl.hash |> string_of_int in
-  React.Error { message; stack; env = "Server"; digest }
+  let slots = Printexc.backtrace_slots (Printexc.get_raw_backtrace ()) |> Option.value ~default:[||] in
+  let make_locations slot =
+    let location = Printexc.Slot.location slot in
+    let name = Printexc.Slot.name slot in
+    match (location, name) with
+    | Some location, Some name ->
+        `List
+          [
+            `String (Printf.sprintf "[SERVER] %s" name);
+            `String location.Printexc.filename;
+            `Int location.Printexc.line_number;
+            `Int location.Printexc.start_char;
+          ]
+    | _, _ -> `List [ `String "Unknown function name"; `String "Unknown filename"; `Int 0; `Int 0 ]
+  in
+  `List (Array.to_list (Array.map make_locations slots))
 
 module Fiber = struct
   type[@warning "-69"] context = {
@@ -82,9 +73,9 @@ module Model = struct
     context.chunk_id
 
   let get_chunk_id context = context.chunk_id
-  let style_to_json style = `Assoc (List.map (fun (_, jsxKey, value) -> (jsxKey, `String value)) style)
+  let style_to_json style = `Assoc (List.map (fun (_, jsx_key, value) -> (jsx_key, `String value)) style)
 
-  let exn_to_json ~env ~message ~stack ~digest : json =
+  let make_error_json ~env ~message ~stack ~digest : json =
     match is_dev env with
     | true ->
         `Assoc [ ("message", `String message); ("stack", stack); ("env", `String "Server"); ("digest", `String digest) ]
@@ -95,22 +86,10 @@ module Model = struct
     *)
     | false -> `Assoc [ ("digest", `String digest) ]
 
-  let error_to_json ~env (error : React.error) =
-    match is_dev env with
-    | true ->
-        `Assoc
-          [
-            ("message", `String error.message);
-            ("stack", error.stack);
-            ("env", `String error.env);
-            ("digest", `String error.digest);
-          ]
-    (*
-      In prod we don't emit any information about this Error object to avoid
-      unintentional leaks. Use the digest to identify the registered error.
-      REF: https://github.com/facebook/react/blob/e81fcfe3f201a8f626e892fb52ccbd0edba627cb/packages/react-client/src/ReactFlightClient.js#L2086-L2101
-    *)
-    | false -> `Assoc [ ("digest", `String error.digest) ]
+  let exn_to_error ~env exn =
+    let message = Printexc.to_string exn in
+    let stack = create_stack_trace () in
+    make_error_json ~env ~message ~stack ~digest:""
 
   let lazy_value id = Printf.sprintf "$L%x" id
   let promise_value id = Printf.sprintf "$@%x" id
@@ -258,9 +237,7 @@ module Model = struct
                 `String (ref_value index)
           | exception exn ->
               let index = use_chunk_id context in
-              let message = Printexc.to_string exn in
-              let stack = create_stack_trace () in
-              let error_json = exn_to_json ~env:context.env ~message ~stack ~digest:"" in
+              let error_json = exn_to_error ~env:context.env exn in
               context.push index (Chunk_error error_json);
               `String (lazy_value index))
       | Async_component (_, component) -> (
@@ -271,7 +248,7 @@ module Model = struct
               let index = use_chunk_id context in
               let message = Printexc.to_string exn in
               let stack = create_stack_trace () in
-              let error_json = exn_to_json ~env:context.env ~message ~stack ~digest:"" in
+              let error_json = make_error_json ~env:context.env ~message ~stack ~digest:"" in
               context.push index (Chunk_error error_json);
               `String (lazy_value index)
           | Return element -> turn_element_into_payload ~context element
@@ -288,13 +265,13 @@ module Model = struct
                   with exn ->
                     let message = Printexc.to_string exn in
                     let stack = create_stack_trace () in
-                    let error_json = exn_to_json ~env:context.env ~message ~stack ~digest:"" in
+                    let error_json = make_error_json ~env:context.env ~message ~stack ~digest:"" in
                     context.push index (Chunk_error error_json);
                     context.pending <- context.pending - 1;
                     Lwt.return ());
               `String (lazy_value index))
       | Suspense { key; children; fallback } ->
-          (* TODO: Need to check for is_root? *)
+          (* TODO: Need to check is_root? *)
           (* TODO: Maybe we need to push suspense index and suspense node separately *)
           let fallback = turn_element_into_payload ~context fallback in
           suspense_node ~key ~fallback [ turn_element_into_payload ~context children ]
@@ -315,7 +292,9 @@ module Model = struct
     | Json json -> json
     | Error error ->
         let chunk_id = use_chunk_id context in
-        let error_json = error_to_json ~env:context.env error in
+        let error_json =
+          make_error_json ~env:context.env ~message:error.message ~stack:error.stack ~digest:error.digest
+        in
         context.push chunk_id (Chunk_error error_json);
         `String (error_value context.chunk_id)
     | Element element ->
@@ -377,7 +356,15 @@ module Model = struct
         Lwt.return ()
 
   let create_action_response ?(env = `Dev) ?(debug = false) ?subscribe response =
-    let%lwt response = try%lwt response with exn -> Lwt.return (exn_to_error exn) in
+    let%lwt response =
+      try%lwt response
+      with exn ->
+        let message = Printexc.to_string exn in
+        let stack = create_stack_trace () in
+        (* TODO: Improve it to be an UUID *)
+        let digest = stack |> Yojson.Basic.to_string |> Hashtbl.hash |> Int.to_string in
+        Lwt.return (React.Error { message; stack; env = "Server"; digest })
+    in
     let initial_chunk_id = 0 in
     let stream, push, close = Push_stream.make () in
     let push_chunk id chunk =
@@ -467,7 +454,9 @@ let rec client_to_html ~fiber (element : React.element) =
         | exception React.Suspend (Any_promise promise) ->
             let%lwt _ = promise in
             wait_for_suspense_to_resolve ()
-        | exception _exn -> Lwt.return Html.null
+        | exception _exn ->
+            (* In case of exception do we want to render Html.empty? *)
+            Lwt.return Html.null
         | output ->
             (* TODO: Do we need to care about batching? *)
             client_to_html ~fiber output
@@ -595,7 +584,9 @@ let rec to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * j
             | Error error ->
                 let context = Fiber.get_context fiber in
                 let index = Fiber.use_index fiber in
-                let error_json = Model.error_to_json ~env:context.env error in
+                let error_json =
+                  Model.make_error_json ~env:context.env ~stack:error.stack ~message:error.message ~digest:error.digest
+                in
                 context.push (error_chunk_script index error_json);
                 Lwt.return (name, `String (Model.error_value index))
             | Function action ->

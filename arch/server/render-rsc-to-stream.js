@@ -36,18 +36,12 @@ const AlwaysError = () => {
 	throw new Error("lol");
 };
 
-let Await_tick = async ({ num }) => {
-	let wait = sleep(Math.random() * 10);
-	let value = await wait;
-	return value + num;
+let Await_tick = ({ num }) => {
+	return num
 }
 
 const App = () => (
-	<body>
-		<React.Suspense fallback="Fallback 1">
-			<Await_tick num="A" />
-		</React.Suspense>
-	</body>
+	<Await_tick num="A" />
 );
 
 const { pipe } = renderToPipeableStream(<App />);
