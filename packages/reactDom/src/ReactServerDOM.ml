@@ -472,6 +472,7 @@ let rec client_to_html ~fiber (element : React.element) =
       let sync = html_suspense_placeholder ~fallback index in
       context.pending <- context.pending + 1;
       Lwt.async (fun () ->
+          (* let%lwt () = fiber.finished in *)
           let%lwt html = async in
           context.push html;
           context.pending <- context.pending - 1;
@@ -565,6 +566,7 @@ let rec to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * j
                 in
                 context.pending <- context.pending + 1;
                 Lwt.async (fun () ->
+                    (* let%lwt () = fiber.finished in *)
                     let%lwt html = async in
                     context.push html;
                     context.pending <- context.pending - 1;

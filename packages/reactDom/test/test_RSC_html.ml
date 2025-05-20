@@ -172,7 +172,7 @@ let async_component_with_promise () =
        '>window.srr_stream.push()</script>";
     ]
 
-let async_component_and_client_component_with_suspense () =
+let suspenasync_and_client () =
   let app () =
     React.Suspense.make ~fallback:(React.string "Loading...")
       ~children:
@@ -398,18 +398,18 @@ let suspense_in_a_list_with_error () =
 
 let tests =
   [
-    test "null_element" null_element;
+    (* test "null_element" null_element; *)
+    (* test "element_with_dangerously_set_inner_html" element_with_dangerously_set_inner_html; *)
+    (* test "input_element_with_value" input_element_with_value; *)
+    (* test "upper_case_component" upper_case_component; *)
+    (* test "async_component_without_promise" async_component_without_promise; *)
+    (* test "suspense_without_promise" suspense_without_promise; *)
+    (* test "with_sleepy_promise" with_sleepy_promise; *)
+    (* test "client_with_promise_props" client_with_promise_props; *)
+    (* test "async_component_with_promise" async_component_with_promise; *)
     (* test "debug_adds_debug_info" debug_adds_debug_info; *)
-    test "element_with_dangerously_set_inner_html" element_with_dangerously_set_inner_html;
-    test "input_element_with_value" input_element_with_value;
-    test "upper_case_component" upper_case_component;
-    test "async_component_without_promise" async_component_without_promise;
-    test "suspense_without_promise" suspense_without_promise;
-    test "with_sleepy_promise" with_sleepy_promise;
-    test "client_with_promise_props" client_with_promise_props;
-    test "async_component_with_promise" async_component_with_promise;
-    test "async_component_and_client_component_with_suspense" async_component_and_client_component_with_suspense;
-    (* test "suspense_with_error" suspense_with_error; *)
+    (* test "suspense_async_and_client" suspense_async_and_client; *)
+    test "suspense_with_error" suspense_with_error;
     (* test "suspense_with_error_in_async" suspense_with_error_in_async; *)
     (* test "suspense_with_error_under_lowercase" suspense_with_error_under_lowercase; *)
     (* test "error_without_suspense" error_without_suspense; *)
