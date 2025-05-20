@@ -7,7 +7,7 @@ let assert_list (type a) (ty : a Alcotest.testable) (left : a list) (right : a l
 
 let assert_list_of_strings left right = Alcotest.check (Alcotest.list Alcotest.string) "should be equal" right left
 
-let lwt_sleep ~ms =
+let sleep ~ms =
   let%lwt () = Lwt_unix.sleep (Int.to_float ms /. 1000.0) in
   Lwt.return ()
 
@@ -15,7 +15,7 @@ let test title fn =
   let test_case _switch () =
     let start = Unix.gettimeofday () in
     let timeout =
-      let%lwt () = lwt_sleep ~ms:100 in
+      let%lwt () = sleep ~ms:100 in
       Alcotest.failf "Test '%s' timed out" title
     in
     let%lwt test_promise = Lwt.pick [ fn (); timeout ] in
@@ -204,7 +204,7 @@ let suspense_with_promise () =
         (React.Async_component
            ( "suspense_with_promise",
              fun () ->
-               let%lwt () = lwt_sleep ~ms:10 in
+               let%lwt () = sleep ~ms:10 in
                Lwt.return (React.string "lol") ))
       ()
   in
@@ -300,7 +300,7 @@ let await_tick ?(raise = false) num =
   React.Async_component
     ( "await_tick",
       fun () ->
-        let%lwt () = lwt_sleep ~ms:(Random.int 10) in
+        let%lwt () = sleep ~ms:(Random.int 10) in
         if raise then Lwt.fail (Failure "lol") else Lwt.return (React.string num) )
 
 let suspense_in_a_list () =
@@ -374,7 +374,7 @@ let suspense_with_immediate_promise () =
   Lwt.return ()
 
 let delayed_value ~ms value =
-  let%lwt () = lwt_sleep ~ms in
+  let%lwt () = sleep ~ms in
   Lwt.return value
 
 let suspense () =
