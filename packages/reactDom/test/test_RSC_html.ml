@@ -196,17 +196,16 @@ let suspenasync_and_client () =
   in
   assert_html (app ())
     ~shell:
-      ("<!--$?--><template id=\"B:1\"></template>Loading...<!--/$--><script "
-     ^ "data-payload='0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,[],{}]\n\
-        '" ^ ">window.srr_stream.push()</script>")
+      "<!--$?--><template id=\"B:1\"></template>Loading...<!--/$--><script \
+       data-payload='0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,[],{}]\n\
+       '>window.srr_stream.push()</script>"
     [
       "<script data-payload='2:I[\"./client-with-props.js\",[],\"\"]\n'>window.srr_stream.push()</script>";
-      "<div hidden=\"true\" id=\"S:1\"><span>Only the client<!-- -->Part of async component</span></div>\n"
-      ^ "<script>$RC('B:1', 'S:1')</script>";
-      "<script "
-      ^ "data-payload='1:[\"$\",\"span\",null,{\"children\":[[\"$\",\"$2\",null,{},null,[],{}],\"Part of async \
-         component\"]},null,[],{}]\n\
-         '" ^ ">window.srr_stream.push()</script>";
+      "<div hidden=\"true\" id=\"S:1\"><span>Only the client<!-- -->Part of async component</span></div>\n\
+       <script>$RC('B:1', 'S:1')</script>";
+      "<script data-payload='1:[\"$\",\"span\",null,{\"children\":[[\"$\",\"$2\",null,{},null,[],{}],\"Part of async \
+       component\"]},null,[],{}]\n\
+       '>window.srr_stream.push()</script>";
     ]
 
 let suspense_without_promise () =
@@ -230,16 +229,16 @@ let with_sleepy_promise () =
   in
   assert_html (app ())
     ~shell:
-      ("<!--$?--><template id=\"B:1\"></template>Loading...<!--/$--><script "
-     ^ "data-payload='0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,[],{}]\n\
-        '" ^ ">window.srr_stream.push()</script>")
+      "<!--$?--><template id=\"B:1\"></template>Loading...<!--/$--><script \
+       data-payload='0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,[],{}]\n\
+       '>window.srr_stream.push()</script>"
     [
-      "<div hidden=\"true\" id=\"S:1\"><div><section><article>Deep Server Content</article></section></div></div>\n"
-      ^ "<script>$RC('B:1', 'S:1')</script>";
-      "<script "
-      ^ "data-payload='1:[\"$\",\"div\",null,{\"children\":[[\"$\",\"section\",null,{\"children\":[[\"$\",\"article\",null,{\"children\":[\"Deep \
-         Server Content\"]},null,[],{}]]},null,[],{}]]},null,[],{}]\n\
-         '" ^ ">window.srr_stream.push()</script>";
+      "<div hidden=\"true\" id=\"S:1\"><div><section><article>Deep Server Content</article></section></div></div>\n\
+       <script>$RC('B:1', 'S:1')</script>";
+      "<script \
+       data-payload='1:[\"$\",\"div\",null,{\"children\":[[\"$\",\"section\",null,{\"children\":[[\"$\",\"article\",null,{\"children\":[\"Deep \
+       Server Content\"]},null,[],{}]]},null,[],{}]]},null,[],{}]\n\
+       '>window.srr_stream.push()</script>";
     ]
 
 let client_with_promise_props () =
@@ -302,9 +301,9 @@ let suspense_with_error_in_async () =
   let main = React.Upper_case_component ("app", app) in
   assert_html main
     ~shell:
-      ("<!--$?--><template id=\"B:1\"></template>Loading...<!--/$--><script "
-     ^ "data-payload='0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,[],{}]\n\
-        '" ^ ">window.srr_stream.push()</script>")
+      "<!--$?--><template id=\"B:1\"></template>Loading...<!--/$--><script \
+       data-payload='0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,[],{}]\n\
+       '>window.srr_stream.push()</script>"
     [
       "<script data-payload='1:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n\
        '>window.srr_stream.push()</script>";
@@ -322,9 +321,9 @@ let suspense_with_error_under_lowercase () =
   let main = React.Upper_case_component ("app", app) in
   assert_html main
     ~shell:
-      ("<div><!--$?--><template id=\"B:1\"></template>Loading...<!--/$--></div><script "
-     ^ "data-payload='0:[\"$\",\"div\",null,{\"children\":[[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,[],{}]]},null,[],{}]\n\
-        '" ^ ">window.srr_stream.push()</script>")
+      "<div><!--$?--><template id=\"B:1\"></template>Loading...<!--/$--></div><script \
+       data-payload='0:[\"$\",\"div\",null,{\"children\":[[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,[],{}]]},null,[],{}]\n\
+       '>window.srr_stream.push()</script>"
     [
       "<script data-payload='1:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n\
        '>window.srr_stream.push()</script>";
@@ -383,10 +382,10 @@ let suspense_in_a_list_with_error () =
   let main = React.Upper_case_component ("app", app) in
   assert_html main
     ~shell:
-      ("<!--$?--><template id=\"B:1\"></template>Loading...<!--/$--><!--$?--><template \
-        id=\"B:2\"></template>Loading...<!--/$--><!--$?--><template id=\"B:3\"></template>Loading...<!--/$--><script "
-     ^ "data-payload='0:[[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,[],{}],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L2\"},null,[],{}],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L3\"},null,[],{}]]\n\
-        '" ^ ">window.srr_stream.push()</script>")
+      "<!--$?--><template id=\"B:1\"></template>Loading...<!--/$--><!--$?--><template \
+       id=\"B:2\"></template>Loading...<!--/$--><!--$?--><template id=\"B:3\"></template>Loading...<!--/$--><script \
+       data-payload='0:[[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,[],{}],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L2\"},null,[],{}],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L3\"},null,[],{}]]\n\
+       '>window.srr_stream.push()</script>"
     [
       "<div hidden=\"true\" id=\"S:1\">A</div>\n<script>$RC('B:1', 'S:1')</script>";
       "<script data-payload='1:\"A\"\n'>window.srr_stream.push()</script>";
