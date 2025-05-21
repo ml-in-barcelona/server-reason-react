@@ -539,7 +539,10 @@ let rec to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * j
           (fun (name, value) ->
             match (value : React.client_value) with
             | Element element ->
+                let _index = Fiber.use_index fiber in
                 let%lwt _html, model = to_html ~fiber element in
+                (* TODO: https://github.com/ml-in-barcelona/server-reason-react/issues/250 *)
+                (* context.push (chunk_html_script index html); *)
                 Lwt.return (name, model)
             | Promise (promise, value_to_json) ->
                 let index = Fiber.use_index fiber in
@@ -552,7 +555,6 @@ let rec to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * j
                 in
                 context.pending <- context.pending + 1;
                 Lwt.async (fun () ->
-                    (* let%lwt () = fiber.finished in *)
                     let%lwt html = async in
                     context.push html;
                     context.pending <- context.pending - 1;
