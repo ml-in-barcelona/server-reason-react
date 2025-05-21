@@ -316,7 +316,7 @@ module Model = struct
                 Lwt.return ());
             `String (promise_value chunk_id)
         | Fail exn ->
-            (* TODO: Can we check if raise is good heres? *)
+            (* TODO: Make sure we make the error appear in the client *)
             raise exn)
     | Function action ->
         let chunk_id = use_chunk_id context in
@@ -324,11 +324,7 @@ module Model = struct
         `String (action_value chunk_id)
 
   and client_values_to_json ~context props =
-    List.map
-      (fun (name, value) ->
-        let jsonValue = client_value_to_json ~context value in
-        (name, jsonValue))
-      props
+    List.map (fun (name, value) -> (name, client_value_to_json ~context value)) props
 
   let render ?(env = `Dev) ?(debug = false) ?subscribe element =
     let initial_chunk_id = 0 in
@@ -344,12 +340,7 @@ module Model = struct
     let initial_chunk_id = get_chunk_id context in
     context.push initial_chunk_id (Chunk_value (element_to_payload ~context element));
     if context.pending = 0 then context.close ();
-    (* TODO: Currently returns the stream because of testing *)
-    match subscribe with
-    | None -> Lwt.return ()
-    | Some subscribe ->
-        let%lwt _ = Lwt_stream.iter_s subscribe stream in
-        Lwt.return ()
+    match subscribe with None -> Lwt.return () | Some subscribe -> Lwt_stream.iter_s subscribe stream
 
   let create_action_response ?(env = `Dev) ?(debug = false) ?subscribe response =
     let%lwt response =
@@ -375,11 +366,7 @@ module Model = struct
     let json = client_value_to_json ~context response in
     context.push initial_chunk_id (Chunk_value json);
     if context.pending = 0 then context.close ();
-    match subscribe with
-    | None -> Lwt.return ()
-    | Some subscribe ->
-        let%lwt _ = Lwt_stream.iter_s subscribe stream in
-        Lwt.return ()
+    match subscribe with None -> Lwt.return () | Some subscribe -> Lwt_stream.iter_s subscribe stream
 end
 
 let rsc_start_script =
@@ -468,11 +455,10 @@ let rec client_to_html ~fiber (element : React.element) =
       let%lwt fallback = client_to_html ~fiber fallback in
       let context = Fiber.get_context fiber in
       let index = Fiber.use_index fiber in
-      let async = children |> client_to_html ~fiber |> Lwt.map (chunk_html_script index) in
       let sync = html_suspense_placeholder ~fallback index in
+      let async = children |> client_to_html ~fiber |> Lwt.map (chunk_html_script index) in
       context.pending <- context.pending + 1;
       Lwt.async (fun () ->
-          (* let%lwt () = fiber.finished in *)
           let%lwt html = async in
           context.push html;
           context.pending <- context.pending - 1;
@@ -505,7 +491,7 @@ let rec to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * j
   | Fragment children -> to_html ~fiber children
   | List list -> elements_to_html ~fiber list
   | Array arr -> elements_to_html ~fiber (Array.to_list arr)
-  | Upper_case_component (_name, component) ->
+  | Upper_case_component (_name, component) -> (
       (* if debug then (
         let debug_info_index = Fiber.use_index fiber in
         let debug_info_ref : json = `String (Printf.sprintf "$%x" debug_info_index) in
@@ -594,26 +580,22 @@ let rec to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * j
       let%lwt () = Lwt.pause () in
       let index = Fiber.use_index fiber in
       let ref : json = Model.component_ref ~module_:import_module ~name:import_name in
-      fiber.emit_html (client_reference_chunk_script index ref);
+      context.push (client_reference_chunk_script index ref);
       let%lwt html, props = Lwt.both lwt_html lwt_props in
       let model = Model.node ~tag:(Model.ref_value index) ~key:None ~props [] in
       Lwt.return (html, model)
   | Suspense { key; children; fallback } -> (
+      let context = Fiber.get_context fiber in
       let%lwt html_fallback, model_fallback = to_html ~fiber fallback in
-      let context = fiber.context in
-      let _finished, parent_done = Lwt.wait () in
       let promise = to_html ~fiber children in
       match Lwt.state promise with
       | Sleep ->
           let index = Fiber.use_index fiber in
           context.pending <- context.pending + 1;
-          fiber.emit_html <- (fun html -> context.push html);
           Lwt.async (fun () ->
-              let%lwt () = fiber.finished in
               let%lwt html, model = promise in
               context.push (chunk_html_script index html);
               context.push (client_value_chunk_script index model);
-              Lwt.wakeup_later parent_done ();
               context.pending <- context.pending - 1;
               if context.pending = 0 then context.close ();
               Lwt.return ());
@@ -622,9 +604,8 @@ let rec to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * j
               Model.suspense_placeholder ~key ~fallback:model_fallback index )
       | Return (html, model) ->
           let model = Model.suspense_node ~key ~fallback:model_fallback [ model ] in
-          Lwt.wakeup_later parent_done ();
           Lwt.return (html_suspense_immediate html, model)
-      | Lwt.Fail exn -> Lwt.fail exn)
+      | Fail exn -> Lwt.fail exn)
   | Provider children -> to_html ~fiber children
   | Consumer children -> to_html ~fiber children
   (* TODO: There's a task to remove InnerHtml in ReactDOM and use Html.raw directly. Here is still unclear what do to since we assing dangerouslySetInnerHTML to the right prop on the model. Also, should this model be `Null? *)
