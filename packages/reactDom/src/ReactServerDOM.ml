@@ -38,6 +38,7 @@ module Fiber = struct
     is_root_html_node : bool;
     mutable hoisted_head : hoisted_head option;
     mutable hoisted_head_childrens : Html.element list;
+    mutable has_errors : bool;
   }
 
   let push_hoisted_head ~fiber html_attributes children = fiber.hoisted_head <- Some (html_attributes, children)
@@ -623,6 +624,7 @@ let rec to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * j
         let html = Html.list [ html_suspense_placeholder ~fallback:html_fallback index ] in
         context.push (error_chunk_script index error_json);
         context.push (chunk_html_script index Html.null);
+        fiber.has_errors <- true;
         Lwt.return (html, Model.suspense_placeholder ~key ~fallback:model_fallback index))
   | Provider children -> to_html ~fiber children
   | Consumer children -> to_html ~fiber children
@@ -665,7 +667,9 @@ let render_html ?(env = `Dev) ?debug:(_ = false) ?bootstrapScriptContent ?bootst
   let stream, push, close = Push_stream.make () in
   let context : Fiber.context = { push; close; pending = 1; index = initial_index; env } in
   let is_root_html_node = is_root_html_node element in
-  let fiber : Fiber.t = { context; hoisted_head = None; hoisted_head_childrens = []; is_root_html_node } in
+  let fiber : Fiber.t =
+    { context; hoisted_head = None; hoisted_head_childrens = []; is_root_html_node; has_errors = false }
+  in
   let%lwt root_html, root_model = to_html ~fiber element in
   let root_chunk = client_value_chunk_script initial_index root_model in
   context.pending <- context.pending - 1;
@@ -698,8 +702,9 @@ let render_html ?(env = `Dev) ?debug:(_ = false) ?bootstrapScriptContent ?bootst
         |> Html.list
   in
   let user_scripts =
-    (* TODO: Where rc_function and start_script should loaded only when there's pending tasks, not always? *)
-    [ rc_function_script; rsc_start_script; root_chunk; bootstrap_script_content; scripts; modules ]
+    if fiber.has_errors || context.pending <> 0 then
+      [ rc_function_script; rsc_start_script; root_chunk; bootstrap_script_content; scripts; modules ]
+    else [ bootstrap_script_content; scripts; modules ]
   in
   let html =
     if is_root_html_node then

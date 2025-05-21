@@ -297,10 +297,14 @@ let suspense_with_error () =
   let main = React.Upper_case_component ("app", app) in
   assert_html main
     ~shell:
-      "<!--$?--><template id=\"B:1\"></template><script \
-       data-payload='1:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n\
-       '>window.srr_stream.push()</script><!--/$-->"
-    []
+      "<!--$?--><template id=\"B:1\"></template>Loading...<!--/$--><script \
+       data-payload='0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,[],{}]\n\
+       '>window.srr_stream.push()</script>"
+    [
+      "<script data-payload='1:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n\
+       '>window.srr_stream.push()</script>";
+      "<div hidden=\"true\" id=\"S:1\"></div>\n<script>$RC('B:1', 'S:1')</script>";
+    ]
 
 let suspense_with_error_in_async () =
   let app () =

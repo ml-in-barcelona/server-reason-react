@@ -118,7 +118,6 @@ let complete_boundary_script =
 let replacement b s = Printf.sprintf "$RC('B:%i','S:%i')" b s
 
 let inline_complete_boundary_script has_rc_script_been_injected boundary_id suspense_id =
-  (* TODO: it's correct to asume that the first suspense_id is 0? *)
   if not has_rc_script_been_injected then
     Html.raw (Printf.sprintf "<script>%s%s</script>" complete_boundary_script (replacement boundary_id suspense_id))
   else Html.raw (Printf.sprintf "<script>%s</script>" (replacement boundary_id suspense_id))
