@@ -275,12 +275,8 @@ let client_with_promise_props () =
       "<script data-payload='1:\"||| Resolved |||\"\n'>window.srr_stream.push()</script>";
     ]
 
-let suspense_with_error () =
-  let app () =
-    React.Suspense.make ~fallback:(React.string "Loading...")
-      ~children:(React.Upper_case_component (__FUNCTION__, fun () -> raise (Failure "lol")))
-      ()
-  in
+(* let upper_case_component_with_error () =
+  let app () = React.Upper_case_component (__FUNCTION__, fun () -> raise (Failure "lol")) in
   let main = React.Upper_case_component ("app", app) in
   assert_html main
     ~shell:
@@ -290,7 +286,21 @@ let suspense_with_error () =
     [
       "<script data-payload='1:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n\
        '>window.srr_stream.push()</script>";
-    ]
+    ] *)
+
+let suspense_with_error () =
+  let app () =
+    React.Suspense.make ~fallback:(React.string "Loading...")
+      ~children:(React.Upper_case_component (__FUNCTION__, fun () -> raise (Failure "lol")))
+      ()
+  in
+  let main = React.Upper_case_component ("app", app) in
+  assert_html main
+    ~shell:
+      "<!--$?--><template id=\"B:1\"></template><script \
+       data-payload='1:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n\
+       '>window.srr_stream.push()</script><!--/$-->"
+    []
 
 let suspense_with_error_in_async () =
   let app () =
@@ -409,6 +419,7 @@ let tests =
     (* test "debug_adds_debug_info" debug_adds_debug_info; *)
     (* test "suspense_async_and_client" suspense_async_and_client; *)
     test "suspense_with_error" suspense_with_error;
+    (* test "upper_case_component_with_error" upper_case_component_with_error; *)
     (* test "suspense_with_error_in_async" suspense_with_error_in_async; *)
     (* test "suspense_with_error_under_lowercase" suspense_with_error_under_lowercase; *)
     (* test "error_without_suspense" error_without_suspense; *)

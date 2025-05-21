@@ -499,7 +499,15 @@ let rec to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * j
         context.push debug_info_index (Model.Chunk_value (Model.make_debug_info name));
         context.push debug_info_index (Model.Debug_info_map debug_info_ref);
         ()); *)
-      to_html ~fiber (component ())
+      match component () with
+      | element ->
+          to_html ~fiber element
+          (* | exception exn ->
+          let index = Fiber.use_index fiber in
+          let context = Fiber.get_context fiber in
+          let error_json = Model.exn_to_error ~env:context.env exn in
+          Lwt.return (error_chunk_script index error_json, `String "lol") *)
+      )
   | Lower_case_element { key; tag; attributes; children } ->
       if fiber.is_root_html_node && tag = "head" then (
         (* in case of a head element, we hoist it to the top of the document, and avoid rendering it in the current node *)
@@ -588,26 +596,34 @@ let rec to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * j
       Lwt.return (html, model)
   | Suspense { key; children; fallback } -> (
       let context = Fiber.get_context fiber in
+      let index = Fiber.use_index fiber in
       let%lwt html_fallback, model_fallback = to_html ~fiber fallback in
-      let promise = to_html ~fiber children in
-      match Lwt.state promise with
-      | Sleep ->
-          let index = Fiber.use_index fiber in
-          context.pending <- context.pending + 1;
-          Lwt.async (fun () ->
-              let%lwt html, model = promise in
-              context.push (chunk_html_script index html);
-              context.push (client_value_chunk_script index model);
-              context.pending <- context.pending - 1;
-              if context.pending = 0 then context.close ();
-              Lwt.return ());
-          Lwt.return
-            ( html_suspense_placeholder ~fallback:html_fallback index,
-              Model.suspense_placeholder ~key ~fallback:model_fallback index )
-      | Return (html, model) ->
-          let model = Model.suspense_node ~key ~fallback:model_fallback [ model ] in
-          Lwt.return (html_suspense_immediate html, model)
-      | Fail exn -> Lwt.fail exn)
+      try%lwt
+        let promise = to_html ~fiber children in
+        match Lwt.state promise with
+        | Sleep ->
+            context.pending <- context.pending + 1;
+            Lwt.async (fun () ->
+                let%lwt html, model = promise in
+                context.push (chunk_html_script index html);
+                context.push (client_value_chunk_script index model);
+                context.pending <- context.pending - 1;
+                if context.pending = 0 then context.close ();
+                Lwt.return ());
+            Lwt.return
+              ( html_suspense_placeholder ~fallback:html_fallback index,
+                Model.suspense_placeholder ~key ~fallback:model_fallback index )
+        | Return (html, model) ->
+            let model = Model.suspense_node ~key ~fallback:model_fallback [ model ] in
+            Lwt.return (html_suspense_immediate html, model)
+        | Fail exn -> Lwt.reraise exn
+      with exn ->
+        let context = Fiber.get_context fiber in
+        let error_json = Model.exn_to_error ~env:context.env exn in
+        let html = Html.list [ html_suspense_placeholder ~fallback:html_fallback index ] in
+        context.push (error_chunk_script index error_json);
+        context.push (chunk_html_script index Html.null);
+        Lwt.return (html, Model.suspense_placeholder ~key ~fallback:model_fallback index))
   | Provider children -> to_html ~fiber children
   | Consumer children -> to_html ~fiber children
   (* TODO: There's a task to remove InnerHtml in ReactDOM and use Html.raw directly. Here is still unclear what do to since we assing dangerouslySetInnerHTML to the right prop on the model. Also, should this model be `Null? *)
@@ -682,10 +698,8 @@ let render_html ?(env = `Dev) ?debug:(_ = false) ?bootstrapScriptContent ?bootst
         |> Html.list
   in
   let user_scripts =
-    if context.pending <> 0 then
-      (* TODO: Where rc_function and start_script and start should be? *)
-      [ rc_function_script; rsc_start_script; root_chunk; bootstrap_script_content; scripts; modules ]
-    else [ bootstrap_script_content; scripts; modules ]
+    (* TODO: Where rc_function and start_script should loaded only when there's pending tasks, not always? *)
+    [ rc_function_script; rsc_start_script; root_chunk; bootstrap_script_content; scripts; modules ]
   in
   let html =
     if is_root_html_node then
