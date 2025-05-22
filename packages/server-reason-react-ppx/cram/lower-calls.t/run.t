@@ -53,7 +53,7 @@
           | Some(v) =>
             Some(
               [@implicit_arity]
-              React.JSX.String("tabindex", "tabIndex", string_of_int(v)),
+              React.JSX.String("tabindex", "tabIndex", Int.to_string(v)),
             )
           },
         ],
@@ -69,7 +69,7 @@
         [
           Some(
             [@implicit_arity]
-            React.JSX.String("tabindex", "tabIndex", string_of_int(1: int)),
+            React.JSX.String("tabindex", "tabIndex", Int.to_string(1: int)),
           ),
           Some(
             [@implicit_arity]
