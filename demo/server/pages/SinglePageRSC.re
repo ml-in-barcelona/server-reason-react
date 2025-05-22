@@ -200,7 +200,7 @@ module App = {
 
 let handler = request =>
   DreamRSC.createFromRequest(
-    ~bootstrapModules=["/static/demo/CreateFromReadableStream.re.js"],
+    ~bootstrapModules=["/static/demo/SinglePageRSC.re.js"],
     <App />,
     request,
   );

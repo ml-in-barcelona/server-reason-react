@@ -178,7 +178,7 @@ let handler = request => {
     Dream.query(request, "searchText") |> Option.value(~default="");
 
   DreamRSC.createFromRequest(
-    ~bootstrapModules=["/static/demo/ClientRouter.re.js"],
+    ~bootstrapModules=["/static/demo/RouterRSC.re.js"],
     <App selectedId isEditing searchText />,
     request,
   );

@@ -2,9 +2,9 @@ let home = "/";
 let demoRenderToStaticMarkup = "/demo/renderToStaticMarkup";
 let demoRenderToString = "/demo/renderToString";
 let demoRenderToStream = "/demo/renderToStream";
-let demoCreateFromFetch = "/demo/server-components-without-client";
-let demoCreateFromReadableStream = "/demo/server-components";
-let demoRouter = "/demo/router";
+let demoServerOnlyRSC = "/demo/server-components-without-client";
+let demoSinglePageRSC = "/demo/server-components";
+let demoRouterSPA = "/demo/server-components-with-spa-router";
 
 let links = [|
   ("Render to string (renderToString)", demoRenderToString),
@@ -13,14 +13,14 @@ let links = [|
     demoRenderToStaticMarkup,
   ),
   ("Render to stream (renderToStream)", demoRenderToStream),
-  ("Server components without client (createFromFetch)", demoCreateFromFetch),
+  ("Server components without client (createFromFetch)", demoServerOnlyRSC),
   (
     "Server components with createFromReadableStream (RSC + SSR)",
-    demoCreateFromReadableStream,
+    demoSinglePageRSC,
   ),
   (
     "Single page router with navigations (createFromFetch + createFromReadableStream)",
-    demoRouter,
+    demoRouterSPA,
   ),
 |];
 

@@ -228,7 +228,6 @@ module Model = struct
                 turn_element_into_payload ~context element)
               else
                 let index = use_chunk_id context in
-                (* Instead of returning the payload directly, we push the result into the stream, and return the reference directly. This is how `react-server-dom-xxx/server` renderToPipeableStream works *)
                 context.push index (Chunk_value (turn_element_into_payload ~context element));
                 `String (ref_value index)
           | exception exn ->
