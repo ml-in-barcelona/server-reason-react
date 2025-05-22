@@ -75,14 +75,10 @@ let body =
   ->Webapi.Dom.Document.asHtmlDocument
   ->Option.bind(Webapi.Dom.HtmlDocument.body);
 
-[@mel.module "react-dom/client"]
-external hydrateRoot: (Dom.element, React.element) => ReactDOM.Client.root =
-  "hydrateRoot";
-
 switch (document) {
 | Some(element) =>
   startTransition(() => {
-    let _ = hydrateRoot(element, <App />);
+    let _ = ReactDOM.Client.hydrateRoot(element, <App />);
     ();
   })
 | None => Js.log("Root element not found")
