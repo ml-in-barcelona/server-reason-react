@@ -43,5 +43,4 @@
    %{entrypoints}
    --output=app/demo/client/
    --extract=true
-   --env=%{env:DEMO_ENV='production'}
-   --mock-webpack-require=true)))
+   --env=%{env:DEMO_ENV='production'})))

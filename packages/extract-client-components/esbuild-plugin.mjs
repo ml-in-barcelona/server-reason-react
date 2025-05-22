@@ -30,31 +30,6 @@ export function plugin(config) {
 			}
 			const bootstrapOutput = config.bootstrapOutput || "./bootstrap.js";
 
-			if (
-				config.mockWebpackRequire &&
-				typeof config.mockWebpackRequire !== "boolean"
-			) {
-				console.error("mockWebpackRequire must be a boolean");
-				return;
-			}
-			const mockWebpackRequire = config.mockWebpackRequire || false;
-
-			if (mockWebpackRequire) {
-				let webpackRequireMock = `
-window.__webpack_require__ = window.__webpack_require__ || ((id) => {
-  const component = window.__client_manifest_map[id];
-  if (!component) {
-    throw new Error(\`Could not find client component with id: \${id}\`);
-  }
-  return { __esModule: true, default: component };
-});
-window.__client_manifest_map = window.__client_manifest_map || {};`;
-
-				build.initialOptions.banner = {
-					js: webpackRequireMock,
-				};
-			}
-
 			if (!config.target) {
 				console.error("target is required");
 				return;

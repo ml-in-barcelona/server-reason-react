@@ -138,8 +138,8 @@ module Page = {
         </Section>
         <Hr />
         <Section
-          title="Pass another promise prop"
-          description="Sending a promise from the server to the client">
+          title="Pass a client component prop"
+          description="Sending a client component from the server to the client (that contains another client component)">
           <ExpandedContent
             id=1
             title="Titulaso"
