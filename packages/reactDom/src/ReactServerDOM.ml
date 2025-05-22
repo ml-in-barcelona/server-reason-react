@@ -506,15 +506,17 @@ let rec to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * j
         (* in case of a head element, we hoist it to the top of the document, and avoid rendering it in the current node *)
         let html_attributes = ReactDOM.attributes_to_html attributes in
         let%lwt html_and_json = children |> Lwt_list.map_p (to_html ~fiber) in
-        let html = List.map (fun (html, _) -> html) html_and_json in
+        let html, model = List.split html_and_json in
         Fiber.push_hoisted_head ~fiber html_attributes html;
-        Lwt.return (Html.null, `Null))
+        let json = Model.node ~tag:"head" ~key:None ~props:(Model.props_to_json attributes) model in
+        Lwt.return (Html.null, json))
       else if fiber.is_root_html_node && is_a_head_child_tag tag then (
         let html_props = ReactDOM.attributes_to_html attributes in
-        let%lwt children, _ = elements_to_html ~fiber children in
+        let%lwt children, model = elements_to_html ~fiber children in
         let html = Html.node tag html_props [ children ] in
         Fiber.push_hoisted_head_childrens ~fiber html;
-        Lwt.return (Html.null, `Null))
+        let json = Model.node ~tag ~key:None ~props:(Model.props_to_json attributes) [ model ] in
+        Lwt.return (Html.null, json))
       else if fiber.is_root_html_node && tag = "html" then
         (* Since we want to reconstruct the document outside of to_html (in case of root being the html tag), we keep rendering the childrens and avoid rendering html element *)
         to_html ~fiber (React.List children)
