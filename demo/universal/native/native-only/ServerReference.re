@@ -1,4 +1,22 @@
-type serverFunction = list(Yojson.Basic.t) => Lwt.t(React.client_value);
+type fn('args) = 'args => Lwt.t(React.client_value);
+
+type serverFunction =
+  | FormData(fn(FormData.t))
+  | Body(fn(list(Yojson.Basic.t)));
+
+let serverFunctions: Hashtbl.t(string, serverFunction) = Hashtbl.create(10);
+
+let registerFormFunction = (id, serverFunction) => {
+  Hashtbl.add(serverFunctions, id, FormData(serverFunction));
+};
+
+let registerBodyFunction = (id, serverFunction) => {
+  Hashtbl.add(serverFunctions, id, Body(serverFunction));
+};
+
+let get = id => {
+  Hashtbl.find(serverFunctions, id);
+};
 
 // [TODO] Create the parser on ReactServerDOM
 let decodeReply = body => {
@@ -12,17 +30,93 @@ let decodeReply = body => {
     )
   };
 };
-let serverFunctions: Hashtbl.t(string, serverFunction) = Hashtbl.create(10);
 
-let register = (id, serverFunction) => {
-  Hashtbl.add(serverFunctions, id, serverFunction);
-};
+let formDataHandler = (formData, actionId) => {
+  let modelId =
+    FormData.get_opt(formData, "0")
+    |> Option.fold(~none=None, ~some=value => {
+         switch (value) {
+         | `String(modelId) =>
+           let modelId =
+             Yojson.Basic.from_string(modelId)
+             |> (
+               fun
+               | `List([`String(referenceId)]) => referenceId
+               | _ => failwith("Invalid referenceId")
+             );
+           Some(modelId);
+         }
+       });
 
-let get = id => {
-  Hashtbl.find(serverFunctions, id);
-};
+  let formData =
+    Hashtbl.fold(
+      (key, value, acc) =>
+        if (key == "0") {
+          formData;
+        } else {
+          switch (modelId) {
+          | Some(modelId) =>
+            // react-server-dom-webpack prefix the name with the id E.g.: ["1_name", "1_value"]
+            let form_prefix =
+              String.sub(modelId, 2, String.length(modelId) - 2) ++ "_";
+            let key =
+              String.sub(
+                key,
+                String.length(form_prefix),
+                String.length(key) - String.length(form_prefix),
+              );
+            Hashtbl.add(formData, key, value);
+            formData;
+          | None =>
+            Hashtbl.add(formData, key, value);
+            formData;
+          };
+        },
+      formData,
+      Hashtbl.create(10),
+    );
 
-let handler = (actionId, content) => {
+  let actionId =
+    switch (actionId) {
+    // react-server-dom-webpack encode formData and put the first value as model reference E.g.:["$K1"], 1 is the id, $K is the formData reference prefix
+    | Some(actionId) => actionId
+    // without JS enabled or hydration
+    | None =>
+      try({
+        let actionId =
+          FormData.get_opt(formData, "$ACTION_ID")
+          |> (
+            fun
+            | Some(`String(actionId)) => actionId
+            | _ => failwith("Invalid actionId")
+          );
+        actionId;
+      }) {
+      | _ =>
+        failwith(
+          "Missing $ACTION_ID, this formData was not created by server-reason-react",
+        )
+      }
+    };
+
   let action = get(actionId);
-  action(decodeReply(content));
+  switch (action) {
+  | FormData(action) => action(formData)
+  | _ =>
+    failwith(
+      "Expected a FormData server function, this request was not created by server-reason-react",
+    )
+  };
+};
+
+let bodyHandler = (body, actionId) => {
+  let body = decodeReply(body);
+  let action = get(actionId);
+  switch (action) {
+  | Body(action) => action(body)
+  | _ =>
+    failwith(
+      "Expected a Body server function, this request was not created by server-reason-react",
+    )
+  };
 };

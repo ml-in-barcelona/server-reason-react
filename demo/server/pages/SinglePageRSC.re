@@ -176,6 +176,12 @@ module Page = {
           description="Server action with error">
           <ServerActionWithError />
         </Section>
+        <Hr />
+        <Section
+          title="Server action with FormData"
+          description="Server action with FormData">
+          <ServerActionWithFormData />
+        </Section>
       </Stack>,
     );
   };

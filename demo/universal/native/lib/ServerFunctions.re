@@ -264,13 +264,13 @@ module Notes = {
 
   module Registers = {
     [@platform native]
-    ServerReference.register(createId, createRouteHandler);
+    ServerReference.registerBodyFunction(createId, createRouteHandler);
 
     [@platform native]
-    ServerReference.register(editId, editRouteHandler);
+    ServerReference.registerBodyFunction(editId, editRouteHandler);
 
     [@platform native]
-    ServerReference.register(deleteId, deleteRouteHandler);
+    ServerReference.registerBodyFunction(deleteId, deleteRouteHandler);
   };
 };
 
@@ -403,11 +403,59 @@ module Samples = {
       }
     };
 
+  let formDataId = "id/samples/formData";
+
+  [@platform native]
+  let formDataRouteHandler = formData => {
+    let (name, lastName, age) =
+      switch (
+        formData->FormData.get("name"),
+        formData->FormData.get("lastName"),
+        formData->FormData.get("age"),
+      ) {
+      | (`String(name), `String(lastName), `String(age)) => (
+          name,
+          lastName,
+          age,
+        )
+      | exception _ => failwith("Invalid formData.")
+      };
+
+    let response =
+      Printf.sprintf("Form data received: %s, %s, %s", name, lastName, age);
+
+    Lwt.return(React.Json(`String(response)));
+  };
+
+  let formData =
+    switch%platform () {
+    | Server => {
+        Runtime.id: formDataId,
+        call: ((. formData: FormData.t) => formDataRouteHandler(formData)),
+      }
+    | Client => {
+        Runtime.id: formDataId,
+        call: (
+          (. formData: Js.FormData.t) => {
+            let action =
+              ReactServerDOMEsbuild.createServerReference(formDataId);
+            action(. formData);
+          }
+        ),
+      }
+    };
+
   module Registers = {
     [@platform native]
-    ServerReference.register(simpleResponseId, simpleResponseRouteHandler);
+    ServerReference.registerBodyFunction(
+      simpleResponseId,
+      simpleResponseRouteHandler,
+    );
 
     [@platform native]
-    ServerReference.register(errorId, errorRouteHandler);
+    ServerReference.registerBodyFunction(errorId, errorRouteHandler);
+
+    [@platform native]
+    ServerReference.registerFormFunction(formDataId, formDataRouteHandler);
   };
 };
