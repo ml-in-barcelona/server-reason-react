@@ -561,6 +561,40 @@ let client_with_promise_props () =
     ];
   Lwt.return ()
 
+(* let client_with_promise_failed_props () =
+  let app () =
+    let promise =
+      React.Promise
+        ( (let%lwt _str = delayed_value ~ms:20 "||| Resolved |||" in
+           Lwt.fail (Failure "Error")),
+          fun res -> `String res )
+    in
+    React.Upper_case_component
+      ( "app",
+        fun () ->
+          React.list
+            [
+              React.createElement "div" [] [ React.string "Server Content" ];
+              React.Client_component
+                {
+                  props = [ ("promise", promise) ];
+                  client = React.string "Client with Props";
+                  import_module = "./client-with-props.js";
+                  import_name = "ClientWithProps";
+                };
+            ] )
+  in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~subscribe (app ()) in
+  assert_list_of_strings !output
+    [
+      "1:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n";
+      "0:[[\"$\",\"div\",null,{\"children\":\"Server \
+       Content\"},null,[],{}],[\"$\",\"$1\",null,{\"promise\":\"$@2\"},null,[],{}]]\n";
+      "2:\"||| Resolved |||\"\n";
+    ];
+  Lwt.return () *)
+
 let mixed_server_and_client () =
   let app () =
     React.Upper_case_component
@@ -759,5 +793,6 @@ let tests =
     test "error_in_toplevel_in_async" error_in_toplevel_in_async;
     test "suspense_in_a_list_with_error" suspense_in_a_list_with_error;
     test "suspense_with_error_under_lowercase" suspense_with_error_under_lowercase;
+    (* TODO: https://github.com/ml-in-barcelona/server-reason-react/issues/251 test "client_with_promise_failed_props" client_with_promise_failed_props; *)
     (* test "env_development_adds_debug_info_2" env_development_adds_debug_info_2; *)
   ]

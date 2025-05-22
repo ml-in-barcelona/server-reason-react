@@ -302,7 +302,6 @@ module Model = struct
         | Return value ->
             let chunk_id = use_chunk_id context in
             let json = value_to_json value in
-            (* TODO: Make sure why we need a chunk here *)
             context.push context.chunk_id (Chunk_value json);
             `String (promise_value chunk_id)
         | Sleep ->
@@ -317,7 +316,7 @@ module Model = struct
                 Lwt.return ());
             `String (promise_value chunk_id)
         | Fail exn ->
-            (* TODO: Make sure we make the error appear in the client *)
+            (* TODO: https://github.com/ml-in-barcelona/server-reason-react/issues/251 *)
             raise exn)
     | Function action ->
         let chunk_id = use_chunk_id context in
