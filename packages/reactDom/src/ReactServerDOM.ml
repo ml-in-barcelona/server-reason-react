@@ -437,12 +437,8 @@ let rec client_to_html ~fiber (element : React.element) =
         | exception React.Suspend (Any_promise promise) ->
             let%lwt _ = promise in
             wait_for_suspense_to_resolve ()
-        | exception _exn ->
-            (* In case of exception do we want to render Html.empty? *)
-            Lwt.return Html.null
-        | output ->
-            (* TODO: Do we need to care about batching? *)
-            client_to_html ~fiber output
+        | exception _exn -> Lwt.return Html.null
+        | output -> client_to_html ~fiber output
       in
       wait_for_suspense_to_resolve ()
   | Async_component (_, _component) ->
@@ -540,10 +536,8 @@ let rec to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * j
           (fun (name, value) ->
             match (value : React.client_value) with
             | Element element ->
-                let index = Fiber.use_index fiber in
                 let%lwt _html, model = to_html ~fiber element in
-                context.push (client_value_chunk_script index model);
-                Lwt.return (name, `String (Model.ref_value index))
+                Lwt.return (name, model)
             | Promise (promise, value_to_json) ->
                 let index = Fiber.use_index fiber in
                 let async : Html.element Lwt.t =
