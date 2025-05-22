@@ -29,27 +29,20 @@ const debug = (readableStream) => {
 const sleep = (seconds) =>
 	new Promise((res) => setTimeout(res, seconds * 1000));
 
-/* const App = () => (
-	<React.Suspense fallback="Fallback 1">
-		<DefferedComponent sleep={1}>
-			<React.Suspense fallback="Fallback 2">
-				<DefferedComponent sleep={1}>"lol"</DefferedComponent>
-			</React.Suspense>
-		</DefferedComponent>
-	</React.Suspense>
+const reject = (_) =>
+	new Promise((_res, rej) => { return rej(0) });
+
+const AlwaysError = () => {
+	throw new Error("lol");
+};
+
+let Await_tick = ({ num }) => {
+	return num
+}
+
+const App = () => (
+	<Await_tick num="A" />
 );
- */
-
-function Comp({ name }) {
-	return <h1>Hello {name}</h1>;
-}
-
-function App() {
-	let value = "asdfasdf";
-	return (
-		<input type="text" value={value} />
-	);
-}
 
 const { pipe } = renderToPipeableStream(<App />);
 

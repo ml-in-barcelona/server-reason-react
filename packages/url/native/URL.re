@@ -143,7 +143,7 @@ let makeWith = (str, ~base: string) => {
 let host = url => {
   /* https://url.spec.whatwg.org/#dom-url-host */
   switch (Uri.host(url), Uri.port(url)) {
-  | (Some(host), Some(port)) => Some(host ++ ":" ++ string_of_int(port))
+  | (Some(host), Some(port)) => Some(host ++ ":" ++ Int.to_string(port))
   | (Some(host), None) => Some(host)
   /* If url’s host is null, then return the empty string */
   | (None, None)

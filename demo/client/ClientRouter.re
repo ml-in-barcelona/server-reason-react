@@ -59,7 +59,10 @@ module App = {
     setNavigate(Webapi.Dom.window, navigate);
 
     <ReasonReactErrorBoundary
-      fallback={_error => <h1> {React.string("Something went wrong")} </h1>}>
+      fallback={error => {
+        Js.log(error);
+        <h1> {React.string("Something went wrong")} </h1>;
+      }}>
       data
     </ReasonReactErrorBoundary>;
   };
@@ -72,23 +75,10 @@ let body =
   ->Webapi.Dom.Document.asHtmlDocument
   ->Option.bind(Webapi.Dom.HtmlDocument.body);
 
-[@mel.module "react-dom/client"]
-external hydrateRoot:
-  (Dom.element, React.element, Js.t({..})) => ReactDOM.Client.root =
-  "hydrateRoot";
-
 switch (document) {
 | Some(element) =>
   startTransition(() => {
-    let onRecoverableError = (error, errorInfo) => {
-      Js.log2(error, errorInfo);
-    };
-    let _ =
-      hydrateRoot(
-        element,
-        <App />,
-        {"onRecoverableError": onRecoverableError},
-      );
+    let _ = ReactDOM.Client.hydrateRoot(element, <App />);
     ();
   })
 | None => Js.log("Root element not found")

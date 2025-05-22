@@ -105,12 +105,12 @@ let make_prop ~is_optional ~prop attribute_value =
       [%expr
         Some
           (React.JSX.String
-             ([%e estring ~loc name], [%e estring ~loc jsxName], string_of_int ([%e attribute_value] : int)))]
+             ([%e estring ~loc name], [%e estring ~loc jsxName], Int.to_string ([%e attribute_value] : int)))]
   | Attribute { type_ = DomProps.Int; name; jsxName }, true ->
       [%expr
         match ([%e attribute_value] : int option) with
         | None -> None
-        | Some v -> Some (React.JSX.String ([%e estring ~loc name], [%e estring ~loc jsxName], string_of_int v))]
+        | Some v -> Some (React.JSX.String ([%e estring ~loc name], [%e estring ~loc jsxName], Int.to_string v))]
   | Attribute { type_ = DomProps.Bool; name; jsxName }, false ->
       [%expr Some (React.JSX.Bool ([%e estring ~loc name], [%e estring ~loc jsxName], ([%e attribute_value] : bool)))]
   | Attribute { type_ = DomProps.Bool; name; jsxName }, true ->
@@ -123,12 +123,12 @@ let make_prop ~is_optional ~prop attribute_value =
       [%expr
         Some
           (React.JSX.String
-             ([%e estring ~loc name], [%e estring ~loc jsxName], string_of_bool ([%e attribute_value] : bool)))]
+             ([%e estring ~loc name], [%e estring ~loc jsxName], Bool.to_string ([%e attribute_value] : bool)))]
   | Attribute { type_ = DomProps.BooleanishString; name; jsxName }, true ->
       [%expr
         match ([%e attribute_value] : bool option) with
         | None -> None
-        | Some v -> Some (React.JSX.String ([%e estring ~loc name], [%e estring ~loc jsxName], string_of_bool v))]
+        | Some v -> Some (React.JSX.String ([%e estring ~loc name], [%e estring ~loc jsxName], Bool.to_string v))]
   | Attribute { type_ = DomProps.Style; _ }, false ->
       [%expr Some (React.JSX.Style ([%e attribute_value] : ReactDOM.Style.t))]
   | Attribute { type_ = DomProps.Style; _ }, true ->

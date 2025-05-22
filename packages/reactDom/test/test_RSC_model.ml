@@ -7,7 +7,7 @@ let assert_list (type a) (ty : a Alcotest.testable) (left : a list) (right : a l
 
 let assert_list_of_strings left right = Alcotest.check (Alcotest.list Alcotest.string) "should be equal" right left
 
-let lwt_sleep ~ms =
+let sleep ~ms =
   let%lwt () = Lwt_unix.sleep (Int.to_float ms /. 1000.0) in
   Lwt.return ()
 
@@ -15,7 +15,7 @@ let test title fn =
   let test_case _switch () =
     let start = Unix.gettimeofday () in
     let timeout =
-      let%lwt () = lwt_sleep ~ms:100 in
+      let%lwt () = sleep ~ms:100 in
       Alcotest.failf "Test '%s' timed out" title
     in
     let%lwt test_promise = Lwt.pick [ fn (); timeout ] in
@@ -26,6 +26,10 @@ let test title fn =
     else ();
     Lwt.return test_promise
   in
+  (Printf.sprintf "ReactServerDOM.render_model / %s" title, [ Alcotest_lwt.test_case "" `Quick test_case ])
+
+let[@warning "-27"] skip title _fn =
+  let test_case _switch () = Lwt.return () in
   (Printf.sprintf "ReactServerDOM.render_model / %s" title, [ Alcotest_lwt.test_case "" `Quick test_case ])
 
 let assert_stream (stream : string Lwt_stream.t) expected =
@@ -200,7 +204,7 @@ let suspense_with_promise () =
         (React.Async_component
            ( "suspense_with_promise",
              fun () ->
-               let%lwt () = lwt_sleep ~ms:10 in
+               let%lwt () = sleep ~ms:10 in
                Lwt.return (React.string "lol") ))
       ()
   in
@@ -211,6 +215,145 @@ let suspense_with_promise () =
     [
       "0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,[],{}]\n";
       "1:\"lol\"\n";
+    ];
+  Lwt.return ()
+
+let suspense_with_error () =
+  let app () =
+    React.Suspense.make ~fallback:(React.string "Loading...")
+      ~children:(React.Upper_case_component (__FUNCTION__, fun () -> raise (Failure "lol")))
+      ()
+  in
+  let main = React.Upper_case_component ("app", app) in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~subscribe main in
+  assert_list_of_strings !output
+    [
+      "1:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n";
+      "0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,[],{}]\n";
+    ];
+  Lwt.return ()
+
+let suspense_with_error_in_async () =
+  let app () =
+    React.Suspense.make ~fallback:(React.string "Loading...")
+      ~children:(React.Async_component (__FUNCTION__, fun () -> Lwt.fail (Failure "lol")))
+      ()
+  in
+  let main = React.Upper_case_component ("app", app) in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~subscribe main in
+  assert_list_of_strings !output
+    [
+      "1:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n";
+      "0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,[],{}]\n";
+    ];
+  Lwt.return ()
+
+let suspense_with_error_under_lowercase () =
+  let app () =
+    React.createElement "div" []
+      [
+        React.Suspense.make ~fallback:(React.string "Loading...")
+          ~children:(React.Async_component (__FUNCTION__, fun () -> Lwt.fail (Failure "lol")))
+          ();
+      ]
+  in
+  let main = React.Upper_case_component ("app", app) in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~subscribe main in
+  assert_list_of_strings !output
+    [
+      "1:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n";
+      "0:[\"$\",\"div\",null,{\"children\":[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,[],{}]},null,[],{}]\n";
+    ];
+  Lwt.return ()
+
+let error_without_suspense () =
+  let app () = React.Upper_case_component (__FUNCTION__, fun () -> raise (Failure "lol")) in
+  let main = React.Upper_case_component ("app", app) in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~subscribe main in
+  assert_list_of_strings !output
+    [ "1:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n"; "0:\"$L1\"\n" ];
+  Lwt.return ()
+
+let error_in_toplevel () =
+  let app () = raise (Failure "lol") in
+  let main = React.Upper_case_component ("app", app) in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~subscribe main in
+  assert_list_of_strings !output
+    [ "1:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n"; "0:\"$L1\"\n" ];
+  Lwt.return ()
+
+let error_in_toplevel_in_async () =
+  let app () = Lwt.fail (Failure "lol") in
+  let main = React.Async_component ("app", app) in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~subscribe main in
+  assert_list_of_strings !output
+    [ "1:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n"; "0:\"$L1\"\n" ];
+  Lwt.return ()
+
+let await_tick ?(raise = false) num =
+  React.Async_component
+    ( "await_tick",
+      fun () ->
+        let%lwt () = sleep ~ms:(Random.int 10) in
+        if raise then Lwt.fail (Failure "lol") else Lwt.return (React.string num) )
+
+let suspense_in_a_list () =
+  let fallback = React.string "Loading..." in
+  let app () =
+    React.Fragment
+      (React.list
+         [
+           React.Suspense.make ~fallback ~children:(await_tick "A") ();
+           React.Suspense.make ~fallback ~children:(await_tick "B") ();
+           React.Suspense.make ~fallback ~children:(await_tick "C") ();
+           React.Suspense.make ~fallback ~children:(await_tick "D") ();
+           React.Suspense.make ~fallback ~children:(await_tick "E") ();
+         ])
+  in
+  let main = React.Upper_case_component ("app", app) in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~subscribe main in
+  assert_list_of_strings !output
+    [
+      "0:[[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,[],{}],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L2\"},null,[],{}],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L3\"},null,[],{}],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L4\"},null,[],{}],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L5\"},null,[],{}]]\n";
+      "3:\"C\"\n";
+      "2:\"B\"\n";
+      "1:\"A\"\n";
+      "4:\"D\"\n";
+      "5:\"E\"\n";
+    ];
+  Lwt.return ()
+
+let suspense_in_a_list_with_error () =
+  let fallback = React.string "Loading..." in
+  let app () =
+    React.Fragment
+      (React.list
+         [
+           React.Suspense.make ~fallback ~children:(await_tick "A") ();
+           React.Suspense.make ~fallback ~children:(await_tick ~raise:true "B") ();
+           React.Suspense.make ~fallback ~children:(await_tick "C") ();
+           React.Suspense.make ~fallback ~children:(await_tick "D") ();
+           React.Suspense.make ~fallback ~children:(await_tick "E") ();
+         ])
+  in
+  let main = React.Upper_case_component ("app", app) in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~subscribe main in
+  assert_list_of_strings !output
+    [
+      "0:[[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,[],{}],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L2\"},null,[],{}],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L3\"},null,[],{}],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L4\"},null,[],{}],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L5\"},null,[],{}]]\n";
+      "1:\"A\"\n";
+      "4:\"D\"\n";
+      "5:\"E\"\n";
+      "2:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n";
+      "3:\"C\"\n";
     ];
   Lwt.return ()
 
@@ -231,7 +374,7 @@ let suspense_with_immediate_promise () =
   Lwt.return ()
 
 let delayed_value ~ms value =
-  let%lwt () = lwt_sleep ~ms in
+  let%lwt () = sleep ~ms in
   Lwt.return value
 
 let suspense () =
@@ -383,8 +526,9 @@ let client_with_element_props () =
   assert_list_of_strings !output
     [
       "1:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n";
-      "0:[[\"$\",\"div\",null,{\"children\":\"Server Content\"},null,[],{}],[\"$\",\"$1\",null,{\"children\":\"Client \
-       Content\"},null,[],{}]]\n";
+      "2:\"Client Content\"\n";
+      "0:[[\"$\",\"div\",null,{\"children\":\"Server \
+       Content\"},null,[],{}],[\"$\",\"$1\",null,{\"children\":\"$2\"},null,[],{}]]\n";
     ];
   Lwt.return ()
 
@@ -416,6 +560,40 @@ let client_with_promise_props () =
       "2:\"||| Resolved |||\"\n";
     ];
   Lwt.return ()
+
+(* let client_with_promise_failed_props () =
+  let app () =
+    let promise =
+      React.Promise
+        ( (let%lwt _str = delayed_value ~ms:20 "||| Resolved |||" in
+           Lwt.fail (Failure "Error")),
+          fun res -> `String res )
+    in
+    React.Upper_case_component
+      ( "app",
+        fun () ->
+          React.list
+            [
+              React.createElement "div" [] [ React.string "Server Content" ];
+              React.Client_component
+                {
+                  props = [ ("promise", promise) ];
+                  client = React.string "Client with Props";
+                  import_module = "./client-with-props.js";
+                  import_name = "ClientWithProps";
+                };
+            ] )
+  in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~subscribe (app ()) in
+  assert_list_of_strings !output
+    [
+      "1:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n";
+      "0:[[\"$\",\"div\",null,{\"children\":\"Server \
+       Content\"},null,[],{}],[\"$\",\"$1\",null,{\"promise\":\"$@2\"},null,[],{}]]\n";
+      "2:\"||| Resolved |||\"\n";
+    ];
+  Lwt.return () *)
 
 let mixed_server_and_client () =
   let app () =
@@ -477,9 +655,9 @@ let client_with_server_children () =
   assert_list_of_strings !output
     [
       "1:I[\"./client-with-server-children.js\",[],\"ClientWithServerChildren\"]\n";
+      "2:[\"$\",\"div\",null,{\"children\":\"Server Component Inside Client\"},null,[],{}]\n";
       "0:[[\"$\",\"div\",null,{\"children\":\"Server \
-       Content\"},null,[],{}],[\"$\",\"$1\",null,{\"children\":[\"$\",\"div\",null,{\"children\":\"Server Component \
-       Inside Client\"},null,[],{}]},null,[],{}]]\n";
+       Content\"},null,[],{}],[\"$\",\"$1\",null,{\"children\":\"$2\"},null,[],{}]]\n";
     ];
   Lwt.return ()
 
@@ -594,9 +772,12 @@ let tests =
     test "upper_case_with_children" upper_case_with_children;
     test "suspense_without_promise" suspense_without_promise;
     test "suspense_with_promise" suspense_with_promise;
+    test "suspense_with_error" suspense_with_error;
+    test "suspense_with_error_in_async" suspense_with_error_in_async;
     test "suspense_with_immediate_promise" suspense_with_immediate_promise;
     test "suspense" suspense;
     test "async_component_without_suspense" async_component_without_suspense;
+    test "suspense_in_a_list" suspense_in_a_list;
     test "client_with_promise_props" client_with_promise_props;
     test "async_component_without_suspense_immediate" async_component_without_suspense_immediate;
     test "mixed_server_and_client" mixed_server_and_client;
@@ -607,5 +788,11 @@ let tests =
     test "act_with_simple_response" act_with_simple_response;
     test "env_development_adds_debug_info" env_development_adds_debug_info;
     test "act_with_error" act_with_error;
+    test "error_without_suspense" error_without_suspense;
+    test "error_in_toplevel" error_in_toplevel;
+    test "error_in_toplevel_in_async" error_in_toplevel_in_async;
+    test "suspense_in_a_list_with_error" suspense_in_a_list_with_error;
+    test "suspense_with_error_under_lowercase" suspense_with_error_under_lowercase;
+    (* TODO: https://github.com/ml-in-barcelona/server-reason-react/issues/251 test "client_with_promise_failed_props" client_with_promise_failed_props; *)
     (* test "env_development_adds_debug_info_2" env_development_adds_debug_info_2; *)
   ]
