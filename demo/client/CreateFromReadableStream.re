@@ -15,12 +15,9 @@ try({
   let promise =
     ReactServerDOMEsbuild.createFromReadableStream(readable_stream);
 
-  let body =
-    Webapi.Dom.document
-    ->Webapi.Dom.Document.asHtmlDocument
-    ->Option.bind(Webapi.Dom.HtmlDocument.body);
+  let document: option(Webapi.Dom.Element.t) = [%mel.raw "window.document"];
 
-  switch (body) {
+  switch (document) {
   | Some(elem) =>
     startTransition(() => {
       let app = <App promise />;
