@@ -596,12 +596,19 @@ let rec to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * j
         | Sleep ->
             context.pending <- context.pending + 1;
             Lwt.async (fun () ->
-                let%lwt html, model = promise in
-                context.push (chunk_html_script index html);
-                context.push (client_value_chunk_script index model);
-                context.pending <- context.pending - 1;
-                if context.pending = 0 then context.close ();
-                Lwt.return ());
+                try%lwt
+                  let%lwt html, model = promise in
+                  context.push (chunk_html_script index html);
+                  context.push (client_value_chunk_script index model);
+                  context.pending <- context.pending - 1;
+                  if context.pending = 0 then context.close ();
+                  Lwt.return ()
+                with exn ->
+                  context.pending <- context.pending - 1;
+                  let error_json = Model.exn_to_error ~env:context.env exn in
+                  context.push (error_chunk_script index error_json);
+                  context.push (chunk_html_script index Html.null);
+                  Lwt.return ());
             Lwt.return
               ( html_suspense_placeholder ~fallback:html_fallback index,
                 Model.suspense_placeholder ~key ~fallback:model_fallback index )
@@ -612,7 +619,7 @@ let rec to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * j
       with exn ->
         let context = Fiber.get_context fiber in
         let error_json = Model.exn_to_error ~env:context.env exn in
-        let html = Html.list [ html_suspense_placeholder ~fallback:html_fallback index ] in
+        let html = html_suspense_placeholder ~fallback:html_fallback index in
         context.push (error_chunk_script index error_json);
         context.push (chunk_html_script index Html.null);
         Lwt.return (html, Model.suspense_placeholder ~key ~fallback:model_fallback index))

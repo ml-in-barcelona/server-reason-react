@@ -1,12 +1,18 @@
 let yojson = Alcotest.testable Yojson.Safe.pretty_print ( = )
 let check_json = Alcotest.check yojson "should be equal"
 let assert_json left right = Alcotest.check yojson "should be equal" right left
+let assert_string left right = Alcotest.check Alcotest.string "should be equal" right left
 
 let assert_list (ty : 'a Alcotest.testable) (left : 'a list) (right : 'a list) =
   Alcotest.check (Alcotest.list ty) "should be equal" right left
 
 let assert_list_of_strings (left : string list) (right : string list) =
   Alcotest.check (Alcotest.list Alcotest.string) "should be equal" right left
+
+let assert_raises exn fn =
+  match%lwt fn () with
+  | exception exn -> Lwt.return (assert_string (Printexc.to_string exn) (Printexc.to_string exn))
+  | _ -> Alcotest.failf "Expected exception %s" (Printexc.to_string exn)
 
 let sleep ~ms =
   let%lwt () = Lwt_unix.sleep (Int.to_float ms /. 1000.0) in
@@ -415,37 +421,12 @@ let suspense_with_error_under_lowercase () =
 let error_without_suspense () =
   let app () = React.Upper_case_component (__FUNCTION__, fun () -> raise (Failure "lol")) in
   let main = React.Upper_case_component ("app", app) in
-  assert_html main ~shell:"<!--$!--><!--/$-->" ~disable_backtrace:true
-    [
-      "<script data-payload='1:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n\
-       '>window.srr_stream.push()</script>";
-      "<script data-payload='0:\"$L1\"\n'>window.srr_stream.push()</script>";
-      "<script>window.srr_stream.close()</script>";
-    ]
-
-let error_in_toplevel () =
-  let app () = raise (Failure "lol") in
-  let main = React.Upper_case_component ("app", app) in
-  assert_html main ~shell:"<!--$!--><!--/$-->" ~disable_backtrace:true
-    [
-      "<script data-payload='1:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n\
-       '>window.srr_stream.push()</script>";
-      "<script data-payload='0:\"$L1\"\n'>window.srr_stream.push()</script>";
-      "<script>window.srr_stream.close()</script>";
-    ]
+  assert_raises (Failure "lol") (fun () -> assert_html main ~disable_backtrace:true [])
 
 let error_in_toplevel_in_async () =
   let app () = Lwt.fail (Failure "lol") in
   let main = React.Async_component ("app", app) in
-  (* This renders empty because the error happens before any HTML can be formed by the component itself.
-     The error is caught by the general error boundary of the stream ($L1) *)
-  assert_html main ~shell:"<!--$!--><!--/$-->" ~disable_backtrace:true
-    [
-      "<script data-payload='1:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n\
-       '>window.srr_stream.push()</script>";
-      "<script data-payload='0:\"$L1\"\n'>window.srr_stream.push()</script>";
-      "<script>window.srr_stream.close()</script>";
-    ]
+  assert_raises (Failure "lol") (fun () -> assert_html main ~disable_backtrace:true [])
 
 let await_tick ?(raise = false) num =
   React.Async_component
@@ -473,12 +454,13 @@ let suspense_in_a_list_with_error () =
        data-payload='0:[[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,[],{}],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L2\"},null,[],{}],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L3\"},null,[],{}]]\n\
        '>window.srr_stream.push()</script>"
     [
-      "<div hidden=\"true\" id=\"S:1\">A</div>\n<script>$RC('B:1', 'S:1')</script>";
-      "<script data-payload='1:\"A\"\n'>window.srr_stream.push()</script>";
-      "<script data-payload='2:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n\
-       '>window.srr_stream.push()</script>";
       "<div hidden=\"true\" id=\"S:3\">C</div>\n<script>$RC('B:3', 'S:3')</script>";
       "<script data-payload='3:\"C\"\n'>window.srr_stream.push()</script>";
+      "<script data-payload='2:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n\
+       '>window.srr_stream.push()</script>";
+      "<div hidden=\"true\" id=\"S:2\"></div>\n<script>$RC('B:2', 'S:2')</script>";
+      "<div hidden=\"true\" id=\"S:1\">A</div>\n<script>$RC('B:1', 'S:1')</script>";
+      "<script data-payload='1:\"A\"\n'>window.srr_stream.push()</script>";
       "<script>window.srr_stream.close()</script>";
     ]
 
@@ -498,8 +480,7 @@ let tests =
     test "suspense_with_error" suspense_with_error;
     test "suspense_with_error_in_async" suspense_with_error_in_async;
     test "suspense_with_error_under_lowercase" suspense_with_error_under_lowercase;
-    (* test "error_without_suspense" error_without_suspense; *)
-    (* test "error_in_toplevel" error_in_toplevel; *)
-    (* test "error_in_toplevel_in_async" error_in_toplevel_in_async; *)
-    (* test "suspense_in_a_list_with_error" suspense_in_a_list_with_error; *)
+    test "error_without_suspense" error_without_suspense;
+    test "error_in_toplevel_in_async" error_in_toplevel_in_async;
+    test "suspense_in_a_list_with_error" suspense_in_a_list_with_error;
   ]
