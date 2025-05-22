@@ -21,6 +21,41 @@ module Section = {
   };
 };
 
+module ExpandedContent = {
+  [@react.component]
+  let make = (~id, ~content: string, ~updatedAt: float, ~title: string) => {
+    let lastUpdatedAt =
+      if (Date.is_today(updatedAt)) {
+        Date.format_time(updatedAt);
+      } else {
+        Date.format_date(updatedAt);
+      };
+
+    let summary =
+      content |> Markdown.extract_text |> Markdown.summarize(~words=20);
+
+    <Expander
+      id
+      title
+      expandedChildren={
+        <div className="mt-2">
+          {switch (String.trim(summary)) {
+           | "" => <i> {React.string("(No content)")} </i>
+           | s => <Text size=Small color=Theme.Color.Gray11> s </Text>
+           }}
+          <Counter initial=22 />
+        </div>
+      }>
+      <header
+        className={Cx.make(["max-w-[85%] flex flex-col gap-2"])}
+        style={ReactDOM.Style.make(~zIndex="1", ())}>
+        <Text size=Large weight=Bold> title </Text>
+        <Text size=Small> lastUpdatedAt </Text>
+      </header>
+    </Expander>;
+  };
+};
+
 module Page = {
   [@react.async.component]
   let make = () => {
@@ -100,6 +135,17 @@ module Page = {
           title="Pass another promise prop"
           description="Sending a promise from the server to the client">
           <Promise_renderer promise=promiseIn4 />
+        </Section>
+        <Hr />
+        <Section
+          title="Pass another promise prop"
+          description="Sending a promise from the server to the client">
+          <ExpandedContent
+            id=1
+            title="Titulaso"
+            updatedAt=1653561600.0
+            content="Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
+          />
         </Section>
         <Hr />
         <h1

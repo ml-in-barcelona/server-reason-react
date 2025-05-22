@@ -38,7 +38,6 @@ module Fiber = struct
     is_root_html_node : bool;
     mutable hoisted_head : hoisted_head option;
     mutable hoisted_head_childrens : Html.element list;
-    mutable has_errors : bool;
   }
 
   let push_hoisted_head ~fiber html_attributes children = fiber.hoisted_head <- Some (html_attributes, children)
@@ -295,8 +294,9 @@ module Model = struct
         context.push chunk_id (Chunk_error error_json);
         `String (error_value context.chunk_id)
     | Element element ->
-        (* TODO: Probably a silly question, but do I need to push this client_ref? (What if it's a client_ref?) In case of server, no need to do anything I guess *)
-        element_to_payload ~context element
+        let chunk_id = use_chunk_id context in
+        context.push chunk_id (Chunk_value (element_to_payload ~context element));
+        `String (ref_value chunk_id)
     | Promise (promise, value_to_json) -> (
         match Lwt.state promise with
         | Return value ->
@@ -424,6 +424,7 @@ let rec client_to_html ~fiber (element : React.element) =
   match element with
   | Empty -> Lwt.return Html.null
   | Text text -> Lwt.return (Html.string text)
+  | InnerHtml innerHtml -> Lwt.return (Html.raw innerHtml)
   | Fragment children -> client_to_html ~fiber children
   | List childrens ->
       let%lwt html = Lwt_list.map_p (client_to_html ~fiber) childrens in
@@ -467,10 +468,8 @@ let rec client_to_html ~fiber (element : React.element) =
           Lwt.return ());
       Lwt.return sync
   | Client_component { import_module = _; import_name = _; props = _; client } -> client_to_html ~fiber client
-  (* TODO: Need to do something for those? *)
   | Provider children -> client_to_html ~fiber children
   | Consumer children -> client_to_html ~fiber children
-  | InnerHtml innerHtml -> Lwt.return (Html.raw innerHtml)
 
 and render_lower_case ~fiber ~key:_ ~tag ~attributes ~children =
   if Html.is_self_closing_tag tag then
@@ -501,14 +500,7 @@ let rec to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * j
         context.push debug_info_index (Model.Debug_info_map debug_info_ref);
         ()); *)
       match component () with
-      | element ->
-          to_html ~fiber element
-          (* | exception exn ->
-          let index = Fiber.use_index fiber in
-          let context = Fiber.get_context fiber in
-          let error_json = Model.exn_to_error ~env:context.env exn in
-          Lwt.return (error_chunk_script index error_json, `String "lol") *)
-      )
+      | element -> to_html ~fiber element)
   | Lower_case_element { key; tag; attributes; children } ->
       if fiber.is_root_html_node && tag = "head" then (
         (* in case of a head element, we hoist it to the top of the document, and avoid rendering it in the current node *)
@@ -548,14 +540,12 @@ let rec to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * j
           (fun (name, value) ->
             match (value : React.client_value) with
             | Element element ->
-                let _index = Fiber.use_index fiber in
+                let index = Fiber.use_index fiber in
                 let%lwt _html, model = to_html ~fiber element in
-                (* TODO: https://github.com/ml-in-barcelona/server-reason-react/issues/250 *)
-                (* context.push (chunk_html_script index html); *)
-                Lwt.return (name, model)
+                context.push (client_value_chunk_script index model);
+                Lwt.return (name, `String (Model.ref_value index))
             | Promise (promise, value_to_json) ->
                 let index = Fiber.use_index fiber in
-                let sync = (name, `String (Model.promise_value index)) in
                 let async : Html.element Lwt.t =
                   let%lwt value = promise in
                   let json = value_to_json value in
@@ -569,7 +559,7 @@ let rec to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * j
                     context.pending <- context.pending - 1;
                     if context.pending = 0 then context.close ();
                     Lwt.return ());
-                Lwt.return sync
+                Lwt.return (name, `String (Model.promise_value index))
             | Json json -> Lwt.return (name, json)
             | Error error ->
                 let index = Fiber.use_index fiber in
@@ -588,7 +578,6 @@ let rec to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * j
           props
       in
       let lwt_html = client_to_html ~fiber client in
-      let%lwt () = Lwt.pause () in
       let index = Fiber.use_index fiber in
       let ref : json = Model.component_ref ~module_:import_module ~name:import_name in
       context.push (client_reference_chunk_script index ref);
@@ -624,7 +613,6 @@ let rec to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * j
         let html = Html.list [ html_suspense_placeholder ~fallback:html_fallback index ] in
         context.push (error_chunk_script index error_json);
         context.push (chunk_html_script index Html.null);
-        fiber.has_errors <- true;
         Lwt.return (html, Model.suspense_placeholder ~key ~fallback:model_fallback index))
   | Provider children -> to_html ~fiber children
   | Consumer children -> to_html ~fiber children
@@ -667,9 +655,7 @@ let render_html ?(env = `Dev) ?debug:(_ = false) ?bootstrapScriptContent ?bootst
   let stream, push, close = Push_stream.make () in
   let context : Fiber.context = { push; close; pending = 1; index = initial_index; env } in
   let is_root_html_node = is_root_html_node element in
-  let fiber : Fiber.t =
-    { context; hoisted_head = None; hoisted_head_childrens = []; is_root_html_node; has_errors = false }
-  in
+  let fiber : Fiber.t = { context; hoisted_head = None; hoisted_head_childrens = []; is_root_html_node } in
   let%lwt root_html, root_model = to_html ~fiber element in
   let root_chunk = client_value_chunk_script initial_index root_model in
   context.pending <- context.pending - 1;
@@ -701,11 +687,7 @@ let render_html ?(env = `Dev) ?debug:(_ = false) ?bootstrapScriptContent ?bootst
                  [])
         |> Html.list
   in
-  let user_scripts =
-    if fiber.has_errors || context.pending <> 0 then
-      [ rc_function_script; rsc_start_script; root_chunk; bootstrap_script_content; scripts; modules ]
-    else [ bootstrap_script_content; scripts; modules ]
-  in
+  let user_scripts = [ rc_function_script; rsc_start_script; root_chunk; bootstrap_script_content; scripts; modules ] in
   let html =
     if is_root_html_node then
       let body =

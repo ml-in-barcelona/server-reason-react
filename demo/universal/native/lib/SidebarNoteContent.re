@@ -8,7 +8,7 @@ module Square = {
     <div
       className={Cx.make([
         isExpanded ? "" : "rotate-180",
-        "select-none w-full rounded-md flex items-center justify-center pt-1 text-sm select-none",
+        "w-full rounded-md flex items-center justify-center pt-1 text-sm select-none",
         "transition-[background-color] duration-250 ease-out",
         Theme.text(Theme.Color.Gray11),
         Theme.background(Theme.Color.Gray5),
