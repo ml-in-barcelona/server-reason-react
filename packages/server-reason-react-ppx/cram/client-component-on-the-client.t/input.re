@@ -11,6 +11,3 @@ let make = (~initial: int, ~lola: lola, ~children: React.element) => {
     <div> children </div>
   </section>;
 };
-
-// to avoid unused error on "make"
-let _ = make;

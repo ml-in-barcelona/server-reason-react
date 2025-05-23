@@ -50,8 +50,6 @@
               });
           };
   
-  let _ = make;
-  
   module Inner = {
     [@deriving json]
     type lola = {name: string};
@@ -72,8 +70,6 @@
                   "initial": [%of_json: int](props##initial),
                 });
             };
-  
-    let _ = make;
   
     module Very_nested = {
       [@deriving json]
@@ -96,7 +92,5 @@
                     "initial": [%of_json: int](props##initial),
                   });
               };
-  
-      let _ = make;
     };
   };

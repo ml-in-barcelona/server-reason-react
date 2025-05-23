@@ -12,9 +12,6 @@ let make = (~initial: int, ~lola: lola, ~children: React.element) => {
   </section>;
 };
 
-// to avoid unused error on "make"
-let _ = make;
-
 module Inner = {
   [@deriving json]
   type lola = {name: string};
@@ -28,9 +25,6 @@ module Inner = {
     </section>;
   };
 
-  // to avoid unused error on "make"
-  let _ = make;
-
   module Very_nested = {
     [@deriving json]
     type lola = {name: string};
@@ -43,8 +37,5 @@ module Inner = {
         <div> children </div>
       </section>;
     };
-
-    // to avoid unused error on "make"
-    let _ = make;
   };
 };
