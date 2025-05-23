@@ -1,26 +1,29 @@
 let home = "/";
-let demoRenderToStaticMarkup = "/demo/renderToStaticMarkup";
-let demoRenderToString = "/demo/renderToString";
-let demoRenderToStream = "/demo/renderToStream";
-let demoCreateFromFetch = "/demo/server-components-without-client";
-let demoCreateFromReadableStream = "/demo/server-components";
-let demoRouter = "/demo/router";
+let demoRenderToStaticMarkup = "/demo/render-to-static-markup";
+let demoRenderToString = "/demo/render-to-string";
+let demoRenderToStream = "/demo/render-to-stream";
+let demoServerOnlyRSC = "/demo/server-only-rsc";
+let demoSinglePageRSC = "/demo/single-page-rsc";
+let demoRouterRSC = "/demo/router-rsc";
 
 let links = [|
-  ("Render to string (renderToString)", demoRenderToString),
+  ("Server side render to string (renderToString)", demoRenderToString),
   (
-    "Render to static markup (renderToStaticMarkup)",
+    "Server side render to static markup (renderToStaticMarkup)",
     demoRenderToStaticMarkup,
   ),
-  ("Render to stream (renderToStream)", demoRenderToStream),
-  ("Server components without client (createFromFetch)", demoCreateFromFetch),
+  ("Server side render to stream (renderToStream)", demoRenderToStream),
   (
-    "Server components with createFromReadableStream (RSC + SSR)",
-    demoCreateFromReadableStream,
+    "React Server components without client (createFromFetch)",
+    demoServerOnlyRSC,
   ),
   (
-    "Single page router with navigations (createFromFetch + createFromReadableStream)",
-    demoRouter,
+    "React Server components with createFromReadableStream (RSC + SSR)",
+    demoSinglePageRSC,
+  ),
+  (
+    "React Server components with single page router (createFromFetch + createFromReadableStream)",
+    demoRouterRSC,
   ),
 |];
 
