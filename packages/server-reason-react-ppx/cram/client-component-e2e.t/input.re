@@ -21,6 +21,3 @@ let make =
     {React.string(value)}
   </div>;
 };
-
-// to avoid unused error on "make"
-let _ = make;

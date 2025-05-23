@@ -1,3 +1,5 @@
+[@warning "-32"];
+
 open Melange_json.Primitives;
 
 [@deriving json]
@@ -21,6 +23,3 @@ let make =
      }}
   </section>;
 };
-
-// to avoid unused error on "make"
-let _ = make;

@@ -13,6 +13,3 @@ let make =
       ~tuple2: (int, int),
       ~tuple3: (int, string, float),
     ) => React.null;
-
-// to avoid unused error on "make"
-let _ = make;
