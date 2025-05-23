@@ -91,5 +91,3 @@
             };
             let make_client = props => make(Js.Obj.empty());
           };
-  
-  let _ = make;

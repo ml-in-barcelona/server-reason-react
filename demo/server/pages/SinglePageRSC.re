@@ -43,7 +43,7 @@ module ExpandedContent = {
            | "" => <i> {React.string("(No content)")} </i>
            | s => <Text size=Small color=Theme.Color.Gray11> s </Text>
            }}
-          <Counter initial=22 />
+          <Counter.Double initial=22 />
         </div>
       }>
       <header

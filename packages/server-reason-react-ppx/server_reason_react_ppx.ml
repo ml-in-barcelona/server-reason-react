@@ -4,6 +4,8 @@ module List = ListLabels
 
 type target = Native | Js
 
+(* Since ppxlib doesn't provide a way to get the submodules, we need to keep track of them manually *)
+let sub_modules = ref []
 let mode = ref Native
 let repo_url = "https://github.com/ml-in-barcelona/server-reason-react"
 let issues_url = Printf.sprintf "%s/issues" repo_url
@@ -760,18 +762,18 @@ let rewrite_structure_item_for_js ctx structure_item =
         { first_value_binding with pvb_attributes = [ react_component_attribute ~loc:first_value_binding.pvb_loc ] }
       in
       let loc = structure_item.pstr_loc in
-      let fileName = Expansion_context.Base.input_name ctx in
-      let fileName =
-        if String.ends_with ~suffix:".re.ml" fileName then Filename.chop_extension fileName else fileName
-      in
+      let code_path = Expansion_context.Base.code_path ctx in
+      let fileName = Code_path.file_path code_path in
       (* We need to add a nasty hack here, since have different files for native and melange.Assume that the file structure is native/lib and js, and replace the name directly. This is supposed to be temporal, until dune implements https://github.com/ocaml/dune/issues/10630 *)
       let fileName = Str.replace_first (Str.regexp {|/js/|}) "/native/lib/" fileName in
-      let comment = Printf.sprintf "// extract-client %s" fileName in
-      let raw = estring ~loc comment in
-      let extract_client_raw = [%stri [%%raw [%e raw]]] in
+      let comment =
+        match !sub_modules with
+        | [] -> estring ~loc (Printf.sprintf "// extract-client %s" fileName)
+        | _ -> estring ~loc (Printf.sprintf "// extract-client %s %s" fileName (String.concat "." !sub_modules))
+      in
       [%stri
         include struct
-          [%%i extract_client_raw]
+          [%%i [%stri [%%raw [%e comment]]]]
           [%%i pstr_value ~loc:structure_item.pstr_loc rec_flag [ original_value_binding ]]
           [%%i make_client_binding]
         end]
@@ -785,24 +787,15 @@ let contains_client_component structure =
       | _ -> false)
     structure
 
-let raise_usage_of_client_components module_expr =
-  match module_expr.pmod_desc with
-  | Pmod_structure structure when contains_client_component structure ->
-      let loc = module_expr.pmod_loc in
-      Ast_builder.Default.pmod_structure ~loc
-        [
-          pstr_eval ~loc
-            [%expr
-              [%error
-                "can't use [@react.client.component] inside a module, only on the toplevel. Please move the make \
-                 function outside of the module."]]
-            [];
-        ]
-  | _ -> module_expr
-
 let rewrite_jsx =
   object (_)
     inherit [Expansion_context.Base.t] Ppxlib.Ast_traverse.map_with_context as super
+
+    method! module_binding ctxt module_binding =
+      (match module_binding.pmb_name.txt with None -> () | Some name -> sub_modules := name :: !sub_modules);
+      let mapped = super#module_binding ctxt module_binding in
+      let _ = sub_modules := List.tl !sub_modules in
+      mapped
 
     method! structure_item ctx structure_item =
       match mode.contents with
@@ -813,11 +806,6 @@ let rewrite_jsx =
       match mode.contents with
       | Native -> rewrite_signature_item (super#signature_item ctx signature_item)
       | Js -> super#signature_item ctx signature_item
-
-    method! module_expr ctx module_expr =
-      match mode.contents with
-      | Js -> super#module_expr ctx (raise_usage_of_client_components module_expr)
-      | Native -> super#module_expr ctx module_expr
 
     method! expression ctx expr =
       let expr = super#expression ctx expr in

@@ -30,6 +30,8 @@
       cookies: [],
     }
   ];
+  [@warning "-32"];
+  
   open Melange_json.Primitives;
   
   [@deriving json]
@@ -148,5 +150,3 @@
           ],
         ),
     });
-  
-  let _ = make;

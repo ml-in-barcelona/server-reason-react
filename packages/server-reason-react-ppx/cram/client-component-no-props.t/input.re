@@ -6,6 +6,3 @@ let make = () => {
     <div> {React.string("children")} </div>
   </section>;
 };
-
-// to avoid unused error on "make"
-let _ = make;

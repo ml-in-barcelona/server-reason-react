@@ -64,9 +64,9 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: |
-            node_modules
             demo/node_modules
-          key: npm-${{ matrix.os }}-${{ hashFiles('package.json') }}
+            demo/client/node_modules
+          key: npm-${{ matrix.os }}-${{ hashFiles('package.json') }}-${{ hashFiles('demo/client/package.json') }}
 
       - name: Use OCaml ${{ matrix.ocaml-compiler }}
         uses: ocaml/setup-ocaml@v3.2.5
@@ -162,5 +162,7 @@ jobs:
       - name: Save npm cache
         uses: actions/cache/save@v4
         with:
-          path: node_modules
-          key: npm-${{ matrix.os }}-${{ hashFiles('package.json') }}
+          path: |
+            demo/node_modules
+            demo/client/node_modules
+          key: npm-${{ matrix.os }}-${{ hashFiles('package.json') }}-${{ hashFiles('demo/client/package.json') }}

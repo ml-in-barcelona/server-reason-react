@@ -49,5 +49,3 @@
                 "initial": [%of_json: int](props##initial),
               });
           };
-  
-  let _ = make;
