@@ -347,13 +347,11 @@ let client_with_element_props () =
   in
   assert_html (app ())
     ~shell:
-      "Client with elment prop<script data-payload='0:[\"$\",\"$2\",null,{\"element\":\"$1\"},null,[],{}]\n\
+      "Client with elment prop<script \
+       data-payload='0:[\"$\",\"$1\",null,{\"element\":[\"$\",\"span\",null,{\"children\":[\"server-component-as-props-to-client-component\"]},null,[],{}]},null,[],{}]\n\
        '>window.srr_stream.push()</script>"
     [
-      "<script \
-       data-payload='1:[\"$\",\"span\",null,{\"children\":[\"server-component-as-props-to-client-component\"]},null,[],{}]\n\
-       '>window.srr_stream.push()</script>";
-      "<script data-payload='2:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n\
+      "<script data-payload='1:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n\
        '>window.srr_stream.push()</script>";
       "<script>window.srr_stream.close()</script>";
     ]

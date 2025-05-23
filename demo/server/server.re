@@ -84,12 +84,9 @@ let server =
         )
       ),
       getAndPost(Router.demoRenderToStream, Pages.Comments.handler),
-      getAndPost(
-        Router.demoCreateFromReadableStream,
-        Pages.SinglePageRSC.handler,
-      ),
-      getAndPost(Router.demoRouter, Pages.RouterRSC.handler),
-      getAndPost(Router.demoCreateFromFetch, Pages.ServerOnlyRSC.handler),
+      getAndPost(Router.demoSinglePageRSC, Pages.SinglePageRSC.handler),
+      getAndPost(Router.demoRouterRSC, Pages.RouterRSC.handler),
+      getAndPost(Router.demoServerOnlyRSC, Pages.ServerOnlyRSC.handler),
     ]),
   );
 
