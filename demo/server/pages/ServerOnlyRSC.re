@@ -37,7 +37,7 @@ let handler = request => {
   } else {
     Dream.html(
       ReactDOM.renderToString(
-        <Document script="/static/demo/CreateFromFetch.re.js">
+        <Document script="/static/demo/ServerOnlyRSC.re.js">
           React.null
         </Document>,
       ),
