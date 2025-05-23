@@ -3,26 +3,35 @@ module List = ListLabels
 let read_file path = try Some (In_channel.with_open_bin path In_channel.input_all) with _ -> None
 
 type manifest_item =
-  | ClientComponent of { original_path : string; compiled_js_path : string; module_name : string option }
-  | ServerFunction of { compiled_js_path : string; module_name : string option; function_name : string; id : string }
+  | Client_component of { original_path : string; compiled_js_path : string; module_name : string list option }
+  | Server_function of {
+      id : string;
+      compiled_js_path : string;
+      module_name : string list option;
+      function_name : string;
+    }
+
+let parse_module_name str = String.split_on_char '.' str
+let print_module_name str = String.concat "." str
 
 let parse_client_component_line line =
   try
     Scanf.sscanf line "// extract-client %s %s" (fun filename module_name ->
-        Ok (filename, if module_name = "" then None else Some module_name))
+        Ok (filename, if module_name = "" then None else Some (parse_module_name module_name)))
   with End_of_file | Scanf.Scan_failure _ -> Error "Invalid `extract-client` command format"
 
 let parse_server_function_line line =
   try
     Scanf.sscanf line "// extract-server-function %s %s %s" (fun id function_name module_name ->
-        Ok ((if module_name = "" then None else Some module_name), function_name, id))
+        Ok ((if module_name = "" then None else Some (parse_module_name module_name)), function_name, id))
   with End_of_file | Scanf.Scan_failure _ -> Error "Invalid `extract-server-function` command format"
 
 let parse_manifest_item ~path line =
   match (parse_client_component_line (String.trim line), parse_server_function_line (String.trim line)) with
-  | Ok (original_path, module_name), _ -> Some (ClientComponent { compiled_js_path = path; original_path; module_name })
+  | Ok (original_path, module_name), _ ->
+      Some (Client_component { compiled_js_path = path; original_path; module_name })
   | _, Ok (module_name, function_name, id) ->
-      Some (ServerFunction { compiled_js_path = path; module_name; function_name; id })
+      Some (Server_function { compiled_js_path = path; module_name; function_name; id })
   | Error _, Error _ -> None
 
 let parse_manifest_data ~path content : manifest_item list =
@@ -31,18 +40,22 @@ let parse_manifest_data ~path content : manifest_item list =
 let render_manifest manifest =
   let register_client_modules =
     List.map manifest ~f:(function
-      | ClientComponent { original_path; compiled_js_path; module_name } ->
+      | Client_component { original_path; compiled_js_path; module_name } ->
           let export =
-            match module_name with Some name -> Printf.sprintf "%s.make_client" name | None -> "make_client"
+            match module_name with
+            | Some name -> Printf.sprintf "%s.make_client" (print_module_name name)
+            | None -> "make_client"
           in
           Printf.sprintf
             "window.__client_manifest_map[\"%s\"] = React.lazy(() => import(\"%s\").then(module => {\n\
             \  return { default: module.%s }\n\
              }).catch(err => { console.error(err); return { default: null }; }))"
             original_path compiled_js_path export
-      | ServerFunction { compiled_js_path; module_name; function_name; id } ->
+      | Server_function { compiled_js_path; module_name; function_name; id } ->
           let export =
-            match module_name with Some name -> Printf.sprintf "%s.%s" name function_name | None -> function_name
+            match module_name with
+            | Some name -> Printf.sprintf "%s.%s" (print_module_name name) function_name
+            | None -> function_name
           in
           Printf.sprintf "window.__server_functions_manifest_map[\"%s\"] = require(\"%s\").%s" id compiled_js_path
             export)
