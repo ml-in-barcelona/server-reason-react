@@ -264,13 +264,13 @@ module Notes = {
 
   module Registers = {
     [@platform native]
-    ServerReference.registerBodyFunction(createId, createRouteHandler);
+    ServerReference.register(createId, createRouteHandler);
 
     [@platform native]
-    ServerReference.registerBodyFunction(editId, editRouteHandler);
+    ServerReference.register(editId, editRouteHandler);
 
     [@platform native]
-    ServerReference.registerBodyFunction(deleteId, deleteRouteHandler);
+    ServerReference.register(deleteId, deleteRouteHandler);
   };
 };
 
@@ -447,15 +447,12 @@ module Samples = {
 
   module Registers = {
     [@platform native]
-    ServerReference.registerBodyFunction(
-      simpleResponseId,
-      simpleResponseRouteHandler,
-    );
+    ServerReference.register(simpleResponseId, simpleResponseRouteHandler);
 
     [@platform native]
-    ServerReference.registerBodyFunction(errorId, errorRouteHandler);
+    ServerReference.register(errorId, errorRouteHandler);
 
     [@platform native]
-    ServerReference.registerFormFunction(formDataId, formDataRouteHandler);
+    ServerReference.registerForm(formDataId, formDataRouteHandler);
   };
 };

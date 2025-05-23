@@ -1,19 +1,14 @@
-type fn('args) = 'args => Lwt.t(React.client_value);
-
 type serverFunction =
-  | FormData(fn(FormData.t))
-  | Body(fn(list(Yojson.Basic.t)));
+  | FormData(FormData.t => Lwt.t(React.client_value))
+  | Body(list(Yojson.Basic.t) => Lwt.t(React.client_value));
 
 let serverFunctions: Hashtbl.t(string, serverFunction) = Hashtbl.create(10);
-
-let registerFormFunction = (id, serverFunction) => {
-  Hashtbl.add(serverFunctions, id, FormData(serverFunction));
-};
-
-let registerBodyFunction = (id, serverFunction) => {
+let register = (id, serverFunction) => {
   Hashtbl.add(serverFunctions, id, Body(serverFunction));
 };
-
+let registerForm = (id, serverFunction) => {
+  Hashtbl.add(serverFunctions, id, FormData(serverFunction));
+};
 let get = id => {
   Hashtbl.find(serverFunctions, id);
 };
@@ -56,7 +51,7 @@ let formDataHandler = (formData, actionId) => {
         } else {
           switch (modelId) {
           | Some(modelId) =>
-            // react-server-dom-webpack prefix the name with the id E.g.: ["1_name", "1_value"]
+            // react prefix the name with the id E.g.: ["1_name", "1_value"]
             let form_prefix =
               String.sub(modelId, 2, String.length(modelId) - 2) ++ "_";
             let key =
