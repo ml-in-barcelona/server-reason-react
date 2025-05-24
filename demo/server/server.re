@@ -11,17 +11,46 @@ let getAndPost = (path, handler) =>
         path,
         request => {
           let actionId = Dream.header(request, "ACTION_ID");
+          let contentType = Dream.header(request, "Content-Type");
 
-          switch (actionId) {
-          | Some(actionId) =>
-            let%lwt body = Dream.body(request);
-            let serverFunction = ServerReference.handler(actionId);
-            let response = serverFunction(body);
-            DreamRSC.streamResponse(response);
+          switch (contentType) {
+          | Some(contentType)
+              when
+                String.starts_with(contentType, ~prefix="multipart/form-data") =>
+            switch%lwt (Dream.multipart(request, ~csrf=false)) {
+            | `Ok(formData) =>
+              // For now we're using hashtbl for FormData as we still cannot support the Js.FormData.t.
+              let formData =
+                formData
+                |> List.fold_left(
+                     (acc, (name, value)) => {
+                       // For now we're only supporting strings.
+                       let (_filename, value) = value |> List.hd;
+                       FormData.append(acc, name, `String(value));
+                       acc;
+                     },
+                     FormData.make(),
+                   );
+              let response =
+                ServerReference.formDataHandler(formData, actionId);
+              DreamRSC.streamResponse(response);
+            | _ =>
+              failwith(
+                "Missing form data, this request was not created by server-reason-react",
+              )
+            }
           | _ =>
-            failwith(
-              "No action ID, we don't support progressive enhancement yet",
-            )
+            let%lwt body = Dream.body(request);
+            let actionId =
+              switch (actionId) {
+              | Some(actionId) => actionId
+              | None =>
+                failwith(
+                  "Missing action ID, this request was not created by server-reason-react",
+                )
+              };
+            let response = ServerReference.bodyHandler(body, actionId);
+            DreamRSC.streamResponse(response);
           };
         },
       ),
