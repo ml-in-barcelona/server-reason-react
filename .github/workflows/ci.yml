@@ -66,7 +66,7 @@ jobs:
           path: |
             demo/node_modules
             demo/client/node_modules
-          key: npm-${{ matrix.os }}-${{ hashFiles('package.json') }}-${{ hashFiles('demo/client/package.json') }}
+          key: npm-${{ matrix.os }}-${{ hashFiles('demo/package.json') }}-${{ hashFiles('demo/client/package.json') }}
 
       - name: Use OCaml ${{ matrix.ocaml-compiler }}
         uses: ocaml/setup-ocaml@v3.2.5
@@ -165,4 +165,4 @@ jobs:
           path: |
             demo/node_modules
             demo/client/node_modules
-          key: npm-${{ matrix.os }}-${{ hashFiles('package.json') }}-${{ hashFiles('demo/client/package.json') }}
+          key: npm-${{ matrix.os }}-${{ hashFiles('demo/package.json') }}-${{ hashFiles('demo/client/package.json') }}
