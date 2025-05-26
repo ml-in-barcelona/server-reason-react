@@ -24,4 +24,4 @@
 
 (copy_files
  (mode fallback)
- (files "../native/lib/*.re"))
+ (files "../native/shared/*.re"))
