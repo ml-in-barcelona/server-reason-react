@@ -13,8 +13,3 @@ let get: (t, string) => entryValue =
   (formData, key) => {
     Hashtbl.find(formData, key);
   };
-
-let get_opt: (t, string) => option(entryValue) =
-  (formData, key) => {
-    Hashtbl.find_opt(formData, key);
-  };

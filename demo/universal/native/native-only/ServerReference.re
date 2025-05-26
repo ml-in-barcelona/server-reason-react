@@ -27,21 +27,22 @@ let decodeReply = body => {
 };
 
 let formDataHandler = (formData, actionId) => {
+  // react encodes formData and put the first value as model reference E.g.:["$K1"], 1 is the id, $K is the formData reference prefix
   let modelId =
-    FormData.get_opt(formData, "0")
-    |> Option.fold(~none=None, ~some=value => {
-         switch (value) {
-         | `String(modelId) =>
-           let modelId =
-             Yojson.Basic.from_string(modelId)
-             |> (
-               fun
-               | `List([`String(referenceId)]) => referenceId
-               | _ => failwith("Invalid referenceId")
-             );
-           Some(modelId);
-         }
-       });
+    FormData.get(formData, "0")
+    |> (
+      fun
+      | `String(modelId) => {
+          let modelId =
+            Yojson.Basic.from_string(modelId)
+            |> (
+              fun
+              | `List([`String(referenceId)]) => referenceId
+              | _ => failwith("Invalid referenceId")
+            );
+          Some(modelId);
+        }
+    );
 
   let formData =
     Hashtbl.fold(
@@ -51,7 +52,7 @@ let formDataHandler = (formData, actionId) => {
         } else {
           switch (modelId) {
           | Some(modelId) =>
-            // react prefix the name with the id E.g.: ["1_name", "1_value"]
+            // react prefixes the input names with the id E.g.: ["1_name", "1_value"]
             let form_prefix =
               String.sub(modelId, 2, String.length(modelId) - 2) ++ "_";
             let key =
@@ -73,25 +74,8 @@ let formDataHandler = (formData, actionId) => {
 
   let actionId =
     switch (actionId) {
-    // react-server-dom-webpack encode formData and put the first value as model reference E.g.:["$K1"], 1 is the id, $K is the formData reference prefix
     | Some(actionId) => actionId
-    // without JS enabled or hydration
-    | None =>
-      try({
-        let actionId =
-          FormData.get_opt(formData, "$ACTION_ID")
-          |> (
-            fun
-            | Some(`String(actionId)) => actionId
-            | _ => failwith("Invalid actionId")
-          );
-        actionId;
-      }) {
-      | _ =>
-        failwith(
-          "Missing $ACTION_ID, this formData was not created by server-reason-react",
-        )
-      }
+    | None => failwith("We don't support progressive enhancement yet.")
     };
 
   let action = get(actionId);
@@ -99,7 +83,7 @@ let formDataHandler = (formData, actionId) => {
   | FormData(action) => action(formData)
   | _ =>
     failwith(
-      "Expected a FormData server function, this request was not created by server-reason-react",
+      "Expected a FormData server function, this request was not created by server-reason-react.",
     )
   };
 };
