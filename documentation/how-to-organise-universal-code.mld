@@ -59,7 +59,7 @@ Asuming you want to share react.components between the client and the server, yo
  (preprocess
   (pps melange.ppx reason-react-ppx)))
 
-(copy_files# "../native/lib/*.re")
+(copy_files# "../native/shared/*.re")
 
 (library
  (name shared_native)

@@ -764,8 +764,8 @@ let rewrite_structure_item_for_js ctx structure_item =
       let loc = structure_item.pstr_loc in
       let code_path = Expansion_context.Base.code_path ctx in
       let fileName = Code_path.file_path code_path in
-      (* We need to add a nasty hack here, since have different files for native and melange.Assume that the file structure is native/lib and js, and replace the name directly. This is supposed to be temporal, until dune implements https://github.com/ocaml/dune/issues/10630 *)
-      let fileName = Str.replace_first (Str.regexp {|/js/|}) "/native/lib/" fileName in
+      (* We need to add a nasty hack here, since have different files for native and melange.Assume that the file structure is /native/shared/ and js, and replace the name directly. This is supposed to be temporal, until dune implements https://github.com/ocaml/dune/issues/10630 *)
+      let fileName = Str.replace_first (Str.regexp {|/js/|}) "/native/shared/" fileName in
       let comment =
         match !sub_modules with
         | [] -> estring ~loc (Printf.sprintf "// extract-client %s" fileName)

@@ -1,4 +1,4 @@
-// extract-client demo/universal/native/lib/Button.re
+// extract-client demo/universal/native/shared/Button.re
 function make_client() { }
 
 export {
