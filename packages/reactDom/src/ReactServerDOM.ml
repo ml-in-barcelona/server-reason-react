@@ -721,7 +721,7 @@ module FunctionReferences = struct
 
   type t = (string, server_function) Hashtbl.t
 
-  let registry: t = Hashtbl.create 10
+  let registry : t = Hashtbl.create 10
   let register = Hashtbl.add registry
   let get = Hashtbl.find_opt registry
 

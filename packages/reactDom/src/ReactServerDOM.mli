@@ -22,7 +22,6 @@ module FunctionReferences : sig
 
   val decodeReply : string -> Yojson.Basic.t array
   val decodeFormDataReply : Js.FormData.t -> Js.FormData.t
-  
   val registry : t
   val register : string -> server_function -> unit
   val get : string -> server_function option
