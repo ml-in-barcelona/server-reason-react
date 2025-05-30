@@ -1,16 +1,22 @@
 include Melange_json.Primitives;
 
 [@react.server.function]
-let simpleResponse = (~name: string, ~age: int): Js.Promise.t(string) => {
+let withLabelledArg = (~name: string, ~age: int): Js.Promise.t(string) => {
   Lwt.return(Printf.sprintf("Hello %s, you are %d years old", name, age));
 };
 
 [@react.server.function]
-let otherServerFunction = (~name: string, ()): Js.Promise.t(string) => {
+let withLabelledArgAndUnlabeledArg =
+    (~name: string="Lola", age: int): Js.Promise.t(string) => {
+  Lwt.return(Printf.sprintf("Hello %s, you are %d years old", name, age));
+};
+
+[@react.server.function]
+let withOptionalArg = (~name: string="Lola", ()): Js.Promise.t(string) => {
   Lwt.return(Printf.sprintf("Hello, %s", name));
 };
 
 [@react.server.function]
-let anotherServerFunction = (): Js.Promise.t(string) => {
+let withNoArgs = (): Js.Promise.t(string) => {
   Lwt.return("Hello, world!");
 };

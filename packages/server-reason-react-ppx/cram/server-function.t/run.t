@@ -53,20 +53,20 @@
                 external unsafe_expr: _ => _ = "#raw_stmt";
               };
               J.unsafe_expr(
-                "// extract-server-function 500511824 simpleResponse ",
+                "// extract-server-function 1073617701 withLabelledArg ",
               );
             };
             [@react.server.function]
-            let simpleResponse = {
-              Runtime.id: "500511824",
-              call: (~name: string, age: int) => {
+            let withLabelledArg = {
+              Runtime.id: "1073617701",
+              call: (~name: string, ~age: int) => {
                 let action =
-                  ReactServerDOMEsbuild.createServerReference("500511824");
+                  ReactServerDOMEsbuild.createServerReference("1073617701");
                 (
                   [@ocaml.warning "-ignored-extra-argument"]
                   Js.Internal.opaqueFullApply(
                     (Js.Internal.opaque((action: Js.Fn.arity2(_)).I2))(
-                      ~name,
+                      name,
                       age,
                     ),
                   ): _
@@ -75,37 +75,87 @@
             };
           };
   
-  module ServerFunctions = {
-    include {
-              {
-                module J = {
-                  [@ocaml.warning "-unboxable-type-in-prim-decl"]
-                  external unsafe_expr: _ => _ = "#raw_stmt";
-                };
-                J.unsafe_expr(
-                  "// extract-server-function 101662525 otherServerFunction ServerFunctions",
-                );
+  include {
+            {
+              module J = {
+                [@ocaml.warning "-unboxable-type-in-prim-decl"]
+                external unsafe_expr: _ => _ = "#raw_stmt";
               };
-  
-              [@react.server.function]
-              let otherServerFunction = {
-                Runtime.id: "101662525",
-                call: (~name: string, ()) => {
-                  let action =
-                    ReactServerDOMEsbuild.createServerReference("101662525");
-                  (
-                    [@ocaml.warning "-ignored-extra-argument"]
-                    Js.Internal.opaqueFullApply(
-                      (Js.Internal.opaque((action: Js.Fn.arity2(_)).I2))(
-                        ~name,
-                        (),
-                      ),
-                    ): _
-                  );
-                },
-              };
+              J.unsafe_expr(
+                "// extract-server-function 416745144 withLabelledArgAndUnlabeledArg ",
+              );
             };
   
+            [@react.server.function]
+            let withLabelledArgAndUnlabeledArg = {
+              Runtime.id: "416745144",
+              call: (~name: string="Lola", age: int) => {
+                let action =
+                  ReactServerDOMEsbuild.createServerReference("416745144");
+                (
+                  [@ocaml.warning "-ignored-extra-argument"]
+                  Js.Internal.opaqueFullApply(
+                    (Js.Internal.opaque((action: Js.Fn.arity2(_)).I2))(
+                      name,
+                      age,
+                    ),
+                  ): _
+                );
+              },
+            };
+          };
+  
+  include {
+            {
+              module J = {
+                [@ocaml.warning "-unboxable-type-in-prim-decl"]
+                external unsafe_expr: _ => _ = "#raw_stmt";
+              };
+              J.unsafe_expr(
+                "// extract-server-function 874321837 withOptionalArg ",
+              );
+            };
+  
+            [@react.server.function]
+            let withOptionalArg = {
+              Runtime.id: "874321837",
+              call: (~name: string="Lola", ()) => {
+                let action =
+                  ReactServerDOMEsbuild.createServerReference("874321837");
+                (
+                  [@ocaml.warning "-ignored-extra-argument"]
+                  Js.Internal.opaqueFullApply(
+                    (Js.Internal.opaque((action: Js.Fn.arity2(_)).I2))(
+                      name,
+                      (),
+                    ),
+                  ): _
+                );
+              },
+            };
+          };
+  
+  include {
+            {
+              module J = {
+                [@ocaml.warning "-unboxable-type-in-prim-decl"]
+                external unsafe_expr: _ => _ = "#raw_stmt";
+              };
+              J.unsafe_expr("// extract-server-function 898874717 withNoArgs ");
+            };
+  
+            [@react.server.function]
+            let withNoArgs = {
+              Runtime.id: "898874717",
+              call: () => {
+                let action =
+                  ReactServerDOMEsbuild.createServerReference("898874717");
+                Js.Internal.run(action);
+              },
+            };
+          };
+  
+  module SomeModule = {
     module Nested = {
       include {
                 {
@@ -114,16 +164,16 @@
                     external unsafe_expr: _ => _ = "#raw_stmt";
                   };
                   J.unsafe_expr(
-                    "// extract-server-function 746479773 nestedServerFunction ServerFunctions.Nested",
+                    "// extract-server-function 157629082 nestedServerFunction SomeModule.Nested",
                   );
                 };
   
                 [@react.server.function]
                 let nestedServerFunction = {
-                  Runtime.id: "746479773",
+                  Runtime.id: "157629082",
                   call: () => {
                     let action =
-                      ReactServerDOMEsbuild.createServerReference("746479773");
+                      ReactServerDOMEsbuild.createServerReference("157629082");
                     Js.Internal.run(action);
                   },
                 };

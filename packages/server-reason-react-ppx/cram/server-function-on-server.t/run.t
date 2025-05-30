@@ -34,8 +34,8 @@
   
   include {
             [@react.server.function]
-            let simpleResponse = {
-              Runtime.id: "111391064",
+            let withLabelledArg = {
+              Runtime.id: "646124344",
               call: (~name: string, ~age: int) => (
                 Lwt.return(
                   Printf.sprintf("Hello %s, you are %d years old", name, age),
@@ -43,62 +43,163 @@
                   Js.Promise.t(string)
               ),
             };
-            let simpleResponseRouteHandler = args => {
-              let (name, age) =
-                switch (args) {
-                | [name, age] =>
-                  let name = string_of_json(name);
-                  let age = int_of_json(age);
-                  (name, age);
-                | _ => failwith("server-reason-react: invalid arguments")
-                };
-              try(
-                simpleResponse.call(~name, ~age)
-                |> Lwt.map(response => React.Json(string_to_json(response)))
-              ) {
-              | e => Lwt.fail(e)
-              };
-            };
+            ReactServerDOM.FunctionReferences.(
+              register(
+                "646124344",
+                Body(
+                  args => {
+                    let name =
+                      try(string_of_json(args[0])) {
+                      | _ =>
+                        failwith(
+                          Printf.sprintf(
+                            "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
+                            "name",
+                            "string",
+                            args[0] |> Yojson.Basic.to_string,
+                          ),
+                        )
+                      }
+                    and age =
+                      try(int_of_json(args[1])) {
+                      | _ =>
+                        failwith(
+                          Printf.sprintf(
+                            "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
+                            "age",
+                            "int",
+                            args[1] |> Yojson.Basic.to_string,
+                          ),
+                        )
+                      };
+                    try(
+                      withLabelledArg.call(~name, ~age)
+                      |> Lwt.map(response =>
+                           React.Json(string_to_json(response))
+                         )
+                    ) {
+                    | e => Lwt.fail(e)
+                    };
+                  },
+                ),
+              )
+            );
           };
   
   include {
             [@react.server.function]
-            let otherServerFunction = {
-              Runtime.id: "56688875",
-              call: (~name: string, ()) => (
+            let withLabelledArgAndUnlabeledArg = {
+              Runtime.id: "43607654",
+              call: (~name: string="Lola", age: int) => (
+                Lwt.return(
+                  Printf.sprintf("Hello %s, you are %d years old", name, age),
+                ):
+                  Js.Promise.t(string)
+              ),
+            };
+            ReactServerDOM.FunctionReferences.(
+              register(
+                "43607654",
+                Body(
+                  args => {
+                    let name =
+                      try((option_of_json(string_of_json))(args[0])) {
+                      | _ =>
+                        failwith(
+                          Printf.sprintf(
+                            "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
+                            "name",
+                            "string option",
+                            args[0] |> Yojson.Basic.to_string,
+                          ),
+                        )
+                      }
+                    and age =
+                      try(int_of_json(args[1])) {
+                      | _ =>
+                        failwith(
+                          Printf.sprintf(
+                            "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
+                            "age",
+                            "int",
+                            args[1] |> Yojson.Basic.to_string,
+                          ),
+                        )
+                      };
+                    try(
+                      withLabelledArgAndUnlabeledArg.call(~name?, age)
+                      |> Lwt.map(response =>
+                           React.Json(string_to_json(response))
+                         )
+                    ) {
+                    | e => Lwt.fail(e)
+                    };
+                  },
+                ),
+              )
+            );
+          };
+  
+  include {
+            [@react.server.function]
+            let withOptionalArg = {
+              Runtime.id: "275062916",
+              call: (~name: string="Lola", ()) => (
                 Lwt.return(Printf.sprintf("Hello, %s", name)):
                   Js.Promise.t(string)
               ),
             };
-            let otherServerFunctionRouteHandler = args => {
-              let name =
-                switch (args) {
-                | [name] =>
-                  let name = string_of_json(name);
-                  name;
-                | _ => failwith("server-reason-react: invalid arguments")
-                };
-              try(
-                otherServerFunction.call(~name, ())
-                |> Lwt.map(response => React.Json(string_to_json(response)))
-              ) {
-              | e => Lwt.fail(e)
-              };
-            };
+            ReactServerDOM.FunctionReferences.(
+              register(
+                "275062916",
+                Body(
+                  args => {
+                    let name =
+                      try((option_of_json(string_of_json))(args[0])) {
+                      | _ =>
+                        failwith(
+                          Printf.sprintf(
+                            "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
+                            "name",
+                            "string option",
+                            args[0] |> Yojson.Basic.to_string,
+                          ),
+                        )
+                      };
+                    try(
+                      withOptionalArg.call(~name?, ())
+                      |> Lwt.map(response =>
+                           React.Json(string_to_json(response))
+                         )
+                    ) {
+                    | e => Lwt.fail(e)
+                    };
+                  },
+                ),
+              )
+            );
           };
   
   include {
             [@react.server.function]
-            let anotherServerFunction = {
-              Runtime.id: "337953788",
+            let withNoArgs = {
+              Runtime.id: "573178554",
               call: () => (Lwt.return("Hello, world!"): Js.Promise.t(string)),
             };
-            let anotherServerFunctionRouteHandler = args =>
-              try(
-                anotherServerFunction.call()
-                |> Lwt.map(response => React.Json(string_to_json(response)))
-              ) {
-              | e => Lwt.fail(e)
-              };
+            ReactServerDOM.FunctionReferences.(
+              register(
+                "573178554",
+                Body(
+                  args =>
+                    try(
+                      withNoArgs.call()
+                      |> Lwt.map(response =>
+                           React.Json(string_to_json(response))
+                         )
+                    ) {
+                    | e => Lwt.fail(e)
+                    },
+                ),
+              )
+            );
           };
-

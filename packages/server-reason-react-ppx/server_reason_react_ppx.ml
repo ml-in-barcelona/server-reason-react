@@ -915,35 +915,38 @@ module ServerFunction = struct
         | Error (loc, msg) -> (Nolabel, [%expr [%ocaml.error [%e estring ~loc msg]]]))
       args
 
-  let encode_response ~loc ~function_name ~args ~return_core_type =
-    let apply_args = map_arguments_to_expressions ~loc args in
+  let encode_function_response ~loc ~response_expr ~core_type =
     [%expr
-      try
-        [%e pexp_apply ~loc [%expr [%e evar ~loc function_name].call] apply_args]
-        |> Lwt.map (fun response -> [%e response_to_json ~loc return_core_type [%expr response]])
+      try [%e response_expr] |> Lwt.map (fun response -> [%e response_to_json ~loc core_type [%expr response]])
       with e -> Lwt.fail e]
 
   let decode_arguments_vb ~loc args_to_decode =
-    let rec decoded_args args =
-      match args with
-      | [] -> [%expr [%e pexp_tuple ~loc (List.map ~f:(fun (_, label, _) -> evar ~loc label) args_to_decode)]]
-      | (_, label, core_type) :: args ->
-          let of_json = make_of_json ~loc core_type [%expr [%e evar ~loc label]] in
-          [%expr
-            let [%p ppat_var ~loc { txt = label; loc }] = [%e of_json] in
-            [%e decoded_args args]]
-    in
-    value_binding ~loc
-      ~pat:[%pat? [%p ppat_tuple ~loc (List.map ~f:(fun (_, label, _) -> pvar ~loc label) args_to_decode)]]
-      ~expr:
-        [%expr
-          match args with
-          | [%p plist ~loc (List.map ~f:(fun (_, label, _) -> pvar ~loc label) args_to_decode)] ->
-              [%e decoded_args args_to_decode]
-          | _ -> failwith "server-reason-react: invalid arguments"]
+    List.mapi
+      ~f:(fun i (_, label, core_type) ->
+        let string_of_core_type x =
+          let f = Format.str_formatter in
+          Astlib.Pprintast.core_type f x;
+          Format.flush_str_formatter ()
+        in
+        let core_type_string = string_of_core_type core_type in
+        let of_json = make_of_json ~loc core_type [%expr args.([%e eint ~loc i])] in
+        value_binding ~loc
+          ~pat:[%pat? [%p ppat_var ~loc { txt = label; loc }]]
+          ~expr:
+            [%expr
+              try [%e of_json]
+              with _ ->
+                failwith
+                  (Printf.sprintf "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s"
+                     [%e estring ~loc label] [%e estring ~loc core_type_string]
+                     (args.([%e eint ~loc i]) |> Yojson.Basic.to_string))])
+      args_to_decode
 
-  let create_router_handler ~loc ~function_name ~args ~return_core_type =
-    let encode_response_expr = encode_response ~loc ~function_name ~args ~return_core_type in
+  let create_router_handler ~loc ~id ~function_name ~args ~core_type =
+    let apply_args = map_arguments_to_expressions ~loc args in
+    let response_expr = pexp_apply ~loc [%expr [%e evar ~loc function_name].call] apply_args in
+
+    let encoded_response_expr = encode_function_response ~loc ~response_expr ~core_type in
     let args_to_decode =
       List.filter_map
         ~f:(fun arg ->
@@ -956,13 +959,12 @@ module ServerFunction = struct
 
     let body_expr =
       match args_to_decode with
-      | [] -> encode_response_expr
+      | [] -> encoded_response_expr
       | args_to_decode ->
           let decoded_expr = decode_arguments_vb ~loc args_to_decode in
-          pexp_let ~loc Nonrecursive [ decoded_expr ] encode_response_expr
+          pexp_let ~loc Nonrecursive decoded_expr encoded_response_expr
     in
-    [%stri
-      ServerReferences.register [%e estring ~loc (Printf.sprintf "%s.id" function_name)] (fun args -> [%e body_expr])]
+    [%stri ReactServerDOM.FunctionReferences.(register [%e estring ~loc id] (Body (fun args -> [%e body_expr])))]
 
   let create_server_function_contract ~loc id expression =
     let fn = [%expr { Runtime.id = [%e estring ~loc id]; call = [%e expression] }] in
@@ -984,14 +986,14 @@ module ServerFunction = struct
           [%stri
             include struct
               [%%i pstr_value ~loc rec_flag [ value_binding ]]
-              [%%i create_router_handler ~loc ~function_name ~args ~return_core_type]
+              [%%i create_router_handler ~loc ~id ~function_name ~args ~core_type:return_core_type]
             end]
         in
         stri
     | _ -> structure_item
 
   let create_client_function ~loc id args =
-    let apply_args = map_arguments_to_expressions ~loc args in
+    let apply_args = map_arguments_to_expressions ~loc args |> List.map ~f:(fun (_, expr) -> (Nolabel, expr)) in
     let fn =
       [%expr
         (* TODO: support others bundlers? *)

@@ -6,8 +6,7 @@ let server_functions_registry:
   Hashtbl.t(string, ReactServerDOM.server_function) =
   Hashtbl.create(10);
 
-let register =
-    (id, function_: list(Yojson.Basic.t) => Lwt.t(React.client_value)) => {
+let register = (id, function_) => {
   Hashtbl.add(server_functions_registry, id, ReactServerDOM.Body(function_));
 };
 
