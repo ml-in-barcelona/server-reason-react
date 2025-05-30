@@ -1,7 +1,3 @@
-// [QUESTION] How can we include the server functions automatically?
-include ServerFunctions.Notes.Registers;
-include ServerFunctions.Samples.Registers;
-
 let debug = Sys.getenv_opt("DEMO_ENV") === Some("development");
 
 let is_react_component_header = str =>

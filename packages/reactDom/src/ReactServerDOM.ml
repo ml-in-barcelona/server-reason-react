@@ -713,3 +713,14 @@ let render_html ?(env = `Dev) ?debug:(_ = false) ?bootstrapScriptContent ?bootst
 
 let render_model = Model.render
 let create_action_response = Model.create_action_response
+
+type server_function =
+  | FormData of (Js.FormData.t -> React.client_value Lwt.t)
+  | Body of (Yojson.Basic.t list -> React.client_value Lwt.t)
+
+let decodeReply body =
+  match Yojson.Basic.from_string body with
+  (* When there is no args, the react will send a list with a single string "$undefined" *)
+  | `List [ `String "$undefined" ] -> []
+  | `List args -> args
+  | _ -> failwith "Invalid args, this request was not created by server-reason-react"

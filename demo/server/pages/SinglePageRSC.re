@@ -88,7 +88,8 @@ module Page = {
         </Stack>
         <Hr />
         <Section
-          title="Counter" description="Passing int into a client component">
+          title="Counter"
+          description="Passing int into a client component, the counter starts at 45 and counts by one">
           <Counter initial=45 />
         </Section>
         <Hr />
@@ -161,7 +162,7 @@ module Page = {
           title="Server function from props on a Client Component"
           description="In this case, react will use the server function from the window.__server_functions_manifest_map">
           <ServerActionFromPropsClient
-            actionOnClick=ServerFunctions.Samples.simpleResponse
+            actionOnClick=ServerFunctions.simpleResponse
           />
         </Section>
         <Hr />

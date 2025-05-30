@@ -721,7 +721,14 @@ let rewrite_structure_item structure_item =
         if isReactClientComponentBinding vb then
           expand_make_binding vb (fun expr ->
               let loc = expr.pexp_loc in
-              let import_module = pexp_ident ~loc { txt = Lident "__FILE__"; loc } in
+              let file = pexp_ident ~loc { txt = Lident "__FILE__"; loc } in
+              let import_module =
+                match !sub_modules with
+                | [] -> [%expr [%e file]]
+                | _ ->
+                    let submodule = estring ~loc (String.concat "." !sub_modules) in
+                    [%expr Printf.sprintf "%s#%s" [%e file] [%e submodule]]
+              in
               let arguments = get_arguments vb.pvb_expr in
               (* We transform the arguments from the value binding into React.client_props *)
               let props = props_to_model ~loc arguments in

@@ -1676,3 +1676,13 @@ module WeakMap = struct
 
   type ('k, 'v) t
 end
+
+module FormData = struct
+  (* TODO: This is a bad implementation for FormData, and not compatible with the Js.FormData from melange.js *)
+  type entryValue = [ `String of string ]
+  type t = (string, entryValue) Hashtbl.t
+
+  let make = (fun () -> Hashtbl.create 10 : unit -> t)
+  let append = (fun formData key value -> Hashtbl.add formData key value : t -> string -> entryValue -> unit)
+  let get = (fun formData key -> Hashtbl.find formData key : t -> string -> entryValue)
+end

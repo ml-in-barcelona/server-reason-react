@@ -2,9 +2,9 @@ const React = window.React;
 const ReactDOM = window.ReactDOM;
 
 const app = () => {
-	return React.createElement("div", { key: "fi", style: { color: "blue" } }, [
-		"first",
-	]);
+  return React.createElement("div", { key: "fi", style: { color: "blue" } }, [
+    "first",
+  ]);
 };
 
 const root = document.querySelector("#root");
