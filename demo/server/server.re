@@ -7,7 +7,7 @@ let getAndPost = (path, handler) =>
     [],
     [
       Dream.get(path, handler),
-      Dream.post(path, request => Actions.handleRequest(request)),
+      Dream.post(path, DreamRSC.streamFunctionResponse),
     ],
   );
 
