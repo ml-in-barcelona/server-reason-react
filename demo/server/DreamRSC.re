@@ -1,5 +1,26 @@
 let debug = Sys.getenv_opt("DEMO_ENV") === Some("development");
 
+let streamFunctionResponse = request => {
+  Dream.stream(
+    ~headers=[("Content-Type", "application/react.action")],
+    stream => {
+      let%lwt () =
+        ReactServerDOM.create_action_response(
+          ~subscribe=
+            chunk => {
+              Dream.log("Action response");
+              Dream.log("%s", chunk);
+              let%lwt () = Dream.write(stream, chunk);
+              Dream.flush(stream);
+            },
+          FunctionReferences.handleRequest(request),
+        );
+
+      Dream.flush(stream);
+    },
+  );
+};
+
 let is_react_component_header = str =>
   String.equal(str, "application/react.component");
 
@@ -53,34 +74,6 @@ let stream_html =
       Dream.flush(stream);
     },
   );
-};
-
-let stream_server_action = fn => {
-  Dream.stream(
-    ~headers=[("Content-Type", "application/react.action")],
-    stream => {
-      let%lwt () = fn(stream);
-      Lwt.return();
-    },
-  );
-};
-
-let streamResponse = values => {
-  stream_server_action(stream => {
-    let%lwt () =
-      ReactServerDOM.create_action_response(
-        ~subscribe=
-          chunk => {
-            Dream.log("Action response");
-            Dream.log("%s", chunk);
-            let%lwt () = Dream.write(stream, chunk);
-            Dream.flush(stream);
-          },
-        values,
-      );
-
-    Dream.flush(stream);
-  });
 };
 
 let createFromRequest =
