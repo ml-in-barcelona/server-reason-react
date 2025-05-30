@@ -101,7 +101,4 @@
               | e => Lwt.fail(e)
               };
           };
-  
-  let _ = simpleResponseRouteHandler;
-  let _ = otherServerFunctionRouteHandler;
-  let _ = anotherServerFunctionRouteHandler;
+

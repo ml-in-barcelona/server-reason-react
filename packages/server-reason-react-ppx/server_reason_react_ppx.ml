@@ -944,7 +944,6 @@ module ServerFunction = struct
 
   let create_router_handler ~loc ~function_name ~args ~return_core_type =
     let encode_response_expr = encode_response ~loc ~function_name ~args ~return_core_type in
-
     let args_to_decode =
       List.filter_map
         ~f:(fun arg ->
@@ -963,7 +962,7 @@ module ServerFunction = struct
           pexp_let ~loc Nonrecursive [ decoded_expr ] encode_response_expr
     in
     [%stri
-      let [%p ppat_var ~loc { txt = Printf.sprintf "%sRouteHandler" function_name; loc }] = fun args -> [%e body_expr]]
+      ServerReferences.register [%e estring ~loc (Printf.sprintf "%s.id" function_name)] (fun args -> [%e body_expr])]
 
   let create_server_function_contract ~loc id expression =
     let fn = [%expr { Runtime.id = [%e estring ~loc id]; call = [%e expression] }] in

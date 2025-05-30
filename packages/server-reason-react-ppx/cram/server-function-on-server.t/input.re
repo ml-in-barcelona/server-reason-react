@@ -14,7 +14,3 @@ let otherServerFunction = (~name: string, ()): Js.Promise.t(string) => {
 let anotherServerFunction = (): Js.Promise.t(string) => {
   Lwt.return("Hello, world!");
 };
-
-let _ = simpleResponseRouteHandler;
-let _ = otherServerFunctionRouteHandler;
-let _ = anotherServerFunctionRouteHandler;

@@ -714,13 +714,47 @@ let render_html ?(env = `Dev) ?debug:(_ = false) ?bootstrapScriptContent ?bootst
 let render_model = Model.render
 let create_action_response = Model.create_action_response
 
-type server_function =
-  | FormData of (Js.FormData.t -> React.client_value Lwt.t)
-  | Body of (Yojson.Basic.t list -> React.client_value Lwt.t)
+module FunctionReferences = struct
+  type server_function =
+    | FormData of (Js.FormData.t -> React.client_value Lwt.t)
+    | Body of (json array -> React.client_value Lwt.t)
 
-let decodeReply body =
-  match Yojson.Basic.from_string body with
-  (* When there is no args, the react will send a list with a single string "$undefined" *)
-  | `List [ `String "$undefined" ] -> []
-  | `List args -> args
-  | _ -> failwith "Invalid args, this request was not created by server-reason-react"
+  type t = (string, server_function) Hashtbl.t
+
+  let registry: t = Hashtbl.create 10
+  let register = Hashtbl.add registry
+  let get = Hashtbl.find_opt registry
+
+  let decodeFormDataReply formData =
+    let modelId =
+      Js.FormData.get formData "0" |> function
+      | `String modelId ->
+          let modelId =
+            Yojson.Basic.from_string modelId |> function
+            | `List (`String referenceId :: []) -> referenceId
+            | _ -> failwith "Invalid referenceId"
+          in
+          (Some modelId [@explicit_arity])
+    in
+    Hashtbl.fold
+      (fun key value acc ->
+        if key = "0" then formData
+        else
+          match modelId with
+          | ((Some modelId) [@explicit_arity]) ->
+              let form_prefix = String.sub modelId 2 (String.length modelId - 2) ^ "_" in
+              let key = String.sub key (String.length form_prefix) (String.length key - String.length form_prefix) in
+              Hashtbl.add acc key value;
+              formData
+          | None ->
+              Hashtbl.add acc key value;
+              formData)
+      formData (Hashtbl.create 10)
+
+  let decodeReply body =
+    match Yojson.Basic.from_string body with
+    (* When there is no args, the react will send a list with a single string "$undefined" *)
+    | `List [ `String "$undefined" ] -> [||]
+    | `List args -> args |> Array.of_list
+    | _ -> failwith "Invalid args, this request was not created by server-reason-react"
+end
