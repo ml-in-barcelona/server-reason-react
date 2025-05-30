@@ -41,6 +41,11 @@ let render_manifest manifest =
   let register_client_modules =
     List.map manifest ~f:(function
       | Client_component { original_path; compiled_js_path; module_name } ->
+          let original_path_with_submodule =
+            match module_name with
+            | Some name -> Printf.sprintf "%s#%s" original_path (print_module_name name)
+            | None -> original_path
+          in
           let export =
             match module_name with
             | Some name -> Printf.sprintf "%s.make_client" (print_module_name name)
@@ -50,7 +55,7 @@ let render_manifest manifest =
             "window.__client_manifest_map[\"%s\"] = React.lazy(() => import(\"%s\").then(module => {\n\
             \  return { default: module.%s }\n\
              }).catch(err => { console.error(err); return { default: null }; }))"
-            original_path compiled_js_path export
+            original_path_with_submodule compiled_js_path export
       | Server_function { compiled_js_path; module_name; function_name; id } ->
           let export =
             match module_name with

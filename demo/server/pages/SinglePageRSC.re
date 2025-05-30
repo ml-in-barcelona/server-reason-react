@@ -88,7 +88,8 @@ module Page = {
         </Stack>
         <Hr />
         <Section
-          title="Counter" description="Passing int into a client component">
+          title="Counter"
+          description="Passing int into a client component, the counter starts at 45 and counts by one">
           <Counter initial=45 />
         </Section>
         <Hr />
