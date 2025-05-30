@@ -2,8 +2,17 @@
  (name test)
  (libraries
   alcotest
+  lwt
+  yojson
+  melange-json-native
   server-reason-react.react
   server-reason-react.reactDom
-  server-reason-react.js)
+  server-reason-react.js
+  unix
+  alcotest-lwt)
  (preprocess
-  (pps server-reason-react.ppx server-reason-react.melange_ppx)))
+  (pps
+   server-reason-react.ppx
+   server-reason-react.melange_ppx
+   lwt_ppx
+   melange-json.ppx)))

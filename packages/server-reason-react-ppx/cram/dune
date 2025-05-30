@@ -11,4 +11,4 @@
 (executable
  (name standalone)
  (modules standalone)
- (libraries server-reason-react.ppx ppxlib))
+ (libraries server-reason-react.ppx server-reason-react.runtime ppxlib))

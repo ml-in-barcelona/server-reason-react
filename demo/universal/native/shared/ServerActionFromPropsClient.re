@@ -3,7 +3,7 @@ let make =
     (
       ~actionOnClick:
          Runtime.server_function(
-           (. ~name: string, ~age: int) => Js.Promise.t(string),
+           (~name: string, ~age: int) => Js.Promise.t(string),
          ),
     ) => {
   let (isLoading, setIsLoading) = RR.useStateValue(false);
@@ -13,7 +13,7 @@ let make =
       className="font-mono border-2 py-1 px-2 rounded-lg bg-yellow-950 border-yellow-700 text-yellow-200 hover:bg-yellow-800"
       onClick={_ => {
         setIsLoading(true);
-        actionOnClick.call(. ~name="Lola", ~age=20)
+        actionOnClick.call(~name="Lola", ~age=20)
         |> Js.Promise.then_(response => {
              setIsLoading(false);
              Js.log(response);
