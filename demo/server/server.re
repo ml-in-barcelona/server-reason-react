@@ -5,7 +5,10 @@ let getAndPost = (path, handler) =>
   Dream.scope(
     "/",
     [],
-    [Dream.get(path, handler), Dream.post(path, Actions.handleRequest)],
+    [
+      Dream.get(path, handler),
+      Dream.post(path, request => Actions.handleRequest(request)),
+    ],
   );
 
 let server =

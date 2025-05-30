@@ -13,6 +13,8 @@ val render_model :
 val create_action_response :
   ?env:[ `Dev | `Prod ] -> ?debug:bool -> ?subscribe:(string -> unit Lwt.t) -> React.client_value Lwt.t -> unit Lwt.t
 
-type server_function = Yojson.Basic.t list -> React.client_value Lwt.t
+type server_function =
+  | FormData of (Js.FormData.t -> React.client_value Lwt.t)
+  | Body of (Yojson.Basic.t list -> React.client_value Lwt.t)
 
 val decodeReply : string -> Yojson.Basic.t list

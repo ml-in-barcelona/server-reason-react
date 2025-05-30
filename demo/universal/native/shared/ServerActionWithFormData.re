@@ -4,7 +4,7 @@ let make = () => {
     action={
       switch%platform () {
       | Server => ""
-      | Client => Obj.magic(ServerFunctions.Samples.formData.call)
+      | Client => Obj.magic(ServerFunctions.formData.call)
       }
     }
     className={Cx.make([Theme.text(Theme.Color.Gray4)])}>
