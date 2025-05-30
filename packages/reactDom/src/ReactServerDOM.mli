@@ -15,6 +15,15 @@ val create_action_response :
 
 type server_function =
   | FormData of (Js.FormData.t -> React.client_value Lwt.t)
-  | Body of (Yojson.Basic.t list -> React.client_value Lwt.t)
+  | Body of (Yojson.Basic.t array -> React.client_value Lwt.t)
 
-val decodeReply : string -> Yojson.Basic.t list
+val decodeReply : string -> Yojson.Basic.t array
+val decodeFormDataReply : Js.FormData.t -> Js.FormData.t
+
+module type FunctionReferences = sig
+  type t
+
+  val registry : t
+  val register : string -> server_function -> unit
+  val get : string -> server_function option
+end
