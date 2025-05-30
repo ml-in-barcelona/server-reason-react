@@ -31,10 +31,6 @@ let make =
   let (isExpanded, setIsExpanded) = RR.useStateValue(false);
   let (isPending, startTransition) = React.useTransition();
 
-  let handlerClick = _evnt => {
-    ServerFunctions.simpleResponse.call(. ~name="Lola", ~age=20);
-  };
-
   let isActive =
     switch (router.location.selectedId) {
     | Some(selectedId) => selectedId == id
