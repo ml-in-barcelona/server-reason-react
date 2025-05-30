@@ -8,7 +8,7 @@ let make = () => {
       className="font-mono border-2 py-1 px-2 rounded-lg bg-yellow-950 border-yellow-700 text-yellow-200 hover:bg-yellow-800"
       onClick={_ => {
         setIsLoading(true);
-        ServerFunctions.simpleResponse.call(. ~name="Lola", ~age=20)
+        ServerFunctions.simpleResponse.call(~name="Lola", ~age=20)
         |> Js.Promise.then_(response => {
              setIsLoading(false);
              setMessage(response);

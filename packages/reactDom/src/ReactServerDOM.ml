@@ -716,11 +716,56 @@ let create_action_response = Model.create_action_response
 
 type server_function =
   | FormData of (Js.FormData.t -> React.client_value Lwt.t)
-  | Body of (Yojson.Basic.t list -> React.client_value Lwt.t)
+  | Body of (json array -> React.client_value Lwt.t)
+
+let decodeFormDataReply formData =
+  let modelId =
+    Js.FormData.get formData "0" |> function
+    | `String modelId ->
+        let modelId =
+          Yojson.Basic.from_string modelId |> function
+          | `List (`String referenceId :: []) -> referenceId
+          | _ -> failwith "Invalid referenceId"
+        in
+        (Some modelId [@explicit_arity])
+  in
+  let formDataEntries = Js.FormData.entries formData in
+  let rec aux acc = function
+    | [] -> acc
+    | (key, value) :: entries -> (
+        if key = "0" then aux acc entries
+        else
+          match modelId with
+          | Some modelId ->
+              let form_prefix = String.sub modelId 2 (String.length modelId - 2) ^ "_" in
+              let key = String.sub key (String.length form_prefix) (String.length key - String.length form_prefix) in
+              Js.FormData.append acc key value;
+              aux acc entries
+          | None ->
+              Js.FormData.append acc key value;
+              aux acc entries)
+  in
+  aux (Js.FormData.make ()) formDataEntries
 
 let decodeReply body =
   match Yojson.Basic.from_string body with
   (* When there is no args, the react will send a list with a single string "$undefined" *)
-  | `List [ `String "$undefined" ] -> []
-  | `List args -> args
+  | `List [ `String "$undefined" ] -> [||]
+  | `List args -> args |> Array.of_list
   | _ -> failwith "Invalid args, this request was not created by server-reason-react"
+
+module type FunctionReferences = sig
+  type t
+
+  val registry : t
+  val register : string -> server_function -> unit
+  val get : string -> server_function option
+end
+
+module FunctionReferencesMake (S : FunctionReferences) = struct
+  type t = S.t
+
+  let registry = S.registry
+  let register = S.register
+  let get = S.get
+end
