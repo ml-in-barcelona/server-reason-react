@@ -496,7 +496,7 @@ let globalAttributes =
     (* Standard HTML Attributes *)
     Attribute { name = "accesskey"; jsxName = "accessKey"; reasonJsxName = "accessKey"; type_ = String };
     Attribute { name = "autocapitalize"; jsxName = "autoCapitalize"; reasonJsxName = "autoCapitalize"; type_ = String };
-    Attribute { name = "autofocus"; jsxName = "autoFocus"; reasonJsxName = "autoFocus"; type_ = String };
+    Attribute { name = "autofocus"; jsxName = "autoFocus"; reasonJsxName = "autoFocus"; type_ = Bool };
     Attribute { name = "contextmenu"; jsxName = "contextMenu"; reasonJsxName = "contextMenu"; type_ = String };
     Attribute { name = "contenteditable"; jsxName = "contentEditable"; reasonJsxName = "contentEditable"; type_ = BooleanishString };
     Attribute { name = "dir"; jsxName = "dir"; reasonJsxName = "dir"; type_ = String };
@@ -1012,7 +1012,7 @@ let tableHTMLAttributes =
 let textareaHTMLAttributes =
   [
     Attribute { name = "autocomplete"; jsxName = "autoComplete"; reasonJsxName = "autoComplete"; type_ = String };
-    Attribute { name = "autofocus"; jsxName = "autoFocus"; reasonJsxName = "autoFocus"; type_ = String };
+    Attribute { name = "autofocus"; jsxName = "autoFocus"; reasonJsxName = "autoFocus"; type_ = Bool };
     Attribute { name = "cols"; jsxName = "cols"; reasonJsxName = "cols"; type_ = Int (* number *) };
     Attribute { name = "dirName"; jsxName = "dirName"; reasonJsxName = "dirName"; type_ = String };
     Attribute { name = "disabled"; jsxName = "disabled"; reasonJsxName = "disabled"; type_ = Bool };
