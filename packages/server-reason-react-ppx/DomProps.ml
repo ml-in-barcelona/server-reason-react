@@ -603,7 +603,7 @@ let blockquoteHTMLAttributes =
 let buttonHTMLAttributes =
   [
     Attribute { name = "autofocus"; jsxName = "autoFocus"; reasonJsxName = "autoFocus"; type_ = Bool };
-    Attribute { name = "autocomplete"; jsxName = "autoComplete"; reasonJsxName = "autoComplete"; type_ = Bool };
+    Attribute { name = "autocomplete"; jsxName = "autoComplete"; reasonJsxName = "autoComplete"; type_ = String };
     Attribute { name = "disabled"; jsxName = "disabled"; reasonJsxName = "disabled"; type_ = Bool };
     Attribute { name = "form"; jsxName = "form"; reasonJsxName = "form"; type_ = String };
     Attribute { name = "formaction"; jsxName = "formAction"; reasonJsxName = "formAction"; type_ = String };
