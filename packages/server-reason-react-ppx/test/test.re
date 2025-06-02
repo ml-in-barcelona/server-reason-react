@@ -464,14 +464,13 @@ let multiple_contexts = () => {
   );
 };
 
-module FunctionReferences =
-  ReactServerDOM.FunctionReferencesMake({
-    type t = Hashtbl.t(string, ReactServerDOM.server_function);
+module FunctionReferences: ReactServerDOM.FunctionReferences = {
+  type t = Hashtbl.t(string, ReactServerDOM.server_function);
 
-    let registry = Hashtbl.create(10);
-    let register = Hashtbl.add(registry);
-    let get = Hashtbl.find_opt(registry);
-  });
+  let registry = Hashtbl.create(10);
+  let register = Hashtbl.add(registry);
+  let get = Hashtbl.find_opt(registry);
+};
 
 module ServerFunction = {
   [@react.server.function]

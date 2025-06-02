@@ -32,19 +32,18 @@
   ];
   include Melange_json.Primitives;
   
-  module FunctionReferences =
-    ReactServerDOM.FunctionReferencesMake({
-      type t = Hashtbl.t(string, ReactServerDOM.server_function);
+  module FunctionReferences: ReactServerDOM.FunctionReferences = {
+    type t = Hashtbl.t(string, ReactServerDOM.server_function);
   
-      let registry = Hashtbl.create(10);
-      let register = Hashtbl.add(registry);
-      let get = Hashtbl.find_opt(registry);
-    });
+    let registry = Hashtbl.create(10);
+    let register = Hashtbl.add(registry);
+    let get = Hashtbl.find_opt(registry);
+  };
   
   include {
             [@react.server.function]
             let withLabelledArg = {
-              Runtime.id: "657048744",
+              Runtime.id: "515397179",
               call: (~name: string, ~age: int) => (
                 Lwt.return(
                   Printf.sprintf("Hello %s, you are %d years old", name, age),
@@ -53,7 +52,7 @@
               ),
             };
             FunctionReferences.register(
-              "657048744",
+              "515397179",
               Body(
                 args => {
                   let name =
@@ -96,7 +95,7 @@
   include {
             [@react.server.function]
             let withLabelledArgAndUnlabeledArg = {
-              Runtime.id: "348889945",
+              Runtime.id: "896610790",
               call: (~name: string="Lola", age: int) => (
                 Lwt.return(
                   Printf.sprintf("Hello %s, you are %d years old", name, age),
@@ -105,7 +104,7 @@
               ),
             };
             FunctionReferences.register(
-              "348889945",
+              "896610790",
               Body(
                 args => {
                   let name =
@@ -148,14 +147,14 @@
   include {
             [@react.server.function]
             let withOptionalArg = {
-              Runtime.id: "66150677",
+              Runtime.id: "949714301",
               call: (~name: string="Lola", ()) => (
                 Lwt.return(Printf.sprintf("Hello, %s", name)):
                   Js.Promise.t(string)
               ),
             };
             FunctionReferences.register(
-              "66150677",
+              "949714301",
               Body(
                 args => {
                   let name =
@@ -186,11 +185,11 @@
   include {
             [@react.server.function]
             let withNoArgs = {
-              Runtime.id: "837196138",
+              Runtime.id: "466276527",
               call: () => (Lwt.return("Hello, world!"): Js.Promise.t(string)),
             };
             FunctionReferences.register(
-              "837196138",
+              "466276527",
               Body(
                 args =>
                   try(
@@ -204,4 +203,3 @@
               ),
             );
           };
-

@@ -27,11 +27,3 @@ module type FunctionReferences = sig
   val register : string -> server_function -> unit
   val get : string -> server_function option
 end
-
-module FunctionReferencesMake (S : FunctionReferences) : sig
-  type t = S.t
-
-  val registry : t
-  val register : string -> server_function -> unit
-  val get : string -> server_function option
-end

@@ -761,11 +761,3 @@ module type FunctionReferences = sig
   val register : string -> server_function -> unit
   val get : string -> server_function option
 end
-
-module FunctionReferencesMake (S : FunctionReferences) = struct
-  type t = S.t
-
-  let registry = S.registry
-  let register = S.register
-  let get = S.get
-end
