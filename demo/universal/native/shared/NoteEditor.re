@@ -38,13 +38,9 @@ let make =
               let action =
                 switch (noteId) {
                 | Some(id) =>
-                  ServerFunctions.Notes.edit.call(.
-                    ~id,
-                    ~title,
-                    ~content=body,
-                  )
+                  ServerFunctions.Notes.edit.call(~id, ~title, ~content=body)
                 | None =>
-                  ServerFunctions.Notes.create.call(. ~title, ~content=body)
+                  ServerFunctions.Notes.create.call(~title, ~content=body)
                 };
 
               action
