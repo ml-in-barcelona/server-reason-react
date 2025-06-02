@@ -405,8 +405,7 @@ let ariaAttributes =
        submitted. *)
     Attribute { name = "aria-required"; jsxName = "aria-required"; reasonJsxName = "ariaRequired"; type_ = BooleanishString };
 
-    (* Defines a human-readable, author-localized description for the role of an
-       element. *)
+    (* Defines a human-readable, author-localized description for the role of an element. *)
     Attribute { name = "aria-roledescription"; jsxName = "aria-roledescription"; reasonJsxName = "ariaRoledescription"; type_ = String };
 
     (* Defines the total number of rows in a table, grid, or treegrid.
@@ -496,7 +495,7 @@ let globalAttributes =
     (* Standard HTML Attributes *)
     Attribute { name = "accesskey"; jsxName = "accessKey"; reasonJsxName = "accessKey"; type_ = String };
     Attribute { name = "autocapitalize"; jsxName = "autoCapitalize"; reasonJsxName = "autoCapitalize"; type_ = String };
-    Attribute { name = "autofocus"; jsxName = "autoFocus"; reasonJsxName = "autoFocus"; type_ = String };
+    Attribute { name = "autofocus"; jsxName = "autoFocus"; reasonJsxName = "autoFocus"; type_ = Bool };
     Attribute { name = "contextmenu"; jsxName = "contextMenu"; reasonJsxName = "contextMenu"; type_ = String };
     Attribute { name = "contenteditable"; jsxName = "contentEditable"; reasonJsxName = "contentEditable"; type_ = BooleanishString };
     Attribute { name = "dir"; jsxName = "dir"; reasonJsxName = "dir"; type_ = String };
@@ -603,7 +602,7 @@ let blockquoteHTMLAttributes =
 let buttonHTMLAttributes =
   [
     Attribute { name = "autofocus"; jsxName = "autoFocus"; reasonJsxName = "autoFocus"; type_ = Bool };
-    Attribute { name = "autocomplete"; jsxName = "autoComplete"; reasonJsxName = "autoComplete"; type_ = Bool };
+    Attribute { name = "autocomplete"; jsxName = "autoComplete"; reasonJsxName = "autoComplete"; type_ = String };
     Attribute { name = "disabled"; jsxName = "disabled"; reasonJsxName = "disabled"; type_ = Bool };
     Attribute { name = "form"; jsxName = "form"; reasonJsxName = "form"; type_ = String };
     Attribute { name = "formaction"; jsxName = "formAction"; reasonJsxName = "formAction"; type_ = String };
@@ -1012,7 +1011,7 @@ let tableHTMLAttributes =
 let textareaHTMLAttributes =
   [
     Attribute { name = "autocomplete"; jsxName = "autoComplete"; reasonJsxName = "autoComplete"; type_ = String };
-    Attribute { name = "autofocus"; jsxName = "autoFocus"; reasonJsxName = "autoFocus"; type_ = String };
+    Attribute { name = "autofocus"; jsxName = "autoFocus"; reasonJsxName = "autoFocus"; type_ = Bool };
     Attribute { name = "cols"; jsxName = "cols"; reasonJsxName = "cols"; type_ = Int (* number *) };
     Attribute { name = "dirName"; jsxName = "dirName"; reasonJsxName = "dirName"; type_ = String };
     Attribute { name = "disabled"; jsxName = "disabled"; reasonJsxName = "disabled"; type_ = Bool };
@@ -1095,7 +1094,7 @@ module SVG = struct
     [
       Attribute { name = "id"; jsxName = "id"; reasonJsxName = "id"; type_ = String };
       Attribute { name = "lang"; jsxName = "lang"; reasonJsxName = "lang"; type_ = String };
-      Attribute { name = "tabindex"; jsxName = "tabIndex"; reasonJsxName = "tabIndex"; type_ = String };
+      Attribute { name = "tabindex"; jsxName = "tabIndex"; reasonJsxName = "tabIndex"; type_ = Int };
       Attribute { name = "xml:base"; jsxName = "xmlBase"; reasonJsxName = "xmlBase"; type_ = String };
       Attribute { name = "xml:lang"; jsxName = "xmlLang"; reasonJsxName = "xmlLang"; type_ = String };
       Attribute { name = "xml:space"; jsxName = "xmlSpace"; reasonJsxName = "xmlSpace"; type_ = String };
