@@ -405,8 +405,7 @@ let ariaAttributes =
        submitted. *)
     Attribute { name = "aria-required"; jsxName = "aria-required"; reasonJsxName = "ariaRequired"; type_ = BooleanishString };
 
-    (* Defines a human-readable, author-localized description for the role of an
-       element. *)
+    (* Defines a human-readable, author-localized description for the role of an element. *)
     Attribute { name = "aria-roledescription"; jsxName = "aria-roledescription"; reasonJsxName = "ariaRoledescription"; type_ = String };
 
     (* Defines the total number of rows in a table, grid, or treegrid.
@@ -1095,7 +1094,7 @@ module SVG = struct
     [
       Attribute { name = "id"; jsxName = "id"; reasonJsxName = "id"; type_ = String };
       Attribute { name = "lang"; jsxName = "lang"; reasonJsxName = "lang"; type_ = String };
-      Attribute { name = "tabindex"; jsxName = "tabIndex"; reasonJsxName = "tabIndex"; type_ = String };
+      Attribute { name = "tabindex"; jsxName = "tabIndex"; reasonJsxName = "tabIndex"; type_ = Int };
       Attribute { name = "xml:base"; jsxName = "xmlBase"; reasonJsxName = "xmlBase"; type_ = String };
       Attribute { name = "xml:lang"; jsxName = "xmlLang"; reasonJsxName = "xmlLang"; type_ = String };
       Attribute { name = "xml:space"; jsxName = "xmlSpace"; reasonJsxName = "xmlSpace"; type_ = String };
