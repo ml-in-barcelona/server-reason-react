@@ -7,17 +7,16 @@ include ReactServerDOM.FunctionReferencesMake({
 });
 
 let handleFormRequest = (actionId, formData) => {
-  let formData =
+  let formData = {
+    let formDataJs = Js.FormData.make();
     formData
-    |> List.fold_left(
-         (acc, (name, value)) => {
-           // For now we're only supporting strings.
-           let (_filename, value) = value |> List.hd;
-           Js.FormData.append(acc, name, `String(value));
-           acc;
-         },
-         Js.FormData.make(),
-       );
+    |> List.iter(((name, value)) => {
+         // For now we're only supporting strings.
+         let (_filename, value) = value |> List.hd;
+         Js.FormData.append(formDataJs, name, `String(value));
+       });
+    formDataJs;
+  };
 
   let formData = ReactServerDOM.decodeFormDataReply(formData);
 

@@ -74,16 +74,13 @@ let formData =
   switch%platform () {
   | Server => {
       Runtime.id: formDataId,
-      call: ((. formData: Js.FormData.t) => formDataRouteHandler(formData)),
+      call: (formData: Js.FormData.t) => formDataRouteHandler(formData),
     }
   | Client => {
       Runtime.id: formDataId,
-      call: (
-        (. formData: Js.FormData.t) => {
-          let action =
-            ReactServerDOMEsbuild.createServerReference(formDataId);
-          action(. formData);
-        }
-      ),
+      call: (formData: Js.FormData.t) => {
+        let action = ReactServerDOMEsbuild.createServerReference(formDataId);
+        action(. formData);
+      },
     }
   };

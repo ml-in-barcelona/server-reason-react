@@ -729,20 +729,23 @@ let decodeFormDataReply formData =
         in
         (Some modelId [@explicit_arity])
   in
-  Hashtbl.fold
-    (fun key value acc ->
-      if key = "0" then formData
-      else
-        match modelId with
-        | ((Some modelId) [@explicit_arity]) ->
-            let form_prefix = String.sub modelId 2 (String.length modelId - 2) ^ "_" in
-            let key = String.sub key (String.length form_prefix) (String.length key - String.length form_prefix) in
-            Hashtbl.add acc key value;
-            formData
-        | None ->
-            Hashtbl.add acc key value;
-            formData)
-    formData (Hashtbl.create 10)
+  let formDataEntries = Js.FormData.entries formData in
+  let rec aux acc = function
+    | [] -> acc
+    | (key, value) :: entries -> (
+        if key = "0" then aux acc entries
+        else
+          match modelId with
+          | Some modelId ->
+              let form_prefix = String.sub modelId 2 (String.length modelId - 2) ^ "_" in
+              let key = String.sub key (String.length form_prefix) (String.length key - String.length form_prefix) in
+              Js.FormData.append acc key value;
+              aux acc entries
+          | None ->
+              Js.FormData.append acc key value;
+              aux acc entries)
+  in
+  aux (Js.FormData.make ()) formDataEntries
 
 let decodeReply body =
   match Yojson.Basic.from_string body with
