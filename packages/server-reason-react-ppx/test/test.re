@@ -464,6 +464,15 @@ let multiple_contexts = () => {
   );
 };
 
+module FunctionReferences =
+  ReactServerDOM.FunctionReferencesMake({
+    type t = Hashtbl.t(string, ReactServerDOM.server_function);
+
+    let registry = Hashtbl.create(10);
+    let register = Hashtbl.add(registry);
+    let get = Hashtbl.find_opt(registry);
+  });
+
 module ServerFunction = {
   [@react.server.function]
   let simpleResponse = (~name: string, ~age: int): Js.Promise.t(string) => {
@@ -473,11 +482,10 @@ module ServerFunction = {
 
 let server_function = () => {
   let%lwt route_response =
-    ReactServerDOM.FunctionReferences.get(ServerFunction.simpleResponse.id)
+    FunctionReferences.get(ServerFunction.simpleResponse.id)
     |> (
       fun
-      | Some(ReactServerDOM.FunctionReferences.Body(handler)) =>
-        handler([|`String("John"), `Int(30)|])
+      | Some(Body(handler)) => handler([|`String("John"), `Int(30)|])
       | _ => assert(false)
     );
 
@@ -492,11 +500,10 @@ let server_function = () => {
 let server_function_args_error = () => {
   (
     try(
-      ReactServerDOM.FunctionReferences.get(ServerFunction.simpleResponse.id)
+      FunctionReferences.get(ServerFunction.simpleResponse.id)
       |> (
         fun
-        | Some(ReactServerDOM.FunctionReferences.Body(handler)) =>
-          handler([|`String("John"), `Int(30)|])
+        | Some(Body(handler)) => handler([|`String("John"), `Int(30)|])
         | _ => assert(false)
       )
       |> ignore

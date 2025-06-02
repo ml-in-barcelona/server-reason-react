@@ -964,7 +964,7 @@ module ServerFunction = struct
           let decoded_expr = decode_arguments_vb ~loc args_to_decode in
           pexp_let ~loc Nonrecursive decoded_expr encoded_response_expr
     in
-    [%stri ReactServerDOM.FunctionReferences.(register [%e estring ~loc id] (Body (fun args -> [%e body_expr])))]
+    [%stri FunctionReferences.register [%e estring ~loc id] (Body (fun args -> [%e body_expr]))]
 
   let create_server_function_contract ~loc id expression =
     let fn = [%expr { Runtime.id = [%e estring ~loc id]; call = [%e expression] }] in

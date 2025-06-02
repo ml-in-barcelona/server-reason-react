@@ -1,5 +1,14 @@
 include Melange_json.Primitives;
 
+module FunctionReferences =
+  ReactServerDOM.FunctionReferencesMake({
+    type t = Hashtbl.t(string, ReactServerDOM.server_function);
+
+    let registry = Hashtbl.create(10);
+    let register = Hashtbl.add(registry);
+    let get = Hashtbl.find_opt(registry);
+  });
+
 [@react.server.function]
 let withLabelledArg = (~name: string, ~age: int): Js.Promise.t(string) => {
   Lwt.return(Printf.sprintf("Hello %s, you are %d years old", name, age));

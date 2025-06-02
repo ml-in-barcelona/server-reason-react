@@ -13,15 +13,24 @@ val render_model :
 val create_action_response :
   ?env:[ `Dev | `Prod ] -> ?debug:bool -> ?subscribe:(string -> unit Lwt.t) -> React.client_value Lwt.t -> unit Lwt.t
 
-module FunctionReferences : sig
-  type server_function =
-    | FormData of (Js.FormData.t -> React.client_value Lwt.t)
-    | Body of (Yojson.Basic.t array -> React.client_value Lwt.t)
+type server_function =
+  | FormData of (Js.FormData.t -> React.client_value Lwt.t)
+  | Body of (Yojson.Basic.t array -> React.client_value Lwt.t)
 
-  type t = (string, server_function) Hashtbl.t
+val decodeReply : string -> Yojson.Basic.t array
+val decodeFormDataReply : Js.FormData.t -> Js.FormData.t
 
-  val decodeReply : string -> Yojson.Basic.t array
-  val decodeFormDataReply : Js.FormData.t -> Js.FormData.t
+module type FunctionReferences = sig
+  type t
+
+  val registry : t
+  val register : string -> server_function -> unit
+  val get : string -> server_function option
+end
+
+module FunctionReferencesMake (S : FunctionReferences) : sig
+  type t = S.t
+
   val registry : t
   val register : string -> server_function -> unit
   val get : string -> server_function option
