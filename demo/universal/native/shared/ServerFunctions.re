@@ -84,3 +84,6 @@ let formData =
       },
     }
   };
+
+[@platform native]
+FunctionReferences.register(formData.id, FormData(formDataRouteHandler));

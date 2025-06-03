@@ -832,7 +832,6 @@ module ServerFunction = struct
 
   let rewrite_native_function ~vb ~rec_flag structure_item =
     let loc = structure_item.pstr_loc in
-
     let function_name = get_function_name vb in
     let args = get_arguments vb.pvb_expr |> List.map ~f:get_arg_details |> List.rev in
     let base_fn = vb.pvb_expr in
@@ -905,7 +904,13 @@ let rewrite_structure_item ~sub_modules structure_item =
   (* let make = ... *)
   | Pstr_value (rec_flag, value_bindings) when isReactServerFunctionBinding (List.hd value_bindings) ->
       let vb = List.hd value_bindings in
-      ServerFunction.rewrite_native_function ~vb ~rec_flag structure_item
+      let loc = structure_item.pstr_loc in
+      if List.length value_bindings > 1 then
+        [%stri
+          [%%ocaml.error
+            "server-reason-react: server functions don't support recursive bindings yet. If you need it, please open an \
+             issue on https://github.com/reasonml-community/server-reason-react/issues"]]
+      else ServerFunction.rewrite_native_function ~vb ~rec_flag structure_item
   | Pstr_value (rec_flag, value_bindings) ->
       let map_value_binding vb =
         if isReactClientComponentBinding vb then
