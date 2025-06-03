@@ -433,6 +433,31 @@ let await_tick ?(raise = false) num =
         let%lwt () = sleep ~ms:(Random.int 10) in
         if raise then Lwt.fail (Failure "lol") else Lwt.return (React.string num) )
 
+let server_function_as_action () =
+  let app () =
+    React.Upper_case_component
+      ( "app",
+        fun () ->
+          React.createElement "form"
+            [
+              React.JSX.Function
+                ( "action",
+                  "action",
+                  { Runtime.id = "1234-4321"; call = (fun () -> Lwt.return (React.string "Server Content")) } );
+            ]
+            [ React.string "Server Content" ] )
+  in
+  let main = React.Upper_case_component ("app", app) in
+  assert_html main ~disable_backtrace:true
+    ~shell:
+      "<form>Server Content</form><script data-payload='0:[\"$\",\"form\",null,{\"children\":[\"Server \
+       Content\"],\"action\":\"$F1\"},null,[],{}]\n\
+       '>window.srr_stream.push()</script>"
+    [
+      "<script data-payload='1:{\"id\":\"1234-4321\",\"bound\":null}\n'>window.srr_stream.push()</script>";
+      "<script>window.srr_stream.close()</script>";
+    ]
+
 let suspense_in_a_list_with_error () =
   let fallback = React.string "Loading..." in
   let app () =
@@ -481,4 +506,5 @@ let tests =
     test "error_without_suspense" error_without_suspense;
     test "error_in_toplevel_in_async" error_in_toplevel_in_async;
     test "suspense_in_a_list_with_error" suspense_in_a_list_with_error;
+    test "server_function_as_action" server_function_as_action;
   ]

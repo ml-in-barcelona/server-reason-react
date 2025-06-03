@@ -1,10 +1,11 @@
-[@react.client.component]
+[@react.component]
 let make = () => {
   <form
     action={
       switch%platform () {
-      | Server => `String("")
-      | Client => Obj.magic(ServerFunctions.formData.call)
+      | Server => `Function(ServerFunctions.formData)
+      // doesn't matter the client value, it will never reach the browser
+      | Client => Obj.magic()
       }
     }
     className={Cx.make([Theme.text(Theme.Color.Gray4)])}>

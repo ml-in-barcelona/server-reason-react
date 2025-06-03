@@ -336,6 +336,7 @@ module JSX = struct
     | Inline of string
 
   type prop =
+    | Function : (string * string * _ Runtime.server_function) -> prop
     | Bool of (string * string * bool)
     | String of (string * string * string)
     | Style of (string * string * string) list
@@ -429,6 +430,7 @@ let attributes_to_map attributes =
       | DangerouslyInnerHtml _ -> acc
       | Ref _ -> acc
       | Event _ -> acc
+      | Function _ -> acc
       | Style _ -> acc)
     StringMap.empty attributes
 

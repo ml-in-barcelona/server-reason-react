@@ -14,11 +14,11 @@ val create_action_response :
   ?env:[ `Dev | `Prod ] -> ?debug:bool -> ?subscribe:(string -> unit Lwt.t) -> React.client_value Lwt.t -> unit Lwt.t
 
 type server_function =
-  | FormData of (Js.FormData.t -> React.client_value Lwt.t)
+  | FormData of (Yojson.Basic.t array * Js.FormData.t -> React.client_value Lwt.t)
   | Body of (Yojson.Basic.t array -> React.client_value Lwt.t)
 
 val decodeReply : string -> Yojson.Basic.t array
-val decodeFormDataReply : Js.FormData.t -> Js.FormData.t
+val decodeFormDataReply : Js.FormData.t -> Yojson.Basic.t array * Js.FormData.t
 
 module type FunctionReferences = sig
   type t

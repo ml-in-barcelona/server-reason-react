@@ -104,6 +104,7 @@ module Model = struct
     | React.JSX.DangerouslyInnerHtml html -> Some ("dangerouslySetInnerHTML", `Assoc [ ("__html", `String html) ])
     | React.JSX.Ref _ -> None
     | React.JSX.Event _ -> None
+    | React.JSX.Function _ -> None
 
   let props_to_json props = List.filter_map prop_to_json props
 
@@ -195,6 +196,17 @@ module Model = struct
       (* TODO: Do we need to html encode the model or only the html? *)
       | Text t -> `String t
       | Lower_case_element { key; tag; attributes; children } ->
+          let attributes =
+            List.map
+              (fun prop ->
+                match prop with
+                | React.JSX.Function (_, key, f) ->
+                    let id = use_chunk_id context in
+                    context.push id (Chunk_value (`Assoc [ ("id", `String f.id); ("bound", `Null) ]));
+                    React.JSX.String (key, key, action_value id)
+                | _ -> prop)
+              attributes
+          in
           let props = props_to_json attributes in
           node ~key ~tag ~props (List.map (turn_element_into_payload ~context) children)
       | Fragment children ->
@@ -430,7 +442,23 @@ let rec client_to_html ~fiber (element : React.element) =
   | Array childrens ->
       let%lwt html = childrens |> Array.to_list |> Lwt_list.map_p (client_to_html ~fiber) in
       Lwt.return (Html.list html)
-  | Lower_case_element { key; tag; attributes; children } -> render_lower_case ~fiber ~key ~tag ~attributes ~children
+  | Lower_case_element { key; tag; attributes; children } ->
+      let context = Fiber.get_context fiber in
+      let attributes =
+        List.map
+          (fun prop ->
+            match prop with
+            | React.JSX.Function (_, key, f) ->
+                let index = Fiber.use_index fiber in
+                let html =
+                  chunk_script (Model.model_to_chunk index (`Assoc [ ("id", `String f.id); ("bound", `Null) ]))
+                in
+                context.push html;
+                React.JSX.String (key, key, Model.action_value index)
+            | _ -> prop)
+          attributes
+      in
+      render_lower_case ~fiber ~key ~tag ~attributes ~children
   | Upper_case_component (_name, component) ->
       let rec wait_for_suspense_to_resolve () =
         match component () with
@@ -466,11 +494,9 @@ let rec client_to_html ~fiber (element : React.element) =
   | Consumer children -> client_to_html ~fiber children
 
 and render_lower_case ~fiber ~key:_ ~tag ~attributes ~children =
-  if Html.is_self_closing_tag tag then
-    let html_props = ReactDOM.attributes_to_html attributes in
-    Lwt.return (Html.node tag html_props [])
+  let html_props = ReactDOM.attributes_to_html attributes in
+  if Html.is_self_closing_tag tag then Lwt.return (Html.node tag html_props [])
   else
-    let html_props = ReactDOM.attributes_to_html attributes in
     let children = ReactDOM.moveDangerouslyInnerHtmlAsChildren attributes children in
     let%lwt html = children |> Lwt_list.map_p (client_to_html ~fiber) in
     Lwt.return (Html.node tag html_props html)
@@ -516,14 +542,27 @@ let rec to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * j
         to_html ~fiber (React.List children)
       else
         let children = ReactDOM.moveDangerouslyInnerHtmlAsChildren attributes children in
+        let context = Fiber.get_context fiber in
+        let html_props = ReactDOM.attributes_to_html attributes in
+        let json_attributes =
+          List.map
+            (fun prop ->
+              match prop with
+              | React.JSX.Function (_, key, f) ->
+                  let index = Fiber.use_index fiber in
+                  let html =
+                    chunk_script (Model.model_to_chunk index (`Assoc [ ("id", `String f.id); ("bound", `Null) ]))
+                  in
+                  context.push html;
+                  React.JSX.String (key, key, Model.action_value index)
+              | _ -> prop)
+            attributes
+        in
+        let json_props = Model.props_to_json json_attributes in
         if Html.is_self_closing_tag tag then
-          let html_props = ReactDOM.attributes_to_html attributes in
-          let json_props = Model.props_to_json attributes in
           let empty_children = (* there's no children for self closing tags *) [] in
           Lwt.return (Html.node tag html_props empty_children, Model.node ~tag ~key ~props:json_props empty_children)
         else
-          let html_props = ReactDOM.attributes_to_html attributes in
-          let json_props = Model.props_to_json attributes in
           let%lwt html, model = elements_to_html ~fiber children in
           Lwt.return (Html.node tag html_props [ html ], Model.node ~tag ~key ~props:json_props [ model ])
   | Async_component (_, component) ->
@@ -715,29 +754,64 @@ let render_model = Model.render
 let create_action_response = Model.create_action_response
 
 type server_function =
-  | FormData of (Js.FormData.t -> React.client_value Lwt.t)
-  | Body of (json array -> React.client_value Lwt.t)
+  | FormData of (Yojson.Basic.t array * Js.FormData.t -> React.client_value Lwt.t)
+  | Body of (Yojson.Basic.t array -> React.client_value Lwt.t)
+
+type model = Reference of string | FormData of string | Undefined | Json of json
+
+let parseModel model =
+  match model with
+  | `String value when String.starts_with ~prefix:"$" value -> (
+      let prefix = String.sub value 1 1 in
+      match prefix with
+      | "u" -> Undefined
+      | "K" -> FormData (String.sub value 2 (String.length value - 2))
+      | _ -> Reference (String.sub value 1 (String.length value - 1)))
+  | `String value -> Json (`String value)
+  | _ -> Json model
+
+let decodeReply body =
+  match Yojson.Basic.from_string body with
+  | `List args ->
+      args
+      |> List.filter_map (fun arg ->
+             match parseModel arg with
+             (* For now we only support json args *)
+             | Json json -> Some json
+             | _ -> None)
+      |> Array.of_list
+  | _ -> raise (Invalid_argument "Invalid args, this request was not created by server-reason-react")
 
 let decodeFormDataReply formData =
-  let modelId =
-    Js.FormData.get formData "0" |> function
-    | `String modelId ->
-        let modelId =
-          Yojson.Basic.from_string modelId |> function
-          | `List (`String referenceId :: []) -> referenceId
-          | _ -> failwith "Invalid referenceId"
-        in
-        (Some modelId [@explicit_arity])
+  let input_prefix = ref None in
+  let decodeArgs body =
+    match Yojson.Basic.from_string body with
+    | `List args -> args |> List.map (fun arg -> parseModel arg)
+    | _ -> raise (Invalid_argument "Invalid args, this request was not created by server-reason-react")
   in
+
   let formDataEntries = Js.FormData.entries formData in
+  let args =
+    Js.FormData.get formData "0" |> function
+    | `String model ->
+        decodeArgs model
+        |> List.filter_map (function
+             (* For now we only support json args *)
+             | Json json -> Some json
+             | FormData id ->
+                 input_prefix := Some id;
+                 None
+             | _ -> None)
+        |> Array.of_list
+  in
   let rec aux acc = function
     | [] -> acc
     | (key, value) :: entries -> (
         if key = "0" then aux acc entries
         else
-          match modelId with
-          | Some modelId ->
-              let form_prefix = String.sub modelId 2 (String.length modelId - 2) ^ "_" in
+          match !input_prefix with
+          | Some id ->
+              let form_prefix = id ^ "_" in
               let key = String.sub key (String.length form_prefix) (String.length key - String.length form_prefix) in
               Js.FormData.append acc key value;
               aux acc entries
@@ -745,14 +819,7 @@ let decodeFormDataReply formData =
               Js.FormData.append acc key value;
               aux acc entries)
   in
-  aux (Js.FormData.make ()) formDataEntries
-
-let decodeReply body =
-  match Yojson.Basic.from_string body with
-  (* When there is no args, the react will send a list with a single string "$undefined" *)
-  | `List [ `String "$undefined" ] -> [||]
-  | `List args -> args |> Array.of_list
-  | _ -> failwith "Invalid args, this request was not created by server-reason-react"
+  (args, aux (Js.FormData.make ()) formDataEntries)
 
 module type FunctionReferences = sig
   type t

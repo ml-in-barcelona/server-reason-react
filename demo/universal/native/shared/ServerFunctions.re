@@ -46,10 +46,25 @@ let error = (): Js.Promise.t(string) => {
   );
 };
 
+switch%platform () {
+| Server => ()
+// React does not support our record {id; call} to handle server functions on action attributes
+// so for now we're informing it to use the .call directly.
+// In the end, it does not matter, because action attributes are handled by react on client and this comment
+// will be created by the ppx.
+// If we find a issue with it in the future, we work on that.
+| Client => [%mel.raw
+   {|
+    // extract-server-function id/samples/formData formData.call
+    ''
+    |}
+  ]
+};
+
 let formDataId = "id/samples/formData";
 
 [@platform native]
-let formDataRouteHandler = formData => {
+let formDataHandler = (~formData: Js.FormData.t) => {
   let (name, lastName, age) =
     switch (
       formData->Js.FormData.get("name"),
@@ -61,7 +76,6 @@ let formDataRouteHandler = formData => {
         lastName,
         age,
       )
-    | exception _ => failwith("Invalid formData.")
     };
 
   let response =
@@ -70,11 +84,17 @@ let formDataRouteHandler = formData => {
   Lwt.return(React.Json(`String(response)));
 };
 
+[@platform native]
+let formDataRouteHandler = ((_, formData: Js.FormData.t)) =>
+  try%lwt(formDataHandler(~formData)) {
+  | exn => Lwt.fail(exn)
+  };
+
 let formData =
   switch%platform () {
   | Server => {
       Runtime.id: formDataId,
-      call: (formData: Js.FormData.t) => formDataRouteHandler(formData),
+      call: (formData: Js.FormData.t) => formDataHandler(~formData),
     }
   | Client => {
       Runtime.id: formDataId,
@@ -86,4 +106,69 @@ let formData =
   };
 
 [@platform native]
-FunctionReferences.register(formData.id, FormData(formDataRouteHandler));
+FunctionReferences.register(formDataId, FormData(formDataRouteHandler));
+
+switch%platform () {
+| Server => ()
+| Client => [%mel.raw
+   {|
+    // extract-server-function id/samples/formDataWithArg formDataWithArg.call
+    ''
+    |}
+  ]
+};
+
+let formDataWithArgId = "id/samples/formDataWithArg";
+
+[@platform native]
+let formDataWithArgHandler = (timestamp: string, ~formData: Js.FormData.t) => {
+  let country =
+    switch (formData->Js.FormData.get("country")) {
+    | `String(country) => country
+    };
+
+  let response =
+    Printf.sprintf(
+      "Form data received: %s, timestamp: %s",
+      country,
+      timestamp,
+    );
+
+  Lwt.return(React.Json(`String(response)));
+};
+
+[@platform native]
+let formDataWithArgRouteHandler = ((args, formData: Js.FormData.t)) => {
+  let timestamp =
+    switch (args) {
+    | [|`String(timestamp)|] => timestamp
+    | _ => ""
+    };
+
+  try%lwt(formDataWithArgHandler(timestamp, ~formData)) {
+  | exn => Lwt.fail(exn)
+  };
+};
+
+let formDataWithArg =
+  switch%platform () {
+  | Server => {
+      Runtime.id: formDataWithArgId,
+      call: (timestamp: string, formData: Js.FormData.t) =>
+        formDataWithArgHandler(timestamp, ~formData),
+    }
+  | Client => {
+      Runtime.id: formDataWithArgId,
+      call: (timestamp: string, formData: Js.FormData.t) => {
+        let action =
+          ReactServerDOMEsbuild.createServerReference(formDataWithArgId);
+        action(. timestamp, formData);
+      },
+    }
+  };
+
+[@platform native]
+FunctionReferences.register(
+  formDataWithArgId,
+  FormData(formDataWithArgRouteHandler),
+);

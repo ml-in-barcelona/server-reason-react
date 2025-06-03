@@ -5,6 +5,7 @@
 let ( & ) = List.append
 
 type attributeType =
+  | Action
   | String
   | Int
   | Bool
@@ -605,7 +606,7 @@ let buttonHTMLAttributes =
     Attribute { name = "autocomplete"; jsxName = "autoComplete"; reasonJsxName = "autoComplete"; type_ = String };
     Attribute { name = "disabled"; jsxName = "disabled"; reasonJsxName = "disabled"; type_ = Bool };
     Attribute { name = "form"; jsxName = "form"; reasonJsxName = "form"; type_ = String };
-    Attribute { name = "formaction"; jsxName = "formAction"; reasonJsxName = "formAction"; type_ = String };
+    Attribute { name = "formaction"; jsxName = "formAction"; reasonJsxName = "formAction"; type_ = Action };
     Attribute { name = "formenctype"; jsxName = "formEncType"; reasonJsxName = "formEncType"; type_ = String };
     (* https://developer.mozilla.org/en-US/docs/Web/HTML/Element/form#method *)
     Attribute { name = "formmethod"; jsxName = "formMethod"; reasonJsxName = "formMethod"; type_ = String };
@@ -686,7 +687,7 @@ let formHTMLAttributes =
     Attribute { name = "name"; jsxName = "name"; reasonJsxName = "name"; type_ = String };
     Attribute { name = "rel"; jsxName = "rel"; reasonJsxName = "rel"; type_ = String };
     Attribute { name = "enctype"; jsxName = "encType"; reasonJsxName = "encType"; type_ = String };
-    Attribute { name = "action"; jsxName = "action"; reasonJsxName = "action"; type_ = String };
+    Attribute { name = "action"; jsxName = "action"; reasonJsxName = "action"; type_ = Action };
     Attribute { name = "method"; jsxName = "method"; reasonJsxName = "method_"; type_ = String };
     Attribute { name = "novalidate"; jsxName = "noValidate"; reasonJsxName = "noValidate"; type_ = Bool };
     Attribute { name = "target"; jsxName = "target"; reasonJsxName = "target"; type_ = String };

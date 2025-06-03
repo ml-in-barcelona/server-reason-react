@@ -108,6 +108,18 @@ let make_prop ~is_optional ~prop attribute_value =
   let loc = attribute_value.pexp_loc in
   let open DomProps in
   match (prop, is_optional) with
+  | Attribute { type_ = DomProps.Action; name; jsxName }, false ->
+      [%expr
+        match [%e attribute_value] with
+        | `String s -> Some (React.JSX.String ([%e estring ~loc name], [%e estring ~loc jsxName], (s : string)))
+        | `Function f ->
+            Some
+              (React.JSX.Function ([%e estring ~loc name], [%e estring ~loc jsxName], (f : 'a Runtime.server_function)))]
+  | Attribute { type_ = DomProps.Action; name; jsxName }, true ->
+      [%expr
+        match ([%e attribute_value] : (string -> unit) option) with
+        | None -> None
+        | Some v -> Some (React.JSX.Function ([%e estring ~loc name], [%e estring ~loc jsxName], v))]
   | Attribute { type_ = DomProps.String; name; jsxName }, false ->
       [%expr
         Some (React.JSX.String ([%e estring ~loc name], [%e estring ~loc jsxName], ([%e attribute_value] : string)))]
@@ -908,8 +920,8 @@ let rewrite_structure_item ~sub_modules structure_item =
       if List.length value_bindings > 1 then
         [%stri
           [%%ocaml.error
-            "server-reason-react: server functions don't support recursive bindings yet. If you need it, please open an \
-             issue on https://github.com/reasonml-community/server-reason-react/issues"]]
+          "server-reason-react: server functions don't support recursive bindings yet. If you need it, please open an \
+           issue on https://github.com/reasonml-community/server-reason-react/issues"]]
       else ServerFunction.rewrite_native_function ~vb ~rec_flag structure_item
   | Pstr_value (rec_flag, value_bindings) ->
       let map_value_binding vb =
