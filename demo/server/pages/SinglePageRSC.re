@@ -173,16 +173,23 @@ module Page = {
         </Section>
         <Hr />
         <Section
-          title="Server action with error"
-          description="Server action with error">
+          title="Server function with error"
+          description="Server function with error">
           <ServerActionWithError />
         </Section>
         <Hr />
         <Section
-          title="Server action with FormData"
-          description="Server action with FormData">
+          title="Server function with FormData"
+          description="Server function with FormData">
           <ServerActionWithFormData />
         </Section>
+        <Hr />
+        <Section
+          title="Server function with FormData with extra arg"
+          description="It shows that it's possible to pass extra arguments to the server function on forms">
+          <ServerActionWithFormDataWithArg />
+        </Section>
+        <Hr />
       </Stack>,
     );
   };

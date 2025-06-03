@@ -715,29 +715,64 @@ let render_model = Model.render
 let create_action_response = Model.create_action_response
 
 type server_function =
-  | FormData of (Js.FormData.t -> React.client_value Lwt.t)
-  | Body of (json array -> React.client_value Lwt.t)
+  | FormData of (Yojson.Basic.t array -> Js.FormData.t -> React.client_value Lwt.t)
+  | Body of (Yojson.Basic.t array -> React.client_value Lwt.t)
+
+type model = Reference of string | FormData of string | Undefined | Json of json
+
+let parseModel model =
+  match model with
+  | `String value when String.starts_with ~prefix:"$" value -> (
+      let prefix = String.sub value 1 1 in
+      match prefix with
+      | "u" -> Undefined
+      | "K" -> FormData (String.sub value 2 (String.length value - 2))
+      | _ -> Reference (String.sub value 1 (String.length value - 1)))
+  | `String value -> Json (`String value)
+  | _ -> Json model
+
+let decodeReply body =
+  match Yojson.Basic.from_string body with
+  | `List args ->
+      args
+      |> List.filter_map (fun arg ->
+             match parseModel arg with
+             (* For now we only support json args *)
+             | Json json -> Some json
+             | _ -> None)
+      |> Array.of_list
+  | _ -> raise (Invalid_argument "Invalid args, this request was not created by server-reason-react")
 
 let decodeFormDataReply formData =
-  let modelId =
-    Js.FormData.get formData "0" |> function
-    | `String modelId ->
-        let modelId =
-          Yojson.Basic.from_string modelId |> function
-          | `List (`String referenceId :: []) -> referenceId
-          | _ -> failwith "Invalid referenceId"
-        in
-        (Some modelId [@explicit_arity])
+  let input_prefix = ref None in
+  let decodeArgs body =
+    match Yojson.Basic.from_string body with
+    | `List args -> args |> List.map (fun arg -> parseModel arg)
+    | _ -> raise (Invalid_argument "Invalid args, this request was not created by server-reason-react")
   in
+
   let formDataEntries = Js.FormData.entries formData in
+  let args =
+    Js.FormData.get formData "0" |> function
+    | `String model ->
+        decodeArgs model
+        |> List.filter_map (function
+             (* For now we only support json args *)
+             | Json json -> Some json
+             | FormData id ->
+                 input_prefix := Some id;
+                 None
+             | _ -> None)
+        |> Array.of_list
+  in
   let rec aux acc = function
     | [] -> acc
     | (key, value) :: entries -> (
         if key = "0" then aux acc entries
         else
-          match modelId with
-          | Some modelId ->
-              let form_prefix = String.sub modelId 2 (String.length modelId - 2) ^ "_" in
+          match !input_prefix with
+          | Some id ->
+              let form_prefix = id ^ "_" in
               let key = String.sub key (String.length form_prefix) (String.length key - String.length form_prefix) in
               Js.FormData.append acc key value;
               aux acc entries
@@ -745,14 +780,7 @@ let decodeFormDataReply formData =
               Js.FormData.append acc key value;
               aux acc entries)
   in
-  aux (Js.FormData.make ()) formDataEntries
-
-let decodeReply body =
-  match Yojson.Basic.from_string body with
-  (* When there is no args, the react will send a list with a single string "$undefined" *)
-  | `List [ `String "$undefined" ] -> [||]
-  | `List args -> args |> Array.of_list
-  | _ -> failwith "Invalid args, this request was not created by server-reason-react"
+  (args, aux (Js.FormData.make ()) formDataEntries)
 
 module type FunctionReferences = sig
   type t
