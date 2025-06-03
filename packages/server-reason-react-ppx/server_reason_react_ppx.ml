@@ -5,7 +5,6 @@ module List = ListLabels
 type target = Native | Js
 
 (* Since ppxlib doesn't provide a way to get the submodules, we need to keep track of them manually *)
-let sub_modules = ref []
 let mode = ref Native
 let repo_url = "https://github.com/ml-in-barcelona/server-reason-react"
 let issues_url = Printf.sprintf "%s/issues" repo_url
@@ -54,6 +53,18 @@ let isReactComponentBinding vb = hasAttrOnBinding vb react_dot_component
 let isReactAsyncComponentBinding vb = hasAttrOnBinding vb react_dot_async_dot_component
 let isReactClientComponentBinding vb = hasAttrOnBinding vb react_dot_client_dot_component
 let isReactServerFunctionBinding vb = hasAttrOnBinding vb react_dot_server_function
+
+let isClientComponentBinding value_bindings =
+  let first_binding = List.hd value_bindings in
+  isReactClientComponentBinding first_binding
+
+let contains_client_component structure =
+  List.exists
+    ~f:(fun structure_item ->
+      match structure_item.pstr_desc with
+      | Pstr_value (_, value_bindings) -> List.exists ~f:isReactClientComponentBinding value_bindings
+      | _ -> false)
+    structure
 
 let rec unwrap_children children = function
   | { pexp_desc = Pexp_construct ({ txt = Lident "[]"; _ }, None); _ } -> List.rev children
@@ -698,164 +709,6 @@ let props_to_model ~loc (props : (arg_label * expression option * pattern) list)
           [%expr [%e expr] :: [%e acc]])
     props
 
-let rewrite_structure_item structure_item =
-  match structure_item.pstr_desc with
-  (* external *)
-  | Pstr_primitive ({ pval_name = { txt = _fnName }; pval_attributes; pval_type = _ } as _value_description) -> (
-      match
-        List.filter
-          ~f:(fun attr -> hasAttr attr react_dot_component || hasAttr attr react_dot_async_dot_component)
-          pval_attributes
-      with
-      | [] -> structure_item
-      | _ ->
-          let loc = structure_item.pstr_loc in
-          [%stri
-            [%%ocaml.error
-            "externals aren't supported on server-reason-react. externals are used to bind to React components defined \
-             in JavaScript, in the server, that doesn't make sense. If you need to render this on the server, \
-             implement a placeholder or an empty element"]])
-  (* let make = ... *)
-  | Pstr_value (rec_flag, value_bindings) ->
-      let map_value_binding vb =
-        if isReactClientComponentBinding vb then
-          expand_make_binding vb (fun expr ->
-              let loc = expr.pexp_loc in
-              let file = pexp_ident ~loc { txt = Lident "__FILE__"; loc } in
-              let import_module =
-                match !sub_modules with
-                | [] -> [%expr [%e file]]
-                | _ ->
-                    let submodule = estring ~loc (String.concat "." !sub_modules) in
-                    [%expr Printf.sprintf "%s#%s" [%e file] [%e submodule]]
-              in
-              let arguments = get_arguments vb.pvb_expr in
-              (* We transform the arguments from the value binding into React.client_props *)
-              let props = props_to_model ~loc arguments in
-              [%expr
-                React.Client_component
-                  { import_module = [%e import_module]; import_name = ""; props = [%e props]; client = [%e expr] }])
-        else if isReactComponentBinding vb then
-          expand_make_binding vb (fun expr ->
-              let loc = expr.pexp_loc in
-              [%expr React.Upper_case_component (__FUNCTION__, fun () -> [%e expr])])
-        else if isReactAsyncComponentBinding vb then
-          expand_make_binding vb (fun expr ->
-              let loc = expr.pexp_loc in
-              [%expr React.Async_component (__FUNCTION__, fun () -> [%e expr])])
-        else vb
-      in
-      let bindings = List.map ~f:map_value_binding value_bindings in
-      pstr_value ~loc:structure_item.pstr_loc rec_flag bindings
-  | _ -> structure_item
-
-let isClientComponentBinding value_bindings =
-  let first_binding = List.hd value_bindings in
-  isReactClientComponentBinding first_binding
-
-let rewrite_structure_item_for_js ctx structure_item =
-  match structure_item.pstr_desc with
-  (* external *)
-  | Pstr_primitive ({ pval_name = { txt = _fnName }; pval_attributes; pval_type = _ } as _value_description) -> (
-      match List.filter ~f:(fun attr -> hasAttr attr react_dot_client_dot_component) pval_attributes with
-      | [] -> structure_item
-      | _ ->
-          let loc = structure_item.pstr_loc in
-          [%stri [%%ocaml.error "server-reason-react: externals aren't supported on client components yet"]])
-  (* let make = ... *)
-  | Pstr_value (rec_flag, value_bindings) when isClientComponentBinding value_bindings ->
-      let first_value_binding = List.hd value_bindings in
-      let make_client = expand_make_binding_to_client first_value_binding in
-      let make_client_binding = pstr_value ~loc:structure_item.pstr_loc rec_flag [ make_client ] in
-      let original_value_binding =
-        { first_value_binding with pvb_attributes = [ react_component_attribute ~loc:first_value_binding.pvb_loc ] }
-      in
-      let loc = structure_item.pstr_loc in
-      let code_path = Expansion_context.Base.code_path ctx in
-      let fileName = Code_path.file_path code_path in
-      (* We need to add a nasty hack here, since have different files for native and melange.Assume that the file structure is /native/shared/ and js, and replace the name directly. This is supposed to be temporal, until dune implements https://github.com/ocaml/dune/issues/10630 *)
-      let fileName = Str.replace_first (Str.regexp {|/js/|}) "/native/shared/" fileName in
-      let comment =
-        match !sub_modules with
-        | [] -> estring ~loc (Printf.sprintf "// extract-client %s" fileName)
-        | _ -> estring ~loc (Printf.sprintf "// extract-client %s %s" fileName (String.concat "." !sub_modules))
-      in
-      [%stri
-        include struct
-          [%%i [%stri [%%raw [%e comment]]]]
-          [%%i pstr_value ~loc:structure_item.pstr_loc rec_flag [ original_value_binding ]]
-          [%%i make_client_binding]
-        end]
-  | _ -> structure_item
-
-let contains_client_component structure =
-  List.exists
-    ~f:(fun structure_item ->
-      match structure_item.pstr_desc with
-      | Pstr_value (_, value_bindings) -> List.exists ~f:isReactClientComponentBinding value_bindings
-      | _ -> false)
-    structure
-
-let rewrite_jsx =
-  object (_)
-    inherit [Expansion_context.Base.t] Ppxlib.Ast_traverse.map_with_context as super
-
-    method! module_binding ctxt module_binding =
-      (match module_binding.pmb_name.txt with None -> () | Some name -> sub_modules := name :: !sub_modules);
-      let mapped = super#module_binding ctxt module_binding in
-      let _ = sub_modules := List.tl !sub_modules in
-      mapped
-
-    method! structure_item ctx structure_item =
-      match mode.contents with
-      | Native -> rewrite_structure_item (super#structure_item ctx structure_item)
-      | Js -> rewrite_structure_item_for_js ctx (super#structure_item ctx structure_item)
-
-    method! signature_item ctx signature_item =
-      match mode.contents with
-      | Native -> rewrite_signature_item (super#signature_item ctx signature_item)
-      | Js -> super#signature_item ctx signature_item
-
-    method! expression ctx expr =
-      let expr = super#expression ctx expr in
-      match mode.contents with
-      | Js -> expr
-      | Native -> (
-          try
-            match expr.pexp_desc with
-            | Pexp_apply (({ pexp_desc = Pexp_ident _; _ } as tag), args) when has_jsx_attr expr.pexp_attributes -> (
-                let children, rest_of_args = split_args args in
-                match tag.pexp_desc with
-                (* div() [@JSX] *)
-                | Pexp_ident { txt = Lident name; loc = _name_loc } ->
-                    rewrite_lowercase ~loc:expr.pexp_loc name rest_of_args children
-                (* Reason adds `createElement` as default when an uppercase is found,
-                   we change it back to make *)
-                (* Foo.createElement() [@JSX] *)
-                | Pexp_ident { txt = Ldot (modulePath, ("createElement" | "make")); loc } ->
-                    let id = { loc; txt = Ldot (modulePath, "make") } in
-                    rewrite_component ~loc:expr.pexp_loc id rest_of_args children
-                (* local_function() [@JSX] *)
-                | Pexp_ident id -> rewrite_component ~loc:expr.pexp_loc id rest_of_args children
-                | _ -> assert false)
-            (* div() [@JSX] *)
-            | Pexp_apply (tag, _props) when has_jsx_attr expr.pexp_attributes ->
-                raise_errorf ~loc:expr.pexp_loc "jsx: %s should be an identifier, not an expression"
-                  (Ppxlib_ast.Pprintast.string_of_expression tag)
-            (* <> </> is represented as a list in the Parsetree with [@JSX] *)
-            | Pexp_construct ({ txt = Lident "::"; loc }, Some { pexp_desc = Pexp_tuple _; _ })
-            | Pexp_construct ({ txt = Lident "[]"; loc }, None) -> (
-                let jsx_attr, rest_attributes = List.partition ~f:is_jsx expr.pexp_attributes in
-                match (jsx_attr, rest_attributes) with
-                | [], _ -> expr
-                | _, rest_attributes ->
-                    let children = transform_items_of_list ~loc expr in
-                    let new_expr = [%expr React.fragment (React.list [%e children])] in
-                    { new_expr with pexp_attributes = rest_attributes })
-            | _ -> expr
-          with Error err -> [%expr [%e err]])
-  end
-
 module ServerFunction = struct
   let rec last_expr_to_fn ~loc expr fn =
     match expr.pexp_desc with
@@ -921,28 +774,36 @@ module ServerFunction = struct
       with e -> Lwt.fail e]
 
   let decode_arguments_vb ~loc args_to_decode =
-    List.mapi
-      ~f:(fun i (_, label, core_type) ->
-        let string_of_core_type x =
-          let f = Format.str_formatter in
-          Astlib.Pprintast.core_type f x;
-          Format.flush_str_formatter ()
-        in
-        let core_type_string = string_of_core_type core_type in
-        let of_json = make_of_json ~loc core_type [%expr args.([%e eint ~loc i])] in
-        value_binding ~loc
-          ~pat:[%pat? [%p ppat_var ~loc { txt = label; loc }]]
-          ~expr:
-            [%expr
-              try [%e of_json]
-              with _ ->
-                failwith
-                  (Printf.sprintf "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s"
-                     [%e estring ~loc label] [%e estring ~loc core_type_string]
-                     (args.([%e eint ~loc i]) |> Yojson.Basic.to_string))])
-      args_to_decode
+    args_to_decode
+    |> List.mapi ~f:(fun i (_, label, core_type) ->
+           let string_of_core_type x =
+             let f = Format.str_formatter in
+             Astlib.Pprintast.core_type f x;
+             Format.flush_str_formatter ()
+           in
+           let core_type_string = string_of_core_type core_type in
+           let of_json = make_of_json ~loc core_type [%expr args.([%e eint ~loc i])] in
+           value_binding ~loc
+             ~pat:[%pat? [%p ppat_var ~loc { txt = label; loc }]]
+             ~expr:
+               [%expr
+                 try [%e of_json]
+                 with _ -> (
+                   match Sys.getenv_opt "ENV" with
+                   | Some "development" ->
+                       raise
+                         (Invalid_argument
+                            (Printf.sprintf
+                               "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s"
+                               [%e estring ~loc label] [%e estring ~loc core_type_string]
+                               (args.([%e eint ~loc i]) |> Yojson.Basic.to_string)))
+                   | _ ->
+                       raise
+                         (Invalid_argument
+                            (Printf.sprintf "server-reason-react: error on decoding argument '%s'."
+                               [%e estring ~loc label])))])
 
-  let create_router_handler ~loc ~id ~function_name ~args ~core_type =
+  let create_function_reference_registration ~loc ~id ~function_name ~args ~core_type =
     let apply_args = map_arguments_to_expressions ~loc args in
     let response_expr = pexp_apply ~loc [%expr [%e evar ~loc function_name].call] apply_args in
 
@@ -966,103 +827,218 @@ module ServerFunction = struct
     in
     [%stri FunctionReferences.register [%e estring ~loc id] (Body (fun args -> [%e body_expr]))]
 
-  let create_server_function_contract ~loc id expression =
-    let fn = [%expr { Runtime.id = [%e estring ~loc id]; call = [%e expression] }] in
-    fn
+  let create_server_function_record ~loc id expression =
+    [%expr { Runtime.id = [%e estring ~loc id]; call = [%e expression] }]
 
-  let transform_native_function structure_item =
-    match structure_item.pstr_desc with
-    | Pstr_value (rec_flag, value_bindings) when isReactServerFunctionBinding (List.hd value_bindings) ->
-        let loc = structure_item.pstr_loc in
-        let vb = List.hd value_bindings in
+  let rewrite_native_function ~vb ~rec_flag structure_item =
+    let loc = structure_item.pstr_loc in
 
-        let function_name = get_function_name vb in
-        let args = get_arguments vb.pvb_expr |> List.map ~f:get_arg_details |> List.rev in
-        let base_fn = vb.pvb_expr in
-        let return_core_type = get_response_type base_fn in
-        let id = generate_id ~loc:vb.pvb_loc function_name in
-        let value_binding = { vb with pvb_expr = create_server_function_contract ~loc:vb.pvb_loc id base_fn } in
-        let stri =
-          [%stri
-            include struct
-              [%%i pstr_value ~loc rec_flag [ value_binding ]]
-              [%%i create_router_handler ~loc ~id ~function_name ~args ~core_type:return_core_type]
-            end]
-        in
-        stri
-    | _ -> structure_item
+    let function_name = get_function_name vb in
+    let args = get_arguments vb.pvb_expr |> List.map ~f:get_arg_details |> List.rev in
+    let base_fn = vb.pvb_expr in
+    let return_core_type = get_response_type base_fn in
+    let id = generate_id ~loc:vb.pvb_loc function_name in
+    let value_binding = { vb with pvb_expr = create_server_function_record ~loc:vb.pvb_loc id base_fn } in
+    let stri =
+      [%stri
+        include struct
+          [%%i pstr_value ~loc rec_flag [ value_binding ]]
+          [%%i create_function_reference_registration ~loc ~id ~function_name ~args ~core_type:return_core_type]
+        end]
+    in
+    stri
 
   let create_client_function ~loc id args =
     let apply_args = map_arguments_to_expressions ~loc args |> List.map ~f:(fun (_, expr) -> (Nolabel, expr)) in
     let fn =
       [%expr
-        (* TODO: support others bundlers? *)
         let action = ReactServerDOMEsbuild.createServerReference [%e estring ~loc id] in
         ([%e pexp_apply ~loc [%expr action] apply_args] [@u])]
     in
     fn
 
-  let transform_client_function nested_modules structure_item =
-    match structure_item.pstr_desc with
-    | Pstr_value (rec_flag, value_bindings) when isReactServerFunctionBinding (List.hd value_bindings) ->
-        let loc = structure_item.pstr_loc in
-        let vb = List.hd value_bindings in
+  let rewrite_client_function ~sub_modules ~vb ~rec_flag structure_item =
+    let loc = structure_item.pstr_loc in
 
-        let function_name = get_function_name vb in
-        let args = get_arguments vb.pvb_expr |> List.map ~f:get_arg_details |> List.rev in
-        let base_fn = vb.pvb_expr in
-        let id = generate_id ~loc:vb.pvb_loc function_name in
-        let value_binding =
-          {
-            vb with
-            pvb_expr =
-              create_server_function_contract ~loc:vb.pvb_loc id
-                [%expr [%e last_expr_to_fn ~loc base_fn (create_client_function ~loc id args)]];
-          }
-        in
+    let function_name = get_function_name vb in
+    let args = get_arguments vb.pvb_expr |> List.map ~f:get_arg_details |> List.rev in
+    let base_fn = vb.pvb_expr in
+    let id = generate_id ~loc:vb.pvb_loc function_name in
+    let value_binding =
+      {
+        vb with
+        pvb_expr =
+          create_server_function_record ~loc:vb.pvb_loc id
+            [%expr [%e last_expr_to_fn ~loc base_fn (create_client_function ~loc id args)]];
+      }
+    in
 
-        let loc = structure_item.pstr_loc in
-        let module_name = String.concat "." nested_modules in
-        let comment = Printf.sprintf "// extract-server-function %s %s %s" id function_name module_name in
-        let raw = estring ~loc comment in
-        let extract_client_raw = [%stri [%%raw [%e raw]]] in
-        [%stri
-          include struct
-            [%%i extract_client_raw]
-            [%%i pstr_value ~loc:structure_item.pstr_loc rec_flag [ value_binding ]]
-          end]
-    | _ -> structure_item
-
-  let traverse =
-    object (_)
-      inherit [Expansion_context.Base.t] Ppxlib.Ast_traverse.map_with_context as super
-      val mutable nested_modules = []
-
-      method! structure_item ctx structure_item =
-        let structure_item = super#structure_item ctx structure_item in
-        match !mode with
-        | Native -> transform_native_function structure_item
-        | Js -> transform_client_function nested_modules structure_item
-
-      method! module_binding ctx module_binding =
-        match !mode with
-        | Native -> super#module_binding ctx module_binding
-        | Js -> (
-            match module_binding.pmb_name.txt with
-            | Some name ->
-                nested_modules <- nested_modules @ [ name ];
-                let module_binding = super#module_binding ctx module_binding in
-                nested_modules <- List.tl nested_modules;
-                module_binding
-            | _ -> super#module_binding ctx module_binding)
-    end
+    let loc = structure_item.pstr_loc in
+    let module_name = String.concat "." sub_modules in
+    let comment = Printf.sprintf "// extract-server-function %s %s %s" id function_name module_name in
+    let raw = estring ~loc comment in
+    let extract_client_raw = [%stri [%%raw [%e raw]]] in
+    [%stri
+      include struct
+        [%%i extract_client_raw]
+        [%%i pstr_value ~loc:structure_item.pstr_loc rec_flag [ value_binding ]]
+      end]
 end
+
+let rewrite_structure_item ~sub_modules structure_item =
+  match structure_item.pstr_desc with
+  (* external *)
+  | Pstr_primitive ({ pval_name = { txt = _fnName }; pval_attributes; pval_type = _ } as _value_description) -> (
+      match
+        List.filter
+          ~f:(fun attr -> hasAttr attr react_dot_component || hasAttr attr react_dot_async_dot_component)
+          pval_attributes
+      with
+      | [] -> structure_item
+      | _ ->
+          let loc = structure_item.pstr_loc in
+          [%stri
+            [%%ocaml.error
+            "externals aren't supported on server-reason-react. externals are used to bind to React components defined \
+             in JavaScript, in the server, that doesn't make sense. If you need to render this on the server, \
+             implement a placeholder or an empty element"]])
+  (* let make = ... *)
+  | Pstr_value (rec_flag, value_bindings) when isReactServerFunctionBinding (List.hd value_bindings) ->
+      let vb = List.hd value_bindings in
+      ServerFunction.rewrite_native_function ~vb ~rec_flag structure_item
+  | Pstr_value (rec_flag, value_bindings) ->
+      let map_value_binding vb =
+        if isReactClientComponentBinding vb then
+          expand_make_binding vb (fun expr ->
+              let loc = expr.pexp_loc in
+              let file = pexp_ident ~loc { txt = Lident "__FILE__"; loc } in
+              let import_module =
+                match sub_modules with
+                | [] -> [%expr [%e file]]
+                | _ ->
+                    let submodule = estring ~loc (String.concat "." sub_modules) in
+                    [%expr Printf.sprintf "%s#%s" [%e file] [%e submodule]]
+              in
+              let arguments = get_arguments vb.pvb_expr in
+              (* We transform the arguments from the value binding into React.client_props *)
+              let props = props_to_model ~loc arguments in
+              [%expr
+                React.Client_component
+                  { import_module = [%e import_module]; import_name = ""; props = [%e props]; client = [%e expr] }])
+        else if isReactComponentBinding vb then
+          expand_make_binding vb (fun expr ->
+              let loc = expr.pexp_loc in
+              [%expr React.Upper_case_component (__FUNCTION__, fun () -> [%e expr])])
+        else if isReactAsyncComponentBinding vb then
+          expand_make_binding vb (fun expr ->
+              let loc = expr.pexp_loc in
+              [%expr React.Async_component (__FUNCTION__, fun () -> [%e expr])])
+        else vb
+      in
+      let bindings = List.map ~f:map_value_binding value_bindings in
+      pstr_value ~loc:structure_item.pstr_loc rec_flag bindings
+  | _ -> structure_item
+
+let rewrite_structure_item_for_js ~sub_modules ctx structure_item =
+  match structure_item.pstr_desc with
+  (* external *)
+  | Pstr_primitive ({ pval_name = { txt = _fnName }; pval_attributes; pval_type = _ } as _value_description) -> (
+      match List.filter ~f:(fun attr -> hasAttr attr react_dot_client_dot_component) pval_attributes with
+      | [] -> structure_item
+      | _ ->
+          let loc = structure_item.pstr_loc in
+          [%stri [%%ocaml.error "server-reason-react: externals aren't supported on client components yet"]])
+  | Pstr_value (rec_flag, value_bindings) when isReactServerFunctionBinding (List.hd value_bindings) ->
+      let vb = List.hd value_bindings in
+      ServerFunction.rewrite_client_function ~sub_modules ~vb ~rec_flag structure_item
+  (* let make = ... *)
+  | Pstr_value (rec_flag, value_bindings) when isClientComponentBinding value_bindings ->
+      let first_value_binding = List.hd value_bindings in
+      let make_client = expand_make_binding_to_client first_value_binding in
+      let make_client_binding = pstr_value ~loc:structure_item.pstr_loc rec_flag [ make_client ] in
+      let original_value_binding =
+        { first_value_binding with pvb_attributes = [ react_component_attribute ~loc:first_value_binding.pvb_loc ] }
+      in
+      let loc = structure_item.pstr_loc in
+      let code_path = Expansion_context.Base.code_path ctx in
+      let fileName = Code_path.file_path code_path in
+      (* We need to add a nasty hack here, since have different files for native and melange.Assume that the file structure is /native/shared/ and js, and replace the name directly. This is supposed to be temporal, until dune implements https://github.com/ocaml/dune/issues/10630 *)
+      let fileName = Str.replace_first (Str.regexp {|/js/|}) "/native/shared/" fileName in
+      let comment =
+        match sub_modules with
+        | [] -> estring ~loc (Printf.sprintf "// extract-client %s" fileName)
+        | _ -> estring ~loc (Printf.sprintf "// extract-client %s %s" fileName (String.concat "." sub_modules))
+      in
+      [%stri
+        include struct
+          [%%i [%stri [%%raw [%e comment]]]]
+          [%%i pstr_value ~loc:structure_item.pstr_loc rec_flag [ original_value_binding ]]
+          [%%i make_client_binding]
+        end]
+  | _ -> structure_item
+
+let traverse =
+  object (_)
+    inherit [Expansion_context.Base.t] Ppxlib.Ast_traverse.map_with_context as super
+    val mutable sub_modules = []
+
+    method! module_binding ctxt module_binding =
+      (match module_binding.pmb_name.txt with None -> () | Some name -> sub_modules <- sub_modules @ [ name ]);
+      let mapped = super#module_binding ctxt module_binding in
+      let _ = sub_modules <- List.tl sub_modules in
+      mapped
+
+    method! structure_item ctx structure_item =
+      match mode.contents with
+      | Native -> rewrite_structure_item ~sub_modules (super#structure_item ctx structure_item)
+      | Js -> rewrite_structure_item_for_js ~sub_modules ctx (super#structure_item ctx structure_item)
+
+    method! signature_item ctx signature_item =
+      match mode.contents with
+      | Native -> rewrite_signature_item (super#signature_item ctx signature_item)
+      | Js -> super#signature_item ctx signature_item
+
+    method! expression ctx expr =
+      let expr = super#expression ctx expr in
+      match mode.contents with
+      | Js -> expr
+      | Native -> (
+          try
+            match expr.pexp_desc with
+            | Pexp_apply (({ pexp_desc = Pexp_ident _; _ } as tag), args) when has_jsx_attr expr.pexp_attributes -> (
+                let children, rest_of_args = split_args args in
+                match tag.pexp_desc with
+                (* div() [@JSX] *)
+                | Pexp_ident { txt = Lident name; loc = _name_loc } ->
+                    rewrite_lowercase ~loc:expr.pexp_loc name rest_of_args children
+                (* Reason adds `createElement` as default when an uppercase is found,
+                   we change it back to make *)
+                (* Foo.createElement() [@JSX] *)
+                | Pexp_ident { txt = Ldot (modulePath, ("createElement" | "make")); loc } ->
+                    let id = { loc; txt = Ldot (modulePath, "make") } in
+                    rewrite_component ~loc:expr.pexp_loc id rest_of_args children
+                (* local_function() [@JSX] *)
+                | Pexp_ident id -> rewrite_component ~loc:expr.pexp_loc id rest_of_args children
+                | _ -> assert false)
+            (* div() [@JSX] *)
+            | Pexp_apply (tag, _props) when has_jsx_attr expr.pexp_attributes ->
+                raise_errorf ~loc:expr.pexp_loc "jsx: %s should be an identifier, not an expression"
+                  (Ppxlib_ast.Pprintast.string_of_expression tag)
+            (* <> </> is represented as a list in the Parsetree with [@JSX] *)
+            | Pexp_construct ({ txt = Lident "::"; loc }, Some { pexp_desc = Pexp_tuple _; _ })
+            | Pexp_construct ({ txt = Lident "[]"; loc }, None) -> (
+                let jsx_attr, rest_attributes = List.partition ~f:is_jsx expr.pexp_attributes in
+                match (jsx_attr, rest_attributes) with
+                | [], _ -> expr
+                | _, rest_attributes ->
+                    let children = transform_items_of_list ~loc expr in
+                    let new_expr = [%expr React.fragment (React.list [%e children])] in
+                    { new_expr with pexp_attributes = rest_attributes })
+            | _ -> expr
+          with Error err -> [%expr [%e err]])
+  end
 
 let () =
   Driver.add_arg "-melange" (Unit (fun () -> mode := Js)) ~doc:"preprocess for js build";
-  Ppxlib.Driver.V2.register_transformation "server-reason-react.ppx"
-    ~preprocess_impl:(fun ctx str ->
-      let str = rewrite_jsx#structure ctx str in
-      let str = ServerFunction.traverse#structure ctx str in
-      str)
-    ~preprocess_intf:rewrite_jsx#signature
+  Ppxlib.Driver.V2.register_transformation "server-reason-react.ppx" ~preprocess_impl:traverse#structure
+    ~preprocess_intf:traverse#signature
