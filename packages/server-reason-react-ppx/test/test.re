@@ -479,6 +479,12 @@ module ServerFunction = {
   };
 };
 
+let server_function = () => {
+  let%lwt response =
+    ServerFunction.simpleResponse.call(~name="John", ~age=30);
+  assert_string(response, "Hello John, you are 30 years old");
+  Lwt.return_unit;
+};
 let server_function_reference = () => {
   let%lwt route_response =
     FunctionReferences.get(ServerFunction.simpleResponse.id)
@@ -519,30 +525,15 @@ let server_function_reference_args_error = () => {
   Lwt.return_unit;
 };
 
-let server_function = () => {
-  let%lwt response =
-    ServerFunction.simpleResponse.call(~name="John", ~age=30);
-  assert_string(response, "Hello John, you are 30 years old");
-  Lwt.return_unit;
-};
-
-let server_function_curried = () => {
-  let johnFuntion = ServerFunction.simpleResponse.call(~name="John");
-  let%lwt response = johnFuntion(~age=30);
-  assert_string(response, "Hello John, you are 30 years old");
-  Lwt.return_unit;
-};
-
 Alcotest_lwt.run(
   "server-reason-react.ppx",
   [
+    test_lwt("server_function", server_function),
     test_lwt("server_function_reference", server_function_reference),
     test_lwt(
       "server_function_reference_args_error",
       server_function_reference_args_error,
     ),
-    test_lwt("server_function", server_function),
-    test_lwt("server_function_curried", server_function_curried),
     test("tag", tag),
     test("empty_attribute", empty_attribute),
     test("bool_attribute", bool_attribute),

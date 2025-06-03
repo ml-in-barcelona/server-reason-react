@@ -1,4 +1,4 @@
-include Melange_json.Primitives;
+open Melange_json.Primitives;
 
 module FunctionReferences: ReactServerDOM.FunctionReferences = {
   type t = Hashtbl.t(string, ReactServerDOM.server_function);
@@ -20,8 +20,18 @@ let withLabelledArgAndUnlabeledArg =
 };
 
 [@react.server.function]
-let withOptionalArg = (~name: string="Lola", ()): Js.Promise.t(string) => {
+let withOptionalArg = (~name: string, ()): Js.Promise.t(string) => {
   Lwt.return(Printf.sprintf("Hello, %s", name));
+};
+
+[@react.server.function]
+let withOptionalDefaultArg = (~name: string="Lola", ()): Js.Promise.t(string) => {
+  Lwt.return(Printf.sprintf("Hello, %s", name));
+};
+
+[@react.server.function]
+let withUnlabeledArg = (name: string, age: int): Js.Promise.t(string) => {
+  Lwt.return(Printf.sprintf("Hello %s, you are %d years old", name, age));
 };
 
 [@react.server.function]
