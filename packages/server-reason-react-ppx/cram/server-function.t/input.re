@@ -1,3 +1,5 @@
+open Melange_json.Primitives;
+
 [@react.server.function]
 let withLabelledArg = (~name: string, ~age: int): Js.Promise.t(string) => {
   Lwt.return(Printf.sprintf("Hello %s, you are %d years old", name, age));

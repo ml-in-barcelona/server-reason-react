@@ -1,4 +1,4 @@
-include Melange_json.Primitives;
+open Melange_json.Primitives;
 
 module Notes = {
   [@react.server.function]
@@ -40,10 +40,12 @@ let simpleResponse = (~name: string, ~age: int): Js.Promise.t(string) => {
 [@react.server.function]
 let error = (): Js.Promise.t(string) => {
   // Uncomment to see that it also works with Lwt.fail
-  Lwt.fail(failwith("Error from server"));
-  // failwith(
-  //   "Error from server",
-  // );
+  Lwt.fail(
+    failwith("Error from server"),
+    // failwith(
+    //   "Error from server",
+    // );
+  );
 };
 
 let formDataId = "id/samples/formData";

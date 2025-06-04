@@ -842,12 +842,21 @@ module ServerFunction = struct
     in
     stri
 
-  let create_client_function ~loc id args =
+  let response_of_json ~loc core_type response =
+    match core_type with
+    | Some [%type: [%t? core_type] Js.Promise.t] -> [%expr [%of_json: [%t core_type]] [%e response]]
+    | Some _ -> [%expr [%ocaml.error "server-reason-react: server functions must return a promise"]]
+    | _ ->
+        [%expr [%ocaml.error "server-reason-react: server functions must have a return type annotation (Js.Promise.t)"]]
+
+  let create_client_function ~loc ~return_core_type id args =
+    let decode_response = response_of_json ~loc return_core_type in
     let apply_args = map_arguments_to_expressions ~loc args |> List.map ~f:(fun (_, expr) -> (Nolabel, expr)) in
     let fn =
       [%expr
         let action = ReactServerDOMEsbuild.createServerReference [%e estring ~loc id] in
-        ([%e pexp_apply ~loc [%expr action] apply_args] [@u])]
+        ([%e pexp_apply ~loc [%expr action] apply_args] [@u])
+        |> Js.Promise.then_ (fun response -> Js.Promise.resolve [%e decode_response [%expr response]])]
     in
     fn
 
@@ -857,12 +866,13 @@ module ServerFunction = struct
     let function_name = get_function_name vb in
     let args = get_arguments vb.pvb_expr |> List.map ~f:get_arg_details |> List.rev in
     let base_fn = vb.pvb_expr in
+    let return_core_type = get_response_type base_fn in
     let id = generate_id ~loc:vb.pvb_loc function_name in
     let server_function_record_vb =
       value_binding ~loc:vb.pvb_loc ~pat:vb.pvb_pat
         ~expr:
           (create_server_function_record ~loc:vb.pvb_loc id
-             (last_expr_to_fn ~loc base_fn (create_client_function ~loc id args)))
+             (last_expr_to_fn ~loc base_fn (create_client_function ~loc ~return_core_type id args)))
     in
 
     let loc = structure_item.pstr_loc in
