@@ -1,4 +1,40 @@
-let test = (title, fn) => (title, [Alcotest.test_case("", `Quick, fn)]);
+let test = (title, fn) => (
+  title,
+  [Alcotest_lwt.test_case("", `Quick, (_switch, ()) => fn() |> Lwt.return)],
+);
+
+include Melange_json.Primitives;
+
+let sleep = (~ms) => {
+  let%lwt () = Lwt_unix.sleep(Int.to_float(ms) /. 1000.0);
+  Lwt.return();
+};
+
+let test_lwt = (title, fn) => {
+  let test_case = (_switch, ()) => {
+    let start = Unix.gettimeofday();
+    let timeout = {
+      let%lwt () = sleep(~ms=100);
+      Alcotest.failf("Test '%s' timed out", title);
+    };
+
+    let%lwt test_promise = Lwt.pick([fn(), timeout]);
+    let epsilon = 0.001;
+    let duration = Unix.gettimeofday() -. start;
+    if (abs_float(duration) >= epsilon) {
+      Printf.printf(
+        "\027[1m\027[33m[WARNING]\027[0m Test '%s' took %.3f seconds\n",
+        title,
+        duration,
+      );
+    } else {
+      ();
+    };
+    Lwt.return(test_promise);
+  };
+
+  (title, [Alcotest_lwt.test_case("", `Quick, test_case)]);
+};
 
 let assert_string = (left, right) => {
   Alcotest.check(Alcotest.string, "should be equal", right, left);
@@ -428,9 +464,76 @@ let multiple_contexts = () => {
   );
 };
 
-Alcotest.run(
+module FunctionReferences: ReactServerDOM.FunctionReferences = {
+  type t = Hashtbl.t(string, ReactServerDOM.server_function);
+
+  let registry = Hashtbl.create(10);
+  let register = Hashtbl.add(registry);
+  let get = Hashtbl.find_opt(registry);
+};
+
+module ServerFunction = {
+  [@react.server.function]
+  let simpleResponse = (~name: string, ~age: int): Js.Promise.t(string) => {
+    Lwt.return(Printf.sprintf("Hello %s, you are %d years old", name, age));
+  };
+};
+
+let server_function = () => {
+  let%lwt response =
+    ServerFunction.simpleResponse.call(~name="John", ~age=30);
+  assert_string(response, "Hello John, you are 30 years old");
+  Lwt.return_unit;
+};
+let server_function_reference = () => {
+  let%lwt route_response =
+    FunctionReferences.get(ServerFunction.simpleResponse.id)
+    |> (
+      fun
+      | Some(Body(handler)) => handler([|`String("John"), `Int(30)|])
+      | _ => assert(false)
+    );
+
+  switch (route_response) {
+  | React.Json(json) =>
+    assert_string(string_of_json(json), "Hello John, you are 30 years old");
+    Lwt.return_unit;
+  | _ => failwith("Expected a JSON response")
+  };
+};
+
+let server_function_reference_args_error = () => {
+  (
+    try(
+      FunctionReferences.get(ServerFunction.simpleResponse.id)
+      |> (
+        fun
+        | Some(Body(handler)) => handler([|`String("John"), `Int(30)|])
+        | _ => assert(false)
+      )
+      |> ignore
+    ) {
+    | Failure(error) =>
+      assert_string(
+        error,
+        "server-reason-react: error on decoding argument 'age'. EXPECTED: int, RECEIVED: \"30\"",
+      )
+      |> ignore
+    }
+  )
+  |> ignore;
+  Lwt.return_unit;
+};
+
+Alcotest_lwt.run(
   "server-reason-react.ppx",
   [
+    test_lwt("server_function", server_function),
+    test_lwt("server_function_reference", server_function_reference),
+    test_lwt(
+      "server_function_reference_args_error",
+      server_function_reference_args_error,
+    ),
     test("tag", tag),
     test("empty_attribute", empty_attribute),
     test("bool_attribute", bool_attribute),
