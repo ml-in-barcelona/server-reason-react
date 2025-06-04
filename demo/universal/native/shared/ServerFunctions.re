@@ -50,33 +50,44 @@ let error = (): Js.Promise.t(string) => {
 
 let formDataId = "id/samples/formData";
 
+switch%platform () {
+| Server => ()
+| Client => [%mel.raw
+   {|
+   // extract-server-function id/samples/formData formData.call
+   ''
+   |}
+  ]
+};
+
 [@platform native]
-let formDataRouteHandler = formData => {
-  let (name, lastName, age) =
-    switch (
-      formData->Js.FormData.get("name"),
-      formData->Js.FormData.get("lastName"),
-      formData->Js.FormData.get("age"),
-    ) {
-    | (`String(name), `String(lastName), `String(age)) => (
-        name,
-        lastName,
-        age,
-      )
-    | exception _ => failwith("Invalid formData.")
+let formDataHandler = (~formData: Js.FormData.t) => {
+  let name =
+    switch (formData->Js.FormData.get("name")) {
+    | `String(name) => name
     };
 
-  let response =
-    Printf.sprintf("Form data received: %s, %s, %s", name, lastName, age);
+  let response = Printf.sprintf("Form data received: %s", name);
 
-  Lwt.return(React.Json(`String(response)));
+  Lwt.return(response);
 };
+
+[@platform native]
+let formDataRouteHandler = formData =>
+  try(
+    Lwt.map(
+      response => React.Json(`String(response)),
+      formDataHandler(~formData),
+    )
+  ) {
+  | e => Lwt.fail(e)
+  };
 
 let formData =
   switch%platform () {
   | Server => {
       Runtime.id: formDataId,
-      call: (formData: Js.FormData.t) => formDataRouteHandler(formData),
+      call: (formData: Js.FormData.t) => formDataHandler(~formData),
     }
   | Client => {
       Runtime.id: formDataId,

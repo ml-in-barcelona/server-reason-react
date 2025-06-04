@@ -63,7 +63,6 @@ module Page = {
       Lwt.bind(Lwt_unix.sleep(2.0), _ =>
         Lwt.return("Solusionao in 2 seconds!")
       );
-
     let promiseIn4 =
       Lwt.bind(Lwt_unix.sleep(4.0), _ =>
         Lwt.return("Solusionao in 4 seconds!")
@@ -173,15 +172,27 @@ module Page = {
         </Section>
         <Hr />
         <Section
-          title="Server action with error"
-          description="Server action with error">
+          title="Server function with error"
+          description="Server function with error">
           <ServerActionWithError />
         </Section>
         <Hr />
         <Section
-          title="Server action with FormData"
-          description="Server action with FormData">
+          title="Server function with FormData"
+          description="Server function with FormData">
           <ServerActionWithFormData />
+        </Section>
+        <Hr />
+        <Section
+          title="Server function with FormData on action attribute on Server Component"
+          description="In this case, react will use the server function from the window.__server_functions_manifest_map">
+          <ServerActionWithFormDataServer />
+        </Section>
+        <Hr />
+        <Section
+          title="Server function with FormData on formAction attribute on Server Component"
+          description="In this case, react will use the server function from the window.__server_functions_manifest_map">
+          <ServerActionWithFormDataFormAction />
         </Section>
       </Stack>,
     );
