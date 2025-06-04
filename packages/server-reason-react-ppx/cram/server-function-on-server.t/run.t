@@ -310,3 +310,43 @@
               ),
             );
           };
+  
+  include {
+            let withFormData = {
+              Runtime.id: "459481625",
+              call: (formData: Js.FormData.t) => (
+                {
+                  let name =
+                    Js.FormData.get(formData, "name")
+                    |> (
+                      fun
+                      | `String(name) => name
+                    );
+                  let age =
+                    Js.FormData.get(formData, "age")
+                    |> (
+                      fun
+                      | `String(age) => age
+                    );
+                  Lwt.return(
+                    Printf.sprintf("Hello %s, you are %s years old", name, age),
+                  );
+                }:
+                  Js.Promise.t(string)
+              ),
+            };
+            FunctionReferences.register(
+              "459481625",
+              FormData(
+                formData =>
+                  try(
+                    withFormData.call(formData)
+                    |> Lwt.map(response =>
+                         React.Json(string_to_json(response))
+                       )
+                  ) {
+                  | e => Lwt.fail(e)
+                  },
+              ),
+            );
+          };

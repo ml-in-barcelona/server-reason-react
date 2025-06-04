@@ -48,10 +48,8 @@ let error = (): Js.Promise.t(string) => {
   );
 };
 
-let formDataId = "id/samples/formData";
-
-[@platform native]
-let formDataRouteHandler = formData => {
+[@react.server.function]
+let formDataFunction = (formData: Js.FormData.t): Js.Promise.t(string) => {
   let (name, lastName, age) =
     switch (
       formData->Js.FormData.get("name"),
@@ -69,23 +67,5 @@ let formDataRouteHandler = formData => {
   let response =
     Printf.sprintf("Form data received: %s, %s, %s", name, lastName, age);
 
-  Lwt.return(React.Json(`String(response)));
+  Lwt.return(response);
 };
-
-let formData =
-  switch%platform () {
-  | Server => {
-      Runtime.id: formDataId,
-      call: (formData: Js.FormData.t) => formDataRouteHandler(formData),
-    }
-  | Client => {
-      Runtime.id: formDataId,
-      call: (formData: Js.FormData.t) => {
-        let action = ReactServerDOMEsbuild.createServerReference(formDataId);
-        action(. formData);
-      },
-    }
-  };
-
-[@platform native]
-FunctionReferences.register(formData.id, FormData(formDataRouteHandler));
