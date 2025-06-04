@@ -30,7 +30,7 @@ let make_string ~loc str = Ast_helper.Exp.constant ~loc (Ast_helper.Const.string
 let react_dot_component = "react.component"
 let react_dot_async_dot_component = "react.async.component"
 let react_dot_client_dot_component = "react.client.component"
-let react_dot_server_function = "react.server.function"
+let react_dot_server_dot_function = "react.server.function"
 
 (* Helper method to look up the [@react.component] attribute *)
 let hasAttr { attr_name; _ } comparable = attr_name.txt = comparable
@@ -52,7 +52,7 @@ let hasAttrOnBinding { pvb_attributes } comparable =
 let isReactComponentBinding vb = hasAttrOnBinding vb react_dot_component
 let isReactAsyncComponentBinding vb = hasAttrOnBinding vb react_dot_async_dot_component
 let isReactClientComponentBinding vb = hasAttrOnBinding vb react_dot_client_dot_component
-let isReactServerFunctionBinding vb = hasAttrOnBinding vb react_dot_server_function
+let isReactServerFunctionBinding vb = hasAttrOnBinding vb react_dot_server_dot_function
 
 let isClientComponentBinding value_bindings =
   let first_binding = List.hd value_bindings in
