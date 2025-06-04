@@ -56,7 +56,6 @@
                 "// extract-server-function 1073617701 withLabelledArg ",
               );
             };
-            [@react.server.function]
             let withLabelledArg = {
               Runtime.id: "1073617701",
               call: (~name: string, ~age: int) => {
@@ -86,7 +85,6 @@
               );
             };
   
-            [@react.server.function]
             let withLabelledArgAndUnlabeledArg = {
               Runtime.id: "416745144",
               call: (~name: string="Lola", age: int) => {
@@ -116,7 +114,6 @@
               );
             };
   
-            [@react.server.function]
             let withOptionalArg = {
               Runtime.id: "874321837",
               call: (~name: string="Lola", ()) => {
@@ -144,7 +141,6 @@
               J.unsafe_expr("// extract-server-function 898874717 withNoArgs ");
             };
   
-            [@react.server.function]
             let withNoArgs = {
               Runtime.id: "898874717",
               call: () => {
@@ -168,7 +164,6 @@
                   );
                 };
   
-                [@react.server.function]
                 let nestedServerFunction = {
                   Runtime.id: "157629082",
                   call: () => {

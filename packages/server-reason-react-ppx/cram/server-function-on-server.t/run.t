@@ -41,7 +41,6 @@
   };
   
   include {
-            [@react.server.function]
             let withLabelledArg = {
               Runtime.id: "515397179",
               call: (~name: string, ~age: int) => (
@@ -97,7 +96,6 @@
           };
   
   include {
-            [@react.server.function]
             let withLabelledArgAndUnlabeledArg = {
               Runtime.id: "896610790",
               call: (~name: string="Lola", age: int) => (
@@ -153,7 +151,6 @@
           };
   
   include {
-            [@react.server.function]
             let withOptionalArg = {
               Runtime.id: "949714301",
               call: (~name: option(string)=?, ()) => (
@@ -200,7 +197,6 @@
           };
   
   include {
-            [@react.server.function]
             let withOptionalDefaultArg = {
               Runtime.id: "285929146",
               call: (~name: string="Lola", ()) => (
@@ -240,7 +236,6 @@
           };
   
   include {
-            [@react.server.function]
             let withUnlabeledArg = {
               Runtime.id: "604196953",
               call: (name: string, age: int) => (
@@ -296,7 +291,6 @@
           };
   
   include {
-            [@react.server.function]
             let withNoArgs = {
               Runtime.id: "363520221",
               call: () => (Lwt.return("Hello, world!"): Js.Promise.t(string)),

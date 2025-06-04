@@ -830,11 +830,13 @@ module ServerFunction = struct
     let base_fn = vb.pvb_expr in
     let return_core_type = get_response_type base_fn in
     let id = generate_id ~loc:vb.pvb_loc function_name in
-    let value_binding = { vb with pvb_expr = create_server_function_record ~loc:vb.pvb_loc id base_fn } in
+    let server_function_record_vb =
+      value_binding ~loc:vb.pvb_loc ~pat:vb.pvb_pat ~expr:(create_server_function_record ~loc:vb.pvb_loc id base_fn)
+    in
     let stri =
       [%stri
         include struct
-          [%%i pstr_value ~loc rec_flag [ value_binding ]]
+          [%%i pstr_value ~loc rec_flag [ server_function_record_vb ]]
           [%%i create_function_reference_registration ~loc ~id ~function_name ~args ~core_type:return_core_type]
         end]
     in
@@ -856,13 +858,11 @@ module ServerFunction = struct
     let args = get_arguments vb.pvb_expr |> List.map ~f:get_arg_details |> List.rev in
     let base_fn = vb.pvb_expr in
     let id = generate_id ~loc:vb.pvb_loc function_name in
-    let value_binding =
-      {
-        vb with
-        pvb_expr =
-          create_server_function_record ~loc:vb.pvb_loc id
-            [%expr [%e last_expr_to_fn ~loc base_fn (create_client_function ~loc id args)]];
-      }
+    let server_function_record_vb =
+      value_binding ~loc:vb.pvb_loc ~pat:vb.pvb_pat
+        ~expr:
+          (create_server_function_record ~loc:vb.pvb_loc id
+             (last_expr_to_fn ~loc base_fn (create_client_function ~loc id args)))
     in
 
     let loc = structure_item.pstr_loc in
@@ -873,7 +873,7 @@ module ServerFunction = struct
     [%stri
       include struct
         [%%i extract_client_raw]
-        [%%i pstr_value ~loc:structure_item.pstr_loc rec_flag [ value_binding ]]
+        [%%i pstr_value ~loc:structure_item.pstr_loc rec_flag [ server_function_record_vb ]]
       end]
 end
 
