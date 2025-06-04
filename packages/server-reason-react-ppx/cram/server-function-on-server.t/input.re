@@ -20,7 +20,12 @@ let withLabelledArgAndUnlabeledArg =
 };
 
 [@react.server.function]
-let withOptionalArg = (~name: string, ()): Js.Promise.t(string) => {
+let withOptionalArg = (~name: option(string)=?, ()): Js.Promise.t(string) => {
+  let name =
+    switch (name) {
+    | Some(name) => name
+    | None => "Lola"
+    };
   Lwt.return(Printf.sprintf("Hello, %s", name));
 };
 

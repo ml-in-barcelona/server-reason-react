@@ -58,54 +58,30 @@
                   let name =
                     try(string_of_json(args[0])) {
                     | _ =>
-                      switch (Sys.getenv_opt("ENV")) {
-                      | Some("development") =>
-                        raise(
-                          Invalid_argument(
-                            Printf.sprintf(
-                              "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
-                              "name",
-                              "string",
-                              args[0] |> Yojson.Basic.to_string,
-                            ),
+                      raise(
+                        Invalid_argument(
+                          Printf.sprintf(
+                            "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
+                            "name",
+                            "string",
+                            args[0] |> Yojson.Basic.to_string,
                           ),
-                        )
-                      | _ =>
-                        raise(
-                          Invalid_argument(
-                            Printf.sprintf(
-                              "server-reason-react: error on decoding argument '%s'.",
-                              "name",
-                            ),
-                          ),
-                        )
-                      }
+                        ),
+                      )
                     }
                   and age =
                     try(int_of_json(args[1])) {
                     | _ =>
-                      switch (Sys.getenv_opt("ENV")) {
-                      | Some("development") =>
-                        raise(
-                          Invalid_argument(
-                            Printf.sprintf(
-                              "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
-                              "age",
-                              "int",
-                              args[1] |> Yojson.Basic.to_string,
-                            ),
+                      raise(
+                        Invalid_argument(
+                          Printf.sprintf(
+                            "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
+                            "age",
+                            "int",
+                            args[1] |> Yojson.Basic.to_string,
                           ),
-                        )
-                      | _ =>
-                        raise(
-                          Invalid_argument(
-                            Printf.sprintf(
-                              "server-reason-react: error on decoding argument '%s'.",
-                              "age",
-                            ),
-                          ),
-                        )
-                      }
+                        ),
+                      )
                     };
                   try(
                     withLabelledArg.call(~name, ~age)
@@ -138,54 +114,30 @@
                   let name =
                     try((option_of_json(string_of_json))(args[0])) {
                     | _ =>
-                      switch (Sys.getenv_opt("ENV")) {
-                      | Some("development") =>
-                        raise(
-                          Invalid_argument(
-                            Printf.sprintf(
-                              "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
-                              "name",
-                              "string option",
-                              args[0] |> Yojson.Basic.to_string,
-                            ),
+                      raise(
+                        Invalid_argument(
+                          Printf.sprintf(
+                            "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
+                            "name",
+                            "string option",
+                            args[0] |> Yojson.Basic.to_string,
                           ),
-                        )
-                      | _ =>
-                        raise(
-                          Invalid_argument(
-                            Printf.sprintf(
-                              "server-reason-react: error on decoding argument '%s'.",
-                              "name",
-                            ),
-                          ),
-                        )
-                      }
+                        ),
+                      )
                     }
                   and age =
                     try(int_of_json(args[1])) {
                     | _ =>
-                      switch (Sys.getenv_opt("ENV")) {
-                      | Some("development") =>
-                        raise(
-                          Invalid_argument(
-                            Printf.sprintf(
-                              "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
-                              "age",
-                              "int",
-                              args[1] |> Yojson.Basic.to_string,
-                            ),
+                      raise(
+                        Invalid_argument(
+                          Printf.sprintf(
+                            "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
+                            "age",
+                            "int",
+                            args[1] |> Yojson.Basic.to_string,
                           ),
-                        )
-                      | _ =>
-                        raise(
-                          Invalid_argument(
-                            Printf.sprintf(
-                              "server-reason-react: error on decoding argument '%s'.",
-                              "age",
-                            ),
-                          ),
-                        )
-                      }
+                        ),
+                      )
                     };
                   try(
                     withLabelledArgAndUnlabeledArg.call(~name?, age)
@@ -204,8 +156,15 @@
             [@react.server.function]
             let withOptionalArg = {
               Runtime.id: "949714301",
-              call: (~name: string, ()) => (
-                Lwt.return(Printf.sprintf("Hello, %s", name)):
+              call: (~name: option(string)=?, ()) => (
+                {
+                  let name =
+                    switch (name) {
+                    | Some(name) => name
+                    | None => "Lola"
+                    };
+                  Lwt.return(Printf.sprintf("Hello, %s", name));
+                }:
                   Js.Promise.t(string)
               ),
             };
@@ -214,33 +173,21 @@
               Body(
                 args => {
                   let name =
-                    try(string_of_json(args[0])) {
+                    try((option_of_json(string_of_json))(args[0])) {
                     | _ =>
-                      switch (Sys.getenv_opt("ENV")) {
-                      | Some("development") =>
-                        raise(
-                          Invalid_argument(
-                            Printf.sprintf(
-                              "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
-                              "name",
-                              "string",
-                              args[0] |> Yojson.Basic.to_string,
-                            ),
+                      raise(
+                        Invalid_argument(
+                          Printf.sprintf(
+                            "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
+                            "name",
+                            "string option",
+                            args[0] |> Yojson.Basic.to_string,
                           ),
-                        )
-                      | _ =>
-                        raise(
-                          Invalid_argument(
-                            Printf.sprintf(
-                              "server-reason-react: error on decoding argument '%s'.",
-                              "name",
-                            ),
-                          ),
-                        )
-                      }
+                        ),
+                      )
                     };
                   try(
-                    withOptionalArg.call(~name, ())
+                    withOptionalArg.call(~name?, ())
                     |> Lwt.map(response =>
                          React.Json(string_to_json(response))
                        )
@@ -255,41 +202,29 @@
   include {
             [@react.server.function]
             let withOptionalDefaultArg = {
-              Runtime.id: "625138489",
+              Runtime.id: "285929146",
               call: (~name: string="Lola", ()) => (
                 Lwt.return(Printf.sprintf("Hello, %s", name)):
                   Js.Promise.t(string)
               ),
             };
             FunctionReferences.register(
-              "625138489",
+              "285929146",
               Body(
                 args => {
                   let name =
                     try((option_of_json(string_of_json))(args[0])) {
                     | _ =>
-                      switch (Sys.getenv_opt("ENV")) {
-                      | Some("development") =>
-                        raise(
-                          Invalid_argument(
-                            Printf.sprintf(
-                              "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
-                              "name",
-                              "string option",
-                              args[0] |> Yojson.Basic.to_string,
-                            ),
+                      raise(
+                        Invalid_argument(
+                          Printf.sprintf(
+                            "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
+                            "name",
+                            "string option",
+                            args[0] |> Yojson.Basic.to_string,
                           ),
-                        )
-                      | _ =>
-                        raise(
-                          Invalid_argument(
-                            Printf.sprintf(
-                              "server-reason-react: error on decoding argument '%s'.",
-                              "name",
-                            ),
-                          ),
-                        )
-                      }
+                        ),
+                      )
                     };
                   try(
                     withOptionalDefaultArg.call(~name?, ())
@@ -307,7 +242,7 @@
   include {
             [@react.server.function]
             let withUnlabeledArg = {
-              Runtime.id: "382610985",
+              Runtime.id: "604196953",
               call: (name: string, age: int) => (
                 Lwt.return(
                   Printf.sprintf("Hello %s, you are %d years old", name, age),
@@ -316,60 +251,36 @@
               ),
             };
             FunctionReferences.register(
-              "382610985",
+              "604196953",
               Body(
                 args => {
                   let name =
                     try(string_of_json(args[0])) {
                     | _ =>
-                      switch (Sys.getenv_opt("ENV")) {
-                      | Some("development") =>
-                        raise(
-                          Invalid_argument(
-                            Printf.sprintf(
-                              "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
-                              "name",
-                              "string",
-                              args[0] |> Yojson.Basic.to_string,
-                            ),
+                      raise(
+                        Invalid_argument(
+                          Printf.sprintf(
+                            "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
+                            "name",
+                            "string",
+                            args[0] |> Yojson.Basic.to_string,
                           ),
-                        )
-                      | _ =>
-                        raise(
-                          Invalid_argument(
-                            Printf.sprintf(
-                              "server-reason-react: error on decoding argument '%s'.",
-                              "name",
-                            ),
-                          ),
-                        )
-                      }
+                        ),
+                      )
                     }
                   and age =
                     try(int_of_json(args[1])) {
                     | _ =>
-                      switch (Sys.getenv_opt("ENV")) {
-                      | Some("development") =>
-                        raise(
-                          Invalid_argument(
-                            Printf.sprintf(
-                              "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
-                              "age",
-                              "int",
-                              args[1] |> Yojson.Basic.to_string,
-                            ),
+                      raise(
+                        Invalid_argument(
+                          Printf.sprintf(
+                            "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
+                            "age",
+                            "int",
+                            args[1] |> Yojson.Basic.to_string,
                           ),
-                        )
-                      | _ =>
-                        raise(
-                          Invalid_argument(
-                            Printf.sprintf(
-                              "server-reason-react: error on decoding argument '%s'.",
-                              "age",
-                            ),
-                          ),
-                        )
-                      }
+                        ),
+                      )
                     };
                   try(
                     withUnlabeledArg.call(name, age)
@@ -387,11 +298,11 @@
   include {
             [@react.server.function]
             let withNoArgs = {
-              Runtime.id: "63054150",
+              Runtime.id: "363520221",
               call: () => (Lwt.return("Hello, world!"): Js.Promise.t(string)),
             };
             FunctionReferences.register(
-              "63054150",
+              "363520221",
               Body(
                 args =>
                   try(
