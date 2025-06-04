@@ -183,6 +183,12 @@ module Page = {
           description="Server action with FormData">
           <ServerActionWithFormData />
         </Section>
+        <Hr />
+        <Section
+          title="Server function with FormData and useActionState"
+          description="Server action with FormData">
+          <ServerActionWithFormDataUseActionState />
+        </Section>
       </Stack>,
     );
   };

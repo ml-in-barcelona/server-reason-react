@@ -532,6 +532,9 @@ let useState (make_initial_value : unit -> 'state) =
   in
   (initial_value, setState)
 
+let useActionState (_fn : 'state -> Js.FormData.t -> 'response Js.Promise.t) (initial_state : 'state) =
+  (initial_state, _fn, false)
+
 type ('input, 'output) callback = 'input -> 'output
 
 let useSyncExternalStore ~subscribe:_ ~getSnapshot = getSnapshot ()
