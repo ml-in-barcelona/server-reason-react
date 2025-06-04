@@ -788,20 +788,13 @@ module ServerFunction = struct
              ~expr:
                [%expr
                  try [%e of_json]
-                 with _ -> (
-                   match Sys.getenv_opt "ENV" with
-                   | Some "development" ->
-                       raise
-                         (Invalid_argument
-                            (Printf.sprintf
-                               "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s"
-                               [%e estring ~loc label] [%e estring ~loc core_type_string]
-                               (args.([%e eint ~loc i]) |> Yojson.Basic.to_string)))
-                   | _ ->
-                       raise
-                         (Invalid_argument
-                            (Printf.sprintf "server-reason-react: error on decoding argument '%s'."
-                               [%e estring ~loc label])))])
+                 with _ ->
+                   raise
+                     (Invalid_argument
+                        (Printf.sprintf
+                           "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s"
+                           [%e estring ~loc label] [%e estring ~loc core_type_string]
+                           (args.([%e eint ~loc i]) |> Yojson.Basic.to_string)))])
 
   let create_function_reference_registration ~loc ~id ~function_name ~args ~core_type =
     let apply_args = map_arguments_to_expressions ~loc args in
@@ -856,7 +849,7 @@ module ServerFunction = struct
     in
     fn
 
-  let rewrite_client_function ~sub_modules ~vb ~rec_flag structure_item =
+  let rewrite_client_function ~nested_module_names ~vb ~rec_flag structure_item =
     let loc = structure_item.pstr_loc in
 
     let function_name = get_function_name vb in
@@ -873,7 +866,7 @@ module ServerFunction = struct
     in
 
     let loc = structure_item.pstr_loc in
-    let module_name = String.concat "." sub_modules in
+    let module_name = String.concat "." nested_module_names in
     let comment = Printf.sprintf "// extract-server-function %s %s %s" id function_name module_name in
     let raw = estring ~loc comment in
     let extract_client_raw = [%stri [%%raw [%e raw]]] in
@@ -884,7 +877,7 @@ module ServerFunction = struct
       end]
 end
 
-let rewrite_structure_item ~sub_modules structure_item =
+let rewrite_structure_item ~nested_module_names structure_item =
   match structure_item.pstr_desc with
   (* external *)
   | Pstr_primitive ({ pval_name = { txt = _fnName }; pval_attributes; pval_type = _ } as _value_description) -> (
@@ -908,8 +901,8 @@ let rewrite_structure_item ~sub_modules structure_item =
       if List.length value_bindings > 1 then
         [%stri
           [%%ocaml.error
-            "server-reason-react: server functions don't support recursive bindings yet. If you need it, please open an \
-             issue on https://github.com/reasonml-community/server-reason-react/issues"]]
+          "server-reason-react: server functions don't support recursive bindings yet. If you need it, please open an \
+           issue on https://github.com/reasonml-community/server-reason-react/issues"]]
       else ServerFunction.rewrite_native_function ~vb ~rec_flag structure_item
   | Pstr_value (rec_flag, value_bindings) ->
       let map_value_binding vb =
@@ -918,10 +911,10 @@ let rewrite_structure_item ~sub_modules structure_item =
               let loc = expr.pexp_loc in
               let file = pexp_ident ~loc { txt = Lident "__FILE__"; loc } in
               let import_module =
-                match sub_modules with
+                match nested_module_names with
                 | [] -> [%expr [%e file]]
                 | _ ->
-                    let submodule = estring ~loc (String.concat "." sub_modules) in
+                    let submodule = estring ~loc (String.concat "." nested_module_names) in
                     [%expr Printf.sprintf "%s#%s" [%e file] [%e submodule]]
               in
               let arguments = get_arguments vb.pvb_expr in
@@ -944,7 +937,7 @@ let rewrite_structure_item ~sub_modules structure_item =
       pstr_value ~loc:structure_item.pstr_loc rec_flag bindings
   | _ -> structure_item
 
-let rewrite_structure_item_for_js ~sub_modules ctx structure_item =
+let rewrite_structure_item_for_js ~nested_module_names ctx structure_item =
   match structure_item.pstr_desc with
   (* external *)
   | Pstr_primitive ({ pval_name = { txt = _fnName }; pval_attributes; pval_type = _ } as _value_description) -> (
@@ -955,7 +948,7 @@ let rewrite_structure_item_for_js ~sub_modules ctx structure_item =
           [%stri [%%ocaml.error "server-reason-react: externals aren't supported on client components yet"]])
   | Pstr_value (rec_flag, value_bindings) when isReactServerFunctionBinding (List.hd value_bindings) ->
       let vb = List.hd value_bindings in
-      ServerFunction.rewrite_client_function ~sub_modules ~vb ~rec_flag structure_item
+      ServerFunction.rewrite_client_function ~nested_module_names ~vb ~rec_flag structure_item
   (* let make = ... *)
   | Pstr_value (rec_flag, value_bindings) when isClientComponentBinding value_bindings ->
       let first_value_binding = List.hd value_bindings in
@@ -970,9 +963,9 @@ let rewrite_structure_item_for_js ~sub_modules ctx structure_item =
       (* We need to add a nasty hack here, since have different files for native and melange.Assume that the file structure is /native/shared/ and js, and replace the name directly. This is supposed to be temporal, until dune implements https://github.com/ocaml/dune/issues/10630 *)
       let fileName = Str.replace_first (Str.regexp {|/js/|}) "/native/shared/" fileName in
       let comment =
-        match sub_modules with
+        match nested_module_names with
         | [] -> estring ~loc (Printf.sprintf "// extract-client %s" fileName)
-        | _ -> estring ~loc (Printf.sprintf "// extract-client %s %s" fileName (String.concat "." sub_modules))
+        | _ -> estring ~loc (Printf.sprintf "// extract-client %s %s" fileName (String.concat "." nested_module_names))
       in
       [%stri
         include struct
@@ -985,18 +978,20 @@ let rewrite_structure_item_for_js ~sub_modules ctx structure_item =
 let traverse =
   object (_)
     inherit [Expansion_context.Base.t] Ppxlib.Ast_traverse.map_with_context as super
-    val mutable sub_modules = []
+    val mutable nested_module_names = []
 
     method! module_binding ctxt module_binding =
-      (match module_binding.pmb_name.txt with None -> () | Some name -> sub_modules <- sub_modules @ [ name ]);
+      (match module_binding.pmb_name.txt with
+      | None -> ()
+      | Some name -> nested_module_names <- nested_module_names @ [ name ]);
       let mapped = super#module_binding ctxt module_binding in
-      let _ = sub_modules <- List.tl sub_modules in
+      let _ = nested_module_names <- List.tl nested_module_names in
       mapped
 
     method! structure_item ctx structure_item =
       match mode.contents with
-      | Native -> rewrite_structure_item ~sub_modules (super#structure_item ctx structure_item)
-      | Js -> rewrite_structure_item_for_js ~sub_modules ctx (super#structure_item ctx structure_item)
+      | Native -> rewrite_structure_item ~nested_module_names (super#structure_item ctx structure_item)
+      | Js -> rewrite_structure_item_for_js ~nested_module_names ctx (super#structure_item ctx structure_item)
 
     method! signature_item ctx signature_item =
       match mode.contents with
