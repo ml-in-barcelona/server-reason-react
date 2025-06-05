@@ -797,7 +797,13 @@ module ServerFunction = struct
                            (args.([%e eint ~loc i]) |> Yojson.Basic.to_string)))])
 
   let create_function_reference_registration ~loc ~id ~function_name ~args ~core_type =
-    let apply_args = map_arguments_to_expressions ~loc args in
+    let args, formData =
+      List.partition_map
+        ~f:(fun arg ->
+          match arg with Ok (_, _, [%type: Js.FormData.t]) -> Right arg | Ok _ -> Left arg | Error _ -> Left arg)
+        args
+    in
+    let apply_args = map_arguments_to_expressions ~loc (args @ formData) in
     let response_expr = pexp_apply ~loc [%expr [%e evar ~loc function_name].call] apply_args in
 
     let encoded_response_expr = encode_function_response ~loc ~response_expr ~core_type in
@@ -805,6 +811,7 @@ module ServerFunction = struct
       List.filter_map
         ~f:(fun arg ->
           match arg with
+          | Ok (_, _, [%type: Js.FormData.t]) -> None
           | Ok (arg_label, Some arg_name, core_type) -> Some (arg_label, arg_name, core_type)
           | Ok _ -> None
           | Error _ -> None)
@@ -818,7 +825,10 @@ module ServerFunction = struct
           let decoded_expr = decode_arguments_vb ~loc args_to_decode in
           pexp_let ~loc Nonrecursive decoded_expr encoded_response_expr
     in
-    [%stri FunctionReferences.register [%e estring ~loc id] (Body (fun args -> [%e body_expr]))]
+    match formData with
+    | [] -> [%stri FunctionReferences.register [%e estring ~loc id] (Body (fun args -> [%e body_expr]))]
+    | [ _ ] -> [%stri FunctionReferences.register [%e estring ~loc id] (FormData (fun formData -> [%e body_expr]))]
+    | _ -> [%stri [%ocaml.error "server-reason-react: formData server functions don't support extra arguments yet"]]
 
   let create_server_function_record ~loc id expression =
     [%expr { Runtime.id = [%e estring ~loc id]; call = [%e expression] }]

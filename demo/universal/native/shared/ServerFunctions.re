@@ -48,44 +48,20 @@ let error = (): Js.Promise.t(string) => {
   );
 };
 
-let formDataId = "id/samples/formData";
+[@react.server.function]
+let formDataFunction = (formData: Js.FormData.t): Js.Promise.t(string) => {
+  let name =
+    Js.FormData.get(formData, "name")
+    |> (
+      fun
+      | `String(name) => name
+    );
+  let age =
+    Js.FormData.get(formData, "age")
+    |> (
+      fun
+      | `String(age) => age
+    );
 
-[@platform native]
-let formDataRouteHandler = formData => {
-  let (name, lastName, age) =
-    switch (
-      formData->Js.FormData.get("name"),
-      formData->Js.FormData.get("lastName"),
-      formData->Js.FormData.get("age"),
-    ) {
-    | (`String(name), `String(lastName), `String(age)) => (
-        name,
-        lastName,
-        age,
-      )
-    | exception _ => failwith("Invalid formData.")
-    };
-
-  let response =
-    Printf.sprintf("Form data received: %s, %s, %s", name, lastName, age);
-
-  Lwt.return(React.Json(`String(response)));
+  Lwt.return(Printf.sprintf("Hello %s, you are %s years old", name, age));
 };
-
-let formData =
-  switch%platform () {
-  | Server => {
-      Runtime.id: formDataId,
-      call: (formData: Js.FormData.t) => formDataRouteHandler(formData),
-    }
-  | Client => {
-      Runtime.id: formDataId,
-      call: (formData: Js.FormData.t) => {
-        let action = ReactServerDOMEsbuild.createServerReference(formDataId);
-        action(. formData);
-      },
-    }
-  };
-
-[@platform native]
-FunctionReferences.register(formData.id, FormData(formDataRouteHandler));

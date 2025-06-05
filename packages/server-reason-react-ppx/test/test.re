@@ -477,6 +477,24 @@ module ServerFunction = {
   let simpleResponse = (~name: string, ~age: int): Js.Promise.t(string) => {
     Lwt.return(Printf.sprintf("Hello %s, you are %d years old", name, age));
   };
+
+  [@react.server.function]
+  let withFormData = (formData: Js.FormData.t): Js.Promise.t(string) => {
+    let name =
+      Js.FormData.get(formData, "name")
+      |> (
+        fun
+        | `String(name) => name
+      );
+    let age =
+      Js.FormData.get(formData, "age")
+      |> (
+        fun
+        | `String(age) => age
+      );
+
+    Lwt.return(Printf.sprintf("Hello %s, you are %s years old", name, age));
+  };
 };
 
 let server_function = () => {
@@ -525,15 +543,31 @@ let server_function_reference_args_error = () => {
   Lwt.return_unit;
 };
 
+let server_function_reference_form_data = () => {
+  let%lwt response =
+    FunctionReferences.get(ServerFunction.withFormData.id)
+    |> (
+      fun
+      | Some(FormData(handler)) => {
+          let form_data = Js.FormData.make();
+          Js.FormData.append(form_data, "name", `String("John"));
+          Js.FormData.append(form_data, "age", `String("30"));
+          handler(form_data);
+        }
+      | _ => assert(false)
+    );
+
+  switch (response) {
+  | React.Json(json) =>
+    assert_string(string_of_json(json), "Hello John, you are 30 years old");
+    Lwt.return_unit;
+  | _ => failwith("Expected a JSON response")
+  };
+};
+
 Alcotest_lwt.run(
   "server-reason-react.ppx",
   [
-    test_lwt("server_function", server_function),
-    test_lwt("server_function_reference", server_function_reference),
-    test_lwt(
-      "server_function_reference_args_error",
-      server_function_reference_args_error,
-    ),
     test("tag", tag),
     test("empty_attribute", empty_attribute),
     test("bool_attribute", bool_attribute),
@@ -572,5 +606,15 @@ Alcotest_lwt.run(
     test("context", context),
     test("context_2", context_2),
     test("multiple_contexts", multiple_contexts),
+    test_lwt("server_function", server_function),
+    test_lwt("server_function_reference", server_function_reference),
+    test_lwt(
+      "server_function_reference_args_error",
+      server_function_reference_args_error,
+    ),
+    test_lwt(
+      "server_function_reference_form_data",
+      server_function_reference_form_data,
+    ),
   ],
 );
