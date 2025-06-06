@@ -50,22 +50,13 @@ let error = (): Js.Promise.t(string) => {
 
 [@react.server.function]
 let formDataFunction = (formData: Js.FormData.t): Js.Promise.t(string) => {
-  let (name, lastName, age) =
-    switch (
-      formData->Js.FormData.get("name"),
-      formData->Js.FormData.get("lastName"),
-      formData->Js.FormData.get("age"),
-    ) {
-    | (`String(name), `String(lastName), `String(age)) => (
-        name,
-        lastName,
-        age,
-      )
+  let name =
+    switch (formData->Js.FormData.get("name")) {
+    | `String(name) => name
     | exception _ => failwith("Invalid formData.")
     };
 
-  let response =
-    Printf.sprintf("Form data received: %s, %s, %s", name, lastName, age);
+  let response = Printf.sprintf("Form data received: %s", name);
 
   Lwt.return(response);
 };

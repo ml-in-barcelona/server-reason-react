@@ -108,6 +108,18 @@ let make_prop ~is_optional ~prop attribute_value =
   let loc = attribute_value.pexp_loc in
   let open DomProps in
   match (prop, is_optional) with
+  | Attribute { type_ = DomProps.Action; name; jsxName }, false ->
+      [%expr
+        match ([%e attribute_value] : [ `String of string | `Function of 'a Runtime.server_function ]) with
+        | `String s -> Some (React.JSX.String ([%e estring ~loc name], [%e estring ~loc jsxName], (s : string)))
+        | `Function f ->
+            Some
+              (React.JSX.Action ([%e estring ~loc name], [%e estring ~loc jsxName], (f : 'a Runtime.server_function)))]
+  | Attribute { type_ = DomProps.Action; name; jsxName }, true ->
+      [%expr
+        match ([%e attribute_value] : [ `String of string | `Function of 'a Runtime.server_function ] option) with
+        | None -> None
+        | Some v -> Some (React.JSX.Action ([%e estring ~loc name], [%e estring ~loc jsxName], v))]
   | Attribute { type_ = DomProps.String; name; jsxName }, false ->
       [%expr
         Some (React.JSX.String ([%e estring ~loc name], [%e estring ~loc jsxName], ([%e attribute_value] : string)))]
@@ -875,6 +887,12 @@ module ServerFunction = struct
 
     let function_name = get_function_name vb in
     let args = get_arguments vb.pvb_expr |> List.map ~f:get_arg_details |> List.rev in
+    let args, formData =
+      List.partition_map
+        ~f:(fun arg ->
+          match arg with Ok (_, _, [%type: Js.FormData.t]) -> Right arg | Ok _ -> Left arg | Error _ -> Left arg)
+        args
+    in
     let base_fn = vb.pvb_expr in
     let return_core_type = get_response_type base_fn in
     let id = generate_id ~loc:vb.pvb_loc function_name in
@@ -882,12 +900,13 @@ module ServerFunction = struct
       value_binding ~loc:vb.pvb_loc ~pat:vb.pvb_pat
         ~expr:
           (create_server_function_record ~loc:vb.pvb_loc id
-             (last_expr_to_fn ~loc base_fn (create_client_function ~loc ~return_core_type id args)))
+             (last_expr_to_fn ~loc base_fn (create_client_function ~loc ~return_core_type id (args @ formData))))
     in
 
     let loc = structure_item.pstr_loc in
     let module_name = String.concat "." nested_module_names in
-    let comment = Printf.sprintf "// extract-server-function %s %s %s" id function_name module_name in
+    let functionToCall = match formData with [] -> function_name | _ -> Printf.sprintf "%s.call" function_name in
+    let comment = Printf.sprintf "// extract-server-function %s %s %s" id functionToCall module_name in
     let raw = estring ~loc comment in
     let extract_client_raw = [%stri [%%raw [%e raw]]] in
     [%stri

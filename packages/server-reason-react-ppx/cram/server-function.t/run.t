@@ -193,3 +193,34 @@
               };
     };
   };
+  
+  include {
+            {
+              module J = {
+                [@ocaml.warning "-unboxable-type-in-prim-decl"]
+                external unsafe_expr: _ => _ = "#raw_stmt";
+              };
+              J.unsafe_expr(
+                "// extract-server-function 247821597 withFormData.call ",
+              );
+            };
+  
+            let withFormData = {
+              Runtime.id: "247821597",
+              call: (formData: Js.FormData.t) => {
+                let action =
+                  ReactServerDOMEsbuild.createServerReference("247821597");
+                (
+                  [@ocaml.warning "-ignored-extra-argument"]
+                  Js.Internal.opaqueFullApply(
+                    (Js.Internal.opaque((action: Js.Fn.arity1(_)).I1))(
+                      formData,
+                    ),
+                  ): _
+                )
+                |> Js.Promise.then_(response =>
+                     Js.Promise.resolve(string_of_json(response))
+                   );
+              },
+            };
+          };
