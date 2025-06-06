@@ -43,3 +43,85 @@ let withUnlabeledArg = (name: string, age: int): Js.Promise.t(string) => {
 let withNoArgs = (): Js.Promise.t(string) => {
   Lwt.return("Hello, world!");
 };
+
+[@react.server.function]
+let withFormData = (formData: Js.FormData.t): Js.Promise.t(string) => {
+  let name =
+    Js.FormData.get(formData, "name")
+    |> (
+      fun
+      | `String(name) => name
+    );
+  let age =
+    Js.FormData.get(formData, "age")
+    |> (
+      fun
+      | `String(age) => age
+    );
+  Lwt.return(Printf.sprintf("Hello %s, you are %s years old", name, age));
+};
+
+[@react.server.function]
+let withFormDataArgs =
+    (country: string, formData: Js.FormData.t): Js.Promise.t(string) => {
+  let name =
+    Js.FormData.get(formData, "name")
+    |> (
+      fun
+      | `String(name) => name
+    );
+  let country = country;
+  Lwt.return(Printf.sprintf("Hello %s, you are from %s", name, country));
+};
+
+[@react.server.function]
+let withFormDataLabelledAndUnlabeledArgs =
+    (country: string, ~formData: Js.FormData.t): Js.Promise.t(string) => {
+  let name =
+    Js.FormData.get(formData, "name")
+    |> (
+      fun
+      | `String(name) => name
+    );
+  let country = country;
+  Lwt.return(Printf.sprintf("Hello %s, you are from %s", name, country));
+};
+
+[@react.server.function]
+let withFormDataLabelledAndLabelledArgs =
+    (~country: string, ~formData: Js.FormData.t): Js.Promise.t(string) => {
+  let name =
+    Js.FormData.get(formData, "name")
+    |> (
+      fun
+      | `String(name) => name
+    );
+  let country = country;
+  Lwt.return(Printf.sprintf("Hello %s, you are from %s", name, country));
+};
+
+[@react.server.function]
+let withFormDataUnlabelledAndLabelledArgs =
+    (~country: string, formData: Js.FormData.t): Js.Promise.t(string) => {
+  let name =
+    Js.FormData.get(formData, "name")
+    |> (
+      fun
+      | `String(name) => name
+    );
+  let country = country;
+  Lwt.return(Printf.sprintf("Hello %s, you are from %s", name, country));
+};
+
+[@react.server.function]
+let withFormDataAndArgsDifferentOrder =
+    (formData: Js.FormData.t, country: string): Js.Promise.t(string) => {
+  let name =
+    Js.FormData.get(formData, "name")
+    |> (
+      fun
+      | `String(name) => name
+    );
+  let country = country;
+  Lwt.return(Printf.sprintf("Hello %s, you are from %s", name, country));
+};

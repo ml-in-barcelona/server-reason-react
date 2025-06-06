@@ -3,39 +3,6 @@ let test = (title, fn) => (
   [Alcotest_lwt.test_case("", `Quick, (_switch, ()) => fn() |> Lwt.return)],
 );
 
-include Melange_json.Primitives;
-
-let sleep = (~ms) => {
-  let%lwt () = Lwt_unix.sleep(Int.to_float(ms) /. 1000.0);
-  Lwt.return();
-};
-
-let test_lwt = (title, fn) => {
-  let test_case = (_switch, ()) => {
-    let start = Unix.gettimeofday();
-    let timeout = {
-      let%lwt () = sleep(~ms=100);
-      Alcotest.failf("Test '%s' timed out", title);
-    };
-
-    let%lwt test_promise = Lwt.pick([fn(), timeout]);
-    let epsilon = 0.001;
-    let duration = Unix.gettimeofday() -. start;
-    if (abs_float(duration) >= epsilon) {
-      Printf.printf(
-        "\027[1m\027[33m[WARNING]\027[0m Test '%s' took %.3f seconds\n",
-        title,
-        duration,
-      );
-    } else {
-      ();
-    };
-    Lwt.return(test_promise);
-  };
-
-  (title, [Alcotest_lwt.test_case("", `Quick, test_case)]);
-};
-
 let assert_string = (left, right) => {
   Alcotest.check(Alcotest.string, "should be equal", right, left);
 };
@@ -464,147 +431,75 @@ let multiple_contexts = () => {
   );
 };
 
-module FunctionReferences: ReactServerDOM.FunctionReferences = {
-  type t = Hashtbl.t(string, ReactServerDOM.server_function);
+include Melange_json.Primitives;
 
-  let registry = Hashtbl.create(10);
-  let register = Hashtbl.add(registry);
-  let get = Hashtbl.find_opt(registry);
+let sleep = (~ms) => {
+  let%lwt () = Lwt_unix.sleep(Int.to_float(ms) /. 1000.0);
+  Lwt.return();
 };
 
-module ServerFunction = {
-  [@react.server.function]
-  let simpleResponse = (~name: string, ~age: int): Js.Promise.t(string) => {
-    Lwt.return(Printf.sprintf("Hello %s, you are %d years old", name, age));
+let test_lwt = (title, fn) => {
+  let test_case = (_switch, ()) => {
+    let start = Unix.gettimeofday();
+    let timeout = {
+      let%lwt () = sleep(~ms=100);
+      Alcotest.failf("Test '%s' timed out", title);
+    };
+
+    let%lwt test_promise = Lwt.pick([fn(), timeout]);
+    let epsilon = 0.001;
+    let duration = Unix.gettimeofday() -. start;
+    if (abs_float(duration) >= epsilon) {
+      Printf.printf(
+        "\027[1m\027[33m[WARNING]\027[0m Test '%s' took %.3f seconds\n",
+        title,
+        duration,
+      );
+    } else {
+      ();
+    };
+    Lwt.return(test_promise);
   };
 
-  [@react.server.function]
-  let withFormData = (~formData: Js.FormData.t): Js.Promise.t(string) => {
-    let name =
-      Js.FormData.get(formData, "name")
-      |> (
-        fun
-        | `String(name) => name
-      );
-    let age =
-      Js.FormData.get(formData, "age")
-      |> (
-        fun
-        | `String(age) => age
-      );
+  (
+    Printf.sprintf("server-reason-react.ppx / %s", title),
+    [Alcotest_lwt.test_case("", `Quick, test_case)],
+  );
+};
 
-    Lwt.return(Printf.sprintf("Hello %s, you are %s years old", name, age));
-  };
-
-  [@react.server.function]
-  let withFormDataAndArgs =
-      (role: string, ~formData: Js.FormData.t): Js.Promise.t(string) => {
-    let name =
-      Js.FormData.get(formData, "name")
-      |> (
-        fun
-        | `String(name) => name
-      );
-
-    Lwt.return(Printf.sprintf("Hello %s, your role is %s", name, role));
-  };
+[@react.server.function]
+let simpleResponse = (~name: string, ~age: int): Js.Promise.t(string) => {
+  Lwt.return(Printf.sprintf("Hello %s, you are %d years old", name, age));
 };
 
 let server_function = () => {
-  let%lwt response =
-    ServerFunction.simpleResponse.call(~name="John", ~age=30);
-  assert_string(response, "Hello John, you are 30 years old");
-  Lwt.return_unit;
-};
-let server_function_reference = () => {
   let%lwt route_response =
-    FunctionReferences.get(ServerFunction.simpleResponse.id)
-    |> (
-      fun
-      | Some(Body(handler)) => handler([|`String("John"), `Int(30)|])
-      | _ => assert(false)
-    );
-
+    simpleResponseRouteHandler([`String("John"), `Int(30)]);
   switch (route_response) {
   | React.Json(json) =>
-    assert_string(string_of_json(json), "Hello John, you are 30 years old");
+    assert_string(string_of_json(json), "Hello John, ou are 30 years old");
     Lwt.return_unit;
   | _ => failwith("Expected a JSON response")
   };
 };
 
-let server_function_reference_args_error = () => {
+let server_function_args_error = () => {
   (
-    try(
-      FunctionReferences.get(ServerFunction.simpleResponse.id)
-      |> (
-        fun
-        | Some(Body(handler)) => handler([|`String("John"), `Int(30)|])
-        | _ => assert(false)
-      )
-      |> ignore
-    ) {
+    try(simpleResponseRouteHandler([`Int(30)]) |> ignore) {
     | Failure(error) =>
-      assert_string(
-        error,
-        "server-reason-react: error on decoding argument 'age'. EXPECTED: int, RECEIVED: \"30\"",
-      )
-      |> ignore
+      assert_string(error, "server-reason-react: invalid arguments") |> ignore
     }
   )
   |> ignore;
   Lwt.return_unit;
 };
 
-let server_function_reference_form_data = () => {
-  let%lwt response =
-    FunctionReferences.get(ServerFunction.withFormData.id)
-    |> (
-      fun
-      | Some(FormData(handler)) => {
-          let form_data = Js.FormData.make();
-          Js.FormData.append(form_data, "name", `String("John"));
-          Js.FormData.append(form_data, "age", `String("30"));
-          handler([||], form_data);
-        }
-      | _ => assert(false)
-    );
-
-  switch (response) {
-  | React.Json(json) =>
-    assert_string(string_of_json(json), "Hello John, you are 30 years old");
-    Lwt.return_unit;
-  | _ => failwith("Expected a JSON response")
-  };
-};
-
-let server_function_reference_form_data_and_args = () => {
-  let%lwt response =
-    FunctionReferences.get(ServerFunction.withFormDataAndArgs.id)
-    |> (
-      fun
-      | Some(FormData(handler)) => {
-          let form_data = Js.FormData.make();
-          Js.FormData.append(form_data, "name", `String("John"));
-          handler([|`String("Developer")|], form_data);
-        }
-      | _ => assert(false)
-    );
-
-  switch (response) {
-  | React.Json(json) =>
-    assert_string(
-      string_of_json(json),
-      "Hello John, your role is Developer",
-    );
-    Lwt.return_unit;
-  | _ => failwith("Expected a JSON response")
-  };
-};
 
 Alcotest_lwt.run(
-  "server-reason-react.ppx",
+  "server-reason-react.ppx lwt",
   [
+    test_lwt("server_function", server_function),
+    test_lwt("server_function_args_error", server_function_args_error),
     test("tag", tag),
     test("empty_attribute", empty_attribute),
     test("bool_attribute", bool_attribute),
@@ -643,19 +538,5 @@ Alcotest_lwt.run(
     test("context", context),
     test("context_2", context_2),
     test("multiple_contexts", multiple_contexts),
-    test_lwt("server_function", server_function),
-    test_lwt("server_function_reference", server_function_reference),
-    test_lwt(
-      "server_function_reference_args_error",
-      server_function_reference_args_error,
-    ),
-    test_lwt(
-      "server_function_reference_form_data",
-      server_function_reference_form_data,
-    ),
-    test_lwt(
-      "server_function_reference_form_data_and_args",
-      server_function_reference_form_data_and_args,
-    ),
   ],
 );

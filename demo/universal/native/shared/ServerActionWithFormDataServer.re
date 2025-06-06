@@ -3,7 +3,7 @@ let make = () => {
   <form
     action={
       switch%platform () {
-      | Server => `Function(ServerFunctions.formData)
+      | Server => `Function(ServerFunctions.formDataFunction)
       // doesn't matter the client value, it will never reach the browser
       | Client => ""
       }

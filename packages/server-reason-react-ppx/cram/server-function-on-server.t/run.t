@@ -310,3 +310,302 @@
               ),
             );
           };
+  
+  include {
+            let withFormData = {
+              Runtime.id: "459481625",
+              call: (formData: Js.FormData.t) => (
+                {
+                  let name =
+                    Js.FormData.get(formData, "name")
+                    |> (
+                      fun
+                      | `String(name) => name
+                    );
+                  let age =
+                    Js.FormData.get(formData, "age")
+                    |> (
+                      fun
+                      | `String(age) => age
+                    );
+                  Lwt.return(
+                    Printf.sprintf("Hello %s, you are %s years old", name, age),
+                  );
+                }:
+                  Js.Promise.t(string)
+              ),
+            };
+            FunctionReferences.register(
+              "459481625",
+              FormData(
+                (_, formData) =>
+                  try(
+                    withFormData.call(formData)
+                    |> Lwt.map(response =>
+                         React.Json(string_to_json(response))
+                       )
+                  ) {
+                  | e => Lwt.fail(e)
+                  },
+              ),
+            );
+          };
+  
+  include {
+            let withFormDataArgs = {
+              Runtime.id: "191714862",
+              call: (country: string, formData: Js.FormData.t) => (
+                {
+                  let name =
+                    Js.FormData.get(formData, "name")
+                    |> (
+                      fun
+                      | `String(name) => name
+                    );
+                  let country = country;
+                  Lwt.return(
+                    Printf.sprintf("Hello %s, you are from %s", name, country),
+                  );
+                }:
+                  Js.Promise.t(string)
+              ),
+            };
+            FunctionReferences.register(
+              "191714862",
+              FormData(
+                (args, formData) => {
+                  let country =
+                    try(string_of_json(args[0])) {
+                    | _ =>
+                      raise(
+                        Invalid_argument(
+                          Printf.sprintf(
+                            "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
+                            "country",
+                            "string",
+                            args[0] |> Yojson.Basic.to_string,
+                          ),
+                        ),
+                      )
+                    };
+                  try(
+                    withFormDataArgs.call(country, formData)
+                    |> Lwt.map(response =>
+                         React.Json(string_to_json(response))
+                       )
+                  ) {
+                  | e => Lwt.fail(e)
+                  };
+                },
+              ),
+            );
+          };
+  
+  include {
+            let withFormDataLabelledAndUnlabeledArgs = {
+              Runtime.id: "1034739090",
+              call: (country: string, ~formData: Js.FormData.t) => (
+                {
+                  let name =
+                    Js.FormData.get(formData, "name")
+                    |> (
+                      fun
+                      | `String(name) => name
+                    );
+                  let country = country;
+                  Lwt.return(
+                    Printf.sprintf("Hello %s, you are from %s", name, country),
+                  );
+                }:
+                  Js.Promise.t(string)
+              ),
+            };
+            FunctionReferences.register(
+              "1034739090",
+              FormData(
+                (args, formData) => {
+                  let country =
+                    try(string_of_json(args[0])) {
+                    | _ =>
+                      raise(
+                        Invalid_argument(
+                          Printf.sprintf(
+                            "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
+                            "country",
+                            "string",
+                            args[0] |> Yojson.Basic.to_string,
+                          ),
+                        ),
+                      )
+                    };
+                  try(
+                    withFormDataLabelledAndUnlabeledArgs.call(
+                      country,
+                      ~formData,
+                    )
+                    |> Lwt.map(response =>
+                         React.Json(string_to_json(response))
+                       )
+                  ) {
+                  | e => Lwt.fail(e)
+                  };
+                },
+              ),
+            );
+          };
+  
+  include {
+            let withFormDataLabelledAndLabelledArgs = {
+              Runtime.id: "320208691",
+              call: (~country: string, ~formData: Js.FormData.t) => (
+                {
+                  let name =
+                    Js.FormData.get(formData, "name")
+                    |> (
+                      fun
+                      | `String(name) => name
+                    );
+                  let country = country;
+                  Lwt.return(
+                    Printf.sprintf("Hello %s, you are from %s", name, country),
+                  );
+                }:
+                  Js.Promise.t(string)
+              ),
+            };
+            FunctionReferences.register(
+              "320208691",
+              FormData(
+                (args, formData) => {
+                  let country =
+                    try(string_of_json(args[0])) {
+                    | _ =>
+                      raise(
+                        Invalid_argument(
+                          Printf.sprintf(
+                            "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
+                            "country",
+                            "string",
+                            args[0] |> Yojson.Basic.to_string,
+                          ),
+                        ),
+                      )
+                    };
+                  try(
+                    withFormDataLabelledAndLabelledArgs.call(
+                      ~country,
+                      ~formData,
+                    )
+                    |> Lwt.map(response =>
+                         React.Json(string_to_json(response))
+                       )
+                  ) {
+                  | e => Lwt.fail(e)
+                  };
+                },
+              ),
+            );
+          };
+  
+  include {
+            let withFormDataUnlabelledAndLabelledArgs = {
+              Runtime.id: "865856777",
+              call: (~country: string, formData: Js.FormData.t) => (
+                {
+                  let name =
+                    Js.FormData.get(formData, "name")
+                    |> (
+                      fun
+                      | `String(name) => name
+                    );
+                  let country = country;
+                  Lwt.return(
+                    Printf.sprintf("Hello %s, you are from %s", name, country),
+                  );
+                }:
+                  Js.Promise.t(string)
+              ),
+            };
+            FunctionReferences.register(
+              "865856777",
+              FormData(
+                (args, formData) => {
+                  let country =
+                    try(string_of_json(args[0])) {
+                    | _ =>
+                      raise(
+                        Invalid_argument(
+                          Printf.sprintf(
+                            "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
+                            "country",
+                            "string",
+                            args[0] |> Yojson.Basic.to_string,
+                          ),
+                        ),
+                      )
+                    };
+                  try(
+                    withFormDataUnlabelledAndLabelledArgs.call(
+                      ~country,
+                      formData,
+                    )
+                    |> Lwt.map(response =>
+                         React.Json(string_to_json(response))
+                       )
+                  ) {
+                  | e => Lwt.fail(e)
+                  };
+                },
+              ),
+            );
+          };
+  
+  include {
+            let withFormDataAndArgsDifferentOrder = {
+              Runtime.id: "897374993",
+              call: (formData: Js.FormData.t, country: string) => (
+                {
+                  let name =
+                    Js.FormData.get(formData, "name")
+                    |> (
+                      fun
+                      | `String(name) => name
+                    );
+                  let country = country;
+                  Lwt.return(
+                    Printf.sprintf("Hello %s, you are from %s", name, country),
+                  );
+                }:
+                  Js.Promise.t(string)
+              ),
+            };
+            FunctionReferences.register(
+              "897374993",
+              FormData(
+                (args, formData) => {
+                  let country =
+                    try(string_of_json(args[0])) {
+                    | _ =>
+                      raise(
+                        Invalid_argument(
+                          Printf.sprintf(
+                            "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
+                            "country",
+                            "string",
+                            args[0] |> Yojson.Basic.to_string,
+                          ),
+                        ),
+                      )
+                    };
+                  try(
+                    withFormDataAndArgsDifferentOrder.call(formData, country)
+                    |> Lwt.map(response =>
+                         React.Json(string_to_json(response))
+                       )
+                  ) {
+                  | e => Lwt.fail(e)
+                  };
+                },
+              ),
+            );
+          };

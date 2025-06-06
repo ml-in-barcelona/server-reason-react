@@ -817,9 +817,17 @@ module ServerFunction = struct
       List.filter_map
         ~f:(fun arg ->
           match arg with
+          | Ok (_, _, [%type: Js.FormData.t]) -> None
           | Ok (arg_label, Some arg_name, core_type) -> Some (arg_label, arg_name, core_type)
           | Ok _ -> None
           | Error _ -> None)
+        args
+    in
+
+    let args, formData =
+      List.partition_map
+        ~f:(fun arg ->
+          match arg with Ok (_, _, [%type: Js.FormData.t]) -> Right arg | Ok _ -> Left arg | Error _ -> Left arg)
         args
     in
 
@@ -830,7 +838,13 @@ module ServerFunction = struct
           let decoded_expr = decode_arguments_vb ~loc args_to_decode in
           pexp_let ~loc Nonrecursive decoded_expr encoded_response_expr
     in
-    [%stri FunctionReferences.register [%e estring ~loc id] (Body (fun args -> [%e body_expr]))]
+    match (formData, args) with
+    | [], _ -> [%stri FunctionReferences.register [%e estring ~loc id] (Body (fun args -> [%e body_expr]))]
+    | [ _ ], [] ->
+        [%stri FunctionReferences.register [%e estring ~loc id] (FormData (fun _ formData -> [%e body_expr]))]
+    | _, [] ->
+        [%stri [%ocaml.error "server-reason-react: server functions with form data must have at only one argument"]]
+    | _ -> [%stri FunctionReferences.register [%e estring ~loc id] (FormData (fun args formData -> [%e body_expr]))]
 
   let create_server_function_record ~loc id expression =
     [%expr { Runtime.id = [%e estring ~loc id]; call = [%e expression] }]
@@ -889,7 +903,14 @@ module ServerFunction = struct
 
     let loc = structure_item.pstr_loc in
     let module_name = String.concat "." nested_module_names in
-    let comment = Printf.sprintf "// extract-server-function %s %s %s" id function_name module_name in
+    let _, formData =
+      List.partition_map
+        ~f:(fun arg ->
+          match arg with Ok (_, _, [%type: Js.FormData.t]) -> Right arg | Ok _ -> Left arg | Error _ -> Left arg)
+        args
+    in
+    let functionToCall = match formData with [] -> function_name | _ -> Printf.sprintf "%s.call" function_name in
+    let comment = Printf.sprintf "// extract-server-function %s %s %s" id functionToCall module_name in
     let raw = estring ~loc comment in
     let extract_client_raw = [%stri [%%raw [%e raw]]] in
     [%stri

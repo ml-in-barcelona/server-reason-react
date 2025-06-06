@@ -9,7 +9,7 @@ let make = () => {
     <button
       formAction={
         switch%platform () {
-        | Server => `Function(ServerFunctions.formData)
+        | Server => `Function(ServerFunctions.formDataFunction)
         | Client => ""
         }
       }

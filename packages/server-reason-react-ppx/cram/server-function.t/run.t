@@ -193,3 +193,98 @@
               };
     };
   };
+  
+  include {
+            {
+              module J = {
+                [@ocaml.warning "-unboxable-type-in-prim-decl"]
+                external unsafe_expr: _ => _ = "#raw_stmt";
+              };
+              J.unsafe_expr(
+                "// extract-server-function 247821597 withFormData.call ",
+              );
+            };
+  
+            let withFormData = {
+              Runtime.id: "247821597",
+              call: (formData: Js.FormData.t) => {
+                let action =
+                  ReactServerDOMEsbuild.createServerReference("247821597");
+                (
+                  [@ocaml.warning "-ignored-extra-argument"]
+                  Js.Internal.opaqueFullApply(
+                    (Js.Internal.opaque((action: Js.Fn.arity1(_)).I1))(
+                      formData,
+                    ),
+                  ): _
+                )
+                |> Js.Promise.then_(response =>
+                     Js.Promise.resolve(string_of_json(response))
+                   );
+              },
+            };
+          };
+  
+  include {
+            {
+              module J = {
+                [@ocaml.warning "-unboxable-type-in-prim-decl"]
+                external unsafe_expr: _ => _ = "#raw_stmt";
+              };
+              J.unsafe_expr(
+                "// extract-server-function 774822153 withFormDataAndLabelledArgs.call ",
+              );
+            };
+  
+            let withFormDataAndLabelledArgs = {
+              Runtime.id: "774822153",
+              call: (country: string, ~formData: Js.FormData.t) => {
+                let action =
+                  ReactServerDOMEsbuild.createServerReference("774822153");
+                (
+                  [@ocaml.warning "-ignored-extra-argument"]
+                  Js.Internal.opaqueFullApply(
+                    (Js.Internal.opaque((action: Js.Fn.arity2(_)).I2))(
+                      country,
+                      formData,
+                    ),
+                  ): _
+                )
+                |> Js.Promise.then_(response =>
+                     Js.Promise.resolve(string_of_json(response))
+                   );
+              },
+            };
+          };
+  
+  include {
+            {
+              module J = {
+                [@ocaml.warning "-unboxable-type-in-prim-decl"]
+                external unsafe_expr: _ => _ = "#raw_stmt";
+              };
+              J.unsafe_expr(
+                "// extract-server-function 658628366 withFormDataAndArgsDifferentOrder.call ",
+              );
+            };
+  
+            let withFormDataAndArgsDifferentOrder = {
+              Runtime.id: "658628366",
+              call: (~formData: Js.FormData.t, country: string) => {
+                let action =
+                  ReactServerDOMEsbuild.createServerReference("658628366");
+                (
+                  [@ocaml.warning "-ignored-extra-argument"]
+                  Js.Internal.opaqueFullApply(
+                    (Js.Internal.opaque((action: Js.Fn.arity2(_)).I2))(
+                      formData,
+                      country,
+                    ),
+                  ): _
+                )
+                |> Js.Promise.then_(response =>
+                     Js.Promise.resolve(string_of_json(response))
+                   );
+              },
+            };
+          };

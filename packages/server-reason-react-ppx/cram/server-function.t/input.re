@@ -29,3 +29,46 @@ module SomeModule = {
     };
   };
 };
+
+[@react.server.function]
+let withFormData = (formData: Js.FormData.t): Js.Promise.t(string) => {
+  let name =
+    Js.FormData.get(formData, "name")
+    |> (
+      fun
+      | `String(name) => name
+    );
+  let age =
+    Js.FormData.get(formData, "age")
+    |> (
+      fun
+      | `String(age) => age
+    );
+  Lwt.return(Printf.sprintf("Hello %s, you are %s years old", name, age));
+};
+
+[@react.server.function]
+let withFormDataAndLabelledArgs =
+    (country: string, ~formData: Js.FormData.t): Js.Promise.t(string) => {
+  let name =
+    Js.FormData.get(formData, "name")
+    |> (
+      fun
+      | `String(name) => name
+    );
+  let country = country;
+  Lwt.return(Printf.sprintf("Hello %s, you are from %s", name, country));
+};
+
+[@react.server.function]
+let withFormDataAndArgsDifferentOrder =
+    (~formData: Js.FormData.t, country: string): Js.Promise.t(string) => {
+  let name =
+    Js.FormData.get(formData, "name")
+    |> (
+      fun
+      | `String(name) => name
+    );
+  let country = country;
+  Lwt.return(Printf.sprintf("Hello %s, you are from %s", name, country));
+};

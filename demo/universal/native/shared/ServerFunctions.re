@@ -48,23 +48,12 @@ let error = (): Js.Promise.t(string) => {
   );
 };
 
-let formDataId = "id/samples/formData";
-
-switch%platform () {
-| Server => ()
-| Client => [%mel.raw
-   {|
-   // extract-server-function id/samples/formData formData.call
-   ''
-   |}
-  ]
-};
-
-[@platform native]
-let formDataHandler = (~formData: Js.FormData.t) => {
+[@react.server.function]
+let formDataFunction = (formData: Js.FormData.t): Js.Promise.t(string) => {
   let name =
     switch (formData->Js.FormData.get("name")) {
     | `String(name) => name
+    | exception _ => failwith("Invalid formData.")
     };
 
   let response = Printf.sprintf("Form data received: %s", name);
@@ -72,49 +61,9 @@ let formDataHandler = (~formData: Js.FormData.t) => {
   Lwt.return(response);
 };
 
-[@platform native]
-let formDataRouteHandler = (_, formData) =>
-  try(
-    Lwt.map(
-      response => React.Json(`String(response)),
-      formDataHandler(~formData),
-    )
-  ) {
-  | e => Lwt.fail(e)
-  };
-
-let formData =
-  switch%platform () {
-  | Server => {
-      Runtime.id: formDataId,
-      call: (formData: Js.FormData.t) => formDataHandler(~formData),
-    }
-  | Client => {
-      Runtime.id: formDataId,
-      call: (formData: Js.FormData.t) => {
-        let action = ReactServerDOMEsbuild.createServerReference(formDataId);
-        action(. formData);
-      },
-    }
-  };
-
-[@platform native]
-FunctionReferences.register(formDataId, FormData(formDataRouteHandler));
-
-switch%platform () {
-| Server => ()
-| Client => [%mel.raw
-   {|
-    // extract-server-function id/samples/formDataWithArg formDataWithArg.call
-    ''
-    |}
-  ]
-};
-
-let formDataWithArgId = "id/samples/formDataWithArg";
-
-[@platform native]
-let formDataWithArgHandler = (timestamp: string, ~formData: Js.FormData.t) => {
+[@react.server.function]
+let formDataWithArg =
+    (timestamp: string, formData: Js.FormData.t): Js.Promise.t(string) => {
   let country =
     switch (formData->Js.FormData.get("country")) {
     | `String(country) => country
@@ -127,41 +76,5 @@ let formDataWithArgHandler = (timestamp: string, ~formData: Js.FormData.t) => {
       timestamp,
     );
 
-  Lwt.return(React.Json(`String(response)));
+  Lwt.return(response);
 };
-
-[@platform native]
-let formDataWithArgRouteHandler = (args, formData: Js.FormData.t) => {
-  let timestamp =
-    switch (args) {
-    | [|`String(timestamp)|] => timestamp
-    | _ => ""
-    };
-
-  try%lwt(formDataWithArgHandler(timestamp, ~formData)) {
-  | exn => Lwt.fail(exn)
-  };
-};
-
-let formDataWithArg =
-  switch%platform () {
-  | Server => {
-      Runtime.id: formDataWithArgId,
-      call: (timestamp: string, formData: Js.FormData.t) =>
-        formDataWithArgHandler(timestamp, ~formData),
-    }
-  | Client => {
-      Runtime.id: formDataWithArgId,
-      call: (timestamp: string, formData: Js.FormData.t) => {
-        let action =
-          ReactServerDOMEsbuild.createServerReference(formDataWithArgId);
-        action(. timestamp, formData);
-      },
-    }
-  };
-
-[@platform native]
-FunctionReferences.register(
-  formDataWithArgId,
-  FormData(formDataWithArgRouteHandler),
-);
