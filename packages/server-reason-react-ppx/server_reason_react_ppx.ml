@@ -108,6 +108,18 @@ let make_prop ~is_optional ~prop attribute_value =
   let loc = attribute_value.pexp_loc in
   let open DomProps in
   match (prop, is_optional) with
+  | Attribute { type_ = DomProps.Action; name; jsxName }, false ->
+      [%expr
+        match ([%e attribute_value] : [ `String of string | `Function of 'a Runtime.server_function ]) with
+        | `String s -> Some (React.JSX.String ([%e estring ~loc name], [%e estring ~loc jsxName], (s : string)))
+        | `Function f ->
+            Some
+              (React.JSX.Action ([%e estring ~loc name], [%e estring ~loc jsxName], (f : 'a Runtime.server_function)))]
+  | Attribute { type_ = DomProps.Action; name; jsxName }, true ->
+      [%expr
+        match ([%e attribute_value] : [ `String of string | `Function of 'a Runtime.server_function ] option) with
+        | None -> None
+        | Some v -> Some (React.JSX.Action ([%e estring ~loc name], [%e estring ~loc jsxName], v))]
   | Attribute { type_ = DomProps.String; name; jsxName }, false ->
       [%expr
         Some (React.JSX.String ([%e estring ~loc name], [%e estring ~loc jsxName], ([%e attribute_value] : string)))]

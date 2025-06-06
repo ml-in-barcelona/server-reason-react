@@ -123,6 +123,137 @@ We need to output ML syntax here, otherwise refmt could not parse it.
               [ children ] )
   end
   
+  module Form_with_method = struct
+    let make ?key:(_ : string option) ~children () =
+      React.Upper_case_component
+        ( __FUNCTION__,
+          fun () ->
+            React.createElementWithKey ~key:None "form"
+              (Stdlib.List.filter_map Fun.id
+                 [
+                   (match
+                      (`String ""
+                        : [ `String of string
+                          | `Function of 'a Runtime.server_function ])
+                    with
+                   | `String s ->
+                       Some (React.JSX.String ("action", "action", (s : string)))
+                   | `Function f ->
+                       Some
+                         (React.JSX.Action
+                            ("action", "action", (f : 'a Runtime.server_function))));
+                 ])
+              [ children ] )
+  end
+  
+  module Form_with_action_function = struct
+    let make ?key:(_ : string option) ~children () =
+      React.Upper_case_component
+        ( __FUNCTION__,
+          fun () ->
+            React.createElementWithKey ~key:None "form"
+              (Stdlib.List.filter_map Fun.id
+                 [
+                   (match
+                      (`Function
+                         {
+                           id = "123";
+                           call = (fun () -> Js.Promise.resolve "Hello");
+                         }
+                        : [ `String of string
+                          | `Function of 'a Runtime.server_function ])
+                    with
+                   | `String s ->
+                       Some (React.JSX.String ("action", "action", (s : string)))
+                   | `Function f ->
+                       Some
+                         (React.JSX.Action
+                            ("action", "action", (f : 'a Runtime.server_function))));
+                 ])
+              [ children ] )
+  end
+  
+  module Form_with_action_string = struct
+    let make ?key:(_ : string option) ~children () =
+      React.Upper_case_component
+        ( __FUNCTION__,
+          fun () ->
+            React.createElementWithKey ~key:None "form"
+              (Stdlib.List.filter_map Fun.id
+                 [
+                   (match
+                      (`String ""
+                        : [ `String of string
+                          | `Function of 'a Runtime.server_function ])
+                    with
+                   | `String s ->
+                       Some (React.JSX.String ("action", "action", (s : string)))
+                   | `Function f ->
+                       Some
+                         (React.JSX.Action
+                            ("action", "action", (f : 'a Runtime.server_function))));
+                 ])
+              [ children ] )
+  end
+  
+  module Button_with_formAction_string = struct
+    let make ?key:(_ : string option) ~children () =
+      React.Upper_case_component
+        ( __FUNCTION__,
+          fun () ->
+            React.createElementWithKey ~key:None "button"
+              (Stdlib.List.filter_map Fun.id
+                 [
+                   (match
+                      (`String ""
+                        : [ `String of string
+                          | `Function of 'a Runtime.server_function ])
+                    with
+                   | `String s ->
+                       Some
+                         (React.JSX.String
+                            ("formaction", "formAction", (s : string)))
+                   | `Function f ->
+                       Some
+                         (React.JSX.Action
+                            ( "formaction",
+                              "formAction",
+                              (f : 'a Runtime.server_function) )));
+                 ])
+              [ children ] )
+  end
+  
+  module Button_with_formAction_function = struct
+    let make ?key:(_ : string option) ~children () =
+      React.Upper_case_component
+        ( __FUNCTION__,
+          fun () ->
+            React.createElementWithKey ~key:None "button"
+              (Stdlib.List.filter_map Fun.id
+                 [
+                   (match
+                      (`Function
+                         {
+                           id = "123";
+                           call = (fun () -> Js.Promise.resolve "Hello");
+                         }
+                        : [ `String of string
+                          | `Function of 'a Runtime.server_function ])
+                    with
+                   | `String s ->
+                       Some
+                         (React.JSX.String
+                            ("formaction", "formAction", (s : string)))
+                   | `Function f ->
+                       Some
+                         (React.JSX.Action
+                            ( "formaction",
+                              "formAction",
+                              (f : 'a Runtime.server_function) )));
+                 ])
+              [ children ] )
+  end
+  
   let a =
     Uppercase.make ~children:(React.createElementWithKey ~key:None "div" [] []) ()
   
