@@ -194,6 +194,13 @@ module Page = {
           description="In this case, react will use the server function from the window.__server_functions_manifest_map">
           <ServerActionWithFormDataFormAction />
         </Section>
+        <Hr />
+        <Section
+          title="Server function with FormData with extra arg"
+          description="It shows that it's possible to pass extra arguments to the server function on forms">
+          <ServerActionWithFormDataWithArg />
+        </Section>
+        <Hr />
       </Stack>,
     );
   };

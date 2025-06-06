@@ -12,7 +12,7 @@ let handleFormRequest = (actionId, formData) => {
     formDataJs;
   };
 
-  let formData = ReactServerDOM.decodeFormDataReply(formData);
+  let (args, formData) = ReactServerDOM.decodeFormDataReply(formData);
 
   let actionId =
     switch (actionId) {
@@ -25,7 +25,7 @@ let handleFormRequest = (actionId, formData) => {
     | Some(FormData(handler)) => handler
     | _ => assert(false)
     };
-  handler(formData);
+  handler(args, formData);
 };
 
 let handleRequestBody = (request, actionId) => {
