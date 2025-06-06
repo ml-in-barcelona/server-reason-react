@@ -72,6 +72,51 @@ module Form_with_method = {
   [@react.component]
   let make = (~children) => <form method_="GET"> children </form>;
 };
+
+module Form_with_method = {
+  [@react.component]
+  let make = (~children) => <form action={`String("")}> children </form>;
+};
+
+module Form_with_action_function = {
+  [@react.component]
+  let make = (~children) =>
+    <form
+      action={
+               `Function({
+                 id: "123",
+                 call: () => Js.Promise.resolve("Hello"),
+               })
+             }>
+      children
+    </form>;
+};
+
+module Form_with_action_string = {
+  [@react.component]
+  let make = (~children) => <form action={`String("")}> children </form>;
+};
+
+module Button_with_formAction_string = {
+  [@react.component]
+  let make = (~children) =>
+    <button formAction={`String("")}> children </button>;
+};
+
+module Button_with_formAction_function = {
+  [@react.component]
+  let make = (~children) =>
+    <button
+      formAction={
+                   `Function({
+                     id: "123",
+                     call: () => Js.Promise.resolve("Hello"),
+                   })
+                 }>
+      children
+    </button>;
+};
+
 let a = <Uppercase> <div /> </Uppercase>;
 
 module Async_component = {

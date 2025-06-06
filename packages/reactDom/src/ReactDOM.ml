@@ -17,6 +17,7 @@ let attribute_to_html attr =
   | Bool (_name, _, false) -> Html.omitted ()
   (* true attributes render solely the attribute name *)
   | Bool (name, _, true) -> Html.present name
+  | Action (_, _, _) -> Html.omitted ()
   | Style styles -> Html.attribute "style" (ReactDOMStyle.to_string styles)
   | String (name, _, _value) when is_react_custom_attribute name -> Html.omitted ()
   | String (name, _, value) -> Html.attribute name value

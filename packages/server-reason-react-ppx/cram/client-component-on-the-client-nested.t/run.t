@@ -76,7 +76,7 @@
       type lola = {name: string};
   
       include {
-                [%%raw "// extract-client input.re Very_nested.Inner"];
+                [%%raw "// extract-client input.re Inner.Very_nested"];
                 [@react.component]
                 let make =
                     (~initial: int, ~lola: lola, ~children: React.element) =>
