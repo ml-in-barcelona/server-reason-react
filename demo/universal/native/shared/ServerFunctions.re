@@ -60,3 +60,21 @@ let formDataFunction = (formData: Js.FormData.t): Js.Promise.t(string) => {
 
   Lwt.return(response);
 };
+
+[@react.server.function]
+let formDataWithArg =
+    (timestamp: string, formData: Js.FormData.t): Js.Promise.t(string) => {
+  let country =
+    switch (formData->Js.FormData.get("country")) {
+    | `String(country) => country
+    };
+
+  let response =
+    Printf.sprintf(
+      "Form data received: %s, timestamp: %s",
+      country,
+      timestamp,
+    );
+
+  Lwt.return(response);
+};

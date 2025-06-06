@@ -10,4 +10,5 @@ let () =
             Test_RSC_model.tests;
             Test_RSC_html.tests;
             Test_html_shell_generation.tests;
+            Test_RSC_decoders.tests;
           ]))

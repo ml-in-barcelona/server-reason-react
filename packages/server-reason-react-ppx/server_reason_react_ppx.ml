@@ -809,13 +809,7 @@ module ServerFunction = struct
                            (args.([%e eint ~loc i]) |> Yojson.Basic.to_string)))])
 
   let create_function_reference_registration ~loc ~id ~function_name ~args ~core_type =
-    let args, formData =
-      List.partition_map
-        ~f:(fun arg ->
-          match arg with Ok (_, _, [%type: Js.FormData.t]) -> Right arg | Ok _ -> Left arg | Error _ -> Left arg)
-        args
-    in
-    let apply_args = map_arguments_to_expressions ~loc (args @ formData) in
+    let apply_args = map_arguments_to_expressions ~loc args in
     let response_expr = pexp_apply ~loc [%expr [%e evar ~loc function_name].call] apply_args in
 
     let encoded_response_expr = encode_function_response ~loc ~response_expr ~core_type in
@@ -830,6 +824,13 @@ module ServerFunction = struct
         args
     in
 
+    let args, formData =
+      List.partition_map
+        ~f:(fun arg ->
+          match arg with Ok (_, _, [%type: Js.FormData.t]) -> Right arg | Ok _ -> Left arg | Error _ -> Left arg)
+        args
+    in
+
     let body_expr =
       match args_to_decode with
       | [] -> encoded_response_expr
@@ -837,10 +838,13 @@ module ServerFunction = struct
           let decoded_expr = decode_arguments_vb ~loc args_to_decode in
           pexp_let ~loc Nonrecursive decoded_expr encoded_response_expr
     in
-    match formData with
-    | [] -> [%stri FunctionReferences.register [%e estring ~loc id] (Body (fun args -> [%e body_expr]))]
-    | [ _ ] -> [%stri FunctionReferences.register [%e estring ~loc id] (FormData (fun formData -> [%e body_expr]))]
-    | _ -> [%stri [%ocaml.error "server-reason-react: formData server functions don't support extra arguments yet"]]
+    match (formData, args) with
+    | [], _ -> [%stri FunctionReferences.register [%e estring ~loc id] (Body (fun args -> [%e body_expr]))]
+    | [ _ ], [] ->
+        [%stri FunctionReferences.register [%e estring ~loc id] (FormData (fun _ formData -> [%e body_expr]))]
+    | _, [] ->
+        [%stri [%ocaml.error "server-reason-react: server functions with form data must have at only one argument"]]
+    | _ -> [%stri FunctionReferences.register [%e estring ~loc id] (FormData (fun args formData -> [%e body_expr]))]
 
   let create_server_function_record ~loc id expression =
     [%expr { Runtime.id = [%e estring ~loc id]; call = [%e expression] }]
@@ -887,12 +891,6 @@ module ServerFunction = struct
 
     let function_name = get_function_name vb in
     let args = get_arguments vb.pvb_expr |> List.map ~f:get_arg_details |> List.rev in
-    let args, formData =
-      List.partition_map
-        ~f:(fun arg ->
-          match arg with Ok (_, _, [%type: Js.FormData.t]) -> Right arg | Ok _ -> Left arg | Error _ -> Left arg)
-        args
-    in
     let base_fn = vb.pvb_expr in
     let return_core_type = get_response_type base_fn in
     let id = generate_id ~loc:vb.pvb_loc function_name in
@@ -900,11 +898,17 @@ module ServerFunction = struct
       value_binding ~loc:vb.pvb_loc ~pat:vb.pvb_pat
         ~expr:
           (create_server_function_record ~loc:vb.pvb_loc id
-             (last_expr_to_fn ~loc base_fn (create_client_function ~loc ~return_core_type id (args @ formData))))
+             (last_expr_to_fn ~loc base_fn (create_client_function ~loc ~return_core_type id args)))
     in
 
     let loc = structure_item.pstr_loc in
     let module_name = String.concat "." nested_module_names in
+    let _, formData =
+      List.partition_map
+        ~f:(fun arg ->
+          match arg with Ok (_, _, [%type: Js.FormData.t]) -> Right arg | Ok _ -> Left arg | Error _ -> Left arg)
+        args
+    in
     let functionToCall = match formData with [] -> function_name | _ -> Printf.sprintf "%s.call" function_name in
     let comment = Printf.sprintf "// extract-server-function %s %s %s" id functionToCall module_name in
     let raw = estring ~loc comment in
