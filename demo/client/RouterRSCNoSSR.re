@@ -79,7 +79,7 @@ switch (document) {
 | Some(element) =>
   startTransition(() => {
     let root = ReactDOM.Client.createRoot(element);
-    let _ = ReactDOM.Client.render(root, <App />);
+    ReactDOM.Client.render(root, <App />);
     ();
   })
 | None => Js.log("Root element not found")

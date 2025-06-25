@@ -121,6 +121,7 @@ module Model = struct
     let props =
       match children with
       | [] -> props
+      | [ `Null ] -> props
       | [ one_children ] -> ("children", one_children) :: props
       | childrens -> ("children", `List childrens) :: props
     in
@@ -131,7 +132,7 @@ module Model = struct
     let fallback_prop = ("fallback", fallback) in
     let props =
       match children with
-      | [] -> [ fallback_prop; ("children", `List []) ]
+      | [] -> [ fallback_prop ]
       | [ one ] -> [ fallback_prop; ("children", one) ]
       | _ -> [ fallback_prop; ("children", `List children) ]
     in
@@ -504,13 +505,13 @@ and render_lower_case ~fiber ~key:_ ~tag ~attributes ~children =
 (* TODO: Complete this list *)
 let is_a_head_child_tag tag = tag = "title" || tag = "meta" || tag = "link" || tag = "style"
 
-let rec to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * json) Lwt.t =
+let rec to_html ?(withBodyHtml = true) ~(fiber : Fiber.t) (element : React.element) : (Html.element * json) Lwt.t =
   match element with
   | Empty -> Lwt.return (Html.null, `Null)
   | Text s -> Lwt.return (Html.string s, `String s)
-  | Fragment children -> to_html ~fiber children
-  | List list -> elements_to_html ~fiber list
-  | Array arr -> elements_to_html ~fiber (Array.to_list arr)
+  | Fragment children -> to_html ~fiber children ~withBodyHtml
+  | List list -> elements_to_html ~fiber list ~withBodyHtml
+  | Array arr -> elements_to_html ~fiber (Array.to_list arr) ~withBodyHtml
   | Upper_case_component (_name, component) -> (
       (* if debug then (
         let debug_info_index = Fiber.use_index fiber in
@@ -520,26 +521,34 @@ let rec to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * j
         context.push debug_info_index (Model.Debug_info_map debug_info_ref);
         ()); *)
       match component () with
-      | element -> to_html ~fiber element)
+      | element -> to_html ~fiber element ~withBodyHtml)
   | Lower_case_element { key; tag; attributes; children } ->
       if fiber.is_root_html_node && tag = "head" then (
         (* in case of a head element, we hoist it to the top of the document, and avoid rendering it in the current node *)
         let html_attributes = ReactDOM.attributes_to_html attributes in
-        let%lwt html_and_json = children |> Lwt_list.map_p (to_html ~fiber) in
+        let%lwt html_and_json = children |> Lwt_list.map_p (to_html ~fiber ~withBodyHtml) in
         let html, model = List.split html_and_json in
         Fiber.push_hoisted_head ~fiber html_attributes html;
         let json = Model.node ~tag:"head" ~key:None ~props:(Model.props_to_json attributes) model in
         Lwt.return (Html.null, json))
       else if fiber.is_root_html_node && is_a_head_child_tag tag then (
+        let children = ReactDOM.moveDangerouslyInnerHtmlAsChildren attributes children in
         let html_props = ReactDOM.attributes_to_html attributes in
-        let%lwt children, model = elements_to_html ~fiber children in
-        let html = Html.node tag html_props [ children ] in
+        let%lwt children_html, children_model = elements_to_html ~fiber children ~withBodyHtml in
+        (* TODO: Could we improve this to avoid the need of normalizing the children model? *)
+        (* elements_to_html always returns a list, and meta/link cannot have children, 
+           if any tag has dangerouslySetInnerHTML, the returned of the moveDangerouslyInnerHtmlAsChildren will be [ InnerHtml innerHtml ] 
+           which is `List [ `Null ] for the model, so we normalize it all `Null *)
+        let normalized_children_model =
+          match children_model with `List [ `Null ] | `List [] -> `Null | _ -> children_model
+        in
+        let html = Html.node tag html_props [ children_html ] in
         Fiber.push_hoisted_head_childrens ~fiber html;
-        let json = Model.node ~tag ~key:None ~props:(Model.props_to_json attributes) [ model ] in
+        let json = Model.node ~tag ~key:None ~props:(Model.props_to_json attributes) [ normalized_children_model ] in
         Lwt.return (Html.null, json))
       else if fiber.is_root_html_node && tag = "html" then
         (* Since we want to reconstruct the document outside of to_html (in case of root being the html tag), we keep rendering the childrens and avoid rendering html element *)
-        to_html ~fiber (React.List children)
+        to_html ~fiber (React.List children) ~withBodyHtml
       else
         let children = ReactDOM.moveDangerouslyInnerHtmlAsChildren attributes children in
         let context = Fiber.get_context fiber in
@@ -563,11 +572,11 @@ let rec to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * j
           let empty_children = (* there's no children for self closing tags *) [] in
           Lwt.return (Html.node tag html_props empty_children, Model.node ~tag ~key ~props:json_props empty_children)
         else
-          let%lwt html, model = elements_to_html ~fiber children in
+          let%lwt html, model = elements_to_html ~fiber children ~withBodyHtml in
           Lwt.return (Html.node tag html_props [ html ], Model.node ~tag ~key ~props:json_props [ model ])
   | Async_component (_, component) ->
       let%lwt element = component () in
-      to_html ~fiber element
+      to_html ~fiber element ~withBodyHtml
   | Client_component { import_module; import_name; props; client } ->
       let context = Fiber.get_context fiber in
       let lwt_props =
@@ -575,7 +584,7 @@ let rec to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * j
           (fun (name, value) ->
             match (value : React.client_value) with
             | Element element ->
-                let%lwt _html, model = to_html ~fiber element in
+                let%lwt _html, model = to_html ~fiber element ~withBodyHtml in
                 Lwt.return (name, model)
             | Promise (promise, value_to_json) ->
                 let index = Fiber.use_index fiber in
@@ -620,9 +629,9 @@ let rec to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * j
   | Suspense { key; children; fallback } -> (
       let context = Fiber.get_context fiber in
       let index = Fiber.use_index fiber in
-      let%lwt html_fallback, model_fallback = to_html ~fiber fallback in
+      let%lwt html_fallback, model_fallback = to_html ~fiber fallback ~withBodyHtml in
       try%lwt
-        let promise = to_html ~fiber children in
+        let promise = to_html ~fiber children ~withBodyHtml in
         match Lwt.state promise with
         | Sleep ->
             context.pending <- context.pending + 1;
@@ -654,22 +663,25 @@ let rec to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * j
         context.push (error_chunk_script index error_json);
         context.push (chunk_html_script index Html.null);
         Lwt.return (html, Model.suspense_placeholder ~key ~fallback:model_fallback index))
-  | Provider children -> to_html ~fiber children
-  | Consumer children -> to_html ~fiber children
+  | Provider children -> to_html ~fiber children ~withBodyHtml
+  | Consumer children -> to_html ~fiber children ~withBodyHtml
   (* TODO: There's a task to remove InnerHtml in ReactDOM and use Html.raw directly. Here is still unclear what do to since we assing dangerouslySetInnerHTML to the right prop on the model. Also, should this model be `Null? *)
   | InnerHtml innerHtml -> Lwt.return (Html.raw innerHtml, `Null)
 
-and elements_to_html ~fiber elements =
-  let%lwt html_and_models = elements |> Lwt_list.map_p (to_html ~fiber) in
+and elements_to_html ~fiber elements ~withBodyHtml =
+  let%lwt html_and_models = elements |> Lwt_list.map_p (to_html ~fiber ~withBodyHtml) in
   (* TODO: List.split is not tail recursive *)
   let htmls, model = List.split html_and_models in
   Lwt.return (Html.list htmls, `List model)
 
-let is_root_html_node element =
+let rec is_root_html_node element =
   match (element : React.element) with
-  | Lower_case_element { tag; _ } -> tag = "html"
-  | React.Fragment (React.List [ Lower_case_element { tag = "html"; _ }; _ ]) -> true
-  | _ -> false
+  | Lower_case_element { tag = "html"; _ } -> Lwt.return true
+  | React.Fragment (React.List [ Lower_case_element { tag = "html"; _ }; _ ]) -> Lwt.return true
+  | Async_component (_, component) ->
+      let%lwt element = component () in
+      is_root_html_node element
+  | _ -> Lwt.return false
 
 let is_body element =
   match (element : Html.element) with
@@ -690,13 +702,14 @@ let push_children_into html new_children =
 (* TODO: Do we need to ensure chunks are of a certain minimum size but also maximum? Saw react caring about this *)
 (* TODO: Do we want to add a flag to disable ssr? Do we need to disable the model rendering or can we do it outside? *)
 (* TODO: Add all options from renderToReadableStream *)
-let render_html ?(env = `Dev) ?debug:(_ = false) ?bootstrapScriptContent ?bootstrapScripts ?bootstrapModules element =
+let render_html ?(withBodyHtml = true) ?(env = `Dev) ?debug:(_ = false) ?bootstrapScriptContent ?bootstrapScripts
+    ?bootstrapModules element =
   let initial_index = 0 in
   let stream, push, close = Push_stream.make () in
   let context : Fiber.context = { push; close; pending = 1; index = initial_index; env } in
-  let is_root_html_node = is_root_html_node element in
+  let%lwt is_root_html_node = is_root_html_node element in
   let fiber : Fiber.t = { context; hoisted_head = None; hoisted_head_childrens = []; is_root_html_node } in
-  let%lwt _root_html, root_model = to_html ~fiber element in
+  let%lwt root_html, root_model = to_html ~fiber ~withBodyHtml element in
   let root_chunk = client_value_chunk_script initial_index root_model in
   context.pending <- context.pending - 1;
   (* In case of not having any task pending, we can close the stream *)
@@ -731,10 +744,10 @@ let render_html ?(env = `Dev) ?debug:(_ = false) ?bootstrapScriptContent ?bootst
   let html =
     if is_root_html_node then
       let body =
-        Html.list user_scripts
-        (* match is_body root_html with
-        | true -> push_children_into root_html user_scripts
-        | false -> Html.list (root_html :: user_scripts) *)
+        match (is_body root_html, withBodyHtml) with
+        | true, true -> push_children_into root_html user_scripts
+        | true, false -> Html.list user_scripts
+        | false, _ -> Html.list (root_html :: user_scripts)
       in
       let hoisted_head_childrens = List.rev fiber.hoisted_head_childrens in
       match fiber.hoisted_head with
@@ -742,6 +755,7 @@ let render_html ?(env = `Dev) ?debug:(_ = false) ?bootstrapScriptContent ?bootst
           let head = Html.node "head" attribute_list (children @ hoisted_head_childrens) in
           Html.node "html" [] [ head; body ]
       | None -> Html.node "html" [] [ Html.node "head" [] hoisted_head_childrens; body ]
+    else if withBodyHtml then Html.list (root_html :: user_scripts)
     else Html.list user_scripts
   in
   let subscribe fn =

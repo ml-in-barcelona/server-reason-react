@@ -88,7 +88,7 @@ let markdownStyles = (~background, ~text) => {
 
 module App = {
   [@react.async.component]
-  let make = (~renderBody, ~selectedId, ~isEditing, ~searchText) => {
+  let make = (~selectedId, ~isEditing, ~searchText) => {
     Lwt.return(
       <html>
         <head>
@@ -106,61 +106,56 @@ module App = {
         </head>
         <body>
           <div id="root">
-            {renderBody
-               ? <DemoLayout background=Theme.Color.Gray2 mode=FullScreen>
-                   <div className="flex flex-row gap-8">
-                     <section
-                       className="flex-1 basis-1/4 gap-4 min-w-[400px]"
-                       key="sidebar">
-                       <section
-                         className="flex flex-col gap-1 z-1 max-w-[85%] pointer-events-none mb-6"
-                         key="sidebar-header">
-                         <Text size=Large weight=Bold>
-                           "server-reason-react notes"
-                         </Text>
-                         <p>
-                           <Text color=Theme.Color.Gray10>
-                             "migrated from "
-                           </Text>
-                           <Link.Text
-                             size=Text.Small
-                             href="https://github.com/reactjs/server-components-demo">
-                             "reactjs/server-components-demo"
-                           </Link.Text>
-                           <Text color=Theme.Color.Gray10>
-                             " with (server)-reason-react and Melange"
-                           </Text>
-                         </p>
-                       </section>
-                       <section
-                         className="mt-4 mb-4 flex flex-row gap-2"
-                         role="menubar"
-                         key="menubar">
-                         <SearchField searchText selectedId isEditing />
-                       </section>
-                       <nav className="mt-4">
-                         <div className="mb-4"> <Hr /> </div>
-                         <div className="mb-4">
-                           <Button noteId=None>
-                             {React.string("Create a note")}
-                           </Button>
-                         </div>
-                         <Hr />
-                         <React.Suspense fallback={<NoteListSkeleton />}>
-                           <NoteList searchText />
-                         </React.Suspense>
-                       </nav>
-                     </section>
-                     <section
-                       key="note-viewer"
-                       className="flex-1 basis-3/4 max-w-[75%]">
-                       <React.Suspense fallback={<NoteSkeleton isEditing />}>
-                         <NoteItem selectedId isEditing />
-                       </React.Suspense>
-                     </section>
-                   </div>
-                 </DemoLayout>
-               : React.null}
+            <DemoLayout background=Theme.Color.Gray2 mode=FullScreen>
+              <div className="flex flex-row gap-8">
+                <section
+                  className="flex-1 basis-1/4 gap-4 min-w-[400px]"
+                  key="sidebar">
+                  <section
+                    className="flex flex-col gap-1 z-1 max-w-[85%] pointer-events-none mb-6"
+                    key="sidebar-header">
+                    <Text size=Large weight=Bold>
+                      "server-reason-react notes"
+                    </Text>
+                    <p>
+                      <Text color=Theme.Color.Gray10> "migrated from " </Text>
+                      <Link.Text
+                        size=Text.Small
+                        href="https://github.com/reactjs/server-components-demo">
+                        "reactjs/server-components-demo"
+                      </Link.Text>
+                      <Text color=Theme.Color.Gray10>
+                        " with (server)-reason-react and Melange"
+                      </Text>
+                    </p>
+                  </section>
+                  <section
+                    className="mt-4 mb-4 flex flex-row gap-2"
+                    role="menubar"
+                    key="menubar">
+                    <SearchField searchText selectedId isEditing />
+                  </section>
+                  <nav className="mt-4">
+                    <div className="mb-4"> <Hr /> </div>
+                    <div className="mb-4">
+                      <Button noteId=None>
+                        {React.string("Create a note")}
+                      </Button>
+                    </div>
+                    <Hr />
+                    <React.Suspense fallback={<NoteListSkeleton />}>
+                      <NoteList searchText />
+                    </React.Suspense>
+                  </nav>
+                </section>
+                <section
+                  key="note-viewer" className="flex-1 basis-3/4 max-w-[75%]">
+                  <React.Suspense fallback={<NoteSkeleton isEditing />}>
+                    <NoteItem selectedId isEditing />
+                  </React.Suspense>
+                </section>
+              </div>
+            </DemoLayout>
           </div>
         </body>
       </html>,
@@ -186,13 +181,14 @@ let handler = request => {
   | Some(accept) when DreamRSC.is_react_component_header(accept) =>
     DreamRSC.stream_model(
       ~location=Dream.target(request),
-      <App renderBody=true selectedId isEditing searchText />,
+      <App selectedId isEditing searchText />,
     )
   | _ =>
     DreamRSC.stream_html(
+      ~withBodyHtml=false,
       ~bootstrapScriptContent="",
       ~bootstrapModules=["/static/demo/RouterRSCNoSSR.re.js"],
-      <App renderBody=true selectedId isEditing searchText />,
+      <App selectedId isEditing searchText />,
     )
   };
 };
