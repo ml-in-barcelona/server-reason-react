@@ -696,7 +696,7 @@ let render_html ?(env = `Dev) ?debug:(_ = false) ?bootstrapScriptContent ?bootst
   let context : Fiber.context = { push; close; pending = 1; index = initial_index; env } in
   let is_root_html_node = is_root_html_node element in
   let fiber : Fiber.t = { context; hoisted_head = None; hoisted_head_childrens = []; is_root_html_node } in
-  let%lwt root_html, root_model = to_html ~fiber element in
+  let%lwt _root_html, root_model = to_html ~fiber element in
   let root_chunk = client_value_chunk_script initial_index root_model in
   context.pending <- context.pending - 1;
   (* In case of not having any task pending, we can close the stream *)
@@ -731,9 +731,10 @@ let render_html ?(env = `Dev) ?debug:(_ = false) ?bootstrapScriptContent ?bootst
   let html =
     if is_root_html_node then
       let body =
-        match is_body root_html with
+        Html.list user_scripts
+        (* match is_body root_html with
         | true -> push_children_into root_html user_scripts
-        | false -> Html.list (root_html :: user_scripts)
+        | false -> Html.list (root_html :: user_scripts) *)
       in
       let hoisted_head_childrens = List.rev fiber.hoisted_head_childrens in
       match fiber.hoisted_head with
@@ -741,7 +742,7 @@ let render_html ?(env = `Dev) ?debug:(_ = false) ?bootstrapScriptContent ?bootst
           let head = Html.node "head" attribute_list (children @ hoisted_head_childrens) in
           Html.node "html" [] [ head; body ]
       | None -> Html.node "html" [] [ Html.node "head" [] hoisted_head_childrens; body ]
-    else Html.list (root_html :: user_scripts)
+    else Html.list user_scripts
   in
   let subscribe fn =
     let fn_with_to_string v = fn (Html.to_string v) in

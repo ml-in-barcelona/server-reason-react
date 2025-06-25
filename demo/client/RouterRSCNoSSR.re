@@ -78,7 +78,8 @@ let body =
 switch (document) {
 | Some(element) =>
   startTransition(() => {
-    let _ = ReactDOM.Client.hydrateRoot(element, <App />);
+    let root = ReactDOM.Client.createRoot(element);
+    let _ = ReactDOM.Client.render(root, <App />);
     ();
   })
 | None => Js.log("Root element not found")
