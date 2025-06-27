@@ -41,6 +41,7 @@ let server =
       getAndPost(Router.demoSinglePageRSC, Pages.SinglePageRSC.handler),
       getAndPost(Router.demoRouterRSC, Pages.RouterRSC.handler),
       getAndPost(Router.demoServerOnlyRSC, Pages.ServerOnlyRSC.handler),
+      getAndPost(Router.demoRouterRSCNoSSR, Pages.RouterRSCNoSSR.handler),
     ]),
   );
 

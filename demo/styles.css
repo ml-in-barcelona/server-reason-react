@@ -18,3 +18,7 @@
 @source inline("{hover:,}{text,bg,border}-[#F5F5F5]");
 @source inline("{hover:,}{text,bg,border}-[#FFFFFF]");
 @source inline("{hover:,focus:,active:,disabled:,}{text,bg,border}-primary");
+
+:root {
+  background-color: #151515;
+}

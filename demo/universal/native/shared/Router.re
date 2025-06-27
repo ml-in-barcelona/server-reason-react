@@ -5,6 +5,7 @@ let demoRenderToStream = "/demo/render-to-stream";
 let demoServerOnlyRSC = "/demo/server-only-rsc";
 let demoSinglePageRSC = "/demo/single-page-rsc";
 let demoRouterRSC = "/demo/router-rsc";
+let demoRouterRSCNoSSR = "/demo/router-rsc-no-ssr";
 
 let links = [|
   ("Server side render to string (renderToString)", demoRenderToString),
@@ -24,6 +25,10 @@ let links = [|
   (
     "React Server components with single page router (createFromFetch + createFromReadableStream)",
     demoRouterRSC,
+  ),
+  (
+    "React Server components with single page router (createFromFetch + createFromReadableStream) + No SSR",
+    demoRouterRSCNoSSR,
   ),
 |];
 

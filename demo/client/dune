@@ -32,7 +32,8 @@
    "app/demo/client/Hydrate.re.js"
    "app/demo/client/SinglePageRSC.re.js"
    "app/demo/client/RouterRSC.re.js"
-   "app/demo/client/ServerOnlyRSC.re.js")
+   "app/demo/client/ServerOnlyRSC.re.js"
+   "app/demo/client/RouterRSCNoSSR.re.js")
   (source_tree node_modules)
   (file package.json)
   (source_tree ../../packages/extract-client-components))
