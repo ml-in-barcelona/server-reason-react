@@ -700,7 +700,7 @@ let push_children_into html new_children =
 (* TODO: Do we need to ensure chunks are of a certain minimum size but also maximum? Saw react caring about this *)
 (* TODO: Do we want to add a flag to disable ssr? Do we need to disable the model rendering or can we do it outside? *)
 (* TODO: Add all options from renderToReadableStream *)
-let render_html ?(withBodyHtml = true) ?(env = `Dev) ?debug:(_ = false) ?bootstrapScriptContent ?bootstrapScripts
+let render_html ?(skipRoot = false) ?(env = `Dev) ?debug:(_ = false) ?bootstrapScriptContent ?bootstrapScripts
     ?bootstrapModules element =
   let initial_index = 0 in
   let stream, push, close = Push_stream.make () in
@@ -742,9 +742,9 @@ let render_html ?(withBodyHtml = true) ?(env = `Dev) ?debug:(_ = false) ?bootstr
   let html =
     if is_root_html_node then
       let body =
-        match (is_body root_html, withBodyHtml) with
-        | true, true -> push_children_into root_html user_scripts
-        | true, false -> Html.list user_scripts
+        match (is_body root_html, skipRoot) with
+        | true, false -> push_children_into root_html user_scripts
+        | true, true -> Html.list user_scripts
         | false, _ -> Html.list (root_html :: user_scripts)
       in
       let hoisted_head_childrens = List.rev fiber.hoisted_head_childrens in
@@ -753,8 +753,8 @@ let render_html ?(withBodyHtml = true) ?(env = `Dev) ?debug:(_ = false) ?bootstr
           let head = Html.node "head" attribute_list (children @ hoisted_head_childrens) in
           Html.node "html" [] [ head; body ]
       | None -> Html.node "html" [] [ Html.node "head" [] hoisted_head_childrens; body ]
-    else if withBodyHtml then Html.list (root_html :: user_scripts)
-    else Html.list user_scripts
+    else if skipRoot then Html.list user_scripts
+    else Html.list (root_html :: user_scripts)
   in
   let subscribe fn =
     let fn_with_to_string v = fn (Html.to_string v) in

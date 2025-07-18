@@ -1,5 +1,5 @@
 val render_html :
-  ?withBodyHtml:bool ->
+  ?skipRoot:bool ->
   ?env:[ `Dev | `Prod ] ->
   ?debug:bool ->
   ?bootstrapScriptContent:string ->

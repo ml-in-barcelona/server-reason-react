@@ -116,7 +116,7 @@ let stream_model = (~location, app) =>
 
 let stream_html =
     (
-      ~withBodyHtml=true,
+      ~skipRoot=true,
       ~bootstrapScriptContent=?,
       ~bootstrapScripts=[],
       ~bootstrapModules=[],
@@ -127,7 +127,7 @@ let stream_html =
     stream => {
       let%lwt (html, subscribe) =
         ReactServerDOM.render_html(
-          ~withBodyHtml,
+          ~skipRoot,
           ~bootstrapScriptContent?,
           ~bootstrapScripts,
           ~bootstrapModules,

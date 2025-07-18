@@ -32,7 +32,7 @@ let lower tag ?(attributes = []) ?(children = []) () =
 
 let input ?(attributes = []) () = React.Lower_case_element { key = None; tag = "input"; attributes; children = [] }
 
-let assert_html ?(withBodyHtml = true) ?(shell = "") ?(bootstrapModules = []) ?(bootstrapScriptContent = "") element =
+let assert_html ?(skipRoot = false) ?(shell = "") ?(bootstrapModules = []) ?(bootstrapScriptContent = "") element =
   let begin_html = "<!DOCTYPE html><html><head></head><body></body>" in
   let script_html =
     Printf.sprintf
@@ -49,9 +49,7 @@ srr_stream.readable_stream = new ReadableStream({ start(c) { srr_stream._c = c; 
 </script>|}
   in
   let subscribed_elements = ref [] in
-  let%lwt html, subscribe =
-    ReactServerDOM.render_html ~withBodyHtml ~bootstrapModules ~bootstrapScriptContent element
-  in
+  let%lwt html, subscribe = ReactServerDOM.render_html ~skipRoot ~bootstrapModules ~bootstrapScriptContent element in
   let%lwt () =
     subscribe (fun element ->
         subscribed_elements := !subscribed_elements @ [ element ];
@@ -107,7 +105,7 @@ let html_with_only_a_body () =
 
 let html_with_no_srr_html_body () =
   let app = html [ lower "body" ~children:[ lower "div" ~children:[ React.string "Just body content" ] () ] () ] in
-  assert_html app ~withBodyHtml:false
+  assert_html app ~skipRoot:true
     ~shell:
       "<!DOCTYPE html><html><head></head><script \
        data-payload='0:[[\"$\",\"body\",null,{\"children\":[[\"$\",\"div\",null,{\"children\":[\"Just body \

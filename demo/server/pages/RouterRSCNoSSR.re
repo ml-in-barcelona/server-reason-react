@@ -90,19 +90,7 @@ module App = {
   [@react.component]
   let make = (~selectedId, ~isEditing, ~searchText) => {
     <html>
-      <head>
-        <meta charSet="utf-8" />
-        <link rel="stylesheet" href="/output.css" />
-        <style
-          dangerouslySetInnerHTML={
-            "__html":
-              markdownStyles(
-                ~background=Theme.Color.gray2,
-                ~text=Theme.Color.gray12,
-              ),
-          }
-        />
-      </head>
+      <head> <link rel="stylesheet" href="/output.css" /> </head>
       <body>
         <div id="root">
           <DemoLayout background=Theme.Color.Gray2 mode=FullScreen>
@@ -182,7 +170,7 @@ let handler = request => {
     )
   | _ =>
     DreamRSC.stream_html(
-      ~withBodyHtml=false,
+      ~skipRoot=true,
       ~bootstrapScriptContent="",
       ~bootstrapModules=["/static/demo/RouterRSCNoSSR.re.js"],
       <App selectedId isEditing searchText />,
