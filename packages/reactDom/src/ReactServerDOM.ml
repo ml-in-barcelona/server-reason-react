@@ -35,7 +35,7 @@ module Fiber = struct
 
   type t = {
     context : context;
-    is_root_html_node : bool;
+    is_root_element_a_html_node : bool;
     mutable hoisted_head : hoisted_head option;
     mutable hoisted_head_childrens : Html.element list;
   }
@@ -523,7 +523,7 @@ let rec to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * j
       match component () with
       | element -> to_html ~fiber element)
   | Lower_case_element { key; tag; attributes; children } ->
-      if fiber.is_root_html_node && tag = "head" then (
+      if fiber.is_root_element_a_html_node && tag = "head" then (
         (* in case of a head element, we hoist it to the top of the document, and avoid rendering it in the current node *)
         let html_attributes = ReactDOM.attributes_to_html attributes in
         let%lwt html_and_json = children |> Lwt_list.map_p (to_html ~fiber) in
@@ -531,7 +531,7 @@ let rec to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * j
         Fiber.push_hoisted_head ~fiber html_attributes html;
         let json = Model.node ~tag:"head" ~key:None ~props:(Model.props_to_json attributes) model in
         Lwt.return (Html.null, json))
-      else if fiber.is_root_html_node && is_a_head_child_tag tag then (
+      else if fiber.is_root_element_a_html_node && is_a_head_child_tag tag then (
         let children = ReactDOM.moveDangerouslyInnerHtmlAsChildren attributes children in
         let html_props = ReactDOM.attributes_to_html attributes in
         let%lwt children_html, children_model = elements_to_html ~fiber children in
@@ -546,7 +546,7 @@ let rec to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * j
         Fiber.push_hoisted_head_childrens ~fiber html;
         let json = Model.node ~tag ~key:None ~props:(Model.props_to_json attributes) [ normalized_children_model ] in
         Lwt.return (Html.null, json))
-      else if fiber.is_root_html_node && tag = "html" then
+      else if fiber.is_root_element_a_html_node && tag = "html" then
         (* Since we want to reconstruct the document outside of to_html (in case of root being the html tag), we keep rendering the childrens and avoid rendering html element *)
         to_html ~fiber (React.List children)
       else
@@ -674,10 +674,10 @@ and elements_to_html ~fiber elements =
   let htmls, model = List.split html_and_models in
   Lwt.return (Html.list htmls, `List model)
 
-let rec is_root_html_node element =
+let rec is_root_element_a_html_node element =
   match (element : React.element) with
   | Lower_case_element { tag = "html"; _ } -> true
-  | Upper_case_component (_, component) -> is_root_html_node (component ())
+  | Upper_case_component (_, component) -> is_root_element_a_html_node (component ())
   | React.Fragment (React.List [ Lower_case_element { tag = "html"; _ }; _ ]) -> true
   | _ -> false
 
@@ -705,8 +705,8 @@ let render_html ?(skipRoot = false) ?(env = `Dev) ?debug:(_ = false) ?bootstrapS
   let initial_index = 0 in
   let stream, push, close = Push_stream.make () in
   let context : Fiber.context = { push; close; pending = 1; index = initial_index; env } in
-  let is_root_html_node = is_root_html_node element in
-  let fiber : Fiber.t = { context; hoisted_head = None; hoisted_head_childrens = []; is_root_html_node } in
+  let is_root_element_a_html_node = is_root_element_a_html_node element in
+  let fiber : Fiber.t = { context; hoisted_head = None; hoisted_head_childrens = []; is_root_element_a_html_node } in
   let%lwt root_html, root_model = to_html ~fiber element in
   let root_chunk = client_value_chunk_script initial_index root_model in
   context.pending <- context.pending - 1;
@@ -740,7 +740,7 @@ let render_html ?(skipRoot = false) ?(env = `Dev) ?debug:(_ = false) ?bootstrapS
   in
   let user_scripts = [ rc_function_script; rsc_start_script; root_chunk; bootstrap_script_content; scripts; modules ] in
   let html =
-    if is_root_html_node then
+    if is_root_element_a_html_node then
       let body =
         match (is_body root_html, skipRoot) with
         | true, false -> push_children_into root_html user_scripts
