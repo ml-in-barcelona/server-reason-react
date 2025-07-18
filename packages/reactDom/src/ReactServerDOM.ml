@@ -676,12 +676,10 @@ and elements_to_html ~fiber elements =
 
 let rec is_root_html_node element =
   match (element : React.element) with
-  | Lower_case_element { tag = "html"; _ } -> Lwt.return true
-  | React.Fragment (React.List [ Lower_case_element { tag = "html"; _ }; _ ]) -> Lwt.return true
-  | Async_component (_, component) ->
-      let%lwt element = component () in
-      is_root_html_node element
-  | _ -> Lwt.return false
+  | Lower_case_element { tag = "html"; _ } -> true
+  | Upper_case_component (_, component) -> is_root_html_node (component ())
+  | React.Fragment (React.List [ Lower_case_element { tag = "html"; _ }; _ ]) -> true
+  | _ -> false
 
 let is_body element =
   match (element : Html.element) with
@@ -707,7 +705,7 @@ let render_html ?(withBodyHtml = true) ?(env = `Dev) ?debug:(_ = false) ?bootstr
   let initial_index = 0 in
   let stream, push, close = Push_stream.make () in
   let context : Fiber.context = { push; close; pending = 1; index = initial_index; env } in
-  let%lwt is_root_html_node = is_root_html_node element in
+  let is_root_html_node = is_root_html_node element in
   let fiber : Fiber.t = { context; hoisted_head = None; hoisted_head_childrens = []; is_root_html_node } in
   let%lwt root_html, root_model = to_html ~fiber element in
   let root_chunk = client_value_chunk_script initial_index root_model in
