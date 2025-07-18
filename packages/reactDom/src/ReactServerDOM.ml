@@ -35,7 +35,7 @@ module Fiber = struct
 
   type t = {
     context : context;
-    is_root_html_node : bool;
+    is_root_element_a_html_node : bool;
     mutable hoisted_head : hoisted_head option;
     mutable hoisted_head_childrens : Html.element list;
   }
@@ -522,7 +522,7 @@ let rec to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * j
       match component () with
       | element -> to_html ~fiber element)
   | Lower_case_element { key; tag; attributes; children } ->
-      if fiber.is_root_html_node && tag = "head" then (
+      if fiber.is_root_element_a_html_node && tag = "head" then (
         (* in case of a head element, we hoist it to the top of the document, and avoid rendering it in the current node *)
         let html_attributes = ReactDOM.attributes_to_html attributes in
         let%lwt html_and_json = children |> Lwt_list.map_p (to_html ~fiber) in
@@ -530,14 +530,14 @@ let rec to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * j
         Fiber.push_hoisted_head ~fiber html_attributes html;
         let json = Model.node ~tag:"head" ~key:None ~props:(Model.props_to_json attributes) model in
         Lwt.return (Html.null, json))
-      else if fiber.is_root_html_node && is_a_head_child_tag tag then (
+      else if fiber.is_root_element_a_html_node && is_a_head_child_tag tag then (
         let html_props = ReactDOM.attributes_to_html attributes in
         let%lwt children, model = elements_to_html ~fiber children in
         let html = Html.node tag html_props [ children ] in
         Fiber.push_hoisted_head_childrens ~fiber html;
         let json = Model.node ~tag ~key:None ~props:(Model.props_to_json attributes) [ model ] in
         Lwt.return (Html.null, json))
-      else if fiber.is_root_html_node && tag = "html" then
+      else if fiber.is_root_element_a_html_node && tag = "html" then
         (* Since we want to reconstruct the document outside of to_html (in case of root being the html tag), we keep rendering the childrens and avoid rendering html element *)
         to_html ~fiber (React.List children)
       else
@@ -665,20 +665,20 @@ and elements_to_html ~fiber elements =
   let htmls, model = List.split html_and_models in
   Lwt.return (Html.list htmls, `List model)
 
-let is_root_html_node element =
+let is_root_element_a_html_node element =
   match (element : React.element) with
   | Lower_case_element { tag; _ } -> tag = "html"
-  | React.Fragment (React.List [ Lower_case_element { tag = "html"; _ }; _ ]) -> true
+  | Fragment (React.List [ Lower_case_element { tag = "html"; _ }; _ ]) -> true
   | _ -> false
 
-let is_body element =
+let _is_body element =
   match (element : Html.element) with
   | Html.Node { tag = "body"; _ } -> true
   (* TODO: Look where we set Html.List for one element? *)
   | Html.List (_, [ Html.Node { tag = "body"; _ } ]) -> true
   | _ -> false
 
-let push_children_into html new_children =
+let _push_children_into html new_children =
   match html with
   | Html.Node { tag; children; attributes } -> Html.Node { tag; attributes; children = children @ new_children }
   (* TODO: Look where we set Html.List for one element? *)
@@ -688,14 +688,12 @@ let push_children_into html new_children =
 
 (* TODO: Do we need to stop streaming based on some timeout? abortion? *)
 (* TODO: Do we need to ensure chunks are of a certain minimum size but also maximum? Saw react caring about this *)
-(* TODO: Do we want to add a flag to disable ssr? Do we need to disable the model rendering or can we do it outside? *)
-(* TODO: Add all options from renderToReadableStream *)
 let render_html ?(env = `Dev) ?debug:(_ = false) ?bootstrapScriptContent ?bootstrapScripts ?bootstrapModules element =
   let initial_index = 0 in
   let stream, push, close = Push_stream.make () in
   let context : Fiber.context = { push; close; pending = 1; index = initial_index; env } in
-  let is_root_html_node = is_root_html_node element in
-  let fiber : Fiber.t = { context; hoisted_head = None; hoisted_head_childrens = []; is_root_html_node } in
+  let is_root_element_a_html_node = is_root_element_a_html_node element in
+  let fiber : Fiber.t = { context; hoisted_head = None; hoisted_head_childrens = []; is_root_element_a_html_node } in
   let%lwt _root_html, root_model = to_html ~fiber element in
   let root_chunk = client_value_chunk_script initial_index root_model in
   context.pending <- context.pending - 1;
@@ -729,7 +727,7 @@ let render_html ?(env = `Dev) ?debug:(_ = false) ?bootstrapScriptContent ?bootst
   in
   let user_scripts = [ rc_function_script; rsc_start_script; root_chunk; bootstrap_script_content; scripts; modules ] in
   let html =
-    if is_root_html_node then
+    if is_root_element_a_html_node then
       let body =
         Html.list user_scripts
         (* match is_body root_html with
