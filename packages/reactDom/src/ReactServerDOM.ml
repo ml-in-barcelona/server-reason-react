@@ -282,7 +282,7 @@ module Model = struct
           let ref = component_ref ~module_:import_module ~name:import_name in
           context.push id (Chunk_component_ref ref);
           let client_props = client_values_to_json ~context props in
-          node ~tag:(ref_value id) ~key:None ~props:client_props []
+          node ~tag:(ref_value id) ~props:client_props []
       (* TODO: Do we need to do anything with Provider and Consumer? *)
       | Provider children -> turn_element_into_payload ~context children
       | Consumer children -> turn_element_into_payload ~context children
@@ -523,7 +523,7 @@ let rec to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * j
         let%lwt html_and_json = Lwt_list.map_p (to_html ~fiber) children in
         let html, model = List.split html_and_json in
         Fiber.push_hoisted_head ~fiber html_attributes html;
-        let json = Model.node ~tag ~key:None ~props:(Model.props_to_json attributes) model in
+        let json = Model.node ~tag ~props:(Model.props_to_json attributes) model in
         Lwt.return (Html.null, json))
       else if fiber.is_root_element_a_html_node && is_a_head_child_tag tag then (
         let html_props = ReactDOM.attributes_to_html attributes in
@@ -536,8 +536,8 @@ let rec to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * j
         Fiber.push_hoisted_head_childrens ~fiber html;
         let json =
           match inner_html with
-          | Some _ -> Model.node ~tag ~key:None ~props:(Model.props_to_json attributes) []
-          | None -> Model.node ~tag ~key:None ~props:(Model.props_to_json attributes) [ children_model ]
+          | Some _ -> Model.node ~tag ~props:(Model.props_to_json attributes) []
+          | None -> Model.node ~tag ~props:(Model.props_to_json attributes) [ children_model ]
         in
         Lwt.return (Html.null, json))
       else if fiber.is_root_element_a_html_node && tag = "html" then
@@ -618,7 +618,7 @@ let rec to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * j
       let ref : json = Model.component_ref ~module_:import_module ~name:import_name in
       context.push (client_reference_chunk_script index ref);
       let%lwt html, props = Lwt.both lwt_html lwt_props in
-      let model = Model.node ~tag:(Model.ref_value index) ~key:None ~props [] in
+      let model = Model.node ~tag:(Model.ref_value index) ~props [] in
       Lwt.return (html, model)
   | Suspense { key; children; fallback } -> (
       let context = Fiber.get_context fiber in
