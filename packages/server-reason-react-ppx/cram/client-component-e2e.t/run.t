@@ -27,7 +27,8 @@
     {
       tool_name: "ppx_driver",
       include_dirs: [],
-      load_path: [],
+      hidden_include_dirs: [],
+      load_path: [@ppxlib.migration.load_path ([], [])] [],
       open_modules: [],
       for_package: None,
       debug: false,
@@ -134,15 +135,19 @@
               [@warning "-16"]
               (
                 (~initial: int) =>
+                  [@ppxlib.migration.stop_taking]
                   [@warning "-16"]
                   (
                     (~lola: lola) =>
+                      [@ppxlib.migration.stop_taking]
                       [@warning "-16"]
                       (
                         (~default: int=23) =>
+                          [@ppxlib.migration.stop_taking]
                           [@warning "-16"]
                           (
                             (~children: React.element) =>
+                              [@ppxlib.migration.stop_taking]
                               [@warning "-16"]
                               (
                                 (~promise: Js.Promise.t(string)) => {

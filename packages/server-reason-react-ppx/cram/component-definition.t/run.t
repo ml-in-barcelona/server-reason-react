@@ -105,7 +105,7 @@ We need to output ML syntax here, otherwise refmt could not parse it.
                      (React.JSX.String
                         ( "aria-hidden",
                           "aria-hidden",
-                          Bool.to_string ("true" : bool) ));
+                          Stdlib.Bool.to_string ("true" : bool) ));
                  ])
               [ children ] )
   end

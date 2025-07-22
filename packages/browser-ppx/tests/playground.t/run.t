@@ -75,6 +75,21 @@
       makeQuery =
     [@alert "-browser_only"]
     (
-      (~abortController, ~encoding=?, pathname, req, input) =>
-        Runtime.fail_impossible_action_in_ssr("makeQuery")
+      (~abortController) =>
+        [@ppxlib.migration.stop_taking]
+        (
+          (~encoding=?) =>
+            [@ppxlib.migration.stop_taking]
+            (
+              pathname =>
+                [@ppxlib.migration.stop_taking]
+                (
+                  req =>
+                    [@ppxlib.migration.stop_taking]
+                    (
+                      input => Runtime.fail_impossible_action_in_ssr("makeQuery")
+                    )
+                )
+            )
+        )
     );
