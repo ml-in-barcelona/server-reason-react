@@ -18,8 +18,8 @@ val renderToStream : ?pipe:(string -> unit Lwt.t) -> React.element -> (string Lw
 val attributes_to_html : React.JSX.prop list -> Html.attribute list
 (** attributes_to_html converts a list of React.JSX.prop to a list of Html.attribute. *)
 
-val moveDangerouslyInnerHtmlAsChildren : React.JSX.prop list -> React.element list -> React.element list
-(** moveDangerouslyInnerHtmlAsChildren moves the dangerouslySetInnerHTML prop to the children of the element. *)
+val getDangerouslyInnerHtml : React.JSX.prop list -> string option
+(** getDangerouslyInnerHtml returns the value of the dangerouslySetInnerHTML prop if it exists, otherwise None. *)
 
 (** {2: The rest of the API is there for compatibility with ReactDOM's reason-react} *)
 
