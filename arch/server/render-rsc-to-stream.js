@@ -41,7 +41,10 @@ let Await_tick = ({ num }) => {
 }
 
 const App = () => (
-	<Await_tick num="A" />
+	<>
+		<meta charSet="utf-8" />
+		<style dangerouslySetInnerHTML={{ __html: "* { display: none; }" }} />
+	</>
 );
 
 const { pipe } = renderToPipeableStream(<App />);

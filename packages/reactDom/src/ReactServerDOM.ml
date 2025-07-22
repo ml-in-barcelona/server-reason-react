@@ -516,7 +516,6 @@ let rec to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * j
       match component () with
       | element -> to_html ~fiber element)
   | Lower_case_element { key; tag; attributes; children } -> (
-      print_endline "lower_case_element";
       let inner_html = ReactDOM.getDangerouslyInnerHtml attributes in
       if fiber.is_root_element_a_html_node && tag = "head" then (
         (* in case of a head element, we hoist it to the top of the document, and avoid rendering it in the current node *)
@@ -524,7 +523,7 @@ let rec to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * j
         let%lwt html_and_json = Lwt_list.map_p (to_html ~fiber) children in
         let html, model = List.split html_and_json in
         Fiber.push_hoisted_head ~fiber html_attributes html;
-        let json = Model.node ~tag:"head" ~key:None ~props:(Model.props_to_json attributes) model in
+        let json = Model.node ~tag ~key:None ~props:(Model.props_to_json attributes) model in
         Lwt.return (Html.null, json))
       else if fiber.is_root_element_a_html_node && is_a_head_child_tag tag then (
         let html_props = ReactDOM.attributes_to_html attributes in
@@ -563,12 +562,12 @@ let rec to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * j
         in
         let json_props = Model.props_to_json json_attributes in
         match (inner_html, Html.is_self_closing_tag tag) with
-        | _, true -> Lwt.return (Html.node tag html_props [], Model.node ~tag ~key ~props:json_props [])
-        | Some inner_html, false ->
-            Lwt.return (Html.node tag html_props [ Html.raw inner_html ], Model.node ~tag ~key ~props:json_props [])
         | None, false ->
             let%lwt html, model = elements_to_html ~fiber children in
-            Lwt.return (Html.node tag html_props [ html ], Model.node ~tag ~key ~props:json_props [ model ]))
+            Lwt.return (Html.node tag html_props [ html ], Model.node ~tag ~key ~props:json_props [ model ])
+        | _, true -> Lwt.return (Html.node tag html_props [], Model.node ~tag ~key ~props:json_props [])
+        | Some inner_html, false ->
+            Lwt.return (Html.node tag html_props [ Html.raw inner_html ], Model.node ~tag ~key ~props:json_props []))
   | Async_component (_, component) ->
       let%lwt element = component () in
       to_html ~fiber element

@@ -300,7 +300,7 @@ let await_tick ?(raise = false) num =
   React.Async_component
     ( "await_tick",
       fun () ->
-        let%lwt () = sleep ~ms:(Random.int 10) in
+        let%lwt () = sleep ~ms:10 in
         if raise then Lwt.fail (Failure "lol") else Lwt.return (React.string num) )
 
 let suspense_in_a_list () =
@@ -322,9 +322,9 @@ let suspense_in_a_list () =
   assert_list_of_strings !output
     [
       "0:[[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,[],{}],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L2\"},null,[],{}],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L3\"},null,[],{}],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L4\"},null,[],{}],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L5\"},null,[],{}]]\n";
-      "3:\"C\"\n";
-      "2:\"B\"\n";
       "1:\"A\"\n";
+      "2:\"B\"\n";
+      "3:\"C\"\n";
       "4:\"D\"\n";
       "5:\"E\"\n";
     ];
@@ -350,10 +350,10 @@ let suspense_in_a_list_with_error () =
     [
       "0:[[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,[],{}],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L2\"},null,[],{}],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L3\"},null,[],{}],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L4\"},null,[],{}],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L5\"},null,[],{}]]\n";
       "1:\"A\"\n";
-      "4:\"D\"\n";
-      "5:\"E\"\n";
       "2:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n";
       "3:\"C\"\n";
+      "4:\"D\"\n";
+      "5:\"E\"\n";
     ];
   Lwt.return ()
 
