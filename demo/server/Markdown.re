@@ -1,12 +1,14 @@
 module List = {
   include List;
-  let rec [@tailcall] take =
-    (lst, n) =>
+  let take = (lst, n) => {
+    let rec aux = (lst, n, acc) =>
       switch (lst, n) {
-      | ([], _) => []
-      | (_, 0) => []
-      | ([x, ...xs], n) => [x, ...take(xs, n - 1)]
+      | ([], _)
+      | (_, 0) => List.rev(acc)
+      | ([x, ...xs], n) => aux(xs, n - 1, [x, ...acc])
       };
+    aux(lst, n, []);
+  };
 };
 
 let convert_headings = text => {
