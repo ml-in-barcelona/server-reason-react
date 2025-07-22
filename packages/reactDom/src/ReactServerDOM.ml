@@ -121,6 +121,7 @@ module Model = struct
     let props =
       match children with
       | [] -> props
+      | [ `Null ] -> props
       | [ one_children ] -> ("children", one_children) :: props
       | childrens -> ("children", `List childrens) :: props
     in
@@ -131,7 +132,7 @@ module Model = struct
     let fallback_prop = ("fallback", fallback) in
     let props =
       match children with
-      | [] -> [ fallback_prop; ("children", `List []) ]
+      | [] -> [ fallback_prop ]
       | [ one ] -> [ fallback_prop; ("children", one) ]
       | _ -> [ fallback_prop; ("children", `List children) ]
     in
@@ -531,11 +532,19 @@ let rec to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * j
         let json = Model.node ~tag:"head" ~key:None ~props:(Model.props_to_json attributes) model in
         Lwt.return (Html.null, json))
       else if fiber.is_root_element_a_html_node && is_a_head_child_tag tag then (
+        let children = ReactDOM.moveDangerouslyInnerHtmlAsChildren attributes children in
         let html_props = ReactDOM.attributes_to_html attributes in
-        let%lwt children, model = elements_to_html ~fiber children in
-        let html = Html.node tag html_props [ children ] in
+        let%lwt children_html, children_model = elements_to_html ~fiber children in
+        (* TODO: Could we improve this to avoid the need of normalizing the children model? *)
+        (* elements_to_html always returns a list, and meta/link cannot have children,
+           if any tag has dangerouslySetInnerHTML, the returned of the moveDangerouslyInnerHtmlAsChildren will be [ InnerHtml innerHtml ]
+           which is `List [ `Null ] for the model, so we normalize it all `Null *)
+        let normalized_children_model =
+          match children_model with `List [ `Null ] | `List [] -> `Null | _ -> children_model
+        in
+        let html = Html.node tag html_props [ children_html ] in
         Fiber.push_hoisted_head_childrens ~fiber html;
-        let json = Model.node ~tag ~key:None ~props:(Model.props_to_json attributes) [ model ] in
+        let json = Model.node ~tag ~key:None ~props:(Model.props_to_json attributes) [ normalized_children_model ] in
         Lwt.return (Html.null, json))
       else if fiber.is_root_element_a_html_node && tag = "html" then
         (* Since we want to reconstruct the document outside of to_html (in case of root being the html tag), we keep rendering the childrens and avoid rendering html element *)
@@ -665,20 +674,21 @@ and elements_to_html ~fiber elements =
   let htmls, model = List.split html_and_models in
   Lwt.return (Html.list htmls, `List model)
 
-let is_root_element_a_html_node element =
+let rec is_root_element_a_html_node element =
   match (element : React.element) with
-  | Lower_case_element { tag; _ } -> tag = "html"
-  | Fragment (React.List [ Lower_case_element { tag = "html"; _ }; _ ]) -> true
+  | Lower_case_element { tag = "html"; _ } -> true
+  | Upper_case_component (_, component) -> is_root_element_a_html_node (component ())
+  | React.Fragment (React.List [ Lower_case_element { tag = "html"; _ }; _ ]) -> true
   | _ -> false
 
-let _is_body element =
+let is_body element =
   match (element : Html.element) with
   | Html.Node { tag = "body"; _ } -> true
   (* TODO: Look where we set Html.List for one element? *)
   | Html.List (_, [ Html.Node { tag = "body"; _ } ]) -> true
   | _ -> false
 
-let _push_children_into html new_children =
+let push_children_into html new_children =
   match html with
   | Html.Node { tag; children; attributes } -> Html.Node { tag; attributes; children = children @ new_children }
   (* TODO: Look where we set Html.List for one element? *)
@@ -688,13 +698,15 @@ let _push_children_into html new_children =
 
 (* TODO: Do we need to stop streaming based on some timeout? abortion? *)
 (* TODO: Do we need to ensure chunks are of a certain minimum size but also maximum? Saw react caring about this *)
-let render_html ?(env = `Dev) ?debug:(_ = false) ?bootstrapScriptContent ?bootstrapScripts ?bootstrapModules element =
+(* TODO: Do we want to add a flag to disable ssr? Do we need to disable the model rendering or can we do it outside? *)
+let render_html ?(skipRoot = false) ?(env = `Dev) ?debug:(_ = false) ?bootstrapScriptContent ?bootstrapScripts
+    ?bootstrapModules element =
   let initial_index = 0 in
   let stream, push, close = Push_stream.make () in
   let context : Fiber.context = { push; close; pending = 1; index = initial_index; env } in
   let is_root_element_a_html_node = is_root_element_a_html_node element in
   let fiber : Fiber.t = { context; hoisted_head = None; hoisted_head_childrens = []; is_root_element_a_html_node } in
-  let%lwt _root_html, root_model = to_html ~fiber element in
+  let%lwt root_html, root_model = to_html ~fiber element in
   let root_chunk = client_value_chunk_script initial_index root_model in
   context.pending <- context.pending - 1;
   (* In case of not having any task pending, we can close the stream *)
@@ -729,10 +741,10 @@ let render_html ?(env = `Dev) ?debug:(_ = false) ?bootstrapScriptContent ?bootst
   let html =
     if is_root_element_a_html_node then
       let body =
-        Html.list user_scripts
-        (* match is_body root_html with
-        | true -> push_children_into root_html user_scripts
-        | false -> Html.list (root_html :: user_scripts) *)
+        match (is_body root_html, skipRoot) with
+        | true, false -> push_children_into root_html user_scripts
+        | true, true -> Html.list user_scripts
+        | false, _ -> Html.list (root_html :: user_scripts)
       in
       let hoisted_head_childrens = List.rev fiber.hoisted_head_childrens in
       match fiber.hoisted_head with
@@ -740,7 +752,8 @@ let render_html ?(env = `Dev) ?debug:(_ = false) ?bootstrapScriptContent ?bootst
           let head = Html.node "head" attribute_list (children @ hoisted_head_childrens) in
           Html.node "html" [] [ head; body ]
       | None -> Html.node "html" [] [ Html.node "head" [] hoisted_head_childrens; body ]
-    else Html.list user_scripts
+    else if skipRoot then Html.list user_scripts
+    else Html.list (root_html :: user_scripts)
   in
   let subscribe fn =
     let fn_with_to_string v = fn (Html.to_string v) in
