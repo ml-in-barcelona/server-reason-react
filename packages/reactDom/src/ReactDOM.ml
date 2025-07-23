@@ -23,27 +23,13 @@ let attribute_to_html attr =
   | String (name, _, value) -> Html.attribute name value
   (* Events don't get rendered on SSR *)
   | Event _ -> Html.omitted ()
-  (* Since we extracted the attribute as children (Element.InnerHtml) in createElement,
-     we are sure there's nothing to render here *)
+  (* Since we extracted the attribute as children, we are sure there's nothing to render here *)
   | DangerouslyInnerHtml _ -> Html.omitted ()
 
 let attributes_to_html attrs = List.map attribute_to_html attrs
 
-let moveDangerouslyInnerHtmlAsChildren attributes children =
-  let dangerouslySetInnerHTML =
-    List.find_opt (function React.JSX.DangerouslyInnerHtml _ -> true | _ -> false) attributes
-  in
-
-  (* If there's a dangerouslySetInnerHTML prop, we render it as a children *)
-  match (dangerouslySetInnerHTML, children) with
-  | None, children -> children
-  | Some (React.JSX.DangerouslyInnerHtml innerHtml), [] ->
-      (* This adds as children the innerHTML, and we treat it differently
-             from Element.Text to avoid encoding to HTML their content *)
-      (* TODO: Remove InnerHtml and use Html.raw directly *)
-      [ React.InnerHtml innerHtml ]
-  | Some _, _children ->
-      raise (Invalid_argument "can't have both `children` and `dangerouslySetInnerHTML` prop at the same time")
+let getDangerouslyInnerHtml attributes =
+  List.find_map (function React.JSX.DangerouslyInnerHtml str -> Some str | _ -> None) attributes
 
 type mode = String | Markup
 
@@ -78,17 +64,17 @@ let render ~mode element =
         is_root.contents <- false;
         render_lower_case ~key tag attributes children
     | Text text -> Html.string text
-    | InnerHtml text -> Html.raw text
     | Suspense { key = _; children; fallback } -> (
         match render_element children with
         | output -> Html.list [ Html.raw "<!--$-->"; output; Html.raw "<!--/$-->" ]
         | exception _e -> Html.list [ Html.raw "<!--$!-->"; render_element fallback; Html.raw "<!--/$-->" ])
   and render_lower_case ~key:_ tag attributes children =
-    let children = moveDangerouslyInnerHtmlAsChildren attributes children in
-    match Html.is_self_closing_tag tag with
+    let inner_html = getDangerouslyInnerHtml attributes in
+    match (inner_html, Html.is_self_closing_tag tag) with
     (* the ppx ensures that a self closing tag can't have children *)
-    | true -> Html.node tag (attributes_to_html attributes) []
-    | false -> Html.node tag (attributes_to_html attributes) (List.map render_element children)
+    | Some _, true -> Html.node tag (attributes_to_html attributes) []
+    | Some inner_html, false -> Html.node tag (attributes_to_html attributes) [ Html.raw inner_html ]
+    | None, _ -> Html.node tag (attributes_to_html attributes) (List.map render_element children)
   in
   render_element element
 
@@ -168,7 +154,6 @@ let rec render_to_stream ~stream_context element =
         Lwt.return (Html.list childrens)
     | Lower_case_element { key; tag; attributes; children } -> render_lower_case ~key tag attributes children
     | Text text -> Lwt.return (Html.string text)
-    | InnerHtml text -> Lwt.return (Html.raw text)
     | Upper_case_component (_, component) -> (
         try
           let element = component () in
@@ -218,10 +203,11 @@ let rec render_to_stream ~stream_context element =
             let%lwt fallback_element = render_element fallback in
             Lwt.return (render_suspense_fallback_error ~exn fallback_element))
   and render_lower_case ~key:_ tag attributes children =
-    let children = moveDangerouslyInnerHtmlAsChildren attributes children in
-    match Html.is_self_closing_tag tag with
-    | true -> Lwt.return (Html.node tag (attributes_to_html attributes) [])
-    | false ->
+    let inner_html = getDangerouslyInnerHtml attributes in
+    match (inner_html, Html.is_self_closing_tag tag) with
+    | Some _, true -> Lwt.return (Html.node tag (attributes_to_html attributes) [])
+    | Some inner_html, false -> Lwt.return (Html.node tag (attributes_to_html attributes) [ Html.raw inner_html ])
+    | None, _ ->
         let%lwt inner = Lwt_list.map_p render_element children in
         let html_attributes = attributes_to_html attributes in
         Lwt.return (Html.node tag html_attributes inner)
@@ -252,7 +238,6 @@ and render_with_resolved ~stream_context element =
     | Upper_case_component (_, component) -> render_element (component ())
     | Lower_case_element { key; tag; attributes; children } -> render_lower_case ~key tag attributes children
     | Text text -> Lwt.return (Html.string text)
-    | InnerHtml text -> Lwt.return (Html.raw text)
     | Async_component (_, component) -> (
         let promise = component () in
         match Lwt.state promise with
@@ -263,10 +248,11 @@ and render_with_resolved ~stream_context element =
             render_element resolved)
     | Suspense _ -> render_to_stream ~stream_context element
   and render_lower_case ~key:_ tag attributes children =
-    let children = moveDangerouslyInnerHtmlAsChildren attributes children in
-    match Html.is_self_closing_tag tag with
-    | true -> Lwt.return (Html.node tag (attributes_to_html attributes) [])
-    | false ->
+    let inner_html = getDangerouslyInnerHtml attributes in
+    match (inner_html, Html.is_self_closing_tag tag) with
+    | Some _, true -> Lwt.return (Html.node tag (attributes_to_html attributes) [])
+    | Some inner_html, false -> Lwt.return (Html.node tag (attributes_to_html attributes) [ Html.raw inner_html ])
+    | None, _ ->
         let%lwt inner = Lwt_list.map_p render_element children in
         let html_attributes = attributes_to_html attributes in
         Lwt.return (Html.node tag html_attributes inner)
