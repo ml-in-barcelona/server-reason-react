@@ -520,11 +520,11 @@ let rec to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * j
       if fiber.is_root_element_a_html_node && tag = "head" then (
         (* in case of a head element, we hoist it to the top of the document, and avoid rendering it in the current node *)
         let html_attributes = ReactDOM.attributes_to_html attributes in
-        let%lwt html_and_json = Lwt_list.map_p (to_html ~fiber) children in
-        let html, model = List.split html_and_json in
+        let%lwt html_and_model = Lwt_list.map_p (to_html ~fiber) children in
+        let html, model = List.split html_and_model in
         Fiber.push_hoisted_head ~fiber html_attributes html;
-        let json = Model.node ~tag ~props:(Model.props_to_json attributes) model in
-        Lwt.return (Html.null, json))
+        let model = Model.node ~tag ~props:(Model.props_to_json attributes) model in
+        Lwt.return (Html.null, model))
       else if fiber.is_root_element_a_html_node && is_a_head_child_tag tag then (
         let html_props = ReactDOM.attributes_to_html attributes in
         let%lwt children_html, children_model = elements_to_html ~fiber children in
@@ -535,9 +535,10 @@ let rec to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * j
         in
         Fiber.push_hoisted_head_childrens ~fiber html;
         let json =
-          match inner_html with
-          | Some _ -> Model.node ~tag ~props:(Model.props_to_json attributes) []
-          | None -> Model.node ~tag ~props:(Model.props_to_json attributes) [ children_model ]
+          match (inner_html, Html.is_self_closing_tag tag) with
+          | Some _, _ -> Model.node ~tag ~props:(Model.props_to_json attributes) []
+          | None, true -> Model.node ~tag ~props:(Model.props_to_json attributes) []
+          | None, false -> Model.node ~tag ~props:(Model.props_to_json attributes) [ children_model ]
         in
         Lwt.return (Html.null, json))
       else if fiber.is_root_element_a_html_node && tag = "html" then

@@ -128,7 +128,7 @@ let head_with_content () =
   assert_html app
     ~shell:
       "<!DOCTYPE html><html><head><title>Titulaso</title><meta charset=\"utf-8\" /></head><script \
-       data-payload='0:[[\"$\",\"head\",null,{\"children\":[[\"$\",\"title\",null,{\"children\":[\"Titulaso\"]},null,[],{}],[\"$\",\"meta\",null,{\"children\":[],\"charSet\":\"utf-8\"},null,[],{}]]},null,[],{}]]\n\
+       data-payload='0:[[\"$\",\"head\",null,{\"children\":[[\"$\",\"title\",null,{\"children\":[\"Titulaso\"]},null,[],{}],[\"$\",\"meta\",null,{\"charSet\":\"utf-8\"},null,[],{}]]},null,[],{}]]\n\
        '>window.srr_stream.push()</script><script></script>"
 
 let html_inside_a_div () =
@@ -158,7 +158,7 @@ let html_with_head_like_elements_not_in_head () =
   assert_html app
     ~shell:
       "<!DOCTYPE html><html><head><meta charset=\"utf-8\" /><title>Implicit Head?</title></head><script \
-       data-payload='0:[[\"$\",\"meta\",null,{\"children\":[],\"charSet\":\"utf-8\"},null,[],{}],[\"$\",\"title\",null,{\"children\":[\"Implicit \
+       data-payload='0:[[\"$\",\"meta\",null,{\"charSet\":\"utf-8\"},null,[],{}],[\"$\",\"title\",null,{\"children\":[\"Implicit \
        Head?\"]},null,[],{}]]\n\
        '>window.srr_stream.push()</script><script></script>"
 
