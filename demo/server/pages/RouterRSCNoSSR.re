@@ -90,59 +90,64 @@ module App = {
   [@react.component]
   let make = (~selectedId, ~isEditing, ~searchText) => {
     <html>
-      <head> <link rel="stylesheet" href="/output.css" /> </head>
+      <head>
+        <meta charSet="UTF-8" />
+        <meta
+          name="viewport"
+          content="width=device-width, initial-scale=1.0"
+        />
+        <link rel="stylesheet" href="/output.css" />
+      </head>
       <body>
-        <div id="root">
-          <DemoLayout background=Theme.Color.Gray2 mode=FullScreen>
-            <div className="flex flex-row gap-8">
+        <DemoLayout background=Theme.Color.Gray2 mode=FullScreen>
+          <div className="flex flex-row gap-8">
+            <section
+              className="flex-1 basis-1/4 gap-4 min-w-[400px]" key="sidebar">
               <section
-                className="flex-1 basis-1/4 gap-4 min-w-[400px]" key="sidebar">
-                <section
-                  className="flex flex-col gap-1 z-1 max-w-[85%] pointer-events-none mb-6"
-                  key="sidebar-header">
-                  <Text size=Large weight=Bold>
-                    "server-reason-react notes"
+                className="flex flex-col gap-1 z-1 max-w-[85%] pointer-events-none mb-6"
+                key="sidebar-header">
+                <Text size=Large weight=Bold>
+                  "server-reason-react notes"
+                </Text>
+                <p>
+                  <Text color=Theme.Color.Gray10> "migrated from " </Text>
+                  <Link.Text
+                    size=Text.Small
+                    href="https://github.com/reactjs/server-components-demo">
+                    "reactjs/server-components-demo"
+                  </Link.Text>
+                  <Text color=Theme.Color.Gray10>
+                    " with (server)-reason-react and Melange"
                   </Text>
-                  <p>
-                    <Text color=Theme.Color.Gray10> "migrated from " </Text>
-                    <Link.Text
-                      size=Text.Small
-                      href="https://github.com/reactjs/server-components-demo">
-                      "reactjs/server-components-demo"
-                    </Link.Text>
-                    <Text color=Theme.Color.Gray10>
-                      " with (server)-reason-react and Melange"
-                    </Text>
-                  </p>
-                </section>
-                <section
-                  className="mt-4 mb-4 flex flex-row gap-2"
-                  role="menubar"
-                  key="menubar">
-                  <SearchField searchText selectedId isEditing />
-                </section>
-                <nav className="mt-4">
-                  <div className="mb-4"> <Hr /> </div>
-                  <div className="mb-4">
-                    <Button noteId=None>
-                      {React.string("Create a note")}
-                    </Button>
-                  </div>
-                  <Hr />
-                  <React.Suspense fallback={<NoteListSkeleton />}>
-                    <NoteList searchText />
-                  </React.Suspense>
-                </nav>
+                </p>
               </section>
               <section
-                key="note-viewer" className="flex-1 basis-3/4 max-w-[75%]">
-                <React.Suspense fallback={<NoteSkeleton isEditing />}>
-                  <NoteItem selectedId isEditing />
-                </React.Suspense>
+                className="mt-4 mb-4 flex flex-row gap-2"
+                role="menubar"
+                key="menubar">
+                <SearchField searchText selectedId isEditing />
               </section>
-            </div>
-          </DemoLayout>
-        </div>
+              <nav className="mt-4">
+                <div className="mb-4"> <Hr /> </div>
+                <div className="mb-4">
+                  <Button noteId=None>
+                    {React.string("Create a note")}
+                  </Button>
+                </div>
+                <Hr />
+                <React.Suspense fallback={<NoteListSkeleton />}>
+                  <NoteList searchText />
+                </React.Suspense>
+              </nav>
+            </section>
+            <section
+              key="note-viewer" className="flex-1 basis-3/4 max-w-[75%]">
+              <React.Suspense fallback={<NoteSkeleton isEditing />}>
+                <NoteItem selectedId isEditing />
+              </React.Suspense>
+            </section>
+          </div>
+        </DemoLayout>
       </body>
     </html>;
   };
