@@ -1018,6 +1018,21 @@ let rewrite_structure_item_for_js ~nested_module_names ctx structure_item =
         end]
   | _ -> structure_item
 
+let validate_tag_children tag children attributes : (unit, string) result =
+  match Html.is_self_closing_tag tag with
+  | true when Option.fold ~none:false ~some:(fun children -> List.length children > 0) children ->
+      Error (Printf.sprintf {|"%s" is a self-closing tag and must not have "children".\n|} tag)
+  | true
+    when List.exists
+           ~f:(fun (arg_label, _) ->
+             match arg_label with
+             | Labelled "dangerouslySetInnerHTML" | Optional "dangerouslySetInnerHTML" -> true
+             | _ -> false)
+           attributes ->
+      Error (Printf.sprintf {|"%s" is a self-closing tag and must not have "children".\n|} tag)
+  | false -> Ok ()
+  | true -> Ok ()
+
 let traverse =
   object (_)
     inherit [Expansion_context.Base.t] Ppxlib.Ast_traverse.map_with_context as super
@@ -1048,21 +1063,25 @@ let traverse =
       | Native -> (
           try
             match expr.pexp_desc with
-            | Pexp_apply (({ pexp_desc = Pexp_ident _; _ } as tag), args) when has_jsx_attr expr.pexp_attributes -> (
+            | Pexp_apply (({ pexp_desc = Pexp_ident _; pexp_loc = loc; _ } as tag), args)
+              when has_jsx_attr expr.pexp_attributes -> (
                 let children, rest_of_args = split_args args in
-                match tag.pexp_desc with
-                (* div() [@JSX] *)
-                | Pexp_ident { txt = Lident name; loc = _name_loc } ->
-                    rewrite_lowercase ~loc:expr.pexp_loc name rest_of_args children
-                (* Reason adds `createElement` as default when an uppercase is found,
+                match validate_tag_children (Ppxlib_ast.Pprintast.string_of_expression tag) children rest_of_args with
+                | Error err -> [%expr [%ocaml.error [%e estring ~loc:expr.pexp_loc err]]]
+                | Ok () -> (
+                    match tag.pexp_desc with
+                    (* div() [@JSX] *)
+                    | Pexp_ident { txt = Lident name; loc = _name_loc } ->
+                        rewrite_lowercase ~loc:expr.pexp_loc name rest_of_args children
+                    (* Reason adds `createElement` as default when an uppercase is found,
                    we change it back to make *)
-                (* Foo.createElement() [@JSX] *)
-                | Pexp_ident { txt = Ldot (modulePath, ("createElement" | "make")); loc } ->
-                    let id = { loc; txt = Ldot (modulePath, "make") } in
-                    rewrite_component ~loc:expr.pexp_loc id rest_of_args children
-                (* local_function() [@JSX] *)
-                | Pexp_ident id -> rewrite_component ~loc:expr.pexp_loc id rest_of_args children
-                | _ -> assert false)
+                    (* Foo.createElement() [@JSX] *)
+                    | Pexp_ident { txt = Ldot (modulePath, ("createElement" | "make")); loc } ->
+                        let id = { loc; txt = Ldot (modulePath, "make") } in
+                        rewrite_component ~loc:expr.pexp_loc id rest_of_args children
+                    (* local_function() [@JSX] *)
+                    | Pexp_ident id -> rewrite_component ~loc:expr.pexp_loc id rest_of_args children
+                    | _ -> assert false))
             (* div() [@JSX] *)
             | Pexp_apply (tag, _props) when has_jsx_attr expr.pexp_attributes ->
                 raise_errorf ~loc:expr.pexp_loc "jsx: %s should be an identifier, not an expression"
