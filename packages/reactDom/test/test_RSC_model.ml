@@ -296,11 +296,11 @@ let error_in_toplevel_in_async () =
     [ "1:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n"; "0:\"$L1\"\n" ];
   Lwt.return ()
 
-let await_tick ?(raise = false) num =
+let await_tick ?(raise = false) ?(ms = 10) num =
   React.Async_component
     ( "await_tick",
       fun () ->
-        let%lwt () = sleep ~ms:10 in
+        let%lwt () = sleep ~ms in
         if raise then Lwt.fail (Failure "lol") else Lwt.return (React.string num) )
 
 let suspense_in_a_list () =
@@ -309,11 +309,11 @@ let suspense_in_a_list () =
     React.Fragment
       (React.list
          [
-           React.Suspense.make ~fallback ~children:(await_tick "A") ();
-           React.Suspense.make ~fallback ~children:(await_tick "B") ();
-           React.Suspense.make ~fallback ~children:(await_tick "C") ();
-           React.Suspense.make ~fallback ~children:(await_tick "D") ();
-           React.Suspense.make ~fallback ~children:(await_tick "E") ();
+           React.Suspense.make ~fallback ~children:(await_tick ~ms:10 "A") ();
+           React.Suspense.make ~fallback ~children:(await_tick ~ms:20 "B") ();
+           React.Suspense.make ~fallback ~children:(await_tick ~ms:30 "C") ();
+           React.Suspense.make ~fallback ~children:(await_tick ~ms:40 "D") ();
+           React.Suspense.make ~fallback ~children:(await_tick ~ms:50 "E") ();
          ])
   in
   let main = React.Upper_case_component ("app", app) in
@@ -336,11 +336,11 @@ let suspense_in_a_list_with_error () =
     React.Fragment
       (React.list
          [
-           React.Suspense.make ~fallback ~children:(await_tick "A") ();
-           React.Suspense.make ~fallback ~children:(await_tick ~raise:true "B") ();
-           React.Suspense.make ~fallback ~children:(await_tick "C") ();
-           React.Suspense.make ~fallback ~children:(await_tick "D") ();
-           React.Suspense.make ~fallback ~children:(await_tick "E") ();
+           React.Suspense.make ~fallback ~children:(await_tick ~ms:10 "A") ();
+           React.Suspense.make ~fallback ~children:(await_tick ~ms:20 ~raise:true "B") ();
+           React.Suspense.make ~fallback ~children:(await_tick ~ms:30 "C") ();
+           React.Suspense.make ~fallback ~children:(await_tick ~ms:40 "D") ();
+           React.Suspense.make ~fallback ~children:(await_tick ~ms:50 "E") ();
          ])
   in
   let main = React.Upper_case_component ("app", app) in

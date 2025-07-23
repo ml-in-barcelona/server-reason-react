@@ -460,11 +460,11 @@ let error_in_toplevel_in_async () =
   let main = React.Async_component ("app", app) in
   assert_raises (Failure "lol") (fun () -> assert_html main ~disable_backtrace:true [])
 
-let await_tick ?(raise = false) num =
+let await_tick ?(raise = false) ?(ms = 10) num =
   React.Async_component
     ( "await_tick",
       fun () ->
-        let%lwt () = sleep ~ms:(Random.int 10) in
+        let%lwt () = sleep ~ms in
         if raise then Lwt.fail (Failure "lol") else Lwt.return (React.string num) )
 
 let server_function_as_action () =
@@ -498,9 +498,9 @@ let suspense_in_a_list_with_error () =
     React.Fragment
       (React.list
          [
-           React.Suspense.make ~fallback ~children:(await_tick "A") ();
-           React.Suspense.make ~fallback ~children:(await_tick ~raise:true "B") ();
-           React.Suspense.make ~fallback ~children:(await_tick "C") ();
+           React.Suspense.make ~fallback ~children:(await_tick ~ms:10 "A") ();
+           React.Suspense.make ~fallback ~children:(await_tick ~ms:20 ~raise:true "B") ();
+           React.Suspense.make ~fallback ~children:(await_tick ~ms:30 "C") ();
          ])
   in
   let main = React.Upper_case_component ("app", app) in
@@ -511,13 +511,13 @@ let suspense_in_a_list_with_error () =
        data-payload='0:[[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,[],{}],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L2\"},null,[],{}],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L3\"},null,[],{}]]\n\
        '>window.srr_stream.push()</script>"
     [
-      "<div hidden=\"true\" id=\"S:3\">C</div>\n<script>$RC('B:3', 'S:3')</script>";
-      "<script data-payload='3:\"C\"\n'>window.srr_stream.push()</script>";
+      "<div hidden=\"true\" id=\"S:1\">A</div>\n<script>$RC('B:1', 'S:1')</script>";
+      "<script data-payload='1:\"A\"\n'>window.srr_stream.push()</script>";
       "<script data-payload='2:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n\
        '>window.srr_stream.push()</script>";
       "<div hidden=\"true\" id=\"S:2\"></div>\n<script>$RC('B:2', 'S:2')</script>";
-      "<div hidden=\"true\" id=\"S:1\">A</div>\n<script>$RC('B:1', 'S:1')</script>";
-      "<script data-payload='1:\"A\"\n'>window.srr_stream.push()</script>";
+      "<div hidden=\"true\" id=\"S:3\">C</div>\n<script>$RC('B:3', 'S:3')</script>";
+      "<script data-payload='3:\"C\"\n'>window.srr_stream.push()</script>";
       "<script>window.srr_stream.close()</script>";
     ]
 
