@@ -69,7 +69,7 @@ jobs:
           key: npm-${{ matrix.os }}-${{ hashFiles('demo/package.json') }}-${{ hashFiles('demo/client/package.json') }}
 
       - name: Use OCaml ${{ matrix.ocaml-compiler }}
-        uses: ocaml/setup-ocaml@v3.2.5
+        uses: ocaml/setup-ocaml@v3.3.5
         if: steps.opam-cache.outputs.cache-hit != 'true'
         with:
           ocaml-compiler: ${{ matrix.ocaml-compiler }}
