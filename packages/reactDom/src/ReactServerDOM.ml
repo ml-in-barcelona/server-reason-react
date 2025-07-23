@@ -728,7 +728,7 @@ let render_html ?(skipRoot = false) ?(env = `Dev) ?debug:(_ = false) ?bootstrapS
     | None -> Html.null
     | Some bootstrapScriptContent -> Html.node "script" [] [ Html.raw bootstrapScriptContent ]
   in
-  let scripts =
+  let bootstrap_scripts_nodes =
     match bootstrapScripts with
     | None -> Html.null
     | Some scripts ->
@@ -736,7 +736,7 @@ let render_html ?(skipRoot = false) ?(env = `Dev) ?debug:(_ = false) ?bootstrapS
         |> List.map (fun script -> Html.node "script" [ Html.attribute "src" script; Html.attribute "async" "" ] [])
         |> Html.list
   in
-  let modules =
+  let bootstrap_modules_nodes =
     match bootstrapModules with
     | None -> Html.null
     | Some modules ->
@@ -747,15 +747,24 @@ let render_html ?(skipRoot = false) ?(env = `Dev) ?debug:(_ = false) ?bootstrapS
                  [])
         |> Html.list
   in
-  let user_scripts = [ rc_function_script; rsc_start_script; root_chunk; bootstrap_script_content; scripts; modules ] in
+  let user_scripts =
+    [
+      rc_function_script;
+      rsc_start_script;
+      root_chunk;
+      bootstrap_script_content;
+      bootstrap_scripts_nodes;
+      bootstrap_modules_nodes;
+    ]
+  in
   let html =
     (* We reconstruct the final HTML document structure with the hoisted elements from the traversal *)
     if is_root_element_a_html_node then
       let body =
         match (is_body root_html, skipRoot) with
         | true, false -> push_children_into root_html user_scripts
-        | true, true -> Html.list user_scripts
-        | false, _ -> Html.list (root_html :: user_scripts)
+        | true, true | false, true -> Html.list user_scripts
+        | false, false -> Html.list (root_html :: user_scripts)
       in
       let hoisted_head_childrens = List.rev fiber.hoisted_head_childrens in
       match fiber.hoisted_head with

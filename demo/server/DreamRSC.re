@@ -116,7 +116,7 @@ let stream_model = (~location, app) =>
 
 let stream_html =
     (
-      ~skipRoot=true,
+      ~skipRoot=false,
       ~bootstrapScriptContent=?,
       ~bootstrapScripts=[],
       ~bootstrapModules=[],
