@@ -101,8 +101,7 @@ demo-serve: demo-build ## Serve the demo executable
 
 .PHONY: demo-serve-watch
 demo-serve-watch: ## Run demo executable on watch mode (listening to built_at.txt changes)
-	@watchexec --no-ignore -w demo/.running/built_at.txt -r -c \
-	"_build/default/demo/server/server.exe"
+	@watchexec --no-vcs-ignore -w demo/.running/built_at.txt -r -c -- "_build/default/demo/server/server.exe"
 
 .PHONY: subst
 subst: ## Run dune substitute

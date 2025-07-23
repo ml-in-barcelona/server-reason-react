@@ -101,7 +101,41 @@ let element_with_dangerously_set_inner_html () =
   assert_html
     ~shell:
       "<div><h1>Hello</h1></div><script \
-       data-payload='0:[\"$\",\"div\",null,{\"children\":[null],\"dangerouslySetInnerHTML\":{\"__html\":\"<h1>Hello</h1>\"}},null,[],{}]\n\
+       data-payload='0:[\"$\",\"div\",null,{\"dangerouslySetInnerHTML\":{\"__html\":\"<h1>Hello</h1>\"}},null,[],{}]\n\
+       '>window.srr_stream.push()</script>"
+    app
+    [ "<script>window.srr_stream.close()</script>" ]
+
+let self_closing_with_dangerously () =
+  let app =
+    React.createElement "div" []
+      [
+        React.createElement "input" [] [];
+        (* When dangerouslySetInnerHtml is used, the children is ignored *)
+        React.createElement "p" [ React.JSX.DangerouslyInnerHtml "unsafe!" ] [ React.string "xxx" ];
+      ]
+  in
+  assert_html
+    ~shell:
+      "<div><input /><p>unsafe!</p></div><script \
+       data-payload='0:[\"$\",\"div\",null,{\"children\":[[\"$\",\"input\",null,{},null,[],{}],[\"$\",\"p\",null,{\"dangerouslySetInnerHTML\":{\"__html\":\"unsafe!\"}},null,[],{}]]},null,[],{}]\n\
+       '>window.srr_stream.push()</script>"
+    app
+    [ "<script>window.srr_stream.close()</script>" ]
+
+let self_closing_with_dangerously_in_head () =
+  let app =
+    React.createElement "head" []
+      [
+        React.createElement "meta" [ React.JSX.String ("char-set", "charSet", "utf-8") ] [];
+        React.createElement "style" [ React.JSX.DangerouslyInnerHtml "* { display: none; }" ] [];
+      ]
+  in
+  assert_html
+    ~shell:
+      "<head><meta char-set=\"utf-8\" /><style>* { display: none; }</style></head><script \
+       data-payload='0:[\"$\",\"head\",null,{\"children\":[[\"$\",\"meta\",null,{\"charSet\":\"utf-8\"},null,[],{}],[\"$\",\"style\",null,{\"dangerouslySetInnerHTML\":{\"__html\":\"* \
+       { display: none; }\"}},null,[],{}]]},null,[],{}]\n\
        '>window.srr_stream.push()</script>"
     app
     [ "<script>window.srr_stream.close()</script>" ]
@@ -426,11 +460,11 @@ let error_in_toplevel_in_async () =
   let main = React.Async_component ("app", app) in
   assert_raises (Failure "lol") (fun () -> assert_html main ~disable_backtrace:true [])
 
-let await_tick ?(raise = false) num =
+let await_tick ?(raise = false) ?(ms = 10) num =
   React.Async_component
     ( "await_tick",
       fun () ->
-        let%lwt () = sleep ~ms:(Random.int 10) in
+        let%lwt () = sleep ~ms in
         if raise then Lwt.fail (Failure "lol") else Lwt.return (React.string num) )
 
 let server_function_as_action () =
@@ -464,9 +498,9 @@ let suspense_in_a_list_with_error () =
     React.Fragment
       (React.list
          [
-           React.Suspense.make ~fallback ~children:(await_tick "A") ();
-           React.Suspense.make ~fallback ~children:(await_tick ~raise:true "B") ();
-           React.Suspense.make ~fallback ~children:(await_tick "C") ();
+           React.Suspense.make ~fallback ~children:(await_tick ~ms:10 "A") ();
+           React.Suspense.make ~fallback ~children:(await_tick ~ms:20 ~raise:true "B") ();
+           React.Suspense.make ~fallback ~children:(await_tick ~ms:30 "C") ();
          ])
   in
   let main = React.Upper_case_component ("app", app) in
@@ -477,20 +511,21 @@ let suspense_in_a_list_with_error () =
        data-payload='0:[[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,[],{}],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L2\"},null,[],{}],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L3\"},null,[],{}]]\n\
        '>window.srr_stream.push()</script>"
     [
-      "<div hidden=\"true\" id=\"S:3\">C</div>\n<script>$RC('B:3', 'S:3')</script>";
-      "<script data-payload='3:\"C\"\n'>window.srr_stream.push()</script>";
+      "<div hidden=\"true\" id=\"S:1\">A</div>\n<script>$RC('B:1', 'S:1')</script>";
+      "<script data-payload='1:\"A\"\n'>window.srr_stream.push()</script>";
       "<script data-payload='2:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n\
        '>window.srr_stream.push()</script>";
       "<div hidden=\"true\" id=\"S:2\"></div>\n<script>$RC('B:2', 'S:2')</script>";
-      "<div hidden=\"true\" id=\"S:1\">A</div>\n<script>$RC('B:1', 'S:1')</script>";
-      "<script data-payload='1:\"A\"\n'>window.srr_stream.push()</script>";
+      "<div hidden=\"true\" id=\"S:3\">C</div>\n<script>$RC('B:3', 'S:3')</script>";
+      "<script data-payload='3:\"C\"\n'>window.srr_stream.push()</script>";
       "<script>window.srr_stream.close()</script>";
     ]
 
 let tests =
   [
+    test "self_closing_with_dangerously" self_closing_with_dangerously;
+    test "self_closing_with_dangerously_in_head" self_closing_with_dangerously_in_head;
     test "client_with_element_props" client_with_element_props;
-    (* test "debug_adds_debug_info" debug_adds_debug_info; *)
     test "null_element" null_element;
     test "element_with_dangerously_set_inner_html" element_with_dangerously_set_inner_html;
     test "input_element_with_value" input_element_with_value;
@@ -507,4 +542,5 @@ let tests =
     test "error_in_toplevel_in_async" error_in_toplevel_in_async;
     test "suspense_in_a_list_with_error" suspense_in_a_list_with_error;
     test "server_function_as_action" server_function_as_action;
+    (* test "debug_adds_debug_info" debug_adds_debug_info; *)
   ]

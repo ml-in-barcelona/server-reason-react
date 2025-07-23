@@ -115,13 +115,20 @@ let stream_model = (~location, app) =>
   );
 
 let stream_html =
-    (~bootstrapScriptContent, ~bootstrapScripts, ~bootstrapModules, app) => {
+    (
+      ~skipRoot=false,
+      ~bootstrapScriptContent=?,
+      ~bootstrapScripts=[],
+      ~bootstrapModules=[],
+      app,
+    ) => {
   Dream.stream(
     ~headers=[("Content-Type", "text/html")],
     stream => {
       let%lwt (html, subscribe) =
         ReactServerDOM.render_html(
-          ~bootstrapScriptContent,
+          ~skipRoot,
+          ~bootstrapScriptContent?,
           ~bootstrapScripts,
           ~bootstrapModules,
           ~debug,
