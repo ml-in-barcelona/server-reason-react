@@ -365,3 +365,9 @@
       ),
       [],
     );
+  let self_closing_tag_with_children = [%ocaml.error
+    "\"meta\" is a self-closing tag and must not have \"children\".\\n"
+  ];
+  let self_closing_tag_with_dangerouslySetInnerHtml = [%ocaml.error
+    "\"meta\" is a self-closing tag and must not have \"children\".\\n"
+  ];
