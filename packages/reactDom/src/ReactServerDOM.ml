@@ -193,6 +193,7 @@ module Model = struct
     let rec turn_element_into_payload ~context element =
       match (element : React.element) with
       | Empty -> `Null
+      | DangerouslyInnerHtml html -> `String html
       (* TODO: Do we need to html encode the model or only the html? *)
       | Text t -> `String t
       | Lower_case_element { key; tag; attributes; children } ->
@@ -428,6 +429,7 @@ let html_suspense_placeholder ~fallback id =
 let rec client_to_html ~fiber (element : React.element) =
   match element with
   | Empty -> Lwt.return Html.null
+  | DangerouslyInnerHtml html -> Lwt.return (Html.raw html)
   | Text text -> Lwt.return (Html.string text)
   | Fragment children -> client_to_html ~fiber children
   | List childrens ->
@@ -501,6 +503,7 @@ let is_a_head_child_tag tag = tag = "title" || tag = "meta" || tag = "link" || t
 let rec to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * json) Lwt.t =
   match element with
   | Empty -> Lwt.return (Html.null, `Null)
+  | DangerouslyInnerHtml html -> Lwt.return (Html.raw html, `String html)
   | Text s -> Lwt.return (Html.string s, `String s)
   | Fragment children -> to_html ~fiber children
   | List list -> elements_to_html ~fiber list
