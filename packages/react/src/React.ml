@@ -382,6 +382,7 @@ type element =
   | List of element list
   | Array of element array
   | Text of string
+  | DangerouslyInnerHtml of string
   | Fragment of element
   | Empty
   | Provider of element
@@ -470,6 +471,7 @@ let cloneElement element new_attributes =
   | Lower_case_element { key; tag; attributes; children } ->
       Lower_case_element { key; tag; attributes = clone_attributes attributes new_attributes; children }
   | Upper_case_component _ -> raise (Invalid_argument "In server-reason-react, a component can't be cloned")
+  | DangerouslyInnerHtml _ -> raise (Invalid_argument "can't clone innerHtml")
   | Fragment _ -> raise (Invalid_argument "can't clone a fragment")
   | Text _ -> raise (Invalid_argument "can't clone a text element")
   | Empty -> raise (Invalid_argument "can't clone a null element")
