@@ -524,7 +524,7 @@ let suspense_in_a_list_with_error () =
 let raw_element () =
   let app () = React.DangerouslyInnerHtml "<div>Hello</div>" in
   assert_html (app ())
-    ~shell:"<div>Hello</div><script data-payload='0:\"<div>Hello</div>\"\n'>window.srr_stream.push()</script>"
+    ~shell:"<div>Hello</div><script data-payload='0:null\n'>window.srr_stream.push()</script>"
     [ "<script>window.srr_stream.close()</script>" ]
 
 let tests =
