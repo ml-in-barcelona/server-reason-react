@@ -500,10 +500,9 @@ and render_lower_case ~fiber ~key:_ ~tag ~attributes ~children =
       let%lwt html = Lwt_list.map_p (client_to_html ~fiber) children in
       Lwt.return (Html.node tag html_props html)
 
-let is_a_head_child_tag tag =
-  match tag with
-  | "title" | "meta" | "link" | "style" | "script" | "base" | "noscript" | "template" -> true
-  | _ -> false
+let is_async props =
+  let has_async prop = match (prop : React.JSX.prop) with React.JSX.Bool ("async", _, value) -> value | _ -> false in
+  List.exists has_async props
 
 let rec to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * json) Lwt.t =
   match element with
@@ -652,8 +651,8 @@ and render_lower_case_element ~fiber ~key ~tag ~attributes ~children =
         let html, model = List.split html_and_model in
         Fiber.push_hoisted_head ~fiber html_attributes html;
         Lwt.return (Html.null, Model.node ~tag ~props model)
-    | tag when is_a_head_child_tag tag ->
-        (* Hoist title, meta, link, style, and co *)
+    | tag when tag = "title" || tag = "meta" || (tag = "script" && is_async attributes) ->
+        (* Hoist title, meta, and async scripts *)
         let html_props = ReactDOM.attributes_to_html attributes in
         let%lwt children_html, children_model = elements_to_html ~fiber children in
         let html = render_html_node ~html_props ~children_html in
@@ -818,12 +817,7 @@ let render_html ?(skipRoot = false) ?(env = `Dev) ?debug:(_ = false) ?bootstrapS
         | true, true | false, true -> Html.list user_scripts
         | false, false -> Html.list (root_html :: user_scripts)
       in
-      let resources =
-        List.rev fiber.resources
-        (* @ bootstrapModules *)
-      in
-      let hoisted_head_childrens = List.rev fiber.hoisted_head_childrens in
-      let head_childrens = hoisted_head_childrens @ resources in
+      let head_childrens = List.rev fiber.resources @ List.rev fiber.hoisted_head_childrens in
       match fiber.hoisted_head with
       | Some (attribute_list, children) ->
           (* If we found a <head> element, use its attributes and combine all children *)

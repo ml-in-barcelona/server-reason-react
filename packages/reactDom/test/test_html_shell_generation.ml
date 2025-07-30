@@ -25,6 +25,15 @@ let head ?(attributes = []) ?(children = []) () =
 let body ?(attributes = []) ?(children = []) () =
   React.Lower_case_element { key = None; tag = "body"; attributes; children }
 
+let script ~async ~src () =
+  React.Lower_case_element
+    {
+      key = None;
+      tag = "script";
+      attributes = [ React.JSX.Bool ("async", "async", async); React.JSX.String ("src", "src", src) ];
+      children = [];
+    }
+
 let html ?(attributes = []) children = React.Lower_case_element { key = None; tag = "html"; attributes; children }
 
 let lower tag ?(attributes = []) ?(children = []) () =
@@ -73,12 +82,12 @@ let just_an_html_node () =
        '>window.srr_stream.push()</script><script></script>"
 
 let doctype () =
+  (* TODO: Fix this, should have html + head *)
   let app = html [ head (); body () ] in
   assert_html app
     ~shell:
-      "<!DOCTYPE html><html><head></head><html><body></body><script \
-       data-payload='0:[[\"$\",\"head\",null,{},null,[],{}],[\"$\",\"body\",null,{\"children\":[]},null,[],{}]]\n\
-       '>window.srr_stream.push()</script><script></script></html>"
+      "<script data-payload='0:[[\"$\",\"head\",null,{},null,[],{}],[\"$\",\"body\",null,{\"children\":[]},null,[],{}]]\n\
+       '>window.srr_stream.push()</script><script></script>"
 
 let no_head_no_body_nothing_just_an_html_node () =
   let app = input () in
@@ -166,8 +175,9 @@ let html_without_body_and_bootstrap_scripts () =
   let app = html [ lower "input" ~attributes:[ React.JSX.String ("id", "id", "sidebar-search-input") ] () ] in
   assert_html app ~bootstrapModules:[ "react"; "react-dom" ] ~bootstrapScriptContent:"console.log('hello')"
     ~shell:
-      "<!DOCTYPE html><html><head></head><input id=\"sidebar-search-input\" /><script \
-       data-payload='0:[[\"$\",\"input\",null,{\"id\":\"sidebar-search-input\"},null,[],{}]]\n\
+      "<!DOCTYPE html><html><head><link rel=\"modulepreload\" fetchPriority=\"low\" href=\"react-dom\" /><link \
+       rel=\"modulepreload\" fetchPriority=\"low\" href=\"react\" /></head><input id=\"sidebar-search-input\" \
+       /><script data-payload='0:[[\"$\",\"input\",null,{\"id\":\"sidebar-search-input\"},null,[],{}]]\n\
        '>window.srr_stream.push()</script><script>console.log('hello')</script><script src=\"react\" async=\"\" \
        type=\"module\"></script><script src=\"react-dom\" async=\"\" type=\"module\"></script>"
 
@@ -178,7 +188,9 @@ let html_with_body_and_bootstrap_scripts () =
   in
   assert_html app ~bootstrapModules:[ "react"; "react-dom" ] ~bootstrapScriptContent:"console.log('hello')"
     ~shell:
-      "<!DOCTYPE html><html><head></head><body><input id=\"sidebar-search-input\" /><script \
+      "<!DOCTYPE html><html><head><link rel=\"modulepreload\" fetchPriority=\"low\" href=\"react-dom\" /><link \
+       rel=\"modulepreload\" fetchPriority=\"low\" href=\"react\" /></head><body><input id=\"sidebar-search-input\" \
+       /><script \
        data-payload='0:[[\"$\",\"body\",null,{\"children\":[[\"$\",\"input\",null,{\"id\":\"sidebar-search-input\"},null,[],{}]]},null,[],{}]]\n\
        '>window.srr_stream.push()</script><script>console.log('hello')</script><script src=\"react\" async=\"\" \
        type=\"module\"></script><script src=\"react-dom\" async=\"\" type=\"module\"></script></body>"
@@ -192,15 +204,58 @@ let input_and_bootstrap_scripts () =
        '>window.srr_stream.push()</script><script>console.log('hello')</script><script src=\"react\" async=\"\" \
        type=\"module\"></script><script src=\"react-dom\" async=\"\" type=\"module\"></script>"
 
-let title_populates_to_a_head () =
+let title_and_meta_populates_to_the_head () =
   let app =
-    html [ body ~children:[ head ~children:[ lower "title" ~children:[ React.string "Hey Yah" ] () ] () ] () ]
+    html
+      [
+        body
+          ~children:
+            [
+              head
+                ~children:
+                  [
+                    lower "title" ~children:[ React.string "Hey Yah" ] ();
+                    lower "meta"
+                      ~attributes:
+                        [
+                          React.JSX.String ("name", "name", "viewport");
+                          React.JSX.String ("content", "content", "width=device-width,initial-scale=1");
+                        ]
+                      ();
+                  ]
+                ();
+            ]
+          ();
+      ]
   in
+  (* TODO: Remove empty <script> *)
+  assert_html app
+    ~shell:
+      "<!DOCTYPE html><html><head><title>Hey Yah</title><meta name=\"viewport\" \
+       content=\"width=device-width,initial-scale=1\" /></head><body><script \
+       data-payload='0:[[\"$\",\"body\",null,{\"children\":[[\"$\",\"head\",null,{\"children\":[[\"$\",\"title\",null,{\"children\":[\"Hey \
+       Yah\"]},null,[],{}],[\"$\",\"meta\",null,{\"name\":\"viewport\",\"content\":\"width=device-width,initial-scale=1\"},null,[],{}]]},null,[],{}]]},null,[],{}]]\n\
+       '>window.srr_stream.push()</script><script></script></body>"
+
+let async_scripts_to_head () =
+  let app = html [ body ~children:[ script ~async:true ~src:"https://cdn.com/jquery.min.js" () ] () ] in
   assert_html app ~bootstrapModules:[ "jquery"; "jquery-mobile" ]
     ~shell:
-      "<!DOCTYPE html><html><head><title>Hey Yah</title></head><body><script \
-       data-payload='0:[[\"$\",\"body\",null,{\"children\":[[\"$\",\"head\",null,{\"children\":[\"$\",\"title\",null,{\"children\":[\"Hey \
-       Yah\"]},null,[],{}]},null,[],{}]]},null,[],{}]]\n\
+      "<!DOCTYPE html><html><head><link rel=\"modulepreload\" fetchPriority=\"low\" href=\"jquery-mobile\" /><link \
+       rel=\"modulepreload\" fetchPriority=\"low\" href=\"jquery\" /><script async \
+       src=\"https://cdn.com/jquery.min.js\"></script></head><body><script \
+       data-payload='0:[[\"$\",\"body\",null,{\"children\":[[\"$\",\"script\",null,{\"children\":[],\"async\":true,\"src\":\"https://cdn.com/jquery.min.js\"},null,[],{}]]},null,[],{}]]\n\
+       '>window.srr_stream.push()</script><script></script><script src=\"jquery\" async=\"\" \
+       type=\"module\"></script><script src=\"jquery-mobile\" async=\"\" type=\"module\"></script></body>"
+
+let no_async_scripts_to_remain () =
+  let app = html [ body ~children:[ script ~async:false ~src:"https://cdn.com/jquery.min.js" () ] () ] in
+  assert_html app ~bootstrapModules:[ "jquery"; "jquery-mobile" ]
+    ~shell:
+      "<!DOCTYPE html><html><head><link rel=\"modulepreload\" fetchPriority=\"low\" href=\"jquery-mobile\" /><link \
+       rel=\"modulepreload\" fetchPriority=\"low\" href=\"jquery\" /></head><body><script \
+       src=\"https://cdn.com/jquery.min.js\"></script><script \
+       data-payload='0:[[\"$\",\"body\",null,{\"children\":[[\"$\",\"script\",null,{\"children\":[],\"async\":false,\"src\":\"https://cdn.com/jquery.min.js\"},null,[],{}]]},null,[],{}]]\n\
        '>window.srr_stream.push()</script><script></script><script src=\"jquery\" async=\"\" \
        type=\"module\"></script><script src=\"jquery-mobile\" async=\"\" type=\"module\"></script></body>"
 
@@ -219,5 +274,7 @@ let tests =
     test "html_without_body_and_bootstrap_scripts" html_without_body_and_bootstrap_scripts;
     test "html_with_body_and_bootstrap_scripts" html_with_body_and_bootstrap_scripts;
     test "input_and_bootstrap_scripts" input_and_bootstrap_scripts;
-    test "title_populates_to_a_head" title_populates_to_a_head;
+    test "title_and_meta_populates_to_the_head" title_and_meta_populates_to_the_head;
+    test "async_scripts_to_head" async_scripts_to_head;
+    test "no_async_scripts_to_remain" no_async_scripts_to_remain;
   ]

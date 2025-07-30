@@ -93,12 +93,12 @@ const App = () => (
  */
 
 
-const AnotherComponent = async () => {
+/* const AnotherComponent = async () => {
 	preinit('analytics.js', { as: 'script' });
 	await sleep(1);
 	return <><script async={true} src="analytics.js" />
 		<div>AnotherComponent</div></>;
-};
+}; */
 
 const App = () => (
 	<html>
@@ -107,9 +107,15 @@ const App = () => (
 		</head>
 		<body>
 			<div>
-				<script src="https://unpkg.com/jquery@3.7.1/dist/jquery.min.js" />
-
-				<AnotherComponent />
+				<script src="https://unpkg.com/jquery@3.7.1/dist/jquery.min.js" async />
+				<link rel="stylesheet" href="styles.css" async />
+				<title>Hola!</title>
+				<base>Hola!</base>
+				<template>Hola!</template>
+				<noscript>Hola!</noscript>
+				<style>
+					{"* {display: none}"}
+				</style>
 			</div>
 		</body>
 	</html>
