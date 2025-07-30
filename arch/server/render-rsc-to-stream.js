@@ -1,5 +1,6 @@
 import React from "react";
 import { renderToPipeableStream } from "react-server-dom-webpack/server";
+import { prefetchDNS, preconnect, preload, preinit } from 'react-dom'
 
 const DefferedComponent = async ({ sleep, children }) => {
 	await new Promise((res) => setTimeout(() => res(), sleep * 1000));
@@ -40,12 +41,28 @@ let Await_tick = ({ num }) => {
 	return num
 }
 
+const AnotherComponent = async () => {
+	preinit('analytics.js', { as: 'script' });
+	await sleep(1);
+	return <><script async={true} src="analytics.js" />
+		<div>AnotherComponent</div></>;
+};
+
 const App = () => (
-	<>
-		<meta charSet="utf-8" />
-		<style dangerouslySetInnerHTML={{ __html: "* { display: none; }" }} />
-	</>
+	<html>
+		<head>
+			<meta charSet="utf-8" />
+		</head>
+		<body>
+			<div>
+				<script src="https://unpkg.com/jquery@3.7.1/dist/jquery.min.js" />
+
+				<AnotherComponent />
+			</div>
+		</body>
+	</html>
 );
+
 
 const { pipe } = renderToPipeableStream(<App />);
 

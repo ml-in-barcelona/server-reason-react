@@ -38,9 +38,14 @@ module Fiber = struct
     (* hoisted_head_childrens collects elements that should be in <head> (title, meta, link, style)
        even if they weren't originally inside a <head> element *)
     mutable hoisted_head_childrens : Html.element list;
+    (* resources *)
+    (* TODO: Currently it's a list, should be a Set *)
+    (* only push if async is true *)
+    mutable resources : Html.element list;
   }
 
   let push_hoisted_head ~fiber html_attributes children = fiber.hoisted_head <- Some (html_attributes, children)
+  let push_resource ~fiber resource = fiber.resources <- resource :: fiber.resources
 
   let push_hoisted_head_childrens ~fiber children =
     fiber.hoisted_head_childrens <- children :: fiber.hoisted_head_childrens
@@ -495,8 +500,10 @@ and render_lower_case ~fiber ~key:_ ~tag ~attributes ~children =
       let%lwt html = Lwt_list.map_p (client_to_html ~fiber) children in
       Lwt.return (Html.node tag html_props html)
 
-(* TODO: Complete this list *)
-let is_a_head_child_tag tag = tag = "title" || tag = "meta" || tag = "link" || tag = "style"
+let is_a_head_child_tag tag =
+  match tag with
+  | "title" | "meta" | "link" | "style" | "script" | "base" | "noscript" | "template" -> true
+  | _ -> false
 
 let rec to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * json) Lwt.t =
   match element with
@@ -632,6 +639,11 @@ and render_lower_case_element ~fiber ~key ~tag ~attributes ~children =
     match tag with
     | "html" ->
         (* Skip rendering the html tag itself, just process children. That's because we will reconstuct the html element at the "render_html" *)
+        (* TODO: What the model should be?
+        let%lwt _html, model = to_html ~fiber (React.List children) in
+        let%lwt children, _children_model = elements_to_html ~fiber children in
+        let html = render_html_node ~html_props:[] ~children_html:children in
+        Lwt.return (html, model) *)
         to_html ~fiber (React.List children)
     | "head" ->
         (* Hoist head element to be rendered at document level *)
@@ -641,7 +653,7 @@ and render_lower_case_element ~fiber ~key ~tag ~attributes ~children =
         Fiber.push_hoisted_head ~fiber html_attributes html;
         Lwt.return (Html.null, Model.node ~tag ~props model)
     | tag when is_a_head_child_tag tag ->
-        (* Hoist head children (title, meta, link, style) *)
+        (* Hoist title, meta, link, style, and co *)
         let html_props = ReactDOM.attributes_to_html attributes in
         let%lwt children_html, children_model = elements_to_html ~fiber children in
         let html = render_html_node ~html_props ~children_html in
@@ -712,10 +724,50 @@ let push_children_into html new_children =
 let render_html ?(skipRoot = false) ?(env = `Dev) ?debug:(_ = false) ?bootstrapScriptContent ?bootstrapScripts
     ?bootstrapModules element =
   let initial_index = 0 in
+  let initial_resources =
+    match bootstrapScripts with
+    | Some scripts ->
+        List.map
+          (fun script ->
+            Html.node "link"
+              [
+                Html.attribute "rel" "modulepreload";
+                Html.attribute "fetchPriority" "low";
+                Html.attribute "href" script;
+                (* Html.attribute "as" "script"; *)
+              ]
+              [])
+          scripts
+    | None -> (
+        []
+        @
+        match bootstrapModules with
+        | Some modules ->
+            List.map
+              (fun script ->
+                Html.node "link"
+                  [
+                    Html.attribute "rel" "modulepreload";
+                    Html.attribute "fetchPriority" "low";
+                    Html.attribute "href" script;
+                    (* Html.attribute "as" "script"; *)
+                  ]
+                  [])
+              modules
+        | None -> [])
+  in
   let stream, push, close = Push_stream.make () in
   let context : Fiber.context = { push; close; pending = 1; index = initial_index; env } in
   let is_root_element_a_html_node = is_root_element_a_html_node element in
-  let fiber : Fiber.t = { context; hoisted_head = None; hoisted_head_childrens = []; is_root_element_a_html_node } in
+  let fiber : Fiber.t =
+    {
+      context;
+      hoisted_head = None;
+      hoisted_head_childrens = [];
+      is_root_element_a_html_node;
+      resources = initial_resources;
+    }
+  in
   let%lwt root_html, root_model = to_html ~fiber element in
   let root_chunk = client_value_chunk_script initial_index root_model in
   context.pending <- context.pending - 1;
@@ -766,15 +818,20 @@ let render_html ?(skipRoot = false) ?(env = `Dev) ?debug:(_ = false) ?bootstrapS
         | true, true | false, true -> Html.list user_scripts
         | false, false -> Html.list (root_html :: user_scripts)
       in
+      let resources =
+        List.rev fiber.resources
+        (* @ bootstrapModules *)
+      in
       let hoisted_head_childrens = List.rev fiber.hoisted_head_childrens in
+      let head_childrens = hoisted_head_childrens @ resources in
       match fiber.hoisted_head with
       | Some (attribute_list, children) ->
           (* If we found a <head> element, use its attributes and combine all children *)
-          let head = Html.node "head" attribute_list (children @ hoisted_head_childrens) in
+          let head = Html.node "head" attribute_list (children @ head_childrens) in
           Html.node "html" [] [ head; body ]
       | None ->
           (* If no explicit <head> was found, create one with the hoisted children *)
-          Html.node "html" [] [ Html.node "head" [] hoisted_head_childrens; body ]
+          Html.node "html" [] [ Html.node "head" [] head_childrens; body ]
     else if skipRoot then Html.list user_scripts
     else Html.list (root_html :: user_scripts)
   in

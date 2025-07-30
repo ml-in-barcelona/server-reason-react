@@ -76,9 +76,9 @@ let doctype () =
   let app = html [ head (); body () ] in
   assert_html app
     ~shell:
-      (* "<!DOCTYPE html><html><head></head><body></body>" *)
-      "<script data-payload='0:[[\"$\",\"head\",null,{},null,[],{}],[\"$\",\"body\",null,{\"children\":[]},null,[],{}]]\n\
-       '>window.srr_stream.push()</script><script></script>"
+      "<!DOCTYPE html><html><head></head><html><body></body><script \
+       data-payload='0:[[\"$\",\"head\",null,{},null,[],{}],[\"$\",\"body\",null,{\"children\":[]},null,[],{}]]\n\
+       '>window.srr_stream.push()</script><script></script></html>"
 
 let no_head_no_body_nothing_just_an_html_node () =
   let app = input () in

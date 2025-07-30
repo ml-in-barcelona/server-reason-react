@@ -1,5 +1,6 @@
 import React from "react";
 import * as ReactDOM from "react-dom/server";
+import { prefetchDNS, preconnect, preload, preinit } from 'react-dom'
 
 const sleep = (seconds) =>
 	new Promise((res) => setTimeout(res, seconds * 1000));
@@ -91,20 +92,29 @@ const App = () => (
 }
  */
 
-function App() {
-	return (
-		<>
-			<html>
-				<body>
-					<head>
-						<title>Hey Yah</title>
-					</head>
-					<div>Content inside body</div>
-				</body>
-			</html>
-		</>
-	);
-}
+
+const AnotherComponent = async () => {
+	preinit('analytics.js', { as: 'script' });
+	await sleep(1);
+	return <><script async={true} src="analytics.js" />
+		<div>AnotherComponent</div></>;
+};
+
+const App = () => (
+	<html>
+		<head>
+			<meta charSet="utf-8" />
+		</head>
+		<body>
+			<div>
+				<script src="https://unpkg.com/jquery@3.7.1/dist/jquery.min.js" />
+
+				<AnotherComponent />
+			</div>
+		</body>
+	</html>
+);
+
 
 ReactDOM.renderToReadableStream(<App />, { bootstrapModules: ["react", "react-dom"] }).then((stream) => {
 	debug(stream);
