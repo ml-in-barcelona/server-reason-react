@@ -18,28 +18,27 @@ let test title fn =
     ] )
 
 let stream_close_script = "<script>window.srr_stream.close()</script>"
-
-let head ?(attributes = []) ?(children = []) () =
-  React.Lower_case_element { key = None; tag = "head"; attributes; children }
-
-let body ?(attributes = []) ?(children = []) () =
-  React.Lower_case_element { key = None; tag = "body"; attributes; children }
-
-let script ~async ~src () =
-  React.Lower_case_element
-    {
-      key = None;
-      tag = "script";
-      attributes = [ React.JSX.Bool ("async", "async", async); React.JSX.String ("src", "src", src) ];
-      children = [];
-    }
-
 let html ?(attributes = []) children = React.Lower_case_element { key = None; tag = "html"; attributes; children }
 
 let lower tag ?(attributes = []) ?(children = []) () =
   React.Lower_case_element { key = None; tag; attributes; children }
 
-let input ?(attributes = []) () = React.Lower_case_element { key = None; tag = "input"; attributes; children = [] }
+let head = lower "head"
+let body = lower "body"
+let input = lower "input"
+
+let script ~async ~src () =
+  lower "script" ~attributes:[ React.JSX.Bool ("async", "async", async); React.JSX.String ("src", "src", src) ] ()
+
+let link ~rel ?precedence ~href () =
+  lower "link"
+    ~attributes:
+      ([ React.JSX.String ("href", "href", href); React.JSX.String ("rel", "rel", rel) ]
+      @
+      match precedence with
+      | Some precedence -> [ React.JSX.String ("precedence", "precedence", precedence) ]
+      | None -> [])
+    ()
 
 let assert_html ?(skipRoot = false) ?(shell = "") ?bootstrapModules ?bootstrapScriptContent element =
   let begin_html = "<!DOCTYPE html><html><head></head><body></body>" in
@@ -235,14 +234,101 @@ let title_and_meta_populates_to_the_head () =
 
 let async_scripts_to_head () =
   let app = html [ body ~children:[ script ~async:true ~src:"https://cdn.com/jquery.min.js" () ] () ] in
-  assert_html app ~bootstrapModules:[ "jquery"; "jquery-mobile" ]
+  assert_html app
     ~shell:
-      "<!DOCTYPE html><html><head><link rel=\"modulepreload\" fetchPriority=\"low\" href=\"jquery-mobile\" /><link \
-       rel=\"modulepreload\" fetchPriority=\"low\" href=\"jquery\" /><script async \
-       src=\"https://cdn.com/jquery.min.js\"></script></head><body><script \
+      "<!DOCTYPE html><html><head><script async src=\"https://cdn.com/jquery.min.js\"></script></head><body><script \
        data-payload='0:[[\"$\",\"body\",null,{\"children\":[[\"$\",\"script\",null,{\"children\":[],\"async\":true,\"src\":\"https://cdn.com/jquery.min.js\"},null,[],{}]]},null,[],{}]]\n\
-       '>window.srr_stream.push()</script><script src=\"jquery\" async=\"\" type=\"module\"></script><script \
-       src=\"jquery-mobile\" async=\"\" type=\"module\"></script></body>"
+       '>window.srr_stream.push()</script></body>"
+
+let async_scripts_gets_deduplicated () =
+  let app =
+    html
+      [
+        body
+          ~children:
+            [
+              script ~async:true ~src:"https://cdn.com/jquery.min.js" ();
+              script ~async:true ~src:"https://cdn.com/jquery.min.js" ();
+              script ~async:true ~src:"https://cdn.com/jquery.min.js" ();
+            ]
+          ();
+      ]
+  in
+  (* TODO: Deduplication only works on HTML currently, we don't know if we need the same logic for the model *)
+  assert_html app
+    ~shell:
+      "<!DOCTYPE html><html><head><script async src=\"https://cdn.com/jquery.min.js\"></script></head><body><script \
+       data-payload='0:[[\"$\",\"body\",null,{\"children\":[[\"$\",\"script\",null,{\"children\":[],\"async\":true,\"src\":\"https://cdn.com/jquery.min.js\"},null,[],{}],[\"$\",\"script\",null,{\"children\":[],\"async\":true,\"src\":\"https://cdn.com/jquery.min.js\"},null,[],{}],[\"$\",\"script\",null,{\"children\":[],\"async\":true,\"src\":\"https://cdn.com/jquery.min.js\"},null,[],{}]]},null,[],{}]]\n\
+       '>window.srr_stream.push()</script></body>"
+
+let async_scripts_gets_deduplicated_2 () =
+  let app =
+    html
+      [
+        body
+          ~children:
+            [
+              script ~async:true ~src:"https://cdn.com/jquery.min.js" ();
+              script ~async:true ~src:"https://cdn.com/jquery.min.js" ();
+              script ~async:false ~src:"https://cdn.com/jquery.min.js" ();
+            ]
+          ();
+      ]
+  in
+  (* non_async scripts aren't hoisted *)
+  assert_html app
+    ~shell:
+      "<!DOCTYPE html><html><head><script async src=\"https://cdn.com/jquery.min.js\"></script></head><body><script \
+       src=\"https://cdn.com/jquery.min.js\"></script><script \
+       data-payload='0:[[\"$\",\"body\",null,{\"children\":[[\"$\",\"script\",null,{\"children\":[],\"async\":true,\"src\":\"https://cdn.com/jquery.min.js\"},null,[],{}],[\"$\",\"script\",null,{\"children\":[],\"async\":true,\"src\":\"https://cdn.com/jquery.min.js\"},null,[],{}],[\"$\",\"script\",null,{\"children\":[],\"async\":false,\"src\":\"https://cdn.com/jquery.min.js\"},null,[],{}]]},null,[],{}]]\n\
+       '>window.srr_stream.push()</script></body>"
+
+let link_with_rel_and_precedence () =
+  let app =
+    html
+      [
+        body
+          ~children:
+            [
+              link ~rel:"stylesheet" ~precedence:"high" ~href:"https://cdn.com/main.css" ();
+              link ~rel:"stylesheet" ~precedence:"low" ~href:"https://cdn.com/main.css" ();
+            ]
+          ();
+      ]
+  in
+  (* TODO: Deduplication only works on HTML currently, we don't know if we need the same logic for the model *)
+  (* Here the precedence "high" remains in the head because it's the first one, there's no update with the 2nd link *)
+  assert_html app
+    ~shell:
+      "<!DOCTYPE html><html><head><link href=\"https://cdn.com/main.css\" rel=\"stylesheet\" precedence=\"high\" \
+       /></head><body><script \
+       data-payload='0:[[\"$\",\"body\",null,{\"children\":[[\"$\",\"link\",null,{\"href\":\"https://cdn.com/main.css\",\"rel\":\"stylesheet\",\"precedence\":\"high\"},null,[],{}],[\"$\",\"link\",null,{\"href\":\"https://cdn.com/main.css\",\"rel\":\"stylesheet\",\"precedence\":\"low\"},null,[],{}]]},null,[],{}]]\n\
+       '>window.srr_stream.push()</script></body>"
+
+let links_gets_pushed_to_the_head () =
+  let app =
+    html
+      [
+        body
+          ~children:
+            [
+              link ~rel:"stylesheet" ~precedence:"low" ~href:"https://cdn.com/main.css" ();
+              link ~rel:"icon" ~href:"favicon.ico" ();
+              link ~rel:"icon" ~href:"favicon.ico" ();
+              link ~rel:"pingback" ~href:"http://www.example.com/xmlrpc.php" ();
+            ]
+          ();
+      ]
+  in
+  (* TODO: Deduplication only works on HTML currently, we don't know if we need the same logic for the model *)
+  (* Links that aren't hoisted to the head are not deduplicated. Here favicon is duplicated *)
+  assert_html app
+    ~shell:
+      "<!DOCTYPE html><html><head><link href=\"https://cdn.com/main.css\" rel=\"stylesheet\" precedence=\"low\" \
+       /><link href=\"favicon.ico\" rel=\"icon\" /><link href=\"favicon.ico\" rel=\"icon\" /><link \
+       href=\"http://www.example.com/xmlrpc.php\" rel=\"pingback\" /></head><body><script \
+       data-payload='0:[[\"$\",\"body\",null,{\"children\":[[\"$\",\"link\",null,{\"href\":\"https://cdn.com/main.css\",\"rel\":\"stylesheet\",\"precedence\":\"low\"},null,[],{}],[\"$\",\"link\",null,{\"href\":\"favicon.ico\",\"rel\":\"icon\"},null,[],{}],[\"$\",\"link\",null,{\"href\":\"favicon.ico\",\"rel\":\"icon\"},null,[],{}],[\"$\",\"link\",null,{\"href\":\"http://www.example.com/xmlrpc.php\",\"rel\":\"pingback\"},null,[],{}]]},null,[],{}]]\n\
+       '>window.srr_stream.push()</script></body>"
 
 let no_async_scripts_to_remain () =
   let app = html [ body ~children:[ script ~async:false ~src:"https://cdn.com/jquery.min.js" () ] () ] in
@@ -273,4 +359,8 @@ let tests =
     test "title_and_meta_populates_to_the_head" title_and_meta_populates_to_the_head;
     test "async_scripts_to_head" async_scripts_to_head;
     test "no_async_scripts_to_remain" no_async_scripts_to_remain;
+    test "async_scripts_gets_deduplicated" async_scripts_gets_deduplicated;
+    test "async_scripts_gets_deduplicated_2" async_scripts_gets_deduplicated_2;
+    test "link_with_rel_and_precedence" link_with_rel_and_precedence;
+    test "links_gets_pushed_to_the_head" links_gets_pushed_to_the_head;
   ]

@@ -23,6 +23,39 @@ let create_stack_trace () =
   in
   `List (Array.to_list (Array.map make_locations slots))
 
+module Resources = Set.Make (struct
+  type t = string * Html.attribute_list * Html.element option
+
+  let get_attribute ~key:key_to_get attributes =
+    List.find_map
+      (fun attr -> match attr with `Value (key, value) when key = key_to_get -> Some value | _ -> None)
+      attributes
+
+  let get_src = get_attribute ~key:"src"
+  let get_href = get_attribute ~key:"href"
+
+  let compare (a : t) (b : t) =
+    let a_tag, a_attributes, _a_children = a and b_tag, b_attributes, _b_children = b in
+    if not (String.equal a_tag b_tag) then Stdlib.compare a_tag b_tag
+    else if String.equal a_tag "script" then
+      let src_a = get_src a_attributes in
+      let src_b = get_src b_attributes in
+      match (src_a, src_b) with
+      | Some src_a, Some src_b -> Stdlib.compare src_a src_b
+      | None, Some _ -> -1
+      | Some _, None -> 1
+      | None, None -> 1
+    else if String.equal a_tag "link" then
+      let href_a = get_href a_attributes in
+      let href_b = get_href b_attributes in
+      match (href_a, href_b) with
+      | Some href_a, Some href_b -> Stdlib.compare href_a href_b
+      | None, Some _ -> -1
+      | Some _, None -> 1
+      | None, None -> 1
+    else 1
+end)
+
 module Fiber = struct
   type context = {
     mutable index : int;
@@ -37,17 +70,14 @@ module Fiber = struct
     is_root_element_a_html_node : bool;
     (* hoisted_head stores the <head> element's attributes and direct children *)
     mutable hoisted_head : (Html.attribute_list * Html.element list) option;
-    (* hoisted_head_childrens collects elements that should be in <head> (title, meta, link, style)
-       even if they weren't originally inside a <head> element *)
+    (* hoisted_head_childrens collects elements that should be in the document's <head> (title, meta, link, style) even if they weren't originally inside a <head> element *)
     mutable hoisted_head_childrens : Html.element list;
-    (* resources *)
-    (* TODO: Currently it's a list, should be a Set *)
-    (* only push if async is true *)
-    mutable resources : Html.element list;
+    (* resources collects link, script that should preload, prefetch to be in the document's <head> and deduplicates them based on "src" or "href" attributes, respectively *)
+    mutable resources : Resources.t;
   }
 
   let push_hoisted_head ~fiber html_attributes children = fiber.hoisted_head <- Some (html_attributes, children)
-  let push_resource ~fiber resource = fiber.resources <- resource :: fiber.resources
+  let push_resource ~fiber resource = fiber.resources <- Resources.add resource fiber.resources
 
   let push_hoisted_head_childrens ~fiber children =
     fiber.hoisted_head_childrens <- children :: fiber.hoisted_head_childrens
@@ -503,8 +533,15 @@ and render_lower_case ~fiber ~key:_ ~tag ~attributes ~children =
       Lwt.return (Html.node tag html_props html)
 
 let is_async props =
-  let has_async prop = match (prop : React.JSX.prop) with React.JSX.Bool ("async", _, value) -> value | _ -> false in
+  let open React.JSX in
+  let has_async prop = match prop with Bool ("async", _, value) -> value | _ -> false in
   List.exists has_async props
+
+let has_precedence_and_rel_stylesheet props =
+  let open React.JSX in
+  let has_precedence prop = match prop with String ("precedence", _, _) -> true | _ -> false in
+  let has_rel_stylesheet prop = match prop with String ("rel", _, "stylesheet") -> true | _ -> false in
+  List.exists has_precedence props && List.exists has_rel_stylesheet props
 
 let rec to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * json) Lwt.t =
   match element with
@@ -653,8 +690,16 @@ and render_lower_case_element ~fiber ~key ~tag ~attributes ~children =
         let html, model = List.split html_and_model in
         Fiber.push_hoisted_head ~fiber html_attributes html;
         Lwt.return (Html.null, Model.node ~tag ~props model)
-    | tag when tag = "title" || tag = "meta" || (tag = "script" && is_async attributes) ->
-        (* Hoist title, meta, and async scripts *)
+    | tag when (tag = "script" && is_async attributes) || (tag = "link" && has_precedence_and_rel_stylesheet attributes)
+      ->
+        (* Hoist resources (scripts, links) *)
+        let html_props = ReactDOM.attributes_to_html attributes in
+        (* TODO: What we should do with the model? *)
+        let%lwt _children_html, children_model = elements_to_html ~fiber children in
+        Fiber.push_resource ~fiber (tag, html_props, None);
+        Lwt.return (Html.null, create_model ~children_model)
+    | tag when tag = "title" || tag = "meta" || tag = "link" ->
+        (* Hoist title, meta, and links without rel or precedence *)
         let html_props = ReactDOM.attributes_to_html attributes in
         let%lwt children_html, children_model = elements_to_html ~fiber children in
         let html = render_html_node ~html_props ~children_html in
@@ -730,14 +775,14 @@ let render_html ?(skipRoot = false) ?(env = `Dev) ?debug:(_ = false) ?bootstrapS
     | Some scripts ->
         List.map
           (fun script ->
-            Html.node "link"
+            ( "link",
               [
                 Html.attribute "rel" "modulepreload";
                 Html.attribute "fetchPriority" "low";
                 Html.attribute "href" script;
                 (* Html.attribute "as" "script"; *)
-              ]
-              [])
+              ],
+              None ))
           scripts
     | None -> (
         []
@@ -746,14 +791,14 @@ let render_html ?(skipRoot = false) ?(env = `Dev) ?debug:(_ = false) ?bootstrapS
         | Some modules ->
             List.map
               (fun script ->
-                Html.node "link"
+                ( "link",
                   [
                     Html.attribute "rel" "modulepreload";
                     Html.attribute "fetchPriority" "low";
                     Html.attribute "href" script;
                     (* Html.attribute "as" "script"; *)
-                  ]
-                  [])
+                  ],
+                  None ))
               modules
         | None -> [])
   in
@@ -766,7 +811,7 @@ let render_html ?(skipRoot = false) ?(env = `Dev) ?debug:(_ = false) ?bootstrapS
       hoisted_head = None;
       hoisted_head_childrens = [];
       is_root_element_a_html_node;
-      resources = initial_resources;
+      resources = Resources.of_list initial_resources;
     }
   in
   let%lwt root_html, root_model = to_html ~fiber element in
@@ -819,7 +864,15 @@ let render_html ?(skipRoot = false) ?(env = `Dev) ?debug:(_ = false) ?bootstrapS
         | true, true | false, true -> Html.list user_scripts
         | false, false -> Html.list (root_html :: user_scripts)
       in
-      let head_childrens = List.rev fiber.resources @ List.rev fiber.hoisted_head_childrens in
+      let head_childrens =
+        List.rev_map
+          (fun (tag, attributes, children) ->
+            match children with
+            | Some children -> Html.node tag attributes [ children ]
+            | None -> Html.node tag attributes [])
+          (Resources.elements fiber.resources)
+        @ List.rev fiber.hoisted_head_childrens
+      in
       match fiber.hoisted_head with
       | Some (attribute_list, children) ->
           (* If we found a <head> element, use its attributes and combine all children *)
