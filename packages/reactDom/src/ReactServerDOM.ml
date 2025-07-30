@@ -193,7 +193,11 @@ module Model = struct
     let rec turn_element_into_payload ~context element =
       match (element : React.element) with
       | Empty -> `Null
-      | DangerouslyInnerHtml html -> `String html
+      | DangerouslyInnerHtml _ ->
+          raise
+            (Invalid_argument
+               "InnerHtml does not exist in RSC, this is a bug in server-reason-react.ppx or a wrong construction of \
+                JSX manually")
       (* TODO: Do we need to html encode the model or only the html? *)
       | Text t -> `String t
       | Lower_case_element { key; tag; attributes; children } ->
@@ -503,7 +507,8 @@ let is_a_head_child_tag tag = tag = "title" || tag = "meta" || tag = "link" || t
 let rec to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * json) Lwt.t =
   match element with
   | Empty -> Lwt.return (Html.null, `Null)
-  | DangerouslyInnerHtml html -> Lwt.return (Html.raw html, `String html)
+  (* Should the DangerouslyInnerHtml model be `Null? *)
+  | DangerouslyInnerHtml html -> Lwt.return (Html.raw html, `Null)
   | Text s -> Lwt.return (Html.string s, `String s)
   | Fragment children -> to_html ~fiber children
   | List list -> elements_to_html ~fiber list

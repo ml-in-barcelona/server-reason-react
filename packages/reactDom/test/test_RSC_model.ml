@@ -731,13 +731,6 @@ let env_development_adds_debug_info () =
     ];
   Lwt.return ()
 
-let raw_element () =
-  let app = React.DangerouslyInnerHtml "<div>Hello</div>" in
-  let output, subscribe = capture_stream () in
-  let%lwt () = ReactServerDOM.render_model ~subscribe app in
-  assert_list_of_strings !output [ "0:\"<div>Hello</div>\"\n" ];
-  Lwt.return ()
-
 (* let env_development_adds_debug_info_2 () =
   let app () =
     React.Fragment
@@ -800,7 +793,6 @@ let tests =
     test "error_in_toplevel_in_async" error_in_toplevel_in_async;
     test "suspense_in_a_list_with_error" suspense_in_a_list_with_error;
     test "suspense_with_error_under_lowercase" suspense_with_error_under_lowercase;
-    test "raw_element" raw_element;
     (* TODO: https://github.com/ml-in-barcelona/server-reason-react/issues/251 test "client_with_promise_failed_props" client_with_promise_failed_props; *)
     (* test "env_development_adds_debug_info_2" env_development_adds_debug_info_2; *)
   ]
