@@ -31,7 +31,7 @@ let test title fn =
           let epsilon = 0.001 in
           let duration = Unix.gettimeofday () -. start in
           if abs_float duration >= epsilon then
-            Printf.printf "\027[1m\027[33m[WARNING]\027[0m Test '%s' took %.3f seconds\n" title duration
+            Printf.printf "  \027[1m\027[33m[WARNING]\027[0m Test '%s' took %.3f seconds\n" title duration
           else ();
           Lwt.return test_promise);
     ] )
