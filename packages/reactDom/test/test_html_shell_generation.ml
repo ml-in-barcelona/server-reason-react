@@ -41,7 +41,7 @@ let lower tag ?(attributes = []) ?(children = []) () =
 
 let input ?(attributes = []) () = React.Lower_case_element { key = None; tag = "input"; attributes; children = [] }
 
-let assert_html ?(skipRoot = false) ?(shell = "") ?(bootstrapModules = []) ?(bootstrapScriptContent = "") element =
+let assert_html ?(skipRoot = false) ?(shell = "") ?bootstrapModules ?bootstrapScriptContent element =
   let begin_html = "<!DOCTYPE html><html><head></head><body></body>" in
   let script_html =
     Printf.sprintf
@@ -58,7 +58,7 @@ srr_stream.readable_stream = new ReadableStream({ start(c) { srr_stream._c = c; 
 </script>|}
   in
   let subscribed_elements = ref [] in
-  let%lwt html, subscribe = ReactServerDOM.render_html ~skipRoot ~bootstrapModules ~bootstrapScriptContent element in
+  let%lwt html, subscribe = ReactServerDOM.render_html ~skipRoot ?bootstrapModules ?bootstrapScriptContent element in
   let%lwt () =
     subscribe (fun element ->
         subscribed_elements := !subscribed_elements @ [ element ];
@@ -77,9 +77,7 @@ srr_stream.readable_stream = new ReadableStream({ start(c) { srr_stream._c = c; 
 let just_an_html_node () =
   let app = html [] in
   assert_html app
-    ~shell:
-      "<!DOCTYPE html><html><head></head><script data-payload='0:[]\n\
-       '>window.srr_stream.push()</script><script></script>"
+    ~shell:"<!DOCTYPE html><html><head></head><script data-payload='0:[]\n'>window.srr_stream.push()</script>"
 
 let doctype () =
   (* TODO: Fix this, should have html + head *)
@@ -87,21 +85,19 @@ let doctype () =
   assert_html app
     ~shell:
       "<script data-payload='0:[[\"$\",\"head\",null,{},null,[],{}],[\"$\",\"body\",null,{\"children\":[]},null,[],{}]]\n\
-       '>window.srr_stream.push()</script><script></script>"
+       '>window.srr_stream.push()</script>"
 
 let no_head_no_body_nothing_just_an_html_node () =
   let app = input () in
   assert_html app
-    ~shell:
-      "<input /><script data-payload='0:[\"$\",\"input\",null,{},null,[],{}]\n\
-       '>window.srr_stream.push()</script><script></script>"
+    ~shell:"<input /><script data-payload='0:[\"$\",\"input\",null,{},null,[],{}]\n'>window.srr_stream.push()</script>"
 
 let html_with_a_node () =
   let app = html [ input () ] in
   assert_html app
     ~shell:
       "<!DOCTYPE html><html><head></head><input /><script data-payload='0:[[\"$\",\"input\",null,{},null,[],{}]]\n\
-       '>window.srr_stream.push()</script><script></script>"
+       '>window.srr_stream.push()</script>"
 
 let html_with_only_a_body () =
   let app = html [ lower "body" ~children:[ lower "div" ~children:[ React.string "Just body content" ] () ] () ] in
@@ -110,7 +106,7 @@ let html_with_only_a_body () =
       "<!DOCTYPE html><html><head></head><body><div>Just body content</div><script \
        data-payload='0:[[\"$\",\"body\",null,{\"children\":[[\"$\",\"div\",null,{\"children\":[\"Just body \
        content\"]},null,[],{}]]},null,[],{}]]\n\
-       '>window.srr_stream.push()</script><script></script></body>"
+       '>window.srr_stream.push()</script></body>"
 
 let html_with_no_srr_html_body () =
   let app = html [ lower "body" ~children:[ lower "div" ~children:[ React.string "Just body content" ] () ] () ] in
@@ -119,7 +115,7 @@ let html_with_no_srr_html_body () =
       "<!DOCTYPE html><html><head></head><script \
        data-payload='0:[[\"$\",\"body\",null,{\"children\":[[\"$\",\"div\",null,{\"children\":[\"Just body \
        content\"]},null,[],{}]]},null,[],{}]]\n\
-       '>window.srr_stream.push()</script><script></script>"
+       '>window.srr_stream.push()</script>"
 
 let head_with_content () =
   let app =
@@ -138,7 +134,7 @@ let head_with_content () =
     ~shell:
       "<!DOCTYPE html><html><head><title>Titulaso</title><meta charset=\"utf-8\" /></head><script \
        data-payload='0:[[\"$\",\"head\",null,{\"children\":[[\"$\",\"title\",null,{\"children\":[\"Titulaso\"]},null,[],{}],[\"$\",\"meta\",null,{\"charSet\":\"utf-8\"},null,[],{}]]},null,[],{}]]\n\
-       '>window.srr_stream.push()</script><script></script>"
+       '>window.srr_stream.push()</script>"
 
 let html_inside_a_div () =
   let app = lower "div" ~children:[ html [] ] () in
@@ -146,7 +142,7 @@ let html_inside_a_div () =
     ~shell:
       "<div><html></div><script \
        data-payload='0:[\"$\",\"div\",null,{\"children\":[[\"$\",\"html\",null,{\"children\":[]},null,[],{}]]},null,[],{}]\n\
-       '>window.srr_stream.push()</script><script></script>"
+       '>window.srr_stream.push()</script>"
 
 let html_inside_a_fragment () =
   let app = React.Fragment (React.list [ html [ lower "div" () ] ]) in
@@ -154,7 +150,7 @@ let html_inside_a_fragment () =
     ~shell:
       "<!DOCTYPE html><html><div></div><script \
        data-payload='0:[[\"$\",\"html\",null,{\"children\":[[\"$\",\"div\",null,{\"children\":[]},null,[],{}]]},null,[],{}]]\n\
-       '>window.srr_stream.push()</script><script></script>"
+       '>window.srr_stream.push()</script>"
 
 let html_with_head_like_elements_not_in_head () =
   let app =
@@ -169,7 +165,7 @@ let html_with_head_like_elements_not_in_head () =
       "<!DOCTYPE html><html><head><meta charset=\"utf-8\" /><title>Implicit Head?</title></head><script \
        data-payload='0:[[\"$\",\"meta\",null,{\"charSet\":\"utf-8\"},null,[],{}],[\"$\",\"title\",null,{\"children\":[\"Implicit \
        Head?\"]},null,[],{}]]\n\
-       '>window.srr_stream.push()</script><script></script>"
+       '>window.srr_stream.push()</script>"
 
 let html_without_body_and_bootstrap_scripts () =
   let app = html [ lower "input" ~attributes:[ React.JSX.String ("id", "id", "sidebar-search-input") ] () ] in
@@ -235,7 +231,7 @@ let title_and_meta_populates_to_the_head () =
        content=\"width=device-width,initial-scale=1\" /></head><body><script \
        data-payload='0:[[\"$\",\"body\",null,{\"children\":[[\"$\",\"head\",null,{\"children\":[[\"$\",\"title\",null,{\"children\":[\"Hey \
        Yah\"]},null,[],{}],[\"$\",\"meta\",null,{\"name\":\"viewport\",\"content\":\"width=device-width,initial-scale=1\"},null,[],{}]]},null,[],{}]]},null,[],{}]]\n\
-       '>window.srr_stream.push()</script><script></script></body>"
+       '>window.srr_stream.push()</script></body>"
 
 let async_scripts_to_head () =
   let app = html [ body ~children:[ script ~async:true ~src:"https://cdn.com/jquery.min.js" () ] () ] in
@@ -245,8 +241,8 @@ let async_scripts_to_head () =
        rel=\"modulepreload\" fetchPriority=\"low\" href=\"jquery\" /><script async \
        src=\"https://cdn.com/jquery.min.js\"></script></head><body><script \
        data-payload='0:[[\"$\",\"body\",null,{\"children\":[[\"$\",\"script\",null,{\"children\":[],\"async\":true,\"src\":\"https://cdn.com/jquery.min.js\"},null,[],{}]]},null,[],{}]]\n\
-       '>window.srr_stream.push()</script><script></script><script src=\"jquery\" async=\"\" \
-       type=\"module\"></script><script src=\"jquery-mobile\" async=\"\" type=\"module\"></script></body>"
+       '>window.srr_stream.push()</script><script src=\"jquery\" async=\"\" type=\"module\"></script><script \
+       src=\"jquery-mobile\" async=\"\" type=\"module\"></script></body>"
 
 let no_async_scripts_to_remain () =
   let app = html [ body ~children:[ script ~async:false ~src:"https://cdn.com/jquery.min.js" () ] () ] in
@@ -256,8 +252,8 @@ let no_async_scripts_to_remain () =
        rel=\"modulepreload\" fetchPriority=\"low\" href=\"jquery\" /></head><body><script \
        src=\"https://cdn.com/jquery.min.js\"></script><script \
        data-payload='0:[[\"$\",\"body\",null,{\"children\":[[\"$\",\"script\",null,{\"children\":[],\"async\":false,\"src\":\"https://cdn.com/jquery.min.js\"},null,[],{}]]},null,[],{}]]\n\
-       '>window.srr_stream.push()</script><script></script><script src=\"jquery\" async=\"\" \
-       type=\"module\"></script><script src=\"jquery-mobile\" async=\"\" type=\"module\"></script></body>"
+       '>window.srr_stream.push()</script><script src=\"jquery\" async=\"\" type=\"module\"></script><script \
+       src=\"jquery-mobile\" async=\"\" type=\"module\"></script></body>"
 
 let tests =
   [

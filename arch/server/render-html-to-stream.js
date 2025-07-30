@@ -110,7 +110,7 @@ const App = () => (
 				<script src="https://unpkg.com/jquery@3.7.1/dist/jquery.min.js" async />
 				<link rel="stylesheet" href="styles.css" async />
 				<title>Hola!</title>
-				<base>Hola!</base>
+				<base href="${host}/${context}/${language}/" />
 				<template>Hola!</template>
 				<noscript>Hola!</noscript>
 				<style>

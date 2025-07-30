@@ -1,3 +1,5 @@
+[@@@warning "-32"]
+
 type json = Yojson.Basic.t
 type env = [ `Dev | `Prod ]
 
