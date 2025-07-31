@@ -51,14 +51,8 @@ const AnotherComponent = async () => {
 const App = () => (
 	<html>
 		<head>
-			<meta charSet="utf-8" />
 		</head>
 		<body>
-			<div>
-				<script src="https://unpkg.com/jquery@3.7.1/dist/jquery.min.js" />
-
-				<AnotherComponent />
-			</div>
 		</body>
 	</html>
 );

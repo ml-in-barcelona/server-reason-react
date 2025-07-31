@@ -100,28 +100,31 @@ const App = () => (
 		<div>AnotherComponent</div></>;
 }; */
 
+const Component = () => {
+	return <div>
+		<link rel="stylesheet" precedence="low" href="https://cdn.com/main.css" />
+		<link rel="icon" href="favicon.ico" />
+		<link rel="pingback" href="http://www.example.com/xmlrpc.php" />
+		<style>
+			{"body { background-color: red; }"}
+		</style>
+		<script>
+			{"console.log('hello');"}
+		</script>
+	</div>
+}
+
 const App = () => (
-	<html>
-		<head>
-			<meta charSet="utf-8" />
-		</head>
-		<body>
-			<div>
-				<script src="https://unpkg.com/jquery@3.7.1/dist/jquery.min.js" async />
-				<link rel="stylesheet" href="styles.css" async />
-				<title>Hola!</title>
-				<base href="${host}/${context}/${language}/" />
-				<template>Hola!</template>
-				<noscript>Hola!</noscript>
-				<style>
-					{"* {display: none}"}
-				</style>
-			</div>
-		</body>
-	</html>
+	<div>
+		<html>
+			<head>
+			</head>
+			<body>
+			</body>
+		</html>
+	</div>
 );
 
-
-ReactDOM.renderToReadableStream(<App />, { bootstrapModules: ["react", "react-dom"] }).then((stream) => {
+ReactDOM.renderToReadableStream(<App />).then((stream) => {
 	debug(stream);
 });
