@@ -106,40 +106,6 @@ let element_with_dangerously_set_inner_html () =
     app
     [ "<script>window.srr_stream.close()</script>" ]
 
-let self_closing_with_dangerously () =
-  let app =
-    React.createElement "div" []
-      [
-        React.createElement "input" [] [];
-        (* When dangerouslySetInnerHtml is used, the children is ignored *)
-        React.createElement "p" [ React.JSX.DangerouslyInnerHtml "unsafe!" ] [ React.string "xxx" ];
-      ]
-  in
-  assert_html
-    ~shell:
-      "<div><input /><p>unsafe!</p></div><script \
-       data-payload='0:[\"$\",\"div\",null,{\"children\":[[\"$\",\"input\",null,{},null,[],{}],[\"$\",\"p\",null,{\"dangerouslySetInnerHTML\":{\"__html\":\"unsafe!\"}},null,[],{}]]},null,[],{}]\n\
-       '>window.srr_stream.push()</script>"
-    app
-    [ "<script>window.srr_stream.close()</script>" ]
-
-let self_closing_with_dangerously_in_head () =
-  let app =
-    React.createElement "head" []
-      [
-        React.createElement "meta" [ React.JSX.String ("char-set", "charSet", "utf-8") ] [];
-        React.createElement "style" [ React.JSX.DangerouslyInnerHtml "* { display: none; }" ] [];
-      ]
-  in
-  assert_html
-    ~shell:
-      "<head><meta char-set=\"utf-8\" /><style>* { display: none; }</style></head><script \
-       data-payload='0:[\"$\",\"head\",null,{\"children\":[[\"$\",\"meta\",null,{\"charSet\":\"utf-8\"},null,[],{}],[\"$\",\"style\",null,{\"dangerouslySetInnerHTML\":{\"__html\":\"* \
-       { display: none; }\"}},null,[],{}]]},null,[],{}]\n\
-       '>window.srr_stream.push()</script>"
-    app
-    [ "<script>window.srr_stream.close()</script>" ]
-
 (* let debug_adds_debug_info () =
   let app =
     React.Upper_case_component
@@ -523,8 +489,6 @@ let suspense_in_a_list_with_error () =
 
 let tests =
   [
-    test "self_closing_with_dangerously" self_closing_with_dangerously;
-    test "self_closing_with_dangerously_in_head" self_closing_with_dangerously_in_head;
     test "client_with_element_props" client_with_element_props;
     test "null_element" null_element;
     test "element_with_dangerously_set_inner_html" element_with_dangerously_set_inner_html;

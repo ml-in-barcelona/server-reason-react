@@ -318,6 +318,57 @@ let no_async_scripts_to_remain () =
        '>window.srr_stream.push()</script><script src=\"jquery\" async=\"\" type=\"module\"></script><script \
        src=\"jquery-mobile\" async=\"\" type=\"module\"></script></body></html>"
 
+let self_closing_with_dangerously () =
+  let app =
+    React.createElement "div" []
+      [
+        React.createElement "input" [] [];
+        (* When dangerouslySetInnerHtml is used, children gets ignored *)
+        React.createElement "p" [ React.JSX.DangerouslyInnerHtml "unsafe!" ] [ React.string "xxx" ];
+      ]
+  in
+  assert_html
+    ~shell:
+      "<div><input /><p>unsafe!</p></div><script \
+       data-payload='0:[\"$\",\"div\",null,{\"children\":[[\"$\",\"input\",null,{},null,[],{}],[\"$\",\"p\",null,{\"dangerouslySetInnerHTML\":{\"__html\":\"unsafe!\"}},null,[],{}]]},null,[],{}]\n\
+       '>window.srr_stream.push()</script>"
+    app
+
+let self_closing_with_dangerously_in_head () =
+  let app =
+    React.createElement "html" []
+      [
+        React.createElement "head" []
+          [
+            React.createElement "meta" [ React.JSX.String ("char-set", "charSet", "utf-8") ] [];
+            React.createElement "style" [ React.JSX.DangerouslyInnerHtml "* { display: none; }" ] [];
+          ];
+      ]
+  in
+  assert_html
+    ~shell:
+      "<!DOCTYPE html><html><head><style>* { display: none; }</style><meta char-set=\"utf-8\" /></head><script \
+       data-payload='0:[[\"$\",\"head\",null,{\"children\":[[\"$\",\"meta\",null,{\"charSet\":\"utf-8\"},null,[],{}],[\"$\",\"style\",null,{\"dangerouslySetInnerHTML\":{\"__html\":\"* \
+       { display: none; }\"}},null,[],{}]]},null,[],{}]]\n\
+       '>window.srr_stream.push()</script></html>"
+    app
+
+let self_closing_with_dangerously_in_head_2 () =
+  let app =
+    React.createElement "head" []
+      [
+        React.createElement "meta" [ React.JSX.String ("char-set", "charSet", "utf-8") ] [];
+        React.createElement "style" [ React.JSX.DangerouslyInnerHtml "* { display: none; }" ] [];
+      ]
+  in
+  assert_html
+    ~shell:
+      "<head><meta char-set=\"utf-8\" /><style>* { display: none; }</style></head><script \
+       data-payload='0:[\"$\",\"head\",null,{\"children\":[[\"$\",\"meta\",null,{\"charSet\":\"utf-8\"},null,[],{}],[\"$\",\"style\",null,{\"dangerouslySetInnerHTML\":{\"__html\":\"* \
+       { display: none; }\"}},null,[],{}]]},null,[],{}]\n\
+       '>window.srr_stream.push()</script>"
+    app
+
 let tests =
   [
     test "doctype" doctype;
@@ -340,4 +391,6 @@ let tests =
     test "async_scripts_gets_deduplicated_2" async_scripts_gets_deduplicated_2;
     test "link_with_rel_and_precedence" link_with_rel_and_precedence;
     test "links_gets_pushed_to_the_head" links_gets_pushed_to_the_head;
+    test "self_closing_with_dangerously" self_closing_with_dangerously;
+    test "self_closing_with_dangerously_in_head" self_closing_with_dangerously_in_head;
   ]
