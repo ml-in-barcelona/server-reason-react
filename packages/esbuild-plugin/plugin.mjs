@@ -2,6 +2,11 @@ import Fs from "node:fs/promises";
 import Path from "node:path";
 import { execSync } from "node:child_process";
 
+async function writeFile(path, contents, cb) {
+	await Fs.mkdir(Path.dirname(path), { recursive: true })
+	Fs.writeFile(path, contents, cb);
+}
+
 async function generateBootstrapFile(output, content) {
 	let previousContent = undefined;
 	try {
@@ -13,7 +18,7 @@ async function generateBootstrapFile(output, content) {
 	}
 	const contentHasChanged = previousContent !== content;
 	if (contentHasChanged) {
-		await Fs.writeFile(output, content, "utf8");
+		await writeFile(output, content, "utf8");
 	}
 }
 
