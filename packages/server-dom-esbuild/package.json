@@ -1,0 +1,41 @@
+{
+  "name": "@ml-in-barcelona/server-dom-esbuild",
+  "description": "React Server Components bindings for DOM using Esbuild. This is intended to be integrated into meta-frameworks. It is not intended to be imported directly.",
+  "version": "0.0.0",
+  "exports": {
+    "./ReactServerDOMEsbuild.js": "./dist/ReactServerDOMEsbuild.js",
+    "./plugin.mjs": "./dist/plugin.mjs"
+  },
+  "keywords": [
+    "reason-react",
+    "server-reason-react",
+    "esbuild"
+  ],
+  "homepage": "https://github.com/ml-in-barcelona/server-reason-react",
+  "bugs": "https://github.com/ml-in-barcelona/server-reason-react/issues",
+  "scripts": {
+    "build": "esbuild ReactServerDOMEsbuild.js --bundle --format=esm --outfile=dist/ReactServerDOMEsbuild.js && cp plugin.mjs dist/plugin.mjs",
+    "prepare": "npm run build",
+    "release": "npm run prepare && npm publish"
+  },
+  "license": "MIT",
+  "files": [
+    "dist/ReactServerDOMEsbuild.js",
+    "dist/plugin.mjs"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ml-in-barcelona/server-reason-react.git",
+    "directory": "packages/server-dom-esbuild"
+  },
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0"
+  },
+  "dependencies": {
+    "@pedrobslisboa/react-client": "^0.0.0-beta.2",
+    "esbuild": "^0.21.4"
+  }
+}
