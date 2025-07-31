@@ -878,12 +878,12 @@ let render_html ?(skipRoot = false) ?(env = `Dev) ?debug:(_ = false) ?bootstrapS
             | Some children -> Html.node tag attributes [ children ]
             | None -> Html.node tag attributes [])
           (Resources.elements fiber.resources)
-        @ List.rev fiber.hoisted_head_childrens
+        @ fiber.hoisted_head_childrens
       in
       match fiber.hoisted_head with
       | Some (attribute_list, children) ->
           (* If we found a <head> element, use its attributes and combine all children *)
-          let head = Html.node "head" attribute_list (children @ head_childrens) in
+          let head = Html.node "head" attribute_list (head_childrens @ children) in
           Html.node "html" [] [ head; body ]
       | None ->
           (* If no explicit <head> was found, create one with the hoisted children *)

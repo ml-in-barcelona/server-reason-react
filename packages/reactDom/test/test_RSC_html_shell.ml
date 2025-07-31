@@ -123,7 +123,7 @@ let head_with_content () =
   in
   assert_html app
     ~shell:
-      "<!DOCTYPE html><html><head><title>Titulaso</title><meta charset=\"utf-8\" /></head><script \
+      "<!DOCTYPE html><html><head><meta charset=\"utf-8\" /><title>Titulaso</title></head><script \
        data-payload='0:[[\"$\",\"head\",null,{\"children\":[[\"$\",\"title\",null,{\"children\":[\"Titulaso\"]},null,[],{}],[\"$\",\"meta\",null,{\"charSet\":\"utf-8\"},null,[],{}]]},null,[],{}]]\n\
        '>window.srr_stream.push()</script></html>"
 
@@ -153,7 +153,7 @@ let html_with_head_like_elements_not_in_head () =
   in
   assert_html app
     ~shell:
-      "<!DOCTYPE html><html><head><meta charset=\"utf-8\" /><title>Implicit Head?</title></head><script \
+      "<!DOCTYPE html><html><head><title>Implicit Head?</title><meta charset=\"utf-8\" /></head><script \
        data-payload='0:[[\"$\",\"meta\",null,{\"charSet\":\"utf-8\"},null,[],{}],[\"$\",\"title\",null,{\"children\":[\"Implicit \
        Head?\"]},null,[],{}]]\n\
        '>window.srr_stream.push()</script></html>"
@@ -208,11 +208,11 @@ let title_and_meta_populates_to_the_head () =
           ];
       ]
   in
-  (* TODO: Remove empty <script> *)
+
   assert_html app
     ~shell:
-      "<!DOCTYPE html><html><head><title>Hey Yah</title><meta name=\"viewport\" \
-       content=\"width=device-width,initial-scale=1\" /></head><body><script \
+      "<!DOCTYPE html><html><head><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\" /><title>Hey \
+       Yah</title></head><body><script \
        data-payload='0:[[\"$\",\"body\",null,{\"children\":[[\"$\",\"head\",null,{\"children\":[[\"$\",\"title\",null,{\"children\":[\"Hey \
        Yah\"]},null,[],{}],[\"$\",\"meta\",null,{\"name\":\"viewport\",\"content\":\"width=device-width,initial-scale=1\"},null,[],{}]]},null,[],{}]]},null,[],{}]]\n\
        '>window.srr_stream.push()</script></body></html>"
@@ -302,8 +302,8 @@ let links_gets_pushed_to_the_head () =
   assert_html app
     ~shell:
       "<!DOCTYPE html><html><head><link href=\"https://cdn.com/main.css\" rel=\"stylesheet\" precedence=\"low\" \
-       /><link href=\"favicon.ico\" rel=\"icon\" /><link href=\"favicon.ico\" rel=\"icon\" /><link \
-       href=\"http://www.example.com/xmlrpc.php\" rel=\"pingback\" /></head><body><script \
+       /><link href=\"http://www.example.com/xmlrpc.php\" rel=\"pingback\" /><link href=\"favicon.ico\" rel=\"icon\" \
+       /><link href=\"favicon.ico\" rel=\"icon\" /></head><body><script \
        data-payload='0:[[\"$\",\"body\",null,{\"children\":[[\"$\",\"link\",null,{\"href\":\"https://cdn.com/main.css\",\"rel\":\"stylesheet\",\"precedence\":\"low\"},null,[],{}],[\"$\",\"link\",null,{\"href\":\"favicon.ico\",\"rel\":\"icon\"},null,[],{}],[\"$\",\"link\",null,{\"href\":\"favicon.ico\",\"rel\":\"icon\"},null,[],{}],[\"$\",\"link\",null,{\"href\":\"http://www.example.com/xmlrpc.php\",\"rel\":\"pingback\"},null,[],{}]]},null,[],{}]]\n\
        '>window.srr_stream.push()</script></body></html>"
 
@@ -347,13 +347,13 @@ let self_closing_with_dangerously_in_head () =
   in
   assert_html
     ~shell:
-      "<!DOCTYPE html><html><head><style>* { display: none; }</style><meta char-set=\"utf-8\" /></head><script \
+      "<!DOCTYPE html><html><head><meta char-set=\"utf-8\" /><style>* { display: none; }</style></head><script \
        data-payload='0:[[\"$\",\"head\",null,{\"children\":[[\"$\",\"meta\",null,{\"charSet\":\"utf-8\"},null,[],{}],[\"$\",\"style\",null,{\"dangerouslySetInnerHTML\":{\"__html\":\"* \
        { display: none; }\"}},null,[],{}]]},null,[],{}]]\n\
        '>window.srr_stream.push()</script></html>"
     app
 
-let self_closing_with_dangerously_in_head_2 () =
+(* let self_closing_with_dangerously_in_head_2 () =
   let app =
     React.createElement "head" []
       [
@@ -368,7 +368,7 @@ let self_closing_with_dangerously_in_head_2 () =
        { display: none; }\"}},null,[],{}]]},null,[],{}]\n\
        '>window.srr_stream.push()</script>"
     app
-
+ *)
 let tests =
   [
     test "doctype" doctype;
