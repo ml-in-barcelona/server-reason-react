@@ -18,27 +18,23 @@ let test title fn =
     ] )
 
 let stream_close_script = "<script>window.srr_stream.close()</script>"
-
-let lower tag ?(attributes = []) ?(children = []) () =
-  React.Lower_case_element { key = None; tag; attributes; children }
-
-let html children = lower "html" ~children ~attributes:[] ()
-let head children = lower "head" ~children ()
-let body children = lower "body" ~children ()
-let input attributes = lower "input" ~attributes ()
+let html children = React.createElement "html" [] children
+let head children = React.createElement "head" [] children
+let body children = React.createElement "body" [] children
+let input attributes = React.createElement "input" attributes []
+let div attributes children = React.createElement "div" attributes children
 
 let script ~async ~src () =
-  lower "script" ~attributes:[ React.JSX.Bool ("async", "async", async); React.JSX.String ("src", "src", src) ] ()
+  React.createElement "script" [ React.JSX.Bool ("async", "async", async); React.JSX.String ("src", "src", src) ] []
 
-let link ~rel ?precedence ~href () =
-  lower "link"
-    ~attributes:
-      ([ React.JSX.String ("href", "href", href); React.JSX.String ("rel", "rel", rel) ]
-      @
-      match precedence with
-      | Some precedence -> [ React.JSX.String ("precedence", "precedence", precedence) ]
-      | None -> [])
-    ()
+let link ?precedence ~rel ~href () =
+  React.createElement "link"
+    ([ React.JSX.String ("href", "href", href); React.JSX.String ("rel", "rel", rel) ]
+    @
+    match precedence with
+    | Some precedence -> [ React.JSX.String ("precedence", "precedence", precedence) ]
+    | None -> [])
+    []
 
 let assert_html ?(skipRoot = false) ?(shell = "") ?bootstrapModules ?bootstrapScriptContent element =
   let script_html =
@@ -93,7 +89,7 @@ let html_with_a_node () =
        '>window.srr_stream.push()</script></html>"
 
 let html_with_only_a_body () =
-  let app = html [ lower "body" ~children:[ lower "div" ~children:[ React.string "Just body content" ] () ] () ] in
+  let app = html [ body [ div [] [ React.string "Just body content" ] ] ] in
   assert_html app
     ~shell:
       "<!DOCTYPE html><html><head></head><body><div>Just body content</div><script \
@@ -102,7 +98,7 @@ let html_with_only_a_body () =
        '>window.srr_stream.push()</script></body></html>"
 
 let html_with_no_srr_html_body () =
-  let app = html [ lower "body" ~children:[ lower "div" ~children:[ React.string "Just body content" ] () ] () ] in
+  let app = html [ body [ div [] [ React.string "Just body content" ] ] ] in
   assert_html app ~skipRoot:true
     ~shell:
       "<!DOCTYPE html><html><head></head><script \
@@ -116,8 +112,8 @@ let head_with_content () =
       [
         head
           [
-            lower "title" ~children:[ React.string "Titulaso" ] ();
-            lower "meta" ~attributes:[ React.JSX.String ("charset", "charSet", "utf-8") ] ();
+            React.createElement "title" [] [ React.string "Titulaso" ];
+            React.createElement "meta" [ React.JSX.String ("charset", "charSet", "utf-8") ] [];
           ];
       ]
   in
@@ -128,7 +124,7 @@ let head_with_content () =
        '>window.srr_stream.push()</script></html>"
 
 let html_inside_a_div () =
-  let app = lower "div" ~children:[ html [] ] () in
+  let app = React.createElement "div" [] [ html [] ] in
   assert_html app
     ~shell:
       "<div><html></html></div><script \
@@ -136,7 +132,7 @@ let html_inside_a_div () =
        '>window.srr_stream.push()</script>"
 
 let html_inside_a_fragment () =
-  let app = React.Fragment (React.list [ html [ lower "div" () ] ]) in
+  let app = React.Fragment (React.list [ html [ React.createElement "div" [] [] ] ]) in
   assert_html app
     ~shell:
       "<!DOCTYPE html><html><head></head><div></div><script \
@@ -147,8 +143,8 @@ let html_with_head_like_elements_not_in_head () =
   let app =
     html
       [
-        lower "meta" ~attributes:[ React.JSX.String ("charset", "charSet", "utf-8") ] ();
-        lower "title" ~children:[ React.string "Implicit Head?" ] ();
+        React.createElement "meta" [ React.JSX.String ("charset", "charSet", "utf-8") ] [];
+        React.createElement "title" [] [ React.string "Implicit Head?" ];
       ]
   in
   assert_html app
@@ -159,7 +155,7 @@ let html_with_head_like_elements_not_in_head () =
        '>window.srr_stream.push()</script></html>"
 
 let html_without_body_and_bootstrap_scripts () =
-  let app = html [ lower "input" ~attributes:[ React.JSX.String ("id", "id", "sidebar-search-input") ] () ] in
+  let app = html [ React.createElement "input" [ React.JSX.String ("id", "id", "sidebar-search-input") ] [] ] in
   assert_html app ~bootstrapModules:[ "react"; "react-dom" ] ~bootstrapScriptContent:"console.log('hello')"
     ~shell:
       "<!DOCTYPE html><html><head><link rel=\"modulepreload\" fetchPriority=\"low\" href=\"react-dom\" /><link \
@@ -169,7 +165,9 @@ let html_without_body_and_bootstrap_scripts () =
        type=\"module\"></script><script src=\"react-dom\" async=\"\" type=\"module\"></script></html>"
 
 let html_with_body_and_bootstrap_scripts () =
-  let app = html [ body [ lower "input" ~attributes:[ React.JSX.String ("id", "id", "sidebar-search-input") ] () ] ] in
+  let app =
+    html [ body [ React.createElement "input" [ React.JSX.String ("id", "id", "sidebar-search-input") ] [] ] ]
+  in
   assert_html app ~bootstrapModules:[ "react"; "react-dom" ] ~bootstrapScriptContent:"console.log('hello')"
     ~shell:
       "<!DOCTYPE html><html><head><link rel=\"modulepreload\" fetchPriority=\"low\" href=\"react-dom\" /><link \
@@ -180,7 +178,7 @@ let html_with_body_and_bootstrap_scripts () =
        type=\"module\"></script><script src=\"react-dom\" async=\"\" type=\"module\"></script></body></html>"
 
 let input_and_bootstrap_scripts () =
-  let app = lower "input" ~attributes:[ React.JSX.String ("id", "id", "sidebar-search-input") ] () in
+  let app = React.createElement "input" [ React.JSX.String ("id", "id", "sidebar-search-input") ] [] in
   assert_html app ~bootstrapModules:[ "react"; "react-dom" ] ~bootstrapScriptContent:"console.log('hello')"
     ~shell:
       "<input id=\"sidebar-search-input\" /><script \
@@ -196,14 +194,13 @@ let title_and_meta_populates_to_the_head () =
           [
             head
               [
-                lower "title" ~children:[ React.string "Hey Yah" ] ();
-                lower "meta"
-                  ~attributes:
-                    [
-                      React.JSX.String ("name", "name", "viewport");
-                      React.JSX.String ("content", "content", "width=device-width,initial-scale=1");
-                    ]
-                  ();
+                React.createElement "title" [] [ React.string "Hey Yah" ];
+                React.createElement "meta"
+                  [
+                    React.JSX.String ("name", "name", "viewport");
+                    React.JSX.String ("content", "content", "width=device-width,initial-scale=1");
+                  ]
+                  [];
               ];
           ];
       ]
@@ -320,9 +317,9 @@ let no_async_scripts_to_remain () =
 
 let self_closing_with_dangerously () =
   let app =
-    React.createElement "div" []
+    div []
       [
-        React.createElement "input" [] [];
+        input [];
         (* When dangerouslySetInnerHtml is used, children gets ignored *)
         React.createElement "p" [ React.JSX.DangerouslyInnerHtml "unsafe!" ] [ React.string "xxx" ];
       ]
@@ -336,9 +333,9 @@ let self_closing_with_dangerously () =
 
 let self_closing_with_dangerously_in_head () =
   let app =
-    React.createElement "html" []
+    html
       [
-        React.createElement "head" []
+        head
           [
             React.createElement "meta" [ React.JSX.String ("char-set", "charSet", "utf-8") ] [];
             React.createElement "style" [ React.JSX.DangerouslyInnerHtml "* { display: none; }" ] [];
@@ -353,22 +350,35 @@ let self_closing_with_dangerously_in_head () =
        '>window.srr_stream.push()</script></html>"
     app
 
-(* let self_closing_with_dangerously_in_head_2 () =
-  let app =
-    React.createElement "head" []
+let upper_case_component_with_resources () =
+  let app () =
+    html
       [
-        React.createElement "meta" [ React.JSX.String ("char-set", "charSet", "utf-8") ] [];
-        React.createElement "style" [ React.JSX.DangerouslyInnerHtml "* { display: none; }" ] [];
+        head
+          [
+            React.createElement "link"
+              [
+                React.JSX.String ("rel", "rel", "stylesheet");
+                React.JSX.String ("href", "href", "/styles.css");
+                React.JSX.String ("precedence", "precedence", "default");
+              ]
+              [];
+            React.createElement "script"
+              [ React.JSX.String ("src", "src", "/app.js"); React.JSX.Bool ("async", "async", true) ]
+              [];
+          ];
+        body [ div [] [ React.string "Page content" ] ];
       ]
   in
   assert_html
+    (React.Upper_case_component ("Page", app))
     ~shell:
-      "<head><meta char-set=\"utf-8\" /><style>* { display: none; }</style></head><script \
-       data-payload='0:[\"$\",\"head\",null,{\"children\":[[\"$\",\"meta\",null,{\"charSet\":\"utf-8\"},null,[],{}],[\"$\",\"style\",null,{\"dangerouslySetInnerHTML\":{\"__html\":\"* \
-       { display: none; }\"}},null,[],{}]]},null,[],{}]\n\
-       '>window.srr_stream.push()</script>"
-    app
- *)
+      "<!DOCTYPE html><html><head><script src=\"/app.js\" async></script><link rel=\"stylesheet\" href=\"/styles.css\" \
+       precedence=\"default\" /></head><body><div>Page content</div></body><script \
+       data-payload='0:[[\"$\",\"head\",null,{\"children\":[[\"$\",\"link\",null,{\"rel\":\"stylesheet\",\"href\":\"/styles.css\",\"precedence\":\"default\"},null,[],{}],[\"$\",\"script\",null,{\"children\":[],\"src\":\"/app.js\",\"async\":true},null,[],{}]]},null,[],{}],[\"$\",\"body\",null,{\"children\":[[\"$\",\"div\",null,{\"children\":[\"Page \
+       content\"]},null,[],{}]]},null,[],{}]]\n\
+       '>window.srr_stream.push()</script></html>"
+
 let tests =
   [
     test "doctype" doctype;
@@ -393,4 +403,5 @@ let tests =
     test "links_gets_pushed_to_the_head" links_gets_pushed_to_the_head;
     test "self_closing_with_dangerously" self_closing_with_dangerously;
     test "self_closing_with_dangerously_in_head" self_closing_with_dangerously_in_head;
+    test "upper_case_component_with_resources" upper_case_component_with_resources;
   ]
