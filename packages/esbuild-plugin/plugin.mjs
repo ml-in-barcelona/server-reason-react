@@ -43,7 +43,7 @@ export function plugin(config) {
 				try {
 					/* TODO: Make sure `server_reason_react.extract_client_components` is available in $PATH */
 					const bootstrapContent = execSync(
-						`server_reason_react.extract_client_components ${config.target}`,
+						`server-reason-react.extract_client_components ${config.target}`,
 						{ encoding: "utf8" },
 					);
 					await generateBootstrapFile(bootstrapOutput, bootstrapContent);

@@ -61,6 +61,8 @@ install:
 
 .PHONY: install-npm
 install-npm:
+	cd packages/esbuild-plugin && npm install;
+	cd packages/react-server-dom-esbuild && npm install;
 	cd demo && npm install;
 	cd demo/client && npm install
 

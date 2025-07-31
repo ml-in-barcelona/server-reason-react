@@ -11,6 +11,8 @@
   melange.dom
   url_js
   melange-json)
+ (melange.runtime_deps
+  ../../../packages/react-server-dom-esbuild/ReactServerDOMEsbuild.js)
  (preprocess
   (pps
    browser_ppx
