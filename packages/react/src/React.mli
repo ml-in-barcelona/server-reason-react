@@ -565,6 +565,7 @@ type element =
   | List of element list
   | Array of element array
   | Text of string
+  | DangerouslyInnerHtml of string
   | Fragment of element
   | Empty
   | Provider of element

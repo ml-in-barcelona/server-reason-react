@@ -42,6 +42,7 @@ let render ~mode element =
   let rec render_element element =
     match (element : React.element) with
     | Empty -> Html.null
+    | DangerouslyInnerHtml html -> Html.raw html
     | Client_component { import_module; _ } ->
         raise
           (Invalid_argument
@@ -136,6 +137,7 @@ let rec render_to_stream ~stream_context element =
   let rec render_element element =
     match (element : React.element) with
     | Empty -> Lwt.return Html.null
+    | DangerouslyInnerHtml html -> Lwt.return (Html.raw html)
     | Client_component { import_module; _ } ->
         raise
           (Invalid_argument
@@ -246,6 +248,7 @@ and render_with_resolved ~stream_context element =
         | Lwt.Sleep ->
             let%lwt resolved = promise in
             render_element resolved)
+    | DangerouslyInnerHtml html -> Lwt.return (Html.raw html)
     | Suspense _ -> render_to_stream ~stream_context element
   and render_lower_case ~key:_ tag attributes children =
     let inner_html = getDangerouslyInnerHtml attributes in
