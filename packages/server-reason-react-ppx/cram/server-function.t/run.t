@@ -22,7 +22,7 @@
   >   (action
   >    (progn
   >     (with-stdout-to %{target}
-  >      (run server_reason_react.extract_client_components js)))))
+  >      (run server-reason-react.extract_client_components js)))))
   > EOF
 
   $ dune build

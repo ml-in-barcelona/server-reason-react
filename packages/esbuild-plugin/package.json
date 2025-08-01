@@ -1,0 +1,28 @@
+{
+  "name": "@ml-in-barcelona/server-reason-react-esbuild-plugin",
+  "description": "Esbuild plugin to work with Server Reason React.",
+  "version": "0.1.0",
+  "exports": {
+    ".": "./plugin.mjs"
+  },
+  "keywords": [
+    "reason-react",
+    "server-reason-react",
+    "esbuild"
+  ],
+  "homepage": "https://github.com/ml-in-barcelona/server-reason-react",
+  "bugs": "https://github.com/ml-in-barcelona/server-reason-react/issues",
+  "scripts": {
+    "release": "npm publish"
+  },
+  "license": "MIT",
+  "files": [
+    "package.json",
+    "plugin.mjs"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ml-in-barcelona/server-reason-react.git",
+    "directory": "packages/esbuild-plugin"
+  }
+}

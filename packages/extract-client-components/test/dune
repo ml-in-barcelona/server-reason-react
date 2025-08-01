@@ -5,4 +5,4 @@
   ClientComponent.js
   ClientComponentWithModule.js
   ServerFunction.js
-  %{bin:server_reason_react.extract_client_components}))
+  %{bin:server-reason-react.extract_client_components}))
