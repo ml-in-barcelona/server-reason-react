@@ -2,6 +2,11 @@ import Fs from "node:fs/promises";
 import Path from "node:path";
 import { execSync } from "node:child_process";
 
+async function writeFile(path, contents, cb) {
+	await Fs.mkdir(Path.dirname(path), { recursive: true })
+	Fs.writeFile(path, contents, cb);
+}
+
 async function generateBootstrapFile(output, content) {
 	let previousContent = undefined;
 	try {
@@ -13,7 +18,7 @@ async function generateBootstrapFile(output, content) {
 	}
 	const contentHasChanged = previousContent !== content;
 	if (contentHasChanged) {
-		await Fs.writeFile(output, content, "utf8");
+		await writeFile(output, content, "utf8");
 	}
 }
 
@@ -43,7 +48,7 @@ export function plugin(config) {
 				try {
 					/* TODO: Make sure `server_reason_react.extract_client_components` is available in $PATH */
 					const bootstrapContent = execSync(
-						`server_reason_react.extract_client_components ${config.target}`,
+						`server-reason-react.extract_client_components ${config.target}`,
 						{ encoding: "utf8" },
 					);
 					await generateBootstrapFile(bootstrapOutput, bootstrapContent);
