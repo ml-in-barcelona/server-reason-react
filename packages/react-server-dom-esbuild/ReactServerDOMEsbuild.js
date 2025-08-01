@@ -176,18 +176,23 @@ const {
   getRoot,
   reportGlobalError,
   processBinaryChunk,
+  createStreamState,
   close,
 } = ReactClientFlight(ReactServerDOMEsbuildConfig);
 
 function startReadingFromStream(response, stream) {
+  const streamState = createStreamState();
   const reader = stream.getReader();
-  function progress({ done, value }) {
+  function progress({
+    done,
+    value,
+  }) {
     if (done) {
       close(response);
       return;
     }
     const buffer = value;
-    processBinaryChunk(response, buffer);
+    processBinaryChunk(response, streamState, buffer);
     return reader.read().then(progress).catch(error);
   }
   function error(e) {

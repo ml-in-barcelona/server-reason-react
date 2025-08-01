@@ -521,6 +521,12 @@ let suspense_in_a_list_with_error () =
       "<script>window.srr_stream.close()</script>";
     ]
 
+let raw_element () =
+  let app () = React.DangerouslyInnerHtml "<div>Hello</div>" in
+  assert_html (app ())
+    ~shell:"<div>Hello</div><script data-payload='0:null\n'>window.srr_stream.push()</script>"
+    [ "<script>window.srr_stream.close()</script>" ]
+
 let tests =
   [
     test "self_closing_with_dangerously" self_closing_with_dangerously;
@@ -542,5 +548,6 @@ let tests =
     test "error_in_toplevel_in_async" error_in_toplevel_in_async;
     test "suspense_in_a_list_with_error" suspense_in_a_list_with_error;
     test "server_function_as_action" server_function_as_action;
+    test "raw_element" raw_element;
     (* test "debug_adds_debug_info" debug_adds_debug_info; *)
   ]

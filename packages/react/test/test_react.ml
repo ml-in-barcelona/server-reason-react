@@ -94,6 +94,10 @@ let invalid_dangerouslySetInnerHtml () =
     (React.Invalid_children {|"meta" is a self-closing tag and must not have "dangerouslySetInnerHTML".\n|})
     raises
 
+let raw_element () =
+  let app = React.Upper_case_component ("app", fun () -> React.DangerouslyInnerHtml "<div>Hello</div>") in
+  assert_string (ReactDOM.renderToStaticMarkup app) "<div>Hello</div>"
+
 let tests =
   ( "React",
     [
@@ -105,4 +109,5 @@ let tests =
       test "useRef" use_ref_works;
       test "invalid_children" invalid_children;
       test "invalid_dangerouslySetInnerHtml" invalid_dangerouslySetInnerHtml;
+      test "raw_element" raw_element;
     ] )

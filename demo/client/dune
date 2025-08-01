@@ -36,7 +36,7 @@
    "app/demo/client/RouterRSCNoSSR.re.js")
   (source_tree node_modules)
   (file package.json)
-  (source_tree ../../packages/extract-client-components))
+  (source_tree ../../packages/esbuild-plugin))
  (action
   (run
    node
