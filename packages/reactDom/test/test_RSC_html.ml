@@ -487,8 +487,102 @@ let suspense_in_a_list_with_error () =
       "<script>window.srr_stream.close()</script>";
     ]
 
+let page_with_duplicate_resources () =
+  (* Test that duplicate resources are deduplicated *)
+  let app () =
+    React.Upper_case_component
+      ( "Page",
+        fun () ->
+          React.list
+            [
+              React.createElement "html" []
+                [
+                  React.createElement "head" []
+                    [
+                      React.createElement "link"
+                        [
+                          React.JSX.String ("rel", "rel", "stylesheet");
+                          React.JSX.String ("href", "href", "/styles.css");
+                          React.JSX.String ("precedence", "precedence", "default");
+                        ]
+                        [];
+                      React.createElement "link"
+                        [
+                          React.JSX.String ("rel", "rel", "stylesheet");
+                          React.JSX.String ("href", "href", "/styles.css");
+                          React.JSX.String ("precedence", "precedence", "default");
+                        ]
+                        [];
+                    ];
+                  React.createElement "body" [] [ React.createElement "div" [] [ React.string "Page content" ] ];
+                ];
+            ] )
+  in
+  assert_html (app ())
+    ~shell:
+      "<div>Page content</div><script data-payload='0:[\"$\",\"div\",null,{\"children\":[\"Page content\"]},null,[],{}]\n\
+       '>window.srr_stream.push()</script>"
+    [ "<script>window.srr_stream.close()</script>" ]
+
+let client_component_with_bootstrap_scripts () =
+  (* Test bootstrap scripts are included in the rendered HTML *)
+  let app () =
+    React.Upper_case_component
+      ( "app",
+        fun () ->
+          React.Client_component
+            {
+              props = [];
+              client = React.string "Client Component";
+              import_module = "./client.js";
+              import_name = "Client";
+            } )
+  in
+  let%lwt html, subscribe = ReactServerDOM.render_html ~bootstrapScripts:[ "/runtime.js"; "/app.js" ] (app ()) in
+  let subscribed_elements = ref [] in
+  let%lwt () =
+    subscribe (fun element ->
+        subscribed_elements := !subscribed_elements @ [ element ];
+        Lwt.return ())
+  in
+  (* Check that bootstrap scripts are included in the HTML *)
+  let has_runtime_script = Str.string_match (Str.regexp ".*\\/runtime\\.js.*") html 0 in
+  let has_app_script = Str.string_match (Str.regexp ".*\\/app\\.js.*") html 0 in
+  assert_string (string_of_bool has_runtime_script) "true";
+  assert_string (string_of_bool has_app_script) "true";
+  Lwt.return ()
+
+let client_component_with_bootstrap_modules () =
+  (* Test bootstrap modules are included as module scripts *)
+  let app () =
+    React.Upper_case_component
+      ( "app",
+        fun () ->
+          React.Client_component
+            {
+              props = [];
+              client = React.string "Client Component";
+              import_module = "./client.js";
+              import_name = "Client";
+            } )
+  in
+  let%lwt html, subscribe = ReactServerDOM.render_html ~bootstrapModules:[ "/runtime.mjs"; "/app.mjs" ] (app ()) in
+  let subscribed_elements = ref [] in
+  let%lwt () =
+    subscribe (fun element ->
+        subscribed_elements := !subscribed_elements @ [ element ];
+        Lwt.return ())
+  in
+  (* Check that bootstrap modules are included with type="module" *)
+  let has_runtime_module = Str.string_match (Str.regexp ".*type=\"module\".*") html 0 in
+  let has_module_script = Str.string_match (Str.regexp ".*\\/runtime\\.mjs.*") html 0 in
+  assert_string (string_of_bool has_runtime_module) "true";
+  assert_string (string_of_bool has_module_script) "true";
+  Lwt.return ()
+
 let tests =
   [
+    (* test "debug_adds_debug_info" debug_adds_debug_info; *)
     test "client_with_element_props" client_with_element_props;
     test "null_element" null_element;
     test "element_with_dangerously_set_inner_html" element_with_dangerously_set_inner_html;
@@ -506,5 +600,8 @@ let tests =
     test "error_in_toplevel_in_async" error_in_toplevel_in_async;
     test "suspense_in_a_list_with_error" suspense_in_a_list_with_error;
     test "server_function_as_action" server_function_as_action;
-    (* test "debug_adds_debug_info" debug_adds_debug_info; *)
+    (* test "page_with_resources" page_with_resources;
+    test "page_with_duplicate_resources" page_with_duplicate_resources; *)
+    (* test "client_component_with_bootstrap_scripts" client_component_with_bootstrap_scripts;
+    test "client_component_with_bootstrap_modules" client_component_with_bootstrap_modules; *)
   ]

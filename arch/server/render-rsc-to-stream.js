@@ -61,3 +61,5 @@ const App = () => (
 const { pipe } = renderToPipeableStream(<App />);
 
 pipe(process.stdout);
+
+/* https://codesandbox.io/p/sandbox/vibrant-voice-hdrlzt?file=%2Fsrc%2FApp.js */
