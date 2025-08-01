@@ -5,7 +5,7 @@
   standalone.exe
   %{bin:refmt}
   %{bin:ocamlformat}
-  %{bin:server_reason_react.extract_client_components}
+  %{bin:server-reason-react.extract_client_components}
   ppx.sh))
 
 (executable

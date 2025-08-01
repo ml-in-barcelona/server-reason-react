@@ -1,7 +1,7 @@
 {
   "name": "@ml-in-barcelona/server-reason-react-esbuild-plugin",
   "description": "Esbuild plugin to work with Server Reason React.",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "exports": {
     ".": "./plugin.mjs"
   },

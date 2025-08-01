@@ -1,4 +1,4 @@
-  $ server_reason_react.extract_client_components ./ClientComponent.js
+  $ server-reason-react.extract_client_components ./ClientComponent.js
   import React from "react";
   window.__client_manifest_map = window.__client_manifest_map || {};
   window.__server_functions_manifest_map = window.__server_functions_manifest_map || {};
@@ -6,7 +6,7 @@
     return { default: module.make_client }
   }).catch(err => { console.error(err); return { default: null }; }))
 
-  $ server_reason_react.extract_client_components ./ClientComponentWithModule.js
+  $ server-reason-react.extract_client_components ./ClientComponentWithModule.js
   import React from "react";
   window.__client_manifest_map = window.__client_manifest_map || {};
   window.__server_functions_manifest_map = window.__server_functions_manifest_map || {};
@@ -14,7 +14,7 @@
     return { default: module.WithModule.make_client }
   }).catch(err => { console.error(err); return { default: null }; }))
 
-  $ server_reason_react.extract_client_components ./ServerFunction.js
+  $ server-reason-react.extract_client_components ./ServerFunction.js
   import React from "react";
   window.__client_manifest_map = window.__client_manifest_map || {};
   window.__server_functions_manifest_map = window.__server_functions_manifest_map || {};

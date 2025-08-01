@@ -46,7 +46,7 @@ export function plugin(config) {
 
 			build.onStart(async () => {
 				try {
-					/* TODO: Make sure `server_reason_react.extract_client_components` is available in $PATH */
+					/* TODO: Make sure `server-reason-react.extract_client_components` is available in $PATH */
 					const bootstrapContent = execSync(
 						`server-reason-react.extract_client_components ${config.target}`,
 						{ encoding: "utf8" },

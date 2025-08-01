@@ -17,12 +17,12 @@
   >   (action
   >    (progn
   >     (with-stdout-to %{target}
-  >      (run server_reason_react.extract_client_components js)))))
+  >      (run server-reason-react.extract_client_components js)))))
   > EOF
 
   $ dune build
 
-  $ dune describe pp input.re
+  $ dune describe pp input.re | sed '/\[@mel.internal.ffi/,/\]/d'
   [@ocaml.ppx.context
     {
       tool_name: "ppx_driver",
@@ -51,9 +51,6 @@
               J.unsafe_expr("// extract-client input.re");
             };
             [@ocaml.warning "-unboxable-type-in-prim-decl"]
-            [@mel.internal.ffi
-              "„•¦¾\000\000\000\015\000\000\000\007\000\000\000\019\000\000\000\019‘  A¡#key@  @@@"
-            ]
             external makeProps: (~key: string=?, unit) => Js.t({.}) = "" "";
             let make = () =>
               ReactDOM.jsxs(
