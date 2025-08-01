@@ -18,9 +18,12 @@ Variable that doesn't exist
   > EOF
   $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl | tee output.ml
   let x = Stdlib.( ^ ) {js| Hello, |js} lola
-The grepping is necessary because the error message is not consistent across OCaml versions from 5.1.1 to 5.2.0
-  $ ocaml output.ml 2>&1 | grep "Error: Unbound value"
-  [1]
+  $ ocaml output.ml
+  File "./output.ml", line 1, characters 38-42:
+  1 | let x = Stdlib.( ^ ) {js| Hello, |js} lola
+                                            ^^^^
+  Error: Unbound value lola
+  [2]
 
 Using invalid identifiers
 
@@ -53,6 +56,10 @@ Using invalid identifiers
   let x =
     let y = 3 in
     Stdlib.( ^ ) {js| Hello, |js} y
-The grepping is necessary because the error message is not consistent across OCaml versions from 5.1.1 to 5.2.0
-  $ ocaml output.ml 2>&1 | grep "Error: This expression has type "
-  [1]
+  $ ocaml output.ml
+  File "./output.ml", line 3, characters 32-33:
+  3 |   Stdlib.( ^ ) {js| Hello, |js} y
+                                      ^
+  Error: This expression has type int but an expression was expected of type
+           string
+  [2]
