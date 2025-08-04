@@ -56,7 +56,6 @@ jobs:
             ${{ runner.tool_cache }}/opam
             ~/.opam
             _opam
-            .opam-path
           key: opam-${{ matrix.os }}-${{ matrix.ocaml-compiler }}-${{ hashFiles('**.opam') }}
 
       - name: Load npm cache
@@ -75,35 +74,6 @@ jobs:
           ocaml-compiler: ${{ matrix.ocaml-compiler }}
           dune-cache: false
           opam-disable-sandboxing: true
-
-      - name: Get OPAM executable path
-        if: steps.opam-cache.outputs.cache-hit != 'true'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const opam_path = await io.which('opam', true);
-            console.log('opam executable found: %s', opam_path);
-            const Fs = require('fs/promises');
-            await Fs.writeFile('.opam-path', opam_path, 'utf-8');
-            console.log('stored path to .opam-path');
-
-      - name: Use cached OPAM environment
-        # if: steps.opam-cache.outputs.cache-hit == 'true'
-        shell: bash
-        run: |
-          # https://github.com/ocaml/setup-ocaml/blob/b2105f9/packages/setup-ocaml/src/installer.ts#L33
-          echo "OPAMVERBOSE=$RUNNER_DEBUG"   >> "$GITHUB_ENV"
-          echo "OPAMCOLOR=always"            >> "$GITHUB_ENV"
-          echo "OPAMCONFIRMLEVEL=unsafe-yes" >> "$GITHUB_ENV"
-          echo "OPAMERRLOGLEN=0"             >> "$GITHUB_ENV"
-          echo "OPAMPRECISETRACKING=1"       >> "$GITHUB_ENV"
-          echo "OPAMYES=1"                   >> "$GITHUB_ENV"
-
-          echo "OPAMROOT=$HOME/.opam"        >> "$GITHUB_ENV"
-
-          OPAM_PATH="$(cat .opam-path)"
-          chmod +x "$OPAM_PATH"
-          dirname "$OPAM_PATH" >> "$GITHUB_PATH"
 
       - name: Use Node.js
         uses: actions/setup-node@v4
@@ -156,7 +126,6 @@ jobs:
             ${{ runner.tool_cache }}/opam
             ~/.opam
             _opam
-            .opam-path
           key: opam-${{ matrix.os }}-${{ matrix.ocaml-compiler }}-${{ hashFiles('**.opam') }}
 
       - name: Save npm cache
