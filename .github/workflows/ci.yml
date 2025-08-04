@@ -48,16 +48,6 @@ jobs:
         run: |
           pkg-config --modversion openssl
 
-      - name: Load opam cache
-        id: opam-cache
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            ${{ runner.tool_cache }}/opam
-            ~/.opam
-            _opam
-          key: opam-${{ matrix.os }}-${{ matrix.ocaml-compiler }}-${{ hashFiles('**.opam') }}
-
       - name: Load npm cache
         id: npm-cache
         uses: actions/cache/restore@v4
@@ -71,7 +61,7 @@ jobs:
         uses: ocaml/setup-ocaml@v3.2.5
         with:
           ocaml-compiler: ${{ matrix.ocaml-compiler }}
-          dune-cache: false
+          dune-cache: true
           opam-disable-sandboxing: true
 
       - name: Use Node.js
@@ -85,11 +75,9 @@ jobs:
         run: make install
 
       - name: Install npm deps
-        # if: steps.npm-cache.outputs.cache-hit != 'true'
         run: make install-npm
 
       - name: Pin dependencies
-        if: steps.opam-cache.outputs.cache-hit != 'true'
         run: make pin
 
       - name: Build
@@ -116,16 +104,6 @@ jobs:
 
       - name: Run benchmarks
         run: make bench
-
-      - name: Save opam cache
-        uses: actions/cache/save@v4
-        if: steps.opam-cache.outputs.cache-hit != 'true'
-        with:
-          path: |
-            ${{ runner.tool_cache }}/opam
-            ~/.opam
-            _opam
-          key: opam-${{ matrix.os }}-${{ matrix.ocaml-compiler }}-${{ hashFiles('**.opam') }}
 
       - name: Save npm cache
         uses: actions/cache/save@v4
