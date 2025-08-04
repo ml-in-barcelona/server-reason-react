@@ -57,7 +57,7 @@ jobs:
             demo/client/node_modules
           key: npm-${{ matrix.os }}-${{ hashFiles('demo/package.json') }}-${{ hashFiles('demo/client/package.json') }}
 
-      - name: Load opam cache when not Windows
+      - name: Load opam cache
         id: opam-cache
         uses: actions/cache/restore@v4
         with:
@@ -120,7 +120,7 @@ jobs:
             demo/client/node_modules
           key: npm-${{ matrix.os }}-${{ hashFiles('demo/package.json') }}-${{ hashFiles('demo/client/package.json') }}
 
-      - name: Save cache when not Windows
+      - name: Save cache
         uses: actions/cache/save@v4
         if: steps.opam-cache.outputs.cache-hit != 'true'
         with:
