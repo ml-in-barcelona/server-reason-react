@@ -1,4 +1,4 @@
-FROM ocaml/opam:ubuntu-22.04-ocaml-5.2.0
+FROM ocaml/opam:ubuntu-22.04-ocaml-5.2
 
 RUN sudo apt-get update && sudo apt-get install -y libev-dev libssl-dev curl
 
