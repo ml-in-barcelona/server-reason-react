@@ -17,7 +17,6 @@ let test title fn =
           test_promise);
     ] )
 
-let stream_close_script = "<script>window.srr_stream.close()</script>"
 let html children = React.createElement "html" [] children
 let head children = React.createElement "head" [] children
 let body children = React.createElement "body" [] children

@@ -75,7 +75,7 @@ srr_stream.readable_stream = new ReadableStream({ start(c) { srr_stream._c = c; 
   in
   let diff = remove_begin_and_end html in
   assert_string diff shell;
-  assert_list_of_strings subscribed_elements.contents assertion_list;
+  assert_list_of_strings subscribed_elements.contents (assertion_list @ [ "<script>window.srr_stream.close()</script>" ]);
   if disable_backtrace then Printexc.record_backtrace true else ();
   Lwt.return ()
 
@@ -93,8 +93,7 @@ let loading_suspense ~children () = React.Suspense.make ~fallback:(React.string 
 
 let null_element () =
   let app = React.null in
-  assert_html ~shell:"<script data-payload='0:null\n'>window.srr_stream.push()</script>" app
-    [ "<script>window.srr_stream.close()</script>" ]
+  assert_html ~shell:"<script data-payload='0:null\n'>window.srr_stream.push()</script>" app []
 
 let element_with_dangerously_set_inner_html () =
   let app = React.createElement "div" [ React.JSX.DangerouslyInnerHtml "<h1>Hello</h1>" ] [] in
@@ -103,14 +102,11 @@ let element_with_dangerously_set_inner_html () =
       "<div><h1>Hello</h1></div><script \
        data-payload='0:[\"$\",\"div\",null,{\"dangerouslySetInnerHTML\":{\"__html\":\"<h1>Hello</h1>\"}},null,[],{}]\n\
        '>window.srr_stream.push()</script>"
-    app
-    [ "<script>window.srr_stream.close()</script>" ]
+    app []
 
 let inner_html_element () =
   let app () = React.DangerouslyInnerHtml "<div>Hello</div>" in
-  assert_html (app ())
-    ~shell:"<div>Hello</div><script data-payload='0:null\n'>window.srr_stream.push()</script>"
-    [ "<script>window.srr_stream.close()</script>" ]
+  assert_html (app ()) ~shell:"<div>Hello</div><script data-payload='0:null\n'>window.srr_stream.push()</script>" []
 
 (* let debug_adds_debug_info () =
   let app =
@@ -142,8 +138,7 @@ let inner_html_element () =
       "<script \
        data-payload='2:{\"name\":\"Hello\",\"env\":\"Server\",\"key\":null,\"owner\":null,\"stack\":[],\"props\":{}}\n\
        '>window.srr_stream.push()</script>";
-      "<script data-payload='2:D\"$2\"\n'>window.srr_stream.push()</script>";
-"<script>window.srr_stream.close()</script>";
+      "<script data-payload='2:D\"$2\"\n'>window.srr_stream.push()</script>"
     ] *)
 
 let input_element_with_value () =
@@ -153,8 +148,7 @@ let input_element_with_value () =
       "<input value=\"application\" /><script \
        data-payload='0:[\"$\",\"input\",null,{\"value\":\"application\"},null,[],{}]\n\
        '>window.srr_stream.push()</script>"
-    app
-    [ "<script>window.srr_stream.close()</script>" ]
+    app []
 
 let upper_case_component () =
   let app =
@@ -173,8 +167,7 @@ let upper_case_component () =
        data-payload='0:[\"$\",\"div\",null,{\"children\":[[\"$\",\"section\",null,{\"children\":[[\"$\",\"article\",null,{\"children\":[\"Deep \
        Server Content\"]},null,[],{}]]},null,[],{}]]},null,[],{}]\n\
        '>window.srr_stream.push()</script>"
-    app
-    [ "<script>window.srr_stream.close()</script>" ]
+    app []
 
 let async_component_without_promise () =
   let app =
@@ -194,8 +187,7 @@ let async_component_without_promise () =
        data-payload='0:[\"$\",\"div\",null,{\"children\":[[\"$\",\"section\",null,{\"children\":[[\"$\",\"article\",null,{\"children\":[\"Deep \
        Server Content\"]},null,[],{}]]},null,[],{}]]},null,[],{}]\n\
        '>window.srr_stream.push()</script>"
-    app
-    [ "<script>window.srr_stream.close()</script>" ]
+    app []
 
 let async_component_with_promise () =
   let app () =
@@ -217,7 +209,6 @@ let async_component_with_promise () =
       "<div hidden=\"true\" id=\"S:1\"><span>Sleep resolved</span></div>\n<script>$RC('B:1', 'S:1')</script>";
       "<script data-payload='1:[\"$\",\"span\",null,{\"children\":[\"Sleep resolved\"]},null,[],{}]\n\
        '>window.srr_stream.push()</script>";
-      "<script>window.srr_stream.close()</script>";
     ]
 
 let suspenasync_and_client () =
@@ -254,7 +245,6 @@ let suspenasync_and_client () =
       "<script data-payload='1:[\"$\",\"span\",null,{\"children\":[[\"$\",\"$2\",null,{},null,[],{}],\"Part of async \
        component\"]},null,[],{}]\n\
        '>window.srr_stream.push()</script>";
-      "<script>window.srr_stream.close()</script>";
     ]
 
 let suspense_without_promise () =
@@ -264,8 +254,7 @@ let suspense_without_promise () =
       "<!--$-->Resolved<!--/$--><script \
        data-payload='0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"Resolved\"},null,[],{}]\n\
        '>window.srr_stream.push()</script>"
-    (app ())
-    [ "<script>window.srr_stream.close()</script>" ]
+    (app ()) []
 
 let with_sleepy_promise () =
   let app =
@@ -294,7 +283,6 @@ let with_sleepy_promise () =
        data-payload='1:[\"$\",\"div\",null,{\"children\":[[\"$\",\"section\",null,{\"children\":[[\"$\",\"article\",null,{\"children\":[\"Deep \
        Server Content\"]},null,[],{}]]},null,[],{}]]},null,[],{}]\n\
        '>window.srr_stream.push()</script>";
-      "<script>window.srr_stream.close()</script>";
     ]
 
 let client_with_promise_props () =
@@ -329,7 +317,6 @@ let client_with_promise_props () =
       "<script data-payload='2:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n\
        '>window.srr_stream.push()</script>";
       "<script data-payload='1:\"||| Resolved |||\"\n'>window.srr_stream.push()</script>";
-      "<script>window.srr_stream.close()</script>";
     ]
 
 let client_with_element_props () =
@@ -359,7 +346,6 @@ let client_with_element_props () =
     [
       "<script data-payload='1:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n\
        '>window.srr_stream.push()</script>";
-      "<script>window.srr_stream.close()</script>";
     ]
 
 let suspense_with_error () =
@@ -378,7 +364,6 @@ let suspense_with_error () =
       "<script data-payload='1:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n\
        '>window.srr_stream.push()</script>";
       "<div hidden=\"true\" id=\"S:1\"></div>\n<script>$RC('B:1', 'S:1')</script>";
-      "<script>window.srr_stream.close()</script>";
     ]
 
 let suspense_with_error_in_async () =
@@ -397,7 +382,6 @@ let suspense_with_error_in_async () =
       "<script data-payload='1:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n\
        '>window.srr_stream.push()</script>";
       "<div hidden=\"true\" id=\"S:1\"></div>\n<script>$RC('B:1', 'S:1')</script>";
-      "<script>window.srr_stream.close()</script>";
     ]
 
 let suspense_with_error_under_lowercase () =
@@ -419,7 +403,6 @@ let suspense_with_error_under_lowercase () =
       "<script data-payload='1:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n\
        '>window.srr_stream.push()</script>";
       "<div hidden=\"true\" id=\"S:1\"></div>\n<script>$RC('B:1', 'S:1')</script>";
-      "<script>window.srr_stream.close()</script>";
     ]
 
 let error_without_suspense () =
@@ -459,10 +442,7 @@ let server_function_as_action () =
       "<form>Server Content</form><script data-payload='0:[\"$\",\"form\",null,{\"children\":[\"Server \
        Content\"],\"action\":\"$F1\"},null,[],{}]\n\
        '>window.srr_stream.push()</script>"
-    [
-      "<script data-payload='1:{\"id\":\"1234-4321\",\"bound\":null}\n'>window.srr_stream.push()</script>";
-      "<script>window.srr_stream.close()</script>";
-    ]
+    [ "<script data-payload='1:{\"id\":\"1234-4321\",\"bound\":null}\n'>window.srr_stream.push()</script>" ]
 
 let suspense_in_a_list_with_error () =
   let fallback = React.string "Loading..." in
@@ -490,7 +470,6 @@ let suspense_in_a_list_with_error () =
       "<div hidden=\"true\" id=\"S:2\"></div>\n<script>$RC('B:2', 'S:2')</script>";
       "<div hidden=\"true\" id=\"S:3\">C</div>\n<script>$RC('B:3', 'S:3')</script>";
       "<script data-payload='3:\"C\"\n'>window.srr_stream.push()</script>";
-      "<script>window.srr_stream.close()</script>";
     ]
 
 let page_with_duplicate_resources () =
@@ -528,7 +507,7 @@ let page_with_duplicate_resources () =
     ~shell:
       "<div>Page content</div><script data-payload='0:[\"$\",\"div\",null,{\"children\":[\"Page content\"]},null,[],{}]\n\
        '>window.srr_stream.push()</script>"
-    [ "<script>window.srr_stream.close()</script>" ]
+    []
 
 let client_component_with_bootstrap_scripts () =
   (* Test bootstrap scripts are included in the rendered HTML *)
