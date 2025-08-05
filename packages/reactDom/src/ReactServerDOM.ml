@@ -232,6 +232,11 @@ module Model = struct
     let rec turn_element_into_payload ~context element =
       match (element : React.element) with
       | Empty -> `Null
+      | DangerouslyInnerHtml _ ->
+          raise
+            (Invalid_argument
+               "InnerHtml does not exist in RSC, this is a bug in server-reason-react.ppx or a wrong construction of \
+                JSX manually")
       (* TODO: Do we need to html encode the model or only the html? *)
       | Text t -> `String t
       | Lower_case_element { key; tag; attributes; children } ->
@@ -467,6 +472,7 @@ let html_suspense_placeholder ~fallback id =
 let rec client_to_html ~fiber (element : React.element) =
   match element with
   | Empty -> Lwt.return Html.null
+  | DangerouslyInnerHtml html -> Lwt.return (Html.raw html)
   | Text text -> Lwt.return (Html.string text)
   | Fragment children -> client_to_html ~fiber children
   | List childrens ->
@@ -548,6 +554,8 @@ let has_precedence_and_rel_stylesheet props =
 let rec render_element_to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * json) Lwt.t =
   match element with
   | Empty -> Lwt.return (Html.null, `Null)
+  (* Should the DangerouslyInnerHtml model be `Null? *)
+  | DangerouslyInnerHtml html -> Lwt.return (Html.raw html, `Null)
   | Text s -> Lwt.return (Html.string s, `String s)
   | Fragment children -> render_element_to_html ~fiber children
   | List list -> elements_to_html ~fiber list

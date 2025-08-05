@@ -382,6 +382,7 @@ type element =
   | List of element list
   | Array of element array
   | Text of string
+  | DangerouslyInnerHtml of string
   | Fragment of element
   | Empty
   | Provider of element
@@ -451,8 +452,11 @@ let clone_attributes attributes new_attributes =
 let create_element_with_key ?(key = None) tag attributes children =
   match Html.is_self_closing_tag tag with
   | true when List.length children > 0 ->
-      (* TODO: Add test for this *)
-      raise (Invalid_children "closing tag with children isn't valid")
+      raise (Invalid_children (Printf.sprintf {|"%s" is a self-closing tag and must not have "children".\n|} tag))
+  | true when List.exists (function JSX.DangerouslyInnerHtml _ -> true | _ -> false) attributes ->
+      raise
+        (Invalid_children
+           (Printf.sprintf {|"%s" is a self-closing tag and must not have "dangerouslySetInnerHTML".\n|} tag))
   | true -> Lower_case_element { key; tag; attributes; children = [] }
   | false -> Lower_case_element { key; tag; attributes; children }
 
@@ -467,6 +471,7 @@ let cloneElement element new_attributes =
   | Lower_case_element { key; tag; attributes; children } ->
       Lower_case_element { key; tag; attributes = clone_attributes attributes new_attributes; children }
   | Upper_case_component _ -> raise (Invalid_argument "In server-reason-react, a component can't be cloned")
+  | DangerouslyInnerHtml _ -> raise (Invalid_argument "can't clone innerHtml")
   | Fragment _ -> raise (Invalid_argument "can't clone a fragment")
   | Text _ -> raise (Invalid_argument "can't clone a text element")
   | Empty -> raise (Invalid_argument "can't clone a null element")

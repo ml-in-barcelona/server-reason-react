@@ -72,6 +72,32 @@ let use_ref_works () =
   in
   assert_string (ReactDOM.renderToStaticMarkup app) "<span>true</span>"
 
+let invalid_children () =
+  let raises () =
+    let _ = React.createElement "input" [ React.JSX.String ("type", "type", "text") ] [ React.string "Hellow" ] in
+    ()
+  in
+  Alcotest.check_raises "Expected invalid argument"
+    (React.Invalid_children {|"input" is a self-closing tag and must not have "children".\n|})
+    raises
+
+let invalid_dangerouslySetInnerHtml () =
+  let raises () =
+    let _ =
+      React.createElement "meta"
+        [ React.JSX.String ("char-set", "charSet", "utf-8"); React.JSX.DangerouslyInnerHtml "Hellow" ]
+        []
+    in
+    ()
+  in
+  Alcotest.check_raises "Expected invalid argument"
+    (React.Invalid_children {|"meta" is a self-closing tag and must not have "dangerouslySetInnerHTML".\n|})
+    raises
+
+let raw_element () =
+  let app = React.Upper_case_component ("app", fun () -> React.DangerouslyInnerHtml "<div>Hello</div>") in
+  assert_string (ReactDOM.renderToStaticMarkup app) "<div>Hello</div>"
+
 let tests =
   ( "React",
     [
@@ -81,4 +107,7 @@ let tests =
       test "Children.map" children_map_one_element;
       test "Children.map" children_map_list_element;
       test "useRef" use_ref_works;
+      test "invalid_children" invalid_children;
+      test "invalid_dangerouslySetInnerHtml" invalid_dangerouslySetInnerHtml;
+      test "raw_element" raw_element;
     ] )

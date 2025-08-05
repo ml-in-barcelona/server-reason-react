@@ -18,6 +18,9 @@ pids
 # Dependency directories
 node_modules/
 
+# Build
+**/dist/
+
 # Optional npm cache directory
 .npm
 

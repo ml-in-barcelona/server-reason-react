@@ -106,6 +106,12 @@ let element_with_dangerously_set_inner_html () =
     app
     [ "<script>window.srr_stream.close()</script>" ]
 
+let inner_html_element () =
+  let app () = React.DangerouslyInnerHtml "<div>Hello</div>" in
+  assert_html (app ())
+    ~shell:"<div>Hello</div><script data-payload='0:null\n'>window.srr_stream.push()</script>"
+    [ "<script>window.srr_stream.close()</script>" ]
+
 (* let debug_adds_debug_info () =
   let app =
     React.Upper_case_component
@@ -586,6 +592,7 @@ let tests =
     test "client_with_element_props" client_with_element_props;
     test "null_element" null_element;
     test "element_with_dangerously_set_inner_html" element_with_dangerously_set_inner_html;
+    test "inner_html_element" inner_html_element;
     test "input_element_with_value" input_element_with_value;
     test "upper_case_component" upper_case_component;
     test "async_component_without_promise" async_component_without_promise;
@@ -604,4 +611,6 @@ let tests =
     test "page_with_duplicate_resources" page_with_duplicate_resources; *)
     (* test "client_component_with_bootstrap_scripts" client_component_with_bootstrap_scripts;
     test "client_component_with_bootstrap_modules" client_component_with_bootstrap_modules; *)
+    (* test "debug_adds_debug_info" debug_adds_debug_info; *)
+    (* test "debug_adds_debug_info" debug_adds_debug_info; *)
   ]

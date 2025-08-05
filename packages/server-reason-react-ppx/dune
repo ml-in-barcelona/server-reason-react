@@ -13,6 +13,7 @@
   ppxlib
   ppxlib.astlib
   server-reason-react.react
+  server-reason-react.html
   server-reason-react.runtime)
  (preprocess
   (pps ppxlib.metaquot)))

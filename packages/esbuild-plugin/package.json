@@ -1,0 +1,16 @@
+{
+  "name": "server-reason-react-esbuild-plugin",
+  "description": "esbuild plugin to enable React server components with server-reason-react",
+  "version": "0.1.0",
+  "exports": {
+    ".": "./plugin.mjs"
+  },
+  "homepage": "https://github.com/ml-in-barcelona/server-reason-react",
+  "bugs": "https://github.com/ml-in-barcelona/server-reason-react/issues",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ml-in-barcelona/server-reason-react.git",
+    "directory": "packages/esbuild-plugin"
+  }
+}

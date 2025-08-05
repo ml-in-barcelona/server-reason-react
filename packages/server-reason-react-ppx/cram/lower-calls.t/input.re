@@ -54,3 +54,6 @@ let lower_with_many_props =
 let some_random_html_element = <text dx="1 2" dy="3 4" />;
 
 let div = <div ?onClick />;
+
+let self_closing_tag_with_children = <meta> {React.string("Hello")} </meta>;
+let self_closing_tag_with_dangerouslySetInnerHtml = <meta dangerouslySetInnerHTML={"__html": "Hello"} />;
