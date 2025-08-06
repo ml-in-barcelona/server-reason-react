@@ -8,7 +8,7 @@ type options = {callServer};
 ]
 external createFromReadableStreamImpl:
   (Webapi.ReadableStream.t, ~options: options=?, unit) =>
-  Js.Promise.t('result) =
+  Js.Promise.t(React.element) =
   "createFromReadableStream";
 
 [@mel.module

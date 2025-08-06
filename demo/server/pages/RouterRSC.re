@@ -159,7 +159,6 @@ let handler = request => {
         <html lang="en">
           <head>
             <meta charSet="utf-8" />
-            <link rel="stylesheet" href="/output.css" />
             <style
               dangerouslySetInnerHTML={
                 "__html":
@@ -169,6 +168,7 @@ let handler = request => {
                   ),
               }
             />
+            <link rel="stylesheet" href="/output.css" />
           </head>
           <body> children </body>
         </html>,
@@ -176,3 +176,7 @@ let handler = request => {
     request,
   );
 };
+
+/*
+ <link rel="stylesheet" href="/output.css" />
+ <link rel="stylesheet" href="/output.css" /> */

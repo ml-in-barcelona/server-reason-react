@@ -116,8 +116,11 @@ const Component = () => {
 
 const App = () => {
 	return (
-		<div className="container">
-			<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" precedence="high" /></div>
+		<html>
+			<head>
+				<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" precedence="high" /></head>
+			<div className="container"></div>
+		</html >
 	)
 };
 

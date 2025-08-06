@@ -212,7 +212,6 @@ export function createFromReadableStream(stream, options) {
 
 function createResponseFromOptions(options) {
   let response = createResponse(
-    // [QUESTION] Should we have for client components the same as we have for server functions?
     null, // bundlerConfig
     {}, // serverFunctionsConfig, this is the manifest that can contain configs related to server functions. It requires it to not be null, to run resolveServerReference
     null, // moduleLoading
