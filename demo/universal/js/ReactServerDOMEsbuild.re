@@ -1,6 +1,5 @@
 type arg;
-type result;
-type callServer = (string, list(arg)) => Js.Promise.t(result);
+type callServer = (string, list(arg)) => Js.Promise.t(React.element);
 
 type options = {callServer};
 
@@ -52,7 +51,8 @@ let getCallServer = () => {
   callServerRef^;
 };
 
-let createFromReadableStream = (~callServer=?, stream) => {
+let createFromReadableStream =
+    (~callServer=?, stream): Js.Promise.t(React.element) => {
   switch (callServer) {
   | Some(callServer) =>
     setCallServer(callServer);
