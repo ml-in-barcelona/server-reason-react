@@ -49,7 +49,7 @@
       ) =>
     [@implicit_arity]
     React.Upper_case_component(
-      __FUNCTION__,
+      Stdlib.__FUNCTION__,
       () => {
         let className =
           Cx.make(
@@ -66,7 +66,7 @@
           ~key=None,
           "div",
           Stdlib.List.filter_map(
-            Fun.id,
+            Stdlib.Fun.id,
             [
               Some(
                 [@implicit_arity]

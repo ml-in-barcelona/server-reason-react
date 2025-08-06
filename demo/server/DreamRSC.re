@@ -116,7 +116,6 @@ let stream_model = (~location, app) =>
 
 let stream_html =
     (
-      ~layout=children => children,
       ~skipRoot=false,
       ~bootstrapScriptContent=?,
       ~bootstrapScripts=[],
@@ -133,7 +132,6 @@ let stream_html =
           ~bootstrapScripts,
           ~bootstrapModules,
           ~debug,
-          ~shell=layout,
           app,
         );
 
@@ -157,19 +155,18 @@ let createFromRequest =
       ~bootstrapModules=[],
       ~bootstrapScripts=[],
       ~bootstrapScriptContent="",
-      app,
+      element,
       request,
     ) => {
   switch (Dream.header(request, "Accept")) {
   | Some(accept) when is_react_component_header(accept) =>
-    stream_model(~location=Dream.target(request), app)
+    stream_model(~location=Dream.target(request), element)
   | _ =>
     stream_html(
       ~bootstrapScriptContent,
       ~bootstrapScripts,
       ~bootstrapModules,
-      ~layout,
-      app,
+      layout(element),
     )
   };
 };

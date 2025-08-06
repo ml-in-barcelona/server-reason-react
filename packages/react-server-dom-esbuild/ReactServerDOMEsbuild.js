@@ -1,25 +1,17 @@
 /*
  * This file is a bundler integration between react (react-client/flight), esbuild and server-reason-react.
  *
- * Similar resources
- * **react-server-dom-webpack**
- * - https://github.com/facebook/react/blob/5c56b873efb300b4d1afc4ba6f16acf17e4e5800/packages/react-server-dom-webpack/src/ReactFlightWebpackPlugin.js#L156-L194
- * - https://github.com/facebook/react/blob/main/packages/react-server-dom-webpack/src/client/ReactFlightClientConfigBundlerWebpack.js
- *
- * Take a look at new’s react-server-dom-parcel https://github.com/facebook/react/pull/31725
- *
- * What’s possible with esbuild
- *
- * - RSC server + client https://github.com/jacob-ebey/oneup/blob/main/packages/cli/index.ts
- * - https://github.com/jfortunato/esbuild-plugin-manifest/blob/master/src/index.ts
+ * Similar resources:
+ * - **react-server-dom-webpack**: https://github.com/facebook/react/blob/5c56b873efb300b4d1afc4ba6f16acf17e4e5800/packages/react-server-dom-webpack/src/ReactFlightWebpackPlugin.js#L156-L194
+ * - **react-server-dom-parcel**: https://github.com/facebook/react/pull/31725
 */
 
 import ReactClientFlight from "@pedrobslisboa/react-client/flight";
 
-const is_debug = false;
+const isDebug = false;
 
 const debug = (...args) => {
-  if (is_debug && process.env.NODE_ENV === "development") {
+  if (isDebug && process.env.NODE_ENV === "development") {
     console.log(...args);
   }
 };
@@ -220,11 +212,8 @@ export function createFromReadableStream(stream, options) {
 
 function createResponseFromOptions(options) {
   let response = createResponse(
-    // [QUESTION] Should we have for client components the same as we have for server functions?
     null, // bundlerConfig
-    // serverFunctionsConfig, this is the manifest that can contain configs related to server functions
-    // Unfortunatelly, react requires it to not be null, to run resolveServerReference
-    {},
+    {}, // serverFunctionsConfig, this is the manifest that can contain configs related to server functions. It requires it to not be null, to run resolveServerReference
     null, // moduleLoading
     callCurrentServerCallback(options ? options.callServer : undefined),
     undefined, // encodeFormAction
@@ -235,8 +224,8 @@ function createResponseFromOptions(options) {
     undefined, // TODO: findSourceMapUrl
     false /* __DEV__ ? (options ? options.replayConsoleLogs !== false : true) */,
     undefined /* __DEV__ && options && options.environmentName
-			? options.environmentName
-			: undefined */
+      ? options.environmentName
+      : undefined */
   );
 
   return response;

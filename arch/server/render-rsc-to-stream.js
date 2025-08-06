@@ -42,16 +42,17 @@ let Await_tick = ({ num }) => {
 }
 
 const App = () => {
-	preinit('https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css', { as: 'style' });
-	/* preload('https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css', { as: 'style' }); */
 	return (
-
 		<div className="container">
-			<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" /></div>
+			<link rel="stylesheet" href="bootstrap.min.css" precedence="high" /></div>
 	)
 };
-
 const { pipe } = renderToPipeableStream(<App />);
+/*
+1:{"name":"App","env":"Server","key":null,"owner":null,"stack":[],"props":{}}
+0:D"$1"
+0:["$","div",null,{"className":"container","children":["$","link",null,{"rel":"stylesheet","href":"bootstrap.min.css","precedence":"high"},"$1",[],1]},"$1",[],1]
+*/
 
 pipe(process.stdout);
 
