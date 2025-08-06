@@ -780,8 +780,8 @@ let push_children_into ~children:new_children html =
 
 (* TODO: Implement abortion, based on a timeout? *)
 (* TODO: Ensure chunks are of a certain minimum size but also maximum? Saw react caring about this *)
-let render_html ?(shell = Fun.id) ?(skipRoot = false) ?(env = `Dev) ?debug:(_ = false) ?bootstrapScriptContent
-    ?bootstrapScripts ?bootstrapModules element =
+let render_html ~head ?(skipRoot = false) ?(env = `Dev) ?debug:(_ = false) ?bootstrapScriptContent ?bootstrapScripts
+    ?bootstrapModules element =
   let initial_index = 0 in
   let initial_resources =
     match bootstrapScripts with
@@ -826,8 +826,12 @@ let render_html ?(shell = Fun.id) ?(skipRoot = false) ?(env = `Dev) ?debug:(_ = 
       visited_first_lower_case = None;
     }
   in
-  let%lwt root_html, _root_model = render_element_to_html ~fiber (shell element) in
-  let%lwt _root_html, root_model = render_element_to_html ~fiber element in
+  let%lwt head_html, _ =
+    match head with
+    | Some children -> render_lower_case_element ~fiber ~key:None ~tag:"html" ~attributes:[] ~children
+    | None -> render_lower_case_element ~fiber ~key:None ~tag:"html" ~attributes:[] ~children:[ element ]
+  in
+  let%lwt _, root_model = render_element_to_html ~fiber element in
   let root_chunk = client_value_chunk_script initial_index root_model in
   context.pending <- context.pending - 1;
   (* In case of not having any task pending, we can close the stream *)

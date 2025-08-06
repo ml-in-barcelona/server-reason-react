@@ -116,7 +116,7 @@ let stream_model = (~location, app) =>
 
 let stream_html =
     (
-      ~layout=children => children,
+      ~head,
       ~skipRoot=false,
       ~bootstrapScriptContent=?,
       ~bootstrapScripts=[],
@@ -133,7 +133,7 @@ let stream_html =
           ~bootstrapScripts,
           ~bootstrapModules,
           ~debug,
-          ~shell=layout,
+          ~head,
           app,
         );
 
@@ -153,7 +153,10 @@ let stream_html =
 
 let createFromRequest =
     (
-      ~layout=children => children,
+      ~head=<head>
+              <meta charSet="utf-8" />
+              <link rel="stylesheet" href="/output.css" />
+            </head>,
       ~bootstrapModules=[],
       ~bootstrapScripts=[],
       ~bootstrapScriptContent="",
@@ -168,7 +171,7 @@ let createFromRequest =
       ~bootstrapScriptContent,
       ~bootstrapScripts,
       ~bootstrapModules,
-      ~layout,
+      ~head,
       app,
     )
   };
