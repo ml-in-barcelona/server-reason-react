@@ -56,29 +56,31 @@
               Body(
                 args => {
                   let name =
-                    try(string_of_json(args[0])) {
+                    try(string_of_json(Stdlib.Array.unsafe_get(args, 0))) {
                     | _ =>
-                      raise(
+                      Stdlib.raise(
                         Invalid_argument(
-                          Printf.sprintf(
+                          Stdlib.Printf.sprintf(
                             "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
                             "name",
                             "string",
-                            args[0] |> Yojson.Basic.to_string,
+                            Stdlib.Array.unsafe_get(args, 0)
+                            |> Yojson.Basic.to_string,
                           ),
                         ),
                       )
                     }
                   and age =
-                    try(int_of_json(args[1])) {
+                    try(int_of_json(Stdlib.Array.unsafe_get(args, 1))) {
                     | _ =>
-                      raise(
+                      Stdlib.raise(
                         Invalid_argument(
-                          Printf.sprintf(
+                          Stdlib.Printf.sprintf(
                             "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
                             "age",
                             "int",
-                            args[1] |> Yojson.Basic.to_string,
+                            Stdlib.Array.unsafe_get(args, 1)
+                            |> Yojson.Basic.to_string,
                           ),
                         ),
                       )
@@ -111,29 +113,35 @@
               Body(
                 args => {
                   let name =
-                    try((option_of_json(string_of_json))(args[0])) {
+                    try(
+                      (option_of_json(string_of_json))(
+                        Stdlib.Array.unsafe_get(args, 0),
+                      )
+                    ) {
                     | _ =>
-                      raise(
+                      Stdlib.raise(
                         Invalid_argument(
-                          Printf.sprintf(
+                          Stdlib.Printf.sprintf(
                             "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
                             "name",
                             "string option",
-                            args[0] |> Yojson.Basic.to_string,
+                            Stdlib.Array.unsafe_get(args, 0)
+                            |> Yojson.Basic.to_string,
                           ),
                         ),
                       )
                     }
                   and age =
-                    try(int_of_json(args[1])) {
+                    try(int_of_json(Stdlib.Array.unsafe_get(args, 1))) {
                     | _ =>
-                      raise(
+                      Stdlib.raise(
                         Invalid_argument(
-                          Printf.sprintf(
+                          Stdlib.Printf.sprintf(
                             "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
                             "age",
                             "int",
-                            args[1] |> Yojson.Basic.to_string,
+                            Stdlib.Array.unsafe_get(args, 1)
+                            |> Yojson.Basic.to_string,
                           ),
                         ),
                       )
@@ -171,15 +179,20 @@
               Body(
                 args => {
                   let name =
-                    try((option_of_json(string_of_json))(args[0])) {
+                    try(
+                      (option_of_json(string_of_json))(
+                        Stdlib.Array.unsafe_get(args, 0),
+                      )
+                    ) {
                     | _ =>
-                      raise(
+                      Stdlib.raise(
                         Invalid_argument(
-                          Printf.sprintf(
+                          Stdlib.Printf.sprintf(
                             "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
                             "name",
                             "string option",
-                            args[0] |> Yojson.Basic.to_string,
+                            Stdlib.Array.unsafe_get(args, 0)
+                            |> Yojson.Basic.to_string,
                           ),
                         ),
                       )
@@ -210,15 +223,20 @@
               Body(
                 args => {
                   let name =
-                    try((option_of_json(string_of_json))(args[0])) {
+                    try(
+                      (option_of_json(string_of_json))(
+                        Stdlib.Array.unsafe_get(args, 0),
+                      )
+                    ) {
                     | _ =>
-                      raise(
+                      Stdlib.raise(
                         Invalid_argument(
-                          Printf.sprintf(
+                          Stdlib.Printf.sprintf(
                             "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
                             "name",
                             "string option",
-                            args[0] |> Yojson.Basic.to_string,
+                            Stdlib.Array.unsafe_get(args, 0)
+                            |> Yojson.Basic.to_string,
                           ),
                         ),
                       )
@@ -251,29 +269,31 @@
               Body(
                 args => {
                   let name =
-                    try(string_of_json(args[0])) {
+                    try(string_of_json(Stdlib.Array.unsafe_get(args, 0))) {
                     | _ =>
-                      raise(
+                      Stdlib.raise(
                         Invalid_argument(
-                          Printf.sprintf(
+                          Stdlib.Printf.sprintf(
                             "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
                             "name",
                             "string",
-                            args[0] |> Yojson.Basic.to_string,
+                            Stdlib.Array.unsafe_get(args, 0)
+                            |> Yojson.Basic.to_string,
                           ),
                         ),
                       )
                     }
                   and age =
-                    try(int_of_json(args[1])) {
+                    try(int_of_json(Stdlib.Array.unsafe_get(args, 1))) {
                     | _ =>
-                      raise(
+                      Stdlib.raise(
                         Invalid_argument(
-                          Printf.sprintf(
+                          Stdlib.Printf.sprintf(
                             "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
                             "age",
                             "int",
-                            args[1] |> Yojson.Basic.to_string,
+                            Stdlib.Array.unsafe_get(args, 1)
+                            |> Yojson.Basic.to_string,
                           ),
                         ),
                       )
@@ -376,15 +396,16 @@
               FormData(
                 (args, formData) => {
                   let country =
-                    try(string_of_json(args[0])) {
+                    try(string_of_json(Stdlib.Array.unsafe_get(args, 0))) {
                     | _ =>
-                      raise(
+                      Stdlib.raise(
                         Invalid_argument(
-                          Printf.sprintf(
+                          Stdlib.Printf.sprintf(
                             "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
                             "country",
                             "string",
-                            args[0] |> Yojson.Basic.to_string,
+                            Stdlib.Array.unsafe_get(args, 0)
+                            |> Yojson.Basic.to_string,
                           ),
                         ),
                       )
@@ -426,15 +447,16 @@
               FormData(
                 (args, formData) => {
                   let country =
-                    try(string_of_json(args[0])) {
+                    try(string_of_json(Stdlib.Array.unsafe_get(args, 0))) {
                     | _ =>
-                      raise(
+                      Stdlib.raise(
                         Invalid_argument(
-                          Printf.sprintf(
+                          Stdlib.Printf.sprintf(
                             "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
                             "country",
                             "string",
-                            args[0] |> Yojson.Basic.to_string,
+                            Stdlib.Array.unsafe_get(args, 0)
+                            |> Yojson.Basic.to_string,
                           ),
                         ),
                       )
@@ -479,15 +501,16 @@
               FormData(
                 (args, formData) => {
                   let country =
-                    try(string_of_json(args[0])) {
+                    try(string_of_json(Stdlib.Array.unsafe_get(args, 0))) {
                     | _ =>
-                      raise(
+                      Stdlib.raise(
                         Invalid_argument(
-                          Printf.sprintf(
+                          Stdlib.Printf.sprintf(
                             "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
                             "country",
                             "string",
-                            args[0] |> Yojson.Basic.to_string,
+                            Stdlib.Array.unsafe_get(args, 0)
+                            |> Yojson.Basic.to_string,
                           ),
                         ),
                       )
@@ -532,15 +555,16 @@
               FormData(
                 (args, formData) => {
                   let country =
-                    try(string_of_json(args[0])) {
+                    try(string_of_json(Stdlib.Array.unsafe_get(args, 0))) {
                     | _ =>
-                      raise(
+                      Stdlib.raise(
                         Invalid_argument(
-                          Printf.sprintf(
+                          Stdlib.Printf.sprintf(
                             "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
                             "country",
                             "string",
-                            args[0] |> Yojson.Basic.to_string,
+                            Stdlib.Array.unsafe_get(args, 0)
+                            |> Yojson.Basic.to_string,
                           ),
                         ),
                       )
@@ -585,15 +609,16 @@
               FormData(
                 (args, formData) => {
                   let country =
-                    try(string_of_json(args[0])) {
+                    try(string_of_json(Stdlib.Array.unsafe_get(args, 0))) {
                     | _ =>
-                      raise(
+                      Stdlib.raise(
                         Invalid_argument(
-                          Printf.sprintf(
+                          Stdlib.Printf.sprintf(
                             "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
                             "country",
                             "string",
-                            args[0] |> Yojson.Basic.to_string,
+                            Stdlib.Array.unsafe_get(args, 0)
+                            |> Yojson.Basic.to_string,
                           ),
                         ),
                       )

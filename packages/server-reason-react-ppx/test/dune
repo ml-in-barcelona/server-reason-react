@@ -1,6 +1,7 @@
 (test
  (name test)
- (flags -nopervasives)
+ ; This flag is useful to ensure that the ppx doesn't use the auto-opened Stdlib, can't be kept in the dune because it propagates to all the dependencies
+ ; (flags -nopervasives)
  (libraries
   alcotest
   lwt
