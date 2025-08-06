@@ -670,11 +670,15 @@ and render_lower_case_element ~fiber ~key ~tag ~attributes ~children =
   let inner_html = ReactDOM.getDangerouslyInnerHtml attributes in
   let props = Model.props_to_json attributes in
 
-  let _create_model ~children_model =
+  let _create_model children =
     (* In case of the model, we don't care about inner_html as a children since we need it as a prop. This is the opposite from html rendering *)
     match (Html.is_self_closing_tag tag, inner_html) with
     | _, Some _ | true, _ -> Model.node ~tag ~key ~props []
-    | false, None -> Model.node ~tag ~key ~props [ children_model ]
+    | false, None -> Model.node ~tag ~key ~props [ children ]
+  in
+  let create_model _children =
+    (* Currently we don't sent the model for those cases, since we hydrate the document.body as soon as we hydrate the entire document, we need the model here "_create_model" fn *)
+    `Null
   in
 
   let create_html_node ~html_props ~children_html =
@@ -707,24 +711,24 @@ and render_lower_case_element ~fiber ~key ~tag ~attributes ~children =
       (* Hoist head element to be rendered at document level *)
       let html_attributes = ReactDOM.attributes_to_html attributes in
       let%lwt html_and_model = Lwt_list.map_p (render_element_to_html ~fiber) children in
-      let html, _model = List.split html_and_model in
+      let html, model = List.split html_and_model in
       Fiber.push_hoisted_head ~fiber html_attributes html;
-      Lwt.return (Html.null, `Null)
+      Lwt.return (Html.null, create_model (`List model))
   | tag when (tag = "script" && is_async attributes) || (tag = "link" && has_precedence_and_rel_stylesheet attributes)
     ->
       (* Hoist resources (scripts, links) *)
       let html_props = ReactDOM.attributes_to_html attributes in
       (* TODO: What we should do with the model? *)
-      let%lwt _children_html, _children_model = elements_to_html ~fiber children in
+      let%lwt _children_html, children_model = elements_to_html ~fiber children in
       Fiber.push_resource ~fiber (tag, html_props, None);
-      Lwt.return (Html.null, `Null)
+      Lwt.return (Html.null, create_model children_model)
   | tag when tag = "title" || tag = "meta" || tag = "link" ->
       (* Hoist title, meta, and links without rel or precedence *)
       let html_props = ReactDOM.attributes_to_html attributes in
-      let%lwt children_html, _children_model = elements_to_html ~fiber children in
+      let%lwt children_html, children_model = elements_to_html ~fiber children in
       let html = create_html_node ~html_props ~children_html in
       Fiber.push_hoisted_head_childrens ~fiber html;
-      Lwt.return (Html.null, `Null)
+      Lwt.return (Html.null, create_model children_model)
   | _ -> render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html
 
 and render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html =
@@ -780,7 +784,7 @@ let push_children_into ~children:new_children html =
 
 (* TODO: Implement abortion, based on a timeout? *)
 (* TODO: Ensure chunks are of a certain minimum size but also maximum? Saw react caring about this *)
-let render_html ~head ?(skipRoot = false) ?(env = `Dev) ?debug:(_ = false) ?bootstrapScriptContent ?bootstrapScripts
+let render_html ?(skipRoot = false) ?(env = `Dev) ?debug:(_ = false) ?bootstrapScriptContent ?bootstrapScripts
     ?bootstrapModules element =
   let initial_index = 0 in
   let initial_resources =
@@ -826,12 +830,7 @@ let render_html ~head ?(skipRoot = false) ?(env = `Dev) ?debug:(_ = false) ?boot
       visited_first_lower_case = None;
     }
   in
-  let%lwt head_html, _ =
-    match head with
-    | Some children -> render_lower_case_element ~fiber ~key:None ~tag:"html" ~attributes:[] ~children
-    | None -> render_lower_case_element ~fiber ~key:None ~tag:"html" ~attributes:[] ~children:[ element ]
-  in
-  let%lwt _, root_model = render_element_to_html ~fiber element in
+  let%lwt root_html, root_model = render_element_to_html ~fiber element in
   let root_chunk = client_value_chunk_script initial_index root_model in
   context.pending <- context.pending - 1;
   (* In case of not having any task pending, we can close the stream *)

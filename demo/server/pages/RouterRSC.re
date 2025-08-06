@@ -86,21 +86,6 @@ let markdownStyles = (~background, ~text) => {
   );
 };
 
-/* module Dynamic = {
-     [@react.component]
-     let make = (~href, ~children) => {
-       Router.register(href, children);
-       React.null
-     };
-   };
-
-   module Router = {
-     let register = (href, children) => {
-       let element = Router.getRouter(href);
-       element;
-     };
-   }; */
-
 module App = {
   [@react.async.component]
   let make = (~selectedId, ~isEditing, ~searchText) => {
@@ -142,7 +127,6 @@ module App = {
               </React.Suspense>
             </nav>
           </section>
-          <link rel="stylesheet" href="/tailwind.css" />
           <section key="note-viewer" className="flex-1 basis-3/4 max-w-[75%]">
             <React.Suspense fallback={<NoteSkeleton isEditing />}>
               <NoteItem selectedId isEditing />
@@ -170,20 +154,29 @@ let handler = request => {
 
   DreamRSC.createFromRequest(
     ~bootstrapModules=["/static/demo/RouterRSC.re.js"],
-    ~head=[
-      <meta charSet="utf-8" />,
-      <link rel="stylesheet" href="/output.css" />,
-      <style
-        dangerouslySetInnerHTML={
-          "__html":
-            markdownStyles(
-              ~background=Theme.Color.gray2,
-              ~text=Theme.Color.gray12,
-            ),
-        }
-      />,
-    ],
+    ~layout=
+      children =>
+        <html lang="en">
+          <head>
+            <meta charSet="utf-8" />
+            <style
+              dangerouslySetInnerHTML={
+                "__html":
+                  markdownStyles(
+                    ~background=Theme.Color.gray2,
+                    ~text=Theme.Color.gray12,
+                  ),
+              }
+            />
+            <link rel="stylesheet" href="/output.css" />
+          </head>
+          <body> children </body>
+        </html>,
     <App selectedId isEditing searchText />,
     request,
   );
 };
+
+/*
+ <link rel="stylesheet" href="/output.css" />
+ <link rel="stylesheet" href="/output.css" /> */

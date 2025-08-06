@@ -1,5 +1,4 @@
 val render_html :
-  ?head:React.element ->
   ?skipRoot:bool ->
   ?env:[ `Dev | `Prod ] ->
   ?debug:bool ->

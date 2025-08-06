@@ -116,7 +116,6 @@ let stream_model = (~location, app) =>
 
 let stream_html =
     (
-      ~head,
       ~skipRoot=false,
       ~bootstrapScriptContent=?,
       ~bootstrapScripts=[],
@@ -133,7 +132,6 @@ let stream_html =
           ~bootstrapScripts,
           ~bootstrapModules,
           ~debug,
-          ~head,
           app,
         );
 
@@ -153,26 +151,22 @@ let stream_html =
 
 let createFromRequest =
     (
-      ~head=<head>
-              <meta charSet="utf-8" />
-              <link rel="stylesheet" href="/output.css" />
-            </head>,
+      ~layout=children => children,
       ~bootstrapModules=[],
       ~bootstrapScripts=[],
       ~bootstrapScriptContent="",
-      app,
+      element,
       request,
     ) => {
   switch (Dream.header(request, "Accept")) {
   | Some(accept) when is_react_component_header(accept) =>
-    stream_model(~location=Dream.target(request), app)
+    stream_model(~location=Dream.target(request), element)
   | _ =>
     stream_html(
       ~bootstrapScriptContent,
       ~bootstrapScripts,
       ~bootstrapModules,
-      ~head,
-      app,
+      layout(element),
     )
   };
 };
