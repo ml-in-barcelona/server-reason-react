@@ -10,7 +10,7 @@ We need to output ML syntax here, otherwise refmt could not parse it.
   
     let make ?key:(_ : string option) ~a ~b () =
       React.Upper_case_component
-        ( __FUNCTION__,
+        ( Stdlib.__FUNCTION__,
           fun () ->
             print_endline "This function should be named `Test$Func`" M.x;
             React.createElementWithKey ~key:None "div" [] [] )

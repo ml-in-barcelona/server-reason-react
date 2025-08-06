@@ -4,7 +4,7 @@
     ~key=None,
     "input",
     Stdlib.List.filter_map(
-      Fun.id,
+      Stdlib.Fun.id,
       [
         Some(
           [@implicit_arity] React.JSX.String("type", "type", "text": string),

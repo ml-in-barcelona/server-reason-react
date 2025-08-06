@@ -362,7 +362,7 @@ let transform_lowercase_props ~loc ~tag_name args =
       | [%expr []] -> [%expr []]
       | _ ->
           (* We need to filter attributes since optionals are represented as None *)
-          [%expr Stdlib.List.filter_map Fun.id [%e list_of_attributes]])
+          [%expr Stdlib.List.filter_map Stdlib.Fun.id [%e list_of_attributes]])
 
 let rewrite_lowercase ~loc:exprLoc tag_name args children =
   let loc = exprLoc in
@@ -969,11 +969,11 @@ let rewrite_structure_item ~nested_module_names structure_item =
         else if isReactComponentBinding vb then
           expand_make_binding vb (fun expr ->
               let loc = expr.pexp_loc in
-              [%expr React.Upper_case_component (__FUNCTION__, fun () -> [%e expr])])
+              [%expr React.Upper_case_component (Stdlib.__FUNCTION__, fun () -> [%e expr])])
         else if isReactAsyncComponentBinding vb then
           expand_make_binding vb (fun expr ->
               let loc = expr.pexp_loc in
-              [%expr React.Async_component (__FUNCTION__, fun () -> [%e expr])])
+              [%expr React.Async_component (Stdlib.__FUNCTION__, fun () -> [%e expr])])
         else vb
       in
       let bindings = List.map ~f:map_value_binding value_bindings in
