@@ -41,22 +41,15 @@ let Await_tick = ({ num }) => {
 	return num
 }
 
-const AnotherComponent = async () => {
-	preinit('analytics.js', { as: 'script' });
-	await sleep(1);
-	return <><script async={true} src="analytics.js" />
-		<div>AnotherComponent</div></>;
+const App = () => {
+	preinit('https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css', { as: 'style' });
+	/* preload('https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css', { as: 'style' }); */
+	return (
+
+		<div className="container">
+			<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" /></div>
+	)
 };
-
-const App = () => (
-	<html>
-		<head>
-		</head>
-		<body>
-		</body>
-	</html>
-);
-
 
 const { pipe } = renderToPipeableStream(<App />);
 

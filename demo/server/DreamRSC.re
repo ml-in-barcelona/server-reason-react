@@ -116,6 +116,7 @@ let stream_model = (~location, app) =>
 
 let stream_html =
     (
+      ~layout=children => children,
       ~skipRoot=false,
       ~bootstrapScriptContent=?,
       ~bootstrapScripts=[],
@@ -132,8 +133,10 @@ let stream_html =
           ~bootstrapScripts,
           ~bootstrapModules,
           ~debug,
+          ~shell=layout,
           app,
         );
+
       let%lwt () = Dream.write(stream, html);
       let%lwt () = Dream.flush(stream);
       let%lwt () =
@@ -150,6 +153,7 @@ let stream_html =
 
 let createFromRequest =
     (
+      ~layout=children => children,
       ~bootstrapModules=[],
       ~bootstrapScripts=[],
       ~bootstrapScriptContent="",
@@ -164,6 +168,7 @@ let createFromRequest =
       ~bootstrapScriptContent,
       ~bootstrapScripts,
       ~bootstrapModules,
+      ~layout,
       app,
     )
   };

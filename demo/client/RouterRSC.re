@@ -22,13 +22,13 @@ let fetchApp = url => {
 };
 
 module App = {
-  let initialData =
+  let initialRSCModel =
     ReactServerDOMEsbuild.createFromReadableStream(readable_stream);
 
   [@react.component]
   let make = () => {
-    let initialElement = React.Experimental.use(initialData);
-    let (data, setData) = React.useState(() => initialElement);
+    let initialElement = React.Experimental.use(initialRSCModel);
+    let (layout, setLayout) = React.useState(() => initialElement);
 
     let navigate = search => {
       let location = DOM.window->DOM.Window.location;
@@ -40,10 +40,16 @@ module App = {
         let pathname = Location.pathname(location);
         let currentURL = origin ++ pathname;
         let url = URL.makeExn(currentURL)->URL.setSearchAsString(search);
-        let app = fetchApp(URL.toString(url));
-        let element = ReactServerDOMEsbuild.createFromFetch(app);
+        let body = fetchApp(URL.toString(url));
+        /* let metadata = app.metadata; */
+        /* NextRouter.populateMetadata(metadata); */
+
+        /* let stylesheets = extractStylesheets(app); */
+        /* let stylesheets = extractStylesheets(response.stylesheets);
+           stylesheets |> List.iter((src) => ReactDOM.preinit(src)); */
+        let element = ReactServerDOMEsbuild.createFromFetch(body);
         startTransition(() => {
-          setData(_ => element);
+          setLayout(_ => element);
           History.pushState(
             History.state(DOM.history),
             "",
@@ -63,7 +69,7 @@ module App = {
         Js.log(error);
         <h1> {React.string("Something went wrong")} </h1>;
       }}>
-      data
+      layout
     </ReasonReactErrorBoundary>;
   };
 };
@@ -75,7 +81,7 @@ let body =
   ->Webapi.Dom.Document.asHtmlDocument
   ->Option.bind(Webapi.Dom.HtmlDocument.body);
 
-switch (document) {
+switch (body) {
 | Some(element) =>
   startTransition(() => {
     let _ = ReactDOM.Client.hydrateRoot(element, <App />);
