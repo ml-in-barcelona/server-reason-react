@@ -1,22 +1,21 @@
-type callServer('arg, 'result) =
-  (string, list('arg)) => Js.Promise.t('result);
+type arg;
+type callServer = (string, list(arg)) => Js.Promise.t(React.element);
 
-type options('arg, 'result) = {callServer: callServer('arg, 'result)};
+type options = {callServer};
 
 [@mel.module
   "../../../packages/react-server-dom-esbuild/ReactServerDOMEsbuild.js"
 ]
 external createFromReadableStreamImpl:
-  (Webapi.ReadableStream.t, ~options: options('arg, 'result)=?, unit) =>
-  Js.Promise.t('result) =
+  (Webapi.ReadableStream.t, ~options: options=?, unit) =>
+  Js.Promise.t(React.element) =
   "createFromReadableStream";
 
 [@mel.module
   "../../../packages/react-server-dom-esbuild/ReactServerDOMEsbuild.js"
 ]
 external createFromFetchImpl:
-  (Js.Promise.t(Fetch.response), ~options: options('arg, 'result)=?, unit) =>
-  React.element =
+  (Js.Promise.t(Fetch.response), ~options: options=?, unit) => React.element =
   "createFromFetch";
 
 [@mel.module
@@ -25,7 +24,7 @@ external createFromFetchImpl:
 external createServerReferenceImpl:
   (
     string, // ServerReferenceId
-    callServer('arg, 'result),
+    callServer,
     // EncodeFormActionCallback (optional) (We're not using this right now)
     option('encodeFormActionCallback),
     // FindSourceMapURLCallback (optional, DEV-only) (We're not using this right now)
@@ -43,38 +42,48 @@ external createServerReferenceImpl:
 ]
 external encodeReply: list('arg) => Js.Promise.t(string) = "encodeReply";
 
-let callServer = (path: string, args) => {
-  let headers =
-    Fetch.HeadersInit.make({
-      "Accept": "application/react.action",
-      "ACTION_ID": path,
-    });
-  encodeReply(args)
-  |> Js.Promise.then_(body => {
-       let body = Fetch.BodyInit.make(body);
-       Fetch.fetchWithInit(
-         "/",
-         Fetch.RequestInit.make(~method_=Fetch.Post, ~headers, ~body, ()),
-       )
-       |> Js.Promise.then_(result => {
-            let body = Fetch.Response.body(result);
-            createFromReadableStreamImpl(body, ());
-          });
-     });
+/* let callServerRef: ref(option(callServer('arg, 'result))) = ref(None); */
+let callServerRef: ref(option(callServer)) = ref(None);
+let setCallServer = callServer => {
+  callServerRef := Some(callServer);
+};
+let getCallServer = () => {
+  callServerRef^;
 };
 
-let createFromReadableStream = stream => {
-  createFromReadableStreamImpl(
-    stream,
-    ~options={callServer: callServer},
-    (),
-  );
+let createFromReadableStream =
+    (~callServer=?, stream): Js.Promise.t(React.element) => {
+  switch (callServer) {
+  | Some(callServer) =>
+    setCallServer(callServer);
+    createFromReadableStreamImpl(
+      stream,
+      ~options={callServer: callServer},
+      (),
+    );
+  | None => createFromReadableStreamImpl(stream, ())
+  };
 };
 
-let createFromFetch = promise => {
-  createFromFetchImpl(promise, ~options={callServer: callServer}, ());
+let createFromFetch = (~callServer=?, promise) => {
+  switch (callServer) {
+  | Some(callServer) =>
+    setCallServer(callServer);
+    createFromFetchImpl(promise, ~options={callServer: callServer}, ());
+  | None => createFromFetchImpl(promise, ())
+  };
 };
 
 let createServerReference = serverReferenceId => {
+  let callServer =
+    switch (getCallServer()) {
+    | Some(callServer) => callServer
+    | None =>
+      raise(
+        Invalid_argument(
+          "No callServer has been set, you are trying to create a server function without passing callServer to createFromFetch or createFromReadableStream",
+        ),
+      )
+    };
   createServerReferenceImpl(serverReferenceId, callServer, None, None, None);
 };

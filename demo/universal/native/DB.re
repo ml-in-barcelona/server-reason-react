@@ -49,6 +49,7 @@ module Cache = {
 };
 
 let readNotes = () => {
+  /* TODO: Add queryparam "sleep" to tweak a delay let%lwt _ = Lwt_unix.sleep(2.); */
   switch (Cache.read()) {
   | Some(Ok(notes)) => Lwt_result.return(notes)
   | Some(Error(e)) => Lwt_result.fail(e)

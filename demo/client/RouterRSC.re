@@ -21,9 +21,32 @@ let fetchApp = url => {
   );
 };
 
+let callServer = (path: string, args) => {
+  let headers =
+    Fetch.HeadersInit.make({
+      "Accept": "application/react.action",
+      "ACTION_ID": path,
+    });
+  ReactServerDOMEsbuild.encodeReply(args)
+  |> Js.Promise.then_(body => {
+       let body = Fetch.BodyInit.make(body);
+       Fetch.fetchWithInit(
+         "/",
+         Fetch.RequestInit.make(~method_=Fetch.Post, ~headers, ~body, ()),
+       )
+       |> Js.Promise.then_(result => {
+            let body = Fetch.Response.body(result);
+            ReactServerDOMEsbuild.createFromReadableStream(body);
+          });
+     });
+};
+
 module App = {
   let initialRSCModel =
-    ReactServerDOMEsbuild.createFromReadableStream(readable_stream);
+    ReactServerDOMEsbuild.createFromReadableStream(
+      ~callServer,
+      readable_stream,
+    );
 
   [@react.component]
   let make = () => {
