@@ -1,5 +1,6 @@
 (test
  (name test)
+ (flags -nopervasives)
  (libraries
   alcotest
   lwt
