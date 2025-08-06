@@ -362,7 +362,7 @@ let transform_lowercase_props ~loc ~tag_name args =
       | [%expr []] -> [%expr []]
       | _ ->
           (* We need to filter attributes since optionals are represented as None *)
-          [%expr Stdlib.List.filter_map Fun.id [%e list_of_attributes]])
+          [%expr Stdlib.List.filter_map Stdlib.Fun.id [%e list_of_attributes]])
 
 let rewrite_lowercase ~loc:exprLoc tag_name args children =
   let loc = exprLoc in
@@ -794,19 +794,19 @@ module ServerFunction = struct
              Format.flush_str_formatter ()
            in
            let core_type_string = string_of_core_type core_type in
-           let of_json = make_of_json ~loc core_type [%expr args.([%e eint ~loc i])] in
+           let of_json = make_of_json ~loc core_type [%expr Stdlib.Array.unsafe_get args [%e eint ~loc i]] in
            value_binding ~loc
              ~pat:[%pat? [%p ppat_var ~loc { txt = label; loc }]]
              ~expr:
                [%expr
                  try [%e of_json]
                  with _ ->
-                   raise
+                   Stdlib.raise
                      (Invalid_argument
-                        (Printf.sprintf
+                        (Stdlib.Printf.sprintf
                            "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s"
                            [%e estring ~loc label] [%e estring ~loc core_type_string]
-                           (args.([%e eint ~loc i]) |> Yojson.Basic.to_string)))])
+                           (Stdlib.Array.unsafe_get args [%e eint ~loc i] |> Yojson.Basic.to_string)))])
 
   let create_function_reference_registration ~loc ~id ~function_name ~args ~core_type =
     let apply_args = map_arguments_to_expressions ~loc args in
@@ -969,11 +969,11 @@ let rewrite_structure_item ~nested_module_names structure_item =
         else if isReactComponentBinding vb then
           expand_make_binding vb (fun expr ->
               let loc = expr.pexp_loc in
-              [%expr React.Upper_case_component (__FUNCTION__, fun () -> [%e expr])])
+              [%expr React.Upper_case_component (Stdlib.__FUNCTION__, fun () -> [%e expr])])
         else if isReactAsyncComponentBinding vb then
           expand_make_binding vb (fun expr ->
               let loc = expr.pexp_loc in
-              [%expr React.Async_component (__FUNCTION__, fun () -> [%e expr])])
+              [%expr React.Async_component (Stdlib.__FUNCTION__, fun () -> [%e expr])])
         else vb
       in
       let bindings = List.map ~f:map_value_binding value_bindings in

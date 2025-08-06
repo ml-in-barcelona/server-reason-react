@@ -5,7 +5,7 @@
       ~key=None,
       "div",
       Stdlib.List.filter_map(
-        Fun.id,
+        Stdlib.Fun.id,
         [
           Some(
             [@implicit_arity]
@@ -20,7 +20,7 @@
       ~key=None,
       "div",
       Stdlib.List.filter_map(
-        Fun.id,
+        Stdlib.Fun.id,
         [
           Some(
             React.JSX.Style(
@@ -36,7 +36,7 @@
       ~key=None,
       "div",
       Stdlib.List.filter_map(
-        Fun.id,
+        Stdlib.Fun.id,
         [Some(React.JSX.dangerouslyInnerHtml({"__html": text}))],
       ),
       [],
@@ -46,7 +46,7 @@
       ~key=None,
       "div",
       Stdlib.List.filter_map(
-        Fun.id,
+        Stdlib.Fun.id,
         [
           switch ((tabIndex: option(int))) {
           | None => None
@@ -69,7 +69,7 @@
       ~key=None,
       "a",
       Stdlib.List.filter_map(
-        Fun.id,
+        Stdlib.Fun.id,
         [
           Some(
             [@implicit_arity]
@@ -112,7 +112,7 @@
       ~key=None,
       "div",
       Stdlib.List.filter_map(
-        Fun.id,
+        Stdlib.Fun.id,
         [
           Some(
             [@implicit_arity]
@@ -125,7 +125,7 @@
           ~key=None,
           "div",
           Stdlib.List.filter_map(
-            Fun.id,
+            Stdlib.Fun.id,
             [
               Some(
                 [@implicit_arity]
@@ -138,7 +138,7 @@
               ~key=None,
               "h2",
               Stdlib.List.filter_map(
-                Fun.id,
+                Stdlib.Fun.id,
                 [
                   Some(
                     [@implicit_arity]
@@ -152,7 +152,7 @@
               ~key=None,
               "nav",
               Stdlib.List.filter_map(
-                Fun.id,
+                Stdlib.Fun.id,
                 [
                   Some(
                     [@implicit_arity]
@@ -172,7 +172,7 @@
                            ~key=Some(e.path),
                            "li",
                            Stdlib.List.filter_map(
-                             Fun.id,
+                             Stdlib.Fun.id,
                              [
                                Some(
                                  [@implicit_arity]
@@ -185,7 +185,7 @@
                                ~key=None,
                                "a",
                                Stdlib.List.filter_map(
-                                 Fun.id,
+                                 Stdlib.Fun.id,
                                  [
                                    Some(
                                      [@implicit_arity]
@@ -230,7 +230,7 @@
       ~key=None,
       "button",
       Stdlib.List.filter_map(
-        Fun.id,
+        Stdlib.Fun.id,
         [
           Some(React.JSX.Ref(ref: React.domRef)),
           Some(
@@ -246,7 +246,7 @@
       ~key=None,
       "div",
       Stdlib.List.filter_map(
-        Fun.id,
+        Stdlib.Fun.id,
         [
           Some(
             [@implicit_arity]
@@ -259,7 +259,7 @@
           ~key=None,
           "picture",
           Stdlib.List.filter_map(
-            Fun.id,
+            Stdlib.Fun.id,
             [
               Some(
                 [@implicit_arity]
@@ -272,7 +272,7 @@
               ~key=None,
               "img",
               Stdlib.List.filter_map(
-                Fun.id,
+                Stdlib.Fun.id,
                 [
                   Some(
                     [@implicit_arity]
@@ -298,7 +298,7 @@
               ~key=None,
               "source",
               Stdlib.List.filter_map(
-                Fun.id,
+                Stdlib.Fun.id,
                 [
                   Some(
                     [@implicit_arity]
@@ -316,7 +316,7 @@
               ~key=None,
               "source",
               Stdlib.List.filter_map(
-                Fun.id,
+                Stdlib.Fun.id,
                 [
                   Some(
                     [@implicit_arity]
@@ -339,7 +339,7 @@
       ~key=None,
       "text",
       Stdlib.List.filter_map(
-        Fun.id,
+        Stdlib.Fun.id,
         [
           Some([@implicit_arity] React.JSX.String("dx", "dx", "1 2": string)),
           Some([@implicit_arity] React.JSX.String("dy", "dy", "3 4": string)),
@@ -352,7 +352,7 @@
       ~key=None,
       "div",
       Stdlib.List.filter_map(
-        Fun.id,
+        Stdlib.Fun.id,
         [
           switch ((onClick: option(React.Event.Mouse.t => unit))) {
           | None => None
