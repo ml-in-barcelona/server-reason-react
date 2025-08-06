@@ -1,7 +1,6 @@
   $ cat > ReactServerDOMEsbuild.re << EOF
   > [@mel.module "./ReactServerDOMEsbuild.js"]
-  > external createServerReference:
-  >   ( string ) => 'action = "createServerReference";
+  > external createServerReference: (string) => 'action = "createServerReference";
   > EOF
 
   $ cat > dune-project << EOF

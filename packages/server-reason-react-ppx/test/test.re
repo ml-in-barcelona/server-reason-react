@@ -1,12 +1,18 @@
+/* Since we use -nopervasives to ensure ppx doesn't use the auto-opened Stdlib, we need to define some functions manually */
+let (/.) = (a, b) => Stdlib.(a /. b);
+let (-.) = (a, b) => Stdlib.(a -. b);
+let (>=) = (a, b) => Stdlib.(a >= b);
+let (|>) = (a, f) => f(a);
+
 let test = (title, fn) => (
   title,
-  [Alcotest_lwt.test_case("", `Quick, (_switch, ()) => fn() |> Lwt.return)],
+  [Alcotest_lwt.test_case("", `Quick, (_switch, ()) => Lwt.return(fn()))],
 );
 
 include Melange_json.Primitives;
 
 let sleep = (~ms) => {
-  let%lwt () = Lwt_unix.sleep(Int.to_float(ms) /. 1000.0);
+  let%lwt () = Lwt_unix.sleep(Stdlib.Int.to_float(ms) /. 1000.0);
   Lwt.return();
 };
 
@@ -21,8 +27,8 @@ let test_lwt = (title, fn) => {
     let%lwt test_promise = Lwt.pick([fn(), timeout]);
     let epsilon = 0.001;
     let duration = Unix.gettimeofday() -. start;
-    if (abs_float(duration) >= epsilon) {
-      Printf.printf(
+    if (Stdlib.abs_float(duration) >= epsilon) {
+      Stdlib.Printf.printf(
         "\027[1m\027[33m[WARNING]\027[0m Test '%s' took %.3f seconds\n",
         title,
         duration,
@@ -229,7 +235,7 @@ let ref_opt_attribute_none = () => {
 };
 
 let onClick_empty = () => {
-  let onClick = Some(_ => print_endline("clicked"));
+  let onClick = Some(_ => Stdlib.print_endline("clicked"));
   let div = <div ?onClick />;
   assert_string(ReactDOM.renderToStaticMarkup(div), {|<div></div>|});
 };
@@ -465,17 +471,19 @@ let multiple_contexts = () => {
 };
 
 module FunctionReferences: ReactServerDOM.FunctionReferences = {
-  type t = Hashtbl.t(string, ReactServerDOM.server_function);
+  type t = Stdlib.Hashtbl.t(string, ReactServerDOM.server_function);
 
-  let registry = Hashtbl.create(10);
-  let register = Hashtbl.add(registry);
-  let get = Hashtbl.find_opt(registry);
+  let registry = Stdlib.Hashtbl.create(10);
+  let register = Stdlib.Hashtbl.add(registry);
+  let get = Stdlib.Hashtbl.find_opt(registry);
 };
 
 module ServerFunction = {
   [@react.server.function]
   let simpleResponse = (~name: string, ~age: int): Js.Promise.t(string) => {
-    Lwt.return(Printf.sprintf("Hello %s, you are %d years old", name, age));
+    Lwt.return(
+      Stdlib.Printf.sprintf("Hello %s, you are %d years old", name, age),
+    );
   };
 
   [@react.server.function]
@@ -493,7 +501,9 @@ module ServerFunction = {
         | `String(age) => age
       );
 
-    Lwt.return(Printf.sprintf("Hello %s, you are %s years old", name, age));
+    Lwt.return(
+      Stdlib.Printf.sprintf("Hello %s, you are %s years old", name, age),
+    );
   };
 
   [@react.server.function]
@@ -506,7 +516,9 @@ module ServerFunction = {
         | `String(name) => name
       );
 
-    Lwt.return(Printf.sprintf("Hello %s, your role is %s", name, role));
+    Lwt.return(
+      Stdlib.Printf.sprintf("Hello %s, your role is %s", name, role),
+    );
   };
 };
 
@@ -529,7 +541,7 @@ let server_function_reference = () => {
   | React.Json(json) =>
     assert_string(string_of_json(json), "Hello John, you are 30 years old");
     Lwt.return_unit;
-  | _ => failwith("Expected a JSON response")
+  | _ => Stdlib.failwith("Expected a JSON response")
   };
 };
 
@@ -542,17 +554,17 @@ let server_function_reference_args_error = () => {
         | Some(Body(handler)) => handler([|`String("John"), `Int(30)|])
         | _ => assert(false)
       )
-      |> ignore
+      |> Stdlib.ignore
     ) {
     | Failure(error) =>
       assert_string(
         error,
         "server-reason-react: error on decoding argument 'age'. EXPECTED: int, RECEIVED: \"30\"",
       )
-      |> ignore
+      |> Stdlib.ignore
     }
   )
-  |> ignore;
+  |> Stdlib.ignore;
   Lwt.return_unit;
 };
 
@@ -574,7 +586,7 @@ let server_function_reference_form_data = () => {
   | React.Json(json) =>
     assert_string(string_of_json(json), "Hello John, you are 30 years old");
     Lwt.return_unit;
-  | _ => failwith("Expected a JSON response")
+  | _ => Stdlib.failwith("Expected a JSON response")
   };
 };
 
@@ -598,7 +610,7 @@ let server_function_reference_form_data_and_args = () => {
       "Hello John, your role is Developer",
     );
     Lwt.return_unit;
-  | _ => failwith("Expected a JSON response")
+  | _ => Stdlib.failwith("Expected a JSON response")
   };
 };
 
