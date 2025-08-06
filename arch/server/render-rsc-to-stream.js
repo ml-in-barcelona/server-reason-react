@@ -48,11 +48,6 @@ const App = () => {
 	)
 };
 const { pipe } = renderToPipeableStream(<App />);
-/*
-1:{"name":"App","env":"Server","key":null,"owner":null,"stack":[],"props":{}}
-0:D"$1"
-0:["$","div",null,{"className":"container","children":["$","link",null,{"rel":"stylesheet","href":"bootstrap.min.css","precedence":"high"},"$1",[],1]},"$1",[],1]
-*/
 
 pipe(process.stdout);
 
