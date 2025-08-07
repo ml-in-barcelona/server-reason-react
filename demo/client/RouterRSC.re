@@ -64,12 +64,6 @@ module App = {
         let currentURL = origin ++ pathname;
         let url = URL.makeExn(currentURL)->URL.setSearchAsString(search);
         let body = fetchApp(URL.toString(url));
-        /* let metadata = app.metadata; */
-        /* NextRouter.populateMetadata(metadata); */
-
-        /* let stylesheets = extractStylesheets(app); */
-        /* let stylesheets = extractStylesheets(response.stylesheets);
-           stylesheets |> List.iter((src) => ReactDOM.preinit(src)); */
         let element = ReactServerDOMEsbuild.createFromFetch(body);
         startTransition(() => {
           setLayout(_ => element);
