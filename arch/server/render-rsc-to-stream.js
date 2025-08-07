@@ -1,5 +1,6 @@
 import React from "react";
 import { renderToPipeableStream } from "react-server-dom-webpack/server";
+import { prefetchDNS, preconnect, preload, preinit } from 'react-dom'
 
 const DefferedComponent = async ({ sleep, children }) => {
 	await new Promise((res) => setTimeout(() => res(), sleep * 1000));
@@ -40,13 +41,14 @@ let Await_tick = ({ num }) => {
 	return num
 }
 
-const App = () => (
-	<>
-		<meta charSet="utf-8" />
-		<style dangerouslySetInnerHTML={{ __html: "* { display: none; }" }} />
-	</>
-);
-
+const App = () => {
+	return (
+		<div className="container">
+			<link rel="stylesheet" href="bootstrap.min.css" precedence="high" /></div>
+	)
+};
 const { pipe } = renderToPipeableStream(<App />);
 
 pipe(process.stdout);
+
+/* https://codesandbox.io/p/sandbox/vibrant-voice-hdrlzt?file=%2Fsrc%2FApp.js */

@@ -102,8 +102,10 @@ let stream_model = (~location, app) =>
           ~debug,
           ~subscribe=
             chunk => {
-              Dream.log("Chunk");
-              Dream.log("%s", chunk);
+              if (debug) {
+                Dream.log("Chunk");
+                Dream.log("%s", chunk);
+              };
               let%lwt () = Dream.write(stream, chunk);
               Dream.flush(stream);
             },
@@ -134,12 +136,15 @@ let stream_html =
           ~debug,
           app,
         );
+
       let%lwt () = Dream.write(stream, html);
       let%lwt () = Dream.flush(stream);
       let%lwt () =
         subscribe(chunk => {
-          Dream.log("Chunk");
-          Dream.log("%s", chunk);
+          if (debug) {
+            Dream.log("Chunk");
+            Dream.log("%s", chunk);
+          };
           let%lwt () = Dream.write(stream, chunk);
           Dream.flush(stream);
         });
@@ -150,21 +155,22 @@ let stream_html =
 
 let createFromRequest =
     (
+      ~layout=children => children,
       ~bootstrapModules=[],
       ~bootstrapScripts=[],
       ~bootstrapScriptContent="",
-      app,
+      element,
       request,
     ) => {
   switch (Dream.header(request, "Accept")) {
   | Some(accept) when is_react_component_header(accept) =>
-    stream_model(~location=Dream.target(request), app)
+    stream_model(~location=Dream.target(request), element)
   | _ =>
     stream_html(
       ~bootstrapScriptContent,
       ~bootstrapScripts,
       ~bootstrapModules,
-      app,
+      layout(element),
     )
   };
 };

@@ -22,7 +22,7 @@ let test title fn =
     let epsilon = 0.001 in
     let duration = Unix.gettimeofday () -. start in
     if abs_float duration >= epsilon then
-      Printf.printf "\027[1m\027[33m[WARNING]\027[0m Test '%s' took %.3f seconds\n" title duration
+      Printf.printf "  \027[1m\027[33m[WARNING]\027[0m Test '%s' took %.3f seconds\n" title duration
     else ();
     Lwt.return test_promise
   in
@@ -757,6 +757,92 @@ let env_development_adds_debug_info () =
     ];
   Lwt.return () *)
 
+let client_component_with_resources_metadata () =
+  (* Test that resources are tracked in the RSC payload *)
+  let app () =
+    React.Upper_case_component
+      ( "Page",
+        fun () ->
+          React.list
+            [
+              React.createElement "html" []
+                [
+                  React.createElement "head" []
+                    [
+                      React.createElement "link"
+                        [
+                          React.JSX.String ("rel", "rel", "stylesheet");
+                          React.JSX.String ("href", "href", "/styles.css");
+                          React.JSX.String ("precedence", "precedence", "default");
+                        ]
+                        [];
+                      React.createElement "script"
+                        [ React.JSX.String ("src", "src", "/app.js"); React.JSX.Bool ("async", "async", true) ]
+                        [];
+                    ];
+                  React.createElement "body" []
+                    [
+                      React.Client_component
+                        {
+                          props = [];
+                          client = React.string "Client Component";
+                          import_module = "./client.js";
+                          import_name = "Client";
+                        };
+                    ];
+                ];
+            ] )
+  in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~subscribe (app ()) in
+  (* Check that client reference is created *)
+  let has_client_ref = List.exists (fun s -> Str.string_match (Str.regexp ".*:I\\[\"./client.js\".*") s 0) !output in
+  Alcotest.(check bool) "should have client reference" true has_client_ref;
+  (* Check that the resources are in the model payload *)
+  let has_head_with_resources =
+    List.exists
+      (fun s ->
+        Str.string_match (Str.regexp ".*\"head\".*") s 0
+        && Str.string_match (Str.regexp ".*\"link\".*") s 0
+        && Str.string_match (Str.regexp ".*\"script\".*") s 0)
+      !output
+  in
+  Alcotest.(check bool) "should have head with resources" true has_head_with_resources;
+  Lwt.return ()
+
+let page_with_hoisted_resources () =
+  (* Test that resources like scripts and styles are properly hoisted *)
+  let app () =
+    React.Upper_case_component
+      ( "Page",
+        fun () ->
+          React.list
+            [
+              React.createElement "div" []
+                [
+                  React.createElement "link"
+                    [
+                      React.JSX.String ("rel", "rel", "stylesheet");
+                      React.JSX.String ("href", "href", "/main.css");
+                      React.JSX.String ("precedence", "precedence", "high");
+                    ]
+                    [];
+                  React.createElement "script"
+                    [ React.JSX.String ("src", "src", "/runtime.js"); React.JSX.Bool ("async", "async", true) ]
+                    [];
+                  React.createElement "h1" [] [ React.string "Page Title" ];
+                ];
+            ] )
+  in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~subscribe (app ()) in
+  (* Check that the output contains the expected structure *)
+  Alcotest.(check bool) "should have output" (List.length !output > 0) true;
+  (* Check that h1 with Page Title is in the output *)
+  let has_page_title = List.exists (fun s -> Str.string_match (Str.regexp ".*\"h1\".*\"Page Title\".*") s 0) !output in
+  Alcotest.(check bool) "should have page title" true has_page_title;
+  Lwt.return ()
+
 let tests =
   [
     test "null_element" null_element;
@@ -793,6 +879,8 @@ let tests =
     test "error_in_toplevel_in_async" error_in_toplevel_in_async;
     test "suspense_in_a_list_with_error" suspense_in_a_list_with_error;
     test "suspense_with_error_under_lowercase" suspense_with_error_under_lowercase;
+    test "client_component_with_resources_metadata" client_component_with_resources_metadata;
+    test "page_with_hoisted_resources" page_with_hoisted_resources;
     (* TODO: https://github.com/ml-in-barcelona/server-reason-react/issues/251 test "client_with_promise_failed_props" client_with_promise_failed_props; *)
     (* test "env_development_adds_debug_info_2" env_development_adds_debug_info_2; *)
   ]

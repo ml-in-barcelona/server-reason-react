@@ -1,5 +1,6 @@
 import React from "react";
 import * as ReactDOM from "react-dom/server";
+import { prefetchDNS, preconnect, preload, preinit } from 'react-dom'
 
 const sleep = (seconds) =>
 	new Promise((res) => setTimeout(res, seconds * 1000));
@@ -91,21 +92,38 @@ const App = () => (
 }
  */
 
-function App() {
-	return (
-		<>
-			<html>
-				<body>
-					<head>
-						<title>Hey Yah</title>
-					</head>
-					<div>Content inside body</div>
-				</body>
-			</html>
-		</>
-	);
+
+/* const AnotherComponent = async () => {
+	preinit('analytics.js', { as: 'script' });
+	await sleep(1);
+	return <><script async={true} src="analytics.js" />
+		<div>AnotherComponent</div></>;
+}; */
+
+const Component = () => {
+	return <div>
+		<link rel="stylesheet" precedence="low" href="https://cdn.com/main.css" />
+		<link rel="icon" href="favicon.ico" />
+		<link rel="pingback" href="http://www.example.com/xmlrpc.php" />
+		<style>
+			{"body { background-color: red; }"}
+		</style>
+		<script>
+			{"console.log('hello');"}
+		</script>
+	</div>
 }
 
-ReactDOM.renderToReadableStream(<App />, { bootstrapModules: ["react", "react-dom"] }).then((stream) => {
+const App = () => {
+	return (
+		<html>
+			<head>
+				<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" precedence="high" /></head>
+			<div className="container"></div>
+		</html >
+	)
+};
+
+ReactDOM.renderToReadableStream(<App />).then((stream) => {
 	debug(stream);
 });

@@ -87,7 +87,6 @@ let to_string ?(add_separator_between_text_nodes = true) element =
   (* This ref is used to enable rendering comments <!-- --> between text nodes
      and can be disabled by `add_separator_between_text_nodes` *)
   let previous_was_text_node = ref false in
-  (* *)
   let should_add_doctype_to_html = ref true in
   let rec write element =
     match element with
@@ -115,6 +114,48 @@ let to_string ?(add_separator_between_text_nodes = true) element =
            Check `separated_text_nodes_by_other_nodes` in test_renderToString.ml *)
         if add_separator_between_text_nodes then previous_was_text_node.contents <- false;
         if tag = "html" && should_add_doctype then Buffer.add_string out "<!DOCTYPE html>";
+        Buffer.add_char out '<';
+        Buffer.add_string out tag;
+        List.iter (write_attribute out) attributes;
+        Buffer.add_char out '>';
+        List.iter write children;
+        Buffer.add_string out "</";
+        Buffer.add_string out tag;
+        Buffer.add_char out '>'
+    | List ("", list) -> List.iter write list
+    | List (separator, list) ->
+        let rec iter = function
+          | [] -> ()
+          | [ one ] -> write one
+          | [ first; second ] ->
+              write first;
+              Buffer.add_string out separator;
+              write second
+          | first :: rest ->
+              write first;
+              Buffer.add_string out separator;
+              iter rest
+        in
+        iter list
+    | Array elements -> Array.iter write elements
+  in
+  write element;
+  Buffer.contents out
+
+(* The pretty print is used for debugging purposes *)
+let pp element =
+  let out = Buffer.create 1024 in
+  let rec write element =
+    match element with
+    | Null -> ()
+    | String text -> escape_and_add out text
+    | Raw text -> Buffer.add_string out text
+    | Node { tag; attributes; _ } when is_self_closing_tag tag ->
+        Buffer.add_char out '<';
+        Buffer.add_string out tag;
+        List.iter (write_attribute out) attributes;
+        Buffer.add_string out " />"
+    | Node { tag; attributes; children } ->
         Buffer.add_char out '<';
         Buffer.add_string out tag;
         List.iter (write_attribute out) attributes;

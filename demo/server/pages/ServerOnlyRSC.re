@@ -35,12 +35,10 @@ let handler = request => {
       Lwt.return();
     });
   } else {
-    Dream.html(
-      ReactDOM.renderToString(
-        <Document script="/static/demo/ServerOnlyRSC.re.js">
-          React.null
-        </Document>,
-      ),
+    DreamRSC.createFromRequest(
+      ~bootstrapModules=["/static/demo/ServerOnlyRSC.re.js"],
+      <Document> app </Document>,
+      request,
     );
   };
 };

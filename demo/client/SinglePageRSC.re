@@ -11,9 +11,32 @@ external readable_stream: Webapi.ReadableStream.t =
 [@mel.module "react"]
 external startTransition: (unit => unit) => unit = "startTransition";
 
+let callServer = (path: string, args) => {
+  let headers =
+    Fetch.HeadersInit.make({
+      "Accept": "application/react.action",
+      "ACTION_ID": path,
+    });
+  ReactServerDOMEsbuild.encodeReply(args)
+  |> Js.Promise.then_(body => {
+       let body = Fetch.BodyInit.make(body);
+       Fetch.fetchWithInit(
+         "/",
+         Fetch.RequestInit.make(~method_=Fetch.Post, ~headers, ~body, ()),
+       )
+       |> Js.Promise.then_(result => {
+            let body = Fetch.Response.body(result);
+            ReactServerDOMEsbuild.createFromReadableStream(body);
+          });
+     });
+};
+
 try({
   let promise =
-    ReactServerDOMEsbuild.createFromReadableStream(readable_stream);
+    ReactServerDOMEsbuild.createFromReadableStream(
+      ~callServer,
+      readable_stream,
+    );
 
   let document: option(Webapi.Dom.Element.t) = [%mel.raw "window.document"];
 
