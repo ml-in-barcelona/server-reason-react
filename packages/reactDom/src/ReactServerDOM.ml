@@ -21,38 +21,30 @@ let create_stack_trace () =
   in
   `List (Array.to_list (Array.map make_locations slots))
 
-module Resources = Set.Make (struct
-  type t = string * Html.attribute_list * Html.element option
+(* Resources module maintains insertion order while deduplicating based on src/href *)
+module Resources = struct
+  type item = string * Html.attribute_list * Html.element option
+  type t = item list
 
-  let get_attribute ~key:key_to_get attributes =
+  let get_attribute ~key:key_to_get (attributes : Html.attribute_list) =
     List.find_map
-      (fun attr -> match attr with `Value (key, value) when key = key_to_get -> Some value | _ -> None)
+      (fun attr -> match attr with `Value (key, value) when String.equal key key_to_get -> Some value | _ -> None)
       attributes
 
-  let get_src = get_attribute ~key:"src"
-  let get_href = get_attribute ~key:"href"
+  let resource_key item =
+    match (item : item) with
+    | "script", attributes, _ -> get_attribute ~key:"src" attributes
+    | "link", attributes, _ -> get_attribute ~key:"href" attributes
+    | _ -> None
 
-  let compare (a : t) (b : t) =
-    let a_tag, a_attributes, _a_children = a and b_tag, b_attributes, _b_children = b in
-    if not (String.equal a_tag b_tag) then Stdlib.compare a_tag b_tag
-    else if String.equal a_tag "script" then
-      let src_a = get_src a_attributes in
-      let src_b = get_src b_attributes in
-      match (src_a, src_b) with
-      | Some src_a, Some src_b -> Stdlib.compare src_a src_b
-      | None, Some _ -> -1
-      | Some _, None -> 1
-      | None, None -> 1
-    else if String.equal a_tag "link" then
-      let href_a = get_href a_attributes in
-      let href_b = get_href b_attributes in
-      match (href_a, href_b) with
-      | Some href_a, Some href_b -> Stdlib.compare href_a href_b
-      | None, Some _ -> -1
-      | Some _, None -> 1
-      | None, None -> 1
-    else 1
-end)
+  let add resource resources =
+    match resource_key resource with
+    | None -> resources @ [ resource ]
+    | Some key ->
+        (* Ensure if this resource already exists, it gets deduplicated *)
+        let exists = List.exists (fun r -> resource_key r = Some key) resources in
+        if exists then resources else resources @ [ resource ]
+end
 
 module Fiber = struct
   type context = {
@@ -73,13 +65,15 @@ module Fiber = struct
     mutable hoisted_head_childrens : Html.element list;
     (* resources collects link, script that should preload, prefetch to be in the document's <head> and deduplicates them based on "src" or "href" attributes, respectively *)
     mutable resources : Resources.t;
+    (* inside_head tracks whether we're currently processing elements inside a <head> element *)
+    mutable inside_head : bool;
   }
 
   let push_hoisted_head ~fiber html_attributes children = fiber.hoisted_head <- Some (html_attributes, children)
   let push_resource ~fiber resource = fiber.resources <- Resources.add resource fiber.resources
 
   let push_hoisted_head_childrens ~fiber children =
-    fiber.hoisted_head_childrens <- children :: fiber.hoisted_head_childrens
+    fiber.hoisted_head_childrens <- fiber.hoisted_head_childrens @ [ children ]
 
   let visited_first_lower_case ~fiber = fiber.visited_first_lower_case
   let set_visited_first_lower_case ~fiber value = fiber.visited_first_lower_case <- Some value
@@ -710,25 +704,32 @@ and render_lower_case_element ~fiber ~key ~tag ~attributes ~children =
   | "head" ->
       (* Hoist head element to be rendered at document level *)
       let html_attributes = ReactDOM.attributes_to_html attributes in
+      (* Mark that we're inside a head element to prevent double-hoisting *)
+      fiber.inside_head <- true;
       let%lwt html_and_model = Lwt_list.map_p (render_element_to_html ~fiber) children in
+      fiber.inside_head <- false;
       let html, model = List.split html_and_model in
       Fiber.push_hoisted_head ~fiber html_attributes html;
       Lwt.return (Html.null, create_model (`List model))
   | tag when (tag = "script" && is_async attributes) || (tag = "link" && has_precedence_and_rel_stylesheet attributes)
     ->
-      (* Hoist resources (scripts, links) *)
-      let html_props = ReactDOM.attributes_to_html attributes in
-      (* TODO: What we should do with the model? *)
-      let%lwt _children_html, children_model = elements_to_html ~fiber children in
-      Fiber.push_resource ~fiber (tag, html_props, None);
-      Lwt.return (Html.null, create_model children_model)
+      (* Hoist resources (scripts, links) - but only if not already inside a head *)
+      if fiber.inside_head then render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html
+      else
+        let html_props = ReactDOM.attributes_to_html attributes in
+        (* TODO: What we should do with the model? *)
+        let%lwt _children_html, children_model = elements_to_html ~fiber children in
+        Fiber.push_resource ~fiber (tag, html_props, None);
+        Lwt.return (Html.null, create_model children_model)
   | tag when tag = "title" || tag = "meta" || tag = "link" ->
-      (* Hoist title, meta, and links without rel or precedence *)
-      let html_props = ReactDOM.attributes_to_html attributes in
-      let%lwt children_html, children_model = elements_to_html ~fiber children in
-      let html = create_html_node ~html_props ~children_html in
-      Fiber.push_hoisted_head_childrens ~fiber html;
-      Lwt.return (Html.null, create_model children_model)
+      (* Hoist title, meta, and links without rel or precedence - but only if not already inside a head *)
+      if fiber.inside_head then render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html
+      else
+        let html_props = ReactDOM.attributes_to_html attributes in
+        let%lwt children_html, children_model = elements_to_html ~fiber children in
+        let html = create_html_node ~html_props ~children_html in
+        Fiber.push_hoisted_head_childrens ~fiber html;
+        Lwt.return (Html.null, create_model children_model)
   | _ -> render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html
 
 and render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html =
@@ -802,8 +803,6 @@ let render_html ?(skipRoot = false) ?(env = `Dev) ?debug:(_ = false) ?bootstrapS
               None ))
           scripts
     | None -> (
-        []
-        @
         match bootstrapModules with
         | Some modules ->
             List.map
@@ -826,8 +825,9 @@ let render_html ?(skipRoot = false) ?(env = `Dev) ?debug:(_ = false) ?bootstrapS
       context;
       hoisted_head = None;
       hoisted_head_childrens = [];
-      resources = Resources.of_list initial_resources;
+      resources = initial_resources;
       visited_first_lower_case = None;
+      inside_head = false;
     }
   in
   let%lwt root_html, root_model = render_element_to_html ~fiber element in
@@ -884,12 +884,12 @@ let render_html ?(skipRoot = false) ?(env = `Dev) ?debug:(_ = false) ?bootstrapS
         | false, false -> Html.list (root_html :: user_scripts)
       in
       let head_childrens =
-        List.rev_map
+        List.map
           (fun (tag, attributes, children) ->
             match children with
             | Some children -> Html.node tag attributes [ children ]
             | None -> Html.node tag attributes [])
-          (Resources.elements fiber.resources)
+          fiber.resources
         @ fiber.hoisted_head_childrens
       in
       match fiber.hoisted_head with

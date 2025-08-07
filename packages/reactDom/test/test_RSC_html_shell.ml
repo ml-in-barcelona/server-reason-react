@@ -118,7 +118,7 @@ let head_with_content () =
   in
   assert_html app
     ~shell:
-      "<!DOCTYPE html><html><head><meta charset=\"utf-8\" /><title>Titulaso</title></head><script data-payload='0:[null]\n\
+      "<!DOCTYPE html><html><head><title>Titulaso</title><meta charset=\"utf-8\" /></head><script data-payload='0:[null]\n\
        '>window.srr_stream.push()</script></html>"
 
 let html_inside_a_div () =
@@ -147,7 +147,7 @@ let html_with_head_like_elements_not_in_head () =
   in
   assert_html app
     ~shell:
-      "<!DOCTYPE html><html><head><title>Implicit Head?</title><meta charset=\"utf-8\" /></head><script \
+      "<!DOCTYPE html><html><head><meta charset=\"utf-8\" /><title>Implicit Head?</title></head><script \
        data-payload='0:[null,null]\n\
        '>window.srr_stream.push()</script></html>"
 
@@ -155,8 +155,8 @@ let html_without_body_and_bootstrap_scripts () =
   let app = html [ React.createElement "input" [ React.JSX.String ("id", "id", "sidebar-search-input") ] [] ] in
   assert_html app ~bootstrapModules:[ "react"; "react-dom" ] ~bootstrapScriptContent:"console.log('hello')"
     ~shell:
-      "<!DOCTYPE html><html><head><link rel=\"modulepreload\" fetchPriority=\"low\" href=\"react-dom\" /><link \
-       rel=\"modulepreload\" fetchPriority=\"low\" href=\"react\" /></head><input id=\"sidebar-search-input\" \
+      "<!DOCTYPE html><html><head><link rel=\"modulepreload\" fetchPriority=\"low\" href=\"react\" /><link \
+       rel=\"modulepreload\" fetchPriority=\"low\" href=\"react-dom\" /></head><input id=\"sidebar-search-input\" \
        /><script data-payload='0:[[\"$\",\"input\",null,{\"id\":\"sidebar-search-input\"},null,[],{}]]\n\
        '>window.srr_stream.push()</script><script>console.log('hello')</script><script src=\"react\" async=\"\" \
        type=\"module\"></script><script src=\"react-dom\" async=\"\" type=\"module\"></script></html>"
@@ -167,9 +167,9 @@ let html_with_body_and_bootstrap_scripts () =
   in
   assert_html app ~bootstrapModules:[ "react"; "react-dom" ] ~bootstrapScriptContent:"console.log('hello')"
     ~shell:
-      "<!DOCTYPE html><html><head><link rel=\"modulepreload\" fetchPriority=\"low\" href=\"react-dom\" /><link \
-       rel=\"modulepreload\" fetchPriority=\"low\" href=\"react\" /></head><body><input id=\"sidebar-search-input\" \
-       /><script \
+      "<!DOCTYPE html><html><head><link rel=\"modulepreload\" fetchPriority=\"low\" href=\"react\" /><link \
+       rel=\"modulepreload\" fetchPriority=\"low\" href=\"react-dom\" /></head><body><input \
+       id=\"sidebar-search-input\" /><script \
        data-payload='0:[[\"$\",\"body\",null,{\"children\":[[\"$\",\"input\",null,{\"id\":\"sidebar-search-input\"},null,[],{}]]},null,[],{}]]\n\
        '>window.srr_stream.push()</script><script>console.log('hello')</script><script src=\"react\" async=\"\" \
        type=\"module\"></script><script src=\"react-dom\" async=\"\" type=\"module\"></script></body></html>"
@@ -205,8 +205,9 @@ let title_and_meta_populates_to_the_head () =
 
   assert_html app
     ~shell:
-      "<!DOCTYPE html><html><head><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\" /><title>Hey \
-       Yah</title></head><body><script data-payload='0:[[\"$\",\"body\",null,{\"children\":[null]},null,[],{}]]\n\
+      "<!DOCTYPE html><html><head><title>Hey Yah</title><meta name=\"viewport\" \
+       content=\"width=device-width,initial-scale=1\" /></head><body><script \
+       data-payload='0:[[\"$\",\"body\",null,{\"children\":[null]},null,[],{}]]\n\
        '>window.srr_stream.push()</script></body></html>"
 
 let async_scripts_to_head () =
@@ -267,7 +268,6 @@ let link_with_rel_and_precedence () =
           ];
       ]
   in
-  (* TODO: Deduplication only works on HTML currently, we don't know if we need the same logic for the model *)
   (* Here the precedence "high" remains in the head because it's the first one, there's no update with the 2nd link *)
   assert_html app
     ~shell:
@@ -293,8 +293,8 @@ let links_gets_pushed_to_the_head () =
   assert_html app
     ~shell:
       "<!DOCTYPE html><html><head><link href=\"https://cdn.com/main.css\" rel=\"stylesheet\" precedence=\"low\" \
-       /><link href=\"http://www.example.com/xmlrpc.php\" rel=\"pingback\" /><link href=\"favicon.ico\" rel=\"icon\" \
-       /><link href=\"favicon.ico\" rel=\"icon\" /></head><body><script \
+       /><link href=\"favicon.ico\" rel=\"icon\" /><link href=\"favicon.ico\" rel=\"icon\" /><link \
+       href=\"http://www.example.com/xmlrpc.php\" rel=\"pingback\" /></head><body><script \
        data-payload='0:[[\"$\",\"body\",null,{\"children\":[null,null,null,null]},null,[],{}]]\n\
        '>window.srr_stream.push()</script></body></html>"
 
@@ -302,8 +302,8 @@ let no_async_scripts_to_remain () =
   let app = html [ body [ script ~async:false ~src:"https://cdn.com/jquery.min.js" () ] ] in
   assert_html app ~bootstrapModules:[ "jquery"; "jquery-mobile" ]
     ~shell:
-      "<!DOCTYPE html><html><head><link rel=\"modulepreload\" fetchPriority=\"low\" href=\"jquery-mobile\" /><link \
-       rel=\"modulepreload\" fetchPriority=\"low\" href=\"jquery\" /></head><body><script \
+      "<!DOCTYPE html><html><head><link rel=\"modulepreload\" fetchPriority=\"low\" href=\"jquery\" /><link \
+       rel=\"modulepreload\" fetchPriority=\"low\" href=\"jquery-mobile\" /></head><body><script \
        src=\"https://cdn.com/jquery.min.js\"></script><script \
        data-payload='0:[[\"$\",\"body\",null,{\"children\":[[\"$\",\"script\",null,{\"children\":[],\"async\":false,\"src\":\"https://cdn.com/jquery.min.js\"},null,[],{}]]},null,[],{}]]\n\
        '>window.srr_stream.push()</script><script src=\"jquery\" async=\"\" type=\"module\"></script><script \
@@ -366,10 +366,90 @@ let upper_case_component_with_resources () =
   assert_html
     (React.Upper_case_component ("Page", app))
     ~shell:
-      "<!DOCTYPE html><html><head><script src=\"/app.js\" async></script><link rel=\"stylesheet\" href=\"/styles.css\" \
-       precedence=\"default\" /></head><body><div>Page content</div></body><script \
+      "<!DOCTYPE html><html><head><link rel=\"stylesheet\" href=\"/styles.css\" precedence=\"default\" /><script \
+       src=\"/app.js\" async></script></head><body><div>Page content</div></body><script \
        data-payload='0:[null,[\"$\",\"body\",null,{\"children\":[[\"$\",\"div\",null,{\"children\":[\"Page \
        content\"]},null,[],{}]]},null,[],{}]]\n\
+       '>window.srr_stream.push()</script></html>"
+
+let hoisted_elements_order_issue () =
+  (* This test demonstrates the ordering issue with hoisted elements.
+     When multiple elements are hoisted (title, meta, link, scripts),
+     their order in the final HTML may not match the order they were defined *)
+  let app =
+    html
+      [
+        body
+          [
+            (* These elements will be hoisted to head but their order might not be preserved *)
+            React.createElement "title" [] [ React.string "First Title" ];
+            React.createElement "meta"
+              [
+                React.JSX.String ("name", "name", "description");
+                React.JSX.String ("content", "content", "Page description");
+              ]
+              [];
+            link ~rel:"stylesheet" ~href:"/first.css" ();
+            React.createElement "title" [] [ React.string "Second Title" ];
+            (* Will override first *)
+            React.createElement "meta"
+              [ React.JSX.String ("name", "name", "keywords"); React.JSX.String ("content", "content", "react, ssr") ]
+              [];
+            link ~rel:"stylesheet" ~href:"/second.css" ();
+            script ~async:true ~src:"/first.js" ();
+            link ~rel:"stylesheet" ~precedence:"high" ~href:"/third.css" ();
+            (* This is a resource *)
+            script ~async:true ~src:"/second.js" ();
+            React.createElement "meta"
+              [ React.JSX.String ("name", "name", "author"); React.JSX.String ("content", "content", "Developer") ]
+              [];
+            div [] [ React.string "Body content" ];
+          ];
+      ]
+  in
+  (* The expected order should maintain the order elements were defined:
+     Resources (async scripts and links with precedence) followed by regular head elements *)
+  assert_html app
+    ~shell:
+      "<!DOCTYPE html><html><head><script async src=\"/first.js\"></script><link href=\"/third.css\" \
+       rel=\"stylesheet\" precedence=\"high\" /><script async src=\"/second.js\"></script><title>First \
+       Title</title><meta name=\"description\" content=\"Page description\" /><link href=\"/first.css\" \
+       rel=\"stylesheet\" /><title>Second Title</title><meta name=\"keywords\" content=\"react, ssr\" /><link \
+       href=\"/second.css\" rel=\"stylesheet\" /><meta name=\"author\" content=\"Developer\" /></head><body><div>Body \
+       content</div><script \
+       data-payload='0:[[\"$\",\"body\",null,{\"children\":[null,null,null,null,null,null,null,null,null,null,[\"$\",\"div\",null,{\"children\":[\"Body \
+       content\"]},null,[],{}]]},null,[],{}]]\n\
+       '>window.srr_stream.push()</script></body></html>"
+
+let head_preserves_children_order () =
+  (* Test that elements inside <head> maintain their original order *)
+  let app =
+    html
+      [
+        head
+          [
+            React.createElement "meta" [ React.JSX.String ("charset", "charSet", "utf-8") ] [];
+            React.createElement "style" [ React.JSX.DangerouslyInnerHtml ".custom { color: red; }" ] [];
+            link ~rel:"stylesheet" ~href:"/main.css" ();
+            React.createElement "title" [] [ React.string "My App" ];
+            React.createElement "meta"
+              [
+                React.JSX.String ("name", "name", "viewport");
+                React.JSX.String ("content", "content", "width=device-width");
+              ]
+              [];
+            script ~async:true ~src:"/app.js" ();
+          ];
+        body [ div [] [ React.string "Content" ] ];
+      ]
+  in
+  assert_html app
+    ~shell:
+      "<!DOCTYPE html><html><head><meta charset=\"utf-8\" /><style>.custom { color: red; }</style><link \
+       href=\"/main.css\" rel=\"stylesheet\" /><title>My App</title><meta name=\"viewport\" \
+       content=\"width=device-width\" /><script async \
+       src=\"/app.js\"></script></head><body><div>Content</div></body><script \
+       data-payload='0:[null,[\"$\",\"body\",null,{\"children\":[[\"$\",\"div\",null,{\"children\":[\"Content\"]},null,[],{}]]},null,[],{}]]\n\
        '>window.srr_stream.push()</script></html>"
 
 let tests =
@@ -397,4 +477,6 @@ let tests =
     test "self_closing_with_dangerously" self_closing_with_dangerously;
     test "self_closing_with_dangerously_in_head" self_closing_with_dangerously_in_head;
     test "upper_case_component_with_resources" upper_case_component_with_resources;
+    test "hoisted_elements_order_issue" hoisted_elements_order_issue;
+    test "head_preserves_children_order" head_preserves_children_order;
   ]
