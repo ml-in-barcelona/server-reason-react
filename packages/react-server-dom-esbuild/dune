@@ -1,0 +1,10 @@
+(library
+ (name ReactServerDOMEsbuild)
+ (modules ReactServerDOMEsbuild)
+ (modes melange)
+ (wrapped false)
+ (public_name server-reason-react.react-server-dom-esbuild)
+ (libraries reason-react melange-webapi melange-fetch)
+ (melange.runtime_deps ReactServerDOMEsbuild.js)
+ (preprocess
+  (pps melange.ppx)))

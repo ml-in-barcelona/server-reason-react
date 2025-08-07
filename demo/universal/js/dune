@@ -4,12 +4,13 @@
  (wrapped false)
  (libraries
   reason-react
+  server-reason-react.react-server-dom-esbuild
   melange-webapi
   melange.belt
   melange.js
   melange-fetch
   melange.dom
-  url_js
+  server-reason-react.url_js
   melange-json)
  (melange.runtime_deps
   ../../../packages/react-server-dom-esbuild/ReactServerDOMEsbuild.js)
