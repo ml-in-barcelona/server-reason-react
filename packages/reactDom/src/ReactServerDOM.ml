@@ -664,15 +664,15 @@ and render_lower_case_element ~fiber ~key ~tag ~attributes ~children =
   let inner_html = ReactDOM.getDangerouslyInnerHtml attributes in
   let props = Model.props_to_json attributes in
 
-  let _create_model children =
-    (* In case of the model, we don't care about inner_html as a children since we need it as a prop. This is the opposite from html rendering *)
-    match (Html.is_self_closing_tag tag, inner_html) with
-    | _, Some _ | true, _ -> Model.node ~tag ~key ~props []
-    | false, None -> Model.node ~tag ~key ~props [ children ]
-  in
-  let create_model _children =
-    (* Currently we don't sent the model for those cases, since we hydrate the document.body as soon as we hydrate the entire document, we need the model here "_create_model" fn *)
-    `Null
+  let create_model children =
+    if (* disable_model *) true then
+      (* Currently we don't sent the model for those cases, since we hydrate the document.body as soon as we hydrate the entire document *)
+      `Null
+    else
+      (* In case of the model, we don't care about inner_html as a children since we need it as a prop. This is the opposite from html rendering *)
+      match (Html.is_self_closing_tag tag, inner_html) with
+      | _, Some _ | true, _ -> Model.node ~tag ~key ~props []
+      | false, None -> Model.node ~tag ~key ~props [ children ]
   in
 
   let create_html_node ~html_props ~children_html =

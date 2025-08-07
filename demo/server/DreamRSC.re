@@ -102,8 +102,10 @@ let stream_model = (~location, app) =>
           ~debug,
           ~subscribe=
             chunk => {
-              Dream.log("Chunk");
-              Dream.log("%s", chunk);
+              if (debug) {
+                Dream.log("Chunk");
+                Dream.log("%s", chunk);
+              };
               let%lwt () = Dream.write(stream, chunk);
               Dream.flush(stream);
             },
@@ -139,8 +141,10 @@ let stream_html =
       let%lwt () = Dream.flush(stream);
       let%lwt () =
         subscribe(chunk => {
-          Dream.log("Chunk");
-          Dream.log("%s", chunk);
+          if (debug) {
+            Dream.log("Chunk");
+            Dream.log("%s", chunk);
+          };
           let%lwt () = Dream.write(stream, chunk);
           Dream.flush(stream);
         });
