@@ -12,9 +12,10 @@
  (libraries
   melange
   reason-react
+  server-reason-react.react-server-dom-esbuild
+  server-reason-react.url_js
   melange.dom
   melange-webapi
-  url_js
   melange-fetch
   demo_shared_js)
  (preprocess
