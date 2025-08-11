@@ -39,8 +39,12 @@
   (uri (>= 4.2.0))
   (yojson (>= 2.2.0))
   (integers (>= 0.7.0))
+  (melange-fetch (>= 0.1.0))
   (melange-json (>= 2.0.0))
   (melange-json-native (>= 2.0.0))
+  (melange-webapi (>= 0.21.0))
+  reason-react
+
 
   ; Documentation
   (odoc :with-doc)
@@ -57,9 +61,6 @@
     (= 1.0.0~alpha8)
     :with-dev-setup)) ; We use dream on the demo
 
-  (melange-webapi :with-dev-setup)
-  (reason-react :with-dev-setup)
-  (melange-fetch :with-dev-setup)
   (reason-react-ppx :with-dev-setup)
   (odoc-driver :with-dev-setup)
 
