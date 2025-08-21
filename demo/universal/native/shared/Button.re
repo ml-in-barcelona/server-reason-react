@@ -3,7 +3,7 @@ open Melange_json.Primitives;
 [@react.client.component]
 let make = (~noteId: option(int), ~children: React.element) => {
   let (isPending, startTransition) = React.useTransition();
-  let {navigate, _}: ClientRouter.t = ClientRouter.useRouter();
+  let navigate = DummyClientRouter.useNavigate();
   let isDraft = Belt.Option.isNone(noteId);
 
   let className =

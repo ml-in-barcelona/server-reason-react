@@ -23,25 +23,26 @@ let server =
         "/static/**",
         Dream.static("./_build/default/demo/client/app"),
       ),
-      getAndPost(Router.demoRenderToString, _request =>
+      getAndPost(Routes.renderToString, _request =>
         Dream.html(
           ReactDOM.renderToString(
             <Document script="/static/demo/Hydrate.re.js"> <App /> </Document>,
           ),
         )
       ),
-      getAndPost(Router.demoRenderToStaticMarkup, _request =>
+      getAndPost(Routes.renderToStaticMarkup, _request =>
         Dream.html(
           ReactDOM.renderToStaticMarkup(
             <Document script="/static/demo/Hydrate.re.js"> <App /> </Document>,
           ),
         )
       ),
-      getAndPost(Router.demoRenderToStream, Pages.Comments.handler),
-      getAndPost(Router.demoSinglePageRSC, Pages.SinglePageRSC.handler),
-      getAndPost(Router.demoRouterRSC, Pages.RouterRSC.handler),
-      getAndPost(Router.demoServerOnlyRSC, Pages.ServerOnlyRSC.handler),
-      getAndPost(Router.demoRouterRSCNoSSR, Pages.RouterRSCNoSSR.handler),
+      getAndPost(Routes.renderToStream, Pages.Comments.handler),
+      getAndPost(Routes.singlePageRSC, Pages.SinglePageRSC.handler),
+      getAndPost(Routes.dummyRouterRSC, Pages.DummyRouterRSC.handler),
+      getAndPost(Routes.routerRSC, Pages.RouterRSC.handler),
+      getAndPost(Routes.serverOnlyRSC, Pages.ServerOnlyRSC.handler),
+      getAndPost(Routes.routerRSCNoSSR, Pages.RouterRSCNoSSR.handler),
     ]),
   );
 

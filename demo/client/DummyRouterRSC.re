@@ -1,0 +1,108 @@
+module DOM = Webapi.Dom;
+module Location = DOM.Location;
+module History = DOM.History;
+module ReadableStream = Webapi.ReadableStream;
+
+[@mel.scope "window"] [@mel.set]
+external setNavigate: (Webapi.Dom.Window.t, string => unit) => unit =
+  "__navigate";
+
+[@mel.module "react"]
+external startTransition: (unit => unit) => unit = "startTransition";
+external readable_stream: ReadableStream.t =
+  "window.srr_stream.readable_stream";
+
+let fetchApp = url => {
+  let headers =
+    Fetch.HeadersInit.make({"Accept": "application/react.component"});
+  Fetch.fetchWithInit(
+    url,
+    Fetch.RequestInit.make(~method_=Fetch.Get, ~headers, ()),
+  );
+};
+
+let callServer = (path: string, args) => {
+  let headers =
+    Fetch.HeadersInit.make({
+      "Accept": "application/react.action",
+      "ACTION_ID": path,
+    });
+  ReactServerDOMEsbuild.encodeReply(args)
+  |> Js.Promise.then_(body => {
+       let body = Fetch.BodyInit.make(body);
+       Fetch.fetchWithInit(
+         "/",
+         Fetch.RequestInit.make(~method_=Fetch.Post, ~headers, ~body, ()),
+       )
+       |> Js.Promise.then_(result => {
+            let body = Fetch.Response.body(result);
+            ReactServerDOMEsbuild.createFromReadableStream(body);
+          });
+     });
+};
+
+module App = {
+  let initialRSCModel =
+    ReactServerDOMEsbuild.createFromReadableStream(
+      ~callServer,
+      readable_stream,
+    );
+
+  [@react.component]
+  let make = () => {
+    let initialElement = React.Experimental.use(initialRSCModel);
+    let (layout, setLayout) = React.useState(() => initialElement);
+
+    let navigate = search => {
+      let location = DOM.window->DOM.Window.location;
+      let currentSearch = Location.search(location);
+      if (currentSearch == "?" ++ search) {
+        ();
+      } else {
+        let origin = Location.origin(location);
+        let pathname = Location.pathname(location);
+        let currentURL = origin ++ pathname;
+        let url = URL.makeExn(currentURL)->URL.setSearchAsString(search);
+        let body = fetchApp(URL.toString(url));
+        let element = ReactServerDOMEsbuild.createFromFetch(body);
+        startTransition(() => {
+          setLayout(_ => element);
+          History.pushState(
+            History.state(DOM.history),
+            "",
+            URL.toString(url),
+            DOM.history,
+          );
+        });
+        ();
+      };
+    };
+
+    /* Publish navigate fn into window.__navigate */
+    setNavigate(Webapi.Dom.window, navigate);
+
+    <ReasonReactErrorBoundary
+      fallback={error => {
+        Js.log(error);
+        <h1> {React.string("Something went wrong")} </h1>;
+      }}>
+      layout
+    </ReasonReactErrorBoundary>;
+  };
+};
+
+let document: option(Webapi.Dom.Element.t) = [%mel.raw "window.document"];
+
+let body =
+  Webapi.Dom.document
+  ->Webapi.Dom.Document.asHtmlDocument
+  ->Option.bind(Webapi.Dom.HtmlDocument.body);
+
+switch (body) {
+| Some(element) =>
+  startTransition(() => {
+    let _ = ReactDOM.Client.hydrateRoot(element, <App />);
+    ();
+  })
+| None => Js.log("Root element not found")
+};

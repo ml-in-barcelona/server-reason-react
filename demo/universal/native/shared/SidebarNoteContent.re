@@ -27,7 +27,7 @@ let make =
       ~children: React.element,
       ~expandedChildren: React.element,
     ) => {
-  let router = ClientRouter.useRouter();
+  let router = DummyClientRouter.useRouter();
   let (isExpanded, setIsExpanded) = RR.useStateValue(false);
   let (isPending, startTransition) = React.useTransition();
 

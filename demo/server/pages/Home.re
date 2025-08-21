@@ -32,7 +32,7 @@ let handler = _request => {
             <Text size=Medium> "." </Text>
           </div>
         </div>
-        <Router.Menu />
+        <Routes.Menu />
       </div>
     </Document>;
 

@@ -5,7 +5,7 @@ open Melange_json.Primitives;
 [@react.client.component]
 let make =
     (~noteId: option(int), ~initialTitle: string, ~initialBody: string) => {
-  let router: ClientRouter.t = ClientRouter.useRouter();
+  let navigate = DummyClientRouter.useNavigate();
   let (title, setTitle) = RR.useStateValue(initialTitle);
   let (body, setBody) = RR.useStateValue(initialBody);
   let (isNavigating, startNavigating) = React.useTransition();
@@ -46,7 +46,7 @@ let make =
               action
               |> Js.Promise.then_((result: Note.t) => {
                    let id = result.id;
-                   router.navigate({
+                   navigate({
                      selectedId: Some(id),
                      isEditing: false,
                      searchText: None,

@@ -27,7 +27,7 @@ let make = (~children, ~background=Theme.Color.Gray2, ~mode=Fit800px) => {
           Theme.text(Theme.Color.Gray12),
           Theme.hover([Theme.text(Theme.Color.Gray10)]),
         ])}
-        href=Router.home>
+        href=Routes.home>
         <Arrow direction=Left />
         {React.string("Home")}
       </a>

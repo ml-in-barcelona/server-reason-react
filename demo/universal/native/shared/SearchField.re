@@ -4,7 +4,7 @@ open Melange_json.Primitives;
 
 [@react.client.component]
 let make = (~searchText: string, ~selectedId: option(int), ~isEditing: bool) => {
-  let {navigate, _}: ClientRouter.t = ClientRouter.useRouter();
+  let navigate = DummyClientRouter.useNavigate();
   let (text, setText) = RR.useStateValue(searchText);
   let (isSearching, startSearching) = React.useTransition();
 

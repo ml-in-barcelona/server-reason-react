@@ -32,6 +32,7 @@
   (:entrypoints
    "app/demo/client/Hydrate.re.js"
    "app/demo/client/SinglePageRSC.re.js"
+   "app/demo/client/DummyRouterRSC.re.js"
    "app/demo/client/RouterRSC.re.js"
    "app/demo/client/ServerOnlyRSC.re.js"
    "app/demo/client/RouterRSCNoSSR.re.js")
