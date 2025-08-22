@@ -26,14 +26,18 @@ let server =
       getAndPost(Routes.renderToString, _request =>
         Dream.html(
           ReactDOM.renderToString(
-            <Document script="/static/demo/Hydrate.re.js"> <App /> </Document>,
+            <Document script="/static/demo/RenderRoot.re.js">
+              <App />
+            </Document>,
           ),
         )
       ),
       getAndPost(Routes.renderToStaticMarkup, _request =>
         Dream.html(
           ReactDOM.renderToStaticMarkup(
-            <Document script="/static/demo/Hydrate.re.js"> <App /> </Document>,
+            <Document script="/static/demo/HydrateRoot.re.js">
+              <App />
+            </Document>,
           ),
         )
       ),
