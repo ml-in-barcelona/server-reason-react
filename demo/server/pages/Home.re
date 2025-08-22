@@ -8,7 +8,7 @@ let handler = _request => {
               "font-extrabold text-5xl",
               Theme.text(Theme.Color.Primary),
             ])}>
-            {React.string("Demos for server-reason-react")}
+            {React.string("server-reason-react's demos")}
           </h1>
           <div className="mt-8">
             <Text size=Medium>

@@ -48,9 +48,6 @@ module WithArrow = {
         ~children,
         ~target=?,
       ) => {
-    <Base size href color ?target underline=false>
-      {React.string(children)}
-      <Arrow />
-    </Base>;
+    <Base size href color ?target underline=false> children <Arrow /> </Base>;
   };
 };

@@ -6,7 +6,7 @@ type direction =
 let make = (~direction: direction=Right) => {
   <svg
     className={Cx.make([
-      "w-3 h-3 ms-2",
+      "w-3 h-3 ms-2 flex-shrink-0",
       switch (direction) {
       | Left => "transform -rotate-180"
       | Right => ""
