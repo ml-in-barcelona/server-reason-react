@@ -21,21 +21,9 @@ let handler = request => {
       </div>
     </DemoLayout>;
 
-  if (isRSCheader) {
-    Dream.stream(response_stream => {
-      let%lwt () =
-        ReactServerDOM.render_model(
-          ~debug=true,
-          ~subscribe=data => Dream.write(response_stream, data),
-          app,
-        );
-      Lwt.return();
-    });
-  } else {
-    DreamRSC.createFromRequest(
-      ~bootstrapModules=["/static/demo/ServerOnlyRSC.re.js"],
-      <Document> app </Document>,
-      request,
-    );
-  };
+  DreamRSC.createFromRequest(
+    ~bootstrapModules=["/static/demo/ServerOnlyRSC.re.js"],
+    <Document> app </Document>,
+    request,
+  );
 };
