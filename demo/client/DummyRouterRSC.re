@@ -7,8 +7,6 @@ module ReadableStream = Webapi.ReadableStream;
 external setNavigate: (Webapi.Dom.Window.t, string => unit) => unit =
   "__navigate";
 
-[@mel.module "react"]
-external startTransition: (unit => unit) => unit = "startTransition";
 external readable_stream: ReadableStream.t =
   "window.srr_stream.readable_stream";
 
@@ -65,7 +63,7 @@ module App = {
         let url = URL.makeExn(currentURL)->URL.setSearchAsString(search);
         let body = fetchApp(URL.toString(url));
         let element = ReactServerDOMEsbuild.createFromFetch(body);
-        startTransition(() => {
+        React.startTransition(() => {
           setLayout(_ => element);
           History.pushState(
             History.state(DOM.history),
@@ -100,7 +98,7 @@ let body =
 
 switch (body) {
 | Some(element) =>
-  startTransition(() => {
+  React.startTransition(() => {
     let _ = ReactDOM.Client.hydrateRoot(element, <App />);
     ();
   })
