@@ -44,9 +44,7 @@ let server =
       getAndPost(Routes.renderToStream, Pages.Comments.handler),
       getAndPost(Routes.singlePageRSC, Pages.SinglePageRSC.handler),
       getAndPost(Routes.dummyRouterRSC, Pages.DummyRouterRSC.handler),
-      getAndPost(Routes.routerRSC, Pages.RouterRSC.handler),
       getAndPost(Routes.serverOnlyRSC, Pages.ServerOnlyRSC.handler),
-      getAndPost(Routes.routerRSCNoSSR, Pages.RouterRSCNoSSR.handler),
     ]),
   );
 

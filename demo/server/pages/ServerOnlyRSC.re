@@ -1,7 +1,4 @@
 let handler = request => {
-  let isRSCheader =
-    Dream.header(request, "Accept") == Some("application/react.component");
-
   let app =
     <DemoLayout background=Theme.Color.Gray2>
       <div className="flex flex-col items-center justify-center h-full gap-4">
