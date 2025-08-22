@@ -15,6 +15,7 @@ let server =
   Dream.logger(
     Dream.router([
       getAndPost("/", Pages.Home.handler),
+      Dream.get("/demo", req => Dream.redirect(req, "/")),
       Dream.get(
         "/output.css",
         Dream.from_filesystem("./_build/default/demo", "output.css"),
