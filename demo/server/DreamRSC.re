@@ -155,6 +155,7 @@ let stream_html =
 
 let createFromRequest =
     (
+      ~disableSSR=false,
       ~layout=children => children,
       ~bootstrapModules=[],
       ~bootstrapScripts=[],
@@ -167,6 +168,7 @@ let createFromRequest =
     stream_model(~location=Dream.target(request), element)
   | _ =>
     stream_html(
+      ~skipRoot=disableSSR,
       ~bootstrapScriptContent,
       ~bootstrapScripts,
       ~bootstrapModules,

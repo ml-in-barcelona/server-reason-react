@@ -8,7 +8,7 @@ let handler = _request => {
               "font-extrabold text-5xl",
               Theme.text(Theme.Color.Primary),
             ])}>
-            {React.string("Demos for server-reason-react")}
+            {React.string("server-reason-react's demos")}
           </h1>
           <div className="mt-8">
             <Text size=Medium>
@@ -32,7 +32,7 @@ let handler = _request => {
             <Text size=Medium> "." </Text>
           </div>
         </div>
-        <Router.Menu />
+        <Routes.Menu />
       </div>
     </Document>;
 

@@ -8,7 +8,7 @@ let headers =
   Fetch.HeadersInit.make({"Accept": "application/react.component"});
 let fetch =
   Fetch.fetchWithInit(
-    Router.demoServerOnlyRSC,
+    Routes.serverOnlyRSC,
     Fetch.RequestInit.make(~method_=Fetch.Get, ~headers, ()),
   );
 let app = ReactServerDOMEsbuild.createFromFetch(fetch);

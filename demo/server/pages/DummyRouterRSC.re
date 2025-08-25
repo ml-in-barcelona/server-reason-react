@@ -149,11 +149,17 @@ let handler = request => {
     |> Option.map(v => v == "true")
     |> Option.value(~default=false);
 
+  let ssr =
+    Dream.query(request, "ssr")
+    |> Option.map(v => v == "false")
+    |> Option.value(~default=true);
+
   let searchText =
     Dream.query(request, "searchText") |> Option.value(~default="");
 
   DreamRSC.createFromRequest(
-    ~bootstrapModules=["/static/demo/RouterRSC.re.js"],
+    ~disableSSR=!ssr,
+    ~bootstrapModules=["/static/demo/DummyRouterRSC.re.js"],
     ~layout=
       children =>
         <html lang="en">
@@ -176,7 +182,3 @@ let handler = request => {
     request,
   );
 };
-
-/*
- <link rel="stylesheet" href="/output.css" />
- <link rel="stylesheet" href="/output.css" /> */

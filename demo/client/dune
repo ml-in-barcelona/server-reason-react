@@ -30,11 +30,11 @@
   (alias_rec melange)
   (:script build.mjs)
   (:entrypoints
-   "app/demo/client/Hydrate.re.js"
+   "app/demo/client/HydrateRoot.re.js"
+   "app/demo/client/RenderRoot.re.js"
    "app/demo/client/SinglePageRSC.re.js"
-   "app/demo/client/RouterRSC.re.js"
-   "app/demo/client/ServerOnlyRSC.re.js"
-   "app/demo/client/RouterRSCNoSSR.re.js")
+   "app/demo/client/DummyRouterRSC.re.js"
+   "app/demo/client/ServerOnlyRSC.re.js")
   (source_tree node_modules)
   (file package.json)
   (source_tree ../../packages/esbuild-plugin))

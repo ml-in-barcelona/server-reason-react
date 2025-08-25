@@ -5,8 +5,7 @@ open Melange_json.Primitives;
 let make = (~noteId: int) => {
   let (isNavigating, startNavigating) = React.useTransition();
   let (isDeleting, setIsDeleting) = RR.useStateValue(false);
-  let {navigate, _}: ClientRouter.t = ClientRouter.useRouter();
-
+  let navigate = DummyClientRouter.useNavigate();
   let className = Theme.button;
 
   <button

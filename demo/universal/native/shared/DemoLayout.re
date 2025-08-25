@@ -1,9 +1,9 @@
 type mode =
   | FullScreen
-  | Fit800px;
+  | Fit;
 
 [@react.component]
-let make = (~children, ~background=Theme.Color.Gray2, ~mode=Fit800px) => {
+let make = (~children, ~background=Theme.Color.Gray2, ~mode=Fit) => {
   <div
     className={Cx.make([
       "m-0",
@@ -12,7 +12,7 @@ let make = (~children, ~background=Theme.Color.Gray2, ~mode=Fit800px) => {
       "min-h-[100vh]",
       switch (mode) {
       | FullScreen => "h-100vh w-100vw"
-      | Fit800px => "h-full w-[800px]"
+      | Fit => "h-full w-[1200px]"
       },
       "flex",
       "flex-col",
@@ -20,19 +20,34 @@ let make = (~children, ~background=Theme.Color.Gray2, ~mode=Fit800px) => {
       "justify-start",
       Theme.background(background),
     ])}>
-    <nav className="w-full mt-10">
+    <nav
+      className={Cx.make([
+        "w-full mt-10",
+        switch (mode) {
+        | FullScreen => "w-full"
+        | Fit => "max-w-[1200px]"
+        },
+      ])}>
       <a
         className={Cx.make([
           "text-s font-bold inline-flex items-center justify-between gap-2",
           Theme.text(Theme.Color.Gray12),
           Theme.hover([Theme.text(Theme.Color.Gray10)]),
         ])}
-        href=Router.home>
+        href=Routes.home>
         <Arrow direction=Left />
         {React.string("Home")}
       </a>
     </nav>
-    <div spellCheck=false className="w-full pt-6 max-w-[1200px]">
+    <div
+      spellCheck=false
+      className={Cx.make([
+        "w-full pt-6",
+        switch (mode) {
+        | FullScreen => "max-w-full"
+        | Fit => "max-w-[1200px]"
+        },
+      ])}>
       children
     </div>
   </div>;
