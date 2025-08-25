@@ -169,8 +169,14 @@ let handler = request => {
 
   let sleep =
     Dream.query(request, "sleep")
-    |> Option.map(float_of_string_opt)
-    |> Option.value(~default=None);
+    ->Option.bind(Float.of_string_opt)
+    ->Option.bind(value =>
+        if (value < 0.) {
+          None;
+        } else {
+          Some(value);
+        }
+      );
 
   DreamRSC.createFromRequest(
     ~disableSSR=!ssr,
