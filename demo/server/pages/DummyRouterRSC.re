@@ -98,7 +98,7 @@ module NoteSkeleton = {
 
 module App = {
   [@react.async.component]
-  let make = (~selectedId, ~isEditing, ~searchText) => {
+  let make = (~selectedId, ~isEditing, ~searchText, ~sleep) => {
     Lwt.return(
       <DemoLayout background=Theme.Color.Gray2 mode=FullScreen>
         <div className="flex flex-row gap-8">
@@ -133,13 +133,13 @@ module App = {
               </div>
               <Hr />
               <React.Suspense fallback={<NoteListSkeleton />}>
-                <NoteList searchText />
+                <NoteList searchText sleep />
               </React.Suspense>
             </nav>
           </section>
           <section key="note-viewer" className="flex-1 basis-3/4 max-w-[75%]">
             <React.Suspense fallback={<NoteSkeleton isEditing />}>
-              <NoteItem selectedId isEditing />
+              <NoteItem selectedId isEditing sleep />
             </React.Suspense>
           </section>
         </div>
@@ -167,6 +167,11 @@ let handler = request => {
   let searchText =
     Dream.query(request, "searchText") |> Option.value(~default="");
 
+  let sleep =
+    Dream.query(request, "sleep")
+    |> Option.map(float_of_string_opt)
+    |> Option.value(~default=None);
+
   DreamRSC.createFromRequest(
     ~disableSSR=!ssr,
     ~bootstrapModules=["/static/demo/DummyRouterRSC.re.js"],
@@ -188,7 +193,7 @@ let handler = request => {
           </head>
           <body> children </body>
         </html>,
-    <App selectedId isEditing searchText />,
+    <App selectedId isEditing searchText sleep />,
     request,
   );
 };

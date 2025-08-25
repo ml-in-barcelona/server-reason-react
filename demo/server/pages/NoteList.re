@@ -19,8 +19,8 @@ let is_substring = (a, b) => {
 };
 
 [@react.async.component]
-let make = (~searchText: string) => {
-  let+ notes = DB.readNotes();
+let make = (~searchText: string, ~sleep: option(float)) => {
+  let+ notes = DB.readNotes(~sleep, ());
 
   switch (notes) {
   | Error(error) =>
