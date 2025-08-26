@@ -45,7 +45,6 @@
   (melange-webapi (>= 0.21.0))
   reason-react
 
-
   ; Documentation
   (odoc :with-doc)
 
@@ -62,7 +61,6 @@
     :with-dev-setup)) ; We use dream on the demo
 
   (reason-react-ppx :with-dev-setup)
-  (odoc-driver :with-dev-setup)
 
   ; Test dependencies
   (alcotest :with-test)

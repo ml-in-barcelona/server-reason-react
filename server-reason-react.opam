@@ -30,7 +30,6 @@ depends: [
   "ocaml-lsp-server" {with-dev-setup}
   "dream" {= "1.0.0~alpha8" & with-dev-setup}
   "reason-react-ppx" {with-dev-setup}
-  "odoc-driver" {with-dev-setup}
   "alcotest" {with-test}
   "alcotest-lwt" {with-test}
   "fmt" {with-test}
