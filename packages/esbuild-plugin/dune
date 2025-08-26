@@ -4,6 +4,6 @@
  (libraries unix cmdliner))
 
 (install
- (section bin)
+ (section lib)
  (package server-reason-react)
  (files plugin.mjs))
