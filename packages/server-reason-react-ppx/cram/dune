@@ -1,5 +1,7 @@
 (cram
  (package server-reason-react)
+ (enabled_if
+  (>= %{ocaml_version} 5.2.0))
  (deps
   (package server-reason-react)
   standalone.exe
