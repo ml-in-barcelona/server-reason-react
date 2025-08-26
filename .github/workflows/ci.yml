@@ -38,6 +38,7 @@ jobs:
           - ubuntu-latest
           # - windows-latest
         ocaml-compiler:
+          - 4.14.1
           - 5.2.0
 
     steps:
@@ -95,7 +96,7 @@ jobs:
             console.log('stored path to .opam-path');
 
       - name: Use cached OPAM environment
-        # if: steps.opam-cache.outputs.cache-hit == 'true'
+        if: steps.opam-cache.outputs.cache-hit == 'true'
         shell: bash
         run: |
           # https://github.com/ocaml/setup-ocaml/blob/b2105f9/packages/setup-ocaml/src/installer.ts#L33
