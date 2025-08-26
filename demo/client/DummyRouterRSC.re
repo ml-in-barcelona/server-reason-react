@@ -53,22 +53,43 @@ module App = {
 
     let navigate = search => {
       let location = DOM.window->DOM.Window.location;
+      let origin = Location.origin(location);
+      let pathname = Location.pathname(location);
+
       let currentSearch = Location.search(location);
-      if (currentSearch == "?" ++ search) {
+      let currentParams = URL.SearchParams.makeExn(currentSearch);
+
+      let newSearchParams = Js.Dict.empty();
+
+      URL.SearchParams.forEach(currentParams, (value, key) => {
+        Js.Dict.set(newSearchParams, key, value)
+      });
+
+      let newParams = URL.SearchParams.makeExn(search);
+      URL.SearchParams.forEach(newParams, (value, key) => {
+        Js.Dict.set(newSearchParams, key, value)
+      });
+
+      let finalSearch =
+        newSearchParams
+        |> Js.Dict.entries
+        |> URL.SearchParams.makeWithArray
+        |> URL.SearchParams.toString;
+
+      if (currentSearch == "?" ++ finalSearch) {
         ();
       } else {
-        let origin = Location.origin(location);
-        let pathname = Location.pathname(location);
-        let currentURL = origin ++ pathname;
-        let url = URL.makeExn(currentURL)->URL.setSearchAsString(search);
-        let body = fetchApp(URL.toString(url));
-        let element = ReactServerDOMEsbuild.createFromFetch(body);
+        let finalURL =
+          URL.makeExn(origin ++ pathname)
+          ->URL.setSearchAsString(finalSearch);
+        let response = fetchApp(URL.toString(finalURL));
+        let element = ReactServerDOMEsbuild.createFromFetch(response);
         React.startTransition(() => {
           setLayout(_ => element);
           History.pushState(
             History.state(DOM.history),
             "",
-            URL.toString(url),
+            URL.toString(finalURL),
             DOM.history,
           );
         });

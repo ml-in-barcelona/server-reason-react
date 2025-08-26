@@ -600,10 +600,9 @@ val array : element array -> element
 val list : element list -> element
 
 type 'a provider = value:'a -> children:element -> unit -> element
-type 'a context = { current_value : 'a ref; provider : 'a provider; consumer : children:element -> element }
 
 module Context : sig
-  type 'a t = 'a context
+  type 'a t = { current_value : 'a ref; provider : 'a provider; consumer : children:element -> element }
 
   val provider : 'a t -> 'a provider
 end

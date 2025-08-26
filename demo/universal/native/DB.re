@@ -48,8 +48,14 @@ module Cache = {
   let delete = () => db_cache := None;
 };
 
-let readNotes = () => {
-  /* TODO: Add queryparam "sleep" to tweak a delay let%lwt _ = Lwt_unix.sleep(2.); */
+let readNotes = (~sleep=None, ()) => {
+  let%lwt () =
+    switch (sleep) {
+    | Some(0.)
+    | None => Lwt.return()
+    | Some(delay) => Lwt_unix.sleep(delay)
+    };
+
   switch (Cache.read()) {
   | Some(Ok(notes)) => Lwt_result.return(notes)
   | Some(Error(e)) => Lwt_result.fail(e)
@@ -130,7 +136,13 @@ let deleteNote = id => {
   Lwt_result.lift(notes);
 };
 
-let fetchNote = id => {
+let fetchNote = (~sleep=None, id) => {
+  let%lwt () =
+    switch (sleep) {
+    | Some(delay) => Lwt_unix.sleep(delay)
+    | None => Lwt.return()
+    };
+
   switch (Cache.read()) {
   | Some(Ok(notes)) => findOne(notes, id)
   | Some(Error(e)) => Lwt_result.fail(e)

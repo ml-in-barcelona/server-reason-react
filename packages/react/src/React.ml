@@ -500,10 +500,9 @@ let array arr = Array arr
 let list l = List l
 
 type 'a provider = value:'a -> children:element -> unit -> element
-type 'a context = { current_value : 'a ref; provider : 'a provider; consumer : children:element -> element }
 
 module Context = struct
-  type 'a t = 'a context
+  type 'a t = { current_value : 'a ref; provider : 'a provider; consumer : children:element -> element }
 
   let provider ctx = ctx.provider
 end
@@ -527,7 +526,7 @@ end
 (* let memo f : 'props * 'props -> bool = f
    let memoCustomCompareProps f _compare : 'props * 'props -> bool = f *)
 
-let useContext context = context.current_value.current
+let useContext (context : 'a Context.t) = context.current_value.current
 
 let useState (make_initial_value : unit -> 'state) =
   let initial_value : 'state = make_initial_value () in

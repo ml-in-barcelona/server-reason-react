@@ -20,10 +20,10 @@ module Platform = struct
     | ( Ppat_construct ({ txt = Lident "Client" | Ldot (Lident "Runtime", "Client"); _ }, _),
         Ppat_construct ({ txt = Lident "Server" | Ldot (Lident "Runtime", "Server"); _ }, _) ) ->
         Ok (second.pc_rhs, first.pc_rhs)
-    | _ -> Error [%expr [%ocaml.error "[browser_only] switch%%platform requires 2 cases: `Server` and `Client`"]]
+    | _ -> Error [%expr [%ocaml.error "[browser_only] switch%platform requires 2 cases: `Server` and `Client`"]]
 
   let switch_platform_requires_a_match ~loc =
-    [%expr [%ocaml.error "[browser_ppx] switch%%platform requires a match expression"]]
+    [%expr [%ocaml.error "[browser_ppx] switch%platform requires a match expression"]]
 
   let handler ~ctxt:_ { txt = payload; loc } =
     match payload with
