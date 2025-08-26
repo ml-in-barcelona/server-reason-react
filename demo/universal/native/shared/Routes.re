@@ -4,9 +4,9 @@ let renderToString = "/demo/renderToString";
 let renderToStream = "/demo/renderToStream";
 let serverOnlyRSC = "/demo/serverOnlyRSC";
 let singlePageRSC = "/demo/singlePageRSC";
-let routerRSC = "/demo/routerRSC";
 let dummyRouterRSC = "/demo/dummyRouterRSC";
-let routerRSCNoSSR = "/demo/dummyRouterRSC?ssr=false";
+let dummyRouterRSCNoSSR = "/demo/dummyRouterRSC?ssr=false";
+let router = "/demo/router";
 
 let links = [|
   (
@@ -40,11 +40,11 @@ let links = [|
     dummyRouterRSC,
   ),
   (
-    "routerRSCNoSSR",
+    "dummyRouterRSC - without SSR",
     "The same demo as dummyRouterRSC but without SSR. It SSR the shell of the page (head, body, etc), but not the app itself.",
-    routerRSCNoSSR,
+    dummyRouterRSCNoSSR,
   ),
-  ("routerRSC", "TBA", routerRSC),
+  ("router", "TBA", router),
 |];
 
 module Menu = {
