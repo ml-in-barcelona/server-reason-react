@@ -84,7 +84,7 @@ jobs:
           cache: 'npm'
           cache-dependency-path: demo/client/
 
-      - name: Get OPAM executable path
+      - name: Get opam executable path
         if: steps.opam-cache.outputs.cache-hit != 'true'
         uses: actions/github-script@v7
         with:
@@ -95,19 +95,32 @@ jobs:
             await Fs.writeFile('.opam-path', opam_path, 'utf-8');
             console.log('stored path to .opam-path');
 
-      - name: Use cached OPAM environment
+  # core.exportVariable("OPAMCOLOR", "always");
+  # core.exportVariable("OPAMCONFIRMLEVEL", "unsafe-yes");
+  # core.exportVariable("OPAMDOWNLOADJOBS", os.availableParallelism());
+  # core.exportVariable("OPAMERRLOGLEN", 0);
+  # core.exportVariable("OPAMEXTERNALSOLVER", "builtin-0install");
+  # core.exportVariable("OPAMPRECISETRACKING", 1);
+  # core.exportVariable("OPAMRETRIES", 10);
+  # core.exportVariable("OPAMROOT", OPAM_ROOT);
+  # core.exportVariable("OPAMSOLVERTIMEOUT", 600);
+  # core.exportVariable("OPAMYES", 1);
+
+      - name: Use cached opam environment
         if: steps.opam-cache.outputs.cache-hit == 'true'
         shell: bash
         run: |
           # https://github.com/ocaml/setup-ocaml/blob/b2105f9/packages/setup-ocaml/src/installer.ts#L33
-          echo "OPAMVERBOSE=$RUNNER_DEBUG"   >> "$GITHUB_ENV"
-          echo "OPAMCOLOR=never"             >> "$GITHUB_ENV"
-          echo "OPAMCONFIRMLEVEL=unsafe-yes" >> "$GITHUB_ENV"
-          echo "OPAMERRLOGLEN=0"             >> "$GITHUB_ENV"
-          echo "OPAMPRECISETRACKING=1"       >> "$GITHUB_ENV"
-          echo "OPAMYES=1"                   >> "$GITHUB_ENV"
-
-          echo "OPAMROOT=$HOME/.opam"        >> "$GITHUB_ENV"
+          echo "OPAMVERBOSE=$RUNNER_DEBUG"           >> "$GITHUB_ENV"
+          echo "OPAMCOLOR=always"                    >> "$GITHUB_ENV"
+          echo "OPAMCONFIRMLEVEL=unsafe-yes"         >> "$GITHUB_ENV"
+          echo "OPAMERRLOGLEN=0"                     >> "$GITHUB_ENV"
+          echo "OPAMEXTERNALSOLVER=builtin-0install" >> "$GITHUB_ENV"
+          echo "OPAMPRECISETRACKING=1"               >> "$GITHUB_ENV"
+          echo "OPAMRETRIES=10"                      >> "$GITHUB_ENV"
+          echo "OPAMROOT=$HOME/.opam"                >> "$GITHUB_ENV"
+          echo "OPAMSOLVERTIMEOUT=600"               >> "$GITHUB_ENV"
+          echo "OPAMYES=1"                           >> "$GITHUB_ENV"
 
           OPAM_PATH="$(cat .opam-path)"
           chmod +x "$OPAM_PATH"
