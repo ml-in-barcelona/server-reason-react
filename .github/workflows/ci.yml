@@ -95,17 +95,6 @@ jobs:
             await Fs.writeFile('.opam-path', opam_path, 'utf-8');
             console.log('stored path to .opam-path');
 
-  # core.exportVariable("OPAMCOLOR", "always");
-  # core.exportVariable("OPAMCONFIRMLEVEL", "unsafe-yes");
-  # core.exportVariable("OPAMDOWNLOADJOBS", os.availableParallelism());
-  # core.exportVariable("OPAMERRLOGLEN", 0);
-  # core.exportVariable("OPAMEXTERNALSOLVER", "builtin-0install");
-  # core.exportVariable("OPAMPRECISETRACKING", 1);
-  # core.exportVariable("OPAMRETRIES", 10);
-  # core.exportVariable("OPAMROOT", OPAM_ROOT);
-  # core.exportVariable("OPAMSOLVERTIMEOUT", 600);
-  # core.exportVariable("OPAMYES", 1);
-
       - name: Use cached opam environment
         if: steps.opam-cache.outputs.cache-hit == 'true'
         shell: bash

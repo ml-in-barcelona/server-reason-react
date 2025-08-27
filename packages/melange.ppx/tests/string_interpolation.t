@@ -8,7 +8,7 @@ https://github.com/melange-re/melange/blob/fb1466fed7d6e5aafd3ee266bbd4ec70c8fb8
   $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl | tee output.ml
   let lola = "flores"
   let () = print_endline (Stdlib.( ^ ) {js| Hello, |js} lola)
-  $ ocaml output.ml
+  $ OCAML_COLOR=never ocaml output.ml
    Hello, flores
 
 Variable that doesn't exist
@@ -18,11 +18,11 @@ Variable that doesn't exist
   > EOF
   $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl | tee output.ml
   let x = Stdlib.( ^ ) {js| Hello, |js} lola
-  $ ocaml output.ml
+  $ OCAML_COLOR=never ocaml output.ml
   File "./output.ml", line 1, characters 38-42:
   1 | let x = Stdlib.( ^ ) {js| Hello, |js} lola
                                             ^^^^
-  Error: Unbound value lola
+  Error: Unbound value "lola"
   [2]
 
 Using invalid identifiers
@@ -56,10 +56,11 @@ Using invalid identifiers
   let x =
     let y = 3 in
     Stdlib.( ^ ) {js| Hello, |js} y
-  $ ocaml output.ml
+
+  $ OCAML_COLOR=never ocaml output.ml
   File "./output.ml", line 3, characters 32-33:
   3 |   Stdlib.( ^ ) {js| Hello, |js} y
                                       ^
-  Error: This expression has type int but an expression was expected of type
-           string
+  Error: This expression has type "int" but an expression was expected of type
+           "string"
   [2]
