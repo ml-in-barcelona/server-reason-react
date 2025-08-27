@@ -33,7 +33,6 @@
   (uucp (>= 16.0.0))
   (ppxlib (> 0.23.0))
   (quickjs (>= 0.1.2))
-  (promise (>= 1.1.2))
   (lwt (>= 5.6.0))
   (lwt_ppx (>= 2.1.0))
   (uri (>= 4.2.0))
@@ -44,7 +43,6 @@
   (melange-json-native (>= 2.0.0))
   (melange-webapi (>= 0.21.0))
   reason-react
-
 
   ; Documentation
   (odoc :with-doc)
@@ -62,7 +60,6 @@
     :with-dev-setup)) ; We use dream on the demo
 
   (reason-react-ppx :with-dev-setup)
-  (odoc-driver :with-dev-setup)
 
   ; Test dependencies
   (alcotest :with-test)

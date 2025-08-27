@@ -10,7 +10,7 @@ Designed to be used with [reason-react](https://github.com/reasonml/reason-react
 - Server-side rendering **streaming HTML** with `ReactDOM.renderToStream` (similar to react@18 `renderToReadableStream`)
 - Includes **`React.Suspense`** and **`React.use()`** implementations
 - **server-reason-react-ppx** - A ppx transformation to support JSX on native
-- All reason-react interface is either implemented or stubbed (some of the methods, like React.useState need to be stubbed because they aren't used on the server!)
+- All [reason-react](https://reasonml.github.io/reason-react/) interface is either implemented or stubbed (some of the methods, like React.useState need to be stubbed because they aren't used on the server!)
 - **React Server Components** - A ReactServerDOM module for streaming RSC payload, an esbuild plugin to enhance the bundle with client-components mappings, a Dream middleware to serve the RSC endpoint and a dummy implementation of a router (still [work in progress](https://github.com/ml-in-barcelona/server-reason-react/issues/204))
 
 > Warning: This repo contains a few parts that are considered experimental and there's no guarantee of stability. Most of the stable parts are used in production at ahrefs.com, app.ahrefs.com and wordcount.com. Check each module's documentation for more details.
@@ -54,7 +54,7 @@ The [documentation site](https://ml-in-barcelona.github.io/server-reason-react/s
 
 ## Demo
 
-The `demo` folder contains a simple server to showcases the usages of `server-reason-react. Check the [README](demo/README.md) for how to setup and run it.
+The `demo` folder contains a bunch of demos under a server to showcases the usages of `server-reason-react`. Check the [README](demo/README.md) for how to setup and run it.
 
 ## Want to contribute to the future?
 

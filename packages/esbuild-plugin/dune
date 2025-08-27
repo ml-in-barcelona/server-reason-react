@@ -2,3 +2,9 @@
  (name extract_client_components)
  (public_name server-reason-react.extract_client_components)
  (libraries unix cmdliner))
+
+(install
+ (section lib)
+ (package server-reason-react)
+ (files
+  (plugin.mjs as esbuild-plugin/plugin.mjs)))

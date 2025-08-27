@@ -38,6 +38,7 @@ jobs:
           - ubuntu-latest
           # - windows-latest
         ocaml-compiler:
+          - 4.14.1
           - 5.2.0
 
     steps:
@@ -61,14 +62,19 @@ jobs:
         id: opam-cache
         uses: actions/cache/restore@v4
         with:
-          path: ~/.opam
+          path: |
+            ${{ runner.tool_cache }}/opam
+            ~/.opam
+            _opam
+            .opam-path
           key: opam-${{ matrix.os }}-${{ matrix.ocaml-compiler }}-${{ hashFiles('**.opam') }}
 
       - name: Use OCaml ${{ matrix.ocaml-compiler }}
         uses: ocaml/setup-ocaml@v3.2.5
+        if: steps.opam-cache.outputs.cache-hit != 'true'
         with:
           ocaml-compiler: ${{ matrix.ocaml-compiler }}
-          dune-cache: true
+          dune-cache: false
           opam-disable-sandboxing: true
 
       - name: Use Node.js
@@ -77,6 +83,37 @@ jobs:
           node-version: '20'
           cache: 'npm'
           cache-dependency-path: demo/client/
+
+      - name: Get opam executable path
+        if: steps.opam-cache.outputs.cache-hit != 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const opam_path = await io.which('opam', true);
+            console.log('opam executable found: %s', opam_path);
+            const Fs = require('fs/promises');
+            await Fs.writeFile('.opam-path', opam_path, 'utf-8');
+            console.log('stored path to .opam-path');
+
+      - name: Use cached opam environment
+        if: steps.opam-cache.outputs.cache-hit == 'true'
+        shell: bash
+        run: |
+          # https://github.com/ocaml/setup-ocaml/blob/b2105f9/packages/setup-ocaml/src/installer.ts#L33
+          echo "OPAMVERBOSE=$RUNNER_DEBUG"           >> "$GITHUB_ENV"
+          echo "OPAMCOLOR=always"                    >> "$GITHUB_ENV"
+          echo "OPAMCONFIRMLEVEL=unsafe-yes"         >> "$GITHUB_ENV"
+          echo "OPAMERRLOGLEN=0"                     >> "$GITHUB_ENV"
+          echo "OPAMEXTERNALSOLVER=builtin-0install" >> "$GITHUB_ENV"
+          echo "OPAMPRECISETRACKING=1"               >> "$GITHUB_ENV"
+          echo "OPAMRETRIES=10"                      >> "$GITHUB_ENV"
+          echo "OPAMROOT=$HOME/.opam"                >> "$GITHUB_ENV"
+          echo "OPAMSOLVERTIMEOUT=600"               >> "$GITHUB_ENV"
+          echo "OPAMYES=1"                           >> "$GITHUB_ENV"
+
+          OPAM_PATH="$(cat .opam-path)"
+          chmod +x "$OPAM_PATH"
+          dirname "$OPAM_PATH" >> "$GITHUB_PATH"
 
       - name: Install opam deps
         run: make install
@@ -120,9 +157,13 @@ jobs:
             demo/client/node_modules
           key: npm-${{ matrix.os }}-${{ hashFiles('demo/package.json') }}-${{ hashFiles('demo/client/package.json') }}
 
-      - name: Save cache
+      - name: Save opam cache
         uses: actions/cache/save@v4
         if: steps.opam-cache.outputs.cache-hit != 'true'
         with:
-          path: ~/.opam
+          path: |
+            ${{ runner.tool_cache }}/opam
+            ~/.opam
+            _opam
+            .opam-path
           key: opam-${{ matrix.os }}-${{ matrix.ocaml-compiler }}-${{ hashFiles('**.opam') }}

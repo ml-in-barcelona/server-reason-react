@@ -22,7 +22,7 @@ async function generateBootstrapFile(output, content) {
 	}
 }
 
-export function plugin(config) {
+export default function plugin(config) {
 	return {
 		name: "extract-client-components",
 		setup(build) {
