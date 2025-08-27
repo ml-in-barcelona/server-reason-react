@@ -134,12 +134,14 @@ jobs:
         run: make test
 
       - name: Generate docs
-        if: github.ref == 'refs/heads/main'
-        run: make docs
+        if: github.ref == 'refs/heads/main' && matrix.ocaml-compiler == '5.2.0'
+        run: |
+          opam install -y odoc-driver
+          make docs
 
       - name: Publish docs
         uses: crazy-max/ghaction-github-pages@v1
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' && matrix.ocaml-compiler == '5.2.0'
         with:
           target_branch: gh-pages
           build_dir: _html
