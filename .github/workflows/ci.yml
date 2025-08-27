@@ -116,15 +116,6 @@ jobs:
       - name: Install opam deps
         run: make install
 
-      - name: DEBUG
-        run: |
-          opam exec -- ocamlc -config
-          echo "let x = undefined_var" > test.ml
-          opam exec -- ocamlc test.ml
-          opam exec -- dune --version
-          opam exec -- dune exec -- which ocamlc
-          opam exec -- dune exec -- ocamlc -config
-
       - name: Install npm deps
         run: make install-npm
 
