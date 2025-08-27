@@ -116,6 +116,10 @@ jobs:
       - name: Install opam deps
         run: make install
 
+      - name: DEBUG
+        run: |
+          opam exec -- ocamlc -config
+
       - name: Install npm deps
         run: make install-npm
 
