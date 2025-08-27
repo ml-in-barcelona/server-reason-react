@@ -10,6 +10,7 @@ let getAndPost = (path, handler) =>
       Dream.post(path, DreamRSC.streamFunctionResponse),
     ],
   );
+
 let getSupersonicRoutes = () => {
   Supersonic.RouteRegistry.clear();
 
@@ -22,10 +23,14 @@ let getSupersonicRoutes = () => {
        )
      });
 
-  Supersonic.RouteRegistry.getAllRoutes()
-  |> List.map(({path, element, _}: Supersonic.RouteRegistry.route) => {
-       getAndPost(path, Pages.Router.handler(~element))
-     });
+  Dream.scope(
+    "/",
+    [],
+    Supersonic.RouteRegistry.getAllRoutes()
+    |> List.map(({path, element, _}: Supersonic.RouteRegistry.route) => {
+         getAndPost(path, Pages.Router.handler(~element))
+       }),
+  );
 };
 
 let server =
@@ -63,22 +68,9 @@ let server =
       getAndPost(Routes.singlePageRSC, Pages.SinglePageRSC.handler),
       getAndPost(Routes.dummyRouterRSC, Pages.DummyRouterRSC.handler),
       getAndPost(Routes.serverOnlyRSC, Pages.ServerOnlyRSC.handler),
-      ...getSupersonicRoutes(),
+      getSupersonicRoutes(),
     ]),
   );
-
-let error_handler =
-  Dream.error_template((error, _request, response) => {
-    let status = Dream.status(response);
-    let status_code = Dream.status_to_int(status);
-    let status_text = Dream.status_to_string(status);
-
-    Dream.html(
-      ReactDOM.renderToStaticMarkup(
-        <Pages.Error status status_code status_text error />,
-      ),
-    );
-  });
 
 let interface = {
   switch (Sys.getenv_opt("SERVER_INTERFACE")) {
@@ -87,4 +79,4 @@ let interface = {
   };
 };
 
-Dream.run(~port=8080, ~interface, ~error_handler, server);
+Dream.run(~port=8080, ~interface, server);
