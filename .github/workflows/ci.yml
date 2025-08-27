@@ -101,7 +101,7 @@ jobs:
         run: |
           # https://github.com/ocaml/setup-ocaml/blob/b2105f9/packages/setup-ocaml/src/installer.ts#L33
           echo "OPAMVERBOSE=$RUNNER_DEBUG"   >> "$GITHUB_ENV"
-          echo "OPAMCOLOR=always"            >> "$GITHUB_ENV"
+          echo "OPAMCOLOR=never"             >> "$GITHUB_ENV"
           echo "OPAMCONFIRMLEVEL=unsafe-yes" >> "$GITHUB_ENV"
           echo "OPAMERRLOGLEN=0"             >> "$GITHUB_ENV"
           echo "OPAMPRECISETRACKING=1"       >> "$GITHUB_ENV"
@@ -119,6 +119,8 @@ jobs:
       - name: DEBUG
         run: |
           opam exec -- ocamlc -config
+          echo "let x = undefined_var" > test.ml
+          opam exec -- ocamlc test.ml 2>&1
 
       - name: Install npm deps
         run: make install-npm
