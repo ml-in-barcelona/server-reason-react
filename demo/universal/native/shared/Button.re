@@ -4,16 +4,9 @@ open Melange_json.Primitives;
 let make = (~noteId: option(int), ~children: React.element) => {
   let (isPending, startTransition) = React.useTransition();
   let navigate = DummyClientRouter.useNavigate();
-  let isDraft = Belt.Option.isNone(noteId);
-
-  let className =
-    Cx.make([
-      Theme.button,
-      isDraft ? "edit-button--solid" : "edit-button--outline",
-    ]);
 
   <button
-    className
+    className=Theme.button
     disabled=isPending
     onClick={_ => {
       startTransition(() => {

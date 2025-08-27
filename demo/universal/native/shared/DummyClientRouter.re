@@ -8,12 +8,12 @@ let locationToString = location =>
   [
     switch (location.selectedId) {
     | Some(id) => "selectedId=" ++ Int.to_string(id)
-    | None => ""
+    | None => "selectedId="
     },
     "isEditing=" ++ (location.isEditing ? "true" : "false"),
     switch (location.searchText) {
     | Some(text) => "searchText=" ++ text
-    | None => ""
+    | None => "searchText="
     },
   ]
   |> List.filter(s => s != "")
