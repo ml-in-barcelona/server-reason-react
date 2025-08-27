@@ -1,7 +1,7 @@
 Test cases on string interpolation, most of them imported from
 https://github.com/melange-re/melange/blob/fb1466fed7d6e5aafd3ee266bbd4ec70c8fb857a/test/blackbox-tests/utf8-string-interp.t
 
-  $ export OCAML_COLOR=never
+  $ export OCAML_COLOR=always
 
   $ cat > input.ml <<EOF
   > let lola = "flores"
@@ -28,7 +28,7 @@ Variable that doesn't exist
   File "./output.ml", line 1, characters 38-42:
   1 | let x = Stdlib.( ^ ) {js| Hello, |js} lola
                                             ^^^^
-  Error: Unbound value "lola"
+  Error: Unbound value lola
   [2]
 
 Using invalid identifiers
@@ -70,6 +70,6 @@ Using invalid identifiers
   File "./output.ml", line 3, characters 32-33:
   3 |   Stdlib.( ^ ) {js| Hello, |js} y
                                       ^
-  Error: This expression has type "int" but an expression was expected of type
-           "string"
+  Error: This expression has type int but an expression was expected of type
+           string
   [2]
