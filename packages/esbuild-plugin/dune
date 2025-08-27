@@ -6,4 +6,5 @@
 (install
  (section lib)
  (package server-reason-react)
- (files plugin.mjs))
+ (files
+  (plugin.mjs as esbuild-plugin/plugin.mjs)))
