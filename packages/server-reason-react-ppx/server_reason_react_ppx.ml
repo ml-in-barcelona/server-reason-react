@@ -730,8 +730,7 @@ module ServerFunction = struct
     | _ -> fn
 
   let generate_id ~loc name =
-    (* We need to add a nasty hack here, since have different files for native and melange.Assume that the file structure is native/lib and js, and replace the name directly. This is supposed to be temporal, until dune implements https://github.com/ocaml/dune/issues/10630 *)
-    let file_path = loc.loc_start.pos_fname |> Str.replace_first (Str.regexp {|/js/|}) "/native/shared/" in
+    let file_path = loc.loc_start.pos_fname in
     let hash = Printf.sprintf "%s_%s_%d" name file_path loc.loc_start.pos_lnum |> Hashtbl.hash |> string_of_int in
     hash
 
@@ -955,7 +954,7 @@ let rewrite_structure_item ~nested_module_names structure_item =
               let file = pexp_ident ~loc { txt = Lident "__FILE__"; loc } in
               let import_module =
                 match nested_module_names with
-                | [] -> [%expr [%e file]]
+                | [] -> file
                 | _ ->
                     let submodule = estring ~loc (String.concat "." nested_module_names) in
                     [%expr Printf.sprintf "%s#%s" [%e file] [%e submodule]]
@@ -1003,8 +1002,6 @@ let rewrite_structure_item_for_js ~nested_module_names ctx structure_item =
       let loc = structure_item.pstr_loc in
       let code_path = Expansion_context.Base.code_path ctx in
       let fileName = Code_path.file_path code_path in
-      (* We need to add a nasty hack here, since have different files for native and melange.Assume that the file structure is /native/shared/ and js, and replace the name directly. This is supposed to be temporal, until dune implements https://github.com/ocaml/dune/issues/10630 *)
-      let fileName = Str.replace_first (Str.regexp {|/js/|}) "/native/shared/" fileName in
       let comment =
         match nested_module_names with
         | [] -> estring ~loc (Printf.sprintf "// extract-client %s" fileName)

@@ -24,6 +24,6 @@
    reason-react-ppx
    melange-json.ppx)))
 
-(copy_files
+(copy_files#
  (mode fallback)
  (files "../native/shared/*.re"))
