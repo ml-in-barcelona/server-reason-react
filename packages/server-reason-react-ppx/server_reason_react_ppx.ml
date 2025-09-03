@@ -6,7 +6,7 @@ type target = Native | Js
 
 (* Since ppxlib doesn't provide a way to get the submodules, we need to keep track of them manually *)
 let mode = ref Native
-let replace_melange_folder_hack = ref "/native/shared"
+let replace_melange_folder_hack = ref "/js"
 let replace_native_folder_hack = ref "/native/shared"
 let repo_url = "https://github.com/ml-in-barcelona/server-reason-react"
 let issues_url = Printf.sprintf "%s/issues" repo_url
