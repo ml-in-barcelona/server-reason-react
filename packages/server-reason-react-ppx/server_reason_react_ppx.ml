@@ -6,8 +6,7 @@ type target = Native | Js
 
 (* Since ppxlib doesn't provide a way to get the submodules, we need to keep track of them manually *)
 let mode = ref Native
-let replace_melange_folder_hack = ref "/js"
-let replace_native_folder_hack = ref "/native/shared"
+let shared_folder_prefix = ref "/native/shared"
 let repo_url = "https://github.com/ml-in-barcelona/server-reason-react"
 let issues_url = Printf.sprintf "%s/issues" repo_url
 
@@ -733,7 +732,7 @@ module ServerFunction = struct
 
   let generate_id ~loc name =
     (* We need to add a nasty hack here, since have different files for native and melange.Assume that the file structure is native/lib and js, and replace the name directly. This is supposed to be temporal, until dune implements https://github.com/ocaml/dune/issues/10630 *)
-    let file_path = loc.loc_start.pos_fname |> Str.replace_first (Str.regexp replace_native_folder_hack.contents) "" in
+    let file_path = loc.loc_start.pos_fname |> Str.replace_first (Str.regexp shared_folder_prefix.contents) "" in
     let hash = Printf.sprintf "%s_%s_%d" name file_path loc.loc_start.pos_lnum |> Hashtbl.hash |> string_of_int in
     hash
 
@@ -956,7 +955,7 @@ let rewrite_structure_item ~nested_module_names structure_item =
               let loc = expr.pexp_loc in
               let file =
                 expr.pexp_loc.loc_start.pos_fname
-                |> Str.replace_first (Str.regexp replace_native_folder_hack.contents) ""
+                |> Str.replace_first (Str.regexp shared_folder_prefix.contents) ""
                 |> estring ~loc
               in
               let import_module =
@@ -1010,7 +1009,7 @@ let rewrite_structure_item_for_js ~nested_module_names ctx structure_item =
       let code_path = Expansion_context.Base.code_path ctx in
       let fileName = Code_path.file_path code_path in
       (* We need to add a nasty hack here, since have different files for native and melange.Assume that the file structure is /native/shared/ and js, and replace the name directly. This is supposed to be temporal, until dune implements https://github.com/ocaml/dune/issues/10630 *)
-      let fileName = Str.replace_first (Str.regexp replace_melange_folder_hack.contents) "" fileName in
+      let fileName = Str.replace_first (Str.regexp shared_folder_prefix.contents) "" fileName in
       let comment =
         match nested_module_names with
         | [] -> estring ~loc (Printf.sprintf "// extract-client %s" fileName)
@@ -1108,9 +1107,8 @@ let traverse =
 
 let () =
   Driver.add_arg "-melange" (Unit (fun () -> mode := Js)) ~doc:"preprocess for js build";
-  Driver.add_arg "--replace-melange-folder-hack"
-    (String (fun str -> replace_melange_folder_hack := str))
-    ~doc:"root path";
-  Driver.add_arg "--replace-native-folder-hack" (String (fun str -> replace_native_folder_hack := str)) ~doc:"root path";
+  Driver.add_arg "--shared-folder-prefix"
+    (String (fun str -> shared_folder_prefix := str))
+    ~doc:"prefix of shared files in melange, used to generate ids for the shared files";
   Ppxlib.Driver.V2.register_transformation "server-reason-react.ppx" ~preprocess_impl:traverse#structure
     ~preprocess_intf:traverse#signature
