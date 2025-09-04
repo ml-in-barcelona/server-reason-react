@@ -1123,6 +1123,6 @@ let () =
   Driver.add_arg "-melange" (Unit (fun () -> mode := Js)) ~doc:"preprocess for js build";
   Driver.add_arg "-shared-folder-prefix"
     (String (fun str -> shared_folder_prefix := Some str))
-    ~doc:"prefix of shared files in melange, used to generate ids for the shared files";
+    ~doc:"prefix of shared folder, used to replace the it in the file path";
   Ppxlib.Driver.V2.register_transformation "server-reason-react.ppx" ~preprocess_impl:traverse#structure
     ~preprocess_intf:traverse#signature
