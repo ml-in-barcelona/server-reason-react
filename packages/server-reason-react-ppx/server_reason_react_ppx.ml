@@ -742,8 +742,8 @@ module ServerFunction = struct
       match shared_folder_prefix.contents with
       | Some x ->
           if match_substring file_path x then x
-          else failwith "Prefix doesn't match the file path. Provide a prefix that matches the file path."
-      | None -> failwith "Found a server.function without --shared-folder-prefix argument. Provide one."
+          else raise_errorf ~loc "Prefix doesn't match the file path. Provide a prefix that matches the file path."
+      | None -> raise_errorf ~loc "Found a server.function without --shared-folder-prefix argument. Provide one."
     in
     (* We need to add a nasty hack here, since have different files for native and melange.Assume that the file structure is native/lib and js, and replace the name directly. This is supposed to be temporal, until dune implements https://github.com/ocaml/dune/issues/10630 *)
     let file_path = Str.replace_first (Str.regexp replacement) "" file_path in
@@ -972,9 +972,9 @@ let rewrite_structure_item ~nested_module_names structure_item =
                 match shared_folder_prefix.contents with
                 | Some prefix ->
                     if match_substring fileName prefix then prefix
-                    else failwith "Prefix doesn't match the file path. Provide a prefix that matches the file path."
+                    else raise_errorf ~loc "Prefix doesn't match the file path. Provide a prefix that matches the file path."
                 | None ->
-                    failwith "Found a react.client.component without --shared-folder-prefix argument. Provide one."
+                  raise_errorf ~loc "Found a react.client.component without --shared-folder-prefix argument. Provide one."
               in
               let file = fileName |> Str.replace_first (Str.regexp replacement) "" |> estring ~loc in
               let import_module =
@@ -1032,8 +1032,8 @@ let rewrite_structure_item_for_js ~nested_module_names ctx structure_item =
         match shared_folder_prefix.contents with
         | Some prefix ->
             if match_substring fileName prefix then prefix
-            else failwith "Prefix doesn't match the file path. Provide a prefix that matches the file path."
-        | None -> failwith "Found a react.client.component without --shared-folder-prefix argument. Provide one."
+            else raise_errorf ~loc "Prefix doesn't match the file path. Provide a prefix that matches the file path."
+        | None -> raise_errorf ~loc "Found a react.client.component without --shared-folder-prefix argument. Provide one."
       in
       let fileName = Str.replace_first (Str.regexp replacement) "" fileName in
       let comment =
