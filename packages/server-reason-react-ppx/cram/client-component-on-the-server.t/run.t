@@ -111,7 +111,7 @@
         (),
       ) =>
     React.Client_component({
-      import_module: "input.re",
+      import_module: __FILE__,
       import_name: "",
       props: [
         ("initial", React.Json(int_to_json(initial))),

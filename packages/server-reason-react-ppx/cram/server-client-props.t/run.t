@@ -16,7 +16,7 @@
         ) =>
       React.Client_component({
         import_module:
-          Printf.sprintf("%s#%s", "output.ml", "Prop_with_many_annotation"),
+          Printf.sprintf("%s#%s", __FILE__, "Prop_with_many_annotation"),
         import_name: "",
         props: [
           ("prop", React.Json([%to_json: int](prop))),
@@ -35,7 +35,7 @@
     let make = (~key as _: option(string)=?, ~prop_without_annotation, ()) =>
       React.Client_component({
         import_module:
-          Printf.sprintf("%s#%s", "output.ml", "Prop_without_annotation"),
+          Printf.sprintf("%s#%s", __FILE__, "Prop_without_annotation"),
         import_name: "",
         props: [
           [%ocaml.error
@@ -50,11 +50,7 @@
         (~key as _: option(string)=?, ~underscore: _, ~alpha_types: 'a, ()) =>
       React.Client_component({
         import_module:
-          Printf.sprintf(
-            "%s#%s",
-            "output.ml",
-            "Prop_with_unsupported_annotation",
-          ),
+          Printf.sprintf("%s#%s", __FILE__, "Prop_with_unsupported_annotation"),
         import_name: "",
         props: [
           ("underscore", React.Json([%to_json: _](underscore))),
@@ -77,7 +73,7 @@
         import_module:
           Printf.sprintf(
             "%s#%s",
-            "output.ml",
+            __FILE__,
             "Prop_with_annotation_that_need_to_be_type_alias",
           ),
         import_name: "",
@@ -109,7 +105,7 @@
         ) =>
       React.Client_component({
         import_module:
-          Printf.sprintf("%s#%s", "output.ml", "Prop_with_unknown_annotation"),
+          Printf.sprintf("%s#%s", __FILE__, "Prop_with_unknown_annotation"),
         import_name: "",
         props: [
           ("lident", React.Json([%to_json: lola](lident))),
