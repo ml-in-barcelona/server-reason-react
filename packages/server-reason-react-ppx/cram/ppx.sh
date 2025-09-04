@@ -38,7 +38,7 @@ if [ -z "$output_format" ] || [ -z "$input_file" ]; then
 fi
 
 refmt --parse re --print ml "$input_file" > output.ml
-./../standalone.exe --impl output.ml $js_flag -o temp.ml
+./../standalone.exe --impl output.ml $js_flag -o temp.ml -shared-folder-prefix=doesnt-matter
 
 if [ "$output_format" == "ml" ]; then
   ocamlformat --enable-outside-detected-project --impl temp.ml -o temp.ml

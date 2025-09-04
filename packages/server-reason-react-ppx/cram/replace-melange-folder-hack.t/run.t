@@ -8,7 +8,7 @@
   > (melange.emit
   >  (target js)
   >  (libraries reason-react melange-json)
-  >  (preprocess (pps melange.ppx melange-json.ppx server-reason-react.ppx --shared-folder-prefix=js/ -melange)))
+  >  (preprocess (pps melange.ppx melange-json.ppx server-reason-react.ppx -shared-folder-prefix=doesnt-matter -melange)))
   > EOF
 
   $ dune describe pp js/input.re
@@ -39,7 +39,7 @@
                 [@ocaml.warning "-unboxable-type-in-prim-decl"]
                 external unsafe_expr: _ => _ = "#raw_stmt";
               };
-              J.unsafe_expr("// extract-client input.re");
+              J.unsafe_expr("// extract-client js/input.re");
             };
   
             [@react.component]

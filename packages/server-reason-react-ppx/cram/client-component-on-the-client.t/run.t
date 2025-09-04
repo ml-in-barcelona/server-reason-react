@@ -6,7 +6,7 @@
   $ cat > dune << EOF
   > (melange.emit
   >  (target js)
-  >  (preprocess (pps server-reason-react.ppx -melange)))
+  >  (preprocess (pps server-reason-react.ppx -shared-folder-prefix=doesnt-matter -melange)))
   > EOF
 
   $ dune describe pp input.re

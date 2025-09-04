@@ -13,7 +13,7 @@
   > (melange.emit
   >  (target js)
   >  (libraries server-reason-react.runtime reason-react)
-  >  (preprocess (pps reason-react-ppx melange.ppx melange-json.ppx  server-reason-react.ppx -melange)))
+  >  (preprocess (pps reason-react-ppx melange.ppx melange-json.ppx server-reason-react.ppx -shared-folder-prefix=doesnt-matter -melange)))
   > 
   > (rule
   >  (deps (alias melange))
