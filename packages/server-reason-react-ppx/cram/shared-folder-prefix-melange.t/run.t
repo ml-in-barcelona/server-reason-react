@@ -31,8 +31,6 @@
       cookies: [],
     }
   ];
-  open Melange_json.Primitives;
-  
   include {
             {
               module J = {
@@ -41,7 +39,6 @@
               };
               J.unsafe_expr("// extract-client js/input.re");
             };
-  
             [@react.component]
             let make = () => React.null;
             let make_client = props => make(Js.Obj.empty());
