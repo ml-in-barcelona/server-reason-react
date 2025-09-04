@@ -1070,7 +1070,7 @@ let validate_tag_children tag children attributes : (unit, string) result =
 
 let traverse =
   object (_)
-    inherit [Expansion_context.Base.t] Ast_traverse.map_with_context as super
+    inherit [Expansion_context.Base.t] Ppxlib.Ast_traverse.map_with_context as super
     val mutable nested_module_names = []
 
     method! module_binding ctxt module_binding =
@@ -1137,6 +1137,7 @@ let traverse =
 
 let () =
   Driver.add_arg "-melange" (Unit (fun () -> mode := Js)) ~doc:"preprocess for js build";
+
   Driver.add_arg "-shared-folder-prefix"
     (String
        (fun str ->
@@ -1145,6 +1146,6 @@ let () =
          let prefix = if prefix = "" then "" else prefix ^ "/" in
          shared_folder_prefix := Some prefix))
     ~doc:"prefix of shared folder, used to replace the it in the file path";
+
   Driver.V2.register_transformation "server-reason-react.ppx"
     ~instrument:(Driver.Instrument.V2.make ~position:Before (fun structure -> traverse#structure structure))
-    ~preprocess_intf:traverse#signature
