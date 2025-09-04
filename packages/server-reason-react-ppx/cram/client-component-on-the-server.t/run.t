@@ -6,7 +6,7 @@
   > (executable
   >  (name input)
   >  (libraries server-reason-react.react server-reason-react.reactDom melange-json)
-  >  (preprocess (pps server-reason-react.ppx server-reason-react.melange_ppx melange-json-native.ppx)))
+  >  (preprocess (pps server-reason-react.ppx -shared-folder-prefix=/ server-reason-react.melange_ppx melange-json-native.ppx)))
   > EOF
 
   $ dune build
@@ -111,7 +111,7 @@
         (),
       ) =>
     React.Client_component({
-      import_module: __FILE__,
+      import_module: "input.re",
       import_name: "",
       props: [
         ("initial", React.Json(int_to_json(initial))),

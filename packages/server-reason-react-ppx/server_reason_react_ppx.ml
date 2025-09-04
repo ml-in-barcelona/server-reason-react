@@ -6,8 +6,15 @@ type target = Native | Js
 
 (* Since ppxlib doesn't provide a way to get the submodules, we need to keep track of them manually *)
 let mode = ref Native
+let shared_folder_prefix = ref None
 let repo_url = "https://github.com/ml-in-barcelona/server-reason-react"
 let issues_url = Printf.sprintf "%s/issues" repo_url
+
+let match_substring string substring =
+  try
+    Str.search_forward (Str.regexp_string substring) string 0 |> ignore;
+    true
+  with Not_found -> false
 
 (* There's no Ppxlib.pexp_list since isn't a parsetree constructor *)
 let pexp_list ~loc xs =
@@ -730,8 +737,16 @@ module ServerFunction = struct
     | _ -> fn
 
   let generate_id ~loc name =
+    let file_path = loc.loc_start.pos_fname in
+    let replacement =
+      match shared_folder_prefix.contents with
+      | Some x ->
+          if match_substring file_path x then x
+          else raise_errorf ~loc "Prefix doesn't match the file path. Provide a prefix that matches the file path."
+      | None -> raise_errorf ~loc "Found a server.function without --shared-folder-prefix argument. Provide one."
+    in
     (* We need to add a nasty hack here, since have different files for native and melange.Assume that the file structure is native/lib and js, and replace the name directly. This is supposed to be temporal, until dune implements https://github.com/ocaml/dune/issues/10630 *)
-    let file_path = loc.loc_start.pos_fname |> Str.replace_first (Str.regexp {|/js/|}) "/native/shared/" in
+    let file_path = Str.replace_first (Str.regexp replacement) "" file_path in
     let hash = Printf.sprintf "%s_%s_%d" name file_path loc.loc_start.pos_lnum |> Hashtbl.hash |> string_of_int in
     hash
 
@@ -952,10 +967,22 @@ let rewrite_structure_item ~nested_module_names structure_item =
         if isReactClientComponentBinding vb then
           expand_make_binding vb (fun expr ->
               let loc = expr.pexp_loc in
-              let file = pexp_ident ~loc { txt = Lident "__FILE__"; loc } in
+              let fileName = expr.pexp_loc.loc_start.pos_fname in
+              let replacement =
+                match shared_folder_prefix.contents with
+                | Some prefix ->
+                    if match_substring fileName prefix then prefix
+                    else
+                      raise_errorf ~loc
+                        "Prefix doesn't match the file path. Provide a prefix that matches the file path."
+                | None ->
+                    raise_errorf ~loc
+                      "Found a react.client.component without --shared-folder-prefix argument. Provide one."
+              in
+              let file = fileName |> Str.replace_first (Str.regexp replacement) "" |> estring ~loc in
               let import_module =
                 match nested_module_names with
-                | [] -> [%expr [%e file]]
+                | [] -> file
                 | _ ->
                     let submodule = estring ~loc (String.concat "." nested_module_names) in
                     [%expr Printf.sprintf "%s#%s" [%e file] [%e submodule]]
@@ -1004,7 +1031,15 @@ let rewrite_structure_item_for_js ~nested_module_names ctx structure_item =
       let code_path = Expansion_context.Base.code_path ctx in
       let fileName = Code_path.file_path code_path in
       (* We need to add a nasty hack here, since have different files for native and melange.Assume that the file structure is /native/shared/ and js, and replace the name directly. This is supposed to be temporal, until dune implements https://github.com/ocaml/dune/issues/10630 *)
-      let fileName = Str.replace_first (Str.regexp {|/js/|}) "/native/shared/" fileName in
+      let replacement =
+        match shared_folder_prefix.contents with
+        | Some prefix ->
+            if match_substring fileName prefix then prefix
+            else raise_errorf ~loc "Prefix doesn't match the file path. Provide a prefix that matches the file path."
+        | None ->
+            raise_errorf ~loc "Found a react.client.component without --shared-folder-prefix argument. Provide one."
+      in
+      let fileName = Str.replace_first (Str.regexp replacement) "" fileName in
       let comment =
         match nested_module_names with
         | [] -> estring ~loc (Printf.sprintf "// extract-client %s" fileName)
@@ -1102,5 +1137,13 @@ let traverse =
 
 let () =
   Driver.add_arg "-melange" (Unit (fun () -> mode := Js)) ~doc:"preprocess for js build";
+  Driver.add_arg "-shared-folder-prefix"
+    (String
+       (fun str ->
+         let components = String.split_on_char '/' str |> List.filter ~f:(fun x -> x <> "") in
+         let prefix = String.concat "/" components in
+         let prefix = if prefix = "" then "" else prefix ^ "/" in
+         shared_folder_prefix := Some prefix))
+    ~doc:"prefix of shared folder, used to replace the it in the file path";
   Ppxlib.Driver.V2.register_transformation "server-reason-react.ppx" ~preprocess_impl:traverse#structure
     ~preprocess_intf:traverse#signature

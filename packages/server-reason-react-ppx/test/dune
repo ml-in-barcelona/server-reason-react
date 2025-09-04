@@ -15,6 +15,7 @@
  (preprocess
   (pps
    server-reason-react.ppx
+   -shared-folder-prefix=/
    server-reason-react.melange_ppx
    lwt_ppx
    melange-json.ppx)))

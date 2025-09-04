@@ -7,10 +7,10 @@
   > (melange.emit
   >  (target js)
   >  (libraries reason-react melange-json)
-  >  (preprocess (pps melange.ppx melange-json.ppx server-reason-react.ppx -melange)))
+  >  (preprocess (pps melange.ppx melange-json.ppx server-reason-react.ppx -shared-folder-prefix=/ -melange)))
   > EOF
 
-  $ dune describe pp input.re
+  $ dune describe pp input.re | sed '/\[@mel.internal.ffi/,/\]/d'
   [@ocaml.ppx.context
     {
       tool_name: "ppx_driver",
@@ -59,9 +59,6 @@
                   module J = {
                     [@ocaml.warning "-unboxable-type-in-prim-decl"]
                     [@ocaml.warning "-unboxable-type-in-prim-decl"]
-                    [@mel.internal.ffi
-                      "Ñï¶æ\000\000\000E\000\000\000\029\000\000\000O\000\000\000Hë††Aê&tuple3††Aê&tuple2††Aê$lulu††Aê$lili††Aê$lolo††Aê$lola††Aê$prop@"
-                    ]
                     external unsafe_expr:
                       (
                         ~tuple3: 'a0,
