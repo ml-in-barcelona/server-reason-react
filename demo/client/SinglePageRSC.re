@@ -1,7 +1,7 @@
 module App = {
   [@react.component]
   let make = (~promise) => {
-    React.Experimental.use(promise);
+    React.Experimental.usePromise(promise);
   };
 };
 

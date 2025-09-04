@@ -12,7 +12,7 @@ let make =
       ~children: React.element,
       ~promise: Js.Promise.t(string),
     ) => {
-  let value = React.Experimental.use(promise);
+  let value = React.Experimental.usePromise(promise);
   <div>
     {React.string(lola.name)}
     {React.int(initial)}

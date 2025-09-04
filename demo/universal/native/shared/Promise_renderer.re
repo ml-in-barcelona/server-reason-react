@@ -5,7 +5,7 @@ open Melange_json.Primitives;
 module Reader = {
   [@react.component]
   let make = (~promise: Js.Promise.t(string)) => {
-    let value = React.Experimental.use(promise);
+    let value = React.Experimental.usePromise(promise);
     let%browser_only onMouseOver = _ev => {
       Js.log("Over the promise!");
     };
