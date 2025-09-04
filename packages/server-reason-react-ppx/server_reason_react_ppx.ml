@@ -745,8 +745,8 @@ module ServerFunction = struct
           else failwith "Prefix doesn't match the file path. Provide a prefix that matches the file path."
       | None -> failwith "Found a server.function without --shared-folder-prefix argument. Provide one."
     in
-    let file_path = Str.replace_first (Str.regexp replacement) "" file_path in
     (* We need to add a nasty hack here, since have different files for native and melange.Assume that the file structure is native/lib and js, and replace the name directly. This is supposed to be temporal, until dune implements https://github.com/ocaml/dune/issues/10630 *)
+    let file_path = Str.replace_first (Str.regexp replacement) "" file_path in
     let hash = Printf.sprintf "%s_%s_%d" name file_path loc.loc_start.pos_lnum |> Hashtbl.hash |> string_of_int in
     hash
 
@@ -1130,8 +1130,6 @@ let traverse =
             | _ -> expr
           with Error err -> [%expr [%e err]])
   end
-
-let routes = Routes.Parts.of_parts "/routes"
 
 let () =
   Driver.add_arg "-melange" (Unit (fun () -> mode := Js)) ~doc:"preprocess for js build";
