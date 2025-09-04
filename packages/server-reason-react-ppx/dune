@@ -9,7 +9,6 @@
  (kind ppx_rewriter)
  (libraries
   str
-  routes
   compiler-libs.common
   ppxlib
   ppxlib.astlib
