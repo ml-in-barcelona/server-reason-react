@@ -18,7 +18,7 @@
   yojson)
  (preprocess
   (pps
-   server_reason_react_ppx
-   melange_native_ppx
+   server-reason-react.ppx
+   server-reason-react.melange_ppx
    melange-json-native.ppx
    lwt_ppx)))
