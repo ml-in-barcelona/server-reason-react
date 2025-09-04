@@ -7,7 +7,7 @@
   > (executable
   >  (name input)
   >  (libraries server-reason-react.react server-reason-react.runtime server-reason-react.reactDom melange-json)
-  >  (preprocess (pps server-reason-react.ppx -shared-folder-prefix=doesnt-matter server-reason-react.melange_ppx melange-json-native.ppx)))
+  >  (preprocess (pps server-reason-react.ppx -shared-folder-prefix=native/ server-reason-react.melange_ppx melange-json-native.ppx)))
   > EOF
 
   $ dune describe pp native/input.re
@@ -32,7 +32,7 @@
   ];
   let make = (~key as _: option(string)=?, ()) =>
     React.Client_component({
-      import_module: "native/input.re",
+      import_module: "input.re",
       import_name: "",
       props: [],
       client: React.null,

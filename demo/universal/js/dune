@@ -20,7 +20,7 @@
    -js
    server-reason-react.ppx
    -melange
-   -shared-folder-prefix=/native/shared/
+   -shared-folder-prefix=js/
    melange.ppx
    reason-react-ppx
    melange-json.ppx)))
