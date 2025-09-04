@@ -16,7 +16,7 @@ Test some locations
   >  (libraries server-reason-react.react server-reason-react.reactDom)
   >  (public_name test)
   >  (preprocess
-  >   (pps server-reason-react.melange_ppx server-reason-react.ppx -shared-folder-prefix=doesnt-matter)))
+  >   (pps server-reason-react.melange_ppx server-reason-react.ppx -shared-folder-prefix=/)))
   > EOF
 
   $ dune build

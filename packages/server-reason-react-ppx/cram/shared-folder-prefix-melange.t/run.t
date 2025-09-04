@@ -8,7 +8,7 @@
   > (melange.emit
   >  (target js)
   >  (libraries reason-react melange-json)
-  >  (preprocess (pps melange.ppx melange-json.ppx server-reason-react.ppx -shared-folder-prefix=doesnt-matter -melange)))
+  >  (preprocess (pps melange.ppx melange-json.ppx server-reason-react.ppx -shared-folder-prefix=/ -melange)))
   > EOF
 
   $ dune describe pp js/input.re
