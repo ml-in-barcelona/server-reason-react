@@ -972,9 +972,12 @@ let rewrite_structure_item ~nested_module_names structure_item =
                 match shared_folder_prefix.contents with
                 | Some prefix ->
                     if match_substring fileName prefix then prefix
-                    else raise_errorf ~loc "Prefix doesn't match the file path. Provide a prefix that matches the file path."
+                    else
+                      raise_errorf ~loc
+                        "Prefix doesn't match the file path. Provide a prefix that matches the file path."
                 | None ->
-                  raise_errorf ~loc "Found a react.client.component without --shared-folder-prefix argument. Provide one."
+                    raise_errorf ~loc
+                      "Found a react.client.component without --shared-folder-prefix argument. Provide one."
               in
               let file = fileName |> Str.replace_first (Str.regexp replacement) "" |> estring ~loc in
               let import_module =
@@ -1033,7 +1036,8 @@ let rewrite_structure_item_for_js ~nested_module_names ctx structure_item =
         | Some prefix ->
             if match_substring fileName prefix then prefix
             else raise_errorf ~loc "Prefix doesn't match the file path. Provide a prefix that matches the file path."
-        | None -> raise_errorf ~loc "Found a react.client.component without --shared-folder-prefix argument. Provide one."
+        | None ->
+            raise_errorf ~loc "Found a react.client.component without --shared-folder-prefix argument. Provide one."
       in
       let fileName = Str.replace_first (Str.regexp replacement) "" fileName in
       let comment =
