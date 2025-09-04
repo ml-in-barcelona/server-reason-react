@@ -12,7 +12,7 @@ let issues_url = Printf.sprintf "%s/issues" repo_url
 
 let match_substring string substring =
   try
-    Str.search_forward (Str.regexp substring) string 0 |> ignore;
+    Str.search_forward (Str.regexp_string substring) string 0 |> ignore;
     true
   with Not_found -> false
 
