@@ -23,6 +23,6 @@
    lwt_ppx
    melange_native_ppx
    server-reason-react.ppx
-   -shared-folder-prefix=/native/shared/
+   -shared-folder-prefix=/native/shared
    server-reason-react.browser_ppx
    melange-json-native.ppx)))
