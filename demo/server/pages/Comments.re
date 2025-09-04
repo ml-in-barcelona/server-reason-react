@@ -45,7 +45,7 @@ module Data = {
 module Comments = {
   [@react.async.component]
   let make = () => {
-    let comments = React.Experimental.use(Data.promise());
+    let comments = React.Experimental.usePromise(Data.promise());
 
     Lwt.return(
       <div className="flex gap-4 flex-col">

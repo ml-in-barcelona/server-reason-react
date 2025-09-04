@@ -643,7 +643,7 @@ exception Suspend of any_promise
 let suspend promise = raise (Suspend (Any_promise promise))
 
 module Experimental = struct
-  let use promise =
+  let usePromise promise =
     match Lwt.state promise with
     | Sleep -> suspend promise
     (* TODO: Fail should raise a FailedSupense and catch at renderTo*? *)

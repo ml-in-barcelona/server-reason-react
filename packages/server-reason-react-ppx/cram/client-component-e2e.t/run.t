@@ -151,7 +151,8 @@
                               [@warning "-16"]
                               (
                                 (~promise: Js.Promise.t(string)) => {
-                                  let value = React.Experimental.use(promise);
+                                  let value =
+                                    React.Experimental.usePromise(promise);
                                   ReactDOM.jsxs(
                                     "div",
                                     ([@merlin.hide] ReactDOM.domProps)(
