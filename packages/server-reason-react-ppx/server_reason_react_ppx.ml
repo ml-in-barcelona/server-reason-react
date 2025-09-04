@@ -1070,7 +1070,7 @@ let validate_tag_children tag children attributes : (unit, string) result =
 
 let traverse =
   object (_)
-    inherit [Expansion_context.Base.t] Ppxlib.Ast_traverse.map_with_context as super
+    inherit [Expansion_context.Base.t] Ast_traverse.map_with_context as super
     val mutable nested_module_names = []
 
     method! module_binding ctxt module_binding =
