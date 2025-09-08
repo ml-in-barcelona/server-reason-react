@@ -60,7 +60,7 @@ let react_use_without_suspense () =
     React.Upper_case_component
       ( "app",
         fun () ->
-          let delay = React.Experimental.use (Sleep.delay 0.01) in
+          let delay = React.Experimental.usePromise (Sleep.delay 0.01) in
           React.createElement "div" [] [ React.createElement "span" [] [ React.string "Hello "; React.float delay ] ] )
   in
   let%lwt stream, _abort = ReactDOM.renderToStream app in
@@ -105,7 +105,7 @@ let suspense_with_react_use () =
     React.Upper_case_component
       ( "time",
         fun () ->
-          let delay = React.Experimental.use (Sleep.delay 0.05) in
+          let delay = React.Experimental.usePromise (Sleep.delay 0.05) in
           React.createElement "div" [] [ React.createElement "span" [] [ React.string "Hello "; React.float delay ] ] )
   in
   let app () = React.Suspense.make ~fallback:(React.string "Loading...") ~children:time () in
