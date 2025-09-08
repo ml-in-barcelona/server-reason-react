@@ -23,7 +23,7 @@ depends: [
   "melange-json" {>= "2.0.0"}
   "melange-json-native" {>= "2.0.0"}
   "melange-webapi" {>= "0.21.0"}
-  "reason-react"
+  "reason-react" {>= "0.16.0"}
   "odoc" {with-doc}
   "ocamlformat" {= "0.27.0" & with-test}
   "ocaml-lsp-server" {with-dev-setup}

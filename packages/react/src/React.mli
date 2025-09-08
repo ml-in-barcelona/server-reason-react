@@ -701,7 +701,7 @@ end
 val suspend : 'a Lwt.t -> unit
 
 module Experimental : sig
-  val use : 'a Lwt.t -> 'a
+  val usePromise : 'a Lwt.t -> 'a
 end
 
 val useTransition : unit -> bool * ((unit -> unit) -> unit)
