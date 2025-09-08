@@ -1078,7 +1078,7 @@ let traverse =
       | None -> ()
       | Some name -> nested_module_names <- nested_module_names @ [ name ]);
       let mapped = super#module_binding ctxt module_binding in
-      let _ = nested_module_names <- List.tl nested_module_names in
+      nested_module_names <- List.tl nested_module_names;
       mapped
 
     method! structure_item ctx structure_item =
@@ -1101,7 +1101,7 @@ let traverse =
             | Pexp_apply (({ pexp_desc = Pexp_ident _; pexp_loc = loc; _ } as tag), args)
               when has_jsx_attr expr.pexp_attributes -> (
                 let children, rest_of_args = split_args args in
-                match validate_tag_children (Ppxlib_ast.Pprintast.string_of_expression tag) children rest_of_args with
+                match validate_tag_children (Pprintast.string_of_expression tag) children rest_of_args with
                 | Error err -> [%expr [%ocaml.error [%e estring ~loc:expr.pexp_loc err]]]
                 | Ok () -> (
                     match tag.pexp_desc with
@@ -1147,4 +1147,5 @@ let () =
          shared_folder_prefix := Some prefix))
     ~doc:"prefix of shared folder, used to replace the it in the file path";
 
-  Driver.V2.register_transformation "b-server-reason-react.ppx" ~impl:traverse#structure ~intf:traverse#signature
+  Driver.V2.register_transformation "server-reason-react.ppx" ~preprocess_impl:traverse#structure
+    ~preprocess_intf:traverse#signature

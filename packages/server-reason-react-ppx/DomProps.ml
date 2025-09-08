@@ -515,6 +515,7 @@ let globalAttributes =
     Attribute { name = "slot"; jsxName = "slot"; reasonJsxName = "slot"; type_ = String };
     Attribute { name = "spellcheck"; jsxName = "spellCheck"; reasonJsxName = "spellCheck"; type_ = BooleanishString };
     Attribute { name = "style"; jsxName = "style"; reasonJsxName = "style"; type_ = Style };
+    Attribute { name = "styles"; jsxName = "styles"; reasonJsxName = "styles"; type_ = Style };
     Attribute { name = "tabindex"; jsxName = "tabIndex"; reasonJsxName = "tabIndex"; type_ = Int };
     Attribute { name = "enterkeyhint"; jsxName = "enterKeyHint"; reasonJsxName = "enterKeyHint"; type_ = Int };
     (* data-* attributes are globaly available *)
