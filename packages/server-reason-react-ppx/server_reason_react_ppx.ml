@@ -1147,5 +1147,4 @@ let () =
          shared_folder_prefix := Some prefix))
     ~doc:"prefix of shared folder, used to replace the it in the file path";
 
-  Driver.V2.register_transformation "server-reason-react.ppx"
-    ~instrument:(Driver.Instrument.V2.make ~position:Before (fun structure -> traverse#structure structure))
+  Driver.V2.register_transformation "b-server-reason-react.ppx" ~impl:traverse#structure ~intf:traverse#signature
