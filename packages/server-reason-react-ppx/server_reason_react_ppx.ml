@@ -1093,8 +1093,29 @@ let traverse =
 
     method! expression ctx expr =
       let expr = super#expression ctx expr in
+      let attributes = expr.pexp_attributes in
       match mode.contents with
-      | Js -> expr
+      | Js -> (
+          (* In the case of expressions, it's the only transformation that needs to be done for JS. This expansion from "styles" prop into "className" and "style" props is a feature by styled-ppx. The existence of this here, is because dune/ppxlib doesn't allow more than one preprocess_impl and even that, the combination of styled-ppx and server-reason-react-ppx doesn't compose properly. *)
+          try
+            match expr.pexp_desc with
+            | Pexp_apply (({ pexp_desc = Pexp_ident _; pexp_loc = loc; _ } as tag), args)
+              when has_jsx_attr expr.pexp_attributes ->
+                let new_args =
+                  List.concat_map
+                    ~f:(fun (arg_label, arg) ->
+                      match arg_label with
+                      | Ppxlib.Labelled "styles" ->
+                          [
+                            (Ppxlib.Labelled "className", [%expr fst [%e arg]]);
+                            (Ppxlib.Labelled "style", [%expr snd [%e arg]]);
+                          ]
+                      | _ -> [ (arg_label, arg) ])
+                    args
+                in
+                { (pexp_apply ~loc (super#expression ctx tag) new_args) with pexp_attributes = attributes }
+            | _ -> expr
+          with Error err -> [%expr [%e err]])
       | Native -> (
           try
             match expr.pexp_desc with
@@ -1107,7 +1128,20 @@ let traverse =
                     match tag.pexp_desc with
                     (* div() [@JSX] *)
                     | Pexp_ident { txt = Lident name; loc = _name_loc } ->
-                        rewrite_lowercase ~loc:expr.pexp_loc name rest_of_args children
+                        (* This expansion from "styles" prop into "className" and "style" props is a feature by styled-ppx. The existence of this here, is because dune/ppxlib doesn't allow more than one preprocess_impl and even that, the combination of styled-ppx and server-reason-react-ppx doesn't compose properly. *)
+                        let new_args =
+                          List.concat_map
+                            ~f:(fun (arg_label, arg) ->
+                              match arg_label with
+                              | Ppxlib.Labelled "styles" ->
+                                  [
+                                    (Ppxlib.Labelled "className", [%expr fst [%e arg]]);
+                                    (Ppxlib.Labelled "style", [%expr snd [%e arg]]);
+                                  ]
+                              | _ -> [ (arg_label, arg) ])
+                            rest_of_args
+                        in
+                        rewrite_lowercase ~loc:expr.pexp_loc name new_args children
                     (* Reason adds `createElement` as default when an uppercase is found,
                    we change it back to make *)
                     (* Foo.createElement() [@JSX] *)
@@ -1120,7 +1154,7 @@ let traverse =
             (* div() [@JSX] *)
             | Pexp_apply (tag, _props) when has_jsx_attr expr.pexp_attributes ->
                 raise_errorf ~loc:expr.pexp_loc "jsx: %s should be an identifier, not an expression"
-                  (Ppxlib_ast.Pprintast.string_of_expression tag)
+                  (Pprintast.string_of_expression tag)
             (* <> </> is represented as a list in the Parsetree with [@JSX] *)
             | Pexp_construct ({ txt = Lident "::"; loc }, Some { pexp_desc = Pexp_tuple _; _ })
             | Pexp_construct ({ txt = Lident "[]"; loc }, None) -> (
@@ -1147,5 +1181,5 @@ let () =
          shared_folder_prefix := Some prefix))
     ~doc:"prefix of shared folder, used to replace the it in the file path";
 
-  Driver.V2.register_transformation "server-reason-react.ppx" ~preprocess_impl:traverse#structure
+  Ppxlib.Driver.V2.register_transformation "server-reason-react.ppx" ~preprocess_impl:traverse#structure
     ~preprocess_intf:traverse#signature
