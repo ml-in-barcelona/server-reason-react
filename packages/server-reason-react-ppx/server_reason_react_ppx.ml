@@ -670,7 +670,7 @@ let rewrite_signature_item signature_item =
       | _ ->
           let loc = signature_item.psig_loc in
           [%sigi:
-            [%%ocaml.error "server-reason-react-ppx: there's seems to be an error in the signature of the component."]])
+            [%%ocaml.error "server-reason-react: there's seems to be an error in the signature of the component."]])
   | _ -> signature_item
 
 let make_to_json ~loc (core_type : core_type) prop =
@@ -1064,13 +1064,21 @@ let validate_tag_children tag children attributes : (unit, string) result =
              | Labelled "dangerouslySetInnerHTML" | Optional "dangerouslySetInnerHTML" -> true
              | _ -> false)
            attributes ->
-      Error (Printf.sprintf {|"%s" is a self-closing tag and must not have "children".\n|} tag)
+      Error (Printf.sprintf {|server-reason-react: "%s" is a self-closing tag and must not have "children".\n|} tag)
   | false -> Ok ()
   | true -> Ok ()
 
+let expand_styles_prop ~loc (label, arg) =
+  match label with
+  | Ppxlib.Labelled "styles" ->
+      [ (Ppxlib.Labelled "className", [%expr fst [%e arg]]); (Ppxlib.Labelled "style", [%expr snd [%e arg]]) ]
+  | Ppxlib.Optional "styles" ->
+      [ (Ppxlib.Optional "className", [%expr fst [%e arg]]); (Ppxlib.Optional "style", [%expr snd [%e arg]]) ]
+  | _ -> [ (label, arg) ]
+
 let traverse =
   object (_)
-    inherit [Expansion_context.Base.t] Ppxlib.Ast_traverse.map_with_context as super
+    inherit [Expansion_context.Base.t] Ast_traverse.map_with_context as super
     val mutable nested_module_names = []
 
     method! module_binding ctxt module_binding =
@@ -1078,7 +1086,7 @@ let traverse =
       | None -> ()
       | Some name -> nested_module_names <- nested_module_names @ [ name ]);
       let mapped = super#module_binding ctxt module_binding in
-      let _ = nested_module_names <- List.tl nested_module_names in
+      nested_module_names <- List.tl nested_module_names;
       mapped
 
     method! structure_item ctx structure_item =
@@ -1093,21 +1101,33 @@ let traverse =
 
     method! expression ctx expr =
       let expr = super#expression ctx expr in
+      let attributes = expr.pexp_attributes in
       match mode.contents with
-      | Js -> expr
+      | Js -> (
+          (* In the case of expressions, it's the only transformation that needs to be done for JS. This expansion from "styles" prop into "className" and "style" props is a feature by styled-ppx. The existence of this here, is because dune/ppxlib doesn't allow more than one preprocess_impl and even that, the combination of styled-ppx and server-reason-react.ppx doesn't compose properly. *)
+          try
+            match expr.pexp_desc with
+            | Pexp_apply (({ pexp_desc = Pexp_ident _; pexp_loc = loc; _ } as tag), args)
+              when has_jsx_attr expr.pexp_attributes ->
+                let new_args = List.concat_map ~f:(expand_styles_prop ~loc) args in
+                { (pexp_apply ~loc (super#expression ctx tag) new_args) with pexp_attributes = attributes }
+            | _ -> expr
+          with Error err -> [%expr [%e err]])
       | Native -> (
           try
             match expr.pexp_desc with
             | Pexp_apply (({ pexp_desc = Pexp_ident _; pexp_loc = loc; _ } as tag), args)
               when has_jsx_attr expr.pexp_attributes -> (
                 let children, rest_of_args = split_args args in
-                match validate_tag_children (Ppxlib_ast.Pprintast.string_of_expression tag) children rest_of_args with
+                match validate_tag_children (Pprintast.string_of_expression tag) children rest_of_args with
                 | Error err -> [%expr [%ocaml.error [%e estring ~loc:expr.pexp_loc err]]]
                 | Ok () -> (
                     match tag.pexp_desc with
                     (* div() [@JSX] *)
                     | Pexp_ident { txt = Lident name; loc = _name_loc } ->
-                        rewrite_lowercase ~loc:expr.pexp_loc name rest_of_args children
+                        (* This expansion from "styles" prop into "className" and "style" props is a feature by styled-ppx. The existence of this here, is because dune/ppxlib doesn't allow more than one preprocess_impl and even that, the combination of styled-ppx and server-reason-react.ppx doesn't compose properly. *)
+                        let new_args = List.concat_map ~f:(expand_styles_prop ~loc) rest_of_args in
+                        rewrite_lowercase ~loc:expr.pexp_loc name new_args children
                     (* Reason adds `createElement` as default when an uppercase is found,
                    we change it back to make *)
                     (* Foo.createElement() [@JSX] *)
@@ -1120,7 +1140,7 @@ let traverse =
             (* div() [@JSX] *)
             | Pexp_apply (tag, _props) when has_jsx_attr expr.pexp_attributes ->
                 raise_errorf ~loc:expr.pexp_loc "jsx: %s should be an identifier, not an expression"
-                  (Ppxlib_ast.Pprintast.string_of_expression tag)
+                  (Pprintast.string_of_expression tag)
             (* <> </> is represented as a list in the Parsetree with [@JSX] *)
             | Pexp_construct ({ txt = Lident "::"; loc }, Some { pexp_desc = Pexp_tuple _; _ })
             | Pexp_construct ({ txt = Lident "[]"; loc }, None) -> (
@@ -1137,6 +1157,7 @@ let traverse =
 
 let () =
   Driver.add_arg "-melange" (Unit (fun () -> mode := Js)) ~doc:"preprocess for js build";
+
   Driver.add_arg "-shared-folder-prefix"
     (String
        (fun str ->
@@ -1145,5 +1166,6 @@ let () =
          let prefix = if prefix = "" then "" else prefix ^ "/" in
          shared_folder_prefix := Some prefix))
     ~doc:"prefix of shared folder, used to replace the it in the file path";
+
   Ppxlib.Driver.V2.register_transformation "server-reason-react.ppx" ~preprocess_impl:traverse#structure
     ~preprocess_intf:traverse#signature
