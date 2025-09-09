@@ -16,7 +16,7 @@ let initialRSCModel =
 module ClientApp = {
   [@react.component]
   let make = () => {
-    let initialElement = React.Experimental.use(initialRSCModel);
+    let initialElement = React.Experimental.usePromise(initialRSCModel);
     <Supersonic.Router> initialElement </Supersonic.Router>;
   };
 };

@@ -48,7 +48,7 @@ module App = {
 
   [@react.component]
   let make = () => {
-    let initialElement = React.Experimental.use(initialRSCModel);
+    let initialElement = React.Experimental.usePromise(initialRSCModel);
     let (layout, setLayout) = React.useState(() => initialElement);
 
     let navigate = search => {
