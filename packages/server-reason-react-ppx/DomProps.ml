@@ -515,7 +515,6 @@ let globalAttributes =
     Attribute { name = "slot"; jsxName = "slot"; reasonJsxName = "slot"; type_ = String };
     Attribute { name = "spellcheck"; jsxName = "spellCheck"; reasonJsxName = "spellCheck"; type_ = BooleanishString };
     Attribute { name = "style"; jsxName = "style"; reasonJsxName = "style"; type_ = Style };
-    Attribute { name = "styles"; jsxName = "styles"; reasonJsxName = "styles"; type_ = Style };
     Attribute { name = "tabindex"; jsxName = "tabIndex"; reasonJsxName = "tabIndex"; type_ = Int };
     Attribute { name = "enterkeyhint"; jsxName = "enterKeyHint"; reasonJsxName = "enterKeyHint"; type_ = Int };
     (* data-* attributes are globaly available *)
@@ -1648,6 +1647,9 @@ let findByJsxName ~tag name =
   let byReasonName p = getReasonJSXName p = jsxName in
   if isDataAttribute jsxName then
     let name = camelcaseToKebabcase jsxName in
+    Ok (Attribute { name; jsxName; reasonJsxName = jsxName; type_ = String })
+  else if jsxName = "styles" then
+    (* styles needs to be "valid" for the ppx to validate, but the type isn't important, since it's expanded into className and style *)
     Ok (Attribute { name; jsxName; reasonJsxName = jsxName; type_ = String })
   else
     match getAttributes tag with

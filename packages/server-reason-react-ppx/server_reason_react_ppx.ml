@@ -670,7 +670,7 @@ let rewrite_signature_item signature_item =
       | _ ->
           let loc = signature_item.psig_loc in
           [%sigi:
-            [%%ocaml.error "server-reason-react-ppx: there's seems to be an error in the signature of the component."]])
+            [%%ocaml.error "server-reason-react: there's seems to be an error in the signature of the component."]])
   | _ -> signature_item
 
 let make_to_json ~loc (core_type : core_type) prop =
@@ -1104,7 +1104,7 @@ let traverse =
       let attributes = expr.pexp_attributes in
       match mode.contents with
       | Js -> (
-          (* In the case of expressions, it's the only transformation that needs to be done for JS. This expansion from "styles" prop into "className" and "style" props is a feature by styled-ppx. The existence of this here, is because dune/ppxlib doesn't allow more than one preprocess_impl and even that, the combination of styled-ppx and server-reason-react-ppx doesn't compose properly. *)
+          (* In the case of expressions, it's the only transformation that needs to be done for JS. This expansion from "styles" prop into "className" and "style" props is a feature by styled-ppx. The existence of this here, is because dune/ppxlib doesn't allow more than one preprocess_impl and even that, the combination of styled-ppx and server-reason-react.ppx doesn't compose properly. *)
           try
             match expr.pexp_desc with
             | Pexp_apply (({ pexp_desc = Pexp_ident _; pexp_loc = loc; _ } as tag), args)
@@ -1125,7 +1125,7 @@ let traverse =
                     match tag.pexp_desc with
                     (* div() [@JSX] *)
                     | Pexp_ident { txt = Lident name; loc = _name_loc } ->
-                        (* This expansion from "styles" prop into "className" and "style" props is a feature by styled-ppx. The existence of this here, is because dune/ppxlib doesn't allow more than one preprocess_impl and even that, the combination of styled-ppx and server-reason-react-ppx doesn't compose properly. *)
+                        (* This expansion from "styles" prop into "className" and "style" props is a feature by styled-ppx. The existence of this here, is because dune/ppxlib doesn't allow more than one preprocess_impl and even that, the combination of styled-ppx and server-reason-react.ppx doesn't compose properly. *)
                         let new_args = List.concat_map ~f:(expand_styles_prop ~loc) rest_of_args in
                         rewrite_lowercase ~loc:expr.pexp_loc name new_args children
                     (* Reason adds `createElement` as default when an uppercase is found,
