@@ -1064,7 +1064,7 @@ let validate_tag_children tag children attributes : (unit, string) result =
              | Labelled "dangerouslySetInnerHTML" | Optional "dangerouslySetInnerHTML" -> true
              | _ -> false)
            attributes ->
-      Error (Printf.sprintf {|"%s" is a self-closing tag and must not have "children".\n|} tag)
+      Error (Printf.sprintf {|server-reason-react: "%s" is a self-closing tag and must not have "children".\n|} tag)
   | false -> Ok ()
   | true -> Ok ()
 
