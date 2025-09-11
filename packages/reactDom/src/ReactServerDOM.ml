@@ -665,14 +665,10 @@ and render_lower_case_element ~fiber ~key ~tag ~attributes ~children =
   let props = Model.props_to_json attributes in
 
   let create_model children =
-    if (* disable_model *) true then
-      (* Currently we don't sent the model for those cases, since we hydrate the document.body as soon as we hydrate the entire document *)
-      `Null
-    else
-      (* In case of the model, we don't care about inner_html as a children since we need it as a prop. This is the opposite from html rendering *)
-      match (Html.is_self_closing_tag tag, inner_html) with
-      | _, Some _ | true, _ -> Model.node ~tag ~key ~props []
-      | false, None -> Model.node ~tag ~key ~props [ children ]
+    (* In case of the model, we don't care about inner_html as a children since we need it as a prop. This is the opposite from html rendering *)
+    match (Html.is_self_closing_tag tag, inner_html) with
+    | _, Some _ | true, _ -> Model.node ~tag ~key ~props []
+    | false, None -> Model.node ~tag ~key ~props [ children ]
   in
 
   let create_html_node ~html_props ~children_html =
@@ -687,20 +683,7 @@ and render_lower_case_element ~fiber ~key ~tag ~attributes ~children =
   | None -> Fiber.set_visited_first_lower_case ~fiber tag);
 
   match tag with
-  | "html" -> (
-      (* TODO: What the model should be?
-        let%lwt _html, model = render_element_to_html ~fiber (React.List children) in
-        let%lwt children, _children_model = elements_to_html ~fiber children in
-        let html = create_html_node ~html_props:[] ~children_html:children in
-        Lwt.return (html, model) *)
-      match Fiber.visited_first_lower_case ~fiber with
-      (* If the first visited lower case is an html element -> skip rendering the html tag itself, just process children. That's because we will reconstuct the html element at the "render_html" *)
-      | Some "html" -> render_element_to_html ~fiber (React.List children)
-      (* In case of rendering html tag as not the first visited lower case element, means that something is wrapping this html tag (like a div or other element) which is invalid HTML, but we keep rendering as a regular element, as React.js' DOM renderer does *)
-      | Some _ -> render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html
-      | None ->
-          (* the None case isn't possible, since we call set_visited_first_lower_case ~fiber tag in the beginning of the function *)
-          render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html)
+  | "html" -> render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html
   | "head" ->
       (* Hoist head element to be rendered at document level *)
       let html_attributes = ReactDOM.attributes_to_html attributes in
