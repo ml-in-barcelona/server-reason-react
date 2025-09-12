@@ -11,5 +11,10 @@ let fetch =
     Routes.serverOnlyRSC,
     Fetch.RequestInit.make(~method_=Fetch.Get, ~headers, ()),
   );
-let app = ReactServerDOMEsbuild.createFromFetch(fetch);
-ReactDOM.Client.render(root, app);
+
+ReactServerDOMEsbuild.createFromFetch(fetch)
+|> Js.Promise.then_(app => {
+     ReactDOM.Client.render(root, app);
+     Js.Promise.resolve();
+   })
+|> ignore;

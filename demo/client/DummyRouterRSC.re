@@ -83,16 +83,18 @@ module App = {
           URL.makeExn(origin ++ pathname)
           ->URL.setSearchAsString(finalSearch);
         let response = fetchApp(URL.toString(finalURL));
-        let element = ReactServerDOMEsbuild.createFromFetch(response);
-        React.startTransition(() => {
-          setLayout(_ => element);
-          History.pushState(
-            History.state(DOM.history),
-            "",
-            URL.toString(finalURL),
-            DOM.history,
-          );
-        });
+        ReactServerDOMEsbuild.createFromFetch(response)
+        |> Js.Promise.then_(element => {
+             History.pushState(
+               History.state(DOM.history),
+               "",
+               URL.toString(finalURL),
+               DOM.history,
+             );
+             setLayout(_ => element);
+             Js.Promise.resolve();
+           })
+        |> ignore;
         ();
       };
     };

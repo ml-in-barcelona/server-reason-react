@@ -11,7 +11,8 @@ external createFromReadableStreamImpl:
 
 [@mel.module "./ReactServerDOMEsbuild.js"]
 external createFromFetchImpl:
-  (Js.Promise.t(Fetch.response), ~options: options=?, unit) => React.element =
+  (Js.Promise.t(Fetch.response), ~options: options=?, unit) =>
+  Js.Promise.t(React.element) =
   "createFromFetch";
 
 [@mel.module "./ReactServerDOMEsbuild.js"]
