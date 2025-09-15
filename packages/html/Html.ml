@@ -70,7 +70,7 @@ type element =
   | List of (string * element list)
   | Array of element array
 
-and node = { tag : string; attributes : attribute_list; children : element list }
+and node = { tag : string; attributes : attribute_list; mutable children : element list }
 
 let string txt = String txt
 let raw txt = Raw txt
@@ -81,6 +81,27 @@ let list ?(separator = "") list = List (separator, list)
 let array arr = Array arr
 let fragment arr = List arr
 let node tag attributes children = Node { tag; attributes; children }
+
+(** Append an element to the end of the node's children *)
+let append node element = node.children <- node.children @ [ element ]
+
+(** Prepend an element to the beginning of the node's children *)
+let prepend node element = node.children <- element :: node.children
+
+let find_node_by_tag tag node =
+  let rec aux tag = function
+    | [] -> raise (Failure (Printf.sprintf "Node with tag %s not found" tag))
+    | element :: rest -> (
+        match element with
+        | Node node -> if node.tag = tag then node else aux tag (node.children @ rest)
+        | List (_, children) -> aux tag (children @ rest)
+        | Array children -> aux tag (Array.to_list children @ rest)
+        | _ -> aux tag rest)
+  in
+  aux tag [ node ]
+
+(** Find the first node with the given tag *)
+let find_node_by_tag_opt tag node = try Some (find_node_by_tag tag node) with Failure _ -> None
 
 let to_string ?(add_separator_between_text_nodes = true) element =
   let out = Buffer.create 1024 in
