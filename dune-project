@@ -47,13 +47,6 @@
   ; Documentation
   (odoc :with-doc)
 
-  ; Dev dependencies
-  (ocamlformat
-   (and
-    (= 0.27.0)
-    :with-test)) ; We use ocamlformat on the tests
-  (ocaml-lsp-server :with-dev-setup)
-
   (dream
    (and
     (= 1.0.0~alpha8)
