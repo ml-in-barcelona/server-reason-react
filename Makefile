@@ -97,7 +97,7 @@ demo-build: ## Build the project (client, server and universal)
 demo-build-watch: ## Watch demo (client, server and universal)
 	$(DUNE) build --profile=dev @demo --force --watch
 
-.PHONY: demo
+.PHONY: demo-serve
 demo-serve: demo-build ## Serve the demo executable
 	@opam exec -- _build/default/demo/server/server.exe
 
