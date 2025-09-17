@@ -14,7 +14,7 @@ let test_find_node_by_tag_multiple_elements () =
   let div2 = node "div" [] [ node "span" [] [ string "Target" ] ] in
   let main = node "main" [] [ div; div2 ] in
 
-  let div = find_node_by_tag_opt "div" main in
+  let div = Html.Node.find_by_tag ~tag:"div" main in
   match div with
   | Some
       {
@@ -28,12 +28,12 @@ let test_find_node_by_tag_multiple_elements () =
 
 let test_prepend_to_node () =
   let div = { tag = "div"; children = [ Html.String "Target" ]; attributes = [] } in
-  prepend div (node "span" [] [ string "Target" ]);
+  Html.Node.prepend div (node "span" [] [ string "Target" ]);
   assert_string (to_string (Node div)) "<div><span>Target</span><!-- -->Target</div>"
 
 let test_append_to_node () =
   let div = { tag = "div"; children = [ Html.String "Target" ]; attributes = [] } in
-  append div (node "span" [] [ string "Target" ]);
+  Html.Node.append div (node "span" [] [ string "Target" ]);
   assert_string (to_string (Node div)) "<div>Target<span>Target</span></div>"
 
 let test title fn = (Printf.sprintf "Node Manipulation / %s" title, [ Alcotest.test_case "" `Quick fn ])

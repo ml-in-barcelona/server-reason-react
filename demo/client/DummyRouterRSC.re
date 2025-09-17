@@ -119,7 +119,7 @@ let body =
   ->Webapi.Dom.Document.asHtmlDocument
   ->Option.bind(Webapi.Dom.HtmlDocument.body);
 
-switch (body) {
+switch (document) {
 | Some(element) =>
   React.startTransition(() => {
     let _ = ReactDOM.Client.hydrateRoot(element, <App />);

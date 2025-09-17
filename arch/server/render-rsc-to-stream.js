@@ -43,10 +43,18 @@ let Await_tick = ({ num }) => {
 
 const App = () => {
 	return (
-		<div className="container">
-			<link rel="stylesheet" href="bootstrap.min.css" precedence="high" /></div>
+		<html lang="en">
+			<head>
+				<style />
+				<link precedence="low" rel="stylesheet" href="/foo.css" />
+				<meta charSet="utf-8" /><meta name="viewport" />
+			</head>
+			<body>
+			</body>
+		</html>
 	)
 };
+
 const { pipe } = renderToPipeableStream(<App />);
 
 pipe(process.stdout);

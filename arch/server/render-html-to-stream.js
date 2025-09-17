@@ -116,11 +116,15 @@ const Component = () => {
 
 const App = () => {
 	return (
-		<html>
+		<html lang="en">
 			<head>
-				<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" precedence="high" /></head>
-			<div className="container"></div>
-		</html >
+				<style />
+				<link rel="stylesheet" href="/foo.css" />
+				<meta charSet="utf-8" /><meta name="viewport" />
+			</head>
+			<body>
+			</body>
+		</html>
 	)
 };
 

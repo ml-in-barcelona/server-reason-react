@@ -1,6 +1,1 @@
-let () =
-  Alcotest.run "Html"
-    (List.flatten
-       [
-         Test_node_manipulation.tests;
-       ])
+let () = Alcotest.run "Html" (List.flatten [ Test_node.tests ])

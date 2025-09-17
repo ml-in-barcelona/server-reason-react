@@ -72,6 +72,31 @@ type element =
 
 and node = { tag : string; attributes : attribute_list; mutable children : element list }
 
+module Node = struct
+  (** Find node by tag
+
+      - level is the maximum nested level to search for the node
+      - if no node is found, it returns None *)
+  let find_by_tag ?(level = infinity) ~tag tree =
+    let rec aux tag cur_level = function
+      | [] -> None
+      | Node node :: rest ->
+          let next_level = cur_level +. 1. in
+          if node.tag = tag then Some node
+          else aux tag next_level (if next_level > level then rest else node.children @ rest)
+      | List (_, children) :: rest -> aux tag cur_level (children @ rest)
+      | Array children :: rest -> aux tag cur_level (Array.to_list children @ rest)
+      | _ :: rest -> aux tag cur_level rest
+    in
+    aux tag 0. [ tree ]
+
+  (** Append an element to the end of the node's children *)
+  let append node element = node.children <- node.children @ [ element ]
+
+  (** Prepend an element to the beginning of the node's children *)
+  let prepend node element = node.children <- element :: node.children
+end
+
 let string txt = String txt
 let raw txt = Raw txt
 let null = Null
@@ -81,27 +106,6 @@ let list ?(separator = "") list = List (separator, list)
 let array arr = Array arr
 let fragment arr = List arr
 let node tag attributes children = Node { tag; attributes; children }
-
-(** Append an element to the end of the node's children *)
-let append node element = node.children <- node.children @ [ element ]
-
-(** Prepend an element to the beginning of the node's children *)
-let prepend node element = node.children <- element :: node.children
-
-let find_node_by_tag tag node =
-  let rec aux tag = function
-    | [] -> raise (Failure (Printf.sprintf "Node with tag %s not found" tag))
-    | element :: rest -> (
-        match element with
-        | Node node -> if node.tag = tag then node else aux tag (node.children @ rest)
-        | List (_, children) -> aux tag (children @ rest)
-        | Array children -> aux tag (Array.to_list children @ rest)
-        | _ -> aux tag rest)
-  in
-  aux tag [ node ]
-
-(** Find the first node with the given tag *)
-let find_node_by_tag_opt tag node = try Some (find_node_by_tag tag node) with Failure _ -> None
 
 let to_string ?(add_separator_between_text_nodes = true) element =
   let out = Buffer.create 1024 in
