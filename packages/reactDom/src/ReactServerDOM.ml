@@ -696,19 +696,19 @@ and render_lower_case_element ~fiber ~key ~tag ~attributes ~children =
         fiber.inside_head <- true;
         (* push the head element to the hoisted_head *)
         let%lwt value =
-          render_hoisted_element ~fiber ~key ~tag ~attributes ~children ~inner_html ~on_push:Fiber.push_hoisted_head
+          handle_hoistable_element ~fiber ~key ~tag ~attributes ~children ~inner_html ~on_push:Fiber.push_hoisted_head
         in
         fiber.inside_head <- false;
         Lwt.return value
     | tag when (tag = "script" && is_async attributes) || (tag = "link" && has_precedence_and_rel_stylesheet attributes)
       ->
-        render_hoisted_element ~fiber ~key ~tag ~attributes ~children ~inner_html ~on_push:Fiber.push_resource
+        handle_hoistable_element ~fiber ~key ~tag ~attributes ~children ~inner_html ~on_push:Fiber.push_resource
     | tag when tag = "title" || tag = "meta" || tag = "link" ->
-        render_hoisted_element ~fiber ~key ~tag ~attributes ~children ~inner_html
+        handle_hoistable_element ~fiber ~key ~tag ~attributes ~children ~inner_html
           ~on_push:Fiber.push_hoisted_head_childrens
     | _ -> render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html
 
-and render_hoisted_element ~fiber ~key ~tag ~attributes ~children ~inner_html ~on_push =
+and handle_hoistable_element ~fiber ~key ~tag ~attributes ~children ~inner_html ~on_push =
   let props = Model.props_to_json attributes in
 
   let create_model children =
