@@ -225,7 +225,7 @@ let suspenasync_and_client () =
                       React.Client_component
                         {
                           props = [];
-                          client = React.string "Only the client";
+                          client = (fun () -> React.string "Only the client");
                           import_module = "./client-with-props.js";
                           import_name = "";
                         };
@@ -301,7 +301,7 @@ let client_with_promise_props () =
                 {
                   props =
                     [ ("promise", React.Promise (delayed_value ~ms:20 "||| Resolved |||", fun res -> `String res)) ];
-                  client = React.string "Client with Props";
+                  client = (fun () -> React.string "Client with Props");
                   import_module = "./client-with-props.js";
                   import_name = "ClientWithProps";
                 };
@@ -333,7 +333,7 @@ let client_with_element_props () =
                       (React.createElement "span" [] [ React.string "server-component-as-props-to-client-component" ])
                   );
                 ];
-              client = React.string "Client with elment prop";
+              client = (fun () -> React.string "Client with elment prop");
               import_module = "./client-with-props.js";
               import_name = "ClientWithProps";
             } )
@@ -518,7 +518,7 @@ let client_component_with_bootstrap_scripts () =
           React.Client_component
             {
               props = [];
-              client = React.string "Client Component";
+              client = (fun () -> React.string "Client Component");
               import_module = "./client.js";
               import_name = "Client";
             } )
@@ -546,7 +546,7 @@ let client_component_with_bootstrap_modules () =
           React.Client_component
             {
               props = [];
-              client = React.string "Client Component";
+              client = (fun () -> React.string "Client Component");
               import_module = "./client.js";
               import_name = "Client";
             } )
@@ -564,6 +564,74 @@ let client_component_with_bootstrap_modules () =
   assert_string (string_of_bool has_runtime_module) "true";
   assert_string (string_of_bool has_module_script) "true";
   Lwt.return ()
+
+let nested_context () =
+  let context = React.createContext React.null in
+  let provider = React.Context.provider context in
+  let provider_provider ~value ~children =
+    React.Upper_case_component
+      ( "provider_provider",
+        fun () ->
+          React.Client_component
+            {
+              import_module = "./provider.js";
+              import_name = "Provider";
+              props = [ ("value", React.Element value); ("children", React.Element children) ];
+              client = (fun () -> provider ~value ~children ());
+            } )
+  in
+  let provider_consumer () =
+    React.Client_component
+      {
+        import_module = "./consumer.js";
+        import_name = "Consumer";
+        props = [];
+        client =
+          (fun () ->
+            let context = React.useContext context in
+            context);
+      }
+  in
+  let content () =
+    React.Upper_case_component
+      ("content", fun () -> provider_provider ~value:React.null ~children:(React.string "Hey you"))
+  in
+  let me () =
+    React.Upper_case_component
+      ( "me",
+        fun () ->
+          provider_provider ~value:(content ()) ~children:(React.array [| React.string "/me"; provider_consumer () |])
+      )
+  in
+  let about () =
+    React.Upper_case_component
+      ( "about",
+        fun () ->
+          provider_provider ~value:(me ()) ~children:(React.array [| React.string "/about"; provider_consumer () |]) )
+  in
+  let app () =
+    React.Upper_case_component
+      ( "root",
+        fun () ->
+          provider_provider ~value:(about ()) ~children:(React.array [| React.string "/root"; provider_consumer () |])
+      )
+  in
+  assert_html (app ())
+    ~shell:
+      "/root<!-- -->/about<!-- -->/me<!-- -->Hey you<script \
+       data-payload='0:[\"$\",\"$7\",null,{\"value\":[\"$\",\"$5\",null,{\"value\":[\"$\",\"$3\",null,{\"value\":[\"$\",\"$1\",null,{\"value\":null,\"children\":\"Hey \
+       you\"},null,[],{}],\"children\":[\"/me\",[\"$\",\"$2\",null,{},null,[],{}]]},null,[],{}],\"children\":[\"/about\",[\"$\",\"$4\",null,{},null,[],{}]]},null,[],{}],\"children\":[\"/root\",[\"$\",\"$6\",null,{},null,[],{}]]},null,[],{}]\n\
+       '>window.srr_stream.push()</script>"
+    (* TODO: Don't push multiple scripts for the same client component *)
+    [
+      "<script data-payload='1:I[\"./provider.js\",[],\"Provider\"]\n'>window.srr_stream.push()</script>";
+      "<script data-payload='2:I[\"./consumer.js\",[],\"Consumer\"]\n'>window.srr_stream.push()</script>";
+      "<script data-payload='3:I[\"./provider.js\",[],\"Provider\"]\n'>window.srr_stream.push()</script>";
+      "<script data-payload='4:I[\"./consumer.js\",[],\"Consumer\"]\n'>window.srr_stream.push()</script>";
+      "<script data-payload='5:I[\"./provider.js\",[],\"Provider\"]\n'>window.srr_stream.push()</script>";
+      "<script data-payload='6:I[\"./consumer.js\",[],\"Consumer\"]\n'>window.srr_stream.push()</script>";
+      "<script data-payload='7:I[\"./provider.js\",[],\"Provider\"]\n'>window.srr_stream.push()</script>";
+    ]
 
 let tests =
   [
@@ -586,6 +654,7 @@ let tests =
     test "error_in_toplevel_in_async" error_in_toplevel_in_async;
     test "suspense_in_a_list_with_error" suspense_in_a_list_with_error;
     test "server_function_as_action" server_function_as_action;
+    test "nested_context" nested_context;
     (* test "page_with_resources" page_with_resources;
     test "page_with_duplicate_resources" page_with_duplicate_resources; *)
     (* test "client_component_with_bootstrap_scripts" client_component_with_bootstrap_scripts;

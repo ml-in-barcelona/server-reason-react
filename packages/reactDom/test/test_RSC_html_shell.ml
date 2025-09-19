@@ -17,7 +17,7 @@ let test title fn =
           test_promise);
     ] )
 
-let html children = React.createElement "html" [] children
+let html ?(attributes = []) children = React.createElement "html" attributes children
 let head children = React.createElement "head" [] children
 let body children = React.createElement "body" [] children
 let input attributes = React.createElement "input" attributes []
@@ -65,14 +65,16 @@ srr_stream.readable_stream = new ReadableStream({ start(c) { srr_stream._c = c; 
 let just_an_html_node () =
   let app = html [] in
   assert_html app
-    ~shell:"<!DOCTYPE html><html><head></head><script data-payload='0:[]\n'>window.srr_stream.push()</script></html>"
+    ~shell:
+      "<!DOCTYPE html><html><head></head><script data-payload='0:[\"$\",\"html\",null,{\"children\":[]},null,[],{}]\n\
+       '>window.srr_stream.push()</script></html>"
 
 let doctype () =
   let app = html [ head []; body [] ] in
   assert_html app
     ~shell:
       "<!DOCTYPE html><html><head></head><body></body><script \
-       data-payload='0:[null,[\"$\",\"body\",null,{\"children\":[]},null,[],{}]]\n\
+       data-payload='0:[\"$\",\"html\",null,{\"children\":[[\"$\",\"head\",null,{\"children\":[]},null,[],{}],[\"$\",\"body\",null,{\"children\":[]},null,[],{}]]},null,[],{}]\n\
        '>window.srr_stream.push()</script></html>"
 
 let no_head_no_body_nothing_just_an_html_node () =
@@ -84,25 +86,26 @@ let html_with_a_node () =
   let app = html [ input [] ] in
   assert_html app
     ~shell:
-      "<!DOCTYPE html><html><head></head><input /><script data-payload='0:[[\"$\",\"input\",null,{},null,[],{}]]\n\
+      "<!DOCTYPE html><html><head></head><input /><script \
+       data-payload='0:[\"$\",\"html\",null,{\"children\":[[\"$\",\"input\",null,{},null,[],{}]]},null,[],{}]\n\
        '>window.srr_stream.push()</script></html>"
 
 let html_with_only_a_body () =
   let app = html [ body [ div [] [ React.string "Just body content" ] ] ] in
   assert_html app
     ~shell:
-      "<!DOCTYPE html><html><head></head><body><div>Just body content</div><script \
-       data-payload='0:[[\"$\",\"body\",null,{\"children\":[[\"$\",\"div\",null,{\"children\":[\"Just body \
-       content\"]},null,[],{}]]},null,[],{}]]\n\
-       '>window.srr_stream.push()</script></body></html>"
+      "<!DOCTYPE html><html><head></head><body><div>Just body content</div></body><script \
+       data-payload='0:[\"$\",\"html\",null,{\"children\":[[\"$\",\"body\",null,{\"children\":[[\"$\",\"div\",null,{\"children\":[\"Just \
+       body content\"]},null,[],{}]]},null,[],{}]]},null,[],{}]\n\
+       '>window.srr_stream.push()</script></html>"
 
 let html_with_no_srr_html_body () =
   let app = html [ body [ div [] [ React.string "Just body content" ] ] ] in
   assert_html app ~skipRoot:true
     ~shell:
       "<!DOCTYPE html><html><head></head><script \
-       data-payload='0:[[\"$\",\"body\",null,{\"children\":[[\"$\",\"div\",null,{\"children\":[\"Just body \
-       content\"]},null,[],{}]]},null,[],{}]]\n\
+       data-payload='0:[\"$\",\"html\",null,{\"children\":[[\"$\",\"body\",null,{\"children\":[[\"$\",\"div\",null,{\"children\":[\"Just \
+       body content\"]},null,[],{}]]},null,[],{}]]},null,[],{}]\n\
        '>window.srr_stream.push()</script></html>"
 
 let head_with_content () =
@@ -118,7 +121,8 @@ let head_with_content () =
   in
   assert_html app
     ~shell:
-      "<!DOCTYPE html><html><head><title>Titulaso</title><meta charset=\"utf-8\" /></head><script data-payload='0:[null]\n\
+      "<!DOCTYPE html><html><head><title>Titulaso</title><meta charset=\"utf-8\" /></head><script \
+       data-payload='0:[\"$\",\"html\",null,{\"children\":[[\"$\",\"head\",null,{\"children\":[[\"$\",\"title\",null,{\"children\":[\"Titulaso\"]},null,[],{}],[\"$\",\"meta\",null,{\"charSet\":\"utf-8\"},null,[],{}]]},null,[],{}]]},null,[],{}]\n\
        '>window.srr_stream.push()</script></html>"
 
 let html_inside_a_div () =
@@ -134,7 +138,7 @@ let html_inside_a_fragment () =
   assert_html app
     ~shell:
       "<!DOCTYPE html><html><head></head><div></div><script \
-       data-payload='0:[[[\"$\",\"div\",null,{\"children\":[]},null,[],{}]]]\n\
+       data-payload='0:[[\"$\",\"html\",null,{\"children\":[[\"$\",\"div\",null,{\"children\":[]},null,[],{}]]},null,[],{}]]\n\
        '>window.srr_stream.push()</script></html>"
 
 let html_with_head_like_elements_not_in_head () =
@@ -148,7 +152,8 @@ let html_with_head_like_elements_not_in_head () =
   assert_html app
     ~shell:
       "<!DOCTYPE html><html><head><meta charset=\"utf-8\" /><title>Implicit Head?</title></head><script \
-       data-payload='0:[null,null]\n\
+       data-payload='0:[\"$\",\"html\",null,{\"children\":[[\"$\",\"meta\",null,{\"charSet\":\"utf-8\"},null,[],{}],[\"$\",\"title\",null,{\"children\":[\"Implicit \
+       Head?\"]},null,[],{}]]},null,[],{}]\n\
        '>window.srr_stream.push()</script></html>"
 
 let html_without_body_and_bootstrap_scripts () =
@@ -157,7 +162,8 @@ let html_without_body_and_bootstrap_scripts () =
     ~shell:
       "<!DOCTYPE html><html><head><link rel=\"modulepreload\" fetchPriority=\"low\" href=\"react\" /><link \
        rel=\"modulepreload\" fetchPriority=\"low\" href=\"react-dom\" /></head><input id=\"sidebar-search-input\" \
-       /><script data-payload='0:[[\"$\",\"input\",null,{\"id\":\"sidebar-search-input\"},null,[],{}]]\n\
+       /><script \
+       data-payload='0:[\"$\",\"html\",null,{\"children\":[[\"$\",\"input\",null,{\"id\":\"sidebar-search-input\"},null,[],{}]]},null,[],{}]\n\
        '>window.srr_stream.push()</script><script>console.log('hello')</script><script src=\"react\" async=\"\" \
        type=\"module\"></script><script src=\"react-dom\" async=\"\" type=\"module\"></script></html>"
 
@@ -169,10 +175,10 @@ let html_with_body_and_bootstrap_scripts () =
     ~shell:
       "<!DOCTYPE html><html><head><link rel=\"modulepreload\" fetchPriority=\"low\" href=\"react\" /><link \
        rel=\"modulepreload\" fetchPriority=\"low\" href=\"react-dom\" /></head><body><input \
-       id=\"sidebar-search-input\" /><script \
-       data-payload='0:[[\"$\",\"body\",null,{\"children\":[[\"$\",\"input\",null,{\"id\":\"sidebar-search-input\"},null,[],{}]]},null,[],{}]]\n\
+       id=\"sidebar-search-input\" /></body><script \
+       data-payload='0:[\"$\",\"html\",null,{\"children\":[[\"$\",\"body\",null,{\"children\":[[\"$\",\"input\",null,{\"id\":\"sidebar-search-input\"},null,[],{}]]},null,[],{}]]},null,[],{}]\n\
        '>window.srr_stream.push()</script><script>console.log('hello')</script><script src=\"react\" async=\"\" \
-       type=\"module\"></script><script src=\"react-dom\" async=\"\" type=\"module\"></script></body></html>"
+       type=\"module\"></script><script src=\"react-dom\" async=\"\" type=\"module\"></script></html>"
 
 let input_and_bootstrap_scripts () =
   let app = React.createElement "input" [ React.JSX.String ("id", "id", "sidebar-search-input") ] [] in
@@ -206,17 +212,19 @@ let title_and_meta_populates_to_the_head () =
   assert_html app
     ~shell:
       "<!DOCTYPE html><html><head><title>Hey Yah</title><meta name=\"viewport\" \
-       content=\"width=device-width,initial-scale=1\" /></head><body><script \
-       data-payload='0:[[\"$\",\"body\",null,{\"children\":[null]},null,[],{}]]\n\
-       '>window.srr_stream.push()</script></body></html>"
+       content=\"width=device-width,initial-scale=1\" /></head><body></body><script \
+       data-payload='0:[\"$\",\"html\",null,{\"children\":[[\"$\",\"body\",null,{\"children\":[[\"$\",\"head\",null,{\"children\":[[\"$\",\"title\",null,{\"children\":[\"Hey \
+       Yah\"]},null,[],{}],[\"$\",\"meta\",null,{\"name\":\"viewport\",\"content\":\"width=device-width,initial-scale=1\"},null,[],{}]]},null,[],{}]]},null,[],{}]]},null,[],{}]\n\
+       '>window.srr_stream.push()</script></html>"
 
 let async_scripts_to_head () =
   let app = html [ body [ script ~async:true ~src:"https://cdn.com/jquery.min.js" () ] ] in
   assert_html app
     ~shell:
-      "<!DOCTYPE html><html><head><script async src=\"https://cdn.com/jquery.min.js\"></script></head><body><script \
-       data-payload='0:[[\"$\",\"body\",null,{\"children\":[null]},null,[],{}]]\n\
-       '>window.srr_stream.push()</script></body></html>"
+      "<!DOCTYPE html><html><head><script async \
+       src=\"https://cdn.com/jquery.min.js\"></script></head><body></body><script \
+       data-payload='0:[\"$\",\"html\",null,{\"children\":[[\"$\",\"body\",null,{\"children\":[[\"$\",\"script\",null,{\"children\":[],\"async\":true,\"src\":\"https://cdn.com/jquery.min.js\"},null,[],{}]]},null,[],{}]]},null,[],{}]\n\
+       '>window.srr_stream.push()</script></html>"
 
 let async_scripts_gets_deduplicated () =
   let app =
@@ -233,9 +241,10 @@ let async_scripts_gets_deduplicated () =
   (* TODO: Deduplication only works on HTML currently, we don't know if we need the same logic for the model *)
   assert_html app
     ~shell:
-      "<!DOCTYPE html><html><head><script async src=\"https://cdn.com/jquery.min.js\"></script></head><body><script \
-       data-payload='0:[[\"$\",\"body\",null,{\"children\":[null,null,null]},null,[],{}]]\n\
-       '>window.srr_stream.push()</script></body></html>"
+      "<!DOCTYPE html><html><head><script async \
+       src=\"https://cdn.com/jquery.min.js\"></script></head><body></body><script \
+       data-payload='0:[\"$\",\"html\",null,{\"children\":[[\"$\",\"body\",null,{\"children\":[[\"$\",\"script\",null,{\"children\":[],\"async\":true,\"src\":\"https://cdn.com/jquery.min.js\"},null,[],{}],[\"$\",\"script\",null,{\"children\":[],\"async\":true,\"src\":\"https://cdn.com/jquery.min.js\"},null,[],{}],[\"$\",\"script\",null,{\"children\":[],\"async\":true,\"src\":\"https://cdn.com/jquery.min.js\"},null,[],{}]]},null,[],{}]]},null,[],{}]\n\
+       '>window.srr_stream.push()</script></html>"
 
 let async_scripts_gets_deduplicated_2 () =
   let app =
@@ -253,9 +262,9 @@ let async_scripts_gets_deduplicated_2 () =
   assert_html app
     ~shell:
       "<!DOCTYPE html><html><head><script async src=\"https://cdn.com/duplicated.js\"></script></head><body><script \
-       src=\"https://cdn.com/non-async.js\"></script><script \
-       data-payload='0:[[\"$\",\"body\",null,{\"children\":[null,null,[\"$\",\"script\",null,{\"children\":[],\"async\":false,\"src\":\"https://cdn.com/non-async.js\"},null,[],{}]]},null,[],{}]]\n\
-       '>window.srr_stream.push()</script></body></html>"
+       src=\"https://cdn.com/non-async.js\"></script></body><script \
+       data-payload='0:[\"$\",\"html\",null,{\"children\":[[\"$\",\"body\",null,{\"children\":[[\"$\",\"script\",null,{\"children\":[],\"async\":true,\"src\":\"https://cdn.com/duplicated.js\"},null,[],{}],[\"$\",\"script\",null,{\"children\":[],\"async\":true,\"src\":\"https://cdn.com/duplicated.js\"},null,[],{}],[\"$\",\"script\",null,{\"children\":[],\"async\":false,\"src\":\"https://cdn.com/non-async.js\"},null,[],{}]]},null,[],{}]]},null,[],{}]\n\
+       '>window.srr_stream.push()</script></html>"
 
 let link_with_rel_and_precedence () =
   let app =
@@ -272,8 +281,9 @@ let link_with_rel_and_precedence () =
   assert_html app
     ~shell:
       "<!DOCTYPE html><html><head><link href=\"https://cdn.com/main.css\" rel=\"stylesheet\" precedence=\"high\" \
-       /></head><body><script data-payload='0:[[\"$\",\"body\",null,{\"children\":[null,null]},null,[],{}]]\n\
-       '>window.srr_stream.push()</script></body></html>"
+       /></head><body></body><script \
+       data-payload='0:[\"$\",\"html\",null,{\"children\":[[\"$\",\"body\",null,{\"children\":[[\"$\",\"link\",null,{\"href\":\"https://cdn.com/main.css\",\"rel\":\"stylesheet\",\"precedence\":\"high\"},null,[],{}],[\"$\",\"link\",null,{\"href\":\"https://cdn.com/main.css\",\"rel\":\"stylesheet\",\"precedence\":\"low\"},null,[],{}]]},null,[],{}]]},null,[],{}]\n\
+       '>window.srr_stream.push()</script></html>"
 
 let links_gets_pushed_to_the_head () =
   let app =
@@ -294,9 +304,9 @@ let links_gets_pushed_to_the_head () =
     ~shell:
       "<!DOCTYPE html><html><head><link href=\"https://cdn.com/main.css\" rel=\"stylesheet\" precedence=\"low\" \
        /><link href=\"favicon.ico\" rel=\"icon\" /><link href=\"favicon.ico\" rel=\"icon\" /><link \
-       href=\"http://www.example.com/xmlrpc.php\" rel=\"pingback\" /></head><body><script \
-       data-payload='0:[[\"$\",\"body\",null,{\"children\":[null,null,null,null]},null,[],{}]]\n\
-       '>window.srr_stream.push()</script></body></html>"
+       href=\"http://www.example.com/xmlrpc.php\" rel=\"pingback\" /></head><body></body><script \
+       data-payload='0:[\"$\",\"html\",null,{\"children\":[[\"$\",\"body\",null,{\"children\":[[\"$\",\"link\",null,{\"href\":\"https://cdn.com/main.css\",\"rel\":\"stylesheet\",\"precedence\":\"low\"},null,[],{}],[\"$\",\"link\",null,{\"href\":\"favicon.ico\",\"rel\":\"icon\"},null,[],{}],[\"$\",\"link\",null,{\"href\":\"favicon.ico\",\"rel\":\"icon\"},null,[],{}],[\"$\",\"link\",null,{\"href\":\"http://www.example.com/xmlrpc.php\",\"rel\":\"pingback\"},null,[],{}]]},null,[],{}]]},null,[],{}]\n\
+       '>window.srr_stream.push()</script></html>"
 
 let no_async_scripts_to_remain () =
   let app = html [ body [ script ~async:false ~src:"https://cdn.com/jquery.min.js" () ] ] in
@@ -304,10 +314,10 @@ let no_async_scripts_to_remain () =
     ~shell:
       "<!DOCTYPE html><html><head><link rel=\"modulepreload\" fetchPriority=\"low\" href=\"jquery\" /><link \
        rel=\"modulepreload\" fetchPriority=\"low\" href=\"jquery-mobile\" /></head><body><script \
-       src=\"https://cdn.com/jquery.min.js\"></script><script \
-       data-payload='0:[[\"$\",\"body\",null,{\"children\":[[\"$\",\"script\",null,{\"children\":[],\"async\":false,\"src\":\"https://cdn.com/jquery.min.js\"},null,[],{}]]},null,[],{}]]\n\
+       src=\"https://cdn.com/jquery.min.js\"></script></body><script \
+       data-payload='0:[\"$\",\"html\",null,{\"children\":[[\"$\",\"body\",null,{\"children\":[[\"$\",\"script\",null,{\"children\":[],\"async\":false,\"src\":\"https://cdn.com/jquery.min.js\"},null,[],{}]]},null,[],{}]]},null,[],{}]\n\
        '>window.srr_stream.push()</script><script src=\"jquery\" async=\"\" type=\"module\"></script><script \
-       src=\"jquery-mobile\" async=\"\" type=\"module\"></script></body></html>"
+       src=\"jquery-mobile\" async=\"\" type=\"module\"></script></html>"
 
 let self_closing_with_dangerously () =
   let app =
@@ -339,7 +349,8 @@ let self_closing_with_dangerously_in_head () =
   assert_html
     ~shell:
       "<!DOCTYPE html><html><head><meta char-set=\"utf-8\" /><style>* { display: none; }</style></head><script \
-       data-payload='0:[null]\n\
+       data-payload='0:[\"$\",\"html\",null,{\"children\":[[\"$\",\"head\",null,{\"children\":[[\"$\",\"meta\",null,{\"charSet\":\"utf-8\"},null,[],{}],[\"$\",\"style\",null,{\"dangerouslySetInnerHTML\":{\"__html\":\"* \
+       { display: none; }\"}},null,[],{}]]},null,[],{}]]},null,[],{}]\n\
        '>window.srr_stream.push()</script></html>"
     app
 
@@ -368,8 +379,8 @@ let upper_case_component_with_resources () =
     ~shell:
       "<!DOCTYPE html><html><head><link rel=\"stylesheet\" href=\"/styles.css\" precedence=\"default\" /><script \
        src=\"/app.js\" async></script></head><body><div>Page content</div></body><script \
-       data-payload='0:[null,[\"$\",\"body\",null,{\"children\":[[\"$\",\"div\",null,{\"children\":[\"Page \
-       content\"]},null,[],{}]]},null,[],{}]]\n\
+       data-payload='0:[\"$\",\"html\",null,{\"children\":[[\"$\",\"head\",null,{\"children\":[[\"$\",\"link\",null,{\"rel\":\"stylesheet\",\"href\":\"/styles.css\",\"precedence\":\"default\"},null,[],{}],[\"$\",\"script\",null,{\"children\":[],\"src\":\"/app.js\",\"async\":true},null,[],{}]]},null,[],{}],[\"$\",\"body\",null,{\"children\":[[\"$\",\"div\",null,{\"children\":[\"Page \
+       content\"]},null,[],{}]]},null,[],{}]]},null,[],{}]\n\
        '>window.srr_stream.push()</script></html>"
 
 let hoisted_elements_order_issue () =
@@ -416,10 +427,14 @@ let hoisted_elements_order_issue () =
        Title</title><meta name=\"description\" content=\"Page description\" /><link href=\"/first.css\" \
        rel=\"stylesheet\" /><title>Second Title</title><meta name=\"keywords\" content=\"react, ssr\" /><link \
        href=\"/second.css\" rel=\"stylesheet\" /><meta name=\"author\" content=\"Developer\" /></head><body><div>Body \
-       content</div><script \
-       data-payload='0:[[\"$\",\"body\",null,{\"children\":[null,null,null,null,null,null,null,null,null,null,[\"$\",\"div\",null,{\"children\":[\"Body \
-       content\"]},null,[],{}]]},null,[],{}]]\n\
-       '>window.srr_stream.push()</script></body></html>"
+       content</div></body><script \
+       data-payload='0:[\"$\",\"html\",null,{\"children\":[[\"$\",\"body\",null,{\"children\":[[\"$\",\"title\",null,{\"children\":[\"First \
+       Title\"]},null,[],{}],[\"$\",\"meta\",null,{\"name\":\"description\",\"content\":\"Page \
+       description\"},null,[],{}],[\"$\",\"link\",null,{\"href\":\"/first.css\",\"rel\":\"stylesheet\"},null,[],{}],[\"$\",\"title\",null,{\"children\":[\"Second \
+       Title\"]},null,[],{}],[\"$\",\"meta\",null,{\"name\":\"keywords\",\"content\":\"react, \
+       ssr\"},null,[],{}],[\"$\",\"link\",null,{\"href\":\"/second.css\",\"rel\":\"stylesheet\"},null,[],{}],[\"$\",\"script\",null,{\"children\":[],\"async\":true,\"src\":\"/first.js\"},null,[],{}],[\"$\",\"link\",null,{\"href\":\"/third.css\",\"rel\":\"stylesheet\",\"precedence\":\"high\"},null,[],{}],[\"$\",\"script\",null,{\"children\":[],\"async\":true,\"src\":\"/second.js\"},null,[],{}],[\"$\",\"meta\",null,{\"name\":\"author\",\"content\":\"Developer\"},null,[],{}],[\"$\",\"div\",null,{\"children\":[\"Body \
+       content\"]},null,[],{}]]},null,[],{}]]},null,[],{}]\n\
+       '>window.srr_stream.push()</script></html>"
 
 let head_preserves_children_order () =
   (* Test that elements inside <head> maintain their original order *)
@@ -449,7 +464,18 @@ let head_preserves_children_order () =
        href=\"/main.css\" rel=\"stylesheet\" /><title>My App</title><meta name=\"viewport\" \
        content=\"width=device-width\" /><script async \
        src=\"/app.js\"></script></head><body><div>Content</div></body><script \
-       data-payload='0:[null,[\"$\",\"body\",null,{\"children\":[[\"$\",\"div\",null,{\"children\":[\"Content\"]},null,[],{}]]},null,[],{}]]\n\
+       data-payload='0:[\"$\",\"html\",null,{\"children\":[[\"$\",\"head\",null,{\"children\":[[\"$\",\"meta\",null,{\"charSet\":\"utf-8\"},null,[],{}],[\"$\",\"style\",null,{\"dangerouslySetInnerHTML\":{\"__html\":\".custom \
+       { color: red; \
+       }\"}},null,[],{}],[\"$\",\"link\",null,{\"href\":\"/main.css\",\"rel\":\"stylesheet\"},null,[],{}],[\"$\",\"title\",null,{\"children\":[\"My \
+       App\"]},null,[],{}],[\"$\",\"meta\",null,{\"name\":\"viewport\",\"content\":\"width=device-width\"},null,[],{}],[\"$\",\"script\",null,{\"children\":[],\"async\":true,\"src\":\"/app.js\"},null,[],{}]]},null,[],{}],[\"$\",\"body\",null,{\"children\":[[\"$\",\"div\",null,{\"children\":[\"Content\"]},null,[],{}]]},null,[],{}]]},null,[],{}]\n\
+       '>window.srr_stream.push()</script></html>"
+
+let html_attributes_are_preserved () =
+  let app = html ~attributes:[ React.JSX.String ("lang", "lang", "en") ] [] in
+  assert_html app
+    ~shell:
+      "<!DOCTYPE html><html lang=\"en\"><head></head><script \
+       data-payload='0:[\"$\",\"html\",null,{\"children\":[],\"lang\":\"en\"},null,[],{}]\n\
        '>window.srr_stream.push()</script></html>"
 
 let tests =
@@ -479,4 +505,5 @@ let tests =
     test "upper_case_component_with_resources" upper_case_component_with_resources;
     test "hoisted_elements_order_issue" hoisted_elements_order_issue;
     test "head_preserves_children_order" head_preserves_children_order;
+    test "html_attributes_are_preserved" html_attributes_are_preserved;
   ]

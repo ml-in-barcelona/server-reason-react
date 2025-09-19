@@ -23,27 +23,24 @@ let create_stack_trace () =
 
 (* Resources module maintains insertion order while deduplicating based on src/href *)
 module Resources = struct
-  type item = string * Html.attribute_list * Html.element option
-  type t = item list
-
   let get_attribute ~key:key_to_get (attributes : Html.attribute_list) =
     List.find_map
       (fun attr -> match attr with `Value (key, value) when String.equal key key_to_get -> Some value | _ -> None)
       attributes
 
   let resource_key item =
-    match (item : item) with
-    | "script", attributes, _ -> get_attribute ~key:"src" attributes
-    | "link", attributes, _ -> get_attribute ~key:"href" attributes
+    match (item : Html.node) with
+    | { tag = "script"; attributes; _ } -> get_attribute ~key:"src" attributes
+    | { tag = "link"; attributes; _ } -> get_attribute ~key:"href" attributes
     | _ -> None
 
   let add resource resources =
     match resource_key resource with
-    | None -> resources @ [ resource ]
+    | None -> resources @ [ Html.Node resource ]
     | Some key ->
         (* Ensure if this resource already exists, it gets deduplicated *)
-        let exists = List.exists (fun r -> resource_key r = Some key) resources in
-        if exists then resources else resources @ [ resource ]
+        let exists = List.exists (function Html.Node node -> resource_key node = Some key | _ -> false) resources in
+        if exists then resources else resources @ [ Html.Node resource ]
 end
 
 module Fiber = struct
@@ -60,20 +57,25 @@ module Fiber = struct
     (* visited_first_lower_case stores the tag of the first lower case element visited, useful to know if the root element is an html tag *)
     mutable visited_first_lower_case : string option;
     (* hoisted_head stores the <head> element's attributes and direct children *)
-    mutable hoisted_head : (Html.attribute_list * Html.element list) option;
+    mutable hoisted_head : Html.node option;
     (* hoisted_head_childrens collects elements that should be in the document's <head> (title, meta, link, style) even if they weren't originally inside a <head> element *)
     mutable hoisted_head_childrens : Html.element list;
     (* resources collects link, script that should preload, prefetch to be in the document's <head> and deduplicates them based on "src" or "href" attributes, respectively *)
-    mutable resources : Resources.t;
+    mutable resources : Html.element list;
     (* inside_head tracks whether we're currently processing elements inside a <head> element *)
     mutable inside_head : bool;
+    (* inside_body tracks whether we're currently processing elements inside a <body> element *)
+    mutable inside_body : bool;
+    (* As we reconstruct the html tag, html_tag_attributes collects the attributes of the <html> tag *)
+    mutable html_tag_attributes : Html.attribute_list;
   }
 
-  let push_hoisted_head ~fiber html_attributes children = fiber.hoisted_head <- Some (html_attributes, children)
+  let set_html_tag_attributes ~fiber html_attributes = fiber.html_tag_attributes <- html_attributes
+  let push_hoisted_head ~fiber head = fiber.hoisted_head <- Some head
   let push_resource ~fiber resource = fiber.resources <- Resources.add resource fiber.resources
 
   let push_hoisted_head_childrens ~fiber children =
-    fiber.hoisted_head_childrens <- fiber.hoisted_head_childrens @ [ children ]
+    fiber.hoisted_head_childrens <- fiber.hoisted_head_childrens @ [ Node children ]
 
   let visited_first_lower_case ~fiber = fiber.visited_first_lower_case
   let set_visited_first_lower_case ~fiber value = fiber.visited_first_lower_case <- Some value
@@ -522,7 +524,7 @@ let rec client_to_html ~fiber (element : React.element) =
           if context.pending = 0 then context.close ();
           Lwt.return ());
       Lwt.return sync
-  | Client_component { import_module = _; import_name = _; props = _; client } -> client_to_html ~fiber client
+  | Client_component { import_module = _; import_name = _; props = _; client } -> client_to_html ~fiber (client ())
   | Provider children -> client_to_html ~fiber children
   | Consumer children -> client_to_html ~fiber children
 
@@ -609,8 +611,9 @@ let rec render_element_to_html ~(fiber : Fiber.t) (element : React.element) : (H
                 Lwt.return (name, `String (Model.action_value index)))
           props
       in
-      let lwt_html = client_to_html ~fiber client in
+      let lwt_html = client_to_html ~fiber (client ()) in
       let index = Fiber.use_index fiber in
+
       let ref : json = Model.component_ref ~module_:import_module ~name:import_name in
       context.push (client_reference_chunk_script index ref);
       let%lwt html, props = Lwt.both lwt_html lwt_props in
@@ -662,75 +665,71 @@ and render_lower_case_element ~fiber ~key ~tag ~attributes ~children =
   (* Head hoisting mechanism:
      Head elements (meta, style, title, etc) might be scattered throughout the component tree but need to be rendered in the <head> section. Also, if there's no head element, we need to create one and hoist its possible children. *)
   let inner_html = ReactDOM.getDangerouslyInnerHtml attributes in
-  let props = Model.props_to_json attributes in
-
-  let create_model children =
-    if (* disable_model *) true then
-      (* Currently we don't sent the model for those cases, since we hydrate the document.body as soon as we hydrate the entire document *)
-      `Null
-    else
-      (* In case of the model, we don't care about inner_html as a children since we need it as a prop. This is the opposite from html rendering *)
-      match (Html.is_self_closing_tag tag, inner_html) with
-      | _, Some _ | true, _ -> Model.node ~tag ~key ~props []
-      | false, None -> Model.node ~tag ~key ~props [ children ]
-  in
-
-  let create_html_node ~html_props ~children_html =
-    match inner_html with
-    | Some inner_html -> Html.node tag html_props [ Html.raw inner_html ]
-    | None -> Html.node tag html_props [ children_html ]
-  in
 
   (* only set the first element visited true, the first time *)
   (match Fiber.visited_first_lower_case ~fiber with
   | Some _ -> ()
   | None -> Fiber.set_visited_first_lower_case ~fiber tag);
 
-  match tag with
-  | "html" -> (
-      (* TODO: What the model should be?
-        let%lwt _html, model = render_element_to_html ~fiber (React.List children) in
-        let%lwt children, _children_model = elements_to_html ~fiber children in
-        let html = create_html_node ~html_props:[] ~children_html:children in
-        Lwt.return (html, model) *)
-      match Fiber.visited_first_lower_case ~fiber with
-      (* If the first visited lower case is an html element -> skip rendering the html tag itself, just process children. That's because we will reconstuct the html element at the "render_html" *)
-      | Some "html" -> render_element_to_html ~fiber (React.List children)
-      (* In case of rendering html tag as not the first visited lower case element, means that something is wrapping this html tag (like a div or other element) which is invalid HTML, but we keep rendering as a regular element, as React.js' DOM renderer does *)
-      | Some _ -> render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html
-      | None ->
-          (* the None case isn't possible, since we call set_visited_first_lower_case ~fiber tag in the beginning of the function *)
-          render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html)
-  | "head" ->
-      (* Hoist head element to be rendered at document level *)
-      let html_attributes = ReactDOM.attributes_to_html attributes in
-      (* Mark that we're inside a head element to prevent double-hoisting *)
-      fiber.inside_head <- true;
-      let%lwt html_and_model = Lwt_list.map_p (render_element_to_html ~fiber) children in
-      fiber.inside_head <- false;
-      let html, model = List.split html_and_model in
-      Fiber.push_hoisted_head ~fiber html_attributes html;
-      Lwt.return (Html.null, create_model (`List model))
-  | tag when (tag = "script" && is_async attributes) || (tag = "link" && has_precedence_and_rel_stylesheet attributes)
-    ->
-      (* Hoist resources (scripts, links) - but only if not already inside a head *)
-      if fiber.inside_head then render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html
-      else
-        let html_props = ReactDOM.attributes_to_html attributes in
-        (* TODO: What we should do with the model? *)
-        let%lwt _children_html, children_model = elements_to_html ~fiber children in
-        Fiber.push_resource ~fiber (tag, html_props, None);
-        Lwt.return (Html.null, create_model children_model)
-  | tag when tag = "title" || tag = "meta" || tag = "link" ->
-      (* Hoist title, meta, and links without rel or precedence - but only if not already inside a head *)
-      if fiber.inside_head then render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html
-      else
-        let html_props = ReactDOM.attributes_to_html attributes in
-        let%lwt children_html, children_model = elements_to_html ~fiber children in
-        let html = create_html_node ~html_props ~children_html in
-        Fiber.push_hoisted_head_childrens ~fiber html;
-        Lwt.return (Html.null, create_model children_model)
-  | _ -> render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html
+  if fiber.inside_head && not fiber.inside_body then
+    render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html
+  else
+    match tag with
+    | "html" -> (
+        match Fiber.visited_first_lower_case ~fiber with
+        (* If the first visited lower case is an html element -> skip rendering the html tag itself, just process children. That's because we will reconstuct the html element at the "render_html" *)
+        | Some "html" ->
+            Fiber.set_html_tag_attributes ~fiber (ReactDOM.attributes_to_html attributes);
+            let%lwt html, model = render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html in
+            let html_children = match html with Html.Node { children; _ } -> Html.list children | _ -> html in
+            Lwt.return (html_children, model)
+        (* In case of rendering html tag as not the first visited lower case element, means that something is wrapping this html tag (like a div or other element) which is invalid HTML, but we keep rendering as a regular element, as React.js' DOM renderer does *)
+        | Some _ -> render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html
+        | None ->
+            (* the None case isn't possible, since we call set_visited_first_lower_case ~fiber tag in the beginning of the function *)
+            render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html)
+    | "body" ->
+        fiber.inside_body <- true;
+        let%lwt value = render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html in
+        fiber.inside_body <- false;
+        Lwt.return value
+    | "head" ->
+        fiber.inside_head <- true;
+        (* push the head element to the hoisted_head *)
+        let%lwt value =
+          handle_hoistable_element ~fiber ~key ~tag ~attributes ~children ~inner_html ~on_push:Fiber.push_hoisted_head
+        in
+        fiber.inside_head <- false;
+        Lwt.return value
+    | tag when (tag = "script" && is_async attributes) || (tag = "link" && has_precedence_and_rel_stylesheet attributes)
+      ->
+        handle_hoistable_element ~fiber ~key ~tag ~attributes ~children ~inner_html ~on_push:Fiber.push_resource
+    | tag when tag = "title" || tag = "meta" || tag = "link" ->
+        handle_hoistable_element ~fiber ~key ~tag ~attributes ~children ~inner_html
+          ~on_push:Fiber.push_hoisted_head_childrens
+    | _ -> render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html
+
+and handle_hoistable_element ~fiber ~key ~tag ~attributes ~children ~inner_html ~on_push =
+  let props = Model.props_to_json attributes in
+
+  let create_model children =
+    (* In case of the model, we don't care about inner_html as a children since we need it as a prop. This is the opposite from html rendering *)
+    match (Html.is_self_closing_tag tag, inner_html) with
+    | _, Some _ | true, _ -> Model.node ~tag ~key ~props []
+    | false, None -> Model.node ~tag ~key ~props [ children ]
+  in
+
+  let create_html_node ~html_props ~children_html =
+    match inner_html with
+    | Some inner_html -> Html.{ tag; attributes = html_props; children = [ Html.raw inner_html ] }
+    | None -> Html.{ tag; attributes = html_props; children = [ children_html ] }
+  in
+
+  let html_props = ReactDOM.attributes_to_html attributes in
+  let%lwt children_html, children_model = elements_to_html ~fiber children in
+  let html = create_html_node ~html_props ~children_html in
+  on_push ~fiber html;
+  Lwt.return (Html.null, create_model children_model)
 
 and render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html =
   let context = Fiber.get_context fiber in
@@ -793,28 +792,36 @@ let render_html ?(skipRoot = false) ?(env = `Dev) ?debug:(_ = false) ?bootstrapS
     | Some scripts ->
         List.map
           (fun script ->
-            ( "link",
-              [
-                Html.attribute "rel" "modulepreload";
-                Html.attribute "fetchPriority" "low";
-                Html.attribute "href" script;
-                (* Html.attribute "as" "script"; *)
-              ],
-              None ))
+            Html.Node
+              {
+                tag = "link";
+                attributes =
+                  [
+                    Html.attribute "rel" "modulepreload";
+                    Html.attribute "fetchPriority" "low";
+                    Html.attribute "href" script;
+                    (* Html.attribute "as" "script"; *)
+                  ];
+                children = [];
+              })
           scripts
     | None -> (
         match bootstrapModules with
         | Some modules ->
             List.map
               (fun script ->
-                ( "link",
-                  [
-                    Html.attribute "rel" "modulepreload";
-                    Html.attribute "fetchPriority" "low";
-                    Html.attribute "href" script;
-                    (* Html.attribute "as" "script"; *)
-                  ],
-                  None ))
+                Html.Node
+                  {
+                    tag = "link";
+                    attributes =
+                      [
+                        Html.attribute "rel" "modulepreload";
+                        Html.attribute "fetchPriority" "low";
+                        Html.attribute "href" script;
+                        (* Html.attribute "as" "script"; *)
+                      ];
+                    children = [];
+                  })
               modules
         | None -> [])
   in
@@ -825,9 +832,11 @@ let render_html ?(skipRoot = false) ?(env = `Dev) ?debug:(_ = false) ?bootstrapS
       context;
       hoisted_head = None;
       hoisted_head_childrens = [];
+      html_tag_attributes = [];
       resources = initial_resources;
       visited_first_lower_case = None;
       inside_head = false;
+      inside_body = false;
     }
   in
   let%lwt root_html, root_model = render_element_to_html ~fiber element in
@@ -883,23 +892,15 @@ let render_html ?(skipRoot = false) ?(env = `Dev) ?debug:(_ = false) ?bootstrapS
         | true, true | false, true -> Html.list user_scripts
         | false, false -> Html.list (root_html :: user_scripts)
       in
-      let head_childrens =
-        List.map
-          (fun (tag, attributes, children) ->
-            match children with
-            | Some children -> Html.node tag attributes [ children ]
-            | None -> Html.node tag attributes [])
-          fiber.resources
-        @ fiber.hoisted_head_childrens
-      in
+      let resources = fiber.resources @ fiber.hoisted_head_childrens in
       match fiber.hoisted_head with
-      | Some (attribute_list, children) ->
+      | Some node ->
           (* If we found a <head> element, use its attributes and combine all children *)
-          let head = Html.node "head" attribute_list (head_childrens @ children) in
-          Html.node "html" [] [ head; body ]
+          let head = Html.Node { node with children = node.children @ resources } in
+          Html.node "html" fiber.html_tag_attributes [ head; body ]
       | None ->
           (* If no explicit <head> was found, create one with the hoisted children *)
-          Html.node "html" [] [ Html.node "head" [] head_childrens; body ]
+          Html.node "html" fiber.html_tag_attributes [ Html.node "head" [] resources; body ]
     else if skipRoot then Html.list user_scripts
     else Html.list (root_html :: user_scripts)
   in

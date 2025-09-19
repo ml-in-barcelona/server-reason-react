@@ -450,7 +450,7 @@ let client_without_props () =
               React.Client_component
                 {
                   props = [];
-                  client = React.string "Client without Props";
+                  client = (fun () -> React.string "Client without Props");
                   import_module = "./client-without-props.js";
                   import_name = "ClientWithoutProps";
                 };
@@ -486,7 +486,7 @@ let client_with_json_props () =
                       ("string list", React.Json (`List [ `String "Item 1"; `String "Item 2" ]));
                       ("object", React.Json (`Assoc [ ("name", `String "John"); ("age", `Int 30) ]));
                     ];
-                  client = React.string "Client with Props";
+                  client = (fun () -> React.string "Client with Props");
                   import_module = "./client-with-props.js";
                   import_name = "ClientWithProps";
                 };
@@ -515,7 +515,7 @@ let client_with_element_props () =
               React.Client_component
                 {
                   props = [ ("children", React.Element (React.string "Client Content")) ];
-                  client = React.string "Client with Props";
+                  client = (fun () -> React.string "Client with Props");
                   import_module = "./client-with-props.js";
                   import_name = "ClientWithProps";
                 };
@@ -544,7 +544,7 @@ let client_with_promise_props () =
                 {
                   props =
                     [ ("promise", React.Promise (delayed_value ~ms:20 "||| Resolved |||", fun res -> `String res)) ];
-                  client = React.string "Client with Props";
+                  client = (fun () -> React.string "Client with Props");
                   import_module = "./client-with-props.js";
                   import_name = "ClientWithProps";
                 };
@@ -578,7 +578,7 @@ let client_with_promise_props () =
               React.Client_component
                 {
                   props = [ ("promise", promise) ];
-                  client = React.string "Client with Props";
+                  client = fun () -> React.string "Client with Props";
                   import_module = "./client-with-props.js";
                   import_name = "ClientWithProps";
                 };
@@ -606,7 +606,7 @@ let mixed_server_and_client () =
               React.Client_component
                 {
                   props = [];
-                  client = React.string "Client 1";
+                  client = (fun () -> React.string "Client 1");
                   import_module = "./client-1.js";
                   import_name = "Client1";
                 };
@@ -614,7 +614,7 @@ let mixed_server_and_client () =
               React.Client_component
                 {
                   props = [];
-                  client = React.string "Client 2";
+                  client = (fun () -> React.string "Client 2");
                   import_module = "./client-2.js";
                   import_name = "Client2";
                 };
@@ -644,7 +644,7 @@ let client_with_server_children () =
               React.Client_component
                 {
                   props = [ ("children", React.Element (React.Upper_case_component ("Server", server_child))) ];
-                  client = React.string "Client with Server Children";
+                  client = (fun () -> React.string "Client with Server Children");
                   import_module = "./client-with-server-children.js";
                   import_name = "ClientWithServerChildren";
                 };
@@ -785,7 +785,7 @@ let client_component_with_resources_metadata () =
                       React.Client_component
                         {
                           props = [];
-                          client = React.string "Client Component";
+                          client = (fun () -> React.string "Client Component");
                           import_module = "./client.js";
                           import_name = "Client";
                         };
@@ -843,6 +843,83 @@ let page_with_hoisted_resources () =
   Alcotest.(check bool) "should have page title" true has_page_title;
   Lwt.return ()
 
+let nested_context () =
+  let context = React.createContext React.null in
+  let provider = React.Context.provider context in
+  let client_provider ~value ~children =
+    React.Upper_case_component
+      ( "client_provider",
+        fun () ->
+          React.Client_component
+            {
+              import_module = "./provider.js";
+              import_name = "Provider";
+              props = [ ("value", React.Element value); ("children", React.Element children) ];
+              client = (fun () -> provider ~value ~children ());
+            } )
+  in
+  let client_consumer () =
+    React.Client_component
+      {
+        import_module = "./consumer.js";
+        import_name = "Consumer";
+        props = [];
+        client =
+          (fun () ->
+            let context = React.useContext context in
+            context);
+      }
+  in
+  let content () =
+    React.Upper_case_component
+      ("content", fun () -> client_provider ~value:React.null ~children:(React.string "Hey you"))
+  in
+  let me () =
+    React.Upper_case_component
+      ( "me",
+        fun () ->
+          client_provider ~value:(content ()) ~children:(React.array [| React.string "/me"; client_consumer () |]) )
+  in
+  let about () =
+    React.Upper_case_component
+      ( "about",
+        fun () -> client_provider ~value:(me ()) ~children:(React.array [| React.string "/about"; client_consumer () |])
+      )
+  in
+  let app () =
+    React.Upper_case_component
+      ( "root",
+        fun () ->
+          client_provider ~value:(about ()) ~children:(React.array [| React.string "/root"; client_consumer () |]) )
+  in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~subscribe (app ()) in
+  (* TODO: Don't push multiple scripts for the same client component *)
+  assert_list_of_strings !output
+    [
+      "2:I[\"./provider.js\",[],\"Provider\"]\n";
+      "5:I[\"./provider.js\",[],\"Provider\"]\n";
+      "8:I[\"./provider.js\",[],\"Provider\"]\n";
+      "b:I[\"./provider.js\",[],\"Provider\"]\n";
+      "c:null\n";
+      "d:\"Hey you\"\n";
+      "a:[\"$\",\"$b\",null,{\"value\":\"$c\",\"children\":\"$d\"},null,[],{}]\n";
+      "9:\"$a\"\n";
+      "f:I[\"./consumer.js\",[],\"Consumer\"]\n";
+      "e:[\"/me\",[\"$\",\"$f\",null,{},null,[],{}]]\n";
+      "7:[\"$\",\"$8\",null,{\"value\":\"$9\",\"children\":\"$e\"},null,[],{}]\n";
+      "6:\"$7\"\n";
+      "11:I[\"./consumer.js\",[],\"Consumer\"]\n";
+      "10:[\"/about\",[\"$\",\"$11\",null,{},null,[],{}]]\n";
+      "4:[\"$\",\"$5\",null,{\"value\":\"$6\",\"children\":\"$10\"},null,[],{}]\n";
+      "3:\"$4\"\n";
+      "13:I[\"./consumer.js\",[],\"Consumer\"]\n";
+      "12:[\"/root\",[\"$\",\"$13\",null,{},null,[],{}]]\n";
+      "1:[\"$\",\"$2\",null,{\"value\":\"$3\",\"children\":\"$12\"},null,[],{}]\n";
+      "0:\"$1\"\n";
+    ];
+  Lwt.return ()
+
 let tests =
   [
     test "null_element" null_element;
@@ -881,6 +958,7 @@ let tests =
     test "suspense_with_error_under_lowercase" suspense_with_error_under_lowercase;
     test "client_component_with_resources_metadata" client_component_with_resources_metadata;
     test "page_with_hoisted_resources" page_with_hoisted_resources;
+    test "nested_context" nested_context;
     (* TODO: https://github.com/ml-in-barcelona/server-reason-react/issues/251 test "client_with_promise_failed_props" client_with_promise_failed_props; *)
     (* test "env_development_adds_debug_info_2" env_development_adds_debug_info_2; *)
   ]
