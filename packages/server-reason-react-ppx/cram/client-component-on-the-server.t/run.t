@@ -125,7 +125,7 @@
           },
         ),
       ],
-      client:
+      client: () =>
         React.createElementWithKey(
           ~key=None,
           "section",
