@@ -11,32 +11,42 @@ let getAndPost = (path, handler) =>
     ],
   );
 
-let getSupersonicRoutes = () => {
-  Supersonic.RouteRegistry.clear();
+let rscRouting = (basePath, handler) => {
+  RouteDefinitions.generated_routes_paths
+  |> List.map(path => {
+       let path = path == "/" ? "" : path;
 
-  getAndPost("/demo/**", request => {
-    let (path, _) = Dream.target(request) |> Dream.split_target;
-    let path = path->String.sub(5, String.length(path) - 5);
-    Dream.log("Path: %s", path);
-    let pathSegments =
-      String.split_on_char('/', path) |> List.filter(s => s != "");
+       [
+         getAndPost(
+           basePath ++ path ++ "/",
+           request => {
+             // Redirect when the route is accessed with a trailing slash
+             Dream.log("Redirecting to /demo%s", path);
+             Dream.redirect(request, basePath ++ path);
+           },
+         ),
+         getAndPost(
+           basePath ++ path,
+           request => {
+             let routeSegments = String.split_on_char('/', path);
+             let rscParam = Dream.query(request, "rsc");
+             let element =
+               switch (rscParam) {
+               | Some(rscPath) =>
+                 let rscRouteSegments = rscPath |> String.split_on_char('/');
+                 RouteDefinitions.(
+                   routes |> renderComponent(routeSegments, rscRouteSegments)
+                 );
+               | None =>
+                 RouteDefinitions.(routes |> renderByPath(routeSegments))
+               };
 
-    let rscParam = Dream.query(request, "rsc");
-
-    switch (rscParam) {
-    | Some(rscPath) =>
-      let rscPathSegments = rscPath |> String.split_on_char('/');
-      let component =
-        RouteDefinitions.(
-          routes |> renderComponent(pathSegments, rscPathSegments)
-        );
-      Pages.Router.handler(~element=component, request);
-    | None =>
-      let component =
-        RouteDefinitions.renderByPath(pathSegments, RouteDefinitions.routes);
-      Pages.Router.handler(~element=component, request);
-    };
-  });
+             handler(~element, request);
+           },
+         ),
+       ];
+     })
+  |> List.flatten;
 };
 
 let server =
@@ -74,7 +84,7 @@ let server =
       getAndPost(Routes.singlePageRSC, Pages.SinglePageRSC.handler),
       getAndPost(Routes.dummyRouterRSC, Pages.DummyRouterRSC.handler),
       getAndPost(Routes.serverOnlyRSC, Pages.ServerOnlyRSC.handler),
-      getSupersonicRoutes(),
+      ...rscRouting(Routes.router, Pages.Router.handler),
     ]),
   );
 

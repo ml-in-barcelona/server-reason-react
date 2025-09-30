@@ -132,9 +132,7 @@ module Router = {
           }
         | None => ()
         };
-        Js.log(RouteRegistry.getAllRoutes());
         RouteRegistry.clearAboveLevel((commonPrefix |> List.length) - 1);
-        Js.log(RouteRegistry.getAllRoutes());
         let origin = Location.origin(location);
 
         let finalURL =
@@ -219,6 +217,7 @@ module Route = {
         ~level: int,
       ) => {
     let (outlet, setOutlet) = React.useState(() => outlet);
+    let (cachedNodeKey, setCachedNodeKey) = React.useState(() => path);
 
     let%browser_only loader = (commonPrefix, remainingDifference) => {
       let headers =
@@ -229,11 +228,9 @@ module Route = {
       )
       |> ReactServerDOMEsbuild.createFromFetch
       |> Js.Promise.then_(element => {
-           setOutlet(_ =>
-             <React.Fragment
-               key={commonPrefix ++ "?rsc=" ++ remainingDifference}>
-               element
-             </React.Fragment>
+           setOutlet(_ => element);
+           setCachedNodeKey(_ =>
+             commonPrefix ++ "?rsc=" ++ remainingDifference
            );
            Js.Promise.resolve();
          })
@@ -245,7 +242,7 @@ module Route = {
       None;
     });
 
-    <RouteContextProvider key=path value=outlet>
+    <RouteContextProvider key=cachedNodeKey value=outlet>
       children
     </RouteContextProvider>;
   };
@@ -287,14 +284,17 @@ module Navigation = {
       <Link to_="/demo/router" className="text-white">
         {React.string("Home")}
       </Link>
-      <Link to_="/demo/router/about" className="text-white">
-        {React.string("About")}
-      </Link>
       <Link to_="/demo/router/about/me" className="text-white">
-        {React.string("About 1")}
+        {React.string("About me")}
+      </Link>
+      <Link to_="/demo/router/about/work" className="text-white">
+        {React.string("About work")}
       </Link>
       <Link to_="/demo/router/dashboard" className="text-white">
         {React.string("Dashboard")}
+      </Link>
+      <Link to_="/demo/router/profile/123" className="text-white">
+        {React.string("Profile")}
       </Link>
     </nav>;
   };

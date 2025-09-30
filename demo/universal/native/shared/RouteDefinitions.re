@@ -1,55 +1,116 @@
 type t = {
   path: string,
-  component: React.element,
+  layout: option((~children: React.element) => React.element),
+  page: option(unit => React.element),
   children: option(list(t)),
+};
+
+type app = {
+  layout: (~children: React.element) => React.element,
+  page: unit => React.element,
 };
 
 [@platform native]
 let routes = [
   {
-    path: "/router",
-    component:
-      <>
-        <Supersonic.Navigation />
-        <div className="text-white text-6xl"> <Supersonic.Outlet /> </div>
-      </>,
+    path: "/",
+    layout:
+      Some(
+        (~children) =>
+          <>
+            <Supersonic.Navigation />
+            <div className="text-white text-6xl"> children </div>
+          </>,
+      ),
+    page:
+      Some(
+        () =>
+          <span className="text-white text-6xl">
+            <span> {React.string("\"Home\" Page")} </span>
+          </span>,
+      ),
     children:
       Some([
         {
-          path: "/",
-          component:
-            <span className="text-white text-6xl">
-              <span> {React.string("\"Home\" Page")} </span>
-            </span>,
-          children: None,
-        },
-        {
           path: "/about",
-          component:
-            <div className="text-white text-6xl">
-              <span> {React.string("\"About\" Page")} </span>
-              <Supersonic.Outlet />
-            </div>,
+          page: None,
+          layout: Some((~children) => children),
           children:
             Some([
               {
+                path: "/work",
+                layout:
+                  Some(
+                    (~children) =>
+                      <div className="text-white text-6xl">
+                        <span> {React.string("\"/Work\" Page")} </span>
+                        children
+                      </div>,
+                  ),
+                page: None,
+                children: None,
+              },
+              {
                 path: "/me",
-                component:
-                  <div className="text-white text-6xl">
-                    <span> {React.string("\"/Me\" Page")} </span>
-                    <Supersonic.Outlet />
-                  </div>,
+                page:
+                  Some(
+                    () =>
+                      <div className="text-white text-6xl">
+                        <span> {React.string("\"/Me\" Page")} </span>
+                      </div>,
+                  ),
+                layout: None,
                 children: None,
               },
             ]),
         },
         {
           path: "/dashboard",
-          component:
-            <div className="text-white text-6xl">
-              {React.string("\"/Dashboard\" Page")}
-            </div>,
+          page:
+            Some(
+              () =>
+                <div className="text-white text-6xl">
+                  {React.string("\"/Dashboard\" Page")}
+                </div>,
+            ),
+          layout: None,
           children: None,
+        },
+        {
+          path: "/profile",
+          layout:
+            Some(
+              (~children) =>
+                <div className="text-white text-6xl"> children </div>,
+            ),
+          page: None,
+          children:
+            Some([
+              {
+                path: "/123",
+                page:
+                  Some(
+                    () =>
+                      <div className="text-white text-6xl">
+                        {React.string("\"/Profile/123\" Page")}
+                      </div>,
+                  ),
+                layout: None,
+                children: None,
+              },
+              {
+                path: "/:id",
+                page:
+                  Some(
+                    () =>
+                      <div className="text-white text-6xl">
+                        {React.string("\"/Profile/:id\" Page")}
+                      </div>,
+                  ),
+                layout: None,
+                children: None,
+              },
+            ]),
         },
       ]),
   },
@@ -62,20 +123,13 @@ let routes = [
 let renderByPath =
     (~level: int=0, pathSegments: list(string), routes: list(t)) => {
   let rec aux =
-          (
-            routes: list(t),
-            pathSegments: list(string),
-            parentPath: string,
-            level: int,
-          ) => {
+          (routes: list(t), pathSegments: list(string), level: int)
+          : option(React.element) => {
     switch (routes, pathSegments) {
-    | ([route, ...routes], []) =>
-      if (route.path == "/") {
-        aux([route], [""], parentPath, level);
-      } else {
-        aux(routes, [], parentPath, level);
-      }
+    | ([route, ...routes], []) => aux(routes, [], level)
     | ([route, ...routes], [pathSegment, ...remainingSegments]) =>
+      Dream.log("pathSegment %s", pathSegment);
+      let pathSegment = pathSegment == "/" ? "" : pathSegment;
       if (route.path == "/" ++ pathSegment) {
         let component =
           switch (route.children) {
@@ -83,31 +137,65 @@ let renderByPath =
             <Supersonic.Route
               level
               path={route.path}
-              outlet={aux(
-                children,
-                remainingSegments,
-                if (parentPath == "/") {
-                  route.path;
-                } else {
-                  parentPath ++ route.path;
-                },
-                level + 1,
-              )}>
-              {route.component}
+              outlet={
+                switch (aux(children, remainingSegments, level + 1)) {
+                | Some(component) => Some(component)
+                | None => route.page |> Option.map(page => page())
+                }
+              }>
+              {switch (route.layout) {
+               | Some(layout) => layout(~children=<Supersonic.Outlet />)
+               | None =>
+                 (route.page |> Option.value(~default=() => React.null))()
+               }}
             </Supersonic.Route>
           | None =>
-            <Supersonic.Route level path={route.path} outlet=React.null>
-              {route.component}
+            <Supersonic.Route level path={route.path} outlet=None>
+              {switch (route.layout) {
+               | Some(layout) => layout(~children=React.null)
+               | None =>
+                 (route.page |> Option.value(~default=() => React.null))()
+               }}
             </Supersonic.Route>
           };
-        component;
+        Some(component);
       } else {
-        aux(routes, pathSegments, parentPath, level);
-      }
-    | _ => React.null
+        aux(routes, pathSegments, level);
+      };
+    | _ => None
     };
   };
-  aux(routes, pathSegments, "/", level);
+
+  aux(routes, pathSegments, level);
+};
+
+/**
+  Generate all possible routes paths
+ */
+[@platform native]
+let generated_routes_paths = {
+  let rec aux = (routes: list(t), parentPath: string): list(string) => {
+    switch (routes) {
+    | [] => []
+    | [route, ...remainingRoutes] =>
+      let fullPath =
+        if (parentPath == "/") {
+          route.path;
+        } else {
+          parentPath ++ route.path;
+        };
+
+      let childRoutes =
+        switch (route.children) {
+        | Some(children) => aux(children, fullPath)
+        | None => []
+        };
+
+      [fullPath] @ childRoutes @ aux(remainingRoutes, parentPath);
+    };
+  };
+
+  aux(routes, "");
 };
 
 /**
@@ -121,21 +209,33 @@ let renderComponent =
       pathSegments: list(string),
       routes: list(t),
     ) => {
-  let rec aux = (routes: list(t), parentSegments: list(string), level: int) => {
+  let rec aux =
+          (routes: list(t), parentSegments: list(string), level: int)
+          : option(React.element) => {
     switch (routes, parentSegments) {
     | (routes, []) => renderByPath(~level, pathSegments, routes)
-    | ([route, ...routes], [pathSegment, ...remainingSegments]) =>
-      if (route.path == "/" ++ pathSegment) {
+    | ([route, ...routes], [parentSegment, ...remainingSegments]) =>
+      let pathSegment = parentSegment == "" ? "/" : "/" ++ parentSegment;
+
+      if (route.path == pathSegment) {
         switch (route.children) {
         | Some(children) => aux(children, remainingSegments, level + 1)
-        | None => route.component
+        | _ => route.page |> Option.map(page => page())
         };
       } else {
         aux(routes, parentSegments, level);
-      }
+      };
 
-    | _ => React.null
+    | _ => None
     };
   };
-  aux(routes, parentSegments, 0);
+
+  switch (parentSegments, pathSegments) {
+  // Root page
+  | ([""], [""]) =>
+    routes
+    |> List.find(route => route.path == "/")
+    |> (route => route.page |> Option.map(page => page()))
+  | _ => aux(routes, parentSegments, 0)
+  };
 };
