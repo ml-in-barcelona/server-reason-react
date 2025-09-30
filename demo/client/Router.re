@@ -5,23 +5,22 @@ external readable_stream: ReadableStream.t =
 
 let document: option(Webapi.Dom.Element.t) = [%mel.raw "window.document"];
 
-let body =
-  Webapi.Dom.document
-  ->Webapi.Dom.Document.asHtmlDocument
-  ->Option.bind(Webapi.Dom.HtmlDocument.body);
-
 let initialRSCModel =
   ReactServerDOMEsbuild.createFromReadableStream(readable_stream);
 
 module ClientApp = {
+  module DOM = Webapi.Dom;
+  module Location = DOM.Location;
+  module History = DOM.History;
   [@react.component]
   let make = () => {
     let initialElement = React.Experimental.usePromise(initialRSCModel);
-    <Supersonic.Router> initialElement </Supersonic.Router>;
+
+    initialElement;
   };
 };
 
-switch (body) {
+switch (document) {
 | Some(element) =>
   React.startTransition(() => {
     let _ = ReactDOM.Client.hydrateRoot(element, <ClientApp />);

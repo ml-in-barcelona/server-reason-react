@@ -14,23 +14,29 @@ let getAndPost = (path, handler) =>
 let getSupersonicRoutes = () => {
   Supersonic.RouteRegistry.clear();
 
-  RouteDefinitions.routes
-  |> List.iter((route: RouteDefinitions.t) => {
-       Supersonic.RouteRegistry.register(
-         ~path=route.path,
-         ~element=route.component,
-         (),
-       )
-     });
+  getAndPost("/demo/**", request => {
+    let (path, _) = Dream.target(request) |> Dream.split_target;
+    let path = path->String.sub(5, String.length(path) - 5);
+    Dream.log("Path: %s", path);
+    let pathSegments =
+      String.split_on_char('/', path) |> List.filter(s => s != "");
 
-  Dream.scope(
-    "/",
-    [],
-    Supersonic.RouteRegistry.getAllRoutes()
-    |> List.map(({path, element, _}: Supersonic.RouteRegistry.route) => {
-         getAndPost(path, Pages.Router.handler(~element))
-       }),
-  );
+    let rscParam = Dream.query(request, "rsc");
+
+    switch (rscParam) {
+    | Some(rscPath) =>
+      let rscPathSegments = rscPath |> String.split_on_char('/');
+      let component =
+        RouteDefinitions.(
+          routes |> renderComponent(pathSegments, rscPathSegments)
+        );
+      Pages.Router.handler(~element=component, request);
+    | None =>
+      let component =
+        RouteDefinitions.renderByPath(pathSegments, RouteDefinitions.routes);
+      Pages.Router.handler(~element=component, request);
+    };
+  });
 };
 
 let server =
