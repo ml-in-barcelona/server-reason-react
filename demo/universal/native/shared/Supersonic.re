@@ -15,16 +15,41 @@ module URL = {
   };
 };
 
-let findPathDifference = (path1: list(string), path2: list(string)) => {
-  let rec findCommonPrefix = (p1, p2, acc) => {
-    switch (p1, p2) {
-    | ([h1, ...t1], [h2, ...t2]) when h1 == h2 =>
-      findCommonPrefix(t1, t2, [h1, ...acc])
-    | (_, remaining2) => (List.rev(acc), remaining2)
-    };
+module Params = {
+  type t = Hashtbl.t(string, string);
+
+  let create = () => {
+    Hashtbl.create(10);
   };
 
-  findCommonPrefix(path1, path2, []);
+  let add = (t, key, value) => {
+    Hashtbl.add(t, key, value);
+  };
+
+  let find = (t, key) => {
+    Hashtbl.find_opt(t, key);
+  };
+
+  let to_json = t => {
+    t
+    |> Hashtbl.to_seq
+    |> List.of_seq
+    |> Melange_json.To_json.list(((key, value)) =>
+         Melange_json.To_json.list(Melange_json.To_json.string, [key, value])
+       );
+  };
+
+  let of_json = json => {
+    let hashtbl = Hashtbl.create(10);
+
+    let _ =
+      json
+      |> Melange_json.Of_json.list(pair =>
+           pair |> Melange_json.Of_json.list(Melange_json.Of_json.string)
+         );
+
+    hashtbl;
+  };
 };
 
 [@mel.send]
@@ -32,14 +57,13 @@ external dispatchEvent: (Dom.window, Dom.event) => unit = "dispatchEvent";
 
 module RouteRegistry = {
   type route = {
-    level: int,
     path: string,
     loader: option((string, string) => unit),
   };
 
   let routes = ref([]);
 
-  let register = (~path, ~level, ~loader=?, ()) => {
+  let register = (~path, ~loader=?, ()) => {
     let filteredRoutes = List.filter(route => route.path != path, routes^);
 
     routes :=
@@ -47,22 +71,25 @@ module RouteRegistry = {
       @ [
         {
           path,
-          level,
           loader,
         },
       ];
   };
 
-  let find = (level: int) => {
-    List.find_opt(route => route.level == level, routes^);
+  let find = (path: string) => {
+    List.find_opt(route => route.path == path, routes^);
   };
 
   let clear = () => {
     routes := [];
   };
 
-  let clearAboveLevel = (level: int) => {
-    routes := List.filter(route => route.level < level, routes^);
+  let clearBellow = path => {
+    routes :=
+      List.filter(
+        route => route.path |> String.length <= (path |> String.length),
+        routes^,
+      );
   };
 
   let getAllRoutes = () => {
@@ -71,8 +98,14 @@ module RouteRegistry = {
 };
 
 module RouterContext = {
-  type t = {
+  [@deriving json]
+  type routeData = {
+    params: Params.t,
     url: URL.t,
+  };
+
+  type t = {
+    routeData,
     navigate: (~replace: bool, string) => unit,
   };
 
@@ -140,10 +173,10 @@ module RouterContext = {
     let provider = React.Context.provider(context);
 
     [@react.client.component]
-    let make = (~url: URL.t, ~children: React.element) => {
+    let make = (~routeData: routeData, ~children: React.element) => {
       switch%platform (Runtime.platform) {
       | Client =>
-        let (url, setUrl) = React.useState(() => url);
+        let (url, setUrl) = React.useState(() => routeData.url);
 
         React.useEffect0(() => {
           let watcherId = watchUrl(url => setUrl(_ => url));
@@ -160,34 +193,40 @@ module RouterContext = {
 
           Some(() => unwatchUrl(watcherId));
         });
+
+        let findPathDifference = (path1, path2): (string, string) => {
+          let curPath = path1 |> String.split_on_char('/') |> List.tl;
+          let pathSegments = path2 |> String.split_on_char('/') |> List.tl;
+          let rec findCommonPrefix = (p1, p2, acc) => {
+            switch (p1, p2) {
+            | ([h1, ...t1], [h2, ...t2]) when h1 == h2 =>
+              findCommonPrefix(t1, t2, acc ++ "/" ++ h1)
+            | (_, remaining2) => (acc, remaining2 |> String.concat("/"))
+            };
+          };
+
+          findCommonPrefix(curPath, pathSegments, "");
+        };
+
         let navigate = (~replace as _, path: string) => {
           let location = DOM.window->DOM.Window.location;
-          let curPath =
-            Location.pathname(location)
-            ->String.sub(5, String.length(Location.pathname(location)) - 5)
-            |> String.split_on_char('/');
-          let pathSegments =
-            path->String.sub(5, String.length(path) - 5)
-            |> String.split_on_char('/');
+          let curPath = Location.pathname(location);
           let (commonPrefix, remainingDifference) =
-            findPathDifference(curPath, pathSegments);
+            findPathDifference(curPath, path);
 
           let route: option(RouteRegistry.route) =
-            RouteRegistry.find((commonPrefix |> List.length) - 2);
+            RouteRegistry.find(commonPrefix);
 
           switch (route) {
           | Some(route) =>
             switch (route.loader) {
-            | Some(loader) =>
-              loader(
-                commonPrefix |> String.concat("/"),
-                remainingDifference |> String.concat("/"),
-              )
+            | Some(loader) => loader(path, remainingDifference)
             | None => ()
-            }
+            };
+            RouteRegistry.clearBellow(route.path);
+
           | None => ()
           };
-          RouteRegistry.clearAboveLevel((commonPrefix |> List.length) - 1);
 
           push(path) |> ignore;
         };
@@ -197,7 +236,7 @@ module RouterContext = {
           {
             "value":
               Some({
-                url,
+                routeData,
                 navigate,
               }),
             "children": children,
@@ -207,7 +246,7 @@ module RouterContext = {
         provider(
           ~value=
             Some({
-              url,
+              routeData,
               navigate: (~replace as _, _) =>
                 failwith("navigate in'tnot supported on server"),
             }),
@@ -224,47 +263,6 @@ module RouterContext = {
     | None => raise(NoProvider("RouterContext requires a provider"))
     };
   };
-};
-
-[@mel.scope "window"] [@mel.set]
-external setNavigate:
-  (Webapi.Dom.Window.t, (~replace: bool, string) => unit) => unit =
-  "__navigate";
-
-[@platform js]
-external navigate: (~replace: bool, string) => unit = "window.__navigate";
-
-module Router = {
-  [@react.client.component]
-  let make = (~children: React.element) =>
-    switch%platform (Runtime.platform) {
-    | Server => children
-    | Client =>
-      // let popStateHandler = () => {
-      //   let handlePopState = _ => {
-      //     let newPath = Location.pathname(DOM.window->DOM.Window.location);
-      //     setCurrentPath(_ => newPath);
-
-      //     switch (RouteRegistry.find(newPath)) {
-      //     | Some({element, _}) => setCurrentElement(_ => element)
-      //     | None => rscNavigation(~replace=false, newPath)
-      //     };
-      //   };
-
-      //   DOM.window |> DOM.Window.addEventListener("popstate", handlePopState);
-
-      //   Some(
-      //     () => {
-      //       DOM.window
-      //       |> DOM.Window.removeEventListener("popstate", handlePopState)
-      //     },
-      //   );
-      // };
-
-      // React.useEffect0(popStateHandler);
-
-      children
-    };
 };
 
 module RouteContext = {
@@ -300,9 +298,7 @@ module Route = {
         ~path: string,
         ~children: React.element,
         ~outlet: option(React.element),
-        ~level: int,
       ) => {
-    Js.log("Route: " ++ path);
     let (outlet, setOutlet) =
       React.useState(() =>
         switch (outlet) {
@@ -310,33 +306,38 @@ module Route = {
         | None => React.null
         }
       );
+    let isFirstRender = React.useRef(true);
     let (cachedNodeKey, setCachedNodeKey) = React.useState(() => path);
 
-    let%browser_only loader = (commonPrefix, remainingDifference) => {
+    let%browser_only loader = (path, rscPath) => {
       let headers =
         Fetch.HeadersInit.make({"Accept": "application/react.component"});
       Fetch.fetchWithInit(
-        "/demo" ++ commonPrefix ++ "?rsc=" ++ remainingDifference,
+        path ++ "?rsc=" ++ rscPath,
         Fetch.RequestInit.make(~method_=Fetch.Get, ~headers, ()),
       )
       |> ReactServerDOMEsbuild.createFromFetch
       |> Js.Promise.then_(element => {
            setOutlet(_ => element);
-           setCachedNodeKey(_ =>
-             commonPrefix ++ "?rsc=" ++ remainingDifference
-           );
+           setCachedNodeKey(_ => path ++ "?rsc=" ++ rscPath);
            Js.Promise.resolve();
          })
       |> ignore;
     };
 
-    React.useEffect0(() => {
-      RouteRegistry.register(~level, ~loader, ~path, ());
-      None;
-    });
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      RouteRegistry.register(~path, ~loader, ());
+      let _ =
+        switch%platform (Runtime.platform) {
+        | Client => Js.log(RouteRegistry.getAllRoutes())
+        | Server => ()
+        };
+      ();
+    };
 
     <RouteContextProvider key=cachedNodeKey value=outlet>
-      children
+      <React.Fragment key=path> children </React.Fragment>
     </RouteContextProvider>;
   };
 };
@@ -361,8 +362,8 @@ module Link = {
         ~replace: bool=false,
         ~className: option(string)=?,
       ) => {
-    let {RouterContext.url, navigate} = RouterContext.use();
-    let path = URL.pathname(url);
+    let {RouterContext.routeData, navigate} = RouterContext.use();
+    let path = URL.pathname(routeData.url);
     let isActive = path == to_;
     let handleClick = (e: React.Event.Mouse.t) => {
       React.Event.Mouse.preventDefault(e);
@@ -398,8 +399,14 @@ module Navigation = {
       <Link to_="/demo/router/dashboard" className="text-white">
         {React.string("Dashboard")}
       </Link>
-      <Link to_="/demo/router/profile/123" className="text-white">
+      <Link to_="/demo/router/profile" className="text-white">
         {React.string("Profile")}
+      </Link>
+      <Link to_="/demo/router/profile/123" className="text-white">
+        {React.string("Profile with dynamic id")}
+      </Link>
+      <Link to_="/demo/router/profile/12345/pedro" className="text-white">
+        {React.string("Profile with dynamic id and dynamic name")}
       </Link>
     </nav>;
   };

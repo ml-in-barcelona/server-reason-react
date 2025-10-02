@@ -6,11 +6,7 @@ module Layout = {
         <meta charSet="utf-8" />
         <link rel="stylesheet" href="/output.css" />
       </head>
-      <body>
-        <DemoLayout>
-          <Supersonic.Router> children </Supersonic.Router>
-        </DemoLayout>
-      </body>
+      <body> <DemoLayout> children </DemoLayout> </body>
     </html>;
   };
 };
