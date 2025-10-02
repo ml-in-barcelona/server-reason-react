@@ -1,3 +1,20 @@
+exception NoProvider(string);
+module DOM = Webapi.Dom;
+module Location = DOM.Location;
+module History = DOM.History;
+
+module URL = {
+  include URL;
+
+  let to_json = t => {
+    t |> toString |> Melange_json.To_json.string;
+  };
+
+  let of_json = json => {
+    json |> Melange_json.Of_json.string |> makeExn;
+  };
+};
+
 let findPathDifference = (path1: list(string), path2: list(string)) => {
   let rec findCommonPrefix = (p1, p2, acc) => {
     switch (p1, p2) {
@@ -9,6 +26,9 @@ let findPathDifference = (path1: list(string), path2: list(string)) => {
 
   findCommonPrefix(path1, path2, []);
 };
+
+[@mel.send]
+external dispatchEvent: (Dom.window, Dom.event) => unit = "dispatchEvent";
 
 module RouteRegistry = {
   type route = {
@@ -51,38 +71,157 @@ module RouteRegistry = {
 };
 
 module RouterContext = {
-  type route = {
-    level: int,
-    path: string,
-    loader: (string, string) => unit,
+  type t = {
+    url: URL.t,
+    navigate: (~replace: bool, string) => unit,
   };
 
-  type t = {navigate: (~replace: bool, string) => unit};
+  [@mel.new] external makeEventIE11Compatible: string => Dom.event = "Event";
 
-  let context: React.Context.t(t) =
-    React.createContext({navigate: (~replace as _, _) => ()});
+  [@mel.scope "document"]
+  external createEventNonIEBrowsers: string => Dom.event = "createEvent";
+
+  [@mel.send]
+  external initEventNonIEBrowsers: (Dom.event, string, bool, bool) => unit =
+    "initEvent";
 
   [@platform js]
+  let safeMakeEvent = eventName =>
+    if (Js.typeof(DOM.Event.make) == "function") {
+      makeEventIE11Compatible(eventName);
+    } else {
+      let event = createEventNonIEBrowsers("Event");
+      initEventNonIEBrowsers(event, eventName, true, true);
+      event;
+    };
+
+  [@platform js]
+  let push = path => {
+    History.pushState(History.state(DOM.history), "", path, DOM.history);
+    DOM.EventTarget.dispatchEvent(
+      safeMakeEvent("popstate"),
+      DOM.Window.asEventTarget(DOM.window),
+    );
+  };
+
+  [@platform js]
+  let replace = path => {
+    History.replaceState(History.state(DOM.history), "", path, DOM.history);
+    DOM.EventTarget.dispatchEvent(
+      safeMakeEvent("popstate"),
+      DOM.Window.asEventTarget(DOM.window),
+    );
+  };
+
+  [@platform js]
+  let watchUrl = callback => {
+    let watcherID = _ =>
+      callback(URL.makeExn(Location.href(DOM.window->DOM.Window.location)));
+    DOM.EventTarget.addEventListener(
+      "popstate",
+      watcherID,
+      DOM.Window.asEventTarget(DOM.window),
+    );
+    watcherID;
+  };
+
+  [@platform js]
+  let unwatchUrl = watcherID => {
+    DOM.EventTarget.removeEventListener(
+      "popstate",
+      watcherID,
+      DOM.Window.asEventTarget(DOM.window),
+    );
+  };
+
+  let context: React.Context.t(option(t)) = React.createContext(None);
+
   module Provider = {
     let provider = React.Context.provider(context);
 
-    [@react.component]
-    let make = (~value, ~children) => {
-      React.createElement(
-        provider,
-        {
-          "value": value,
-          "children": children,
-        },
-      );
+    [@react.client.component]
+    let make = (~url: URL.t, ~children: React.element) => {
+      switch%platform (Runtime.platform) {
+      | Client =>
+        let (url, setUrl) = React.useState(() => url);
+
+        React.useEffect0(() => {
+          let watcherId = watchUrl(url => setUrl(_ => url));
+
+          /**
+            * check for updates that may have occured between
+            * the initial state and the subscribe above
+            */
+          let newUrl =
+            URL.makeExn(Location.href(DOM.window->DOM.Window.location));
+          if (newUrl == url) {
+            setUrl(_ => newUrl);
+          };
+
+          Some(() => unwatchUrl(watcherId));
+        });
+        let navigate = (~replace as _, path: string) => {
+          let location = DOM.window->DOM.Window.location;
+          let curPath =
+            Location.pathname(location)
+            ->String.sub(5, String.length(Location.pathname(location)) - 5)
+            |> String.split_on_char('/');
+          let pathSegments =
+            path->String.sub(5, String.length(path) - 5)
+            |> String.split_on_char('/');
+          let (commonPrefix, remainingDifference) =
+            findPathDifference(curPath, pathSegments);
+
+          let route: option(RouteRegistry.route) =
+            RouteRegistry.find((commonPrefix |> List.length) - 2);
+
+          switch (route) {
+          | Some(route) =>
+            switch (route.loader) {
+            | Some(loader) =>
+              loader(
+                commonPrefix |> String.concat("/"),
+                remainingDifference |> String.concat("/"),
+              )
+            | None => ()
+            }
+          | None => ()
+          };
+          RouteRegistry.clearAboveLevel((commonPrefix |> List.length) - 1);
+
+          push(path) |> ignore;
+        };
+
+        React.createElement(
+          provider,
+          {
+            "value":
+              Some({
+                url,
+                navigate,
+              }),
+            "children": children,
+          },
+        );
+      | Server =>
+        provider(
+          ~value=
+            Some({
+              url,
+              navigate: (~replace as _, _) =>
+                failwith("navigate in'tnot supported on server"),
+            }),
+          ~children,
+          (),
+        )
+      };
     };
   };
 
-  [@platform native]
-  module Provider = {
-    [@react.component]
-    let make = (~value as _, ~children) => {
-      children;
+  let use = () => {
+    switch (React.useContext(context)) {
+    | Some(context) => context
+    | None => raise(NoProvider("RouterContext requires a provider"))
     };
   };
 };
@@ -95,63 +234,12 @@ external setNavigate:
 [@platform js]
 external navigate: (~replace: bool, string) => unit = "window.__navigate";
 
-module DOM = Webapi.Dom;
-module Location = DOM.Location;
-module History = DOM.History;
-
 module Router = {
   [@react.client.component]
   let make = (~children: React.element) =>
     switch%platform (Runtime.platform) {
     | Server => children
     | Client =>
-      let rscNavigation = (~replace as _, path: string) => {
-        let location = DOM.window->DOM.Window.location;
-        let curPath =
-          Location.pathname(location)
-          ->String.sub(5, String.length(Location.pathname(location)) - 5)
-          |> String.split_on_char('/');
-        let pathSegments =
-          path->String.sub(5, String.length(path) - 5)
-          |> String.split_on_char('/');
-        let (commonPrefix, remainingDifference) =
-          findPathDifference(curPath, pathSegments);
-
-        let route: option(RouteRegistry.route) =
-          RouteRegistry.find((commonPrefix |> List.length) - 2);
-
-        switch (route) {
-        | Some(route) =>
-          switch (route.loader) {
-          | Some(loader) =>
-            loader(
-              commonPrefix |> String.concat("/"),
-              remainingDifference |> String.concat("/"),
-            )
-          | None => ()
-          }
-        | None => ()
-        };
-        RouteRegistry.clearAboveLevel((commonPrefix |> List.length) - 1);
-        let origin = Location.origin(location);
-
-        let finalURL =
-          URL.makeExn(
-            origin
-            ++ "/demo"
-            ++ (commonPrefix |> String.concat("/"))
-            ++ "/"
-            ++ (remainingDifference |> String.concat("/")),
-          );
-        History.pushState(
-          History.state(DOM.history),
-          "",
-          URL.toString(finalURL),
-          DOM.history,
-        )
-        |> ignore;
-      };
-
       // let popStateHandler = () => {
       //   let handlePopState = _ => {
       //     let newPath = Location.pathname(DOM.window->DOM.Window.location);
@@ -173,11 +261,9 @@ module Router = {
       //   );
       // };
 
-      setNavigate(Webapi.Dom.window, rscNavigation);
-
       // React.useEffect0(popStateHandler);
 
-      children;
+      children
     };
 };
 
@@ -213,10 +299,17 @@ module Route = {
       (
         ~path: string,
         ~children: React.element,
-        ~outlet: React.element,
+        ~outlet: option(React.element),
         ~level: int,
       ) => {
-    let (outlet, setOutlet) = React.useState(() => outlet);
+    Js.log("Route: " ++ path);
+    let (outlet, setOutlet) =
+      React.useState(() =>
+        switch (outlet) {
+        | Some(outlet) => outlet
+        | None => React.null
+        }
+      );
     let (cachedNodeKey, setCachedNodeKey) = React.useState(() => path);
 
     let%browser_only loader = (commonPrefix, remainingDifference) => {
@@ -268,12 +361,21 @@ module Link = {
         ~replace: bool=false,
         ~className: option(string)=?,
       ) => {
+    let {RouterContext.url, navigate} = RouterContext.use();
+    let path = URL.pathname(url);
+    let isActive = path == to_;
     let handleClick = (e: React.Event.Mouse.t) => {
       React.Event.Mouse.preventDefault(e);
       navigate(~replace, to_);
     };
 
-    <button onClick=handleClick ?className> children </button>;
+    let className =
+      switch (className) {
+      | Some(className) => className ++ (isActive ? " font-bold" : "")
+      | None => ""
+      };
+
+    <button onClick=handleClick className> children </button>;
   };
 };
 
@@ -289,6 +391,9 @@ module Navigation = {
       </Link>
       <Link to_="/demo/router/about/work" className="text-white">
         {React.string("About work")}
+      </Link>
+      <Link to_="/demo/router/about" className="text-white">
+        {React.string("About (404)")}
       </Link>
       <Link to_="/demo/router/dashboard" className="text-white">
         {React.string("Dashboard")}

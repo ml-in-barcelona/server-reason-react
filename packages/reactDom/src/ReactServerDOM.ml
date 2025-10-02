@@ -571,6 +571,7 @@ let rec render_element_to_html ~(fiber : Fiber.t) (element : React.element) : (H
       render_element_to_html ~fiber element
   | Client_component { import_module; import_name; props; client } ->
       let context = Fiber.get_context fiber in
+      let lwt_html = client_to_html ~fiber (client ()) in
       let lwt_props =
         Lwt_list.map_p
           (fun (name, value) ->
@@ -594,7 +595,9 @@ let rec render_element_to_html ~(fiber : Fiber.t) (element : React.element) : (H
                     if context.pending = 0 then context.close ();
                     Lwt.return ());
                 Lwt.return (name, `String (Model.promise_value index))
-            | Json json -> Lwt.return (name, json)
+            | Json json ->
+                print_endline ("json: " ^ Yojson.Basic.to_string json);
+                Lwt.return (name, json)
             | Error error ->
                 let index = Fiber.use_index fiber in
                 let error_json =
@@ -611,7 +614,6 @@ let rec render_element_to_html ~(fiber : Fiber.t) (element : React.element) : (H
                 Lwt.return (name, `String (Model.action_value index)))
           props
       in
-      let lwt_html = client_to_html ~fiber (client ()) in
       let index = Fiber.use_index fiber in
 
       let ref : json = Model.component_ref ~module_:import_module ~name:import_name in

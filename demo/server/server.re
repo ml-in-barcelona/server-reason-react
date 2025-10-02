@@ -28,6 +28,17 @@ let rscRouting = (basePath, handler) => {
          getAndPost(
            basePath ++ path,
            request => {
+             let url = {
+               let protocol = Dream.tls(request) ? "https" : "http";
+               let host =
+                 switch (Dream.header(request, "Host")) {
+                 | Some(h) => h
+                 | None => ""
+                 };
+               let target = Dream.target(request);
+               Printf.sprintf("%s://%s%s", protocol, host, target);
+             };
+
              let routeSegments = String.split_on_char('/', path);
              let rscParam = Dream.query(request, "rsc");
              let element =
@@ -36,9 +47,17 @@ let rscRouting = (basePath, handler) => {
                  let rscRouteSegments = rscPath |> String.split_on_char('/');
                  RouteDefinitions.(
                    routes |> renderComponent(routeSegments, rscRouteSegments)
-                 );
+                 )
+                 |> Option.value(~default=React.null);
                | None =>
-                 RouteDefinitions.(routes |> renderByPath(routeSegments))
+                 <Supersonic.RouterContext.Provider url={URL.makeExn(url)}>
+                   {switch (
+                      RouteDefinitions.(routes |> renderByPath(routeSegments))
+                    ) {
+                    | Some(element) => element
+                    | None => React.null
+                    }}
+                 </Supersonic.RouterContext.Provider>
                };
 
              handler(~element, request);
