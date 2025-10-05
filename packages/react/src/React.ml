@@ -374,6 +374,17 @@ end
 
 type error = { message : string; stack : Yojson.Basic.t; env : string; digest : string }
 
+module Model = struct
+  type 'element t =
+    | Function : 'server_function Runtime.server_function -> 'element t
+    | List : 'element t list -> 'element t
+    | Assoc : (string * 'element t) list -> 'element t
+    | Json : Yojson.Basic.t -> 'element t
+    | Error : error -> 'element t
+    | Element : 'element -> 'element t
+    | Promise : 'a Js.Promise.t * ('a -> Yojson.Basic.t) -> 'element t
+end
+
 type element =
   | Lower_case_element of lower_case_element
   | Upper_case_component of string * (unit -> element)
@@ -390,15 +401,7 @@ type element =
   | Suspense of { key : string option; children : element; fallback : element }
 
 and lower_case_element = { key : string option; tag : string; attributes : JSX.prop list; children : element list }
-and client_props = (string * client_value) list
-
-and client_value =
-  (* TODO: Do we need to add more types here? *)
-  | Function : 'f Runtime.server_function -> client_value
-  | Json : Yojson.Basic.t -> client_value
-  | Error : error -> client_value
-  | Element : element -> client_value
-  | Promise : 'a Js.Promise.t * ('a -> Yojson.Basic.t) -> client_value
+and client_props = (string * element Model.t) list
 
 exception Invalid_children of string
 

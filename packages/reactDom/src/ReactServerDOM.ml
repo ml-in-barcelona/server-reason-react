@@ -330,7 +330,7 @@ module Model = struct
     turn_element_into_payload ~context element
 
   and client_value_to_json ~context value =
-    match (value : React.client_value) with
+    match (value : React.element React.Model.t) with
     | Json json -> json
     | Error error ->
         let chunk_id = use_chunk_id context in
@@ -339,10 +339,7 @@ module Model = struct
         in
         context.push chunk_id (Chunk_error error_json);
         `String (error_value context.chunk_id)
-    | Element element ->
-        let chunk_id = use_chunk_id context in
-        context.push chunk_id (Chunk_value (element_to_payload ~context element));
-        `String (ref_value chunk_id)
+    | Element element -> element_to_payload ~context element
     | Promise (promise, value_to_json) -> (
         match Lwt.state promise with
         | Return value ->
@@ -364,6 +361,12 @@ module Model = struct
         | Fail exn ->
             (* TODO: https://github.com/ml-in-barcelona/server-reason-react/issues/251 *)
             raise exn)
+    | List list ->
+        let list = List.map (fun element -> client_value_to_json ~context element) list in
+        `List list
+    | Assoc assoc ->
+        let assoc = List.map (fun (name, value) -> (name, client_value_to_json ~context value)) assoc in
+        `Assoc assoc
     | Function action ->
         let chunk_id = use_chunk_id context in
         context.push chunk_id (Chunk_value (`Assoc [ ("id", `String action.id); ("bound", `Null) ]));
@@ -372,7 +375,7 @@ module Model = struct
   and client_values_to_json ~context props =
     List.map (fun (name, value) -> (name, client_value_to_json ~context value)) props
 
-  let render ?(env = `Dev) ?(debug = false) ?subscribe element =
+  let render ?(env = `Dev) ?(debug = false) ?subscribe model =
     let initial_chunk_id = 0 in
     let stream, push, close = Push_stream.make () in
     let push_chunk id chunk =
@@ -384,7 +387,7 @@ module Model = struct
     in
     let context : stream_context = { push = push_chunk; close; chunk_id = initial_chunk_id; pending = 0; debug; env } in
     let initial_chunk_id = get_chunk_id context in
-    context.push initial_chunk_id (Chunk_value (element_to_payload ~context element));
+    context.push initial_chunk_id (Chunk_value (client_value_to_json ~context model));
     if context.pending = 0 then context.close ();
     match subscribe with None -> Lwt.return () | Some subscribe -> Lwt_stream.iter_s subscribe stream
 
@@ -396,7 +399,7 @@ module Model = struct
         let stack = create_stack_trace () in
         (* TODO: Improve it to be an UUID *)
         let digest = stack |> Yojson.Basic.to_string |> Hashtbl.hash |> Int.to_string in
-        Lwt.return (React.Error { message; stack; env = "Server"; digest })
+        Lwt.return (React.Model.Error { message; stack; env = "Server"; digest })
     in
     let initial_chunk_id = 0 in
     let stream, push, close = Push_stream.make () in
@@ -574,41 +577,8 @@ let rec render_element_to_html ~(fiber : Fiber.t) (element : React.element) : (H
       let lwt_props =
         Lwt_list.map_p
           (fun (name, value) ->
-            match (value : React.client_value) with
-            | Element element ->
-                let%lwt _html, model = render_element_to_html ~fiber element in
-                Lwt.return (name, model)
-            | Promise (promise, value_to_json) ->
-                let index = Fiber.use_index fiber in
-                let async : Html.element Lwt.t =
-                  let%lwt value = promise in
-                  let json = value_to_json value in
-                  let ret = chunk_script (Model.model_to_chunk index json) in
-                  Lwt.return ret
-                in
-                context.pending <- context.pending + 1;
-                Lwt.async (fun () ->
-                    let%lwt html = async in
-                    context.push html;
-                    context.pending <- context.pending - 1;
-                    if context.pending = 0 then context.close ();
-                    Lwt.return ());
-                Lwt.return (name, `String (Model.promise_value index))
-            | Json json -> Lwt.return (name, json)
-            | Error error ->
-                let index = Fiber.use_index fiber in
-                let error_json =
-                  Model.make_error_json ~env:context.env ~stack:error.stack ~message:error.message ~digest:error.digest
-                in
-                context.push (error_chunk_script index error_json);
-                Lwt.return (name, `String (Model.error_value index))
-            | Function action ->
-                let index = Fiber.use_index fiber in
-                let html =
-                  chunk_script (Model.model_to_chunk index (`Assoc [ ("id", `String action.id); ("bound", `Null) ]))
-                in
-                context.push html;
-                Lwt.return (name, `String (Model.action_value index)))
+            let%lwt model = render_model ~fiber value in
+            Lwt.return (name, model))
           props
       in
       let lwt_html = client_to_html ~fiber (client ()) in
@@ -660,6 +630,55 @@ let rec render_element_to_html ~(fiber : Fiber.t) (element : React.element) : (H
   | Consumer children -> render_element_to_html ~fiber children
   | Lower_case_element { key; tag; attributes; children } ->
       render_lower_case_element ~fiber ~key ~tag ~attributes ~children
+
+and render_model ~fiber value =
+  let context = Fiber.get_context fiber in
+  match (value : React.element React.Model.t) with
+  | Element element ->
+      let%lwt _html, model = render_element_to_html ~fiber element in
+      Lwt.return model
+  | Promise (promise, value_to_json) ->
+      let index = Fiber.use_index fiber in
+      let async : Html.element Lwt.t =
+        let%lwt value = promise in
+        let json = value_to_json value in
+        let ret = chunk_script (Model.model_to_chunk index json) in
+        Lwt.return ret
+      in
+      context.pending <- context.pending + 1;
+      Lwt.async (fun () ->
+          let%lwt html = async in
+          context.push html;
+          context.pending <- context.pending - 1;
+          if context.pending = 0 then context.close ();
+          Lwt.return ());
+      Lwt.return (`String (Model.promise_value index))
+  | Json json -> Lwt.return json
+  | Error error ->
+      let index = Fiber.use_index fiber in
+      let error_json =
+        Model.make_error_json ~env:context.env ~stack:error.stack ~message:error.message ~digest:error.digest
+      in
+      context.push (error_chunk_script index error_json);
+      Lwt.return (`String (Model.error_value index))
+  | List list ->
+      let%lwt models = Lwt_list.map_p (fun element -> render_model ~fiber element) list in
+
+      Lwt.return (`List models)
+  | Assoc assoc ->
+      let%lwt assoc =
+        Lwt_list.map_p
+          (fun (name, value) ->
+            let%lwt model = render_model ~fiber value in
+            Lwt.return (name, model))
+          assoc
+      in
+      Lwt.return (`Assoc assoc)
+  | Function action ->
+      let index = Fiber.use_index fiber in
+      let html = chunk_script (Model.model_to_chunk index (`Assoc [ ("id", `String action.id); ("bound", `Null) ])) in
+      context.push html;
+      Lwt.return (`String (Model.action_value index))
 
 and render_lower_case_element ~fiber ~key ~tag ~attributes ~children =
   (* Head hoisting mechanism:
@@ -915,8 +934,8 @@ let render_model = Model.render
 let create_action_response = Model.create_action_response
 
 type server_function =
-  | FormData of (Yojson.Basic.t array -> Js.FormData.t -> React.client_value Lwt.t)
-  | Body of (Yojson.Basic.t array -> React.client_value Lwt.t)
+  | FormData of (Yojson.Basic.t array -> Js.FormData.t -> React.element React.Model.t Lwt.t)
+  | Body of (Yojson.Basic.t array -> React.element React.Model.t Lwt.t)
 
 type model = Reference of string | FormData of string | Undefined | Json of json
 

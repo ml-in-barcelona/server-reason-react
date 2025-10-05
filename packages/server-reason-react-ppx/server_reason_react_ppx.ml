@@ -539,7 +539,7 @@ let make_of_json ~loc (core_type : core_type) prop =
      like `("someProp"), `List([React.element, string]).
      We already support it, but not with the ppx.
      Checkout the test_RSC_model.ml for more details. packages/reactDom/test/test_RSC_html.ml *)
-  (* QUESTION: How can we handle optionals and others? Need a [@deriving rsc] for them? We currently encode None's as React.Json `Null, should be enought *)
+  (* QUESTION: How can we handle optionals and others? Need a [@deriving rsc] for them? We currently encode None's as React.Model.Json `Null, should be enought *)
   | [%type: React.element] -> [%expr ([%e prop] : React.element)]
   | [%type: React.element option] -> [%expr ([%e prop] : React.element option)]
   (* TODO: Add promise caching? When is it needed? *)
@@ -675,25 +675,28 @@ let rewrite_signature_item signature_item =
 
 let make_to_json ~loc (core_type : core_type) prop =
   match core_type with
-  | [%type: React.element] -> [%expr React.Element ([%e prop] : React.element)]
+  | [%type: React.element] -> [%expr React.Model.Element ([%e prop] : React.element)]
   | [%type: React.element option] ->
-      [%expr match [%e prop] with Some prop -> React.Element (prop : React.element) | None -> React.Json `Null]
+      [%expr
+        match [%e prop] with Some prop -> React.Model.Element (prop : React.element) | None -> React.Model.Json `Null]
   | [%type: [%t? inner_type] Js.Promise.t] ->
       let json = [%expr [%to_json: [%t inner_type]]] in
-      [%expr React.Promise ([%e prop], [%e json])]
+      [%expr React.Model.Promise ([%e prop], [%e json])]
   | [%type: [%t? inner_type] Js.Promise.t option] ->
       let json = [%expr [%to_json: [%t inner_type]]] in
       [%expr
-        match [%e prop] with Some prop -> [%expr React.Promise ([%e prop], [%e json])] | None -> React.Json `Null]
+        match [%e prop] with
+        | Some prop -> [%expr React.Model.Promise ([%e prop], [%e json])]
+        | None -> React.Model.Json `Null]
   | { ptyp_desc = Ptyp_arrow (_, _, _) } ->
       let loc = core_type.ptyp_loc in
       [%expr
         [%ocaml.error
           "server-reason-react: you can't pass functions into client components. Functions aren't serialisable to JSON."]]
-  | [%type: [%t? _] Runtime.server_function] -> [%expr React.Function [%e prop]]
+  | [%type: [%t? _] Runtime.server_function] -> [%expr React.Model.Function [%e prop]]
   | type_ ->
       let json = [%expr [%to_json: [%t type_]] [%e prop]] in
-      [%expr React.Json [%e json]]
+      [%expr React.Model.Json [%e json]]
 
 let props_to_model ~loc (props : (arg_label * expression option * pattern) list) =
   List.fold_left ~init:[%expr []]
@@ -776,7 +779,7 @@ module ServerFunction = struct
     match core_type with
     | Some [%type: [%t? core_type] Js.Promise.t] ->
         let json = [%expr [%to_json: [%t core_type]] [%e response]] in
-        [%expr React.Json [%e json]]
+        [%expr React.Model.Json [%e json]]
     | Some _ -> [%expr [%ocaml.error "server-reason-react: server functions must return a promise"]]
     | _ ->
         [%expr [%ocaml.error "server-reason-react: server functions must have a return type annotation (Js.Promise.t)"]]
