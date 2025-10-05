@@ -1,3 +1,4 @@
+open Supersonic;
 module Layout = {
   [@react.component]
   let make = (~children) => {
@@ -20,8 +21,7 @@ let handler = (~element, request) => {
   DreamRSC.createFromRequest(
     ~disableSSR=!ssr,
     ~bootstrapModules=["/static/demo/Router.re.js"],
-    ~layout=children => <Layout> children </Layout>,
-    element,
+    React.Model.Element(element),
     request,
   );
 };
