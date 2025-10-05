@@ -300,7 +300,9 @@ let client_with_promise_props () =
               React.Client_component
                 {
                   props =
-                    [ ("promise", React.Promise (delayed_value ~ms:20 "||| Resolved |||", fun res -> `String res)) ];
+                    [
+                      ("promise", React.Model.Promise (delayed_value ~ms:20 "||| Resolved |||", fun res -> `String res));
+                    ];
                   client = (fun () -> React.string "Client with Props");
                   import_module = "./client-with-props.js";
                   import_name = "ClientWithProps";
@@ -329,7 +331,7 @@ let client_with_element_props () =
               props =
                 [
                   ( "element",
-                    React.Element
+                    React.Model.Element
                       (React.createElement "span" [] [ React.string "server-component-as-props-to-client-component" ])
                   );
                 ];
@@ -576,7 +578,7 @@ let nested_context () =
             {
               import_module = "./provider.js";
               import_name = "Provider";
-              props = [ ("value", React.Element value); ("children", React.Element children) ];
+              props = [ ("value", React.Model.Element value); ("children", React.Model.Element children) ];
               client = (fun () -> provider ~value ~children ());
             } )
   in

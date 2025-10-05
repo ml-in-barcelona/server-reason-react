@@ -538,7 +538,7 @@ let server_function_reference = () => {
     );
 
   switch (route_response) {
-  | React.Json(json) =>
+  | React.Model.Json(json) =>
     assert_string(string_of_json(json), "Hello John, you are 30 years old");
     Lwt.return_unit;
   | _ => Stdlib.failwith("Expected a JSON response")
@@ -583,7 +583,7 @@ let server_function_reference_form_data = () => {
     );
 
   switch (response) {
-  | React.Json(json) =>
+  | React.Model.Json(json) =>
     assert_string(string_of_json(json), "Hello John, you are 30 years old");
     Lwt.return_unit;
   | _ => Stdlib.failwith("Expected a JSON response")
@@ -604,7 +604,7 @@ let server_function_reference_form_data_and_args = () => {
     );
 
   switch (response) {
-  | React.Json(json) =>
+  | React.Model.Json(json) =>
     assert_string(
       string_of_json(json),
       "Hello John, your role is Developer",
