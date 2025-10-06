@@ -12,7 +12,7 @@ mel.as attribute
   "[server-reason-react.melange_ppx] There's an external in native, which should \
    only happen in JavaScript. You need to conditionally run it, either by not \
    including it on native or via let%browser_only/switch%platform. More info at \
-   https://ml-in-barcelona.github.io/server-reason-react/local/server-reason-react/browser_only.html"]
+   https://ml-in-barcelona.github.io/server-reason-react/server-reason-react/browser_ppx.html"]
 
   $ echo "module Runtime = struct" > main.ml
   $ cat $INSIDE_DUNE/packages/runtime/Runtime.ml >> main.ml
@@ -26,5 +26,5 @@ mel.as attribute
          should only happen in JavaScript. You need to conditionally run it,
          either by not including it on native or via
          let%browser_only/switch%platform. More info at
-         https://ml-in-barcelona.github.io/server-reason-react/local/server-reason-react/browser_only.html
+         https://ml-in-barcelona.github.io/server-reason-react/server-reason-react/browser_ppx.html
   [2]
