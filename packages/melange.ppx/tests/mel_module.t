@@ -68,7 +68,7 @@ Single type (invalid OCaml, but valid in Melange)
    \"...\"] in native, which should only happen in JavaScript. You need to \
    conditionally run it, either by not including it on native or via \
    let%browser_only/switch%platform. More info at \
-   https://ml-in-barcelona.github.io/server-reason-react/local/server-reason-react/browser_only.html"]
+   https://ml-in-barcelona.github.io/server-reason-react/server-reason-react/browser_ppx.html"]
 
   $ echo "module Runtime = struct" > main.ml
   $ cat $INSIDE_DUNE/packages/runtime/Runtime.ml >> main.ml
@@ -82,7 +82,7 @@ Single type (invalid OCaml, but valid in Melange)
          [%mel.module "..."] in native, which should only happen in JavaScript.
          You need to conditionally run it, either by not including it on native
          or via let%browser_only/switch%platform. More info at
-         https://ml-in-barcelona.github.io/server-reason-react/local/server-reason-react/browser_only.html
+         https://ml-in-barcelona.github.io/server-reason-react/server-reason-react/browser_ppx.html
   [2]
 
 Assets with file not found

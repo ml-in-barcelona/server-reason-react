@@ -10,7 +10,7 @@ mel.raw as a value
      { return element.ownerDocument; } \"] expression in native, which should \
      only happen in JavaScript. You need to conditionally run it via \
      let%browser_only or switch%platform. More info at \
-     https://ml-in-barcelona.github.io/server-reason-react/local/server-reason-react/browser_only.html"]
+     https://ml-in-barcelona.github.io/server-reason-react/server-reason-react/browser_ppx.html"]
 
 mel.raw as an unary function
 
@@ -24,7 +24,7 @@ mel.raw as an unary function
      { return element.ownerDocument; } \"] expression in native, which should \
      only happen in JavaScript. You need to conditionally run it via \
      let%browser_only or switch%platform. More info at \
-     https://ml-in-barcelona.github.io/server-reason-react/local/server-reason-react/browser_only.html"]
+     https://ml-in-barcelona.github.io/server-reason-react/server-reason-react/browser_ppx.html"]
 
 mel.raw as an binary function
 
@@ -44,7 +44,7 @@ mel.raw as an binary function
      } \"] expression in native, which should only happen in JavaScript. You \
      need to conditionally run it via let%browser_only or switch%platform. More \
      info at \
-     https://ml-in-barcelona.github.io/server-reason-react/local/server-reason-react/browser_only.html"]
+     https://ml-in-barcelona.github.io/server-reason-react/server-reason-react/browser_ppx.html"]
 
 mel.raw with type
 
@@ -60,7 +60,7 @@ mel.raw with type
     "[server-reason-react.melange_ppx] There's a [%mel.raw \"window\"] \
      expression in native, which should only happen in JavaScript. You need to \
      conditionally run it via let%browser_only or switch%platform. More info at \
-     https://ml-in-barcelona.github.io/server-reason-react/local/server-reason-react/browser_only.html"]
+     https://ml-in-barcelona.github.io/server-reason-react/server-reason-react/browser_ppx.html"]
 
   $ echo "module Runtime = struct" > main.ml
   $ cat $INSIDE_DUNE/packages/runtime/Runtime.ml >> main.ml
@@ -74,7 +74,7 @@ mel.raw with type
          expression in native, which should only happen in JavaScript. You need
          to conditionally run it via let%browser_only or switch%platform. More
          info at
-         https://ml-in-barcelona.github.io/server-reason-react/local/server-reason-react/browser_only.html
+         https://ml-in-barcelona.github.io/server-reason-react/server-reason-react/browser_ppx.html
   [2]
 
 mel.raw as a value
@@ -89,4 +89,4 @@ mel.raw as a value
    console.log(\"running in JS\"); \"] expression in native, which should only \
    happen in JavaScript. You need to conditionally run it via let%browser_only \
    or switch%platform. More info at \
-   https://ml-in-barcelona.github.io/server-reason-react/local/server-reason-react/browser_only.html"]
+   https://ml-in-barcelona.github.io/server-reason-react/server-reason-react/browser_ppx.html"]
