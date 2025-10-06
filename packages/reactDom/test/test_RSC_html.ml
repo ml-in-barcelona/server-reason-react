@@ -633,6 +633,88 @@ let nested_context () =
       "<script data-payload='7:I[\"./provider.js\",[],\"Provider\"]\n'>window.srr_stream.push()</script>";
     ]
 
+let client_component_with_async_component () =
+  let children =
+    React.Async_component
+      ( __FUNCTION__,
+        fun () ->
+          let%lwt () = sleep ~ms:10 in
+          Lwt.return (React.string "Async Component") )
+  in
+  let app ~children =
+    React.Client_component
+      {
+        import_module = "./client.js";
+        import_name = "Client";
+        props = [ ("children", React.Element children) ];
+        client = (fun () -> children);
+      }
+  in
+  assert_html (app ~children)
+    ~shell:
+      "Async Component<script data-payload='0:[\"$\",\"$1\",null,{\"children\":\"Async Component\"},null,[],{}]\n\
+       '>window.srr_stream.push()</script>"
+    [ "<script data-payload='1:I[\"./client.js\",[],\"Client\"]\n'>window.srr_stream.push()</script>" ]
+
+(* This test ensures that we don't push multiple scripts for the Suspense component *)
+let client_component_with_nested_suspense_client_component () =
+  let async_suspense ~children =
+    React.Suspense.make ~fallback:(React.string "Loading...")
+      ~children:
+        (React.Async_component
+           ( "async_suspense",
+             fun () ->
+               let%lwt () = sleep ~ms:10 in
+               Lwt.return children ))
+      ()
+  in
+  let client_component ~children =
+    React.Client_component
+      {
+        import_module = "./client.js";
+        import_name = "Client";
+        props = [ ("children", React.Element children) ];
+        client = (fun () -> children);
+      }
+  in
+  assert_html
+    (client_component
+       ~children:
+         (React.array
+            [|
+              React.string "Root";
+              async_suspense
+                ~children:
+                  (React.array
+                     [|
+                       React.string "Level 2";
+                       client_component
+                         ~children:
+                           (React.array
+                              [|
+                                React.string "Level 3";
+                                client_component ~children:(async_suspense ~children:(React.string "Level 4"));
+                              |]);
+                     |]);
+            |]))
+    ~shell:
+      "Root<!--$?--><template id=\"B:1\"></template>Loading...<!--/$--><script \
+       data-payload='0:[\"$\",\"$3\",null,{\"children\":[\"Root\",[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L2\"},null,[],{}]]},null,[],{}]\n\
+       '>window.srr_stream.push()</script>"
+    [
+      "<script data-payload='3:I[\"./client.js\",[],\"Client\"]\n'>window.srr_stream.push()</script>";
+      "<div hidden=\"true\" id=\"S:1\">Level 2<!-- -->Level 3<!--$?--><template \
+       id=\"B:4\"></template>Loading...<!--/$--></div>\n\
+       <script>$RC('B:1', 'S:1')</script>";
+      "<script data-payload='8:I[\"./client.js\",[],\"Client\"]\n'>window.srr_stream.push()</script>";
+      "<script data-payload='9:I[\"./client.js\",[],\"Client\"]\n'>window.srr_stream.push()</script>";
+      "<script data-payload='2:[\"Level 2\",[\"$\",\"$9\",null,{\"children\":[\"Level \
+       3\",[\"$\",\"$8\",null,{\"children\":[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L7\"},null,[],{}]},null,[],{}]]},null,[],{}]]\n\
+       '>window.srr_stream.push()</script>";
+      "<div hidden=\"true\" id=\"S:4\">Level 4</div>\n<script>$RC('B:4', 'S:4')</script>";
+      "<script data-payload='7:\"Level 4\"\n'>window.srr_stream.push()</script>";
+    ]
+
 let tests =
   [
     (* test "debug_adds_debug_info" debug_adds_debug_info; *)
@@ -655,6 +737,8 @@ let tests =
     test "suspense_in_a_list_with_error" suspense_in_a_list_with_error;
     test "server_function_as_action" server_function_as_action;
     test "nested_context" nested_context;
+    test "client_component_with_async_component" client_component_with_async_component;
+    test "client_component_with_nested_suspense_client_component" client_component_with_nested_suspense_client_component;
     (* test "page_with_resources" page_with_resources;
     test "page_with_duplicate_resources" page_with_duplicate_resources; *)
     (* test "client_component_with_bootstrap_scripts" client_component_with_bootstrap_scripts;

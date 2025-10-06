@@ -123,3 +123,33 @@
         client: () => React.null,
       });
   };
+  module Prop_with_suspense = {
+    module Async_component = {
+      let make = (~key as _: option(string)=?, ()) =>
+        [@implicit_arity]
+        React.Async_component(
+          Stdlib.__FUNCTION__,
+          () => Lwt.return(React.string("Async Component")),
+        );
+    };
+    module Client_component = {
+      let make = (~key as _: option(string)=?, ~children: React.element, ()) =>
+        React.Client_component({
+          import_module:
+            Printf.sprintf(
+              "%s#%s",
+              "output.ml",
+              "Async_component.Client_component",
+            ),
+          import_name: "",
+          props: [("children", React.Element(children: React.element))],
+          client: () => children,
+        });
+    };
+    let make = (~key as _: option(string)=?, ()) =>
+      [@implicit_arity]
+      React.Upper_case_component(
+        Stdlib.__FUNCTION__,
+        () => Client_component.make(~children=Async_component.make(), ()),
+      );
+  };

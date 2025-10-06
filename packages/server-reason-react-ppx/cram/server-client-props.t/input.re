@@ -44,3 +44,16 @@ module Prop_with_unknown_annotation = {
         ~lapply: Label.t(int, string),
       ) => React.null;
 };
+
+module Prop_with_suspense = {
+  module Async_component = {
+    [@react.async.component]
+    let make = () => Lwt.return(React.string("Async Component"));
+  };
+  module Client_component = {
+    [@react.client.component]
+    let make = (~children: React.element) => children;
+  };
+  [@react.component]
+  let make = () => <Client_component> <Async_component /> </Client_component>;
+};
