@@ -635,6 +635,54 @@ let nested_context () =
       "<script data-payload='7:I[\"./provider.js\",[],\"Provider\"]\n'>window.srr_stream.push()</script>";
     ]
 
+let client_component_with_async_component () =
+  let children =
+    React.Async_component
+      ( __FUNCTION__,
+        fun () ->
+          let%lwt () = sleep ~ms:10 in
+          Lwt.return (React.string "Async Component") )
+  in
+  let app ~children =
+    React.Client_component
+      {
+        import_module = "./client.js";
+        import_name = "Client";
+        props = [ ("children", React.Model.Element children) ];
+        client = (fun () -> children);
+      }
+  in
+  assert_html (app ~children)
+    ~shell:
+      "Async Component<script data-payload='0:[\"$\",\"$1\",null,{\"children\":\"Async Component\"},null,[],{}]\n\
+       '>window.srr_stream.push()</script>"
+    [ "<script data-payload='1:I[\"./client.js\",[],\"Client\"]\n'>window.srr_stream.push()</script>" ]
+
+let client_component_with_suspense_async_component () =
+  let async_suspense () =
+    React.Suspense.make ~fallback:(React.string "Loading...") ~children:(await_tick ~ms:1 "Async Component") ()
+  in
+  let client_component ~children =
+    React.Client_component
+      {
+        import_module = "./client.js";
+        import_name = "Client";
+        props = [ ("children", React.Model.Element children) ];
+        client = (fun () -> children);
+      }
+  in
+  let app () = client_component ~children:(async_suspense ()) in
+  assert_html (app ())
+    ~shell:
+      "<!--$?--><template id=\"B:1\"></template>Loading...<!--/$--><script \
+       data-payload='0:[\"$\",\"$3\",null,{\"children\":[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L2\"},null,[],{}]},null,[],{}]\n\
+       '>window.srr_stream.push()</script>"
+    [
+      "<script data-payload='3:I[\"./client.js\",[],\"Client\"]\n'>window.srr_stream.push()</script>";
+      "<div hidden=\"true\" id=\"S:1\">Async Component</div>\n<script>$RC('B:1', 'S:1')</script>";
+      "<script data-payload='2:\"Async Component\"\n'>window.srr_stream.push()</script>";
+    ]
+
 let tests =
   [
     (* test "debug_adds_debug_info" debug_adds_debug_info; *)
@@ -657,6 +705,9 @@ let tests =
     test "suspense_in_a_list_with_error" suspense_in_a_list_with_error;
     test "server_function_as_action" server_function_as_action;
     test "nested_context" nested_context;
+    test "client_component_with_async_component" client_component_with_async_component;
+    test "client_component_with_suspense_async_component" client_component_with_suspense_async_component;
+    (* test "client_component_with_suspense_prop" client_component_with_suspense_prop; *)
     (* test "page_with_resources" page_with_resources;
     test "page_with_duplicate_resources" page_with_duplicate_resources; *)
     (* test "client_component_with_bootstrap_scripts" client_component_with_bootstrap_scripts;

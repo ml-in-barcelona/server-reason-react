@@ -11,24 +11,42 @@ type app = {
 };
 
 [@platform native]
+module App = {
+  [@react.async.component]
+  let make = (~params: Hashtbl.t(string, string)) => {
+    let%lwt _ = Lwt_unix.sleep(2.);
+
+    Lwt.return(
+      <>
+        <div className="text-white text-6xl">
+          {React.string("App Home")}
+        </div>
+      </>,
+    );
+  };
+};
+
+[@platform native]
 let routes = [
   {
     path: "/",
     layout:
       Some(
         (~children) =>
-          <>
-            <Supersonic.Navigation />
-            <div className="text-white text-6xl"> children </div>
-          </>,
+          <html lang="en">
+            <head>
+              <meta charSet="utf-8" />
+              <link rel="stylesheet" href="/output.css" />
+            </head>
+            <body>
+              <DemoLayout>
+                <Supersonic.Navigation />
+                <div className="text-white text-6xl"> children </div>
+              </DemoLayout>
+            </body>
+          </html>,
       ),
-    page:
-      Some(
-        (~params as _) =>
-          <span className="text-white text-6xl">
-            <span> {React.string("\"home\" Page")} </span>
-          </span>,
-      ),
+    page: Some(App.make()),
     children:
       Some([
         {
@@ -167,10 +185,17 @@ let renderByPath =
             <Supersonic.Route
               path
               outlet={
-                switch (aux(children, remainingSegments, params, path)) {
-                | Some(component) => Some(component)
-                | None => route.page |> Option.map(page => page(~params))
-                }
+                Some(
+                  <React.Suspense fallback={React.string("Loading...")}>
+                    {switch (aux(children, remainingSegments, params, path)) {
+                     | Some(component) => component
+                     | None =>
+                       route.page
+                       |> Option.map(page => page(~params))
+                       |> Option.value(~default=React.null)
+                     }}
+                  </React.Suspense>,
+                )
               }>
               {switch (route.layout) {
                | Some(layout) => layout(~children=<Supersonic.Outlet />)
