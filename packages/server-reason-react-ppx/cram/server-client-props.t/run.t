@@ -19,14 +19,17 @@
           Printf.sprintf("%s#%s", "output.ml", "Prop_with_many_annotation"),
         import_name: "",
         props: [
-          ("prop", React.Json([%to_json: int](prop))),
-          ("lola", React.Json([%to_json: list(int)](lola))),
-          ("mona", React.Json([%to_json: array(float)](mona))),
-          ("lolo", React.Json([%to_json: string](lolo))),
-          ("lili", React.Json([%to_json: bool](lili))),
-          ("lulu", React.Json([%to_json: float](lulu))),
-          ("tuple2", React.Json([%to_json: (int, int)](tuple2))),
-          ("tuple3", React.Json([%to_json: (int, string, float)](tuple3))),
+          ("prop", React.Model.Json([%to_json: int](prop))),
+          ("lola", React.Model.Json([%to_json: list(int)](lola))),
+          ("mona", React.Model.Json([%to_json: array(float)](mona))),
+          ("lolo", React.Model.Json([%to_json: string](lolo))),
+          ("lili", React.Model.Json([%to_json: bool](lili))),
+          ("lulu", React.Model.Json([%to_json: float](lulu))),
+          ("tuple2", React.Model.Json([%to_json: (int, int)](tuple2))),
+          (
+            "tuple3",
+            React.Model.Json([%to_json: (int, string, float)](tuple3)),
+          ),
         ],
         client: () => React.null,
       });
@@ -57,8 +60,8 @@
           ),
         import_name: "",
         props: [
-          ("underscore", React.Json([%to_json: _](underscore))),
-          ("alpha_types", React.Json([%to_json: 'a](alpha_types))),
+          ("underscore", React.Model.Json([%to_json: _](underscore))),
+          ("alpha_types", React.Model.Json([%to_json: 'a](alpha_types))),
         ],
         client: () => React.null,
       });
@@ -84,7 +87,7 @@
         props: [
           (
             "polyvariants",
-            React.Json(
+            React.Model.Json(
               [%to_json:
                 [
                   | `A
@@ -112,13 +115,19 @@
           Printf.sprintf("%s#%s", "output.ml", "Prop_with_unknown_annotation"),
         import_name: "",
         props: [
-          ("lident", React.Json([%to_json: lola](lident))),
-          ("ldotlident", React.Json([%to_json: Module.lola](ldotlident))),
+          ("lident", React.Model.Json([%to_json: lola](lident))),
+          (
+            "ldotlident",
+            React.Model.Json([%to_json: Module.lola](ldotlident)),
+          ),
           (
             "ldotdotlident",
-            React.Json([%to_json: Module.Inner.lola](ldotdotlident)),
+            React.Model.Json([%to_json: Module.Inner.lola](ldotdotlident)),
           ),
-          ("lapply", React.Json([%to_json: Label.t(int, string)](lapply))),
+          (
+            "lapply",
+            React.Model.Json([%to_json: Label.t(int, string)](lapply)),
+          ),
         ],
         client: () => React.null,
       });
