@@ -524,7 +524,7 @@ let rec client_to_html ~fiber (element : React.element) =
           if context.pending = 0 then context.close ();
           Lwt.return ());
       Lwt.return sync
-  | Client_component { import_module = _; import_name = _; props = _; client } -> client_to_html ~fiber (client ())
+  | Client_component { import_module = _; import_name = _; props = _; client } -> client_to_html ~fiber client
   | Provider children -> client_to_html ~fiber children
   | Consumer children -> client_to_html ~fiber children
 
@@ -611,7 +611,7 @@ let rec render_element_to_html ~(fiber : Fiber.t) (element : React.element) : (H
                 Lwt.return (name, `String (Model.action_value index)))
           props
       in
-      let lwt_html = client_to_html ~fiber (client ()) in
+      let lwt_html = client_to_html ~fiber client in
       let index = Fiber.use_index fiber in
 
       let ref : json = Model.component_ref ~module_:import_module ~name:import_name in
