@@ -465,17 +465,17 @@ let html_suspense_placeholder ~fallback id =
       Html.raw "<!--/$-->";
     ]
 
-let rec client_to_html ~fiber (element : React.element) =
+let rec client_to_html ~skip_push_html ~fiber (element : React.element) =
   match element with
   | Empty -> Lwt.return Html.null
   | DangerouslyInnerHtml html -> Lwt.return (Html.raw html)
   | Text text -> Lwt.return (Html.string text)
-  | Fragment children -> client_to_html ~fiber children
+  | Fragment children -> client_to_html ~skip_push_html ~fiber children
   | List childrens ->
-      let%lwt html = Lwt_list.map_p (client_to_html ~fiber) childrens in
+      let%lwt html = Lwt_list.map_p (client_to_html ~skip_push_html ~fiber) childrens in
       Lwt.return (Html.list html)
   | Array childrens ->
-      let%lwt html = childrens |> Array.to_list |> Lwt_list.map_p (client_to_html ~fiber) in
+      let%lwt html = childrens |> Array.to_list |> Lwt_list.map_p (client_to_html ~skip_push_html ~fiber) in
       Lwt.return (Html.list html)
   | Lower_case_element { key; tag; attributes; children } ->
       let context = Fiber.get_context fiber in
@@ -488,12 +488,12 @@ let rec client_to_html ~fiber (element : React.element) =
                 let html =
                   chunk_script (Model.model_to_chunk index (`Assoc [ ("id", `String f.id); ("bound", `Null) ]))
                 in
-                context.push html;
+                if not skip_push_html then context.push html;
                 React.JSX.String (key, key, Model.action_value index)
             | _ -> prop)
           attributes
       in
-      render_lower_case ~fiber ~key ~tag ~attributes ~children
+      render_lower_case ~fiber ~key ~tag ~attributes ~children ~skip_push_html
   | Upper_case_component (_name, component) ->
       let rec wait_for_suspense_to_resolve () =
         match component () with
@@ -501,39 +501,38 @@ let rec client_to_html ~fiber (element : React.element) =
             let%lwt _ = promise in
             wait_for_suspense_to_resolve ()
         | exception _exn -> Lwt.return Html.null
-        | output -> client_to_html ~fiber output
+        | output -> client_to_html ~skip_push_html ~fiber output
       in
       wait_for_suspense_to_resolve ()
-  | Async_component (_, _component) ->
-      (* async components can't be interleaved in client components, for now *)
-      raise
-        (Invalid_argument
-           "async components can't be part of a client component. This should never raise, the ppx should catch it")
+  | Async_component (_, component) ->
+      let%lwt element = component () in
+      client_to_html ~skip_push_html ~fiber element
   | Suspense { key = _; children; fallback } ->
       (* TODO: Do we need to care if there's Any_promise raising ? *)
-      let%lwt fallback = client_to_html ~fiber fallback in
+      let%lwt fallback = client_to_html ~skip_push_html ~fiber fallback in
       let context = Fiber.get_context fiber in
       let index = Fiber.use_index fiber in
       let sync = html_suspense_placeholder ~fallback index in
-      let async = children |> client_to_html ~fiber |> Lwt.map (chunk_html_script index) in
+      let async = children |> client_to_html ~skip_push_html ~fiber |> Lwt.map (chunk_html_script index) in
       context.pending <- context.pending + 1;
       Lwt.async (fun () ->
           let%lwt html = async in
-          context.push html;
+          if not skip_push_html then context.push html;
           context.pending <- context.pending - 1;
           if context.pending = 0 then context.close ();
           Lwt.return ());
       Lwt.return sync
-  | Client_component { import_module = _; import_name = _; props = _; client } -> client_to_html ~fiber (client ())
-  | Provider children -> client_to_html ~fiber children
-  | Consumer children -> client_to_html ~fiber children
+  | Client_component { import_module = _; import_name = _; props = _; client } ->
+      client_to_html ~skip_push_html ~fiber (client ())
+  | Provider children -> client_to_html ~skip_push_html ~fiber children
+  | Consumer children -> client_to_html ~skip_push_html ~fiber children
 
-and render_lower_case ~fiber ~key:_ ~tag ~attributes ~children =
+and render_lower_case ~fiber ~key:_ ~tag ~attributes ~children ~skip_push_html =
   let html_props = ReactDOM.attributes_to_html attributes in
   match ReactDOM.getDangerouslyInnerHtml attributes with
   | Some inner_html -> Lwt.return (Html.node tag html_props [ Html.raw inner_html ])
   | None ->
-      let%lwt html = Lwt_list.map_p (client_to_html ~fiber) children in
+      let%lwt html = Lwt_list.map_p (client_to_html ~skip_push_html ~fiber) children in
       Lwt.return (Html.node tag html_props html)
 
 let is_async props =
@@ -547,15 +546,15 @@ let has_precedence_and_rel_stylesheet props =
   let has_rel_stylesheet prop = match prop with String ("rel", _, "stylesheet") -> true | _ -> false in
   List.exists has_precedence props && List.exists has_rel_stylesheet props
 
-let rec render_element_to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * json) Lwt.t =
+let rec render_element ~skip_push_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * json) Lwt.t =
   match element with
   | Empty -> Lwt.return (Html.null, `Null)
   (* Should the DangerouslyInnerHtml model be `Null? *)
   | DangerouslyInnerHtml html -> Lwt.return (Html.raw html, `Null)
   | Text s -> Lwt.return (Html.string s, `String s)
-  | Fragment children -> render_element_to_html ~fiber children
-  | List list -> elements_to_html ~fiber list
-  | Array arr -> elements_to_html ~fiber (Array.to_list arr)
+  | Fragment children -> render_element ~skip_push_html ~fiber children
+  | List list -> elements_to_html ~skip_push_html ~fiber list
+  | Array arr -> elements_to_html ~skip_push_html ~fiber (Array.to_list arr)
   | Upper_case_component (_name, component) -> (
       (* if debug then (
         let debug_info_index = Fiber.use_index fiber in
@@ -565,18 +564,20 @@ let rec render_element_to_html ~(fiber : Fiber.t) (element : React.element) : (H
         context.push debug_info_index (Model.Debug_info_map debug_info_ref);
         ()); *)
       match component () with
-      | element -> render_element_to_html ~fiber element)
+      | element -> render_element ~skip_push_html ~fiber element)
   | Async_component (_, component) ->
       let%lwt element = component () in
-      render_element_to_html ~fiber element
+      render_element ~skip_push_html ~fiber element
   | Client_component { import_module; import_name; props; client } ->
       let context = Fiber.get_context fiber in
-      let lwt_props =
+      let%lwt html = client_to_html ~skip_push_html ~fiber (client ()) in
+      let%lwt props =
         Lwt_list.map_p
           (fun (name, value) ->
             match (value : React.client_value) with
             | Element element ->
-                let%lwt _html, model = render_element_to_html ~fiber element in
+                (* On client component prop, we don't want to any html to be pushed, we want to render the model *)
+                let%lwt _, model = render_element ~skip_push_html:true ~fiber element in
                 Lwt.return (name, model)
             | Promise (promise, value_to_json) ->
                 let index = Fiber.use_index fiber in
@@ -589,7 +590,7 @@ let rec render_element_to_html ~(fiber : Fiber.t) (element : React.element) : (H
                 context.pending <- context.pending + 1;
                 Lwt.async (fun () ->
                     let%lwt html = async in
-                    context.push html;
+                    if not skip_push_html then context.push html;
                     context.pending <- context.pending - 1;
                     if context.pending = 0 then context.close ();
                     Lwt.return ());
@@ -611,27 +612,24 @@ let rec render_element_to_html ~(fiber : Fiber.t) (element : React.element) : (H
                 Lwt.return (name, `String (Model.action_value index)))
           props
       in
-      let lwt_html = client_to_html ~fiber (client ()) in
       let index = Fiber.use_index fiber in
-
       let ref : json = Model.component_ref ~module_:import_module ~name:import_name in
       context.push (client_reference_chunk_script index ref);
-      let%lwt html, props = Lwt.both lwt_html lwt_props in
       let model = Model.node ~tag:(Model.ref_value index) ~props [] in
       Lwt.return (html, model)
   | Suspense { key; children; fallback } -> (
       let context = Fiber.get_context fiber in
       let index = Fiber.use_index fiber in
-      let%lwt html_fallback, model_fallback = render_element_to_html ~fiber fallback in
+      let%lwt html_fallback, model_fallback = render_element ~skip_push_html ~fiber fallback in
       try%lwt
-        let promise = render_element_to_html ~fiber children in
+        let promise = render_element ~skip_push_html ~fiber children in
         match Lwt.state promise with
         | Sleep ->
             context.pending <- context.pending + 1;
             Lwt.async (fun () ->
                 try%lwt
                   let%lwt html, model = promise in
-                  context.push (chunk_html_script index html);
+                  if not skip_push_html then context.push (chunk_html_script index html);
                   context.push (client_value_chunk_script index model);
                   context.pending <- context.pending - 1;
                   if context.pending = 0 then context.close ();
@@ -640,7 +638,7 @@ let rec render_element_to_html ~(fiber : Fiber.t) (element : React.element) : (H
                   context.pending <- context.pending - 1;
                   let error_json = Model.exn_to_error ~env:context.env exn in
                   context.push (error_chunk_script index error_json);
-                  context.push (chunk_html_script index Html.null);
+                  if not skip_push_html then context.push (chunk_html_script index Html.null);
                   Lwt.return ());
             Lwt.return
               ( html_suspense_placeholder ~fallback:html_fallback index,
@@ -654,25 +652,24 @@ let rec render_element_to_html ~(fiber : Fiber.t) (element : React.element) : (H
         let error_json = Model.exn_to_error ~env:context.env exn in
         let html = html_suspense_placeholder ~fallback:html_fallback index in
         context.push (error_chunk_script index error_json);
-        context.push (chunk_html_script index Html.null);
+        if not skip_push_html then context.push (chunk_html_script index Html.null);
         Lwt.return (html, Model.suspense_placeholder ~key ~fallback:model_fallback index))
-  | Provider children -> render_element_to_html ~fiber children
-  | Consumer children -> render_element_to_html ~fiber children
+  | Provider children -> render_element ~skip_push_html ~fiber children
+  | Consumer children -> render_element ~skip_push_html ~fiber children
   | Lower_case_element { key; tag; attributes; children } ->
-      render_lower_case_element ~fiber ~key ~tag ~attributes ~children
+      render_lower_case_element ~fiber ~key ~tag ~attributes ~children ~skip_push_html ()
 
-and render_lower_case_element ~fiber ~key ~tag ~attributes ~children =
+and render_lower_case_element ~fiber ~key ~tag ~attributes ~children ~skip_push_html () =
   (* Head hoisting mechanism:
      Head elements (meta, style, title, etc) might be scattered throughout the component tree but need to be rendered in the <head> section. Also, if there's no head element, we need to create one and hoist its possible children. *)
   let inner_html = ReactDOM.getDangerouslyInnerHtml attributes in
-
   (* only set the first element visited true, the first time *)
   (match Fiber.visited_first_lower_case ~fiber with
   | Some _ -> ()
   | None -> Fiber.set_visited_first_lower_case ~fiber tag);
 
   if fiber.inside_head && not fiber.inside_body then
-    render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html
+    render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html ~skip_push_html
   else
     match tag with
     | "html" -> (
@@ -680,17 +677,19 @@ and render_lower_case_element ~fiber ~key ~tag ~attributes ~children =
         (* If the first visited lower case is an html element -> skip rendering the html tag itself, just process children. That's because we will reconstuct the html element at the "render_html" *)
         | Some "html" ->
             Fiber.set_html_tag_attributes ~fiber (ReactDOM.attributes_to_html attributes);
-            let%lwt html, model = render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html in
+            let%lwt html, model =
+              render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html ~skip_push_html
+            in
             let html_children = match html with Html.Node { children; _ } -> Html.list children | _ -> html in
             Lwt.return (html_children, model)
         (* In case of rendering html tag as not the first visited lower case element, means that something is wrapping this html tag (like a div or other element) which is invalid HTML, but we keep rendering as a regular element, as React.js' DOM renderer does *)
-        | Some _ -> render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html
+        | Some _ -> render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html ~skip_push_html
         | None ->
             (* the None case isn't possible, since we call set_visited_first_lower_case ~fiber tag in the beginning of the function *)
-            render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html)
+            render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html ~skip_push_html)
     | "body" ->
         fiber.inside_body <- true;
-        let%lwt value = render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html in
+        let%lwt value = render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html ~skip_push_html in
         fiber.inside_body <- false;
         Lwt.return value
     | "head" ->
@@ -698,18 +697,21 @@ and render_lower_case_element ~fiber ~key ~tag ~attributes ~children =
         (* push the head element to the hoisted_head *)
         let%lwt value =
           handle_hoistable_element ~fiber ~key ~tag ~attributes ~children ~inner_html ~on_push:Fiber.push_hoisted_head
+            ~skip_push_html
         in
         fiber.inside_head <- false;
         Lwt.return value
     | tag when (tag = "script" && is_async attributes) || (tag = "link" && has_precedence_and_rel_stylesheet attributes)
       ->
         handle_hoistable_element ~fiber ~key ~tag ~attributes ~children ~inner_html ~on_push:Fiber.push_resource
+          ~skip_push_html
     | tag when tag = "title" || tag = "meta" || tag = "link" ->
         handle_hoistable_element ~fiber ~key ~tag ~attributes ~children ~inner_html
-          ~on_push:Fiber.push_hoisted_head_childrens
-    | _ -> render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html
+          ~on_push:Fiber.push_hoisted_head_childrens ~skip_push_html
+    | _ -> render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html ~skip_push_html
 
-and handle_hoistable_element ~fiber ~key ~tag ~attributes ~children ~inner_html ~on_push =
+and handle_hoistable_element ~fiber ~key ~tag ~attributes ~children ~inner_html ~on_push ~skip_push_html :
+    (Html.element * json) Lwt.t =
   let props = Model.props_to_json attributes in
 
   let create_model children =
@@ -726,12 +728,13 @@ and handle_hoistable_element ~fiber ~key ~tag ~attributes ~children ~inner_html 
   in
 
   let html_props = ReactDOM.attributes_to_html attributes in
-  let%lwt children_html, children_model = elements_to_html ~fiber children in
+  let%lwt children_html, children_model = elements_to_html ~skip_push_html ~fiber children in
   let html = create_html_node ~html_props ~children_html in
   on_push ~fiber html;
   Lwt.return (Html.null, create_model children_model)
 
-and render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html =
+and render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html ~skip_push_html :
+    (Html.element * json) Lwt.t =
   let context = Fiber.get_context fiber in
   let html_props = ReactDOM.attributes_to_html attributes in
   let json_attributes =
@@ -757,11 +760,11 @@ and render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html =
       (* elements with dangerouslySetInnerHTML *)
       Lwt.return (Html.node tag html_props [ Html.raw inner_html ], Model.node ~tag ~key ~props:json_props [])
   | false, None ->
-      let%lwt html, model = elements_to_html ~fiber children in
+      let%lwt html, model = elements_to_html ~skip_push_html ~fiber children in
       Lwt.return (Html.node tag html_props [ html ], Model.node ~tag ~key ~props:json_props [ model ])
 
-and elements_to_html ~fiber elements =
-  let%lwt html_and_models = elements |> Lwt_list.map_p (render_element_to_html ~fiber) in
+and elements_to_html ~skip_push_html ~fiber elements =
+  let%lwt html_and_models = elements |> Lwt_list.map_p (render_element ~skip_push_html ~fiber) in
   (* TODO: List.split is not tail recursive *)
   let htmls, model = List.split html_and_models in
   Lwt.return (Html.list htmls, `List model)
@@ -839,7 +842,7 @@ let render_html ?(skipRoot = false) ?(env = `Dev) ?debug:(_ = false) ?bootstrapS
       inside_body = false;
     }
   in
-  let%lwt root_html, root_model = render_element_to_html ~fiber element in
+  let%lwt root_html, root_model = render_element ~skip_push_html:false ~fiber element in
   let root_chunk = client_value_chunk_script initial_index root_model in
   context.pending <- context.pending - 1;
   (* In case of not having any task pending, we can close the stream *)
