@@ -610,7 +610,7 @@ end
 val createContext : 'a -> 'a Context.t
 
 module Suspense : sig
-  val make : ?key:string option -> ?fallback:element -> ?children:element -> unit -> element
+  val make : ?key:string -> ?fallback:element -> ?children:element -> unit -> element
 end
 
 type any_promise = Any_promise : 'a Lwt.t -> any_promise

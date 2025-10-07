@@ -519,7 +519,7 @@ let createContext (initial_value : 'a) : 'a Context.t =
 module Suspense = struct
   let or_react_null = function None -> null | Some x -> x
 
-  let make ?(key = None) ?fallback ?children () =
+  let make ?key ?fallback ?children () =
     Suspense { key; fallback = or_react_null fallback; children = or_react_null children }
 end
 
