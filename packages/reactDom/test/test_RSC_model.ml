@@ -147,9 +147,7 @@ let upper_case_with_list () =
   let%lwt () = ReactServerDOM.render_model ~subscribe (app ()) in
   assert_list_of_strings !output
     [
-      "1:[\"$\",\"span\",null,{\"children\":\"hi\"},null,[],{}]\n";
-      "2:[\"$\",\"span\",null,{\"children\":\"hola\"},null,[],{}]\n";
-      "0:[\"$1\",\"$2\"]\n";
+      "0:[[\"$\",\"span\",null,{\"children\":\"hi\"},null,[],{}],[\"$\",\"span\",null,{\"children\":\"hola\"},null,[],{}]]\n";
     ];
   Lwt.return ()
 
@@ -169,9 +167,7 @@ let upper_case_with_children () =
   let%lwt () = ReactServerDOM.render_model ~subscribe (app ()) in
   assert_list_of_strings !output
     [
-      "1:[\"$\",\"span\",null,{\"children\":\"hi\"},null,[],{}]\n";
-      "2:[\"$\",\"span\",null,{\"children\":\"hola\"},null,[],{}]\n";
-      "0:[\"$\",\"div\",null,{\"children\":[\"$1\",\"$2\"]},null,[],{}]\n";
+      "0:[\"$\",\"div\",null,{\"children\":[[\"$\",\"span\",null,{\"children\":\"hi\"},null,[],{}],[\"$\",\"span\",null,{\"children\":\"hola\"},null,[],{}]]},null,[],{}]\n";
     ];
   Lwt.return ()
 
@@ -191,9 +187,7 @@ let suspense_without_promise () =
   let%lwt () = ReactServerDOM.render_model ~subscribe main in
   assert_list_of_strings !output
     [
-      "1:[\"$\",\"span\",null,{\"children\":\"hi\"},null,[],{}]\n";
-      "2:[\"$\",\"span\",null,{\"children\":\"hola\"},null,[],{}]\n";
-      "0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":[\"$\",\"div\",null,{\"children\":[\"$1\",\"$2\"]},null,[],{}]},null,[],{}]\n";
+      "0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":[\"$\",\"div\",null,{\"children\":[[\"$\",\"span\",null,{\"children\":\"hi\"},null,[],{}],[\"$\",\"span\",null,{\"children\":\"hola\"},null,[],{}]]},null,[],{}]},null,[],{}]\n";
     ];
   Lwt.return ()
 
@@ -526,9 +520,8 @@ let client_with_element_props () =
   assert_list_of_strings !output
     [
       "1:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n";
-      "2:\"Client Content\"\n";
-      "0:[[\"$\",\"div\",null,{\"children\":\"Server \
-       Content\"},null,[],{}],[\"$\",\"$1\",null,{\"children\":\"$2\"},null,[],{}]]\n";
+      "0:[[\"$\",\"div\",null,{\"children\":\"Server Content\"},null,[],{}],[\"$\",\"$1\",null,{\"children\":\"Client \
+       Content\"},null,[],{}]]\n";
     ];
   Lwt.return ()
 
@@ -655,9 +648,9 @@ let client_with_server_children () =
   assert_list_of_strings !output
     [
       "1:I[\"./client-with-server-children.js\",[],\"ClientWithServerChildren\"]\n";
-      "2:[\"$\",\"div\",null,{\"children\":\"Server Component Inside Client\"},null,[],{}]\n";
       "0:[[\"$\",\"div\",null,{\"children\":\"Server \
-       Content\"},null,[],{}],[\"$\",\"$1\",null,{\"children\":\"$2\"},null,[],{}]]\n";
+       Content\"},null,[],{}],[\"$\",\"$1\",null,{\"children\":[\"$\",\"div\",null,{\"children\":\"Server Component \
+       Inside Client\"},null,[],{}]},null,[],{}]]\n";
     ];
   Lwt.return ()
 
@@ -701,7 +694,7 @@ let act_with_error () =
   let%lwt () = ReactServerDOM.create_action_response ~subscribe response in
   assert_list_of_strings !output
     [
-      "1:E{\"message\":\"Failure(\\\"Error\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"1000123519\"}\n";
+      "1:E{\"message\":\"Failure(\\\"Error\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"861419986\"}\n";
       "0:\"$Z1\"\n";
     ];
   Lwt.return ()
@@ -725,7 +718,7 @@ let env_development_adds_debug_info () =
   assert_list_of_strings !output
     [
       "1:{\"name\":\"app\",\"env\":\"Server\",\"key\":null,\"owner\":null,\"stack\":[],\"props\":{}}\n";
-      "0:D\"$1\"\n";
+      "2:D\"$1\"\n";
       "0:[\"$\",\"input\",null,{\"id\":\"sidebar-search-input\",\"placeholder\":\"Search\",\"value\":\"my \
        friend\"},null,[],{}]\n";
     ];
@@ -897,26 +890,15 @@ let nested_context () =
   (* TODO: Don't push multiple scripts for the same client component *)
   assert_list_of_strings !output
     [
+      "1:I[\"./provider.js\",[],\"Provider\"]\n";
       "2:I[\"./provider.js\",[],\"Provider\"]\n";
-      "5:I[\"./provider.js\",[],\"Provider\"]\n";
-      "8:I[\"./provider.js\",[],\"Provider\"]\n";
-      "b:I[\"./provider.js\",[],\"Provider\"]\n";
-      "c:null\n";
-      "d:\"Hey you\"\n";
-      "a:[\"$\",\"$b\",null,{\"value\":\"$c\",\"children\":\"$d\"},null,[],{}]\n";
-      "9:\"$a\"\n";
-      "f:I[\"./consumer.js\",[],\"Consumer\"]\n";
-      "e:[\"/me\",[\"$\",\"$f\",null,{},null,[],{}]]\n";
-      "7:[\"$\",\"$8\",null,{\"value\":\"$9\",\"children\":\"$e\"},null,[],{}]\n";
-      "6:\"$7\"\n";
-      "11:I[\"./consumer.js\",[],\"Consumer\"]\n";
-      "10:[\"/about\",[\"$\",\"$11\",null,{},null,[],{}]]\n";
-      "4:[\"$\",\"$5\",null,{\"value\":\"$6\",\"children\":\"$10\"},null,[],{}]\n";
-      "3:\"$4\"\n";
-      "13:I[\"./consumer.js\",[],\"Consumer\"]\n";
-      "12:[\"/root\",[\"$\",\"$13\",null,{},null,[],{}]]\n";
-      "1:[\"$\",\"$2\",null,{\"value\":\"$3\",\"children\":\"$12\"},null,[],{}]\n";
-      "0:\"$1\"\n";
+      "3:I[\"./provider.js\",[],\"Provider\"]\n";
+      "4:I[\"./provider.js\",[],\"Provider\"]\n";
+      "5:I[\"./consumer.js\",[],\"Consumer\"]\n";
+      "6:I[\"./consumer.js\",[],\"Consumer\"]\n";
+      "7:I[\"./consumer.js\",[],\"Consumer\"]\n";
+      "0:[\"$\",\"$1\",null,{\"value\":[\"$\",\"$2\",null,{\"value\":[\"$\",\"$3\",null,{\"value\":[\"$\",\"$4\",null,{\"value\":null,\"children\":\"Hey \
+       you\"},null,[],{}],\"children\":[\"/me\",[\"$\",\"$5\",null,{},null,[],{}]]},null,[],{}],\"children\":[\"/about\",[\"$\",\"$6\",null,{},null,[],{}]]},null,[],{}],\"children\":[\"/root\",[\"$\",\"$7\",null,{},null,[],{}]]},null,[],{}]\n";
     ];
   Lwt.return ()
 
