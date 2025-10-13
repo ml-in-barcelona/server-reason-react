@@ -30,6 +30,10 @@ jobs:
 
     runs-on: ${{ matrix.os }}
 
+    environment:
+      name: github-pages
+      url: https://ml-in-barcelona.github.io/server-reason-react
+
     strategy:
       fail-fast: false
       matrix:
