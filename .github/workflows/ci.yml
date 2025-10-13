@@ -30,10 +30,6 @@ jobs:
 
     runs-on: ${{ matrix.os }}
 
-    environment:
-      name: github-pages
-      url: https://ml-in-barcelona.github.io/server-reason-react
-
     strategy:
       fail-fast: false
       matrix:
@@ -138,19 +134,18 @@ jobs:
         run: make test
 
       - name: Generate docs
-        if: github.ref == 'refs/heads/main' && matrix.ocaml-compiler == '5.2.0'
+        if: github.ref == 'refs/heads/main' && matrix.os == 'ubuntu-latest' && matrix.ocaml-compiler == '5.2.0'
         run: |
           opam install -y odoc-driver
           make docs
 
-      - name: Publish docs
-        uses: crazy-max/ghaction-github-pages@v1
-        if: github.ref == 'refs/heads/main' && matrix.ocaml-compiler == '5.2.0'
+      - name: Upload docs artifact
+        if: github.ref == 'refs/heads/main' && matrix.os == 'ubuntu-latest' && matrix.ocaml-compiler == '5.2.0'
+        uses: actions/upload-artifact@v4
         with:
-          target_branch: gh-pages
-          build_dir: _html
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
+          name: documentation
+          path: _html
+          retention-days: 1
 
       - name: Run benchmarks
         run: make bench
@@ -173,3 +168,35 @@ jobs:
             _opam
             .opam-path
           key: opam-${{ matrix.os }}-${{ matrix.ocaml-compiler }}-${{ hashFiles('**.opam') }}
+
+  publish-docs:
+    name: Publish documentation
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    environment:
+      name: github-pages
+      url: https://ml-in-barcelona.github.io/server-reason-react
+
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download docs artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: documentation
+          path: _html
+
+      - name: Publish to GitHub Pages
+        uses: crazy-max/ghaction-github-pages@v1
+        with:
+          target_branch: gh-pages
+          build_dir: _html
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
