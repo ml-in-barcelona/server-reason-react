@@ -44,10 +44,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install openssl
+      - name: Install and configure openssl
         if: matrix.os == 'macos-latest'
         run: |
-          pkg-config --modversion openssl
+          brew install openssl@3
+          echo "LDFLAGS=-L$(brew --prefix openssl@3)/lib" >> $GITHUB_ENV
+          echo "CPPFLAGS=-I$(brew --prefix openssl@3)/include" >> $GITHUB_ENV
+          echo "PKG_CONFIG_PATH=$(brew --prefix openssl@3)/lib/pkgconfig" >> $GITHUB_ENV
 
       - name: Load npm cache
         id: npm-cache
