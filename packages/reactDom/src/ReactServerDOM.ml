@@ -112,21 +112,26 @@ module Model = struct
 
   let props_to_json props = List.filter_map prop_to_json props
 
-  let node ?(env = `Dev) ?(validated = 0) ?debug_info ~tag ?(key = None) ~props children : json =
+  let node ~tag ?(key = None) ~props ?(source = None) ?(debugId = None) ?(owner = None) children : json =
     let key = match key with None -> `Null | Some key -> `String key in
+    let debugId = match debugId with None -> `Null | Some debugId -> `String debugId in
+    let source = match source with None -> `List [] | Some source -> `List source in
+    let owner =
+      match owner with
+      | None -> `Assoc []
+      (* TODO: debugOwner is a ReactComponentInfo itself *)
+      | Some owner -> `Assoc [ ("name", `String owner) ]
+    in
     let props =
       match children with
       | [] -> props
       | [ one_children ] -> ("children", one_children) :: props
       | childrens -> ("children", `List childrens) :: props
     in
-    match (is_dev env, debug_info) with
-    | true, Some (debug_owner, debug_stack) ->
-        `List [ `String "$"; `String tag; key; `Assoc props; `String debug_owner; `List debug_stack; `Int validated ]
-    | _ -> `List [ `String "$"; `String tag; key; `Assoc props ]
+    `List [ `String "$"; `String tag; key; `Assoc props; debugId; source; owner ]
 
   (* Not using `node` because we need to add fallback prop as json directly *)
-  let suspense_node ~env ~key ~fallback ?debug_info children : json =
+  let suspense_node ~key ~fallback children : json =
     let fallback_prop = ("fallback", fallback) in
     let props =
       match children with
@@ -134,10 +139,9 @@ module Model = struct
       | [ one ] -> [ fallback_prop; ("children", one) ]
       | _ -> [ fallback_prop; ("children", `List children) ]
     in
-    node ~env ~tag:"$Sreact.suspense" ~key ~props ?debug_info []
+    node ~tag:"$Sreact.suspense" ~key ~props []
 
-  let suspense_placeholder ~env ~key ~fallback ?debug_info index =
-    suspense_node ~env ~key ~fallback ?debug_info [ `String (lazy_value index) ]
+  let suspense_placeholder ~key ~fallback index = suspense_node ~key ~fallback [ `String (lazy_value index) ]
 
   let component_ref ~module_ ~name =
     let id = `String module_ in
@@ -199,7 +203,7 @@ module Model = struct
 
   let push_debug_info ~context ~to_chunk ~env ~index ~ownerName =
     let current_index = index in
-    if is_dev env then (
+    if is_dev env then
       let index = Stream.push ~context (to_chunk (Value (make_debug_info ownerName))) in
       let debug_info_ref = Printf.sprintf "$%x" index in
       (* 
@@ -207,15 +211,14 @@ module Model = struct
             So we don't use Stream.push here
             Instead we use context.push directly
           *)
-      context.push (to_chunk (Debug_ref (`String debug_info_ref)) current_index) |> ignore;
-      Some (debug_info_ref, []))
-    else None
+      context.push (to_chunk (Debug_ref (`String debug_info_ref)) current_index) |> ignore
+    else ()
 
-  let rec element_to_payload ~context ~to_chunk ~env element =
+  let rec element_to_payload ~context ?(debug = false) ~to_chunk ~env element =
     let is_root = ref true in
 
     (* debug_info holds the current debug info for the element wich is updated when the element is a Upper_case_component *)
-    let rec turn_element_into_payload ?debug_info element =
+    let rec turn_element_into_payload element =
       match (element : React.element) with
       | Empty -> `Null
       | DangerouslyInnerHtml _ ->
@@ -239,16 +242,16 @@ module Model = struct
               attributes
           in
           let props = props_to_json attributes in
-          node ~env ~key ~tag ~props ?debug_info (List.map (turn_element_into_payload ?debug_info) children)
+          node ~key ~tag ~props (List.map turn_element_into_payload children)
       | Fragment children ->
           if is_root.contents then is_root := false;
-          turn_element_into_payload ?debug_info children
+          turn_element_into_payload children
       | List children ->
           if is_root.contents then is_root := false;
-          `List (List.map (turn_element_into_payload ?debug_info) children)
+          `List (List.map turn_element_into_payload children)
       | Array children ->
           if is_root.contents then is_root := false;
-          `List (Array.map (turn_element_into_payload ?debug_info) children |> Array.to_list)
+          `List (Array.map turn_element_into_payload children |> Array.to_list)
       (* TODO: Get the stack info from component as well *)
       | Upper_case_component (name, component) -> (
           match component () with
@@ -260,14 +263,14 @@ module Model = struct
                   If it's the root element, React returns the element payload instead of a reference value. 
                   Root is a special case: https://github.com/facebook/react/blob/f3a803617ec4ba9d14bf5205ffece28ed1496a1d/packages/react-server/src/ReactFlightServer.js#L756-L766 
                 *)
-                let debug_info = push_debug_info ~context ~to_chunk ~env ~index:0 ~ownerName:name in
-                turn_element_into_payload ?debug_info element)
+                if debug then push_debug_info ~context ~to_chunk ~env ~index:0 ~ownerName:name else ();
+                turn_element_into_payload element)
               else
                 (* If it's not the root React push the element to the stream and return the reference value *)
                 let element_index =
                   Stream.push ~context (fun index ->
-                      let debug_info = push_debug_info ~context ~to_chunk ~env ~index ~ownerName:name in
-                      let payload = turn_element_into_payload ?debug_info element in
+                      if debug then push_debug_info ~context ~to_chunk ~env ~index ~ownerName:name else ();
+                      let payload = turn_element_into_payload element in
                       to_chunk (Value payload) index)
                 in
                 `String (ref_value element_index)
@@ -275,8 +278,8 @@ module Model = struct
               let error = exn_to_error exn in
               let index = Stream.push ~context (to_chunk (Error (env, error))) in
               `String (lazy_value index))
-      (* TODO: Get the stack info from component as well *)
-      | Async_component (name, component) -> (
+      (* TODO: Get the stack info from component *)
+      | Async_component (_, component) -> (
           let promise = component () in
           match Lwt.state promise with
           | Fail exn ->
@@ -293,8 +296,7 @@ module Model = struct
                   If it's the root element, React returns the element payload instead of a reference value. 
                   Root is a special case: https://github.com/facebook/react/blob/f3a803617ec4ba9d14bf5205ffece28ed1496a1d/packages/react-server/src/ReactFlightServer.js#L756-L766 
                 *)
-                let debug_info = push_debug_info ~context ~to_chunk ~env ~index:0 ~ownerName:name in
-                turn_element_into_payload ?debug_info element)
+                turn_element_into_payload element)
               else
                 (* If it's not the root React push the element to the stream and return the reference value *)
                 let element_index =
@@ -306,9 +308,7 @@ module Model = struct
               let promise =
                 try%lwt
                   let%lwt element = promise in
-                  Lwt.return (fun index ->
-                      let debug_info = push_debug_info ~context ~to_chunk ~env ~index ~ownerName:name in
-                      to_chunk (Value (turn_element_into_payload ?debug_info element)) index)
+                  Lwt.return (to_chunk (Value (turn_element_into_payload element)))
                 with exn ->
                   let message = Printexc.to_string exn in
                   let stack = create_stack_trace () in
@@ -320,26 +320,26 @@ module Model = struct
       | Suspense { key; children; fallback } ->
           (* TODO: Need to check is_root? *)
           (* TODO: Maybe we need to push suspense index and suspense node separately *)
-          let fallback = turn_element_into_payload ?debug_info fallback in
-          suspense_node ~env ~key ~fallback ?debug_info [ turn_element_into_payload ?debug_info children ]
+          let fallback = turn_element_into_payload fallback in
+          suspense_node ~key ~fallback [ turn_element_into_payload children ]
       | Client_component { import_module; import_name; props; client = _ } ->
           let ref = component_ref ~module_:import_module ~name:import_name in
           let index = Stream.push ~context (to_chunk (Component_ref ref)) in
           let client_props = client_values_to_json ~context ~to_chunk ~env props in
-          node ~env ~tag:(ref_value index) ~props:client_props ?debug_info []
+          node ~tag:(ref_value index) ~props:client_props []
       (* TODO: Do we need to do anything with Provider and Consumer? *)
-      | Provider children -> turn_element_into_payload ?debug_info children
-      | Consumer children -> turn_element_into_payload ?debug_info children
+      | Provider children -> turn_element_into_payload children
+      | Consumer children -> turn_element_into_payload children
     in
     turn_element_into_payload element
 
-  and client_value_to_json ~context ~to_chunk ~env value =
+  and client_value_to_json ~context ?debug ~to_chunk ~env value =
     match (value : React.client_value) with
     | Json json -> json
     | Error error ->
         let index = Stream.push ~context (to_chunk (Error (env, error))) in
         `String (error_value index)
-    | Element element -> element_to_payload ~context ~to_chunk ~env element
+    | Element element -> element_to_payload ~context ?debug ~to_chunk ~env element
     | Promise (promise, value_to_json) -> (
         match Lwt.state promise with
         | Return value ->
@@ -369,17 +369,17 @@ module Model = struct
   and client_values_to_json ~context ~to_chunk ~env props =
     List.map (fun (name, value) -> (name, client_value_to_json ~context ~to_chunk ~env value)) props
 
-  let render ?(env = `Dev) ?subscribe element =
+  let render ?(env = `Dev) ?(debug = false) ?subscribe element =
     let stream, context = Stream.make ~initial_index:0 in
     let to_root_chunk element id =
-      let payload = element_to_payload ~context ~to_chunk ~env element in
+      let payload = element_to_payload ~debug ~context ~to_chunk ~env element in
       to_chunk (Value payload) id
     in
     Stream.push ~context (to_root_chunk element) |> ignore;
     if context.pending = 0 then context.close ();
     match subscribe with None -> Lwt.return () | Some subscribe -> Lwt_stream.iter_s subscribe stream
 
-  let create_action_response ?(env = `Dev) ?subscribe response =
+  let create_action_response ?(env = `Dev) ?(debug = false) ?subscribe response =
     let%lwt response =
       try%lwt response
       with exn ->
@@ -391,7 +391,7 @@ module Model = struct
     in
     let stream, context = Stream.make ~initial_index:0 in
     let to_root_chunk value id =
-      let payload = client_value_to_json ~context ~to_chunk ~env value in
+      let payload = client_value_to_json ~debug ~context ~to_chunk ~env value in
       to_chunk (Value payload) id
     in
     Stream.push ~context (to_root_chunk response) |> ignore;
@@ -530,15 +530,15 @@ module Fiber = struct
     List.exists has_precedence props && List.exists has_rel_stylesheet props
 
   (* debug_info holds the current debug info for the element wich is updated when the element is a Upper_case_component *)
-  let rec render_element_to_html ~fiber ?debug_info (element : React.element) : (Html.element * json) Lwt.t =
+  let rec render_element_to_html ~fiber (element : React.element) : (Html.element * json) Lwt.t =
     match element with
     | Empty -> Lwt.return (Html.null, `Null)
     (* Should the DangerouslyInnerHtml model be `Null? *)
     | DangerouslyInnerHtml html -> Lwt.return (Html.raw html, `Null)
     | Text s -> Lwt.return (Html.string s, `String s)
-    | Fragment children -> render_element_to_html ~fiber ?debug_info children
-    | List list -> elements_to_html ~fiber ?debug_info list
-    | Array arr -> elements_to_html ~fiber ?debug_info (Array.to_list arr)
+    | Fragment children -> render_element_to_html ~fiber children
+    | List list -> elements_to_html ~fiber list
+    | Array arr -> elements_to_html ~fiber (Array.to_list arr)
     | Upper_case_component (_name, component) -> (
         (* if debug then (
           let debug_info_index = Fiber.use_index fiber in
@@ -548,10 +548,10 @@ module Fiber = struct
           context.push debug_info_index (Model.Debug_ref debug_info_ref);
           ()); *)
         match component () with
-        | element -> render_element_to_html ~fiber ?debug_info element)
+        | element -> render_element_to_html ~fiber element)
     | Async_component (_, component) ->
         let%lwt element = component () in
-        render_element_to_html ~fiber ?debug_info element
+        render_element_to_html ~fiber element
     | Client_component { import_module; import_name; props; client } ->
         let context = fiber.context in
         let env = fiber.env in
@@ -559,13 +559,13 @@ module Fiber = struct
         let%lwt html = client_to_html ~fiber client in
         let ref : json = Model.component_ref ~module_:import_module ~name:import_name in
         let index = Stream.push ~context (model_to_chunk (Component_ref ref)) in
-        let model = Model.node ~tag:(Model.ref_value index) ~props ?debug_info [] in
+        let model = Model.node ~tag:(Model.ref_value index) ~props [] in
         Lwt.return (html, model)
     | Suspense { key; children; fallback } -> (
         let context = fiber.context in
-        let%lwt html_fallback, model_fallback = render_element_to_html ~fiber ?debug_info fallback in
+        let%lwt html_fallback, model_fallback = render_element_to_html ~fiber fallback in
         try%lwt
-          let promise = render_element_to_html ~fiber ?debug_info children in
+          let promise = render_element_to_html ~fiber children in
           match Lwt.state promise with
           | Sleep ->
               let promise =
@@ -583,9 +583,9 @@ module Fiber = struct
               let index = Stream.push_async ~context promise in
               Lwt.return
                 ( html_suspense_placeholder ~fallback:html_fallback index,
-                  Model.suspense_placeholder ~env:fiber.env ~key ~fallback:model_fallback ?debug_info index )
+                  Model.suspense_placeholder ~key ~fallback:model_fallback index )
           | Return (html, model) ->
-              let model = Model.suspense_node ~env:fiber.env ~key ~fallback:model_fallback ?debug_info [ model ] in
+              let model = Model.suspense_node ~key ~fallback:model_fallback [ model ] in
               Lwt.return (html_suspense_immediate html, model)
           | Fail exn -> Lwt.reraise exn
         with exn ->
@@ -596,13 +596,13 @@ module Fiber = struct
           in
           let index = Stream.push ~context to_chunk in
           let html = html_suspense_placeholder ~fallback:html_fallback index in
-          Lwt.return (html, Model.suspense_placeholder ~env:fiber.env ~key ~fallback:model_fallback ?debug_info index))
-    | Provider children -> render_element_to_html ~fiber ?debug_info children
-    | Consumer children -> render_element_to_html ~fiber ?debug_info children
+          Lwt.return (html, Model.suspense_placeholder ~key ~fallback:model_fallback index))
+    | Provider children -> render_element_to_html ~fiber children
+    | Consumer children -> render_element_to_html ~fiber children
     | Lower_case_element { key; tag; attributes; children } ->
-        render_lower_case_element ~fiber ?debug_info ~key ~tag ~attributes ~children ()
+        render_lower_case_element ~fiber ~key ~tag ~attributes ~children ()
 
-  and render_lower_case_element ?debug_info ~fiber ~key ~tag ~attributes ~children () =
+  and render_lower_case_element ~fiber ~key ~tag ~attributes ~children () =
     (* Head hoisting mechanism:
        Head elements (meta, style, title, etc) might be scattered throughout the component tree but need to be rendered in the <head> section. Also, if there's no head element, we need to create one and hoist its possible children. *)
     let inner_html = ReactDOM.getDangerouslyInnerHtml attributes in
@@ -611,7 +611,7 @@ module Fiber = struct
     (match visited_first_lower_case ~fiber with Some _ -> () | None -> set_visited_first_lower_case ~fiber tag);
 
     if fiber.inside_head && not fiber.inside_body then
-      render_regular_element ?debug_info ~fiber ~key ~tag ~attributes ~children ~inner_html ()
+      render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html ()
     else
       match tag with
       | "html" -> (
@@ -619,45 +619,40 @@ module Fiber = struct
           (* If the first visited lower case is an html element -> skip rendering the html tag itself, just process children. That's because we will reconstuct the html element at the "render_html" *)
           | Some "html" ->
               set_html_tag_attributes ~fiber (ReactDOM.attributes_to_html attributes);
-              let%lwt html, model =
-                render_regular_element ?debug_info ~fiber ~key ~tag ~attributes ~children ~inner_html ()
-              in
+              let%lwt html, model = render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html () in
               let html_children = match html with Html.Node { children; _ } -> Html.list children | _ -> html in
               Lwt.return (html_children, model)
           (* In case of rendering html tag as not the first visited lower case element, means that something is wrapping this html tag (like a div or other element) which is invalid HTML, but we keep rendering as a regular element, as React.js' DOM renderer does *)
-          | _ -> render_regular_element ?debug_info ~fiber ~key ~tag ~attributes ~children ~inner_html ())
+          | _ -> render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html ())
       | "body" ->
           fiber.inside_body <- true;
-          let%lwt value = render_regular_element ?debug_info ~fiber ~key ~tag ~attributes ~children ~inner_html () in
+          let%lwt value = render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html () in
           fiber.inside_body <- false;
           Lwt.return value
       | "head" ->
           fiber.inside_head <- true;
           (* push the head element to the hoisted_head *)
           let%lwt value =
-            handle_hoistable_element ~fiber ?debug_info ~key ~tag ~attributes ~children ~inner_html
-              ~hoist_html:push_hoisted_head ()
+            handle_hoistable_element ~fiber ~key ~tag ~attributes ~children ~inner_html ~hoist_html:push_hoisted_head ()
           in
           fiber.inside_head <- false;
           Lwt.return value
       | tag
         when (tag = "script" && is_async attributes) || (tag = "link" && has_precedence_and_rel_stylesheet attributes)
         ->
-          handle_hoistable_element ~fiber ?debug_info ~key ~tag ~attributes ~children ~inner_html
-            ~hoist_html:push_resource ()
+          handle_hoistable_element ~fiber ~key ~tag ~attributes ~children ~inner_html ~hoist_html:push_resource ()
       | tag when tag = "title" || tag = "meta" || tag = "link" ->
-          handle_hoistable_element ~fiber ?debug_info ~key ~tag ~attributes ~children ~inner_html
+          handle_hoistable_element ~fiber ~key ~tag ~attributes ~children ~inner_html
             ~hoist_html:push_hoisted_head_childrens ()
-      | _ -> render_regular_element ?debug_info ~fiber ~key ~tag ~attributes ~children ~inner_html ()
+      | _ -> render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html ()
 
-  and handle_hoistable_element ?debug_info ~fiber ~key ~tag ~attributes ~children ~inner_html ~hoist_html () =
-    let env = fiber.env in
+  and handle_hoistable_element ~fiber ~key ~tag ~attributes ~children ~inner_html ~hoist_html () =
     let props = Model.props_to_json attributes in
     let create_model children =
       (* In case of the model, we don't care about inner_html as a children since we need it as a prop. This is the opposite from html rendering *)
       match (Html.is_self_closing_tag tag, inner_html) with
-      | _, Some _ | true, _ -> Model.node ~env ~tag ~key ~props ?debug_info []
-      | false, None -> Model.node ~env ~tag ~key ~props ?debug_info [ children ]
+      | _, Some _ | true, _ -> Model.node ~tag ~key ~props []
+      | false, None -> Model.node ~tag ~key ~props [ children ]
     in
     let create_html_node ~html_props ~children_html =
       match inner_html with
@@ -666,14 +661,13 @@ module Fiber = struct
     in
 
     let html_props = ReactDOM.attributes_to_html attributes in
-    let%lwt children_html, children_model = elements_to_html ~fiber ?debug_info children in
+    let%lwt children_html, children_model = elements_to_html ~fiber children in
     let html = create_html_node ~html_props ~children_html in
     hoist_html ~fiber html;
     Lwt.return (Html.null, create_model children_model)
 
-  and render_regular_element ?debug_info ~fiber ~key ~tag ~attributes ~children ~inner_html () =
+  and render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html () =
     let context = fiber.context in
-    let env = fiber.env in
     let html_props = ReactDOM.attributes_to_html attributes in
     let json_attributes =
       List.map
@@ -692,17 +686,16 @@ module Fiber = struct
     match (Html.is_self_closing_tag tag, inner_html) with
     | true, _ ->
         (* Self-closing tags have no children, so inner_html is not relevant *)
-        Lwt.return (Html.node tag html_props [], Model.node ~env ~tag ~key ~props:json_props ?debug_info [])
+        Lwt.return (Html.node tag html_props [], Model.node ~tag ~key ~props:json_props [])
     | false, Some inner_html ->
         (* elements with dangerouslySetInnerHTML *)
-        Lwt.return
-          (Html.node tag html_props [ Html.raw inner_html ], Model.node ~env ~tag ~key ~props:json_props ?debug_info [])
+        Lwt.return (Html.node tag html_props [ Html.raw inner_html ], Model.node ~tag ~key ~props:json_props [])
     | false, None ->
-        let%lwt html, model = elements_to_html ~fiber ?debug_info children in
-        Lwt.return (Html.node tag html_props [ html ], Model.node ~env ~tag ~key ~props:json_props ?debug_info [ model ])
+        let%lwt html, model = elements_to_html ~fiber children in
+        Lwt.return (Html.node tag html_props [ html ], Model.node ~tag ~key ~props:json_props [ model ])
 
-  and elements_to_html ~fiber ?debug_info elements =
-    let%lwt html_and_models = elements |> Lwt_list.map_p (render_element_to_html ~fiber ?debug_info) in
+  and elements_to_html ~fiber elements =
+    let%lwt html_and_models = elements |> Lwt_list.map_p (render_element_to_html ~fiber) in
     (* TODO: List.split is not tail recursive *)
     let htmls, model = List.split html_and_models in
     Lwt.return (Html.list htmls, `List model)
@@ -748,7 +741,8 @@ let push_children_into ~children:new_children html =
 
 (* TODO: Implement abortion, based on a timeout? *)
 (* TODO: Ensure chunks are of a certain minimum size but also maximum? Saw react caring about this *)
-let render_html ?(skipRoot = false) ?(env = `Dev) ?bootstrapScriptContent ?bootstrapScripts ?bootstrapModules element =
+let render_html ?(skipRoot = false) ?(env = `Dev) ?debug:(_ = false) ?bootstrapScriptContent ?bootstrapScripts
+    ?bootstrapModules element =
   let initial_resources =
     match bootstrapScripts with
     | Some scripts ->
