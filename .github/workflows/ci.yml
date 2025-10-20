@@ -44,19 +44,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Get OpenSSL version
-        if: matrix.os == 'macos-latest'
-        id: openssl-version
-        run: echo "version=$(brew list --versions openssl@3 | awk '{print $2}')" >> $GITHUB_OUTPUT
-
-      - name: Install and configure openssl
-        if: matrix.os == 'macos-latest'
-        run: |
-          brew install openssl@3
-          echo "LDFLAGS=-L$(brew --prefix openssl@3)/lib" >> $GITHUB_ENV
-          echo "CPPFLAGS=-I$(brew --prefix openssl@3)/include" >> $GITHUB_ENV
-          echo "PKG_CONFIG_PATH=$(brew --prefix openssl@3)/lib/pkgconfig" >> $GITHUB_ENV
-
       - name: Load npm cache
         id: npm-cache
         uses: actions/cache/restore@v4
@@ -64,7 +51,7 @@ jobs:
           path: |
             demo/node_modules
             demo/client/node_modules
-          key: npm-${{ matrix.os }}-${{ hashFiles('demo/package.json') }}-${{ hashFiles('demo/client/package.json') }}
+          key: v1.0.0-npm-${{ matrix.os }}-${{ hashFiles('demo/package.json') }}-${{ hashFiles('demo/client/package.json') }}
 
       - name: Load opam cache
         id: opam-cache
@@ -75,7 +62,7 @@ jobs:
             ~/.opam
             _opam
             .opam-path
-          key: opam-${{ matrix.os }}-${{ matrix.ocaml-compiler }}-${{ steps.openssl-version.outputs.version }}-${{ hashFiles('**.opam') }}
+          key: v1.0.0-opam-${{ matrix.os }}-${{ matrix.ocaml-compiler }}-${{ hashFiles('**.opam') }}
 
       - name: Use OCaml ${{ matrix.ocaml-compiler }}
         uses: ocaml/setup-ocaml@v3.4.5
@@ -164,7 +151,7 @@ jobs:
           path: |
             demo/node_modules
             demo/client/node_modules
-          key: npm-${{ matrix.os }}-${{ hashFiles('demo/package.json') }}-${{ hashFiles('demo/client/package.json') }}
+          key: v1.0.0-npm-${{ matrix.os }}-${{ hashFiles('demo/package.json') }}-${{ hashFiles('demo/client/package.json') }}
 
       - name: Save opam cache
         uses: actions/cache/save@v4
@@ -175,7 +162,7 @@ jobs:
             ~/.opam
             _opam
             .opam-path
-          key: opam-${{ matrix.os }}-${{ matrix.ocaml-compiler }}-${{ hashFiles('**.opam') }}
+          key: v1.0.0-opam-${{ matrix.os }}-${{ matrix.ocaml-compiler }}-${{ hashFiles('**.opam') }}
 
   publish-docs:
     name: Publish documentation
