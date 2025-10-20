@@ -35,5 +35,5 @@
       import_module: "input.re",
       import_name: "",
       props: [],
-      client: () => React.null,
+      client: React.null,
     });
