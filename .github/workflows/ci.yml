@@ -44,6 +44,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Get OpenSSL version
+        if: matrix.os == 'macos-latest'
+        id: openssl-version
+        run: echo "version=$(brew list --versions openssl@3 | awk '{print $2}')" >> $GITHUB_OUTPUT
+
       - name: Install and configure openssl
         if: matrix.os == 'macos-latest'
         run: |
@@ -70,7 +75,7 @@ jobs:
             ~/.opam
             _opam
             .opam-path
-          key: opam-${{ matrix.os }}-${{ matrix.ocaml-compiler }}-${{ hashFiles('**.opam') }}
+          key: opam-${{ matrix.os }}-${{ matrix.ocaml-compiler }}-${{ steps.openssl-version.outputs.version }}-${{ hashFiles('**.opam') }}
 
       - name: Use OCaml ${{ matrix.ocaml-compiler }}
         uses: ocaml/setup-ocaml@v3.4.5
