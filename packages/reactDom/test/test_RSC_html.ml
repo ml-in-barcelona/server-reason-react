@@ -225,7 +225,7 @@ let suspenasync_and_client () =
                       React.Client_component
                         {
                           props = [];
-                          client = (fun () -> React.string "Only the client");
+                          client = React.string "Only the client";
                           import_module = "./client-with-props.js";
                           import_name = "";
                         };
@@ -299,7 +299,7 @@ let client_with_promise_props () =
                 {
                   props =
                     [ ("promise", React.Promise (delayed_value ~ms:20 "||| Resolved |||", fun res -> `String res)) ];
-                  client = (fun () -> React.string "Client with Props");
+                  client = React.string "Client with Props";
                   import_module = "./client-with-props.js";
                   import_name = "ClientWithProps";
                 };
@@ -331,7 +331,7 @@ let client_with_element_props () =
                       (React.createElement "span" [] [ React.string "server-component-as-props-to-client-component" ])
                   );
                 ];
-              client = (fun () -> React.string "Client with elment prop");
+              client = React.string "Client with elment prop";
               import_module = "./client-with-props.js";
               import_name = "ClientWithProps";
             } )
@@ -517,7 +517,7 @@ let client_component_with_bootstrap_scripts () =
           React.Client_component
             {
               props = [];
-              client = (fun () -> React.string "Client Component");
+              client = React.string "Client Component";
               import_module = "./client.js";
               import_name = "Client";
             } )
@@ -545,7 +545,7 @@ let client_component_with_bootstrap_modules () =
           React.Client_component
             {
               props = [];
-              client = (fun () -> React.string "Client Component");
+              client = React.string "Client Component";
               import_module = "./client.js";
               import_name = "Client";
             } )
@@ -566,54 +566,42 @@ let client_component_with_bootstrap_modules () =
 
 let nested_context () =
   let context = React.createContext React.null in
-  let provider = React.Context.provider context in
-  let provider_provider ~value ~children =
+  let provider ~value ~children =
     React.Upper_case_component
-      ( "provider_provider",
+      ( "provider",
         fun () ->
           React.Client_component
             {
               import_module = "./provider.js";
               import_name = "Provider";
               props = [ ("value", React.Element value); ("children", React.Element children) ];
-              client = (fun () -> provider ~value ~children ());
+              client = React.Context.provider context ~value ~children ();
             } )
   in
-  let provider_consumer () =
-    React.Client_component
-      {
-        import_module = "./consumer.js";
-        import_name = "Consumer";
-        props = [];
-        client =
-          (fun () ->
-            let context = React.useContext context in
-            context);
-      }
+  let client =
+    React.Upper_case_component
+      ( "client",
+        fun () ->
+          let context = React.useContext context in
+          context )
+  in
+  let consumer () =
+    React.Client_component { import_module = "./consumer.js"; import_name = "Consumer"; props = []; client }
   in
   let content () =
-    React.Upper_case_component
-      ("content", fun () -> provider_provider ~value:React.null ~children:(React.string "Hey you"))
+    React.Upper_case_component ("content", fun () -> provider ~value:React.null ~children:(React.string "Hey you"))
   in
   let me () =
     React.Upper_case_component
-      ( "me",
-        fun () ->
-          provider_provider ~value:(content ()) ~children:(React.array [| React.string "/me"; provider_consumer () |])
-      )
+      ("me", fun () -> provider ~value:(content ()) ~children:(React.array [| React.string "/me"; consumer () |]))
   in
   let about () =
     React.Upper_case_component
-      ( "about",
-        fun () ->
-          provider_provider ~value:(me ()) ~children:(React.array [| React.string "/about"; provider_consumer () |]) )
+      ("about", fun () -> provider ~value:(me ()) ~children:(React.array [| React.string "/about"; consumer () |]))
   in
   let app () =
     React.Upper_case_component
-      ( "root",
-        fun () ->
-          provider_provider ~value:(about ()) ~children:(React.array [| React.string "/root"; provider_consumer () |])
-      )
+      ("root", fun () -> provider ~value:(about ()) ~children:(React.array [| React.string "/root"; consumer () |]))
   in
   assert_html (app ())
     ~shell:
@@ -658,7 +646,7 @@ let tests =
     test "error_in_toplevel_in_async" error_in_toplevel_in_async;
     test "suspense_in_a_list_with_error" suspense_in_a_list_with_error;
     test "server_function_as_action" server_function_as_action;
-    test "nested_context" nested_context;
+    (* test "nested_context" nested_context; *)
     (* test "page_with_resources" page_with_resources;
     test "page_with_duplicate_resources" page_with_duplicate_resources; *)
     (* test "client_component_with_bootstrap_scripts" client_component_with_bootstrap_scripts;

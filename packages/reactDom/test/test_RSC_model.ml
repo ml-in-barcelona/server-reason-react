@@ -458,7 +458,7 @@ let client_without_props () =
               React.Client_component
                 {
                   props = [];
-                  client = (fun () -> React.string "Client without Props");
+                  client = React.string "Client without Props";
                   import_module = "./client-without-props.js";
                   import_name = "ClientWithoutProps";
                 };
@@ -494,7 +494,7 @@ let client_with_json_props () =
                       ("string list", React.Json (`List [ `String "Item 1"; `String "Item 2" ]));
                       ("object", React.Json (`Assoc [ ("name", `String "John"); ("age", `Int 30) ]));
                     ];
-                  client = (fun () -> React.string "Client with Props");
+                  client = React.string "Client with Props";
                   import_module = "./client-with-props.js";
                   import_name = "ClientWithProps";
                 };
@@ -523,7 +523,7 @@ let client_with_element_props () =
               React.Client_component
                 {
                   props = [ ("children", React.Element (React.string "Client Content")) ];
-                  client = (fun () -> React.string "Client with Props");
+                  client = React.string "Client with Props";
                   import_module = "./client-with-props.js";
                   import_name = "ClientWithProps";
                 };
@@ -550,7 +550,7 @@ let client_with_promise_props () =
                 {
                   props =
                     [ ("promise", React.Promise (delayed_value ~ms:20 "||| Resolved |||", fun res -> `String res)) ];
-                  client = (fun () -> React.string "Client with Props");
+                  client = React.string "Client with Props";
                   import_module = "./client-with-props.js";
                   import_name = "ClientWithProps";
                 };
@@ -611,7 +611,7 @@ let mixed_server_and_client () =
               React.Client_component
                 {
                   props = [];
-                  client = (fun () -> React.string "Client 1");
+                  client = React.string "Client 1";
                   import_module = "./client-1.js";
                   import_name = "Client1";
                 };
@@ -619,7 +619,7 @@ let mixed_server_and_client () =
               React.Client_component
                 {
                   props = [];
-                  client = (fun () -> React.string "Client 2");
+                  client = React.string "Client 2";
                   import_module = "./client-2.js";
                   import_name = "Client2";
                 };
@@ -649,7 +649,7 @@ let client_with_server_children () =
               React.Client_component
                 {
                   props = [ ("children", React.Element (React.Upper_case_component ("Server", server_child))) ];
-                  client = (fun () -> React.string "Client with Server Children");
+                  client = React.string "Client with Server Children";
                   import_module = "./client-with-server-children.js";
                   import_name = "ClientWithServerChildren";
                 };
@@ -788,7 +788,7 @@ let client_component_with_resources_metadata () =
                       React.Client_component
                         {
                           props = [];
-                          client = (fun () -> React.string "Client Component");
+                          client = React.string "Client Component";
                           import_module = "./client.js";
                           import_name = "Client";
                         };
@@ -858,7 +858,7 @@ let nested_context () =
               import_module = "./provider.js";
               import_name = "Provider";
               props = [ ("value", React.Element value); ("children", React.Element children) ];
-              client = (fun () -> provider ~value ~children ());
+              client = provider ~value ~children ();
             } )
   in
   let client_consumer () =
@@ -868,9 +868,11 @@ let nested_context () =
         import_name = "Consumer";
         props = [];
         client =
-          (fun () ->
-            let context = React.useContext context in
-            context);
+          React.Upper_case_component
+            ( "client_consumer",
+              fun () ->
+                let context = React.useContext context in
+                context );
       }
   in
   let content () =

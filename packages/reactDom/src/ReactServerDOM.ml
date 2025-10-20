@@ -507,7 +507,7 @@ module Fiber = struct
         let index = Stream.push_async ~context async in
         let sync = html_suspense_placeholder ~fallback index in
         Lwt.return sync
-    | Client_component { import_module = _; import_name = _; props = _; client } -> client_to_html ~fiber (client ())
+    | Client_component { import_module = _; import_name = _; props = _; client } -> client_to_html ~fiber client
     | Provider children -> client_to_html ~fiber children
     | Consumer children -> client_to_html ~fiber children
 
@@ -557,7 +557,7 @@ module Fiber = struct
         let context = fiber.context in
         let env = fiber.env in
         let props = Model.client_values_to_json ~context ~to_chunk:model_to_chunk ~env props in
-        let%lwt html = client_to_html ~fiber (client ()) in
+        let%lwt html = client_to_html ~fiber client in
         let ref : json = Model.component_ref ~module_:import_module ~name:import_name in
         let index = Stream.push ~context (model_to_chunk (Component_ref ref)) in
         let model = Model.node ~tag:(Model.ref_value index) ~props ?debug_info [] in
