@@ -348,15 +348,14 @@ module Model = struct
             `String (promise_value index)
         | Sleep ->
             let promise =
-              Lwt.map to_chunk
-                (try%lwt
-                   let%lwt value = promise in
-                   Lwt.return (Value (value_to_json value))
-                 with exn ->
-                   let message = Printexc.to_string exn in
-                   let stack = create_stack_trace () in
-                   let error = make_error ~message ~stack ~digest:"" in
-                   Lwt.return (Error (env, error)))
+              try%lwt
+                let%lwt value = promise in
+                Lwt.return (to_chunk (Value (value_to_json value)))
+              with exn ->
+                let message = Printexc.to_string exn in
+                let stack = create_stack_trace () in
+                let error = make_error ~message ~stack ~digest:"" in
+                Lwt.return (to_chunk (Error (env, error)))
             in
             let index = Stream.push_async promise ~context in
             `String (promise_value index)
@@ -788,7 +787,8 @@ let render_html ?(skipRoot = false) ?(env = `Dev) ?bootstrapScriptContent ?boots
               modules
         | None -> [])
   in
-  (* Initial index is 1 because 0 is reserved for the root chunk *)
+  (* Since we don't push the root_data_payload to the stream but return it immediately with the initial HTML, 
+     the stream's initial index starts at 1, with index 0 reserved for the root_data_payload. *)
   let stream, context = Stream.make ~initial_index:1 in
   let fiber : Fiber.t =
     {
@@ -804,8 +804,8 @@ let render_html ?(skipRoot = false) ?(env = `Dev) ?bootstrapScriptContent ?boots
     }
   in
   let%lwt root_html, root_model = Fiber.render_element_to_html ~fiber element in
-  (* We don't push the root chunk to the stream, it's added to user_scripts *)
-  let root_chunk = Fiber.model_to_chunk (Value root_model) 0 in
+  (* To return the model value immediately, we don't push it to the stream but return it as a payload script together with the user_scripts *)
+  let root_data_payload = Fiber.model_to_chunk (Value root_model) 0 in
   (* In case of not having any task pending, we can close the stream *)
   (match context.pending = 0 with true -> context.close () | false -> ());
   let bootstrap_script_content =
@@ -836,7 +836,7 @@ let render_html ?(skipRoot = false) ?(env = `Dev) ?bootstrapScriptContent ?boots
     [
       rc_function_script;
       rsc_start_script;
-      root_chunk;
+      root_data_payload;
       bootstrap_script_content;
       bootstrap_scripts_nodes;
       bootstrap_modules_nodes;
