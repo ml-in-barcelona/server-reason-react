@@ -1,4 +1,8 @@
-let debug = Sys.getenv_opt("DEMO_ENV") === Some("development");
+let env =
+  switch (Sys.getenv_opt("DEMO_ENV")) {
+  | Some("development") => `Dev
+  | _ => `Prod
+  };
 
 let handleFormRequest = (actionId, formData) => {
   let formData = {
@@ -99,10 +103,9 @@ let stream_model = (~location, app) =>
     stream => {
       let%lwt () =
         ReactServerDOM.render_model(
-          ~debug,
           ~subscribe=
             chunk => {
-              if (debug) {
+              if (env == `Dev) {
                 Dream.log("Chunk");
                 Dream.log("%s", chunk);
               };
@@ -133,7 +136,7 @@ let stream_html =
           ~bootstrapScriptContent?,
           ~bootstrapScripts,
           ~bootstrapModules,
-          ~debug,
+          ~env,
           app,
         );
 
@@ -141,7 +144,7 @@ let stream_html =
       let%lwt () = Dream.flush(stream);
       let%lwt () =
         subscribe(chunk => {
-          if (debug) {
+          if (env == `Dev) {
             Dream.log("Chunk");
             Dream.log("%s", chunk);
           };

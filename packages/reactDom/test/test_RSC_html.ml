@@ -618,20 +618,20 @@ let nested_context () =
   assert_html (app ())
     ~shell:
       "/root<!-- -->/about<!-- -->/me<!-- -->Hey you<script \
-       data-payload='0:[\"$\",\"$a\",null,{\"value\":\"$8\",\"children\":[\"/root\",[\"$\",\"$9\",null,{}]]}]\n\
+       data-payload='0:[\"$\",\"$a\",null,{\"value\":\"$1\",\"children\":[\"/root\",[\"$\",\"$9\",null,{}]]}]\n\
        '>window.srr_stream.push()</script>"
     (* TODO: Don't push multiple scripts for the same client component *)
     [
-      "<script data-payload='1:I[\"./provider.js\",[],\"Provider\"]\n'>window.srr_stream.push()</script>";
       "<script data-payload='2:I[\"./provider.js\",[],\"Provider\"]\n'>window.srr_stream.push()</script>";
-      "<script data-payload='3:I[\"./provider.js\",[],\"Provider\"]\n'>window.srr_stream.push()</script>";
-      "<script data-payload='4:[\"$\",\"$3\",null,{\"value\":null,\"children\":\"Hey you\"}]\n\
-       '>window.srr_stream.push()</script>";
-      "<script data-payload='5:I[\"./consumer.js\",[],\"Consumer\"]\n'>window.srr_stream.push()</script>";
-      "<script data-payload='6:[\"$\",\"$2\",null,{\"value\":\"$4\",\"children\":[\"/me\",[\"$\",\"$5\",null,{}]]}]\n\
+      "<script data-payload='4:I[\"./provider.js\",[],\"Provider\"]\n'>window.srr_stream.push()</script>";
+      "<script data-payload='6:I[\"./provider.js\",[],\"Provider\"]\n'>window.srr_stream.push()</script>";
+      "<script data-payload='5:[\"$\",\"$6\",null,{\"value\":null,\"children\":\"Hey you\"}]\n\
        '>window.srr_stream.push()</script>";
       "<script data-payload='7:I[\"./consumer.js\",[],\"Consumer\"]\n'>window.srr_stream.push()</script>";
-      "<script data-payload='8:[\"$\",\"$1\",null,{\"value\":\"$6\",\"children\":[\"/about\",[\"$\",\"$7\",null,{}]]}]\n\
+      "<script data-payload='3:[\"$\",\"$4\",null,{\"value\":\"$5\",\"children\":[\"/me\",[\"$\",\"$7\",null,{}]]}]\n\
+       '>window.srr_stream.push()</script>";
+      "<script data-payload='8:I[\"./consumer.js\",[],\"Consumer\"]\n'>window.srr_stream.push()</script>";
+      "<script data-payload='1:[\"$\",\"$2\",null,{\"value\":\"$3\",\"children\":[\"/about\",[\"$\",\"$8\",null,{}]]}]\n\
        '>window.srr_stream.push()</script>";
       "<script data-payload='9:I[\"./consumer.js\",[],\"Consumer\"]\n'>window.srr_stream.push()</script>";
       "<script data-payload='a:I[\"./provider.js\",[],\"Provider\"]\n'>window.srr_stream.push()</script>";

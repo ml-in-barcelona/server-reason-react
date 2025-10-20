@@ -381,7 +381,7 @@ let suspense_with_immediate_promise () =
   let output, subscribe = capture_stream () in
   let%lwt () = ReactServerDOM.render_model ~env:`Prod ~subscribe main in
   assert_list_of_strings !output
-    [ "0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"DONE :)\"}]\n" ];
+    [ "1:\"DONE :)\"\n"; "0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"}]\n" ];
   Lwt.return ()
 
 let delayed_value ~ms value =
@@ -900,18 +900,18 @@ let nested_context () =
   (* TODO: Don't push multiple scripts for the same client component *)
   assert_list_of_strings !output
     [
-      "1:I[\"./provider.js\",[],\"Provider\"]\n";
       "2:I[\"./provider.js\",[],\"Provider\"]\n";
-      "3:I[\"./provider.js\",[],\"Provider\"]\n";
       "4:I[\"./provider.js\",[],\"Provider\"]\n";
-      "5:[\"$\",\"$4\",null,{\"value\":null,\"children\":\"Hey you\"}]\n";
-      "6:I[\"./consumer.js\",[],\"Consumer\"]\n";
-      "7:[\"$\",\"$3\",null,{\"value\":\"$5\",\"children\":[\"/me\",[\"$\",\"$6\",null,{}]]}]\n";
-      "8:I[\"./consumer.js\",[],\"Consumer\"]\n";
-      "9:[\"$\",\"$2\",null,{\"value\":\"$7\",\"children\":[\"/about\",[\"$\",\"$8\",null,{}]]}]\n";
+      "6:I[\"./provider.js\",[],\"Provider\"]\n";
+      "8:I[\"./provider.js\",[],\"Provider\"]\n";
+      "7:[\"$\",\"$8\",null,{\"value\":null,\"children\":\"Hey you\"}]\n";
+      "9:I[\"./consumer.js\",[],\"Consumer\"]\n";
+      "5:[\"$\",\"$6\",null,{\"value\":\"$7\",\"children\":[\"/me\",[\"$\",\"$9\",null,{}]]}]\n";
       "a:I[\"./consumer.js\",[],\"Consumer\"]\n";
-      "b:[\"$\",\"$1\",null,{\"value\":\"$9\",\"children\":[\"/root\",[\"$\",\"$a\",null,{}]]}]\n";
-      "0:\"$b\"\n";
+      "3:[\"$\",\"$4\",null,{\"value\":\"$5\",\"children\":[\"/about\",[\"$\",\"$a\",null,{}]]}]\n";
+      "b:I[\"./consumer.js\",[],\"Consumer\"]\n";
+      "1:[\"$\",\"$2\",null,{\"value\":\"$3\",\"children\":[\"/root\",[\"$\",\"$b\",null,{}]]}]\n";
+      "0:\"$1\"\n";
     ];
   Lwt.return ()
 
