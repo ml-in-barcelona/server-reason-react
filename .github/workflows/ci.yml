@@ -9,7 +9,7 @@ on:
     - main
 
 env:
-  OPAM_VERSION: 2.3.0
+  OPAM_VERSION: 2.4.1
   DUNE_PROFILE: release
   OCAMLRUNPARAM: b
 
