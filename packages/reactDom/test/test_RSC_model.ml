@@ -714,16 +714,17 @@ let env_development_adds_debug_info () =
     React.Upper_case_component
       ( "app",
         fun () ->
+          let value = "my friend" in
           React.createElement "input"
             [
               React.JSX.String ("id", "id", "sidebar-search-input");
               React.JSX.String ("placeholder", "placeholder", "Search");
-              React.JSX.String ("value", "value", "my friend");
+              React.JSX.String ("value", "value", value);
             ]
             [] )
   in
   let output, subscribe = capture_stream () in
-  let%lwt () = ReactServerDOM.render_model ~debug:true ~subscribe app in
+  let%lwt () = ReactServerDOM.render_model ~subscribe ~debug:true app in
   assert_list_of_strings !output
     [
       "1:{\"name\":\"app\",\"env\":\"Server\",\"key\":null,\"owner\":null,\"stack\":[],\"props\":{}}\n";
