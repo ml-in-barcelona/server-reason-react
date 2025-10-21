@@ -43,7 +43,7 @@ let assert_stream (stream : string Lwt_stream.t) (expected : string list) =
   if content = [] then Lwt.return @@ Alcotest.fail "stream should not be empty"
   else Lwt.return @@ assert_list_of_strings content expected
 
-let assert_html element ?(disable_backtrace = false) ?(shell = "") assertion_list =
+let assert_html element ?(disable_backtrace = false) ?debug ?(shell = "") assertion_list =
   let begin_html = "<!DOCTYPE html><html><head></head><body></body>" in
   let script_html =
     Printf.sprintf
@@ -61,7 +61,7 @@ srr_stream.readable_stream = new ReadableStream({ start(c) { srr_stream._c = c; 
   in
   let subscribed_elements = ref [] in
   if disable_backtrace then Printexc.record_backtrace false else ();
-  let%lwt html, subscribe = ReactServerDOM.render_html element in
+  let%lwt html, subscribe = ReactServerDOM.render_html ?debug element in
   let%lwt () =
     subscribe (fun element ->
         subscribed_elements := !subscribed_elements @ [ element ];

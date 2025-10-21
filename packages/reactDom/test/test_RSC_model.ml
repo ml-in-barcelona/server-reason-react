@@ -264,9 +264,7 @@ let suspense_with_error_under_lowercase () =
   let%lwt () = ReactServerDOM.render_model ~subscribe main in
   assert_list_of_strings !output
     [
-      "1:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[[\"[SERVER] \
-       Dune__exe__Test_RSC_model.sleep.(fun)\",\"packages/reactDom/test/test_RSC_model.ml\",11,2],[\"[SERVER] \
-       Dune__exe__Test_RSC_model.test.test_case.(fun)\",\"packages/reactDom/test/test_RSC_model.ml\",18,6]],\"env\":\"Server\",\"digest\":\"\"}\n";
+      "1:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n";
       "0:[\"$\",\"div\",null,{\"children\":[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,[],{}]},null,[],{}]\n";
     ];
   Lwt.return ()
@@ -347,9 +345,7 @@ let suspense_in_a_list_with_error () =
   in
   let main = React.Upper_case_component ("app", app) in
   let output, subscribe = capture_stream () in
-  Printexc.record_backtrace false;
   let%lwt () = ReactServerDOM.render_model ~subscribe main in
-  Printexc.record_backtrace true;
   assert_list_of_strings !output
     [
       "0:[[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,[],{}],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L2\"},null,[],{}],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L3\"},null,[],{}],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L4\"},null,[],{}],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L5\"},null,[],{}]]\n";
@@ -374,10 +370,7 @@ let suspense_with_immediate_promise () =
   let output, subscribe = capture_stream () in
   let%lwt () = ReactServerDOM.render_model ~subscribe main in
   assert_list_of_strings !output
-    [
-      "1:\"DONE :)\"\n";
-      "0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,[],{}]\n";
-    ];
+    [ "0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"DONE :)\"},null,[],{}]\n" ];
   Lwt.return ()
 
 let delayed_value ~ms value =
@@ -599,7 +592,7 @@ let client_with_promise_props () =
     [
       "1:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n";
       "0:[[\"$\",\"div\",null,{\"children\":\"Server \
-       Content\"},null,[],{}],[\"$\",\"$1\",null,{\"promise\":\"$@2\"},null,[],{},null,[],{}]]\n";
+       Content\"},null,[],{}],[\"$\",\"$1\",null,{\"promise\":\"$@2\"},null,[],{}]]\n";
       "2:\"||| Resolved |||\"\n";
     ];
   Lwt.return () *)
@@ -700,7 +693,6 @@ let style_as_json () =
 let act_with_simple_response () =
   let response = Lwt.return (React.Json (`String "Server Content")) in
   let output, subscribe = capture_stream () in
-  Printexc.record_backtrace false;
   let%lwt () = ReactServerDOM.create_action_response ~subscribe response in
   assert_list_of_strings !output [ "0:\"Server Content\"\n" ];
   Lwt.return ()
@@ -708,7 +700,6 @@ let act_with_simple_response () =
 let act_with_error () =
   let output, subscribe = capture_stream () in
   let response = Lwt.fail (Failure "Error") in
-  Printexc.record_backtrace false;
   let%lwt () = ReactServerDOM.create_action_response ~subscribe response in
   assert_list_of_strings !output
     [
@@ -731,9 +722,11 @@ let env_development_adds_debug_info () =
             [] )
   in
   let output, subscribe = capture_stream () in
-  let%lwt () = ReactServerDOM.render_model ~subscribe app in
+  let%lwt () = ReactServerDOM.render_model ~debug:true ~subscribe app in
   assert_list_of_strings !output
     [
+      "1:{\"name\":\"app\",\"env\":\"Server\",\"key\":null,\"owner\":null,\"stack\":[],\"props\":{}}\n";
+      "0:D\"$1\"\n";
       "0:[\"$\",\"input\",null,{\"id\":\"sidebar-search-input\",\"placeholder\":\"Search\",\"value\":\"my \
        friend\"},null,[],{}]\n";
     ];

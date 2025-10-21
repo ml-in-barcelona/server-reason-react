@@ -288,22 +288,7 @@ module Model = struct
               let error = make_error ~message ~stack ~digest:"" in
               let index = Stream.push ~context (to_chunk (Error (env, error))) in
               `String (lazy_value index)
-          | Return element ->
-              (* TODO: Can we remove the is_root difference. It currently align with react.js behavior, but it's not clear what is the purpose of it *)
-              if is_root.contents then (
-                is_root := false;
-                (*
-                  If it's the root element, React returns the element payload instead of a reference value. 
-                  Root is a special case: https://github.com/facebook/react/blob/f3a803617ec4ba9d14bf5205ffece28ed1496a1d/packages/react-server/src/ReactFlightServer.js#L756-L766 
-                *)
-                turn_element_into_payload element)
-              else
-                (* If it's not the root React push the element to the stream and return the reference value *)
-                let element_index =
-                  let payload = turn_element_into_payload element in
-                  Stream.push ~context (to_chunk (Value payload))
-                in
-                `String (lazy_value element_index)
+          | Return element -> turn_element_into_payload element
           | Sleep ->
               let promise =
                 try%lwt
@@ -320,8 +305,13 @@ module Model = struct
       | Suspense { key; children; fallback } ->
           (* TODO: Need to check is_root? *)
           (* TODO: Maybe we need to push suspense index and suspense node separately *)
+          (* Suspense boundaries should not be treated as root for their children *)
+          let was_root = is_root.contents in
+          is_root := false;
           let fallback = turn_element_into_payload fallback in
-          suspense_node ~key ~fallback [ turn_element_into_payload children ]
+          let children_payload = turn_element_into_payload children in
+          is_root := was_root;
+          suspense_node ~key ~fallback [ children_payload ]
       | Client_component { import_module; import_name; props; client = _ } ->
           let ref = component_ref ~module_:import_module ~name:import_name in
           let index = Stream.push ~context (to_chunk (Component_ref ref)) in
