@@ -409,7 +409,10 @@ let nested_suspense () =
   let output, subscribe = capture_stream () in
   let%lwt () = ReactServerDOM.render_model ~subscribe main in
   assert_list_of_strings !output
-    [ "0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L2\"}]\n"; "1:\"DONE :)\"\n" ];
+    [
+      "0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,[],{}]\n";
+      "1:\"DONE :)\"\n";
+    ];
   Lwt.return ()
 
 let async_component_without_suspense () =
@@ -701,7 +704,7 @@ let act_with_error () =
   let%lwt () = ReactServerDOM.create_action_response ~subscribe response in
   assert_list_of_strings !output
     [
-      "1:E{\"message\":\"Failure(\\\"Error\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"1000123519\"}\n";
+      "1:E{\"message\":\"Failure(\\\"Error\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"861419986\"}\n";
       "0:\"$Z1\"\n";
     ];
   Lwt.return ()
@@ -741,7 +744,7 @@ let env_development_adds_debug_info () =
          ])
   in
   let output, subscribe = capture_stream () in
-  let%lwt () = ReactServerDOM.render_model ~subscribe ~debug:true (app ()) in
+  let%lwt () = ReactServerDOM.render_model ~subscribe  (app ()) in
   assert_list_of_strings !output
     [
       "1:{\"name\":\"App\",\"env\":\"Server\",\"key\":null,\"owner\":null,\"stack\":[[\"module \
@@ -900,24 +903,24 @@ let nested_context () =
   assert_list_of_strings !output
     [
       "2:I[\"./provider.js\",[],\"Provider\"]\n";
-      "5:I[\"./provider.js\",[],\"Provider\"]\n";
+      "4:I[\"./provider.js\",[],\"Provider\"]\n";
+      "6:I[\"./provider.js\",[],\"Provider\"]\n";
       "8:I[\"./provider.js\",[],\"Provider\"]\n";
-      "b:I[\"./provider.js\",[],\"Provider\"]\n";
-      "c:null\n";
-      "d:\"Hey you\"\n";
-      "a:[\"$\",\"$b\",null,{\"value\":\"$c\",\"children\":\"$d\"},null,[],{}]\n";
-      "9:\"$a\"\n";
+      "9:null\n";
+      "a:\"Hey you\"\n";
+      "7:[\"$\",\"$8\",null,{\"value\":\"$9\",\"children\":\"$a\"},null,[],{}]\n";
+      "b:\"$7\"\n";
+      "c:I[\"./consumer.js\",[],\"Consumer\"]\n";
+      "d:[\"/me\",[\"$\",\"$c\",null,{},null,[],{}]]\n";
+      "5:[\"$\",\"$6\",null,{\"value\":\"$b\",\"children\":\"$d\"},null,[],{}]\n";
+      "e:\"$5\"\n";
       "f:I[\"./consumer.js\",[],\"Consumer\"]\n";
-      "e:[\"/me\",[\"$\",\"$f\",null,{},null,[],{}]]\n";
-      "7:[\"$\",\"$8\",null,{\"value\":\"$9\",\"children\":\"$e\"},null,[],{}]\n";
-      "6:\"$7\"\n";
-      "11:I[\"./consumer.js\",[],\"Consumer\"]\n";
-      "10:[\"/about\",[\"$\",\"$11\",null,{},null,[],{}]]\n";
-      "4:[\"$\",\"$5\",null,{\"value\":\"$6\",\"children\":\"$10\"},null,[],{}]\n";
-      "3:\"$4\"\n";
-      "13:I[\"./consumer.js\",[],\"Consumer\"]\n";
-      "12:[\"/root\",[\"$\",\"$13\",null,{},null,[],{}]]\n";
-      "1:[\"$\",\"$2\",null,{\"value\":\"$3\",\"children\":\"$12\"},null,[],{}]\n";
+      "10:[\"/about\",[\"$\",\"$f\",null,{},null,[],{}]]\n";
+      "3:[\"$\",\"$4\",null,{\"value\":\"$e\",\"children\":\"$10\"},null,[],{}]\n";
+      "11:\"$3\"\n";
+      "12:I[\"./consumer.js\",[],\"Consumer\"]\n";
+      "13:[\"/root\",[\"$\",\"$12\",null,{},null,[],{}]]\n";
+      "1:[\"$\",\"$2\",null,{\"value\":\"$11\",\"children\":\"$13\"},null,[],{}]\n";
       "0:\"$1\"\n";
     ];
   Lwt.return ()

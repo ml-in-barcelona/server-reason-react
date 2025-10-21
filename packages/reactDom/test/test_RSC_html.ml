@@ -206,8 +206,9 @@ let async_component_with_promise () =
        data-payload='0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,[],{}]\n\
        '>window.srr_stream.push()</script>"
     [
-      "<div hidden=\"true\" id=\"S:1\"><span>Sleep resolved</span></div>\n<script>$RC('B:1', 'S:1')</script>";
-      "<script data-payload='1:[\"$\",\"span\",null,{\"children\":[\"Sleep resolved\"]},null,[],{}]\n\
+      "<div hidden=\"true\" id=\"S:1\"><span>Sleep resolved</span></div>\n\
+       <script>$RC('B:1', 'S:1')</script><script data-payload='1:[\"$\",\"span\",null,{\"children\":[\"Sleep \
+       resolved\"]},null,[],{}]\n\
        '>window.srr_stream.push()</script>";
     ]
 
@@ -242,8 +243,7 @@ let suspenasync_and_client () =
       "<script data-payload='2:I[\"./client-with-props.js\",[],\"\"]\n'>window.srr_stream.push()</script>";
       "<div hidden=\"true\" id=\"S:1\"><span>Only the client<!-- -->Part of async component</span></div>\n\
        <script>$RC('B:1', 'S:1')</script>";
-      "<script data-payload='1:[\"$\",\"span\",null,{\"children\":[[\"$\",\"$2\",null,{},null,[],{}],\"Part of async \
-       component\"]},null,[],{}]\n\
+      "<script data-payload='1:[\"$\",\"span\",null,{\"children\":[[\"$\",\"$2\",null,{}],\"Part of async component\"]}]\n\
        '>window.srr_stream.push()</script>";
     ]
 
@@ -278,8 +278,7 @@ let with_sleepy_promise () =
        '>window.srr_stream.push()</script>"
     [
       "<div hidden=\"true\" id=\"S:1\"><div><section><article>Deep Server Content</article></section></div></div>\n\
-       <script>$RC('B:1', 'S:1')</script>";
-      "<script \
+       <script>$RC('B:1', 'S:1')</script><script \
        data-payload='1:[\"$\",\"div\",null,{\"children\":[[\"$\",\"section\",null,{\"children\":[[\"$\",\"article\",null,{\"children\":[\"Deep \
        Server Content\"]},null,[],{}]]},null,[],{}]]},null,[],{}]\n\
        '>window.srr_stream.push()</script>";
@@ -340,11 +339,13 @@ let client_with_element_props () =
   in
   assert_html (app ())
     ~shell:
-      "Client with elment prop<script \
-       data-payload='0:[\"$\",\"$1\",null,{\"element\":[\"$\",\"span\",null,{\"children\":[\"server-component-as-props-to-client-component\"]},null,[],{}]},null,[],{}]\n\
+      "Client with elment prop<script data-payload='0:[\"$\",\"$2\",null,{\"element\":\"$1\"},null,[],{}]\n\
        '>window.srr_stream.push()</script>"
     [
-      "<script data-payload='1:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n\
+      "<script \
+       data-payload='1:[\"$\",\"span\",null,{\"children\":\"server-component-as-props-to-client-component\"},null,[],{}]\n\
+       '>window.srr_stream.push()</script>";
+      "<script data-payload='2:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n\
        '>window.srr_stream.push()</script>";
     ]
 
@@ -362,8 +363,8 @@ let suspense_with_error () =
        '>window.srr_stream.push()</script>"
     [
       "<script data-payload='1:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n\
-       '>window.srr_stream.push()</script>";
-      "<div hidden=\"true\" id=\"S:1\"></div>\n<script>$RC('B:1', 'S:1')</script>";
+       '>window.srr_stream.push()</script><div hidden=\"true\" id=\"S:1\"></div>\n\
+       <script>$RC('B:1', 'S:1')</script>";
     ]
 
 let suspense_with_error_in_async () =
@@ -380,8 +381,8 @@ let suspense_with_error_in_async () =
        '>window.srr_stream.push()</script>"
     [
       "<script data-payload='1:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n\
-       '>window.srr_stream.push()</script>";
-      "<div hidden=\"true\" id=\"S:1\"></div>\n<script>$RC('B:1', 'S:1')</script>";
+       '>window.srr_stream.push()</script><div hidden=\"true\" id=\"S:1\"></div>\n\
+       <script>$RC('B:1', 'S:1')</script>";
     ]
 
 let suspense_with_error_under_lowercase () =
@@ -401,8 +402,8 @@ let suspense_with_error_under_lowercase () =
        '>window.srr_stream.push()</script>"
     [
       "<script data-payload='1:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n\
-       '>window.srr_stream.push()</script>";
-      "<div hidden=\"true\" id=\"S:1\"></div>\n<script>$RC('B:1', 'S:1')</script>";
+       '>window.srr_stream.push()</script><div hidden=\"true\" id=\"S:1\"></div>\n\
+       <script>$RC('B:1', 'S:1')</script>";
     ]
 
 let error_without_suspense () =
@@ -463,13 +464,14 @@ let suspense_in_a_list_with_error () =
        data-payload='0:[[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,[],{}],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L2\"},null,[],{}],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L3\"},null,[],{}]]\n\
        '>window.srr_stream.push()</script>"
     [
-      "<div hidden=\"true\" id=\"S:1\">A</div>\n<script>$RC('B:1', 'S:1')</script>";
-      "<script data-payload='1:\"A\"\n'>window.srr_stream.push()</script>";
+      "<div hidden=\"true\" id=\"S:1\">A</div>\n\
+       <script>$RC('B:1', 'S:1')</script><script data-payload='1:\"A\"\n\
+       '>window.srr_stream.push()</script>";
       "<script data-payload='2:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n\
        '>window.srr_stream.push()</script>";
-      "<div hidden=\"true\" id=\"S:2\"></div>\n<script>$RC('B:2', 'S:2')</script>";
-      "<div hidden=\"true\" id=\"S:3\">C</div>\n<script>$RC('B:3', 'S:3')</script>";
-      "<script data-payload='3:\"C\"\n'>window.srr_stream.push()</script>";
+      "<div hidden=\"true\" id=\"S:3\">C</div>\n\
+       <script>$RC('B:3', 'S:3')</script><script data-payload='3:\"C\"\n\
+       '>window.srr_stream.push()</script>";
     ]
 
 let page_with_duplicate_resources () =
@@ -505,7 +507,7 @@ let page_with_duplicate_resources () =
   in
   assert_html (app ())
     ~shell:
-      "<div>Page content</div><script data-payload='0:[\"$\",\"div\",null,{\"children\":[\"Page content\"]},null,[],{}]\n\
+      "<div>Page content</div><script data-payload='0:[\"$\",\"div\",null,{\"children\":[\"Page content\"]}]\n\
        '>window.srr_stream.push()</script>"
     []
 
@@ -607,18 +609,23 @@ let nested_context () =
   assert_html (app ())
     ~shell:
       "/root<!-- -->/about<!-- -->/me<!-- -->Hey you<script \
-       data-payload='0:[\"$\",\"$7\",null,{\"value\":[\"$\",\"$5\",null,{\"value\":[\"$\",\"$3\",null,{\"value\":[\"$\",\"$1\",null,{\"value\":null,\"children\":\"Hey \
-       you\"},null,[],{}],\"children\":[\"/me\",[\"$\",\"$2\",null,{},null,[],{}]]},null,[],{}],\"children\":[\"/about\",[\"$\",\"$4\",null,{},null,[],{}]]},null,[],{}],\"children\":[\"/root\",[\"$\",\"$6\",null,{},null,[],{}]]},null,[],{}]\n\
+       data-payload='0:[\"$\",\"$a\",null,{\"value\":\"$1\",\"children\":[\"/root\",[\"$\",\"$9\",null,{}]]}]\n\
        '>window.srr_stream.push()</script>"
     (* TODO: Don't push multiple scripts for the same client component *)
     [
-      "<script data-payload='1:I[\"./provider.js\",[],\"Provider\"]\n'>window.srr_stream.push()</script>";
-      "<script data-payload='2:I[\"./consumer.js\",[],\"Consumer\"]\n'>window.srr_stream.push()</script>";
-      "<script data-payload='3:I[\"./provider.js\",[],\"Provider\"]\n'>window.srr_stream.push()</script>";
-      "<script data-payload='4:I[\"./consumer.js\",[],\"Consumer\"]\n'>window.srr_stream.push()</script>";
-      "<script data-payload='5:I[\"./provider.js\",[],\"Provider\"]\n'>window.srr_stream.push()</script>";
-      "<script data-payload='6:I[\"./consumer.js\",[],\"Consumer\"]\n'>window.srr_stream.push()</script>";
-      "<script data-payload='7:I[\"./provider.js\",[],\"Provider\"]\n'>window.srr_stream.push()</script>";
+      "<script data-payload='2:I[\"./provider.js\",[],\"Provider\"]\n'>window.srr_stream.push()</script>";
+      "<script data-payload='4:I[\"./provider.js\",[],\"Provider\"]\n'>window.srr_stream.push()</script>";
+      "<script data-payload='6:I[\"./provider.js\",[],\"Provider\"]\n'>window.srr_stream.push()</script>";
+      "<script data-payload='5:[\"$\",\"$6\",null,{\"value\":null,\"children\":\"Hey you\"}]\n\
+       '>window.srr_stream.push()</script>";
+      "<script data-payload='7:I[\"./consumer.js\",[],\"Consumer\"]\n'>window.srr_stream.push()</script>";
+      "<script data-payload='3:[\"$\",\"$4\",null,{\"value\":\"$5\",\"children\":[\"/me\",[\"$\",\"$7\",null,{}]]}]\n\
+       '>window.srr_stream.push()</script>";
+      "<script data-payload='8:I[\"./consumer.js\",[],\"Consumer\"]\n'>window.srr_stream.push()</script>";
+      "<script data-payload='1:[\"$\",\"$2\",null,{\"value\":\"$3\",\"children\":[\"/about\",[\"$\",\"$8\",null,{}]]}]\n\
+       '>window.srr_stream.push()</script>";
+      "<script data-payload='9:I[\"./consumer.js\",[],\"Consumer\"]\n'>window.srr_stream.push()</script>";
+      "<script data-payload='a:I[\"./provider.js\",[],\"Provider\"]\n'>window.srr_stream.push()</script>";
     ]
 
 let tests =
