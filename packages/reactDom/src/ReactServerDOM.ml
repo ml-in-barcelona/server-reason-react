@@ -70,6 +70,62 @@ module Resources = struct
         if exists then resources else resources @ [ Html.Node resource ]
 end
 
+module Fiber = struct
+  type t = {
+    context : Html.element Stream.t;
+    env : env;
+    (* visited_first_lower_case stores the tag of the first lower case element visited, useful to know if the root element is an html tag *)
+    mutable visited_first_lower_case : string option;
+    (* hoisted_head stores the <head> element's attributes and direct children *)
+    mutable hoisted_head : Html.node option;
+    (* hoisted_head_childrens collects elements that should be in the document's <head> (title, meta, link, style) even if they weren't originally inside a <head> element *)
+    mutable hoisted_head_childrens : Html.element list;
+    (* resources collects link, script that should preload, prefetch to be in the document's <head> and deduplicates them based on "src" or "href" attributes, respectively *)
+    mutable resources : Html.element list;
+    (* inside_head tracks whether we're currently processing elements inside a <head> element *)
+    mutable inside_head : bool;
+    (* inside_body tracks whether we're currently processing elements inside a <body> element *)
+    mutable inside_body : bool;
+    (* As we reconstruct the html tag, html_tag_attributes collects the attributes of the <html> tag *)
+    mutable html_tag_attributes : Html.attribute_list;
+  }
+
+  let model_to_chunk model index =
+    Html.raw
+      (Printf.sprintf "<script data-payload='%s'>window.srr_stream.push()</script>"
+         (Html.single_quote_escape (Model.to_chunk model index)))
+
+  let boundary_to_chunk html index =
+    let rc_replacement b s = Html.node "script" [] [ Html.raw (Printf.sprintf "$RC('B:%x', 'S:%x')" b s) ] in
+    Html.list ~separator:"\n"
+      [
+        Html.node "div" [ Html.attribute "hidden" "true"; Html.attribute "id" (Printf.sprintf "S:%x" index) ] [ html ];
+        rc_replacement index index;
+      ]
+
+  let html_suspense_immediate inner = Html.list [ Html.raw "<!--$-->"; inner; Html.raw "<!--/$-->" ]
+
+  let html_suspense_placeholder ~fallback id =
+    Html.list
+      [
+        Html.raw "<!--$?-->";
+        Html.node "template" [ Html.attribute "id" (Printf.sprintf "B:%x" id) ] [];
+        fallback;
+        Html.raw "<!--/$-->";
+      ]
+
+  let chunk_stream_end_script = Html.node "script" [] [ Html.raw "window.srr_stream.close()" ]
+  let set_html_tag_attributes ~fiber html_attributes = fiber.html_tag_attributes <- html_attributes
+  let push_hoisted_head ~fiber head = fiber.hoisted_head <- Some head
+  let push_resource ~fiber resource = fiber.resources <- Resources.add resource fiber.resources
+
+  let push_hoisted_head_childrens ~fiber children =
+    fiber.hoisted_head_childrens <- fiber.hoisted_head_childrens @ [ Node children ]
+
+  let visited_first_lower_case ~fiber = fiber.visited_first_lower_case
+  let set_visited_first_lower_case ~fiber value = fiber.visited_first_lower_case <- Some value
+end
+
 module Model = struct
   type chunk = Value of json | Debug_ref of json | Component_ref of json | Error of env * React.error
 
@@ -217,7 +273,6 @@ module Model = struct
   let rec element_to_payload ~context ?(debug = false) ~to_chunk ~env element =
     let is_root = ref true in
 
-    (* debug_info holds the current debug info for the element wich is updated when the element is a Upper_case_component *)
     let rec turn_element_into_payload element =
       match (element : React.element) with
       | Empty -> `Null
@@ -389,308 +444,6 @@ module Model = struct
     match subscribe with None -> Lwt.return () | Some subscribe -> Lwt_stream.iter_s subscribe stream
 end
 
-module Fiber = struct
-  type t = {
-    context : Html.element Stream.t;
-    env : env;
-    (* visited_first_lower_case stores the tag of the first lower case element visited, useful to know if the root element is an html tag *)
-    mutable visited_first_lower_case : string option;
-    (* hoisted_head stores the <head> element's attributes and direct children *)
-    mutable hoisted_head : Html.node option;
-    (* hoisted_head_childrens collects elements that should be in the document's <head> (title, meta, link, style) even if they weren't originally inside a <head> element *)
-    mutable hoisted_head_childrens : Html.element list;
-    (* resources collects link, script that should preload, prefetch to be in the document's <head> and deduplicates them based on "src" or "href" attributes, respectively *)
-    mutable resources : Html.element list;
-    (* inside_head tracks whether we're currently processing elements inside a <head> element *)
-    mutable inside_head : bool;
-    (* inside_body tracks whether we're currently processing elements inside a <body> element *)
-    mutable inside_body : bool;
-    (* As we reconstruct the html tag, html_tag_attributes collects the attributes of the <html> tag *)
-    mutable html_tag_attributes : Html.attribute_list;
-  }
-
-  let model_to_chunk model index =
-    Html.raw
-      (Printf.sprintf "<script data-payload='%s'>window.srr_stream.push()</script>"
-         (Html.single_quote_escape (Model.to_chunk model index)))
-
-  let boundary_to_chunk html index =
-    let rc_replacement b s = Html.node "script" [] [ Html.raw (Printf.sprintf "$RC('B:%x', 'S:%x')" b s) ] in
-    Html.list ~separator:"\n"
-      [
-        Html.node "div" [ Html.attribute "hidden" "true"; Html.attribute "id" (Printf.sprintf "S:%x" index) ] [ html ];
-        rc_replacement index index;
-      ]
-
-  let html_suspense_immediate inner = Html.list [ Html.raw "<!--$-->"; inner; Html.raw "<!--/$-->" ]
-
-  let html_suspense_placeholder ~fallback id =
-    Html.list
-      [
-        Html.raw "<!--$?-->";
-        Html.node "template" [ Html.attribute "id" (Printf.sprintf "B:%x" id) ] [];
-        fallback;
-        Html.raw "<!--/$-->";
-      ]
-
-  let chunk_stream_end_script = Html.node "script" [] [ Html.raw "window.srr_stream.close()" ]
-  let set_html_tag_attributes ~fiber html_attributes = fiber.html_tag_attributes <- html_attributes
-  let push_hoisted_head ~fiber head = fiber.hoisted_head <- Some head
-  let push_resource ~fiber resource = fiber.resources <- Resources.add resource fiber.resources
-
-  let push_hoisted_head_childrens ~fiber children =
-    fiber.hoisted_head_childrens <- fiber.hoisted_head_childrens @ [ Node children ]
-
-  let visited_first_lower_case ~fiber = fiber.visited_first_lower_case
-  let set_visited_first_lower_case ~fiber value = fiber.visited_first_lower_case <- Some value
-
-  let rec client_to_html ~fiber (element : React.element) =
-    match element with
-    | Empty -> Lwt.return Html.null
-    | DangerouslyInnerHtml html -> Lwt.return (Html.raw html)
-    | Text text -> Lwt.return (Html.string text)
-    | Fragment children -> client_to_html ~fiber children
-    | List childrens ->
-        let%lwt html = Lwt_list.map_p (client_to_html ~fiber) childrens in
-        Lwt.return (Html.list html)
-    | Array childrens ->
-        let%lwt html = childrens |> Array.to_list |> Lwt_list.map_p (client_to_html ~fiber) in
-        Lwt.return (Html.list html)
-    | Lower_case_element { key; tag; attributes; children } ->
-        let context = fiber.context in
-        let attributes =
-          List.map
-            (fun prop ->
-              match prop with
-              | React.JSX.Action (_, key, f) ->
-                  let json = `Assoc [ ("id", `String f.id); ("bound", `Null) ] in
-                  let index = Stream.push ~context (model_to_chunk (Value json)) in
-                  React.JSX.String (key, key, Model.action_value index)
-              | _ -> prop)
-            attributes
-        in
-        render_lower_case ~fiber ~key ~tag ~attributes ~children
-    | Upper_case_component (_name, component) ->
-        let rec wait_for_suspense_to_resolve () =
-          match component () with
-          | exception React.Suspend (Any_promise promise) ->
-              let%lwt _ = promise in
-              wait_for_suspense_to_resolve ()
-          | exception _exn -> Lwt.return Html.null
-          | output -> client_to_html ~fiber output
-        in
-        wait_for_suspense_to_resolve ()
-    | Async_component (_, _component) ->
-        (* async components can't be interleaved in client components, for now *)
-        raise
-          (Invalid_argument
-             "async components can't be part of a client component. This should never raise, the ppx should catch it")
-    | Suspense { key = _; children; fallback } ->
-        (* TODO: Do we need to care if there's Any_promise raising ? *)
-        let%lwt fallback = client_to_html ~fiber fallback in
-        let context = fiber.context in
-        let async =
-          let%lwt html = children |> client_to_html ~fiber in
-          Lwt.return (boundary_to_chunk html)
-        in
-        let index = Stream.push_async ~context async in
-        let sync = html_suspense_placeholder ~fallback index in
-        Lwt.return sync
-    | Client_component { import_module = _; import_name = _; props = _; client } -> client_to_html ~fiber client
-    | Provider children -> client_to_html ~fiber children
-    | Consumer children -> client_to_html ~fiber children
-
-  and render_lower_case ~fiber ~key:_ ~tag ~attributes ~children =
-    let html_props = ReactDOM.attributes_to_html attributes in
-    match ReactDOM.getDangerouslyInnerHtml attributes with
-    | Some inner_html -> Lwt.return (Html.node tag html_props [ Html.raw inner_html ])
-    | None ->
-        let%lwt html = Lwt_list.map_p (client_to_html ~fiber) children in
-        Lwt.return (Html.node tag html_props html)
-
-  let is_async props =
-    let open React.JSX in
-    let has_async prop = match prop with Bool ("async", _, value) -> value | _ -> false in
-    List.exists has_async props
-
-  let has_precedence_and_rel_stylesheet props =
-    let open React.JSX in
-    let has_precedence prop = match prop with String ("precedence", _, _) -> true | _ -> false in
-    let has_rel_stylesheet prop = match prop with String ("rel", _, "stylesheet") -> true | _ -> false in
-    List.exists has_precedence props && List.exists has_rel_stylesheet props
-
-  (* debug_info holds the current debug info for the element wich is updated when the element is a Upper_case_component *)
-  let rec render_element_to_html ~fiber (element : React.element) : (Html.element * json) Lwt.t =
-    match element with
-    | Empty -> Lwt.return (Html.null, `Null)
-    (* Should the DangerouslyInnerHtml model be `Null? *)
-    | DangerouslyInnerHtml html -> Lwt.return (Html.raw html, `Null)
-    | Text s -> Lwt.return (Html.string s, `String s)
-    | Fragment children -> render_element_to_html ~fiber children
-    | List list -> elements_to_html ~fiber list
-    | Array arr -> elements_to_html ~fiber (Array.to_list arr)
-    | Upper_case_component (_name, component) -> (
-        (* if debug then (
-          let debug_info_index = Fiber.use_index fiber in
-          let debug_info_ref : json = `String (Printf.sprintf "$%x" debug_info_index) in
-          (* TODO: Chunks might need to be pushed in the same row *)
-          context.push debug_info_index (Model.Value (Model.make_debug_info name));
-          context.push debug_info_index (Model.Debug_ref debug_info_ref);
-          ()); *)
-        match component () with
-        | element -> render_element_to_html ~fiber element)
-    | Async_component (_, component) ->
-        let%lwt element = component () in
-        render_element_to_html ~fiber element
-    | Client_component { import_module; import_name; props; client } ->
-        let context = fiber.context in
-        let env = fiber.env in
-        let props = Model.client_values_to_json ~context ~to_chunk:model_to_chunk ~env props in
-        let%lwt html = client_to_html ~fiber client in
-        let ref : json = Model.component_ref ~module_:import_module ~name:import_name in
-        let index = Stream.push ~context (model_to_chunk (Component_ref ref)) in
-        let model = Model.node ~tag:(Model.ref_value index) ~props [] in
-        Lwt.return (html, model)
-    | Suspense { key; children; fallback } -> (
-        let context = fiber.context in
-        let%lwt html_fallback, model_fallback = render_element_to_html ~fiber fallback in
-        try%lwt
-          let promise = render_element_to_html ~fiber children in
-          match Lwt.state promise with
-          | Sleep ->
-              let promise =
-                try%lwt
-                  let%lwt html, model = promise in
-                  let to_chunk index = Html.list [ boundary_to_chunk html index; model_to_chunk (Value model) index ] in
-                  Lwt.return to_chunk
-                with exn ->
-                  let message = Printexc.to_string exn in
-                  let stack = create_stack_trace () in
-                  let error = make_error ~message ~stack ~digest:"" in
-                  let to_chunk index = model_to_chunk (Error (fiber.env, error)) index in
-                  Lwt.return to_chunk
-              in
-              let index = Stream.push_async ~context promise in
-              Lwt.return
-                ( html_suspense_placeholder ~fallback:html_fallback index,
-                  Model.suspense_placeholder ~key ~fallback:model_fallback index )
-          | Return (html, model) ->
-              let model = Model.suspense_node ~key ~fallback:model_fallback [ model ] in
-              Lwt.return (html_suspense_immediate html, model)
-          | Fail exn -> Lwt.reraise exn
-        with exn ->
-          let context = fiber.context in
-          let error = Model.exn_to_error exn in
-          let to_chunk index =
-            Html.list [ model_to_chunk (Error (fiber.env, error)) index; boundary_to_chunk Html.null index ]
-          in
-          let index = Stream.push ~context to_chunk in
-          let html = html_suspense_placeholder ~fallback:html_fallback index in
-          Lwt.return (html, Model.suspense_placeholder ~key ~fallback:model_fallback index))
-    | Provider children -> render_element_to_html ~fiber children
-    | Consumer children -> render_element_to_html ~fiber children
-    | Lower_case_element { key; tag; attributes; children } ->
-        render_lower_case_element ~fiber ~key ~tag ~attributes ~children ()
-
-  and render_lower_case_element ~fiber ~key ~tag ~attributes ~children () =
-    (* Head hoisting mechanism:
-       Head elements (meta, style, title, etc) might be scattered throughout the component tree but need to be rendered in the <head> section. Also, if there's no head element, we need to create one and hoist its possible children. *)
-    let inner_html = ReactDOM.getDangerouslyInnerHtml attributes in
-
-    (* only set the first element visited true, the first time *)
-    (match visited_first_lower_case ~fiber with Some _ -> () | None -> set_visited_first_lower_case ~fiber tag);
-
-    if fiber.inside_head && not fiber.inside_body then
-      render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html ()
-    else
-      match tag with
-      | "html" -> (
-          match visited_first_lower_case ~fiber with
-          (* If the first visited lower case is an html element -> skip rendering the html tag itself, just process children. That's because we will reconstuct the html element at the "render_html" *)
-          | Some "html" ->
-              set_html_tag_attributes ~fiber (ReactDOM.attributes_to_html attributes);
-              let%lwt html, model = render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html () in
-              let html_children = match html with Html.Node { children; _ } -> Html.list children | _ -> html in
-              Lwt.return (html_children, model)
-          (* In case of rendering html tag as not the first visited lower case element, means that something is wrapping this html tag (like a div or other element) which is invalid HTML, but we keep rendering as a regular element, as React.js' DOM renderer does *)
-          | _ -> render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html ())
-      | "body" ->
-          fiber.inside_body <- true;
-          let%lwt value = render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html () in
-          fiber.inside_body <- false;
-          Lwt.return value
-      | "head" ->
-          fiber.inside_head <- true;
-          (* push the head element to the hoisted_head *)
-          let%lwt value =
-            handle_hoistable_element ~fiber ~key ~tag ~attributes ~children ~inner_html ~hoist_html:push_hoisted_head ()
-          in
-          fiber.inside_head <- false;
-          Lwt.return value
-      | tag
-        when (tag = "script" && is_async attributes) || (tag = "link" && has_precedence_and_rel_stylesheet attributes)
-        ->
-          handle_hoistable_element ~fiber ~key ~tag ~attributes ~children ~inner_html ~hoist_html:push_resource ()
-      | tag when tag = "title" || tag = "meta" || tag = "link" ->
-          handle_hoistable_element ~fiber ~key ~tag ~attributes ~children ~inner_html
-            ~hoist_html:push_hoisted_head_childrens ()
-      | _ -> render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html ()
-
-  and handle_hoistable_element ~fiber ~key ~tag ~attributes ~children ~inner_html ~hoist_html () =
-    let props = Model.props_to_json attributes in
-    let create_model children =
-      (* In case of the model, we don't care about inner_html as a children since we need it as a prop. This is the opposite from html rendering *)
-      match (Html.is_self_closing_tag tag, inner_html) with
-      | _, Some _ | true, _ -> Model.node ~tag ~key ~props []
-      | false, None -> Model.node ~tag ~key ~props [ children ]
-    in
-    let create_html_node ~html_props ~children_html =
-      match inner_html with
-      | Some inner_html -> Html.{ tag; attributes = html_props; children = [ Html.raw inner_html ] }
-      | None -> Html.{ tag; attributes = html_props; children = [ children_html ] }
-    in
-
-    let html_props = ReactDOM.attributes_to_html attributes in
-    let%lwt children_html, children_model = elements_to_html ~fiber children in
-    let html = create_html_node ~html_props ~children_html in
-    hoist_html ~fiber html;
-    Lwt.return (Html.null, create_model children_model)
-
-  and render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html () =
-    let context = fiber.context in
-    let html_props = ReactDOM.attributes_to_html attributes in
-    let json_attributes =
-      List.map
-        (fun prop ->
-          match prop with
-          | React.JSX.Action (_, key, f) ->
-              let html = model_to_chunk (Value (`Assoc [ ("id", `String f.id); ("bound", `Null) ])) in
-              let index = Stream.push ~context html in
-              React.JSX.String (key, key, Model.action_value index)
-          | _ -> prop)
-        attributes
-    in
-
-    let json_props = Model.props_to_json json_attributes in
-
-    match (Html.is_self_closing_tag tag, inner_html) with
-    | true, _ ->
-        (* Self-closing tags have no children, so inner_html is not relevant *)
-        Lwt.return (Html.node tag html_props [], Model.node ~tag ~key ~props:json_props [])
-    | false, Some inner_html ->
-        (* elements with dangerouslySetInnerHTML *)
-        Lwt.return (Html.node tag html_props [ Html.raw inner_html ], Model.node ~tag ~key ~props:json_props [])
-    | false, None ->
-        let%lwt html, model = elements_to_html ~fiber children in
-        Lwt.return (Html.node tag html_props [ html ], Model.node ~tag ~key ~props:json_props [ model ])
-
-  and elements_to_html ~fiber elements =
-    let%lwt html_and_models = elements |> Lwt_list.map_p (render_element_to_html ~fiber) in
-    (* TODO: List.split is not tail recursive *)
-    let htmls, model = List.split html_and_models in
-    Lwt.return (Html.list htmls, `List model)
-end
-
 let rsc_start_script =
   Html.node "script" []
     [
@@ -712,6 +465,255 @@ let rc_function_definition =
   {|function $RC(a,b){a=document.getElementById(a);b=document.getElementById(b);b.parentNode.removeChild(b);if(a){a=a.previousSibling;var f=a.parentNode,c=a.nextSibling,e=0;do{if(c&&8===c.nodeType){var d=c.data;if("/$"===d)if(0===e)break;else e--;else"$"!==d&&"$?"!==d&&"$!"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data="$";a._reactRetry&&a._reactRetry()}}|}
 
 let rc_function_script = Html.node "script" [] [ Html.raw rc_function_definition ]
+
+let rec client_to_html ~(fiber : Fiber.t) (element : React.element) =
+  match element with
+  | Empty -> Lwt.return Html.null
+  | DangerouslyInnerHtml html -> Lwt.return (Html.raw html)
+  | Text text -> Lwt.return (Html.string text)
+  | Fragment children -> client_to_html ~fiber children
+  | List childrens ->
+      let%lwt html = Lwt_list.map_p (client_to_html ~fiber) childrens in
+      Lwt.return (Html.list html)
+  | Array childrens ->
+      let%lwt html = childrens |> Array.to_list |> Lwt_list.map_p (client_to_html ~fiber) in
+      Lwt.return (Html.list html)
+  | Lower_case_element { key; tag; attributes; children } ->
+      let context = fiber.context in
+      let attributes =
+        List.map
+          (fun prop ->
+            match prop with
+            | React.JSX.Action (_, key, f) ->
+                let json = `Assoc [ ("id", `String f.id); ("bound", `Null) ] in
+                let index = Stream.push ~context (Fiber.model_to_chunk (Value json)) in
+                React.JSX.String (key, key, Model.action_value index)
+            | _ -> prop)
+          attributes
+      in
+      render_lower_case ~fiber ~key ~tag ~attributes ~children
+  | Upper_case_component (_name, component) ->
+      let rec wait_for_suspense_to_resolve () =
+        match component () with
+        | exception React.Suspend (Any_promise promise) ->
+            let%lwt _ = promise in
+            wait_for_suspense_to_resolve ()
+        | exception _exn -> Lwt.return Html.null
+        | output -> client_to_html ~fiber output
+      in
+      wait_for_suspense_to_resolve ()
+  | Async_component (_, _component) ->
+      (* async components can't be interleaved in client components, for now *)
+      raise
+        (Invalid_argument
+           "async components can't be part of a client component. This should never raise, the ppx should catch it")
+  | Suspense { key = _; children; fallback } ->
+      (* TODO: Do we need to care if there's Any_promise raising ? *)
+      let%lwt fallback = client_to_html ~fiber fallback in
+      let context = fiber.context in
+      let async =
+        let%lwt html = children |> client_to_html ~fiber in
+        Lwt.return (Fiber.boundary_to_chunk html)
+      in
+      let index = Stream.push_async ~context async in
+      let sync = Fiber.html_suspense_placeholder ~fallback index in
+      Lwt.return sync
+  | Client_component { import_module = _; import_name = _; props = _; client } -> client_to_html ~fiber client
+  | Provider children -> client_to_html ~fiber children
+  | Consumer children -> client_to_html ~fiber children
+
+and render_lower_case ~fiber ~key:_ ~tag ~attributes ~children =
+  let html_props = ReactDOM.attributes_to_html attributes in
+  match ReactDOM.getDangerouslyInnerHtml attributes with
+  | Some inner_html -> Lwt.return (Html.node tag html_props [ Html.raw inner_html ])
+  | None ->
+      let%lwt html = Lwt_list.map_p (client_to_html ~fiber) children in
+      Lwt.return (Html.node tag html_props html)
+
+let is_async props =
+  let open React.JSX in
+  let has_async prop = match prop with Bool ("async", _, value) -> value | _ -> false in
+  List.exists has_async props
+
+let has_precedence_and_rel_stylesheet props =
+  let open React.JSX in
+  let has_precedence prop = match prop with String ("precedence", _, _) -> true | _ -> false in
+  let has_rel_stylesheet prop = match prop with String ("rel", _, "stylesheet") -> true | _ -> false in
+  List.exists has_precedence props && List.exists has_rel_stylesheet props
+
+let rec render_element_to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * json) Lwt.t =
+  match element with
+  | Empty -> Lwt.return (Html.null, `Null)
+  (* Should the DangerouslyInnerHtml model be `Null? *)
+  | DangerouslyInnerHtml html -> Lwt.return (Html.raw html, `Null)
+  | Text s -> Lwt.return (Html.string s, `String s)
+  | Fragment children -> render_element_to_html ~fiber children
+  | List list -> elements_to_html ~fiber list
+  | Array arr -> elements_to_html ~fiber (Array.to_list arr)
+  | Upper_case_component (_name, component) -> (
+      (* if debug then (
+          let debug_info_index = Fiber.use_index fiber in
+          let debug_info_ref : json = `String (Printf.sprintf "$%x" debug_info_index) in
+          (* TODO: Chunks might need to be pushed in the same row *)
+          context.push debug_info_index (Model.Value (Model.make_debug_info name));
+          context.push debug_info_index (Model.Debug_ref debug_info_ref);
+          ()); *)
+      match component () with
+      | element -> render_element_to_html ~fiber element)
+  | Async_component (_, component) ->
+      let%lwt element = component () in
+      render_element_to_html ~fiber element
+  | Client_component { import_module; import_name; props; client } ->
+      let context = fiber.context in
+      let env = fiber.env in
+      let props = Model.client_values_to_json ~context ~to_chunk:Fiber.model_to_chunk ~env props in
+      let%lwt html = client_to_html ~fiber client in
+      let ref : json = Model.component_ref ~module_:import_module ~name:import_name in
+      let index = Stream.push ~context (Fiber.model_to_chunk (Component_ref ref)) in
+      let model = Model.node ~tag:(Model.ref_value index) ~props [] in
+      Lwt.return (html, model)
+  | Suspense { key; children; fallback } -> (
+      let context = fiber.context in
+      let%lwt html_fallback, model_fallback = render_element_to_html ~fiber fallback in
+      try%lwt
+        let promise = render_element_to_html ~fiber children in
+        match Lwt.state promise with
+        | Sleep ->
+            let promise =
+              try%lwt
+                let%lwt html, model = promise in
+                let to_chunk index =
+                  Html.list [ Fiber.boundary_to_chunk html index; Fiber.model_to_chunk (Value model) index ]
+                in
+                Lwt.return to_chunk
+              with exn ->
+                let message = Printexc.to_string exn in
+                let stack = create_stack_trace () in
+                let error = make_error ~message ~stack ~digest:"" in
+                let to_chunk index = Fiber.model_to_chunk (Error (fiber.env, error)) index in
+                Lwt.return to_chunk
+            in
+            let index = Stream.push_async ~context promise in
+            Lwt.return
+              ( Fiber.html_suspense_placeholder ~fallback:html_fallback index,
+                Model.suspense_placeholder ~key ~fallback:model_fallback index )
+        | Return (html, model) ->
+            let model = Model.suspense_node ~key ~fallback:model_fallback [ model ] in
+            Lwt.return (Fiber.html_suspense_immediate html, model)
+        | Fail exn -> Lwt.reraise exn
+      with exn ->
+        let context = fiber.context in
+        let error = Model.exn_to_error exn in
+        let to_chunk index =
+          Html.list [ Fiber.model_to_chunk (Error (fiber.env, error)) index; Fiber.boundary_to_chunk Html.null index ]
+        in
+        let index = Stream.push ~context to_chunk in
+        let html = Fiber.html_suspense_placeholder ~fallback:html_fallback index in
+        Lwt.return (html, Model.suspense_placeholder ~key ~fallback:model_fallback index))
+  | Provider children -> render_element_to_html ~fiber children
+  | Consumer children -> render_element_to_html ~fiber children
+  | Lower_case_element { key; tag; attributes; children } ->
+      render_lower_case_element ~fiber ~key ~tag ~attributes ~children ()
+
+and render_lower_case_element ~fiber ~key ~tag ~attributes ~children () =
+  (* Head hoisting mechanism:
+       Head elements (meta, style, title, etc) might be scattered throughout the component tree but need to be rendered in the <head> section. Also, if there's no head element, we need to create one and hoist its possible children. *)
+  let inner_html = ReactDOM.getDangerouslyInnerHtml attributes in
+
+  (* only set the first element visited true, the first time *)
+  (match Fiber.visited_first_lower_case ~fiber with
+  | Some _ -> ()
+  | None -> Fiber.set_visited_first_lower_case ~fiber tag);
+
+  if fiber.inside_head && not fiber.inside_body then
+    render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html ()
+  else
+    match tag with
+    | "html" -> (
+        match Fiber.visited_first_lower_case ~fiber with
+        (* If the first visited lower case is an html element -> skip rendering the html tag itself, just process children. That's because we will reconstuct the html element at the "render_html" *)
+        | Some "html" ->
+            Fiber.set_html_tag_attributes ~fiber (ReactDOM.attributes_to_html attributes);
+            let%lwt html, model = render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html () in
+            let html_children = match html with Html.Node { children; _ } -> Html.list children | _ -> html in
+            Lwt.return (html_children, model)
+        (* In case of rendering html tag as not the first visited lower case element, means that something is wrapping this html tag (like a div or other element) which is invalid HTML, but we keep rendering as a regular element, as React.js' DOM renderer does *)
+        | _ -> render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html ())
+    | "body" ->
+        fiber.inside_body <- true;
+        let%lwt value = render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html () in
+        fiber.inside_body <- false;
+        Lwt.return value
+    | "head" ->
+        fiber.inside_head <- true;
+        (* push the head element to the hoisted_head *)
+        let%lwt value =
+          handle_hoistable_element ~fiber ~key ~tag ~attributes ~children ~inner_html ~on_push:Fiber.push_hoisted_head
+            ()
+        in
+        fiber.inside_head <- false;
+        Lwt.return value
+    | tag when (tag = "script" && is_async attributes) || (tag = "link" && has_precedence_and_rel_stylesheet attributes)
+      ->
+        handle_hoistable_element ~fiber ~key ~tag ~attributes ~children ~inner_html ~on_push:Fiber.push_resource ()
+    | tag when tag = "title" || tag = "meta" || tag = "link" ->
+        handle_hoistable_element ~fiber ~key ~tag ~attributes ~children ~inner_html
+          ~on_push:Fiber.push_hoisted_head_childrens ()
+    | _ -> render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html ()
+
+and handle_hoistable_element ~fiber ~key ~tag ~attributes ~children ~inner_html ~on_push () =
+  let props = Model.props_to_json attributes in
+  let create_model children =
+    (* In case of the model, we don't care about inner_html as a children since we need it as a prop. This is the opposite from html rendering *)
+    match (Html.is_self_closing_tag tag, inner_html) with
+    | _, Some _ | true, _ -> Model.node ~tag ~key ~props []
+    | false, None -> Model.node ~tag ~key ~props [ children ]
+  in
+  let create_html_node ~html_props ~children_html =
+    match inner_html with
+    | Some inner_html -> Html.{ tag; attributes = html_props; children = [ Html.raw inner_html ] }
+    | None -> Html.{ tag; attributes = html_props; children = [ children_html ] }
+  in
+
+  let html_props = ReactDOM.attributes_to_html attributes in
+  let%lwt children_html, children_model = elements_to_html ~fiber children in
+  let html = create_html_node ~html_props ~children_html in
+  on_push ~fiber html;
+  Lwt.return (Html.null, create_model children_model)
+
+and render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html () =
+  let context = fiber.context in
+  let html_props = ReactDOM.attributes_to_html attributes in
+  let json_attributes =
+    List.map
+      (fun prop ->
+        match prop with
+        | React.JSX.Action (_, key, f) ->
+            let html = Fiber.model_to_chunk (Value (`Assoc [ ("id", `String f.id); ("bound", `Null) ])) in
+            let index = Stream.push ~context html in
+            React.JSX.String (key, key, Model.action_value index)
+        | _ -> prop)
+      attributes
+  in
+
+  let json_props = Model.props_to_json json_attributes in
+
+  match (Html.is_self_closing_tag tag, inner_html) with
+  | true, _ ->
+      (* Self-closing tags have no children, so inner_html is not relevant *)
+      Lwt.return (Html.node tag html_props [], Model.node ~tag ~key ~props:json_props [])
+  | false, Some inner_html ->
+      (* elements with dangerouslySetInnerHTML *)
+      Lwt.return (Html.node tag html_props [ Html.raw inner_html ], Model.node ~tag ~key ~props:json_props [])
+  | false, None ->
+      let%lwt html, model = elements_to_html ~fiber children in
+      Lwt.return (Html.node tag html_props [ html ], Model.node ~tag ~key ~props:json_props [ model ])
+
+and elements_to_html ~fiber elements =
+  let%lwt html_and_models = elements |> Lwt_list.map_p (render_element_to_html ~fiber) in
+  (* TODO: List.split is not tail recursive *)
+  let htmls, model = List.split html_and_models in
+  Lwt.return (Html.list htmls, `List model)
 
 let is_body_node element =
   match (element : Html.element) with
@@ -787,7 +789,7 @@ let render_html ?(skipRoot = false) ?(env = `Dev) ?debug:(_ = false) ?bootstrapS
       inside_body = false;
     }
   in
-  let%lwt root_html, root_model = Fiber.render_element_to_html ~fiber element in
+  let%lwt root_html, root_model = render_element_to_html ~fiber element in
   (* To return the model value immediately, we don't push it to the stream but return it as a payload script together with the user_scripts *)
   let root_data_payload = Fiber.model_to_chunk (Value root_model) 0 in
   (* In case of not having any task pending, we can close the stream *)
