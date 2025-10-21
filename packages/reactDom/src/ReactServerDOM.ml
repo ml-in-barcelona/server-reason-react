@@ -90,31 +90,6 @@ module Fiber = struct
     mutable html_tag_attributes : Html.attribute_list;
   }
 
-  let model_to_chunk model index =
-    Html.raw
-      (Printf.sprintf "<script data-payload='%s'>window.srr_stream.push()</script>"
-         (Html.single_quote_escape (Model.to_chunk model index)))
-
-  let boundary_to_chunk html index =
-    let rc_replacement b s = Html.node "script" [] [ Html.raw (Printf.sprintf "$RC('B:%x', 'S:%x')" b s) ] in
-    Html.list ~separator:"\n"
-      [
-        Html.node "div" [ Html.attribute "hidden" "true"; Html.attribute "id" (Printf.sprintf "S:%x" index) ] [ html ];
-        rc_replacement index index;
-      ]
-
-  let html_suspense_immediate inner = Html.list [ Html.raw "<!--$-->"; inner; Html.raw "<!--/$-->" ]
-
-  let html_suspense_placeholder ~fallback id =
-    Html.list
-      [
-        Html.raw "<!--$?-->";
-        Html.node "template" [ Html.attribute "id" (Printf.sprintf "B:%x" id) ] [];
-        fallback;
-        Html.raw "<!--/$-->";
-      ]
-
-  let chunk_stream_end_script = Html.node "script" [] [ Html.raw "window.srr_stream.close()" ]
   let set_html_tag_attributes ~fiber html_attributes = fiber.html_tag_attributes <- html_attributes
   let push_hoisted_head ~fiber head = fiber.hoisted_head <- Some head
   let push_resource ~fiber resource = fiber.resources <- Resources.add resource fiber.resources
@@ -360,13 +335,8 @@ module Model = struct
       | Suspense { key; children; fallback } ->
           (* TODO: Need to check is_root? *)
           (* TODO: Maybe we need to push suspense index and suspense node separately *)
-          (* Suspense boundaries should not be treated as root for their children *)
-          let was_root = is_root.contents in
-          is_root := false;
           let fallback = turn_element_into_payload fallback in
-          let children_payload = turn_element_into_payload children in
-          is_root := was_root;
-          suspense_node ~key ~fallback [ children_payload ]
+          suspense_node ~key ~fallback [ turn_element_into_payload children ]
       | Client_component { import_module; import_name; props; client = _ } ->
           let ref = component_ref ~module_:import_module ~name:import_name in
           let index = Stream.push ~context (to_chunk (Component_ref ref)) in
@@ -384,7 +354,11 @@ module Model = struct
     | Error error ->
         let index = Stream.push ~context (to_chunk (Error (env, error))) in
         `String (error_value index)
-    | Element element -> element_to_payload ~context ?debug ~to_chunk ~env element
+    | Element element ->
+        let index =
+          Stream.push ~context (to_chunk (Value (element_to_payload ~context ?debug ~to_chunk ~env element)))
+        in
+        `String (ref_value index)
     | Promise (promise, value_to_json) -> (
         match Lwt.state promise with
         | Return value ->
@@ -466,6 +440,32 @@ let rc_function_definition =
 
 let rc_function_script = Html.node "script" [] [ Html.raw rc_function_definition ]
 
+let model_to_chunk model index =
+  Html.raw
+    (Printf.sprintf "<script data-payload='%s'>window.srr_stream.push()</script>"
+       (Html.single_quote_escape (Model.to_chunk model index)))
+
+let boundary_to_chunk html index =
+  let rc_replacement b s = Html.node "script" [] [ Html.raw (Printf.sprintf "$RC('B:%x', 'S:%x')" b s) ] in
+  Html.list ~separator:"\n"
+    [
+      Html.node "div" [ Html.attribute "hidden" "true"; Html.attribute "id" (Printf.sprintf "S:%x" index) ] [ html ];
+      rc_replacement index index;
+    ]
+
+let html_suspense_immediate inner = Html.list [ Html.raw "<!--$-->"; inner; Html.raw "<!--/$-->" ]
+
+let html_suspense_placeholder ~fallback id =
+  Html.list
+    [
+      Html.raw "<!--$?-->";
+      Html.node "template" [ Html.attribute "id" (Printf.sprintf "B:%x" id) ] [];
+      fallback;
+      Html.raw "<!--/$-->";
+    ]
+
+let chunk_stream_end_script = Html.node "script" [] [ Html.raw "window.srr_stream.close()" ]
+
 let rec client_to_html ~(fiber : Fiber.t) (element : React.element) =
   match element with
   | Empty -> Lwt.return Html.null
@@ -486,7 +486,7 @@ let rec client_to_html ~(fiber : Fiber.t) (element : React.element) =
             match prop with
             | React.JSX.Action (_, key, f) ->
                 let json = `Assoc [ ("id", `String f.id); ("bound", `Null) ] in
-                let index = Stream.push ~context (Fiber.model_to_chunk (Value json)) in
+                let index = Stream.push ~context (model_to_chunk (Value json)) in
                 React.JSX.String (key, key, Model.action_value index)
             | _ -> prop)
           attributes
@@ -513,10 +513,10 @@ let rec client_to_html ~(fiber : Fiber.t) (element : React.element) =
       let context = fiber.context in
       let async =
         let%lwt html = children |> client_to_html ~fiber in
-        Lwt.return (Fiber.boundary_to_chunk html)
+        Lwt.return (boundary_to_chunk html)
       in
       let index = Stream.push_async ~context async in
-      let sync = Fiber.html_suspense_placeholder ~fallback index in
+      let sync = html_suspense_placeholder ~fallback index in
       Lwt.return sync
   | Client_component { import_module = _; import_name = _; props = _; client } -> client_to_html ~fiber client
   | Provider children -> client_to_html ~fiber children
@@ -566,10 +566,10 @@ let rec render_element_to_html ~(fiber : Fiber.t) (element : React.element) : (H
   | Client_component { import_module; import_name; props; client } ->
       let context = fiber.context in
       let env = fiber.env in
-      let props = Model.client_values_to_json ~context ~to_chunk:Fiber.model_to_chunk ~env props in
+      let props = Model.client_values_to_json ~context ~to_chunk:model_to_chunk ~env props in
       let%lwt html = client_to_html ~fiber client in
       let ref : json = Model.component_ref ~module_:import_module ~name:import_name in
-      let index = Stream.push ~context (Fiber.model_to_chunk (Component_ref ref)) in
+      let index = Stream.push ~context (model_to_chunk (Component_ref ref)) in
       let model = Model.node ~tag:(Model.ref_value index) ~props [] in
       Lwt.return (html, model)
   | Suspense { key; children; fallback } -> (
@@ -582,33 +582,31 @@ let rec render_element_to_html ~(fiber : Fiber.t) (element : React.element) : (H
             let promise =
               try%lwt
                 let%lwt html, model = promise in
-                let to_chunk index =
-                  Html.list [ Fiber.boundary_to_chunk html index; Fiber.model_to_chunk (Value model) index ]
-                in
+                let to_chunk index = Html.list [ boundary_to_chunk html index; model_to_chunk (Value model) index ] in
                 Lwt.return to_chunk
               with exn ->
                 let message = Printexc.to_string exn in
                 let stack = create_stack_trace () in
                 let error = make_error ~message ~stack ~digest:"" in
-                let to_chunk index = Fiber.model_to_chunk (Error (fiber.env, error)) index in
+                let to_chunk index = model_to_chunk (Error (fiber.env, error)) index in
                 Lwt.return to_chunk
             in
             let index = Stream.push_async ~context promise in
             Lwt.return
-              ( Fiber.html_suspense_placeholder ~fallback:html_fallback index,
+              ( html_suspense_placeholder ~fallback:html_fallback index,
                 Model.suspense_placeholder ~key ~fallback:model_fallback index )
         | Return (html, model) ->
             let model = Model.suspense_node ~key ~fallback:model_fallback [ model ] in
-            Lwt.return (Fiber.html_suspense_immediate html, model)
+            Lwt.return (html_suspense_immediate html, model)
         | Fail exn -> Lwt.reraise exn
       with exn ->
         let context = fiber.context in
         let error = Model.exn_to_error exn in
         let to_chunk index =
-          Html.list [ Fiber.model_to_chunk (Error (fiber.env, error)) index; Fiber.boundary_to_chunk Html.null index ]
+          Html.list [ model_to_chunk (Error (fiber.env, error)) index; boundary_to_chunk Html.null index ]
         in
         let index = Stream.push ~context to_chunk in
-        let html = Fiber.html_suspense_placeholder ~fallback:html_fallback index in
+        let html = html_suspense_placeholder ~fallback:html_fallback index in
         Lwt.return (html, Model.suspense_placeholder ~key ~fallback:model_fallback index))
   | Provider children -> render_element_to_html ~fiber children
   | Consumer children -> render_element_to_html ~fiber children
@@ -689,7 +687,7 @@ and render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html ()
       (fun prop ->
         match prop with
         | React.JSX.Action (_, key, f) ->
-            let html = Fiber.model_to_chunk (Value (`Assoc [ ("id", `String f.id); ("bound", `Null) ])) in
+            let html = model_to_chunk (Value (`Assoc [ ("id", `String f.id); ("bound", `Null) ])) in
             let index = Stream.push ~context html in
             React.JSX.String (key, key, Model.action_value index)
         | _ -> prop)
@@ -791,7 +789,7 @@ let render_html ?(skipRoot = false) ?(env = `Dev) ?debug:(_ = false) ?bootstrapS
   in
   let%lwt root_html, root_model = render_element_to_html ~fiber element in
   (* To return the model value immediately, we don't push it to the stream but return it as a payload script together with the user_scripts *)
-  let root_data_payload = Fiber.model_to_chunk (Value root_model) 0 in
+  let root_data_payload = model_to_chunk (Value root_model) 0 in
   (* In case of not having any task pending, we can close the stream *)
   (match context.pending = 0 with true -> context.close () | false -> ());
   let bootstrap_script_content =
@@ -855,7 +853,7 @@ let render_html ?(skipRoot = false) ?(env = `Dev) ?debug:(_ = false) ?bootstrapS
   let subscribe fn =
     let fn_with_to_string v = fn (Html.to_string v) in
     let%lwt () = Push_stream.subscribe ~fn:fn_with_to_string stream in
-    fn_with_to_string Fiber.chunk_stream_end_script
+    fn_with_to_string chunk_stream_end_script
   in
   Lwt.return (Html.to_string html, subscribe)
 

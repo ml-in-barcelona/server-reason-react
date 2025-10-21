@@ -529,8 +529,9 @@ let client_with_element_props () =
   assert_list_of_strings !output
     [
       "1:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n";
-      "0:[[\"$\",\"div\",null,{\"children\":\"Server Content\"},null,[],{}],[\"$\",\"$1\",null,{\"children\":\"Client \
-       Content\"},null,[],{}]]\n";
+      "2:\"Client Content\"\n";
+      "0:[[\"$\",\"div\",null,{\"children\":\"Server \
+       Content\"},null,[],{}],[\"$\",\"$1\",null,{\"children\":\"$2\"},null,[],{}]]\n";
     ];
   Lwt.return ()
 
@@ -657,9 +658,9 @@ let client_with_server_children () =
   assert_list_of_strings !output
     [
       "1:I[\"./client-with-server-children.js\",[],\"ClientWithServerChildren\"]\n";
+      "2:[\"$\",\"div\",null,{\"children\":\"Server Component Inside Client\"},null,[],{}]\n";
       "0:[[\"$\",\"div\",null,{\"children\":\"Server \
-       Content\"},null,[],{}],[\"$\",\"$1\",null,{\"children\":[\"$\",\"div\",null,{\"children\":\"Server Component \
-       Inside Client\"},null,[],{}]},null,[],{}]]\n";
+       Content\"},null,[],{}],[\"$\",\"$1\",null,{\"children\":\"$2\"},null,[],{}]]\n";
     ];
   Lwt.return ()
 
@@ -904,13 +905,21 @@ let nested_context () =
       "4:I[\"./provider.js\",[],\"Provider\"]\n";
       "6:I[\"./provider.js\",[],\"Provider\"]\n";
       "8:I[\"./provider.js\",[],\"Provider\"]\n";
-      "7:[\"$\",\"$8\",null,{\"value\":null,\"children\":\"Hey you\"},null,[],{}]\n";
-      "9:I[\"./consumer.js\",[],\"Consumer\"]\n";
-      "5:[\"$\",\"$6\",null,{\"value\":\"$7\",\"children\":[\"/me\",[\"$\",\"$9\",null,{},null,[],{}]]},null,[],{}]\n";
-      "a:I[\"./consumer.js\",[],\"Consumer\"]\n";
-      "3:[\"$\",\"$4\",null,{\"value\":\"$5\",\"children\":[\"/about\",[\"$\",\"$a\",null,{},null,[],{}]]},null,[],{}]\n";
-      "b:I[\"./consumer.js\",[],\"Consumer\"]\n";
-      "1:[\"$\",\"$2\",null,{\"value\":\"$3\",\"children\":[\"/root\",[\"$\",\"$b\",null,{},null,[],{}]]},null,[],{}]\n";
+      "9:null\n";
+      "a:\"Hey you\"\n";
+      "7:[\"$\",\"$8\",null,{\"value\":\"$9\",\"children\":\"$a\"},null,[],{}]\n";
+      "b:\"$7\"\n";
+      "c:I[\"./consumer.js\",[],\"Consumer\"]\n";
+      "d:[\"/me\",[\"$\",\"$c\",null,{},null,[],{}]]\n";
+      "5:[\"$\",\"$6\",null,{\"value\":\"$b\",\"children\":\"$d\"},null,[],{}]\n";
+      "e:\"$5\"\n";
+      "f:I[\"./consumer.js\",[],\"Consumer\"]\n";
+      "10:[\"/about\",[\"$\",\"$f\",null,{},null,[],{}]]\n";
+      "3:[\"$\",\"$4\",null,{\"value\":\"$e\",\"children\":\"$10\"},null,[],{}]\n";
+      "11:\"$3\"\n";
+      "12:I[\"./consumer.js\",[],\"Consumer\"]\n";
+      "13:[\"/root\",[\"$\",\"$12\",null,{},null,[],{}]]\n";
+      "1:[\"$\",\"$2\",null,{\"value\":\"$11\",\"children\":\"$13\"},null,[],{}]\n";
       "0:\"$1\"\n";
     ];
   Lwt.return ()
