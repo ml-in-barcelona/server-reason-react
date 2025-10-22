@@ -349,6 +349,36 @@ let client_with_element_props () =
        '>window.srr_stream.push()</script>";
     ]
 
+let client_component_with_async_component () =
+  let children =
+    React.Async_component
+      ( __FUNCTION__,
+        fun () ->
+          let%lwt () = sleep ~ms:10 in
+          Lwt.return (React.string "Async Component") )
+  in
+  let app ~children =
+    React.Upper_case_component
+      ( "app",
+        fun () ->
+          React.Client_component
+            {
+              import_module = "./client.js";
+              import_name = "Client";
+              props = [ ("children", React.Element children) ];
+              client = children;
+            } )
+  in
+  assert_html (app ~children)
+    ~shell:
+      "Async Component<script data-payload='0:[\"$\",\"$3\",null,{\"children\":\"$2\"},null,[],{}]\n\
+       '>window.srr_stream.push()</script>"
+    [
+      "<script data-payload='2:\"$L1\"\n'>window.srr_stream.push()</script>";
+      "<script data-payload='1:\"Async Component\"\n'>window.srr_stream.push()</script>";
+      "<script data-payload='3:I[\"./client.js\",[],\"Client\"]\n'>window.srr_stream.push()</script>";
+    ]
+
 let suspense_with_error () =
   let app () =
     React.Suspense.make ~fallback:(React.string "Loading...")
@@ -641,6 +671,7 @@ let tests =
     test "suspense_without_promise" suspense_without_promise;
     test "with_sleepy_promise" with_sleepy_promise;
     test "client_with_promise_props" client_with_promise_props;
+    test "client_component_with_async_component" client_component_with_async_component;
     test "async_component_with_promise" async_component_with_promise;
     test "suspense_with_error" suspense_with_error;
     test "suspense_with_error_in_async" suspense_with_error_in_async;
