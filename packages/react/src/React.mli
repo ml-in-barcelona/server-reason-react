@@ -585,6 +585,7 @@ type element =
 
 and lower_case_element = { key : string option; tag : string; attributes : JSX.prop list; children : element list }
 and client_props = (string * element Model.t) list
+and model_value = element Model.t
 
 exception Invalid_children of string
 

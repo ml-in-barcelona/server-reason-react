@@ -330,7 +330,7 @@ module Model = struct
     turn_element_into_payload ~context element
 
   and client_value_to_json ~context value =
-    match (value : React.element React.Model.t) with
+    match (value : React.model_value) with
     | Json json -> json
     | Error error ->
         let chunk_id = use_chunk_id context in
@@ -633,7 +633,7 @@ let rec render_element_to_html ~(fiber : Fiber.t) (element : React.element) : (H
 
 and render_model ~fiber value =
   let context = Fiber.get_context fiber in
-  match (value : React.element React.Model.t) with
+  match (value : React.model_value) with
   | Element element ->
       let%lwt _html, model = render_element_to_html ~fiber element in
       Lwt.return model
@@ -934,8 +934,8 @@ let render_model = Model.render
 let create_action_response = Model.create_action_response
 
 type server_function =
-  | FormData of (Yojson.Basic.t array -> Js.FormData.t -> React.element React.Model.t Lwt.t)
-  | Body of (Yojson.Basic.t array -> React.element React.Model.t Lwt.t)
+  | FormData of (Yojson.Basic.t array -> Js.FormData.t -> React.model_value Lwt.t)
+  | Body of (Yojson.Basic.t array -> React.model_value Lwt.t)
 
 type model = Reference of string | FormData of string | Undefined | Json of json
 

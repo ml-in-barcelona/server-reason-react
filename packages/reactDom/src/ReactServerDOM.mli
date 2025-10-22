@@ -9,18 +9,14 @@ val render_html :
   (string * ((string -> unit Lwt.t) -> unit Lwt.t)) Lwt.t
 
 val render_model :
-  ?env:[ `Dev | `Prod ] -> ?debug:bool -> ?subscribe:(string -> unit Lwt.t) -> React.element React.Model.t -> unit Lwt.t
+  ?env:[ `Dev | `Prod ] -> ?debug:bool -> ?subscribe:(string -> unit Lwt.t) -> React.model_value -> unit Lwt.t
 
 val create_action_response :
-  ?env:[ `Dev | `Prod ] ->
-  ?debug:bool ->
-  ?subscribe:(string -> unit Lwt.t) ->
-  React.element React.Model.t Lwt.t ->
-  unit Lwt.t
+  ?env:[ `Dev | `Prod ] -> ?debug:bool -> ?subscribe:(string -> unit Lwt.t) -> React.model_value Lwt.t -> unit Lwt.t
 
 type server_function =
-  | FormData of (Yojson.Basic.t array -> Js.FormData.t -> React.element React.Model.t Lwt.t)
-  | Body of (Yojson.Basic.t array -> React.element React.Model.t Lwt.t)
+  | FormData of (Yojson.Basic.t array -> Js.FormData.t -> React.model_value Lwt.t)
+  | Body of (Yojson.Basic.t array -> React.model_value Lwt.t)
 
 val decodeReply : string -> Yojson.Basic.t array
 val decodeFormDataReply : Js.FormData.t -> Yojson.Basic.t array * Js.FormData.t
