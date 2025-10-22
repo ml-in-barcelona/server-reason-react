@@ -520,8 +520,7 @@ let expand_make_binding binding react_element_variant_wrapping =
   let key_renamed_to_underscore = ppat_var ~loc:ghost_loc { txt = "_"; loc } in
   let core_type = [%type: string option] in
   let key_pattern = ppat_constraint ~loc key_renamed_to_underscore core_type in
-  (* Append key argument since we want to allow users of this component to set key
-     (and assign it to _ since it shouldn't be used) *)
+  (* Append key argument since we want to allow users of this component to set key (and assign it to _ since it shouldn't be used) *)
   let function_body = pexp_fun ~loc:ghost_loc key_arg default_value key_pattern binding_expr in
   (* Since expand_make_binding is called on both native and js contexts, we need to keep the attributes *)
   { (value_binding ~loc:ghost_loc ~pat:name ~expr:function_body) with pvb_attributes = attributers }
@@ -995,12 +994,7 @@ let rewrite_structure_item ~nested_module_names structure_item =
               let props = props_to_model ~loc arguments in
               [%expr
                 React.Client_component
-                  {
-                    import_module = [%e import_module];
-                    import_name = "";
-                    props = [%e props];
-                    client = (fun () -> [%e expr]);
-                  }])
+                  { import_module = [%e import_module]; import_name = ""; props = [%e props]; client = [%e expr] }])
         else if isReactComponentBinding vb then
           expand_make_binding vb (fun expr ->
               let loc = expr.pexp_loc in

@@ -409,7 +409,10 @@ let nested_suspense () =
   let output, subscribe = capture_stream () in
   let%lwt () = ReactServerDOM.render_model ~subscribe (React.Model.Element main) in
   assert_list_of_strings !output
-    [ "0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L2\"}]\n"; "1:\"DONE :)\"\n" ];
+    [
+      "0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,[],{}]\n";
+      "1:\"DONE :)\"\n";
+    ];
   Lwt.return ()
 
 let async_component_without_suspense () =
@@ -450,7 +453,7 @@ let client_without_props () =
               React.Client_component
                 {
                   props = [];
-                  client = (fun () -> React.string "Client without Props");
+                  client = React.string "Client without Props";
                   import_module = "./client-without-props.js";
                   import_name = "ClientWithoutProps";
                 };
@@ -486,7 +489,7 @@ let client_with_json_props () =
                       ("string list", React.Model.Json (`List [ `String "Item 1"; `String "Item 2" ]));
                       ("object", React.Model.Json (`Assoc [ ("name", `String "John"); ("age", `Int 30) ]));
                     ];
-                  client = (fun () -> React.string "Client with Props");
+                  client = React.string "Client with Props";
                   import_module = "./client-with-props.js";
                   import_name = "ClientWithProps";
                 };
@@ -515,7 +518,7 @@ let client_with_element_props () =
               React.Client_component
                 {
                   props = [ ("children", React.Model.Element (React.string "Client Content")) ];
-                  client = (fun () -> React.string "Client with Props");
+                  client = React.string "Client with Props";
                   import_module = "./client-with-props.js";
                   import_name = "ClientWithProps";
                 };
@@ -545,7 +548,7 @@ let client_with_promise_props () =
                     [
                       ("promise", React.Model.Promise (delayed_value ~ms:20 "||| Resolved |||", fun res -> `String res));
                     ];
-                  client = (fun () -> React.string "Client with Props");
+                  client = React.string "Client with Props";
                   import_module = "./client-with-props.js";
                   import_name = "ClientWithProps";
                 };
@@ -607,7 +610,7 @@ let mixed_server_and_client () =
               React.Client_component
                 {
                   props = [];
-                  client = (fun () -> React.string "Client 1");
+                  client = React.string "Client 1";
                   import_module = "./client-1.js";
                   import_name = "Client1";
                 };
@@ -615,7 +618,7 @@ let mixed_server_and_client () =
               React.Client_component
                 {
                   props = [];
-                  client = (fun () -> React.string "Client 2");
+                  client = React.string "Client 2";
                   import_module = "./client-2.js";
                   import_name = "Client2";
                 };
@@ -645,7 +648,7 @@ let client_with_server_children () =
               React.Client_component
                 {
                   props = [ ("children", React.Model.Element (React.Upper_case_component ("Server", server_child))) ];
-                  client = (fun () -> React.string "Client with Server Children");
+                  client = React.string "Client with Server Children";
                   import_module = "./client-with-server-children.js";
                   import_name = "ClientWithServerChildren";
                 };
@@ -656,9 +659,9 @@ let client_with_server_children () =
   assert_list_of_strings !output
     [
       "1:I[\"./client-with-server-children.js\",[],\"ClientWithServerChildren\"]\n";
+      "2:[\"$\",\"div\",null,{\"children\":\"Server Component Inside Client\"},null,[],{}]\n";
       "0:[[\"$\",\"div\",null,{\"children\":\"Server \
-       Content\"},null,[],{}],[\"$\",\"$1\",null,{\"children\":[\"$\",\"div\",null,{\"children\":\"Server Component \
-       Inside Client\"},null,[],{}]},null,[],{}]]\n";
+       Content\"},null,[],{}],[\"$\",\"$1\",null,{\"children\":\"$2\"},null,[],{}]]\n";
     ];
   Lwt.return ()
 
@@ -702,7 +705,7 @@ let act_with_error () =
   let%lwt () = ReactServerDOM.create_action_response ~subscribe response in
   assert_list_of_strings !output
     [
-      "1:E{\"message\":\"Failure(\\\"Error\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"1000123519\"}\n";
+      "1:E{\"message\":\"Failure(\\\"Error\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"861419986\"}\n";
       "0:\"$Z1\"\n";
     ];
   Lwt.return ()
@@ -742,7 +745,7 @@ let env_development_adds_debug_info () =
          ])
   in
   let output, subscribe = capture_stream () in
-  let%lwt () = ReactServerDOM.render_model ~subscribe ~debug:true (app ()) in
+  let%lwt () = ReactServerDOM.render_model ~subscribe  (app ()) in
   assert_list_of_strings !output
     [
       "1:{\"name\":\"App\",\"env\":\"Server\",\"key\":null,\"owner\":null,\"stack\":[[\"module \
@@ -786,7 +789,7 @@ let client_component_with_resources_metadata () =
                       React.Client_component
                         {
                           props = [];
-                          client = (fun () -> React.string "Client Component");
+                          client = React.string "Client Component";
                           import_module = "./client.js";
                           import_name = "Client";
                         };
@@ -856,7 +859,7 @@ let nested_context () =
               import_module = "./provider.js";
               import_name = "Provider";
               props = [ ("value", React.Model.Element value); ("children", React.Model.Element children) ];
-              client = (fun () -> provider ~value ~children ());
+              client = provider ~value ~children ();
             } )
   in
   let client_consumer () =
@@ -866,9 +869,11 @@ let nested_context () =
         import_name = "Consumer";
         props = [];
         client =
-          (fun () ->
-            let context = React.useContext context in
-            context);
+          React.Upper_case_component
+            ( "client_consumer",
+              fun () ->
+                let context = React.useContext context in
+                context );
       }
   in
   let content () =
@@ -899,16 +904,19 @@ let nested_context () =
   assert_list_of_strings !output
     [
       "2:I[\"./provider.js\",[],\"Provider\"]\n";
-      "4:I[\"./provider.js\",[],\"Provider\"]\n";
-      "6:I[\"./provider.js\",[],\"Provider\"]\n";
+      "5:I[\"./provider.js\",[],\"Provider\"]\n";
       "8:I[\"./provider.js\",[],\"Provider\"]\n";
-      "7:[\"$\",\"$8\",null,{\"value\":null,\"children\":\"Hey you\"},null,[],{}]\n";
-      "9:I[\"./consumer.js\",[],\"Consumer\"]\n";
-      "5:[\"$\",\"$6\",null,{\"value\":\"$7\",\"children\":[\"/me\",[\"$\",\"$9\",null,{},null,[],{}]]},null,[],{}]\n";
-      "a:I[\"./consumer.js\",[],\"Consumer\"]\n";
-      "3:[\"$\",\"$4\",null,{\"value\":\"$5\",\"children\":[\"/about\",[\"$\",\"$a\",null,{},null,[],{}]]},null,[],{}]\n";
-      "b:I[\"./consumer.js\",[],\"Consumer\"]\n";
-      "1:[\"$\",\"$2\",null,{\"value\":\"$3\",\"children\":[\"/root\",[\"$\",\"$b\",null,{},null,[],{}]]},null,[],{}]\n";
+      "b:I[\"./provider.js\",[],\"Provider\"]\n";
+      "a:[\"$\",\"$b\",null,{\"value\":null,\"children\":\"Hey you\"},null,[],{}]\n";
+      "9:\"$a\"\n";
+      "c:I[\"./consumer.js\",[],\"Consumer\"]\n";
+      "7:[\"$\",\"$8\",null,{\"value\":\"$9\",\"children\":[\"/me\",[\"$\",\"$c\",null,{},null,[],{}]]},null,[],{}]\n";
+      "6:\"$7\"\n";
+      "d:I[\"./consumer.js\",[],\"Consumer\"]\n";
+      "4:[\"$\",\"$5\",null,{\"value\":\"$6\",\"children\":[\"/about\",[\"$\",\"$d\",null,{},null,[],{}]]},null,[],{}]\n";
+      "3:\"$4\"\n";
+      "e:I[\"./consumer.js\",[],\"Consumer\"]\n";
+      "1:[\"$\",\"$2\",null,{\"value\":\"$3\",\"children\":[\"/root\",[\"$\",\"$e\",null,{},null,[],{}]]},null,[],{}]\n";
       "0:\"$1\"\n";
     ];
   Lwt.return ()

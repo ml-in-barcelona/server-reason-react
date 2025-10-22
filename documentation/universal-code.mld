@@ -74,7 +74,7 @@ module ServerReasonReact = {
       | Fragment(array(element));
 
     // createElement is a function that returns a React.element
-    let createElement = name => React.Element(string);
+    let createElement = name => React.Model.Element(string);
   };
 };
 ]}

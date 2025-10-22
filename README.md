@@ -56,6 +56,6 @@ The [documentation site](https://ml-in-barcelona.github.io/server-reason-react/s
 
 The `demo` folder contains a bunch of demos under a server to showcases the usages of `server-reason-react`. Check the [README](demo/README.md) for how to setup and run it.
 
-## Want to contribute to the future?
+## Want to contribute?
 
-[Follow me](https://x.com/davesnx) or [message me](https://x.com/davesnx)
+[DM me](https://x.com/davesnx)
