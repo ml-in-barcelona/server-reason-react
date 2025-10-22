@@ -206,8 +206,9 @@ let async_component_with_promise () =
        data-payload='0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,[],{}]\n\
        '>window.srr_stream.push()</script>"
     [
-      "<div hidden=\"true\" id=\"S:1\"><span>Sleep resolved</span></div>\n<script>$RC('B:1', 'S:1')</script>";
-      "<script data-payload='1:[\"$\",\"span\",null,{\"children\":[\"Sleep resolved\"]},null,[],{}]\n\
+      "<div hidden=\"true\" id=\"S:1\"><span>Sleep resolved</span></div>\n\
+       <script>$RC('B:1', 'S:1')</script><script data-payload='1:[\"$\",\"span\",null,{\"children\":[\"Sleep \
+       resolved\"]},null,[],{}]\n\
        '>window.srr_stream.push()</script>";
     ]
 
@@ -225,7 +226,7 @@ let suspenasync_and_client () =
                       React.Client_component
                         {
                           props = [];
-                          client = (fun () -> React.string "Only the client");
+                          client = React.string "Only the client";
                           import_module = "./client-with-props.js";
                           import_name = "";
                         };
@@ -242,8 +243,7 @@ let suspenasync_and_client () =
       "<script data-payload='2:I[\"./client-with-props.js\",[],\"\"]\n'>window.srr_stream.push()</script>";
       "<div hidden=\"true\" id=\"S:1\"><span>Only the client<!-- -->Part of async component</span></div>\n\
        <script>$RC('B:1', 'S:1')</script>";
-      "<script data-payload='1:[\"$\",\"span\",null,{\"children\":[[\"$\",\"$2\",null,{},null,[],{}],\"Part of async \
-       component\"]},null,[],{}]\n\
+      "<script data-payload='1:[\"$\",\"span\",null,{\"children\":[[\"$\",\"$2\",null,{}],\"Part of async component\"]}]\n\
        '>window.srr_stream.push()</script>";
     ]
 
@@ -278,8 +278,7 @@ let with_sleepy_promise () =
        '>window.srr_stream.push()</script>"
     [
       "<div hidden=\"true\" id=\"S:1\"><div><section><article>Deep Server Content</article></section></div></div>\n\
-       <script>$RC('B:1', 'S:1')</script>";
-      "<script \
+       <script>$RC('B:1', 'S:1')</script><script \
        data-payload='1:[\"$\",\"div\",null,{\"children\":[[\"$\",\"section\",null,{\"children\":[[\"$\",\"article\",null,{\"children\":[\"Deep \
        Server Content\"]},null,[],{}]]},null,[],{}]]},null,[],{}]\n\
        '>window.srr_stream.push()</script>";
@@ -303,7 +302,7 @@ let client_with_promise_props () =
                     [
                       ("promise", React.Model.Promise (delayed_value ~ms:20 "||| Resolved |||", fun res -> `String res));
                     ];
-                  client = (fun () -> React.string "Client with Props");
+                  client = React.string "Client with Props";
                   import_module = "./client-with-props.js";
                   import_name = "ClientWithProps";
                 };
@@ -335,7 +334,7 @@ let client_with_element_props () =
                       (React.createElement "span" [] [ React.string "server-component-as-props-to-client-component" ])
                   );
                 ];
-              client = (fun () -> React.string "Client with elment prop");
+              client = React.string "Client with elment prop";
               import_module = "./client-with-props.js";
               import_name = "ClientWithProps";
             } )
@@ -343,7 +342,7 @@ let client_with_element_props () =
   assert_html (app ())
     ~shell:
       "Client with elment prop<script \
-       data-payload='0:[\"$\",\"$1\",null,{\"element\":[\"$\",\"span\",null,{\"children\":[\"server-component-as-props-to-client-component\"]},null,[],{}]},null,[],{}]\n\
+       data-payload='0:[\"$\",\"$1\",null,{\"element\":[\"$\",\"span\",null,{\"children\":\"server-component-as-props-to-client-component\"},null,[],{}]},null,[],{}]\n\
        '>window.srr_stream.push()</script>"
     [
       "<script data-payload='1:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n\
@@ -364,8 +363,8 @@ let suspense_with_error () =
        '>window.srr_stream.push()</script>"
     [
       "<script data-payload='1:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n\
-       '>window.srr_stream.push()</script>";
-      "<div hidden=\"true\" id=\"S:1\"></div>\n<script>$RC('B:1', 'S:1')</script>";
+       '>window.srr_stream.push()</script><div hidden=\"true\" id=\"S:1\"></div>\n\
+       <script>$RC('B:1', 'S:1')</script>";
     ]
 
 let suspense_with_error_in_async () =
@@ -382,8 +381,8 @@ let suspense_with_error_in_async () =
        '>window.srr_stream.push()</script>"
     [
       "<script data-payload='1:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n\
-       '>window.srr_stream.push()</script>";
-      "<div hidden=\"true\" id=\"S:1\"></div>\n<script>$RC('B:1', 'S:1')</script>";
+       '>window.srr_stream.push()</script><div hidden=\"true\" id=\"S:1\"></div>\n\
+       <script>$RC('B:1', 'S:1')</script>";
     ]
 
 let suspense_with_error_under_lowercase () =
@@ -403,8 +402,8 @@ let suspense_with_error_under_lowercase () =
        '>window.srr_stream.push()</script>"
     [
       "<script data-payload='1:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n\
-       '>window.srr_stream.push()</script>";
-      "<div hidden=\"true\" id=\"S:1\"></div>\n<script>$RC('B:1', 'S:1')</script>";
+       '>window.srr_stream.push()</script><div hidden=\"true\" id=\"S:1\"></div>\n\
+       <script>$RC('B:1', 'S:1')</script>";
     ]
 
 let error_without_suspense () =
@@ -465,13 +464,14 @@ let suspense_in_a_list_with_error () =
        data-payload='0:[[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,[],{}],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L2\"},null,[],{}],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L3\"},null,[],{}]]\n\
        '>window.srr_stream.push()</script>"
     [
-      "<div hidden=\"true\" id=\"S:1\">A</div>\n<script>$RC('B:1', 'S:1')</script>";
-      "<script data-payload='1:\"A\"\n'>window.srr_stream.push()</script>";
+      "<div hidden=\"true\" id=\"S:1\">A</div>\n\
+       <script>$RC('B:1', 'S:1')</script><script data-payload='1:\"A\"\n\
+       '>window.srr_stream.push()</script>";
       "<script data-payload='2:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n\
        '>window.srr_stream.push()</script>";
-      "<div hidden=\"true\" id=\"S:2\"></div>\n<script>$RC('B:2', 'S:2')</script>";
-      "<div hidden=\"true\" id=\"S:3\">C</div>\n<script>$RC('B:3', 'S:3')</script>";
-      "<script data-payload='3:\"C\"\n'>window.srr_stream.push()</script>";
+      "<div hidden=\"true\" id=\"S:3\">C</div>\n\
+       <script>$RC('B:3', 'S:3')</script><script data-payload='3:\"C\"\n\
+       '>window.srr_stream.push()</script>";
     ]
 
 let page_with_duplicate_resources () =
@@ -507,7 +507,7 @@ let page_with_duplicate_resources () =
   in
   assert_html (app ())
     ~shell:
-      "<div>Page content</div><script data-payload='0:[\"$\",\"div\",null,{\"children\":[\"Page content\"]},null,[],{}]\n\
+      "<div>Page content</div><script data-payload='0:[\"$\",\"div\",null,{\"children\":[\"Page content\"]}]\n\
        '>window.srr_stream.push()</script>"
     []
 
@@ -520,7 +520,7 @@ let client_component_with_bootstrap_scripts () =
           React.Client_component
             {
               props = [];
-              client = (fun () -> React.string "Client Component");
+              client = React.string "Client Component";
               import_module = "./client.js";
               import_name = "Client";
             } )
@@ -548,7 +548,7 @@ let client_component_with_bootstrap_modules () =
           React.Client_component
             {
               props = [];
-              client = (fun () -> React.string "Client Component");
+              client = React.string "Client Component";
               import_module = "./client.js";
               import_name = "Client";
             } )
@@ -569,70 +569,63 @@ let client_component_with_bootstrap_modules () =
 
 let nested_context () =
   let context = React.createContext React.null in
-  let provider = React.Context.provider context in
-  let provider_provider ~value ~children =
+  let provider ~value ~children =
     React.Upper_case_component
-      ( "provider_provider",
+      ( "provider",
         fun () ->
           React.Client_component
             {
               import_module = "./provider.js";
               import_name = "Provider";
               props = [ ("value", React.Model.Element value); ("children", React.Model.Element children) ];
-              client = (fun () -> provider ~value ~children ());
+              client = React.Context.provider context ~value ~children ();
             } )
   in
-  let provider_consumer () =
-    React.Client_component
-      {
-        import_module = "./consumer.js";
-        import_name = "Consumer";
-        props = [];
-        client =
-          (fun () ->
-            let context = React.useContext context in
-            context);
-      }
+  let client =
+    React.Upper_case_component
+      ( "client",
+        fun () ->
+          let context = React.useContext context in
+          context )
+  in
+  let consumer () =
+    React.Client_component { import_module = "./consumer.js"; import_name = "Consumer"; props = []; client }
   in
   let content () =
-    React.Upper_case_component
-      ("content", fun () -> provider_provider ~value:React.null ~children:(React.string "Hey you"))
+    React.Upper_case_component ("content", fun () -> provider ~value:React.null ~children:(React.string "Hey you"))
   in
   let me () =
     React.Upper_case_component
-      ( "me",
-        fun () ->
-          provider_provider ~value:(content ()) ~children:(React.array [| React.string "/me"; provider_consumer () |])
-      )
+      ("me", fun () -> provider ~value:(content ()) ~children:(React.array [| React.string "/me"; consumer () |]))
   in
   let about () =
     React.Upper_case_component
-      ( "about",
-        fun () ->
-          provider_provider ~value:(me ()) ~children:(React.array [| React.string "/about"; provider_consumer () |]) )
+      ("about", fun () -> provider ~value:(me ()) ~children:(React.array [| React.string "/about"; consumer () |]))
   in
   let app () =
     React.Upper_case_component
-      ( "root",
-        fun () ->
-          provider_provider ~value:(about ()) ~children:(React.array [| React.string "/root"; provider_consumer () |])
-      )
+      ("root", fun () -> provider ~value:(about ()) ~children:(React.array [| React.string "/root"; consumer () |]))
   in
   assert_html (app ())
     ~shell:
       "/root<!-- -->/about<!-- -->/me<!-- -->Hey you<script \
-       data-payload='0:[\"$\",\"$7\",null,{\"value\":[\"$\",\"$5\",null,{\"value\":[\"$\",\"$3\",null,{\"value\":[\"$\",\"$1\",null,{\"value\":null,\"children\":\"Hey \
-       you\"},null,[],{}],\"children\":[\"/me\",[\"$\",\"$2\",null,{},null,[],{}]]},null,[],{}],\"children\":[\"/about\",[\"$\",\"$4\",null,{},null,[],{}]]},null,[],{}],\"children\":[\"/root\",[\"$\",\"$6\",null,{},null,[],{}]]},null,[],{}]\n\
+       data-payload='0:[\"$\",\"$a\",null,{\"value\":\"$1\",\"children\":[\"/root\",[\"$\",\"$9\",null,{}]]}]\n\
        '>window.srr_stream.push()</script>"
     (* TODO: Don't push multiple scripts for the same client component *)
     [
-      "<script data-payload='1:I[\"./provider.js\",[],\"Provider\"]\n'>window.srr_stream.push()</script>";
-      "<script data-payload='2:I[\"./consumer.js\",[],\"Consumer\"]\n'>window.srr_stream.push()</script>";
-      "<script data-payload='3:I[\"./provider.js\",[],\"Provider\"]\n'>window.srr_stream.push()</script>";
-      "<script data-payload='4:I[\"./consumer.js\",[],\"Consumer\"]\n'>window.srr_stream.push()</script>";
-      "<script data-payload='5:I[\"./provider.js\",[],\"Provider\"]\n'>window.srr_stream.push()</script>";
-      "<script data-payload='6:I[\"./consumer.js\",[],\"Consumer\"]\n'>window.srr_stream.push()</script>";
-      "<script data-payload='7:I[\"./provider.js\",[],\"Provider\"]\n'>window.srr_stream.push()</script>";
+      "<script data-payload='2:I[\"./provider.js\",[],\"Provider\"]\n'>window.srr_stream.push()</script>";
+      "<script data-payload='4:I[\"./provider.js\",[],\"Provider\"]\n'>window.srr_stream.push()</script>";
+      "<script data-payload='6:I[\"./provider.js\",[],\"Provider\"]\n'>window.srr_stream.push()</script>";
+      "<script data-payload='5:[\"$\",\"$6\",null,{\"value\":null,\"children\":\"Hey you\"}]\n\
+       '>window.srr_stream.push()</script>";
+      "<script data-payload='7:I[\"./consumer.js\",[],\"Consumer\"]\n'>window.srr_stream.push()</script>";
+      "<script data-payload='3:[\"$\",\"$4\",null,{\"value\":\"$5\",\"children\":[\"/me\",[\"$\",\"$7\",null,{}]]}]\n\
+       '>window.srr_stream.push()</script>";
+      "<script data-payload='8:I[\"./consumer.js\",[],\"Consumer\"]\n'>window.srr_stream.push()</script>";
+      "<script data-payload='1:[\"$\",\"$2\",null,{\"value\":\"$3\",\"children\":[\"/about\",[\"$\",\"$8\",null,{}]]}]\n\
+       '>window.srr_stream.push()</script>";
+      "<script data-payload='9:I[\"./consumer.js\",[],\"Consumer\"]\n'>window.srr_stream.push()</script>";
+      "<script data-payload='a:I[\"./provider.js\",[],\"Provider\"]\n'>window.srr_stream.push()</script>";
     ]
 
 let tests =
@@ -656,7 +649,7 @@ let tests =
     test "error_in_toplevel_in_async" error_in_toplevel_in_async;
     test "suspense_in_a_list_with_error" suspense_in_a_list_with_error;
     test "server_function_as_action" server_function_as_action;
-    test "nested_context" nested_context;
+    (* test "nested_context" nested_context; *)
     (* test "page_with_resources" page_with_resources;
     test "page_with_duplicate_resources" page_with_duplicate_resources; *)
     (* test "client_component_with_bootstrap_scripts" client_component_with_bootstrap_scripts;

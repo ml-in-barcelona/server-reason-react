@@ -389,7 +389,7 @@ type element =
   | Lower_case_element of lower_case_element
   | Upper_case_component of string * (unit -> element)
   | Async_component of string * (unit -> element Lwt.t)
-  | Client_component of { props : client_props; client : unit -> element; import_module : string; import_name : string }
+  | Client_component of { props : client_props; client : element; import_module : string; import_name : string }
   | List of element list
   | Array of element array
   | Text of string
@@ -523,7 +523,7 @@ let createContext (initial_value : 'a) : 'a Context.t =
 module Suspense = struct
   let or_react_null = function None -> null | Some x -> x
 
-  let make ?(key = None) ?fallback ?children () =
+  let make ?key ?fallback ?children () =
     Suspense { key; fallback = or_react_null fallback; children = or_react_null children }
 end
 
