@@ -1,7 +1,7 @@
 (library
  (name url_native)
  (public_name server-reason-react.url_native)
- (wrapped false)
- (libraries uri js))
+ (libraries uri js)
+ (implements url))
 
 (copy_files# "../URL.rei")
