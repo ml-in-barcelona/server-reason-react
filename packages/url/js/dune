@@ -3,8 +3,7 @@
  (modes melange)
  (public_name server-reason-react.url_js)
  (libraries melange.js)
- (wrapped false)
  (preprocess
-  (pps melange.ppx)))
+  (pps melange.ppx))
+ (implements url))
 
-(copy_files# "../URL.rei")
