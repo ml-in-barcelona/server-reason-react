@@ -147,9 +147,8 @@ let upper_case_with_list () =
   let%lwt () = ReactServerDOM.render_model ~subscribe (app ()) in
   assert_list_of_strings !output
     [
-      "1:[\"$\",\"span\",null,{\"children\":\"hi\"},null,[],{}]\n";
-      "2:[\"$\",\"span\",null,{\"children\":\"hola\"},null,[],{}]\n";
-      "0:[\"$1\",\"$2\"]\n";
+      "1:[\"$\",\"span\",null,{\"children\":\"hola\"},null,[],{}]\n";
+      "0:[[\"$\",\"span\",null,{\"children\":\"hi\"},null,[],{}],\"$1\"]\n";
     ];
   Lwt.return ()
 
@@ -169,9 +168,8 @@ let upper_case_with_children () =
   let%lwt () = ReactServerDOM.render_model ~subscribe (app ()) in
   assert_list_of_strings !output
     [
-      "1:[\"$\",\"span\",null,{\"children\":\"hi\"},null,[],{}]\n";
-      "2:[\"$\",\"span\",null,{\"children\":\"hola\"},null,[],{}]\n";
-      "0:[\"$\",\"div\",null,{\"children\":[\"$1\",\"$2\"]},null,[],{}]\n";
+      "1:[\"$\",\"span\",null,{\"children\":\"hola\"},null,[],{}]\n";
+      "0:[\"$\",\"div\",null,{\"children\":[[\"$\",\"span\",null,{\"children\":\"hi\"},null,[],{}],\"$1\"]},null,[],{}]\n";
     ];
   Lwt.return ()
 
@@ -191,9 +189,8 @@ let suspense_without_promise () =
   let%lwt () = ReactServerDOM.render_model ~subscribe main in
   assert_list_of_strings !output
     [
-      "1:[\"$\",\"span\",null,{\"children\":\"hi\"},null,[],{}]\n";
-      "2:[\"$\",\"span\",null,{\"children\":\"hola\"},null,[],{}]\n";
-      "0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":[\"$\",\"div\",null,{\"children\":[\"$1\",\"$2\"]},null,[],{}]},null,[],{}]\n";
+      "1:[\"$\",\"span\",null,{\"children\":\"hola\"},null,[],{}]\n";
+      "0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":[\"$\",\"div\",null,{\"children\":[[\"$\",\"span\",null,{\"children\":\"hi\"},null,[],{}],\"$1\"]},null,[],{}]},null,[],{}]\n";
     ];
   Lwt.return ()
 
@@ -529,9 +526,8 @@ let client_with_element_props () =
   assert_list_of_strings !output
     [
       "1:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n";
-      "2:\"Client Content\"\n";
-      "0:[[\"$\",\"div\",null,{\"children\":\"Server \
-       Content\"},null,[],{}],[\"$\",\"$1\",null,{\"children\":\"$2\"},null,[],{}]]\n";
+      "0:[[\"$\",\"div\",null,{\"children\":\"Server Content\"},null,[],{}],[\"$\",\"$1\",null,{\"children\":\"Client \
+       Content\"},null,[],{}]]\n";
     ];
   Lwt.return ()
 
@@ -658,9 +654,9 @@ let client_with_server_children () =
   assert_list_of_strings !output
     [
       "1:I[\"./client-with-server-children.js\",[],\"ClientWithServerChildren\"]\n";
-      "2:[\"$\",\"div\",null,{\"children\":\"Server Component Inside Client\"},null,[],{}]\n";
       "0:[[\"$\",\"div\",null,{\"children\":\"Server \
-       Content\"},null,[],{}],[\"$\",\"$1\",null,{\"children\":\"$2\"},null,[],{}]]\n";
+       Content\"},null,[],{}],[\"$\",\"$1\",null,{\"children\":[\"$\",\"div\",null,{\"children\":\"Server Component \
+       Inside Client\"},null,[],{}]},null,[],{}]]\n";
     ];
   Lwt.return ()
 
@@ -902,26 +898,40 @@ let nested_context () =
   (* TODO: Don't push multiple scripts for the same client component *)
   assert_list_of_strings !output
     [
+      "1:I[\"./provider.js\",[],\"Provider\"]\n";
       "2:I[\"./provider.js\",[],\"Provider\"]\n";
+      "3:I[\"./provider.js\",[],\"Provider\"]\n";
       "4:I[\"./provider.js\",[],\"Provider\"]\n";
-      "6:I[\"./provider.js\",[],\"Provider\"]\n";
-      "8:I[\"./provider.js\",[],\"Provider\"]\n";
-      "9:null\n";
-      "a:\"Hey you\"\n";
-      "7:[\"$\",\"$8\",null,{\"value\":\"$9\",\"children\":\"$a\"},null,[],{}]\n";
-      "b:\"$7\"\n";
-      "c:I[\"./consumer.js\",[],\"Consumer\"]\n";
-      "d:[\"/me\",[\"$\",\"$c\",null,{},null,[],{}]]\n";
-      "5:[\"$\",\"$6\",null,{\"value\":\"$b\",\"children\":\"$d\"},null,[],{}]\n";
-      "e:\"$5\"\n";
-      "f:I[\"./consumer.js\",[],\"Consumer\"]\n";
-      "10:[\"/about\",[\"$\",\"$f\",null,{},null,[],{}]]\n";
-      "3:[\"$\",\"$4\",null,{\"value\":\"$e\",\"children\":\"$10\"},null,[],{}]\n";
-      "11:\"$3\"\n";
-      "12:I[\"./consumer.js\",[],\"Consumer\"]\n";
-      "13:[\"/root\",[\"$\",\"$12\",null,{},null,[],{}]]\n";
-      "1:[\"$\",\"$2\",null,{\"value\":\"$11\",\"children\":\"$13\"},null,[],{}]\n";
-      "0:\"$1\"\n";
+      "5:I[\"./consumer.js\",[],\"Consumer\"]\n";
+      "6:I[\"./consumer.js\",[],\"Consumer\"]\n";
+      "7:I[\"./consumer.js\",[],\"Consumer\"]\n";
+      "0:[\"$\",\"$1\",null,{\"value\":[\"$\",\"$2\",null,{\"value\":[\"$\",\"$3\",null,{\"value\":[\"$\",\"$4\",null,{\"value\":null,\"children\":\"Hey \
+       you\"},null,[],{}],\"children\":[\"/me\",[\"$\",\"$5\",null,{},null,[],{}]]},null,[],{}],\"children\":[\"/about\",[\"$\",\"$6\",null,{},null,[],{}]]},null,[],{}],\"children\":[\"/root\",[\"$\",\"$7\",null,{},null,[],{}]]},null,[],{}]\n";
+    ];
+  Lwt.return ()
+
+let nested_upper_case_component () =
+  let app () =
+    React.Upper_case_component ("app", fun () -> React.Upper_case_component ("Foo", fun () -> React.string "Hello"))
+  in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~subscribe (app ()) in
+  assert_list_of_strings !output [ "0:\"Hello\"\n" ];
+  Lwt.return ()
+
+let nested_upper_case_component_debug () =
+  let app () =
+    React.Upper_case_component ("app", fun () -> React.Upper_case_component ("Foo", fun () -> React.string "Hello"))
+  in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~debug:true ~subscribe (app ()) in
+  assert_list_of_strings !output
+    [
+      "1:{\"name\":\"app\",\"env\":\"Server\",\"key\":null,\"owner\":null,\"stack\":[],\"props\":{}}\n";
+      "0:D\"$1\"\n";
+      "2:{\"name\":\"Foo\",\"env\":\"Server\",\"key\":null,\"owner\":null,\"stack\":[],\"props\":{}}\n";
+      "0:D\"$2\"\n";
+      "0:\"Hello\"\n";
     ];
   Lwt.return ()
 
@@ -964,6 +974,8 @@ let tests =
     test "client_component_with_resources_metadata" client_component_with_resources_metadata;
     test "page_with_hoisted_resources" page_with_hoisted_resources;
     test "nested_context" nested_context;
+    test "nested_upper_case_component" nested_upper_case_component;
+    test "nested_upper_case_component_debug" nested_upper_case_component_debug;
     (* TODO: https://github.com/ml-in-barcelona/server-reason-react/issues/251 test "client_with_promise_failed_props" client_with_promise_failed_props; *)
     (* test "env_development_adds_debug_info_2" env_development_adds_debug_info_2; *)
   ]

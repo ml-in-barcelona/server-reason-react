@@ -41,13 +41,37 @@ let Await_tick = ({ num }) => {
 	return num
 }
 
-const App = () => {
+const Bar = () => {
 	return (
-		<div className="container">
-			<link rel="stylesheet" href="bootstrap.min.css" precedence="high" /></div>
+		<div>
+			Bar
+		</div>
 	)
-};
-const { pipe } = renderToPipeableStream(<App />);
+}
+
+const Foo = () => {
+	return (
+		<Bar />
+	)
+}
+// Mimic of @file_context_0 – suspense with two “Text” children.
+
+const Text = ({ children }) => <span>{children}</span>;
+
+const App = () => (
+	<React.Suspense fallback={"Loading..."}>
+		<div>
+			<Text>hi</Text>
+			<Text>hola</Text>
+		</div>
+	</React.Suspense>
+);
+const { pipe } = renderToPipeableStream(<React.Suspense fallback={"Loading..."}>
+	<div>
+		<Text>hi</Text>
+		<Text>hola</Text>
+	</div>
+</React.Suspense>);
 
 pipe(process.stdout);
 
