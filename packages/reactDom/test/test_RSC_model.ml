@@ -922,17 +922,35 @@ let nested_context () =
   Lwt.return ()
 
 let model_list () =
-  let list = React.Model.List [ React.Model.Json (`String "Item 1"); React.Model.Json (`String "Item 2") ] in
+  let list =
+    React.Model.List
+      [
+        React.Model.Json (`String "Item 1");
+        React.Model.Element
+          (React.Upper_case_component
+             ("Component", fun () -> React.createElement "div" [] [ React.string "Hello world" ]));
+      ]
+  in
   let output, subscribe = capture_stream () in
   let%lwt () = ReactServerDOM.render_model ~subscribe list in
-  assert_list_of_strings !output [ "0:[\"Item 1\",\"Item 2\"]\n" ];
+  assert_list_of_strings !output [ "0:[\"Item 1\",[\"$\",\"div\",null,{\"children\":\"Hello world\"},null,[],{}]]\n" ];
   Lwt.return ()
 
 let model_assoc () =
-  let assoc = React.Model.Assoc [ ("key", React.Model.Json (`String "value")) ] in
+  let assoc =
+    React.Model.Assoc
+      [
+        ("key", React.Model.Json (`String "value"));
+        ( "component",
+          React.Model.Element
+            (React.Upper_case_component
+               ("Component", fun () -> React.createElement "div" [] [ React.string "Hello world" ])) );
+      ]
+  in
   let output, subscribe = capture_stream () in
   let%lwt () = ReactServerDOM.render_model ~subscribe assoc in
-  assert_list_of_strings !output [ "0:{\"key\":\"value\"}\n" ];
+  assert_list_of_strings !output
+    [ "0:{\"key\":\"value\",\"component\":[\"$\",\"div\",null,{\"children\":\"Hello world\"},null,[],{}]}\n" ];
   Lwt.return ()
 
 let tests =
