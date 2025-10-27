@@ -299,7 +299,9 @@ let client_with_promise_props () =
               React.Client_component
                 {
                   props =
-                    [ ("promise", React.Promise (delayed_value ~ms:20 "||| Resolved |||", fun res -> `String res)) ];
+                    [
+                      ("promise", React.Model.Promise (delayed_value ~ms:20 "||| Resolved |||", fun res -> `String res));
+                    ];
                   client = React.string "Client with Props";
                   import_module = "./client-with-props.js";
                   import_name = "ClientWithProps";
@@ -328,7 +330,7 @@ let client_with_element_props () =
               props =
                 [
                   ( "element",
-                    React.Element
+                    React.Model.Element
                       (React.createElement "span" [] [ React.string "server-component-as-props-to-client-component" ])
                   );
                 ];
@@ -339,13 +341,11 @@ let client_with_element_props () =
   in
   assert_html (app ())
     ~shell:
-      "Client with elment prop<script data-payload='0:[\"$\",\"$2\",null,{\"element\":\"$1\"},null,[],{}]\n\
+      "Client with elment prop<script \
+       data-payload='0:[\"$\",\"$1\",null,{\"element\":[\"$\",\"span\",null,{\"children\":\"server-component-as-props-to-client-component\"},null,[],{}]},null,[],{}]\n\
        '>window.srr_stream.push()</script>"
     [
-      "<script \
-       data-payload='1:[\"$\",\"span\",null,{\"children\":\"server-component-as-props-to-client-component\"},null,[],{}]\n\
-       '>window.srr_stream.push()</script>";
-      "<script data-payload='2:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n\
+      "<script data-payload='1:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n\
        '>window.srr_stream.push()</script>";
     ]
 
@@ -365,18 +365,17 @@ let client_component_with_async_component () =
             {
               import_module = "./client.js";
               import_name = "Client";
-              props = [ ("children", React.Element children) ];
+              props = [ ("children", React.Model.Element children) ];
               client = children;
             } )
   in
   assert_html (app ~children)
     ~shell:
-      "Async Component<script data-payload='0:[\"$\",\"$3\",null,{\"children\":\"$2\"},null,[],{}]\n\
+      "Async Component<script data-payload='0:[\"$\",\"$2\",null,{\"children\":\"$L1\"},null,[],{}]\n\
        '>window.srr_stream.push()</script>"
     [
-      "<script data-payload='2:\"$L1\"\n'>window.srr_stream.push()</script>";
       "<script data-payload='1:\"Async Component\"\n'>window.srr_stream.push()</script>";
-      "<script data-payload='3:I[\"./client.js\",[],\"Client\"]\n'>window.srr_stream.push()</script>";
+      "<script data-payload='2:I[\"./client.js\",[],\"Client\"]\n'>window.srr_stream.push()</script>";
     ]
 
 let suspense_with_error () =
@@ -607,7 +606,7 @@ let nested_context () =
             {
               import_module = "./provider.js";
               import_name = "Provider";
-              props = [ ("value", React.Element value); ("children", React.Element children) ];
+              props = [ ("value", React.Model.Element value); ("children", React.Model.Element children) ];
               client = React.Context.provider context ~value ~children ();
             } )
   in

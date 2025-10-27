@@ -165,7 +165,10 @@ let createFromRequest =
     ) => {
   switch (Dream.header(request, "Accept")) {
   | Some(accept) when is_react_component_header(accept) =>
-    stream_model(~location=Dream.target(request), element)
+    stream_model(
+      ~location=Dream.target(request),
+      React.Model.Element(element),
+    )
   | _ =>
     stream_html(
       ~skipRoot=disableSSR,
