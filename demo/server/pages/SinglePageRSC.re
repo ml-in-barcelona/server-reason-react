@@ -226,6 +226,6 @@ module App = {
 let handler = request =>
   DreamRSC.createFromRequest(
     ~bootstrapModules=["/static/demo/SinglePageRSC.re.js"],
-    React.Model.Element(<App />),
+    <App />,
     request,
   );

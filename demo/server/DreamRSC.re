@@ -156,6 +156,7 @@ let stream_html =
 let createFromRequest =
     (
       ~disableSSR=false,
+      ~layout=children => children,
       ~bootstrapModules=[],
       ~bootstrapScripts=[],
       ~bootstrapScriptContent="",
@@ -174,10 +175,7 @@ let createFromRequest =
       ~bootstrapScriptContent,
       ~bootstrapScripts,
       ~bootstrapModules,
-      switch (element) {
-      | React.Model.Element(element) => element
-      | _ => failwith("For html you need to use a React.Model.Element")
-      },
+      layout(element),
     )
   };
 };

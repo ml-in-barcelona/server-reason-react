@@ -203,7 +203,7 @@ let handler = request => {
   DreamRSC.createFromRequest(
     ~disableSSR=!ssr,
     ~bootstrapModules=["/static/demo/DummyRouterRSC.re.js"],
-    React.Model.Element(<App selectedId isEditing searchText sleep />),
+    <App selectedId isEditing searchText sleep />,
     request,
   );
 };

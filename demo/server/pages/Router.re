@@ -1,6 +1,5 @@
 open Supersonic;
 
-// Layout will be handled by the navigation not by the render_html
 module Layout = {
   [@react.component]
   let make = (~children) => {
@@ -49,7 +48,8 @@ let handler = (~element, request) => {
   DreamRSC.createFromRequest(
     ~disableSSR=!ssr,
     ~bootstrapModules=["/static/demo/Router.re.js"],
-    React.Model.Element(element),
+    ~layout=children => <Layout> children </Layout>,
+    element,
     request,
   );
 };
