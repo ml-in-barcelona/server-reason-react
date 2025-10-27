@@ -1,0 +1,5 @@
+(library
+ (name url)
+ (public_name server-reason-react.url)
+ (wrapped false)
+ (virtual_modules URL_impl))
