@@ -114,18 +114,18 @@
       import_module: "input.re",
       import_name: "",
       props: [
-        ("initial", React.Json(int_to_json(initial))),
-        ("lola", React.Json(lola_to_json(lola))),
-        ("children", React.Element(children: React.element)),
+        ("initial", React.Model.Json(int_to_json(initial))),
+        ("lola", React.Model.Json(lola_to_json(lola))),
+        ("children", React.Model.Element(children: React.element)),
         (
           "maybe_children",
           switch (maybe_children) {
-          | Some(prop) => React.Element(prop: React.element)
-          | None => React.Json(`Null)
+          | Some(prop) => React.Model.Element(prop: React.element)
+          | None => React.Model.Json(`Null)
           },
         ),
       ],
-      client: () =>
+      client:
         React.createElementWithKey(
           ~key=None,
           "section",

@@ -374,11 +374,22 @@ end
 
 type error = { message : string; stack : Yojson.Basic.t; env : string; digest : string }
 
+module Model = struct
+  type 'element t =
+    | Function : 'server_function Runtime.server_function -> 'element t
+    | List : 'element t list -> 'element t
+    | Assoc : (string * 'element t) list -> 'element t
+    | Json : Yojson.Basic.t -> 'element t
+    | Error : error -> 'element t
+    | Element : 'element -> 'element t
+    | Promise : 'a Js.Promise.t * ('a -> Yojson.Basic.t) -> 'element t
+end
+
 type element =
   | Lower_case_element of lower_case_element
   | Upper_case_component of string * (unit -> element)
   | Async_component of string * (unit -> element Lwt.t)
-  | Client_component of { props : client_props; client : unit -> element; import_module : string; import_name : string }
+  | Client_component of { props : client_props; client : element; import_module : string; import_name : string }
   | List of element list
   | Array of element array
   | Text of string
@@ -390,15 +401,8 @@ type element =
   | Suspense of { key : string option; children : element; fallback : element }
 
 and lower_case_element = { key : string option; tag : string; attributes : JSX.prop list; children : element list }
-and client_props = (string * client_value) list
-
-and client_value =
-  (* TODO: Do we need to add more types here? *)
-  | Function : 'f Runtime.server_function -> client_value
-  | Json : Yojson.Basic.t -> client_value
-  | Error : error -> client_value
-  | Element : element -> client_value
-  | Promise : 'a Js.Promise.t * ('a -> Yojson.Basic.t) -> client_value
+and client_props = (string * element Model.t) list
+and model_value = element Model.t
 
 exception Invalid_children of string
 
@@ -519,7 +523,7 @@ let createContext (initial_value : 'a) : 'a Context.t =
 module Suspense = struct
   let or_react_null = function None -> null | Some x -> x
 
-  let make ?(key = None) ?fallback ?children () =
+  let make ?key ?fallback ?children () =
     Suspense { key; fallback = or_react_null fallback; children = or_react_null children }
 end
 

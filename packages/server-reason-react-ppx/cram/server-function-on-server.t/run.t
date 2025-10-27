@@ -88,7 +88,7 @@
                   try(
                     withLabelledArg.call(~name, ~age)
                     |> Lwt.map(response =>
-                         React.Json(string_to_json(response))
+                         React.Model.Json(string_to_json(response))
                        )
                   ) {
                   | e => Lwt.fail(e)
@@ -149,7 +149,7 @@
                   try(
                     withLabelledArgAndUnlabeledArg.call(~name?, age)
                     |> Lwt.map(response =>
-                         React.Json(string_to_json(response))
+                         React.Model.Json(string_to_json(response))
                        )
                   ) {
                   | e => Lwt.fail(e)
@@ -200,7 +200,7 @@
                   try(
                     withOptionalArg.call(~name?, ())
                     |> Lwt.map(response =>
-                         React.Json(string_to_json(response))
+                         React.Model.Json(string_to_json(response))
                        )
                   ) {
                   | e => Lwt.fail(e)
@@ -244,7 +244,7 @@
                   try(
                     withOptionalDefaultArg.call(~name?, ())
                     |> Lwt.map(response =>
-                         React.Json(string_to_json(response))
+                         React.Model.Json(string_to_json(response))
                        )
                   ) {
                   | e => Lwt.fail(e)
@@ -301,7 +301,7 @@
                   try(
                     withUnlabeledArg.call(name, age)
                     |> Lwt.map(response =>
-                         React.Json(string_to_json(response))
+                         React.Model.Json(string_to_json(response))
                        )
                   ) {
                   | e => Lwt.fail(e)
@@ -323,7 +323,7 @@
                   try(
                     withNoArgs.call()
                     |> Lwt.map(response =>
-                         React.Json(string_to_json(response))
+                         React.Model.Json(string_to_json(response))
                        )
                   ) {
                   | e => Lwt.fail(e)
@@ -363,7 +363,7 @@
                   try(
                     withFormData.call(formData)
                     |> Lwt.map(response =>
-                         React.Json(string_to_json(response))
+                         React.Model.Json(string_to_json(response))
                        )
                   ) {
                   | e => Lwt.fail(e)
@@ -413,7 +413,7 @@
                   try(
                     withFormDataArgs.call(country, formData)
                     |> Lwt.map(response =>
-                         React.Json(string_to_json(response))
+                         React.Model.Json(string_to_json(response))
                        )
                   ) {
                   | e => Lwt.fail(e)
@@ -467,7 +467,7 @@
                       ~formData,
                     )
                     |> Lwt.map(response =>
-                         React.Json(string_to_json(response))
+                         React.Model.Json(string_to_json(response))
                        )
                   ) {
                   | e => Lwt.fail(e)
@@ -521,7 +521,7 @@
                       ~formData,
                     )
                     |> Lwt.map(response =>
-                         React.Json(string_to_json(response))
+                         React.Model.Json(string_to_json(response))
                        )
                   ) {
                   | e => Lwt.fail(e)
@@ -575,7 +575,7 @@
                       formData,
                     )
                     |> Lwt.map(response =>
-                         React.Json(string_to_json(response))
+                         React.Model.Json(string_to_json(response))
                        )
                   ) {
                   | e => Lwt.fail(e)
@@ -626,7 +626,7 @@
                   try(
                     withFormDataAndArgsDifferentOrder.call(formData, country)
                     |> Lwt.map(response =>
-                         React.Json(string_to_json(response))
+                         React.Model.Json(string_to_json(response))
                        )
                   ) {
                   | e => Lwt.fail(e)

@@ -9,7 +9,6 @@ on:
     - main
 
 env:
-  OPAM_VERSION: 2.3.0
   DUNE_PROFILE: release
   OCAMLRUNPARAM: b
 
@@ -44,11 +43,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install openssl
-        if: matrix.os == 'macos-latest'
-        run: |
-          pkg-config --modversion openssl
-
       - name: Load npm cache
         id: npm-cache
         uses: actions/cache/restore@v4
@@ -56,7 +50,7 @@ jobs:
           path: |
             demo/node_modules
             demo/client/node_modules
-          key: npm-${{ matrix.os }}-${{ hashFiles('demo/package.json') }}-${{ hashFiles('demo/client/package.json') }}
+          key: v1.0.0-npm-${{ matrix.os }}-${{ hashFiles('demo/package.json') }}-${{ hashFiles('demo/client/package.json') }}
 
       - name: Load opam cache
         id: opam-cache
@@ -67,10 +61,10 @@ jobs:
             ~/.opam
             _opam
             .opam-path
-          key: opam-${{ matrix.os }}-${{ matrix.ocaml-compiler }}-${{ hashFiles('**.opam') }}
+          key: v1.0.0-opam-${{ matrix.os }}-${{ matrix.ocaml-compiler }}-${{ hashFiles('**.opam') }}
 
       - name: Use OCaml ${{ matrix.ocaml-compiler }}
-        uses: ocaml/setup-ocaml@v3.2.5
+        uses: ocaml/setup-ocaml@v3.4.5
         if: steps.opam-cache.outputs.cache-hit != 'true'
         with:
           ocaml-compiler: ${{ matrix.ocaml-compiler }}
@@ -134,19 +128,18 @@ jobs:
         run: make test
 
       - name: Generate docs
-        if: github.ref == 'refs/heads/main' && matrix.ocaml-compiler == '5.2.0'
+        if: github.ref == 'refs/heads/main' && matrix.os == 'ubuntu-latest' && matrix.ocaml-compiler == '5.2.0'
         run: |
           opam install -y odoc-driver
           make docs
 
-      - name: Publish docs
-        uses: crazy-max/ghaction-github-pages@v1
-        if: github.ref == 'refs/heads/main' && matrix.ocaml-compiler == '5.2.0'
+      - name: Upload docs artifact
+        if: github.ref == 'refs/heads/main' && matrix.os == 'ubuntu-latest' && matrix.ocaml-compiler == '5.2.0'
+        uses: actions/upload-artifact@v4
         with:
-          target_branch: gh-pages
-          build_dir: _html
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
+          name: documentation
+          path: _html
+          retention-days: 1
 
       - name: Run benchmarks
         run: make bench
@@ -157,7 +150,7 @@ jobs:
           path: |
             demo/node_modules
             demo/client/node_modules
-          key: npm-${{ matrix.os }}-${{ hashFiles('demo/package.json') }}-${{ hashFiles('demo/client/package.json') }}
+          key: v1.0.0-npm-${{ matrix.os }}-${{ hashFiles('demo/package.json') }}-${{ hashFiles('demo/client/package.json') }}
 
       - name: Save opam cache
         uses: actions/cache/save@v4
@@ -168,4 +161,36 @@ jobs:
             ~/.opam
             _opam
             .opam-path
-          key: opam-${{ matrix.os }}-${{ matrix.ocaml-compiler }}-${{ hashFiles('**.opam') }}
+          key: v1.0.0-opam-${{ matrix.os }}-${{ matrix.ocaml-compiler }}-${{ hashFiles('**.opam') }}
+
+  publish-docs:
+    name: Publish documentation
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    environment:
+      name: github-pages
+      url: https://ml-in-barcelona.github.io/server-reason-react
+
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download docs artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: documentation
+          path: _html
+
+      - name: Publish to GitHub Pages
+        uses: crazy-max/ghaction-github-pages@v1
+        with:
+          target_branch: gh-pages
+          build_dir: _html
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
