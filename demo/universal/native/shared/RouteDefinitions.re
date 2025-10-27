@@ -1,7 +1,19 @@
 type t = {
   path: string,
-  layout: option((~children: React.element) => React.element),
-  page: option((~params: Hashtbl.t(string, string)) => React.element),
+  layout:
+    option(
+      (
+        ~children: React.element,
+        ~params: Supersonic.Params.t,
+        ~queryParams: Supersonic.Params.t
+      ) =>
+      React.element,
+    ),
+  page:
+    option(
+      (~params: Supersonic.Params.t, ~queryParams: Supersonic.Params.t) =>
+      React.element,
+    ),
   children: option(list(t)),
 };
 
@@ -11,37 +23,58 @@ type app = {
 };
 
 [@platform native]
+module App = {
+  [@react.async.component]
+  let make =
+      (~params: Hashtbl.t(string, string), ~queryParams: Supersonic.Params.t) => {
+    // let%lwt _ = Lwt_unix.sleep(2.);
+    Lwt.return(
+      <>
+        <div className="text-white text-6xl">
+          {React.string("App Home")}
+        </div>
+      </>,
+    );
+  };
+};
+
+[@platform native]
+let document = (~children, ~params, ~queryParams) =>
+  <html>
+    <head>
+      <meta charSet="utf-8" />
+      <link rel="stylesheet" href="/output.css" />
+    </head>
+    <body> children </body>
+  </html>;
+
+[@platform native]
 let routes = [
   {
     path: "/",
     layout:
       Some(
-        (~children) =>
-          <>
+        (~children, ~params, ~queryParams) => {
+          <DemoLayout>
             <Supersonic.Navigation />
             <div className="text-white text-6xl"> children </div>
-          </>,
+          </DemoLayout>
+        },
       ),
-    page:
-      Some(
-        (~params as _) =>
-          <span className="text-white text-6xl">
-            <span> {React.string("\"home\" Page")} </span>
-          </span>,
-      ),
+    page: Some(App.make()),
     children:
       Some([
         {
           path: "/about",
           page: None,
-          layout: Some((~children) => children),
+          layout: Some((~children, ~params, ~queryParams) => children),
           children:
             Some([
               {
                 path: "/work",
                 layout:
                   Some(
-                    (~children) =>
+                    (~children, ~params as _, ~queryParams as _) =>
                       <div className="text-white text-6xl">
                         <span> {React.string("\"/work\" Page")} </span>
                         children
@@ -54,7 +87,7 @@ let routes = [
                 path: "/me",
                 page:
                   Some(
-                    (~params as _) =>
+                    (~params as _, ~queryParams as _) =>
                       <div className="text-white text-6xl">
                         <span> {React.string("\"/me\" Page")} </span>
                       </div>,
@@ -68,7 +101,7 @@ let routes = [
           path: "/dashboard",
           page:
             Some(
-              (~params as _) =>
+              (~params as _, ~queryParams as _) =>
                 <div className="text-white text-6xl">
                   {React.string("\"/dashboard\" Page")}
                 </div>,
@@ -80,12 +113,12 @@ let routes = [
           path: "/profile",
           layout:
             Some(
-              (~children) =>
+              (~children, ~params as _, ~queryParams as _) =>
                 <div className="text-white text-6xl"> children </div>,
             ),
           page:
             Some(
-              (~params as _) =>
+              (~params as _, ~queryParams as _) =>
                 <div className="text-white text-6xl">
                   {React.string("\"/profile\" Page")}
                 </div>,
@@ -96,7 +129,7 @@ let routes = [
                 path: "/:id",
                 page:
                   Some(
-                    (~params) => {
+                    (~params, ~queryParams as _) => {
                       let id = Hashtbl.find(params, "id");
                       <div className="text-white text-6xl">
                         {React.string("\"/profile/:id\" Page")}
@@ -105,14 +138,17 @@ let routes = [
                       </div>;
                     },
                   ),
-                layout: Some((~children) => children),
+                layout:
+                  Some(
+                    (~children, ~params as _, ~queryParams as _) => children,
+                  ),
                 children:
                   Some([
                     {
                       path: "/:name",
                       page:
                         Some(
-                          (~params) => {
+                          (~params, ~queryParams as _) => {
                             let name = Hashtbl.find(params, "name");
                             let id = Hashtbl.find(params, "id");
                             <div className="text-white text-6xl">
@@ -135,30 +171,25 @@ let routes = [
   },
 ];
 
-/**
+/**x
   Returns the component for the given path segments
   */
 [@platform native]
 let renderByPath =
     (
       ~basePath: string="",
-      ~params: Hashtbl.t(string, string)=Hashtbl.create(5),
+      ~params: Supersonic.Params.t,
+      ~queryParams: Supersonic.Params.t,
       request: Dream.request,
       pathSegments: list(string),
       routes: list(t),
     ) => {
   let rec aux =
-          (routes: list(t), pathSegments: list(string), params, parentPath)
+          (routes: list(t), pathSegments: list(string), parentPath)
           : option(React.element) => {
     switch (routes, pathSegments) {
-    | ([route, ...routes], []) => aux(routes, [], params, parentPath)
+    | ([route, ...routes], []) => aux(routes, [], parentPath)
     | ([route, ...routes], [pathSegment, ...remainingSegments]) =>
-      if (String.starts_with(pathSegment, ~prefix=":")) {
-        // Add param to the Hashtbl
-        let key = pathSegment->String.sub(1, String.length(pathSegment) - 1);
-        Hashtbl.add(params, key, Dream.param(request, key));
-      };
-
       if (route.path == "/" ++ pathSegment) {
         let component =
           switch (route.children) {
@@ -167,19 +198,34 @@ let renderByPath =
             <Supersonic.Route
               path
               outlet={
-                switch (aux(children, remainingSegments, params, path)) {
-                | Some(component) => Some(component)
-                | None => route.page |> Option.map(page => page(~params))
-                }
+                Some(
+                  {
+                    switch (aux(children, remainingSegments, path)) {
+                    | Some(component) => component
+                    | None =>
+                      route.page
+                      |> Option.map(page => page(~params, ~queryParams))
+                      |> Option.value(~default=React.null)
+                    };
+                  },
+                )
               }>
               {switch (route.layout) {
-               | Some(layout) => layout(~children=<Supersonic.Outlet />)
+               | Some(layout) =>
+                 layout(
+                   ~children=<Supersonic.Outlet />,
+                   ~params,
+                   ~queryParams,
+                 )
                | None =>
                  (
                    route.page
-                   |> Option.value(~default=(~params as _) => React.null)
+                   |> Option.value(~default=(~params as _, ~queryParams as _) =>
+                        React.null
+                      )
                  )(
                    ~params,
+                   ~queryParams,
                  )
                }}
             </Supersonic.Route>;
@@ -188,26 +234,30 @@ let renderByPath =
               path={parentPath ++ (route.path == "/" ? "" : route.path)}
               outlet=None>
               {switch (route.layout) {
-               | Some(layout) => layout(~children=React.null)
+               | Some(layout) =>
+                 layout(~children=React.null, ~params, ~queryParams)
                | None =>
                  (
                    route.page
-                   |> Option.value(~default=(~params as _) => React.null)
+                   |> Option.value(~default=(~params as _, ~queryParams as _) =>
+                        React.null
+                      )
                  )(
                    ~params,
+                   ~queryParams,
                  )
                }}
             </Supersonic.Route>
           };
         Some(component);
       } else {
-        aux(routes, pathSegments, params, parentPath);
-      };
+        aux(routes, pathSegments, parentPath);
+      }
     | _ => None
     };
   };
 
-  aux(routes, pathSegments, params, basePath);
+  aux(routes, pathSegments, basePath);
 };
 
 /**
@@ -246,6 +296,8 @@ let generated_routes_paths = {
 [@platform native]
 let renderComponent =
     (
+      ~params,
+      ~queryParams,
       request: Dream.request,
       parentSegments: list(string),
       pathSegments: list(string),
@@ -253,33 +305,27 @@ let renderComponent =
       routes: list(t),
     ) => {
   let rec aux =
-          (
-            routes: list(t),
-            parentSegments: list(string),
-            params: Hashtbl.t(string, string),
-          )
+          (routes: list(t), parentSegments: list(string))
           : option(React.element) => {
     switch (routes, parentSegments) {
-    | (routes, []) => renderByPath(~basePath, request, pathSegments, routes)
+    | (routes, []) =>
+      renderByPath(
+        ~basePath,
+        ~params,
+        ~queryParams,
+        request,
+        pathSegments,
+        routes,
+      )
     | ([route, ...routes], [parentSegment, ...remainingSegments]) =>
-      let _ =
-        String.starts_with(parentSegment, ~prefix=":")
-          ? {
-            let key =
-              parentSegment->String.sub(1, String.length(parentSegment) - 1);
-            Hashtbl.add(params, key, Dream.param(request, key));
-          }
-          : ();
-
       if (route.path == "/" ++ parentSegment) {
         switch (route.children) {
-        | Some(children) => aux(children, remainingSegments, params)
-        | _ =>
-          route.page |> Option.map(page => page(~params=Hashtbl.create(10)))
+        | Some(children) => aux(children, remainingSegments)
+        | _ => route.page |> Option.map(page => page(~params, ~queryParams))
         };
       } else {
-        aux(routes, parentSegments, params);
-      };
+        aux(routes, parentSegments);
+      }
     | _ => None
     };
   };
@@ -291,9 +337,8 @@ let renderComponent =
     routes
     |> List.hd
     |> (
-      route =>
-        route.page |> Option.map(page => page(~params=Hashtbl.create(0)))
+      route => route.page |> Option.map(page => page(~params, ~queryParams))
     );
-  | _ => aux(routes, parentSegments, Hashtbl.create(5))
+  | _ => aux(routes, parentSegments)
   };
 };

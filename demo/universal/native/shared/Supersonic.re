@@ -97,6 +97,11 @@ module RouteRegistry = {
   };
 };
 
+type page = {
+  params: Params.t,
+  element: React.element,
+};
+
 module RouterContext = {
   [@deriving json]
   type routeData = {
@@ -317,10 +322,10 @@ module Route = {
         Fetch.RequestInit.make(~method_=Fetch.Get, ~headers, ()),
       )
       |> ReactServerDOMEsbuild.createFromFetch
-      |> Js.Promise.then_(element => {
-           setOutlet(_ => element);
+      |> Js.Promise.then_((page: page) => {
+           setOutlet(_ => page.element);
            setCachedNodeKey(_ => path ++ "?rsc=" ++ rscPath);
-           Js.Promise.resolve();
+           Js.Promise.resolve(page);
          })
       |> ignore;
     };

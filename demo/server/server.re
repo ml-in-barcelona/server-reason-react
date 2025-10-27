@@ -24,7 +24,7 @@ let splitListAt = (n, list) => {
   aux(n, [], list);
 };
 
-let rscRoutes = (basePath, handler) => {
+let rscRoutes = (basePath) => {
   RouteDefinitions.generated_routes_paths
   |> List.map(path => {
        let path = path == "/" ? "" : path;
@@ -54,6 +54,16 @@ let rscRoutes = (basePath, handler) => {
              };
 
              let routeSegments = String.split_on_char('/', path);
+             let queryParams = {
+               let queries = Supersonic.Params.create();
+
+               Dream.all_queries(request)
+               |> List.iter(((key, value)) =>
+                    Supersonic.Params.add(queries, key, value)
+                  );
+
+               queries;
+             };
              let params = {
                let params = Supersonic.Params.create();
                routeSegments
@@ -80,14 +90,13 @@ let rscRoutes = (basePath, handler) => {
               */
              let rscParam = Dream.query(request, "rsc");
 
-             let element =
-               switch (rscParam) {
-               | Some(rscPath) =>
-                 let rscSegmentLevel =
-                   (routeSegments |> List.length)
-                   - (rscPath |> String.split_on_char('/') |> List.length);
+             switch (rscParam) {
+             | Some(rscPath) =>
+               let rscSegmentLevel =
+                 (routeSegments |> List.length)
+                 - (rscPath |> String.split_on_char('/') |> List.length);
 
-                 /**
+               /**
                   * To get the dynamic segments (/:id) we cannot get them from the rsc path
                   * but from the route path segments.
                   * We then split the route path into 2 lists:
@@ -95,38 +104,66 @@ let rscRoutes = (basePath, handler) => {
                   * - the second list is the rsc segments
                   * The list is split based on the number of segments in the rsc query param
                   */
-                 let (parentSegments, rscSegments) =
-                   splitListAt(rscSegmentLevel, routeSegments);
+               let (parentSegments, rscSegments) =
+                 splitListAt(rscSegmentLevel, routeSegments);
 
-                 RouteDefinitions.(
-                   routes
-                   |> renderComponent(
-                        request,
-                        parentSegments,
-                        rscSegments,
-                        basePath,
-                      )
-                 )
-                 |> Option.value(~default=React.null);
-               | None =>
-                 let routeData: Supersonic.RouterContext.routeData = {
-                   params,
-                   url: URL.makeExn(url),
-                 };
-                 <Supersonic.RouterContext.Provider routeData>
-                   {switch (
-                      RouteDefinitions.(
-                        routes
-                        |> renderByPath(request, routeSegments, ~basePath)
-                      )
-                    ) {
-                    | Some(element) => element
-                    | None => React.null
-                    }}
-                 </Supersonic.RouterContext.Provider>;
+               DreamRSC.stream_model(
+                 ~location=Dream.target(request),
+                 React.Model.Assoc([
+                   (
+                     "params",
+                     React.Model.Json(params |> Supersonic.Params.to_json),
+                   ),
+                   (
+                     "element",
+                     React.Model.Element(
+                       RouteDefinitions.(
+                         routes
+                         |> renderComponent(
+                              ~params,
+                              ~queryParams,
+                              request,
+                              parentSegments,
+                              rscSegments,
+                              basePath,
+                            )
+                       )
+                       |> Option.value(~default=React.null),
+                     ),
+                   ),
+                 ]),
+               );
+             | None =>
+               let routeData: Supersonic.RouterContext.routeData = {
+                 params,
+                 url: URL.makeExn(url),
                };
-
-             handler(~element, request);
+               DreamRSC.stream_html(
+                 ~bootstrapModules=["/static/demo/Router.re.js"],
+                 RouteDefinitions.document(
+                   ~params,
+                   ~queryParams,
+                   ~children=
+                     <Supersonic.RouterContext.Provider routeData>
+                       {switch (
+                          RouteDefinitions.(
+                            routes
+                            |> renderByPath(
+                                 request,
+                                 routeSegments,
+                                 ~queryParams,
+                                 ~params,
+                                 ~basePath,
+                               )
+                          )
+                        ) {
+                        | Some(element) => element
+                        | None => React.null
+                        }}
+                     </Supersonic.RouterContext.Provider>,
+                 ),
+               );
+             };
            },
          ),
        ];
@@ -169,7 +206,7 @@ let server =
       getAndPost(Routes.singlePageRSC, Pages.SinglePageRSC.handler),
       getAndPost(Routes.dummyRouterRSC, Pages.DummyRouterRSC.handler),
       getAndPost(Routes.serverOnlyRSC, Pages.ServerOnlyRSC.handler),
-      ...rscRoutes(Routes.router, Pages.Router.handler),
+      ...rscRoutes(Routes.router),
     ]),
   );
 
