@@ -43,9 +43,9 @@ module Stream = struct
         Lwt.return ());
     index
 
-  let make ~initial_index =
+  let make ?(initial_index = 0) ?(pending = 0) () =
     let stream, push, close = Push_stream.make () in
-    (stream, { push; close; pending = 0; index = initial_index })
+    (stream, { push; close; pending; index = initial_index })
 end
 
 (* Resources module maintains insertion order while deduplicating based on src/href *)
@@ -384,7 +384,7 @@ module Model = struct
     List.map (fun (name, value) -> (name, model_to_payload ~context ~is_root:false ~to_chunk ~env value)) props
 
   let render ?(env = `Dev) ?(debug = false) ?subscribe model =
-    let stream, context = Stream.make ~initial_index:0 in
+    let stream, context = Stream.make () in
     let to_root_chunk model id =
       let payload = model_to_payload ~debug ~is_root:true ~context ~to_chunk ~env model in
       to_chunk (Value payload) id
@@ -403,7 +403,7 @@ module Model = struct
         let digest = stack |> Hashtbl.hash |> Int.to_string in
         Lwt.return (React.Model.Error { message; stack; env = "Server"; digest })
     in
-    let stream, context = Stream.make ~initial_index:0 in
+    let stream, context = Stream.make () in
     let to_root_chunk value id =
       let payload = model_to_payload ~debug ~is_root:true ~context ~to_chunk ~env value in
       to_chunk (Value payload) id
@@ -497,11 +497,9 @@ let rec client_to_html ~(fiber : Fiber.t) (element : React.element) =
         | output -> client_to_html ~fiber output
       in
       wait_for_suspense_to_resolve ()
-  | Async_component (_, _component) ->
-      (* async components can't be interleaved in client components, for now *)
-      raise
-        (Invalid_argument
-           "async components can't be part of a client component. This should never raise, the ppx should catch it")
+  | Async_component (_, component) ->
+      let%lwt element = component () in
+      client_to_html ~fiber element
   | Suspense { key = _; children; fallback } ->
       (* TODO: Do we need to care if there's Any_promise raising ? *)
       let%lwt fallback = client_to_html ~fiber fallback in
@@ -767,8 +765,13 @@ let render_html ?(skipRoot = false) ?(env = `Dev) ?debug:(_ = false) ?bootstrapS
         | None -> [])
   in
   (* Since we don't push the root_data_payload to the stream but return it immediately with the initial HTML, 
-     the stream's initial index starts at 1, with index 0 reserved for the root_data_payload. *)
-  let stream, context = Stream.make ~initial_index:1 in
+     the stream's initial index starts at 1, with index 0 reserved for the root_data_payload.
+
+     The root is also treated as a pending segment that must complete before the stream can be closed, 
+     as we don't push_async it to the stream, the pending counter starts at 1.
+     Similar on how react does: https://github.com/facebook/react/blob/7d9f876cbc7e9363092e60436704cf8ae435b969/packages/react-server/src/ReactFizzServer.js#L572-L581
+     *)
+  let stream, context = Stream.make ~initial_index:1 ~pending:1 () in
   let fiber : Fiber.t =
     {
       context;
@@ -785,8 +788,10 @@ let render_html ?(skipRoot = false) ?(env = `Dev) ?debug:(_ = false) ?bootstrapS
   let%lwt root_html, root_model = render_element_to_html ~fiber element in
   (* To return the model value immediately, we don't push it to the stream but return it as a payload script together with the user_scripts *)
   let root_data_payload = model_to_chunk (Value root_model) 0 in
+  (* Decrement the pending counter to signal that the root data payload is complete. *)
+  context.pending <- context.pending - 1;
   (* In case of not having any task pending, we can close the stream *)
-  (match context.pending = 0 with true -> context.close () | false -> ());
+  if context.pending = 0 then context.close ();
   let bootstrap_script_content =
     match bootstrapScriptContent with
     | None -> Html.null

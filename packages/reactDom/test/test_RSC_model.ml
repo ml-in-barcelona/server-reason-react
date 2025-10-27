@@ -814,6 +814,36 @@ let client_component_with_resources_metadata () =
   Alcotest.(check bool) "should have head with resources" true has_head_with_resources;
   Lwt.return ()
 
+let client_component_with_async_component () =
+  let async_component =
+    React.Async_component
+      ( __FUNCTION__,
+        fun () ->
+          let%lwt () = sleep ~ms:10 in
+          Lwt.return (React.string "Async Component") )
+  in
+  let app ~children =
+    React.Upper_case_component
+      ( "app",
+        fun () ->
+          React.Client_component
+            {
+              import_module = "./client.js";
+              import_name = "Client";
+              props = [ ("children", React.Model.Element children) ];
+              client = children;
+            } )
+  in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~subscribe (React.Model.Element (app ~children:async_component)) in
+  assert_list_of_strings !output
+    [
+      "1:I[\"./client.js\",[],\"Client\"]\n";
+      "0:[\"$\",\"$1\",null,{\"children\":\"$L2\"},null,[],{}]\n";
+      "2:\"Async Component\"\n";
+    ];
+  Lwt.return ()
+
 let page_with_hoisted_resources () =
   (* Test that resources like scripts and styles are properly hoisted *)
   let app () =
@@ -981,6 +1011,7 @@ let tests =
     test "client_without_props" client_without_props;
     test "client_with_element_props" client_with_element_props;
     test "client_with_server_children" client_with_server_children;
+    test "client_component_with_async_component" client_component_with_async_component;
     test "act_with_simple_response" act_with_simple_response;
     test "env_development_adds_debug_info" env_development_adds_debug_info;
     test "act_with_error" act_with_error;
