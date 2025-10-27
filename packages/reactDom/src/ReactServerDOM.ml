@@ -559,8 +559,8 @@ let rec render_element_to_html ~(fiber : Fiber.t) (element : React.element) : (H
   | Client_component { import_module; import_name; props; client } ->
       let context = fiber.context in
       let env = fiber.env in
-      let props = Model.models_to_payload ~context ~to_chunk:model_to_chunk ~env props in
       let%lwt html = client_to_html ~fiber client in
+      let props = Model.models_to_payload ~context ~to_chunk:model_to_chunk ~env props in
       let ref : json = Model.component_ref ~module_:import_module ~name:import_name in
       let index = Stream.push ~context (model_to_chunk (Component_ref ref)) in
       let model = Model.node ~tag:(Model.ref_value index) ~props [] in

@@ -1,71 +1,78 @@
-module RouterContext = {
-  type t = {
-    navigate: (~replace: bool, string) => unit,
-    currentPath: string,
+exception NoProvider(string);
+module DOM = Webapi.Dom;
+module Location = DOM.Location;
+module History = DOM.History;
+
+module URL = {
+  include URL;
+
+  let to_json = t => {
+    t |> toString |> Melange_json.To_json.string;
   };
 
-  let context: React.Context.t(t) =
-    React.createContext({
-      navigate: (~replace as _, _) => (),
-      currentPath: "/",
-    });
-
-  [@platform js]
-  module Provider = {
-    let provider = React.Context.provider(context);
-
-    [@react.component]
-    let make = (~value, ~children) => {
-      React.createElement(
-        provider,
-        {
-          "value": value,
-          "children": children,
-        },
-      );
-    };
-  };
-
-  [@platform native]
-  module Provider = {
-    [@react.component]
-    let make = (~value as _, ~children) => {
-      children;
-    };
+  let of_json = json => {
+    json |> Melange_json.Of_json.string |> makeExn;
   };
 };
 
-let useNavigate = () => {
-  let {RouterContext.navigate, _} = React.useContext(RouterContext.context);
-  navigate;
+module Params = {
+  type t = Hashtbl.t(string, string);
+
+  let create = () => {
+    Hashtbl.create(10);
+  };
+
+  let add = (t, key, value) => {
+    Hashtbl.add(t, key, value);
+  };
+
+  let find = (t, key) => {
+    Hashtbl.find_opt(t, key);
+  };
+
+  let to_json = t => {
+    t
+    |> Hashtbl.to_seq
+    |> List.of_seq
+    |> Melange_json.To_json.list(((key, value)) =>
+         Melange_json.To_json.list(Melange_json.To_json.string, [key, value])
+       );
+  };
+
+  let of_json = json => {
+    let hashtbl = Hashtbl.create(10);
+
+    let _ =
+      json
+      |> Melange_json.Of_json.list(pair =>
+           pair |> Melange_json.Of_json.list(Melange_json.Of_json.string)
+         );
+
+    hashtbl;
+  };
 };
 
-let useLocation = () => {
-  let {RouterContext.currentPath, _} =
-    React.useContext(RouterContext.context);
-  currentPath;
-};
+[@mel.send]
+external dispatchEvent: (Dom.window, Dom.event) => unit = "dispatchEvent";
 
 module RouteRegistry = {
   type route = {
     path: string,
-    element: React.element,
-    loader: option(unit => Js.Promise.t(React.element)),
+    loader: option((string, string) => unit),
   };
 
   let routes = ref([]);
 
-  let register = (~path, ~element, ~loader=?, ()) => {
+  let register = (~path, ~loader=?, ()) => {
     let filteredRoutes = List.filter(route => route.path != path, routes^);
 
     routes :=
-      [
+      filteredRoutes
+      @ [
         {
           path,
-          element,
           loader,
         },
-        ...filteredRoutes,
       ];
   };
 
@@ -77,217 +84,296 @@ module RouteRegistry = {
     routes := [];
   };
 
+  let clearBellow = path => {
+    routes :=
+      List.filter(
+        route => route.path |> String.length <= (path |> String.length),
+        routes^,
+      );
+  };
+
   let getAllRoutes = () => {
     routes^;
   };
 };
 
-[@platform js]
-module Router = {
-  module DOM = Webapi.Dom;
-  module Location = DOM.Location;
-  module History = DOM.History;
+module RouterContext = {
+  [@deriving json]
+  type routeData = {
+    params: Params.t,
+    url: URL.t,
+  };
+
+  type t = {
+    routeData,
+    navigate: (~replace: bool, string) => unit,
+  };
+
+  [@mel.new] external makeEventIE11Compatible: string => Dom.event = "Event";
+
+  [@mel.scope "document"]
+  external createEventNonIEBrowsers: string => Dom.event = "createEvent";
+
+  [@mel.send]
+  external initEventNonIEBrowsers: (Dom.event, string, bool, bool) => unit =
+    "initEvent";
+
+  [@platform js]
+  let safeMakeEvent = eventName =>
+    if (Js.typeof(DOM.Event.make) == "function") {
+      makeEventIE11Compatible(eventName);
+    } else {
+      let event = createEventNonIEBrowsers("Event");
+      initEventNonIEBrowsers(event, eventName, true, true);
+      event;
+    };
+
+  [@platform js]
+  let push = path => {
+    History.pushState(History.state(DOM.history), "", path, DOM.history);
+    DOM.EventTarget.dispatchEvent(
+      safeMakeEvent("popstate"),
+      DOM.Window.asEventTarget(DOM.window),
+    );
+  };
+
+  [@platform js]
+  let replace = path => {
+    History.replaceState(History.state(DOM.history), "", path, DOM.history);
+    DOM.EventTarget.dispatchEvent(
+      safeMakeEvent("popstate"),
+      DOM.Window.asEventTarget(DOM.window),
+    );
+  };
+
+  [@platform js]
+  let watchUrl = callback => {
+    let watcherID = _ =>
+      callback(URL.makeExn(Location.href(DOM.window->DOM.Window.location)));
+    DOM.EventTarget.addEventListener(
+      "popstate",
+      watcherID,
+      DOM.Window.asEventTarget(DOM.window),
+    );
+    watcherID;
+  };
+
+  [@platform js]
+  let unwatchUrl = watcherID => {
+    DOM.EventTarget.removeEventListener(
+      "popstate",
+      watcherID,
+      DOM.Window.asEventTarget(DOM.window),
+    );
+  };
+
+  let context: React.Context.t(option(t)) = React.createContext(None);
+
+  module Provider = {
+    let provider = React.Context.provider(context);
+
+    [@react.client.component]
+    let make = (~routeData: routeData, ~children: React.element) => {
+      switch%platform (Runtime.platform) {
+      | Client =>
+        let (url, setUrl) = React.useState(() => routeData.url);
+
+        React.useEffect0(() => {
+          let watcherId = watchUrl(url => setUrl(_ => url));
+
+          /**
+            * check for updates that may have occured between
+            * the initial state and the subscribe above
+            */
+          let newUrl =
+            URL.makeExn(Location.href(DOM.window->DOM.Window.location));
+          if (newUrl == url) {
+            setUrl(_ => newUrl);
+          };
+
+          Some(() => unwatchUrl(watcherId));
+        });
+
+        let findPathDifference = (path1, path2): (string, string) => {
+          let curPath = path1 |> String.split_on_char('/') |> List.tl;
+          let pathSegments = path2 |> String.split_on_char('/') |> List.tl;
+          let rec findCommonPrefix = (p1, p2, acc) => {
+            switch (p1, p2) {
+            | ([h1, ...t1], [h2, ...t2]) when h1 == h2 =>
+              findCommonPrefix(t1, t2, acc ++ "/" ++ h1)
+            | (_, remaining2) => (acc, remaining2 |> String.concat("/"))
+            };
+          };
+
+          findCommonPrefix(curPath, pathSegments, "");
+        };
+
+        let navigate = (~replace as _, path: string) => {
+          let location = DOM.window->DOM.Window.location;
+          let curPath = Location.pathname(location);
+          let (commonPrefix, remainingDifference) =
+            findPathDifference(curPath, path);
+
+          let route: option(RouteRegistry.route) =
+            RouteRegistry.find(commonPrefix);
+
+          switch (route) {
+          | Some(route) =>
+            switch (route.loader) {
+            | Some(loader) => loader(path, remainingDifference)
+            | None => ()
+            };
+            RouteRegistry.clearBellow(route.path);
+
+          | None => ()
+          };
+
+          push(path) |> ignore;
+        };
+
+        React.createElement(
+          provider,
+          {
+            "value":
+              Some({
+                routeData,
+                navigate,
+              }),
+            "children": children,
+          },
+        );
+      | Server =>
+        provider(
+          ~value=
+            Some({
+              routeData,
+              navigate: (~replace as _, _) =>
+                failwith("navigate in'tnot supported on server"),
+            }),
+          ~children,
+          (),
+        )
+      };
+    };
+  };
+
+  let use = () => {
+    switch (React.useContext(context)) {
+    | Some(context) => context
+    | None => raise(NoProvider("RouterContext requires a provider"))
+    };
+  };
+};
+
+module RouteContext = {
+  type t = React.element;
+
+  let context = React.createContext(React.null);
+};
+
+module RouteContextProvider = {
+  let provider = React.Context.provider(RouteContext.context);
+  [@react.client.component]
+  let make = (~value: React.element, ~children: React.element) => {
+    switch%platform (Runtime.platform) {
+    | Client =>
+      React.createElement(
+        provider,
+        {
+          "value": value,
+          "children": children,
+        },
+      )
+    | Server => provider(~value, ~children, ())
+    };
+  };
+};
+
+module Route = {
+  open Melange_json.Primitives;
 
   [@react.client.component]
-  let make = (~children: React.element) => {
-    let location = DOM.window->DOM.Window.location;
-    let initialPath = Location.pathname(location);
+  let make =
+      (
+        ~path: string,
+        ~children: React.element,
+        ~outlet: option(React.element),
+      ) => {
+    let (outlet, setOutlet) =
+      React.useState(() =>
+        switch (outlet) {
+        | Some(outlet) => outlet
+        | None => React.null
+        }
+      );
+    let isFirstRender = React.useRef(true);
+    let (cachedNodeKey, setCachedNodeKey) = React.useState(() => path);
 
-    let (currentPath, setCurrentPath) = React.useState(() => initialPath);
-    let (currentElement, setCurrentElement) =
-      React.useState(() => React.null);
-    let (isLoading, setIsLoading) = React.useState(() => false);
-
-    let rscNavigation = (~replace as _, path: string) => {
-      setIsLoading(_ => true);
-
+    let%browser_only loader = (path, rscPath) => {
       let headers =
         Fetch.HeadersInit.make({"Accept": "application/react.component"});
       Fetch.fetchWithInit(
-        path,
+        path ++ "?rsc=" ++ rscPath,
         Fetch.RequestInit.make(~method_=Fetch.Get, ~headers, ()),
       )
-      |> Js.Promise.then_(response => {
-           let body = Fetch.Response.body(response);
-           ReactServerDOMEsbuild.createFromReadableStream(body);
-         })
+      |> ReactServerDOMEsbuild.createFromFetch
       |> Js.Promise.then_(element => {
-           React.startTransition(() => {
-             setCurrentElement(_ => element);
-             setIsLoading(_ => false);
-           });
-           Js.Promise.resolve();
-         })
-      |> Js.Promise.catch(error => {
-           Js.log2("Navigation error:", error);
-           setIsLoading(_ => false);
+           setOutlet(_ => element);
+           setCachedNodeKey(_ => path ++ "?rsc=" ++ rscPath);
            Js.Promise.resolve();
          })
       |> ignore;
     };
 
-    /* let navigate = (~replace, path: string) => {
-            let currentLocation = DOM.window->DOM.Window.location;
-            let currentPath = Location.pathname(currentLocation);
-            Js.log("NAVIGATE!");
-            Js.log2("currentPath", currentPath);
-            Js.log2("path", path);
-
-            if (currentPath != path) {
-              if (replace) {
-                History.replaceState(
-                  History.state(DOM.history),
-                  "",
-                  path,
-                  DOM.history,
-                );
-              } else {
-                History.pushState(
-                  History.state(DOM.history),
-                  "",
-                  path,
-                  DOM.history,
-                );
-              };
-
-              setCurrentPath(_ => path);
-
-              switch (RouteRegistry.find(path)) {
-              | Some({loader: Some(loaderFn), _}) =>
-                setIsLoading(_ => true);
-                loaderFn()
-                |> Js.Promise.then_(element => {
-                     React.startTransition(() => {
-                       setCurrentElement(_ => element);
-                       setIsLoading(_ => false);
-                     });
-                     Js.Promise.resolve();
-                   })
-                |> ignore;
-              | Some({element, _}) => setCurrentElement(_ => element)
-              | None => rscNavigation(path)
-              };
-            };
-          };
-       */
-    let popStateHandler = () => {
-      let handlePopState = _ => {
-        let newPath = Location.pathname(DOM.window->DOM.Window.location);
-        setCurrentPath(_ => newPath);
-
-        switch (RouteRegistry.find(newPath)) {
-        | Some({element, _}) => setCurrentElement(_ => element)
-        | None => rscNavigation(~replace=false, newPath)
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      RouteRegistry.register(~path, ~loader, ());
+      let _ =
+        switch%platform (Runtime.platform) {
+        | Client => Js.log(RouteRegistry.getAllRoutes())
+        | Server => ()
         };
-      };
-
-      DOM.window |> DOM.Window.addEventListener("popstate", handlePopState);
-
-      Some(
-        () => {
-          DOM.window
-          |> DOM.Window.removeEventListener("popstate", handlePopState)
-        },
-      );
+      ();
     };
 
-    React.useEffect0(popStateHandler);
-
-    let initialRouteResolution = () => {
-      switch (RouteRegistry.find(currentPath)) {
-      | Some({element, loader, _}) =>
-        switch (loader) {
-        | Some(loaderFn) =>
-          loaderFn()
-          |> Js.Promise.then_(element => {
-               setCurrentElement(_ => element);
-               Js.Promise.resolve();
-             })
-          |> ignore
-        | None => setCurrentElement(_ => element)
-        }
-      | None =>
-        /* Try loading from RSC */
-        rscNavigation(~replace=false, currentPath)
-      };
-      None;
-    };
-
-    React.useEffect1(initialRouteResolution, [|currentPath|]);
-
-    let contextValue: RouterContext.t = {
-      navigate: rscNavigation,
-      currentPath,
-    };
-
-    <RouterContext.Provider value=contextValue>
-      children
-      {isLoading ? <div> {React.string("Loading...")} </div> : currentElement}
-    </RouterContext.Provider>;
+    <RouteContextProvider key=cachedNodeKey value=outlet>
+      <React.Fragment key=path> children </React.Fragment>
+    </RouteContextProvider>;
   };
 };
 
-[@platform native]
-module Router = {
-  [@react.component]
-  let make = (~children) => {
-    children;
-  };
-};
+module Outlet = {
+  [@react.client.component]
+  let make = () => {
+    let value = React.useContext(RouteContext.context);
 
-module Route = {
-  [@react.component]
-  let make = (~path: string, ~component: option(React.element)=?) => {
-    /* ~loader: option(unit => Js.Promise.t(React.element))=?, */
-
-    /* let loader = () => {
-         switch%platform (Runtime.platform) {
-         | Server => ()
-         | Client =>
-           let headers =
-             Fetch.HeadersInit.make({"Accept": "application/react.component"});
-
-             Fetch.fetchWithInit(
-               path,
-               Fetch.RequestInit.make(~method_=Fetch.Get, ~headers, ()),
-             )
-             |> Js.Promise.then_(response => {
-                  let body = Fetch.Response.body(response);
-                  ReactServerDOMEsbuild.createFromReadableStream(body);
-                });
-         };
-       }; */
-
-    RouteRegistry.register(
-      ~path,
-      ~element=
-        switch (component) {
-        | Some(el) => el
-        | None => React.null
-        },
-      (),
-    );
-
-    React.null;
+    value;
   };
 };
 
 module Link = {
-  [@react.component]
-  let make = (~to_: string, ~children, ~replace=false, ~className=?) => {
-    let navigate = useNavigate();
-    let currentPath = useLocation();
+  open Melange_json.Primitives;
 
+  [@react.client.component]
+  let make =
+      (
+        ~to_: string,
+        ~children: React.element,
+        ~replace: bool=false,
+        ~className: option(string)=?,
+      ) => {
+    let {RouterContext.routeData, navigate} = RouterContext.use();
+    let path = URL.pathname(routeData.url);
+    let isActive = path == to_;
     let handleClick = (e: React.Event.Mouse.t) => {
       React.Event.Mouse.preventDefault(e);
-      Js.log("to_ " ++ to_);
       navigate(~replace, to_);
     };
 
     let className =
       switch (className) {
-      | Some(cls) => cls ++ (currentPath == to_ ? "font-bold" : "")
-      | None => currentPath == to_ ? "font-bold" : ""
+      | Some(className) => className ++ (isActive ? " font-bold" : "")
+      | None => ""
       };
 
     <button onClick=handleClick className> children </button>;
@@ -301,11 +387,26 @@ module Navigation = {
       <Link to_="/demo/router" className="text-white">
         {React.string("Home")}
       </Link>
+      <Link to_="/demo/router/about/me" className="text-white">
+        {React.string("About me")}
+      </Link>
+      <Link to_="/demo/router/about/work" className="text-white">
+        {React.string("About work")}
+      </Link>
       <Link to_="/demo/router/about" className="text-white">
-        {React.string("About")}
+        {React.string("About (404)")}
       </Link>
       <Link to_="/demo/router/dashboard" className="text-white">
         {React.string("Dashboard")}
+      </Link>
+      <Link to_="/demo/router/profile" className="text-white">
+        {React.string("Profile")}
+      </Link>
+      <Link to_="/demo/router/profile/123" className="text-white">
+        {React.string("Profile with dynamic id")}
+      </Link>
+      <Link to_="/demo/router/profile/12345/pedro" className="text-white">
+        {React.string("Profile with dynamic id and dynamic name")}
       </Link>
     </nav>;
   };

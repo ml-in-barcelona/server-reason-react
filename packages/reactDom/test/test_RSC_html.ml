@@ -374,8 +374,8 @@ let client_component_with_async_component () =
       "Async Component<script data-payload='0:[\"$\",\"$2\",null,{\"children\":\"$L1\"},null,[],{}]\n\
        '>window.srr_stream.push()</script>"
     [
-      "<script data-payload='1:\"Async Component\"\n'>window.srr_stream.push()</script>";
       "<script data-payload='2:I[\"./client.js\",[],\"Client\"]\n'>window.srr_stream.push()</script>";
+      "<script data-payload='1:\"Async Component\"\n'>window.srr_stream.push()</script>";
     ]
 
 let suspense_with_error () =
@@ -679,7 +679,7 @@ let tests =
     test "error_in_toplevel_in_async" error_in_toplevel_in_async;
     test "suspense_in_a_list_with_error" suspense_in_a_list_with_error;
     test "server_function_as_action" server_function_as_action;
-    (* test "nested_context" nested_context; *)
+    test "nested_context" nested_context;
     (* test "page_with_resources" page_with_resources;
     test "page_with_duplicate_resources" page_with_duplicate_resources; *)
     (* test "client_component_with_bootstrap_scripts" client_component_with_bootstrap_scripts;
