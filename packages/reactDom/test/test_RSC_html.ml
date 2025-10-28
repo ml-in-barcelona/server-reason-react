@@ -598,7 +598,7 @@ let client_component_with_bootstrap_modules () =
 
 let nested_context () =
   let context = React.createContext React.null in
-  let provider ~value ~children =
+  let client_provider ~value ~children =
     React.Upper_case_component
       ( "provider",
         fun () ->
@@ -610,51 +610,73 @@ let nested_context () =
               client = React.Context.provider context ~value ~children ();
             } )
   in
-  let client =
+  let client_consumer =
     React.Upper_case_component
       ( "client",
         fun () ->
-          let context = React.useContext context in
-          context )
-  in
-  let consumer () =
-    React.Client_component { import_module = "./consumer.js"; import_name = "Consumer"; props = []; client }
-  in
-  let content () =
-    React.Upper_case_component ("content", fun () -> provider ~value:React.null ~children:(React.string "Hey you"))
-  in
-  let me () =
-    React.Upper_case_component
-      ("me", fun () -> provider ~value:(content ()) ~children:(React.array [| React.string "/me"; consumer () |]))
-  in
-  let about () =
-    React.Upper_case_component
-      ("about", fun () -> provider ~value:(me ()) ~children:(React.array [| React.string "/about"; consumer () |]))
+          React.Client_component
+            {
+              import_module = "./consumer.js";
+              import_name = "Consumer";
+              props = [];
+              client =
+                (let context = React.useContext context in
+                 context);
+            } )
   in
   let app () =
     React.Upper_case_component
-      ("root", fun () -> provider ~value:(about ()) ~children:(React.array [| React.string "/root"; consumer () |]))
+      ( "root",
+        fun () ->
+          client_provider
+            ~value:
+              (React.Upper_case_component
+                 ( "about",
+                   fun () ->
+                     client_provider
+                       ~value:
+                         (React.Upper_case_component
+                            ( "me",
+                              fun () ->
+                                client_provider
+                                  ~value:
+                                    (React.Upper_case_component
+                                       ( "content",
+                                         fun () ->
+                                           client_provider ~value:(React.string "Last content")
+                                             ~children:client_consumer ))
+                                  ~children:(React.array [| React.string "/me"; client_consumer |]) ))
+                       ~children:(React.array [| React.string "/about"; client_consumer |]) ))
+            ~children:(React.array [| React.string "/root"; client_consumer |]) )
   in
   assert_html (app ())
     ~shell:
-      "/root<!-- -->/about<!-- -->/me<!-- -->Hey you<script \
-       data-payload='0:[\"$\",\"$a\",null,{\"value\":\"$1\",\"children\":[\"/root\",[\"$\",\"$9\",null,{}]]}]\n\
+      "/root<!-- -->/about<!-- -->/me<!-- -->Last content<script \
+       data-payload='0:[\"$\",\"$12\",null,{\"value\":\"$1\",\"children\":[\"/root\",\"$10\"]},null,[],{}]\n\
        '>window.srr_stream.push()</script>"
     (* TODO: Don't push multiple scripts for the same client component *)
     [
-      "<script data-payload='2:I[\"./provider.js\",[],\"Provider\"]\n'>window.srr_stream.push()</script>";
-      "<script data-payload='4:I[\"./provider.js\",[],\"Provider\"]\n'>window.srr_stream.push()</script>";
+      "<script data-payload='3:I[\"./provider.js\",[],\"Provider\"]\n'>window.srr_stream.push()</script>";
       "<script data-payload='6:I[\"./provider.js\",[],\"Provider\"]\n'>window.srr_stream.push()</script>";
-      "<script data-payload='5:[\"$\",\"$6\",null,{\"value\":null,\"children\":\"Hey you\"}]\n\
+      "<script data-payload='9:I[\"./provider.js\",[],\"Provider\"]\n'>window.srr_stream.push()</script>";
+      "<script data-payload='b:I[\"./consumer.js\",[],\"Consumer\"]\n'>window.srr_stream.push()</script>";
+      "<script data-payload='a:[\"$\",\"$b\",null,{},null,[],{}]\n'>window.srr_stream.push()</script>";
+      "<script data-payload='8:[\"$\",\"$9\",null,{\"value\":\"Last content\",\"children\":\"$a\"},null,[],{}]\n\
        '>window.srr_stream.push()</script>";
-      "<script data-payload='7:I[\"./consumer.js\",[],\"Consumer\"]\n'>window.srr_stream.push()</script>";
-      "<script data-payload='3:[\"$\",\"$4\",null,{\"value\":\"$5\",\"children\":[\"/me\",[\"$\",\"$7\",null,{}]]}]\n\
+      "<script data-payload='7:\"$8\"\n'>window.srr_stream.push()</script>";
+      "<script data-payload='d:I[\"./consumer.js\",[],\"Consumer\"]\n'>window.srr_stream.push()</script>";
+      "<script data-payload='c:[\"$\",\"$d\",null,{},null,[],{}]\n'>window.srr_stream.push()</script>";
+      "<script data-payload='5:[\"$\",\"$6\",null,{\"value\":\"$7\",\"children\":[\"/me\",\"$c\"]},null,[],{}]\n\
        '>window.srr_stream.push()</script>";
-      "<script data-payload='8:I[\"./consumer.js\",[],\"Consumer\"]\n'>window.srr_stream.push()</script>";
-      "<script data-payload='1:[\"$\",\"$2\",null,{\"value\":\"$3\",\"children\":[\"/about\",[\"$\",\"$8\",null,{}]]}]\n\
+      "<script data-payload='4:\"$5\"\n'>window.srr_stream.push()</script>";
+      "<script data-payload='f:I[\"./consumer.js\",[],\"Consumer\"]\n'>window.srr_stream.push()</script>";
+      "<script data-payload='e:[\"$\",\"$f\",null,{},null,[],{}]\n'>window.srr_stream.push()</script>";
+      "<script data-payload='2:[\"$\",\"$3\",null,{\"value\":\"$4\",\"children\":[\"/about\",\"$e\"]},null,[],{}]\n\
        '>window.srr_stream.push()</script>";
-      "<script data-payload='9:I[\"./consumer.js\",[],\"Consumer\"]\n'>window.srr_stream.push()</script>";
-      "<script data-payload='a:I[\"./provider.js\",[],\"Provider\"]\n'>window.srr_stream.push()</script>";
+      "<script data-payload='1:\"$2\"\n'>window.srr_stream.push()</script>";
+      "<script data-payload='11:I[\"./consumer.js\",[],\"Consumer\"]\n'>window.srr_stream.push()</script>";
+      "<script data-payload='10:[\"$\",\"$11\",null,{},null,[],{}]\n'>window.srr_stream.push()</script>";
+      "<script data-payload='12:I[\"./provider.js\",[],\"Provider\"]\n'>window.srr_stream.push()</script>";
     ]
 
 let tests =
