@@ -218,7 +218,11 @@ let setSearchAsString = (t, searchString) => {
   Uri.with_query(t, Uri.query_of_encoded(searchString));
 };
 let setSearch = Uri.with_query;
-let searchParams = _url => assert(false);
+
+let searchParams = (url): SearchParams.t => {
+  let query = Uri.query(url);
+  query;
+};
 let username = url => {
   switch (Uri.user(url)) {
   /* User can be empty, if the Uri has a password is parsed as Some(""),
