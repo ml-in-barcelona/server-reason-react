@@ -12,7 +12,21 @@ let make = (~initial: int, ~lola: lola, ~children: React.element) => {
   </section>;
 };
 
-module Inner = {
+module InnerAfterNested = {
+  module Very_nested = {
+    [@deriving json]
+    type lola = {name: string};
+
+    [@react.client.component]
+    let make = (~initial: int, ~lola: lola, ~children: React.element) => {
+      <section>
+        <h1> {React.string(lola.name)} </h1>
+        <p> {React.int(initial)} </p>
+        <div> children </div>
+      </section>;
+    };
+  };
+
   [@deriving json]
   type lola = {name: string};
 
@@ -24,7 +38,20 @@ module Inner = {
       <div> children </div>
     </section>;
   };
+};
 
+module InnerBeforeNested = {
+  [@deriving json]
+  type lola = {name: string};
+
+  [@react.client.component]
+  let make = (~initial: int, ~lola: lola, ~children: React.element) => {
+    <section>
+      <h1> {React.string(lola.name)} </h1>
+      <p> {React.int(initial)} </p>
+      <div> children </div>
+    </section>;
+  };
   module Very_nested = {
     [@deriving json]
     type lola = {name: string};

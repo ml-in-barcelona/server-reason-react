@@ -51,12 +51,35 @@
               });
           };
   
-  module Inner = {
+  module InnerAfterNested = {
+    module Very_nested = {
+      [@deriving json]
+      type lola = {name: string};
+  
+      include {
+                [%%raw "// extract-client input.re InnerAfterNested.Very_nested"];
+                [@react.component]
+                let make =
+                    (~initial: int, ~lola: lola, ~children: React.element) =>
+                  <section>
+                    <h1> {React.string(lola.name)} </h1>
+                    <p> {React.int(initial)} </p>
+                    <div> children </div>
+                  </section>;
+                let make_client = props =>
+                  make({
+                    "children": (props##children: React.element),
+                    "lola": [%of_json: lola](props##lola),
+                    "initial": [%of_json: int](props##initial),
+                  });
+              };
+    };
+  
     [@deriving json]
     type lola = {name: string};
   
     include {
-              [%%raw "// extract-client input.re Inner"];
+              [%%raw "// extract-client input.re InnerAfterNested"];
               [@react.component]
               let make = (~initial: int, ~lola: lola, ~children: React.element) =>
                 <section>
@@ -71,13 +94,36 @@
                   "initial": [%of_json: int](props##initial),
                 });
             };
+  };
   
+  module InnerBeforeNested = {
+    [@deriving json]
+    type lola = {name: string};
+  
+    include {
+              [%%raw "// extract-client input.re InnerBeforeNested"];
+              [@react.component]
+              let make = (~initial: int, ~lola: lola, ~children: React.element) =>
+                <section>
+                  <h1> {React.string(lola.name)} </h1>
+                  <p> {React.int(initial)} </p>
+                  <div> children </div>
+                </section>;
+              let make_client = props =>
+                make({
+                  "children": (props##children: React.element),
+                  "lola": [%of_json: lola](props##lola),
+                  "initial": [%of_json: int](props##initial),
+                });
+            };
     module Very_nested = {
       [@deriving json]
       type lola = {name: string};
   
       include {
-                [%%raw "// extract-client input.re Inner.Very_nested"];
+                [%%raw
+                  "// extract-client input.re InnerBeforeNested.Very_nested"
+                ];
                 [@react.component]
                 let make =
                     (~initial: int, ~lola: lola, ~children: React.element) =>
