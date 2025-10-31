@@ -175,6 +175,14 @@ let url_tests = (
         "https://:root@app.herokuapp.com/auth",
       );
     }),
+    case("searchParams", () => {
+      let url = URL.makeExn("https://sancho.dev:8080?foo=bar");
+      let searchParams = URL.searchParams(url);
+      assert_entries(
+        URL.SearchParams.entries(searchParams),
+        [|("foo", "bar")|],
+      );
+    }),
   ],
 );
 
