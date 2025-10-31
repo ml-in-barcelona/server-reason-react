@@ -1088,7 +1088,8 @@ let traverse =
       | None -> ()
       | Some name -> nested_module_names <- nested_module_names @ [ name ]);
       let mapped = super#module_binding ctxt module_binding in
-      nested_module_names <- List.tl nested_module_names;
+      let rec remove_last l = match l with [] -> [] | [ _ ] -> [] | hd :: tl -> hd :: remove_last tl in
+      nested_module_names <- remove_last nested_module_names;
       mapped
 
     method! structure_item ctx structure_item =
