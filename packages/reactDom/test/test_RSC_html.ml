@@ -607,7 +607,8 @@ let nested_context () =
               import_module = "./provider.js";
               import_name = "Provider";
               props = [ ("value", React.Model.Element value); ("children", React.Model.Element children) ];
-              client = React.Context.provider context ~value ~children ();
+              client =
+                React.Upper_case_component ("provider", fun () -> React.Context.provider context ~value ~children ());
             } )
   in
   let client =
@@ -620,16 +621,12 @@ let nested_context () =
   let consumer () =
     React.Client_component { import_module = "./consumer.js"; import_name = "Consumer"; props = []; client }
   in
-  let content () =
-    React.Upper_case_component ("content", fun () -> provider ~value:React.null ~children:(React.string "Hey you"))
-  in
-  let me () =
-    React.Upper_case_component
-      ("me", fun () -> provider ~value:(content ()) ~children:(React.array [| React.string "/me"; consumer () |]))
-  in
   let about () =
     React.Upper_case_component
-      ("about", fun () -> provider ~value:(me ()) ~children:(React.array [| React.string "/about"; consumer () |]))
+      ( "about",
+        fun () ->
+          provider ~value:(React.string "About page") ~children:(React.array [| React.string "/about"; consumer () |])
+      )
   in
   let app () =
     React.Upper_case_component
@@ -637,24 +634,18 @@ let nested_context () =
   in
   assert_html (app ())
     ~shell:
-      "/root<!-- -->/about<!-- -->/me<!-- -->Hey you<script \
-       data-payload='0:[\"$\",\"$a\",null,{\"value\":\"$1\",\"children\":[\"/root\",[\"$\",\"$9\",null,{}]]}]\n\
+      "/root<!-- -->/about<!-- -->About page<script \
+       data-payload='0:[\"$\",\"$6\",null,{\"value\":\"$1\",\"children\":[\"/root\",[\"$\",\"$5\",null,{},null,[],{}]]},null,[],{}]\n\
        '>window.srr_stream.push()</script>"
-    (* TODO: Don't push multiple scripts for the same client component *)
     [
-      "<script data-payload='2:I[\"./provider.js\",[],\"Provider\"]\n'>window.srr_stream.push()</script>";
-      "<script data-payload='4:I[\"./provider.js\",[],\"Provider\"]\n'>window.srr_stream.push()</script>";
+      "<script data-payload='3:I[\"./provider.js\",[],\"Provider\"]\n'>window.srr_stream.push()</script>";
+      "<script data-payload='4:I[\"./consumer.js\",[],\"Consumer\"]\n'>window.srr_stream.push()</script>";
+      "<script data-payload='2:[\"$\",\"$3\",null,{\"value\":\"About \
+       page\",\"children\":[\"/about\",[\"$\",\"$4\",null,{},null,[],{}]]},null,[],{}]\n\
+       '>window.srr_stream.push()</script>";
+      "<script data-payload='1:\"$2\"\n'>window.srr_stream.push()</script>";
+      "<script data-payload='5:I[\"./consumer.js\",[],\"Consumer\"]\n'>window.srr_stream.push()</script>";
       "<script data-payload='6:I[\"./provider.js\",[],\"Provider\"]\n'>window.srr_stream.push()</script>";
-      "<script data-payload='5:[\"$\",\"$6\",null,{\"value\":null,\"children\":\"Hey you\"}]\n\
-       '>window.srr_stream.push()</script>";
-      "<script data-payload='7:I[\"./consumer.js\",[],\"Consumer\"]\n'>window.srr_stream.push()</script>";
-      "<script data-payload='3:[\"$\",\"$4\",null,{\"value\":\"$5\",\"children\":[\"/me\",[\"$\",\"$7\",null,{}]]}]\n\
-       '>window.srr_stream.push()</script>";
-      "<script data-payload='8:I[\"./consumer.js\",[],\"Consumer\"]\n'>window.srr_stream.push()</script>";
-      "<script data-payload='1:[\"$\",\"$2\",null,{\"value\":\"$3\",\"children\":[\"/about\",[\"$\",\"$8\",null,{}]]}]\n\
-       '>window.srr_stream.push()</script>";
-      "<script data-payload='9:I[\"./consumer.js\",[],\"Consumer\"]\n'>window.srr_stream.push()</script>";
-      "<script data-payload='a:I[\"./provider.js\",[],\"Provider\"]\n'>window.srr_stream.push()</script>";
     ]
 
 let tests =
@@ -679,7 +670,7 @@ let tests =
     test "error_in_toplevel_in_async" error_in_toplevel_in_async;
     test "suspense_in_a_list_with_error" suspense_in_a_list_with_error;
     test "server_function_as_action" server_function_as_action;
-    (* test "nested_context" nested_context; *)
+    test "nested_context" nested_context;
     (* test "page_with_resources" page_with_resources;
     test "page_with_duplicate_resources" page_with_duplicate_resources; *)
     (* test "client_component_with_bootstrap_scripts" client_component_with_bootstrap_scripts;

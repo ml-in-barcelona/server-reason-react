@@ -994,7 +994,12 @@ let rewrite_structure_item ~nested_module_names structure_item =
               let props = props_to_model ~loc arguments in
               [%expr
                 React.Client_component
-                  { import_module = [%e import_module]; import_name = ""; props = [%e props]; client = [%e expr] }])
+                  {
+                    import_module = [%e import_module];
+                    import_name = "";
+                    props = [%e props];
+                    client = React.Upper_case_component (Stdlib.__FUNCTION__, fun () -> [%e expr]);
+                  }])
         else if isReactComponentBinding vb then
           expand_make_binding vb (fun expr ->
               let loc = expr.pexp_loc in

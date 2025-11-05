@@ -126,28 +126,33 @@
         ),
       ],
       client:
-        React.createElementWithKey(
-          ~key=None,
-          "section",
-          [],
-          [
+        [@implicit_arity]
+        React.Upper_case_component(
+          Stdlib.__FUNCTION__,
+          () =>
             React.createElementWithKey(
               ~key=None,
-              "h1",
+              "section",
               [],
-              [React.string(lola.name)],
+              [
+                React.createElementWithKey(
+                  ~key=None,
+                  "h1",
+                  [],
+                  [React.string(lola.name)],
+                ),
+                React.createElementWithKey(
+                  ~key=None,
+                  "p",
+                  [],
+                  [React.int(initial)],
+                ),
+                React.createElementWithKey(~key=None, "div", [], [children]),
+                switch (maybe_children) {
+                | Some(children) => children
+                | None => React.null
+                },
+              ],
             ),
-            React.createElementWithKey(
-              ~key=None,
-              "p",
-              [],
-              [React.int(initial)],
-            ),
-            React.createElementWithKey(~key=None, "div", [], [children]),
-            switch (maybe_children) {
-            | Some(children) => children
-            | None => React.null
-            },
-          ],
         ),
     });
