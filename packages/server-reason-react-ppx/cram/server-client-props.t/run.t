@@ -31,7 +31,9 @@
             React.Model.Json([%to_json: (int, string, float)](tuple3)),
           ),
         ],
-        client: React.null,
+        client:
+          [@implicit_arity]
+          React.Upper_case_component(Stdlib.__FUNCTION__, () => React.null),
       });
   };
   module Prop_without_annotation = {
@@ -45,7 +47,9 @@
             "server-reason-react: client components need type annotations. Missing annotation for 'prop_without_annotation'"
           ],
         ],
-        client: React.null,
+        client:
+          [@implicit_arity]
+          React.Upper_case_component(Stdlib.__FUNCTION__, () => React.null),
       });
   };
   module Prop_with_unsupported_annotation = {
@@ -63,7 +67,9 @@
           ("underscore", React.Model.Json([%to_json: _](underscore))),
           ("alpha_types", React.Model.Json([%to_json: 'a](alpha_types))),
         ],
-        client: React.null,
+        client:
+          [@implicit_arity]
+          React.Upper_case_component(Stdlib.__FUNCTION__, () => React.null),
       });
   };
   module Prop_with_annotation_that_need_to_be_type_alias = {
@@ -97,7 +103,9 @@
             ),
           ),
         ],
-        client: React.null,
+        client:
+          [@implicit_arity]
+          React.Upper_case_component(Stdlib.__FUNCTION__, () => React.null),
       });
   };
   module Prop_with_unknown_annotation = {
@@ -129,6 +137,8 @@
             React.Model.Json([%to_json: Label.t(int, string)](lapply)),
           ),
         ],
-        client: React.null,
+        client:
+          [@implicit_arity]
+          React.Upper_case_component(Stdlib.__FUNCTION__, () => React.null),
       });
   };
