@@ -607,7 +607,8 @@ let nested_context () =
               import_module = "./provider.js";
               import_name = "Provider";
               props = [ ("value", React.Model.Element value); ("children", React.Model.Element children) ];
-              client = React.Context.provider context ~value ~children ();
+              client =
+                React.Upper_case_component ("provider", fun () -> React.Context.provider context ~value ~children ());
             } )
   in
   let client_consumer =
@@ -654,7 +655,6 @@ let nested_context () =
       "/root<!-- -->/about<!-- -->/me<!-- -->Last content<script \
        data-payload='0:[\"$\",\"$12\",null,{\"value\":\"$1\",\"children\":[\"/root\",\"$10\"]},null,[],{}]\n\
        '>window.srr_stream.push()</script>"
-    (* TODO: Don't push multiple scripts for the same client component *)
     [
       "<script data-payload='3:I[\"./provider.js\",[],\"Provider\"]\n'>window.srr_stream.push()</script>";
       "<script data-payload='6:I[\"./provider.js\",[],\"Provider\"]\n'>window.srr_stream.push()</script>";
