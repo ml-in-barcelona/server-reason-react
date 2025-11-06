@@ -667,7 +667,7 @@ let client_with_server_children () =
 
 let key_renders_outside_of_props () =
   let app =
-    React.createElementWithKey ~key:(Some "important key") "section"
+    React.createElementWithKey ~key:"important key" "section"
       [ React.JSX.String ("className", "className", "sidebar-header") ]
       [ React.createElement "strong" [] [ React.string "React Notes" ] ]
   in

@@ -594,7 +594,7 @@ module Fragment : sig
 end
 
 val createElement : string -> JSX.prop list -> element list -> element
-val createElementWithKey : ?key:string option -> string -> JSX.prop list -> element list -> element
+val createElementWithKey : ?key:string -> string -> JSX.prop list -> element list -> element
 val fragment : element -> element
 val cloneElement : element -> JSX.prop list -> element
 val string : string -> element

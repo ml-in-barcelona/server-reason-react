@@ -453,7 +453,7 @@ let clone_attributes attributes new_attributes =
   |> List.map (fun (_, attrs) -> attrs)
   |> List.flatten |> List.rev |> List.sort compare_attribute
 
-let create_element_with_key ?(key = None) tag attributes children =
+let create_element_with_key ?key tag attributes children =
   match Html.is_self_closing_tag tag with
   | true when List.length children > 0 ->
       raise (Invalid_children (Printf.sprintf {|"%s" is a self-closing tag and must not have "children".\n|} tag))
@@ -464,7 +464,7 @@ let create_element_with_key ?(key = None) tag attributes children =
   | true -> Lower_case_element { key; tag; attributes; children = [] }
   | false -> Lower_case_element { key; tag; attributes; children }
 
-let createElement = create_element_with_key ~key:None
+let createElement = create_element_with_key ?key:None
 let createElementWithKey = create_element_with_key
 
 (* `cloneElement` overrides childrens and props on lower case components, It raises Invalid_argument for the rest.

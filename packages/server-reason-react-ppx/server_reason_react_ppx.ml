@@ -374,16 +374,19 @@ let transform_lowercase_props ~loc ~tag_name args =
 let rewrite_lowercase ~loc:exprLoc tag_name args children =
   let loc = exprLoc in
   let dom_node_name = estring ~loc:exprLoc tag_name in
-  let key_prop =
+  let key =
     args |> List.find_opt ~f:(fun (label, _) -> get_label label = "key") |> Option.map (fun (_, value) -> value)
   in
-  let key = match key_prop with None -> [%expr None] | Some key -> [%expr Some [%e key]] in
   let props = transform_lowercase_props ~loc:exprLoc ~tag_name args in
-  match children with
-  | Some children ->
+  match (key, children) with
+  | Some key, Some children ->
       let childrens = pexp_list ~loc children in
       [%expr React.createElementWithKey ~key:[%e key] [%e dom_node_name] [%e props] [%e childrens]]
-  | None -> [%expr React.createElementWithKey ~key:[%e key] [%e dom_node_name] [%e props] []]
+  | None, Some children ->
+      let childrens = pexp_list ~loc children in
+      [%expr React.createElement [%e dom_node_name] [%e props] [%e childrens]]
+  | Some key, None -> [%expr React.createElementWithKey ~key:[%e key] [%e dom_node_name] [%e props] []]
+  | None, None -> [%expr React.createElement [%e dom_node_name] [%e props] []]
 
 let split_args args =
   let children = ref (Location.none, []) in
@@ -515,11 +518,13 @@ let expand_make_binding binding react_element_variant_wrapping =
   (* Builds an AST node for the modified `make` function *)
   let name = ppat_var ~loc:ghost_loc { txt = get_function_name binding; loc = ghost_loc } in
   let key_arg = Optional "key" in
-  (* default_value = None means there's no default *)
-  let default_value = None in
-  let key_renamed_to_underscore = ppat_var ~loc:ghost_loc { txt = "_"; loc } in
+  let default_value =
+    (* default_value = None means there's no default *)
+    None
+  in
+  let underscore = ppat_var ~loc:ghost_loc { txt = "_"; loc } in
   let core_type = [%type: string option] in
-  let key_pattern = ppat_constraint ~loc key_renamed_to_underscore core_type in
+  let key_pattern = ppat_constraint ~loc underscore core_type in
   (* Append key argument since we want to allow users of this component to set key (and assign it to _ since it shouldn't be used) *)
   let function_body = pexp_fun ~loc:ghost_loc key_arg default_value key_pattern binding_expr in
   (* Since expand_make_binding is called on both native and js contexts, we need to keep the attributes *)
@@ -649,7 +654,7 @@ let rewrite_signature_item signature_item =
             let loc = pval_type.ptyp_loc in
             let original_core_type = { pval_type with ptyp_desc = Ptyp_arrow (arg_label, core_type_1, core_type_2) } in
             let new_core_type = add_unit_at_the_last_argument_in_core_type original_core_type in
-            Ptyp_arrow (Optional "key", [%type: string option], new_core_type)
+            Ptyp_arrow (Optional "key", [%type: string], new_core_type)
         | ptyp_desc -> ptyp_desc
       in
       let new_core_type = { pval_type with ptyp_desc = new_ptyp_desc } in
