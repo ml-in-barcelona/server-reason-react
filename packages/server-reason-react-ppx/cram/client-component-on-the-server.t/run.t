@@ -126,17 +126,22 @@
         ),
       ],
       client:
-        React.createElement(
-          "section",
-          [],
-          [
-            React.createElement("h1", [], [React.string(lola.name)]),
-            React.createElement("p", [], [React.int(initial)]),
-            React.createElement("div", [], [children]),
-            switch (maybe_children) {
-            | Some(children) => children
-            | None => React.null
-            },
-          ],
+        [@implicit_arity]
+        React.Upper_case_component(
+          Stdlib.__FUNCTION__,
+          () =>
+            React.createElement(
+              "section",
+              [],
+              [
+                React.createElement("h1", [], [React.string(lola.name)]),
+                React.createElement("p", [], [React.int(initial)]),
+                React.createElement("div", [], [children]),
+                switch (maybe_children) {
+                | Some(children) => children
+                | None => React.null
+                },
+              ],
+            ),
         ),
     });

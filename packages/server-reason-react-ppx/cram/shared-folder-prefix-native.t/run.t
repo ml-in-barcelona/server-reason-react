@@ -35,5 +35,7 @@
       import_module: "input.re",
       import_name: "",
       props: [],
-      client: React.null,
+      client:
+        [@implicit_arity]
+        React.Upper_case_component(Stdlib.__FUNCTION__, () => React.null),
     });

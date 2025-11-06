@@ -999,7 +999,12 @@ let rewrite_structure_item ~nested_module_names structure_item =
               let props = props_to_model ~loc arguments in
               [%expr
                 React.Client_component
-                  { import_module = [%e import_module]; import_name = ""; props = [%e props]; client = [%e expr] }])
+                  {
+                    import_module = [%e import_module];
+                    import_name = "";
+                    props = [%e props];
+                    client = React.Upper_case_component (Stdlib.__FUNCTION__, fun () -> [%e expr]);
+                  }])
         else if isReactComponentBinding vb then
           expand_make_binding vb (fun expr ->
               let loc = expr.pexp_loc in
@@ -1093,7 +1098,8 @@ let traverse =
       | None -> ()
       | Some name -> nested_module_names <- nested_module_names @ [ name ]);
       let mapped = super#module_binding ctxt module_binding in
-      nested_module_names <- List.tl nested_module_names;
+      let rec remove_last l = match l with [] -> [] | [ _ ] -> [] | hd :: tl -> hd :: remove_last tl in
+      nested_module_names <- remove_last nested_module_names;
       mapped
 
     method! structure_item ctx structure_item =
