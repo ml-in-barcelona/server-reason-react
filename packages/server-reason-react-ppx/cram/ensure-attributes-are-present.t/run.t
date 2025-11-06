@@ -2,6 +2,5 @@
   let make ?key:(_ : string option) () =
     React.Upper_case_component
       ( Stdlib.__FUNCTION__,
-        fun () ->
-          React.createElementWithKey ~key:None "div" [] [ React.string "lol" ] )
+        fun () -> React.createElement "div" [] [ React.string "lol" ] )
   [@@platform js]
