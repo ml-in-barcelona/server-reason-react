@@ -374,8 +374,8 @@ let client_component_with_async_component () =
       "Async Component<script data-payload='0:[\"$\",\"$2\",null,{\"children\":\"$L1\"},null,[],{}]\n\
        '>window.srr_stream.push()</script>"
     [
-      "<script data-payload='2:I[\"./client.js\",[],\"Client\"]\n'>window.srr_stream.push()</script>";
       "<script data-payload='1:\"Async Component\"\n'>window.srr_stream.push()</script>";
+      "<script data-payload='2:I[\"./client.js\",[],\"Client\"]\n'>window.srr_stream.push()</script>";
     ]
 
 let suspense_with_error () =
@@ -598,7 +598,7 @@ let client_component_with_bootstrap_modules () =
 
 let nested_context () =
   let context = React.createContext React.null in
-  let client_provider ~value ~children =
+  let provider ~value ~children =
     React.Upper_case_component
       ( "provider",
         fun () ->
@@ -611,72 +611,41 @@ let nested_context () =
                 React.Upper_case_component ("provider", fun () -> React.Context.provider context ~value ~children ());
             } )
   in
-  let client_consumer =
+  let client =
     React.Upper_case_component
       ( "client",
         fun () ->
-          React.Client_component
-            {
-              import_module = "./consumer.js";
-              import_name = "Consumer";
-              props = [];
-              client =
-                (let context = React.useContext context in
-                 context);
-            } )
+          let context = React.useContext context in
+          context )
+  in
+  let consumer () =
+    React.Client_component { import_module = "./consumer.js"; import_name = "Consumer"; props = []; client }
+  in
+  let about () =
+    React.Upper_case_component
+      ( "about",
+        fun () ->
+          provider ~value:(React.string "About page") ~children:(React.array [| React.string "/about"; consumer () |])
+      )
   in
   let app () =
     React.Upper_case_component
-      ( "root",
-        fun () ->
-          client_provider
-            ~value:
-              (React.Upper_case_component
-                 ( "about",
-                   fun () ->
-                     client_provider
-                       ~value:
-                         (React.Upper_case_component
-                            ( "me",
-                              fun () ->
-                                client_provider
-                                  ~value:
-                                    (React.Upper_case_component
-                                       ( "content",
-                                         fun () ->
-                                           client_provider ~value:(React.string "Last content")
-                                             ~children:client_consumer ))
-                                  ~children:(React.array [| React.string "/me"; client_consumer |]) ))
-                       ~children:(React.array [| React.string "/about"; client_consumer |]) ))
-            ~children:(React.array [| React.string "/root"; client_consumer |]) )
+      ("root", fun () -> provider ~value:(about ()) ~children:(React.array [| React.string "/root"; consumer () |]))
   in
   assert_html (app ())
     ~shell:
-      "/root<!-- -->/about<!-- -->/me<!-- -->Last content<script \
-       data-payload='0:[\"$\",\"$12\",null,{\"value\":\"$1\",\"children\":[\"/root\",\"$10\"]},null,[],{}]\n\
+      "/root<!-- -->/about<!-- -->About page<script \
+       data-payload='0:[\"$\",\"$6\",null,{\"value\":\"$1\",\"children\":[\"/root\",[\"$\",\"$5\",null,{},null,[],{}]]},null,[],{}]\n\
        '>window.srr_stream.push()</script>"
     [
       "<script data-payload='3:I[\"./provider.js\",[],\"Provider\"]\n'>window.srr_stream.push()</script>";
-      "<script data-payload='6:I[\"./provider.js\",[],\"Provider\"]\n'>window.srr_stream.push()</script>";
-      "<script data-payload='9:I[\"./provider.js\",[],\"Provider\"]\n'>window.srr_stream.push()</script>";
-      "<script data-payload='b:I[\"./consumer.js\",[],\"Consumer\"]\n'>window.srr_stream.push()</script>";
-      "<script data-payload='a:[\"$\",\"$b\",null,{},null,[],{}]\n'>window.srr_stream.push()</script>";
-      "<script data-payload='8:[\"$\",\"$9\",null,{\"value\":\"Last content\",\"children\":\"$a\"},null,[],{}]\n\
-       '>window.srr_stream.push()</script>";
-      "<script data-payload='7:\"$8\"\n'>window.srr_stream.push()</script>";
-      "<script data-payload='d:I[\"./consumer.js\",[],\"Consumer\"]\n'>window.srr_stream.push()</script>";
-      "<script data-payload='c:[\"$\",\"$d\",null,{},null,[],{}]\n'>window.srr_stream.push()</script>";
-      "<script data-payload='5:[\"$\",\"$6\",null,{\"value\":\"$7\",\"children\":[\"/me\",\"$c\"]},null,[],{}]\n\
-       '>window.srr_stream.push()</script>";
-      "<script data-payload='4:\"$5\"\n'>window.srr_stream.push()</script>";
-      "<script data-payload='f:I[\"./consumer.js\",[],\"Consumer\"]\n'>window.srr_stream.push()</script>";
-      "<script data-payload='e:[\"$\",\"$f\",null,{},null,[],{}]\n'>window.srr_stream.push()</script>";
-      "<script data-payload='2:[\"$\",\"$3\",null,{\"value\":\"$4\",\"children\":[\"/about\",\"$e\"]},null,[],{}]\n\
+      "<script data-payload='4:I[\"./consumer.js\",[],\"Consumer\"]\n'>window.srr_stream.push()</script>";
+      "<script data-payload='2:[\"$\",\"$3\",null,{\"value\":\"About \
+       page\",\"children\":[\"/about\",[\"$\",\"$4\",null,{},null,[],{}]]},null,[],{}]\n\
        '>window.srr_stream.push()</script>";
       "<script data-payload='1:\"$2\"\n'>window.srr_stream.push()</script>";
-      "<script data-payload='11:I[\"./consumer.js\",[],\"Consumer\"]\n'>window.srr_stream.push()</script>";
-      "<script data-payload='10:[\"$\",\"$11\",null,{},null,[],{}]\n'>window.srr_stream.push()</script>";
-      "<script data-payload='12:I[\"./provider.js\",[],\"Provider\"]\n'>window.srr_stream.push()</script>";
+      "<script data-payload='5:I[\"./consumer.js\",[],\"Consumer\"]\n'>window.srr_stream.push()</script>";
+      "<script data-payload='6:I[\"./provider.js\",[],\"Provider\"]\n'>window.srr_stream.push()</script>";
     ]
 
 let tests =
