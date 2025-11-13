@@ -5,14 +5,13 @@ type options = {callServer};
 
 [@mel.module "./ReactServerDOMEsbuild.js"]
 external createFromReadableStreamImpl:
-  (Webapi.ReadableStream.t, ~options: options=?, unit) =>
-  Js.Promise.t(React.element) =
+  (Webapi.ReadableStream.t, ~options: options=?, unit) => Js.Promise.t('a) =
   "createFromReadableStream";
 
 [@mel.module "./ReactServerDOMEsbuild.js"]
 external createFromFetchImpl:
   (Js.Promise.t(Fetch.response), ~options: options=?, unit) =>
-  Js.Promise.t(React.element) =
+  Js.Promise.t('a) =
   "createFromFetch";
 
 [@mel.module "./ReactServerDOMEsbuild.js"]
@@ -44,8 +43,7 @@ let getCallServer = () => {
   callServerRef^;
 };
 
-let createFromReadableStream =
-    (~callServer=?, stream): Js.Promise.t(React.element) => {
+let createFromReadableStream = (~callServer=?, stream): Js.Promise.t('a) => {
   switch (callServer) {
   | Some(callServer) =>
     setCallServer(callServer);

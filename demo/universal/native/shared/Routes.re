@@ -44,7 +44,11 @@ let links = [|
     "The same demo as dummyRouterRSC but without SSR. It SSR the shell of the page (head, body, etc), but not the app itself.",
     dummyRouterRSCNoSSR,
   ),
-  ("router", "TBA", router),
+  (
+    "complexRouterRSC",
+    "A complex router with server components and SSR, client components and Suspense + React.use. It uses the same design as the dummyRouterRSC but with a more complex structure that can handle nested routes and dynamic segments.",
+    router,
+  ),
 |];
 
 module Menu = {

@@ -34,7 +34,7 @@
    "app/demo/client/RenderRoot.re.js"
    "app/demo/client/SinglePageRSC.re.js"
    "app/demo/client/DummyRouterRSC.re.js"
-   "app/demo/client/Router.re.js"
+   "app/demo/client/ComplexRouterRSC.re.js"
    "app/demo/client/ServerOnlyRSC.re.js")
   (source_tree node_modules)
   (file package.json)

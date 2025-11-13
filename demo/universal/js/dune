@@ -1,3 +1,5 @@
+(include_subdirs unqualified)
+
 (library
  (name demo_shared_js)
  (modes melange)
@@ -26,5 +28,9 @@
    melange-json.ppx)))
 
 (copy_files
- (mode fallback)
  (files "../native/shared/*.re"))
+
+(subdir
+ ComplexRouter
+ (copy_files
+  (files "../../native/shared/ComplexRouter/*.re")))
