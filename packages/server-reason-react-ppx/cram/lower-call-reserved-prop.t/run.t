@@ -1,7 +1,6 @@
 
   $ ../ppx.sh --output re input.re
-  React.createElementWithKey(
-    ~key=None,
+  React.createElement(
     "input",
     Stdlib.List.filter_map(
       Stdlib.Fun.id,

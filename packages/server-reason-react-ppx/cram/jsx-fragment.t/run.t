@@ -7,9 +7,7 @@
       React.list([foo, React.fragment(React.list([bar, baz]))]),
     );
   let nested_fragment_with_lower = foo =>
-    React.fragment(
-      React.list([React.createElementWithKey(~key=None, "div", [], [foo])]),
-    );
+    React.fragment(React.list([React.createElement("div", [], [foo])]));
   module Fragment = {
     let make = (~key as _: option(string)=?, ~name="", ()) =>
       [@implicit_arity]
@@ -18,8 +16,7 @@
         () =>
           React.fragment(
             React.list([
-              React.createElementWithKey(
-                ~key=None,
+              React.createElement(
                 "div",
                 [],
                 [React.string("First " ++ name)],
