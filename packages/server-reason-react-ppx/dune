@@ -9,6 +9,7 @@
  (kind ppx_rewriter)
  (libraries
   str
+  server-reason-react.expand-styles-attribute
   compiler-libs.common
   ppxlib
   ppxlib.astlib

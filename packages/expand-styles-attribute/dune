@@ -1,0 +1,6 @@
+(library
+ (name expand_styles_attribute)
+ (public_name server-reason-react.expand-styles-attribute)
+ (libraries ppxlib ppxlib.astlib)
+ (preprocess
+  (pps ppxlib.metaquot)))
