@@ -237,8 +237,8 @@ module Model = struct
     if is_dev env then
       let index = Stream.push ~context (to_chunk (Value (make_debug_info ownerName))) in
       let debug_info_ref = Printf.sprintf "$%x" index in
-      (* 
-            React pushes the debug ref in the same level as the Upper_case_component payload 
+      (*
+            React pushes the debug ref in the same level as the Upper_case_component payload
             So we don't use Stream.push here
             Instead we use context.push directly
           *)
@@ -281,8 +281,8 @@ module Model = struct
               (* TODO: Can we remove the is_root difference. It currently align with react.js behavior, but it's not clear what is the purpose of it *)
               if is_root then (
                 (*
-                  If it's the root element, React returns the element payload instead of a reference value. 
-                  Root is a special case: https://github.com/facebook/react/blob/f3a803617ec4ba9d14bf5205ffece28ed1496a1d/packages/react-server/src/ReactFlightServer.js#L756-L766 
+                  If it's the root element, React returns the element payload instead of a reference value.
+                  Root is a special case: https://github.com/facebook/react/blob/f3a803617ec4ba9d14bf5205ffece28ed1496a1d/packages/react-server/src/ReactFlightServer.js#L756-L766
                 *)
                 if debug then push_debug_info ~context ~to_chunk ~env ~index:0 ~ownerName:name else ();
                 turn_element_into_payload ~context ~is_root:false element)
@@ -383,13 +383,13 @@ module Model = struct
   and models_to_payload ~context ~to_chunk ~env props =
     List.map (fun (name, value) -> (name, model_to_payload ~context ~is_root:false ~to_chunk ~env value)) props
 
-  let render ?(env = `Dev) ?(debug = false) ?subscribe model =
+  let render ?(env = `Dev) ?(debug = false) ?subscribe (element : React.element) =
     let stream, context = Stream.make () in
     let to_root_chunk model id =
       let payload = model_to_payload ~debug ~is_root:true ~context ~to_chunk ~env model in
       to_chunk (Value payload) id
     in
-    Stream.push ~context (to_root_chunk model) |> ignore;
+    Stream.push ~context (to_root_chunk (React.Model.Element element)) |> ignore;
     if context.pending = 0 then context.close ();
     match subscribe with None -> Lwt.return () | Some subscribe -> Lwt_stream.iter_s subscribe stream
 
@@ -764,10 +764,10 @@ let render_html ?(skipRoot = false) ?(env = `Dev) ?debug:(_ = false) ?bootstrapS
               modules
         | None -> [])
   in
-  (* Since we don't push the root_data_payload to the stream but return it immediately with the initial HTML, 
+  (* Since we don't push the root_data_payload to the stream but return it immediately with the initial HTML,
      the stream's initial index starts at 1, with index 0 reserved for the root_data_payload.
 
-     The root is also treated as a pending segment that must complete before the stream can be closed, 
+     The root is also treated as a pending segment that must complete before the stream can be closed,
      as we don't push_async it to the stream, the pending counter starts at 1.
      Similar on how react does: https://github.com/facebook/react/blob/7d9f876cbc7e9363092e60436704cf8ae435b969/packages/react-server/src/ReactFizzServer.js#L572-L581
      *)
