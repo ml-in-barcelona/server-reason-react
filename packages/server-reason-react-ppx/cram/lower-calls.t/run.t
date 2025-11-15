@@ -209,11 +209,11 @@
       Stdlib.List.filter_map(
         Stdlib.Fun.id,
         [
-          Some(React.JSX.Ref(ref: React.domRef)),
           Some(
             [@implicit_arity]
             React.JSX.String("class", "className", "FancyButton": string),
           ),
+          Some(React.JSX.Ref(ref: React.domRef)),
         ],
       ),
       [children],

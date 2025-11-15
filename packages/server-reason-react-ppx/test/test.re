@@ -614,6 +614,81 @@ let server_function_reference_form_data_and_args = () => {
   };
 };
 
+let styles_attribute = () => {
+  let styles = (
+    "some-class-name",
+    ReactDOM.Style.make(~backgroundColor="gainsboro", ()),
+  );
+  let div = <div styles />;
+  assert_string(
+    ReactDOM.renderToStaticMarkup(div),
+    {|<div class="some-class-name" style="background-color:gainsboro"></div>|},
+  );
+};
+
+let styles_attribute_optional = () => {
+  let styles = None;
+  let div = <div ?styles />;
+  assert_string(ReactDOM.renderToStaticMarkup(div), {|<div></div>|});
+};
+
+let styles_attribute_optional_some = () => {
+  let styles =
+    Some((
+      "some-class-name",
+      ReactDOM.Style.make(~backgroundColor="gainsboro", ()),
+    ));
+  let div = <div ?styles />;
+  assert_string(
+    ReactDOM.renderToStaticMarkup(div),
+    {|<div class="some-class-name" style="background-color:gainsboro"></div>|},
+  );
+};
+
+let styles_attribute_optional_some_with_class = () => {
+  let styles =
+    Some((
+      "some-class-name",
+      ReactDOM.Style.make(~backgroundColor="gainsboro", ()),
+    ));
+  let div = <div className="lola" ?styles />;
+  assert_string(
+    ReactDOM.renderToStaticMarkup(div),
+    {|<div class="some-class-name lola" style="background-color:gainsboro"></div>|},
+  );
+};
+
+let styles_attribute_optional_some_with_style = () => {
+  let styles =
+    Some((
+      "some-class-name",
+      ReactDOM.Style.make(~backgroundColor="gainsboro", ()),
+    ));
+  let div = <div style={ReactDOM.Style.make(~color="white", ())} ?styles />;
+  assert_string(
+    ReactDOM.renderToStaticMarkup(div),
+    {|<div class="some-class-name" style="color:white;background-color:gainsboro"></div>|},
+  );
+};
+
+let styles_attribute_optional_some_with_class_and_style = () => {
+  let styles =
+    Some((
+      "some-class-name",
+      ReactDOM.Style.make(~backgroundColor="gainsboro", ()),
+    ));
+  let div =
+    <div
+      className="lola"
+      style={ReactDOM.Style.make(~color="white", ())}
+      ?styles
+    />;
+  assert_string(
+    ReactDOM.renderToStaticMarkup(div),
+    {|<div class="some-class-name lola" style="color:white;background-color:gainsboro"></div>|},
+  );
+};
+
 Alcotest_lwt.run(
   "server-reason-react.ppx",
   [
@@ -655,6 +730,21 @@ Alcotest_lwt.run(
     test("context", context),
     test("context_2", context_2),
     test("multiple_contexts", multiple_contexts),
+    test("styles_attribute", styles_attribute),
+    test("styles_attribute_optional", styles_attribute_optional),
+    test("styles_attribute_optional_some", styles_attribute_optional_some),
+    test(
+      "styles_attribute_optional_some_with_class",
+      styles_attribute_optional_some_with_class,
+    ),
+    test(
+      "styles_attribute_optional_some_with_style",
+      styles_attribute_optional_some_with_style,
+    ),
+    test(
+      "styles_attribute_optional_some_with_class_and_style",
+      styles_attribute_optional_some_with_class_and_style,
+    ),
     test_lwt("server_function", server_function),
     test_lwt("server_function_reference", server_function_reference),
     test_lwt(

@@ -19,10 +19,10 @@ We need to output ML syntax here, otherwise refmt could not parse it.
             React.createElement "button"
               (Stdlib.List.filter_map Stdlib.Fun.id
                  [
-                   Some (React.JSX.Ref (buttonRef : React.domRef));
                    Some
                      (React.JSX.String
                         ("class", "className", ("FancyButton" : string)));
+                   Some (React.JSX.Ref (buttonRef : React.domRef));
                  ])
               [ children ] )
   end

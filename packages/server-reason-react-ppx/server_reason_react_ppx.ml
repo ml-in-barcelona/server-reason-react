@@ -1080,14 +1080,6 @@ let validate_tag_children tag children attributes : (unit, string) result =
   | false -> Ok ()
   | true -> Ok ()
 
-let expand_styles_prop ~loc (label, arg) =
-  match label with
-  | Ppxlib.Labelled "styles" ->
-      [ (Ppxlib.Labelled "className", [%expr fst [%e arg]]); (Ppxlib.Labelled "style", [%expr snd [%e arg]]) ]
-  | Ppxlib.Optional "styles" ->
-      [ (Ppxlib.Optional "className", [%expr fst [%e arg]]); (Ppxlib.Optional "style", [%expr snd [%e arg]]) ]
-  | _ -> [ (label, arg) ]
-
 let traverse =
   object (_)
     inherit [Expansion_context.Base.t] Ast_traverse.map_with_context as super
@@ -1122,7 +1114,7 @@ let traverse =
             match expr.pexp_desc with
             | Pexp_apply (({ pexp_desc = Pexp_ident _; pexp_loc = loc; _ } as tag), args)
               when has_jsx_attr expr.pexp_attributes ->
-                let new_args = List.concat_map ~f:(expand_styles_prop ~loc) args in
+                let new_args = Expand_styles_attribute.make ~loc args in
                 { (pexp_apply ~loc (super#expression ctx tag) new_args) with pexp_attributes = attributes }
             | _ -> expr
           with Error err -> [%expr [%e err]])
@@ -1139,7 +1131,7 @@ let traverse =
                     (* div() [@JSX] *)
                     | Pexp_ident { txt = Lident name; loc = _name_loc } ->
                         (* This expansion from "styles" prop into "className" and "style" props is a feature by styled-ppx. The existence of this here, is because dune/ppxlib doesn't allow more than one preprocess_impl and even that, the combination of styled-ppx and server-reason-react.ppx doesn't compose properly. *)
-                        let new_args = List.concat_map ~f:(expand_styles_prop ~loc) rest_of_args in
+                        let new_args = Expand_styles_attribute.make ~loc rest_of_args in
                         rewrite_lowercase ~loc:expr.pexp_loc name new_args children
                     (* Reason adds `createElement` as default when an uppercase is found,
                    we change it back to make *)
