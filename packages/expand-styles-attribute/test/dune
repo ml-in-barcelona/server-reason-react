@@ -1,0 +1,9 @@
+(test
+ (name test)
+ (libraries
+  ppxlib
+  ppxlib.astlib
+  alcotest
+  server-reason-react.expand-styles-attribute)
+ (preprocess
+  (pps ppxlib.metaquot)))
