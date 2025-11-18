@@ -88,7 +88,7 @@ let markdownStyles = (~background, ~text) => {
 
 module App = {
   [@react.component]
-  let make = (~queryParams as __FUNCTION__) => {
+  let make = (~queryParams as _) => {
     <div className="flex flex-col h-full items-center justify-center gap-2">
       <Text size=XXLarge> "🥺" </Text>
       <Text> "Click a note on the left to view something!" </Text>

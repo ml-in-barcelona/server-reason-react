@@ -39,7 +39,7 @@ let extractDynamicParam = (request, segment) => {
   */
 let renderRoute =
     (
-      ~dynamicParams=Router.DynamicParams.create(),
+      ~initialDynamicParams=Router.DynamicParams.create(),
       ~routePath: string,
       ~request: Dream.request,
       routes: list(route),
@@ -67,7 +67,7 @@ let renderRoute =
             routes: list(route),
             pathSegments,
             parentPath,
-            previousDynamicParams,
+            currentDynamicParams,
           )
           : option(React.element) => {
     switch (routes, pathSegments) {
@@ -86,12 +86,11 @@ let renderRoute =
       * - Dynamic params: [("student_id", "1"), ("classroom_id", "1")]
       */
       let dynamicParams =
-        Array.concat([
-          previousDynamicParams,
-          extractDynamicParam(request, segment)
-          |> Option.map(param => [|param|])
-          |> Option.value(~default=[||]),
-        ]);
+        extractDynamicParam(request, segment)
+        |> Option.map(((key, value)) =>
+             Router.DynamicParams.add(currentDynamicParams, key, value)
+           )
+        |> Option.value(~default=currentDynamicParams);
 
       if (route.path == "/" ++ segment) {
         let outlet =
@@ -106,11 +105,7 @@ let renderRoute =
           | None => None
           };
 
-        let layoutChildren =
-          switch (route.subRoutes) {
-          | Some(_) => <Route.Outlet />
-          | None => React.null
-          };
+        let layoutChildren = <Route.Outlet />;
 
         Some(
           <Route
@@ -132,11 +127,84 @@ let renderRoute =
     };
   };
 
-  aux(routes, pathSegments, "", dynamicParams);
+  aux(routes, pathSegments, "", initialDynamicParams);
 };
 
 /**
-  Generate all possible routes paths
+  Render a specific sub route for the given path segments
+  using the parents segments to find the correct component
+  */
+let renderSubRoute =
+    (
+      ~request: Dream.request,
+      ~parentPath: string,
+      ~subRoutePath: string,
+      routes: list(route),
+    ) => {
+  let queryParams =
+    Dream.all_queries(request)
+    |> Array.of_list
+    |> URL.SearchParams.makeWithArray;
+  let parentPathSegments =
+    String.split_on_char('/', parentPath)
+    |> List.filter(segment => segment != "");
+
+  let renderPage = (pageOpt, ~dynamicParams) =>
+    pageOpt |> Option.map(page => page(~dynamicParams, ~queryParams));
+
+  let rec aux = (routes, parentSegments, currentDynamicParams) => {
+    switch (routes, parentSegments) {
+    // When the parent segments are empty, we render the route for the given subRoutePath
+    | (routes, []) =>
+      renderRoute(
+        ~initialDynamicParams=currentDynamicParams,
+        ~routePath=subRoutePath,
+        ~request,
+        routes,
+      )
+    | ([route, ...restRoutes], [segment, ...restSegments]) =>
+      /**
+      * The page and layout have only access to
+      * the dynamic params of the current route and the parent route.
+      * So we append the current dynamic params to the parent dynamic params.
+      * Example:
+      * - Path: /classroom/:classroom_id
+      * - Parent dynamic params: [("classroom_id", "1")]
+      * - Path: /student/:student_id
+      * - Request: /classroom/1/student/1
+      * - Dynamic params: [("student_id", "1"), ("classroom_id", "1")]
+      */
+      let dynamicParams =
+        extractDynamicParam(request, segment)
+        |> Option.map(((key, value)) =>
+             Router.DynamicParams.add(currentDynamicParams, key, value)
+           )
+        |> Option.value(~default=currentDynamicParams);
+
+      if (route.path == "/" ++ segment) {
+        switch (route.subRoutes) {
+        | Some(children) => aux(children, restSegments, dynamicParams)
+        | None => renderPage(route.page, ~dynamicParams)
+        };
+      } else {
+        aux(restRoutes, parentSegments, dynamicParams);
+      };
+
+    | _ => None
+    };
+  };
+
+  aux(routes, parentPathSegments, Router.DynamicParams.create());
+};
+
+/**
+  Generate all possible routes paths from a given list of routes
+  Example:
+  - Routes: [
+    { path: "/student", subRoutes: Some([{ path: "/student/:student_id", subRoutes: None }]) },
+    { path: "/classroom", subRoutes: Some([{ path: "/classroom/:classroom_id", subRoutes: None }]) },
+  ]
+  - Routes paths: ["/student", "/student/:student_id", "/classroom", "/classroom/:classroom_id"]
  */
 let generated_routes_paths = (~routes: list(route)) => {
   let rec aux = (routes: list(route), parentPath: string): list(string) => {
@@ -155,74 +223,10 @@ let generated_routes_paths = (~routes: list(route)) => {
     };
   };
 
-  // The root path is always included
-  ["/"] @ aux(routes, "");
+  aux(routes, "");
 };
 
-/**
-  Render a specific sub route for the given path segments
-  using the parents segments to find the correct component
-  */
-let renderSubRoute =
-    (
-      ~request: Dream.request,
-      ~parentPath: string,
-      ~subRoutePath: string,
-      ~dynamicParams: array((string, string))=[||],
-      routes: list(route),
-    ) => {
-  let queryParams =
-    Dream.all_queries(request)
-    |> Array.of_list
-    |> URL.SearchParams.makeWithArray;
-  let parentPathSegments =
-    String.split_on_char('/', parentPath)
-    |> List.filter(segment => segment != "");
-
-  let renderPage = (pageOpt, ~dynamicParams) =>
-    pageOpt |> Option.map(page => page(~dynamicParams, ~queryParams));
-
-  let rec aux = (routes, parentSegments) => {
-    switch (routes, parentSegments) {
-    | (routes, []) =>
-      renderRoute(~dynamicParams, ~routePath=subRoutePath, ~request, routes)
-    | ([route, ...restRoutes], [segment, ...restSegments]) =>
-      /**
-      * The page and layout have only access to
-      * the dynamic params of the current route and the parent route.
-      * So we append the current dynamic params to the parent dynamic params.
-      * Example:
-      * - Path: /classroom/:classroom_id
-      * - Parent dynamic params: [("classroom_id", "1")]
-      * - Path: /student/:student_id
-      * - Request: /classroom/1/student/1
-      * - Dynamic params: [("student_id", "1"), ("classroom_id", "1")]
-      */
-      let dynamicParams =
-        Array.concat([
-          dynamicParams,
-          extractDynamicParam(request, segment)
-          |> Option.map(param => [|param|])
-          |> Option.value(~default=[||]),
-        ]);
-
-      if (route.path == "/" ++ segment) {
-        switch (route.subRoutes) {
-        | Some(children) => aux(children, restSegments)
-        | None => renderPage(route.page, ~dynamicParams)
-        };
-      } else {
-        aux(restRoutes, parentSegments);
-      };
-
-    | _ => None
-    };
-  };
-
-  aux(routes, parentPathSegments);
-};
-
-let buildUrl = request => {
+let buildUrlFromRequest = request => {
   let protocol = Dream.tls(request) ? "https" : "http";
   let host = Dream.header(request, "Host") |> Option.value(~default="");
   let target = Dream.target(request);
@@ -248,7 +252,6 @@ let renderSubRouteModel =
              ~request,
              ~parentPath=parentPath == "" ? "/" : parentPath,
              ~subRoutePath,
-             ~dynamicParams,
            )
         |> Option.value(~default=React.null),
       ),
@@ -277,8 +280,9 @@ let renderRouteModel =
           path="/"
           layout={routeDefinitions.rootLayout(~children=<Route.Outlet />)}
           outlet={
+            let isRoot = routePath ++ "/" == "/";
             Some(
-              if (routePath == "/") {
+              if (isRoot) {
                 routeDefinitions.rootPage(
                   ~queryParams=
                     Dream.all_queries(request)
@@ -287,7 +291,7 @@ let renderRouteModel =
                 );
               } else {
                 routeDefinitions.routes
-                |> renderRoute(~request, ~routePath, ~dynamicParams)
+                |> renderRoute(~request, ~routePath)
                 |> Option.value(~default=React.null);
               },
             )
@@ -308,7 +312,7 @@ let renderRouteHtml =
       ~document,
       routeDefinitions,
     ) => {
-  let url = buildUrl(request);
+  let url = buildUrlFromRequest(request);
 
   DreamRSC.stream_html(
     ~bootstrapModules,
@@ -319,21 +323,22 @@ let renderRouteHtml =
             path="/"
             layout={routeDefinitions.rootLayout(~children=<Route.Outlet />)}
             outlet={
-              Some(
-                if (routePath == "/") {
-                  routeDefinitions.rootPage(
-                    ~queryParams=
-                      Dream.all_queries(request)
-                      |> Array.of_list
-                      |> URL.SearchParams.makeWithArray,
-                  );
-                } else {
-                  routeDefinitions.routes
-                  |> renderRoute(~request, ~routePath, ~dynamicParams)
-                  |> Option.value(~default=React.null);
-                },
-              )
-            }
+                     let isRoot = routePath ++ "/" == "/";
+                     Some(
+                       if (isRoot) {
+                         routeDefinitions.rootPage(
+                           ~queryParams=
+                             Dream.all_queries(request)
+                             |> Array.of_list
+                             |> URL.SearchParams.makeWithArray,
+                         );
+                       } else {
+                         routeDefinitions.routes
+                         |> renderRoute(~request, ~routePath)
+                         |> Option.value(~default=React.null);
+                       },
+                     );
+                   }
           />
         </Router>,
     ),
@@ -342,7 +347,10 @@ let renderRouteHtml =
 
 let routeDefinitionsHandlers =
     (~bootstrapModules, ~document, ~routeDefinitions, basePath, handler) => {
-  let routesPaths = generated_routes_paths(~routes=routeDefinitions.routes);
+  let routesPaths = [
+    "/",
+    ...generated_routes_paths(~routes=routeDefinitions.routes),
+  ];
 
   routesPaths
   |> List.map(path => {
@@ -396,11 +404,11 @@ let routeDefinitionsHandlers =
                );
 
              | None =>
-               let isReactComponentRequest =
+               let isModelRequest =
                  Dream.header(request, "Accept")
                  == Some("application/react.component");
 
-               if (isReactComponentRequest) {
+               if (isModelRequest) {
                  routeDefinitions
                  |> renderRouteModel(
                       ~request,
