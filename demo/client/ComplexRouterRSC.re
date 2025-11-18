@@ -32,9 +32,6 @@ let initialRSCModel =
   );
 
 module ClientApp = {
-  module DOM = Webapi.Dom;
-  module Location = DOM.Location;
-  module History = DOM.History;
   [@react.component]
   let make = () => {
     let initialElement = React.Experimental.usePromise(initialRSCModel);

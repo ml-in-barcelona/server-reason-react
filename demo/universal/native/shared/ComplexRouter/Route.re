@@ -3,6 +3,28 @@ open Melange_json.Primitives;
 type t = React.element;
 
 let context = React.createContext(React.null);
+/*
+
+ /* visitor tree */
+ /* history virtual */
+
+ {
+   path: "/",
+   loader: (_) => {},
+ },
+ {
+   path: "/student",
+   loader: (_) => {},
+ },
+           /* fetch student/123?rsc=123 */
+           /* new_outlet = <Route path="/student/:id" layout={<AppLayout />} outlet={<Student />} /> */
+           /* loader(new_outlet) */
+           /* render */
+ {
+   path: "/student/:id",
+   loader: (_) => {},
+ },
+ */
 
 module Outlet = {
   [@react.client.component]

@@ -40,12 +40,12 @@ let extractDynamicParam = (request, segment) => {
 let renderRoute =
     (
       ~initialDynamicParams=Router.DynamicParams.create(),
-      ~routePath: string,
+      ~definition: string,
       ~request: Dream.request,
       routes: list(route),
     ) => {
   let pathSegments =
-    String.split_on_char('/', routePath)
+    String.split_on_char('/', definition)
     |> List.filter(segment => segment != "");
   let queryParams =
     Dream.all_queries(request)
@@ -119,7 +119,7 @@ let renderRoute =
 };
 
 /**
-  Render a specific sub route for the given path segments
+  Render a specific sub route for the given path definitions
   using the parents segments to find the correct component
   */
 let renderSubRoute =
@@ -140,13 +140,14 @@ let renderSubRoute =
   let renderPage = (pageOpt, ~dynamicParams) =>
     pageOpt |> Option.map(page => page(~dynamicParams, ~queryParams));
 
+  /* TODO: This should live rent free into another place, hopefully in a RoutesDefinitions module */
   let rec aux = (routes, parentSegments, currentDynamicParams) => {
     switch (routes, parentSegments) {
     // When the parent segments are empty, we render the route for the given subRoutePath
     | (routes, []) =>
       renderRoute(
         ~initialDynamicParams=currentDynamicParams,
-        ~routePath=subRoutePath,
+        ~definition=subRoutePath,
         ~request,
         routes,
       )
@@ -222,8 +223,15 @@ let buildUrlFromRequest = request => {
 };
 
 let renderSubRouteModel =
-    (~request, ~parentPath, ~subRoutePath, ~dynamicParams, routes) => {
-  DreamRSC.stream_model(
+    (
+      ~request,
+      ~parentRouteDefinition /* students */,
+      ~subRouteDefinition /* :id */,
+      ~dynamicParams,
+      routes,
+    ) => {
+  /* DreamRSC.stream_element( */
+  DreamRSC.stream_value(
     ~location=Dream.target(request),
     /**
     The list of models is:
@@ -232,14 +240,17 @@ let renderSubRouteModel =
     - The sub route element
      */
     React.Model.List([
-      React.Model.Json(`String(parentPath == "" ? "/" : parentPath)),
+      React.Model.Json(
+        `String(parentRouteDefinition == "" ? "/" : parentRouteDefinition),
+      ),
       React.Model.Json(dynamicParams |> Router.DynamicParams.to_json),
       React.Model.Element(
         routes
         |> renderSubRoute(
              ~request,
-             ~parentPath=parentPath == "" ? "/" : parentPath,
-             ~subRoutePath,
+             ~parentPath=
+               parentRouteDefinition == "" ? "/" : parentRouteDefinition,
+             ~subRoutePath=subRouteDefinition,
            )
         |> Option.value(~default=React.null),
       ),
@@ -248,18 +259,18 @@ let renderSubRouteModel =
 };
 
 // Render full route model (when revalidating the route)
-let renderRouteModel =
-    (~request, ~routePath, ~dynamicParams, routeDefinitions) => {
+let renderRevalidatedRouteModel =
+    (~request, ~routeDefinition, ~dynamicParams, routeDefinitions) => {
   DreamRSC.stream_model(
     ~location=Dream.target(request),
     React.Model.List([
-      React.Model.Json(`String(routePath)),
+      React.Model.Json(`String(routeDefinition)),
       /**
       * As the client don't have access to the dynamic params (/:)
       * we need to extract them from the path and send them to the client.
       * Example:
-      * - Route path: /classroom/:classroom_id/student/:student_id
-      * - Request path: /classroom/1/student/1
+      * - Route definition: /classroom/:classroom_id/student/:student_id
+      * - Route path: /classroom/1/student/1
       * - Dynamic params: [("student_id", "1"), ("classroom_id", "1")]
       */
       React.Model.Json(dynamicParams |> Router.DynamicParams.to_json),
@@ -268,7 +279,7 @@ let renderRouteModel =
           path="/"
           layout={routeDefinitions.rootLayout(~children=<Route.Outlet />)}
           outlet={
-                   let isRoot = routePath ++ "/" == "/";
+                   let isRoot = routeDefinition ++ "/" == "/";
                    Some(
                      if (isRoot) {
                        routeDefinitions.rootPage(
@@ -279,7 +290,7 @@ let renderRouteModel =
                        );
                      } else {
                        routeDefinitions.routes
-                       |> renderRoute(~request, ~routePath)
+                       |> renderRoute(~request, ~definition=routeDefinition)
                        // TODO: Handle 404 case here
                        |> Option.value(~default=React.null);
                      },
@@ -295,24 +306,24 @@ let renderRouteModel =
 let renderRouteHtml =
     (
       ~request,
-      ~routePath,
+      ~routeDefinition,
       ~dynamicParams,
       ~bootstrapModules,
       ~document,
       routeDefinitions,
     ) => {
   let url = buildUrlFromRequest(request);
-
   DreamRSC.stream_html(
     ~bootstrapModules,
     document(
       ~children=
         <Router dynamicParams url={URL.makeExn(url)}>
           <Route
+            /* MAIN ROUTE */
             path="/"
             layout={routeDefinitions.rootLayout(~children=<Route.Outlet />)}
             outlet={
-                     let isRoot = routePath ++ "/" == "/";
+                     let isRoot = routeDefinition ++ "/" == "/";
                      Some(
                        if (isRoot) {
                          routeDefinitions.rootPage(
@@ -323,7 +334,10 @@ let renderRouteHtml =
                          );
                        } else {
                          routeDefinitions.routes
-                         |> renderRoute(~request, ~routePath)
+                         |> renderRoute(
+                              ~request,
+                              ~definition=routeDefinition,
+                            )
                          // TODO: Handle 404 case here
                          |> Option.value(~default=React.null);
                        },
@@ -362,33 +376,55 @@ let routeDefinitionsHandlers =
            basePath ++ normalizedPath,
            request => {
              let dynamicParams: Router.DynamicParams.t =
+               /* [("student_id", "123")] */
                normalizedPath
                |> String.split_on_char('/')
                |> List.filter_map(extractDynamicParam(request))
                |> Array.of_list;
 
+             /* TODO: instead of using rsc to describe where te user is going to navigate to, we could send the previous route path. */
+             /* OR: a complete solution that doesn't use the word rsc */
              switch (Dream.query(request, "rsc")) {
-             | Some(rscPath) =>
-               let rscSegmentLevel =
-                 rscPath |> String.split_on_char('/') |> List.length;
+             | Some(subRoutePath /* 123 */) =>
+               /* where you are:      currentPath/parent/referrer */
+               /* where you wanna go: nextPath   */
 
-               let normalizedPathSegments =
+               /*
+                   ___ /
+                  |         |
+                 students   about
+                123    456
+                */
+
+               /* user students/ */
+               /* navigate to students/123 */
+               /* pathnames: ["students", "123"] */
+               /* routeDefinition: students/:id */
+
+               let subRouteIndex =
+                 subRoutePath |> String.split_on_char('/') |> List.length;
+
+               let currentRouteDefinition =
+                 /* ["students", ":id"] */
                  normalizedPath |> String.split_on_char('/');
 
-               let rscRoute =
-                 normalizedPathSegments
-                 |> List.filteri((index, _) => index >= rscSegmentLevel)
+               /* TODO: Consider if routes definitions should be a tree, not a list. */
+               let subRouteDefinition =
+                 currentRouteDefinition
+                 |> List.filteri((index, _) => index >= subRouteIndex)
                  |> String.concat("/");
 
-               let parentPath =
-                 normalizedPathSegments
-                 |> List.filteri((index, _) => index < rscSegmentLevel)
+               let parentRouteDefinition =
+                 currentRouteDefinition
+                 |> List.filteri((index, _) => index < subRouteIndex)
                  |> String.concat("/");
 
+               /* let component = RoutesDefinitions.getSubComponent(asdjnasdkjfnasdkjnfksajdnfkjsndfkjasnfkjsndafkjsd); */
+               /* renderModel(component); */
                renderSubRouteModel(
                  ~request,
-                 ~parentPath,
-                 ~subRoutePath=rscRoute,
+                 ~parentRouteDefinition,
+                 ~subRouteDefinition,
                  ~dynamicParams,
                  routeDefinitions.routes,
                );
@@ -400,16 +436,16 @@ let routeDefinitionsHandlers =
 
                if (isModelRequest) {
                  routeDefinitions
-                 |> renderRouteModel(
+                 |> renderRevalidatedRouteModel(
                       ~request,
-                      ~routePath=normalizedPath,
+                      ~routeDefinition=normalizedPath,
                       ~dynamicParams,
                     );
                } else {
                  renderRouteHtml(
                    ~bootstrapModules,
                    ~request,
-                   ~routePath=normalizedPath,
+                   ~routeDefinition=normalizedPath,
                    ~dynamicParams,
                    ~document,
                    routeDefinitions,

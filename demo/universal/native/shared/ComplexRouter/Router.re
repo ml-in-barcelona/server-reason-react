@@ -121,6 +121,7 @@ let use = () => {
 let make =
     (~dynamicParams: DynamicParams.t, ~url: Url.t, ~children: React.element) => {
   let (element, setElement) = React.useState(() => children);
+
   let url =
     switch%platform () {
     | Client =>
