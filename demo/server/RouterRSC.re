@@ -79,8 +79,9 @@ let renderRoute =
       * the dynamic params of the current route and the parent route.
       * So we append the current dynamic params to the parent dynamic params.
       * Example:
-      * - Parent path: /classroom/:classroom_id
-      * - Current path: /student/:student_id
+      * - Path: /classroom/:classroom_id
+      * - Parent dynamic params: [("classroom_id", "1")]
+      * - Path: /student/:student_id
       * - Request: /classroom/1/student/1
       * - Dynamic params: [("student_id", "1"), ("classroom_id", "1")]
       */
@@ -191,8 +192,9 @@ let renderSubRoute =
       * the dynamic params of the current route and the parent route.
       * So we append the current dynamic params to the parent dynamic params.
       * Example:
-      * - Parent path: /classroom/:classroom_id
-      * - Current path: /student/:student_id
+      * - Path: /classroom/:classroom_id
+      * - Parent dynamic params: [("classroom_id", "1")]
+      * - Path: /student/:student_id
       * - Request: /classroom/1/student/1
       * - Dynamic params: [("student_id", "1"), ("classroom_id", "1")]
       */
