@@ -51,16 +51,6 @@ let renderRoute =
     Dream.all_queries(request)
     |> Array.of_list
     |> URL.SearchParams.makeWithArray;
-  let renderPage = (pageOpt, ~dynamicParams) =>
-    pageOpt
-    |> Option.map(page => page(~dynamicParams, ~queryParams))
-    |> Option.value(~default=React.null);
-
-  let renderLayout = (route: route, ~dynamicParams, ~children) =>
-    switch (route.layout) {
-    | Some(layout) => layout(~children, ~dynamicParams)
-    | None => renderPage(route.page, ~dynamicParams)
-    };
 
   let rec aux =
           (
@@ -92,6 +82,16 @@ let renderRoute =
            )
         |> Option.value(~default=currentDynamicParams);
 
+      let renderPage = (pageOpt, ~dynamicParams) =>
+        pageOpt
+        |> Option.map(page => page(~dynamicParams, ~queryParams))
+        |> Option.value(~default=React.null);
+      let renderLayout =
+        switch (route.layout) {
+        | Some(layout) => layout(~children=<Route.Outlet />, ~dynamicParams)
+        | None => renderPage(route.page, ~dynamicParams)
+        };
+
       if (route.path == "/" ++ segment) {
         let outlet =
           switch (route.subRoutes) {
@@ -105,19 +105,7 @@ let renderRoute =
           | None => None
           };
 
-        let layoutChildren = <Route.Outlet />;
-
-        Some(
-          <Route
-            path=currentRoutePath
-            outlet
-            layout={renderLayout(
-              route,
-              ~dynamicParams,
-              ~children=layoutChildren,
-            )}
-          />,
-        );
+        Some(<Route path=currentRoutePath outlet layout=renderLayout />);
       } else {
         aux(restRoutes, pathSegments, parentPath, dynamicParams);
       };
@@ -280,22 +268,23 @@ let renderRouteModel =
           path="/"
           layout={routeDefinitions.rootLayout(~children=<Route.Outlet />)}
           outlet={
-            let isRoot = routePath ++ "/" == "/";
-            Some(
-              if (isRoot) {
-                routeDefinitions.rootPage(
-                  ~queryParams=
-                    Dream.all_queries(request)
-                    |> Array.of_list
-                    |> URL.SearchParams.makeWithArray,
-                );
-              } else {
-                routeDefinitions.routes
-                |> renderRoute(~request, ~routePath)
-                |> Option.value(~default=React.null);
-              },
-            )
-          }
+                   let isRoot = routePath ++ "/" == "/";
+                   Some(
+                     if (isRoot) {
+                       routeDefinitions.rootPage(
+                         ~queryParams=
+                           Dream.all_queries(request)
+                           |> Array.of_list
+                           |> URL.SearchParams.makeWithArray,
+                       );
+                     } else {
+                       routeDefinitions.routes
+                       |> renderRoute(~request, ~routePath)
+                       // TODO: Handle 404 case here
+                       |> Option.value(~default=React.null);
+                     },
+                   );
+                 }
         />,
       ),
     ]),
@@ -335,6 +324,7 @@ let renderRouteHtml =
                        } else {
                          routeDefinitions.routes
                          |> renderRoute(~request, ~routePath)
+                         // TODO: Handle 404 case here
                          |> Option.value(~default=React.null);
                        },
                      );
