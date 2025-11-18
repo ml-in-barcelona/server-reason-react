@@ -4,7 +4,6 @@
 * On navigation, it fetches the route component and updates the dynamic params.
 * Depending on the mode (revalidate or not), it either updates the whole page or the specific route component.
 */
-
 exception NoProvider(string);
 module DOM = Webapi.Dom;
 module Location = DOM.Location;
@@ -133,7 +132,6 @@ let make =
   let (cachedNodeKey, setCachedNodeKey) =
     React.useState(() => url |> URL.toString);
   let (dynamicParams, setDynamicParams) = React.useState(() => dynamicParams);
-  let (_isTransitioning, startTransition) = React.useTransition();
 
   let findPathDiff = (path1, path2) => {
     let splitPath = path => path |> String.split_on_char('/') |> List.tl;
@@ -215,17 +213,15 @@ let make =
              setDynamicParams(_ => dynamicParams);
 
              if (revalidate) {
-               startTransition(() => {
-                 RouteRegistry.clear();
-                 // This is a hack to force a re-render of the route by changing the key
-                 // Is there a better way to do this?
-                 setCachedNodeKey(_ => Js.Date.now() |> string_of_float);
-                 setElement(_ => element);
-               });
+               RouteRegistry.clear();
+               // This is a hack to force a re-render of the route by changing the key
+               // react-router do something similar
+               // Is there a better way to do this?
+               setCachedNodeKey(_ => Js.Date.now() |> string_of_float);
+               setElement(_ => element);
              } else {
                switch (route) {
-               | Some(route) =>
-                 startTransition(() => {route.loader(element)})
+               | Some(route) => route.loader(element)
                | None => ()
                };
              };
