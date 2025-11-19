@@ -1,30 +1,45 @@
+/**
+* Route is the component that renders the route and provides the renderPage function to update page/subroutes when the route is navigated to.
+* It push the route to the virtual history when mounted.\
+*
+* As the <Route/> is a client component, we cannot pass to the component the layout as a function component (~children: React.element) => React.element,
+* so we need to pass the layout as a React.element and use the Provider to pass the children to the layout.
+* That workaround allow us to update the page/subroutes when the route is nested.
+*
+* Path: /about/contact
+*
+* Example:
+* <Route
+*   path="/"
+*   layout={<MainLayout />}
+*   outlet={
+*     <Route
+*       path="/about"
+*       layout={<AboutLayout />}
+*       outlet={
+*         <Route
+*           path="/contact"
+*           layout={<ContactLayout />}
+*           outlet={<ContactPage />}
+*         />
+*       }
+*     />
+*   }
+*
+* Visual representation of the route tree:
+* <MainLayout>
+*   <AboutLayout>
+*     <ContactLayout>
+*       <ContactPage />
+*     </ContactLayout>
+*   </AboutLayout>
+* </MainLayout>
+*/
 open Melange_json.Primitives;
 
 type t = React.element;
 
 let context = React.createContext(React.null);
-/*
-
- /* visitor tree */
- /* history virtual */
-
- {
-   path: "/",
-   loader: (_) => {},
- },
- {
-   path: "/student",
-   loader: (_) => {},
- },
-           /* fetch student/123?rsc=123 */
-           /* new_outlet = <Route path="/student/:id" layout={<AppLayout />} outlet={<Student />} /> */
-           /* loader(new_outlet) */
-           /* render */
- {
-   path: "/student/:id",
-   loader: (_) => {},
- },
- */
 
 module Outlet = {
   [@react.client.component]
@@ -53,10 +68,6 @@ module Provider = {
   };
 };
 
-/**
-* Route is the component that renders and registers the route.
-* It also provides the loader to update page/subroutes when the route is navigated to.
-*/
 [@react.client.component]
 let make =
     (~path: string, ~layout: React.element, ~outlet: option(React.element)) => {
@@ -65,21 +76,21 @@ let make =
   let isFirstRender = React.useRef(true);
   let (cachedNodeKey, setCachedNodeKey) = React.useState(() => path);
 
-  let%browser_only loader = routeElement => {
-    setOutlet(_ => routeElement);
+  let%browser_only renderPage = pageElement => {
+    setOutlet(_ => pageElement);
     // This is a hack to force a re-render of the route by changing the key
     // Is there a better way to do this?
     setCachedNodeKey(_ => Js.Date.now() |> string_of_float);
   };
 
   /**
-  * Register the route and the loader function.
-  * The loader function is used to update the page/subroutes.
+  * push the route to the virtual history.
+  * The renderPage function is used to update the page/subroutes.
   */
   (
     if (isFirstRender.current) {
       isFirstRender.current = false;
-      RouteRegistry.register(~path, ~loader);
+      VirtualHistory.push(~path, ~renderPage);
     }
   );
 
