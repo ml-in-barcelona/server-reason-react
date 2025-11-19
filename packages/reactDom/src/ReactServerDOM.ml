@@ -857,7 +857,11 @@ let render_html ?(skipRoot = false) ?(env = `Dev) ?debug:(_ = false) ?bootstrapS
   in
   Lwt.return (Html.to_string html, subscribe)
 
-let render_model = Model.render
+let render_model_value = Model.render
+
+let render_model ?(env = `Dev) ?(debug = false) ?subscribe model =
+  Model.render ~env ~debug ?subscribe (React.Model.Element model)
+
 let create_action_response = Model.create_action_response
 
 type model = Reference of string | FormData of string | Undefined | Json of json

@@ -89,7 +89,7 @@ let streamFunctionResponse = request => {
 let is_react_component_header = str =>
   String.equal(str, "application/react.component");
 
-let stream_model = (~location, app) =>
+let stream_model_value = (~location, app) =>
   Dream.stream(
     ~headers=[
       ("Content-Type", "application/react.component"),
@@ -98,7 +98,7 @@ let stream_model = (~location, app) =>
     ],
     stream => {
       let%lwt () =
-        ReactServerDOM.render_model(
+        ReactServerDOM.render_model_value(
           ~debug,
           ~subscribe=
             chunk => {
@@ -115,6 +115,9 @@ let stream_model = (~location, app) =>
       Dream.flush(stream);
     },
   );
+
+let stream_model = (~location, app) =>
+  stream_model_value(~location, React.Model.Element(app));
 
 let stream_html =
     (
@@ -165,10 +168,7 @@ let createFromRequest =
     ) => {
   switch (Dream.header(request, "Accept")) {
   | Some(accept) when is_react_component_header(accept) =>
-    stream_model(
-      ~location=Dream.target(request),
-      React.Model.Element(element),
-    )
+    stream_model(~location=Dream.target(request), element)
   | _ =>
     stream_html(
       ~skipRoot=disableSSR,

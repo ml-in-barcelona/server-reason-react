@@ -231,7 +231,7 @@ let renderSubRouteModel =
       routes,
     ) => {
   /* DreamRSC.stream_element( */
-  DreamRSC.stream_value(
+  DreamRSC.stream_model_value(
     ~location=Dream.target(request),
     /**
     The list of models is:
@@ -261,7 +261,7 @@ let renderSubRouteModel =
 // Render full route model (when revalidating the route)
 let renderRevalidatedRouteModel =
     (~request, ~routeDefinition, ~dynamicParams, routeDefinitions) => {
-  DreamRSC.stream_model(
+  DreamRSC.stream_model_value(
     ~location=Dream.target(request),
     React.Model.List([
       React.Model.Json(`String(routeDefinition)),
