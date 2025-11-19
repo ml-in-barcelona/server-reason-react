@@ -174,12 +174,6 @@ let routeDefinitions: RouterRSC.routeDefinitions = {
   rootPage: App.make(),
   routes: [
     {
-      /* 123 */
-
-      path: "/",
-      page: Some(App.make()),
-    },
-    {
       path: "/new",
       page:
         Some(
@@ -195,16 +189,6 @@ let routeDefinitions: RouterRSC.routeDefinitions = {
     {
       path: "/:id",
       page:
-        /*
-
-         1.
-          page(~dynamicParams, ~queryParams)
-
-         2.
-          setDynamicParams(dynamicParams);
-          queryParams := queryParams;
-          layout(page());
-         */
         Some(
           (~dynamicParams, ~queryParams as _) => {
             let selectedId =

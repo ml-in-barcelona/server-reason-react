@@ -336,10 +336,7 @@ let renderRouteHtml =
                          );
                        } else {
                          routeDefinitions.routes
-                         |> getRoute(
-                              ~request,
-                              ~definition=routeDefinition,
-                            )
+                         |> getRoute(~request, ~definition=routeDefinition)
                          // TODO: Handle 404 case here
                          |> Option.value(~default=React.null);
                        },

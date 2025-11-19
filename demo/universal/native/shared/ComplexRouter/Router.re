@@ -134,18 +134,18 @@ let make =
     React.useState(() => url |> URL.toString);
   let (dynamicParams, setDynamicParams) = React.useState(() => dynamicParams);
 
-  let findPathDiff = (path1, path2) => {
+  let findSubRoutePath = (path1, path2) => {
     let splitPath = path => path |> String.split_on_char('/') |> List.tl;
 
-    let rec findPathDiff = (p1, p2, acc) => {
+    let rec findSubRoutePath = (p1, p2, acc) => {
       switch (p1, p2) {
       | ([h1, ...t1], [h2, ...t2]) when h1 == h2 =>
-        findPathDiff(t1, t2, acc)
+        findSubRoutePath(t1, t2, acc)
       | (_, remaining) => remaining |> String.concat("/")
       };
     };
 
-    findPathDiff(splitPath(path1), splitPath(path2), "");
+    findSubRoutePath(splitPath(path1), splitPath(path2), "");
   };
 
   let splitPathQuery = to_ => {
@@ -184,47 +184,70 @@ let make =
                    ) => {
     let curPath = URL.pathname(url);
     let (toPath, queryParamsOpt) = splitPathQuery(to_);
-    let rscPath = findPathDiff(curPath, toPath);
+    /**
+     * Identify the sub-route path from the current path to the target path
+     * Example:
+     * 1.
+     *  - Current path: /students/123
+     *  - Target path: /students/123/grades/456
+     *  - Sub-route path: /grades/456
+     *  - Endpoint: /students/123/grades/456?toSubRoute=/grades/456
+     *  - We only receive the /grades/456 component to render in the /students/123 route
+     * 2.
+     *  - Current path: /students/123/grades/456
+     *  - Target path: /about/contact
+     *  - Sub-route path: "" (No sub-route)
+     *  - Endpoint: /about/contact?toSubRoute=
+     *  - We receive the /about/contact component to render in the /.
+     */
+    let subRoutePath = findSubRoutePath(curPath, toPath);
 
     let endpoint =
       if (revalidate) {
         toPath ++ buildQueryString(~prefix="?", queryParamsOpt);
       } else {
         toPath
-        ++ "?rsc="
-        ++ rscPath
+        ++ "?toSubRoute="
+        ++ subRoutePath
         ++ buildQueryString(~prefix="&", queryParamsOpt);
       };
 
     let _ = shouldReplace ? Url.replace(to_) : Url.push(to_);
 
+    if (shallow) {
+      // When shallow is true, we only update the url, without navigating to the sub-route.
+      ()
+    };
     if (!shallow) {
       let _ =
         fetchComponent(endpoint)
         |> Js.Promise.then_(
              (
                (
-                 routePath,
+                 routeDefinitionOwner,
                  dynamicParams: DynamicParams.t,
                  element: React.element,
                ),
              ) => {
-             let route = RouteRegistry.find(routePath);
+             let branch =
+               VirtualHistory.find(routeDefinitionOwner)
+               // If we don't find the branch, we use the base branch (the main route) and create a new branch from it.
+               |> Option.value(~default=VirtualHistory.baseBranch);
 
              setDynamicParams(_ => dynamicParams);
 
              if (revalidate) {
-               RouteRegistry.clear();
+               // Clear the virtual history when revalidating
+               VirtualHistory.cleanup();
+
                // This is a hack to force a re-render of the route by changing the key
                // react-router do something similar
                // Is there a better way to do this?
                setCachedNodeKey(_ => Js.Date.now() |> string_of_float);
                setElement(_ => element);
              } else {
-               switch (route) {
-               | Some(route) => route.loader(element)
-               | None => ()
-               };
+               VirtualHistory.cleanTreeBranch(branch.path);
+               branch.renderPage(element);
              };
 
              Js.Promise.resolve();
