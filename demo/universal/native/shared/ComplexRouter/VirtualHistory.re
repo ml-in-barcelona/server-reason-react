@@ -56,8 +56,6 @@ let find = (path: string) => {
   List.find_opt(route => route.path == path, tree^);
 };
 
-let baseBranch = tree^ |> List.hd;
-
 let cleanup = () => {
   tree := [];
 };

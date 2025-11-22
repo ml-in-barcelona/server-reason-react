@@ -1,14 +1,24 @@
 /**
 * RouterRSC is a module that provides the helpers to build the route and the layout component from the route definitions.
 */
+
 type route = {
   path: string,
   layout:
+    /**
+     * A layout is the UI that is shared between multiple pages.
+     * On navigation, layouts preserve state, remain interactive, and do not rerender.
+     * Why there is no queryParams in the layout?
+     * As it does not rerender on navigation, it cannot access search params which would otherwise become stale.
+     */
     option(
       (~children: React.element, ~dynamicParams: Router.DynamicParams.t) =>
       React.element,
     ),
   page:
+    /**
+     * A page is the UI that is rendered on a specific route.
+     */
     option(
       (
         ~dynamicParams: Router.DynamicParams.t,
@@ -16,10 +26,15 @@ type route = {
       ) =>
       React.element,
     ),
+  /**
+   * subRoutes is a list of routes that are nested within the current route.
+   * It is used to render a specific UI within a parent route layout.
+   * A sub-route "takes" the parent page place in the layout.
+   */
   subRoutes: option(list(route)),
 };
 
-type routeDefinitions = {
+type routeDefinitionsTree = {
   rootLayout: (~children: React.element) => React.element,
   rootPage: (~queryParams: URL.SearchParams.t) => React.element,
   routes: list(route),
@@ -34,7 +49,23 @@ let extractDynamicParam = (request, segment) => {
     : None;
 };
 
-// Returns the React.element for the given path definition
+/**
+  * Returns the React.element for the given path definition from the routes tree.
+  * Example:
+  * - definition: /students/:id
+  * - React.element returned:
+  *   <Route
+  *     path="/students"
+  *     layout={<StudentsLayout />}
+  *     outlet={
+  *       <Route
+  *         path="/students/:id"
+  *         layout={<StudentLayout />}
+  *         outlet={<StudentPage />}
+  *       />
+  *     }
+  *   />
+  */
 let getRoute =
     (
       ~initialDynamicParams=Router.DynamicParams.create(),
@@ -50,6 +81,7 @@ let getRoute =
     |> Array.of_list
     |> URL.SearchParams.makeWithArray;
 
+  // Goes through the route definitions to find the correct route from the definition
   let rec aux =
           (
             routes: list(route),
@@ -117,14 +149,23 @@ let getRoute =
 };
 
 /**
-  Returns the React.element for a specific sub route for the given path definitions
-  using the parents segments to find the correct component
+  * Returns the React.element for a specific sub route for the given path definitions
+  * using the parents segments to find the correct component
+  * Example:
+  * - parentPath: /students
+  * - subRoutePath: /:id
+  * - React.element returned:
+  *   <Route
+  *     path="/students/:id"
+  *     layout={<StudentLayout />}
+  *     outlet={<StudentPage />}
+  *   />
   */
 let getSubRoute =
     (
       ~request: Dream.request,
-      ~parentPath: string,
-      ~subRoutePath: string,
+      ~parentDefinition: string,
+      ~subRouteDefinition: string,
       routes: list(route),
     ) => {
   let queryParams =
@@ -132,7 +173,7 @@ let getSubRoute =
     |> Array.of_list
     |> URL.SearchParams.makeWithArray;
   let parentPathSegments =
-    String.split_on_char('/', parentPath)
+    String.split_on_char('/', parentDefinition)
     |> List.filter(segment => segment != "");
 
   let renderPage = (pageOpt, ~dynamicParams) =>
@@ -145,7 +186,7 @@ let getSubRoute =
     | (routes, []) =>
       getRoute(
         ~initialDynamicParams=currentDynamicParams,
-        ~definition=subRoutePath,
+        ~definition=subRouteDefinition,
         ~request,
         routes,
       )
@@ -250,9 +291,9 @@ let renderSubRouteModel =
         routes
         |> getSubRoute(
              ~request,
-             ~parentPath=
+             ~parentDefinition=
                parentRouteDefinition == "" ? "/" : parentRouteDefinition,
-             ~subRoutePath=subRouteDefinition,
+             ~subRouteDefinition,
            )
         |> Option.value(~default=React.null),
       ),
@@ -260,38 +301,40 @@ let renderSubRouteModel =
   );
 };
 
-// Render full route model (when revalidating the route)
-let renderRevalidatedRouteModel =
-    (~request, ~routeDefinition, ~dynamicParams, routeDefinitions) => {
+/**
+  * Renders the route model for the given route definition from a routeDefinitionsTree
+  */
+let renderRouteModel =
+    (~request, ~routeDefinition, ~dynamicParams, routeDefinitionsTree) => {
   DreamRSC.stream_model_value(
     ~location=Dream.target(request),
     React.Model.List([
       React.Model.Json(`String(routeDefinition)),
       /**
-      * As the client don't have access to the dynamic params (/:)
-      * we need to extract them from the path and send them to the client.
-      * Example:
-      * - Route definition: /classroom/:classroom_id/student/:student_id
-      * - Route path: /classroom/1/student/1
-      * - Dynamic params: [("student_id", "1"), ("classroom_id", "1")]
-      */
+        * As the client don't have access to the dynamic params (/:)
+        * we need to extract them from the path and send them to the client.
+        * Example:
+        * - Route definition: /classroom/:classroom_id/student/:student_id
+        * - Route path: /classroom/1/student/1
+        * - Dynamic params: [("student_id", "1"), ("classroom_id", "1")]
+        */
       React.Model.Json(dynamicParams |> Router.DynamicParams.to_json),
       React.Model.Element(
         <Route
           path="/"
-          layout={routeDefinitions.rootLayout(~children=<Route.Outlet />)}
+          layout={routeDefinitionsTree.rootLayout(~children=<Route.Outlet />)}
           outlet={
                    let isRoot = routeDefinition ++ "/" == "/";
                    Some(
                      if (isRoot) {
-                       routeDefinitions.rootPage(
+                       routeDefinitionsTree.rootPage(
                          ~queryParams=
                            Dream.all_queries(request)
                            |> Array.of_list
                            |> URL.SearchParams.makeWithArray,
                        );
                      } else {
-                       routeDefinitions.routes
+                       routeDefinitionsTree.routes
                        |> getRoute(~request, ~definition=routeDefinition)
                        // TODO: Handle 404 case here
                        |> Option.value(~default=React.null);
@@ -386,33 +429,36 @@ let routeDefinitionsHandlers =
                |> Array.of_list;
 
              switch (Dream.query(request, "toSubRoute")) {
-             | Some(subRoutePath /* 123 */) =>
+             | Some(subRoutePath) =>
                /**
-                * When the user navigates to a sub-route, we need to find the sub-route definition and the parent route definition.
-                * To find the sub-route definition, we need to find the index of the sub-route path in the current route definition from the subRoutePath.
-                * Then split the current route definition into the sub-route definition and the parent route definition.
-                * Request: https://localhost:3000/students/123/grades/456?toSubRoute=/grades/456
-                * The toSubRoute means that from the current path, the user wants to navigate from /students/123 to /grades/456.
-                * Route definition that matches the current path: /students/:id/grades/:grade_id (server-side only)
-                * Sub-route target: ["grades", "456"] (?toSubRoute=/grades/456) -> Length: 2
-                * Split ["students", ":id", "grades", ":grade_id"] into:
-                * - ["students", ":id"] (parent route definition)
-                * - ["grades", ":grade_id"] (sub-route definition)
-                */
-               let subRoutePathnamesLength =
-                 subRoutePath |> String.split_on_char('/') |> List.length;
+                   * When the user navigates to a sub-route path (Example: /grades/456) from a parent route path (Example: /students/123), we need to find this sub-route definition (grades/:grade_id)
+                   * and the parent route definition (students/:id) so we can match it on the renderSubRouteModel function.
+                   * To find the sub-route definition, we need to find the index of the sub-route path in the current route definition from the subRoutePath.
+                   * Then split the current route definition into the sub-route definition and the parent route definition.
+                   * Request: https://localhost:3000/students/123/grades/456?toSubRoute=/grades/456
+                   * The toSubRoute means that from the current path, the user wants to navigate from /students/123 to /grades/456.
+                   * Route definition that matches the current path: /students/:id/grades/:grade_id (server-side only)
+                   * Sub-route target: ["grades", "456"] (?toSubRoute=/grades/456) -> Length: 2
+                   * Split ["students", ":id", "grades", ":grade_id"] into:
+                   * - ["students", ":id"] (parent route definition)
+                   * - ["grades", ":grade_id"] (sub-route definition)
+                   */
+               let subRoutePathnamesIndex =
+                 (normalizedPath |> String.split_on_char('/') |> List.length)
+                 - (subRoutePath |> String.split_on_char('/') |> List.length);
 
+               // Split the route definition into the parent route definition and the sub route definition
                let (parentRouteDefinition, subRouteDefinition) =
                  normalizedPath
                  |> String.split_on_char('/')
                  |> List.fold_left(
                       ((parent, sub, remaining), segment) =>
                         if (remaining > 0) {
-                          (parent, [segment, ...sub], remaining - 1);
+                          ([segment, ...parent], sub, remaining - 1);
                         } else {
-                          ([segment, ...parent], sub, remaining);
+                          (parent, [segment, ...sub], remaining);
                         },
-                      ([], [], subRoutePathnamesLength),
+                      ([], [], subRoutePathnamesIndex),
                     )
                  |> (
                    ((parent, sub, _)) => (
@@ -430,13 +476,14 @@ let routeDefinitionsHandlers =
                );
 
              | None =>
+               /* If the request has the header application/react.component, we render the full route as model */
                let isModelRequest =
                  Dream.header(request, "Accept")
                  == Some("application/react.component");
 
                if (isModelRequest) {
                  routeDefinitions
-                 |> renderRevalidatedRouteModel(
+                 |> renderRouteModel(
                       ~request,
                       ~routeDefinition=normalizedPath,
                       ~dynamicParams,

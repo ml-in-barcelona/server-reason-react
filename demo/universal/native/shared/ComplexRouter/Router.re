@@ -215,7 +215,7 @@ let make =
     let _ = shouldReplace ? Url.replace(to_) : Url.push(to_);
 
     if (shallow) {
-      // When shallow is true, we only update the url, without navigating to the sub-route.
+      // When shallow is true, we only update the url, without navigating.
       ()
     };
     if (!shallow) {
@@ -232,7 +232,7 @@ let make =
              let branch =
                VirtualHistory.find(routeDefinitionOwner)
                // If we don't find the branch, we use the base branch (the main route) and create a new branch from it.
-               |> Option.value(~default=VirtualHistory.baseBranch);
+               |> Option.value(~default=VirtualHistory.tree^ |> List.hd);
 
              setDynamicParams(_ => dynamicParams);
 

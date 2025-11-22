@@ -169,7 +169,7 @@ module Document = {
 
 /* <Link href=RoutesRegistry.lola> */
 
-let routeDefinitions: RouterRSC.routeDefinitions = {
+let routeDefinitions: RouterRSC.routeDefinitionsTree = {
   rootLayout: AppLayout.make(),
   rootPage: App.make(),
   routes: [
@@ -200,8 +200,7 @@ let routeDefinitions: RouterRSC.routeDefinitions = {
             </React.Suspense>;
           },
         ),
-      layout:
-        Some((~children, ~dynamicParams as _) => /* useParams() */ children),
+      layout: Some((~children, ~dynamicParams as _) => children),
       subRoutes:
         Some([
           {
