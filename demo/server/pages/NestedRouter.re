@@ -123,18 +123,18 @@ module AppLayout = {
             className="mt-4 mb-4 flex flex-row gap-2"
             role="menubar"
             key="menubar">
-            <ComplexRouter_SearchField />
+            <NestedRouter_SearchField />
           </section>
           <nav className="mt-4">
             <div className="mb-4"> <Hr /> </div>
             <div className="mb-4">
-              <ComplexRouter_CreateNoteButton>
+              <NestedRouter_CreateNoteButton>
                 {React.string("Create a note")}
-              </ComplexRouter_CreateNoteButton>
+              </NestedRouter_CreateNoteButton>
             </div>
             <Hr />
             <React.Suspense fallback={<NoteListSkeleton />}>
-              <ComplexRouter_NoteList />
+              <NestedRouter_NoteList />
             </React.Suspense>
           </nav>
         </section>
@@ -179,7 +179,7 @@ let routeDefinitions: RouterRSC.routeDefinitionsTree = {
         Some(
           (~dynamicParams as _, ~queryParams as _) => {
             <React.Suspense fallback={<NoteSkeleton isEditing=true />}>
-              <ComplexRouter_NoteItem selectedId=None isEditing=true />
+              <NestedRouter_NoteItem selectedId=None isEditing=true />
             </React.Suspense>
           },
         ),
@@ -196,7 +196,7 @@ let routeDefinitions: RouterRSC.routeDefinitionsTree = {
               |> Option.map(int_of_string);
             let isEditing = false;
             <React.Suspense fallback={<NoteSkeleton isEditing />}>
-              <ComplexRouter_NoteItem selectedId isEditing />
+              <NestedRouter_NoteItem selectedId isEditing />
             </React.Suspense>;
           },
         ),
@@ -215,7 +215,7 @@ let routeDefinitions: RouterRSC.routeDefinitionsTree = {
                   let isEditing = true;
 
                   <React.Suspense fallback={<NoteSkeleton isEditing />}>
-                    <ComplexRouter_NoteItem selectedId isEditing />
+                    <NestedRouter_NoteItem selectedId isEditing />
                   </React.Suspense>;
                 },
               ),

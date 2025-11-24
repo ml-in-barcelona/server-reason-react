@@ -31,6 +31,6 @@
  (files "../native/shared/*.re"))
 
 (subdir
- ComplexRouter
+ NestedRouterComponents
  (copy_files
-  (files "../../native/shared/ComplexRouter/*.re")))
+  (files "../../native/shared/NestedRouterComponents/*.re")))

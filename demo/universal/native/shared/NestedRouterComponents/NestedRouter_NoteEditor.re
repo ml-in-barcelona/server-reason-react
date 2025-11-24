@@ -61,7 +61,7 @@ let make =
           {React.string("Done")}
         </button>
         {switch (noteId) {
-         | Some(id) => <ComplexRouter_DeleteNoteButton noteId=id />
+         | Some(id) => <NestedRouter_DeleteNoteButton noteId=id />
          | None => React.null
          }}
       </div>

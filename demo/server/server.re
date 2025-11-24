@@ -49,9 +49,9 @@ let server =
       ...getAndPost
          |> RouterRSC.routeDefinitionsHandlers(
               "/demo/router",
-              ~bootstrapModules=["/static/demo/ComplexRouterRSC.re.js"],
-              ~document=Pages.ComplexRouterRSC.Document.make(),
-              ~routeDefinitions=Pages.ComplexRouterRSC.routeDefinitions,
+              ~bootstrapModules=["/static/demo/NestedRouterRSC.re.js"],
+              ~document=Pages.NestedRouter.Document.make(),
+              ~routeDefinitions=Pages.NestedRouter.routeDefinitions,
             ),
     ]),
   );

@@ -19,7 +19,7 @@ let is_substring = (a, b) => {
 module NoteList = {
   open Melange_json.Primitives;
   [@react.client.component]
-  let make = (~notes: list(ComplexRouter_SidebarNote.notePreview)) => {
+  let make = (~notes: list(NestedRouter_SidebarNote.notePreview)) => {
     let {Router.url, _} = Router.use();
     let queryParams = url |> URL.searchParams;
 
@@ -30,15 +30,15 @@ module NoteList = {
     <ul className="mt-8">
       {Array.of_list(
          notes
-         |> List.filter((note: ComplexRouter_SidebarNote.notePreview) =>
+         |> List.filter((note: NestedRouter_SidebarNote.notePreview) =>
               is_substring(
                 String.lowercase_ascii(searchText),
                 String.lowercase_ascii(note.title),
               )
             )
-         |> List.map((note: ComplexRouter_SidebarNote.notePreview) =>
+         |> List.map((note: NestedRouter_SidebarNote.notePreview) =>
               <li key={Int.to_string(note.id)}>
-                <ComplexRouter_SidebarNote note />
+                <NestedRouter_SidebarNote note />
               </li>
             ),
        )
@@ -82,7 +82,7 @@ let make = () => {
              };
 
            {
-             ComplexRouter_SidebarNote.id: note.id,
+             NestedRouter_SidebarNote.id: note.id,
              title: note.title,
              content: summary,
              updated_at: lastUpdatedAt,

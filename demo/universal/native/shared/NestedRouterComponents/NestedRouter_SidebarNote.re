@@ -10,7 +10,7 @@ type notePreview = {
 
 [@react.client.component]
 let make = (~note: notePreview) => {
-  <ComplexRouter_SidebarNoteContent
+  <NestedRouter_SidebarNoteContent
     id={note.id}
     expandedChildren={
       <div className="mt-2">
@@ -26,5 +26,5 @@ let make = (~note: notePreview) => {
       <Text size=Large weight=Bold> {note.title} </Text>
       <Text size=Small> {note.updated_at} </Text>
     </header>
-  </ComplexRouter_SidebarNoteContent>;
+  </NestedRouter_SidebarNoteContent>;
 };

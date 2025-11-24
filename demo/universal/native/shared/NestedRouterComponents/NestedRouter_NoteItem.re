@@ -17,10 +17,10 @@ module NoteView = {
             {"Last updated on " ++ Date.format_date(note.updated_at)}
           </Text>
         </div>
-        <ComplexRouter_EditButton noteId={note.id}>
+        <NestedRouter_EditButton noteId={note.id}>
           {React.string("Edit")}
-        </ComplexRouter_EditButton>
-        <ComplexRouter_DeleteNoteButton noteId={note.id} />
+        </NestedRouter_EditButton>
+        <NestedRouter_DeleteNoteButton noteId={note.id} />
       </div>
       <NotePreview key="note-preview" body={Markdown.toHTML(note.content)} />
     </div>;
@@ -34,7 +34,7 @@ let make = (~selectedId: option(int), ~isEditing: bool) => {
     switch (selectedId) {
     | None when isEditing =>
       Lwt.return(
-        <ComplexRouter_NoteEditor
+        <NestedRouter_NoteEditor
           noteId=None
           initialTitle="Untitled"
           initialBody=""
@@ -54,7 +54,7 @@ let make = (~selectedId: option(int), ~isEditing: bool) => {
       switch (note) {
       | Ok(note) when !isEditing => <NoteView note />
       | Ok(note) =>
-        <ComplexRouter_NoteEditor
+        <NestedRouter_NoteEditor
           noteId={Some(note.id)}
           initialTitle={note.title}
           initialBody={note.content}
