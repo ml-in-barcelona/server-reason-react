@@ -45,8 +45,8 @@ let links = [|
     dummyRouterRSCNoSSR,
   ),
   (
-    "complexRouterRSC",
-    "A complex router with server components and SSR, client components and Suspense + React.use. It uses the same design as the dummyRouterRSC but with a more complex structure that can handle nested routes and dynamic segments.",
+    "nestedRouterRSC",
+    "A nested router with server components and SSR, client components and Suspense + React.use. It uses the same design as the dummyRouterRSC but with a more complex structure that can handle nested routes and dynamic segments.",
     router,
   ),
 |];

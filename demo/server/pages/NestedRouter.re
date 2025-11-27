@@ -170,8 +170,8 @@ module Document = {
 /* <Link href=RoutesRegistry.lola> */
 
 let routeDefinitions: RouterRSC.routeDefinitionsTree = {
-  rootLayout: AppLayout.make(),
-  rootPage: App.make(),
+  mainLayout: AppLayout.make(),
+  mainPage: App.make(),
   routes: [
     {
       path: "/new",

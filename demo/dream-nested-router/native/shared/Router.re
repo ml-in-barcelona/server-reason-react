@@ -215,10 +215,9 @@ let make =
     let _ = shouldReplace ? Url.replace(to_) : Url.push(to_);
 
     if (shallow) {
-      // When shallow is true, we only update the url, without navigating.
-      ()
-    };
-    if (!shallow) {
+      ();
+        // When shallow is true, we only update the url, without navigating.
+    } else {
       let _ =
         fetchComponent(endpoint)
         |> Js.Promise.then_(
@@ -229,10 +228,10 @@ let make =
                  element: React.element,
                ),
              ) => {
-             let branch =
+             let virtualHystoryRoute =
                VirtualHistory.find(routeDefinitionOwner)
-               // If we don't find the branch, we use the base branch (the main route) and create a new branch from it.
-               |> Option.value(~default=VirtualHistory.tree^ |> List.hd);
+               // If we don't find the virtualHystoryState, we use the main route and create a new state from it.
+               |> Option.value(~default=VirtualHistory.state^ |> List.hd);
 
              setDynamicParams(_ => dynamicParams);
 
@@ -246,8 +245,8 @@ let make =
                setCachedNodeKey(_ => Js.Date.now() |> string_of_float);
                setElement(_ => element);
              } else {
-               VirtualHistory.cleanTreeBranch(branch.path);
-               branch.renderPage(element);
+               VirtualHistory.cleanPathState(virtualHystoryRoute.path);
+               virtualHystoryRoute.renderPage(element);
              };
 
              Js.Promise.resolve();

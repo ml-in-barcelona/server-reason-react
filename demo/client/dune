@@ -17,7 +17,8 @@
   melange.dom
   melange-webapi
   melange-fetch
-  demo_shared_js)
+  demo_shared_js
+  nested_router_js)
  (preprocess
   (pps browser_ppx -js reason-react-ppx melange.ppx)))
 

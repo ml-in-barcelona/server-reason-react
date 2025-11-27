@@ -35,8 +35,8 @@ type route = {
 };
 
 type routeDefinitionsTree = {
-  rootLayout: (~children: React.element) => React.element,
-  rootPage: (~queryParams: URL.SearchParams.t) => React.element,
+  mainLayout: (~children: React.element) => React.element,
+  mainPage: (~queryParams: URL.SearchParams.t) => React.element,
   routes: list(route),
 };
 
@@ -57,11 +57,11 @@ let extractDynamicParam = (request, segment) => {
   *   <Route
   *     path="/students"
   *     layout={<StudentsLayout />}
-  *     outlet={
+  *     pageconsumer={
   *       <Route
   *         path="/students/:id"
   *         layout={<StudentLayout />}
-  *         outlet={<StudentPage />}
+  *         pageconsumer={<StudentPage />}
   *       />
   *     }
   *   />
@@ -118,12 +118,13 @@ let getRoute =
         |> Option.value(~default=React.null);
       let renderLayout =
         switch (route.layout) {
-        | Some(layout) => layout(~children=<Route.Outlet />, ~dynamicParams)
+        | Some(layout) =>
+          layout(~children=<Route.PageConsumer />, ~dynamicParams)
         | None => renderPage(route.page, ~dynamicParams)
         };
 
       if (route.path == "/" ++ segment) {
-        let outlet =
+        let pageconsumer =
           switch (route.subRoutes) {
           | Some(children) =>
             Some(
@@ -135,7 +136,9 @@ let getRoute =
           | None => None
           };
 
-        Some(<Route path=currentRoutePath outlet layout=renderLayout />);
+        Some(
+          <Route path=currentRoutePath pageconsumer layout=renderLayout />,
+        );
       } else {
         aux(restRoutes, pathSegments, parentPath, dynamicParams);
       };
@@ -158,7 +161,7 @@ let getRoute =
   *   <Route
   *     path="/students/:id"
   *     layout={<StudentLayout />}
-  *     outlet={<StudentPage />}
+  *     pageconsumer={<StudentPage />}
   *   />
   */
 let getSubRoute =
@@ -322,25 +325,30 @@ let renderRouteModel =
       React.Model.Element(
         <Route
           path="/"
-          layout={routeDefinitionsTree.rootLayout(~children=<Route.Outlet />)}
-          outlet={
-                   let isRoot = routeDefinition ++ "/" == "/";
-                   Some(
-                     if (isRoot) {
-                       routeDefinitionsTree.rootPage(
-                         ~queryParams=
-                           Dream.all_queries(request)
-                           |> Array.of_list
-                           |> URL.SearchParams.makeWithArray,
-                       );
-                     } else {
-                       routeDefinitionsTree.routes
-                       |> getRoute(~request, ~definition=routeDefinition)
-                       // TODO: Handle 404 case here
-                       |> Option.value(~default=React.null);
-                     },
-                   );
-                 }
+          layout={
+            routeDefinitionsTree.mainLayout(~children=<Route.PageConsumer />)
+          }
+          pageconsumer={
+                         let isRoot = routeDefinition ++ "/" == "/";
+                         Some(
+                           if (isRoot) {
+                             routeDefinitionsTree.mainPage(
+                               ~queryParams=
+                                 Dream.all_queries(request)
+                                 |> Array.of_list
+                                 |> URL.SearchParams.makeWithArray,
+                             );
+                           } else {
+                             routeDefinitionsTree.routes
+                             |> getRoute(
+                                  ~request,
+                                  ~definition=routeDefinition,
+                                )
+                             // TODO: Handle 404 case here
+                             |> Option.value(~default=React.null);
+                           },
+                         );
+                       }
         />,
       ),
     ]),
@@ -366,25 +374,30 @@ let renderRouteHtml =
           <Route
             /* MAIN ROUTE */
             path="/"
-            layout={routeDefinitions.rootLayout(~children=<Route.Outlet />)}
-            outlet={
-                     let isRoot = routeDefinition ++ "/" == "/";
-                     Some(
-                       if (isRoot) {
-                         routeDefinitions.rootPage(
-                           ~queryParams=
-                             Dream.all_queries(request)
-                             |> Array.of_list
-                             |> URL.SearchParams.makeWithArray,
-                         );
-                       } else {
-                         routeDefinitions.routes
-                         |> getRoute(~request, ~definition=routeDefinition)
-                         // TODO: Handle 404 case here
-                         |> Option.value(~default=React.null);
-                       },
-                     );
-                   }
+            layout={
+              routeDefinitions.mainLayout(~children=<Route.PageConsumer />)
+            }
+            pageconsumer={
+                           let isRoot = routeDefinition ++ "/" == "/";
+                           Some(
+                             if (isRoot) {
+                               routeDefinitions.mainPage(
+                                 ~queryParams=
+                                   Dream.all_queries(request)
+                                   |> Array.of_list
+                                   |> URL.SearchParams.makeWithArray,
+                               );
+                             } else {
+                               routeDefinitions.routes
+                               |> getRoute(
+                                    ~request,
+                                    ~definition=routeDefinition,
+                                  )
+                               // TODO: Handle 404 case here
+                               |> Option.value(~default=React.null);
+                             },
+                           );
+                         }
           />
         </Router>,
     ),

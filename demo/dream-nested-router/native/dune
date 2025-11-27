@@ -1,24 +1,20 @@
 (include_subdirs unqualified)
 
 (library
- (name demo_shared_native)
- (flags :standard -w -26-27) ; browser_only removes code form the server, making this warning necessary
+ (name nested_router_native)
+ (wrapped false)
+ (flags :standard -w -26-27) ; browser_only removes code from the server, making this warning necessary
  (libraries
   react
   reactDOM
-  js
-  belt
-  dom
-  webapi
-  melange-fetch
-  yojson
-  unix
   dream
-  url_native
+  js
+  server-reason-react.url_native
+  melange-json-native
+  server-reason-react.runtime
+  webapi
   lwt
-  lwt.unix
-  nested_router_native)
- (wrapped false)
+  server-reason-react.fetch)
  (preprocess
   (pps
    lwt_ppx
