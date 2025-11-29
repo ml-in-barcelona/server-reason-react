@@ -152,7 +152,7 @@ jobs:
         run: opam install dune-release -y
 
       - name: Release
-        uses: davesnx/dune-release-action
+        uses: davesnx/dune-release-action@v0.2.0
         if: startsWith(github.ref, 'refs/tags/') && matrix.os == 'ubuntu-latest' && matrix.ocaml-compiler == env.LATEST_OCAML_VERSION
         with:
           packages: 'server-reason-react'
