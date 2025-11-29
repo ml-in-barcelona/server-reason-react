@@ -72,7 +72,11 @@ let _ = Window.prompt("type you password, please?", window);
 let _ =
   Window.promptWithDefault("type password or use this?", "password", window);
 let _ =
-  Window.requestIdleCallbackWithOptions(_ => (), {"timeout": 1000}, window);
+  Window.requestIdleCallbackWithOptions(
+    _ => (),
+    { "timeout": 1000 },
+    window,
+  );
 let _ = Window.resizeBy(10, -10, window);
 let _ = Window.resizeTo(120, 300, window);
 let _ = Window.scroll(0.0, 0.0, window);

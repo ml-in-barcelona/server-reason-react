@@ -1,0 +1,5 @@
+(library
+ (name benchmark_scenarios)
+ (libraries server-reason-react.react server-reason-react.reactDom)
+ (preprocess
+  (pps server-reason-react.ppx server-reason-react.melange_ppx)))

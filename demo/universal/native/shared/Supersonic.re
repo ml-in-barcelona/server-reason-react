@@ -36,12 +36,13 @@ module RouterContext = {
 };
 
 let useNavigate = () => {
-  let {RouterContext.navigate, _} = React.useContext(RouterContext.context);
+  let { RouterContext.navigate, _ } =
+    React.useContext(RouterContext.context);
   navigate;
 };
 
 let useLocation = () => {
-  let {RouterContext.currentPath, _} =
+  let { RouterContext.currentPath, _ } =
     React.useContext(RouterContext.context);
   currentPath;
 };
@@ -102,7 +103,7 @@ module Router = {
       setIsLoading(_ => true);
 
       let headers =
-        Fetch.HeadersInit.make({"Accept": "application/react.component"});
+        Fetch.HeadersInit.make({ "Accept": "application/react.component" });
       Fetch.fetchWithInit(
         path,
         Fetch.RequestInit.make(~method_=Fetch.Get, ~headers, ()),
@@ -176,7 +177,7 @@ module Router = {
         setCurrentPath(_ => newPath);
 
         switch (RouteRegistry.find(newPath)) {
-        | Some({element, _}) => setCurrentElement(_ => element)
+        | Some({ element, _ }) => setCurrentElement(_ => element)
         | None => rscNavigation(~replace=false, newPath)
         };
       };
@@ -195,7 +196,7 @@ module Router = {
 
     let initialRouteResolution = () => {
       switch (RouteRegistry.find(currentPath)) {
-      | Some({element, loader, _}) =>
+      | Some({ element, loader, _ }) =>
         switch (loader) {
         | Some(loaderFn) =>
           loaderFn()

@@ -7,6 +7,6 @@ let make = (~body: string) => {
       Theme.background(Theme.Color.Gray4),
       Theme.text(Theme.Color.Gray12),
     ])}
-    dangerouslySetInnerHTML={"__html": body}
+    dangerouslySetInnerHTML={ "__html": body }
   />;
 };

@@ -51,7 +51,7 @@ let createFromReadableStream =
     setCallServer(callServer);
     createFromReadableStreamImpl(
       stream,
-      ~options={callServer: callServer},
+      ~options={ callServer: callServer },
       (),
     );
   | None => createFromReadableStreamImpl(stream, ())
@@ -62,7 +62,7 @@ let createFromFetch = (~callServer=?, promise) => {
   switch (callServer) {
   | Some(callServer) =>
     setCallServer(callServer);
-    createFromFetchImpl(promise, ~options={callServer: callServer}, ());
+    createFromFetchImpl(promise, ~options={ callServer: callServer }, ());
   | None => createFromFetchImpl(promise, ())
   };
 };

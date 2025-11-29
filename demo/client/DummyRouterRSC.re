@@ -12,7 +12,7 @@ external readable_stream: ReadableStream.t =
 
 let fetchApp = url => {
   let headers =
-    Fetch.HeadersInit.make({"Accept": "application/react.component"});
+    Fetch.HeadersInit.make({ "Accept": "application/react.component" });
   Fetch.fetchWithInit(
     url,
     Fetch.RequestInit.make(~method_=Fetch.Get, ~headers, ()),

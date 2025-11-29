@@ -27,7 +27,7 @@ let getSupersonicRoutes = () => {
     "/",
     [],
     Supersonic.RouteRegistry.getAllRoutes()
-    |> List.map(({path, element, _}: Supersonic.RouteRegistry.route) => {
+    |> List.map(({ path, element, _ }: Supersonic.RouteRegistry.route) => {
          getAndPost(path, Pages.Router.handler(~element))
        }),
   );

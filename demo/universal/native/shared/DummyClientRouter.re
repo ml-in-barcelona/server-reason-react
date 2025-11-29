@@ -83,10 +83,9 @@ let navigate = (location: location) => {
   };
 };
 
-let useRouter: unit => router =
-  () => {
-    location: initialLocation,
-    navigate,
-  };
+let useRouter: unit => router = () => {
+  location: initialLocation,
+  navigate,
+};
 
 let useNavigate = () => navigate;

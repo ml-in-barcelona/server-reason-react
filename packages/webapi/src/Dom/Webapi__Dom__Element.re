@@ -62,7 +62,7 @@ module Impl = (T: {
   [@mel.get] external tagName: T.t => string = "tagName";
 
   [@mel.send.pipe: T.t]
-  external attachShadow: {. "mode": string} => Dom.shadowRoot =
+  external attachShadow: {. "mode": string } => Dom.shadowRoot =
     "attachShadow"; /* experimental */
   [@mel.send.pipe: T.t]
   external attachShadowOpen:
@@ -104,38 +104,38 @@ module Impl = (T: {
   external insertAdjacentElement:
     (string /* insertPosition enum */, Dom.element_like('a)) => unit =
     "insertAdjacentElement"; /* experimental, but widely supported */
-  let insertAdjacentElement:
-    (Webapi__Dom__Types.insertPosition, Dom.element_like('a), T.t) => unit =
-    (position, element, self) =>
-      insertAdjacentElement(
-        Webapi__Dom__Types.encodeInsertPosition(position),
-        element,
-        self,
-      );
+  let insertAdjacentElement
+      : (Webapi__Dom__Types.insertPosition, Dom.element_like('a), T.t) => unit =
+      (position, element, self) =>
+    insertAdjacentElement(
+      Webapi__Dom__Types.encodeInsertPosition(position),
+      element,
+      self,
+    );
   [@mel.send.pipe: T.t]
   external insertAdjacentHTML:
     (string /* insertPosition enum */, string) => unit =
     "insertAdjacentHTML"; /* experimental, but widely supported */
-  let insertAdjacentHTML:
-    (Webapi__Dom__Types.insertPosition, string, T.t) => unit =
-    (position, text, self) =>
-      insertAdjacentHTML(
-        Webapi__Dom__Types.encodeInsertPosition(position),
-        text,
-        self,
-      );
+  let insertAdjacentHTML
+      : (Webapi__Dom__Types.insertPosition, string, T.t) => unit =
+      (position, text, self) =>
+    insertAdjacentHTML(
+      Webapi__Dom__Types.encodeInsertPosition(position),
+      text,
+      self,
+    );
   [@mel.send.pipe: T.t]
   external insertAdjacentText:
     (string /* insertPosition enum */, string) => unit =
     "insertAdjacentText"; /* experimental, but widely supported */
-  let insertAdjacentText:
-    (Webapi__Dom__Types.insertPosition, string, T.t) => unit =
-    (position, text, self) =>
-      insertAdjacentText(
-        Webapi__Dom__Types.encodeInsertPosition(position),
-        text,
-        self,
-      );
+  let insertAdjacentText
+      : (Webapi__Dom__Types.insertPosition, string, T.t) => unit =
+      (position, text, self) =>
+    insertAdjacentText(
+      Webapi__Dom__Types.encodeInsertPosition(position),
+      text,
+      self,
+    );
   [@mel.send.pipe: T.t] external matches: string => bool = "matches"; /* experimental, but widely supported */
   [@mel.send.pipe: T.t]
   external releasePointerCapture: Dom.eventPointerId => unit =

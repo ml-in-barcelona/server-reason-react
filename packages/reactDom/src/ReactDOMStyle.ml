@@ -715,16 +715,16 @@ let to_string (styles : t) : string =
   let buff = Buffer.create size in
   styles |> List.to_seq
   |> Seq.iteri (fun index (k, _, v) ->
-         if v == "" then ()
-         else if index == size - 1 then (
-           Buffer.add_string buff k;
-           Buffer.add_string buff ":";
-           Buffer.add_string buff (String.trim v))
-         else (
-           Buffer.add_string buff k;
-           Buffer.add_string buff ":";
-           Buffer.add_string buff (String.trim v);
-           Buffer.add_string buff ";"));
+      if v == "" then ()
+      else if index == size - 1 then (
+        Buffer.add_string buff k;
+        Buffer.add_string buff ":";
+        Buffer.add_string buff (String.trim v))
+      else (
+        Buffer.add_string buff k;
+        Buffer.add_string buff ":";
+        Buffer.add_string buff (String.trim v);
+        Buffer.add_string buff ";"));
   Buffer.contents buff
 
 (* TODO: Remove conversion to sequences, can do List.combine *)

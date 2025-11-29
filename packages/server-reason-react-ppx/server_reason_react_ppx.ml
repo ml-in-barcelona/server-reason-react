@@ -810,25 +810,25 @@ module ServerFunction = struct
   let decode_arguments_vb ~loc args_to_decode =
     args_to_decode
     |> List.mapi ~f:(fun i (_, label, core_type) ->
-           let string_of_core_type x =
-             let f = Format.str_formatter in
-             Astlib.Pprintast.core_type f x;
-             Format.flush_str_formatter ()
-           in
-           let core_type_string = string_of_core_type core_type in
-           let of_json = make_of_json ~loc core_type [%expr Stdlib.Array.unsafe_get args [%e eint ~loc i]] in
-           value_binding ~loc
-             ~pat:[%pat? [%p ppat_var ~loc { txt = label; loc }]]
-             ~expr:
-               [%expr
-                 try [%e of_json]
-                 with _ ->
-                   Stdlib.raise
-                     (Invalid_argument
-                        (Stdlib.Printf.sprintf
-                           "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s"
-                           [%e estring ~loc label] [%e estring ~loc core_type_string]
-                           (Stdlib.Array.unsafe_get args [%e eint ~loc i] |> Yojson.Basic.to_string)))])
+        let string_of_core_type x =
+          let f = Format.str_formatter in
+          Astlib.Pprintast.core_type f x;
+          Format.flush_str_formatter ()
+        in
+        let core_type_string = string_of_core_type core_type in
+        let of_json = make_of_json ~loc core_type [%expr Stdlib.Array.unsafe_get args [%e eint ~loc i]] in
+        value_binding ~loc
+          ~pat:[%pat? [%p ppat_var ~loc { txt = label; loc }]]
+          ~expr:
+            [%expr
+              try [%e of_json]
+              with _ ->
+                Stdlib.raise
+                  (Invalid_argument
+                     (Stdlib.Printf.sprintf
+                        "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s"
+                        [%e estring ~loc label] [%e estring ~loc core_type_string]
+                        (Stdlib.Array.unsafe_get args [%e eint ~loc i] |> Yojson.Basic.to_string)))])
 
   let create_function_reference_registration ~loc ~id ~function_name ~args ~core_type =
     let apply_args = map_arguments_to_expressions ~loc args in

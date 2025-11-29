@@ -15,8 +15,8 @@ module Impl = (T: {
   external nextSibling: T.t => option(Dom.node) = "nextSibling";
   [@mel.get] external nodeName: T.t => string = "nodeName"; /* nodePrincipal */
   [@mel.get] external nodeType: T.t => int /* nodeType enum */ = "nodeType";
-  let nodeType: T.t => Webapi__Dom__Types.nodeType =
-    self => Webapi__Dom__Types.decodeNodeType(nodeType(self));
+  let nodeType: T.t => Webapi__Dom__Types.nodeType = self =>
+    Webapi__Dom__Types.decodeNodeType(nodeType(self));
   [@mel.get] [@mel.return nullable]
   external nodeValue: T.t => option(string) = "nodeValue";
   [@mel.set]
