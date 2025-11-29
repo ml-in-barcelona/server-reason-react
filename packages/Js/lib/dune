@@ -5,15 +5,7 @@
 
 (library
  (name js)
- (modules js)
  (public_name server-reason-react.js)
  (libraries quickjs lwt str uucp)
  (preprocess
   (pps lwt_ppx)))
-
-(test
- (name test)
- (modules test)
- (libraries alcotest alcotest-lwt lwt js)
- (preprocess
-  (pps lwt_ppx melange_native_ppx)))

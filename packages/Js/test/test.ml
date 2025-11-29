@@ -635,4 +635,22 @@ let () =
          ("Js.Re", re_tests);
          ("Js.Dict", dict_tests);
          ("Js.Array", []);
+         (* Test262 - BigInt *)
+         ("Test262.BigInt.Arithmetic", Test262.Bigint_tests.Arithmetic.tests);
+         ("Test262.BigInt.Bitwise", Test262.Bigint_tests.Bitwise.tests);
+         ("Test262.BigInt.Comparison", Test262.Bigint_tests.Comparison.tests);
+         ("Test262.BigInt.Constructor", Test262.Bigint_tests.Constructor.tests);
+         ("Test262.BigInt.Conversion", Test262.Bigint_tests.Conversion.tests);
+         (* Test262 - Date *)
+         ("Test262.Date.Getters", Test262.Date_tests.Getters.tests);
+         ("Test262.Date.Now", Test262.Date_tests.Now.tests);
+         ("Test262.Date.Parse", Test262.Date_tests.Parse.tests);
+         ("Test262.Date.ToISOString", Test262.Date_tests.To_iso_string.tests);
+         ("Test262.Date.UTC", Test262.Date_tests.Utc.tests);
+         (* Test262 - Number *)
+         ("Test262.Number.IsFinite", Test262.Number_tests.Is_finite.tests);
+         ("Test262.Number.IsInteger", Test262.Number_tests.Is_integer.tests);
+         ("Test262.Number.IsNaN", Test262.Number_tests.Is_nan.tests);
+         ("Test262.Number.ParseFloat", Test262.Number_tests.Parse_float.tests);
+         ("Test262.Number.ParseInt", Test262.Number_tests.Parse_int.tests);
        ]

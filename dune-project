@@ -38,6 +38,8 @@
   (uri (>= 4.2.0))
   (yojson (>= 2.2.0))
   (integers (>= 0.7.0))
+  (zarith (>= 1.14.0))
+  (uutf (>= 1.0.3))
   (melange-fetch (>= 0.2.0))
   (melange-json (>= 2.0.0))
   (melange-json-native (>= 2.0.0))

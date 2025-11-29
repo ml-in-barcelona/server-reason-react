@@ -1,0 +1,7 @@
+(include_subdirs qualified)
+
+(test
+ (name test)
+ (libraries alcotest alcotest-lwt lwt js quickjs)
+ (preprocess
+  (pps lwt_ppx melange_native_ppx)))
