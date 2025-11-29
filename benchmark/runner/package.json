@@ -1,0 +1,14 @@
+{
+  "name": "benchmark-runner",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "bench": "node runner.mjs",
+    "bench:quick": "node runner.mjs --scenarios trivial,table100",
+    "bench:native": "node runner.mjs --frameworks dream-native",
+    "bench:js": "node runner.mjs --frameworks node-express,node-fastify,hono-node",
+    "bench:all": "node runner.mjs"
+  }
+}
+

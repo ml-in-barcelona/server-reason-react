@@ -1,0 +1,12 @@
+(executable
+ (name server)
+ (libraries
+  unix
+  dream
+  lwt
+  lwt.unix
+  server-reason-react.react
+  server-reason-react.reactDom
+  benchmark_scenarios)
+ (preprocess
+  (pps server-reason-react.ppx lwt_ppx)))

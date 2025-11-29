@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Server Reason React Benchmark Results</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg-primary: #0f0f0f;
+      --bg-secondary: #1a1a1a;
+      --bg-tertiary: #252525;
+      --text-primary: #f5f5f5;
+      --text-secondary: #a0a0a0;
+      --accent-primary: #ffc53d;
+      --accent-success: #22c55e;
+      --accent-error: #ef4444;
+      --border-color: #333;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    header {
+      text-align: center;
+      padding: 3rem 0;
+      border-bottom: 1px solid var(--border-color);
+      margin-bottom: 3rem;
+    }
+
+    header h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(135deg, var(--accent-primary), #ff9500);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    header p {
+      color: var(--text-secondary);
+      font-size: 1rem;
+    }
+
+    .upload-zone {
+      border: 2px dashed var(--border-color);
+      border-radius: 12px;
+      padding: 3rem;
+      text-align: center;
+      margin-bottom: 2rem;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+
+    .upload-zone:hover,
+    .upload-zone.dragover {
+      border-color: var(--accent-primary);
+      background: rgba(255, 197, 61, 0.05);
+    }
+
+    .upload-zone input {
+      display: none;
+    }
+
+    .upload-zone .icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1.5rem;
+      margin-bottom: 3rem;
+    }
+
+    .stat-card {
+      background: var(--bg-secondary);
+      border-radius: 12px;
+      padding: 1.5rem;
+      border: 1px solid var(--border-color);
+    }
+
+    .stat-card .label {
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.5rem;
+    }
+
+    .stat-card .value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--accent-primary);
+    }
+
+    .stat-card .delta {
+      font-size: 0.875rem;
+      margin-top: 0.25rem;
+    }
+
+    .delta.positive { color: var(--accent-success); }
+    .delta.negative { color: var(--accent-error); }
+
+    .charts-section {
+      margin-bottom: 3rem;
+    }
+
+    .chart-container {
+      background: var(--bg-secondary);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      border: 1px solid var(--border-color);
+    }
+
+    .chart-container h3 {
+      font-size: 1.125rem;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .chart-wrapper {
+      position: relative;
+      height: 400px;
+    }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+
+    .data-table th,
+    .data-table td {
+      padding: 0.75rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .data-table th {
+      color: var(--text-secondary);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .data-table tr:hover {
+      background: var(--bg-tertiary);
+    }
+
+    .data-table .number {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+
+    .badge.winner {
+      background: rgba(34, 197, 94, 0.2);
+      color: var(--accent-success);
+    }
+
+    .framework-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .framework-tag .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    .hidden { display: none; }
+
+    #results { display: none; }
+    #results.visible { display: block; }
+
+    @media (max-width: 768px) {
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>⚡ Benchmark Results</h1>
+      <p>Server Reason React Performance Analysis</p>
+    </header>
+
+    <div id="upload-section">
+      <div class="upload-zone" id="dropZone">
+        <div class="icon">📊</div>
+        <p>Drop benchmark JSON file here or click to upload</p>
+        <p style="color: var(--text-secondary); font-size: 0.875rem; margin-top: 0.5rem;">
+          Generate with: <code>make bench-http</code>
+        </p>
+        <input type="file" id="fileInput" accept=".json">
+      </div>
+    </div>
+
+    <div id="results">
+      <div class="stats-grid" id="statsGrid"></div>
+
+      <div class="charts-section">
+        <div class="chart-container">
+          <h3>📈 Requests per Second by Scenario</h3>
+          <div class="chart-wrapper">
+            <canvas id="rpsChart"></canvas>
+          </div>
+        </div>
+
+        <div class="chart-container">
+          <h3>⏱️ Average Latency by Scenario</h3>
+          <div class="chart-wrapper">
+            <canvas id="latencyChart"></canvas>
+          </div>
+        </div>
+
+        <div class="chart-container">
+          <h3>📊 Detailed Results</h3>
+          <table class="data-table" id="resultsTable">
+            <thead>
+              <tr>
+                <th>Framework</th>
+                <th>Scenario</th>
+                <th class="number">Requests/sec</th>
+                <th class="number">Avg Latency</th>
+                <th class="number">P99 Latency</th>
+                <th class="number">Transfer/sec</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const COLORS = {
+      'dream-native': '#ffc53d',
+      'node-express': '#68a063',
+      'node-fastify': '#000000',
+      'hono-node': '#ff6b35',
+      'hono-bun': '#f472b6',
+      'bun-native': '#fbf0df',
+      'preact': '#673ab8',
+    };
+
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const uploadSection = document.getElementById('upload-section');
+    const results = document.getElementById('results');
+
+    let rpsChart, latencyChart;
+
+    dropZone.addEventListener('click', () => fileInput.click());
+
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('dragover');
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.classList.remove('dragover');
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      if (file) processFile(file);
+    });
+
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) processFile(file);
+    });
+
+    function processFile(file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = JSON.parse(e.target.result);
+          renderResults(data);
+        } catch (err) {
+          alert('Invalid JSON file');
+          console.error(err);
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function formatNumber(num) {
+      if (num >= 1000000) return (num / 1000000).toFixed(2) + 'M';
+      if (num >= 1000) return (num / 1000).toFixed(2) + 'K';
+      return num.toFixed(2);
+    }
+
+    function formatLatency(ms) {
+      if (ms < 1) return (ms * 1000).toFixed(2) + 'µs';
+      if (ms < 1000) return ms.toFixed(2) + 'ms';
+      return (ms / 1000).toFixed(2) + 's';
+    }
+
+    function formatBytes(bytes) {
+      if (bytes >= 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+      if (bytes >= 1024) return (bytes / 1024).toFixed(2) + ' KB';
+      return bytes + ' B';
+    }
+
+    function renderResults(data) {
+      uploadSection.style.display = 'none';
+      results.classList.add('visible');
+
+      // Calculate summary stats
+      const allResults = data.frameworks.flatMap(f =>
+        f.scenarios.map(s => ({ ...s, framework: f.name }))
+      );
+
+      const nativeResults = allResults.filter(r => r.framework === 'dream-native');
+      const jsResults = allResults.filter(r => r.framework !== 'dream-native');
+
+      // Stats grid
+      const statsGrid = document.getElementById('statsGrid');
+
+      const avgNativeRps = nativeResults.reduce((a, b) => a + b.requestsPerSec, 0) / nativeResults.length || 0;
+      const avgJsRps = jsResults.reduce((a, b) => a + b.requestsPerSec, 0) / jsResults.length || 0;
+      const speedup = avgJsRps > 0 ? (avgNativeRps / avgJsRps).toFixed(1) : 'N/A';
+
+      statsGrid.innerHTML = `
+        <div class="stat-card">
+          <div class="label">Native Avg RPS</div>
+          <div class="value">${formatNumber(avgNativeRps)}</div>
+          <div class="delta positive">dream-native</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">JS Avg RPS</div>
+          <div class="value">${formatNumber(avgJsRps)}</div>
+          <div class="delta">best JS framework</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Speedup</div>
+          <div class="value">${speedup}x</div>
+          <div class="delta positive">native vs JS</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Scenarios</div>
+          <div class="value">${new Set(allResults.map(r => r.key)).size}</div>
+          <div class="delta">tested</div>
+        </div>
+      `;
+
+      // Charts
+      renderCharts(data);
+
+      // Table
+      renderTable(data);
+    }
+
+    function renderCharts(data) {
+      const scenarios = [...new Set(data.frameworks.flatMap(f => f.scenarios.map(s => s.key)))];
+
+      // RPS Chart
+      const rpsCtx = document.getElementById('rpsChart').getContext('2d');
+      if (rpsChart) rpsChart.destroy();
+
+      rpsChart = new Chart(rpsCtx, {
+        type: 'bar',
+        data: {
+          labels: scenarios,
+          datasets: data.frameworks.map(f => ({
+            label: f.name,
+            data: scenarios.map(s => {
+              const scenario = f.scenarios.find(x => x.key === s);
+              return scenario ? scenario.requestsPerSec : 0;
+            }),
+            backgroundColor: COLORS[f.name] || '#888',
+          })),
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              labels: { color: '#a0a0a0' },
+            },
+          },
+          scales: {
+            x: {
+              ticks: { color: '#a0a0a0' },
+              grid: { color: '#333' },
+            },
+            y: {
+              ticks: { color: '#a0a0a0' },
+              grid: { color: '#333' },
+              title: {
+                display: true,
+                text: 'Requests/sec',
+                color: '#a0a0a0',
+              },
+            },
+          },
+        },
+      });
+
+      // Latency Chart
+      const latencyCtx = document.getElementById('latencyChart').getContext('2d');
+      if (latencyChart) latencyChart.destroy();
+
+      latencyChart = new Chart(latencyCtx, {
+        type: 'bar',
+        data: {
+          labels: scenarios,
+          datasets: data.frameworks.map(f => ({
+            label: f.name,
+            data: scenarios.map(s => {
+              const scenario = f.scenarios.find(x => x.key === s);
+              return scenario ? scenario.latencyAvg : 0;
+            }),
+            backgroundColor: COLORS[f.name] || '#888',
+          })),
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              labels: { color: '#a0a0a0' },
+            },
+          },
+          scales: {
+            x: {
+              ticks: { color: '#a0a0a0' },
+              grid: { color: '#333' },
+            },
+            y: {
+              ticks: { color: '#a0a0a0' },
+              grid: { color: '#333' },
+              title: {
+                display: true,
+                text: 'Latency (ms)',
+                color: '#a0a0a0',
+              },
+            },
+          },
+        },
+      });
+    }
+
+    function renderTable(data) {
+      const tbody = document.querySelector('#resultsTable tbody');
+      tbody.innerHTML = '';
+
+      // Group by scenario to find winners
+      const scenarioWinners = {};
+      const scenarios = [...new Set(data.frameworks.flatMap(f => f.scenarios.map(s => s.key)))];
+
+      scenarios.forEach(scenarioKey => {
+        let maxRps = 0;
+        let winner = null;
+
+        data.frameworks.forEach(f => {
+          const scenario = f.scenarios.find(s => s.key === scenarioKey);
+          if (scenario && scenario.requestsPerSec > maxRps) {
+            maxRps = scenario.requestsPerSec;
+            winner = f.name;
+          }
+        });
+
+        scenarioWinners[scenarioKey] = winner;
+      });
+
+      data.frameworks.forEach(framework => {
+        framework.scenarios.forEach(scenario => {
+          const isWinner = scenarioWinners[scenario.key] === framework.name;
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>
+              <span class="framework-tag">
+                <span class="dot" style="background: ${COLORS[framework.name] || '#888'}"></span>
+                ${framework.name}
+              </span>
+            </td>
+            <td>${scenario.name || scenario.key}</td>
+            <td class="number">
+              ${formatNumber(scenario.requestsPerSec)}
+              ${isWinner ? '<span class="badge winner">FASTEST</span>' : ''}
+            </td>
+            <td class="number">${formatLatency(scenario.latencyAvg)}</td>
+            <td class="number">${formatLatency(scenario.latencyP99 || scenario.latencyMax)}</td>
+            <td class="number">${formatBytes(scenario.transferPerSec)}/s</td>
+          `;
+          tbody.appendChild(row);
+        });
+      });
+    }
+
+    // Demo data for testing (remove in production)
+    const demoData = {
+      timestamp: new Date().toISOString(),
+      frameworks: [
+        {
+          name: 'dream-native',
+          port: 3000,
+          scenarios: [
+            { key: 'trivial', name: 'Trivial', requestsPerSec: 150000, latencyAvg: 0.5, latencyMax: 2.0, transferPerSec: 15000000 },
+            { key: 'table100', name: 'Table 100', requestsPerSec: 65000, latencyAvg: 1.2, latencyMax: 5.0, transferPerSec: 45000000 },
+          ],
+        },
+        {
+          name: 'node-express',
+          port: 3001,
+          scenarios: [
+            { key: 'trivial', name: 'Trivial', requestsPerSec: 25000, latencyAvg: 3.0, latencyMax: 15.0, transferPerSec: 2500000 },
+            { key: 'table100', name: 'Table 100', requestsPerSec: 12000, latencyAvg: 6.5, latencyMax: 30.0, transferPerSec: 8000000 },
+          ],
+        },
+      ],
+    };
+
+    // Uncomment to auto-load demo data:
+    // renderResults(demoData);
+  </script>
+</body>
+</html>
+
