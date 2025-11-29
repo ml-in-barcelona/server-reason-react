@@ -4,6 +4,8 @@ on:
   push:
     branches:
     - main
+    tags:
+    - '*'
   pull_request:
     branches:
     - main
@@ -11,6 +13,7 @@ on:
 env:
   DUNE_PROFILE: release
   OCAMLRUNPARAM: b
+  LATEST_OCAML_VERSION: '5.2.0'
 
 permissions:
   contents: write
@@ -38,7 +41,7 @@ jobs:
           # - windows-latest
         ocaml-compiler:
           - 4.14.1
-          - 5.2.0
+          - ${env.LATEST_OCAML_VERSION}
 
     steps:
       - uses: actions/checkout@v4
@@ -143,6 +146,18 @@ jobs:
 
       - name: Run benchmarks
         run: make bench
+
+      - name: Install dune-release
+        if: startsWith(github.ref, 'refs/tags/') && matrix.os == 'ubuntu-latest' && matrix.ocaml-compiler == env.LATEST_OCAML_VERSION
+        run: opam install dune-release -y
+
+      - name: Release
+        uses: davesnx/dune-release-action
+        if: startsWith(github.ref, 'refs/tags/') && matrix.os == 'ubuntu-latest' && matrix.ocaml-compiler == env.LATEST_OCAML_VERSION
+        with:
+          packages: 'server-reason-react'
+          changelog: './CHANGES.md'
+          github-token: ${{ secrets.GH_TOKEN }}
 
       - name: Save npm cache
         uses: actions/cache/save@v4
