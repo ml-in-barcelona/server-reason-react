@@ -13,7 +13,6 @@ on:
 env:
   DUNE_PROFILE: release
   OCAMLRUNPARAM: b
-  LATEST_OCAML_VERSION: '5.2.0'
 
 permissions:
   contents: write
@@ -41,7 +40,7 @@ jobs:
           # - windows-latest
         ocaml-compiler:
           - 4.14.1
-          - ${env.LATEST_OCAML_VERSION}
+          - 5.2.0
 
     steps:
       - uses: actions/checkout@v4
@@ -148,12 +147,12 @@ jobs:
         run: make bench
 
       - name: Install dune-release
-        if: startsWith(github.ref, 'refs/tags/') && matrix.os == 'ubuntu-latest' && matrix.ocaml-compiler == env.LATEST_OCAML_VERSION
+        if: startsWith(github.ref, 'refs/tags/') && matrix.os == 'ubuntu-latest' && matrix.ocaml-compiler == '5.2.0'
         run: opam install dune-release -y
 
       - name: Release
         uses: davesnx/dune-release-action@v0.2.0
-        if: startsWith(github.ref, 'refs/tags/') && matrix.os == 'ubuntu-latest' && matrix.ocaml-compiler == env.LATEST_OCAML_VERSION
+        if: startsWith(github.ref, 'refs/tags/') && matrix.os == 'ubuntu-latest' && matrix.ocaml-compiler == '5.2.0'
         with:
           packages: 'server-reason-react'
           changelog: './CHANGES.md'
@@ -209,3 +208,4 @@ jobs:
           build_dir: _html
         env:
           GITHUB_TOKEN: ${{ github.token }}
+
