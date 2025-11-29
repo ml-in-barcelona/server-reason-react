@@ -1,0 +1,11 @@
+(executable
+ (name streaming_bench)
+ (libraries
+  unix
+  lwt
+  lwt.unix
+  server-reason-react.react
+  server-reason-react.reactDom
+  benchmark_scenarios)
+ (preprocess
+  (pps server-reason-react.ppx lwt_ppx)))
