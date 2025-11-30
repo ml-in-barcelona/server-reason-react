@@ -2,6 +2,7 @@
 
 ## 0.4.0
 
+* Bump lwt to 5.9.2
 * Expand styles prop into className and style props with optional handling by @pedrobslisboa in https://github.com/ml-in-barcelona/server-reason-react/pull/324
 * Lowercase components have ?key:string by @davesnx in https://github.com/ml-in-barcelona/server-reason-react/pull/323
 * Wrap client value on React.Upper_case_component by @pedrobslisboa in https://github.com/ml-in-barcelona/server-reason-react/pull/322
