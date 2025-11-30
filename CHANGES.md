@@ -1,5 +1,24 @@
 # Changes
 
+## 0.4.0
+
+* Expand styles prop into className and style props with optional handling by @pedrobslisboa in https://github.com/ml-in-barcelona/server-reason-react/pull/324
+* Lowercase components have ?key:string by @davesnx in https://github.com/ml-in-barcelona/server-reason-react/pull/323
+* Wrap client value on React.Upper_case_component by @pedrobslisboa in https://github.com/ml-in-barcelona/server-reason-react/pull/322
+* Fix remove last element on nested_modules by @pedrobslisboa in https://github.com/ml-in-barcelona/server-reason-react/pull/321
+* Add searchParams function to native URL by @pedrobslisboa in https://github.com/ml-in-barcelona/server-reason-react/pull/320
+* Add URL construct function and improve lib build by @EmileTrotignon in https://github.com/ml-in-barcelona/server-reason-react/pull/317
+* Specify model values at React by @pedrobslisboa in https://github.com/ml-in-barcelona/server-reason-react/pull/309
+* Allow async in client props by @pedrobslisboa in https://github.com/ml-in-barcelona/server-reason-react/pull/315
+* Improve the Fiber and Model stream context by @pedrobslisboa in https://github.com/ml-in-barcelona/server-reason-react/pull/312
+* Align Suspense with reason-react by @pedrobslisboa in https://github.com/ml-in-barcelona/server-reason-react/pull/311
+* Make client component to execute in runtime by @pedrobslisboa in https://github.com/ml-in-barcelona/server-reason-react/pull/306
+* Fix mismatch of the model and html on render_html by @pedrobslisboa in https://github.com/ml-in-barcelona/server-reason-react/pull/305
+* Fix createFromFetch interface and avoid transition on navigation by @davesnx in https://github.com/ml-in-barcelona/server-reason-react/pull/299
+* Change ppx execution order (styles expansion in server-reason-react) by @davesnx in https://github.com/ml-in-barcelona/server-reason-react/pull/297
+* Rename use function to usePromise in Experimental module by @pedrobslisboa in https://github.com/ml-in-barcelona/server-reason-react/pull/298
+* Add shared-folder-prefix arg to ppx by @davesnx in https://github.com/ml-in-barcelona/server-reason-react/pull/294
+
 ## 0.3.1
 
 * Update quickjs dependency to 0.1.2 by @davesnx
