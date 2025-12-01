@@ -374,16 +374,19 @@ let transform_lowercase_props ~loc ~tag_name args =
 let rewrite_lowercase ~loc:exprLoc tag_name args children =
   let loc = exprLoc in
   let dom_node_name = estring ~loc:exprLoc tag_name in
-  let key_prop =
+  let key =
     args |> List.find_opt ~f:(fun (label, _) -> get_label label = "key") |> Option.map (fun (_, value) -> value)
   in
-  let key = match key_prop with None -> [%expr None] | Some key -> [%expr Some [%e key]] in
   let props = transform_lowercase_props ~loc:exprLoc ~tag_name args in
-  match children with
-  | Some children ->
+  match (key, children) with
+  | Some key, Some children ->
       let childrens = pexp_list ~loc children in
       [%expr React.createElementWithKey ~key:[%e key] [%e dom_node_name] [%e props] [%e childrens]]
-  | None -> [%expr React.createElementWithKey ~key:[%e key] [%e dom_node_name] [%e props] []]
+  | None, Some children ->
+      let childrens = pexp_list ~loc children in
+      [%expr React.createElement [%e dom_node_name] [%e props] [%e childrens]]
+  | Some key, None -> [%expr React.createElementWithKey ~key:[%e key] [%e dom_node_name] [%e props] []]
+  | None, None -> [%expr React.createElement [%e dom_node_name] [%e props] []]
 
 let split_args args =
   let children = ref (Location.none, []) in
@@ -515,11 +518,13 @@ let expand_make_binding binding react_element_variant_wrapping =
   (* Builds an AST node for the modified `make` function *)
   let name = ppat_var ~loc:ghost_loc { txt = get_function_name binding; loc = ghost_loc } in
   let key_arg = Optional "key" in
-  (* default_value = None means there's no default *)
-  let default_value = None in
-  let key_renamed_to_underscore = ppat_var ~loc:ghost_loc { txt = "_"; loc } in
+  let default_value =
+    (* default_value = None means there's no default *)
+    None
+  in
+  let underscore = ppat_var ~loc:ghost_loc { txt = "_"; loc } in
   let core_type = [%type: string option] in
-  let key_pattern = ppat_constraint ~loc key_renamed_to_underscore core_type in
+  let key_pattern = ppat_constraint ~loc underscore core_type in
   (* Append key argument since we want to allow users of this component to set key (and assign it to _ since it shouldn't be used) *)
   let function_body = pexp_fun ~loc:ghost_loc key_arg default_value key_pattern binding_expr in
   (* Since expand_make_binding is called on both native and js contexts, we need to keep the attributes *)
@@ -649,7 +654,7 @@ let rewrite_signature_item signature_item =
             let loc = pval_type.ptyp_loc in
             let original_core_type = { pval_type with ptyp_desc = Ptyp_arrow (arg_label, core_type_1, core_type_2) } in
             let new_core_type = add_unit_at_the_last_argument_in_core_type original_core_type in
-            Ptyp_arrow (Optional "key", [%type: string option], new_core_type)
+            Ptyp_arrow (Optional "key", [%type: string], new_core_type)
         | ptyp_desc -> ptyp_desc
       in
       let new_core_type = { pval_type with ptyp_desc = new_ptyp_desc } in
@@ -1075,14 +1080,6 @@ let validate_tag_children tag children attributes : (unit, string) result =
   | false -> Ok ()
   | true -> Ok ()
 
-let expand_styles_prop ~loc (label, arg) =
-  match label with
-  | Ppxlib.Labelled "styles" ->
-      [ (Ppxlib.Labelled "className", [%expr fst [%e arg]]); (Ppxlib.Labelled "style", [%expr snd [%e arg]]) ]
-  | Ppxlib.Optional "styles" ->
-      [ (Ppxlib.Optional "className", [%expr fst [%e arg]]); (Ppxlib.Optional "style", [%expr snd [%e arg]]) ]
-  | _ -> [ (label, arg) ]
-
 let traverse =
   object (_)
     inherit [Expansion_context.Base.t] Ast_traverse.map_with_context as super
@@ -1117,7 +1114,7 @@ let traverse =
             match expr.pexp_desc with
             | Pexp_apply (({ pexp_desc = Pexp_ident _; pexp_loc = loc; _ } as tag), args)
               when has_jsx_attr expr.pexp_attributes ->
-                let new_args = List.concat_map ~f:(expand_styles_prop ~loc) args in
+                let new_args = Expand_styles_attribute.make ~loc args in
                 { (pexp_apply ~loc (super#expression ctx tag) new_args) with pexp_attributes = attributes }
             | _ -> expr
           with Error err -> [%expr [%e err]])
@@ -1134,7 +1131,7 @@ let traverse =
                     (* div() [@JSX] *)
                     | Pexp_ident { txt = Lident name; loc = _name_loc } ->
                         (* This expansion from "styles" prop into "className" and "style" props is a feature by styled-ppx. The existence of this here, is because dune/ppxlib doesn't allow more than one preprocess_impl and even that, the combination of styled-ppx and server-reason-react.ppx doesn't compose properly. *)
-                        let new_args = List.concat_map ~f:(expand_styles_prop ~loc) rest_of_args in
+                        let new_args = Expand_styles_attribute.make ~loc rest_of_args in
                         rewrite_lowercase ~loc:expr.pexp_loc name new_args children
                     (* Reason adds `createElement` as default when an uppercase is found,
                    we change it back to make *)

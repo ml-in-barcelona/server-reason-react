@@ -15,14 +15,14 @@ WORKDIR /app
 
 RUN opam remote set-url default https://opam.ocaml.org
 
-RUN cd ~/opam-repository && git fetch -q origin master && git reset --hard 278df338effcd8a80241fbf6902ef949a850372c && opam update -y
+RUN cd ~/opam-repository && git fetch -q origin master && git reset --hard origin/master && opam update -y
 
 COPY *.opam ./
 COPY *.opam.template ./
 COPY dune ./
 COPY dune-project ./
 
-RUN opam install . --deps-only --with-test --with-doc --with-dev-setup -y
+RUN opam install . --deps-only -y
 RUN opam install quickjs.0.1.2 dream melange-json melange-json-native -y
 
 WORKDIR "/app/demo"

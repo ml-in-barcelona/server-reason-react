@@ -589,7 +589,7 @@ let client_with_promise_props () =
             ] )
   in
   let output, subscribe = capture_stream () in
-  let%lwt () = ReactServerDOM.render_model ~subscribe ( (app ())) in
+  let%lwt () = ReactServerDOM.render_model ~subscribe ((app ())) in
   assert_list_of_strings !output
     [
       "1:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n";
@@ -667,7 +667,7 @@ let client_with_server_children () =
 
 let key_renders_outside_of_props () =
   let app =
-    React.createElementWithKey ~key:(Some "important key") "section"
+    React.createElementWithKey ~key:"important key" "section"
       [ React.JSX.String ("className", "className", "sidebar-header") ]
       [ React.createElement "strong" [] [ React.string "React Notes" ] ]
   in
