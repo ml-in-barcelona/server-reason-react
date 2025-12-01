@@ -11,28 +11,6 @@ let getAndPost = (path, handler) =>
     ],
   );
 
-let getSupersonicRoutes = () => {
-  Supersonic.RouteRegistry.clear();
-
-  RouteDefinitions.routes
-  |> List.iter((route: RouteDefinitions.t) => {
-       Supersonic.RouteRegistry.register(
-         ~path=route.path,
-         ~element=route.component,
-         (),
-       )
-     });
-
-  Dream.scope(
-    "/",
-    [],
-    Supersonic.RouteRegistry.getAllRoutes()
-    |> List.map(({path, element, _}: Supersonic.RouteRegistry.route) => {
-         getAndPost(path, Pages.Router.handler(~element))
-       }),
-  );
-};
-
 let server =
   Dream.logger(
     Dream.router([
@@ -68,7 +46,13 @@ let server =
       getAndPost(Routes.singlePageRSC, Pages.SinglePageRSC.handler),
       getAndPost(Routes.dummyRouterRSC, Pages.DummyRouterRSC.handler),
       getAndPost(Routes.serverOnlyRSC, Pages.ServerOnlyRSC.handler),
-      getSupersonicRoutes(),
+      ...getAndPost
+         |> RouterRSC.routeDefinitionsHandlers(
+              "/demo/router",
+              ~bootstrapModules=["/static/demo/NestedRouterRSC.re.js"],
+              ~document=Pages.NestedRouter.Document.make(),
+              ~routeDefinitions=Pages.NestedRouter.routeDefinitions,
+            ),
     ]),
   );
 

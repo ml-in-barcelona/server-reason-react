@@ -951,7 +951,7 @@ let nested_context () =
     ];
   Lwt.return ()
 
-let model_list () =
+let model_list_value () =
   let list =
     React.Model.List
       [
@@ -961,34 +961,12 @@ let model_list () =
              ("Component", fun () -> React.createElement "div" [] [ React.string "Hello world" ]));
       ]
   in
-  let app () =
-    React.Upper_case_component
-      ( "app",
-        fun () ->
-          React.list
-            [
-              React.createElement "div" [] [ React.string "Server Content" ];
-              React.Client_component
-                {
-                  props = [ ("items", list) ];
-                  client = React.string "Client with List";
-                  import_module = "./client-with-list.js";
-                  import_name = "ClientWithList";
-                };
-            ] )
-  in
   let output, subscribe = capture_stream () in
-  let%lwt () = ReactServerDOM.render_model ~subscribe (app ()) in
-  assert_list_of_strings !output
-    [
-      "1:I[\"./client-with-list.js\",[],\"ClientWithList\"]\n";
-      "2:[\"$\",\"div\",null,{\"children\":\"Hello world\"},null,[],{}]\n";
-      "0:[[\"$\",\"div\",null,{\"children\":\"Server Content\"},null,[],{}],[\"$\",\"$1\",null,{\"items\":[\"Item \
-       1\",\"$2\"]},null,[],{}]]\n";
-    ];
+  let%lwt () = ReactServerDOM.render_model_value ~subscribe list in
+  assert_list_of_strings !output [ "0:[\"Item 1\",[\"$\",\"div\",null,{\"children\":\"Hello world\"},null,[],{}]]\n" ];
   Lwt.return ()
 
-let model_assoc () =
+let model_value_assoc () =
   let assoc =
     React.Model.Assoc
       [
@@ -999,31 +977,10 @@ let model_assoc () =
                ("Component", fun () -> React.createElement "div" [] [ React.string "Hello world" ])) );
       ]
   in
-  let app () =
-    React.Upper_case_component
-      ( "app",
-        fun () ->
-          React.list
-            [
-              React.createElement "div" [] [ React.string "Server Content" ];
-              React.Client_component
-                {
-                  props = [ ("data", assoc) ];
-                  client = React.string "Client with Assoc";
-                  import_module = "./client-with-assoc.js";
-                  import_name = "ClientWithAssoc";
-                };
-            ] )
-  in
   let output, subscribe = capture_stream () in
-  let%lwt () = ReactServerDOM.render_model ~subscribe (app ()) in
+  let%lwt () = ReactServerDOM.render_model_value ~subscribe assoc in
   assert_list_of_strings !output
-    [
-      "1:I[\"./client-with-assoc.js\",[],\"ClientWithAssoc\"]\n";
-      "2:[\"$\",\"div\",null,{\"children\":\"Hello world\"},null,[],{}]\n";
-      "0:[[\"$\",\"div\",null,{\"children\":\"Server \
-       Content\"},null,[],{}],[\"$\",\"$1\",null,{\"data\":{\"key\":\"value\",\"component\":\"$2\"}},null,[],{}]]\n";
-    ];
+    [ "0:{\"key\":\"value\",\"component\":[\"$\",\"div\",null,{\"children\":\"Hello world\"},null,[],{}]}\n" ];
   Lwt.return ()
 
 let tests =
@@ -1066,8 +1023,8 @@ let tests =
     test "client_component_with_resources_metadata" client_component_with_resources_metadata;
     test "page_with_hoisted_resources" page_with_hoisted_resources;
     test "nested_context" nested_context;
-    test "model_list" model_list;
-    test "model_assoc" model_assoc;
+    test "model_list_value" model_list_value;
+    test "model_value_assoc" model_value_assoc;
     (* TODO: https://github.com/ml-in-barcelona/server-reason-react/issues/251 test "client_with_promise_failed_props" client_with_promise_failed_props; *)
     (* test "env_development_adds_debug_info_2" env_development_adds_debug_info_2; *)
   ]
