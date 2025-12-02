@@ -3,34 +3,24 @@
     This is a spec-compliant implementation using only OCaml stdlib + Unix. Internal representation: float (milliseconds
     since Unix epoch, or NaN for invalid dates). *)
 
-(* ===========================================================================
-   Type definition
-   =========================================================================== *)
-
 type t = float
 (** Milliseconds since Unix epoch (1970-01-01T00:00:00.000Z), or NaN for invalid dates *)
 
-(* ===========================================================================
-   Time constants (§21.4.1.3)
-   =========================================================================== *)
+(* Time constants (§21.4.1.3) *)
 
 let ms_per_second = 1000.
 let ms_per_minute = 60000.
 let ms_per_hour = 3600000.
 let ms_per_day = 86400000.
 
-(* ===========================================================================
-   Validity checking
-   =========================================================================== *)
+(* Validity checking *)
 
 (** Maximum time value: ±8.64e15 ms (±100 million days from epoch) *)
 let max_time_value = 8.64e15
 
 let is_valid_time t = (not (Float.is_nan t)) && Float.abs t <= max_time_value
 
-(* ===========================================================================
-   Day/Time decomposition (§21.4.1.3-13)
-   =========================================================================== *)
+(* Day/Time decomposition (§21.4.1.3-13) *)
 
 (** Day(t) = floor(t / msPerDay) - day number since epoch *)
 let day t = Float.floor (t /. ms_per_day)
@@ -138,9 +128,7 @@ let ms_from_time t =
     let r = Float.rem t ms_per_second in
     if r < 0. then r +. ms_per_second else r
 
-(* ===========================================================================
-   MakeTime / MakeDay / MakeDate (§21.4.1.14-16)
-   =========================================================================== *)
+(* MakeTime / MakeDay / MakeDate (§21.4.1.14-16) *)
 
 (** MakeTime(hour, min, sec, ms) - combines time components into ms *)
 let make_time ~hour ~min ~sec ~ms =
@@ -186,9 +174,7 @@ let time_clip t =
   else if Float.abs t > max_time_value then nan
   else Float.trunc t
 
-(* ===========================================================================
-   Timezone handling (§21.4.1.18-19)
-   =========================================================================== *)
+(* Timezone handling (§21.4.1.18-19) *)
 
 (** Get local timezone offset in milliseconds for a given UTC time. Uses Unix.localtime to determine DST-aware offset.
 *)
@@ -213,9 +199,7 @@ let utc_to_local t = if Float.is_nan t then nan else t +. local_tz_offset_ms t
 (** Convert local time to UTC *)
 let local_to_utc t = if Float.is_nan t then nan else t -. local_tz_offset_ms t
 
-(* ===========================================================================
-   Constructors
-   =========================================================================== *)
+(* Constructors *)
 
 (** Create a Date from epoch milliseconds *)
 let of_epoch_ms ms = time_clip ms
@@ -239,9 +223,7 @@ let utc ~year ~month ?(day = 1.) ?(hours = 0.) ?(minutes = 0.) ?(seconds = 0.) ?
   let t = make_time ~hour:hours ~min:minutes ~sec:seconds ~ms in
   time_clip (make_date ~day:d ~time:t)
 
-(* ===========================================================================
-   Getters - UTC
-   =========================================================================== *)
+(* Getters - UTC *)
 
 let getTime t = t
 let valueOf t = t
@@ -254,9 +236,7 @@ let getUTCMinutes t = if Float.is_nan t then nan else min_from_time t
 let getUTCSeconds t = if Float.is_nan t then nan else sec_from_time t
 let getUTCMilliseconds t = if Float.is_nan t then nan else ms_from_time t
 
-(* ===========================================================================
-   Getters - Local time
-   =========================================================================== *)
+(* Getters - Local time *)
 
 let getFullYear t = if Float.is_nan t then nan else year_from_time (utc_to_local t)
 let getMonth t = if Float.is_nan t then nan else month_from_time (utc_to_local t)
@@ -270,9 +250,7 @@ let getMilliseconds t = if Float.is_nan t then nan else ms_from_time (utc_to_loc
 (** getTimezoneOffset() - returns offset in minutes (positive = west of UTC) *)
 let getTimezoneOffset t = if Float.is_nan t then nan else -.local_tz_offset_ms t /. ms_per_minute
 
-(* ===========================================================================
-   String formatting
-   =========================================================================== *)
+(* String formatting *)
 
 (** Zero-pad an integer to n digits *)
 let pad n i =
@@ -368,9 +346,7 @@ let toLocaleString t = toString t
 let toLocaleDateString t = toDateString t
 let toLocaleTimeString t = toTimeString t
 
-(* ===========================================================================
-   Date parsing (§21.4.3.2)
-   =========================================================================== *)
+(* Date parsing (§21.4.3.2) *)
 
 (** Helper: parse integer from string, returns None on failure *)
 let parse_int_opt s = try Some (int_of_string s) with _ -> None
@@ -623,9 +599,7 @@ let parse s =
 (** parseAsFloat - same as parse, for API compatibility *)
 let parseAsFloat = parse
 
-(* ===========================================================================
-   Additional constructors for API compatibility
-   =========================================================================== *)
+(* Additional constructors for API compatibility *)
 
 let make () = of_epoch_ms (now ())
 let fromFloat = of_epoch_ms
@@ -670,9 +644,7 @@ let utcWithYMDH ~year ~month ~date ~hours = utc ~year ~month ~day:date ~hours ()
 let utcWithYMDHM ~year ~month ~date ~hours ~minutes = utc ~year ~month ~day:date ~hours ~minutes ()
 let utcWithYMDHMS ~year ~month ~date ~hours ~minutes ~seconds = utc ~year ~month ~day:date ~hours ~minutes ~seconds ()
 
-(* ===========================================================================
-   Setters - these return the new timestamp (JS mutates, but we keep it pure)
-   =========================================================================== *)
+(* Setters - these return the new timestamp (JS mutates, but we keep it pure) *)
 
 (** setTime - sets the time value directly *)
 let setTime value _t = time_clip value

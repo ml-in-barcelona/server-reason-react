@@ -6,8 +6,7 @@ type 'a array_like
 let from _ = Js_internal.notImplemented "Js.Array" "from"
 let fromMap _ ~f:_ = Js_internal.notImplemented "Js.Array" "fromMap"
 
-(* This doesn't behave the same as melange-js, since it's a runtime check
-   so lists are represented as arrays in the runtime: isArray([1, 2]) == true *)
+(* This doesn't behave the same as melange-js, since it's a runtime check so lists are represented as arrays in the runtime: isArray([1, 2]) == true *)
 let isArray (_arr : 'a) = true
 let length arr = Stdlib.Array.length arr
 
