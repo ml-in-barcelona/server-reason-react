@@ -19,7 +19,7 @@ depends: [
   "uri" {>= "4.2.0"}
   "yojson" {>= "2.2.0"}
   "integers" {>= "0.7.0"}
-  "zarith" {>= "1.14.0"}
+  "zarith" {>= "1.14"}
   "uutf" {>= "1.0.3"}
   "melange-fetch" {>= "0.2.0"}
   "melange-json" {>= "2.0.0"}
@@ -27,7 +27,7 @@ depends: [
   "melange-webapi" {>= "0.21.0"}
   "reason-react" {>= "0.16.0"}
   "odoc" {with-doc}
-  "ocamlformat" {= "0.28.1" & with-test}
+  "ocamlformat" {= "0.27.0" & with-test}
   "ocaml-lsp-server" {with-dev-setup}
   "dream" {= "1.0.0~alpha8" & with-dev-setup}
   "reason-react-ppx" {with-dev-setup}
