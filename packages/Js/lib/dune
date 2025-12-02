@@ -6,6 +6,6 @@
 (library
  (name js)
  (public_name server-reason-react.js)
- (libraries quickjs lwt str uucp)
+ (libraries quickjs lwt str uucp zarith)
  (preprocess
   (pps lwt_ppx)))

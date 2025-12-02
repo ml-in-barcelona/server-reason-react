@@ -1,8 +1,8 @@
 (** Shared test helpers for test262 tests *)
 
-module BigInt = Quickjs.BigInt
-module Date = Quickjs.Date
-module Number = Quickjs.Number
+module BigInt = Js.Bigint
+module Date = Js.Date
+module Number = Js.Float
 
 let test title fn = Alcotest_lwt.test_case_sync title `Quick fn
 let test_async title fn = Alcotest_lwt.test_case title `Quick fn
@@ -18,7 +18,7 @@ let assert_raises fn exn =
   | _ -> Alcotest.failf "Expected exception %s" (Printexc.to_string exn)
 
 (* BigInt helpers *)
-let bigint_testable = Alcotest.testable (Fmt.of_to_string BigInt.to_string) (fun a b -> BigInt.compare a b = 0)
+let bigint_testable = Alcotest.testable (Fmt.of_to_string BigInt.toString) (fun a b -> BigInt.compare a b = 0)
 let assert_bigint left right = Alcotest.check bigint_testable "should be equal" right left
 
 let assert_bigint_string left expected_str =

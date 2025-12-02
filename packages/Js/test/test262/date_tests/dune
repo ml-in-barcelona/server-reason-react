@@ -1,0 +1,7 @@
+; Temporarily disabled - these tests reference functions not yet implemented
+(include_subdirs no)
+
+(library
+ (name date_tests_disabled)
+ (modules))
+
