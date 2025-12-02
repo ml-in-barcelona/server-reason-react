@@ -205,11 +205,20 @@ let string_tests =
         assert_string (Js.String.replace ~search:"the" ~replacement:"this" "the cat and the dog") "this cat and the dog");
     test "replaceByRe" (fun () ->
         assert_string (Js.String.replaceByRe "david" ~regexp:[%re "/d/"] ~replacement:"x") "xavid");
-    (* test "replaceByRe with references ($n)" (fun () ->
+    test "replaceByRe with references ($n)" (fun () ->
+        assert_string (Js.String.replaceByRe "david" ~regexp:[%re "/d(.*?)d/g"] ~replacement:"$1") "avi");
+    test "replaceByRe with $1 capturing group" (fun () ->
         assert_string
-          (Js.String.replaceByRe "david" ~regexp:[%re "/d(.*?)d/g"]
-             ~replacement:"$1")
-          "avi"); *)
+          (Js.String.replaceByRe "<em>hello</em> world" ~regexp:[%re "/<em>(.*?)<\\/em>/gi"] ~replacement:"$1")
+          "hello world");
+    test "replaceByRe with multiple capturing groups" (fun () ->
+        assert_string
+          (Js.String.replaceByRe "John Smith" ~regexp:[%re "/(\\w+)\\s(\\w+)/"] ~replacement:"$2, $1")
+          "Smith, John");
+    test "replaceByRe with $&" (fun () ->
+        assert_string (Js.String.replaceByRe "hello" ~regexp:[%re "/l/g"] ~replacement:"[$&]") "he[l][l]o");
+    test "replaceByRe with $$" (fun () ->
+        assert_string (Js.String.replaceByRe "price" ~regexp:[%re "/price/"] ~replacement:"$$100") "$100");
     test "replaceByRe with global" (fun () ->
         assert_string
           (Js.String.replaceByRe "vowels be gone" ~regexp:[%re "/[aeiou]/g"] ~replacement:"x")
@@ -635,4 +644,38 @@ let () =
          ("Js.Re", re_tests);
          ("Js.Dict", dict_tests);
          ("Js.Array", []);
+         (* Test262 - BigInt *)
+         ("BigInt.Arithmetic", Bigint_tests.Arithmetic.tests);
+         ("BigInt.Bitwise", Bigint_tests.Bitwise.tests);
+         ("BigInt.Comparison", Bigint_tests.Comparison.tests);
+         ("BigInt.Constructor", Bigint_tests.Constructor.tests);
+         ("BigInt.Conversion", Bigint_tests.Conversion.tests);
+         ("BigInt.AsIntN", Bigint_tests.As_int_n.tests);
+         ("BigInt.AsUintN", Bigint_tests.As_uint_n.tests);
+         ("BigInt.Prototype", Bigint_tests.Prototype.tests);
+         (* Test262 - Date *)
+         ("Date.Getters", Date_tests.Getters.tests);
+         ("Date.LocalGetters", Date_tests.Local_getters.tests);
+         ("Date.Setters", Date_tests.Setters.tests);
+         ("Date.ToString", Date_tests.To_string.tests);
+         ("Date.Now", Date_tests.Now.tests);
+         ("Date.Parse", Date_tests.Parse.tests);
+         ("Date.ToISOString", Date_tests.To_iso_string.tests);
+         ("Date.UTC", Date_tests.Utc.tests);
+         (* Test262 - Number *)
+         ("Number.IsFinite", Number_tests.Is_finite.tests);
+         ("Number.IsInteger", Number_tests.Is_integer.tests);
+         ("Number.IsNaN", Number_tests.Is_nan.tests);
+         ("Number.ParseFloat", Number_tests.Parse_float.tests);
+         ("Number.ParseInt", Number_tests.Parse_int.tests);
+         ("Number.ToString", Number_tests.To_string.tests);
+         ("Number.ToExponential", Number_tests.To_exponential.tests);
+         ("Number.ToPrecision", Number_tests.To_precision.tests);
+         (* Test262 - String *)
+         ("String.Normalize", String_tests.Normalize.tests);
+         ("String.Search", String_tests.Search.tests);
+         (* Test262 - RegExp *)
+         ("RegExp.NamedGroups", Regexp_tests.Named_groups.tests);
+         ("RegExp.DotAll", Regexp_tests.Dotall.tests);
+         ("RegExp.Unicode", Regexp_tests.Unicode.tests);
        ]

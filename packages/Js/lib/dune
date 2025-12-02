@@ -1,0 +1,6 @@
+(library
+ (name js)
+ (public_name server-reason-react.js)
+ (libraries quickjs lwt str uucp zarith unix)
+ (preprocess
+  (pps lwt_ppx)))
