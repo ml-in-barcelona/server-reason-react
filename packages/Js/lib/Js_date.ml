@@ -360,8 +360,8 @@ let parse_int_opt s = try Some (int_of_string s) with _ -> None
     - YYYY-MM-DDTHH:mm:ss.sss
     - Above with Z or ±HH:mm timezone
 
-    The parsing proceeds in stages: year -> month -> day -> time -> timezone
-    Each stage either returns early with a valid date or continues parsing. *)
+    The parsing proceeds in stages: year -> month -> day -> time -> timezone Each stage either returns early with a
+    valid date or continues parsing. *)
 
 (** Monadic bind for Option - allows flat chaining with let* *)
 let ( let* ) = Option.bind
@@ -370,8 +370,7 @@ let ( let* ) = Option.bind
 let guard condition = if condition then Some () else None
 
 (** Try to read n characters starting at pos, returns None if out of bounds *)
-let read_chars s ~pos ~len:n =
-  if pos + n > String.length s then None else Some (String.sub s pos n)
+let read_chars s ~pos ~len:n = if pos + n > String.length s then None else Some (String.sub s pos n)
 
 (** Parse an integer within bounds (inclusive) *)
 let parse_int_in_range s ~min ~max =
@@ -385,12 +384,7 @@ let parse_year s =
   if len = 0 then None
   else
     (* Determine year format: expanded (+/-YYYYYY) or standard (YYYY) *)
-    let sign, start, digits =
-      match s.[0] with
-      | '+' -> (1., 1, 6)
-      | '-' -> (-1., 1, 6)
-      | _ -> (1., 0, 4)
-    in
+    let sign, start, digits = match s.[0] with '+' -> (1., 1, 6) | '-' -> (-1., 1, 6) | _ -> (1., 0, 4) in
     let* year_str = read_chars s ~pos:start ~len:digits in
     let* year_int = parse_int_opt year_str in
     (* Reject -000000 as invalid *)
@@ -458,8 +452,7 @@ let parse_timezone s ~pos =
         (* Parse hours *)
         let tz_hours, pos =
           match read_chars s ~pos ~len:2 with
-          | Some h_str -> (
-              match parse_int_opt h_str with Some h -> (Float.of_int h, pos + 2) | None -> (0., pos))
+          | Some h_str -> ( match parse_int_opt h_str with Some h -> (Float.of_int h, pos + 2) | None -> (0., pos))
           | None -> (0., pos)
         in
         (* Parse optional minutes *)
@@ -467,8 +460,7 @@ let parse_timezone s ~pos =
           if pos < len && s.[pos] = ':' then
             let pos = pos + 1 in
             match read_chars s ~pos ~len:2 with
-            | Some m_str -> (
-                match parse_int_opt m_str with Some m -> (Float.of_int m, pos + 2) | None -> (0., pos))
+            | Some m_str -> ( match parse_int_opt m_str with Some m -> (Float.of_int m, pos + 2) | None -> (0., pos))
             | None -> (0., pos)
           else (0., pos)
         in
@@ -543,13 +535,16 @@ let weekdays = [ "Sun"; "Mon"; "Tue"; "Wed"; "Thu"; "Fri"; "Sat" ]
 (** Strip optional weekday prefix from legacy date string *)
 let strip_weekday s =
   let parts = String.split_on_char ' ' (String.trim s) in
-  match parts with
-  | day :: rest when List.mem day weekdays -> String.concat " " rest
-  | _ -> s
+  match parts with day :: rest when List.mem day weekdays -> String.concat " " rest | _ -> s
+
+(** Find the index of the first element satisfying the predicate (OCaml 4.14 compat) *)
+let array_find_index pred arr =
+  let len = Array.length arr in
+  let rec loop i = if i >= len then None else if pred arr.(i) then Some i else loop (i + 1) in
+  loop 0
 
 (** Parse month name to 0-indexed month number *)
-let parse_month_name name =
-  Array.find_index (fun m -> String.equal m name) month_names |> Option.map Float.of_int
+let parse_month_name name = array_find_index (fun m -> String.equal m name) month_names |> Option.map Float.of_int
 
 (** Parse GMT±HHMM timezone offset string, returns offset in milliseconds *)
 let parse_gmt_offset tz_str =
