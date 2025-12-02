@@ -7,10 +7,15 @@ module Number = Js.Float
 let test title fn = Alcotest_lwt.test_case_sync title `Quick fn
 let test_async title fn = Alcotest_lwt.test_case title `Quick fn
 let assert_string left right = Alcotest.check Alcotest.string "should be equal" right left
+let assert_string_equal left right = Alcotest.check Alcotest.string "should be equal" right left
 let assert_int left right = Alcotest.check Alcotest.int "should be equal" right left
 let assert_float left right = Alcotest.check (Alcotest.float 2.) "should be equal" right left
 let assert_float_exact left right = Alcotest.check (Alcotest.float 0.) "should be equal" right left
+(* assert_bool for comparing boolean values - compatible with existing tests *)
 let assert_bool left right = Alcotest.check Alcotest.bool "should be equal" right left
+
+(* assert_true for checking a condition with a message *)
+let assert_true msg cond = if not cond then Alcotest.fail msg
 
 let assert_raises fn exn =
   match fn () with
@@ -20,6 +25,7 @@ let assert_raises fn exn =
 (* BigInt helpers *)
 let bigint_testable = Alcotest.testable (Fmt.of_to_string BigInt.toString) (fun a b -> BigInt.compare a b = 0)
 let assert_bigint left right = Alcotest.check bigint_testable "should be equal" right left
+let assert_bigint_equal left right = Alcotest.check bigint_testable "should be equal" right left
 
 let assert_bigint_string left expected_str =
   let expected = BigInt.of_string expected_str in

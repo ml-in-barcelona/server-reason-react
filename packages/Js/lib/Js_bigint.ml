@@ -30,10 +30,7 @@ let is_valid_for_base s base start_idx =
     | 2 -> c = '0' || c = '1'
     | 8 -> c >= '0' && c <= '7'
     | 10 -> c >= '0' && c <= '9'
-    | 16 ->
-        (c >= '0' && c <= '9')
-        || (c >= 'a' && c <= 'f')
-        || (c >= 'A' && c <= 'F')
+    | 16 -> (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')
     | _ -> false
   in
   let len = String.length s in
@@ -56,8 +53,7 @@ let of_string_exn s =
   if String.contains s '\x00' then failwith "BigInt: invalid character";
   (* Check for decimal point or scientific notation *)
   if String.contains s '.' then failwith "BigInt: cannot have decimal point";
-  if String.contains s 'e' || String.contains s 'E' then
-    failwith "BigInt: cannot use scientific notation";
+  if String.contains s 'e' || String.contains s 'E' then failwith "BigInt: cannot use scientific notation";
   (* Determine sign and starting position *)
   let negative = len > 0 && String.get s 0 = '-' in
   let has_sign = len > 0 && (String.get s 0 = '-' || String.get s 0 = '+') in
@@ -67,8 +63,9 @@ let of_string_exn s =
   let has_prefix =
     len > start + 1
     && String.get s start = '0'
-    && (let c = String.get s (start + 1) in
-        c = 'x' || c = 'X' || c = 'b' || c = 'B' || c = 'o' || c = 'O')
+    &&
+    let c = String.get s (start + 1) in
+    c = 'x' || c = 'X' || c = 'b' || c = 'B' || c = 'o' || c = 'O'
   in
   let base, num_start =
     if has_prefix then
@@ -82,8 +79,7 @@ let of_string_exn s =
   in
   (* Validate the numeric part *)
   if num_start >= len then failwith "BigInt: missing digits after prefix";
-  if not (is_valid_for_base s base num_start) then
-    failwith "BigInt: invalid characters for base";
+  if not (is_valid_for_base s base num_start) then failwith "BigInt: invalid characters for base";
   (* Parse the number *)
   let num_str = String.sub s num_start (len - num_start) in
   let abs_value = Z.of_string_base base num_str in
@@ -102,14 +98,11 @@ let of_string s =
 (* {1 Conversions} *)
 
 (* Convert a digit to its character representation for bases up to 36 *)
-let digit_to_char d =
-  if d < 10 then Char.chr (d + Char.code '0')
-  else Char.chr (d - 10 + Char.code 'a')
+let digit_to_char d = if d < 10 then Char.chr (d + Char.code '0') else Char.chr (d - 10 + Char.code 'a')
 
 (* Convert BigInt to string with given radix *)
 let to_string ?(radix = 10) n =
-  if radix < 2 || radix > 36 then
-    invalid_arg "to_string: radix must be between 2 and 36";
+  if radix < 2 || radix > 36 then invalid_arg "to_string: radix must be between 2 and 36";
   if Z.equal n Z.zero then "0"
   else
     let negative = Z.sign n < 0 in
@@ -118,11 +111,10 @@ let to_string ?(radix = 10) n =
     let buf = Buffer.create 64 in
     let rec loop n =
       if Z.equal n Z.zero then ()
-      else begin
+      else
         let q, r = Z.div_rem n radix_z in
         Buffer.add_char buf (digit_to_char (Z.to_int r));
         loop q
-      end
     in
     loop n;
     if negative then Buffer.add_char buf '-';
@@ -143,12 +135,10 @@ let sub = Z.sub
 let mul = Z.mul
 
 (* Division truncating toward zero - this is what Z.div does *)
-let div a b =
-  if Z.equal b Z.zero then raise Division_by_zero else Z.div a b
+let div a b = if Z.equal b Z.zero then raise Division_by_zero else Z.div a b
 
 (* Remainder with sign following dividend - this is what Z.rem does *)
-let rem a b =
-  if Z.equal b Z.zero then raise Division_by_zero else Z.rem a b
+let rem a b = if Z.equal b Z.zero then raise Division_by_zero else Z.rem a b
 
 (* Power - raises on negative exponent *)
 let pow base exp =

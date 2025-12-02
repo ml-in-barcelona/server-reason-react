@@ -1,123 +1,901 @@
-(** Provide bindings for JS Date *)
+(** JavaScript Date implementation following ECMA-262 §21.4
 
-type t
+    This is a spec-compliant implementation using only OCaml stdlib + Unix. Internal representation: float (milliseconds
+    since Unix epoch, or NaN for invalid dates). *)
 
-(** returns the primitive value of this date, equivalent to getTime *)
-let valueOf _t = Js_internal.notImplemented "Js.Date" "valueOf"
+(* ===========================================================================
+   Type definition
+   =========================================================================== *)
 
-(** returns a date representing the current time *)
-let make _ = Js_internal.notImplemented "Js.Date" "make"
+type t = float
+(** Milliseconds since Unix epoch (1970-01-01T00:00:00.000Z), or NaN for invalid dates *)
 
-let fromFloat _ = Js_internal.notImplemented "Js.Date" "fromFloat"
-let fromString _ = Js_internal.notImplemented "Js.Date" "fromString"
-let makeWithYM ~year:_ ~month:_ = Js_internal.notImplemented "Js.Date" "makeWithYM"
-let makeWithYMD ~year:_ ~month:_ ~date:_ = Js_internal.notImplemented "Js.Date" "makeWithYMD"
-let makeWithYMDH ~year:_ ~month:_ ~date:_ ~hours:_ = Js_internal.notImplemented "Js.Date" "makeWithYMDH"
-let makeWithYMDHM ~year:_ ~month:_ ~date:_ ~hours:_ ~minutes:_ = Js_internal.notImplemented "Js.Date" "makeWithYMDHM"
+(* ===========================================================================
+   Time constants (§21.4.1.3)
+   =========================================================================== *)
 
-let makeWithYMDHMS ~year:_ ~month:_ ~date:_ ~hours:_ ~minutes:_ ~seconds:_ =
-  Js_internal.notImplemented "Js.Date" "makeWithYMDHMS"
+let ms_per_second = 1000.
+let ms_per_minute = 60000.
+let ms_per_hour = 3600000.
+let ms_per_day = 86400000.
 
-let utcWithYM ~year:_ ~month:_ = Js_internal.notImplemented "Js.Date" "utcWithYM"
-let utcWithYMD ~year:_ ~month:_ ~date:_ = Js_internal.notImplemented "Js.Date" "utcWithYMD"
-let utcWithYMDH ~year:_ ~month:_ ~date:_ ~hours:_ = Js_internal.notImplemented "Js.Date" "utcWithYMDH"
-let utcWithYMDHM ~year:_ ~month:_ ~date:_ ~hours:_ ~minutes:_ = Js_internal.notImplemented "Js.Date" "utcWithYMDHM"
+(* ===========================================================================
+   Validity checking
+   =========================================================================== *)
 
-let utcWithYMDHMS ~year:_ ~month:_ ~date:_ ~hours:_ ~minutes:_ ~seconds:_ =
-  Js_internal.notImplemented "Js.Date" "utcWithYMDHMS"
+(** Maximum time value: ±8.64e15 ms (±100 million days from epoch) *)
+let max_time_value = 8.64e15
 
-(** returns the number of milliseconds since Unix epoch *)
-let now _ = Js_internal.notImplemented "Js.Date" "now"
+let is_valid_time t = (not (Float.is_nan t)) && Float.abs t <= max_time_value
 
-(** returns NaN if passed invalid date string *)
-let parseAsFloat _ = Js_internal.notImplemented "Js.Date" "parseAsFloat"
+(* ===========================================================================
+   Day/Time decomposition (§21.4.1.3-13)
+   =========================================================================== *)
 
-(** return the day of the month (1-31) *)
-let getDate _ = Js_internal.notImplemented "Js.Date" "getDate"
+(** Day(t) = floor(t / msPerDay) - day number since epoch *)
+let day t = Float.floor (t /. ms_per_day)
 
-(** returns the day of the week (0-6) *)
-let getDay _ = Js_internal.notImplemented "Js.Date" "getDay"
+(** TimeWithinDay(t) = t modulo msPerDay *)
+let time_within_day t =
+  let r = Float.rem t ms_per_day in
+  if r < 0. then r +. ms_per_day else r
 
-let getFullYear _ = Js_internal.notImplemented "Js.Date" "getFullYear"
-let getHours _ = Js_internal.notImplemented "Js.Date" "getHours"
-let getMilliseconds _ = Js_internal.notImplemented "Js.Date" "getMilliseconds"
-let getMinutes _ = Js_internal.notImplemented "Js.Date" "getMinutes"
+(** DaysInYear(y) = 365 or 366 *)
+let days_in_year y =
+  if Float.rem y 4. <> 0. then 365
+  else if Float.rem y 100. <> 0. then 366
+  else if Float.rem y 400. <> 0. then 365
+  else 366
 
-(** returns the month (0-11) *)
-let getMonth _ = Js_internal.notImplemented "Js.Date" "getMonth"
+(** DayFromYear(y) = days since epoch for Jan 1 of year y *)
+let day_from_year y =
+  let y = y -. 1970. in
+  (365. *. y) +. Float.floor ((y +. 1.) /. 4.) -. Float.floor ((y +. 69.) /. 100.) +. Float.floor ((y +. 369.) /. 400.)
 
-let getSeconds _ = Js_internal.notImplemented "Js.Date" "getSeconds"
+(** YearFromTime(t) - extract year from timestamp using binary search *)
+let year_from_time t =
+  if Float.is_nan t then nan
+  else
+    let d = day t in
+    (* Estimate year: Unix epoch is 1970, ~365.25 days per year *)
+    let estimate = 1970. +. Float.floor (d /. 365.2425) in
+    (* Binary search for the correct year *)
+    let rec search lo hi =
+      if lo >= hi then lo
+      else
+        let mid = Float.floor ((lo +. hi +. 1.) /. 2.) in
+        if day_from_year mid <= d then search mid hi else search lo (mid -. 1.)
+    in
+    (* Search in a reasonable range around the estimate *)
+    search (estimate -. 2.) (estimate +. 2.)
 
-(** returns the number of milliseconds since Unix epoch *)
-let getTime _ = Js_internal.notImplemented "Js.Date" "getTime"
+(** InLeapYear(t) - is the year containing t a leap year? *)
+let in_leap_year t = days_in_year (year_from_time t) = 366
 
-let getTimezoneOffset _ = Js_internal.notImplemented "Js.Date" "getTimezoneOffset"
+(** DayWithinYear(t) = day number within the year (0 = Jan 1) *)
+let day_within_year t =
+  let d = day t in
+  let y = year_from_time t in
+  d -. day_from_year y
 
-(** return the day of the month (1-31) *)
-let getUTCDate _ = Js_internal.notImplemented "Js.Date" "getUTCDate"
+(** Days in each month for non-leap years (cumulative from start of year) *)
+let month_start_days = [| 0; 31; 59; 90; 120; 151; 181; 212; 243; 273; 304; 334; 365 |]
 
-(** returns the day of the week (0-6) *)
-let getUTCDay _ = Js_internal.notImplemented "Js.Date" "getUTCDay"
+let month_start_days_leap = [| 0; 31; 60; 91; 121; 152; 182; 213; 244; 274; 305; 335; 366 |]
 
-let getUTCFullYear _ = Js_internal.notImplemented "Js.Date" "getUTCFullYear"
-let getUTCHours _ = Js_internal.notImplemented "Js.Date" "getUTCHours"
-let getUTCMilliseconds _ = Js_internal.notImplemented "Js.Date" "getUTCMilliseconds"
-let getUTCMinutes _ = Js_internal.notImplemented "Js.Date" "getUTCMinutes"
+(** MonthFromTime(t) - returns month 0-11 *)
+let month_from_time t =
+  if Float.is_nan t then nan
+  else
+    let d = int_of_float (day_within_year t) in
+    let table = if in_leap_year t then month_start_days_leap else month_start_days in
+    let rec find_month m = if m >= 11 then 11 else if d < table.(m + 1) then m else find_month (m + 1) in
+    Float.of_int (find_month 0)
 
-(** returns the month (0-11) *)
-let getUTCMonth _ = Js_internal.notImplemented "Js.Date" "getUTCMonth"
+(** DateFromTime(t) - returns day of month 1-31 *)
+let date_from_time t =
+  if Float.is_nan t then nan
+  else
+    let d = int_of_float (day_within_year t) in
+    let m = int_of_float (month_from_time t) in
+    let table = if in_leap_year t then month_start_days_leap else month_start_days in
+    Float.of_int (d - table.(m) + 1)
 
-let getUTCSeconds _ = Js_internal.notImplemented "Js.Date" "getUTCSeconds"
-let setDate _ _ = Js_internal.notImplemented "Js.Date" "setDate"
-let setFullYear _ = Js_internal.notImplemented "Js.Date" "setFullYear"
-let setFullYearM ~year:_ ~month:_ = Js_internal.notImplemented "Js.Date" "setFullYearM"
-let setFullYearMD ~year:_ ~month:_ ~date:_ = Js_internal.notImplemented "Js.Date" "setFullYearMD"
-let setHours _ = Js_internal.notImplemented "Js.Date" "setHours"
-let setHoursM ~hours:_ ~minutes:_ = Js_internal.notImplemented "Js.Date" "setHoursM"
-let setHoursMS ~hours:_ ~minutes:_ = Js_internal.notImplemented "Js.Date" "setHoursMS"
-let setHoursMSMs ~hours:_ ~minutes:_ ~seconds:_ ~milliseconds:_ _ = Js_internal.notImplemented "Js.Date" "setHoursMSMs"
-let setMilliseconds _ = Js_internal.notImplemented "Js.Date" "setMilliseconds"
-let setMinutes _ = Js_internal.notImplemented "Js.Date" "setMinutes"
-let setMinutesS ~minutes:_ = Js_internal.notImplemented "Js.Date" "setMinutesS"
-let setMinutesSMs ~minutes:_ = Js_internal.notImplemented "Js.Date" "setMinutesSMs"
-let setMonth _ = Js_internal.notImplemented "Js.Date" "setMonth"
-let setMonthD ~month:_ ~date:_ _ = Js_internal.notImplemented "Js.Date" "setMonthD"
-let setSeconds _ = Js_internal.notImplemented "Js.Date" "setSeconds"
-let setSecondsMs ~seconds:_ ~milliseconds:_ _ = Js_internal.notImplemented "Js.Date" "setSecondsMs"
-let setTime _ = Js_internal.notImplemented "Js.Date" "setTime"
-let setUTCDate _ = Js_internal.notImplemented "Js.Date" "setUTCDate"
-let setUTCFullYear _ = Js_internal.notImplemented "Js.Date" "setUTCFullYear"
-let setUTCFullYearM ~year:_ ~month:_ _ = Js_internal.notImplemented "Js.Date" "setUTCFullYearM"
-let setUTCFullYearMD ~year:_ ~month:_ ~date:_ _ = Js_internal.notImplemented "Js.Date" "setUTCFullYearMD"
-let setUTCHours _ = Js_internal.notImplemented "Js.Date" "setUTCHours"
-let setUTCHoursM ~hours:_ ~minutes:_ = Js_internal.notImplemented "Js.Date" "setUTCHoursM"
-let setUTCHoursMS ~hours:_ ~minutes:_ = Js_internal.notImplemented "Js.Date" "setUTCHoursMS"
+(** WeekDay(t) - returns 0=Sunday through 6=Saturday *)
+let week_day t =
+  if Float.is_nan t then nan
+  else
+    let d = day t +. 4. in
+    (* Jan 1, 1970 was Thursday (day 4) *)
+    let r = Float.rem d 7. in
+    if r < 0. then r +. 7. else r
 
-let setUTCHoursMSMs ~hours:_ ~minutes:_ ~seconds:_ ~milliseconds:_ _ =
-  Js_internal.notImplemented "Js.Date" "setUTCHoursMSMs"
+(** HourFromTime(t) - returns 0-23 *)
+let hour_from_time t =
+  if Float.is_nan t then nan
+  else
+    let r = Float.rem (Float.floor (t /. ms_per_hour)) 24. in
+    if r < 0. then r +. 24. else r
 
-let setUTCMilliseconds _ = Js_internal.notImplemented "Js.Date" "setUTCMilliseconds"
-let setUTCMinutes _ = Js_internal.notImplemented "Js.Date" "setUTCMinutes"
-let setUTCMinutesS ~minutes:_ = Js_internal.notImplemented "Js.Date" "setUTCMinutesS"
-let setUTCMinutesSMs ~minutes:_ = Js_internal.notImplemented "Js.Date" "setUTCMinutesSMs"
-let setUTCMonth _ = Js_internal.notImplemented "Js.Date" "setUTCMonth"
-let setUTCMonthD ~month:_ ~date:_ _ = Js_internal.notImplemented "Js.Date" "setUTCMonthD"
-let setUTCSeconds _ = Js_internal.notImplemented "Js.Date" "setUTCSeconds"
-let setUTCSecondsMs ~seconds:_ = Js_internal.notImplemented "Js.Date" "setUTCSecondsMs"
-let setUTCTime _ = Js_internal.notImplemented "Js.Date" "setUTCTime"
-let toDateString _string = Js_internal.notImplemented "Js.Date" "toDateString"
-let toISOString _string = Js_internal.notImplemented "Js.Date" "toISOString"
-let toJSON _string = Js_internal.notImplemented "Js.Date" "toJSON"
-let toJSONUnsafe _string = Js_internal.notImplemented "Js.Date" "toJSONUnsafe"
-let toLocaleDateString _string = Js_internal.notImplemented "Js.Date" "toLocaleDateString"
+(** MinFromTime(t) - returns 0-59 *)
+let min_from_time t =
+  if Float.is_nan t then nan
+  else
+    let r = Float.rem (Float.floor (t /. ms_per_minute)) 60. in
+    if r < 0. then r +. 60. else r
 
-(* TODO: has overloads with somewhat poor browser support *)
-let toLocaleString _string = Js_internal.notImplemented "Js.Date" "toLocaleString"
+(** SecFromTime(t) - returns 0-59 *)
+let sec_from_time t =
+  if Float.is_nan t then nan
+  else
+    let r = Float.rem (Float.floor (t /. ms_per_second)) 60. in
+    if r < 0. then r +. 60. else r
 
-(* TODO: has overloads with somewhat poor browser support *)
-let toLocaleTimeString _string = Js_internal.notImplemented "Js.Date" "toLocaleTimeString"
+(** msFromTime(t) - returns 0-999 *)
+let ms_from_time t =
+  if Float.is_nan t then nan
+  else
+    let r = Float.rem t ms_per_second in
+    if r < 0. then r +. ms_per_second else r
 
-(* TODO: has overloads with somewhat poor browser support *)
-let toString _string = Js_internal.notImplemented "Js.Date" "toString"
-let toTimeString _string = Js_internal.notImplemented "Js.Date" "toTimeString"
-let toUTCString _string = Js_internal.notImplemented "Js.Date" "toUTCString"
+(* ===========================================================================
+   MakeTime / MakeDay / MakeDate (§21.4.1.14-16)
+   =========================================================================== *)
+
+(** MakeTime(hour, min, sec, ms) - combines time components into ms *)
+let make_time ~hour ~min ~sec ~ms =
+  if Float.is_nan hour || Float.is_nan min || Float.is_nan sec || Float.is_nan ms then nan
+  else
+    let h = Float.trunc hour in
+    let m = Float.trunc min in
+    let s = Float.trunc sec in
+    let milli = Float.trunc ms in
+    (h *. ms_per_hour) +. (m *. ms_per_minute) +. (s *. ms_per_second) +. milli
+
+(** MakeDay(year, month, date) - returns day number *)
+let make_day ~year ~month ~date =
+  if Float.is_nan year || Float.is_nan month || Float.is_nan date then nan
+  else if (not (Float.is_finite year)) || (not (Float.is_finite month)) || not (Float.is_finite date) then nan
+  else
+    let y = Float.trunc year in
+    let m = Float.trunc month in
+    let dt = Float.trunc date in
+    (* Normalize month: add years for month overflow *)
+    let ym = y +. Float.floor (m /. 12.) in
+    let mn = Float.rem m 12. in
+    let mn = if mn < 0. then mn +. 12. else mn in
+    (* Get day number for start of year *)
+    let d = day_from_year ym in
+    (* Add days for months *)
+    let is_leap = days_in_year ym = 366 in
+    let month_table = if is_leap then month_start_days_leap else month_start_days in
+    let d = d +. Float.of_int month_table.(int_of_float mn) in
+    (* Add date (date is 1-based, so subtract 1) *)
+    d +. dt -. 1.
+
+(** MakeDate(day, time) - combines day and time into timestamp *)
+let make_date ~day ~time =
+  if Float.is_nan day || Float.is_nan time then nan
+  else if (not (Float.is_finite day)) || not (Float.is_finite time) then nan
+  else (day *. ms_per_day) +. time
+
+(** TimeClip(time) - clamps to valid range or returns NaN *)
+let time_clip t =
+  if Float.is_nan t then nan
+  else if not (Float.is_finite t) then nan
+  else if Float.abs t > max_time_value then nan
+  else Float.trunc t
+
+(* ===========================================================================
+   Timezone handling (§21.4.1.18-19)
+   =========================================================================== *)
+
+(** Get local timezone offset in milliseconds for a given UTC time. Uses Unix.localtime to determine DST-aware offset.
+*)
+let local_tz_offset_ms utc_time =
+  if Float.is_nan utc_time then 0.
+  else
+    let seconds = utc_time /. 1000. in
+    try
+      let local_tm = Unix.localtime seconds in
+      let utc_tm = Unix.gmtime seconds in
+      (* Calculate difference in seconds *)
+      let local_secs = (local_tm.Unix.tm_hour * 3600) + (local_tm.Unix.tm_min * 60) + local_tm.Unix.tm_sec in
+      let utc_secs = (utc_tm.Unix.tm_hour * 3600) + (utc_tm.Unix.tm_min * 60) + utc_tm.Unix.tm_sec in
+      let day_diff = local_tm.Unix.tm_yday - utc_tm.Unix.tm_yday in
+      let day_diff = if day_diff > 1 then -1 else if day_diff < -1 then 1 else day_diff in
+      Float.of_int ((day_diff * 86400) + local_secs - utc_secs) *. 1000.
+    with _ -> 0.
+
+(** Convert UTC time to local time *)
+let utc_to_local t = if Float.is_nan t then nan else t +. local_tz_offset_ms t
+
+(** Convert local time to UTC *)
+let local_to_utc t = if Float.is_nan t then nan else t -. local_tz_offset_ms t
+
+(* ===========================================================================
+   Constructors
+   =========================================================================== *)
+
+(** Create a Date from epoch milliseconds *)
+let of_epoch_ms ms = time_clip ms
+
+(** Date.now() - returns current time as epoch ms *)
+let now () =
+  let t = Unix.gettimeofday () in
+  Float.trunc (t *. 1000.)
+
+(** Date.UTC(year, month[, date[, hours[, minutes[, seconds[, ms]]]]]) *)
+let utc ~year ~month ?(day = 1.) ?(hours = 0.) ?(minutes = 0.) ?(seconds = 0.) ?(ms = 0.) () =
+  (* Handle year 0-99 -> 1900-1999 mapping *)
+  let y =
+    if Float.is_nan year then nan
+    else
+      let y = Float.trunc year in
+      if y >= 0. && y <= 99. then 1900. +. y else y
+  in
+  let m = if Float.is_nan month then nan else Float.trunc month in
+  let d = make_day ~year:y ~month:m ~date:day in
+  let t = make_time ~hour:hours ~min:minutes ~sec:seconds ~ms in
+  time_clip (make_date ~day:d ~time:t)
+
+(* ===========================================================================
+   Getters - UTC
+   =========================================================================== *)
+
+let getTime t = t
+let valueOf t = t
+let getUTCFullYear t = if Float.is_nan t then nan else year_from_time t
+let getUTCMonth t = if Float.is_nan t then nan else month_from_time t
+let getUTCDate t = if Float.is_nan t then nan else date_from_time t
+let getUTCDay t = if Float.is_nan t then nan else week_day t
+let getUTCHours t = if Float.is_nan t then nan else hour_from_time t
+let getUTCMinutes t = if Float.is_nan t then nan else min_from_time t
+let getUTCSeconds t = if Float.is_nan t then nan else sec_from_time t
+let getUTCMilliseconds t = if Float.is_nan t then nan else ms_from_time t
+
+(* ===========================================================================
+   Getters - Local time
+   =========================================================================== *)
+
+let getFullYear t = if Float.is_nan t then nan else year_from_time (utc_to_local t)
+let getMonth t = if Float.is_nan t then nan else month_from_time (utc_to_local t)
+let getDate t = if Float.is_nan t then nan else date_from_time (utc_to_local t)
+let getDay t = if Float.is_nan t then nan else week_day (utc_to_local t)
+let getHours t = if Float.is_nan t then nan else hour_from_time (utc_to_local t)
+let getMinutes t = if Float.is_nan t then nan else min_from_time (utc_to_local t)
+let getSeconds t = if Float.is_nan t then nan else sec_from_time (utc_to_local t)
+let getMilliseconds t = if Float.is_nan t then nan else ms_from_time (utc_to_local t)
+
+(** getTimezoneOffset() - returns offset in minutes (positive = west of UTC) *)
+let getTimezoneOffset t = if Float.is_nan t then nan else -.local_tz_offset_ms t /. ms_per_minute
+
+(* ===========================================================================
+   String formatting
+   =========================================================================== *)
+
+(** Zero-pad an integer to n digits *)
+let pad n i =
+  let s = string_of_int (abs i) in
+  let len = String.length s in
+  if len >= n then s else String.make (n - len) '0' ^ s
+
+(** Format year for ISO string: 4 digits normally, 6 with +/- for years outside 0-9999 *)
+let format_year year =
+  let y = int_of_float year in
+  if y >= 0 && y <= 9999 then pad 4 y
+  else if y < 0 then Printf.sprintf "-%s" (pad 6 (-y))
+  else Printf.sprintf "+%s" (pad 6 y)
+
+(** toISOString() - returns ISO 8601 format: YYYY-MM-DDTHH:mm:ss.sssZ *)
+let toISOString t =
+  if Float.is_nan t then raise (Invalid_argument "Invalid Date")
+  else if not (is_valid_time t) then raise (Invalid_argument "Invalid Date")
+  else
+    let year = year_from_time t in
+    let month = int_of_float (month_from_time t) + 1 in
+    let day = int_of_float (date_from_time t) in
+    let hours = int_of_float (hour_from_time t) in
+    let minutes = int_of_float (min_from_time t) in
+    let seconds = int_of_float (sec_from_time t) in
+    let ms = int_of_float (ms_from_time t) in
+    Printf.sprintf "%s-%s-%sT%s:%s:%s.%sZ" (format_year year) (pad 2 month) (pad 2 day) (pad 2 hours) (pad 2 minutes)
+      (pad 2 seconds) (pad 3 ms)
+
+(** toJSON() - returns ISO string or None for invalid date *)
+let toJSON t = if Float.is_nan t || not (is_valid_time t) then None else Some (toISOString t)
+
+(** toJSONUnsafe() - returns ISO string, throws for invalid *)
+let toJSONUnsafe t = toISOString t
+
+(** Helper: day name abbreviations *)
+let day_names = [| "Sun"; "Mon"; "Tue"; "Wed"; "Thu"; "Fri"; "Sat" |]
+
+(** Helper: month name abbreviations *)
+let month_names = [| "Jan"; "Feb"; "Mar"; "Apr"; "May"; "Jun"; "Jul"; "Aug"; "Sep"; "Oct"; "Nov"; "Dec" |]
+
+(** Format timezone offset as ±HHMM *)
+let format_tz_offset offset_ms =
+  let offset_min = int_of_float (offset_ms /. ms_per_minute) in
+  let sign = if offset_min >= 0 then "+" else "-" in
+  let abs_offset = abs offset_min in
+  let hours = abs_offset / 60 in
+  let mins = abs_offset mod 60 in
+  Printf.sprintf "GMT%s%s%s" sign (pad 2 hours) (pad 2 mins)
+
+(** toUTCString() - returns RFC 7231 format: "Tue, 02 Dec 2025 09:30:00 GMT" *)
+let toUTCString t =
+  if Float.is_nan t then "Invalid Date"
+  else
+    let day_name = day_names.(int_of_float (week_day t)) in
+    let day = int_of_float (date_from_time t) in
+    let month_name = month_names.(int_of_float (month_from_time t)) in
+    let year = int_of_float (year_from_time t) in
+    let hours = int_of_float (hour_from_time t) in
+    let minutes = int_of_float (min_from_time t) in
+    let seconds = int_of_float (sec_from_time t) in
+    Printf.sprintf "%s, %s %s %d %s:%s:%s GMT" day_name (pad 2 day) month_name year (pad 2 hours) (pad 2 minutes)
+      (pad 2 seconds)
+
+(** toDateString() - returns "Tue Dec 02 2025" format *)
+let toDateString t =
+  if Float.is_nan t then "Invalid Date"
+  else
+    let local = utc_to_local t in
+    let day_name = day_names.(int_of_float (week_day local)) in
+    let month_name = month_names.(int_of_float (month_from_time local)) in
+    let day = int_of_float (date_from_time local) in
+    let year = int_of_float (year_from_time local) in
+    Printf.sprintf "%s %s %s %d" day_name month_name (pad 2 day) year
+
+(** toTimeString() - returns "10:30:00 GMT+0100" format *)
+let toTimeString t =
+  if Float.is_nan t then "Invalid Date"
+  else
+    let local = utc_to_local t in
+    let hours = int_of_float (hour_from_time local) in
+    let minutes = int_of_float (min_from_time local) in
+    let seconds = int_of_float (sec_from_time local) in
+    let tz = format_tz_offset (local_tz_offset_ms t) in
+    Printf.sprintf "%s:%s:%s %s" (pad 2 hours) (pad 2 minutes) (pad 2 seconds) tz
+
+(** toString() - returns "Tue Dec 02 2025 10:30:00 GMT+0100" format *)
+let toString t = if Float.is_nan t then "Invalid Date" else Printf.sprintf "%s %s" (toDateString t) (toTimeString t)
+
+(** toLocaleString, toLocaleDateString, toLocaleTimeString - simplified implementations *)
+let toLocaleString t = toString t
+
+let toLocaleDateString t = toDateString t
+let toLocaleTimeString t = toTimeString t
+
+(* ===========================================================================
+   Date parsing (§21.4.3.2)
+   =========================================================================== *)
+
+(** Helper: parse integer from string, returns None on failure *)
+let parse_int_opt s = try Some (int_of_string s) with _ -> None
+
+(** Parse ISO 8601 date string. Formats:
+    - YYYY
+    - YYYY-MM
+    - YYYY-MM-DD
+    - YYYY-MM-DDTHH:mm
+    - YYYY-MM-DDTHH:mm:ss
+    - YYYY-MM-DDTHH:mm:ss.sss
+    - Above with Z or ±HH:mm timezone *)
+let parse_iso8601 s =
+  let len = String.length s in
+  if len = 0 then None
+  else
+    (* Handle expanded years: +YYYYYY or -YYYYYY *)
+    let year_sign, year_start, year_len =
+      if len > 0 && (s.[0] = '+' || s.[0] = '-') then
+        let sign = if s.[0] = '-' then -1. else 1. in
+        (sign, 1, 6)
+      else (1., 0, 4)
+    in
+    (* Try to extract year *)
+    if len < year_start + year_len then None
+    else
+      let year_str = String.sub s year_start year_len in
+      match parse_int_opt year_str with
+      | None -> None
+      | Some year_int -> (
+          if
+            (* Reject -000000 *)
+            year_sign < 0. && year_int = 0
+          then None
+          else
+            let year = year_sign *. Float.of_int year_int in
+            let pos = year_start + year_len in
+            (* Check if just year *)
+            if pos >= len then Some (utc ~year ~month:0. ())
+            else if s.[pos] <> '-' then None
+            else
+              (* Parse month *)
+              let pos = pos + 1 in
+              if pos + 2 > len then None
+              else
+                let month_str = String.sub s pos 2 in
+                match parse_int_opt month_str with
+                | None -> None
+                | Some month_int -> (
+                    if month_int < 1 || month_int > 12 then None
+                    else
+                      let month = Float.of_int (month_int - 1) in
+                      let pos = pos + 2 in
+                      (* Check if just year-month *)
+                      if pos >= len then Some (utc ~year ~month ())
+                      else if s.[pos] <> '-' then None
+                      else
+                        (* Parse day *)
+                        let pos = pos + 1 in
+                        if pos + 2 > len then None
+                        else
+                          let day_str = String.sub s pos 2 in
+                          match parse_int_opt day_str with
+                          | None -> None
+                          | Some day_int -> (
+                              if day_int < 1 || day_int > 31 then None
+                              else
+                                let day = Float.of_int day_int in
+                                let pos = pos + 2 in
+                                (* Check if just date *)
+                                if pos >= len then Some (utc ~year ~month ~day ())
+                                else if s.[pos] <> 'T' && s.[pos] <> ' ' then None
+                                else
+                                  (* Parse time *)
+                                  let pos = pos + 1 in
+                                  if pos + 2 > len then None
+                                  else
+                                    let hours_str = String.sub s pos 2 in
+                                    match parse_int_opt hours_str with
+                                    | None -> None
+                                    | Some hours_int -> (
+                                        if hours_int < 0 || hours_int > 24 then None
+                                        else
+                                          let hours = Float.of_int hours_int in
+                                          let pos = pos + 2 in
+                                          if pos >= len || s.[pos] <> ':' then None
+                                          else
+                                            let pos = pos + 1 in
+                                            if pos + 2 > len then None
+                                            else
+                                              let minutes_str = String.sub s pos 2 in
+                                              match parse_int_opt minutes_str with
+                                              | None -> None
+                                              | Some minutes_int ->
+                                                  if minutes_int < 0 || minutes_int > 59 then None
+                                                  else
+                                                    let minutes = Float.of_int minutes_int in
+                                                    let pos = pos + 2 in
+                                                    (* Default seconds and ms *)
+                                                    let seconds = ref 0. in
+                                                    let ms = ref 0. in
+                                                    let pos = ref pos in
+                                                    let valid = ref true in
+                                                    (* Parse optional seconds *)
+                                                    if !pos < len && s.[!pos] = ':' then (
+                                                      pos := !pos + 1;
+                                                      if !pos + 2 > len then valid := false
+                                                      else
+                                                        let sec_str = String.sub s !pos 2 in
+                                                        match parse_int_opt sec_str with
+                                                        | None -> valid := false
+                                                        | Some sec_int ->
+                                                            if sec_int >= 0 && sec_int <= 59 then (
+                                                              seconds := Float.of_int sec_int;
+                                                              pos := !pos + 2)
+                                                            else valid := false);
+                                                    (* Parse optional milliseconds *)
+                                                    if !pos < len && s.[!pos] = '.' then (
+                                                      pos := !pos + 1;
+                                                      (* Read up to 3 digits *)
+                                                      let ms_start = !pos in
+                                                      while !pos < len && s.[!pos] >= '0' && s.[!pos] <= '9' do
+                                                        pos := !pos + 1
+                                                      done;
+                                                      let ms_len = !pos - ms_start in
+                                                      if ms_len > 0 then
+                                                        let ms_str = String.sub s ms_start (min ms_len 3) in
+                                                        (* Pad to 3 digits *)
+                                                        let ms_str =
+                                                          if String.length ms_str < 3 then
+                                                            ms_str ^ String.make (3 - String.length ms_str) '0'
+                                                          else ms_str
+                                                        in
+                                                        match parse_int_opt ms_str with
+                                                        | Some ms_int -> ms := Float.of_int ms_int
+                                                        | None -> ());
+                                                    (* Parse timezone *)
+                                                    let tz_offset_ms = ref 0. in
+                                                    (if !pos < len then
+                                                       let c = s.[!pos] in
+                                                       if c = 'Z' then pos := !pos + 1
+                                                       else if c = '+' || c = '-' then (
+                                                         let tz_sign = if c = '-' then -1. else 1. in
+                                                         pos := !pos + 1;
+                                                         if !pos + 2 <= len then
+                                                           let tz_h_str = String.sub s !pos 2 in
+                                                           match parse_int_opt tz_h_str with
+                                                           | Some tz_h ->
+                                                               pos := !pos + 2;
+                                                               let tz_m =
+                                                                 if !pos < len && s.[!pos] = ':' then (
+                                                                   pos := !pos + 1;
+                                                                   if !pos + 2 <= len then (
+                                                                     let tz_m_str = String.sub s !pos 2 in
+                                                                     pos := !pos + 2;
+                                                                     match parse_int_opt tz_m_str with
+                                                                     | Some m -> m
+                                                                     | None -> 0)
+                                                                   else 0)
+                                                                 else 0
+                                                               in
+                                                               tz_offset_ms :=
+                                                                 tz_sign
+                                                                 *. ((Float.of_int tz_h *. ms_per_hour)
+                                                                    +. (Float.of_int tz_m *. ms_per_minute))
+                                                           | None -> ()));
+                                                    (* Validate parsing succeeded *)
+                                                    if not !valid then None (* Validate hour 24 edge case *)
+                                                    else if
+                                                      hours_int = 24 && (minutes_int <> 0 || !seconds <> 0. || !ms <> 0.)
+                                                    then None
+                                                    else
+                                                      let result =
+                                                        utc ~year ~month ~day ~hours ~minutes ~seconds:!seconds ~ms:!ms
+                                                          ()
+                                                      in
+                                                      Some (result -. !tz_offset_ms)))))
+
+(** Parse legacy date formats (toString/toUTCString style). Examples:
+    - "Jan 1 2000"
+    - "Jan 1 2000 00:00:00"
+    - "Jan 1 2000 00:00:00 GMT"
+    - "Sat Jan 1 2000 00:00:00 GMT"
+    - "Jan 1 2000 00:00:00 GMT+0100" *)
+let parse_legacy s =
+  (* Skip optional weekday *)
+  let s =
+    let parts = String.split_on_char ' ' (String.trim s) in
+    match parts with
+    | day :: rest when List.mem day [ "Sun"; "Mon"; "Tue"; "Wed"; "Thu"; "Fri"; "Sat" ] -> String.concat " " rest
+    | _ -> s
+  in
+  let parts = String.split_on_char ' ' (String.trim s) in
+  match parts with
+  | [] -> None
+  | month_str :: day_str :: year_str :: rest -> (
+      (* Parse month name *)
+      let month_opt = Array.find_index (fun m -> String.equal m month_str) month_names |> Option.map Float.of_int in
+      match month_opt with
+      | None -> None
+      | Some month -> (
+          (* Parse day and year *)
+          match (parse_int_opt day_str, parse_int_opt year_str) with
+          | Some day_int, Some year_int ->
+              let day = Float.of_int day_int in
+              let year = Float.of_int year_int in
+              (* Parse optional time *)
+              let hours, minutes, seconds, tz_offset =
+                match rest with
+                | [] -> (0., 0., 0., 0.)
+                | time_str :: tz_rest -> (
+                    let time_parts = String.split_on_char ':' time_str in
+                    match time_parts with
+                    | [ h; m; s ] -> (
+                        match (parse_int_opt h, parse_int_opt m, parse_int_opt s) with
+                        | Some hi, Some mi, Some si ->
+                            let tz =
+                              match tz_rest with
+                              | [] -> 0.
+                              | tz_str :: _ ->
+                                  (* Parse GMT±HHMM *)
+                                  if String.length tz_str >= 3 && String.sub tz_str 0 3 = "GMT" then
+                                    let tz_part = String.sub tz_str 3 (String.length tz_str - 3) in
+                                    if String.length tz_part >= 5 then
+                                      let sign = if tz_part.[0] = '-' then -1. else 1. in
+                                      let h_str = String.sub tz_part 1 2 in
+                                      let m_str = String.sub tz_part 3 2 in
+                                      match (parse_int_opt h_str, parse_int_opt m_str) with
+                                      | Some h, Some m ->
+                                          sign *. ((Float.of_int h *. ms_per_hour) +. (Float.of_int m *. ms_per_minute))
+                                      | _ -> 0.
+                                    else 0.
+                                  else 0.
+                            in
+                            (Float.of_int hi, Float.of_int mi, Float.of_int si, tz)
+                        | _ -> (0., 0., 0., 0.))
+                    | _ -> (0., 0., 0., 0.))
+              in
+              let result = utc ~year ~month ~day ~hours ~minutes ~seconds () in
+              Some (result -. tz_offset)
+          | _ -> None))
+  | _ -> None
+
+(** Date.parse(string) - parses a date string and returns epoch ms (or NaN) *)
+let parse s =
+  let s = String.trim s in
+  if String.length s = 0 then nan
+  else match parse_iso8601 s with Some t -> t | None -> ( match parse_legacy s with Some t -> t | None -> nan)
+
+(** parseAsFloat - same as parse, for API compatibility *)
+let parseAsFloat = parse
+
+(* ===========================================================================
+   Additional constructors for API compatibility
+   =========================================================================== *)
+
+let make () = of_epoch_ms (now ())
+let fromFloat = of_epoch_ms
+let fromString s = of_epoch_ms (parse s)
+
+(** makeWith* - create Date with local time components *)
+let makeWithYM ~year ~month =
+  let y = if year >= 0. && year <= 99. then 1900. +. year else year in
+  let d = make_day ~year:y ~month ~date:1. in
+  let t = make_time ~hour:0. ~min:0. ~sec:0. ~ms:0. in
+  time_clip (local_to_utc (make_date ~day:d ~time:t))
+
+let makeWithYMD ~year ~month ~date =
+  let y = if year >= 0. && year <= 99. then 1900. +. year else year in
+  let d = make_day ~year:y ~month ~date in
+  let t = make_time ~hour:0. ~min:0. ~sec:0. ~ms:0. in
+  time_clip (local_to_utc (make_date ~day:d ~time:t))
+
+let makeWithYMDH ~year ~month ~date ~hours =
+  let y = if year >= 0. && year <= 99. then 1900. +. year else year in
+  let d = make_day ~year:y ~month ~date in
+  let t = make_time ~hour:hours ~min:0. ~sec:0. ~ms:0. in
+  time_clip (local_to_utc (make_date ~day:d ~time:t))
+
+let makeWithYMDHM ~year ~month ~date ~hours ~minutes =
+  let y = if year >= 0. && year <= 99. then 1900. +. year else year in
+  let d = make_day ~year:y ~month ~date in
+  let t = make_time ~hour:hours ~min:minutes ~sec:0. ~ms:0. in
+  time_clip (local_to_utc (make_date ~day:d ~time:t))
+
+let makeWithYMDHMS ~year ~month ~date ~hours ~minutes ~seconds =
+  let y = if year >= 0. && year <= 99. then 1900. +. year else year in
+  let d = make_day ~year:y ~month ~date in
+  let t = make_time ~hour:hours ~min:minutes ~sec:seconds ~ms:0. in
+  time_clip (local_to_utc (make_date ~day:d ~time:t))
+
+(** utcWith* - Date.UTC variants for API compatibility *)
+let utcWithYM ~year ~month = utc ~year ~month ()
+
+let utcWithYMD ~year ~month ~date = utc ~year ~month ~day:date ()
+let utcWithYMDH ~year ~month ~date ~hours = utc ~year ~month ~day:date ~hours ()
+let utcWithYMDHM ~year ~month ~date ~hours ~minutes = utc ~year ~month ~day:date ~hours ~minutes ()
+let utcWithYMDHMS ~year ~month ~date ~hours ~minutes ~seconds = utc ~year ~month ~day:date ~hours ~minutes ~seconds ()
+
+(* ===========================================================================
+   Setters - these return the new timestamp (JS mutates, but we keep it pure)
+   =========================================================================== *)
+
+(** setTime - sets the time value directly *)
+let setTime value _t = time_clip value
+
+(** setUTCMilliseconds *)
+let setUTCMilliseconds ms t =
+  if Float.is_nan t then nan
+  else
+    let day = day t in
+    let time = time_within_day t in
+    let new_time = time -. ms_from_time t +. Float.trunc ms in
+    time_clip (make_date ~day ~time:new_time)
+
+(** setUTCSeconds *)
+let setUTCSeconds sec t =
+  if Float.is_nan t then nan
+  else
+    let day = day t in
+    let time = time_within_day t in
+    let old_sec = sec_from_time t in
+    let new_time = time -. (old_sec *. ms_per_second) +. (Float.trunc sec *. ms_per_second) in
+    time_clip (make_date ~day ~time:new_time)
+
+let setUTCSecondsMs ~seconds ~milliseconds t =
+  let t = setUTCSeconds seconds t in
+  setUTCMilliseconds milliseconds t
+
+(** setUTCMinutes *)
+let setUTCMinutes min t =
+  if Float.is_nan t then nan
+  else
+    let day = day t in
+    let time = time_within_day t in
+    let old_min = min_from_time t in
+    let new_time = time -. (old_min *. ms_per_minute) +. (Float.trunc min *. ms_per_minute) in
+    time_clip (make_date ~day ~time:new_time)
+
+let setUTCMinutesS ~minutes ~seconds t =
+  let t = setUTCMinutes minutes t in
+  setUTCSeconds seconds t
+
+let setUTCMinutesSMs ~minutes ~seconds ~milliseconds t =
+  let t = setUTCMinutes minutes t in
+  let t = setUTCSeconds seconds t in
+  setUTCMilliseconds milliseconds t
+
+(** setUTCHours *)
+let setUTCHours hours t =
+  if Float.is_nan t then nan
+  else
+    let day = day t in
+    let time = time_within_day t in
+    let old_hours = hour_from_time t in
+    let new_time = time -. (old_hours *. ms_per_hour) +. (Float.trunc hours *. ms_per_hour) in
+    time_clip (make_date ~day ~time:new_time)
+
+let setUTCHoursM ~hours ~minutes t =
+  let t = setUTCHours hours t in
+  setUTCMinutes minutes t
+
+let setUTCHoursMS ~hours ~minutes ~seconds t =
+  let t = setUTCHours hours t in
+  let t = setUTCMinutes minutes t in
+  setUTCSeconds seconds t
+
+let setUTCHoursMSMs ~hours ~minutes ~seconds ~milliseconds t =
+  let t = setUTCHours hours t in
+  let t = setUTCMinutes minutes t in
+  let t = setUTCSeconds seconds t in
+  setUTCMilliseconds milliseconds t
+
+(** setUTCDate *)
+let setUTCDate date t =
+  if Float.is_nan t then nan
+  else
+    let year = year_from_time t in
+    let month = month_from_time t in
+    let day = make_day ~year ~month ~date:(Float.trunc date) in
+    let time = time_within_day t in
+    time_clip (make_date ~day ~time)
+
+(** setUTCMonth *)
+let setUTCMonth month t =
+  if Float.is_nan t then nan
+  else
+    let year = year_from_time t in
+    let date = date_from_time t in
+    let day = make_day ~year ~month:(Float.trunc month) ~date in
+    let time = time_within_day t in
+    time_clip (make_date ~day ~time)
+
+let setUTCMonthD ~month ~date t =
+  let t = setUTCMonth month t in
+  setUTCDate date t
+
+(** setUTCFullYear *)
+let setUTCFullYear year t =
+  let t = if Float.is_nan t then 0. else t in
+  let month = month_from_time t in
+  let date = date_from_time t in
+  let day = make_day ~year:(Float.trunc year) ~month ~date in
+  let time = time_within_day t in
+  time_clip (make_date ~day ~time)
+
+let setUTCFullYearM ~year ~month t =
+  let t = setUTCFullYear year t in
+  setUTCMonth month t
+
+let setUTCFullYearMD ~year ~month ~date t =
+  let t = setUTCFullYear year t in
+  let t = setUTCMonth month t in
+  setUTCDate date t
+
+(** setUTCTime - same as setTime *)
+let setUTCTime = setTime
+
+(* Local time setters - convert to local, modify, convert back *)
+
+let setMilliseconds ms t =
+  if Float.is_nan t then nan
+  else
+    let local = utc_to_local t in
+    let day = day local in
+    let time = time_within_day local in
+    let new_time = time -. ms_from_time local +. Float.trunc ms in
+    time_clip (local_to_utc (make_date ~day ~time:new_time))
+
+let setSeconds sec t =
+  if Float.is_nan t then nan
+  else
+    let local = utc_to_local t in
+    let day = day local in
+    let time = time_within_day local in
+    let old_sec = sec_from_time local in
+    let new_time = time -. (old_sec *. ms_per_second) +. (Float.trunc sec *. ms_per_second) in
+    time_clip (local_to_utc (make_date ~day ~time:new_time))
+
+let setSecondsMs ~seconds ~milliseconds t =
+  let t = setSeconds seconds t in
+  setMilliseconds milliseconds t
+
+let setMinutes min t =
+  if Float.is_nan t then nan
+  else
+    let local = utc_to_local t in
+    let day = day local in
+    let time = time_within_day local in
+    let old_min = min_from_time local in
+    let new_time = time -. (old_min *. ms_per_minute) +. (Float.trunc min *. ms_per_minute) in
+    time_clip (local_to_utc (make_date ~day ~time:new_time))
+
+let setMinutesS ~minutes ~seconds t =
+  let t = setMinutes minutes t in
+  setSeconds seconds t
+
+let setMinutesSMs ~minutes ~seconds ~milliseconds t =
+  let t = setMinutes minutes t in
+  let t = setSeconds seconds t in
+  setMilliseconds milliseconds t
+
+let setHours hours t =
+  if Float.is_nan t then nan
+  else
+    let local = utc_to_local t in
+    let day = day local in
+    let time = time_within_day local in
+    let old_hours = hour_from_time local in
+    let new_time = time -. (old_hours *. ms_per_hour) +. (Float.trunc hours *. ms_per_hour) in
+    time_clip (local_to_utc (make_date ~day ~time:new_time))
+
+let setHoursM ~hours ~minutes t =
+  let t = setHours hours t in
+  setMinutes minutes t
+
+let setHoursMS ~hours ~minutes ~seconds t =
+  let t = setHours hours t in
+  let t = setMinutes minutes t in
+  setSeconds seconds t
+
+let setHoursMSMs ~hours ~minutes ~seconds ~milliseconds t =
+  let t = setHours hours t in
+  let t = setMinutes minutes t in
+  let t = setSeconds seconds t in
+  setMilliseconds milliseconds t
+
+let setDate date t =
+  if Float.is_nan t then nan
+  else
+    let local = utc_to_local t in
+    let year = year_from_time local in
+    let month = month_from_time local in
+    let day = make_day ~year ~month ~date:(Float.trunc date) in
+    let time = time_within_day local in
+    time_clip (local_to_utc (make_date ~day ~time))
+
+let setMonth month t =
+  if Float.is_nan t then nan
+  else
+    let local = utc_to_local t in
+    let year = year_from_time local in
+    let date = date_from_time local in
+    let day = make_day ~year ~month:(Float.trunc month) ~date in
+    let time = time_within_day local in
+    time_clip (local_to_utc (make_date ~day ~time))
+
+let setMonthD ~month ~date t =
+  let t = setMonth month t in
+  setDate date t
+
+let setFullYear year t =
+  let t = if Float.is_nan t then 0. else t in
+  let local = utc_to_local t in
+  let month = month_from_time local in
+  let date = date_from_time local in
+  let day = make_day ~year:(Float.trunc year) ~month ~date in
+  let time = time_within_day local in
+  time_clip (local_to_utc (make_date ~day ~time))
+
+let setFullYearM ~year ~month t =
+  let t = setFullYear year t in
+  setMonth month t
+
+let setFullYearMD ~year ~month ~date t =
+  let t = setFullYear year t in
+  let t = setMonth month t in
+  setDate date t

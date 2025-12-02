@@ -1,11 +1,6 @@
-(env
- (dev
-  (flags
-   (:standard -w -27))))
-
 (library
  (name js)
  (public_name server-reason-react.js)
- (libraries quickjs lwt str uucp zarith)
+ (libraries quickjs lwt str uucp zarith unix)
  (preprocess
   (pps lwt_ppx)))

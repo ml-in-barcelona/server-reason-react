@@ -641,12 +641,18 @@ let () =
          ("Test262.BigInt.Comparison", Test262.Bigint_tests.Comparison.tests);
          ("Test262.BigInt.Constructor", Test262.Bigint_tests.Constructor.tests);
          ("Test262.BigInt.Conversion", Test262.Bigint_tests.Conversion.tests);
+         ("Test262.BigInt.AsIntN", Test262.Bigint_tests.As_int_n.tests);
+         ("Test262.BigInt.AsUintN", Test262.Bigint_tests.As_uint_n.tests);
+         ("Test262.BigInt.Prototype", Test262.Bigint_tests.Prototype.tests);
          (* Test262 - Date *)
-         (* ("Test262.Date.Getters", Test262.Date_tests.Getters.tests);
+         ("Test262.Date.Getters", Test262.Date_tests.Getters.tests);
+         ("Test262.Date.LocalGetters", Test262.Date_tests.Local_getters.tests);
+         ("Test262.Date.Setters", Test262.Date_tests.Setters.tests);
+         ("Test262.Date.ToString", Test262.Date_tests.To_string.tests);
          ("Test262.Date.Now", Test262.Date_tests.Now.tests);
          ("Test262.Date.Parse", Test262.Date_tests.Parse.tests);
          ("Test262.Date.ToISOString", Test262.Date_tests.To_iso_string.tests);
-         ("Test262.Date.UTC", Test262.Date_tests.Utc.tests); *)
+         ("Test262.Date.UTC", Test262.Date_tests.Utc.tests);
          (* Test262 - Number *)
          (* ("Test262.Number.IsFinite", Test262.Number_tests.Is_finite.tests);
          ("Test262.Number.IsInteger", Test262.Number_tests.Is_integer.tests);
