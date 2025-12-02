@@ -137,3 +137,74 @@ let encodeURI = URI.encode_uri ~component:false
 let decodeURI = URI.decode_uri ~component:false
 let encodeURIComponent = URI.encode_uri ~component:true
 let decodeURIComponent = URI.decode_uri ~component:true
+
+let is_js_whitespace c =
+  (* JavaScript whitespace characters per ECMAScript spec *)
+  match c with
+  | '\x09' (* Tab *)
+  | '\x0A' (* Line feed *)
+  | '\x0B' (* Vertical tab *)
+  | '\x0C' (* Form feed *)
+  | '\x0D' (* Carriage return *)
+  | '\x20' (* Space *)
+  | '\xA0' (* No-break space (Latin-1 encoded) *) ->
+      true
+  | _ -> false
+
+let strip_leading_js_whitespace str =
+  (* Strip leading JavaScript whitespace from string *)
+  let len = String.length str in
+  let rec find_start i =
+    if i >= len then len
+    else
+      let c = String.get str i in
+      if is_js_whitespace c then find_start (i + 1)
+      else if c = '\xC2' && i + 1 < len && String.get str (i + 1) = '\xA0' then
+        (* UTF-8 encoded non-breaking space U+00A0 *)
+        find_start (i + 2)
+      else if c = '\xEF' && i + 2 < len && String.get str (i + 1) = '\xBB' && String.get str (i + 2) = '\xBF' then
+        (* UTF-8 BOM *)
+        find_start (i + 3)
+      else i
+  in
+  let start = find_start 0 in
+  if start >= len then "" else String.sub str start (len - start)
+
+let parseFloat str =
+  (* JavaScript's parseFloat behavior:
+     - Skip leading whitespace (JS whitespace, not just ASCII)
+     - Parse as much as valid number as possible
+     - Return NaN if no valid number at start *)
+  let trimmed = strip_leading_js_whitespace str in
+  match Quickjs.Global.parse_float trimmed with
+  | Some f -> f
+  | None -> nan
+
+let parseInt ?radix str =
+  (* JavaScript's parseInt behavior:
+     - Skip leading whitespace (JS whitespace, not just ASCII)
+     - Auto-detect hex from 0x/0X prefix when radix not specified
+     - Does NOT accept 0o/0b prefixes (unlike ES6 literals)
+     - Parse as much as valid number as possible
+     - Return NaN if no valid number at start *)
+  let trimmed = strip_leading_js_whitespace str in
+  let radix =
+    match radix with
+    | Some r -> Some r
+    | None ->
+        (* Check for 0x/0X prefix for hex auto-detection *)
+        let len = String.length trimmed in
+        if len >= 2 then
+          let first = String.get trimmed 0 in
+          let second = String.get trimmed 1 in
+          if (first = '0' && (second = 'x' || second = 'X')) then Some 16
+          else if (first = '-' || first = '+') && len >= 3 then
+            let third = String.get trimmed 2 in
+            if String.get trimmed 1 = '0' && (third = 'x' || third = 'X') then Some 16
+            else None
+          else None
+        else None
+  in
+  match Quickjs.Global.parse_int ?radix trimmed with
+  | Some i -> Float.of_int i
+  | None -> nan

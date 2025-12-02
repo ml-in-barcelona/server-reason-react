@@ -2,7 +2,13 @@
 
 module BigInt = Js.Bigint
 module Date = Js.Date
-module Number = Js.Float
+
+module Number = struct
+  include Js.Float
+
+  let parseFloat = Js.Global.parseFloat
+  let parseInt = Js.Global.parseInt
+end
 
 let test title fn = Alcotest_lwt.test_case_sync title `Quick fn
 let test_async title fn = Alcotest_lwt.test_case title `Quick fn

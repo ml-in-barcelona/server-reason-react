@@ -28,3 +28,10 @@ val encodeURI : string -> string
 val decodeURI : string -> string
 val encodeURIComponent : string -> string
 val decodeURIComponent : string -> string
+
+val parseFloat : string -> float
+(** Parses a string and returns a floating point number. Returns NaN if parsing fails. *)
+
+val parseInt : ?radix:int -> string -> float
+(** Parses a string and returns an integer. Returns NaN if parsing fails.
+    @param radix The base (2-36) to use for parsing. Default is 10. *)

@@ -31,7 +31,7 @@ val localeCompare : other:t -> t -> float
 val match_ : regexp:Js_re.t -> t -> t Js_internal.nullable array Js_internal.nullable
 
 val normalize : ?form:[ `NFC | `NFD | `NFKC | `NFKD ] -> t -> t
-[@@alert not_implemented "is not implemented in native under server-reason-react.js"]
+(** Returns the Unicode Normalization Form of a string. *)
 
 val repeat : count:int -> t -> t
 val replace : search:t -> replacement:t -> t -> t
@@ -50,7 +50,7 @@ val unsafeReplaceBy3 : regexp:Js_re.t -> f:(t -> t -> t -> t -> int -> t -> t) -
 [@@alert not_implemented "is not implemented in native under server-reason-react.js"]
 
 val search : regexp:Js_re.t -> t -> int
-[@@alert not_implemented "is not implemented in native under server-reason-react.js"]
+(** Searches for a match in a string. Returns the index of the first match, or -1 if not found. *)
 
 val slice : ?start:int -> ?end_:int -> t -> t
 val split : ?sep:t -> ?limit:int -> t -> t array

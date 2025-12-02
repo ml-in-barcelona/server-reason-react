@@ -100,7 +100,15 @@ let match_ ~regexp str =
 
   if Js_re.global regexp then match_all str regexp else match_next str regexp
 
-let normalize ?form:_ _ = Js_internal.notImplemented "Js.String" "normalize"
+let normalize ?(form = `NFC) str =
+  let normalization =
+    match form with
+    | `NFC -> Quickjs.String.NFC
+    | `NFD -> Quickjs.String.NFD
+    | `NFKC -> Quickjs.String.NFKC
+    | `NFKD -> Quickjs.String.NFKD
+  in
+  match Quickjs.String.Prototype.normalize normalization str with Some s -> s | None -> str
 
 (* TODO(davesnx): RangeError *)
 let repeat ~count str =
@@ -146,7 +154,21 @@ let unsafeReplaceBy0 ~regexp:_ ~f:_ _ = Js_internal.notImplemented "Js.String" "
 let unsafeReplaceBy1 ~regexp:_ ~f:_ _ = Js_internal.notImplemented "Js.String" "unsafeReplaceBy1"
 let unsafeReplaceBy2 ~regexp:_ ~f:_ _ = Js_internal.notImplemented "Js.String" "unsafeReplaceBy2"
 let unsafeReplaceBy3 ~regexp:_ ~f:_ _ = Js_internal.notImplemented "Js.String" "unsafeReplaceBy3"
-let search ~regexp:_ _ = Js_internal.notImplemented "Js.String" "search"
+let search ~regexp str =
+  (* Save and reset lastIndex for consistent behavior *)
+  let saved_last_index = Js_re.lastIndex regexp in
+  Js_re.setLastIndex regexp 0;
+  let result =
+    if Js_re.test ~str regexp then (
+      (* Reset lastIndex again since test modified it *)
+      Js_re.setLastIndex regexp 0;
+      match Js_re.exec ~str regexp with
+      | Some result -> Js_re.index result
+      | None -> -1)
+    else -1
+  in
+  Js_re.setLastIndex regexp saved_last_index;
+  result
 
 let slice ?start ?end_ str =
   let str_length = Stdlib.String.length str in

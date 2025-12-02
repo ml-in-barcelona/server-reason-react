@@ -16,11 +16,15 @@ let source : t -> string = Quickjs.RegExp.source
 
 let fromString : string -> t =
  fun str ->
-  match Quickjs.RegExp.compile str ~flags:"" with Ok regex -> regex | Error (_, msg) -> raise (Invalid_argument msg)
+  match Quickjs.RegExp.compile str ~flags:"" with
+  | Ok regex -> regex
+  | Error err -> raise (Invalid_argument (Quickjs.RegExp.compile_error_to_string err))
 
 let fromStringWithFlags : string -> flags:string -> t =
  fun str ~flags ->
-  match Quickjs.RegExp.compile str ~flags with Ok regex -> regex | Error (_, msg) -> raise (Invalid_argument msg)
+  match Quickjs.RegExp.compile str ~flags with
+  | Ok regex -> regex
+  | Error err -> raise (Invalid_argument (Quickjs.RegExp.compile_error_to_string err))
 
 let flags : t -> string = fun regexp -> Quickjs.RegExp.flags regexp
 let global : t -> bool = fun regexp -> Quickjs.RegExp.global regexp
@@ -28,6 +32,7 @@ let ignoreCase : t -> bool = fun regexp -> Quickjs.RegExp.ignorecase regexp
 let multiline : t -> bool = fun regexp -> Quickjs.RegExp.multiline regexp
 let sticky : t -> bool = fun regexp -> Quickjs.RegExp.sticky regexp
 let unicode : t -> bool = fun regexp -> Quickjs.RegExp.unicode regexp
+let dotAll : t -> bool = fun regexp -> Quickjs.RegExp.dotall regexp
 let lastIndex : t -> int = fun regex -> Quickjs.RegExp.lastIndex regex
 let setLastIndex : t -> int -> unit = fun regex index -> Quickjs.RegExp.setLastIndex regex index
 
@@ -36,3 +41,7 @@ let exec : str:string -> t -> result option =
 
 let test_ : t -> string -> bool = fun regexp str -> Quickjs.RegExp.test regexp str
 let test : str:string -> t -> bool = fun ~str regex -> test_ regex str
+
+(* Named capture groups *)
+let groups : result -> (string * string) list = Quickjs.RegExp.groups
+let group : string -> result -> string option = Quickjs.RegExp.group

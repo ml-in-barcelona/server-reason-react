@@ -654,9 +654,19 @@ let () =
          ("Test262.Date.ToISOString", Test262.Date_tests.To_iso_string.tests);
          ("Test262.Date.UTC", Test262.Date_tests.Utc.tests);
          (* Test262 - Number *)
-         (* ("Test262.Number.IsFinite", Test262.Number_tests.Is_finite.tests);
+         ("Test262.Number.IsFinite", Test262.Number_tests.Is_finite.tests);
          ("Test262.Number.IsInteger", Test262.Number_tests.Is_integer.tests);
          ("Test262.Number.IsNaN", Test262.Number_tests.Is_nan.tests);
          ("Test262.Number.ParseFloat", Test262.Number_tests.Parse_float.tests);
-         ("Test262.Number.ParseInt", Test262.Number_tests.Parse_int.tests); *)
+         ("Test262.Number.ParseInt", Test262.Number_tests.Parse_int.tests);
+         ("Test262.Number.ToString", Test262.Number_tests.To_string.tests);
+         ("Test262.Number.ToExponential", Test262.Number_tests.To_exponential.tests);
+         ("Test262.Number.ToPrecision", Test262.Number_tests.To_precision.tests);
+         (* Test262 - String *)
+         ("Test262.String.Normalize", Test262.String_tests.Normalize.tests);
+         ("Test262.String.Search", Test262.String_tests.Search.tests);
+         (* Test262 - RegExp *)
+         ("Test262.RegExp.NamedGroups", Test262.Regexp_tests.Named_groups.tests);
+         ("Test262.RegExp.DotAll", Test262.Regexp_tests.Dotall.tests);
+         ("Test262.RegExp.Unicode", Test262.Regexp_tests.Unicode.tests);
        ]
