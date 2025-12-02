@@ -622,7 +622,8 @@ type any_promise = Any_promise : 'a Lwt.t -> any_promise
 
 exception Suspend of any_promise
 
-(* val memo : ('props * 'props -> bool) -> 'a -> 'props * 'props -> bool *)
+val memo : ('props * 'props -> bool) -> 'a -> 'props * 'props -> bool
+val memoCustomCompareProps : ('props * 'props -> bool) -> ('props * 'props -> bool) -> 'a -> 'props * 'props -> bool
 val useContext : 'a Context.t -> 'a
 val useState : (unit -> 'state) -> 'state * (('state -> 'state) -> unit)
 val useMemo : (unit -> 'a) -> 'a

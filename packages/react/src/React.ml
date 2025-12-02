@@ -527,9 +527,8 @@ module Suspense = struct
     Suspense { key; fallback = or_react_null fallback; children = or_react_null children }
 end
 
-(* let memo f : 'props * 'props -> bool = f
-   let memoCustomCompareProps f _compare : 'props * 'props -> bool = f *)
-
+let memo f _component = f
+let memoCustomCompareProps f _compare _component = f
 let useContext (context : 'a Context.t) = context.current_value.current
 
 let useState (make_initial_value : unit -> 'state) =
