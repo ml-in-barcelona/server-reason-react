@@ -176,9 +176,7 @@ let parseFloat str =
      - Parse as much as valid number as possible
      - Return NaN if no valid number at start *)
   let trimmed = strip_leading_js_whitespace str in
-  match Quickjs.Global.parse_float trimmed with
-  | Some f -> f
-  | None -> nan
+  match Quickjs.Global.parse_float trimmed with Some f -> f | None -> nan
 
 let parseInt ?radix str =
   (* JavaScript's parseInt behavior:
@@ -197,14 +195,11 @@ let parseInt ?radix str =
         if len >= 2 then
           let first = String.get trimmed 0 in
           let second = String.get trimmed 1 in
-          if (first = '0' && (second = 'x' || second = 'X')) then Some 16
+          if first = '0' && (second = 'x' || second = 'X') then Some 16
           else if (first = '-' || first = '+') && len >= 3 then
             let third = String.get trimmed 2 in
-            if String.get trimmed 1 = '0' && (third = 'x' || third = 'X') then Some 16
-            else None
+            if String.get trimmed 1 = '0' && (third = 'x' || third = 'X') then Some 16 else None
           else None
         else None
   in
-  match Quickjs.Global.parse_int ?radix trimmed with
-  | Some i -> Float.of_int i
-  | None -> nan
+  match Quickjs.Global.parse_int ?radix trimmed with Some i -> Float.of_int i | None -> nan

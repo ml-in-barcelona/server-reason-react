@@ -85,8 +85,7 @@ let very_large_numbers () =
   assert_string (Number.toExponential ~digits:2 1e10) "1.00e+10";
   assert_string (Number.toExponential ~digits:2 1e20) "1.00e+20"
 
-let negative_zero () =
-  assert_string (Number.toExponential ~digits:0 (-0.0)) "0e+0"
+let negative_zero () = assert_string (Number.toExponential ~digits:0 (-0.0)) "0e+0"
 
 let tests =
   [
@@ -109,4 +108,3 @@ let tests =
     test "very large numbers" very_large_numbers;
     test "negative zero" negative_zero;
   ]
-

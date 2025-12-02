@@ -17,6 +17,7 @@ let assert_string_equal left right = Alcotest.check Alcotest.string "should be e
 let assert_int left right = Alcotest.check Alcotest.int "should be equal" right left
 let assert_float left right = Alcotest.check (Alcotest.float 2.) "should be equal" right left
 let assert_float_exact left right = Alcotest.check (Alcotest.float 0.) "should be equal" right left
+
 (* assert_bool for comparing boolean values - compatible with existing tests *)
 let assert_bool left right = Alcotest.check Alcotest.bool "should be equal" right left
 

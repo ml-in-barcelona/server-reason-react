@@ -5,6 +5,7 @@ type t = float
 val _NaN : t
 val isNaN : t -> bool
 val isFinite : t -> bool
+
 val isInteger : t -> bool
 (** Returns true if the value is a finite number with no fractional part *)
 

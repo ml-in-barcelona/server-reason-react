@@ -119,4 +119,3 @@ let tests =
     test "practical: multiline content" multiline_content;
     test "practical: without flag fails" no_dotall_multiline_fail;
   ]
-

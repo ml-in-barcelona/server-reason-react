@@ -2,11 +2,10 @@
 
     Based on: https://github.com/tc39/test262/tree/main/test/built-ins/Date/prototype/set*
 
-    Tests for setters: setDate, setFullYear, setHours, setMinutes, setSeconds,
-    setMilliseconds, setMonth, setTime and their UTC variants *)
+    Tests for setters: setDate, setFullYear, setHours, setMinutes, setSeconds, setMilliseconds, setMonth, setTime and
+    their UTC variants *)
 
 open Helpers
-
 module Date = Js.Date
 
 (* ===================================================================
@@ -468,4 +467,3 @@ let tests =
     test "setMonth NaN" set_month_nan;
     test "setFullYear NaN" set_full_year_nan;
   ]
-

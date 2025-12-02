@@ -2,11 +2,9 @@
 
     Based on: https://github.com/tc39/test262/tree/main/test/built-ins/BigInt/prototype
 
-    Tests for BigInt.prototype.toString, BigInt.prototype.valueOf,
-    BigInt.prototype.toLocaleString *)
+    Tests for BigInt.prototype.toString, BigInt.prototype.valueOf, BigInt.prototype.toLocaleString *)
 
 open Helpers
-
 module BigInt = Js.Bigint
 
 (* ===================================================================
@@ -115,7 +113,8 @@ let to_float_small () =
 
 let to_float_large () =
   (* Large numbers may lose precision *)
-  let large = BigInt.of_string "9007199254740992" in (* 2^53 *)
+  let large = BigInt.of_string "9007199254740992" in
+  (* 2^53 *)
   let f = BigInt.to_float large in
   assert_true "large to_float is finite" (Float.is_finite f)
 
@@ -221,4 +220,3 @@ let tests =
     test "compare negative" compare_negative;
     test "compare large" compare_large;
   ]
-

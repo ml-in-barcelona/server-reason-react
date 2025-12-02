@@ -2,11 +2,10 @@
 
     Based on: https://github.com/tc39/test262/tree/main/test/built-ins/Date/prototype/get*
 
-    Tests for local time getters: getDate, getDay, getFullYear, getHours,
-    getMinutes, getSeconds, getMilliseconds, getMonth, getTime, getTimezoneOffset *)
+    Tests for local time getters: getDate, getDay, getFullYear, getHours, getMinutes, getSeconds, getMilliseconds,
+    getMonth, getTime, getTimezoneOffset *)
 
 open Helpers
-
 module Date = Js.Date
 
 (* ===================================================================
@@ -22,15 +21,13 @@ let get_time_basic () =
   let d = Date.utc ~year:2017. ~month:9. ~day:22. ~hours:18. ~minutes:10. ~seconds:11. ~ms:91. () in
   assert_float_exact (Date.getTime d) 1508695811091.
 
-let get_time_epoch () =
-  assert_float_exact (Date.getTime 0.) 0.
+let get_time_epoch () = assert_float_exact (Date.getTime 0.) 0.
 
 let get_time_negative () =
   (* 1969-12-31T23:59:59.000Z = -1000 ms *)
   assert_float_exact (Date.getTime (-1000.)) (-1000.)
 
-let get_time_nan () =
-  assert_nan (Date.getTime nan)
+let get_time_nan () = assert_nan (Date.getTime nan)
 
 (* ===================================================================
    valueOf tests - should be identical to getTime
@@ -40,11 +37,8 @@ let valueof_basic () =
   let d = Date.utc ~year:2017. ~month:9. ~day:22. ~hours:18. ~minutes:10. ~seconds:11. ~ms:91. () in
   assert_float_exact (Date.valueOf d) 1508695811091.
 
-let valueof_epoch () =
-  assert_float_exact (Date.valueOf 0.) 0.
-
-let valueof_nan () =
-  assert_nan (Date.valueOf nan)
+let valueof_epoch () = assert_float_exact (Date.valueOf 0.) 0.
+let valueof_nan () = assert_nan (Date.valueOf nan)
 
 let valueof_equals_gettime () =
   let d = Date.utc ~year:2020. ~month:5. ~day:15. ~hours:12. ~minutes:30. () in
@@ -58,15 +52,13 @@ let get_utc_full_year_2017 () =
   let d = Date.utc ~year:2017. ~month:9. ~day:22. () in
   assert_float_exact (Date.getUTCFullYear d) 2017.
 
-let get_utc_full_year_1970 () =
-  assert_float_exact (Date.getUTCFullYear 0.) 1970.
+let get_utc_full_year_1970 () = assert_float_exact (Date.getUTCFullYear 0.) 1970.
 
 let get_utc_full_year_1969 () =
   let d = Date.utc ~year:1969. ~month:11. ~day:31. ~hours:23. ~minutes:59. ~seconds:59. () in
   assert_float_exact (Date.getUTCFullYear d) 1969.
 
-let get_utc_full_year_nan () =
-  assert_nan (Date.getUTCFullYear nan)
+let get_utc_full_year_nan () = assert_nan (Date.getUTCFullYear nan)
 
 let get_utc_full_year_y2k () =
   let d = Date.utc ~year:2000. ~month:0. ~day:1. () in
@@ -88,11 +80,8 @@ let get_utc_month_december () =
   let d = Date.utc ~year:2020. ~month:11. ~day:25. () in
   assert_float_exact (Date.getUTCMonth d) 11.
 
-let get_utc_month_nan () =
-  assert_nan (Date.getUTCMonth nan)
-
-let get_utc_month_epoch () =
-  assert_float_exact (Date.getUTCMonth 0.) 0.
+let get_utc_month_nan () = assert_nan (Date.getUTCMonth nan)
+let get_utc_month_epoch () = assert_float_exact (Date.getUTCMonth 0.) 0.
 
 (* ===================================================================
    getUTCDate tests
@@ -106,11 +95,8 @@ let get_utc_date_31st () =
   let d = Date.utc ~year:2020. ~month:0. ~day:31. () in
   assert_float_exact (Date.getUTCDate d) 31.
 
-let get_utc_date_nan () =
-  assert_nan (Date.getUTCDate nan)
-
-let get_utc_date_epoch () =
-  assert_float_exact (Date.getUTCDate 0.) 1.
+let get_utc_date_nan () = assert_nan (Date.getUTCDate nan)
+let get_utc_date_epoch () = assert_float_exact (Date.getUTCDate 0.) 1.
 
 (* ===================================================================
    getUTCDay tests (day of week)
@@ -130,8 +116,7 @@ let get_utc_day_saturday () =
   let d = Date.utc ~year:2021. ~month:0. ~day:2. () in
   assert_float_exact (Date.getUTCDay d) 6.
 
-let get_utc_day_nan () =
-  assert_nan (Date.getUTCDay nan)
+let get_utc_day_nan () = assert_nan (Date.getUTCDay nan)
 
 (* ===================================================================
    getUTCHours tests
@@ -145,11 +130,8 @@ let get_utc_hours_23 () =
   let d = Date.utc ~year:2020. ~month:5. ~day:15. ~hours:23. () in
   assert_float_exact (Date.getUTCHours d) 23.
 
-let get_utc_hours_nan () =
-  assert_nan (Date.getUTCHours nan)
-
-let get_utc_hours_epoch () =
-  assert_float_exact (Date.getUTCHours 0.) 0.
+let get_utc_hours_nan () = assert_nan (Date.getUTCHours nan)
+let get_utc_hours_epoch () = assert_float_exact (Date.getUTCHours 0.) 0.
 
 (* ===================================================================
    getUTCMinutes tests
@@ -163,8 +145,7 @@ let get_utc_minutes_59 () =
   let d = Date.utc ~year:2020. ~month:5. ~day:15. ~hours:12. ~minutes:59. () in
   assert_float_exact (Date.getUTCMinutes d) 59.
 
-let get_utc_minutes_nan () =
-  assert_nan (Date.getUTCMinutes nan)
+let get_utc_minutes_nan () = assert_nan (Date.getUTCMinutes nan)
 
 (* ===================================================================
    getUTCSeconds tests
@@ -178,8 +159,7 @@ let get_utc_seconds_59 () =
   let d = Date.utc ~year:2020. ~month:5. ~day:15. ~hours:12. ~minutes:30. ~seconds:59. () in
   assert_float_exact (Date.getUTCSeconds d) 59.
 
-let get_utc_seconds_nan () =
-  assert_nan (Date.getUTCSeconds nan)
+let get_utc_seconds_nan () = assert_nan (Date.getUTCSeconds nan)
 
 (* ===================================================================
    getUTCMilliseconds tests
@@ -193,8 +173,7 @@ let get_utc_ms_999 () =
   let d = Date.utc ~year:2020. ~month:5. ~day:15. ~hours:12. ~minutes:30. ~seconds:45. ~ms:999. () in
   assert_float_exact (Date.getUTCMilliseconds d) 999.
 
-let get_utc_ms_nan () =
-  assert_nan (Date.getUTCMilliseconds nan)
+let get_utc_ms_nan () = assert_nan (Date.getUTCMilliseconds nan)
 
 let get_utc_ms_middle () =
   let d = Date.utc ~year:2020. ~month:5. ~day:15. ~hours:12. ~minutes:30. ~seconds:45. ~ms:456. () in
@@ -211,8 +190,7 @@ let get_timezone_offset_returns_number () =
   (* Offset should be a finite number *)
   assert_true "timezone offset should be finite" (Float.is_finite offset)
 
-let get_timezone_offset_nan () =
-  assert_nan (Date.getTimezoneOffset nan)
+let get_timezone_offset_nan () = assert_nan (Date.getTimezoneOffset nan)
 
 let get_timezone_offset_range () =
   let d = Date.utc ~year:2020. ~month:5. ~day:15. () in
@@ -356,4 +334,3 @@ let tests =
     test "getters large negative date" getters_large_negative_date;
     test "getters boundary milliseconds" getters_boundary_milliseconds;
   ]
-

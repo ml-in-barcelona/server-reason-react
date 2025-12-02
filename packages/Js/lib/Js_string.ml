@@ -160,9 +160,9 @@ let process_replacement ~replacement ~matches ~prefix ~suffix =
               | _ -> (Char.code next - Char.code '0', 2)
             else (Char.code next - Char.code '0', 2)
           in
-          if group_num > 0 && group_num < Array.length matches then (
+          if group_num > 0 && group_num < Array.length matches then
             let group_value = Stdlib.Array.get matches group_num |> Option.value ~default:"" in
-            Buffer.add_string buf group_value)
+            Buffer.add_string buf group_value
           else (
             (* Invalid group reference, keep as literal *)
             Buffer.add_char buf '$';
@@ -214,6 +214,7 @@ let unsafeReplaceBy0 ~regexp:_ ~f:_ _ = Js_internal.notImplemented "Js.String" "
 let unsafeReplaceBy1 ~regexp:_ ~f:_ _ = Js_internal.notImplemented "Js.String" "unsafeReplaceBy1"
 let unsafeReplaceBy2 ~regexp:_ ~f:_ _ = Js_internal.notImplemented "Js.String" "unsafeReplaceBy2"
 let unsafeReplaceBy3 ~regexp:_ ~f:_ _ = Js_internal.notImplemented "Js.String" "unsafeReplaceBy3"
+
 let search ~regexp str =
   (* Save and reset lastIndex for consistent behavior *)
   let saved_last_index = Js_re.lastIndex regexp in
@@ -222,9 +223,7 @@ let search ~regexp str =
     if Js_re.test ~str regexp then (
       (* Reset lastIndex again since test modified it *)
       Js_re.setLastIndex regexp 0;
-      match Js_re.exec ~str regexp with
-      | Some result -> Js_re.index result
-      | None -> -1)
+      match Js_re.exec ~str regexp with Some result -> Js_re.index result | None -> -1)
     else -1
   in
   Js_re.setLastIndex regexp saved_last_index;

@@ -18,9 +18,11 @@ open Helpers
 
 let default_form () =
   (* Without form argument, NFC is used *)
-  let composed = "café" in (* é as single codepoint U+00E9 *)
+  let composed = "café" in
+  (* é as single codepoint U+00E9 *)
   assert_string (Js.String.normalize composed) composed;
-  let decomposed = "cafe\u{0301}" in (* e + combining acute accent *)
+  let decomposed = "cafe\u{0301}" in
+  (* e + combining acute accent *)
   assert_string (Js.String.normalize decomposed) composed
 
 let empty_string () = assert_string (Js.String.normalize "") ""
@@ -34,13 +36,15 @@ let ascii_unchanged () =
    =================================================================== *)
 
 let nfc_basic () =
-  let decomposed = "e\u{0301}" in (* e + combining acute *)
+  let decomposed = "e\u{0301}" in
+  (* e + combining acute *)
   let composed = "é" in
   assert_string (Js.String.normalize ~form:`NFC decomposed) composed
 
 let nfc_multiple_accents () =
   (* Multiple combining characters *)
-  let decomposed = "e\u{0301}\u{0327}" in (* e + acute + cedilla *)
+  let decomposed = "e\u{0301}\u{0327}" in
+  (* e + acute + cedilla *)
   let result = Js.String.normalize ~form:`NFC decomposed in
   (* Result varies by Unicode version, just check it's normalized *)
   assert_true "NFC result not empty" (String.length result > 0)
@@ -50,7 +54,8 @@ let nfc_multiple_accents () =
    =================================================================== *)
 
 let nfd_basic () =
-  let composed = "é" in (* U+00E9 *)
+  let composed = "é" in
+  (* U+00E9 *)
   let decomposed = "e\u{0301}" in
   assert_string (Js.String.normalize ~form:`NFD composed) decomposed
 
@@ -92,12 +97,14 @@ let nfkd_with_accents () =
 
 let hangul_syllable () =
   (* Korean syllable normalization *)
-  let syllable = "가" in (* U+AC00 *)
+  let syllable = "가" in
+  (* U+AC00 *)
   assert_string (Js.String.normalize ~form:`NFC syllable) syllable
 
 let combining_sequences () =
   (* Canonical ordering of combining marks *)
-  let text = "a\u{0308}\u{0323}" in (* a + umlaut + dot below *)
+  let text = "a\u{0308}\u{0323}" in
+  (* a + umlaut + dot below *)
   let result = Js.String.normalize ~form:`NFC text in
   assert_true "NFC combining sequence" (String.length result > 0)
 
@@ -123,4 +130,3 @@ let tests =
     test "Hangul syllable" hangul_syllable;
     test "combining sequences" combining_sequences;
   ]
-

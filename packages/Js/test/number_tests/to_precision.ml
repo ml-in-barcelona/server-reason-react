@@ -86,8 +86,7 @@ let zero_handling () =
   assert_string (Number.toPrecision ~digits:2 0.0) "0.0";
   assert_string (Number.toPrecision ~digits:5 0.0) "0.0000"
 
-let negative_zero () =
-  assert_string (Number.toPrecision ~digits:1 (-0.0)) "0"
+let negative_zero () = assert_string (Number.toPrecision ~digits:1 (-0.0)) "0"
 
 let very_small_numbers () =
   assert_string (Number.toPrecision ~digits:2 0.0001) "0.00010";
@@ -119,4 +118,3 @@ let tests =
     test "very small numbers" very_small_numbers;
     test "very large numbers" very_large_numbers;
   ]
-

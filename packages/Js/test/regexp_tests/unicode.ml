@@ -118,4 +118,3 @@ let tests =
     test "practical: international" international_text;
     test "practical: mixed scripts" mixed_scripts;
   ]
-

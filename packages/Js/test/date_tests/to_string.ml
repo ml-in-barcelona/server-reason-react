@@ -8,7 +8,6 @@
     Tests for toString, toDateString, toTimeString, toUTCString *)
 
 open Helpers
-
 module Date = Js.Date
 
 (* ===================================================================
@@ -47,24 +46,27 @@ let to_utc_string_negative_year () =
 
 let to_utc_string_months () =
   (* Test all month abbreviations *)
-  let months = ["Jan"; "Feb"; "Mar"; "Apr"; "May"; "Jun"; "Jul"; "Aug"; "Sep"; "Oct"; "Nov"; "Dec"] in
+  let months = [ "Jan"; "Feb"; "Mar"; "Apr"; "May"; "Jun"; "Jul"; "Aug"; "Sep"; "Oct"; "Nov"; "Dec" ] in
   List.iteri
     (fun i expected_month ->
       let d = Date.utc ~year:2020. ~month:(Float.of_int i) ~day:15. () in
       let s = Date.toUTCString d in
       assert_true
         (Printf.sprintf "month %d contains %s" i expected_month)
-        (String.length s > 0 &&
-         try
-           let _ = Str.search_forward (Str.regexp expected_month) s 0 in
-           true
-         with Not_found -> false))
+        (String.length s > 0
+        &&
+        try
+          let _ = Str.search_forward (Str.regexp expected_month) s 0 in
+          true
+        with Not_found -> false))
     months
 
 let to_utc_string_day_names () =
   (* Test that different days of week produce correct names *)
-  let d_sunday = Date.utc ~year:2021. ~month:0. ~day:3. () in (* Sunday *)
-  let d_monday = Date.utc ~year:2021. ~month:0. ~day:4. () in (* Monday *)
+  let d_sunday = Date.utc ~year:2021. ~month:0. ~day:3. () in
+  (* Sunday *)
+  let d_monday = Date.utc ~year:2021. ~month:0. ~day:4. () in
+  (* Monday *)
   let s_sun = Date.toUTCString d_sunday in
   let s_mon = Date.toUTCString d_monday in
   assert_true "Sunday starts with Sun" (String.sub s_sun 0 3 = "Sun");
@@ -290,4 +292,3 @@ let tests =
     test "toString negative year" to_string_negative_year;
     test "toUTCString Y2K" to_utc_string_y2k;
   ]
-

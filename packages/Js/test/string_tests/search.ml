@@ -138,4 +138,3 @@ let tests =
     test "edge: special regex chars" special_regex_chars;
     test "edge: newline" newline;
   ]
-

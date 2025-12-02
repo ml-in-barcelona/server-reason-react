@@ -82,16 +82,14 @@ let named_group_with_quantifiers () =
   let result = Js.Re.exec ~str:"abc123def" re in
   match result with
   | None -> Alcotest.fail "Expected match"
-  | Some r ->
-      assert_string (Option.get (Js.Re.group "digits" r)) "123"
+  | Some r -> assert_string (Option.get (Js.Re.group "digits" r)) "123"
 
 let named_group_with_alternation () =
   let re = Js.Re.fromString "(?<animal>cat|dog)" in
   let result = Js.Re.exec ~str:"I have a cat" re in
   match result with
   | None -> Alcotest.fail "Expected match"
-  | Some r ->
-      assert_string (Option.get (Js.Re.group "animal" r)) "cat"
+  | Some r -> assert_string (Option.get (Js.Re.group "animal" r)) "cat"
 
 (* ===================================================================
    Edge cases
@@ -132,4 +130,3 @@ let tests =
     test "edge: no named groups" no_named_groups;
     test "edge: mixed named and unnamed" mixed_named_and_unnamed;
   ]
-

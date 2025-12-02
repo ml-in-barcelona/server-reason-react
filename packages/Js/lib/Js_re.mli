@@ -14,6 +14,7 @@ val multiline : t -> bool
 val source : t -> string
 val sticky : t -> bool
 val unicode : t -> bool
+
 val dotAll : t -> bool
 (** Returns whether the dotAll (s) flag is set *)
 

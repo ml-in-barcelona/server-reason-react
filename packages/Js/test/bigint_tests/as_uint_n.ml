@@ -2,11 +2,9 @@
 
     Based on: https://github.com/tc39/test262/tree/main/test/built-ins/BigInt/asUintN
 
-    BigInt.asUintN(bits, bigint) wraps a BigInt value to an unsigned integer
-    within the given number of bits. *)
+    BigInt.asUintN(bits, bigint) wraps a BigInt value to an unsigned integer within the given number of bits. *)
 
 open Helpers
-
 module BigInt = Js.Bigint
 
 (* ===================================================================
@@ -203,4 +201,3 @@ let tests =
     test "asUintN power of two" as_uint_n_power_of_two;
     test "asUintN power of two minus one" as_uint_n_power_of_two_minus_one;
   ]
-

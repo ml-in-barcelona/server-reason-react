@@ -2,11 +2,9 @@
 
     Based on: https://github.com/tc39/test262/tree/main/test/built-ins/BigInt/asIntN
 
-    BigInt.asIntN(bits, bigint) wraps a BigInt value to a signed integer
-    within the given number of bits. *)
+    BigInt.asIntN(bits, bigint) wraps a BigInt value to a signed integer within the given number of bits. *)
 
 open Helpers
-
 module BigInt = Js.Bigint
 
 (* ===================================================================
@@ -180,4 +178,3 @@ let tests =
     test "asIntN identity for zero" as_int_n_identity_for_zero;
     test "asIntN minus one" as_int_n_minus_one;
   ]
-

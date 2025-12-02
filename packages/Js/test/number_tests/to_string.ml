@@ -117,4 +117,3 @@ let tests =
     test "special values with radix" special_values_with_radix;
     test "large numbers" large_numbers;
   ]
-
