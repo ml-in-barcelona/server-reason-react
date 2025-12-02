@@ -383,13 +383,13 @@ module Model = struct
   and models_to_payload ~context ~to_chunk ~env props =
     List.map (fun (name, value) -> (name, model_to_payload ~context ~is_root:false ~to_chunk ~env value)) props
 
-  let render ?(env = `Dev) ?(debug = false) ?subscribe (element : React.element) =
+  let render ?(env = `Dev) ?(debug = false) ?subscribe model =
     let stream, context = Stream.make () in
     let to_root_chunk model id =
       let payload = model_to_payload ~debug ~is_root:true ~context ~to_chunk ~env model in
       to_chunk (Value payload) id
     in
-    Stream.push ~context (to_root_chunk (React.Model.Element element)) |> ignore;
+    Stream.push ~context (to_root_chunk model) |> ignore;
     if context.pending = 0 then context.close ();
     match subscribe with None -> Lwt.return () | Some subscribe -> Lwt_stream.iter_s subscribe stream
 
@@ -857,7 +857,11 @@ let render_html ?(skipRoot = false) ?(env = `Dev) ?debug:(_ = false) ?bootstrapS
   in
   Lwt.return (Html.to_string html, subscribe)
 
-let render_model = Model.render
+let render_model_value = Model.render
+
+let render_model ?(env = `Dev) ?(debug = false) ?subscribe model =
+  Model.render ~env ~debug ?subscribe (React.Model.Element model)
+
 let create_action_response = Model.create_action_response
 
 type model = Reference of string | FormData of string | Undefined | Json of json

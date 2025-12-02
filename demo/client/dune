@@ -17,7 +17,8 @@
   melange.dom
   melange-webapi
   melange-fetch
-  demo_shared_js)
+  demo_shared_js
+  nested_router_js)
  (preprocess
   (pps browser_ppx -js reason-react-ppx melange.ppx)))
 
@@ -34,7 +35,7 @@
    "app/demo/client/RenderRoot.re.js"
    "app/demo/client/SinglePageRSC.re.js"
    "app/demo/client/DummyRouterRSC.re.js"
-   "app/demo/client/Router.re.js"
+   "app/demo/client/NestedRouterRSC.re.js"
    "app/demo/client/ServerOnlyRSC.re.js")
   (source_tree node_modules)
   (file package.json)

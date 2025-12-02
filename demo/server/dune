@@ -7,6 +7,8 @@
  (libraries
   dream
   demo_shared_native
+  nested_router_native
+  server-reason-react.url_native
   react
   reactDOM
   html
