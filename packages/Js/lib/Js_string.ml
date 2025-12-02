@@ -121,6 +121,64 @@ let replace ~search ~replacement str =
   let search_regexp = Str.regexp_string search in
   Str.replace_first search_regexp replacement str
 
+(* Process replacement string with backreferences like $1, $2, $&, $$, $`, $' *)
+let process_replacement ~replacement ~matches ~prefix ~suffix =
+  let len = String.length replacement in
+  let buf = Buffer.create len in
+  let i = ref 0 in
+  while !i < len do
+    if replacement.[!i] = '$' && !i + 1 < len then (
+      let next = replacement.[!i + 1] in
+      match next with
+      | '$' ->
+          (* $$ -> literal $ *)
+          Buffer.add_char buf '$';
+          i := !i + 2
+      | '&' ->
+          (* $& -> the matched substring *)
+          let matched = Stdlib.Array.get matches 0 |> Option.value ~default:"" in
+          Buffer.add_string buf matched;
+          i := !i + 2
+      | '`' ->
+          (* $` -> portion before the match *)
+          Buffer.add_string buf prefix;
+          i := !i + 2
+      | '\'' ->
+          (* $' -> portion after the match *)
+          Buffer.add_string buf suffix;
+          i := !i + 2
+      | '0' .. '9' ->
+          (* $n or $nn -> capturing group *)
+          let start_digit = !i + 1 in
+          (* Check for two-digit group number *)
+          let group_num, advance =
+            if !i + 2 < len then
+              match replacement.[!i + 2] with
+              | '0' .. '9' ->
+                  let two_digit = int_of_string (String.sub replacement start_digit 2) in
+                  if two_digit < Array.length matches then (two_digit, 3) else (Char.code next - Char.code '0', 2)
+              | _ -> (Char.code next - Char.code '0', 2)
+            else (Char.code next - Char.code '0', 2)
+          in
+          if group_num > 0 && group_num < Array.length matches then (
+            let group_value = Stdlib.Array.get matches group_num |> Option.value ~default:"" in
+            Buffer.add_string buf group_value)
+          else (
+            (* Invalid group reference, keep as literal *)
+            Buffer.add_char buf '$';
+            Buffer.add_char buf next;
+            if advance = 3 then Buffer.add_char buf replacement.[!i + 2]);
+          i := !i + advance
+      | _ ->
+          (* Unknown $ sequence, keep as literal *)
+          Buffer.add_char buf '$';
+          incr i)
+    else (
+      Buffer.add_char buf replacement.[!i];
+      incr i)
+  done;
+  Buffer.contents buf
+
 let replaceByRe ~regexp ~replacement str =
   let rec replace_all str =
     Js_re.setLastIndex regexp 0;
@@ -133,8 +191,9 @@ let replaceByRe ~regexp ~replacement str =
         let prefix = Stdlib.String.sub str 0 (Js_re.index result) in
         let suffix_start = Js_re.index result + String.length matched_str in
         let suffix = Stdlib.String.sub str suffix_start (String.length str - suffix_start) in
+        let processed_replacement = process_replacement ~replacement ~matches ~prefix ~suffix in
         Js_re.setLastIndex regexp suffix_start;
-        prefix ^ replacement ^ replace_all suffix
+        prefix ^ processed_replacement ^ replace_all suffix
   in
   let replace_first str =
     match Js_re.exec ~str regexp with
@@ -145,7 +204,8 @@ let replaceByRe ~regexp ~replacement str =
         let prefix = Stdlib.String.sub str 0 (Js_re.index result) in
         let suffix_start = Js_re.index result + String.length matched_str in
         let suffix = Stdlib.String.sub str suffix_start (String.length str - suffix_start) in
-        prefix ^ replacement ^ suffix
+        let processed_replacement = process_replacement ~replacement ~matches ~prefix ~suffix in
+        prefix ^ processed_replacement ^ suffix
   in
 
   if Js_re.global regexp then replace_all str else replace_first str
