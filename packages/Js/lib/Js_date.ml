@@ -358,236 +358,255 @@ let parse_int_opt s = try Some (int_of_string s) with _ -> None
     - YYYY-MM-DDTHH:mm
     - YYYY-MM-DDTHH:mm:ss
     - YYYY-MM-DDTHH:mm:ss.sss
-    - Above with Z or ±HH:mm timezone *)
+    - Above with Z or ±HH:mm timezone
+
+    The parsing proceeds in stages: year -> month -> day -> time -> timezone
+    Each stage either returns early with a valid date or continues parsing. *)
+
+(** Monadic bind for Option - allows flat chaining with let* *)
+let ( let* ) = Option.bind
+
+(** Guard: returns Some () if condition is true, None otherwise *)
+let guard condition = if condition then Some () else None
+
+(** Try to read n characters starting at pos, returns None if out of bounds *)
+let read_chars s ~pos ~len:n =
+  if pos + n > String.length s then None else Some (String.sub s pos n)
+
+(** Parse an integer within bounds (inclusive) *)
+let parse_int_in_range s ~min ~max =
+  let* value = parse_int_opt s in
+  let* () = guard (value >= min && value <= max) in
+  Some value
+
+(** Parse the year component (handles expanded years like +YYYYYY or -YYYYYY) *)
+let parse_year s =
+  let len = String.length s in
+  if len = 0 then None
+  else
+    (* Determine year format: expanded (+/-YYYYYY) or standard (YYYY) *)
+    let sign, start, digits =
+      match s.[0] with
+      | '+' -> (1., 1, 6)
+      | '-' -> (-1., 1, 6)
+      | _ -> (1., 0, 4)
+    in
+    let* year_str = read_chars s ~pos:start ~len:digits in
+    let* year_int = parse_int_opt year_str in
+    (* Reject -000000 as invalid *)
+    let* () = guard (not (sign < 0. && year_int = 0)) in
+    let year = sign *. Float.of_int year_int in
+    let next_pos = start + digits in
+    Some (year, next_pos)
+
+(** Parse a 2-digit component with delimiter check *)
+let parse_2digit_component s ~pos ~delimiter ~min ~max =
+  let len = String.length s in
+  if pos >= len then None
+  else if s.[pos] <> delimiter then None
+  else
+    let pos = pos + 1 in
+    let* component_str = read_chars s ~pos ~len:2 in
+    let* value = parse_int_in_range component_str ~min ~max in
+    Some (value, pos + 2)
+
+(** Parse optional seconds (:SS) *)
+let parse_seconds s ~pos =
+  let len = String.length s in
+  if pos >= len || s.[pos] <> ':' then Some (0., pos)
+  else
+    let pos = pos + 1 in
+    match read_chars s ~pos ~len:2 with
+    | None -> None (* Started with ':' but no digits - invalid *)
+    | Some sec_str -> (
+        match parse_int_in_range sec_str ~min:0 ~max:59 with
+        | None -> None
+        | Some sec -> Some (Float.of_int sec, pos + 2))
+
+(** Parse optional milliseconds (.sss) - reads up to 3 digits, pads if needed *)
+let parse_milliseconds s ~pos =
+  let len = String.length s in
+  if pos >= len || s.[pos] <> '.' then (0., pos)
+  else
+    let pos = pos + 1 in
+    (* Read all consecutive digits *)
+    let ms_start = pos in
+    let rec count_digits p = if p < len && s.[p] >= '0' && s.[p] <= '9' then count_digits (p + 1) else p in
+    let ms_end = count_digits ms_start in
+    let digit_count = ms_end - ms_start in
+    if digit_count = 0 then (0., ms_end)
+    else
+      (* Take up to 3 digits and pad to 3 if needed *)
+      let ms_str = String.sub s ms_start (min digit_count 3) in
+      let ms_str =
+        let pad_len = 3 - String.length ms_str in
+        if pad_len > 0 then ms_str ^ String.make pad_len '0' else ms_str
+      in
+      let ms = match parse_int_opt ms_str with Some v -> Float.of_int v | None -> 0. in
+      (ms, ms_end)
+
+(** Parse timezone: Z, +HH:mm, or -HH:mm. Returns offset in milliseconds *)
+let parse_timezone s ~pos =
+  let len = String.length s in
+  if pos >= len then (0., pos)
+  else
+    match s.[pos] with
+    | 'Z' -> (0., pos + 1)
+    | ('+' | '-') as sign_char ->
+        let sign = if sign_char = '-' then -1. else 1. in
+        let pos = pos + 1 in
+        (* Parse hours *)
+        let tz_hours, pos =
+          match read_chars s ~pos ~len:2 with
+          | Some h_str -> (
+              match parse_int_opt h_str with Some h -> (Float.of_int h, pos + 2) | None -> (0., pos))
+          | None -> (0., pos)
+        in
+        (* Parse optional minutes *)
+        let tz_minutes, pos =
+          if pos < len && s.[pos] = ':' then
+            let pos = pos + 1 in
+            match read_chars s ~pos ~len:2 with
+            | Some m_str -> (
+                match parse_int_opt m_str with Some m -> (Float.of_int m, pos + 2) | None -> (0., pos))
+            | None -> (0., pos)
+          else (0., pos)
+        in
+        let offset_ms = sign *. ((tz_hours *. ms_per_hour) +. (tz_minutes *. ms_per_minute)) in
+        (offset_ms, pos)
+    | _ -> (0., pos)
+
+(** Parse the time portion: HH:mm[:ss[.sss]][timezone] *)
+let parse_time s ~pos ~year ~month ~day =
+  let len = String.length s in
+  (* Expect 'T' or space separator *)
+  if pos >= len then Some (utc ~year ~month ~day ())
+  else if s.[pos] <> 'T' && s.[pos] <> ' ' then None
+  else
+    let pos = pos + 1 in
+    (* Parse hours *)
+    let* hours_str = read_chars s ~pos ~len:2 in
+    let* hours_int = parse_int_in_range hours_str ~min:0 ~max:24 in
+    let hours = Float.of_int hours_int in
+    let pos = pos + 2 in
+    (* Expect ':' before minutes *)
+    let* () = guard (pos < len && s.[pos] = ':') in
+    let pos = pos + 1 in
+    (* Parse minutes *)
+    let* minutes_str = read_chars s ~pos ~len:2 in
+    let* minutes_int = parse_int_in_range minutes_str ~min:0 ~max:59 in
+    let minutes = Float.of_int minutes_int in
+    let pos = pos + 2 in
+    (* Parse optional seconds *)
+    let* seconds, pos = parse_seconds s ~pos in
+    (* Parse optional milliseconds *)
+    let ms, pos = parse_milliseconds s ~pos in
+    (* Parse optional timezone *)
+    let tz_offset_ms, _pos = parse_timezone s ~pos in
+    (* Validate: hour 24 is only valid with 00:00:00.000 *)
+    let* () = guard (not (hours_int = 24 && (minutes_int <> 0 || seconds <> 0. || ms <> 0.))) in
+    let result = utc ~year ~month ~day ~hours ~minutes ~seconds ~ms () in
+    Some (result -. tz_offset_ms)
+
 let parse_iso8601 s =
   let len = String.length s in
   if len = 0 then None
   else
-    (* Handle expanded years: +YYYYYY or -YYYYYY *)
-    let year_sign, year_start, year_len =
-      if len > 0 && (s.[0] = '+' || s.[0] = '-') then
-        let sign = if s.[0] = '-' then -1. else 1. in
-        (sign, 1, 6)
-      else (1., 0, 4)
-    in
-    (* Try to extract year *)
-    if len < year_start + year_len then None
+    (* Step 1: Parse the year *)
+    let* year, pos = parse_year s in
+    (* If nothing left, we have just a year *)
+    if pos >= len then Some (utc ~year ~month:0. ())
     else
-      let year_str = String.sub s year_start year_len in
-      match parse_int_opt year_str with
-      | None -> None
-      | Some year_int -> (
-          if
-            (* Reject -000000 *)
-            year_sign < 0. && year_int = 0
-          then None
-          else
-            let year = year_sign *. Float.of_int year_int in
-            let pos = year_start + year_len in
-            (* Check if just year *)
-            if pos >= len then Some (utc ~year ~month:0. ())
-            else if s.[pos] <> '-' then None
-            else
-              (* Parse month *)
-              let pos = pos + 1 in
-              if pos + 2 > len then None
-              else
-                let month_str = String.sub s pos 2 in
-                match parse_int_opt month_str with
-                | None -> None
-                | Some month_int -> (
-                    if month_int < 1 || month_int > 12 then None
-                    else
-                      let month = Float.of_int (month_int - 1) in
-                      let pos = pos + 2 in
-                      (* Check if just year-month *)
-                      if pos >= len then Some (utc ~year ~month ())
-                      else if s.[pos] <> '-' then None
-                      else
-                        (* Parse day *)
-                        let pos = pos + 1 in
-                        if pos + 2 > len then None
-                        else
-                          let day_str = String.sub s pos 2 in
-                          match parse_int_opt day_str with
-                          | None -> None
-                          | Some day_int -> (
-                              if day_int < 1 || day_int > 31 then None
-                              else
-                                let day = Float.of_int day_int in
-                                let pos = pos + 2 in
-                                (* Check if just date *)
-                                if pos >= len then Some (utc ~year ~month ~day ())
-                                else if s.[pos] <> 'T' && s.[pos] <> ' ' then None
-                                else
-                                  (* Parse time *)
-                                  let pos = pos + 1 in
-                                  if pos + 2 > len then None
-                                  else
-                                    let hours_str = String.sub s pos 2 in
-                                    match parse_int_opt hours_str with
-                                    | None -> None
-                                    | Some hours_int -> (
-                                        if hours_int < 0 || hours_int > 24 then None
-                                        else
-                                          let hours = Float.of_int hours_int in
-                                          let pos = pos + 2 in
-                                          if pos >= len || s.[pos] <> ':' then None
-                                          else
-                                            let pos = pos + 1 in
-                                            if pos + 2 > len then None
-                                            else
-                                              let minutes_str = String.sub s pos 2 in
-                                              match parse_int_opt minutes_str with
-                                              | None -> None
-                                              | Some minutes_int ->
-                                                  if minutes_int < 0 || minutes_int > 59 then None
-                                                  else
-                                                    let minutes = Float.of_int minutes_int in
-                                                    let pos = pos + 2 in
-                                                    (* Default seconds and ms *)
-                                                    let seconds = ref 0. in
-                                                    let ms = ref 0. in
-                                                    let pos = ref pos in
-                                                    let valid = ref true in
-                                                    (* Parse optional seconds *)
-                                                    if !pos < len && s.[!pos] = ':' then (
-                                                      pos := !pos + 1;
-                                                      if !pos + 2 > len then valid := false
-                                                      else
-                                                        let sec_str = String.sub s !pos 2 in
-                                                        match parse_int_opt sec_str with
-                                                        | None -> valid := false
-                                                        | Some sec_int ->
-                                                            if sec_int >= 0 && sec_int <= 59 then (
-                                                              seconds := Float.of_int sec_int;
-                                                              pos := !pos + 2)
-                                                            else valid := false);
-                                                    (* Parse optional milliseconds *)
-                                                    if !pos < len && s.[!pos] = '.' then (
-                                                      pos := !pos + 1;
-                                                      (* Read up to 3 digits *)
-                                                      let ms_start = !pos in
-                                                      while !pos < len && s.[!pos] >= '0' && s.[!pos] <= '9' do
-                                                        pos := !pos + 1
-                                                      done;
-                                                      let ms_len = !pos - ms_start in
-                                                      if ms_len > 0 then
-                                                        let ms_str = String.sub s ms_start (min ms_len 3) in
-                                                        (* Pad to 3 digits *)
-                                                        let ms_str =
-                                                          if String.length ms_str < 3 then
-                                                            ms_str ^ String.make (3 - String.length ms_str) '0'
-                                                          else ms_str
-                                                        in
-                                                        match parse_int_opt ms_str with
-                                                        | Some ms_int -> ms := Float.of_int ms_int
-                                                        | None -> ());
-                                                    (* Parse timezone *)
-                                                    let tz_offset_ms = ref 0. in
-                                                    (if !pos < len then
-                                                       let c = s.[!pos] in
-                                                       if c = 'Z' then pos := !pos + 1
-                                                       else if c = '+' || c = '-' then (
-                                                         let tz_sign = if c = '-' then -1. else 1. in
-                                                         pos := !pos + 1;
-                                                         if !pos + 2 <= len then
-                                                           let tz_h_str = String.sub s !pos 2 in
-                                                           match parse_int_opt tz_h_str with
-                                                           | Some tz_h ->
-                                                               pos := !pos + 2;
-                                                               let tz_m =
-                                                                 if !pos < len && s.[!pos] = ':' then (
-                                                                   pos := !pos + 1;
-                                                                   if !pos + 2 <= len then (
-                                                                     let tz_m_str = String.sub s !pos 2 in
-                                                                     pos := !pos + 2;
-                                                                     match parse_int_opt tz_m_str with
-                                                                     | Some m -> m
-                                                                     | None -> 0)
-                                                                   else 0)
-                                                                 else 0
-                                                               in
-                                                               tz_offset_ms :=
-                                                                 tz_sign
-                                                                 *. ((Float.of_int tz_h *. ms_per_hour)
-                                                                    +. (Float.of_int tz_m *. ms_per_minute))
-                                                           | None -> ()));
-                                                    (* Validate parsing succeeded *)
-                                                    if not !valid then None (* Validate hour 24 edge case *)
-                                                    else if
-                                                      hours_int = 24 && (minutes_int <> 0 || !seconds <> 0. || !ms <> 0.)
-                                                    then None
-                                                    else
-                                                      let result =
-                                                        utc ~year ~month ~day ~hours ~minutes ~seconds:!seconds ~ms:!ms
-                                                          ()
-                                                      in
-                                                      Some (result -. !tz_offset_ms)))))
+      (* Step 2: Parse the month (expects '-MM') *)
+      let* month_int, pos = parse_2digit_component s ~pos ~delimiter:'-' ~min:1 ~max:12 in
+      let month = Float.of_int (month_int - 1) in
+      (* If nothing left, we have year-month *)
+      if pos >= len then Some (utc ~year ~month ())
+      else
+        (* Step 3: Parse the day (expects '-DD') *)
+        let* day_int, pos = parse_2digit_component s ~pos ~delimiter:'-' ~min:1 ~max:31 in
+        let day = Float.of_int day_int in
+        (* Step 4: Parse optional time portion *)
+        parse_time s ~pos ~year ~month ~day
 
 (** Parse legacy date formats (toString/toUTCString style). Examples:
     - "Jan 1 2000"
     - "Jan 1 2000 00:00:00"
     - "Jan 1 2000 00:00:00 GMT"
     - "Sat Jan 1 2000 00:00:00 GMT"
-    - "Jan 1 2000 00:00:00 GMT+0100" *)
-let parse_legacy s =
-  (* Skip optional weekday *)
-  let s =
-    let parts = String.split_on_char ' ' (String.trim s) in
-    match parts with
-    | day :: rest when List.mem day [ "Sun"; "Mon"; "Tue"; "Wed"; "Thu"; "Fri"; "Sat" ] -> String.concat " " rest
-    | _ -> s
-  in
+    - "Jan 1 2000 00:00:00 GMT+0100"
+
+    The format is: [Weekday] Month Day Year [HH:mm:ss] [GMT±HHMM] *)
+
+let weekdays = [ "Sun"; "Mon"; "Tue"; "Wed"; "Thu"; "Fri"; "Sat" ]
+
+(** Strip optional weekday prefix from legacy date string *)
+let strip_weekday s =
   let parts = String.split_on_char ' ' (String.trim s) in
   match parts with
-  | [] -> None
-  | month_str :: day_str :: year_str :: rest -> (
-      (* Parse month name *)
-      let month_opt = Array.find_index (fun m -> String.equal m month_str) month_names |> Option.map Float.of_int in
-      match month_opt with
-      | None -> None
-      | Some month -> (
-          (* Parse day and year *)
-          match (parse_int_opt day_str, parse_int_opt year_str) with
-          | Some day_int, Some year_int ->
-              let day = Float.of_int day_int in
-              let year = Float.of_int year_int in
-              (* Parse optional time *)
-              let hours, minutes, seconds, tz_offset =
-                match rest with
-                | [] -> (0., 0., 0., 0.)
-                | time_str :: tz_rest -> (
-                    let time_parts = String.split_on_char ':' time_str in
-                    match time_parts with
-                    | [ h; m; s ] -> (
-                        match (parse_int_opt h, parse_int_opt m, parse_int_opt s) with
-                        | Some hi, Some mi, Some si ->
-                            let tz =
-                              match tz_rest with
-                              | [] -> 0.
-                              | tz_str :: _ ->
-                                  (* Parse GMT±HHMM *)
-                                  if String.length tz_str >= 3 && String.sub tz_str 0 3 = "GMT" then
-                                    let tz_part = String.sub tz_str 3 (String.length tz_str - 3) in
-                                    if String.length tz_part >= 5 then
-                                      let sign = if tz_part.[0] = '-' then -1. else 1. in
-                                      let h_str = String.sub tz_part 1 2 in
-                                      let m_str = String.sub tz_part 3 2 in
-                                      match (parse_int_opt h_str, parse_int_opt m_str) with
-                                      | Some h, Some m ->
-                                          sign *. ((Float.of_int h *. ms_per_hour) +. (Float.of_int m *. ms_per_minute))
-                                      | _ -> 0.
-                                    else 0.
-                                  else 0.
-                            in
-                            (Float.of_int hi, Float.of_int mi, Float.of_int si, tz)
-                        | _ -> (0., 0., 0., 0.))
-                    | _ -> (0., 0., 0., 0.))
-              in
-              let result = utc ~year ~month ~day ~hours ~minutes ~seconds () in
-              Some (result -. tz_offset)
-          | _ -> None))
+  | day :: rest when List.mem day weekdays -> String.concat " " rest
+  | _ -> s
+
+(** Parse month name to 0-indexed month number *)
+let parse_month_name name =
+  Array.find_index (fun m -> String.equal m name) month_names |> Option.map Float.of_int
+
+(** Parse GMT±HHMM timezone offset string, returns offset in milliseconds *)
+let parse_gmt_offset tz_str =
+  let len = String.length tz_str in
+  (* Must start with "GMT" *)
+  if len < 3 || String.sub tz_str 0 3 <> "GMT" then 0.
+  else
+    let tz_part = String.sub tz_str 3 (len - 3) in
+    (* Need at least ±HHMM (5 chars) *)
+    if String.length tz_part < 5 then 0.
+    else
+      let sign = if tz_part.[0] = '-' then -1. else 1. in
+      let h_str = String.sub tz_part 1 2 in
+      let m_str = String.sub tz_part 3 2 in
+      match (parse_int_opt h_str, parse_int_opt m_str) with
+      | Some h, Some m -> sign *. ((Float.of_int h *. ms_per_hour) +. (Float.of_int m *. ms_per_minute))
+      | _ -> 0.
+
+(** Parse time string "HH:mm:ss" into (hours, minutes, seconds) *)
+let parse_time_string time_str =
+  match String.split_on_char ':' time_str with
+  | [ h; m; s ] -> (
+      match (parse_int_opt h, parse_int_opt m, parse_int_opt s) with
+      | Some hi, Some mi, Some si -> Some (Float.of_int hi, Float.of_int mi, Float.of_int si)
+      | _ -> None)
+  | _ -> None
+
+(** Parse optional time and timezone from remaining parts *)
+let parse_legacy_time_and_tz rest =
+  match rest with
+  | [] -> (0., 0., 0., 0.)
+  | time_str :: tz_rest -> (
+      match parse_time_string time_str with
+      | Some (hours, minutes, seconds) ->
+          let tz_offset = match tz_rest with [] -> 0. | tz_str :: _ -> parse_gmt_offset tz_str in
+          (hours, minutes, seconds, tz_offset)
+      | None -> (0., 0., 0., 0.))
+
+let parse_legacy s =
+  (* Step 1: Strip optional weekday *)
+  let s = strip_weekday s in
+  let parts = String.split_on_char ' ' (String.trim s) in
+  (* Step 2: Extract month, day, year from parts *)
+  match parts with
+  | month_str :: day_str :: year_str :: rest ->
+      (* Step 3: Parse month name *)
+      let* month = parse_month_name month_str in
+      (* Step 4: Parse day and year as integers *)
+      let* day_int = parse_int_opt day_str in
+      let* year_int = parse_int_opt year_str in
+      let day = Float.of_int day_int in
+      let year = Float.of_int year_int in
+      (* Step 5: Parse optional time and timezone *)
+      let hours, minutes, seconds, tz_offset = parse_legacy_time_and_tz rest in
+      (* Step 6: Construct the date and apply timezone offset *)
+      let result = utc ~year ~month ~day ~hours ~minutes ~seconds () in
+      Some (result -. tz_offset)
   | _ -> None
 
 (** Date.parse(string) - parses a date string and returns epoch ms (or NaN) *)
