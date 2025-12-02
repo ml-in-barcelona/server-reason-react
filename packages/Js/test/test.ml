@@ -205,11 +205,20 @@ let string_tests =
         assert_string (Js.String.replace ~search:"the" ~replacement:"this" "the cat and the dog") "this cat and the dog");
     test "replaceByRe" (fun () ->
         assert_string (Js.String.replaceByRe "david" ~regexp:[%re "/d/"] ~replacement:"x") "xavid");
-    (* test "replaceByRe with references ($n)" (fun () ->
+    test "replaceByRe with references ($n)" (fun () ->
+        assert_string (Js.String.replaceByRe "david" ~regexp:[%re "/d(.*?)d/g"] ~replacement:"$1") "avi");
+    test "replaceByRe with $1 capturing group" (fun () ->
         assert_string
-          (Js.String.replaceByRe "david" ~regexp:[%re "/d(.*?)d/g"]
-             ~replacement:"$1")
-          "avi"); *)
+          (Js.String.replaceByRe "<em>hello</em> world" ~regexp:[%re "/<em>(.*?)<\\/em>/gi"] ~replacement:"$1")
+          "hello world");
+    test "replaceByRe with multiple capturing groups" (fun () ->
+        assert_string
+          (Js.String.replaceByRe "John Smith" ~regexp:[%re "/(\\w+)\\s(\\w+)/"] ~replacement:"$2, $1")
+          "Smith, John");
+    test "replaceByRe with $&" (fun () ->
+        assert_string (Js.String.replaceByRe "hello" ~regexp:[%re "/l/g"] ~replacement:"[$&]") "he[l][l]o");
+    test "replaceByRe with $$" (fun () ->
+        assert_string (Js.String.replaceByRe "price" ~regexp:[%re "/price/"] ~replacement:"$$100") "$100");
     test "replaceByRe with global" (fun () ->
         assert_string
           (Js.String.replaceByRe "vowels be gone" ~regexp:[%re "/[aeiou]/g"] ~replacement:"x")
@@ -636,37 +645,37 @@ let () =
          ("Js.Dict", dict_tests);
          ("Js.Array", []);
          (* Test262 - BigInt *)
-         ("Test262.BigInt.Arithmetic", Test262.Bigint_tests.Arithmetic.tests);
-         ("Test262.BigInt.Bitwise", Test262.Bigint_tests.Bitwise.tests);
-         ("Test262.BigInt.Comparison", Test262.Bigint_tests.Comparison.tests);
-         ("Test262.BigInt.Constructor", Test262.Bigint_tests.Constructor.tests);
-         ("Test262.BigInt.Conversion", Test262.Bigint_tests.Conversion.tests);
-         ("Test262.BigInt.AsIntN", Test262.Bigint_tests.As_int_n.tests);
-         ("Test262.BigInt.AsUintN", Test262.Bigint_tests.As_uint_n.tests);
-         ("Test262.BigInt.Prototype", Test262.Bigint_tests.Prototype.tests);
+         ("BigInt.Arithmetic", Bigint_tests.Arithmetic.tests);
+         ("BigInt.Bitwise", Bigint_tests.Bitwise.tests);
+         ("BigInt.Comparison", Bigint_tests.Comparison.tests);
+         ("BigInt.Constructor", Bigint_tests.Constructor.tests);
+         ("BigInt.Conversion", Bigint_tests.Conversion.tests);
+         ("BigInt.AsIntN", Bigint_tests.As_int_n.tests);
+         ("BigInt.AsUintN", Bigint_tests.As_uint_n.tests);
+         ("BigInt.Prototype", Bigint_tests.Prototype.tests);
          (* Test262 - Date *)
-         ("Test262.Date.Getters", Test262.Date_tests.Getters.tests);
-         ("Test262.Date.LocalGetters", Test262.Date_tests.Local_getters.tests);
-         ("Test262.Date.Setters", Test262.Date_tests.Setters.tests);
-         ("Test262.Date.ToString", Test262.Date_tests.To_string.tests);
-         ("Test262.Date.Now", Test262.Date_tests.Now.tests);
-         ("Test262.Date.Parse", Test262.Date_tests.Parse.tests);
-         ("Test262.Date.ToISOString", Test262.Date_tests.To_iso_string.tests);
-         ("Test262.Date.UTC", Test262.Date_tests.Utc.tests);
+         ("Date.Getters", Date_tests.Getters.tests);
+         ("Date.LocalGetters", Date_tests.Local_getters.tests);
+         ("Date.Setters", Date_tests.Setters.tests);
+         ("Date.ToString", Date_tests.To_string.tests);
+         ("Date.Now", Date_tests.Now.tests);
+         ("Date.Parse", Date_tests.Parse.tests);
+         ("Date.ToISOString", Date_tests.To_iso_string.tests);
+         ("Date.UTC", Date_tests.Utc.tests);
          (* Test262 - Number *)
-         ("Test262.Number.IsFinite", Test262.Number_tests.Is_finite.tests);
-         ("Test262.Number.IsInteger", Test262.Number_tests.Is_integer.tests);
-         ("Test262.Number.IsNaN", Test262.Number_tests.Is_nan.tests);
-         ("Test262.Number.ParseFloat", Test262.Number_tests.Parse_float.tests);
-         ("Test262.Number.ParseInt", Test262.Number_tests.Parse_int.tests);
-         ("Test262.Number.ToString", Test262.Number_tests.To_string.tests);
-         ("Test262.Number.ToExponential", Test262.Number_tests.To_exponential.tests);
-         ("Test262.Number.ToPrecision", Test262.Number_tests.To_precision.tests);
+         ("Number.IsFinite", Number_tests.Is_finite.tests);
+         ("Number.IsInteger", Number_tests.Is_integer.tests);
+         ("Number.IsNaN", Number_tests.Is_nan.tests);
+         ("Number.ParseFloat", Number_tests.Parse_float.tests);
+         ("Number.ParseInt", Number_tests.Parse_int.tests);
+         ("Number.ToString", Number_tests.To_string.tests);
+         ("Number.ToExponential", Number_tests.To_exponential.tests);
+         ("Number.ToPrecision", Number_tests.To_precision.tests);
          (* Test262 - String *)
-         ("Test262.String.Normalize", Test262.String_tests.Normalize.tests);
-         ("Test262.String.Search", Test262.String_tests.Search.tests);
+         ("String.Normalize", String_tests.Normalize.tests);
+         ("String.Search", String_tests.Search.tests);
          (* Test262 - RegExp *)
-         ("Test262.RegExp.NamedGroups", Test262.Regexp_tests.Named_groups.tests);
-         ("Test262.RegExp.DotAll", Test262.Regexp_tests.Dotall.tests);
-         ("Test262.RegExp.Unicode", Test262.Regexp_tests.Unicode.tests);
+         ("RegExp.NamedGroups", Regexp_tests.Named_groups.tests);
+         ("RegExp.DotAll", Regexp_tests.Dotall.tests);
+         ("RegExp.Unicode", Regexp_tests.Unicode.tests);
        ]
