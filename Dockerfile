@@ -25,6 +25,7 @@ COPY dune ./
 COPY dune-project ./
 
 RUN make pin
+RUN opam update -y
 RUN make install
 
 WORKDIR "/app/demo"
