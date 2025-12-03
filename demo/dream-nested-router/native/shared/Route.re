@@ -70,18 +70,14 @@ module Provider = {
 
 [@react.client.component]
 let make =
-    (
-      ~path: string,
-      ~layout: React.element,
-      ~pageconsumer: option(React.element),
-    ) => {
-  let (pageconsumer, setPageConsumer) =
-    React.useState(() => pageconsumer |> Option.value(~default=React.null));
+    (~path: string, ~layout: React.element, ~page: option(React.element)) => {
+  let (page, setPage) =
+    React.useState(() => page |> Option.value(~default=React.null));
   let isFirstRender = React.useRef(true);
   let (cachedNodeKey, setCachedNodeKey) = React.useState(() => path);
 
   let%browser_only renderPage = pageElement => {
-    setPageConsumer(_ => pageElement);
+    setPage(_ => pageElement);
     // This is a hack to force a re-render of the route by changing the key
     // Is there a better way to do this?
     setCachedNodeKey(_ => Js.Date.now() |> string_of_float);
@@ -105,8 +101,7 @@ let make =
   * layout is the component that remains the same across all subroutes.
   * Ref: https://nextjs.org/docs/pages/building-your-application/routing/pages-and-layouts
   */
-  <Provider
-    value={<React.Fragment key=cachedNodeKey> pageconsumer </React.Fragment>}>
+  <Provider value={<React.Fragment key=cachedNodeKey> page </React.Fragment>}>
     layout
   </Provider>;
 };

@@ -167,7 +167,26 @@ module Document = {
     </html>;
 };
 
-/* <Link href=RoutesRegistry.lola> */
+module NoteEditPage = {
+  [@react.async.component]
+  let make = (~selectedId) => {
+    Lwt.return(<NestedRouter_NoteItem selectedId isEditing=true />);
+  };
+};
+
+module NoteNewPage = {
+  [@react.async.component]
+  let make = () => {
+    Lwt.return(<NestedRouter_NoteItem selectedId=None isEditing=true />);
+  };
+};
+
+module NoteItemPage = {
+  [@react.async.component]
+  let make = (~selectedId) => {
+    Lwt.return(<NestedRouter_NoteItem selectedId isEditing=false />);
+  };
+};
 
 let routeDefinitions: RouterRSC.routeDefinitionsTree = {
   mainLayout: AppLayout.make(),
@@ -175,29 +194,22 @@ let routeDefinitions: RouterRSC.routeDefinitionsTree = {
   routes: [
     {
       path: "/new",
+      loading: Some(() => <NoteSkeleton />),
       page:
-        Some(
-          (~dynamicParams as _, ~queryParams as _) => {
-            <React.Suspense fallback={<NoteSkeleton isEditing=true />}>
-              <NestedRouter_NoteItem selectedId=None isEditing=true />
-            </React.Suspense>
-          },
-        ),
+        Some((~dynamicParams as _, ~queryParams as _) => {<NoteNewPage />}),
       layout: None,
       subRoutes: None,
     },
     {
       path: "/:id",
+      loading: Some(() => <NoteSkeleton />),
       page:
         Some(
           (~dynamicParams, ~queryParams as _) => {
             let selectedId =
               Router.DynamicParams.find("id", dynamicParams)
               |> Option.map(int_of_string);
-            let isEditing = false;
-            <React.Suspense fallback={<NoteSkeleton isEditing />}>
-              <NestedRouter_NoteItem selectedId isEditing />
-            </React.Suspense>;
+            <NoteItemPage selectedId />;
           },
         ),
       layout: Some((~children, ~dynamicParams as _) => children),
@@ -205,6 +217,7 @@ let routeDefinitions: RouterRSC.routeDefinitionsTree = {
         Some([
           {
             path: "/edit",
+            loading: Some(() => <NoteSkeleton />),
             layout: None,
             page:
               Some(
@@ -212,11 +225,7 @@ let routeDefinitions: RouterRSC.routeDefinitionsTree = {
                   let selectedId =
                     Router.DynamicParams.find("id", dynamicParams)
                     |> Option.map(int_of_string);
-                  let isEditing = true;
-
-                  <React.Suspense fallback={<NoteSkeleton isEditing />}>
-                    <NestedRouter_NoteItem selectedId isEditing />
-                  </React.Suspense>;
+                  <NoteEditPage selectedId />;
                 },
               ),
             subRoutes: None,
