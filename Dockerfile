@@ -24,7 +24,6 @@ COPY *.opam.template ./
 COPY dune ./
 COPY dune-project ./
 
-# Use Makefile targets for pinning and installing dependencies
 RUN make pin
 RUN make install
 
