@@ -17,13 +17,16 @@ RUN opam remote set-url default https://opam.ocaml.org
 
 RUN cd ~/opam-repository && git fetch -q origin master && git reset --hard origin/master && opam update -y
 
+# Copy files needed for dependency installation
+COPY Makefile ./
 COPY *.opam ./
 COPY *.opam.template ./
 COPY dune ./
 COPY dune-project ./
 
-RUN opam install . --deps-only -y
-RUN opam install quickjs.0.1.2 dream melange-json melange-json-native -y
+RUN make pin
+RUN opam update -y
+RUN make install
 
 WORKDIR "/app/demo"
 
