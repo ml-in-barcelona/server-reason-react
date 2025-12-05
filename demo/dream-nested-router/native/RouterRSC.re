@@ -15,6 +15,7 @@ type route = {
       (~children: React.element, ~dynamicParams: Router.DynamicParams.t) =>
       React.element,
     ),
+  loading: option(unit => React.element),
   page:
     /**
      * A page is the UI that is rendered on a specific route.
@@ -116,6 +117,7 @@ let getRoute =
         pageOpt
         |> Option.map(page => page(~dynamicParams, ~queryParams))
         |> Option.value(~default=React.null);
+
       let renderLayout =
         switch (route.layout) {
         | Some(layout) =>
@@ -124,21 +126,25 @@ let getRoute =
         };
 
       if (route.path == "/" ++ segment) {
-        let pageconsumer =
-          switch (route.subRoutes) {
-          | Some(children) =>
-            Some(
-              aux(children, restSegments, currentRoutePath, dynamicParams)
-              |> Option.value(
-                   ~default=renderPage(route.page, ~dynamicParams),
-                 ),
-            )
-          | None => None
+        let page =
+          route.subRoutes
+          |> Option.map(children =>
+               aux(children, restSegments, currentRoutePath, dynamicParams)
+               |> Option.value(
+                    ~default=renderPage(route.page, ~dynamicParams),
+                  )
+             );
+
+        let layout =
+          switch (route.loading) {
+          | Some(loading) =>
+            <React.Suspense fallback={loading()}>
+              renderLayout
+            </React.Suspense>
+          | None => renderLayout
           };
 
-        Some(
-          <Route path=currentRoutePath pageconsumer layout=renderLayout />,
-        );
+        Some(<Route path=currentRoutePath page layout />);
       } else {
         aux(restRoutes, pathSegments, parentPath, dynamicParams);
       };
@@ -328,27 +334,24 @@ let renderRouteModel =
           layout={
             routeDefinitionsTree.mainLayout(~children=<Route.PageConsumer />)
           }
-          pageconsumer={
-                         let isRoot = routeDefinition ++ "/" == "/";
-                         Some(
-                           if (isRoot) {
-                             routeDefinitionsTree.mainPage(
-                               ~queryParams=
-                                 Dream.all_queries(request)
-                                 |> Array.of_list
-                                 |> URL.SearchParams.makeWithArray,
-                             );
-                           } else {
-                             routeDefinitionsTree.routes
-                             |> getRoute(
-                                  ~request,
-                                  ~definition=routeDefinition,
-                                )
-                             // TODO: Handle 404 case here
-                             |> Option.value(~default=React.null);
-                           },
-                         );
-                       }
+          page={
+                 let isRoot = routeDefinition ++ "/" == "/";
+                 Some(
+                   if (isRoot) {
+                     routeDefinitionsTree.mainPage(
+                       ~queryParams=
+                         Dream.all_queries(request)
+                         |> Array.of_list
+                         |> URL.SearchParams.makeWithArray,
+                     );
+                   } else {
+                     routeDefinitionsTree.routes
+                     |> getRoute(~request, ~definition=routeDefinition)
+                     // TODO: Handle 404 case here
+                     |> Option.value(~default=React.null);
+                   },
+                 );
+               }
         />,
       ),
     ]),
@@ -377,27 +380,24 @@ let renderRouteHtml =
             layout={
               routeDefinitions.mainLayout(~children=<Route.PageConsumer />)
             }
-            pageconsumer={
-                           let isRoot = routeDefinition ++ "/" == "/";
-                           Some(
-                             if (isRoot) {
-                               routeDefinitions.mainPage(
-                                 ~queryParams=
-                                   Dream.all_queries(request)
-                                   |> Array.of_list
-                                   |> URL.SearchParams.makeWithArray,
-                               );
-                             } else {
-                               routeDefinitions.routes
-                               |> getRoute(
-                                    ~request,
-                                    ~definition=routeDefinition,
-                                  )
-                               // TODO: Handle 404 case here
-                               |> Option.value(~default=React.null);
-                             },
-                           );
-                         }
+            page={
+                   let isRoot = routeDefinition ++ "/" == "/";
+                   Some(
+                     if (isRoot) {
+                       routeDefinitions.mainPage(
+                         ~queryParams=
+                           Dream.all_queries(request)
+                           |> Array.of_list
+                           |> URL.SearchParams.makeWithArray,
+                       );
+                     } else {
+                       routeDefinitions.routes
+                       |> getRoute(~request, ~definition=routeDefinition)
+                       // TODO: Handle 404 case here
+                       |> Option.value(~default=React.null);
+                     },
+                   );
+                 }
           />
         </Router>,
     ),
