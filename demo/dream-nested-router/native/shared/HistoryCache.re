@@ -14,13 +14,8 @@ type page =
   | FullPage(React.element)
   | SubRoute(React.element);
 
-type cacheValue = {
-  page,
-  timestamp: float,
-};
-
 let maxCacheSize = 10;
-let cache: Hashtbl.t(string, cacheValue) = Hashtbl.create(maxCacheSize);
+let cache: Hashtbl.t(string, page) = Hashtbl.create(maxCacheSize);
 let keyQueue: Queue.t(string) = Queue.create();
 
 let createCacheKey = (path, dynamicParams) =>
@@ -43,10 +38,7 @@ let set = (path, dynamicParams, page) => {
   Hashtbl.replace(
     cache,
     key,
-    {
-      page,
-      timestamp: Js.Date.now(),
-    },
+    page,
   );
 };
 
