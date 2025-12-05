@@ -35,11 +35,7 @@ let set = (path, dynamicParams, page) => {
     Queue.add(key, keyQueue);
   };
 
-  Hashtbl.replace(
-    cache,
-    key,
-    page,
-  );
+  Hashtbl.replace(cache, key, page);
 };
 
 let get = (path, dynamicParams) => {

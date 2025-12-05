@@ -13,6 +13,18 @@ external pushState: (Js.t('a), string, string) => unit = "pushState";
 [@mel.scope ("window", "history")]
 external replaceState: (Js.t('a), string, string) => unit = "replaceState";
 
+/**
+ * Melange webapi don't set state type, so we use Obj.magic to cast it to the correct type while the PR is not merged.
+ * https://github.com/melange-community/melange-webapi/blob/80c6ededd06cc66b75445d1ed5c855e050b156a0/src/Webapi/Dom/Webapi__Dom__History.re#L2
+ * PR: https://github.com/melange-community/melange-webapi/pull/29
+ */
+module HistoryState = {
+  type t = History.state;
+
+  let toJs: History.state => Js.t({..}) = state => state |> Obj.magic;
+  let fromJs: Js.t({..}) => History.state = state => state |> Obj.magic;
+};
+
 module Url = {
   /**
     This module is a simplified copy of the ReasonReactRouter module adapted to URL (https://github.com/reasonml/reason-react/blob/db1b32369dd7c33c948c3fd14797ab0236fba82e/src/ReasonReactRouter.re#L4).
@@ -28,11 +40,10 @@ module Url = {
   };
 
   [@platform js]
-  let push = (state: Js.t({..}), path) => {
+  let push = (state, path) => {
     // Melange webapi don't set state type, so we use Obj.magic to cast it to the correct type
     // https://github.com/melange-community/melange-webapi/blob/80c6ededd06cc66b75445d1ed5c855e050b156a0/src/Webapi/Dom/Webapi__Dom__History.re#L2
     // PR: https://github.com/melange-community/melange-webapi/pull/29
-    let state: History.state = state |> Obj.magic;
     History.pushState(state, "", path, DOM.history);
     let _ =
       DOM.EventTarget.dispatchEvent(
@@ -43,11 +54,7 @@ module Url = {
   };
 
   [@platform js]
-  let replace = (state: Js.t({..}), path) => {
-    // Melange webapi don't set state type, so we use Obj.magic to cast it to the correct type
-    // https://github.com/melange-community/melange-webapi/blob/80c6ededd06cc66b75445d1ed5c855e050b156a0/src/Webapi/Dom/Webapi__Dom__History.re#L2
-    // PR: https://github.com/melange-community/melange-webapi/pull/29
-    let state: History.state = state |> Obj.magic;
+  let replace = (state, path) => {
     History.replaceState(state, "", path, DOM.history);
     let _ =
       DOM.EventTarget.dispatchEvent(
@@ -235,7 +242,8 @@ let make =
 
              let _ =
                shouldReplace
-                 ? Url.replace(state, to_) : Url.push(state, to_);
+                 ? Url.replace(HistoryState.fromJs(state), to_)
+                 : Url.push(HistoryState.fromJs(state), to_);
 
              if (revalidate) {
                // Clear the virtual history when revalidating
@@ -282,11 +290,11 @@ let make =
        * Replace the history state set by the browser to our own implementation.
        */
     Url.replace(
-      {
+      HistoryState.fromJs({
         "dynamicParams": dynamicParams,
         "path": url |> URL.pathname,
         "parentRoute": url |> URL.pathname,
-      },
+      }),
       url |> URL.pathname,
     );
 
@@ -312,33 +320,25 @@ let make =
             ->DOM.EventTarget.unsafeAsWindow
             ->DOM.Window.history
             ->History.state
-            // Melange webapi don't set state type, so we use Obj.magic to cast it to the correct type
-            // https://github.com/melange-community/melange-webapi/blob/80c6ededd06cc66b75445d1ed5c855e050b156a0/src/Webapi/Dom/Webapi__Dom__History.re#L2
-            // PR: https://github.com/melange-community/melange-webapi/pull/29
-            ->Obj.magic;
+            ->HistoryState.toJs;
 
           let dynamicParams = state##dynamicParams;
           let path = state##path;
+          let parentRoute = state##parentRoute;
+          setDynamicParams(_ => dynamicParams);
 
           switch (HistoryCache.get(path, dynamicParams)) {
-          | Some(cached) =>
-            let parentRoute = state##parentRoute;
+          | Some(FullPage(page)) =>
+            VirtualHistory.cleanup();
+            setCachedNodeKey(_ => Js.Date.now() |> string_of_float);
+            setElement(_ => page);
+          | Some(SubRoute(page)) =>
+            let virtualHistoryRoute =
+              VirtualHistory.find(parentRoute)
+              |> Option.value(~default=VirtualHistory.state^ |> List.hd);
 
-            setDynamicParams(_ => dynamicParams);
-
-            switch (cached.page) {
-            | FullPage(page) =>
-              VirtualHistory.cleanup();
-              setCachedNodeKey(_ => Js.Date.now() |> string_of_float);
-              setElement(_ => page);
-            | SubRoute(page) =>
-              let virtualHistoryRoute =
-                VirtualHistory.find(parentRoute)
-                |> Option.value(~default=VirtualHistory.state^ |> List.hd);
-
-              VirtualHistory.cleanPathState(virtualHistoryRoute.path);
-              virtualHistoryRoute.renderPage(page);
-            };
+            VirtualHistory.cleanPathState(virtualHistoryRoute.path);
+            virtualHistoryRoute.renderPage(page);
           | None =>
             /**
               * If we don't find the cached page, we navigate to the path and replace the history state.
