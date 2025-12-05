@@ -8,6 +8,10 @@ exception NoProvider(string);
 module DOM = Webapi.Dom;
 module Location = DOM.Location;
 module History = DOM.History;
+[@mel.scope ("window", "history")]
+external pushState: (Js.t('a), string, string) => unit = "pushState";
+[@mel.scope ("window", "history")]
+external replaceState: (Js.t('a), string, string) => unit = "replaceState";
 
 module Url = {
   /**
@@ -24,21 +28,33 @@ module Url = {
   };
 
   [@platform js]
-  let push = path => {
-    History.pushState(History.state(DOM.history), "", path, DOM.history);
-    DOM.EventTarget.dispatchEvent(
-      DOM.Event.make("popstate"),
-      DOM.Window.asEventTarget(DOM.window),
-    );
+  let push = (state: Js.t({..}), path) => {
+    // Melange webapi don't set state type, so we use Obj.magic to cast it to the correct type
+    // https://github.com/melange-community/melange-webapi/blob/80c6ededd06cc66b75445d1ed5c855e050b156a0/src/Webapi/Dom/Webapi__Dom__History.re#L2
+    // PR: https://github.com/melange-community/melange-webapi/pull/29
+    let state: History.state = state |> Obj.magic;
+    History.pushState(state, "", path, DOM.history);
+    let _ =
+      DOM.EventTarget.dispatchEvent(
+        DOM.Event.make("popstate"),
+        DOM.Window.asEventTarget(DOM.window),
+      );
+    ();
   };
 
   [@platform js]
-  let replace = path => {
-    History.replaceState(History.state(DOM.history), "", path, DOM.history);
-    DOM.EventTarget.dispatchEvent(
-      DOM.Event.make("popstate"),
-      DOM.Window.asEventTarget(DOM.window),
-    );
+  let replace = (state: Js.t({..}), path) => {
+    // Melange webapi don't set state type, so we use Obj.magic to cast it to the correct type
+    // https://github.com/melange-community/melange-webapi/blob/80c6ededd06cc66b75445d1ed5c855e050b156a0/src/Webapi/Dom/Webapi__Dom__History.re#L2
+    // PR: https://github.com/melange-community/melange-webapi/pull/29
+    let state: History.state = state |> Obj.magic;
+    History.replaceState(state, "", path, DOM.history);
+    let _ =
+      DOM.EventTarget.dispatchEvent(
+        DOM.Event.make("popstate"),
+        DOM.Window.asEventTarget(DOM.window),
+      );
+    ();
   };
 
   [@platform js]
@@ -78,29 +94,6 @@ module Url = {
   };
 };
 
-module DynamicParams = {
-  open Melange_json.Primitives;
-
-  [@deriving json]
-  type t = array((string, string));
-
-  let create = () => [||];
-
-  let add = (t, key, value) => {
-    Array.append(t, [|(key, value)|]);
-  };
-
-  let find = (paramKey, t) =>
-    if (Array.length(t) == 0) {
-      None;
-    } else {
-      Array.find_map(
-        ((key, value)) => {key == paramKey ? Some(value) : None},
-        t,
-      );
-    };
-};
-
 type t = {
   dynamicParams: DynamicParams.t,
   url: Url.t,
@@ -125,7 +118,8 @@ let make =
   let url =
     switch%platform () {
     | Client =>
-      // We don't need to use the url on the client so we silence the warning by ignoring it
+      // We don't need to use the url on the client because we can access it through the window object so we silence the warning by ignoring it
+      // URL is just for server-side
       let _ = url;
       Url.useWatch();
     | Server => url
@@ -212,11 +206,9 @@ let make =
         ++ buildQueryString(~prefix="&", queryParamsOpt);
       };
 
-    let _ = shouldReplace ? Url.replace(to_) : Url.push(to_);
-
+    // When shallow is true, we only update the url, without navigating.
     if (shallow) {
       ();
-        // When shallow is true, we only update the url, without navigating.
     } else {
       let _ =
         fetchComponent(endpoint)
@@ -228,25 +220,50 @@ let make =
                  element: React.element,
                ),
              ) => {
-             let virtualHystoryRoute =
+             let virtualHistoryRoute =
                VirtualHistory.find(routeDefinitionOwner)
-               // If we don't find the virtualHystoryState, we use the main route and create a new state from it.
+               // If we don't find the virtualHistoryRoute, we use the main route and create a new state from it.
                |> Option.value(~default=VirtualHistory.state^ |> List.hd);
 
              setDynamicParams(_ => dynamicParams);
+
+             let state = {
+               "dynamicParams": dynamicParams,
+               "parentRoute": routeDefinitionOwner,
+               "path": to_,
+             };
+
+             let _ =
+               shouldReplace
+                 ? Url.replace(state, to_) : Url.push(state, to_);
 
              if (revalidate) {
                // Clear the virtual history when revalidating
                VirtualHistory.cleanup();
 
-               // This is a hack to force a re-render of the route by changing the key
-               // react-router do something similar
-               // Is there a better way to do this?
+               /**
+                * This is a hack to force a re-render of the route by changing the key
+                * react-router do something similar
+                * Is there a better way to do this?
+                */
                setCachedNodeKey(_ => Js.Date.now() |> string_of_float);
                setElement(_ => element);
+
+               /**
+                * Cache the full page in the cache history.
+                * This is used to avoid fetching the same page again when navigating back or forward.
+                * For revalidated pages, we cache the whole page element.
+                */
+               HistoryCache.set(to_, dynamicParams, FullPage(element));
              } else {
-               VirtualHistory.cleanPathState(virtualHystoryRoute.path);
-               virtualHystoryRoute.renderPage(element);
+               /**
+                * Cache the sub-route in the cache history.
+                * This is used to avoid fetching the same sub-route again when navigating back or forward.
+                * For sub-routes, we cache only the sub-route element.
+                */
+               HistoryCache.set(to_, dynamicParams, SubRoute(element));
+               VirtualHistory.cleanPathState(virtualHistoryRoute.path);
+               virtualHistoryRoute.renderPage(element);
              };
 
              Js.Promise.resolve();
@@ -256,6 +273,97 @@ let make =
 
     ();
   };
+
+  // Initialize cache and history state after hydration
+  React.useEffect0(() => {
+    HistoryCache.set(URL.pathname(url), dynamicParams, FullPage(element));
+
+    /**
+       * Replace the history state set by the browser to our own implementation.
+       */
+    Url.replace(
+      {
+        "dynamicParams": dynamicParams,
+        "path": url |> URL.pathname,
+        "parentRoute": url |> URL.pathname,
+      },
+      url |> URL.pathname,
+    );
+
+    None;
+  });
+
+  // Listen to the popstate event and handle the history navigation.
+  React.useEffect0(() => {
+    let watcherId = event =>
+      /**
+        * Event is trusted when it was generated by the user agent, not by EventTarget.dispatchEvent.
+        * https://developer.mozilla.org/en-US/docs/Web/API/Event/isTrusted
+        */
+      (
+        if (DOM.Event.isTrusted(event)) {
+          let state: {
+            .
+            "dynamicParams": DynamicParams.t,
+            "path": string,
+            "parentRoute": string,
+          } =
+            DOM.Event.target(event)
+            ->DOM.EventTarget.unsafeAsWindow
+            ->DOM.Window.history
+            ->History.state
+            // Melange webapi don't set state type, so we use Obj.magic to cast it to the correct type
+            // https://github.com/melange-community/melange-webapi/blob/80c6ededd06cc66b75445d1ed5c855e050b156a0/src/Webapi/Dom/Webapi__Dom__History.re#L2
+            // PR: https://github.com/melange-community/melange-webapi/pull/29
+            ->Obj.magic;
+
+          let dynamicParams = state##dynamicParams;
+          let path = state##path;
+
+          switch (HistoryCache.get(path, dynamicParams)) {
+          | Some(cached) =>
+            let parentRoute = state##parentRoute;
+
+            setDynamicParams(_ => dynamicParams);
+
+            switch (cached.page) {
+            | FullPage(page) =>
+              VirtualHistory.cleanup();
+              setCachedNodeKey(_ => Js.Date.now() |> string_of_float);
+              setElement(_ => page);
+            | SubRoute(page) =>
+              let virtualHistoryRoute =
+                VirtualHistory.find(parentRoute)
+                |> Option.value(~default=VirtualHistory.state^ |> List.hd);
+
+              VirtualHistory.cleanPathState(virtualHistoryRoute.path);
+              virtualHistoryRoute.renderPage(page);
+            };
+          | None =>
+            /**
+              * If we don't find the cached page, we navigate to the path and replace the history state.
+              * That may happen when the user refreshes the page, as the cache is in-memory or when the cache was cleared from the cache history due to the max cache size.
+              */
+            navigate(~replace=true, path)
+          };
+        }
+      );
+
+    DOM.EventTarget.addEventListener(
+      "popstate",
+      watcherId,
+      DOM.Window.asEventTarget(DOM.window),
+    );
+
+    Some(
+      () =>
+        DOM.EventTarget.removeEventListener(
+          "popstate",
+          watcherId,
+          DOM.Window.asEventTarget(DOM.window),
+        ),
+    );
+  });
 
   <React.Fragment key=cachedNodeKey>
     {switch%platform () {

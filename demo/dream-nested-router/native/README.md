@@ -252,8 +252,8 @@ For example:
 ```reason
 module StudentPage = {
   [@react.client.component]
-  let make = (~dynamicParams: Router.DynamicParams.t) => {
-    let name = Router.DynamicParams.find("name", dynamicParams);
+  let make = (~dynamicParams: DynamicParams.t) => {
+    let name = DynamicParams.find("name", dynamicParams);
     <div>
       <h1> "Student " ++ id </h1>
       <StudentContent />
@@ -265,7 +265,7 @@ module StudentPage = {
 The dynamic parameters can also be accessed in any client component by using the `Router.use` hook.
 ```reason
 let {dynamicParams, ..._} = Router.use();
-let name = Router.DynamicParams.find("name", dynamicParams);
+let name = DynamicParams.find("name", dynamicParams);
 ```
 
 ## Router
@@ -277,7 +277,7 @@ let make = () => {
   let {navigate, dynamicParams, url, _} = Router.use();
 
   <div>
-    <p> "Student Name: " ++ dynamicParams |> Router.DynamicParams.find("name") </p>
+    <p> "Student Name: " ++ dynamicParams |> DynamicParams.find("name") </p>
     <p> "URL: " ++ url |> Url.to_json </p>
     <button onClick={() => navigate("/students")}> "Navigate to Students" </button>
   </div>
