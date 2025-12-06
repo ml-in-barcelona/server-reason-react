@@ -12,7 +12,7 @@ type route = {
      * As it does not rerender on navigation, it cannot access search params which would otherwise become stale.
      */
     option(
-      (~children: React.element, ~dynamicParams: Router.DynamicParams.t) =>
+      (~children: React.element, ~dynamicParams: DynamicParams.t) =>
       React.element,
     ),
   page:
@@ -20,10 +20,7 @@ type route = {
      * A page is the UI that is rendered on a specific route.
      */
     option(
-      (
-        ~dynamicParams: Router.DynamicParams.t,
-        ~queryParams: URL.SearchParams.t
-      ) =>
+      (~dynamicParams: DynamicParams.t, ~queryParams: URL.SearchParams.t) =>
       React.element,
     ),
   /**
@@ -68,7 +65,7 @@ let extractDynamicParam = (request, segment) => {
   */
 let getRoute =
     (
-      ~initialDynamicParams=Router.DynamicParams.create(),
+      ~initialDynamicParams=DynamicParams.create(),
       ~definition: string,
       ~request: Dream.request,
       routes: list(route),
@@ -108,7 +105,7 @@ let getRoute =
       let dynamicParams =
         extractDynamicParam(request, segment)
         |> Option.map(((key, value)) =>
-             Router.DynamicParams.add(currentDynamicParams, key, value)
+             DynamicParams.add(currentDynamicParams, key, value)
            )
         |> Option.value(~default=currentDynamicParams);
 
@@ -211,7 +208,7 @@ let getSubRoute =
           */
         extractDynamicParam(request, parentRouteDefinitionSegment)
         |> Option.map(((key, value)) =>
-             Router.DynamicParams.add(currentDynamicParams, key, value)
+             DynamicParams.add(currentDynamicParams, key, value)
            )
         |> Option.value(~default=currentDynamicParams);
 
@@ -229,7 +226,7 @@ let getSubRoute =
     };
   };
 
-  aux(routes, parentPathSegments, Router.DynamicParams.create());
+  aux(routes, parentPathSegments, DynamicParams.create());
 };
 
 /**
@@ -289,7 +286,7 @@ let renderSubRouteModel =
       React.Model.Json(
         `String(parentRouteDefinition == "" ? "/" : parentRouteDefinition),
       ),
-      React.Model.Json(dynamicParams |> Router.DynamicParams.to_json),
+      React.Model.Json(dynamicParams |> DynamicParams.to_json),
       React.Model.Element(
         routes
         |> getSubRoute(
@@ -321,7 +318,7 @@ let renderRouteModel =
         * - Route path: /classroom/1/student/1
         * - Dynamic params: [("student_id", "1"), ("classroom_id", "1")]
         */
-      React.Model.Json(dynamicParams |> Router.DynamicParams.to_json),
+      React.Model.Json(dynamicParams |> DynamicParams.to_json),
       React.Model.Element(
         <Route
           path="/"
@@ -430,7 +427,7 @@ let routeDefinitionsHandlers =
          handler(
            basePath ++ normalizedPath,
            request => {
-             let dynamicParams: Router.DynamicParams.t =
+             let dynamicParams: DynamicParams.t =
                /**
                  * Route definition: /students/:id/grades/:grade_id
                  * Current path: /students/123/grades/456

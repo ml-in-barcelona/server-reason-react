@@ -92,9 +92,13 @@ let make =
   * The renderPage function is used to update the page/subroutes.
   */
   (
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      VirtualHistory.push(~path, ~renderPage);
+    switch%platform (Runtime.platform) {
+    | Client =>
+      if (isFirstRender.current) {
+        isFirstRender.current = false;
+        VirtualHistory.push(~path, ~renderPage);
+      }
+    | Server => ()
     }
   );
 
