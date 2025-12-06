@@ -102,17 +102,19 @@ module Url = {
   };
 };
 
-module HistoryCacheConfig = {
-  type key = {
-    .
-    "path": string,
-    "dynamicParams": DynamicParams.t,
-    "parentRoute": string,
+module HistoryCache = {
+  module HistoryCacheConfig = {
+    type key = {
+      .
+      "path": string,
+      "dynamicParams": DynamicParams.t,
+      "parentRoute": string,
+    };
   };
-};
 
-module HistoryCache = HistoryCache.Make(HistoryCacheConfig);
-let historyCache = HistoryCache.create();
+  include HistoryCache.Make(HistoryCacheConfig);
+  let cache = create();
+};
 
 type t = {
   dynamicParams: DynamicParams.t,
@@ -189,6 +191,27 @@ let make =
        });
   };
 
+  let renderFullPage = element => {
+    /**
+      * This is a hack to force a re-render of the route by changing the key
+      * react-router do something similar
+      * Is there a better way to do this?
+      */
+    setCachedNodeKey(_ => Js.Date.now() |> string_of_float);
+    setElement(_ => element);
+    VirtualHistory.cleanup();
+  };
+
+  let renderSubRoute = (~parentRoute, element) => {
+    let virtualHistoryRoute =
+      VirtualHistory.find(parentRoute)
+      // If we don't find the virtualHistoryRoute, we use the main route and create a new state from it.
+      |> Option.value(~default=VirtualHistory.state^ |> List.hd);
+
+    VirtualHistory.cleanPathState(virtualHistoryRoute.path);
+    virtualHistoryRoute.renderPage(element);
+  };
+
   let%browser_only navigate =
                    (
                      ~replace as shouldReplace=false,
@@ -235,21 +258,16 @@ let make =
         |> Js.Promise.then_(
              (
                (
-                 routeDefinitionOwner,
+                 parentRoute,
                  dynamicParams: DynamicParams.t,
                  element: React.element,
                ),
              ) => {
-             let virtualHistoryRoute =
-               VirtualHistory.find(routeDefinitionOwner)
-               // If we don't find the virtualHistoryRoute, we use the main route and create a new state from it.
-               |> Option.value(~default=VirtualHistory.state^ |> List.hd);
-
              setDynamicParams(_ => dynamicParams);
 
              let historyState = {
                "dynamicParams": dynamicParams,
-               "parentRoute": routeDefinitionOwner,
+               "parentRoute": parentRoute,
                "path": to_,
              };
 
@@ -258,42 +276,22 @@ let make =
                  ? Url.replace(HistoryState.fromJs(historyState), to_)
                  : Url.push(HistoryState.fromJs(historyState), to_);
 
-             if (revalidate) {
-               // Clear the virtual history when revalidating
-               VirtualHistory.cleanup();
-
-               /**
-                * This is a hack to force a re-render of the route by changing the key
-                * react-router do something similar
-                * Is there a better way to do this?
-                */
-               setCachedNodeKey(_ => Js.Date.now() |> string_of_float);
-               setElement(_ => element);
-
-               /**
-              * Cache the full page in the cache history.
-              * This is used to avoid fetching the same page again when navigating back or forward.
-              * For revalidated pages, we cache the whole page element.
-              */
-               HistoryCache.set(
-                 historyCache,
-                 ~key=historyState,
-                 ~page=FullPage(element),
-               );
-             } else {
-               /**
-              * Cache the sub-route in the cache history.
-              * This is used to avoid fetching the same sub-route again when navigating back or forward.
-              * For sub-routes, we cache only the sub-route element.
-              */
-               HistoryCache.set(
-                 historyCache,
-                 ~key=historyState,
-                 ~page=SubRoute(element),
-               );
-               VirtualHistory.cleanPathState(virtualHistoryRoute.path);
-               virtualHistoryRoute.renderPage(element);
-             };
+             let _ =
+               if (revalidate) {
+                 HistoryCache.set(
+                   HistoryCache.cache,
+                   ~key=historyState,
+                   ~page=FullPage(element),
+                 );
+                 renderFullPage(element);
+               } else {
+                 HistoryCache.set(
+                   HistoryCache.cache,
+                   ~key=historyState,
+                   ~page=SubRoute(element),
+                 );
+                 renderSubRoute(~parentRoute, element);
+               };
 
              Js.Promise.resolve();
            });
@@ -305,14 +303,14 @@ let make =
 
   // Initialize cache and history state after hydration
   React.useEffect0(() => {
-    let pathname = url |> URL.pathname;
+    let curPath = URL.pathname(url);
     let historyState = {
       "dynamicParams": dynamicParams,
-      "path": pathname,
-      "parentRoute": pathname,
+      "path": curPath,
+      "parentRoute": curPath,
     };
     HistoryCache.set(
-      historyCache,
+      HistoryCache.cache,
       ~key=historyState,
       ~page=FullPage(element),
     );
@@ -320,7 +318,7 @@ let make =
     /**
        * Replace the history state set by the browser to our own implementation.
        */
-    Url.replace(HistoryState.fromJs(historyState), url |> URL.pathname);
+    Url.replace(HistoryState.fromJs(historyState), curPath);
 
     None;
   });
@@ -347,28 +345,18 @@ let make =
             ->HistoryState.toJs;
 
           let dynamicParams = historyState##dynamicParams;
+          let parentRoute = historyState##parentRoute;
           setDynamicParams(_ => dynamicParams);
 
-          switch (HistoryCache.get(historyCache, ~key=historyState)) {
-          | Some(FullPage(page)) =>
-            VirtualHistory.cleanup();
-            setCachedNodeKey(_ => Js.Date.now() |> string_of_float);
-            setElement(_ => page);
-          | Some(SubRoute(page)) =>
-            let parentRoute = historyState##parentRoute;
-            let virtualHistoryRoute =
-              VirtualHistory.find(parentRoute)
-              |> Option.value(~default=VirtualHistory.state^ |> List.hd);
-
-            VirtualHistory.cleanPathState(virtualHistoryRoute.path);
-            virtualHistoryRoute.renderPage(page);
+          switch (HistoryCache.get(HistoryCache.cache, ~key=historyState)) {
+          | Some(FullPage(page)) => renderFullPage(page)
+          | Some(SubRoute(page)) => renderSubRoute(~parentRoute, page)
           | None =>
             /**
               * If we don't find the cached page, we navigate to the path and replace the history state.
               * That may happen when the user refreshes the page, as the cache is in-memory or when the cache was cleared from the cache history due to the max cache size.
               */
-            let path = historyState##path;
-            navigate(~replace=true, path);
+            navigate(~replace=true, historyState##path)
           };
         }
       );
