@@ -5,39 +5,39 @@
  * For SubRoute, we cache only the sub-route element.
  */
 
-type cacheKey = {
-  path: string,
-  dynamicParams: DynamicParams.t,
-};
-
 type page =
   | FullPage(React.element)
   | SubRoute(React.element);
 
-let maxCacheSize = 10;
-let cache: Hashtbl.t(string, page) = Hashtbl.create(maxCacheSize);
-let keyQueue: Queue.t(string) = Queue.create();
-
-let createCacheKey = (path, dynamicParams) =>
-  path
-  ++ "|"
-  ++ (dynamicParams |> DynamicParams.to_json |> Melange_json.to_string);
-
-let set = (path, dynamicParams, page) => {
-  let key = createCacheKey(path, dynamicParams);
-
-  if (!Hashtbl.mem(cache, key)) {
-    if (Queue.length(keyQueue) >= maxCacheSize) {
-      let oldestKey = Queue.take(keyQueue);
-      Hashtbl.remove(cache, oldestKey);
-    };
-
-    Queue.add(key, keyQueue);
+module Make = (Config: {
+                 type key;
+               }) => {
+  type t = {
+    cache: Hashtbl.t(Config.key, page),
+    keyQueue: Queue.t(Config.key),
+    maxSize: int,
   };
 
-  Hashtbl.replace(cache, key, page);
-};
+  let create = (~maxSize=10, ()) => {
+    cache: Hashtbl.create(maxSize),
+    keyQueue: Queue.create(),
+    maxSize,
+  };
 
-let get = (path, dynamicParams) => {
-  Hashtbl.find_opt(cache, createCacheKey(path, dynamicParams));
+  let set = (t, ~key, ~page) => {
+    if (!Hashtbl.mem(t.cache, key)) {
+      if (Queue.length(t.keyQueue) >= t.maxSize) {
+        let oldestKey = Queue.take(t.keyQueue);
+        Hashtbl.remove(t.cache, oldestKey);
+      };
+
+      Queue.add(key, t.keyQueue);
+    };
+
+    Hashtbl.replace(t.cache, key, page);
+  };
+
+  let get = (t, ~key) => {
+    Hashtbl.find_opt(t.cache, key);
+  };
 };

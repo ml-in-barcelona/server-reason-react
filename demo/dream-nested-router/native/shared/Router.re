@@ -18,6 +18,7 @@ external replaceState: (Js.t('a), string, string) => unit = "replaceState";
  * https://github.com/melange-community/melange-webapi/blob/80c6ededd06cc66b75445d1ed5c855e050b156a0/src/Webapi/Dom/Webapi__Dom__History.re#L2
  * PR: https://github.com/melange-community/melange-webapi/pull/29
  */
+[@platform js]
 module HistoryState = {
   type t = History.state;
 
@@ -100,6 +101,18 @@ module Url = {
     url;
   };
 };
+
+module HistoryCacheConfig = {
+  type key = {
+    .
+    "path": string,
+    "dynamicParams": DynamicParams.t,
+    "parentRoute": string,
+  };
+};
+
+module HistoryCache = HistoryCache.Make(HistoryCacheConfig);
+let historyCache = HistoryCache.create();
 
 type t = {
   dynamicParams: DynamicParams.t,
@@ -234,7 +247,7 @@ let make =
 
              setDynamicParams(_ => dynamicParams);
 
-             let state = {
+             let historyState = {
                "dynamicParams": dynamicParams,
                "parentRoute": routeDefinitionOwner,
                "path": to_,
@@ -242,8 +255,8 @@ let make =
 
              let _ =
                shouldReplace
-                 ? Url.replace(HistoryState.fromJs(state), to_)
-                 : Url.push(HistoryState.fromJs(state), to_);
+                 ? Url.replace(HistoryState.fromJs(historyState), to_)
+                 : Url.push(HistoryState.fromJs(historyState), to_);
 
              if (revalidate) {
                // Clear the virtual history when revalidating
@@ -258,18 +271,26 @@ let make =
                setElement(_ => element);
 
                /**
-                * Cache the full page in the cache history.
-                * This is used to avoid fetching the same page again when navigating back or forward.
-                * For revalidated pages, we cache the whole page element.
-                */
-               HistoryCache.set(to_, dynamicParams, FullPage(element));
+              * Cache the full page in the cache history.
+              * This is used to avoid fetching the same page again when navigating back or forward.
+              * For revalidated pages, we cache the whole page element.
+              */
+               HistoryCache.set(
+                 historyCache,
+                 ~key=historyState,
+                 ~page=FullPage(element),
+               );
              } else {
                /**
-                * Cache the sub-route in the cache history.
-                * This is used to avoid fetching the same sub-route again when navigating back or forward.
-                * For sub-routes, we cache only the sub-route element.
-                */
-               HistoryCache.set(to_, dynamicParams, SubRoute(element));
+              * Cache the sub-route in the cache history.
+              * This is used to avoid fetching the same sub-route again when navigating back or forward.
+              * For sub-routes, we cache only the sub-route element.
+              */
+               HistoryCache.set(
+                 historyCache,
+                 ~key=historyState,
+                 ~page=SubRoute(element),
+               );
                VirtualHistory.cleanPathState(virtualHistoryRoute.path);
                virtualHistoryRoute.renderPage(element);
              };
@@ -284,19 +305,22 @@ let make =
 
   // Initialize cache and history state after hydration
   React.useEffect0(() => {
-    HistoryCache.set(URL.pathname(url), dynamicParams, FullPage(element));
+    let pathname = url |> URL.pathname;
+    let historyState = {
+      "dynamicParams": dynamicParams,
+      "path": pathname,
+      "parentRoute": pathname,
+    };
+    HistoryCache.set(
+      historyCache,
+      ~key=historyState,
+      ~page=FullPage(element),
+    );
 
     /**
        * Replace the history state set by the browser to our own implementation.
        */
-    Url.replace(
-      HistoryState.fromJs({
-        "dynamicParams": dynamicParams,
-        "path": url |> URL.pathname,
-        "parentRoute": url |> URL.pathname,
-      }),
-      url |> URL.pathname,
-    );
+    Url.replace(HistoryState.fromJs(historyState), url |> URL.pathname);
 
     None;
   });
@@ -310,7 +334,7 @@ let make =
         */
       (
         if (DOM.Event.isTrusted(event)) {
-          let state: {
+          let historyState: {
             .
             "dynamicParams": DynamicParams.t,
             "path": string,
@@ -322,17 +346,16 @@ let make =
             ->History.state
             ->HistoryState.toJs;
 
-          let dynamicParams = state##dynamicParams;
-          let path = state##path;
-          let parentRoute = state##parentRoute;
+          let dynamicParams = historyState##dynamicParams;
           setDynamicParams(_ => dynamicParams);
 
-          switch (HistoryCache.get(path, dynamicParams)) {
+          switch (HistoryCache.get(historyCache, ~key=historyState)) {
           | Some(FullPage(page)) =>
             VirtualHistory.cleanup();
             setCachedNodeKey(_ => Js.Date.now() |> string_of_float);
             setElement(_ => page);
           | Some(SubRoute(page)) =>
+            let parentRoute = historyState##parentRoute;
             let virtualHistoryRoute =
               VirtualHistory.find(parentRoute)
               |> Option.value(~default=VirtualHistory.state^ |> List.hd);
@@ -344,7 +367,8 @@ let make =
               * If we don't find the cached page, we navigate to the path and replace the history state.
               * That may happen when the user refreshes the page, as the cache is in-memory or when the cache was cleared from the cache history due to the max cache size.
               */
-            navigate(~replace=true, path)
+            let path = historyState##path;
+            navigate(~replace=true, path);
           };
         }
       );
