@@ -42,9 +42,6 @@ module Url = {
 
   [@platform js]
   let push = (state, path) => {
-    // Melange webapi don't set state type, so we use Obj.magic to cast it to the correct type
-    // https://github.com/melange-community/melange-webapi/blob/80c6ededd06cc66b75445d1ed5c855e050b156a0/src/Webapi/Dom/Webapi__Dom__History.re#L2
-    // PR: https://github.com/melange-community/melange-webapi/pull/29
     History.pushState(state, "", path, DOM.history);
     let _ =
       DOM.EventTarget.dispatchEvent(
