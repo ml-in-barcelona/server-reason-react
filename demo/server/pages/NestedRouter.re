@@ -192,7 +192,7 @@ let routeDefinitions: RouterRSC.routeDefinitionsTree = {
         Some(
           (~dynamicParams, ~queryParams as _) => {
             let selectedId =
-              DynamicParams.find("id", dynamicParams)
+              Router.DynamicParams.find("id", dynamicParams)
               |> Option.map(int_of_string);
             let isEditing = false;
             <React.Suspense fallback={<NoteSkeleton isEditing />}>
@@ -210,7 +210,7 @@ let routeDefinitions: RouterRSC.routeDefinitionsTree = {
               Some(
                 (~dynamicParams, ~queryParams as _) => {
                   let selectedId =
-                    DynamicParams.find("id", dynamicParams)
+                    Router.DynamicParams.find("id", dynamicParams)
                     |> Option.map(int_of_string);
                   let isEditing = true;
 
