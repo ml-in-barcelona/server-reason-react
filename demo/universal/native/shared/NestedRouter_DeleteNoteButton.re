@@ -21,7 +21,11 @@ let make = (~noteId: int) => {
              };
 
            startNavigating(() => {
-             navigate(~revalidate=true, "/demo/router" ++ queryParams)
+             navigate(
+               ~revalidate=true,
+               ~replace=true,
+               "/demo/router" ++ queryParams,
+             )
            });
            Js.Promise.resolve();
          })
