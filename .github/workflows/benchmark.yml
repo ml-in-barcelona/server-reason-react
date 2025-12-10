@@ -1,0 +1,142 @@
+name: Benchmark
+
+on:
+  # Run on PRs to compare performance
+  pull_request:
+    paths:
+      - 'packages/**'
+      - 'benchmark/**'
+  # Manual trigger
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: 'Benchmark suite to run'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - micro
+          - memory
+          - streaming
+  # Weekly scheduled run for tracking
+  schedule:
+    - cron: '0 0 * * 0'  # Every Sunday at midnight
+
+jobs:
+  benchmark-native:
+    name: Native Benchmarks
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup OCaml
+        uses: ocaml/setup-ocaml@v3
+        with:
+          ocaml-compiler: 5.2.x
+          dune-cache: true
+
+      - name: Install dependencies
+        run: opam install . --deps-only --with-test -y
+
+      - name: Build benchmark scenarios
+        run: opam exec -- dune build benchmark/scenarios/benchmark_scenarios.a
+
+      - name: Build benchmark executables
+        run: |
+          opam exec -- dune build benchmark/micro/micro_bench.exe
+          opam exec -- dune build benchmark/memory/memory_bench.exe
+          opam exec -- dune build benchmark/streaming/streaming_bench.exe
+
+      - name: Run Memory Benchmark
+        id: memory
+        run: |
+          echo "## Memory Benchmark Results" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          opam exec -- _build/default/benchmark/memory/memory_bench.exe 2>&1 | tee memory-results.txt
+          cat memory-results.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: Run Streaming Benchmark
+        id: streaming
+        run: |
+          echo "## Streaming Benchmark Results" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          opam exec -- _build/default/benchmark/streaming/streaming_bench.exe 2>&1 | tee streaming-results.txt
+          cat streaming-results.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: Run Microbenchmark (Quick)
+        id: micro
+        run: |
+          echo "## Microbenchmark Results (Table Suite)" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          opam exec -- _build/default/benchmark/micro/micro_bench.exe table 2>&1 | tee micro-results.txt
+          cat micro-results.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results-${{ github.sha }}
+          path: |
+            memory-results.txt
+            streaming-results.txt
+            micro-results.txt
+          retention-days: 30
+
+  benchmark-compare:
+    name: Compare with Base Branch
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup OCaml
+        uses: ocaml/setup-ocaml@v3
+        with:
+          ocaml-compiler: 5.2.x
+          dune-cache: true
+
+      - name: Install dependencies
+        run: opam install . --deps-only --with-test -y
+
+      - name: Benchmark PR branch
+        run: |
+          opam exec -- dune build benchmark/memory/memory_bench.exe
+          opam exec -- _build/default/benchmark/memory/memory_bench.exe --json > pr-results.json
+
+      - name: Checkout base branch
+        run: git checkout ${{ github.base_ref }}
+
+      - name: Benchmark base branch
+        run: |
+          opam exec -- dune clean
+          opam exec -- dune build benchmark/memory/memory_bench.exe
+          opam exec -- _build/default/benchmark/memory/memory_bench.exe --json > base-results.json
+        continue-on-error: true
+
+      - name: Compare Results
+        run: |
+          echo "## Performance Comparison" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ -f base-results.json ] && [ -f pr-results.json ]; then
+            echo "Comparing memory allocations between base and PR..." >> $GITHUB_STEP_SUMMARY
+            # Simple comparison - in production you'd use a proper tool
+            echo "Base branch results:" >> $GITHUB_STEP_SUMMARY
+            echo '```json' >> $GITHUB_STEP_SUMMARY
+            cat base-results.json >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "PR branch results:" >> $GITHUB_STEP_SUMMARY
+            echo '```json' >> $GITHUB_STEP_SUMMARY
+            cat pr-results.json >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ Could not compare - base branch benchmark may not exist" >> $GITHUB_STEP_SUMMARY
+          fi
+

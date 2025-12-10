@@ -1,3 +1,6 @@
+; Main benchmark dune file
+; Legacy executables (keeping for compatibility)
+
 (executable
  (name main)
  (modules main)
@@ -33,3 +36,8 @@
   (with-stdout-to
    run.csv
    (run ./main.exe))))
+
+(rule
+ (alias bench-once)
+ (action
+  (run ./once.exe)))
