@@ -59,7 +59,7 @@ export default function plugin(config) {
 				}
 			});
 
-			build.onResolve({ filter: /.*/ }, (args) => {
+			build.onResolve({ filter: config.entrypointFilter }, (args) => {
 				const isEntryPoint = args.kind === "entry-point";
 
 				if (isEntryPoint) {
@@ -71,7 +71,7 @@ export default function plugin(config) {
 				return null;
 			});
 
-			build.onLoad({ filter: /.*/, namespace: "entrypoint" }, async (args) => {
+			build.onLoad({ filter: config.entrypointFilter, namespace: "entrypoint" }, async (args) => {
 				const filePath = args.path.replace(/^entrypoint:/, "");
 				const entryPointContents = await Fs.readFile(filePath, "utf8");
 				const relativeBootstrapOutput = Path.relative(

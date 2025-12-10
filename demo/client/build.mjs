@@ -16,6 +16,7 @@ async function build(entryPoints, { env, output, extract, mockWebpackRequire }) 
 				target: "app",
 				mockWebpackRequire,
 				bootstrapOutput,
+				entrypointFilter: /(SinglePageRSC|DummyRouterRSC|NestedRouterRSC|ServerOnlyRSC)\.re\.js/,
 			}),
 		);
 	}
