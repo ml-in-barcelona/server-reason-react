@@ -22,7 +22,13 @@ async function generateBootstrapFile(output, content) {
 	}
 }
 
+function escapeRegex(string) {
+	return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 export default function plugin(config) {
+	const entrypointFilter = new RegExp(config.entrypoints.map(escapeRegex).join("|"));
+
 	return {
 		name: "extract-client-components",
 		setup(build) {
@@ -59,7 +65,7 @@ export default function plugin(config) {
 				}
 			});
 
-			build.onResolve({ filter: config.entrypointFilter }, (args) => {
+			build.onResolve({ filter: entrypointFilter }, (args) => {
 				const isEntryPoint = args.kind === "entry-point";
 
 				if (isEntryPoint) {
@@ -71,7 +77,7 @@ export default function plugin(config) {
 				return null;
 			});
 
-			build.onLoad({ filter: config.entrypointFilter, namespace: "entrypoint" }, async (args) => {
+			build.onLoad({ filter: entrypointFilter, namespace: "entrypoint" }, async (args) => {
 				const filePath = args.path.replace(/^entrypoint:/, "");
 				const entryPointContents = await Fs.readFile(filePath, "utf8");
 				const relativeBootstrapOutput = Path.relative(
