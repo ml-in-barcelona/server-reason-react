@@ -278,7 +278,7 @@ let make = () => {
 
   <div>
     <p> "Student Name: " ++ dynamicParams |> DynamicParams.find("name") </p>
-    <p> "URL: " ++ url |> Url.to_json </p>
+    <p> "URL: " ++ url |> URL.toString </p>
     <button onClick={() => navigate("/students")}> "Navigate to Students" </button>
   </div>
 };
