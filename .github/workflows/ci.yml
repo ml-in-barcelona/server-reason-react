@@ -146,6 +146,26 @@ jobs:
       - name: Run benchmarks
         run: make bench
 
+      - name: Run benchmarks as JSON
+        if: matrix.os == 'ubuntu-latest' && matrix.ocaml-compiler == '5.2.0'
+        run: make bench-json
+
+      - name: Store benchmark result
+        if: matrix.os == 'ubuntu-latest' && matrix.ocaml-compiler == '5.2.0'
+        uses: benchmark-action/github-action-benchmark@v1
+        with:
+          name: server-reason-react Benchmarks
+          tool: 'customBiggerIsBetter'
+          output-file-path: bench_results.json
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          auto-push: ${{ github.ref == 'refs/heads/main' }}
+          gh-pages-branch: gh-pages
+          benchmark-data-dir-path: dev/bench
+          comment-always: true
+          fail-on-alert: true
+          comment-on-alert: true
+          alert-comment-cc-users: '@davesnx'
+
       - name: Install dune-release
         if: startsWith(github.ref, 'refs/tags/') && matrix.os == 'ubuntu-latest' && matrix.ocaml-compiler == '5.2.0'
         run: opam install dune-release -y

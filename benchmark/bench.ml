@@ -58,7 +58,9 @@ let () =
       measure_benchmark ~name:"width/10" (fun () -> ReactDOM.renderToStaticMarkup (WideTree.Wide10.make ()));
       measure_benchmark ~name:"width/100" (fun () -> ReactDOM.renderToStaticMarkup (WideTree.Wide100.make ()));
       measure_benchmark ~name:"width/500" (fun () -> ReactDOM.renderToStaticMarkup (WideTree.Wide500.make ()));
+      measure_benchmark ~name:"width/1000" (fun () -> ReactDOM.renderToStaticMarkup (WideTree.Wide1000.make ()));
       measure_benchmark ~name:"table/10" (fun () -> ReactDOM.renderToStaticMarkup (Table.Table10.make ()));
+      measure_benchmark ~name:"table/50" (fun () -> ReactDOM.renderToStaticMarkup (Table.Table50.make ()));
       measure_benchmark ~name:"table/100" (fun () -> ReactDOM.renderToStaticMarkup (Table.Table100.make ()));
       measure_benchmark ~name:"table/500" (fun () -> ReactDOM.renderToStaticMarkup (Table.Table500.make ()));
       measure_benchmark ~name:"props/small" (fun () -> ReactDOM.renderToStaticMarkup (PropsHeavy.Small.make ()));
@@ -66,9 +68,31 @@ let () =
       measure_benchmark ~name:"props/large" (fun () -> ReactDOM.renderToStaticMarkup (PropsHeavy.Large.make ()));
       measure_benchmark ~name:"realworld/ecommerce24" (fun () ->
           ReactDOM.renderToStaticMarkup (Ecommerce.Products24.make ()));
+      measure_benchmark ~name:"realworld/ecommerce48" (fun () ->
+          ReactDOM.renderToStaticMarkup (Ecommerce.Products48.make ()));
       measure_benchmark ~name:"realworld/dashboard" (fun () -> ReactDOM.renderToStaticMarkup (Dashboard.make ()));
       measure_benchmark ~name:"realworld/blog50" (fun () -> ReactDOM.renderToStaticMarkup (Blog.Blog50.make ()));
       measure_benchmark ~name:"realworld/form" (fun () -> ReactDOM.renderToStaticMarkup (Form.make ()));
+      measure_benchmark ~name:"primitive/React.string" (fun () -> ReactDOM.renderToStaticMarkup (React.string "Hello"));
+      measure_benchmark ~name:"primitive/React.int" (fun () -> ReactDOM.renderToStaticMarkup (React.int 42));
+      measure_benchmark ~name:"primitive/React.null" (fun () -> ReactDOM.renderToStaticMarkup React.null);
+      measure_benchmark ~name:"primitive/createElement_empty" (fun () ->
+          ReactDOM.renderToStaticMarkup (React.createElement "div" [] []));
+      measure_benchmark ~name:"primitive/createElement_children" (fun () ->
+          let children = List.init 10 (fun i -> React.string (string_of_int i)) in
+          ReactDOM.renderToStaticMarkup (React.createElement "div" [] children));
+      measure_benchmark ~name:"primitive/React.array_10" (fun () ->
+          let arr = Array.init 10 (fun i -> React.string (string_of_int i)) in
+          ReactDOM.renderToStaticMarkup (React.createElement "div" [] [ React.array arr ]));
+      measure_benchmark ~name:"primitive/React.array_100" (fun () ->
+          let arr = Array.init 100 (fun i -> React.string (string_of_int i)) in
+          ReactDOM.renderToStaticMarkup (React.createElement "div" [] [ React.array arr ]));
+      measure_benchmark ~name:"primitive/React.list_10" (fun () ->
+          let lst = List.init 10 (fun i -> React.string (string_of_int i)) in
+          ReactDOM.renderToStaticMarkup (React.createElement "div" [] [ React.list lst ]));
+      measure_benchmark ~name:"primitive/React.list_100" (fun () ->
+          let lst = List.init 100 (fun i -> React.string (string_of_int i)) in
+          ReactDOM.renderToStaticMarkup (React.createElement "div" [] [ React.list lst ]));
     ]
   in
 

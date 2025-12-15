@@ -1,7 +1,3 @@
-; Main benchmark dune file
-
-; CI benchmark runner - simple, JSON-compatible output for github-action-benchmark
-
 (executable
  (name bench)
  (modules bench)
@@ -13,27 +9,9 @@
  (preprocess
   (pps server-reason-react.ppx)))
 
-; Legacy executables (keeping for compatibility)
-
 (executable
- (name main)
- (modules main)
- (libraries
-  base
-  core
-  unix
-  core_unix
-  core_unix.command_unix
-  core_bench
-  demo_shared_native
-  server-reason-react.react
-  server-reason-react.reactDom)
- (preprocess
-  (pps server-reason-react.ppx)))
-
-(executable
- (name once)
- (modules once)
+ (name allocation)
+ (modules allocation)
  (libraries
   unix
   lwt
@@ -55,8 +33,3 @@
   (with-stdout-to
    bench_results.json
    (run ./bench.exe --json))))
-
-(rule
- (alias bench-once)
- (action
-  (run ./once.exe)))

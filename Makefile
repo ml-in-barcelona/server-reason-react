@@ -143,18 +143,9 @@ bench-json: build-bench ## Run benchmarks with JSON output for CI
 bench-watch: build-bench ## Run benchmark in watch mode
 	@$(DUNE) exec benchmark/bench.exe --profile=release --display-separate-messages --no-print-directory --watch
 
-.PHONY: bench-core
-bench-core: ## Run Core_bench benchmarks (more detailed)
-	$(DUNE) build --profile=release benchmark/main.exe
-	@$(DUNE) exec benchmark/main.exe --profile=release --display-separate-messages --no-print-directory
-
-.PHONY: bench-once
-bench-once: ## Run benchmark once (allocation analysis)
-	@$(DUNE) exec _build/default/benchmark/once.exe
-
-.PHONY: bench-once-watch
-bench-once-watch: ## Run benchmark once in watch mode
-	@$(DUNE) exec _build/default/benchmark/once.exe --watch
+.PHONY: bench-allocation
+bench-allocation: ## Run allocation analysis
+	@$(DUNE) exec benchmark/allocation.exe --profile=release
 
 container_name = server-reason-react-demo
 current_hash = $(shell git rev-parse HEAD | cut -c1-7)

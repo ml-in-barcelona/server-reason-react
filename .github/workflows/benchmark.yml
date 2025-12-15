@@ -1,31 +1,23 @@
-name: Benchmark
+name: Framework Comparison
 
 on:
-  # Run on PRs to compare performance
-  pull_request:
-    paths:
-      - 'packages/**'
-      - 'benchmark/**'
-  # Manual trigger
+  push:
+    tags:
+      - 'v*'
   workflow_dispatch:
     inputs:
-      suite:
-        description: 'Benchmark suite to run'
+      frameworks:
+        description: 'Frameworks to test (comma-separated, or "all")'
         required: false
         default: 'all'
-        type: choice
-        options:
-          - all
-          - micro
-          - memory
-          - streaming
-  # Weekly scheduled run for tracking
-  schedule:
-    - cron: '0 0 * * 0'  # Every Sunday at midnight
+      scenarios:
+        description: 'Scenarios to run (comma-separated, or "all")'
+        required: false
+        default: 'trivial,table100,table500'
 
 jobs:
-  benchmark-native:
-    name: Native Benchmarks
+  benchmark-frameworks:
+    name: Compare Frameworks
     runs-on: ubuntu-latest
 
     steps:
@@ -37,106 +29,69 @@ jobs:
           ocaml-compiler: 5.2.x
           dune-cache: true
 
-      - name: Install dependencies
-        run: opam install . --deps-only --with-test -y
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
 
-      - name: Build benchmark scenarios
-        run: opam exec -- dune build benchmark/scenarios/benchmark_scenarios.a
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
 
-      - name: Build benchmark executables
+      - name: Install wrk
         run: |
-          opam exec -- dune build benchmark/micro/micro_bench.exe
-          opam exec -- dune build benchmark/memory/memory_bench.exe
-          opam exec -- dune build benchmark/streaming/streaming_bench.exe
+          sudo apt-get update
+          sudo apt-get install -y wrk
 
-      - name: Run Memory Benchmark
-        id: memory
+      - name: Install OCaml dependencies
+        run: opam install . --deps-only -y
+
+      - name: Build native server
+        run: opam exec -- dune build benchmark/native/server.exe --profile=release
+
+      - name: Install JS framework dependencies
+        working-directory: benchmark/frameworks
+        run: npm install
+
+      - name: Install runner dependencies
+        working-directory: benchmark/runner
+        run: npm install
+
+      - name: Start native server
         run: |
-          echo "## Memory Benchmark Results" >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          opam exec -- _build/default/benchmark/memory/memory_bench.exe 2>&1 | tee memory-results.txt
-          cat memory-results.txt >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
+          opam exec -- _build/default/benchmark/native/server.exe &
+          sleep 2
 
-      - name: Run Streaming Benchmark
-        id: streaming
+      - name: Run framework comparison
+        working-directory: benchmark/runner
         run: |
-          echo "## Streaming Benchmark Results" >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          opam exec -- _build/default/benchmark/streaming/streaming_bench.exe 2>&1 | tee streaming-results.txt
-          cat streaming-results.txt >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
+          FRAMEWORKS="${{ github.event.inputs.frameworks || 'all' }}"
+          SCENARIOS="${{ github.event.inputs.scenarios || 'trivial,table100,table500' }}"
 
-      - name: Run Microbenchmark (Quick)
-        id: micro
-        run: |
-          echo "## Microbenchmark Results (Table Suite)" >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          opam exec -- _build/default/benchmark/micro/micro_bench.exe table 2>&1 | tee micro-results.txt
-          cat micro-results.txt >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
+          ARGS=""
+          if [ "$FRAMEWORKS" != "all" ]; then
+            ARGS="$ARGS --frameworks $FRAMEWORKS"
+          fi
+          if [ "$SCENARIOS" != "all" ]; then
+            ARGS="$ARGS --scenarios $SCENARIOS"
+          fi
 
-      - name: Upload Results
+          node runner.mjs $ARGS
+
+      - name: Upload results
         uses: actions/upload-artifact@v4
         with:
-          name: benchmark-results-${{ github.sha }}
-          path: |
-            memory-results.txt
-            streaming-results.txt
-            micro-results.txt
-          retention-days: 30
+          name: framework-comparison-${{ github.sha }}
+          path: benchmark/runner/results/
+          retention-days: 90
 
-  benchmark-compare:
-    name: Compare with Base Branch
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Setup OCaml
-        uses: ocaml/setup-ocaml@v3
-        with:
-          ocaml-compiler: 5.2.x
-          dune-cache: true
-
-      - name: Install dependencies
-        run: opam install . --deps-only --with-test -y
-
-      - name: Benchmark PR branch
+      - name: Add results to summary
         run: |
-          opam exec -- dune build benchmark/memory/memory_bench.exe
-          opam exec -- _build/default/benchmark/memory/memory_bench.exe --json > pr-results.json
-
-      - name: Checkout base branch
-        run: git checkout ${{ github.base_ref }}
-
-      - name: Benchmark base branch
-        run: |
-          opam exec -- dune clean
-          opam exec -- dune build benchmark/memory/memory_bench.exe
-          opam exec -- _build/default/benchmark/memory/memory_bench.exe --json > base-results.json
-        continue-on-error: true
-
-      - name: Compare Results
-        run: |
-          echo "## Performance Comparison" >> $GITHUB_STEP_SUMMARY
+          echo "## Framework Comparison Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          if [ -f base-results.json ] && [ -f pr-results.json ]; then
-            echo "Comparing memory allocations between base and PR..." >> $GITHUB_STEP_SUMMARY
-            # Simple comparison - in production you'd use a proper tool
-            echo "Base branch results:" >> $GITHUB_STEP_SUMMARY
-            echo '```json' >> $GITHUB_STEP_SUMMARY
-            cat base-results.json >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "PR branch results:" >> $GITHUB_STEP_SUMMARY
-            echo '```json' >> $GITHUB_STEP_SUMMARY
-            cat pr-results.json >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
+          LATEST=$(ls -t benchmark/runner/results/*.md 2>/dev/null | head -1)
+          if [ -n "$LATEST" ]; then
+            cat "$LATEST" >> $GITHUB_STEP_SUMMARY
           else
-            echo "⚠️ Could not compare - base branch benchmark may not exist" >> $GITHUB_STEP_SUMMARY
+            echo "No results generated" >> $GITHUB_STEP_SUMMARY
           fi
 
