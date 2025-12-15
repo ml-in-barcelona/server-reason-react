@@ -128,19 +128,28 @@ docs-open: ## Open odoc docs with default web browser
 docs-serve: docs docs-open ## Open odoc docs with default web browser
 
 .PHONY: build-bench
-build-bench: ## Run benchmark
-	$(DUNE) build --profile=release
+build-bench: ## Build benchmark executables
+	$(DUNE) build --profile=release benchmark/bench.exe
 
 .PHONY: bench
-bench: build-bench ## Run benchmark
-	@$(DUNE) exec benchmark/main.exe --profile=release --display-separate-messages --no-print-directory
+bench: build-bench ## Run benchmarks
+	@$(DUNE) exec benchmark/bench.exe --profile=release --display-separate-messages --no-print-directory
+
+.PHONY: bench-json
+bench-json: build-bench ## Run benchmarks with JSON output for CI
+	@$(DUNE) exec benchmark/bench.exe --profile=release --display-separate-messages --no-print-directory -- --json > bench_results.json
 
 .PHONY: bench-watch
 bench-watch: build-bench ## Run benchmark in watch mode
-	@$(DUNE) exec benchmark/main.exe --profile=release --display-separate-messages --no-print-directory --watch
+	@$(DUNE) exec benchmark/bench.exe --profile=release --display-separate-messages --no-print-directory --watch
 
-.PHONY: once
-bench-once: ## Run benchmark once
+.PHONY: bench-core
+bench-core: ## Run Core_bench benchmarks (more detailed)
+	$(DUNE) build --profile=release benchmark/main.exe
+	@$(DUNE) exec benchmark/main.exe --profile=release --display-separate-messages --no-print-directory
+
+.PHONY: bench-once
+bench-once: ## Run benchmark once (allocation analysis)
 	@$(DUNE) exec _build/default/benchmark/once.exe
 
 .PHONY: bench-once-watch
