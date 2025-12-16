@@ -710,22 +710,24 @@ let make
   |> add "ruby-position" "rubyPosition" rubyPosition
 [@@@ocamlformat "enable"]
 
+let write_to_buffer buf (styles : t) : unit =
+  let rec loop first = function
+    | [] -> ()
+    | (k, _, v) :: rest ->
+        if v == "" then loop first rest
+        else (
+          if not first then Buffer.add_char buf ';';
+          Buffer.add_string buf k;
+          Buffer.add_char buf ':';
+          Buffer.add_string buf (String.trim v);
+          loop false rest)
+  in
+  loop true styles
+
 let to_string (styles : t) : string =
-  let size = List.length styles in
-  let buff = Buffer.create size in
-  styles |> List.to_seq
-  |> Seq.iteri (fun index (k, _, v) ->
-         if v == "" then ()
-         else if index == size - 1 then (
-           Buffer.add_string buff k;
-           Buffer.add_string buff ":";
-           Buffer.add_string buff (String.trim v))
-         else (
-           Buffer.add_string buff k;
-           Buffer.add_string buff ":";
-           Buffer.add_string buff (String.trim v);
-           Buffer.add_string buff ";"));
-  Buffer.contents buff
+  let buf = Buffer.create 64 in
+  write_to_buffer buf styles;
+  Buffer.contents buf
 
 (* TODO: Remove conversion to sequences, can do List.combine *)
 let combine (styles1 : t) (styles2 : t) : t =
