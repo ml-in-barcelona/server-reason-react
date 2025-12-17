@@ -1,11 +1,19 @@
   $ refmt --print ml ./input.re > input.ml
 
-  $ ../standalone.exe -impl input.ml -js | refmt --parse ml --print re --print-width 120
+  $ ../standalone.exe -impl input.ml -js | refmt --parse ml --print re
   let makeQuery = (~abortController, ~encoding=?, pathname, req, input) => {
-    let signal = abortController->Option.map(abortController => abortController->Fetch.AbortController.signal);
+    let signal =
+      abortController->Option.map(abortController =>
+        abortController->Fetch.AbortController.signal
+      );
     let query = Js.Dict.empty();
-    encoding->Option.forEach(enc => query->Js.Dict.set("mode", "csv-" ++ EncodingT.unwrap(enc)));
-    let defaultPostHeaders = ("Content-Type", "application/json; charset=utf-8");
+    encoding->Option.forEach(enc =>
+      query->Js.Dict.set("mode", "csv-" ++ EncodingT.unwrap(enc))
+    );
+    let defaultPostHeaders = (
+      "Content-Type",
+      "application/json; charset=utf-8",
+    );
     switch (req.config.allowed_methods) {
     | GET_or_POST =>
       let queryParam = Sensitivity.to_query_param(req.config.sensitivity);
@@ -19,7 +27,12 @@
               ~method_=Post,
               ~body=inputString->Fetch.BodyInit.make,
               ~credentials=Include,
-              ~headers=makeHeadersInit(~shouldBeGet=true, ~initHeaders=defaultPostHeaders, ()),
+              ~headers=
+                makeHeadersInit(
+                  ~shouldBeGet=true,
+                  ~initHeaders=defaultPostHeaders,
+                  (),
+                ),
               ~signal?,
               (),
             ),
@@ -28,7 +41,13 @@
           Js.Dict.set(query, queryParam, inputStringEncoded);
           Fetch.fetchWithInit(
             Url.makeStringWithQueryDict(~pathname, ~query, ~encode=false, ()),
-            Fetch.RequestInit.make(~method_=Get, ~credentials=Include, ~headers=makeHeadersInit(), ~signal?, ()),
+            Fetch.RequestInit.make(
+              ~method_=Get,
+              ~credentials=Include,
+              ~headers=makeHeadersInit(),
+              ~signal?,
+              (),
+            ),
           );
         };
     | POST_only =>
@@ -46,7 +65,7 @@
     };
   };
 
-  $ ../standalone.exe -impl input.ml | refmt --parse ml --print re --print-width 120
+  $ ../standalone.exe -impl input.ml | refmt --parse ml --print re
   [@warning "-27-32"]
   let [@alert
         browser_only(
@@ -64,7 +83,13 @@
             (
               pathname =>
                 [@ppxlib.migration.stop_taking]
-                (req => [@ppxlib.migration.stop_taking] (input => Runtime.fail_impossible_action_in_ssr("makeQuery")))
+                (
+                  req =>
+                    [@ppxlib.migration.stop_taking]
+                    (
+                      input => Runtime.fail_impossible_action_in_ssr("makeQuery")
+                    )
+                )
             )
         )
     );
