@@ -24,7 +24,7 @@ val getDangerouslyInnerHtml : React.JSX.prop list -> string option
 val write_to_buffer : Buffer.t -> React.element -> unit
 val escape_to_buffer : Buffer.t -> string -> unit
 
-(** {2: The rest of the API is there for compatibility with ReactDOM's reason-react} *)
+(** {2 The rest of the API is there for compatibility with ReactDOM's reason-react} *)
 
 module Ref = React.Ref
 

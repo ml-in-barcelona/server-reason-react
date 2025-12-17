@@ -167,8 +167,7 @@ val toArray : ('k, 'v, 'id) t -> ('k * 'v) array
 val toList : ('k, 'v, 'id) t -> ('k * 'v) list
 (** In increasing order
 
-    {b See} {toArray}
-*)
+    {b See} {!toArray} *)
 
 val fromArray : ('k * 'v) array -> id:('k, 'id) id -> ('k, 'v, 'id) t
 (** [fromArray kvs ~id]
@@ -232,11 +231,9 @@ val getUndefined : ('k, 'v, 'id) t -> 'k -> 'v Js.undefined
 val getWithDefault : ('k, 'v, 'id) t -> 'k -> 'v -> 'v
 (** [getWithDefault s k default]
 
-   {b See} {get}
+    {b See} {!get}
 
-    @return [default] when [k] is not found
-
-*)
+    @return [default] when [k] is not found *)
 
 val getExn : ('k, 'v, 'id) t -> 'k -> 'v
 (** [getExn s k]
@@ -262,10 +259,8 @@ val remove : ('k, 'v, 'id) t -> 'k -> ('k, 'v, 'id) t
 val removeMany : ('k, 'v, 'id) t -> 'k array -> ('k, 'v, 'id) t
 (** [removeMany s xs]
 
-    Removing each of [xs] to [s], note unlike {remove},
-    the reference of return value might be changed even if none in [xs]
-    exists [s]
-*)
+    Removing each of [xs] to [s], note unlike {!remove}, the reference of return value might be changed even if none in
+    [xs] exists [s] *)
 
 val set : ('k, 'v, 'id) t -> 'k -> 'v -> ('k, 'v, 'id) t
 (** [set m x y ] returns a map containing the same bindings as [m], with a new binding of [x] to [y]. If [x] was already
@@ -327,8 +322,7 @@ val mapWithKeyU : ('k, 'v, 'id) t -> (('k -> 'v -> 'v2)[@bs]) -> ('k, 'v2, 'id) 
 val mapWithKey : ('k, 'v, 'id) t -> ('k -> 'v -> 'v2) -> ('k, 'v2, 'id) t
 (** [mapWithKey m f]
 
-    The same as {map} except that [f] is supplied with one more argument: the key
-*)
+    The same as {!map} except that [f] is supplied with one more argument: the key *)
 
 val getData : ('k, 'v, 'id) t -> ('k, 'v, 'id) Belt_MapDict.t
 (** [getData s0]

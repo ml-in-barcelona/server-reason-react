@@ -14,10 +14,10 @@ type platform =
 
 type 'callback server_function = { id : string; call : 'callback }
 (** Type for server actions contract.
-      
-      The 'callback function must to be uncurried as we don't know the amount of arguments
 
-      @id Server Function ID, this will be used on server only
-      @call The Server function implementation
+    The 'callback function must to be uncurried as we don't know the amount of arguments.
 
-      E.g. React.server_function(. ~name: string, ~age: int) => Js.Promise.t(string) *)
+    - [id]: Server Function ID, this will be used on server only
+    - [call]: The Server function implementation
+
+    E.g. React.server_function(. ~name: string, ~age: int) => Js.Promise.t(string) *)
