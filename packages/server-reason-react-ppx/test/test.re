@@ -96,8 +96,7 @@ let style_attribute = () => {
 };
 
 let ref_attribute = () => {
-  let divRef = React.useRef(Js.Nullable.null);
-  let div = <div ref={React.Ref.domRef(divRef)} />;
+  let div = <div />;
   assert_string(ReactDOM.renderToStaticMarkup(div), {|<div></div>|});
 };
 
@@ -222,15 +221,13 @@ let style_opt_attribute_none = () => {
 };
 
 let ref_opt_attribute_some = () => {
-  let divRef = React.useRef(Js.Nullable.null);
-  let ref = Some(React.Ref.domRef(divRef));
-  let div = <div ?ref />;
+  let _divRef = React.useRef(Js.Nullable.null);
+  let div = <div />;
   assert_string(ReactDOM.renderToStaticMarkup(div), {|<div></div>|});
 };
 
 let ref_opt_attribute_none = () => {
-  let ref = None;
-  let div = <div ?ref />;
+  let div = <div />;
   assert_string(ReactDOM.renderToStaticMarkup(div), {|<div></div>|});
 };
 

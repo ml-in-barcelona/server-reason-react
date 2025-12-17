@@ -371,22 +371,67 @@ let transform_lowercase_props ~loc ~tag_name args =
           (* We need to filter attributes since optionals are represented as None *)
           [%expr Stdlib.List.filter_map Stdlib.Fun.id [%e list_of_attributes]])
 
-let rewrite_lowercase ~loc:exprLoc tag_name args children =
-  let loc = exprLoc in
-  let dom_node_name = estring ~loc:exprLoc tag_name in
-  let key =
-    args |> List.find_opt ~f:(fun (label, _) -> get_label label = "key") |> Option.map (fun (_, value) -> value)
+let default_buffer_size = 1024
+
+let generate_buffer_code ~loc parts =
+  let buf_var = "__html_buf" in
+  let buf_ident = pexp_ident ~loc { loc; txt = Lident buf_var } in
+  let buf_pat = ppat_var ~loc { loc; txt = buf_var } in
+  let buffer_size_expr = eint ~loc default_buffer_size in
+
+  let generate_part_code part =
+    match part with
+    | Static_analysis.Static_str s ->
+        let s_expr = estring ~loc s in
+        [%expr Buffer.add_string [%e buf_ident] [%e s_expr]]
+    | Static_analysis.Dynamic_string expr ->
+        (* Dynamic string needs HTML escaping *)
+        [%expr ReactDOM.escape_to_buffer [%e buf_ident] [%e expr]]
+    | Static_analysis.Dynamic_int expr ->
+        (* Int.to_string cannot produce escapable characters, skip escaping *)
+        [%expr Buffer.add_string [%e buf_ident] (Int.to_string [%e expr])]
+    | Static_analysis.Dynamic_float expr ->
+        (* Float.to_string cannot produce escapable characters, skip escaping *)
+        [%expr Buffer.add_string [%e buf_ident] (Float.to_string [%e expr])]
+    | Static_analysis.Dynamic_element expr ->
+        (* Full element needs runtime rendering to buffer *)
+        [%expr ReactDOM.write_to_buffer [%e buf_ident] [%e expr]]
   in
-  let props = transform_lowercase_props ~loc:exprLoc ~tag_name args in
-  match (key, children) with
-  | Some key, Some children ->
-      let childrens = pexp_list ~loc children in
-      [%expr React.createElementWithKey ~key:[%e key] [%e dom_node_name] [%e props] [%e childrens]]
-  | None, Some children ->
-      let childrens = pexp_list ~loc children in
-      [%expr React.createElement [%e dom_node_name] [%e props] [%e childrens]]
-  | Some key, None -> [%expr React.createElementWithKey ~key:[%e key] [%e dom_node_name] [%e props] []]
-  | None, None -> [%expr React.createElement [%e dom_node_name] [%e props] []]
+
+  let ops = List.map ~f:generate_part_code parts in
+  let seq =
+    List.fold_right ops ~init:[%expr ()] ~f:(fun op acc ->
+        [%expr
+          [%e op];
+          [%e acc]])
+  in
+
+  [%expr
+    let [%p buf_pat] = Buffer.create [%e buffer_size_expr] in
+    [%e seq];
+    React.DangerouslyInnerHtml (Buffer.contents [%e buf_ident])]
+
+let rewrite_lowercase ~loc tag_name args children =
+  match Static_analysis.analyze_element ~tag_name ~attrs:args ~children with
+  | Static_analysis.Fully_static html ->
+      let html_with_doctype = Static_analysis.maybe_add_doctype tag_name html in
+      let html_expr = estring ~loc html_with_doctype in
+      [%expr React.DangerouslyInnerHtml [%e html_expr]]
+  | Static_analysis.Needs_string_concat _ | Static_analysis.Needs_buffer _ | Static_analysis.Cannot_optimize -> (
+      let dom_node_name = estring ~loc tag_name in
+      let key =
+        args |> List.find_opt ~f:(fun (label, _) -> get_label label = "key") |> Option.map (fun (_, value) -> value)
+      in
+      let props = transform_lowercase_props ~loc ~tag_name args in
+      match (key, children) with
+      | Some key, Some children ->
+          let childrens = pexp_list ~loc children in
+          [%expr React.createElementWithKey ~key:[%e key] [%e dom_node_name] [%e props] [%e childrens]]
+      | None, Some children ->
+          let childrens = pexp_list ~loc children in
+          [%expr React.createElement [%e dom_node_name] [%e props] [%e childrens]]
+      | Some key, None -> [%expr React.createElementWithKey ~key:[%e key] [%e dom_node_name] [%e props] []]
+      | None, None -> [%expr React.createElement [%e dom_node_name] [%e props] []])
 
 let split_args args =
   let children = ref (Location.none, []) in

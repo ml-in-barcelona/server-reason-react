@@ -347,6 +347,7 @@ val make :
   t
 (** All CSS properties defined as strings. Last argument must be a `unit` *)
 
+val write_to_buffer : Buffer.t -> t -> unit
 val to_string : t -> string
 
 val combine : t -> t -> t

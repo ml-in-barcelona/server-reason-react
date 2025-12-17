@@ -1,0 +1,97 @@
+name: Framework Comparison
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      frameworks:
+        description: 'Frameworks to test (comma-separated, or "all")'
+        required: false
+        default: 'all'
+      scenarios:
+        description: 'Scenarios to run (comma-separated, or "all")'
+        required: false
+        default: 'trivial,table100,table500'
+
+jobs:
+  benchmark-frameworks:
+    name: Compare Frameworks
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup OCaml
+        uses: ocaml/setup-ocaml@v3
+        with:
+          ocaml-compiler: 5.2.x
+          dune-cache: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+
+      - name: Install wrk
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wrk
+
+      - name: Install OCaml dependencies
+        run: opam install . --deps-only -y
+
+      - name: Build native server
+        run: opam exec -- dune build benchmark/native/server.exe --profile=release
+
+      - name: Install JS framework dependencies
+        working-directory: benchmark/frameworks
+        run: npm install
+
+      - name: Install runner dependencies
+        working-directory: benchmark/runner
+        run: npm install
+
+      - name: Start native server
+        run: |
+          opam exec -- _build/default/benchmark/native/server.exe &
+          sleep 2
+
+      - name: Run framework comparison
+        working-directory: benchmark/runner
+        run: |
+          FRAMEWORKS="${{ github.event.inputs.frameworks || 'all' }}"
+          SCENARIOS="${{ github.event.inputs.scenarios || 'trivial,table100,table500' }}"
+
+          ARGS=""
+          if [ "$FRAMEWORKS" != "all" ]; then
+            ARGS="$ARGS --frameworks $FRAMEWORKS"
+          fi
+          if [ "$SCENARIOS" != "all" ]; then
+            ARGS="$ARGS --scenarios $SCENARIOS"
+          fi
+
+          node runner.mjs $ARGS
+
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: framework-comparison-${{ github.sha }}
+          path: benchmark/runner/results/
+          retention-days: 90
+
+      - name: Add results to summary
+        run: |
+          echo "## Framework Comparison Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          LATEST=$(ls -t benchmark/runner/results/*.md 2>/dev/null | head -1)
+          if [ -n "$LATEST" ]; then
+            cat "$LATEST" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "No results generated" >> $GITHUB_STEP_SUMMARY
+          fi
+

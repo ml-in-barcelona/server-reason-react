@@ -5,7 +5,7 @@
     ECMA-262 Section: parseInt(string, radix)
 
     Test naming convention follows tc39/test262:
-    - S15.1.2.2_A{section}_T{test} format for legacy tests
+    - [S15.1.2.2_A<section>_T<test>] format for legacy tests
     - Descriptive names for newer tests *)
 
 open Helpers

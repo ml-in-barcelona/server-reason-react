@@ -128,24 +128,24 @@ docs-open: ## Open odoc docs with default web browser
 docs-serve: docs docs-open ## Open odoc docs with default web browser
 
 .PHONY: build-bench
-build-bench: ## Run benchmark
-	$(DUNE) build --profile=release
+build-bench: ## Build benchmark executables
+	$(DUNE) build --profile=release benchmark/bench.exe
 
 .PHONY: bench
-bench: build-bench ## Run benchmark
-	@$(DUNE) exec benchmark/main.exe --profile=release --display-separate-messages --no-print-directory
+bench: build-bench ## Run benchmarks
+	@$(DUNE) exec benchmark/bench.exe --profile=release --display-separate-messages --no-print-directory
+
+.PHONY: bench-json
+bench-json: build-bench ## Run benchmarks with JSON output for CI
+	@$(DUNE) exec benchmark/bench.exe --profile=release --display-separate-messages --no-print-directory -- --json > bench_results.json
 
 .PHONY: bench-watch
 bench-watch: build-bench ## Run benchmark in watch mode
-	@$(DUNE) exec benchmark/main.exe --profile=release --display-separate-messages --no-print-directory --watch
+	@$(DUNE) exec benchmark/bench.exe --profile=release --display-separate-messages --no-print-directory --watch
 
-.PHONY: once
-bench-once: ## Run benchmark once
-	@$(DUNE) exec _build/default/benchmark/once.exe
-
-.PHONY: bench-once-watch
-bench-once-watch: ## Run benchmark once in watch mode
-	@$(DUNE) exec _build/default/benchmark/once.exe --watch
+.PHONY: bench-allocation
+bench-allocation: ## Run allocation analysis
+	@$(DUNE) exec benchmark/allocation.exe --profile=release
 
 container_name = server-reason-react-demo
 current_hash = $(shell git rev-parse HEAD | cut -c1-7)

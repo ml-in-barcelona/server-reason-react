@@ -5,7 +5,7 @@
     ECMA-262 Section: parseFloat(string)
 
     Test naming convention follows tc39/test262:
-    - S15.1.2.3_A{section}_T{test} format for legacy tests *)
+    - [S15.1.2.3_A<section>_T<test>] format for legacy tests *)
 
 open Helpers
 

@@ -8,10 +8,42 @@ let is_react_custom_attribute attr =
   | "dangerouslySetInnerHTML" | "ref" | "key" | "suppressContentEditableWarning" | "suppressHydrationWarning" -> true
   | _ -> false
 
-let attribute_to_html attr =
-  match (attr : React.JSX.prop) with
+let write_attribute_to_buffer buf (attr : React.JSX.prop) =
+  match attr with
+  (* ignores "ref" prop *)
+  | Ref _ -> ()
+  (* react custom attributes are not rendered *)
+  | Bool (name, _, _) when is_react_custom_attribute name -> ()
+  (* false attributes don't get rendered *)
+  | Bool (_name, _, false) -> ()
+  (* true attributes render solely the attribute name *)
+  | Bool (name, _, true) ->
+      Buffer.add_char buf ' ';
+      Buffer.add_string buf name
+  | Action (_, _, _) -> ()
+  | Style styles ->
+      Buffer.add_string buf " style=\"";
+      Style.write_to_buffer buf styles;
+      Buffer.add_char buf '"'
+  | String (name, _, _value) when is_react_custom_attribute name -> ()
+  | String (name, _, value) ->
+      Buffer.add_char buf ' ';
+      Buffer.add_string buf name;
+      Buffer.add_string buf "=\"";
+      Html.escape buf value;
+      Buffer.add_char buf '"'
+  (* Events don't get rendered on SSR *)
+  | Event _ -> ()
+  (* Since we extracted the attribute as children, we are sure there's nothing to render here *)
+  | DangerouslyInnerHtml _ -> ()
+
+let write_attributes_to_buffer buf attrs = List.iter (write_attribute_to_buffer buf) attrs
+
+let attribute_to_html (attr : React.JSX.prop) =
+  match attr with
   (* ignores "ref" prop *)
   | Ref _ -> Html.omitted ()
+  (* react custom attributes are not rendered *)
   | Bool (name, _, _) when is_react_custom_attribute name -> Html.omitted ()
   (* false attributes don't get rendered *)
   | Bool (_name, _, false) -> Html.omitted ()
@@ -33,64 +65,128 @@ let getDangerouslyInnerHtml attributes =
 
 type mode = String | Markup
 
-let render ~mode element =
-  (* is_root starts at true (when renderToString) and only goes to false
-     when renders an lower-case element or closed element *)
-  let is_mode_to_string = mode = String in
-  let is_root = ref is_mode_to_string in
+let render_to_buffer ~mode buf element =
+  let add_separator_between_text_nodes = mode = String in
+  let previous_was_text_node = ref false in
+  let should_add_doctype = ref true in
 
   let rec render_element element =
     match (element : React.element) with
-    | Empty -> Html.null
-    | DangerouslyInnerHtml html -> Html.raw html
+    | Empty -> ()
+    | DangerouslyInnerHtml html ->
+        should_add_doctype := false;
+        Buffer.add_string buf html
     | Client_component { import_module; _ } ->
         raise
           (Invalid_argument
-             (Printf.sprintf
-                "Client components can't be rendered on the server via renderToString or renderToStaticMarkup. Please \
-                 use the React server components API instead. module: %s"
-                import_module))
+             ("Client components can't be rendered on the server via renderToString or renderToStaticMarkup. Please \
+               use the React server components API instead. module: " ^ import_module))
     | Provider children -> render_element children
     | Consumer children -> render_element children
     | Fragment children -> render_element children
-    | List list -> list |> List.map render_element |> Html.list
-    | Array arr -> arr |> Array.map render_element |> Html.array
+    | List list -> List.iter render_element list
+    | Array arr -> Array.iter render_element arr
     | Upper_case_component (_, component) -> render_element (component ())
     | Async_component (_name, _component) ->
         raise
           (Invalid_argument
              "Async components can't be rendered to static markup, since rendering is synchronous. Please use \
               `renderToStream` instead.")
-    | Lower_case_element { key; tag; attributes; children } ->
-        is_root.contents <- false;
-        render_lower_case ~key tag attributes children
-    | Text text -> Html.string text
+    | Lower_case_element { key; tag; attributes; children } -> render_lower_case ~key tag attributes children
+    | Text text ->
+        let is_previous_text_node = !previous_was_text_node in
+        previous_was_text_node := true;
+        if is_previous_text_node && add_separator_between_text_nodes then Buffer.add_string buf "<!-- -->";
+        Html.escape buf text;
+        should_add_doctype := false
     | Suspense { key = _; children; fallback } -> (
         match render_element children with
-        | output -> Html.list [ Html.raw "<!--$-->"; output; Html.raw "<!--/$-->" ]
-        | exception _e -> Html.list [ Html.raw "<!--$!-->"; render_element fallback; Html.raw "<!--/$-->" ])
+        | () ->
+            Buffer.add_string buf "<!--$-->";
+            render_element children;
+            Buffer.add_string buf "<!--/$-->"
+        | exception _e ->
+            Buffer.add_string buf "<!--$!-->";
+            render_element fallback;
+            Buffer.add_string buf "<!--/$-->")
   and render_lower_case ~key:_ tag attributes children =
     let inner_html = getDangerouslyInnerHtml attributes in
-    match (inner_html, Html.is_self_closing_tag tag) with
-    (* the ppx ensures that a self closing tag can't have children *)
-    | Some _, true -> Html.node tag (attributes_to_html attributes) []
-    | Some inner_html, false -> Html.node tag (attributes_to_html attributes) [ Html.raw inner_html ]
-    | None, _ -> Html.node tag (attributes_to_html attributes) (List.map render_element children)
+    if Html.is_self_closing_tag tag then (
+      should_add_doctype := false;
+      if add_separator_between_text_nodes then previous_was_text_node := false;
+      Buffer.add_char buf '<';
+      Buffer.add_string buf tag;
+      write_attributes_to_buffer buf attributes;
+      Buffer.add_string buf " />")
+    else
+      let doctype = !should_add_doctype in
+      should_add_doctype := false;
+      if add_separator_between_text_nodes then previous_was_text_node := false;
+      if tag = "html" && doctype then Buffer.add_string buf "<!DOCTYPE html>";
+      Buffer.add_char buf '<';
+      Buffer.add_string buf tag;
+      write_attributes_to_buffer buf attributes;
+      Buffer.add_char buf '>';
+      (match inner_html with Some html -> Buffer.add_string buf html | None -> List.iter render_element children);
+      Buffer.add_string buf "</";
+      Buffer.add_string buf tag;
+      Buffer.add_char buf '>'
   in
   render_element element
 
+let write_to_buffer buf element =
+  let rec render element =
+    match (element : React.element) with
+    | Empty -> ()
+    | DangerouslyInnerHtml html -> Buffer.add_string buf html
+    | Client_component { import_module; _ } ->
+        raise (Invalid_argument ("Client components can't be rendered via write_to_buffer. module: " ^ import_module))
+    | Provider children -> render children
+    | Consumer children -> render children
+    | Fragment children -> render children
+    | List list -> List.iter render list
+    | Array arr -> Array.iter render arr
+    | Upper_case_component (_, component) -> render (component ())
+    | Async_component (_name, _component) ->
+        raise (Invalid_argument "Async components can't be rendered synchronously via write_to_buffer.")
+    | Lower_case_element { key = _; tag; attributes; children } ->
+        let inner_html = getDangerouslyInnerHtml attributes in
+        if Html.is_self_closing_tag tag then (
+          Buffer.add_char buf '<';
+          Buffer.add_string buf tag;
+          write_attributes_to_buffer buf attributes;
+          Buffer.add_string buf " />")
+        else (
+          Buffer.add_char buf '<';
+          Buffer.add_string buf tag;
+          write_attributes_to_buffer buf attributes;
+          Buffer.add_char buf '>';
+          (match inner_html with Some html -> Buffer.add_string buf html | None -> List.iter render children);
+          Buffer.add_string buf "</";
+          Buffer.add_string buf tag;
+          Buffer.add_char buf '>')
+    | Text text -> Html.escape buf text
+    | Suspense { children; fallback; _ } -> (
+        match render children with () -> render children | exception _e -> render fallback)
+  in
+  render element
+
+let escape_to_buffer = Html.escape
+
 let renderToString element =
   (* TODO: try catch to avoid React.use usages *)
-  let html = render ~mode:String element in
-  Html.to_string html
+  let buf = Buffer.create 1024 in
+  render_to_buffer ~mode:String buf element;
+  Buffer.contents buf
 
 let renderToStaticMarkup element =
   (* TODO: try catch to avoid React.use usages *)
-  let html = render ~mode:Markup element in
-  Html.to_string ~add_separator_between_text_nodes:false html
+  let buf = Buffer.create 1024 in
+  render_to_buffer ~mode:Markup buf element;
+  Buffer.contents buf
 
 type stream_context = {
-  push : Html.element -> unit;
+  push : string -> unit;
   close : unit -> unit;
   mutable closed : bool;
   mutable has_rc_script_been_injected : bool;
@@ -105,62 +201,70 @@ let complete_boundary_script =
 
 let replacement b s = Printf.sprintf "$RC('B:%i','S:%i')" b s
 
-let inline_complete_boundary_script has_rc_script_been_injected boundary_id suspense_id =
-  if not has_rc_script_been_injected then
-    Html.raw (Printf.sprintf "<script>%s%s</script>" complete_boundary_script (replacement boundary_id suspense_id))
-  else Html.raw (Printf.sprintf "<script>%s</script>" (replacement boundary_id suspense_id))
+let write_inline_complete_boundary_script buf has_rc_script_been_injected boundary_id suspense_id =
+  let rc_call = replacement boundary_id suspense_id in
+  if not has_rc_script_been_injected then (
+    Buffer.add_string buf "<script>";
+    Buffer.add_string buf complete_boundary_script;
+    Buffer.add_string buf rc_call;
+    Buffer.add_string buf "</script>")
+  else (
+    Buffer.add_string buf "<script>";
+    Buffer.add_string buf rc_call;
+    Buffer.add_string buf "</script>")
 
-let render_suspense_resolved_element ~id element =
-  Html.node "div" [ Html.present "hidden"; Html.attribute "id" (Printf.sprintf "S:%i" id) ] [ element ]
+let write_suspense_resolved_element buf ~id html =
+  Buffer.add_string buf "<div hidden id=\"S:";
+  Buffer.add_string buf (Int.to_string id);
+  Buffer.add_string buf "\">";
+  Buffer.add_string buf html;
+  Buffer.add_string buf "</div>"
 
-let render_suspense_fallback ~boundary_id element =
-  Html.list
-    [
-      Html.raw "<!--$?-->";
-      Html.node "template" [ Html.attribute "id" (Printf.sprintf "B:%i" boundary_id) ] [];
-      element;
-      Html.raw "<!--/$-->";
-    ]
+let write_suspense_fallback buf ~boundary_id fallback =
+  Buffer.add_string buf "<!--$?--><template id=\"B:";
+  Buffer.add_string buf (Int.to_string boundary_id);
+  Buffer.add_string buf "\"></template>";
+  Buffer.add_string buf fallback;
+  Buffer.add_string buf "<!--/$-->"
 
-let render_suspense_fallback_error ~exn element =
+let write_suspense_fallback_error buf ~exn fallback =
   let backtrace = Printexc.get_backtrace () in
-  let data_msg = Printf.sprintf "%s\n%s" (Printexc.to_string exn) backtrace in
-  Html.list
-    [
-      Html.raw "<!--$!-->";
-      Html.node "template" [ Html.attribute "data-msg" data_msg ] [];
-      element;
-      Html.raw "<!--/$-->";
-    ]
+  Buffer.add_string buf "<!--$!--><template data-msg=\"";
+  Html.escape buf (Printexc.to_string exn ^ "\n" ^ backtrace);
+  Buffer.add_string buf "\"></template>";
+  Buffer.add_string buf fallback;
+  Buffer.add_string buf "<!--/$-->"
 
-let rec render_to_stream ~stream_context element =
+let rec render_to_stream_buffer ~stream_context buf element =
+  let should_add_doctype = ref true in
+  let previous_was_text_node = ref false in
+
   let rec render_element element =
     match (element : React.element) with
-    | Empty -> Lwt.return Html.null
-    | DangerouslyInnerHtml html -> Lwt.return (Html.raw html)
+    | Empty -> Lwt.return ()
+    | DangerouslyInnerHtml html ->
+        should_add_doctype := false;
+        Buffer.add_string buf html;
+        Lwt.return ()
     | Client_component { import_module; _ } ->
         raise
           (Invalid_argument
-             (Printf.sprintf
-                "Client components can't be rendered on the server via renderToStream. Please use the React server \
-                 components API instead. module: %s"
-                import_module))
+             ("Client components can't be rendered on the server via renderToStream. Please use the React server \
+               components API instead. module: " ^ import_module))
     | Provider children -> render_element children
     | Consumer children -> render_element children
     | Fragment children -> render_element children
-    | List list ->
-        let%lwt childrens = Lwt_list.map_p render_element list in
-        Lwt.return (Html.list childrens)
-    | Array arr ->
-        let%lwt childrens = arr |> Array.to_list |> Lwt_list.map_p render_element in
-        Lwt.return (Html.list childrens)
+    | List list -> Lwt_list.iter_s render_element list
+    | Array arr -> Lwt_list.iter_s render_element (Array.to_list arr)
     | Lower_case_element { key; tag; attributes; children } -> render_lower_case ~key tag attributes children
-    | Text text -> Lwt.return (Html.string text)
-    | Upper_case_component (_, component) -> (
-        try
-          let element = component () in
-          render_element element
-        with exn -> raise_notrace exn)
+    | Text text ->
+        let is_previous_text_node = !previous_was_text_node in
+        previous_was_text_node := true;
+        if is_previous_text_node then Buffer.add_string buf "<!-- -->";
+        should_add_doctype := false;
+        Html.escape buf text;
+        Lwt.return ()
+    | Upper_case_component (_, component) -> ( try render_element (component ()) with exn -> raise_notrace exn)
     | Async_component (_, component) -> (
         let promise = component () in
         match Lwt.state promise with
@@ -169,16 +273,24 @@ let rec render_to_stream ~stream_context element =
         | Lwt.Sleep -> raise_notrace (React.Suspend (Any_promise promise)))
     | Suspense { children; fallback; _ } -> (
         (* TODO: We assume fallback can't have errors or suspensions, it might not be the case *)
-        let%lwt fallback_element = render_element fallback in
+        let render_fallback_html () =
+          let fallback_buf = Buffer.create 128 in
+          let%lwt () = render_element_to_buffer fallback_buf fallback in
+          Lwt.return (Buffer.contents fallback_buf)
+        in
         try%lwt
-          let%lwt element = render_element children in
-          Lwt.return element
+          let%lwt () = render_element children in
+          Lwt.return ()
         with
         | React.Suspend (Any_promise promise) -> (
             match Lwt.state promise with
             | Lwt.Return _ -> render_element children
-            | Lwt.Fail exn -> Lwt.return (render_suspense_fallback_error ~exn fallback_element)
+            | Lwt.Fail exn ->
+                let%lwt fallback_html = render_fallback_html () in
+                write_suspense_fallback_error buf ~exn fallback_html;
+                Lwt.return ()
             | Lwt.Sleep ->
+                let%lwt fallback_html = render_fallback_html () in
                 let current_boundary_id = stream_context.boundary_id in
                 let current_suspense_id = stream_context.suspense_id in
                 stream_context.boundary_id <- stream_context.boundary_id + 1;
@@ -187,59 +299,188 @@ let rec render_to_stream ~stream_context element =
 
                 Lwt.async (fun () ->
                     let%lwt _ = promise in
-                    let%lwt resolved_html = render_with_resolved ~stream_context children in
+                    let async_buf = Buffer.create 512 in
+                    let%lwt () = render_with_resolved_buffer ~stream_context async_buf children in
                     stream_context.waiting <- stream_context.waiting - 1;
                     if not stream_context.closed then (
-                      stream_context.push (render_suspense_resolved_element ~id:current_suspense_id resolved_html);
-                      stream_context.push
-                        (inline_complete_boundary_script stream_context.has_rc_script_been_injected current_boundary_id
-                           current_suspense_id));
+                      let inner_html = Buffer.contents async_buf in
+                      Buffer.clear async_buf;
+                      write_suspense_resolved_element async_buf ~id:current_suspense_id inner_html;
+                      stream_context.push (Buffer.contents async_buf);
+                      Buffer.clear async_buf;
+                      write_inline_complete_boundary_script async_buf stream_context.has_rc_script_been_injected
+                        current_boundary_id current_suspense_id;
+                      stream_context.push (Buffer.contents async_buf));
                     stream_context.has_rc_script_been_injected <- true;
                     if stream_context.waiting = 0 then (
                       stream_context.closed <- true;
                       stream_context.close ());
                     Lwt.return ());
 
-                Lwt.return (render_suspense_fallback ~boundary_id:current_boundary_id fallback_element))
+                write_suspense_fallback buf ~boundary_id:current_boundary_id fallback_html;
+                Lwt.return ())
         | exn ->
-            let%lwt fallback_element = render_element fallback in
-            Lwt.return (render_suspense_fallback_error ~exn fallback_element))
-  and render_lower_case ~key:_ tag attributes children =
-    let inner_html = getDangerouslyInnerHtml attributes in
-    match (inner_html, Html.is_self_closing_tag tag) with
-    | Some _, true -> Lwt.return (Html.node tag (attributes_to_html attributes) [])
-    | Some inner_html, false -> Lwt.return (Html.node tag (attributes_to_html attributes) [ Html.raw inner_html ])
-    | None, _ ->
-        let%lwt inner = Lwt_list.map_p render_element children in
-        let html_attributes = attributes_to_html attributes in
-        Lwt.return (Html.node tag html_attributes inner)
-  in
-  render_element element
-
-and render_with_resolved ~stream_context element =
-  let rec render_element element =
+            let%lwt fallback_html = render_fallback_html () in
+            write_suspense_fallback_error buf ~exn fallback_html;
+            Lwt.return ())
+  and render_element_to_buffer target_buf element =
     match (element : React.element) with
-    | Empty -> Lwt.return Html.null
+    | Empty -> Lwt.return ()
+    | DangerouslyInnerHtml html ->
+        Buffer.add_string target_buf html;
+        Lwt.return ()
     | Client_component { import_module; _ } ->
         raise
           (Invalid_argument
-             (Printf.sprintf
-                "Client components can't be rendered on the server via renderToStream. Please use the React server \
-                 components API instead. module: %s"
-                import_module))
+             ("Client components can't be rendered on the server via renderToStream. Please use the React server \
+               components API instead. module: " ^ import_module))
+    | Provider children -> render_element_to_buffer target_buf children
+    | Consumer children -> render_element_to_buffer target_buf children
+    | Fragment children -> render_element_to_buffer target_buf children
+    | List list -> Lwt_list.iter_s (render_element_to_buffer target_buf) list
+    | Array arr -> Lwt_list.iter_s (render_element_to_buffer target_buf) (Array.to_list arr)
+    | Lower_case_element { key; tag; attributes; children } ->
+        render_lower_case_to_buffer target_buf ~key tag attributes children
+    | Text text ->
+        Html.escape target_buf text;
+        Lwt.return ()
+    | Upper_case_component (_, component) -> (
+        try render_element_to_buffer target_buf (component ()) with exn -> raise_notrace exn)
+    | Async_component (_, component) -> (
+        let promise = component () in
+        match Lwt.state promise with
+        | Lwt.Return element -> render_element_to_buffer target_buf element
+        | Lwt.Fail exn -> raise_notrace exn
+        | Lwt.Sleep -> raise_notrace (React.Suspend (Any_promise promise)))
+    | Suspense { children; fallback; _ } -> (
+        let render_fallback () =
+          let fallback_buf = Buffer.create 128 in
+          let%lwt () = render_element_to_buffer fallback_buf fallback in
+          Lwt.return (Buffer.contents fallback_buf)
+        in
+        try%lwt render_element_to_buffer target_buf children with
+        | React.Suspend (Any_promise promise) -> (
+            match Lwt.state promise with
+            | Lwt.Return _ -> render_element_to_buffer target_buf children
+            | Lwt.Fail exn ->
+                let%lwt html = render_fallback () in
+                write_suspense_fallback_error target_buf ~exn html;
+                Lwt.return ()
+            | Lwt.Sleep ->
+                let%lwt fallback_html = render_fallback () in
+                let current_boundary_id = stream_context.boundary_id in
+                let current_suspense_id = stream_context.suspense_id in
+                stream_context.boundary_id <- stream_context.boundary_id + 1;
+                stream_context.suspense_id <- stream_context.suspense_id + 1;
+                stream_context.waiting <- stream_context.waiting + 1;
+
+                Lwt.async (fun () ->
+                    let%lwt _ = promise in
+                    let async_buf = Buffer.create 512 in
+                    let%lwt () = render_with_resolved_buffer ~stream_context async_buf children in
+                    stream_context.waiting <- stream_context.waiting - 1;
+                    if not stream_context.closed then (
+                      let inner_html = Buffer.contents async_buf in
+                      Buffer.clear async_buf;
+                      write_suspense_resolved_element async_buf ~id:current_suspense_id inner_html;
+                      stream_context.push (Buffer.contents async_buf);
+                      Buffer.clear async_buf;
+                      write_inline_complete_boundary_script async_buf stream_context.has_rc_script_been_injected
+                        current_boundary_id current_suspense_id;
+                      stream_context.push (Buffer.contents async_buf));
+                    stream_context.has_rc_script_been_injected <- true;
+                    if stream_context.waiting = 0 then (
+                      stream_context.closed <- true;
+                      stream_context.close ());
+                    Lwt.return ());
+
+                write_suspense_fallback target_buf ~boundary_id:current_boundary_id fallback_html;
+                Lwt.return ())
+        | exn ->
+            let%lwt fallback_html = render_fallback () in
+            write_suspense_fallback_error target_buf ~exn fallback_html;
+            Lwt.return ())
+  and render_lower_case ~key:_ tag attributes children =
+    let inner_html = getDangerouslyInnerHtml attributes in
+    if Html.is_self_closing_tag tag then (
+      should_add_doctype := false;
+      previous_was_text_node := false;
+      Buffer.add_char buf '<';
+      Buffer.add_string buf tag;
+      write_attributes_to_buffer buf attributes;
+      Buffer.add_string buf " />";
+      Lwt.return ())
+    else
+      let doctype = !should_add_doctype in
+      should_add_doctype := false;
+      previous_was_text_node := false;
+      if tag = "html" && doctype then Buffer.add_string buf "<!DOCTYPE html>";
+      Buffer.add_char buf '<';
+      Buffer.add_string buf tag;
+      write_attributes_to_buffer buf attributes;
+      Buffer.add_char buf '>';
+      let%lwt () =
+        match inner_html with
+        | Some html ->
+            Buffer.add_string buf html;
+            Lwt.return ()
+        | None -> Lwt_list.iter_s render_element children
+      in
+      Buffer.add_string buf "</";
+      Buffer.add_string buf tag;
+      Buffer.add_char buf '>';
+      Lwt.return ()
+  and render_lower_case_to_buffer target_buf ~key:_ tag attributes children =
+    let inner_html = getDangerouslyInnerHtml attributes in
+    if Html.is_self_closing_tag tag then (
+      Buffer.add_char target_buf '<';
+      Buffer.add_string target_buf tag;
+      write_attributes_to_buffer target_buf attributes;
+      Buffer.add_string target_buf " />";
+      Lwt.return ())
+    else (
+      Buffer.add_char target_buf '<';
+      Buffer.add_string target_buf tag;
+      write_attributes_to_buffer target_buf attributes;
+      Buffer.add_char target_buf '>';
+      let%lwt () =
+        match inner_html with
+        | Some html ->
+            Buffer.add_string target_buf html;
+            Lwt.return ()
+        | None -> Lwt_list.iter_s (render_element_to_buffer target_buf) children
+      in
+      Buffer.add_string target_buf "</";
+      Buffer.add_string target_buf tag;
+      Buffer.add_char target_buf '>';
+      Lwt.return ())
+  in
+  render_element element
+
+and render_with_resolved_buffer ~stream_context buf element =
+  let previous_was_text_node = ref false in
+
+  let rec render_element element =
+    match (element : React.element) with
+    | Empty -> Lwt.return ()
+    | Client_component { import_module; _ } ->
+        raise
+          (Invalid_argument
+             ("Client components can't be rendered on the server via renderToStream. Please use the React server \
+               components API instead. module: " ^ import_module))
     | Provider children -> render_element children
     | Consumer children -> render_element children
     | Fragment children -> render_element children
-    | List list ->
-        let%lwt childrens = Lwt_list.map_p render_element list in
-        Lwt.return (Html.list childrens)
-    | Array arr ->
-        (* TODO: Lwt_array doesn't exist *)
-        let%lwt childrens = arr |> Array.to_list |> Lwt_list.map_p render_element in
-        Lwt.return (Html.list childrens)
+    | List list -> Lwt_list.iter_s render_element list
+    | Array arr -> Lwt_list.iter_s render_element (Array.to_list arr)
     | Upper_case_component (_, component) -> render_element (component ())
     | Lower_case_element { key; tag; attributes; children } -> render_lower_case ~key tag attributes children
-    | Text text -> Lwt.return (Html.string text)
+    | Text text ->
+        let is_previous_text_node = !previous_was_text_node in
+        previous_was_text_node := true;
+        if is_previous_text_node then Buffer.add_string buf "<!-- -->";
+        Html.escape buf text;
+        Lwt.return ()
     | Async_component (_, component) -> (
         let promise = component () in
         match Lwt.state promise with
@@ -248,44 +489,75 @@ and render_with_resolved ~stream_context element =
         | Lwt.Sleep ->
             let%lwt resolved = promise in
             render_element resolved)
-    | DangerouslyInnerHtml html -> Lwt.return (Html.raw html)
-    | Suspense _ -> render_to_stream ~stream_context element
+    | DangerouslyInnerHtml html ->
+        Buffer.add_string buf html;
+        Lwt.return ()
+    | Suspense _ -> render_to_stream_buffer ~stream_context buf element
   and render_lower_case ~key:_ tag attributes children =
     let inner_html = getDangerouslyInnerHtml attributes in
-    match (inner_html, Html.is_self_closing_tag tag) with
-    | Some _, true -> Lwt.return (Html.node tag (attributes_to_html attributes) [])
-    | Some inner_html, false -> Lwt.return (Html.node tag (attributes_to_html attributes) [ Html.raw inner_html ])
-    | None, _ ->
-        let%lwt inner = Lwt_list.map_p render_element children in
-        let html_attributes = attributes_to_html attributes in
-        Lwt.return (Html.node tag html_attributes inner)
+    if Html.is_self_closing_tag tag then (
+      previous_was_text_node := false;
+      Buffer.add_char buf '<';
+      Buffer.add_string buf tag;
+      write_attributes_to_buffer buf attributes;
+      Buffer.add_string buf " />";
+      Lwt.return ())
+    else (
+      previous_was_text_node := false;
+      Buffer.add_char buf '<';
+      Buffer.add_string buf tag;
+      write_attributes_to_buffer buf attributes;
+      Buffer.add_char buf '>';
+      let%lwt () =
+        match inner_html with
+        | Some html ->
+            Buffer.add_string buf html;
+            Lwt.return ()
+        | None -> Lwt_list.iter_s render_element children
+      in
+      Buffer.add_string buf "</";
+      Buffer.add_string buf tag;
+      Buffer.add_char buf '>';
+      Lwt.return ())
   in
   render_element element
 
 let renderToStream ?pipe:_ element =
   let stream, push_to_stream, close = Push_stream.make () in
-  let push html = push_to_stream (Html.to_string html) in
   let stream_context =
-    { push; close; closed = false; waiting = 0; boundary_id = 0; suspense_id = 0; has_rc_script_been_injected = false }
+    {
+      push = push_to_stream;
+      close;
+      closed = false;
+      waiting = 0;
+      boundary_id = 0;
+      suspense_id = 0;
+      has_rc_script_been_injected = false;
+    }
   in
   let abort () =
     (* TODO: Needs to flush the remaining loading fallbacks as HTML, and React.js will try to render the rest on the client. *)
     Lwt_stream.closed stream |> Lwt.ignore_result
   in
+  let buf = Buffer.create 1024 in
   try%lwt
-    let%lwt html = render_to_stream ~stream_context element in
-    push html;
+    let%lwt () = render_to_stream_buffer ~stream_context buf element in
+    push_to_stream (Buffer.contents buf);
     if stream_context.waiting = 0 then close ();
     Lwt.return (stream, abort)
   with
   | React.Suspend (Any_promise promise) ->
-      (* In case of getting a React.Suspend exn means that either an async component is being rendered without React.Suspense or React.use is being used without a Suspense boundary. In both cases, we need to await for the promise to resolve and then render the resolved element. *)
+      (* In case of getting a React.Suspend exn means that either an async component is being rendered without
+         React.Suspense or React.use is being used without a Suspense boundary. In both cases, we need to await
+         for the promise to resolve and then render the resolved element. *)
       let%lwt _ = promise in
-      let%lwt html = render_with_resolved ~stream_context element in
-      push html;
+      Buffer.clear buf;
+      let%lwt () = render_with_resolved_buffer ~stream_context buf element in
+      push_to_stream (Buffer.contents buf);
       if stream_context.waiting = 0 then close ();
       Lwt.return (stream, abort)
-  | exn -> (* non suspend exceptions propagate to the parent *) Lwt.fail exn
+  (* non suspend exceptions propagate to the parent *)
+  | exn -> Lwt.fail exn
 
 let querySelector _str = Runtime.fail_impossible_action_in_ssr "ReactDOM.querySelector"
 let render _element _node = Runtime.fail_impossible_action_in_ssr "ReactDOM.render"
