@@ -134,6 +134,45 @@ let render_to_buffer ~mode buf element =
   in
   render_element element
 
+let write_to_buffer buf element =
+  let rec render element =
+    match (element : React.element) with
+    | Empty -> ()
+    | DangerouslyInnerHtml html -> Buffer.add_string buf html
+    | Client_component { import_module; _ } ->
+        raise (Invalid_argument ("Client components can't be rendered via write_to_buffer. module: " ^ import_module))
+    | Provider children -> render children
+    | Consumer children -> render children
+    | Fragment children -> render children
+    | List list -> List.iter render list
+    | Array arr -> Array.iter render arr
+    | Upper_case_component (_, component) -> render (component ())
+    | Async_component (_name, _component) ->
+        raise (Invalid_argument "Async components can't be rendered synchronously via write_to_buffer.")
+    | Lower_case_element { key = _; tag; attributes; children } ->
+        let inner_html = getDangerouslyInnerHtml attributes in
+        if Html.is_self_closing_tag tag then (
+          Buffer.add_char buf '<';
+          Buffer.add_string buf tag;
+          write_attributes_to_buffer buf attributes;
+          Buffer.add_string buf " />")
+        else (
+          Buffer.add_char buf '<';
+          Buffer.add_string buf tag;
+          write_attributes_to_buffer buf attributes;
+          Buffer.add_char buf '>';
+          (match inner_html with Some html -> Buffer.add_string buf html | None -> List.iter render children);
+          Buffer.add_string buf "</";
+          Buffer.add_string buf tag;
+          Buffer.add_char buf '>')
+    | Text text -> Html.escape buf text
+    | Suspense { children; fallback; _ } -> (
+        match render children with () -> render children | exception _e -> render fallback)
+  in
+  render element
+
+let escape_to_buffer = Html.escape
+
 let renderToString element =
   (* TODO: try catch to avoid React.use usages *)
   let buf = Buffer.create 1024 in
@@ -174,26 +213,26 @@ let write_inline_complete_boundary_script buf has_rc_script_been_injected bounda
     Buffer.add_string buf rc_call;
     Buffer.add_string buf "</script>")
 
-let write_suspense_resolved_element buf ~id inner_html =
+let write_suspense_resolved_element buf ~id html =
   Buffer.add_string buf "<div hidden id=\"S:";
   Buffer.add_string buf (Int.to_string id);
   Buffer.add_string buf "\">";
-  Buffer.add_string buf inner_html;
+  Buffer.add_string buf html;
   Buffer.add_string buf "</div>"
 
-let write_suspense_fallback buf ~boundary_id fallback_html =
+let write_suspense_fallback buf ~boundary_id fallback =
   Buffer.add_string buf "<!--$?--><template id=\"B:";
   Buffer.add_string buf (Int.to_string boundary_id);
   Buffer.add_string buf "\"></template>";
-  Buffer.add_string buf fallback_html;
+  Buffer.add_string buf fallback;
   Buffer.add_string buf "<!--/$-->"
 
-let write_suspense_fallback_error buf ~exn fallback_html =
+let write_suspense_fallback_error buf ~exn fallback =
   let backtrace = Printexc.get_backtrace () in
   Buffer.add_string buf "<!--$!--><template data-msg=\"";
   Html.escape buf (Printexc.to_string exn ^ "\n" ^ backtrace);
   Buffer.add_string buf "\"></template>";
-  Buffer.add_string buf fallback_html;
+  Buffer.add_string buf fallback;
   Buffer.add_string buf "<!--/$-->"
 
 let rec render_to_stream_buffer ~stream_context buf element =

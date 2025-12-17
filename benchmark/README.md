@@ -1,16 +1,26 @@
 # Server Reason React Benchmark Suite
 
-A comprehensive, state-of-the-art benchmark suite for measuring and comparing SSR performance of `server-reason-react` against popular JavaScript frameworks.
+A comprehensive benchmark suite for measuring and comparing SSR performance of `server-reason-react` against React.js with some JavaScript runtimes
 
-## Overview
+## Performance Summary
 
-This benchmark suite provides:
+**Pure rendering performance** — Native + server-reason-rect vs Bun + React:
 
-- **Multiple comparison frameworks**: Node.js (Express, Fastify), Hono, Bun, Preact
-- **Realistic test scenarios**: E-commerce pages, dashboards, blogs, forms, data tables
-- **Multiple benchmark types**: Microbenchmarks, memory profiling, streaming, HTTP load testing
-- **Statistical analysis**: Mean, median, p99, standard deviation, throughput
-- **Automated runner**: Consistent, reproducible results with warmup and cooldown
+| Scenario | Native | Bun + React | Speedup |
+|----------|--------|-------------|---------|
+| Trivial | 0.10µs | 37.16µs | **371x** |
+| Table100 | 300.92µs | 3,500µs | **11.6x** |
+| Wide100 | 287.40µs | 1,980µs | **6.9x** |
+| Deep50 | 140.82µs | 349.37µs | **2.5x** |
+
+**Throughput:**
+
+| Scenario | Native | Bun + React |
+|----------|--------|-------------|
+| Table100 | 456.9 MB/s | 39.5 MB/s |
+| Wide100 | 224.9 MB/s | 33.3 MB/s |
+
+> These benchmarks measure pure `renderToStaticMarkup`/`renderToString` performance without HTTP server overhead, providing an accurate comparison of SSR rendering speed.
 
 ## Quick Start
 
@@ -21,25 +31,44 @@ make build
 # Run all benchmarks
 make bench
 
-# Quick HTTP comparison
-make bench-http-quick
+# Run the render comparision
+make bench-render
 ```
+
+## Optimization Control
+
+By default, benchmarks are built with optimizations enabled (`--profile=release`). You can disable optimizations to compare performance:
+
+```bash
+# Build without optimizations
+DISABLE_OPTIMIZATIONS=1 make build-native
+
+# Run benchmarks without optimizations
+DISABLE_OPTIMIZATIONS=1 make bench-render
+
+# Re-enable optimizations (default)
+make build-native
+make bench-render
+```
+
+This is useful for:
+- Comparing optimized vs unoptimized performance
+- CI workflows that need to test both configurations
+- Debugging performance differences
 
 ## Benchmark Categories
 
-### 1. Microbenchmarks (`bench-micro`)
+### 1. Render Comparison (`bench-render`)
 
-Precise measurements using Core_bench for:
-- Render time per component type
-- Scaling characteristics (depth, width)
-- React primitive operations
+**The official benchmark** — compares pure rendering performance without HTTP overhead:
 
 ```bash
-make bench-micro                    # Run all suites
-make bench-micro-suite SUITE=depth  # Run specific suite
+make bench-render        # Native vs Bun side-by-side
+make bench-render-native # Native only
+make bench-render-bun    # Bun only
 ```
 
-Available suites: `trivial`, `depth`, `width`, `table`, `props`, `realworld`, `primitives`, `all`
+This measures `renderToStaticMarkup` (native) vs `renderToString` (Bun/React) directly, giving the most accurate comparison of SSR performance.
 
 ### 2. Memory Benchmarks (`bench-memory`)
 
@@ -55,7 +84,7 @@ make bench-memory-json  # Output JSON for CI
 
 ### 3. Streaming Benchmarks (`bench-streaming`)
 
-Compares `renderToStaticMarkup` vs `renderToString`:
+Compares `renderToStaticMarkup` vs `renderToString` on native:
 - Time to render
 - Throughput (MB/s)
 - Overhead comparison
@@ -106,44 +135,6 @@ make bench-js-http    # JavaScript frameworks only
 | `bun-native` | 3005 | Bun native + React |
 | `preact` | 3006 | Node.js + Express + Preact |
 
-## Project Structure
-
-```
-benchmark/
-├── scenarios/          # Benchmark components (Reason)
-│   ├── Trivial.re
-│   ├── ShallowTree.re
-│   ├── DeepTree.re
-│   ├── WideTree.re
-│   ├── Table.re
-│   ├── PropsHeavy.re
-│   ├── Ecommerce.re
-│   ├── Dashboard.re
-│   ├── Blog.re
-│   └── Form.re
-├── native/             # Native Dream server
-│   └── server.re
-├── micro/              # Core_bench microbenchmarks
-│   └── micro_bench.re
-├── memory/             # Memory profiling
-│   └── memory_bench.ml
-├── streaming/          # Render comparison
-│   └── streaming_bench.ml
-├── frameworks/         # JavaScript frameworks
-│   ├── shared/scenarios.jsx
-│   ├── node-express/
-│   ├── node-fastify/
-│   ├── hono-node/
-│   ├── hono-bun/
-│   ├── bun-native/
-│   └── preact/
-├── runner/             # HTTP benchmark runner
-│   └── runner.mjs
-├── results/            # Output directory
-├── Makefile
-└── README.md
-```
-
 ## Running Individual Servers
 
 For manual testing or debugging:
@@ -154,6 +145,8 @@ make native-server    # Dream on :3000
 make node-express     # Express on :3001
 make node-fastify     # Fastify on :3002
 make hono-node        # Hono on :3003
+
+DISABLE_LOGGER=1 make native-server
 
 # Test with curl
 curl "http://localhost:3000/?scenario=table100"
@@ -186,24 +179,10 @@ make wrk-test PORT=3000 SCENARIO=table100
 - **Transfer**: Bytes/second
 
 ## Requirements
-
 - OCaml 5.x with opam
 - Node.js 20+ (for JS frameworks)
 - Bun (optional, for Bun benchmarks)
 - wrk (optional, for HTTP load testing)
-
-Install wrk:
-```bash
-# macOS
-brew install wrk
-
-# Ubuntu
-sudo apt install wrk
-
-# Or build from source
-git clone https://github.com/wg/wrk.git
-cd wrk && make && sudo cp wrk /usr/local/bin/
-```
 
 ## Results
 
@@ -220,16 +199,21 @@ make results
 
 ### What to look for:
 
-1. **Requests/sec**: Higher is better. Shows overall throughput.
-2. **Latency (avg)**: Lower is better. Response time per request.
-3. **Latency (p99)**: Lower is better. Tail latency, important for real-world use.
-4. **Memory (words/iter)**: Lower is better. Memory efficiency.
-5. **Throughput (MB/s)**: Higher is better. Data output rate.
+1. **Render time (µs)**: Lower is better. Time to render a component tree.
+2. **Throughput (MB/s)**: Higher is better. Data output rate.
+3. **Memory (words/iter)**: Lower is better. Memory efficiency.
+4. **Requests/sec** (HTTP): Higher is better. End-to-end throughput.
 
 ### Typical results pattern:
-- `dream-native` typically shows 3-5x higher throughput than Node.js
-- Latency is typically 5-10x lower for native
-- Memory allocation is significantly lower in OCaml
+
+**Pure rendering** (no HTTP):
+- Native is **2.5-12x faster** than Bun + React depending on component complexity
+- Throughput: Native achieves **180-510 MB/s** vs Bun's **13-40 MB/s**
+
+**HTTP benchmarks** (with server overhead):
+- Bun's HTTP layer is faster for minimal requests (trivial scenario)
+- Native wins on real SSR workloads where rendering dominates
+- Use `DISABLE_LOGGER=1` for accurate native HTTP benchmarks
 
 ## Contributing
 
@@ -241,44 +225,3 @@ To add a new scenario:
    - `benchmark/micro/micro_bench.re`
    - `benchmark/frameworks/shared/scenarios.jsx`
 3. Run benchmarks: `make bench`
-
-## Running in CI
-
-The benchmark suite includes a GitHub Actions workflow (`.github/workflows/benchmark.yml`) that:
-
-1. **Runs on PRs** - Automatically benchmarks changes to `packages/` or `benchmark/`
-2. **Compares branches** - Shows memory allocation differences between PR and base
-3. **Weekly tracking** - Scheduled runs every Sunday for long-term performance tracking
-4. **Manual triggers** - Run via GitHub Actions UI with suite selection
-
-### CI Outputs
-
-- **Job Summary**: Results appear directly in the GitHub Actions summary
-- **Artifacts**: Raw results are uploaded for 30 days
-- **Comparison**: PR vs base branch memory comparison
-
-### Local CI Simulation
-
-```bash
-# Run what CI runs
-make build-native
-_build/default/benchmark/memory/memory_bench.exe
-_build/default/benchmark/streaming/streaming_bench.exe
-_build/default/benchmark/micro/micro_bench.exe table
-```
-
-### Adding to Existing CI
-
-If you have an existing CI workflow, add these steps:
-
-```yaml
-- name: Build benchmarks
-  run: opam exec -- dune build benchmark/memory/memory_bench.exe
-
-- name: Run benchmarks
-  run: opam exec -- _build/default/benchmark/memory/memory_bench.exe
-```
-
-## License
-
-Same as server-reason-react (MIT)

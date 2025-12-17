@@ -1,19 +1,6 @@
   $ ../ppx.sh --output re input.re
-  let lower = React.createElement("div", [], []);
-  let lower_empty_attr =
-    React.createElement(
-      "div",
-      Stdlib.List.filter_map(
-        Stdlib.Fun.id,
-        [
-          Some(
-            [@implicit_arity]
-            React.JSX.String("class", "className", "": string),
-          ),
-        ],
-      ),
-      [],
-    );
+  let lower = React.DangerouslyInnerHtml("<div></div>");
+  let lower_empty_attr = React.DangerouslyInnerHtml("<div class=\"\"></div>");
   let lower_inline_styles =
     React.createElement(
       "div",
@@ -83,10 +70,18 @@
       [foo],
     );
   let lower_child_static =
-    React.createElement("div", [], [React.createElement("span", [], [])]);
+    React.createElement(
+      "div",
+      [],
+      [React.DangerouslyInnerHtml("<span></span>")],
+    );
   let lower_child_ident = React.createElement("div", [], [lolaspa]);
   let lower_child_single =
-    React.createElement("div", [], [React.createElement("div", [], [])]);
+    React.createElement(
+      "div",
+      [],
+      [React.DangerouslyInnerHtml("<div></div>")],
+    );
   let lower_children_multiple = (foo, bar) =>
     React.createElement("lower", [], [foo, bar]);
   let lower_child_with_upper_as_children =
@@ -243,81 +238,21 @@
             ],
           ),
           [
-            React.createElement(
-              "img",
-              Stdlib.List.filter_map(
-                Stdlib.Fun.id,
-                [
-                  Some(
-                    [@implicit_arity]
-                    React.JSX.String("src", "src", "picture/img.png": string),
-                  ),
-                  Some(
-                    [@implicit_arity]
-                    React.JSX.String(
-                      "alt",
-                      "alt",
-                      "test picture/img.png": string,
-                    ),
-                  ),
-                  Some(
-                    [@implicit_arity]
-                    React.JSX.String("id", "id", "idimg": string),
-                  ),
-                ],
-              ),
-              [],
+            React.DangerouslyInnerHtml(
+              "<img src=\"picture/img.png\" alt=\"test picture/img.png\" id=\"idimg\" />",
             ),
-            React.createElement(
-              "source",
-              Stdlib.List.filter_map(
-                Stdlib.Fun.id,
-                [
-                  Some(
-                    [@implicit_arity]
-                    React.JSX.String("type", "type", "image/webp": string),
-                  ),
-                  Some(
-                    [@implicit_arity]
-                    React.JSX.String("src", "src", "picture/img1.webp": string),
-                  ),
-                ],
-              ),
-              [],
+            React.DangerouslyInnerHtml(
+              "<source type=\"image/webp\" src=\"picture/img1.webp\" />",
             ),
-            React.createElement(
-              "source",
-              Stdlib.List.filter_map(
-                Stdlib.Fun.id,
-                [
-                  Some(
-                    [@implicit_arity]
-                    React.JSX.String("type", "type", "image/jpeg": string),
-                  ),
-                  Some(
-                    [@implicit_arity]
-                    React.JSX.String("src", "src", "picture/img2.jpg": string),
-                  ),
-                ],
-              ),
-              [],
+            React.DangerouslyInnerHtml(
+              "<source type=\"image/jpeg\" src=\"picture/img2.jpg\" />",
             ),
           ],
         ),
       ],
     );
   let some_random_html_element =
-    React.createElement(
-      "text",
-      Stdlib.List.filter_map(
-        Stdlib.Fun.id,
-        [
-          Some([@implicit_arity] React.JSX.String("dx", "dx", "1 2": string)),
-          Some([@implicit_arity] React.JSX.String("dy", "dy", "3 4": string)),
-        ],
-      ),
-      [],
-    );
+    React.DangerouslyInnerHtml("<text dx=\"1 2\" dy=\"3 4\"></text>");
   let div =
     React.createElement(
       "div",

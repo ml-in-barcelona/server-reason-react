@@ -7,7 +7,7 @@
     Upper.make(~children=React.list([foo, bar]), ());
   let upper_children =
     Page.make(
-      ~children=React.createElement("h1", [], [React.string("Yep")]),
+      ~children=React.DangerouslyInnerHtml("<h1>Yep</h1>"),
       ~moreProps="hgalo",
       (),
     );
@@ -16,7 +16,7 @@
   let upper_child_ident = Div.make(~children=lola, ());
   let upper_all_kinds_of_props =
     MyComponent.make(
-      ~children=React.createElement("div", [], ["hello"]),
+      ~children=React.DangerouslyInnerHtml("<div>hello</div>"),
       ~booleanAttribute=true,
       ~stringAttribute="string",
       ~intAttribute=1,
@@ -26,7 +26,7 @@
     );
   let upper_ref_with_children =
     FancyButton.make(
-      ~children=React.createElement("div", [], []),
+      ~children=React.DangerouslyInnerHtml("<div></div>"),
       ~ref=buttonRef,
       (),
     );

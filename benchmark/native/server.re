@@ -72,63 +72,71 @@ let port =
   | None => 3000
   };
 
-let () = {
-  Dream.run(~port, ~interface="0.0.0.0") @@
-  Dream.logger @@
-  Dream.router([
-    Dream.get("/", request => {
-      let scenario_name =
-        switch (Dream.query(request, "scenario")) {
-        | Some(s) => s
-        | None => "table100"
-        };
+let disable_logger =
+  switch (Sys.getenv_opt("DISABLE_LOGGER")) {
+  | Some("1" | "true") => true
+  | _ => false
+  };
 
-      switch (render_scenario(scenario_name)) {
-      | Some(html) =>
-        let full_html =
+let () = {
+  let handler =
+    Dream.router([
+      Dream.get("/", request => {
+        let scenario_name =
+          switch (Dream.query(request, "scenario")) {
+          | Some(s) => s
+          | None => "table100"
+          };
+
+        switch (render_scenario(scenario_name)) {
+        | Some(html) =>
+          let full_html =
+            Printf.sprintf(
+              {|<!DOCTYPE html><html><head><title>Benchmark</title></head><body><div id="root">%s</div></body></html>|},
+              html,
+            );
+          Dream.html(full_html);
+        | None =>
+          Dream.respond(
+            ~status=`Not_Found,
+            "Unknown scenario: " ++ scenario_name,
+          )
+        };
+      }),
+      Dream.get("/health", _ => {
+        let pid = Unix.getpid();
+        Dream.json(
           Printf.sprintf(
-            {|<!DOCTYPE html><html><head><title>Benchmark</title></head><body><div id="root">%s</div></body></html>|},
-            html,
-          );
-        Dream.html(full_html);
-      | None =>
-        Dream.respond(
-          ~status=`Not_Found,
-          "Unknown scenario: " ++ scenario_name,
-        )
-      };
-    }),
-    Dream.get("/health", _ => {
-      let pid = Unix.getpid();
-      Dream.json(
-        Printf.sprintf(
-          {|{"status":"ok","framework":"dream-native","pid":%d}|},
-          pid,
-        ),
-      );
-    }),
-    Dream.get("/scenarios", _ => {
-      let json =
-        Array.fold_left(
-          (acc, (key, name, desc)) => {
-            let item =
-              Printf.sprintf(
-                {|{"key":"%s","name":"%s","description":"%s"}|},
-                key,
-                name,
-                desc,
-              );
-            if (acc == "[") {
-              acc ++ item;
-            } else {
-              acc ++ "," ++ item;
-            };
-          },
-          "[",
-          scenario_list,
-        )
-        ++ "]";
-      Dream.json(json);
-    }),
-  ]);
+            {|{"status":"ok","framework":"dream-native","pid":%d}|},
+            pid,
+          ),
+        );
+      }),
+      Dream.get("/scenarios", _ => {
+        let json =
+          Array.fold_left(
+            (acc, (key, name, desc)) => {
+              let item =
+                Printf.sprintf(
+                  {|{"key":"%s","name":"%s","description":"%s"}|},
+                  key,
+                  name,
+                  desc,
+                );
+              if (acc == "[") {
+                acc ++ item;
+              } else {
+                acc ++ "," ++ item;
+              };
+            },
+            "[",
+            scenario_list,
+          )
+          ++ "]";
+        Dream.json(json);
+      }),
+    ]);
+
+  let app = disable_logger ? handler : Dream.logger(handler);
+  Dream.run(~port, ~interface="0.0.0.0", app);
 };

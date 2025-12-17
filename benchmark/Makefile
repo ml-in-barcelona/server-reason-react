@@ -11,6 +11,17 @@ PROJECT_ROOT := $(shell dirname $(BENCHMARK_DIR))
 RESULTS_DIR := $(BENCHMARK_DIR)/results
 FRAMEWORKS_DIR := $(BENCHMARK_DIR)/frameworks
 
+BUN := $(shell command -v bun 2>/dev/null || echo "$(HOME)/.bun/bin/bun")
+
+# Optimization control
+# Set DISABLE_OPTIMIZATIONS=1 to build without optimizations (--profile=dev)
+# Default: optimizations enabled (--profile=release)
+ifeq ($(DISABLE_OPTIMIZATIONS),1)
+  DUNE_PROFILE := --profile=dev
+else
+  DUNE_PROFILE := --profile=release
+endif
+
 # Default target
 all: help
 
@@ -23,11 +34,15 @@ build: build-native build-js
 
 build-native:
 	@echo "Building native OCaml benchmarks..."
-	cd $(PROJECT_ROOT) && dune build benchmark/scenarios/benchmark_scenarios.a
-	cd $(PROJECT_ROOT) && dune build benchmark/native/server.exe
-	cd $(PROJECT_ROOT) && dune build benchmark/micro/micro_bench.exe
-	cd $(PROJECT_ROOT) && dune build benchmark/memory/memory_bench.exe
-	cd $(PROJECT_ROOT) && dune build benchmark/streaming/streaming_bench.exe
+	@if [ "$(DISABLE_OPTIMIZATIONS)" = "1" ]; then \
+		echo "  (Optimizations DISABLED)"; \
+	else \
+		echo "  (Optimizations ENABLED)"; \
+	fi
+	cd $(PROJECT_ROOT) && opam exec -- dune build $(DUNE_PROFILE) benchmark/scenarios/benchmark_scenarios.a
+	cd $(PROJECT_ROOT) && opam exec -- dune build $(DUNE_PROFILE) benchmark/native/server.exe
+	cd $(PROJECT_ROOT) && opam exec -- dune build $(DUNE_PROFILE) benchmark/memory/memory_bench.exe
+	cd $(PROJECT_ROOT) && opam exec -- dune build $(DUNE_PROFILE) benchmark/streaming/streaming_bench.exe
 	@echo "✓ Native builds complete"
 
 build-js:
@@ -36,7 +51,7 @@ build-js:
 	@echo "✓ JavaScript frameworks ready"
 
 clean:
-	cd $(PROJECT_ROOT) && dune clean
+	cd $(PROJECT_ROOT) && opam exec -- dune clean
 	rm -rf $(RESULTS_DIR)/*.json $(RESULTS_DIR)/*.md
 	rm -rf $(FRAMEWORKS_DIR)/node_modules
 	@echo "✓ Cleaned"
@@ -45,24 +60,9 @@ clean:
 # Benchmark Targets
 # ============================================================================
 
-# Run all benchmarks
-bench: bench-micro bench-memory bench-streaming bench-http
+bench: bench-render bench-memory bench-streaming
 	@echo "✓ All benchmarks complete"
 
-# Microbenchmarks (Core_bench)
-bench-micro: build-native
-	@echo "\n=== Running Microbenchmarks ==="
-	$(PROJECT_ROOT)/_build/default/benchmark/micro/micro_bench.exe all
-
-bench-micro-suite: build-native
-	@echo "Available suites: trivial, depth, width, table, props, realworld, primitives, all"
-	@if [ -z "$(SUITE)" ]; then \
-		echo "Usage: make bench-micro-suite SUITE=<name>"; \
-	else \
-		$(PROJECT_ROOT)/_build/default/benchmark/micro/micro_bench.exe $(SUITE); \
-	fi
-
-# Memory benchmarks
 bench-memory: build-native
 	@echo "\n=== Running Memory Benchmarks ==="
 	$(PROJECT_ROOT)/_build/default/benchmark/memory/memory_bench.exe
@@ -71,12 +71,25 @@ bench-memory-json: build-native
 	@mkdir -p $(RESULTS_DIR)
 	$(PROJECT_ROOT)/_build/default/benchmark/memory/memory_bench.exe --json > $(RESULTS_DIR)/memory-$$(date +%Y%m%d-%H%M%S).json
 
-# Streaming/render benchmarks
 bench-streaming: build-native
 	@echo "\n=== Running Streaming Benchmarks ==="
 	$(PROJECT_ROOT)/_build/default/benchmark/streaming/streaming_bench.exe
 
-# HTTP load testing (requires wrk)
+bench-render: build-native build-js
+	@echo "\n=== Pure Render Benchmark: Native vs Bun ==="
+	@echo "\n--- Native (server-reason-react) ---"
+	$(PROJECT_ROOT)/_build/default/benchmark/streaming/streaming_bench.exe
+	@echo "\n--- Bun (React) ---"
+	@cd $(FRAMEWORKS_DIR) && $(BUN) render-bench.ts
+
+bench-render-native: build-native
+	@echo "\n=== Native Render Benchmark ==="
+	$(PROJECT_ROOT)/_build/default/benchmark/streaming/streaming_bench.exe
+
+bench-render-bun: build-js
+	@echo "\n=== Bun Render Benchmark ==="
+	@cd $(FRAMEWORKS_DIR) && $(BUN) render-bench.ts
+
 bench-http: build
 	@echo "\n=== Running HTTP Benchmarks ==="
 	@mkdir -p $(RESULTS_DIR)
@@ -86,7 +99,6 @@ bench-http-quick: build
 	@echo "\n=== Running Quick HTTP Benchmarks ==="
 	cd $(BENCHMARK_DIR)/runner && node runner.mjs --scenarios trivial,table100
 
-# Framework-specific HTTP benchmarks
 bench-native-http: build-native
 	@echo "\n=== Running Native HTTP Benchmarks ==="
 	cd $(BENCHMARK_DIR)/runner && node runner.mjs --frameworks dream-native
@@ -107,7 +119,6 @@ js-servers: build-js
 	@echo "Starting all JavaScript servers..."
 	cd $(FRAMEWORKS_DIR) && npm run start:all
 
-# Individual JS servers
 node-express: build-js
 	cd $(FRAMEWORKS_DIR) && npm run start:node-express
 
@@ -121,7 +132,6 @@ hono-node: build-js
 # Utility Targets
 # ============================================================================
 
-# Quick load test with wrk (requires running server)
 wrk-test:
 	@if [ -z "$(PORT)" ]; then \
 		echo "Usage: make wrk-test PORT=3000 [SCENARIO=table100]"; \
@@ -129,14 +139,12 @@ wrk-test:
 		wrk -t4 -c100 -d10s "http://localhost:$(PORT)/?scenario=$${SCENARIO:-table100}"; \
 	fi
 
-# Show scenarios available
 scenarios: build-native
 	@$(PROJECT_ROOT)/_build/default/benchmark/native/server.exe &
 	@sleep 1
 	@curl -s http://localhost:3000/scenarios | jq .
 	@pkill -f "server.exe" || true
 
-# Open results
 results:
 	@ls -la $(RESULTS_DIR)/*.md $(RESULTS_DIR)/*.json 2>/dev/null || echo "No results yet. Run 'make bench-http'"
 
@@ -156,9 +164,9 @@ help:
 	@echo ""
 	@echo "Benchmark targets:"
 	@echo "  make bench          - Run all benchmarks"
-	@echo "  make bench-micro    - Run microbenchmarks (Core_bench)"
-	@echo "  make bench-micro-suite SUITE=<name>"
-	@echo "                      - Run specific suite (trivial|depth|width|table|props|realworld|primitives|all)"
+	@echo "  make bench-render   - Pure render comparison: Native vs Bun (recommended)"
+	@echo "  make bench-render-native - Native render only"
+	@echo "  make bench-render-bun - Bun render only"
 	@echo "  make bench-memory   - Run memory benchmarks"
 	@echo "  make bench-streaming - Run streaming benchmarks"
 	@echo "  make bench-http     - Run HTTP load testing (all frameworks)"
@@ -178,4 +186,9 @@ help:
 	@echo "                      - Quick load test against running server"
 	@echo "  make scenarios      - List available scenarios"
 	@echo "  make results        - Show benchmark results"
+	@echo ""
+	@echo "Optimization control:"
+	@echo "  DISABLE_OPTIMIZATIONS=1 make build-native"
+	@echo "                      - Build without optimizations (--profile=dev)"
+	@echo "  make build-native   - Build with optimizations (--profile=release, default)"
 

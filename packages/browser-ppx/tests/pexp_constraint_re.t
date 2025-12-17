@@ -42,9 +42,7 @@
       } else if (isCanvasPattern(x)) {
         Obj.magic(Pattern);
       } else {
-        invalid_arg(
-          "Unknown canvas style kind. Known values are: String, CanvasGradient, CanvasPattern",
-        );
+        invalid_arg("Unknown canvas style kind. Known values are: String, CanvasGradient, CanvasPattern");
       },
       Obj.magic(x),
     );

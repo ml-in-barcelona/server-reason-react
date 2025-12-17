@@ -21,6 +21,9 @@ val attributes_to_html : React.JSX.prop list -> Html.attribute list
 val getDangerouslyInnerHtml : React.JSX.prop list -> string option
 (** getDangerouslyInnerHtml returns the value of the dangerouslySetInnerHTML prop if it exists, otherwise None. *)
 
+val write_to_buffer : Buffer.t -> React.element -> unit
+val escape_to_buffer : Buffer.t -> string -> unit
+
 (** {2: The rest of the API is there for compatibility with ReactDOM's reason-react} *)
 
 module Ref = React.Ref
