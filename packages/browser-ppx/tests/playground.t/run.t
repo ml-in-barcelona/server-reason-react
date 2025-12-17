@@ -1,6 +1,6 @@
   $ refmt --print ml ./input.re > input.ml
 
-  $ ../standalone.exe -impl input.ml -js | refmt --parse ml --print re
+  $ ../standalone.exe -impl input.ml -js | refmt --parse ml --print re --print-width 120
   let makeQuery = (~abortController, ~encoding=?, pathname, req, input) => {
     let signal = abortController->Option.map(abortController => abortController->Fetch.AbortController.signal);
     let query = Js.Dict.empty();
@@ -46,7 +46,7 @@
     };
   };
 
-  $ ../standalone.exe -impl input.ml | refmt --parse ml --print re
+  $ ../standalone.exe -impl input.ml | refmt --parse ml --print re --print-width 120
   [@warning "-27-32"]
   let [@alert
         browser_only(

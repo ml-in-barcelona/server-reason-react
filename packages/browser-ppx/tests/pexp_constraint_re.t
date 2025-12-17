@@ -26,7 +26,7 @@
 
   $ refmt --print ml input.re > input.ml
 
-  $ ./standalone.exe -impl input.ml -js | refmt --parse ml --print re
+  $ ./standalone.exe -impl input.ml -js | refmt --parse ml --print re --print-width 120
   let make = () => {
     let discard: Js.Promise.t(unit) => unit = value => ignore(value);
     ();
@@ -48,7 +48,7 @@
     );
   };
 
-  $ ./standalone.exe -impl input.ml | refmt --parse ml --print re
+  $ ./standalone.exe -impl input.ml | refmt --parse ml --print re --print-width 120
   let make = () => {
     [@alert "-browser_only"]
     let discard = value => Runtime.fail_impossible_action_in_ssr("discard");
