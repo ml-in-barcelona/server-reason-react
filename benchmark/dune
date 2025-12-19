@@ -1,22 +1,17 @@
 (executable
- (name main)
- (modules main)
+ (name bench)
+ (modules bench)
  (libraries
-  base
-  core
   unix
-  core_unix
-  core_unix.command_unix
-  core_bench
-  demo_shared_native
+  benchmark_scenarios
   server-reason-react.react
   server-reason-react.reactDom)
  (preprocess
   (pps server-reason-react.ppx)))
 
 (executable
- (name once)
- (modules once)
+ (name allocation)
+ (modules allocation)
  (libraries
   unix
   lwt
@@ -30,6 +25,11 @@
 (rule
  (alias bench)
  (action
+  (run ./bench.exe)))
+
+(rule
+ (alias bench-json)
+ (action
   (with-stdout-to
-   run.csv
-   (run ./main.exe))))
+   bench_results.json
+   (run ./bench.exe --json))))

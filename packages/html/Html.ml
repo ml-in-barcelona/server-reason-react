@@ -6,41 +6,28 @@ let is_self_closing_tag = function
       true
   | _ -> false
 
-(* This function is borrowed from https://github.com/dbuenzli/htmlit/blob/62d8f21a9233791a5440311beac02a4627c3a7eb/src/htmlit.ml#L10-L28 *)
-let escape_and_add out str =
-  let add = Buffer.add_string in
-  let getc = String.unsafe_get str in
-  let len = String.length str in
-  let max_index = len - 1 in
-  let flush out start index = if start < len then Buffer.add_substring out str start (index - start) in
-  let rec loop start index =
-    if index > max_index then flush out start index
-    else
-      let next = index + 1 in
-      match getc index with
-      | '&' ->
-          flush out start index;
-          add out "&amp;";
-          loop next next
-      | '<' ->
-          flush out start index;
-          add out "&lt;";
-          loop next next
-      | '>' ->
-          flush out start index;
-          add out "&gt;";
-          loop next next
-      | '\'' ->
-          flush out start index;
-          add out "&apos;";
-          loop next next
-      | '\"' ->
-          flush out start index;
-          add out "&quot;";
-          loop next next
-      | _ -> loop start next
-  in
-  loop 0 0
+let escape buf s =
+  let length = String.length s in
+  let exception First_char_to_escape of int in
+  match
+    for i = 0 to length - 1 do
+      match String.unsafe_get s i with
+      | '&' | '<' | '>' | '\'' | '"' -> raise_notrace (First_char_to_escape i)
+      | _ -> ()
+    done
+  with
+  | exception First_char_to_escape first ->
+      if first > 0 then Buffer.add_substring buf s 0 first;
+      for i = first to length - 1 do
+        match String.unsafe_get s i with
+        | '&' -> Buffer.add_string buf "&amp;"
+        | '<' -> Buffer.add_string buf "&lt;"
+        | '>' -> Buffer.add_string buf "&gt;"
+        | '\'' -> Buffer.add_string buf "&apos;"
+        | '"' -> Buffer.add_string buf "&quot;"
+        | c -> Buffer.add_char buf c
+      done
+  | () -> Buffer.add_string buf s
 
 type attribute = [ `Present of string | `Value of string * string | `Omitted ]
 type attribute_list = attribute list
@@ -49,24 +36,26 @@ let attribute name value = `Value (name, value)
 let present name = `Present name
 let omitted () = `Omitted
 
-let write_attribute out (attr : attribute) =
+let write_attribute buf (attr : attribute) =
   match attr with
   | `Omitted -> ()
   | `Present name ->
-      Buffer.add_char out ' ';
-      Buffer.add_string out name
+      Buffer.add_char buf ' ';
+      Buffer.add_string buf name
   | `Value (name, value) ->
-      Buffer.add_char out ' ';
-      Buffer.add_string out name;
-      Buffer.add_string out "=\"";
-      escape_and_add out value;
-      Buffer.add_char out '"'
+      Buffer.add_char buf ' ';
+      Buffer.add_string buf name;
+      Buffer.add_string buf "=\"";
+      escape buf value;
+      Buffer.add_char buf '"'
 
 type element =
   | Null
   | String of string
   | Raw of string (* text without encoding *)
   | Node of node
+  | Int of int
+  | Float of float
   | List of (string * element list)
   | Array of element array
 
@@ -75,8 +64,8 @@ and node = { tag : string; attributes : attribute_list; children : element list 
 let string txt = String txt
 let raw txt = Raw txt
 let null = Null
-let int i = String (Int.to_string i)
-let float f = String (Float.to_string f)
+let int i = Int i
+let float f = Float f
 let list ?(separator = "") list = List (separator, list)
 let array arr = Array arr
 let fragment arr = List arr
@@ -91,11 +80,13 @@ let to_string ?(add_separator_between_text_nodes = true) element =
   let rec write element =
     match element with
     | Null -> should_add_doctype_to_html.contents <- false
+    | Int i -> Buffer.add_string out (Int.to_string i)
+    | Float f -> Buffer.add_string out (Float.to_string f)
     | String text ->
         let is_previous_text_node = previous_was_text_node.contents in
         previous_was_text_node.contents <- true;
         if is_previous_text_node && add_separator_between_text_nodes then Buffer.add_string out "<!-- -->";
-        escape_and_add out text;
+        escape out text;
         should_add_doctype_to_html.contents <- false
     | Raw text ->
         Buffer.add_string out text;
@@ -148,7 +139,9 @@ let pp element =
   let rec write element =
     match element with
     | Null -> ()
-    | String text -> escape_and_add out text
+    | Int i -> Buffer.add_string out (Int.to_string i)
+    | Float f -> Buffer.add_string out (Float.to_string f)
+    | String text -> escape out text
     | Raw text -> Buffer.add_string out text
     | Node { tag; attributes; _ } when is_self_closing_tag tag ->
         Buffer.add_char out '<';

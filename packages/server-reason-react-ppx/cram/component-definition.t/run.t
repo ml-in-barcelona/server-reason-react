@@ -80,14 +80,8 @@ We need to output ML syntax here, otherwise refmt could not parse it.
                            Some (React.JSX.String ("id", "id", ("root" : string)));
                          ])
                       [ children ];
-                    React.createElement "script"
-                      (Stdlib.List.filter_map Stdlib.Fun.id
-                         [
-                           Some
-                             (React.JSX.String
-                                ("src", "src", ("/static/client.js" : string)));
-                         ])
-                      [];
+                    React.DangerouslyInnerHtml
+                      "<script src=\"/static/client.js\"></script>";
                   ];
               ] )
   end
@@ -253,7 +247,7 @@ We need to output ML syntax here, otherwise refmt could not parse it.
               [ children ] )
   end
   
-  let a = Uppercase.make ~children:(React.createElement "div" [] []) ()
+  let a = Uppercase.make ~children:(React.DangerouslyInnerHtml "<div></div>") ()
   
   module Async_component = struct
     let make ?key:(_ : string option) ~children () =
@@ -270,7 +264,8 @@ We need to output ML syntax here, otherwise refmt could not parse it.
               [ children ] )
   end
   
-  let a = Async_component.make ~children:(React.createElement "div" [] []) ()
+  let a =
+    Async_component.make ~children:(React.DangerouslyInnerHtml "<div></div>") ()
   
   module Sequence = struct
     let make ?key:(_ : string option) ~lola () =
