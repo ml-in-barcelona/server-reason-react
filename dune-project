@@ -32,7 +32,7 @@
   ; Library dependencies
   (uucp (>= 16.0.0))
   (ppxlib (> 0.23.0))
-  (quickjs (>= 0.4.0))
+  (quickjs (>= 0.4.1))
   (lwt (>= 5.9.2))
   (lwt_ppx (>= 2.1.0))
   (uri (>= 4.2.0))
