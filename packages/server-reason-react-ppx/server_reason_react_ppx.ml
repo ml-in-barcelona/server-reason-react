@@ -496,31 +496,39 @@ let get_function_name binding =
 (* TODO: there are a few unsupported features inside of blocks - Pexp_letmodule , Pexp_letexception , Pexp_ifthenelse *)
 let add_unit_at_the_last_argument expression =
   let loc = expression.pexp_loc in
+  let has_final_unit params =
+    match List.rev params with
+    | { pparam_desc = Pparam_val (Nolabel, _, { ppat_desc = Ppat_construct ({ txt = Lident "()" }, _) | Ppat_any; _ }); _ } :: _ -> true
+    | _ -> false
+  in
+  let unit_param = { pparam_loc = loc; pparam_desc = Pparam_val (Nolabel, None, [%pat? ()]) } in
+  let rec find_innermost_function_and_add_unit expression =
+    match expression.pexp_desc with
+    | Pexp_function (params, constraint_, Pfunction_body inner_body) ->
+        (match inner_body.pexp_desc with
+        | Pexp_function _ ->
+            let modified_inner = find_innermost_function_and_add_unit inner_body in
+            { expression with pexp_desc = Pexp_function (params, constraint_, Pfunction_body modified_inner) }
+        | _ when not (has_final_unit params) && params <> [] ->
+            {
+              expression with
+              pexp_attributes = remove_warning_16_optional_argument_cannot_be_erased ~loc :: expression.pexp_attributes;
+              pexp_desc = Pexp_function (params @ [unit_param], constraint_, Pfunction_body inner_body);
+            }
+        | _ -> expression)
+    | Pexp_function _ -> expression
+    | _ -> expression
+  in
   let rec inner expression =
     match expression.pexp_desc with
-    (* let make = (~prop) => ... with no final unit *)
-    | Pexp_fun
-        (((Labelled _ | Optional _) as label), default, pattern, ({ pexp_desc = Pexp_fun _ } as internalExpression)) ->
-        pexp_fun ~loc:expression.pexp_loc label default pattern (inner internalExpression)
-    (* let make = (()) => ... *)
-    (* let make = (_) => ... *)
-    | Pexp_fun (Nolabel, _, { ppat_desc = Ppat_construct ({ txt = Lident "()" }, _) | Ppat_any }, _) -> expression
-    (* let make = (~prop) => ... *)
-    | Pexp_fun (label, default, pattern, internalExpression) ->
-        {
-          expression with
-          pexp_attributes = remove_warning_16_optional_argument_cannot_be_erased ~loc :: expression.pexp_attributes;
-          pexp_desc =
-            Pexp_fun
-              (label, default, pattern, pexp_fun ~loc:expression.pexp_loc Nolabel None [%pat? ()] internalExpression);
-        }
+    | Pexp_function _ -> find_innermost_function_and_add_unit expression
     (* let make = {let foo = bar in (~prop) => ...} *)
     | Pexp_let (recursive, vbs, internalExpression) ->
         pexp_let ~loc:expression.pexp_loc recursive vbs (inner internalExpression)
     (* let make = React.forwardRef((~prop) => ...) *)
     | Pexp_apply (_, [ (Nolabel, internalExpression) ]) -> inner internalExpression
     (* let make = React.memoCustomCompareProps((~prop) => ..., (prevPros, nextProps) => true) *)
-    | Pexp_apply (_, [ (Nolabel, internalExpression); ((Nolabel, { pexp_desc = Pexp_fun _ }) as _compareProps) ]) ->
+    | Pexp_apply (_, [ (Nolabel, internalExpression); ((Nolabel, { pexp_desc = Pexp_function _; _ }) as _compareProps) ]) ->
         inner internalExpression
     | Pexp_sequence (wrapperExpression, internalExpression) ->
         pexp_sequence ~loc:expression.pexp_loc wrapperExpression (inner internalExpression)
@@ -529,21 +537,31 @@ let add_unit_at_the_last_argument expression =
   inner expression
 
 let transform_fun_body_expression expr fn =
-  let rec inner expr =
+  let rec find_innermost_body_and_transform expr =
     match expr.pexp_desc with
-    | Pexp_fun (label, def, patt, expression) -> pexp_fun ~loc:expr.pexp_loc label def patt (inner expression)
+    | Pexp_function (params, constraint_, Pfunction_body inner_body) ->
+        (match inner_body.pexp_desc with
+        | Pexp_function _ ->
+            let transformed_inner = find_innermost_body_and_transform inner_body in
+            { expr with pexp_desc = Pexp_function (params, constraint_, Pfunction_body transformed_inner) }
+        | _ ->
+            let transformed_body = fn inner_body in
+            { expr with pexp_desc = Pexp_function (params, constraint_, Pfunction_body transformed_body) })
     | _ -> fn expr
   in
-
-  inner expr
+  find_innermost_body_and_transform expr
 
 let transform_fun_arguments expr fn =
-  let rec inner expr =
-    match expr.pexp_desc with
-    | Pexp_fun (label, def, patt, expression) -> pexp_fun ~loc:expr.pexp_loc label def (fn patt) (inner expression)
-    | _ -> expr
-  in
-  inner expr
+  match expr.pexp_desc with
+  | Pexp_function (params, constraint_, Pfunction_body expression) ->
+      let new_params = List.map ~f:(fun param ->
+        match param.pparam_desc with
+        | Pparam_val (label, def, patt) ->
+            { param with pparam_desc = Pparam_val (label, def, fn patt) }
+        | Pparam_newtype _ -> param
+      ) params in
+      { expr with pexp_desc = Pexp_function (new_params, constraint_, Pfunction_body expression) }
+  | _ -> expr
 
 let transform_labelled_arguments_type (core_type : core_type) fn =
   let rec inner core_type =
@@ -577,7 +595,12 @@ let expand_make_binding binding react_element_variant_wrapping =
 
 let get_arguments pvb_expr =
   let rec go acc = function
-    | Pexp_fun (label, default, patt, expr) -> go ((label, default, patt) :: acc) expr.pexp_desc
+    | Pexp_function (params, _, Pfunction_body expr) ->
+        let args = List.filter_map ~f:(function
+          | { pparam_desc = Pparam_val (label, default, patt); _ } -> Some (label, default, patt)
+          | _ -> None
+        ) params in
+        go (args @ acc) expr.pexp_desc
     | _ -> acc
   in
   go [] pvb_expr.pexp_desc
@@ -784,8 +807,13 @@ module ServerFunction = struct
   let rec last_expr_to_fn ~loc expr fn =
     match expr.pexp_desc with
     | Pexp_constraint (expr, _) -> last_expr_to_fn ~loc expr fn
-    | Pexp_fun (arg_label, arg_expression, fun_pattern, expression) ->
-        pexp_fun ~loc arg_label arg_expression fun_pattern (last_expr_to_fn ~loc expression fn)
+    | Pexp_function (params, constraint_, Pfunction_body expression) when params <> [] ->
+        (match expression.pexp_desc with
+        | Pexp_function _ ->
+            let transformed_inner = last_expr_to_fn ~loc expression fn in
+            { expr with pexp_desc = Pexp_function (params, constraint_, Pfunction_body transformed_inner) }
+        | _ ->
+            { expr with pexp_desc = Pexp_function (params, constraint_, Pfunction_body fn) })
     | _ -> fn
 
   let generate_id ~loc name =
@@ -818,7 +846,7 @@ module ServerFunction = struct
   let get_response_type expr =
     let rec aux expr acc =
       match expr.pexp_desc with
-      | Pexp_fun (_, _, _, body) -> aux body acc
+      | Pexp_function (_, _, Pfunction_body body) -> aux body acc
       | Pexp_constraint (expr, core_type) -> aux expr (Some core_type)
       | _ -> acc
     in
