@@ -50,15 +50,15 @@ Without -js flag, the compilation to native replaces the expression with a raise
 
   $ cat output.ml
   let make () =
-    let fun_value_binding_pexp_fun_2arg evt moar_arguments =
+    let fun_value_binding_pexp_fun_2arg evt =
       Runtime.fail_impossible_action_in_ssr "fun_value_binding_pexp_fun_2arg"
         [@@alert "-browser_only"]
     in
-    let perform ?abortController ?base req input =
+    let perform ?abortController =
       Runtime.fail_impossible_action_in_ssr "perform"
         [@@alert "-browser_only"]
     in
-    let fun_value_binding_labelled_args ~argument1 ~argument2 =
+    let fun_value_binding_labelled_args ~argument1 =
       Runtime.fail_impossible_action_in_ssr "fun_value_binding_labelled_args"
         [@@alert "-browser_only"]
     in

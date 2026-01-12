@@ -16,7 +16,7 @@
       tool_name: "ppx_driver",
       include_dirs: [],
       hidden_include_dirs: [],
-      load_path: [@ppxlib.migration.load_path ([], [])] [],
+      load_path: ([], []),
       open_modules: [],
       for_package: None,
       debug: false,

@@ -17,7 +17,7 @@
       tool_name: "ppx_driver",
       include_dirs: [],
       hidden_include_dirs: [],
-      load_path: [@ppxlib.migration.load_path ([], [])] [],
+      load_path: ([], []),
       open_modules: [],
       for_package: None,
       debug: false,
@@ -86,7 +86,7 @@
             let rec lola_to_json: lola => Yojson.Basic.t =
               x =>
                 switch (x) {
-                | {name: x_name} =>
+                | { name: x_name } =>
                   `Assoc(
                     {
                       let bnds__001_ = [];
@@ -107,41 +107,43 @@
         ~initial: int,
         ~lola: lola,
         ~children: React.element,
-        ~maybe_children: option(React.element),
-        (),
       ) =>
-    React.Client_component({
-      import_module: "input.re",
-      import_name: "",
-      props: [
-        ("initial", React.Model.Json(int_to_json(initial))),
-        ("lola", React.Model.Json(lola_to_json(lola))),
-        ("children", React.Model.Element(children: React.element)),
-        (
-          "maybe_children",
-          switch (maybe_children) {
-          | Some(prop) => React.Model.Element(prop: React.element)
-          | None => React.Model.Json(`Null)
-          },
-        ),
-      ],
-      client:
-        [@implicit_arity]
-        React.Upper_case_component(
-          Stdlib.__FUNCTION__,
-          () =>
-            React.createElement(
-              "section",
-              [],
-              [
-                React.createElement("h1", [], [React.string(lola.name)]),
-                React.createElement("p", [], [React.int(initial)]),
-                React.createElement("div", [], [children]),
-                switch (maybe_children) {
-                | Some(children) => children
-                | None => React.null
-                },
-              ],
+    [@warning "-16"]
+    (
+      (~maybe_children: option(React.element), ()) =>
+        React.Client_component({
+          import_module: "input.re",
+          import_name: "",
+          props: [
+            ("initial", React.Model.Json(int_to_json(initial))),
+            ("lola", React.Model.Json(lola_to_json(lola))),
+            ("children", React.Model.Element(children: React.element)),
+            (
+              "maybe_children",
+              switch (maybe_children) {
+              | Some(prop) => React.Model.Element(prop: React.element)
+              | None => React.Model.Json(`Null)
+              },
             ),
-        ),
-    });
+          ],
+          client:
+            [@implicit_arity]
+            React.Upper_case_component(
+              Stdlib.__FUNCTION__,
+              () =>
+                React.createElement(
+                  "section",
+                  [],
+                  [
+                    React.createElement("h1", [], [React.string(lola.name)]),
+                    React.createElement("p", [], [React.int(initial)]),
+                    React.createElement("div", [], [children]),
+                    switch (maybe_children) {
+                    | Some(children) => children
+                    | None => React.null
+                    },
+                  ],
+                ),
+            ),
+        })
+    );
