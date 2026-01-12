@@ -36,10 +36,11 @@ let _ = slot(el);
 let _ = setSlot(el, "<strong>stuff</strong>");
 let _ = tagName(el);
 
-let _ = attachShadow({"mode": "open"}, el);
+let _ = attachShadow({ "mode": "open" }, el);
 let _ = attachShadowOpen(el);
 let _ = attachShadowClosed(el);
-let _ = animate({"transform": "translateT(0px)"}, {"duration": 1000}, el);
+let _ =
+  animate({ "transform": "translateT(0px)" }, { "duration": 1000 }, el);
 let _ = closest("input", el);
 let _ = createShadowRoot(el);
 let _ = getAttribute("href", el);

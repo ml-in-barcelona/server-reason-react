@@ -16,22 +16,22 @@ module Impl = (T: {
   [@mel.get]
   external designMode: t_htmlDocument => string /* designMode enum */ =
     "designMode";
-  let designMode: t_htmlDocument => Webapi__Dom__Types.designMode =
-    self => Webapi__Dom__Types.decodeDesignMode(designMode(self));
+  let designMode: t_htmlDocument => Webapi__Dom__Types.designMode = self =>
+    Webapi__Dom__Types.decodeDesignMode(designMode(self));
   [@mel.set]
   external setDesignMode:
     (t_htmlDocument, string /* designMode enum */) => unit =
     "designMode";
   let setDesignMode: (t_htmlDocument, Webapi__Dom__Types.designMode) => unit =
-    (self, value) =>
-      setDesignMode(self, Webapi__Dom__Types.encodeDesignMode(value));
+      (self, value) =>
+    setDesignMode(self, Webapi__Dom__Types.encodeDesignMode(value));
   [@mel.get] external dir: t_htmlDocument => string /* dir enum */ = "dir";
-  let dir: t_htmlDocument => Webapi__Dom__Types.dir =
-    self => Webapi__Dom__Types.decodeDir(dir(self));
+  let dir: t_htmlDocument => Webapi__Dom__Types.dir = self =>
+    Webapi__Dom__Types.decodeDir(dir(self));
   [@mel.set]
   external setDir: (t_htmlDocument, string /* dir enum */) => unit = "dir";
-  let setDir: (t_htmlDocument, Webapi__Dom__Types.dir) => unit =
-    (self, value) => setDir(self, Webapi__Dom__Types.encodeDir(value));
+  let setDir: (t_htmlDocument, Webapi__Dom__Types.dir) => unit = (self, value) =>
+    setDir(self, Webapi__Dom__Types.encodeDir(value));
   [@mel.get] [@mel.return nullable]
   external domain: t_htmlDocument => option(string) = "domain";
   [@mel.set] external setDomain: (t_htmlDocument, string) => unit = "domain";
@@ -48,8 +48,8 @@ module Impl = (T: {
   external plugins: t_htmlDocument => Dom.htmlCollection = "plugins";
   [@mel.get]
   external readyState: t_htmlDocument => string /* enum */ = "readyState";
-  let readyState: t_htmlDocument => Webapi__Dom__Types.readyState =
-    self => Webapi__Dom__Types.decodeReadyState(readyState(self));
+  let readyState: t_htmlDocument => Webapi__Dom__Types.readyState = self =>
+    Webapi__Dom__Types.decodeReadyState(readyState(self));
   [@mel.get] external referrer: t_htmlDocument => string = "referrer";
   [@mel.get]
   external scripts: t_htmlDocument => Dom.htmlCollection = "scripts";
@@ -62,8 +62,8 @@ module Impl = (T: {
   external execCommand: (string, bool, Js.null(string)) => bool =
     "execCommand";
   let execCommand: (string, bool, option(string), t_htmlDocument) => bool =
-    (command, show, value, self) =>
-      execCommand(command, show, Js.Null.fromOption(value), self);
+      (command, show, value, self) =>
+    execCommand(command, show, Js.Null.fromOption(value), self);
   [@mel.send.pipe: t_htmlDocument]
   external getElementsByName: string => Dom.nodeList = "getElementsByName";
   [@mel.send.pipe: t_htmlDocument]

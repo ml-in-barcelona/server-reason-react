@@ -20,7 +20,7 @@ module Square = {
 [@react.client.component]
 let make =
     (~id: int, ~children: React.element, ~expandedChildren: React.element) => {
-  let {Router.navigate, dynamicParams, url, _} = Router.use();
+  let { Router.navigate, dynamicParams, url, _ } = Router.use();
   let queryParams = url |> URL.searchParams;
   let (isExpanded, setIsExpanded) = RR.useStateValue(false);
   let (isNavigating, startNavigating) = React.useTransition();

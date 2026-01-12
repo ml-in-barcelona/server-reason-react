@@ -17,5 +17,5 @@ include Webapi__Dom__MouseEvent.Impl({
 [@mel.get] external deltaY: t => float = "deltaY";
 [@mel.get] external deltaZ: t => float = "deltaZ";
 [@mel.get] external deltaMode: t => int = "deltaMode";
-let deltaMode: t => Webapi__Dom__Types.deltaMode =
-  self => Webapi__Dom__Types.decodeDeltaMode(deltaMode(self));
+let deltaMode: t => Webapi__Dom__Types.deltaMode = self =>
+  Webapi__Dom__Types.decodeDeltaMode(deltaMode(self));

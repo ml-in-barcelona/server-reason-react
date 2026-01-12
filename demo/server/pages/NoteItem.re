@@ -42,7 +42,7 @@ let make =
       </div>,
     )
   | Some(id) =>
-    let+ note: result(Note.t, string) = DB.fetchNote(~sleep, id);
+    let+ (note: result(Note.t, string)) = DB.fetchNote(~sleep, id);
 
     switch (note) {
     | Ok(note) when !isEditing => <NoteView note />

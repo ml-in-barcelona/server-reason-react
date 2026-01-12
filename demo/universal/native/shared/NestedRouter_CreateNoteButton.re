@@ -1,6 +1,6 @@
 [@react.client.component]
 let make = (~children: React.element) => {
-  let {Router.navigate, _} = Router.use();
+  let { Router.navigate, _ } = Router.use();
   let (isPending, startTransition) = React.useTransition();
 
   <button
