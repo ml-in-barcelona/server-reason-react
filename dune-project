@@ -68,8 +68,4 @@
   (alcotest-lwt :with-test)
   (fmt :with-test)
   (merlin :with-test)
-
-  ; Benchmark dependencies
-  (core_unix :with-test)
-  (core_bench :with-test)
 ))
