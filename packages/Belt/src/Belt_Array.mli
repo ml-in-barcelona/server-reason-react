@@ -107,7 +107,7 @@ val makeUninitializedUnsafe : int -> 'a -> 'a array
       let () = Js.log (Belt.Array.getExn arr 0);;
 
       (* undefined *)
-      Belt.Array.setExn arr 0 "example"
+      Belt.Array.setExn arr 0 "example";;
 
       let () = Js.log (Belt.Array.getExn arr 0 = "example")
     ]} *)
@@ -298,7 +298,7 @@ val forEach : 'a t -> ('a -> unit) -> unit
     [forEach] when you are primarily concerned with repetitively creating side effects.
 
     {[
-      forEach [| "a"; "b"; "c" |] (fun x -> Js.log ("Item: " ^ x))
+      forEach [| "a"; "b"; "c" |] (fun x -> Js.log ("Item: " ^ x));;
 
       (*  prints:
         Item: a
@@ -392,7 +392,7 @@ val forEachWithIndex : 'a t -> (int -> 'a -> unit) -> unit
     from [xs]
 
     {[
-      forEachWithIndex [| "a"; "b"; "c" |] (fun i x -> Js.log ("Item " ^ string_of_int i ^ " is " ^ x))
+      forEachWithIndex [| "a"; "b"; "c" |] (fun i x -> Js.log ("Item " ^ string_of_int i ^ " is " ^ x));;
 
       (*  prints:
         Item 0 is a

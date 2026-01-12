@@ -599,12 +599,11 @@ let get_function_arity pattern =
     | _ :: rest -> go (arity + 1) rest body
     | [] -> (
         match body with
-        | Pfunction_body { pexp_desc = Pexp_function (more_params, _, inner_body); _ } -> go arity more_params inner_body
+        | Pfunction_body { pexp_desc = Pexp_function (more_params, _, inner_body); _ } ->
+            go arity more_params inner_body
         | _ -> arity)
   in
-  match pattern with
-  | Pexp_function (params, _, body) -> go 0 params body
-  | _ -> 0
+  match pattern with Pexp_function (params, _, body) -> go 0 params body | _ -> 0
 
 let transform_external_arrow ~loc pval_name pval_attributes pval_type =
   let pipe_type =
@@ -741,7 +740,7 @@ class raise_exception_mapper (module_path : string) =
           ( Nonrecursive,
             [
               {
-                pvb_expr = { pexp_desc = Pexp_function ((_ :: _), _, Pfunction_body expression); _ };
+                pvb_expr = { pexp_desc = Pexp_function (_ :: _, _, Pfunction_body expression); _ };
                 pvb_pat = { ppat_desc = Ppat_var { txt = _function_name; _ } };
                 pvb_attributes = _;
                 pvb_loc;

@@ -811,9 +811,9 @@ let render_html ?(skipRoot = false) ?(env = `Dev) ?debug:(_ = false) ?bootstrapS
     | Some modules ->
         modules
         |> List.map (fun script ->
-               Html.node "script"
-                 [ Html.attribute "src" script; Html.attribute "async" ""; Html.attribute "type" "module" ]
-                 [])
+            Html.node "script"
+              [ Html.attribute "src" script; Html.attribute "async" ""; Html.attribute "type" "module" ]
+              [])
         |> Html.list
   in
   let user_scripts =
@@ -882,10 +882,10 @@ let decodeReply body =
   | `List args ->
       args
       |> List.filter_map (fun arg ->
-             match parseModel arg with
-             (* For now we only support json args *)
-             | Json json -> Some json
-             | _ -> None)
+          match parseModel arg with
+          (* For now we only support json args *)
+          | Json json -> Some json
+          | _ -> None)
       |> Array.of_list
   | _ -> raise (Invalid_argument "Invalid args, this request was not created by server-reason-react")
 
@@ -903,12 +903,12 @@ let decodeFormDataReply formData =
     | `String model ->
         decodeArgs model
         |> List.filter_map (function
-             (* For now we only support json args *)
-             | Json json -> Some json
-             | FormData id ->
-                 input_prefix := Some id;
-                 None
-             | _ -> None)
+          (* For now we only support json args *)
+          | Json json -> Some json
+          | FormData id ->
+              input_prefix := Some id;
+              None
+          | _ -> None)
         |> Array.of_list
   in
   let rec aux acc = function

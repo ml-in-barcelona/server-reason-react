@@ -442,7 +442,7 @@ let getByU a p =
   done;
   r.contents
 
-let getBy a p = getByU a (fun [@bs] a -> p a)
+let getBy a p = getByU a (fun[@bs] a -> p a)
 
 let getIndexByU a p =
   let l = length a in
