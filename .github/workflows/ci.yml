@@ -124,6 +124,7 @@ jobs:
         run: make build
 
       - name: Check formatting
+        if: matrix.ocaml-compiler != '4.14.1'
         run: make format-check
 
       - name: Run tests
