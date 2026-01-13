@@ -855,6 +855,7 @@ module ServerFunction = struct
   let get_response_type expr =
     let rec aux expr acc =
       match expr.pexp_desc with
+      | Pexp_function (_, Some (Pconstraint core_type), Pfunction_body body) -> aux body (Some core_type)
       | Pexp_function (_, _, Pfunction_body body) -> aux body acc
       | Pexp_constraint (expr, core_type) -> aux expr (Some core_type)
       | _ -> acc

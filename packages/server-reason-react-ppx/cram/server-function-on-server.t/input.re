@@ -125,3 +125,9 @@ let withFormDataAndArgsDifferentOrder =
   let country = country;
   Lwt.return(Printf.sprintf("Hello %s, you are from %s", name, country));
 };
+
+[@react.server.function]
+let withReturnTypeOnSeparateLine =
+    (~name: string, ~age: int): Js.Promise.t(string) => {
+  Lwt.return(Printf.sprintf("Hello %s, you are %d years old", name, age));
+};
