@@ -1,4 +1,4 @@
-FROM ocaml/opam:ubuntu-22.04-ocaml-5.2
+FROM ocaml/opam:ubuntu-22.04-ocaml-5.4
 
 RUN sudo apt-get update && sudo apt-get install -y libev-dev libssl-dev curl
 
@@ -9,7 +9,7 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash - && \
     sudo apt-get install -y nodejs && \
     sudo npm install -g npm@latest
 
-RUN sudo ln -sf /usr/bin/opam-2.3 /usr/bin/opam && opam init --reinit -n
+RUN sudo ln -sf /usr/bin/opam-2.5 /usr/bin/opam && opam init --reinit -n
 
 WORKDIR /app
 
