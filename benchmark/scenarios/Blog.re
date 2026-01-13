@@ -238,7 +238,7 @@ module Sidebar = {
           <div className="flex items-center gap-4 mb-4">
             <div
               className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
-              <span className="text-2xl"> {React.string("👨‍💻")} </span>
+              <span className="text-2xl"> {React.string("👨")} </span>
             </div>
             <div>
               <h3 className="font-bold text-gray-900">
@@ -437,7 +437,7 @@ module Page = {
               <div className="flex items-center gap-4">
                 <div
                   className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
-                  <span className="text-xl"> {React.string("👨‍💻")} </span>
+                  <span className="text-xl"> {React.string("👨")} </span>
                 </div>
                 <div>
                   <p className="font-medium">
