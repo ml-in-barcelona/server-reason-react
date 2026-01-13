@@ -109,7 +109,7 @@ module Impl = (T: {
     "requestIdleCallback"; /* experimental, Cooperative Scheduling of Background Tasks */
   [@mel.send.pipe: t_window]
   external requestIdleCallbackWithOptions:
-    (idleDeadline => unit, {. "timeout": int}) => idleCallbackId =
+    (idleDeadline => unit, {. "timeout": int }) => idleCallbackId =
     "requestIdleCallback"; /* experimental, Cooperative Scheduling of Background Tasks */
   [@mel.send.pipe: t_window]
   external resizeBy: (int, int) => unit = "resizeBy"; /* experimental, CSSOM View module */

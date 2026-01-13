@@ -20,7 +20,7 @@ module NoteList = {
   open Melange_json.Primitives;
   [@react.client.component]
   let make = (~notes: list(NestedRouter_SidebarNote.notePreview)) => {
-    let {Router.url, _} = Router.use();
+    let { Router.url, _ } = Router.use();
     let queryParams = url |> URL.searchParams;
 
     let searchText =

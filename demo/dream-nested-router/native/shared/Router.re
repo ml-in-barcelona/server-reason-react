@@ -199,7 +199,7 @@ let make =
 
   let%browser_only fetchComponent = endpoint => {
     let headers =
-      Fetch.HeadersInit.make({"Accept": "application/react.component"});
+      Fetch.HeadersInit.make({ "Accept": "application/react.component" });
 
     Fetch.fetchWithInit(
       endpoint,

@@ -56,11 +56,21 @@
     let discard = value => Runtime.fail_impossible_action_in_ssr("discard");
     ();
   };
-  [@warning "-27-32"]
-  let [@alert
-        browser_only(
-          "This expression is marked to only run on the browser where JavaScript can run. You can only use it inside a let%browser_only function.",
-        )
-      ]
-      reifyStyle =
-    [@alert "-browser_only"] (x => Runtime.fail_impossible_action_in_ssr("a"));
+  let reifyStyle = (type a, x: 'a): (style(a), a) => {
+    let isCanvasGradient = _ => false;
+    let isCanvasPattern = _ => false;
+    (
+      if (Js.typeof(x) == "string") {
+        Obj.magic(String);
+      } else if (isCanvasGradient(x)) {
+        Obj.magic(Gradient);
+      } else if (isCanvasPattern(x)) {
+        Obj.magic(Pattern);
+      } else {
+        invalid_arg(
+          "Unknown canvas style kind. Known values are: String, CanvasGradient, CanvasPattern",
+        );
+      },
+      Obj.magic(x),
+    );
+  };

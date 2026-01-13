@@ -34,7 +34,7 @@ Without -js flag, the compilation to native errors out indicating that a functio
            "This expression is marked to only run on the browser where \
             JavaScript can run. You can only use it inside a let%browser_only \
             function."]) =
-   fun [@alert "-browser_only"] _ -> Runtime.fail_impossible_action_in_ssr "foo"
+   (fun _ -> Runtime.fail_impossible_action_in_ssr "foo") [@alert "-browser_only"]
   [@@warning "-27-32"]
   
   let make () =

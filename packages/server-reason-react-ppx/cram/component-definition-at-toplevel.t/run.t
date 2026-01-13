@@ -15,7 +15,7 @@
       tool_name: "ppx_driver",
       include_dirs: [],
       hidden_include_dirs: [],
-      load_path: [@ppxlib.migration.load_path ([], [])] [],
+      load_path: ([], []),
       open_modules: [],
       for_package: None,
       debug: false,
@@ -44,41 +44,43 @@
         ~left=0,
         ~right=0,
         ~bottom=0,
-        ~all=0,
-        (),
       ) =>
-    [@implicit_arity]
-    React.Upper_case_component(
-      Stdlib.__FUNCTION__,
-      () => {
-        let className =
-          Cx.make(
-            List.flatten([
-              unsafeWhenNotZero("mt", top),
-              unsafeWhenNotZero("mb", bottom),
-              unsafeWhenNotZero("ml", left),
-              unsafeWhenNotZero("mr", right),
-              unsafeWhenNotZero("m", all),
-            ]),
-          );
+    [@warning "-16"]
+    (
+      (~all=0, ()) =>
+        [@implicit_arity]
+        React.Upper_case_component(
+          Stdlib.__FUNCTION__,
+          () => {
+            let className =
+              Cx.make(
+                List.flatten([
+                  unsafeWhenNotZero("mt", top),
+                  unsafeWhenNotZero("mb", bottom),
+                  unsafeWhenNotZero("ml", left),
+                  unsafeWhenNotZero("mr", right),
+                  unsafeWhenNotZero("m", all),
+                ]),
+              );
   
-        React.createElement(
-          "div",
-          Stdlib.List.filter_map(
-            Stdlib.Fun.id,
-            [
-              Some(
-                [@implicit_arity]
-                React.JSX.String("class", "className", className: string),
+            React.createElement(
+              "div",
+              Stdlib.List.filter_map(
+                Stdlib.Fun.id,
+                [
+                  Some(
+                    [@implicit_arity]
+                    React.JSX.String("class", "className", className: string),
+                  ),
+                ],
               ),
-            ],
-          ),
-          [
-            switch (children) {
-            | None => React.null
-            | Some(c) => c
-            },
-          ],
-        );
-      },
+              [
+                switch (children) {
+                | None => React.null
+                | Some(c) => c
+                },
+              ],
+            );
+          },
+        )
     );

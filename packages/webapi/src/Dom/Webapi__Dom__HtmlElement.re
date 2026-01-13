@@ -14,17 +14,18 @@ module Impl = (T: {
   external contentEditable: t_htmlElement => string /* enum */ =
     "contentEditable";
   let contentEditable: t_htmlElement => Webapi__Dom__Types.contentEditable =
-    self => Webapi__Dom__Types.decodeContentEditable(contentEditable(self));
+      self =>
+    Webapi__Dom__Types.decodeContentEditable(contentEditable(self));
   [@mel.set]
   external setContentEditable: (t_htmlElement, string /* enum */) => unit =
     "contentEditable";
-  let setContentEditable:
-    (t_htmlElement, Webapi__Dom__Types.contentEditable) => unit =
-    (self, value) =>
-      setContentEditable(
-        self,
-        Webapi__Dom__Types.encodeContentEditable(value),
-      );
+  let setContentEditable
+      : (t_htmlElement, Webapi__Dom__Types.contentEditable) => unit =
+      (self, value) =>
+    setContentEditable(
+      self,
+      Webapi__Dom__Types.encodeContentEditable(value),
+    );
   [@mel.get]
   external isContentEditable: t_htmlElement => bool = "isContentEditable";
   [@mel.get]
@@ -34,12 +35,12 @@ module Impl = (T: {
     "contextMenu"; /* accepts and returns HTMLMenuElement */
   [@mel.get] external dataset: t_htmlElement => Dom.domStringMap = "dataset";
   [@mel.get] external dir: t_htmlElement => string /* enum */ = "dir";
-  let dir: t_htmlElement => Webapi__Dom__Types.dir =
-    self => Webapi__Dom__Types.decodeDir(dir(self));
+  let dir: t_htmlElement => Webapi__Dom__Types.dir = self =>
+    Webapi__Dom__Types.decodeDir(dir(self));
   [@mel.set]
   external setDir: (t_htmlElement, string /* enum */) => unit = "dir";
-  let setDir: (t_htmlElement, Webapi__Dom__Types.dir) => unit =
-    (self, value) => setDir(self, Webapi__Dom__Types.encodeDir(value));
+  let setDir: (t_htmlElement, Webapi__Dom__Types.dir) => unit = (self, value) =>
+    setDir(self, Webapi__Dom__Types.encodeDir(value));
   [@mel.get] external draggable: t_htmlElement => bool = "draggable";
   [@mel.set] external setDraggable: (t_htmlElement, bool) => unit = "draggable" /*let setDraggable : t_htmlElement => bool => unit = fun self value => setDraggable self (Js.Boolean.to_js_boolean value);*/; /* temproarily removed to reduce codegen size */
   [@mel.get]

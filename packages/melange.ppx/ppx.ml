@@ -537,7 +537,7 @@ let get_payload_from_mel_raw expr =
     match expr with
     | Pexp_extension ({ txt = "mel.raw"; _ }, pstr) -> capture_payload pstr
     | Pexp_constraint (expr, _) -> go expr.pexp_desc
-    | Pexp_fun (_, _, _, expr) -> go expr.pexp_desc
+    | Pexp_function (_, _, Pfunction_body expr) -> go expr.pexp_desc
     | _ -> "..."
   in
   go expr
@@ -547,7 +547,7 @@ let expression_has_mel_raw expr =
     match expr with
     | Pexp_extension ({ txt = "mel.raw"; _ }, _) as pexp_desc -> is_mel_raw pexp_desc
     | Pexp_constraint (expr, _) -> is_mel_raw expr.pexp_desc
-    | Pexp_fun (_, _, _, expr) -> go expr.pexp_desc
+    | Pexp_function (_, _, Pfunction_body expr) -> go expr.pexp_desc
     | _ -> false
   in
   go expr
@@ -594,8 +594,16 @@ let external_found_in_native_message ~loc =
   Builder.pexp_constant ~loc (Pconst_string (msg, loc, None))
 
 let get_function_arity pattern =
-  let rec go arity = function Pexp_fun (_, _, _, expr) -> go (arity + 1) expr.pexp_desc | _ -> arity in
-  go 0 pattern
+  let rec go arity params body =
+    match params with
+    | _ :: rest -> go (arity + 1) rest body
+    | [] -> (
+        match body with
+        | Pfunction_body { pexp_desc = Pexp_function (more_params, _, inner_body); _ } ->
+            go arity more_params inner_body
+        | _ -> arity)
+  in
+  match pattern with Pexp_function (params, _, body) -> go 0 params body | _ -> 0
 
 let transform_external_arrow ~loc pval_name pval_attributes pval_type =
   let pipe_type =
@@ -639,6 +647,7 @@ let ptyp_humanize = function
   | Ptyp_var _ -> "Var"
   | Ptyp_arrow _ -> "Arrow"
   | Ptyp_constr _ -> "Constr"
+  | Ptyp_open _ -> "Open"
 
 let transform_external ~module_path pval_name pval_attributes pval_loc pval_type =
   let loc = pval_loc in
@@ -731,7 +740,7 @@ class raise_exception_mapper (module_path : string) =
           ( Nonrecursive,
             [
               {
-                pvb_expr = { pexp_desc = Pexp_fun (_arg_label, _arg_expression, _fun_pattern, expression) };
+                pvb_expr = { pexp_desc = Pexp_function (_ :: _, _, Pfunction_body expression); _ };
                 pvb_pat = { ppat_desc = Ppat_var { txt = _function_name; _ } };
                 pvb_attributes = _;
                 pvb_loc;

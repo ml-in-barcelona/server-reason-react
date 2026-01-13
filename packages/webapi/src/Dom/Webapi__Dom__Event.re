@@ -9,8 +9,8 @@ module Impl = (T: {
   [@mel.get]
   external eventPhase: T.t => int /* eventPhase enum */ = "eventPhase";
 
-  let eventPhase: T.t => Webapi__Dom__Types.EventPhase.t =
-    self => Webapi__Dom__Types.EventPhase.decode(eventPhase(self));
+  let eventPhase: T.t => Webapi__Dom__Types.EventPhase.t = self =>
+    Webapi__Dom__Types.EventPhase.decode(eventPhase(self));
 
   [@mel.get] external target: T.t => Dom.eventTarget = "target";
   [@mel.get] external timeStamp: T.t => float = "timeStamp";

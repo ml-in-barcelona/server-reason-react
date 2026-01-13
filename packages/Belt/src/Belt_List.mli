@@ -240,7 +240,7 @@ val forEach : 'a t -> ('a -> unit) -> unit
     created. Use [foreach] when you are primarily concerned with repetitively creating side effects.
 
     {[
-      forEach [ "a"; "b"; "c" ] (fun x -> Js.log ("Item: " ^ x))
+      forEach [ "a"; "b"; "c" ] (fun x -> Js.log ("Item: " ^ x));;
 
       (*  prints:
         Item: a
@@ -260,7 +260,7 @@ val forEachWithIndex : 'a t -> (int -> 'a -> unit) -> unit
 (** [forEachWithIndex xs f]
 
     {[
-      forEach [ "a"; "b"; "c" ] (fun i x -> Js.log ("Item " ^ string_of_int i ^ " is " ^ x))
+      forEach [ "a"; "b"; "c" ] (fun i x -> Js.log ("Item " ^ string_of_int i ^ " is " ^ x));;
 
       (*  prints:
         Item 0 is a

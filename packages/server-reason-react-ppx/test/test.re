@@ -109,13 +109,13 @@ let link_as_attribute = () => {
 };
 
 let innerhtml_attribute = () => {
-  let app = <div dangerouslySetInnerHTML={"__html": "foo"} />;
+  let app = <div dangerouslySetInnerHTML={ "__html": "foo" } />;
   assert_string(ReactDOM.renderToStaticMarkup(app), {|<div>foo</div>|});
 };
 
 let innerhtml_attribute_complex = () => {
   let app =
-    <div dangerouslySetInnerHTML={"__html": {|console.log("Lola")|}} />;
+    <div dangerouslySetInnerHTML={ "__html": {|console.log("Lola")|} } />;
   assert_string(
     ReactDOM.renderToStaticMarkup(app),
     {|<div>console.log("Lola")</div>|},

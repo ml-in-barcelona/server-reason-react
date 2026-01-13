@@ -12,7 +12,8 @@ We need to output ML syntax here, otherwise refmt could not parse it.
     React_component_with_props.make ~lola:"flores" ()
   
   module Forward_Ref = struct
-    let make ?key:(_ : string option) ~children ~buttonRef () =
+    let make ?key:(_ : string option) ~children =
+     (fun ~buttonRef () ->
       React.Upper_case_component
         ( Stdlib.__FUNCTION__,
           fun () ->
@@ -24,11 +25,13 @@ We need to output ML syntax here, otherwise refmt could not parse it.
                         ("class", "className", ("FancyButton" : string)));
                    Some (React.JSX.Ref (buttonRef : React.domRef));
                  ])
-              [ children ] )
+              [ children ] ))
+      [@warning "-16"]
   end
   
   module Onclick_handler_button = struct
-    let make ?key:(_ : string option) ~name ?isDisabled () =
+    let make ?key:(_ : string option) ~name =
+     (fun ?isDisabled () ->
       React.Upper_case_component
         ( Stdlib.__FUNCTION__,
           fun () ->
@@ -45,7 +48,8 @@ We need to output ML syntax here, otherwise refmt could not parse it.
                    Some
                      (React.JSX.Bool ("disabled", "disabled", (isDisabled : bool)));
                  ])
-              [] )
+              [] ))
+      [@warning "-16"]
   end
   
   module Children_as_string = struct
@@ -61,7 +65,8 @@ We need to output ML syntax here, otherwise refmt could not parse it.
   let l = 33
   
   module Uppercase_with_SSR_components = struct
-    let make ?key:(_ : string option) ~children ~moreProps () =
+    let make ?key:(_ : string option) ~children =
+     (fun ~moreProps () ->
       React.Upper_case_component
         ( Stdlib.__FUNCTION__,
           fun () ->
@@ -83,7 +88,8 @@ We need to output ML syntax here, otherwise refmt could not parse it.
                     React.DangerouslyInnerHtml
                       "<script src=\"/static/client.js\"></script>";
                   ];
-              ] )
+              ] ))
+      [@warning "-16"]
   end
   
   module Upper_with_aria = struct

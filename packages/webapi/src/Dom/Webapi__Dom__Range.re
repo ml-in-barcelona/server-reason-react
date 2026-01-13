@@ -42,26 +42,26 @@ external surroundContents: Dom.node_like('a) => unit = "surroundContents";
 external compareBoundaryPoints:
   (int /* compareHow enum */, t) => int /* compareResult enum */ =
   "compareBoundaryPoints";
-let compareBoundaryPoint:
-  (Webapi__Dom__Types.compareHow, t, t) => Webapi__Dom__Types.compareResult =
-  (how, range, self) =>
-    Webapi__Dom__Types.decodeCompareResult(
-      compareBoundaryPoints(
-        Webapi__Dom__Types.encodeCompareHow(how),
-        range,
-        self,
-      ),
-    );
+let compareBoundaryPoint
+    : (Webapi__Dom__Types.compareHow, t, t) => Webapi__Dom__Types.compareResult =
+    (how, range, self) =>
+  Webapi__Dom__Types.decodeCompareResult(
+    compareBoundaryPoints(
+      Webapi__Dom__Types.encodeCompareHow(how),
+      range,
+      self,
+    ),
+  );
 [@mel.send.pipe: t] external cloneRange: t = "cloneRange";
 [@mel.send.pipe: t] external detach: unit = "detach";
 [@mel.send.pipe: t] external toString: string = "toString";
 [@mel.send.pipe: t]
 external comparePoint: (Dom.node_like('a), int) => int /* compareRsult enum */ =
   "comparePoint";
-let comparePoint:
-  (Dom.node_like('a), int, t) => Webapi__Dom__Types.compareResult =
-  (node, offset, self) =>
-    Webapi__Dom__Types.decodeCompareResult(comparePoint(node, offset, self));
+let comparePoint
+    : (Dom.node_like('a), int, t) => Webapi__Dom__Types.compareResult =
+    (node, offset, self) =>
+  Webapi__Dom__Types.decodeCompareResult(comparePoint(node, offset, self));
 [@mel.send.pipe: t]
 external createContextualFragment: string => Dom.documentFragment =
   "createContextualFragment"; /* experimental, but widely supported */

@@ -4,18 +4,17 @@ Labelled args with @@mel.send
   > EOF
 
   $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl | tee output.ml
-  let (init : string -> param:int -> string) =
-   fun _ ->
-    fun ~param:_ ->
-     let () =
-       Printf.printf
-         {|
+  let init : string -> param:int -> string =
+   fun _ ~param:_ ->
+    let () =
+      Printf.printf
+        {|
   There is a Melange's external (for example: [@mel.get]) call from native code.
   
   Melange externals are bindings to JavaScript code, which can't run on the server and should be wrapped with browser_only ppx or only run it only on the client side. If there's any issue, try wrapping the expression with a try/catch as a workaround.
   |}
-     in
-     raise (Runtime.fail_impossible_action_in_ssr "init")
+    in
+    raise (Runtime.fail_impossible_action_in_ssr "init")
 
   $ echo "module Runtime = struct" > main.ml
   $ cat $INSIDE_DUNE/packages/runtime/Runtime.ml >> main.ml
@@ -30,18 +29,17 @@ Labelled and unlabelled args with @@mel.obj
   > EOF
 
   $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl | tee output.ml
-  let (makeInitParam : onLoad:string -> unit -> string) =
-   fun ~onLoad:_ ->
-    fun _ ->
-     let () =
-       Printf.printf
-         {|
+  let makeInitParam : onLoad:string -> unit -> string =
+   fun ~onLoad:_ _ ->
+    let () =
+      Printf.printf
+        {|
   There is a Melange's external (for example: [@mel.get]) call from native code.
   
   Melange externals are bindings to JavaScript code, which can't run on the server and should be wrapped with browser_only ppx or only run it only on the client side. If there's any issue, try wrapping the expression with a try/catch as a workaround.
   |}
-     in
-     raise (Runtime.fail_impossible_action_in_ssr "makeInitParam")
+    in
+    raise (Runtime.fail_impossible_action_in_ssr "makeInitParam")
 
   $ echo "module Runtime = struct" > main.ml
   $ cat $INSIDE_DUNE/packages/runtime/Runtime.ml >> main.ml
@@ -60,7 +58,7 @@ mel.send
   $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl | tee output.ml
   type t
   
-  let (fillStyle : t -> 'a) =
+  let fillStyle : t -> 'a =
    fun _ ->
     let () =
       Printf.printf

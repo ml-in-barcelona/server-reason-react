@@ -28,7 +28,7 @@
       tool_name: "ppx_driver",
       include_dirs: [],
       hidden_include_dirs: [],
-      load_path: [@ppxlib.migration.load_path ([], [])] [],
+      load_path: ([], []),
       open_modules: [],
       for_package: None,
       debug: false,
@@ -66,7 +66,7 @@
                     )) {
                   Melange_json.of_json_error(~json=x, "expected a JSON object");
                 };
-                let fs: {. "name": Js.undefined(Js.Json.t)} = Obj.magic(x);
+                let fs: {. "name": Js.undefined(Js.Json.t) } = Obj.magic(x);
                 {
                   name:
                     switch (
@@ -86,12 +86,12 @@
             let rec lola_to_json: lola => Js.Json.t =
               x =>
                 switch (x) {
-                | {name: x_name} => (
+                | { name: x_name } => (
                     Obj.magic(
                       {
                         module J = {
                           [@ocaml.warning "-unboxable-type-in-prim-decl"]
-                          external unsafe_expr: (~name: 'a0) => {. "name": 'a0} =
+                          external unsafe_expr: (~name: 'a0) => {. "name": 'a0 } =
                             "" "";
                         };
                         J.unsafe_expr(~name=string_to_json(x_name));
@@ -134,44 +134,29 @@
             let make =
               [@warning "-16"]
               (
-                (~initial: int) =>
-                  [@ppxlib.migration.stop_taking]
-                  [@warning "-16"]
-                  (
-                    (~lola: lola) =>
-                      [@ppxlib.migration.stop_taking]
-                      [@warning "-16"]
-                      (
-                        (~default: int=23) =>
-                          [@ppxlib.migration.stop_taking]
-                          [@warning "-16"]
-                          (
-                            (~children: React.element) =>
-                              [@ppxlib.migration.stop_taking]
-                              [@warning "-16"]
-                              (
-                                (~promise: Js.Promise.t(string)) => {
-                                  let value =
-                                    React.Experimental.usePromise(promise);
-                                  ReactDOM.jsxs(
-                                    "div",
-                                    ([@merlin.hide] ReactDOM.domProps)(
-                                      ~children=
-                                        React.array([|
-                                          React.string(lola.name),
-                                          React.int(initial),
-                                          React.int(default),
-                                          children,
-                                          React.string(value),
-                                        |]),
-                                      (),
-                                    ),
-                                  );
-                                }
-                              )
-                          )
-                      )
-                  )
+                (
+                  ~initial: int,
+                  ~lola: lola,
+                  ~default: int=23,
+                  ~children: React.element,
+                  ~promise: Js.Promise.t(string),
+                ) => {
+                  let value = React.Experimental.usePromise(promise);
+                  ReactDOM.jsxs(
+                    "div",
+                    ([@merlin.hide] ReactDOM.domProps)(
+                      ~children=
+                        React.array([|
+                          React.string(lola.name),
+                          React.int(initial),
+                          React.int(default),
+                          children,
+                          React.string(value),
+                        |]),
+                      (),
+                    ),
+                  );
+                }
               );
             let make = {
               let Input =

@@ -3,7 +3,7 @@ open Melange_json.Primitives;
 [@react.client.component]
 let make =
     (~noteId: option(int), ~initialTitle: string, ~initialBody: string) => {
-  let {Router.navigate, _} = Router.use();
+  let { Router.navigate, _ } = Router.use();
   let (title, setTitle) = RR.useStateValue(initialTitle);
   let (body, setBody) = RR.useStateValue(initialBody);
   let (isNavigating, startNavigating) = React.useTransition();

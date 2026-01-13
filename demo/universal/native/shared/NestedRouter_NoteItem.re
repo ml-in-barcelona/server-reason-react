@@ -49,7 +49,7 @@ let make = (~selectedId: option(int), ~isEditing: bool) => {
         </div>,
       )
     | Some(id) =>
-      let+ note: result(Note.t, string) = DB.fetchNote(id);
+      let+ (note: result(Note.t, string)) = DB.fetchNote(id);
 
       switch (note) {
       | Ok(note) when !isEditing => <NoteView note />

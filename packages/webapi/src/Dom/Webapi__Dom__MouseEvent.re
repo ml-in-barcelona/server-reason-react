@@ -27,8 +27,8 @@ module Impl = (T: {
   external getModifierState: string /* modifierKey enum */ => bool =
     "getModifierState";
   let getModifierState: (Webapi__Dom__Types.modifierKey, T.t) => bool =
-    (key, self) =>
-      getModifierState(Webapi__Dom__Types.encodeModifierKey(key), self);
+      (key, self) =>
+    getModifierState(Webapi__Dom__Types.encodeModifierKey(key), self);
 };
 
 type t = Dom.mouseEvent;
