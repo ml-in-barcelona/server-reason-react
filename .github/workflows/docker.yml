@@ -44,30 +44,23 @@ jobs:
 
       - uses: superfly/flyctl-actions/setup-flyctl@master
 
-      - name: Debug Fly.io setup
+      - name: Create Fly.io app if needed
         run: |
-          echo "Checking flyctl version..."
-          flyctl version
-          echo "Checking auth..."
-          flyctl auth whoami || echo "Auth check failed"
-          echo "Listing apps..."
-          flyctl apps list || echo "Apps list failed"
-          echo "Checking fly.toml..."
-          cat fly.toml
-          echo "Validating config..."
-          flyctl config validate || echo "Config validation failed"
+          echo "Checking if app exists..."
+          if ! flyctl apps list | grep -q "fullstack-reason-react-demo"; then
+            echo "App does not exist, creating..."
+            flyctl apps create fullstack-reason-react-demo --org personal || {
+              echo "Failed to create app, trying with launch..."
+              flyctl launch --no-deploy --copy-config --name fullstack-reason-react-demo --region iad --yes || true
+            }
+          else
+            echo "App already exists"
+          fi
+          flyctl apps list
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
       - name: Deploy to Fly.io
-        run: |
-          echo "Starting deploy..."
-          flyctl deploy --remote-only --verbose 2>&1 || {
-            echo "Deploy failed!"
-            echo "Exit code: $?"
-            echo "Trying to get more info..."
-            flyctl status 2>&1 || true
-            exit 1
-          }
+        run: flyctl deploy --remote-only
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
