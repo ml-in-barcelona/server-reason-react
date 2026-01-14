@@ -61,6 +61,6 @@ jobs:
 
       - name: Build and Deploy to Fly.io
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: flyctl deploy --local-only --verbose
+        run: flyctl deploy --remote-only --verbose
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
