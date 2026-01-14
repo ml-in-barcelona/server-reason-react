@@ -2,6 +2,7 @@ app = "fullstack-reason-react-demo"
 primary_region = "iad"
 
 [build]
+  dockerfile = "Dockerfile"
 
 [env]
   SERVER_INTERFACE = "0.0.0.0"
