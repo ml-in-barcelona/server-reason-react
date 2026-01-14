@@ -23,8 +23,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build Docker image (test only)
-        if: github.event_name == 'pull_request'
+      - name: Build Docker image
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -32,35 +31,3 @@ jobs:
           tags: server-reason-react:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
-  deploy:
-    name: Deploy to Fly.io
-    runs-on: ubuntu-latest
-    needs: build
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: superfly/flyctl-actions/setup-flyctl@master
-
-      - name: Create Fly.io app if needed
-        run: |
-          echo "Checking if app exists..."
-          if ! flyctl apps list | grep -q "fullstack-reason-react-demo"; then
-            echo "App does not exist, creating..."
-            flyctl apps create fullstack-reason-react-demo --org personal || {
-              echo "Failed to create app, trying with launch..."
-              flyctl launch --no-deploy --copy-config --name fullstack-reason-react-demo --region iad --yes || true
-            }
-          else
-            echo "App already exists"
-          fi
-          flyctl apps list
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-
-      - name: Deploy to Fly.io
-        run: flyctl deploy --remote-only
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
