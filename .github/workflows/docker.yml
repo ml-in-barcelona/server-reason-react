@@ -24,6 +24,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Build Docker image
+        if: github.event_name == 'pull_request'
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -31,3 +32,18 @@ jobs:
           tags: server-reason-react:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  deploy:
+    name: Deploy to Fly.io
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Deploy to Fly.io
+        run: flyctl deploy --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

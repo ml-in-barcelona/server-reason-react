@@ -1,4 +1,4 @@
-app = "fullstack-reason-react-demo"
+app = "server-reason-react-test"
 primary_region = "iad"
 
 [build]
