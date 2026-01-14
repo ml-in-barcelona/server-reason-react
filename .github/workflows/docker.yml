@@ -37,8 +37,14 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: superfly/flyctl-actions/setup-flyctl@master
 
+      - name: Ensure Fly.io app exists
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: flyctl apps create fullstack-reason-react-demo 2>/dev/null || true
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
       - name: Build and Deploy to Fly.io
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: flyctl deploy --local-only
+        run: flyctl deploy --local-only --verbose
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
