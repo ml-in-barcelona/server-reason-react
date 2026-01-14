@@ -44,6 +44,9 @@ jobs:
       - uses: superfly/flyctl-actions/setup-flyctl@master
 
       - name: Deploy to Fly.io
-        run: flyctl deploy --local-only
+        run: |
+          echo "Fly.io app: server-reason-react-test"
+          flyctl status || echo "App status check failed"
+          flyctl deploy --remote-only --wait-timeout=600
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
