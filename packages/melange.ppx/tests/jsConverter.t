@@ -178,6 +178,22 @@ Signature generation with newType
   end
   [@@ocaml.doc "@inline"] [@@merlin.hide]
 
+Backwards compatibility: @bs.as attribute
+  $ cat > input.ml << EOF
+  > type legacy = A | B [@bs.as 5] | C [@@deriving jsConverter]
+  > EOF
+
+  $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl
+  type legacy = A | B [@bs.as 5] | C [@@deriving jsConverter]
+  
+  include struct
+    let _ = fun (_ : legacy) -> ()
+    let legacyToJs x = match x with A -> 0 | B -> 5 | C -> 6
+    let _ = legacyToJs
+    let legacyFromJs x = match x with 0 -> Some A | 5 -> Some B | 6 -> Some C | _ -> None
+    let _ = legacyFromJs
+  end [@@ocaml.doc "@inline"] [@@merlin.hide]
+
 Multiple type declarations with 'and'
   $ cat > input.ml << EOF
   > type a = A1 | A2
