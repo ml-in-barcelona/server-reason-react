@@ -1,5 +1,19 @@
 # Changes
 
+* Allow `[@platform js]` and `[@browser_only]` on externals to conditionally exclude them from native builds. Fixes https://github.com/ml-in-barcelona/server-reason-react/issues/170 by @davesnx
+
+## 0.4.1
+
+* Use OCaml 5.4.0 by @davesnx in https://github.com/ml-in-barcelona/server-reason-react/pull/335
+* Use latest ppxlib by @davesnx in https://github.com/ml-in-barcelona/server-reason-react/pull/334
+* Update to latest quickjs by @davesnx
+* Update dependency and usage by @davesnx in https://github.com/ml-in-barcelona/server-reason-react/pull/333
+* Add filter to esbuild plugin to scope entrypoint by @pedrobslisboa in https://github.com/ml-in-barcelona/server-reason-react/pull/330
+* Add back and forward navigation to nested router by @pedrobslisboa in https://github.com/ml-in-barcelona/server-reason-react/pull/329
+* Implement memo and memoCustomCompareProps by @davesnx
+* Move Date, BigInt and modularise Js by @davesnx in https://github.com/ml-in-barcelona/server-reason-react/pull/327
+* Create complex navigation at RSC demo by @pedrobslisboa in https://github.com/ml-in-barcelona/server-reason-react/pull/307
+
 ## 0.4.0
 
 * Add upper bound to quickjs 0.2.0

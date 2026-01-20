@@ -28,7 +28,7 @@
       tool_name: "ppx_driver",
       include_dirs: [],
       hidden_include_dirs: [],
-      load_path: [@ppxlib.migration.load_path ([], [])] [],
+      load_path: ([], []),
       open_modules: [],
       for_package: None,
       debug: false,
@@ -36,7 +36,7 @@
       use_vmthreads: false,
       recursive_types: false,
       principal: false,
-      transparent_modules: false,
+      no_alias_deps: false,
       unboxed_types: false,
       unsafe_string: false,
       cookies: [],
@@ -52,36 +52,40 @@
             };
             [@ocaml.warning "-unboxable-type-in-prim-decl"]
             external makeProps: (~key: string=?, unit) => Js.t({.}) = "" "";
-            let make = () =>
-              ReactDOM.jsxs(
-                "section",
-                ([@merlin.hide] ReactDOM.domProps)(
-                  ~children=
-                    React.array([|
-                      ReactDOM.jsx(
-                        "h1",
-                        ([@merlin.hide] ReactDOM.domProps)(
-                          ~children=React.string("lola"),
-                          (),
-                        ),
-                      ),
-                      ReactDOM.jsx(
-                        "p",
-                        ([@merlin.hide] ReactDOM.domProps)(
-                          ~children=React.int(1),
-                          (),
-                        ),
-                      ),
-                      ReactDOM.jsx(
-                        "div",
-                        ([@merlin.hide] ReactDOM.domProps)(
-                          ~children=React.string("children"),
-                          (),
-                        ),
-                      ),
-                    |]),
-                  (),
-                ),
+            let make =
+              [@warning "-16"]
+              (
+                () =>
+                  ReactDOM.jsxs(
+                    "section",
+                    ([@merlin.hide] ReactDOM.domProps)(
+                      ~children=
+                        React.array([|
+                          ReactDOM.jsx(
+                            "h1",
+                            ([@merlin.hide] ReactDOM.domProps)(
+                              ~children=React.string("lola"),
+                              (),
+                            ),
+                          ),
+                          ReactDOM.jsx(
+                            "p",
+                            ([@merlin.hide] ReactDOM.domProps)(
+                              ~children=React.int(1),
+                              (),
+                            ),
+                          ),
+                          ReactDOM.jsx(
+                            "div",
+                            ([@merlin.hide] ReactDOM.domProps)(
+                              ~children=React.string("children"),
+                              (),
+                            ),
+                          ),
+                        |]),
+                      (),
+                    ),
+                  )
               );
             let make = {
               let Input = (Props: Js.t({.})) => make();

@@ -583,4 +583,4 @@ let rec findFirstByU n p =
           let right = findFirstByU n.right p in
           if right <> None then right else None
 
-let findFirstBy n p = findFirstByU n (fun [@bs] a b -> p a b)
+let findFirstBy n p = findFirstByU n (fun[@bs] a b -> p a b)

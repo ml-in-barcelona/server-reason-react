@@ -17,7 +17,7 @@
       tool_name: "ppx_driver",
       include_dirs: [],
       hidden_include_dirs: [],
-      load_path: [@ppxlib.migration.load_path ([], [])] [],
+      load_path: ([], []),
       open_modules: [],
       for_package: None,
       debug: false,
@@ -25,7 +25,7 @@
       use_vmthreads: false,
       recursive_types: false,
       principal: false,
-      transparent_modules: false,
+      no_alias_deps: false,
       unboxed_types: false,
       unsafe_string: false,
       cookies: [],
@@ -625,6 +625,63 @@
                     };
                   try(
                     withFormDataAndArgsDifferentOrder.call(formData, country)
+                    |> Lwt.map(response =>
+                         React.Model.Json(string_to_json(response))
+                       )
+                  ) {
+                  | e => Lwt.fail(e)
+                  };
+                },
+              ),
+            );
+          };
+  
+  include {
+            let withReturnTypeOnSeparateLine = {
+              Runtime.id: "282021077",
+              call: (~name: string, ~age: int) => (
+                Lwt.return(
+                  Printf.sprintf("Hello %s, you are %d years old", name, age),
+                ):
+                  Js.Promise.t(string)
+              ),
+            };
+            FunctionReferences.register(
+              "282021077",
+              Body(
+                args => {
+                  let name =
+                    try(string_of_json(Stdlib.Array.unsafe_get(args, 0))) {
+                    | _ =>
+                      Stdlib.raise(
+                        Invalid_argument(
+                          Stdlib.Printf.sprintf(
+                            "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
+                            "name",
+                            "string",
+                            Stdlib.Array.unsafe_get(args, 0)
+                            |> Yojson.Basic.to_string,
+                          ),
+                        ),
+                      )
+                    }
+                  and age =
+                    try(int_of_json(Stdlib.Array.unsafe_get(args, 1))) {
+                    | _ =>
+                      Stdlib.raise(
+                        Invalid_argument(
+                          Stdlib.Printf.sprintf(
+                            "server-reason-react: error on decoding argument '%s'. EXPECTED: %s, RECEIVED: %s",
+                            "age",
+                            "int",
+                            Stdlib.Array.unsafe_get(args, 1)
+                            |> Yojson.Basic.to_string,
+                          ),
+                        ),
+                      )
+                    };
+                  try(
+                    withReturnTypeOnSeparateLine.call(~name, ~age)
                     |> Lwt.map(response =>
                          React.Model.Json(string_to_json(response))
                        )

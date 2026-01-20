@@ -26,13 +26,13 @@
  (depends
   ; General system dependencies
   (ocaml (>= 4.14.1))
-  (reason (>= 3.14.0))
+  (reason (>= 3.17.2))
   (melange (>= 3.0.0))
 
   ; Library dependencies
   (uucp (>= 16.0.0))
-  (ppxlib (> 0.23.0))
-  (quickjs (>= 0.4.0))
+  (ppxlib (> 0.36.0))
+  (quickjs (>= 0.4.2))
   (lwt (>= 5.9.2))
   (lwt_ppx (>= 2.1.0))
   (uri (>= 4.2.0))
@@ -52,7 +52,7 @@
   ; Dev dependencies
   (ocamlformat
    (and
-    (= 0.27.0)
+    (= 0.28.1)
     :with-test)) ; We use ocamlformat on the tests
   (ocaml-lsp-server :with-dev-setup)
 
@@ -68,8 +68,4 @@
   (alcotest-lwt :with-test)
   (fmt :with-test)
   (merlin :with-test)
-
-  ; Benchmark dependencies
-  (core_unix :with-test)
-  (core_bench :with-test)
 ))

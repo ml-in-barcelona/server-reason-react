@@ -15,6 +15,7 @@
   unix
   dream
   url_native
+  str
   lwt
   lwt.unix
   nested_router_native)

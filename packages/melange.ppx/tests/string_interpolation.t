@@ -70,6 +70,5 @@ Using invalid identifiers
   File "./output.ml", line 3, characters 32-33:
   3 |   Stdlib.( ^ ) {js| Hello, |js} y
                                       ^
-  Error: This expression has type int but an expression was expected of type
-           string
+  Error: The value y has type int but an expression was expected of type string
   [2]

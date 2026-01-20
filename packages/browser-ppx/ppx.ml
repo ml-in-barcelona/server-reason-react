@@ -53,7 +53,9 @@ let remove_type_constraint pattern =
 let rec last_expr_to_raise_impossible ~loc original_name expr =
   match expr.pexp_desc with
   | Pexp_constraint (expr, _) -> last_expr_to_raise_impossible ~loc original_name expr
-  | Pexp_fun (arg_label, _arg_expression, fun_pattern, expression) ->
+  | Pexp_function
+      ({ pparam_desc = Pparam_val (arg_label, _arg_expression, fun_pattern); _ } :: _rest, _, Pfunction_body expression)
+    ->
       let new_fun_pattern = remove_type_constraint fun_pattern in
       let fn =
         Builder.pexp_fun ~loc arg_label None new_fun_pattern
@@ -87,12 +89,13 @@ module Browser_only = struct
     | _ -> (
         match expression.pexp_desc with
         | Pexp_constraint
-            ({ pexp_desc = Pexp_fun (_arg_label, _arg_expression, _fun_pattern, _expr); _ }, _type_constraint) ->
+            ( { pexp_desc = Pexp_function ({ pparam_desc = Pparam_val _; _ } :: _, _, Pfunction_body _); _ },
+              _type_constraint ) ->
             let function_name = get_function_name pattern.ppat_desc in
             let expr = last_expr_to_raise_impossible ~loc function_name expression in
             let vb = Builder.value_binding ~loc ~pat:pattern ~expr in
             { vb with pvb_attributes = [ remove_alert_browser_only ~loc ] }
-        | Pexp_fun (_arg_label, _arg_expression, _fun_pattern, _expr) ->
+        | Pexp_function ({ pparam_desc = Pparam_val _; _ } :: _, _, Pfunction_body _) ->
             let function_name = get_function_name pattern.ppat_desc in
             let expr = last_expr_to_raise_impossible ~loc function_name expression in
             let vb = Builder.value_binding ~loc ~pat:pattern ~expr in
@@ -104,10 +107,20 @@ module Browser_only = struct
   let expression_handler ~ctxt payload =
     let replace_fun_body_with_raise_impossible ~loc pexp_desc =
       match pexp_desc with
-      | Pexp_constraint ({ pexp_desc = Pexp_fun (arg_label, _arg_expression, pattern, expression) }, type_constraint) ->
+      | Pexp_constraint
+          ( {
+              pexp_desc =
+                Pexp_function
+                  ( { pparam_desc = Pparam_val (arg_label, _arg_expression, pattern); _ } :: _,
+                    _,
+                    Pfunction_body expression );
+              _;
+            },
+            type_constraint ) ->
           let fn = browser_only_fun ~loc arg_label pattern expression in
           Builder.pexp_constraint ~loc { fn with pexp_attributes = expression.pexp_attributes } type_constraint
-      | Pexp_fun (arg_label, _arg_expression, pattern, expr) ->
+      | Pexp_function
+          ({ pparam_desc = Pparam_val (arg_label, _arg_expression, pattern); _ } :: _, _, Pfunction_body expr) ->
           let function_name = get_function_name pattern.ppat_desc in
           let new_fun_pattern = remove_type_constraint pattern in
           Builder.pexp_fun ~loc arg_label None new_fun_pattern (last_expr_to_raise_impossible ~loc function_name expr)
@@ -153,7 +166,7 @@ module Browser_only = struct
 
   let extractor_vb =
     let open Ast_pattern in
-    let extractor_in_let = pstr_value __ (value_binding ~pat:__ ~expr:__ ^:: nil) in
+    let extractor_in_let = pstr_value __ (value_binding ~pat:__ ~expr:__ ~constraint_:drop ^:: nil) in
     pstr @@ extractor_in_let ^:: nil
 
   let structure_item_handler ~ctxt rec_flag pattern expression =
@@ -166,8 +179,16 @@ module Browser_only = struct
 
     let add_browser_only_alert expression =
       match expression.pexp_desc with
-      | Pexp_constraint ({ pexp_desc = Pexp_fun (arg_label, _arg_expression, fun_pattern, expr); _ }, type_constraint)
-        ->
+      | Pexp_constraint
+          ( {
+              pexp_desc =
+                Pexp_function
+                  ( { pparam_desc = Pparam_val (arg_label, _arg_expression, fun_pattern); _ } :: _,
+                    _,
+                    Pfunction_body expr );
+              _;
+            },
+            type_constraint ) ->
           let original_function_name = get_function_name pattern.ppat_desc in
           let new_fun_pattern = remove_type_constraint fun_pattern in
           let fn =
@@ -176,7 +197,8 @@ module Browser_only = struct
           in
           let item = { fn with pexp_attributes = expr.pexp_attributes } in
           make_vb_with_browser_only ~loc ~type_constraint pattern item
-      | Pexp_fun (arg_label, _arg_expression, fun_pattern, expr) ->
+      | Pexp_function
+          ({ pparam_desc = Pparam_val (arg_label, _arg_expression, fun_pattern); _ } :: _, _, Pfunction_body expr) ->
           let original_function_name = get_function_name pattern.ppat_desc in
           let new_fun_pattern = remove_type_constraint fun_pattern in
           let fn =
@@ -185,8 +207,8 @@ module Browser_only = struct
           in
           let item = { fn with pexp_attributes = expr.pexp_attributes } in
           make_vb_with_browser_only ~loc pattern item
-      | Pexp_function _cases ->
-          (* Because pexp_function doesn't have a pattern, neither a label, we construct an empty pattern and use it to generate the vb *)
+      | Pexp_function ([], _, Pfunction_cases (_cases, _, _)) ->
+          (* Because pexp_function with cases doesn't have a pattern, neither a label, we construct an empty pattern and use it to generate the vb *)
           let original_function_name = get_function_name pattern.ppat_desc in
           let fn =
             Builder.pexp_fun ~loc Nolabel None

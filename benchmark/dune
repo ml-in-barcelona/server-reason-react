@@ -30,6 +30,4 @@
 (rule
  (alias bench-json)
  (action
-  (with-stdout-to
-   bench_results.json
-   (run ./bench.exe --json))))
+  (run ./bench.exe --json)))

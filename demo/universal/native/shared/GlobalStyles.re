@@ -30,5 +30,5 @@ let string =
 
 [@react.component]
 let make = () => {
-  <style type_="text/css" dangerouslySetInnerHTML={"__html": string} />;
+  <style type_="text/css" dangerouslySetInnerHTML={ "__html": string } />;
 };

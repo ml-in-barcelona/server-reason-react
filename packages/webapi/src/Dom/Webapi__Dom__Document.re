@@ -15,8 +15,8 @@ module Impl = (T: {
   [@mel.get] external characterSet: T.t => string = "characterSet";
   [@mel.get]
   external compatMode: T.t => string /* compatMode enum */ = "compatMode"; /* experimental */
-  let compatMode: T.t => Webapi__Dom__Types.compatMode =
-    self => Webapi__Dom__Types.decodeCompatMode(compatMode(self));
+  let compatMode: T.t => Webapi__Dom__Types.compatMode = self =>
+    Webapi__Dom__Types.decodeCompatMode(compatMode(self));
   [@mel.get] external doctype: T.t => Dom.documentType = "doctype";
   [@mel.get] external documentElement: T.t => Dom.element = "documentElement";
   [@mel.get] external documentURI: T.t => string = "documentURI";
@@ -43,8 +43,8 @@ module Impl = (T: {
   [@mel.get]
   external visibilityState: T.t => string /* visibilityState enum */ =
     "visibilityState";
-  let visibilityState: T.t => Webapi__Dom__Types.visibilityState =
-    self => Webapi__Dom__Types.decodeVisibilityState(visibilityState(self));
+  let visibilityState: T.t => Webapi__Dom__Types.visibilityState = self =>
+    Webapi__Dom__Types.decodeVisibilityState(visibilityState(self));
 
   [@mel.send.pipe: T.t]
   external adoptNode: Dom.element_like('a) => Dom.element_like('a) =

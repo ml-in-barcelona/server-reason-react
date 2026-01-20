@@ -26,17 +26,17 @@ let lower_children_nested =
                            [
                              examples
                              |> List.map (fun e ->
-                                    (li ~key:e.path
-                                       ~children:
-                                         [
-                                           (a ~href:e.path
-                                              ~onClick:(fun event ->
-                                                React.Event.Mouse.preventDefault event;
-                                                ReactRouter.push e.path)
-                                              ~children:[ e.title |> s ]
-                                              () [@JSX]);
-                                         ]
-                                       () [@JSX]))
+                                 (li ~key:e.path
+                                    ~children:
+                                      [
+                                        (a ~href:e.path
+                                           ~onClick:(fun event ->
+                                             React.Event.Mouse.preventDefault event;
+                                             ReactRouter.push e.path)
+                                           ~children:[ e.title |> s ]
+                                           () [@JSX]);
+                                      ]
+                                    () [@JSX]))
                              |> React.list;
                            ]
                          () [@JSX]);

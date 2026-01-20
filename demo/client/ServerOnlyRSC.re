@@ -5,7 +5,7 @@ let root =
 
 let root = ReactDOM.Client.createRoot(root);
 let headers =
-  Fetch.HeadersInit.make({"Accept": "application/react.component"});
+  Fetch.HeadersInit.make({ "Accept": "application/react.component" });
 let fetch =
   Fetch.fetchWithInit(
     Routes.serverOnlyRSC,

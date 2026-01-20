@@ -55,10 +55,10 @@ let to_utc_string_months () =
         (Printf.sprintf "month %d contains %s" i expected_month)
         (String.length s > 0
         &&
-        try
-          let _ = Str.search_forward (Str.regexp expected_month) s 0 in
-          true
-        with Not_found -> false))
+          try
+            let _ = Str.search_forward (Str.regexp expected_month) s 0 in
+            true
+          with Not_found -> false))
     months
 
 let to_utc_string_day_names () =

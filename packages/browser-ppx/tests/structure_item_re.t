@@ -44,7 +44,8 @@
   let getSortedWordCountsBrowserOnly (words : string array) =
     (words |. List.map |. Js.log : (string * int) array)
   
-  let renderToElementWithId ?(id = "") component =
+  let renderToElementWithId ?(id = "") =
+   fun component ->
     match ReactDOM.querySelector ("#" ^ id) with
     | ((Some node) [@explicit_arity]) ->
         let root = ReactDOM.Client.createRoot node in
@@ -78,8 +79,9 @@
            "This expression is marked to only run on the browser where \
             JavaScript can run. You can only use it inside a let%browser_only \
             function."]) =
-   fun [@alert "-browser_only"] evt ->
-    Runtime.fail_impossible_action_in_ssr "valueFromEvent"
+   (fun evt ->
+    Runtime.fail_impossible_action_in_ssr "valueFromEvent")
+    [@alert "-browser_only"]
   [@@warning "-27-32"]
   
   let (getSortedWordCountsBrowserOnly
@@ -88,8 +90,9 @@
            "This expression is marked to only run on the browser where \
             JavaScript can run. You can only use it inside a let%browser_only \
             function."]) =
-   fun [@alert "-browser_only"] words ->
-    Runtime.fail_impossible_action_in_ssr "getSortedWordCountsBrowserOnly"
+   (fun words ->
+    Runtime.fail_impossible_action_in_ssr "getSortedWordCountsBrowserOnly")
+    [@alert "-browser_only"]
   [@@warning "-27-32"]
   
   let (renderToElementWithId
@@ -98,8 +101,9 @@
            "This expression is marked to only run on the browser where \
             JavaScript can run. You can only use it inside a let%browser_only \
             function."]) =
-   fun [@alert "-browser_only"] ?id ->
-    fun component -> Runtime.fail_impossible_action_in_ssr "renderToElementWithId"
+   (fun ?id component ->
+    Runtime.fail_impossible_action_in_ssr "renderToElementWithId")
+    [@alert "-browser_only"]
   [@@warning "-27-32"]
   
   let (getSortedWordCountsBrowserOnly
@@ -108,8 +112,9 @@
            "This expression is marked to only run on the browser where \
             JavaScript can run. You can only use it inside a let%browser_only \
             function."]) =
-   fun [@alert "-browser_only"] words ->
-    Runtime.fail_impossible_action_in_ssr "getSortedWordCountsBrowserOnly"
+   (fun words ->
+    Runtime.fail_impossible_action_in_ssr "getSortedWordCountsBrowserOnly")
+    [@alert "-browser_only"]
   [@@warning "-27-32"]
   
   let (getSortedWordCountsBrowserOnly
@@ -118,6 +123,7 @@
            "This expression is marked to only run on the browser where \
             JavaScript can run. You can only use it inside a let%browser_only \
             function."]) =
-   fun [@alert "-browser_only"] words ->
-    Runtime.fail_impossible_action_in_ssr "getSortedWordCountsBrowserOnly"
+   (fun words ->
+    Runtime.fail_impossible_action_in_ssr "getSortedWordCountsBrowserOnly")
+    [@alert "-browser_only"]
   [@@warning "-27-32"]

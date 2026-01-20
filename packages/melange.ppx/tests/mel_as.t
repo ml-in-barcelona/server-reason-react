@@ -4,7 +4,7 @@ mel.as attribute
   > EOF
 
   $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl | tee output.ml
-  let (get : t -> (_[@mel.as {json|{}|json}]) -> t) =
+  let get : t -> (_[@mel.as {json|{}|json}]) -> t =
    fun _ ->
     let () =
       Printf.printf

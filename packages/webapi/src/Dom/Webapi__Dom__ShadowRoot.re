@@ -17,6 +17,6 @@ include Webapi__Dom__ParentNode.Impl({
 });
 
 [@mel.get] external shadowRootMode: t => string = "shadowRootMode";
-let shadowRootMode: t => Webapi__Dom__Types.shadowRootMode =
-  self => Webapi__Dom__Types.decodeShadowRootMode(shadowRootMode(self));
+let shadowRootMode: t => Webapi__Dom__Types.shadowRootMode = self =>
+  Webapi__Dom__Types.decodeShadowRootMode(shadowRootMode(self));
 [@mel.get] external host: t => Dom.element = "host";

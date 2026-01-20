@@ -33,8 +33,8 @@ let multiline : t -> bool = fun regexp -> Quickjs.RegExp.multiline regexp
 let sticky : t -> bool = fun regexp -> Quickjs.RegExp.sticky regexp
 let unicode : t -> bool = fun regexp -> Quickjs.RegExp.unicode regexp
 let dotAll : t -> bool = fun regexp -> Quickjs.RegExp.dotall regexp
-let lastIndex : t -> int = fun regex -> Quickjs.RegExp.lastIndex regex
-let setLastIndex : t -> int -> unit = fun regex index -> Quickjs.RegExp.setLastIndex regex index
+let lastIndex : t -> int = fun regex -> Quickjs.RegExp.last_index regex
+let setLastIndex : t -> int -> unit = fun regex index -> Quickjs.RegExp.set_last_index regex index
 
 let exec : str:string -> t -> result option =
  fun ~str rex -> match Quickjs.RegExp.exec rex str with result -> Some result | exception _ -> None
