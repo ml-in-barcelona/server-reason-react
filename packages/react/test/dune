@@ -4,6 +4,7 @@
  (libraries
   alcotest
   fmt
+  lwt
   server-reason-react.react
   server-reason-react.reactDom)
  (preprocess

@@ -467,25 +467,29 @@ let create_element_with_key ?key tag attributes children =
 let createElement = create_element_with_key ?key:None
 let createElementWithKey = create_element_with_key
 
-(* `cloneElement` overrides childrens and props on lower case components, It raises Invalid_argument for the rest.
-    React.js can clone uppercase components, since it stores their props on each element's object but since we just store the fn and don't have the props, we can't clone them).
-   TODO: Check original implementation for exact error message/exception type *)
+let clone_component_error name =
+  Printf.sprintf
+    "React.cloneElement: cannot clone '%s'. In server-reason-react, component props are compile-time labelled \
+     arguments (and extending them with new props at runtime is not supported). React.cloneElement only works with \
+     lowercase DOM elements."
+    name
+
 let cloneElement element new_attributes =
   match element with
   | Lower_case_element { key; tag; attributes; children } ->
       Lower_case_element { key; tag; attributes = clone_attributes attributes new_attributes; children }
-  | Upper_case_component _ -> raise (Invalid_argument "In server-reason-react, a component can't be cloned")
-  | DangerouslyInnerHtml _ -> raise (Invalid_argument "can't clone innerHtml")
-  | Fragment _ -> raise (Invalid_argument "can't clone a fragment")
-  | Text _ -> raise (Invalid_argument "can't clone a text element")
-  | Empty -> raise (Invalid_argument "can't clone a null element")
-  | List _ -> raise (Invalid_argument "can't clone a list element")
-  | Array _ -> raise (Invalid_argument "can't clone an array element")
-  | Provider _ -> raise (Invalid_argument "can't clone a Provider")
-  | Consumer _ -> raise (Invalid_argument "can't clone a Consumer")
-  | Async_component _ -> raise (Invalid_argument "can't clone an async component")
-  | Suspense _ -> raise (Invalid_argument "can't clone a Supsense component")
-  | Client_component _ -> raise (Invalid_argument "can't clone a Client component")
+  | Upper_case_component (name, _) -> raise (Invalid_argument (clone_component_error name))
+  | Async_component (name, _) -> raise (Invalid_argument (clone_component_error name))
+  | Client_component { import_name; _ } -> raise (Invalid_argument (clone_component_error import_name))
+  | DangerouslyInnerHtml _ -> raise (Invalid_argument "React.cloneElement: cannot clone dangerouslySetInnerHTML")
+  | Fragment _ -> raise (Invalid_argument "React.cloneElement: cannot clone a Fragment")
+  | Text _ -> raise (Invalid_argument "React.cloneElement: cannot clone a Text element")
+  | Empty -> raise (Invalid_argument "React.cloneElement: cannot clone a null element")
+  | List _ -> raise (Invalid_argument "React.cloneElement: cannot clone a List")
+  | Array _ -> raise (Invalid_argument "React.cloneElement: cannot clone an Array")
+  | Provider _ -> raise (Invalid_argument "React.cloneElement: cannot clone a Provider")
+  | Consumer _ -> raise (Invalid_argument "React.cloneElement: cannot clone a Consumer")
+  | Suspense _ -> raise (Invalid_argument "React.cloneElement: cannot clone a Suspense")
 
 module Fragment = struct
   let make ~children ?key:_ () = Fragment children
