@@ -1,5 +1,7 @@
 # Changes
 
+* Allow `[@platform js]` and `[@browser_only]` on externals to conditionally exclude them from native builds. Fixes https://github.com/ml-in-barcelona/server-reason-react/issues/170 by @davesnx
+
 ## 0.4.1
 
 * Use OCaml 5.4.0 by @davesnx in https://github.com/ml-in-barcelona/server-reason-react/pull/335
