@@ -201,8 +201,7 @@ Signature generation for getSet with light mode
   > EOF
 
   $ ./standalone.exe -intf input.mli | ocamlformat - --enable-outside-detected-project --intf
-  type person = { name : string; mutable age : int }
-  [@@deriving getSet { light }]
+  type person = { name : string; mutable age : int } [@@deriving getSet { light }]
   
   include sig
     [@@@ocaml.warning "-32"]
@@ -239,6 +238,7 @@ Error: jsProperties on variant type
   1 | type action = Click | Submit [@@deriving jsProperties]
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Error: [@deriving jsProperties] can only be used on record types
+  [1]
 
 Error: getSet on variant type
   $ cat > input.ml << EOF
@@ -246,10 +246,11 @@ Error: getSet on variant type
   > EOF
 
   $ ./standalone.exe -impl input.ml 2>&1
-  File "input.ml", line 1, characters 0-49:
+  File "input.ml", line 1, characters 0-48:
   1 | type action = Click | Submit [@@deriving getSet]
-      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   Error: [@deriving getSet] can only be used on record types
+  [1]
 
 Private types should not generate jsProperties constructor
   $ cat > input.ml << EOF

@@ -10,8 +10,9 @@ An external without platform attribute errors
   
   [%%ocaml.error
   "[server-reason-react.melange_ppx] There's an external in native, which should \
-   only happen in JavaScript. You need to conditionally run it, either by not \
-   including it on native or via let%browser_only/switch%platform. More info at \
+   only happen in JavaScript. You need to conditionally discard it from the \
+   native build, either by moving the external in a module only available in \
+   native, or annotating it with [@platform js]. More info at \
    https://ml-in-barcelona.github.io/server-reason-react/server-reason-react/browser_ppx.html"]
 
   $ echo "module Runtime = struct" > main.ml
@@ -23,9 +24,10 @@ An external without platform attribute errors
   26 | [%%ocaml.error
           ^^^^^^^^^^^
   Error: [server-reason-react.melange_ppx] There's an external in native, which
-         should only happen in JavaScript. You need to conditionally run it,
-         either by not including it on native or via
-         let%browser_only/switch%platform. More info at
+         should only happen in JavaScript. You need to conditionally discard it
+         from the native build, either by moving the external in a module only
+         available in native, or annotating it with [@platform js]. More info
+         at
          https://ml-in-barcelona.github.io/server-reason-react/server-reason-react/browser_ppx.html
   [2]
 
