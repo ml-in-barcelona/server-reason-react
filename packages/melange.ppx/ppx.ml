@@ -452,6 +452,15 @@ end
 let is_send_pipe pval_attributes =
   List.exists (fun { attr_name = { txt = attr } } -> String.equal attr "mel.send.pipe") pval_attributes
 
+let has_browser_ppx_attribute attrs =
+  List.exists
+    (fun { attr_name = { txt = attr }; attr_payload; _ } ->
+      match (attr, attr_payload) with
+      | "browser_only", _ -> true
+      | "platform", PStr [ { pstr_desc = Pstr_eval ({ pexp_desc = Pexp_ident { txt = Lident "js" } }, _); _ } ] -> true
+      | _ -> false)
+    attrs
+
 let get_function_name pattern =
   let rec go pattern =
     match pattern with
@@ -578,8 +587,8 @@ let mel_module_found_in_native_message ~loc =
   let msg =
     Printf.sprintf
       "[server-reason-react.melange_ppx] There's an external with [%%mel.module \"...\"] in native, which should only \
-       happen in JavaScript. You need to conditionally run it, either by not including it on native or via \
-       let%%browser_only/switch%%platform. More info at \
+       happen in JavaScript. You need to conditionally discard it from the native build, either by moving the external \
+       in a module only available in native, or annotating it with [@platform js]. More info at \
        https://ml-in-barcelona.github.io/server-reason-react/server-reason-react/browser_ppx.html"
   in
   Builder.pexp_constant ~loc (Pconst_string (msg, loc, None))
@@ -588,8 +597,9 @@ let external_found_in_native_message ~loc =
   let msg =
     Printf.sprintf
       "[server-reason-react.melange_ppx] There's an external in native, which should only happen in JavaScript. You \
-       need to conditionally run it, either by not including it on native or via let%%browser_only/switch%%platform. \
-       More info at https://ml-in-barcelona.github.io/server-reason-react/server-reason-react/browser_ppx.html"
+       need to conditionally discard it from the native build, either by moving the external in a module only \
+       available in native, or annotating it with [@platform js]. More info at \
+       https://ml-in-barcelona.github.io/server-reason-react/server-reason-react/browser_ppx.html"
   in
   Builder.pexp_constant ~loc (Pconst_string (msg, loc, None))
 
@@ -775,7 +785,9 @@ class raise_exception_mapper (module_path : string) =
       (* %mel. *)
       (* external foo: t = "{{JavaScript}}" *)
       | Pstr_primitive { pval_name; pval_attributes; pval_loc; pval_type } ->
-          transform_external ~module_path pval_name pval_attributes pval_loc pval_type
+          (* Detects [@browser_only] or [@platform js] attributes. When present on an external, we pass it through unchanged so browser_ppx can filter it out in native mode. *)
+          if has_browser_ppx_attribute pval_attributes then item
+          else transform_external ~module_path pval_name pval_attributes pval_loc pval_type
       | _ -> super#structure_item item
   end
 

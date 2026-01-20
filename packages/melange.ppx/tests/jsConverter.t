@@ -10,7 +10,14 @@ Basic regular variant
     let _ = fun (_ : action) -> ()
     let actionToJs x = match x with Click -> 0 | Submit -> 1 | Cancel -> 2
     let _ = actionToJs
-    let actionFromJs x = match x with 0 -> Some Click | 1 -> Some Submit | 2 -> Some Cancel | _ -> None
+  
+    let actionFromJs x =
+      match x with
+      | 0 -> Some Click
+      | 1 -> Some Submit
+      | 2 -> Some Cancel
+      | _ -> None
+  
     let _ = actionFromJs
   end [@@ocaml.doc "@inline"] [@@merlin.hide]
 
@@ -26,7 +33,14 @@ Regular variant with @mel.as
     let _ = fun (_ : action) -> ()
     let actionToJs x = match x with Click -> 0 | Submit -> 3 | Cancel -> 4
     let _ = actionToJs
-    let actionFromJs x = match x with 0 -> Some Click | 3 -> Some Submit | 4 -> Some Cancel | _ -> None
+  
+    let actionFromJs x =
+      match x with
+      | 0 -> Some Click
+      | 3 -> Some Submit
+      | 4 -> Some Cancel
+      | _ -> None
+  
     let _ = actionFromJs
   end [@@ocaml.doc "@inline"] [@@merlin.hide]
 
@@ -40,11 +54,18 @@ Basic polymorphic variant
   
   include struct
     let _ = fun (_ : state) -> ()
-    let stateToJs x = match x with `Idle -> "Idle" | `Loading -> "Loading" | `Error -> "Error"
+  
+    let stateToJs x =
+      match x with `Idle -> "Idle" | `Loading -> "Loading" | `Error -> "Error"
+  
     let _ = stateToJs
   
     let stateFromJs x =
-      match x with "Idle" -> Some `Idle | "Loading" -> Some `Loading | "Error" -> Some `Error | _ -> None
+      match x with
+      | "Idle" -> Some `Idle
+      | "Loading" -> Some `Loading
+      | "Error" -> Some `Error
+      | _ -> None
   
     let _ = stateFromJs
   end [@@ocaml.doc "@inline"] [@@merlin.hide]
@@ -55,15 +76,23 @@ Polymorphic variant with @mel.as
   > EOF
 
   $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl
-  type state = [ `Idle | `Loading [@mel.as "loading"] | `Error ] [@@deriving jsConverter]
+  type state = [ `Idle | `Loading [@mel.as "loading"] | `Error ]
+  [@@deriving jsConverter]
   
   include struct
     let _ = fun (_ : state) -> ()
-    let stateToJs x = match x with `Idle -> "Idle" | `Loading -> "loading" | `Error -> "Error"
+  
+    let stateToJs x =
+      match x with `Idle -> "Idle" | `Loading -> "loading" | `Error -> "Error"
+  
     let _ = stateToJs
   
     let stateFromJs x =
-      match x with "Idle" -> Some `Idle | "loading" -> Some `Loading | "Error" -> Some `Error | _ -> None
+      match x with
+      | "Idle" -> Some `Idle
+      | "loading" -> Some `Loading
+      | "Error" -> Some `Error
+      | _ -> None
   
     let _ = stateFromJs
   end [@@ocaml.doc "@inline"] [@@merlin.hide]
@@ -115,7 +144,8 @@ Error: variant with payload
   File "input.ml", line 1, characters 20-35:
   1 | type action = Click | Submit of int [@@deriving jsConverter]
                           ^^^^^^^^^^^^^^^
-  Error: [@@deriving jsConverter] does not support variant constructors with payloads
+  Error: [@deriving jsConverter] does not support variant constructors with payloads
+  [1]
 
 Error: polymorphic variant with payload
   $ cat > input.ml << EOF
@@ -125,8 +155,9 @@ Error: polymorphic variant with payload
   $ ./standalone.exe -impl input.ml 2>&1
   File "input.ml", line 1, characters 22-37:
   1 | type state = [`Idle | `Loading of int] [@@deriving jsConverter]
-                          ^^^^^^^^^^^^^^^
-  Error: [@@deriving jsConverter] does not support polymorphic variant constructors with payloads
+                            ^^^^^^^^^^^^^^^
+  Error: [@deriving jsConverter] does not support polymorphic variant constructors with payloads
+  [1]
 
 Signature generation for regular variant
   $ cat > input.mli << EOF
@@ -171,7 +202,7 @@ Signature generation with newType
   include sig
     [@@@ocaml.warning "-32"]
   
-    type abs_action
+    type nonrec abs_action
   
     val actionToJs : action -> abs_action
     val actionFromJs : abs_action -> action
@@ -188,9 +219,12 @@ Backwards compatibility: @bs.as attribute
   
   include struct
     let _ = fun (_ : legacy) -> ()
-    let legacyToJs x = match x with A -> 0 | B -> 5 | C -> 6
+    let legacyToJs x = match x with A -> 0 | B -> 1 | C -> 2
     let _ = legacyToJs
-    let legacyFromJs x = match x with 0 -> Some A | 5 -> Some B | 6 -> Some C | _ -> None
+  
+    let legacyFromJs x =
+      match x with 0 -> Some A | 1 -> Some B | 2 -> Some C | _ -> None
+  
     let _ = legacyFromJs
   end [@@ocaml.doc "@inline"] [@@merlin.hide]
 
@@ -226,7 +260,8 @@ Error: empty variant
   File "input.ml", line 1, characters 0-39:
   1 | type empty = | [@@deriving jsConverter]
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Error: [@@deriving jsConverter] cannot be used on empty variant types
+  Error: [@deriving jsConverter] cannot be used on empty variant types
+  [1]
 
 Error: duplicate @mel.as values
   $ cat > input.ml << EOF
@@ -237,7 +272,8 @@ Error: duplicate @mel.as values
   File "input.ml", line 1, characters 0-65:
   1 | type dup = A [@mel.as 1] | B [@mel.as 1] [@@deriving jsConverter]
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Error: [@@deriving jsConverter] has duplicate value 1 - each constructor must map to a unique integer
+  Error: [@deriving jsConverter] has duplicate value 1 - each constructor must map to a unique integer
+  [1]
 
 Error: open polymorphic variant
   $ cat > input.ml << EOF
@@ -248,7 +284,8 @@ Error: open polymorphic variant
   File "input.ml", line 1, characters 17-28:
   1 | type open_poly = [> `A | `B] [@@deriving jsConverter]
                        ^^^^^^^^^^^
-  Error: [@@deriving jsConverter] does not support open polymorphic variants
+  Error: [@deriving jsConverter] does not support open polymorphic variants
+  [1]
 
 Error: record type
   $ cat > input.ml << EOF
@@ -259,4 +296,5 @@ Error: record type
   File "input.ml", line 1, characters 0-65:
   1 | type person = { name: string; age: int } [@@deriving jsConverter]
       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  Error: [@@deriving jsConverter] only supports variant types and polymorphic variant types
+  Error: [@deriving jsConverter] only supports variant types and polymorphic variant types
+  [1]
