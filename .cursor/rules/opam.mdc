@@ -1,0 +1,46 @@
+---
+alwaysApply: true
+---
+
+Make sure you have the right opam switch loaded. echo $OPAMSWITCH should point to the current directory.
+
+Before running any build script, you should run `eval $(opam env --switch=. --set-switch)` and be sure that the opam switch dependencies are loaded.
+
+Here are the list of commands to run:
+
+List of available make commands
+
+  bench-allocation Run allocation analysis
+  bench           Run benchmarks
+  bench-json      Run benchmarks with JSON output for CI
+  bench-watch     Run benchmark in watch mode
+  build-bench     Build benchmark executables
+  build           Build the project, including non installable libraries and executables
+  build-prod      Build for production (--profile=prod)
+  clean           Clean artifacts
+  create-switch   Create opam switch
+  demo-build      Build the project (client, server and universal)
+  demo-build-watch Watch demo (client, server and universal)
+  demo-serve      Serve the demo executable
+  demo-serve-watch Run demo executable on watch mode (listening to built_at.txt changes)
+  dev             Build in watch mode
+  docker-build    docker build
+  docker-run      docker run
+  docs            Generate odoc documentation
+  docs-open       Open odoc docs with default web browser
+  docs-serve      Open odoc docs with default web browser
+  docs-watch      Generate odoc docs
+  format-check    Checks if format is correct
+  format          Format the codebase with ocamlformat
+  help            Print this help message
+  init            Create a local dev enviroment
+  lib-test        Run library tests
+  pin             Pin dependencies
+  ppx-test-promote Prommote ppx tests snapshots
+  ppx-test        Run ppx tests
+  ppx-test-watch  Run ppx tests in watch mode
+  setup-githooks  Setup githooks
+  subst           Run dune substitute
+  test-promote    Updates snapshots and promotes it to correct
+  test            Run the unit tests
+  test-watch      Run the unit tests in watch mode
