@@ -45,6 +45,8 @@ let make =
         ? Theme.border(Theme.Color.Gray8) : Theme.border(Theme.Color.None),
     ])}>
     <div
+      role="button"
+      tabIndex=0
       className={Cx.make([
         "relative p-4 w-full justify-between items-start flex-wrap transition-[max-height] duration-250 ease-out scale-100 flex flex-col gap-1 cursor-pointer",
       ])}
