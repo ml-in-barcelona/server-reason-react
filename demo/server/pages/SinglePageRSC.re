@@ -209,12 +209,12 @@ module Page = {
 module App = {
   [@react.component]
   let make = () => {
-    <html>
+    <html suppressHydrationWarning=true>
       <head>
         <meta charSet="utf-8" />
         <link rel="stylesheet" href="/output.css" />
       </head>
-      <body>
+      <body suppressHydrationWarning=true>
         <div id="root">
           <DemoLayout background=Theme.Color.Gray2> <Page /> </DemoLayout>
         </div>

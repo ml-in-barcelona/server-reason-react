@@ -100,7 +100,7 @@ module App = {
   [@react.async.component]
   let make = (~selectedId, ~isEditing, ~searchText, ~sleep) => {
     Lwt.return(
-      <html>
+      <html suppressHydrationWarning=true>
         <head>
           <meta charSet="utf-8" />
           <style
@@ -114,7 +114,7 @@ module App = {
           />
           <link rel="stylesheet" href="/output.css" />
         </head>
-        <body>
+        <body suppressHydrationWarning=true>
           <DemoLayout background=Theme.Color.Gray2 mode=FullScreen>
             <div className="flex flex-row gap-8">
               <section

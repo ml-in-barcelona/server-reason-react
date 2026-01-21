@@ -149,7 +149,7 @@ module AppLayout = {
 module Document = {
   [@react.component]
   let make = (~children) =>
-    <html>
+    <html suppressHydrationWarning=true>
       <head>
         <meta charSet="utf-8" />
         <style
@@ -163,7 +163,7 @@ module Document = {
         />
         <link rel="stylesheet" href="/output.css" />
       </head>
-      <body> children </body>
+      <body suppressHydrationWarning=true> children </body>
     </html>;
 };
 
