@@ -104,9 +104,14 @@ let element_with_dangerously_set_inner_html () =
        '>window.srr_stream.push()</script>"
     app []
 
-let inner_html_element () =
-  let app () = React.DangerouslyInnerHtml "<div>Hello</div>" in
-  assert_html (app ()) ~shell:"<div>Hello</div><script data-payload='0:null\n'>window.srr_stream.push()</script>" []
+let static_element () =
+  let original = React.createElement "div" [] [ React.string "Hello" ] in
+  let app () = React.Static { prerendered = "<div>Hello</div>"; original } in
+  assert_html (app ())
+    ~shell:
+      "<div>Hello</div><script data-payload='0:[\"$\",\"div\",null,{\"children\":[\"Hello\"]},null,[],{}]\n\
+       '>window.srr_stream.push()</script>"
+    []
 
 (* let debug_adds_debug_info () =
   let app =
@@ -654,7 +659,7 @@ let tests =
     test "client_with_element_props" client_with_element_props;
     test "null_element" null_element;
     test "element_with_dangerously_set_inner_html" element_with_dangerously_set_inner_html;
-    test "inner_html_element" inner_html_element;
+    test "static_element" static_element;
     test "input_element_with_value" input_element_with_value;
     test "upper_case_component" upper_case_component;
     test "async_component_without_promise" async_component_without_promise;

@@ -85,8 +85,22 @@ We need to output ML syntax here, otherwise refmt could not parse it.
                            Some (React.JSX.String ("id", "id", ("root" : string)));
                          ])
                       [ children ];
-                    React.DangerouslyInnerHtml
-                      "<script src=\"/static/client.js\"></script>";
+                    React.Static
+                      {
+                        prerendered =
+                          "<script src=\"/static/client.js\"></script>";
+                        original =
+                          React.createElement "script"
+                            (Stdlib.List.filter_map Stdlib.Fun.id
+                               [
+                                 Some
+                                   (React.JSX.String
+                                      ( "src",
+                                        "src",
+                                        ("/static/client.js" : string) ));
+                               ])
+                            [];
+                      };
                   ];
               ] ))
       [@warning "-16"]
@@ -253,7 +267,15 @@ We need to output ML syntax here, otherwise refmt could not parse it.
               [ children ] )
   end
   
-  let a = Uppercase.make ~children:(React.DangerouslyInnerHtml "<div></div>") ()
+  let a =
+    Uppercase.make
+      ~children:
+        (React.Static
+           {
+             prerendered = "<div></div>";
+             original = React.createElement "div" [] [];
+           })
+      ()
   
   module Async_component = struct
     let make ?key:(_ : string option) ~children () =
@@ -271,7 +293,14 @@ We need to output ML syntax here, otherwise refmt could not parse it.
   end
   
   let a =
-    Async_component.make ~children:(React.DangerouslyInnerHtml "<div></div>") ()
+    Async_component.make
+      ~children:
+        (React.Static
+           {
+             prerendered = "<div></div>";
+             original = React.createElement "div" [] [];
+           })
+      ()
   
   module Sequence = struct
     let make ?key:(_ : string option) ~lola () =

@@ -95,7 +95,8 @@ let invalid_dangerouslySetInnerHtml () =
     raises
 
 let raw_element () =
-  let app = React.Upper_case_component ("app", fun () -> React.DangerouslyInnerHtml "<div>Hello</div>") in
+  let original = React.createElement "div" [] [ React.string "Hello" ] in
+  let app = React.Upper_case_component ("app", fun () -> React.Static { prerendered = "<div>Hello</div>"; original }) in
   assert_string (ReactDOM.renderToStaticMarkup app) "<div>Hello</div>"
 
 let tests =

@@ -14,6 +14,10 @@ We need to output ML syntax here, otherwise refmt could not parse it.
         ( Stdlib.__FUNCTION__,
           fun () ->
             print_endline "This function should be named `Test$Func`" M.x;
-            React.DangerouslyInnerHtml "<div></div>" ))
+            React.Static
+              {
+                prerendered = "<div></div>";
+                original = React.createElement "div" [] [];
+              } ))
       [@warning "-16"]
   end
