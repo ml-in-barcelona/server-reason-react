@@ -113,6 +113,19 @@ let static_element () =
        '>window.srr_stream.push()</script>"
     []
 
+let suppress_hydration_warning_in_model () =
+  let app =
+    React.createElement "div"
+      [ React.JSX.Bool ("suppressHydrationWarning", "suppressHydrationWarning", true) ]
+      [ React.string "Hello" ]
+  in
+  assert_html
+    ~shell:
+      "<div>Hello</div><script \
+       data-payload='0:[\"$\",\"div\",null,{\"children\":[\"Hello\"],\"suppressHydrationWarning\":true},null,[],{}]\n\
+       '>window.srr_stream.push()</script>"
+    app []
+
 (* let debug_adds_debug_info () =
   let app =
     React.Upper_case_component
@@ -660,6 +673,7 @@ let tests =
     test "null_element" null_element;
     test "element_with_dangerously_set_inner_html" element_with_dangerously_set_inner_html;
     test "static_element" static_element;
+    test "suppress_hydration_warning_in_model" suppress_hydration_warning_in_model;
     test "input_element_with_value" input_element_with_value;
     test "upper_case_component" upper_case_component;
     test "async_component_without_promise" async_component_without_promise;
