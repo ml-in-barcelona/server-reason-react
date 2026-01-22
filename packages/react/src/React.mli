@@ -576,7 +576,7 @@ type element =
   | List of element list
   | Array of element array
   | Text of string
-  | DangerouslyInnerHtml of string
+  | Static of { prerendered : string; original : element }
   | Fragment of element
   | Empty
   | Provider of element

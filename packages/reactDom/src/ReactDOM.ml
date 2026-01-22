@@ -73,9 +73,9 @@ let render_to_buffer ~mode buf element =
   let rec render_element element =
     match (element : React.element) with
     | Empty -> ()
-    | DangerouslyInnerHtml html ->
+    | Static { prerendered; _ } ->
         should_add_doctype := false;
-        Buffer.add_string buf html
+        Buffer.add_string buf prerendered
     | Client_component { import_module; _ } ->
         raise
           (Invalid_argument
@@ -138,7 +138,7 @@ let write_to_buffer buf element =
   let rec render element =
     match (element : React.element) with
     | Empty -> ()
-    | DangerouslyInnerHtml html -> Buffer.add_string buf html
+    | Static { prerendered; _ } -> Buffer.add_string buf prerendered
     | Client_component { import_module; _ } ->
         raise (Invalid_argument ("Client components can't be rendered via write_to_buffer. module: " ^ import_module))
     | Provider children -> render children
@@ -242,9 +242,9 @@ let rec render_to_stream_buffer ~stream_context buf element =
   let rec render_element element =
     match (element : React.element) with
     | Empty -> Lwt.return ()
-    | DangerouslyInnerHtml html ->
+    | Static { prerendered; _ } ->
         should_add_doctype := false;
-        Buffer.add_string buf html;
+        Buffer.add_string buf prerendered;
         Lwt.return ()
     | Client_component { import_module; _ } ->
         raise
@@ -326,8 +326,8 @@ let rec render_to_stream_buffer ~stream_context buf element =
   and render_element_to_buffer target_buf element =
     match (element : React.element) with
     | Empty -> Lwt.return ()
-    | DangerouslyInnerHtml html ->
-        Buffer.add_string target_buf html;
+    | Static { prerendered; _ } ->
+        Buffer.add_string target_buf prerendered;
         Lwt.return ()
     | Client_component { import_module; _ } ->
         raise
@@ -489,8 +489,8 @@ and render_with_resolved_buffer ~stream_context buf element =
         | Lwt.Sleep ->
             let%lwt resolved = promise in
             render_element resolved)
-    | DangerouslyInnerHtml html ->
-        Buffer.add_string buf html;
+    | Static { prerendered; _ } ->
+        Buffer.add_string buf prerendered;
         Lwt.return ()
     | Suspense _ -> render_to_stream_buffer ~stream_context buf element
   and render_lower_case ~key:_ tag attributes children =

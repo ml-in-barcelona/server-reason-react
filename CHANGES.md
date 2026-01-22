@@ -1,5 +1,6 @@
 # Changes
 
+* Add runtime error with clear message when `React.cloneElement` is used with uppercase components by @davesnx
 * Allow `[@platform js]` and `[@browser_only]` on externals to conditionally exclude them from native builds. Fixes https://github.com/ml-in-barcelona/server-reason-react/issues/170 by @davesnx
 
 ## 0.4.1

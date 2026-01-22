@@ -249,11 +249,7 @@ module Model = struct
     let rec turn_element_into_payload ~context ~is_root element =
       match (element : React.element) with
       | Empty -> `Null
-      | DangerouslyInnerHtml _ ->
-          raise
-            (Invalid_argument
-               "InnerHtml does not exist in RSC, this is a bug in server-reason-react.ppx or a wrong construction of \
-                JSX manually")
+      | Static { original; _ } -> turn_element_into_payload ~context ~is_root original
       (* TODO: Do we need to html encode the model or only the html? *)
       | Text t -> `String t
       | Lower_case_element { key; tag; attributes; children } ->
@@ -464,7 +460,7 @@ let chunk_stream_end_script = Html.node "script" [] [ Html.raw "window.srr_strea
 let rec client_to_html ~(fiber : Fiber.t) (element : React.element) =
   match element with
   | Empty -> Lwt.return Html.null
-  | DangerouslyInnerHtml html -> Lwt.return (Html.raw html)
+  | Static { prerendered; _ } -> Lwt.return (Html.raw prerendered)
   | Text text -> Lwt.return (Html.string text)
   | Fragment children -> client_to_html ~fiber children
   | List childrens ->
@@ -537,8 +533,10 @@ let has_precedence_and_rel_stylesheet props =
 let rec render_element_to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * json) Lwt.t =
   match element with
   | Empty -> Lwt.return (Html.null, `Null)
-  (* Should the DangerouslyInnerHtml model be `Null? *)
-  | DangerouslyInnerHtml html -> Lwt.return (Html.raw html, `Null)
+  (* TODO: Check if this is correct *)
+  | Static { prerendered; original } ->
+      let%lwt _, model = render_element_to_html ~fiber original in
+      Lwt.return (Html.raw prerendered, model)
   | Text s -> Lwt.return (Html.string s, `String s)
   | Fragment children -> render_element_to_html ~fiber children
   | List list -> elements_to_html ~fiber list

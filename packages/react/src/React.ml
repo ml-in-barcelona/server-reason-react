@@ -393,7 +393,7 @@ type element =
   | List of element list
   | Array of element array
   | Text of string
-  | DangerouslyInnerHtml of string
+  | Static of { prerendered : string; original : element }
   | Fragment of element
   | Empty
   | Provider of element
@@ -481,7 +481,7 @@ let cloneElement element new_attributes =
   | Upper_case_component (name, _) -> raise (Invalid_argument (clone_component_error name))
   | Async_component (name, _) -> raise (Invalid_argument (clone_component_error name))
   | Client_component { import_name; _ } -> raise (Invalid_argument (clone_component_error import_name))
-  | DangerouslyInnerHtml _ -> raise (Invalid_argument "React.cloneElement: cannot clone dangerouslySetInnerHTML")
+  | Static _ -> raise (Invalid_argument "React.cloneElement: cannot clone a Static element")
   | Fragment _ -> raise (Invalid_argument "React.cloneElement: cannot clone a Fragment")
   | Text _ -> raise (Invalid_argument "React.cloneElement: cannot clone a Text element")
   | Empty -> raise (Invalid_argument "React.cloneElement: cannot clone a null element")

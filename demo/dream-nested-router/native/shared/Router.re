@@ -65,7 +65,7 @@ let%browser_only buildQueryString = (~prefix, queryParamsOpt) => {
 
 let%browser_only fetchComponent = endpoint => {
   let headers =
-    Fetch.HeadersInit.make({"Accept": "application/react.component"});
+    Fetch.HeadersInit.make({ "Accept": "application/react.component" });
 
   Fetch.fetchWithInit(
     endpoint,
@@ -92,7 +92,7 @@ let use = () => {
 [@react.client.component]
 let make = (~children: React.element) => {
   let (element, setElement) = React.useState(() => children);
-  let {DynamicParams.dynamicParams, setDynamicParams} =
+  let { DynamicParams.dynamicParams, setDynamicParams } =
     DynamicParams.useContext();
   let (cachedNodeKey, setCachedNodeKey) = React.useState(() => "");
 

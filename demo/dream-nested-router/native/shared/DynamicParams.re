@@ -72,7 +72,7 @@ let useContext = () => {
 
 let use = () => {
   switch (React.useContext(context)) {
-  | Some({dynamicParams, _}) => dynamicParams
+  | Some({ dynamicParams, _ }) => dynamicParams
   | None =>
     raise(
       NoProvider(
