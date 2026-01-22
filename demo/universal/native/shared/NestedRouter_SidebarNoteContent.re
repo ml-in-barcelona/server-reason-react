@@ -1,4 +1,6 @@
 open Melange_json.Primitives;
+module DOM = Webapi.Dom;
+module Location = DOM.Location;
 
 module Square = {
   [@react.component]
@@ -20,13 +22,13 @@ module Square = {
 [@react.client.component]
 let make =
     (~id: int, ~children: React.element, ~expandedChildren: React.element) => {
-  let { Router.navigate, dynamicParams, url, _ } = Router.use();
-  let queryParams = url |> URL.searchParams;
+  let navigate = Router.use();
+  let dynamicParams = DynamicParams.use();
   let (isExpanded, setIsExpanded) = RR.useStateValue(false);
   let (isNavigating, startNavigating) = React.useTransition();
 
   let isActive =
-    switch (Router.DynamicParams.find("id", dynamicParams)) {
+    switch (DynamicParams.find("id", dynamicParams)) {
     | Some(selectedId) => selectedId == Int.to_string(id)
     | None => false
     };
@@ -43,17 +45,21 @@ let make =
       className={Cx.make([
         "relative p-4 w-full justify-between items-start flex-wrap transition-[max-height] duration-250 ease-out scale-100 flex flex-col gap-1 cursor-pointer",
       ])}
-      onClick={_ => {
-        let queryParamsSuffix =
-          switch (URL.SearchParams.toString(queryParams)) {
-          | "" => ""
-          | queryParams => "?" ++ queryParams
-          };
-
-        startNavigating(() => {
-          navigate("/demo/router/" ++ Int.to_string(id) ++ queryParamsSuffix)
-        });
-      }}>
+      onClick=[%browser_only
+        _ => {
+          let queryParams =
+            URL.makeExn(Location.href(DOM.window->DOM.Window.location))
+            |> URL.searchParams;
+          startNavigating(() => {
+            navigate(
+              "/demo/router/"
+              ++ Int.to_string(id)
+              ++ "?"
+              ++ URL.SearchParams.toString(queryParams),
+            )
+          });
+        }
+      ]>
       children
       {isExpanded ? expandedChildren : React.null}
     </button>
