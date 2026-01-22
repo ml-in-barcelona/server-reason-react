@@ -15,14 +15,24 @@ let make = () => {
   let%browser_only onChange = event => {
     let target = React.Event.Form.target(event);
     let nextText = target##value;
-    let searchParams =
-      URL.SearchParams.makeWithArray([|("searchText", nextText)|]);
     let path = url |> URL.pathname;
+    let queryParams =
+      switch (nextText) {
+      | "" => ""
+      | _ =>
+        URL.SearchParams.makeWithArray([|("searchText", nextText)|])
+        |> URL.SearchParams.toString
+      };
+    let queryParamsSuffix =
+      switch (queryParams) {
+      | "" => ""
+      | queryParams => "?" ++ queryParams
+      };
     setText(nextText);
     startSearching(() =>
       navigate(
         ~shallow=true,
-        path ++ "?" ++ URL.SearchParams.toString(searchParams),
+        path ++ queryParamsSuffix,
       )
     );
   };

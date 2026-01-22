@@ -418,8 +418,9 @@ let make =
            Some({
              dynamicParams,
              url,
-             navigate: (~replace=?, ~revalidate=?, ~shallow=?, _) =>
-               failwith("navigate isn't supported on server"),
+             navigate: [%browser_only
+               (~replace=?, ~revalidate=?, ~shallow=?, _) => ()
+             ],
            }),
          ~children=element,
          (),

@@ -44,14 +44,15 @@ let make =
         "relative p-4 w-full justify-between items-start flex-wrap transition-[max-height] duration-250 ease-out scale-100 flex flex-col gap-1 cursor-pointer",
       ])}
       onClick={_ => {
+        let queryParamsSuffix =
+          switch (URL.SearchParams.toString(queryParams)) {
+          | "" => ""
+          | queryParams => "?" ++ queryParams
+          };
+
         startNavigating(() => {
-          navigate(
-            "/demo/router/"
-            ++ Int.to_string(id)
-            ++ "?"
-            ++ URL.SearchParams.toString(queryParams),
-          )
-        })
+          navigate("/demo/router/" ++ Int.to_string(id) ++ queryParamsSuffix)
+        });
       }}>
       children
       {isExpanded ? expandedChildren : React.null}
