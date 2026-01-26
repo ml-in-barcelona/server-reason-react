@@ -134,6 +134,19 @@ let upper_case_component () =
   assert_list_of_strings !output [ "0:[\"$\",\"span\",null,{\"children\":\"foo\"},null,[],{}]\n" ];
   Lwt.return ()
 
+let nested_upper_case_components () =
+  let app () =
+    React.Upper_case_component
+      ( "app",
+        fun () ->
+          React.Upper_case_component ("Foo", fun () -> React.Upper_case_component ("Bar", fun () -> React.string "Bar"))
+      )
+  in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~subscribe (app ()) in
+  assert_list_of_strings !output [ "0:\"Bar\"\n" ];
+  Lwt.return ()
+
 let upper_case_with_list () =
   let app () =
     React.Fragment
@@ -933,21 +946,20 @@ let nested_context () =
   (* TODO: Don't push multiple scripts for the same client component *)
   assert_list_of_strings !output
     [
-      "2:I[\"./provider.js\",[],\"Provider\"]\n";
-      "5:I[\"./provider.js\",[],\"Provider\"]\n";
-      "8:I[\"./provider.js\",[],\"Provider\"]\n";
-      "b:I[\"./provider.js\",[],\"Provider\"]\n";
-      "a:[\"$\",\"$b\",null,{\"value\":null,\"children\":\"Hey you\"},null,[],{}]\n";
-      "9:\"$a\"\n";
+      "1:I[\"./provider.js\",[],\"Provider\"]\n";
+      "4:I[\"./provider.js\",[],\"Provider\"]\n";
+      "7:I[\"./provider.js\",[],\"Provider\"]\n";
+      "a:I[\"./provider.js\",[],\"Provider\"]\n";
+      "9:[\"$\",\"$a\",null,{\"value\":null,\"children\":\"Hey you\"},null,[],{}]\n";
+      "8:\"$9\"\n";
+      "b:I[\"./consumer.js\",[],\"Consumer\"]\n";
+      "6:[\"$\",\"$7\",null,{\"value\":\"$8\",\"children\":[\"/me\",[\"$\",\"$b\",null,{},null,[],{}]]},null,[],{}]\n";
+      "5:\"$6\"\n";
       "c:I[\"./consumer.js\",[],\"Consumer\"]\n";
-      "7:[\"$\",\"$8\",null,{\"value\":\"$9\",\"children\":[\"/me\",[\"$\",\"$c\",null,{},null,[],{}]]},null,[],{}]\n";
-      "6:\"$7\"\n";
+      "3:[\"$\",\"$4\",null,{\"value\":\"$5\",\"children\":[\"/about\",[\"$\",\"$c\",null,{},null,[],{}]]},null,[],{}]\n";
+      "2:\"$3\"\n";
       "d:I[\"./consumer.js\",[],\"Consumer\"]\n";
-      "4:[\"$\",\"$5\",null,{\"value\":\"$6\",\"children\":[\"/about\",[\"$\",\"$d\",null,{},null,[],{}]]},null,[],{}]\n";
-      "3:\"$4\"\n";
-      "e:I[\"./consumer.js\",[],\"Consumer\"]\n";
-      "1:[\"$\",\"$2\",null,{\"value\":\"$3\",\"children\":[\"/root\",[\"$\",\"$e\",null,{},null,[],{}]]},null,[],{}]\n";
-      "0:\"$1\"\n";
+      "0:[\"$\",\"$1\",null,{\"value\":\"$2\",\"children\":[\"/root\",[\"$\",\"$d\",null,{},null,[],{}]]},null,[],{}]\n";
     ];
   Lwt.return ()
 
@@ -994,6 +1006,7 @@ let tests =
     test "lower_case_with_children" lower_case_with_children;
     test "dangerouslySetInnerHtml" dangerouslySetInnerHtml;
     test "upper_case_component" upper_case_component;
+    test "nested_upper_case_components" nested_upper_case_components;
     test "upper_case_with_list" upper_case_with_list;
     test "upper_case_with_children" upper_case_with_children;
     test "suspense_without_promise" suspense_without_promise;
