@@ -281,7 +281,8 @@ module Model = struct
                   Root is a special case: https://github.com/facebook/react/blob/f3a803617ec4ba9d14bf5205ffece28ed1496a1d/packages/react-server/src/ReactFlightServer.js#L756-L766
                 *)
                 if debug then push_debug_info ~context ~to_chunk ~env ~index:0 ~ownerName:name else ();
-                turn_element_into_payload ~context ~is_root:false element)
+                let next_is_root = match element with Upper_case_component _ -> true | _ -> false in
+                turn_element_into_payload ~context ~is_root:next_is_root element)
               else
                 (* If it's not the root React push the element to the stream and return the reference value *)
                 let element_index =
