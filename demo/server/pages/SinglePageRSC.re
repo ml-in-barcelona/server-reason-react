@@ -67,6 +67,11 @@ module Page = {
       Lwt.bind(Lwt_unix.sleep(4.0), _ =>
         Lwt.return("Solusionao in 4 seconds!")
       );
+    let failingPromise =
+      Lwt.bind(Lwt_unix.sleep(1.0), _ =>
+        Lwt.fail(Failure("Promise rejected after 1 second!"))
+      );
+    let alreadyFailedPromise = Lwt.fail(Failure("Already rejected!"));
 
     Lwt.return(
       <Stack gap=8 justify=`start>
@@ -135,6 +140,18 @@ module Page = {
           title="Pass another promise prop"
           description="Sending a promise from the server to the client">
           <Promise_renderer promise=promiseIn4 />
+        </Section>
+        <Hr />
+        <Section
+          title="Promise that fails after delay"
+          description="A promise that rejects after 1 second - demonstrates error handling for async failures">
+          <Promise_renderer promise=failingPromise />
+        </Section>
+        <Hr />
+        <Section
+          title="Already rejected promise"
+          description="A promise that is already rejected - demonstrates handling of immediately failed promises (issue #251)">
+          <Promise_renderer promise=alreadyFailedPromise />
         </Section>
         <Hr />
         <Section
