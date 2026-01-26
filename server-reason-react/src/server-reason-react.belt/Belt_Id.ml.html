@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Source: Belt_Id.ml (server-reason-react.src.server-reason-react.belt)</title><meta charset="utf-8"/><link rel="stylesheet" href="../../../odoc.css"/><meta name="generator" content="odoc 3.1.0"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/></head><body class="odoc-src"><nav class="odoc-nav"><a href="../index.html">Up</a> – <a href="../../../index.html">Package index</a> &#x00BB; <a href="../../index.html">server-reason-react</a> &#x00BB; <a href="../index.html">Sources</a> &#x00BB; server-reason-react.belt &#x00BB; Belt_Id.ml</nav><header class="odoc-preamble"><h1>Source file <code><span>Belt_Id.ml</span></code></h1></header><div class="odoc-tocs"><nav class="odoc-toc odoc-global-toc"><ul><li><a href="../../index.html">server-reason-react</a><ul><li><a href="../../get-started.html">Get started</a></li><li><a href="../../universal-code.html">What does universal code mean</a></li><li><a href="../../how-to-organise-universal-code.html">How to organise universal code</a></li><li><a href="../../browser_ppx.html">Exclude client code from the native build</a></li><li><a href="../../externals-melange-attributes.html">Externals and melange attributes</a></li><li><a href="../../ssr-and-hydration.html">Server-side rendering and hydration</a></li><li>Library <code>server-reason-react.base32</code><ul><li><a href="../../server-reason-react.base32/Base32/index.html">Base32</a></li></ul></li><li>Library <code>server-reason-react.belt</code><ul><li><a href="../../server-reason-react.belt/Belt/index.html">Belt</a></li></ul></li><li>Library <code>server-reason-react.browser_ppx</code><ul><li><a href="../../server-reason-react.browser_ppx/Browser_ppx/index.html">Browser_ppx</a></li></ul></li><li>Library <code>server-reason-react.dom</code><ul><li><a href="../../server-reason-react.dom/Dom/index.html">Dom</a></li></ul></li><li>Library <code>server-reason-react.expand-styles-attribute</code><ul><li><a href="../../server-reason-react.expand-styles-attribute/Expand_styles_attribute/index.html">Expand_styles_attribute</a></li></ul></li><li>Library <code>server-reason-react.fetch</code><ul><li><a href="../../server-reason-react.fetch/Fetch/index.html">Fetch</a></li></ul></li><li>Library <code>server-reason-react.html</code><ul><li><a href="../../server-reason-react.html/Html/index.html">Html</a></li></ul></li><li>Library <code>server-reason-react.js</code><ul><li><a href="../../server-reason-react.js/Js/index.html">Js</a></li></ul></li><li>Library <code>server-reason-react.melange_ppx</code><ul><li><a href="../../server-reason-react.melange_ppx/Melange_native_ppx/index.html">Melange_native_ppx</a></li></ul></li><li>Library <code>server-reason-react.ppx</code><ul><li><a href="../../server-reason-react.ppx/Server_reason_react_ppx/index.html">Server_reason_react_ppx</a></li></ul></li><li>Library <code>server-reason-react.promise-native</code><ul><li><a href="../../server-reason-react.promise-native/Promise/index.html">Promise</a></li></ul></li><li>Library <code>server-reason-react.react</code><ul><li><a href="../../server-reason-react.react/React/index.html">React</a></li><li><a href="../../server-reason-react.react/ReactEvent/index.html">ReactEvent</a></li><li><a href="../../server-reason-react.react/ReasonReactRouter/index.html">ReasonReactRouter</a></li></ul></li><li>Library <code>server-reason-react.reactDom</code><ul><li><a href="../../server-reason-react.reactDom/ReactDOM/index.html">ReactDOM</a></li><li><a href="../../server-reason-react.reactDom/ReactDOMStyle/index.html">ReactDOMStyle</a></li><li><a href="../../server-reason-react.reactDom/ReactServerDOM/index.html">ReactServerDOM</a></li></ul></li><li>Library <code>server-reason-react.runtime</code><ul><li><a href="../../server-reason-react.runtime/Runtime/index.html">Runtime</a></li></ul></li><li>Library <code>server-reason-react.url_native</code><ul><li><a href="../../server-reason-react.url_native/URL/index.html">URL</a></li></ul></li><li>Library <code>server-reason-react.webapi</code><ul><li><a href="../../server-reason-react.webapi/Webapi/index.html">Webapi</a></li></ul></li><li>Library <code>server-reason-react.xxhash</code><ul><li><a href="../../server-reason-react.xxhash/XXH64/index.html">XXH64</a></li></ul></li><li><a href="../index.html">Sources</a><ul><li>server-reason-react.base32<ul><li><a href="../server-reason-react.base32/base32.ml.html">base32.ml</a></li></ul></li><li>server-reason-react.belt<ul><li><a href="Belt_Array.ml.html">Belt_Array.ml</a></li><li><a href="Belt_Float.ml.html">Belt_Float.ml</a></li><li><a href="Belt_HashMap.ml.html">Belt_HashMap.ml</a></li><li><a href="Belt_HashSet.ml.html">Belt_HashSet.ml</a></li><li><a href="#" class="current_unit">Belt_Id.ml</a></li><li><a href="Belt_Int.ml.html">Belt_Int.ml</a></li><li><a href="Belt_List.ml.html">Belt_List.ml</a></li><li><a href="Belt_Map.ml.html">Belt_Map.ml</a></li><li><a href="Belt_MapDict.ml.html">Belt_MapDict.ml</a></li><li><a href="Belt_MapString.ml.html">Belt_MapString.ml</a></li><li><a href="Belt_MutableMap.ml.html">Belt_MutableMap.ml</a></li><li><a href="Belt_MutableQueue.ml.html">Belt_MutableQueue.ml</a></li><li><a href="Belt_MutableSet.ml.html">Belt_MutableSet.ml</a></li><li><a href="Belt_MutableStack.ml.html">Belt_MutableStack.ml</a></li><li><a href="Belt_Option.ml.html">Belt_Option.ml</a></li><li><a href="Belt_Range.ml.html">Belt_Range.ml</a></li><li><a href="Belt_Result.ml.html">Belt_Result.ml</a></li><li><a href="Belt_Set.ml.html">Belt_Set.ml</a></li><li><a href="Belt_SetDict.ml.html">Belt_SetDict.ml</a></li><li><a href="Belt_SortArray.ml.html">Belt_SortArray.ml</a></li><li><a href="Belt_internalAVLset.ml.html">Belt_internalAVLset.ml</a></li><li><a href="Belt_internalAVLtree.ml.html">Belt_internalAVLtree.ml</a></li><li><a href="Belt_internalBuckets.ml.html">Belt_internalBuckets.ml</a></li><li><a href="Belt_internalBucketsType.ml.html">Belt_internalBucketsType.ml</a></li><li><a href="Belt_internalMapString.ml.html">Belt_internalMapString.ml</a></li><li><a href="Belt_internalSetBuckets.ml.html">Belt_internalSetBuckets.ml</a></li><li><a href="belt__.ml.html">belt__.ml</a></li><li><a href="caml_hash.ml.html">caml_hash.ml</a></li></ul></li><li>server-reason-react.browser_ppx<ul><li><a href="../server-reason-react.browser_ppx/browser_ppx.ml.html">browser_ppx.ml</a></li><li><a href="../server-reason-react.browser_ppx/ppx.ml.html">ppx.ml</a></li></ul></li><li>server-reason-react.dom<ul><li><a href="../server-reason-react.dom/Dom.ml.html">Dom.ml</a></li><li><a href="../server-reason-react.dom/Dom_storage.ml.html">Dom_storage.ml</a></li><li><a href="../server-reason-react.dom/dom__.ml.html">dom__.ml</a></li></ul></li><li>server-reason-react.expand-styles-attribute<ul><li><a href="../server-reason-react.expand-styles-attribute/expand_styles_attribute.ml.html">expand_styles_attribute.ml</a></li></ul></li><li>server-reason-react.fetch<ul><li><a href="../server-reason-react.fetch/Fetch.ml.html">Fetch.ml</a></li></ul></li><li>server-reason-react.html<ul><li><a href="../server-reason-react.html/Html.ml.html">Html.ml</a></li></ul></li><li>server-reason-react.js<ul><li><a href="../server-reason-react.js/Js.ml.html">Js.ml</a></li><li><a href="../server-reason-react.js/Js_array.ml.html">Js_array.ml</a></li><li><a href="../server-reason-react.js/Js_bigint.ml.html">Js_bigint.ml</a></li><li><a href="../server-reason-react.js/Js_console.ml.html">Js_console.ml</a></li><li><a href="../server-reason-react.js/Js_date.ml.html">Js_date.ml</a></li><li><a href="../server-reason-react.js/Js_dict.ml.html">Js_dict.ml</a></li><li><a href="../server-reason-react.js/Js_exn.ml.html">Js_exn.ml</a></li><li><a href="../server-reason-react.js/Js_float.ml.html">Js_float.ml</a></li><li><a href="../server-reason-react.js/Js_formdata.ml.html">Js_formdata.ml</a></li><li><a href="../server-reason-react.js/Js_global.ml.html">Js_global.ml</a></li><li><a href="../server-reason-react.js/Js_int.ml.html">Js_int.ml</a></li><li><a href="../server-reason-react.js/Js_internal.ml.html">Js_internal.ml</a></li><li><a href="../server-reason-react.js/Js_json.ml.html">Js_json.ml</a></li><li><a href="../server-reason-react.js/Js_map.ml.html">Js_map.ml</a></li><li><a href="../server-reason-react.js/Js_math.ml.html">Js_math.ml</a></li><li><a href="../server-reason-react.js/Js_null.ml.html">Js_null.ml</a></li><li><a href="../server-reason-react.js/Js_nullable.ml.html">Js_nullable.ml</a></li><li><a href="../server-reason-react.js/Js_obj.ml.html">Js_obj.ml</a></li><li><a href="../server-reason-react.js/Js_promise.ml.html">Js_promise.ml</a></li><li><a href="../server-reason-react.js/Js_re.ml.html">Js_re.ml</a></li><li><a href="../server-reason-react.js/Js_set.ml.html">Js_set.ml</a></li><li><a href="../server-reason-react.js/Js_string.ml.html">Js_string.ml</a></li><li><a href="../server-reason-react.js/Js_typed_array.ml.html">Js_typed_array.ml</a></li><li><a href="../server-reason-react.js/Js_typed_array2.ml.html">Js_typed_array2.ml</a></li><li><a href="../server-reason-react.js/Js_types.ml.html">Js_types.ml</a></li><li><a href="../server-reason-react.js/Js_undefined.ml.html">Js_undefined.ml</a></li><li><a href="../server-reason-react.js/Js_vector.ml.html">Js_vector.ml</a></li><li><a href="../server-reason-react.js/Js_weakmap.ml.html">Js_weakmap.ml</a></li><li><a href="../server-reason-react.js/Js_weakset.ml.html">Js_weakset.ml</a></li><li><a href="../server-reason-react.js/js__.ml.html">js__.ml</a></li></ul></li><li>server-reason-react.melange_ppx<ul><li><a href="../server-reason-react.melange_ppx/derive_util.ml.html">derive_util.ml</a></li><li><a href="../server-reason-react.melange_ppx/double_hash.ml.html">double_hash.ml</a></li><li><a href="../server-reason-react.melange_ppx/get_set.ml.html">get_set.ml</a></li><li><a href="../server-reason-react.melange_ppx/js_converter.ml.html">js_converter.ml</a></li><li><a href="../server-reason-react.melange_ppx/js_properties.ml.html">js_properties.ml</a></li><li><a href="../server-reason-react.melange_ppx/melange_native_ppx.ml.html">melange_native_ppx.ml</a></li><li><a href="../server-reason-react.melange_ppx/pipe_first.ml.html">pipe_first.ml</a></li><li><a href="../server-reason-react.melange_ppx/ppx.ml.html">ppx.ml</a></li><li><a href="../server-reason-react.melange_ppx/regex.ml.html">regex.ml</a></li></ul></li><li>server-reason-react.ppx<ul><li><a href="../server-reason-react.ppx/DomProps.ml.html">DomProps.ml</a></li><li><a href="../server-reason-react.ppx/server_reason_react_ppx.ml.html">server_reason_react_ppx.ml</a></li><li><a href="../server-reason-react.ppx/server_reason_react_ppx__.ml.html">server_reason_react_ppx__.ml</a></li><li><a href="../server-reason-react.ppx/static_analysis.ml.html">static_analysis.ml</a></li></ul></li><li>server-reason-react.react<ul><li><a href="../server-reason-react.react/React.ml.html">React.ml</a></li><li><a href="../server-reason-react.react/ReactEvent.ml.html">ReactEvent.ml</a></li><li><a href="../server-reason-react.react/ReasonReactRouter.ml.html">ReasonReactRouter.ml</a></li></ul></li><li>server-reason-react.reactDom<ul><li><a href="../server-reason-react.reactDom/ReactDOM.ml.html">ReactDOM.ml</a></li><li><a href="../server-reason-react.reactDom/ReactDOMStyle.ml.html">ReactDOMStyle.ml</a></li><li><a href="../server-reason-react.reactDom/ReactServerDOM.ml.html">ReactServerDOM.ml</a></li></ul></li><li>server-reason-react.runtime<ul><li><a href="../server-reason-react.runtime/Runtime.ml.html">Runtime.ml</a></li></ul></li><li>server-reason-react.xxhash<ul><li><a href="../server-reason-react.xxhash/XXH64.ml.html">XXH64.ml</a></li></ul></li></ul></li></ul></li></ul></nav></div><pre class="source_container"><code class="source_line_column"><a id="L1" class="source_line" href="#L1">1</a>
+<a id="L2" class="source_line" href="#L2">2</a>
+<a id="L3" class="source_line" href="#L3">3</a>
+<a id="L4" class="source_line" href="#L4">4</a>
+<a id="L5" class="source_line" href="#L5">5</a>
+<a id="L6" class="source_line" href="#L6">6</a>
+<a id="L7" class="source_line" href="#L7">7</a>
+<a id="L8" class="source_line" href="#L8">8</a>
+<a id="L9" class="source_line" href="#L9">9</a>
+<a id="L10" class="source_line" href="#L10">10</a>
+<a id="L11" class="source_line" href="#L11">11</a>
+<a id="L12" class="source_line" href="#L12">12</a>
+<a id="L13" class="source_line" href="#L13">13</a>
+<a id="L14" class="source_line" href="#L14">14</a>
+<a id="L15" class="source_line" href="#L15">15</a>
+<a id="L16" class="source_line" href="#L16">16</a>
+<a id="L17" class="source_line" href="#L17">17</a>
+<a id="L18" class="source_line" href="#L18">18</a>
+<a id="L19" class="source_line" href="#L19">19</a>
+<a id="L20" class="source_line" href="#L20">20</a>
+<a id="L21" class="source_line" href="#L21">21</a>
+<a id="L22" class="source_line" href="#L22">22</a>
+<a id="L23" class="source_line" href="#L23">23</a>
+<a id="L24" class="source_line" href="#L24">24</a>
+<a id="L25" class="source_line" href="#L25">25</a>
+<a id="L26" class="source_line" href="#L26">26</a>
+<a id="L27" class="source_line" href="#L27">27</a>
+<a id="L28" class="source_line" href="#L28">28</a>
+<a id="L29" class="source_line" href="#L29">29</a>
+<a id="L30" class="source_line" href="#L30">30</a>
+<a id="L31" class="source_line" href="#L31">31</a>
+<a id="L32" class="source_line" href="#L32">32</a>
+<a id="L33" class="source_line" href="#L33">33</a>
+<a id="L34" class="source_line" href="#L34">34</a>
+<a id="L35" class="source_line" href="#L35">35</a>
+<a id="L36" class="source_line" href="#L36">36</a>
+<a id="L37" class="source_line" href="#L37">37</a>
+<a id="L38" class="source_line" href="#L38">38</a>
+<a id="L39" class="source_line" href="#L39">39</a>
+<a id="L40" class="source_line" href="#L40">40</a>
+<a id="L41" class="source_line" href="#L41">41</a>
+<a id="L42" class="source_line" href="#L42">42</a>
+<a id="L43" class="source_line" href="#L43">43</a>
+<a id="L44" class="source_line" href="#L44">44</a>
+<a id="L45" class="source_line" href="#L45">45</a>
+<a id="L46" class="source_line" href="#L46">46</a>
+<a id="L47" class="source_line" href="#L47">47</a>
+<a id="L48" class="source_line" href="#L48">48</a>
+<a id="L49" class="source_line" href="#L49">49</a>
+<a id="L50" class="source_line" href="#L50">50</a>
+<a id="L51" class="source_line" href="#L51">51</a>
+<a id="L52" class="source_line" href="#L52">52</a>
+<a id="L53" class="source_line" href="#L53">53</a>
+<a id="L54" class="source_line" href="#L54">54</a>
+<a id="L55" class="source_line" href="#L55">55</a>
+<a id="L56" class="source_line" href="#L56">56</a>
+<a id="L57" class="source_line" href="#L57">57</a>
+<a id="L58" class="source_line" href="#L58">58</a>
+<a id="L59" class="source_line" href="#L59">59</a>
+<a id="L60" class="source_line" href="#L60">60</a>
+<a id="L61" class="source_line" href="#L61">61</a>
+<a id="L62" class="source_line" href="#L62">62</a>
+<a id="L63" class="source_line" href="#L63">63</a>
+<a id="L64" class="source_line" href="#L64">64</a>
+<a id="L65" class="source_line" href="#L65">65</a>
+<a id="L66" class="source_line" href="#L66">66</a>
+<a id="L67" class="source_line" href="#L67">67</a>
+<a id="L68" class="source_line" href="#L68">68</a>
+<a id="L69" class="source_line" href="#L69">69</a>
+<a id="L70" class="source_line" href="#L70">70</a>
+<a id="L71" class="source_line" href="#L71">71</a>
+<a id="L72" class="source_line" href="#L72">72</a>
+<a id="L73" class="source_line" href="#L73">73</a>
+<a id="L74" class="source_line" href="#L74">74</a>
+<a id="L75" class="source_line" href="#L75">75</a>
+<a id="L76" class="source_line" href="#L76">76</a>
+<a id="L77" class="source_line" href="#L77">77</a>
+<a id="L78" class="source_line" href="#L78">78</a>
+<a id="L79" class="source_line" href="#L79">79</a>
+<a id="L80" class="source_line" href="#L80">80</a>
+<a id="L81" class="source_line" href="#L81">81</a>
+<a id="L82" class="source_line" href="#L82">82</a>
+<a id="L83" class="source_line" href="#L83">83</a>
+<a id="L84" class="source_line" href="#L84">84</a>
+<a id="L85" class="source_line" href="#L85">85</a>
+<a id="L86" class="source_line" href="#L86">86</a>
+<a id="L87" class="source_line" href="#L87">87</a>
+<a id="L88" class="source_line" href="#L88">88</a>
+<a id="L89" class="source_line" href="#L89">89</a>
+<a id="L90" class="source_line" href="#L90">90</a>
+<a id="L91" class="source_line" href="#L91">91</a>
+<a id="L92" class="source_line" href="#L92">92</a>
+<a id="L93" class="source_line" href="#L93">93</a>
+<a id="L94" class="source_line" href="#L94">94</a>
+<a id="L95" class="source_line" href="#L95">95</a>
+<a id="L96" class="source_line" href="#L96">96</a>
+<a id="L97" class="source_line" href="#L97">97</a>
+<a id="L98" class="source_line" href="#L98">98</a>
+<a id="L99" class="source_line" href="#L99">99</a>
+<a id="L100" class="source_line" href="#L100">100</a>
+<a id="L101" class="source_line" href="#L101">101</a>
+<a id="L102" class="source_line" href="#L102">102</a>
+<a id="L103" class="source_line" href="#L103">103</a>
+<a id="L104" class="source_line" href="#L104">104</a>
+<a id="L105" class="source_line" href="#L105">105</a>
+<a id="L106" class="source_line" href="#L106">106</a>
+<a id="L107" class="source_line" href="#L107">107</a>
+<a id="L108" class="source_line" href="#L108">108</a>
+<a id="L109" class="source_line" href="#L109">109</a>
+<a id="L110" class="source_line" href="#L110">110</a>
+<a id="L111" class="source_line" href="#L111">111</a>
+<a id="L112" class="source_line" href="#L112">112</a>
+<a id="L113" class="source_line" href="#L113">113</a>
+<a id="L114" class="source_line" href="#L114">114</a>
+<a id="L115" class="source_line" href="#L115">115</a>
+<a id="L116" class="source_line" href="#L116">116</a>
+<a id="L117" class="source_line" href="#L117">117</a>
+<a id="L118" class="source_line" href="#L118">118</a>
+<a id="L119" class="source_line" href="#L119">119</a>
+</code><code class="source_code"><span><span id="type-hash"><span class="TYPE">type</span> <span class="LPAREN">(</span><span class="QUOTE">'</span><span class="LIDENT">a</span><span class="COMMA">,</span> <span class="QUOTE">'</span><span class="LIDENT">id</span><span class="RPAREN">)</span> <span class="LIDENT">hash</span> <span class="EQUAL">=</span> <span class="QUOTE">'</span><span class="LIDENT">a</span> <span class="MINUSGREATER">-&gt;</span> <span class="LIDENT">int</span></span><span class="EOL">
+</span><span id="type-eq"><span class="TYPE">type</span> <span class="LPAREN">(</span><span class="QUOTE">'</span><span class="LIDENT">a</span><span class="COMMA">,</span> <span class="QUOTE">'</span><span class="LIDENT">id</span><span class="RPAREN">)</span> <span class="LIDENT">eq</span> <span class="EQUAL">=</span> <span class="QUOTE">'</span><span class="LIDENT">a</span> <span class="MINUSGREATER">-&gt;</span> <span class="QUOTE">'</span><span class="LIDENT">a</span> <span class="MINUSGREATER">-&gt;</span> <span class="LIDENT">bool</span></span><span class="EOL">
+</span><span id="type-cmp"><span class="TYPE">type</span> <span class="LPAREN">(</span><span class="QUOTE">'</span><span class="LIDENT">a</span><span class="COMMA">,</span> <span class="QUOTE">'</span><span class="LIDENT">id</span><span class="RPAREN">)</span> <span class="LIDENT">cmp</span> <span class="EQUAL">=</span> <span class="QUOTE">'</span><span class="LIDENT">a</span> <span class="MINUSGREATER">-&gt;</span> <span class="QUOTE">'</span><span class="LIDENT">a</span> <span class="MINUSGREATER">-&gt;</span> <span class="LIDENT">int</span></span><span class="EOL">
+</span><span class="EOL">
+</span><span class="LET">let</span> <span id="val-getHashInternal"><span class="LIDENT">getHashInternal</span></span> <span class="COLON">:</span> <span class="LPAREN">(</span><span class="QUOTE">'</span><span class="LIDENT">a</span><span class="COMMA">,</span> <span class="QUOTE">'</span><span class="LIDENT">id</span><span class="RPAREN">)</span> <span class="LIDENT">hash</span> <span class="MINUSGREATER">-&gt;</span> <span class="QUOTE">'</span><span class="LIDENT">a</span> <span class="MINUSGREATER">-&gt;</span> <span class="LIDENT">int</span> <span class="EQUAL">=</span> <a href="../../../ocaml-compiler/src/stdlib/obj.ml.html#val-magic"><span class="UIDENT">Obj</span><span class="DOT">.</span><span class="LIDENT">magic</span></a><span class="EOL">
+</span><span class="LET">let</span> <span id="val-getEqInternal"><span class="LIDENT">getEqInternal</span></span> <span class="COLON">:</span> <span class="LPAREN">(</span><span class="QUOTE">'</span><span class="LIDENT">a</span><span class="COMMA">,</span> <span class="QUOTE">'</span><span class="LIDENT">id</span><span class="RPAREN">)</span> <span class="LIDENT">eq</span> <span class="MINUSGREATER">-&gt;</span> <span class="QUOTE">'</span><span class="LIDENT">a</span> <span class="MINUSGREATER">-&gt;</span> <span class="QUOTE">'</span><span class="LIDENT">a</span> <span class="MINUSGREATER">-&gt;</span> <span class="LIDENT">bool</span> <span class="EQUAL">=</span> <a href="../../../ocaml-compiler/src/stdlib/obj.ml.html#val-magic"><span class="UIDENT">Obj</span><span class="DOT">.</span><span class="LIDENT">magic</span></a><span class="EOL">
+</span><span class="LET">let</span> <span id="val-getCmpInternal"><span class="LIDENT">getCmpInternal</span></span> <span class="COLON">:</span> <span class="LPAREN">(</span><span class="QUOTE">'</span><span class="LIDENT">a</span><span class="COMMA">,</span> <span class="QUOTE">'</span><span class="LIDENT">id</span><span class="RPAREN">)</span> <span class="LIDENT">cmp</span> <span class="MINUSGREATER">-&gt;</span> <span class="QUOTE">'</span><span class="LIDENT">a</span> <span class="MINUSGREATER">-&gt;</span> <span class="QUOTE">'</span><span class="LIDENT">a</span> <span class="MINUSGREATER">-&gt;</span> <span class="LIDENT">int</span> <span class="EQUAL">=</span> <a href="../../../ocaml-compiler/src/stdlib/obj.ml.html#val-magic"><span class="UIDENT">Obj</span><span class="DOT">.</span><span class="LIDENT">magic</span></a><span class="EOL">
+</span><span class="EOL">
+</span><span id="module-type-Comparable"><span class="MODULE">module</span> <span class="TYPE">type</span> <span class="UIDENT">Comparable</span> <span class="EQUAL">=</span> <span class="SIG">sig</span><span class="EOL">
+</span>  <span id="module-type-Comparable.type-identity"><span class="TYPE">type</span> <span class="LIDENT">identity</span></span><span class="EOL">
+</span>  <span id="module-type-Comparable.type-t"><span class="TYPE">type</span> <span class="LIDENT">t</span></span><span class="EOL">
+</span><span class="EOL">
+</span>  <span id="module-type-Comparable.val-cmp"><span class="VAL">val</span> <span class="LIDENT">cmp</span> <span class="COLON">:</span> <span class="LPAREN">(</span><span class="LIDENT">t</span><span class="COMMA">,</span> <span class="LIDENT">identity</span><span class="RPAREN">)</span> <span class="LIDENT">cmp</span></span><span class="EOL">
+</span><span class="END">end</span></span><span class="EOL">
+</span><span class="EOL">
+</span><span id="type-comparable"><span class="TYPE">type</span> <span class="LPAREN">(</span><span class="QUOTE">'</span><span class="LIDENT">key</span><span class="COMMA">,</span> <span class="QUOTE">'</span><span class="LIDENT">id</span><span class="RPAREN">)</span> <span class="LIDENT">comparable</span> <span class="EQUAL">=</span> <span class="LPAREN">(</span><span class="MODULE">module</span> <span class="UIDENT">Comparable</span> <span class="WITH">with</span> <span class="TYPE">type</span> <span class="LIDENT">t</span> <span class="EQUAL">=</span> <span class="QUOTE">'</span><span class="LIDENT">key</span> <span class="AND">and</span> <span class="TYPE">type</span> <span class="LIDENT">identity</span> <span class="EQUAL">=</span> <span class="QUOTE">'</span><span class="LIDENT">id</span><span class="RPAREN">)</span></span><span class="EOL">
+</span><span class="EOL">
+</span><span id="module-MakeComparableU"><span class="MODULE">module</span> <span class="UIDENT">MakeComparableU</span> <span class="LPAREN">(</span><span class="UIDENT">M</span> <span class="COLON">:</span> <span class="SIG">sig</span><span class="EOL">
+</span>  <span id="module-MakeComparableU.argument-1-M.type-t"><span class="TYPE">type</span> <span class="LIDENT">t</span></span><span class="EOL">
+</span><span class="EOL">
+</span>  <span id="module-MakeComparableU.argument-1-M.val-cmp"><span class="VAL">val</span> <span class="LIDENT">cmp</span> <span class="COLON">:</span> <span class="LIDENT">t</span> <span class="MINUSGREATER">-&gt;</span> <span class="LIDENT">t</span> <span class="MINUSGREATER">-&gt;</span> <span class="LIDENT">int</span></span><span class="EOL">
+</span><span class="END">end</span><span class="RPAREN">)</span> <span class="EQUAL">=</span><span class="EOL">
+</span><span class="STRUCT">struct</span><span class="EOL">
+</span>  <span id="module-MakeComparableU.type-identity"><span class="TYPE">type</span> <span class="LIDENT">identity</span></span><span class="EOL">
+</span>  <span id="module-MakeComparableU.type-t"><span class="TYPE">type</span> <span class="LIDENT">t</span> <span class="EQUAL">=</span> <span class="UIDENT">M</span><span class="DOT">.</span><span class="LIDENT">t</span></span><span class="EOL">
+</span><span class="EOL">
+</span>  <span class="LET">let</span> <span id="module-MakeComparableU.val-cmp"><span class="LIDENT">cmp</span></span> <span class="EQUAL">=</span> <span class="UIDENT">M</span><span class="DOT">.</span><span class="LIDENT">cmp</span><span class="EOL">
+</span><span class="END">end</span></span><span class="EOL">
+</span><span class="EOL">
+</span><span id="module-MakeComparable"><span class="MODULE">module</span> <span class="UIDENT">MakeComparable</span> <span class="LPAREN">(</span><span class="UIDENT">M</span> <span class="COLON">:</span> <span class="SIG">sig</span><span class="EOL">
+</span>  <span id="module-MakeComparable.argument-1-M.type-t"><span class="TYPE">type</span> <span class="LIDENT">t</span></span><span class="EOL">
+</span><span class="EOL">
+</span>  <span id="module-MakeComparable.argument-1-M.val-cmp"><span class="VAL">val</span> <span class="LIDENT">cmp</span> <span class="COLON">:</span> <span class="LIDENT">t</span> <span class="MINUSGREATER">-&gt;</span> <span class="LIDENT">t</span> <span class="MINUSGREATER">-&gt;</span> <span class="LIDENT">int</span></span><span class="EOL">
+</span><span class="END">end</span><span class="RPAREN">)</span> <span class="EQUAL">=</span><span class="EOL">
+</span><span class="STRUCT">struct</span><span class="EOL">
+</span>  <span id="module-MakeComparable.type-identity"><span class="TYPE">type</span> <span class="LIDENT">identity</span></span><span class="EOL">
+</span>  <span id="module-MakeComparable.type-t"><span class="TYPE">type</span> <span class="LIDENT">t</span> <span class="EQUAL">=</span> <span class="UIDENT">M</span><span class="DOT">.</span><span class="LIDENT">t</span></span><span class="EOL">
+</span><span class="EOL">
+</span>  <span class="LET">let</span> <span id="module-MakeComparable.val-cmp"><span class="LIDENT">cmp</span></span> <span class="EQUAL">=</span><span class="EOL">
+</span>    <span class="LET">let</span> <span id="local_cmp_1"><span class="LIDENT">cmp</span></span> <span class="EQUAL">=</span> <span class="UIDENT">M</span><span class="DOT">.</span><span class="LIDENT">cmp</span> <span class="IN">in</span><span class="EOL">
+</span>    <span class="FUN">fun</span> <span id="local_a_2"><span class="LIDENT">a</span></span> <span id="local_b_3"><span class="LIDENT">b</span></span> <span class="MINUSGREATER">-&gt;</span> <a href="#local_cmp_1"><span class="LIDENT">cmp</span></a> <a href="#local_a_2"><span class="LIDENT">a</span></a> <a href="#local_b_3"><span class="LIDENT">b</span></a><span class="EOL">
+</span><span class="END">end</span></span><span class="EOL">
+</span><span class="EOL">
+</span><span class="LET">let</span> <span id="val-comparableU"><span class="LIDENT">comparableU</span></span> <span class="LPAREN">(</span><span class="TYPE">type</span> <span class="LIDENT">key</span><span class="RPAREN">)</span> <span class="TILDE">~</span><span id="local_cmp_4"><span class="LIDENT">cmp</span></span> <span class="EQUAL">=</span><span class="EOL">
+</span>  <span class="LET">let</span> <span class="MODULE">module</span> <span class="UIDENT">N</span> <span class="EQUAL">=</span> <span class="UIDENT">MakeComparableU</span> <span class="LPAREN">(</span><span class="STRUCT">struct</span><span class="EOL">
+</span>    <span id="def_21"><span class="TYPE">type</span> <span class="LIDENT">t</span> <span class="EQUAL">=</span> <span class="LIDENT">key</span></span><span class="EOL">
+</span><span class="EOL">
+</span>    <span class="LET">let</span> <span id="local_cmp_5"><span class="LIDENT">cmp</span></span> <span class="EQUAL">=</span> <a href="#local_cmp_4"><span class="LIDENT">cmp</span></a><span class="EOL">
+</span>  <span class="END">end</span><span class="RPAREN">)</span> <span class="IN">in</span><span class="EOL">
+</span>  <span class="LPAREN">(</span><span class="MODULE">module</span> <span class="UIDENT">N</span> <span class="COLON">:</span> <span class="UIDENT">Comparable</span> <span class="WITH">with</span> <span class="TYPE">type</span> <span class="LIDENT">t</span> <span class="EQUAL">=</span> <span class="LIDENT">key</span><span class="RPAREN">)</span><span class="EOL">
+</span><span class="EOL">
+</span><span class="LET">let</span> <span id="val-comparable"><span class="LIDENT">comparable</span></span> <span class="LPAREN">(</span><span class="TYPE">type</span> <span class="LIDENT">key</span><span class="RPAREN">)</span> <span class="TILDE">~</span><span id="local_cmp_6"><span class="LIDENT">cmp</span></span> <span class="EQUAL">=</span><span class="EOL">
+</span>  <span class="LET">let</span> <span class="MODULE">module</span> <span class="UIDENT">N</span> <span class="EQUAL">=</span> <span class="UIDENT">MakeComparable</span> <span class="LPAREN">(</span><span class="STRUCT">struct</span><span class="EOL">
+</span>    <span id="def_24"><span class="TYPE">type</span> <span class="LIDENT">t</span> <span class="EQUAL">=</span> <span class="LIDENT">key</span></span><span class="EOL">
+</span><span class="EOL">
+</span>    <span class="LET">let</span> <span id="local_cmp_7"><span class="LIDENT">cmp</span></span> <span class="EQUAL">=</span> <a href="#local_cmp_6"><span class="LIDENT">cmp</span></a><span class="EOL">
+</span>  <span class="END">end</span><span class="RPAREN">)</span> <span class="IN">in</span><span class="EOL">
+</span>  <span class="LPAREN">(</span><span class="MODULE">module</span> <span class="UIDENT">N</span> <span class="COLON">:</span> <span class="UIDENT">Comparable</span> <span class="WITH">with</span> <span class="TYPE">type</span> <span class="LIDENT">t</span> <span class="EQUAL">=</span> <span class="LIDENT">key</span><span class="RPAREN">)</span><span class="EOL">
+</span><span class="EOL">
+</span><span id="module-type-Hashable"><span class="MODULE">module</span> <span class="TYPE">type</span> <span class="UIDENT">Hashable</span> <span class="EQUAL">=</span> <span class="SIG">sig</span><span class="EOL">
+</span>  <span id="module-type-Hashable.type-identity"><span class="TYPE">type</span> <span class="LIDENT">identity</span></span><span class="EOL">
+</span>  <span id="module-type-Hashable.type-t"><span class="TYPE">type</span> <span class="LIDENT">t</span></span><span class="EOL">
+</span><span class="EOL">
+</span>  <span id="module-type-Hashable.val-hash"><span class="VAL">val</span> <span class="LIDENT">hash</span> <span class="COLON">:</span> <span class="LPAREN">(</span><span class="LIDENT">t</span><span class="COMMA">,</span> <span class="LIDENT">identity</span><span class="RPAREN">)</span> <span class="LIDENT">hash</span></span><span class="EOL">
+</span>  <span id="module-type-Hashable.val-eq"><span class="VAL">val</span> <span class="LIDENT">eq</span> <span class="COLON">:</span> <span class="LPAREN">(</span><span class="LIDENT">t</span><span class="COMMA">,</span> <span class="LIDENT">identity</span><span class="RPAREN">)</span> <span class="LIDENT">eq</span></span><span class="EOL">
+</span><span class="END">end</span></span><span class="EOL">
+</span><span class="EOL">
+</span><span id="type-hashable"><span class="TYPE">type</span> <span class="LPAREN">(</span><span class="QUOTE">'</span><span class="LIDENT">key</span><span class="COMMA">,</span> <span class="QUOTE">'</span><span class="LIDENT">id</span><span class="RPAREN">)</span> <span class="LIDENT">hashable</span> <span class="EQUAL">=</span> <span class="LPAREN">(</span><span class="MODULE">module</span> <span class="UIDENT">Hashable</span> <span class="WITH">with</span> <span class="TYPE">type</span> <span class="LIDENT">t</span> <span class="EQUAL">=</span> <span class="QUOTE">'</span><span class="LIDENT">key</span> <span class="AND">and</span> <span class="TYPE">type</span> <span class="LIDENT">identity</span> <span class="EQUAL">=</span> <span class="QUOTE">'</span><span class="LIDENT">id</span><span class="RPAREN">)</span></span><span class="EOL">
+</span><span class="EOL">
+</span><span id="module-MakeHashableU"><span class="MODULE">module</span> <span class="UIDENT">MakeHashableU</span> <span class="LPAREN">(</span><span class="UIDENT">M</span> <span class="COLON">:</span> <span class="SIG">sig</span><span class="EOL">
+</span>  <span id="module-MakeHashableU.argument-1-M.type-t"><span class="TYPE">type</span> <span class="LIDENT">t</span></span><span class="EOL">
+</span><span class="EOL">
+</span>  <span id="module-MakeHashableU.argument-1-M.val-hash"><span class="VAL">val</span> <span class="LIDENT">hash</span> <span class="COLON">:</span> <span class="LIDENT">t</span> <span class="MINUSGREATER">-&gt;</span> <span class="LIDENT">int</span></span><span class="EOL">
+</span>  <span id="module-MakeHashableU.argument-1-M.val-eq"><span class="VAL">val</span> <span class="LIDENT">eq</span> <span class="COLON">:</span> <span class="LIDENT">t</span> <span class="MINUSGREATER">-&gt;</span> <span class="LIDENT">t</span> <span class="MINUSGREATER">-&gt;</span> <span class="LIDENT">bool</span></span><span class="EOL">
+</span><span class="END">end</span><span class="RPAREN">)</span> <span class="EQUAL">=</span><span class="EOL">
+</span><span class="STRUCT">struct</span><span class="EOL">
+</span>  <span id="module-MakeHashableU.type-identity"><span class="TYPE">type</span> <span class="LIDENT">identity</span></span><span class="EOL">
+</span>  <span id="module-MakeHashableU.type-t"><span class="TYPE">type</span> <span class="LIDENT">t</span> <span class="EQUAL">=</span> <span class="UIDENT">M</span><span class="DOT">.</span><span class="LIDENT">t</span></span><span class="EOL">
+</span><span class="EOL">
+</span>  <span class="LET">let</span> <span id="module-MakeHashableU.val-hash"><span class="LIDENT">hash</span></span> <span class="EQUAL">=</span> <span class="UIDENT">M</span><span class="DOT">.</span><span class="LIDENT">hash</span><span class="EOL">
+</span>  <span class="LET">let</span> <span id="module-MakeHashableU.val-eq"><span class="LIDENT">eq</span></span> <span class="EQUAL">=</span> <span class="UIDENT">M</span><span class="DOT">.</span><span class="LIDENT">eq</span><span class="EOL">
+</span><span class="END">end</span></span><span class="EOL">
+</span><span class="EOL">
+</span><span id="module-MakeHashable"><span class="MODULE">module</span> <span class="UIDENT">MakeHashable</span> <span class="LPAREN">(</span><span class="UIDENT">M</span> <span class="COLON">:</span> <span class="SIG">sig</span><span class="EOL">
+</span>  <span id="module-MakeHashable.argument-1-M.type-t"><span class="TYPE">type</span> <span class="LIDENT">t</span></span><span class="EOL">
+</span><span class="EOL">
+</span>  <span id="module-MakeHashable.argument-1-M.val-hash"><span class="VAL">val</span> <span class="LIDENT">hash</span> <span class="COLON">:</span> <span class="LIDENT">t</span> <span class="MINUSGREATER">-&gt;</span> <span class="LIDENT">int</span></span><span class="EOL">
+</span>  <span id="module-MakeHashable.argument-1-M.val-eq"><span class="VAL">val</span> <span class="LIDENT">eq</span> <span class="COLON">:</span> <span class="LIDENT">t</span> <span class="MINUSGREATER">-&gt;</span> <span class="LIDENT">t</span> <span class="MINUSGREATER">-&gt;</span> <span class="LIDENT">bool</span></span><span class="EOL">
+</span><span class="END">end</span><span class="RPAREN">)</span> <span class="EQUAL">=</span><span class="EOL">
+</span><span class="STRUCT">struct</span><span class="EOL">
+</span>  <span id="module-MakeHashable.type-identity"><span class="TYPE">type</span> <span class="LIDENT">identity</span></span><span class="EOL">
+</span>  <span id="module-MakeHashable.type-t"><span class="TYPE">type</span> <span class="LIDENT">t</span> <span class="EQUAL">=</span> <span class="UIDENT">M</span><span class="DOT">.</span><span class="LIDENT">t</span></span><span class="EOL">
+</span><span class="EOL">
+</span>  <span class="LET">let</span> <span id="module-MakeHashable.val-hash"><span class="LIDENT">hash</span></span> <span class="EQUAL">=</span><span class="EOL">
+</span>    <span class="LET">let</span> <span id="local_hash_8"><span class="LIDENT">hash</span></span> <span class="EQUAL">=</span> <span class="UIDENT">M</span><span class="DOT">.</span><span class="LIDENT">hash</span> <span class="IN">in</span><span class="EOL">
+</span>    <span class="FUN">fun</span> <span id="local_a_9"><span class="LIDENT">a</span></span> <span class="MINUSGREATER">-&gt;</span> <a href="#local_hash_8"><span class="LIDENT">hash</span></a> <a href="#local_a_9"><span class="LIDENT">a</span></a><span class="EOL">
+</span><span class="EOL">
+</span>  <span class="LET">let</span> <span id="module-MakeHashable.val-eq"><span class="LIDENT">eq</span></span> <span class="EQUAL">=</span><span class="EOL">
+</span>    <span class="LET">let</span> <span id="local_eq_10"><span class="LIDENT">eq</span></span> <span class="EQUAL">=</span> <span class="UIDENT">M</span><span class="DOT">.</span><span class="LIDENT">eq</span> <span class="IN">in</span><span class="EOL">
+</span>    <span class="FUN">fun</span> <span id="local_a_11"><span class="LIDENT">a</span></span> <span id="local_b_12"><span class="LIDENT">b</span></span> <span class="MINUSGREATER">-&gt;</span> <a href="#local_eq_10"><span class="LIDENT">eq</span></a> <a href="#local_a_11"><span class="LIDENT">a</span></a> <a href="#local_b_12"><span class="LIDENT">b</span></a><span class="EOL">
+</span><span class="END">end</span></span><span class="EOL">
+</span><span class="EOL">
+</span><span class="LET">let</span> <span id="val-hashableU"><span class="LIDENT">hashableU</span></span> <span class="LPAREN">(</span><span class="TYPE">type</span> <span class="LIDENT">key</span><span class="RPAREN">)</span> <span class="TILDE">~</span><span id="local_hash_13"><span class="LIDENT">hash</span></span> <span class="TILDE">~</span><span id="local_eq_14"><span class="LIDENT">eq</span></span> <span class="EQUAL">=</span><span class="EOL">
+</span>  <span class="LET">let</span> <span class="MODULE">module</span> <span class="UIDENT">N</span> <span class="EQUAL">=</span> <span class="UIDENT">MakeHashableU</span> <span class="LPAREN">(</span><span class="STRUCT">struct</span><span class="EOL">
+</span>    <span id="def_23"><span class="TYPE">type</span> <span class="LIDENT">t</span> <span class="EQUAL">=</span> <span class="LIDENT">key</span></span><span class="EOL">
+</span><span class="EOL">
+</span>    <span class="LET">let</span> <span id="local_hash_15"><span class="LIDENT">hash</span></span> <span class="EQUAL">=</span> <a href="#local_hash_13"><span class="LIDENT">hash</span></a><span class="EOL">
+</span>    <span class="LET">let</span> <span id="local_eq_16"><span class="LIDENT">eq</span></span> <span class="EQUAL">=</span> <a href="#local_eq_14"><span class="LIDENT">eq</span></a><span class="EOL">
+</span>  <span class="END">end</span><span class="RPAREN">)</span> <span class="IN">in</span><span class="EOL">
+</span>  <span class="LPAREN">(</span><span class="MODULE">module</span> <span class="UIDENT">N</span> <span class="COLON">:</span> <span class="UIDENT">Hashable</span> <span class="WITH">with</span> <span class="TYPE">type</span> <span class="LIDENT">t</span> <span class="EQUAL">=</span> <span class="LIDENT">key</span><span class="RPAREN">)</span><span class="EOL">
+</span><span class="EOL">
+</span><span class="LET">let</span> <span id="val-hashable"><span class="LIDENT">hashable</span></span> <span class="LPAREN">(</span><span class="TYPE">type</span> <span class="LIDENT">key</span><span class="RPAREN">)</span> <span class="TILDE">~</span><span id="local_hash_17"><span class="LIDENT">hash</span></span> <span class="TILDE">~</span><span id="local_eq_18"><span class="LIDENT">eq</span></span> <span class="EQUAL">=</span><span class="EOL">
+</span>  <span class="LET">let</span> <span class="MODULE">module</span> <span class="UIDENT">N</span> <span class="EQUAL">=</span> <span class="UIDENT">MakeHashable</span> <span class="LPAREN">(</span><span class="STRUCT">struct</span><span class="EOL">
+</span>    <span id="def_22"><span class="TYPE">type</span> <span class="LIDENT">t</span> <span class="EQUAL">=</span> <span class="LIDENT">key</span></span><span class="EOL">
+</span><span class="EOL">
+</span>    <span class="LET">let</span> <span id="local_hash_19"><span class="LIDENT">hash</span></span> <span class="EQUAL">=</span> <a href="#local_hash_17"><span class="LIDENT">hash</span></a><span class="EOL">
+</span>    <span class="LET">let</span> <span id="local_eq_20"><span class="LIDENT">eq</span></span> <span class="EQUAL">=</span> <a href="#local_eq_18"><span class="LIDENT">eq</span></a><span class="EOL">
+</span>  <span class="END">end</span><span class="RPAREN">)</span> <span class="IN">in</span><span class="EOL">
+</span>  <span class="LPAREN">(</span><span class="MODULE">module</span> <span class="UIDENT">N</span> <span class="COLON">:</span> <span class="UIDENT">Hashable</span> <span class="WITH">with</span> <span class="TYPE">type</span> <span class="LIDENT">t</span> <span class="EQUAL">=</span> <span class="LIDENT">key</span><span class="RPAREN">)</span><span class="EOL">
+</span></span></code></pre></body></html>
