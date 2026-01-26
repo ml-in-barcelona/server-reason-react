@@ -578,12 +578,12 @@ let client_with_promise_props () =
     ];
   Lwt.return ()
 
-(* let client_with_promise_failed_props () =
+let client_with_promise_failed_props () =
   let app () =
     let promise =
       React.Model.Promise
         ( (let%lwt _str = delayed_value ~ms:20 "||| Resolved |||" in
-           Lwt.fail (Failure "Error")),
+           Lwt.fail (Failure "Already failed")),
           fun res -> `String res )
     in
     React.Upper_case_component
@@ -595,22 +595,51 @@ let client_with_promise_props () =
               React.Client_component
                 {
                   props = [ ("promise", promise) ];
-                  client = fun () -> React.string "Client with Props";
+                  client = React.string "Client with Props";
                   import_module = "./client-with-props.js";
                   import_name = "ClientWithProps";
                 };
             ] )
   in
   let output, subscribe = capture_stream () in
-  let%lwt () = ReactServerDOM.render_model ~subscribe ((app ())) in
+  let%lwt () = ReactServerDOM.render_model ~subscribe (app ()) in
   assert_list_of_strings !output
     [
       "1:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n";
       "0:[[\"$\",\"div\",null,{\"children\":\"Server \
        Content\"},null,[],{}],[\"$\",\"$1\",null,{\"promise\":\"$@2\"},null,[],{}]]\n";
-      "2:\"||| Resolved |||\"\n";
+      "2:E{\"message\":\"Failure(\\\"Already failed\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n";
     ];
-  Lwt.return () *)
+  Lwt.return ()
+
+let client_with_promise_already_failed_props () =
+  let app () =
+    let promise = React.Model.Promise (Lwt.fail (Failure "Already failed"), fun res -> `String res) in
+    React.Upper_case_component
+      ( "app",
+        fun () ->
+          React.list
+            [
+              React.createElement "div" [] [ React.string "Server Content" ];
+              React.Client_component
+                {
+                  props = [ ("promise", promise) ];
+                  client = React.string "Client with Props";
+                  import_module = "./client-with-props.js";
+                  import_name = "ClientWithProps";
+                };
+            ] )
+  in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~subscribe (app ()) in
+  assert_list_of_strings !output
+    [
+      "1:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n";
+      "2:E{\"message\":\"Failure(\\\"Already failed\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n";
+      "0:[[\"$\",\"div\",null,{\"children\":\"Server \
+       Content\"},null,[],{}],[\"$\",\"$1\",null,{\"promise\":\"$@2\"},null,[],{}]]\n";
+    ];
+  Lwt.return ()
 
 let mixed_server_and_client () =
   let app () =
@@ -1038,6 +1067,6 @@ let tests =
     test "nested_context" nested_context;
     test "model_list_value" model_list_value;
     test "model_value_assoc" model_value_assoc;
-    (* TODO: https://github.com/ml-in-barcelona/server-reason-react/issues/251 test "client_with_promise_failed_props" client_with_promise_failed_props; *)
-    (* test "env_development_adds_debug_info_2" env_development_adds_debug_info_2; *)
+    test "client_with_promise_failed_props" client_with_promise_failed_props;
+    test "client_with_promise_already_failed_props" client_with_promise_already_failed_props;
   ]

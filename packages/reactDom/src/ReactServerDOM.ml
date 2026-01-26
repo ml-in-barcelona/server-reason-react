@@ -363,8 +363,11 @@ module Model = struct
             let index = Stream.push_async promise ~context in
             `String (promise_value index)
         | Fail exn ->
-            (* TODO: https://github.com/ml-in-barcelona/server-reason-react/issues/251 *)
-            raise exn)
+            let message = Printexc.to_string exn in
+            let stack = create_stack_trace () in
+            let error = make_error ~message ~stack ~digest:"" in
+            let index = Stream.push ~context (to_chunk (Error (env, error))) in
+            `String (promise_value index))
     | List list ->
         let list = List.map (fun element -> model_to_payload ~context ~is_root ~to_chunk ~env element) list in
         `List list
