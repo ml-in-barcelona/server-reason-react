@@ -343,17 +343,20 @@ module Model = struct
         let index = Stream.push ~context (to_chunk (Error (env, error))) in
         `String (error_value index)
     | Element element -> element_to_payload ~context ?debug ~is_root ~to_chunk ~env element
-    | Promise (promise, value_to_json) -> (
+    | Promise (promise, value_to_model) -> (
         match Lwt.state promise with
         | Return value ->
-            let json = value_to_json value in
-            let index = Stream.push ~context (to_chunk (Value json)) in
+            let model = value_to_model value in
+            let payload = model_to_payload ~context ~is_root:false ~to_chunk ~env model in
+            let index = Stream.push ~context (to_chunk (Value payload)) in
             `String (promise_value index)
         | Sleep ->
             let promise =
               try%lwt
                 let%lwt value = promise in
-                Lwt.return (to_chunk (Value (value_to_json value)))
+                let model = value_to_model value in
+                let payload = model_to_payload ~context ~is_root:false ~to_chunk ~env model in
+                Lwt.return (to_chunk (Value payload))
               with exn ->
                 let message = Printexc.to_string exn in
                 let stack = create_stack_trace () in

@@ -142,17 +142,22 @@ module Page = {
           <Promise_renderer promise=promiseIn4 />
         </Section>
         <Hr />
-        <Section
-          title="Promise that fails after delay"
-          description="A promise that rejects after 1 second - demonstrates error handling for async failures">
-          <Promise_renderer promise=failingPromise />
-        </Section>
+        <React.Suspense fallback={<Text> "Loading failing promise..." </Text>}>
+          <Section
+            title="Promise that fails after delay"
+            description="A promise that rejects after 1 second - demonstrates error handling for async failures">
+            <Promise_renderer promise=failingPromise />
+          </Section>
+        </React.Suspense>
         <Hr />
-        <Section
-          title="Already rejected promise"
-          description="A promise that is already rejected - demonstrates handling of immediately failed promises (issue #251)">
-          <Promise_renderer promise=alreadyFailedPromise />
-        </Section>
+        <React.Suspense
+          fallback={<Text> "Loading already rejected promise..." </Text>}>
+          <Section
+            title="Already rejected promise"
+            description="A promise that is already rejected - demonstrates handling of immediately failed promises (issue #251)">
+            <Promise_renderer promise=alreadyFailedPromise />
+          </Section>
+        </React.Suspense>
         <Hr />
         <Section
           title="Pass a client component prop"
@@ -179,6 +184,7 @@ module Page = {
           description="In this case, react will use the server function from the window.__server_functions_manifest_map">
           <ServerActionFromPropsClient
             actionOnClick=ServerFunctions.simpleResponse
+            optionalAction=ServerFunctions.optionalAction
           />
         </Section>
         <Hr />

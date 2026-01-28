@@ -382,7 +382,7 @@ module Model = struct
     | Json : Yojson.Basic.t -> 'element t
     | Error : error -> 'element t
     | Element : 'element -> 'element t
-    | Promise : 'a Js.Promise.t * ('a -> Yojson.Basic.t) -> 'element t
+    | Promise : 'a Js.Promise.t * ('a -> 'element t) -> 'element t
 end
 
 type element =

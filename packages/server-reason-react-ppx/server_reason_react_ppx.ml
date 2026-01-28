@@ -606,6 +606,7 @@ let make_of_json ~loc (core_type : core_type) prop =
            promise] *)
   | [%type: [%t? t] Js.Promise.t] -> [%expr ([%e prop] : [%t t] Js.Promise.t)]
   | [%type: [%t? t] Runtime.server_function] -> [%expr ([%e prop] : [%t t] Runtime.server_function)]
+  | [%type: [%t? t] Runtime.server_function option] -> [%expr ([%e prop] : [%t t] Runtime.server_function option)]
   | [%type: [%t? inner_type] option] as type_ -> (
       match inner_type.ptyp_desc with
       | Ptyp_arrow (_, _, _) -> [%expr ([%e prop] : [%t type_])]
@@ -727,12 +728,12 @@ let make_to_json ~loc (core_type : core_type) prop =
         match [%e prop] with Some prop -> React.Model.Element (prop : React.element) | None -> React.Model.Json `Null]
   | [%type: [%t? inner_type] Js.Promise.t] ->
       let json = [%expr [%to_json: [%t inner_type]]] in
-      [%expr React.Model.Promise ([%e prop], [%e json])]
+      [%expr React.Model.Promise ([%e prop], fun value -> React.Model.Json ([%e json] value))]
   | [%type: [%t? inner_type] Js.Promise.t option] ->
       let json = [%expr [%to_json: [%t inner_type]]] in
       [%expr
         match [%e prop] with
-        | Some prop -> [%expr React.Model.Promise ([%e prop], [%e json])]
+        | Some prop -> React.Model.Promise (prop, fun value -> React.Model.Json ([%e json] value))
         | None -> React.Model.Json `Null]
   | { ptyp_desc = Ptyp_arrow (_, _, _) } ->
       let loc = core_type.ptyp_loc in
@@ -740,6 +741,9 @@ let make_to_json ~loc (core_type : core_type) prop =
         [%ocaml.error
           "server-reason-react: you can't pass functions into client components. Functions aren't serialisable to JSON."]]
   | [%type: [%t? _] Runtime.server_function] -> [%expr React.Model.Function [%e prop]]
+  | [%type: [%t? _] Runtime.server_function option] ->
+      [%expr match [%e prop] with Some prop -> React.Model.Function prop | None -> React.Model.Json `Null]
+  | [%type: [%t? _] option] -> [%expr React.Model.Json `Null]
   | type_ ->
       let json = [%expr [%to_json: [%t type_]] [%e prop]] in
       [%expr React.Model.Json [%e json]]

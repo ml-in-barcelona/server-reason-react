@@ -78,3 +78,8 @@ let formDataWithArg =
 
   Lwt.return(response);
 };
+
+[@react.server.function]
+let optionalAction = (): Js.Promise.t(string) => {
+  Lwt.return("Optional action executed!");
+};
