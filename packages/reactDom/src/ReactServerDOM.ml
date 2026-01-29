@@ -731,27 +731,10 @@ let push_children_into ~children:new_children html =
 (* TODO: Ensure chunks are of a certain minimum size but also maximum? Saw react caring about this *)
 let render_html ?(skipRoot = false) ?(env = `Dev) ?debug:(_ = false) ?bootstrapScriptContent ?bootstrapScripts
     ?bootstrapModules element =
-  let initial_resources =
-    match bootstrapScripts with
-    | Some scripts ->
-        List.map
-          (fun script ->
-            Html.Node
-              {
-                tag = "link";
-                attributes =
-                  [
-                    Html.attribute "rel" "modulepreload";
-                    Html.attribute "fetchPriority" "low";
-                    Html.attribute "href" script;
-                    (* Html.attribute "as" "script"; *)
-                  ];
-                children = [];
-              })
-          scripts
-    | None -> (
-        match bootstrapModules with
-        | Some modules ->
+  React.Cache.with_request_cache_async (fun () ->
+      let initial_resources =
+        match bootstrapScripts with
+        | Some scripts ->
             List.map
               (fun script ->
                 Html.Node
@@ -766,106 +749,125 @@ let render_html ?(skipRoot = false) ?(env = `Dev) ?debug:(_ = false) ?bootstrapS
                       ];
                     children = [];
                   })
-              modules
-        | None -> [])
-  in
-  (* Since we don't push the root_data_payload to the stream but return it immediately with the initial HTML,
-     the stream's initial index starts at 1, with index 0 reserved for the root_data_payload.
-
-     The root is also treated as a pending segment that must complete before the stream can be closed,
-     as we don't push_async it to the stream, the pending counter starts at 1.
-     Similar on how react does: https://github.com/facebook/react/blob/7d9f876cbc7e9363092e60436704cf8ae435b969/packages/react-server/src/ReactFizzServer.js#L572-L581
-     *)
-  let stream, context = Stream.make ~initial_index:1 ~pending:1 () in
-  let fiber : Fiber.t =
-    {
-      context;
-      env;
-      hoisted_head = None;
-      hoisted_head_childrens = [];
-      html_tag_attributes = [];
-      resources = initial_resources;
-      visited_first_lower_case = None;
-      inside_head = false;
-      inside_body = false;
-    }
-  in
-  let%lwt root_html, root_model = render_element_to_html ~fiber element in
-  (* To return the model value immediately, we don't push it to the stream but return it as a payload script together with the user_scripts *)
-  let root_data_payload = model_to_chunk (Value root_model) 0 in
-  (* Decrement the pending counter to signal that the root data payload is complete. *)
-  context.pending <- context.pending - 1;
-  (* In case of not having any task pending, we can close the stream *)
-  if context.pending = 0 then context.close ();
-  let bootstrap_script_content =
-    match bootstrapScriptContent with
-    | None -> Html.null
-    | Some bootstrapScriptContent -> Html.node "script" [] [ Html.raw bootstrapScriptContent ]
-  in
-  let bootstrap_scripts_nodes =
-    match bootstrapScripts with
-    | None -> Html.null
-    | Some scripts ->
-        scripts
-        |> List.map (fun script -> Html.node "script" [ Html.attribute "src" script; Html.attribute "async" "" ] [])
-        |> Html.list
-  in
-  let bootstrap_modules_nodes =
-    match bootstrapModules with
-    | None -> Html.null
-    | Some modules ->
-        modules
-        |> List.map (fun script ->
-            Html.node "script"
-              [ Html.attribute "src" script; Html.attribute "async" ""; Html.attribute "type" "module" ]
-              [])
-        |> Html.list
-  in
-  let user_scripts =
-    [
-      rc_function_script;
-      rsc_start_script;
-      root_data_payload;
-      bootstrap_script_content;
-      bootstrap_scripts_nodes;
-      bootstrap_modules_nodes;
-    ]
-  in
-  let root_element_is_html_tag =
-    match Fiber.visited_first_lower_case ~fiber with Some tag -> tag = "html" | None -> false
-  in
-  let html =
-    (* We reconstruct the final HTML document structure with the hoisted elements from `to_html` traversal *)
-    if root_element_is_html_tag then
-      let body =
-        match (is_body_node root_html, skipRoot) with
-        | true, false -> push_children_into ~children:user_scripts root_html
-        | true, true | false, true -> Html.list user_scripts
-        | false, false -> Html.list (root_html :: user_scripts)
+              scripts
+        | None -> (
+            match bootstrapModules with
+            | Some modules ->
+                List.map
+                  (fun script ->
+                    Html.Node
+                      {
+                        tag = "link";
+                        attributes =
+                          [
+                            Html.attribute "rel" "modulepreload";
+                            Html.attribute "fetchPriority" "low";
+                            Html.attribute "href" script;
+                            (* Html.attribute "as" "script"; *)
+                          ];
+                        children = [];
+                      })
+                  modules
+            | None -> [])
       in
-      let resources = fiber.resources @ fiber.hoisted_head_childrens in
-      match fiber.hoisted_head with
-      | Some node ->
-          (* If we found a <head> element, use its attributes and combine all children *)
-          let head = Html.Node { node with children = node.children @ resources } in
-          Html.node "html" fiber.html_tag_attributes [ head; body ]
-      | None ->
-          (* If no explicit <head> was found, create one with the hoisted children *)
-          Html.node "html" fiber.html_tag_attributes [ Html.node "head" [] resources; body ]
-    else if skipRoot then Html.list user_scripts
-    else Html.list (root_html :: user_scripts)
-  in
-  let subscribe fn =
-    let fn_with_to_string v = fn (Html.to_string v) in
-    let%lwt () = Push_stream.subscribe ~fn:fn_with_to_string stream in
-    fn_with_to_string chunk_stream_end_script
-  in
-  Lwt.return (Html.to_string html, subscribe)
+      (* Since we don't push the root_data_payload to the stream but return it immediately with the initial HTML,
+         the stream's initial index starts at 1, with index 0 reserved for the root_data_payload.
 
-let render_model_value = Model.render
+         The root is also treated as a pending segment that must complete before the stream can be closed,
+         as we don't push_async it to the stream, the pending counter starts at 1.
+         Similar on how react does: https://github.com/facebook/react/blob/7d9f876cbc7e9363092e60436704cf8ae435b969/packages/react-server/src/ReactFizzServer.js#L572-L581
+         *)
+      let stream, context = Stream.make ~initial_index:1 ~pending:1 () in
+      let fiber : Fiber.t =
+        {
+          context;
+          env;
+          hoisted_head = None;
+          hoisted_head_childrens = [];
+          html_tag_attributes = [];
+          resources = initial_resources;
+          visited_first_lower_case = None;
+          inside_head = false;
+          inside_body = false;
+        }
+      in
+      let%lwt root_html, root_model = render_element_to_html ~fiber element in
+      (* To return the model value immediately, we don't push it to the stream but return it as a payload script together with the user_scripts *)
+      let root_data_payload = model_to_chunk (Value root_model) 0 in
+      (* Decrement the pending counter to signal that the root data payload is complete. *)
+      context.pending <- context.pending - 1;
+      (* In case of not having any task pending, we can close the stream *)
+      if context.pending = 0 then context.close ();
+      let bootstrap_script_content =
+        match bootstrapScriptContent with
+        | None -> Html.null
+        | Some bootstrapScriptContent -> Html.node "script" [] [ Html.raw bootstrapScriptContent ]
+      in
+      let bootstrap_scripts_nodes =
+        match bootstrapScripts with
+        | None -> Html.null
+        | Some scripts ->
+            scripts
+            |> List.map (fun script -> Html.node "script" [ Html.attribute "src" script; Html.attribute "async" "" ] [])
+            |> Html.list
+      in
+      let bootstrap_modules_nodes =
+        match bootstrapModules with
+        | None -> Html.null
+        | Some modules ->
+            modules
+            |> List.map (fun script ->
+                Html.node "script"
+                  [ Html.attribute "src" script; Html.attribute "async" ""; Html.attribute "type" "module" ]
+                  [])
+            |> Html.list
+      in
+      let user_scripts =
+        [
+          rc_function_script;
+          rsc_start_script;
+          root_data_payload;
+          bootstrap_script_content;
+          bootstrap_scripts_nodes;
+          bootstrap_modules_nodes;
+        ]
+      in
+      let root_element_is_html_tag =
+        match Fiber.visited_first_lower_case ~fiber with Some tag -> tag = "html" | None -> false
+      in
+      let html =
+        (* We reconstruct the final HTML document structure with the hoisted elements from `to_html` traversal *)
+        if root_element_is_html_tag then
+          let body =
+            match (is_body_node root_html, skipRoot) with
+            | true, false -> push_children_into ~children:user_scripts root_html
+            | true, true | false, true -> Html.list user_scripts
+            | false, false -> Html.list (root_html :: user_scripts)
+          in
+          let resources = fiber.resources @ fiber.hoisted_head_childrens in
+          match fiber.hoisted_head with
+          | Some node ->
+              (* If we found a <head> element, use its attributes and combine all children *)
+              let head = Html.Node { node with children = node.children @ resources } in
+              Html.node "html" fiber.html_tag_attributes [ head; body ]
+          | None ->
+              (* If no explicit <head> was found, create one with the hoisted children *)
+              Html.node "html" fiber.html_tag_attributes [ Html.node "head" [] resources; body ]
+        else if skipRoot then Html.list user_scripts
+        else Html.list (root_html :: user_scripts)
+      in
+      let subscribe fn =
+        let fn_with_to_string v = fn (Html.to_string v) in
+        let%lwt () = Push_stream.subscribe ~fn:fn_with_to_string stream in
+        fn_with_to_string chunk_stream_end_script
+      in
+      Lwt.return (Html.to_string html, subscribe))
+
+let render_model_value ?(env = `Dev) ?(debug = false) ?subscribe model =
+  React.Cache.with_request_cache_async (fun () -> Model.render ~env ~debug ?subscribe model)
 
 let render_model ?(env = `Dev) ?(debug = false) ?subscribe model =
-  Model.render ~env ~debug ?subscribe (React.Model.Element model)
+  render_model_value ~env ~debug ?subscribe (React.Model.Element model)
 
 let create_action_response = Model.create_action_response
 

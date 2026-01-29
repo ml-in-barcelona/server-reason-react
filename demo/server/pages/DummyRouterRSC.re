@@ -89,7 +89,6 @@ let markdownStyles = (~background, ~text) => {
 module NoteSkeleton = {
   [@react.component]
   let make = (~isEditing as _) => {
-    Dream.error(log => log("NoteSkeleton"));
     <div className="flex items-center justify-center h-full">
       <Text> "Loading..." </Text>
     </div>;

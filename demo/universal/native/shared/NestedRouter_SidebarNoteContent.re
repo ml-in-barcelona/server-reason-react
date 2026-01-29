@@ -49,13 +49,12 @@ let make =
         _ => {
           let queryParams =
             URL.makeExn(Location.href(DOM.window->DOM.Window.location))
-            |> URL.searchParams;
+            |> URL.searchParams
+            |> URL.SearchParams.toString;
+          let queryParamsSuffix = queryParams == "" ? "" : "?" ++ queryParams;
           startNavigating(() => {
             navigate(
-              "/demo/router/"
-              ++ Int.to_string(id)
-              ++ "?"
-              ++ URL.SearchParams.toString(queryParams),
+              "/demo/router/" ++ Int.to_string(id) ++ queryParamsSuffix,
             )
           });
         }
