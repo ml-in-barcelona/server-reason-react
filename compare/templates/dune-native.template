@@ -1,0 +1,12 @@
+(executable
+ (name runner)
+ (modules App_native Entry_native Runner)
+ (libraries
+  react
+  reactDOM
+  lwt
+  lwt.unix)
+ (preprocess
+  (pps
+   server-reason-react.ppx
+   lwt_ppx)))

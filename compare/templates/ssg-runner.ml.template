@@ -1,0 +1,7 @@
+let () =
+  let run =
+    let%lwt html, subscribe = ReactServerDOM.render_html Entry_native.app in
+    let%lwt () = Lwt_io.print html in
+    subscribe (fun chunk -> Lwt_io.print chunk)
+  in
+  Lwt_main.run run
