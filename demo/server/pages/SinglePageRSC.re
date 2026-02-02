@@ -56,6 +56,15 @@ module ExpandedContent = {
   };
 };
 
+module CacheDemo = {
+  let calls = ref(0);
+  let get =
+    React.cache(label => {
+      calls.contents = calls.contents + 1;
+      label ++ " #" ++ Int.to_string(calls.contents);
+    });
+};
+
 module Page = {
   [@react.async.component]
   let make = () => {
@@ -71,8 +80,8 @@ module Page = {
       Lwt.bind(Lwt_unix.sleep(1.0), _ =>
         Lwt.fail(Failure("Promise rejected after 1 second!"))
       );
-    let alreadyFailedPromise = Lwt.fail(Failure("Already rejected!"));
-
+    let cachedValueFirst = CacheDemo.get("Cached value");
+    let cachedValueSecond = CacheDemo.get("Cached value");
     Lwt.return(
       <Stack gap=8 justify=`start>
         <Stack gap=2 justify=`start>
@@ -90,6 +99,15 @@ module Page = {
             "React server components. Lazy loading of client components. Client props encodings, such as promises, React elements, and primitive types."
           </Text>
         </Stack>
+        <Hr />
+        <Section
+          title="React.cache"
+          description="Memoizes results for identical arguments per request">
+          <Stack gap=1 justify=`start>
+            <Text> {"First call: " ++ cachedValueFirst} </Text>
+            <Text> {"Second call: " ++ cachedValueSecond} </Text>
+          </Stack>
+        </Section>
         <Hr />
         <Section
           title="Counter"
@@ -142,17 +160,13 @@ module Page = {
           <Promise_renderer promise=promiseIn4 />
         </Section>
         <Hr />
-        <Section
-          title="Promise that fails after delay"
-          description="A promise that rejects after 1 second - demonstrates error handling for async failures">
-          <Promise_renderer promise=failingPromise />
-        </Section>
-        <Hr />
-        <Section
-          title="Already rejected promise"
-          description="A promise that is already rejected - demonstrates handling of immediately failed promises (issue #251)">
-          <Promise_renderer promise=alreadyFailedPromise />
-        </Section>
+        <React.Suspense fallback={<Text> "Loading failing promise..." </Text>}>
+          <Section
+            title="Promise that fails after delay"
+            description="A promise that rejects after 1 second - demonstrates error handling for async failures">
+            <Promise_renderer promise=failingPromise />
+          </Section>
+        </React.Suspense>
         <Hr />
         <Section
           title="Pass a client component prop"
@@ -179,6 +193,7 @@ module Page = {
           description="In this case, react will use the server function from the window.__server_functions_manifest_map">
           <ServerActionFromPropsClient
             actionOnClick=ServerFunctions.simpleResponse
+            optionalAction=ServerFunctions.optionalAction
           />
         </Section>
         <Hr />

@@ -26,9 +26,12 @@ module NoteView = {
   };
 };
 
+let fetchNoteCached =
+  React.cache(((sleep, id)) => DB.fetchNote(~sleep, id));
+
 [@react.async.component]
 let make =
-    (~selectedId: option(int), ~isEditing: bool, ~sleep: option(float)) => {
+    (~selectedId: option(int), ~isEditing: bool, ~sleep: option(float)) =>
   switch (selectedId) {
   | None when isEditing =>
     Lwt.return(
@@ -42,7 +45,7 @@ let make =
       </div>,
     )
   | Some(id) =>
-    let+ (note: result(Note.t, string)) = DB.fetchNote(~sleep, id);
+    let+ (note: result(Note.t, string)) = fetchNoteCached((sleep, id));
 
     switch (note) {
     | Ok(note) when !isEditing => <NoteView note />
@@ -63,4 +66,3 @@ let make =
       </div>
     };
   };
-};
