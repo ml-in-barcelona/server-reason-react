@@ -531,8 +531,58 @@ module Suspense = struct
     Suspense { key; fallback = or_react_null fallback; children = or_react_null children }
 end
 
+module Cache = struct
+  type cache_entry = Ok of Obj.t | Error of exn
+  type fn_cache = (Obj.t, cache_entry) Hashtbl.t
+  type request_cache = (int, fn_cache) Hashtbl.t
+
+  let current : request_cache option Stdlib.ref = Stdlib.ref None
+  let fn_id_counter : int Stdlib.ref = Stdlib.ref 0
+
+  let with_request_cache f =
+    let prev = !current in
+    current := Some (Hashtbl.create 16);
+    Fun.protect ~finally:(fun () -> current := prev) f
+
+  let with_request_cache_async f =
+    let prev = !current in
+    current := Some (Hashtbl.create 16);
+    Lwt.finalize f (fun () ->
+        current := prev;
+        Lwt.return ())
+end
+
 let memo f _component = f
 let memoCustomCompareProps f _compare _component = f
+
+let cache fn =
+  let fn_id = !Cache.fn_id_counter in
+  Cache.fn_id_counter := fn_id + 1;
+  fun arg ->
+    match !Cache.current with
+    | None -> fn arg
+    | Some cache_map -> (
+        let fn_cache =
+          match Hashtbl.find_opt cache_map fn_id with
+          | Some cache -> cache
+          | None ->
+              let cache = Hashtbl.create 8 in
+              Hashtbl.add cache_map fn_id cache;
+              cache
+        in
+        let arg_key = Obj.repr arg in
+        match Hashtbl.find_opt fn_cache arg_key with
+        | Some (Cache.Ok value) -> Obj.obj value
+        | Some (Cache.Error error) -> raise error
+        | None -> (
+            try
+              let result = fn arg in
+              Hashtbl.add fn_cache arg_key (Cache.Ok (Obj.repr result));
+              result
+            with exn ->
+              Hashtbl.add fn_cache arg_key (Cache.Error exn);
+              raise exn))
+
 let useContext (context : 'a Context.t) = context.current_value.current
 
 let useState (make_initial_value : unit -> 'state) =

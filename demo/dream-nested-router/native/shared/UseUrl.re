@@ -52,7 +52,7 @@ let context: React.Context.t(option(t)) = React.createContext(None);
 let provider = React.Context.provider(context);
 
 module Provider = {
-  [@react.component]
+  [@react.client.component]
   let make = (~serverUrl: t, ~children: React.element) => {
     let (url, setUrl) = React.useState(() => serverUrl);
 

@@ -523,41 +523,42 @@ and render_with_resolved_buffer ~stream_context buf element =
   render_element element
 
 let renderToStream ?pipe:_ element =
-  let stream, push_to_stream, close = Push_stream.make () in
-  let stream_context =
-    {
-      push = push_to_stream;
-      close;
-      closed = false;
-      waiting = 0;
-      boundary_id = 0;
-      suspense_id = 0;
-      has_rc_script_been_injected = false;
-    }
-  in
-  let abort () =
-    (* TODO: Needs to flush the remaining loading fallbacks as HTML, and React.js will try to render the rest on the client. *)
-    Lwt_stream.closed stream |> Lwt.ignore_result
-  in
-  let buf = Buffer.create 1024 in
-  try%lwt
-    let%lwt () = render_to_stream_buffer ~stream_context buf element in
-    push_to_stream (Buffer.contents buf);
-    if stream_context.waiting = 0 then close ();
-    Lwt.return (stream, abort)
-  with
-  | React.Suspend (Any_promise promise) ->
-      (* In case of getting a React.Suspend exn means that either an async component is being rendered without
-         React.Suspense or React.use is being used without a Suspense boundary. In both cases, we need to await
-         for the promise to resolve and then render the resolved element. *)
-      let%lwt _ = promise in
-      Buffer.clear buf;
-      let%lwt () = render_with_resolved_buffer ~stream_context buf element in
-      push_to_stream (Buffer.contents buf);
-      if stream_context.waiting = 0 then close ();
-      Lwt.return (stream, abort)
-  (* non suspend exceptions propagate to the parent *)
-  | exn -> Lwt.fail exn
+  React.Cache.with_request_cache_async (fun () ->
+      let stream, push_to_stream, close = Push_stream.make () in
+      let stream_context =
+        {
+          push = push_to_stream;
+          close;
+          closed = false;
+          waiting = 0;
+          boundary_id = 0;
+          suspense_id = 0;
+          has_rc_script_been_injected = false;
+        }
+      in
+      let abort () =
+        (* TODO: Needs to flush the remaining loading fallbacks as HTML, and React.js will try to render the rest on the client. *)
+        Lwt_stream.closed stream |> Lwt.ignore_result
+      in
+      let buf = Buffer.create 1024 in
+      try%lwt
+        let%lwt () = render_to_stream_buffer ~stream_context buf element in
+        push_to_stream (Buffer.contents buf);
+        if stream_context.waiting = 0 then close ();
+        Lwt.return (stream, abort)
+      with
+      | React.Suspend (Any_promise promise) ->
+          (* In case of getting a React.Suspend exn means that either an async component is being rendered without
+             React.Suspense or React.use is being used without a Suspense boundary. In both cases, we need to await
+             for the promise to resolve and then render the resolved element. *)
+          let%lwt _ = promise in
+          Buffer.clear buf;
+          let%lwt () = render_with_resolved_buffer ~stream_context buf element in
+          push_to_stream (Buffer.contents buf);
+          if stream_context.waiting = 0 then close ();
+          Lwt.return (stream, abort)
+      (* non suspend exceptions propagate to the parent *)
+      | exn -> Lwt.fail exn)
 
 let querySelector _str = Runtime.fail_impossible_action_in_ssr "ReactDOM.querySelector"
 let render _element _node = Runtime.fail_impossible_action_in_ssr "ReactDOM.render"

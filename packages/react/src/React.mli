@@ -618,12 +618,18 @@ module Suspense : sig
   val make : ?key:string -> ?fallback:element -> ?children:element -> unit -> element
 end
 
+module Cache : sig
+  val with_request_cache : (unit -> 'a) -> 'a
+  val with_request_cache_async : (unit -> 'a Lwt.t) -> 'a Lwt.t
+end
+
 type any_promise = Any_promise : 'a Lwt.t -> any_promise
 
 exception Suspend of any_promise
 
 val memo : ('props * 'props -> bool) -> 'a -> 'props * 'props -> bool
 val memoCustomCompareProps : ('props * 'props -> bool) -> ('props * 'props -> bool) -> 'a -> 'props * 'props -> bool
+val cache : ('a -> 'b) -> 'a -> 'b
 val useContext : 'a Context.t -> 'a
 val useState : (unit -> 'state) -> 'state * (('state -> 'state) -> unit)
 val useMemo : (unit -> 'a) -> 'a
