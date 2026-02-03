@@ -4,10 +4,36 @@
 * On navigation, it fetches the route component and updates the dynamic params.
 * Depending on the mode (revalidate or not), it either updates the whole page or the specific route component.
 */
-exception NoProvider(string);
+exception No_provider(string);
 module DOM = Webapi.Dom;
 module Location = DOM.Location;
 module History = DOM.History;
+
+type url = URL.t;
+let url_to_json = url => url |> URL.toString |> Melange_json.To_json.string;
+let url_of_json = (json: Melange_json.t) =>
+  URL.makeExn(json |> Melange_json.Of_json.string);
+
+[@platform js]
+let watchUrl = callback => {
+  let watcherID = _ =>
+    callback(URL.makeExn(Location.href(DOM.window->DOM.Window.location)));
+  DOM.EventTarget.addEventListener(
+    "popstate",
+    watcherID,
+    DOM.Window.asEventTarget(DOM.window),
+  );
+  watcherID;
+};
+
+[@platform js]
+let unwatchUrl = watcherID => {
+  DOM.EventTarget.removeEventListener(
+    "popstate",
+    watcherID,
+    DOM.Window.asEventTarget(DOM.window),
+  );
+};
 
 [@platform js]
 module HistoryCache = {
@@ -80,21 +106,54 @@ let%browser_only fetchComponent = endpoint => {
 type t =
   (~replace: bool=?, ~revalidate: bool=?, ~shallow: bool=?, string) => unit;
 
-let context: React.Context.t(option(t)) = React.createContext(None);
+type router = {
+  navigate: t,
+  params: DynamicParams.t,
+  url: URL.t,
+  pathname: string,
+  searchParams: URL.SearchParams.t,
+  isNavigating: bool,
+};
+
+let context: React.Context.t(option(router)) = React.createContext(None);
 let provider = React.Context.provider(context);
+
 let use = () => {
   switch (React.useContext(context)) {
+  | Some(context) => context.navigate
+  | None => raise(No_provider("Router.use() requires the Router component"))
+  };
+};
+
+let useRouter = () => {
+  switch (React.useContext(context)) {
   | Some(context) => context
-  | None => raise(NoProvider("Router.use() requires the Router component"))
+  | None =>
+    raise(No_provider("Router.useRouter() requires the Router component"))
   };
 };
 
 [@react.client.component]
-let make = (~children: React.element) => {
+let make =
+    (
+      ~serverUrl: url,
+      ~initialDynamicParams: DynamicParams.t,
+      ~children: React.element,
+    ) => {
   let (element, setElement) = React.useState(() => children);
-  let { DynamicParams.dynamicParams, setDynamicParams } =
-    DynamicParams.useContext();
+  let (url, setUrl) = React.useState(() => serverUrl);
+  let (dynamicParams, setDynamicParams) =
+    React.useState(() => initialDynamicParams);
+  let setDynamicParams = params => setDynamicParams(_ => params);
+  let pathname = URL.pathname(url);
+  let searchParams = URL.searchParams(url);
+
+  React.useEffect0(() => {
+    let watcherId = watchUrl(url => setUrl(_ => url));
+    Some(() => unwatchUrl(watcherId));
+  });
   let (cachedNodeKey, setCachedNodeKey) = React.useState(() => "");
+  let (isNavigating, setIsNavigating) = React.useState(() => false);
 
   let%browser_only renderFullPage = element => {
     /**
@@ -158,6 +217,7 @@ let make = (~children: React.element) => {
     if (shallow) {
       ();
     } else {
+      setIsNavigating(_ => true);
       let _ =
         fetchComponent(endpoint)
         |> Js.Promise.then_(
@@ -199,7 +259,12 @@ let make = (~children: React.element) => {
                  renderSubRoute(~parentRoute, element);
                };
 
+             setIsNavigating(_ => false);
              Js.Promise.resolve();
+           })
+        |> Js.Promise.catch(error => {
+             setIsNavigating(_ => false);
+             Js.Promise.reject(Obj.magic(error));
            });
       ();
     };
@@ -281,17 +346,30 @@ let make = (~children: React.element) => {
        React.createElement(
          provider,
          {
-           "value": Some(navigate),
+           "value":
+             Some({
+               navigate,
+               params: dynamicParams,
+               url,
+               pathname,
+               searchParams,
+               isNavigating,
+             }),
            "children": element,
          },
        )
      | Server =>
        provider(
          ~value=
-           Some(
-             (~replace=?, ~revalidate=?, ~shallow=?, _) =>
+           Some({
+             navigate: (~replace=?, ~revalidate=?, ~shallow=?, _) =>
                failwith("navigate isn't supported on server"),
-           ),
+             params: dynamicParams,
+             url,
+             pathname,
+             searchParams,
+             isNavigating,
+           }),
          ~children=element,
          (),
        )

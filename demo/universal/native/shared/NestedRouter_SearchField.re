@@ -1,7 +1,6 @@
 [@react.client.component]
 let make = () => {
-  let navigate = Router.use();
-  let url = UseUrl.use();
+  let { Router.navigate, url, _ } = Router.useRouter();
   let queryParams = url |> URL.searchParams;
   let searchText =
     URL.SearchParams.get(queryParams, "searchText")

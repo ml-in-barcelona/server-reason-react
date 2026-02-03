@@ -88,7 +88,7 @@ let markdownStyles = (~background, ~text) => {
 
 module App = {
   [@react.component]
-  let make = (~queryParams as _) => {
+  let make = (~query as _) => {
     <div className="flex flex-col h-full items-center justify-center gap-2">
       <Text size=XXLarge> "🥺" </Text>
       <Text> "Click a note on the left to view something!" </Text>
@@ -167,61 +167,104 @@ module Document = {
     </html>;
 };
 
+module GlobalLoading = {
+  [@react.component]
+  let make = () => {
+    <div className="flex items-center justify-center h-full">
+      <Text> "Loading..." </Text>
+    </div>;
+  };
+};
+
+module NotFound = {
+  [@react.component]
+  let make = (~path) => {
+    <div className="flex flex-col h-full items-center justify-center gap-2">
+      <Text size=XXLarge> "😵‍💫" </Text>
+      <Text> {"No route matches " ++ path} </Text>
+    </div>;
+  };
+};
+
+module NoteLoading = {
+  [@react.component]
+  let make = () => <NoteSkeleton isEditing=false />;
+};
+
+module NoteEditLoading = {
+  [@react.component]
+  let make = () => <NoteSkeleton isEditing=true />;
+};
+
+module PassThroughLayout = {
+  [@react.component]
+  let make = (~children, ~params as _) => children;
+};
+
+module NewNotePage = {
+  [@react.component]
+  let make = (~params as _, ~query as _) => {
+    <React.Suspense fallback={<NoteSkeleton isEditing=true />}>
+      <NestedRouter_NoteItem selectedId=None isEditing=true />
+    </React.Suspense>;
+  };
+};
+
+module NotePage = {
+  [@react.component]
+  let make = (~params, ~query as _) => {
+    let selectedId =
+      DynamicParams.find("id", params) |> Option.map(int_of_string);
+    let isEditing = false;
+    <React.Suspense fallback={<NoteSkeleton isEditing />}>
+      <NestedRouter_NoteItem selectedId isEditing />
+    </React.Suspense>;
+  };
+};
+
+module EditNotePage = {
+  [@react.component]
+  let make = (~params, ~query as _) => {
+    let selectedId =
+      DynamicParams.find("id", params) |> Option.map(int_of_string);
+    let isEditing = true;
+    <React.Suspense fallback={<NoteSkeleton isEditing />}>
+      <NestedRouter_NoteItem selectedId isEditing />
+    </React.Suspense>;
+  };
+};
+
 /* <Link href=RoutesRegistry.lola> */
 
-let routeDefinitions: RouterRSC.routeDefinitionsTree = {
-  mainLayout: AppLayout.make(),
-  mainPage: App.make(),
-  routes: [
-    {
-      path: "/new",
-      page:
-        Some(
-          (~dynamicParams as _, ~queryParams as _) => {
-            <React.Suspense fallback={<NoteSkeleton isEditing=true />}>
-              <NestedRouter_NoteItem selectedId=None isEditing=true />
-            </React.Suspense>
-          },
-        ),
-      layout: None,
-      subRoutes: None,
-    },
-    {
-      path: "/:id",
-      page:
-        Some(
-          (~dynamicParams, ~queryParams as _) => {
-            let selectedId =
-              DynamicParams.find("id", dynamicParams)
-              |> Option.map(int_of_string);
-            let isEditing = false;
-            <React.Suspense fallback={<NoteSkeleton isEditing />}>
-              <NestedRouter_NoteItem selectedId isEditing />
-            </React.Suspense>;
-          },
-        ),
-      layout: Some((~children, ~dynamicParams as _) => children),
-      subRoutes:
-        Some([
-          {
-            path: "/edit",
-            layout: None,
-            page:
-              Some(
-                (~dynamicParams, ~queryParams as _) => {
-                  let selectedId =
-                    DynamicParams.find("id", dynamicParams)
-                    |> Option.map(int_of_string);
-                  let isEditing = true;
-
-                  <React.Suspense fallback={<NoteSkeleton isEditing />}>
-                    <NestedRouter_NoteItem selectedId isEditing />
-                  </React.Suspense>;
-                },
-              ),
-            subRoutes: None,
-          },
-        ]),
-    },
-  ],
-};
+let routeDefinitions: RouterRSC.t =
+  RouterRSC.make(
+    ~layout=(module AppLayout),
+    ~page=(module App),
+    ~notFound=(module NotFound),
+    ~loading=(module GlobalLoading),
+    [
+      RouterRSC.route(
+        ~path="/new",
+        ~page=(module NewNotePage),
+        ~loading=(module NoteEditLoading),
+        [],
+        (),
+      ),
+      RouterRSC.route(
+        ~path="/:id",
+        ~layout=(module PassThroughLayout),
+        ~page=(module NotePage),
+        ~loading=(module NoteLoading),
+        [
+          RouterRSC.route(
+            ~path="/edit",
+            ~page=(module EditNotePage),
+            ~loading=(module NoteEditLoading),
+            [],
+            (),
+          ),
+        ],
+        (),
+      ),
+    ],
+  );

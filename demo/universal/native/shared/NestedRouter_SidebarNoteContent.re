@@ -22,13 +22,12 @@ module Square = {
 [@react.client.component]
 let make =
     (~id: int, ~children: React.element, ~expandedChildren: React.element) => {
-  let navigate = Router.use();
-  let dynamicParams = DynamicParams.use();
+  let { Router.navigate, params, _ } = Router.useRouter();
   let (isExpanded, setIsExpanded) = RR.useStateValue(false);
   let (isNavigating, startNavigating) = React.useTransition();
 
   let isActive =
-    switch (DynamicParams.find("id", dynamicParams)) {
+    switch (DynamicParams.find("id", params)) {
     | Some(selectedId) => selectedId == Int.to_string(id)
     | None => false
     };
@@ -49,14 +48,11 @@ let make =
         _ => {
           let queryParams =
             URL.makeExn(Location.href(DOM.window->DOM.Window.location))
-            |> URL.searchParams;
+            |> URL.searchParams
+            |> URL.SearchParams.toString;
+          let queryString = queryParams == "" ? "" : "?" ++ queryParams;
           startNavigating(() => {
-            navigate(
-              "/demo/router/"
-              ++ Int.to_string(id)
-              ++ "?"
-              ++ URL.SearchParams.toString(queryParams),
-            )
+            navigate("/demo/router/" ++ Int.to_string(id) ++ queryString)
           });
         }
       ]>
