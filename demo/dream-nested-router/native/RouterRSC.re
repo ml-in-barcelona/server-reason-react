@@ -408,95 +408,72 @@ let renderSubRouteModel =
       ~notFound,
       routes,
     ) => {
-  /* DreamRSC.stream_element( */
+  let parentRoute = parentRouteDefinition == "" ? "/" : parentRouteDefinition;
+  let element =
+    routes
+    |> getSubRoute(
+         ~request,
+         ~parentDefinition=parentRoute,
+         ~subRouteDefinition,
+         ~globalLoading,
+       )
+    |> Option.value(
+         ~default=renderNotFound(~notFound, ~path=Dream.target(request)),
+       );
+
   DreamRSC.stream_model_value(
     ~location=Dream.target(request),
-    /**
-    The list of models is:
-    - The parent route path (So the client can know which route to render)
-    - The dynamic params
-    - The sub route element
-     */
-    React.Model.List([
-      React.Model.Json(
-        `String(parentRouteDefinition == "" ? "/" : parentRouteDefinition),
-      ),
-      React.Model.Json(dynamicParams |> DynamicParams.to_json),
-      React.Model.Element(
-        routes
-        |> getSubRoute(
-             ~request,
-             ~parentDefinition=
-               parentRouteDefinition == "" ? "/" : parentRouteDefinition,
-             ~subRouteDefinition,
-             ~globalLoading,
-           )
-        |> Option.value(
-             ~default=renderNotFound(~notFound, ~path=Dream.target(request)),
-           ),
-      ),
-    ]),
+    React.Model.Element(
+      <NavigationResponse parentRoute dynamicParams>
+        element
+      </NavigationResponse>,
+    ),
   );
 };
 
-/**
- * Renders the route model for the given route definition from route definitions
-  */
 let renderRouteModel =
     (~request, ~routeDefinition, ~dynamicParams, routeDefinitions) => {
   let globalLoading = routeDefinitions.loading;
+  let parentRoute = routeDefinition == "" ? "/" : routeDefinition;
+  let pageconsumer = {
+    let isRoot = routeDefinition ++ "/" == "/";
+    Some(
+      if (isRoot) {
+        renderMainPage(
+          ~page=routeDefinitions.page,
+          ~globalLoading,
+          ~query=
+            Dream.all_queries(request)
+            |> Array.of_list
+            |> URL.SearchParams.makeWithArray,
+        );
+      } else {
+        routeDefinitions.routes
+        |> getRoute(~request, ~definition=routeDefinition, ~globalLoading)
+        |> Option.value(
+             ~default=
+               renderNotFound(
+                 ~notFound=routeDefinitions.notFound,
+                 ~path=Dream.target(request),
+               ),
+           );
+      },
+    );
+  };
   DreamRSC.stream_model_value(
     ~location=Dream.target(request),
-    React.Model.List([
-      React.Model.Json(`String(routeDefinition)),
-      /**
-        * As the client don't have access to the dynamic params (/:)
-        * we need to extract them from the path and send them to the client.
-        * Example:
-        * - Route definition: /classroom/:classroom_id/student/:student_id
-        * - Route path: /classroom/1/student/1
-        * - Dynamic params: [("student_id", "1"), ("classroom_id", "1")]
-        */
-      React.Model.Json(dynamicParams |> DynamicParams.to_json),
-      React.Model.Element(
+    React.Model.Element(
+      <NavigationResponse parentRoute dynamicParams>
         <Route
           path="/"
           layout={renderMainLayout(
             ~layoutOpt=routeDefinitions.layout,
             ~children=<Route.PageConsumer />,
           )}
-          pageconsumer={
-                         let isRoot = routeDefinition ++ "/" == "/";
-                         Some(
-                           if (isRoot) {
-                             renderMainPage(
-                               ~page=routeDefinitions.page,
-                               ~globalLoading,
-                               ~query=
-                                 Dream.all_queries(request)
-                                 |> Array.of_list
-                                 |> URL.SearchParams.makeWithArray,
-                             );
-                           } else {
-                             routeDefinitions.routes
-                             |> getRoute(
-                                  ~request,
-                                  ~definition=routeDefinition,
-                                  ~globalLoading,
-                                )
-                             |> Option.value(
-                                  ~default=
-                                    renderNotFound(
-                                      ~notFound=routeDefinitions.notFound,
-                                      ~path=Dream.target(request),
-                                    ),
-                                );
-                           },
-                         );
-                       }
-        />,
-      ),
-    ]),
+          pageconsumer
+        />
+      </NavigationResponse>,
+    ),
   );
 };
 
