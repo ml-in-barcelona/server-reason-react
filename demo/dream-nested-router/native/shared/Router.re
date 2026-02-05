@@ -4,10 +4,36 @@
 * On navigation, it fetches the route component and updates the dynamic params.
 * Depending on the mode (revalidate or not), it either updates the whole page or the specific route component.
 */
-exception NoProvider(string);
+exception No_provider(string);
 module DOM = Webapi.Dom;
 module Location = DOM.Location;
 module History = DOM.History;
+
+type url = URL.t;
+let url_to_json = url => url |> URL.toString |> Melange_json.To_json.string;
+let url_of_json = (json: Melange_json.t) =>
+  URL.makeExn(json |> Melange_json.Of_json.string);
+
+[@platform js]
+let watchUrl = callback => {
+  let watcherID = _ =>
+    callback(URL.makeExn(Location.href(DOM.window->DOM.Window.location)));
+  DOM.EventTarget.addEventListener(
+    "popstate",
+    watcherID,
+    DOM.Window.asEventTarget(DOM.window),
+  );
+  watcherID;
+};
+
+[@platform js]
+let unwatchUrl = watcherID => {
+  DOM.EventTarget.removeEventListener(
+    "popstate",
+    watcherID,
+    DOM.Window.asEventTarget(DOM.window),
+  );
+};
 
 [@platform js]
 module HistoryCache = {
@@ -77,24 +103,65 @@ let%browser_only fetchComponent = endpoint => {
      });
 };
 
+[@platform js]
+type pendingNavigation = {
+  revalidate: bool,
+  path: string,
+  shouldReplace: bool,
+};
+
 type t =
   (~replace: bool=?, ~revalidate: bool=?, ~shallow: bool=?, string) => unit;
 
-let context: React.Context.t(option(t)) = React.createContext(None);
+type router = {
+  navigate: t,
+  params: DynamicParams.t,
+  url: URL.t,
+  pathname: string,
+  searchParams: URL.SearchParams.t,
+  isNavigating: bool,
+};
+
+let context: React.Context.t(option(router)) = React.createContext(None);
 let provider = React.Context.provider(context);
+
 let use = () => {
   switch (React.useContext(context)) {
+  | Some(context) => context.navigate
+  | None => raise(No_provider("Router.use() requires the Router component"))
+  };
+};
+
+let useRouter = () => {
+  switch (React.useContext(context)) {
   | Some(context) => context
-  | None => raise(NoProvider("Router.use() requires the Router component"))
+  | None =>
+    raise(No_provider("Router.useRouter() requires the Router component"))
   };
 };
 
 [@react.client.component]
-let make = (~children: React.element) => {
+let make =
+    (
+      ~serverUrl: url,
+      ~initialDynamicParams: DynamicParams.t,
+      ~children: React.element,
+    ) => {
   let (element, setElement) = React.useState(() => children);
-  let { DynamicParams.dynamicParams, setDynamicParams } =
-    DynamicParams.useContext();
+  let (url, setUrl) = React.useState(() => serverUrl);
+  let (dynamicParams, setDynamicParams) =
+    React.useState(() => initialDynamicParams);
+  let setDynamicParams = params => setDynamicParams(_ => params);
+  let pathname = URL.pathname(url);
+  let searchParams = URL.searchParams(url);
+
+  React.useEffect0(() => {
+    let watcherId = watchUrl(url => setUrl(_ => url));
+    Some(() => unwatchUrl(watcherId));
+  });
   let (cachedNodeKey, setCachedNodeKey) = React.useState(() => "");
+  let (isNavigating, setIsNavigating) = React.useState(() => false);
+  let pendingNavigationRef = React.useRef(None);
 
   let%browser_only renderFullPage = element => {
     /**
@@ -110,11 +177,42 @@ let make = (~children: React.element) => {
   let%browser_only renderSubRoute = (~parentRoute, element) => {
     let virtualHistoryRoute =
       VirtualHistory.find(parentRoute)
-      // If we don't find the virtualHistoryRoute, we use the main route and create a new state from it.
       |> Option.value(~default=VirtualHistory.state^ |> List.hd);
 
     VirtualHistory.cleanPathState(virtualHistoryRoute.path);
     virtualHistoryRoute.renderPage(element);
+  };
+
+  let%browser_only handleNavigationResponse =
+                   (~parentRoute, ~dynamicParams, ~element) => {
+    switch (pendingNavigationRef.current) {
+    | Some({ revalidate, path, shouldReplace }) =>
+      setDynamicParams(dynamicParams);
+
+      let historyState = {
+        "dynamicParams": dynamicParams,
+        "parentRoute": parentRoute,
+        "path": path,
+      };
+
+      let _ =
+        shouldReplace
+          ? HistoryState.replace(HistoryState.fromJs(historyState), path)
+          : HistoryState.push(HistoryState.fromJs(historyState), path);
+
+      let _ =
+        if (revalidate) {
+          HistoryCache.set(~key=historyState, ~page=FullPage(element));
+          renderFullPage(element);
+        } else {
+          HistoryCache.set(~key=historyState, ~page=SubRoute(element));
+          renderSubRoute(~parentRoute, element);
+        };
+
+      pendingNavigationRef.current = None;
+      setIsNavigating(_ => false);
+    | None => ()
+    };
   };
 
   let%browser_only navigate =
@@ -154,52 +252,27 @@ let make = (~children: React.element) => {
         ++ buildQueryString(~prefix="&", queryParamsOpt);
       };
 
-    // When shallow is true, we only update the url, without navigating.
     if (shallow) {
       ();
     } else {
+      setIsNavigating(_ => true);
+      pendingNavigationRef.current =
+        Some({
+          revalidate,
+          path: to_,
+          shouldReplace,
+        });
+
       let _ =
         fetchComponent(endpoint)
-        |> Js.Promise.then_(
-             (
-               (
-                 parentRoute,
-                 dynamicParams: DynamicParams.t,
-                 element: React.element,
-               ),
-             ) => {
-             setDynamicParams(dynamicParams);
-
-             let historyState = {
-               "dynamicParams": dynamicParams,
-               "parentRoute": parentRoute,
-               "path": to_,
-             };
-
-             let _ =
-               shouldReplace
-                 ? HistoryState.replace(
-                     HistoryState.fromJs(historyState),
-                     to_,
-                   )
-                 : HistoryState.push(HistoryState.fromJs(historyState), to_);
-
-             let _ =
-               if (revalidate) {
-                 HistoryCache.set(
-                   ~key=historyState,
-                   ~page=FullPage(element),
-                 );
-                 renderFullPage(element);
-               } else {
-                 HistoryCache.set(
-                   ~key=historyState,
-                   ~page=SubRoute(element),
-                 );
-                 renderSubRoute(~parentRoute, element);
-               };
-
+        |> Js.Promise.then_((navigationResponse: React.element) => {
+             setElement(_ => navigationResponse);
              Js.Promise.resolve();
+           })
+        |> Js.Promise.catch(error => {
+             pendingNavigationRef.current = None;
+             setIsNavigating(_ => false);
+             Js.Promise.reject(Obj.magic(error));
            });
       ();
     };
@@ -275,24 +348,51 @@ let make = (~children: React.element) => {
     );
   });
 
+  let routerValue =
+    Some({
+      navigate,
+      params: dynamicParams,
+      url,
+      pathname,
+      searchParams,
+      isNavigating,
+    });
+
   <React.Fragment key=cachedNodeKey>
     {switch%platform () {
      | Client =>
        React.createElement(
-         provider,
+         NavigationResponse.internalProvider,
          {
-           "value": Some(navigate),
-           "children": element,
+           "value": Some(handleNavigationResponse),
+           "children":
+             React.createElement(
+               provider,
+               {
+                 "value": routerValue,
+                 "children": element,
+               },
+             ),
          },
        )
      | Server =>
-       provider(
-         ~value=
-           Some(
-             (~replace=?, ~revalidate=?, ~shallow=?, _) =>
-               failwith("navigate isn't supported on server"),
+       NavigationResponse.internalProvider(
+         ~value=None,
+         ~children=
+           provider(
+             ~value=
+               Some({
+                 navigate: (~replace=?, ~revalidate=?, ~shallow=?, _) =>
+                   failwith("navigate isn't supported on server"),
+                 params: dynamicParams,
+                 url,
+                 pathname,
+                 searchParams,
+                 isNavigating,
+               }),
+             ~children=element,
+             (),
            ),
-         ~children=element,
          (),
        )
      }}

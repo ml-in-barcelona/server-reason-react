@@ -900,7 +900,7 @@ let decodeFormDataReply formData =
   let input_prefix = ref None in
   let decodeArgs body =
     match Yojson.Basic.from_string body with
-    | `List args -> args |> List.map (fun arg -> parseModel arg)
+    | `List args -> args |> List.map parseModel
     | _ -> raise (Invalid_argument "Invalid args, this request was not created by server-reason-react")
   in
 
