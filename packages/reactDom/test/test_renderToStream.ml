@@ -444,6 +444,91 @@ let dangerous_html_in_suspense () =
       "<script>function $RC(a,b){...}$RC('B:0','S:0')</script>";
     ]
 
+let context_basic () =
+  let context = React.createContext "default" in
+  let consumer =
+    React.Upper_case_component
+      ( "consumer",
+        fun () ->
+          let value = React.useContext context in
+          React.createElement "span" [] [ React.string value ] )
+  in
+  let app () = React.Context.provider context ~value:"provided" ~children:consumer () in
+  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
+  assert_stream stream [ "<span>provided</span>" ]
+
+let context_default_value () =
+  let context = React.createContext "fallback" in
+  let app =
+    React.Upper_case_component
+      ( "consumer",
+        fun () ->
+          let value = React.useContext context in
+          React.createElement "span" [] [ React.string value ] )
+  in
+  let%lwt stream, _abort = ReactDOM.renderToStream app in
+  assert_stream stream [ "<span>fallback</span>" ]
+
+let context_nested_providers () =
+  let context = React.createContext "default" in
+  let consumer () =
+    React.Upper_case_component
+      ( "consumer",
+        fun () ->
+          let value = React.useContext context in
+          React.createElement "span" [] [ React.string value ] )
+  in
+  let app () =
+    React.Context.provider context ~value:"outer"
+      ~children:
+        (React.list
+           [
+             consumer ();
+             React.Upper_case_component
+               ("inner_provider", fun () -> React.Context.provider context ~value:"inner" ~children:(consumer ()) ());
+             consumer ();
+           ])
+      ()
+  in
+  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
+  assert_stream stream [ "<span>outer</span><span>inner</span><span>outer</span>" ]
+
+let context_multiple_independent () =
+  let context_a = React.createContext "a-default" in
+  let context_b = React.createContext "b-default" in
+  let consumer () =
+    React.Upper_case_component
+      ( "consumer",
+        fun () ->
+          let a = React.useContext context_a in
+          let b = React.useContext context_b in
+          React.createElement "div" [] [ React.string a; React.string "-"; React.string b ] )
+  in
+  let app () =
+    React.Context.provider context_a ~value:"a-provided"
+      ~children:(React.Context.provider context_b ~value:"b-provided" ~children:(consumer ()) ())
+      ()
+  in
+  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
+  assert_stream stream [ "<div>a-provided<!-- -->-<!-- -->b-provided</div>" ]
+
+let context_with_suspense () =
+  let context = React.createContext "default" in
+  let consumer =
+    React.Upper_case_component
+      ( "consumer",
+        fun () ->
+          let value = React.useContext context in
+          React.createElement "span" [] [ React.string value ] )
+  in
+  let app () =
+    React.Context.provider context ~value:"provided"
+      ~children:(React.Suspense.make ~fallback:(React.string "loading") ~children:consumer ())
+      ()
+  in
+  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
+  assert_stream stream [ "<span>provided</span>" ]
+
 let tests =
   [
     test "silly_stream" silly_stream;
@@ -464,4 +549,9 @@ let tests =
     test "suspense_with_concurrent_suspenses" suspense_with_concurrent_suspenses;
     test "suspense_with_comments" suspense_with_comments;
     (* test "abort_streaming" abort_streaming; *)
+    test "context_basic" context_basic;
+    test "context_default_value" context_default_value;
+    test "context_nested_providers" context_nested_providers;
+    test "context_multiple_independent" context_multiple_independent;
+    test "context_with_suspense" context_with_suspense;
   ]

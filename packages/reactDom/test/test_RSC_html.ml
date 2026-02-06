@@ -668,6 +668,43 @@ let nested_context () =
       "<script data-payload='6:I[\"./provider.js\",[],\"Provider\"]\n'>window.srr_stream.push()</script>";
     ]
 
+let context_lost_across_suspense_boundary () =
+  let context = React.createContext "default" in
+  let consumer () =
+    React.Upper_case_component
+      ( "consumer",
+        fun () ->
+          let value = React.useContext context in
+          React.string value )
+  in
+  let app () =
+    React.Context.provider context ~value:"from-provider"
+      ~children:
+        (React.Suspense.make ~fallback:(React.string "loading")
+           ~children:
+             (React.Async_component
+                ( "async",
+                  fun () ->
+                    let%lwt () = sleep ~ms:10 in
+                    Lwt.return (consumer ()) ))
+           ())
+      ()
+  in
+  (* Known limitation: the context value is lost across Suspense async boundaries.
+     The consumer should read "from-provider" but reads "default" because the
+     Provider's push/pop completes before the deferred async rendering runs.
+     When this is fixed, update "default" to "from-provider" in both HTML and model. *)
+  assert_html (app ())
+    ~shell:
+      "<!--$?--><template id=\"B:1\"></template>loading<!--/$--><script \
+       data-payload='0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"loading\",\"children\":\"$L1\"},null,[],{}]\n\
+       '>window.srr_stream.push()</script>"
+    [
+      "<div hidden=\"true\" id=\"S:1\">default</div>\n\
+       <script>$RC('B:1', 'S:1')</script><script data-payload='1:\"default\"\n\
+       '>window.srr_stream.push()</script>";
+    ]
+
 let tests =
   [
     (* test "debug_adds_debug_info" debug_adds_debug_info; *)
@@ -692,6 +729,7 @@ let tests =
     test "suspense_in_a_list_with_error" suspense_in_a_list_with_error;
     test "server_function_as_action" server_function_as_action;
     test "nested_context" nested_context;
+    test "context_lost_across_suspense_boundary" context_lost_across_suspense_boundary;
     (* test "page_with_resources" page_with_resources;
     test "page_with_duplicate_resources" page_with_duplicate_resources; *)
     (* test "client_component_with_bootstrap_scripts" client_component_with_bootstrap_scripts;

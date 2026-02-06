@@ -396,7 +396,7 @@ type element =
   | Static of { prerendered : string; original : element }
   | Fragment of element
   | Empty
-  | Provider of element
+  | Provider of { children : element; push : unit -> unit -> unit }
   | Consumer of element
   | Suspense of { key : string option; children : element; fallback : element }
 
@@ -487,7 +487,7 @@ let cloneElement element new_attributes =
   | Empty -> raise (Invalid_argument "React.cloneElement: cannot clone a null element")
   | List _ -> raise (Invalid_argument "React.cloneElement: cannot clone a List")
   | Array _ -> raise (Invalid_argument "React.cloneElement: cannot clone an Array")
-  | Provider _ -> raise (Invalid_argument "React.cloneElement: cannot clone a Provider")
+  | Provider { children = _; push = _ } -> raise (Invalid_argument "React.cloneElement: cannot clone a Provider")
   | Consumer _ -> raise (Invalid_argument "React.cloneElement: cannot clone a Consumer")
   | Suspense _ -> raise (Invalid_argument "React.cloneElement: cannot clone a Suspense")
 
@@ -518,8 +518,15 @@ end
 let createContext (initial_value : 'a) : 'a Context.t =
   let ref_value = { current = initial_value } in
   let provider ~value ~children () =
-    ref_value.current <- value;
-    Provider children
+    Provider
+      {
+        children;
+        push =
+          (fun () ->
+            let prev = ref_value.current in
+            ref_value.current <- value;
+            fun () -> ref_value.current <- prev);
+      }
   in
   let consumer ~children = Consumer children in
   { current_value = ref_value; provider; consumer }

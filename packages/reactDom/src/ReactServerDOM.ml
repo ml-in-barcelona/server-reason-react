@@ -330,8 +330,11 @@ module Model = struct
           let index = Stream.push ~context (to_chunk (Component_ref ref)) in
           let client_props = models_to_payload ~context ~to_chunk ~env props in
           node ~tag:(ref_value index) ~props:client_props []
-      (* TODO: Do we need to do anything with Provider and Consumer? *)
-      | Provider children -> turn_element_into_payload ~context ~is_root children
+      | Provider { children; push } ->
+          let pop = push () in
+          let result = turn_element_into_payload ~context ~is_root children in
+          pop ();
+          result
       | Consumer children -> turn_element_into_payload ~context ~is_root children
     in
     turn_element_into_payload ~context ~is_root element
@@ -515,7 +518,11 @@ let rec client_to_html ~(fiber : Fiber.t) (element : React.element) =
       let sync = html_suspense_placeholder ~fallback index in
       Lwt.return sync
   | Client_component { import_module = _; import_name = _; props = _; client } -> client_to_html ~fiber client
-  | Provider children -> client_to_html ~fiber children
+  | Provider { children; push } ->
+      let pop = push () in
+      let%lwt result = client_to_html ~fiber children in
+      pop ();
+      Lwt.return result
   | Consumer children -> client_to_html ~fiber children
 
 and render_lower_case ~fiber ~key:_ ~tag ~attributes ~children =
@@ -606,7 +613,11 @@ let rec render_element_to_html ~(fiber : Fiber.t) (element : React.element) : (H
         let index = Stream.push ~context to_chunk in
         let html = html_suspense_placeholder ~fallback:html_fallback index in
         Lwt.return (html, Model.suspense_placeholder ~key ~fallback:model_fallback index))
-  | Provider children -> render_element_to_html ~fiber children
+  | Provider { children; push } ->
+      let pop = push () in
+      let%lwt result = render_element_to_html ~fiber children in
+      pop ();
+      Lwt.return result
   | Consumer children -> render_element_to_html ~fiber children
   | Lower_case_element { key; tag; attributes; children } ->
       render_lower_case_element ~fiber ~key ~tag ~attributes ~children ()
