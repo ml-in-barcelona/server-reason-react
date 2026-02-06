@@ -655,7 +655,7 @@ let nested_context () =
   assert_html (app ())
     ~shell:
       "/root<!-- -->/about<!-- -->About page<script \
-       data-payload='0:[\"$\",\"$6\",null,{\"value\":\"$1\",\"children\":[\"/root\",[\"$\",\"$5\",null,{},null,[],{}]]},null,[],{}]\n\
+       data-payload='0:[\"$\",\"$3\",null,{\"value\":\"$1\",\"children\":[\"/root\",[\"$\",\"$4\",null,{},null,[],{}]]},null,[],{}]\n\
        '>window.srr_stream.push()</script>"
     [
       "<script data-payload='3:I[\"./provider.js\",[],\"Provider\"]\n'>window.srr_stream.push()</script>";
@@ -664,8 +664,6 @@ let nested_context () =
        page\",\"children\":[\"/about\",[\"$\",\"$4\",null,{},null,[],{}]]},null,[],{}]\n\
        '>window.srr_stream.push()</script>";
       "<script data-payload='1:\"$2\"\n'>window.srr_stream.push()</script>";
-      "<script data-payload='5:I[\"./consumer.js\",[],\"Consumer\"]\n'>window.srr_stream.push()</script>";
-      "<script data-payload='6:I[\"./provider.js\",[],\"Provider\"]\n'>window.srr_stream.push()</script>";
     ]
 
 let tests =

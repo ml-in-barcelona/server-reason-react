@@ -148,6 +148,8 @@ let make =
       ~children: React.element,
     ) => {
   let (element, setElement) = React.useState(() => children);
+  let (pendingNavigationResponse, setPendingNavigationResponse) =
+    React.useState(() => React.null);
   let (url, setUrl) = React.useState(() => serverUrl);
   let (dynamicParams, setDynamicParams) =
     React.useState(() => initialDynamicParams);
@@ -211,6 +213,7 @@ let make =
 
       pendingNavigationRef.current = None;
       setIsNavigating(_ => false);
+      setPendingNavigationResponse(_ => React.null);
     | None => ()
     };
   };
@@ -266,7 +269,7 @@ let make =
       let _ =
         fetchComponent(endpoint)
         |> Js.Promise.then_((navigationResponse: React.element) => {
-             setElement(_ => navigationResponse);
+             setPendingNavigationResponse(_ => navigationResponse);
              Js.Promise.resolve();
            })
         |> Js.Promise.catch(error => {
@@ -370,7 +373,8 @@ let make =
                provider,
                {
                  "value": routerValue,
-                 "children": element,
+                 "children":
+                   React.array([|element, pendingNavigationResponse|]),
                },
              ),
          },

@@ -976,23 +976,17 @@ let nested_context () =
   in
   let output, subscribe = capture_stream () in
   let%lwt () = ReactServerDOM.render_model ~subscribe (app ()) in
-  (* TODO: Don't push multiple scripts for the same client component *)
   assert_list_of_strings !output
     [
       "1:I[\"./provider.js\",[],\"Provider\"]\n";
-      "4:I[\"./provider.js\",[],\"Provider\"]\n";
-      "7:I[\"./provider.js\",[],\"Provider\"]\n";
-      "a:I[\"./provider.js\",[],\"Provider\"]\n";
-      "9:[\"$\",\"$a\",null,{\"value\":null,\"children\":\"Hey you\"},null,[],{}]\n";
-      "8:\"$9\"\n";
-      "b:I[\"./consumer.js\",[],\"Consumer\"]\n";
-      "6:[\"$\",\"$7\",null,{\"value\":\"$8\",\"children\":[\"/me\",[\"$\",\"$b\",null,{},null,[],{}]]},null,[],{}]\n";
-      "5:\"$6\"\n";
-      "c:I[\"./consumer.js\",[],\"Consumer\"]\n";
-      "3:[\"$\",\"$4\",null,{\"value\":\"$5\",\"children\":[\"/about\",[\"$\",\"$c\",null,{},null,[],{}]]},null,[],{}]\n";
+      "7:[\"$\",\"$1\",null,{\"value\":null,\"children\":\"Hey you\"},null,[],{}]\n";
+      "6:\"$7\"\n";
+      "8:I[\"./consumer.js\",[],\"Consumer\"]\n";
+      "5:[\"$\",\"$1\",null,{\"value\":\"$6\",\"children\":[\"/me\",[\"$\",\"$8\",null,{},null,[],{}]]},null,[],{}]\n";
+      "4:\"$5\"\n";
+      "3:[\"$\",\"$1\",null,{\"value\":\"$4\",\"children\":[\"/about\",[\"$\",\"$8\",null,{},null,[],{}]]},null,[],{}]\n";
       "2:\"$3\"\n";
-      "d:I[\"./consumer.js\",[],\"Consumer\"]\n";
-      "0:[\"$\",\"$1\",null,{\"value\":\"$2\",\"children\":[\"/root\",[\"$\",\"$d\",null,{},null,[],{}]]},null,[],{}]\n";
+      "0:[\"$\",\"$1\",null,{\"value\":\"$2\",\"children\":[\"/root\",[\"$\",\"$8\",null,{},null,[],{}]]},null,[],{}]\n";
     ];
   Lwt.return ()
 
