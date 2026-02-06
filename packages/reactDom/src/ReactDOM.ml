@@ -81,7 +81,10 @@ let render_to_buffer ~mode buf element =
           (Invalid_argument
              ("Client components can't be rendered on the server via renderToString or renderToStaticMarkup. Please \
                use the React server components API instead. module: " ^ import_module))
-    | Provider children -> render_element children
+    | Provider { children; push } ->
+        let pop = push () in
+        render_element children;
+        pop ()
     | Consumer children -> render_element children
     | Fragment children -> render_element children
     | List list -> List.iter render_element list
@@ -141,7 +144,10 @@ let write_to_buffer buf element =
     | Static { prerendered; _ } -> Buffer.add_string buf prerendered
     | Client_component { import_module; _ } ->
         raise (Invalid_argument ("Client components can't be rendered via write_to_buffer. module: " ^ import_module))
-    | Provider children -> render children
+    | Provider { children; push } ->
+        let pop = push () in
+        render children;
+        pop ()
     | Consumer children -> render children
     | Fragment children -> render children
     | List list -> List.iter render list
@@ -251,7 +257,11 @@ let rec render_to_stream_buffer ~stream_context buf element =
           (Invalid_argument
              ("Client components can't be rendered on the server via renderToStream. Please use the React server \
                components API instead. module: " ^ import_module))
-    | Provider children -> render_element children
+    | Provider { children; push } ->
+        let pop = push () in
+        let%lwt () = render_element children in
+        pop ();
+        Lwt.return ()
     | Consumer children -> render_element children
     | Fragment children -> render_element children
     | List list -> Lwt_list.iter_s render_element list
@@ -334,7 +344,11 @@ let rec render_to_stream_buffer ~stream_context buf element =
           (Invalid_argument
              ("Client components can't be rendered on the server via renderToStream. Please use the React server \
                components API instead. module: " ^ import_module))
-    | Provider children -> render_element_to_buffer target_buf children
+    | Provider { children; push } ->
+        let pop = push () in
+        let%lwt () = render_element_to_buffer target_buf children in
+        pop ();
+        Lwt.return ()
     | Consumer children -> render_element_to_buffer target_buf children
     | Fragment children -> render_element_to_buffer target_buf children
     | List list -> Lwt_list.iter_s (render_element_to_buffer target_buf) list
@@ -468,7 +482,11 @@ and render_with_resolved_buffer ~stream_context buf element =
           (Invalid_argument
              ("Client components can't be rendered on the server via renderToStream. Please use the React server \
                components API instead. module: " ^ import_module))
-    | Provider children -> render_element children
+    | Provider { children; push } ->
+        let pop = push () in
+        let%lwt () = render_element children in
+        pop ();
+        Lwt.return ()
     | Consumer children -> render_element children
     | Fragment children -> render_element children
     | List list -> Lwt_list.iter_s render_element list

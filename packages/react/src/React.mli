@@ -579,7 +579,7 @@ type element =
   | Static of { prerendered : string; original : element }
   | Fragment of element
   | Empty
-  | Provider of element
+  | Provider of { children : element; push : unit -> unit -> unit }
   | Consumer of element
   | Suspense of { key : string option; children : element; fallback : element }
 
