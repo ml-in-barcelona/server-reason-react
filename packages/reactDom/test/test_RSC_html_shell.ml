@@ -238,7 +238,7 @@ let async_scripts_gets_deduplicated () =
           ];
       ]
   in
-  (* TODO: Deduplication only works on HTML currently, we don't know if we need the same logic for the model *)
+  (* Model faithfully represents the virtual DOM tree: regular DOM elements are not deduplicated in the model. Only client component references (I chunks) are deduplicated, matching React.js behavior. *)
   assert_html app
     ~shell:
       "<!DOCTYPE html><html><head><script async \
@@ -298,8 +298,7 @@ let links_gets_pushed_to_the_head () =
           ];
       ]
   in
-  (* TODO: Deduplication only works on HTML currently, we don't know if we need the same logic for the model *)
-  (* Links that aren't hoisted to the head are not deduplicated. Here favicon is duplicated *)
+  (* Model faithfully represents the virtual DOM tree: regular DOM elements are not deduplicated in the model. Only client component references (I chunks) are deduplicated, matching React.js behavior. Links that aren't hoisted to the head are not deduplicated. Here favicon is duplicated. *)
   assert_html app
     ~shell:
       "<!DOCTYPE html><html><head><link href=\"https://cdn.com/main.css\" rel=\"stylesheet\" precedence=\"low\" \

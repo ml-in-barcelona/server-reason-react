@@ -23,13 +23,28 @@ let create_stack_trace () =
   `List (Array.to_list (Array.map make_locations slots))
 
 module Stream = struct
-  type 'a t = { push : 'a -> unit; close : unit -> unit; mutable index : int; mutable pending : int }
+  type 'a t = {
+    push : 'a -> unit;
+    close : unit -> unit;
+    mutable index : int;
+    mutable pending : int;
+    written_client_references : (string * string, int) Hashtbl.t;
+  }
 
   let push to_chunk ~context =
     let index = context.index in
     context.index <- context.index + 1;
     context.push (to_chunk index);
     index
+
+  let push_client_ref ~context ~import_module ~import_name to_chunk =
+    let key = (import_module, import_name) in
+    match Hashtbl.find_opt context.written_client_references key with
+    | Some existing_index -> existing_index
+    | None ->
+        let index = push to_chunk ~context in
+        Hashtbl.replace context.written_client_references key index;
+        index
 
   let push_async promise_to_chunk ~context =
     let index = context.index in
@@ -45,7 +60,7 @@ module Stream = struct
 
   let make ?(initial_index = 0) ?(pending = 0) () =
     let stream, push, close = Push_stream.make () in
-    (stream, { push; close; pending; index = initial_index })
+    (stream, { push; close; pending; index = initial_index; written_client_references = Hashtbl.create 16 })
 end
 
 (* Resources module maintains insertion order while deduplicating based on src/href *)
@@ -327,7 +342,7 @@ module Model = struct
           suspense_node ~key ~fallback [ turn_element_into_payload ~context ~is_root children ]
       | Client_component { import_module; import_name; props; client = _ } ->
           let ref = component_ref ~module_:import_module ~name:import_name in
-          let index = Stream.push ~context (to_chunk (Component_ref ref)) in
+          let index = Stream.push_client_ref ~context ~import_module ~import_name (to_chunk (Component_ref ref)) in
           let client_props = models_to_payload ~context ~to_chunk ~env props in
           node ~tag:(ref_value index) ~props:client_props []
       (* TODO: Do we need to do anything with Provider and Consumer? *)
@@ -567,7 +582,7 @@ let rec render_element_to_html ~(fiber : Fiber.t) (element : React.element) : (H
       let props = Model.models_to_payload ~context ~to_chunk:model_to_chunk ~env props in
       let%lwt html = client_to_html ~fiber client in
       let ref : json = Model.component_ref ~module_:import_module ~name:import_name in
-      let index = Stream.push ~context (model_to_chunk (Component_ref ref)) in
+      let index = Stream.push_client_ref ~context ~import_module ~import_name (model_to_chunk (Component_ref ref)) in
       let model = Model.node ~tag:(Model.ref_value index) ~props [] in
       Lwt.return (html, model)
   | Suspense { key; children; fallback } -> (
