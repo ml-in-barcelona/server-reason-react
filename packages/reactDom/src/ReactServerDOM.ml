@@ -260,14 +260,9 @@ module Model = struct
       context.push (to_chunk (Debug_ref (`String debug_info_ref)) current_index) |> ignore
     else ()
 
-  (* React.js inlines ALL server components: renderFunctionComponent calls
-    renderModelDestructive on the result and returns the JSON directly.
-    The only things that get separate chunks are async work (Promises),
-    client references, and size-based outlining (serializedSize > MAX_ROW_SIZE).
+  (* React.js inlines ALL server components: renderFunctionComponent calls renderModelDestructive on the result and returns the JSON directly.
 
-    We match this: server components are always inlined, we call the component
-    and recurse on its result within the same chunk. Separate chunks are only
-    created for async components (push_async) and client references (push_client_ref). *)
+    The only things that get separate chunks are async work (Promises), client references, and size-based outlining (serializedSize > MAX_ROW_SIZE). Our implementation of size-based outlining is not yet implemented. *)
   let rec element_to_payload ?(debug = false) ~context ~to_chunk ~env element =
     let rec turn_element_into_payload ~context element =
       match (element : React.element) with
