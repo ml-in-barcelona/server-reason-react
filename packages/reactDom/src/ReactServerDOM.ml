@@ -260,11 +260,19 @@ module Model = struct
       context.push (to_chunk (Debug_ref (`String debug_info_ref)) current_index) |> ignore
     else ()
 
-  let rec element_to_payload ?(debug = false) ~context ~is_root ~to_chunk ~env element =
-    let rec turn_element_into_payload ~context ~is_root element =
+  (* React.js inlines ALL server components: renderFunctionComponent calls
+    renderModelDestructive on the result and returns the JSON directly.
+    The only things that get separate chunks are async work (Promises),
+    client references, and size-based outlining (serializedSize > MAX_ROW_SIZE).
+
+    We match this: server components are always inlined, we call the component
+    and recurse on its result within the same chunk. Separate chunks are only
+    created for async components (push_async) and client references (push_client_ref). *)
+  let rec element_to_payload ?(debug = false) ~context ~to_chunk ~env element =
+    let rec turn_element_into_payload ~context element =
       match (element : React.element) with
       | Empty -> `Null
-      | Static { original; _ } -> turn_element_into_payload ~context ~is_root original
+      | Static { original; _ } -> turn_element_into_payload ~context original
       (* TODO: Do we need to html encode the model or only the html? *)
       | Text t -> `String t
       | Lower_case_element { key; tag; attributes; children } ->
@@ -281,32 +289,16 @@ module Model = struct
               attributes
           in
           let props = props_to_json attributes in
-          node ~key ~tag ~props (List.map (turn_element_into_payload ~context ~is_root) children)
-      | Fragment children -> turn_element_into_payload ~context ~is_root:false children
-      | List children -> `List (List.map (turn_element_into_payload ~context ~is_root:false) children)
-      | Array children -> `List (Array.map (turn_element_into_payload ~context ~is_root:false) children |> Array.to_list)
+          node ~key ~tag ~props (List.map (turn_element_into_payload ~context) children)
+      | Fragment children -> turn_element_into_payload ~context children
+      | List children -> `List (List.map (turn_element_into_payload ~context) children)
+      | Array children -> `List (Array.map (turn_element_into_payload ~context) children |> Array.to_list)
       | Upper_case_component (name, component) -> (
           (* TODO: Get the stack info from component *)
           match component () with
           | element ->
-              (* TODO: Can we remove the is_root difference. It currently align with react.js behavior, but it's not clear what is the purpose of it *)
-              if is_root then (
-                (*
-                  If it's the root element, React returns the element payload instead of a reference value.
-                  Root is a special case: https://github.com/facebook/react/blob/f3a803617ec4ba9d14bf5205ffece28ed1496a1d/packages/react-server/src/ReactFlightServer.js#L756-L766
-                *)
-                if debug then push_debug_info ~context ~to_chunk ~env ~index:0 ~ownerName:name else ();
-                let next_is_root = match element with Upper_case_component _ -> true | _ -> false in
-                turn_element_into_payload ~context ~is_root:next_is_root element)
-              else
-                (* If it's not the root React push the element to the stream and return the reference value *)
-                let element_index =
-                  Stream.push ~context (fun index ->
-                      if debug then push_debug_info ~context ~to_chunk ~env ~index ~ownerName:name else ();
-                      let payload = turn_element_into_payload ~context ~is_root element in
-                      to_chunk (Value payload) index)
-                in
-                `String (ref_value element_index)
+              if debug then push_debug_info ~context ~to_chunk ~env ~index:0 ~ownerName:name else ();
+              turn_element_into_payload ~context element
           | exception exn ->
               let error = exn_to_error exn in
               let index = Stream.push ~context (to_chunk (Error (env, error))) in
@@ -321,12 +313,16 @@ module Model = struct
               let error = make_error ~message ~stack ~digest:"" in
               let index = Stream.push ~context (to_chunk (Error (env, error))) in
               `String (lazy_value index)
-          | Return element -> turn_element_into_payload ~context ~is_root:false element
+          | Return element -> turn_element_into_payload ~context element
           | Sleep ->
+              (* When the promise is still sleeping, we create a lazy reference ($LN) because our stream pushes the root chunk synchronously.
+
+                React.js delays the root chunk until the promise resolves, but we can't do that without a larger architectural change.
+              *)
               let promise =
                 try%lwt
                   let%lwt element = promise in
-                  Lwt.return (to_chunk (Value (turn_element_into_payload ~context ~is_root element)))
+                  Lwt.return (to_chunk (Value (turn_element_into_payload ~context element)))
                 with exn ->
                   let message = Printexc.to_string exn in
                   let stack = create_stack_trace () in
@@ -336,10 +332,8 @@ module Model = struct
               let index = Stream.push_async promise ~context in
               `String (lazy_value index))
       | Suspense { key; children; fallback } ->
-          (* TODO: Need to check is_root? *)
-          (* TODO: Maybe we need to push suspense index and suspense node separately *)
-          let fallback = turn_element_into_payload ~context ~is_root fallback in
-          suspense_node ~key ~fallback [ turn_element_into_payload ~context ~is_root children ]
+          let fallback = turn_element_into_payload ~context fallback in
+          suspense_node ~key ~fallback [ turn_element_into_payload ~context children ]
       | Client_component { import_module; import_name; props; client = _ } ->
           let ref = component_ref ~module_:import_module ~name:import_name in
           let index = Stream.push_client_ref ~context ~import_module ~import_name (to_chunk (Component_ref ref)) in
@@ -347,25 +341,25 @@ module Model = struct
           node ~tag:(ref_value index) ~props:client_props []
       | Provider { children; push } ->
           let pop = push () in
-          let result = turn_element_into_payload ~context ~is_root children in
+          let result = turn_element_into_payload ~context children in
           pop ();
           result
-      | Consumer children -> turn_element_into_payload ~context ~is_root children
+      | Consumer children -> turn_element_into_payload ~context children
     in
-    turn_element_into_payload ~context ~is_root element
+    turn_element_into_payload ~context element
 
-  and model_to_payload ~context ?debug ~is_root ~to_chunk ~env value =
+  and model_to_payload ~context ?debug ~to_chunk ~env value =
     match (value : React.model_value) with
     | Json json -> json
     | Error error ->
         let index = Stream.push ~context (to_chunk (Error (env, error))) in
         `String (error_value index)
-    | Element element -> element_to_payload ~context ?debug ~is_root ~to_chunk ~env element
+    | Element element -> element_to_payload ~context ?debug ~to_chunk ~env element
     | Promise (promise, value_to_model) -> (
         match Lwt.state promise with
         | Return value ->
             let model = value_to_model value in
-            let payload = model_to_payload ~context ~is_root:false ~to_chunk ~env model in
+            let payload = model_to_payload ~context ~to_chunk ~env model in
             let index = Stream.push ~context (to_chunk (Value payload)) in
             `String (promise_value index)
         | Sleep ->
@@ -373,7 +367,7 @@ module Model = struct
               try%lwt
                 let%lwt value = promise in
                 let model = value_to_model value in
-                let payload = model_to_payload ~context ~is_root:false ~to_chunk ~env model in
+                let payload = model_to_payload ~context ~to_chunk ~env model in
                 Lwt.return (to_chunk (Value payload))
               with exn ->
                 let message = Printexc.to_string exn in
@@ -390,24 +384,22 @@ module Model = struct
             let index = Stream.push ~context (to_chunk (Error (env, error))) in
             `String (promise_value index))
     | List list ->
-        let list = List.map (fun element -> model_to_payload ~context ~is_root ~to_chunk ~env element) list in
+        let list = List.map (fun element -> model_to_payload ~context ~to_chunk ~env element) list in
         `List list
     | Assoc assoc ->
-        let assoc =
-          List.map (fun (name, value) -> (name, model_to_payload ~context ~is_root ~to_chunk ~env value)) assoc
-        in
+        let assoc = List.map (fun (name, value) -> (name, model_to_payload ~context ~to_chunk ~env value)) assoc in
         `Assoc assoc
     | Function action ->
         let index = Stream.push ~context (to_chunk (Value (`Assoc [ ("id", `String action.id); ("bound", `Null) ]))) in
         `String (action_value index)
 
   and models_to_payload ~context ~to_chunk ~env props =
-    List.map (fun (name, value) -> (name, model_to_payload ~context ~is_root:false ~to_chunk ~env value)) props
+    List.map (fun (name, value) -> (name, model_to_payload ~context ~to_chunk ~env value)) props
 
   let render ?(env = `Dev) ?(debug = false) ?subscribe model =
     let stream, context = Stream.make () in
     let to_root_chunk model id =
-      let payload = model_to_payload ~debug ~is_root:true ~context ~to_chunk ~env model in
+      let payload = model_to_payload ~debug ~context ~to_chunk ~env model in
       to_chunk (Value payload) id
     in
     Stream.push ~context (to_root_chunk model) |> ignore;
@@ -426,7 +418,7 @@ module Model = struct
     in
     let stream, context = Stream.make () in
     let to_root_chunk value id =
-      let payload = model_to_payload ~debug ~is_root:true ~context ~to_chunk ~env value in
+      let payload = model_to_payload ~debug ~context ~to_chunk ~env value in
       to_chunk (Value payload) id
     in
     Stream.push ~context (to_root_chunk response) |> ignore;
@@ -521,17 +513,27 @@ let rec client_to_html ~(fiber : Fiber.t) (element : React.element) =
   | Async_component (_, component) ->
       let%lwt element = component () in
       client_to_html ~fiber element
-  | Suspense { key = _; children; fallback } ->
-      (* TODO: Do we need to care if there's Any_promise raising ? *)
-      let%lwt fallback = client_to_html ~fiber fallback in
+  | Suspense { key = _; children; fallback } -> (
+      let%lwt fallback_html = client_to_html ~fiber fallback in
       let context = fiber.context in
-      let async =
-        let%lwt html = children |> client_to_html ~fiber in
-        Lwt.return (boundary_to_chunk html)
-      in
-      let index = Stream.push_async ~context async in
-      let sync = html_suspense_placeholder ~fallback index in
-      Lwt.return sync
+      try%lwt
+        let promise = client_to_html ~fiber children in
+        match Lwt.state promise with
+        | Return html -> Lwt.return (html_suspense_immediate html)
+        | Sleep ->
+            let async =
+              try%lwt
+                let%lwt html = promise in
+                Lwt.return (boundary_to_chunk html)
+              with _exn -> Lwt.return (boundary_to_chunk Html.null)
+            in
+            let index = Stream.push_async ~context async in
+            Lwt.return (html_suspense_placeholder ~fallback:fallback_html index)
+        | Fail exn -> Lwt.reraise exn
+      with _exn ->
+        let async = Lwt.return (boundary_to_chunk Html.null) in
+        let index = Stream.push_async ~context async in
+        Lwt.return (html_suspense_placeholder ~fallback:fallback_html index))
   | Client_component { import_module = _; import_name = _; props = _; client } -> client_to_html ~fiber client
   | Provider { children; push } ->
       let pop = push () in

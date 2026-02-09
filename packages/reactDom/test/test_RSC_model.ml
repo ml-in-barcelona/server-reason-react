@@ -160,9 +160,7 @@ let upper_case_with_list () =
   let%lwt () = ReactServerDOM.render_model ~subscribe (app ()) in
   assert_list_of_strings !output
     [
-      "1:[\"$\",\"span\",null,{\"children\":\"hi\"},null,[],{}]\n";
-      "2:[\"$\",\"span\",null,{\"children\":\"hola\"},null,[],{}]\n";
-      "0:[\"$1\",\"$2\"]\n";
+      "0:[[\"$\",\"span\",null,{\"children\":\"hi\"},null,[],{}],[\"$\",\"span\",null,{\"children\":\"hola\"},null,[],{}]]\n";
     ];
   Lwt.return ()
 
@@ -182,9 +180,7 @@ let upper_case_with_children () =
   let%lwt () = ReactServerDOM.render_model ~subscribe (app ()) in
   assert_list_of_strings !output
     [
-      "1:[\"$\",\"span\",null,{\"children\":\"hi\"},null,[],{}]\n";
-      "2:[\"$\",\"span\",null,{\"children\":\"hola\"},null,[],{}]\n";
-      "0:[\"$\",\"div\",null,{\"children\":[\"$1\",\"$2\"]},null,[],{}]\n";
+      "0:[\"$\",\"div\",null,{\"children\":[[\"$\",\"span\",null,{\"children\":\"hi\"},null,[],{}],[\"$\",\"span\",null,{\"children\":\"hola\"},null,[],{}]]},null,[],{}]\n";
     ];
   Lwt.return ()
 
@@ -204,9 +200,7 @@ let suspense_without_promise () =
   let%lwt () = ReactServerDOM.render_model ~subscribe main in
   assert_list_of_strings !output
     [
-      "1:[\"$\",\"span\",null,{\"children\":\"hi\"},null,[],{}]\n";
-      "2:[\"$\",\"span\",null,{\"children\":\"hola\"},null,[],{}]\n";
-      "0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":[\"$\",\"div\",null,{\"children\":[\"$1\",\"$2\"]},null,[],{}]},null,[],{}]\n";
+      "0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":[\"$\",\"div\",null,{\"children\":[[\"$\",\"span\",null,{\"children\":\"hi\"},null,[],{}],[\"$\",\"span\",null,{\"children\":\"hola\"},null,[],{}]]},null,[],{}]},null,[],{}]\n";
     ];
   Lwt.return ()
 
@@ -705,9 +699,9 @@ let client_with_server_children () =
   assert_list_of_strings !output
     [
       "1:I[\"./client-with-server-children.js\",[],\"ClientWithServerChildren\"]\n";
-      "2:[\"$\",\"div\",null,{\"children\":\"Server Component Inside Client\"},null,[],{}]\n";
       "0:[[\"$\",\"div\",null,{\"children\":\"Server \
-       Content\"},null,[],{}],[\"$\",\"$1\",null,{\"children\":\"$2\"},null,[],{}]]\n";
+       Content\"},null,[],{}],[\"$\",\"$1\",null,{\"children\":[\"$\",\"div\",null,{\"children\":\"Server Component \
+       Inside Client\"},null,[],{}]},null,[],{}]]\n";
     ];
   Lwt.return ()
 
@@ -979,15 +973,118 @@ let nested_context () =
   assert_list_of_strings !output
     [
       "1:I[\"./provider.js\",[],\"Provider\"]\n";
-      "7:[\"$\",\"$1\",null,{\"value\":null,\"children\":\"Hey you\"},null,[],{}]\n";
-      "6:\"$7\"\n";
-      "8:I[\"./consumer.js\",[],\"Consumer\"]\n";
-      "5:[\"$\",\"$1\",null,{\"value\":\"$6\",\"children\":[\"/me\",[\"$\",\"$8\",null,{},null,[],{}]]},null,[],{}]\n";
-      "4:\"$5\"\n";
-      "3:[\"$\",\"$1\",null,{\"value\":\"$4\",\"children\":[\"/about\",[\"$\",\"$8\",null,{},null,[],{}]]},null,[],{}]\n";
-      "2:\"$3\"\n";
-      "0:[\"$\",\"$1\",null,{\"value\":\"$2\",\"children\":[\"/root\",[\"$\",\"$8\",null,{},null,[],{}]]},null,[],{}]\n";
+      "2:I[\"./consumer.js\",[],\"Consumer\"]\n";
+      "0:[\"$\",\"$1\",null,{\"value\":[\"$\",\"$1\",null,{\"value\":[\"$\",\"$1\",null,{\"value\":[\"$\",\"$1\",null,{\"value\":null,\"children\":\"Hey \
+       you\"},null,[],{}],\"children\":[\"/me\",[\"$\",\"$2\",null,{},null,[],{}]]},null,[],{}],\"children\":[\"/about\",[\"$\",\"$2\",null,{},null,[],{}]]},null,[],{}],\"children\":[\"/root\",[\"$\",\"$2\",null,{},null,[],{}]]},null,[],{}]\n";
     ];
+  Lwt.return ()
+
+let suspense_with_nested_upper_case () =
+  (* Server components are always inlined, matching React.js behavior. Everything resolves in chunk 0. *)
+  let inner () = React.Upper_case_component ("Inner", fun () -> React.string "inner-value") in
+  let app () =
+    React.Suspense.make ~fallback:(React.string "Loading...")
+      ~children:(React.Upper_case_component ("Wrapper", fun () -> React.createElement "div" [] [ inner () ]))
+      ()
+  in
+  let main = React.Upper_case_component ("app", app) in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~subscribe main in
+  assert_list_of_strings !output
+    [
+      "0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":[\"$\",\"div\",null,{\"children\":\"inner-value\"},null,[],{}]},null,[],{}]\n";
+    ];
+  Lwt.return ()
+
+let suspense_at_root () =
+  (* React: 0:["$","$Sreact.suspense",null,{"fallback":"Loading...","children":"Resolved content"}] *)
+  let app = React.Suspense.make ~fallback:(React.string "Loading...") ~children:(React.string "Resolved content") () in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~subscribe app in
+  assert_list_of_strings !output
+    [
+      "0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"Resolved content\"},null,[],{}]\n";
+    ];
+  Lwt.return ()
+
+let suspense_at_root_with_upper_case_children () =
+  (* Server components inside Suspense are inlined, matching React.js.
+     React: 0:["$","$Sreact.suspense",null,{"fallback":"Loading...","children":["$","div",null,{"children":"Hello"}]}] *)
+  let app =
+    React.Suspense.make ~fallback:(React.string "Loading...")
+      ~children:(React.Upper_case_component ("Inner", fun () -> React.createElement "div" [] [ React.string "Hello" ]))
+      ()
+  in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~subscribe app in
+  assert_list_of_strings !output
+    [
+      "0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":[\"$\",\"div\",null,{\"children\":\"Hello\"},null,[],{}]},null,[],{}]\n";
+    ];
+  Lwt.return ()
+
+let suspense_at_root_with_nested_components () =
+  (* Server components are always inlined, matching React.js behavior.
+       0:["$","$Sreact.suspense",null,{"fallback":"Loading...",
+         "children":["$","div",null,{"children":["$","div",null,{"children":"Hello"}]}]}] *)
+  let inner () =
+    React.Upper_case_component ("Inner", fun () -> React.createElement "div" [] [ React.string "Hello" ])
+  in
+  let wrapper () = React.Upper_case_component ("Wrapper", fun () -> React.createElement "div" [] [ inner () ]) in
+  let app = React.Suspense.make ~fallback:(React.string "Loading...") ~children:(wrapper ()) () in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~subscribe app in
+  assert_list_of_strings !output
+    [
+      "0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":[\"$\",\"div\",null,{\"children\":[\"$\",\"div\",null,{\"children\":\"Hello\"},null,[],{}]},null,[],{}]},null,[],{}]\n";
+    ];
+  Lwt.return ()
+
+let suspense_at_root_with_async () =
+  (* Async children inside root Suspense create a lazy ref.
+     React: 0:["$","$Sreact.suspense",null,{"fallback":"Loading...","children":"$L1"}] then 1:resolved *)
+  let app =
+    React.Suspense.make ~fallback:(React.string "Loading...")
+      ~children:
+        (React.Async_component
+           ( "async",
+             fun () ->
+               let%lwt () = sleep ~ms:10 in
+               Lwt.return (React.createElement "span" [] [ React.string "Async resolved" ]) ))
+      ()
+  in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~subscribe app in
+  assert_list_of_strings !output
+    [
+      "0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,[],{}]\n";
+      "1:[\"$\",\"span\",null,{\"children\":\"Async resolved\"},null,[],{}]\n";
+    ];
+  Lwt.return ()
+
+let root_async_component_immediate () =
+  (* Immediately resolved async component at root inlines at chunk 0.
+     React: 0:["$","span",null,{"children":"Immediate async"}] *)
+  let app =
+    React.Async_component
+      ("immediate", fun () -> Lwt.return (React.createElement "span" [] [ React.string "Immediate async" ]))
+  in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~subscribe app in
+  assert_list_of_strings !output [ "0:[\"$\",\"span\",null,{\"children\":\"Immediate async\"},null,[],{}]\n" ];
+  Lwt.return ()
+
+let root_upper_case_chain () =
+  (* Chained root server components all inline in chunk 0.
+     React: 0:["$","div",null,{"children":"Hello"}] *)
+  let inner () =
+    React.Upper_case_component ("Inner", fun () -> React.createElement "div" [] [ React.string "Hello" ])
+  in
+  let layout () = React.Upper_case_component ("Layout", fun () -> inner ()) in
+  let app = React.Upper_case_component ("App", fun () -> layout ()) in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~subscribe app in
+  assert_list_of_strings !output [ "0:[\"$\",\"div\",null,{\"children\":\"Hello\"},null,[],{}]\n" ];
   Lwt.return ()
 
 let model_list_value () =
@@ -1063,6 +1160,13 @@ let tests =
     test "client_component_with_resources_metadata" client_component_with_resources_metadata;
     test "page_with_hoisted_resources" page_with_hoisted_resources;
     test "nested_context" nested_context;
+    test "suspense_with_nested_upper_case" suspense_with_nested_upper_case;
+    test "suspense_at_root" suspense_at_root;
+    test "suspense_at_root_with_upper_case_children" suspense_at_root_with_upper_case_children;
+    test "suspense_at_root_with_nested_components" suspense_at_root_with_nested_components;
+    test "suspense_at_root_with_async" suspense_at_root_with_async;
+    test "root_async_component_immediate" root_async_component_immediate;
+    test "root_upper_case_chain" root_upper_case_chain;
     test "model_list_value" model_list_value;
     test "model_value_assoc" model_value_assoc;
     test "client_with_promise_failed_props" client_with_promise_failed_props;

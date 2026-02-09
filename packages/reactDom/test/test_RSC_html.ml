@@ -655,15 +655,12 @@ let nested_context () =
   assert_html (app ())
     ~shell:
       "/root<!-- -->/about<!-- -->About page<script \
-       data-payload='0:[\"$\",\"$3\",null,{\"value\":\"$1\",\"children\":[\"/root\",[\"$\",\"$4\",null,{},null,[],{}]]},null,[],{}]\n\
+       data-payload='0:[\"$\",\"$1\",null,{\"value\":[\"$\",\"$1\",null,{\"value\":\"About \
+       page\",\"children\":[\"/about\",[\"$\",\"$2\",null,{},null,[],{}]]},null,[],{}],\"children\":[\"/root\",[\"$\",\"$2\",null,{},null,[],{}]]},null,[],{}]\n\
        '>window.srr_stream.push()</script>"
     [
-      "<script data-payload='3:I[\"./provider.js\",[],\"Provider\"]\n'>window.srr_stream.push()</script>";
-      "<script data-payload='4:I[\"./consumer.js\",[],\"Consumer\"]\n'>window.srr_stream.push()</script>";
-      "<script data-payload='2:[\"$\",\"$3\",null,{\"value\":\"About \
-       page\",\"children\":[\"/about\",[\"$\",\"$4\",null,{},null,[],{}]]},null,[],{}]\n\
-       '>window.srr_stream.push()</script>";
-      "<script data-payload='1:\"$2\"\n'>window.srr_stream.push()</script>";
+      "<script data-payload='1:I[\"./provider.js\",[],\"Provider\"]\n'>window.srr_stream.push()</script>";
+      "<script data-payload='2:I[\"./consumer.js\",[],\"Consumer\"]\n'>window.srr_stream.push()</script>";
     ]
 
 let context_lost_across_suspense_boundary () =
@@ -703,9 +700,29 @@ let context_lost_across_suspense_boundary () =
        '>window.srr_stream.push()</script>";
     ]
 
+let suspense_with_sync_client_component () =
+  let app () =
+    React.Client_component
+      {
+        import_module = "./client.js";
+        import_name = "Client";
+        props = [];
+        client =
+          React.Suspense.make ~fallback:(React.string "Loading...")
+            ~children:(React.createElement "div" [] [ React.string "Sync content" ])
+            ();
+      }
+  in
+  assert_html (app ())
+    ~shell:
+      "<!--$--><div>Sync content</div><!--/$--><script data-payload='0:[\"$\",\"$1\",null,{},null,[],{}]\n\
+       '>window.srr_stream.push()</script>"
+    [ "<script data-payload='1:I[\"./client.js\",[],\"Client\"]\n'>window.srr_stream.push()</script>" ]
+
 let tests =
   [
     (* test "debug_adds_debug_info" debug_adds_debug_info; *)
+    test "suspense_with_sync_client_component" suspense_with_sync_client_component;
     test "client_with_element_props" client_with_element_props;
     test "null_element" null_element;
     test "element_with_dangerously_set_inner_html" element_with_dangerously_set_inner_html;
