@@ -7,6 +7,12 @@ let assert_list (type a) (ty : a Alcotest.testable) (left : a list) (right : a l
 
 let assert_list_of_strings left right = Alcotest.check (Alcotest.list Alcotest.string) "should be equal" right left
 
+let uuid_re =
+  Str.regexp
+    "[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]-[0-9a-f][0-9a-f][0-9a-f][0-9a-f]-[0-9a-f][0-9a-f][0-9a-f][0-9a-f]-[0-9a-f][0-9a-f][0-9a-f][0-9a-f]-[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]"
+
+let replace_uuids s = Str.global_replace uuid_re "<uuid>" s
+
 let sleep ~ms =
   let%lwt () = Lwt_unix.sleep (Int.to_float ms /. 1000.0) in
   Lwt.return ()
@@ -743,13 +749,12 @@ let act_with_simple_response () =
   Lwt.return ()
 
 let act_with_error () =
-  Random.init 42;
   let output, subscribe = capture_stream () in
   let response = Lwt.fail (Failure "Error") in
   let%lwt () = ReactServerDOM.create_action_response ~subscribe response in
-  assert_list_of_strings !output
+  assert_list_of_strings (List.map replace_uuids !output)
     [
-      "1:E{\"message\":\"Failure(\\\"Error\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"103cdda1-f09c-48c1-a0ec-e1bb39dff2e3\"}\n";
+      "1:E{\"message\":\"Failure(\\\"Error\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"<uuid>\"}\n";
       "0:\"$Z1\"\n";
     ];
   Lwt.return ()
