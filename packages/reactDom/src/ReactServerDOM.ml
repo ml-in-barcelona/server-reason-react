@@ -22,6 +22,39 @@ let create_stack_trace () =
   in
   `List (Array.to_list (Array.map make_locations slots))
 
+let generate_uuid () =
+  Printf.sprintf "%04x%04x-%04x-%04x-%04x-%04x%04x%04x" (Random.int 0xFFFF) (Random.int 0xFFFF) (Random.int 0xFFFF)
+    (0x4000 lor Random.int 0x0FFF)
+    (0x8000 lor Random.int 0x3FFF)
+    (Random.int 0xFFFF) (Random.int 0xFFFF) (Random.int 0xFFFF)
+
+let default_filter_stack_frame filename _function_name = filename <> ""
+
+let capture_component_stack ~filter_stack_frame =
+  let bt = Printexc.get_callstack 10 in
+  let slots = Printexc.backtrace_slots bt |> Option.value ~default:[||] in
+  let frames =
+    Array.to_list
+      (Array.map
+         (fun slot ->
+           match (Printexc.Slot.location slot, Printexc.Slot.name slot) with
+           | Some loc, name_opt ->
+               let name = Option.value ~default:"" name_opt in
+               if filter_stack_frame loc.Printexc.filename name then
+                 Some
+                   (`List
+                      [
+                        `String name;
+                        `String loc.Printexc.filename;
+                        `Int loc.Printexc.line_number;
+                        `Int loc.Printexc.start_char;
+                      ])
+               else None
+           | _ -> None)
+         slots)
+  in
+  `List (List.filter_map Fun.id frames)
+
 module Stream = struct
   type 'a t = {
     push : 'a -> unit;
@@ -162,12 +195,7 @@ module Model = struct
     let key = match key with None -> `Null | Some key -> `String key in
     let debugId = match debugId with None -> `Null | Some debugId -> `String debugId in
     let source = match source with None -> `List [] | Some source -> `List source in
-    let owner =
-      match owner with
-      | None -> `Assoc []
-      (* TODO: debugOwner is a ReactComponentInfo itself *)
-      | Some owner -> `Assoc [ ("name", `String owner) ]
-    in
+    let owner = match owner with None -> `Null | Some owner_idx -> `Int owner_idx in
     let props =
       match children with
       | [] -> props
@@ -232,42 +260,48 @@ module Model = struct
         let error_json = make_error_json ~env ~message:error.message ~stack:error.stack ~digest:error.digest in
         error_to_chunk id error_json
 
-  (* TODO: currently it's implemented only `ReactComponentInfo` from https://github.com/facebook/react/blob/152080276c61873fdfc88db7f5856332742ddb02/packages/react-server/src/ReactFlightServer.js#L3208-L3216, it lacks other types *)
-  (* TODO: Add props, stack *)
-  let make_debug_info ?ownerName name =
-    let owner = match ownerName with Some owner -> `String owner | None -> `Null in
+  let make_debug_info ?owner ~stack name =
     `Assoc
       [
         ("name", `String name);
         ("env", `String "Server");
         ("key", `Null);
-        ("owner", owner);
-        ("stack", `List []);
-        (* We don't have access to the props of uppercase components, since we treat it as a closure and don't encode the props and pass an empty object *)
+        ("owner", match owner with Some idx -> `String (Printf.sprintf "$%x" idx) | None -> `Null);
+        ("stack", stack);
         ("props", `Assoc []);
       ]
 
-  let push_debug_info ~context ~to_chunk ~env ~index ~ownerName =
-    let current_index = index in
-    if is_dev env then
-      let index = Stream.push ~context (to_chunk (Value (make_debug_info ownerName))) in
-      let debug_info_ref = Printf.sprintf "$%x" index in
-      (*
-            React pushes the debug ref in the same level as the Upper_case_component payload
-            So we don't use Stream.push here
-            Instead we use context.push directly
-          *)
-      context.push (to_chunk (Debug_ref (`String debug_info_ref)) current_index) |> ignore
-    else ()
-
-  (* React.js inlines ALL server components: renderFunctionComponent calls renderModelDestructive on the result and returns the JSON directly.
-
-    The only things that get separate chunks are async work (Promises), client references, and size-based outlining (serializedSize > MAX_ROW_SIZE). Our implementation of size-based outlining is not yet implemented. *)
-  let rec element_to_payload ?(debug = false) ~context ~to_chunk ~env element =
-    let rec turn_element_into_payload ~context element =
+  let rec element_to_payload ?(debug = false) ?(filter_stack_frame = default_filter_stack_frame) ~context ~to_chunk ~env
+      element =
+    let emit_debug_info ~name ~debug_info =
+      let owner_idx = Option.map fst debug_info in
+      let stack = capture_component_stack ~filter_stack_frame in
+      let chunk = make_debug_info ?owner:owner_idx ~stack name in
+      let debug_info_idx = Stream.push ~context (to_chunk (Value chunk)) in
+      (debug_info_idx, owner_idx)
+    in
+    let outline_with_debug_ref ~name ~debug_info ~render_child =
+      let model_index = context.index in
+      context.index <- context.index + 1;
+      let debug_info_idx, owner_idx = emit_debug_info ~name ~debug_info in
+      let new_debug_info = Some (debug_info_idx, owner_idx) in
+      let child_payload = render_child ~debug_info:new_debug_info in
+      context.push (to_chunk (Debug_ref (`String (ref_value debug_info_idx))) model_index);
+      context.push (to_chunk (Value child_payload) model_index);
+      `String (ref_value model_index)
+    in
+    let attach_debug_info ~name ~debug_info ~render_child =
+      match debug_info with
+      | None ->
+          let debug_info_idx, _ = emit_debug_info ~name ~debug_info:None in
+          context.push (to_chunk (Debug_ref (`String (ref_value debug_info_idx))) 0);
+          render_child ~debug_info:(Some (debug_info_idx, None))
+      | Some _ -> outline_with_debug_ref ~name ~debug_info ~render_child
+    in
+    let rec turn_element_into_payload ~context ~debug_info element =
       match (element : React.element) with
       | Empty -> `Null
-      | Static { original; _ } -> turn_element_into_payload ~context original
+      | Static { original; _ } -> turn_element_into_payload ~context ~debug_info original
       | Text t -> `String t
       | Lower_case_element { key; tag; attributes; children } ->
           let attributes =
@@ -283,22 +317,24 @@ module Model = struct
               attributes
           in
           let props = props_to_json attributes in
-          node ~key ~tag ~props (List.map (turn_element_into_payload ~context) children)
-      | Fragment children -> turn_element_into_payload ~context children
-      | List children -> `List (List.map (turn_element_into_payload ~context) children)
-      | Array children -> `List (Array.map (turn_element_into_payload ~context) children |> Array.to_list)
+          let debugId = Option.map (fun (idx, _) -> ref_value idx) debug_info in
+          let owner = Option.bind debug_info (fun (_, owner_idx) -> owner_idx) in
+          node ~key ~tag ~props ~debugId ~owner (List.map (turn_element_into_payload ~context ~debug_info) children)
+      | Fragment children -> turn_element_into_payload ~context ~debug_info children
+      | List children -> `List (List.map (turn_element_into_payload ~context ~debug_info) children)
+      | Array children -> `List (Array.map (turn_element_into_payload ~context ~debug_info) children |> Array.to_list)
       | Upper_case_component (name, component) -> (
-          (* TODO: Get the stack info from component *)
           match component () with
           | element ->
-              if debug then push_debug_info ~context ~to_chunk ~env ~index:0 ~ownerName:name else ();
-              turn_element_into_payload ~context element
+              if debug then
+                attach_debug_info ~name ~debug_info ~render_child:(fun ~debug_info ->
+                    turn_element_into_payload ~context ~debug_info element)
+              else turn_element_into_payload ~context ~debug_info element
           | exception exn ->
               let error = exn_to_error exn in
               let index = Stream.push ~context (to_chunk (Error (env, error))) in
               `String (lazy_value index))
-      (* TODO: Get the stack info from component *)
-      | Async_component (_, component) -> (
+      | Async_component (name, component) -> (
           let promise = component () in
           match Lwt.state promise with
           | Fail exn ->
@@ -307,16 +343,16 @@ module Model = struct
               let error = make_error ~message ~stack ~digest:"" in
               let index = Stream.push ~context (to_chunk (Error (env, error))) in
               `String (lazy_value index)
-          | Return element -> turn_element_into_payload ~context element
+          | Return element ->
+              if debug then
+                attach_debug_info ~name ~debug_info ~render_child:(fun ~debug_info ->
+                    turn_element_into_payload ~context ~debug_info element)
+              else turn_element_into_payload ~context ~debug_info element
           | Sleep ->
-              (* When the promise is still sleeping, we create a lazy reference ($LN) because our stream pushes the root chunk synchronously.
-
-                React.js delays the root chunk until the promise resolves, but we can't do that without a larger architectural change.
-              *)
               let promise =
                 try%lwt
                   let%lwt element = promise in
-                  Lwt.return (to_chunk (Value (turn_element_into_payload ~context element)))
+                  Lwt.return (to_chunk (Value (turn_element_into_payload ~context ~debug_info element)))
                 with exn ->
                   let message = Printexc.to_string exn in
                   let stack = create_stack_trace () in
@@ -326,8 +362,8 @@ module Model = struct
               let index = Stream.push_async promise ~context in
               `String (lazy_value index))
       | Suspense { key; children; fallback } ->
-          let fallback = turn_element_into_payload ~context fallback in
-          suspense_node ~key ~fallback [ turn_element_into_payload ~context children ]
+          let fallback = turn_element_into_payload ~context ~debug_info fallback in
+          suspense_node ~key ~fallback [ turn_element_into_payload ~context ~debug_info children ]
       | Client_component { import_module; import_name; props; client = _ } ->
           let ref = component_ref ~module_:import_module ~name:import_name in
           let index = Stream.push_client_ref ~context ~import_module ~import_name (to_chunk (Component_ref ref)) in
@@ -335,20 +371,20 @@ module Model = struct
           node ~tag:(ref_value index) ~props:client_props []
       | Provider { children; push } ->
           let pop = push () in
-          let result = turn_element_into_payload ~context children in
+          let result = turn_element_into_payload ~context ~debug_info children in
           pop ();
           result
-      | Consumer children -> turn_element_into_payload ~context children
+      | Consumer children -> turn_element_into_payload ~context ~debug_info children
     in
-    turn_element_into_payload ~context element
+    turn_element_into_payload ~context ~debug_info:None element
 
-  and model_to_payload ~context ?debug ~to_chunk ~env value =
+  and model_to_payload ~context ?debug ?filter_stack_frame ~to_chunk ~env value =
     match (value : React.model_value) with
     | Json json -> json
     | Error error ->
         let index = Stream.push ~context (to_chunk (Error (env, error))) in
         `String (error_value index)
-    | Element element -> element_to_payload ~context ?debug ~to_chunk ~env element
+    | Element element -> element_to_payload ~context ?debug ?filter_stack_frame ~to_chunk ~env element
     | Promise (promise, value_to_model) -> (
         match Lwt.state promise with
         | Return value ->
@@ -390,29 +426,28 @@ module Model = struct
   and models_to_payload ~context ~to_chunk ~env props =
     List.map (fun (name, value) -> (name, model_to_payload ~context ~to_chunk ~env value)) props
 
-  let render ?(env = `Dev) ?(debug = false) ?subscribe model =
+  let render ?(env = `Dev) ?(debug = false) ?filter_stack_frame ?subscribe model =
     let stream, context = Stream.make () in
     let to_root_chunk model id =
-      let payload = model_to_payload ~debug ~context ~to_chunk ~env model in
+      let payload = model_to_payload ~debug ?filter_stack_frame ~context ~to_chunk ~env model in
       to_chunk (Value payload) id
     in
     Stream.push ~context (to_root_chunk model) |> ignore;
     if context.pending = 0 then context.close ();
     match subscribe with None -> Lwt.return () | Some subscribe -> Lwt_stream.iter_s subscribe stream
 
-  let create_action_response ?(env = `Dev) ?(debug = false) ?subscribe response =
+  let create_action_response ?(env = `Dev) ?(debug = false) ?filter_stack_frame ?subscribe response =
     let%lwt response =
       try%lwt response
       with exn ->
         let message = Printexc.to_string exn in
         let stack = create_stack_trace () in
-        (* TODO: Improve it to be an UUID *)
-        let digest = stack |> Hashtbl.hash |> Int.to_string in
+        let digest = generate_uuid () in
         Lwt.return (React.Model.Error { message; stack; env = "Server"; digest })
     in
     let stream, context = Stream.make () in
     let to_root_chunk value id =
-      let payload = model_to_payload ~debug ~context ~to_chunk ~env value in
+      let payload = model_to_payload ~debug ?filter_stack_frame ~context ~to_chunk ~env value in
       to_chunk (Value payload) id
     in
     Stream.push ~context (to_root_chunk response) |> ignore;
@@ -885,11 +920,11 @@ let render_html ?(skipRoot = false) ?(env = `Dev) ?debug:(_ = false) ?bootstrapS
       in
       Lwt.return (Html.to_string html, subscribe))
 
-let render_model_value ?(env = `Dev) ?(debug = false) ?subscribe model =
-  React.Cache.with_request_cache_async (fun () -> Model.render ~env ~debug ?subscribe model)
+let render_model_value ?(env = `Dev) ?(debug = false) ?filter_stack_frame ?subscribe model =
+  React.Cache.with_request_cache_async (fun () -> Model.render ~env ~debug ?filter_stack_frame ?subscribe model)
 
-let render_model ?(env = `Dev) ?(debug = false) ?subscribe model =
-  render_model_value ~env ~debug ?subscribe (React.Model.Element model)
+let render_model ?(env = `Dev) ?(debug = false) ?filter_stack_frame ?subscribe model =
+  render_model_value ~env ~debug ?filter_stack_frame ?subscribe (React.Model.Element model)
 
 let create_action_response = Model.create_action_response
 
