@@ -764,24 +764,20 @@ and render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html ()
 
 and elements_to_html ~fiber elements =
   let%lwt html_and_models = elements |> Lwt_list.map_p (render_element_to_html ~fiber) in
-  (* TODO: List.split is not tail recursive *)
-  let htmls, model = List.split html_and_models in
-  Lwt.return (Html.list htmls, `List model)
+  let rec split_rev acc_a acc_b = function
+    | [] -> (List.rev acc_a, List.rev acc_b)
+    | (a, b) :: rest -> split_rev (a :: acc_a) (b :: acc_b) rest
+  in
+  let htmls, model = split_rev [] [] html_and_models in
+  let html = match htmls with [ one ] -> one | many -> Html.list many in
+  Lwt.return (html, `List model)
 
-let is_body_node element =
-  match (element : Html.element) with
-  | Html.Node { tag = "body"; _ } -> true
-  (* TODO: Look where we set Html.List for one element? *)
-  | Html.List (_, [ Html.Node { tag = "body"; _ } ]) -> true
-  | _ -> false
+let is_body_node element = match (element : Html.element) with Html.Node { tag = "body"; _ } -> true | _ -> false
 
 let push_children_into ~children:new_children html =
   let open Html in
   match html with
   | Node { tag; children; attributes } -> Node { tag; attributes; children = children @ new_children }
-  (* TODO: Look where we set Html.List for one element? *)
-  | List (separator, [ Node { tag; children; attributes } ]) ->
-      List (separator, [ Node { tag; attributes; children = children @ new_children } ])
   | _ -> html
 
 (* TODO: Implement abortion, based on a timeout? *)
