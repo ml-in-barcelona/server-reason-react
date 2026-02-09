@@ -736,27 +736,27 @@ and handle_hoistable_element ~fiber ~key ~tag ~attributes ~children ~inner_html 
 
 and render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html () =
   let context = fiber.context in
-  let html_props = ReactDOM.attributes_to_html attributes in
-  let json_attributes =
-    List.map
-      (fun prop ->
-        match prop with
-        | React.JSX.Action (_, key, f) ->
-            let html = model_to_chunk (Value (`Assoc [ ("id", `String f.id); ("bound", `Null) ])) in
-            let index = Stream.push ~context html in
-            React.JSX.String (key, key, Model.action_value index)
-        | _ -> prop)
-      attributes
+  let rec process_attributes html_acc json_acc = function
+    | [] -> (List.rev html_acc, List.rev json_acc)
+    | (prop : React.JSX.prop) :: rest ->
+        let html_attr = ReactDOM.attribute_to_html prop in
+        let json_pair =
+          match prop with
+          | Action (_, key, f) ->
+              let html = model_to_chunk (Value (`Assoc [ ("id", `String f.id); ("bound", `Null) ])) in
+              let index = Stream.push ~context html in
+              Some (key, `String (Model.action_value index))
+          | _ -> Model.prop_to_json prop
+        in
+        process_attributes (html_attr :: html_acc)
+          (match json_pair with Some p -> p :: json_acc | None -> json_acc)
+          rest
   in
-
-  let json_props = Model.props_to_json json_attributes in
+  let html_props, json_props = process_attributes [] [] attributes in
 
   match (Html.is_self_closing_tag tag, inner_html) with
-  | true, _ ->
-      (* Self-closing tags have no children, so inner_html is not relevant *)
-      Lwt.return (Html.node tag html_props [], Model.node ~tag ~key ~props:json_props [])
+  | true, _ -> Lwt.return (Html.node tag html_props [], Model.node ~tag ~key ~props:json_props [])
   | false, Some inner_html ->
-      (* elements with dangerouslySetInnerHTML *)
       Lwt.return (Html.node tag html_props [ Html.raw inner_html ], Model.node ~tag ~key ~props:json_props [])
   | false, None ->
       let%lwt html, model = elements_to_html ~fiber children in

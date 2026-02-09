@@ -15,8 +15,8 @@ val renderToStream : ?pipe:(string -> unit Lwt.t) -> React.element -> (string Lw
 
     Similar to {:https://react.dev/reference/react-dom/server/renderToPipeableStream} *)
 
+val attribute_to_html : React.JSX.prop -> Html.attribute
 val attributes_to_html : React.JSX.prop list -> Html.attribute list
-(** attributes_to_html converts a list of React.JSX.prop to a list of Html.attribute. *)
 
 val getDangerouslyInnerHtml : React.JSX.prop list -> string option
 (** getDangerouslyInnerHtml returns the value of the dangerouslySetInnerHTML prop if it exists, otherwise None. *)
