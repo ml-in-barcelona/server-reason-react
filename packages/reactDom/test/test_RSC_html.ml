@@ -18,13 +18,13 @@ let sleep ~ms =
   let%lwt () = Lwt_unix.sleep (Int.to_float ms /. 1000.0) in
   Lwt.return ()
 
-let test title fn =
+let test ?(timeout_ms = 100) title fn =
   ( Printf.sprintf "ReactServerDOM.render_html / %s" title,
     [
       Alcotest_lwt.test_case "" `Quick (fun _switch () ->
           let start = Unix.gettimeofday () in
           let timeout =
-            let%lwt () = sleep ~ms:100 in
+            let%lwt () = sleep ~ms:timeout_ms in
             Alcotest.failf "Test '%s' timed out" title
           in
           let%lwt test_promise = Lwt.pick [ fn (); timeout ] in
@@ -61,7 +61,7 @@ srr_stream.readable_stream = new ReadableStream({ start(c) { srr_stream._c = c; 
   in
   let subscribed_elements = ref [] in
   if disable_backtrace then Printexc.record_backtrace false else ();
-  let%lwt html, subscribe = ReactServerDOM.render_html ?debug element in
+  let%lwt html, subscribe = ReactServerDOM.render_html ~progressive_chunk_size:1 ?debug element in
   let%lwt () =
     subscribe (fun element ->
         subscribed_elements := !subscribed_elements @ [ element ];
@@ -754,6 +754,93 @@ let text_with_script_tag () =
        '>window.srr_stream.push()</script>"
     app []
 
+let timeout_closes_stream_for_hanging_suspense () =
+  let never_resolves () =
+    let promise, _resolver = Lwt.wait () in
+    promise
+  in
+  let app =
+    React.Suspense.make ~fallback:(React.string "Loading...")
+      ~children:
+        (React.Async_component
+           ( "NeverResolves",
+             fun () ->
+               let%lwt () = never_resolves () in
+               Lwt.return (React.string "Should never appear") ))
+      ()
+  in
+  let subscribed_elements = ref [] in
+  let%lwt _html, subscribe = ReactServerDOM.render_html ~timeout:0.02 app in
+  let%lwt () =
+    subscribe (fun element ->
+        subscribed_elements := !subscribed_elements @ [ element ];
+        Lwt.return ())
+  in
+  Alcotest.(check bool) "stream completed" true (List.length !subscribed_elements > 0);
+  let all_content = String.concat "" !subscribed_elements in
+  let end_script = "<script>window.srr_stream.close()</script>" in
+  Alcotest.(check bool) "stream end script received" true (String.ends_with ~suffix:end_script all_content);
+  Lwt.return ()
+
+let timeout_does_not_affect_fast_renders () =
+  let app =
+    React.Suspense.make ~fallback:(React.string "Loading...")
+      ~children:
+        (React.Async_component
+           ( "FastComponent",
+             fun () ->
+               let%lwt () = sleep ~ms:1 in
+               Lwt.return (React.string "Fast content") ))
+      ()
+  in
+  let subscribed_elements = ref [] in
+  let%lwt _html, subscribe = ReactServerDOM.render_html ~timeout:1.0 app in
+  let%lwt () =
+    subscribe (fun element ->
+        subscribed_elements := !subscribed_elements @ [ element ];
+        Lwt.return ())
+  in
+  let all_content = String.concat "" !subscribed_elements in
+  let end_script = "<script>window.srr_stream.close()</script>" in
+  Alcotest.(check bool) "stream end script received" true (String.ends_with ~suffix:end_script all_content);
+  Alcotest.(check bool)
+    "async content was received" true
+    (Str.string_match (Str.regexp ".*<div hidden.*") all_content 0);
+  Lwt.return ()
+
+let progressive_chunk_size_batches_small_chunks () =
+  let app =
+    React.Suspense.make ~fallback:(React.string "Loading...")
+      ~children:
+        (React.Async_component
+           ( "AsyncComponent",
+             fun () ->
+               let%lwt () = sleep ~ms:1 in
+               Lwt.return (React.string "Async content") ))
+      ()
+  in
+  let chunks_small = ref [] in
+  let%lwt _html1, subscribe1 = ReactServerDOM.render_html ~progressive_chunk_size:1 app in
+  let%lwt () =
+    subscribe1 (fun element ->
+        chunks_small := !chunks_small @ [ element ];
+        Lwt.return ())
+  in
+  let chunks_large = ref [] in
+  let%lwt _html2, subscribe2 = ReactServerDOM.render_html ~progressive_chunk_size:8192 app in
+  let%lwt () =
+    subscribe2 (fun element ->
+        chunks_large := !chunks_large @ [ element ];
+        Lwt.return ())
+  in
+  Alcotest.(check bool)
+    "larger chunk size produces fewer or equal chunks" true
+    (List.length !chunks_large <= List.length !chunks_small);
+  let small_content = String.concat "" !chunks_small in
+  let large_content = String.concat "" !chunks_large in
+  Alcotest.(check string) "same content regardless of chunk size" small_content large_content;
+  Lwt.return ()
+
 let tests =
   [
     (* test "debug_adds_debug_info" debug_adds_debug_info; *)
@@ -784,10 +871,7 @@ let tests =
     test "server_function_as_action" server_function_as_action;
     test "nested_context" nested_context;
     test "context_lost_across_suspense_boundary" context_lost_across_suspense_boundary;
-    (* test "page_with_resources" page_with_resources;
-    test "page_with_duplicate_resources" page_with_duplicate_resources; *)
-    (* test "client_component_with_bootstrap_scripts" client_component_with_bootstrap_scripts;
-    test "client_component_with_bootstrap_modules" client_component_with_bootstrap_modules; *)
-    (* test "debug_adds_debug_info" debug_adds_debug_info; *)
-    (* test "debug_adds_debug_info" debug_adds_debug_info; *)
+    test ~timeout_ms:500 "timeout_closes_stream_for_hanging_suspense" timeout_closes_stream_for_hanging_suspense;
+    test ~timeout_ms:500 "timeout_does_not_affect_fast_renders" timeout_does_not_affect_fast_renders;
+    test ~timeout_ms:500 "progressive_chunk_size_batches_small_chunks" progressive_chunk_size_batches_small_chunks;
   ]

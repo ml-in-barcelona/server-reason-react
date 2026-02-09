@@ -780,9 +780,11 @@ let push_children_into ~children:new_children html =
   | Node { tag; children; attributes } -> Node { tag; attributes; children = children @ new_children }
   | _ -> html
 
-(* TODO: Implement abortion, based on a timeout? *)
-(* TODO: Ensure chunks are of a certain minimum size but also maximum? Saw react caring about this *)
-let render_html ?(skipRoot = false) ?(env = `Dev) ?debug:(_ = false) ?bootstrapScriptContent ?bootstrapScripts
+(* Default heuristic for how to split up the HTML content into progressive loading https://github.com/facebook/react/blob/493f72b0a7111b601c16b8ad8bc2649d82c184a0/packages/react-server/src/ReactFizzServer.js#L310-L323 *)
+let default_progressive_chunk_size = 12800
+
+let render_html ?(skipRoot = false) ?(env = `Dev) ?debug:(_ = false) ?timeout
+    ?(progressive_chunk_size = default_progressive_chunk_size) ?bootstrapScriptContent ?bootstrapScripts
     ?bootstrapModules element =
   React.Cache.with_request_cache_async (fun () ->
       let initial_resources =
@@ -910,9 +912,36 @@ let render_html ?(skipRoot = false) ?(env = `Dev) ?debug:(_ = false) ?bootstrapS
         else Html.list (root_html :: user_scripts)
       in
       let subscribe fn =
-        let fn_with_to_string v = fn (Html.to_string v) in
-        let%lwt () = Push_stream.subscribe ~fn:fn_with_to_string stream in
-        fn_with_to_string chunk_stream_end_script
+        let buf = Buffer.create progressive_chunk_size in
+        let flush () =
+          let contents = Buffer.contents buf in
+          Buffer.clear buf;
+          fn contents
+        in
+        let buffered v =
+          Buffer.add_string buf (Html.to_string v);
+          if Buffer.length buf >= progressive_chunk_size then flush () else Lwt.return ()
+        in
+        let finish () =
+          Buffer.add_string buf (Html.to_string chunk_stream_end_script);
+          flush ()
+        in
+        let subscription =
+          let%lwt () = Push_stream.subscribe ~fn:buffered stream in
+          finish ()
+        in
+        match timeout with
+        | None -> subscription
+        | Some seconds ->
+            Lwt.pick
+              [
+                subscription;
+                (let%lwt () = Lwt_unix.sleep seconds in
+                 if context.pending > 0 then (
+                   context.pending <- 0;
+                   context.close ());
+                 finish ());
+              ]
       in
       Lwt.return (Html.to_string html, subscribe))
 
