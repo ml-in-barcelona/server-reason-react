@@ -1119,9 +1119,29 @@ let model_value_assoc () =
     [ "0:{\"key\":\"value\",\"component\":[\"$\",\"div\",null,{\"children\":\"Hello world\"},null,[],{}]}\n" ];
   Lwt.return ()
 
+let special_characters_not_html_encoded () =
+  let app =
+    React.createElement "div" []
+      [
+        React.string "Tom & Jerry";
+        React.string "<script>alert('xss')</script>";
+        React.string "it's a \"test\"";
+        React.string "&amp; &lt; &gt;";
+      ]
+  in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~subscribe app in
+  assert_list_of_strings !output
+    [
+      "0:[\"$\",\"div\",null,{\"children\":[\"Tom & Jerry\",\"<script>alert('xss')</script>\",\"it's a \
+       \\\"test\\\"\",\"&amp; &lt; &gt;\"]},null,[],{}]\n";
+    ];
+  Lwt.return ()
+
 let tests =
   [
     test "null_element" null_element;
+    test "special_characters_not_html_encoded" special_characters_not_html_encoded;
     test "string_element" string_element;
     test "key_renders_outside_of_props" key_renders_outside_of_props;
     test "style_as_json" style_as_json;

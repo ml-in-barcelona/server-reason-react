@@ -268,7 +268,6 @@ module Model = struct
       match (element : React.element) with
       | Empty -> `Null
       | Static { original; _ } -> turn_element_into_payload ~context original
-      (* TODO: Do we need to html encode the model or only the html? *)
       | Text t -> `String t
       | Lower_case_element { key; tag; attributes; children } ->
           let attributes =

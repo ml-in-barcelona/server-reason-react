@@ -192,6 +192,10 @@ let add_single_quote_escaped b s =
           flush b start i;
           adds b "&#x27;";
           loop next next
+      | '&' ->
+          flush b start i;
+          adds b "&amp;";
+          loop next next
       | _ -> loop start next
   in
   loop 0 0

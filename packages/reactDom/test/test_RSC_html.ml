@@ -719,10 +719,49 @@ let suspense_with_sync_client_component () =
        '>window.srr_stream.push()</script>"
     [ "<script data-payload='1:I[\"./client.js\",[],\"Client\"]\n'>window.srr_stream.push()</script>" ]
 
+let text_with_ampersand () =
+  let app = React.createElement "div" [] [ React.string "Tom & Jerry" ] in
+  assert_html
+    ~shell:
+      "<div>Tom &amp; Jerry</div><script data-payload='0:[\"$\",\"div\",null,{\"children\":[\"Tom &amp; \
+       Jerry\"]},null,[],{}]\n\
+       '>window.srr_stream.push()</script>"
+    app []
+
+let text_with_html_entity () =
+  let app = React.createElement "div" [] [ React.string "Tom &amp; Jerry" ] in
+  assert_html
+    ~shell:
+      "<div>Tom &amp;amp; Jerry</div><script data-payload='0:[\"$\",\"div\",null,{\"children\":[\"Tom &amp;amp; \
+       Jerry\"]},null,[],{}]\n\
+       '>window.srr_stream.push()</script>"
+    app []
+
+let text_with_single_quote () =
+  let app = React.createElement "div" [] [ React.string "it's" ] in
+  assert_html
+    ~shell:
+      "<div>it&apos;s</div><script data-payload='0:[\"$\",\"div\",null,{\"children\":[\"it&#x27;s\"]},null,[],{}]\n\
+       '>window.srr_stream.push()</script>"
+    app []
+
+let text_with_script_tag () =
+  let app = React.createElement "div" [] [ React.string "</script><script>alert('xss')</script>" ] in
+  assert_html
+    ~shell:
+      "<div>&lt;/script&gt;&lt;script&gt;alert(&apos;xss&apos;)&lt;/script&gt;</div><script \
+       data-payload='0:[\"$\",\"div\",null,{\"children\":[\"</script><script>alert(&#x27;xss&#x27;)</script>\"]},null,[],{}]\n\
+       '>window.srr_stream.push()</script>"
+    app []
+
 let tests =
   [
     (* test "debug_adds_debug_info" debug_adds_debug_info; *)
     test "suspense_with_sync_client_component" suspense_with_sync_client_component;
+    test "text_with_ampersand" text_with_ampersand;
+    test "text_with_html_entity" text_with_html_entity;
+    test "text_with_single_quote" text_with_single_quote;
+    test "text_with_script_tag" text_with_script_tag;
     test "client_with_element_props" client_with_element_props;
     test "null_element" null_element;
     test "element_with_dangerously_set_inner_html" element_with_dangerously_set_inner_html;
