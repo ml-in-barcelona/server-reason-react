@@ -21,6 +21,24 @@ let measure_benchmark ~name render_fn =
   let ops_per_sec = float_of_int iterations /. elapsed in
   { name; ops_per_sec }
 
+let lwt_iterations = 1000
+
+let measure_benchmark_lwt ~name render_fn =
+  for _ = 1 to 10 do
+    let _ = Lwt_main.run (render_fn ()) in
+    ()
+  done;
+  Gc.full_major ();
+  Gc.compact ();
+  let start = Unix.gettimeofday () in
+  for _ = 1 to lwt_iterations do
+    let _ = Lwt_main.run (render_fn ()) in
+    ()
+  done;
+  let elapsed = Unix.gettimeofday () -. start in
+  let ops_per_sec = float_of_int lwt_iterations /. elapsed in
+  { name; ops_per_sec }
+
 let print_result r = Printf.printf "%-35s %12.0f ops/sec\n" r.name r.ops_per_sec
 
 let print_results_table results =
@@ -93,6 +111,27 @@ let () =
       measure_benchmark ~name:"primitive/React.list_100" (fun () ->
           let lst = List.init 100 (fun i -> React.string (string_of_int i)) in
           ReactDOM.renderToStaticMarkup (React.createElement "div" [] [ React.list lst ]));
+      measure_benchmark_lwt ~name:"rsc/trivial" (fun () ->
+          let%lwt html, _subscribe = ReactServerDOM.render_html (Trivial.make ()) in
+          Lwt.return html);
+      measure_benchmark_lwt ~name:"rsc/depth/50" (fun () ->
+          let%lwt html, _subscribe = ReactServerDOM.render_html (DeepTree.Depth50.make ()) in
+          Lwt.return html);
+      measure_benchmark_lwt ~name:"rsc/width/100" (fun () ->
+          let%lwt html, _subscribe = ReactServerDOM.render_html (WideTree.Wide100.make ()) in
+          Lwt.return html);
+      measure_benchmark_lwt ~name:"rsc/width/500" (fun () ->
+          let%lwt html, _subscribe = ReactServerDOM.render_html (WideTree.Wide500.make ()) in
+          Lwt.return html);
+      measure_benchmark_lwt ~name:"rsc/width/1000" (fun () ->
+          let%lwt html, _subscribe = ReactServerDOM.render_html (WideTree.Wide1000.make ()) in
+          Lwt.return html);
+      measure_benchmark_lwt ~name:"rsc/table/100" (fun () ->
+          let%lwt html, _subscribe = ReactServerDOM.render_html (Table.Table100.make ()) in
+          Lwt.return html);
+      measure_benchmark_lwt ~name:"rsc/table/500" (fun () ->
+          let%lwt html, _subscribe = ReactServerDOM.render_html (Table.Table500.make ()) in
+          Lwt.return html);
     ]
   in
 
