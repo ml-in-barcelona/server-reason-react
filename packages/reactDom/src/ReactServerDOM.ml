@@ -2,7 +2,6 @@ type json = Yojson.Basic.t
 type env = [ `Dev | `Prod ]
 
 let is_dev = function `Dev -> true | `Prod -> false
-let make_error ~message ~stack ~digest = { React.message; stack; env = "Server"; digest }
 
 let create_stack_trace () =
   let slots = Printexc.backtrace_slots (Printexc.get_raw_backtrace ()) |> Option.value ~default:[||] in
@@ -564,9 +563,10 @@ let rec client_to_html ~(fiber : Fiber.t) (element : React.element) =
         let index = Stream.push_async ~context async in
         Lwt.return (html_suspense_placeholder ~fallback:fallback_html index))
   | Client_component { import_module = _; import_name = _; props = _; client } -> client_to_html ~fiber client
-  | Provider { children; push } ->
+  | Provider { children; push; async_key; async_value } ->
       let pop = push () in
-      let%lwt result = client_to_html ~fiber children in
+      let result = Lwt.with_value async_key (Some async_value) (fun () -> client_to_html ~fiber children) in
+      let%lwt result = result in
       pop ();
       Lwt.return result
   | Consumer children -> client_to_html ~fiber children
@@ -659,9 +659,10 @@ let rec render_element_to_html ~(fiber : Fiber.t) (element : React.element) : (H
         let index = Stream.push ~context to_chunk in
         let html = html_suspense_placeholder ~fallback:html_fallback index in
         Lwt.return (html, Model.suspense_placeholder ~key ~fallback:model_fallback index))
-  | Provider { children; push } ->
+  | Provider { children; push; async_key; async_value } ->
       let pop = push () in
-      let%lwt result = render_element_to_html ~fiber children in
+      let result = Lwt.with_value async_key (Some async_value) (fun () -> render_element_to_html ~fiber children) in
+      let%lwt result = result in
       pop ();
       Lwt.return result
   | Consumer children -> render_element_to_html ~fiber children
