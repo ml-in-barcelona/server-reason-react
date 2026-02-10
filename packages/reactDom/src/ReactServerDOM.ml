@@ -174,6 +174,7 @@ module Model = struct
   let ref_value id = Printf.sprintf "$%x" id
   let error_value id = Printf.sprintf "$Z%x" id
   let action_value id = Printf.sprintf "$F%x" id
+  let action_to_json (action : _ Runtime.server_function) = `Assoc [ ("id", `String action.id); ("bound", `Null) ]
 
   let prop_to_json (prop : React.JSX.prop) =
     match prop with
@@ -190,9 +191,8 @@ module Model = struct
 
   let props_to_json props = List.filter_map prop_to_json props
 
-  let node ~tag ?(key = None) ~props ?(source = None) ?(debugId = None) ?(owner = None) children : json =
+  let node ~tag ?(key = None) ~props ?(source = None) ?(owner = None) children : json =
     let key = match key with None -> `Null | Some key -> `String key in
-    let debugId = match debugId with None -> `Null | Some debugId -> `String debugId in
     let source = match source with None -> `List [] | Some source -> `List source in
     let owner = match owner with None -> `Null | Some owner_idx -> `Int owner_idx in
     let props =
@@ -201,7 +201,7 @@ module Model = struct
       | [ one_children ] -> ("children", one_children) :: props
       | childrens -> ("children", `List childrens) :: props
     in
-    `List [ `String "$"; `String tag; key; `Assoc props; debugId; source; owner ]
+    `List [ `String "$"; `String tag; key; `Assoc props; owner; source; `Int 1 ]
 
   (* Not using `node` because we need to add fallback prop as json directly *)
   let suspense_node ~key ~fallback children : json =
@@ -308,17 +308,14 @@ module Model = struct
               (fun prop ->
                 match prop with
                 | React.JSX.Action (_, key, f) ->
-                    let index =
-                      Stream.push ~context (to_chunk (Value (`Assoc [ ("id", `String f.id); ("bound", `Null) ])))
-                    in
+                    let index = Stream.push ~context (to_chunk (Value (action_to_json f))) in
                     React.JSX.String (key, key, action_value index)
                 | _ -> prop)
               attributes
           in
           let props = props_to_json attributes in
-          let debugId = Option.map (fun (idx, _) -> ref_value idx) debug_info in
           let owner = Option.bind debug_info (fun (_, owner_idx) -> owner_idx) in
-          node ~key ~tag ~props ~debugId ~owner (List.map (turn_element_into_payload ~context ~debug_info) children)
+          node ~key ~tag ~props ~owner (List.map (turn_element_into_payload ~context ~debug_info) children)
       | Fragment children -> turn_element_into_payload ~context ~debug_info children
       | List children -> `List (List.map (turn_element_into_payload ~context ~debug_info) children)
       | Array children -> `List (Array.map (turn_element_into_payload ~context ~debug_info) children |> Array.to_list)
@@ -337,9 +334,7 @@ module Model = struct
           let promise = component () in
           match Lwt.state promise with
           | Fail exn ->
-              let message = Printexc.to_string exn in
-              let stack = create_stack_trace () in
-              let error = make_error ~message ~stack ~digest:"" in
+              let error = exn_to_error exn in
               let index = Stream.push ~context (to_chunk (Error (env, error))) in
               `String (lazy_value index)
           | Return element ->
@@ -353,9 +348,7 @@ module Model = struct
                   let%lwt element = promise in
                   Lwt.return (to_chunk (Value (turn_element_into_payload ~context ~debug_info element)))
                 with exn ->
-                  let message = Printexc.to_string exn in
-                  let stack = create_stack_trace () in
-                  let error = make_error ~message ~stack ~digest:"" in
+                  let error = exn_to_error exn in
                   Lwt.return (to_chunk (Error (env, error)))
               in
               let index = Stream.push_async promise ~context in
@@ -368,7 +361,7 @@ module Model = struct
           let index = Stream.push_client_ref ~context ~import_module ~import_name (to_chunk (Component_ref ref)) in
           let client_props = models_to_payload ~context ~to_chunk ~env props in
           node ~tag:(ref_value index) ~props:client_props []
-      | Provider { children; push } ->
+      | Provider { children; push; _ } ->
           let pop = push () in
           let result = turn_element_into_payload ~context ~debug_info children in
           pop ();
@@ -399,17 +392,13 @@ module Model = struct
                 let payload = model_to_payload ~context ~to_chunk ~env model in
                 Lwt.return (to_chunk (Value payload))
               with exn ->
-                let message = Printexc.to_string exn in
-                let stack = create_stack_trace () in
-                let error = make_error ~message ~stack ~digest:"" in
+                let error = exn_to_error exn in
                 Lwt.return (to_chunk (Error (env, error)))
             in
             let index = Stream.push_async promise ~context in
             `String (promise_value index)
         | Fail exn ->
-            let message = Printexc.to_string exn in
-            let stack = create_stack_trace () in
-            let error = make_error ~message ~stack ~digest:"" in
+            let error = exn_to_error exn in
             let index = Stream.push ~context (to_chunk (Error (env, error))) in
             `String (promise_value index))
     | List list ->
@@ -419,7 +408,7 @@ module Model = struct
         let assoc = List.map (fun (name, value) -> (name, model_to_payload ~context ~to_chunk ~env value)) assoc in
         `Assoc assoc
     | Function action ->
-        let index = Stream.push ~context (to_chunk (Value (`Assoc [ ("id", `String action.id); ("bound", `Null) ]))) in
+        let index = Stream.push ~context (to_chunk (Value (action_to_json action))) in
         `String (action_value index)
 
   and models_to_payload ~context ~to_chunk ~env props =
@@ -521,8 +510,7 @@ let rec client_to_html ~(fiber : Fiber.t) (element : React.element) =
           (fun prop ->
             match prop with
             | React.JSX.Action (_, key, f) ->
-                let json = `Assoc [ ("id", `String f.id); ("bound", `Null) ] in
-                let index = Stream.push ~context (model_to_chunk (Value json)) in
+                let index = Stream.push ~context (model_to_chunk (Value (Model.action_to_json f))) in
                 React.JSX.String (key, key, Model.action_value index)
             | _ -> prop)
           attributes
@@ -593,7 +581,6 @@ let has_precedence_and_rel_stylesheet props =
 let rec render_element_to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * json) Lwt.t =
   match element with
   | Empty -> Lwt.return (Html.null, `Null)
-  (* TODO: Check if this is correct *)
   | Static { prerendered; original } ->
       let%lwt _, model = render_element_to_html ~fiber original in
       Lwt.return (Html.raw prerendered, model)
@@ -602,15 +589,7 @@ let rec render_element_to_html ~(fiber : Fiber.t) (element : React.element) : (H
   | List list -> elements_to_html ~fiber list
   | Array arr -> elements_to_html ~fiber (Array.to_list arr)
   | Upper_case_component (_name, component) -> (
-      (* if debug then (
-          let debug_info_index = Fiber.use_index fiber in
-          let debug_info_ref : json = `String (Printf.sprintf "$%x" debug_info_index) in
-          (* TODO: Chunks might need to be pushed in the same row *)
-          context.push debug_info_index (Model.Value (Model.make_debug_info name));
-          context.push debug_info_index (Model.Debug_ref debug_info_ref);
-          ()); *)
-      match component () with
-      | element -> render_element_to_html ~fiber element)
+      match component () with element -> render_element_to_html ~fiber element)
   | Async_component (_, component) ->
       let%lwt element = component () in
       render_element_to_html ~fiber element
@@ -636,9 +615,7 @@ let rec render_element_to_html ~(fiber : Fiber.t) (element : React.element) : (H
                 let to_chunk index = Html.list [ boundary_to_chunk html index; model_to_chunk (Value model) index ] in
                 Lwt.return to_chunk
               with exn ->
-                let message = Printexc.to_string exn in
-                let stack = create_stack_trace () in
-                let error = make_error ~message ~stack ~digest:"" in
+                let error = Model.exn_to_error exn in
                 let to_chunk index = model_to_chunk (Error (fiber.env, error)) index in
                 Lwt.return to_chunk
             in
@@ -721,7 +698,9 @@ and handle_hoistable_element ~fiber ~key ~tag ~attributes ~children ~inner_html 
     (* In case of the model, we don't care about inner_html as a children since we need it as a prop. This is the opposite from html rendering *)
     match (Html.is_self_closing_tag tag, inner_html) with
     | _, Some _ | true, _ -> Model.node ~tag ~key ~props []
-    | false, None -> Model.node ~tag ~key ~props [ children ]
+    | false, None ->
+        let children = match children with `List l -> l | other -> [ other ] in
+        Model.node ~tag ~key ~props children
   in
   let create_html_node ~html_props ~children_html =
     match inner_html with
@@ -744,8 +723,7 @@ and render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html ()
         let json_pair =
           match prop with
           | Action (_, key, f) ->
-              let html = model_to_chunk (Value (`Assoc [ ("id", `String f.id); ("bound", `Null) ])) in
-              let index = Stream.push ~context html in
+              let index = Stream.push ~context (model_to_chunk (Value (Model.action_to_json f))) in
               Some (key, `String (Model.action_value index))
           | _ -> Model.prop_to_json prop
         in
@@ -761,7 +739,8 @@ and render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html ()
       Lwt.return (Html.node tag html_props [ Html.raw inner_html ], Model.node ~tag ~key ~props:json_props [])
   | false, None ->
       let%lwt html, model = elements_to_html ~fiber children in
-      Lwt.return (Html.node tag html_props [ html ], Model.node ~tag ~key ~props:json_props [ model ])
+      let model_children = match model with `List l -> l | other -> [ other ] in
+      Lwt.return (Html.node tag html_props [ html ], Model.node ~tag ~key ~props:json_props model_children)
 
 and elements_to_html ~fiber elements =
   let%lwt html_and_models = elements |> Lwt_list.map_p (render_element_to_html ~fiber) in
