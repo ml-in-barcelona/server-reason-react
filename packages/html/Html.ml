@@ -177,7 +177,7 @@ let pp element =
   write element;
   Buffer.contents out
 
-let add_single_quote_escaped b s =
+let add_attribute_escaped b s =
   let getc = String.unsafe_get s in
   let adds = Buffer.add_string in
   let len = String.length s in
@@ -200,7 +200,7 @@ let add_single_quote_escaped b s =
   in
   loop 0 0
 
-let single_quote_escape data =
+let escape_attribute_value data =
   let buf = Buffer.create (String.length data) in
-  add_single_quote_escaped buf data;
+  add_attribute_escaped buf data;
   Buffer.contents buf
