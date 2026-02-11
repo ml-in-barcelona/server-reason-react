@@ -82,8 +82,7 @@ let doctype () =
 let no_head_no_body_nothing_just_an_html_node () =
   let app = input [] in
   assert_html app
-    ~shell:
-      "<input /><script data-payload='0:[\"$\",\"input\",null,{},null,[],1]\n'>window.srr_stream.push()</script>"
+    ~shell:"<input /><script data-payload='0:[\"$\",\"input\",null,{},null,[],1]\n'>window.srr_stream.push()</script>"
 
 let html_with_a_node () =
   let app = html [ input [] ] in

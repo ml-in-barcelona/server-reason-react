@@ -44,3 +44,8 @@ module Prop_with_unknown_annotation = {
         ~lapply: Label.t(int, string),
       ) => React.null;
 };
+
+module Prop_with_option_annotation = {
+  [@react.client.component]
+  let make = (~name: option(string), ~count: option(int)) => React.null;
+};
