@@ -21,11 +21,14 @@ let create_stack_trace () =
   in
   `List (Array.to_list (Array.map make_locations slots))
 
+let uuid_rng = Random.State.make_self_init ()
+
 let generate_uuid () =
-  Printf.sprintf "%04x%04x-%04x-%04x-%04x-%04x%04x%04x" (Random.int 0xFFFF) (Random.int 0xFFFF) (Random.int 0xFFFF)
-    (0x4000 lor Random.int 0x0FFF)
-    (0x8000 lor Random.int 0x3FFF)
-    (Random.int 0xFFFF) (Random.int 0xFFFF) (Random.int 0xFFFF)
+  Printf.sprintf "%04x%04x-%04x-%04x-%04x-%04x%04x%04x" (Random.State.int uuid_rng 0xFFFF)
+    (Random.State.int uuid_rng 0xFFFF) (Random.State.int uuid_rng 0xFFFF)
+    (0x4000 lor Random.State.int uuid_rng 0x0FFF)
+    (0x8000 lor Random.State.int uuid_rng 0x3FFF)
+    (Random.State.int uuid_rng 0xFFFF) (Random.State.int uuid_rng 0xFFFF) (Random.State.int uuid_rng 0xFFFF)
 
 let default_filter_stack_frame filename _function_name = filename <> ""
 
@@ -468,7 +471,7 @@ let rc_function_script = Html.node "script" [] [ Html.raw rc_function_definition
 let model_to_chunk model index =
   Html.raw
     (Printf.sprintf "<script data-payload='%s'>window.srr_stream.push()</script>"
-       (Html.single_quote_escape (Model.to_chunk model index)))
+       (Html.escape_attribute_value (Model.to_chunk model index)))
 
 let boundary_to_chunk html index =
   let rc_replacement b s = Html.node "script" [] [ Html.raw (Printf.sprintf "$RC('B:%x', 'S:%x')" b s) ] in
@@ -767,6 +770,7 @@ let render_html ?(skipRoot = false) ?(env = `Dev) ?debug:(_ = false) ?timeout
     ?(progressive_chunk_size = default_progressive_chunk_size) ?bootstrapScriptContent ?bootstrapScripts
     ?bootstrapModules element =
   React.Cache.with_request_cache_async (fun () ->
+      let progressive_chunk_size = max 1 progressive_chunk_size in
       let initial_resources =
         match bootstrapScripts with
         | Some scripts ->
@@ -902,9 +906,14 @@ let render_html ?(skipRoot = false) ?(env = `Dev) ?debug:(_ = false) ?timeout
           Buffer.add_string buf (Html.to_string v);
           if Buffer.length buf >= progressive_chunk_size then flush () else Lwt.return ()
         in
+        let finished = ref false in
         let finish () =
-          Buffer.add_string buf (Html.to_string chunk_stream_end_script);
-          flush ()
+          if !finished then Lwt.return ()
+          else begin
+            finished := true;
+            Buffer.add_string buf (Html.to_string chunk_stream_end_script);
+            flush ()
+          end
         in
         let subscription =
           let%lwt () = Push_stream.subscribe ~fn:buffered stream in
