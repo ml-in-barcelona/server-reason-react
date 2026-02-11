@@ -241,23 +241,24 @@ module Page = {
 module App = {
   [@react.component]
   let make = () => {
-    <html suppressHydrationWarning=true>
-      <head>
-        <meta charSet="utf-8" />
-        <link rel="stylesheet" href="/output.css" />
-      </head>
-      <body suppressHydrationWarning=true>
-        <div id="root">
-          <DemoLayout background=Theme.Color.Gray2> <Page /> </DemoLayout>
-        </div>
-      </body>
-    </html>;
+    <DemoLayout background=Theme.Color.Gray2> <Page /> </DemoLayout>;
   };
 };
 
 let handler = request =>
   DreamRSC.createFromRequest(
     ~bootstrapModules=["/static/demo/SinglePageRSC.re.js"],
+    ~layout=
+      children =>
+        <html suppressHydrationWarning=true>
+          <head>
+            <meta charSet="utf-8" />
+            <link rel="stylesheet" href="/output.css" />
+          </head>
+          <body suppressHydrationWarning=true>
+            <div id="root"> children </div>
+          </body>
+        </html>,
     <App />,
     request,
   );
