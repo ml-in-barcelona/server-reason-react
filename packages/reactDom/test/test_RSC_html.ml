@@ -18,13 +18,13 @@ let sleep ~ms =
   let%lwt () = Lwt_unix.sleep (Int.to_float ms /. 1000.0) in
   Lwt.return ()
 
-let test ?(timeout_ms = 100) title fn =
+let test ?(timeout = 100) title fn =
   ( Printf.sprintf "ReactServerDOM.render_html / %s" title,
     [
       Alcotest_lwt.test_case "" `Quick (fun _switch () ->
           let start = Unix.gettimeofday () in
           let timeout =
-            let%lwt () = sleep ~ms:timeout_ms in
+            let%lwt () = sleep ~ms:timeout in
             Alcotest.failf "Test '%s' timed out" title
           in
           let%lwt test_promise = Lwt.pick [ fn (); timeout ] in
@@ -917,6 +917,53 @@ let progressive_chunk_size_batches_small_chunks () =
   Alcotest.(check string) "same content regardless of chunk size" small_content large_content;
   Lwt.return ()
 
+let timeout_end_script_appears_exactly_once () =
+  let app =
+    React.Suspense.make ~fallback:(React.string "Loading...")
+      ~children:
+        (React.Async_component
+           ( "AlmostDone",
+             fun () ->
+               let%lwt () = sleep ~ms:10 in
+               Lwt.return (React.string "Just in time") ))
+      ()
+  in
+  let subscribed_elements = ref [] in
+  let%lwt _html, subscribe = ReactServerDOM.render_html ~timeout:0.01 app in
+  let%lwt () =
+    subscribe (fun element ->
+        subscribed_elements := !subscribed_elements @ [ element ];
+        Lwt.return ())
+  in
+  let all_content = String.concat "" !subscribed_elements in
+  let end_script = "<script>window.srr_stream.close()</script>" in
+  let count_occurrences hay needle =
+    let len = String.length needle in
+    let rec aux acc start =
+      match String.index_from_opt hay start needle.[0] with
+      | None -> acc
+      | Some i ->
+          if i + len <= String.length hay && String.sub hay i len = needle then aux (acc + 1) (i + 1)
+          else aux acc (i + 1)
+    in
+    if String.length hay = 0 || String.length needle = 0 then 0 else aux 0 0
+  in
+  let occurrences = count_occurrences all_content end_script in
+  Alcotest.(check int) "end script appears exactly once" 1 occurrences;
+  Lwt.return ()
+
+let progressive_chunk_size_zero_does_not_raise () =
+  let app = React.createElement "div" [] [ React.string "Hello" ] in
+  let%lwt _html, subscribe = ReactServerDOM.render_html ~progressive_chunk_size:0 app in
+  let%lwt () = subscribe (fun _element -> Lwt.return ()) in
+  Lwt.return ()
+
+let progressive_chunk_size_negative_does_not_raise () =
+  let app = React.createElement "div" [] [ React.string "Hello" ] in
+  let%lwt _html, subscribe = ReactServerDOM.render_html ~progressive_chunk_size:(-1) app in
+  let%lwt () = subscribe (fun _element -> Lwt.return ()) in
+  Lwt.return ()
+
 let skip_root_omits_html_content () =
   let app = React.createElement "div" [] [ React.string "Should not appear" ] in
   let%lwt html, _subscribe = ReactServerDOM.render_html ~skipRoot:true app in
@@ -959,8 +1006,11 @@ let tests =
     test "context_nested_providers_across_async_suspense" context_nested_providers_across_async_suspense;
     test "context_client_component_reads_context_across_async_suspense"
       context_client_component_reads_context_across_async_suspense;
-    test ~timeout_ms:500 "timeout_closes_stream_for_hanging_suspense" timeout_closes_stream_for_hanging_suspense;
-    test ~timeout_ms:500 "timeout_does_not_affect_fast_renders" timeout_does_not_affect_fast_renders;
-    test ~timeout_ms:500 "progressive_chunk_size_batches_small_chunks" progressive_chunk_size_batches_small_chunks;
+    test ~timeout:500 "timeout_closes_stream_for_hanging_suspense" timeout_closes_stream_for_hanging_suspense;
+    test ~timeout:500 "timeout_does_not_affect_fast_renders" timeout_does_not_affect_fast_renders;
+    test ~timeout:500 "progressive_chunk_size_batches_small_chunks" progressive_chunk_size_batches_small_chunks;
+    test ~timeout:500 "timeout_end_script_appears_exactly_once" timeout_end_script_appears_exactly_once;
+    test "progressive_chunk_size_zero_does_not_raise" progressive_chunk_size_zero_does_not_raise;
+    test "progressive_chunk_size_negative_does_not_raise" progressive_chunk_size_negative_does_not_raise;
     test "skip_root_omits_html_content" skip_root_omits_html_content;
   ]
