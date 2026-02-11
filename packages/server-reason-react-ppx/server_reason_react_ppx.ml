@@ -743,7 +743,9 @@ let make_to_json ~loc (core_type : core_type) prop =
   | [%type: [%t? _] Runtime.server_function] -> [%expr React.Model.Function [%e prop]]
   | [%type: [%t? _] Runtime.server_function option] ->
       [%expr match [%e prop] with Some prop -> React.Model.Function prop | None -> React.Model.Json `Null]
-  | [%type: [%t? _] option] -> [%expr React.Model.Json `Null]
+  | [%type: [%t? inner_type] option] ->
+      let json = [%expr [%to_json: [%t inner_type]]] in
+      [%expr match [%e prop] with Some value -> React.Model.Json ([%e json] value) | None -> React.Model.Json `Null]
   | type_ ->
       let json = [%expr [%to_json: [%t type_]] [%e prop]] in
       [%expr React.Model.Json [%e json]]
