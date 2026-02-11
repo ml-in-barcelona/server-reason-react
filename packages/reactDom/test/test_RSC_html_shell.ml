@@ -51,7 +51,9 @@ srr_stream.readable_stream = new ReadableStream({ start(c) { srr_stream._c = c; 
 </script>|}
   in
   let subscribed_elements = ref [] in
-  let%lwt html, subscribe = ReactServerDOM.render_html ~skipRoot ?bootstrapModules ?bootstrapScriptContent element in
+  let%lwt html, subscribe =
+    ReactServerDOM.render_html ~progressive_chunk_size:1 ~skipRoot ?bootstrapModules ?bootstrapScriptContent element
+  in
   let%lwt () =
     subscribe (fun element ->
         subscribed_elements := !subscribed_elements @ [ element ];
@@ -66,7 +68,7 @@ let just_an_html_node () =
   let app = html [] in
   assert_html app
     ~shell:
-      "<!DOCTYPE html><html><head></head><script data-payload='0:[\"$\",\"html\",null,{\"children\":[]},null,[],{}]\n\
+      "<!DOCTYPE html><html><head></head><script data-payload='0:[\"$\",\"html\",null,{},null,[],1]\n\
        '>window.srr_stream.push()</script></html>"
 
 let doctype () =
@@ -74,20 +76,20 @@ let doctype () =
   assert_html app
     ~shell:
       "<!DOCTYPE html><html><head></head><body></body><script \
-       data-payload='0:[\"$\",\"html\",null,{\"children\":[[\"$\",\"head\",null,{\"children\":[]},null,[],{}],[\"$\",\"body\",null,{\"children\":[]},null,[],{}]]},null,[],{}]\n\
+       data-payload='0:[\"$\",\"html\",null,{\"children\":[[\"$\",\"head\",null,{},null,[],1],[\"$\",\"body\",null,{},null,[],1]]},null,[],1]\n\
        '>window.srr_stream.push()</script></html>"
 
 let no_head_no_body_nothing_just_an_html_node () =
   let app = input [] in
   assert_html app
-    ~shell:"<input /><script data-payload='0:[\"$\",\"input\",null,{},null,[],{}]\n'>window.srr_stream.push()</script>"
+    ~shell:"<input /><script data-payload='0:[\"$\",\"input\",null,{},null,[],1]\n'>window.srr_stream.push()</script>"
 
 let html_with_a_node () =
   let app = html [ input [] ] in
   assert_html app
     ~shell:
       "<!DOCTYPE html><html><head></head><input /><script \
-       data-payload='0:[\"$\",\"html\",null,{\"children\":[[\"$\",\"input\",null,{},null,[],{}]]},null,[],{}]\n\
+       data-payload='0:[\"$\",\"html\",null,{\"children\":[\"$\",\"input\",null,{},null,[],1]},null,[],1]\n\
        '>window.srr_stream.push()</script></html>"
 
 let html_with_only_a_body () =
@@ -95,8 +97,8 @@ let html_with_only_a_body () =
   assert_html app
     ~shell:
       "<!DOCTYPE html><html><head></head><body><div>Just body content</div></body><script \
-       data-payload='0:[\"$\",\"html\",null,{\"children\":[[\"$\",\"body\",null,{\"children\":[[\"$\",\"div\",null,{\"children\":[\"Just \
-       body content\"]},null,[],{}]]},null,[],{}]]},null,[],{}]\n\
+       data-payload='0:[\"$\",\"html\",null,{\"children\":[\"$\",\"body\",null,{\"children\":[\"$\",\"div\",null,{\"children\":\"Just \
+       body content\"},null,[],1]},null,[],1]},null,[],1]\n\
        '>window.srr_stream.push()</script></html>"
 
 let html_with_no_srr_html_body () =
@@ -104,8 +106,8 @@ let html_with_no_srr_html_body () =
   assert_html app ~skipRoot:true
     ~shell:
       "<!DOCTYPE html><html><head></head><script \
-       data-payload='0:[\"$\",\"html\",null,{\"children\":[[\"$\",\"body\",null,{\"children\":[[\"$\",\"div\",null,{\"children\":[\"Just \
-       body content\"]},null,[],{}]]},null,[],{}]]},null,[],{}]\n\
+       data-payload='0:[\"$\",\"html\",null,{\"children\":[\"$\",\"body\",null,{\"children\":[\"$\",\"div\",null,{\"children\":\"Just \
+       body content\"},null,[],1]},null,[],1]},null,[],1]\n\
        '>window.srr_stream.push()</script></html>"
 
 let head_with_content () =
@@ -122,7 +124,7 @@ let head_with_content () =
   assert_html app
     ~shell:
       "<!DOCTYPE html><html><head><title>Titulaso</title><meta charset=\"utf-8\" /></head><script \
-       data-payload='0:[\"$\",\"html\",null,{\"children\":[[\"$\",\"head\",null,{\"children\":[[\"$\",\"title\",null,{\"children\":[\"Titulaso\"]},null,[],{}],[\"$\",\"meta\",null,{\"charSet\":\"utf-8\"},null,[],{}]]},null,[],{}]]},null,[],{}]\n\
+       data-payload='0:[\"$\",\"html\",null,{\"children\":[\"$\",\"head\",null,{\"children\":[[\"$\",\"title\",null,{\"children\":\"Titulaso\"},null,[],1],[\"$\",\"meta\",null,{\"charSet\":\"utf-8\"},null,[],1]]},null,[],1]},null,[],1]\n\
        '>window.srr_stream.push()</script></html>"
 
 let html_inside_a_div () =
@@ -130,7 +132,7 @@ let html_inside_a_div () =
   assert_html app
     ~shell:
       "<div><html></html></div><script \
-       data-payload='0:[\"$\",\"div\",null,{\"children\":[[\"$\",\"html\",null,{\"children\":[]},null,[],{}]]},null,[],{}]\n\
+       data-payload='0:[\"$\",\"div\",null,{\"children\":[\"$\",\"html\",null,{},null,[],1]},null,[],1]\n\
        '>window.srr_stream.push()</script>"
 
 let html_inside_a_fragment () =
@@ -138,7 +140,7 @@ let html_inside_a_fragment () =
   assert_html app
     ~shell:
       "<!DOCTYPE html><html><head></head><div></div><script \
-       data-payload='0:[[\"$\",\"html\",null,{\"children\":[[\"$\",\"div\",null,{\"children\":[]},null,[],{}]]},null,[],{}]]\n\
+       data-payload='0:[[\"$\",\"html\",null,{\"children\":[\"$\",\"div\",null,{},null,[],1]},null,[],1]]\n\
        '>window.srr_stream.push()</script></html>"
 
 let html_with_head_like_elements_not_in_head () =
@@ -152,8 +154,8 @@ let html_with_head_like_elements_not_in_head () =
   assert_html app
     ~shell:
       "<!DOCTYPE html><html><head><meta charset=\"utf-8\" /><title>Implicit Head?</title></head><script \
-       data-payload='0:[\"$\",\"html\",null,{\"children\":[[\"$\",\"meta\",null,{\"charSet\":\"utf-8\"},null,[],{}],[\"$\",\"title\",null,{\"children\":[\"Implicit \
-       Head?\"]},null,[],{}]]},null,[],{}]\n\
+       data-payload='0:[\"$\",\"html\",null,{\"children\":[[\"$\",\"meta\",null,{\"charSet\":\"utf-8\"},null,[],1],[\"$\",\"title\",null,{\"children\":\"Implicit \
+       Head?\"},null,[],1]]},null,[],1]\n\
        '>window.srr_stream.push()</script></html>"
 
 let html_without_body_and_bootstrap_scripts () =
@@ -163,7 +165,7 @@ let html_without_body_and_bootstrap_scripts () =
       "<!DOCTYPE html><html><head><link rel=\"modulepreload\" fetchPriority=\"low\" href=\"react\" /><link \
        rel=\"modulepreload\" fetchPriority=\"low\" href=\"react-dom\" /></head><input id=\"sidebar-search-input\" \
        /><script \
-       data-payload='0:[\"$\",\"html\",null,{\"children\":[[\"$\",\"input\",null,{\"id\":\"sidebar-search-input\"},null,[],{}]]},null,[],{}]\n\
+       data-payload='0:[\"$\",\"html\",null,{\"children\":[\"$\",\"input\",null,{\"id\":\"sidebar-search-input\"},null,[],1]},null,[],1]\n\
        '>window.srr_stream.push()</script><script>console.log('hello')</script><script src=\"react\" async=\"\" \
        type=\"module\"></script><script src=\"react-dom\" async=\"\" type=\"module\"></script></html>"
 
@@ -176,7 +178,7 @@ let html_with_body_and_bootstrap_scripts () =
       "<!DOCTYPE html><html><head><link rel=\"modulepreload\" fetchPriority=\"low\" href=\"react\" /><link \
        rel=\"modulepreload\" fetchPriority=\"low\" href=\"react-dom\" /></head><body><input \
        id=\"sidebar-search-input\" /></body><script \
-       data-payload='0:[\"$\",\"html\",null,{\"children\":[[\"$\",\"body\",null,{\"children\":[[\"$\",\"input\",null,{\"id\":\"sidebar-search-input\"},null,[],{}]]},null,[],{}]]},null,[],{}]\n\
+       data-payload='0:[\"$\",\"html\",null,{\"children\":[\"$\",\"body\",null,{\"children\":[\"$\",\"input\",null,{\"id\":\"sidebar-search-input\"},null,[],1]},null,[],1]},null,[],1]\n\
        '>window.srr_stream.push()</script><script>console.log('hello')</script><script src=\"react\" async=\"\" \
        type=\"module\"></script><script src=\"react-dom\" async=\"\" type=\"module\"></script></html>"
 
@@ -185,7 +187,7 @@ let input_and_bootstrap_scripts () =
   assert_html app ~bootstrapModules:[ "react"; "react-dom" ] ~bootstrapScriptContent:"console.log('hello')"
     ~shell:
       "<input id=\"sidebar-search-input\" /><script \
-       data-payload='0:[\"$\",\"input\",null,{\"id\":\"sidebar-search-input\"},null,[],{}]\n\
+       data-payload='0:[\"$\",\"input\",null,{\"id\":\"sidebar-search-input\"},null,[],1]\n\
        '>window.srr_stream.push()</script><script>console.log('hello')</script><script src=\"react\" async=\"\" \
        type=\"module\"></script><script src=\"react-dom\" async=\"\" type=\"module\"></script>"
 
@@ -213,8 +215,8 @@ let title_and_meta_populates_to_the_head () =
     ~shell:
       "<!DOCTYPE html><html><head><title>Hey Yah</title><meta name=\"viewport\" \
        content=\"width=device-width,initial-scale=1\" /></head><body></body><script \
-       data-payload='0:[\"$\",\"html\",null,{\"children\":[[\"$\",\"body\",null,{\"children\":[[\"$\",\"head\",null,{\"children\":[[\"$\",\"title\",null,{\"children\":[\"Hey \
-       Yah\"]},null,[],{}],[\"$\",\"meta\",null,{\"name\":\"viewport\",\"content\":\"width=device-width,initial-scale=1\"},null,[],{}]]},null,[],{}]]},null,[],{}]]},null,[],{}]\n\
+       data-payload='0:[\"$\",\"html\",null,{\"children\":[\"$\",\"body\",null,{\"children\":[\"$\",\"head\",null,{\"children\":[[\"$\",\"title\",null,{\"children\":\"Hey \
+       Yah\"},null,[],1],[\"$\",\"meta\",null,{\"name\":\"viewport\",\"content\":\"width=device-width,initial-scale=1\"},null,[],1]]},null,[],1]},null,[],1]},null,[],1]\n\
        '>window.srr_stream.push()</script></html>"
 
 let async_scripts_to_head () =
@@ -223,7 +225,7 @@ let async_scripts_to_head () =
     ~shell:
       "<!DOCTYPE html><html><head><script async \
        src=\"https://cdn.com/jquery.min.js\"></script></head><body></body><script \
-       data-payload='0:[\"$\",\"html\",null,{\"children\":[[\"$\",\"body\",null,{\"children\":[[\"$\",\"script\",null,{\"children\":[],\"async\":true,\"src\":\"https://cdn.com/jquery.min.js\"},null,[],{}]]},null,[],{}]]},null,[],{}]\n\
+       data-payload='0:[\"$\",\"html\",null,{\"children\":[\"$\",\"body\",null,{\"children\":[\"$\",\"script\",null,{\"async\":true,\"src\":\"https://cdn.com/jquery.min.js\"},null,[],1]},null,[],1]},null,[],1]\n\
        '>window.srr_stream.push()</script></html>"
 
 let async_scripts_gets_deduplicated () =
@@ -243,7 +245,7 @@ let async_scripts_gets_deduplicated () =
     ~shell:
       "<!DOCTYPE html><html><head><script async \
        src=\"https://cdn.com/jquery.min.js\"></script></head><body></body><script \
-       data-payload='0:[\"$\",\"html\",null,{\"children\":[[\"$\",\"body\",null,{\"children\":[[\"$\",\"script\",null,{\"children\":[],\"async\":true,\"src\":\"https://cdn.com/jquery.min.js\"},null,[],{}],[\"$\",\"script\",null,{\"children\":[],\"async\":true,\"src\":\"https://cdn.com/jquery.min.js\"},null,[],{}],[\"$\",\"script\",null,{\"children\":[],\"async\":true,\"src\":\"https://cdn.com/jquery.min.js\"},null,[],{}]]},null,[],{}]]},null,[],{}]\n\
+       data-payload='0:[\"$\",\"html\",null,{\"children\":[\"$\",\"body\",null,{\"children\":[[\"$\",\"script\",null,{\"async\":true,\"src\":\"https://cdn.com/jquery.min.js\"},null,[],1],[\"$\",\"script\",null,{\"async\":true,\"src\":\"https://cdn.com/jquery.min.js\"},null,[],1],[\"$\",\"script\",null,{\"async\":true,\"src\":\"https://cdn.com/jquery.min.js\"},null,[],1]]},null,[],1]},null,[],1]\n\
        '>window.srr_stream.push()</script></html>"
 
 let async_scripts_gets_deduplicated_2 () =
@@ -263,7 +265,7 @@ let async_scripts_gets_deduplicated_2 () =
     ~shell:
       "<!DOCTYPE html><html><head><script async src=\"https://cdn.com/duplicated.js\"></script></head><body><script \
        src=\"https://cdn.com/non-async.js\"></script></body><script \
-       data-payload='0:[\"$\",\"html\",null,{\"children\":[[\"$\",\"body\",null,{\"children\":[[\"$\",\"script\",null,{\"children\":[],\"async\":true,\"src\":\"https://cdn.com/duplicated.js\"},null,[],{}],[\"$\",\"script\",null,{\"children\":[],\"async\":true,\"src\":\"https://cdn.com/duplicated.js\"},null,[],{}],[\"$\",\"script\",null,{\"children\":[],\"async\":false,\"src\":\"https://cdn.com/non-async.js\"},null,[],{}]]},null,[],{}]]},null,[],{}]\n\
+       data-payload='0:[\"$\",\"html\",null,{\"children\":[\"$\",\"body\",null,{\"children\":[[\"$\",\"script\",null,{\"async\":true,\"src\":\"https://cdn.com/duplicated.js\"},null,[],1],[\"$\",\"script\",null,{\"async\":true,\"src\":\"https://cdn.com/duplicated.js\"},null,[],1],[\"$\",\"script\",null,{\"async\":false,\"src\":\"https://cdn.com/non-async.js\"},null,[],1]]},null,[],1]},null,[],1]\n\
        '>window.srr_stream.push()</script></html>"
 
 let link_with_rel_and_precedence () =
@@ -282,7 +284,7 @@ let link_with_rel_and_precedence () =
     ~shell:
       "<!DOCTYPE html><html><head><link href=\"https://cdn.com/main.css\" rel=\"stylesheet\" precedence=\"high\" \
        /></head><body></body><script \
-       data-payload='0:[\"$\",\"html\",null,{\"children\":[[\"$\",\"body\",null,{\"children\":[[\"$\",\"link\",null,{\"href\":\"https://cdn.com/main.css\",\"rel\":\"stylesheet\",\"precedence\":\"high\"},null,[],{}],[\"$\",\"link\",null,{\"href\":\"https://cdn.com/main.css\",\"rel\":\"stylesheet\",\"precedence\":\"low\"},null,[],{}]]},null,[],{}]]},null,[],{}]\n\
+       data-payload='0:[\"$\",\"html\",null,{\"children\":[\"$\",\"body\",null,{\"children\":[[\"$\",\"link\",null,{\"href\":\"https://cdn.com/main.css\",\"rel\":\"stylesheet\",\"precedence\":\"high\"},null,[],1],[\"$\",\"link\",null,{\"href\":\"https://cdn.com/main.css\",\"rel\":\"stylesheet\",\"precedence\":\"low\"},null,[],1]]},null,[],1]},null,[],1]\n\
        '>window.srr_stream.push()</script></html>"
 
 let links_gets_pushed_to_the_head () =
@@ -304,7 +306,7 @@ let links_gets_pushed_to_the_head () =
       "<!DOCTYPE html><html><head><link href=\"https://cdn.com/main.css\" rel=\"stylesheet\" precedence=\"low\" \
        /><link href=\"favicon.ico\" rel=\"icon\" /><link href=\"favicon.ico\" rel=\"icon\" /><link \
        href=\"http://www.example.com/xmlrpc.php\" rel=\"pingback\" /></head><body></body><script \
-       data-payload='0:[\"$\",\"html\",null,{\"children\":[[\"$\",\"body\",null,{\"children\":[[\"$\",\"link\",null,{\"href\":\"https://cdn.com/main.css\",\"rel\":\"stylesheet\",\"precedence\":\"low\"},null,[],{}],[\"$\",\"link\",null,{\"href\":\"favicon.ico\",\"rel\":\"icon\"},null,[],{}],[\"$\",\"link\",null,{\"href\":\"favicon.ico\",\"rel\":\"icon\"},null,[],{}],[\"$\",\"link\",null,{\"href\":\"http://www.example.com/xmlrpc.php\",\"rel\":\"pingback\"},null,[],{}]]},null,[],{}]]},null,[],{}]\n\
+       data-payload='0:[\"$\",\"html\",null,{\"children\":[\"$\",\"body\",null,{\"children\":[[\"$\",\"link\",null,{\"href\":\"https://cdn.com/main.css\",\"rel\":\"stylesheet\",\"precedence\":\"low\"},null,[],1],[\"$\",\"link\",null,{\"href\":\"favicon.ico\",\"rel\":\"icon\"},null,[],1],[\"$\",\"link\",null,{\"href\":\"favicon.ico\",\"rel\":\"icon\"},null,[],1],[\"$\",\"link\",null,{\"href\":\"http://www.example.com/xmlrpc.php\",\"rel\":\"pingback\"},null,[],1]]},null,[],1]},null,[],1]\n\
        '>window.srr_stream.push()</script></html>"
 
 let no_async_scripts_to_remain () =
@@ -314,7 +316,7 @@ let no_async_scripts_to_remain () =
       "<!DOCTYPE html><html><head><link rel=\"modulepreload\" fetchPriority=\"low\" href=\"jquery\" /><link \
        rel=\"modulepreload\" fetchPriority=\"low\" href=\"jquery-mobile\" /></head><body><script \
        src=\"https://cdn.com/jquery.min.js\"></script></body><script \
-       data-payload='0:[\"$\",\"html\",null,{\"children\":[[\"$\",\"body\",null,{\"children\":[[\"$\",\"script\",null,{\"children\":[],\"async\":false,\"src\":\"https://cdn.com/jquery.min.js\"},null,[],{}]]},null,[],{}]]},null,[],{}]\n\
+       data-payload='0:[\"$\",\"html\",null,{\"children\":[\"$\",\"body\",null,{\"children\":[\"$\",\"script\",null,{\"async\":false,\"src\":\"https://cdn.com/jquery.min.js\"},null,[],1]},null,[],1]},null,[],1]\n\
        '>window.srr_stream.push()</script><script src=\"jquery\" async=\"\" type=\"module\"></script><script \
        src=\"jquery-mobile\" async=\"\" type=\"module\"></script></html>"
 
@@ -330,7 +332,7 @@ let self_closing_with_dangerously () =
   assert_html
     ~shell:
       "<div><input /><p>unsafe!</p></div><script \
-       data-payload='0:[\"$\",\"div\",null,{\"children\":[[\"$\",\"input\",null,{},null,[],{}],[\"$\",\"p\",null,{\"dangerouslySetInnerHTML\":{\"__html\":\"unsafe!\"}},null,[],{}]]},null,[],{}]\n\
+       data-payload='0:[\"$\",\"div\",null,{\"children\":[[\"$\",\"input\",null,{},null,[],1],[\"$\",\"p\",null,{\"dangerouslySetInnerHTML\":{\"__html\":\"unsafe!\"}},null,[],1]]},null,[],1]\n\
        '>window.srr_stream.push()</script>"
     app
 
@@ -348,8 +350,8 @@ let self_closing_with_dangerously_in_head () =
   assert_html
     ~shell:
       "<!DOCTYPE html><html><head><meta char-set=\"utf-8\" /><style>* { display: none; }</style></head><script \
-       data-payload='0:[\"$\",\"html\",null,{\"children\":[[\"$\",\"head\",null,{\"children\":[[\"$\",\"meta\",null,{\"charSet\":\"utf-8\"},null,[],{}],[\"$\",\"style\",null,{\"dangerouslySetInnerHTML\":{\"__html\":\"* \
-       { display: none; }\"}},null,[],{}]]},null,[],{}]]},null,[],{}]\n\
+       data-payload='0:[\"$\",\"html\",null,{\"children\":[\"$\",\"head\",null,{\"children\":[[\"$\",\"meta\",null,{\"charSet\":\"utf-8\"},null,[],1],[\"$\",\"style\",null,{\"dangerouslySetInnerHTML\":{\"__html\":\"* \
+       { display: none; }\"}},null,[],1]]},null,[],1]},null,[],1]\n\
        '>window.srr_stream.push()</script></html>"
     app
 
@@ -378,8 +380,8 @@ let upper_case_component_with_resources () =
     ~shell:
       "<!DOCTYPE html><html><head><link rel=\"stylesheet\" href=\"/styles.css\" precedence=\"default\" /><script \
        src=\"/app.js\" async></script></head><body><div>Page content</div></body><script \
-       data-payload='0:[\"$\",\"html\",null,{\"children\":[[\"$\",\"head\",null,{\"children\":[[\"$\",\"link\",null,{\"rel\":\"stylesheet\",\"href\":\"/styles.css\",\"precedence\":\"default\"},null,[],{}],[\"$\",\"script\",null,{\"children\":[],\"src\":\"/app.js\",\"async\":true},null,[],{}]]},null,[],{}],[\"$\",\"body\",null,{\"children\":[[\"$\",\"div\",null,{\"children\":[\"Page \
-       content\"]},null,[],{}]]},null,[],{}]]},null,[],{}]\n\
+       data-payload='0:[\"$\",\"html\",null,{\"children\":[[\"$\",\"head\",null,{\"children\":[[\"$\",\"link\",null,{\"rel\":\"stylesheet\",\"href\":\"/styles.css\",\"precedence\":\"default\"},null,[],1],[\"$\",\"script\",null,{\"src\":\"/app.js\",\"async\":true},null,[],1]]},null,[],1],[\"$\",\"body\",null,{\"children\":[\"$\",\"div\",null,{\"children\":\"Page \
+       content\"},null,[],1]},null,[],1]]},null,[],1]\n\
        '>window.srr_stream.push()</script></html>"
 
 let hoisted_elements_order_issue () =
@@ -427,12 +429,12 @@ let hoisted_elements_order_issue () =
        rel=\"stylesheet\" /><title>Second Title</title><meta name=\"keywords\" content=\"react, ssr\" /><link \
        href=\"/second.css\" rel=\"stylesheet\" /><meta name=\"author\" content=\"Developer\" /></head><body><div>Body \
        content</div></body><script \
-       data-payload='0:[\"$\",\"html\",null,{\"children\":[[\"$\",\"body\",null,{\"children\":[[\"$\",\"title\",null,{\"children\":[\"First \
-       Title\"]},null,[],{}],[\"$\",\"meta\",null,{\"name\":\"description\",\"content\":\"Page \
-       description\"},null,[],{}],[\"$\",\"link\",null,{\"href\":\"/first.css\",\"rel\":\"stylesheet\"},null,[],{}],[\"$\",\"title\",null,{\"children\":[\"Second \
-       Title\"]},null,[],{}],[\"$\",\"meta\",null,{\"name\":\"keywords\",\"content\":\"react, \
-       ssr\"},null,[],{}],[\"$\",\"link\",null,{\"href\":\"/second.css\",\"rel\":\"stylesheet\"},null,[],{}],[\"$\",\"script\",null,{\"children\":[],\"async\":true,\"src\":\"/first.js\"},null,[],{}],[\"$\",\"link\",null,{\"href\":\"/third.css\",\"rel\":\"stylesheet\",\"precedence\":\"high\"},null,[],{}],[\"$\",\"script\",null,{\"children\":[],\"async\":true,\"src\":\"/second.js\"},null,[],{}],[\"$\",\"meta\",null,{\"name\":\"author\",\"content\":\"Developer\"},null,[],{}],[\"$\",\"div\",null,{\"children\":[\"Body \
-       content\"]},null,[],{}]]},null,[],{}]]},null,[],{}]\n\
+       data-payload='0:[\"$\",\"html\",null,{\"children\":[\"$\",\"body\",null,{\"children\":[[\"$\",\"title\",null,{\"children\":\"First \
+       Title\"},null,[],1],[\"$\",\"meta\",null,{\"name\":\"description\",\"content\":\"Page \
+       description\"},null,[],1],[\"$\",\"link\",null,{\"href\":\"/first.css\",\"rel\":\"stylesheet\"},null,[],1],[\"$\",\"title\",null,{\"children\":\"Second \
+       Title\"},null,[],1],[\"$\",\"meta\",null,{\"name\":\"keywords\",\"content\":\"react, \
+       ssr\"},null,[],1],[\"$\",\"link\",null,{\"href\":\"/second.css\",\"rel\":\"stylesheet\"},null,[],1],[\"$\",\"script\",null,{\"async\":true,\"src\":\"/first.js\"},null,[],1],[\"$\",\"link\",null,{\"href\":\"/third.css\",\"rel\":\"stylesheet\",\"precedence\":\"high\"},null,[],1],[\"$\",\"script\",null,{\"async\":true,\"src\":\"/second.js\"},null,[],1],[\"$\",\"meta\",null,{\"name\":\"author\",\"content\":\"Developer\"},null,[],1],[\"$\",\"div\",null,{\"children\":\"Body \
+       content\"},null,[],1]]},null,[],1]},null,[],1]\n\
        '>window.srr_stream.push()</script></html>"
 
 let head_preserves_children_order () =
@@ -463,10 +465,10 @@ let head_preserves_children_order () =
        href=\"/main.css\" rel=\"stylesheet\" /><title>My App</title><meta name=\"viewport\" \
        content=\"width=device-width\" /><script async \
        src=\"/app.js\"></script></head><body><div>Content</div></body><script \
-       data-payload='0:[\"$\",\"html\",null,{\"children\":[[\"$\",\"head\",null,{\"children\":[[\"$\",\"meta\",null,{\"charSet\":\"utf-8\"},null,[],{}],[\"$\",\"style\",null,{\"dangerouslySetInnerHTML\":{\"__html\":\".custom \
+       data-payload='0:[\"$\",\"html\",null,{\"children\":[[\"$\",\"head\",null,{\"children\":[[\"$\",\"meta\",null,{\"charSet\":\"utf-8\"},null,[],1],[\"$\",\"style\",null,{\"dangerouslySetInnerHTML\":{\"__html\":\".custom \
        { color: red; \
-       }\"}},null,[],{}],[\"$\",\"link\",null,{\"href\":\"/main.css\",\"rel\":\"stylesheet\"},null,[],{}],[\"$\",\"title\",null,{\"children\":[\"My \
-       App\"]},null,[],{}],[\"$\",\"meta\",null,{\"name\":\"viewport\",\"content\":\"width=device-width\"},null,[],{}],[\"$\",\"script\",null,{\"children\":[],\"async\":true,\"src\":\"/app.js\"},null,[],{}]]},null,[],{}],[\"$\",\"body\",null,{\"children\":[[\"$\",\"div\",null,{\"children\":[\"Content\"]},null,[],{}]]},null,[],{}]]},null,[],{}]\n\
+       }\"}},null,[],1],[\"$\",\"link\",null,{\"href\":\"/main.css\",\"rel\":\"stylesheet\"},null,[],1],[\"$\",\"title\",null,{\"children\":\"My \
+       App\"},null,[],1],[\"$\",\"meta\",null,{\"name\":\"viewport\",\"content\":\"width=device-width\"},null,[],1],[\"$\",\"script\",null,{\"async\":true,\"src\":\"/app.js\"},null,[],1]]},null,[],1],[\"$\",\"body\",null,{\"children\":[\"$\",\"div\",null,{\"children\":\"Content\"},null,[],1]},null,[],1]]},null,[],1]\n\
        '>window.srr_stream.push()</script></html>"
 
 let html_attributes_are_preserved () =
@@ -474,7 +476,7 @@ let html_attributes_are_preserved () =
   assert_html app
     ~shell:
       "<!DOCTYPE html><html lang=\"en\"><head></head><script \
-       data-payload='0:[\"$\",\"html\",null,{\"children\":[],\"lang\":\"en\"},null,[],{}]\n\
+       data-payload='0:[\"$\",\"html\",null,{\"lang\":\"en\"},null,[],1]\n\
        '>window.srr_stream.push()</script></html>"
 
 let tests =

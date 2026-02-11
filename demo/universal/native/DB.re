@@ -225,28 +225,30 @@ let createNote = (~title, ~content) => {
 
 let editNote = (~id, ~title, ~content) => {
   let%lwt notes = readNotes();
-  let notes =
-    Result.map(
-      notes => {
-        let notes =
-          notes
-          |> List.map((currentNote: Note.t) =>
-               if (currentNote.id == id) {
-                 {
-                   ...currentNote,
-                   title,
-                   content,
-                   updated_at: Unix.time(),
-                 };
-               } else {
-                 currentNote;
-               }
-             );
-        notes;
-      },
-      notes,
-    );
-  Lwt_result.lift(notes |> Result.map(notes => notes |> List.hd));
+  switch (notes) {
+  | Ok(notes) =>
+    let updatedNotes =
+      notes
+      |> List.map((currentNote: Note.t) =>
+           if (currentNote.id == id) {
+             {
+               ...currentNote,
+               title,
+               content,
+               updated_at: Unix.time(),
+             };
+           } else {
+             currentNote;
+           }
+         );
+    let editedNote =
+      updatedNotes |> List.find((note: Note.t) => note.id == id);
+    switch%lwt (writeFile("./notes.json", serializeNotes(updatedNotes))) {
+    | Ok () => Lwt_result.return(editedNote)
+    | Error(e) => Lwt_result.fail(e)
+    };
+  | Error(e) => Lwt_result.fail(e)
+  };
 };
 
 let deleteNote = id => {

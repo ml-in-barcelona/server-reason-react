@@ -579,7 +579,7 @@ type element =
   | Static of { prerendered : string; original : element }
   | Fragment of element
   | Empty
-  | Provider of { children : element; push : unit -> unit -> unit }
+  | Provider of { children : element; push : unit -> unit -> unit; async_key : Obj.t Lwt.key; async_value : Obj.t }
   | Consumer of element
   | Suspense of { key : string option; children : element; fallback : element }
 
@@ -607,7 +607,12 @@ val list : element list -> element
 type 'a provider = value:'a -> children:element -> unit -> element
 
 module Context : sig
-  type 'a t = { current_value : 'a ref; provider : 'a provider; consumer : children:element -> element }
+  type 'a t = {
+    current_value : 'a ref;
+    async_key : Obj.t Lwt.key;
+    provider : 'a provider;
+    consumer : children:element -> element;
+  }
 
   val provider : 'a t -> 'a provider
 end

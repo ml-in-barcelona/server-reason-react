@@ -81,7 +81,7 @@ let render_to_buffer ~mode buf element =
           (Invalid_argument
              ("Client components can't be rendered on the server via renderToString or renderToStaticMarkup. Please \
                use the React server components API instead. module: " ^ import_module))
-    | Provider { children; push } ->
+    | Provider { children; push; _ } ->
         let pop = push () in
         render_element children;
         pop ()
@@ -144,7 +144,7 @@ let write_to_buffer buf element =
     | Static { prerendered; _ } -> Buffer.add_string buf prerendered
     | Client_component { import_module; _ } ->
         raise (Invalid_argument ("Client components can't be rendered via write_to_buffer. module: " ^ import_module))
-    | Provider { children; push } ->
+    | Provider { children; push; _ } ->
         let pop = push () in
         render children;
         pop ()
@@ -257,7 +257,7 @@ let rec render_to_stream_buffer ~stream_context buf element =
           (Invalid_argument
              ("Client components can't be rendered on the server via renderToStream. Please use the React server \
                components API instead. module: " ^ import_module))
-    | Provider { children; push } ->
+    | Provider { children; push; _ } ->
         let pop = push () in
         let%lwt () = render_element children in
         pop ();
@@ -344,7 +344,7 @@ let rec render_to_stream_buffer ~stream_context buf element =
           (Invalid_argument
              ("Client components can't be rendered on the server via renderToStream. Please use the React server \
                components API instead. module: " ^ import_module))
-    | Provider { children; push } ->
+    | Provider { children; push; _ } ->
         let pop = push () in
         let%lwt () = render_element_to_buffer target_buf children in
         pop ();
@@ -482,7 +482,7 @@ and render_with_resolved_buffer ~stream_context buf element =
           (Invalid_argument
              ("Client components can't be rendered on the server via renderToStream. Please use the React server \
                components API instead. module: " ^ import_module))
-    | Provider { children; push } ->
+    | Provider { children; push; _ } ->
         let pop = push () in
         let%lwt () = render_element children in
         pop ();

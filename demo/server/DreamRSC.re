@@ -1,4 +1,4 @@
-let debug = Sys.getenv_opt("DEMO_ENV") === Some("development");
+let debug = Sys.getenv_opt("DEMO_ENV") == Some("development");
 
 let handleFormRequest = (actionId, formData) => {
   let formData = {

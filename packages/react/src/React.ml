@@ -396,7 +396,7 @@ type element =
   | Static of { prerendered : string; original : element }
   | Fragment of element
   | Empty
-  | Provider of { children : element; push : unit -> unit -> unit }
+  | Provider of { children : element; push : unit -> unit -> unit; async_key : Obj.t Lwt.key; async_value : Obj.t }
   | Consumer of element
   | Suspense of { key : string option; children : element; fallback : element }
 
@@ -487,7 +487,7 @@ let cloneElement element new_attributes =
   | Empty -> raise (Invalid_argument "React.cloneElement: cannot clone a null element")
   | List _ -> raise (Invalid_argument "React.cloneElement: cannot clone a List")
   | Array _ -> raise (Invalid_argument "React.cloneElement: cannot clone an Array")
-  | Provider { children = _; push = _ } -> raise (Invalid_argument "React.cloneElement: cannot clone a Provider")
+  | Provider _ -> raise (Invalid_argument "React.cloneElement: cannot clone a Provider")
   | Consumer _ -> raise (Invalid_argument "React.cloneElement: cannot clone a Consumer")
   | Suspense _ -> raise (Invalid_argument "React.cloneElement: cannot clone a Suspense")
 
@@ -510,13 +510,19 @@ let list l = List l
 type 'a provider = value:'a -> children:element -> unit -> element
 
 module Context = struct
-  type 'a t = { current_value : 'a ref; provider : 'a provider; consumer : children:element -> element }
+  type 'a t = {
+    current_value : 'a ref;
+    async_key : Obj.t Lwt.key;
+    provider : 'a provider;
+    consumer : children:element -> element;
+  }
 
   let provider ctx = ctx.provider
 end
 
 let createContext (initial_value : 'a) : 'a Context.t =
   let ref_value = { current = initial_value } in
+  let async_key = Lwt.new_key () in
   let provider ~value ~children () =
     Provider
       {
@@ -526,10 +532,12 @@ let createContext (initial_value : 'a) : 'a Context.t =
             let prev = ref_value.current in
             ref_value.current <- value;
             fun () -> ref_value.current <- prev);
+        async_key;
+        async_value = Obj.repr value;
       }
   in
   let consumer ~children = Consumer children in
-  { current_value = ref_value; provider; consumer }
+  { current_value = ref_value; async_key; provider; consumer }
 
 module Suspense = struct
   let or_react_null = function None -> null | Some x -> x
@@ -590,7 +598,8 @@ let cache fn =
               Hashtbl.add fn_cache arg_key (Cache.Error exn);
               raise exn))
 
-let useContext (context : 'a Context.t) = context.current_value.current
+let useContext (context : 'a Context.t) =
+  match Lwt.get context.async_key with Some v -> (Obj.obj v : 'a) | None -> context.current_value.current
 
 let useState (make_initial_value : unit -> 'state) =
   let initial_value : 'state = make_initial_value () in

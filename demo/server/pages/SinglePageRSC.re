@@ -76,10 +76,6 @@ module Page = {
       Lwt.bind(Lwt_unix.sleep(4.0), _ =>
         Lwt.return("Solusionao in 4 seconds!")
       );
-    let failingPromise =
-      Lwt.bind(Lwt_unix.sleep(1.0), _ =>
-        Lwt.fail(Failure("Promise rejected after 1 second!"))
-      );
     let cachedValueFirst = CacheDemo.get("Cached value");
     let cachedValueSecond = CacheDemo.get("Cached value");
     Lwt.return(
@@ -95,9 +91,12 @@ module Page = {
                "Server side rendering server components and client components",
              )}
           </h1>
-          <Text color=Theme.Color.Gray10>
-            "React server components. Lazy loading of client components. Client props encodings, such as promises, React elements, and primitive types."
-          </Text>
+          <p
+            className={Cx.make(["text-sm", Theme.text(Theme.Color.Gray10)])}>
+            {React.string(
+               "React server components. Lazy loading of client components. Client props encodings, such as promises, React elements, and primitive types.",
+             )}
+          </p>
         </Stack>
         <Hr />
         <Section
@@ -159,14 +158,6 @@ module Page = {
           description="Sending a promise from the server to the client">
           <Promise_renderer promise=promiseIn4 />
         </Section>
-        <Hr />
-        <React.Suspense fallback={<Text> "Loading failing promise..." </Text>}>
-          <Section
-            title="Promise that fails after delay"
-            description="A promise that rejects after 1 second - demonstrates error handling for async failures">
-            <Promise_renderer promise=failingPromise />
-          </Section>
-        </React.Suspense>
         <Hr />
         <Section
           title="Pass a client component prop"
@@ -241,23 +232,24 @@ module Page = {
 module App = {
   [@react.component]
   let make = () => {
-    <html suppressHydrationWarning=true>
-      <head>
-        <meta charSet="utf-8" />
-        <link rel="stylesheet" href="/output.css" />
-      </head>
-      <body suppressHydrationWarning=true>
-        <div id="root">
-          <DemoLayout background=Theme.Color.Gray2> <Page /> </DemoLayout>
-        </div>
-      </body>
-    </html>;
+    <DemoLayout background=Theme.Color.Gray2> <Page /> </DemoLayout>;
   };
 };
 
 let handler = request =>
   DreamRSC.createFromRequest(
     ~bootstrapModules=["/static/demo/SinglePageRSC.re.js"],
+    ~layout=
+      children =>
+        <html suppressHydrationWarning=true>
+          <head>
+            <meta charSet="utf-8" />
+            <link rel="stylesheet" href="/output.css" />
+          </head>
+          <body suppressHydrationWarning=true>
+            <div id="root"> children </div>
+          </body>
+        </html>,
     <App />,
     request,
   );

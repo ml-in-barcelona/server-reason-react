@@ -9,6 +9,7 @@
   server-reason-react.runtime
   server-reason-react.html
   lwt
+  lwt.unix
   yojson)
  (preprocess
   (pps lwt_ppx)))
