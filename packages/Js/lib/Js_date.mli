@@ -140,44 +140,44 @@ val getTimezoneOffset : t -> float
 (** {1 UTC Setters}
     All setters return the new timestamp (milliseconds). *)
 
-val setUTCDate : float -> t -> float
-val setUTCFullYear : float -> t -> float
+val setUTCDate : date:float -> t -> float
+val setUTCFullYear : year:float -> t -> float
 val setUTCFullYearM : year:float -> month:float -> t -> float
 val setUTCFullYearMD : year:float -> month:float -> date:float -> t -> float
-val setUTCHours : float -> t -> float
+val setUTCHours : hours:float -> t -> float
 val setUTCHoursM : hours:float -> minutes:float -> t -> float
 val setUTCHoursMS : hours:float -> minutes:float -> seconds:float -> t -> float
 val setUTCHoursMSMs : hours:float -> minutes:float -> seconds:float -> milliseconds:float -> t -> float
-val setUTCMilliseconds : float -> t -> float
-val setUTCMinutes : float -> t -> float
+val setUTCMilliseconds : milliseconds:float -> t -> float
+val setUTCMinutes : minutes:float -> t -> float
 val setUTCMinutesS : minutes:float -> seconds:float -> t -> float
 val setUTCMinutesSMs : minutes:float -> seconds:float -> milliseconds:float -> t -> float
-val setUTCMonth : float -> t -> float
+val setUTCMonth : month:float -> t -> float
 val setUTCMonthD : month:float -> date:float -> t -> float
-val setUTCSeconds : float -> t -> float
+val setUTCSeconds : seconds:float -> t -> float
 val setUTCSecondsMs : seconds:float -> milliseconds:float -> t -> float
-val setUTCTime : float -> t -> float
+val setUTCTime : time:float -> t -> float
 
 (** {1 Local Time Setters}
     All setters return the new timestamp (milliseconds). *)
 
-val setDate : float -> t -> float
-val setFullYear : float -> t -> float
+val setDate : date:float -> t -> float
+val setFullYear : year:float -> t -> float
 val setFullYearM : year:float -> month:float -> t -> float
 val setFullYearMD : year:float -> month:float -> date:float -> t -> float
-val setHours : float -> t -> float
+val setHours : hours:float -> t -> float
 val setHoursM : hours:float -> minutes:float -> t -> float
 val setHoursMS : hours:float -> minutes:float -> seconds:float -> t -> float
 val setHoursMSMs : hours:float -> minutes:float -> seconds:float -> milliseconds:float -> t -> float
-val setMilliseconds : float -> t -> float
-val setMinutes : float -> t -> float
+val setMilliseconds : milliseconds:float -> t -> float
+val setMinutes : minutes:float -> t -> float
 val setMinutesS : minutes:float -> seconds:float -> t -> float
 val setMinutesSMs : minutes:float -> seconds:float -> milliseconds:float -> t -> float
-val setMonth : float -> t -> float
+val setMonth : month:float -> t -> float
 val setMonthD : month:float -> date:float -> t -> float
-val setSeconds : float -> t -> float
+val setSeconds : seconds:float -> t -> float
 val setSecondsMs : seconds:float -> milliseconds:float -> t -> float
-val setTime : float -> t -> float
+val setTime : time:float -> t -> float
 
 (** {1 String Conversion} *)
 
