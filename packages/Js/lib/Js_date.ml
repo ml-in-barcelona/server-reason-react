@@ -661,52 +661,52 @@ let utcWithYMDHMS ~year ~month ~date ~hours ~minutes ~seconds = utc ~year ~month
 (* Setters - these return the new timestamp (JS mutates, but we keep it pure) *)
 
 (** setTime - sets the time value directly *)
-let setTime value _t = time_clip value
+let setTime ~time _t = time_clip time
 
 (** setUTCMilliseconds *)
-let setUTCMilliseconds ms t =
+let setUTCMilliseconds ~milliseconds t =
   if Float.is_nan t then nan
   else
     let day = day t in
     let time = time_within_day t in
-    let new_time = time -. ms_from_time t +. Float.trunc ms in
+    let new_time = time -. ms_from_time t +. Float.trunc milliseconds in
     time_clip (make_date ~day ~time:new_time)
 
 (** setUTCSeconds *)
-let setUTCSeconds sec t =
+let setUTCSeconds ~seconds t =
   if Float.is_nan t then nan
   else
     let day = day t in
     let time = time_within_day t in
     let old_sec = sec_from_time t in
-    let new_time = time -. (old_sec *. ms_per_second) +. (Float.trunc sec *. ms_per_second) in
+    let new_time = time -. (old_sec *. ms_per_second) +. (Float.trunc seconds *. ms_per_second) in
     time_clip (make_date ~day ~time:new_time)
 
 let setUTCSecondsMs ~seconds ~milliseconds t =
-  let t = setUTCSeconds seconds t in
-  setUTCMilliseconds milliseconds t
+  let t = setUTCSeconds ~seconds t in
+  setUTCMilliseconds ~milliseconds t
 
 (** setUTCMinutes *)
-let setUTCMinutes min t =
+let setUTCMinutes ~minutes t =
   if Float.is_nan t then nan
   else
     let day = day t in
     let time = time_within_day t in
     let old_min = min_from_time t in
-    let new_time = time -. (old_min *. ms_per_minute) +. (Float.trunc min *. ms_per_minute) in
+    let new_time = time -. (old_min *. ms_per_minute) +. (Float.trunc minutes *. ms_per_minute) in
     time_clip (make_date ~day ~time:new_time)
 
 let setUTCMinutesS ~minutes ~seconds t =
-  let t = setUTCMinutes minutes t in
-  setUTCSeconds seconds t
+  let t = setUTCMinutes ~minutes t in
+  setUTCSeconds ~seconds t
 
 let setUTCMinutesSMs ~minutes ~seconds ~milliseconds t =
-  let t = setUTCMinutes minutes t in
-  let t = setUTCSeconds seconds t in
-  setUTCMilliseconds milliseconds t
+  let t = setUTCMinutes ~minutes t in
+  let t = setUTCSeconds ~seconds t in
+  setUTCMilliseconds ~milliseconds t
 
 (** setUTCHours *)
-let setUTCHours hours t =
+let setUTCHours ~hours t =
   if Float.is_nan t then nan
   else
     let day = day t in
@@ -716,22 +716,22 @@ let setUTCHours hours t =
     time_clip (make_date ~day ~time:new_time)
 
 let setUTCHoursM ~hours ~minutes t =
-  let t = setUTCHours hours t in
-  setUTCMinutes minutes t
+  let t = setUTCHours ~hours t in
+  setUTCMinutes ~minutes t
 
 let setUTCHoursMS ~hours ~minutes ~seconds t =
-  let t = setUTCHours hours t in
-  let t = setUTCMinutes minutes t in
-  setUTCSeconds seconds t
+  let t = setUTCHours ~hours t in
+  let t = setUTCMinutes ~minutes t in
+  setUTCSeconds ~seconds t
 
 let setUTCHoursMSMs ~hours ~minutes ~seconds ~milliseconds t =
-  let t = setUTCHours hours t in
-  let t = setUTCMinutes minutes t in
-  let t = setUTCSeconds seconds t in
-  setUTCMilliseconds milliseconds t
+  let t = setUTCHours ~hours t in
+  let t = setUTCMinutes ~minutes t in
+  let t = setUTCSeconds ~seconds t in
+  setUTCMilliseconds ~milliseconds t
 
 (** setUTCDate *)
-let setUTCDate date t =
+let setUTCDate ~date t =
   if Float.is_nan t then nan
   else
     let year = year_from_time t in
@@ -741,7 +741,7 @@ let setUTCDate date t =
     time_clip (make_date ~day ~time)
 
 (** setUTCMonth *)
-let setUTCMonth month t =
+let setUTCMonth ~month t =
   if Float.is_nan t then nan
   else
     let year = year_from_time t in
@@ -751,11 +751,11 @@ let setUTCMonth month t =
     time_clip (make_date ~day ~time)
 
 let setUTCMonthD ~month ~date t =
-  let t = setUTCMonth month t in
-  setUTCDate date t
+  let t = setUTCMonth ~month t in
+  setUTCDate ~date t
 
 (** setUTCFullYear *)
-let setUTCFullYear year t =
+let setUTCFullYear ~year t =
   let t = if Float.is_nan t then 0. else t in
   let month = month_from_time t in
   let date = date_from_time t in
@@ -764,62 +764,62 @@ let setUTCFullYear year t =
   time_clip (make_date ~day ~time)
 
 let setUTCFullYearM ~year ~month t =
-  let t = setUTCFullYear year t in
-  setUTCMonth month t
+  let t = setUTCFullYear ~year t in
+  setUTCMonth ~month t
 
 let setUTCFullYearMD ~year ~month ~date t =
-  let t = setUTCFullYear year t in
-  let t = setUTCMonth month t in
-  setUTCDate date t
+  let t = setUTCFullYear ~year t in
+  let t = setUTCMonth ~month t in
+  setUTCDate ~date t
 
 (** setUTCTime - same as setTime *)
-let setUTCTime = setTime
+let setUTCTime ~time t = setTime ~time t
 
 (* Local time setters - convert to local, modify, convert back *)
 
-let setMilliseconds ms t =
+let setMilliseconds ~milliseconds t =
   if Float.is_nan t then nan
   else
     let local = utc_to_local t in
     let day = day local in
     let time = time_within_day local in
-    let new_time = time -. ms_from_time local +. Float.trunc ms in
+    let new_time = time -. ms_from_time local +. Float.trunc milliseconds in
     time_clip (local_to_utc (make_date ~day ~time:new_time))
 
-let setSeconds sec t =
+let setSeconds ~seconds t =
   if Float.is_nan t then nan
   else
     let local = utc_to_local t in
     let day = day local in
     let time = time_within_day local in
     let old_sec = sec_from_time local in
-    let new_time = time -. (old_sec *. ms_per_second) +. (Float.trunc sec *. ms_per_second) in
+    let new_time = time -. (old_sec *. ms_per_second) +. (Float.trunc seconds *. ms_per_second) in
     time_clip (local_to_utc (make_date ~day ~time:new_time))
 
 let setSecondsMs ~seconds ~milliseconds t =
-  let t = setSeconds seconds t in
-  setMilliseconds milliseconds t
+  let t = setSeconds ~seconds t in
+  setMilliseconds ~milliseconds t
 
-let setMinutes min t =
+let setMinutes ~minutes t =
   if Float.is_nan t then nan
   else
     let local = utc_to_local t in
     let day = day local in
     let time = time_within_day local in
     let old_min = min_from_time local in
-    let new_time = time -. (old_min *. ms_per_minute) +. (Float.trunc min *. ms_per_minute) in
+    let new_time = time -. (old_min *. ms_per_minute) +. (Float.trunc minutes *. ms_per_minute) in
     time_clip (local_to_utc (make_date ~day ~time:new_time))
 
 let setMinutesS ~minutes ~seconds t =
-  let t = setMinutes minutes t in
-  setSeconds seconds t
+  let t = setMinutes ~minutes t in
+  setSeconds ~seconds t
 
 let setMinutesSMs ~minutes ~seconds ~milliseconds t =
-  let t = setMinutes minutes t in
-  let t = setSeconds seconds t in
-  setMilliseconds milliseconds t
+  let t = setMinutes ~minutes t in
+  let t = setSeconds ~seconds t in
+  setMilliseconds ~milliseconds t
 
-let setHours hours t =
+let setHours ~hours t =
   if Float.is_nan t then nan
   else
     let local = utc_to_local t in
@@ -830,21 +830,21 @@ let setHours hours t =
     time_clip (local_to_utc (make_date ~day ~time:new_time))
 
 let setHoursM ~hours ~minutes t =
-  let t = setHours hours t in
-  setMinutes minutes t
+  let t = setHours ~hours t in
+  setMinutes ~minutes t
 
 let setHoursMS ~hours ~minutes ~seconds t =
-  let t = setHours hours t in
-  let t = setMinutes minutes t in
-  setSeconds seconds t
+  let t = setHours ~hours t in
+  let t = setMinutes ~minutes t in
+  setSeconds ~seconds t
 
 let setHoursMSMs ~hours ~minutes ~seconds ~milliseconds t =
-  let t = setHours hours t in
-  let t = setMinutes minutes t in
-  let t = setSeconds seconds t in
-  setMilliseconds milliseconds t
+  let t = setHours ~hours t in
+  let t = setMinutes ~minutes t in
+  let t = setSeconds ~seconds t in
+  setMilliseconds ~milliseconds t
 
-let setDate date t =
+let setDate ~date t =
   if Float.is_nan t then nan
   else
     let local = utc_to_local t in
@@ -854,7 +854,7 @@ let setDate date t =
     let time = time_within_day local in
     time_clip (local_to_utc (make_date ~day ~time))
 
-let setMonth month t =
+let setMonth ~month t =
   if Float.is_nan t then nan
   else
     let local = utc_to_local t in
@@ -865,10 +865,10 @@ let setMonth month t =
     time_clip (local_to_utc (make_date ~day ~time))
 
 let setMonthD ~month ~date t =
-  let t = setMonth month t in
-  setDate date t
+  let t = setMonth ~month t in
+  setDate ~date t
 
-let setFullYear year t =
+let setFullYear ~year t =
   let t = if Float.is_nan t then 0. else t in
   let local = utc_to_local t in
   let month = month_from_time local in
@@ -878,10 +878,10 @@ let setFullYear year t =
   time_clip (local_to_utc (make_date ~day ~time))
 
 let setFullYearM ~year ~month t =
-  let t = setFullYear year t in
-  setMonth month t
+  let t = setFullYear ~year t in
+  setMonth ~month t
 
 let setFullYearMD ~year ~month ~date t =
-  let t = setFullYear year t in
-  let t = setMonth month t in
-  setDate date t
+  let t = setFullYear ~year t in
+  let t = setMonth ~month t in
+  setDate ~date t
