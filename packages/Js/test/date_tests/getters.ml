@@ -25,11 +25,11 @@ let known_timestamp = 1506098258091.
    =================================================================== *)
 
 let get_time_returns_epoch_ms () =
-  let d = Date.of_epoch_ms known_timestamp in
+  let d = Date.fromFloat known_timestamp in
   assert_float_exact (Date.getTime d) known_timestamp
 
 let get_time_nan_for_invalid () =
-  let d = Date.of_epoch_ms nan in
+  let d = Date.fromFloat nan in
   assert_nan (Date.getTime d)
 
 (* ===================================================================
@@ -37,37 +37,37 @@ let get_time_nan_for_invalid () =
    =================================================================== *)
 
 let get_utc_full_year () =
-  let d = Date.of_epoch_ms known_timestamp in
+  let d = Date.fromFloat known_timestamp in
   assert_float_exact (Date.getUTCFullYear d) 2017.
 
 let get_utc_month () =
   (* September = month 8 (0-indexed) *)
-  let d = Date.of_epoch_ms known_timestamp in
+  let d = Date.fromFloat known_timestamp in
   assert_float_exact (Date.getUTCMonth d) 8.
 
 let get_utc_date () =
-  let d = Date.of_epoch_ms known_timestamp in
+  let d = Date.fromFloat known_timestamp in
   assert_float_exact (Date.getUTCDate d) 22.
 
 let get_utc_day () =
   (* Friday = day 5 (0 = Sunday) *)
-  let d = Date.of_epoch_ms known_timestamp in
+  let d = Date.fromFloat known_timestamp in
   assert_float_exact (Date.getUTCDay d) 5.
 
 let get_utc_hours () =
-  let d = Date.of_epoch_ms known_timestamp in
+  let d = Date.fromFloat known_timestamp in
   assert_float_exact (Date.getUTCHours d) 16.
 
 let get_utc_minutes () =
-  let d = Date.of_epoch_ms known_timestamp in
+  let d = Date.fromFloat known_timestamp in
   assert_float_exact (Date.getUTCMinutes d) 37.
 
 let get_utc_seconds () =
-  let d = Date.of_epoch_ms known_timestamp in
+  let d = Date.fromFloat known_timestamp in
   assert_float_exact (Date.getUTCSeconds d) 38.
 
 let get_utc_milliseconds () =
-  let d = Date.of_epoch_ms known_timestamp in
+  let d = Date.fromFloat known_timestamp in
   assert_float_exact (Date.getUTCMilliseconds d) 91.
 
 (* ===================================================================
@@ -76,7 +76,7 @@ let get_utc_milliseconds () =
 
 let get_utc_epoch () =
   (* Jan 1, 1970 00:00:00.000 UTC *)
-  let d = Date.of_epoch_ms 0. in
+  let d = Date.fromFloat 0. in
   assert_float_exact (Date.getUTCFullYear d) 1970.;
   assert_float_exact (Date.getUTCMonth d) 0.;
   assert_float_exact (Date.getUTCDate d) 1.;
@@ -89,7 +89,7 @@ let get_utc_epoch () =
 
 let get_utc_before_epoch () =
   (* Dec 31, 1969 23:59:59.999 UTC = -1ms *)
-  let d = Date.of_epoch_ms (-1.) in
+  let d = Date.fromFloat (-1.) in
   assert_float_exact (Date.getUTCFullYear d) 1969.;
   assert_float_exact (Date.getUTCMonth d) 11.;
   (* December *)
@@ -101,7 +101,7 @@ let get_utc_before_epoch () =
 
 let get_utc_y2k () =
   (* Jan 1, 2000 00:00:00.000 UTC *)
-  let d = Date.of_epoch_ms 946684800000. in
+  let d = Date.fromFloat 946684800000. in
   assert_float_exact (Date.getUTCFullYear d) 2000.;
   assert_float_exact (Date.getUTCMonth d) 0.;
   assert_float_exact (Date.getUTCDate d) 1.;
@@ -109,7 +109,7 @@ let get_utc_y2k () =
 
 let get_utc_leap_day () =
   (* Feb 29, 2020 12:00:00.000 UTC *)
-  let d = Date.of_epoch_ms 1582977600000. in
+  let d = Date.fromFloat 1582977600000. in
   assert_float_exact (Date.getUTCFullYear d) 2020.;
   assert_float_exact (Date.getUTCMonth d) 1.;
   (* February *)
@@ -120,35 +120,35 @@ let get_utc_leap_day () =
    =================================================================== *)
 
 let get_utc_nan_full_year () =
-  let d = Date.of_epoch_ms nan in
+  let d = Date.fromFloat nan in
   assert_nan (Date.getUTCFullYear d)
 
 let get_utc_nan_month () =
-  let d = Date.of_epoch_ms nan in
+  let d = Date.fromFloat nan in
   assert_nan (Date.getUTCMonth d)
 
 let get_utc_nan_date () =
-  let d = Date.of_epoch_ms nan in
+  let d = Date.fromFloat nan in
   assert_nan (Date.getUTCDate d)
 
 let get_utc_nan_day () =
-  let d = Date.of_epoch_ms nan in
+  let d = Date.fromFloat nan in
   assert_nan (Date.getUTCDay d)
 
 let get_utc_nan_hours () =
-  let d = Date.of_epoch_ms nan in
+  let d = Date.fromFloat nan in
   assert_nan (Date.getUTCHours d)
 
 let get_utc_nan_minutes () =
-  let d = Date.of_epoch_ms nan in
+  let d = Date.fromFloat nan in
   assert_nan (Date.getUTCMinutes d)
 
 let get_utc_nan_seconds () =
-  let d = Date.of_epoch_ms nan in
+  let d = Date.fromFloat nan in
   assert_nan (Date.getUTCSeconds d)
 
 let get_utc_nan_milliseconds () =
-  let d = Date.of_epoch_ms nan in
+  let d = Date.fromFloat nan in
   assert_nan (Date.getUTCMilliseconds d)
 
 (* ===================================================================
@@ -157,12 +157,12 @@ let get_utc_nan_milliseconds () =
 
 let get_utc_new_year_transition () =
   (* Dec 31, 2019 23:59:59.999 UTC *)
-  let d1 = Date.of_epoch_ms 1577836799999. in
+  let d1 = Date.fromFloat 1577836799999. in
   assert_float_exact (Date.getUTCFullYear d1) 2019.;
   assert_float_exact (Date.getUTCMonth d1) 11.;
   assert_float_exact (Date.getUTCDate d1) 31.;
   (* Jan 1, 2020 00:00:00.000 UTC *)
-  let d2 = Date.of_epoch_ms 1577836800000. in
+  let d2 = Date.fromFloat 1577836800000. in
   assert_float_exact (Date.getUTCFullYear d2) 2020.;
   assert_float_exact (Date.getUTCMonth d2) 0.;
   assert_float_exact (Date.getUTCDate d2) 1.
@@ -174,11 +174,11 @@ let get_utc_new_year_transition () =
 let get_utc_month_lengths () =
   (* Jan has 31 days, Feb 28/29, etc *)
   (* Last day of January 2020 *)
-  let jan31 = Date.of_epoch_ms (Date.utc ~year:2020. ~month:0. ~day:31. ()) in
+  let jan31 = Date.fromFloat (Date.utc ~year:2020. ~month:0. ~date:31. ()) in
   assert_float_exact (Date.getUTCMonth jan31) 0.;
   assert_float_exact (Date.getUTCDate jan31) 31.;
   (* Feb 1 *)
-  let feb1 = Date.of_epoch_ms (Date.utc ~year:2020. ~month:1. ~day:1. ()) in
+  let feb1 = Date.fromFloat (Date.utc ~year:2020. ~month:1. ~date:1. ()) in
   assert_float_exact (Date.getUTCMonth feb1) 1.;
   assert_float_exact (Date.getUTCDate feb1) 1.
 

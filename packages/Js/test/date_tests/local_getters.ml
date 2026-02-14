@@ -18,7 +18,7 @@ module Date = Js.Date
    =================================================================== *)
 
 let get_time_basic () =
-  let d = Date.utc ~year:2017. ~month:9. ~day:22. ~hours:18. ~minutes:10. ~seconds:11. ~ms:91. () in
+  let d = Date.utc ~year:2017. ~month:9. ~date:22. ~hours:18. ~minutes:10. ~seconds:11. () +. 91. in
   assert_float_exact (Date.getTime d) 1508695811091.
 
 let get_time_epoch () = assert_float_exact (Date.getTime 0.) 0.
@@ -34,14 +34,14 @@ let get_time_nan () = assert_nan (Date.getTime nan)
    =================================================================== *)
 
 let valueof_basic () =
-  let d = Date.utc ~year:2017. ~month:9. ~day:22. ~hours:18. ~minutes:10. ~seconds:11. ~ms:91. () in
+  let d = Date.utc ~year:2017. ~month:9. ~date:22. ~hours:18. ~minutes:10. ~seconds:11. () +. 91. in
   assert_float_exact (Date.valueOf d) 1508695811091.
 
 let valueof_epoch () = assert_float_exact (Date.valueOf 0.) 0.
 let valueof_nan () = assert_nan (Date.valueOf nan)
 
 let valueof_equals_gettime () =
-  let d = Date.utc ~year:2020. ~month:5. ~day:15. ~hours:12. ~minutes:30. () in
+  let d = Date.utc ~year:2020. ~month:5. ~date:15. ~hours:12. ~minutes:30. () in
   assert_float_exact (Date.valueOf d) (Date.getTime d)
 
 (* ===================================================================
@@ -49,23 +49,23 @@ let valueof_equals_gettime () =
    =================================================================== *)
 
 let get_utc_full_year_2017 () =
-  let d = Date.utc ~year:2017. ~month:9. ~day:22. () in
+  let d = Date.utc ~year:2017. ~month:9. ~date:22. () in
   assert_float_exact (Date.getUTCFullYear d) 2017.
 
 let get_utc_full_year_1970 () = assert_float_exact (Date.getUTCFullYear 0.) 1970.
 
 let get_utc_full_year_1969 () =
-  let d = Date.utc ~year:1969. ~month:11. ~day:31. ~hours:23. ~minutes:59. ~seconds:59. () in
+  let d = Date.utc ~year:1969. ~month:11. ~date:31. ~hours:23. ~minutes:59. ~seconds:59. () in
   assert_float_exact (Date.getUTCFullYear d) 1969.
 
 let get_utc_full_year_nan () = assert_nan (Date.getUTCFullYear nan)
 
 let get_utc_full_year_y2k () =
-  let d = Date.utc ~year:2000. ~month:0. ~day:1. () in
+  let d = Date.utc ~year:2000. ~month:0. ~date:1. () in
   assert_float_exact (Date.getUTCFullYear d) 2000.
 
 let get_utc_full_year_leap () =
-  let d = Date.utc ~year:2024. ~month:1. ~day:29. () in
+  let d = Date.utc ~year:2024. ~month:1. ~date:29. () in
   assert_float_exact (Date.getUTCFullYear d) 2024.
 
 (* ===================================================================
@@ -73,11 +73,11 @@ let get_utc_full_year_leap () =
    =================================================================== *)
 
 let get_utc_month_january () =
-  let d = Date.utc ~year:2020. ~month:0. ~day:15. () in
+  let d = Date.utc ~year:2020. ~month:0. ~date:15. () in
   assert_float_exact (Date.getUTCMonth d) 0.
 
 let get_utc_month_december () =
-  let d = Date.utc ~year:2020. ~month:11. ~day:25. () in
+  let d = Date.utc ~year:2020. ~month:11. ~date:25. () in
   assert_float_exact (Date.getUTCMonth d) 11.
 
 let get_utc_month_nan () = assert_nan (Date.getUTCMonth nan)
@@ -88,11 +88,11 @@ let get_utc_month_epoch () = assert_float_exact (Date.getUTCMonth 0.) 0.
    =================================================================== *)
 
 let get_utc_date_first () =
-  let d = Date.utc ~year:2020. ~month:5. ~day:1. () in
+  let d = Date.utc ~year:2020. ~month:5. ~date:1. () in
   assert_float_exact (Date.getUTCDate d) 1.
 
 let get_utc_date_31st () =
-  let d = Date.utc ~year:2020. ~month:0. ~day:31. () in
+  let d = Date.utc ~year:2020. ~month:0. ~date:31. () in
   assert_float_exact (Date.getUTCDate d) 31.
 
 let get_utc_date_nan () = assert_nan (Date.getUTCDate nan)
@@ -108,12 +108,12 @@ let get_utc_day_thursday_epoch () =
 
 let get_utc_day_sunday () =
   (* Find a known Sunday - Jan 3, 2021 was Sunday *)
-  let d = Date.utc ~year:2021. ~month:0. ~day:3. () in
+  let d = Date.utc ~year:2021. ~month:0. ~date:3. () in
   assert_float_exact (Date.getUTCDay d) 0.
 
 let get_utc_day_saturday () =
   (* Jan 2, 2021 was Saturday *)
-  let d = Date.utc ~year:2021. ~month:0. ~day:2. () in
+  let d = Date.utc ~year:2021. ~month:0. ~date:2. () in
   assert_float_exact (Date.getUTCDay d) 6.
 
 let get_utc_day_nan () = assert_nan (Date.getUTCDay nan)
@@ -123,11 +123,11 @@ let get_utc_day_nan () = assert_nan (Date.getUTCDay nan)
    =================================================================== *)
 
 let get_utc_hours_zero () =
-  let d = Date.utc ~year:2020. ~month:5. ~day:15. ~hours:0. () in
+  let d = Date.utc ~year:2020. ~month:5. ~date:15. ~hours:0. () in
   assert_float_exact (Date.getUTCHours d) 0.
 
 let get_utc_hours_23 () =
-  let d = Date.utc ~year:2020. ~month:5. ~day:15. ~hours:23. () in
+  let d = Date.utc ~year:2020. ~month:5. ~date:15. ~hours:23. () in
   assert_float_exact (Date.getUTCHours d) 23.
 
 let get_utc_hours_nan () = assert_nan (Date.getUTCHours nan)
@@ -138,11 +138,11 @@ let get_utc_hours_epoch () = assert_float_exact (Date.getUTCHours 0.) 0.
    =================================================================== *)
 
 let get_utc_minutes_zero () =
-  let d = Date.utc ~year:2020. ~month:5. ~day:15. ~hours:12. ~minutes:0. () in
+  let d = Date.utc ~year:2020. ~month:5. ~date:15. ~hours:12. ~minutes:0. () in
   assert_float_exact (Date.getUTCMinutes d) 0.
 
 let get_utc_minutes_59 () =
-  let d = Date.utc ~year:2020. ~month:5. ~day:15. ~hours:12. ~minutes:59. () in
+  let d = Date.utc ~year:2020. ~month:5. ~date:15. ~hours:12. ~minutes:59. () in
   assert_float_exact (Date.getUTCMinutes d) 59.
 
 let get_utc_minutes_nan () = assert_nan (Date.getUTCMinutes nan)
@@ -152,11 +152,11 @@ let get_utc_minutes_nan () = assert_nan (Date.getUTCMinutes nan)
    =================================================================== *)
 
 let get_utc_seconds_zero () =
-  let d = Date.utc ~year:2020. ~month:5. ~day:15. ~hours:12. ~minutes:30. ~seconds:0. () in
+  let d = Date.utc ~year:2020. ~month:5. ~date:15. ~hours:12. ~minutes:30. ~seconds:0. () in
   assert_float_exact (Date.getUTCSeconds d) 0.
 
 let get_utc_seconds_59 () =
-  let d = Date.utc ~year:2020. ~month:5. ~day:15. ~hours:12. ~minutes:30. ~seconds:59. () in
+  let d = Date.utc ~year:2020. ~month:5. ~date:15. ~hours:12. ~minutes:30. ~seconds:59. () in
   assert_float_exact (Date.getUTCSeconds d) 59.
 
 let get_utc_seconds_nan () = assert_nan (Date.getUTCSeconds nan)
@@ -166,17 +166,17 @@ let get_utc_seconds_nan () = assert_nan (Date.getUTCSeconds nan)
    =================================================================== *)
 
 let get_utc_ms_zero () =
-  let d = Date.utc ~year:2020. ~month:5. ~day:15. ~hours:12. ~minutes:30. ~seconds:45. ~ms:0. () in
+  let d = Date.utc ~year:2020. ~month:5. ~date:15. ~hours:12. ~minutes:30. ~seconds:45. () in
   assert_float_exact (Date.getUTCMilliseconds d) 0.
 
 let get_utc_ms_999 () =
-  let d = Date.utc ~year:2020. ~month:5. ~day:15. ~hours:12. ~minutes:30. ~seconds:45. ~ms:999. () in
+  let d = Date.utc ~year:2020. ~month:5. ~date:15. ~hours:12. ~minutes:30. ~seconds:45. () +. 999. in
   assert_float_exact (Date.getUTCMilliseconds d) 999.
 
 let get_utc_ms_nan () = assert_nan (Date.getUTCMilliseconds nan)
 
 let get_utc_ms_middle () =
-  let d = Date.utc ~year:2020. ~month:5. ~day:15. ~hours:12. ~minutes:30. ~seconds:45. ~ms:456. () in
+  let d = Date.utc ~year:2020. ~month:5. ~date:15. ~hours:12. ~minutes:30. ~seconds:45. () +. 456. in
   assert_float_exact (Date.getUTCMilliseconds d) 456.
 
 (* ===================================================================
@@ -185,7 +185,7 @@ let get_utc_ms_middle () =
    =================================================================== *)
 
 let get_timezone_offset_returns_number () =
-  let d = Date.utc ~year:2020. ~month:5. ~day:15. () in
+  let d = Date.utc ~year:2020. ~month:5. ~date:15. () in
   let offset = Date.getTimezoneOffset d in
   (* Offset should be a finite number *)
   assert_true "timezone offset should be finite" (Float.is_finite offset)
@@ -193,7 +193,7 @@ let get_timezone_offset_returns_number () =
 let get_timezone_offset_nan () = assert_nan (Date.getTimezoneOffset nan)
 
 let get_timezone_offset_range () =
-  let d = Date.utc ~year:2020. ~month:5. ~day:15. () in
+  let d = Date.utc ~year:2020. ~month:5. ~date:15. () in
   let offset = Date.getTimezoneOffset d in
   (* Timezone offsets range from -720 (UTC+12) to +840 (UTC-14) *)
   assert_true "offset in valid range" (offset >= -720. && offset <= 840.)
@@ -205,7 +205,7 @@ let get_timezone_offset_range () =
 
 let local_getters_consistent () =
   (* Create a date and verify local getters return consistent values *)
-  let d = Date.utc ~year:2020. ~month:5. ~day:15. ~hours:12. ~minutes:30. ~seconds:45. ~ms:123. () in
+  let d = Date.utc ~year:2020. ~month:5. ~date:15. ~hours:12. ~minutes:30. ~seconds:45. () +. 123. in
   let year = Date.getFullYear d in
   let month = Date.getMonth d in
   let date = Date.getDate d in
@@ -242,7 +242,7 @@ let local_getters_nan () =
 
 let get_day_range () =
   (* getDay should return 0-6 *)
-  let d = Date.utc ~year:2020. ~month:5. ~day:15. () in
+  let d = Date.utc ~year:2020. ~month:5. ~date:15. () in
   let day = Date.getDay d in
   assert_true "day 0-6" (day >= 0. && day <= 6.)
 
@@ -252,17 +252,17 @@ let get_day_range () =
 
 let getters_large_positive_date () =
   (* Test with a large date - year 275760 (near max) *)
-  let d = Date.utc ~year:275760. ~month:8. ~day:13. () in
+  let d = Date.utc ~year:275760. ~month:8. ~date:13. () in
   assert_float_exact (Date.getUTCFullYear d) 275760.
 
 let getters_large_negative_date () =
   (* Test with a date before epoch *)
-  let d = Date.utc ~year:1900. ~month:0. ~day:1. () in
+  let d = Date.utc ~year:1900. ~month:0. ~date:1. () in
   assert_float_exact (Date.getUTCFullYear d) 1900.
 
 let getters_boundary_milliseconds () =
   (* Test at millisecond boundary *)
-  let d = Date.utc ~year:2020. ~month:0. ~day:1. ~hours:0. ~minutes:0. ~seconds:0. ~ms:999. () in
+  let d = Date.utc ~year:2020. ~month:0. ~date:1. ~hours:0. ~minutes:0. ~seconds:0. () +. 999. in
   assert_float_exact (Date.getUTCMilliseconds d) 999.
 
 (* ===================================================================
