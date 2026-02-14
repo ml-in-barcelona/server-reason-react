@@ -73,6 +73,91 @@ let use_ref_works () =
   in
   assert_string (ReactDOM.renderToStaticMarkup app) "<span>true</span>"
 
+let use_id_basic_example () =
+  let div_with_id =
+    React.Upper_case_component
+      ( "DivWithId",
+        fun () ->
+          let id = React.useId () in
+          React.createElement "div" [ React.JSX.String ("id", "id", id) ] [] )
+  in
+  let app =
+    React.Upper_case_component
+      ( "App",
+        fun () ->
+          React.createElement "div" [] [ React.createElement "div" [] [ div_with_id; div_with_id ]; div_with_id ] )
+  in
+  assert_string (ReactDOM.renderToStaticMarkup app)
+    {|<div><div><div id=":R5:"></div><div id=":R9:"></div></div><div id=":R2:"></div></div>|}
+
+let use_id_indirections () =
+  let nested_div_with_id =
+    React.Upper_case_component
+      ( "NestedDivWithId",
+        fun () ->
+          let id = React.useId () in
+          React.createElement "div" [ React.JSX.String ("id", "id", id) ] [] )
+  in
+  let app =
+    React.Upper_case_component
+      ( "App",
+        fun () ->
+          let id = React.useId () in
+          React.createElement "div"
+            [ React.JSX.String ("id", "id", id) ]
+            [
+              React.createElement "div" []
+                [ React.createElement "div" [] [ React.createElement "div" [] [ nested_div_with_id ] ] ];
+            ] )
+  in
+  assert_string (ReactDOM.renderToStaticMarkup app)
+    {|<div id=":R0:"><div><div><div><div id=":R1:"></div></div></div></div></div>|}
+
+let use_id_empty_children () =
+  let div_with_id =
+    React.Upper_case_component
+      ( "DivWithId",
+        fun () ->
+          let id = React.useId () in
+          React.createElement "div" [ React.JSX.String ("id", "id", id) ] [] )
+  in
+  let app =
+    React.Upper_case_component ("App", fun () -> React.list [ React.null; div_with_id; React.null; div_with_id ])
+  in
+  assert_string (ReactDOM.renderToStaticMarkup app) {|<div id=":R2:"></div><div id=":R4:"></div>|}
+
+let use_id_multiple_ids_in_single_component () =
+  let app =
+    React.Upper_case_component
+      ( "App",
+        fun () ->
+          let id1 = React.useId () in
+          let id2 = React.useId () in
+          let id3 = React.useId () in
+          React.string (id1 ^ ", " ^ id2 ^ ", " ^ id3) )
+  in
+  assert_string (ReactDOM.renderToStaticMarkup app) ":R0:, :R0H1:, :R0H2:"
+
+let use_id_local_render_phase_updates () =
+  let app =
+    React.Upper_case_component
+      ( "App",
+        fun () ->
+          let count, set_count = React.useState (fun () -> 0) in
+          if count < 3 then set_count (fun prev -> prev + 1);
+          React.string (React.useId ()) )
+  in
+  assert_string (ReactDOM.renderToStaticMarkup app) ":R0:"
+
+let use_id_identifier_prefix () =
+  let child =
+    React.Upper_case_component ("Child", fun () -> React.createElement "div" [] [ React.string (React.useId ()) ])
+  in
+  let app = React.Upper_case_component ("App", fun () -> React.list [ child; child ]) in
+  assert_string
+    (ReactDOM.renderToStaticMarkup ~identifierPrefix:"custom-prefix-" app)
+    "<div>:custom-prefix-R1:</div><div>:custom-prefix-R2:</div>"
+
 let invalid_children () =
   let raises () =
     let _ = React.createElement "input" [ React.JSX.String ("type", "type", "text") ] [ React.string "Hellow" ] in
@@ -232,6 +317,12 @@ let tests =
       test "Children.map" children_map_one_element;
       test "Children.map" children_map_list_element;
       test "useRef" use_ref_works;
+      test "useId basic example" use_id_basic_example;
+      test "useId indirections" use_id_indirections;
+      test "useId empty children" use_id_empty_children;
+      test "useId multiple ids in one component" use_id_multiple_ids_in_single_component;
+      test "useId local render updates" use_id_local_render_phase_updates;
+      test "useId identifierPrefix" use_id_identifier_prefix;
       test "invalid_children" invalid_children;
       test "invalid_dangerouslySetInnerHtml" invalid_dangerouslySetInnerHtml;
       test "raw_element" raw_element;

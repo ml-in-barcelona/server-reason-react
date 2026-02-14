@@ -623,6 +623,19 @@ module Cache : sig
   val with_request_cache_async : (unit -> 'a Lwt.t) -> 'a Lwt.t
 end
 
+module UseId : sig
+  type t
+
+  val create : ?identifierPrefix:string -> unit -> t
+  val with_state : t -> (unit -> 'a) -> 'a
+  val with_state_async : t -> (unit -> 'a Lwt.t) -> 'a Lwt.t
+  val with_tree_id : total_children:int -> index:int -> (unit -> 'a) -> 'a
+  val with_tree_id_async : total_children:int -> index:int -> (unit -> 'a Lwt.t) -> 'a Lwt.t
+  val with_materialized_tree_id : (unit -> 'a) -> 'a
+  val with_materialized_tree_id_async : (unit -> 'a Lwt.t) -> 'a Lwt.t
+  val with_component : (unit -> 'a) -> 'a * bool
+end
+
 type any_promise = Any_promise : 'a Lwt.t -> any_promise
 
 exception Suspend of any_promise

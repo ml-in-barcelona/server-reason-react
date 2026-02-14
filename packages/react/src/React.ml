@@ -559,6 +559,159 @@ module Cache = struct
         Lwt.return ())
 end
 
+module UseId = struct
+  type t = {
+    identifier_prefix : string;
+    mutable tree_context_id : int;
+    mutable tree_context_overflow : string;
+    mutable tree_context_stack : (int * string) list;
+    mutable local_id_counter : int;
+    mutable local_id_counter_stack : int list;
+  }
+
+  let current : t option Stdlib.ref = Stdlib.ref None
+  let fallback_id_counter = ref 0
+
+  let int_to_base32 n =
+    if n = 0 then "0"
+    else
+      let chars = "0123456789abcdefghijklmnopqrstuv" in
+      let rec loop value acc =
+        if value = 0 then acc
+        else
+          let digit = value mod 32 in
+          let next = value / 32 in
+          loop next (String.make 1 chars.[digit] :: acc)
+      in
+      String.concat "" (loop n [])
+
+  let get_bit_length n =
+    if n <= 0 then 0
+    else
+      let rec loop value bits = if value = 0 then bits else loop (value lsr 1) (bits + 1) in
+      loop n 0
+
+  let with_state state f =
+    let prev = !current in
+    current := Some state;
+    Fun.protect ~finally:(fun () -> current := prev) f
+
+  let with_state_async state f =
+    let prev = !current in
+    current := Some state;
+    Lwt.finalize f (fun () ->
+        current := prev;
+        Lwt.return ())
+
+  let create ?(identifierPrefix = "") () =
+    {
+      identifier_prefix = identifierPrefix;
+      (* Starts with a leading bit. Root useId materializes as "0". *)
+      tree_context_id = 1;
+      tree_context_overflow = "";
+      tree_context_stack = [];
+      local_id_counter = 0;
+      local_id_counter_stack = [];
+    }
+
+  let push_tree_id state ~total_children ~index =
+    state.tree_context_stack <- (state.tree_context_id, state.tree_context_overflow) :: state.tree_context_stack;
+    let base_id_with_leading_bit = state.tree_context_id in
+    let base_overflow = state.tree_context_overflow in
+    let base_length = get_bit_length base_id_with_leading_bit - 1 in
+    let base_id = base_id_with_leading_bit land lnot (1 lsl base_length) in
+    let slot = index + 1 in
+    let length = get_bit_length total_children + base_length in
+    if length > 30 then (
+      let number_of_overflow_bits = base_length - (base_length mod 5) in
+      let new_overflow_bits = (1 lsl number_of_overflow_bits) - 1 in
+      let new_overflow = int_to_base32 (base_id land new_overflow_bits) in
+      let rest_of_base_id = base_id lsr number_of_overflow_bits in
+      let rest_of_base_length = base_length - number_of_overflow_bits in
+      let rest_of_length = get_bit_length total_children + rest_of_base_length in
+      let rest_of_new_bits = slot lsl rest_of_base_length in
+      let id = rest_of_new_bits lor rest_of_base_id in
+      let overflow = new_overflow ^ base_overflow in
+      state.tree_context_id <- (1 lsl rest_of_length) lor id;
+      state.tree_context_overflow <- overflow)
+    else
+      let new_bits = slot lsl base_length in
+      let id = new_bits lor base_id in
+      state.tree_context_id <- (1 lsl length) lor id;
+      state.tree_context_overflow <- base_overflow
+
+  let pop_tree_id state =
+    match state.tree_context_stack with
+    | (previous_id, previous_overflow) :: rest ->
+        state.tree_context_id <- previous_id;
+        state.tree_context_overflow <- previous_overflow;
+        state.tree_context_stack <- rest
+    | [] -> ()
+
+  let with_tree_id ~total_children ~index f =
+    match !current with
+    | None -> f ()
+    | Some state ->
+        push_tree_id state ~total_children ~index;
+        Fun.protect ~finally:(fun () -> pop_tree_id state) f
+
+  let with_tree_id_async ~total_children ~index f =
+    match !current with
+    | None -> f ()
+    | Some state ->
+        push_tree_id state ~total_children ~index;
+        Lwt.finalize f (fun () ->
+            pop_tree_id state;
+            Lwt.return ())
+
+  let with_materialized_tree_id f = with_tree_id ~total_children:1 ~index:0 f
+  let with_materialized_tree_id_async f = with_tree_id_async ~total_children:1 ~index:0 f
+
+  let begin_component state =
+    state.local_id_counter_stack <- state.local_id_counter :: state.local_id_counter_stack;
+    state.local_id_counter <- 0
+
+  let end_component state =
+    let did_render_id = state.local_id_counter <> 0 in
+    (match state.local_id_counter_stack with
+    | previous :: rest ->
+        state.local_id_counter <- previous;
+        state.local_id_counter_stack <- rest
+    | [] -> state.local_id_counter <- 0);
+    did_render_id
+
+  let with_component f =
+    match !current with
+    | None -> (f (), false)
+    | Some state -> (
+        begin_component state;
+        match f () with
+        | result ->
+            let did_render_id = end_component state in
+            (result, did_render_id)
+        | exception exn ->
+            let _ = end_component state in
+            raise exn)
+
+  let get_tree_id state =
+    let id_with_leading_bit = state.tree_context_id in
+    let base_length = get_bit_length id_with_leading_bit - 1 in
+    let id = id_with_leading_bit land lnot (1 lsl base_length) in
+    int_to_base32 id ^ state.tree_context_overflow
+
+  let next_id () =
+    match !current with
+    | Some state ->
+        let tree_id = get_tree_id state in
+        let local_id = state.local_id_counter in
+        state.local_id_counter <- local_id + 1;
+        let hook_suffix = if local_id > 0 then "H" ^ int_to_base32 local_id else "" in
+        ":" ^ state.identifier_prefix ^ "R" ^ tree_id ^ hook_suffix ^ ":"
+    | None ->
+        fallback_id_counter := !fallback_id_counter + 1;
+        Int.to_string !fallback_id_counter
+end
+
 let memo f _component = f
 let memoCustomCompareProps f _compare _component = f
 
@@ -604,12 +757,7 @@ type ('input, 'output) callback = 'input -> 'output
 
 let useSyncExternalStore ~subscribe:_ ~getSnapshot = getSnapshot ()
 let useSyncExternalStoreWithServer ~subscribe:_ ~getSnapshot:_ ~getServerSnapshot = getServerSnapshot ()
-let internal_id = ref 0
-
-let useId () =
-  internal_id := !internal_id + 1;
-  Int.to_string !internal_id
-
+let useId () = UseId.next_id ()
 let useMemo fn = fn ()
 let useMemo0 fn = fn ()
 let useMemo1 fn _ = fn ()

@@ -1,16 +1,20 @@
 (** The ReactDOM library *)
 
-val renderToString : React.element -> string
+val renderToString : ?identifierPrefix:string -> React.element -> string
 (** renderToString renders a React tree to as an HTML string.
 
     Similar to {:https://react.dev/reference/react-dom/server/renderToString} *)
 
-val renderToStaticMarkup : React.element -> string
+val renderToStaticMarkup : ?identifierPrefix:string -> React.element -> string
 (** renderToStaticMarkup renders a non-interactive React tree to an HTML string.
 
     Similar to {:https://react.dev/reference/react-dom/server/renderToStaticMarkup} *)
 
-val renderToStream : ?pipe:(string -> unit Lwt.t) -> React.element -> (string Lwt_stream.t * (unit -> unit)) Lwt.t
+val renderToStream :
+  ?identifierPrefix:string ->
+  ?pipe:(string -> unit Lwt.t) ->
+  React.element ->
+  (string Lwt_stream.t * (unit -> unit)) Lwt.t
 (** renderToStream renders a React tree into a Lwt_stream.t.
 
     Similar to {:https://react.dev/reference/react-dom/server/renderToPipeableStream} *)

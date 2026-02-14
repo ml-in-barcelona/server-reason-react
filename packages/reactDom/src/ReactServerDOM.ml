@@ -88,6 +88,7 @@ end
 module Fiber = struct
   type t = {
     context : Html.element Stream.t;
+    useid_state : React.UseId.t;
     env : env;
     (* visited_first_lower_case stores the tag of the first lower case element visited, useful to know if the root element is an html tag *)
     mutable visited_first_lower_case : string option;
@@ -115,6 +116,23 @@ module Fiber = struct
   let visited_first_lower_case ~fiber = fiber.visited_first_lower_case
   let set_visited_first_lower_case ~fiber value = fiber.visited_first_lower_case <- Some value
 end
+
+let map_children_with_tree_id render children =
+  let total_children = List.length children in
+  if total_children <= 1 then List.map render children
+  else List.mapi (fun index child -> React.UseId.with_tree_id ~total_children ~index (fun () -> render child)) children
+
+let map_children_with_tree_id_async render children =
+  let total_children = List.length children in
+  if total_children <= 1 then Lwt_list.map_s render children
+  else
+    Lwt_list.mapi_s
+      (fun index child -> React.UseId.with_tree_id_async ~total_children ~index (fun () -> render child))
+      children
+
+let run_component_with_tree_id_async component render =
+  let element, did_render_id = React.UseId.with_component component in
+  if did_render_id then React.UseId.with_materialized_tree_id_async (fun () -> render element) else render element
 
 module Model = struct
   type chunk = Value of json | Debug_ref of json | Component_ref of json | Error of env * React.error
@@ -281,39 +299,38 @@ module Model = struct
               attributes
           in
           let props = props_to_json attributes in
-          node ~key ~tag ~props (List.map (turn_element_into_payload ~context ~is_root) children)
+          node ~key ~tag ~props (map_children_with_tree_id (turn_element_into_payload ~context ~is_root) children)
       | Fragment children -> turn_element_into_payload ~context ~is_root:false children
-      | List children -> `List (List.map (turn_element_into_payload ~context ~is_root:false) children)
-      | Array children -> `List (Array.map (turn_element_into_payload ~context ~is_root:false) children |> Array.to_list)
+      | List children -> `List (map_children_with_tree_id (turn_element_into_payload ~context ~is_root:false) children)
+      | Array children ->
+          `List
+            (children |> Array.to_list |> map_children_with_tree_id (turn_element_into_payload ~context ~is_root:false))
       | Upper_case_component (name, component) -> (
           (* TODO: Get the stack info from component *)
-          match component () with
-          | element ->
-              (* TODO: Can we remove the is_root difference. It currently align with react.js behavior, but it's not clear what is the purpose of it *)
-              if is_root then (
-                (*
-                  If it's the root element, React returns the element payload instead of a reference value.
-                  Root is a special case: https://github.com/facebook/react/blob/f3a803617ec4ba9d14bf5205ffece28ed1496a1d/packages/react-server/src/ReactFlightServer.js#L756-L766
-                *)
-                if debug then push_debug_info ~context ~to_chunk ~env ~index:0 ~ownerName:name else ();
-                let next_is_root = match element with Upper_case_component _ -> true | _ -> false in
-                turn_element_into_payload ~context ~is_root:next_is_root element)
-              else
-                (* If it's not the root React push the element to the stream and return the reference value *)
-                let element_index =
-                  Stream.push ~context (fun index ->
-                      if debug then push_debug_info ~context ~to_chunk ~env ~index ~ownerName:name else ();
-                      let payload = turn_element_into_payload ~context ~is_root element in
-                      to_chunk (Value payload) index)
-                in
-                `String (ref_value element_index)
+          match React.UseId.with_component component with
+          | element, did_render_id ->
+              let render_element () =
+                if is_root then (
+                  if debug then push_debug_info ~context ~to_chunk ~env ~index:0 ~ownerName:name else ();
+                  let next_is_root = match element with Upper_case_component _ -> true | _ -> false in
+                  turn_element_into_payload ~context ~is_root:next_is_root element)
+                else
+                  let element_index =
+                    Stream.push ~context (fun index ->
+                        if debug then push_debug_info ~context ~to_chunk ~env ~index ~ownerName:name else ();
+                        let payload = turn_element_into_payload ~context ~is_root element in
+                        to_chunk (Value payload) index)
+                  in
+                  `String (ref_value element_index)
+              in
+              if did_render_id then React.UseId.with_materialized_tree_id render_element else render_element ()
           | exception exn ->
               let error = exn_to_error exn in
               let index = Stream.push ~context (to_chunk (Error (env, error))) in
               `String (lazy_value index))
       (* TODO: Get the stack info from component *)
       | Async_component (_, component) -> (
-          let promise = component () in
+          let promise, did_render_id = React.UseId.with_component component in
           match Lwt.state promise with
           | Fail exn ->
               let message = Printexc.to_string exn in
@@ -321,12 +338,22 @@ module Model = struct
               let error = make_error ~message ~stack ~digest:"" in
               let index = Stream.push ~context (to_chunk (Error (env, error))) in
               `String (lazy_value index)
-          | Return element -> turn_element_into_payload ~context ~is_root:false element
+          | Return element ->
+              if did_render_id then
+                React.UseId.with_materialized_tree_id (fun () ->
+                    turn_element_into_payload ~context ~is_root:false element)
+              else turn_element_into_payload ~context ~is_root:false element
           | Sleep ->
               let promise =
                 try%lwt
                   let%lwt element = promise in
-                  Lwt.return (to_chunk (Value (turn_element_into_payload ~context ~is_root element)))
+                  let payload =
+                    if did_render_id then
+                      React.UseId.with_materialized_tree_id (fun () ->
+                          turn_element_into_payload ~context ~is_root element)
+                    else turn_element_into_payload ~context ~is_root element
+                  in
+                  Lwt.return (to_chunk (Value payload))
                 with exn ->
                   let message = Printexc.to_string exn in
                   let stack = create_stack_trace () in
@@ -489,10 +516,10 @@ let rec client_to_html ~(fiber : Fiber.t) (element : React.element) =
   | Text text -> Lwt.return (Html.string text)
   | Fragment children -> client_to_html ~fiber children
   | List childrens ->
-      let%lwt html = Lwt_list.map_p (client_to_html ~fiber) childrens in
+      let%lwt html = map_children_with_tree_id_async (client_to_html ~fiber) childrens in
       Lwt.return (Html.list html)
   | Array childrens ->
-      let%lwt html = childrens |> Array.to_list |> Lwt_list.map_p (client_to_html ~fiber) in
+      let%lwt html = childrens |> Array.to_list |> map_children_with_tree_id_async (client_to_html ~fiber) in
       Lwt.return (Html.list html)
   | Lower_case_element { key; tag; attributes; children } ->
       let context = fiber.context in
@@ -510,24 +537,29 @@ let rec client_to_html ~(fiber : Fiber.t) (element : React.element) =
       render_lower_case ~fiber ~key ~tag ~attributes ~children
   | Upper_case_component (_name, component) ->
       let rec wait_for_suspense_to_resolve () =
-        match component () with
+        match React.UseId.with_component component with
+        | output, did_render_id ->
+            let render_output () = client_to_html ~fiber output in
+            if did_render_id then React.UseId.with_materialized_tree_id_async render_output else render_output ()
         | exception React.Suspend (Any_promise promise) ->
             let%lwt _ = promise in
             wait_for_suspense_to_resolve ()
         | exception _exn -> Lwt.return Html.null
-        | output -> client_to_html ~fiber output
       in
       wait_for_suspense_to_resolve ()
   | Async_component (_, component) ->
-      let%lwt element = component () in
-      client_to_html ~fiber element
+      let promise, did_render_id = React.UseId.with_component component in
+      let%lwt element = promise in
+      if did_render_id then React.UseId.with_materialized_tree_id_async (fun () -> client_to_html ~fiber element)
+      else client_to_html ~fiber element
   | Suspense { key = _; children; fallback } ->
       (* TODO: Do we need to care if there's Any_promise raising ? *)
       let%lwt fallback = client_to_html ~fiber fallback in
       let context = fiber.context in
       let async =
-        let%lwt html = children |> client_to_html ~fiber in
-        Lwt.return (boundary_to_chunk html)
+        React.UseId.with_state_async fiber.useid_state (fun () ->
+            let%lwt html = children |> client_to_html ~fiber in
+            Lwt.return (boundary_to_chunk html))
       in
       let index = Stream.push_async ~context async in
       let sync = html_suspense_placeholder ~fallback index in
@@ -545,7 +577,7 @@ and render_lower_case ~fiber ~key:_ ~tag ~attributes ~children =
   match ReactDOM.getDangerouslyInnerHtml attributes with
   | Some inner_html -> Lwt.return (Html.node tag html_props [ Html.raw inner_html ])
   | None ->
-      let%lwt html = Lwt_list.map_p (client_to_html ~fiber) children in
+      let%lwt html = map_children_with_tree_id_async (client_to_html ~fiber) children in
       Lwt.return (Html.node tag html_props html)
 
 let is_async props =
@@ -559,6 +591,89 @@ let has_precedence_and_rel_stylesheet props =
   let has_rel_stylesheet prop = match prop with String ("rel", _, "stylesheet") -> true | _ -> false in
   List.exists has_precedence props && List.exists has_rel_stylesheet props
 
+let is_rel_stylesheet props =
+  let open React.JSX in
+  let has_rel_stylesheet prop = match prop with String ("rel", _, "stylesheet") -> true | _ -> false in
+  List.exists has_rel_stylesheet props
+
+let attribute_has name attributes =
+  let name = String.lowercase_ascii name in
+  List.exists
+    (function
+      | `Present attribute_name | `Value (attribute_name, _) ->
+          String.equal (String.lowercase_ascii attribute_name) name
+      | `Omitted -> false)
+    attributes
+
+let attribute_value name attributes =
+  let name = String.lowercase_ascii name in
+  List.find_map
+    (function
+      | `Value (attribute_name, value) when String.equal (String.lowercase_ascii attribute_name) name -> Some value
+      | _ -> None)
+    attributes
+
+let has_precedence_attr attributes = attribute_has "precedence" attributes || attribute_has "data-precedence" attributes
+
+let is_stylesheet_link attributes =
+  match attribute_value "rel" attributes with
+  | Some rel -> String.equal (String.lowercase_ascii rel) "stylesheet"
+  | None -> false
+
+type head_bucket = {
+  meta_charset : Html.element list;
+  meta_other : Html.element list;
+  link_precedence : Html.element list;
+  style_precedence : Html.element list;
+  script_async : Html.element list;
+  other_hoistable : Html.element list;
+  non_hoistable : Html.element list;
+}
+
+let empty_head_bucket : head_bucket =
+  {
+    meta_charset = [];
+    meta_other = [];
+    link_precedence = [];
+    style_precedence = [];
+    script_async = [];
+    other_hoistable = [];
+    non_hoistable = [];
+  }
+
+let classify_head_child (element : Html.element) =
+  match element with
+  | Html.Node { tag; attributes; _ } -> (
+      match String.lowercase_ascii tag with
+      | "meta" when attribute_has "charset" attributes -> `Hoist_meta_charset
+      | "meta" -> `Hoist_meta_other
+      | "title" -> `Hoist_other
+      | "script" when attribute_has "async" attributes -> `Hoist_script_async
+      | "style" when has_precedence_attr attributes -> `Hoist_style_precedence
+      | "link" when is_stylesheet_link attributes && has_precedence_attr attributes -> `Hoist_link_precedence
+      | "link" when not (is_stylesheet_link attributes) -> `Hoist_other
+      | _ -> `Non_hoistable)
+  | _ -> `Non_hoistable
+
+let reorder_hoistable_head_children children =
+  let add bucket element =
+    match classify_head_child element with
+    | `Hoist_meta_charset -> { bucket with meta_charset = element :: bucket.meta_charset }
+    | `Hoist_meta_other -> { bucket with meta_other = element :: bucket.meta_other }
+    | `Hoist_link_precedence -> { bucket with link_precedence = element :: bucket.link_precedence }
+    | `Hoist_style_precedence -> { bucket with style_precedence = element :: bucket.style_precedence }
+    | `Hoist_script_async -> { bucket with script_async = element :: bucket.script_async }
+    | `Hoist_other -> { bucket with other_hoistable = element :: bucket.other_hoistable }
+    | `Non_hoistable -> { bucket with non_hoistable = element :: bucket.non_hoistable }
+  in
+  let rec add_element bucket element =
+    match element with Html.List ("", list) -> List.fold_left add_element bucket list | _ -> add bucket element
+  in
+  let bucket = List.fold_left add_element empty_head_bucket children in
+  List.rev bucket.meta_charset @ List.rev bucket.meta_other @ List.rev bucket.link_precedence
+  @ List.rev bucket.style_precedence @ List.rev bucket.script_async @ List.rev bucket.other_hoistable
+  @ List.rev bucket.non_hoistable
+
 let rec render_element_to_html ~(fiber : Fiber.t) (element : React.element) : (Html.element * json) Lwt.t =
   match element with
   | Empty -> Lwt.return (Html.null, `Null)
@@ -570,7 +685,7 @@ let rec render_element_to_html ~(fiber : Fiber.t) (element : React.element) : (H
   | Fragment children -> render_element_to_html ~fiber children
   | List list -> elements_to_html ~fiber list
   | Array arr -> elements_to_html ~fiber (Array.to_list arr)
-  | Upper_case_component (_name, component) -> (
+  | Upper_case_component (_name, component) ->
       (* if debug then (
           let debug_info_index = Fiber.use_index fiber in
           let debug_info_ref : json = `String (Printf.sprintf "$%x" debug_info_index) in
@@ -578,11 +693,13 @@ let rec render_element_to_html ~(fiber : Fiber.t) (element : React.element) : (H
           context.push debug_info_index (Model.Value (Model.make_debug_info name));
           context.push debug_info_index (Model.Debug_ref debug_info_ref);
           ()); *)
-      match component () with
-      | element -> render_element_to_html ~fiber element)
+      run_component_with_tree_id_async component (render_element_to_html ~fiber)
   | Async_component (_, component) ->
-      let%lwt element = component () in
-      render_element_to_html ~fiber element
+      let promise, did_render_id = React.UseId.with_component component in
+      let%lwt element = promise in
+      if did_render_id then
+        React.UseId.with_materialized_tree_id_async (fun () -> render_element_to_html ~fiber element)
+      else render_element_to_html ~fiber element
   | Client_component { import_module; import_name; props; client } ->
       let context = fiber.context in
       let env = fiber.env in
@@ -600,16 +717,19 @@ let rec render_element_to_html ~(fiber : Fiber.t) (element : React.element) : (H
         match Lwt.state promise with
         | Sleep ->
             let promise =
-              try%lwt
-                let%lwt html, model = promise in
-                let to_chunk index = Html.list [ boundary_to_chunk html index; model_to_chunk (Value model) index ] in
-                Lwt.return to_chunk
-              with exn ->
-                let message = Printexc.to_string exn in
-                let stack = create_stack_trace () in
-                let error = make_error ~message ~stack ~digest:"" in
-                let to_chunk index = model_to_chunk (Error (fiber.env, error)) index in
-                Lwt.return to_chunk
+              React.UseId.with_state_async fiber.useid_state (fun () ->
+                  try%lwt
+                    let%lwt html, model = promise in
+                    let to_chunk index =
+                      Html.list [ boundary_to_chunk html index; model_to_chunk (Value model) index ]
+                    in
+                    Lwt.return to_chunk
+                  with exn ->
+                    let message = Printexc.to_string exn in
+                    let stack = create_stack_trace () in
+                    let error = make_error ~message ~stack ~digest:"" in
+                    let to_chunk index = model_to_chunk (Error (fiber.env, error)) index in
+                    Lwt.return to_chunk)
             in
             let index = Stream.push_async ~context promise in
             Lwt.return
@@ -678,6 +798,8 @@ and render_lower_case_element ~fiber ~key ~tag ~attributes ~children () =
     | tag when (tag = "script" && is_async attributes) || (tag = "link" && has_precedence_and_rel_stylesheet attributes)
       ->
         handle_hoistable_element ~fiber ~key ~tag ~attributes ~children ~inner_html ~on_push:Fiber.push_resource ()
+    | "link" when is_rel_stylesheet attributes ->
+        render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html ()
     | tag when tag = "title" || tag = "meta" || tag = "link" ->
         handle_hoistable_element ~fiber ~key ~tag ~attributes ~children ~inner_html
           ~on_push:Fiber.push_hoisted_head_childrens ()
@@ -732,7 +854,7 @@ and render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html ()
       Lwt.return (Html.node tag html_props [ html ], Model.node ~tag ~key ~props:json_props [ model ])
 
 and elements_to_html ~fiber elements =
-  let%lwt html_and_models = elements |> Lwt_list.map_p (render_element_to_html ~fiber) in
+  let%lwt html_and_models = elements |> map_children_with_tree_id_async (render_element_to_html ~fiber) in
   (* TODO: List.split is not tail recursive *)
   let htmls, model = List.split html_and_models in
   Lwt.return (Html.list htmls, `List model)
@@ -804,9 +926,11 @@ let render_html ?(skipRoot = false) ?(env = `Dev) ?debug:(_ = false) ?bootstrapS
          Similar on how react does: https://github.com/facebook/react/blob/7d9f876cbc7e9363092e60436704cf8ae435b969/packages/react-server/src/ReactFizzServer.js#L572-L581
          *)
       let stream, context = Stream.make ~initial_index:1 ~pending:1 () in
+      let useid_state = React.UseId.create () in
       let fiber : Fiber.t =
         {
           context;
+          useid_state;
           env;
           hoisted_head = None;
           hoisted_head_childrens = [];
@@ -817,7 +941,9 @@ let render_html ?(skipRoot = false) ?(env = `Dev) ?debug:(_ = false) ?bootstrapS
           inside_body = false;
         }
       in
-      let%lwt root_html, root_model = render_element_to_html ~fiber element in
+      let%lwt root_html, root_model =
+        React.UseId.with_state_async fiber.useid_state (fun () -> render_element_to_html ~fiber element)
+      in
       (* To return the model value immediately, we don't push it to the stream but return it as a payload script together with the user_scripts *)
       let root_data_payload = model_to_chunk (Value root_model) 0 in
       (* Decrement the pending counter to signal that the root data payload is complete. *)
@@ -874,7 +1000,8 @@ let render_html ?(skipRoot = false) ?(env = `Dev) ?debug:(_ = false) ?bootstrapS
           match fiber.hoisted_head with
           | Some node ->
               (* If we found a <head> element, use its attributes and combine all children *)
-              let head = Html.Node { node with children = node.children @ resources } in
+              let ordered_children = reorder_hoistable_head_children node.children in
+              let head = Html.Node { node with children = ordered_children @ resources } in
               Html.node "html" fiber.html_tag_attributes [ head; body ]
           | None ->
               (* If no explicit <head> was found, create one with the hoisted children *)
@@ -890,7 +1017,9 @@ let render_html ?(skipRoot = false) ?(env = `Dev) ?debug:(_ = false) ?bootstrapS
       Lwt.return (Html.to_string html, subscribe))
 
 let render_model_value ?(env = `Dev) ?(debug = false) ?subscribe model =
-  React.Cache.with_request_cache_async (fun () -> Model.render ~env ~debug ?subscribe model)
+  React.Cache.with_request_cache_async (fun () ->
+      let useid_state = React.UseId.create () in
+      React.UseId.with_state_async useid_state (fun () -> Model.render ~env ~debug ?subscribe model))
 
 let render_model ?(env = `Dev) ?(debug = false) ?subscribe model =
   render_model_value ~env ~debug ?subscribe (React.Model.Element model)
