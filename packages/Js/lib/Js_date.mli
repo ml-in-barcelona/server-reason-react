@@ -27,16 +27,6 @@ val getUTCMilliseconds : t -> float
 val getUTCMinutes : t -> float
 val getUTCMonth : t -> float
 val getUTCSeconds : t -> float
-val makeWithYM : year:float -> month:float -> t
-val makeWithYMD : year:float -> month:float -> date:float -> t
-val makeWithYMDH : year:float -> month:float -> date:float -> hours:float -> t
-val makeWithYMDHM : year:float -> month:float -> date:float -> hours:float -> minutes:float -> t
-val makeWithYMDHMS : year:float -> month:float -> date:float -> hours:float -> minutes:float -> seconds:float -> t
-val utcWithYM : year:float -> month:float -> float
-val utcWithYMD : year:float -> month:float -> date:float -> float
-val utcWithYMDH : year:float -> month:float -> date:float -> hours:float -> float
-val utcWithYMDHM : year:float -> month:float -> date:float -> hours:float -> minutes:float -> float
-val utcWithYMDHMS : year:float -> month:float -> date:float -> hours:float -> minutes:float -> seconds:float -> float
 val setDate : date:float -> t -> float
 val setFullYear : year:float -> ?month:float -> ?date:float -> t -> float
 val setHours : hours:float -> ?minutes:float -> ?seconds:float -> ?milliseconds:float -> t -> float

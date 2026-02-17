@@ -471,42 +471,6 @@ let fromString s = time_clip (parse s)
 let setTime ~time _t = time_clip time
 let setUTCTime ~time _t = time_clip time
 
-let makeWithYM ~year ~month =
-  let y = if year >= 0. && year <= 99. then 1900. +. year else year in
-  let d = make_day ~year:y ~month ~date:1. in
-  let t = make_time ~hour:0. ~min:0. ~sec:0. ~ms:0. in
-  time_clip (local_to_utc (make_date ~day:d ~time:t))
-
-let makeWithYMD ~year ~month ~date =
-  let y = if year >= 0. && year <= 99. then 1900. +. year else year in
-  let d = make_day ~year:y ~month ~date in
-  let t = make_time ~hour:0. ~min:0. ~sec:0. ~ms:0. in
-  time_clip (local_to_utc (make_date ~day:d ~time:t))
-
-let makeWithYMDH ~year ~month ~date ~hours =
-  let y = if year >= 0. && year <= 99. then 1900. +. year else year in
-  let d = make_day ~year:y ~month ~date in
-  let t = make_time ~hour:hours ~min:0. ~sec:0. ~ms:0. in
-  time_clip (local_to_utc (make_date ~day:d ~time:t))
-
-let makeWithYMDHM ~year ~month ~date ~hours ~minutes =
-  let y = if year >= 0. && year <= 99. then 1900. +. year else year in
-  let d = make_day ~year:y ~month ~date in
-  let t = make_time ~hour:hours ~min:minutes ~sec:0. ~ms:0. in
-  time_clip (local_to_utc (make_date ~day:d ~time:t))
-
-let makeWithYMDHMS ~year ~month ~date ~hours ~minutes ~seconds =
-  let y = if year >= 0. && year <= 99. then 1900. +. year else year in
-  let d = make_day ~year:y ~month ~date in
-  let t = make_time ~hour:hours ~min:minutes ~sec:seconds ~ms:0. in
-  time_clip (local_to_utc (make_date ~day:d ~time:t))
-
-let utcWithYM ~year ~month = utc ~year ~month ()
-let utcWithYMD ~year ~month ~date = utc ~year ~month ~date ()
-let utcWithYMDH ~year ~month ~date ~hours = utc ~year ~month ~date ~hours ()
-let utcWithYMDHM ~year ~month ~date ~hours ~minutes = utc ~year ~month ~date ~hours ~minutes ()
-let utcWithYMDHMS ~year ~month ~date ~hours ~minutes ~seconds = utc ~year ~month ~date ~hours ~minutes ~seconds ()
-
 let setUTCMilliseconds ~milliseconds t =
   if Float.is_nan t then nan
   else
