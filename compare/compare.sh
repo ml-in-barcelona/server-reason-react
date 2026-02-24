@@ -95,6 +95,11 @@ if [ ! -d "$node_modules_dir" ]; then
   exit 1
 fi
 
+is_client=false
+if grep -q '@react\.client\.component' "$input"; then
+  is_client=true
+fi
+
 workdir="$(mktemp -d -p "$repo_root/compare" srr-compare.XXXXXX)"
 cleanup() {
   if [ "${SRR_COMPARE_KEEP:-}" = "1" ]; then
@@ -120,7 +125,10 @@ cat "$templates_dir/dune-melange.template" "$templates_dir/dune-native.template"
 
 ln -s "$repo_root/arch/server/node_modules" "$workdir/node_modules"
 
-if [ "$mode" = "rsc" ]; then
+if [ "$mode" = "rsc" ] && [ "$is_client" = "true" ]; then
+  cp "$templates_dir/rsc-client-runner.js.template" "$workdir/runner.js"
+  cp "$templates_dir/rsc-runner.ml.template" "$workdir/runner.ml"
+elif [ "$mode" = "rsc" ]; then
   cp "$templates_dir/rsc-runner.js.template" "$workdir/runner.js"
   cp "$templates_dir/rsc-runner.ml.template" "$workdir/runner.ml"
 else
@@ -130,6 +138,9 @@ fi
 
 rel_workdir="${workdir#$repo_root/}"
 build_dir="$workdir/_build"
+
+sed -i "s|__SHARED_PREFIX__|${rel_workdir}/|g" "$workdir/dune"
+
 pushd "$repo_root" >/dev/null
 eval "$(opam env --switch="$repo_root" --set-switch)"
 dune build --build-dir "$build_dir" @melange "$rel_workdir/runner.exe"
@@ -151,6 +162,23 @@ if [ ! -f "$js_entry" ]; then
   exit 1
 fi
 
+if [ "$is_client" = "true" ]; then
+  js_app="$build_root/output/$rel_workdir/App_js.re.js"
+  if [ ! -f "$js_app" ]; then
+    js_app="$build_root/output/$rel_workdir/App_js.js"
+  fi
+  if [ ! -f "$js_app" ]; then
+    js_app="$build_root/output/App_js.re.js"
+  fi
+  if [ ! -f "$js_app" ]; then
+    js_app="$build_root/output/App_js.js"
+  fi
+  if [ ! -f "$js_app" ]; then
+    print_err "Could not find melange output for App_js"
+    exit 1
+  fi
+fi
+
 native_exe="$build_root/runner.exe"
 if [ ! -f "$native_exe" ]; then
   print_err "Could not find native executable"
@@ -161,7 +189,12 @@ js_output="$workdir/js.output"
 native_output="$workdir/native.output"
 
 print_header "React.js output (${mode})"
-if [ "$mode" = "rsc" ]; then
+if [ "$mode" = "rsc" ] && [ "$is_client" = "true" ]; then
+  if ! (cd "$workdir" && bun --conditions react-server "$workdir/runner.js" "$js_app" > "$js_output"); then
+    print_err "React.js run failed"
+    exit 1
+  fi
+elif [ "$mode" = "rsc" ]; then
   if ! (cd "$workdir" && bun --conditions react-server "$workdir/runner.js" "$js_entry" > "$js_output"); then
     print_err "React.js run failed"
     exit 1
@@ -182,6 +215,10 @@ if ! "$native_exe" > "$native_output"; then
 fi
 cat "$native_output"
 printf "\n"
+
+if [ "$is_client" = "true" ]; then
+  sed -i 's/App_native\.re/App_js.re/g' "$native_output"
+fi
 
 diff_output="$workdir/output.diff"
 if diff -u "$js_output" "$native_output" > "$diff_output"; then

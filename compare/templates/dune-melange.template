@@ -5,9 +5,11 @@
  (modules App_js Entry_js)
  (libraries
   melange
-  reason-react)
+  reason-react
+  melange-json)
  (preprocess
   (pps
-   server-reason-react.ppx -melange
+   server-reason-react.ppx -melange -shared-folder-prefix=__SHARED_PREFIX__
    reason-react-ppx
-   melange.ppx)))
+   melange.ppx
+   melange-json.ppx)))

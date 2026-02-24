@@ -5,8 +5,11 @@
   react
   reactDOM
   lwt
-  lwt.unix)
+  lwt.unix
+  melange-json)
  (preprocess
   (pps
-   server-reason-react.ppx
+   server-reason-react.ppx -shared-folder-prefix=__SHARED_PREFIX__
+   server-reason-react.melange_ppx
+   melange-json-native.ppx
    lwt_ppx)))

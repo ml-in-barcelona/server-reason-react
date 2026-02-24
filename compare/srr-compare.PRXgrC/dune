@@ -1,0 +1,26 @@
+(melange.emit
+ (target output)
+ (module_systems
+  (es6 re.js))
+ (modules App_js Entry_js)
+ (libraries melange reason-react melange-json)
+ (preprocess
+  (pps
+   server-reason-react.ppx
+   -melange
+   -shared-folder-prefix=compare/srr-compare.PRXgrC/
+   reason-react-ppx
+   melange.ppx
+   melange-json.ppx)))
+
+(executable
+ (name runner)
+ (modules App_native Entry_native Runner)
+ (libraries react reactDOM lwt lwt.unix melange-json)
+ (preprocess
+  (pps
+   server-reason-react.ppx
+   -shared-folder-prefix=compare/srr-compare.PRXgrC/
+   server-reason-react.melange_ppx
+   melange-json-native.ppx
+   lwt_ppx)))
