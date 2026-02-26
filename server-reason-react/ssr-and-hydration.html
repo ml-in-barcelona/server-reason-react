@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title>ssr-and-hydration (server-reason-react.ssr-and-hydration)</title><meta charset="utf-8"/><link rel="stylesheet" href="../odoc.css"/><meta name="generator" content="odoc 3.1.0"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/><script src="../highlight.pack.js"></script><script>hljs.initHighlightingOnLoad();</script><script>let base_url = '../';
+let search_urls = ['sherlodoc_db.js','../sherlodoc.js'];
+</script><script src="../odoc_search.js" defer="defer"></script></head><body class="odoc"><nav class="odoc-nav"><a href="index.html">Up</a> – <a href="../index.html">Package index</a> &#x00BB; <a href="index.html">server-reason-react</a> &#x00BB; Server-side rendering and hydration</nav><div class="odoc-search"><div class="search-inner"><input class="search-bar" placeholder="🔎 Type '/' to search..."/><div class="search-snake"></div><div class="search-result"></div></div></div><header class="odoc-preamble"><h1 id="server-side-rendering-and-hydration"><a href="#server-side-rendering-and-hydration" class="anchor"></a>Server-side rendering and hydration</h1></header><div class="odoc-tocs"><nav class="odoc-toc odoc-local-toc"><ul><li><a href="#how-does-react.js-work-with-ssr-from-server-reason-react?">How does React.js work with SSR from server-reason-react?</a></li><li><a href="#hydrate-error">Hydrate error</a><ul><li><a href="#example">Example</a></li><li><a href="#possible-solution:-check-if-the-client-is-mounted">Possible solution: check if the client is mounted</a></li></ul></li><li><a href="#some-helpers-that-you-can-create">Some helpers that you can create</a><ul><li><a href="#usemounted">UseMounted</a><ul><li><a href="#when-using-it:">When using it:</a></li><li><a href="#combine-switch%platform-and-%browser_only-with-isclientmounted">Combine <code>switch%platform</code> and <code>%browser_only</code> with <code>isClientMounted</code></a></li></ul></li><li><a href="#server-or-client-render">&lt;ServerOrClientRender /&gt; component</a></li><li><a href="#client-only">&lt;ClientOnly /&gt;</a></li></ul></li></ul></nav><nav class="odoc-toc odoc-global-toc"><ul><li><a href="index.html">server-reason-react</a><ul><li><a href="get-started.html">Get started</a></li><li><a href="universal-code.html">What does universal code mean</a></li><li><a href="how-to-organise-universal-code.html">How to organise universal code</a></li><li><a href="browser_ppx.html">Exclude client code from the native build</a></li><li><a href="externals-melange-attributes.html">Externals and melange attributes</a></li><li><a href="#" class="current_unit">Server-side rendering and hydration</a></li><li>Library <code>server-reason-react.base32</code><ul><li><a href="server-reason-react.base32/Base32/index.html">Base32</a></li></ul></li><li>Library <code>server-reason-react.belt</code><ul><li><a href="server-reason-react.belt/Belt/index.html">Belt</a></li></ul></li><li>Library <code>server-reason-react.browser_ppx</code><ul><li><a href="server-reason-react.browser_ppx/Browser_ppx/index.html">Browser_ppx</a></li></ul></li><li>Library <code>server-reason-react.dom</code><ul><li><a href="server-reason-react.dom/Dom/index.html">Dom</a></li></ul></li><li>Library <code>server-reason-react.expand-styles-attribute</code><ul><li><a href="server-reason-react.expand-styles-attribute/Expand_styles_attribute/index.html">Expand_styles_attribute</a></li></ul></li><li>Library <code>server-reason-react.fetch</code><ul><li><a href="server-reason-react.fetch/Fetch/index.html">Fetch</a></li></ul></li><li>Library <code>server-reason-react.html</code><ul><li><a href="server-reason-react.html/Html/index.html">Html</a></li></ul></li><li>Library <code>server-reason-react.js</code><ul><li><a href="server-reason-react.js/Js/index.html">Js</a></li></ul></li><li>Library <code>server-reason-react.melange_ppx</code><ul><li><a href="server-reason-react.melange_ppx/Melange_native_ppx/index.html">Melange_native_ppx</a></li></ul></li><li>Library <code>server-reason-react.ppx</code><ul><li><a href="server-reason-react.ppx/Server_reason_react_ppx/index.html">Server_reason_react_ppx</a></li></ul></li><li>Library <code>server-reason-react.promise-native</code><ul><li><a href="server-reason-react.promise-native/Promise/index.html">Promise</a></li></ul></li><li>Library <code>server-reason-react.react</code><ul><li><a href="server-reason-react.react/React/index.html">React</a></li><li><a href="server-reason-react.react/ReactEvent/index.html">ReactEvent</a></li><li><a href="server-reason-react.react/ReasonReactRouter/index.html">ReasonReactRouter</a></li></ul></li><li>Library <code>server-reason-react.reactDom</code><ul><li><a href="server-reason-react.reactDom/ReactDOM/index.html">ReactDOM</a></li><li><a href="server-reason-react.reactDom/ReactDOMStyle/index.html">ReactDOMStyle</a></li><li><a href="server-reason-react.reactDom/ReactServerDOM/index.html">ReactServerDOM</a></li></ul></li><li>Library <code>server-reason-react.runtime</code><ul><li><a href="server-reason-react.runtime/Runtime/index.html">Runtime</a></li></ul></li><li>Library <code>server-reason-react.url_native</code><ul><li><a href="server-reason-react.url_native/URL/index.html">URL</a></li></ul></li><li>Library <code>server-reason-react.webapi</code><ul><li><a href="server-reason-react.webapi/Webapi/index.html">Webapi</a></li></ul></li><li>Library <code>server-reason-react.xxhash</code><ul><li><a href="server-reason-react.xxhash/XXH64/index.html">XXH64</a></li></ul></li><li><a href="src/index.html">Sources</a></li></ul></li></ul></nav></div><div class="odoc-content"><h2 id="how-does-react.js-work-with-ssr-from-server-reason-react?"><a href="#how-does-react.js-work-with-ssr-from-server-reason-react?" class="anchor"></a>How does React.js work with SSR from server-reason-react?</h2><p><code>server-reason-react</code> via <code>ReactDOM.renderToString</code>, <code>ReactDOM.renderToStaticMarkup</code> or <code>ReactDOM.renderToStream</code> generate the HTML markup on the server. When the page loads in the browser, React.js performs a process called &quot;hydration&quot;.</p><p>Hydration attaches event handlers into the existing HTML elements, using reason-react's <code>ReactDOM.hydrateRoot</code>. In case of not having hydration and just using render (via <code>ReactDOM.renderRoot</code>), React will re-render the entire page from scratch, which may cause layout shifts and be slower than hydration.</p><p>For hydration to work correctly, the initial markup from the server must match exactly what React loads on the client. React will throw a hydration error if there is a mismatch.</p><p>For example:</p><ul><li>server renders: <code>&lt;span&gt;Hello from server&lt;/span&gt;</code></li><li>client renders: <code>&lt;span&gt;Hello from client&lt;/span&gt;</code></li></ul><p>With this mismatch, hydration will fail and React will re-render on the client. This will result in worse performance and user experience, like layout shifts and other annoyances.</p><p>Read more about it in the <code>React documentation</code>(https://react.dev/reference/react-dom/client/hydrateRoot).</p><h2 id="hydrate-error"><a href="#hydrate-error" class="anchor"></a>Hydrate error</h2><p>Commonly, hydrate errors will appear in the console as: 
+  <p style="background-color: #362422; color: #df5452; padding: 1em;">
+    <strong>Text content does not match server-rendered HTML.</strong>
+  </p>
+</p><h3 id="example"><a href="#example" class="anchor"></a>Example</h3><p>Let's start by triggering a hydration error on purpose. Take a look at this code:</p><pre class="language-reasonml"><code>[@react.component]
+let make = () =&gt; {
+  let backgroundColor = switch%platform () {
+    | Server =&gt; &quot;red&quot;
+    | Client =&gt; &quot;blue&quot;
+  };
+
+  &lt;div className=backgroundColor /&gt;;
+};</code></pre><p>We use <code>switch%platform</code> to provide different values on the server and client. To understand how <code>switch%platform</code> works, look at the <a href="browser_ppx.html" title="browser_ppx">browser_ppx page</a>.</p><p>And let's see the diagram below, which shows how the code will behave:</p><img src="ssr-and-hydration-pipeline.png" alt='Hydrate error' style="max-width: 100%; height: auto; vertical-align: middle;"><p>* React to complain about a hydration error because of the content of className attribute from the server is <code>className=&quot;red&quot;</code> (IV) and what it expects on the client during hydration is <code>className=&quot;blue&quot;</code> (V).</p><p>To fix this, the server and client render must provide the same markup.</p><h3 id="possible-solution:-check-if-the-client-is-mounted"><a href="#possible-solution:-check-if-the-client-is-mounted" class="anchor"></a>Possible solution: check if the client is mounted</h3><p>There are cases where your server doesn't have all the information needed to render the same markup on the client. For example, the client can access the DOM and run some calculations like <code>window.innerWidth</code> or <code>getBoundingClientRect</code>.</p><p>The trick here is to make sure the server-render and the first client-render have the same markup, while the second client-render can have any value. This way, React will be happy with the first client-render and will not throw a hydration error.</p><p>To make it happen, we can check if the client is mounted and then change apply the final value. This is often done with a hook that will be executed only after the client is mounted.</p><pre class="language-reasonml"><code>module UseMounted = {
+  let use = () =&gt; {
+    let (isMounted, setIsMounted) = React.useState(() =&gt; false);
+
+    React.useEffect0(() =&gt; {
+      // The useEffect hook will be executed only on the client and after the hydration
+      setIsMounted(_ =&gt; true);
+      None;
+    });
+
+    isMounted;
+  };
+};
+
+[@react.component]
+let make = () =&gt; {
+  let isClientMounted = UseMounted.use();
+  let backgroundColor = isClientMounted ? &quot;blue&quot; : &quot;red&quot;
+
+  &lt;div className=backgroundColor /&gt;;
+};</code></pre><p>With a code like this one, the flow will be:</p><img src="ssr-and-hydration-pipeline-fixed.png" alt='Hydrate error' style="max-width: 100%; height: auto; vertical-align: middle;"><p>** As we can see, isClientMounted is false on III, IV and V and eventually true on VI. So there is no difference between III and IV, and React will be happy with it.</p><p>In this case, we don't even need <code>switch%platform</code>, as <code>useEffects</code> only runs on client and the value is provided on the client.</p><h2 id="some-helpers-that-you-can-create"><a href="#some-helpers-that-you-can-create" class="anchor"></a>Some helpers that you can create</h2><p>Those helpers are useful, but <code>server-reason-react</code> doesn't provide any, this code should live in your project.</p><h3 id="usemounted"><a href="#usemounted" class="anchor"></a>UseMounted</h3><p><code>UseMounted</code> is a hook to check if the component has mounted.</p><pre class="language-reasonml"><code>let use = () =&gt; {
+  let (isMounted, setIsMounted) = React.useState(() =&gt; false);
+
+  React.useEffect0(() =&gt; {
+    setIsMounted(_ =&gt; true);
+    None;
+  });
+
+  isMounted;
+};</code></pre><h4 id="when-using-it:"><a href="#when-using-it:" class="anchor"></a>When using it:</h4><p>You should use <code>UseMounted</code> whenever you have to deal with variables inside a component. For different JSX, take a look at <a href="#server-or-client-render" title="server-or-client-render">&lt;ServerOrClientRender/&gt;</a> or <a href="#client-only" title="client-only">&lt;ClientOnly/&gt;</a>.</p><p>Example:</p><pre class="language-reasonml"><code>let isFocusable =
+  isClientMounted ? children-&gt;isFocusableElement : false;</code></pre><p>Even with <code>isClientMounted</code>, the content <b>MUST</b> compile on <code>native</code>. If the client content is not <code>native</code> compatible, you can use <code>%browser_only</code>.</p><pre class="language-reasonml"><code>let%browser_only getAnswer = () =&gt; 42
+
+let answer = isClientMounted ? getAnswer() : 0;</code></pre><pre class="language-text"><code>1 |          let answer = isClientMounted ? getAnswer() : 0;
+                                            ^^^^^^^^^^^
+**Error** (alert browser_only): File.getAnswer
+This expression is marked to only run on the browser where JavaScript can run. You can only use it inside a let%browser_only function.</code></pre><p>As you can see, <code>getAnswer</code> is a <code>browser_only</code> content and it must run under a <code>%browser_only</code>:</p><pre class="language-reasonml"><code>let%browser_only getAnswer = () =&gt; 42
+
+let answer = isClientMounted ? [%browser_only () =&gt; getAnswer()]() : 0;</code></pre><h4 id="combine-switch%platform-and-%browser_only-with-isclientmounted"><a href="#combine-switch%platform-and-%browser_only-with-isclientmounted" class="anchor"></a>Combine <code>switch%platform</code> and <code>%browser_only</code> with <code>isClientMounted</code></h4><p><code>switch%platform</code> and <code>browser_only</code> are extensions that help us discarting parts of the same file for both native and JavaScript without breaking the compiler (read more about them here: <a href="browser_ppx.html" title="browser_ppx">browser_ppx page</a>).</p><p>So we should use <code>switch%platform</code> when we don't have a single way to provide the same value. If there is a way to provide the same value, but not in a single way, you'll need <code>switch%platform</code> like following:</p><pre class="language-reasonml"><code>let foo = switch%platform () {
+  | Server =&gt; foo_native()
+  | Client =&gt; foo_client()
+}</code></pre><p>Here, <code>foo</code> will have the same value on both targets. There's no need for <code>isClientMounted</code> because Hydrate will never throw an error.</p><p>The usage of <code>isClientMounted</code> forces the execution of the code to behave proeprly, but it does not avoid compiler error because the code needs to compile on both targets. So, you will need <code>isClientMounted</code> and <code>browser_only</code> together:</p><pre class="language-reasonml"><code>let%browser_only foo_cant_compile_on_native = () =&gt; &quot;Hey&quot;
+
+let value = isClientMounted
+  ? [%browser_only () =&gt; foo_cant_compile_on_native()]
+  : &quot;Yah&quot;</code></pre>
+  <div style="border-left: 4px solid #0366d6; padding: 0.2em 1em;">
+    <strong>✏️ Note</strong>
+    <p style="margin-top: 0.5em; margin-bottom: 0;">Remember, <code>switch%platform</code> is a helper to be used only when we don't have an alternative. However, we are constantly providing new universal content on <a href="https://github.com/ml-in-barcelona/server-reason-react" target="_blank">server-reason-react</a>, so you can ping us when you find something not universal that you think could be.</p>
+  </div>
+<h3 id="server-or-client-render"><a href="#server-or-client-render" class="anchor"></a>&lt;ServerOrClientRender /&gt; component</h3><pre class="language-reasonml"><code>[@react.component]
+let make = (~server: unit =&gt; React.element, ~client: unit =&gt; React.element) =&gt; {
+  let isClientMounted = UseMounted.use();
+
+  switch (isClientMounted) {
+  | false =&gt; server()
+  | true =&gt; client()
+  };
+};</code></pre><p><code>ServerOrClientRender</code> is a React Component that helps to provide different JSX markup on server and client powered by <code>UseMounted</code> to avoid hydrate issues.</p><p>Example:</p><pre class="language-reasonml"><code>[@react.component]
+let make = () =&gt; {
+  &lt;ServerOrClientRender
+    server={() =&gt; &lt;RedComponent /&gt;}
+    client={() =&gt; &lt;BlueComponent /&gt;}
+  /&gt;;
+};</code></pre><p>Again, even with <code>ServerOrClientRender</code>, the content <b>MUST</b> compile on <code>native</code>. If the client content is not <code>native</code> compatible, you must use <code>%browser_only</code>.</p><pre class="language-reasonml"><code>// Imagine a BlueComponent.re being a client only component
+
+// Foo.re: a universal file
+&lt;ServerOrClientRender
+  server={() =&gt; &lt;RedComponent /&gt;}
+  client={() =&gt; &lt;BlueComponent /&gt;}
+/&gt;</code></pre><pre class="language-text"><code>1 |         &lt;BlueComponent
+             ^^^^^^^^^^^^^
+**Error**: Unbound module BlueComponent</code></pre><p>As you can see, <code>BlueComponent</code> is not available on <code>native</code>, cause it's client only and must run under a <code>%browser_only</code>:</p><pre class="language-reasonml"><code>&lt;ServerOrClientRender
+  server={() =&gt; &lt;RedComponent /&gt;}
+  client={
+    [%browser_only () =&gt; &lt;BlueClientComponentOnly /&gt;]
+  }
+/&gt;</code></pre><h3 id="client-only"><a href="#client-only" class="anchor"></a>&lt;ClientOnly /&gt;</h3><p>The <code>ClientOnly</code> component is built on top of <code>ServerOrClientRender</code>. It provides a helper to easily apply client-side content.</p><pre class="language-ocaml"><code>[@react.component]
+let make = (~children: unit =&gt; React.element) =&gt; {
+  &lt;ServerOrClientRender client=children server={() =&gt; RR.null} /&gt;;
+};</code></pre><p>Use <code>&lt;ClientOnly/&gt;</code> when the server JSX can be empty (<code>RR.null</code>) and only want to render JSX on the client side.</p><pre class="language-reasonml"><code>&lt;ClientOnly&gt;
+  {() =&gt; React.string(&quot;Hello World&quot;)}
+&lt;/ClientOnly&gt;</code></pre><p>Again, we should use <code>%browser_only</code> even when using <code>ClientOnly</code> since the content <b>MUST</b> compile on <code>native</code>.</p></div></body></html>

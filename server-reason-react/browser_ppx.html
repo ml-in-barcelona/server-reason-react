@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title>browser_ppx (server-reason-react.browser_ppx)</title><meta charset="utf-8"/><link rel="stylesheet" href="../odoc.css"/><meta name="generator" content="odoc 3.1.0"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/><script src="../highlight.pack.js"></script><script>hljs.initHighlightingOnLoad();</script><script>let base_url = '../';
+let search_urls = ['sherlodoc_db.js','../sherlodoc.js'];
+</script><script src="../odoc_search.js" defer="defer"></script></head><body class="odoc"><nav class="odoc-nav"><a href="index.html">Up</a> – <a href="../index.html">Package index</a> &#x00BB; <a href="index.html">server-reason-react</a> &#x00BB; Exclude client code from the native build</nav><div class="odoc-search"><div class="search-inner"><input class="search-bar" placeholder="🔎 Type '/' to search..."/><div class="search-snake"></div><div class="search-result"></div></div></div><header class="odoc-preamble"><h1 id="exclude-client-code-from-the-native-build"><a href="#exclude-client-code-from-the-native-build" class="anchor"></a>Exclude client code from the native build</h1><p><code>browser_only</code> is the ppx to exclude client code from the server build and conditionally execute code based on each platform.</p><p>For example, if you're using <code>Webapi</code> to query the DOM and extract some data from it. This code should only run on the client, and there's no equivalent or fallback on the server.</p><p>The ppx expose the <code>[%browser_only]</code> extension and <code>[@browser_only]</code> attribute that can be used to discard functions and values, and <code>[switch%platform]</code> to conditionally compile and execute code based on the platform.</p></header><div class="odoc-tocs"><nav class="odoc-toc odoc-local-toc"><ul><li><a href="#example">Example</a></li><li><a href="#installation">Installation</a></li><li><a href="#usage">Usage</a><ul><li><a href="#let%browser_only-to-discard-functions">let%browser_only to discard functions</a></li><li><a href="#switch%platform-to-conditionally-execute-code-based-on-the-platform">switch%platform to conditionally execute code based on the platform</a></li><li><a href="#[@platform]-attribute"><code>[@platform]</code> attribute</a></li></ul></li></ul></nav><nav class="odoc-toc odoc-global-toc"><ul><li><a href="index.html">server-reason-react</a><ul><li><a href="get-started.html">Get started</a></li><li><a href="universal-code.html">What does universal code mean</a></li><li><a href="how-to-organise-universal-code.html">How to organise universal code</a></li><li><a href="#" class="current_unit">Exclude client code from the native build</a></li><li><a href="externals-melange-attributes.html">Externals and melange attributes</a></li><li><a href="ssr-and-hydration.html">Server-side rendering and hydration</a></li><li>Library <code>server-reason-react.base32</code><ul><li><a href="server-reason-react.base32/Base32/index.html">Base32</a></li></ul></li><li>Library <code>server-reason-react.belt</code><ul><li><a href="server-reason-react.belt/Belt/index.html">Belt</a></li></ul></li><li>Library <code>server-reason-react.browser_ppx</code><ul><li><a href="server-reason-react.browser_ppx/Browser_ppx/index.html">Browser_ppx</a></li></ul></li><li>Library <code>server-reason-react.dom</code><ul><li><a href="server-reason-react.dom/Dom/index.html">Dom</a></li></ul></li><li>Library <code>server-reason-react.expand-styles-attribute</code><ul><li><a href="server-reason-react.expand-styles-attribute/Expand_styles_attribute/index.html">Expand_styles_attribute</a></li></ul></li><li>Library <code>server-reason-react.fetch</code><ul><li><a href="server-reason-react.fetch/Fetch/index.html">Fetch</a></li></ul></li><li>Library <code>server-reason-react.html</code><ul><li><a href="server-reason-react.html/Html/index.html">Html</a></li></ul></li><li>Library <code>server-reason-react.js</code><ul><li><a href="server-reason-react.js/Js/index.html">Js</a></li></ul></li><li>Library <code>server-reason-react.melange_ppx</code><ul><li><a href="server-reason-react.melange_ppx/Melange_native_ppx/index.html">Melange_native_ppx</a></li></ul></li><li>Library <code>server-reason-react.ppx</code><ul><li><a href="server-reason-react.ppx/Server_reason_react_ppx/index.html">Server_reason_react_ppx</a></li></ul></li><li>Library <code>server-reason-react.promise-native</code><ul><li><a href="server-reason-react.promise-native/Promise/index.html">Promise</a></li></ul></li><li>Library <code>server-reason-react.react</code><ul><li><a href="server-reason-react.react/React/index.html">React</a></li><li><a href="server-reason-react.react/ReactEvent/index.html">ReactEvent</a></li><li><a href="server-reason-react.react/ReasonReactRouter/index.html">ReasonReactRouter</a></li></ul></li><li>Library <code>server-reason-react.reactDom</code><ul><li><a href="server-reason-react.reactDom/ReactDOM/index.html">ReactDOM</a></li><li><a href="server-reason-react.reactDom/ReactDOMStyle/index.html">ReactDOMStyle</a></li><li><a href="server-reason-react.reactDom/ReactServerDOM/index.html">ReactServerDOM</a></li></ul></li><li>Library <code>server-reason-react.runtime</code><ul><li><a href="server-reason-react.runtime/Runtime/index.html">Runtime</a></li></ul></li><li>Library <code>server-reason-react.url_native</code><ul><li><a href="server-reason-react.url_native/URL/index.html">URL</a></li></ul></li><li>Library <code>server-reason-react.webapi</code><ul><li><a href="server-reason-react.webapi/Webapi/index.html">Webapi</a></li></ul></li><li>Library <code>server-reason-react.xxhash</code><ul><li><a href="server-reason-react.xxhash/XXH64/index.html">XXH64</a></li></ul></li><li><a href="src/index.html">Sources</a></li></ul></li></ul></nav></div><div class="odoc-content"><h2 id="example"><a href="#example" class="anchor"></a>Example</h2><pre class="language-ocaml"><code>let%browser_only countDomNodes = (id) =&gt; {
+  let elements = Webapi.Element.querySelector(&quot;#&quot; ++ id);
+  let arr_elements = Webapi.Element.toArray(elements);
+  Array.length(arr_elements);
+}</code></pre><pre class="language-ocaml"><code>switch%platform (Runtime.platform) {
+| Server =&gt; print_endline(&quot;This prints to the terminal&quot;)
+| Client =&gt; Js.log(&quot;This prints to the console&quot;)
+};</code></pre><h2 id="installation"><a href="#installation" class="anchor"></a>Installation</h2><p>Add <code>server-reason-react.browser_ppx</code> into to your pps field under a dune stanzas (melange.emit, libraries or executable) in your dune files.</p><p>You would need to add it on both &quot;server&quot; and &quot;client&quot; dune files. Adding the <code>-js</code> flag <code>server-reason-react.browser_ppx -js</code> for the client and without the flag for the server:</p><pre class="language-ocaml"><code>; server exectuable
+(executable
+ (name server)
+ (preprocess
+  (pps server-reason-react.browser_ppx)))
+
+; melange emitting JavaScript
+(melange.emit
+ (target app)
+ (preprocess
+  (pps server-reason-react.browser_ppx -js)))</code></pre><h2 id="usage"><a href="#usage" class="anchor"></a>Usage</h2><h3 id="let%browser_only-to-discard-functions"><a href="#let%browser_only-to-discard-functions" class="anchor"></a>let%browser_only to discard functions</h3><pre class="language-ocaml"><code>let%browser_only countDomNodes = (id) =&gt; {
+  let elements = Webapi.Element.querySelector(&quot;#&quot; ++ id);
+  let arr_elements = Webapi.Element.toArray(elements);
+  Array.length(arr_elements);
+};</code></pre><p>The method tagged by <code>browser_only</code> and it will keep the function for the client build, but will be discarded for the server build. On the server build, the ppx transforms the body of function into a <code>Runtime.Impossible_in_ssr</code> exception.</p><p>If this function ever runs on the server accidentally, it will raise the exception. If this exception isn't caught, the server will obviously crash. This situation is very unlikely to happen, but in case of not being sure, it's good to be prepared for it and add a try catch block.</p><p>There may be other cases where catching the exception might be useful. For example, if you want to provide a default value or a fallback.</p><p>Following with the example from above:</p><pre class="language-ocaml"><code>let%browser_only countDomNodes = (id) =&gt; {
+  let elements = Webapi.Element.querySelector(&quot;#&quot; ++ id);
+  let arr_elements = Webapi.Element.toArray(elements);
+  Array.length(arr_elements);
+}
+
+let main = id =&gt;
+  switch (countDomNodes(id)) {
+  | exception Runtime.Impossible_in_ssr(_message) =&gt; 0
+  };</code></pre><p>Now, the function <code>main</code> will return 0 if the function <code>countDomNodes</code> raises the <code>Runtime.Impossible_in_ssr</code> exception, and is &quot;safe&quot; (as in, it won't crash) to run on the server.</p><h3 id="switch%platform-to-conditionally-execute-code-based-on-the-platform"><a href="#switch%platform-to-conditionally-execute-code-based-on-the-platform" class="anchor"></a>switch%platform to conditionally execute code based on the platform</h3><p><code>switch%platform</code> allows to conditionally execute code based on the platform. There are some cases where you need to run a specific code only on the server or only on the client.</p><p>An example is worth a thousand words:</p><pre class="language-ocaml"><code>switch%platform (Runtime.platform) {
+| Server =&gt; print_endline(&quot;This prints to the terminal&quot;)
+| Client =&gt; Js.log(&quot;This prints to the console&quot;)
+};</code></pre><p>Because Reason (and also OCaml) is a language where everything is an expression, not only can execute code, but any expression can be part of the switch.</p><pre class="language-ocaml"><code>let howManyColumns =
+  switch%platform (Runtime.platform) {
+  | Server =&gt; 0
+  | Client =&gt; 12
+  };</code></pre><p>Note that the expression is evaluated for each platform, but the type needs to be the same for all the branches.</p><h3 id="[@platform]-attribute"><a href="#[@platform]-attribute" class="anchor"></a><code>[@platform]</code> attribute</h3><p>The <code>[@platform]</code> attribute allows to specify code blocks that should only be included in the JavaScript or native build, respectively. The <code>[@platform]</code> attribute works the same way as the <code>[switch%platform]</code>, but applied to entire modules.</p><p>Again, this is useful when you have code that is specific to one platform and should not be included in the other, but all packaged into a single module.</p><p>For example, you can define two modules, but only one of them should be kept in the final build based on the platform.</p><pre class="language-ocaml"><code>[@platform js]
+module X = {
+  type t = Js.Json.t;
+  let a = 2 + 2;
+};
+
+[@platform native]
+module Y = {
+  type t = Js.Json.t;
+  let a = 4 + 4;
+};</code></pre><p>When compiling with the `-js` flag, only the block with <code>[@platform js]</code> (module X) is kept, and when compiling without it, only the block with <code>[@platform native]</code> (module Y) is kept.</p><p>If you name the modules the same, the compiler won't complain, since you would get a single module available in both targets, respectively.</p><pre class="language-ocaml"><code>[@platform js]
+module X = {
+  type t = Js.Json.t;
+  let a = 2 + 2;
+};
+
+[@platform native]
+module X = {
+  type t = Yojson.Basic.t;
+  let a = 4 + 4;
+};</code></pre></div></body></html>

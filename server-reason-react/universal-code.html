@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title>universal-code (server-reason-react.universal-code)</title><meta charset="utf-8"/><link rel="stylesheet" href="../odoc.css"/><meta name="generator" content="odoc 3.1.0"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/><script src="../highlight.pack.js"></script><script>hljs.initHighlightingOnLoad();</script><script>let base_url = '../';
+let search_urls = ['sherlodoc_db.js','../sherlodoc.js'];
+</script><script src="../odoc_search.js" defer="defer"></script></head><body class="odoc"><nav class="odoc-nav"><a href="index.html">Up</a> – <a href="../index.html">Package index</a> &#x00BB; <a href="index.html">server-reason-react</a> &#x00BB; What does universal code mean</nav><div class="odoc-search"><div class="search-inner"><input class="search-bar" placeholder="🔎 Type '/' to search..."/><div class="search-snake"></div><div class="search-result"></div></div></div><header class="odoc-preamble"><h1 id="what-does-universal-code-mean"><a href="#what-does-universal-code-mean" class="anchor"></a>What does universal code mean</h1><p>One of the goals of <code>server-reason-react</code> is to make easier to write code that can be shared between native and JavaScript.</p><p>A library (or module) is universal if:</p><ul><li>Compiles correctly for both platforms</li><li>Exposes a common interface to both platforms</li><li>Respects the semantics of the library on each platform</li></ul><p>This is what we call universal code, but let me explain each point a bit better</p></header><div class="odoc-tocs"><nav class="odoc-toc odoc-local-toc"><ul><li><a href="#compiles-correctly-for-both-platforms">Compiles correctly for both platforms</a></li><li><a href="#exposes-a-common-interface-to-both-platforms">Exposes a common interface to both platforms</a></li><li><a href="#respects-the-semantics-of-the-library-on-each-platform">Respects the semantics of the library on each platform</a></li><li><a href="#kinds">Kinds of universal libraries</a><ul><li><a href="#pure">Pure universal library</a></li><li><a href="#same-api">Same API, different implementations</a></li></ul></li><li><a href="#examples">Examples of universal libraries from server-reason-react</a></li></ul></nav><nav class="odoc-toc odoc-global-toc"><ul><li><a href="index.html">server-reason-react</a><ul><li><a href="get-started.html">Get started</a></li><li><a href="#" class="current_unit">What does universal code mean</a></li><li><a href="how-to-organise-universal-code.html">How to organise universal code</a></li><li><a href="browser_ppx.html">Exclude client code from the native build</a></li><li><a href="externals-melange-attributes.html">Externals and melange attributes</a></li><li><a href="ssr-and-hydration.html">Server-side rendering and hydration</a></li><li>Library <code>server-reason-react.base32</code><ul><li><a href="server-reason-react.base32/Base32/index.html">Base32</a></li></ul></li><li>Library <code>server-reason-react.belt</code><ul><li><a href="server-reason-react.belt/Belt/index.html">Belt</a></li></ul></li><li>Library <code>server-reason-react.browser_ppx</code><ul><li><a href="server-reason-react.browser_ppx/Browser_ppx/index.html">Browser_ppx</a></li></ul></li><li>Library <code>server-reason-react.dom</code><ul><li><a href="server-reason-react.dom/Dom/index.html">Dom</a></li></ul></li><li>Library <code>server-reason-react.expand-styles-attribute</code><ul><li><a href="server-reason-react.expand-styles-attribute/Expand_styles_attribute/index.html">Expand_styles_attribute</a></li></ul></li><li>Library <code>server-reason-react.fetch</code><ul><li><a href="server-reason-react.fetch/Fetch/index.html">Fetch</a></li></ul></li><li>Library <code>server-reason-react.html</code><ul><li><a href="server-reason-react.html/Html/index.html">Html</a></li></ul></li><li>Library <code>server-reason-react.js</code><ul><li><a href="server-reason-react.js/Js/index.html">Js</a></li></ul></li><li>Library <code>server-reason-react.melange_ppx</code><ul><li><a href="server-reason-react.melange_ppx/Melange_native_ppx/index.html">Melange_native_ppx</a></li></ul></li><li>Library <code>server-reason-react.ppx</code><ul><li><a href="server-reason-react.ppx/Server_reason_react_ppx/index.html">Server_reason_react_ppx</a></li></ul></li><li>Library <code>server-reason-react.promise-native</code><ul><li><a href="server-reason-react.promise-native/Promise/index.html">Promise</a></li></ul></li><li>Library <code>server-reason-react.react</code><ul><li><a href="server-reason-react.react/React/index.html">React</a></li><li><a href="server-reason-react.react/ReactEvent/index.html">ReactEvent</a></li><li><a href="server-reason-react.react/ReasonReactRouter/index.html">ReasonReactRouter</a></li></ul></li><li>Library <code>server-reason-react.reactDom</code><ul><li><a href="server-reason-react.reactDom/ReactDOM/index.html">ReactDOM</a></li><li><a href="server-reason-react.reactDom/ReactDOMStyle/index.html">ReactDOMStyle</a></li><li><a href="server-reason-react.reactDom/ReactServerDOM/index.html">ReactServerDOM</a></li></ul></li><li>Library <code>server-reason-react.runtime</code><ul><li><a href="server-reason-react.runtime/Runtime/index.html">Runtime</a></li></ul></li><li>Library <code>server-reason-react.url_native</code><ul><li><a href="server-reason-react.url_native/URL/index.html">URL</a></li></ul></li><li>Library <code>server-reason-react.webapi</code><ul><li><a href="server-reason-react.webapi/Webapi/index.html">Webapi</a></li></ul></li><li>Library <code>server-reason-react.xxhash</code><ul><li><a href="server-reason-react.xxhash/XXH64/index.html">XXH64</a></li></ul></li><li><a href="src/index.html">Sources</a></li></ul></li></ul></nav></div><div class="odoc-content"><h3 id="compiles-correctly-for-both-platforms"><a href="#compiles-correctly-for-both-platforms" class="anchor"></a>Compiles correctly for both platforms</h3><p>One of the first challenges of sharing code is that both platforms have different APIs available. You can't use browser's APIs on the server, for example <code>document.querySelectorAll</code>. Also, you can't use server related APIs on the client such as any filsystem operations, for example <code>Unix.getpid</code>.</p><p>In this aspect server-reason-react is not much different than Node.js. For example, Node.js doesn't provide the global window/document objects in Node and enforces the user to handle those cases manually. <code>if typeof window !== &quot;undefined&quot; { ... }</code></p><p>In our case, those browser APIs don't exist on native, but the difference with Node.js is that we need the code to compile, meanwhile Node.js (being JIT) will raise an error at runtime if your code tries to use those APIs. In OCaml, those modules need to be present.</p><p>Which makes those modules either present but stubbed on native or discarded with <code>browser_ppx</code>.</p><h3 id="exposes-a-common-interface-to-both-platforms"><a href="#exposes-a-common-interface-to-both-platforms" class="anchor"></a>Exposes a common interface to both platforms</h3><p>Exposes a common interface to both platforms but it can also expose platform specific implementations on each side. Let's give a simple example:</p><pre class="language-ocaml"><code>// Let's imagine we have a module &quot;Math&quot; that we want to be universal
+module type Math_interface = {
+  let sum: (int, int) =&gt; int;
+};
+
+// a &quot;Math_native&quot; module that implements the interface for the server
+module Math_native: Math_interface = {
+  let sum = (a, b) =&gt; a + b;
+  // For the sake of the example, we want a async sum
+  let async = (a, b) =&gt; Lwt.return(a + b);
+};
+
+// a &quot;Math_js&quot; module that implements the interface for the client
+// Asuming that Math_native.async is only used in native code, we don't need to implement &quot;async&quot;
+module Math_js: Math_interface = {
+  let sum = (a, b) =&gt; a + b;
+};</code></pre><p>This example is a bit silly, since the sum function is the same on both platforms. But it shows the idea: implement platform specific parts on each module.</p><h3 id="respects-the-semantics-of-the-library-on-each-platform"><a href="#respects-the-semantics-of-the-library-on-each-platform" class="anchor"></a>Respects the semantics of the library on each platform</h3><p>There's cases where the semantics of the library are different on each platform, but the behaviour is the same. Let's give a real example from the server-reason-react codebase:</p><pre class="language-ocaml"><code>module ReasonReact = {
+  module React = {
+    type element; // an abstract type
+
+    // a bind to the react.js createElement function, melange will inline the function
+    // React.createElement when compiling to JavaScript
+    [@mel.module &quot;react&quot;]
+    external createElement: string =&gt; React.element = &quot;createElement&quot;;
+  };
+};
+
+module ServerReasonReact = {
+  module React = {
+    // in the server-reason-react version, the element type isn't abstract
+    // because we need to know the kind of element to render in ReactDOM.renderToString for example. I could make it abstract on the interface, but I don't need to (for correctness is a good idea to maintain the exact interface).
+
+    type element =
+      | Element(string)
+      | Text(string)
+      | Component(unit =&gt; element)
+      | Fragment(array(element));
+
+    // createElement is a function that returns a React.element
+    let createElement = name =&gt; React.Model.Element(string);
+  };
+};</code></pre><p>In both &quot;createElement&quot; functions the semantics are the same, but the implementation is different. There's plenty of cases like this one, but I consider those cases useful for adapting a JavaScript library to native, in a world where you start a library with universality in mind, this might not be needed.</p><h2 id="kinds"><a href="#kinds" class="anchor"></a>Kinds of universal libraries</h2><h3 id="pure"><a href="#pure" class="anchor"></a>Pure universal library</h3><p>It's a library without any client or server dependency, you can have a library with all modes: <code>(modes native byte melange)</code>. This is common for type-only libraries or libraries that only rely on the standard library. I often refer to this as &quot;pure universal&quot; library.</p><p>For example, a library to handle remote data named <code>Remote_data</code>. Represented here as a cut down version of the library for demo purposes, you can imagine to have all necessary functions to operate on this type:</p><pre class="language-ocaml"><code>(* dune *)
+(library
+ (name RemoteData)
+ (modes native melange)) (* Contains both modes for melange and native *)</code></pre><pre class="language-ocaml"><code>(* RemoteData.re *)
+type t('data, 'error) =
+  | NotAsked
+  | InitialLoading
+  | Loading('data)
+  | Failure('error)
+  | Success('data);
+
+let map = (remoteData, fn) =&gt;
+  switch (remoteData) {
+  | NotAsked =&gt; NotAsked
+  | InitialLoading
+  | Loading(_) =&gt; InitialLoading
+  | Failure(error) =&gt; Failure(error)
+  | Success(data) =&gt; Success(fn(data))
+  };
+
+let getWithDefault = (remoteData, defaultValue) =&gt;
+  switch (remoteData) {
+  | NotAsked
+  | InitialLoading
+  | Loading(_)
+  | Failure(_) =&gt; defaultValue
+  | Success(data) =&gt; data
+  };
+
+let isLoading =
+  fun
+  | InitialLoading
+  | Loading(_) =&gt; true
+  | _ =&gt; false;</code></pre><p>This library can be used in both &quot;native&quot; and &quot;melagne&quot; stanzas interchangeably.</p><h3 id="same-api"><a href="#same-api" class="anchor"></a>Same API, different implementations</h3><p>There are some other cases where you want to expose the same API, but the implementation is different.</p><p>For example, another tiny example: you may want to have a library that exposes a function to get the current time. On the client, you may want to use the browser API, while on the server you may want to use the system time.</p><p><code>dune</code> allows to have 2 libraries with the same name, but available in different modes. For example:</p><pre class="language-ocaml"><code>(library
+  (name url_js)
+  (modes melange)
+  (libraries melange.js)
+  (modules Url)
+  (wrapped false))
+
+(library
+  (name url_native)
+  (modes native)
+  (modules Url)
+  (wrapped false))</code></pre><p><code>url_js</code> and <code>url_native</code> are two different libraries, but they expose the same module called <code>Url</code> with the same API.</p><p>Both libraries need to be <code>(wrapped false)</code> so they expose all the modules (which in this case is only <code>Url</code>) directly.</p><p><code>wrapped true</code> means that the library is wrapped in a entry module, so the modules are exposed under the library name. In this case, <code>wrapped false</code> expose the modules directly.</p><h2 id="examples"><a href="#examples" class="anchor"></a>Examples of universal libraries from server-reason-react</h2><p>As explained before, <code>server-reason-react</code> exposes a few modules that aren't React itself, such as <a href="server-reason-react.belt/Belt/index.html"><code>Belt</code></a> or <a href="server-reason-react.js/Js/index.html"><code>Js</code></a>. Those are native implementations of those libraries, which the user would need to add both server-reason-react.belt and melange.belt in any library.</p><ul><li><a href="server-reason-react.belt/Belt/index.html"><code>Belt</code></a> is an implementation of <code>Belt</code> that would work on both server and client. <code>server-reason-react.belt</code> (Unstable)</li><li><a href="server-reason-react.js/Js/index.html"><code>Js</code></a> is an half-implementation of the <code>Js</code> module from melange.js, and many parts aren't implemented and some other parts aren't possible to implement on the server (Unstable, it raises &quot;NOT IMPLEMENTED&quot; for missing functions). <code>server-reason-react.js</code></li><li><a href="server-reason-react.webapi/Webapi/index.html"><code>Webapi</code></a> is a shimmed version of <code>melange-webapi</code> that works crash at runtime if you call those APIs on the server. <code>server-reason-react.webapi</code></li></ul></div></body></html>

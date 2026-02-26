@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Source: js__.ml (server-reason-react.src.server-reason-react.js)</title><meta charset="utf-8"/><link rel="stylesheet" href="../../../odoc.css"/><meta name="generator" content="odoc 3.1.0"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/></head><body class="odoc-src"><nav class="odoc-nav"><a href="../index.html">Up</a> – <a href="../../../index.html">Package index</a> &#x00BB; <a href="../../index.html">server-reason-react</a> &#x00BB; <a href="../index.html">Sources</a> &#x00BB; server-reason-react.js &#x00BB; js__.ml</nav><header class="odoc-preamble"><h1>Source file <code><span>js__.ml</span></code></h1></header><div class="odoc-tocs"><nav class="odoc-toc odoc-global-toc"><ul><li><a href="../../index.html">server-reason-react</a><ul><li><a href="../../get-started.html">Get started</a></li><li><a href="../../universal-code.html">What does universal code mean</a></li><li><a href="../../how-to-organise-universal-code.html">How to organise universal code</a></li><li><a href="../../browser_ppx.html">Exclude client code from the native build</a></li><li><a href="../../externals-melange-attributes.html">Externals and melange attributes</a></li><li><a href="../../ssr-and-hydration.html">Server-side rendering and hydration</a></li><li>Library <code>server-reason-react.base32</code><ul><li><a href="../../server-reason-react.base32/Base32/index.html">Base32</a></li></ul></li><li>Library <code>server-reason-react.belt</code><ul><li><a href="../../server-reason-react.belt/Belt/index.html">Belt</a></li></ul></li><li>Library <code>server-reason-react.browser_ppx</code><ul><li><a href="../../server-reason-react.browser_ppx/Browser_ppx/index.html">Browser_ppx</a></li></ul></li><li>Library <code>server-reason-react.dom</code><ul><li><a href="../../server-reason-react.dom/Dom/index.html">Dom</a></li></ul></li><li>Library <code>server-reason-react.expand-styles-attribute</code><ul><li><a href="../../server-reason-react.expand-styles-attribute/Expand_styles_attribute/index.html">Expand_styles_attribute</a></li></ul></li><li>Library <code>server-reason-react.fetch</code><ul><li><a href="../../server-reason-react.fetch/Fetch/index.html">Fetch</a></li></ul></li><li>Library <code>server-reason-react.html</code><ul><li><a href="../../server-reason-react.html/Html/index.html">Html</a></li></ul></li><li>Library <code>server-reason-react.js</code><ul><li><a href="../../server-reason-react.js/Js/index.html">Js</a></li></ul></li><li>Library <code>server-reason-react.melange_ppx</code><ul><li><a href="../../server-reason-react.melange_ppx/Melange_native_ppx/index.html">Melange_native_ppx</a></li></ul></li><li>Library <code>server-reason-react.ppx</code><ul><li><a href="../../server-reason-react.ppx/Server_reason_react_ppx/index.html">Server_reason_react_ppx</a></li></ul></li><li>Library <code>server-reason-react.promise-native</code><ul><li><a href="../../server-reason-react.promise-native/Promise/index.html">Promise</a></li></ul></li><li>Library <code>server-reason-react.react</code><ul><li><a href="../../server-reason-react.react/React/index.html">React</a></li><li><a href="../../server-reason-react.react/ReactEvent/index.html">ReactEvent</a></li><li><a href="../../server-reason-react.react/ReasonReactRouter/index.html">ReasonReactRouter</a></li></ul></li><li>Library <code>server-reason-react.reactDom</code><ul><li><a href="../../server-reason-react.reactDom/ReactDOM/index.html">ReactDOM</a></li><li><a href="../../server-reason-react.reactDom/ReactDOMStyle/index.html">ReactDOMStyle</a></li><li><a href="../../server-reason-react.reactDom/ReactServerDOM/index.html">ReactServerDOM</a></li></ul></li><li>Library <code>server-reason-react.runtime</code><ul><li><a href="../../server-reason-react.runtime/Runtime/index.html">Runtime</a></li></ul></li><li>Library <code>server-reason-react.url_native</code><ul><li><a href="../../server-reason-react.url_native/URL/index.html">URL</a></li></ul></li><li>Library <code>server-reason-react.webapi</code><ul><li><a href="../../server-reason-react.webapi/Webapi/index.html">Webapi</a></li></ul></li><li>Library <code>server-reason-react.xxhash</code><ul><li><a href="../../server-reason-react.xxhash/XXH64/index.html">XXH64</a></li></ul></li><li><a href="../index.html">Sources</a><ul><li>server-reason-react.base32<ul><li><a href="../server-reason-react.base32/base32.ml.html">base32.ml</a></li></ul></li><li>server-reason-react.belt<ul><li><a href="../server-reason-react.belt/Belt_Array.ml.html">Belt_Array.ml</a></li><li><a href="../server-reason-react.belt/Belt_Float.ml.html">Belt_Float.ml</a></li><li><a href="../server-reason-react.belt/Belt_HashMap.ml.html">Belt_HashMap.ml</a></li><li><a href="../server-reason-react.belt/Belt_HashSet.ml.html">Belt_HashSet.ml</a></li><li><a href="../server-reason-react.belt/Belt_Id.ml.html">Belt_Id.ml</a></li><li><a href="../server-reason-react.belt/Belt_Int.ml.html">Belt_Int.ml</a></li><li><a href="../server-reason-react.belt/Belt_List.ml.html">Belt_List.ml</a></li><li><a href="../server-reason-react.belt/Belt_Map.ml.html">Belt_Map.ml</a></li><li><a href="../server-reason-react.belt/Belt_MapDict.ml.html">Belt_MapDict.ml</a></li><li><a href="../server-reason-react.belt/Belt_MapString.ml.html">Belt_MapString.ml</a></li><li><a href="../server-reason-react.belt/Belt_MutableMap.ml.html">Belt_MutableMap.ml</a></li><li><a href="../server-reason-react.belt/Belt_MutableQueue.ml.html">Belt_MutableQueue.ml</a></li><li><a href="../server-reason-react.belt/Belt_MutableSet.ml.html">Belt_MutableSet.ml</a></li><li><a href="../server-reason-react.belt/Belt_MutableStack.ml.html">Belt_MutableStack.ml</a></li><li><a href="../server-reason-react.belt/Belt_Option.ml.html">Belt_Option.ml</a></li><li><a href="../server-reason-react.belt/Belt_Range.ml.html">Belt_Range.ml</a></li><li><a href="../server-reason-react.belt/Belt_Result.ml.html">Belt_Result.ml</a></li><li><a href="../server-reason-react.belt/Belt_Set.ml.html">Belt_Set.ml</a></li><li><a href="../server-reason-react.belt/Belt_SetDict.ml.html">Belt_SetDict.ml</a></li><li><a href="../server-reason-react.belt/Belt_SortArray.ml.html">Belt_SortArray.ml</a></li><li><a href="../server-reason-react.belt/Belt_internalAVLset.ml.html">Belt_internalAVLset.ml</a></li><li><a href="../server-reason-react.belt/Belt_internalAVLtree.ml.html">Belt_internalAVLtree.ml</a></li><li><a href="../server-reason-react.belt/Belt_internalBuckets.ml.html">Belt_internalBuckets.ml</a></li><li><a href="../server-reason-react.belt/Belt_internalBucketsType.ml.html">Belt_internalBucketsType.ml</a></li><li><a href="../server-reason-react.belt/Belt_internalMapString.ml.html">Belt_internalMapString.ml</a></li><li><a href="../server-reason-react.belt/Belt_internalSetBuckets.ml.html">Belt_internalSetBuckets.ml</a></li><li><a href="../server-reason-react.belt/belt__.ml.html">belt__.ml</a></li><li><a href="../server-reason-react.belt/caml_hash.ml.html">caml_hash.ml</a></li></ul></li><li>server-reason-react.browser_ppx<ul><li><a href="../server-reason-react.browser_ppx/browser_ppx.ml.html">browser_ppx.ml</a></li><li><a href="../server-reason-react.browser_ppx/ppx.ml.html">ppx.ml</a></li></ul></li><li>server-reason-react.dom<ul><li><a href="../server-reason-react.dom/Dom.ml.html">Dom.ml</a></li><li><a href="../server-reason-react.dom/Dom_storage.ml.html">Dom_storage.ml</a></li><li><a href="../server-reason-react.dom/dom__.ml.html">dom__.ml</a></li></ul></li><li>server-reason-react.expand-styles-attribute<ul><li><a href="../server-reason-react.expand-styles-attribute/expand_styles_attribute.ml.html">expand_styles_attribute.ml</a></li></ul></li><li>server-reason-react.fetch<ul><li><a href="../server-reason-react.fetch/Fetch.ml.html">Fetch.ml</a></li></ul></li><li>server-reason-react.html<ul><li><a href="../server-reason-react.html/Html.ml.html">Html.ml</a></li></ul></li><li>server-reason-react.js<ul><li><a href="Js.ml.html">Js.ml</a></li><li><a href="Js_array.ml.html">Js_array.ml</a></li><li><a href="Js_bigint.ml.html">Js_bigint.ml</a></li><li><a href="Js_console.ml.html">Js_console.ml</a></li><li><a href="Js_date.ml.html">Js_date.ml</a></li><li><a href="Js_dict.ml.html">Js_dict.ml</a></li><li><a href="Js_exn.ml.html">Js_exn.ml</a></li><li><a href="Js_float.ml.html">Js_float.ml</a></li><li><a href="Js_formdata.ml.html">Js_formdata.ml</a></li><li><a href="Js_global.ml.html">Js_global.ml</a></li><li><a href="Js_int.ml.html">Js_int.ml</a></li><li><a href="Js_internal.ml.html">Js_internal.ml</a></li><li><a href="Js_json.ml.html">Js_json.ml</a></li><li><a href="Js_map.ml.html">Js_map.ml</a></li><li><a href="Js_math.ml.html">Js_math.ml</a></li><li><a href="Js_null.ml.html">Js_null.ml</a></li><li><a href="Js_nullable.ml.html">Js_nullable.ml</a></li><li><a href="Js_obj.ml.html">Js_obj.ml</a></li><li><a href="Js_promise.ml.html">Js_promise.ml</a></li><li><a href="Js_re.ml.html">Js_re.ml</a></li><li><a href="Js_set.ml.html">Js_set.ml</a></li><li><a href="Js_string.ml.html">Js_string.ml</a></li><li><a href="Js_typed_array.ml.html">Js_typed_array.ml</a></li><li><a href="Js_typed_array2.ml.html">Js_typed_array2.ml</a></li><li><a href="Js_types.ml.html">Js_types.ml</a></li><li><a href="Js_undefined.ml.html">Js_undefined.ml</a></li><li><a href="Js_vector.ml.html">Js_vector.ml</a></li><li><a href="Js_weakmap.ml.html">Js_weakmap.ml</a></li><li><a href="Js_weakset.ml.html">Js_weakset.ml</a></li><li><a href="#" class="current_unit">js__.ml</a></li></ul></li><li>server-reason-react.melange_ppx<ul><li><a href="../server-reason-react.melange_ppx/derive_util.ml.html">derive_util.ml</a></li><li><a href="../server-reason-react.melange_ppx/double_hash.ml.html">double_hash.ml</a></li><li><a href="../server-reason-react.melange_ppx/get_set.ml.html">get_set.ml</a></li><li><a href="../server-reason-react.melange_ppx/js_converter.ml.html">js_converter.ml</a></li><li><a href="../server-reason-react.melange_ppx/js_properties.ml.html">js_properties.ml</a></li><li><a href="../server-reason-react.melange_ppx/melange_native_ppx.ml.html">melange_native_ppx.ml</a></li><li><a href="../server-reason-react.melange_ppx/pipe_first.ml.html">pipe_first.ml</a></li><li><a href="../server-reason-react.melange_ppx/ppx.ml.html">ppx.ml</a></li><li><a href="../server-reason-react.melange_ppx/regex.ml.html">regex.ml</a></li></ul></li><li>server-reason-react.ppx<ul><li><a href="../server-reason-react.ppx/DomProps.ml.html">DomProps.ml</a></li><li><a href="../server-reason-react.ppx/server_reason_react_ppx.ml.html">server_reason_react_ppx.ml</a></li><li><a href="../server-reason-react.ppx/server_reason_react_ppx__.ml.html">server_reason_react_ppx__.ml</a></li><li><a href="../server-reason-react.ppx/static_analysis.ml.html">static_analysis.ml</a></li></ul></li><li>server-reason-react.react<ul><li><a href="../server-reason-react.react/React.ml.html">React.ml</a></li><li><a href="../server-reason-react.react/ReactEvent.ml.html">ReactEvent.ml</a></li><li><a href="../server-reason-react.react/ReasonReactRouter.ml.html">ReasonReactRouter.ml</a></li></ul></li><li>server-reason-react.reactDom<ul><li><a href="../server-reason-react.reactDom/ReactDOM.ml.html">ReactDOM.ml</a></li><li><a href="../server-reason-react.reactDom/ReactDOMStyle.ml.html">ReactDOMStyle.ml</a></li><li><a href="../server-reason-react.reactDom/ReactServerDOM.ml.html">ReactServerDOM.ml</a></li></ul></li><li>server-reason-react.runtime<ul><li><a href="../server-reason-react.runtime/Runtime.ml.html">Runtime.ml</a></li></ul></li><li>server-reason-react.xxhash<ul><li><a href="../server-reason-react.xxhash/XXH64.ml.html">XXH64.ml</a></li></ul></li></ul></li></ul></li></ul></nav></div><pre class="source_container"><code class="source_line_column"><a id="L1" class="source_line" href="#L1">1</a>
+<a id="L2" class="source_line" href="#L2">2</a>
+<a id="L3" class="source_line" href="#L3">3</a>
+<a id="L4" class="source_line" href="#L4">4</a>
+<a id="L5" class="source_line" href="#L5">5</a>
+<a id="L6" class="source_line" href="#L6">6</a>
+<a id="L7" class="source_line" href="#L7">7</a>
+<a id="L8" class="source_line" href="#L8">8</a>
+<a id="L9" class="source_line" href="#L9">9</a>
+<a id="L10" class="source_line" href="#L10">10</a>
+<a id="L11" class="source_line" href="#L11">11</a>
+<a id="L12" class="source_line" href="#L12">12</a>
+<a id="L13" class="source_line" href="#L13">13</a>
+<a id="L14" class="source_line" href="#L14">14</a>
+<a id="L15" class="source_line" href="#L15">15</a>
+<a id="L16" class="source_line" href="#L16">16</a>
+<a id="L17" class="source_line" href="#L17">17</a>
+<a id="L18" class="source_line" href="#L18">18</a>
+<a id="L19" class="source_line" href="#L19">19</a>
+<a id="L20" class="source_line" href="#L20">20</a>
+<a id="L21" class="source_line" href="#L21">21</a>
+<a id="L22" class="source_line" href="#L22">22</a>
+<a id="L23" class="source_line" href="#L23">23</a>
+<a id="L24" class="source_line" href="#L24">24</a>
+<a id="L25" class="source_line" href="#L25">25</a>
+<a id="L26" class="source_line" href="#L26">26</a>
+<a id="L27" class="source_line" href="#L27">27</a>
+<a id="L28" class="source_line" href="#L28">28</a>
+<a id="L29" class="source_line" href="#L29">29</a>
+<a id="L30" class="source_line" href="#L30">30</a>
+<a id="L31" class="source_line" href="#L31">31</a>
+<a id="L32" class="source_line" href="#L32">32</a>
+<a id="L33" class="source_line" href="#L33">33</a>
+<a id="L34" class="source_line" href="#L34">34</a>
+<a id="L35" class="source_line" href="#L35">35</a>
+<a id="L36" class="source_line" href="#L36">36</a>
+<a id="L37" class="source_line" href="#L37">37</a>
+<a id="L38" class="source_line" href="#L38">38</a>
+<a id="L39" class="source_line" href="#L39">39</a>
+<a id="L40" class="source_line" href="#L40">40</a>
+<a id="L41" class="source_line" href="#L41">41</a>
+<a id="L42" class="source_line" href="#L42">42</a>
+<a id="L43" class="source_line" href="#L43">43</a>
+<a id="L44" class="source_line" href="#L44">44</a>
+<a id="L45" class="source_line" href="#L45">45</a>
+<a id="L46" class="source_line" href="#L46">46</a>
+<a id="L47" class="source_line" href="#L47">47</a>
+<a id="L48" class="source_line" href="#L48">48</a>
+<a id="L49" class="source_line" href="#L49">49</a>
+<a id="L50" class="source_line" href="#L50">50</a>
+<a id="L51" class="source_line" href="#L51">51</a>
+<a id="L52" class="source_line" href="#L52">52</a>
+<a id="L53" class="source_line" href="#L53">53</a>
+<a id="L54" class="source_line" href="#L54">54</a>
+<a id="L55" class="source_line" href="#L55">55</a>
+<a id="L56" class="source_line" href="#L56">56</a>
+<a id="L57" class="source_line" href="#L57">57</a>
+<a id="L58" class="source_line" href="#L58">58</a>
+<a id="L59" class="source_line" href="#L59">59</a>
+<a id="L60" class="source_line" href="#L60">60</a>
+<a id="L61" class="source_line" href="#L61">61</a>
+<a id="L62" class="source_line" href="#L62">62</a>
+<a id="L63" class="source_line" href="#L63">63</a>
+<a id="L64" class="source_line" href="#L64">64</a>
+<a id="L65" class="source_line" href="#L65">65</a>
+<a id="L66" class="source_line" href="#L66">66</a>
+<a id="L67" class="source_line" href="#L67">67</a>
+<a id="L68" class="source_line" href="#L68">68</a>
+<a id="L69" class="source_line" href="#L69">69</a>
+<a id="L70" class="source_line" href="#L70">70</a>
+<a id="L71" class="source_line" href="#L71">71</a>
+<a id="L72" class="source_line" href="#L72">72</a>
+<a id="L73" class="source_line" href="#L73">73</a>
+<a id="L74" class="source_line" href="#L74">74</a>
+<a id="L75" class="source_line" href="#L75">75</a>
+<a id="L76" class="source_line" href="#L76">76</a>
+<a id="L77" class="source_line" href="#L77">77</a>
+<a id="L78" class="source_line" href="#L78">78</a>
+<a id="L79" class="source_line" href="#L79">79</a>
+<a id="L80" class="source_line" href="#L80">80</a>
+<a id="L81" class="source_line" href="#L81">81</a>
+<a id="L82" class="source_line" href="#L82">82</a>
+<a id="L83" class="source_line" href="#L83">83</a>
+<a id="L84" class="source_line" href="#L84">84</a>
+<a id="L85" class="source_line" href="#L85">85</a>
+<a id="L86" class="source_line" href="#L86">86</a>
+<a id="L87" class="source_line" href="#L87">87</a>
+<a id="L88" class="source_line" href="#L88">88</a>
+</code><code class="source_code"><span><span class="COMMENT">(* generated by dune *)</span><span class="EOL">
+</span><span class="EOL">
+</span><span class="DOCSTRING">(** @canonical Js.Js_array *)</span><span class="EOL">
+</span><span id="module-Js_array"><span class="MODULE">module</span> <span class="UIDENT">Js_array</span> <span class="EQUAL">=</span> <a href="Js_array.ml.html"><span class="UIDENT">Js__Js_array</span></a></span><span class="EOL">
+</span><span class="EOL">
+</span><span class="DOCSTRING">(** @canonical Js.Js_bigint *)</span><span class="EOL">
+</span><span id="module-Js_bigint"><span class="MODULE">module</span> <span class="UIDENT">Js_bigint</span> <span class="EQUAL">=</span> <a href="Js_bigint.ml.html"><span class="UIDENT">Js__Js_bigint</span></a></span><span class="EOL">
+</span><span class="EOL">
+</span><span class="DOCSTRING">(** @canonical Js.Js_console *)</span><span class="EOL">
+</span><span id="module-Js_console"><span class="MODULE">module</span> <span class="UIDENT">Js_console</span> <span class="EQUAL">=</span> <a href="Js_console.ml.html"><span class="UIDENT">Js__Js_console</span></a></span><span class="EOL">
+</span><span class="EOL">
+</span><span class="DOCSTRING">(** @canonical Js.Js_date *)</span><span class="EOL">
+</span><span id="module-Js_date"><span class="MODULE">module</span> <span class="UIDENT">Js_date</span> <span class="EQUAL">=</span> <a href="Js_date.ml.html"><span class="UIDENT">Js__Js_date</span></a></span><span class="EOL">
+</span><span class="EOL">
+</span><span class="DOCSTRING">(** @canonical Js.Js_dict *)</span><span class="EOL">
+</span><span id="module-Js_dict"><span class="MODULE">module</span> <span class="UIDENT">Js_dict</span> <span class="EQUAL">=</span> <a href="Js_dict.ml.html"><span class="UIDENT">Js__Js_dict</span></a></span><span class="EOL">
+</span><span class="EOL">
+</span><span class="DOCSTRING">(** @canonical Js.Js_exn *)</span><span class="EOL">
+</span><span id="module-Js_exn"><span class="MODULE">module</span> <span class="UIDENT">Js_exn</span> <span class="EQUAL">=</span> <a href="Js_exn.ml.html"><span class="UIDENT">Js__Js_exn</span></a></span><span class="EOL">
+</span><span class="EOL">
+</span><span class="DOCSTRING">(** @canonical Js.Js_float *)</span><span class="EOL">
+</span><span id="module-Js_float"><span class="MODULE">module</span> <span class="UIDENT">Js_float</span> <span class="EQUAL">=</span> <a href="Js_float.ml.html"><span class="UIDENT">Js__Js_float</span></a></span><span class="EOL">
+</span><span class="EOL">
+</span><span class="DOCSTRING">(** @canonical Js.Js_formdata *)</span><span class="EOL">
+</span><span id="module-Js_formdata"><span class="MODULE">module</span> <span class="UIDENT">Js_formdata</span> <span class="EQUAL">=</span> <a href="Js_formdata.ml.html"><span class="UIDENT">Js__Js_formdata</span></a></span><span class="EOL">
+</span><span class="EOL">
+</span><span class="DOCSTRING">(** @canonical Js.Js_global *)</span><span class="EOL">
+</span><span id="module-Js_global"><span class="MODULE">module</span> <span class="UIDENT">Js_global</span> <span class="EQUAL">=</span> <a href="Js_global.ml.html"><span class="UIDENT">Js__Js_global</span></a></span><span class="EOL">
+</span><span class="EOL">
+</span><span class="DOCSTRING">(** @canonical Js.Js_int *)</span><span class="EOL">
+</span><span id="module-Js_int"><span class="MODULE">module</span> <span class="UIDENT">Js_int</span> <span class="EQUAL">=</span> <a href="Js_int.ml.html"><span class="UIDENT">Js__Js_int</span></a></span><span class="EOL">
+</span><span class="EOL">
+</span><span class="DOCSTRING">(** @canonical Js.Js_internal *)</span><span class="EOL">
+</span><span id="module-Js_internal"><span class="MODULE">module</span> <span class="UIDENT">Js_internal</span> <span class="EQUAL">=</span> <a href="Js_internal.ml.html"><span class="UIDENT">Js__Js_internal</span></a></span><span class="EOL">
+</span><span class="EOL">
+</span><span class="DOCSTRING">(** @canonical Js.Js_json *)</span><span class="EOL">
+</span><span id="module-Js_json"><span class="MODULE">module</span> <span class="UIDENT">Js_json</span> <span class="EQUAL">=</span> <a href="Js_json.ml.html"><span class="UIDENT">Js__Js_json</span></a></span><span class="EOL">
+</span><span class="EOL">
+</span><span class="DOCSTRING">(** @canonical Js.Js_map *)</span><span class="EOL">
+</span><span id="module-Js_map"><span class="MODULE">module</span> <span class="UIDENT">Js_map</span> <span class="EQUAL">=</span> <a href="Js_map.ml.html"><span class="UIDENT">Js__Js_map</span></a></span><span class="EOL">
+</span><span class="EOL">
+</span><span class="DOCSTRING">(** @canonical Js.Js_math *)</span><span class="EOL">
+</span><span id="module-Js_math"><span class="MODULE">module</span> <span class="UIDENT">Js_math</span> <span class="EQUAL">=</span> <a href="Js_math.ml.html"><span class="UIDENT">Js__Js_math</span></a></span><span class="EOL">
+</span><span class="EOL">
+</span><span class="DOCSTRING">(** @canonical Js.Js_null *)</span><span class="EOL">
+</span><span id="module-Js_null"><span class="MODULE">module</span> <span class="UIDENT">Js_null</span> <span class="EQUAL">=</span> <a href="Js_null.ml.html"><span class="UIDENT">Js__Js_null</span></a></span><span class="EOL">
+</span><span class="EOL">
+</span><span class="DOCSTRING">(** @canonical Js.Js_nullable *)</span><span class="EOL">
+</span><span id="module-Js_nullable"><span class="MODULE">module</span> <span class="UIDENT">Js_nullable</span> <span class="EQUAL">=</span> <a href="Js_nullable.ml.html"><span class="UIDENT">Js__Js_nullable</span></a></span><span class="EOL">
+</span><span class="EOL">
+</span><span class="DOCSTRING">(** @canonical Js.Js_obj *)</span><span class="EOL">
+</span><span id="module-Js_obj"><span class="MODULE">module</span> <span class="UIDENT">Js_obj</span> <span class="EQUAL">=</span> <a href="Js_obj.ml.html"><span class="UIDENT">Js__Js_obj</span></a></span><span class="EOL">
+</span><span class="EOL">
+</span><span class="DOCSTRING">(** @canonical Js.Js_promise *)</span><span class="EOL">
+</span><span id="module-Js_promise"><span class="MODULE">module</span> <span class="UIDENT">Js_promise</span> <span class="EQUAL">=</span> <a href="Js_promise.ml.html"><span class="UIDENT">Js__Js_promise</span></a></span><span class="EOL">
+</span><span class="EOL">
+</span><span class="DOCSTRING">(** @canonical Js.Js_re *)</span><span class="EOL">
+</span><span id="module-Js_re"><span class="MODULE">module</span> <span class="UIDENT">Js_re</span> <span class="EQUAL">=</span> <a href="Js_re.ml.html"><span class="UIDENT">Js__Js_re</span></a></span><span class="EOL">
+</span><span class="EOL">
+</span><span class="DOCSTRING">(** @canonical Js.Js_set *)</span><span class="EOL">
+</span><span id="module-Js_set"><span class="MODULE">module</span> <span class="UIDENT">Js_set</span> <span class="EQUAL">=</span> <a href="Js_set.ml.html"><span class="UIDENT">Js__Js_set</span></a></span><span class="EOL">
+</span><span class="EOL">
+</span><span class="DOCSTRING">(** @canonical Js.Js_string *)</span><span class="EOL">
+</span><span id="module-Js_string"><span class="MODULE">module</span> <span class="UIDENT">Js_string</span> <span class="EQUAL">=</span> <a href="Js_string.ml.html"><span class="UIDENT">Js__Js_string</span></a></span><span class="EOL">
+</span><span class="EOL">
+</span><span class="DOCSTRING">(** @canonical Js.Js_typed_array *)</span><span class="EOL">
+</span><span id="module-Js_typed_array"><span class="MODULE">module</span> <span class="UIDENT">Js_typed_array</span> <span class="EQUAL">=</span> <a href="Js_typed_array.ml.html"><span class="UIDENT">Js__Js_typed_array</span></a></span><span class="EOL">
+</span><span class="EOL">
+</span><span class="DOCSTRING">(** @canonical Js.Js_typed_array2 *)</span><span class="EOL">
+</span><span id="module-Js_typed_array2"><span class="MODULE">module</span> <span class="UIDENT">Js_typed_array2</span> <span class="EQUAL">=</span> <a href="Js_typed_array2.ml.html"><span class="UIDENT">Js__Js_typed_array2</span></a></span><span class="EOL">
+</span><span class="EOL">
+</span><span class="DOCSTRING">(** @canonical Js.Js_types *)</span><span class="EOL">
+</span><span id="module-Js_types"><span class="MODULE">module</span> <span class="UIDENT">Js_types</span> <span class="EQUAL">=</span> <a href="Js_types.ml.html"><span class="UIDENT">Js__Js_types</span></a></span><span class="EOL">
+</span><span class="EOL">
+</span><span class="DOCSTRING">(** @canonical Js.Js_undefined *)</span><span class="EOL">
+</span><span id="module-Js_undefined"><span class="MODULE">module</span> <span class="UIDENT">Js_undefined</span> <span class="EQUAL">=</span> <a href="Js_undefined.ml.html"><span class="UIDENT">Js__Js_undefined</span></a></span><span class="EOL">
+</span><span class="EOL">
+</span><span class="DOCSTRING">(** @canonical Js.Js_vector *)</span><span class="EOL">
+</span><span id="module-Js_vector"><span class="MODULE">module</span> <span class="UIDENT">Js_vector</span> <span class="EQUAL">=</span> <a href="Js_vector.ml.html"><span class="UIDENT">Js__Js_vector</span></a></span><span class="EOL">
+</span><span class="EOL">
+</span><span class="DOCSTRING">(** @canonical Js.Js_weakmap *)</span><span class="EOL">
+</span><span id="module-Js_weakmap"><span class="MODULE">module</span> <span class="UIDENT">Js_weakmap</span> <span class="EQUAL">=</span> <a href="Js_weakmap.ml.html"><span class="UIDENT">Js__Js_weakmap</span></a></span><span class="EOL">
+</span><span class="EOL">
+</span><span class="DOCSTRING">(** @canonical Js.Js_weakset *)</span><span class="EOL">
+</span><span id="module-Js_weakset"><span class="MODULE">module</span> <span class="UIDENT">Js_weakset</span> <span class="EQUAL">=</span> <a href="Js_weakset.ml.html"><span class="UIDENT">Js__Js_weakset</span></a></span><span class="EOL">
+</span><span class="EOL">
+</span><span id="module-Js__"><span class="MODULE">module</span> <span class="UIDENT">Js__</span> <span class="EQUAL">=</span> <span class="STRUCT">struct</span> <span class="END">end</span><span class="EOL">
+</span><span class="LBRACKETATAT">[@@</span><span class="LIDENT">deprecated</span> <span class="STRING">&quot;this module is shadowed&quot;</span><span class="RBRACKET">]</span></span><span class="EOL">
+</span></span></code></pre></body></html>

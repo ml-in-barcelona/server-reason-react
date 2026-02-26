@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title>ReactDOM (server-reason-react.server-reason-react.reactDom.ReactDOM)</title><meta charset="utf-8"/><link rel="stylesheet" href="../../../odoc.css"/><meta name="generator" content="odoc 3.1.0"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/><script src="../../../highlight.pack.js"></script><script>hljs.initHighlightingOnLoad();</script><script>let base_url = '../../../';
+let search_urls = ['../../sherlodoc_db.js','../../../sherlodoc.js'];
+</script><script src="../../../odoc_search.js" defer="defer"></script></head><body class="odoc"><nav class="odoc-nav"><a href="../../index.html">Up</a> – <a href="../../../index.html">Package index</a> &#x00BB; <a href="../../index.html">server-reason-react</a> &#x00BB; Library <code>server-reason-react.reactDom</code> &#x00BB; ReactDOM</nav><div class="odoc-search"><div class="search-inner"><input class="search-bar" placeholder="🔎 Type '/' to search..."/><div class="search-snake"></div><div class="search-result"></div></div></div><header class="odoc-preamble"><h1>Module <code><span>ReactDOM</span></code><a href="../../src/server-reason-react.reactDom/ReactDOM.ml.html" class="source_link">Source</a></h1><p>The ReactDOM library</p></header><div class="odoc-tocs"><nav class="odoc-toc odoc-local-toc"><ul><li><a href="#the-rest-of-the-api-is-there-for-compatibility-with-reactdom's-reason-react">The rest of the API is there for compatibility with ReactDOM's reason-react</a></li></ul></nav><nav class="odoc-toc odoc-global-toc"><ul><li><a href="../../index.html">server-reason-react</a><ul><li><a href="../../get-started.html">Get started</a></li><li><a href="../../universal-code.html">What does universal code mean</a></li><li><a href="../../how-to-organise-universal-code.html">How to organise universal code</a></li><li><a href="../../browser_ppx.html">Exclude client code from the native build</a></li><li><a href="../../externals-melange-attributes.html">Externals and melange attributes</a></li><li><a href="../../ssr-and-hydration.html">Server-side rendering and hydration</a></li><li>Library <code>server-reason-react.base32</code><ul><li><a href="../../server-reason-react.base32/Base32/index.html">Base32</a></li></ul></li><li>Library <code>server-reason-react.belt</code><ul><li><a href="../../server-reason-react.belt/Belt/index.html">Belt</a></li></ul></li><li>Library <code>server-reason-react.browser_ppx</code><ul><li><a href="../../server-reason-react.browser_ppx/Browser_ppx/index.html">Browser_ppx</a></li></ul></li><li>Library <code>server-reason-react.dom</code><ul><li><a href="../../server-reason-react.dom/Dom/index.html">Dom</a></li></ul></li><li>Library <code>server-reason-react.expand-styles-attribute</code><ul><li><a href="../../server-reason-react.expand-styles-attribute/Expand_styles_attribute/index.html">Expand_styles_attribute</a></li></ul></li><li>Library <code>server-reason-react.fetch</code><ul><li><a href="../../server-reason-react.fetch/Fetch/index.html">Fetch</a></li></ul></li><li>Library <code>server-reason-react.html</code><ul><li><a href="../../server-reason-react.html/Html/index.html">Html</a></li></ul></li><li>Library <code>server-reason-react.js</code><ul><li><a href="../../server-reason-react.js/Js/index.html">Js</a></li></ul></li><li>Library <code>server-reason-react.melange_ppx</code><ul><li><a href="../../server-reason-react.melange_ppx/Melange_native_ppx/index.html">Melange_native_ppx</a></li></ul></li><li>Library <code>server-reason-react.ppx</code><ul><li><a href="../../server-reason-react.ppx/Server_reason_react_ppx/index.html">Server_reason_react_ppx</a></li></ul></li><li>Library <code>server-reason-react.promise-native</code><ul><li><a href="../../server-reason-react.promise-native/Promise/index.html">Promise</a></li></ul></li><li>Library <code>server-reason-react.react</code><ul><li><a href="../../server-reason-react.react/React/index.html">React</a></li><li><a href="../../server-reason-react.react/ReactEvent/index.html">ReactEvent</a></li><li><a href="../../server-reason-react.react/ReasonReactRouter/index.html">ReasonReactRouter</a></li></ul></li><li>Library <code>server-reason-react.reactDom</code><ul><li><a href="#" class="current_unit">ReactDOM</a><ul><li><a href="#module-Ref">Ref</a></li><li><a href="#module-Style">Style</a></li></ul></li><li><a href="../ReactDOMStyle/index.html">ReactDOMStyle</a></li><li><a href="../ReactServerDOM/index.html">ReactServerDOM</a></li></ul></li><li>Library <code>server-reason-react.runtime</code><ul><li><a href="../../server-reason-react.runtime/Runtime/index.html">Runtime</a></li></ul></li><li>Library <code>server-reason-react.url_native</code><ul><li><a href="../../server-reason-react.url_native/URL/index.html">URL</a></li></ul></li><li>Library <code>server-reason-react.webapi</code><ul><li><a href="../../server-reason-react.webapi/Webapi/index.html">Webapi</a></li></ul></li><li>Library <code>server-reason-react.xxhash</code><ul><li><a href="../../server-reason-react.xxhash/XXH64/index.html">XXH64</a></li></ul></li><li><a href="../../src/index.html">Sources</a></li></ul></li></ul></nav></div><div class="odoc-content"><div class="odoc-spec"><div class="spec value anchored" id="val-renderToString"><a href="#val-renderToString" class="anchor"></a><a href="../../src/server-reason-react.reactDom/ReactDOM.ml.html#val-renderToString" class="source_link">Source</a><code><span><span class="keyword">val</span> renderToString : <span><a href="../../server-reason-react.react/React/index.html#type-element">React.element</a> <span class="arrow">&#45;&gt;</span></span> string</span></code></div><div class="spec-doc"><p>renderToString renders a React tree to as an HTML string.</p><p>Similar to <a href="https://react.dev/reference/react-dom/server/renderToString">https://react.dev/reference/react-dom/server/renderToString</a></p></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-renderToStaticMarkup"><a href="#val-renderToStaticMarkup" class="anchor"></a><a href="../../src/server-reason-react.reactDom/ReactDOM.ml.html#val-renderToStaticMarkup" class="source_link">Source</a><code><span><span class="keyword">val</span> renderToStaticMarkup : <span><a href="../../server-reason-react.react/React/index.html#type-element">React.element</a> <span class="arrow">&#45;&gt;</span></span> string</span></code></div><div class="spec-doc"><p>renderToStaticMarkup renders a non-interactive React tree to an HTML string.</p><p>Similar to <a href="https://react.dev/reference/react-dom/server/renderToStaticMarkup">https://react.dev/reference/react-dom/server/renderToStaticMarkup</a></p></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-renderToStream"><a href="#val-renderToStream" class="anchor"></a><a href="../../src/server-reason-react.reactDom/ReactDOM.ml.html#val-renderToStream" class="source_link">Source</a><code><span><span class="keyword">val</span> renderToStream : 
+  <span><span class="optlabel">?pipe</span>:<span>(<span>string <span class="arrow">&#45;&gt;</span></span> <span>unit <a href="https://ocaml.org/p/lwt/5.9.2/doc/Lwt/index.html#type-t">Lwt.t</a></span>)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><a href="../../server-reason-react.react/React/index.html#type-element">React.element</a> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(<span>string <a href="https://ocaml.org/p/lwt/5.9.2/doc/Lwt_stream/index.html#type-t">Lwt_stream.t</a></span> * <span>(<span>unit <span class="arrow">&#45;&gt;</span></span> unit)</span>)</span> <a href="https://ocaml.org/p/lwt/5.9.2/doc/Lwt/index.html#type-t">Lwt.t</a></span></span></code></div><div class="spec-doc"><p>renderToStream renders a React tree into a Lwt_stream.t.</p><p>Similar to <a href="https://react.dev/reference/react-dom/server/renderToPipeableStream">https://react.dev/reference/react-dom/server/renderToPipeableStream</a></p></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-attribute_to_html"><a href="#val-attribute_to_html" class="anchor"></a><a href="../../src/server-reason-react.reactDom/ReactDOM.ml.html#val-attribute_to_html" class="source_link">Source</a><code><span><span class="keyword">val</span> attribute_to_html : <span><a href="../../server-reason-react.react/React/JSX/index.html#type-prop">React.JSX.prop</a> <span class="arrow">&#45;&gt;</span></span> <a href="../../server-reason-react.html/Html/index.html#type-attribute">Html.attribute</a></span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-attributes_to_html"><a href="#val-attributes_to_html" class="anchor"></a><a href="../../src/server-reason-react.reactDom/ReactDOM.ml.html#val-attributes_to_html" class="source_link">Source</a><code><span><span class="keyword">val</span> attributes_to_html : <span><span><a href="../../server-reason-react.react/React/JSX/index.html#type-prop">React.JSX.prop</a> list</span> <span class="arrow">&#45;&gt;</span></span> <span><a href="../../server-reason-react.html/Html/index.html#type-attribute">Html.attribute</a> list</span></span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-getDangerouslyInnerHtml"><a href="#val-getDangerouslyInnerHtml" class="anchor"></a><a href="../../src/server-reason-react.reactDom/ReactDOM.ml.html#val-getDangerouslyInnerHtml" class="source_link">Source</a><code><span><span class="keyword">val</span> getDangerouslyInnerHtml : <span><span><a href="../../server-reason-react.react/React/JSX/index.html#type-prop">React.JSX.prop</a> list</span> <span class="arrow">&#45;&gt;</span></span> <span>string option</span></span></code></div><div class="spec-doc"><p>getDangerouslyInnerHtml returns the value of the dangerouslySetInnerHTML prop if it exists, otherwise None.</p></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-write_to_buffer"><a href="#val-write_to_buffer" class="anchor"></a><a href="../../src/server-reason-react.reactDom/ReactDOM.ml.html#val-write_to_buffer" class="source_link">Source</a><code><span><span class="keyword">val</span> write_to_buffer : <span><a href="https://ocaml.org/p/ocaml-compiler/5.4.0/doc/Stdlib/Buffer/index.html#type-t">Buffer.t</a> <span class="arrow">&#45;&gt;</span></span> <span><a href="../../server-reason-react.react/React/index.html#type-element">React.element</a> <span class="arrow">&#45;&gt;</span></span> unit</span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-escape_to_buffer"><a href="#val-escape_to_buffer" class="anchor"></a><a href="../../src/server-reason-react.reactDom/ReactDOM.ml.html#val-escape_to_buffer" class="source_link">Source</a><code><span><span class="keyword">val</span> escape_to_buffer : <span><a href="https://ocaml.org/p/ocaml-compiler/5.4.0/doc/Stdlib/Buffer/index.html#type-t">Buffer.t</a> <span class="arrow">&#45;&gt;</span></span> <span>string <span class="arrow">&#45;&gt;</span></span> unit</span></code></div></div><h3 id="the-rest-of-the-api-is-there-for-compatibility-with-reactdom's-reason-react"><a href="#the-rest-of-the-api-is-there-for-compatibility-with-reactdom's-reason-react" class="anchor"></a>The rest of the API is there for compatibility with ReactDOM's reason-react</h3><div class="odoc-spec"><div class="spec module anchored" id="module-Ref"><a href="#module-Ref" class="anchor"></a><a href="../../src/server-reason-react.react/React.ml.html#module-Ref" class="source_link">Source</a><code><span><span class="keyword">module</span> Ref</span><span> = <a href="../../server-reason-react.react/React/Ref/index.html">React.Ref</a></span></code></div></div><div class="odoc-spec"><div class="spec type anchored" id="type-domRef"><a href="#type-domRef" class="anchor"></a><a href="../../src/server-reason-react.reactDom/ReactDOM.ml.html#type-domRef" class="source_link">Source</a><code><span><span class="keyword">type</span> domRef</span><span> = <a href="../../server-reason-react.react/React/Ref/index.html#type-t">Ref.t</a></span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-querySelector"><a href="#val-querySelector" class="anchor"></a><a href="../../src/server-reason-react.reactDom/ReactDOM.ml.html#val-querySelector" class="source_link">Source</a><code><span><span class="keyword">val</span> querySelector : <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'b</span> option</span></span></code></div><div class="spec-doc"><p>Does nothing on the server, always returns None</p></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-render"><a href="#val-render" class="anchor"></a><a href="../../src/server-reason-react.reactDom/ReactDOM.ml.html#val-render" class="source_link">Source</a><code><span><span class="keyword">val</span> render : <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'c</span></span></code></div><div class="spec-doc"><p>Does nothing on the server</p></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-hydrate"><a href="#val-hydrate" class="anchor"></a><a href="../../src/server-reason-react.reactDom/ReactDOM.ml.html#val-hydrate" class="source_link">Source</a><code><span><span class="keyword">val</span> hydrate : <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'c</span></span></code></div><div class="spec-doc"><p>Does nothing on the server</p></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-createPortal"><a href="#val-createPortal" class="anchor"></a><a href="../../src/server-reason-react.reactDom/ReactDOM.ml.html#val-createPortal" class="source_link">Source</a><code><span><span class="keyword">val</span> createPortal : <span><span class="type-var">'a</span> <span class="arrow">&#45;&gt;</span></span> <span><span class="type-var">'b</span> <span class="arrow">&#45;&gt;</span></span> <span class="type-var">'a</span></span></code></div><div class="spec-doc"><p>Does nothing on the server</p></div></div><div class="odoc-spec"><div class="spec module anchored" id="module-Style"><a href="#module-Style" class="anchor"></a><a href="../../src/server-reason-react.reactDom/ReactDOMStyle.ml.html" class="source_link">Source</a><code><span><span class="keyword">module</span> Style</span><span> = <a href="../ReactDOMStyle/index.html">ReactDOMStyle</a></span></code></div><div class="spec-doc"><p>ReactDOM.Style generates the inline styles for the `style` prop.</p></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-createDOMElementVariadic"><a href="#val-createDOMElementVariadic" class="anchor"></a><a href="../../src/server-reason-react.reactDom/ReactDOM.ml.html#val-createDOMElementVariadic" class="source_link">Source</a><code><span><span class="keyword">val</span> createDOMElementVariadic : 
+  <span>string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="label">props</span>:<span><a href="../../server-reason-react.react/React/JSX/index.html#type-prop">React.JSX.prop</a> list</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span><a href="../../server-reason-react.react/React/index.html#type-element">React.element</a> array</span> <span class="arrow">&#45;&gt;</span></span>
+  <a href="../../server-reason-react.react/React/index.html#type-element">React.element</a></span></code></div><div class="spec-doc"><p>Create a React.element by giving the HTML tag, an array of props and children</p></div></div><div class="odoc-spec"><div class="spec type anchored" id="type-dangerouslySetInnerHTML"><a href="#type-dangerouslySetInnerHTML" class="anchor"></a><a href="../../src/server-reason-react.reactDom/ReactDOM.ml.html#type-dangerouslySetInnerHTML" class="source_link">Source</a><code><span><span class="keyword">type</span> dangerouslySetInnerHTML</span><span> = <span>&lt; __html : string &gt;</span></span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-domProps"><a href="#val-domProps" class="anchor"></a><a href="../../src/server-reason-react.reactDom/ReactDOM.ml.html#val-domProps" class="source_link">Source</a><code><span><span class="keyword">val</span> domProps : 
+  <span><span class="optlabel">?key</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?ref</span>:<a href="../../server-reason-react.react/React/index.html#type-domRef">React.domRef</a> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?ariaDetails</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?ariaDisabled</span>:bool <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?ariaHidden</span>:bool <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?ariaKeyshortcuts</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?ariaLabel</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?ariaRoledescription</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?ariaExpanded</span>:bool <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?ariaLevel</span>:int <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?ariaModal</span>:bool <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?ariaMultiline</span>:bool <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?ariaMultiselectable</span>:bool <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?ariaPlaceholder</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?ariaReadonly</span>:bool <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?ariaRequired</span>:bool <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?ariaSelected</span>:bool <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?ariaSort</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?ariaValuemax</span>:float <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?ariaValuemin</span>:float <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?ariaValuenow</span>:float <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?ariaValuetext</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?ariaAtomic</span>:bool <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?ariaBusy</span>:bool <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?ariaRelevant</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?ariaGrabbed</span>:bool <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?ariaActivedescendant</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?ariaColcount</span>:int <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?ariaColindex</span>:int <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?ariaColspan</span>:int <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?ariaControls</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?ariaDescribedby</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?ariaErrormessage</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?ariaFlowto</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?ariaLabelledby</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?ariaOwns</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?ariaPosinset</span>:int <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?ariaRowcount</span>:int <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?ariaRowindex</span>:int <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?ariaRowspan</span>:int <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?ariaSetsize</span>:int <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?defaultChecked</span>:bool <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?defaultValue</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?accessKey</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?className</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?contentEditable</span>:bool <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?contextMenu</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?dir</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?draggable</span>:bool <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?hidden</span>:bool <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?id</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?lang</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?role</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?style</span>:<a href="../ReactDOMStyle/index.html#type-t">ReactDOMStyle.t</a> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?spellCheck</span>:bool <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?tabIndex</span>:int <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?title</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?itemID</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?itemProp</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?itemRef</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?itemScope</span>:bool <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?itemType</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?accept</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?acceptCharset</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?action</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?allowFullScreen</span>:bool <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?alt</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?async</span>:bool <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?autoComplete</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?autoCapitalize</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?autoFocus</span>:bool <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?autoPlay</span>:bool <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?challenge</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?charSet</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?checked</span>:bool <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?cite</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?crossOrigin</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?cols</span>:int <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?colSpan</span>:int <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?content</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?controls</span>:bool <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?coords</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?data</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?dateTime</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?default</span>:bool <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?defer</span>:bool <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?disabled</span>:bool <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?download</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?encType</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?form</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?formAction</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?formTarget</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?formMethod</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?headers</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?height</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?high</span>:int <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?href</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?hrefLang</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?htmlFor</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?httpEquiv</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?icon</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?inputMode</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?integrity</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?keyType</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?kind</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?label</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?list</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?loop</span>:bool <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?low</span>:int <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?manifest</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?max</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?maxLength</span>:int <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?media</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?mediaGroup</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?method_</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?min</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?minLength</span>:int <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?multiple</span>:bool <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?muted</span>:bool <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?name</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?nonce</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?noValidate</span>:bool <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?open_</span>:bool <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?optimum</span>:int <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?pattern</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?placeholder</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?playsInline</span>:bool <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?poster</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?preload</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?radioGroup</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?readOnly</span>:bool <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?rel</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?required</span>:bool <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?reversed</span>:bool <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?rows</span>:int <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?rowSpan</span>:int <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?sandbox</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?scope</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?scoped</span>:bool <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?scrolling</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?selected</span>:bool <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?shape</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?size</span>:int <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?sizes</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?span</span>:int <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?src</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?srcDoc</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?srcLang</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?srcSet</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?start</span>:int <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?step</span>:float <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?summary</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?target</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?type_</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?useMap</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?value</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?width</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?wrap</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onCopy</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Clipboard/index.html#type-t">React.Event.Clipboard.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onCut</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Clipboard/index.html#type-t">React.Event.Clipboard.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onPaste</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Clipboard/index.html#type-t">React.Event.Clipboard.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onCompositionEnd</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Composition/index.html#type-t">React.Event.Composition.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onCompositionStart</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Composition/index.html#type-t">React.Event.Composition.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onCompositionUpdate</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Composition/index.html#type-t">React.Event.Composition.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onKeyDown</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Keyboard/index.html#type-t">React.Event.Keyboard.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onKeyPress</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Keyboard/index.html#type-t">React.Event.Keyboard.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onKeyUp</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Keyboard/index.html#type-t">React.Event.Keyboard.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onFocus</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Focus/index.html#type-t">React.Event.Focus.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onBlur</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Focus/index.html#type-t">React.Event.Focus.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onChange</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Form/index.html#type-t">React.Event.Form.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onInput</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Form/index.html#type-t">React.Event.Form.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onSubmit</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Form/index.html#type-t">React.Event.Form.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onInvalid</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Form/index.html#type-t">React.Event.Form.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onClick</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Mouse/index.html#type-t">React.Event.Mouse.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onContextMenu</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Mouse/index.html#type-t">React.Event.Mouse.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onDoubleClick</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Mouse/index.html#type-t">React.Event.Mouse.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onDrag</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Mouse/index.html#type-t">React.Event.Mouse.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onDragEnd</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Mouse/index.html#type-t">React.Event.Mouse.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onDragEnter</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Mouse/index.html#type-t">React.Event.Mouse.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onDragExit</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Mouse/index.html#type-t">React.Event.Mouse.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onDragLeave</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Mouse/index.html#type-t">React.Event.Mouse.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onDragOver</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Mouse/index.html#type-t">React.Event.Mouse.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onDragStart</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Mouse/index.html#type-t">React.Event.Mouse.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onDrop</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Mouse/index.html#type-t">React.Event.Mouse.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onMouseDown</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Mouse/index.html#type-t">React.Event.Mouse.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onMouseEnter</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Mouse/index.html#type-t">React.Event.Mouse.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onMouseLeave</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Mouse/index.html#type-t">React.Event.Mouse.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onMouseMove</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Mouse/index.html#type-t">React.Event.Mouse.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onMouseOut</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Mouse/index.html#type-t">React.Event.Mouse.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onMouseOver</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Mouse/index.html#type-t">React.Event.Mouse.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onMouseUp</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Mouse/index.html#type-t">React.Event.Mouse.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onSelect</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Selection/index.html#type-t">React.Event.Selection.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onTouchCancel</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Touch/index.html#type-t">React.Event.Touch.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onTouchEnd</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Touch/index.html#type-t">React.Event.Touch.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onTouchMove</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Touch/index.html#type-t">React.Event.Touch.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onTouchStart</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Touch/index.html#type-t">React.Event.Touch.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onPointerOver</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Pointer/index.html#type-t">React.Event.Pointer.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onPointerEnter</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Pointer/index.html#type-t">React.Event.Pointer.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onPointerDown</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Pointer/index.html#type-t">React.Event.Pointer.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onPointerMove</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Pointer/index.html#type-t">React.Event.Pointer.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onPointerUp</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Pointer/index.html#type-t">React.Event.Pointer.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onPointerCancel</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Pointer/index.html#type-t">React.Event.Pointer.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onPointerOut</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Pointer/index.html#type-t">React.Event.Pointer.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onPointerLeave</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Pointer/index.html#type-t">React.Event.Pointer.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onGotPointerCapture</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Pointer/index.html#type-t">React.Event.Pointer.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onLostPointerCapture</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Pointer/index.html#type-t">React.Event.Pointer.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onScroll</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/UI/index.html#type-t">React.Event.UI.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onWheel</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Wheel/index.html#type-t">React.Event.Wheel.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onAbort</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Media/index.html#type-t">React.Event.Media.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onCanPlay</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Media/index.html#type-t">React.Event.Media.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onCanPlayThrough</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Media/index.html#type-t">React.Event.Media.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onDurationChange</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Media/index.html#type-t">React.Event.Media.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onEmptied</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Media/index.html#type-t">React.Event.Media.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onEncrypetd</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Media/index.html#type-t">React.Event.Media.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onEnded</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Media/index.html#type-t">React.Event.Media.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onError</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Media/index.html#type-t">React.Event.Media.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onLoadedData</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Media/index.html#type-t">React.Event.Media.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onLoadedMetadata</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Media/index.html#type-t">React.Event.Media.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onLoadStart</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Media/index.html#type-t">React.Event.Media.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onPause</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Media/index.html#type-t">React.Event.Media.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onPlay</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Media/index.html#type-t">React.Event.Media.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onPlaying</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Media/index.html#type-t">React.Event.Media.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onProgress</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Media/index.html#type-t">React.Event.Media.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onRateChange</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Media/index.html#type-t">React.Event.Media.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onSeeked</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Media/index.html#type-t">React.Event.Media.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onSeeking</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Media/index.html#type-t">React.Event.Media.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onStalled</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Media/index.html#type-t">React.Event.Media.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onSuspend</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Media/index.html#type-t">React.Event.Media.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onTimeUpdate</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Media/index.html#type-t">React.Event.Media.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onVolumeChange</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Media/index.html#type-t">React.Event.Media.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onWaiting</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Media/index.html#type-t">React.Event.Media.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onAnimationStart</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Animation/index.html#type-t">React.Event.Animation.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onAnimationEnd</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Animation/index.html#type-t">React.Event.Animation.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onAnimationIteration</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Animation/index.html#type-t">React.Event.Animation.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?onTransitionEnd</span>:<span>(<span><a href="../../server-reason-react.react/React/Event/Transition/index.html#type-t">React.Event.Transition.t</a> <span class="arrow">&#45;&gt;</span></span> unit)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?accentHeight</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?accumulate</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?additive</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?alignmentBaseline</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?allowReorder</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?alphabetic</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?amplitude</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?arabicForm</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?ascent</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?attributeName</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?attributeType</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?autoReverse</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?azimuth</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?baseFrequency</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?baseProfile</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?baselineShift</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?bbox</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?begin_</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?bias</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?by</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?calcMode</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?capHeight</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?clip</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?clipPath</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?clipPathUnits</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?clipRule</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?colorInterpolation</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?colorInterpolationFilters</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?colorProfile</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?colorRendering</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?contentScriptType</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?contentStyleType</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?cursor</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?cx</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?cy</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?d</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?decelerate</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?descent</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?diffuseConstant</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?direction</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?display</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?divisor</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?dominantBaseline</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?dur</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?dx</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?dy</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?edgeMode</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?elevation</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?enableBackground</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?end_</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?exponent</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?externalResourcesRequired</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?fill</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?fillOpacity</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?fillRule</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?filter</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?filterRes</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?filterUnits</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?floodColor</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?floodOpacity</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?focusable</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?fontFamily</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?fontSize</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?fontSizeAdjust</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?fontStretch</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?fontStyle</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?fontVariant</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?fontWeight</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?fomat</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?from</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?fx</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?fy</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?g1</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?g2</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?glyphName</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?glyphOrientationHorizontal</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?glyphOrientationVertical</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?glyphRef</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?gradientTransform</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?gradientUnits</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?hanging</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?horizAdvX</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?horizOriginX</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?ideographic</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?imageRendering</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?in_</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?in2</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?intercept</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?k</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?k1</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?k2</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?k3</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?k4</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?kernelMatrix</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?kernelUnitLength</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?kerning</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?keyPoints</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?keySplines</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?keyTimes</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?lengthAdjust</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?letterSpacing</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?lightingColor</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?limitingConeAngle</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?local</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?markerEnd</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?markerHeight</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?markerMid</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?markerStart</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?markerUnits</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?markerWidth</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?mask</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?maskContentUnits</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?maskUnits</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?mathematical</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?mode</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?numOctaves</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?offset</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?opacity</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?operator</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?order</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?orient</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?orientation</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?origin</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?overflow</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?overflowX</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?overflowY</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?overlinePosition</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?overlineThickness</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?paintOrder</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?panose1</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?pathLength</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?patternContentUnits</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?patternTransform</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?patternUnits</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?pointerEvents</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?points</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?pointsAtX</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?pointsAtY</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?pointsAtZ</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?preserveAlpha</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?preserveAspectRatio</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?primitiveUnits</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?r</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?radius</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?refX</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?refY</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?renderingIntent</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?repeatCount</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?repeatDur</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?requiredExtensions</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?requiredFeatures</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?restart</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?result</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?rotate</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?rx</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?ry</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?scale</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?seed</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?shapeRendering</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?slope</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?spacing</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?specularConstant</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?specularExponent</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?speed</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?spreadMethod</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?startOffset</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?stdDeviation</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?stemh</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?stemv</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?stitchTiles</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?stopColor</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?stopOpacity</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?strikethroughPosition</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?strikethroughThickness</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?stroke</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?strokeDasharray</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?strokeDashoffset</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?strokeLinecap</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?strokeLinejoin</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?strokeMiterlimit</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?strokeOpacity</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?strokeWidth</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?surfaceScale</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?systemLanguage</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?tableValues</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?targetX</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?targetY</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?textAnchor</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?textDecoration</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?textLength</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?textRendering</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?to_</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?transform</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?u1</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?u2</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?underlinePosition</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?underlineThickness</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?unicode</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?unicodeBidi</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?unicodeRange</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?unitsPerEm</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?vAlphabetic</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?vHanging</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?vIdeographic</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?vMathematical</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?values</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?vectorEffect</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?version</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?vertAdvX</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?vertAdvY</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?vertOriginX</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?vertOriginY</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?viewBox</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?viewTarget</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?visibility</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?widths</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?wordSpacing</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?writingMode</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?x</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?x1</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?x2</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?xChannelSelector</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?xHeight</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?xlinkActuate</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?xlinkArcrole</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?xlinkHref</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?xlinkRole</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?xlinkShow</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?xlinkTitle</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?xlinkType</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?xmlns</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?xmlnsXlink</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?xmlBase</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?xmlLang</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?xmlSpace</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?y</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?y1</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?y2</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?yChannelSelector</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?z</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?zoomAndPan</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?about</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?datatype</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?inlist</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?prefix</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?property</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?resource</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?typeof</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?vocab</span>:string <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?dangerouslySetInnerHTML</span>:<a href="#type-dangerouslySetInnerHTML">dangerouslySetInnerHTML</a> <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?suppressContentEditableWarning</span>:bool <span class="arrow">&#45;&gt;</span></span>
+  <span><span class="optlabel">?suppressHydrationWarning</span>:bool <span class="arrow">&#45;&gt;</span></span>
+  <span>unit <span class="arrow">&#45;&gt;</span></span>
+  <span><a href="../../server-reason-react.react/React/JSX/index.html#type-prop">React.JSX.prop</a> list</span></span></code></div></div></div></body></html>
