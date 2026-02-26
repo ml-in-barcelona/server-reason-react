@@ -54,6 +54,12 @@ jobs:
             demo/client/node_modules
           key: v1.0.0-npm-${{ matrix.os }}-${{ hashFiles('demo/package.json') }}-${{ hashFiles('demo/client/package.json') }}
 
+      - name: Get Homebrew OpenSSL version
+        id: openssl-version
+        if: matrix.os == 'macos-latest'
+        run: |
+          echo "version=$(brew info --json=v2 openssl@3 | jq -r '.formulae[0].installed[0].version // .formulae[0].versions.stable')" >> "$GITHUB_OUTPUT"
+
       - name: Load opam cache
         id: opam-cache
         uses: actions/cache/restore@v4
@@ -63,7 +69,7 @@ jobs:
             ~/.opam
             _opam
             .opam-path
-          key: v1.0.0-opam-${{ matrix.os }}-${{ matrix.ocaml-compiler }}-${{ hashFiles('**.opam') }}
+          key: v1.0.1-opam-${{ matrix.os }}-${{ matrix.ocaml-compiler }}-${{ matrix.os == 'macos-latest' && steps.openssl-version.outputs.version || '' }}-${{ hashFiles('**.opam') }}
 
       - name: Use OCaml ${{ matrix.ocaml-compiler }}
         uses: ocaml/setup-ocaml@v3.4.5
@@ -196,7 +202,7 @@ jobs:
             ~/.opam
             _opam
             .opam-path
-          key: v1.0.0-opam-${{ matrix.os }}-${{ matrix.ocaml-compiler }}-${{ hashFiles('**.opam') }}
+          key: v1.0.1-opam-${{ matrix.os }}-${{ matrix.ocaml-compiler }}-${{ matrix.os == 'macos-latest' && steps.openssl-version.outputs.version || '' }}-${{ hashFiles('**.opam') }}
 
   publish-docs:
     name: Publish documentation
@@ -229,4 +235,3 @@ jobs:
           build_dir: _html
         env:
           GITHUB_TOKEN: ${{ github.token }}
-
