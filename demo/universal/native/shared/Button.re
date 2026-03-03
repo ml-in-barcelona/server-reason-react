@@ -1,3 +1,4 @@
+[@warning "-33"]
 open Melange_json.Primitives;
 
 [@react.client.component]

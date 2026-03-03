@@ -153,3 +153,38 @@
           })
       );
   };
+  module Prop_with_option_annotation = {
+    let make = (~key as _: option(string)=?, ~name: option(string)) =>
+      [@warning "-16"]
+      (
+        (~count: option(int), ()) =>
+          React.Client_component({
+            import_module:
+              Printf.sprintf(
+                "%s#%s",
+                "output.ml",
+                "Prop_with_option_annotation",
+              ),
+            import_name: "",
+            props: [
+              (
+                "name",
+                switch (name) {
+                | Some(value) => React.Model.Json([%to_json: string](value))
+                | None => React.Model.Json(`Null)
+                },
+              ),
+              (
+                "count",
+                switch (count) {
+                | Some(value) => React.Model.Json([%to_json: int](value))
+                | None => React.Model.Json(`Null)
+                },
+              ),
+            ],
+            client:
+              [@implicit_arity]
+              React.Upper_case_component(Stdlib.__FUNCTION__, () => React.null),
+          })
+      );
+  };

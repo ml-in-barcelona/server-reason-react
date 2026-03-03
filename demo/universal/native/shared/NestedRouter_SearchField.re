@@ -1,6 +1,6 @@
 [@react.client.component]
 let make = () => {
-  let { Router.navigate, url, _ } = Router.use();
+  let { Router.navigate, url, _ } = Router.useRouter();
   let queryParams = url |> URL.searchParams;
   let searchText =
     URL.SearchParams.get(queryParams, "searchText")
@@ -15,16 +15,21 @@ let make = () => {
   let%browser_only onChange = event => {
     let target = React.Event.Form.target(event);
     let nextText = target##value;
-    let searchParams =
-      URL.SearchParams.makeWithArray([|("searchText", nextText)|]);
     let path = url |> URL.pathname;
+    let queryParams =
+      switch (nextText) {
+      | "" => ""
+      | _ =>
+        URL.SearchParams.makeWithArray([|("searchText", nextText)|])
+        |> URL.SearchParams.toString
+      };
+    let queryParamsSuffix =
+      switch (queryParams) {
+      | "" => ""
+      | queryParams => "?" ++ queryParams
+      };
     setText(nextText);
-    startSearching(() =>
-      navigate(
-        ~shallow=true,
-        path ++ "?" ++ URL.SearchParams.toString(searchParams),
-      )
-    );
+    startSearching(() => navigate(~shallow=true, path ++ queryParamsSuffix));
   };
 
   <form className="search" role="search" onSubmit>

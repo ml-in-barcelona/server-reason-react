@@ -1,11 +1,11 @@
-(** TC39 Test262: Date.parse tests
+(** TC39 Test262: Date.parseAsFloat tests
 
     Based on: https://github.com/tc39/test262/tree/main/test/built-ins/Date/parse
 
     ECMA-262 Section: Date.parse(string)
 
-    Date.parse returns the time value (epoch milliseconds) from a string. Returns NaN if the string is not a valid date.
-*)
+    Date.parseAsFloat returns the time value (epoch milliseconds) from a string. Returns NaN if the string is not a
+    valid date. *)
 
 open Helpers
 
@@ -15,47 +15,47 @@ open Helpers
 
 let parse_empty_string () =
   (* Date.parse("") returns NaN *)
-  assert_nan (Date.parse "")
+  assert_nan (Date.parseAsFloat "")
 
 let parse_year_only () =
   (* Date.parse("2000") = Jan 1, 2000 00:00:00 UTC *)
-  assert_float_exact (Date.parse "2000") 946684800000.
+  assert_float_exact (Date.parseAsFloat "2000") 946684800000.
 
 let parse_year_month () =
   (* Date.parse("2000-01") = Jan 1, 2000 00:00:00 UTC *)
-  assert_float_exact (Date.parse "2000-01") 946684800000.
+  assert_float_exact (Date.parseAsFloat "2000-01") 946684800000.
 
 let parse_full_date () =
   (* Date.parse("2000-01-01") = Jan 1, 2000 00:00:00 UTC *)
-  assert_float_exact (Date.parse "2000-01-01") 946684800000.
+  assert_float_exact (Date.parseAsFloat "2000-01-01") 946684800000.
 
 let parse_date_time_utc () =
   (* Date.parse("2000-01-01T00:00Z") *)
-  assert_float_exact (Date.parse "2000-01-01T00:00Z") 946684800000.
+  assert_float_exact (Date.parseAsFloat "2000-01-01T00:00Z") 946684800000.
 
 let parse_date_time_seconds () =
   (* Date.parse("2000-01-01T00:00:00Z") *)
-  assert_float_exact (Date.parse "2000-01-01T00:00:00Z") 946684800000.
+  assert_float_exact (Date.parseAsFloat "2000-01-01T00:00:00Z") 946684800000.
 
 let parse_date_time_millis_1 () =
   (* Date.parse("2000-01-01T00:00:00.1Z") = 100ms after midnight *)
-  assert_float_exact (Date.parse "2000-01-01T00:00:00.1Z") 946684800100.
+  assert_float_exact (Date.parseAsFloat "2000-01-01T00:00:00.1Z") 946684800100.
 
 let parse_date_time_millis_2 () =
   (* Date.parse("2000-01-01T00:00:00.10Z") = 100ms *)
-  assert_float_exact (Date.parse "2000-01-01T00:00:00.10Z") 946684800100.
+  assert_float_exact (Date.parseAsFloat "2000-01-01T00:00:00.10Z") 946684800100.
 
 let parse_date_time_millis_3 () =
   (* Date.parse("2000-01-01T00:00:00.100Z") = 100ms *)
-  assert_float_exact (Date.parse "2000-01-01T00:00:00.100Z") 946684800100.
+  assert_float_exact (Date.parseAsFloat "2000-01-01T00:00:00.100Z") 946684800100.
 
 let parse_date_time_millis_4 () =
   (* Date.parse("2000-01-01T00:00:00.1000Z") = implementation-defined, but QuickJS returns 100ms *)
-  assert_float_exact (Date.parse "2000-01-01T00:00:00.1000Z") 946684800100.
+  assert_float_exact (Date.parseAsFloat "2000-01-01T00:00:00.1000Z") 946684800100.
 
 let parse_timezone_offset () =
   (* Date.parse("2000-01-01T00:00:00+00:00") *)
-  assert_float_exact (Date.parse "2000-01-01T00:00:00+00:00") 946684800000.
+  assert_float_exact (Date.parseAsFloat "2000-01-01T00:00:00+00:00") 946684800000.
 
 (* ===================================================================
    A known timestamp: 2017-09-22T16:37:38.091Z
@@ -63,12 +63,12 @@ let parse_timezone_offset () =
 
 let parse_known_iso_timestamp () =
   (* This is a specific timestamp from QuickJS tests *)
-  assert_float_exact (Date.parse "2017-09-22T16:37:38.091Z") 1506098258091.
+  assert_float_exact (Date.parseAsFloat "2017-09-22T16:37:38.091Z") 1506098258091.
 
 let parse_roundtrip () =
   (* Parse an ISO string, format it back, should get same value *)
   let original = "2020-01-01T01:01:01.123Z" in
-  let parsed = Date.parse original in
+  let parsed = Date.parseAsFloat original in
   assert_float_exact parsed 1577840461123.
 
 (* ===================================================================
@@ -77,19 +77,19 @@ let parse_roundtrip () =
 
 let parse_millis_single_digit () =
   (* .1Z should be 100ms *)
-  assert_float_exact (Date.parse "2020-01-01T01:01:01.1Z") 1577840461100.
+  assert_float_exact (Date.parseAsFloat "2020-01-01T01:01:01.1Z") 1577840461100.
 
 let parse_millis_two_digits () =
   (* .12Z should be 120ms *)
-  assert_float_exact (Date.parse "2020-01-01T01:01:01.12Z") 1577840461120.
+  assert_float_exact (Date.parseAsFloat "2020-01-01T01:01:01.12Z") 1577840461120.
 
 let parse_millis_four_digits () =
   (* .1234Z truncates to 123ms *)
-  assert_float_exact (Date.parse "2020-01-01T01:01:01.1234Z") 1577840461123.
+  assert_float_exact (Date.parseAsFloat "2020-01-01T01:01:01.1234Z") 1577840461123.
 
 let parse_millis_many_digits () =
   (* .9999Z truncates to 999ms (no rounding) *)
-  assert_float_exact (Date.parse "2020-01-01T01:01:01.9999Z") 1577840461999.
+  assert_float_exact (Date.parseAsFloat "2020-01-01T01:01:01.9999Z") 1577840461999.
 
 (* ===================================================================
    Expanded years (6-digit years with +/- prefix)
@@ -97,16 +97,16 @@ let parse_millis_many_digits () =
 
 let parse_expanded_year_positive () =
   (* +002000 is year 2000 *)
-  assert_float_exact (Date.parse "+002000-01-01T00:00:00Z") 946684800000.
+  assert_float_exact (Date.parseAsFloat "+002000-01-01T00:00:00Z") 946684800000.
 
 let parse_expanded_year_negative () =
   (* -000001 is year -1 (2 BCE) *)
-  let result = Date.parse "-000001-01-01T00:00:00Z" in
+  let result = Date.parseAsFloat "-000001-01-01T00:00:00Z" in
   assert_not_nan result
 
 let parse_expanded_year_zero_invalid () =
   (* -000000 is explicitly invalid per spec *)
-  assert_nan (Date.parse "-000000-01-01T00:00:00Z")
+  assert_nan (Date.parseAsFloat "-000000-01-01T00:00:00Z")
 
 (* ===================================================================
    Non-ISO formats (toString/toUTCString style)
@@ -114,51 +114,51 @@ let parse_expanded_year_zero_invalid () =
 
 let parse_month_name_format () =
   (* "Jan 1 2000" style *)
-  let result = Date.parse "Jan 1 2000 00:00:00 GMT" in
+  let result = Date.parseAsFloat "Jan 1 2000 00:00:00 GMT" in
   assert_float_exact result 946684800000.
 
 let parse_with_weekday () =
   (* "Sat Jan 1 2000" style *)
-  let result = Date.parse "Sat Jan 1 2000 00:00:00 GMT" in
+  let result = Date.parseAsFloat "Sat Jan 1 2000 00:00:00 GMT" in
   assert_float_exact result 946684800000.
 
 let parse_timezone_abbreviation () =
   (* GMT+0100 style offset *)
-  let result = Date.parse "Jan 1 2000 00:00:00 GMT+0100" in
+  let result = Date.parseAsFloat "Jan 1 2000 00:00:00 GMT+0100" in
   (* 1 hour before UTC midnight = Dec 31 1999 23:00 UTC *)
   assert_float_exact result (946684800000. -. 3600000.)
 
 let parse_timezone_abbreviation_2 () =
   (* GMT+0200 *)
-  let result = Date.parse "Jan 1 2000 00:00:00 GMT+0200" in
+  let result = Date.parseAsFloat "Jan 1 2000 00:00:00 GMT+0200" in
   assert_float_exact result (946684800000. -. 7200000.)
 
 (* ===================================================================
    Invalid strings
    =================================================================== *)
 
-let parse_invalid_gibberish () = assert_nan (Date.parse "not a date")
-let parse_invalid_partial () = assert_nan (Date.parse "2000-")
+let parse_invalid_gibberish () = assert_nan (Date.parseAsFloat "not a date")
+let parse_invalid_partial () = assert_nan (Date.parseAsFloat "2000-")
 
 let parse_invalid_month () =
   (* Month 13 is invalid *)
-  assert_nan (Date.parse "2000-13-01")
+  assert_nan (Date.parseAsFloat "2000-13-01")
 
 let parse_invalid_day () =
   (* Day 32 is invalid *)
-  assert_nan (Date.parse "2000-01-32")
+  assert_nan (Date.parseAsFloat "2000-01-32")
 
 let parse_invalid_hour () =
   (* Hour 25 is invalid *)
-  assert_nan (Date.parse "2000-01-01T25:00:00Z")
+  assert_nan (Date.parseAsFloat "2000-01-01T25:00:00Z")
 
 let parse_invalid_minute () =
   (* Minute 60 is invalid *)
-  assert_nan (Date.parse "2000-01-01T00:60:00Z")
+  assert_nan (Date.parseAsFloat "2000-01-01T00:60:00Z")
 
 let parse_invalid_second () =
   (* Second 60 is invalid (except leap seconds, not supported) *)
-  assert_nan (Date.parse "2000-01-01T00:00:60Z")
+  assert_nan (Date.parseAsFloat "2000-01-01T00:00:60Z")
 
 (* ===================================================================
    Test list

@@ -1,6 +1,6 @@
 [@react.component]
-let make = (~children, ~script=?) => {
-  <html>
+let make = (~children, ~script=?, ~suppressHydrationWarning=true) => {
+  <html suppressHydrationWarning>
     <head>
       <meta charSet="UTF-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -16,6 +16,6 @@ let make = (~children, ~script=?) => {
        | Some(src) => <script type_="module" src />
        }}
     </head>
-    <body> <div id="root"> children </div> </body>
+    <body suppressHydrationWarning> <div id="root"> children </div> </body>
   </html>;
 };

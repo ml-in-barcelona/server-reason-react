@@ -1,3 +1,19 @@
 
   $ ../ppx.sh --output re input.re
-  React.DangerouslyInnerHtml("<input type=\"text\" />");
+  React.Static({
+    prerendered: "<input type=\"text\" />",
+    original:
+      React.createElement(
+        "input",
+        Stdlib.List.filter_map(
+          Stdlib.Fun.id,
+          [
+            Some(
+              [@implicit_arity]
+              React.JSX.String("type", "type", "text": string),
+            ),
+          ],
+        ),
+        [],
+      ),
+  });

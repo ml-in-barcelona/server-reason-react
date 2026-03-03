@@ -64,8 +64,9 @@ Single type (invalid OCaml, but valid in Melange)
   [%%ocaml.error
   "[server-reason-react.melange_ppx] There's an external with [%mel.module \
    \"...\"] in native, which should only happen in JavaScript. You need to \
-   conditionally run it, either by not including it on native or via \
-   let%browser_only/switch%platform. More info at \
+   conditionally discard it from the native build, either by moving the external \
+   in a module only available in native, or annotating it with [@platform js]. \
+   More info at \
    https://ml-in-barcelona.github.io/server-reason-react/server-reason-react/browser_ppx.html"]
 
   $ echo "module Runtime = struct" > main.ml
@@ -78,8 +79,9 @@ Single type (invalid OCaml, but valid in Melange)
           ^^^^^^^^^^^
   Error: [server-reason-react.melange_ppx] There's an external with
          [%mel.module "..."] in native, which should only happen in JavaScript.
-         You need to conditionally run it, either by not including it on native
-         or via let%browser_only/switch%platform. More info at
+         You need to conditionally discard it from the native build, either by
+         moving the external in a module only available in native, or
+         annotating it with [@platform js]. More info at
          https://ml-in-barcelona.github.io/server-reason-react/server-reason-react/browser_ppx.html
   [2]
 

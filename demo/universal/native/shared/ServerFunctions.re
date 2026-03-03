@@ -3,7 +3,7 @@ open Melange_json.Primitives;
 module Notes = {
   [@react.server.function]
   let create = (~title: string, ~content: string): Js.Promise.t(Note.t) => {
-    let note = DB.addNote(~title, ~content);
+    let note = DB.createNote(~title, ~content);
     let%lwt response =
       switch%lwt (note) {
       | Ok(note) => Lwt.return(note)
@@ -77,4 +77,9 @@ let formDataWithArg =
     );
 
   Lwt.return(response);
+};
+
+[@react.server.function]
+let optionalAction = (): Js.Promise.t(string) => {
+  Lwt.return("Optional action executed!");
 };

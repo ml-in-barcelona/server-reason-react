@@ -16,7 +16,7 @@ module Date = Js.Date
    =================================================================== *)
 
 let to_utc_string_basic () =
-  let d = Date.utc ~year:2020. ~month:5. ~day:15. ~hours:12. ~minutes:30. ~seconds:45. () in
+  let d = Date.utc ~year:2020. ~month:5. ~date:15. ~hours:12. ~minutes:30. ~seconds:45. () in
   let s = Date.toUTCString d in
   (* Should contain "Mon" (June 15 2020 was Monday), "15", "Jun", "2020", "12:30:45", "GMT" *)
   assert_true "contains day name" (String.length s > 0);
@@ -29,7 +29,7 @@ let to_utc_string_epoch () =
   assert_true "contains 1970" (String.length s > 10)
 
 let to_utc_string_format () =
-  let d = Date.utc ~year:2025. ~month:11. ~day:2. ~hours:9. ~minutes:30. ~seconds:0. () in
+  let d = Date.utc ~year:2025. ~month:11. ~date:2. ~hours:9. ~minutes:30. ~seconds:0. () in
   let s = Date.toUTCString d in
   (* Verify format: "Day, DD Mon YYYY HH:MM:SS GMT" *)
   assert_true "correct length roughly" (String.length s >= 25)
@@ -40,7 +40,7 @@ let to_utc_string_nan () =
 
 let to_utc_string_negative_year () =
   (* Test with a date before year 0 *)
-  let d = Date.utc ~year:(-1.) ~month:0. ~day:1. () in
+  let d = Date.utc ~year:(-1.) ~month:0. ~date:1. () in
   let s = Date.toUTCString d in
   assert_true "contains something" (String.length s > 0)
 
@@ -49,7 +49,7 @@ let to_utc_string_months () =
   let months = [ "Jan"; "Feb"; "Mar"; "Apr"; "May"; "Jun"; "Jul"; "Aug"; "Sep"; "Oct"; "Nov"; "Dec" ] in
   List.iteri
     (fun i expected_month ->
-      let d = Date.utc ~year:2020. ~month:(Float.of_int i) ~day:15. () in
+      let d = Date.utc ~year:2020. ~month:(Float.of_int i) ~date:15. () in
       let s = Date.toUTCString d in
       assert_true
         (Printf.sprintf "month %d contains %s" i expected_month)
@@ -63,9 +63,9 @@ let to_utc_string_months () =
 
 let to_utc_string_day_names () =
   (* Test that different days of week produce correct names *)
-  let d_sunday = Date.utc ~year:2021. ~month:0. ~day:3. () in
+  let d_sunday = Date.utc ~year:2021. ~month:0. ~date:3. () in
   (* Sunday *)
-  let d_monday = Date.utc ~year:2021. ~month:0. ~day:4. () in
+  let d_monday = Date.utc ~year:2021. ~month:0. ~date:4. () in
   (* Monday *)
   let s_sun = Date.toUTCString d_sunday in
   let s_mon = Date.toUTCString d_monday in
@@ -78,7 +78,7 @@ let to_utc_string_day_names () =
    =================================================================== *)
 
 let to_date_string_basic () =
-  let d = Date.utc ~year:2020. ~month:5. ~day:15. ~hours:12. ~minutes:30. ~seconds:45. () in
+  let d = Date.utc ~year:2020. ~month:5. ~date:15. ~hours:12. ~minutes:30. ~seconds:45. () in
   let s = Date.toDateString d in
   assert_true "non-empty string" (String.length s > 0)
 
@@ -93,7 +93,7 @@ let to_date_string_nan () =
 
 let to_date_string_no_time () =
   (* toDateString should not contain time information like ":" *)
-  let d = Date.utc ~year:2020. ~month:5. ~day:15. ~hours:12. ~minutes:30. ~seconds:45. () in
+  let d = Date.utc ~year:2020. ~month:5. ~date:15. ~hours:12. ~minutes:30. ~seconds:45. () in
   let s = Date.toDateString d in
   (* Should not have HH:MM:SS format *)
   let has_time_separator =
@@ -110,7 +110,7 @@ let to_date_string_no_time () =
    =================================================================== *)
 
 let to_time_string_basic () =
-  let d = Date.utc ~year:2020. ~month:5. ~day:15. ~hours:12. ~minutes:30. ~seconds:45. () in
+  let d = Date.utc ~year:2020. ~month:5. ~date:15. ~hours:12. ~minutes:30. ~seconds:45. () in
   let s = Date.toTimeString d in
   assert_true "non-empty string" (String.length s > 0)
 
@@ -124,7 +124,7 @@ let to_time_string_nan () =
 
 let to_time_string_contains_time () =
   (* toTimeString should contain time in HH:MM:SS format *)
-  let d = Date.utc ~year:2020. ~month:5. ~day:15. ~hours:12. ~minutes:30. ~seconds:45. () in
+  let d = Date.utc ~year:2020. ~month:5. ~date:15. ~hours:12. ~minutes:30. ~seconds:45. () in
   let s = Date.toTimeString d in
   let has_time_format =
     try
@@ -140,7 +140,7 @@ let to_time_string_contains_time () =
    =================================================================== *)
 
 let to_string_basic () =
-  let d = Date.utc ~year:2020. ~month:5. ~day:15. ~hours:12. ~minutes:30. ~seconds:45. () in
+  let d = Date.utc ~year:2020. ~month:5. ~date:15. ~hours:12. ~minutes:30. ~seconds:45. () in
   let s = Date.toString d in
   assert_true "non-empty string" (String.length s > 0)
 
@@ -154,7 +154,7 @@ let to_string_nan () =
 
 let to_string_contains_date_and_time () =
   (* toString should contain both date and time *)
-  let d = Date.utc ~year:2020. ~month:5. ~day:15. ~hours:12. ~minutes:30. ~seconds:45. () in
+  let d = Date.utc ~year:2020. ~month:5. ~date:15. ~hours:12. ~minutes:30. ~seconds:45. () in
   let s = Date.toString d in
   (* Should have time format *)
   let has_time_format =
@@ -166,7 +166,7 @@ let to_string_contains_date_and_time () =
   assert_true "should contain time" has_time_format
 
 let to_string_contains_year () =
-  let d = Date.utc ~year:2020. ~month:5. ~day:15. () in
+  let d = Date.utc ~year:2020. ~month:5. ~date:15. () in
   let s = Date.toString d in
   let has_year =
     try
@@ -181,7 +181,7 @@ let to_string_contains_year () =
    =================================================================== *)
 
 let to_json_basic () =
-  let d = Date.utc ~year:2020. ~month:5. ~day:15. ~hours:12. ~minutes:30. ~seconds:45. ~ms:123. () in
+  let d = Date.utc ~year:2020. ~month:5. ~date:15. ~hours:12. ~minutes:30. ~seconds:45. () +. 123. in
   match Date.toJSON d with
   | Some s -> assert_string_equal s "2020-06-15T12:30:45.123Z"
   | None -> assert_true "should return Some" false
@@ -192,7 +192,7 @@ let to_json_nan () =
   | Some _ -> assert_true "should return None for NaN" false
 
 let to_json_unsafe_basic () =
-  let d = Date.utc ~year:2020. ~month:5. ~day:15. ~hours:12. ~minutes:30. ~seconds:45. ~ms:123. () in
+  let d = Date.utc ~year:2020. ~month:5. ~date:15. ~hours:12. ~minutes:30. ~seconds:45. () +. 123. in
   let s = Date.toJSONUnsafe d in
   assert_string_equal s "2020-06-15T12:30:45.123Z"
 
@@ -201,7 +201,7 @@ let to_json_unsafe_basic () =
    =================================================================== *)
 
 let to_locale_string_basic () =
-  let d = Date.utc ~year:2020. ~month:5. ~day:15. ~hours:12. ~minutes:30. ~seconds:45. () in
+  let d = Date.utc ~year:2020. ~month:5. ~date:15. ~hours:12. ~minutes:30. ~seconds:45. () in
   let s = Date.toLocaleString d in
   assert_true "non-empty string" (String.length s > 0)
 
@@ -210,7 +210,7 @@ let to_locale_string_nan () =
   assert_string_equal s "Invalid Date"
 
 let to_locale_date_string_basic () =
-  let d = Date.utc ~year:2020. ~month:5. ~day:15. () in
+  let d = Date.utc ~year:2020. ~month:5. ~date:15. () in
   let s = Date.toLocaleDateString d in
   assert_true "non-empty string" (String.length s > 0)
 
@@ -219,7 +219,7 @@ let to_locale_date_string_nan () =
   assert_string_equal s "Invalid Date"
 
 let to_locale_time_string_basic () =
-  let d = Date.utc ~year:2020. ~month:5. ~day:15. ~hours:12. ~minutes:30. ~seconds:45. () in
+  let d = Date.utc ~year:2020. ~month:5. ~date:15. ~hours:12. ~minutes:30. ~seconds:45. () in
   let s = Date.toLocaleTimeString d in
   assert_true "non-empty string" (String.length s > 0)
 
@@ -232,17 +232,17 @@ let to_locale_time_string_nan () =
    =================================================================== *)
 
 let to_string_large_year () =
-  let d = Date.utc ~year:275760. ~month:8. ~day:13. () in
+  let d = Date.utc ~year:275760. ~month:8. ~date:13. () in
   let s = Date.toString d in
   assert_true "non-empty string" (String.length s > 0)
 
 let to_string_negative_year () =
-  let d = Date.utc ~year:(-100.) ~month:0. ~day:1. () in
+  let d = Date.utc ~year:(-100.) ~month:0. ~date:1. () in
   let s = Date.toString d in
   assert_true "non-empty string" (String.length s > 0)
 
 let to_utc_string_y2k () =
-  let d = Date.utc ~year:2000. ~month:0. ~day:1. ~hours:0. ~minutes:0. ~seconds:0. () in
+  let d = Date.utc ~year:2000. ~month:0. ~date:1. ~hours:0. ~minutes:0. ~seconds:0. () in
   let s = Date.toUTCString d in
   assert_true "contains 2000" (String.length s > 0)
 

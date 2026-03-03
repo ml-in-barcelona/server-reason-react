@@ -16,11 +16,14 @@ let is_substring = (a, b) => {
   };
 };
 
+[@platform native]
+let readNotesCached = React.cache(sleep => DB.readNotes(~sleep, ()));
+
 module NoteList = {
   open Melange_json.Primitives;
   [@react.client.component]
   let make = (~notes: list(NestedRouter_SidebarNote.notePreview)) => {
-    let { Router.url, _ } = Router.use();
+    let { Router.url, _ } = Router.useRouter();
     let queryParams = url |> URL.searchParams;
 
     let searchText =
@@ -51,7 +54,7 @@ module NoteList = {
 [@react.async.component]
 let make = () => {
   open Lwt.Syntax;
-  let+ notes = DB.readNotes();
+  let+ notes = readNotesCached(None);
 
   switch (notes) {
   | Error(error) =>

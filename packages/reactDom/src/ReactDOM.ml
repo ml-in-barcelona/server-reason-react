@@ -73,15 +73,18 @@ let render_to_buffer ~mode buf element =
   let rec render_element element =
     match (element : React.element) with
     | Empty -> ()
-    | DangerouslyInnerHtml html ->
+    | Static { prerendered; _ } ->
         should_add_doctype := false;
-        Buffer.add_string buf html
+        Buffer.add_string buf prerendered
     | Client_component { import_module; _ } ->
         raise
           (Invalid_argument
              ("Client components can't be rendered on the server via renderToString or renderToStaticMarkup. Please \
                use the React server components API instead. module: " ^ import_module))
-    | Provider children -> render_element children
+    | Provider { children; push; _ } ->
+        let pop = push () in
+        render_element children;
+        pop ()
     | Consumer children -> render_element children
     | Fragment children -> render_element children
     | List list -> List.iter render_element list
@@ -138,10 +141,13 @@ let write_to_buffer buf element =
   let rec render element =
     match (element : React.element) with
     | Empty -> ()
-    | DangerouslyInnerHtml html -> Buffer.add_string buf html
+    | Static { prerendered; _ } -> Buffer.add_string buf prerendered
     | Client_component { import_module; _ } ->
         raise (Invalid_argument ("Client components can't be rendered via write_to_buffer. module: " ^ import_module))
-    | Provider children -> render children
+    | Provider { children; push; _ } ->
+        let pop = push () in
+        render children;
+        pop ()
     | Consumer children -> render children
     | Fragment children -> render children
     | List list -> List.iter render list
@@ -242,16 +248,20 @@ let rec render_to_stream_buffer ~stream_context buf element =
   let rec render_element element =
     match (element : React.element) with
     | Empty -> Lwt.return ()
-    | DangerouslyInnerHtml html ->
+    | Static { prerendered; _ } ->
         should_add_doctype := false;
-        Buffer.add_string buf html;
+        Buffer.add_string buf prerendered;
         Lwt.return ()
     | Client_component { import_module; _ } ->
         raise
           (Invalid_argument
              ("Client components can't be rendered on the server via renderToStream. Please use the React server \
                components API instead. module: " ^ import_module))
-    | Provider children -> render_element children
+    | Provider { children; push; _ } ->
+        let pop = push () in
+        let%lwt () = render_element children in
+        pop ();
+        Lwt.return ()
     | Consumer children -> render_element children
     | Fragment children -> render_element children
     | List list -> Lwt_list.iter_s render_element list
@@ -326,15 +336,19 @@ let rec render_to_stream_buffer ~stream_context buf element =
   and render_element_to_buffer target_buf element =
     match (element : React.element) with
     | Empty -> Lwt.return ()
-    | DangerouslyInnerHtml html ->
-        Buffer.add_string target_buf html;
+    | Static { prerendered; _ } ->
+        Buffer.add_string target_buf prerendered;
         Lwt.return ()
     | Client_component { import_module; _ } ->
         raise
           (Invalid_argument
              ("Client components can't be rendered on the server via renderToStream. Please use the React server \
                components API instead. module: " ^ import_module))
-    | Provider children -> render_element_to_buffer target_buf children
+    | Provider { children; push; _ } ->
+        let pop = push () in
+        let%lwt () = render_element_to_buffer target_buf children in
+        pop ();
+        Lwt.return ()
     | Consumer children -> render_element_to_buffer target_buf children
     | Fragment children -> render_element_to_buffer target_buf children
     | List list -> Lwt_list.iter_s (render_element_to_buffer target_buf) list
@@ -468,7 +482,11 @@ and render_with_resolved_buffer ~stream_context buf element =
           (Invalid_argument
              ("Client components can't be rendered on the server via renderToStream. Please use the React server \
                components API instead. module: " ^ import_module))
-    | Provider children -> render_element children
+    | Provider { children; push; _ } ->
+        let pop = push () in
+        let%lwt () = render_element children in
+        pop ();
+        Lwt.return ()
     | Consumer children -> render_element children
     | Fragment children -> render_element children
     | List list -> Lwt_list.iter_s render_element list
@@ -489,8 +507,8 @@ and render_with_resolved_buffer ~stream_context buf element =
         | Lwt.Sleep ->
             let%lwt resolved = promise in
             render_element resolved)
-    | DangerouslyInnerHtml html ->
-        Buffer.add_string buf html;
+    | Static { prerendered; _ } ->
+        Buffer.add_string buf prerendered;
         Lwt.return ()
     | Suspense _ -> render_to_stream_buffer ~stream_context buf element
   and render_lower_case ~key:_ tag attributes children =
@@ -523,41 +541,42 @@ and render_with_resolved_buffer ~stream_context buf element =
   render_element element
 
 let renderToStream ?pipe:_ element =
-  let stream, push_to_stream, close = Push_stream.make () in
-  let stream_context =
-    {
-      push = push_to_stream;
-      close;
-      closed = false;
-      waiting = 0;
-      boundary_id = 0;
-      suspense_id = 0;
-      has_rc_script_been_injected = false;
-    }
-  in
-  let abort () =
-    (* TODO: Needs to flush the remaining loading fallbacks as HTML, and React.js will try to render the rest on the client. *)
-    Lwt_stream.closed stream |> Lwt.ignore_result
-  in
-  let buf = Buffer.create 1024 in
-  try%lwt
-    let%lwt () = render_to_stream_buffer ~stream_context buf element in
-    push_to_stream (Buffer.contents buf);
-    if stream_context.waiting = 0 then close ();
-    Lwt.return (stream, abort)
-  with
-  | React.Suspend (Any_promise promise) ->
-      (* In case of getting a React.Suspend exn means that either an async component is being rendered without
-         React.Suspense or React.use is being used without a Suspense boundary. In both cases, we need to await
-         for the promise to resolve and then render the resolved element. *)
-      let%lwt _ = promise in
-      Buffer.clear buf;
-      let%lwt () = render_with_resolved_buffer ~stream_context buf element in
-      push_to_stream (Buffer.contents buf);
-      if stream_context.waiting = 0 then close ();
-      Lwt.return (stream, abort)
-  (* non suspend exceptions propagate to the parent *)
-  | exn -> Lwt.fail exn
+  React.Cache.with_request_cache_async (fun () ->
+      let stream, push_to_stream, close = Push_stream.make () in
+      let stream_context =
+        {
+          push = push_to_stream;
+          close;
+          closed = false;
+          waiting = 0;
+          boundary_id = 0;
+          suspense_id = 0;
+          has_rc_script_been_injected = false;
+        }
+      in
+      let abort () =
+        (* TODO: Needs to flush the remaining loading fallbacks as HTML, and React.js will try to render the rest on the client. *)
+        Lwt_stream.closed stream |> Lwt.ignore_result
+      in
+      let buf = Buffer.create 1024 in
+      try%lwt
+        let%lwt () = render_to_stream_buffer ~stream_context buf element in
+        push_to_stream (Buffer.contents buf);
+        if stream_context.waiting = 0 then close ();
+        Lwt.return (stream, abort)
+      with
+      | React.Suspend (Any_promise promise) ->
+          (* In case of getting a React.Suspend exn means that either an async component is being rendered without
+             React.Suspense or React.use is being used without a Suspense boundary. In both cases, we need to await
+             for the promise to resolve and then render the resolved element. *)
+          let%lwt _ = promise in
+          Buffer.clear buf;
+          let%lwt () = render_with_resolved_buffer ~stream_context buf element in
+          push_to_stream (Buffer.contents buf);
+          if stream_context.waiting = 0 then close ();
+          Lwt.return (stream, abort)
+      (* non suspend exceptions propagate to the parent *)
+      | exn -> Lwt.fail exn)
 
 let querySelector _str = Runtime.fail_impossible_action_in_ssr "ReactDOM.querySelector"
 let render _element _node = Runtime.fail_impossible_action_in_ssr "ReactDOM.render"

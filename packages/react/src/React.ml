@@ -382,7 +382,7 @@ module Model = struct
     | Json : Yojson.Basic.t -> 'element t
     | Error : error -> 'element t
     | Element : 'element -> 'element t
-    | Promise : 'a Js.Promise.t * ('a -> Yojson.Basic.t) -> 'element t
+    | Promise : 'a Js.Promise.t * ('a -> 'element t) -> 'element t
 end
 
 type element =
@@ -393,10 +393,10 @@ type element =
   | List of element list
   | Array of element array
   | Text of string
-  | DangerouslyInnerHtml of string
+  | Static of { prerendered : string; original : element }
   | Fragment of element
   | Empty
-  | Provider of element
+  | Provider of { children : element; push : unit -> unit -> unit; async_key : Obj.t Lwt.key; async_value : Obj.t }
   | Consumer of element
   | Suspense of { key : string option; children : element; fallback : element }
 
@@ -467,25 +467,29 @@ let create_element_with_key ?key tag attributes children =
 let createElement = create_element_with_key ?key:None
 let createElementWithKey = create_element_with_key
 
-(* `cloneElement` overrides childrens and props on lower case components, It raises Invalid_argument for the rest.
-    React.js can clone uppercase components, since it stores their props on each element's object but since we just store the fn and don't have the props, we can't clone them).
-   TODO: Check original implementation for exact error message/exception type *)
+let clone_component_error name =
+  Printf.sprintf
+    "React.cloneElement: cannot clone '%s'. In server-reason-react, component props are compile-time labelled \
+     arguments (and extending them with new props at runtime is not supported). React.cloneElement only works with \
+     lowercase DOM elements."
+    name
+
 let cloneElement element new_attributes =
   match element with
   | Lower_case_element { key; tag; attributes; children } ->
       Lower_case_element { key; tag; attributes = clone_attributes attributes new_attributes; children }
-  | Upper_case_component _ -> raise (Invalid_argument "In server-reason-react, a component can't be cloned")
-  | DangerouslyInnerHtml _ -> raise (Invalid_argument "can't clone innerHtml")
-  | Fragment _ -> raise (Invalid_argument "can't clone a fragment")
-  | Text _ -> raise (Invalid_argument "can't clone a text element")
-  | Empty -> raise (Invalid_argument "can't clone a null element")
-  | List _ -> raise (Invalid_argument "can't clone a list element")
-  | Array _ -> raise (Invalid_argument "can't clone an array element")
-  | Provider _ -> raise (Invalid_argument "can't clone a Provider")
-  | Consumer _ -> raise (Invalid_argument "can't clone a Consumer")
-  | Async_component _ -> raise (Invalid_argument "can't clone an async component")
-  | Suspense _ -> raise (Invalid_argument "can't clone a Supsense component")
-  | Client_component _ -> raise (Invalid_argument "can't clone a Client component")
+  | Upper_case_component (name, _) -> raise (Invalid_argument (clone_component_error name))
+  | Async_component (name, _) -> raise (Invalid_argument (clone_component_error name))
+  | Client_component { import_name; _ } -> raise (Invalid_argument (clone_component_error import_name))
+  | Static _ -> raise (Invalid_argument "React.cloneElement: cannot clone a Static element")
+  | Fragment _ -> raise (Invalid_argument "React.cloneElement: cannot clone a Fragment")
+  | Text _ -> raise (Invalid_argument "React.cloneElement: cannot clone a Text element")
+  | Empty -> raise (Invalid_argument "React.cloneElement: cannot clone a null element")
+  | List _ -> raise (Invalid_argument "React.cloneElement: cannot clone a List")
+  | Array _ -> raise (Invalid_argument "React.cloneElement: cannot clone an Array")
+  | Provider _ -> raise (Invalid_argument "React.cloneElement: cannot clone a Provider")
+  | Consumer _ -> raise (Invalid_argument "React.cloneElement: cannot clone a Consumer")
+  | Suspense _ -> raise (Invalid_argument "React.cloneElement: cannot clone a Suspense")
 
 module Fragment = struct
   let make ~children ?key:_ () = Fragment children
@@ -506,19 +510,34 @@ let list l = List l
 type 'a provider = value:'a -> children:element -> unit -> element
 
 module Context = struct
-  type 'a t = { current_value : 'a ref; provider : 'a provider; consumer : children:element -> element }
+  type 'a t = {
+    current_value : 'a ref;
+    async_key : Obj.t Lwt.key;
+    provider : 'a provider;
+    consumer : children:element -> element;
+  }
 
   let provider ctx = ctx.provider
 end
 
 let createContext (initial_value : 'a) : 'a Context.t =
   let ref_value = { current = initial_value } in
+  let async_key = Lwt.new_key () in
   let provider ~value ~children () =
-    ref_value.current <- value;
-    Provider children
+    Provider
+      {
+        children;
+        push =
+          (fun () ->
+            let prev = ref_value.current in
+            ref_value.current <- value;
+            fun () -> ref_value.current <- prev);
+        async_key;
+        async_value = Obj.repr value;
+      }
   in
   let consumer ~children = Consumer children in
-  { current_value = ref_value; provider; consumer }
+  { current_value = ref_value; async_key; provider; consumer }
 
 module Suspense = struct
   let or_react_null = function None -> null | Some x -> x
@@ -527,9 +546,60 @@ module Suspense = struct
     Suspense { key; fallback = or_react_null fallback; children = or_react_null children }
 end
 
+module Cache = struct
+  type cache_entry = Ok of Obj.t | Error of exn
+  type fn_cache = (Obj.t, cache_entry) Hashtbl.t
+  type request_cache = (int, fn_cache) Hashtbl.t
+
+  let current : request_cache option Stdlib.ref = Stdlib.ref None
+  let fn_id_counter : int Stdlib.ref = Stdlib.ref 0
+
+  let with_request_cache f =
+    let prev = !current in
+    current := Some (Hashtbl.create 16);
+    Fun.protect ~finally:(fun () -> current := prev) f
+
+  let with_request_cache_async f =
+    let prev = !current in
+    current := Some (Hashtbl.create 16);
+    Lwt.finalize f (fun () ->
+        current := prev;
+        Lwt.return ())
+end
+
 let memo f _component = f
 let memoCustomCompareProps f _compare _component = f
-let useContext (context : 'a Context.t) = context.current_value.current
+
+let cache fn =
+  let fn_id = !Cache.fn_id_counter in
+  Cache.fn_id_counter := fn_id + 1;
+  fun arg ->
+    match !Cache.current with
+    | None -> fn arg
+    | Some cache_map -> (
+        let fn_cache =
+          match Hashtbl.find_opt cache_map fn_id with
+          | Some cache -> cache
+          | None ->
+              let cache = Hashtbl.create 8 in
+              Hashtbl.add cache_map fn_id cache;
+              cache
+        in
+        let arg_key = Obj.repr arg in
+        match Hashtbl.find_opt fn_cache arg_key with
+        | Some (Cache.Ok value) -> Obj.obj value
+        | Some (Cache.Error error) -> raise error
+        | None -> (
+            try
+              let result = fn arg in
+              Hashtbl.add fn_cache arg_key (Cache.Ok (Obj.repr result));
+              result
+            with exn ->
+              Hashtbl.add fn_cache arg_key (Cache.Error exn);
+              raise exn))
+
+let useContext (context : 'a Context.t) =
+  match Lwt.get context.async_key with Some v -> (Obj.obj v : 'a) | None -> context.current_value.current
 
 let useState (make_initial_value : unit -> 'state) =
   let initial_value : 'state = make_initial_value () in

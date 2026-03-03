@@ -3,11 +3,13 @@
  (modules bench)
  (libraries
   unix
+  lwt
+  lwt.unix
   benchmark_scenarios
   server-reason-react.react
   server-reason-react.reactDom)
  (preprocess
-  (pps server-reason-react.ppx)))
+  (pps server-reason-react.ppx lwt_ppx)))
 
 (executable
  (name allocation)

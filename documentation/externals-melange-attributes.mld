@@ -34,6 +34,42 @@ https://melange.re/v3.0.0/communicate-with-javascript.html#using-js-t-objects
 
 Object creation and object field access is designed to interact with JavaScript Objects, in native we reperesent those as OCaml Objects (which are very different) and [server-reason-react-ppx.melange_ppx] proviedes the implementation to make it work. (Experimental)
 
+{2 Supports [\[@@deriving jsConverter\]]}
+
+The [jsConverter] deriver generates conversion functions between OCaml variants and JavaScript-friendly representations (integers for regular variants, strings for polymorphic variants).
+
+{b Regular variants:}
+{[
+type action = Click | Submit | Cancel [@@deriving jsConverter]
+(* Generates:
+   val actionToJs : action -> int
+   val actionFromJs : int -> action option *)
+]}
+
+{b Polymorphic variants:}
+{[
+type state = [`Idle | `Loading | `Error] [@@deriving jsConverter]
+(* Generates:
+   val stateToJs : state -> string
+   val stateFromJs : string -> state option *)
+]}
+
+{b With [\@mel.as] to customize values:}
+{[
+type action = Click | Submit [@mel.as 3] | Cancel [@@deriving jsConverter]
+(* Click = 0, Submit = 3, Cancel = 4 *)
+]}
+
+{b With [{ newType }] for abstract types:}
+{[
+type action = Click | Submit [@@deriving jsConverter { newType }]
+(* Generates an abstract type [abs_action] and:
+   val actionToJs : action -> abs_action
+   val actionFromJs : abs_action -> action *)
+]}
+
+Note: Only variants without payloads are supported. Variants with payloads like [Submit of int] will produce a compile-time error.
+
 {1 Usage}
 
 To use [server-reason-react.melange_ppx] you need to add it to your dune's pps field:

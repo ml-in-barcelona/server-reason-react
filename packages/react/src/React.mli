@@ -565,7 +565,7 @@ module Model : sig
     | Json : Yojson.Basic.t -> 'element t
     | Error : error -> 'element t
     | Element : 'element -> 'element t
-    | Promise : 'a Js.Promise.t * ('a -> Yojson.Basic.t) -> 'element t
+    | Promise : 'a Js.Promise.t * ('a -> 'element t) -> 'element t
 end
 
 type element =
@@ -576,10 +576,10 @@ type element =
   | List of element list
   | Array of element array
   | Text of string
-  | DangerouslyInnerHtml of string
+  | Static of { prerendered : string; original : element }
   | Fragment of element
   | Empty
-  | Provider of element
+  | Provider of { children : element; push : unit -> unit -> unit; async_key : Obj.t Lwt.key; async_value : Obj.t }
   | Consumer of element
   | Suspense of { key : string option; children : element; fallback : element }
 
@@ -607,7 +607,12 @@ val list : element list -> element
 type 'a provider = value:'a -> children:element -> unit -> element
 
 module Context : sig
-  type 'a t = { current_value : 'a ref; provider : 'a provider; consumer : children:element -> element }
+  type 'a t = {
+    current_value : 'a ref;
+    async_key : Obj.t Lwt.key;
+    provider : 'a provider;
+    consumer : children:element -> element;
+  }
 
   val provider : 'a t -> 'a provider
 end
@@ -618,12 +623,18 @@ module Suspense : sig
   val make : ?key:string -> ?fallback:element -> ?children:element -> unit -> element
 end
 
+module Cache : sig
+  val with_request_cache : (unit -> 'a) -> 'a
+  val with_request_cache_async : (unit -> 'a Lwt.t) -> 'a Lwt.t
+end
+
 type any_promise = Any_promise : 'a Lwt.t -> any_promise
 
 exception Suspend of any_promise
 
 val memo : ('props * 'props -> bool) -> 'a -> 'props * 'props -> bool
 val memoCustomCompareProps : ('props * 'props -> bool) -> ('props * 'props -> bool) -> 'a -> 'props * 'props -> bool
+val cache : ('a -> 'b) -> 'a -> 'b
 val useContext : 'a Context.t -> 'a
 val useState : (unit -> 'state) -> 'state * (('state -> 'state) -> unit)
 val useMemo : (unit -> 'a) -> 'a

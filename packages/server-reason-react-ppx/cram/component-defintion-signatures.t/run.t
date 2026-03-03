@@ -5,7 +5,13 @@
     let make ?key:(_ : string option) ?(mockup : string option) () =
       React.Upper_case_component
         ( Stdlib.__FUNCTION__,
-          fun () -> React.DangerouslyInnerHtml "<button>Hello!</button>" )
+          fun () ->
+            React.Static
+              {
+                prerendered = "<button>Hello!</button>";
+                original =
+                  React.createElement "button" [] [ React.string "Hello!" ];
+              } )
   end
   
   module MyPropIsOptionOptionBoolLetWithValSig : sig

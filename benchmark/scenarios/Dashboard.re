@@ -103,35 +103,11 @@ module ActivityFeed = {
         "15 minutes ago",
         "👨",
       ),
-      (
-        "Carol Davis",
-        "completed",
-        "User Research Report",
-        "1 hour ago",
-        "👩‍💼",
-      ),
-      (
-        "David Kim",
-        "created",
-        "New Feature Proposal",
-        "2 hours ago",
-        "👨‍💻",
-      ),
-      (
-        "Eve Johnson",
-        "approved",
-        "Budget Request #127",
-        "3 hours ago",
-        "👩‍💼",
-      ),
-      (
-        "Frank Wilson",
-        "assigned",
-        "Bug Fix #892",
-        "4 hours ago",
-        "👨‍🔧",
-      ),
-      ("Grace Lee", "reviewed", "Code PR #456", "5 hours ago", "👩‍💻"),
+      ("Carol Davis", "completed", "User Research Report", "1 hour ago", "👩"),
+      ("David Kim", "created", "New Feature Proposal", "2 hours ago", "👨"),
+      ("Eve Johnson", "approved", "Budget Request #127", "3 hours ago", "👩"),
+      ("Frank Wilson", "assigned", "Bug Fix #892", "4 hours ago", "🔧"),
+      ("Grace Lee", "reviewed", "Code PR #456", "5 hours ago", "👩"),
       ("Henry Brown", "deployed", "v2.4.1 Release", "6 hours ago", "🚀"),
     |];
 
@@ -182,13 +158,13 @@ module TopPerformers = {
         name: "Sarah Johnson",
         role: "Sales Lead",
         metric: 156,
-        avatar: "👩‍💼",
+        avatar: "👩",
       },
       {
         name: "Mike Chen",
         role: "Account Executive",
         metric: 142,
-        avatar: "👨‍💼",
+        avatar: "👨",
       },
       {
         name: "Emily Davis",
@@ -206,7 +182,7 @@ module TopPerformers = {
         name: "Lisa Brown",
         role: "Account Executive",
         metric: 108,
-        avatar: "👩‍💼",
+        avatar: "👩",
       },
     |];
 
@@ -314,9 +290,7 @@ module Sidebar = {
 
     <aside className="w-64 bg-gray-900 text-white min-h-screen flex-shrink-0">
       <div className="p-6">
-        <h1 className="text-xl font-bold">
-          {React.string("📊 Dashboard")}
-        </h1>
+        <h1 className="text-xl font-bold"> {React.string("📊 Dashboard")} </h1>
       </div>
       <nav className="px-4">
         {React.array(

@@ -23,7 +23,8 @@ let handler = request => {
 
   DreamRSC.createFromRequest(
     ~bootstrapModules=["/static/demo/ServerOnlyRSC.re.js"],
-    <Document> app </Document>,
+    ~layout=children => <Document> children </Document>,
+    app,
     request,
   );
 };

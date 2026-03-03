@@ -150,6 +150,30 @@ let context () =
   in
   assert_string (ReactDOM.renderToStaticMarkup component) "<section>20</section>"
 
+let nested_context () =
+  let component =
+    React.Upper_case_component
+      ( "app",
+        fun () ->
+          ContextProvider.make ~value:10
+            ~children:
+              (React.list
+                 [
+                   React.Upper_case_component ("inner_consumer", fun () -> ContextConsumer.make ());
+                   React.Upper_case_component
+                     ( "nested_provider",
+                       fun () ->
+                         ContextProvider.make ~value:20
+                           ~children:(React.Upper_case_component ("nested_consumer", fun () -> ContextConsumer.make ()))
+                           () );
+                   React.Upper_case_component ("after_nested_consumer", fun () -> ContextConsumer.make ());
+                 ])
+            () )
+  in
+  assert_string
+    (ReactDOM.renderToStaticMarkup component)
+    "<section>10</section><section>20</section><section>10</section>"
+
 let use_state () =
   let state, setState = React.useState (fun () -> "LOL") in
 
@@ -335,6 +359,7 @@ let tests =
     test "dom_props_should_work" dom_props_should_work;
     test "dangerouslySetInnerHtml" dangerouslySetInnerHtml;
     test "context" context;
+    test "nested_context" nested_context;
     test "use_state" use_state;
     test "use_memo" use_memo;
     test "use_callback" use_callback;

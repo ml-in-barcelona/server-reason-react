@@ -1,5 +1,10 @@
 **/_build
 **/_opam
+**/_opam_*
+_opam*
+node_modules/
+**/node_modules/
+compare/
 **/.merlin
 *.install
 .git/

@@ -1,0 +1,8 @@
+(test
+ (name test_router_rsc)
+ (libraries
+  alcotest
+  dream
+  react
+  server-reason-react.url_native
+  nested_router_native))

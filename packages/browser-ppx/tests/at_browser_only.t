@@ -230,7 +230,6 @@ Ppat_constraint
   let foo ~on:((on [@browser_only]) : unit -> string)
       ?opt:((opt [@browser_only]) = 42) =
     0
- 
   $ ./standalone.exe -impl input_constr.ml | ocamlformat - --enable-outside-detected-project --impl
   let foo ~on:_ ?opt:(_ = 42) = 0
 

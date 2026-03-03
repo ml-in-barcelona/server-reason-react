@@ -89,7 +89,6 @@ let markdownStyles = (~background, ~text) => {
 module NoteSkeleton = {
   [@react.component]
   let make = (~isEditing as _) => {
-    Dream.error(log => log("NoteSkeleton"));
     <div className="flex items-center justify-center h-full">
       <Text> "Loading..." </Text>
     </div>;
@@ -100,7 +99,7 @@ module App = {
   [@react.async.component]
   let make = (~selectedId, ~isEditing, ~searchText, ~sleep) => {
     Lwt.return(
-      <html>
+      <html suppressHydrationWarning=true>
         <head>
           <meta charSet="utf-8" />
           <style
@@ -114,7 +113,7 @@ module App = {
           />
           <link rel="stylesheet" href="/output.css" />
         </head>
-        <body>
+        <body suppressHydrationWarning=true>
           <DemoLayout background=Theme.Color.Gray2 mode=FullScreen>
             <div className="flex flex-row gap-8">
               <section

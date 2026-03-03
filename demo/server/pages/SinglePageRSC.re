@@ -56,6 +56,15 @@ module ExpandedContent = {
   };
 };
 
+module CacheDemo = {
+  let calls = ref(0);
+  let get =
+    React.cache(label => {
+      calls.contents = calls.contents + 1;
+      label ++ " #" ++ Int.to_string(calls.contents);
+    });
+};
+
 module Page = {
   [@react.async.component]
   let make = () => {
@@ -67,7 +76,8 @@ module Page = {
       Lwt.bind(Lwt_unix.sleep(4.0), _ =>
         Lwt.return("Solusionao in 4 seconds!")
       );
-
+    let cachedValueFirst = CacheDemo.get("Cached value");
+    let cachedValueSecond = CacheDemo.get("Cached value");
     Lwt.return(
       <Stack gap=8 justify=`start>
         <Stack gap=2 justify=`start>
@@ -81,10 +91,22 @@ module Page = {
                "Server side rendering server components and client components",
              )}
           </h1>
-          <Text color=Theme.Color.Gray10>
-            "React server components. Lazy loading of client components. Client props encodings, such as promises, React elements, and primitive types."
-          </Text>
+          <p
+            className={Cx.make(["text-sm", Theme.text(Theme.Color.Gray10)])}>
+            {React.string(
+               "React server components. Lazy loading of client components. Client props encodings, such as promises, React elements, and primitive types.",
+             )}
+          </p>
         </Stack>
+        <Hr />
+        <Section
+          title="React.cache"
+          description="Memoizes results for identical arguments per request">
+          <Stack gap=1 justify=`start>
+            <Text> {"First call: " ++ cachedValueFirst} </Text>
+            <Text> {"Second call: " ++ cachedValueSecond} </Text>
+          </Stack>
+        </Section>
         <Hr />
         <Section
           title="Counter"
@@ -162,6 +184,7 @@ module Page = {
           description="In this case, react will use the server function from the window.__server_functions_manifest_map">
           <ServerActionFromPropsClient
             actionOnClick=ServerFunctions.simpleResponse
+            optionalAction=ServerFunctions.optionalAction
           />
         </Section>
         <Hr />
@@ -209,23 +232,24 @@ module Page = {
 module App = {
   [@react.component]
   let make = () => {
-    <html>
-      <head>
-        <meta charSet="utf-8" />
-        <link rel="stylesheet" href="/output.css" />
-      </head>
-      <body>
-        <div id="root">
-          <DemoLayout background=Theme.Color.Gray2> <Page /> </DemoLayout>
-        </div>
-      </body>
-    </html>;
+    <DemoLayout background=Theme.Color.Gray2> <Page /> </DemoLayout>;
   };
 };
 
 let handler = request =>
   DreamRSC.createFromRequest(
     ~bootstrapModules=["/static/demo/SinglePageRSC.re.js"],
+    ~layout=
+      children =>
+        <html suppressHydrationWarning=true>
+          <head>
+            <meta charSet="utf-8" />
+            <link rel="stylesheet" href="/output.css" />
+          </head>
+          <body suppressHydrationWarning=true>
+            <div id="root"> children </div>
+          </body>
+        </html>,
     <App />,
     request,
   );
