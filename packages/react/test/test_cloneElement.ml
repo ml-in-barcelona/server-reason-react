@@ -21,7 +21,9 @@ let equal_elements (c1 : React.element) (c2 : React.element) =
     | Text t1, Text t2 -> t1 == t2
     | Fragment fl1, Fragment fl2 -> equal_rec fl1 fl2
     | Empty, Empty -> true
-    | _ -> false
+    | Static { original = original1; prerendered = _ }, Static { original = original2; prerendered = _ } ->
+        equal_rec original1 original2
+    | _, _ -> false
   in
   equal_rec c1 c2
 
@@ -78,6 +80,60 @@ let clone_client_component_raises () =
         labelled arguments (and extending them with new props at runtime is not supported). React.cloneElement only \
         works with lowercase DOM elements.") (fun () -> ignore (React.cloneElement element []))
 
+let clone_static_unwraps () =
+  let original = React.createElement "div" [ React.JSX.Bool ("hidden", "hidden", true) ] [] in
+  let static_element = React.Static { prerendered = {|<div hidden=""></div>|}; original } in
+  let cloned = React.cloneElement static_element [] in
+  assert_element cloned original
+
+let clone_static_with_new_attributes () =
+  let original = React.createElement "div" [ React.JSX.String ("id", "id", "root") ] [] in
+  let static_element = React.Static { prerendered = {|<div id="root"></div>|}; original } in
+  let cloned = React.cloneElement static_element [ React.JSX.String ("class", "className", "container") ] in
+  let expected =
+    React.createElement "div"
+      [ React.JSX.String ("class", "className", "container"); React.JSX.String ("id", "id", "root") ]
+      []
+  in
+  assert_element cloned expected
+
+let clone_static_overrides_attributes () =
+  let original = React.createElement "span" [ React.JSX.String ("id", "id", "old") ] [] in
+  let static_element = React.Static { prerendered = {|<span id="old"></span>|}; original } in
+  let cloned = React.cloneElement static_element [ React.JSX.String ("id", "id", "new") ] in
+  let expected = React.createElement "span" [ React.JSX.String ("id", "id", "new") ] [] in
+  assert_element cloned expected
+
+let clone_static_result_is_not_static () =
+  let original = React.createElement "div" [] [] in
+  let static_element = React.Static { prerendered = "<div></div>"; original } in
+  let cloned = React.cloneElement static_element [] in
+  match cloned with
+  | React.Lower_case_element _ -> ()
+  | React.Static _ -> Alcotest.fail "cloneElement on Static should return a Lower_case_element, not Static"
+  | _ -> Alcotest.fail "cloneElement on Static should return a Lower_case_element"
+
+let clone_static_preserves_children () =
+  let children = [ React.createElement "span" [] []; React.string "hello" ] in
+  let original = React.createElement "div" [ React.JSX.String ("id", "id", "parent") ] children in
+  let static_element = React.Static { prerendered = {|<div id="parent"><span></span>hello</div>|}; original } in
+  let cloned = React.cloneElement static_element [ React.JSX.String ("class", "className", "wrapper") ] in
+  let expected =
+    React.createElement "div"
+      [ React.JSX.String ("class", "className", "wrapper"); React.JSX.String ("id", "id", "parent") ]
+      children
+  in
+  assert_element cloned expected
+
+let clone_nested_static () =
+  let inner_original = React.createElement "p" [ React.JSX.String ("id", "id", "inner") ] [] in
+  let inner_static = React.Static { prerendered = {|<p id="inner"></p>|}; original = inner_original } in
+  let outer_original = React.createElement "div" [] [ inner_static ] in
+  let outer_static = React.Static { prerendered = {|<div><p id="inner"></p></div>|}; original = outer_original } in
+  let cloned = React.cloneElement outer_static [ React.JSX.Bool ("hidden", "hidden", true) ] in
+  let expected = React.createElement "div" [ React.JSX.Bool ("hidden", "hidden", true) ] [ inner_static ] in
+  assert_element cloned expected
+
 let case title fn = Alcotest.test_case title `Quick fn
 
 let tests =
@@ -89,4 +145,10 @@ let tests =
       case "uppercase component raises" clone_uppercase_component_raises;
       case "async component raises" clone_async_component_raises;
       case "client component raises" clone_client_component_raises;
+      case "static unwraps to original" clone_static_unwraps;
+      case "static adds new attributes" clone_static_with_new_attributes;
+      case "static overrides existing attributes" clone_static_overrides_attributes;
+      case "static result is Lower_case_element not Static" clone_static_result_is_not_static;
+      case "static preserves children" clone_static_preserves_children;
+      case "static nested static unwraps outer only" clone_nested_static;
     ] )

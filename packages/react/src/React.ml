@@ -474,14 +474,14 @@ let clone_component_error name =
      lowercase DOM elements."
     name
 
-let cloneElement element new_attributes =
+let rec cloneElement element new_attributes =
   match element with
   | Lower_case_element { key; tag; attributes; children } ->
       Lower_case_element { key; tag; attributes = clone_attributes attributes new_attributes; children }
   | Upper_case_component (name, _) -> raise (Invalid_argument (clone_component_error name))
   | Async_component (name, _) -> raise (Invalid_argument (clone_component_error name))
   | Client_component { import_name; _ } -> raise (Invalid_argument (clone_component_error import_name))
-  | Static _ -> raise (Invalid_argument "React.cloneElement: cannot clone a Static element")
+  | Static { original; prerendered = _ } -> cloneElement original new_attributes
   | Fragment _ -> raise (Invalid_argument "React.cloneElement: cannot clone a Fragment")
   | Text _ -> raise (Invalid_argument "React.cloneElement: cannot clone a Text element")
   | Empty -> raise (Invalid_argument "React.cloneElement: cannot clone a null element")
