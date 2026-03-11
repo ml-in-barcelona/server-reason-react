@@ -303,7 +303,9 @@ module Sidebar = {
         </div>
         <div
           className="bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl p-6 text-white">
-          <h3 className="font-bold mb-2"> {React.string("📧 Newsletter")} </h3>
+          <h3 className="font-bold mb-2">
+            {React.string("📧 Newsletter")}
+          </h3>
           <p className="text-sm text-blue-100 mb-4">
             {React.string("Get weekly insights delivered to your inbox.")}
           </p>
