@@ -67,7 +67,7 @@ type mode = String | Markup
 
 let render_to_buffer ~mode buf element =
   let add_separator_between_text_nodes = mode = String in
-  let previous_was_text_node = ref false in
+  let previous_node_was_text = ref false in
   let should_add_doctype = ref true in
 
   let rec render_element element =
@@ -97,8 +97,8 @@ let render_to_buffer ~mode buf element =
               `renderToStream` instead.")
     | Lower_case_element { key; tag; attributes; children } -> render_lower_case ~key tag attributes children
     | Text text ->
-        let is_previous_text_node = !previous_was_text_node in
-        previous_was_text_node := true;
+        let is_previous_text_node = !previous_node_was_text in
+        previous_node_was_text := true;
         if is_previous_text_node && add_separator_between_text_nodes then Buffer.add_string buf "<!-- -->";
         Html.escape buf text;
         should_add_doctype := false
@@ -116,7 +116,7 @@ let render_to_buffer ~mode buf element =
     let inner_html = getDangerouslyInnerHtml attributes in
     if Html.is_self_closing_tag tag then (
       should_add_doctype := false;
-      if add_separator_between_text_nodes then previous_was_text_node := false;
+      if add_separator_between_text_nodes then previous_node_was_text := false;
       Buffer.add_char buf '<';
       Buffer.add_string buf tag;
       write_attributes_to_buffer buf attributes;
@@ -124,7 +124,7 @@ let render_to_buffer ~mode buf element =
     else
       let doctype = !should_add_doctype in
       should_add_doctype := false;
-      if add_separator_between_text_nodes then previous_was_text_node := false;
+      if add_separator_between_text_nodes then previous_node_was_text := false;
       if tag = "html" && doctype then Buffer.add_string buf "<!DOCTYPE html>";
       Buffer.add_char buf '<';
       Buffer.add_string buf tag;
@@ -134,7 +134,7 @@ let render_to_buffer ~mode buf element =
       Buffer.add_string buf "</";
       Buffer.add_string buf tag;
       Buffer.add_char buf '>';
-      if add_separator_between_text_nodes then previous_was_text_node := false
+      if add_separator_between_text_nodes then previous_node_was_text := false
   in
   render_element element
 
@@ -244,7 +244,7 @@ let write_suspense_fallback_error buf ~exn fallback =
 
 let rec render_to_stream_buffer ~stream_context buf element =
   let should_add_doctype = ref true in
-  let previous_was_text_node = ref false in
+  let previous_node_was_text = ref false in
 
   let rec render_element element =
     match (element : React.element) with
@@ -269,8 +269,8 @@ let rec render_to_stream_buffer ~stream_context buf element =
     | Array arr -> Lwt_list.iter_s render_element (Array.to_list arr)
     | Lower_case_element { key; tag; attributes; children } -> render_lower_case ~key tag attributes children
     | Text text ->
-        let is_previous_text_node = !previous_was_text_node in
-        previous_was_text_node := true;
+        let is_previous_text_node = !previous_node_was_text in
+        previous_node_was_text := true;
         if is_previous_text_node then Buffer.add_string buf "<!-- -->";
         should_add_doctype := false;
         Html.escape buf text;
@@ -419,7 +419,7 @@ let rec render_to_stream_buffer ~stream_context buf element =
     let inner_html = getDangerouslyInnerHtml attributes in
     if Html.is_self_closing_tag tag then (
       should_add_doctype := false;
-      previous_was_text_node := false;
+      previous_node_was_text := false;
       Buffer.add_char buf '<';
       Buffer.add_string buf tag;
       write_attributes_to_buffer buf attributes;
@@ -428,7 +428,7 @@ let rec render_to_stream_buffer ~stream_context buf element =
     else
       let doctype = !should_add_doctype in
       should_add_doctype := false;
-      previous_was_text_node := false;
+      previous_node_was_text := false;
       if tag = "html" && doctype then Buffer.add_string buf "<!DOCTYPE html>";
       Buffer.add_char buf '<';
       Buffer.add_string buf tag;
@@ -444,7 +444,7 @@ let rec render_to_stream_buffer ~stream_context buf element =
       Buffer.add_string buf "</";
       Buffer.add_string buf tag;
       Buffer.add_char buf '>';
-      previous_was_text_node := false;
+      previous_node_was_text := false;
       Lwt.return ()
   and render_lower_case_to_buffer target_buf ~key:_ tag attributes children =
     let inner_html = getDangerouslyInnerHtml attributes in
@@ -474,7 +474,7 @@ let rec render_to_stream_buffer ~stream_context buf element =
   render_element element
 
 and render_with_resolved_buffer ~stream_context buf element =
-  let previous_was_text_node = ref false in
+  let previous_node_was_text = ref false in
 
   let rec render_element element =
     match (element : React.element) with
@@ -496,8 +496,8 @@ and render_with_resolved_buffer ~stream_context buf element =
     | Upper_case_component (_, component) -> render_element (component ())
     | Lower_case_element { key; tag; attributes; children } -> render_lower_case ~key tag attributes children
     | Text text ->
-        let is_previous_text_node = !previous_was_text_node in
-        previous_was_text_node := true;
+        let is_previous_text_node = !previous_node_was_text in
+        previous_node_was_text := true;
         if is_previous_text_node then Buffer.add_string buf "<!-- -->";
         Html.escape buf text;
         Lwt.return ()
@@ -516,14 +516,14 @@ and render_with_resolved_buffer ~stream_context buf element =
   and render_lower_case ~key:_ tag attributes children =
     let inner_html = getDangerouslyInnerHtml attributes in
     if Html.is_self_closing_tag tag then (
-      previous_was_text_node := false;
+      previous_node_was_text := false;
       Buffer.add_char buf '<';
       Buffer.add_string buf tag;
       write_attributes_to_buffer buf attributes;
       Buffer.add_string buf " />";
       Lwt.return ())
     else (
-      previous_was_text_node := false;
+      previous_node_was_text := false;
       Buffer.add_char buf '<';
       Buffer.add_string buf tag;
       write_attributes_to_buffer buf attributes;
@@ -538,7 +538,7 @@ and render_with_resolved_buffer ~stream_context buf element =
       Buffer.add_string buf "</";
       Buffer.add_string buf tag;
       Buffer.add_char buf '>';
-      previous_was_text_node := false;
+      previous_node_was_text := false;
       Lwt.return ())
   in
   render_element element

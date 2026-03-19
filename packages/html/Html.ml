@@ -75,7 +75,7 @@ let to_string ?(add_separator_between_text_nodes = true) element =
   let out = Buffer.create 1024 in
   (* This ref is used to enable rendering comments <!-- --> between text nodes
      and can be disabled by `add_separator_between_text_nodes` *)
-  let previous_was_text_node = ref false in
+  let previous_node_was_text = ref false in
   let should_add_doctype_to_html = ref true in
   let rec write element =
     match element with
@@ -83,8 +83,8 @@ let to_string ?(add_separator_between_text_nodes = true) element =
     | Int i -> Buffer.add_string out (Int.to_string i)
     | Float f -> Buffer.add_string out (Float.to_string f)
     | String text ->
-        let is_previous_text_node = previous_was_text_node.contents in
-        previous_was_text_node.contents <- true;
+        let is_previous_text_node = previous_node_was_text.contents in
+        previous_node_was_text.contents <- true;
         if is_previous_text_node && add_separator_between_text_nodes then Buffer.add_string out "<!-- -->";
         escape out text;
         should_add_doctype_to_html.contents <- false
@@ -103,7 +103,7 @@ let to_string ?(add_separator_between_text_nodes = true) element =
         should_add_doctype_to_html.contents <- false;
         (* If the previous node was text, but from another parent node, then the comment shouldn't be added.
            Check `separated_text_nodes_by_other_nodes` in test_renderToString.ml *)
-        if add_separator_between_text_nodes then previous_was_text_node.contents <- false;
+        if add_separator_between_text_nodes then previous_node_was_text.contents <- false;
         if tag = "html" && should_add_doctype then Buffer.add_string out "<!DOCTYPE html>";
         Buffer.add_char out '<';
         Buffer.add_string out tag;
@@ -112,7 +112,8 @@ let to_string ?(add_separator_between_text_nodes = true) element =
         List.iter write children;
         Buffer.add_string out "</";
         Buffer.add_string out tag;
-        Buffer.add_char out '>'
+        Buffer.add_char out '>';
+        if add_separator_between_text_nodes then previous_node_was_text.contents <- false
     | List ("", list) -> List.iter write list
     | List (separator, list) ->
         let rec iter = function
