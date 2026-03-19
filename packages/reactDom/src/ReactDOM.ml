@@ -133,7 +133,8 @@ let render_to_buffer ~mode buf element =
       (match inner_html with Some html -> Buffer.add_string buf html | None -> List.iter render_element children);
       Buffer.add_string buf "</";
       Buffer.add_string buf tag;
-      Buffer.add_char buf '>'
+      Buffer.add_char buf '>';
+      if add_separator_between_text_nodes then previous_was_text_node := false
   in
   render_element element
 
@@ -443,6 +444,7 @@ let rec render_to_stream_buffer ~stream_context buf element =
       Buffer.add_string buf "</";
       Buffer.add_string buf tag;
       Buffer.add_char buf '>';
+      previous_was_text_node := false;
       Lwt.return ()
   and render_lower_case_to_buffer target_buf ~key:_ tag attributes children =
     let inner_html = getDangerouslyInnerHtml attributes in
@@ -536,6 +538,7 @@ and render_with_resolved_buffer ~stream_context buf element =
       Buffer.add_string buf "</";
       Buffer.add_string buf tag;
       Buffer.add_char buf '>';
+      previous_was_text_node := false;
       Lwt.return ())
   in
   render_element element

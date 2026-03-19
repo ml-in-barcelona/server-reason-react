@@ -75,6 +75,40 @@ let suspense_without_promise () =
   let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
   assert_stream stream [ "<div><span>Hello</span></div>" ]
 
+let text_after_element_with_text_child () =
+  let app () =
+    React.createElement "div" []
+      [ React.string "before "; React.createElement "span" [] [ React.string "inner" ]; React.string " after" ]
+  in
+  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
+  assert_stream stream [ "<div>before <span>inner</span> after</div>" ]
+
+let suspense_with_resolved_text_after_element_with_text_child () =
+  let app () =
+    let deferred () =
+      React.Async_component
+        ( "deferred",
+          fun () ->
+            let%lwt () = Lwt_unix.sleep 0.01 in
+            Lwt.return
+              (React.createElement "div" []
+                 [
+                   React.string "before "; React.createElement "span" [] [ React.string "inner" ]; React.string " after";
+                 ]) )
+    in
+    React.Suspense.make ~fallback:(React.string "Loading...") ~children:(deferred ()) ()
+  in
+  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
+  assert_stream stream
+    [
+      "<!--$?--><template id=\"B:0\"></template>Loading...<!--/$-->";
+      "<div hidden id=\"S:0\"><div>before <span>inner</span> after</div></div>";
+      "<script>function \
+       $RC(a,b){a=document.getElementById(a);b=document.getElementById(b);b.parentNode.removeChild(b);if(a){a=a.previousSibling;var \
+       f=a.parentNode,c=a.nextSibling,e=0;do{if(c&&8===c.nodeType){var d=c.data;if(\"/$\"===d)if(0===e)break;else \
+       e--;else\"$\"!==d&&\"$?\"!==d&&\"$!\"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data=\"$\";a._reactRetry&&a._reactRetry()}}$RC('B:0','S:0')</script>";
+    ]
+
 let assert_raises exn fn =
   match%lwt fn () with
   | exception exn -> Lwt.return (assert_string (Printexc.to_string exn) (Printexc.to_string exn))
@@ -539,6 +573,9 @@ let tests =
     test "async component" async_component;
     test "async_component_without_suspense" async_component_without_suspense;
     test "suspense_without_promise" suspense_without_promise;
+    test "text_after_element_with_text_child" text_after_element_with_text_child;
+    test "suspense_with_resolved_text_after_element_with_text_child"
+      suspense_with_resolved_text_after_element_with_text_child;
     test "suspense_with_async_component" suspense_with_async_component;
     test "suspense_with_always_throwing" suspense_with_always_throwing;
     test "suspense_with_nested_suspense" suspense_with_nested_suspense;
