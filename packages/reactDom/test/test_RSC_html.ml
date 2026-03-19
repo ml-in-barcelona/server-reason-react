@@ -330,8 +330,7 @@ let client_with_promise_props () =
   in
   assert_html (app ())
     ~shell:
-      "<div>Server Content</div><!-- -->Client with Props<script \
-       data-payload='0:[[\"$\",\"div\",null,{\"children\":\"Server \
+      "<div>Server Content</div>Client with Props<script data-payload='0:[[\"$\",\"div\",null,{\"children\":\"Server \
        Content\"},null,[],1],[\"$\",\"$2\",null,{\"promise\":\"$@1\"},null,[],1]]\n\
        '>window.srr_stream.push()</script>"
     [

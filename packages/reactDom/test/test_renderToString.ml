@@ -30,6 +30,13 @@ let separated_text_nodes_by_other_parents () =
   in
   assert_string (ReactDOM.renderToString (app ())) "<main>Hi<span>chat</span></main>"
 
+let text_after_element_with_text_child () =
+  let div =
+    React.createElement "div" []
+      [ React.string "before "; React.createElement "span" [] [ React.string "inner" ]; React.string " after" ]
+  in
+  assert_string (ReactDOM.renderToString div) "<div>before <span>inner</span> after</div>"
+
 let test title fn = (Printf.sprintf "ReactDOM.renderToString / %s" title, [ Alcotest_lwt.test_case_sync "" `Quick fn ])
 
 let tests =
@@ -39,4 +46,5 @@ let tests =
     test "text_single_node should not add <!-- -->" text_single_node;
     test "consecutives_text_nodes should add <!-- -->" consecutives_text_nodes;
     test "separated_text_nodes_by_other_parents" separated_text_nodes_by_other_parents;
+    test "text_after_element_with_text_child" text_after_element_with_text_child;
   ]
