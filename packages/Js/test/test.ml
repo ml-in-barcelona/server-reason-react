@@ -644,6 +644,7 @@ let () =
          ("Js.Re", re_tests);
          ("Js.Dict", dict_tests);
          ("Js.Array", []);
+         ("Js.Undefined", Undefined_tests.Undefined.tests);
          (* Test262 - BigInt *)
          ("BigInt.Arithmetic", Bigint_tests.Arithmetic.tests);
          ("BigInt.Bitwise", Bigint_tests.Bitwise.tests);

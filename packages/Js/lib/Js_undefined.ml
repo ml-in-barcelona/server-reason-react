@@ -1,7 +1,6 @@
 type 'a t = 'a Js_internal.undefined
 
-external return : 'a -> 'a t = "%identity"
-
+let return a = Some a
 let empty = None
 
 external toOption : 'a t -> 'a option = "%identity"

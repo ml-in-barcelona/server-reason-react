@@ -1,6 +1,6 @@
 type 'a t = 'a Js_internal.nullable
 
-external return : 'a -> 'a t = "%identity"
+val return : 'a -> 'a t
 val empty : 'a Js_internal.nullable
 external toOption : 'a t -> 'a Js_internal.nullable = "%identity"
 external fromOpt : 'a Js_internal.nullable -> 'a t = "%identity"
