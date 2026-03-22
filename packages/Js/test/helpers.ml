@@ -24,6 +24,9 @@ let assert_bool left right = Alcotest.check Alcotest.bool "should be equal" righ
 (* assert_true for checking a condition with a message *)
 let assert_true msg cond = if not cond then Alcotest.fail msg
 
+(* assert_option for comparing option values with proper Alcotest output *)
+let assert_option ty msg left right = Alcotest.check (Alcotest.option ty) msg right left
+
 let assert_raises fn exn =
   match fn () with
   | exception exn -> assert_string (Printexc.to_string exn) (Printexc.to_string exn)

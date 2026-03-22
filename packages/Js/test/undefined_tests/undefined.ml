@@ -3,30 +3,28 @@ open Helpers
 let return_int () =
   let v = Js.Undefined.return 42 in
   let opt = Js.Undefined.toOption v in
-  assert_true "return int should be Some" (opt = Some 42)
+  assert_option Alcotest.int "return int should be Some" opt (Some 42)
 
 let return_string () =
   let v = Js.Undefined.return "hello" in
   let opt = Js.Undefined.toOption v in
-  assert_true "return string should be Some" (opt = Some "hello")
+  assert_option Alcotest.string "return string should be Some" opt (Some "hello")
 
 let return_float () =
   let v = Js.Undefined.return 3.14 in
   let opt = Js.Undefined.toOption v in
-  match opt with Some f -> assert_float_exact f 3.14 | None -> Alcotest.fail "return float should be Some"
+  assert_option (Alcotest.float 0.) "return float should be Some" opt (Some 3.14)
 
 let return_date () =
   let d = Date.fromFloat 1506098258091. in
   let v = Js.Undefined.return d in
   let opt = Js.Undefined.toOption v in
-  match opt with
-  | Some f -> assert_float_exact f 1506098258091.
-  | None -> Alcotest.fail "return Js.Date.t should be Some"
+  assert_option (Alcotest.float 0.) "return Js.Date.t should be Some" opt (Some 1506098258091.)
 
 let empty_is_none () =
   let v : int Js.Undefined.t = Js.Undefined.empty in
   let opt = Js.Undefined.toOption v in
-  assert_true "empty should be None" (opt = None)
+  assert_option Alcotest.int "empty should be None" opt None
 
 let get_unsafe_int () =
   let v = Js.Undefined.return 42 in
@@ -42,22 +40,22 @@ let get_unsafe_date () =
 let from_opt_some () =
   let v = Js.Undefined.fromOpt (Some 42) in
   let opt = Js.Undefined.toOption v in
-  assert_true "fromOpt (Some 42) round-trip" (opt = Some 42)
+  assert_option Alcotest.int "fromOpt (Some 42) round-trip" opt (Some 42)
 
 let from_opt_none () =
   let v = Js.Undefined.fromOpt None in
   let opt = Js.Undefined.toOption v in
-  assert_true "fromOpt None round-trip" (opt = None)
+  assert_option Alcotest.int "fromOpt None round-trip" opt None
 
 let from_option_some () =
   let v = Js.Undefined.fromOption (Some "test") in
   let opt = Js.Undefined.toOption v in
-  assert_true "fromOption (Some \"test\") round-trip" (opt = Some "test")
+  assert_option Alcotest.string "fromOption (Some \"test\") round-trip" opt (Some "test")
 
 let from_option_none () =
   let v : string Js.Undefined.t = Js.Undefined.fromOption None in
   let opt = Js.Undefined.toOption v in
-  assert_true "fromOption None round-trip" (opt = None)
+  assert_option Alcotest.string "fromOption None round-trip" opt None
 
 let pattern_match_return_int () =
   let v = Js.Undefined.return 99 in

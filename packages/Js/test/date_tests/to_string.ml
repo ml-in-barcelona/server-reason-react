@@ -182,14 +182,9 @@ let to_string_contains_year () =
 
 let to_json_basic () =
   let d = Date.utc ~year:2020. ~month:5. ~date:15. ~hours:12. ~minutes:30. ~seconds:45. () +. 123. in
-  match Date.toJSON d with
-  | Some s -> assert_string_equal s "2020-06-15T12:30:45.123Z"
-  | None -> assert_true "should return Some" false
+  assert_option Alcotest.string "toJSON should return Some" (Date.toJSON d) (Some "2020-06-15T12:30:45.123Z")
 
-let to_json_nan () =
-  match Date.toJSON nan with
-  | None -> assert_true "should return None" true
-  | Some _ -> assert_true "should return None for NaN" false
+let to_json_nan () = assert_option Alcotest.string "toJSON should return None for NaN" (Date.toJSON nan) None
 
 let to_json_unsafe_basic () =
   let d = Date.utc ~year:2020. ~month:5. ~date:15. ~hours:12. ~minutes:30. ~seconds:45. () +. 123. in
