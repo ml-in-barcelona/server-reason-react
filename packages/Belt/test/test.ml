@@ -46,6 +46,12 @@ let concat () =
   let result = Belt.List.concat [ 1; 2 ] [ 3; 4 ] in
   assert_list Alcotest.int [ 1; 2; 3; 4 ] result
 
+let array_concat () =
+  assert_array Alcotest.int [| 1; 2; 3 |] (Belt.Array.concat [||] [| 1; 2; 3 |]);
+  assert_array Alcotest.int [| 1; 2; 3 |] (Belt.Array.concat [| 1; 2; 3 |] [||]);
+  assert_array Alcotest.int [| 1; 2; 3; 4 |] (Belt.Array.concat [| 1; 2 |] [| 3; 4 |]);
+  assert_array Alcotest.int [||] (Belt.Array.concat [||] [||])
+
 let map () =
   let result = Belt.List.map [ 3.0; 4.0 ] (fun x -> "Number: " ^ string_of_float x) in
   assert_list Alcotest.string [ "Number: 3."; "Number: 4." ] result
@@ -89,6 +95,7 @@ let () =
       ("Records", [ case "eq" eq ]);
       ( "Array",
         [
+          case "concat" array_concat;
           case "truncateToLengthUnsafe" truncateToLengthUnsafe;
           case "makeUninitializedUnsafe" makeUninitializedUnsafe;
           case "length" length;

@@ -143,7 +143,11 @@ let zipBy xs ys f = zipByU xs ys (fun a b -> f a b)
 let concat a1 a2 =
   let l1 = length a1 in
   let l2 = length a2 in
-  let a1a2 = if l1 > 0 then makeUninitializedUnsafe (l1 + l2) (getUnsafe a1 0) else [||] in
+  let a1a2 =
+    if l1 > 0 then makeUninitializedUnsafe (l1 + l2) (getUnsafe a1 0)
+    else if l2 > 0 then makeUninitializedUnsafe l2 (getUnsafe a2 0)
+    else [||]
+  in
   for i = 0 to l1 - 1 do
     setUnsafe a1a2 i (getUnsafe a1 i)
   done;
