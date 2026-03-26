@@ -104,7 +104,7 @@ let rec filterMapInplaceBucket f h i prec cell =
       | None -> ( match C.toOpt prec with None -> A.setUnsafe (C.buckets h) i prec | Some cell -> nextSet cell n))
   | Some data -> (
       let bucket = C.return cell in
-      (match C.toOpt prec with None -> A.setUnsafe (C.buckets h) i bucket | Some c -> nextSet cell bucket);
+      (match C.toOpt prec with None -> A.setUnsafe (C.buckets h) i bucket | Some c -> nextSet c bucket);
       valueSet cell data;
       match C.toOpt n with None -> nextSet cell n | Some nextCell -> filterMapInplaceBucket f h i bucket nextCell)
 [@@ocaml.doc " iterate the Buckets, in place remove the elements "]
