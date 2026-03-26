@@ -25,15 +25,8 @@ include (
 module A = Belt_Array
 
 let rec copy (x : _ t) : _ t =
-  C.container ~hash:(C.hash x) ~eq:(C.eq x) ~size:(C.size x) ~buckets:(copyBuckets (C.buckets x))
-
-and copyBuckets (buckets : _ bucket C.opt array) =
-  let len = A.length buckets in
-  let newBuckets = if len > 0 then A.makeUninitializedUnsafe len (A.getUnsafe buckets 0) else [||] in
-  for i = 0 to len - 1 do
-    A.setUnsafe newBuckets i (copyBucket (A.getUnsafe buckets i))
-  done;
-  newBuckets
+  C.container ~hash:(C.hash x) ~eq:(C.eq x) ~size:(C.size x)
+    ~buckets:(Stdlib.Array.map copyBucket (C.buckets x))
 
 and copyBucket c =
   match C.toOpt c with

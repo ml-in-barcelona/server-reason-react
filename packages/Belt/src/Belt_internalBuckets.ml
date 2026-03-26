@@ -18,15 +18,7 @@ let next : ('a, 'b) bucket -> ('a, 'b) bucket C.opt = fun o -> o.next
 module A = Belt_Array
 
 let rec copy (x : _ t) : _ t =
-  C.container ~hash:(C.hash x) ~eq:(C.eq x) ~size:(C.size x) ~buckets:(copyBuckets (C.buckets x))
-
-and copyBuckets (buckets : _ bucket C.opt array) =
-  let len = A.length buckets in
-  let newBuckets = if len > 0 then A.makeUninitializedUnsafe len (A.getUnsafe buckets 0) else [||] in
-  for i = 0 to len - 1 do
-    A.setUnsafe newBuckets i (copyBucket (A.getUnsafe buckets i))
-  done;
-  newBuckets
+  C.container ~hash:(C.hash x) ~eq:(C.eq x) ~size:(C.size x) ~buckets:(Stdlib.Array.map copyBucket (C.buckets x))
 
 and copyBucket c =
   match C.toOpt c with
@@ -104,7 +96,7 @@ let rec filterMapInplaceBucket f h i prec cell =
       | None -> ( match C.toOpt prec with None -> A.setUnsafe (C.buckets h) i prec | Some cell -> nextSet cell n))
   | Some data -> (
       let bucket = C.return cell in
-      (match C.toOpt prec with None -> A.setUnsafe (C.buckets h) i bucket | Some c -> nextSet cell bucket);
+      (match C.toOpt prec with None -> A.setUnsafe (C.buckets h) i bucket | Some c -> nextSet c bucket);
       valueSet cell data;
       match C.toOpt n with None -> nextSet cell n | Some nextCell -> filterMapInplaceBucket f h i bucket nextCell)
 [@@ocaml.doc " iterate the Buckets, in place remove the elements "]

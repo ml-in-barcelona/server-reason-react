@@ -117,6 +117,6 @@ val heightUpdateMutate : ('a, 'b) node -> ('a, 'b) node
 val balMutate : ('a, 'b) node -> ('a, 'b) node
 val updateMutate : ('a, 'b) t -> 'a -> 'b -> cmp:('a -> 'a -> int) -> ('a, 'b) node option
 val fromArray : ('a * 'b) array -> cmp:('a -> 'a -> int) -> ('a, 'b) node option
-val removeMinAuxWithRootMutate : ('a, 'b) node -> ('a, 'c) node -> ('a, 'c) t
+val removeMinAuxWithRootMutate : ('a, 'b) node -> ('a, 'b) node -> ('a, 'b) t
 val findFirstByU : ('a, 'b) t -> (('a -> 'b -> bool)[@bs]) -> ('a * 'b) option
 val findFirstBy : ('a, 'b) t -> ('a -> 'b -> bool) -> ('a * 'b) option

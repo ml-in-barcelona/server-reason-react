@@ -21,22 +21,17 @@ let set arr i v =
   else false
 
 let setExn arr i v =
-  if Stdlib.not (i >= 0 && i < length arr) then (
+  if Stdlib.not (i >= 0 && i < length arr) then begin
     let error = Printf.sprintf "File %s, line %d" __FILE__ __LINE__ in
-    Js.Exn.raiseError error;
-    setUnsafe arr i v)
+    Js.Exn.raiseError error
+  end;
+  setUnsafe arr i v
 
 let makeUninitialized len = Array.make len Js.undefined
 let makeUninitializedUnsafe len defaultVal = Array.make len defaultVal
 let truncateToLengthUnsafe arr len = Stdlib.Array.sub arr 0 len
 
-let copy a =
-  let l = length a in
-  let v = if l > 0 then Array.make l (getUnsafe a 0) else [||] in
-  for i = 0 to l - 1 do
-    setUnsafe v i (getUnsafe a i)
-  done;
-  v
+let copy = Stdlib.Array.copy
 
 let swapUnsafe xs i j =
   let tmp = getUnsafe xs i in
@@ -81,12 +76,7 @@ let reverse xs =
 
 let makeByU l f =
   if l <= 0 then [||]
-  else
-    let res = if l > 0 then makeUninitializedUnsafe l (f 0) else [||] in
-    for i = 0 to l - 1 do
-      setUnsafe res i (f i)
-    done;
-    res
+  else Stdlib.Array.init l f
 
 let makeBy l f = makeByU l (fun a -> f a)
 
@@ -132,25 +122,11 @@ let zip xs ys =
 let zipByU xs ys f =
   let lenx, leny = (length xs, length ys) in
   let len = Stdlib.min lenx leny in
-  let s = if len > 0 then makeUninitializedUnsafe len (f (getUnsafe xs 0) (getUnsafe ys 0)) else [||] in
-  for i = 0 to len - 1 do
-    setUnsafe s i (f (getUnsafe xs i) (getUnsafe ys i))
-  done;
-  s
+  Stdlib.Array.init len (fun i -> f (getUnsafe xs i) (getUnsafe ys i))
 
 let zipBy xs ys f = zipByU xs ys (fun a b -> f a b)
 
-let concat a1 a2 =
-  let l1 = length a1 in
-  let l2 = length a2 in
-  let a1a2 = if l1 > 0 then makeUninitializedUnsafe (l1 + l2) (getUnsafe a1 0) else [||] in
-  for i = 0 to l1 - 1 do
-    setUnsafe a1a2 i (getUnsafe a1 i)
-  done;
-  for i = 0 to l2 - 1 do
-    setUnsafe a1a2 (l1 + i) (getUnsafe a2 i)
-  done;
-  a1a2
+let concat = Stdlib.Array.append
 
 let concatMany arrs =
   let lenArrs = length arrs in
@@ -182,13 +158,7 @@ let slice a ~offset ~len =
     let ofs = if offset < 0 then max (lena + offset) 0 else offset in
     let hasLen = lena - ofs in
     let copyLength = min hasLen len in
-    if copyLength <= 0 then [||]
-    else
-      let result = if lena > 0 then makeUninitializedUnsafe copyLength (getUnsafe a 0) else [||] in
-      for i = 0 to copyLength - 1 do
-        setUnsafe result i (getUnsafe a (ofs + i))
-      done;
-      result
+    if copyLength <= 0 then [||] else Stdlib.Array.sub a ofs copyLength
 
 let fill a ~offset ~len v =
   if len > 0 then
@@ -196,10 +166,7 @@ let fill a ~offset ~len v =
     let ofs = if offset < 0 then max (lena + offset) 0 else offset in
     let hasLen = lena - ofs in
     let fillLength = min hasLen len in
-    if fillLength > 0 then
-      for i = ofs to ofs + fillLength - 1 do
-        setUnsafe a i v
-      done
+    if fillLength > 0 then Stdlib.Array.fill a ofs fillLength v
 
 let blitUnsafe ~src:a1 ~srcOffset:srcofs1 ~dst:a2 ~dstOffset:srcofs2 ~len:blitLength =
   if srcofs2 <= srcofs1 then
@@ -217,14 +184,7 @@ let blit ~src:a1 ~srcOffset:ofs1 ~dst:a2 ~dstOffset:ofs2 ~len =
   let srcofs1 = if ofs1 < 0 then max (lena1 + ofs1) 0 else ofs1 in
   let srcofs2 = if ofs2 < 0 then max (lena2 + ofs2) 0 else ofs2 in
   let blitLength = min len (min (lena1 - srcofs1) (lena2 - srcofs2)) in
-  if srcofs2 <= srcofs1 then
-    for j = 0 to blitLength - 1 do
-      setUnsafe a2 (j + srcofs2) (getUnsafe a1 (j + srcofs1))
-    done
-  else
-    for j = blitLength - 1 downto 0 do
-      setUnsafe a2 (j + srcofs2) (getUnsafe a1 (j + srcofs1))
-    done
+  if blitLength > 0 then Stdlib.Array.blit a1 srcofs1 a2 srcofs2 blitLength
 
 let forEachU a f =
   for i = 0 to length a - 1 do
@@ -233,13 +193,7 @@ let forEachU a f =
 
 let forEach a f = forEachU a (fun a -> f a)
 
-let mapU a f =
-  let l = length a in
-  let r = if l > 0 then makeUninitializedUnsafe l (f (getUnsafe a 0)) else [||] in
-  for i = 0 to l - 1 do
-    setUnsafe r i (f (getUnsafe a i))
-  done;
-  r
+let mapU a f = Stdlib.Array.map f a
 
 let map a f = mapU a (fun a -> f a)
 
@@ -302,13 +256,7 @@ let forEachWithIndexU a f =
 
 let forEachWithIndex a f = forEachWithIndexU a (fun a b -> f a b)
 
-let mapWithIndexU a f =
-  let l = length a in
-  let r = if l > 0 then makeUninitializedUnsafe l (f 0 (getUnsafe a 0)) else [||] in
-  for i = 0 to l - 1 do
-    setUnsafe r i (f i (getUnsafe a i))
-  done;
-  r
+let mapWithIndexU a f = Stdlib.Array.mapi f a
 
 let mapWithIndex a f = mapWithIndexU a (fun a b -> f a b)
 
@@ -407,20 +355,7 @@ let partitionU a f =
 
 let partition a f = partitionU a (fun x -> f x)
 
-let unzip a =
-  let l = length a in
-  let a1, a2 =
-    if l > 0 then
-      let v1, v2 = getUnsafe a 0 in
-      (makeUninitializedUnsafe l v1, makeUninitializedUnsafe l v2)
-    else ([||], [||])
-  in
-  for i = 0 to l - 1 do
-    let v1, v2 = getUnsafe a i in
-    setUnsafe a1 i v1;
-    setUnsafe a2 i v2
-  done;
-  (a1, a2)
+let unzip = Stdlib.Array.split
 
 let sliceToEnd a offset =
   let lena = length a in

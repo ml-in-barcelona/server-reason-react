@@ -564,6 +564,7 @@ let rec removeMinAuxWithRootMutate nt n =
   match toOpt ln with
   | None ->
       keySet nt (key n);
+      valueSet nt (value n);
       rn
   | Some ln ->
       leftSet n (removeMinAuxWithRootMutate nt ln);
