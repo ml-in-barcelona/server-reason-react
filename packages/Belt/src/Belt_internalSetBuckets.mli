@@ -12,7 +12,6 @@ val next : 'a bucket -> 'a bucket C.opt
 module A = Belt_Array
 
 val copy : ('a, 'b, 'c) t -> ('a, 'b, 'c) t
-val copyBuckets : 'a bucket C.opt array -> 'a bucket C.opt array
 val copyBucket : 'a bucket C.opt -> 'a bucket C.opt
 val copyAuxCont : 'a bucket C.opt -> 'a bucket -> unit
 val bucketLength : int -> 'a bucket C.opt -> int
