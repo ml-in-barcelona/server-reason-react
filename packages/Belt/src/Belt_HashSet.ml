@@ -27,13 +27,18 @@ let tryDoubleResize ~hash h =
   let nsize = osize * 2 in
   if nsize >= osize then (
     let h_buckets = A.makeUninitialized nsize in
-    let ndata_tail = A.makeUninitialized nsize in
     C.bucketsSet h h_buckets;
+    let rec reinsertBucket bucket =
+      match C.toOpt bucket with
+      | None -> ()
+      | Some cell ->
+          let next = N.next cell in
+          let index = (Belt_Id.getHashInternal hash) (N.key cell) land (nsize - 1) in
+          A.setUnsafe h_buckets index (C.return @@ N.bucket ~key:(N.key cell) ~next:(A.getUnsafe h_buckets index));
+          reinsertBucket next
+    in
     for i = 0 to osize - 1 do
-      copyBucket ~hash ~h_buckets ~ndata_tail (A.getUnsafe odata i)
-    done;
-    for i = 0 to nsize - 1 do
-      match C.toOpt (A.getUnsafe ndata_tail i) with None -> () | Some tail -> N.nextSet tail C.emptyOpt
+      reinsertBucket (A.getUnsafe odata i)
     done)
 
 let rec removeBucket ~eq h h_buckets i key prec cell =
@@ -58,14 +63,9 @@ let remove h key =
       else
         match C.toOpt next_cell with None -> () | Some next_cell -> removeBucket ~eq h h_buckets i key cell next_cell)
 
-let rec addBucket h key cell ~eq =
-  if not ((Belt_Id.getEqInternal eq) (N.key cell) key) then
-    let n = N.next cell in
-    match C.toOpt n with
-    | None ->
-        C.sizeSet h (C.size h + 1);
-        N.nextSet cell (C.return @@ N.bucket ~key ~next:C.emptyOpt)
-    | Some n -> addBucket ~eq h key n
+let rec missingInBucket ~eq key cell =
+  if (Belt_Id.getEqInternal eq) (N.key cell) key then false
+  else match C.toOpt (N.next cell) with None -> true | Some next -> missingInBucket ~eq key next
 
 let add0 h key ~hash ~eq =
   let h_buckets = C.buckets h in
@@ -76,7 +76,10 @@ let add0 h key ~hash ~eq =
   | None ->
       C.sizeSet h (C.size h + 1);
       A.setUnsafe h_buckets i (C.return @@ N.bucket ~key ~next:C.emptyOpt)
-  | Some cell -> addBucket ~eq h key cell);
+  | Some cell when missingInBucket ~eq key cell ->
+      C.sizeSet h (C.size h + 1);
+      A.setUnsafe h_buckets i (C.return @@ N.bucket ~key ~next:l)
+  | Some _ -> ());
   if C.size h > buckets_len lsl 1 then tryDoubleResize ~hash h
 
 let add h key = add0 ~hash:(C.hash h) ~eq:(C.eq h) h key

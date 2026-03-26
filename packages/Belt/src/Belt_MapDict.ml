@@ -87,34 +87,29 @@ let rec updateU (t : _ t) newK f ~cmp : _ t =
 
 let update t newK f ~cmp = updateU t newK (fun a -> f a) ~cmp
 
-let rec removeAux0 n x ~cmp =
-  let l, v, r =
-    let open N in
-    (left n, key n, right n)
-  in
-  let c = (Belt_Id.getCmpInternal cmp) x v in
-  if c = 0 then
-    match (N.toOpt l, N.toOpt r) with
-    | None, _ -> r
-    | _, None -> l
-    | _, Some rn ->
-        let kr, vr = (ref (N.key rn), ref (N.value rn)) in
-        let r = N.removeMinAuxWithRef rn kr vr in
-        N.bal l !kr !vr r
-  else if c < 0 then
-    match N.toOpt l with
-    | None -> N.return n
-    | Some left ->
-        let ll = removeAux0 left x ~cmp in
-        if ll == l then N.return n else N.bal ll v (N.value n) r
-  else
-    match N.toOpt r with
-    | None -> N.return n
-    | Some right ->
-        let rr = removeAux0 ~cmp right x in
-        if rr == r then N.return n else N.bal l v (N.value n) rr
-
-let remove n x ~cmp = match N.toOpt n with None -> N.empty | Some n -> removeAux0 n x ~cmp
+let rec remove t x ~cmp =
+  match N.toOpt t with
+  | None -> t
+  | Some n ->
+      let l, v, d, r =
+        let open N in
+        (left n, key n, value n, right n)
+      in
+      let c = (Belt_Id.getCmpInternal cmp) x v in
+      if c = 0 then
+        match (N.toOpt l, N.toOpt r) with
+        | None, _ -> r
+        | _, None -> l
+        | _, Some rn ->
+            let kr, vr = (ref (N.key rn), ref (N.value rn)) in
+            let r = N.removeMinAuxWithRef rn kr vr in
+            N.bal l !kr !vr r
+      else if c < 0 then
+        let ll = remove l x ~cmp in
+        if ll == l then t else N.bal ll v d r
+      else
+        let rr = remove r x ~cmp in
+        if rr == r then t else N.bal l v d rr
 
 let mergeMany h arr ~cmp =
   let len = A.length arr in
@@ -198,16 +193,10 @@ let rec mergeU s1 s2 f ~cmp =
 
 let merge s1 s2 f ~cmp = mergeU s1 s2 (fun a b c -> f a b c) ~cmp
 
-let rec removeMany0 t xs i len ~cmp =
-  if i < len then
-    let ele = A.getUnsafe xs i in
-    let u = removeAux0 t ele ~cmp in
-    match N.toOpt u with None -> u | Some t -> removeMany0 t xs (i + 1) len ~cmp
-  else N.return t
-
 let removeMany t keys ~cmp =
   let len = A.length keys in
-  match N.toOpt t with None -> N.empty | Some t -> removeMany0 t keys 0 len ~cmp
+  let rec loop current i = if i < len then loop (remove current (A.getUnsafe keys i) ~cmp) (i + 1) else current in
+  loop t 0
 
 let findFirstByU = N.findFirstByU
 let findFirstBy = N.findFirstBy

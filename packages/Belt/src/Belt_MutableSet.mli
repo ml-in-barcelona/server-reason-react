@@ -1,67 +1,120 @@
+(* Copyright (C) 2017 Authors of ReScript
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In addition to the permissions granted to you by the LGPL, you may combine
+ * or link a "work that uses the Library" with a publicly distributed version
+ * of this file to produce a combined library or application, then distribute
+ * that combined work under the terms of your choosing, with no requirement
+ * to comply with the obligations normally placed on you by section 4 of the
+ * LGPL version 3 (or the corresponding section of a later version of the LGPL
+ * should you choose to use a later version).
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA. *)
+
+(** A {i mutable} sorted set module which allows customize {i compare} behavior.
+
+    Same as Belt.Set, but mutable. *)
+
 module Int = Belt_MutableSetInt
+(** Specalized when key type is [int], more efficient than the generic type *)
+
 module String = Belt_MutableSetString
-module N = Belt_internalAVLset
-module A = Belt_Array
-module Sort = Belt_SortArray
+(** Specalized when key type is [string], more efficient than the generic type *)
 
+type ('k, 'id) t
 type ('k, 'id) id = ('k, 'id) Belt_Id.comparable
-type ('key, 'id) cmp = ('key, 'id) Belt_Id.cmp
 
-module S : sig
-  type ('value, 'id) t
+val make : id:('value, 'id) id -> ('value, 'id) t
+val fromArray : 'k array -> id:('k, 'id) id -> ('k, 'id) t
+val fromSortedArrayUnsafe : 'value array -> id:('value, 'id) id -> ('value, 'id) t
+val copy : ('k, 'id) t -> ('k, 'id) t
+val isEmpty : _ t -> bool
+val has : ('value, _) t -> 'value -> bool
+val add : ('value, 'id) t -> 'value -> unit
+val addCheck : ('value, 'id) t -> 'value -> bool
+val mergeMany : ('value, 'id) t -> 'value array -> unit
+val remove : ('value, 'id) t -> 'value -> unit
+val removeCheck : ('value, 'id) t -> 'value -> bool
+(* [b = removeCheck s e] [b] is true means one element removed *)
 
-  val t : cmp:('value, 'id) cmp -> data:'value N.t -> ('value, 'id) t
-  val cmp : ('value, 'id) t -> ('value, 'id) cmp
-  val dataSet : ('value, 'id) t -> 'value N.t -> unit
-  val data : ('value, 'id) t -> 'value N.t
-end
+val removeMany : ('value, 'id) t -> 'value array -> unit
+val union : ('value, 'id) t -> ('value, 'id) t -> ('value, 'id) t
+val intersect : ('value, 'id) t -> ('value, 'id) t -> ('value, 'id) t
+val diff : ('value, 'id) t -> ('value, 'id) t -> ('value, 'id) t
+val subset : ('value, 'id) t -> ('value, 'id) t -> bool
+val cmp : ('value, 'id) t -> ('value, 'id) t -> int
+val eq : ('value, 'id) t -> ('value, 'id) t -> bool
+val forEachU : ('value, 'id) t -> (('value -> unit)[@u]) -> unit
 
-type ('k, 'id) t = ('k, 'id) S.t
+val forEach : ('value, 'id) t -> ('value -> unit) -> unit
+(** [forEach m f] applies [f] in turn to all elements of [m]. In increasing order *)
 
-val remove0 : 'a N.node -> 'b -> cmp:('b -> 'a -> int) -> 'a N.t
-val remove : ('a, 'b) S.t -> 'a -> unit
-val removeMany0 : 'a N.node -> 'weak237 A.t -> int -> int -> cmp:('weak237 -> 'a -> int) -> 'a N.node option
-val removeMany : ('a, 'b) S.t -> 'a A.t -> unit
-val removeCheck0 : 'a N.node -> 'a -> bool ref -> cmp:('a -> 'a -> int) -> 'a N.t
-val removeCheck : ('a, 'b) S.t -> 'a -> bool
-val addCheck0 : 'a N.t -> 'a -> bool ref -> cmp:('a -> 'a -> int) -> 'a N.t
-val addCheck : ('a, 'b) S.t -> 'a -> bool
-val add : ('a, 'b) S.t -> 'a -> unit
-val addArrayMutate : 'a N.t -> 'a A.t -> cmp:('a -> 'a -> int) -> 'a N.t
-val mergeMany : ('a, 'b) S.t -> 'a A.t -> unit
-val make : id:('value, 'identity) id -> ('value, 'a) S.t
-val isEmpty : ('a, 'b) S.t -> bool
-val minimum : ('a, 'b) S.t -> 'a option
-val minUndefined : ('a, 'b) S.t -> 'a option
-val maximum : ('a, 'b) S.t -> 'a option
-val maxUndefined : ('a, 'b) S.t -> 'a option
-val forEachU : ('a, 'b) S.t -> ('a -> unit) -> unit
-val forEach : ('a, 'b) S.t -> ('a -> unit) -> unit
-val reduceU : ('a, 'b) S.t -> 'c -> ('c -> 'a -> 'c) -> 'c
-val reduce : ('a, 'b) S.t -> 'c -> ('c -> 'a -> 'c) -> 'c
-val everyU : ('a, 'b) S.t -> ('a -> bool) -> bool
-val every : ('a, 'b) S.t -> ('a -> bool) -> bool
-val someU : ('a, 'b) S.t -> ('a -> bool) -> bool
-val some : ('a, 'b) S.t -> ('a -> bool) -> bool
-val size : ('a, 'b) S.t -> int
-val toList : ('a, 'b) S.t -> 'a list
-val toArray : ('a, 'b) S.t -> 'a array
-val fromSortedArrayUnsafe : 'value A.t -> id:('value, 'identity) id -> ('value, 'a) t
-val checkInvariantInternal : ('a, 'b) S.t -> unit
-val fromArray : 'value array -> id:('value, 'identity) id -> ('value, 'a) S.t
-val cmp : ('a, 'b) S.t -> ('a, 'c) S.t -> int
-val eq : ('a, 'b) S.t -> ('a, 'c) S.t -> bool
-val get : ('a, 'b) S.t -> 'a -> 'a option
-val getUndefined : ('a, 'b) S.t -> 'a -> 'a option
-val getExn : ('a, 'b) S.t -> 'a -> 'a
-val split : ('a, 'b) S.t -> 'a -> (('a, 'c) S.t * ('a, 'd) S.t) * bool
-val keepU : ('a, 'b) S.t -> ('a -> bool) -> ('a, 'c) S.t
-val keep : ('a, 'b) S.t -> ('a -> bool) -> ('a, 'c) S.t
-val partitionU : ('a, 'b) S.t -> ('a -> bool) -> ('a, 'c) S.t * ('a, 'd) S.t
-val partition : ('a, 'b) S.t -> ('a -> bool) -> ('a, 'c) S.t * ('a, 'd) S.t
-val subset : ('a, 'b) S.t -> ('a, 'c) S.t -> bool
-val intersect : ('a, 'b) S.t -> ('a, 'c) S.t -> ('a, 'd) t
-val diff : ('a, 'b) S.t -> ('a, 'c) S.t -> ('a, 'd) t
-val union : ('a, 'b) S.t -> ('a, 'c) S.t -> ('a, 'd) S.t
-val has : ('a, 'b) S.t -> 'a -> bool
-val copy : ('a, 'b) S.t -> ('a, 'c) S.t
+val reduceU : ('value, 'id) t -> 'a -> (('a -> 'value -> 'a)[@u]) -> 'a
+
+val reduce : ('value, 'id) t -> 'a -> ('a -> 'value -> 'a) -> 'a
+(** In increasing order. *)
+
+val everyU : ('value, 'id) t -> (('value -> bool)[@u]) -> bool
+
+val every : ('value, 'id) t -> ('value -> bool) -> bool
+(** [every s p] checks if all elements of the set satisfy the predicate [p]. Order unspecified *)
+
+val someU : ('value, 'id) t -> (('value -> bool)[@u]) -> bool
+
+val some : ('value, 'id) t -> ('value -> bool) -> bool
+(** [some p s] checks if at least one element of the set satisfies the predicate [p]. *)
+
+val keepU : ('value, 'id) t -> (('value -> bool)[@u]) -> ('value, 'id) t
+
+val keep : ('value, 'id) t -> ('value -> bool) -> ('value, 'id) t
+(** [keep s p] returns the set of all elements in [s] that satisfy predicate [p]. *)
+
+val partitionU : ('value, 'id) t -> (('value -> bool)[@u]) -> ('value, 'id) t * ('value, 'id) t
+
+val partition : ('value, 'id) t -> ('value -> bool) -> ('value, 'id) t * ('value, 'id) t
+(** [partition p s] returns a pair of sets [(s1, s2)], where [s1] is the set of all the elements of [s] that satisfy the
+    predicate [p], and [s2] is the set of all the elements of [s] that do not satisfy [p]. *)
+
+val size : ('value, 'id) t -> int
+
+val toList : ('value, 'id) t -> 'value list
+(** In increasing order*)
+
+val toArray : ('value, 'id) t -> 'value array
+(** In increasing order*)
+
+val minimum : ('value, 'id) t -> 'value option
+val minUndefined : ('value, 'id) t -> 'value Js.undefined
+val maximum : ('value, 'id) t -> 'value option
+val maxUndefined : ('value, 'id) t -> 'value Js.undefined
+val get : ('value, 'id) t -> 'value -> 'value option
+val getUndefined : ('value, 'id) t -> 'value -> 'value Js.undefined
+val getExn : ('value, 'id) t -> 'value -> 'value
+
+val split : ('value, 'id) t -> 'value -> (('value, 'id) t * ('value, 'id) t) * bool
+(** [split s x] returns a triple [((l, r), present)], where [l] is the set of elements of [s] that are strictly less
+    than [x]; [r] is the set of elements of [s] that are strictly greater than [x]; [present] is [false] if [s] contains
+    no element equal to [x], or [true] if [s] contains an element equal to [x]. [l,r] are freshly made, no sharing with
+    [s] *)
+
+val checkInvariantInternal : _ t -> unit
+(** {b raise} when invariant is not held *)
+
+(*
+  [add0] was not exposed for various reasons:
+  1. such api is dangerious
+  [ cmp: ('value,'id) Belt_Cmp.cmp ->
+    ('value, 'id) t0 -> 'value ->
+    ('value, 'id) t0]
+  2. It is not really significantly more *)

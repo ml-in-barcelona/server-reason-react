@@ -1,7 +1,16 @@
+(library
+ (name test_belt_support)
+ (wrapped false)
+ (modules Test_Belt_Support)
+ (libraries alcotest fmt belt js))
+
 (test
  (name test)
- (modules test)
- (libraries alcotest fmt belt js))
+ (modules
+  (:standard \ Test_Belt_Support))
+ (flags
+  (:standard -open Test_Belt_Support))
+ (libraries alcotest fmt belt js test_belt_support))
 
 ; (executable
 ; (name benchmark)

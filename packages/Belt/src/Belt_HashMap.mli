@@ -1,23 +1,47 @@
-(** A {b mutable} Hash map which allows customized [hash] behavior.
+(* Copyright (C) 2018 Authors of ReScript
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In addition to the permissions granted to you by the LGPL, you may combine
+ * or link a "work that uses the Library" with a publicly distributed version
+ * of this file to produce a combined library or application, then distribute
+ * that combined work under the terms of your choosing, with no requirement
+ * to comply with the obligations normally placed on you by section 4 of the
+ * LGPL version 3 (or the corresponding section of a later version of the LGPL
+ * should you choose to use a later version).
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA. *)
+
+(** A {b mutable} Hash map which allows customized hash behavior.
 
     All data are parameterized by not its only type but also a unique identity in the time of initialization, so that
-    two {i HashMaps of ints} initialized with different [hash] functions will have different type.
+    two {i HashMaps of ints} initialized with different {i hash} functions will have different type.
 
     For example:
     {[
       type t = int
       module I0 =
         (val Belt.Id.hashableU
-            ~hash:(fun[\@bs] (a : t)  -> a & 0xff_ff)
-            ~eq:(fun[\@bs] a b -> a = b)
+            ~hash:(fun[\@u] (a : t)  -> a & 0xff_ff)
+            ~eq:(fun[\@u] a b -> a = b)
         )
       let s0 : (_, string,_) t = make ~hintSize:40 ~id:(module I0)
       module I1 =
         (val Belt.Id.hashableU
-            ~hash:(fun[\@bs] (a : t)  -> a & 0xff)
-            ~eq:(fun[\@bs] a b -> a = b)
+            ~hash:(fun[\@u] (a : t)  -> a & 0xff)
+            ~eq:(fun[\@u] a b -> a = b)
         )
-      let s1 : (_, string,_) t = make ~hintSize:40 ~id:(module I1)
+      let s1 : (_, string,_) t  = make ~hintSize:40 ~id:(module I1)
     ]}
 
     The invariant must be held: for two elements who are {i equal}, their hashed value should be the same
@@ -68,13 +92,13 @@ val has : ('key, 'value, 'id) t -> 'key -> bool
 (** [has tbl x] checks if [x] is bound in [tbl]. *)
 
 val remove : ('key, 'value, 'id) t -> 'key -> unit
-val forEachU : ('key, 'value, 'id) t -> (('key -> 'value -> unit)[@bs]) -> unit
+val forEachU : ('key, 'value, 'id) t -> (('key -> 'value -> unit)[@u]) -> unit
 
 val forEach : ('key, 'value, 'id) t -> ('key -> 'value -> unit) -> unit
 (** [forEach tbl f] applies [f] to all bindings in table [tbl]. [f] receives the key as first argument, and the
     associated value as second argument. Each binding is presented exactly once to [f]. *)
 
-val reduceU : ('key, 'value, 'id) t -> 'c -> (('c -> 'key -> 'value -> 'c)[@bs]) -> 'c
+val reduceU : ('key, 'value, 'id) t -> 'c -> (('c -> 'key -> 'value -> 'c)[@u]) -> 'c
 
 val reduce : ('key, 'value, 'id) t -> 'c -> ('c -> 'key -> 'value -> 'c) -> 'c
 (** [reduce  tbl init f] computes [(f kN dN ... (f k1 d1 init)...)], where [k1 ... kN] are the keys of all bindings in
@@ -84,7 +108,7 @@ val reduce : ('key, 'value, 'id) t -> 'c -> ('c -> 'key -> 'value -> 'c) -> 'c
     for the same key, they are passed to [f] in reverse order of introduction, that is, the most recent binding is
     passed first. *)
 
-val keepMapInPlaceU : ('key, 'value, 'id) t -> (('key -> 'value -> 'value option)[@bs]) -> unit
+val keepMapInPlaceU : ('key, 'value, 'id) t -> (('key -> 'value -> 'value option)[@u]) -> unit
 val keepMapInPlace : ('key, 'value, 'id) t -> ('key -> 'value -> 'value option) -> unit
 
 val size : _ t -> int

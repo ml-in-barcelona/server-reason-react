@@ -11,6 +11,7 @@ let map opt f = mapU opt (fun x -> f x)
 let flatMapU opt f = match opt with Some x -> f x | None -> None
 let flatMap opt f = flatMapU opt (fun x -> f x)
 let getWithDefault opt default = match opt with Some x -> x | None -> default
+let orElse opt other = match opt with Some _ -> opt | None -> other
 let isSome = function Some _ -> true | None -> false
 let isNone = function Some _ -> false | None -> true
 let eqU a b f = match (a, b) with Some a, Some b -> f a b | None, Some _ | Some _, None -> false | None, None -> true
@@ -21,4 +22,5 @@ let keepU opt f = match opt with Some x when f x -> opt | Some _ | None -> None
 let keep opt f = keepU opt (fun x -> f x)
 let forEachU opt f = match opt with Some x -> f x | None -> ()
 let forEach opt f = forEachU opt (fun x -> f x)
-let getUnsafe = function Some x -> x | None -> assert false
+
+external getUnsafe : 'a option -> 'a = "%identity"
