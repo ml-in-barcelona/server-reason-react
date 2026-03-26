@@ -9,6 +9,8 @@ let suites =
             assert_option Alcotest.int None (Belt.Array.get values 2);
             assert_option Alcotest.int None (Belt.Array.get values 3);
             assert_option Alcotest.int None (Belt.Array.get values (-1));
+            assert_option Alcotest.int (Some 1) (Js.Undefined.toOption (Belt.Array.getUndefined values 0));
+            assert_option Alcotest.int None (Js.Undefined.toOption (Belt.Array.getUndefined values 2));
             assert_raises_any (fun () -> ignore (Belt.Array.getExn [| 0; 1 |] (-1)));
             assert_raises_any (fun () -> ignore (Belt.Array.getExn [| 0; 1 |] 2));
             assert_int 0 (Belt.Array.getExn [| 0; 1 |] 0);

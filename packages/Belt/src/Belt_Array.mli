@@ -46,12 +46,12 @@ val getUnsafe : 'a t -> int -> 'a
 
     no bounds checking;this would cause type error if [i] does not stay within range *)
 
-(* external getUndefined : 'a t -> int -> 'a Js.undefined = "%array_unsafe_get" *)
-val getUndefined : 'a t -> int -> 'a option
+val getUndefined : 'a t -> int -> 'a Js.undefined
 (** [getUndefined arr i]
 
-    It does the samething in the runtime as {!getUnsafe}; it is {i type safe} since the return type still track whether
-    it is in range or not *)
+    It does the same thing in the runtime as {!getUnsafe}; it is {i type safe} since the return type still tracks
+    whether it is in range or not. On native this is represented using the same option-backed encoding as
+    [Js.Undefined]. *)
 
 val set : 'a t -> int -> 'a -> bool
 (** [set arr n x] modifies [arr] in place; it replaces the nth element of [arr] with [x]
@@ -87,7 +87,7 @@ val reverse : 'a t -> 'a t
       reverse [| 10; 11; 12; 13; 14 |] = [| 14; 13; 12; 11; 10 |]
     ]} *)
 
-val makeUninitialized : int -> 'a option array
+val makeUninitialized : int -> 'a Js.undefined array
 (** [makeUninitialized n] creates an array of length [n] filled with the undefined value. You must specify the type of
     data that will eventually fill the array.
 
@@ -98,17 +98,15 @@ val makeUninitialized : int -> 'a option array
     ]} *)
 
 val makeUninitializedUnsafe : int -> 'a -> 'a array
-(** `makeUninitializedUnsafe n`
+(** [makeUninitializedUnsafe n filler]
 
     {b Unsafe}
 
+    Native approximation of the JavaScript [makeUninitializedUnsafe]. Since OCaml arrays must be fully initialized, the
+    [filler] value is used to allocate the array before callers overwrite the slots they need.
+
     {[
-      let arr = Belt.Array.makeUninitializedUnsafe 5
-      let () = Js.log (Belt.Array.getExn arr 0);;
-
-      (* undefined *)
-      Belt.Array.setExn arr 0 "example";;
-
+      let arr = Belt.Array.makeUninitializedUnsafe 5 "placeholder" Belt.Array.setExn arr 0 "example"
       let () = Js.log (Belt.Array.getExn arr 0 = "example")
     ]} *)
 
@@ -575,15 +573,14 @@ val eq : 'a t -> 'a t -> ('a -> 'a -> bool) -> bool
    [@@mel.set] *)
 
 val truncateToLengthUnsafe : 'a t -> int -> 'a t
-(** {b Unsafe} [truncateToLengthUnsafe xs n] sets length of array [xs] to [n].
+(** {b Unsafe} Native-only approximation of the JavaScript [truncateToLengthUnsafe].
 
-    If [n] is greater than the length of [xs];the extra elements are set to [Js.Null_undefined.null]
-
-    If [n] is less than zero;raises a [RangeError].
+    On native this returns a fresh truncated copy of [xs]. Growing in place is not supported because OCaml arrays are
+    fixed length.
 
     {[
       let arr = [| "ant"; "bee"; "cat"; "dog"; "elk" |]
-      let () = truncateToLengthUnsafe arr 3;;
+      let arr = truncateToLengthUnsafe arr 3;;
 
       arr = [| "ant"; "bee"; "cat" |]
     ]} *)
@@ -592,5 +589,5 @@ val initU : int -> ((int -> 'a)[@bs]) -> 'a t
 val init : int -> (int -> 'a) -> 'a t
 
 val push : 'a t -> 'a -> [ `Do_not_use_Array_push_in_native ]
-(** Using Belt.Array.push in native isn't a good idea, since OCaml's Array are fixed length and can't resize the same
-    way as JavaScript arrays. *)
+(** Native-only sentinel value for the JavaScript [push] operation. OCaml arrays are fixed length and cannot grow in
+    place like JavaScript arrays. *)

@@ -5,7 +5,7 @@ let size = length
 let getUnsafe = Array.unsafe_get
 let setUnsafe = Array.unsafe_set
 let get = Array.get
-let getUndefined arr i = try Js.fromOpt (Some arr.(i)) with Invalid_argument _ -> Js.fromOpt None
+let getUndefined arr i = if i >= 0 && i < length arr then Js.Undefined.return (getUnsafe arr i) else Js.undefined
 let get arr i = if i >= 0 && i < length arr then Some (getUnsafe arr i) else None
 
 let getExn arr i =
