@@ -21,10 +21,11 @@ let set arr i v =
   else false
 
 let setExn arr i v =
-  if Stdlib.not (i >= 0 && i < length arr) then (
+  if Stdlib.not (i >= 0 && i < length arr) then begin
     let error = Printf.sprintf "File %s, line %d" __FILE__ __LINE__ in
-    Js.Exn.raiseError error;
-    setUnsafe arr i v)
+    Js.Exn.raiseError error
+  end;
+  setUnsafe arr i v
 
 let makeUninitialized len = Array.make len Js.undefined
 let makeUninitializedUnsafe len defaultVal = Array.make len defaultVal
