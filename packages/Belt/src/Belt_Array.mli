@@ -103,11 +103,14 @@ val makeUninitializedUnsafe : int -> 'a -> 'a array
     {b Unsafe}
 
     Native approximation of the JavaScript [makeUninitializedUnsafe]. Since OCaml arrays must be fully initialized, the
-    [filler] value is used to allocate the array before callers overwrite the slots they need.
+    [filler] value is used to allocate the array before callers overwrite the slots they need. Unread slots therefore
+    contain [filler], not JavaScript-style holes or [undefined].
 
     {[
-      let arr = Belt.Array.makeUninitializedUnsafe 5 "placeholder" Belt.Array.setExn arr 0 "example"
-      let () = Js.log (Belt.Array.getExn arr 0 = "example")
+      let arr = Belt.Array.makeUninitializedUnsafe 5 "placeholder";;
+
+      Belt.Array.setExn arr 0 "example";;
+      Belt.Array.getExn arr 0 = "example"
     ]} *)
 
 val make : int -> 'a -> 'a t
@@ -575,19 +578,23 @@ val eq : 'a t -> 'a t -> ('a -> 'a -> bool) -> bool
 val truncateToLengthUnsafe : 'a t -> int -> 'a t
 (** {b Unsafe} Native-only approximation of the JavaScript [truncateToLengthUnsafe].
 
-    On native this returns a fresh truncated copy of [xs]. Growing in place is not supported because OCaml arrays are
-    fixed length.
+    On native this returns a fresh truncated copy of [xs]. It does not mutate the input array length, and it cannot grow
+    the array because OCaml arrays are fixed length.
+
+    Raises [Invalid_argument] if [n] is negative or larger than [length xs].
 
     {[
       let arr = [| "ant"; "bee"; "cat"; "dog"; "elk" |]
-      let arr = truncateToLengthUnsafe arr 3;;
+      let truncated = truncateToLengthUnsafe arr 3;;
 
-      arr = [| "ant"; "bee"; "cat" |]
+      truncated = [| "ant"; "bee"; "cat" |];;
+      arr = [| "ant"; "bee"; "cat"; "dog"; "elk" |]
     ]} *)
 
 val initU : int -> ((int -> 'a)[@bs]) -> 'a t
 val init : int -> (int -> 'a) -> 'a t
 
 val push : 'a t -> 'a -> [ `Do_not_use_Array_push_in_native ]
+[@@alert not_implemented "is not implemented in native under server-reason-react.belt"]
 (** Native-only sentinel value for the JavaScript [push] operation. OCaml arrays are fixed length and cannot grow in
-    place like JavaScript arrays. *)
+    place like JavaScript arrays. Use a copy-based helper instead when you need to append on native. *)

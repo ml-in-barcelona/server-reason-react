@@ -309,9 +309,15 @@ let suites =
             assert_string "lola" (Belt.Array.getUnsafe truncated 0));
         test "push unsupported in native" (fun () ->
             let values = [||] in
-            assert_bool true (match Belt.Array.push values 3 with `Do_not_use_Array_push_in_native -> true);
-            assert_bool true (match Belt.Array.push values 2 with `Do_not_use_Array_push_in_native -> true);
-            assert_bool true (match Belt.Array.push values 1 with `Do_not_use_Array_push_in_native -> true);
+            assert_bool true
+              (match (Belt.Array.push [@alert "-not_implemented"]) values 3 with
+              | `Do_not_use_Array_push_in_native -> true);
+            assert_bool true
+              (match (Belt.Array.push [@alert "-not_implemented"]) values 2 with
+              | `Do_not_use_Array_push_in_native -> true);
+            assert_bool true
+              (match (Belt.Array.push [@alert "-not_implemented"]) values 1 with
+              | `Do_not_use_Array_push_in_native -> true);
             assert_array Alcotest.int [||] values);
       ] );
   ]
