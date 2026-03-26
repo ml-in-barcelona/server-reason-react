@@ -82,12 +82,7 @@ let reverse xs =
 
 let makeByU l f =
   if l <= 0 then [||]
-  else
-    let res = if l > 0 then makeUninitializedUnsafe l (f 0) else [||] in
-    for i = 0 to l - 1 do
-      setUnsafe res i (f i)
-    done;
-    res
+  else Stdlib.Array.init l f
 
 let makeBy l f = makeByU l (fun a -> f a)
 
@@ -133,11 +128,7 @@ let zip xs ys =
 let zipByU xs ys f =
   let lenx, leny = (length xs, length ys) in
   let len = Stdlib.min lenx leny in
-  let s = if len > 0 then makeUninitializedUnsafe len (f (getUnsafe xs 0) (getUnsafe ys 0)) else [||] in
-  for i = 0 to len - 1 do
-    setUnsafe s i (f (getUnsafe xs i) (getUnsafe ys i))
-  done;
-  s
+  Stdlib.Array.init len (fun i -> f (getUnsafe xs i) (getUnsafe ys i))
 
 let zipBy xs ys f = zipByU xs ys (fun a b -> f a b)
 
@@ -238,13 +229,7 @@ let forEachU a f =
 
 let forEach a f = forEachU a (fun a -> f a)
 
-let mapU a f =
-  let l = length a in
-  let r = if l > 0 then makeUninitializedUnsafe l (f (getUnsafe a 0)) else [||] in
-  for i = 0 to l - 1 do
-    setUnsafe r i (f (getUnsafe a i))
-  done;
-  r
+let mapU a f = Stdlib.Array.map f a
 
 let map a f = mapU a (fun a -> f a)
 
@@ -307,13 +292,7 @@ let forEachWithIndexU a f =
 
 let forEachWithIndex a f = forEachWithIndexU a (fun a b -> f a b)
 
-let mapWithIndexU a f =
-  let l = length a in
-  let r = if l > 0 then makeUninitializedUnsafe l (f 0 (getUnsafe a 0)) else [||] in
-  for i = 0 to l - 1 do
-    setUnsafe r i (f i (getUnsafe a i))
-  done;
-  r
+let mapWithIndexU a f = Stdlib.Array.mapi f a
 
 let mapWithIndex a f = mapWithIndexU a (fun a b -> f a b)
 

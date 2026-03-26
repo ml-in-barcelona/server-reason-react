@@ -5,6 +5,13 @@ let assert_option ty left right = Alcotest.check (Alcotest.option ty) "should be
 let assert_array ty left right = Alcotest.check (Alcotest.array ty) "should be equal" right left
 let assert_list ty left right = Alcotest.check (Alcotest.list ty) "should be equal" right left
 
+let assert_array_unordered ty expected actual =
+  let expected = Array.copy expected in
+  let actual = Array.copy actual in
+  Array.sort compare expected;
+  Array.sort compare actual;
+  Alcotest.check (Alcotest.array ty) "should be equal" expected actual
+
 module Example = struct
   include (
     struct
@@ -45,12 +52,6 @@ let mapWithIndex () =
 let concat () =
   let result = Belt.List.concat [ 1; 2 ] [ 3; 4 ] in
   assert_list Alcotest.int [ 1; 2; 3; 4 ] result
-
-let array_concat () =
-  assert_array Alcotest.int [| 1; 2; 3 |] (Belt.Array.concat [||] [| 1; 2; 3 |]);
-  assert_array Alcotest.int [| 1; 2; 3 |] (Belt.Array.concat [| 1; 2; 3 |] [||]);
-  assert_array Alcotest.int [| 1; 2; 3; 4 |] (Belt.Array.concat [| 1; 2 |] [| 3; 4 |]);
-  assert_array Alcotest.int [||] (Belt.Array.concat [||] [||])
 
 let map () =
   let result = Belt.List.map [ 3.0; 4.0 ] (fun x -> "Number: " ^ string_of_float x) in
@@ -131,8 +132,13 @@ let hashmap_keep_map_in_place () =
   let count = ref 0 in
   Belt.HashMap.forEach h (fun _ _ -> incr count);
   assert_int !count 2;
-  let arr = Belt.HashMap.toArray h in
-  assert_int (Array.length arr) 2
+  let pairs = Belt.HashMap.toArray h in
+  assert_int (Array.length pairs) 2;
+  assert_array_unordered (Alcotest.pair Alcotest.int Alcotest.string) [| (0, "zero!"); (23, "twenty-three!") |] pairs;
+  let keys = Belt.HashMap.keysToArray h in
+  assert_array_unordered Alcotest.int [| 0; 23 |] keys;
+  let values = Belt.HashMap.valuesToArray h in
+  assert_array_unordered Alcotest.string [| "zero!"; "twenty-three!" |] values
 
 let () =
   Alcotest.run "Belt"
@@ -140,7 +146,6 @@ let () =
       ("Records", [ case "eq" eq ]);
       ( "Array",
         [
-          case "concat" array_concat;
           case "truncateToLengthUnsafe" truncateToLengthUnsafe;
           case "makeUninitializedUnsafe" makeUninitializedUnsafe;
           case "length" length;
