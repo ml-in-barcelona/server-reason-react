@@ -30,7 +30,6 @@ let setExn arr i v =
 let makeUninitialized len = Array.make len Js.undefined
 let makeUninitializedUnsafe len defaultVal = Array.make len defaultVal
 let truncateToLengthUnsafe arr len = Stdlib.Array.sub arr 0 len
-
 let copy = Stdlib.Array.copy
 
 let swapUnsafe xs i j =
@@ -74,10 +73,7 @@ let reverse xs =
   done;
   result
 
-let makeByU l f =
-  if l <= 0 then [||]
-  else Stdlib.Array.init l f
-
+let makeByU l f = if l <= 0 then [||] else Stdlib.Array.init l f
 let makeBy l f = makeByU l (fun a -> f a)
 
 let makeByAndShuffleU l f =
@@ -125,7 +121,6 @@ let zipByU xs ys f =
   Stdlib.Array.init len (fun i -> f (getUnsafe xs i) (getUnsafe ys i))
 
 let zipBy xs ys f = zipByU xs ys (fun a b -> f a b)
-
 let concat = Stdlib.Array.append
 
 let concatMany arrs =
@@ -192,9 +187,7 @@ let forEachU a f =
   done
 
 let forEach a f = forEachU a (fun a -> f a)
-
 let mapU a f = Stdlib.Array.map f a
-
 let map a f = mapU a (fun a -> f a)
 
 let keepU a f =
@@ -255,9 +248,7 @@ let forEachWithIndexU a f =
   done
 
 let forEachWithIndex a f = forEachWithIndexU a (fun a b -> f a b)
-
 let mapWithIndexU a f = Stdlib.Array.mapi f a
-
 let mapWithIndex a f = mapWithIndexU a (fun a b -> f a b)
 
 let reduceU a x f =
@@ -354,7 +345,6 @@ let partitionU a f =
   (truncateToLengthUnsafe a1 !i, truncateToLengthUnsafe a2 !j)
 
 let partition a f = partitionU a (fun x -> f x)
-
 let unzip = Stdlib.Array.split
 
 let sliceToEnd a offset =

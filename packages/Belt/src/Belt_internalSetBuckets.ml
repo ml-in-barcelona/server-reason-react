@@ -25,8 +25,7 @@ include (
 module A = Belt_Array
 
 let rec copy (x : _ t) : _ t =
-  C.container ~hash:(C.hash x) ~eq:(C.eq x) ~size:(C.size x)
-    ~buckets:(Stdlib.Array.map copyBucket (C.buckets x))
+  C.container ~hash:(C.hash x) ~eq:(C.eq x) ~size:(C.size x) ~buckets:(Stdlib.Array.map copyBucket (C.buckets x))
 
 and copyBucket c =
   match C.toOpt c with
