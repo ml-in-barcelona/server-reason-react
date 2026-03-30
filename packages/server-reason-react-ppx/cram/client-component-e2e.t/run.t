@@ -180,7 +180,8 @@
               Input;
             };
             let make_client = props =>
-              make(
+              React.createElement(
+                make,
                 {
                   module J = {
                     [@ocaml.warning "-unboxable-type-in-prim-decl"]
@@ -266,7 +267,7 @@
   }
   
   function make_client(props) {
-    return Input({
+    return React.createElement(Input, {
       promise: props.promise,
       children: props.children,
       default: Melange_json.Primitives.option_of_json(Melange_json.Primitives.int_of_json, props.default),

@@ -30,8 +30,9 @@
       cookies: [],
     }
   ];
-  let make = (~key as _: option(string)=?, ()) =>
+  let make = (~key: option(string)=?, ()) =>
     React.Client_component({
+      key,
       import_module: "input.re",
       import_name: "",
       props: [],

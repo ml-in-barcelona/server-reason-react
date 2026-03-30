@@ -3,7 +3,7 @@
   module Prop_with_many_annotation = {
     let make =
         (
-          ~key as _: option(string)=?,
+          ~key: option(string)=?,
           ~prop: int,
           ~lola: list(int),
           ~mona: array(float),
@@ -16,6 +16,7 @@
       (
         (~tuple3: (int, string, float), ()) =>
           React.Client_component({
+            key,
             import_module:
               Printf.sprintf("%s#%s", "output.ml", "Prop_with_many_annotation"),
             import_name: "",
@@ -39,8 +40,9 @@
       );
   };
   module Prop_without_annotation = {
-    let make = (~key as _: option(string)=?, ~prop_without_annotation, ()) =>
+    let make = (~key: option(string)=?, ~prop_without_annotation, ()) =>
       React.Client_component({
+        key,
         import_module:
           Printf.sprintf("%s#%s", "output.ml", "Prop_without_annotation"),
         import_name: "",
@@ -55,11 +57,12 @@
       });
   };
   module Prop_with_unsupported_annotation = {
-    let make = (~key as _: option(string)=?, ~underscore: _) =>
+    let make = (~key: option(string)=?, ~underscore: _) =>
       [@warning "-16"]
       (
         (~alpha_types: 'a, ()) =>
           React.Client_component({
+            key,
             import_module:
               Printf.sprintf(
                 "%s#%s",
@@ -80,7 +83,7 @@
   module Prop_with_annotation_that_need_to_be_type_alias = {
     let make =
         (
-          ~key as _: option(string)=?,
+          ~key: option(string)=?,
           ~polyvariants: [
              | `A
              | `B
@@ -88,6 +91,7 @@
           (),
         ) =>
       React.Client_component({
+        key,
         import_module:
           Printf.sprintf(
             "%s#%s",
@@ -116,7 +120,7 @@
   module Prop_with_unknown_annotation = {
     let make =
         (
-          ~key as _: option(string)=?,
+          ~key: option(string)=?,
           ~lident: lola,
           ~ldotlident: Module.lola,
           ~ldotdotlident: Module.Inner.lola,
@@ -125,6 +129,7 @@
       (
         (~lapply: Label.t(int, string), ()) =>
           React.Client_component({
+            key,
             import_module:
               Printf.sprintf(
                 "%s#%s",
@@ -154,11 +159,12 @@
       );
   };
   module Prop_with_option_annotation = {
-    let make = (~key as _: option(string)=?, ~name: option(string)) =>
+    let make = (~key: option(string)=?, ~name: option(string)) =>
       [@warning "-16"]
       (
         (~count: option(int), ()) =>
           React.Client_component({
+            key,
             import_module:
               Printf.sprintf(
                 "%s#%s",

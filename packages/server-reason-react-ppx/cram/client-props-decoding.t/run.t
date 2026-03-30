@@ -54,7 +54,8 @@
                   ~tuple3: (int, string, float),
                 ) => React.null;
             let make_client = props =>
-              make(
+              React.createElement(
+                make,
                 {
                   module J = {
                     [@ocaml.warning "-unboxable-type-in-prim-decl"]

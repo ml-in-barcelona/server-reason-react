@@ -466,6 +466,7 @@ let client_without_props () =
               React.createElement "div" [] [ React.string "Server Content" ];
               React.Client_component
                 {
+                  key = None;
                   props = [];
                   client = React.string "Client without Props";
                   import_module = "./client-without-props.js";
@@ -492,6 +493,7 @@ let client_with_json_props () =
               React.createElement "div" [] [ React.string "Server Content" ];
               React.Client_component
                 {
+                  key = None;
                   props =
                     [
                       ("null", React.Model.Json `Null);
@@ -531,6 +533,7 @@ let client_with_element_props () =
               React.createElement "div" [] [ React.string "Server Content" ];
               React.Client_component
                 {
+                  key = None;
                   props = [ ("children", React.Model.Element (React.string "Client Content")) ];
                   client = React.string "Client with Props";
                   import_module = "./client-with-props.js";
@@ -558,6 +561,7 @@ let client_with_promise_props () =
               React.createElement "div" [] [ React.string "Server Content" ];
               React.Client_component
                 {
+                  key = None;
                   props =
                     [
                       ( "promise",
@@ -597,6 +601,7 @@ let client_with_promise_failed_props () =
               React.createElement "div" [] [ React.string "Server Content" ];
               React.Client_component
                 {
+                  key = None;
                   props = [ ("promise", promise) ];
                   client = React.string "Client with Props";
                   import_module = "./client-with-props.js";
@@ -628,6 +633,7 @@ let client_with_promise_already_failed_props () =
               React.createElement "div" [] [ React.string "Server Content" ];
               React.Client_component
                 {
+                  key = None;
                   props = [ ("promise", promise) ];
                   client = React.string "Client with Props";
                   import_module = "./client-with-props.js";
@@ -656,6 +662,7 @@ let mixed_server_and_client () =
               React.createElement "header" [] [ React.string "Server Header" ];
               React.Client_component
                 {
+                  key = None;
                   props = [];
                   client = React.string "Client 1";
                   import_module = "./client-1.js";
@@ -664,6 +671,7 @@ let mixed_server_and_client () =
               React.createElement "footer" [] [ React.string "Server Footer" ];
               React.Client_component
                 {
+                  key = None;
                   props = [];
                   client = React.string "Client 2";
                   import_module = "./client-2.js";
@@ -694,6 +702,7 @@ let client_with_server_children () =
               React.createElement "div" [] [ React.string "Server Content" ];
               React.Client_component
                 {
+                  key = None;
                   props = [ ("children", React.Model.Element (React.Upper_case_component ("Server", server_child))) ];
                   client = React.string "Client with Server Children";
                   import_module = "./client-with-server-children.js";
@@ -835,6 +844,7 @@ let client_component_with_resources_metadata () =
                     [
                       React.Client_component
                         {
+                          key = None;
                           props = [];
                           client = React.string "Client Component";
                           import_module = "./client.js";
@@ -875,6 +885,7 @@ let client_component_with_async_component () =
         fun () ->
           React.Client_component
             {
+              key = None;
               import_module = "./client.js";
               import_name = "Client";
               props = [ ("children", React.Model.Element children) ];
@@ -933,6 +944,7 @@ let nested_context () =
         fun () ->
           React.Client_component
             {
+              key = None;
               import_module = "./provider.js";
               import_name = "Provider";
               props = [ ("value", React.Model.Element value); ("children", React.Model.Element children) ];
@@ -942,6 +954,7 @@ let nested_context () =
   let client_consumer () =
     React.Client_component
       {
+        key = None;
         import_module = "./consumer.js";
         import_name = "Consumer";
         props = [];
@@ -1243,6 +1256,7 @@ let server_function_as_model_prop () =
         fun () ->
           React.Client_component
             {
+              key = None;
               props =
                 [
                   ( "onSubmit",
@@ -1275,7 +1289,7 @@ let error_in_prod_hides_message () =
 let duplicate_client_component_deduplicates_ref () =
   let make_client () =
     React.Client_component
-      { props = []; client = React.string "Client"; import_module = "./client.js"; import_name = "Client" }
+      { key = None; props = []; client = React.string "Client"; import_module = "./client.js"; import_name = "Client" }
   in
   let app () = React.Upper_case_component ("app", fun () -> React.list [ make_client (); make_client () ]) in
   let output, subscribe = capture_stream () in
@@ -1283,6 +1297,27 @@ let duplicate_client_component_deduplicates_ref () =
   assert_list_of_strings !output
     [
       "1:I[\"./client.js\",[],\"Client\"]\n"; "0:[[\"$\",\"$1\",null,{},null,[],1],[\"$\",\"$1\",null,{},null,[],1]]\n";
+    ];
+  Lwt.return ()
+
+let keyed_duplicate_client_component_preserves_keys () =
+  let make_client key =
+    React.Client_component
+      {
+        key = Some key;
+        props = [];
+        client = React.string "Client";
+        import_module = "./client.js";
+        import_name = "Client";
+      }
+  in
+  let app () = React.Upper_case_component ("app", fun () -> React.list [ make_client "first"; make_client "second" ]) in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~subscribe (app ()) in
+  assert_list_of_strings !output
+    [
+      "1:I[\"./client.js\",[],\"Client\"]\n";
+      "0:[[\"$\",\"$1\",\"first\",{},null,[],1],[\"$\",\"$1\",\"second\",{},null,[],1]]\n";
     ];
   Lwt.return ()
 
@@ -1327,6 +1362,7 @@ let tests =
     test "debug_filter_stack_frame_drops_all" debug_filter_stack_frame_drops_all;
     test "act_with_error" act_with_error;
     test "error_without_suspense" error_without_suspense;
+    test "keyed_duplicate_client_component_preserves_keys" keyed_duplicate_client_component_preserves_keys;
     test "error_in_toplevel" error_in_toplevel;
     test "error_in_toplevel_in_async" error_in_toplevel_in_async;
     test "suspense_in_a_list_with_error" suspense_in_a_list_with_error;

@@ -103,7 +103,7 @@
   
   let make =
       (
-        ~key as _: option(string)=?,
+        ~key: option(string)=?,
         ~initial: int,
         ~lola: lola,
         ~children: React.element,
@@ -112,6 +112,7 @@
     (
       (~maybe_children: option(React.element), ()) =>
         React.Client_component({
+          key,
           import_module: "input.re",
           import_name: "",
           props: [

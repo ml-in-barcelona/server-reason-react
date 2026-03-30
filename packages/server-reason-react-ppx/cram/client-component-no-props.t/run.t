@@ -91,5 +91,6 @@
               let Input = (Props: Js.t({.})) => make();
               Input;
             };
-            let make_client = props => make(Js.Obj.empty());
+            let make_client = props =>
+              React.createElement(make, Js.Obj.empty());
           };

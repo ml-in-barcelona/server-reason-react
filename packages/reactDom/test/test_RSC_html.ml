@@ -243,6 +243,7 @@ let suspenasync_and_client () =
                     [
                       React.Client_component
                         {
+                          key = None;
                           props = [];
                           client = React.string "Only the client";
                           import_module = "./client-with-props.js";
@@ -316,6 +317,7 @@ let client_with_promise_props () =
               React.createElement "div" [] [ React.string "Server Content" ];
               React.Client_component
                 {
+                  key = None;
                   props =
                     [
                       ( "promise",
@@ -346,6 +348,7 @@ let client_with_element_props () =
         fun () ->
           React.Client_component
             {
+              key = None;
               props =
                 [
                   ( "element",
@@ -382,6 +385,7 @@ let client_component_with_async_component () =
         fun () ->
           React.Client_component
             {
+              key = None;
               import_module = "./client.js";
               import_name = "Client";
               props = [ ("children", React.Model.Element children) ];
@@ -567,6 +571,7 @@ let client_component_with_bootstrap_scripts () =
         fun () ->
           React.Client_component
             {
+              key = None;
               props = [];
               client = React.string "Client Component";
               import_module = "./client.js";
@@ -595,6 +600,7 @@ let client_component_with_bootstrap_modules () =
         fun () ->
           React.Client_component
             {
+              key = None;
               props = [];
               client = React.string "Client Component";
               import_module = "./client.js";
@@ -623,6 +629,7 @@ let nested_context () =
         fun () ->
           React.Client_component
             {
+              key = None;
               import_module = "./provider.js";
               import_name = "Provider";
               props = [ ("value", React.Model.Element value); ("children", React.Model.Element children) ];
@@ -638,7 +645,7 @@ let nested_context () =
           context )
   in
   let consumer () =
-    React.Client_component { import_module = "./consumer.js"; import_name = "Consumer"; props = []; client }
+    React.Client_component { key = None; import_module = "./consumer.js"; import_name = "Consumer"; props = []; client }
   in
   let about () =
     React.Upper_case_component
@@ -739,6 +746,7 @@ let context_client_component_reads_context_across_async_suspense () =
   let client_consumer () =
     React.Client_component
       {
+        key = None;
         import_module = "./consumer.js";
         import_name = "Consumer";
         props = [];
@@ -779,6 +787,7 @@ let suspense_with_sync_client_component () =
   let app () =
     React.Client_component
       {
+        key = None;
         import_module = "./client.js";
         import_name = "Client";
         props = [];

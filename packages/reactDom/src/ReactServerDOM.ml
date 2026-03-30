@@ -359,11 +359,11 @@ module Model = struct
       | Suspense { key; children; fallback } ->
           let fallback = turn_element_into_payload ~context ~debug_info fallback in
           suspense_node ~key ~fallback [ turn_element_into_payload ~context ~debug_info children ]
-      | Client_component { import_module; import_name; props; client = _ } ->
+      | Client_component { key; import_module; import_name; props; client = _ } ->
           let ref = component_ref ~module_:import_module ~name:import_name in
           let index = Stream.push_client_ref ~context ~import_module ~import_name (to_chunk (Component_ref ref)) in
           let client_props = models_to_payload ~context ~to_chunk ~env props in
-          node ~tag:(ref_value index) ~props:client_props []
+          node ~tag:(ref_value index) ~key ~props:client_props []
       | Provider { children; push; _ } ->
           let pop = push () in
           let result = turn_element_into_payload ~context ~debug_info children in
@@ -553,7 +553,7 @@ let rec client_to_html ~(fiber : Fiber.t) (element : React.element) =
         let async = Lwt.return (boundary_to_chunk Html.null) in
         let index = Stream.push_async ~context async in
         Lwt.return (html_suspense_placeholder ~fallback:fallback_html index))
-  | Client_component { import_module = _; import_name = _; props = _; client } -> client_to_html ~fiber client
+  | Client_component { client; _ } -> client_to_html ~fiber client
   | Provider { children; push; async_key; async_value } ->
       let pop = push () in
       let result = Lwt.with_value async_key (Some async_value) (fun () -> client_to_html ~fiber children) in
@@ -596,14 +596,14 @@ let rec render_element_to_html ~(fiber : Fiber.t) (element : React.element) : (H
   | Async_component (_, component) ->
       let%lwt element = component () in
       render_element_to_html ~fiber element
-  | Client_component { import_module; import_name; props; client } ->
+  | Client_component { key; import_module; import_name; props; client } ->
       let context = fiber.context in
       let env = fiber.env in
       let props = Model.models_to_payload ~context ~to_chunk:model_to_chunk ~env props in
       let%lwt html = client_to_html ~fiber client in
       let ref : json = Model.component_ref ~module_:import_module ~name:import_name in
       let index = Stream.push_client_ref ~context ~import_module ~import_name (model_to_chunk (Component_ref ref)) in
-      let model = Model.node ~tag:(Model.ref_value index) ~props [] in
+      let model = Model.node ~tag:(Model.ref_value index) ~key ~props [] in
       Lwt.return (html, model)
   | Suspense { key; children; fallback } -> (
       let context = fiber.context in

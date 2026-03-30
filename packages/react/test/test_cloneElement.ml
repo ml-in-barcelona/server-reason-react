@@ -72,7 +72,13 @@ let clone_async_component_raises () =
 let clone_client_component_raises () =
   let element =
     React.Client_component
-      { props = []; client = React.null; import_module = "./MyClient.js"; import_name = "MyClientComponent" }
+      {
+        key = None;
+        props = [];
+        client = React.null;
+        import_module = "./MyClient.js";
+        import_name = "MyClientComponent";
+      }
   in
   Alcotest.check_raises "cloneElement with client component raises Invalid_argument"
     (Invalid_argument

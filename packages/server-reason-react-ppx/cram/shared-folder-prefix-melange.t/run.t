@@ -41,5 +41,6 @@
             };
             [@react.component]
             let make = () => React.null;
-            let make_client = props => make(Js.Obj.empty());
+            let make_client = props =>
+              React.createElement(make, Js.Obj.empty());
           };

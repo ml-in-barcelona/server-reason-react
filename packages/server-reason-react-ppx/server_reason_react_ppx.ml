@@ -565,6 +565,22 @@ let expand_make_binding binding react_element_variant_wrapping =
   (* Since expand_make_binding is called on both native and js contexts, we need to keep the attributes *)
   { (value_binding ~loc:ghost_loc ~pat:name ~expr:function_body) with pvb_attributes = attributers }
 
+let expand_make_binding_with_key binding react_element_variant_wrapping =
+  let attributers = binding.pvb_attributes |> List.filter ~f:nonReactAttributes in
+  let loc = binding.pvb_loc in
+  let ghost_loc = { binding.pvb_loc with loc_ghost = true } in
+  let binding_with_unit = add_unit_at_the_last_argument binding.pvb_expr in
+  let key_expr = evar ~loc:ghost_loc "key" in
+  let binding_expr = transform_fun_body_expression binding_with_unit (react_element_variant_wrapping ~key:key_expr) in
+  let name = ppat_var ~loc:ghost_loc { txt = get_function_name binding; loc = ghost_loc } in
+  let key_arg = Optional "key" in
+  let default_value = None in
+  let key_pattern =
+    ppat_constraint ~loc (ppat_var ~loc:ghost_loc { txt = "key"; loc = ghost_loc }) [%type: string option]
+  in
+  let function_body = pexp_fun ~loc:ghost_loc key_arg default_value key_pattern binding_expr in
+  { (value_binding ~loc:ghost_loc ~pat:name ~expr:function_body) with pvb_attributes = attributers }
+
 let get_arguments pvb_expr =
   let rec go acc = function
     | Pexp_function (params, _, Pfunction_body expr) ->
@@ -665,8 +681,7 @@ let expand_make_binding_to_client binding =
   let ghost_loc = { binding.pvb_loc with loc_ghost = true } in
   let arguments = get_arguments binding.pvb_expr in
   let props_as_object_with_decoders = mel_obj ~loc (props_of_model ~loc arguments) in
-  let make_argument = [ (Nolabel, props_as_object_with_decoders) ] in
-  let make_call = pexp_apply ~loc:ghost_loc [%expr make] make_argument in
+  let make_call = [%expr React.createElement make [%e props_as_object_with_decoders]] in
   let name = ppat_var ~loc:ghost_loc { txt = "make_client"; loc = ghost_loc } in
   let client_single_argument = ppat_var ~loc:ghost_loc { txt = "props"; loc } in
   let function_body = pexp_fun ~loc:ghost_loc Nolabel None client_single_argument make_call in
@@ -1025,7 +1040,7 @@ let rewrite_structure_item ~nested_module_names structure_item =
   | Pstr_value (rec_flag, value_bindings) ->
       let map_value_binding vb =
         if isReactClientComponentBinding vb then
-          expand_make_binding vb (fun expr ->
+          expand_make_binding_with_key vb (fun ~key expr ->
               let loc = expr.pexp_loc in
               let fileName = expr.pexp_loc.loc_start.pos_fname in
               let replacement =
@@ -1053,6 +1068,7 @@ let rewrite_structure_item ~nested_module_names structure_item =
               [%expr
                 React.Client_component
                   {
+                    key = [%e key];
                     import_module = [%e import_module];
                     import_name = "";
                     props = [%e props];

@@ -44,9 +44,12 @@
                 <div> children </div>
               </section>;
             let make_client = props =>
-              make({
-                "children": (props##children: React.element),
-                "lola": [%of_json: lola](props##lola),
-                "initial": [%of_json: int](props##initial),
-              });
+              React.createElement(
+                make,
+                {
+                  "children": (props##children: React.element),
+                  "lola": [%of_json: lola](props##lola),
+                  "initial": [%of_json: int](props##initial),
+                },
+              );
           };
