@@ -728,4 +728,6 @@ module Experimental = struct
     (* TODO: Fail should raise a FailedSupense and catch at renderTo*? *)
     | Fail e -> raise e
     | Return v -> v
+
+  let useActionState ?permalink:_ _action state = (state, (), false)
 end

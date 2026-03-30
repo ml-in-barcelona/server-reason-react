@@ -725,6 +725,7 @@ val suspend : 'a Lwt.t -> unit
 
 module Experimental : sig
   val usePromise : 'a Lwt.t -> 'a
+  val useActionState : ?permalink:string -> 'action -> 'state -> 'state * unit * bool
 end
 
 val useTransition : unit -> bool * ((unit -> unit) -> unit)
