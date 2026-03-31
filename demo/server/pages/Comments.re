@@ -1,4 +1,5 @@
 module Post = {
+  [@react.component]
   let make = () => {
     <section>
       <p>

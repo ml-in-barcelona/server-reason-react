@@ -568,7 +568,9 @@ module Model : sig
     | Promise : 'a Js.Promise.t * ('a -> 'element t) -> 'element t
 end
 
-type element =
+type ('props, 'return) componentLike = 'props -> 'return
+
+and element =
   | Lower_case_element of lower_case_element
   | Upper_case_component of string * (unit -> element)
   | Async_component of string * (unit -> element Lwt.t)
@@ -596,7 +598,8 @@ and model_value = element Model.t
 exception Invalid_children of string
 
 module Fragment : sig
-  val make : children:element -> ?key:string -> unit -> element
+  val makeProps : children:element -> ?key:string -> unit -> < children : element > Js.t
+  val make : (< children : element > Js.t, element) componentLike
 end
 
 val createElement : string -> JSX.prop list -> element list -> element
@@ -620,13 +623,21 @@ module Context : sig
     consumer : children:element -> element;
   }
 
-  val provider : 'a t -> 'a provider
+  val makeProps : value:'a -> children:element -> ?key:string -> unit -> < value : 'a ; children : element > Js.t
+  val provider : 'a t -> (< value : 'a ; children : element > Js.t, element) componentLike
 end
 
 val createContext : 'a -> 'a Context.t
 
 module Suspense : sig
-  val make : ?key:string -> ?fallback:element -> ?children:element -> unit -> element
+  val makeProps :
+    ?fallback:element ->
+    ?children:element ->
+    ?key:string ->
+    unit ->
+    < fallback : element option ; children : element option > Js.t
+
+  val make : (< fallback : element option ; children : element option > Js.t, element) componentLike
 end
 
 module Cache : sig

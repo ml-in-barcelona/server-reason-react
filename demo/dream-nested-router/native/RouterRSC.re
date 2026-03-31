@@ -2,12 +2,13 @@
 * RouterRSC is a module that provides the helpers to build the route and the layout component from the route definitions.
 */
 module type MAIN_LAYOUT = {
-  let make: (~key: string=?, ~children: React.element, unit) => React.element;
+  [@react.component]
+  let make: (~children: React.element, unit) => React.element;
 };
 
 module type MAIN_PAGE = {
-  let make:
-    (~key: string=?, ~query: URL.SearchParams.t, unit) => React.element;
+  [@react.component]
+  let make: (~query: URL.SearchParams.t, unit) => React.element;
 };
 
 /**
@@ -17,36 +18,29 @@ module type MAIN_PAGE = {
  * As it does not rerender on navigation, it cannot access search params which would otherwise become stale.
  */
 module type LAYOUT = {
+  [@react.component]
   let make:
-    (
-      ~key: string=?,
-      ~children: React.element,
-      ~params: DynamicParams.t,
-      unit
-    ) =>
-    React.element;
+    (~children: React.element, ~params: DynamicParams.t, unit) => React.element;
 };
 
 /**
  * A page is the UI that is rendered on a specific route.
  */
 module type PAGE = {
+  [@react.component]
   let make:
-    (
-      ~key: string=?,
-      ~params: DynamicParams.t,
-      ~query: URL.SearchParams.t,
-      unit
-    ) =>
+    (~params: DynamicParams.t, ~query: URL.SearchParams.t, unit) =>
     React.element;
 };
 
 module type NOT_FOUND = {
-  let make: (~key: string=?, ~path: string, unit) => React.element;
+  [@react.component]
+  let make: (~path: string, unit) => React.element;
 };
 
 module type LOADING = {
-  let make: (~key: string=?, unit) => React.element;
+  [@react.component]
+  let make: unit => React.element;
 };
 
 type routeConfig = {
@@ -100,7 +94,7 @@ let renderPage = (~pageOpt, ~loadingOpt, ~globalLoading, ~params, ~query) => {
   | None => React.null
   | Some(page) =>
     module Page = (val page: PAGE);
-    let pageElement = Page.make(~params, ~query, ());
+    let pageElement = <Page params query />;
     let loading =
       switch (loadingOpt, globalLoading) {
       | (Some(_), _) => loadingOpt
@@ -111,24 +105,25 @@ let renderPage = (~pageOpt, ~loadingOpt, ~globalLoading, ~params, ~query) => {
     | None => pageElement
     | Some(loading) =>
       module Loading = (val loading: LOADING);
-      <React.Suspense fallback={Loading.make()}> pageElement </React.Suspense>;
+      <React.Suspense fallback={<Loading />}> pageElement </React.Suspense>;
     };
   };
 };
 
 let renderMainPage = (~page, ~globalLoading, ~query) => {
   module Page = (val page: MAIN_PAGE);
-  let pageElement = Page.make(~query, ());
+  let pageElement = <Page query />;
   switch (globalLoading) {
   | None => pageElement
   | Some(loading) =>
     module Loading = (val loading: LOADING);
-    <React.Suspense fallback={Loading.make()}> pageElement </React.Suspense>;
+    <React.Suspense fallback={<Loading />}> pageElement </React.Suspense>;
   };
 };
 
 module DefaultMainLayout = {
-  let make = (~key=?, ~children, ()) => children;
+  [@react.component]
+  let make = (~children) => children;
 };
 
 let renderMainLayout = (~layoutOpt, ~children) => {
@@ -138,7 +133,7 @@ let renderMainLayout = (~layoutOpt, ~children) => {
              ~default=(module DefaultMainLayout): (module MAIN_LAYOUT),
            )
   );
-  Layout.make(~children, ());
+  <Layout> children </Layout>;
 };
 
 let renderNotFound = (~notFound, ~path) => {
@@ -146,7 +141,7 @@ let renderNotFound = (~notFound, ~path) => {
   | None => React.null
   | Some(notFound) =>
     module NotFound = (val notFound: NOT_FOUND);
-    NotFound.make(~path, ());
+    <NotFound path />;
   };
 };
 
@@ -218,11 +213,7 @@ let getRoute =
         switch (route.layout) {
         | Some(layout) =>
           module Layout = (val layout: LAYOUT);
-          Layout.make(
-            ~children=<Route.PageConsumer />,
-            ~params=dynamicParams,
-            (),
-          );
+          <Layout params=dynamicParams> <Route.PageConsumer /> </Layout>;
         | None =>
           renderPage(
             ~pageOpt=route.page,

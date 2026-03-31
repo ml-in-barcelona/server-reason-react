@@ -1,6 +1,7 @@
 (executable
  (name memory_bench)
  (libraries
+  server-reason-react.js
   server-reason-react.react
   server-reason-react.reactDom
   benchmark_scenarios)

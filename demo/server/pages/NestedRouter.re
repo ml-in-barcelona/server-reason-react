@@ -99,7 +99,7 @@ module App = {
 module AppLayout = {
   [@react.component]
   let make = (~children) => {
-    <DemoLayout background=Theme.Color.Gray2 mode=FullScreen>
+    <DemoLayout background=Theme.Color.Gray2 mode=DemoLayout.FullScreen>
       <div className="flex flex-row gap-8">
         <section
           className="flex-1 basis-1/4 gap-4 min-w-[400px]" key="sidebar">

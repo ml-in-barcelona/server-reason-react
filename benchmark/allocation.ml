@@ -38,12 +38,12 @@ let main () =
   in
 
   let render_hello_world () =
-    let _ = ReactDOM.renderToStaticMarkup (Static_small.make ()) in
+    let _ = ReactDOM.renderToStaticMarkup (Static_small.make (Static_small.makeProps ())) in
     ()
   in
 
   let render_app () =
-    let _ = ReactDOM.renderToStaticMarkup (App.make ()) in
+    let _ = ReactDOM.renderToStaticMarkup (App.make (App.makeProps ())) in
     ()
   in
 
