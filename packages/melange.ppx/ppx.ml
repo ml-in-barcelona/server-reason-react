@@ -461,6 +461,156 @@ let has_browser_ppx_attribute attrs =
       | _ -> false)
     attrs
 
+let has_attribute attrs name = List.exists (fun { attr_name = { txt; _ }; _ } -> String.equal txt name) attrs
+
+(* Keep this keyword list and translate_mel_obj_label in sync with Melange's
+   Lam_methname.translate implementation:
+   https://github.com/melange-re/melange/blob/main/jscomp/common/lam_methname.ml *)
+let mel_obj_keywords =
+  [
+    "and";
+    "as";
+    "assert";
+    "begin";
+    "class";
+    "constraint";
+    "do";
+    "done";
+    "downto";
+    "else";
+    "end";
+    "exception";
+    "external";
+    "false";
+    "for";
+    "fun";
+    "function";
+    "functor";
+    "if";
+    "in";
+    "include";
+    "inherit";
+    "initializer";
+    "lazy";
+    "let";
+    "match";
+    "method";
+    "module";
+    "mutable";
+    "new";
+    "nonrec";
+    "object";
+    "of";
+    "open";
+    "or";
+    "private";
+    "rec";
+    "sig";
+    "struct";
+    "then";
+    "to";
+    "true";
+    "try";
+    "type";
+    "val";
+    "virtual";
+    "when";
+    "while";
+    "with";
+    "mod";
+    "land";
+    "lor";
+    "lxor";
+    "lsl";
+    "lsr";
+    "asr";
+  ]
+
+let find_double_underscore name =
+  let rec go index =
+    if index < 0 then -1
+    else if index + 1 < String.length name && name.[index] = '_' && name.[index + 1] = '_' then index
+    else go (index - 1)
+  in
+  go (String.length name - 2)
+
+let translate_mel_obj_label name =
+  let valid_start_char = function '_' | 'a' .. 'z' -> true | _ -> false in
+  let double_underscore_index = find_double_underscore name in
+  if double_underscore_index = 0 then name
+  else if double_underscore_index > 0 then String.sub name 0 double_underscore_index
+  else
+    match name.[0] with
+    | '_' when String.length name > 1 ->
+        let candidate = String.sub name 1 (String.length name - 1) in
+        if (not (valid_start_char candidate.[0])) || List.mem candidate mel_obj_keywords then candidate else name
+    | _ -> name
+
+type js_object_field = { method_name : string; js_name : string; present_expr : expression; value_expr : expression }
+
+let option_is_some_expr ~loc expr = [%expr match [%e expr] with None -> false | Some _ -> true]
+
+let js_obj_internal_expression ~loc name =
+  Builder.pexp_ident ~loc { txt = Ldot (Ldot (Ldot (Lident "Js", "Obj"), "Internal"), name); loc }
+
+let build_registered_js_object_expression ?as_type ?(register_name = "register_structural") ~loc fields =
+  let generated_fields =
+    List.mapi
+      (fun index { method_name; js_name; present_expr; value_expr } ->
+        let cell_name = Printf.sprintf "__js_obj_cell_%d" index in
+        let entry_name = Printf.sprintf "__js_obj_entry_%d" index in
+        let slot_call =
+          Builder.pexp_apply ~loc
+            (js_obj_internal_expression ~loc "slot_ref")
+            [
+              (Labelled "method_name", Builder.estring ~loc method_name);
+              (Labelled "js_name", Builder.estring ~loc js_name);
+              (Labelled "present", present_expr);
+              (Nolabel, value_expr);
+            ]
+        in
+        let slot_binding =
+          Builder.value_binding ~loc
+            ~pat:
+              (Builder.ppat_tuple ~loc
+                 [ Builder.ppat_var ~loc { loc; txt = cell_name }; Builder.ppat_var ~loc { loc; txt = entry_name } ])
+            ~expr:slot_call
+        in
+        let method_body = Builder.pexp_apply ~loc (Builder.evar ~loc "!") [ (Nolabel, Builder.evar ~loc cell_name) ] in
+        let method_ =
+          Builder.pcf_method ~loc (Builder.Located.mk method_name ~loc, Public, Cfk_concrete (Fresh, method_body))
+        in
+        (slot_binding, Builder.evar ~loc entry_name, method_))
+      fields
+  in
+  let slot_bindings, entry_exprs, methods =
+    List.fold_right
+      (fun (slot_binding, entry_expr, method_) (slot_bindings, entry_exprs, methods) ->
+        (slot_binding :: slot_bindings, entry_expr :: entry_exprs, method_ :: methods))
+      generated_fields ([], [], [])
+  in
+  let object_name = "__js_obj" in
+  let object_binding =
+    Builder.value_binding ~loc
+      ~pat:(Builder.ppat_var ~loc { loc; txt = object_name })
+      ~expr:(Builder.pexp_object ~loc (Builder.class_structure ~self:(Builder.ppat_any ~loc) ~fields:methods))
+  in
+  let register_call =
+    Builder.pexp_apply ~loc
+      (js_obj_internal_expression ~loc register_name)
+      [ (Nolabel, Builder.evar ~loc object_name); (Nolabel, Builder.elist ~loc entry_exprs) ]
+  in
+  let register_call =
+    match as_type with None -> register_call | Some core_type -> Builder.pexp_constraint ~loc register_call core_type
+  in
+  List.fold_right
+    (fun binding acc -> Builder.pexp_let ~loc Nonrecursive [ binding ] acc)
+    (slot_bindings @ [ object_binding ]) register_call
+
+let rec get_return_core_type = function
+  | { ptyp_desc = Ptyp_arrow (_, _, rest); _ } -> get_return_core_type rest
+  | core_type -> core_type
+
 let get_function_name pattern =
   let rec go pattern =
     match pattern with
@@ -573,6 +723,65 @@ Melange externals are bindings to JavaScript code, which can't run on the server
     in
     raise (Runtime.fail_impossible_action_in_ssr [%e Builder.pexp_constant ~loc (Pconst_string (name, loc, None))])]
 
+let validate_mel_obj_primitive ~loc pval_prim =
+  match pval_prim with
+  | [] -> ()
+  | prims when List.for_all (String.equal "") prims -> ()
+  | _ ->
+      Location.raise_errorf ~loc
+        "[server-reason-react.melange_ppx] [@@mel.obj] requires its external payload to be the empty string"
+
+let transform_external_obj ~loc pval_name pval_type =
+  let function_core_type = Builder.ppat_var ~loc:pval_name.loc { loc = pval_name.loc; txt = pval_name.txt } in
+  let pat =
+    Builder.ppat_constraint ~loc:pval_type.ptyp_loc function_core_type
+      (Builder.ptyp_poly ~loc:pval_type.ptyp_loc [] pval_type)
+  in
+  let rec collect_arguments function_args fields = function
+    | { ptyp_desc = Ptyp_arrow (label, core_type, rest); _ } -> (
+        if is_mel_as core_type then
+          Location.raise_errorf ~loc:core_type.ptyp_loc
+            "[server-reason-react.melange_ppx] [@mel.as] is not supported in native [@@mel.obj] externals yet";
+        match label with
+        | Nolabel ->
+            let pattern =
+              match core_type.ptyp_desc with
+              | Ptyp_constr ({ txt = Lident "unit"; _ }, []) -> Builder.ppat_any ~loc:core_type.ptyp_loc
+              | _ ->
+                  Location.raise_errorf ~loc:core_type.ptyp_loc
+                    "[server-reason-react.melange_ppx] [@@mel.obj] externals in native only support labelled \
+                     arguments, optionally labelled arguments, and a final unit argument"
+            in
+            collect_arguments ((label, pattern, core_type.ptyp_loc) :: function_args) fields rest
+        | Labelled name | Optional name ->
+            let ident = { loc = core_type.ptyp_loc; txt = name } in
+            let pattern = Builder.ppat_var ~loc:core_type.ptyp_loc ident in
+            let value = Builder.pexp_ident ~loc:core_type.ptyp_loc { loc = core_type.ptyp_loc; txt = Lident name } in
+            let present_expr =
+              match label with
+              | Labelled _ -> Builder.ebool ~loc:core_type.ptyp_loc true
+              | Optional _ -> option_is_some_expr ~loc:core_type.ptyp_loc value
+              | Nolabel -> assert false
+            in
+            let field =
+              { method_name = name; js_name = translate_mel_obj_label name; present_expr; value_expr = value }
+            in
+            collect_arguments ((label, pattern, core_type.ptyp_loc) :: function_args) (field :: fields) rest)
+    | _ -> (List.rev function_args, List.rev fields)
+  in
+  let function_args, fields = collect_arguments [] [] pval_type in
+  let object_expression =
+    build_registered_js_object_expression ~loc ~register_name:"register_abstract"
+      ~as_type:(get_return_core_type pval_type) fields
+  in
+  let function_expression =
+    List.fold_right
+      (fun (label, arg_pat, arg_loc) acc -> Builder.pexp_fun ~loc:arg_loc label None arg_pat acc)
+      function_args object_expression
+  in
+  let vb = Builder.value_binding ~loc ~pat ~expr:function_expression in
+  Ast_helper.Str.value Nonrecursive [ vb ]
+
 let mel_raw_found_in_native_message ~loc payload =
   let msg =
     Printf.sprintf
@@ -659,10 +868,14 @@ let ptyp_humanize = function
   | Ptyp_constr _ -> "Constr"
   | Ptyp_open _ -> "Open"
 
-let transform_external ~module_path pval_name pval_attributes pval_loc pval_type =
+let transform_external ~module_path pval_name pval_attributes pval_loc pval_type pval_prim =
   let loc = pval_loc in
   match pval_type.ptyp_desc with
-  | Ptyp_arrow _ -> transform_external_arrow ~loc pval_name pval_attributes pval_type
+  | Ptyp_arrow _ ->
+      if has_attribute pval_attributes "mel.obj" then (
+        validate_mel_obj_primitive ~loc pval_prim;
+        transform_external_obj ~loc pval_name pval_type)
+      else transform_external_arrow ~loc pval_name pval_attributes pval_type
   | Ptyp_var _ | Ptyp_any | Ptyp_constr _ ->
       (* When mel.send.pipe is used, it's treated as a funcion *)
       if Option.is_some (get_send_pipe pval_attributes) then
@@ -695,15 +908,6 @@ let transform_external ~module_path pval_name pval_attributes pval_loc pval_type
          support them."
         (ptyp_humanize pval_type.ptyp_desc)]]
 
-let tranform_record_to_object ~loc record =
-  let fields =
-    List.map
-      (fun (label, expression) ->
-        Builder.pcf_method ~loc (Builder.Located.mk label ~loc, Public, Cfk_concrete (Fresh, expression)))
-      record
-  in
-  Builder.pexp_object ~loc (Builder.class_structure ~self:(Builder.ppat_any ~loc) ~fields)
-
 let validate_record_labels ~loc record =
   List.fold_left
     (fun acc (longident, expression) ->
@@ -711,12 +915,21 @@ let validate_record_labels ~loc record =
       | Error _ as error -> error
       | Ok acc -> (
           match longident.txt with
-          | Lident label -> Ok ((label, expression) :: acc)
+          | Lident label ->
+              Ok
+                ({
+                   method_name = label;
+                   js_name = translate_mel_obj_label label;
+                   present_expr = Builder.ebool ~loc:expression.pexp_loc true;
+                   value_expr = expression;
+                 }
+                :: acc)
           | Ldot _ | Lapply _ ->
               Error
                 (Location.error_extensionf ~loc
                    "[server-reason-react.melange_ppx] Js.t objects only support labels as keys")))
     (Ok []) record
+  |> Result.map List.rev
 
 class raise_exception_mapper (module_path : string) =
   object (_self)
@@ -729,7 +942,7 @@ class raise_exception_mapper (module_path : string) =
           ( { txt = "mel.obj"; _ },
             PStr [ { pstr_desc = Pstr_eval ({ pexp_desc = Pexp_record (record, None); pexp_loc }, _); _ } ] ) -> (
           match validate_record_labels ~loc:pexp_loc record with
-          | Ok record -> tranform_record_to_object ~loc:pexp_loc record
+          | Ok record -> build_registered_js_object_expression ~loc:pexp_loc record
           | Error extension -> Builder.pexp_extension ~loc:pexp_loc extension)
       | Pexp_extension ({ txt = "mel.obj"; loc }, _) ->
           Builder.pexp_extension ~loc
@@ -784,10 +997,10 @@ class raise_exception_mapper (module_path : string) =
           [%stri [%error [%e mel_raw_found_in_native_message ~loc:pvb_loc payload]]]
       (* %mel. *)
       (* external foo: t = "{{JavaScript}}" *)
-      | Pstr_primitive { pval_name; pval_attributes; pval_loc; pval_type } ->
+      | Pstr_primitive { pval_name; pval_attributes; pval_loc; pval_type; pval_prim } ->
           (* Detects [@browser_only] or [@platform js] attributes. When present on an external, we pass it through unchanged so browser_ppx can filter it out in native mode. *)
           if has_browser_ppx_attribute pval_attributes then item
-          else transform_external ~module_path pval_name pval_attributes pval_loc pval_type
+          else transform_external ~module_path pval_name pval_attributes pval_loc pval_type pval_prim
       | _ -> super#structure_item item
   end
 

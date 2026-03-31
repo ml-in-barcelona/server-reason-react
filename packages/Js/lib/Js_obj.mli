@@ -1,5 +1,16 @@
 (** Provide utilities for {!Js.t} *)
 
-val empty : 'a -> 'b [@@alert not_implemented "is not implemented in native under server-reason-react.js"]
-val assign : 'a -> 'b -> 'c [@@alert not_implemented "is not implemented in native under server-reason-react.js"]
-val keys : 'a -> 'b [@@alert not_implemented "is not implemented in native under server-reason-react.js"]
+val empty : unit -> < .. >
+val assign : (< .. > as 'a) -> < .. > -> 'a
+val merge : unit -> < .. > -> < .. > -> < .. >
+val keys : _ -> string array
+
+(**/**)
+
+module Internal : sig
+  type entry
+
+  val slot_ref : method_name:string -> js_name:string -> present:bool -> 'a -> 'a ref * entry
+  val register_structural : (< .. > as 'a) -> entry list -> 'a
+  val register_abstract : < .. > -> entry list -> 'a
+end

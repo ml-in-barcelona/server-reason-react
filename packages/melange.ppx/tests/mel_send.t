@@ -25,25 +25,57 @@ Labelled args with @@mel.send
 Labelled and unlabelled args with @@mel.obj
 
   $ cat > input.ml << EOF
-  > external makeInitParam : onLoad:string -> unit -> string = "" [@@mel.obj]
+  > external makeInitParam : onLoad:string -> unit -> < onLoad : string > = "" [@@mel.obj]
+  > let onLoad = (makeInitParam ~onLoad:"ready" ())##onLoad
+  > external makeOptional : ?retries:int -> unit -> < retries : int option > = "" [@@mel.obj]
+  > let retries = (makeOptional ())##retries
   > EOF
 
   $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl | tee output.ml
-  let makeInitParam : onLoad:string -> unit -> string =
-   fun ~onLoad:_ _ ->
-    let () =
-      Printf.printf
-        {|
-  There is a Melange's external (for example: [@mel.get]) call from native code.
-  
-  Melange externals are bindings to JavaScript code, which can't run on the server and should be wrapped with browser_only ppx or only run it only on the client side. If there's any issue, try wrapping the expression with a try/catch as a workaround.
-  |}
+  let makeInitParam : onLoad:string -> unit -> < onLoad : string > =
+   fun ~onLoad _ ->
+    let __js_obj_cell_0, __js_obj_entry_0 =
+      Js.Obj.Internal.slot_ref ~method_name:"onLoad" ~js_name:"onLoad"
+        ~present:true onLoad
     in
-    raise (Runtime.fail_impossible_action_in_ssr "makeInitParam")
+    let __js_obj =
+      object
+        method onLoad = !__js_obj_cell_0
+      end
+    in
+    (Js.Obj.Internal.register_abstract __js_obj [ __js_obj_entry_0 ]
+      : < onLoad : string >)
+  
+  let onLoad = (makeInitParam ~onLoad:"ready" ())#onLoad
+  
+  let makeOptional : ?retries:int -> unit -> < retries : int option > =
+   fun ?retries _ ->
+    let __js_obj_cell_0, __js_obj_entry_0 =
+      Js.Obj.Internal.slot_ref ~method_name:"retries" ~js_name:"retries"
+        ~present:(match retries with None -> false | Some _ -> true)
+        retries
+    in
+    let __js_obj =
+      object
+        method retries = !__js_obj_cell_0
+      end
+    in
+    (Js.Obj.Internal.register_abstract __js_obj [ __js_obj_entry_0 ]
+      : < retries : int option >)
+  
+  let retries = (makeOptional ())#retries
 
-  $ echo "module Runtime = struct" > main.ml
-  $ cat $INSIDE_DUNE/packages/runtime/Runtime.ml >> main.ml
-  $ echo "end" >> main.ml
+  $ cat > main.ml << EOF
+  > module Js = struct
+  >   module Obj = struct
+  >     module Internal = struct
+  >       type entry = unit
+  >       let slot_ref ~method_name:_ ~js_name:_ ~present:_ value = (ref value, ())
+  >       let register_abstract obj _ = obj
+  >     end
+  >   end
+  > end
+  > EOF
   $ cat output.ml >> main.ml
   $ ocamlc -c main.ml
 

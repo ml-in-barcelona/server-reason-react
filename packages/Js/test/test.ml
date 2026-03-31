@@ -510,6 +510,65 @@ let obj () = Js.Dict.fromList [ ("foo", 43); ("bar", 86) ]
 let long_obj () = Js.Dict.fromList [ ("david", 99); ("foo", 43); ("bar", 86) ]
 let obj_duplicated () = Js.Dict.fromList [ ("foo", 43); ("bar", 86); ("bar", 1) ]
 
+module Obj_test = struct
+  external make : onLoad:string -> ?retries:int -> unit -> < onLoad : string ; retries : int option > Js.t = ""
+  [@@mel.obj]
+
+  external makeKeyword : _type:string -> unit -> < _type : string > Js.t = "" [@@mel.obj]
+end
+
+let obj_tests =
+  [
+    test "empty" (fun () -> assert_string_array (Js.Obj.keys (Js.Obj.empty ())) [||]);
+    test "@@mel.obj" (fun () ->
+        let props = Obj_test.make ~onLoad:"ready" () in
+        assert_string props##onLoad "ready";
+        assert_option_int props##retries None;
+        assert_string_array (Js.Obj.keys props) [| "onLoad" |];
+        let props = Obj_test.make ~onLoad:"ready" ~retries:2 () in
+        assert_option_int props##retries (Some 2);
+        assert_string_array (Js.Obj.keys props) [| "onLoad"; "retries" |]);
+    test "@@mel.obj with keyword label" (fun () ->
+        let props = Obj_test.makeKeyword ~_type:"button" () in
+        assert_string props##_type "button";
+        assert_string_array (Js.Obj.keys props) [| "type" |]);
+    test "assign mutates target" (fun () ->
+        let target = Obj_test.make ~onLoad:"ready" () in
+        let source = Obj_test.make ~onLoad:"updated" ~retries:2 () in
+        let returned = Js.Obj.assign target source in
+        assert_int (Oo.id returned) (Oo.id target);
+        assert_string target##onLoad "updated";
+        assert_option_int target##retries (Some 2);
+        assert_string_array (Js.Obj.keys target) [| "onLoad"; "retries" |];
+        assert_string source##onLoad "updated";
+        assert_option_int source##retries (Some 2));
+    test "merge creates fresh object" (fun () ->
+        let left = Obj_test.make ~onLoad:"left" () in
+        let right = Obj_test.make ~onLoad:"right" ~retries:3 () in
+        let merged : < onLoad : string ; retries : int option > Js.t = Obj.magic (Js.Obj.merge () left right) in
+        assert_bool (Oo.id merged = Oo.id left) false;
+        assert_bool (Oo.id merged = Oo.id right) false;
+        assert_string merged##onLoad "right";
+        assert_option_int merged##retries (Some 3);
+        assert_string_array (Js.Obj.keys merged) [| "onLoad"; "retries" |];
+        assert_string left##onLoad "left";
+        assert_option_int left##retries None);
+    test "[%mel.obj] evaluates fields once" (fun () ->
+        let counter = ref 0 in
+        let props =
+          [%mel.obj
+            {
+              count =
+                (incr counter;
+                 !counter);
+            }]
+        in
+        assert_int props##count 1;
+        assert_int props##count 1;
+        assert_int !counter 1;
+        assert_string_array (Js.Obj.keys props) [| "count" |]);
+  ]
+
 let dict_tests =
   [
     test "empty" (fun _ -> assert_string_dict_entries (Js.Dict.entries (Js.Dict.empty ())) [||]);
@@ -642,6 +701,7 @@ let () =
          ("Js.Float", float_tests);
          ("Js.String", string_tests);
          ("Js.Re", re_tests);
+         ("Js.Obj", obj_tests);
          ("Js.Dict", dict_tests);
          ("Js.Array", []);
          ("Js.Undefined", Undefined_tests.Undefined.tests);
