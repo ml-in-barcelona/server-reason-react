@@ -65,6 +65,7 @@ srr_stream.readable_stream = new ReadableStream({ start(c) { srr_stream._c = c; 
 </script>|}
   in
   let subscribed_elements = ref [] in
+  let prev = Printexc.backtrace_status () in
   if disable_backtrace then Printexc.record_backtrace false else ();
   let%lwt html, subscribe = ReactServerDOM.render_html ~progressive_chunk_size:1 ?debug element in
   let%lwt () =
@@ -81,7 +82,7 @@ srr_stream.readable_stream = new ReadableStream({ start(c) { srr_stream._c = c; 
   let diff = remove_begin_and_end html in
   assert_string diff shell;
   assert_list_of_strings subscribed_elements.contents (assertion_list @ [ "<script>window.srr_stream.close()</script>" ]);
-  if disable_backtrace then Printexc.record_backtrace true else ();
+  if disable_backtrace then Printexc.record_backtrace prev else ();
   Lwt.return ()
 
 let layout ~children () =

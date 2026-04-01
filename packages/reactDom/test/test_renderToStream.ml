@@ -130,11 +130,11 @@ let uppercase_component_always_throwing () =
 let suspense_with_always_throwing () =
   (* This test is very fragile since it relies on the stack trace being the same (so line numbers and methods should match).
      We disable backtracing to avoid having to match the backtrace *)
+  let prev = Printexc.backtrace_status () in
   Printexc.record_backtrace false;
   let app () = mk_suspense ~fallback:(React.string "Loading...") ~children:(always_throwing_component ()) () in
   let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
-  (* and we need to enable it back for the next test *)
-  Printexc.record_backtrace true;
+  Printexc.record_backtrace prev;
   assert_stream stream
     [ "<!--$!--><template data-msg=\"Failure(&quot;always throwing&quot;)\n\"></template>Loading...<!--/$-->" ]
 
@@ -233,18 +233,18 @@ let suspense_with_nested_suspense () =
     ]
 
 let suspense_with_nested_suspense_with_error () =
+  let prev = Printexc.backtrace_status () in
+  Printexc.record_backtrace false;
   let app () =
     mk_suspense ~fallback:(React.string "Fallback 1")
       ~children:
         (deffered_component ~seconds:0.02
-           ~children:
-             (let _ = Printexc.record_backtrace false in
-              mk_suspense ~fallback:(React.string "Fallback 2") ~children:(always_throwing_component ()) ())
+           ~children:(mk_suspense ~fallback:(React.string "Fallback 2") ~children:(always_throwing_component ()) ())
            ())
       ()
   in
-  Printexc.record_backtrace true;
   let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
+  Printexc.record_backtrace prev;
   assert_stream stream
     [
       "<!--$?--><template id=\"B:0\"></template>Fallback 1<!--/$-->";
@@ -693,6 +693,7 @@ let client_component_error_in_stream () =
         API instead. module: test_module") (fun () -> ReactDOM.renderToStream app)
 
 let suspense_with_failed_promise () =
+  let prev = Printexc.backtrace_status () in
   Printexc.record_backtrace false;
   let app () =
     mk_suspense ~fallback:(React.string "Error fallback")
@@ -700,7 +701,7 @@ let suspense_with_failed_promise () =
       ()
   in
   let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
-  Printexc.record_backtrace true;
+  Printexc.record_backtrace prev;
   assert_stream stream
     [ "<!--$!--><template data-msg=\"Failure(&quot;async failure&quot;)\n\"></template>Error fallback<!--/$-->" ]
 
