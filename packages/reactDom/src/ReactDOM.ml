@@ -145,7 +145,7 @@ let render_to_buffer ~mode buf element =
   let previous_node_was_text = ref false in
   let should_add_doctype = ref true in
 
-  let rec render_element element =
+  let rec render_element ~buf element =
     match (element : React.element) with
     | Empty -> ()
     | Static { prerendered; _ } ->
@@ -158,19 +158,19 @@ let render_to_buffer ~mode buf element =
                use the React server components API instead. module: " ^ import_module))
     | Provider { children; push; _ } ->
         let pop = push () in
-        render_element children;
+        render_element ~buf children;
         pop ()
-    | Consumer children -> render_element children
-    | Fragment children -> render_element children
-    | List list -> render_children_list render_element list
-    | Array arr -> render_children_list render_element (Array.to_list arr)
-    | Upper_case_component (_, component) -> render_upper_case_component render_element component
+    | Consumer children -> render_element ~buf children
+    | Fragment children -> render_element ~buf children
+    | List list -> render_children_list (render_element ~buf) list
+    | Array arr -> render_children_list (render_element ~buf) (Array.to_list arr)
+    | Upper_case_component (_, component) -> render_upper_case_component (render_element ~buf) component
     | Async_component (_name, _component) ->
         raise
           (Invalid_argument
              "Async components can't be rendered to static markup, since rendering is synchronous. Please use \
               `renderToStream` instead.")
-    | Lower_case_element { key; tag; attributes; children } -> render_lower_case ~key tag attributes children
+    | Lower_case_element { key; tag; attributes; children } -> render_lower_case ~buf ~key tag attributes children
     | Text text ->
         let is_previous_text_node = !previous_node_was_text in
         previous_node_was_text := true;
@@ -178,16 +178,17 @@ let render_to_buffer ~mode buf element =
         Html.escape buf text;
         should_add_doctype := false
     | Suspense { key = _; children; fallback } -> (
-        match render_element children with
+        let suspense_inner_buf = Buffer.create 128 in
+        match render_element ~buf:suspense_inner_buf children with
         | () ->
             Buffer.add_string buf "<!--$-->";
-            render_element children;
+            Buffer.add_buffer buf suspense_inner_buf;
             Buffer.add_string buf "<!--/$-->"
         | exception _e ->
             Buffer.add_string buf "<!--$!-->";
-            render_element fallback;
+            render_element ~buf fallback;
             Buffer.add_string buf "<!--/$-->")
-  and render_lower_case ~key:_ tag attributes children =
+  and render_lower_case ~buf ~key:_ tag attributes children =
     let inner_html = getDangerouslyInnerHtml attributes in
     if Html.is_self_closing_tag tag then (
       should_add_doctype := false;
@@ -207,16 +208,16 @@ let render_to_buffer ~mode buf element =
       Buffer.add_char buf '>';
       (match inner_html with
       | Some html -> Buffer.add_string buf html
-      | None -> render_children_list render_element children);
+      | None -> render_children_list (render_element ~buf) children);
       Buffer.add_string buf "</";
       Buffer.add_string buf tag;
       Buffer.add_char buf '>';
       if add_separator_between_text_nodes then previous_node_was_text := false
   in
-  render_element element
+  render_element ~buf element
 
 let write_to_buffer buf element =
-  let rec render element =
+  let rec render ~buf element =
     match (element : React.element) with
     | Empty -> ()
     | Static { prerendered; _ } -> Buffer.add_string buf prerendered
@@ -224,13 +225,13 @@ let write_to_buffer buf element =
         raise (Invalid_argument ("Client components can't be rendered via write_to_buffer. module: " ^ import_module))
     | Provider { children; push; _ } ->
         let pop = push () in
-        render children;
+        render ~buf children;
         pop ()
-    | Consumer children -> render children
-    | Fragment children -> render children
-    | List list -> render_children_list render list
-    | Array arr -> render_children_list render (Array.to_list arr)
-    | Upper_case_component (_, component) -> render_upper_case_component render component
+    | Consumer children -> render ~buf children
+    | Fragment children -> render ~buf children
+    | List list -> render_children_list (render ~buf) list
+    | Array arr -> render_children_list (render ~buf) (Array.to_list arr)
+    | Upper_case_component (_, component) -> render_upper_case_component (render ~buf) component
     | Async_component (_name, _component) ->
         raise (Invalid_argument "Async components can't be rendered synchronously via write_to_buffer.")
     | Lower_case_element { key = _; tag; attributes; children } ->
@@ -247,15 +248,18 @@ let write_to_buffer buf element =
           Buffer.add_char buf '>';
           (match inner_html with
           | Some html -> Buffer.add_string buf html
-          | None -> render_children_list render children);
+          | None -> render_children_list (render ~buf) children);
           Buffer.add_string buf "</";
           Buffer.add_string buf tag;
           Buffer.add_char buf '>')
     | Text text -> Html.escape buf text
     | Suspense { children; fallback; _ } -> (
-        match render children with () -> render children | exception _e -> render fallback)
+        let suspense_inner_buf = Buffer.create 128 in
+        match render ~buf:suspense_inner_buf children with
+        | () -> Buffer.add_buffer buf suspense_inner_buf
+        | exception _e -> render ~buf fallback)
   in
-  render element
+  render ~buf element
 
 let escape_to_buffer = Html.escape
 
@@ -358,11 +362,31 @@ let rec render_to_stream_buffer ~stream_context buf element =
         Lwt.return ()
     | Upper_case_component (_, component) -> render_upper_case_component_lwt render_element component
     | Async_component (_, component) -> (
-        let promise = component () in
+        let saved_ctx = !React.current_tree_context in
+        React.reset_component_id_state saved_ctx;
+        let promise =
+          try component ()
+          with exn ->
+            React.current_tree_context := saved_ctx;
+            raise_notrace exn
+        in
+        let did_use_id = React.check_did_render_id_hook () in
+        if did_use_id then React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:1 ~index:0;
         match Lwt.state promise with
-        | Lwt.Return element -> render_element element
-        | Lwt.Fail exn -> raise_notrace exn
-        | Lwt.Sleep -> raise_notrace (React.Suspend (Any_promise promise)))
+        | Lwt.Return element -> (
+            try%lwt
+              let%lwt () = render_element element in
+              React.current_tree_context := saved_ctx;
+              Lwt.return ()
+            with exn ->
+              React.current_tree_context := saved_ctx;
+              raise exn)
+        | Lwt.Fail exn ->
+            React.current_tree_context := saved_ctx;
+            raise_notrace exn
+        | Lwt.Sleep ->
+            React.current_tree_context := saved_ctx;
+            raise_notrace (React.Suspend (Any_promise promise)))
     | Suspense { children; fallback; _ } -> (
         (* TODO: We assume fallback can't have errors or suspensions, it might not be the case *)
         let render_fallback_html () =
@@ -443,11 +467,31 @@ let rec render_to_stream_buffer ~stream_context buf element =
     | Upper_case_component (_, component) ->
         render_upper_case_component_lwt (render_element_to_buffer target_buf) component
     | Async_component (_, component) -> (
-        let promise = component () in
+        let saved_ctx = !React.current_tree_context in
+        React.reset_component_id_state saved_ctx;
+        let promise =
+          try component ()
+          with exn ->
+            React.current_tree_context := saved_ctx;
+            raise_notrace exn
+        in
+        let did_use_id = React.check_did_render_id_hook () in
+        if did_use_id then React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:1 ~index:0;
         match Lwt.state promise with
-        | Lwt.Return element -> render_element_to_buffer target_buf element
-        | Lwt.Fail exn -> raise_notrace exn
-        | Lwt.Sleep -> raise_notrace (React.Suspend (Any_promise promise)))
+        | Lwt.Return element -> (
+            try%lwt
+              let%lwt () = render_element_to_buffer target_buf element in
+              React.current_tree_context := saved_ctx;
+              Lwt.return ()
+            with exn ->
+              React.current_tree_context := saved_ctx;
+              raise exn)
+        | Lwt.Fail exn ->
+            React.current_tree_context := saved_ctx;
+            raise_notrace exn
+        | Lwt.Sleep ->
+            React.current_tree_context := saved_ctx;
+            raise_notrace (React.Suspend (Any_promise promise)))
     | Suspense { children; fallback; _ } -> (
         let render_fallback () =
           let fallback_buf = Buffer.create 128 in
@@ -583,13 +627,37 @@ and render_with_resolved_buffer ~stream_context buf element =
         Html.escape buf text;
         Lwt.return ()
     | Async_component (_, component) -> (
-        let promise = component () in
+        let saved_ctx = !React.current_tree_context in
+        React.reset_component_id_state saved_ctx;
+        let promise =
+          try component ()
+          with exn ->
+            React.current_tree_context := saved_ctx;
+            raise_notrace exn
+        in
+        let did_use_id = React.check_did_render_id_hook () in
+        if did_use_id then React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:1 ~index:0;
         match Lwt.state promise with
-        | Lwt.Return resolved -> render_element resolved
-        | Lwt.Fail exn -> raise_notrace exn
-        | Lwt.Sleep ->
-            let%lwt resolved = promise in
-            render_element resolved)
+        | Lwt.Return resolved -> (
+            try%lwt
+              let%lwt () = render_element resolved in
+              React.current_tree_context := saved_ctx;
+              Lwt.return ()
+            with exn ->
+              React.current_tree_context := saved_ctx;
+              raise exn)
+        | Lwt.Fail exn ->
+            React.current_tree_context := saved_ctx;
+            raise_notrace exn
+        | Lwt.Sleep -> (
+            try%lwt
+              let%lwt resolved = promise in
+              let%lwt () = render_element resolved in
+              React.current_tree_context := saved_ctx;
+              Lwt.return ()
+            with exn ->
+              React.current_tree_context := saved_ctx;
+              raise exn))
     | Static { prerendered; _ } ->
         Buffer.add_string buf prerendered;
         Lwt.return ()

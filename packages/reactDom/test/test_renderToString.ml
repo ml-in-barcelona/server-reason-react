@@ -37,6 +37,35 @@ let text_after_element_with_text_child () =
   in
   assert_string (ReactDOM.renderToString div) "<div>before <span>inner</span> after</div>"
 
+let suspense_children_render_once () =
+  let render_count = ref 0 in
+  let child () =
+    React.Upper_case_component
+      ( "Child",
+        fun () ->
+          render_count := !render_count + 1;
+          React.createElement "div" [] [ React.string "hello" ] )
+  in
+  let el =
+    React.Suspense
+      { key = None; children = child (); fallback = React.createElement "div" [] [ React.string "loading" ] }
+  in
+  let html = ReactDOM.renderToString el in
+  assert_string html "<!--$--><div>hello</div><!--/$-->";
+  Alcotest.(check int) "children should render exactly once" 1 !render_count
+
+let suspense_fallback_on_error () =
+  let el =
+    React.Suspense
+      {
+        key = None;
+        children = React.Upper_case_component ("Throws", fun () -> raise (Failure "boom"));
+        fallback = React.createElement "div" [] [ React.string "fallback" ];
+      }
+  in
+  let html = ReactDOM.renderToString el in
+  assert_string html "<!--$!--><div>fallback</div><!--/$-->"
+
 let test title fn = (Printf.sprintf "ReactDOM.renderToString / %s" title, [ Alcotest_lwt.test_case_sync "" `Quick fn ])
 
 let tests =
@@ -47,4 +76,6 @@ let tests =
     test "consecutives_text_nodes should add <!-- -->" consecutives_text_nodes;
     test "separated_text_nodes_by_other_parents" separated_text_nodes_by_other_parents;
     test "text_after_element_with_text_child" text_after_element_with_text_child;
+    test "suspense children render exactly once" suspense_children_render_once;
+    test "suspense renders fallback on error" suspense_fallback_on_error;
   ]

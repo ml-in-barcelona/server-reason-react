@@ -44,67 +44,59 @@ let parent_with_id children =
         let id = React.useId () in
         React.createElement "div" [ React.JSX.String ("id", "id", id) ] [ children ] )
 
-(* Unicode delimiters used by React 19: \u00ab = « and \u00bb = » *)
-let prefix = "\xc2\xab"
-let suffix = "\xc2\xbb"
-let id s = prefix ^ s ^ suffix
+let mk_provider ctx ~value ~children () = React.Context.provider ctx (React.Context.makeProps ~value ~children ())
 
-(* Test 1: Single component with useId *)
+(* All expected values verified against React 19.1.0 (bun arch/server/test-useid.js)
+   React 19 ID format: \xc2\xab (U+00AB «) + prefix + R + treeId + \xc2\xbb (U+00BB ») *)
+
 let single_component_with_use_id () =
   let html = ReactDOM.renderToString (div_with_id ()) in
-  assert_string html ("<div id=\"" ^ id "R0" ^ "\"></div>")
+  assert_string html "<div id=\"\xc2\xabR0\xc2\xbb\"></div>"
 
-(* Test 2: Two sibling components with useId *)
 let two_sibling_components () =
   let el = React.createElement "div" [] [ div_with_id (); div_with_id () ] in
   let html = ReactDOM.renderToString el in
-  assert_string html ("<div><div id=\"" ^ id "R1" ^ "\"></div><div id=\"" ^ id "R2" ^ "\"></div></div>")
+  assert_string html "<div><div id=\"\xc2\xabR1\xc2\xbb\"></div><div id=\"\xc2\xabR2\xc2\xbb\"></div></div>"
 
-(* Test 3: Nested components with useId *)
 let nested_components () =
   let el = parent_with_id (div_with_id ()) in
   let html = ReactDOM.renderToString el in
-  assert_string html ("<div id=\"" ^ id "R0" ^ "\"><div id=\"" ^ id "R1" ^ "\"></div></div>")
+  assert_string html "<div id=\"\xc2\xabR0\xc2\xbb\"><div id=\"\xc2\xabR1\xc2\xbb\"></div></div>"
 
-(* Test 4: Multiple useId calls in one component *)
 let multiple_use_id_calls () =
   let html = ReactDOM.renderToString (div_with_two_ids ()) in
-  assert_string html ("<div data-id1=\"" ^ id "R0" ^ "\" data-id2=\"" ^ id "R0H1" ^ "\"></div>")
+  assert_string html "<div data-id1=\"\xc2\xabR0\xc2\xbb\" data-id2=\"\xc2\xabR0H1\xc2\xbb\"></div>"
 
-(* Test 5: Three useId calls in one component *)
 let three_use_id_calls () =
   let html = ReactDOM.renderToString (div_with_three_ids ()) in
   assert_string html
-    ("<div data-id1=\"" ^ id "R0" ^ "\" data-id2=\"" ^ id "R0H1" ^ "\" data-id3=\"" ^ id "R0H2" ^ "\"></div>")
+    "<div data-id1=\"\xc2\xabR0\xc2\xbb\" data-id2=\"\xc2\xabR0H1\xc2\xbb\" data-id3=\"\xc2\xabR0H2\xc2\xbb\"></div>"
 
-(* Test 6: Siblings with nested children *)
 let siblings_with_nested_children () =
   let el = React.createElement "div" [] [ parent_with_id (div_with_id ()); div_with_id () ] in
   let html = ReactDOM.renderToString el in
   assert_string html
-    ("<div><div id=\"" ^ id "R1" ^ "\"><div id=\"" ^ id "R5" ^ "\"></div></div><div id=\"" ^ id "R2" ^ "\"></div></div>")
+    "<div><div id=\"\xc2\xabR1\xc2\xbb\"><div id=\"\xc2\xabR5\xc2\xbb\"></div></div><div \
+     id=\"\xc2\xabR2\xc2\xbb\"></div></div>"
 
-(* Test 7: Deep nesting (3 levels) *)
 let deep_nesting () =
   let el = parent_with_id (parent_with_id (div_with_id ())) in
   let html = ReactDOM.renderToString el in
   assert_string html
-    ("<div id=\"" ^ id "R0" ^ "\"><div id=\"" ^ id "R1" ^ "\"><div id=\"" ^ id "R3" ^ "\"></div></div></div>")
+    "<div id=\"\xc2\xabR0\xc2\xbb\"><div id=\"\xc2\xabR1\xc2\xbb\"><div id=\"\xc2\xabR3\xc2\xbb\"></div></div></div>"
 
-(* Test 8: Wrapper without useId is transparent *)
 let wrapper_without_use_id () =
   let el = wrapper (div_with_id ()) in
   let html = ReactDOM.renderToString el in
-  assert_string html ("<div class=\"wrapper\"><div id=\"" ^ id "R0" ^ "\"></div></div>")
+  assert_string html "<div class=\"wrapper\"><div id=\"\xc2\xabR0\xc2\xbb\"></div></div>"
 
-(* Test 9: Three siblings *)
 let three_siblings () =
   let el = React.createElement "div" [] [ div_with_id (); div_with_id (); div_with_id () ] in
   let html = ReactDOM.renderToString el in
   assert_string html
-    ("<div><div id=\"" ^ id "R1" ^ "\"></div><div id=\"" ^ id "R2" ^ "\"></div><div id=\"" ^ id "R3" ^ "\"></div></div>")
+    "<div><div id=\"\xc2\xabR1\xc2\xbb\"></div><div id=\"\xc2\xabR2\xc2\xbb\"></div><div \
+     id=\"\xc2\xabR3\xc2\xbb\"></div></div>"
 
-(* Test 10: Complex siblings with nested *)
 let complex_siblings_with_nested () =
   let el =
     React.createElement "div" []
@@ -114,24 +106,108 @@ let complex_siblings_with_nested () =
   in
   let html = ReactDOM.renderToString el in
   assert_string html
-    ("<div><div id=\"" ^ id "R1" ^ "\"><div id=\"" ^ id "Rd" ^ "\"></div><div id=\"" ^ id "Rl"
-   ^ "\"></div></div><div id=\"" ^ id "R2" ^ "\"><div id=\"" ^ id "R6" ^ "\"></div></div></div>")
+    "<div><div id=\"\xc2\xabR1\xc2\xbb\"><div id=\"\xc2\xabRd\xc2\xbb\"></div><div \
+     id=\"\xc2\xabRl\xc2\xbb\"></div></div><div id=\"\xc2\xabR2\xc2\xbb\"><div \
+     id=\"\xc2\xabR6\xc2\xbb\"></div></div></div>"
 
-(* Test 12: Separate renders produce same IDs *)
 let separate_renders_same_ids () =
   let html1 = ReactDOM.renderToString (div_with_id ()) in
   let html2 = ReactDOM.renderToString (div_with_id ()) in
   assert_string html1 html2
 
-(* Test: renderToStaticMarkup also works *)
 let static_markup_use_id () =
   let html = ReactDOM.renderToStaticMarkup (div_with_id ()) in
-  assert_string html ("<div id=\"" ^ id "R0" ^ "\"></div>")
+  assert_string html "<div id=\"\xc2\xabR0\xc2\xbb\"></div>"
 
-(* Test: identifier_prefix *)
 let identifier_prefix () =
   let html = ReactDOM.renderToString ~identifier_prefix:"myapp" (div_with_id ()) in
-  assert_string html ("<div id=\"" ^ id "myappR0" ^ "\"></div>")
+  assert_string html "<div id=\"\xc2\xabmyappR0\xc2\xbb\"></div>"
+
+(* ── Edge case tests (verified against React 19.1.0 output) ────────────────── *)
+
+let use_id_inside_suspense () =
+  let el =
+    React.Suspense
+      { key = None; children = div_with_id (); fallback = React.createElement "div" [] [ React.string "loading" ] }
+  in
+  let html = ReactDOM.renderToString el in
+  assert_string html "<!--$--><div id=\"\xc2\xabR0\xc2\xbb\"></div><!--/$-->"
+
+let use_id_suspense_and_sibling () =
+  let el =
+    React.createElement "div" []
+      [
+        React.Suspense
+          { key = None; children = div_with_id (); fallback = React.createElement "div" [] [ React.string "loading" ] };
+        div_with_id ();
+      ]
+  in
+  let html = ReactDOM.renderToString el in
+  assert_string html
+    "<div><!--$--><div id=\"\xc2\xabR1\xc2\xbb\"></div><!--/$--><div id=\"\xc2\xabR2\xc2\xbb\"></div></div>"
+
+let fragment_single_child () =
+  let el = React.createElement "div" [] [ React.Fragment (div_with_id ()) ] in
+  let html = ReactDOM.renderToString el in
+  assert_string html "<div><div id=\"\xc2\xabR0\xc2\xbb\"></div></div>"
+
+let fragment_multiple_children () =
+  let el = React.createElement "div" [] [ React.Fragment (React.List [ div_with_id (); div_with_id () ]) ] in
+  let html = ReactDOM.renderToString el in
+  assert_string html "<div><div id=\"\xc2\xabR1\xc2\xbb\"></div><div id=\"\xc2\xabR2\xc2\xbb\"></div></div>"
+
+let nested_fragments () =
+  let el = React.createElement "div" [] [ React.Fragment (React.Fragment (div_with_id ())) ] in
+  let html = ReactDOM.renderToString el in
+  assert_string html "<div><div id=\"\xc2\xabR0\xc2\xbb\"></div></div>"
+
+let null_between_siblings () =
+  let el = React.createElement "div" [] [ div_with_id (); React.Empty; div_with_id () ] in
+  let html = ReactDOM.renderToString el in
+  assert_string html "<div><div id=\"\xc2\xabR1\xc2\xbb\"></div><div id=\"\xc2\xabR3\xc2\xbb\"></div></div>"
+
+let many_siblings () =
+  let children = List.init 10 (fun _ -> div_with_id ()) in
+  let el = React.createElement "div" [] children in
+  let html = ReactDOM.renderToString el in
+  assert_string html
+    "<div><div id=\"\xc2\xabR1\xc2\xbb\"></div><div id=\"\xc2\xabR2\xc2\xbb\"></div><div \
+     id=\"\xc2\xabR3\xc2\xbb\"></div><div id=\"\xc2\xabR4\xc2\xbb\"></div><div id=\"\xc2\xabR5\xc2\xbb\"></div><div \
+     id=\"\xc2\xabR6\xc2\xbb\"></div><div id=\"\xc2\xabR7\xc2\xbb\"></div><div id=\"\xc2\xabR8\xc2\xbb\"></div><div \
+     id=\"\xc2\xabR9\xc2\xbb\"></div><div id=\"\xc2\xabRa\xc2\xbb\"></div></div>"
+
+let provider_transparent () =
+  let ctx = React.createContext "default" in
+  let el = mk_provider ctx ~value:"provided" ~children:(div_with_id ()) () in
+  let html = ReactDOM.renderToString el in
+  assert_string html "<div id=\"\xc2\xabR0\xc2\xbb\"></div>"
+
+let kitchen_sink () =
+  let ctx = React.createContext "default" in
+  let el =
+    React.createElement "div" []
+      [
+        mk_provider ctx ~value:"a"
+          ~children:
+            (React.Fragment
+               (React.List
+                  [
+                    div_with_id ();
+                    React.Suspense
+                      {
+                        key = None;
+                        children = div_with_id ();
+                        fallback = React.createElement "span" [] [ React.string "..." ];
+                      };
+                  ]))
+          ();
+        div_with_id ();
+      ]
+  in
+  let html = ReactDOM.renderToString el in
+  assert_string html
+    "<div><div id=\"\xc2\xabR5\xc2\xbb\"></div><!--$--><div id=\"\xc2\xabR9\xc2\xbb\"></div><!--/$--><div \
+     id=\"\xc2\xabR2\xc2\xbb\"></div></div>"
 
 let test title fn =
   (Printf.sprintf "ReactDOM.renderToString / useId / %s" title, [ Alcotest_lwt.test_case_sync "" `Quick fn ])
@@ -151,4 +227,13 @@ let tests =
     test "separate renders produce same IDs" separate_renders_same_ids;
     test "renderToStaticMarkup also works" static_markup_use_id;
     test "identifier_prefix" identifier_prefix;
+    test "useId inside Suspense (sync)" use_id_inside_suspense;
+    test "Suspense with useId + sibling" use_id_suspense_and_sibling;
+    test "Fragment single child is transparent" fragment_single_child;
+    test "Fragment multiple children forks" fragment_multiple_children;
+    test "Nested fragments transparent" nested_fragments;
+    test "Null/Empty between siblings preserves slots" null_between_siblings;
+    test "Many siblings (10, base-32 at Ra)" many_siblings;
+    test "Provider is transparent" provider_transparent;
+    test "Kitchen sink (Provider + Fragment + Suspense)" kitchen_sink;
   ]

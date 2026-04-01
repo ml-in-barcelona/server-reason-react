@@ -151,6 +151,24 @@ module Fiber = struct
   let set_visited_first_lower_case ~fiber value = fiber.visited_first_lower_case <- Some value
 end
 
+(* Map children with tree context forking (sync). Works with any return type. *)
+let map_children_with_tree_context f children =
+  match children with
+  | [] -> []
+  | [ single ] -> [ f single ]
+  | _ ->
+      let saved_ctx = !React.current_tree_context in
+      let total = List.length children in
+      let results =
+        List.mapi
+          (fun i el ->
+            React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:total ~index:i;
+            f el)
+          children
+      in
+      React.current_tree_context := saved_ctx;
+      results
+
 module Model = struct
   type chunk = Value of json | Debug_ref of json | Component_ref of json | Error of env * React.error
 
@@ -318,39 +336,74 @@ module Model = struct
           in
           let props = props_to_json attributes in
           let owner = Option.bind debug_info (fun (_, owner_idx) -> owner_idx) in
-          node ~key ~tag ~props ~owner (List.map (turn_element_into_payload ~context ~debug_info) children)
+          node ~key ~tag ~props ~owner
+            (map_children_with_tree_context (turn_element_into_payload ~context ~debug_info) children)
       | Fragment children -> turn_element_into_payload ~context ~debug_info children
-      | List children -> `List (List.map (turn_element_into_payload ~context ~debug_info) children)
-      | Array children -> `List (Array.map (turn_element_into_payload ~context ~debug_info) children |> Array.to_list)
+      | List children ->
+          `List (map_children_with_tree_context (turn_element_into_payload ~context ~debug_info) children)
+      | Array children ->
+          `List
+            (map_children_with_tree_context (turn_element_into_payload ~context ~debug_info) (Array.to_list children))
       | Upper_case_component (name, component) -> (
+          let saved_ctx = !React.current_tree_context in
+          React.reset_component_id_state saved_ctx;
           match component () with
           | element ->
-              if debug then
-                attach_debug_info ~name ~debug_info ~render_child:(fun ~debug_info ->
-                    turn_element_into_payload ~context ~debug_info element)
-              else turn_element_into_payload ~context ~debug_info element
+              let did_use_id = React.check_did_render_id_hook () in
+              if did_use_id then
+                React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:1 ~index:0;
+              let result =
+                if debug then
+                  attach_debug_info ~name ~debug_info ~render_child:(fun ~debug_info ->
+                      turn_element_into_payload ~context ~debug_info element)
+                else turn_element_into_payload ~context ~debug_info element
+              in
+              React.current_tree_context := saved_ctx;
+              result
           | exception exn ->
+              React.current_tree_context := saved_ctx;
               let error = exn_to_error exn in
               let index = Stream.push ~context (to_chunk (Error (env, error))) in
               `String (lazy_value index))
       | Async_component (name, component) -> (
-          let promise = component () in
+          let saved_ctx = !React.current_tree_context in
+          React.reset_component_id_state saved_ctx;
+          let promise =
+            try component ()
+            with exn ->
+              React.current_tree_context := saved_ctx;
+              raise exn
+          in
           match Lwt.state promise with
           | Fail exn ->
+              React.current_tree_context := saved_ctx;
               let error = exn_to_error exn in
               let index = Stream.push ~context (to_chunk (Error (env, error))) in
               `String (lazy_value index)
           | Return element ->
-              if debug then
-                attach_debug_info ~name ~debug_info ~render_child:(fun ~debug_info ->
-                    turn_element_into_payload ~context ~debug_info element)
-              else turn_element_into_payload ~context ~debug_info element
+              let did_use_id = React.check_did_render_id_hook () in
+              if did_use_id then
+                React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:1 ~index:0;
+              let result =
+                if debug then
+                  attach_debug_info ~name ~debug_info ~render_child:(fun ~debug_info ->
+                      turn_element_into_payload ~context ~debug_info element)
+                else turn_element_into_payload ~context ~debug_info element
+              in
+              React.current_tree_context := saved_ctx;
+              result
           | Sleep ->
+              let did_use_id = React.check_did_render_id_hook () in
+              if did_use_id then
+                React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:1 ~index:0;
               let promise =
                 try%lwt
                   let%lwt element = promise in
-                  Lwt.return (to_chunk (Value (turn_element_into_payload ~context ~debug_info element)))
+                  let result = to_chunk (Value (turn_element_into_payload ~context ~debug_info element)) in
+                  React.current_tree_context := saved_ctx;
+                  Lwt.return result
                 with exn ->
+                  React.current_tree_context := saved_ctx;
                   let error = exn_to_error exn in
                   Lwt.return (to_chunk (Error (env, error)))
               in
@@ -417,7 +470,8 @@ module Model = struct
   and models_to_payload ~context ~to_chunk ~env props =
     List.map (fun (name, value) -> (name, model_to_payload ~context ~to_chunk ~env value)) props
 
-  let render ?(env = `Dev) ?(debug = false) ?filter_stack_frame ?subscribe model =
+  let render ?(env = `Dev) ?(debug = false) ?filter_stack_frame ?subscribe ?identifier_prefix model =
+    React.reset_id_rendering ?prefix:identifier_prefix ();
     let stream, context = Stream.make () in
     let to_root_chunk model id =
       let payload = model_to_payload ~debug ?filter_stack_frame ~context ~to_chunk ~env model in
@@ -494,6 +548,25 @@ let html_suspense_placeholder ~fallback id =
 
 let chunk_stream_end_script = Html.node "script" [] [ Html.raw "window.srr_stream.close()" ]
 
+let map_children_with_tree_context_lwt f children =
+  match children with
+  | [] -> Lwt.return []
+  | [ single ] ->
+      let%lwt result = f single in
+      Lwt.return [ result ]
+  | _ ->
+      let saved_ctx = !React.current_tree_context in
+      let total = List.length children in
+      let%lwt results =
+        Lwt_list.mapi_s
+          (fun i el ->
+            React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:total ~index:i;
+            f el)
+          children
+      in
+      React.current_tree_context := saved_ctx;
+      Lwt.return results
+
 let rec client_to_html ~(fiber : Fiber.t) (element : React.element) =
   match element with
   | Empty -> Lwt.return Html.null
@@ -501,10 +574,10 @@ let rec client_to_html ~(fiber : Fiber.t) (element : React.element) =
   | Text text -> Lwt.return (Html.string text)
   | Fragment children -> client_to_html ~fiber children
   | List childrens ->
-      let%lwt html = Lwt_list.map_p (client_to_html ~fiber) childrens in
+      let%lwt html = map_children_with_tree_context_lwt (client_to_html ~fiber) childrens in
       Lwt.return (Html.list html)
   | Array childrens ->
-      let%lwt html = childrens |> Array.to_list |> Lwt_list.map_p (client_to_html ~fiber) in
+      let%lwt html = map_children_with_tree_context_lwt (client_to_html ~fiber) (Array.to_list childrens) in
       Lwt.return (Html.list html)
   | Lower_case_element { key; tag; attributes; children } ->
       let context = fiber.context in
@@ -520,18 +593,38 @@ let rec client_to_html ~(fiber : Fiber.t) (element : React.element) =
       in
       render_lower_case ~fiber ~key ~tag ~attributes ~children
   | Upper_case_component (_name, component) ->
+      let saved_ctx = !React.current_tree_context in
+      React.reset_component_id_state saved_ctx;
       let rec wait_for_suspense_to_resolve () =
         match component () with
         | exception React.Suspend (Any_promise promise) ->
             let%lwt _ = promise in
             wait_for_suspense_to_resolve ()
-        | exception _exn -> Lwt.return Html.null
-        | output -> client_to_html ~fiber output
+        | exception _exn ->
+            React.current_tree_context := saved_ctx;
+            Lwt.return Html.null
+        | output ->
+            let did_use_id = React.check_did_render_id_hook () in
+            if did_use_id then
+              React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:1 ~index:0;
+            let%lwt result = client_to_html ~fiber output in
+            React.current_tree_context := saved_ctx;
+            Lwt.return result
       in
       wait_for_suspense_to_resolve ()
-  | Async_component (_, component) ->
-      let%lwt element = component () in
-      client_to_html ~fiber element
+  | Async_component (_, component) -> (
+      let saved_ctx = !React.current_tree_context in
+      React.reset_component_id_state saved_ctx;
+      try%lwt
+        let%lwt element = component () in
+        let did_use_id = React.check_did_render_id_hook () in
+        if did_use_id then React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:1 ~index:0;
+        let%lwt result = client_to_html ~fiber element in
+        React.current_tree_context := saved_ctx;
+        Lwt.return result
+      with exn ->
+        React.current_tree_context := saved_ctx;
+        raise exn)
   | Suspense { key = _; children; fallback } -> (
       let%lwt fallback_html = client_to_html ~fiber fallback in
       let context = fiber.context in
@@ -567,7 +660,7 @@ and render_lower_case ~fiber ~key:_ ~tag ~attributes ~children =
   match ReactDOM.getDangerouslyInnerHtml attributes with
   | Some inner_html -> Lwt.return (Html.node tag html_props [ Html.raw inner_html ])
   | None ->
-      let%lwt html = Lwt_list.map_p (client_to_html ~fiber) children in
+      let%lwt html = map_children_with_tree_context_lwt (client_to_html ~fiber) children in
       Lwt.return (Html.node tag html_props html)
 
 let is_async props =
@@ -592,10 +685,31 @@ let rec render_element_to_html ~(fiber : Fiber.t) (element : React.element) : (H
   | List list -> elements_to_html ~fiber list
   | Array arr -> elements_to_html ~fiber (Array.to_list arr)
   | Upper_case_component (_name, component) -> (
-      match component () with element -> render_element_to_html ~fiber element)
-  | Async_component (_, component) ->
-      let%lwt element = component () in
-      render_element_to_html ~fiber element
+      let saved_ctx = !React.current_tree_context in
+      React.reset_component_id_state saved_ctx;
+      match component () with
+      | element ->
+          let did_use_id = React.check_did_render_id_hook () in
+          if did_use_id then React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:1 ~index:0;
+          let%lwt result = render_element_to_html ~fiber element in
+          React.current_tree_context := saved_ctx;
+          Lwt.return result
+      | exception exn ->
+          React.current_tree_context := saved_ctx;
+          raise exn)
+  | Async_component (_, component) -> (
+      let saved_ctx = !React.current_tree_context in
+      React.reset_component_id_state saved_ctx;
+      try%lwt
+        let%lwt element = component () in
+        let did_use_id = React.check_did_render_id_hook () in
+        if did_use_id then React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:1 ~index:0;
+        let%lwt result = render_element_to_html ~fiber element in
+        React.current_tree_context := saved_ctx;
+        Lwt.return result
+      with exn ->
+        React.current_tree_context := saved_ctx;
+        raise exn)
   | Client_component { key; import_module; import_name; props; client } ->
       let context = fiber.context in
       let env = fiber.env in
@@ -746,7 +860,7 @@ and render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html ()
       Lwt.return (Html.node tag html_props [ html ], Model.node ~tag ~key ~props:json_props model_children)
 
 and elements_to_html ~fiber elements =
-  let%lwt html_and_models = elements |> Lwt_list.map_p (render_element_to_html ~fiber) in
+  let%lwt html_and_models = map_children_with_tree_context_lwt (render_element_to_html ~fiber) elements in
   let rec split_rev acc_a acc_b = function
     | [] -> (List.rev acc_a, List.rev acc_b)
     | (a, b) :: rest -> split_rev (a :: acc_a) (b :: acc_b) rest
@@ -768,7 +882,8 @@ let default_progressive_chunk_size = 12800
 
 let render_html ?(skipRoot = false) ?(env = `Dev) ?debug:(_ = false) ?timeout
     ?(progressive_chunk_size = default_progressive_chunk_size) ?bootstrapScriptContent ?bootstrapScripts
-    ?bootstrapModules element =
+    ?bootstrapModules ?identifier_prefix element =
+  React.reset_id_rendering ?prefix:identifier_prefix ();
   React.Cache.with_request_cache_async (fun () ->
       let progressive_chunk_size = max 1 progressive_chunk_size in
       let initial_resources =
