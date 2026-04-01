@@ -1,14 +1,11 @@
 # Changes
 
-## unreleased
+## 0.5.0
 
 * Implement hydration-compatible `useId` using React's tree-position-based algorithm, matching React 19 output. Adds `?identifier_prefix` to `renderToString`, `renderToStaticMarkup`, `renderToStream` and `render_html`. Fixes https://github.com/ml-in-barcelona/server-reason-react/issues/93
 * Fix `renderToString` rendering Suspense children twice (once as trial, once with markers) due to side-effectful match expression. Children are now rendered into a separate buffer
 * Change shape for React.Event.* since Js.t is now supported. All methods fail at runtime with `Runtime.fail_impossible_action_in_ssr`
 * [server-reason-react.ppx] Strip units at any position (supporting mlx difference with [@JSX] transformations)
-
-## 0.5.0
-
 * Add runtime error with clear message when `React.cloneElement` is used with uppercase components by @davesnx
 * Allow `[@platform js]` and `[@browser_only]` on externals to conditionally exclude them from native builds. Fixes https://github.com/ml-in-barcelona/server-reason-react/issues/170 by @davesnx
 * Generate `makeProps` in the PPX by @davesnx in https://github.com/ml-in-barcelona/server-reason-react/pull/364
