@@ -25,6 +25,11 @@ let assert_stream (stream : string Lwt_stream.t) expected =
   if content = [] then Lwt.return (Alcotest.fail "stream should not be empty")
   else Lwt.return (assert_list Alcotest.string content expected)
 
+let mk_suspense ?key ?fallback ?children () = React.Suspense.make ?key (React.Suspense.makeProps ?fallback ?children ())
+
+let mk_context context ~value ~children () =
+  React.Context.provider context (React.Context.makeProps ~value ~children ())
+
 module Sleep = struct
   let cached = ref false
   let destroy () = cached := false
@@ -71,7 +76,7 @@ let suspense_without_promise () =
     React.Upper_case_component
       ("hi", fun () -> React.createElement "div" [] [ React.createElement "span" [] [ React.string "Hello" ] ])
   in
-  let app () = React.Suspense.make ~fallback:(React.string "Loading...") ~children:hi () in
+  let app () = mk_suspense ~fallback:(React.string "Loading...") ~children:hi () in
   let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
   assert_stream stream [ "<div><span>Hello</span></div>" ]
 
@@ -96,7 +101,7 @@ let suspense_with_resolved_text_after_element_with_text_child () =
                    React.string "before "; React.createElement "span" [] [ React.string "inner" ]; React.string " after";
                  ]) )
     in
-    React.Suspense.make ~fallback:(React.string "Loading...") ~children:(deferred ()) ()
+    mk_suspense ~fallback:(React.string "Loading...") ~children:(deferred ()) ()
   in
   let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
   assert_stream stream
@@ -126,7 +131,7 @@ let suspense_with_always_throwing () =
   (* This test is very fragile since it relies on the stack trace being the same (so line numbers and methods should match).
      We disable backtracing to avoid having to match the backtrace *)
   Printexc.record_backtrace false;
-  let app () = React.Suspense.make ~fallback:(React.string "Loading...") ~children:(always_throwing_component ()) () in
+  let app () = mk_suspense ~fallback:(React.string "Loading...") ~children:(always_throwing_component ()) () in
   let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
   (* and we need to enable it back for the next test *)
   Printexc.record_backtrace true;
@@ -142,7 +147,7 @@ let suspense_with_react_use () =
           let delay = React.Experimental.usePromise (Sleep.delay 0.05) in
           React.createElement "div" [] [ React.createElement "span" [] [ React.string "Hello "; React.float delay ] ] )
   in
-  let app () = React.Suspense.make ~fallback:(React.string "Loading...") ~children:time () in
+  let app () = mk_suspense ~fallback:(React.string "Loading...") ~children:time () in
   let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
   assert_stream stream
     [
@@ -185,7 +190,7 @@ let suspense_with_async_component () =
   let app () =
     React.createElement "div" []
       [
-        React.Suspense.make ~fallback:(React.string "Fallback 1")
+        mk_suspense ~fallback:(React.string "Fallback 1")
           ~children:(deffered_component ~seconds:0.02 ~children:(React.string "lol") ())
           ();
       ]
@@ -203,11 +208,11 @@ let suspense_with_async_component () =
 
 let suspense_with_nested_suspense () =
   let app () =
-    React.Suspense.make ~fallback:(React.string "Fallback 1")
+    mk_suspense ~fallback:(React.string "Fallback 1")
       ~children:
         (deffered_component ~seconds:0.02
            ~children:
-             (React.Suspense.make ~fallback:(React.string "Fallback 2")
+             (mk_suspense ~fallback:(React.string "Fallback 2")
                 ~children:(deffered_component ~seconds:0.02 ~children:(React.string "lol") ())
                 ())
            ())
@@ -229,12 +234,12 @@ let suspense_with_nested_suspense () =
 
 let suspense_with_nested_suspense_with_error () =
   let app () =
-    React.Suspense.make ~fallback:(React.string "Fallback 1")
+    mk_suspense ~fallback:(React.string "Fallback 1")
       ~children:
         (deffered_component ~seconds:0.02
            ~children:
              (let _ = Printexc.record_backtrace false in
-              React.Suspense.make ~fallback:(React.string "Fallback 2") ~children:(always_throwing_component ()) ())
+              mk_suspense ~fallback:(React.string "Fallback 2") ~children:(always_throwing_component ()) ())
            ())
       ()
   in
@@ -280,13 +285,13 @@ let suspense_with_multiple_children () =
   let app () =
     React.createElement "div" []
       [
-        React.Suspense.make ~fallback:(React.string "Loading 1")
+        mk_suspense ~fallback:(React.string "Loading 1")
           ~children:(deffered_component ~seconds:0.01 ~children:(React.string "First") ())
           ();
-        React.Suspense.make ~fallback:(React.string "Loading 2")
+        mk_suspense ~fallback:(React.string "Loading 2")
           ~children:(deffered_component ~seconds:0.02 ~children:(React.string "Second") ())
           ();
-        React.Suspense.make ~fallback:(React.string "Loading 3")
+        mk_suspense ~fallback:(React.string "Loading 3")
           ~children:(deffered_component ~seconds:0.03 ~children:(React.string "Third") ())
           ();
       ]
@@ -311,13 +316,13 @@ let suspense_with_multiple_children_reordered () =
   let app () =
     React.createElement "div" []
       [
-        React.Suspense.make ~fallback:(React.string "Loading 3")
+        mk_suspense ~fallback:(React.string "Loading 3")
           ~children:(deffered_component ~seconds:0.03 ~children:(React.string "Third") ())
           ();
-        React.Suspense.make ~fallback:(React.string "Loading 1")
+        mk_suspense ~fallback:(React.string "Loading 1")
           ~children:(deffered_component ~seconds:0.01 ~children:(React.string "First") ())
           ();
-        React.Suspense.make ~fallback:(React.string "Loading 2")
+        mk_suspense ~fallback:(React.string "Loading 2")
           ~children:(deffered_component ~seconds:0.02 ~children:(React.string "Second") ())
           ();
       ]
@@ -340,15 +345,15 @@ let suspense_with_multiple_children_reordered () =
 
 let suspense_with_nested_suspenses () =
   let app () =
-    React.Suspense.make ~fallback:(React.string "Outer loading")
+    mk_suspense ~fallback:(React.string "Outer loading")
       ~children:
         (React.createElement "div" []
            [
              React.string "Before";
-             React.Suspense.make ~fallback:(React.string "Inner loading 1")
+             mk_suspense ~fallback:(React.string "Inner loading 1")
                ~children:(deffered_component ~seconds:0.01 ~children:(React.string "First") ())
                ();
-             React.Suspense.make ~fallback:(React.string "Inner loading 2")
+             mk_suspense ~fallback:(React.string "Inner loading 2")
                ~children:(deffered_component ~seconds:0.02 ~children:(React.string "Second") ())
                ();
            ])
@@ -376,14 +381,14 @@ let suspense_with_concurrent_suspenses () =
         React.createElement "div"
           [ React.JSX.String ("id", "id", "hydrate1") ]
           [
-            React.Suspense.make ~fallback:(React.string "Loading 1")
+            mk_suspense ~fallback:(React.string "Loading 1")
               ~children:(deffered_component ~seconds:0.01 ~children:(React.string "Hydrated 1") ())
               ();
           ];
         React.createElement "div"
           [ React.JSX.String ("id", "id", "hydrate2") ]
           [
-            React.Suspense.make ~fallback:(React.string "Loading 2")
+            mk_suspense ~fallback:(React.string "Loading 2")
               ~children:(deffered_component ~seconds:0.02 ~children:(React.string "Hydrated 2") ())
               ();
           ];
@@ -408,7 +413,7 @@ let suspense_with_comments () =
     React.createElement "div" []
       [
         React.createElement "div" [] [ React.string "<!-- tricky comment -->" ];
-        React.Suspense.make ~fallback:(React.string "Loading")
+        mk_suspense ~fallback:(React.string "Loading")
           ~children:(deffered_component ~seconds:0.01 ~children:(React.string "Content") ())
           ();
       ]
@@ -428,10 +433,10 @@ let abort_streaming () =
   let app () =
     React.createElement "div" []
       [
-        React.Suspense.make ~fallback:(React.string "Loading 1")
+        mk_suspense ~fallback:(React.string "Loading 1")
           ~children:(deffered_component ~seconds:0.05 ~children:(React.string "Content 1") ())
           ();
-        React.Suspense.make ~fallback:(React.string "Loading 2")
+        mk_suspense ~fallback:(React.string "Loading 2")
           ~children:(deffered_component ~seconds:0.10 ~children:(React.string "Content 2") ())
           ();
       ]
@@ -452,7 +457,7 @@ let abort_streaming () =
 
 let dangerous_html_in_suspense () =
   let app () =
-    React.Suspense.make ~fallback:(React.string "Loading...")
+    mk_suspense ~fallback:(React.string "Loading...")
       ~children:
         (React.Async_component
            ( "Dangerous and sleep",
@@ -487,7 +492,7 @@ let context_basic () =
           let value = React.useContext context in
           React.createElement "span" [] [ React.string value ] )
   in
-  let app () = React.Context.provider context ~value:"provided" ~children:consumer () in
+  let app () = mk_context context ~value:"provided" ~children:consumer () in
   let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
   assert_stream stream [ "<span>provided</span>" ]
 
@@ -513,13 +518,13 @@ let context_nested_providers () =
           React.createElement "span" [] [ React.string value ] )
   in
   let app () =
-    React.Context.provider context ~value:"outer"
+    mk_context context ~value:"outer"
       ~children:
         (React.list
            [
              consumer ();
              React.Upper_case_component
-               ("inner_provider", fun () -> React.Context.provider context ~value:"inner" ~children:(consumer ()) ());
+               ("inner_provider", fun () -> mk_context context ~value:"inner" ~children:(consumer ()) ());
              consumer ();
            ])
       ()
@@ -539,8 +544,8 @@ let context_multiple_independent () =
           React.createElement "div" [] [ React.string a; React.string "-"; React.string b ] )
   in
   let app () =
-    React.Context.provider context_a ~value:"a-provided"
-      ~children:(React.Context.provider context_b ~value:"b-provided" ~children:(consumer ()) ())
+    mk_context context_a ~value:"a-provided"
+      ~children:(mk_context context_b ~value:"b-provided" ~children:(consumer ()) ())
       ()
   in
   let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
@@ -556,8 +561,8 @@ let context_with_suspense () =
           React.createElement "span" [] [ React.string value ] )
   in
   let app () =
-    React.Context.provider context ~value:"provided"
-      ~children:(React.Suspense.make ~fallback:(React.string "loading") ~children:consumer ())
+    mk_context context ~value:"provided"
+      ~children:(mk_suspense ~fallback:(React.string "loading") ~children:consumer ())
       ()
   in
   let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in

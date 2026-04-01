@@ -63,7 +63,7 @@ module Provider = {
           "children": children,
         },
       )
-    | Server => provider(~value, ~children, ())
+    | Server => provider(React.Context.makeProps(~value, ~children, ()))
     };
   };
 };

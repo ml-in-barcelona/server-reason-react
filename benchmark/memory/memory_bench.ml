@@ -138,18 +138,18 @@ let () =
   let scenarios =
     let open Benchmark_scenarios in
     [
-      ("Trivial", fun () -> ReactDOM.renderToStaticMarkup (Trivial.make ()));
-      ("ShallowTree", fun () -> ReactDOM.renderToStaticMarkup (ShallowTree.make ()));
-      ("DeepTree10", fun () -> ReactDOM.renderToStaticMarkup (DeepTree.Depth10.make ()));
-      ("DeepTree50", fun () -> ReactDOM.renderToStaticMarkup (DeepTree.Depth50.make ()));
-      ("WideTree10", fun () -> ReactDOM.renderToStaticMarkup (WideTree.Wide10.make ()));
-      ("WideTree100", fun () -> ReactDOM.renderToStaticMarkup (WideTree.Wide100.make ()));
-      ("Table10", fun () -> ReactDOM.renderToStaticMarkup (Table.Table10.make ()));
-      ("Table100", fun () -> ReactDOM.renderToStaticMarkup (Table.Table100.make ()));
-      ("PropsSmall", fun () -> ReactDOM.renderToStaticMarkup (PropsHeavy.Small.make ()));
-      ("PropsMedium", fun () -> ReactDOM.renderToStaticMarkup (PropsHeavy.Medium.make ()));
-      ("Dashboard", fun () -> ReactDOM.renderToStaticMarkup (Dashboard.make ()));
-      ("Form", fun () -> ReactDOM.renderToStaticMarkup (Form.make ()));
+      ("Trivial", fun () -> ReactDOM.renderToStaticMarkup (Trivial.make (Trivial.makeProps ())));
+      ("ShallowTree", fun () -> ReactDOM.renderToStaticMarkup (ShallowTree.make (ShallowTree.makeProps ())));
+      ("DeepTree10", fun () -> ReactDOM.renderToStaticMarkup (DeepTree.Depth10.make (DeepTree.Depth10.makeProps ())));
+      ("DeepTree50", fun () -> ReactDOM.renderToStaticMarkup (DeepTree.Depth50.make (DeepTree.Depth50.makeProps ())));
+      ("WideTree10", fun () -> ReactDOM.renderToStaticMarkup (WideTree.Wide10.make (WideTree.Wide10.makeProps ())));
+      ("WideTree100", fun () -> ReactDOM.renderToStaticMarkup (WideTree.Wide100.make (WideTree.Wide100.makeProps ())));
+      ("Table10", fun () -> ReactDOM.renderToStaticMarkup (Table.Table10.make (Table.Table10.makeProps ())));
+      ("Table100", fun () -> ReactDOM.renderToStaticMarkup (Table.Table100.make (Table.Table100.makeProps ())));
+      ("PropsSmall", fun () -> ReactDOM.renderToStaticMarkup (PropsHeavy.Small.make (PropsHeavy.Small.makeProps ())));
+      ("PropsMedium", fun () -> ReactDOM.renderToStaticMarkup (PropsHeavy.Medium.make (PropsHeavy.Medium.makeProps ())));
+      ("Dashboard", fun () -> ReactDOM.renderToStaticMarkup (Dashboard.make (Dashboard.makeProps ())));
+      ("Form", fun () -> ReactDOM.renderToStaticMarkup (Form.make (Form.makeProps ())));
     ]
   in
 

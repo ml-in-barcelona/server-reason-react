@@ -50,7 +50,11 @@ let server =
          |> RouterRSC.routeDefinitionsHandlers(
               "/demo/router",
               ~bootstrapModules=["/static/demo/NestedRouterRSC.re.js"],
-              ~document=Pages.NestedRouter.Document.make(),
+              ~document=
+                (~children) =>
+                  Pages.NestedRouter.Document.make(
+                    Pages.NestedRouter.Document.makeProps(~children, ()),
+                  ),
               ~routeDefinitions=Pages.NestedRouter.routeDefinitions,
             ),
     ]),

@@ -4,5 +4,8 @@
   alcotest
   dream
   react
+  js
   server-reason-react.url_native
-  nested_router_native))
+  nested_router_native)
+ (preprocess
+  (pps melange_native_ppx)))

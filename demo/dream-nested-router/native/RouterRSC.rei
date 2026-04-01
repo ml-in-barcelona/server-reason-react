@@ -1,40 +1,34 @@
 module type MAIN_LAYOUT = {
-  let make: (~key: string=?, ~children: React.element, unit) => React.element;
+  [@react.component]
+  let make: (~children: React.element, unit) => React.element;
 };
 
 module type MAIN_PAGE = {
-  let make:
-    (~key: string=?, ~query: URL.SearchParams.t, unit) => React.element;
+  [@react.component]
+  let make: (~query: URL.SearchParams.t, unit) => React.element;
 };
 
 module type LAYOUT = {
+  [@react.component]
   let make:
-    (
-      ~key: string=?,
-      ~children: React.element,
-      ~params: DynamicParams.t,
-      unit
-    ) =>
-    React.element;
+    (~children: React.element, ~params: DynamicParams.t, unit) => React.element;
 };
 
 module type PAGE = {
+  [@react.component]
   let make:
-    (
-      ~key: string=?,
-      ~params: DynamicParams.t,
-      ~query: URL.SearchParams.t,
-      unit
-    ) =>
+    (~params: DynamicParams.t, ~query: URL.SearchParams.t, unit) =>
     React.element;
 };
 
 module type NOT_FOUND = {
-  let make: (~key: string=?, ~path: string, unit) => React.element;
+  [@react.component]
+  let make: (~path: string, unit) => React.element;
 };
 
 module type LOADING = {
-  let make: (~key: string=?, unit) => React.element;
+  [@react.component]
+  let make: unit => React.element;
 };
 
 type routeConfig;

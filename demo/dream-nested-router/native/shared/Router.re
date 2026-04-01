@@ -381,23 +381,27 @@ let make =
        )
      | Server =>
        NavigationResponse.internalProvider(
-         ~value=None,
-         ~children=
-           provider(
-             ~value=
-               Some({
-                 navigate: (~replace=?, ~revalidate=?, ~shallow=?, _) =>
-                   failwith("navigate isn't supported on server"),
-                 params: dynamicParams,
-                 url,
-                 pathname,
-                 searchParams,
-                 isNavigating,
-               }),
-             ~children=element,
-             (),
-           ),
-         (),
+         React.Context.makeProps(
+           ~value=None,
+           ~children=
+             provider(
+               React.Context.makeProps(
+                 ~value=
+                   Some({
+                     navigate: (~replace=?, ~revalidate=?, ~shallow=?, _) =>
+                       failwith("navigate isn't supported on server"),
+                     params: dynamicParams,
+                     url,
+                     pathname,
+                     searchParams,
+                     isNavigating,
+                   }),
+                 ~children=element,
+                 (),
+               ),
+             ),
+           (),
+         ),
        )
      }}
   </React.Fragment>;

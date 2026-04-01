@@ -1,86 +1,111 @@
-  $ cat > dune-project << EOF
-  > (lang dune 3.10)
-  > EOF
-
-  $ cat > dune << EOF
-  > (executable
-  >  (name input)
-  >  (libraries server-reason-react.react server-reason-react.reactDom melange-json)
-  >  (preprocess (pps server-reason-react.ppx -shared-folder-prefix=/ server-reason-react.melange_ppx melange-json-native.ppx)))
-  > EOF
-
-  $ dune describe pp input.re
-  [@ocaml.ppx.context
-    {
-      tool_name: "ppx_driver",
-      include_dirs: [],
-      hidden_include_dirs: [],
-      load_path: ([], []),
-      open_modules: [],
-      for_package: None,
-      debug: false,
-      use_threads: false,
-      use_vmthreads: false,
-      recursive_types: false,
-      principal: false,
-      no_alias_deps: false,
-      unboxed_types: false,
-      unsafe_string: false,
-      cookies: [],
-    }
-  ];
-  let unsafeWhenNotZero = (prop, value) =>
-    if (value == 0) {
-      [];
-    } else {
-      [prop ++ "-" ++ Int.to_string(value)];
-    };
+  $ ../ppx.sh --output ml input.re
+  let unsafeWhenNotZero prop =
+   fun value -> if value = 0 then [] else [ prop ^ "-" ^ Int.to_string value ]
   
-  let make =
-      (
-        ~key as _: option(string)=?,
-        ~children=?,
-        ~top=0,
-        ~left=0,
-        ~right=0,
-        ~bottom=0,
-      ) =>
-    [@warning "-16"]
-    (
-      (~all=0, ()) =>
-        [@implicit_arity]
-        React.Upper_case_component(
-          Stdlib.__FUNCTION__,
-          () => {
-            let className =
-              Cx.make(
-                List.flatten([
-                  unsafeWhenNotZero("mt", top),
-                  unsafeWhenNotZero("mb", bottom),
-                  unsafeWhenNotZero("ml", left),
-                  unsafeWhenNotZero("mr", right),
-                  unsafeWhenNotZero("m", all),
-                ]),
-              );
+  include struct
+    let makeProps ?(children : 'children option) ?(top : 'top option)
+        ?(left : 'left option) ?(right : 'right option) ?(bottom : 'bottom option)
+        ?(all : 'all option) () =
+      let __js_obj_cell_0, __js_obj_entry_0 =
+        Js.Obj.Internal.slot_ref ~method_name:"children" ~js_name:"children"
+          ~present:(match children with None -> false | Some _ -> true)
+          children
+      in
+      let __js_obj_cell_1, __js_obj_entry_1 =
+        Js.Obj.Internal.slot_ref ~method_name:"top" ~js_name:"top"
+          ~present:(match top with None -> false | Some _ -> true)
+          top
+      in
+      let __js_obj_cell_2, __js_obj_entry_2 =
+        Js.Obj.Internal.slot_ref ~method_name:"left" ~js_name:"left"
+          ~present:(match left with None -> false | Some _ -> true)
+          left
+      in
+      let __js_obj_cell_3, __js_obj_entry_3 =
+        Js.Obj.Internal.slot_ref ~method_name:"right" ~js_name:"right"
+          ~present:(match right with None -> false | Some _ -> true)
+          right
+      in
+      let __js_obj_cell_4, __js_obj_entry_4 =
+        Js.Obj.Internal.slot_ref ~method_name:"bottom" ~js_name:"bottom"
+          ~present:(match bottom with None -> false | Some _ -> true)
+          bottom
+      in
+      let __js_obj_cell_5, __js_obj_entry_5 =
+        Js.Obj.Internal.slot_ref ~method_name:"all" ~js_name:"all"
+          ~present:(match all with None -> false | Some _ -> true)
+          all
+      in
+      let __js_obj =
+        object
+          method children = !__js_obj_cell_0
+          method top = !__js_obj_cell_1
+          method left = !__js_obj_cell_2
+          method right = !__js_obj_cell_3
+          method bottom = !__js_obj_cell_4
+          method all = !__js_obj_cell_5
+        end
+      in
+      (Js.Obj.Internal.register_abstract __js_obj
+         [
+           __js_obj_entry_0;
+           __js_obj_entry_1;
+           __js_obj_entry_2;
+           __js_obj_entry_3;
+           __js_obj_entry_4;
+           __js_obj_entry_5;
+         ]
+        : < children : 'children option
+          ; top : 'top option
+          ; left : 'left option
+          ; right : 'right option
+          ; bottom : 'bottom option
+          ; all : 'all option >
+          Js.t)
   
-            React.createElement(
-              "div",
-              Stdlib.List.filter_map(
-                Stdlib.Fun.id,
-                [
-                  Some(
-                    [@implicit_arity]
-                    React.JSX.String("class", "className", className: string),
-                  ),
-                ],
-              ),
-              [
-                switch (children) {
-                | None => React.null
-                | Some(c) => c
-                },
-              ],
-            );
-          },
-        )
-    );
+    let make ?key:(_ : string option) ?children =
+     fun ?(top = 0) ->
+      fun ?(left = 0) ->
+       fun ?(right = 0) ->
+        fun ?(bottom = 0) ->
+         (fun ?(all = 0) () ->
+          React.Upper_case_component
+            ( Stdlib.__FUNCTION__,
+              fun () ->
+                let className =
+                  Cx.make
+                    (List.flatten
+                       [
+                         unsafeWhenNotZero "mt" top;
+                         unsafeWhenNotZero "mb" bottom;
+                         unsafeWhenNotZero "ml" left;
+                         unsafeWhenNotZero "mr" right;
+                         unsafeWhenNotZero "m" all;
+                       ])
+                in
+                React.createElement "div"
+                  (Stdlib.List.filter_map Stdlib.Fun.id
+                     [
+                       Some
+                         (React.JSX.String
+                            ("class", "className", (className : string)));
+                     ])
+                  [
+                    (match children with
+                    | None -> React.null
+                    | ((Some c) [@explicit_arity]) -> c);
+                  ] ))
+          [@warning "-16"]
+  
+    let make ?(key : string option)
+        (Props :
+          < children : 'children option
+          ; top : 'top option
+          ; left : 'left option
+          ; right : 'right option
+          ; bottom : 'bottom option
+          ; all : 'all option >
+          Js.t) =
+      make ?key ?children:Props#children ?top:Props#top ?left:Props#left
+        ?right:Props#right ?bottom:Props#bottom ?all:Props#all ()
+  end

@@ -93,23 +93,23 @@ let main () =
   let scenarios =
     let open Benchmark_scenarios in
     [
-      ("Trivial", fun () -> Benchmark_scenarios.Trivial.make ());
-      ("ShallowTree", fun () -> ShallowTree.make ());
-      ("DeepTree10", fun () -> DeepTree.Depth10.make ());
-      ("DeepTree50", fun () -> DeepTree.Depth50.make ());
-      ("WideTree10", fun () -> WideTree.Wide10.make ());
-      ("WideTree100", fun () -> WideTree.Wide100.make ());
-      ("WideTree500", fun () -> WideTree.Wide500.make ());
-      ("Table10", fun () -> Table.Table10.make ());
-      ("Table100", fun () -> Table.Table100.make ());
-      ("Table500", fun () -> Table.Table500.make ());
-      ("PropsSmall", fun () -> PropsHeavy.Small.make ());
-      ("PropsMedium", fun () -> PropsHeavy.Medium.make ());
-      ("Ecommerce24", fun () -> Ecommerce.Products24.make ());
-      ("Ecommerce48", fun () -> Ecommerce.Products48.make ());
-      ("Dashboard", fun () -> Dashboard.make ());
-      ("Blog50", fun () -> Blog.Blog50.make ());
-      ("Form", fun () -> Form.make ());
+      ("Trivial", fun () -> Benchmark_scenarios.Trivial.make (Benchmark_scenarios.Trivial.makeProps ()));
+      ("ShallowTree", fun () -> ShallowTree.make (ShallowTree.makeProps ()));
+      ("DeepTree10", fun () -> DeepTree.Depth10.make (DeepTree.Depth10.makeProps ()));
+      ("DeepTree50", fun () -> DeepTree.Depth50.make (DeepTree.Depth50.makeProps ()));
+      ("WideTree10", fun () -> WideTree.Wide10.make (WideTree.Wide10.makeProps ()));
+      ("WideTree100", fun () -> WideTree.Wide100.make (WideTree.Wide100.makeProps ()));
+      ("WideTree500", fun () -> WideTree.Wide500.make (WideTree.Wide500.makeProps ()));
+      ("Table10", fun () -> Table.Table10.make (Table.Table10.makeProps ()));
+      ("Table100", fun () -> Table.Table100.make (Table.Table100.makeProps ()));
+      ("Table500", fun () -> Table.Table500.make (Table.Table500.makeProps ()));
+      ("PropsSmall", fun () -> PropsHeavy.Small.make (PropsHeavy.Small.makeProps ()));
+      ("PropsMedium", fun () -> PropsHeavy.Medium.make (PropsHeavy.Medium.makeProps ()));
+      ("Ecommerce24", fun () -> Ecommerce.Products24.make (Ecommerce.Products24.makeProps ()));
+      ("Ecommerce48", fun () -> Ecommerce.Products48.make (Ecommerce.Products48.makeProps ()));
+      ("Dashboard", fun () -> Dashboard.make (Dashboard.makeProps ()));
+      ("Blog50", fun () -> Blog.Blog50.make (Blog.Blog50.makeProps ()));
+      ("Form", fun () -> Form.make (Form.makeProps ()));
     ]
   in
 

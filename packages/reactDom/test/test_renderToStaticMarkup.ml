@@ -137,6 +137,7 @@ module ContextConsumer = struct
   let make () =
     let value = React.useContext context in
     React.createElement "section" [] [ React.int value ]
+  [@@react.component]
 end
 
 let context () =
@@ -144,9 +145,11 @@ let context () =
     React.Upper_case_component
       ( "component",
         fun () ->
-          ContextProvider.make ~value:20
-            ~children:(React.Upper_case_component ("context", fun () -> ContextConsumer.make ()))
-            () )
+          ContextProvider.make
+            (ContextProvider.makeProps ~value:20
+               ~children:
+                 (React.Upper_case_component ("context", fun () -> ContextConsumer.make (ContextConsumer.makeProps ())))
+               ()) )
   in
   assert_string (ReactDOM.renderToStaticMarkup component) "<section>20</section>"
 
@@ -155,20 +158,26 @@ let nested_context () =
     React.Upper_case_component
       ( "app",
         fun () ->
-          ContextProvider.make ~value:10
-            ~children:
-              (React.list
-                 [
-                   React.Upper_case_component ("inner_consumer", fun () -> ContextConsumer.make ());
-                   React.Upper_case_component
-                     ( "nested_provider",
-                       fun () ->
-                         ContextProvider.make ~value:20
-                           ~children:(React.Upper_case_component ("nested_consumer", fun () -> ContextConsumer.make ()))
-                           () );
-                   React.Upper_case_component ("after_nested_consumer", fun () -> ContextConsumer.make ());
-                 ])
-            () )
+          ContextProvider.make
+            (ContextProvider.makeProps ~value:10
+               ~children:
+                 (React.list
+                    [
+                      React.Upper_case_component
+                        ("inner_consumer", fun () -> ContextConsumer.make (ContextConsumer.makeProps ()));
+                      React.Upper_case_component
+                        ( "nested_provider",
+                          fun () ->
+                            ContextProvider.make
+                              (ContextProvider.makeProps ~value:20
+                                 ~children:
+                                   (React.Upper_case_component
+                                      ("nested_consumer", fun () -> ContextConsumer.make (ContextConsumer.makeProps ())))
+                                 ()) );
+                      React.Upper_case_component
+                        ("after_nested_consumer", fun () -> ContextConsumer.make (ContextConsumer.makeProps ()));
+                    ])
+               ()) )
   in
   assert_string
     (ReactDOM.renderToStaticMarkup component)

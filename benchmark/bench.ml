@@ -67,30 +67,49 @@ let () =
   let open Benchmark_scenarios in
   let results =
     [
-      measure_benchmark ~name:"trivial/renderToStaticMarkup" (fun () -> ReactDOM.renderToStaticMarkup (Trivial.make ()));
-      measure_benchmark ~name:"trivial/renderToString" (fun () -> ReactDOM.renderToString (Trivial.make ()));
-      measure_benchmark ~name:"depth/10" (fun () -> ReactDOM.renderToStaticMarkup (DeepTree.Depth10.make ()));
-      measure_benchmark ~name:"depth/25" (fun () -> ReactDOM.renderToStaticMarkup (DeepTree.Depth25.make ()));
-      measure_benchmark ~name:"depth/50" (fun () -> ReactDOM.renderToStaticMarkup (DeepTree.Depth50.make ()));
-      measure_benchmark ~name:"depth/100" (fun () -> ReactDOM.renderToStaticMarkup (DeepTree.Depth100.make ()));
-      measure_benchmark ~name:"width/10" (fun () -> ReactDOM.renderToStaticMarkup (WideTree.Wide10.make ()));
-      measure_benchmark ~name:"width/100" (fun () -> ReactDOM.renderToStaticMarkup (WideTree.Wide100.make ()));
-      measure_benchmark ~name:"width/500" (fun () -> ReactDOM.renderToStaticMarkup (WideTree.Wide500.make ()));
-      measure_benchmark ~name:"width/1000" (fun () -> ReactDOM.renderToStaticMarkup (WideTree.Wide1000.make ()));
-      measure_benchmark ~name:"table/10" (fun () -> ReactDOM.renderToStaticMarkup (Table.Table10.make ()));
-      measure_benchmark ~name:"table/50" (fun () -> ReactDOM.renderToStaticMarkup (Table.Table50.make ()));
-      measure_benchmark ~name:"table/100" (fun () -> ReactDOM.renderToStaticMarkup (Table.Table100.make ()));
-      measure_benchmark ~name:"table/500" (fun () -> ReactDOM.renderToStaticMarkup (Table.Table500.make ()));
-      measure_benchmark ~name:"props/small" (fun () -> ReactDOM.renderToStaticMarkup (PropsHeavy.Small.make ()));
-      measure_benchmark ~name:"props/medium" (fun () -> ReactDOM.renderToStaticMarkup (PropsHeavy.Medium.make ()));
-      measure_benchmark ~name:"props/large" (fun () -> ReactDOM.renderToStaticMarkup (PropsHeavy.Large.make ()));
+      measure_benchmark ~name:"trivial/renderToStaticMarkup" (fun () ->
+          ReactDOM.renderToStaticMarkup (Trivial.make (Trivial.makeProps ())));
+      measure_benchmark ~name:"trivial/renderToString" (fun () ->
+          ReactDOM.renderToString (Trivial.make (Trivial.makeProps ())));
+      measure_benchmark ~name:"depth/10" (fun () ->
+          ReactDOM.renderToStaticMarkup (DeepTree.Depth10.make (DeepTree.Depth10.makeProps ())));
+      measure_benchmark ~name:"depth/25" (fun () ->
+          ReactDOM.renderToStaticMarkup (DeepTree.Depth25.make (DeepTree.Depth25.makeProps ())));
+      measure_benchmark ~name:"depth/50" (fun () ->
+          ReactDOM.renderToStaticMarkup (DeepTree.Depth50.make (DeepTree.Depth50.makeProps ())));
+      measure_benchmark ~name:"depth/100" (fun () ->
+          ReactDOM.renderToStaticMarkup (DeepTree.Depth100.make (DeepTree.Depth100.makeProps ())));
+      measure_benchmark ~name:"width/10" (fun () ->
+          ReactDOM.renderToStaticMarkup (WideTree.Wide10.make (WideTree.Wide10.makeProps ())));
+      measure_benchmark ~name:"width/100" (fun () ->
+          ReactDOM.renderToStaticMarkup (WideTree.Wide100.make (WideTree.Wide100.makeProps ())));
+      measure_benchmark ~name:"width/500" (fun () ->
+          ReactDOM.renderToStaticMarkup (WideTree.Wide500.make (WideTree.Wide500.makeProps ())));
+      measure_benchmark ~name:"width/1000" (fun () ->
+          ReactDOM.renderToStaticMarkup (WideTree.Wide1000.make (WideTree.Wide1000.makeProps ())));
+      measure_benchmark ~name:"table/10" (fun () ->
+          ReactDOM.renderToStaticMarkup (Table.Table10.make (Table.Table10.makeProps ())));
+      measure_benchmark ~name:"table/50" (fun () ->
+          ReactDOM.renderToStaticMarkup (Table.Table50.make (Table.Table50.makeProps ())));
+      measure_benchmark ~name:"table/100" (fun () ->
+          ReactDOM.renderToStaticMarkup (Table.Table100.make (Table.Table100.makeProps ())));
+      measure_benchmark ~name:"table/500" (fun () ->
+          ReactDOM.renderToStaticMarkup (Table.Table500.make (Table.Table500.makeProps ())));
+      measure_benchmark ~name:"props/small" (fun () ->
+          ReactDOM.renderToStaticMarkup (PropsHeavy.Small.make (PropsHeavy.Small.makeProps ())));
+      measure_benchmark ~name:"props/medium" (fun () ->
+          ReactDOM.renderToStaticMarkup (PropsHeavy.Medium.make (PropsHeavy.Medium.makeProps ())));
+      measure_benchmark ~name:"props/large" (fun () ->
+          ReactDOM.renderToStaticMarkup (PropsHeavy.Large.make (PropsHeavy.Large.makeProps ())));
       measure_benchmark ~name:"realworld/ecommerce24" (fun () ->
-          ReactDOM.renderToStaticMarkup (Ecommerce.Products24.make ()));
+          ReactDOM.renderToStaticMarkup (Ecommerce.Products24.make (Ecommerce.Products24.makeProps ())));
       measure_benchmark ~name:"realworld/ecommerce48" (fun () ->
-          ReactDOM.renderToStaticMarkup (Ecommerce.Products48.make ()));
-      measure_benchmark ~name:"realworld/dashboard" (fun () -> ReactDOM.renderToStaticMarkup (Dashboard.make ()));
-      measure_benchmark ~name:"realworld/blog50" (fun () -> ReactDOM.renderToStaticMarkup (Blog.Blog50.make ()));
-      measure_benchmark ~name:"realworld/form" (fun () -> ReactDOM.renderToStaticMarkup (Form.make ()));
+          ReactDOM.renderToStaticMarkup (Ecommerce.Products48.make (Ecommerce.Products48.makeProps ())));
+      measure_benchmark ~name:"realworld/dashboard" (fun () ->
+          ReactDOM.renderToStaticMarkup (Dashboard.make (Dashboard.makeProps ())));
+      measure_benchmark ~name:"realworld/blog50" (fun () ->
+          ReactDOM.renderToStaticMarkup (Blog.Blog50.make (Blog.Blog50.makeProps ())));
+      measure_benchmark ~name:"realworld/form" (fun () -> ReactDOM.renderToStaticMarkup (Form.make (Form.makeProps ())));
       measure_benchmark ~name:"primitive/React.string" (fun () -> ReactDOM.renderToStaticMarkup (React.string "Hello"));
       measure_benchmark ~name:"primitive/React.int" (fun () -> ReactDOM.renderToStaticMarkup (React.int 42));
       measure_benchmark ~name:"primitive/React.null" (fun () -> ReactDOM.renderToStaticMarkup React.null);
@@ -112,25 +131,33 @@ let () =
           let lst = List.init 100 (fun i -> React.string (string_of_int i)) in
           ReactDOM.renderToStaticMarkup (React.createElement "div" [] [ React.list lst ]));
       measure_benchmark_lwt ~name:"rsc/trivial" (fun () ->
-          let%lwt html, _subscribe = ReactServerDOM.render_html (Trivial.make ()) in
+          let%lwt html, _subscribe = ReactServerDOM.render_html (Trivial.make (Trivial.makeProps ())) in
           Lwt.return html);
       measure_benchmark_lwt ~name:"rsc/depth/50" (fun () ->
-          let%lwt html, _subscribe = ReactServerDOM.render_html (DeepTree.Depth50.make ()) in
+          let%lwt html, _subscribe =
+            ReactServerDOM.render_html (DeepTree.Depth50.make (DeepTree.Depth50.makeProps ()))
+          in
           Lwt.return html);
       measure_benchmark_lwt ~name:"rsc/width/100" (fun () ->
-          let%lwt html, _subscribe = ReactServerDOM.render_html (WideTree.Wide100.make ()) in
+          let%lwt html, _subscribe =
+            ReactServerDOM.render_html (WideTree.Wide100.make (WideTree.Wide100.makeProps ()))
+          in
           Lwt.return html);
       measure_benchmark_lwt ~name:"rsc/width/500" (fun () ->
-          let%lwt html, _subscribe = ReactServerDOM.render_html (WideTree.Wide500.make ()) in
+          let%lwt html, _subscribe =
+            ReactServerDOM.render_html (WideTree.Wide500.make (WideTree.Wide500.makeProps ()))
+          in
           Lwt.return html);
       measure_benchmark_lwt ~name:"rsc/width/1000" (fun () ->
-          let%lwt html, _subscribe = ReactServerDOM.render_html (WideTree.Wide1000.make ()) in
+          let%lwt html, _subscribe =
+            ReactServerDOM.render_html (WideTree.Wide1000.make (WideTree.Wide1000.makeProps ()))
+          in
           Lwt.return html);
       measure_benchmark_lwt ~name:"rsc/table/100" (fun () ->
-          let%lwt html, _subscribe = ReactServerDOM.render_html (Table.Table100.make ()) in
+          let%lwt html, _subscribe = ReactServerDOM.render_html (Table.Table100.make (Table.Table100.makeProps ())) in
           Lwt.return html);
       measure_benchmark_lwt ~name:"rsc/table/500" (fun () ->
-          let%lwt html, _subscribe = ReactServerDOM.render_html (Table.Table500.make ()) in
+          let%lwt html, _subscribe = ReactServerDOM.render_html (Table.Table500.make (Table.Table500.makeProps ())) in
           Lwt.return html);
     ]
   in

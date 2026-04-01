@@ -36,6 +36,11 @@ let test ?(timeout = 100) title fn =
           Lwt.return test_promise);
     ] )
 
+let mk_suspense ?key ?fallback ?children () = React.Suspense.make ?key (React.Suspense.makeProps ?fallback ?children ())
+
+let mk_context context ~value ~children () =
+  React.Context.provider context (React.Context.makeProps ~value ~children ())
+
 let assert_string left right = Alcotest.check Alcotest.string "should be equal" right left
 
 let assert_stream (stream : string Lwt_stream.t) (expected : string list) =
@@ -85,7 +90,7 @@ let layout ~children () =
       fun () -> React.createElement "div" [] [ React.createElement "p" [] [ React.string "Awesome webpage"; children ] ]
     )
 
-let loading_suspense ~children () = React.Suspense.make ~fallback:(React.string "Loading...") ~children ()
+let loading_suspense ~children () = mk_suspense ~fallback:(React.string "Loading...") ~children ()
 
 (* ***** *)
 (* Tests *)
@@ -209,7 +214,7 @@ let async_component_without_promise () =
 
 let async_component_with_promise () =
   let app () =
-    React.Suspense.make ~fallback:(React.string "Loading...")
+    mk_suspense ~fallback:(React.string "Loading...")
       ~children:
         (React.Async_component
            ( __FUNCTION__,
@@ -232,7 +237,7 @@ let async_component_with_promise () =
 
 let suspenasync_and_client () =
   let app () =
-    React.Suspense.make ~fallback:(React.string "Loading...")
+    mk_suspense ~fallback:(React.string "Loading...")
       ~children:
         (React.Async_component
            ( __FUNCTION__,
@@ -403,7 +408,7 @@ let client_component_with_async_component () =
 
 let suspense_with_error () =
   let app () =
-    React.Suspense.make ~fallback:(React.string "Loading...")
+    mk_suspense ~fallback:(React.string "Loading...")
       ~children:(React.Upper_case_component (__FUNCTION__, fun () -> raise (Failure "lol")))
       ()
   in
@@ -421,7 +426,7 @@ let suspense_with_error () =
 
 let suspense_with_error_in_async () =
   let app () =
-    React.Suspense.make ~fallback:(React.string "Loading...")
+    mk_suspense ~fallback:(React.string "Loading...")
       ~children:(React.Async_component (__FUNCTION__, fun () -> Lwt.fail (Failure "lol")))
       ()
   in
@@ -441,7 +446,7 @@ let suspense_with_error_under_lowercase () =
   let app () =
     React.createElement "div" []
       [
-        React.Suspense.make ~fallback:(React.string "Loading...")
+        mk_suspense ~fallback:(React.string "Loading...")
           ~children:(React.Async_component (__FUNCTION__, fun () -> Lwt.fail (Failure "lol")))
           ();
       ]
@@ -503,9 +508,9 @@ let suspense_in_a_list_with_error () =
     React.Fragment
       (React.list
          [
-           React.Suspense.make ~fallback ~children:(await_tick ~ms:10 "A") ();
-           React.Suspense.make ~fallback ~children:(await_tick ~ms:20 ~raise:true "B") ();
-           React.Suspense.make ~fallback ~children:(await_tick ~ms:30 "C") ();
+           mk_suspense ~fallback ~children:(await_tick ~ms:10 "A") ();
+           mk_suspense ~fallback ~children:(await_tick ~ms:20 ~raise:true "B") ();
+           mk_suspense ~fallback ~children:(await_tick ~ms:30 "C") ();
          ])
   in
   let main = React.Upper_case_component ("app", app) in
@@ -633,8 +638,7 @@ let nested_context () =
               import_module = "./provider.js";
               import_name = "Provider";
               props = [ ("value", React.Model.Element value); ("children", React.Model.Element children) ];
-              client =
-                React.Upper_case_component ("provider", fun () -> React.Context.provider context ~value ~children ());
+              client = React.Upper_case_component ("provider", fun () -> mk_context context ~value ~children ());
             } )
   in
   let client =
@@ -679,9 +683,9 @@ let context_preserved_across_async_suspense () =
           React.string value )
   in
   let app () =
-    React.Context.provider context ~value:"from-provider"
+    mk_context context ~value:"from-provider"
       ~children:
-        (React.Suspense.make ~fallback:(React.string "loading")
+        (mk_suspense ~fallback:(React.string "loading")
            ~children:
              (React.Async_component
                 ( "async",
@@ -714,11 +718,11 @@ let context_nested_providers_across_async_suspense () =
           React.createElement "span" [] [ React.string (o ^ "+" ^ i) ] )
   in
   let app () =
-    React.Context.provider outer ~value:"outer-val"
+    mk_context outer ~value:"outer-val"
       ~children:
-        (React.Context.provider inner ~value:"inner-val"
+        (mk_context inner ~value:"inner-val"
            ~children:
-             (React.Suspense.make ~fallback:(React.string "loading")
+             (mk_suspense ~fallback:(React.string "loading")
                 ~children:
                   (React.Async_component
                      ( "async",
@@ -759,9 +763,9 @@ let context_client_component_reads_context_across_async_suspense () =
       }
   in
   let app () =
-    React.Context.provider context ~value:"ctx-value"
+    mk_context context ~value:"ctx-value"
       ~children:
-        (React.Suspense.make ~fallback:(React.string "loading")
+        (mk_suspense ~fallback:(React.string "loading")
            ~children:
              (React.Async_component
                 ( "async",
@@ -792,7 +796,7 @@ let suspense_with_sync_client_component () =
         import_name = "Client";
         props = [];
         client =
-          React.Suspense.make ~fallback:(React.string "Loading...")
+          mk_suspense ~fallback:(React.string "Loading...")
             ~children:(React.createElement "div" [] [ React.string "Sync content" ])
             ();
       }
@@ -844,7 +848,7 @@ let timeout_closes_stream_for_hanging_suspense () =
     promise
   in
   let app =
-    React.Suspense.make ~fallback:(React.string "Loading...")
+    mk_suspense ~fallback:(React.string "Loading...")
       ~children:
         (React.Async_component
            ( "NeverResolves",
@@ -868,7 +872,7 @@ let timeout_closes_stream_for_hanging_suspense () =
 
 let timeout_does_not_affect_fast_renders () =
   let app =
-    React.Suspense.make ~fallback:(React.string "Loading...")
+    mk_suspense ~fallback:(React.string "Loading...")
       ~children:
         (React.Async_component
            ( "FastComponent",
@@ -894,7 +898,7 @@ let timeout_does_not_affect_fast_renders () =
 
 let progressive_chunk_size_batches_small_chunks () =
   let app =
-    React.Suspense.make ~fallback:(React.string "Loading...")
+    mk_suspense ~fallback:(React.string "Loading...")
       ~children:
         (React.Async_component
            ( "AsyncComponent",
@@ -927,7 +931,7 @@ let progressive_chunk_size_batches_small_chunks () =
 
 let timeout_end_script_appears_exactly_once () =
   let app =
-    React.Suspense.make ~fallback:(React.string "Loading...")
+    mk_suspense ~fallback:(React.string "Loading...")
       ~children:
         (React.Async_component
            ( "AlmostDone",

@@ -82,15 +82,35 @@ let rec unwrap_children children = function
 let is_jsx = function { attr_name = { txt = "JSX"; _ }; _ } -> true | _ -> false
 let has_jsx_attr attrs = List.exists ~f:is_jsx attrs
 
+let strip_final_unit_arg args =
+  match List.rev args with
+  | (Nolabel, { pexp_desc = Pexp_construct ({ txt = Lident "()"; _ }, None); _ }) :: rest -> List.rev rest
+  | _ -> args
+
+let component_make_props_ident tag =
+  match tag with
+  | { txt = Lident name; loc } -> { txt = Lident (name ^ "Props"); loc }
+  | { txt = Ldot (path, name); loc } -> { txt = Ldot (path, name ^ "Props"); loc }
+  | { txt = Lapply _; loc } -> raise_errorf ~loc "jsx: component props can't be created from functor applications"
+
+let is_key_arg (label, _) = match label with Optional "key" | Labelled "key" -> true | _ -> false
+
 let rewrite_component ~loc tag args children =
   let component = pexp_ident ~loc tag in
-  let props =
+  let props_args =
     match children with
     | None -> args
     | Some [ children ] -> (Labelled "children", children) :: args
     | Some children -> (Labelled "children", [%expr React.list [%e pexp_list ~loc children]]) :: args
   in
-  pexp_apply ~loc component props
+  let key_args, non_key_args = List.partition ~f:is_key_arg props_args in
+  let make_props = pexp_ident ~loc (component_make_props_ident tag) in
+  let non_key_args = strip_final_unit_arg non_key_args in
+  let props = pexp_apply ~loc make_props (non_key_args @ [ (Nolabel, [%expr ()]) ]) in
+  let make_args =
+    match key_args with [] -> [ (Nolabel, props) ] | (label, expr) :: _ -> [ (label, expr); (Nolabel, props) ]
+  in
+  pexp_apply ~loc component make_args
 
 let validate_prop ~loc id name =
   match DomProps.findByJsxName ~tag:id name with
@@ -544,6 +564,364 @@ let transform_labelled_arguments_type (core_type : core_type) fn =
   in
   inner core_type
 
+let get_label_or_empty = function Labelled str | Optional str -> str | Nolabel -> ""
+
+let safe_type_from_label = function
+  | (Labelled name | Optional name) when String.length name > 0 && name.[0] = '_' -> "T" ^ name
+  | Labelled name | Optional name -> name
+  | Nolabel -> "T"
+
+(* Keep this keyword list and translate_mel_obj_label in sync with Melange's
+   Lam_methname.translate implementation. *)
+let mel_obj_keywords =
+  [
+    "and";
+    "as";
+    "assert";
+    "begin";
+    "class";
+    "constraint";
+    "do";
+    "done";
+    "downto";
+    "else";
+    "end";
+    "exception";
+    "external";
+    "false";
+    "for";
+    "fun";
+    "function";
+    "functor";
+    "if";
+    "in";
+    "include";
+    "inherit";
+    "initializer";
+    "lazy";
+    "let";
+    "match";
+    "method";
+    "module";
+    "mutable";
+    "new";
+    "nonrec";
+    "object";
+    "of";
+    "open";
+    "or";
+    "private";
+    "rec";
+    "sig";
+    "struct";
+    "then";
+    "to";
+    "true";
+    "try";
+    "type";
+    "val";
+    "virtual";
+    "when";
+    "while";
+    "with";
+    "mod";
+    "land";
+    "lor";
+    "lxor";
+    "lsl";
+    "lsr";
+    "asr";
+  ]
+
+let find_double_underscore name =
+  let rec go index =
+    if index < 0 then -1
+    else if index + 1 < String.length name && name.[index] = '_' && name.[index + 1] = '_' then index
+    else go (index - 1)
+  in
+  go (String.length name - 2)
+
+let translate_mel_obj_label name =
+  let valid_start_char = function '_' | 'a' .. 'z' -> true | _ -> false in
+  let double_underscore_index = find_double_underscore name in
+  if double_underscore_index = 0 then name
+  else if double_underscore_index > 0 then String.sub name 0 double_underscore_index
+  else
+    match name.[0] with
+    | '_' when String.length name > 1 ->
+        let candidate = String.sub name 1 (String.length name - 1) in
+        if (not (valid_start_char candidate.[0])) || List.exists mel_obj_keywords ~f:(String.equal candidate) then
+          candidate
+        else name
+    | _ -> name
+
+type js_object_field = { method_name : string; js_name : string; present_expr : expression; value_expr : expression }
+
+type component_arg = {
+  public_label : arg_label;
+  internal_label : arg_label;
+  default_value : expression option;
+  loc : Location.t;
+  core_type : core_type option;
+}
+
+let option_is_some_expr ~loc expr = [%expr match [%e expr] with None -> false | Some _ -> true]
+
+let js_obj_internal_expression ~loc name =
+  pexp_ident ~loc { txt = Ldot (Ldot (Ldot (Lident "Js", "Obj"), "Internal"), name); loc }
+
+let build_registered_js_object_expression ?as_type ?(register_name = "register_structural") ~loc fields =
+  let generated_fields =
+    List.mapi fields ~f:(fun index { method_name; js_name; present_expr; value_expr } ->
+        let cell_name = Printf.sprintf "__js_obj_cell_%d" index in
+        let entry_name = Printf.sprintf "__js_obj_entry_%d" index in
+        let slot_call =
+          pexp_apply ~loc
+            (js_obj_internal_expression ~loc "slot_ref")
+            [
+              (Labelled "method_name", estring ~loc method_name);
+              (Labelled "js_name", estring ~loc js_name);
+              (Labelled "present", present_expr);
+              (Nolabel, value_expr);
+            ]
+        in
+        let slot_binding =
+          value_binding ~loc
+            ~pat:(ppat_tuple ~loc [ ppat_var ~loc { loc; txt = cell_name }; ppat_var ~loc { loc; txt = entry_name } ])
+            ~expr:slot_call
+        in
+        let method_body = pexp_apply ~loc (evar ~loc "!") [ (Nolabel, evar ~loc cell_name) ] in
+        let method_ = pcf_method ~loc (Located.mk method_name ~loc, Public, Cfk_concrete (Fresh, method_body)) in
+        (slot_binding, evar ~loc entry_name, method_))
+  in
+  let slot_bindings, entry_exprs, methods =
+    List.fold_right generated_fields ~init:([], [], [])
+      ~f:(fun (slot_binding, entry_expr, method_) (slot_bindings, entry_exprs, methods) ->
+        (slot_binding :: slot_bindings, entry_expr :: entry_exprs, method_ :: methods))
+  in
+  let object_name = "__js_obj" in
+  let object_binding =
+    value_binding ~loc
+      ~pat:(ppat_var ~loc { loc; txt = object_name })
+      ~expr:(pexp_object ~loc (class_structure ~self:(ppat_any ~loc) ~fields:methods))
+  in
+  let register_call =
+    pexp_apply ~loc
+      (js_obj_internal_expression ~loc register_name)
+      [ (Nolabel, evar ~loc object_name); (Nolabel, pexp_list ~loc entry_exprs) ]
+  in
+  let register_call =
+    match as_type with None -> register_call | Some core_type -> pexp_constraint ~loc register_call core_type
+  in
+  List.fold_right (slot_bindings @ [ object_binding ]) ~init:register_call ~f:(fun binding acc ->
+      pexp_let ~loc Nonrecursive [ binding ] acc)
+
+let option_type ~loc inner = ptyp_constr ~loc { txt = Lident "option"; loc } [ inner ]
+
+let strip_option_type core_type =
+  match core_type.ptyp_desc with
+  | Ptyp_constr (({ txt = Lident "option"; _ } | { txt = Ldot (Lident "*predef*", "option"); _ }), [ inner ]) ->
+      Some inner
+  | _ -> None
+
+let component_arg_public_name arg = get_label_or_empty arg.public_label
+
+let component_arg_type_var arg =
+  let loc = arg.loc in
+  ptyp_var ~loc (safe_type_from_label arg.public_label)
+
+let component_arg_public_arg_type ~from_signature arg =
+  match (arg.public_label, arg.core_type, arg.default_value) with
+  | Optional _, Some core_type, _ when not from_signature -> (
+      match strip_option_type core_type with Some inner -> inner | None -> core_type)
+  | Optional _, Some core_type, _ -> core_type
+  | _, Some core_type, Some _ -> core_type
+  | Labelled _, Some core_type, _ -> core_type
+  | (Labelled _ | Optional _), None, _ -> component_arg_type_var arg
+  | Nolabel, _, _ -> assert false
+
+let component_arg_field_type arg =
+  match (arg.public_label, arg.core_type, arg.default_value) with
+  | Optional _, Some core_type, _ -> (
+      match strip_option_type core_type with
+      | Some inner -> option_type ~loc:arg.loc inner
+      | None -> option_type ~loc:arg.loc core_type)
+  | _, Some core_type, Some _ -> option_type ~loc:arg.loc core_type
+  | Labelled _, Some core_type, _ -> core_type
+  | Optional _, None, _ -> option_type ~loc:arg.loc (component_arg_type_var arg)
+  | Labelled _, None, _ -> component_arg_type_var arg
+  | Nolabel, _, _ -> assert false
+
+let make_props_name fn_name = fn_name ^ "Props"
+
+let make_object_field ~loc (name, core_type) =
+  { pof_desc = Otag ({ loc; txt = name }, core_type); pof_loc = loc; pof_attributes = [] }
+
+let make_props_type ~loc args =
+  let object_fields = List.map args ~f:(fun arg -> (component_arg_public_name arg, component_arg_field_type arg)) in
+  ptyp_constr ~loc
+    { txt = Ldot (Lident "Js", "t"); loc }
+    [
+      {
+        ptyp_desc = Ptyp_object (List.map object_fields ~f:(make_object_field ~loc), Closed);
+        ptyp_loc = loc;
+        ptyp_loc_stack = [];
+        ptyp_attributes = [];
+      };
+    ]
+
+let react_component_like_type ~loc props_type return_type =
+  ptyp_constr ~loc { txt = Ldot (Lident "React", "componentLike"); loc } [ props_type; return_type ]
+
+let is_unit_or_any_pattern pattern =
+  match pattern.ppat_desc with Ppat_construct ({ txt = Lident "()"; _ }, None) | Ppat_any -> true | _ -> false
+
+let pattern_core_type pattern =
+  match pattern.ppat_desc with Ppat_constraint (_, core_type) -> Some core_type | _ -> None
+
+let rec unwrap_component_expression expr =
+  match expr.pexp_desc with
+  | Pexp_constraint (expr, _) -> unwrap_component_expression expr
+  | Pexp_let (_, _, inner) -> unwrap_component_expression inner
+  | Pexp_apply (_, [ (Nolabel, inner) ]) -> unwrap_component_expression inner
+  | Pexp_apply (_, [ (Nolabel, inner); (Nolabel, { pexp_desc = Pexp_function _; _ }) ]) ->
+      unwrap_component_expression inner
+  | Pexp_sequence (_, inner) -> unwrap_component_expression inner
+  | _ -> expr
+
+let rec collect_component_fun_params acc expr =
+  match expr.pexp_desc with
+  | Pexp_constraint (expr, _) -> collect_component_fun_params acc expr
+  | Pexp_function (params, _, Pfunction_body body) -> (
+      match body.pexp_desc with
+      | Pexp_function _ -> collect_component_fun_params (acc @ params) body
+      | _ -> acc @ params)
+  | _ -> acc
+
+let extract_component_args expr =
+  let params = collect_component_fun_params [] (unwrap_component_expression expr) in
+  let last_index = List.length params - 1 in
+  params
+  |> List.mapi ~f:(fun index param ->
+      match param.pparam_desc with
+      | Pparam_newtype _ -> None
+      | Pparam_val (Nolabel, _, pattern) when index = last_index && is_unit_or_any_pattern pattern -> None
+      | Pparam_val ((Labelled "key" | Optional "key"), _, pattern) ->
+          raise_errorf ~loc:pattern.ppat_loc
+            "~key cannot be accessed from the component props. Please set the key where the component is being used."
+      | Pparam_val (((Labelled _ | Optional _) as arg_label), default_value, pattern) ->
+          Some
+            {
+              public_label = arg_label;
+              internal_label = arg_label;
+              default_value;
+              loc = pattern.ppat_loc;
+              core_type = pattern_core_type pattern;
+            }
+      | Pparam_val (Nolabel, _, pattern) ->
+          raise_errorf ~loc:pattern.ppat_loc
+            "props need to be labelled arguments. If your component doesn't have any props, use () or _ instead of a \
+             name.")
+  |> List.filter_map ~f:Fun.id
+
+let build_make_props_binding ~loc ~fn_name args =
+  let props_type = make_props_type ~loc args in
+  let object_fields =
+    List.map args ~f:(fun arg ->
+        let field_name = component_arg_public_name arg in
+        let value_expr = evar ~loc:arg.loc field_name in
+        let present_expr =
+          match arg.public_label with
+          | Optional _ -> option_is_some_expr ~loc:arg.loc value_expr
+          | _ -> ebool ~loc:arg.loc true
+        in
+        { method_name = field_name; js_name = translate_mel_obj_label field_name; present_expr; value_expr })
+  in
+  let body =
+    build_registered_js_object_expression ~as_type:props_type ~register_name:"register_abstract" ~loc object_fields
+  in
+  let body = pexp_fun ~loc Nolabel None [%pat? ()] body in
+  let body =
+    List.fold_right args ~init:body ~f:(fun arg acc ->
+        let arg_name = component_arg_public_name arg in
+        let pattern =
+          ppat_constraint ~loc:arg.loc
+            (ppat_var ~loc:arg.loc { txt = arg_name; loc = arg.loc })
+            (component_arg_field_type arg)
+        in
+        pexp_fun ~loc:arg.loc arg.public_label None pattern acc)
+  in
+  value_binding ~loc ~pat:(ppat_var ~loc { txt = make_props_name fn_name; loc }) ~expr:body
+
+let build_public_component_binding ~loc ~fn_name args =
+  let props_type = make_props_type ~loc args in
+  let has_props = args <> [] in
+  let props_name = if has_props then "Props" else "_Props" in
+  let props_expr = evar ~loc (if has_props then "Props" else "_Props") in
+  let key_arg = (Optional "key", evar ~loc "key") in
+  let prop_args =
+    List.map args ~f:(fun arg ->
+        let value_expr = pexp_send ~loc props_expr { txt = component_arg_public_name arg; loc = arg.loc } in
+        (arg.internal_label, value_expr))
+  in
+  let call_expr = pexp_apply ~loc (ident ~loc fn_name) ((key_arg :: prop_args) @ [ (Nolabel, [%expr ()]) ]) in
+  let props_pattern = ppat_constraint ~loc (ppat_var ~loc { txt = props_name; loc }) props_type in
+  let body = pexp_fun ~loc Nolabel None props_pattern call_expr in
+  let key_pattern = ppat_constraint ~loc (ppat_var ~loc { txt = "key"; loc }) [%type: string option] in
+  let body = pexp_fun ~loc (Optional "key") None key_pattern body in
+  value_binding ~loc ~pat:(ppat_var ~loc { txt = fn_name; loc }) ~expr:body
+
+let build_make_props_signature_item ~loc ~fn_name args =
+  let props_type = make_props_type ~loc args in
+  let make_props_type =
+    List.fold_right args
+      ~init:(ptyp_arrow ~loc Nolabel [%type: unit] props_type)
+      ~f:(fun arg acc ->
+        ptyp_arrow ~loc:arg.loc arg.public_label (component_arg_public_arg_type ~from_signature:true arg) acc)
+  in
+  psig_value ~loc
+    {
+      pval_name = { txt = make_props_name fn_name; loc };
+      pval_type = make_props_type;
+      pval_prim = [];
+      pval_attributes = [];
+      pval_loc = loc;
+    }
+
+let build_public_component_signature_item ~loc ~fn_name ~attributes args return_type =
+  let props_type = make_props_type ~loc args in
+  let make_type = react_component_like_type ~loc props_type return_type in
+  psig_value ~loc
+    {
+      pval_name = { txt = fn_name; loc };
+      pval_type = make_type;
+      pval_prim = [];
+      pval_attributes = attributes;
+      pval_loc = loc;
+    }
+
+let extract_component_signature_args pval_type =
+  let rec go args core_type =
+    match core_type.ptyp_desc with
+    | Ptyp_arrow (Nolabel, { ptyp_desc = Ptyp_constr ({ txt = Lident "unit"; _ }, []); _ }, rest) -> go args rest
+    | Ptyp_arrow (((Labelled _ | Optional _) as arg_label), core_type, rest) ->
+        go
+          (args
+          @ [
+              {
+                public_label = arg_label;
+                internal_label = arg_label;
+                default_value = None;
+                loc = core_type.ptyp_loc;
+                core_type = Some core_type;
+              };
+            ])
+          rest
+    | Ptyp_arrow (Nolabel, _, rest) -> go args rest
+    | _ -> (args, core_type)
+  in
+  go [] pval_type
+
 let expand_make_binding binding react_element_variant_wrapping =
   let attributers = binding.pvb_attributes |> List.filter ~f:nonReactAttributes in
   let loc = binding.pvb_loc in
@@ -700,37 +1078,24 @@ let rec add_unit_at_the_last_argument_in_core_type core_type =
   | _ -> core_type
 
 let rewrite_signature_item signature_item =
-  (* Removes the [@react.component] from the AST *)
   match signature_item with
-  | {
-      psig_loc = _;
-      psig_desc = Psig_value ({ pval_name = { txt = _fnName }; pval_attributes; pval_type } as psig_desc);
-    } as psig -> (
-      let new_ptyp_desc =
-        match pval_type.ptyp_desc with
-        | Ptyp_arrow (arg_label, core_type_1, core_type_2) ->
-            let loc = pval_type.ptyp_loc in
-            let original_core_type = { pval_type with ptyp_desc = Ptyp_arrow (arg_label, core_type_1, core_type_2) } in
-            let new_core_type = add_unit_at_the_last_argument_in_core_type original_core_type in
-            Ptyp_arrow (Optional "key", [%type: string], new_core_type)
-        | ptyp_desc -> ptyp_desc
-      in
-      let new_core_type = { pval_type with ptyp_desc = new_ptyp_desc } in
+  | { psig_loc = loc; psig_desc = Psig_value { pval_name = { txt = fn_name; _ }; pval_attributes; pval_type } } -> (
       match List.filter ~f:hasAnyReactComponentAttribute pval_attributes with
       | [] -> signature_item
       | [ _ ] ->
-          {
-            psig with
-            psig_desc =
-              Psig_value
-                {
-                  psig_desc with
-                  pval_type = new_core_type;
-                  pval_attributes = List.filter ~f:nonReactAttributes pval_attributes;
-                };
-          }
+          let args, return_type = extract_component_signature_args pval_type in
+          let make_props_sig = build_make_props_signature_item ~loc ~fn_name args in
+          let make_sig =
+            build_public_component_signature_item ~loc ~fn_name
+              ~attributes:(List.filter ~f:nonReactAttributes pval_attributes)
+              args return_type
+          in
+          [%sigi:
+            include sig
+              [%%i make_props_sig]
+              [%%i make_sig]
+            end]
       | _ ->
-          let loc = signature_item.psig_loc in
           [%sigi:
             [%%ocaml.error "server-reason-react: there's seems to be an error in the signature of the component."]])
   | _ -> signature_item
@@ -1037,55 +1402,104 @@ let rewrite_structure_item ~nested_module_names structure_item =
           "server-reason-react: server functions don't support recursive bindings yet. If you need it, please open an \
            issue on https://github.com/reasonml-community/server-reason-react/issues"]]
       else ServerFunction.rewrite_native_function ~vb ~rec_flag structure_item
-  | Pstr_value (rec_flag, value_bindings) ->
-      let map_value_binding vb =
-        if isReactClientComponentBinding vb then
-          expand_make_binding_with_key vb (fun ~key expr ->
-              let loc = expr.pexp_loc in
-              let fileName = expr.pexp_loc.loc_start.pos_fname in
-              let replacement =
-                match shared_folder_prefix.contents with
-                | Some prefix ->
-                    if match_substring fileName prefix then prefix
-                    else
-                      raise_errorf ~loc
-                        "Prefix doesn't match the file path. Provide a prefix that matches the file path."
-                | None ->
-                    raise_errorf ~loc
-                      "Found a react.client.component without --shared-folder-prefix argument. Provide one."
-              in
-              let file = fileName |> Str.replace_first (Str.regexp replacement) "" |> estring ~loc in
-              let import_module =
-                match nested_module_names with
-                | [] -> file
-                | _ ->
-                    let submodule = estring ~loc (String.concat "." nested_module_names) in
-                    [%expr Printf.sprintf "%s#%s" [%e file] [%e submodule]]
-              in
-              let arguments = get_arguments vb.pvb_expr in
-              (* We transform the arguments from the value binding into React.client_props *)
-              let props = props_to_model ~loc arguments in
-              [%expr
-                React.Client_component
-                  {
-                    key = [%e key];
-                    import_module = [%e import_module];
-                    import_name = "";
-                    props = [%e props];
-                    client = React.Upper_case_component (Stdlib.__FUNCTION__, fun () -> [%e expr]);
-                  }])
-        else if isReactComponentBinding vb then
-          expand_make_binding vb (fun expr ->
-              let loc = expr.pexp_loc in
-              [%expr React.Upper_case_component (Stdlib.__FUNCTION__, fun () -> [%e expr])])
-        else if isReactAsyncComponentBinding vb then
-          expand_make_binding vb (fun expr ->
-              let loc = expr.pexp_loc in
-              [%expr React.Async_component (Stdlib.__FUNCTION__, fun () -> [%e expr])])
-        else vb
-      in
-      let bindings = List.map ~f:map_value_binding value_bindings in
-      pstr_value ~loc:structure_item.pstr_loc rec_flag bindings
+  | Pstr_value (rec_flag, value_bindings) -> (
+      try
+        let rewrite_component_binding vb =
+          if isReactClientComponentBinding vb then
+            let loc = vb.pvb_loc in
+            let fn_name = get_function_name vb in
+            let args = extract_component_args vb.pvb_expr in
+            let internal_binding =
+              expand_make_binding_with_key vb (fun ~key expr ->
+                  let loc = expr.pexp_loc in
+                  let fileName = expr.pexp_loc.loc_start.pos_fname in
+                  let replacement =
+                    match shared_folder_prefix.contents with
+                    | Some prefix ->
+                        if match_substring fileName prefix then prefix
+                        else
+                          raise_errorf ~loc
+                            "Prefix doesn't match the file path. Provide a prefix that matches the file path."
+                    | None ->
+                        raise_errorf ~loc
+                          "Found a react.client.component without --shared-folder-prefix argument. Provide one."
+                  in
+                  let file = fileName |> Str.replace_first (Str.regexp replacement) "" |> estring ~loc in
+                  let import_module =
+                    match nested_module_names with
+                    | [] -> file
+                    | _ ->
+                        let submodule = estring ~loc (String.concat "." nested_module_names) in
+                        [%expr Printf.sprintf "%s#%s" [%e file] [%e submodule]]
+                  in
+                  let arguments = get_arguments vb.pvb_expr in
+                  let props = props_to_model ~loc arguments in
+                  [%expr
+                    React.Client_component
+                      {
+                        key = [%e key];
+                        import_module = [%e import_module];
+                        import_name = "";
+                        props = [%e props];
+                        client = React.Upper_case_component (Stdlib.__FUNCTION__, fun () -> [%e expr]);
+                      }])
+            in
+            Some
+              ( internal_binding,
+                build_make_props_binding ~loc ~fn_name args,
+                build_public_component_binding ~loc ~fn_name args )
+          else if isReactComponentBinding vb then
+            let loc = vb.pvb_loc in
+            let fn_name = get_function_name vb in
+            let args = extract_component_args vb.pvb_expr in
+            let internal_binding =
+              expand_make_binding vb (fun expr ->
+                  let loc = expr.pexp_loc in
+                  [%expr React.Upper_case_component (Stdlib.__FUNCTION__, fun () -> [%e expr])])
+            in
+            Some
+              ( internal_binding,
+                build_make_props_binding ~loc ~fn_name args,
+                build_public_component_binding ~loc ~fn_name args )
+          else if isReactAsyncComponentBinding vb then
+            let loc = vb.pvb_loc in
+            let fn_name = get_function_name vb in
+            let args = extract_component_args vb.pvb_expr in
+            let internal_binding =
+              expand_make_binding vb (fun expr ->
+                  let loc = expr.pexp_loc in
+                  [%expr React.Async_component (Stdlib.__FUNCTION__, fun () -> [%e expr])])
+            in
+            Some
+              ( internal_binding,
+                build_make_props_binding ~loc ~fn_name args,
+                build_public_component_binding ~loc ~fn_name args )
+          else None
+        in
+        let rewrites = List.map value_bindings ~f:rewrite_component_binding in
+        let make_props_bindings =
+          List.filter_map rewrites ~f:(function
+            | Some (_, make_props_binding, _) -> Some make_props_binding
+            | None -> None)
+        in
+        let public_bindings =
+          List.filter_map rewrites ~f:(function Some (_, _, public_binding) -> Some public_binding | None -> None)
+        in
+        let internal_bindings =
+          List.map2 value_bindings rewrites ~f:(fun vb rewrite ->
+              match rewrite with Some (internal_binding, _, _) -> internal_binding | None -> vb)
+        in
+        match make_props_bindings with
+        | [] -> pstr_value ~loc:structure_item.pstr_loc rec_flag internal_bindings
+        | _ ->
+            let loc = structure_item.pstr_loc in
+            [%stri
+              include struct
+                [%%i pstr_value ~loc:structure_item.pstr_loc Nonrecursive make_props_bindings]
+                [%%i pstr_value ~loc:structure_item.pstr_loc rec_flag internal_bindings]
+                [%%i pstr_value ~loc:structure_item.pstr_loc Nonrecursive public_bindings]
+              end]
+      with Error err -> pstr_eval ~loc:structure_item.pstr_loc err [])
   | _ -> structure_item
 
 let rewrite_structure_item_for_js ~nested_module_names ctx structure_item =

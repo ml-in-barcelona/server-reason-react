@@ -6,6 +6,7 @@
   lwt
   lwt.unix
   benchmark_scenarios
+  server-reason-react.js
   server-reason-react.react
   server-reason-react.reactDom)
  (preprocess
@@ -18,6 +19,7 @@
   unix
   lwt
   lwt.unix
+  server-reason-react.js
   server-reason-react.react
   server-reason-react.reactDom
   demo_shared_native)

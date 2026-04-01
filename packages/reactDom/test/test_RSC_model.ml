@@ -34,6 +34,11 @@ let test title fn =
   in
   (Printf.sprintf "ReactServerDOM.render_model / %s" title, [ Alcotest_lwt.test_case "" `Quick test_case ])
 
+let mk_suspense ?key ?fallback ?children () = React.Suspense.make ?key (React.Suspense.makeProps ?fallback ?children ())
+
+let mk_context context ~value ~children () =
+  React.Context.provider context (React.Context.makeProps ~value ~children ())
+
 let[@warning "-27"] skip title _fn =
   let test_case _switch () = Lwt.return () in
   (Printf.sprintf "ReactServerDOM.render_model / %s" title, [ Alcotest_lwt.test_case "" `Quick test_case ])
@@ -193,7 +198,7 @@ let upper_case_with_children () =
 
 let suspense_without_promise () =
   let app () =
-    React.Suspense.make ~fallback:(React.string "Loading...")
+    mk_suspense ~fallback:(React.string "Loading...")
       ~children:
         (React.createElement "div" []
            [
@@ -213,7 +218,7 @@ let suspense_without_promise () =
 
 let suspense_with_promise () =
   let app () =
-    React.Suspense.make ~fallback:(React.string "Loading...")
+    mk_suspense ~fallback:(React.string "Loading...")
       ~children:
         (React.Async_component
            ( "suspense_with_promise",
@@ -234,7 +239,7 @@ let suspense_with_promise () =
 
 let suspense_with_error () =
   let app () =
-    React.Suspense.make ~fallback:(React.string "Loading...")
+    mk_suspense ~fallback:(React.string "Loading...")
       ~children:(React.Upper_case_component (__FUNCTION__, fun () -> raise (Failure "lol")))
       ()
   in
@@ -250,7 +255,7 @@ let suspense_with_error () =
 
 let suspense_with_error_in_async () =
   let app () =
-    React.Suspense.make ~fallback:(React.string "Loading...")
+    mk_suspense ~fallback:(React.string "Loading...")
       ~children:(React.Async_component (__FUNCTION__, fun () -> Lwt.fail (Failure "lol")))
       ()
   in
@@ -268,7 +273,7 @@ let suspense_with_error_under_lowercase () =
   let app () =
     React.createElement "div" []
       [
-        React.Suspense.make ~fallback:(React.string "Loading...")
+        mk_suspense ~fallback:(React.string "Loading...")
           ~children:(React.Async_component (__FUNCTION__, fun () -> Lwt.fail (Failure "lol")))
           ();
       ]
@@ -323,11 +328,11 @@ let suspense_in_a_list () =
     React.Fragment
       (React.list
          [
-           React.Suspense.make ~fallback ~children:(await_tick ~ms:10 "A") ();
-           React.Suspense.make ~fallback ~children:(await_tick ~ms:20 "B") ();
-           React.Suspense.make ~fallback ~children:(await_tick ~ms:30 "C") ();
-           React.Suspense.make ~fallback ~children:(await_tick ~ms:40 "D") ();
-           React.Suspense.make ~fallback ~children:(await_tick ~ms:50 "E") ();
+           mk_suspense ~fallback ~children:(await_tick ~ms:10 "A") ();
+           mk_suspense ~fallback ~children:(await_tick ~ms:20 "B") ();
+           mk_suspense ~fallback ~children:(await_tick ~ms:30 "C") ();
+           mk_suspense ~fallback ~children:(await_tick ~ms:40 "D") ();
+           mk_suspense ~fallback ~children:(await_tick ~ms:50 "E") ();
          ])
   in
   let main = React.Upper_case_component ("app", app) in
@@ -350,11 +355,11 @@ let suspense_in_a_list_with_error () =
     React.Fragment
       (React.list
          [
-           React.Suspense.make ~fallback ~children:(await_tick ~ms:10 "A") ();
-           React.Suspense.make ~fallback ~children:(await_tick ~ms:20 ~raise:true "B") ();
-           React.Suspense.make ~fallback ~children:(await_tick ~ms:30 "C") ();
-           React.Suspense.make ~fallback ~children:(await_tick ~ms:40 "D") ();
-           React.Suspense.make ~fallback ~children:(await_tick ~ms:50 "E") ();
+           mk_suspense ~fallback ~children:(await_tick ~ms:10 "A") ();
+           mk_suspense ~fallback ~children:(await_tick ~ms:20 ~raise:true "B") ();
+           mk_suspense ~fallback ~children:(await_tick ~ms:30 "C") ();
+           mk_suspense ~fallback ~children:(await_tick ~ms:40 "D") ();
+           mk_suspense ~fallback ~children:(await_tick ~ms:50 "E") ();
          ])
   in
   let main = React.Upper_case_component ("app", app) in
@@ -379,7 +384,7 @@ let suspense_with_immediate_promise () =
           let value = "DONE :)" in
           Lwt.return (React.string value) )
   in
-  let app = React.Suspense.make ~fallback:(React.string "Loading...") ~children:resolved_component in
+  let app = mk_suspense ~fallback:(React.string "Loading...") ~children:resolved_component in
   let main = React.Upper_case_component ("app", app) in
   let output, subscribe = capture_stream () in
   let%lwt () = ReactServerDOM.render_model ~subscribe main in
@@ -399,7 +404,7 @@ let suspense () =
           let%lwt value = delayed_value ~ms:10 "DONE :)" in
           Lwt.return (React.string value) )
   in
-  let app () = React.Suspense.make ~fallback:(React.string "Loading...") ~children:suspended_component () in
+  let app () = mk_suspense ~fallback:(React.string "Loading...") ~children:suspended_component () in
   let main = React.Upper_case_component ("app", app) in
   let output, subscribe = capture_stream () in
   let%lwt () = ReactServerDOM.render_model ~subscribe main in
@@ -418,7 +423,7 @@ let nested_suspense () =
           let%lwt value = delayed_value ~ms:20 "DONE :)" in
           Lwt.return (React.string value) )
   in
-  let app () = React.Suspense.make ~fallback:(React.string "Loading...") ~children:deffered_component () in
+  let app () = mk_suspense ~fallback:(React.string "Loading...") ~children:deffered_component () in
   let main = React.Upper_case_component ("app", app) in
   let output, subscribe = capture_stream () in
   let%lwt () = ReactServerDOM.render_model ~subscribe main in
@@ -937,7 +942,7 @@ let page_with_hoisted_resources () =
 
 let nested_context () =
   let context = React.createContext React.null in
-  let provider = React.Context.provider context in
+  let provider ~value ~children = mk_context context ~value ~children () in
   let client_provider ~value ~children =
     React.Upper_case_component
       ( "client_provider",
@@ -948,7 +953,7 @@ let nested_context () =
               import_module = "./provider.js";
               import_name = "Provider";
               props = [ ("value", React.Model.Element value); ("children", React.Model.Element children) ];
-              client = provider ~value ~children ();
+              client = provider ~value ~children;
             } )
   in
   let client_consumer () =
@@ -1003,7 +1008,7 @@ let suspense_with_nested_upper_case () =
   (* Server components are always inlined, matching React.js behavior. Everything resolves in chunk 0. *)
   let inner () = React.Upper_case_component ("Inner", fun () -> React.string "inner-value") in
   let app () =
-    React.Suspense.make ~fallback:(React.string "Loading...")
+    mk_suspense ~fallback:(React.string "Loading...")
       ~children:(React.Upper_case_component ("Wrapper", fun () -> React.createElement "div" [] [ inner () ]))
       ()
   in
@@ -1018,7 +1023,7 @@ let suspense_with_nested_upper_case () =
 
 let suspense_at_root () =
   (* React: 0:["$","$Sreact.suspense",null,{"fallback":"Loading...","children":"Resolved content"}] *)
-  let app = React.Suspense.make ~fallback:(React.string "Loading...") ~children:(React.string "Resolved content") () in
+  let app = mk_suspense ~fallback:(React.string "Loading...") ~children:(React.string "Resolved content") () in
   let output, subscribe = capture_stream () in
   let%lwt () = ReactServerDOM.render_model ~subscribe app in
   assert_list_of_strings !output
@@ -1031,7 +1036,7 @@ let suspense_at_root_with_upper_case_children () =
   (* Server components inside Suspense are inlined, matching React.js.
      React: 0:["$","$Sreact.suspense",null,{"fallback":"Loading...","children":["$","div",null,{"children":"Hello"}]}] *)
   let app =
-    React.Suspense.make ~fallback:(React.string "Loading...")
+    mk_suspense ~fallback:(React.string "Loading...")
       ~children:(React.Upper_case_component ("Inner", fun () -> React.createElement "div" [] [ React.string "Hello" ]))
       ()
   in
@@ -1051,7 +1056,7 @@ let suspense_at_root_with_nested_components () =
     React.Upper_case_component ("Inner", fun () -> React.createElement "div" [] [ React.string "Hello" ])
   in
   let wrapper () = React.Upper_case_component ("Wrapper", fun () -> React.createElement "div" [] [ inner () ]) in
-  let app = React.Suspense.make ~fallback:(React.string "Loading...") ~children:(wrapper ()) () in
+  let app = mk_suspense ~fallback:(React.string "Loading...") ~children:(wrapper ()) () in
   let output, subscribe = capture_stream () in
   let%lwt () = ReactServerDOM.render_model ~subscribe app in
   assert_list_of_strings !output
@@ -1064,7 +1069,7 @@ let suspense_at_root_with_async () =
   (* Async children inside root Suspense create a lazy ref.
      React: 0:["$","$Sreact.suspense",null,{"fallback":"Loading...","children":"$L1"}] then 1:resolved *)
   let app =
-    React.Suspense.make ~fallback:(React.string "Loading...")
+    mk_suspense ~fallback:(React.string "Loading...")
       ~children:
         (React.Async_component
            ( "async",
