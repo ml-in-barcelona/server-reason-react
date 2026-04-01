@@ -17,46 +17,58 @@ let forwardRef f = f ()
 module Event = struct
   type 'a synthetic
 
+  type target_like =
+    < checked : bool
+    ; className : string
+    ; id : string
+    ; innerHTML : string
+    ; name : string
+    ; tagName : string
+    ; textContent : string
+    ; value : string >
+
+  let fail name = Runtime.fail_impossible_action_in_ssr ("React.Event." ^ name)
+
   module MakeEventWithType (Type : sig
     type t
   end) =
   struct
-    let bubbles : Type.t -> bool = fun _ -> false
-    let cancelable : Type.t -> bool = fun _ -> false
-    let currentTarget : Type.t -> < .. > Js.t = fun _ -> object end
-    let defaultPrevented : Type.t -> bool = fun _ -> false
-    let eventPhase : Type.t -> int = fun _ -> 0
-    let isTrusted : Type.t -> bool = fun _ -> false
-    let nativeEvent : Type.t -> < .. > Js.t = fun _ -> object end
-    let preventDefault : Type.t -> unit = fun _ -> ()
-    let isDefaultPrevented : Type.t -> bool = fun _ -> false
-    let stopPropagation : Type.t -> unit = fun _ -> ()
-    let isPropagationStopped : Type.t -> bool = fun _ -> false
-    let target : Type.t -> < .. > Js.t = fun _ -> object end
-    let timeStamp : Type.t -> float = fun _ -> 0.
-    let type_ : Type.t -> string = fun _ -> ""
-    let persist : Type.t -> unit = fun _ -> ()
+    let bubbles : Type.t -> bool = fun _ -> fail "bubbles"
+    let cancelable : Type.t -> bool = fun _ -> fail "cancelable"
+    let currentTarget : Type.t -> target_like = fun _ -> fail "currentTarget"
+    let defaultPrevented : Type.t -> bool = fun _ -> fail "defaultPrevented"
+    let eventPhase : Type.t -> int = fun _ -> fail "eventPhase"
+    let isTrusted : Type.t -> bool = fun _ -> fail "isTrusted"
+    let nativeEvent : Type.t -> target_like = fun _ -> fail "nativeEvent"
+    let preventDefault : Type.t -> unit = fun _ -> fail "preventDefault"
+    let isDefaultPrevented : Type.t -> bool = fun _ -> fail "isDefaultPrevented"
+    let stopPropagation : Type.t -> unit = fun _ -> fail "stopPropagation"
+    let isPropagationStopped : Type.t -> bool = fun _ -> fail "isPropagationStopped"
+    let target : Type.t -> target_like = fun _ -> fail "target"
+    let timeStamp : Type.t -> float = fun _ -> fail "timeStamp"
+    let type_ : Type.t -> string = fun _ -> fail "type_"
+    let persist : Type.t -> unit = fun _ -> fail "persist"
   end
 
   module Synthetic = struct
     type tag
     type t = tag synthetic
 
-    let bubbles : 'a synthetic -> bool = fun _ -> false
-    let cancelable : 'a synthetic -> bool = fun _ -> false
-    let currentTarget : 'a synthetic -> < .. > Js.t = fun _ -> object end
-    let defaultPrevented : 'a synthetic -> bool = fun _ -> false
-    let eventPhase : 'a synthetic -> int = fun _ -> 0
-    let isTrusted : 'a synthetic -> bool = fun _ -> false
-    let nativeEvent : 'a synthetic -> < .. > Js.t = fun _ -> object end
-    let preventDefault : 'a synthetic -> unit = fun _ -> ()
-    let isDefaultPrevented : 'a synthetic -> bool = fun _ -> false
-    let stopPropagation : 'a synthetic -> unit = fun _ -> ()
-    let isPropagationStopped : 'a synthetic -> bool = fun _ -> false
-    let target : 'a synthetic -> < .. > Js.t = fun _ -> object end
-    let timeStamp : 'a synthetic -> float = fun _ -> 0.
-    let type_ : 'a synthetic -> string = fun _ -> ""
-    let persist : 'a synthetic -> unit = fun _ -> ()
+    let bubbles : 'a synthetic -> bool = fun _ -> fail "Synthetic.bubbles"
+    let cancelable : 'a synthetic -> bool = fun _ -> fail "Synthetic.cancelable"
+    let currentTarget : 'a synthetic -> target_like = fun _ -> fail "Synthetic.currentTarget"
+    let defaultPrevented : 'a synthetic -> bool = fun _ -> fail "Synthetic.defaultPrevented"
+    let eventPhase : 'a synthetic -> int = fun _ -> fail "Synthetic.eventPhase"
+    let isTrusted : 'a synthetic -> bool = fun _ -> fail "Synthetic.isTrusted"
+    let nativeEvent : 'a synthetic -> target_like = fun _ -> fail "Synthetic.nativeEvent"
+    let preventDefault : 'a synthetic -> unit = fun _ -> fail "Synthetic.preventDefault"
+    let isDefaultPrevented : 'a synthetic -> bool = fun _ -> fail "Synthetic.isDefaultPrevented"
+    let stopPropagation : 'a synthetic -> unit = fun _ -> fail "Synthetic.stopPropagation"
+    let isPropagationStopped : 'a synthetic -> bool = fun _ -> fail "Synthetic.isPropagationStopped"
+    let target : 'a synthetic -> target_like = fun _ -> fail "Synthetic.target"
+    let timeStamp : 'a synthetic -> float = fun _ -> fail "Synthetic.timeStamp"
+    let type_ : 'a synthetic -> string = fun _ -> fail "Synthetic.type_"
+    let persist : 'a synthetic -> unit = fun _ -> fail "Synthetic.persist"
   end
 
   (* let toSyntheticEvent : 'a synthetic -> Synthetic.t = i -> i *)
@@ -69,7 +81,7 @@ module Event = struct
       type nonrec t = t [@@nonrec]
     end)
 
-    let clipboardData : t -> < .. > Js.t = fun _ -> object end
+    let clipboardData : t -> target_like = fun _ -> fail "Clipboard.clipboardData"
   end
 
   module Composition = struct
@@ -80,7 +92,7 @@ module Event = struct
       type nonrec t = t [@@nonrec]
     end)
 
-    let data : t -> string = fun _ -> ""
+    let data : t -> string = fun _ -> fail "Composition.data"
   end
 
   module Keyboard = struct
@@ -91,18 +103,18 @@ module Event = struct
       type nonrec t = t [@@nonrec]
     end)
 
-    let altKey : t -> bool = fun _ -> false
-    let charCode : t -> int = fun _ -> 0
-    let ctrlKey : t -> bool = fun _ -> false
-    let getModifierState : t -> string -> bool = fun _ _ -> false
-    let key : t -> string = fun _ -> ""
-    let keyCode : t -> int = fun _ -> 0
-    let locale : t -> string = fun _ -> ""
-    let location : t -> int = fun _ -> 0
-    let metaKey : t -> bool = fun _ -> false
-    let repeat : t -> bool = fun _ -> false
-    let shiftKey : t -> bool = fun _ -> false
-    let which : t -> int = fun _ -> 0
+    let altKey : t -> bool = fun _ -> fail "Keyboard.altKey"
+    let charCode : t -> int = fun _ -> fail "Keyboard.charCode"
+    let ctrlKey : t -> bool = fun _ -> fail "Keyboard.ctrlKey"
+    let getModifierState : t -> string -> bool = fun _ _ -> fail "Keyboard.getModifierState"
+    let key : t -> string = fun _ -> fail "Keyboard.key"
+    let keyCode : t -> int = fun _ -> fail "Keyboard.keyCode"
+    let locale : t -> string = fun _ -> fail "Keyboard.locale"
+    let location : t -> int = fun _ -> fail "Keyboard.location"
+    let metaKey : t -> bool = fun _ -> fail "Keyboard.metaKey"
+    let repeat : t -> bool = fun _ -> fail "Keyboard.repeat"
+    let shiftKey : t -> bool = fun _ -> fail "Keyboard.shiftKey"
+    let which : t -> int = fun _ -> fail "Keyboard.which"
   end
 
   module Focus = struct
@@ -113,7 +125,7 @@ module Event = struct
       type nonrec t = t [@@nonrec]
     end)
 
-    let relatedTarget : t -> < .. > Js.t option = fun _ -> None
+    let relatedTarget : t -> target_like option = fun _ -> fail "Focus.relatedTarget"
   end
 
   module Form = struct
@@ -133,22 +145,22 @@ module Event = struct
       type nonrec t = t [@@nonrec]
     end)
 
-    let altKey : t -> bool = fun _ -> false
-    let button : t -> int = fun _ -> 0
-    let buttons : t -> int = fun _ -> 0
-    let clientX : t -> int = fun _ -> 0
-    let clientY : t -> int = fun _ -> 0
-    let ctrlKey : t -> bool = fun _ -> false
-    let getModifierState : t -> string -> bool = fun _ _ -> false
-    let metaKey : t -> bool = fun _ -> false
-    let movementX : t -> int = fun _ -> 0
-    let movementY : t -> int = fun _ -> 0
-    let pageX : t -> int = fun _ -> 0
-    let pageY : t -> int = fun _ -> 0
-    let relatedTarget : t -> < .. > Js.t option = fun _ -> None
-    let screenX : t -> int = fun _ -> 0
-    let screenY : t -> int = fun _ -> 0
-    let shiftKey : t -> bool = fun _ -> false
+    let altKey : t -> bool = fun _ -> fail "Mouse.altKey"
+    let button : t -> int = fun _ -> fail "Mouse.button"
+    let buttons : t -> int = fun _ -> fail "Mouse.buttons"
+    let clientX : t -> int = fun _ -> fail "Mouse.clientX"
+    let clientY : t -> int = fun _ -> fail "Mouse.clientY"
+    let ctrlKey : t -> bool = fun _ -> fail "Mouse.ctrlKey"
+    let getModifierState : t -> string -> bool = fun _ _ -> fail "Mouse.getModifierState"
+    let metaKey : t -> bool = fun _ -> fail "Mouse.metaKey"
+    let movementX : t -> int = fun _ -> fail "Mouse.movementX"
+    let movementY : t -> int = fun _ -> fail "Mouse.movementY"
+    let pageX : t -> int = fun _ -> fail "Mouse.pageX"
+    let pageY : t -> int = fun _ -> fail "Mouse.pageY"
+    let relatedTarget : t -> target_like option = fun _ -> fail "Mouse.relatedTarget"
+    let screenX : t -> int = fun _ -> fail "Mouse.screenX"
+    let screenY : t -> int = fun _ -> fail "Mouse.screenY"
+    let shiftKey : t -> bool = fun _ -> fail "Mouse.shiftKey"
   end
 
   module Pointer = struct
@@ -159,36 +171,36 @@ module Event = struct
       type nonrec t = t [@@nonrec]
     end)
 
-    let detail : t -> int = fun _ -> 0
+    let detail : t -> int = fun _ -> fail "Pointer.detail"
 
-    (* let view : t -> Dom.window = fun _ -> object end *)
-    let screenX : t -> int = fun _ -> 0
-    let screenY : t -> int = fun _ -> 0
-    let clientX : t -> int = fun _ -> 0
-    let clientY : t -> int = fun _ -> 0
-    let pageX : t -> int = fun _ -> 0
-    let pageY : t -> int = fun _ -> 0
-    let movementX : t -> int = fun _ -> 0
-    let movementY : t -> int = fun _ -> 0
-    let ctrlKey : t -> bool = fun _ -> false
-    let shiftKey : t -> bool = fun _ -> false
-    let altKey : t -> bool = fun _ -> false
-    let metaKey : t -> bool = fun _ -> false
-    let getModifierState : t -> string -> bool = fun _ _ -> false
-    let button : t -> int = fun _ -> 0
-    let buttons : t -> int = fun _ -> 0
-    let relatedTarget : t -> < .. > Js.t option = fun _ -> None
+    (* let view : t -> Dom.window *)
+    let screenX : t -> int = fun _ -> fail "Pointer.screenX"
+    let screenY : t -> int = fun _ -> fail "Pointer.screenY"
+    let clientX : t -> int = fun _ -> fail "Pointer.clientX"
+    let clientY : t -> int = fun _ -> fail "Pointer.clientY"
+    let pageX : t -> int = fun _ -> fail "Pointer.pageX"
+    let pageY : t -> int = fun _ -> fail "Pointer.pageY"
+    let movementX : t -> int = fun _ -> fail "Pointer.movementX"
+    let movementY : t -> int = fun _ -> fail "Pointer.movementY"
+    let ctrlKey : t -> bool = fun _ -> fail "Pointer.ctrlKey"
+    let shiftKey : t -> bool = fun _ -> fail "Pointer.shiftKey"
+    let altKey : t -> bool = fun _ -> fail "Pointer.altKey"
+    let metaKey : t -> bool = fun _ -> fail "Pointer.metaKey"
+    let getModifierState : t -> string -> bool = fun _ _ -> fail "Pointer.getModifierState"
+    let button : t -> int = fun _ -> fail "Pointer.button"
+    let buttons : t -> int = fun _ -> fail "Pointer.buttons"
+    let relatedTarget : t -> target_like option = fun _ -> fail "Pointer.relatedTarget"
 
     (* let pointerId : t -> Dom.eventPointerId *)
-    let width : t -> float = fun _ -> 0.
-    let height : t -> float = fun _ -> 0.
-    let pressure : t -> float = fun _ -> 0.
-    let tangentialPressure : t -> float = fun _ -> 0.
-    let tiltX : t -> int = fun _ -> 0
-    let tiltY : t -> int = fun _ -> 0
-    let twist : t -> int = fun _ -> 0
-    let pointerType : t -> string = fun _ -> ""
-    let isPrimary : t -> bool = fun _ -> false
+    let width : t -> float = fun _ -> fail "Pointer.width"
+    let height : t -> float = fun _ -> fail "Pointer.height"
+    let pressure : t -> float = fun _ -> fail "Pointer.pressure"
+    let tangentialPressure : t -> float = fun _ -> fail "Pointer.tangentialPressure"
+    let tiltX : t -> int = fun _ -> fail "Pointer.tiltX"
+    let tiltY : t -> int = fun _ -> fail "Pointer.tiltY"
+    let twist : t -> int = fun _ -> fail "Pointer.twist"
+    let pointerType : t -> string = fun _ -> fail "Pointer.pointerType"
+    let isPrimary : t -> bool = fun _ -> fail "Pointer.isPrimary"
   end
 
   module Selection = struct
@@ -208,14 +220,14 @@ module Event = struct
       type nonrec t = t [@@nonrec]
     end)
 
-    let altKey : t -> bool = fun _ -> false
-    let changedTouches : t -> < .. > Js.t = fun _ -> object end
-    let ctrlKey : t -> bool = fun _ -> false
-    let getModifierState : t -> string -> bool = fun _ _ -> false
-    let metaKey : t -> bool = fun _ -> false
-    let shiftKey : t -> bool = fun _ -> false
-    let targetTouches : t -> < .. > Js.t = fun _ -> object end
-    let touches : t -> < .. > Js.t = fun _ -> object end
+    let altKey : t -> bool = fun _ -> fail "Touch.altKey"
+    let changedTouches : t -> target_like = fun _ -> fail "Touch.changedTouches"
+    let ctrlKey : t -> bool = fun _ -> fail "Touch.ctrlKey"
+    let getModifierState : t -> string -> bool = fun _ _ -> fail "Touch.getModifierState"
+    let metaKey : t -> bool = fun _ -> fail "Touch.metaKey"
+    let shiftKey : t -> bool = fun _ -> fail "Touch.shiftKey"
+    let targetTouches : t -> target_like = fun _ -> fail "Touch.targetTouches"
+    let touches : t -> target_like = fun _ -> fail "Touch.touches"
   end
 
   module UI = struct
@@ -226,7 +238,7 @@ module Event = struct
       type nonrec t = t [@@nonrec]
     end)
 
-    let detail : t -> int = fun _ -> 0
+    let detail : t -> int = fun _ -> fail "UI.detail"
     (* let view : t -> Dom.window *)
   end
 
@@ -238,10 +250,10 @@ module Event = struct
       type nonrec t = t [@@nonrec]
     end)
 
-    let deltaMode : t -> int = fun _ -> 0
-    let deltaX : t -> float = fun _ -> 0.
-    let deltaY : t -> float = fun _ -> 0.
-    let deltaZ : t -> float = fun _ -> 0.
+    let deltaMode : t -> int = fun _ -> fail "Wheel.deltaMode"
+    let deltaX : t -> float = fun _ -> fail "Wheel.deltaX"
+    let deltaY : t -> float = fun _ -> fail "Wheel.deltaY"
+    let deltaZ : t -> float = fun _ -> fail "Wheel.deltaZ"
   end
 
   module Media = struct
@@ -270,9 +282,9 @@ module Event = struct
       type nonrec t = t [@@nonrec]
     end)
 
-    let animationName : t -> string = fun _ -> ""
-    let pseudoElement : t -> string = fun _ -> ""
-    let elapsedTime : t -> float = fun _ -> 0.
+    let animationName : t -> string = fun _ -> fail "Animation.animationName"
+    let pseudoElement : t -> string = fun _ -> fail "Animation.pseudoElement"
+    let elapsedTime : t -> float = fun _ -> fail "Animation.elapsedTime"
   end
 
   module Transition = struct
@@ -283,9 +295,9 @@ module Event = struct
       type nonrec t = t [@@nonrec]
     end)
 
-    let propertyName : t -> string = fun _ -> ""
-    let pseudoElement : t -> string = fun _ -> ""
-    let elapsedTime : t -> float = fun _ -> 0.
+    let propertyName : t -> string = fun _ -> fail "Transition.propertyName"
+    let pseudoElement : t -> string = fun _ -> fail "Transition.pseudoElement"
+    let elapsedTime : t -> float = fun _ -> fail "Transition.elapsedTime"
   end
 
   module Drag = struct
@@ -296,23 +308,23 @@ module Event = struct
       type nonrec t = t [@@nonrec]
     end)
 
-    let altKey : t -> bool = fun _ -> false
-    let button : t -> int = fun _ -> 0
-    let buttons : t -> int = fun _ -> 0
-    let clientX : t -> int = fun _ -> 0
-    let clientY : t -> int = fun _ -> 0
-    let ctrlKey : t -> bool = fun _ -> false
-    let getModifierState : t -> string -> bool = fun _ _ -> false
-    let metaKey : t -> bool = fun _ -> false
-    let movementX : t -> int = fun _ -> 0
-    let movementY : t -> int = fun _ -> 0
-    let pageX : t -> int = fun _ -> 0
-    let pageY : t -> int = fun _ -> 0
-    let relatedTarget : t -> < .. > Js.t option = fun _ -> None
-    let screenX : t -> int = fun _ -> 0
-    let screenY : t -> int = fun _ -> 0
-    let shiftKey : t -> bool = fun _ -> false
-    let dataTransfer : t -> < .. > Js.t option = fun _ -> None
+    let altKey : t -> bool = fun _ -> fail "Drag.altKey"
+    let button : t -> int = fun _ -> fail "Drag.button"
+    let buttons : t -> int = fun _ -> fail "Drag.buttons"
+    let clientX : t -> int = fun _ -> fail "Drag.clientX"
+    let clientY : t -> int = fun _ -> fail "Drag.clientY"
+    let ctrlKey : t -> bool = fun _ -> fail "Drag.ctrlKey"
+    let getModifierState : t -> string -> bool = fun _ _ -> fail "Drag.getModifierState"
+    let metaKey : t -> bool = fun _ -> fail "Drag.metaKey"
+    let movementX : t -> int = fun _ -> fail "Drag.movementX"
+    let movementY : t -> int = fun _ -> fail "Drag.movementY"
+    let pageX : t -> int = fun _ -> fail "Drag.pageX"
+    let pageY : t -> int = fun _ -> fail "Drag.pageY"
+    let relatedTarget : t -> target_like option = fun _ -> fail "Drag.relatedTarget"
+    let screenX : t -> int = fun _ -> fail "Drag.screenX"
+    let screenY : t -> int = fun _ -> fail "Drag.screenY"
+    let shiftKey : t -> bool = fun _ -> fail "Drag.shiftKey"
+    let dataTransfer : t -> target_like = fun _ -> fail "Drag.dataTransfer"
   end
 end
 

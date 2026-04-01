@@ -19,6 +19,16 @@ val forwardRef : (unit -> 'a) -> 'a
 module Event : sig
   type 'a synthetic
 
+  type target_like =
+    < checked : bool
+    ; className : string
+    ; id : string
+    ; innerHTML : string
+    ; name : string
+    ; tagName : string
+    ; textContent : string
+    ; value : string >
+
   module MakeEventWithType : functor
     (Type : sig
        type t
@@ -26,16 +36,16 @@ module Event : sig
     -> sig
     val bubbles : Type.t -> bool
     val cancelable : Type.t -> bool
-    val currentTarget : Type.t -> < >
+    val currentTarget : Type.t -> target_like
     val defaultPrevented : Type.t -> bool
     val eventPhase : Type.t -> int
     val isTrusted : Type.t -> bool
-    val nativeEvent : Type.t -> < >
+    val nativeEvent : Type.t -> target_like
     val preventDefault : Type.t -> unit
     val isDefaultPrevented : Type.t -> bool
     val stopPropagation : Type.t -> unit
     val isPropagationStopped : Type.t -> bool
-    val target : Type.t -> < >
+    val target : Type.t -> target_like
     val timeStamp : Type.t -> float
     val type_ : Type.t -> string
     val persist : Type.t -> unit
@@ -47,16 +57,16 @@ module Event : sig
 
     val bubbles : 'a synthetic -> bool
     val cancelable : 'a synthetic -> bool
-    val currentTarget : 'a synthetic -> < >
+    val currentTarget : 'a synthetic -> target_like
     val defaultPrevented : 'a synthetic -> bool
     val eventPhase : 'a synthetic -> int
     val isTrusted : 'a synthetic -> bool
-    val nativeEvent : 'a synthetic -> < >
+    val nativeEvent : 'a synthetic -> target_like
     val preventDefault : 'a synthetic -> unit
     val isDefaultPrevented : 'a synthetic -> bool
     val stopPropagation : 'a synthetic -> unit
     val isPropagationStopped : 'a synthetic -> bool
-    val target : 'a synthetic -> < >
+    val target : 'a synthetic -> target_like
     val timeStamp : 'a synthetic -> float
     val type_ : 'a synthetic -> string
     val persist : 'a synthetic -> unit
@@ -68,20 +78,20 @@ module Event : sig
 
     val bubbles : t -> bool
     val cancelable : t -> bool
-    val currentTarget : t -> < >
+    val currentTarget : t -> target_like
     val defaultPrevented : t -> bool
     val eventPhase : t -> int
     val isTrusted : t -> bool
-    val nativeEvent : t -> < >
+    val nativeEvent : t -> target_like
     val preventDefault : t -> unit
     val isDefaultPrevented : t -> bool
     val stopPropagation : t -> unit
     val isPropagationStopped : t -> bool
-    val target : t -> < >
+    val target : t -> target_like
     val timeStamp : t -> float
     val type_ : t -> string
     val persist : t -> unit
-    val clipboardData : t -> < >
+    val clipboardData : t -> target_like
   end
 
   module Composition : sig
@@ -90,16 +100,16 @@ module Event : sig
 
     val bubbles : t -> bool
     val cancelable : t -> bool
-    val currentTarget : t -> < >
+    val currentTarget : t -> target_like
     val defaultPrevented : t -> bool
     val eventPhase : t -> int
     val isTrusted : t -> bool
-    val nativeEvent : t -> < >
+    val nativeEvent : t -> target_like
     val preventDefault : t -> unit
     val isDefaultPrevented : t -> bool
     val stopPropagation : t -> unit
     val isPropagationStopped : t -> bool
-    val target : t -> < >
+    val target : t -> target_like
     val timeStamp : t -> float
     val type_ : t -> string
     val persist : t -> unit
@@ -112,16 +122,16 @@ module Event : sig
 
     val bubbles : t -> bool
     val cancelable : t -> bool
-    val currentTarget : t -> < >
+    val currentTarget : t -> target_like
     val defaultPrevented : t -> bool
     val eventPhase : t -> int
     val isTrusted : t -> bool
-    val nativeEvent : t -> < >
+    val nativeEvent : t -> target_like
     val preventDefault : t -> unit
     val isDefaultPrevented : t -> bool
     val stopPropagation : t -> unit
     val isPropagationStopped : t -> bool
-    val target : t -> < >
+    val target : t -> target_like
     val timeStamp : t -> float
     val type_ : t -> string
     val persist : t -> unit
@@ -145,20 +155,20 @@ module Event : sig
 
     val bubbles : t -> bool
     val cancelable : t -> bool
-    val currentTarget : t -> < >
+    val currentTarget : t -> target_like
     val defaultPrevented : t -> bool
     val eventPhase : t -> int
     val isTrusted : t -> bool
-    val nativeEvent : t -> < >
+    val nativeEvent : t -> target_like
     val preventDefault : t -> unit
     val isDefaultPrevented : t -> bool
     val stopPropagation : t -> unit
     val isPropagationStopped : t -> bool
-    val target : t -> < >
+    val target : t -> target_like
     val timeStamp : t -> float
     val type_ : t -> string
     val persist : t -> unit
-    val relatedTarget : t -> < .. > option
+    val relatedTarget : t -> target_like option
   end
 
   module Form : sig
@@ -167,16 +177,16 @@ module Event : sig
 
     val bubbles : t -> bool
     val cancelable : t -> bool
-    val currentTarget : t -> < >
+    val currentTarget : t -> target_like
     val defaultPrevented : t -> bool
     val eventPhase : t -> int
     val isTrusted : t -> bool
-    val nativeEvent : t -> < >
+    val nativeEvent : t -> target_like
     val preventDefault : t -> unit
     val isDefaultPrevented : t -> bool
     val stopPropagation : t -> unit
     val isPropagationStopped : t -> bool
-    val target : t -> < >
+    val target : t -> target_like
     val timeStamp : t -> float
     val type_ : t -> string
     val persist : t -> unit
@@ -188,16 +198,16 @@ module Event : sig
 
     val bubbles : t -> bool
     val cancelable : t -> bool
-    val currentTarget : t -> < >
+    val currentTarget : t -> target_like
     val defaultPrevented : t -> bool
     val eventPhase : t -> int
     val isTrusted : t -> bool
-    val nativeEvent : t -> < >
+    val nativeEvent : t -> target_like
     val preventDefault : t -> unit
     val isDefaultPrevented : t -> bool
     val stopPropagation : t -> unit
     val isPropagationStopped : t -> bool
-    val target : t -> < >
+    val target : t -> target_like
     val timeStamp : t -> float
     val type_ : t -> string
     val persist : t -> unit
@@ -213,7 +223,7 @@ module Event : sig
     val movementY : t -> int
     val pageX : t -> int
     val pageY : t -> int
-    val relatedTarget : t -> < .. > option
+    val relatedTarget : t -> target_like option
     val screenX : t -> int
     val screenY : t -> int
     val shiftKey : t -> bool
@@ -225,16 +235,16 @@ module Event : sig
 
     val bubbles : t -> bool
     val cancelable : t -> bool
-    val currentTarget : t -> < >
+    val currentTarget : t -> target_like
     val defaultPrevented : t -> bool
     val eventPhase : t -> int
     val isTrusted : t -> bool
-    val nativeEvent : t -> < >
+    val nativeEvent : t -> target_like
     val preventDefault : t -> unit
     val isDefaultPrevented : t -> bool
     val stopPropagation : t -> unit
     val isPropagationStopped : t -> bool
-    val target : t -> < >
+    val target : t -> target_like
     val timeStamp : t -> float
     val type_ : t -> string
     val persist : t -> unit
@@ -254,7 +264,7 @@ module Event : sig
     val getModifierState : t -> string -> bool
     val button : t -> int
     val buttons : t -> int
-    val relatedTarget : t -> < .. > option
+    val relatedTarget : t -> target_like option
     val width : t -> float
     val height : t -> float
     val pressure : t -> float
@@ -272,16 +282,16 @@ module Event : sig
 
     val bubbles : t -> bool
     val cancelable : t -> bool
-    val currentTarget : t -> < >
+    val currentTarget : t -> target_like
     val defaultPrevented : t -> bool
     val eventPhase : t -> int
     val isTrusted : t -> bool
-    val nativeEvent : t -> < >
+    val nativeEvent : t -> target_like
     val preventDefault : t -> unit
     val isDefaultPrevented : t -> bool
     val stopPropagation : t -> unit
     val isPropagationStopped : t -> bool
-    val target : t -> < >
+    val target : t -> target_like
     val timeStamp : t -> float
     val type_ : t -> string
     val persist : t -> unit
@@ -293,27 +303,27 @@ module Event : sig
 
     val bubbles : t -> bool
     val cancelable : t -> bool
-    val currentTarget : t -> < >
+    val currentTarget : t -> target_like
     val defaultPrevented : t -> bool
     val eventPhase : t -> int
     val isTrusted : t -> bool
-    val nativeEvent : t -> < >
+    val nativeEvent : t -> target_like
     val preventDefault : t -> unit
     val isDefaultPrevented : t -> bool
     val stopPropagation : t -> unit
     val isPropagationStopped : t -> bool
-    val target : t -> < >
+    val target : t -> target_like
     val timeStamp : t -> float
     val type_ : t -> string
     val persist : t -> unit
     val altKey : t -> bool
-    val changedTouches : t -> < >
+    val changedTouches : t -> target_like
     val ctrlKey : t -> bool
     val getModifierState : t -> string -> bool
     val metaKey : t -> bool
     val shiftKey : t -> bool
-    val targetTouches : t -> < >
-    val touches : t -> < >
+    val targetTouches : t -> target_like
+    val touches : t -> target_like
   end
 
   module UI : sig
@@ -322,16 +332,16 @@ module Event : sig
 
     val bubbles : t -> bool
     val cancelable : t -> bool
-    val currentTarget : t -> < >
+    val currentTarget : t -> target_like
     val defaultPrevented : t -> bool
     val eventPhase : t -> int
     val isTrusted : t -> bool
-    val nativeEvent : t -> < >
+    val nativeEvent : t -> target_like
     val preventDefault : t -> unit
     val isDefaultPrevented : t -> bool
     val stopPropagation : t -> unit
     val isPropagationStopped : t -> bool
-    val target : t -> < >
+    val target : t -> target_like
     val timeStamp : t -> float
     val type_ : t -> string
     val persist : t -> unit
@@ -344,16 +354,16 @@ module Event : sig
 
     val bubbles : t -> bool
     val cancelable : t -> bool
-    val currentTarget : t -> < >
+    val currentTarget : t -> target_like
     val defaultPrevented : t -> bool
     val eventPhase : t -> int
     val isTrusted : t -> bool
-    val nativeEvent : t -> < >
+    val nativeEvent : t -> target_like
     val preventDefault : t -> unit
     val isDefaultPrevented : t -> bool
     val stopPropagation : t -> unit
     val isPropagationStopped : t -> bool
-    val target : t -> < >
+    val target : t -> target_like
     val timeStamp : t -> float
     val type_ : t -> string
     val persist : t -> unit
@@ -369,16 +379,16 @@ module Event : sig
 
     val bubbles : t -> bool
     val cancelable : t -> bool
-    val currentTarget : t -> < >
+    val currentTarget : t -> target_like
     val defaultPrevented : t -> bool
     val eventPhase : t -> int
     val isTrusted : t -> bool
-    val nativeEvent : t -> < >
+    val nativeEvent : t -> target_like
     val preventDefault : t -> unit
     val isDefaultPrevented : t -> bool
     val stopPropagation : t -> unit
     val isPropagationStopped : t -> bool
-    val target : t -> < >
+    val target : t -> target_like
     val timeStamp : t -> float
     val type_ : t -> string
     val persist : t -> unit
@@ -390,16 +400,16 @@ module Event : sig
 
     val bubbles : t -> bool
     val cancelable : t -> bool
-    val currentTarget : t -> < >
+    val currentTarget : t -> target_like
     val defaultPrevented : t -> bool
     val eventPhase : t -> int
     val isTrusted : t -> bool
-    val nativeEvent : t -> < >
+    val nativeEvent : t -> target_like
     val preventDefault : t -> unit
     val isDefaultPrevented : t -> bool
     val stopPropagation : t -> unit
     val isPropagationStopped : t -> bool
-    val target : t -> < >
+    val target : t -> target_like
     val timeStamp : t -> float
     val type_ : t -> string
     val persist : t -> unit
@@ -411,16 +421,16 @@ module Event : sig
 
     val bubbles : t -> bool
     val cancelable : t -> bool
-    val currentTarget : t -> < >
+    val currentTarget : t -> target_like
     val defaultPrevented : t -> bool
     val eventPhase : t -> int
     val isTrusted : t -> bool
-    val nativeEvent : t -> < >
+    val nativeEvent : t -> target_like
     val preventDefault : t -> unit
     val isDefaultPrevented : t -> bool
     val stopPropagation : t -> unit
     val isPropagationStopped : t -> bool
-    val target : t -> < >
+    val target : t -> target_like
     val timeStamp : t -> float
     val type_ : t -> string
     val persist : t -> unit
@@ -435,16 +445,16 @@ module Event : sig
 
     val bubbles : t -> bool
     val cancelable : t -> bool
-    val currentTarget : t -> < >
+    val currentTarget : t -> target_like
     val defaultPrevented : t -> bool
     val eventPhase : t -> int
     val isTrusted : t -> bool
-    val nativeEvent : t -> < >
+    val nativeEvent : t -> target_like
     val preventDefault : t -> unit
     val isDefaultPrevented : t -> bool
     val stopPropagation : t -> unit
     val isPropagationStopped : t -> bool
-    val target : t -> < >
+    val target : t -> target_like
     val timeStamp : t -> float
     val type_ : t -> string
     val persist : t -> unit
@@ -459,16 +469,16 @@ module Event : sig
 
     val bubbles : t -> bool
     val cancelable : t -> bool
-    val currentTarget : t -> < >
+    val currentTarget : t -> target_like
     val defaultPrevented : t -> bool
     val eventPhase : t -> int
     val isTrusted : t -> bool
-    val nativeEvent : t -> < >
+    val nativeEvent : t -> target_like
     val preventDefault : t -> unit
     val isDefaultPrevented : t -> bool
     val stopPropagation : t -> unit
     val isPropagationStopped : t -> bool
-    val target : t -> < >
+    val target : t -> target_like
     val timeStamp : t -> float
     val type_ : t -> string
     val persist : t -> unit
@@ -484,11 +494,11 @@ module Event : sig
     val movementY : t -> int
     val pageX : t -> int
     val pageY : t -> int
-    val relatedTarget : t -> < .. > option
+    val relatedTarget : t -> target_like option
     val screenX : t -> int
     val screenY : t -> int
     val shiftKey : t -> bool
-    val dataTransfer : t -> < .. > option
+    val dataTransfer : t -> target_like
   end
 end
 
