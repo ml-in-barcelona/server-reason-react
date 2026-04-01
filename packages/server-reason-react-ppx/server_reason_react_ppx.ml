@@ -38,8 +38,6 @@ let react_dot_component = "react.component"
 let react_dot_async_dot_component = "react.async.component"
 let react_dot_client_dot_component = "react.client.component"
 let react_dot_server_dot_function = "react.server.function"
-
-(* Helper method to look up the [@react.component] attribute *)
 let hasAttr { attr_name; _ } comparable = attr_name.txt = comparable
 
 let hasAnyReactComponentAttribute { attr_name; _ } =
@@ -47,7 +45,6 @@ let hasAnyReactComponentAttribute { attr_name; _ } =
   || attr_name.txt = react_dot_async_dot_component
   || attr_name.txt = react_dot_client_dot_component
 
-(* Helper method to filter out any attribute that isn't [@react.component] *)
 let nonReactAttributes { attr_name; _ } =
   attr_name.txt <> react_dot_component
   && attr_name.txt <> react_dot_async_dot_component
@@ -82,10 +79,9 @@ let rec unwrap_children children = function
 let is_jsx = function { attr_name = { txt = "JSX"; _ }; _ } -> true | _ -> false
 let has_jsx_attr attrs = List.exists ~f:is_jsx attrs
 
-let strip_final_unit_arg args =
-  match List.rev args with
-  | (Nolabel, { pexp_desc = Pexp_construct ({ txt = Lident "()"; _ }, None); _ }) :: rest -> List.rev rest
-  | _ -> args
+let strip_unit_args args =
+  List.filter args ~f:(fun (label, expr) ->
+      match (label, expr.pexp_desc) with Nolabel, Pexp_construct ({ txt = Lident "()"; _ }, None) -> false | _ -> true)
 
 let component_make_props_ident tag =
   match tag with
@@ -105,7 +101,7 @@ let rewrite_component ~loc tag args children =
   in
   let key_args, non_key_args = List.partition ~f:is_key_arg props_args in
   let make_props = pexp_ident ~loc (component_make_props_ident tag) in
-  let non_key_args = strip_final_unit_arg non_key_args in
+  let non_key_args = strip_unit_args non_key_args in
   let props = pexp_apply ~loc make_props (non_key_args @ [ (Nolabel, [%expr ()]) ]) in
   let make_args =
     match key_args with [] -> [ (Nolabel, props) ] | (label, expr) :: _ -> [ (label, expr); (Nolabel, props) ]
