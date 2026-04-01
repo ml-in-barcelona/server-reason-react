@@ -1,7 +1,19 @@
 # Changes
 
+## 0.5.0
+
 * Add runtime error with clear message when `React.cloneElement` is used with uppercase components by @davesnx
 * Allow `[@platform js]` and `[@browser_only]` on externals to conditionally exclude them from native builds. Fixes https://github.com/ml-in-barcelona/server-reason-react/issues/170 by @davesnx
+* Generate `makeProps` in the PPX by @davesnx in https://github.com/ml-in-barcelona/server-reason-react/pull/364
+* Implement `Js.t` natively with `Js.Internal` and a type registry by @davesnx in https://github.com/ml-in-barcelona/server-reason-react/pull/363
+* Add `React.useActionState` by @davesnx
+* Add `key` into client components by @davesnx
+* Fix several functions in Belt to match specification (`Belt.Array.setExn`, `Belt.Array.concat`, `Belt.MutableMap.remove`, `Belt.HashMap.keepMapInPlace`, and avoid double callback evaluation) by @yasunariw in https://github.com/ml-in-barcelona/server-reason-react/pull/362
+* Implement `Belt.Array.getUndefined` and annotate `Belt.Array.push` as not implemented by @davesnx
+* Remove deprecated folder from Belt and reorganise Belt tests by @davesnx
+* Fix leaking `was_previous` when node was closing by @davesnx in https://github.com/ml-in-barcelona/server-reason-react/pull/361
+* Fix `React.cloneElement` on `Static {}` components by @davesnx in https://github.com/ml-in-barcelona/server-reason-react/pull/359
+* Require ppxlib >= 0.36 by @davesnx
 
 ## 0.4.1
 
