@@ -6,12 +6,36 @@ Transform mel.obj into OCaml object literals
 
   $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl | tee output.ml
   let a =
-    object
-      method cositas = "hola"
-      method lola = 33
-    end
+    let __js_obj_cell_0, __js_obj_entry_0 =
+      Js.Obj.Internal.slot_ref ~method_name:"lola" ~js_name:"lola" ~present:true
+        33
+    in
+    let __js_obj_cell_1, __js_obj_entry_1 =
+      Js.Obj.Internal.slot_ref ~method_name:"cositas" ~js_name:"cositas"
+        ~present:true "hola"
+    in
+    let __js_obj =
+      object
+        method lola = !__js_obj_cell_0
+        method cositas = !__js_obj_cell_1
+      end
+    in
+    Js.Obj.Internal.register_structural __js_obj
+      [ __js_obj_entry_0; __js_obj_entry_1 ]
 
-  $ ocamlc -c output.ml
+  $ cat > main.ml << EOF
+  > module Js = struct
+  >   module Obj = struct
+  >     module Internal = struct
+  >       type entry = unit
+  >       let slot_ref ~method_name:_ ~js_name:_ ~present:_ value = (ref value, ())
+  >       let register_structural obj _ = obj
+  >     end
+  >   end
+  > end
+  > EOF
+  $ cat output.ml >> main.ml
+  $ ocamlc -c main.ml
 
 Transform nested mel.obj into OCaml object literals
 
@@ -21,16 +45,46 @@ Transform nested mel.obj into OCaml object literals
 
   $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl | tee output.ml
   let a =
-    object
-      method cositas =
-        object
-          method value = "hola"
-        end
-  
-      method lola = 33
-    end
+    let __js_obj_cell_0, __js_obj_entry_0 =
+      Js.Obj.Internal.slot_ref ~method_name:"lola" ~js_name:"lola" ~present:true
+        33
+    in
+    let __js_obj_cell_1, __js_obj_entry_1 =
+      Js.Obj.Internal.slot_ref ~method_name:"cositas" ~js_name:"cositas"
+        ~present:true
+        (let __js_obj_cell_0, __js_obj_entry_0 =
+           Js.Obj.Internal.slot_ref ~method_name:"value" ~js_name:"value"
+             ~present:true "hola"
+         in
+         let __js_obj =
+           object
+             method value = !__js_obj_cell_0
+           end
+         in
+         Js.Obj.Internal.register_structural __js_obj [ __js_obj_entry_0 ])
+    in
+    let __js_obj =
+      object
+        method lola = !__js_obj_cell_0
+        method cositas = !__js_obj_cell_1
+      end
+    in
+    Js.Obj.Internal.register_structural __js_obj
+      [ __js_obj_entry_0; __js_obj_entry_1 ]
 
-  $ ocamlc -c output.ml
+  $ cat > main.ml << EOF
+  > module Js = struct
+  >   module Obj = struct
+  >     module Internal = struct
+  >       type entry = unit
+  >       let slot_ref ~method_name:_ ~js_name:_ ~present:_ value = (ref value, ())
+  >       let register_structural obj _ = obj
+  >     end
+  >   end
+  > end
+  > EOF
+  $ cat output.ml >> main.ml
+  $ ocamlc -c main.ml
 
 
 Fail if the object is not a record
