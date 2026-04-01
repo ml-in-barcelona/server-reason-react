@@ -11,4 +11,5 @@ let () =
             Test_reactDOMStyle.tests;
             Test_RSC_model.tests;
             Test_RSC_decoders.tests;
+            Test_useId.tests;
           ]))

@@ -63,6 +63,81 @@ let attributes_to_html attrs = List.map attribute_to_html attrs
 let getDangerouslyInnerHtml attributes =
   List.find_map (function React.JSX.DangerouslyInnerHtml str -> Some str | _ -> None) attributes
 
+let render_upper_case_component render_element component =
+  let saved_ctx = !React.current_tree_context in
+  React.prepare_to_use_hooks saved_ctx;
+  match component () with
+  | result -> (
+      let did_use_id = React.check_did_render_id_hook () in
+      if did_use_id then React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:1 ~index:0;
+      match render_element result with
+      | () -> React.current_tree_context := saved_ctx
+      | exception exn ->
+          React.current_tree_context := saved_ctx;
+          raise exn)
+  | exception exn ->
+      React.current_tree_context := saved_ctx;
+      raise exn
+
+let render_children_list render_element list =
+  match list with
+  | [] -> ()
+  | [ single ] -> render_element single
+  | _ -> (
+      let saved_ctx = !React.current_tree_context in
+      match
+        let total = List.length list in
+        List.iteri
+          (fun i el ->
+            React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:total ~index:i;
+            render_element el)
+          list
+      with
+      | () -> React.current_tree_context := saved_ctx
+      | exception exn ->
+          React.current_tree_context := saved_ctx;
+          raise exn)
+
+let render_upper_case_component_lwt render_element component =
+  let saved_ctx = !React.current_tree_context in
+  React.prepare_to_use_hooks saved_ctx;
+  let result =
+    try component ()
+    with exn ->
+      React.current_tree_context := saved_ctx;
+      raise_notrace exn
+  in
+  let did_use_id = React.check_did_render_id_hook () in
+  if did_use_id then React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:1 ~index:0;
+  try%lwt
+    let%lwt () = render_element result in
+    React.current_tree_context := saved_ctx;
+    Lwt.return ()
+  with exn ->
+    React.current_tree_context := saved_ctx;
+    raise exn
+
+let render_children_list_lwt render_element list =
+  match list with
+  | [] -> Lwt.return ()
+  | [ single ] -> render_element single
+  | _ -> (
+      let saved_ctx = !React.current_tree_context in
+      try%lwt
+        let total = List.length list in
+        let%lwt () =
+          Lwt_list.iteri_s
+            (fun i el ->
+              React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:total ~index:i;
+              render_element el)
+            list
+        in
+        React.current_tree_context := saved_ctx;
+        Lwt.return ()
+      with exn ->
+        React.current_tree_context := saved_ctx;
+        raise exn)
+
 type mode = String | Markup
 
 let render_to_buffer ~mode buf element =
@@ -87,9 +162,9 @@ let render_to_buffer ~mode buf element =
         pop ()
     | Consumer children -> render_element children
     | Fragment children -> render_element children
-    | List list -> List.iter render_element list
-    | Array arr -> Array.iter render_element arr
-    | Upper_case_component (_, component) -> render_element (component ())
+    | List list -> render_children_list render_element list
+    | Array arr -> render_children_list render_element (Array.to_list arr)
+    | Upper_case_component (_, component) -> render_upper_case_component render_element component
     | Async_component (_name, _component) ->
         raise
           (Invalid_argument
@@ -130,7 +205,9 @@ let render_to_buffer ~mode buf element =
       Buffer.add_string buf tag;
       write_attributes_to_buffer buf attributes;
       Buffer.add_char buf '>';
-      (match inner_html with Some html -> Buffer.add_string buf html | None -> List.iter render_element children);
+      (match inner_html with
+      | Some html -> Buffer.add_string buf html
+      | None -> render_children_list render_element children);
       Buffer.add_string buf "</";
       Buffer.add_string buf tag;
       Buffer.add_char buf '>';
@@ -151,9 +228,9 @@ let write_to_buffer buf element =
         pop ()
     | Consumer children -> render children
     | Fragment children -> render children
-    | List list -> List.iter render list
-    | Array arr -> Array.iter render arr
-    | Upper_case_component (_, component) -> render (component ())
+    | List list -> render_children_list render list
+    | Array arr -> render_children_list render (Array.to_list arr)
+    | Upper_case_component (_, component) -> render_upper_case_component render component
     | Async_component (_name, _component) ->
         raise (Invalid_argument "Async components can't be rendered synchronously via write_to_buffer.")
     | Lower_case_element { key = _; tag; attributes; children } ->
@@ -168,7 +245,9 @@ let write_to_buffer buf element =
           Buffer.add_string buf tag;
           write_attributes_to_buffer buf attributes;
           Buffer.add_char buf '>';
-          (match inner_html with Some html -> Buffer.add_string buf html | None -> List.iter render children);
+          (match inner_html with
+          | Some html -> Buffer.add_string buf html
+          | None -> render_children_list render children);
           Buffer.add_string buf "</";
           Buffer.add_string buf tag;
           Buffer.add_char buf '>')
@@ -180,14 +259,16 @@ let write_to_buffer buf element =
 
 let escape_to_buffer = Html.escape
 
-let renderToString element =
+let renderToString ?identifier_prefix element =
   (* TODO: try catch to avoid React.use usages *)
+  React.reset_id_rendering ?prefix:identifier_prefix ();
   let buf = Buffer.create 1024 in
   render_to_buffer ~mode:String buf element;
   Buffer.contents buf
 
-let renderToStaticMarkup element =
+let renderToStaticMarkup ?identifier_prefix element =
   (* TODO: try catch to avoid React.use usages *)
+  React.reset_id_rendering ?prefix:identifier_prefix ();
   let buf = Buffer.create 1024 in
   render_to_buffer ~mode:Markup buf element;
   Buffer.contents buf
@@ -265,8 +346,8 @@ let rec render_to_stream_buffer ~stream_context buf element =
         Lwt.return ()
     | Consumer children -> render_element children
     | Fragment children -> render_element children
-    | List list -> Lwt_list.iter_s render_element list
-    | Array arr -> Lwt_list.iter_s render_element (Array.to_list arr)
+    | List list -> render_children_list_lwt render_element list
+    | Array arr -> render_children_list_lwt render_element (Array.to_list arr)
     | Lower_case_element { key; tag; attributes; children } -> render_lower_case ~key tag attributes children
     | Text text ->
         let is_previous_text_node = !previous_node_was_text in
@@ -275,7 +356,7 @@ let rec render_to_stream_buffer ~stream_context buf element =
         should_add_doctype := false;
         Html.escape buf text;
         Lwt.return ()
-    | Upper_case_component (_, component) -> ( try render_element (component ()) with exn -> raise_notrace exn)
+    | Upper_case_component (_, component) -> render_upper_case_component_lwt render_element component
     | Async_component (_, component) -> (
         let promise = component () in
         match Lwt.state promise with
@@ -352,15 +433,15 @@ let rec render_to_stream_buffer ~stream_context buf element =
         Lwt.return ()
     | Consumer children -> render_element_to_buffer target_buf children
     | Fragment children -> render_element_to_buffer target_buf children
-    | List list -> Lwt_list.iter_s (render_element_to_buffer target_buf) list
-    | Array arr -> Lwt_list.iter_s (render_element_to_buffer target_buf) (Array.to_list arr)
+    | List list -> render_children_list_lwt (render_element_to_buffer target_buf) list
+    | Array arr -> render_children_list_lwt (render_element_to_buffer target_buf) (Array.to_list arr)
     | Lower_case_element { key; tag; attributes; children } ->
         render_lower_case_to_buffer target_buf ~key tag attributes children
     | Text text ->
         Html.escape target_buf text;
         Lwt.return ()
-    | Upper_case_component (_, component) -> (
-        try render_element_to_buffer target_buf (component ()) with exn -> raise_notrace exn)
+    | Upper_case_component (_, component) ->
+        render_upper_case_component_lwt (render_element_to_buffer target_buf) component
     | Async_component (_, component) -> (
         let promise = component () in
         match Lwt.state promise with
@@ -439,7 +520,7 @@ let rec render_to_stream_buffer ~stream_context buf element =
         | Some html ->
             Buffer.add_string buf html;
             Lwt.return ()
-        | None -> Lwt_list.iter_s render_element children
+        | None -> render_children_list_lwt render_element children
       in
       Buffer.add_string buf "</";
       Buffer.add_string buf tag;
@@ -464,7 +545,7 @@ let rec render_to_stream_buffer ~stream_context buf element =
         | Some html ->
             Buffer.add_string target_buf html;
             Lwt.return ()
-        | None -> Lwt_list.iter_s (render_element_to_buffer target_buf) children
+        | None -> render_children_list_lwt (render_element_to_buffer target_buf) children
       in
       Buffer.add_string target_buf "</";
       Buffer.add_string target_buf tag;
@@ -491,9 +572,9 @@ and render_with_resolved_buffer ~stream_context buf element =
         Lwt.return ()
     | Consumer children -> render_element children
     | Fragment children -> render_element children
-    | List list -> Lwt_list.iter_s render_element list
-    | Array arr -> Lwt_list.iter_s render_element (Array.to_list arr)
-    | Upper_case_component (_, component) -> render_element (component ())
+    | List list -> render_children_list_lwt render_element list
+    | Array arr -> render_children_list_lwt render_element (Array.to_list arr)
+    | Upper_case_component (_, component) -> render_upper_case_component_lwt render_element component
     | Lower_case_element { key; tag; attributes; children } -> render_lower_case ~key tag attributes children
     | Text text ->
         let is_previous_text_node = !previous_node_was_text in
@@ -533,7 +614,7 @@ and render_with_resolved_buffer ~stream_context buf element =
         | Some html ->
             Buffer.add_string buf html;
             Lwt.return ()
-        | None -> Lwt_list.iter_s render_element children
+        | None -> render_children_list_lwt render_element children
       in
       Buffer.add_string buf "</";
       Buffer.add_string buf tag;
@@ -543,7 +624,8 @@ and render_with_resolved_buffer ~stream_context buf element =
   in
   render_element element
 
-let renderToStream ?pipe:_ element =
+let renderToStream ?identifier_prefix ?pipe:_ element =
+  React.reset_id_rendering ?prefix:identifier_prefix ();
   React.Cache.with_request_cache_async (fun () ->
       let stream, push_to_stream, close = Push_stream.make () in
       let stream_context =

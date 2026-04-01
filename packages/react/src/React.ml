@@ -638,11 +638,130 @@ type ('input, 'output) callback = 'input -> 'output
 
 let useSyncExternalStore ~subscribe:_ ~getSnapshot = getSnapshot ()
 let useSyncExternalStoreWithServer ~subscribe:_ ~getSnapshot:_ ~getServerSnapshot = getServerSnapshot ()
-let internal_id = ref 0
+
+(* Tree context for useId — implements the same bit-packing algorithm as React's
+   ReactFizzTree_context.js to produce hydration-compatible IDs.
+
+   IDs are base-32 strings whose binary representation corresponds to the
+   position of a node in a tree. Every time the tree forks into multiple
+   children, additional bits encode the position of the child within the
+   current level of children. *)
+module Tree_context = struct
+  type t = { id : int; overflow : string }
+
+  let empty = { id = 1; overflow = "" }
+
+  (* Count leading zeros in a 32-bit representation.
+     Uses the same algorithm as Math.clz32 in JavaScript. *)
+  let clz32 x =
+    if x = 0 then 32
+    else
+      let n = Stdlib.ref 0 in
+      let v = Stdlib.ref x in
+      if !v land 0xFFFF0000 = 0 then (
+        n := !n + 16;
+        v := !v lsl 16);
+      if !v land 0xFF000000 = 0 then (
+        n := !n + 8;
+        v := !v lsl 8);
+      if !v land 0xF0000000 = 0 then (
+        n := !n + 4;
+        v := !v lsl 4);
+      if !v land 0xC0000000 = 0 then (
+        n := !n + 2;
+        v := !v lsl 2);
+      if !v land 0x80000000 = 0 then n := !n + 1;
+      !n
+
+  let get_bit_length n = 32 - clz32 n
+  let get_leading_bit id = 1 lsl (get_bit_length id - 1)
+
+  (* Convert a non-negative integer to a base-32 string (digits: 0-9, a-v).
+     Matches JavaScript's Number.prototype.toString(32). *)
+  let int_to_base32 n =
+    if n = 0 then "0"
+    else
+      let digits = "0123456789abcdefghijklmnopqrstuv" in
+      let buf = Buffer.create 8 in
+      let rec go n =
+        if n > 0 then begin
+          go (n / 32);
+          Buffer.add_char buf (String.get digits (n mod 32))
+        end
+      in
+      go n;
+      Buffer.contents buf
+
+  let get_tree_id ctx =
+    let overflow = ctx.overflow in
+    let id_with_leading_bit = ctx.id in
+    let id = id_with_leading_bit land lnot (get_leading_bit id_with_leading_bit) in
+    int_to_base32 id ^ overflow
+
+  let push base_ctx ~total_children ~index =
+    let base_id_with_leading_bit = base_ctx.id in
+    let base_overflow = base_ctx.overflow in
+    let base_length = get_bit_length base_id_with_leading_bit - 1 in
+    let base_id = base_id_with_leading_bit land lnot (1 lsl base_length) in
+    let slot = index + 1 in
+    let length = get_bit_length total_children + base_length in
+    if length > 30 then begin
+      (* Overflow: convert some bits to base-32 string *)
+      let number_of_overflow_bits = base_length - (base_length mod 5) in
+      let new_overflow_bits = (1 lsl number_of_overflow_bits) - 1 in
+      let new_overflow = int_to_base32 (base_id land new_overflow_bits) in
+      let rest_of_base_id = base_id asr number_of_overflow_bits in
+      let rest_of_base_length = base_length - number_of_overflow_bits in
+      let rest_of_length = get_bit_length total_children + rest_of_base_length in
+      let rest_of_new_bits = slot lsl rest_of_base_length in
+      let id = rest_of_new_bits lor rest_of_base_id in
+      let overflow = new_overflow ^ base_overflow in
+      { id = (1 lsl rest_of_length) lor id; overflow }
+    end
+    else
+      (* Normal path *)
+      let new_bits = slot lsl base_length in
+      let id = new_bits lor base_id in
+      { id = (1 lsl length) lor id; overflow = base_overflow }
+end
+
+(* Rendering hook context — mutable state set by the renderer (ReactDOM) and
+   read by hooks (useId). This mirrors React's currentlyRenderingTask pattern
+   in ReactFizzHooks.js. *)
+let current_tree_context : Tree_context.t Stdlib.ref = Stdlib.ref Tree_context.empty
+let local_id_counter : int Stdlib.ref = Stdlib.ref 0
+let did_render_id_hook : bool Stdlib.ref = Stdlib.ref false
+let identifier_prefix : string option Stdlib.ref = Stdlib.ref None
+
+let prepare_to_use_hooks (ctx : Tree_context.t) =
+  current_tree_context := ctx;
+  local_id_counter := 0;
+  did_render_id_hook := false
+
+let check_did_render_id_hook () = !did_render_id_hook
+
+let reset_id_rendering ?prefix () =
+  current_tree_context := Tree_context.empty;
+  local_id_counter := 0;
+  did_render_id_hook := false;
+  identifier_prefix := prefix
+
+(* React 19 uses \u00ab (LEFT-POINTING DOUBLE ANGLE QUOTATION MARK) and
+   \u00bb (RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK) as ID delimiters. *)
+let id_start = "\xc2\xab"
+let id_end = "\xc2\xbb"
 
 let useId () =
-  internal_id := !internal_id + 1;
-  Int.to_string !internal_id
+  let tree_id = Tree_context.get_tree_id !current_tree_context in
+  let local_id = !local_id_counter in
+  local_id_counter := local_id + 1;
+  did_render_id_hook := true;
+  match (!identifier_prefix, local_id > 0) with
+  | None, false -> Printf.sprintf "%sR%s%s" id_start tree_id id_end
+  | None, true -> Printf.sprintf "%sR%sH%s%s" id_start tree_id (Tree_context.int_to_base32 local_id) id_end
+  | Some prefix, false -> Printf.sprintf "%s%sR%s%s" id_start prefix tree_id id_end
+  | Some prefix, true ->
+      Printf.sprintf "%s%sR%sH%s%s" id_start prefix tree_id (Tree_context.int_to_base32 local_id) id_end
 
 let useMemo fn = fn ()
 let useMemo0 fn = fn ()
