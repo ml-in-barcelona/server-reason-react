@@ -568,6 +568,73 @@ let context_with_suspense () =
   let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
   assert_stream stream [ "<span>provided</span>" ]
 
+let async_component_with_use_id () =
+  let app =
+    React.Async_component
+      ( "app",
+        fun () ->
+          let id = React.useId () in
+          Lwt.return (React.createElement "div" [ React.JSX.String ("id", "id", id) ] []) )
+  in
+  let%lwt stream, _abort = ReactDOM.renderToStream app in
+  assert_stream stream [ "<div id=\"\xc2\xabR0\xc2\xbb\"></div>" ]
+
+let async_component_with_use_id_and_sibling () =
+  let async_with_id =
+    React.Async_component
+      ( "AsyncWithId",
+        fun () ->
+          let id = React.useId () in
+          Lwt.return (React.createElement "div" [ React.JSX.String ("id", "id", id) ] []) )
+  in
+  let sync_with_id =
+    React.Upper_case_component
+      ( "SyncWithId",
+        fun () ->
+          let id = React.useId () in
+          React.createElement "span" [ React.JSX.String ("id", "id", id) ] [] )
+  in
+  let app = React.createElement "div" [] [ async_with_id; sync_with_id ] in
+  let%lwt stream, _abort = ReactDOM.renderToStream app in
+  assert_stream stream [ "<div><div id=\"\xc2\xabR1\xc2\xbb\"></div><span id=\"\xc2\xabR2\xc2\xbb\"></span></div>" ]
+
+let async_component_with_use_id_in_suspense () =
+  let async_with_id =
+    React.Async_component
+      ( "AsyncWithId",
+        fun () ->
+          let id = React.useId () in
+          let%lwt () = Lwt_unix.sleep 0.01 in
+          Lwt.return (React.createElement "div" [ React.JSX.String ("id", "id", id) ] []) )
+  in
+  let app = mk_suspense ~fallback:(React.string "loading") ~children:async_with_id () in
+  let%lwt stream, _abort = ReactDOM.renderToStream app in
+  let%lwt content = Lwt_stream.to_list stream in
+  let full = String.concat "" content in
+  (* The resolved content should contain an ID *)
+  let has_id =
+    try
+      let _ = Str.search_forward (Str.regexp_string "\xc2\xabR") full 0 in
+      true
+    with Not_found -> false
+  in
+  Lwt.return (Alcotest.(check bool) "async component with useId in suspense should produce an ID" true has_id)
+
+let async_component_with_multiple_use_ids () =
+  let app =
+    React.Async_component
+      ( "app",
+        fun () ->
+          let id1 = React.useId () in
+          let id2 = React.useId () in
+          Lwt.return
+            (React.createElement "div"
+               [ React.JSX.String ("data-id1", "data-id1", id1); React.JSX.String ("data-id2", "data-id2", id2) ]
+               []) )
+  in
+  let%lwt stream, _abort = ReactDOM.renderToStream app in
+  assert_stream stream [ "<div data-id1=\"\xc2\xabR0\xc2\xbb\" data-id2=\"\xc2\xabR0H1\xc2\xbb\"></div>" ]
+
 let tests =
   [
     test "silly_stream" silly_stream;
@@ -596,4 +663,8 @@ let tests =
     test "context_nested_providers" context_nested_providers;
     test "context_multiple_independent" context_multiple_independent;
     test "context_with_suspense" context_with_suspense;
+    test "async_component_with_use_id" async_component_with_use_id;
+    test "async_component_with_use_id_and_sibling" async_component_with_use_id_and_sibling;
+    test "async_component_with_use_id_in_suspense" async_component_with_use_id_in_suspense;
+    test "async_component_with_multiple_use_ids" async_component_with_multiple_use_ids;
   ]
