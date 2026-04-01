@@ -34,7 +34,7 @@ let test title fn =
   in
   (Printf.sprintf "ReactServerDOM.render_model / %s" title, [ Alcotest_lwt.test_case "" `Quick test_case ])
 
-let mk_suspense ?key ?fallback ?children () = React.Suspense.make (React.Suspense.makeProps ?key ?fallback ?children ())
+let mk_suspense ?key ?fallback ?children () = React.Suspense.make ?key (React.Suspense.makeProps ?fallback ?children ())
 
 let mk_context context ~value ~children () =
   React.Context.provider context (React.Context.makeProps ~value ~children ())

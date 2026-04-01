@@ -31,14 +31,9 @@
     }]
   include
     struct
-      let makeProps ?key:(key : string option) () =
-        (Obj.magic
-           (let (__js_obj_cell_0, __js_obj_entry_0) =
-              Js.Obj.Internal.slot_ref ~method_name:"key" ~js_name:"key"
-                ~present:(match key with | None -> false | Some _ -> true) key in
-            let __js_obj = object method key = !__js_obj_cell_0 end in
-            Js.Obj.Internal.register_structural __js_obj [__js_obj_entry_0]) : 
-        <  >  Js.t)
+      let makeProps () =
+        let __js_obj = object  end in
+        (Js.Obj.Internal.register_abstract __js_obj [] : <  >  Js.t)
       let make ?key:(key : string option) () =
         React.Client_component
           {
@@ -50,6 +45,5 @@
               (React.Upper_case_component
                  (Stdlib.__FUNCTION__, (fun () -> React.null)))
           }
-      let make (Props : <  >  Js.t) =
-        make ?key:((Obj.magic Props : < key: string option   > )#key) ()
+      let make ?key:(key : string option) (_Props : <  >  Js.t) = make ?key ()
     end

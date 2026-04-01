@@ -385,7 +385,7 @@ module Model = struct
     | Promise : 'a Js.Promise.t * ('a -> 'element t) -> 'element t
 end
 
-type ('props, 'return) componentLike = 'props -> 'return
+type ('props, 'return) componentLike = ?key:string -> 'props -> 'return
 
 and element =
   | Lower_case_element of lower_case_element
@@ -500,12 +500,12 @@ let rec cloneElement element new_attributes =
   | Suspense _ -> raise (Invalid_argument "React.cloneElement: cannot clone a Suspense")
 
 module Fragment = struct
-  let makeProps ~children ?key:_ () : < children : element > Js.t =
+  let makeProps ~children () : < children : element > Js.t =
     object
       method children = children
     end
 
-  let make props = Fragment props#children
+  let make ?key:_ props = Fragment props#children
 end
 
 let fragment children = Fragment.make (Fragment.makeProps ~children ())
@@ -530,15 +530,13 @@ module Context = struct
     consumer : children:element -> element;
   }
 
-  let makeProps ~value ~children ?key () : < value : 'a ; children : element > Js.t =
-    (object
-       method value = value
-       method children = children
-       method key = key
-     end
-      :> < value : 'a ; children : element >)
+  let makeProps ~value ~children () : < value : 'a ; children : element > Js.t =
+    object
+      method value = value
+      method children = children
+    end
 
-  let provider ctx props = ctx.provider ~value:props#value ~children:props#children ()
+  let provider ctx ?key:_ props = ctx.provider ~value:props#value ~children:props#children ()
 end
 
 let createContext (initial_value : 'a) : 'a Context.t =
@@ -563,21 +561,14 @@ let createContext (initial_value : 'a) : 'a Context.t =
 module Suspense = struct
   let or_react_null = function None -> null | Some x -> x
 
-  let makeProps ?fallback ?children ?key () : < fallback : element option ; children : element option > Js.t =
-    (object
-       method fallback = fallback
-       method children = children
-       method key = key
-     end
-      :> < fallback : element option ; children : element option >)
+  let makeProps ?fallback ?children () : < fallback : element option ; children : element option > Js.t =
+    object
+      method fallback = fallback
+      method children = children
+    end
 
-  let make props =
-    Suspense
-      {
-        key = (Obj.magic props : < key : string option >)#key;
-        fallback = or_react_null props#fallback;
-        children = or_react_null props#children;
-      }
+  let make ?key props =
+    Suspense { key; fallback = or_react_null props#fallback; children = or_react_null props#children }
 end
 
 module Cache = struct

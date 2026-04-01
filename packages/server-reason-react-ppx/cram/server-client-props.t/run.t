@@ -12,117 +12,101 @@
                     ~lulu: float,
                     ~tuple2: (int, int),
                     ~tuple3: (int, string, float),
-                    ~key: option(string)=?,
                     (),
-                  )
-                  : {
-                      .
-                      "prop": int,
-                      "lola": list(int),
-                      "mona": array(float),
-                      "lolo": string,
-                      "lili": bool,
-                      "lulu": float,
-                      "tuple2": (int, int),
-                      "tuple3": (int, string, float),
-                    } =>
-                Obj.magic(
-                  {
-                    let (__js_obj_cell_0, __js_obj_entry_0) =
-                      Js.Obj.Internal.slot_ref(
-                        ~method_name="prop",
-                        ~js_name="prop",
-                        ~present=true,
-                        prop,
-                      );
-                    let (__js_obj_cell_1, __js_obj_entry_1) =
-                      Js.Obj.Internal.slot_ref(
-                        ~method_name="lola",
-                        ~js_name="lola",
-                        ~present=true,
-                        lola,
-                      );
-                    let (__js_obj_cell_2, __js_obj_entry_2) =
-                      Js.Obj.Internal.slot_ref(
-                        ~method_name="mona",
-                        ~js_name="mona",
-                        ~present=true,
-                        mona,
-                      );
-                    let (__js_obj_cell_3, __js_obj_entry_3) =
-                      Js.Obj.Internal.slot_ref(
-                        ~method_name="lolo",
-                        ~js_name="lolo",
-                        ~present=true,
-                        lolo,
-                      );
-                    let (__js_obj_cell_4, __js_obj_entry_4) =
-                      Js.Obj.Internal.slot_ref(
-                        ~method_name="lili",
-                        ~js_name="lili",
-                        ~present=true,
-                        lili,
-                      );
-                    let (__js_obj_cell_5, __js_obj_entry_5) =
-                      Js.Obj.Internal.slot_ref(
-                        ~method_name="lulu",
-                        ~js_name="lulu",
-                        ~present=true,
-                        lulu,
-                      );
-                    let (__js_obj_cell_6, __js_obj_entry_6) =
-                      Js.Obj.Internal.slot_ref(
-                        ~method_name="tuple2",
-                        ~js_name="tuple2",
-                        ~present=true,
-                        tuple2,
-                      );
-                    let (__js_obj_cell_7, __js_obj_entry_7) =
-                      Js.Obj.Internal.slot_ref(
-                        ~method_name="tuple3",
-                        ~js_name="tuple3",
-                        ~present=true,
-                        tuple3,
-                      );
-                    let (__js_obj_cell_8, __js_obj_entry_8) =
-                      Js.Obj.Internal.slot_ref(
-                        ~method_name="key",
-                        ~js_name="key",
-                        ~present=
-                          switch (key) {
-                          | None => false
-                          | Some(_) => true
-                          },
-                        key,
-                      );
-                    let __js_obj = {
-                      as _;
-                      pub prop = __js_obj_cell_0^;
-                      pub lola = __js_obj_cell_1^;
-                      pub mona = __js_obj_cell_2^;
-                      pub lolo = __js_obj_cell_3^;
-                      pub lili = __js_obj_cell_4^;
-                      pub lulu = __js_obj_cell_5^;
-                      pub tuple2 = __js_obj_cell_6^;
-                      pub tuple3 = __js_obj_cell_7^;
-                      pub key = __js_obj_cell_8^
-                    };
-                    Js.Obj.Internal.register_structural(
-                      __js_obj,
-                      [
-                        __js_obj_entry_0,
-                        __js_obj_entry_1,
-                        __js_obj_entry_2,
-                        __js_obj_entry_3,
-                        __js_obj_entry_4,
-                        __js_obj_entry_5,
-                        __js_obj_entry_6,
-                        __js_obj_entry_7,
-                        __js_obj_entry_8,
-                      ],
-                    );
-                  },
+                  ) => {
+                let (__js_obj_cell_0, __js_obj_entry_0) =
+                  Js.Obj.Internal.slot_ref(
+                    ~method_name="prop",
+                    ~js_name="prop",
+                    ~present=true,
+                    prop,
+                  );
+                let (__js_obj_cell_1, __js_obj_entry_1) =
+                  Js.Obj.Internal.slot_ref(
+                    ~method_name="lola",
+                    ~js_name="lola",
+                    ~present=true,
+                    lola,
+                  );
+                let (__js_obj_cell_2, __js_obj_entry_2) =
+                  Js.Obj.Internal.slot_ref(
+                    ~method_name="mona",
+                    ~js_name="mona",
+                    ~present=true,
+                    mona,
+                  );
+                let (__js_obj_cell_3, __js_obj_entry_3) =
+                  Js.Obj.Internal.slot_ref(
+                    ~method_name="lolo",
+                    ~js_name="lolo",
+                    ~present=true,
+                    lolo,
+                  );
+                let (__js_obj_cell_4, __js_obj_entry_4) =
+                  Js.Obj.Internal.slot_ref(
+                    ~method_name="lili",
+                    ~js_name="lili",
+                    ~present=true,
+                    lili,
+                  );
+                let (__js_obj_cell_5, __js_obj_entry_5) =
+                  Js.Obj.Internal.slot_ref(
+                    ~method_name="lulu",
+                    ~js_name="lulu",
+                    ~present=true,
+                    lulu,
+                  );
+                let (__js_obj_cell_6, __js_obj_entry_6) =
+                  Js.Obj.Internal.slot_ref(
+                    ~method_name="tuple2",
+                    ~js_name="tuple2",
+                    ~present=true,
+                    tuple2,
+                  );
+                let (__js_obj_cell_7, __js_obj_entry_7) =
+                  Js.Obj.Internal.slot_ref(
+                    ~method_name="tuple3",
+                    ~js_name="tuple3",
+                    ~present=true,
+                    tuple3,
+                  );
+                let __js_obj = {
+                  as _;
+                  pub prop = __js_obj_cell_0^;
+                  pub lola = __js_obj_cell_1^;
+                  pub mona = __js_obj_cell_2^;
+                  pub lolo = __js_obj_cell_3^;
+                  pub lili = __js_obj_cell_4^;
+                  pub lulu = __js_obj_cell_5^;
+                  pub tuple2 = __js_obj_cell_6^;
+                  pub tuple3 = __js_obj_cell_7^
+                };
+                (
+                  Js.Obj.Internal.register_abstract(
+                    __js_obj,
+                    [
+                      __js_obj_entry_0,
+                      __js_obj_entry_1,
+                      __js_obj_entry_2,
+                      __js_obj_entry_3,
+                      __js_obj_entry_4,
+                      __js_obj_entry_5,
+                      __js_obj_entry_6,
+                      __js_obj_entry_7,
+                    ],
+                  ): {
+                    .
+                    "prop": int,
+                    "lola": list(int),
+                    "mona": array(float),
+                    "lolo": string,
+                    "lili": bool,
+                    "lulu": float,
+                    "tuple2": (int, int),
+                    "tuple3": (int, string, float),
+                  }
                 );
+              };
               let make =
                   (
                     ~key: option(string)=?,
@@ -180,6 +164,7 @@
                 );
               let make =
                   (
+                    ~key: option(string)=?,
                     Props: {
                       .
                       "prop": int,
@@ -193,7 +178,7 @@
                     },
                   ) =>
                 make(
-                  ~key=?(Obj.magic(Props): {. key: option(string) })#key,
+                  ~key?,
                   ~prop=Props#prop,
                   ~lola=Props#lola,
                   ~mona=Props#mona,
@@ -209,43 +194,28 @@
   module Prop_without_annotation = {
     include {
               let makeProps =
-                  (
-                    ~prop_without_annotation: 'prop_without_annotation,
-                    ~key: option(string)=?,
-                    (),
-                  )
-                  : {. "prop_without_annotation": 'prop_without_annotation } =>
-                Obj.magic(
-                  {
-                    let (__js_obj_cell_0, __js_obj_entry_0) =
-                      Js.Obj.Internal.slot_ref(
-                        ~method_name="prop_without_annotation",
-                        ~js_name="prop_without_annotation",
-                        ~present=true,
-                        prop_without_annotation,
-                      );
-                    let (__js_obj_cell_1, __js_obj_entry_1) =
-                      Js.Obj.Internal.slot_ref(
-                        ~method_name="key",
-                        ~js_name="key",
-                        ~present=
-                          switch (key) {
-                          | None => false
-                          | Some(_) => true
-                          },
-                        key,
-                      );
-                    let __js_obj = {
-                      as _;
-                      pub prop_without_annotation = __js_obj_cell_0^;
-                      pub key = __js_obj_cell_1^
-                    };
-                    Js.Obj.Internal.register_structural(
-                      __js_obj,
-                      [__js_obj_entry_0, __js_obj_entry_1],
-                    );
-                  },
+                  (~prop_without_annotation: 'prop_without_annotation, ()) => {
+                let (__js_obj_cell_0, __js_obj_entry_0) =
+                  Js.Obj.Internal.slot_ref(
+                    ~method_name="prop_without_annotation",
+                    ~js_name="prop_without_annotation",
+                    ~present=true,
+                    prop_without_annotation,
+                  );
+                let __js_obj = {
+                  as _;
+                  pub prop_without_annotation = __js_obj_cell_0^
+                };
+                (
+                  Js.Obj.Internal.register_abstract(
+                    __js_obj,
+                    [__js_obj_entry_0],
+                  ): {
+                    .
+                    "prop_without_annotation": 'prop_without_annotation,
+                  }
                 );
+              };
               let make = (~key: option(string)=?, ~prop_without_annotation, ()) =>
                 React.Client_component({
                   key,
@@ -270,13 +240,14 @@
                 });
               let make =
                   (
+                    ~key: option(string)=?,
                     Props: {
                       .
                       "prop_without_annotation": 'prop_without_annotation,
                     },
                   ) =>
                 make(
-                  ~key=?(Obj.magic(Props): {. key: option(string) })#key,
+                  ~key?,
                   ~prop_without_annotation=Props#prop_without_annotation,
                   (),
                 );
@@ -284,57 +255,37 @@
   };
   module Prop_with_unsupported_annotation = {
     include {
-              let makeProps =
-                  (
-                    ~underscore: _,
-                    ~alpha_types: 'a,
-                    ~key: option(string)=?,
-                    (),
-                  )
-                  : {
-                      .
-                      "underscore": _,
-                      "alpha_types": 'a,
-                    } =>
-                Obj.magic(
-                  {
-                    let (__js_obj_cell_0, __js_obj_entry_0) =
-                      Js.Obj.Internal.slot_ref(
-                        ~method_name="underscore",
-                        ~js_name="underscore",
-                        ~present=true,
-                        underscore,
-                      );
-                    let (__js_obj_cell_1, __js_obj_entry_1) =
-                      Js.Obj.Internal.slot_ref(
-                        ~method_name="alpha_types",
-                        ~js_name="alpha_types",
-                        ~present=true,
-                        alpha_types,
-                      );
-                    let (__js_obj_cell_2, __js_obj_entry_2) =
-                      Js.Obj.Internal.slot_ref(
-                        ~method_name="key",
-                        ~js_name="key",
-                        ~present=
-                          switch (key) {
-                          | None => false
-                          | Some(_) => true
-                          },
-                        key,
-                      );
-                    let __js_obj = {
-                      as _;
-                      pub underscore = __js_obj_cell_0^;
-                      pub alpha_types = __js_obj_cell_1^;
-                      pub key = __js_obj_cell_2^
-                    };
-                    Js.Obj.Internal.register_structural(
-                      __js_obj,
-                      [__js_obj_entry_0, __js_obj_entry_1, __js_obj_entry_2],
-                    );
-                  },
+              let makeProps = (~underscore: _, ~alpha_types: 'a, ()) => {
+                let (__js_obj_cell_0, __js_obj_entry_0) =
+                  Js.Obj.Internal.slot_ref(
+                    ~method_name="underscore",
+                    ~js_name="underscore",
+                    ~present=true,
+                    underscore,
+                  );
+                let (__js_obj_cell_1, __js_obj_entry_1) =
+                  Js.Obj.Internal.slot_ref(
+                    ~method_name="alpha_types",
+                    ~js_name="alpha_types",
+                    ~present=true,
+                    alpha_types,
+                  );
+                let __js_obj = {
+                  as _;
+                  pub underscore = __js_obj_cell_0^;
+                  pub alpha_types = __js_obj_cell_1^
+                };
+                (
+                  Js.Obj.Internal.register_abstract(
+                    __js_obj,
+                    [__js_obj_entry_0, __js_obj_entry_1],
+                  ): {
+                    .
+                    "underscore": _,
+                    "alpha_types": 'a,
+                  }
                 );
+              };
               let make = (~key: option(string)=?, ~underscore: _) =>
                 [@warning "-16"]
                 (
@@ -368,6 +319,7 @@
                 );
               let make =
                   (
+                    ~key: option(string)=?,
                     Props: {
                       .
                       "underscore": _,
@@ -375,7 +327,7 @@
                     },
                   ) =>
                 make(
-                  ~key=?(Obj.magic(Props): {. key: option(string) })#key,
+                  ~key?,
                   ~underscore=Props#underscore,
                   ~alpha_types=Props#alpha_types,
                   (),
@@ -390,47 +342,29 @@
                        | `A
                        | `B
                      ],
-                    ~key: option(string)=?,
                     (),
-                  )
-                  : {
-                      .
-                      "polyvariants": [
-                        | `A
-                        | `B
-                      ],
-                    } =>
-                Obj.magic(
-                  {
-                    let (__js_obj_cell_0, __js_obj_entry_0) =
-                      Js.Obj.Internal.slot_ref(
-                        ~method_name="polyvariants",
-                        ~js_name="polyvariants",
-                        ~present=true,
-                        polyvariants,
-                      );
-                    let (__js_obj_cell_1, __js_obj_entry_1) =
-                      Js.Obj.Internal.slot_ref(
-                        ~method_name="key",
-                        ~js_name="key",
-                        ~present=
-                          switch (key) {
-                          | None => false
-                          | Some(_) => true
-                          },
-                        key,
-                      );
-                    let __js_obj = {
-                      as _;
-                      pub polyvariants = __js_obj_cell_0^;
-                      pub key = __js_obj_cell_1^
-                    };
-                    Js.Obj.Internal.register_structural(
-                      __js_obj,
-                      [__js_obj_entry_0, __js_obj_entry_1],
-                    );
-                  },
+                  ) => {
+                let (__js_obj_cell_0, __js_obj_entry_0) =
+                  Js.Obj.Internal.slot_ref(
+                    ~method_name="polyvariants",
+                    ~js_name="polyvariants",
+                    ~present=true,
+                    polyvariants,
+                  );
+                let __js_obj = { as _; pub polyvariants = __js_obj_cell_0^ };
+                (
+                  Js.Obj.Internal.register_abstract(
+                    __js_obj,
+                    [__js_obj_entry_0],
+                  ): {
+                    .
+                    "polyvariants": [
+                      | `A
+                      | `B
+                    ],
+                  }
                 );
+              };
               let make =
                   (
                     ~key: option(string)=?,
@@ -471,6 +405,7 @@
                 });
               let make =
                   (
+                    ~key: option(string)=?,
                     Props: {
                       .
                       "polyvariants": [
@@ -479,11 +414,7 @@
                       ],
                     },
                   ) =>
-                make(
-                  ~key=?(Obj.magic(Props): {. key: option(string) })#key,
-                  ~polyvariants=Props#polyvariants,
-                  (),
-                );
+                make(~key?, ~polyvariants=Props#polyvariants, ());
             };
   };
   module Prop_with_unknown_annotation = {
@@ -494,77 +425,61 @@
                     ~ldotlident: Module.lola,
                     ~ldotdotlident: Module.Inner.lola,
                     ~lapply: Label.t(int, string),
-                    ~key: option(string)=?,
                     (),
-                  )
-                  : {
-                      .
-                      "lident": lola,
-                      "ldotlident": Module.lola,
-                      "ldotdotlident": Module.Inner.lola,
-                      "lapply": Label.t(int, string),
-                    } =>
-                Obj.magic(
-                  {
-                    let (__js_obj_cell_0, __js_obj_entry_0) =
-                      Js.Obj.Internal.slot_ref(
-                        ~method_name="lident",
-                        ~js_name="lident",
-                        ~present=true,
-                        lident,
-                      );
-                    let (__js_obj_cell_1, __js_obj_entry_1) =
-                      Js.Obj.Internal.slot_ref(
-                        ~method_name="ldotlident",
-                        ~js_name="ldotlident",
-                        ~present=true,
-                        ldotlident,
-                      );
-                    let (__js_obj_cell_2, __js_obj_entry_2) =
-                      Js.Obj.Internal.slot_ref(
-                        ~method_name="ldotdotlident",
-                        ~js_name="ldotdotlident",
-                        ~present=true,
-                        ldotdotlident,
-                      );
-                    let (__js_obj_cell_3, __js_obj_entry_3) =
-                      Js.Obj.Internal.slot_ref(
-                        ~method_name="lapply",
-                        ~js_name="lapply",
-                        ~present=true,
-                        lapply,
-                      );
-                    let (__js_obj_cell_4, __js_obj_entry_4) =
-                      Js.Obj.Internal.slot_ref(
-                        ~method_name="key",
-                        ~js_name="key",
-                        ~present=
-                          switch (key) {
-                          | None => false
-                          | Some(_) => true
-                          },
-                        key,
-                      );
-                    let __js_obj = {
-                      as _;
-                      pub lident = __js_obj_cell_0^;
-                      pub ldotlident = __js_obj_cell_1^;
-                      pub ldotdotlident = __js_obj_cell_2^;
-                      pub lapply = __js_obj_cell_3^;
-                      pub key = __js_obj_cell_4^
-                    };
-                    Js.Obj.Internal.register_structural(
-                      __js_obj,
-                      [
-                        __js_obj_entry_0,
-                        __js_obj_entry_1,
-                        __js_obj_entry_2,
-                        __js_obj_entry_3,
-                        __js_obj_entry_4,
-                      ],
-                    );
-                  },
+                  ) => {
+                let (__js_obj_cell_0, __js_obj_entry_0) =
+                  Js.Obj.Internal.slot_ref(
+                    ~method_name="lident",
+                    ~js_name="lident",
+                    ~present=true,
+                    lident,
+                  );
+                let (__js_obj_cell_1, __js_obj_entry_1) =
+                  Js.Obj.Internal.slot_ref(
+                    ~method_name="ldotlident",
+                    ~js_name="ldotlident",
+                    ~present=true,
+                    ldotlident,
+                  );
+                let (__js_obj_cell_2, __js_obj_entry_2) =
+                  Js.Obj.Internal.slot_ref(
+                    ~method_name="ldotdotlident",
+                    ~js_name="ldotdotlident",
+                    ~present=true,
+                    ldotdotlident,
+                  );
+                let (__js_obj_cell_3, __js_obj_entry_3) =
+                  Js.Obj.Internal.slot_ref(
+                    ~method_name="lapply",
+                    ~js_name="lapply",
+                    ~present=true,
+                    lapply,
+                  );
+                let __js_obj = {
+                  as _;
+                  pub lident = __js_obj_cell_0^;
+                  pub ldotlident = __js_obj_cell_1^;
+                  pub ldotdotlident = __js_obj_cell_2^;
+                  pub lapply = __js_obj_cell_3^
+                };
+                (
+                  Js.Obj.Internal.register_abstract(
+                    __js_obj,
+                    [
+                      __js_obj_entry_0,
+                      __js_obj_entry_1,
+                      __js_obj_entry_2,
+                      __js_obj_entry_3,
+                    ],
+                  ): {
+                    .
+                    "lident": lola,
+                    "ldotlident": Module.lola,
+                    "ldotdotlident": Module.Inner.lola,
+                    "lapply": Label.t(int, string),
+                  }
                 );
+              };
               let make =
                   (
                     ~key: option(string)=?,
@@ -618,6 +533,7 @@
                 );
               let make =
                   (
+                    ~key: option(string)=?,
                     Props: {
                       .
                       "lident": lola,
@@ -627,7 +543,7 @@
                     },
                   ) =>
                 make(
-                  ~key=?(Obj.magic(Props): {. key: option(string) })#key,
+                  ~key?,
                   ~lident=Props#lident,
                   ~ldotlident=Props#ldotlident,
                   ~ldotdotlident=Props#ldotdotlident,
@@ -638,57 +554,37 @@
   };
   module Prop_with_option_annotation = {
     include {
-              let makeProps =
-                  (
-                    ~name: option(string),
-                    ~count: option(int),
-                    ~key: option(string)=?,
-                    (),
-                  )
-                  : {
-                      .
-                      "name": option(string),
-                      "count": option(int),
-                    } =>
-                Obj.magic(
-                  {
-                    let (__js_obj_cell_0, __js_obj_entry_0) =
-                      Js.Obj.Internal.slot_ref(
-                        ~method_name="name",
-                        ~js_name="name",
-                        ~present=true,
-                        name,
-                      );
-                    let (__js_obj_cell_1, __js_obj_entry_1) =
-                      Js.Obj.Internal.slot_ref(
-                        ~method_name="count",
-                        ~js_name="count",
-                        ~present=true,
-                        count,
-                      );
-                    let (__js_obj_cell_2, __js_obj_entry_2) =
-                      Js.Obj.Internal.slot_ref(
-                        ~method_name="key",
-                        ~js_name="key",
-                        ~present=
-                          switch (key) {
-                          | None => false
-                          | Some(_) => true
-                          },
-                        key,
-                      );
-                    let __js_obj = {
-                      as _;
-                      pub name = __js_obj_cell_0^;
-                      pub count = __js_obj_cell_1^;
-                      pub key = __js_obj_cell_2^
-                    };
-                    Js.Obj.Internal.register_structural(
-                      __js_obj,
-                      [__js_obj_entry_0, __js_obj_entry_1, __js_obj_entry_2],
-                    );
-                  },
+              let makeProps = (~name: option(string), ~count: option(int), ()) => {
+                let (__js_obj_cell_0, __js_obj_entry_0) =
+                  Js.Obj.Internal.slot_ref(
+                    ~method_name="name",
+                    ~js_name="name",
+                    ~present=true,
+                    name,
+                  );
+                let (__js_obj_cell_1, __js_obj_entry_1) =
+                  Js.Obj.Internal.slot_ref(
+                    ~method_name="count",
+                    ~js_name="count",
+                    ~present=true,
+                    count,
+                  );
+                let __js_obj = {
+                  as _;
+                  pub name = __js_obj_cell_0^;
+                  pub count = __js_obj_cell_1^
+                };
+                (
+                  Js.Obj.Internal.register_abstract(
+                    __js_obj,
+                    [__js_obj_entry_0, __js_obj_entry_1],
+                  ): {
+                    .
+                    "name": option(string),
+                    "count": option(int),
+                  }
                 );
+              };
               let make = (~key: option(string)=?, ~name: option(string)) =>
                 [@warning "-16"]
                 (
@@ -730,17 +626,13 @@
                 );
               let make =
                   (
+                    ~key: option(string)=?,
                     Props: {
                       .
                       "name": option(string),
                       "count": option(int),
                     },
                   ) =>
-                make(
-                  ~key=?(Obj.magic(Props): {. key: option(string) })#key,
-                  ~name=Props#name,
-                  ~count=Props#count,
-                  (),
-                );
+                make(~key?, ~name=Props#name, ~count=Props#count, ());
             };
   };

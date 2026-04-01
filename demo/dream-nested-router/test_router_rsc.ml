@@ -18,13 +18,13 @@ let get_route_dynamic_params () =
   let seen_id = ref None in
   let seen_query = ref None in
   let module Page = struct
-    let makeProps ~params ~query ?key:_ () : < params : DynamicParams.t ; query : URL.SearchParams.t > Js.t =
+    let makeProps ~params ~query () : < params : DynamicParams.t ; query : URL.SearchParams.t > Js.t =
       object
         method params = params
         method query = query
       end
 
-    let make props =
+    let make ?key:_ props =
       seen_id := DynamicParams.find "id" props#params;
       seen_query := URL.SearchParams.get props#query "q";
       React.null
@@ -42,13 +42,13 @@ let get_sub_route_dynamic_params () =
   let seen_id = ref None in
   let seen_grade_id = ref None in
   let module Page = struct
-    let makeProps ~params ~query ?key:_ () : < params : DynamicParams.t ; query : URL.SearchParams.t > Js.t =
+    let makeProps ~params ~query () : < params : DynamicParams.t ; query : URL.SearchParams.t > Js.t =
       object
         method params = params
         method query = query
       end
 
-    let make props =
+    let make ?key:_ props =
       seen_id := DynamicParams.find "id" props#params;
       seen_grade_id := DynamicParams.find "grade_id" props#params;
       React.null

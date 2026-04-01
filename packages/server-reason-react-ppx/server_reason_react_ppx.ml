@@ -93,6 +93,8 @@ let component_make_props_ident tag =
   | { txt = Ldot (path, name); loc } -> { txt = Ldot (path, name ^ "Props"); loc }
   | { txt = Lapply _; loc } -> raise_errorf ~loc "jsx: component props can't be created from functor applications"
 
+let is_key_arg (label, _) = match label with Optional "key" | Labelled "key" -> true | _ -> false
+
 let rewrite_component ~loc tag args children =
   let component = pexp_ident ~loc tag in
   let props_args =
@@ -101,10 +103,14 @@ let rewrite_component ~loc tag args children =
     | Some [ children ] -> (Labelled "children", children) :: args
     | Some children -> (Labelled "children", [%expr React.list [%e pexp_list ~loc children]]) :: args
   in
+  let key_args, non_key_args = List.partition ~f:is_key_arg props_args in
   let make_props = pexp_ident ~loc (component_make_props_ident tag) in
-  let props_args = strip_final_unit_arg props_args in
-  let props = pexp_apply ~loc make_props (props_args @ [ (Nolabel, [%expr ()]) ]) in
-  pexp_apply ~loc component [ (Nolabel, props) ]
+  let non_key_args = strip_final_unit_arg non_key_args in
+  let props = pexp_apply ~loc make_props (non_key_args @ [ (Nolabel, [%expr ()]) ]) in
+  let make_args =
+    match key_args with [] -> [ (Nolabel, props) ] | (label, expr) :: _ -> [ (label, expr); (Nolabel, props) ]
+  in
+  pexp_apply ~loc component make_args
 
 let validate_prop ~loc id name =
   match DomProps.findByJsxName ~tag:id name with
@@ -831,15 +837,10 @@ let build_make_props_binding ~loc ~fn_name args =
         in
         { method_name = field_name; js_name = translate_mel_obj_label field_name; present_expr; value_expr })
   in
-  let key_expr = evar ~loc "key" in
-  let key_field =
-    { method_name = "key"; js_name = "key"; present_expr = option_is_some_expr ~loc key_expr; value_expr = key_expr }
+  let body =
+    build_registered_js_object_expression ~as_type:props_type ~register_name:"register_abstract" ~loc object_fields
   in
-  let raw_body = build_registered_js_object_expression ~loc (object_fields @ [ key_field ]) in
-  let body = [%expr ([%e pexp_apply ~loc [%expr Obj.magic] [ (Nolabel, raw_body) ]] : [%t props_type])] in
   let body = pexp_fun ~loc Nolabel None [%pat? ()] body in
-  let key_pattern = ppat_constraint ~loc (ppat_var ~loc { txt = "key"; loc }) [%type: string option] in
-  let body = pexp_fun ~loc (Optional "key") None key_pattern body in
   let body =
     List.fold_right args ~init:body ~f:(fun arg acc ->
         let arg_name = component_arg_public_name arg in
@@ -852,23 +853,12 @@ let build_make_props_binding ~loc ~fn_name args =
   in
   value_binding ~loc ~pat:(ppat_var ~loc { txt = make_props_name fn_name; loc }) ~expr:body
 
-let hidden_key_expr ~loc props_expr =
-  let key_object_type =
-    {
-      ptyp_desc = Ptyp_object ([ make_object_field ~loc ("key", [%type: string option]) ], Closed);
-      ptyp_loc = loc;
-      ptyp_loc_stack = [];
-      ptyp_attributes = [];
-    }
-  in
-  let coerced = pexp_constraint ~loc [%expr Obj.magic [%e props_expr]] key_object_type in
-  pexp_send ~loc coerced { txt = "key"; loc }
-
 let build_public_component_binding ~loc ~fn_name args =
   let props_type = make_props_type ~loc args in
-  let props_name = "Props" in
-  let props_expr = evar ~loc props_name in
-  let key_arg = (Optional "key", hidden_key_expr ~loc props_expr) in
+  let has_props = args <> [] in
+  let props_name = if has_props then "Props" else "_Props" in
+  let props_expr = evar ~loc (if has_props then "Props" else "_Props") in
+  let key_arg = (Optional "key", evar ~loc "key") in
   let prop_args =
     List.map args ~f:(fun arg ->
         let value_expr = pexp_send ~loc props_expr { txt = component_arg_public_name arg; loc = arg.loc } in
@@ -877,13 +867,15 @@ let build_public_component_binding ~loc ~fn_name args =
   let call_expr = pexp_apply ~loc (ident ~loc fn_name) ((key_arg :: prop_args) @ [ (Nolabel, [%expr ()]) ]) in
   let props_pattern = ppat_constraint ~loc (ppat_var ~loc { txt = props_name; loc }) props_type in
   let body = pexp_fun ~loc Nolabel None props_pattern call_expr in
+  let key_pattern = ppat_constraint ~loc (ppat_var ~loc { txt = "key"; loc }) [%type: string option] in
+  let body = pexp_fun ~loc (Optional "key") None key_pattern body in
   value_binding ~loc ~pat:(ppat_var ~loc { txt = fn_name; loc }) ~expr:body
 
 let build_make_props_signature_item ~loc ~fn_name args =
   let props_type = make_props_type ~loc args in
   let make_props_type =
     List.fold_right args
-      ~init:(ptyp_arrow ~loc (Optional "key") [%type: string] (ptyp_arrow ~loc Nolabel [%type: unit] props_type))
+      ~init:(ptyp_arrow ~loc Nolabel [%type: unit] props_type)
       ~f:(fun arg acc ->
         ptyp_arrow ~loc:arg.loc arg.public_label (component_arg_public_arg_type ~from_signature:true arg) acc)
   in

@@ -568,7 +568,7 @@ module Model : sig
     | Promise : 'a Js.Promise.t * ('a -> 'element t) -> 'element t
 end
 
-type ('props, 'return) componentLike = 'props -> 'return
+type ('props, 'return) componentLike = ?key:string -> 'props -> 'return
 
 and element =
   | Lower_case_element of lower_case_element
@@ -598,7 +598,7 @@ and model_value = element Model.t
 exception Invalid_children of string
 
 module Fragment : sig
-  val makeProps : children:element -> ?key:string -> unit -> < children : element > Js.t
+  val makeProps : children:element -> unit -> < children : element > Js.t
   val make : (< children : element > Js.t, element) componentLike
 end
 
@@ -623,7 +623,7 @@ module Context : sig
     consumer : children:element -> element;
   }
 
-  val makeProps : value:'a -> children:element -> ?key:string -> unit -> < value : 'a ; children : element > Js.t
+  val makeProps : value:'a -> children:element -> unit -> < value : 'a ; children : element > Js.t
   val provider : 'a t -> (< value : 'a ; children : element > Js.t, element) componentLike
 end
 
@@ -631,11 +631,7 @@ val createContext : 'a -> 'a Context.t
 
 module Suspense : sig
   val makeProps :
-    ?fallback:element ->
-    ?children:element ->
-    ?key:string ->
-    unit ->
-    < fallback : element option ; children : element option > Js.t
+    ?fallback:element -> ?children:element -> unit -> < fallback : element option ; children : element option > Js.t
 
   val make : (< fallback : element option ; children : element option > Js.t, element) componentLike
 end

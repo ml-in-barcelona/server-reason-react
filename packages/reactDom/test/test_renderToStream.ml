@@ -25,7 +25,7 @@ let assert_stream (stream : string Lwt_stream.t) expected =
   if content = [] then Lwt.return (Alcotest.fail "stream should not be empty")
   else Lwt.return (assert_list Alcotest.string content expected)
 
-let mk_suspense ?key ?fallback ?children () = React.Suspense.make (React.Suspense.makeProps ?key ?fallback ?children ())
+let mk_suspense ?key ?fallback ?children () = React.Suspense.make ?key (React.Suspense.makeProps ?fallback ?children ())
 
 let mk_context context ~value ~children () =
   React.Context.provider context (React.Context.makeProps ~value ~children ())
