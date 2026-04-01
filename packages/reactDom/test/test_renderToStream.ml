@@ -130,11 +130,11 @@ let uppercase_component_always_throwing () =
 let suspense_with_always_throwing () =
   (* This test is very fragile since it relies on the stack trace being the same (so line numbers and methods should match).
      We disable backtracing to avoid having to match the backtrace *)
+  let prev = Printexc.backtrace_status () in
   Printexc.record_backtrace false;
   let app () = mk_suspense ~fallback:(React.string "Loading...") ~children:(always_throwing_component ()) () in
   let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
-  (* and we need to enable it back for the next test *)
-  Printexc.record_backtrace true;
+  Printexc.record_backtrace prev;
   assert_stream stream
     [ "<!--$!--><template data-msg=\"Failure(&quot;always throwing&quot;)\n\"></template>Loading...<!--/$-->" ]
 
@@ -233,18 +233,18 @@ let suspense_with_nested_suspense () =
     ]
 
 let suspense_with_nested_suspense_with_error () =
+  let prev = Printexc.backtrace_status () in
+  Printexc.record_backtrace false;
   let app () =
     mk_suspense ~fallback:(React.string "Fallback 1")
       ~children:
         (deffered_component ~seconds:0.02
-           ~children:
-             (let _ = Printexc.record_backtrace false in
-              mk_suspense ~fallback:(React.string "Fallback 2") ~children:(always_throwing_component ()) ())
+           ~children:(mk_suspense ~fallback:(React.string "Fallback 2") ~children:(always_throwing_component ()) ())
            ())
       ()
   in
-  Printexc.record_backtrace true;
   let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
+  Printexc.record_backtrace prev;
   assert_stream stream
     [
       "<!--$?--><template id=\"B:0\"></template>Fallback 1<!--/$-->";
@@ -455,34 +455,6 @@ let abort_streaming () =
             id=\"B:1\"></template>Loading 2<!--/$--></div>")
   | None -> Alcotest.fail "Expected at least one chunk before abort"
 
-let dangerous_html_in_suspense () =
-  let app () =
-    mk_suspense ~fallback:(React.string "Loading...")
-      ~children:
-        (React.Async_component
-           ( "Dangerous and sleep",
-             fun () ->
-               let%lwt () = Lwt_unix.sleep 0.01 in
-               Lwt.return
-                 (React.createElement "div"
-                    [
-                      React.JSX.dangerouslyInnerHtml
-                        (let html_content = "<div>Dangerous HTML</div>" in
-                         object
-                           method __html = html_content
-                         end);
-                    ]
-                    []) ))
-      ()
-  in
-  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
-  assert_stream stream
-    [
-      "<!--$?--><template id=\"B:0\"></template>Loading...<!--/$-->";
-      "<div hidden id=\"S:0\"><div><div>Dangerous HTML</div></div></div>";
-      "<script>function $RC(a,b){...}$RC('B:0','S:0')</script>";
-    ]
-
 let context_basic () =
   let context = React.createContext "default" in
   let consumer =
@@ -568,6 +540,242 @@ let context_with_suspense () =
   let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
   assert_stream stream [ "<span>provided</span>" ]
 
+let async_component_with_use_id () =
+  let app =
+    React.Async_component
+      ( "app",
+        fun () ->
+          let id = React.useId () in
+          Lwt.return (React.createElement "div" [ React.JSX.String ("id", "id", id) ] []) )
+  in
+  let%lwt stream, _abort = ReactDOM.renderToStream app in
+  assert_stream stream [ "<div id=\"\xc2\xabR0\xc2\xbb\"></div>" ]
+
+let async_component_with_use_id_and_sibling () =
+  let async_with_id =
+    React.Async_component
+      ( "AsyncWithId",
+        fun () ->
+          let id = React.useId () in
+          Lwt.return (React.createElement "div" [ React.JSX.String ("id", "id", id) ] []) )
+  in
+  let sync_with_id =
+    React.Upper_case_component
+      ( "SyncWithId",
+        fun () ->
+          let id = React.useId () in
+          React.createElement "span" [ React.JSX.String ("id", "id", id) ] [] )
+  in
+  let app = React.createElement "div" [] [ async_with_id; sync_with_id ] in
+  let%lwt stream, _abort = ReactDOM.renderToStream app in
+  assert_stream stream [ "<div><div id=\"\xc2\xabR1\xc2\xbb\"></div><span id=\"\xc2\xabR2\xc2\xbb\"></span></div>" ]
+
+let async_component_with_use_id_in_suspense () =
+  let async_with_id =
+    React.Async_component
+      ( "AsyncWithId",
+        fun () ->
+          let id = React.useId () in
+          let%lwt () = Lwt_unix.sleep 0.01 in
+          Lwt.return (React.createElement "div" [ React.JSX.String ("id", "id", id) ] []) )
+  in
+  let app = mk_suspense ~fallback:(React.string "loading") ~children:async_with_id () in
+  let%lwt stream, _abort = ReactDOM.renderToStream app in
+  assert_stream stream
+    [
+      "<!--$?--><template id=\"B:0\"></template>loading<!--/$-->";
+      "<div hidden id=\"S:0\"><div id=\"\xc2\xabR0\xc2\xbb\"></div></div>";
+      "<script>function \
+       $RC(a,b){a=document.getElementById(a);b=document.getElementById(b);b.parentNode.removeChild(b);if(a){a=a.previousSibling;var \
+       f=a.parentNode,c=a.nextSibling,e=0;do{if(c&&8===c.nodeType){var d=c.data;if(\"/$\"===d)if(0===e)break;else \
+       e--;else\"$\"!==d&&\"$?\"!==d&&\"$!\"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data=\"$\";a._reactRetry&&a._reactRetry()}}$RC('B:0','S:0')</script>";
+    ]
+
+let async_component_with_multiple_use_ids () =
+  let app =
+    React.Async_component
+      ( "app",
+        fun () ->
+          let id1 = React.useId () in
+          let id2 = React.useId () in
+          Lwt.return
+            (React.createElement "div"
+               [ React.JSX.String ("data-id1", "data-id1", id1); React.JSX.String ("data-id2", "data-id2", id2) ]
+               []) )
+  in
+  let%lwt stream, _abort = ReactDOM.renderToStream app in
+  assert_stream stream [ "<div data-id1=\"\xc2\xabR0\xc2\xbb\" data-id2=\"\xc2\xabR0H1\xc2\xbb\"></div>" ]
+
+let multiple_async_components_without_suspense () =
+  let app () =
+    React.createElement "div" []
+      [
+        deffered_component ~seconds:0.02 ~children:(React.string "First") ();
+        deffered_component ~seconds:0.01 ~children:(React.string "Second") ();
+      ]
+  in
+  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
+  assert_stream stream
+    [
+      "<div><div>Sleep 0.02 seconds<!-- -->, <!-- -->First</div><div>Sleep 0.01 seconds<!-- -->, <!-- \
+       -->Second</div></div>";
+    ]
+
+let context_provider_with_suspended_consumer () =
+  let context = React.createContext "default" in
+  let async_consumer =
+    React.Async_component
+      ( "async_consumer",
+        fun () ->
+          (* useContext must be called synchronously, before yielding *)
+          let value = React.useContext context in
+          let%lwt () = Lwt_unix.sleep 0.01 in
+          Lwt.return (React.createElement "span" [] [ React.string value ]) )
+  in
+  let app () =
+    (* Provider inside Suspense children — so it's re-rendered in the deferred path *)
+    mk_suspense ~fallback:(React.string "loading")
+      ~children:(mk_context context ~value:"from-provider" ~children:async_consumer ())
+      ()
+  in
+  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
+  assert_stream stream
+    [
+      "<!--$?--><template id=\"B:0\"></template>loading<!--/$-->";
+      "<div hidden id=\"S:0\"><span>from-provider</span></div>";
+      "<script>function \
+       $RC(a,b){a=document.getElementById(a);b=document.getElementById(b);b.parentNode.removeChild(b);if(a){a=a.previousSibling;var \
+       f=a.parentNode,c=a.nextSibling,e=0;do{if(c&&8===c.nodeType){var d=c.data;if(\"/$\"===d)if(0===e)break;else \
+       e--;else\"$\"!==d&&\"$?\"!==d&&\"$!\"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data=\"$\";a._reactRetry&&a._reactRetry()}}$RC('B:0','S:0')</script>";
+    ]
+
+let async_component_returning_suspense_with_async_children () =
+  let app () =
+    mk_suspense ~fallback:(React.string "Outer loading")
+      ~children:
+        (React.Async_component
+           ( "outer_async",
+             fun () ->
+               let%lwt () = Lwt_unix.sleep 0.01 in
+               Lwt.return
+                 (mk_suspense ~fallback:(React.string "Inner loading")
+                    ~children:(deffered_component ~seconds:0.01 ~children:(React.string "deep") ())
+                    ()) ))
+      ()
+  in
+  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
+  assert_stream stream
+    [
+      "<!--$?--><template id=\"B:0\"></template>Outer loading<!--/$-->";
+      "<div hidden id=\"S:0\"><!--$?--><template id=\"B:1\"></template>Inner loading<!--/$--></div>";
+      "<script>function \
+       $RC(a,b){a=document.getElementById(a);b=document.getElementById(b);b.parentNode.removeChild(b);if(a){a=a.previousSibling;var \
+       f=a.parentNode,c=a.nextSibling,e=0;do{if(c&&8===c.nodeType){var d=c.data;if(\"/$\"===d)if(0===e)break;else \
+       e--;else\"$\"!==d&&\"$?\"!==d&&\"$!\"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data=\"$\";a._reactRetry&&a._reactRetry()}}$RC('B:0','S:0')</script>";
+      "<div hidden id=\"S:1\"><div>Sleep 0.01 seconds<!-- -->, <!-- -->deep</div></div>";
+      "<script>$RC('B:1','S:1')</script>";
+    ]
+
+let static_element_in_stream () =
+  let original = React.createElement "div" [] [ React.string "Hello" ] in
+  let app = React.Static { prerendered = "<div>Hello</div>"; original } in
+  let%lwt stream, _abort = ReactDOM.renderToStream app in
+  assert_stream stream [ "<div>Hello</div>" ]
+
+let client_component_error_in_stream () =
+  let app =
+    React.Client_component
+      { key = None; props = []; client = React.Empty; import_module = "test_module"; import_name = "TestComponent" }
+  in
+  assert_raises
+    (Invalid_argument
+       "Client components can't be rendered on the server via renderToStream. Please use the React server components \
+        API instead. module: test_module") (fun () -> ReactDOM.renderToStream app)
+
+let suspense_with_failed_promise () =
+  let prev = Printexc.backtrace_status () in
+  Printexc.record_backtrace false;
+  let app () =
+    mk_suspense ~fallback:(React.string "Error fallback")
+      ~children:(React.Async_component ("failing_async", fun () -> Lwt.fail (Failure "async failure")))
+      ()
+  in
+  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
+  Printexc.record_backtrace prev;
+  assert_stream stream
+    [ "<!--$!--><template data-msg=\"Failure(&quot;async failure&quot;)\n\"></template>Error fallback<!--/$-->" ]
+
+let fragment_in_stream () =
+  let app () =
+    React.Fragment
+      (React.createElement "div" []
+         [ React.createElement "span" [] [ React.string "a" ]; React.createElement "span" [] [ React.string "b" ] ])
+  in
+  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
+  assert_stream stream [ "<div><span>a</span><span>b</span></div>" ]
+
+let list_in_stream () =
+  let app () =
+    React.createElement "ul" []
+      [
+        React.List
+          [
+            React.createElement "li" [] [ React.string "one" ];
+            React.createElement "li" [] [ React.string "two" ];
+            React.createElement "li" [] [ React.string "three" ];
+          ];
+      ]
+  in
+  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
+  assert_stream stream [ "<ul><li>one</li><li>two</li><li>three</li></ul>" ]
+
+let array_in_stream () =
+  let app () =
+    React.createElement "ul" []
+      [
+        React.Array
+          [| React.createElement "li" [] [ React.string "one" ]; React.createElement "li" [] [ React.string "two" ] |];
+      ]
+  in
+  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
+  assert_stream stream [ "<ul><li>one</li><li>two</li></ul>" ]
+
+let empty_element_in_stream () =
+  let app () = React.createElement "div" [] [ React.Empty; React.string "hello"; React.Empty ] in
+  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
+  assert_stream stream [ "<div>hello</div>" ]
+
+let dangerous_html_in_suspense () =
+  let app () =
+    mk_suspense ~fallback:(React.string "Loading...")
+      ~children:
+        (React.Async_component
+           ( "Dangerous and sleep",
+             fun () ->
+               let%lwt () = Lwt_unix.sleep 0.01 in
+               Lwt.return
+                 (React.createElement "div"
+                    [
+                      React.JSX.dangerouslyInnerHtml
+                        (let html_content = "<div>Dangerous HTML</div>" in
+                         object
+                           method __html = html_content
+                         end);
+                    ]
+                    []) ))
+      ()
+  in
+  let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
+  assert_stream stream
+    [
+      "<!--$?--><template id=\"B:0\"></template>Loading...<!--/$-->";
+      "<div hidden id=\"S:0\"><div><div>Dangerous HTML</div></div></div>";
+      "<script>function \
+       $RC(a,b){a=document.getElementById(a);b=document.getElementById(b);b.parentNode.removeChild(b);if(a){a=a.previousSibling;var \
+       f=a.parentNode,c=a.nextSibling,e=0;do{if(c&&8===c.nodeType){var d=c.data;if(\"/$\"===d)if(0===e)break;else \
+       e--;else\"$\"!==d&&\"$?\"!==d&&\"$!\"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data=\"$\";a._reactRetry&&a._reactRetry()}}$RC('B:0','S:0')</script>";
+    ]
+
 let tests =
   [
     test "silly_stream" silly_stream;
@@ -596,4 +804,19 @@ let tests =
     test "context_nested_providers" context_nested_providers;
     test "context_multiple_independent" context_multiple_independent;
     test "context_with_suspense" context_with_suspense;
+    test "async_component_with_use_id" async_component_with_use_id;
+    test "async_component_with_use_id_and_sibling" async_component_with_use_id_and_sibling;
+    test "async_component_with_use_id_in_suspense" async_component_with_use_id_in_suspense;
+    test "async_component_with_multiple_use_ids" async_component_with_multiple_use_ids;
+    test "multiple_async_components_without_suspense" multiple_async_components_without_suspense;
+    test "context_provider_with_suspended_consumer" context_provider_with_suspended_consumer;
+    test "async_component_returning_suspense_with_async_children" async_component_returning_suspense_with_async_children;
+    test "static_element_in_stream" static_element_in_stream;
+    test "client_component_error_in_stream" client_component_error_in_stream;
+    test "suspense_with_failed_promise" suspense_with_failed_promise;
+    test "fragment_in_stream" fragment_in_stream;
+    test "list_in_stream" list_in_stream;
+    test "array_in_stream" array_in_stream;
+    test "empty_element_in_stream" empty_element_in_stream;
+    test "dangerous_html_in_suspense" dangerous_html_in_suspense;
   ]
