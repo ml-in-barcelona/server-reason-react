@@ -8,6 +8,7 @@ let () =
             Test_renderToStream.tests;
             Test_renderToStaticMarkup.tests;
             Test_renderToString.tests;
+            Test_write_to_buffer.tests;
             Test_reactDOMStyle.tests;
             Test_RSC_model.tests;
             Test_RSC_decoders.tests;

@@ -37,7 +37,13 @@ let write_attribute_to_buffer buf (attr : React.JSX.prop) =
   (* Since we extracted the attribute as children, we are sure there's nothing to render here *)
   | DangerouslyInnerHtml _ -> ()
 
-let write_attributes_to_buffer buf attrs = List.iter (write_attribute_to_buffer buf) attrs
+let write_attributes_and_extract_inner_html buf attrs =
+  let inner_html = ref None in
+  List.iter
+    (fun (attr : React.JSX.prop) ->
+      match attr with DangerouslyInnerHtml str -> inner_html := Some str | _ -> write_attribute_to_buffer buf attr)
+    attrs;
+  !inner_html
 
 let attribute_to_html (attr : React.JSX.prop) =
   match attr with
@@ -189,13 +195,12 @@ let render_to_buffer ~mode buf element =
             render_element ~buf fallback;
             Buffer.add_string buf "<!--/$-->")
   and render_lower_case ~buf ~key:_ tag attributes children =
-    let inner_html = getDangerouslyInnerHtml attributes in
     if Html.is_self_closing_tag tag then (
       should_add_doctype := false;
       if add_separator_between_text_nodes then previous_node_was_text := false;
       Buffer.add_char buf '<';
       Buffer.add_string buf tag;
-      write_attributes_to_buffer buf attributes;
+      let _ = write_attributes_and_extract_inner_html buf attributes in
       Buffer.add_string buf " />")
     else
       let doctype = !should_add_doctype in
@@ -204,7 +209,7 @@ let render_to_buffer ~mode buf element =
       if tag = "html" && doctype then Buffer.add_string buf "<!DOCTYPE html>";
       Buffer.add_char buf '<';
       Buffer.add_string buf tag;
-      write_attributes_to_buffer buf attributes;
+      let inner_html = write_attributes_and_extract_inner_html buf attributes in
       Buffer.add_char buf '>';
       (match inner_html with
       | Some html -> Buffer.add_string buf html
@@ -235,16 +240,15 @@ let write_to_buffer buf element =
     | Async_component (_name, _component) ->
         raise (Invalid_argument "Async components can't be rendered synchronously via write_to_buffer.")
     | Lower_case_element { key = _; tag; attributes; children } ->
-        let inner_html = getDangerouslyInnerHtml attributes in
         if Html.is_self_closing_tag tag then (
           Buffer.add_char buf '<';
           Buffer.add_string buf tag;
-          write_attributes_to_buffer buf attributes;
+          let _ = write_attributes_and_extract_inner_html buf attributes in
           Buffer.add_string buf " />")
         else (
           Buffer.add_char buf '<';
           Buffer.add_string buf tag;
-          write_attributes_to_buffer buf attributes;
+          let inner_html = write_attributes_and_extract_inner_html buf attributes in
           Buffer.add_char buf '>';
           (match inner_html with
           | Some html -> Buffer.add_string buf html
@@ -541,13 +545,12 @@ let rec render_to_stream_buffer ~stream_context buf element =
             write_suspense_fallback_error target_buf ~exn fallback_html;
             Lwt.return ())
   and render_lower_case ~key:_ tag attributes children =
-    let inner_html = getDangerouslyInnerHtml attributes in
     if Html.is_self_closing_tag tag then (
       should_add_doctype := false;
       previous_node_was_text := false;
       Buffer.add_char buf '<';
       Buffer.add_string buf tag;
-      write_attributes_to_buffer buf attributes;
+      let _ = write_attributes_and_extract_inner_html buf attributes in
       Buffer.add_string buf " />";
       Lwt.return ())
     else
@@ -557,7 +560,7 @@ let rec render_to_stream_buffer ~stream_context buf element =
       if tag = "html" && doctype then Buffer.add_string buf "<!DOCTYPE html>";
       Buffer.add_char buf '<';
       Buffer.add_string buf tag;
-      write_attributes_to_buffer buf attributes;
+      let inner_html = write_attributes_and_extract_inner_html buf attributes in
       Buffer.add_char buf '>';
       let%lwt () =
         match inner_html with
@@ -572,17 +575,16 @@ let rec render_to_stream_buffer ~stream_context buf element =
       previous_node_was_text := false;
       Lwt.return ()
   and render_lower_case_to_buffer target_buf ~key:_ tag attributes children =
-    let inner_html = getDangerouslyInnerHtml attributes in
     if Html.is_self_closing_tag tag then (
       Buffer.add_char target_buf '<';
       Buffer.add_string target_buf tag;
-      write_attributes_to_buffer target_buf attributes;
+      let _ = write_attributes_and_extract_inner_html target_buf attributes in
       Buffer.add_string target_buf " />";
       Lwt.return ())
     else (
       Buffer.add_char target_buf '<';
       Buffer.add_string target_buf tag;
-      write_attributes_to_buffer target_buf attributes;
+      let inner_html = write_attributes_and_extract_inner_html target_buf attributes in
       Buffer.add_char target_buf '>';
       let%lwt () =
         match inner_html with
@@ -663,19 +665,18 @@ and render_with_resolved_buffer ~stream_context buf element =
         Lwt.return ()
     | Suspense _ -> render_to_stream_buffer ~stream_context buf element
   and render_lower_case ~key:_ tag attributes children =
-    let inner_html = getDangerouslyInnerHtml attributes in
     if Html.is_self_closing_tag tag then (
       previous_node_was_text := false;
       Buffer.add_char buf '<';
       Buffer.add_string buf tag;
-      write_attributes_to_buffer buf attributes;
+      let _ = write_attributes_and_extract_inner_html buf attributes in
       Buffer.add_string buf " />";
       Lwt.return ())
     else (
       previous_node_was_text := false;
       Buffer.add_char buf '<';
       Buffer.add_string buf tag;
-      write_attributes_to_buffer buf attributes;
+      let inner_html = write_attributes_and_extract_inner_html buf attributes in
       Buffer.add_char buf '>';
       let%lwt () =
         match inner_html with
@@ -692,7 +693,7 @@ and render_with_resolved_buffer ~stream_context buf element =
   in
   render_element element
 
-let renderToStream ?identifier_prefix ?pipe:_ element =
+let renderToStream ?identifier_prefix element =
   React.reset_id_rendering ?prefix:identifier_prefix ();
   React.Cache.with_request_cache_async (fun () ->
       let stream, push_to_stream, close = Push_stream.make () in
@@ -1304,9 +1305,9 @@ let domProps
   |> add (React.JSX.int "tabindex" "tabIndex") tabIndex
   |> add (React.JSX.string "title" "title") title
   |> add (React.JSX.string "itemid" "itemID") itemID
-  |> add (React.JSX.string "itemorop" "itemProp") itemProp
+  |> add (React.JSX.string "itemprop" "itemProp") itemProp
   |> add (React.JSX.string "itemref" "itemRef") itemRef
-  |> add (React.JSX.bool "itemccope" "itemScope") itemScope
+  |> add (React.JSX.bool "itemscope" "itemScope") itemScope
   |> add (React.JSX.string "itemtype" "itemType") itemType
   |> add (React.JSX.string "accept" "accept") accept
   |> add (React.JSX.string "accept-charset" "acceptCharset") acceptCharset
@@ -1336,7 +1337,7 @@ let domProps
   |> add (React.JSX.string "download" "download") download
   |> add (React.JSX.string "enctype" "encType") encType
   |> add (React.JSX.string "form" "form") form
-  |> add (React.JSX.string "formction" "formAction") formAction
+  |> add (React.JSX.string "formaction" "formAction") formAction
   |> add (React.JSX.string "formtarget" "formTarget") formTarget
   |> add (React.JSX.string "formmethod" "formMethod") formMethod
   |> add (React.JSX.string "headers" "headers") headers
