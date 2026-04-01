@@ -671,15 +671,13 @@ module Tree_context : sig
   type t
 
   val empty : t
-  val get_tree_id : t -> string
   val push : t -> total_children:int -> index:int -> t
-  val int_to_base32 : int -> string
 end
 
 val current_tree_context : Tree_context.t Stdlib.ref
 (** Rendering hook context — called by the renderer before/after rendering each function component. *)
 
-val prepare_to_use_hooks : Tree_context.t -> unit
+val reset_component_id_state : Tree_context.t -> unit
 val check_did_render_id_hook : unit -> bool
 val reset_id_rendering : ?prefix:string -> unit -> unit
 val useId : unit -> string

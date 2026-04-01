@@ -65,7 +65,7 @@ let getDangerouslyInnerHtml attributes =
 
 let render_upper_case_component render_element component =
   let saved_ctx = !React.current_tree_context in
-  React.prepare_to_use_hooks saved_ctx;
+  React.reset_component_id_state saved_ctx;
   match component () with
   | result -> (
       let did_use_id = React.check_did_render_id_hook () in
@@ -100,7 +100,7 @@ let render_children_list render_element list =
 
 let render_upper_case_component_lwt render_element component =
   let saved_ctx = !React.current_tree_context in
-  React.prepare_to_use_hooks saved_ctx;
+  React.reset_component_id_state saved_ctx;
   let result =
     try component ()
     with exn ->

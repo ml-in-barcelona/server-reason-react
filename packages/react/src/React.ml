@@ -733,7 +733,7 @@ let local_id_counter : int Stdlib.ref = Stdlib.ref 0
 let did_render_id_hook : bool Stdlib.ref = Stdlib.ref false
 let identifier_prefix : string option Stdlib.ref = Stdlib.ref None
 
-let prepare_to_use_hooks (ctx : Tree_context.t) =
+let reset_component_id_state (ctx : Tree_context.t) =
   current_tree_context := ctx;
   local_id_counter := 0;
   did_render_id_hook := false
