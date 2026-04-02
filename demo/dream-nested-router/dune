@@ -1,5 +1,7 @@
 (test
  (name test_router_rsc)
+ (enabled_if
+  (= %{profile} dev))
  (libraries
   alcotest
   dream

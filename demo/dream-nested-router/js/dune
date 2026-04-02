@@ -1,5 +1,7 @@
 (library
  (name nested_router_js)
+ (enabled_if
+  (= %{profile} dev))
  (modes melange)
  (wrapped false)
  (libraries
