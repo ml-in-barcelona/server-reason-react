@@ -885,8 +885,63 @@ let push_children_into ~children:new_children html =
   | Node { tag; children; attributes } -> Node { tag; attributes; children = children @ new_children }
   | _ -> html
 
-(* Reconstruct the final HTML document structure from the hoisted elements collected during the `render_element_to_html` traversal.
-   This is the single place where document assembly happens -- if you need to reorder head content (issue #303), this is where to do it. *)
+(* Head children are reordered to match React's Fizz priority buckets (issue #303).
+   See arch/server/head-ordering.js for concrete React 19.1 output. *)
+
+let get_html_attr key (attrs : Html.attribute_list) =
+  List.find_map (function `Value (k, v) when String.equal k key -> Some v | _ -> None) attrs
+
+let has_html_attr key (attrs : Html.attribute_list) =
+  List.exists
+    (function
+      | `Value (k, _) when String.equal k key -> true | `Present k' when String.equal k' key -> true | _ -> false)
+    attrs
+
+type head_bucket = Charset | Viewport | Stylesheet_resource | Async_script | Other
+
+let classify_head_element (element : Html.element) =
+  match element with
+  | Html.Node { tag = "meta"; attributes; _ } -> (
+      if has_html_attr "charset" attributes then Charset
+      else match get_html_attr "name" attributes with Some "viewport" -> Viewport | _ -> Other)
+  | Html.Node { tag = "link"; attributes; _ } ->
+      if has_html_attr "precedence" attributes then
+        match get_html_attr "rel" attributes with Some "stylesheet" -> Stylesheet_resource | _ -> Other
+      else Other
+  | Html.Node { tag = "style"; attributes; _ } ->
+      if has_html_attr "href" attributes && has_html_attr "precedence" attributes then Stylesheet_resource else Other
+  | Html.Node { tag = "script"; attributes; _ } ->
+      if has_html_attr "async" attributes && has_html_attr "src" attributes then Async_script else Other
+  | _ -> Other
+
+let sort_head_children children =
+  let charset = ref [] in
+  let viewport = ref [] in
+  let stylesheets = ref [] in
+  let scripts = ref [] in
+  let other = ref [] in
+  let rec distribute = function
+    | [] -> ()
+    | Html.Null :: rest -> distribute rest
+    | Html.List (_, nested) :: rest ->
+        distribute nested;
+        distribute rest
+    | el :: rest ->
+        (match classify_head_element el with
+        | Charset -> charset := el :: !charset
+        | Viewport -> viewport := el :: !viewport
+        | Stylesheet_resource -> stylesheets := el :: !stylesheets
+        | Async_script -> scripts := el :: !scripts
+        | Other -> other := el :: !other);
+        distribute rest
+  in
+  distribute children;
+  let acc = List.rev !other in
+  let acc = List.rev_append !scripts acc in
+  let acc = List.rev_append !stylesheets acc in
+  let acc = List.rev_append !viewport acc in
+  List.rev_append !charset acc
+
 let reconstruct_document ~(fiber : Fiber.t) ~root_html ~user_scripts ~skip_root =
   let root_element_is_html_tag = match Fiber.root_tag ~fiber with Some tag -> tag = "html" | None -> false in
   if root_element_is_html_tag then
@@ -900,12 +955,12 @@ let reconstruct_document ~(fiber : Fiber.t) ~root_html ~user_scripts ~skip_root 
     let all_head_content = List.rev_append fiber.resources (List.rev fiber.extra_head_children) in
     match fiber.head_element with
     | Some node ->
-        (* If we found a <head> element, use its attributes and combine all children *)
-        let head = Html.Node { node with children = node.children @ all_head_content } in
+        let combined = sort_head_children (all_head_content @ node.children) in
+        let head = Html.Node { node with children = combined } in
         Html.node "html" fiber.html_attributes [ head; body ]
     | None ->
-        (* If no explicit <head> was found, create one with the hoisted children *)
-        Html.node "html" fiber.html_attributes [ Html.node "head" [] all_head_content; body ]
+        let sorted = sort_head_children all_head_content in
+        Html.node "html" fiber.html_attributes [ Html.node "head" [] sorted; body ]
   else if skip_root then Html.list user_scripts
   else Html.list (root_html :: user_scripts)
 

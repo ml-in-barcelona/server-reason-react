@@ -123,7 +123,7 @@ let head_with_content () =
   in
   assert_html app
     ~shell:
-      "<!DOCTYPE html><html><head><title>Titulaso</title><meta charset=\"utf-8\" /></head><script \
+      "<!DOCTYPE html><html><head><meta charset=\"utf-8\" /><title>Titulaso</title></head><script \
        data-payload='0:[\"$\",\"html\",null,{\"children\":[\"$\",\"head\",null,{\"children\":[[\"$\",\"title\",null,{\"children\":\"Titulaso\"},null,[],1],[\"$\",\"meta\",null,{\"charSet\":\"utf-8\"},null,[],1]]},null,[],1]},null,[],1]\n\
        '>window.srr_stream.push()</script></html>"
 
@@ -213,8 +213,8 @@ let title_and_meta_populates_to_the_head () =
 
   assert_html app
     ~shell:
-      "<!DOCTYPE html><html><head><title>Hey Yah</title><meta name=\"viewport\" \
-       content=\"width=device-width,initial-scale=1\" /></head><body></body><script \
+      "<!DOCTYPE html><html><head><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\" /><title>Hey \
+       Yah</title></head><body></body><script \
        data-payload='0:[\"$\",\"html\",null,{\"children\":[\"$\",\"body\",null,{\"children\":[\"$\",\"head\",null,{\"children\":[[\"$\",\"title\",null,{\"children\":\"Hey \
        Yah\"},null,[],1],[\"$\",\"meta\",null,{\"name\":\"viewport\",\"content\":\"width=device-width,initial-scale=1\"},null,[],1]]},null,[],1]},null,[],1]},null,[],1]\n\
        '>window.srr_stream.push()</script></html>"
@@ -419,15 +419,13 @@ let hoisted_elements_order_issue () =
           ];
       ]
   in
-  (* The expected order should maintain the order elements were defined:
-     Resources (async scripts and links with precedence) followed by regular head elements *)
   assert_html app
     ~shell:
-      "<!DOCTYPE html><html><head><script async src=\"/first.js\"></script><link href=\"/third.css\" \
-       rel=\"stylesheet\" precedence=\"high\" /><script async src=\"/second.js\"></script><title>First \
-       Title</title><meta name=\"description\" content=\"Page description\" /><link href=\"/first.css\" \
-       rel=\"stylesheet\" /><title>Second Title</title><meta name=\"keywords\" content=\"react, ssr\" /><link \
-       href=\"/second.css\" rel=\"stylesheet\" /><meta name=\"author\" content=\"Developer\" /></head><body><div>Body \
+      "<!DOCTYPE html><html><head><link href=\"/third.css\" rel=\"stylesheet\" precedence=\"high\" /><script async \
+       src=\"/first.js\"></script><script async src=\"/second.js\"></script><title>First Title</title><meta \
+       name=\"description\" content=\"Page description\" /><link href=\"/first.css\" rel=\"stylesheet\" \
+       /><title>Second Title</title><meta name=\"keywords\" content=\"react, ssr\" /><link href=\"/second.css\" \
+       rel=\"stylesheet\" /><meta name=\"author\" content=\"Developer\" /></head><body><div>Body \
        content</div></body><script \
        data-payload='0:[\"$\",\"html\",null,{\"children\":[\"$\",\"body\",null,{\"children\":[[\"$\",\"title\",null,{\"children\":\"First \
        Title\"},null,[],1],[\"$\",\"meta\",null,{\"name\":\"description\",\"content\":\"Page \
@@ -437,8 +435,7 @@ let hoisted_elements_order_issue () =
        content\"},null,[],1]]},null,[],1]},null,[],1]\n\
        '>window.srr_stream.push()</script></html>"
 
-let head_preserves_children_order () =
-  (* Test that elements inside <head> maintain their original order *)
+let head_reorders_children_by_priority () =
   let app =
     html
       [
@@ -461,10 +458,9 @@ let head_preserves_children_order () =
   in
   assert_html app
     ~shell:
-      "<!DOCTYPE html><html><head><meta charset=\"utf-8\" /><style>.custom { color: red; }</style><link \
-       href=\"/main.css\" rel=\"stylesheet\" /><title>My App</title><meta name=\"viewport\" \
-       content=\"width=device-width\" /><script async \
-       src=\"/app.js\"></script></head><body><div>Content</div></body><script \
+      "<!DOCTYPE html><html><head><meta charset=\"utf-8\" /><meta name=\"viewport\" content=\"width=device-width\" \
+       /><script async src=\"/app.js\"></script><style>.custom { color: red; }</style><link href=\"/main.css\" \
+       rel=\"stylesheet\" /><title>My App</title></head><body><div>Content</div></body><script \
        data-payload='0:[\"$\",\"html\",null,{\"children\":[[\"$\",\"head\",null,{\"children\":[[\"$\",\"meta\",null,{\"charSet\":\"utf-8\"},null,[],1],[\"$\",\"style\",null,{\"dangerouslySetInnerHTML\":{\"__html\":\".custom \
        { color: red; \
        }\"}},null,[],1],[\"$\",\"link\",null,{\"href\":\"/main.css\",\"rel\":\"stylesheet\"},null,[],1],[\"$\",\"title\",null,{\"children\":\"My \
@@ -505,6 +501,6 @@ let tests =
     test "self_closing_with_dangerously_in_head" self_closing_with_dangerously_in_head;
     test "upper_case_component_with_resources" upper_case_component_with_resources;
     test "hoisted_elements_order_issue" hoisted_elements_order_issue;
-    test "head_preserves_children_order" head_preserves_children_order;
+    test "head_reorders_children_by_priority" head_reorders_children_by_priority;
     test "html_attributes_are_preserved" html_attributes_are_preserved;
   ]
