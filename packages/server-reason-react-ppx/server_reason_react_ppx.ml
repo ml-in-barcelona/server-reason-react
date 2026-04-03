@@ -969,6 +969,11 @@ let get_arguments pvb_expr =
   in
   go [] pvb_expr.pexp_desc
 
+let string_of_core_type (core_type : core_type) =
+  let formatter = Format.str_formatter in
+  Astlib.Pprintast.core_type formatter core_type;
+  Format.flush_str_formatter ()
+
 let make_of_json ~loc (core_type : core_type) prop =
   match core_type with
   (* QUESTION: How do we handle especial types on props,
@@ -1006,22 +1011,60 @@ let make_of_json ~loc (core_type : core_type) prop =
       | Ptyp_arrow (_, _, _) -> [%expr ([%e prop] : [%t type_])]
       | _ -> [%expr [%of_json: [%t type_]] [%e prop]])
 
-let props_of_model ~loc (props : (arg_label * expression option * pattern) list) : (longident loc * expression) list =
-  List.filter_map
-    ~f:(fun (arg_label, default, pattern) ->
+let promise_prop_decoder_name label = "__promise_decoder_" ^ label
+
+let make_client_prop_decoder_binding ~loc label (core_type : core_type) =
+  match core_type with
+  | [%type: [%t? inner_type] Js.Promise.t] ->
+      let decoder_name = promise_prop_decoder_name label in
+      let decode_json = [%expr [%of_json: [%t inner_type]]] in
+      Some
+        ( value_binding ~loc
+            ~pat:(ppat_var ~loc { txt = decoder_name; loc })
+            ~expr:
+              [%expr
+                fun promise ->
+                  let promise' = (Obj.magic promise : [%t inner_type] Js.Promise.t Js.Dict.t) in
+                  match Js.Dict.get promise' "__promise" with
+                  | Some promise -> promise
+                  | None ->
+                      let decoded_promise =
+                        (Obj.magic (Js.Promise.resolve promise) : Js.Json.t Js.Promise.t)
+                        |> Js.Promise.then_ (fun json -> Js.Promise.resolve ([%e decode_json] json))
+                      in
+                      Js.Dict.set promise' "__promise" decoded_promise;
+                      decoded_promise],
+          decoder_name )
+  | _ -> None
+
+let make_of_client_prop ~loc ?promise_decoder (core_type : core_type) prop =
+  match (core_type, promise_decoder) with
+  | [%type: [%t? _] Js.Promise.t], Some decoder_name -> [%expr [%e evar ~loc decoder_name] [%e prop]]
+  | type_, _ -> make_of_json ~loc type_ prop
+
+let props_of_model ~loc (props : (arg_label * expression option * pattern) list) :
+    value_binding list * (longident loc * expression) list =
+  List.fold_right
+    ~f:(fun (arg_label, default, pattern) (decoder_bindings, fields) ->
       match pattern.ppat_desc with
-      | Ppat_construct ({ txt = Lident "()"; _ }, None) -> None
+      | Ppat_construct ({ txt = Lident "()"; _ }, None) -> (decoder_bindings, fields)
       | Ppat_constraint (_, core_type) -> (
           match arg_label with
           | Nolabel ->
               (* This error is raised by reason-react-ppx as well *)
               let loc = pattern.ppat_loc in
-              Some (longident ~loc "error", [%expr [%ocaml.error "props need to be labelled arguments"]])
+              ( decoder_bindings,
+                (longident ~loc "error", [%expr [%ocaml.error "props need to be labelled arguments"]]) :: fields )
           | Labelled label | Optional label ->
               let core_type = match default with Some _ -> [%type: [%t core_type] option] | None -> core_type in
               let prop = [%expr props##[%e ident ~loc label]] in
-              let value = make_of_json ~loc core_type prop in
-              Some (longident ~loc label, value))
+              let promise_decoder_binding, promise_decoder =
+                match make_client_prop_decoder_binding ~loc label core_type with
+                | Some (binding, decoder_name) -> ([ binding ], Some decoder_name)
+                | None -> ([], None)
+              in
+              let value = make_of_client_prop ~loc ?promise_decoder core_type prop in
+              (promise_decoder_binding @ decoder_bindings, (longident ~loc label, value) :: fields))
       | _ ->
           let loc = pattern.ppat_loc in
           let expr =
@@ -1035,8 +1078,8 @@ let props_of_model ~loc (props : (arg_label * expression option * pattern) list)
                 let msg_expr = estring ~loc msg in
                 [%expr [%ocaml.error [%e msg_expr]]]
           in
-          Some (longident ~loc "error", expr))
-    props
+          (decoder_bindings, (longident ~loc "error", expr) :: fields))
+    props ~init:([], [])
 
 let react_component_attribute ~loc =
   { attr_name = { txt = "react.component"; loc }; attr_payload = PStr []; attr_loc = loc }
@@ -1054,11 +1097,17 @@ let expand_make_binding_to_client binding =
   let loc = binding.pvb_loc in
   let ghost_loc = { binding.pvb_loc with loc_ghost = true } in
   let arguments = get_arguments binding.pvb_expr in
-  let props_as_object_with_decoders = mel_obj ~loc (props_of_model ~loc arguments) in
+  let promise_decoder_bindings, props_fields = props_of_model ~loc arguments in
+  let props_as_object_with_decoders = mel_obj ~loc props_fields in
   let make_call = [%expr React.createElement make [%e props_as_object_with_decoders]] in
   let name = ppat_var ~loc:ghost_loc { txt = "make_client"; loc = ghost_loc } in
   let client_single_argument = ppat_var ~loc:ghost_loc { txt = "props"; loc } in
   let function_body = pexp_fun ~loc:ghost_loc Nolabel None client_single_argument make_call in
+  let function_body =
+    match promise_decoder_bindings with
+    | [] -> function_body
+    | _ -> pexp_let ~loc:ghost_loc Nonrecursive promise_decoder_bindings function_body
+  in
   value_binding ~loc:ghost_loc ~pat:name ~expr:function_body
 
 let rec add_unit_at_the_last_argument_in_core_type core_type =
@@ -1239,11 +1288,6 @@ module ServerFunction = struct
   let decode_arguments_vb ~loc args_to_decode =
     args_to_decode
     |> List.mapi ~f:(fun i (_, label, core_type) ->
-        let string_of_core_type x =
-          let f = Format.str_formatter in
-          Astlib.Pprintast.core_type f x;
-          Format.flush_str_formatter ()
-        in
         let core_type_string = string_of_core_type core_type in
         let of_json = make_of_json ~loc core_type [%expr Stdlib.Array.unsafe_get args [%e eint ~loc i]] in
         value_binding ~loc

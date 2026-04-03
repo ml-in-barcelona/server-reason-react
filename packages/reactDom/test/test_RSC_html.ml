@@ -48,7 +48,7 @@ let assert_stream (stream : string Lwt_stream.t) (expected : string list) =
   if content = [] then Lwt.return @@ Alcotest.fail "stream should not be empty"
   else Lwt.return @@ assert_list_of_strings content expected
 
-let assert_html element ?(disable_backtrace = false) ?debug ?(shell = "") assertion_list =
+let assert_html element ?(disable_backtrace = false) ?(env = `Dev) ?debug ?(shell = "") assertion_list =
   let begin_html = "<!DOCTYPE html><html><head></head><body></body>" in
   let script_html =
     Printf.sprintf
@@ -67,7 +67,7 @@ srr_stream.readable_stream = new ReadableStream({ start(c) { srr_stream._c = c; 
   let subscribed_elements = ref [] in
   let prev = Printexc.backtrace_status () in
   if disable_backtrace then Printexc.record_backtrace false else ();
-  let%lwt html, subscribe = ReactServerDOM.render_html ~progressive_chunk_size:1 ?debug element in
+  let%lwt html, subscribe = ReactServerDOM.render_html ~progressive_chunk_size:1 ~env ?debug element in
   let%lwt () =
     subscribe (fun element ->
         subscribed_elements := !subscribed_elements @ [ element ];
@@ -345,6 +345,41 @@ let client_with_promise_props () =
       "<script data-payload='2:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n\
        '>window.srr_stream.push()</script>";
       "<script data-payload='1:\"||| Resolved |||\"\n'>window.srr_stream.push()</script>";
+    ]
+
+let client_with_promise_failed_props () =
+  let app () =
+    let promise =
+      React.Model.Promise
+        ( (let%lwt () = sleep ~ms:20 in
+           Lwt.fail (Failure "Already failed")),
+          fun res -> React.Model.Json (`String res) )
+    in
+    React.Upper_case_component
+      ( "app",
+        fun () ->
+          React.list
+            [
+              React.createElement "div" [] [ React.string "Server Content" ];
+              React.Client_component
+                {
+                  key = None;
+                  props = [ ("promise", promise) ];
+                  client = React.string "Client with Props";
+                  import_module = "./client-with-props.js";
+                  import_name = "ClientWithProps";
+                };
+            ] )
+  in
+  assert_html (app ()) ~env:`Prod
+    ~shell:
+      "<div>Server Content</div>Client with Props<script data-payload='0:[[\"$\",\"div\",null,{\"children\":\"Server \
+       Content\"},null,[],1],[\"$\",\"$2\",null,{\"promise\":\"$@1\"},null,[],1]]\n\
+       '>window.srr_stream.push()</script>"
+    [
+      "<script data-payload='2:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n\
+       '>window.srr_stream.push()</script>";
+      "<script data-payload='1:E{\"digest\":\"\"}\n'>window.srr_stream.push()</script>";
     ]
 
 let client_with_element_props () =
@@ -1005,6 +1040,7 @@ let tests =
     test "suspense_without_promise" suspense_without_promise;
     test "with_sleepy_promise" with_sleepy_promise;
     test "client_with_promise_props" client_with_promise_props;
+    test "client_with_promise_failed_props" client_with_promise_failed_props;
     test "client_component_with_async_component" client_component_with_async_component;
     test "async_component_with_promise" async_component_with_promise;
     test "suspense_with_error" suspense_with_error;
