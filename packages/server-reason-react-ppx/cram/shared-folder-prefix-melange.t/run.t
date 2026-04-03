@@ -11,26 +11,7 @@
   >  (preprocess (pps melange.ppx melange-json.ppx server-reason-react.ppx -shared-folder-prefix=/ -melange)))
   > EOF
 
-  $ dune describe pp js/input.re
-  [@ocaml.ppx.context
-    {
-      tool_name: "ppx_driver",
-      include_dirs: [],
-      hidden_include_dirs: [],
-      load_path: ([], []),
-      open_modules: [],
-      for_package: None,
-      debug: false,
-      use_threads: false,
-      use_vmthreads: false,
-      recursive_types: false,
-      principal: false,
-      no_alias_deps: false,
-      unboxed_types: false,
-      unsafe_string: false,
-      cookies: [],
-    }
-  ];
+  $ ../dune-describe-pp.sh js/input.re
   include {
             {
               module J = {
