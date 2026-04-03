@@ -31,6 +31,19 @@ let raise_errorf ~loc fmt =
       raise (Error expr))
     fmt
 
+let matching_shared_folder_prefix ~loc ~feature ~file_path =
+  match shared_folder_prefix.contents with
+  | Some prefix ->
+      if match_substring file_path prefix then prefix
+      else
+        raise_errorf ~loc
+          "Found a %s in file %S, but --shared-folder-prefix=%S does not match the file path. This can happen when a #line directive rewrites the filename seen by the PPX."
+          feature file_path prefix
+  | None ->
+      raise_errorf ~loc
+        "Found a %s without --shared-folder-prefix argument. Provide one."
+        feature
+
 let longident ~loc txt = { txt = Lident txt; loc }
 let ident ~loc txt = pexp_ident ~loc (longident ~loc txt)
 let make_string ~loc str = Ast_helper.Exp.constant ~loc (Ast_helper.Const.string str)
@@ -1174,11 +1187,8 @@ module ServerFunction = struct
   let generate_id ~loc name =
     let file_path = loc.loc_start.pos_fname in
     let replacement =
-      match shared_folder_prefix.contents with
-      | Some x ->
-          if match_substring file_path x then x
-          else raise_errorf ~loc "Prefix doesn't match the file path. Provide a prefix that matches the file path."
-      | None -> raise_errorf ~loc "Found a server.function without --shared-folder-prefix argument. Provide one."
+      matching_shared_folder_prefix ~loc ~feature:"react.server.function"
+        ~file_path
     in
     (* We need to add a nasty hack here, since have different files for native and melange.Assume that the file structure is native/lib and js, and replace the name directly. This is supposed to be temporal, until dune implements https://github.com/ocaml/dune/issues/10630 *)
     let file_path = Str.replace_first (Str.regexp replacement) "" file_path in
@@ -1392,12 +1402,14 @@ let rewrite_structure_item ~nested_module_names structure_item =
   | Pstr_value (rec_flag, value_bindings) when isReactServerFunctionBinding (List.hd value_bindings) ->
       let vb = List.hd value_bindings in
       let loc = structure_item.pstr_loc in
-      if List.length value_bindings > 1 then
-        [%stri
-          [%%ocaml.error
-          "server-reason-react: server functions don't support recursive bindings yet. If you need it, please open an \
-           issue on https://github.com/reasonml-community/server-reason-react/issues"]]
-      else ServerFunction.rewrite_native_function ~vb ~rec_flag structure_item
+      (try
+         if List.length value_bindings > 1 then
+           [%stri
+             [%%ocaml.error
+             "server-reason-react: server functions don't support recursive bindings yet. If you need it, please open an \
+              issue on https://github.com/reasonml-community/server-reason-react/issues"]]
+         else ServerFunction.rewrite_native_function ~vb ~rec_flag structure_item
+       with Error err -> pstr_eval ~loc:structure_item.pstr_loc err [])
   | Pstr_value (rec_flag, value_bindings) -> (
       try
         let rewrite_component_binding vb =
@@ -1410,15 +1422,8 @@ let rewrite_structure_item ~nested_module_names structure_item =
                   let loc = expr.pexp_loc in
                   let fileName = expr.pexp_loc.loc_start.pos_fname in
                   let replacement =
-                    match shared_folder_prefix.contents with
-                    | Some prefix ->
-                        if match_substring fileName prefix then prefix
-                        else
-                          raise_errorf ~loc
-                            "Prefix doesn't match the file path. Provide a prefix that matches the file path."
-                    | None ->
-                        raise_errorf ~loc
-                          "Found a react.client.component without --shared-folder-prefix argument. Provide one."
+                    matching_shared_folder_prefix ~loc
+                      ~feature:"react.client.component" ~file_path:fileName
                   in
                   let file = fileName |> Str.replace_first (Str.regexp replacement) "" |> estring ~loc in
                   let import_module =
@@ -1509,39 +1514,48 @@ let rewrite_structure_item_for_js ~nested_module_names ctx structure_item =
           [%stri [%%ocaml.error "server-reason-react: externals aren't supported on client components yet"]])
   | Pstr_value (rec_flag, value_bindings) when isReactServerFunctionBinding (List.hd value_bindings) ->
       let vb = List.hd value_bindings in
-      ServerFunction.rewrite_client_function ~nested_module_names ~vb ~rec_flag structure_item
+      (try
+         ServerFunction.rewrite_client_function ~nested_module_names ~vb ~rec_flag
+           structure_item
+       with Error err -> pstr_eval ~loc:structure_item.pstr_loc err [])
   (* let make = ... *)
   | Pstr_value (rec_flag, value_bindings) when isClientComponentBinding value_bindings ->
-      let first_value_binding = List.hd value_bindings in
-      let make_client = expand_make_binding_to_client first_value_binding in
-      let make_client_binding = pstr_value ~loc:structure_item.pstr_loc rec_flag [ make_client ] in
-      let original_value_binding =
-        { first_value_binding with pvb_attributes = [ react_component_attribute ~loc:first_value_binding.pvb_loc ] }
-      in
-      let loc = structure_item.pstr_loc in
-      let code_path = Expansion_context.Base.code_path ctx in
-      let fileName = Code_path.file_path code_path in
-      (* We need to add a nasty hack here, since have different files for native and melange.Assume that the file structure is /native/shared/ and js, and replace the name directly. This is supposed to be temporal, until dune implements https://github.com/ocaml/dune/issues/10630 *)
-      let replacement =
-        match shared_folder_prefix.contents with
-        | Some prefix ->
-            if match_substring fileName prefix then prefix
-            else raise_errorf ~loc "Prefix doesn't match the file path. Provide a prefix that matches the file path."
-        | None ->
-            raise_errorf ~loc "Found a react.client.component without --shared-folder-prefix argument. Provide one."
-      in
-      let fileName = Str.replace_first (Str.regexp replacement) "" fileName in
-      let comment =
-        match nested_module_names with
-        | [] -> estring ~loc (Printf.sprintf "// extract-client %s" fileName)
-        | _ -> estring ~loc (Printf.sprintf "// extract-client %s %s" fileName (String.concat "." nested_module_names))
-      in
-      [%stri
-        include struct
-          [%%i [%stri [%%raw [%e comment]]]]
-          [%%i pstr_value ~loc:structure_item.pstr_loc rec_flag [ original_value_binding ]]
-          [%%i make_client_binding]
-        end]
+      (try
+         let first_value_binding = List.hd value_bindings in
+         let make_client = expand_make_binding_to_client first_value_binding in
+         let make_client_binding =
+           pstr_value ~loc:structure_item.pstr_loc rec_flag [ make_client ]
+         in
+         let original_value_binding =
+           {
+             first_value_binding with
+             pvb_attributes = [ react_component_attribute ~loc:first_value_binding.pvb_loc ];
+           }
+         in
+         let loc = structure_item.pstr_loc in
+         let code_path = Expansion_context.Base.code_path ctx in
+         let fileName = Code_path.file_path code_path in
+         (* We need to add a nasty hack here, since have different files for native and melange.Assume that the file structure is /native/shared/ and js, and replace the name directly. This is supposed to be temporal, until dune implements https://github.com/ocaml/dune/issues/10630 *)
+         let replacement =
+           matching_shared_folder_prefix ~loc
+             ~feature:"react.client.component" ~file_path:fileName
+         in
+         let fileName = Str.replace_first (Str.regexp replacement) "" fileName in
+         let comment =
+           match nested_module_names with
+           | [] -> estring ~loc (Printf.sprintf "// extract-client %s" fileName)
+           | _ ->
+               estring ~loc
+                 (Printf.sprintf "// extract-client %s %s" fileName
+                    (String.concat "." nested_module_names))
+         in
+         [%stri
+           include struct
+             [%%i [%stri [%%raw [%e comment]]]]
+             [%%i pstr_value ~loc:structure_item.pstr_loc rec_flag [ original_value_binding ]]
+             [%%i make_client_binding]
+           end]
+       with Error err -> pstr_eval ~loc:structure_item.pstr_loc err [])
   | _ -> structure_item
 
 let validate_tag_children tag children attributes : (unit, string) result =
