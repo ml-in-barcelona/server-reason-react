@@ -2,6 +2,8 @@
 
 ## 0.5.0
 
+* Support Promise caching in react.client.components by @davesnx
+* Reorder head content exactly like react-dom/server by @davesnx
 * Implement hydration-compatible `useId` using React's tree-position-based algorithm, matching React 19 output. Adds `?identifier_prefix` to `renderToString`, `renderToStaticMarkup`, `renderToStream` and `render_html`. Fixes https://github.com/ml-in-barcelona/server-reason-react/issues/93
 * Fix `renderToString` rendering Suspense children twice (once as trial, once with markers) due to side-effectful match expression. Children are now rendered into a separate buffer
 * Change shape for React.Event.* since Js.t is now supported. All methods fail at runtime with `Runtime.fail_impossible_action_in_ssr`
