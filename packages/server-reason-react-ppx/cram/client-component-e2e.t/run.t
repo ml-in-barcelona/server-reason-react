@@ -8,8 +8,8 @@
   $ cat > dune << EOF
   > (melange.emit
   >  (target js)
-  >  (libraries reason-react)
-  >  (preprocess (pps reason-react-ppx melange.ppx melange-json.ppx server-reason-react.ppx -shared-folder-prefix=/ -melange)))
+  >  (libraries reason-react server-reason-react.rsc)
+  >  (preprocess (pps reason-react-ppx melange.ppx server-reason-react.rsc.ppx server-reason-react.ppx -shared-folder-prefix=/ -melange)))
   > 
   > (rule
   >  (deps (alias melange))
@@ -23,16 +23,14 @@
   $ dune build
 
   $ ../dune-describe-pp.sh input.re | sed '/\[@mel.internal.ffi/,/\]/d'
-  open Melange_json.Primitives;
-  
-  [@deriving json]
+  [@deriving rsc]
   type lola = {name: string};
   /**@inline*/
   [@merlin.hide]
   include {
             let _ = (_: lola) => ();
             [@ocaml.warning "-39-11-27"];
-            let rec lola_of_json: Js.Json.t => lola =
+            let rec lola_of_rsc: RSC.t => lola =
               x => {
                 if (Stdlib.(!)(
                       Stdlib.(&&)(
@@ -45,42 +43,41 @@
                         ),
                       ),
                     )) {
-                  Melange_json.of_json_error(~json=x, "expected a JSON object");
+                  RSC.of_rsc_error(~rsc=x, "expected an object");
                 };
-                let fs: {. "name": Js.undefined(Js.Json.t) } = Obj.magic(x);
+                let fs: {. "name": Js.undefined(RSC.t) } = Obj.magic(x);
                 {
                   name:
                     switch (
                       Js.Undefined.toOption(Js.OO.unsafe_downgrade(fs)#name)
                     ) {
-                    | Stdlib.Option.Some(v) => string_of_json(v)
+                    | Stdlib.Option.Some(v) => RSC.Primitives.string_of_rsc(v)
                     | Stdlib.Option.None =>
-                      Melange_json.of_json_error(
-                        ~json=x,
+                      RSC.of_rsc_error(
+                        ~rsc=x,
                         "expected field \"name\" to be present",
                       )
                     },
                 };
               };
-            let _ = lola_of_json;
+            let _ = lola_of_rsc;
             [@ocaml.warning "-39-11-27"];
-            let rec lola_to_json: lola => Js.Json.t =
+            let rec lola_to_rsc: lola => RSC.t =
               x =>
                 switch (x) {
-                | { name: x_name } => (
-                    Obj.magic(
-                      {
-                        module J = {
-                          [@ocaml.warning "-unboxable-type-in-prim-decl"]
-                          external unsafe_expr: (~name: 'a0) => {. "name": 'a0 } =
-                            "" "";
-                        };
-                        J.unsafe_expr(~name=string_to_json(x_name));
-                      },
-                    ): Js.Json.t
+                | { name: x_name } =>
+                  RSC.Primitives.assoc_to_rsc(
+                    {
+                      let bnds__001_ = [];
+                      let bnds__001_ = [
+                        ("name", RSC.Primitives.string_to_rsc(x_name)),
+                        ...bnds__001_,
+                      ];
+                      bnds__001_;
+                    },
                   )
                 };
-            let _ = lola_to_json;
+            let _ = lola_to_rsc;
           };
   
   include {
@@ -160,92 +157,83 @@
                 );
               Input;
             };
-            let make_client = {
-              let __promise_decoder_promise = promise => {
-                let promise': Js.Dict.t(Js.Promise.t(string)) =
-                  Obj.magic(promise);
-                switch (Js.Dict.get(promise', "__promise")) {
-                | Some(promise) => promise
-                | None =>
-                  let decoded_promise =
-                    (
-                      Obj.magic(Js.Promise.resolve(promise)):
-                        Js.Promise.t(Js.Json.t)
-                    )
-                    |> Js.Promise.then_(json =>
-                         Js.Promise.resolve(string_of_json(json))
-                       );
-                  Js.Dict.set(promise', "__promise", decoded_promise);
-                  decoded_promise;
-                };
-              };
-              props =>
-                React.createElement(
-                  make,
-                  {
-                    module J = {
-                      [@ocaml.warning "-unboxable-type-in-prim-decl"]
-                      [@ocaml.warning "-unboxable-type-in-prim-decl"]
-                      external unsafe_expr:
-                        (
-                          ~promise: 'a0,
-                          ~children: 'a1,
-                          ~default: 'a2,
-                          ~lola: 'a3,
-                          ~initial: 'a4
-                        ) =>
-                        {
-                          .
-                          "promise": 'a0,
-                          "children": 'a1,
-                          "default": 'a2,
-                          "lola": 'a3,
-                          "initial": 'a4,
-                        } =
-                        "" "";
-                    };
-                    J.unsafe_expr(
-                      ~promise=
-                        __promise_decoder_promise(
-                          Js.OO.unsafe_downgrade(props)#promise,
-                        ),
-                      ~children=Js.OO.unsafe_downgrade(props)#children: React.element,
-                      ~default=
-                        (option_of_json(int_of_json))(
-                          Js.OO.unsafe_downgrade(props)#default,
-                        ),
-                      ~lola=lola_of_json(Js.OO.unsafe_downgrade(props)#lola),
-                      ~initial=
-                        int_of_json(Js.OO.unsafe_downgrade(props)#initial),
-                    );
-                  },
-                );
-            };
+            let make_client = props =>
+              React.createElement(
+                make,
+                {
+                  module J = {
+                    [@ocaml.warning "-unboxable-type-in-prim-decl"]
+                    [@ocaml.warning "-unboxable-type-in-prim-decl"]
+                    external unsafe_expr:
+                      (
+                        ~promise: 'a0,
+                        ~children: 'a1,
+                        ~default: 'a2,
+                        ~lola: 'a3,
+                        ~initial: 'a4
+                      ) =>
+                      {
+                        .
+                        "promise": 'a0,
+                        "children": 'a1,
+                        "default": 'a2,
+                        "lola": 'a3,
+                        "initial": 'a4,
+                      } =
+                      "" "";
+                  };
+                  J.unsafe_expr(
+                    ~promise=
+                      (
+                        RSC.Primitives.promise_of_rsc(
+                          RSC.Primitives.string_of_rsc,
+                        )
+                      )(
+                        Js.OO.unsafe_downgrade(props)#promise,
+                      ),
+                    ~children=
+                      RSC.Primitives.react_element_of_rsc(
+                        Js.OO.unsafe_downgrade(props)#children,
+                      ),
+                    ~default=
+                      (RSC.Primitives.option_of_rsc(RSC.Primitives.int_of_rsc))(
+                        Js.OO.unsafe_downgrade(props)#default,
+                      ),
+                    ~lola=lola_of_rsc(Js.OO.unsafe_downgrade(props)#lola),
+                    ~initial=
+                      RSC.Primitives.int_of_rsc(
+                        Js.OO.unsafe_downgrade(props)#initial,
+                      ),
+                  );
+                },
+              );
           };
   $ cat _build/default/js/input.js
   // Generated by Melange
   'use strict';
   
-  const Caml_option = require("melange.js/caml_option.js");
-  const Js__Js_dict = require("melange.js/js_dict.js");
-  const Melange_json = require("melange-json/melange_json.js");
+  const RSC = require("server-reason-react.rsc/RSC.js");
   const React = require("react");
   const JsxRuntime = require("react/jsx-runtime");
   
-  function lola_of_json(x) {
+  function lola_of_rsc(x) {
     if (!(typeof x === "object" && !Array.isArray(x) && x !== null)) {
-      Melange_json.of_json_error(undefined, undefined, x, "expected a JSON object");
+      RSC.of_rsc_error(undefined, undefined, x, "expected an object");
     }
     const v = x.name;
     return {
-      name: v !== undefined ? Melange_json.Primitives.string_of_json(v) : Melange_json.of_json_error(undefined, undefined, x, "expected field \"name\" to be present")
+      name: v !== undefined ? RSC.Primitives.string_of_rsc(v) : RSC.of_rsc_error(undefined, undefined, x, "expected field \"name\" to be present")
     };
   }
   
-  function lola_to_json(x) {
-    return {
-      name: Melange_json.Primitives.string_to_json(x.name)
-    };
+  function lola_to_rsc(x) {
+    return RSC.Primitives.assoc_to_rsc({
+      hd: [
+        "name",
+        RSC.Primitives.string_to_rsc(x.name)
+      ],
+      tl: /* [] */ 0
+    });
   }
   
   // extract-client input.re
@@ -269,37 +257,25 @@
     });
   }
   
-  function __promise_decoder_promise(promise) {
-    const promise$1 = Js__Js_dict.get(promise, "__promise");
-    if (promise$1 !== undefined) {
-      return Caml_option.valFromOption(promise$1);
-    }
-    const decoded_promise = Promise.resolve(promise).then(function (json) {
-      return Promise.resolve(Melange_json.Primitives.string_of_json(json));
-    });
-    promise["__promise"] = decoded_promise;
-    return decoded_promise;
-  }
-  
   function make_client(props) {
     return React.createElement(Input, {
-      promise: __promise_decoder_promise(props.promise),
-      children: props.children,
-      default: Melange_json.Primitives.option_of_json(Melange_json.Primitives.int_of_json, props.default),
-      lola: lola_of_json(props.lola),
-      initial: Melange_json.Primitives.int_of_json(props.initial)
+      promise: RSC.Primitives.promise_of_rsc(RSC.Primitives.string_of_rsc, props.promise),
+      children: RSC.Primitives.react_element_of_rsc(props.children),
+      default: RSC.Primitives.option_of_rsc(RSC.Primitives.int_of_rsc, props.default),
+      lola: lola_of_rsc(props.lola),
+      initial: RSC.Primitives.int_of_rsc(props.initial)
     });
   }
   
   const make = Input;
   
   module.exports = {
-    lola_of_json,
-    lola_to_json,
+    lola_of_rsc,
+    lola_to_rsc,
     make,
     make_client,
   }
-  /* Melange_json Not a pure module */
+  /* react Not a pure module */
 
   $ cat _build/default/boostrap.js
   import React from "react";

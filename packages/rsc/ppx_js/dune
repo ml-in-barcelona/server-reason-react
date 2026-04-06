@@ -1,0 +1,9 @@
+(library
+ (name rsc_js_ppx)
+ (public_name server-reason-react.rsc.ppx)
+ (kind ppx_rewriter)
+ (ppx_runtime_libraries server-reason-react.rsc)
+ (wrapped false)
+ (libraries ppxlib rsc_ppx_common)
+ (preprocess
+  (pps ppxlib.metaquot)))

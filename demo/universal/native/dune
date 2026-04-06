@@ -15,6 +15,8 @@
   unix
   dream
   url_native
+  melange-json-native
+  server-reason-react.rsc-native
   str
   lwt
   lwt.unix
@@ -27,4 +29,4 @@
    server-reason-react.ppx
    -shared-folder-prefix=/native/shared/
    server-reason-react.browser_ppx
-   melange-json-native.ppx)))
+   server-reason-react.rsc-native.ppx)))

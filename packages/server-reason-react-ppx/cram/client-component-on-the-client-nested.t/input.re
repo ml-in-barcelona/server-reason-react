@@ -1,6 +1,4 @@
-open Melange_json.Primitives;
-
-[@deriving json]
+[@deriving rsc]
 type lola = {name: string};
 
 [@react.client.component]
@@ -14,7 +12,7 @@ let make = (~initial: int, ~lola: lola, ~children: React.element) => {
 
 module InnerAfterNested = {
   module Very_nested = {
-    [@deriving json]
+    [@deriving rsc]
     type lola = {name: string};
 
     [@react.client.component]
@@ -27,7 +25,7 @@ module InnerAfterNested = {
     };
   };
 
-  [@deriving json]
+  [@deriving rsc]
   type lola = {name: string};
 
   [@react.client.component]
@@ -41,7 +39,7 @@ module InnerAfterNested = {
 };
 
 module InnerBeforeNested = {
-  [@deriving json]
+  [@deriving rsc]
   type lola = {name: string};
 
   [@react.client.component]
@@ -53,7 +51,7 @@ module InnerBeforeNested = {
     </section>;
   };
   module Very_nested = {
-    [@deriving json]
+    [@deriving rsc]
     type lola = {name: string};
 
     [@react.client.component]

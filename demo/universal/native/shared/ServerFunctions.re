@@ -1,5 +1,3 @@
-open Melange_json.Primitives;
-
 module Notes = {
   [@react.server.function]
   let create = (~title: string, ~content: string): Js.Promise.t(Note.t) => {

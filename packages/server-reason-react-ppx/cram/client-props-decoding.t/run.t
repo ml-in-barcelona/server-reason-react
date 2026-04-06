@@ -6,13 +6,11 @@
   $ cat > dune << EOF
   > (melange.emit
   >  (target js)
-  >  (libraries reason-react melange-json)
-  >  (preprocess (pps melange.ppx melange-json.ppx server-reason-react.ppx -shared-folder-prefix=/ -melange)))
+  >  (libraries reason-react melange-json server-reason-react.rsc)
+  >  (preprocess (pps melange.ppx server-reason-react.rsc.ppx server-reason-react.ppx -shared-folder-prefix=/ -melange)))
   > EOF
 
   $ ../dune-describe-pp.sh input.re | sed '/\[@mel.internal.ffi/,/\]/d'
-  open Melange_json.Primitives;
-  
   [@warning "-27"];
   include {
             {
@@ -70,22 +68,26 @@
                           if (Stdlib.(&&)(
                                 Js.Array.isArray(x),
                                 Stdlib.(==)(
-                                  Js.Array.length(
-                                    Obj.magic(x): array(Js.Json.t),
-                                  ),
+                                  Js.Array.length(Obj.magic(x): array(RSC.t)),
                                   3,
                                 ),
                               )) {
-                            let es: array(Js.Json.t) = Obj.magic(x);
+                            let es: array(RSC.t) = Obj.magic(x);
                             (
-                              int_of_json(Js.Array.unsafe_get(es, 0)),
-                              string_of_json(Js.Array.unsafe_get(es, 1)),
-                              float_of_json(Js.Array.unsafe_get(es, 2)),
+                              RSC.Primitives.int_of_rsc(
+                                Js.Array.unsafe_get(es, 0),
+                              ),
+                              RSC.Primitives.string_of_rsc(
+                                Js.Array.unsafe_get(es, 1),
+                              ),
+                              RSC.Primitives.float_of_rsc(
+                                Js.Array.unsafe_get(es, 2),
+                              ),
                             );
                           } else {
-                            Melange_json.of_json_error(
-                              ~json=x,
-                              "expected a JSON array of length 3",
+                            RSC.of_rsc_error(
+                              ~rsc=x,
+                              "expected an array of length 3",
                             );
                           }
                       )(
@@ -97,34 +99,48 @@
                           if (Stdlib.(&&)(
                                 Js.Array.isArray(x),
                                 Stdlib.(==)(
-                                  Js.Array.length(
-                                    Obj.magic(x): array(Js.Json.t),
-                                  ),
+                                  Js.Array.length(Obj.magic(x): array(RSC.t)),
                                   2,
                                 ),
                               )) {
-                            let es: array(Js.Json.t) = Obj.magic(x);
+                            let es: array(RSC.t) = Obj.magic(x);
                             (
-                              int_of_json(Js.Array.unsafe_get(es, 0)),
-                              int_of_json(Js.Array.unsafe_get(es, 1)),
+                              RSC.Primitives.int_of_rsc(
+                                Js.Array.unsafe_get(es, 0),
+                              ),
+                              RSC.Primitives.int_of_rsc(
+                                Js.Array.unsafe_get(es, 1),
+                              ),
                             );
                           } else {
-                            Melange_json.of_json_error(
-                              ~json=x,
-                              "expected a JSON array of length 2",
+                            RSC.of_rsc_error(
+                              ~rsc=x,
+                              "expected an array of length 2",
                             );
                           }
                       )(
                         Js.OO.unsafe_downgrade(props)#tuple2,
                       ),
-                    ~lulu=float_of_json(Js.OO.unsafe_downgrade(props)#lulu),
-                    ~lili=bool_of_json(Js.OO.unsafe_downgrade(props)#lili),
-                    ~lolo=string_of_json(Js.OO.unsafe_downgrade(props)#lolo),
+                    ~lulu=
+                      RSC.Primitives.float_of_rsc(
+                        Js.OO.unsafe_downgrade(props)#lulu,
+                      ),
+                    ~lili=
+                      RSC.Primitives.bool_of_rsc(
+                        Js.OO.unsafe_downgrade(props)#lili,
+                      ),
+                    ~lolo=
+                      RSC.Primitives.string_of_rsc(
+                        Js.OO.unsafe_downgrade(props)#lolo,
+                      ),
                     ~lola=
-                      (list_of_json(int_of_json))(
+                      (RSC.Primitives.list_of_rsc(RSC.Primitives.int_of_rsc))(
                         Js.OO.unsafe_downgrade(props)#lola,
                       ),
-                    ~prop=int_of_json(Js.OO.unsafe_downgrade(props)#prop),
+                    ~prop=
+                      RSC.Primitives.int_of_rsc(
+                        Js.OO.unsafe_downgrade(props)#prop,
+                      ),
                   );
                 },
               );

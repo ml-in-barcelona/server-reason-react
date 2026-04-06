@@ -1,6 +1,4 @@
-open Melange_json.Primitives;
-
-[@deriving json]
+[@deriving rsc]
 type notePreview = {
   id: int,
   title: string,

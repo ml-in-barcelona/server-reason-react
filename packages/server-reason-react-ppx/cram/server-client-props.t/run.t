@@ -131,26 +131,23 @@
                         ),
                       import_name: "",
                       props: [
-                        ("prop", React.Model.Json([%to_json: int](prop))),
-                        (
-                          "lola",
-                          React.Model.Json([%to_json: list(int)](lola)),
-                        ),
+                        ("prop", RSC.to_model([%to_rsc: int](prop))),
+                        ("lola", RSC.to_model([%to_rsc: list(int)](lola))),
                         (
                           "mona",
-                          React.Model.Json([%to_json: array(float)](mona)),
+                          RSC.to_model([%to_rsc: array(float)](mona)),
                         ),
-                        ("lolo", React.Model.Json([%to_json: string](lolo))),
-                        ("lili", React.Model.Json([%to_json: bool](lili))),
-                        ("lulu", React.Model.Json([%to_json: float](lulu))),
+                        ("lolo", RSC.to_model([%to_rsc: string](lolo))),
+                        ("lili", RSC.to_model([%to_rsc: bool](lili))),
+                        ("lulu", RSC.to_model([%to_rsc: float](lulu))),
                         (
                           "tuple2",
-                          React.Model.Json([%to_json: (int, int)](tuple2)),
+                          RSC.to_model([%to_rsc: (int, int)](tuple2)),
                         ),
                         (
                           "tuple3",
-                          React.Model.Json(
-                            [%to_json: (int, string, float)](tuple3),
+                          RSC.to_model(
+                            [%to_rsc: (int, string, float)](tuple3),
                           ),
                         ),
                       ],
@@ -302,11 +299,11 @@
                       props: [
                         (
                           "underscore",
-                          React.Model.Json([%to_json: _](underscore)),
+                          RSC.to_model([%to_rsc: _](underscore)),
                         ),
                         (
                           "alpha_types",
-                          React.Model.Json([%to_json: 'a](alpha_types)),
+                          RSC.to_model([%to_rsc: 'a](alpha_types)),
                         ),
                       ],
                       client:
@@ -386,8 +383,8 @@
                   props: [
                     (
                       "polyvariants",
-                      React.Model.Json(
-                        [%to_json:
+                      RSC.to_model(
+                        [%to_rsc:
                           [
                             | `A
                             | `B
@@ -500,26 +497,21 @@
                         ),
                       import_name: "",
                       props: [
-                        (
-                          "lident",
-                          React.Model.Json([%to_json: lola](lident)),
-                        ),
+                        ("lident", RSC.to_model([%to_rsc: lola](lident))),
                         (
                           "ldotlident",
-                          React.Model.Json(
-                            [%to_json: Module.lola](ldotlident),
-                          ),
+                          RSC.to_model([%to_rsc: Module.lola](ldotlident)),
                         ),
                         (
                           "ldotdotlident",
-                          React.Model.Json(
-                            [%to_json: Module.Inner.lola](ldotdotlident),
+                          RSC.to_model(
+                            [%to_rsc: Module.Inner.lola](ldotdotlident),
                           ),
                         ),
                         (
                           "lapply",
-                          React.Model.Json(
-                            [%to_json: Label.t(int, string)](lapply),
+                          RSC.to_model(
+                            [%to_rsc: Label.t(int, string)](lapply),
                           ),
                         ),
                       ],
@@ -601,19 +593,11 @@
                       props: [
                         (
                           "name",
-                          switch (name) {
-                          | Some(value) =>
-                            React.Model.Json([%to_json: string](value))
-                          | None => React.Model.Json(`Null)
-                          },
+                          RSC.to_model([%to_rsc: option(string)](name)),
                         ),
                         (
                           "count",
-                          switch (count) {
-                          | Some(value) =>
-                            React.Model.Json([%to_json: int](value))
-                          | None => React.Model.Json(`Null)
-                          },
+                          RSC.to_model([%to_rsc: option(int)](count)),
                         ),
                       ],
                       client:

@@ -10,9 +10,8 @@ module Location = DOM.Location;
 module History = DOM.History;
 
 type url = URL.t;
-let url_to_json = url => url |> URL.toString |> Melange_json.To_json.string;
-let url_of_json = (json: Melange_json.t) =>
-  URL.makeExn(json |> Melange_json.Of_json.string);
+let url_to_rsc = url => url |> URL.toString |> RSC.Primitives.string_to_rsc;
+let url_of_rsc = rsc => URL.makeExn(rsc |> RSC.Primitives.string_of_rsc);
 
 [@platform js]
 let watchUrl = callback => {

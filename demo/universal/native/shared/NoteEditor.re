@@ -1,7 +1,5 @@
 [@warning "-26-27-32"];
 
-open Melange_json.Primitives;
-
 [@react.client.component]
 let make =
     (~noteId: option(int), ~initialTitle: string, ~initialBody: string) => {

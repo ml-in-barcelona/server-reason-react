@@ -1,0 +1,7 @@
+(library
+ (name rsc_ppx_common)
+ (public_name server-reason-react.rsc-ppx-common)
+ (wrapped false)
+ (libraries ppxlib)
+ (preprocess
+  (pps ppxlib.metaquot)))

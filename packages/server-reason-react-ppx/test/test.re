@@ -9,8 +9,6 @@ let test = (title, fn) => (
   [Alcotest_lwt.test_case("", `Quick, (_switch, ()) => Lwt.return(fn()))],
 );
 
-include Melange_json.Primitives;
-
 let sleep = (~ms) => {
   let%lwt () = Lwt_unix.sleep(Stdlib.Int.to_float(ms) /. 1000.0);
   Lwt.return();
@@ -536,7 +534,10 @@ let server_function_reference = () => {
 
   switch (route_response) {
   | React.Model.Json(json) =>
-    assert_string(string_of_json(json), "Hello John, you are 30 years old");
+    assert_string(
+      Melange_json.Primitives.string_of_json(json),
+      "Hello John, you are 30 years old",
+    );
     Lwt.return_unit;
   | _ => Stdlib.failwith("Expected a JSON response")
   };
@@ -581,7 +582,10 @@ let server_function_reference_form_data = () => {
 
   switch (response) {
   | React.Model.Json(json) =>
-    assert_string(string_of_json(json), "Hello John, you are 30 years old");
+    assert_string(
+      Melange_json.Primitives.string_of_json(json),
+      "Hello John, you are 30 years old",
+    );
     Lwt.return_unit;
   | _ => Stdlib.failwith("Expected a JSON response")
   };
@@ -603,7 +607,7 @@ let server_function_reference_form_data_and_args = () => {
   switch (response) {
   | React.Model.Json(json) =>
     assert_string(
-      string_of_json(json),
+      Melange_json.Primitives.string_of_json(json),
       "Hello John, your role is Developer",
     );
     Lwt.return_unit;

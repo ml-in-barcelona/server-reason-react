@@ -22,5 +22,5 @@
   (pps
    server-reason-react.ppx
    server-reason-react.melange_ppx
-   melange-json-native.ppx
+   server-reason-react.rsc-native.ppx
    lwt_ppx)))
