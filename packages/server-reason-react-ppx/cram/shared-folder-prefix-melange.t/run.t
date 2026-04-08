@@ -7,8 +7,8 @@
   > (include_subdirs unqualified)
   > (melange.emit
   >  (target js)
-  >  (libraries reason-react melange-json)
-  >  (preprocess (pps melange.ppx melange-json.ppx server-reason-react.ppx -shared-folder-prefix=/ -melange)))
+  >  (libraries reason-react melange-json server-reason-react.rsc)
+  >  (preprocess (pps melange.ppx server-reason-react.rsc.ppx server-reason-react.ppx -shared-folder-prefix=/ -melange)))
   > EOF
 
   $ ../dune-describe-pp.sh js/input.re

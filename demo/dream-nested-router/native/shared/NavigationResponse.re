@@ -1,5 +1,3 @@
-open Melange_json.Primitives;
-
 type navigationCallback =
   (
     ~parentRoute: string,

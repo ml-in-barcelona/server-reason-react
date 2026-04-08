@@ -1,5 +1,3 @@
-open Melange_json.Primitives;
-
 [@warning "-27"];
 [@react.client.component]
 let make =

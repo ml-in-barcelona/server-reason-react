@@ -14,7 +14,7 @@
   melange-fetch
   melange.dom
   server-reason-react.url_js
-  melange-json
+  server-reason-react.rsc
   nested_router_js)
  (melange.runtime_deps
   ../../../packages/react-server-dom-esbuild/ReactServerDOMEsbuild.js)
@@ -25,9 +25,9 @@
    server-reason-react.ppx
    -melange
    -shared-folder-prefix=js/
+   server-reason-react.rsc.ppx
    melange.ppx
-   reason-react-ppx
-   melange-json.ppx)))
+   reason-react-ppx)))
 
 (copy_files
  (files "../native/shared/*.re"))

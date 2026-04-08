@@ -1,0 +1,8 @@
+(library
+ (name rsc_js)
+ (public_name server-reason-react.rsc)
+ (modes melange)
+ (wrapped false)
+ (libraries reason-react server-reason-react.runtime melange.js)
+ (preprocess
+  (pps melange.ppx)))

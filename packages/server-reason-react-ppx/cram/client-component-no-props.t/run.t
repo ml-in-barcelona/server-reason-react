@@ -8,8 +8,8 @@
   $ cat > dune << EOF
   > (melange.emit
   >  (target js)
-  >  (libraries reason-react)
-  >  (preprocess (pps reason-react-ppx melange.ppx melange-json.ppx server-reason-react.ppx -shared-folder-prefix=/ -melange)))
+  >  (libraries reason-react server-reason-react.rsc)
+  >  (preprocess (pps reason-react-ppx melange.ppx server-reason-react.rsc.ppx server-reason-react.ppx -shared-folder-prefix=/ -melange)))
   > 
   > (rule
   >  (deps (alias melange))

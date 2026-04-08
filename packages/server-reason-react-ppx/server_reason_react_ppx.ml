@@ -974,73 +974,72 @@ let string_of_core_type (core_type : core_type) =
   Astlib.Pprintast.core_type formatter core_type;
   Format.flush_str_formatter ()
 
-let make_of_json ~loc (core_type : core_type) prop =
+let rec make_json_decoder ~loc (core_type : core_type) =
   match core_type with
-  (* QUESTION: How do we handle especial types on props,
-     like `("someProp"), `List([React.element, string]).
-     We already support it, but not with the ppx.
-     Checkout the test_RSC_model.ml for more details. packages/reactDom/test/test_RSC_html.ml *)
-  (* QUESTION: How can we handle optionals and others? Need a [@deriving rsc] for them? We currently encode None's as React.Model.Json `Null, should be enought *)
-  | [%type: React.element] -> [%expr ([%e prop] : React.element)]
-  | [%type: React.element option] -> [%expr ([%e prop] : React.element option)]
-  (* TODO: Add promise caching? When is it needed? *)
-  (* | [%type: [%t? t] Js.Promise.t] ->
-     [%expr
-       let promise = [%e prop] in
-       let promise' = (Obj.magic promise : [%t t] Js.Promise.t Js.Dict.t) in
-       match Js.Dict.get promise' "__promise" with
-       | Some promise -> promise
-       | None ->
-           let promise =
-             Promise.(
-               let* json = (Obj.magic (Js.Promise.resolve promise) : Realm.Json.t Promise.t) in
-               let data = [%of_json: [%t t]] json in
-               return data)
-           in
-           Js.Dict.set promise' "__promise" promise;
-           promise] *)
-  | [%type: [%t? t] Js.Promise.t] -> [%expr ([%e prop] : [%t t] Js.Promise.t)]
-  | [%type: [%t? t] Runtime.server_function] -> [%expr ([%e prop] : [%t t] Runtime.server_function)]
-  | [%type: [%t? t] Runtime.server_function option] -> [%expr ([%e prop] : [%t t] Runtime.server_function option)]
-  | [%type: [%t? inner_type] option] as type_ -> (
-      match inner_type.ptyp_desc with
-      | Ptyp_arrow (_, _, _) -> [%expr ([%e prop] : [%t type_])]
-      | _ -> [%expr [%of_json: [%t type_]] [%e prop]])
+  | [%type: string] -> [%expr Melange_json.Primitives.string_of_json]
+  | [%type: bool] -> [%expr Melange_json.Primitives.bool_of_json]
+  | [%type: int] -> [%expr Melange_json.Primitives.int_of_json]
+  | [%type: float] -> [%expr Melange_json.Primitives.float_of_json]
+  | [%type: int64] -> [%expr Melange_json.Primitives.int64_of_json]
+  | [%type: char] -> [%expr Melange_json.Primitives.char_of_json]
+  | [%type: unit] -> [%expr Melange_json.Primitives.unit_of_json]
+  | [%type: [%t? inner_type] option] ->
+      let decode = make_json_decoder ~loc inner_type in
+      [%expr Melange_json.Primitives.option_of_json [%e decode]]
+  | { ptyp_desc = Ptyp_constr ({ txt = Lident "list"; _ }, [ inner_type ]); _ } ->
+      let decode = make_json_decoder ~loc inner_type in
+      [%expr Melange_json.Primitives.list_of_json [%e decode]]
+  | { ptyp_desc = Ptyp_constr ({ txt = Lident "array"; _ }, [ inner_type ]); _ } ->
+      let decode = make_json_decoder ~loc inner_type in
+      [%expr Melange_json.Primitives.array_of_json [%e decode]]
+  | { ptyp_desc = Ptyp_tuple [ a; b ]; _ } ->
+      let decode_a = make_json_decoder ~loc a in
+      let decode_b = make_json_decoder ~loc b in
+      [%expr
+        fun json ->
+          match json with
+          | `List [ a; b ] -> ([%e decode_a] a, [%e decode_b] b)
+          | _ -> Melange_json.of_json_error ~json "expected a JSON array of length 2"]
+  | { ptyp_desc = Ptyp_tuple [ a; b; c ]; _ } ->
+      let decode_a = make_json_decoder ~loc a in
+      let decode_b = make_json_decoder ~loc b in
+      let decode_c = make_json_decoder ~loc c in
+      [%expr
+        fun json ->
+          match json with
+          | `List [ a; b; c ] -> ([%e decode_a] a, [%e decode_b] b, [%e decode_c] c)
+          | _ -> Melange_json.of_json_error ~json "expected a JSON array of length 3"]
+  | { ptyp_desc = Ptyp_tuple [ a; b; c; d ]; _ } ->
+      let decode_a = make_json_decoder ~loc a in
+      let decode_b = make_json_decoder ~loc b in
+      let decode_c = make_json_decoder ~loc c in
+      let decode_d = make_json_decoder ~loc d in
+      [%expr
+        fun json ->
+          match json with
+          | `List [ a; b; c; d ] -> ([%e decode_a] a, [%e decode_b] b, [%e decode_c] c, [%e decode_d] d)
+          | _ -> Melange_json.of_json_error ~json "expected a JSON array of length 4"]
   | type_ -> (
       match type_.ptyp_desc with
-      | Ptyp_arrow (_, _, _) -> [%expr ([%e prop] : [%t type_])]
-      | _ -> [%expr [%of_json: [%t type_]] [%e prop]])
+      | Ptyp_arrow (_, _, _) -> [%expr fun json -> (json : [%t type_])]
+      | _ -> [%expr [%of_json: [%t type_]]])
 
-let promise_prop_decoder_name label = "__promise_decoder_" ^ label
+let make_of_json_argument ~loc (core_type : core_type) prop = [%expr [%e make_json_decoder ~loc core_type] [%e prop]]
 
-let make_client_prop_decoder_binding ~loc label (core_type : core_type) =
+let make_of_rsc ~loc (core_type : core_type) prop =
+  let function_error loc =
+    [%expr
+      [%ocaml.error
+        "server-reason-react: you can't pass plain functions into client components. Use Runtime.server_function for \
+         server actions."]]
+  in
   match core_type with
-  | [%type: [%t? inner_type] Js.Promise.t] ->
-      let decoder_name = promise_prop_decoder_name label in
-      let decode_json = [%expr [%of_json: [%t inner_type]]] in
-      Some
-        ( value_binding ~loc
-            ~pat:(ppat_var ~loc { txt = decoder_name; loc })
-            ~expr:
-              [%expr
-                fun promise ->
-                  let promise' = (Obj.magic promise : [%t inner_type] Js.Promise.t Js.Dict.t) in
-                  match Js.Dict.get promise' "__promise" with
-                  | Some promise -> promise
-                  | None ->
-                      let decoded_promise =
-                        (Obj.magic (Js.Promise.resolve promise) : Js.Json.t Js.Promise.t)
-                        |> Js.Promise.then_ (fun json -> Js.Promise.resolve ([%e decode_json] json))
-                      in
-                      Js.Dict.set promise' "__promise" decoded_promise;
-                      decoded_promise],
-          decoder_name )
-  | _ -> None
-
-let make_of_client_prop ~loc ?promise_decoder (core_type : core_type) prop =
-  match (core_type, promise_decoder) with
-  | [%type: [%t? _] Js.Promise.t], Some decoder_name -> [%expr [%e evar ~loc decoder_name] [%e prop]]
-  | type_, _ -> make_of_json ~loc type_ prop
+  | [%type: [%t? inner_type] option] as type_ -> (
+      match inner_type.ptyp_desc with
+      | Ptyp_arrow (_, _, _) -> function_error type_.ptyp_loc
+      | _ -> [%expr [%of_rsc: [%t type_]] [%e prop]])
+  | { ptyp_desc = Ptyp_arrow (_, _, _) } -> function_error core_type.ptyp_loc
+  | type_ -> [%expr [%of_rsc: [%t type_]] [%e prop]]
 
 let props_of_model ~loc (props : (arg_label * expression option * pattern) list) :
     value_binding list * (longident loc * expression) list =
@@ -1058,13 +1057,8 @@ let props_of_model ~loc (props : (arg_label * expression option * pattern) list)
           | Labelled label | Optional label ->
               let core_type = match default with Some _ -> [%type: [%t core_type] option] | None -> core_type in
               let prop = [%expr props##[%e ident ~loc label]] in
-              let promise_decoder_binding, promise_decoder =
-                match make_client_prop_decoder_binding ~loc label core_type with
-                | Some (binding, decoder_name) -> ([ binding ], Some decoder_name)
-                | None -> ([], None)
-              in
-              let value = make_of_client_prop ~loc ?promise_decoder core_type prop in
-              (promise_decoder_binding @ decoder_bindings, (longident ~loc label, value) :: fields))
+              let value = make_of_rsc ~loc core_type prop in
+              (decoder_bindings, (longident ~loc label, value) :: fields))
       | _ ->
           let loc = pattern.ppat_loc in
           let expr =
@@ -1145,35 +1139,20 @@ let rewrite_signature_item signature_item =
             [%%ocaml.error "server-reason-react: there's seems to be an error in the signature of the component."]])
   | _ -> signature_item
 
-let make_to_json ~loc (core_type : core_type) prop =
+let make_to_model ~loc (core_type : core_type) prop =
+  let function_error loc =
+    [%expr
+      [%ocaml.error
+        "server-reason-react: you can't pass plain functions into client components. Use Runtime.server_function for \
+         server actions."]]
+  in
   match core_type with
-  | [%type: React.element] -> [%expr React.Model.Element ([%e prop] : React.element)]
-  | [%type: React.element option] ->
-      [%expr
-        match [%e prop] with Some prop -> React.Model.Element (prop : React.element) | None -> React.Model.Json `Null]
-  | [%type: [%t? inner_type] Js.Promise.t] ->
-      let json = [%expr [%to_json: [%t inner_type]]] in
-      [%expr React.Model.Promise ([%e prop], fun value -> React.Model.Json ([%e json] value))]
-  | [%type: [%t? inner_type] Js.Promise.t option] ->
-      let json = [%expr [%to_json: [%t inner_type]]] in
-      [%expr
-        match [%e prop] with
-        | Some prop -> React.Model.Promise (prop, fun value -> React.Model.Json ([%e json] value))
-        | None -> React.Model.Json `Null]
-  | { ptyp_desc = Ptyp_arrow (_, _, _) } ->
-      let loc = core_type.ptyp_loc in
-      [%expr
-        [%ocaml.error
-          "server-reason-react: you can't pass functions into client components. Functions aren't serialisable to JSON."]]
-  | [%type: [%t? _] Runtime.server_function] -> [%expr React.Model.Function [%e prop]]
-  | [%type: [%t? _] Runtime.server_function option] ->
-      [%expr match [%e prop] with Some prop -> React.Model.Function prop | None -> React.Model.Json `Null]
-  | [%type: [%t? inner_type] option] ->
-      let json = [%expr [%to_json: [%t inner_type]]] in
-      [%expr match [%e prop] with Some value -> React.Model.Json ([%e json] value) | None -> React.Model.Json `Null]
-  | type_ ->
-      let json = [%expr [%to_json: [%t type_]] [%e prop]] in
-      [%expr React.Model.Json [%e json]]
+  | [%type: [%t? inner_type] option] as type_ -> (
+      match inner_type.ptyp_desc with
+      | Ptyp_arrow (_, _, _) -> function_error type_.ptyp_loc
+      | _ -> [%expr RSC.to_model ([%to_rsc: [%t type_]] [%e prop])])
+  | { ptyp_desc = Ptyp_arrow (_, _, _) } -> function_error core_type.ptyp_loc
+  | type_ -> [%expr RSC.to_model ([%to_rsc: [%t type_]] [%e prop])]
 
 let props_to_model ~loc (props : (arg_label * expression option * pattern) list) =
   List.fold_left ~init:[%expr []]
@@ -1188,7 +1167,7 @@ let props_to_model ~loc (props : (arg_label * expression option * pattern) list)
               [%expr [%ocaml.error "props need to be labelled arguments"] :: [%e acc]]
           | Labelled label | Optional label ->
               let prop = ident ~loc label in
-              let value = make_to_json ~loc core_type prop in
+              let value = make_to_model ~loc core_type prop in
               let name = estring ~loc label in
               [%expr ([%e name], [%e value]) :: [%e acc]])
       (* TODO: Add all ppat_desc possibilities *)
@@ -1257,11 +1236,9 @@ module ServerFunction = struct
     in
     aux expr None
 
-  let response_to_json ~loc core_type response =
+  let response_to_model ~loc core_type response =
     match core_type with
-    | Some [%type: [%t? core_type] Js.Promise.t] ->
-        let json = [%expr [%to_json: [%t core_type]] [%e response]] in
-        [%expr React.Model.Json [%e json]]
+    | Some [%type: [%t? core_type] Js.Promise.t] -> [%expr RSC.to_model ([%to_rsc: [%t core_type]] [%e response])]
     | Some _ -> [%expr [%ocaml.error "server-reason-react: server functions must return a promise"]]
     | _ ->
         [%expr [%ocaml.error "server-reason-react: server functions must have a return type annotation (Js.Promise.t)"]]
@@ -1282,14 +1259,14 @@ module ServerFunction = struct
 
   let encode_function_response ~loc ~response_expr ~core_type =
     [%expr
-      try [%e response_expr] |> Lwt.map (fun response -> [%e response_to_json ~loc core_type [%expr response]])
+      try [%e response_expr] |> Lwt.map (fun response -> [%e response_to_model ~loc core_type [%expr response]])
       with e -> Lwt.fail e]
 
   let decode_arguments_vb ~loc args_to_decode =
     args_to_decode
     |> List.mapi ~f:(fun i (_, label, core_type) ->
         let core_type_string = string_of_core_type core_type in
-        let of_json = make_of_json ~loc core_type [%expr Stdlib.Array.unsafe_get args [%e eint ~loc i]] in
+        let of_json = make_of_json_argument ~loc core_type [%expr Stdlib.Array.unsafe_get args [%e eint ~loc i]] in
         value_binding ~loc
           ~pat:[%pat? [%p ppat_var ~loc { txt = label; loc }]]
           ~expr:
@@ -1363,15 +1340,15 @@ module ServerFunction = struct
     in
     stri
 
-  let response_of_json ~loc core_type response =
+  let response_of_rsc ~loc core_type response =
     match core_type with
-    | Some [%type: [%t? core_type] Js.Promise.t] -> [%expr [%of_json: [%t core_type]] [%e response]]
+    | Some [%type: [%t? core_type] Js.Promise.t] -> [%expr [%of_rsc: [%t core_type]] [%e response]]
     | Some _ -> [%expr [%ocaml.error "server-reason-react: server functions must return a promise"]]
     | _ ->
         [%expr [%ocaml.error "server-reason-react: server functions must have a return type annotation (Js.Promise.t)"]]
 
   let create_client_function ~loc ~return_core_type id args =
-    let decode_response = response_of_json ~loc return_core_type in
+    let decode_response = response_of_rsc ~loc return_core_type in
     let apply_args = map_arguments_to_expressions ~loc args |> List.map ~f:(fun (_, expr) -> (Nolabel, expr)) in
     let fn =
       [%expr

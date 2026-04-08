@@ -1,8 +1,8 @@
 exception No_provider(string);
 
 type url = URL.t;
-let url_to_json: url => Melange_json.t;
-let url_of_json: Melange_json.t => url;
+let url_to_rsc: url => RSC.t;
+let url_of_rsc: RSC.t => url;
 
 type t =
   (~replace: bool=?, ~revalidate: bool=?, ~shallow: bool=?, string) => unit;

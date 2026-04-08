@@ -1,5 +1,3 @@
-open Melange_json.Primitives;
-
 module FunctionReferences: ReactServerDOM.FunctionReferences = {
   type t = Hashtbl.t(string, ReactServerDOM.server_function);
 

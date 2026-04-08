@@ -20,7 +20,6 @@ let is_substring = (a, b) => {
 let readNotesCached = React.cache(sleep => DB.readNotes(~sleep, ()));
 
 module NoteList = {
-  open Melange_json.Primitives;
   [@react.client.component]
   let make = (~notes: list(NestedRouter_SidebarNote.notePreview)) => {
     let { Router.url, _ } = Router.useRouter();

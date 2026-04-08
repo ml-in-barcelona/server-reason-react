@@ -1,7 +1,5 @@
 [@warning "-26-27-32"];
 
-open Melange_json.Primitives;
-
 module Square = {
   [@react.component]
   let make = (~isExpanded) => {

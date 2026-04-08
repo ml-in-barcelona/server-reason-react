@@ -1,7 +1,5 @@
 [@warning "-26-27"];
 
-open Melange_json.Primitives;
-
 [@react.client.component]
 let make = (~searchText: string, ~selectedId: option(int), ~isEditing: bool) => {
   let navigate = DummyClientRouter.useNavigate();

@@ -12,7 +12,7 @@
   dream
   js
   server-reason-react.url_native
-  melange-json-native
+  server-reason-react.rsc-native
   server-reason-react.runtime
   webapi
   lwt
@@ -24,4 +24,4 @@
    server-reason-react.ppx
    -shared-folder-prefix=/native/shared/
    server-reason-react.browser_ppx
-   melange-json-native.ppx)))
+   server-reason-react.rsc-native.ppx)))

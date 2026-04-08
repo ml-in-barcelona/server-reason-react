@@ -35,8 +35,6 @@
 *   </AboutLayout>
 * </MainLayout>
 */
-open Melange_json.Primitives;
-
 type t = React.element;
 
 let context = React.createContext(React.null);

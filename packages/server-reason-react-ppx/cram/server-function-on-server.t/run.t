@@ -5,15 +5,13 @@
   $ cat > dune << EOF
   > (executable
   >  (name input)
-  >  (libraries server-reason-react.react server-reason-react.runtime server-reason-react.reactDom melange-json)
-  >  (preprocess (pps server-reason-react.ppx -shared-folder-prefix=/ server-reason-react.melange_ppx melange-json-native.ppx)))
+  >  (libraries server-reason-react.react server-reason-react.runtime server-reason-react.reactDom melange-json-native server-reason-react.rsc-native)
+  >  (preprocess (pps server-reason-react.ppx -shared-folder-prefix=/ server-reason-react.melange_ppx server-reason-react.rsc-native.ppx)))
   > EOF
 
   $ dune build
 
   $ ../dune-describe-pp.sh input.re
-  open Melange_json.Primitives;
-  
   module FunctionReferences: ReactServerDOM.FunctionReferences = {
     type t = Hashtbl.t(string, ReactServerDOM.server_function);
   
@@ -24,7 +22,7 @@
   
   include {
             let withLabelledArg = {
-              Runtime.id: "515397179",
+              Runtime.id: "244965410",
               call: (~name: string, ~age: int) => (
                 Lwt.return(
                   Printf.sprintf("Hello %s, you are %d years old", name, age),
@@ -33,11 +31,15 @@
               ),
             };
             FunctionReferences.register(
-              "515397179",
+              "244965410",
               Body(
                 args => {
                   let name =
-                    try(string_of_json(Stdlib.Array.unsafe_get(args, 0))) {
+                    try(
+                      Melange_json.Primitives.string_of_json(
+                        Stdlib.Array.unsafe_get(args, 0),
+                      )
+                    ) {
                     | _ =>
                       Stdlib.raise(
                         Invalid_argument(
@@ -52,7 +54,11 @@
                       )
                     }
                   and age =
-                    try(int_of_json(Stdlib.Array.unsafe_get(args, 1))) {
+                    try(
+                      Melange_json.Primitives.int_of_json(
+                        Stdlib.Array.unsafe_get(args, 1),
+                      )
+                    ) {
                     | _ =>
                       Stdlib.raise(
                         Invalid_argument(
@@ -69,7 +75,7 @@
                   try(
                     withLabelledArg.call(~name, ~age)
                     |> Lwt.map(response =>
-                         React.Model.Json(string_to_json(response))
+                         RSC.to_model(RSC.Primitives.string_to_rsc(response))
                        )
                   ) {
                   | e => Lwt.fail(e)
@@ -81,7 +87,7 @@
   
   include {
             let withLabelledArgAndUnlabeledArg = {
-              Runtime.id: "896610790",
+              Runtime.id: "150260642",
               call: (~name: string="Lola", age: int) => (
                 Lwt.return(
                   Printf.sprintf("Hello %s, you are %d years old", name, age),
@@ -90,12 +96,16 @@
               ),
             };
             FunctionReferences.register(
-              "896610790",
+              "150260642",
               Body(
                 args => {
                   let name =
                     try(
-                      (option_of_json(string_of_json))(
+                      (
+                        Melange_json.Primitives.option_of_json(
+                          Melange_json.Primitives.string_of_json,
+                        )
+                      )(
                         Stdlib.Array.unsafe_get(args, 0),
                       )
                     ) {
@@ -113,7 +123,11 @@
                       )
                     }
                   and age =
-                    try(int_of_json(Stdlib.Array.unsafe_get(args, 1))) {
+                    try(
+                      Melange_json.Primitives.int_of_json(
+                        Stdlib.Array.unsafe_get(args, 1),
+                      )
+                    ) {
                     | _ =>
                       Stdlib.raise(
                         Invalid_argument(
@@ -130,7 +144,7 @@
                   try(
                     withLabelledArgAndUnlabeledArg.call(~name?, age)
                     |> Lwt.map(response =>
-                         React.Model.Json(string_to_json(response))
+                         RSC.to_model(RSC.Primitives.string_to_rsc(response))
                        )
                   ) {
                   | e => Lwt.fail(e)
@@ -142,7 +156,7 @@
   
   include {
             let withOptionalArg = {
-              Runtime.id: "949714301",
+              Runtime.id: "72909839",
               call: (~name: option(string)=?, ()) => (
                 {
                   let name =
@@ -156,12 +170,16 @@
               ),
             };
             FunctionReferences.register(
-              "949714301",
+              "72909839",
               Body(
                 args => {
                   let name =
                     try(
-                      (option_of_json(string_of_json))(
+                      (
+                        Melange_json.Primitives.option_of_json(
+                          Melange_json.Primitives.string_of_json,
+                        )
+                      )(
                         Stdlib.Array.unsafe_get(args, 0),
                       )
                     ) {
@@ -181,7 +199,7 @@
                   try(
                     withOptionalArg.call(~name?, ())
                     |> Lwt.map(response =>
-                         React.Model.Json(string_to_json(response))
+                         RSC.to_model(RSC.Primitives.string_to_rsc(response))
                        )
                   ) {
                   | e => Lwt.fail(e)
@@ -193,19 +211,23 @@
   
   include {
             let withOptionalDefaultArg = {
-              Runtime.id: "285929146",
+              Runtime.id: "1038516267",
               call: (~name: string="Lola", ()) => (
                 Lwt.return(Printf.sprintf("Hello, %s", name)):
                   Js.Promise.t(string)
               ),
             };
             FunctionReferences.register(
-              "285929146",
+              "1038516267",
               Body(
                 args => {
                   let name =
                     try(
-                      (option_of_json(string_of_json))(
+                      (
+                        Melange_json.Primitives.option_of_json(
+                          Melange_json.Primitives.string_of_json,
+                        )
+                      )(
                         Stdlib.Array.unsafe_get(args, 0),
                       )
                     ) {
@@ -225,7 +247,7 @@
                   try(
                     withOptionalDefaultArg.call(~name?, ())
                     |> Lwt.map(response =>
-                         React.Model.Json(string_to_json(response))
+                         RSC.to_model(RSC.Primitives.string_to_rsc(response))
                        )
                   ) {
                   | e => Lwt.fail(e)
@@ -237,7 +259,7 @@
   
   include {
             let withUnlabeledArg = {
-              Runtime.id: "604196953",
+              Runtime.id: "543207864",
               call: (name: string, age: int) => (
                 Lwt.return(
                   Printf.sprintf("Hello %s, you are %d years old", name, age),
@@ -246,11 +268,15 @@
               ),
             };
             FunctionReferences.register(
-              "604196953",
+              "543207864",
               Body(
                 args => {
                   let name =
-                    try(string_of_json(Stdlib.Array.unsafe_get(args, 0))) {
+                    try(
+                      Melange_json.Primitives.string_of_json(
+                        Stdlib.Array.unsafe_get(args, 0),
+                      )
+                    ) {
                     | _ =>
                       Stdlib.raise(
                         Invalid_argument(
@@ -265,7 +291,11 @@
                       )
                     }
                   and age =
-                    try(int_of_json(Stdlib.Array.unsafe_get(args, 1))) {
+                    try(
+                      Melange_json.Primitives.int_of_json(
+                        Stdlib.Array.unsafe_get(args, 1),
+                      )
+                    ) {
                     | _ =>
                       Stdlib.raise(
                         Invalid_argument(
@@ -282,7 +312,7 @@
                   try(
                     withUnlabeledArg.call(name, age)
                     |> Lwt.map(response =>
-                         React.Model.Json(string_to_json(response))
+                         RSC.to_model(RSC.Primitives.string_to_rsc(response))
                        )
                   ) {
                   | e => Lwt.fail(e)
@@ -294,17 +324,17 @@
   
   include {
             let withNoArgs = {
-              Runtime.id: "363520221",
+              Runtime.id: "376840710",
               call: () => (Lwt.return("Hello, world!"): Js.Promise.t(string)),
             };
             FunctionReferences.register(
-              "363520221",
+              "376840710",
               Body(
                 args =>
                   try(
                     withNoArgs.call()
                     |> Lwt.map(response =>
-                         React.Model.Json(string_to_json(response))
+                         RSC.to_model(RSC.Primitives.string_to_rsc(response))
                        )
                   ) {
                   | e => Lwt.fail(e)
@@ -315,7 +345,7 @@
   
   include {
             let withFormData = {
-              Runtime.id: "459481625",
+              Runtime.id: "519042066",
               call: (formData: Js.FormData.t) => (
                 {
                   let name =
@@ -338,13 +368,13 @@
               ),
             };
             FunctionReferences.register(
-              "459481625",
+              "519042066",
               FormData(
                 (_, formData) =>
                   try(
                     withFormData.call(formData)
                     |> Lwt.map(response =>
-                         React.Model.Json(string_to_json(response))
+                         RSC.to_model(RSC.Primitives.string_to_rsc(response))
                        )
                   ) {
                   | e => Lwt.fail(e)
@@ -355,7 +385,7 @@
   
   include {
             let withFormDataArgs = {
-              Runtime.id: "191714862",
+              Runtime.id: "762631116",
               call: (country: string, formData: Js.FormData.t) => (
                 {
                   let name =
@@ -373,11 +403,15 @@
               ),
             };
             FunctionReferences.register(
-              "191714862",
+              "762631116",
               FormData(
                 (args, formData) => {
                   let country =
-                    try(string_of_json(Stdlib.Array.unsafe_get(args, 0))) {
+                    try(
+                      Melange_json.Primitives.string_of_json(
+                        Stdlib.Array.unsafe_get(args, 0),
+                      )
+                    ) {
                     | _ =>
                       Stdlib.raise(
                         Invalid_argument(
@@ -394,7 +428,7 @@
                   try(
                     withFormDataArgs.call(country, formData)
                     |> Lwt.map(response =>
-                         React.Model.Json(string_to_json(response))
+                         RSC.to_model(RSC.Primitives.string_to_rsc(response))
                        )
                   ) {
                   | e => Lwt.fail(e)
@@ -406,7 +440,7 @@
   
   include {
             let withFormDataLabelledAndUnlabeledArgs = {
-              Runtime.id: "1034739090",
+              Runtime.id: "305946000",
               call: (country: string, ~formData: Js.FormData.t) => (
                 {
                   let name =
@@ -424,11 +458,15 @@
               ),
             };
             FunctionReferences.register(
-              "1034739090",
+              "305946000",
               FormData(
                 (args, formData) => {
                   let country =
-                    try(string_of_json(Stdlib.Array.unsafe_get(args, 0))) {
+                    try(
+                      Melange_json.Primitives.string_of_json(
+                        Stdlib.Array.unsafe_get(args, 0),
+                      )
+                    ) {
                     | _ =>
                       Stdlib.raise(
                         Invalid_argument(
@@ -448,7 +486,7 @@
                       ~formData,
                     )
                     |> Lwt.map(response =>
-                         React.Model.Json(string_to_json(response))
+                         RSC.to_model(RSC.Primitives.string_to_rsc(response))
                        )
                   ) {
                   | e => Lwt.fail(e)
@@ -460,7 +498,7 @@
   
   include {
             let withFormDataLabelledAndLabelledArgs = {
-              Runtime.id: "320208691",
+              Runtime.id: "836441764",
               call: (~country: string, ~formData: Js.FormData.t) => (
                 {
                   let name =
@@ -478,11 +516,15 @@
               ),
             };
             FunctionReferences.register(
-              "320208691",
+              "836441764",
               FormData(
                 (args, formData) => {
                   let country =
-                    try(string_of_json(Stdlib.Array.unsafe_get(args, 0))) {
+                    try(
+                      Melange_json.Primitives.string_of_json(
+                        Stdlib.Array.unsafe_get(args, 0),
+                      )
+                    ) {
                     | _ =>
                       Stdlib.raise(
                         Invalid_argument(
@@ -502,7 +544,7 @@
                       ~formData,
                     )
                     |> Lwt.map(response =>
-                         React.Model.Json(string_to_json(response))
+                         RSC.to_model(RSC.Primitives.string_to_rsc(response))
                        )
                   ) {
                   | e => Lwt.fail(e)
@@ -514,7 +556,7 @@
   
   include {
             let withFormDataUnlabelledAndLabelledArgs = {
-              Runtime.id: "865856777",
+              Runtime.id: "1042320905",
               call: (~country: string, formData: Js.FormData.t) => (
                 {
                   let name =
@@ -532,11 +574,15 @@
               ),
             };
             FunctionReferences.register(
-              "865856777",
+              "1042320905",
               FormData(
                 (args, formData) => {
                   let country =
-                    try(string_of_json(Stdlib.Array.unsafe_get(args, 0))) {
+                    try(
+                      Melange_json.Primitives.string_of_json(
+                        Stdlib.Array.unsafe_get(args, 0),
+                      )
+                    ) {
                     | _ =>
                       Stdlib.raise(
                         Invalid_argument(
@@ -556,7 +602,7 @@
                       formData,
                     )
                     |> Lwt.map(response =>
-                         React.Model.Json(string_to_json(response))
+                         RSC.to_model(RSC.Primitives.string_to_rsc(response))
                        )
                   ) {
                   | e => Lwt.fail(e)
@@ -568,7 +614,7 @@
   
   include {
             let withFormDataAndArgsDifferentOrder = {
-              Runtime.id: "897374993",
+              Runtime.id: "271541692",
               call: (formData: Js.FormData.t, country: string) => (
                 {
                   let name =
@@ -586,11 +632,15 @@
               ),
             };
             FunctionReferences.register(
-              "897374993",
+              "271541692",
               FormData(
                 (args, formData) => {
                   let country =
-                    try(string_of_json(Stdlib.Array.unsafe_get(args, 0))) {
+                    try(
+                      Melange_json.Primitives.string_of_json(
+                        Stdlib.Array.unsafe_get(args, 0),
+                      )
+                    ) {
                     | _ =>
                       Stdlib.raise(
                         Invalid_argument(
@@ -607,7 +657,7 @@
                   try(
                     withFormDataAndArgsDifferentOrder.call(formData, country)
                     |> Lwt.map(response =>
-                         React.Model.Json(string_to_json(response))
+                         RSC.to_model(RSC.Primitives.string_to_rsc(response))
                        )
                   ) {
                   | e => Lwt.fail(e)
@@ -619,7 +669,7 @@
   
   include {
             let withReturnTypeOnSeparateLine = {
-              Runtime.id: "282021077",
+              Runtime.id: "311524135",
               call: (~name: string, ~age: int) => (
                 Lwt.return(
                   Printf.sprintf("Hello %s, you are %d years old", name, age),
@@ -628,11 +678,15 @@
               ),
             };
             FunctionReferences.register(
-              "282021077",
+              "311524135",
               Body(
                 args => {
                   let name =
-                    try(string_of_json(Stdlib.Array.unsafe_get(args, 0))) {
+                    try(
+                      Melange_json.Primitives.string_of_json(
+                        Stdlib.Array.unsafe_get(args, 0),
+                      )
+                    ) {
                     | _ =>
                       Stdlib.raise(
                         Invalid_argument(
@@ -647,7 +701,11 @@
                       )
                     }
                   and age =
-                    try(int_of_json(Stdlib.Array.unsafe_get(args, 1))) {
+                    try(
+                      Melange_json.Primitives.int_of_json(
+                        Stdlib.Array.unsafe_get(args, 1),
+                      )
+                    ) {
                     | _ =>
                       Stdlib.raise(
                         Invalid_argument(
@@ -664,7 +722,7 @@
                   try(
                     withReturnTypeOnSeparateLine.call(~name, ~age)
                     |> Lwt.map(response =>
-                         React.Model.Json(string_to_json(response))
+                         RSC.to_model(RSC.Primitives.string_to_rsc(response))
                        )
                   ) {
                   | e => Lwt.fail(e)

@@ -1,7 +1,5 @@
 [@warning "-33"];
 
-open Melange_json.Primitives;
-
 module Reader = {
   [@react.component]
   let make = (~promise: Js.Promise.t(string)) => {

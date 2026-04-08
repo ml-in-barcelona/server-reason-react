@@ -6,8 +6,8 @@
   > (include_subdirs unqualified)
   > (executable
   >  (name input)
-  >  (libraries server-reason-react.react server-reason-react.runtime server-reason-react.reactDom melange-json)
-  >  (preprocess (pps server-reason-react.ppx -shared-folder-prefix=native/ server-reason-react.melange_ppx melange-json-native.ppx)))
+  >  (libraries server-reason-react.react server-reason-react.runtime server-reason-react.reactDom melange-json-native server-reason-react.rsc-native)
+  >  (preprocess (pps server-reason-react.ppx -shared-folder-prefix=native/ server-reason-react.melange_ppx server-reason-react.rsc-native.ppx)))
   > EOF
 
   $ ../dune-describe-pp.sh native/input.ml

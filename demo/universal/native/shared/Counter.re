@@ -1,5 +1,3 @@
-open Melange_json.Primitives;
-
 [@react.client.component]
 let make = (~initial: int) => {
   let (state, [@browser_only] setCount) = RR.useStateValue(initial);

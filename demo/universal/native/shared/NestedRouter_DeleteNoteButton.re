@@ -1,4 +1,3 @@
-open Melange_json.Primitives;
 module DOM = Webapi.Dom;
 module Location = DOM.Location;
 module Window = DOM.Window;

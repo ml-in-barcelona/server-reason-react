@@ -1,8 +1,6 @@
 [@warning "-32"];
 
-open Melange_json.Primitives;
-
-[@deriving json]
+[@deriving rsc]
 type lola = {name: string};
 
 [@react.client.component]

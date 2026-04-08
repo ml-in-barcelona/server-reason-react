@@ -1,6 +1,4 @@
 [@warning "-33"]
-open Melange_json.Primitives;
-
 [@react.client.component]
 let make = (~noteId: option(int), ~children: React.element) => {
   let (isPending, startTransition) = React.useTransition();

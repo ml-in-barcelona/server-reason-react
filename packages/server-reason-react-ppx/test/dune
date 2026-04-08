@@ -7,6 +7,7 @@
   lwt
   yojson
   melange-json-native
+  server-reason-react.rsc-native
   server-reason-react.react
   server-reason-react.reactDom
   server-reason-react.js
@@ -17,5 +18,5 @@
    server-reason-react.ppx
    -shared-folder-prefix=/
    server-reason-react.melange_ppx
-   lwt_ppx
-   melange-json.ppx)))
+   server-reason-react.rsc-native.ppx
+   lwt_ppx)))
