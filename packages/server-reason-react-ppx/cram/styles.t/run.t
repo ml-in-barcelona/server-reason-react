@@ -133,3 +133,77 @@ We need to output ML syntax here, otherwise refmt could not parse it.
                 : ReactDOM.Style.t));
        ])
     []
+  ;;
+  
+  Foo.Bar.make (Foo.Bar.makeProps ~styles:x ());;
+  Foo.Bar.make (Foo.Bar.makeProps ?styles:x ())
+
+In Melange mode (-js), ~styles is only expanded on lowercase (DOM) tags.
+Module-qualified components like Foo.Bar keep ~styles as a regular prop (not expanded).
+  $ rm -f output.ml temp.ml
+  $ ../ppx.sh --output ml -js input.re
+  div ~className:(fst x) ~style:(snd x) ~children:[] () [@JSX];;
+  
+  div
+    ?className:(match x with None -> None | Some x -> Some (fst x))
+    ?style:(match x with None -> None | Some x -> Some (snd x))
+    ~children:[] () [@JSX]
+  ;;
+  
+  div ~className:(fst x ^ " " ^ "lola") ~style:(snd x) ~children:[] () [@JSX];;
+  
+  div ~className:(fst x)
+    ~style:
+      (ReactDOM.Style.combine
+         (ReactDOM.Style.make ~backgroundColor:"gainsboro" ())
+         (snd x))
+    ~children:[] () [@JSX]
+  ;;
+  
+  div
+    ~className:(fst x ^ " " ^ "lola")
+    ~style:
+      (ReactDOM.Style.combine
+         (ReactDOM.Style.make ~backgroundColor:"gainsboro" ())
+         (snd x))
+    ~children:[] () [@JSX]
+  ;;
+  
+  div
+    ~className:
+      (match match x with None -> None | Some x -> Some (fst x) with
+      | None -> "lola"
+      | Some x -> x ^ " " ^ "lola")
+    ?style:(match x with None -> None | Some x -> Some (snd x))
+    ~children:[] () [@JSX]
+  ;;
+  
+  div
+    ?className:(match x with None -> None | Some x -> Some (fst x))
+    ~style:
+      (match match x with None -> None | Some x -> Some (snd x) with
+      | None -> ReactDOM.Style.make ~backgroundColor:"gainsboro" ()
+      | Some x ->
+          ReactDOM.Style.combine
+            (ReactDOM.Style.make ~backgroundColor:"gainsboro" ())
+            x)
+    ~children:[] () [@JSX]
+  ;;
+  
+  div
+    ~className:
+      (match match x with None -> None | Some x -> Some (fst x) with
+      | None -> "lola"
+      | Some x -> x ^ " " ^ "lola")
+    ~style:
+      (match match x with None -> None | Some x -> Some (snd x) with
+      | None -> ReactDOM.Style.make ~backgroundColor:"gainsboro" ()
+      | Some x ->
+          ReactDOM.Style.combine
+            (ReactDOM.Style.make ~backgroundColor:"gainsboro" ())
+            x)
+    ~children:[] () [@JSX]
+  ;;
+  
+  Foo.Bar.createElement ~styles:x ~children:[] () [@JSX];;
+  Foo.Bar.createElement ?styles:x ~children:[] () [@JSX]

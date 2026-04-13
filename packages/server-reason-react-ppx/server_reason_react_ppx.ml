@@ -1612,7 +1612,9 @@ let traverse =
           (* In the case of expressions, it's the only transformation that needs to be done for JS. This expansion from "styles" prop into "className" and "style" props is a feature by styled-ppx. The existence of this here, is because dune/ppxlib doesn't allow more than one preprocess_impl and even that, the combination of styled-ppx and server-reason-react.ppx doesn't compose properly. *)
           try
             match expr.pexp_desc with
-            | Pexp_apply (({ pexp_desc = Pexp_ident _; pexp_loc = loc; _ } as tag), args)
+            (* Only expand ~styles on lowercase tags (DOM elements like div, span, etc.)
+               Uppercase components and bindings handle styles in their own way. *)
+            | Pexp_apply (({ pexp_desc = Pexp_ident { txt = Lident _; _ }; pexp_loc = loc; _ } as tag), args)
               when has_jsx_attr expr.pexp_attributes ->
                 let new_args = Expand_styles_attribute.make ~loc args in
                 { (pexp_apply ~loc (super#expression ctx tag) new_args) with pexp_attributes = attributes }

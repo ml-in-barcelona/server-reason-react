@@ -21,7 +21,7 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     -js)
-      js_flag="-js"
+      js_flag="-melange"
       shift
       ;;
     *)
