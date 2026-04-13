@@ -1,0 +1,6 @@
+(library
+ (name dream_rsc)
+ (wrapped false)
+ (libraries dream react reactDOM js lwt lwt.unix)
+ (preprocess
+  (pps lwt_ppx)))

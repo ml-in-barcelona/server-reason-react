@@ -1,3 +1,5 @@
+let debug = Sys.getenv_opt("DEMO_ENV") == Some("development");
+
 // Allow GET and POST from the same handler enables progressive enhancement.
 // When JS is disabled, the browser will make a POST request into the same page (instead of a GET). The server should handle the form action and return the page.
 // When JS is enabled, the page will make a POST request to the server with the action ID and the server will return the action response.
@@ -7,7 +9,13 @@ let getAndPost = (path, handler) =>
     [],
     [
       Dream.get(path, handler),
-      Dream.post(path, DreamRSC.streamFunctionResponse),
+      Dream.post(
+        path,
+        DreamRSC.streamFunctionResponse(
+          ~debug,
+          ~lookup=FunctionReferences.get,
+        ),
+      ),
     ],
   );
 

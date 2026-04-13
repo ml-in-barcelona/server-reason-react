@@ -224,6 +224,12 @@ module Page = {
           <ServerActionWithFormDataWithArg />
         </Section>
         <Hr />
+        <Section
+          title="Request context in server functions"
+          description="Server functions can read cookies and headers from the ambient request context via ServerContext">
+          <RequestContextDemo />
+        </Section>
+        <Hr />
       </Stack>,
     );
   };

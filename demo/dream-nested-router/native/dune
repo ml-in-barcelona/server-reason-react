@@ -16,7 +16,8 @@
   server-reason-react.runtime
   webapi
   lwt
-  server-reason-react.fetch)
+  server-reason-react.fetch
+  dream_rsc)
  (preprocess
   (pps
    lwt_ppx
