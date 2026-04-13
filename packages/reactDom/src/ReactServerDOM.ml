@@ -1099,7 +1099,9 @@ let render_model_value ?(env = `Dev) ?(debug = false) ?filter_stack_frame ?subsc
 let render_model ?(env = `Dev) ?(debug = false) ?filter_stack_frame ?subscribe model =
   render_model_value ~env ~debug ?filter_stack_frame ?subscribe (React.Model.Element model)
 
-let create_action_response = Model.create_action_response
+let create_action_response ?env ?debug ?filter_stack_frame ?subscribe response =
+  React.Cache.with_request_cache_async (fun () ->
+      Model.create_action_response ?env ?debug ?filter_stack_frame ?subscribe response)
 
 type model = Reference of string | FormData of string | Undefined | Json of json
 

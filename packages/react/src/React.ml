@@ -588,20 +588,16 @@ module Cache = struct
   type fn_cache = (Obj.t, cache_entry) Hashtbl.t
   type request_cache = (int, fn_cache) Hashtbl.t
 
-  let current : request_cache option Stdlib.ref = Stdlib.ref None
+  let async_key : request_cache Lwt.key = Lwt.new_key ()
   let fn_id_counter : int Stdlib.ref = Stdlib.ref 0
 
   let with_request_cache f =
-    let prev = !current in
-    current := Some (Hashtbl.create 16);
-    Fun.protect ~finally:(fun () -> current := prev) f
+    let cache = Hashtbl.create 16 in
+    Lwt.with_value async_key (Some cache) f
 
   let with_request_cache_async f =
-    let prev = !current in
-    current := Some (Hashtbl.create 16);
-    Lwt.finalize f (fun () ->
-        current := prev;
-        Lwt.return ())
+    let cache = Hashtbl.create 16 in
+    Lwt.with_value async_key (Some cache) f
 end
 
 let memo f _component = f
@@ -611,7 +607,7 @@ let cache fn =
   let fn_id = !Cache.fn_id_counter in
   Cache.fn_id_counter := fn_id + 1;
   fun arg ->
-    match !Cache.current with
+    match Lwt.get Cache.async_key with
     | None -> fn arg
     | Some cache_map -> (
         let fn_cache =

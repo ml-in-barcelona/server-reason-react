@@ -223,6 +223,86 @@ let cache_error_same_instance () =
           Alcotest.(check bool) "is original exception" true (e1 == original_exn)
       | _ -> Alcotest.fail "expected exceptions to be captured")
 
+let lwt_test title fn = Alcotest.test_case title `Quick (fun () -> Lwt_main.run (fn ()))
+
+let cache_async_hits_within_request () =
+  let calls = ref 0 in
+  let cached =
+    React.cache (fun value ->
+        incr calls;
+        value ^ "-ok")
+  in
+  React.Cache.with_request_cache_async (fun () ->
+      assert_string (cached "a") "a-ok";
+      let%lwt () = Lwt.pause () in
+      assert_string (cached "a") "a-ok";
+      Lwt.return ());%lwt
+  assert_int !calls 1;
+  Lwt.return ()
+
+let cache_async_resets_between_requests () =
+  let calls = ref 0 in
+  let cached =
+    React.cache (fun value ->
+        incr calls;
+        value)
+  in
+  React.Cache.with_request_cache_async (fun () ->
+      ignore (cached "a");
+      ignore (cached "a");
+      Lwt.return ());%lwt
+  React.Cache.with_request_cache_async (fun () ->
+      ignore (cached "a");
+      Lwt.return ());%lwt
+  assert_int !calls 2;
+  Lwt.return ()
+
+let cache_async_concurrent_isolation () =
+  let calls = ref 0 in
+  let cached =
+    React.cache (fun value ->
+        incr calls;
+        value ^ "-ok")
+  in
+  let p1 =
+    React.Cache.with_request_cache_async (fun () ->
+        assert_string (cached "a") "a-ok";
+        (* Yield to scheduler — lets p2 run and install its own cache *)
+        let%lwt () = Lwt.pause () in
+        (* Must still hit p1's cache, not p2's *)
+        assert_string (cached "a") "a-ok";
+        Lwt.return ())
+  in
+  let p2 =
+    React.Cache.with_request_cache_async (fun () ->
+        (* Independent cache — fresh call even though p1 already cached "a" *)
+        assert_string (cached "a") "a-ok";
+        Lwt.return ())
+  in
+  Lwt.join [ p1; p2 ];%lwt
+  (* 2 calls total: one per request, each caching "a" independently *)
+  assert_int !calls 2;
+  Lwt.return ()
+
+let cache_async_no_cross_request_leaking () =
+  let cached = React.cache (fun value -> value ^ "-ok") in
+  let seen_in_p2 = ref "" in
+  let p1 =
+    React.Cache.with_request_cache_async (fun () ->
+        ignore (cached "from-p1");
+        let%lwt () = Lwt.pause () in
+        Lwt.return ())
+  in
+  let p2 =
+    React.Cache.with_request_cache_async (fun () ->
+        (* p2 should compute its own value, not see p1's cached result *)
+        seen_in_p2 := cached "from-p2";
+        Lwt.return ())
+  in
+  Lwt.join [ p1; p2 ];%lwt
+  assert_string !seen_in_p2 "from-p2-ok";
+  Lwt.return ()
+
 let tests =
   ( "React",
     [
@@ -243,4 +323,8 @@ let tests =
       test "cache errors mixed with success" cache_error_mixed_with_success;
       test "cache errors reset between requests" cache_error_resets_between_requests;
       test "cache errors same instance" cache_error_same_instance;
+      lwt_test "cache async hits within request" cache_async_hits_within_request;
+      lwt_test "cache async resets between requests" cache_async_resets_between_requests;
+      lwt_test "cache async concurrent isolation" cache_async_concurrent_isolation;
+      lwt_test "cache async no cross-request leaking" cache_async_no_cross_request_leaking;
     ] )
