@@ -118,50 +118,67 @@ let serialize_pending_cookies = pending =>
        ("Set-Cookie", header_value);
      });
 
-let handleFormRequest = (~lookup, actionId, formData) => {
-  let formData = {
-    let formDataJs = Js.FormData.make();
-    formData
-    |> List.iter(((name, value)) => {
-         let (_filename, value) = value |> List.hd;
-         Js.FormData.append(formDataJs, name, `String(value));
-       });
-    formDataJs;
+let require_action_id = actionId =>
+  switch (actionId) {
+  | Some(id) => Ok(id)
+  | None =>
+    Error(
+      "Missing ACTION_ID header, this request was not created by server-reason-react",
+    )
   };
 
-  let (args, formData) = ReactServerDOM.decodeFormDataReply(formData);
-
-  let actionId =
-    switch (actionId) {
-    | Some(actionId) => actionId
-    | None => failwith("We don't support progressive enhancement yet.")
-    };
-
-  let handler =
+let dispatch_handler = (~lookup, actionId, dispatch) =>
+  switch (require_action_id(actionId)) {
+  | Error(msg) => Lwt.fail_with(msg)
+  | Ok(actionId) =>
     switch (lookup(actionId)) {
-    | Some(ReactServerDOM.FormData(handler)) => handler
-    | _ => assert(false)
-    };
-  handler(args, formData);
+    | None => Lwt.fail_with("Action " ++ actionId ++ " is not registered")
+    | Some(handler) => dispatch(actionId, handler)
+    }
+  };
+
+let handleFormRequest = (~lookup, actionId, formData) => {
+  let formDataJs = Js.FormData.make();
+  formData
+  |> List.iter(((name, value)) => {
+       let (_filename, value) = value |> List.hd;
+       Js.FormData.append(formDataJs, name, `String(value));
+     });
+
+  switch (ReactServerDOM.decodeFormDataReply(formDataJs)) {
+  | Error(msg) => Lwt.fail_with(msg)
+  | Ok((args, formData)) =>
+    dispatch_handler(~lookup, actionId, (actionId, handler) =>
+      switch (handler) {
+      | ReactServerDOM.FormData(handler) => handler(args, formData)
+      | ReactServerDOM.Body(_) =>
+        Lwt.fail_with(
+          "Action "
+          ++ actionId
+          ++ " is registered as Body handler but received FormData request",
+        )
+      }
+    )
+  };
 };
 
 let handleRequestBody = (~lookup, request, actionId) => {
   let%lwt body = Dream.body(request);
-  let actionId =
-    switch (actionId) {
-    | Some(actionId) => actionId
-    | None =>
-      failwith(
-        "Missing action ID, this request was not created by server-reason-react",
-      )
-    };
-  let handler =
-    switch (lookup(actionId)) {
-    | Some(ReactServerDOM.Body(handler)) => handler
-    | _ => assert(false)
-    };
-
-  handler(ReactServerDOM.decodeReply(body));
+  switch (ReactServerDOM.decodeReply(body)) {
+  | Error(msg) => Lwt.fail_with(msg)
+  | Ok(args) =>
+    dispatch_handler(~lookup, actionId, (actionId, handler) =>
+      switch (handler) {
+      | ReactServerDOM.Body(handler) => handler(args)
+      | ReactServerDOM.FormData(_) =>
+        Lwt.fail_with(
+          "Action "
+          ++ actionId
+          ++ " is registered as FormData handler but received JSON body request",
+        )
+      }
+    )
+  };
 };
 
 let handleRequest = (~lookup, request) => {
@@ -174,7 +191,7 @@ let handleRequest = (~lookup, request) => {
     switch%lwt (Dream.multipart(request, ~csrf=false)) {
     | `Ok(formData) => handleFormRequest(~lookup, actionId, formData)
     | _ =>
-      failwith(
+      Lwt.fail_with(
         "Missing form data, this request was not created by server-reason-react",
       )
     }

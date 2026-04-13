@@ -39,8 +39,8 @@ type server_function =
   | FormData of (Yojson.Basic.t array -> Js.FormData.t -> React.model_value Lwt.t)
   | Body of (Yojson.Basic.t array -> React.model_value Lwt.t)
 
-val decodeReply : string -> Yojson.Basic.t array
-val decodeFormDataReply : Js.FormData.t -> Yojson.Basic.t array * Js.FormData.t
+val decodeReply : string -> (Yojson.Basic.t array, string) result
+val decodeFormDataReply : Js.FormData.t -> (Yojson.Basic.t array * Js.FormData.t, string) result
 
 module type FunctionReferences = sig
   type t

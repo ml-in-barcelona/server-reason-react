@@ -225,6 +225,12 @@ module Page = {
         </Section>
         <Hr />
         <Section
+          title="Server function with optional arg"
+          description="Server function with optional arguments — exercises $undefined decoding when the optional arg is omitted">
+          <ServerActionWithOptionalArg />
+        </Section>
+        <Hr />
+        <Section
           title="Request context in server functions"
           description="Server functions can read cookies and headers from the ambient request context via ServerContext">
           <RequestContextDemo />

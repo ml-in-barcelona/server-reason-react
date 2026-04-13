@@ -1103,69 +1103,199 @@ let create_action_response ?env ?debug ?filter_stack_frame ?subscribe response =
   React.Cache.with_request_cache_async (fun () ->
       Model.create_action_response ?env ?debug ?filter_stack_frame ?subscribe response)
 
-type model = Reference of string | FormData of string | Undefined | Json of json
+(* Reply decoding: deserialize client-to-server action arguments.
+   Handles React's special $-prefixed string encoding from processReply/encodeReply.
+   Reference: https://github.com/facebook/react/blob/main/packages/react-server/src/ReactFlightReplyServer.js
 
-let parseModel model =
-  match model with
-  | `String value when String.starts_with ~prefix:"$" value -> (
-      let prefix = String.sub value 1 1 in
-      match prefix with
-      | "u" -> Undefined
-      | "K" -> FormData (String.sub value 2 (String.length value - 2))
-      | _ -> Reference (String.sub value 1 (String.length value - 1)))
-  | `String value -> Json (`String value)
-  | _ -> Json model
+   All supported prefixes:
+     $$  → Escaped string (literal $ prefix)
+     $u  → undefined ($undefined) → Null
+     $K  → FormData reference (handled at top level, not by decode_value)
+     $D  → Date (ISO 8601 string)
+     $n  → BigInt (decimal string)
+     $N  → NaN
+     $I  → Infinity
+     $-0 → Negative zero
+     $-  → Negative infinity
+
+   Outlined model types (resolved from FormData entries):
+     $Q  → Map → Assoc (if all keys are strings) or List of [key, value] pairs
+     $W  → Set → List
+     $i  → Iterator → List
+     $F  → Server Reference → Assoc {id, bound}
+
+   Unsupported (raise Invalid_argument with descriptive message):
+     $T  → Temporary Reference (no infrastructure)
+     $@  → Promise (not representable as synchronous JSON)
+     $A/$O/$o/$U/$S/$s/$L/$l/$G/$g/$M/$m/$V → TypedArrays/ArrayBuffer (binary data)
+     $B  → Blob (binary data)
+     $R/$r → ReadableStream (streaming)
+     $X/$x → AsyncIterable/AsyncIterator (streaming)
+
+   Unknown $-prefixed strings are treated as outlined model references when FormData
+   is available, or as Null otherwise. React's processReply escapes all user strings
+   starting with $ to $$, so unrecognized prefixes indicate protocol-level references. *)
+
+(* Look up an outlined model entry from FormData by hex-encoded ID.
+   React's processReply stores outlined models as JSON strings in FormData entries
+   keyed by the decimal representation of the part ID. References use hex encoding. *)
+let resolve_from_formdata formData hex_id =
+  match int_of_string_opt ("0x" ^ hex_id) with
+  | Some id -> (
+      let key = string_of_int id in
+      try
+        let (`String json_str) = Js.FormData.get formData key in
+        Yojson.Basic.from_string json_str
+      with Not_found -> `Null)
+  | None -> `Null
+
+let unsupported name = Error (Printf.sprintf "decodeReply: %s is not supported" name)
+
+(* Recursively decode a JSON value, resolving React's $-prefixed special strings.
+   When ~formData is provided, outlined model references ($Q, $W, $F, $i) are resolved
+   by looking up the corresponding FormData entry and recursively decoding it. *)
+let rec decode_value ?(formData : Js.FormData.t option) (json : json) : (json, string) result =
+  match json with
+  | `String value when String.length value >= 2 && String.get value 0 = '$' -> (
+      let len = String.length value in
+      let rest = String.sub value 2 (len - 2) in
+      match String.get value 1 with
+      | '$' -> Ok (`String rest)
+      | 'u' -> Ok `Null
+      | 'K' -> Ok `Null
+      | 'D' -> Ok (`String rest)
+      | 'n' -> Ok (`String rest)
+      | 'N' -> Ok (`Float Float.nan)
+      | 'I' -> Ok (`Float Float.infinity)
+      | '-' -> Ok (if String.equal value "$-0" then `Float (-0.) else `Float Float.neg_infinity)
+      | 'Q' -> decode_outlined_map ?formData rest
+      | 'W' -> resolve_outlined ?formData "Set ($W)" rest
+      | 'i' -> resolve_outlined ?formData "Iterator ($i)" rest
+      | 'F' -> resolve_outlined ?formData "Server Reference ($F)" rest
+      | 'T' -> unsupported "Temporary Reference ($T)"
+      | '@' -> unsupported "Promise ($@)"
+      | ('A' | 'O' | 'o' | 'U' | 'S' | 's' | 'L' | 'l' | 'G' | 'g' | 'M' | 'm' | 'V') as c ->
+          unsupported (Printf.sprintf "TypedArray/ArrayBuffer ($%c)" c)
+      | 'B' -> unsupported "Blob ($B)"
+      | 'R' -> unsupported "ReadableStream ($R)"
+      | 'r' -> unsupported "ReadableStream bytes ($r)"
+      | 'X' -> unsupported "AsyncIterable ($X)"
+      | 'x' -> unsupported "AsyncIterator ($x)"
+      | _ -> (
+          match formData with
+          | Some fd ->
+              let resolved = resolve_from_formdata fd (String.sub value 1 (len - 1)) in
+              decode_value ~formData:fd resolved
+          | None -> Ok `Null))
+  | `List items -> decode_list ?formData items
+  | `Assoc pairs -> decode_assoc ?formData pairs
+  | other -> Ok other
+
+and decode_list ?(formData : Js.FormData.t option) items =
+  let rec aux acc = function
+    | [] -> Ok (`List (List.rev acc))
+    | item :: rest -> ( match decode_value ?formData item with Ok v -> aux (v :: acc) rest | Error _ as err -> err)
+  in
+  aux [] items
+
+and decode_assoc ?(formData : Js.FormData.t option) pairs =
+  let rec aux acc = function
+    | [] -> Ok (`Assoc (List.rev acc))
+    | (k, v) :: rest -> (
+        match decode_value ?formData v with Ok v -> aux ((k, v) :: acc) rest | Error _ as err -> err)
+  in
+  aux [] pairs
+
+and resolve_outlined ?(formData : Js.FormData.t option) type_name hex_id =
+  match formData with
+  | None -> Error (Printf.sprintf "decodeReply: %s requires FormData for outlined model resolution" type_name)
+  | Some fd ->
+      let resolved = resolve_from_formdata fd hex_id in
+      decode_value ~formData:fd resolved
+
+(* Maps are serialized as [[key, value], ...].
+   If all keys are strings, converts to Assoc for ergonomic use with Melange_json decoders.
+   Otherwise preserves the List of pairs representation. *)
+and decode_outlined_map ?(formData : Js.FormData.t option) hex_id =
+  match resolve_outlined ?formData "Map ($Q)" hex_id with
+  | Error _ as err -> err
+  | Ok resolved -> (
+      match resolved with
+      | `List pairs ->
+          let all_string_keys, assoc_pairs =
+            List.fold_left
+              (fun (all_ok, acc) pair ->
+                match pair with `List [ `String k; v ] -> (all_ok, (k, v) :: acc) | _ -> (false, acc))
+              (true, []) pairs
+          in
+          Ok (if all_string_keys then `Assoc (List.rev assoc_pairs) else resolved)
+      | other -> Ok other)
 
 let decodeReply body =
   match Yojson.Basic.from_string body with
   | `List args ->
-      args
-      |> List.filter_map (fun arg ->
-          match parseModel arg with
-          (* For now we only support json args *)
-          | Json json -> Some json
-          | _ -> None)
-      |> Array.of_list
-  | _ -> raise (Invalid_argument "Invalid args, this request was not created by server-reason-react")
+      let rec aux acc = function
+        | [] -> Ok (Array.of_list (List.rev acc))
+        | arg :: rest -> ( match decode_value arg with Ok v -> aux (v :: acc) rest | Error _ as err -> err)
+      in
+      aux [] args
+  | _ -> Error "Invalid args, this request was not created by server-reason-react"
+  | exception Yojson.Json_error msg -> Error (Printf.sprintf "Invalid JSON: %s" msg)
 
 let decodeFormDataReply formData =
   let input_prefix = ref None in
-  let decodeArgs body =
-    match Yojson.Basic.from_string body with
-    | `List args -> args |> List.map parseModel
-    | _ -> raise (Invalid_argument "Invalid args, this request was not created by server-reason-react")
+  let is_formdata_ref = function
+    | `String value ->
+        let len = String.length value in
+        if len > 2 && String.get value 0 = '$' && String.get value 1 = 'K' then Some (String.sub value 2 (len - 2))
+        else None
+    | _ -> None
   in
-
   let formDataEntries = Js.FormData.entries formData in
-  let args =
-    Js.FormData.get formData "0" |> function
-    | `String model ->
-        decodeArgs model
-        |> List.filter_map (function
-          (* For now we only support json args *)
-          | Json json -> Some json
-          | FormData id ->
-              input_prefix := Some id;
-              None
-          | _ -> None)
-        |> Array.of_list
+  let model_str =
+    try
+      let (`String s) = Js.FormData.get formData "0" in
+      Ok s
+    with Not_found -> Error "decodeReply: FormData is missing the root entry at key \"0\""
   in
-  let rec aux acc = function
-    | [] -> acc
-    | (key, value) :: entries -> (
-        if key = "0" then aux acc entries
-        else
-          match !input_prefix with
-          | Some id ->
-              let form_prefix = id ^ "_" in
-              let key = String.sub key (String.length form_prefix) (String.length key - String.length form_prefix) in
-              Js.FormData.append acc key value;
-              aux acc entries
-          | None ->
-              Js.FormData.append acc key value;
-              aux acc entries)
-  in
-  (args, aux (Js.FormData.make ()) formDataEntries)
+  match model_str with
+  | Error _ as err -> err
+  | Ok model_str -> (
+      match Yojson.Basic.from_string model_str with
+      | exception Yojson.Json_error msg -> Error (Printf.sprintf "Invalid JSON in FormData root: %s" msg)
+      | `List items -> (
+          let rec aux_args acc = function
+            | [] -> Ok (Array.of_list (List.rev acc))
+            | item :: rest -> (
+                match is_formdata_ref item with
+                | Some id ->
+                    input_prefix := Some id;
+                    aux_args acc rest
+                | None -> (
+                    match decode_value ~formData item with Ok v -> aux_args (v :: acc) rest | Error _ as err -> err))
+          in
+          let args_result = aux_args [] items in
+          match args_result with
+          | Error _ as err -> err
+          | Ok args ->
+              let form_prefix = Option.map (fun id -> (id ^ "_", String.length id + 1)) !input_prefix in
+              let rec aux_entries acc = function
+                | [] -> acc
+                | (key, value) :: entries -> (
+                    if key = "0" then aux_entries acc entries
+                    else
+                      match form_prefix with
+                      | Some (prefix, prefix_len) ->
+                          if String.starts_with ~prefix key then (
+                            Js.FormData.append acc (String.sub key prefix_len (String.length key - prefix_len)) value;
+                            aux_entries acc entries)
+                          else aux_entries acc entries
+                      | None ->
+                          Js.FormData.append acc key value;
+                          aux_entries acc entries)
+              in
+              Ok (args, aux_entries (Js.FormData.make ()) formDataEntries))
+      | _ -> Error "Invalid args, this request was not created by server-reason-react")
 
 type server_function =
   | FormData of (Yojson.Basic.t array -> Js.FormData.t -> React.model_value Lwt.t)

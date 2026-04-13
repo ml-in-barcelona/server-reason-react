@@ -83,6 +83,13 @@ let optionalAction = (): Js.Promise.t(string) => {
 };
 
 [@react.server.function]
+let withOptionalGreeting =
+    (~greeting: option(string)=?, ~name: string, ()): Js.Promise.t(string) => {
+  let greeting = Option.value(greeting, ~default="Hello");
+  Lwt.return(Printf.sprintf("%s, %s!", greeting, name));
+};
+
+[@react.server.function]
 let getSessionUser = (): Js.Promise.t(string) => {
   let name =
     DreamRSC.RequestContext.get_cookie("demo_user")
