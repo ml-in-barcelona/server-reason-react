@@ -211,18 +211,18 @@ module Model = struct
     | React.JSX.Action _ -> None
 
   let props_to_json props = List.filter_map prop_to_json props
+  let chunk_ref_or_null = function None -> `Null | Some idx -> `String (ref_value idx)
 
-  let node ~tag ?(key = None) ~props ?(source = None) ?(owner = None) children : json =
+  (* React element tuple: ["$", type, key, props, debugOwner, debugStack, validated] *)
+  let node ~tag ?(key = None) ~props ?(owner = None) children : json =
     let key = match key with None -> `Null | Some key -> `String key in
-    let source = match source with None -> `List [] | Some source -> `List source in
-    let owner = match owner with None -> `Null | Some owner_idx -> `Int owner_idx in
     let props =
       match children with
       | [] -> props
       | [ one_children ] -> ("children", one_children) :: props
       | childrens -> ("children", `List childrens) :: props
     in
-    `List [ `String "$"; `String tag; key; `Assoc props; owner; source; `Int 1 ]
+    `List [ `String "$"; `String tag; key; `Assoc props; chunk_ref_or_null owner; `Null; `Int 1 ]
 
   (* Not using `node` because we need to add fallback prop as json directly *)
   let suspense_node ~key ~fallback children : json =
@@ -286,7 +286,7 @@ module Model = struct
         ("name", `String name);
         ("env", `String "Server");
         ("key", `Null);
-        ("owner", match owner with Some idx -> `String (Printf.sprintf "$%x" idx) | None -> `Null);
+        ("owner", chunk_ref_or_null owner);
         ("stack", stack);
         ("props", `Assoc []);
       ]
