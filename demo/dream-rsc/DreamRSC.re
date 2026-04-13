@@ -202,17 +202,24 @@ let handleRequest = (~lookup, request) => {
 let streamFunctionResponse = (~debug=false, ~lookup, request) => {
   let (pending, run) =
     with_action_context(request, () => handleRequest(~lookup, request));
-  let%lwt action_result =
+
+  /* Run the action. On success we keep pending cookies; on failure we discard them.
+     Either way we capture the outcome as a promise for create_action_response,
+     which serializes both successes and failures into the RSC stream
+     (rather than letting failures become HTTP 500s). */
+  let%lwt (action_promise, cookie_headers) =
     Lwt.catch(
-      run,
+      () => {
+        let%lwt result = run();
+        let cookies = serialize_pending_cookies(pending^);
+        Lwt.return((Lwt.return(result), cookies));
+      },
       exn => {
-        /* Discard pending cookies on error */
         pending := [];
-        Lwt.fail(exn);
+        Lwt.return((Lwt.fail(exn), []));
       },
     );
 
-  let cookie_headers = serialize_pending_cookies(pending^);
   Dream.stream(
     ~headers=[
       ("Content-Type", "application/react.action"),
@@ -231,7 +238,7 @@ let streamFunctionResponse = (~debug=false, ~lookup, request) => {
               let%lwt () = Dream.write(stream, chunk);
               Dream.flush(stream);
             },
-          Lwt.return(action_result),
+          action_promise,
         );
 
       Dream.flush(stream);
