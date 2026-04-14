@@ -1,5 +1,18 @@
 # Changes
 
+## Unreleased
+
+* [server-reason-react.ppx] Propagate `[@platform]` and `[@browser_only]` attributes to generated `include` struct from `[@react.component]`, fixing `Unbound value make` when `browser_ppx` drops the internal binding but not the wrapper by @davesnx
+* [server-reason-react.ppx] Implement `ACTION_*` protocol rows in server actions, encoding bound server references with their arguments in the RSC model by @davesnx
+* [server-reason-react.ppx] Ensure `shared-folder-prefix` doesn't crash the editor when attribute payload is missing by @davesnx
+* [server-reason-react.ppx] Expand `~styles` only on lowercase (HTML) components, not uppercase (React) components by @davesnx
+* Improve `debugInfo` in RSC model output to match React's format by @davesnx
+* Fix `streamFunctionResponse` error handling in DreamRSC by @davesnx
+* Replace `failwith` with `Lwt.fail_with` across ReactServerDOM for proper async error propagation by @davesnx
+* Use `Lwt.key` instead of a mutable ref for `React.Cache`, making the request cache safe across concurrent Lwt promises by @davesnx
+* Abstract `DreamRSC` into a standalone reusable library (`demo/dream-rsc`) with cache and streaming fixes by @davesnx
+* Add `[@deriving rsc]` PPX for automatic RSC serialization/deserialization of types, with dual native/JS implementations in a new `packages/rsc` package by @davesnx in https://github.com/ml-in-barcelona/server-reason-react/pull/368
+
 ## 0.5.0
 
 * Support Promise caching in react.client.components by @davesnx
