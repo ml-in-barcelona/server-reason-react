@@ -99,7 +99,8 @@ let component_make_props_ident tag =
 
 let is_key_arg (label, _) = match label with Optional "key" | Labelled "key" -> true | _ -> false
 
-let rewrite_component ~loc tag args children =
+(* JSX rewrite for JS/melange: Component.make(Component.makeProps(~prop1:v1, ...)) *)
+let rewrite_component_js ~loc tag args children =
   let component = pexp_ident ~loc tag in
   let props_args =
     match children with
@@ -115,6 +116,32 @@ let rewrite_component ~loc tag args children =
     match key_args with [] -> [ (Nolabel, props) ] | (label, expr) :: _ -> [ (label, expr); (Nolabel, props) ]
   in
   pexp_apply ~loc component make_args
+
+(* JSX rewrite for native: Component.make(~prop1:v1, ~children:..., ()) -- old-style labeled args.
+   Note: args already includes a trailing (Nolabel, ()) from the JSX parse, so we don't add another. *)
+let rewrite_component_native ~loc tag args children =
+  (* tag is already Ldot(Module, "make") from the caller (line ~1507),
+     or Lident "local_fn" from line ~1510. For Lident, append .make. *)
+  let make_ident =
+    match tag with
+    | { txt = Ldot (_, "make"); _ } -> pexp_ident ~loc tag (* already Module.make *)
+    | { txt = Lident name; loc } -> pexp_ident ~loc { txt = Ldot (Lident name, "make"); loc }
+    | { txt = Ldot (path, name); loc } -> pexp_ident ~loc { txt = Ldot (Ldot (path, name), "make"); loc }
+    | { txt = Lapply _; loc } -> raise_errorf ~loc "jsx: can't use functor application in JSX"
+  in
+  let args_no_unit = strip_unit_args args in
+  let props_args =
+    match children with
+    | None -> args_no_unit
+    | Some [ children ] -> (Labelled "children", children) :: args_no_unit
+    | Some children -> (Labelled "children", [%expr React.list [%e pexp_list ~loc children]]) :: args_no_unit
+  in
+  pexp_apply ~loc make_ident (props_args @ [ (Nolabel, [%expr ()]) ])
+
+let rewrite_component ~loc tag args children =
+  match mode.contents with
+  | Js -> rewrite_component_js ~loc tag args children
+  | Native -> rewrite_component_native ~loc tag args children
 
 let validate_prop ~loc id name =
   match DomProps.findByJsxName ~tag:id name with
@@ -1361,20 +1388,23 @@ let rewrite_structure_item ~nested_module_names structure_item =
             | Some (_, make_props_binding, _) -> Some make_props_binding
             | None -> None)
         in
-        let public_bindings =
-          List.filter_map rewrites ~f:(function Some (_, _, public_binding) -> Some public_binding | None -> None)
-        in
         let internal_bindings =
           List.map2 value_bindings rewrites ~f:(fun vb rewrite ->
               match rewrite with Some (internal_binding, _, _) -> internal_binding | None -> vb)
         in
+        (* On native, keep make with labeled args (no wrapper) for backward
+           compatibility with .rei files, .ml call sites, and first-class modules.
+           Native JSX uses old-style labeled arg calls, so the wrapper isn't needed.
+           But we still emit makeProps for code that calls it directly. *)
         match make_props_bindings with
         | [] -> pstr_value ~loc:structure_item.pstr_loc rec_flag internal_bindings
-        | _ -> (
+        | _ ->
             let loc = structure_item.pstr_loc in
-            (* Propagate non-react attributes from the original bindings to the
-               include struct. This ensures attributes like [@platform js] or
-               [@browser_only] are visible to subsequent ppxes (e.g. browser_ppx) so they can drop the entire include when needed. *)
+            (* Propagate non-react attributes from the original bindings to the include struct. *)
+            let is_react_attr attr =
+              let name = attr.attr_name.txt in
+              String.length name >= 6 && String.sub name 0 6 = "react."
+            in
             let propagated_attrs =
               List.concat_map value_bindings ~f:(fun vb ->
                   List.filter vb.pvb_attributes ~f:(fun attr -> not (is_react_attr attr)))
@@ -1382,12 +1412,11 @@ let rewrite_structure_item ~nested_module_names structure_item =
             let include_stri =
               [%stri
                 include struct
-                  [%%i pstr_value ~loc:structure_item.pstr_loc Nonrecursive make_props_bindings]
                   [%%i pstr_value ~loc:structure_item.pstr_loc rec_flag internal_bindings]
-                  [%%i pstr_value ~loc:structure_item.pstr_loc Nonrecursive public_bindings]
+                  [%%i pstr_value ~loc:structure_item.pstr_loc Nonrecursive make_props_bindings]
                 end]
             in
-            match (propagated_attrs, include_stri.pstr_desc) with
+            (match (propagated_attrs, include_stri.pstr_desc) with
             | _ :: _, Pstr_include incl ->
                 { include_stri with pstr_desc = Pstr_include { incl with pincl_attributes = propagated_attrs } }
             | _ -> include_stri)

@@ -608,8 +608,7 @@ and model_value = element Model.t
 exception Invalid_children of string
 
 module Fragment : sig
-  val makeProps : children:element -> unit -> < children : element > Js.t
-  val make : (< children : element > Js.t, element) componentLike
+  val make : ?key:string -> children:element -> unit -> element
 end
 
 val createElement : string -> JSX.prop list -> element list -> element
@@ -633,17 +632,13 @@ module Context : sig
     consumer : children:element -> element;
   }
 
-  val makeProps : value:'a -> children:element -> unit -> < value : 'a ; children : element > Js.t
-  val provider : 'a t -> (< value : 'a ; children : element > Js.t, element) componentLike
+  val provider : 'a t -> ?key:string -> value:'a -> children:element -> unit -> element
 end
 
 val createContext : 'a -> 'a Context.t
 
 module Suspense : sig
-  val makeProps :
-    ?fallback:element -> ?children:element -> unit -> < fallback : element option ; children : element option > Js.t
-
-  val make : (< fallback : element option ; children : element option > Js.t, element) componentLike
+  val make : ?key:string -> ?fallback:element -> ?children:element -> unit -> element
 end
 
 module Cache : sig
