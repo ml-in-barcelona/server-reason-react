@@ -981,48 +981,50 @@ let rec make_json_decoder ~loc (core_type : core_type) =
   | [%type: int] -> [%expr Melange_json.Primitives.int_of_json]
   | [%type: float] -> [%expr Melange_json.Primitives.float_of_json]
   | [%type: int64] -> [%expr Melange_json.Primitives.int64_of_json]
-  | [%type: char] -> [%expr Melange_json.Primitives.char_of_json]
+  | [%type: char] ->
+      [%expr
+        fun json ->
+          let s = Melange_json.Primitives.string_of_json json in
+          if String.length s = 1 then String.get s 0
+          else Melange_json.of_json_error ~json "expected a single-character string"]
   | [%type: unit] -> [%expr Melange_json.Primitives.unit_of_json]
   | [%type: [%t? inner_type] option] ->
       let decode = make_json_decoder ~loc inner_type in
       [%expr Melange_json.Primitives.option_of_json [%e decode]]
-  | { ptyp_desc = Ptyp_constr ({ txt = Lident "list"; _ }, [ inner_type ]); _ } ->
+  | [%type: [%t? inner_type] list] ->
       let decode = make_json_decoder ~loc inner_type in
       [%expr Melange_json.Primitives.list_of_json [%e decode]]
-  | { ptyp_desc = Ptyp_constr ({ txt = Lident "array"; _ }, [ inner_type ]); _ } ->
+  | [%type: [%t? inner_type] array] ->
       let decode = make_json_decoder ~loc inner_type in
       [%expr Melange_json.Primitives.array_of_json [%e decode]]
-  | { ptyp_desc = Ptyp_tuple [ a; b ]; _ } ->
-      let decode_a = make_json_decoder ~loc a in
-      let decode_b = make_json_decoder ~loc b in
-      [%expr
-        fun json ->
-          match json with
-          | `List [ a; b ] -> ([%e decode_a] a, [%e decode_b] b)
-          | _ -> Melange_json.of_json_error ~json "expected a JSON array of length 2"]
-  | { ptyp_desc = Ptyp_tuple [ a; b; c ]; _ } ->
-      let decode_a = make_json_decoder ~loc a in
-      let decode_b = make_json_decoder ~loc b in
-      let decode_c = make_json_decoder ~loc c in
-      [%expr
-        fun json ->
-          match json with
-          | `List [ a; b; c ] -> ([%e decode_a] a, [%e decode_b] b, [%e decode_c] c)
-          | _ -> Melange_json.of_json_error ~json "expected a JSON array of length 3"]
-  | { ptyp_desc = Ptyp_tuple [ a; b; c; d ]; _ } ->
-      let decode_a = make_json_decoder ~loc a in
-      let decode_b = make_json_decoder ~loc b in
-      let decode_c = make_json_decoder ~loc c in
-      let decode_d = make_json_decoder ~loc d in
-      [%expr
-        fun json ->
-          match json with
-          | `List [ a; b; c; d ] -> ([%e decode_a] a, [%e decode_b] b, [%e decode_c] c, [%e decode_d] d)
-          | _ -> Melange_json.of_json_error ~json "expected a JSON array of length 4"]
+  | [%type: ([%t? ok_type], [%t? err_type]) result] ->
+      let decode_ok = make_json_decoder ~loc ok_type in
+      let decode_err = make_json_decoder ~loc err_type in
+      [%expr Melange_json.Primitives.result_of_json [%e decode_ok] [%e decode_err]]
+  | { ptyp_desc = Ptyp_tuple elements; _ } -> make_tuple_json_decoder ~loc elements
   | type_ -> (
       match type_.ptyp_desc with
       | Ptyp_arrow (_, _, _) -> [%expr fun json -> (json : [%t type_])]
       | _ -> [%expr [%of_json: [%t type_]]])
+
+and make_tuple_json_decoder ~loc types =
+  let n = List.length types in
+  let vars = List.mapi ~f:(fun i _ -> Printf.sprintf "t%d" i) types in
+  let decoders = List.map ~f:(make_json_decoder ~loc) types in
+  (* Build pattern: `List [t0; t1; t2; ...] *)
+  let list_elements_pat =
+    List.fold_right ~f:(fun v acc -> [%pat? [%p ppat_var ~loc { txt = v; loc }] :: [%p acc]]) vars ~init:[%pat? []]
+  in
+  let match_pat = [%pat? `List [%p list_elements_pat]] in
+  (* Build expression: (decoder0 t0, decoder1 t1, ...) *)
+  let tuple_elements = List.map2 ~f:(fun decode v -> [%expr [%e decode] [%e evar ~loc v]]) decoders vars in
+  let tuple_expr = pexp_tuple ~loc tuple_elements in
+  let error_msg = Printf.sprintf "expected a JSON array of length %d" n in
+  [%expr
+    fun json ->
+      match json with
+      | [%p match_pat] -> [%e tuple_expr]
+      | _ -> Melange_json.of_json_error ~json [%e estring ~loc error_msg]]
 
 let make_of_json_argument ~loc (core_type : core_type) prop = [%expr [%e make_json_decoder ~loc core_type] [%e prop]]
 

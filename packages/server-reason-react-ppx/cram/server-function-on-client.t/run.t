@@ -268,3 +268,90 @@
               },
             };
           };
+  
+  include {
+            {
+              module J = {
+                [@ocaml.warning "-unboxable-type-in-prim-decl"]
+                external unsafe_expr: _ => _ = "#raw_stmt";
+              };
+              J.unsafe_expr(
+                "// extract-server-function 639322061 withBoolArg ",
+              );
+            };
+  
+            let withBoolArg = {
+              Runtime.id: "639322061",
+              call: (~flag: bool) => {
+                let action =
+                  ReactServerDOMEsbuild.createServerReference("639322061");
+                (
+                  [@ocaml.warning "-ignored-extra-argument"]
+                  Js.Internal.opaqueFullApply(
+                    (Js.Internal.opaque((action: Js.Fn.arity1(_)).I1))(flag),
+                  ): _
+                )
+                |> Js.Promise.then_(response =>
+                     Js.Promise.resolve(RSC.Primitives.string_of_rsc(response))
+                   );
+              },
+            };
+          };
+  
+  include {
+            {
+              module J = {
+                [@ocaml.warning "-unboxable-type-in-prim-decl"]
+                external unsafe_expr: _ => _ = "#raw_stmt";
+              };
+              J.unsafe_expr(
+                "// extract-server-function 543472495 withListArg ",
+              );
+            };
+  
+            let withListArg = {
+              Runtime.id: "543472495",
+              call: (~names: list(string)) => {
+                let action =
+                  ReactServerDOMEsbuild.createServerReference("543472495");
+                (
+                  [@ocaml.warning "-ignored-extra-argument"]
+                  Js.Internal.opaqueFullApply(
+                    (Js.Internal.opaque((action: Js.Fn.arity1(_)).I1))(names),
+                  ): _
+                )
+                |> Js.Promise.then_(response =>
+                     Js.Promise.resolve(RSC.Primitives.string_of_rsc(response))
+                   );
+              },
+            };
+          };
+  
+  include {
+            {
+              module J = {
+                [@ocaml.warning "-unboxable-type-in-prim-decl"]
+                external unsafe_expr: _ => _ = "#raw_stmt";
+              };
+              J.unsafe_expr(
+                "// extract-server-function 271688509 withResultArg ",
+              );
+            };
+  
+            let withResultArg = {
+              Runtime.id: "271688509",
+              call: (~res: result(string, string)) => {
+                let action =
+                  ReactServerDOMEsbuild.createServerReference("271688509");
+                (
+                  [@ocaml.warning "-ignored-extra-argument"]
+                  Js.Internal.opaqueFullApply(
+                    (Js.Internal.opaque((action: Js.Fn.arity1(_)).I1))(res),
+                  ): _
+                )
+                |> Js.Promise.then_(response =>
+                     Js.Promise.resolve(RSC.Primitives.string_of_rsc(response))
+                   );
+              },
+            };
+          };

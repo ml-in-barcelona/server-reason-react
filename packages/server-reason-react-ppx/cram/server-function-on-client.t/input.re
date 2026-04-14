@@ -70,3 +70,18 @@ let withFormDataAndArgsDifferentOrder =
   let country = country;
   Lwt.return(Printf.sprintf("Hello %s, you are from %s", name, country));
 };
+
+[@react.server.function]
+let withBoolArg = (~flag: bool): Js.Promise.t(string) => {
+  Js.Promise.resolve(flag ? "yes" : "no");
+};
+
+[@react.server.function]
+let withListArg = (~names: list(string)): Js.Promise.t(string) => {
+  Js.Promise.resolve(String.concat(", ", names));
+};
+
+[@react.server.function]
+let withResultArg = (~res: result(string, string)): Js.Promise.t(string) => {
+  Js.Promise.resolve("ok");
+};

@@ -21,8 +21,8 @@ let unwrap_ok = function Ok v -> v | Error msg -> Alcotest.fail (Printf.sprintf 
 let unwrap_error = function Error msg -> msg | Ok _ -> Alcotest.fail "expected Error but got Ok"
 
 (* Assert that decodeReply returns Error with a message starting with expected_prefix *)
-let assert_decodeReply_errors input expected_prefix () =
-  match ReactServerDOM.decodeReply input with
+let assert_decodeReply_errors ?temporaryReferences input expected_prefix () =
+  match ReactServerDOM.decodeReply ?temporaryReferences input with
   | Ok _ -> Alcotest.fail (Printf.sprintf "expected Error starting with %S" expected_prefix)
   | Error msg ->
       if not (String.starts_with ~prefix:expected_prefix msg) then
@@ -328,6 +328,33 @@ let decodeFormDataReply_hex_id () =
   | [| `List [ `String s ] |] -> assert_string s "from_hex"
   | _ -> Alcotest.fail "expected hex ID 'a' to resolve to FormData key '10'"
 
+(* Blob ($B) resolution *)
+
+let decodeFormDataReply_blob () =
+  let formData = Js.FormData.make () in
+  Js.FormData.append formData "1" (`String "blob-content-here");
+  Js.FormData.append formData "0" (`String "[\"$B1\"]");
+  let args, _ = ReactServerDOM.decodeFormDataReply formData |> unwrap_ok in
+  match args with
+  | [| `String data |] -> assert_string data "blob-content-here"
+  | _ -> Alcotest.fail "expected blob reference to resolve from FormData"
+
+let decodeReply_blob_without_formdata () =
+  match ReactServerDOM.decodeReply {|["$B1"]|} with
+  | Error msg ->
+      if not (String.starts_with ~prefix:"decodeReply: Blob ($B) requires FormData" msg) then
+        Alcotest.fail (Printf.sprintf "expected FormData error, got %S" msg)
+  | Ok _ -> Alcotest.fail "expected Error for blob without FormData"
+
+let decodeFormDataReply_blob_missing_entry () =
+  let formData = Js.FormData.make () in
+  Js.FormData.append formData "0" (`String "[\"$B1\"]");
+  match ReactServerDOM.decodeFormDataReply formData with
+  | Error msg ->
+      if not (String.starts_with ~prefix:"decodeReply: Blob ($B) entry not found in FormData for key 1" msg) then
+        Alcotest.fail (Printf.sprintf "expected missing entry error, got %S" msg)
+  | Ok _ -> Alcotest.fail "expected Error for blob with missing FormData entry"
+
 (* Recursive resolution of nested JSON objects *)
 
 let decodeReply_nested_special_values_in_object () =
@@ -349,6 +376,121 @@ let decodeReply_nested_special_values_in_array () =
       assert_float_is_nan nan_val;
       assert_float_is_infinity inf_val
   | _ -> Alcotest.fail "expected special values in nested arrays to be resolved"
+
+(* Temporary Reference ($T) tests *)
+
+let decodeReply_temporary_reference_resolves () =
+  let temporaryReferences = function "abc" -> Some (`String "resolved_value") | _ -> None in
+  let response = ReactServerDOM.decodeReply ~temporaryReferences {|["$Tabc"]|} |> unwrap_ok in
+  match response with
+  | [| `String s |] -> assert_string s "resolved_value"
+  | _ -> Alcotest.fail "expected temporary reference to resolve to stored value"
+
+let decodeReply_temporary_reference_not_found () =
+  let temporaryReferences = function _ -> None in
+  match ReactServerDOM.decodeReply ~temporaryReferences {|["$Txyz"]|} with
+  | Error msg ->
+      if not (String.starts_with ~prefix:"decodeReply: Temporary Reference $Txyz not found" msg) then
+        Alcotest.fail (Printf.sprintf "unexpected error message: %S" msg)
+  | Ok _ -> Alcotest.fail "expected Error for missing temporary reference"
+
+let decodeReply_temporary_reference_no_resolver () =
+  match ReactServerDOM.decodeReply {|["$Tabc"]|} with
+  | Error msg ->
+      if not (String.starts_with ~prefix:"decodeReply: Temporary Reference ($T) requires" msg) then
+        Alcotest.fail (Printf.sprintf "unexpected error message: %S" msg)
+  | Ok _ -> Alcotest.fail "expected Error when no temporaryReferences resolver provided"
+
+let decodeReply_temporary_reference_complex_value () =
+  let temporaryReferences = function
+    | "obj1" -> Some (`Assoc [ ("key", `String "value"); ("num", `Int 42) ])
+    | _ -> None
+  in
+  let response = ReactServerDOM.decodeReply ~temporaryReferences {|["$Tobj1"]|} |> unwrap_ok in
+  match response with
+  | [| `Assoc [ ("key", `String v); ("num", `Int n) ] |] ->
+      assert_string v "value";
+      assert_int n 42
+  | _ -> Alcotest.fail "expected temporary reference to resolve to complex value"
+
+let decodeReply_temporary_reference_in_nested_array () =
+  let temporaryReferences = function "ref1" -> Some (`String "nested_resolved") | _ -> None in
+  let response = ReactServerDOM.decodeReply ~temporaryReferences {|[["$Tref1", 42]]|} |> unwrap_ok in
+  match response with
+  | [| `List [ `String s; `Int n ] |] ->
+      assert_string s "nested_resolved";
+      assert_int n 42
+  | _ -> Alcotest.fail "expected temporary reference to resolve inside nested array"
+
+let decodeReply_temporary_reference_in_nested_object () =
+  let temporaryReferences = function "ref1" -> Some (`String "obj_resolved") | _ -> None in
+  let response = ReactServerDOM.decodeReply ~temporaryReferences {|[{"val": "$Tref1", "other": 1}]|} |> unwrap_ok in
+  match response with
+  | [| `Assoc [ ("val", `String s); ("other", `Int n) ] |] ->
+      assert_string s "obj_resolved";
+      assert_int n 1
+  | _ -> Alcotest.fail "expected temporary reference to resolve inside nested object"
+
+(* decodeAction tests *)
+
+let decodeAction_with_action_id_and_fields () =
+  let formData = Js.FormData.make () in
+  Js.FormData.append formData "$ACTION_ID_abc123" (`String "");
+  Js.FormData.append formData "name" (`String "Lola");
+  Js.FormData.append formData "age" (`String "20");
+  match ReactServerDOM.decodeAction formData with
+  | Some (id, user_fd) -> (
+      assert_string id "abc123";
+      match (Js.FormData.get user_fd "name", Js.FormData.get user_fd "age") with
+      | `String name, `String age ->
+          assert_string name "Lola";
+          assert_string age "20")
+  | None -> Alcotest.fail "expected Some but got None"
+
+let decodeAction_no_action_keys () =
+  let formData = Js.FormData.make () in
+  Js.FormData.append formData "name" (`String "Lola");
+  Js.FormData.append formData "age" (`String "20");
+  match ReactServerDOM.decodeAction formData with None -> () | Some _ -> Alcotest.fail "expected None but got Some"
+
+let decodeAction_action_id_only () =
+  let formData = Js.FormData.make () in
+  Js.FormData.append formData "$ACTION_ID_abc123" (`String "");
+  match ReactServerDOM.decodeAction formData with
+  | Some (id, user_fd) ->
+      assert_string id "abc123";
+      let entries = Js.FormData.entries user_fd in
+      Alcotest.check Alcotest.int "should have 0 user entries" (List.length entries) 0
+  | None -> Alcotest.fail "expected Some but got None"
+
+let decodeAction_multiple_action_keys () =
+  let formData = Js.FormData.make () in
+  Js.FormData.append formData "$ACTION_ID_first" (`String "");
+  Js.FormData.append formData "name" (`String "Lola");
+  Js.FormData.append formData "$ACTION_ID_second" (`String "");
+  match ReactServerDOM.decodeAction formData with
+  | Some (id, user_fd) -> (
+      (* Either action ID is valid since Hashtbl iteration order is unspecified *)
+      assert_bool (String.equal id "first" || String.equal id "second") true;
+      match Js.FormData.get user_fd "name" with `String name -> assert_string name "Lola")
+  | None -> Alcotest.fail "expected Some but got None"
+
+let decodeAction_filters_other_action_keys () =
+  (* $ACTION_REF_ and other $ACTION_ prefixed keys should be filtered out from user data *)
+  let formData = Js.FormData.make () in
+  Js.FormData.append formData "$ACTION_ID_abc123" (`String "");
+  Js.FormData.append formData "$ACTION_REF_xyz" (`String "some_ref");
+  Js.FormData.append formData "name" (`String "Lola");
+  match ReactServerDOM.decodeAction formData with
+  | Some (id, user_fd) -> (
+      assert_string id "abc123";
+      (match Js.FormData.get user_fd "name" with `String name -> assert_string name "Lola");
+      (* $ACTION_REF_ should not be in user_fd *)
+      try
+        let _ = Js.FormData.get user_fd "$ACTION_REF_xyz" in
+        Alcotest.fail "$ACTION_REF_ key should not be in user FormData"
+      with Not_found -> ())
+  | None -> Alcotest.fail "expected Some but got None"
 
 let test title fn = (Printf.sprintf "Decoders / %s" title, [ Alcotest_lwt.test_case_sync "" `Quick fn ])
 
@@ -402,10 +544,18 @@ let tests =
     test "decodeReply: $W Set without FormData raises" (assert_decodeReply_errors "[\"$W1\"]" "decodeReply: Set");
     (* Unsupported types raise descriptive errors *)
     test "decodeReply: $@ Promise raises" (assert_decodeReply_errors "[\"$@1\"]" "decodeReply: Promise");
-    test "decodeReply: $T Temporary Reference raises"
-      (assert_decodeReply_errors "[\"$T1\"]" "decodeReply: Temporary Reference");
+    (* Temporary References ($T) *)
+    test "decodeReply: $T resolves with temporaryReferences" decodeReply_temporary_reference_resolves;
+    test "decodeReply: $T not found returns error" decodeReply_temporary_reference_not_found;
+    test "decodeReply: $T without resolver returns error" decodeReply_temporary_reference_no_resolver;
+    test "decodeReply: $T resolves complex value" decodeReply_temporary_reference_complex_value;
+    test "decodeReply: $T resolves in nested array" decodeReply_temporary_reference_in_nested_array;
+    test "decodeReply: $T resolves in nested object" decodeReply_temporary_reference_in_nested_object;
     test "decodeReply: $A TypedArray raises" (assert_decodeReply_errors "[\"$A1\"]" "decodeReply: TypedArray");
-    test "decodeReply: $B Blob raises" (assert_decodeReply_errors "[\"$B1\"]" "decodeReply: Blob");
+    (* Blob ($B) resolution *)
+    test "decodeFormDataReply: $B Blob resolves from FormData" decodeFormDataReply_blob;
+    test "decodeReply: $B Blob without FormData returns error" decodeReply_blob_without_formdata;
+    test "decodeFormDataReply: $B Blob with missing entry returns error" decodeFormDataReply_blob_missing_entry;
     test "decodeReply: $R ReadableStream raises"
       (assert_decodeReply_errors "[\"$R1\"]" "decodeReply: ReadableStream ($R)");
     test "decodeReply: $r ReadableStream bytes raises"
@@ -416,4 +566,10 @@ let tests =
         List.iter
           (fun prefix -> assert_decodeReply_errors (Printf.sprintf "[\"$%s1\"]" prefix) "decodeReply: TypedArray" ())
           [ "O"; "o"; "U"; "S"; "s"; "L"; "l"; "G"; "g"; "M"; "m"; "V" ]);
+    (* decodeAction *)
+    test "decodeAction: $ACTION_ID with form fields" decodeAction_with_action_id_and_fields;
+    test "decodeAction: no $ACTION_* keys returns None" decodeAction_no_action_keys;
+    test "decodeAction: $ACTION_ID with no other fields" decodeAction_action_id_only;
+    test "decodeAction: multiple $ACTION_ID keys (unspecified which wins)" decodeAction_multiple_action_keys;
+    test "decodeAction: filters $ACTION_* keys from user data" decodeAction_filters_other_action_keys;
   ]

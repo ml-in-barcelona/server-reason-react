@@ -129,3 +129,81 @@ let withReturnTypeOnSeparateLine =
     (~name: string, ~age: int): Js.Promise.t(string) => {
   Lwt.return(Printf.sprintf("Hello %s, you are %d years old", name, age));
 };
+
+[@react.server.function]
+let withCharArg = (~letter: char): Js.Promise.t(string) => {
+  Js.Promise.resolve(String.make(1, letter));
+};
+
+[@react.server.function]
+let withResultArg = (~result: result(string, string)): Js.Promise.t(string) => {
+  switch (result) {
+  | Ok(s) => Js.Promise.resolve(s)
+  | Error(e) => Js.Promise.resolve(e)
+  };
+};
+
+[@react.server.function]
+let withTuple2Arg = (~pair: (string, int)): Js.Promise.t(string) => {
+  let (name, age) = pair;
+  Js.Promise.resolve(Printf.sprintf("Hello %s, you are %d years old", name, age));
+};
+
+[@react.server.function]
+let withTuple5Arg =
+    (~data: (string, int, float, bool, char)): Js.Promise.t(string) => {
+  let (name, _age, _score, _active, _letter) = data;
+  Js.Promise.resolve(name);
+};
+
+[@react.server.function]
+let withTuple6Arg =
+    (~data: (string, int, float, bool, char, int64)): Js.Promise.t(string) => {
+  let (name, _age, _score, _active, _letter, _id) = data;
+  Js.Promise.resolve(name);
+};
+
+[@react.server.function]
+let withBoolArg = (~flag: bool): Js.Promise.t(string) => {
+  Js.Promise.resolve(flag ? "yes" : "no");
+};
+
+[@react.server.function]
+let withFloatArg = (~score: float): Js.Promise.t(string) => {
+  Js.Promise.resolve(Js.Float.toString(score));
+};
+
+[@react.server.function]
+let withInt64Arg = (~big: int64): Js.Promise.t(string) => {
+  Js.Promise.resolve(Int64.to_string(big));
+};
+
+[@react.server.function]
+let withListArg = (~names: list(string)): Js.Promise.t(string) => {
+  Js.Promise.resolve(String.concat(", ", names));
+};
+
+[@react.server.function]
+let withArrayArg = (~ids: array(int)): Js.Promise.t(string) => {
+  Js.Promise.resolve(string_of_int(Array.length(ids)));
+};
+
+[@react.server.function]
+let withOptionIntArg = (~count: option(int)=?, ()): Js.Promise.t(string) => {
+  switch (count) {
+  | Some(n) => Js.Promise.resolve(string_of_int(n))
+  | None => Js.Promise.resolve("none")
+  };
+};
+
+[@react.server.function]
+let withNestedListOptionArg = (~items: list(option(string))): Js.Promise.t(string) => {
+  let _ = items;
+  Js.Promise.resolve("ok");
+};
+
+[@react.server.function]
+let withNestedResultListArg = (~data: result(list(int), string)): Js.Promise.t(string) => {
+  let _ = data;
+  Js.Promise.resolve("ok");
+};

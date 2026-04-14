@@ -137,13 +137,18 @@ let dispatch_handler = (~lookup, actionId, dispatch) =>
     }
   };
 
-let handleFormRequest = (~lookup, actionId, formData) => {
+let dreamFormDataToJs = formData => {
   let formDataJs = Js.FormData.make();
   formData
   |> List.iter(((name, value)) => {
        let (_filename, value) = value |> List.hd;
        Js.FormData.append(formDataJs, name, `String(value));
      });
+  formDataJs;
+};
+
+let handleFormRequest = (~lookup, actionId, formData) => {
+  let formDataJs = dreamFormDataToJs(formData);
 
   switch (ReactServerDOM.decodeFormDataReply(formDataJs)) {
   | Error(msg) => Lwt.fail_with(msg)
@@ -181,6 +186,24 @@ let handleRequestBody = (~lookup, request, actionId) => {
   };
 };
 
+let handleNoJsFormRequest = (~lookup, formDataJs) => {
+  switch (ReactServerDOM.decodeAction(formDataJs)) {
+  | Some((actionId, userFormData)) =>
+    switch (lookup(actionId)) {
+    | None => Lwt.fail_with("Action " ++ actionId ++ " is not registered")
+    | Some(handler) =>
+      switch (handler) {
+      | ReactServerDOM.FormData(handler) => handler([||], userFormData)
+      | ReactServerDOM.Body(handler) =>
+        /* No-JS form submissions don't carry serialized args; the form data is the entire payload */
+        handler([||])
+      }
+    }
+  | None =>
+    Lwt.fail_with("No ACTION_ID header and no $ACTION_* keys in FormData")
+  };
+};
+
 let handleRequest = (~lookup, request) => {
   let actionId = Dream.header(request, "ACTION_ID");
   let contentType = Dream.header(request, "Content-Type");
@@ -189,7 +212,15 @@ let handleRequest = (~lookup, request) => {
   | Some(contentType)
       when String.starts_with(contentType, ~prefix="multipart/form-data") =>
     switch%lwt (Dream.multipart(request, ~csrf=false)) {
-    | `Ok(formData) => handleFormRequest(~lookup, actionId, formData)
+    | `Ok(formData) =>
+      switch (actionId) {
+      | Some(_) =>
+        /* JS-enabled path: ACTION_ID header present */
+        handleFormRequest(~lookup, actionId, formData)
+      | None =>
+        /* No-JS path: check FormData for $ACTION_* keys */
+        handleNoJsFormRequest(~lookup, dreamFormDataToJs(formData))
+      }
     | _ =>
       Lwt.fail_with(
         "Missing form data, this request was not created by server-reason-react",

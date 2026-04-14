@@ -533,7 +533,8 @@ let server_function_as_action () =
   let main = React.Upper_case_component ("app", app) in
   assert_html main ~disable_backtrace:true
     ~shell:
-      "<form>Server Content</form><script data-payload='0:[\"$\",\"form\",null,{\"children\":\"Server \
+      "<form action=\"\" method=\"POST\"><input type=\"hidden\" name=\"$ACTION_ID_1234-4321\" value=\"\" />Server \
+       Content</form><script data-payload='0:[\"$\",\"form\",null,{\"children\":\"Server \
        Content\",\"action\":\"$F1\"},null,null,1]\n\
        '>window.srr_stream.push()</script>"
     [ "<script data-payload='1:{\"id\":\"1234-4321\",\"bound\":null}\n'>window.srr_stream.push()</script>" ]

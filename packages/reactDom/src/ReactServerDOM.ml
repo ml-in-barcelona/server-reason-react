@@ -567,6 +567,35 @@ let map_children_with_tree_context_lwt f children =
       React.current_tree_context := saved_ctx;
       Lwt.return results
 
+(* For form elements with server actions, augment html_props with action="" and method="POST",
+   and produce a hidden <input> carrying the $ACTION_ID_<hash> name. *)
+let apply_form_action_attrs html_props action_id =
+  let has_method =
+    List.exists (function `Value (name, _) when String.equal name "method" -> true | _ -> false) html_props
+  in
+  let extra_attrs = Html.attribute "action" "" :: (if has_method then [] else [ Html.attribute "method" "POST" ]) in
+  let hidden =
+    Html.node "input"
+      [
+        Html.attribute "type" "hidden";
+        Html.attribute "name" (Printf.sprintf "$ACTION_ID_%s" action_id);
+        Html.attribute "value" "";
+      ]
+      []
+  in
+  (html_props @ extra_attrs, hidden)
+
+(* Rewrite Action props into String props containing $F<index> RSC references. *)
+let rewrite_action_props ~context attributes =
+  List.map
+    (fun prop ->
+      match prop with
+      | React.JSX.Action (_, key, f) ->
+          let index = Stream.push ~context (model_to_chunk (Value (Model.action_to_json f))) in
+          React.JSX.String (key, key, Model.action_value index)
+      | _ -> prop)
+    attributes
+
 let rec client_to_html ~(fiber : Fiber.t) (element : React.element) =
   match element with
   | Empty -> Lwt.return Html.null
@@ -579,19 +608,19 @@ let rec client_to_html ~(fiber : Fiber.t) (element : React.element) =
   | Array childrens ->
       let%lwt html = map_children_with_tree_context_lwt (client_to_html ~fiber) (Array.to_list childrens) in
       Lwt.return (Html.list html)
-  | Lower_case_element { key; tag; attributes; children } ->
+  | Lower_case_element { key; tag; attributes; children } when String.equal tag "form" ->
       let context = fiber.context in
-      let attributes =
-        List.map
-          (fun prop ->
-            match prop with
-            | React.JSX.Action (_, key, f) ->
-                let index = Stream.push ~context (model_to_chunk (Value (Model.action_to_json f))) in
-                React.JSX.String (key, key, Model.action_value index)
-            | _ -> prop)
+      let form_action_id =
+        List.find_map
+          (fun (prop : React.JSX.prop) -> match prop with Action (_, _, f) -> Some f.id | _ -> None)
           attributes
       in
-      render_lower_case ~fiber ~key ~tag ~attributes ~children
+      let attributes = rewrite_action_props ~context attributes in
+      render_lower_case ~fiber ~key ~tag ~attributes ~children ~form_action_id
+  | Lower_case_element { key; tag; attributes; children } ->
+      let context = fiber.context in
+      let attributes = rewrite_action_props ~context attributes in
+      render_lower_case ~fiber ~key ~tag ~attributes ~children ~form_action_id:None
   | Upper_case_component (_name, component) ->
       let saved_ctx = !React.current_tree_context in
       React.reset_component_id_state saved_ctx;
@@ -655,11 +684,15 @@ let rec client_to_html ~(fiber : Fiber.t) (element : React.element) =
       Lwt.return result
   | Consumer children -> client_to_html ~fiber children
 
-and render_lower_case ~fiber ~key:_ ~tag ~attributes ~children =
+and render_lower_case ~fiber ~key:_ ~tag ~attributes ~children ~form_action_id =
   let html_props = ReactDOM.attributes_to_html attributes in
-  match ReactDOM.getDangerouslyInnerHtml attributes with
-  | Some inner_html -> Lwt.return (Html.node tag html_props [ Html.raw inner_html ])
-  | None ->
+  match (form_action_id, ReactDOM.getDangerouslyInnerHtml attributes) with
+  | _, Some inner_html -> Lwt.return (Html.node tag html_props [ Html.raw inner_html ])
+  | Some action_id, None ->
+      let html_props, hidden = apply_form_action_attrs html_props action_id in
+      let%lwt html = map_children_with_tree_context_lwt (client_to_html ~fiber) children in
+      Lwt.return (Html.node tag html_props (hidden :: html))
+  | None, None ->
       let%lwt html = map_children_with_tree_context_lwt (client_to_html ~fiber) children in
       Lwt.return (Html.node tag html_props html)
 
@@ -792,6 +825,7 @@ and render_lower_case_element ~fiber ~key ~tag ~attributes ~children () =
   (* Record the root tag on first lower-case element visit *)
   (match Fiber.root_tag ~fiber with Some _ -> () | None -> Fiber.set_root_tag ~fiber tag);
   match classify_element ~fiber ~tag ~attributes with
+  | Regular when String.equal tag "form" -> render_form_element ~fiber ~key ~tag ~attributes ~children ~inner_html ()
   | Regular -> render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html ()
   | Html_root ->
       (* Skip rendering the <html> wrapper since we reconstruct it in reconstruct_document *)
@@ -839,30 +873,58 @@ and handle_hoistable_element ~fiber ~key ~tag ~attributes ~children ~inner_html 
   on_push ~fiber html;
   Lwt.return (Html.null, create_model children_model)
 
-and render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html () =
-  let context = fiber.context in
-  let rec process_attributes html_acc json_acc = function
-    | [] -> (List.rev html_acc, List.rev json_acc)
-    | (prop : React.JSX.prop) :: rest ->
-        let html_attr = ReactDOM.attribute_to_html prop in
-        let json_pair =
-          match prop with
-          | Action (_, key, f) ->
-              let index = Stream.push ~context (model_to_chunk (Value (Model.action_to_json f))) in
-              Some (key, `String (Model.action_value index))
-          | _ -> Model.prop_to_json prop
-        in
-        process_attributes (html_attr :: html_acc)
-          (match json_pair with Some p -> p :: json_acc | None -> json_acc)
-          rest
+and process_attributes ~context ?form_action_id attributes =
+  let html_props =
+    List.map
+      (fun (prop : React.JSX.prop) ->
+        match (form_action_id, prop) with
+        | Some _, Action (_, _, _) ->
+            (* Omit the original Action attribute; action="" and method="POST" are added by apply_form_action_attrs *)
+            Html.omitted ()
+        | _ -> ReactDOM.attribute_to_html prop)
+      attributes
   in
-  let html_props, json_props = process_attributes [] [] attributes in
+  let json_props =
+    List.filter_map
+      (fun (prop : React.JSX.prop) ->
+        match prop with
+        | Action (_, key, f) ->
+            let index = Stream.push ~context (model_to_chunk (Value (Model.action_to_json f))) in
+            Some (key, `String (Model.action_value index))
+        | _ -> Model.prop_to_json prop)
+      attributes
+  in
+  (html_props, json_props)
 
+and render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html () =
+  let html_props, json_props = process_attributes ~context:fiber.context attributes in
   match (Html.is_self_closing_tag tag, inner_html) with
   | true, _ -> Lwt.return (Html.node tag html_props [], Model.node ~tag ~key ~props:json_props [])
   | false, Some inner_html ->
       Lwt.return (Html.node tag html_props [ Html.raw inner_html ], Model.node ~tag ~key ~props:json_props [])
   | false, None ->
+      let%lwt html, model = elements_to_html ~fiber children in
+      let model_children = match model with `List l -> l | other -> [ other ] in
+      Lwt.return (Html.node tag html_props [ html ], Model.node ~tag ~key ~props:json_props model_children)
+
+and render_form_element ~(fiber : Fiber.t) ~key ~tag ~attributes ~children ~inner_html () =
+  let context = fiber.context in
+  let action_id =
+    List.find_map
+      (fun (prop : React.JSX.prop) -> match prop with Action (_, _, f) -> Some f.id | _ -> None)
+      attributes
+  in
+  let html_props, json_props = process_attributes ~context ?form_action_id:action_id attributes in
+  match (inner_html, action_id) with
+  | Some inner_html, _ ->
+      Lwt.return (Html.node tag html_props [ Html.raw inner_html ], Model.node ~tag ~key ~props:json_props [])
+  | None, Some action_id ->
+      let html_props, hidden = apply_form_action_attrs html_props action_id in
+      let%lwt html, model = elements_to_html ~fiber children in
+      let model_children = match model with `List l -> l | other -> [ other ] in
+      Lwt.return
+        (Html.node tag html_props [ Html.list [ hidden; html ] ], Model.node ~tag ~key ~props:json_props model_children)
+  | None, None ->
       let%lwt html, model = elements_to_html ~fiber children in
       let model_children = match model with `List l -> l | other -> [ other ] in
       Lwt.return (Html.node tag html_props [ html ], Model.node ~tag ~key ~props:json_props model_children)
@@ -1136,25 +1198,41 @@ let create_action_response ?env ?debug ?filter_stack_frame ?subscribe response =
    is available, or as Null otherwise. React's processReply escapes all user strings
    starting with $ to $$, so unrecognized prefixes indicate protocol-level references. *)
 
-(* Look up an outlined model entry from FormData by hex-encoded ID.
-   React's processReply stores outlined models as JSON strings in FormData entries
-   keyed by the decimal representation of the part ID. References use hex encoding. *)
+(* Convert a hex-encoded part ID to a decimal FormData key.
+   React's processReply references use hex encoding, while FormData entries
+   are keyed by the decimal representation of the part ID. *)
+let hex_to_formdata_key hex_id = Option.map string_of_int (int_of_string_opt ("0x" ^ hex_id))
+
+(* Look up an outlined model entry from FormData by hex-encoded ID and parse it as JSON. *)
 let resolve_from_formdata formData hex_id =
-  match int_of_string_opt ("0x" ^ hex_id) with
-  | Some id -> (
-      let key = string_of_int id in
+  match hex_to_formdata_key hex_id with
+  | Some key -> (
       try
         let (`String json_str) = Js.FormData.get formData key in
         Yojson.Basic.from_string json_str
       with Not_found -> `Null)
   | None -> `Null
 
+(* Look up a raw string entry from FormData by hex-encoded ID (for Blobs and other binary data). *)
+let resolve_raw_from_formdata formData hex_id =
+  match hex_to_formdata_key hex_id with
+  | Some key -> (
+      try
+        let (`String data) = Js.FormData.get formData key in
+        Ok (`String data)
+      with Not_found -> Error (Printf.sprintf "decodeReply: Blob ($B) entry not found in FormData for key %s" key))
+  | None -> Error (Printf.sprintf "decodeReply: Blob ($B) invalid hex ID: %s" hex_id)
+
 let unsupported name = Error (Printf.sprintf "decodeReply: %s is not supported" name)
 
+(* Decode context groups the optional parameters threaded through the mutually recursive
+   decode functions, avoiding repeated ?formData ?temporaryReferences on every signature. *)
+type decode_ctx = { formData : Js.FormData.t option; temporaryReferences : (string -> json option) option }
+
 (* Recursively decode a JSON value, resolving React's $-prefixed special strings.
-   When ~formData is provided, outlined model references ($Q, $W, $F, $i) are resolved
+   When formData is provided, outlined model references ($Q, $W, $F, $i) are resolved
    by looking up the corresponding FormData entry and recursively decoding it. *)
-let rec decode_value ?(formData : Js.FormData.t option) (json : json) : (json, string) result =
+let rec decode_value (ctx : decode_ctx) (json : json) : (json, string) result =
   match json with
   | `String value when String.length value >= 2 && String.get value 0 = '$' -> (
       let len = String.length value in
@@ -1168,56 +1246,67 @@ let rec decode_value ?(formData : Js.FormData.t option) (json : json) : (json, s
       | 'N' -> Ok (`Float Float.nan)
       | 'I' -> Ok (`Float Float.infinity)
       | '-' -> Ok (if String.equal value "$-0" then `Float (-0.) else `Float Float.neg_infinity)
-      | 'Q' -> decode_outlined_map ?formData rest
-      | 'W' -> resolve_outlined ?formData "Set ($W)" rest
-      | 'i' -> resolve_outlined ?formData "Iterator ($i)" rest
-      | 'F' -> resolve_outlined ?formData "Server Reference ($F)" rest
-      | 'T' -> unsupported "Temporary Reference ($T)"
+      | 'Q' -> decode_outlined_map ctx rest
+      | 'W' -> resolve_outlined ctx "Set ($W)" rest
+      | 'i' -> resolve_outlined ctx "Iterator ($i)" rest
+      | 'F' -> resolve_outlined ctx "Server Reference ($F)" rest
+      | 'T' -> (
+          match ctx.temporaryReferences with
+          | Some lookup -> (
+              match lookup rest with
+              | Some resolved -> Ok resolved
+              | None ->
+                  Error
+                    (Printf.sprintf
+                       "decodeReply: Temporary Reference $T%s not found in the provided temporaryReferences map" rest))
+          | None -> Error "decodeReply: Temporary Reference ($T) requires a temporaryReferences resolver")
       | '@' -> unsupported "Promise ($@)"
       | ('A' | 'O' | 'o' | 'U' | 'S' | 's' | 'L' | 'l' | 'G' | 'g' | 'M' | 'm' | 'V') as c ->
           unsupported (Printf.sprintf "TypedArray/ArrayBuffer ($%c)" c)
-      | 'B' -> unsupported "Blob ($B)"
+      | 'B' -> (
+          match ctx.formData with
+          | Some fd -> resolve_raw_from_formdata fd rest
+          | None -> Error "decodeReply: Blob ($B) requires FormData for resolution")
       | 'R' -> unsupported "ReadableStream ($R)"
       | 'r' -> unsupported "ReadableStream bytes ($r)"
       | 'X' -> unsupported "AsyncIterable ($X)"
       | 'x' -> unsupported "AsyncIterator ($x)"
       | _ -> (
-          match formData with
+          match ctx.formData with
           | Some fd ->
               let resolved = resolve_from_formdata fd (String.sub value 1 (len - 1)) in
-              decode_value ~formData:fd resolved
+              decode_value ctx resolved
           | None -> Ok `Null))
-  | `List items -> decode_list ?formData items
-  | `Assoc pairs -> decode_assoc ?formData pairs
+  | `List items -> decode_list ctx items
+  | `Assoc pairs -> decode_assoc ctx pairs
   | other -> Ok other
 
-and decode_list ?(formData : Js.FormData.t option) items =
+and decode_list ctx items =
   let rec aux acc = function
     | [] -> Ok (`List (List.rev acc))
-    | item :: rest -> ( match decode_value ?formData item with Ok v -> aux (v :: acc) rest | Error _ as err -> err)
+    | item :: rest -> ( match decode_value ctx item with Ok v -> aux (v :: acc) rest | Error _ as err -> err)
   in
   aux [] items
 
-and decode_assoc ?(formData : Js.FormData.t option) pairs =
+and decode_assoc ctx pairs =
   let rec aux acc = function
     | [] -> Ok (`Assoc (List.rev acc))
-    | (k, v) :: rest -> (
-        match decode_value ?formData v with Ok v -> aux ((k, v) :: acc) rest | Error _ as err -> err)
+    | (k, v) :: rest -> ( match decode_value ctx v with Ok v -> aux ((k, v) :: acc) rest | Error _ as err -> err)
   in
   aux [] pairs
 
-and resolve_outlined ?(formData : Js.FormData.t option) type_name hex_id =
-  match formData with
+and resolve_outlined ctx type_name hex_id =
+  match ctx.formData with
   | None -> Error (Printf.sprintf "decodeReply: %s requires FormData for outlined model resolution" type_name)
   | Some fd ->
       let resolved = resolve_from_formdata fd hex_id in
-      decode_value ~formData:fd resolved
+      decode_value ctx resolved
 
 (* Maps are serialized as [[key, value], ...].
    If all keys are strings, converts to Assoc for ergonomic use with Melange_json decoders.
    Otherwise preserves the List of pairs representation. *)
-and decode_outlined_map ?(formData : Js.FormData.t option) hex_id =
-  match resolve_outlined ?formData "Map ($Q)" hex_id with
+and decode_outlined_map ctx hex_id =
+  match resolve_outlined ctx "Map ($Q)" hex_id with
   | Error _ as err -> err
   | Ok resolved -> (
       match resolved with
@@ -1231,18 +1320,20 @@ and decode_outlined_map ?(formData : Js.FormData.t option) hex_id =
           Ok (if all_string_keys then `Assoc (List.rev assoc_pairs) else resolved)
       | other -> Ok other)
 
-let decodeReply body =
+let decodeReply ?temporaryReferences body =
+  let ctx = { formData = None; temporaryReferences } in
   match Yojson.Basic.from_string body with
   | `List args ->
       let rec aux acc = function
         | [] -> Ok (Array.of_list (List.rev acc))
-        | arg :: rest -> ( match decode_value arg with Ok v -> aux (v :: acc) rest | Error _ as err -> err)
+        | arg :: rest -> ( match decode_value ctx arg with Ok v -> aux (v :: acc) rest | Error _ as err -> err)
       in
       aux [] args
   | _ -> Error "Invalid args, this request was not created by server-reason-react"
   | exception Yojson.Json_error msg -> Error (Printf.sprintf "Invalid JSON: %s" msg)
 
-let decodeFormDataReply formData =
+let decodeFormDataReply ?temporaryReferences formData =
+  let ctx = { formData = Some formData; temporaryReferences } in
   let input_prefix = ref None in
   let is_formdata_ref = function
     | `String value ->
@@ -1271,8 +1362,7 @@ let decodeFormDataReply formData =
                 | Some id ->
                     input_prefix := Some id;
                     aux_args acc rest
-                | None -> (
-                    match decode_value ~formData item with Ok v -> aux_args (v :: acc) rest | Error _ as err -> err))
+                | None -> ( match decode_value ctx item with Ok v -> aux_args (v :: acc) rest | Error _ as err -> err))
           in
           let args_result = aux_args [] items in
           match args_result with
@@ -1296,6 +1386,20 @@ let decodeFormDataReply formData =
               in
               Ok (args, aux_entries (Js.FormData.make ()) formDataEntries))
       | _ -> Error "Invalid args, this request was not created by server-reason-react")
+
+let action_id_prefix = "$ACTION_ID_"
+let action_prefix = "$ACTION_"
+
+let decodeAction formData =
+  let action_id = ref None in
+  let user_fd = Js.FormData.make () in
+  let action_id_prefix_len = String.length action_id_prefix in
+  Js.FormData.entries formData
+  |> List.iter (fun (key, value) ->
+      if String.starts_with ~prefix:action_id_prefix key then
+        action_id := Some (String.sub key action_id_prefix_len (String.length key - action_id_prefix_len))
+      else if not (String.starts_with ~prefix:action_prefix key) then Js.FormData.append user_fd key value);
+  match !action_id with None -> None | Some id -> Some (id, user_fd)
 
 type server_function =
   | FormData of (Yojson.Basic.t array -> Js.FormData.t -> React.model_value Lwt.t)
