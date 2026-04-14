@@ -31,6 +31,16 @@ let raise_errorf ~loc fmt =
       raise (Error expr))
     fmt
 
+let strip_shared_prefix ~loc:_ ~file_path ~context:_ =
+  match shared_folder_prefix.contents with
+  | Some prefix when match_substring file_path prefix -> Str.replace_first (Str.regexp prefix) "" file_path
+  | _ ->
+      (* When the prefix doesn't match (e.g. ocamllsp passes bare filenames
+         like "Foo.re" instead of the full workspace-relative path), or when
+         no prefix is configured, fall back to the file path as-is. Dune
+         always provides correct paths so the build output is right. *)
+      file_path
+
 let longident ~loc txt = { txt = Lident txt; loc }
 let ident ~loc txt = pexp_ident ~loc (longident ~loc txt)
 let make_string ~loc str = Ast_helper.Exp.constant ~loc (Ast_helper.Const.string str)
@@ -45,14 +55,8 @@ let hasAnyReactComponentAttribute { attr_name; _ } =
   || attr_name.txt = react_dot_async_dot_component
   || attr_name.txt = react_dot_client_dot_component
 
-let nonReactAttributes { attr_name; _ } =
-  attr_name.txt <> react_dot_component
-  && attr_name.txt <> react_dot_async_dot_component
-  && attr_name.txt <> react_dot_client_dot_component
-
-let hasAttrOnBinding { pvb_attributes } comparable =
-  List.find_opt ~f:(fun attr -> hasAttr attr comparable) pvb_attributes <> None
-
+let nonReactAttributes attr = not (hasAnyReactComponentAttribute attr)
+let hasAttrOnBinding { pvb_attributes } comparable = List.exists ~f:(fun attr -> hasAttr attr comparable) pvb_attributes
 let isReactComponentBinding vb = hasAttrOnBinding vb react_dot_component
 let isReactAsyncComponentBinding vb = hasAttrOnBinding vb react_dot_async_dot_component
 let isReactClientComponentBinding vb = hasAttrOnBinding vb react_dot_client_dot_component
@@ -61,6 +65,10 @@ let isReactServerFunctionBinding vb = hasAttrOnBinding vb react_dot_server_dot_f
 let isClientComponentBinding value_bindings =
   let first_binding = List.hd value_bindings in
   isReactClientComponentBinding first_binding
+
+let is_react_attr attr =
+  let name = attr.attr_name.txt in
+  String.length name >= 6 && String.sub name 0 6 = "react."
 
 let contains_client_component structure =
   List.exists
@@ -191,178 +199,56 @@ let make_prop ~is_optional ~prop attribute_value =
       [%expr Some (React.JSX.dangerouslyInnerHtml [%e attribute_value])]
   | Attribute { type_ = DomProps.InnerHtml; _ }, true ->
       [%expr match [%e attribute_value] with None -> None | Some v -> Some (React.JSX.dangerouslyInnerHtml v)]
-  | Event { type_ = Mouse; jsxName }, false ->
-      [%expr
-        Some
-          (React.JSX.Event
-             ([%e make_string ~loc jsxName], React.JSX.Mouse ([%e attribute_value] : React.Event.Mouse.t -> unit)))]
-  | Event { type_ = Mouse; jsxName }, true ->
-      [%expr
-        match ([%e attribute_value] : (React.Event.Mouse.t -> unit) option) with
-        | None -> None
-        | Some v -> Some (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Mouse v))]
-  | Event { type_ = Selection; jsxName }, false ->
-      [%expr
-        Some
-          (React.JSX.Event
-             ([%e make_string ~loc jsxName], React.JSX.Selection ([%e attribute_value] : React.Event.Mouse.t -> unit)))]
-  | Event { type_ = Selection; jsxName }, true ->
-      [%expr
-        match ([%e attribute_value] : (React.Event.Selection.t -> unit) option) with
-        | None -> None
-        | Some v -> Some (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Selection v))]
-  | Event { type_ = Touch; jsxName }, false ->
-      [%expr
-        Some
-          (React.JSX.Event
-             ([%e make_string ~loc jsxName], React.JSX.Touch ([%e attribute_value] : React.Event.Touch.t -> unit)))]
-  | Event { type_ = Touch; jsxName }, true ->
-      [%expr
-        match ([%e attribute_value] : (React.Event.Touch.t -> unit) option) with
-        | None -> None
-        | Some v -> Some (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Touch v))]
-  | Event { type_ = UI; jsxName }, false ->
-      [%expr
-        Some
-          (React.JSX.Event
-             ([%e make_string ~loc jsxName], React.JSX.UI ([%e attribute_value] : React.Event.UI.t -> unit)))]
-  | Event { type_ = UI; jsxName }, true ->
-      [%expr
-        match ([%e attribute_value] : (React.Event.UI.t -> unit) option) with
-        | None -> None
-        | Some v -> Some (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.UI v))]
-  | Event { type_ = Wheel; jsxName }, false ->
-      [%expr
-        Some
-          (React.JSX.Event
-             ([%e make_string ~loc jsxName], React.JSX.Wheel ([%e attribute_value] : React.Event.Wheel.t -> unit)))]
-  | Event { type_ = Wheel; jsxName }, true ->
-      [%expr
-        match ([%e attribute_value] : (React.Event.Wheel.t -> unit) option) with
-        | None -> None
-        | Some v -> Some (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Wheel v))]
-  | Event { type_ = Clipboard; jsxName }, false ->
-      [%expr
-        Some
-          (React.JSX.Event
-             ( [%e make_string ~loc jsxName],
-               React.JSX.Clipboard ([%e attribute_value] : React.Event.Clipboard.t -> unit) ))]
-  | Event { type_ = Clipboard; jsxName }, true ->
-      [%expr
-        match ([%e attribute_value] : (React.Event.Clipboard.t -> unit) option) with
-        | None -> None
-        | Some v -> Some (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Clipboard v))]
-  | Event { type_ = Composition; jsxName }, false ->
-      [%expr
-        Some
-          (React.JSX.Event
-             ( [%e make_string ~loc jsxName],
-               React.JSX.Composition ([%e attribute_value] : React.Event.Composition.t -> unit) ))]
-  | Event { type_ = Composition; jsxName }, true ->
-      [%expr
-        match ([%e attribute_value] : (React.Event.Composition.t -> unit) option) with
-        | None -> None
-        | Some v -> Some (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Composition v))]
-  | Event { type_ = Keyboard; jsxName }, false ->
-      [%expr
-        Some
-          (React.JSX.Event
-             ([%e make_string ~loc jsxName], React.JSX.Keyboard ([%e attribute_value] : React.Event.Keyboard.t -> unit)))]
-  | Event { type_ = Keyboard; jsxName }, true ->
-      [%expr
-        match ([%e attribute_value] : (React.Event.Keyboard.t -> unit) option) with
-        | None -> None
-        | Some v -> Some (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Keyboard v))]
-  | Event { type_ = Focus; jsxName }, false ->
-      [%expr
-        Some
-          (React.JSX.Event
-             ([%e make_string ~loc jsxName], React.JSX.Focus ([%e attribute_value] : React.Event.Focus.t -> unit)))]
-  | Event { type_ = Focus; jsxName }, true ->
-      [%expr
-        match ([%e attribute_value] : (React.Event.Focus.t -> unit) option) with
-        | None -> None
-        | Some v -> Some (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Focus v))]
-  | Event { type_ = Form; jsxName }, false ->
-      [%expr
-        Some
-          (React.JSX.Event
-             ([%e make_string ~loc jsxName], React.JSX.Form ([%e attribute_value] : React.Event.Form.t -> unit)))]
-  | Event { type_ = Form; jsxName }, true ->
-      [%expr
-        match ([%e attribute_value] : (React.Event.Form.t -> unit) option) with
-        | None -> None
-        | Some v -> Some (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Form v))]
-  | Event { type_ = Media; jsxName }, false ->
-      [%expr
-        Some
-          (React.JSX.Event
-             ([%e make_string ~loc jsxName], React.JSX.Media ([%e attribute_value] : React.Event.Media.t -> unit)))]
-  | Event { type_ = Media; jsxName }, true ->
-      [%expr
-        match ([%e attribute_value] : (React.Event.Media.t -> unit) option) with
-        | None -> None
-        | Some v -> Some (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Media v))]
-  | Event { type_ = Inline; jsxName }, false ->
-      [%expr Some (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Inline ([%e attribute_value] : string)))]
-  | Event { type_ = Inline; jsxName }, true ->
-      [%expr
-        match ([%e attribute_value] : string option) with
-        | None -> None
-        | Some v -> Some (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Inline v))]
-  | Event { type_ = Image; jsxName }, false ->
-      [%expr
-        Some
-          (React.JSX.Event
-             ( [%e make_string ~loc jsxName],
-               React.JSX.Image ([%e attribute_value] : (React.Event.Image.t -> unit) option) ))]
-  | Event { type_ = Image; jsxName }, true ->
-      [%expr
-        match ([%e attribute_value] : (React.Event.Image.t -> unit) option) with
-        | None -> None
-        | Some v -> Some (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Image v))]
-  | Event { type_ = Animation; jsxName }, false ->
-      [%expr
-        Some
-          (React.JSX.Event
-             ( [%e make_string ~loc jsxName],
-               React.JSX.Animation ([%e attribute_value] : React.Event.Animation.t -> unit) ))]
-  | Event { type_ = Animation; jsxName }, true ->
-      [%expr
-        match ([%e attribute_value] : (React.Event.Animation.t -> unit) option) with
-        | None -> None
-        | Some v -> Some (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Animation v))]
-  | Event { type_ = Transition; jsxName }, false ->
-      [%expr
-        Some
-          (React.JSX.Event
-             ( [%e make_string ~loc jsxName],
-               React.JSX.Transition ([%e attribute_value] : React.Event.Transition.t -> unit) ))]
-  | Event { type_ = Transition; jsxName }, true ->
-      [%expr
-        match ([%e attribute_value] : (React.Event.Transition.t -> unit) option) with
-        | None -> None
-        | Some v -> Some (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Transition v))]
-  | Event { type_ = Pointer; jsxName }, false ->
-      [%expr
-        Some
-          (React.JSX.Event
-             ([%e make_string ~loc jsxName], React.JSX.Pointer ([%e attribute_value] : React.Event.Pointer.t -> unit)))]
-  | Event { type_ = Pointer; jsxName }, true ->
-      [%expr
-        match ([%e attribute_value] : (React.Event.Pointer.t -> unit) option) with
-        | None -> None
-        | Some v -> Some (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Pointer v))]
-  | Event { type_ = Drag; jsxName }, false ->
-      [%expr
-        Some
-          (React.JSX.Event
-             ([%e make_string ~loc jsxName], React.JSX.Drag ([%e attribute_value] : React.Event.Drag.t -> unit)))]
-  | Event { type_ = Drag; jsxName }, true ->
-      [%expr
-        match ([%e attribute_value] : (React.Event.Drag.t -> unit) option) with
-        | None -> None
-        | Some v -> Some (React.JSX.Event ([%e make_string ~loc jsxName], React.JSX.Drag v))]
+  | Event { type_; jsxName }, is_optional -> (
+      let jsx_construct name arg =
+        pexp_construct ~loc { txt = Ldot (Ldot (Lident "React", "JSX"), name); loc } (Some arg)
+      in
+      let event_handler_type module_name =
+        let t = ptyp_constr ~loc { txt = Ldot (Ldot (Ldot (Lident "React", "Event"), module_name), "t"); loc } [] in
+        ptyp_arrow ~loc Nolabel t [%type: unit]
+      in
+      let make_event_prop ~constructor_name ~value_type ~opt_value_type =
+        let jsxName_expr = make_string ~loc jsxName in
+        if is_optional then
+          let wrapped = jsx_construct constructor_name [%expr v] in
+          [%expr
+            match ([%e attribute_value] : [%t opt_value_type]) with
+            | None -> None
+            | Some v -> Some (React.JSX.Event ([%e jsxName_expr], [%e wrapped]))]
+        else
+          let constrained = pexp_constraint ~loc attribute_value value_type in
+          let wrapped = jsx_construct constructor_name constrained in
+          [%expr Some (React.JSX.Event ([%e jsxName_expr], [%e wrapped]))]
+      in
+      let standard_event name =
+        let vt = event_handler_type name in
+        make_event_prop ~constructor_name:name ~value_type:vt ~opt_value_type:[%type: [%t vt] option]
+      in
+      match type_ with
+      | Mouse -> standard_event "Mouse"
+      (* Selection non-optional uses Mouse.t for the type annotation (legacy quirk) *)
+      | Selection ->
+          let opt_vt = [%type: [%t event_handler_type "Selection"] option] in
+          make_event_prop ~constructor_name:"Selection" ~value_type:(event_handler_type "Mouse") ~opt_value_type:opt_vt
+      | Touch -> standard_event "Touch"
+      | UI -> standard_event "UI"
+      | Wheel -> standard_event "Wheel"
+      | Clipboard -> standard_event "Clipboard"
+      | Composition -> standard_event "Composition"
+      | Keyboard -> standard_event "Keyboard"
+      | Focus -> standard_event "Focus"
+      | Form -> standard_event "Form"
+      | Media -> standard_event "Media"
+      | Inline ->
+          make_event_prop ~constructor_name:"Inline" ~value_type:[%type: string] ~opt_value_type:[%type: string option]
+      (* Image non-optional uses option type directly *)
+      | Image ->
+          let opt_vt = [%type: [%t event_handler_type "Image"] option] in
+          make_event_prop ~constructor_name:"Image" ~value_type:opt_vt ~opt_value_type:opt_vt
+      | Animation -> standard_event "Animation"
+      | Transition -> standard_event "Transition"
+      | Pointer -> standard_event "Pointer"
+      | Drag -> standard_event "Drag")
 
 let is_optional = function Optional _ -> true | _ -> false
 let get_label = function Nolabel -> "" | Optional name | Labelled name -> name
@@ -451,21 +337,15 @@ let transform_items_of_list ~loc children =
   in
   run_mapper children [%expr []]
 
-let remove_warning_16_optional_argument_cannot_be_erased ~loc =
+let make_warning_attribute ~loc warning_code =
   let open Ast_helper in
   {
     attr_name = { txt = "warning"; loc };
-    attr_payload = PStr [ Str.eval (Exp.constant (Const.string "-16")) ];
+    attr_payload = PStr [ Str.eval (Exp.constant (Const.string warning_code)) ];
     attr_loc = loc;
   }
 
-let remove_warning_27_unused_var_strict ~loc =
-  let open Ast_helper in
-  {
-    attr_name = { txt = "warning"; loc };
-    attr_payload = PStr [ Str.eval (Exp.constant (Const.string "-27")) ];
-    attr_loc = loc;
-  }
+let remove_warning_16_optional_argument_cannot_be_erased ~loc = make_warning_attribute ~loc "-16"
 
 (* Finds the name of the variable the binding is assigned to, otherwise raises *)
 let get_function_name binding =
@@ -560,74 +440,75 @@ let transform_labelled_arguments_type (core_type : core_type) fn =
   in
   inner core_type
 
-let get_label_or_empty = function Labelled str | Optional str -> str | Nolabel -> ""
-
 let safe_type_from_label = function
   | (Labelled name | Optional name) when String.length name > 0 && name.[0] = '_' -> "T" ^ name
   | Labelled name | Optional name -> name
   | Nolabel -> "T"
 
-(* Keep this keyword list and translate_mel_obj_label in sync with Melange's
+module String_set = Set.Make (String)
+
+(* Keep this keyword set and translate_mel_obj_label in sync with Melange's
    Lam_methname.translate implementation. *)
 let mel_obj_keywords =
-  [
-    "and";
-    "as";
-    "assert";
-    "begin";
-    "class";
-    "constraint";
-    "do";
-    "done";
-    "downto";
-    "else";
-    "end";
-    "exception";
-    "external";
-    "false";
-    "for";
-    "fun";
-    "function";
-    "functor";
-    "if";
-    "in";
-    "include";
-    "inherit";
-    "initializer";
-    "lazy";
-    "let";
-    "match";
-    "method";
-    "module";
-    "mutable";
-    "new";
-    "nonrec";
-    "object";
-    "of";
-    "open";
-    "or";
-    "private";
-    "rec";
-    "sig";
-    "struct";
-    "then";
-    "to";
-    "true";
-    "try";
-    "type";
-    "val";
-    "virtual";
-    "when";
-    "while";
-    "with";
-    "mod";
-    "land";
-    "lor";
-    "lxor";
-    "lsl";
-    "lsr";
-    "asr";
-  ]
+  String_set.of_list
+    [
+      "and";
+      "as";
+      "assert";
+      "begin";
+      "class";
+      "constraint";
+      "do";
+      "done";
+      "downto";
+      "else";
+      "end";
+      "exception";
+      "external";
+      "false";
+      "for";
+      "fun";
+      "function";
+      "functor";
+      "if";
+      "in";
+      "include";
+      "inherit";
+      "initializer";
+      "lazy";
+      "let";
+      "match";
+      "method";
+      "module";
+      "mutable";
+      "new";
+      "nonrec";
+      "object";
+      "of";
+      "open";
+      "or";
+      "private";
+      "rec";
+      "sig";
+      "struct";
+      "then";
+      "to";
+      "true";
+      "try";
+      "type";
+      "val";
+      "virtual";
+      "when";
+      "while";
+      "with";
+      "mod";
+      "land";
+      "lor";
+      "lxor";
+      "lsl";
+      "lsr";
+      "asr";
+    ]
 
 let find_double_underscore name =
   let rec go index =
@@ -646,9 +527,7 @@ let translate_mel_obj_label name =
     match name.[0] with
     | '_' when String.length name > 1 ->
         let candidate = String.sub name 1 (String.length name - 1) in
-        if (not (valid_start_char candidate.[0])) || List.exists mel_obj_keywords ~f:(String.equal candidate) then
-          candidate
-        else name
+        if (not (valid_start_char candidate.[0])) || String_set.mem candidate mel_obj_keywords then candidate else name
     | _ -> name
 
 type js_object_field = { method_name : string; js_name : string; present_expr : expression; value_expr : expression }
@@ -720,7 +599,7 @@ let strip_option_type core_type =
       Some inner
   | _ -> None
 
-let component_arg_public_name arg = get_label_or_empty arg.public_label
+let component_arg_public_name arg = get_label arg.public_label
 
 let component_arg_type_var arg =
   let loc = arg.loc in
@@ -897,24 +776,22 @@ let build_public_component_signature_item ~loc ~fn_name ~attributes args return_
     }
 
 let extract_component_signature_args pval_type =
-  let rec go args core_type =
+  let rec go acc core_type =
     match core_type.ptyp_desc with
-    | Ptyp_arrow (Nolabel, { ptyp_desc = Ptyp_constr ({ txt = Lident "unit"; _ }, []); _ }, rest) -> go args rest
+    | Ptyp_arrow (Nolabel, { ptyp_desc = Ptyp_constr ({ txt = Lident "unit"; _ }, []); _ }, rest) -> go acc rest
     | Ptyp_arrow (((Labelled _ | Optional _) as arg_label), core_type, rest) ->
-        go
-          (args
-          @ [
-              {
-                public_label = arg_label;
-                internal_label = arg_label;
-                default_value = None;
-                loc = core_type.ptyp_loc;
-                core_type = Some core_type;
-              };
-            ])
-          rest
-    | Ptyp_arrow (Nolabel, _, rest) -> go args rest
-    | _ -> (args, core_type)
+        let arg =
+          {
+            public_label = arg_label;
+            internal_label = arg_label;
+            default_value = None;
+            loc = core_type.ptyp_loc;
+            core_type = Some core_type;
+          }
+        in
+        go (arg :: acc) rest
+    | Ptyp_arrow (Nolabel, _, rest) -> go acc rest
+    | _ -> (List.rev acc, core_type)
   in
   go [] pval_type
 
@@ -1203,15 +1080,7 @@ module ServerFunction = struct
 
   let generate_id ~loc name =
     let file_path = loc.loc_start.pos_fname in
-    let replacement =
-      match shared_folder_prefix.contents with
-      | Some x ->
-          if match_substring file_path x then x
-          else raise_errorf ~loc "Prefix doesn't match the file path. Provide a prefix that matches the file path."
-      | None -> raise_errorf ~loc "Found a server.function without --shared-folder-prefix argument. Provide one."
-    in
-    (* We need to add a nasty hack here, since have different files for native and melange.Assume that the file structure is native/lib and js, and replace the name directly. This is supposed to be temporal, until dune implements https://github.com/ocaml/dune/issues/10630 *)
-    let file_path = Str.replace_first (Str.regexp replacement) "" file_path in
+    let file_path = strip_shared_prefix ~loc ~file_path ~context:"server.function" in
     let hash = Printf.sprintf "%s_%s_%d" name file_path loc.loc_start.pos_lnum |> Hashtbl.hash |> string_of_int in
     hash
 
@@ -1432,18 +1301,9 @@ let rewrite_structure_item ~nested_module_names structure_item =
               expand_make_binding_with_key vb (fun ~key expr ->
                   let loc = expr.pexp_loc in
                   let fileName = expr.pexp_loc.loc_start.pos_fname in
-                  let replacement =
-                    match shared_folder_prefix.contents with
-                    | Some prefix ->
-                        if match_substring fileName prefix then prefix
-                        else
-                          raise_errorf ~loc
-                            "Prefix doesn't match the file path. Provide a prefix that matches the file path."
-                    | None ->
-                        raise_errorf ~loc
-                          "Found a react.client.component without --shared-folder-prefix argument. Provide one."
+                  let file =
+                    strip_shared_prefix ~loc ~file_path:fileName ~context:"react.client.component" |> estring ~loc
                   in
-                  let file = fileName |> Str.replace_first (Str.regexp replacement) "" |> estring ~loc in
                   let import_module =
                     match nested_module_names with
                     | [] -> file
@@ -1514,12 +1374,7 @@ let rewrite_structure_item ~nested_module_names structure_item =
             let loc = structure_item.pstr_loc in
             (* Propagate non-react attributes from the original bindings to the
                include struct. This ensures attributes like [@platform js] or
-               [@browser_only] are visible to subsequent PPXes (e.g. browser_ppx)
-               so they can drop the entire include when needed. *)
-            let is_react_attr attr =
-              let name = attr.attr_name.txt in
-              String.length name >= 6 && String.sub name 0 6 = "react."
-            in
+               [@browser_only] are visible to subsequent ppxes (e.g. browser_ppx) so they can drop the entire include when needed. *)
             let propagated_attrs =
               List.concat_map value_bindings ~f:(fun vb ->
                   List.filter vb.pvb_attributes ~f:(fun attr -> not (is_react_attr attr)))
@@ -1562,16 +1417,7 @@ let rewrite_structure_item_for_js ~nested_module_names ctx structure_item =
       let loc = structure_item.pstr_loc in
       let code_path = Expansion_context.Base.code_path ctx in
       let fileName = Code_path.file_path code_path in
-      (* We need to add a nasty hack here, since have different files for native and melange.Assume that the file structure is /native/shared/ and js, and replace the name directly. This is supposed to be temporal, until dune implements https://github.com/ocaml/dune/issues/10630 *)
-      let replacement =
-        match shared_folder_prefix.contents with
-        | Some prefix ->
-            if match_substring fileName prefix then prefix
-            else raise_errorf ~loc "Prefix doesn't match the file path. Provide a prefix that matches the file path."
-        | None ->
-            raise_errorf ~loc "Found a react.client.component without --shared-folder-prefix argument. Provide one."
-      in
-      let fileName = Str.replace_first (Str.regexp replacement) "" fileName in
+      let fileName = strip_shared_prefix ~loc ~file_path:fileName ~context:"react.client.component" in
       let comment =
         match nested_module_names with
         | [] -> estring ~loc (Printf.sprintf "// extract-client %s" fileName)
