@@ -1,13 +1,19 @@
 module DOM = Webapi.Dom;
-module History = DOM.History;
 
-/**
- * Melange webapi don't set state type, so we use Obj.magic to cast it to the correct type while the PR is not merged.
- * https://github.com/melange-community/melange-webapi/blob/80c6ededd06cc66b75445d1ed5c855e050b156a0/src/Webapi/Dom/Webapi__Dom__History.re#L2
- * PR: https://github.com/melange-community/melange-webapi/pull/29
- */
-[@platform js]
-type t = History.state;
+/* Custom History bindings with polymorphic state, replacing the upstream opaque type from melange-webapi. Also waiting for the PR to be merged: https://github.com/melange-community/melange-webapi/pull/29 */
+module History = {
+  type t = Dom.history;
+
+  [@mel.get] external state: t => 'a = "state";
+
+  [@mel.send]
+  external pushState: ([@mel.this] t, 'a, string, string) => unit =
+    "pushState";
+
+  [@mel.send]
+  external replaceState: ([@mel.this] t, 'a, string, string) => unit =
+    "replaceState";
+};
 
 let fromEvent = event =>
   DOM.Event.target(event)
@@ -15,13 +21,10 @@ let fromEvent = event =>
   ->DOM.Window.history
   ->History.state;
 
-let toJs: History.state => Js.t({..}) = state => state |> Obj.magic;
-let fromJs: Js.t({..}) => History.state = state => state |> Obj.magic;
-
 [@platform js]
 let push = (state, path) => {
-  History.pushState(state, "", path, DOM.history);
-  let _ =
+  History.pushState(DOM.history, state, "", path);
+  let (_: bool) =
     DOM.EventTarget.dispatchEvent(
       DOM.Event.make("popstate"),
       DOM.Window.asEventTarget(DOM.window),
@@ -31,8 +34,8 @@ let push = (state, path) => {
 
 [@platform js]
 let replace = (state, path) => {
-  History.replaceState(state, "", path, DOM.history);
-  let _ =
+  History.replaceState(DOM.history, state, "", path);
+  let (_: bool) =
     DOM.EventTarget.dispatchEvent(
       DOM.Event.make("popstate"),
       DOM.Window.asEventTarget(DOM.window),

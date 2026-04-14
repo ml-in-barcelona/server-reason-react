@@ -198,8 +198,8 @@ let make =
 
       let _ =
         shouldReplace
-          ? HistoryState.replace(HistoryState.fromJs(historyState), path)
-          : HistoryState.push(HistoryState.fromJs(historyState), path);
+          ? HistoryState.replace(historyState, path)
+          : HistoryState.push(historyState, path);
 
       let _ =
         if (revalidate) {
@@ -255,7 +255,16 @@ let make =
       };
 
     if (shallow) {
-      ();
+      let historyState = {
+        "dynamicParams": dynamicParams,
+        "parentRoute": curPath,
+        "path": to_,
+      };
+      if (shouldReplace) {
+        HistoryState.replace(historyState, to_);
+      } else {
+        HistoryState.push(historyState, to_);
+      };
     } else {
       setIsNavigating(_ => true);
       pendingNavigationRef.current =
@@ -284,10 +293,13 @@ let make =
 
   // Initialize cache and history state after hydration
   React.useEffect0(() => {
-    let curPath = Location.pathname(DOM.window->DOM.Window.location);
+    let location = DOM.window->DOM.Window.location;
+    let curPath = Location.pathname(location);
+    let curSearch = Location.search(location);
+    let curTarget = curPath ++ curSearch;
     let historyState = {
       "dynamicParams": dynamicParams,
-      "path": curPath,
+      "path": curTarget,
       "parentRoute": curPath,
     };
     HistoryCache.set(~key=historyState, ~page=FullPage(element));
@@ -295,7 +307,7 @@ let make =
     /**
        * Replace the history state set by the browser to our own implementation.
        */
-    HistoryState.replace(HistoryState.fromJs(historyState), curPath);
+    HistoryState.replace(historyState, curTarget);
 
     None;
   });
@@ -315,7 +327,7 @@ let make =
             "path": string,
             "parentRoute": string,
           } =
-            event->HistoryState.fromEvent->HistoryState.toJs;
+            event->HistoryState.fromEvent;
 
           let dynamicParams = historyState##dynamicParams;
           let parentRoute = historyState##parentRoute;

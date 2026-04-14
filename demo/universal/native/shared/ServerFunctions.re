@@ -25,8 +25,10 @@ module Notes = {
 
   [@react.server.function]
   let delete_ = (~id: int): Js.Promise.t(string) => {
-    let _ = DB.deleteNote(id);
-    Lwt.return("Note deleted");
+    switch%lwt (DB.deleteNote(id)) {
+    | Ok(_) => Lwt.return("Note deleted")
+    | Error(e) => failwith(e)
+    };
   };
 };
 

@@ -1,25 +1,23 @@
 type json = Yojson.Basic.t
 type env = [ `Dev | `Prod ]
 
-let is_dev = function `Dev -> true | `Prod -> false
-
 let create_stack_trace () =
   let slots = Printexc.backtrace_slots (Printexc.get_raw_backtrace ()) |> Option.value ~default:[||] in
-  let make_locations slot =
-    let location = Printexc.Slot.location slot in
-    let name = Printexc.Slot.name slot in
-    match (location, name) with
-    | Some location, Some name ->
-        `List
-          [
-            `String (Printf.sprintf "[SERVER] %s" name);
-            `String location.Printexc.filename;
-            `Int location.Printexc.line_number;
-            `Int location.Printexc.start_char;
-          ]
-    | _, _ -> `List [ `String "Unknown function name"; `String "Unknown filename"; `Int 0; `Int 0 ]
-  in
-  `List (Array.to_list (Array.map make_locations slots))
+  `List
+    (Array.fold_right
+       (fun slot acc ->
+         (match (Printexc.Slot.location slot, Printexc.Slot.name slot) with
+         | Some loc, Some name ->
+             `List
+               [
+                 `String (Printf.sprintf "[SERVER] %s" name);
+                 `String loc.Printexc.filename;
+                 `Int loc.Printexc.line_number;
+                 `Int loc.Printexc.start_char;
+               ]
+         | _, _ -> `List [ `String "Unknown function name"; `String "Unknown filename"; `Int 0; `Int 0 ])
+         :: acc)
+       slots [])
 
 let uuid_rng = Random.State.make_self_init ()
 
@@ -35,27 +33,24 @@ let default_filter_stack_frame filename _function_name = filename <> ""
 let capture_component_stack ~filter_stack_frame =
   let bt = Printexc.get_callstack 10 in
   let slots = Printexc.backtrace_slots bt |> Option.value ~default:[||] in
-  let frames =
-    Array.to_list
-      (Array.map
-         (fun slot ->
-           match (Printexc.Slot.location slot, Printexc.Slot.name slot) with
-           | Some loc, name_opt ->
-               let name = Option.value ~default:"" name_opt in
-               if filter_stack_frame loc.Printexc.filename name then
-                 Some
-                   (`List
-                      [
-                        `String name;
-                        `String loc.Printexc.filename;
-                        `Int loc.Printexc.line_number;
-                        `Int loc.Printexc.start_char;
-                      ])
-               else None
-           | _ -> None)
-         slots)
-  in
-  `List (List.filter_map Fun.id frames)
+  `List
+    (Array.fold_right
+       (fun slot acc ->
+         match (Printexc.Slot.location slot, Printexc.Slot.name slot) with
+         | Some loc, name_opt ->
+             let name = Option.value ~default:"" name_opt in
+             if filter_stack_frame loc.Printexc.filename name then
+               `List
+                 [
+                   `String name;
+                   `String loc.Printexc.filename;
+                   `Int loc.Printexc.line_number;
+                   `Int loc.Printexc.start_char;
+                 ]
+               :: acc
+             else acc
+         | _ -> acc)
+       slots [])
 
 module Stream = struct
   type 'a t = {
@@ -98,17 +93,21 @@ module Stream = struct
     (stream, { push; close; pending; index = initial_index; written_client_references = Hashtbl.create 16 })
 end
 
+let get_attribute key (attrs : Html.attribute_list) =
+  List.find_map (function `Value (k, v) when String.equal k key -> Some v | _ -> None) attrs
+
+let has_attribute key (attrs : Html.attribute_list) =
+  List.exists
+    (function
+      | `Value (k, _) when String.equal k key -> true | `Present k' when String.equal k' key -> true | _ -> false)
+    attrs
+
 (* Resources module maintains insertion order while deduplicating based on src/href *)
 module Resources = struct
-  let get_attribute ~key:key_to_get (attributes : Html.attribute_list) =
-    List.find_map
-      (fun attr -> match attr with `Value (key, value) when String.equal key key_to_get -> Some value | _ -> None)
-      attributes
-
   let resource_key item =
     match (item : Html.node) with
-    | { tag = "script"; attributes; _ } -> get_attribute ~key:"src" attributes
-    | { tag = "link"; attributes; _ } -> get_attribute ~key:"href" attributes
+    | { tag = "script"; attributes; _ } -> get_attribute "src" attributes
+    | { tag = "link"; attributes; _ } -> get_attribute "href" attributes
     | _ -> None
 
   let add resource resources =
@@ -175,15 +174,15 @@ module Model = struct
   let style_to_json style = `Assoc (List.map (fun (_, jsx_key, value) -> (jsx_key, `String value)) style)
 
   let make_error_json ~env ~message ~stack ~digest : json =
-    match is_dev env with
-    | true ->
+    match env with
+    | `Dev ->
         `Assoc [ ("message", `String message); ("stack", stack); ("env", `String "Server"); ("digest", `String digest) ]
     (*
       In prod we don't emit any information about this Error object to avoid
       unintentional leaks. Use the digest to identify the registered error.
       REF: https://github.com/facebook/react/blob/e81fcfe3f201a8f626e892fb52ccbd0edba627cb/packages/react-client/src/ReactFlightClient.js#L2086-L2101
     *)
-    | false -> `Assoc [ ("digest", `String digest) ]
+    | `Prod -> `Assoc [ ("digest", `String digest) ]
 
   let exn_to_error exn =
     let message = Printexc.to_string exn in
@@ -243,33 +242,17 @@ module Model = struct
     let component_name = `String name in
     `List [ id; chunks; component_name ]
 
-  let value_to_chunk id value =
-    let buf = Buffer.create (4 * 1024) in
-    Buffer.add_string buf (Printf.sprintf "%x:" id);
-    Yojson.Basic.write_json buf value;
+  let write_chunk ?(buf_size = 256) ~tag id json =
+    let buf = Buffer.create buf_size in
+    Buffer.add_string buf (Printf.sprintf "%x:%s" id tag);
+    Yojson.Basic.write_json buf json;
     Buffer.add_string buf "\n";
     Buffer.contents buf
 
-  let debug_info_to_chunk id debug_info =
-    let buf = Buffer.create (4 * 1024) in
-    Buffer.add_string buf (Printf.sprintf "%x:D" id);
-    Yojson.Basic.write_json buf debug_info;
-    Buffer.add_string buf "\n";
-    Buffer.contents buf
-
-  let client_reference_to_chunk id ref =
-    let buf = Buffer.create 256 in
-    Buffer.add_string buf (Printf.sprintf "%x:I" id);
-    Yojson.Basic.write_json buf ref;
-    Buffer.add_string buf "\n";
-    Buffer.contents buf
-
-  let error_to_chunk id error =
-    let buf = Buffer.create 256 in
-    Buffer.add_string buf (Printf.sprintf "%x:E" id);
-    Yojson.Basic.write_json buf error;
-    Buffer.add_string buf "\n";
-    Buffer.contents buf
+  let value_to_chunk id value = write_chunk ~buf_size:(4 * 1024) ~tag:"" id value
+  let debug_info_to_chunk id info = write_chunk ~tag:"D" id info
+  let client_reference_to_chunk id ref = write_chunk ~tag:"I" id ref
+  let error_to_chunk id error = write_chunk ~tag:"E" id error
 
   let to_chunk value id =
     match value with
@@ -726,8 +709,8 @@ let classify_element ~(fiber : Fiber.t) ~tag ~attributes =
     | "html" -> ( match Fiber.root_tag ~fiber with Some "html" -> Html_root | _ -> Regular)
     | "head" -> Head_section
     | "body" -> Body_section
-    | _ when tag = "script" && is_async attributes -> Hoistable_resource
-    | _ when tag = "link" && has_precedence_and_rel_stylesheet attributes -> Hoistable_resource
+    | "script" when is_async attributes -> Hoistable_resource
+    | "link" when has_precedence_and_rel_stylesheet attributes -> Hoistable_resource
     | "title" | "meta" | "link" -> Hoistable_meta
     | _ -> Regular
 
@@ -947,33 +930,22 @@ let push_children_into ~children:new_children html =
   | Node { tag; children; attributes } -> Node { tag; attributes; children = children @ new_children }
   | _ -> html
 
-(* Head children are reordered to match React's Fizz priority buckets (issue #303).
-   See arch/server/head-ordering.js for concrete React 19.1 output. *)
-
-let get_html_attr key (attrs : Html.attribute_list) =
-  List.find_map (function `Value (k, v) when String.equal k key -> Some v | _ -> None) attrs
-
-let has_html_attr key (attrs : Html.attribute_list) =
-  List.exists
-    (function
-      | `Value (k, _) when String.equal k key -> true | `Present k' when String.equal k' key -> true | _ -> false)
-    attrs
-
+(* Head children are reordered to match React's Fizz priority buckets (issue #303). See arch/server/head-ordering.js for concrete React 19.1 output. *)
 type head_bucket = Charset | Viewport | Stylesheet_resource | Async_script | Other
 
 let classify_head_element (element : Html.element) =
   match element with
-  | Html.Node { tag = "meta"; attributes; _ } -> (
-      if has_html_attr "charset" attributes then Charset
-      else match get_html_attr "name" attributes with Some "viewport" -> Viewport | _ -> Other)
-  | Html.Node { tag = "link"; attributes; _ } ->
-      if has_html_attr "precedence" attributes then
-        match get_html_attr "rel" attributes with Some "stylesheet" -> Stylesheet_resource | _ -> Other
+  | Node { tag = "meta"; attributes; _ } -> (
+      if has_attribute "charset" attributes then Charset
+      else match get_attribute "name" attributes with Some "viewport" -> Viewport | _ -> Other)
+  | Node { tag = "link"; attributes; _ } ->
+      if has_attribute "precedence" attributes then
+        match get_attribute "rel" attributes with Some "stylesheet" -> Stylesheet_resource | _ -> Other
       else Other
-  | Html.Node { tag = "style"; attributes; _ } ->
-      if has_html_attr "href" attributes && has_html_attr "precedence" attributes then Stylesheet_resource else Other
-  | Html.Node { tag = "script"; attributes; _ } ->
-      if has_html_attr "async" attributes && has_html_attr "src" attributes then Async_script else Other
+  | Node { tag = "style"; attributes; _ } ->
+      if has_attribute "href" attributes && has_attribute "precedence" attributes then Stylesheet_resource else Other
+  | Node { tag = "script"; attributes; _ } ->
+      if has_attribute "async" attributes && has_attribute "src" attributes then Async_script else Other
   | _ -> Other
 
 let sort_head_children children =
@@ -1030,13 +1002,9 @@ let reconstruct_document ~(fiber : Fiber.t) ~root_html ~user_scripts ~skip_root 
 let default_progressive_chunk_size = 12800
 
 let create_preload_link href =
-  Html.Node
-    {
-      tag = "link";
-      attributes =
-        [ Html.attribute "rel" "modulepreload"; Html.attribute "fetchPriority" "low"; Html.attribute "href" href ];
-      children = [];
-    }
+  Html.node "link"
+    [ Html.attribute "rel" "modulepreload"; Html.attribute "fetchPriority" "low"; Html.attribute "href" href ]
+    []
 
 let create_initial_resources ~bootstrap_scripts ~bootstrap_modules =
   match bootstrap_scripts with
@@ -1225,13 +1193,10 @@ let resolve_raw_from_formdata formData hex_id =
 
 let unsupported name = Error (Printf.sprintf "decodeReply: %s is not supported" name)
 
-(* Decode context groups the optional parameters threaded through the mutually recursive
-   decode functions, avoiding repeated ?formData ?temporaryReferences on every signature. *)
+(* Decode context groups the optional parameters threaded through the mutually recursive decode functions, avoiding repeated ?formData ?temporaryReferences on every signature. *)
 type decode_ctx = { formData : Js.FormData.t option; temporaryReferences : (string -> json option) option }
 
-(* Recursively decode a JSON value, resolving React's $-prefixed special strings.
-   When formData is provided, outlined model references ($Q, $W, $F, $i) are resolved
-   by looking up the corresponding FormData entry and recursively decoding it. *)
+(* Recursively decode a JSON value, resolving React's $-prefixed special strings. When formData is provided, outlined model references ($Q, $W, $F, $i) are resolved by looking up the corresponding FormData entry and recursively decoding it. *)
 let rec decode_value (ctx : decode_ctx) (json : json) : (json, string) result =
   match json with
   | `String value when String.length value >= 2 && String.get value 0 = '$' -> (
@@ -1385,7 +1350,7 @@ let decodeFormDataReply ?temporaryReferences formData =
                           aux_entries acc entries)
               in
               Ok (args, aux_entries (Js.FormData.make ()) formDataEntries))
-      | _ -> Error "Invalid args, this request was not created by server-reason-react")
+      | _ -> Error "Invalid args, this request was not created properly")
 
 let action_id_prefix = "$ACTION_ID_"
 let action_prefix = "$ACTION_"

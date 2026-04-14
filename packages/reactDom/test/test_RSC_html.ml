@@ -1,10 +1,4 @@
-let yojson = Alcotest.testable Yojson.Safe.pretty_print ( = )
-let check_json = Alcotest.check yojson "should be equal"
-let assert_json left right = Alcotest.check yojson "should be equal" right left
 let assert_string left right = Alcotest.check Alcotest.string "should be equal" right left
-
-let assert_list (ty : 'a Alcotest.testable) (left : 'a list) (right : 'a list) =
-  Alcotest.check (Alcotest.list ty) "should be equal" right left
 
 let assert_list_of_strings (left : string list) (right : string list) =
   Alcotest.check (Alcotest.list Alcotest.string) "should be equal" right left
@@ -40,13 +34,6 @@ let mk_suspense ?key ?fallback ?children () = React.Suspense.make ?key (React.Su
 
 let mk_context context ~value ~children () =
   React.Context.provider context (React.Context.makeProps ~value ~children ())
-
-let assert_string left right = Alcotest.check Alcotest.string "should be equal" right left
-
-let assert_stream (stream : string Lwt_stream.t) (expected : string list) =
-  let%lwt content = Lwt_stream.to_list stream in
-  if content = [] then Lwt.return @@ Alcotest.fail "stream should not be empty"
-  else Lwt.return @@ assert_list_of_strings content expected
 
 let assert_html element ?(disable_backtrace = false) ?(env = `Dev) ?debug ?(shell = "") assertion_list =
   let begin_html = "<!DOCTYPE html><html><head></head><body></body>" in
@@ -267,8 +254,9 @@ let suspenasync_and_client () =
     [
       "<script data-payload='2:I[\"./client-with-props.js\",[],\"\"]\n'>window.srr_stream.push()</script>";
       "<div hidden=\"true\" id=\"S:1\"><span>Only the client<!-- -->Part of async component</span></div>\n\
-       <script>$RC('B:1', 'S:1')</script>";
-      "<script data-payload='1:[\"$\",\"span\",null,{\"children\":[[\"$\",\"$2\",null,{}],\"Part of async component\"]}]\n\
+       <script>$RC('B:1', 'S:1')</script><script \
+       data-payload='1:[\"$\",\"span\",null,{\"children\":[[\"$\",\"$2\",null,{},null,null,1],\"Part of async \
+       component\"]},null,null,1]\n\
        '>window.srr_stream.push()</script>";
     ]
 
@@ -569,41 +557,51 @@ let suspense_in_a_list_with_error () =
     ]
 
 let page_with_duplicate_resources () =
-  (* Test that duplicate resources are deduplicated *)
+  (* Test that duplicate hoisted resources are deduplicated.
+     Resources hoisted via Fiber.push_resource (e.g. <link rel="stylesheet" precedence="..."> outside <head>)
+     get deduplicated by src/href. Here we place the same stylesheet link in two different parts of the tree
+     outside the <head> to exercise the dedup path. *)
   let app () =
     React.Upper_case_component
       ( "Page",
         fun () ->
-          React.list
+          React.createElement "html" []
             [
-              React.createElement "html" []
+              React.createElement "body" []
                 [
-                  React.createElement "head" []
+                  React.createElement "link"
                     [
-                      React.createElement "link"
-                        [
-                          React.JSX.String ("rel", "rel", "stylesheet");
-                          React.JSX.String ("href", "href", "/styles.css");
-                          React.JSX.String ("precedence", "precedence", "default");
-                        ]
-                        [];
-                      React.createElement "link"
-                        [
-                          React.JSX.String ("rel", "rel", "stylesheet");
-                          React.JSX.String ("href", "href", "/styles.css");
-                          React.JSX.String ("precedence", "precedence", "default");
-                        ]
-                        [];
-                    ];
-                  React.createElement "body" [] [ React.createElement "div" [] [ React.string "Page content" ] ];
+                      React.JSX.String ("rel", "rel", "stylesheet");
+                      React.JSX.String ("href", "href", "/styles.css");
+                      React.JSX.String ("precedence", "precedence", "default");
+                    ]
+                    [];
+                  React.createElement "link"
+                    [
+                      React.JSX.String ("rel", "rel", "stylesheet");
+                      React.JSX.String ("href", "href", "/styles.css");
+                      React.JSX.String ("precedence", "precedence", "default");
+                    ]
+                    [];
+                  React.createElement "div" [] [ React.string "Page content" ];
                 ];
             ] )
   in
-  assert_html (app ())
-    ~shell:
-      "<div>Page content</div><script data-payload='0:[\"$\",\"div\",null,{\"children\":\"Page content\"}]\n\
-       '>window.srr_stream.push()</script>"
-    []
+  let%lwt html, _subscribe = ReactServerDOM.render_html (app ()) in
+  assert_string html
+    {|<!DOCTYPE html><html><head><link rel="stylesheet" href="/styles.css" precedence="default" /></head><body><div>Page content</div></body><script>function $RC(a,b){a=document.getElementById(a);b=document.getElementById(b);b.parentNode.removeChild(b);if(a){a=a.previousSibling;var f=a.parentNode,c=a.nextSibling,e=0;do{if(c&&8===c.nodeType){var d=c.data;if("/$"===d)if(0===e)break;else e--;else"$"!==d&&"$?"!==d&&"$!"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data="$";a._reactRetry&&a._reactRetry()}}</script><script>
+let enc = new TextEncoder();
+let srr_stream = (window.srr_stream = {});
+srr_stream.push = () => {
+  srr_stream._c.enqueue(enc.encode(document.currentScript.dataset.payload));
+};
+srr_stream.close = () => {
+  srr_stream._c.close();
+};
+srr_stream.readable_stream = new ReadableStream({ start(c) { srr_stream._c = c; } });
+</script><script data-payload='0:["$","html",null,{"children":["$","body",null,{"children":[["$","link",null,{"rel":"stylesheet","href":"/styles.css","precedence":"default"},null,null,1],["$","link",null,{"rel":"stylesheet","href":"/styles.css","precedence":"default"},null,null,1],["$","div",null,{"children":"Page content"},null,null,1]]},null,null,1]},null,null,1]
+'>window.srr_stream.push()</script></html>|};
+  Lwt.return ()
 
 let client_component_with_bootstrap_scripts () =
   (* Test bootstrap scripts are included in the rendered HTML *)
@@ -985,20 +983,10 @@ let timeout_end_script_appears_exactly_once () =
         Lwt.return ())
   in
   let all_content = String.concat "" !subscribed_elements in
-  let end_script = "<script>window.srr_stream.close()</script>" in
-  let count_occurrences hay needle =
-    let len = String.length needle in
-    let rec aux acc start =
-      match String.index_from_opt hay start needle.[0] with
-      | None -> acc
-      | Some i ->
-          if i + len <= String.length hay && String.sub hay i len = needle then aux (acc + 1) (i + 1)
-          else aux acc (i + 1)
-    in
-    if String.length hay = 0 || String.length needle = 0 then 0 else aux 0 0
-  in
-  let occurrences = count_occurrences all_content end_script in
-  Alcotest.(check int) "end script appears exactly once" 1 occurrences;
+  assert_string all_content
+    {|<div hidden="true" id="S:1">Just in time</div>
+<script>$RC('B:1', 'S:1')</script><script data-payload='1:"Just in time"
+'>window.srr_stream.push()</script><script>window.srr_stream.close()</script>|};
   Lwt.return ()
 
 let progressive_chunk_size_zero_does_not_raise () =
@@ -1044,6 +1032,7 @@ let tests =
     test "client_with_promise_failed_props" client_with_promise_failed_props;
     test "client_component_with_async_component" client_component_with_async_component;
     test "async_component_with_promise" async_component_with_promise;
+    test "suspense_async_and_client" suspenasync_and_client;
     test "suspense_with_error" suspense_with_error;
     test "suspense_with_error_in_async" suspense_with_error_in_async;
     test "suspense_with_error_under_lowercase" suspense_with_error_under_lowercase;
@@ -1063,4 +1052,5 @@ let tests =
     test "progressive_chunk_size_zero_does_not_raise" progressive_chunk_size_zero_does_not_raise;
     test "progressive_chunk_size_negative_does_not_raise" progressive_chunk_size_negative_does_not_raise;
     test "skip_root_omits_html_content" skip_root_omits_html_content;
+    test "page_with_duplicate_resources" page_with_duplicate_resources;
   ]
