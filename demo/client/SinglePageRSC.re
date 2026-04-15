@@ -6,6 +6,7 @@ let callServer = (path: string, args) => {
     });
   ReactServerDOMEsbuild.encodeReply(args)
   |> Js.Promise.then_(body => {
+       let body = Fetch.BodyInit.make(body);
        Fetch.fetchWithInit(
          "/",
          Fetch.RequestInit.make(~method_=Fetch.Post, ~headers, ~body, ()),
@@ -13,7 +14,7 @@ let callServer = (path: string, args) => {
        |> Js.Promise.then_(result => {
             let body = Fetch.Response.body(result);
             ReactServerDOMEsbuild.createFromReadableStream(body);
-          })
+          });
      });
 };
 

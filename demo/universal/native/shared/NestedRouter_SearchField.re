@@ -29,9 +29,7 @@ let make = () => {
       | queryParams => "?" ++ queryParams
       };
     setText(nextText);
-    startSearching(() =>
-      navigate(~replace=true, ~shallow=true, path ++ queryParamsSuffix)
-    );
+    startSearching(() => navigate(~shallow=true, path ++ queryParamsSuffix));
   };
 
   <form className="search" role="search" onSubmit>

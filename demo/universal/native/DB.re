@@ -253,15 +253,12 @@ let editNote = (~id, ~title, ~content) => {
 
 let deleteNote = id => {
   let%lwt notes = readNotes();
-  switch (notes) {
-  | Ok(notes) =>
-    let updatedNotes = notes |> List.filter((note: Note.t) => note.id != id);
-    switch%lwt (writeFile("./notes.json", serializeNotes(updatedNotes))) {
-    | Ok () => Lwt_result.return(updatedNotes)
-    | Error(e) => Lwt_result.fail(e)
-    };
-  | Error(e) => Lwt_result.fail(e)
-  };
+  let notes =
+    Result.map(
+      notes => notes |> List.filter((note: Note.t) => note.id != id),
+      notes,
+    );
+  Lwt_result.lift(notes);
 };
 
 let fetchNoteCached =
