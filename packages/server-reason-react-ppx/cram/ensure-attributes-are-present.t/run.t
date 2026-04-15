@@ -16,4 +16,4 @@
     [@@platform js]
   
     let make ?(key : string option) (_Props : < > Js.t) = make ?key ()
-  end [@@platform js]
+  end
