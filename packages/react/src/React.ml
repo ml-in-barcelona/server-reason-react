@@ -512,10 +512,15 @@ let rec cloneElement element new_attributes =
   | Suspense _ -> raise (Invalid_argument "React.cloneElement: cannot clone a Suspense")
 
 module Fragment = struct
-  let make ?key:_ ~children () = Fragment children
+  let makeProps ~children () : < children : element > Js.t =
+    object
+      method children = children
+    end
+
+  let make ?key:_ props = Fragment props#children
 end
 
-let fragment children = Fragment.make ~children ()
+let fragment children = Fragment.make (Fragment.makeProps ~children ())
 
 (* ReasonReact APIs *)
 let string txt = Text txt
@@ -537,7 +542,13 @@ module Context = struct
     consumer : children:element -> element;
   }
 
-  let provider ctx ?key:_ ~value ~children () = ctx.provider ~value ~children ()
+  let makeProps ~value ~children () : < value : 'a ; children : element > Js.t =
+    object
+      method value = value
+      method children = children
+    end
+
+  let provider ctx ?key:_ props = ctx.provider ~value:props#value ~children:props#children ()
 end
 
 let createContext (initial_value : 'a) : 'a Context.t =
@@ -562,8 +573,14 @@ let createContext (initial_value : 'a) : 'a Context.t =
 module Suspense = struct
   let or_react_null = function None -> null | Some x -> x
 
-  let make ?key ?fallback ?children () =
-    Suspense { key; fallback = or_react_null fallback; children = or_react_null children }
+  let makeProps ?fallback ?children () : < fallback : element option ; children : element option > Js.t =
+    object
+      method fallback = fallback
+      method children = children
+    end
+
+  let make ?key props =
+    Suspense { key; fallback = or_react_null props#fallback; children = or_react_null props#children }
 end
 
 module Cache = struct

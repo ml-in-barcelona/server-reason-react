@@ -111,9 +111,11 @@ React's client-side `encodeFormAction` callback converts a server reference into
 - [ ] Replace the `useActionState` stub in `packages/react/src/React.ml:878` with a real implementation that works with the form state protocol.
 - [ ] This enables progressive enhancement for stateful form actions (showing optimistic updates, handling errors).
 
-### Phase 6: Bound server references → moved to plan-12
+### Phase 6: Bound server references (optional, future)
 
-Moved to `tasks/plan-12-bound-server-references.md`. Includes `$ACTION_REF_` support, `encode_bound` on `Runtime.server_function`, and PPX changes for partial application.
+- [ ] Support `$ACTION_REF_` for bound server references (server functions with pre-filled arguments via `.bind()`).
+- [ ] This requires changes to `Runtime.server_function` to carry a `bound` field and to the PPX to support partial application of server functions.
+- [ ] The `action_to_json` function in `ReactServerDOM.ml:198` currently always emits `"bound": null`; this would need to emit the bound arguments when present.
 
 ## Design
 
