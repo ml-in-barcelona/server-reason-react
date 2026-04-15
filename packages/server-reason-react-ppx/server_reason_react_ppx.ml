@@ -1512,12 +1512,26 @@ let rewrite_structure_item ~nested_module_names structure_item =
         | [] -> pstr_value ~loc:structure_item.pstr_loc rec_flag internal_bindings
         | _ ->
             let loc = structure_item.pstr_loc in
-            [%stri
-              include struct
-                [%%i pstr_value ~loc:structure_item.pstr_loc Nonrecursive make_props_bindings]
-                [%%i pstr_value ~loc:structure_item.pstr_loc rec_flag internal_bindings]
-                [%%i pstr_value ~loc:structure_item.pstr_loc Nonrecursive public_bindings]
-              end]
+            let is_react_attr attr =
+              let name = attr.attr_name.txt in
+              String.length name >= 6 && String.sub name 0 6 = "react."
+            in
+            let propagated_attrs =
+              List.concat_map value_bindings ~f:(fun vb ->
+                  List.filter vb.pvb_attributes ~f:(fun attr -> not (is_react_attr attr)))
+            in
+            let include_stri =
+              [%stri
+                include struct
+                  [%%i pstr_value ~loc:structure_item.pstr_loc Nonrecursive make_props_bindings]
+                  [%%i pstr_value ~loc:structure_item.pstr_loc rec_flag internal_bindings]
+                  [%%i pstr_value ~loc:structure_item.pstr_loc Nonrecursive public_bindings]
+                end]
+            in
+            (match (propagated_attrs, include_stri.pstr_desc) with
+            | _ :: _, Pstr_include incl ->
+                { include_stri with pstr_desc = Pstr_include { incl with pincl_attributes = propagated_attrs } }
+            | _ -> include_stri)
       with Error err -> pstr_eval ~loc:structure_item.pstr_loc err [])
   | _ -> structure_item
 
