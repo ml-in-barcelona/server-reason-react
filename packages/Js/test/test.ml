@@ -602,13 +602,16 @@ let dict_tests =
 let promise_to_lwt (p : 'a Js.Promise.t) : 'a Lwt.t = Obj.magic p
 
 let set_timeout callback delay =
-  let _ =
-    Lwt.async (fun () ->
-        let%lwt () = Lwt_unix.sleep delay in
-        callback ();
-        Lwt.return ())
-  in
-  ()
+  Lwt.async (fun () ->
+      let%lwt () = Lwt_unix.sleep delay in
+      callback ();
+      Lwt.return ())
+
+let set_immediate callback =
+  Lwt.async (fun () ->
+      let%lwt () = Lwt.pause () in
+      callback ();
+      Lwt.return ())
 
 let promise_tests =
   [
@@ -622,13 +625,13 @@ let promise_tests =
         let resolved = Js.Promise.all [| p0; p1 |] in
         resolved |> promise_to_lwt |> Lwt.map (assert_array_int [| 5; 10 |]));
     test_async "all_async" (fun _switch () ->
-        let p0 = Js.Promise.make (fun ~resolve ~reject:_ -> set_timeout (fun () -> resolve 5) 0.5) in
-        let p1 = Js.Promise.make (fun ~resolve ~reject:_ -> set_timeout (fun () -> resolve 99) 0.3) in
+        let p0 = Js.Promise.make (fun ~resolve ~reject:_ -> set_immediate (fun () -> resolve 5)) in
+        let p1 = Js.Promise.make (fun ~resolve ~reject:_ -> set_immediate (fun () -> resolve 99)) in
         let resolved = Js.Promise.all [| p0; p1 |] in
         resolved |> promise_to_lwt |> Lwt.map (assert_array_int [| 5; 99 |]));
     test_async "race_async" (fun _switch () ->
-        let p0 = Js.Promise.make (fun ~resolve ~reject:_ -> set_timeout (fun () -> resolve "second") 0.5) in
-        let p1 = Js.Promise.make (fun ~resolve ~reject:_ -> set_timeout (fun () -> resolve "first") 0.3) in
+        let p0 = Js.Promise.make (fun ~resolve ~reject:_ -> set_timeout (fun () -> resolve "second") 0.005) in
+        let p1 = Js.Promise.make (fun ~resolve ~reject:_ -> set_immediate (fun () -> resolve "first")) in
         let resolved = Js.Promise.race [| p0; p1 |] in
         resolved |> promise_to_lwt |> Lwt.map (assert_string "first"));
   ]

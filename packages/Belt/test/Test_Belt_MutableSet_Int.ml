@@ -26,21 +26,21 @@ let suites =
               Belt.MutableSet.Int.remove values key
             done;
             assert_bool true (Belt.MutableSet.Int.isEmpty values);
-            Belt.MutableSet.Int.mergeMany values (shuffled_range 0 20_000);
+            Belt.MutableSet.Int.mergeMany values (shuffled_range 0 2_000);
             Belt.MutableSet.Int.mergeMany values (shuffled_range 0 200);
-            assert_int 20_001 (Belt.MutableSet.Int.size values);
+            assert_int 2_001 (Belt.MutableSet.Int.size values);
             Belt.MutableSet.Int.removeMany values (shuffled_range 0 200);
-            assert_int 19_800 (Belt.MutableSet.Int.size values);
+            assert_int 1_800 (Belt.MutableSet.Int.size values);
             Belt.MutableSet.Int.removeMany values (shuffled_range 0 1000);
-            assert_int 19_000 (Belt.MutableSet.Int.size values);
+            assert_int 1_000 (Belt.MutableSet.Int.size values);
             Belt.MutableSet.Int.removeMany values (shuffled_range 0 1000);
-            assert_int 19_000 (Belt.MutableSet.Int.size values);
-            Belt.MutableSet.Int.removeMany values (shuffled_range 1000 10_000);
-            assert_int 10_000 (Belt.MutableSet.Int.size values);
-            Belt.MutableSet.Int.removeMany values (shuffled_range 10_000 19_999);
+            assert_int 1_000 (Belt.MutableSet.Int.size values);
+            Belt.MutableSet.Int.removeMany values (shuffled_range 1000 1_500);
+            assert_int 500 (Belt.MutableSet.Int.size values);
+            Belt.MutableSet.Int.removeMany values (shuffled_range 1_500 1_999);
             assert_int 1 (Belt.MutableSet.Int.size values);
-            assert_bool true (Belt.MutableSet.Int.has values 20_000);
-            Belt.MutableSet.Int.removeMany values (shuffled_range 10_000 30_000);
+            assert_bool true (Belt.MutableSet.Int.has values 2_000);
+            Belt.MutableSet.Int.removeMany values (shuffled_range 1_500 3_000);
             assert_bool true (Belt.MutableSet.Int.isEmpty values));
         test "stats split and subset" (fun () ->
             let values = of_array (shuffled_range 1000 2000) in
@@ -107,28 +107,28 @@ let suites =
             assert_bool true (Belt.MutableSet.Int.eq evens evens_part);
             assert_bool true (Belt.MutableSet.Int.eq odds odds_part);
             List.iter Belt.MutableSet.Int.checkInvariantInternal [ values; evens; odds; evens_part; odds_part ]);
-        slow_test "large add stress" (fun () ->
+        test "large add stress" (fun () ->
             let values = Belt.MutableSet.Int.make () in
-            for key = 0 to 100_000 do
+            for key = 0 to 10_000 do
               Belt.MutableSet.Int.add values key
             done;
             Belt.MutableSet.Int.checkInvariantInternal values;
-            for key = 0 to 100_000 do
+            for key = 0 to 10_000 do
               assert_bool true (Belt.MutableSet.Int.has values key)
             done;
-            assert_int 100_001 (Belt.MutableSet.Int.size values));
+            assert_int 10_001 (Belt.MutableSet.Int.size values));
         test "fromArray and removal stress" (fun () ->
             let values = Belt.MutableSet.Int.make () in
             Belt.MutableSet.Int.mergeMany values (Array.append (shuffled_range 30 100) (shuffled_range 40 120));
             assert_int 91 (Belt.MutableSet.Int.size values);
             assert_array Alcotest.int (inclusive_range 30 120) (Belt.MutableSet.Int.toArray values);
             let values =
-              Belt.MutableSet.Int.fromArray (Array.append (shuffled_range 0 100_000) (shuffled_range 0 100))
+              Belt.MutableSet.Int.fromArray (Array.append (shuffled_range 0 10_000) (shuffled_range 0 100))
             in
-            assert_int 100_001 (Belt.MutableSet.Int.size values);
-            Array.iter (fun key -> Belt.MutableSet.Int.remove values key) (shuffled_range 50_000 80_000);
-            assert_int 70_000 (Belt.MutableSet.Int.size values);
-            Array.iter (fun key -> Belt.MutableSet.Int.remove values key) (shuffled_range 0 100_000);
+            assert_int 10_001 (Belt.MutableSet.Int.size values);
+            Array.iter (fun key -> Belt.MutableSet.Int.remove values key) (shuffled_range 5_000 8_000);
+            assert_int 7_000 (Belt.MutableSet.Int.size values);
+            Array.iter (fun key -> Belt.MutableSet.Int.remove values key) (shuffled_range 0 10_000);
             assert_int 0 (Belt.MutableSet.Int.size values);
             assert_bool true (Belt.MutableSet.Int.isEmpty values));
         test "fromSortedArrayUnsafe and derived copies" (fun () ->

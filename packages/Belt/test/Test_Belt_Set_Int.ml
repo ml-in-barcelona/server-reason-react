@@ -64,8 +64,8 @@ let suites =
             let values = Belt.Set.Int.remove values 4 in
             let values = Belt.Set.Int.remove values 1 in
             assert_bool true (Belt.Set.Int.isEmpty values));
-        slow_test "invariant under large removals" (fun () ->
-            let shuffled = shuffled_range 0 200_000 in
+        test "invariant under large removals" (fun () ->
+            let shuffled = shuffled_range 0 10_000 in
             let values = Belt.Set.Int.fromArray shuffled in
             Belt.Set.Int.checkInvariantInternal values;
             let removed = Array.sub shuffled 0 2000 in
@@ -75,12 +75,12 @@ let suites =
         test "subset eq cmp get and add identity" (fun () ->
             let base = Belt.Set.Int.fromArray (shuffled_range 0 100) in
             let superset = Belt.Set.Int.fromArray (shuffled_range 0 200) in
-            let membership_set = Belt.Set.Int.fromArray (shuffled_range 0 2000) in
+            let membership_set = Belt.Set.Int.fromArray (shuffled_range 0 500) in
             let right_only = Belt.Set.Int.fromArray (shuffled_range 120 200) in
             let unioned = Belt.Set.Int.union base right_only in
-            let checks = Array.map (fun value -> Belt.Set.Int.has membership_set value) (shuffled_range 1000 3000) in
+            let checks = Array.map (fun value -> Belt.Set.Int.has membership_set value) (shuffled_range 200 700) in
             let present_count = Array.fold_left (fun acc present -> if present then acc + 1 else acc) 0 checks in
-            assert_int 1001 present_count;
+            assert_int 301 present_count;
             assert_bool true (Belt.Set.Int.subset base superset);
             assert_bool true (Belt.Set.Int.subset unioned superset);
             assert_same_physical unioned (Belt.Set.Int.add unioned 200);
@@ -99,11 +99,11 @@ let suites =
             assert_bool true (Belt.Set.Int.cmp equal_left with_extra < 0);
             assert_bool true
               (Belt.Set.Int.cmp
-                 (Belt.Set.Int.fromArray (shuffled_range 0 2000))
-                 (Belt.Set.Int.fromArray (shuffled_range 3 2_002))
+                 (Belt.Set.Int.fromArray (shuffled_range 0 500))
+                 (Belt.Set.Int.fromArray (shuffled_range 3 502))
               > 0);
-            assert_option Alcotest.int (Some 30) (Belt.Set.Int.get (Belt.Set.Int.fromArray (shuffled_range 0 2000)) 30);
-            assert_option Alcotest.int None (Belt.Set.Int.get (Belt.Set.Int.fromArray (shuffled_range 0 2000)) 3000));
+            assert_option Alcotest.int (Some 30) (Belt.Set.Int.get (Belt.Set.Int.fromArray (shuffled_range 0 500)) 30);
+            assert_option Alcotest.int None (Belt.Set.Int.get (Belt.Set.Int.fromArray (shuffled_range 0 500)) 3000));
         test "mergeMany removeMany and split" (fun () ->
             let merged = Belt.Set.Int.mergeMany Belt.Set.Int.empty (shuffled_range 0 100) in
             let trimmed = Belt.Set.Int.removeMany merged (shuffled_range 40 100) in

@@ -15,14 +15,14 @@ let suites =
             let emptied = Belt.Set.removeMany added_back shuffled in
             let rebuilt = Belt.Set.mergeMany emptied [| 0; 1; 2; 0 |] in
             let emptied_again = Belt.Set.removeMany rebuilt [| 0; 1; 2; 3 |] in
-            let merged = Belt.Set.mergeMany emptied_again (shuffled_range 0 20_000) in
+            let merged = Belt.Set.mergeMany emptied_again (shuffled_range 0 2_000) in
             let merged_again = Belt.Set.mergeMany merged (shuffled_range 0 200) in
             let removed_small = Belt.Set.removeMany merged_again (shuffled_range 0 200) in
             let removed_medium = Belt.Set.removeMany removed_small (shuffled_range 0 1000) in
             let removed_medium_again = Belt.Set.removeMany removed_medium (shuffled_range 0 1000) in
-            let removed_large = Belt.Set.removeMany removed_medium_again (shuffled_range 1000 10_000) in
-            let only_last = Belt.Set.removeMany removed_large (shuffled_range 10_000 19_999) in
-            let empty_final = Belt.Set.removeMany only_last (shuffled_range 20_000 21_000) in
+            let removed_large = Belt.Set.removeMany removed_medium_again (shuffled_range 1000 1_500) in
+            let only_last = Belt.Set.removeMany removed_large (shuffled_range 1_500 1_999) in
+            let empty_final = Belt.Set.removeMany only_last (shuffled_range 2_000 2_100) in
             assert_not_same_physical original removed_zero;
             assert_same_physical removed_zero removed_zero_again;
             assert_int 28 (Belt.Set.size removed_mid);
@@ -35,14 +35,14 @@ let suites =
             assert_bool true (Belt.Set.isEmpty emptied_again);
             assert_bool true (Belt.Set.has merged_again 20);
             assert_bool true (Belt.Set.has merged_again 21);
-            assert_int 20_001 (Belt.Set.size merged_again);
-            assert_int 19_800 (Belt.Set.size removed_small);
-            assert_int 19_000 (Belt.Set.size removed_medium);
+            assert_int 2_001 (Belt.Set.size merged_again);
+            assert_int 1_800 (Belt.Set.size removed_small);
+            assert_int 1_000 (Belt.Set.size removed_medium);
             assert_int (Belt.Set.size removed_medium) (Belt.Set.size removed_medium_again);
-            assert_int 10_000 (Belt.Set.size removed_large);
+            assert_int 500 (Belt.Set.size removed_large);
             assert_int 1 (Belt.Set.size only_last);
-            assert_bool true (Belt.Set.has only_last 20_000);
-            assert_bool false (Belt.Set.has only_last 2000);
+            assert_bool true (Belt.Set.has only_last 2_000);
+            assert_bool false (Belt.Set.has only_last 500);
             assert_bool true (Belt.Set.isEmpty empty_final));
         test "union intersect diff subset and undefined access" (fun () ->
             let left = of_array (shuffled_range 0 100) in

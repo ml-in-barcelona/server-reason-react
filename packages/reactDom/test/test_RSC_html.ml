@@ -18,7 +18,7 @@ let sleep ~ms =
   let%lwt () = Lwt_unix.sleep (Int.to_float ms /. 1000.0) in
   Lwt.return ()
 
-let test ?(timeout = 100) title fn =
+let test ?(timeout = 20) title fn =
   ( Printf.sprintf "ReactServerDOM.render_html / %s" title,
     [
       Alcotest_lwt.test_case "" `Quick (fun _switch () ->
@@ -220,7 +220,7 @@ let async_component_with_promise () =
         (React.Async_component
            ( __FUNCTION__,
              fun () ->
-               let%lwt () = sleep ~ms:10 in
+               let%lwt () = Lwt.pause () in
                Lwt.return (React.createElement "span" [] [ React.string "Sleep resolved" ]) ))
       ()
   in
@@ -243,7 +243,7 @@ let suspenasync_and_client () =
         (React.Async_component
            ( __FUNCTION__,
              fun () ->
-               let%lwt () = sleep ~ms:10 in
+               let%lwt () = Lwt.pause () in
                Lwt.return
                  (React.createElement "span" []
                     [
@@ -288,7 +288,7 @@ let with_sleepy_promise () =
         (React.Async_component
            ( __FUNCTION__,
              fun () ->
-               let%lwt () = sleep ~ms:10 in
+               let%lwt () = Lwt.pause () in
                Lwt.return
                  (React.createElement "div" []
                     [
@@ -310,8 +310,8 @@ let with_sleepy_promise () =
     ]
 
 let client_with_promise_props () =
-  let delayed_value ~ms value =
-    let%lwt () = sleep ~ms in
+  let delayed_value value =
+    let%lwt () = Lwt.pause () in
     Lwt.return value
   in
   let app () =
@@ -327,8 +327,8 @@ let client_with_promise_props () =
                   props =
                     [
                       ( "promise",
-                        React.Model.Promise
-                          (delayed_value ~ms:20 "||| Resolved |||", fun res -> React.Model.Json (`String res)) );
+                        React.Model.Promise (delayed_value "||| Resolved |||", fun res -> React.Model.Json (`String res))
+                      );
                     ];
                   client = React.string "Client with Props";
                   import_module = "./client-with-props.js";
@@ -351,7 +351,7 @@ let client_with_promise_failed_props () =
   let app () =
     let promise =
       React.Model.Promise
-        ( (let%lwt () = sleep ~ms:20 in
+        ( (let%lwt () = Lwt.pause () in
            Lwt.fail (Failure "Already failed")),
           fun res -> React.Model.Json (`String res) )
     in
@@ -417,7 +417,7 @@ let client_component_with_async_component () =
     React.Async_component
       ( __FUNCTION__,
         fun () ->
-          let%lwt () = sleep ~ms:10 in
+          let%lwt () = Lwt.pause () in
           Lwt.return (React.string "Async Component") )
   in
   let app ~children =
@@ -509,7 +509,7 @@ let error_in_toplevel_in_async () =
   let main = React.Async_component ("app", app) in
   assert_raises (Failure "lol") (fun () -> assert_html main ~disable_backtrace:true [])
 
-let await_tick ?(raise = false) ?(ms = 10) num =
+let await_tick ?(raise = false) ?(ms = 1) num =
   React.Async_component
     ( "await_tick",
       fun () ->
@@ -545,9 +545,9 @@ let suspense_in_a_list_with_error () =
     React.Fragment
       (React.list
          [
-           mk_suspense ~fallback ~children:(await_tick ~ms:10 "A") ();
-           mk_suspense ~fallback ~children:(await_tick ~ms:20 ~raise:true "B") ();
-           mk_suspense ~fallback ~children:(await_tick ~ms:30 "C") ();
+           mk_suspense ~fallback ~children:(await_tick ~ms:1 "A") ();
+           mk_suspense ~fallback ~children:(await_tick ~ms:2 ~raise:true "B") ();
+           mk_suspense ~fallback ~children:(await_tick ~ms:3 "C") ();
          ])
   in
   let main = React.Upper_case_component ("app", app) in
@@ -727,7 +727,7 @@ let context_preserved_across_async_suspense () =
              (React.Async_component
                 ( "async",
                   fun () ->
-                    let%lwt () = sleep ~ms:10 in
+                    let%lwt () = Lwt.pause () in
                     Lwt.return (consumer ()) ))
            ())
       ()
@@ -764,7 +764,7 @@ let context_nested_providers_across_async_suspense () =
                   (React.Async_component
                      ( "async",
                        fun () ->
-                         let%lwt () = sleep ~ms:10 in
+                         let%lwt () = Lwt.pause () in
                          Lwt.return (consumer ()) ))
                 ())
            ())
@@ -807,7 +807,7 @@ let context_client_component_reads_context_across_async_suspense () =
              (React.Async_component
                 ( "async",
                   fun () ->
-                    let%lwt () = sleep ~ms:10 in
+                    let%lwt () = Lwt.pause () in
                     Lwt.return (client_consumer ()) ))
            ())
       ()
@@ -914,7 +914,7 @@ let timeout_does_not_affect_fast_renders () =
         (React.Async_component
            ( "FastComponent",
              fun () ->
-               let%lwt () = sleep ~ms:1 in
+               let%lwt () = Lwt.pause () in
                Lwt.return (React.string "Fast content") ))
       ()
   in
@@ -940,7 +940,7 @@ let progressive_chunk_size_batches_small_chunks () =
         (React.Async_component
            ( "AsyncComponent",
              fun () ->
-               let%lwt () = sleep ~ms:1 in
+               let%lwt () = Lwt.pause () in
                Lwt.return (React.string "Async content") ))
       ()
   in
@@ -973,7 +973,7 @@ let timeout_end_script_appears_exactly_once () =
         (React.Async_component
            ( "AlmostDone",
              fun () ->
-               let%lwt () = sleep ~ms:10 in
+               let%lwt () = Lwt.pause () in
                Lwt.return (React.string "Just in time") ))
       ()
   in

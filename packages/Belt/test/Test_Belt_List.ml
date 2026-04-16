@@ -274,7 +274,7 @@ let suites =
             assert_int
               ((9999 * 10_000) - 9999)
               (Belt.List.reduceReverse2 values (0 :: values) 0 (fun acc left right -> acc + left + right)));
-        slow_test "predicates and comparison" (fun () ->
+        test "predicates and comparison" (fun () ->
             assert_bool true (Belt.List.every [ 2; 4; 6 ] mod2);
             assert_bool false (Belt.List.every [ 1 ] mod2);
             assert_bool true (Belt.List.every [] mod2);

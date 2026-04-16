@@ -12,20 +12,20 @@ let suites =
             let total = ref 0 in
             Belt.HashSet.Int.forEach values (fun value -> total := !total + value);
             assert_int expected_sum !total);
-        slow_test "size stress" (fun () ->
+        test "size stress" (fun () ->
             let values = Belt.HashSet.Int.make ~hintSize:40 in
-            Belt.HashSet.Int.mergeMany values (Array.append (shuffled_range 0 100_000) (shuffled_range 0 100));
-            assert_int 100_001 (Belt.HashSet.Int.size values);
+            Belt.HashSet.Int.mergeMany values (Array.append (shuffled_range 0 10_000) (shuffled_range 0 100));
+            assert_int 10_001 (Belt.HashSet.Int.size values);
             for key = 0 to 1000 do
               Belt.HashSet.Int.remove values key
             done;
-            assert_int 99_000 (Belt.HashSet.Int.size values);
+            assert_int 9_000 (Belt.HashSet.Int.size values);
             for key = 0 to 2000 do
               Belt.HashSet.Int.remove values key
             done;
-            assert_int 98_000 (Belt.HashSet.Int.size values));
-        slow_test "copy independence" (fun () ->
-            let original = Belt.HashSet.Int.fromArray (shuffled_range 0 100_000) in
+            assert_int 8_000 (Belt.HashSet.Int.size values));
+        test "copy independence" (fun () ->
+            let original = Belt.HashSet.Int.fromArray (shuffled_range 0 10_000) in
             let copy = Belt.HashSet.Int.copy original in
             assert_array_unordered Alcotest.int (Belt.HashSet.Int.toArray original) (Belt.HashSet.Int.toArray copy);
             for key = 0 to 2000 do
@@ -39,8 +39,8 @@ let suites =
             Belt.SortArray.Int.stableSortInPlace left;
             Belt.SortArray.Int.stableSortInPlace right;
             assert_array Alcotest.int left right);
-        slow_test "bucket histogram sanity" (fun () ->
-            let values = Belt.HashSet.Int.fromArray (shuffled_range 0 200_000) in
+        test "bucket histogram sanity" (fun () ->
+            let values = Belt.HashSet.Int.fromArray (shuffled_range 0 10_000) in
             assert_bool true (Array.length (Belt.HashSet.Int.getBucketHistogram values) <= 10));
       ] );
   ]

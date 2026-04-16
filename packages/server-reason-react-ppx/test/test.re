@@ -18,7 +18,7 @@ let test_lwt = (title, fn) => {
   let test_case = (_switch, ()) => {
     let start = Unix.gettimeofday();
     let timeout = {
-      let%lwt () = sleep(~ms=100);
+      let%lwt () = sleep(~ms=20);
       Alcotest.failf("Test '%s' timed out", title);
     };
 

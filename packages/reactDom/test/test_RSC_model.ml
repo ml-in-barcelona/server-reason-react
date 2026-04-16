@@ -21,7 +21,7 @@ let test title fn =
   let test_case _switch () =
     let start = Unix.gettimeofday () in
     let timeout =
-      let%lwt () = sleep ~ms:100 in
+      let%lwt () = sleep ~ms:20 in
       Alcotest.failf "Test '%s' timed out" title
     in
     let%lwt test_promise = Lwt.pick [ fn (); timeout ] in
@@ -223,7 +223,7 @@ let suspense_with_promise () =
         (React.Async_component
            ( "suspense_with_promise",
              fun () ->
-               let%lwt () = sleep ~ms:10 in
+               let%lwt () = Lwt.pause () in
                Lwt.return (React.string "lol") ))
       ()
   in
@@ -315,7 +315,7 @@ let error_in_toplevel_in_async () =
     [ "1:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n"; "0:\"$L1\"\n" ];
   Lwt.return ()
 
-let await_tick ?(raise = false) ?(ms = 10) num =
+let await_tick ?(raise = false) ?(ms = 1) num =
   React.Async_component
     ( "await_tick",
       fun () ->
@@ -328,11 +328,11 @@ let suspense_in_a_list () =
     React.Fragment
       (React.list
          [
-           mk_suspense ~fallback ~children:(await_tick ~ms:10 "A") ();
-           mk_suspense ~fallback ~children:(await_tick ~ms:20 "B") ();
-           mk_suspense ~fallback ~children:(await_tick ~ms:30 "C") ();
-           mk_suspense ~fallback ~children:(await_tick ~ms:40 "D") ();
-           mk_suspense ~fallback ~children:(await_tick ~ms:50 "E") ();
+           mk_suspense ~fallback ~children:(await_tick ~ms:1 "A") ();
+           mk_suspense ~fallback ~children:(await_tick ~ms:2 "B") ();
+           mk_suspense ~fallback ~children:(await_tick ~ms:3 "C") ();
+           mk_suspense ~fallback ~children:(await_tick ~ms:4 "D") ();
+           mk_suspense ~fallback ~children:(await_tick ~ms:5 "E") ();
          ])
   in
   let main = React.Upper_case_component ("app", app) in
@@ -355,11 +355,11 @@ let suspense_in_a_list_with_error () =
     React.Fragment
       (React.list
          [
-           mk_suspense ~fallback ~children:(await_tick ~ms:10 "A") ();
-           mk_suspense ~fallback ~children:(await_tick ~ms:20 ~raise:true "B") ();
-           mk_suspense ~fallback ~children:(await_tick ~ms:30 "C") ();
-           mk_suspense ~fallback ~children:(await_tick ~ms:40 "D") ();
-           mk_suspense ~fallback ~children:(await_tick ~ms:50 "E") ();
+           mk_suspense ~fallback ~children:(await_tick ~ms:1 "A") ();
+           mk_suspense ~fallback ~children:(await_tick ~ms:2 ~raise:true "B") ();
+           mk_suspense ~fallback ~children:(await_tick ~ms:3 "C") ();
+           mk_suspense ~fallback ~children:(await_tick ~ms:4 "D") ();
+           mk_suspense ~fallback ~children:(await_tick ~ms:5 "E") ();
          ])
   in
   let main = React.Upper_case_component ("app", app) in
@@ -392,8 +392,8 @@ let suspense_with_immediate_promise () =
     [ "0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"DONE :)\"},null,null,1]\n" ];
   Lwt.return ()
 
-let delayed_value ~ms value =
-  let%lwt () = sleep ~ms in
+let delayed_value value =
+  let%lwt () = Lwt.pause () in
   Lwt.return value
 
 let suspense () =
@@ -401,7 +401,7 @@ let suspense () =
     React.Async_component
       ( __FUNCTION__,
         fun () ->
-          let%lwt value = delayed_value ~ms:10 "DONE :)" in
+          let%lwt value = delayed_value "DONE :)" in
           Lwt.return (React.string value) )
   in
   let app () = mk_suspense ~fallback:(React.string "Loading...") ~children:suspended_component () in
@@ -420,7 +420,7 @@ let nested_suspense () =
     React.Async_component
       ( __FUNCTION__,
         fun () ->
-          let%lwt value = delayed_value ~ms:20 "DONE :)" in
+          let%lwt value = delayed_value "DONE :)" in
           Lwt.return (React.string value) )
   in
   let app () = mk_suspense ~fallback:(React.string "Loading...") ~children:deffered_component () in
@@ -440,7 +440,7 @@ let async_component_without_suspense () =
     React.Async_component
       ( __FUNCTION__,
         fun () ->
-          let%lwt value = delayed_value ~ms:10 "DONE :)" in
+          let%lwt value = delayed_value "DONE :)" in
           Lwt.return (React.string value) )
   in
   let output, subscribe = capture_stream () in
@@ -453,7 +453,7 @@ let async_component_without_suspense_immediate () =
     React.Async_component
       ( __FUNCTION__,
         fun () ->
-          let%lwt value = delayed_value ~ms:0 "DONE :)" in
+          let%lwt value = delayed_value "DONE :)" in
           Lwt.return (React.string value) )
   in
   let output, subscribe = capture_stream () in
@@ -570,8 +570,8 @@ let client_with_promise_props () =
                   props =
                     [
                       ( "promise",
-                        React.Model.Promise
-                          (delayed_value ~ms:20 "||| Resolved |||", fun res -> React.Model.Json (`String res)) );
+                        React.Model.Promise (delayed_value "||| Resolved |||", fun res -> React.Model.Json (`String res))
+                      );
                     ];
                   client = React.string "Client with Props";
                   import_module = "./client-with-props.js";
@@ -594,7 +594,7 @@ let client_with_promise_failed_props () =
   let app () =
     let promise =
       React.Model.Promise
-        ( (let%lwt _str = delayed_value ~ms:20 "||| Resolved |||" in
+        ( (let%lwt _str = delayed_value "||| Resolved |||" in
            Lwt.fail (Failure "Already failed")),
           fun res -> React.Model.Json (`String res) )
     in
@@ -934,7 +934,7 @@ let client_component_with_async_component () =
     React.Async_component
       ( __FUNCTION__,
         fun () ->
-          let%lwt () = sleep ~ms:10 in
+          let%lwt () = Lwt.pause () in
           Lwt.return (React.string "Async Component") )
   in
   let app ~children =
@@ -1127,7 +1127,7 @@ let suspense_at_root_with_async () =
         (React.Async_component
            ( "async",
              fun () ->
-               let%lwt () = sleep ~ms:10 in
+               let%lwt () = Lwt.pause () in
                Lwt.return (React.createElement "span" [] [ React.string "Async resolved" ]) ))
       ()
   in

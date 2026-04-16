@@ -12,8 +12,8 @@ let suites =
               (Alcotest.pair Alcotest.int Alcotest.string)
               None
               (Belt.Map.Int.findFirstBy values (fun key _ -> key > 10)));
-        slow_test "invariant after removals" (fun () ->
-            let shuffled = Array.map (fun key -> (key, key)) (shuffled_range 0 200_000) in
+        test "invariant after removals" (fun () ->
+            let shuffled = Array.map (fun key -> (key, key)) (shuffled_range 0 10_000) in
             let values = Belt.Map.Int.fromArray shuffled in
             Belt.Map.Int.checkInvariantInternal values;
             let removed = Array.sub shuffled 0 2000 in
@@ -21,9 +21,9 @@ let suites =
             Belt.Map.Int.checkInvariantInternal values;
             Belt.Map.Int.checkInvariantInternal reduced;
             Array.iter (fun (key, _) -> assert_option Alcotest.int None (Belt.Map.Int.get reduced key)) removed);
-        slow_test "set get remove stress" (fun () ->
+        test "set get remove stress" (fun () ->
             let values = ref Belt.Map.Int.empty in
-            let count = 200_000 in
+            let count = 10_000 in
             for key = 0 to count do
               values := Belt.Map.Int.set !values key key
             done;

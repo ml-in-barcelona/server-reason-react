@@ -8,7 +8,7 @@ let test title fn =
       Alcotest_lwt.test_case "" `Quick (fun _switch () ->
           let start = Unix.gettimeofday () in
           let timeout =
-            let%lwt () = Lwt_unix.sleep (if isCI then 1.0 else 0.3) in
+            let%lwt () = Lwt_unix.sleep (if isCI then 0.05 else 0.02) in
             Alcotest.failf "Test '%s' timed out" title
           in
           let%lwt test_promise = Lwt.pick [ fn (); timeout ] in
@@ -38,7 +38,7 @@ module Sleep = struct
     if cached.contents then Lwt.return v
     else (
       cached.contents <- true;
-      let%lwt () = Lwt_unix.sleep v in
+      let%lwt () = Lwt.pause () in
       Lwt.return v)
 end
 
@@ -46,7 +46,7 @@ let deffered_component ~seconds ~children () =
   React.Async_component
     ( "deffered_component",
       fun () ->
-        let%lwt () = Lwt_unix.sleep seconds in
+        let%lwt () = if seconds <= 0. then Lwt.pause () else Lwt_unix.sleep seconds in
         Lwt.return
           (React.createElement "div" []
              [ React.string ("Sleep " ^ Float.to_string seconds ^ " seconds"); React.string ", "; children ]) )
@@ -65,11 +65,11 @@ let react_use_without_suspense () =
     React.Upper_case_component
       ( "app",
         fun () ->
-          let delay = React.Experimental.usePromise (Sleep.delay 0.01) in
+          let delay = React.Experimental.usePromise (Sleep.delay 0.001) in
           React.createElement "div" [] [ React.createElement "span" [] [ React.string "Hello "; React.float delay ] ] )
   in
   let%lwt stream, _abort = ReactDOM.renderToStream app in
-  assert_stream stream [ "<div><span>Hello <!-- -->0.01</span></div>" ]
+  assert_stream stream [ "<div><span>Hello <!-- -->0.001</span></div>" ]
 
 let suspense_without_promise () =
   let hi =
@@ -94,7 +94,7 @@ let suspense_with_resolved_text_after_element_with_text_child () =
       React.Async_component
         ( "deferred",
           fun () ->
-            let%lwt () = Lwt_unix.sleep 0.01 in
+            let%lwt () = Lwt.pause () in
             Lwt.return
               (React.createElement "div" []
                  [
@@ -144,7 +144,7 @@ let suspense_with_react_use () =
     React.Upper_case_component
       ( "time",
         fun () ->
-          let delay = React.Experimental.usePromise (Sleep.delay 0.05) in
+          let delay = React.Experimental.usePromise (Sleep.delay 0.005) in
           React.createElement "div" [] [ React.createElement "span" [] [ React.string "Hello "; React.float delay ] ] )
   in
   let app () = mk_suspense ~fallback:(React.string "Loading...") ~children:time () in
@@ -152,7 +152,7 @@ let suspense_with_react_use () =
   assert_stream stream
     [
       "<!--$?--><template id=\"B:0\"></template>Loading...<!--/$-->";
-      "<div hidden id=\"S:0\"><div><span>Hello <!-- -->0.05</span></div></div>";
+      "<div hidden id=\"S:0\"><div><span>Hello <!-- -->0.005</span></div></div>";
       "<script>function \
        $RC(a,b){a=document.getElementById(a);b=document.getElementById(b);b.parentNode.removeChild(b);if(a){a=a.previousSibling;var \
        f=a.parentNode,c=a.nextSibling,e=0;do{if(c&&8===c.nodeType){var d=c.data;if(\"/$\"===d)if(0===e)break;else \
@@ -191,7 +191,7 @@ let suspense_with_async_component () =
     React.createElement "div" []
       [
         mk_suspense ~fallback:(React.string "Fallback 1")
-          ~children:(deffered_component ~seconds:0.02 ~children:(React.string "lol") ())
+          ~children:(deffered_component ~seconds:0. ~children:(React.string "lol") ())
           ();
       ]
   in
@@ -199,7 +199,7 @@ let suspense_with_async_component () =
   assert_stream stream
     [
       "<div><!--$?--><template id=\"B:0\"></template>Fallback 1<!--/$--></div>";
-      "<div hidden id=\"S:0\"><div>Sleep 0.02 seconds<!-- -->, <!-- -->lol</div></div>";
+      "<div hidden id=\"S:0\"><div>Sleep 0. seconds<!-- -->, <!-- -->lol</div></div>";
       "<script>function \
        $RC(a,b){a=document.getElementById(a);b=document.getElementById(b);b.parentNode.removeChild(b);if(a){a=a.previousSibling;var \
        f=a.parentNode,c=a.nextSibling,e=0;do{if(c&&8===c.nodeType){var d=c.data;if(\"/$\"===d)if(0===e)break;else \
@@ -210,10 +210,10 @@ let suspense_with_nested_suspense () =
   let app () =
     mk_suspense ~fallback:(React.string "Fallback 1")
       ~children:
-        (deffered_component ~seconds:0.02
+        (deffered_component ~seconds:0.
            ~children:
              (mk_suspense ~fallback:(React.string "Fallback 2")
-                ~children:(deffered_component ~seconds:0.02 ~children:(React.string "lol") ())
+                ~children:(deffered_component ~seconds:0. ~children:(React.string "lol") ())
                 ())
            ())
       ()
@@ -222,13 +222,13 @@ let suspense_with_nested_suspense () =
   assert_stream stream
     [
       "<!--$?--><template id=\"B:0\"></template>Fallback 1<!--/$-->";
-      "<div hidden id=\"S:0\"><div>Sleep 0.02 seconds<!-- -->, <!--$?--><template id=\"B:1\"></template>Fallback \
+      "<div hidden id=\"S:0\"><div>Sleep 0. seconds<!-- -->, <!--$?--><template id=\"B:1\"></template>Fallback \
        2<!--/$--></div></div>";
       "<script>function \
        $RC(a,b){a=document.getElementById(a);b=document.getElementById(b);b.parentNode.removeChild(b);if(a){a=a.previousSibling;var \
        f=a.parentNode,c=a.nextSibling,e=0;do{if(c&&8===c.nodeType){var d=c.data;if(\"/$\"===d)if(0===e)break;else \
        e--;else\"$\"!==d&&\"$?\"!==d&&\"$!\"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data=\"$\";a._reactRetry&&a._reactRetry()}}$RC('B:0','S:0')</script>";
-      "<div hidden id=\"S:1\"><div>Sleep 0.02 seconds<!-- -->, <!-- -->lol</div></div>";
+      "<div hidden id=\"S:1\"><div>Sleep 0. seconds<!-- -->, <!-- -->lol</div></div>";
       "<script>$RC('B:1','S:1')</script>";
     ]
 
@@ -238,7 +238,7 @@ let suspense_with_nested_suspense_with_error () =
   let app () =
     mk_suspense ~fallback:(React.string "Fallback 1")
       ~children:
-        (deffered_component ~seconds:0.02
+        (deffered_component ~seconds:0.
            ~children:(mk_suspense ~fallback:(React.string "Fallback 2") ~children:(always_throwing_component ()) ())
            ())
       ()
@@ -248,7 +248,7 @@ let suspense_with_nested_suspense_with_error () =
   assert_stream stream
     [
       "<!--$?--><template id=\"B:0\"></template>Fallback 1<!--/$-->";
-      "<div hidden id=\"S:0\"><div>Sleep 0.02 seconds<!-- -->, <!--$!--><template data-msg=\"Failure(&quot;always \
+      "<div hidden id=\"S:0\"><div>Sleep 0. seconds<!-- -->, <!--$!--><template data-msg=\"Failure(&quot;always \
        throwing&quot;)\n\
        \"></template>Fallback 2<!--/$--></div></div>";
       "<script>function \
@@ -258,9 +258,9 @@ let suspense_with_nested_suspense_with_error () =
     ]
 
 let async_component_without_suspense () =
-  let app () = React.createElement "main" [] [ deffered_component ~seconds:0.02 ~children:(React.string "lol") () ] in
+  let app () = React.createElement "main" [] [ deffered_component ~seconds:0. ~children:(React.string "lol") () ] in
   let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
-  assert_stream stream [ "<main><div>Sleep 0.02 seconds<!-- -->, <!-- -->lol</div></main>" ]
+  assert_stream stream [ "<main><div>Sleep 0. seconds<!-- -->, <!-- -->lol</div></main>" ]
 
 let render_inner_html () =
   let globalStyles = "* { color: red; }" in
@@ -286,13 +286,13 @@ let suspense_with_multiple_children () =
     React.createElement "div" []
       [
         mk_suspense ~fallback:(React.string "Loading 1")
-          ~children:(deffered_component ~seconds:0.01 ~children:(React.string "First") ())
+          ~children:(deffered_component ~seconds:0.001 ~children:(React.string "First") ())
           ();
         mk_suspense ~fallback:(React.string "Loading 2")
-          ~children:(deffered_component ~seconds:0.02 ~children:(React.string "Second") ())
+          ~children:(deffered_component ~seconds:0.002 ~children:(React.string "Second") ())
           ();
         mk_suspense ~fallback:(React.string "Loading 3")
-          ~children:(deffered_component ~seconds:0.03 ~children:(React.string "Third") ())
+          ~children:(deffered_component ~seconds:0.003 ~children:(React.string "Third") ())
           ();
       ]
   in
@@ -301,14 +301,14 @@ let suspense_with_multiple_children () =
     [
       "<div><!--$?--><template id=\"B:0\"></template>Loading 1<!--/$--><!--$?--><template \
        id=\"B:1\"></template>Loading 2<!--/$--><!--$?--><template id=\"B:2\"></template>Loading 3<!--/$--></div>";
-      "<div hidden id=\"S:0\"><div>Sleep 0.01 seconds<!-- -->, <!-- -->First</div></div>";
+      "<div hidden id=\"S:0\"><div>Sleep 0.001 seconds<!-- -->, <!-- -->First</div></div>";
       "<script>function \
        $RC(a,b){a=document.getElementById(a);b=document.getElementById(b);b.parentNode.removeChild(b);if(a){a=a.previousSibling;var \
        f=a.parentNode,c=a.nextSibling,e=0;do{if(c&&8===c.nodeType){var d=c.data;if(\"/$\"===d)if(0===e)break;else \
        e--;else\"$\"!==d&&\"$?\"!==d&&\"$!\"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data=\"$\";a._reactRetry&&a._reactRetry()}}$RC('B:0','S:0')</script>";
-      "<div hidden id=\"S:1\"><div>Sleep 0.02 seconds<!-- -->, <!-- -->Second</div></div>";
+      "<div hidden id=\"S:1\"><div>Sleep 0.002 seconds<!-- -->, <!-- -->Second</div></div>";
       "<script>$RC('B:1','S:1')</script>";
-      "<div hidden id=\"S:2\"><div>Sleep 0.03 seconds<!-- -->, <!-- -->Third</div></div>";
+      "<div hidden id=\"S:2\"><div>Sleep 0.003 seconds<!-- -->, <!-- -->Third</div></div>";
       "<script>$RC('B:2','S:2')</script>";
     ]
 
@@ -317,13 +317,13 @@ let suspense_with_multiple_children_reordered () =
     React.createElement "div" []
       [
         mk_suspense ~fallback:(React.string "Loading 3")
-          ~children:(deffered_component ~seconds:0.03 ~children:(React.string "Third") ())
+          ~children:(deffered_component ~seconds:0.003 ~children:(React.string "Third") ())
           ();
         mk_suspense ~fallback:(React.string "Loading 1")
-          ~children:(deffered_component ~seconds:0.01 ~children:(React.string "First") ())
+          ~children:(deffered_component ~seconds:0.001 ~children:(React.string "First") ())
           ();
         mk_suspense ~fallback:(React.string "Loading 2")
-          ~children:(deffered_component ~seconds:0.02 ~children:(React.string "Second") ())
+          ~children:(deffered_component ~seconds:0.002 ~children:(React.string "Second") ())
           ();
       ]
   in
@@ -332,14 +332,14 @@ let suspense_with_multiple_children_reordered () =
     [
       "<div><!--$?--><template id=\"B:0\"></template>Loading 3<!--/$--><!--$?--><template \
        id=\"B:1\"></template>Loading 1<!--/$--><!--$?--><template id=\"B:2\"></template>Loading 2<!--/$--></div>";
-      "<div hidden id=\"S:1\"><div>Sleep 0.01 seconds<!-- -->, <!-- -->First</div></div>";
+      "<div hidden id=\"S:1\"><div>Sleep 0.001 seconds<!-- -->, <!-- -->First</div></div>";
       "<script>function \
        $RC(a,b){a=document.getElementById(a);b=document.getElementById(b);b.parentNode.removeChild(b);if(a){a=a.previousSibling;var \
        f=a.parentNode,c=a.nextSibling,e=0;do{if(c&&8===c.nodeType){var d=c.data;if(\"/$\"===d)if(0===e)break;else \
        e--;else\"$\"!==d&&\"$?\"!==d&&\"$!\"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data=\"$\";a._reactRetry&&a._reactRetry()}}$RC('B:1','S:1')</script>";
-      "<div hidden id=\"S:2\"><div>Sleep 0.02 seconds<!-- -->, <!-- -->Second</div></div>";
+      "<div hidden id=\"S:2\"><div>Sleep 0.002 seconds<!-- -->, <!-- -->Second</div></div>";
       "<script>$RC('B:2','S:2')</script>";
-      "<div hidden id=\"S:0\"><div>Sleep 0.03 seconds<!-- -->, <!-- -->Third</div></div>";
+      "<div hidden id=\"S:0\"><div>Sleep 0.003 seconds<!-- -->, <!-- -->Third</div></div>";
       "<script>$RC('B:0','S:0')</script>";
     ]
 
@@ -351,10 +351,10 @@ let suspense_with_nested_suspenses () =
            [
              React.string "Before";
              mk_suspense ~fallback:(React.string "Inner loading 1")
-               ~children:(deffered_component ~seconds:0.01 ~children:(React.string "First") ())
+               ~children:(deffered_component ~seconds:0.001 ~children:(React.string "First") ())
                ();
              mk_suspense ~fallback:(React.string "Inner loading 2")
-               ~children:(deffered_component ~seconds:0.02 ~children:(React.string "Second") ())
+               ~children:(deffered_component ~seconds:0.002 ~children:(React.string "Second") ())
                ();
            ])
       ()
@@ -364,12 +364,12 @@ let suspense_with_nested_suspenses () =
     [
       "<div>Before<!--$?--><template id=\"B:0\"></template>Inner loading 1<!--/$--><!--$?--><template \
        id=\"B:1\"></template>Inner loading 2<!--/$--></div>";
-      "<div hidden id=\"S:0\"><div>Sleep 0.01 seconds<!-- -->, <!-- -->First</div></div>";
+      "<div hidden id=\"S:0\"><div>Sleep 0.001 seconds<!-- -->, <!-- -->First</div></div>";
       "<script>function \
        $RC(a,b){a=document.getElementById(a);b=document.getElementById(b);b.parentNode.removeChild(b);if(a){a=a.previousSibling;var \
        f=a.parentNode,c=a.nextSibling,e=0;do{if(c&&8===c.nodeType){var d=c.data;if(\"/$\"===d)if(0===e)break;else \
        e--;else\"$\"!==d&&\"$?\"!==d&&\"$!\"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data=\"$\";a._reactRetry&&a._reactRetry()}}$RC('B:0','S:0')</script>";
-      "<div hidden id=\"S:1\"><div>Sleep 0.02 seconds<!-- -->, <!-- -->Second</div></div>";
+      "<div hidden id=\"S:1\"><div>Sleep 0.002 seconds<!-- -->, <!-- -->Second</div></div>";
       "<script>$RC('B:1','S:1')</script>";
     ]
 
@@ -382,14 +382,14 @@ let suspense_with_concurrent_suspenses () =
           [ React.JSX.String ("id", "id", "hydrate1") ]
           [
             mk_suspense ~fallback:(React.string "Loading 1")
-              ~children:(deffered_component ~seconds:0.01 ~children:(React.string "Hydrated 1") ())
+              ~children:(deffered_component ~seconds:0.001 ~children:(React.string "Hydrated 1") ())
               ();
           ];
         React.createElement "div"
           [ React.JSX.String ("id", "id", "hydrate2") ]
           [
             mk_suspense ~fallback:(React.string "Loading 2")
-              ~children:(deffered_component ~seconds:0.02 ~children:(React.string "Hydrated 2") ())
+              ~children:(deffered_component ~seconds:0.002 ~children:(React.string "Hydrated 2") ())
               ();
           ];
       ]
@@ -399,12 +399,12 @@ let suspense_with_concurrent_suspenses () =
     [
       "<div>Static content<div id=\"hydrate1\"><!--$?--><template id=\"B:0\"></template>Loading 1<!--/$--></div><div \
        id=\"hydrate2\"><!--$?--><template id=\"B:1\"></template>Loading 2<!--/$--></div></div>";
-      "<div hidden id=\"S:0\"><div>Sleep 0.01 seconds<!-- -->, <!-- -->Hydrated 1</div></div>";
+      "<div hidden id=\"S:0\"><div>Sleep 0.001 seconds<!-- -->, <!-- -->Hydrated 1</div></div>";
       "<script>function \
        $RC(a,b){a=document.getElementById(a);b=document.getElementById(b);b.parentNode.removeChild(b);if(a){a=a.previousSibling;var \
        f=a.parentNode,c=a.nextSibling,e=0;do{if(c&&8===c.nodeType){var d=c.data;if(\"/$\"===d)if(0===e)break;else \
        e--;else\"$\"!==d&&\"$?\"!==d&&\"$!\"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data=\"$\";a._reactRetry&&a._reactRetry()}}$RC('B:0','S:0')</script>";
-      "<div hidden id=\"S:1\"><div>Sleep 0.02 seconds<!-- -->, <!-- -->Hydrated 2</div></div>";
+      "<div hidden id=\"S:1\"><div>Sleep 0.002 seconds<!-- -->, <!-- -->Hydrated 2</div></div>";
       "<script>$RC('B:1','S:1')</script>";
     ]
 
@@ -414,7 +414,7 @@ let suspense_with_comments () =
       [
         React.createElement "div" [] [ React.string "<!-- tricky comment -->" ];
         mk_suspense ~fallback:(React.string "Loading")
-          ~children:(deffered_component ~seconds:0.01 ~children:(React.string "Content") ())
+          ~children:(deffered_component ~seconds:0. ~children:(React.string "Content") ())
           ();
       ]
   in
@@ -422,7 +422,7 @@ let suspense_with_comments () =
   assert_stream stream
     [
       "<div><div>&lt;!-- tricky comment --&gt;</div><!--$?--><template id=\"B:0\"></template>Loading<!--/$--></div>";
-      "<div hidden id=\"S:0\"><div>Sleep 0.01 seconds<!-- -->, <!-- -->Content</div></div>";
+      "<div hidden id=\"S:0\"><div>Sleep 0. seconds<!-- -->, <!-- -->Content</div></div>";
       "<script>function \
        $RC(a,b){a=document.getElementById(a);b=document.getElementById(b);b.parentNode.removeChild(b);if(a){a=a.previousSibling;var \
        f=a.parentNode,c=a.nextSibling,e=0;do{if(c&&8===c.nodeType){var d=c.data;if(\"/$\"===d)if(0===e)break;else \
@@ -434,10 +434,10 @@ let abort_streaming () =
     React.createElement "div" []
       [
         mk_suspense ~fallback:(React.string "Loading 1")
-          ~children:(deffered_component ~seconds:0.05 ~children:(React.string "Content 1") ())
+          ~children:(deffered_component ~seconds:0.005 ~children:(React.string "Content 1") ())
           ();
         mk_suspense ~fallback:(React.string "Loading 2")
-          ~children:(deffered_component ~seconds:0.10 ~children:(React.string "Content 2") ())
+          ~children:(deffered_component ~seconds:0.001 ~children:(React.string "Content 2") ())
           ();
       ]
   in
@@ -576,7 +576,7 @@ let async_component_with_use_id_in_suspense () =
       ( "AsyncWithId",
         fun () ->
           let id = React.useId () in
-          let%lwt () = Lwt_unix.sleep 0.01 in
+          let%lwt () = Lwt.pause () in
           Lwt.return (React.createElement "div" [ React.JSX.String ("id", "id", id) ] []) )
   in
   let app = mk_suspense ~fallback:(React.string "loading") ~children:async_with_id () in
@@ -610,15 +610,14 @@ let multiple_async_components_without_suspense () =
   let app () =
     React.createElement "div" []
       [
-        deffered_component ~seconds:0.02 ~children:(React.string "First") ();
-        deffered_component ~seconds:0.01 ~children:(React.string "Second") ();
+        deffered_component ~seconds:0. ~children:(React.string "First") ();
+        deffered_component ~seconds:0. ~children:(React.string "Second") ();
       ]
   in
   let%lwt stream, _abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
   assert_stream stream
     [
-      "<div><div>Sleep 0.02 seconds<!-- -->, <!-- -->First</div><div>Sleep 0.01 seconds<!-- -->, <!-- \
-       -->Second</div></div>";
+      "<div><div>Sleep 0. seconds<!-- -->, <!-- -->First</div><div>Sleep 0. seconds<!-- -->, <!-- -->Second</div></div>";
     ]
 
 let context_provider_with_suspended_consumer () =
@@ -629,7 +628,7 @@ let context_provider_with_suspended_consumer () =
         fun () ->
           (* useContext must be called synchronously, before yielding *)
           let value = React.useContext context in
-          let%lwt () = Lwt_unix.sleep 0.01 in
+          let%lwt () = Lwt.pause () in
           Lwt.return (React.createElement "span" [] [ React.string value ]) )
   in
   let app () =
@@ -656,10 +655,10 @@ let async_component_returning_suspense_with_async_children () =
         (React.Async_component
            ( "outer_async",
              fun () ->
-               let%lwt () = Lwt_unix.sleep 0.01 in
+               let%lwt () = Lwt.pause () in
                Lwt.return
                  (mk_suspense ~fallback:(React.string "Inner loading")
-                    ~children:(deffered_component ~seconds:0.01 ~children:(React.string "deep") ())
+                    ~children:(deffered_component ~seconds:0. ~children:(React.string "deep") ())
                     ()) ))
       ()
   in
@@ -672,7 +671,7 @@ let async_component_returning_suspense_with_async_children () =
        $RC(a,b){a=document.getElementById(a);b=document.getElementById(b);b.parentNode.removeChild(b);if(a){a=a.previousSibling;var \
        f=a.parentNode,c=a.nextSibling,e=0;do{if(c&&8===c.nodeType){var d=c.data;if(\"/$\"===d)if(0===e)break;else \
        e--;else\"$\"!==d&&\"$?\"!==d&&\"$!\"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data=\"$\";a._reactRetry&&a._reactRetry()}}$RC('B:0','S:0')</script>";
-      "<div hidden id=\"S:1\"><div>Sleep 0.01 seconds<!-- -->, <!-- -->deep</div></div>";
+      "<div hidden id=\"S:1\"><div>Sleep 0. seconds<!-- -->, <!-- -->deep</div></div>";
       "<script>$RC('B:1','S:1')</script>";
     ]
 
@@ -752,7 +751,7 @@ let dangerous_html_in_suspense () =
         (React.Async_component
            ( "Dangerous and sleep",
              fun () ->
-               let%lwt () = Lwt_unix.sleep 0.01 in
+               let%lwt () = Lwt.pause () in
                Lwt.return
                  (React.createElement "div"
                     [

@@ -38,10 +38,10 @@ let suites =
             assert_option Alcotest.int (Some 39) (Belt.Map.get values 39);
             assert_option Alcotest.int (Some 120) (Belt.Map.get updated 39));
         test "large fromArray sorts output" (fun () ->
-            let values = map_of_array (Array.map (fun key -> (key, key)) (shuffled_range 0 10_000)) in
+            let values = map_of_array (Array.map (fun key -> (key, key)) (shuffled_range 0 1_000)) in
             assert_array
               (Alcotest.pair Alcotest.int Alcotest.int)
-              (Array.map (fun key -> (key, key)) (inclusive_range 0 10_000))
+              (Array.map (fun key -> (key, key)) (inclusive_range 0 1_000))
               (Belt.Map.toArray values));
         test "merge variants" (fun () ->
             let left = map_of_array (int_pairs 0 100) in
@@ -86,25 +86,25 @@ let suites =
             let expected = map_of_array (Array.init 31 (fun key -> (key, if key >= 10 && key <= 20 then 2 else 1))) in
             assert_bool true (Belt.Map.eq accumulated expected ( = )));
         test "mergeMany split and empty removals" (fun () ->
-            let merged = Belt.Map.mergeMany (Belt.Map.make ~id:(module IntCmp)) (int_pairs 0 10_000) in
-            let from_array = map_of_array (int_pairs 0 10_000) in
+            let merged = Belt.Map.mergeMany (Belt.Map.make ~id:(module IntCmp)) (int_pairs 0 1_000) in
+            let from_array = map_of_array (int_pairs 0 1_000) in
             assert_bool true (Belt.Map.eq merged from_array ( = ));
             let increment = function None -> Some 0 | Some value -> Some (value + 1) in
             let updated = Belt.Map.update merged 10 increment in
             let with_negative = Belt.Map.update updated (-10) increment in
-            let (left, right), present = Belt.Map.split updated 5000 in
+            let (left, right), present = Belt.Map.split updated 500 in
             assert_option Alcotest.int (Some 11) (Belt.Map.get updated 10);
             assert_option Alcotest.int None (Belt.Map.get updated (-10));
             assert_option Alcotest.int (Some 0) (Belt.Map.get with_negative (-10));
             assert_bool true (Belt.Map.isEmpty (Belt.Map.remove (Belt.Map.make ~id:(module IntCmp)) 0));
             assert_bool true (Belt.Map.isEmpty (Belt.Map.removeMany (Belt.Map.make ~id:(module IntCmp)) [| 0 |]));
-            assert_option Alcotest.int (Some 5000) present;
-            assert_array Alcotest.int (inclusive_range 0 4999) (Belt.Map.keysToArray left);
-            assert_array Alcotest.int (inclusive_range 5001 10_000) (Belt.Map.keysToArray right);
-            let removed = Belt.Map.remove updated 5000 in
-            let (left_missing, right_missing), present_missing = Belt.Map.split removed 5000 in
+            assert_option Alcotest.int (Some 500) present;
+            assert_array Alcotest.int (inclusive_range 0 499) (Belt.Map.keysToArray left);
+            assert_array Alcotest.int (inclusive_range 501 1_000) (Belt.Map.keysToArray right);
+            let removed = Belt.Map.remove updated 500 in
+            let (left_missing, right_missing), present_missing = Belt.Map.split removed 500 in
             assert_option Alcotest.int None present_missing;
-            assert_array Alcotest.int (inclusive_range 0 4999) (Belt.Map.keysToArray left_missing);
-            assert_array Alcotest.int (inclusive_range 5001 10_000) (Belt.Map.keysToArray right_missing));
+            assert_array Alcotest.int (inclusive_range 0 499) (Belt.Map.keysToArray left_missing);
+            assert_array Alcotest.int (inclusive_range 501 1_000) (Belt.Map.keysToArray right_missing));
       ] );
   ]

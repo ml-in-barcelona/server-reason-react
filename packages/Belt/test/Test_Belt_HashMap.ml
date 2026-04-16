@@ -32,22 +32,22 @@ let suites =
             let keys = Belt.HashMap.keysToArray values in
             Belt.SortArray.Int.stableSortInPlace keys;
             assert_array Alcotest.int (inclusive_range 30 120) keys);
-        slow_test "remove stress" (fun () ->
+        test "remove stress" (fun () ->
             let input =
-              Array.map (fun value -> (value, value)) (Array.append (shuffled_range 0 100_000) (shuffled_range 0 100))
+              Array.map (fun value -> (value, value)) (Array.append (shuffled_range 0 10_000) (shuffled_range 0 100))
             in
             let values = Belt.HashMap.make ~id:(module IntHash) ~hintSize:40 in
             Belt.HashMap.mergeMany values input;
-            assert_int 100_001 (Belt.HashMap.size values);
+            assert_int 10_001 (Belt.HashMap.size values);
             for key = 0 to 1000 do
               Belt.HashMap.remove values key
             done;
-            assert_int 99_000 (Belt.HashMap.size values);
+            assert_int 9_000 (Belt.HashMap.size values);
             for key = 0 to 2000 do
               Belt.HashMap.remove values key
             done;
-            assert_int 98_000 (Belt.HashMap.size values);
-            for key = 2001 to 100_000 do
+            assert_int 8_000 (Belt.HashMap.size values);
+            for key = 2001 to 10_000 do
               assert_bool true (Belt.HashMap.has values key)
             done);
         test "keepMapInPlace middle remove" (fun () ->

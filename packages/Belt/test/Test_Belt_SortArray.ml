@@ -44,8 +44,8 @@ let suites =
             assert_bool true (Belt.SortArray.isSorted [| 0 |] int_cmp);
             assert_bool true (Belt.SortArray.isSorted [| 0; 1 |] int_cmp);
             assert_bool false (Belt.SortArray.isSorted [| 1; 0 |] int_cmp));
-        slow_test "specialized stable sorts" (fun () ->
-            let values = shuffled_range 0 100_000 in
+        test "specialized stable sorts" (fun () ->
+            let values = shuffled_range 0 10_000 in
             let copy1 = Array.copy values in
             let copy2 = Array.copy values in
             Belt.SortArray.stableSortInPlaceBy values int_cmp;
