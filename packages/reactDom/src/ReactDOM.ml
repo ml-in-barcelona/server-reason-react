@@ -295,10 +295,8 @@ type stream_context = {
 let complete_boundary_script =
   {|function $RC(a,b){a=document.getElementById(a);b=document.getElementById(b);b.parentNode.removeChild(b);if(a){a=a.previousSibling;var f=a.parentNode,c=a.nextSibling,e=0;do{if(c&&8===c.nodeType){var d=c.data;if("/$"===d)if(0===e)break;else e--;else"$"!==d&&"$?"!==d&&"$!"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data="$";a._reactRetry&&a._reactRetry()}}|}
 
-let replacement b s = Printf.sprintf "$RC('B:%i','S:%i')" b s
-
 let write_inline_complete_boundary_script buf has_rc_script_been_injected boundary_id suspense_id =
-  let rc_call = replacement boundary_id suspense_id in
+  let rc_call = Printf.sprintf "$RC('B:%i','S:%i')" boundary_id suspense_id in
   if not has_rc_script_been_injected then (
     Buffer.add_string buf "<script>";
     Buffer.add_string buf complete_boundary_script;

@@ -1510,7 +1510,7 @@ let rewrite_structure_item ~nested_module_names structure_item =
         in
         match make_props_bindings with
         | [] -> pstr_value ~loc:structure_item.pstr_loc rec_flag internal_bindings
-        | _ ->
+        | _ -> (
             let loc = structure_item.pstr_loc in
             let is_react_attr attr =
               let name = attr.attr_name.txt in
@@ -1528,7 +1528,7 @@ let rewrite_structure_item ~nested_module_names structure_item =
                   [%%i pstr_value ~loc:structure_item.pstr_loc Nonrecursive public_bindings]
                 end]
             in
-            (match (propagated_attrs, include_stri.pstr_desc) with
+            match (propagated_attrs, include_stri.pstr_desc) with
             | _ :: _, Pstr_include incl ->
                 { include_stri with pstr_desc = Pstr_include { incl with pincl_attributes = propagated_attrs } }
             | _ -> include_stri)
