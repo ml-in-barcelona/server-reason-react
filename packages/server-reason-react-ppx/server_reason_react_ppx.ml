@@ -399,6 +399,95 @@ let generate_create_element ~loc ~tag_name ~key ~props ~children =
   | Some key, None -> [%expr React.createElementWithKey ~key:[%e key] [%e dom_node_name] [%e props] []]
   | None, None -> [%expr React.createElement [%e dom_node_name] [%e props] []]
 
+(* Emit buffer writes that serialize a single attribute value of the given
+   kind. Mirrors [ReactDOM.write_attribute_to_buffer] exactly so that PPX-
+   lowered output is byte-identical to the variant-tree path.
+
+   [value_expr] is the already-unwrapped (not an option) runtime expression
+   that produces the value. Handles only the kinds declared lowerable in
+   [Static_analysis.is_lowerable_kind]. Mirrored by
+   [Static_analysis.render_static_attr_with_info] on the literal side. *)
+let emit_attr_value_write ~loc ~info ~value_expr =
+  let open Static_analysis in
+  let name_expr = estring ~loc info.html_name in
+  (* Wrap a value-writing sub-expression with the ` name="…"` skeleton. *)
+  let quoted inner =
+    [%expr
+      Buffer.add_char b ' ';
+      Buffer.add_string b [%e name_expr];
+      Buffer.add_string b "=\"";
+      [%e inner];
+      Buffer.add_char b '"']
+  in
+  match info.kind with
+  | DomProps.String -> quoted [%expr ReactDOM.escape_to_buffer b ([%e value_expr] : string)]
+  | DomProps.Int ->
+      (* [Printf.bprintf b "%d" n] writes digits straight into the buffer;
+         [Stdlib.Int.to_string] would allocate a throwaway string per render. *)
+      quoted [%expr Printf.bprintf b "%d" ([%e value_expr] : int)]
+  | DomProps.Bool ->
+      (* Matches [Bool (name, _, true) -> " " ^ name] / [false -> nothing]. *)
+      [%expr
+        if ([%e value_expr] : bool) then begin
+          Buffer.add_char b ' ';
+          Buffer.add_string b [%e name_expr]
+        end]
+  | DomProps.BooleanishString ->
+      quoted [%expr Buffer.add_string b (if ([%e value_expr] : bool) then "true" else "false")]
+  | DomProps.Action | DomProps.Style | DomProps.Ref | DomProps.InnerHtml ->
+      (* Unreachable: [is_lowerable_kind] rejects these kinds before we ever
+         reach emission. Fail loud at compile time if the invariant breaks. *)
+      Location.raise_errorf ~loc "internal PPX error: attribute kind not lowerable but reached emission (name=%s)"
+        info.html_name
+
+(* Emit the [Buffer.t -> unit] body for a [static_part list]. Writes the
+   static skeleton inline; each dynamic hole becomes a [Buffer.add_*] /
+   escape / attribute-emission call that runs at render time with no
+   intermediate allocation. Shared by the [Needs_string_concat] and
+   [Needs_buffer] tiers — both produce the same emit function; the tier
+   distinction is informational only, used for future analysis work. *)
+let emit_parts_emit_fn ~loc parts =
+  let open Static_analysis in
+  (* Emit one [Dynamic_attr_slot] hole. For optional slots we peek through
+     an obvious [Some e]/[None] to skip the runtime [match]; common when a
+     caller writes [?foo=Some x] or [?foo=None] literally. *)
+  let write_attr_slot ~info ~expr ~is_optional =
+    let loc = expr.pexp_loc in
+    if not is_optional then emit_attr_value_write ~loc ~info ~value_expr:expr
+    else
+      match expr.pexp_desc with
+      | Pexp_construct ({ txt = Lident "None"; _ }, None) -> [%expr ()]
+      | Pexp_construct ({ txt = Lident "Some"; _ }, Some inner) -> emit_attr_value_write ~loc ~info ~value_expr:inner
+      | _ ->
+          let write_some = emit_attr_value_write ~loc ~info ~value_expr:[%expr v] in
+          [%expr match [%e expr] with None -> () | Some v -> [%e write_some]]
+  in
+  let writes =
+    List.map parts ~f:(fun part ->
+        match part with
+        | Static_str s -> [%expr Buffer.add_string b [%e estring ~loc s]]
+        | Dynamic_string e ->
+            let loc = e.pexp_loc in
+            [%expr ReactDOM.escape_to_buffer b [%e e]]
+        | Dynamic_int e ->
+            let loc = e.pexp_loc in
+            [%expr Printf.bprintf b "%d" [%e e]]
+        | Dynamic_float e ->
+            let loc = e.pexp_loc in
+            [%expr Buffer.add_string b (Stdlib.Float.to_string [%e e])]
+        | Dynamic_element e ->
+            let loc = e.pexp_loc in
+            [%expr ReactDOM.write_to_buffer b [%e e]]
+        | Dynamic_attr_slot { info; expr; is_optional } -> write_attr_slot ~info ~expr ~is_optional)
+  in
+  let body =
+    List.fold_right writes ~init:[%expr ()] ~f:(fun w acc ->
+        [%expr
+          [%e w];
+          [%e acc]])
+  in
+  [%expr fun b -> [%e body]]
+
 let rewrite_lowercase ~loc tag_name args children =
   let key =
     args |> List.find_opt ~f:(fun (label, _) -> get_label label = "key") |> Option.map (fun (_, value) -> value)
@@ -410,8 +499,22 @@ let rewrite_lowercase ~loc tag_name args children =
       let html_expr = estring ~loc html_with_doctype in
       let original = generate_create_element ~loc ~tag_name ~key ~props ~children in
       [%expr React.Static { prerendered = [%e html_expr]; original = [%e original] }]
-  | Static_analysis.Needs_string_concat _ | Static_analysis.Needs_buffer _ | Static_analysis.Cannot_optimize ->
-      generate_create_element ~loc ~tag_name ~key ~props ~children
+  | Static_analysis.Needs_string_concat parts | Static_analysis.Needs_buffer parts ->
+      (* Emit a [Buffer.t -> unit] that writes directly into the caller's
+         buffer. Avoids the N-per-subtree [Buffer.create] + [Buffer.contents]
+         that a [Static] wrapping would cost. At render time the renderer
+         just calls [emit buf].
+
+         [original] is a thunk that rebuilds the variant-tree on demand for
+         [cloneElement] / RSC; zero-alloc unless called. *)
+      let parts_with_doctype =
+        match tag_name with "html" -> Static_analysis.Static_str "<!DOCTYPE html>" :: parts | _ -> parts
+      in
+      let emit_fn = emit_parts_emit_fn ~loc parts_with_doctype in
+      let original_tree = generate_create_element ~loc ~tag_name ~key ~props ~children in
+      let original_thunk = [%expr fun () -> [%e original_tree]] in
+      [%expr React.Writer { emit = [%e emit_fn]; original = [%e original_thunk] }]
+  | Static_analysis.Cannot_optimize -> generate_create_element ~loc ~tag_name ~key ~props ~children
 
 let split_args args =
   let children = ref (Location.none, []) in
@@ -1622,6 +1725,13 @@ let traverse =
 
     method! expression ctx expr =
       let expr = super#expression ctx expr in
+      (* Rewrite ReactDOM.Style.make(~k:v, ..., ()) to a direct list literal at
+         compile time. On stock OCaml the 347-optional-arg signature forces
+         ~1460 words/call; the PPX elides this entirely when all args are
+         labeled string values. Falls through if optional args or unknown
+         names appear. Runs on both Native and Js; harmless on Js since the
+         list shape matches ReactDOM.Style.t. *)
+      let expr = Style_rewrite.rewrite_expression expr in
       let attributes = expr.pexp_attributes in
       match mode.contents with
       | Js -> (

@@ -1,26 +1,55 @@
 # Server Reason React Benchmark Suite
 
-A comprehensive benchmark suite for measuring and comparing SSR performance of `server-reason-react` against React.js with some JavaScript runtimes
+A comprehensive benchmark suite for measuring and comparing SSR performance of `server-reason-react` against React.js on JavaScript runtimes.
 
 ## Performance Summary
 
-**Pure rendering performance** — Native + server-reason-rect vs Bun + React:
+Pure rendering performance — `server-reason-react` (release profile, flambda + PPX static analyzer enabled) vs React 19.2.5 on Node 22.22.0 and Bun 1.3.12, both with `NODE_ENV=production`. Numbers are mean of 100 iterations, `renderToString`.
 
-| Scenario | Native | Bun + React | Speedup |
-|----------|--------|-------------|---------|
-| Trivial | 0.10µs | 37.16µs | **371x** |
-| Table100 | 300.92µs | 3,500µs | **11.6x** |
-| Wide100 | 287.40µs | 1,980µs | **6.9x** |
-| Deep50 | 140.82µs | 349.37µs | **2.5x** |
+All 17 scenarios the native bench exercises are mirrored in JS, so every row is a like-for-like comparison of the same component tree rendered by three different runtimes.
 
-**Throughput:**
+| Scenario    | SRR         | Node + React | Bun + React | SRR vs Node | SRR vs Bun |
+|-------------|------------:|-------------:|------------:|------------:|-----------:|
+| Trivial     | **0.29 µs** | 42.10 µs     | 44.54 µs    | **145x**    | **154x**   |
+| ShallowTree | **16.78 µs**| 99.97 µs     | 101.17 µs   | **6.0x**    | **6.0x**   |
+| DeepTree10  | **13.74 µs**| 35.93 µs     | 35.97 µs    | **2.6x**    | **2.6x**   |
+| DeepTree50  | **67.07 µs**| 91.77 µs     | 105.36 µs   | **1.4x**    | **1.6x**   |
+| WideTree10  | **14.78 µs**| 66.20 µs     | 96.20 µs    | **4.5x**    | **6.5x**   |
+| WideTree100 | **216.24 µs**| 382.75 µs   | 346.96 µs   | **1.8x**    | **1.6x**   |
+| WideTree500 | **1.15 ms** | 2.30 ms      | 1.55 ms     | **2.0x**    | **1.3x**   |
+| Table10     | **35.95 µs**| 219.12 µs    | 200.06 µs   | **6.1x**    | **5.6x**   |
+| Table100    | **301.89 µs**| 714.19 µs   | 628.45 µs   | **2.4x**    | **2.1x**   |
+| Table500    | **1.35 ms** | 4.97 ms      | 3.05 ms     | **3.7x**    | **2.3x**   |
+| PropsSmall  | **107.42 µs**| 217.50 µs   | 204.00 µs   | **2.0x**    | **1.9x**   |
+| PropsMedium | **305.64 µs**| 395.08 µs   | 361.21 µs   | **1.3x**    | **1.2x**   |
+| Ecommerce24 | **121.24 µs**| 373.23 µs   | 376.76 µs   | **3.1x**    | **3.1x**   |
+| Ecommerce48 | **228.68 µs**| 488.66 µs   | 492.02 µs   | **2.1x**    | **2.2x**   |
+| Dashboard   | **31.68 µs**| 85.82 µs     | 94.09 µs    | **2.7x**    | **3.0x**   |
+| Blog50      | **182.86 µs**| 565.45 µs   | 587.69 µs   | **3.1x**    | **3.2x**   |
+| Form        | **69.39 µs**| 206.54 µs    | 163.92 µs   | **3.0x**    | **2.4x**   |
 
-| Scenario | Native | Bun + React |
-|----------|--------|-------------|
-| Table100 | 456.9 MB/s | 39.5 MB/s |
-| Wide100 | 224.9 MB/s | 33.3 MB/s |
+Throughput (MB/s, higher is better):
 
-> These benchmarks measure pure `renderToStaticMarkup`/`renderToString` performance without HTTP server overhead, providing an accurate comparison of SSR rendering speed.
+| Scenario    | SRR | Node | Bun |
+|-------------|----:|-----:|----:|
+| Table500    | **505.2** | 137.2 | 223.6 |
+| Blog50      | **500.8** | 161.9 | 155.8 |
+| Table100    | **455.4** | 192.5 | 218.8 |
+| Dashboard   | **440.2** | 162.5 | 148.2 |
+| WideTree10  | **439.2** | 98.1  | 67.5  |
+| Ecommerce24 | **427.3** | 138.8 | 137.5 |
+| Table10     | **421.1** | 69.1  | 75.7  |
+| Ecommerce48 | **410.6** | 192.1 | 190.8 |
+| Form        | **310.6** | 104.4 | 131.5 |
+| PropsMedium | **302.6** | 234.1 | 256.0 |
+| WideTree500 | **282.3** | 141.1 | 209.4 |
+
+Notes:
+- **SRR wins on every scenario.** Typical margin is 1.3–3.1x on realistic pages; the largest wins are on Table10 (5.6–6.1x), Table500 (2.3–3.7x), ShallowTree (6.0x), and WideTree10 (4.5–6.5x). Trivial's ~145x is measurement floor noise, not a real rendering difference.
+- **Bun beats Node** on large wide trees and tables (1.3–1.6x), but loses on attribute-heavy and small-tree scenarios. On most real-page scenarios the two are within 10% of each other.
+- React 19 `renderToString` is measurably slower than 18.3.1 on small scenarios (Trivial went from ~19 µs → ~42 µs) because of added server-component machinery that runs on every render. Large scenarios are roughly on par or slightly faster.
+
+> These benchmarks measure pure `renderToStaticMarkup`/`renderToString` performance without HTTP server overhead. JS runs require `NODE_ENV=production`; the harness refuses to run otherwise (React's dev build is 3–7x slower and would give meaningless numbers).
 
 ## Quick Start
 
@@ -169,7 +198,7 @@ make wrk-test PORT=3000 SCENARIO=table100
 
 ### Environment
 - All frameworks run single-threaded for fair comparison
-- Production mode (`NODE_ENV=production`)
+- React runtimes require `NODE_ENV=production` — `render-bench.ts` refuses to run otherwise, and `make bench-render` sets it automatically. React's development build skips a large amount of dev-only validation in production and is 3–7x faster as a result.
 - Same React/component tree across frameworks
 
 ### Metrics Reported
@@ -206,9 +235,13 @@ make results
 
 ### Typical results pattern:
 
-**Pure rendering** (no HTTP):
-- Native is **2.5-12x faster** than Bun + React depending on component complexity
-- Throughput: Native achieves **180-510 MB/s** vs Bun's **13-40 MB/s**
+**Pure rendering** (no HTTP, React runtimes in `NODE_ENV=production`):
+- SRR is **1.3–6.1x faster** than Node + React and **1.2–6.5x faster** than Bun + React across all 17 scenarios. The biggest realistic wins are on tables (up to 6.1x on Table10 vs Node) and shallow/wide component trees (4.5–6.5x on WideTree10).
+- SRR throughput tops out around **505 MB/s** on tables and **500 MB/s** on content pages (Blog50). Bun is competitive on a handful of scenarios (~225 MB/s on Table500); Node trails at ~100–195 MB/s on large scenarios.
+- The "trivial" scenario shows a ~145x gap that's mostly measurement floor noise, not a real rendering difference.
+- Node and Bun are roughly at parity on most real-page scenarios. Bun wins on large wide trees and tables; Node wins on attribute-heavy and small-tree scenarios.
+
+**Inline `style` props are expensive in SRR.** `ReactDOM.Style.make` has ~347 optional args and allocates ~1,460 words per call regardless of what's passed. If a component is on a hot render path and uses inline `style`, consider moving the style into a CSS class. Scenarios in this suite use `className` so the measurement reflects the rendering path, not `Style.make` allocation.
 
 **HTTP benchmarks** (with server overhead):
 - Bun's HTTP layer is faster for minimal requests (trivial scenario)

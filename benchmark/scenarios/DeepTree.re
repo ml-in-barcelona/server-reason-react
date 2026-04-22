@@ -8,13 +8,8 @@ module Wrapper = {
   let make = (~depth, ~maxDepth, ~children) => {
     let percentage = float_of_int(depth) /. float_of_int(maxDepth) *. 100.0;
     <div
-      className={Printf.sprintf("depth-%d", depth)}
-      dataTestid={Printf.sprintf("level-%d", depth)}
-      style={ReactDOM.Style.make(
-        ~paddingLeft="2px",
-        ~borderLeft="1px solid rgba(0,0,0,0.1)",
-        (),
-      )}>
+      className={Printf.sprintf("depth-%d border-l pl-0.5", depth)}
+      dataTestid={Printf.sprintf("level-%d", depth)}>
       <span className="text-xs text-gray-400">
         {React.string(Printf.sprintf("Level %d (%.0f%%)", depth, percentage))}
       </span>

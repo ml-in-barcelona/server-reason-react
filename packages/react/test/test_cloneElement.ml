@@ -23,6 +23,8 @@ let equal_elements (c1 : React.element) (c2 : React.element) =
     | Empty, Empty -> true
     | Static { original = original1; prerendered = _ }, Static { original = original2; prerendered = _ } ->
         equal_rec original1 original2
+    | Writer { original = original1; emit = _ }, Writer { original = original2; emit = _ } ->
+        equal_rec (original1 ()) (original2 ())
     | _, _ -> false
   in
   equal_rec c1 c2

@@ -4,6 +4,11 @@
  */
 
 import React from "react";
+import { PropsSmall, PropsMedium, PropsLarge } from "./PropsHeavy.jsx";
+import { Ecommerce24, Ecommerce48, Ecommerce100 } from "./Ecommerce.jsx";
+import { Dashboard } from "./Dashboard.jsx";
+import { Blog10, Blog50, Blog100 } from "./Blog.jsx";
+import { Form } from "./Form.jsx";
 
 // ============================================================================
 // Trivial - Baseline
@@ -83,9 +88,8 @@ const Wrapper = ({ depth, maxDepth, children }) => {
   const percentage = (depth / maxDepth) * 100;
   return (
     <div
-      className={`depth-${depth}`}
+      className={`depth-${depth} border-l pl-0.5`}
       data-testid={`level-${depth}`}
-      style={{ paddingLeft: "2px", borderLeft: "1px solid rgba(0,0,0,0.1)" }}
     >
       <span className="text-xs text-gray-400">
         Level {depth} ({percentage.toFixed(0)}%)
@@ -417,6 +421,61 @@ export const scenarios = {
     component: Table500,
     name: "Table 500",
     description: "500 row table",
+  },
+  propsSmall: {
+    component: PropsSmall,
+    name: "Props Small",
+    description: "10 attribute-heavy components",
+  },
+  propsMedium: {
+    component: PropsMedium,
+    name: "Props Medium",
+    description: "50 attribute-heavy components",
+  },
+  propsLarge: {
+    component: PropsLarge,
+    name: "Props Large",
+    description: "100x10 attribute-heavy table",
+  },
+  ecommerce24: {
+    component: Ecommerce24,
+    name: "Ecommerce 24",
+    description: "Product grid page (24 items)",
+  },
+  ecommerce48: {
+    component: Ecommerce48,
+    name: "Ecommerce 48",
+    description: "Product grid page (48 items)",
+  },
+  ecommerce100: {
+    component: Ecommerce100,
+    name: "Ecommerce 100",
+    description: "Product grid page (100 items)",
+  },
+  dashboard: {
+    component: Dashboard,
+    name: "Dashboard",
+    description: "Analytics dashboard page",
+  },
+  blog10: {
+    component: Blog10,
+    name: "Blog 10",
+    description: "Article page with 10 comments",
+  },
+  blog50: {
+    component: Blog50,
+    name: "Blog 50",
+    description: "Article page with 50 comments",
+  },
+  blog100: {
+    component: Blog100,
+    name: "Blog 100",
+    description: "Article page with 100 comments",
+  },
+  form: {
+    component: Form,
+    name: "Form",
+    description: "Multi-section registration form",
   },
 };
 

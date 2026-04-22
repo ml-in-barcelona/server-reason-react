@@ -104,6 +104,23 @@ let render_children_list render_element list =
           React.current_tree_context := saved_ctx;
           raise exn)
 
+let render_children_array render_element arr =
+  let total = Array.length arr in
+  if total = 0 then ()
+  else if total = 1 then render_element (Array.unsafe_get arr 0)
+  else
+    let saved_ctx = !React.current_tree_context in
+    match
+      for i = 0 to total - 1 do
+        React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:total ~index:i;
+        render_element (Array.unsafe_get arr i)
+      done
+    with
+    | () -> React.current_tree_context := saved_ctx
+    | exception exn ->
+        React.current_tree_context := saved_ctx;
+        raise exn
+
 let render_upper_case_component_lwt render_element component =
   let saved_ctx = !React.current_tree_context in
   React.reset_component_id_state saved_ctx;
@@ -144,6 +161,27 @@ let render_children_list_lwt render_element list =
         React.current_tree_context := saved_ctx;
         raise exn)
 
+let render_children_array_lwt render_element arr =
+  let total = Array.length arr in
+  if total = 0 then Lwt.return ()
+  else if total = 1 then render_element (Array.unsafe_get arr 0)
+  else
+    let saved_ctx = !React.current_tree_context in
+    let rec loop i =
+      if i >= total then Lwt.return ()
+      else (
+        React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:total ~index:i;
+        let%lwt () = render_element (Array.unsafe_get arr i) in
+        loop (i + 1))
+    in
+    try%lwt
+      let%lwt () = loop 0 in
+      React.current_tree_context := saved_ctx;
+      Lwt.return ()
+    with exn ->
+      React.current_tree_context := saved_ctx;
+      raise exn
+
 type mode = String | Markup
 
 let render_to_buffer ~mode buf element =
@@ -157,6 +195,9 @@ let render_to_buffer ~mode buf element =
     | Static { prerendered; _ } ->
         should_add_doctype := false;
         Buffer.add_string buf prerendered
+    | Writer { emit; _ } ->
+        should_add_doctype := false;
+        emit buf
     | Client_component { import_module; _ } ->
         raise
           (Invalid_argument
@@ -169,7 +210,7 @@ let render_to_buffer ~mode buf element =
     | Consumer children -> render_element ~buf children
     | Fragment children -> render_element ~buf children
     | List list -> render_children_list (render_element ~buf) list
-    | Array arr -> render_children_list (render_element ~buf) (Array.to_list arr)
+    | Array arr -> render_children_array (render_element ~buf) arr
     | Upper_case_component (_, component) -> render_upper_case_component (render_element ~buf) component
     | Async_component (_name, _component) ->
         raise
@@ -226,6 +267,7 @@ let write_to_buffer buf element =
     match (element : React.element) with
     | Empty -> ()
     | Static { prerendered; _ } -> Buffer.add_string buf prerendered
+    | Writer { emit; _ } -> emit buf
     | Client_component { import_module; _ } ->
         raise (Invalid_argument ("Client components can't be rendered via write_to_buffer. module: " ^ import_module))
     | Provider { children; push; _ } ->
@@ -235,7 +277,7 @@ let write_to_buffer buf element =
     | Consumer children -> render ~buf children
     | Fragment children -> render ~buf children
     | List list -> render_children_list (render ~buf) list
-    | Array arr -> render_children_list (render ~buf) (Array.to_list arr)
+    | Array arr -> render_children_array (render ~buf) arr
     | Upper_case_component (_, component) -> render_upper_case_component (render ~buf) component
     | Async_component (_name, _component) ->
         raise (Invalid_argument "Async components can't be rendered synchronously via write_to_buffer.")
@@ -347,6 +389,10 @@ let rec render_to_buffer ~stream_context ?(add_doctype = false) buf element =
         should_add_doctype := false;
         Buffer.add_string buf prerendered;
         Lwt.return ()
+    | Writer { emit; _ } ->
+        should_add_doctype := false;
+        emit buf;
+        Lwt.return ()
     | Client_component { import_module; _ } ->
         raise
           (Invalid_argument
@@ -360,7 +406,7 @@ let rec render_to_buffer ~stream_context ?(add_doctype = false) buf element =
     | Consumer children -> render_element children
     | Fragment children -> render_element children
     | List list -> render_children_list_lwt render_element list
-    | Array arr -> render_children_list_lwt render_element (Array.to_list arr)
+    | Array arr -> render_children_array_lwt render_element arr
     | Lower_case_element { key; tag; attributes; children } -> render_lower_case ~key tag attributes children
     | Text text ->
         let is_previous_text_node = !previous_node_was_text in

@@ -1,0 +1,5 @@
+=== perf_profile ===
+warmup=5  iters=30  scenarios=1
+### table100
+  iterations: 30  elapsed: 0.696s  per-iter: 23204.20µs
+  output length: 137487 bytes

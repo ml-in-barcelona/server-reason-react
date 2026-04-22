@@ -1,7 +1,5 @@
 type t = (string * string * string) list
 
-let add name jsxName item (map : t) = match item with Some v -> (name, jsxName, v) :: map | None -> map
-
 [@@@ocamlformat "disable"]
 
 let make
@@ -360,354 +358,355 @@ let make
   done
   *)
 
-  []
-  |> add "azimuth" "azimuth" azimuth
-  |> add "background" "background" background
-  |> add "background-attachment" "backgroundAttachment" backgroundAttachment
-  |> add "background-color" "backgroundColor" backgroundColor
-  |> add "background-image" "backgroundImage" backgroundImage
-  |> add "background-position" "backgroundPosition" backgroundPosition
-  |> add "background-repeat" "backgroundRepeat" backgroundRepeat
-  |> add "border" "border" border
-  |> add "border-collapse" "borderCollapse" borderCollapse
-  |> add "border-color" "borderColor" borderColor
-  |> add "border-spacing" "borderSpacing" borderSpacing
-  |> add "border-style" "borderStyle" borderStyle
-  |> add "border-top" "borderTop" borderTop
-  |> add "border-right" "borderRight" borderRight
-  |> add "border-bottom" "borderBottom" borderBottom
-  |> add "border-left" "borderLeft" borderLeft
-  |> add "border-top-color" "borderTopColor" borderTopColor
-  |> add "border-right-color" "borderRightColor" borderRightColor
-  |> add "border-bottom-color" "borderBottomColor" borderBottomColor
-  |> add "border-left-color" "borderLeftColor" borderLeftColor
-  |> add "border-top-style" "borderTopStyle" borderTopStyle
-  |> add "border-right-style" "borderRightStyle" borderRightStyle
-  |> add "border-bottom-style" "borderBottomStyle" borderBottomStyle
-  |> add "border-left-style" "borderLeftStyle" borderLeftStyle
-  |> add "border-top-width" "borderTopWidth" borderTopWidth
-  |> add "border-right-width" "borderRightWidth" borderRightWidth
-  |> add "border-bottom-width" "borderBottomWidth" borderBottomWidth
-  |> add "border-left-width" "borderLeftWidth" borderLeftWidth
-  |> add "border-width" "borderWidth" borderWidth
-  |> add "bottom" "bottom" bottom
-  |> add "caption-side" "captionSide" captionSide
-  |> add "clear" "clear" clear
-  |> add "clip" "clip" clip
-  |> add "color" "color" color
-  |> add "content" "content" content
-  |> add "counter-increment" "counterIncrement" counterIncrement
-  |> add "counter-reset" "counterReset" counterReset
-  |> add "cue" "cue" cue
-  |> add "cue-after" "cueAfter" cueAfter
-  |> add "cue-before" "cueBefore" cueBefore
-  |> add "cursor" "cursor" cursor
-  |> add "direction" "direction" direction
-  |> add "display" "display" display
-  |> add "elevation" "elevation" elevation
-  |> add "empty-cells" "emptyCells" emptyCells
-  |> add "float" "float" float
-  |> add "font" "font" font
-  |> add "font-family" "fontFamily" fontFamily
-  |> add "font-size" "fontSize" fontSize
-  |> add "font-size-adjust" "fontSizeAdjust" fontSizeAdjust
-  |> add "font-stretch" "fontStretch" fontStretch
-  |> add "font-style" "fontStyle" fontStyle
-  |> add "font-variant" "fontVariant" fontVariant
-  |> add "font-weight" "fontWeight" fontWeight
-  |> add "height" "height" height
-  |> add "left" "left" left
-  |> add "letter-spacing" "letterSpacing" letterSpacing
-  |> add "line-height" "lineHeight" lineHeight
-  |> add "list-style" "listStyle" listStyle
-  |> add "list-style-image" "listStyleImage" listStyleImage
-  |> add "list-style-position" "listStylePosition" listStylePosition
-  |> add "list-style-type" "listStyleType" listStyleType
-  |> add "margin" "margin" margin
-  |> add "margin-top" "marginTop" marginTop
-  |> add "margin-right" "marginRight" marginRight
-  |> add "margin-bottom" "marginBottom" marginBottom
-  |> add "margin-left" "marginLeft" marginLeft
-  |> add "marker-offset" "markerOffset" markerOffset
-  |> add "marks" "marks" marks
-  |> add "max-height" "maxHeight" maxHeight
-  |> add "max-width" "maxWidth" maxWidth
-  |> add "min-height" "minHeight" minHeight
-  |> add "min-width" "minWidth" minWidth
-  |> add "orphans" "orphans" orphans
-  |> add "outline" "outline" outline
-  |> add "outline-color" "outlineColor" outlineColor
-  |> add "outline-style" "outlineStyle" outlineStyle
-  |> add "outline-width" "outlineWidth" outlineWidth
-  |> add "overflow" "overflow" overflow
-  |> add "overflow-x" "overflowX" overflowX
-  |> add "overflow-y" "overflowY" overflowY
-  |> add "padding" "padding" padding
-  |> add "padding-top" "paddingTop" paddingTop
-  |> add "padding-right" "paddingRight" paddingRight
-  |> add "padding-bottom" "paddingBottom" paddingBottom
-  |> add "padding-left" "paddingLeft" paddingLeft
-  |> add "page" "page" page
-  |> add "page-break-after" "pageBreakAfter" pageBreakAfter
-  |> add "page-break-before" "pageBreakBefore" pageBreakBefore
-  |> add "page-break-inside" "pageBreakInside" pageBreakInside
-  |> add "pause" "pause" pause
-  |> add "pause-after" "pauseAfter" pauseAfter
-  |> add "pause-before" "pauseBefore" pauseBefore
-  |> add "pitch" "pitch" pitch
-  |> add "pitch-range" "pitchRange" pitchRange
-  |> add "play-during" "playDuring" playDuring
-  |> add "position" "position" position
-  |> add "quotes" "quotes" quotes
-  |> add "richness" "richness" richness
-  |> add "right" "right" right
-  |> add "size" "size" size
-  |> add "speak" "speak" speak
-  |> add "speak-header" "speakHeader" speakHeader
-  |> add "speak-numeral" "speakNumeral" speakNumeral
-  |> add "speak-punctuation" "speakPunctuation" speakPunctuation
-  |> add "speech-rate" "speechRate" speechRate
-  |> add "stress" "stress" stress
-  |> add "table-layout" "tableLayout" tableLayout
-  |> add "text-align" "textAlign" textAlign
-  |> add "text-decoration" "textDecoration" textDecoration
-  |> add "text-indent" "textIndent" textIndent
-  |> add "text-shadow" "textShadow" textShadow
-  |> add "text-transform" "textTransform" textTransform
-  |> add "top" "top" top
-  |> add "unicode-bidi" "unicodeBidi" unicodeBidi
-  |> add "vertical-align" "verticalAlign" verticalAlign
-  |> add "visibility" "visibility" visibility
-  |> add "voice-family" "voiceFamily" voiceFamily
-  |> add "volume" "volume" volume
-  |> add "white-space" "whiteSpace" whiteSpace
-  |> add "widows" "widows" widows
-  |> add "width" "width" width
-  |> add "word-spacing" "wordSpacing" wordSpacing
-  |> add "z-index" "zIndex" zIndex
-  |> add "opacity" "opacity" opacity
-  |> add "background-origin" "backgroundOrigin" backgroundOrigin
-  |> add "background-size" "backgroundSize" backgroundSize
-  |> add "background-clip" "backgroundClip" backgroundClip
-  |> add "border-radius" "borderRadius" borderRadius
-  |> add "border-top-left-radius" "borderTopLeftRadius" borderTopLeftRadius
-  |> add "border-top-right-radius" "borderTopRightRadius" borderTopRightRadius
-  |> add "border-bottom-left-radius" "borderBottomLeftRadius" borderBottomLeftRadius
-  |> add "border-bottom-right-radius" "borderBottomRightRadius" borderBottomRightRadius
-  |> add "border-image" "borderImage" borderImage
-  |> add "border-image-source" "borderImageSource" borderImageSource
-  |> add "border-image-slice" "borderImageSlice" borderImageSlice
-  |> add "border-image-width" "borderImageWidth" borderImageWidth
-  |> add "border-image-outset" "borderImageOutset" borderImageOutset
-  |> add "border-image-repeat" "borderImageRepeat" borderImageRepeat
-  |> add "box-shadow" "boxShadow" boxShadow
-  |> add "columns" "columns" columns
-  |> add "column-count" "columnCount" columnCount
-  |> add "column-fill" "columnFill" columnFill
-  |> add "column-gap" "columnGap" columnGap
-  |> add "column-rule" "columnRule" columnRule
-  |> add "column-rule-color" "columnRuleColor" columnRuleColor
-  |> add "column-rule-style" "columnRuleStyle" columnRuleStyle
-  |> add "column-rule-width" "columnRuleWidth" columnRuleWidth
-  |> add "column-span" "columnSpan" columnSpan
-  |> add "column-width" "columnWidth" columnWidth
-  |> add "break-after" "breakAfter" breakAfter
-  |> add "break-before" "breakBefore" breakBefore
-  |> add "break-inside" "breakInside" breakInside
-  |> add "rest" "rest" rest
-  |> add "rest-after" "restAfter" restAfter
-  |> add "rest-before" "restBefore" restBefore
-  |> add "speak-as" "speakAs" speakAs
-  |> add "voice-balance" "voiceBalance" voiceBalance
-  |> add "voice-duration" "voiceDuration" voiceDuration
-  |> add "voice-pitch" "voicePitch" voicePitch
-  |> add "voice-range" "voiceRange" voiceRange
-  |> add "voice-rate" "voiceRate" voiceRate
-  |> add "voice-stress" "voiceStress" voiceStress
-  |> add "voice-volume" "voiceVolume" voiceVolume
-  |> add "object-fit" "objectFit" objectFit
-  |> add "object-position" "objectPosition" objectPosition
-  |> add "image-resolution" "imageResolution" imageResolution
-  |> add "image-orientation" "imageOrientation" imageOrientation
-  |> add "align-content" "alignContent" alignContent
-  |> add "align-items" "alignItems" alignItems
-  |> add "align-self" "alignSelf" alignSelf
-  |> add "flex" "flex" flex
-  |> add "flex-basis" "flexBasis" flexBasis
-  |> add "flex-direction" "flexDirection" flexDirection
-  |> add "flex-flow" "flexFlow" flexFlow
-  |> add "flex-grow" "flexGrow" flexGrow
-  |> add "flex-shrink" "flexShrink" flexShrink
-  |> add "flex-wrap" "flexWrap" flexWrap
-  |> add "justify-content" "justifyContent" justifyContent
-  |> add "order" "order" order
-  |> add "text-decoration-color" "textDecorationColor" textDecorationColor
-  |> add "text-decoration-line" "textDecorationLine" textDecorationLine
-  |> add "text-decoration-skip" "textDecorationSkip" textDecorationSkip
-  |> add "text-decoration-style" "textDecorationStyle" textDecorationStyle
-  |> add "text-emphasis" "textEmphasis" textEmphasis
-  |> add "text-emphasis-color" "textEmphasisColor" textEmphasisColor
-  |> add "text-emphasis-position" "textEmphasisPosition" textEmphasisPosition
-  |> add "text-emphasis-style" "textEmphasisStyle" textEmphasisStyle
-  |> add "text-underline-position" "textUnderlinePosition" textUnderlinePosition
-  |> add "font-feature-settings" "fontFeatureSettings" fontFeatureSettings
-  |> add "font-kerning" "fontKerning" fontKerning
-  |> add "font-language-override" "fontLanguageOverride" fontLanguageOverride
-  |> add "font-synthesis" "fontSynthesis" fontSynthesis
-  |> add "fornt-variant-alternates" "forntVariantAlternates" forntVariantAlternates
-  |> add "font-variant-caps" "fontVariantCaps" fontVariantCaps
-  |> add "font-variant-east-asian" "fontVariantEastAsian" fontVariantEastAsian
-  |> add "font-variant-ligatures" "fontVariantLigatures" fontVariantLigatures
-  |> add "font-variant-numeric" "fontVariantNumeric" fontVariantNumeric
-  |> add "font-variant-position" "fontVariantPosition" fontVariantPosition
-  |> add "all" "all" all
-  |> add "glyph-orientation-vertical" "glyphOrientationVertical" glyphOrientationVertical
-  |> add "text-combine-upright" "textCombineUpright" textCombineUpright
-  |> add "text-orientation" "textOrientation" textOrientation
-  |> add "writing-mode" "writingMode" writingMode
-  |> add "shape-image-threshold" "shapeImageThreshold" shapeImageThreshold
-  |> add "shape-margin" "shapeMargin" shapeMargin
-  |> add "shape-outside" "shapeOutside" shapeOutside
-  |> add "clip-path" "clipPath" clipPath
-  |> add "clip-rule" "clipRule" clipRule
-  |> add "mask" "mask" mask
-  |> add "mask-border" "maskBorder" maskBorder
-  |> add "mask-border-mode" "maskBorderMode" maskBorderMode
-  |> add "mask-border-outset" "maskBorderOutset" maskBorderOutset
-  |> add "mask-border-repeat" "maskBorderRepeat" maskBorderRepeat
-  |> add "mask-border-slice" "maskBorderSlice" maskBorderSlice
-  |> add "mask-border-source" "maskBorderSource" maskBorderSource
-  |> add "mask-border-width" "maskBorderWidth" maskBorderWidth
-  |> add "mask-clip" "maskClip" maskClip
-  |> add "mask-composite" "maskComposite" maskComposite
-  |> add "mask-image" "maskImage" maskImage
-  |> add "mask-mode" "maskMode" maskMode
-  |> add "mask-origin" "maskOrigin" maskOrigin
-  |> add "mask-position" "maskPosition" maskPosition
-  |> add "mask-repeat" "maskRepeat" maskRepeat
-  |> add "mask-size" "maskSize" maskSize
-  |> add "mask-type" "maskType" maskType
-  |> add "background-blend-mode" "backgroundBlendMode" backgroundBlendMode
-  |> add "isolation" "isolation" isolation
-  |> add "mix-blend-mode" "mixBlendMode" mixBlendMode
-  |> add "box-decoration-break" "boxDecorationBreak" boxDecorationBreak
-  |> add "box-sizing" "boxSizing" boxSizing
-  |> add "caret-color" "caretColor" caretColor
-  |> add "nav-down" "navDown" navDown
-  |> add "nav-left" "navLeft" navLeft
-  |> add "nav-right" "navRight" navRight
-  |> add "nav-up" "navUp" navUp
-  |> add "outline-offset" "outlineOffset" outlineOffset
-  |> add "resize" "resize" resize
-  |> add "text-overflow" "textOverflow" textOverflow
-  |> add "grid" "grid" grid
-  |> add "grid-area" "gridArea" gridArea
-  |> add "grid-auto-columns" "gridAutoColumns" gridAutoColumns
-  |> add "grid-auto-flow" "gridAutoFlow" gridAutoFlow
-  |> add "grid-auto-rows" "gridAutoRows" gridAutoRows
-  |> add "grid-column" "gridColumn" gridColumn
-  |> add "grid-column-end" "gridColumnEnd" gridColumnEnd
-  |> add "grid-column-gap" "gridColumnGap" gridColumnGap
-  |> add "grid-column-start" "gridColumnStart" gridColumnStart
-  |> add "grid-gap" "gridGap" gridGap
-  |> add "grid-row" "gridRow" gridRow
-  |> add "grid-row-end" "gridRowEnd" gridRowEnd
-  |> add "grid-row-gap" "gridRowGap" gridRowGap
-  |> add "grid-row-start" "gridRowStart" gridRowStart
-  |> add "grid-template" "gridTemplate" gridTemplate
-  |> add "grid-template-areas" "gridTemplateAreas" gridTemplateAreas
-  |> add "grid-template-columns" "gridTemplateColumns" gridTemplateColumns
-  |> add "grid-template-rows" "gridTemplateRows" gridTemplateRows
-  |> add "will-change" "willChange" willChange
-  |> add "hanging-punctuation" "hangingPunctuation" hangingPunctuation
-  |> add "hyphens" "hyphens" hyphens
-  |> add "line-break" "lineBreak" lineBreak
-  |> add "overflow-wrap" "overflowWrap" overflowWrap
-  |> add "tab-size" "tabSize" tabSize
-  |> add "text-align-last" "textAlignLast" textAlignLast
-  |> add "text-justify" "textJustify" textJustify
-  |> add "word-break" "wordBreak" wordBreak
-  |> add "word-wrap" "wordWrap" wordWrap
-  |> add "animation" "animation" animation
-  |> add "animation-delay" "animationDelay" animationDelay
-  |> add "animation-direction" "animationDirection" animationDirection
-  |> add "animation-duration" "animationDuration" animationDuration
-  |> add "animation-fill-mode" "animationFillMode" animationFillMode
-  |> add "animation-iteration-count" "animationIterationCount" animationIterationCount
-  |> add "animation-name" "animationName" animationName
-  |> add "animation-play-state" "animationPlayState" animationPlayState
-  |> add "animation-timing-function" "animationTimingFunction" animationTimingFunction
-  |> add "transition" "transition" transition
-  |> add "transition-delay" "transitionDelay" transitionDelay
-  |> add "transition-duration" "transitionDuration" transitionDuration
-  |> add "transition-property" "transitionProperty" transitionProperty
-  |> add "transition-timing-function" "transitionTimingFunction" transitionTimingFunction
-  |> add "backface-visibility" "backfaceVisibility" backfaceVisibility
-  |> add "perspective" "perspective" perspective
-  |> add "perspective-origin" "perspectiveOrigin" perspectiveOrigin
-  |> add "transform" "transform" transform
-  |> add "transform-origin" "transformOrigin" transformOrigin
-  |> add "transform-style" "transformStyle" transformStyle
-  |> add "justify-items" "justifyItems" justifyItems
-  |> add "justify-self" "justifySelf" justifySelf
-  |> add "place-content" "placeContent" placeContent
-  |> add "place-items" "placeItems" placeItems
-  |> add "place-self" "placeSelf" placeSelf
-  |> add "appearance" "appearance" appearance
-  |> add "caret" "caret" caret
-  |> add "caret-animation" "caretAnimation" caretAnimation
-  |> add "caret-shape" "caretShape" caretShape
-  |> add "user-select" "userSelect" userSelect
-  |> add "max-lines" "maxLines" maxLines
-  |> add "marquee-direction" "marqueeDirection" marqueeDirection
-  |> add "marquee-loop" "marqueeLoop" marqueeLoop
-  |> add "marquee-speed" "marqueeSpeed" marqueeSpeed
-  |> add "marquee-style" "marqueeStyle" marqueeStyle
-  |> add "overflow-style" "overflowStyle" overflowStyle
-  |> add "rotation" "rotation" rotation
-  |> add "rotation-point" "rotationPoint" rotationPoint
-  |> add "alignment-baseline" "alignmentBaseline" alignmentBaseline
-  |> add "baseline-shift" "baselineShift" baselineShift
-  |> add "clip" "clip" clip
-  |> add "clip-path" "clipPath" clipPath
-  |> add "clip-rule" "clipRule" clipRule
-  |> add "color-interpolation" "colorInterpolation" colorInterpolation
-  |> add "color-interpolation-filters" "colorInterpolationFilters" colorInterpolationFilters
-  |> add "color-profile" "colorProfile" colorProfile
-  |> add "color-rendering" "colorRendering" colorRendering
-  |> add "cursor" "cursor" cursor
-  |> add "dominant-baseline" "dominantBaseline" dominantBaseline
-  |> add "fill" "fill" fill
-  |> add "fill-opacity" "fillOpacity" fillOpacity
-  |> add "fill-rule" "fillRule" fillRule
-  |> add "filter" "filter" filter
-  |> add "flood-color" "floodColor" floodColor
-  |> add "flood-opacity" "floodOpacity" floodOpacity
-  |> add "glyph-orientation-horizontal" "glyphOrientationHorizontal" glyphOrientationHorizontal
-  |> add "glyph-orientation-vertical" "glyphOrientationVertical" glyphOrientationVertical
-  |> add "image-rendering" "imageRendering" imageRendering
-  |> add "kerning" "kerning" kerning
-  |> add "lighting-color" "lightingColor" lightingColor
-  |> add "marker-end" "markerEnd" markerEnd
-  |> add "marker-mid" "markerMid" markerMid
-  |> add "marker-start" "markerStart" markerStart
-  |> add "pointer-events" "pointerEvents" pointerEvents
-  |> add "shape-rendering" "shapeRendering" shapeRendering
-  |> add "stop-color" "stopColor" stopColor
-  |> add "stop-opacity" "stopOpacity" stopOpacity
-  |> add "stroke" "stroke" stroke
-  |> add "stroke-dasharray" "strokeDasharray" strokeDasharray
-  |> add "stroke-dashoffset" "strokeDashoffset" strokeDashoffset
-  |> add "stroke-linecap" "strokeLinecap" strokeLinecap
-  |> add "stroke-linejoin" "strokeLinejoin" strokeLinejoin
-  |> add "stroke-miterlimit" "strokeMiterlimit" strokeMiterlimit
-  |> add "stroke-opacity" "strokeOpacity" strokeOpacity
-  |> add "stroke-width" "strokeWidth" strokeWidth
-  |> add "text-anchor" "textAnchor" textAnchor
-  |> add "text-rendering" "textRendering" textRendering
-  |> add "ruby-align" "rubyAlign" rubyAlign
-  |> add "ruby-merge" "rubyMerge" rubyMerge
-  |> add "ruby-position" "rubyPosition" rubyPosition
+  let acc = [] in
+  let acc = match azimuth with Some v -> ("azimuth", "azimuth", v) :: acc | None -> acc in
+  let acc = match background with Some v -> ("background", "background", v) :: acc | None -> acc in
+  let acc = match backgroundAttachment with Some v -> ("background-attachment", "backgroundAttachment", v) :: acc | None -> acc in
+  let acc = match backgroundColor with Some v -> ("background-color", "backgroundColor", v) :: acc | None -> acc in
+  let acc = match backgroundImage with Some v -> ("background-image", "backgroundImage", v) :: acc | None -> acc in
+  let acc = match backgroundPosition with Some v -> ("background-position", "backgroundPosition", v) :: acc | None -> acc in
+  let acc = match backgroundRepeat with Some v -> ("background-repeat", "backgroundRepeat", v) :: acc | None -> acc in
+  let acc = match border with Some v -> ("border", "border", v) :: acc | None -> acc in
+  let acc = match borderCollapse with Some v -> ("border-collapse", "borderCollapse", v) :: acc | None -> acc in
+  let acc = match borderColor with Some v -> ("border-color", "borderColor", v) :: acc | None -> acc in
+  let acc = match borderSpacing with Some v -> ("border-spacing", "borderSpacing", v) :: acc | None -> acc in
+  let acc = match borderStyle with Some v -> ("border-style", "borderStyle", v) :: acc | None -> acc in
+  let acc = match borderTop with Some v -> ("border-top", "borderTop", v) :: acc | None -> acc in
+  let acc = match borderRight with Some v -> ("border-right", "borderRight", v) :: acc | None -> acc in
+  let acc = match borderBottom with Some v -> ("border-bottom", "borderBottom", v) :: acc | None -> acc in
+  let acc = match borderLeft with Some v -> ("border-left", "borderLeft", v) :: acc | None -> acc in
+  let acc = match borderTopColor with Some v -> ("border-top-color", "borderTopColor", v) :: acc | None -> acc in
+  let acc = match borderRightColor with Some v -> ("border-right-color", "borderRightColor", v) :: acc | None -> acc in
+  let acc = match borderBottomColor with Some v -> ("border-bottom-color", "borderBottomColor", v) :: acc | None -> acc in
+  let acc = match borderLeftColor with Some v -> ("border-left-color", "borderLeftColor", v) :: acc | None -> acc in
+  let acc = match borderTopStyle with Some v -> ("border-top-style", "borderTopStyle", v) :: acc | None -> acc in
+  let acc = match borderRightStyle with Some v -> ("border-right-style", "borderRightStyle", v) :: acc | None -> acc in
+  let acc = match borderBottomStyle with Some v -> ("border-bottom-style", "borderBottomStyle", v) :: acc | None -> acc in
+  let acc = match borderLeftStyle with Some v -> ("border-left-style", "borderLeftStyle", v) :: acc | None -> acc in
+  let acc = match borderTopWidth with Some v -> ("border-top-width", "borderTopWidth", v) :: acc | None -> acc in
+  let acc = match borderRightWidth with Some v -> ("border-right-width", "borderRightWidth", v) :: acc | None -> acc in
+  let acc = match borderBottomWidth with Some v -> ("border-bottom-width", "borderBottomWidth", v) :: acc | None -> acc in
+  let acc = match borderLeftWidth with Some v -> ("border-left-width", "borderLeftWidth", v) :: acc | None -> acc in
+  let acc = match borderWidth with Some v -> ("border-width", "borderWidth", v) :: acc | None -> acc in
+  let acc = match bottom with Some v -> ("bottom", "bottom", v) :: acc | None -> acc in
+  let acc = match captionSide with Some v -> ("caption-side", "captionSide", v) :: acc | None -> acc in
+  let acc = match clear with Some v -> ("clear", "clear", v) :: acc | None -> acc in
+  let acc = match clip with Some v -> ("clip", "clip", v) :: acc | None -> acc in
+  let acc = match color with Some v -> ("color", "color", v) :: acc | None -> acc in
+  let acc = match content with Some v -> ("content", "content", v) :: acc | None -> acc in
+  let acc = match counterIncrement with Some v -> ("counter-increment", "counterIncrement", v) :: acc | None -> acc in
+  let acc = match counterReset with Some v -> ("counter-reset", "counterReset", v) :: acc | None -> acc in
+  let acc = match cue with Some v -> ("cue", "cue", v) :: acc | None -> acc in
+  let acc = match cueAfter with Some v -> ("cue-after", "cueAfter", v) :: acc | None -> acc in
+  let acc = match cueBefore with Some v -> ("cue-before", "cueBefore", v) :: acc | None -> acc in
+  let acc = match cursor with Some v -> ("cursor", "cursor", v) :: acc | None -> acc in
+  let acc = match direction with Some v -> ("direction", "direction", v) :: acc | None -> acc in
+  let acc = match display with Some v -> ("display", "display", v) :: acc | None -> acc in
+  let acc = match elevation with Some v -> ("elevation", "elevation", v) :: acc | None -> acc in
+  let acc = match emptyCells with Some v -> ("empty-cells", "emptyCells", v) :: acc | None -> acc in
+  let acc = match float with Some v -> ("float", "float", v) :: acc | None -> acc in
+  let acc = match font with Some v -> ("font", "font", v) :: acc | None -> acc in
+  let acc = match fontFamily with Some v -> ("font-family", "fontFamily", v) :: acc | None -> acc in
+  let acc = match fontSize with Some v -> ("font-size", "fontSize", v) :: acc | None -> acc in
+  let acc = match fontSizeAdjust with Some v -> ("font-size-adjust", "fontSizeAdjust", v) :: acc | None -> acc in
+  let acc = match fontStretch with Some v -> ("font-stretch", "fontStretch", v) :: acc | None -> acc in
+  let acc = match fontStyle with Some v -> ("font-style", "fontStyle", v) :: acc | None -> acc in
+  let acc = match fontVariant with Some v -> ("font-variant", "fontVariant", v) :: acc | None -> acc in
+  let acc = match fontWeight with Some v -> ("font-weight", "fontWeight", v) :: acc | None -> acc in
+  let acc = match height with Some v -> ("height", "height", v) :: acc | None -> acc in
+  let acc = match left with Some v -> ("left", "left", v) :: acc | None -> acc in
+  let acc = match letterSpacing with Some v -> ("letter-spacing", "letterSpacing", v) :: acc | None -> acc in
+  let acc = match lineHeight with Some v -> ("line-height", "lineHeight", v) :: acc | None -> acc in
+  let acc = match listStyle with Some v -> ("list-style", "listStyle", v) :: acc | None -> acc in
+  let acc = match listStyleImage with Some v -> ("list-style-image", "listStyleImage", v) :: acc | None -> acc in
+  let acc = match listStylePosition with Some v -> ("list-style-position", "listStylePosition", v) :: acc | None -> acc in
+  let acc = match listStyleType with Some v -> ("list-style-type", "listStyleType", v) :: acc | None -> acc in
+  let acc = match margin with Some v -> ("margin", "margin", v) :: acc | None -> acc in
+  let acc = match marginTop with Some v -> ("margin-top", "marginTop", v) :: acc | None -> acc in
+  let acc = match marginRight with Some v -> ("margin-right", "marginRight", v) :: acc | None -> acc in
+  let acc = match marginBottom with Some v -> ("margin-bottom", "marginBottom", v) :: acc | None -> acc in
+  let acc = match marginLeft with Some v -> ("margin-left", "marginLeft", v) :: acc | None -> acc in
+  let acc = match markerOffset with Some v -> ("marker-offset", "markerOffset", v) :: acc | None -> acc in
+  let acc = match marks with Some v -> ("marks", "marks", v) :: acc | None -> acc in
+  let acc = match maxHeight with Some v -> ("max-height", "maxHeight", v) :: acc | None -> acc in
+  let acc = match maxWidth with Some v -> ("max-width", "maxWidth", v) :: acc | None -> acc in
+  let acc = match minHeight with Some v -> ("min-height", "minHeight", v) :: acc | None -> acc in
+  let acc = match minWidth with Some v -> ("min-width", "minWidth", v) :: acc | None -> acc in
+  let acc = match orphans with Some v -> ("orphans", "orphans", v) :: acc | None -> acc in
+  let acc = match outline with Some v -> ("outline", "outline", v) :: acc | None -> acc in
+  let acc = match outlineColor with Some v -> ("outline-color", "outlineColor", v) :: acc | None -> acc in
+  let acc = match outlineStyle with Some v -> ("outline-style", "outlineStyle", v) :: acc | None -> acc in
+  let acc = match outlineWidth with Some v -> ("outline-width", "outlineWidth", v) :: acc | None -> acc in
+  let acc = match overflow with Some v -> ("overflow", "overflow", v) :: acc | None -> acc in
+  let acc = match overflowX with Some v -> ("overflow-x", "overflowX", v) :: acc | None -> acc in
+  let acc = match overflowY with Some v -> ("overflow-y", "overflowY", v) :: acc | None -> acc in
+  let acc = match padding with Some v -> ("padding", "padding", v) :: acc | None -> acc in
+  let acc = match paddingTop with Some v -> ("padding-top", "paddingTop", v) :: acc | None -> acc in
+  let acc = match paddingRight with Some v -> ("padding-right", "paddingRight", v) :: acc | None -> acc in
+  let acc = match paddingBottom with Some v -> ("padding-bottom", "paddingBottom", v) :: acc | None -> acc in
+  let acc = match paddingLeft with Some v -> ("padding-left", "paddingLeft", v) :: acc | None -> acc in
+  let acc = match page with Some v -> ("page", "page", v) :: acc | None -> acc in
+  let acc = match pageBreakAfter with Some v -> ("page-break-after", "pageBreakAfter", v) :: acc | None -> acc in
+  let acc = match pageBreakBefore with Some v -> ("page-break-before", "pageBreakBefore", v) :: acc | None -> acc in
+  let acc = match pageBreakInside with Some v -> ("page-break-inside", "pageBreakInside", v) :: acc | None -> acc in
+  let acc = match pause with Some v -> ("pause", "pause", v) :: acc | None -> acc in
+  let acc = match pauseAfter with Some v -> ("pause-after", "pauseAfter", v) :: acc | None -> acc in
+  let acc = match pauseBefore with Some v -> ("pause-before", "pauseBefore", v) :: acc | None -> acc in
+  let acc = match pitch with Some v -> ("pitch", "pitch", v) :: acc | None -> acc in
+  let acc = match pitchRange with Some v -> ("pitch-range", "pitchRange", v) :: acc | None -> acc in
+  let acc = match playDuring with Some v -> ("play-during", "playDuring", v) :: acc | None -> acc in
+  let acc = match position with Some v -> ("position", "position", v) :: acc | None -> acc in
+  let acc = match quotes with Some v -> ("quotes", "quotes", v) :: acc | None -> acc in
+  let acc = match richness with Some v -> ("richness", "richness", v) :: acc | None -> acc in
+  let acc = match right with Some v -> ("right", "right", v) :: acc | None -> acc in
+  let acc = match size with Some v -> ("size", "size", v) :: acc | None -> acc in
+  let acc = match speak with Some v -> ("speak", "speak", v) :: acc | None -> acc in
+  let acc = match speakHeader with Some v -> ("speak-header", "speakHeader", v) :: acc | None -> acc in
+  let acc = match speakNumeral with Some v -> ("speak-numeral", "speakNumeral", v) :: acc | None -> acc in
+  let acc = match speakPunctuation with Some v -> ("speak-punctuation", "speakPunctuation", v) :: acc | None -> acc in
+  let acc = match speechRate with Some v -> ("speech-rate", "speechRate", v) :: acc | None -> acc in
+  let acc = match stress with Some v -> ("stress", "stress", v) :: acc | None -> acc in
+  let acc = match tableLayout with Some v -> ("table-layout", "tableLayout", v) :: acc | None -> acc in
+  let acc = match textAlign with Some v -> ("text-align", "textAlign", v) :: acc | None -> acc in
+  let acc = match textDecoration with Some v -> ("text-decoration", "textDecoration", v) :: acc | None -> acc in
+  let acc = match textIndent with Some v -> ("text-indent", "textIndent", v) :: acc | None -> acc in
+  let acc = match textShadow with Some v -> ("text-shadow", "textShadow", v) :: acc | None -> acc in
+  let acc = match textTransform with Some v -> ("text-transform", "textTransform", v) :: acc | None -> acc in
+  let acc = match top with Some v -> ("top", "top", v) :: acc | None -> acc in
+  let acc = match unicodeBidi with Some v -> ("unicode-bidi", "unicodeBidi", v) :: acc | None -> acc in
+  let acc = match verticalAlign with Some v -> ("vertical-align", "verticalAlign", v) :: acc | None -> acc in
+  let acc = match visibility with Some v -> ("visibility", "visibility", v) :: acc | None -> acc in
+  let acc = match voiceFamily with Some v -> ("voice-family", "voiceFamily", v) :: acc | None -> acc in
+  let acc = match volume with Some v -> ("volume", "volume", v) :: acc | None -> acc in
+  let acc = match whiteSpace with Some v -> ("white-space", "whiteSpace", v) :: acc | None -> acc in
+  let acc = match widows with Some v -> ("widows", "widows", v) :: acc | None -> acc in
+  let acc = match width with Some v -> ("width", "width", v) :: acc | None -> acc in
+  let acc = match wordSpacing with Some v -> ("word-spacing", "wordSpacing", v) :: acc | None -> acc in
+  let acc = match zIndex with Some v -> ("z-index", "zIndex", v) :: acc | None -> acc in
+  let acc = match opacity with Some v -> ("opacity", "opacity", v) :: acc | None -> acc in
+  let acc = match backgroundOrigin with Some v -> ("background-origin", "backgroundOrigin", v) :: acc | None -> acc in
+  let acc = match backgroundSize with Some v -> ("background-size", "backgroundSize", v) :: acc | None -> acc in
+  let acc = match backgroundClip with Some v -> ("background-clip", "backgroundClip", v) :: acc | None -> acc in
+  let acc = match borderRadius with Some v -> ("border-radius", "borderRadius", v) :: acc | None -> acc in
+  let acc = match borderTopLeftRadius with Some v -> ("border-top-left-radius", "borderTopLeftRadius", v) :: acc | None -> acc in
+  let acc = match borderTopRightRadius with Some v -> ("border-top-right-radius", "borderTopRightRadius", v) :: acc | None -> acc in
+  let acc = match borderBottomLeftRadius with Some v -> ("border-bottom-left-radius", "borderBottomLeftRadius", v) :: acc | None -> acc in
+  let acc = match borderBottomRightRadius with Some v -> ("border-bottom-right-radius", "borderBottomRightRadius", v) :: acc | None -> acc in
+  let acc = match borderImage with Some v -> ("border-image", "borderImage", v) :: acc | None -> acc in
+  let acc = match borderImageSource with Some v -> ("border-image-source", "borderImageSource", v) :: acc | None -> acc in
+  let acc = match borderImageSlice with Some v -> ("border-image-slice", "borderImageSlice", v) :: acc | None -> acc in
+  let acc = match borderImageWidth with Some v -> ("border-image-width", "borderImageWidth", v) :: acc | None -> acc in
+  let acc = match borderImageOutset with Some v -> ("border-image-outset", "borderImageOutset", v) :: acc | None -> acc in
+  let acc = match borderImageRepeat with Some v -> ("border-image-repeat", "borderImageRepeat", v) :: acc | None -> acc in
+  let acc = match boxShadow with Some v -> ("box-shadow", "boxShadow", v) :: acc | None -> acc in
+  let acc = match columns with Some v -> ("columns", "columns", v) :: acc | None -> acc in
+  let acc = match columnCount with Some v -> ("column-count", "columnCount", v) :: acc | None -> acc in
+  let acc = match columnFill with Some v -> ("column-fill", "columnFill", v) :: acc | None -> acc in
+  let acc = match columnGap with Some v -> ("column-gap", "columnGap", v) :: acc | None -> acc in
+  let acc = match columnRule with Some v -> ("column-rule", "columnRule", v) :: acc | None -> acc in
+  let acc = match columnRuleColor with Some v -> ("column-rule-color", "columnRuleColor", v) :: acc | None -> acc in
+  let acc = match columnRuleStyle with Some v -> ("column-rule-style", "columnRuleStyle", v) :: acc | None -> acc in
+  let acc = match columnRuleWidth with Some v -> ("column-rule-width", "columnRuleWidth", v) :: acc | None -> acc in
+  let acc = match columnSpan with Some v -> ("column-span", "columnSpan", v) :: acc | None -> acc in
+  let acc = match columnWidth with Some v -> ("column-width", "columnWidth", v) :: acc | None -> acc in
+  let acc = match breakAfter with Some v -> ("break-after", "breakAfter", v) :: acc | None -> acc in
+  let acc = match breakBefore with Some v -> ("break-before", "breakBefore", v) :: acc | None -> acc in
+  let acc = match breakInside with Some v -> ("break-inside", "breakInside", v) :: acc | None -> acc in
+  let acc = match rest with Some v -> ("rest", "rest", v) :: acc | None -> acc in
+  let acc = match restAfter with Some v -> ("rest-after", "restAfter", v) :: acc | None -> acc in
+  let acc = match restBefore with Some v -> ("rest-before", "restBefore", v) :: acc | None -> acc in
+  let acc = match speakAs with Some v -> ("speak-as", "speakAs", v) :: acc | None -> acc in
+  let acc = match voiceBalance with Some v -> ("voice-balance", "voiceBalance", v) :: acc | None -> acc in
+  let acc = match voiceDuration with Some v -> ("voice-duration", "voiceDuration", v) :: acc | None -> acc in
+  let acc = match voicePitch with Some v -> ("voice-pitch", "voicePitch", v) :: acc | None -> acc in
+  let acc = match voiceRange with Some v -> ("voice-range", "voiceRange", v) :: acc | None -> acc in
+  let acc = match voiceRate with Some v -> ("voice-rate", "voiceRate", v) :: acc | None -> acc in
+  let acc = match voiceStress with Some v -> ("voice-stress", "voiceStress", v) :: acc | None -> acc in
+  let acc = match voiceVolume with Some v -> ("voice-volume", "voiceVolume", v) :: acc | None -> acc in
+  let acc = match objectFit with Some v -> ("object-fit", "objectFit", v) :: acc | None -> acc in
+  let acc = match objectPosition with Some v -> ("object-position", "objectPosition", v) :: acc | None -> acc in
+  let acc = match imageResolution with Some v -> ("image-resolution", "imageResolution", v) :: acc | None -> acc in
+  let acc = match imageOrientation with Some v -> ("image-orientation", "imageOrientation", v) :: acc | None -> acc in
+  let acc = match alignContent with Some v -> ("align-content", "alignContent", v) :: acc | None -> acc in
+  let acc = match alignItems with Some v -> ("align-items", "alignItems", v) :: acc | None -> acc in
+  let acc = match alignSelf with Some v -> ("align-self", "alignSelf", v) :: acc | None -> acc in
+  let acc = match flex with Some v -> ("flex", "flex", v) :: acc | None -> acc in
+  let acc = match flexBasis with Some v -> ("flex-basis", "flexBasis", v) :: acc | None -> acc in
+  let acc = match flexDirection with Some v -> ("flex-direction", "flexDirection", v) :: acc | None -> acc in
+  let acc = match flexFlow with Some v -> ("flex-flow", "flexFlow", v) :: acc | None -> acc in
+  let acc = match flexGrow with Some v -> ("flex-grow", "flexGrow", v) :: acc | None -> acc in
+  let acc = match flexShrink with Some v -> ("flex-shrink", "flexShrink", v) :: acc | None -> acc in
+  let acc = match flexWrap with Some v -> ("flex-wrap", "flexWrap", v) :: acc | None -> acc in
+  let acc = match justifyContent with Some v -> ("justify-content", "justifyContent", v) :: acc | None -> acc in
+  let acc = match order with Some v -> ("order", "order", v) :: acc | None -> acc in
+  let acc = match textDecorationColor with Some v -> ("text-decoration-color", "textDecorationColor", v) :: acc | None -> acc in
+  let acc = match textDecorationLine with Some v -> ("text-decoration-line", "textDecorationLine", v) :: acc | None -> acc in
+  let acc = match textDecorationSkip with Some v -> ("text-decoration-skip", "textDecorationSkip", v) :: acc | None -> acc in
+  let acc = match textDecorationStyle with Some v -> ("text-decoration-style", "textDecorationStyle", v) :: acc | None -> acc in
+  let acc = match textEmphasis with Some v -> ("text-emphasis", "textEmphasis", v) :: acc | None -> acc in
+  let acc = match textEmphasisColor with Some v -> ("text-emphasis-color", "textEmphasisColor", v) :: acc | None -> acc in
+  let acc = match textEmphasisPosition with Some v -> ("text-emphasis-position", "textEmphasisPosition", v) :: acc | None -> acc in
+  let acc = match textEmphasisStyle with Some v -> ("text-emphasis-style", "textEmphasisStyle", v) :: acc | None -> acc in
+  let acc = match textUnderlinePosition with Some v -> ("text-underline-position", "textUnderlinePosition", v) :: acc | None -> acc in
+  let acc = match fontFeatureSettings with Some v -> ("font-feature-settings", "fontFeatureSettings", v) :: acc | None -> acc in
+  let acc = match fontKerning with Some v -> ("font-kerning", "fontKerning", v) :: acc | None -> acc in
+  let acc = match fontLanguageOverride with Some v -> ("font-language-override", "fontLanguageOverride", v) :: acc | None -> acc in
+  let acc = match fontSynthesis with Some v -> ("font-synthesis", "fontSynthesis", v) :: acc | None -> acc in
+  let acc = match forntVariantAlternates with Some v -> ("fornt-variant-alternates", "forntVariantAlternates", v) :: acc | None -> acc in
+  let acc = match fontVariantCaps with Some v -> ("font-variant-caps", "fontVariantCaps", v) :: acc | None -> acc in
+  let acc = match fontVariantEastAsian with Some v -> ("font-variant-east-asian", "fontVariantEastAsian", v) :: acc | None -> acc in
+  let acc = match fontVariantLigatures with Some v -> ("font-variant-ligatures", "fontVariantLigatures", v) :: acc | None -> acc in
+  let acc = match fontVariantNumeric with Some v -> ("font-variant-numeric", "fontVariantNumeric", v) :: acc | None -> acc in
+  let acc = match fontVariantPosition with Some v -> ("font-variant-position", "fontVariantPosition", v) :: acc | None -> acc in
+  let acc = match all with Some v -> ("all", "all", v) :: acc | None -> acc in
+  let acc = match glyphOrientationVertical with Some v -> ("glyph-orientation-vertical", "glyphOrientationVertical", v) :: acc | None -> acc in
+  let acc = match textCombineUpright with Some v -> ("text-combine-upright", "textCombineUpright", v) :: acc | None -> acc in
+  let acc = match textOrientation with Some v -> ("text-orientation", "textOrientation", v) :: acc | None -> acc in
+  let acc = match writingMode with Some v -> ("writing-mode", "writingMode", v) :: acc | None -> acc in
+  let acc = match shapeImageThreshold with Some v -> ("shape-image-threshold", "shapeImageThreshold", v) :: acc | None -> acc in
+  let acc = match shapeMargin with Some v -> ("shape-margin", "shapeMargin", v) :: acc | None -> acc in
+  let acc = match shapeOutside with Some v -> ("shape-outside", "shapeOutside", v) :: acc | None -> acc in
+  let acc = match clipPath with Some v -> ("clip-path", "clipPath", v) :: acc | None -> acc in
+  let acc = match clipRule with Some v -> ("clip-rule", "clipRule", v) :: acc | None -> acc in
+  let acc = match mask with Some v -> ("mask", "mask", v) :: acc | None -> acc in
+  let acc = match maskBorder with Some v -> ("mask-border", "maskBorder", v) :: acc | None -> acc in
+  let acc = match maskBorderMode with Some v -> ("mask-border-mode", "maskBorderMode", v) :: acc | None -> acc in
+  let acc = match maskBorderOutset with Some v -> ("mask-border-outset", "maskBorderOutset", v) :: acc | None -> acc in
+  let acc = match maskBorderRepeat with Some v -> ("mask-border-repeat", "maskBorderRepeat", v) :: acc | None -> acc in
+  let acc = match maskBorderSlice with Some v -> ("mask-border-slice", "maskBorderSlice", v) :: acc | None -> acc in
+  let acc = match maskBorderSource with Some v -> ("mask-border-source", "maskBorderSource", v) :: acc | None -> acc in
+  let acc = match maskBorderWidth with Some v -> ("mask-border-width", "maskBorderWidth", v) :: acc | None -> acc in
+  let acc = match maskClip with Some v -> ("mask-clip", "maskClip", v) :: acc | None -> acc in
+  let acc = match maskComposite with Some v -> ("mask-composite", "maskComposite", v) :: acc | None -> acc in
+  let acc = match maskImage with Some v -> ("mask-image", "maskImage", v) :: acc | None -> acc in
+  let acc = match maskMode with Some v -> ("mask-mode", "maskMode", v) :: acc | None -> acc in
+  let acc = match maskOrigin with Some v -> ("mask-origin", "maskOrigin", v) :: acc | None -> acc in
+  let acc = match maskPosition with Some v -> ("mask-position", "maskPosition", v) :: acc | None -> acc in
+  let acc = match maskRepeat with Some v -> ("mask-repeat", "maskRepeat", v) :: acc | None -> acc in
+  let acc = match maskSize with Some v -> ("mask-size", "maskSize", v) :: acc | None -> acc in
+  let acc = match maskType with Some v -> ("mask-type", "maskType", v) :: acc | None -> acc in
+  let acc = match backgroundBlendMode with Some v -> ("background-blend-mode", "backgroundBlendMode", v) :: acc | None -> acc in
+  let acc = match isolation with Some v -> ("isolation", "isolation", v) :: acc | None -> acc in
+  let acc = match mixBlendMode with Some v -> ("mix-blend-mode", "mixBlendMode", v) :: acc | None -> acc in
+  let acc = match boxDecorationBreak with Some v -> ("box-decoration-break", "boxDecorationBreak", v) :: acc | None -> acc in
+  let acc = match boxSizing with Some v -> ("box-sizing", "boxSizing", v) :: acc | None -> acc in
+  let acc = match caretColor with Some v -> ("caret-color", "caretColor", v) :: acc | None -> acc in
+  let acc = match navDown with Some v -> ("nav-down", "navDown", v) :: acc | None -> acc in
+  let acc = match navLeft with Some v -> ("nav-left", "navLeft", v) :: acc | None -> acc in
+  let acc = match navRight with Some v -> ("nav-right", "navRight", v) :: acc | None -> acc in
+  let acc = match navUp with Some v -> ("nav-up", "navUp", v) :: acc | None -> acc in
+  let acc = match outlineOffset with Some v -> ("outline-offset", "outlineOffset", v) :: acc | None -> acc in
+  let acc = match resize with Some v -> ("resize", "resize", v) :: acc | None -> acc in
+  let acc = match textOverflow with Some v -> ("text-overflow", "textOverflow", v) :: acc | None -> acc in
+  let acc = match grid with Some v -> ("grid", "grid", v) :: acc | None -> acc in
+  let acc = match gridArea with Some v -> ("grid-area", "gridArea", v) :: acc | None -> acc in
+  let acc = match gridAutoColumns with Some v -> ("grid-auto-columns", "gridAutoColumns", v) :: acc | None -> acc in
+  let acc = match gridAutoFlow with Some v -> ("grid-auto-flow", "gridAutoFlow", v) :: acc | None -> acc in
+  let acc = match gridAutoRows with Some v -> ("grid-auto-rows", "gridAutoRows", v) :: acc | None -> acc in
+  let acc = match gridColumn with Some v -> ("grid-column", "gridColumn", v) :: acc | None -> acc in
+  let acc = match gridColumnEnd with Some v -> ("grid-column-end", "gridColumnEnd", v) :: acc | None -> acc in
+  let acc = match gridColumnGap with Some v -> ("grid-column-gap", "gridColumnGap", v) :: acc | None -> acc in
+  let acc = match gridColumnStart with Some v -> ("grid-column-start", "gridColumnStart", v) :: acc | None -> acc in
+  let acc = match gridGap with Some v -> ("grid-gap", "gridGap", v) :: acc | None -> acc in
+  let acc = match gridRow with Some v -> ("grid-row", "gridRow", v) :: acc | None -> acc in
+  let acc = match gridRowEnd with Some v -> ("grid-row-end", "gridRowEnd", v) :: acc | None -> acc in
+  let acc = match gridRowGap with Some v -> ("grid-row-gap", "gridRowGap", v) :: acc | None -> acc in
+  let acc = match gridRowStart with Some v -> ("grid-row-start", "gridRowStart", v) :: acc | None -> acc in
+  let acc = match gridTemplate with Some v -> ("grid-template", "gridTemplate", v) :: acc | None -> acc in
+  let acc = match gridTemplateAreas with Some v -> ("grid-template-areas", "gridTemplateAreas", v) :: acc | None -> acc in
+  let acc = match gridTemplateColumns with Some v -> ("grid-template-columns", "gridTemplateColumns", v) :: acc | None -> acc in
+  let acc = match gridTemplateRows with Some v -> ("grid-template-rows", "gridTemplateRows", v) :: acc | None -> acc in
+  let acc = match willChange with Some v -> ("will-change", "willChange", v) :: acc | None -> acc in
+  let acc = match hangingPunctuation with Some v -> ("hanging-punctuation", "hangingPunctuation", v) :: acc | None -> acc in
+  let acc = match hyphens with Some v -> ("hyphens", "hyphens", v) :: acc | None -> acc in
+  let acc = match lineBreak with Some v -> ("line-break", "lineBreak", v) :: acc | None -> acc in
+  let acc = match overflowWrap with Some v -> ("overflow-wrap", "overflowWrap", v) :: acc | None -> acc in
+  let acc = match tabSize with Some v -> ("tab-size", "tabSize", v) :: acc | None -> acc in
+  let acc = match textAlignLast with Some v -> ("text-align-last", "textAlignLast", v) :: acc | None -> acc in
+  let acc = match textJustify with Some v -> ("text-justify", "textJustify", v) :: acc | None -> acc in
+  let acc = match wordBreak with Some v -> ("word-break", "wordBreak", v) :: acc | None -> acc in
+  let acc = match wordWrap with Some v -> ("word-wrap", "wordWrap", v) :: acc | None -> acc in
+  let acc = match animation with Some v -> ("animation", "animation", v) :: acc | None -> acc in
+  let acc = match animationDelay with Some v -> ("animation-delay", "animationDelay", v) :: acc | None -> acc in
+  let acc = match animationDirection with Some v -> ("animation-direction", "animationDirection", v) :: acc | None -> acc in
+  let acc = match animationDuration with Some v -> ("animation-duration", "animationDuration", v) :: acc | None -> acc in
+  let acc = match animationFillMode with Some v -> ("animation-fill-mode", "animationFillMode", v) :: acc | None -> acc in
+  let acc = match animationIterationCount with Some v -> ("animation-iteration-count", "animationIterationCount", v) :: acc | None -> acc in
+  let acc = match animationName with Some v -> ("animation-name", "animationName", v) :: acc | None -> acc in
+  let acc = match animationPlayState with Some v -> ("animation-play-state", "animationPlayState", v) :: acc | None -> acc in
+  let acc = match animationTimingFunction with Some v -> ("animation-timing-function", "animationTimingFunction", v) :: acc | None -> acc in
+  let acc = match transition with Some v -> ("transition", "transition", v) :: acc | None -> acc in
+  let acc = match transitionDelay with Some v -> ("transition-delay", "transitionDelay", v) :: acc | None -> acc in
+  let acc = match transitionDuration with Some v -> ("transition-duration", "transitionDuration", v) :: acc | None -> acc in
+  let acc = match transitionProperty with Some v -> ("transition-property", "transitionProperty", v) :: acc | None -> acc in
+  let acc = match transitionTimingFunction with Some v -> ("transition-timing-function", "transitionTimingFunction", v) :: acc | None -> acc in
+  let acc = match backfaceVisibility with Some v -> ("backface-visibility", "backfaceVisibility", v) :: acc | None -> acc in
+  let acc = match perspective with Some v -> ("perspective", "perspective", v) :: acc | None -> acc in
+  let acc = match perspectiveOrigin with Some v -> ("perspective-origin", "perspectiveOrigin", v) :: acc | None -> acc in
+  let acc = match transform with Some v -> ("transform", "transform", v) :: acc | None -> acc in
+  let acc = match transformOrigin with Some v -> ("transform-origin", "transformOrigin", v) :: acc | None -> acc in
+  let acc = match transformStyle with Some v -> ("transform-style", "transformStyle", v) :: acc | None -> acc in
+  let acc = match justifyItems with Some v -> ("justify-items", "justifyItems", v) :: acc | None -> acc in
+  let acc = match justifySelf with Some v -> ("justify-self", "justifySelf", v) :: acc | None -> acc in
+  let acc = match placeContent with Some v -> ("place-content", "placeContent", v) :: acc | None -> acc in
+  let acc = match placeItems with Some v -> ("place-items", "placeItems", v) :: acc | None -> acc in
+  let acc = match placeSelf with Some v -> ("place-self", "placeSelf", v) :: acc | None -> acc in
+  let acc = match appearance with Some v -> ("appearance", "appearance", v) :: acc | None -> acc in
+  let acc = match caret with Some v -> ("caret", "caret", v) :: acc | None -> acc in
+  let acc = match caretAnimation with Some v -> ("caret-animation", "caretAnimation", v) :: acc | None -> acc in
+  let acc = match caretShape with Some v -> ("caret-shape", "caretShape", v) :: acc | None -> acc in
+  let acc = match userSelect with Some v -> ("user-select", "userSelect", v) :: acc | None -> acc in
+  let acc = match maxLines with Some v -> ("max-lines", "maxLines", v) :: acc | None -> acc in
+  let acc = match marqueeDirection with Some v -> ("marquee-direction", "marqueeDirection", v) :: acc | None -> acc in
+  let acc = match marqueeLoop with Some v -> ("marquee-loop", "marqueeLoop", v) :: acc | None -> acc in
+  let acc = match marqueeSpeed with Some v -> ("marquee-speed", "marqueeSpeed", v) :: acc | None -> acc in
+  let acc = match marqueeStyle with Some v -> ("marquee-style", "marqueeStyle", v) :: acc | None -> acc in
+  let acc = match overflowStyle with Some v -> ("overflow-style", "overflowStyle", v) :: acc | None -> acc in
+  let acc = match rotation with Some v -> ("rotation", "rotation", v) :: acc | None -> acc in
+  let acc = match rotationPoint with Some v -> ("rotation-point", "rotationPoint", v) :: acc | None -> acc in
+  let acc = match alignmentBaseline with Some v -> ("alignment-baseline", "alignmentBaseline", v) :: acc | None -> acc in
+  let acc = match baselineShift with Some v -> ("baseline-shift", "baselineShift", v) :: acc | None -> acc in
+  let acc = match clip with Some v -> ("clip", "clip", v) :: acc | None -> acc in
+  let acc = match clipPath with Some v -> ("clip-path", "clipPath", v) :: acc | None -> acc in
+  let acc = match clipRule with Some v -> ("clip-rule", "clipRule", v) :: acc | None -> acc in
+  let acc = match colorInterpolation with Some v -> ("color-interpolation", "colorInterpolation", v) :: acc | None -> acc in
+  let acc = match colorInterpolationFilters with Some v -> ("color-interpolation-filters", "colorInterpolationFilters", v) :: acc | None -> acc in
+  let acc = match colorProfile with Some v -> ("color-profile", "colorProfile", v) :: acc | None -> acc in
+  let acc = match colorRendering with Some v -> ("color-rendering", "colorRendering", v) :: acc | None -> acc in
+  let acc = match cursor with Some v -> ("cursor", "cursor", v) :: acc | None -> acc in
+  let acc = match dominantBaseline with Some v -> ("dominant-baseline", "dominantBaseline", v) :: acc | None -> acc in
+  let acc = match fill with Some v -> ("fill", "fill", v) :: acc | None -> acc in
+  let acc = match fillOpacity with Some v -> ("fill-opacity", "fillOpacity", v) :: acc | None -> acc in
+  let acc = match fillRule with Some v -> ("fill-rule", "fillRule", v) :: acc | None -> acc in
+  let acc = match filter with Some v -> ("filter", "filter", v) :: acc | None -> acc in
+  let acc = match floodColor with Some v -> ("flood-color", "floodColor", v) :: acc | None -> acc in
+  let acc = match floodOpacity with Some v -> ("flood-opacity", "floodOpacity", v) :: acc | None -> acc in
+  let acc = match glyphOrientationHorizontal with Some v -> ("glyph-orientation-horizontal", "glyphOrientationHorizontal", v) :: acc | None -> acc in
+  let acc = match glyphOrientationVertical with Some v -> ("glyph-orientation-vertical", "glyphOrientationVertical", v) :: acc | None -> acc in
+  let acc = match imageRendering with Some v -> ("image-rendering", "imageRendering", v) :: acc | None -> acc in
+  let acc = match kerning with Some v -> ("kerning", "kerning", v) :: acc | None -> acc in
+  let acc = match lightingColor with Some v -> ("lighting-color", "lightingColor", v) :: acc | None -> acc in
+  let acc = match markerEnd with Some v -> ("marker-end", "markerEnd", v) :: acc | None -> acc in
+  let acc = match markerMid with Some v -> ("marker-mid", "markerMid", v) :: acc | None -> acc in
+  let acc = match markerStart with Some v -> ("marker-start", "markerStart", v) :: acc | None -> acc in
+  let acc = match pointerEvents with Some v -> ("pointer-events", "pointerEvents", v) :: acc | None -> acc in
+  let acc = match shapeRendering with Some v -> ("shape-rendering", "shapeRendering", v) :: acc | None -> acc in
+  let acc = match stopColor with Some v -> ("stop-color", "stopColor", v) :: acc | None -> acc in
+  let acc = match stopOpacity with Some v -> ("stop-opacity", "stopOpacity", v) :: acc | None -> acc in
+  let acc = match stroke with Some v -> ("stroke", "stroke", v) :: acc | None -> acc in
+  let acc = match strokeDasharray with Some v -> ("stroke-dasharray", "strokeDasharray", v) :: acc | None -> acc in
+  let acc = match strokeDashoffset with Some v -> ("stroke-dashoffset", "strokeDashoffset", v) :: acc | None -> acc in
+  let acc = match strokeLinecap with Some v -> ("stroke-linecap", "strokeLinecap", v) :: acc | None -> acc in
+  let acc = match strokeLinejoin with Some v -> ("stroke-linejoin", "strokeLinejoin", v) :: acc | None -> acc in
+  let acc = match strokeMiterlimit with Some v -> ("stroke-miterlimit", "strokeMiterlimit", v) :: acc | None -> acc in
+  let acc = match strokeOpacity with Some v -> ("stroke-opacity", "strokeOpacity", v) :: acc | None -> acc in
+  let acc = match strokeWidth with Some v -> ("stroke-width", "strokeWidth", v) :: acc | None -> acc in
+  let acc = match textAnchor with Some v -> ("text-anchor", "textAnchor", v) :: acc | None -> acc in
+  let acc = match textRendering with Some v -> ("text-rendering", "textRendering", v) :: acc | None -> acc in
+  let acc = match rubyAlign with Some v -> ("ruby-align", "rubyAlign", v) :: acc | None -> acc in
+  let acc = match rubyMerge with Some v -> ("ruby-merge", "rubyMerge", v) :: acc | None -> acc in
+  let acc = match rubyPosition with Some v -> ("ruby-position", "rubyPosition", v) :: acc | None -> acc in
+  acc
 [@@@ocamlformat "enable"]
 
 let write_to_buffer buf (styles : t) : unit =

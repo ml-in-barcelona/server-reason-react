@@ -19,7 +19,18 @@ We need to output ML syntax here, otherwise refmt could not parse it.
       let make ?key:(_ : string option) ~lola () =
         React.Upper_case_component
           ( Stdlib.__FUNCTION__,
-            fun () -> React.createElement "div" [] [ React.string lola ] )
+            fun () ->
+              React.Writer
+                {
+                  emit =
+                    (fun b ->
+                      Buffer.add_string b "<div>";
+                      ReactDOM.escape_to_buffer b lola;
+                      Buffer.add_string b "</div>";
+                      ());
+                  original =
+                    (fun () -> React.createElement "div" [] [ React.string lola ]);
+                } )
   
       let make ?(key : string option) (Props : < lola : 'lola > Js.t) =
         make ?key ~lola:Props#lola ()
@@ -56,15 +67,26 @@ We need to output ML syntax here, otherwise refmt could not parse it.
         React.Upper_case_component
           ( Stdlib.__FUNCTION__,
             fun () ->
-              React.createElement "button"
-                (Stdlib.List.filter_map Stdlib.Fun.id
-                   [
-                     Some
-                       (React.JSX.String
-                          ("class", "className", ("FancyButton" : string)));
-                     Some (React.JSX.Ref (buttonRef : React.domRef));
-                   ])
-                [ children ] ))
+              React.Writer
+                {
+                  emit =
+                    (fun b ->
+                      Buffer.add_string b "<button class=\"FancyButton\">";
+                      ReactDOM.write_to_buffer b children;
+                      Buffer.add_string b "</button>";
+                      ());
+                  original =
+                    (fun () ->
+                      React.createElement "button"
+                        (Stdlib.List.filter_map Stdlib.Fun.id
+                           [
+                             Some
+                               (React.JSX.String
+                                  ("class", "className", ("FancyButton" : string)));
+                             Some (React.JSX.Ref (buttonRef : React.domRef));
+                           ])
+                        [ children ]);
+                } ))
         [@warning "-16"]
   
       let make ?(key : string option)
@@ -143,8 +165,20 @@ We need to output ML syntax here, otherwise refmt could not parse it.
         React.Upper_case_component
           ( Stdlib.__FUNCTION__,
             fun () ->
-              React.createElement "div" []
-                [ Printf.sprintf "`name` is %s" name |> React.string ] )
+              React.Writer
+                {
+                  emit =
+                    (fun b ->
+                      Buffer.add_string b "<div>";
+                      ReactDOM.write_to_buffer b
+                        (Printf.sprintf "`name` is %s" name |> React.string);
+                      Buffer.add_string b "</div>";
+                      ());
+                  original =
+                    (fun () ->
+                      React.createElement "div" []
+                        [ Printf.sprintf "`name` is %s" name |> React.string ]);
+                } )
   
       let make ?(key : string option) (Props : < name : 'name option > Js.t) =
         make ?key ?name:Props#name ()
@@ -180,40 +214,313 @@ We need to output ML syntax here, otherwise refmt could not parse it.
         React.Upper_case_component
           ( Stdlib.__FUNCTION__,
             fun () ->
-              React.createElement "html" []
-                [
-                  React.createElement "head" []
-                    [
-                      React.createElement "title" []
-                        [ React.string ("SSR React " ^ moreProps) ];
-                    ];
-                  React.createElement "body" []
-                    [
-                      React.createElement "div"
-                        (Stdlib.List.filter_map Stdlib.Fun.id
-                           [
-                             Some
-                               (React.JSX.String ("id", "id", ("root" : string)));
-                           ])
-                        [ children ];
-                      React.Static
-                        {
-                          prerendered =
-                            "<script src=\"/static/client.js\"></script>";
-                          original =
-                            React.createElement "script"
-                              (Stdlib.List.filter_map Stdlib.Fun.id
-                                 [
-                                   Some
-                                     (React.JSX.String
-                                        ( "src",
-                                          "src",
-                                          ("/static/client.js" : string) ));
-                                 ])
-                              [];
-                        };
-                    ];
-                ] ))
+              React.Writer
+                {
+                  emit =
+                    (fun b ->
+                      Buffer.add_string b "<!DOCTYPE html>";
+                      Buffer.add_string b "<html>";
+                      ReactDOM.write_to_buffer b
+                        (React.Writer
+                           {
+                             emit =
+                               (fun b ->
+                                 Buffer.add_string b "<head>";
+                                 ReactDOM.write_to_buffer b
+                                   (React.Writer
+                                      {
+                                        emit =
+                                          (fun b ->
+                                            Buffer.add_string b "<title>";
+                                            ReactDOM.escape_to_buffer b
+                                              ("SSR React " ^ moreProps);
+                                            Buffer.add_string b "</title>";
+                                            ());
+                                        original =
+                                          (fun () ->
+                                            React.createElement "title" []
+                                              [
+                                                React.string
+                                                  ("SSR React " ^ moreProps);
+                                              ]);
+                                      });
+                                 Buffer.add_string b "</head>";
+                                 ());
+                             original =
+                               (fun () ->
+                                 React.createElement "head" []
+                                   [
+                                     React.Writer
+                                       {
+                                         emit =
+                                           (fun b ->
+                                             Buffer.add_string b "<title>";
+                                             ReactDOM.escape_to_buffer b
+                                               ("SSR React " ^ moreProps);
+                                             Buffer.add_string b "</title>";
+                                             ());
+                                         original =
+                                           (fun () ->
+                                             React.createElement "title" []
+                                               [
+                                                 React.string
+                                                   ("SSR React " ^ moreProps);
+                                               ]);
+                                       };
+                                   ]);
+                           });
+                      ReactDOM.write_to_buffer b
+                        (React.Writer
+                           {
+                             emit =
+                               (fun b ->
+                                 Buffer.add_string b "<body>";
+                                 ReactDOM.write_to_buffer b
+                                   (React.Writer
+                                      {
+                                        emit =
+                                          (fun b ->
+                                            Buffer.add_string b
+                                              "<div id=\"root\">";
+                                            ReactDOM.write_to_buffer b children;
+                                            Buffer.add_string b "</div>";
+                                            ());
+                                        original =
+                                          (fun () ->
+                                            React.createElement "div"
+                                              (Stdlib.List.filter_map
+                                                 Stdlib.Fun.id
+                                                 [
+                                                   Some
+                                                     (React.JSX.String
+                                                        ( "id",
+                                                          "id",
+                                                          ("root" : string) ));
+                                                 ])
+                                              [ children ]);
+                                      });
+                                 ReactDOM.write_to_buffer b
+                                   (React.Static
+                                      {
+                                        prerendered =
+                                          "<script \
+                                           src=\"/static/client.js\"></script>";
+                                        original =
+                                          React.createElement "script"
+                                            (Stdlib.List.filter_map Stdlib.Fun.id
+                                               [
+                                                 Some
+                                                   (React.JSX.String
+                                                      ( "src",
+                                                        "src",
+                                                        ("/static/client.js"
+                                                          : string) ));
+                                               ])
+                                            [];
+                                      });
+                                 Buffer.add_string b "</body>";
+                                 ());
+                             original =
+                               (fun () ->
+                                 React.createElement "body" []
+                                   [
+                                     React.Writer
+                                       {
+                                         emit =
+                                           (fun b ->
+                                             Buffer.add_string b
+                                               "<div id=\"root\">";
+                                             ReactDOM.write_to_buffer b children;
+                                             Buffer.add_string b "</div>";
+                                             ());
+                                         original =
+                                           (fun () ->
+                                             React.createElement "div"
+                                               (Stdlib.List.filter_map
+                                                  Stdlib.Fun.id
+                                                  [
+                                                    Some
+                                                      (React.JSX.String
+                                                         ( "id",
+                                                           "id",
+                                                           ("root" : string) ));
+                                                  ])
+                                               [ children ]);
+                                       };
+                                     React.Static
+                                       {
+                                         prerendered =
+                                           "<script \
+                                            src=\"/static/client.js\"></script>";
+                                         original =
+                                           React.createElement "script"
+                                             (Stdlib.List.filter_map Stdlib.Fun.id
+                                                [
+                                                  Some
+                                                    (React.JSX.String
+                                                       ( "src",
+                                                         "src",
+                                                         ("/static/client.js"
+                                                           : string) ));
+                                                ])
+                                             [];
+                                       };
+                                   ]);
+                           });
+                      Buffer.add_string b "</html>";
+                      ());
+                  original =
+                    (fun () ->
+                      React.createElement "html" []
+                        [
+                          React.Writer
+                            {
+                              emit =
+                                (fun b ->
+                                  Buffer.add_string b "<head>";
+                                  ReactDOM.write_to_buffer b
+                                    (React.Writer
+                                       {
+                                         emit =
+                                           (fun b ->
+                                             Buffer.add_string b "<title>";
+                                             ReactDOM.escape_to_buffer b
+                                               ("SSR React " ^ moreProps);
+                                             Buffer.add_string b "</title>";
+                                             ());
+                                         original =
+                                           (fun () ->
+                                             React.createElement "title" []
+                                               [
+                                                 React.string
+                                                   ("SSR React " ^ moreProps);
+                                               ]);
+                                       });
+                                  Buffer.add_string b "</head>";
+                                  ());
+                              original =
+                                (fun () ->
+                                  React.createElement "head" []
+                                    [
+                                      React.Writer
+                                        {
+                                          emit =
+                                            (fun b ->
+                                              Buffer.add_string b "<title>";
+                                              ReactDOM.escape_to_buffer b
+                                                ("SSR React " ^ moreProps);
+                                              Buffer.add_string b "</title>";
+                                              ());
+                                          original =
+                                            (fun () ->
+                                              React.createElement "title" []
+                                                [
+                                                  React.string
+                                                    ("SSR React " ^ moreProps);
+                                                ]);
+                                        };
+                                    ]);
+                            };
+                          React.Writer
+                            {
+                              emit =
+                                (fun b ->
+                                  Buffer.add_string b "<body>";
+                                  ReactDOM.write_to_buffer b
+                                    (React.Writer
+                                       {
+                                         emit =
+                                           (fun b ->
+                                             Buffer.add_string b
+                                               "<div id=\"root\">";
+                                             ReactDOM.write_to_buffer b children;
+                                             Buffer.add_string b "</div>";
+                                             ());
+                                         original =
+                                           (fun () ->
+                                             React.createElement "div"
+                                               (Stdlib.List.filter_map
+                                                  Stdlib.Fun.id
+                                                  [
+                                                    Some
+                                                      (React.JSX.String
+                                                         ( "id",
+                                                           "id",
+                                                           ("root" : string) ));
+                                                  ])
+                                               [ children ]);
+                                       });
+                                  ReactDOM.write_to_buffer b
+                                    (React.Static
+                                       {
+                                         prerendered =
+                                           "<script \
+                                            src=\"/static/client.js\"></script>";
+                                         original =
+                                           React.createElement "script"
+                                             (Stdlib.List.filter_map Stdlib.Fun.id
+                                                [
+                                                  Some
+                                                    (React.JSX.String
+                                                       ( "src",
+                                                         "src",
+                                                         ("/static/client.js"
+                                                           : string) ));
+                                                ])
+                                             [];
+                                       });
+                                  Buffer.add_string b "</body>";
+                                  ());
+                              original =
+                                (fun () ->
+                                  React.createElement "body" []
+                                    [
+                                      React.Writer
+                                        {
+                                          emit =
+                                            (fun b ->
+                                              Buffer.add_string b
+                                                "<div id=\"root\">";
+                                              ReactDOM.write_to_buffer b children;
+                                              Buffer.add_string b "</div>";
+                                              ());
+                                          original =
+                                            (fun () ->
+                                              React.createElement "div"
+                                                (Stdlib.List.filter_map
+                                                   Stdlib.Fun.id
+                                                   [
+                                                     Some
+                                                       (React.JSX.String
+                                                          ( "id",
+                                                            "id",
+                                                            ("root" : string) ));
+                                                   ])
+                                                [ children ]);
+                                        };
+                                      React.Static
+                                        {
+                                          prerendered =
+                                            "<script \
+                                             src=\"/static/client.js\"></script>";
+                                          original =
+                                            React.createElement "script"
+                                              (Stdlib.List.filter_map
+                                                 Stdlib.Fun.id
+                                                 [
+                                                   Some
+                                                     (React.JSX.String
+                                                        ( "src",
+                                                          "src",
+                                                          ("/static/client.js"
+                                                            : string) ));
+                                                 ])
+                                              [];
+                                        };
+                                    ]);
+                            };
+                        ]);
+                } ))
         [@warning "-16"]
   
       let make ?(key : string option)
@@ -241,16 +548,27 @@ We need to output ML syntax here, otherwise refmt could not parse it.
         React.Upper_case_component
           ( Stdlib.__FUNCTION__,
             fun () ->
-              React.createElement "div"
-                (Stdlib.List.filter_map Stdlib.Fun.id
-                   [
-                     Some
-                       (React.JSX.String
-                          ( "aria-hidden",
-                            "aria-hidden",
-                            Stdlib.Bool.to_string ("true" : bool) ));
-                   ])
-                [ children ] )
+              React.Writer
+                {
+                  emit =
+                    (fun b ->
+                      Buffer.add_string b "<div aria-hidden=\"true\">";
+                      ReactDOM.write_to_buffer b children;
+                      Buffer.add_string b "</div>";
+                      ());
+                  original =
+                    (fun () ->
+                      React.createElement "div"
+                        (Stdlib.List.filter_map Stdlib.Fun.id
+                           [
+                             Some
+                               (React.JSX.String
+                                  ( "aria-hidden",
+                                    "aria-hidden",
+                                    Stdlib.Bool.to_string ("true" : bool) ));
+                           ])
+                        [ children ]);
+                } )
   
       let make ?(key : string option) (Props : < children : 'children > Js.t) =
         make ?key ~children:Props#children ()
@@ -276,13 +594,25 @@ We need to output ML syntax here, otherwise refmt could not parse it.
         React.Upper_case_component
           ( Stdlib.__FUNCTION__,
             fun () ->
-              React.createElement "form"
-                (Stdlib.List.filter_map Stdlib.Fun.id
-                   [
-                     Some
-                       (React.JSX.String ("method", "method", ("GET" : string)));
-                   ])
-                [ children ] )
+              React.Writer
+                {
+                  emit =
+                    (fun b ->
+                      Buffer.add_string b "<form method=\"GET\">";
+                      ReactDOM.write_to_buffer b children;
+                      Buffer.add_string b "</form>";
+                      ());
+                  original =
+                    (fun () ->
+                      React.createElement "form"
+                        (Stdlib.List.filter_map Stdlib.Fun.id
+                           [
+                             Some
+                               (React.JSX.String
+                                  ("method", "method", ("GET" : string)));
+                           ])
+                        [ children ]);
+                } )
   
       let make ?(key : string option) (Props : < children : 'children > Js.t) =
         make ?key ~children:Props#children ()
@@ -549,14 +879,27 @@ We need to output ML syntax here, otherwise refmt could not parse it.
         React.Async_component
           ( Stdlib.__FUNCTION__,
             fun () ->
-              React.createElement "div"
-                (Stdlib.List.filter_map Stdlib.Fun.id
-                   [
-                     Some
-                       (React.JSX.String
-                          ("class", "className", ("async-component" : string)));
-                   ])
-                [ children ] )
+              React.Writer
+                {
+                  emit =
+                    (fun b ->
+                      Buffer.add_string b "<div class=\"async-component\">";
+                      ReactDOM.write_to_buffer b children;
+                      Buffer.add_string b "</div>";
+                      ());
+                  original =
+                    (fun () ->
+                      React.createElement "div"
+                        (Stdlib.List.filter_map Stdlib.Fun.id
+                           [
+                             Some
+                               (React.JSX.String
+                                  ( "class",
+                                    "className",
+                                    ("async-component" : string) ));
+                           ])
+                        [ children ]);
+                } )
   
       let make ?(key : string option) (Props : < children : 'children > Js.t) =
         make ?key ~children:Props#children ()
@@ -597,7 +940,18 @@ We need to output ML syntax here, otherwise refmt could not parse it.
               React.useEffect (fun () ->
                   setState lola;
                   None);
-              React.createElement "div" [] [ React.string state ] )
+              React.Writer
+                {
+                  emit =
+                    (fun b ->
+                      Buffer.add_string b "<div>";
+                      ReactDOM.escape_to_buffer b state;
+                      Buffer.add_string b "</div>";
+                      ());
+                  original =
+                    (fun () ->
+                      React.createElement "div" [] [ React.string state ]);
+                } )
   
       let make ?(key : string option) (Props : < lola : 'lola > Js.t) =
         make ?key ~lola:Props#lola ()
@@ -615,7 +969,18 @@ We need to output ML syntax here, otherwise refmt could not parse it.
           ( Stdlib.__FUNCTION__,
             fun () ->
               let captured = React.useContext Context.value in
-              React.createElement "div" [] [ React.string captured ] )
+              React.Writer
+                {
+                  emit =
+                    (fun b ->
+                      Buffer.add_string b "<div>";
+                      ReactDOM.escape_to_buffer b captured;
+                      Buffer.add_string b "</div>";
+                      ());
+                  original =
+                    (fun () ->
+                      React.createElement "div" [] [ React.string captured ]);
+                } )
   
       let make ?(key : string option) (_Props : < > Js.t) = make ?key ()
     end

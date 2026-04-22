@@ -3,6 +3,7 @@
 
 .PHONY: all build build-native build-js clean help
 .PHONY: bench bench-micro bench-memory bench-streaming bench-http
+.PHONY: bench-render bench-render-native bench-render-bun bench-render-node
 .PHONY: native-server js-servers
 
 # Directories
@@ -76,19 +77,25 @@ bench-streaming: build-native
 	$(PROJECT_ROOT)/_build/default/benchmark/streaming/streaming_bench.exe
 
 bench-render: build-native build-js
-	@echo "\n=== Pure Render Benchmark: Native vs Bun ==="
+	@echo "\n=== Pure Render Benchmark: Native vs Node vs Bun ==="
 	@echo "\n--- Native (server-reason-react) ---"
 	$(PROJECT_ROOT)/_build/default/benchmark/streaming/streaming_bench.exe
-	@echo "\n--- Bun (React) ---"
-	@cd $(FRAMEWORKS_DIR) && $(BUN) render-bench.ts
+	@echo "\n--- Node (React, NODE_ENV=production) ---"
+	@cd $(FRAMEWORKS_DIR) && ./node_modules/.bin/esbuild render-bench.ts --bundle --outfile=.render-bench-node.mjs --format=esm --platform=node --external:react --external:react-dom --loader:.jsx=jsx --loader:.ts=ts > /dev/null && NODE_ENV=production node .render-bench-node.mjs; rm -f $(FRAMEWORKS_DIR)/.render-bench-node.mjs
+	@echo "\n--- Bun (React, NODE_ENV=production) ---"
+	@cd $(FRAMEWORKS_DIR) && NODE_ENV=production $(BUN) render-bench.ts
 
 bench-render-native: build-native
 	@echo "\n=== Native Render Benchmark ==="
 	$(PROJECT_ROOT)/_build/default/benchmark/streaming/streaming_bench.exe
 
 bench-render-bun: build-js
-	@echo "\n=== Bun Render Benchmark ==="
-	@cd $(FRAMEWORKS_DIR) && $(BUN) render-bench.ts
+	@echo "\n=== Bun Render Benchmark (NODE_ENV=production) ==="
+	@cd $(FRAMEWORKS_DIR) && NODE_ENV=production $(BUN) render-bench.ts
+
+bench-render-node: build-js
+	@echo "\n=== Node Render Benchmark (NODE_ENV=production) ==="
+	@cd $(FRAMEWORKS_DIR) && ./node_modules/.bin/esbuild render-bench.ts --bundle --outfile=.render-bench-node.mjs --format=esm --platform=node --external:react --external:react-dom --loader:.jsx=jsx --loader:.ts=ts > /dev/null && NODE_ENV=production node .render-bench-node.mjs; rm -f $(FRAMEWORKS_DIR)/.render-bench-node.mjs
 
 bench-http: build
 	@echo "\n=== Running HTTP Benchmarks ==="
@@ -164,9 +171,10 @@ help:
 	@echo ""
 	@echo "Benchmark targets:"
 	@echo "  make bench          - Run all benchmarks"
-	@echo "  make bench-render   - Pure render comparison: Native vs Bun (recommended)"
+	@echo "  make bench-render   - Pure render comparison: Native vs Node vs Bun (recommended)"
 	@echo "  make bench-render-native - Native render only"
-	@echo "  make bench-render-bun - Bun render only"
+	@echo "  make bench-render-node - Node render only (NODE_ENV=production)"
+	@echo "  make bench-render-bun - Bun render only (NODE_ENV=production)"
 	@echo "  make bench-memory   - Run memory benchmarks"
 	@echo "  make bench-streaming - Run streaming benchmarks"
 	@echo "  make bench-http     - Run HTTP load testing (all frameworks)"

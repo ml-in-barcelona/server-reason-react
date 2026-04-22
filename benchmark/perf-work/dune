@@ -1,0 +1,15 @@
+(executables
+ (names
+  style_alloc_bench
+  diff_styles
+  dump_html
+  alloc_profile
+  perf_profile
+  unification_bench)
+ (libraries
+  server-reason-react.reactDom
+  server-reason-react.react
+  benchmark_scenarios
+  unix)
+ (preprocess
+  (pps server-reason-react.ppx)))

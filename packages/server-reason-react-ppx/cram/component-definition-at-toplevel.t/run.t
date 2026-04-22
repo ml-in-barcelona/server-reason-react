@@ -83,18 +83,38 @@
                          unsafeWhenNotZero "m" all;
                        ])
                 in
-                React.createElement "div"
-                  (Stdlib.List.filter_map Stdlib.Fun.id
-                     [
-                       Some
-                         (React.JSX.String
-                            ("class", "className", (className : string)));
-                     ])
-                  [
-                    (match children with
-                    | None -> React.null
-                    | ((Some c) [@explicit_arity]) -> c);
-                  ] ))
+                React.Writer
+                  {
+                    emit =
+                      (fun b ->
+                        Buffer.add_string b "<div";
+                        Buffer.add_char b ' ';
+                        Buffer.add_string b "class";
+                        Buffer.add_string b "=\"";
+                        ReactDOM.escape_to_buffer b (className : string);
+                        Buffer.add_char b '"';
+                        Buffer.add_string b ">";
+                        ReactDOM.write_to_buffer b
+                          (match children with
+                          | None -> React.null
+                          | ((Some c) [@explicit_arity]) -> c);
+                        Buffer.add_string b "</div>";
+                        ());
+                    original =
+                      (fun () ->
+                        React.createElement "div"
+                          (Stdlib.List.filter_map Stdlib.Fun.id
+                             [
+                               Some
+                                 (React.JSX.String
+                                    ("class", "className", (className : string)));
+                             ])
+                          [
+                            (match children with
+                            | None -> React.null
+                            | ((Some c) [@explicit_arity]) -> c);
+                          ]);
+                  } ))
           [@warning "-16"]
   
     let make ?(key : string option)

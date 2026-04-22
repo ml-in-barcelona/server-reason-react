@@ -1,0 +1,17 @@
+Trivial                   0.39µs      0.28µs        22B       56.3MB/s
+ShallowTree              35.48µs     37.19µs      3463B       97.6MB/s
+DeepTree10               14.64µs     13.57µs      1328B       90.7MB/s
+DeepTree50               95.27µs     49.03µs      6284B       66.0MB/s
+WideTree10               27.25µs     25.62µs      6484B      238.0MB/s
+WideTree100             151.52µs    333.14µs     64625B      426.5MB/s
+WideTree500                1.28ms       1.27ms    324198B      253.4MB/s
+Table10                  29.43µs     30.53µs     15139B      514.4MB/s
+Table100                345.95µs    288.21µs    137487B      397.4MB/s
+Table500                   1.52ms       1.42ms    681966B      447.3MB/s
+PropsSmall              110.70µs    106.85µs     31213B      282.0MB/s
+PropsMedium             290.65µs    349.30µs     92483B      318.2MB/s
+Ecommerce24             137.85µs    138.34µs     51811B      375.9MB/s
+Ecommerce48             243.22µs    279.91µs     93890B      386.0MB/s
+Dashboard                37.47µs     33.68µs     13946B      372.2MB/s
+Blog50                  255.20µs    123.25µs     91574B      358.8MB/s
+Form                     87.30µs     80.07µs     21553B      246.9MB/s

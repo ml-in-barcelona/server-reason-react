@@ -322,6 +322,7 @@ module Model = struct
       match (element : React.element) with
       | Empty -> `Null
       | Static { original; _ } -> turn_element_into_payload ~context ~debug_info original
+      | Writer { original; _ } -> turn_element_into_payload ~context ~debug_info (original ())
       | Text t -> `String t
       | Lower_case_element { key; tag; attributes; children } ->
           let attributes =
@@ -600,6 +601,10 @@ let rec client_to_html ~(fiber : Fiber.t) (element : React.element) =
   match element with
   | Empty -> Lwt.return Html.null
   | Static { prerendered; _ } -> Lwt.return (Html.raw prerendered)
+  | Writer { emit; _ } ->
+      let b = Buffer.create 256 in
+      emit b;
+      Lwt.return (Html.raw (Buffer.contents b))
   | Text text -> Lwt.return (Html.string text)
   | Fragment children -> client_to_html ~fiber children
   | List childrens ->
@@ -737,6 +742,11 @@ let rec render_element_to_html ~(fiber : Fiber.t) (element : React.element) : (H
   | Static { prerendered; original } ->
       let%lwt _, model = render_element_to_html ~fiber original in
       Lwt.return (Html.raw prerendered, model)
+  | Writer { emit; original } ->
+      let%lwt _, model = render_element_to_html ~fiber (original ()) in
+      let b = Buffer.create 256 in
+      emit b;
+      Lwt.return (Html.raw (Buffer.contents b), model)
   | Text s -> Lwt.return (Html.string s, `String s)
   | Fragment children -> render_element_to_html ~fiber children
   | List list -> elements_to_html ~fiber list

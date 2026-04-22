@@ -1,5 +1,3 @@
 /* Simple classname utility for benchmarks */
-let make = cns =>
-  cns |> List.filter(x => x != "") |> String.concat(" ") |> String.trim;
-
+let make = cns => cns |> String.concat(" ");
 let ifTrue = (cn, x) => x ? cn : "";

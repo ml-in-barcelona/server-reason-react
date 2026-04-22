@@ -46,7 +46,9 @@ We need to output ML syntax here, otherwise refmt could not parse it.
          Some
            (React.JSX.Style
               (ReactDOM.Style.combine
-                 (ReactDOM.Style.make ~backgroundColor:"gainsboro" ())
+                 (("background-color", "backgroundColor", "gainsboro")
+                  :: ([] : (string * string * string) list)
+                   : ReactDOM.Style.t)
                  (snd x)
                 : ReactDOM.Style.t));
        ])
@@ -62,7 +64,9 @@ We need to output ML syntax here, otherwise refmt could not parse it.
          Some
            (React.JSX.Style
               (ReactDOM.Style.combine
-                 (ReactDOM.Style.make ~backgroundColor:"gainsboro" ())
+                 (("background-color", "backgroundColor", "gainsboro")
+                  :: ([] : (string * string * string) list)
+                   : ReactDOM.Style.t)
                  (snd x)
                 : ReactDOM.Style.t));
        ])
@@ -101,10 +105,15 @@ We need to output ML syntax here, otherwise refmt could not parse it.
          Some
            (React.JSX.Style
               (match match x with None -> None | Some x -> Some (snd x) with
-               | None -> ReactDOM.Style.make ~backgroundColor:"gainsboro" ()
+               | None ->
+                   (("background-color", "backgroundColor", "gainsboro")
+                    :: ([] : (string * string * string) list)
+                     : ReactDOM.Style.t)
                | Some x ->
                    ReactDOM.Style.combine
-                     (ReactDOM.Style.make ~backgroundColor:"gainsboro" ())
+                     (("background-color", "backgroundColor", "gainsboro")
+                      :: ([] : (string * string * string) list)
+                       : ReactDOM.Style.t)
                      x
                 : ReactDOM.Style.t));
        ])
@@ -125,10 +134,15 @@ We need to output ML syntax here, otherwise refmt could not parse it.
          Some
            (React.JSX.Style
               (match match x with None -> None | Some x -> Some (snd x) with
-               | None -> ReactDOM.Style.make ~backgroundColor:"gainsboro" ()
+               | None ->
+                   (("background-color", "backgroundColor", "gainsboro")
+                    :: ([] : (string * string * string) list)
+                     : ReactDOM.Style.t)
                | Some x ->
                    ReactDOM.Style.combine
-                     (ReactDOM.Style.make ~backgroundColor:"gainsboro" ())
+                     (("background-color", "backgroundColor", "gainsboro")
+                      :: ([] : (string * string * string) list)
+                       : ReactDOM.Style.t)
                      x
                 : ReactDOM.Style.t));
        ])
@@ -155,7 +169,9 @@ Module-qualified components like Foo.Bar keep ~styles as a regular prop (not exp
   div ~className:(fst x)
     ~style:
       (ReactDOM.Style.combine
-         (ReactDOM.Style.make ~backgroundColor:"gainsboro" ())
+         (("background-color", "backgroundColor", "gainsboro")
+          :: ([] : (string * string * string) list)
+           : ReactDOM.Style.t)
          (snd x))
     ~children:[] () [@JSX]
   ;;
@@ -164,7 +180,9 @@ Module-qualified components like Foo.Bar keep ~styles as a regular prop (not exp
     ~className:(fst x ^ " " ^ "lola")
     ~style:
       (ReactDOM.Style.combine
-         (ReactDOM.Style.make ~backgroundColor:"gainsboro" ())
+         (("background-color", "backgroundColor", "gainsboro")
+          :: ([] : (string * string * string) list)
+           : ReactDOM.Style.t)
          (snd x))
     ~children:[] () [@JSX]
   ;;
@@ -182,10 +200,15 @@ Module-qualified components like Foo.Bar keep ~styles as a regular prop (not exp
     ?className:(match x with None -> None | Some x -> Some (fst x))
     ~style:
       (match match x with None -> None | Some x -> Some (snd x) with
-      | None -> ReactDOM.Style.make ~backgroundColor:"gainsboro" ()
+      | None ->
+          (("background-color", "backgroundColor", "gainsboro")
+           :: ([] : (string * string * string) list)
+            : ReactDOM.Style.t)
       | Some x ->
           ReactDOM.Style.combine
-            (ReactDOM.Style.make ~backgroundColor:"gainsboro" ())
+            (("background-color", "backgroundColor", "gainsboro")
+             :: ([] : (string * string * string) list)
+              : ReactDOM.Style.t)
             x)
     ~children:[] () [@JSX]
   ;;
@@ -197,10 +220,15 @@ Module-qualified components like Foo.Bar keep ~styles as a regular prop (not exp
       | Some x -> x ^ " " ^ "lola")
     ~style:
       (match match x with None -> None | Some x -> Some (snd x) with
-      | None -> ReactDOM.Style.make ~backgroundColor:"gainsboro" ()
+      | None ->
+          (("background-color", "backgroundColor", "gainsboro")
+           :: ([] : (string * string * string) list)
+            : ReactDOM.Style.t)
       | Some x ->
           ReactDOM.Style.combine
-            (ReactDOM.Style.make ~backgroundColor:"gainsboro" ())
+            (("background-color", "backgroundColor", "gainsboro")
+             :: ([] : (string * string * string) list)
+              : ReactDOM.Style.t)
             x)
     ~children:[] () [@JSX]
   ;;

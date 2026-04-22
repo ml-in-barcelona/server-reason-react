@@ -1,0 +1,244 @@
+--------------------------------------------------------------------------------
+Profile data file '/home/me/server-reason-react/benchmark/perf-work/cycles-out/callgrind-wide100.out' (creator: callgrind-3.19.0)
+--------------------------------------------------------------------------------
+I1 cache: 
+D1 cache: 
+LL cache: 
+Timerange: Basic block 0 - 40300084
+Trigger: Program termination
+Profiled target:  /home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe --scenario wide100 --warmup 5 --iters 30 (PID 2491614, part 1)
+Events recorded:  Ir
+Events shown:     Ir
+Event sort order: Ir
+Thresholds:       99
+Include dirs:     
+User annotated:   
+Auto-annotation:  off
+
+--------------------------------------------------------------------------------
+Ir                   
+--------------------------------------------------------------------------------
+140,193,145 (100.0%)  PROGRAM TOTALS
+
+--------------------------------------------------------------------------------
+Ir                   file:function
+--------------------------------------------------------------------------------
+16,007,312 (11.42%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/major_gc.c:do_some_marking [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+10,456,830 ( 7.46%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/minor_gc.c:oldify_one [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+ 9,661,921 ( 6.89%)  /workspace_root/packages/html/Html.ml:camlHtml.escape_277'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+ 7,190,619 ( 5.13%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/shared_heap.c:caml_shared_try_alloc [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+ 7,189,048 ( 5.13%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/shared_heap.c:pool_sweep [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+ 6,991,604 ( 4.99%)  ./string/../sysdeps/x86_64/multiarch/memmove-vec-unaligned-erms.S:__memcpy_avx_unaligned_erms [/usr/lib/x86_64-linux-gnu/libc.so.6]
+ 6,301,744 ( 4.50%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/minor_gc.c:oldify_mopup [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+ 5,358,780 ( 3.82%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/stdlib/buffer.ml:camlStdlib__Buffer.add_substring_591'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+ 4,425,264 ( 3.16%)  ./stdio-common/./stdio-common/vfprintf-internal.c:__vfprintf_internal [/usr/lib/x86_64-linux-gnu/libc.so.6]
+ 4,262,834 ( 3.04%)  ./stdio-common/./stdio-common/printf_fp.c:__printf_fp_l [/usr/lib/x86_64-linux-gnu/libc.so.6]
+ 2,614,620 ( 1.87%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/minor_gc.c:try_update_object_header [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+ 2,150,725 ( 1.53%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/alloc.c:caml_alloc_string'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+ 1,932,000 ( 1.38%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/hash.c:caml_hash_mix_string [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+ 1,493,466 ( 1.07%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/memory.c:caml_modify [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+ 1,432,625 ( 1.02%)  ./libio/./libio/genops.c:_IO_default_xsputn [/usr/lib/x86_64-linux-gnu/libc.so.6]
+ 1,427,932 ( 1.02%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/hash.c:camlJs__Js_obj.register_entry_840'2
+ 1,196,943 ( 0.85%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/stdlib/hashtbl.ml:camlStdlib__Hashtbl.replace_1429'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+ 1,191,005 ( 0.85%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/caml/shared_heap.h:do_some_marking
+ 1,189,932 ( 0.85%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/hash.c:camlStdlib__List.iter_373'2
+ 1,176,336 ( 0.84%)  ./stdio-common/./stdio-common/vfprintf-process-arg.c:__vfprintf_internal
+ 1,161,603 ( 0.83%)  ./stdio-common/./stdio-common/printf_fp.c:hack_digit [/usr/lib/x86_64-linux-gnu/libc.so.6]
+ 1,155,330 ( 0.82%)  ./libio/./libio/vsnprintf.c:__vsnprintf_internal [/usr/lib/x86_64-linux-gnu/libc.so.6]
+ 1,151,769 ( 0.82%)  ???:caml_c_call'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+ 1,043,298 ( 0.74%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/str.c:caml_alloc_sprintf [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+ 1,005,585 ( 0.72%)  /workspace_root/packages/reactDom/src/ReactDOM.ml:camlReactDOM.render_919 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   871,300 ( 0.62%)  ???:caml_apply2'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   851,522 ( 0.61%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/caml/shared_heap.h:pool_sweep
+   839,980 ( 0.60%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/stdlib/hashtbl.ml:camlStdlib__Hashtbl.key_index_1350'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   777,222 ( 0.55%)  ./libio/./libio/strops.c:_IO_str_init_static_internal [/usr/lib/x86_64-linux-gnu/libc.so.6]
+   756,471 ( 0.54%)  ./string/../sysdeps/x86_64/multiarch/strchr-avx2.S:__strchrnul_avx2 [/usr/lib/x86_64-linux-gnu/libc.so.6]
+   747,287 ( 0.53%)  ./stdlib/./stdlib/divrem.c:__mpn_divrem [/usr/lib/x86_64-linux-gnu/libc.so.6]
+   741,586 ( 0.53%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/caml/mlvalues.h:oldify_mopup
+   686,304 ( 0.49%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/caml/major_gc.h:oldify_one
+   682,923 ( 0.49%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/stdlib/camlinternalFormat.ml:camlCamlinternalFormat.make_printf_3518'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   661,359 ( 0.47%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/major_gc.c:caml_darken [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   658,188 ( 0.47%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/ints.c:parse_format [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   652,482 ( 0.47%)  /workspace_root/packages/Js/lib/Js_obj.ml:camlJs__Js_obj.slot_ref_822'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   634,980 ( 0.45%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/globroots.c:caml_scan_global_roots [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   629,981 ( 0.45%)  /workspace_root/packages/Js/lib/Js_obj.ml:camlJs__Js_obj.register_entry_840'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   602,000 ( 0.43%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/compare.c:compare_val [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   595,789 ( 0.42%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/array.c:caml_uniform_array_make'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   594,981 ( 0.42%)  /workspace_root/benchmark/scenarios/WideTree.re:camlBenchmark_scenarios__WideTree.fun_4773'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   578,721 ( 0.41%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/stdlib/bytes.ml:camlStdlib__Bytes.sub_309'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   576,016 ( 0.41%)  ./stdlib/../sysdeps/x86_64/mul_1.S:__mpn_mul_1 [/usr/lib/x86_64-linux-gnu/libc.so.6]
+   567,162 ( 0.40%)  ./libio/./libio/genops.c:_IO_setb [/usr/lib/x86_64-linux-gnu/libc.so.6]
+   546,156 ( 0.39%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/stdlib/camlinternalFormat.ml:camlCamlinternalFormat.buffer_add_char_646 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   521,523 ( 0.37%)  /workspace_root/benchmark/scenarios/WideTree.re:camlBenchmark_scenarios__WideTree.fun_1408'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   513,652 ( 0.37%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/hash.c:camlJs__Js_obj.register_structural_846'2
+   504,144 ( 0.36%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/stdlib/camlinternalFormat.ml:camlCamlinternalFormat.buffer_check_size_607 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   482,977 ( 0.34%)  /workspace_root/packages/Js/lib/Js_obj.ml:camlJs__Js_obj.add_key_in_order_681'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   462,132 ( 0.33%)  ./libio/./libio/genops.c:_IO_no_init [/usr/lib/x86_64-linux-gnu/libc.so.6]
+   462,132 ( 0.33%)  ./libio/./libio/genops.c:_IO_old_init [/usr/lib/x86_64-linux-gnu/libc.so.6]
+   462,000 ( 0.33%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/stdlib/camlinternalFormat.ml:camlCamlinternalFormat.strput_acc_4499'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   454,334 ( 0.32%)  ./stdio-common/./stdio-common/_itoa.c:_itoa_word [/usr/lib/x86_64-linux-gnu/libc.so.6]
+   444,481 ( 0.32%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/stdlib/hashtbl.ml:camlStdlib__Hashtbl.find_opt_1400'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   420,024 ( 0.30%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/str.c:caml_string_length
+   399,114 ( 0.28%)  ./stdio-common/../libio/libioP.h:__vfprintf_internal
+   396,767 ( 0.28%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/major_gc.c:mark_stack_push_block [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   380,927 ( 0.27%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/str.c:camlBenchmark_scenarios__WideTree.fun_4773'2
+   364,000 ( 0.26%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/str.c:caml_blit_string [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   357,414 ( 0.25%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/stdlib/list.ml:camlStdlib__List.iter_373'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   342,301 ( 0.24%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/caml/mlvalues.h:do_some_marking
+   335,619 ( 0.24%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/major_gc.c:ephe_mark [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   325,146 ( 0.23%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/stdlib/ephemeron.ml:camlStdlib__Ephemeron.replace_792'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   315,090 ( 0.22%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/alloc.c:caml_alloc_initialized_string [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   307,912 ( 0.22%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/stdlib/string.ml:camlStdlib__String.unsafe_blits_406'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   294,084 ( 0.21%)  ./locale/./locale/uselocale.c:uselocale [/usr/lib/x86_64-linux-gnu/libc.so.6]
+   284,447 ( 0.20%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/stdlib/buffer.ml:camlStdlib__Buffer.create_281'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   280,000 ( 0.20%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/stdlib/buffer.ml:camlStdlib__Buffer.add_char_509'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   275,097 ( 0.20%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/weak.c:caml_ephe_clean.part.0 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   273,078 ( 0.19%)  ./string/../sysdeps/x86_64/multiarch/strlen-avx2.S:__strlen_avx2 [/usr/lib/x86_64-linux-gnu/libc.so.6]
+   273,000 ( 0.19%)  /workspace_root/packages/react/src/React.ml:camlReact.clz32_2993 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   266,844 ( 0.19%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/stdlib/bytes.ml:camlStdlib__Bytes.blit_string_379'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   258,958 ( 0.18%)  /workspace_root/benchmark/scenarios/WideTree.re:camlBenchmark_scenarios__WideTree.fun_4865'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   252,046 ( 0.18%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/stdlib/camlinternalFormat.ml:camlCamlinternalFormat.format_of_fconv_3450'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   244,969 ( 0.17%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/stdlib/list.ml:camlStdlib__List.filter_map_584'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   241,500 ( 0.17%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/str.c:camlStdlib__Printf.k$27_457'2
+   241,463 ( 0.17%)  /workspace_root/benchmark/scenarios/WideTree.re:camlBenchmark_scenarios__WideTree.fun_4778'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   241,463 ( 0.17%)  /workspace_root/benchmark/scenarios/WideTree.re:camlBenchmark_scenarios__WideTree.fun_4848'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   240,312 ( 0.17%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/weak.c:camlStdlib__Ephemeron.create_1190'2
+   238,180 ( 0.17%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/caml/domain.h:caml_alloc_string'2
+   237,948 ( 0.17%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/stdlib/hashtbl.ml:camlStdlib__Hashtbl.replace_bucket_1422'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   231,000 ( 0.16%)  ???:caml_apply4 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   230,989 ( 0.16%)  /workspace_root/buffer.ml:camlHtml.escape_277'2
+   227,981 ( 0.16%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/str.c:caml_blit_bytes [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   224,034 ( 0.16%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/stdlib/camlinternalFormat.ml:camlCamlinternalFormat.convert_float_3489'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   219,095 ( 0.16%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/weak.c:ephe_modify [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   216,938 ( 0.15%)  /workspace_root/benchmark/scenarios/WideTree.re:camlBenchmark_scenarios__WideTree.make_820'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   212,271 ( 0.15%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/major_gc.c:major_collection_slice [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   210,194 ( 0.15%)  ???:caml_send0 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   210,060 ( 0.15%)  ./stdio-common/./stdio-common/printf-parse.h:__vfprintf_internal
+   203,029 ( 0.14%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/stdlib/camlinternalFormat.ml:camlCamlinternalFormat.buffer_add_string_650'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   203,000 ( 0.14%)  /workspace_root/packages/react/src/React.ml:camlReact.push_3017 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   196,000 ( 0.14%)  /workspace_root/packages/html/Html.ml:camlHtml.is_self_closing_tag_274 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   187,315 ( 0.13%)  /workspace_root/packages/reactDom/src/ReactDOM.ml:camlReactDOM.render_upper_case_component_620'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   178,500 ( 0.13%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/stdlib/printf.ml:camlStdlib__Printf.k$27_457'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   168,024 ( 0.12%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/stdlib/camlinternalFormat.ml:camlCamlinternalFormat.fun_6722'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   168,000 ( 0.12%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/stdlib/printf.ml:camlStdlib__Printf.ksprintf_453'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   164,457 ( 0.12%)  /workspace_root/benchmark/scenarios/WideTree.re:camlBenchmark_scenarios__WideTree.fun_4979'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   161,023 ( 0.11%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/floats.c:camlCamlinternalFormat.convert_float_3489'2
+   161,023 ( 0.11%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/ints.c:camlCamlinternalFormat.format_of_fconv_3450'2
+   161,023 ( 0.11%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/stdlib/camlinternalFormat.ml:camlCamlinternalFormat.make_float_padding_precision_3524 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   157,500 ( 0.11%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/stdlib/buffer.ml:camlCamlinternalFormat.strput_acc_4499'2
+   157,500 ( 0.11%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/stdlib/string.ml:camlStdlib__String.sum_lengths_399 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   154,140 ( 0.11%)  /workspace_root/packages/reactDom/src/ReactDOM.ml:camlReactDOM.write_to_buffer_915 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   151,826 ( 0.11%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/alloc.c:caml_alloc'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   147,378 ( 0.11%)  ./string/../sysdeps/x86_64/multiarch/memcmp-avx2-movbe.S:__memcmp_avx2_movbe [/usr/lib/x86_64-linux-gnu/libc.so.6]
+   147,042 ( 0.10%)  ./stdlib/../sysdeps/ieee754/dbl-64/dbl2mpn.c:__mpn_extract_double [/usr/lib/x86_64-linux-gnu/libc.so.6]
+   146,592 ( 0.10%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/weak.c:ephe_check_field'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   143,720 ( 0.10%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/memory.c:caml_alloc_shr [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   141,360 ( 0.10%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/weak.c:camlStdlib__Ephemeron.replace_792'2
+   136,926 ( 0.10%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/weak.c:clean_field [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   136,500 ( 0.10%)  /workspace_root/benchmark/scenarios/WideTree.re:camlBenchmark_scenarios__WideTree.fun_4771 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   136,487 ( 0.10%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/str.c:camlBenchmark_scenarios__WideTree.fun_4865'2
+   135,927 ( 0.10%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/str.c:camlBenchmark_scenarios__WideTree.fun_4778'2
+   135,927 ( 0.10%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/str.c:camlBenchmark_scenarios__WideTree.fun_4848'2
+   130,731 ( 0.09%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/caml/domain.h:try_update_object_header
+   129,463 ( 0.09%)  ???:caml_apply6'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   127,366 ( 0.09%)  /workspace_root/packages/react/src/React.ml:camlReact.create_element_with_key_2665 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   126,036 ( 0.09%)  ./libio/./libio/libioP.h:_IO_default_xsputn
+   126,036 ( 0.09%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/stdlib/camlinternalFormat.ml:camlCamlinternalFormat.bprint_fconv_flag_761 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   124,412 ( 0.09%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/caml/shared_heap.h:caml_darken
+   123,690 ( 0.09%)  /workspace_root/packages/Js/lib/Js_obj.ml:camlJs__Js_obj.register_structural_846'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   119,638 ( 0.09%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/stdlib/ephemeron.ml:camlStdlib__Ephemeron.do_bucket_706'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   119,034 ( 0.08%)  ./string/../sysdeps/x86_64/multiarch/memmove-vec-unaligned-erms.S:__mempcpy_avx_unaligned_erms [/usr/lib/x86_64-linux-gnu/libc.so.6]
+   118,985 ( 0.08%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/stdlib/list.ml:camlStdlib__List.filter_map_dps_1258'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   117,861 ( 0.08%)  ./stdlib/../sysdeps/x86_64/rshift.S:__mpn_rshift [/usr/lib/x86_64-linux-gnu/libc.so.6]
+   115,522 ( 0.08%)  ???:caml_apply3'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   113,450 ( 0.08%)  /workspace_root/packages/reactDom/src/ReactDOM.ml:camlReactDOM.render_children_array_642'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   110,636 ( 0.08%)  /workspace_root/packages/react/src/React.ml:camlReact.create_element_with_key_2665'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   108,471 ( 0.08%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/stdlib/string.ml:camlStdlib__String.concat_415'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   105,030 ( 0.07%)  ./stdlib/../sysdeps/x86_64/lshift.S:__mpn_lshift [/usr/lib/x86_64-linux-gnu/libc.so.6]
+   103,395 ( 0.07%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/minor_gc.c:caml_stw_empty_minor_heap_no_major_slice.constprop.0 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   102,087 ( 0.07%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/memprof.c:caml_memprof_sample_block [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+   102,070 ( 0.07%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/stdlib/array.ml:camlStdlib__Array.map_355'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+    95,418 ( 0.07%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/stdlib/camlinternalOO.ml:camlCamlinternalOO.create_object_opt_1212'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+    95,418 ( 0.07%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/stdlib/hashtbl.ml:camlStdlib__Hashtbl.create_inner_1842'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+    94,473 ( 0.07%)  /workspace_root/benchmark/scenarios/WideTree.re:camlBenchmark_scenarios__WideTree.fun_4769'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+    91,026 ( 0.06%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/str.c:camlCamlinternalFormat.format_of_fconv_3450'2
+    90,987 ( 0.06%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/str.c:camlBenchmark_scenarios__WideTree.fun_4979'2
+    84,048 ( 0.06%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/stdlib/camlinternalFormat.ml:camlCamlinternalFormat.fun_6591'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+    84,048 ( 0.06%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/stdlib/camlinternalFormat.ml:camlCamlinternalFormat.make_int_padding_precision_3523'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+    84,012 ( 0.06%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/stdlib/camlinternalFormat.ml:camlCamlinternalFormat.buffer_create_604'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+    84,000 ( 0.06%)  /workspace_root/packages/Js/lib/Js_obj.ml:camlJs__Js_obj.fun_1053 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+    80,487 ( 0.06%)  /workspace_root/benchmark/scenarios/WideTree.re:camlBenchmark_scenarios__WideTree.fun_5293'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+    80,481 ( 0.06%)  /workspace_root/benchmark/scenarios/WideTree.re:camlBenchmark_scenarios__WideTree.fun_4791'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+    80,481 ( 0.06%)  /workspace_root/benchmark/scenarios/WideTree.re:camlBenchmark_scenarios__WideTree.fun_4850'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+    80,481 ( 0.06%)  /workspace_root/benchmark/scenarios/WideTree.re:camlBenchmark_scenarios__WideTree.fun_4872'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+    80,477 ( 0.06%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/ints.c:camlBenchmark_scenarios__WideTree.fun_4791'2
+    80,477 ( 0.06%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/ints.c:camlBenchmark_scenarios__WideTree.fun_5293'2
+    77,594 ( 0.06%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/stdlib/ephemeron.ml:camlStdlib__Ephemeron.replace_bucket_798 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+    77,022 ( 0.05%)  ./stdio-common/./stdio-common/printf-parse.h:read_int [/usr/lib/x86_64-linux-gnu/libc.so.6]
+    77,000 ( 0.05%)  /workspace_root/benchmark/scenarios/WideTree.re:camlBenchmark_scenarios__WideTree.fun_4767 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+    76,070 ( 0.05%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/stdlib/obj.ml:camlStdlib__Obj.raise_if_invalid_offset_470 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+    73,479 ( 0.05%)  /workspace_root/benchmark/scenarios/WideTree.re:camlBenchmark_scenarios__WideTree.fun_1451'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+    71,580 ( 0.05%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/alloc.c:caml_alloc_small [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+    70,020 ( 0.05%)  ./nptl/./nptl/alloca_cutoff.c:__libc_alloca_cutoff [/usr/lib/x86_64-linux-gnu/libc.so.6]
+    70,004 ( 0.05%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/caml/mlvalues.h:caml_string_length [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+    70,000 ( 0.05%)  /workspace_root/buffer.ml:camlReactDOM.render_919
+    69,980 ( 0.05%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/memory.c:camlReactDOM.render_children_array_642'2
+    63,018 ( 0.04%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/stdlib/camlinternalFormat.ml:camlCamlinternalFormat.char_of_fconv_inner_5954 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+    63,000 ( 0.04%)  /workspace_root/benchmark/scenarios/WideTree.re:camlBenchmark_scenarios__WideTree.fun_4294 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+    62,995 ( 0.04%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/str.c:camlBenchmark_scenarios__WideTree.fun_4850'2
+    62,995 ( 0.04%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/str.c:camlBenchmark_scenarios__WideTree.fun_4872'2
+    60,898 ( 0.04%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/stdlib/ephemeron.ml:camlStdlib__Ephemeron.insert_bucket_722'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+    60,080 ( 0.04%)  /workspace_root/packages/Js/lib/Js_obj.ml:camlJs__Js_obj.empty_metadata_678'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+    59,586 ( 0.04%)  ./malloc/./malloc/malloc.c:_int_malloc [/usr/lib/x86_64-linux-gnu/libc.so.6]
+    59,496 ( 0.04%)  /workspace_root/buffer.ml:camlBenchmark_scenarios__WideTree.fun_4773'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+    57,008 ( 0.04%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/stdlib/obj.ml:camlStdlib__Obj.check_key_493'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+    56,964 ( 0.04%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/signals.c:caml_check_pending_actions [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+    56,544 ( 0.04%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/stdlib/obj.ml:camlStdlib__Obj.set_key_484'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+    56,536 ( 0.04%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/caml/minor_gc.h:ephe_modify
+    56,470 ( 0.04%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/caml/mlvalues.h:caml_scan_global_roots
+    56,278 ( 0.04%)  ./stdlib/./stdlib/cmp.c:__mpn_cmp [/usr/lib/x86_64-linux-gnu/libc.so.6]
+    56,052 ( 0.04%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/caml/mlvalues.h:caml_darken
+    56,016 ( 0.04%)  ./stdio-common/../sysdeps/generic/get-rounding-mode.h:__printf_fp_l
+    56,000 ( 0.04%)  /workspace_root/benchmark/scenarios/WideTree.re:camlBenchmark_scenarios__WideTree.fun_3348 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+    56,000 ( 0.04%)  /workspace_root/packages/react/src/React.ml:camlReact.fun_4720 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+    56,000 ( 0.04%)  /workspace_root/packages/react/src/React.ml:camlReact.string_2769 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+    55,984 ( 0.04%)  /workspace_root/benchmark/scenarios/WideTree.re:camlBenchmark_scenarios__WideTree.fun_4780'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+    55,984 ( 0.04%)  /workspace_root/benchmark/scenarios/WideTree.re:camlBenchmark_scenarios__WideTree.fun_4837'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+    55,036 ( 0.04%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/stdlib/ephemeron.ml:camlStdlib__Ephemeron.clean_703'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+    53,010 ( 0.04%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/stdlib/ephemeron.ml:camlStdlib__Ephemeron.create_1190'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+    53,010 ( 0.04%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/stdlib/obj.ml:camlStdlib__Obj.create_465'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+    52,530 ( 0.04%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/stdlib/camlinternalFormat.ml:camlCamlinternalFormat.convert_int_3473'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+    52,505 ( 0.04%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/stdlib/int.ml:camlStdlib__Int.to_string_310'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+    49,476 ( 0.04%)  /workspace_root/packages/react/src/React.ml:camlReact.reset_component_id_state_3044'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+    49,000 ( 0.03%)  /workspace_root/benchmark/scenarios/WideTree.re:camlBenchmark_scenarios__WideTree.fun_1456 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+    48,986 ( 0.03%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/memory.c:camlBenchmark_scenarios__WideTree.fun_4865'2
+    48,958 ( 0.03%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/memory.c:camlBenchmark_scenarios__WideTree.fun_4979'2
+    48,454 ( 0.03%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/obj.c:camlStdlib__Array.map_355'2
+    45,942 ( 0.03%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/str.c:camlReactDOM.render_upper_case_component_620'2
+    45,500 ( 0.03%)  ???:caml_curry2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+    45,500 ( 0.03%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/str.c:camlBenchmark_scenarios__WideTree.fun_4791'2
+    45,487 ( 0.03%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/str.c:camlBenchmark_scenarios__WideTree.fun_4780'2
+    45,487 ( 0.03%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/str.c:camlBenchmark_scenarios__WideTree.fun_4837'2
+    45,487 ( 0.03%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/str.c:camlStdlib__String.concat_415'2
+    44,016 ( 0.03%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/shared_heap.c:caml_sweep [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+    42,408 ( 0.03%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/signals.c:caml_process_pending_actions_with_root'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+    42,012 ( 0.03%)  ./libio/./libio/vsnprintf.c:vsnprintf [/usr/lib/x86_64-linux-gnu/libc.so.6]
+    42,012 ( 0.03%)  ./stdio-common/./stdio-common/printf_fp.c:__printf_fp [/usr/lib/x86_64-linux-gnu/libc.so.6]
+    42,000 ( 0.03%)  /workspace_root/benchmark/scenarios/Cx.re:camlBenchmark_scenarios__Cx.ifTrue_359 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+    42,000 ( 0.03%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/stdlib/buffer.ml:camlStdlib__Printf.k$27_457'2
+    40,526 ( 0.03%)  /workspace_root/packages/Js/lib/Js_obj.ml:camlJs__Js_obj.slot_ref_822 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+    38,892 ( 0.03%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/obj.c:caml_set_oo_id [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+    38,500 ( 0.03%)  /workspace_root/benchmark/scenarios/WideTree.re:camlBenchmark_scenarios__WideTree.make_395 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+    38,500 ( 0.03%)  ???:caml_tuplify6 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+    35,340 ( 0.03%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/caml/domain.h:caml_alloc'2
+    35,185 ( 0.03%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/str.c:camlStdlib__Bytes.sub_309'2
+    35,010 ( 0.02%)  ./stdio-common/../sysdeps/pthread/allocalim.h:__printf_fp_l
+    35,000 ( 0.02%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/compare.c:camlStdlib__Hashtbl.find_opt_1400'2
+    34,470 ( 0.02%)  /workspace_root/buffer.ml:camlBenchmark_scenarios__WideTree.fun_4979'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+    34,029 ( 0.02%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/caml/major_gc.h:caml_alloc_shr
+    33,072 ( 0.02%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/caml/weak.h:caml_ephe_clean.part.0
+    31,806 ( 0.02%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/stdlib/hashtbl.ml:camlStdlib__Hashtbl.hash_1338'2 [/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe]
+    31,515 ( 0.02%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/obj.c:camlBenchmark_scenarios__WideTree.fun_4773'2
+    31,515 ( 0.02%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/obj.c:camlBenchmark_scenarios__WideTree.fun_4850'2
+    31,515 ( 0.02%)  _opam/.opam-switch/build/ocaml-compiler.5.4.0/runtime/obj.c:camlBenchmark_scenarios__WideTree.fun_4872'2
+

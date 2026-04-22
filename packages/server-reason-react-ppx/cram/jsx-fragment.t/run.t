@@ -7,7 +7,19 @@
       React.list([foo, React.fragment(React.list([bar, baz]))]),
     );
   let nested_fragment_with_lower = foo =>
-    React.fragment(React.list([React.createElement("div", [], [foo])]));
+    React.fragment(
+      React.list([
+        React.Writer({
+          emit: b => {
+            Buffer.add_string(b, "<div>");
+            ReactDOM.write_to_buffer(b, foo);
+            Buffer.add_string(b, "</div>");
+            ();
+          },
+          original: () => React.createElement("div", [], [foo]),
+        }),
+      ]),
+    );
   module Fragment = {
     include {
               let makeProps = (~name: option('name)=?, ()) => {
@@ -40,11 +52,20 @@
                   () =>
                     React.fragment(
                       React.list([
-                        React.createElement(
-                          "div",
-                          [],
-                          [React.string("First " ++ name)],
-                        ),
+                        React.Writer({
+                          emit: b => {
+                            Buffer.add_string(b, "<div>");
+                            ReactDOM.escape_to_buffer(b, "First " ++ name);
+                            Buffer.add_string(b, "</div>");
+                            ();
+                          },
+                          original: () =>
+                            React.createElement(
+                              "div",
+                              [],
+                              [React.string("First " ++ name)],
+                            ),
+                        }),
                         Hello.make(
                           Hello.makeProps(
                             ~children=React.string("2nd " ++ name),

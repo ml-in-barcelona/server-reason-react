@@ -1,0 +1,10 @@
+
+ Performance counter stats for '/home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe --scenario wide100 --warmup 50 --iters 500' (3 runs):
+
+            131.71 msec task-clock                       #    0.995 CPUs utilized               ( +-  1.79% )
+                 1      context-switches                 #    7.593 /sec                        ( +- 57.74% )
+                 0      cpu-migrations                   #    0.000 /sec                      
+             3,253      page-faults                      #   24.699 K/sec                       ( +-  0.03% )
+
+           0.13243 +- 0.00250 seconds time elapsed  ( +-  1.89% )
+

@@ -1,0 +1,11 @@
+==2491614== Callgrind, a call-graph generating cache profiler
+==2491614== Copyright (C) 2002-2017, and GNU GPL'd, by Josef Weidendorfer et al.
+==2491614== Using Valgrind-3.19.0 and LibVEX; rerun with -h for copyright info
+==2491614== Command: /home/me/server-reason-react/_build/default/benchmark/perf-work/perf_profile.exe --scenario wide100 --warmup 5 --iters 30
+==2491614== 
+==2491614== For interactive control, run 'callgrind_control -h'.
+==2491614== 
+==2491614== Events    : Ir
+==2491614== Collected : 140193145
+==2491614== 
+==2491614== I   refs:      140,193,145

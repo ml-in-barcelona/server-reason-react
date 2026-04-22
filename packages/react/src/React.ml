@@ -414,6 +414,13 @@ and element =
   | Array of element array
   | Text of string
   | Static of { prerendered : string; original : element }
+  | Writer of { emit : Buffer.t -> unit; original : unit -> element }
+      (** Like [Static] but writes directly into the caller's buffer. Used by the PPX for subtrees with static skeleton
+          \+ dynamic string/int/float holes (the [Needs_string_concat] and [Needs_buffer] tiers).
+
+          [original] is a thunk that rebuilds the variant-tree form on-demand for [cloneElement] and RSC consumers. Same
+          name as [Static.original] for symmetry; [Writer]'s version is lazy so the render-to-string fast path pays no
+          allocation for the fallback. *)
   | Fragment of element
   | Empty
   | Provider of { children : element; push : unit -> unit -> unit; async_key : Obj.t Lwt.key; async_value : Obj.t }
@@ -502,6 +509,7 @@ let rec cloneElement element new_attributes =
   | Async_component (name, _) -> raise (Invalid_argument (clone_component_error name))
   | Client_component { import_name; _ } -> raise (Invalid_argument (clone_component_error import_name))
   | Static { original; prerendered = _ } -> cloneElement original new_attributes
+  | Writer { original; emit = _ } -> cloneElement (original ()) new_attributes
   | Fragment _ -> raise (Invalid_argument "React.cloneElement: cannot clone a Fragment")
   | Text _ -> raise (Invalid_argument "React.cloneElement: cannot clone a Text element")
   | Empty -> raise (Invalid_argument "React.cloneElement: cannot clone a null element")

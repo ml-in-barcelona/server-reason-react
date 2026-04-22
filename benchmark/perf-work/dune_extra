@@ -1,0 +1,4 @@
+(executable
+ (name diff_styles)
+ (libraries server-reason-react.reactDom)
+ (preprocess (pps server-reason-react.ppx)))
