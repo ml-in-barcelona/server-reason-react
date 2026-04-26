@@ -169,9 +169,7 @@ Module-qualified components like Foo.Bar keep ~styles as a regular prop (not exp
   div ~className:(fst x)
     ~style:
       (ReactDOM.Style.combine
-         (("background-color", "backgroundColor", "gainsboro")
-          :: ([] : (string * string * string) list)
-           : ReactDOM.Style.t)
+         (ReactDOM.Style.make ~backgroundColor:"gainsboro" ())
          (snd x))
     ~children:[] () [@JSX]
   ;;
@@ -180,9 +178,7 @@ Module-qualified components like Foo.Bar keep ~styles as a regular prop (not exp
     ~className:(fst x ^ " " ^ "lola")
     ~style:
       (ReactDOM.Style.combine
-         (("background-color", "backgroundColor", "gainsboro")
-          :: ([] : (string * string * string) list)
-           : ReactDOM.Style.t)
+         (ReactDOM.Style.make ~backgroundColor:"gainsboro" ())
          (snd x))
     ~children:[] () [@JSX]
   ;;
@@ -200,15 +196,10 @@ Module-qualified components like Foo.Bar keep ~styles as a regular prop (not exp
     ?className:(match x with None -> None | Some x -> Some (fst x))
     ~style:
       (match match x with None -> None | Some x -> Some (snd x) with
-      | None ->
-          (("background-color", "backgroundColor", "gainsboro")
-           :: ([] : (string * string * string) list)
-            : ReactDOM.Style.t)
+      | None -> ReactDOM.Style.make ~backgroundColor:"gainsboro" ()
       | Some x ->
           ReactDOM.Style.combine
-            (("background-color", "backgroundColor", "gainsboro")
-             :: ([] : (string * string * string) list)
-              : ReactDOM.Style.t)
+            (ReactDOM.Style.make ~backgroundColor:"gainsboro" ())
             x)
     ~children:[] () [@JSX]
   ;;
@@ -220,15 +211,10 @@ Module-qualified components like Foo.Bar keep ~styles as a regular prop (not exp
       | Some x -> x ^ " " ^ "lola")
     ~style:
       (match match x with None -> None | Some x -> Some (snd x) with
-      | None ->
-          (("background-color", "backgroundColor", "gainsboro")
-           :: ([] : (string * string * string) list)
-            : ReactDOM.Style.t)
+      | None -> ReactDOM.Style.make ~backgroundColor:"gainsboro" ()
       | Some x ->
           ReactDOM.Style.combine
-            (("background-color", "backgroundColor", "gainsboro")
-             :: ([] : (string * string * string) list)
-              : ReactDOM.Style.t)
+            (ReactDOM.Style.make ~backgroundColor:"gainsboro" ())
             x)
     ~children:[] () [@JSX]
   ;;

@@ -100,7 +100,7 @@ module AppLayout = {
   [@react.component]
   let make = (~children) => {
     <DemoLayout background=Theme.Color.Gray2 mode=DemoLayout.FullScreen>
-      <div className="flex flex-row gap-8">
+      <div className="flex flex-row gap-8 h-full">
         <section
           className="flex-1 basis-1/4 gap-4 min-w-[400px]" key="sidebar">
           <section
@@ -138,7 +138,8 @@ module AppLayout = {
             </React.Suspense>
           </nav>
         </section>
-        <section key="note-viewer" className="flex-1 basis-3/4 max-w-[75%]">
+        <section
+          key="note-viewer" className="flex-1 basis-3/4 max-w-[75%] h-full">
           children
         </section>
       </div>
@@ -149,7 +150,7 @@ module AppLayout = {
 module Document = {
   [@react.component]
   let make = (~children) =>
-    <html suppressHydrationWarning=true>
+    <html suppressHydrationWarning=true className="h-full">
       <head>
         <meta charSet="utf-8" />
         <style
@@ -163,7 +164,7 @@ module Document = {
         />
         <link rel="stylesheet" href="/output.css" />
       </head>
-      <body suppressHydrationWarning=true> children </body>
+      <body suppressHydrationWarning=true className="h-full"> children </body>
     </html>;
 };
 

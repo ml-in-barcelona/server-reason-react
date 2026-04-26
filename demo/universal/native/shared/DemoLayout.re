@@ -10,6 +10,7 @@ let make = (~children, ~background=Theme.Color.Gray2, ~mode=Fit) => {
       "p-8",
       "min-w-[100vw]",
       "min-h-[100vh]",
+      "h-full",
       switch (mode) {
       | FullScreen => "h-100vh w-100vw"
       | Fit => "h-full w-[1200px]"
@@ -42,7 +43,7 @@ let make = (~children, ~background=Theme.Color.Gray2, ~mode=Fit) => {
     <div
       spellCheck=false
       className={Cx.make([
-        "w-full pt-6",
+        "w-full pt-6 h-full",
         switch (mode) {
         | FullScreen => "max-w-full"
         | Fit => "max-w-[1200px]"

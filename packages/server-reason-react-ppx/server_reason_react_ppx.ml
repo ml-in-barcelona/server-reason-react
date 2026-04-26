@@ -1729,9 +1729,10 @@ let traverse =
          compile time. On stock OCaml the 347-optional-arg signature forces
          ~1460 words/call; the PPX elides this entirely when all args are
          labeled string values. Falls through if optional args or unknown
-         names appear. Runs on both Native and Js; harmless on Js since the
-         list shape matches ReactDOM.Style.t. *)
-      let expr = Style_rewrite.rewrite_expression expr in
+         names appear. Native-only: on the JS target [ReactDOM.Style.t] is
+         reason-react's abstract type, so a list literal annotated as
+         [ReactDOM.Style.t] fails to type-check. *)
+      let expr = match mode.contents with Native -> Style_rewrite.rewrite_expression expr | Js -> expr in
       let attributes = expr.pexp_attributes in
       match mode.contents with
       | Js -> (

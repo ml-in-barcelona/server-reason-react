@@ -99,7 +99,7 @@ module App = {
   [@react.async.component]
   let make = (~selectedId, ~isEditing, ~searchText, ~sleep) => {
     Lwt.return(
-      <html suppressHydrationWarning=true>
+      <html suppressHydrationWarning=true className="h-full">
         <head>
           <meta charSet="utf-8" />
           <style
@@ -113,9 +113,9 @@ module App = {
           />
           <link rel="stylesheet" href="/output.css" />
         </head>
-        <body suppressHydrationWarning=true>
+        <body suppressHydrationWarning=true className="h-full">
           <DemoLayout background=Theme.Color.Gray2 mode=DemoLayout.FullScreen>
-            <div className="flex flex-row gap-8">
+            <div className="flex flex-row gap-8 h-full">
               <section
                 className="flex-1 basis-1/4 gap-4 min-w-[400px]" key="sidebar">
                 <section
@@ -156,7 +156,8 @@ module App = {
                 </nav>
               </section>
               <section
-                key="note-viewer" className="flex-1 basis-3/4 max-w-[75%]">
+                key="note-viewer"
+                className="flex-1 basis-3/4 max-w-[75%] h-full">
                 <React.Suspense fallback={<NoteSkeleton isEditing />}>
                   <NoteItem selectedId isEditing sleep />
                 </React.Suspense>
