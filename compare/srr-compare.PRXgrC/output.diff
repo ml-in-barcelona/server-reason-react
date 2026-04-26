@@ -1,0 +1,6 @@
+--- /home/me/open-source/server-reason-react/compare/srr-compare.PRXgrC/js.output	2026-02-24 21:32:16.305835000 +0000
++++ /home/me/open-source/server-reason-react/compare/srr-compare.PRXgrC/native.output	2026-02-24 21:32:16.317835220 +0000
+@@ -1,2 +1,2 @@
+ 1:I["App_js.re#Component",[],""]
+-0:["$","$L1",null,{}]
++0:["$","$1",null,{},null,[],{}]
