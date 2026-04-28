@@ -734,22 +734,22 @@ let combine (styles1 : t) (styles2 : t) : t =
   let seq2 = styles2 |> List.to_seq in
   Seq.append seq1 seq2 |> List.of_seq
 
-let string_of_chars chars =
-  let buf = Buffer.create 16 in
-  List.iter (Buffer.add_char buf) chars;
-  Buffer.contents buf
-
-let chars_of_string str = List.init (String.length str) (String.get str)
-
 let camelcaseToKebabcase str =
-  let rec loop acc = function
-    | [] -> acc
-    | [ x ] -> x :: acc
-    | x :: y :: xs ->
-        if Char.uppercase_ascii y == y then loop ('-' :: x :: acc) (Char.lowercase_ascii y :: xs)
-        else loop (x :: acc) (y :: xs)
-  in
-  str |> chars_of_string |> loop [] |> List.rev |> string_of_chars
+  let len = String.length str in
+  let is_uppercase c = c >= 'A' && c <= 'Z' in
+  let is_custom_property str = len >= 2 && str.[0] = '-' && str.[1] = '-' in
+  if is_custom_property str then str
+  else
+    let buf = Buffer.create (len + 4) in
+    for i = 0 to len - 1 do
+      let c = str.[i] in
+      if i > 0 && is_uppercase c then begin
+        Buffer.add_char buf '-';
+        Buffer.add_char buf (Char.lowercase_ascii c)
+      end
+      else Buffer.add_char buf c
+    done;
+    Buffer.contents buf
 
 let unsafeAddProp styles key value : t =
   (* Adds the (key, value) into last position *)
