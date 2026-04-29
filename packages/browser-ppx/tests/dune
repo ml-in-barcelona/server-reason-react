@@ -2,7 +2,8 @@
  (package server-reason-react)
  (enabled_if
   (>= %{ocaml_version} 5.2.0))
- (deps %{bin:ocamlformat} standalone.exe))
+ (applies_to :whole_subtree)
+ (deps %{bin:ocamlformat} %{bin:refmt} standalone.exe runtime_stub.ml))
 
 (executable
  (name standalone)

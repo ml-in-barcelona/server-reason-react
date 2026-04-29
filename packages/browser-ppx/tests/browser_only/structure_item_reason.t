@@ -38,7 +38,7 @@
 
   $ refmt --print ml input.re > input.ml
 
-  $ ./standalone.exe -impl input.ml -js | ocamlformat - --enable-outside-detected-project --impl
+  $ ../standalone.exe -impl input.ml -js | ocamlformat - --enable-outside-detected-project --impl
   let valueFromEvent evt = (React.Event.Form.target evt)##value
   
   let getSortedWordCountsBrowserOnly (words : string array) =
@@ -72,7 +72,7 @@
          fun (_, b) -> b - a)
       : (string * int) array)
 
-  $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl
+  $ ../standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl
   let (valueFromEvent
        [@alert
          browser_only
@@ -80,9 +80,10 @@
             JavaScript can run. You can only use it inside a let%browser_only \
             function."]) =
    (fun evt ->
+    let _ = evt in
     Runtime.fail_impossible_action_in_ssr "valueFromEvent")
     [@alert "-browser_only"]
-  [@@warning "-27-32"]
+  [@@warning "-26-27-32-33"]
   
   let (getSortedWordCountsBrowserOnly
        [@alert
@@ -90,10 +91,11 @@
            "This expression is marked to only run on the browser where \
             JavaScript can run. You can only use it inside a let%browser_only \
             function."]) =
-   (fun words ->
+   (fun (words : string array) ->
+    let _ = words in
     Runtime.fail_impossible_action_in_ssr "getSortedWordCountsBrowserOnly")
     [@alert "-browser_only"]
-  [@@warning "-27-32"]
+  [@@warning "-26-27-32-33"]
   
   let (renderToElementWithId
        [@alert
@@ -101,10 +103,13 @@
            "This expression is marked to only run on the browser where \
             JavaScript can run. You can only use it inside a let%browser_only \
             function."]) =
-   (fun ?id component ->
-    Runtime.fail_impossible_action_in_ssr "renderToElementWithId")
+   (fun ?(id = "") ->
+    fun component ->
+     let _ = id in
+     let _ = component in
+     Runtime.fail_impossible_action_in_ssr "renderToElementWithId")
     [@alert "-browser_only"]
-  [@@warning "-27-32"]
+  [@@warning "-26-27-32-33"]
   
   let (getSortedWordCountsBrowserOnly
        [@alert
@@ -112,10 +117,11 @@
            "This expression is marked to only run on the browser where \
             JavaScript can run. You can only use it inside a let%browser_only \
             function."]) =
-   (fun words ->
+   (fun (words : string array) ->
+    let _ = words in
     Runtime.fail_impossible_action_in_ssr "getSortedWordCountsBrowserOnly")
     [@alert "-browser_only"]
-  [@@warning "-27-32"]
+  [@@warning "-26-27-32-33"]
   
   let (getSortedWordCountsBrowserOnly
        [@alert
@@ -123,7 +129,8 @@
            "This expression is marked to only run on the browser where \
             JavaScript can run. You can only use it inside a let%browser_only \
             function."]) =
-   (fun words ->
+   (fun (words : string array) ->
+    let _ = words in
     Runtime.fail_impossible_action_in_ssr "getSortedWordCountsBrowserOnly")
     [@alert "-browser_only"]
-  [@@warning "-27-32"]
+  [@@warning "-26-27-32-33"]

@@ -387,7 +387,13 @@ let make =
                React.Context.makeProps(
                  ~value=
                    Some({
-                     navigate: (~replace=?, ~revalidate=?, ~shallow=?, _) =>
+                     navigate:
+                       (
+                         ~replace as _=?,
+                         ~revalidate as _=?,
+                         ~shallow as _=?,
+                         _,
+                       ) =>
                        failwith("navigate isn't supported on server"),
                      params: dynamicParams,
                      url,

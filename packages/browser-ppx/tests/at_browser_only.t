@@ -244,12 +244,23 @@ Pexp_* should be throw an error
 
   $ ./standalone.exe -impl input_let.ml | ocamlformat - --enable-outside-detected-project --impl
   let x =
-    [%ocaml.error
-      "Don't use browser_only on expressions, use switch%platform instead"]
+    let _ =
+      [%ocaml.error
+        "[browser_ppx] browser_only only works on function definitions or simple \
+         identifier re-exports. For other cases, use switch%platform or \
+         [@platform js] to conditionally include the binding based on the \
+         platform."]
+        [@@alert "-browser_only"] [@@warning "-26-27-32-33"]
+    in
+    let y = 44 in
+    y
 
   $ ./standalone.exe -impl input_let.ml > input_let_server.ml && ocamlc -c input_let_server.ml
-  File "input_let_server.ml", line 2, characters 4-15:
-  2 |   [%ocaml.error
-          ^^^^^^^^^^^
-  Error: Don't use browser_only on expressions, use switch%platform instead
+  File "input_let_server.ml", line 3, characters 6-17:
+  3 |     [%ocaml.error
+            ^^^^^^^^^^^
+  Error: [browser_ppx] browser_only only works on function definitions or
+         simple identifier re-exports. For other cases, use switch%platform or
+         [@platform js] to conditionally include the binding based on the
+         platform.
   [2]

@@ -20,7 +20,7 @@
 
 With -js flag everything keeps as it is and browser_only extension disappears
 
-  $ ./standalone.exe -impl input.ml -js | ocamlformat - --enable-outside-detected-project --impl
+  $ ../standalone.exe -impl input.ml -js | ocamlformat - --enable-outside-detected-project --impl
   let make () =
     let fun_value_binding_pexp_fun_2arg evt moar_arguments =
       let a = "foo" in
@@ -38,22 +38,27 @@ With -js flag everything keeps as it is and browser_only extension disappears
 
 Without -js flag, the compilation to native replaces the expression with a raise
 
-  $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl > output.ml
+  $ ../standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl > output.ml
 
   $ cat output.ml
   let make () =
-    let fun_value_binding_pexp_fun_2arg evt =
+    let fun_value_binding_pexp_fun_2arg evt moar_arguments =
+      let _ = evt in
+      let _ = moar_arguments in
       Runtime.fail_impossible_action_in_ssr "fun_value_binding_pexp_fun_2arg"
-        [@@alert "-browser_only"]
+        [@@alert "-browser_only"] [@@warning "-26-27-32-33"]
     in
-    let fun_value_binding_pexp_fun_default_expr ?evt =
+    let fun_value_binding_pexp_fun_default_expr ?(evt = 22) =
+      let _ = evt in
       Runtime.fail_impossible_action_in_ssr
         "fun_value_binding_pexp_fun_default_expr"
-        [@@alert "-browser_only"]
+        [@@alert "-browser_only"] [@@warning "-26-27-32-33"]
     in
-    let fun_value_binding_pexp_fun_2arg evt =
+    let fun_value_binding_pexp_fun_2arg evt moar_arguments =
+      let _ = evt in
+      let _ = moar_arguments in
       Runtime.fail_impossible_action_in_ssr "fun_value_binding_pexp_fun_2arg"
-        [@@alert "-browser_only"]
+        [@@alert "-browser_only"] [@@warning "-26-27-32-33"]
     in
     ()
 

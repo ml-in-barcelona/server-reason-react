@@ -13,8 +13,18 @@ Without -js flag, the compilation to native replaces the effect expression
 with a no-op effect, raises in case of wrongly applied to other than an effect.
 
   $ ../standalone.exe -impl input.re.ml | ocamlformat - --enable-outside-detected-project --impl
-  doServerSideLogic ();;
+  let _ = doClientSideLogic in
+  doServerSideLogic ()
+  ;;
   
-  let value = doServerSideLogic ()
-  let universal_fn () = doServerSideLogic ()
-  let universal_fn_with_arg1 arg1 = doServerSideLogic arg1
+  let value =
+    let _ = doClientSideLogic in
+    doServerSideLogic ()
+  
+  let universal_fn () =
+    let _ = doClientSideLogic in
+    doServerSideLogic ()
+  
+  let universal_fn_with_arg1 arg1 =
+    let _ = doClientSideLogic in
+    doServerSideLogic arg1

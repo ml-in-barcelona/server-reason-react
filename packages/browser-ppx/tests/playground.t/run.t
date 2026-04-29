@@ -66,7 +66,7 @@
   };
 
   $ ../standalone.exe -impl input.ml | refmt --parse ml --print re
-  [@warning "-27-32"]
+  [@warning "-26-27-32-33"]
   let [@alert
         browser_only(
           "This expression is marked to only run on the browser where JavaScript can run. You can only use it inside a let%browser_only function.",
@@ -75,6 +75,13 @@
       makeQuery =
     [@alert "-browser_only"]
     (
-      (~abortController, ~encoding=?, pathname, req, input) =>
-        Runtime.fail_impossible_action_in_ssr("makeQuery")
+      (~abortController, ~encoding=?, pathname, req, input) => {
+        let _ = abortController;
+        let _ = encoding;
+        let _ = pathname;
+        let _ = req;
+        let _ = input;
+        let _ = makeHeadersInit;
+        Runtime.fail_impossible_action_in_ssr("makeQuery");
+      }
     );

@@ -25,7 +25,7 @@
 
 With -js flag everything keeps as it is and browser_only extension disappears
 
-  $ ./standalone.exe -impl input.ml -js | ocamlformat - --enable-outside-detected-project --impl
+  $ ../standalone.exe -impl input.ml -js | ocamlformat - --enable-outside-detected-project --impl
   let ( let+ ) p f = map f p
   let pexp_ident = Webapi__Dom__Element.asHtmlElement
   let pexp_fun_1arg_structure_item evt = Webapi.Dom.getElementById "foo"
@@ -46,17 +46,20 @@ With -js flag everything keeps as it is and browser_only extension disappears
     Js.log req;
     Js.log input
 
-  $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl
+  $ ../standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl
   let (( let+ )
        [@alert
          browser_only
            "This expression is marked to only run on the browser where \
             JavaScript can run. You can only use it inside a let%browser_only \
             function."]) =
-   (fun p ->
+   (fun p f ->
+    let _ = p in
+    let _ = f in
+    let _ = map in
     Runtime.fail_impossible_action_in_ssr "let+")
     [@alert "-browser_only"]
-  [@@warning "-27-32"]
+  [@@warning "-26-27-32-33"]
   
   let (pexp_ident
        [@alert
@@ -64,8 +67,8 @@ With -js flag everything keeps as it is and browser_only extension disappears
            "This expression is marked to only run on the browser where \
             JavaScript can run. You can only use it inside a let%browser_only \
             function."]) =
-    Obj.magic () [@alert "-browser_only"]
-  [@@warning "-27-32"]
+    Runtime.fail_impossible_action_in_ssr "pexp_ident" [@alert "-browser_only"]
+  [@@warning "-26-27-32-33"]
   
   let (pexp_fun_1arg_structure_item
        [@alert
@@ -74,9 +77,10 @@ With -js flag everything keeps as it is and browser_only extension disappears
             JavaScript can run. You can only use it inside a let%browser_only \
             function."]) =
    (fun evt ->
+    let _ = evt in
     Runtime.fail_impossible_action_in_ssr "pexp_fun_1arg_structure_item")
     [@alert "-browser_only"]
-  [@@warning "-27-32"]
+  [@@warning "-26-27-32-33"]
   
   let (pexp_fun_2arg_structure_item
        [@alert
@@ -84,10 +88,12 @@ With -js flag everything keeps as it is and browser_only extension disappears
            "This expression is marked to only run on the browser where \
             JavaScript can run. You can only use it inside a let%browser_only \
             function."]) =
-   (fun evt ->
+   (fun evt moar_arguments ->
+    let _ = evt in
+    let _ = moar_arguments in
     Runtime.fail_impossible_action_in_ssr "pexp_fun_2arg_structure_item")
     [@alert "-browser_only"]
-  [@@warning "-27-32"]
+  [@@warning "-26-27-32-33"]
   
   let (pexp_fun_2arg_structure_item
        [@alert
@@ -95,10 +101,12 @@ With -js flag everything keeps as it is and browser_only extension disappears
            "This expression is marked to only run on the browser where \
             JavaScript can run. You can only use it inside a let%browser_only \
             function."]) =
-   (fun evt ->
+   (fun evt moar_arguments ->
+    let _ = evt in
+    let _ = moar_arguments in
     Runtime.fail_impossible_action_in_ssr "pexp_fun_2arg_structure_item")
     [@alert "-browser_only"]
-  [@@warning "-27-32"]
+  [@@warning "-26-27-32-33"]
   
   let (perform
        [@alert
@@ -106,10 +114,15 @@ With -js flag everything keeps as it is and browser_only extension disappears
            "This expression is marked to only run on the browser where \
             JavaScript can run. You can only use it inside a let%browser_only \
             function."]) =
-   (fun ?abortController ->
+   (fun ?abortController ?(base = defaultBase)
+       (req : ('handler, 'a, 'i, 'o) Client.request) input ->
+    let _ = abortController in
+    let _ = base in
+    let _ = req in
+    let _ = input in
     Runtime.fail_impossible_action_in_ssr "perform")
     [@alert "-browser_only"]
-  [@@warning "-27-32"]
+  [@@warning "-26-27-32-33"]
 Replace Runtime.fail_impossible_action_in_ssr with print_endline so ocamlc can compile it without the Runtime module dependency
   $ echo "module Runtime = struct" >> output.ml
   $ cat $INSIDE_DUNE/packages/runtime/Runtime.ml >> output.ml

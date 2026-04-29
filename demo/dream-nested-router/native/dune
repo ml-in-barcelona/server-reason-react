@@ -5,7 +5,7 @@
  (enabled_if
   (= %{profile} dev))
  (wrapped false)
- (flags :standard -w -26-27) ; browser_only removes code from the server, making this warning necessary
+ (flags :standard)
  (libraries
   react
   reactDOM

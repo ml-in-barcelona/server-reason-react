@@ -2,6 +2,7 @@
 
 ## 0.5.0
 
+* [browser_ppx] Preserve all function arguments in generated native code (previously only the first argument survived). Reference each argument via `let _ = arg` to silence warning 27 (unused argument). Free unqualified identifiers from the body are also referenced (skipping qualified `Ldot` paths and names declared `[@platform js]`), which silences warnings 26/27/32 on outer let-bindings whose only consumers are inside the dropped browser_only context. The `switch%platform` extension on native similarly references free Lidents from the dropped Client branch around the Server expression. As a result, libraries using `let%browser_only` no longer need `(flags :standard -w -26-27)` in their dune files \u2014 the demos in this repo were updated accordingly. See `documentation/browser_ppx.mld`.
 * Support Promise caching in react.client.components by @davesnx
 * Reorder head content exactly like react-dom/server by @davesnx
 * Implement hydration-compatible `useId` using React's tree-position-based algorithm, matching React 19 output. Adds `?identifier_prefix` to `renderToString`, `renderToStaticMarkup`, `renderToStream` and `render_html`. Fixes https://github.com/ml-in-barcelona/server-reason-react/issues/93
