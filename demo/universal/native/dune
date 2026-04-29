@@ -2,7 +2,6 @@
 
 (library
  (name demo_shared_native)
- (flags :standard)
  (libraries
   react
   reactDOM

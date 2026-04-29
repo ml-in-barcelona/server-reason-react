@@ -5,7 +5,6 @@
  (enabled_if
   (= %{profile} dev))
  (wrapped false)
- (flags :standard)
  (libraries
   react
   reactDOM
