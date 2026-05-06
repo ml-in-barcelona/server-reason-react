@@ -32,7 +32,6 @@ if necessary.
                 let%browser_only function."]) =
    (fun node ->
     let _ = node in
-    let _ = walk in
     Runtime.fail_impossible_action_in_ssr "walk")
     [@alert "-browser_only"]
   [@@warning "-26-27-32-33"]

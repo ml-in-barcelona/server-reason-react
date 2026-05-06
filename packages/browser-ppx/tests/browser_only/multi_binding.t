@@ -24,7 +24,6 @@ Without -js, both bindings are transformed.
                 let%browser_only function."]) =
    (fun n ->
     let _ = n in
-    let _ = is_odd in
     Runtime.fail_impossible_action_in_ssr "is_even")
     [@alert "-browser_only"]
   [@@warning "-26-27-32-33"]
@@ -37,7 +36,6 @@ Without -js, both bindings are transformed.
             function."]) =
    (fun n ->
     let _ = n in
-    let _ = is_even in
     Runtime.fail_impossible_action_in_ssr "is_odd")
     [@alert "-browser_only"]
   [@@warning "-26-27-32-33"]

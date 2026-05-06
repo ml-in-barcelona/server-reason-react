@@ -30,10 +30,11 @@ Without -js, the Client branch is dropped, but `helper`, `count`, and
   let make () =
     let helper = print_endline in
     let count = 42 in
-    let _ = helper in
-    let _ = string_of_int in
-    let _ = count in
-    ()
+    ((let _ = helper in
+      let _ = string_of_int in
+      let _ = count in
+      ())
+    [@alert "-browser_only"])
 
   $ cat ../runtime_stub.ml output.ml > final.ml
   $ ocamlc -w @a-70 -c final.ml

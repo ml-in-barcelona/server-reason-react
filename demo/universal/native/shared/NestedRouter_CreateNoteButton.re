@@ -6,7 +6,7 @@ let make = (~children: React.element) => {
   <button
     className=Theme.button
     disabled=isPending
-    onClick={_ => {startTransition(() => {navigate("/demo/router/new")})}}
+    onClick={_ => startTransition(() => navigate("/demo/router/new"))}
     role="menuitem">
     children
   </button>;

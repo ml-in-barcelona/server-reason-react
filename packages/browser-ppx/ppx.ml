@@ -116,6 +116,16 @@ module Platform_js_scope = struct
            codebase we're targeting. *)
         let _ = attr in
         ()
+    | Pstr_extension (({ txt = "browser_only"; _ }, payload), _attrs) -> (
+        (* `let%browser_only name = ...` at structure level. The name still
+           exists on native (as a stub that raises at runtime), but referencing
+           it would trip the `(alert browser_only)` attached to its pattern.
+           Treat such names as restricted so [Body_free_idents.collect] omits
+           them from any generated `let _ = ident` chain. *)
+        match payload with
+        | PStr [ { pstr_desc = Pstr_value (_, vbs); _ } ] ->
+            List.iter (fun vb -> List.iter add (collect_pattern_names vb.pvb_pat)) vbs
+        | _ -> ())
     | _ -> ()
 
   let instrument_pre_pass (_ctx : Expansion_context.Base.t) (str : structure) : structure =
@@ -369,21 +379,42 @@ module Platform = struct
   let switch_platform_requires_a_match ~loc =
     [%expr [%ocaml.error "[browser_ppx] switch%platform requires a match expression"]]
 
-  (* On Native, the client branch is dropped. To silence warnings 26/27 on
-     outer let-bindings whose only consumers are inside the dropped client
-     branch, prepend `let _ = ident in ...` references for each free
-     unqualified Lident in the client branch. Same skip filters as in
-     Browser_only: operators, underscore-prefixed, and [@platform js]-
-     restricted names. *)
-  let wrap_server_with_client_refs ~loc ~client_expr ~server_expr =
-    let body_idents = Body_free_idents.collect ~bound_initial:[] client_expr in
-    List.fold_right
-      (fun name acc ->
-        let id = Builder.pexp_ident ~loc { txt = Lident name; loc } in
-        [%expr
-          let _ = [%e id] in
-          [%e acc]])
-      body_idents server_expr
+  (* Prepends `let _ = ident in ...` references for each free unqualified
+     Lident in the dropped branch, so outer let-bindings or function
+     arguments whose only consumer was inside that branch don't trigger
+     warnings 26/27 on the surviving side.
+
+     Skip filters (via [Body_free_idents.collect]):
+     - Operators and underscore-prefixed names.
+     - Names declared under `[@platform js]` or `let%browser_only` in the
+       same structure: these either don't exist on native or carry an
+       `(alert browser_only)` on their pattern, so referencing them would
+       break compilation. Their own bindings already suppress unused-warnings
+       via [@@warning ...].
+
+     The generated chain is wrapped with `[@alert "-browser_only"]` as a
+     safety net for cases the skip filter cannot catch: names brought into
+     scope via `open` from a module exporting `let%browser_only` bindings,
+     or any other identifier the user has manually annotated with the
+     `browser_only` alert. *)
+  let wrap_with_dropped_branch_refs ~loc ~dropped_expr ~kept_expr =
+    let body_idents = Body_free_idents.collect ~bound_initial:[] dropped_expr in
+    let chain =
+      List.fold_right
+        (fun name acc ->
+          let id = Builder.pexp_ident ~loc { txt = Lident name; loc } in
+          [%expr
+            let _ = [%e id] in
+            [%e acc]])
+        body_idents kept_expr
+    in
+    match body_idents with
+    | [] -> chain
+    | _ ->
+        let suppress_attr =
+          Builder.attribute ~loc ~name:{ txt = "alert"; loc } ~payload:(PStr [ [%stri "-browser_only"] ])
+        in
+        { chain with pexp_attributes = suppress_attr :: chain.pexp_attributes }
 
   let handler ~ctxt:_ { txt = payload; loc } =
     match payload with
@@ -395,8 +426,8 @@ module Platform = struct
                 match collect_expressions ~loc first second with
                 | Ok (server_expr, client_expr) -> (
                     match !mode with
-                    | Js -> client_expr
-                    | Native -> wrap_server_with_client_refs ~loc ~client_expr ~server_expr)
+                    | Js -> wrap_with_dropped_branch_refs ~loc ~dropped_expr:server_expr ~kept_expr:client_expr
+                    | Native -> wrap_with_dropped_branch_refs ~loc ~dropped_expr:client_expr ~kept_expr:server_expr)
                 | Error error_msg_expr -> error_msg_expr)
             | _ -> switch_platform_requires_a_match ~loc)
         | _ -> switch_platform_requires_a_match ~loc)
