@@ -208,6 +208,25 @@ let url_search_params_tests =
         assert_option_string(topic, Some("api"));
         let nope = SearchParams.get(search, "nope");
         assert_option_string(nope, None);
+        let search = SearchParams.make("?currency=usd&managedPayments=true");
+        let currency =
+          switch (search) {
+          | Some(search) => SearchParams.get(search, "currency")
+          | None => None
+          };
+        assert_option_string(currency, Some("usd"));
+        let url = URL.makeExn("https://example.com/pricing?currency=usd");
+        let search =
+          switch (URL.search(url)) {
+          | Some(search) => SearchParams.make(search)
+          | None => None
+          };
+        let currency =
+          switch (search) {
+          | Some(search) => SearchParams.get(search, "currency")
+          | None => None
+          };
+        assert_option_string(currency, Some("usd"));
         let search =
           SearchParams.makeExn("?currency=usd&managedPayments=true");
         assert_option_string(

@@ -1,15 +1,6 @@
 module SearchParams = {
   type t;
-
-  let stripLeadingQuestionMark = str =>
-    if (String.length(str) > 0 && str.[0] == '?') {
-      String.sub(str, 1, String.length(str) - 1);
-    } else {
-      str;
-    };
-
-  [@mel.new] external makeRawExn: string => t = "URLSearchParams";
-  let makeExn = str => makeRawExn(stripLeadingQuestionMark(str));
+  [@mel.new] external makeExn: string => t = "URLSearchParams";
 
   let make = str => {
     switch (makeExn(str)) {
