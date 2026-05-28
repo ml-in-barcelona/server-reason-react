@@ -107,6 +107,8 @@ let url_tests = (
       assert_option_string(URL.search(url), Some("?lang=en"));
       let url = URL.makeExn("https://www.google.es?lang=en&region=cat");
       assert_option_string(URL.search(url), Some("?lang=en&region=cat"));
+      let url = URL.setSearchAsString(url, "?x=1&y=2");
+      assert_string(URL.toString(url), "https://www.google.es?x=1&y=2");
       let url = URL.setSearchAsString(url, "x=1&y=2");
       assert_string(URL.toString(url), "https://www.google.es?x=1&y=2");
       let search_params =
@@ -206,6 +208,16 @@ let url_search_params_tests =
         assert_option_string(topic, Some("api"));
         let nope = SearchParams.get(search, "nope");
         assert_option_string(nope, None);
+        let search =
+          SearchParams.makeExn("?currency=usd&managedPayments=true");
+        assert_option_string(
+          SearchParams.get(search, "currency"),
+          Some("usd"),
+        );
+        assert_option_string(
+          SearchParams.get(search, "managedPayments"),
+          Some("true"),
+        );
         let search = SearchParams.makeExn("foo=bar&foo=baz");
         let topics = SearchParams.get(search, "foo");
         /* only get the first value */

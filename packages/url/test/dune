@@ -2,3 +2,19 @@
  (name test_native)
  (modules test_native)
  (libraries alcotest url_native))
+
+(melange.emit
+ (target test_js)
+ (modules test_js)
+ (module_systems commonjs)
+ (libraries url_js)
+ (preprocess
+  (pps melange.ppx)))
+
+(rule
+ (alias runtest)
+ (deps
+  (alias melange)
+  (:test test_js/packages/url/test/test_js.js))
+ (action
+  (run node %{test})))

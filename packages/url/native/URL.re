@@ -6,10 +6,17 @@ module SearchParams = {
 
   type t = list((string, value));
 
+  let stripLeadingQuestionMark = str =>
+    if (String.length(str) > 0 && str.[0] == '?') {
+      String.sub(str, 1, String.length(str) - 1);
+    } else {
+      str;
+    };
+
   let makeExn = str => {
-    switch (str) {
+    switch (stripLeadingQuestionMark(str)) {
     | "" => []
-    | _ => Uri.query_of_encoded(str)
+    | str => Uri.query_of_encoded(str)
     };
   };
 
@@ -215,7 +222,12 @@ let search = url => {
   };
 };
 let setSearchAsString = (t, searchString) => {
-  Uri.with_query(t, Uri.query_of_encoded(searchString));
+  Uri.with_query(
+    t,
+    Uri.query_of_encoded(
+      SearchParams.stripLeadingQuestionMark(searchString),
+    ),
+  );
 };
 let setSearch = Uri.with_query;
 
