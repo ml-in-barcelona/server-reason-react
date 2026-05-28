@@ -1638,15 +1638,147 @@ let rewrite_structure_item ~nested_module_names structure_item =
       with Error err -> pstr_eval ~loc:structure_item.pstr_loc err [])
   | _ -> structure_item
 
+(* Walks an external's [pval_type] arrow chain looking for a [~styles] arg.
+   Returns the styles arg's label (Labelled/Optional), location, and core_type,
+   or None if not found. Also reports whether [~className] or [~style] are
+   present, which would conflict with the wrapper we want to generate. *)
+let inspect_external_for_styles pval_type =
+  let rec go ~styles ~has_className ~has_style core_type =
+    match core_type.ptyp_desc with
+    | Ptyp_arrow (((Labelled name | Optional name) as label), arg_ct, rest) ->
+        let styles = if name = "styles" && styles = None then Some (label, arg_ct.ptyp_loc, arg_ct) else styles in
+        let has_className = has_className || name = "className" in
+        let has_style = has_style || name = "style" in
+        go ~styles ~has_className ~has_style rest
+    | Ptyp_arrow (Nolabel, _, rest) -> go ~styles ~has_className ~has_style rest
+    | _ -> (styles, has_className, has_style)
+  in
+  go ~styles:None ~has_className:false ~has_style:false pval_type
+
+(* Replaces the [~styles] arrow in [pval_type] with [~className: string=?] and
+   [~style: ReactDOM.Style.t=?], preserving the optional-ness of the original
+   [~styles] arg. *)
+let replace_styles_in_arrow pval_type =
+  let rec go core_type =
+    let loc = core_type.ptyp_loc in
+    match core_type.ptyp_desc with
+    | Ptyp_arrow (((Labelled name | Optional name) as _label), _arg_ct, rest) when name = "styles" ->
+        (* Insert ~className: string=? -> ~style: ReactDOM.Style.t=? -> <rest> *)
+        let style_arrow = ptyp_arrow ~loc (Optional "style") [%type: ReactDOM.Style.t] rest in
+        ptyp_arrow ~loc (Optional "className") [%type: string] style_arrow
+    | Ptyp_arrow (label, arg_ct, rest) -> { core_type with ptyp_desc = Ptyp_arrow (label, arg_ct, go rest) }
+    | _ -> core_type
+  in
+  go pval_type
+
+(* Builds the wrapper [let make] that exposes [~styles] (and forwards to the
+   renamed FFI as [~className] + [~style]). The wrapper is annotated with
+   [@react.component] so reason-react-ppx (running later in JS mode) generates
+   the [makeProps]/component plumbing as if the user had written a regular
+   component. *)
+let build_styles_wrapper_binding ~loc ~ffi_name ~styles_label ~pval_type =
+  (* Walk the original signature to collect every arg (other than [~styles])
+     and decide its public/forwarded label. *)
+  let args, _return_type = extract_component_signature_args pval_type in
+  let other_args =
+    List.filter args ~f:(fun arg ->
+        match arg.public_label with Labelled "styles" | Optional "styles" -> false | _ -> true)
+  in
+  (* Body: split [styles] into [className] + [style] and call [ffi_name]. *)
+  let split_className, split_style =
+    match styles_label with
+    | Labelled _ ->
+        (* [~styles] is required, so [styles : (string, ReactDOM.Style.t)]. *)
+        ([%expr Some (fst styles)], [%expr Some (snd styles)])
+    | Optional _ ->
+        (* [~styles=?], so [styles : (string, ReactDOM.Style.t) option]. *)
+        ( [%expr match styles with None -> None | Some s -> Some (fst s)],
+          [%expr match styles with None -> None | Some s -> Some (snd s)] )
+    | Nolabel -> assert false
+  in
+  let ffi_ident = ident ~loc ffi_name in
+  let forward_args =
+    List.map other_args ~f:(fun arg ->
+        match arg.public_label with
+        | Labelled name -> (Labelled name, ident ~loc name)
+        | Optional name -> (Optional name, ident ~loc name)
+        | Nolabel -> assert false)
+  in
+  let call_args = (Optional "className", split_className) :: (Optional "style", split_style) :: forward_args in
+  let body = pexp_apply ~loc ffi_ident call_args in
+  (* Wrap body with [fun ~arg ...] for each arg, including [~styles]. *)
+  let wrap_arg arg body =
+    let pat = ppat_var ~loc { txt = (match arg.public_label with Labelled n | Optional n -> n | Nolabel -> "_"); loc } in
+    pexp_fun ~loc:arg.loc arg.public_label arg.default_value pat body
+  in
+  let body = List.fold_right args ~init:body ~f:wrap_arg in
+  let pat = ppat_var ~loc { txt = "make"; loc } in
+  let attrs = [ attribute ~loc ~name:{ txt = react_dot_component; loc } ~payload:(PStr []) ] in
+  { (value_binding ~loc ~pat ~expr:body) with pvb_attributes = attrs }
+
+(* When the user writes an external [make] whose signature contains a
+   [~styles] argument, rewrite it into:
+   - an external with the same name + "__styles_ffi" suffix where [~styles] is
+     replaced by [~className: string=?] + [~style: ReactDOM.Style.t=?], and
+   - a wrapping [let make] (with [@react.component]) that keeps the [~styles]
+     API and forwards to the renamed FFI via [fst]/[snd].
+
+   This lets users write a binding with the ergonomic [~styles] prop and have
+   the JS side receive the canonical [className] + [style] props that React
+   expects.
+
+   Triggered only on externals named [make] with [@react.component] and a
+   [~styles] arg. Conflicts with existing [~className] or [~style] args are
+   reported as PPX errors. *)
+let try_rewrite_external_with_styles ~loc value_description =
+  let pval_name = value_description.pval_name in
+  let pval_type = value_description.pval_type in
+  let pval_attributes = value_description.pval_attributes in
+  let has_react_component = List.exists pval_attributes ~f:(fun attr -> hasAttr attr react_dot_component) in
+  if (not has_react_component) || pval_name.txt <> "make" then None
+  else
+    match inspect_external_for_styles pval_type with
+    | None, _, _ -> None
+    | Some _, true, _ ->
+        Some
+          [%stri
+            [%%ocaml.error
+            "server-reason-react: external bindings cannot declare both ~styles and ~className. Use only ~styles to \
+             keep the ergonomic API."]]
+    | Some _, _, true ->
+        Some
+          [%stri
+            [%%ocaml.error
+            "server-reason-react: external bindings cannot declare both ~styles and ~style. Use only ~styles to keep \
+             the ergonomic API."]]
+    | Some (styles_label, _styles_loc, _styles_ct), false, false ->
+        let ffi_name = pval_name.txt ^ "__styles_ffi" in
+        let ffi_type = replace_styles_in_arrow pval_type in
+        let ffi_attributes = List.filter pval_attributes ~f:(fun attr -> not (hasAnyReactComponentAttribute attr)) in
+        let ffi_external =
+          {
+            pstr_loc = loc;
+            pstr_desc =
+              Pstr_primitive
+                { value_description with pval_name = { pval_name with txt = ffi_name }; pval_type = ffi_type; pval_attributes = ffi_attributes };
+          }
+        in
+        let wrapper_vb = build_styles_wrapper_binding ~loc ~ffi_name ~styles_label ~pval_type in
+        let wrapper_stri = pstr_value ~loc Nonrecursive [ wrapper_vb ] in
+        Some [%stri include struct [%%i ffi_external] [%%i wrapper_stri] end]
+
 let rewrite_structure_item_for_js ~nested_module_names ctx structure_item =
   match structure_item.pstr_desc with
   (* external *)
-  | Pstr_primitive ({ pval_name = { txt = _fnName }; pval_attributes; pval_type = _ } as _value_description) -> (
+  | Pstr_primitive ({ pval_name = { txt = _fnName }; pval_attributes; pval_type = _ } as value_description) -> (
       match List.filter ~f:(fun attr -> hasAttr attr react_dot_client_dot_component) pval_attributes with
-      | [] -> structure_item
-      | _ ->
+      | _ :: _ ->
           let loc = structure_item.pstr_loc in
-          [%stri [%%ocaml.error "server-reason-react: externals aren't supported on client components yet"]])
+          [%stri [%%ocaml.error "server-reason-react: externals aren't supported on client components yet"]]
+      | [] -> (
+          match try_rewrite_external_with_styles ~loc:structure_item.pstr_loc value_description with
+          | Some rewritten -> rewritten
+          | None -> structure_item))
   | Pstr_value (rec_flag, value_bindings) when isReactServerFunctionBinding (List.hd value_bindings) ->
       let vb = List.hd value_bindings in
       ServerFunction.rewrite_client_function ~nested_module_names ~vb ~rec_flag structure_item
