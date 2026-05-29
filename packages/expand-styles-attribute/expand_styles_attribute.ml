@@ -73,9 +73,3 @@ let expand_attributes ~loc attributes =
 
 let make ~loc ~apply_expr attributes =
   if should_expand_apply apply_expr then expand_attributes ~loc attributes else attributes
-
-let make_expression apply_expr =
-  match apply_expr.Ppxlib.pexp_desc with
-  | Ppxlib.Pexp_apply (({ pexp_loc = loc; _ } as fn), attributes) when should_expand_apply apply_expr ->
-      { apply_expr with pexp_desc = Ppxlib.Pexp_apply (fn, expand_attributes ~loc attributes) }
-  | _ -> apply_expr
