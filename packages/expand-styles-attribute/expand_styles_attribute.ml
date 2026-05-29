@@ -1,4 +1,18 @@
-let make ~loc attributes =
+let is_jsx_attribute { Ppxlib.attr_name; _ } = attr_name.txt = "JSX"
+let has_jsx_attribute apply_expr = List.exists is_jsx_attribute apply_expr.Ppxlib.pexp_attributes
+let is_lowercase_name name = String.length name > 0 && match name.[0] with 'a' .. 'z' -> true | _ -> false
+
+let is_lowercase_html_tag_call fn =
+  match fn.Ppxlib.pexp_desc with
+  | Ppxlib.Pexp_ident { txt = Ppxlib.Lident name; _ } -> is_lowercase_name name
+  | _ -> false
+
+let should_expand_apply apply_expr =
+  match apply_expr.Ppxlib.pexp_desc with
+  | Ppxlib.Pexp_apply (fn, _) -> has_jsx_attribute apply_expr && is_lowercase_html_tag_call fn
+  | _ -> false
+
+let expand_attributes ~loc attributes =
   let merge_className current_className (label, expr) =
     match current_className with
     | Some (existing_label, existing_expr) ->
@@ -56,3 +70,12 @@ let make ~loc attributes =
         | _ -> aux (className, style, (label, arg) :: other_args) rest)
   in
   aux (None, None, []) attributes
+
+let make ~loc ~apply_expr attributes =
+  if should_expand_apply apply_expr then expand_attributes ~loc attributes else attributes
+
+let make_expression apply_expr =
+  match apply_expr.Ppxlib.pexp_desc with
+  | Ppxlib.Pexp_apply (({ pexp_loc = loc; _ } as fn), attributes) when should_expand_apply apply_expr ->
+      { apply_expr with pexp_desc = Ppxlib.Pexp_apply (fn, expand_attributes ~loc attributes) }
+  | _ -> apply_expr

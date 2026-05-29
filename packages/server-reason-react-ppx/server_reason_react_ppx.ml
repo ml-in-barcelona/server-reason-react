@@ -1733,19 +1733,13 @@ let traverse =
          reason-react's abstract type, so a list literal annotated as
          [ReactDOM.Style.t] fails to type-check. *)
       let expr = match mode.contents with Native -> Style_rewrite.rewrite_expression expr | Js -> expr in
-      let attributes = expr.pexp_attributes in
       match mode.contents with
       | Js -> (
           (* In the case of expressions, it's the only transformation that needs to be done for JS. This expansion from "styles" prop into "className" and "style" props is a feature by styled-ppx. The existence of this here, is because dune/ppxlib doesn't allow more than one preprocess_impl and even that, the combination of styled-ppx and server-reason-react.ppx doesn't compose properly. *)
           try
-            match expr.pexp_desc with
-            (* Only expand ~styles on lowercase tags (DOM elements like div, span, etc.)
+            (* Only expands ~styles on lowercase JSX tags (DOM elements like div, span, etc.).
                Uppercase components and bindings handle styles in their own way. *)
-            | Pexp_apply (({ pexp_desc = Pexp_ident { txt = Lident _; _ }; pexp_loc = loc; _ } as tag), args)
-              when has_jsx_attr expr.pexp_attributes ->
-                let new_args = Expand_styles_attribute.make ~loc args in
-                { (pexp_apply ~loc (super#expression ctx tag) new_args) with pexp_attributes = attributes }
-            | _ -> expr
+            Expand_styles_attribute.make_expression expr
           with Error err -> [%expr [%e err]])
       | Native -> (
           try
@@ -1760,7 +1754,7 @@ let traverse =
                     (* div() [@JSX] *)
                     | Pexp_ident { txt = Lident name; loc = _name_loc } ->
                         (* This expansion from "styles" prop into "className" and "style" props is a feature by styled-ppx. The existence of this here, is because dune/ppxlib doesn't allow more than one preprocess_impl and even that, the combination of styled-ppx and server-reason-react.ppx doesn't compose properly. *)
-                        let new_args = Expand_styles_attribute.make ~loc rest_of_args in
+                        let new_args = Expand_styles_attribute.make ~loc ~apply_expr:expr rest_of_args in
                         rewrite_lowercase ~loc:expr.pexp_loc name new_args children
                     (* Reason adds `createElement` as default when an uppercase is found,
                    we change it back to make *)
