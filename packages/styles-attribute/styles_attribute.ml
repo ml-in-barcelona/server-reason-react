@@ -2,14 +2,12 @@ let is_jsx_attribute { Ppxlib.attr_name; _ } = attr_name.txt = "JSX"
 let has_jsx_attribute apply_expr = List.exists is_jsx_attribute apply_expr.Ppxlib.pexp_attributes
 let is_lowercase_name name = String.length name > 0 && match name.[0] with 'a' .. 'z' -> true | _ -> false
 
-let is_lowercase_html_tag_call fn =
-  match fn.Ppxlib.pexp_desc with
-  | Ppxlib.Pexp_ident { txt = Ppxlib.Lident name; _ } -> is_lowercase_name name
-  | _ -> false
+let is_lowercase_html_tag_call (fn : Ppxlib.expression) =
+  match fn.pexp_desc with Pexp_ident { txt = Lident name; _ } -> is_lowercase_name name | _ -> false
 
-let should_expand_apply apply_expr =
-  match apply_expr.Ppxlib.pexp_desc with
-  | Ppxlib.Pexp_apply (fn, _) -> has_jsx_attribute apply_expr && is_lowercase_html_tag_call fn
+let should_expand_apply (apply_expr : Ppxlib.expression) =
+  match apply_expr.pexp_desc with
+  | Pexp_apply (fn, _) -> has_jsx_attribute apply_expr && is_lowercase_html_tag_call fn
   | _ -> false
 
 let expand_attributes ~loc attributes =
@@ -71,5 +69,9 @@ let expand_attributes ~loc attributes =
   in
   aux (None, None, []) attributes
 
-let make ~loc ~apply_expr attributes =
-  if should_expand_apply apply_expr then expand_attributes ~loc attributes else attributes
+let expand (expr : Ppxlib.expression) =
+  match expr.pexp_desc with
+  | Pexp_apply (({ pexp_loc = loc; _ } as tag), attributes) when should_expand_apply expr ->
+      let new_attributes = expand_attributes ~loc attributes in
+      { expr with pexp_desc = Pexp_apply (tag, new_attributes) }
+  | _ -> expr

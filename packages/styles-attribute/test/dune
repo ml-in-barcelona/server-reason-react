@@ -4,6 +4,6 @@
   ppxlib
   ppxlib.astlib
   alcotest
-  server-reason-react.expand-styles-attribute)
+  server-reason-react.styles-attribute)
  (preprocess
   (pps ppxlib.metaquot)))

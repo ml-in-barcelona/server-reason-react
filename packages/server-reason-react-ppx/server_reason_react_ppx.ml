@@ -1736,13 +1736,7 @@ let traverse =
       match mode.contents with
       | Js -> (
           (* In the case of expressions, it's the only transformation that needs to be done for JS. This expansion from "styles" prop into "className" and "style" props is a feature by styled-ppx. The existence of this here, is because dune/ppxlib doesn't allow more than one preprocess_impl and even that, the combination of styled-ppx and server-reason-react.ppx doesn't compose properly. *)
-          try
-            match expr.pexp_desc with
-            | Pexp_apply (({ pexp_loc = loc; _ } as tag), args) ->
-                let new_args = Expand_styles_attribute.make ~loc ~apply_expr:expr args in
-                { (pexp_apply ~loc tag new_args) with pexp_attributes = expr.pexp_attributes }
-            | _ -> expr
-          with Error err -> [%expr [%e err]])
+          try Styles_attribute.expand expr with Error err -> [%expr [%e err]])
       | Native -> (
           try
             match expr.pexp_desc with
@@ -1756,7 +1750,12 @@ let traverse =
                     (* div() [@JSX] *)
                     | Pexp_ident { txt = Lident name; loc = _name_loc } ->
                         (* This expansion from "styles" prop into "className" and "style" props is a feature by styled-ppx. The existence of this here, is because dune/ppxlib doesn't allow more than one preprocess_impl and even that, the combination of styled-ppx and server-reason-react.ppx doesn't compose properly. *)
-                        let new_args = Expand_styles_attribute.make ~loc ~apply_expr:expr rest_of_args in
+                        let apply_expr = { expr with pexp_desc = Pexp_apply (tag, rest_of_args) } in
+                        let new_args =
+                          match (Styles_attribute.expand apply_expr).pexp_desc with
+                          | Pexp_apply (_, args) -> args
+                          | _ -> rest_of_args
+                        in
                         rewrite_lowercase ~loc:expr.pexp_loc name new_args children
                     (* Reason adds `createElement` as default when an uppercase is found,
                    we change it back to make *)
