@@ -23,22 +23,23 @@
   module Fragment = {
     include {
               let makeProps = (~name: option('name)=?, ()) => {
-                let (__js_obj_cell_0, __js_obj_entry_0) =
-                  Js.Obj.Internal.slot_ref(
-                    ~method_name="name",
-                    ~js_name="name",
-                    ~present=
-                      switch (name) {
-                      | None => false
-                      | Some(_) => true
-                      },
-                    name,
-                  );
+                let __js_obj_cell_0 = Stdlib.ref(name);
+                let __js_obj_present_0 =
+                  switch (name) {
+                  | None => false
+                  | Some(_) => true
+                  };
                 let __js_obj = { as _; pub name = __js_obj_cell_0^ };
                 (
-                  Js.Obj.Internal.register_abstract(
-                    __js_obj,
-                    [__js_obj_entry_0],
+                  Js.Obj.Internal.register_deferred_abstract(__js_obj, () =>
+                    [
+                      Js.Obj.Internal.deferred_entry(
+                        ~method_name="name",
+                        ~js_name="name",
+                        ~present=__js_obj_present_0,
+                        __js_obj_cell_0,
+                      ),
+                    ]
                   ): {
                     .
                     "name": option('name),

@@ -22,7 +22,22 @@ module Internal = struct
     entries : (string, entry) Hashtbl.t;
   }
 
-  let registry : metadata Registry.t = Registry.create 16
+  (* Object registration is on the hot path: every [makeProps] (one per
+     component instantiation) and every [%mel.obj] literal registers its
+     entries. Materializing [metadata] eagerly costs a [Hashtbl.create]
+     plus one [Hashtbl.replace] and one list cons per field — yet the
+     metadata is only ever consulted by [keys]/[assign]/[merge], which
+     almost never run on these objects. [slot] keeps the registration
+     payload until the first lookup forces it into [metadata].
+
+     [Deferred] goes one step further for PPX-generated objects: building
+     an [entry] costs a record plus two boxing closures per field, so the
+     generated code registers a single thunk that builds all entries on
+     demand instead of paying that cost per object construction. *)
+  type state = Built of metadata | Pending of entry list | Deferred of (unit -> entry list)
+  type slot = { mutable state : state }
+
+  let registry : slot Registry.t = Registry.create 16
   let empty_metadata () = { order_rev = []; cached_keys = Some [||]; entries = Hashtbl.create 8 }
 
   let add_key_in_order metadata js_name =
@@ -54,16 +69,6 @@ module Internal = struct
     in
     (cell, entry)
 
-  let get_metadata object_ = Registry.find_opt registry (Obj.repr object_)
-
-  let ensure_metadata object_ =
-    match get_metadata object_ with
-    | Some metadata -> metadata
-    | None ->
-        let metadata = empty_metadata () in
-        Registry.add registry (Obj.repr object_) metadata;
-        metadata
-
   let register_entry metadata entry =
     let was_present =
       match Hashtbl.find_opt metadata.entries entry.js_name with Some existing -> existing.present | None -> false
@@ -71,10 +76,47 @@ module Internal = struct
     Hashtbl.replace metadata.entries entry.js_name entry;
     if entry.present && not was_present then add_key_in_order metadata entry.js_name
 
-  let register_structural object_ entries =
+  let build_metadata slot entries =
     let metadata = empty_metadata () in
     List.iter (register_entry metadata) entries;
-    Registry.replace registry (Obj.repr object_) metadata;
+    slot.state <- Built metadata;
+    metadata
+
+  let force slot =
+    match slot.state with
+    | Built metadata -> metadata
+    | Pending entries -> build_metadata slot entries
+    | Deferred thunk -> build_metadata slot (thunk ())
+
+  let get_metadata object_ =
+    match Registry.find_opt registry (Obj.repr object_) with None -> None | Some slot -> Some (force slot)
+
+  let ensure_metadata object_ =
+    match Registry.find_opt registry (Obj.repr object_) with
+    | Some slot -> force slot
+    | None ->
+        let metadata = empty_metadata () in
+        Registry.add registry (Obj.repr object_) { state = Built metadata };
+        metadata
+
+  let register_structural object_ entries =
+    Registry.replace registry (Obj.repr object_) { state = Pending entries };
+    object_
+
+  (* Builds the [entry] for a field cell on demand; only ever called from a
+     [Deferred] thunk, so the record and its two boxing closures are not
+     allocated on the object-construction hot path. *)
+  let deferred_entry ~method_name ~js_name ~present cell =
+    {
+      method_name;
+      js_name;
+      present;
+      get_boxed = (fun () -> Obj.repr !cell);
+      set_boxed = (fun next -> cell := Obj.obj next);
+    }
+
+  let register_deferred object_ thunk =
+    Registry.replace registry (Obj.repr object_) { state = Deferred thunk };
     object_
 
   let clone_entry entry =
@@ -110,7 +152,7 @@ module Internal = struct
           CamlinternalOO.run_initializers object_ table;
           Obj.obj (Obj.repr object_)
     in
-    Registry.replace registry (Obj.repr object_) metadata;
+    Registry.replace registry (Obj.repr object_) { state = Built metadata };
     object_
 
   let copy_present_entries_into target_metadata source =
@@ -139,6 +181,7 @@ module Internal = struct
     target
 
   let register_abstract object_ entries = Obj.obj (Obj.repr (register_structural object_ entries))
+  let register_deferred_abstract object_ thunk = Obj.obj (Obj.repr (register_deferred object_ thunk))
 end
 
 let empty () : < .. > = Internal.register_abstract ((object end : < >) :> < .. >) []

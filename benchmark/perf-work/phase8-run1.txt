@@ -1,0 +1,45 @@
+
+==================================================
+server-reason-react Benchmarks
+==================================================
+Benchmark                             Throughput
+--------------------------------------------------
+trivial/renderToStaticMarkup             4257312 ops/sec
+trivial/renderToString                   4271620 ops/sec
+depth/10                                  106785 ops/sec
+depth/25                                   41433 ops/sec
+depth/50                                   21104 ops/sec
+depth/100                                  10662 ops/sec
+width/10                                   62918 ops/sec
+width/100                                   6576 ops/sec
+width/500                                   1215 ops/sec
+width/1000                                   625 ops/sec
+table/10                                   42152 ops/sec
+table/50                                    8972 ops/sec
+table/100                                   3985 ops/sec
+table/500                                    848 ops/sec
+props/small                                16907 ops/sec
+props/medium                                5582 ops/sec
+props/large                                 2063 ops/sec
+realworld/ecommerce24                      10737 ops/sec
+realworld/ecommerce48                       5747 ops/sec
+realworld/dashboard                        45230 ops/sec
+realworld/blog50                            7326 ops/sec
+realworld/form                             23198 ops/sec
+primitive/React.string                  31750977 ops/sec
+primitive/React.int                     14727191 ops/sec
+primitive/React.null                    46500044 ops/sec
+primitive/createElement_empty           20370588 ops/sec
+primitive/createElement_children         1556617 ops/sec
+primitive/React.array_10                 1543897 ops/sec
+primitive/React.array_100                 173427 ops/sec
+primitive/React.list_10                  1562008 ops/sec
+primitive/React.list_100                  169871 ops/sec
+rsc/trivial                               530522 ops/sec
+rsc/depth/50                                 951 ops/sec
+rsc/width/100                                640 ops/sec
+rsc/width/500                                119 ops/sec
+rsc/width/1000                                56 ops/sec
+rsc/table/100                                221 ops/sec
+rsc/table/500                                 40 ops/sec
+==================================================

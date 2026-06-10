@@ -2,6 +2,69 @@
 
 Tracking SSR optimization work toward 5x vs Bun.
 
+## Phase 8 — Js_obj deferral, Writer-tier widening, adaptive buffers
+
+Geomean **1.39x** over the Phase 7 baseline across all render + RSC
+scenarios (`bench.exe`, release profile, best of 2 runs each side).
+HTML output verified byte-identical across all 17 scenarios in both
+`renderToStaticMarkup` and `renderToString` (see `dump_html.exe`).
+Allocation (minor words/iter) dropped 25–52% on every scenario
+(ShallowTree 8198→3946, PropsMedium 84685→47867, Table100 62732→45481).
+
+| Benchmark | Baseline | Phase 8 | Speedup |
+|---|---:|---:|---:|
+| width/10 | 39587 | 63605 | **1.61x** |
+| props/medium | 2991 | 5720 | **1.91x** |
+| props/small | 8916 | 16907 | **1.90x** |
+| realworld/form | 13551 | 23198 | **1.71x** |
+| realworld/dashboard | 28369 | 45446 | **1.60x** |
+| realworld/blog50 | 5021 | 7326 | **1.46x** |
+| depth/50 | 14368 | 21221 | **1.48x** |
+| table/500 | 690 | 848 | **1.23x** |
+| rsc/* | — | — | 1.06–1.14x |
+
+What shipped (all internal; zero API change, byte-identical output):
+
+1. **`Js_obj` lazy metadata** (`packages/Js/lib/Js_obj.ml`). Registration
+   used to materialize a `Hashtbl` + ordered key list per object; now the
+   registry stores the raw payload and builds metadata only when
+   `keys`/`assign`/`merge` first inspects the object. +10–40% alone.
+2. **`Js_obj` deferred entries** (melange.ppx + react ppx +
+   `Js_obj.Internal.register_deferred`/`deferred_entry`). `makeProps` and
+   `[%mel.obj]` used to allocate an entry record plus two boxing closures
+   per field per object; generated code now registers one thunk that
+   builds entries on demand. Was ~12% of allocation samples on wide500.
+   +18–34% on component-heavy scenarios.
+3. **Writer-tier widening** (`static_analysis.ml`): `style` attributes are
+   now lowerable — fully-literal styles (post `Style_rewrite`) fold to a
+   compile-time string replicating `ReactDOMStyle.write_to_buffer`
+   byte-for-byte; dynamic styles emit a direct serializer call. Event
+   handlers and `suppress*Warning` attrs no longer force
+   `Cannot_optimize`: the SSR runtime never renders them, so they are
+   skipped at analysis time. This also fixed a divergence where literal
+   `suppressHydrationWarning=true` leaked into prerendered HTML.
+   props/* +31–47%.
+4. **H1 closure elimination** (`ReactDOM.ml`): the sync render paths pass
+   `buf` positionally through local mutually-recursive functions instead
+   of allocating `render_element ~buf` partial applications per parent
+   node. Neutral-to-small in wall time, removes per-node allocation.
+5. **Adaptive render buffer** (`ReactDOM.ml`): `renderToString`/
+   `renderToStaticMarkup` seed `Buffer.create` with the previous render's
+   clamped size (1KB–128KB) instead of a fixed 1KB, skipping the
+   doubling-resize ladder in steady state. blog50 +31%, table/50 +25%.
+6. **Int writes**: `Printf.bprintf b "%d"` → `Buffer.add_string b
+   (string_of_int n)` in PPX emission (~15% faster per write; format
+   dispatch costs more than the short-lived string).
+
+Artifacts: `phase8-baseline-run{1,2}.txt`, `phase8-run{1,2}.txt`.
+
+Hypothesis outcomes from `PERF_NEXT.md`: H1 implemented (item 4). H2
+obsolete — after Js_obj deferral, `Tree_context.push` is not in the top
+allocation sites. H3 folded into item 4 (single traversal with an index
+counter; `List.length` pre-pass kept, it allocates nothing). H4 replaced
+by item 3 — widening which elements reach the Writer tier beat batching
+writes inside the slow path. H5 untouched (streaming-only).
+
 ## TL;DR
 
 | Metric | Phase 0 (baseline) | **Final** |

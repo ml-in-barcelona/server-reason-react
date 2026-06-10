@@ -69,58 +69,6 @@ let attributes_to_html attrs = List.map attribute_to_html attrs
 let getDangerouslyInnerHtml attributes =
   List.find_map (function React.JSX.DangerouslyInnerHtml str -> Some str | _ -> None) attributes
 
-let render_upper_case_component render_element component =
-  let saved_ctx = !React.current_tree_context in
-  React.reset_component_id_state saved_ctx;
-  match component () with
-  | result -> (
-      let did_use_id = React.check_did_render_id_hook () in
-      if did_use_id then React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:1 ~index:0;
-      match render_element result with
-      | () -> React.current_tree_context := saved_ctx
-      | exception exn ->
-          React.current_tree_context := saved_ctx;
-          raise exn)
-  | exception exn ->
-      React.current_tree_context := saved_ctx;
-      raise exn
-
-let render_children_list render_element list =
-  match list with
-  | [] -> ()
-  | [ single ] -> render_element single
-  | _ -> (
-      let saved_ctx = !React.current_tree_context in
-      match
-        let total = List.length list in
-        List.iteri
-          (fun i el ->
-            React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:total ~index:i;
-            render_element el)
-          list
-      with
-      | () -> React.current_tree_context := saved_ctx
-      | exception exn ->
-          React.current_tree_context := saved_ctx;
-          raise exn)
-
-let render_children_array render_element arr =
-  let total = Array.length arr in
-  if total = 0 then ()
-  else if total = 1 then render_element (Array.unsafe_get arr 0)
-  else
-    let saved_ctx = !React.current_tree_context in
-    match
-      for i = 0 to total - 1 do
-        React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:total ~index:i;
-        render_element (Array.unsafe_get arr i)
-      done
-    with
-    | () -> React.current_tree_context := saved_ctx
-    | exception exn ->
-        React.current_tree_context := saved_ctx;
-        raise exn
-
 let render_upper_case_component_lwt render_element component =
   let saved_ctx = !React.current_tree_context in
   React.reset_component_id_state saved_ctx;
@@ -184,13 +132,19 @@ let render_children_array_lwt render_element arr =
 
 type mode = String | Markup
 
+(* The sync renderers below take [buf] as a positional argument on every
+   mutually-recursive function instead of partially applying it. Partial
+   applications like [render_element ~buf] allocate a fresh closure per
+   parent node, which compounds linearly on wide trees (see
+   benchmark/perf-work/PERF_NEXT.md, H1). Full applications allocate
+   nothing. *)
 let render_to_buffer ~mode buf element =
   let add_separator_between_text_nodes = mode = String in
   let previous_node_was_text = ref false in
   let should_add_doctype = ref true in
 
-  let rec render_element ~buf element =
-    match (element : React.element) with
+  let rec render_element buf (element : React.element) =
+    match element with
     | Empty -> ()
     | Static { prerendered; _ } ->
         should_add_doctype := false;
@@ -205,19 +159,19 @@ let render_to_buffer ~mode buf element =
                use the React server components API instead. module: " ^ import_module))
     | Provider { children; push; _ } ->
         let pop = push () in
-        render_element ~buf children;
+        render_element buf children;
         pop ()
-    | Consumer children -> render_element ~buf children
-    | Fragment children -> render_element ~buf children
-    | List list -> render_children_list (render_element ~buf) list
-    | Array arr -> render_children_array (render_element ~buf) arr
-    | Upper_case_component (_, component) -> render_upper_case_component (render_element ~buf) component
+    | Consumer children -> render_element buf children
+    | Fragment children -> render_element buf children
+    | List list -> render_children_list buf list
+    | Array arr -> render_children_array buf arr
+    | Upper_case_component (_, component) -> render_upper_case_component buf component
     | Async_component (_name, _component) ->
         raise
           (Invalid_argument
              "Async components can't be rendered to static markup, since rendering is synchronous. Please use \
               `renderToStream` instead.")
-    | Lower_case_element { key; tag; attributes; children } -> render_lower_case ~buf ~key tag attributes children
+    | Lower_case_element { key = _; tag; attributes; children } -> render_lower_case buf tag attributes children
     | Text text ->
         let is_previous_text_node = !previous_node_was_text in
         previous_node_was_text := true;
@@ -226,16 +180,66 @@ let render_to_buffer ~mode buf element =
         should_add_doctype := false
     | Suspense { key = _; children; fallback } -> (
         let suspense_inner_buf = Buffer.create 128 in
-        match render_element ~buf:suspense_inner_buf children with
+        match render_element suspense_inner_buf children with
         | () ->
             Buffer.add_string buf "<!--$-->";
             Buffer.add_buffer buf suspense_inner_buf;
             Buffer.add_string buf "<!--/$-->"
         | exception _e ->
             Buffer.add_string buf "<!--$!-->";
-            render_element ~buf fallback;
+            render_element buf fallback;
             Buffer.add_string buf "<!--/$-->")
-  and render_lower_case ~buf ~key:_ tag attributes children =
+  and render_upper_case_component buf component =
+    let saved_ctx = !React.current_tree_context in
+    React.reset_component_id_state saved_ctx;
+    match component () with
+    | result -> (
+        let did_use_id = React.check_did_render_id_hook () in
+        if did_use_id then React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:1 ~index:0;
+        match render_element buf result with
+        | () -> React.current_tree_context := saved_ctx
+        | exception exn ->
+            React.current_tree_context := saved_ctx;
+            raise exn)
+    | exception exn ->
+        React.current_tree_context := saved_ctx;
+        raise exn
+  and render_children_list buf list =
+    match list with
+    | [] -> ()
+    | [ single ] -> render_element buf single
+    | _ -> (
+        let saved_ctx = !React.current_tree_context in
+        let total = List.length list in
+        let rec go i = function
+          | [] -> ()
+          | el :: rest ->
+              React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:total ~index:i;
+              render_element buf el;
+              go (i + 1) rest
+        in
+        match go 0 list with
+        | () -> React.current_tree_context := saved_ctx
+        | exception exn ->
+            React.current_tree_context := saved_ctx;
+            raise exn)
+  and render_children_array buf arr =
+    let total = Array.length arr in
+    if total = 0 then ()
+    else if total = 1 then render_element buf (Array.unsafe_get arr 0)
+    else
+      let saved_ctx = !React.current_tree_context in
+      match
+        for i = 0 to total - 1 do
+          React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:total ~index:i;
+          render_element buf (Array.unsafe_get arr i)
+        done
+      with
+      | () -> React.current_tree_context := saved_ctx
+      | exception exn ->
+          React.current_tree_context := saved_ctx;
+          raise exn
+  and render_lower_case buf tag attributes children =
     if Html.is_self_closing_tag tag then (
       should_add_doctype := false;
       if add_separator_between_text_nodes then previous_node_was_text := false;
@@ -252,19 +256,17 @@ let render_to_buffer ~mode buf element =
       Buffer.add_string buf tag;
       let inner_html = write_attributes_and_extract_inner_html buf attributes in
       Buffer.add_char buf '>';
-      (match inner_html with
-      | Some html -> Buffer.add_string buf html
-      | None -> render_children_list (render_element ~buf) children);
+      (match inner_html with Some html -> Buffer.add_string buf html | None -> render_children_list buf children);
       Buffer.add_string buf "</";
       Buffer.add_string buf tag;
       Buffer.add_char buf '>';
       if add_separator_between_text_nodes then previous_node_was_text := false
   in
-  render_element ~buf element
+  render_element buf element
 
 let write_to_buffer buf element =
-  let rec render ~buf element =
-    match (element : React.element) with
+  let rec render buf (element : React.element) =
+    match element with
     | Empty -> ()
     | Static { prerendered; _ } -> Buffer.add_string buf prerendered
     | Writer { emit; _ } -> emit buf
@@ -272,13 +274,13 @@ let write_to_buffer buf element =
         raise (Invalid_argument ("Client components can't be rendered via write_to_buffer. module: " ^ import_module))
     | Provider { children; push; _ } ->
         let pop = push () in
-        render ~buf children;
+        render buf children;
         pop ()
-    | Consumer children -> render ~buf children
-    | Fragment children -> render ~buf children
-    | List list -> render_children_list (render ~buf) list
-    | Array arr -> render_children_array (render ~buf) arr
-    | Upper_case_component (_, component) -> render_upper_case_component (render ~buf) component
+    | Consumer children -> render buf children
+    | Fragment children -> render buf children
+    | List list -> render_children_list buf list
+    | Array arr -> render_children_array buf arr
+    | Upper_case_component (_, component) -> render_upper_case_component buf component
     | Async_component (_name, _component) ->
         raise (Invalid_argument "Async components can't be rendered synchronously via write_to_buffer.")
     | Lower_case_element { key = _; tag; attributes; children } ->
@@ -292,35 +294,103 @@ let write_to_buffer buf element =
           Buffer.add_string buf tag;
           let inner_html = write_attributes_and_extract_inner_html buf attributes in
           Buffer.add_char buf '>';
-          (match inner_html with
-          | Some html -> Buffer.add_string buf html
-          | None -> render_children_list (render ~buf) children);
+          (match inner_html with Some html -> Buffer.add_string buf html | None -> render_children_list buf children);
           Buffer.add_string buf "</";
           Buffer.add_string buf tag;
           Buffer.add_char buf '>')
     | Text text -> Html.escape buf text
     | Suspense { children; fallback; _ } -> (
         let suspense_inner_buf = Buffer.create 128 in
-        match render ~buf:suspense_inner_buf children with
+        match render suspense_inner_buf children with
         | () -> Buffer.add_buffer buf suspense_inner_buf
-        | exception _e -> render ~buf fallback)
+        | exception _e -> render buf fallback)
+  and render_upper_case_component buf component =
+    let saved_ctx = !React.current_tree_context in
+    React.reset_component_id_state saved_ctx;
+    match component () with
+    | result -> (
+        let did_use_id = React.check_did_render_id_hook () in
+        if did_use_id then React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:1 ~index:0;
+        match render buf result with
+        | () -> React.current_tree_context := saved_ctx
+        | exception exn ->
+            React.current_tree_context := saved_ctx;
+            raise exn)
+    | exception exn ->
+        React.current_tree_context := saved_ctx;
+        raise exn
+  and render_children_list buf list =
+    match list with
+    | [] -> ()
+    | [ single ] -> render buf single
+    | _ -> (
+        let saved_ctx = !React.current_tree_context in
+        let total = List.length list in
+        let rec go i = function
+          | [] -> ()
+          | el :: rest ->
+              React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:total ~index:i;
+              render buf el;
+              go (i + 1) rest
+        in
+        match go 0 list with
+        | () -> React.current_tree_context := saved_ctx
+        | exception exn ->
+            React.current_tree_context := saved_ctx;
+            raise exn)
+  and render_children_array buf arr =
+    let total = Array.length arr in
+    if total = 0 then ()
+    else if total = 1 then render buf (Array.unsafe_get arr 0)
+    else
+      let saved_ctx = !React.current_tree_context in
+      match
+        for i = 0 to total - 1 do
+          React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:total ~index:i;
+          render buf (Array.unsafe_get arr i)
+        done
+      with
+      | () -> React.current_tree_context := saved_ctx
+      | exception exn ->
+          React.current_tree_context := saved_ctx;
+          raise exn
   in
-  render ~buf element
+  render buf element
 
 let escape_to_buffer = Html.escape
+
+(* Steady-state SSR renders similarly-sized documents back to back. Seeding
+   the render buffer with the previous render's size lets the common case
+   skip the doubling-resize ladder from 1KB (each rung reallocates and
+   memcpys the whole buffer so far). The clamp keeps a one-off huge render
+   from pinning large allocations onto subsequent small renders. The ref is
+   a heuristic: a race across domains only produces a suboptimal hint. *)
+let min_render_buffer_size = 1024
+let max_render_buffer_hint = 131072
+let last_render_size = Stdlib.ref min_render_buffer_size
+
+let remember_render_size size =
+  let clamped =
+    if size < min_render_buffer_size then min_render_buffer_size
+    else if size > max_render_buffer_hint then max_render_buffer_hint
+    else size
+  in
+  if clamped <> !last_render_size then last_render_size := clamped
 
 let renderToString ?identifier_prefix element =
   (* TODO: try catch to avoid React.use usages *)
   React.reset_id_rendering ?prefix:identifier_prefix ();
-  let buf = Buffer.create 1024 in
+  let buf = Buffer.create !last_render_size in
   render_to_buffer ~mode:String buf element;
+  remember_render_size (Buffer.length buf);
   Buffer.contents buf
 
 let renderToStaticMarkup ?identifier_prefix element =
   (* TODO: try catch to avoid React.use usages *)
   React.reset_id_rendering ?prefix:identifier_prefix ();
-  let buf = Buffer.create 1024 in
+  let buf = Buffer.create !last_render_size in
   render_to_buffer ~mode:Markup buf element;
+  remember_render_size (Buffer.length buf);
   Buffer.contents buf
 
 type stream_context = {

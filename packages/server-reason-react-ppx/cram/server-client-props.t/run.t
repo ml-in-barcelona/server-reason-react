@@ -14,62 +14,14 @@
                     ~tuple3: (int, string, float),
                     (),
                   ) => {
-                let (__js_obj_cell_0, __js_obj_entry_0) =
-                  Js.Obj.Internal.slot_ref(
-                    ~method_name="prop",
-                    ~js_name="prop",
-                    ~present=true,
-                    prop,
-                  );
-                let (__js_obj_cell_1, __js_obj_entry_1) =
-                  Js.Obj.Internal.slot_ref(
-                    ~method_name="lola",
-                    ~js_name="lola",
-                    ~present=true,
-                    lola,
-                  );
-                let (__js_obj_cell_2, __js_obj_entry_2) =
-                  Js.Obj.Internal.slot_ref(
-                    ~method_name="mona",
-                    ~js_name="mona",
-                    ~present=true,
-                    mona,
-                  );
-                let (__js_obj_cell_3, __js_obj_entry_3) =
-                  Js.Obj.Internal.slot_ref(
-                    ~method_name="lolo",
-                    ~js_name="lolo",
-                    ~present=true,
-                    lolo,
-                  );
-                let (__js_obj_cell_4, __js_obj_entry_4) =
-                  Js.Obj.Internal.slot_ref(
-                    ~method_name="lili",
-                    ~js_name="lili",
-                    ~present=true,
-                    lili,
-                  );
-                let (__js_obj_cell_5, __js_obj_entry_5) =
-                  Js.Obj.Internal.slot_ref(
-                    ~method_name="lulu",
-                    ~js_name="lulu",
-                    ~present=true,
-                    lulu,
-                  );
-                let (__js_obj_cell_6, __js_obj_entry_6) =
-                  Js.Obj.Internal.slot_ref(
-                    ~method_name="tuple2",
-                    ~js_name="tuple2",
-                    ~present=true,
-                    tuple2,
-                  );
-                let (__js_obj_cell_7, __js_obj_entry_7) =
-                  Js.Obj.Internal.slot_ref(
-                    ~method_name="tuple3",
-                    ~js_name="tuple3",
-                    ~present=true,
-                    tuple3,
-                  );
+                let __js_obj_cell_0 = Stdlib.ref(prop);
+                let __js_obj_cell_1 = Stdlib.ref(lola);
+                let __js_obj_cell_2 = Stdlib.ref(mona);
+                let __js_obj_cell_3 = Stdlib.ref(lolo);
+                let __js_obj_cell_4 = Stdlib.ref(lili);
+                let __js_obj_cell_5 = Stdlib.ref(lulu);
+                let __js_obj_cell_6 = Stdlib.ref(tuple2);
+                let __js_obj_cell_7 = Stdlib.ref(tuple3);
                 let __js_obj = {
                   as _;
                   pub prop = __js_obj_cell_0^;
@@ -82,18 +34,57 @@
                   pub tuple3 = __js_obj_cell_7^
                 };
                 (
-                  Js.Obj.Internal.register_abstract(
-                    __js_obj,
+                  Js.Obj.Internal.register_deferred_abstract(__js_obj, () =>
                     [
-                      __js_obj_entry_0,
-                      __js_obj_entry_1,
-                      __js_obj_entry_2,
-                      __js_obj_entry_3,
-                      __js_obj_entry_4,
-                      __js_obj_entry_5,
-                      __js_obj_entry_6,
-                      __js_obj_entry_7,
-                    ],
+                      Js.Obj.Internal.deferred_entry(
+                        ~method_name="prop",
+                        ~js_name="prop",
+                        ~present=true,
+                        __js_obj_cell_0,
+                      ),
+                      Js.Obj.Internal.deferred_entry(
+                        ~method_name="lola",
+                        ~js_name="lola",
+                        ~present=true,
+                        __js_obj_cell_1,
+                      ),
+                      Js.Obj.Internal.deferred_entry(
+                        ~method_name="mona",
+                        ~js_name="mona",
+                        ~present=true,
+                        __js_obj_cell_2,
+                      ),
+                      Js.Obj.Internal.deferred_entry(
+                        ~method_name="lolo",
+                        ~js_name="lolo",
+                        ~present=true,
+                        __js_obj_cell_3,
+                      ),
+                      Js.Obj.Internal.deferred_entry(
+                        ~method_name="lili",
+                        ~js_name="lili",
+                        ~present=true,
+                        __js_obj_cell_4,
+                      ),
+                      Js.Obj.Internal.deferred_entry(
+                        ~method_name="lulu",
+                        ~js_name="lulu",
+                        ~present=true,
+                        __js_obj_cell_5,
+                      ),
+                      Js.Obj.Internal.deferred_entry(
+                        ~method_name="tuple2",
+                        ~js_name="tuple2",
+                        ~present=true,
+                        __js_obj_cell_6,
+                      ),
+                      Js.Obj.Internal.deferred_entry(
+                        ~method_name="tuple3",
+                        ~js_name="tuple3",
+                        ~present=true,
+                        __js_obj_cell_7,
+                      ),
+                    ]
                   ): {
                     .
                     "prop": int,
@@ -192,21 +183,21 @@
     include {
               let makeProps =
                   (~prop_without_annotation: 'prop_without_annotation, ()) => {
-                let (__js_obj_cell_0, __js_obj_entry_0) =
-                  Js.Obj.Internal.slot_ref(
-                    ~method_name="prop_without_annotation",
-                    ~js_name="prop_without_annotation",
-                    ~present=true,
-                    prop_without_annotation,
-                  );
+                let __js_obj_cell_0 = Stdlib.ref(prop_without_annotation);
                 let __js_obj = {
                   as _;
                   pub prop_without_annotation = __js_obj_cell_0^
                 };
                 (
-                  Js.Obj.Internal.register_abstract(
-                    __js_obj,
-                    [__js_obj_entry_0],
+                  Js.Obj.Internal.register_deferred_abstract(__js_obj, () =>
+                    [
+                      Js.Obj.Internal.deferred_entry(
+                        ~method_name="prop_without_annotation",
+                        ~js_name="prop_without_annotation",
+                        ~present=true,
+                        __js_obj_cell_0,
+                      ),
+                    ]
                   ): {
                     .
                     "prop_without_annotation": 'prop_without_annotation,
@@ -253,29 +244,29 @@
   module Prop_with_unsupported_annotation = {
     include {
               let makeProps = (~underscore: _, ~alpha_types: 'a, ()) => {
-                let (__js_obj_cell_0, __js_obj_entry_0) =
-                  Js.Obj.Internal.slot_ref(
-                    ~method_name="underscore",
-                    ~js_name="underscore",
-                    ~present=true,
-                    underscore,
-                  );
-                let (__js_obj_cell_1, __js_obj_entry_1) =
-                  Js.Obj.Internal.slot_ref(
-                    ~method_name="alpha_types",
-                    ~js_name="alpha_types",
-                    ~present=true,
-                    alpha_types,
-                  );
+                let __js_obj_cell_0 = Stdlib.ref(underscore);
+                let __js_obj_cell_1 = Stdlib.ref(alpha_types);
                 let __js_obj = {
                   as _;
                   pub underscore = __js_obj_cell_0^;
                   pub alpha_types = __js_obj_cell_1^
                 };
                 (
-                  Js.Obj.Internal.register_abstract(
-                    __js_obj,
-                    [__js_obj_entry_0, __js_obj_entry_1],
+                  Js.Obj.Internal.register_deferred_abstract(__js_obj, () =>
+                    [
+                      Js.Obj.Internal.deferred_entry(
+                        ~method_name="underscore",
+                        ~js_name="underscore",
+                        ~present=true,
+                        __js_obj_cell_0,
+                      ),
+                      Js.Obj.Internal.deferred_entry(
+                        ~method_name="alpha_types",
+                        ~js_name="alpha_types",
+                        ~present=true,
+                        __js_obj_cell_1,
+                      ),
+                    ]
                   ): {
                     .
                     "underscore": _,
@@ -341,18 +332,18 @@
                      ],
                     (),
                   ) => {
-                let (__js_obj_cell_0, __js_obj_entry_0) =
-                  Js.Obj.Internal.slot_ref(
-                    ~method_name="polyvariants",
-                    ~js_name="polyvariants",
-                    ~present=true,
-                    polyvariants,
-                  );
+                let __js_obj_cell_0 = Stdlib.ref(polyvariants);
                 let __js_obj = { as _; pub polyvariants = __js_obj_cell_0^ };
                 (
-                  Js.Obj.Internal.register_abstract(
-                    __js_obj,
-                    [__js_obj_entry_0],
+                  Js.Obj.Internal.register_deferred_abstract(__js_obj, () =>
+                    [
+                      Js.Obj.Internal.deferred_entry(
+                        ~method_name="polyvariants",
+                        ~js_name="polyvariants",
+                        ~present=true,
+                        __js_obj_cell_0,
+                      ),
+                    ]
                   ): {
                     .
                     "polyvariants": [
@@ -424,34 +415,10 @@
                     ~lapply: Label.t(int, string),
                     (),
                   ) => {
-                let (__js_obj_cell_0, __js_obj_entry_0) =
-                  Js.Obj.Internal.slot_ref(
-                    ~method_name="lident",
-                    ~js_name="lident",
-                    ~present=true,
-                    lident,
-                  );
-                let (__js_obj_cell_1, __js_obj_entry_1) =
-                  Js.Obj.Internal.slot_ref(
-                    ~method_name="ldotlident",
-                    ~js_name="ldotlident",
-                    ~present=true,
-                    ldotlident,
-                  );
-                let (__js_obj_cell_2, __js_obj_entry_2) =
-                  Js.Obj.Internal.slot_ref(
-                    ~method_name="ldotdotlident",
-                    ~js_name="ldotdotlident",
-                    ~present=true,
-                    ldotdotlident,
-                  );
-                let (__js_obj_cell_3, __js_obj_entry_3) =
-                  Js.Obj.Internal.slot_ref(
-                    ~method_name="lapply",
-                    ~js_name="lapply",
-                    ~present=true,
-                    lapply,
-                  );
+                let __js_obj_cell_0 = Stdlib.ref(lident);
+                let __js_obj_cell_1 = Stdlib.ref(ldotlident);
+                let __js_obj_cell_2 = Stdlib.ref(ldotdotlident);
+                let __js_obj_cell_3 = Stdlib.ref(lapply);
                 let __js_obj = {
                   as _;
                   pub lident = __js_obj_cell_0^;
@@ -460,14 +427,33 @@
                   pub lapply = __js_obj_cell_3^
                 };
                 (
-                  Js.Obj.Internal.register_abstract(
-                    __js_obj,
+                  Js.Obj.Internal.register_deferred_abstract(__js_obj, () =>
                     [
-                      __js_obj_entry_0,
-                      __js_obj_entry_1,
-                      __js_obj_entry_2,
-                      __js_obj_entry_3,
-                    ],
+                      Js.Obj.Internal.deferred_entry(
+                        ~method_name="lident",
+                        ~js_name="lident",
+                        ~present=true,
+                        __js_obj_cell_0,
+                      ),
+                      Js.Obj.Internal.deferred_entry(
+                        ~method_name="ldotlident",
+                        ~js_name="ldotlident",
+                        ~present=true,
+                        __js_obj_cell_1,
+                      ),
+                      Js.Obj.Internal.deferred_entry(
+                        ~method_name="ldotdotlident",
+                        ~js_name="ldotdotlident",
+                        ~present=true,
+                        __js_obj_cell_2,
+                      ),
+                      Js.Obj.Internal.deferred_entry(
+                        ~method_name="lapply",
+                        ~js_name="lapply",
+                        ~present=true,
+                        __js_obj_cell_3,
+                      ),
+                    ]
                   ): {
                     .
                     "lident": lola,
@@ -547,29 +533,29 @@
   module Prop_with_option_annotation = {
     include {
               let makeProps = (~name: option(string), ~count: option(int), ()) => {
-                let (__js_obj_cell_0, __js_obj_entry_0) =
-                  Js.Obj.Internal.slot_ref(
-                    ~method_name="name",
-                    ~js_name="name",
-                    ~present=true,
-                    name,
-                  );
-                let (__js_obj_cell_1, __js_obj_entry_1) =
-                  Js.Obj.Internal.slot_ref(
-                    ~method_name="count",
-                    ~js_name="count",
-                    ~present=true,
-                    count,
-                  );
+                let __js_obj_cell_0 = Stdlib.ref(name);
+                let __js_obj_cell_1 = Stdlib.ref(count);
                 let __js_obj = {
                   as _;
                   pub name = __js_obj_cell_0^;
                   pub count = __js_obj_cell_1^
                 };
                 (
-                  Js.Obj.Internal.register_abstract(
-                    __js_obj,
-                    [__js_obj_entry_0, __js_obj_entry_1],
+                  Js.Obj.Internal.register_deferred_abstract(__js_obj, () =>
+                    [
+                      Js.Obj.Internal.deferred_entry(
+                        ~method_name="name",
+                        ~js_name="name",
+                        ~present=true,
+                        __js_obj_cell_0,
+                      ),
+                      Js.Obj.Internal.deferred_entry(
+                        ~method_name="count",
+                        ~js_name="count",
+                        ~present=true,
+                        __js_obj_cell_1,
+                      ),
+                    ]
                   ): {
                     .
                     "name": option(string),

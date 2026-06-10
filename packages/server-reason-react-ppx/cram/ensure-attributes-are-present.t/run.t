@@ -2,7 +2,8 @@
   include struct
     let makeProps () =
       let __js_obj = object end in
-      (Js.Obj.Internal.register_abstract __js_obj [] : < > Js.t)
+      (Js.Obj.Internal.register_deferred_abstract __js_obj (fun () -> [])
+        : < > Js.t)
   
     let make ?key:(_ : string option) () =
       React.Upper_case_component

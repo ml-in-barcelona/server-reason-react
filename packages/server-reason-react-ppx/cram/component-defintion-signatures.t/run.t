@@ -9,17 +9,20 @@
   end = struct
     include struct
       let makeProps ?(mockup : string option) () =
-        let __js_obj_cell_0, __js_obj_entry_0 =
-          Js.Obj.Internal.slot_ref ~method_name:"mockup" ~js_name:"mockup"
-            ~present:(match mockup with None -> false | Some _ -> true)
-            mockup
+        let __js_obj_cell_0 = Stdlib.ref mockup in
+        let __js_obj_present_0 =
+          match mockup with None -> false | Some _ -> true
         in
         let __js_obj =
           object
             method mockup = !__js_obj_cell_0
           end
         in
-        (Js.Obj.Internal.register_abstract __js_obj [ __js_obj_entry_0 ]
+        (Js.Obj.Internal.register_deferred_abstract __js_obj (fun () ->
+             [
+               Js.Obj.Internal.deferred_entry ~method_name:"mockup"
+                 ~js_name:"mockup" ~present:__js_obj_present_0 __js_obj_cell_0;
+             ])
           : < mockup : string option > Js.t)
   
       let make ?key:(_ : string option) ?(mockup : string option) () =
@@ -48,17 +51,20 @@
   end = struct
     include struct
       let makeProps ?(myProp : bool option option) () =
-        let __js_obj_cell_0, __js_obj_entry_0 =
-          Js.Obj.Internal.slot_ref ~method_name:"myProp" ~js_name:"myProp"
-            ~present:(match myProp with None -> false | Some _ -> true)
-            myProp
+        let __js_obj_cell_0 = Stdlib.ref myProp in
+        let __js_obj_present_0 =
+          match myProp with None -> false | Some _ -> true
         in
         let __js_obj =
           object
             method myProp = !__js_obj_cell_0
           end
         in
-        (Js.Obj.Internal.register_abstract __js_obj [ __js_obj_entry_0 ]
+        (Js.Obj.Internal.register_deferred_abstract __js_obj (fun () ->
+             [
+               Js.Obj.Internal.deferred_entry ~method_name:"myProp"
+                 ~js_name:"myProp" ~present:__js_obj_present_0 __js_obj_cell_0;
+             ])
           : < myProp : bool option option > Js.t)
   
       let make ?key:(_ : string option) ?(myProp : bool option option) () =

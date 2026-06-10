@@ -10,20 +10,21 @@ We need to output ML syntax here, otherwise refmt could not parse it.
   
     include struct
       let makeProps ~(a : 'a) ~(b : 'b) () =
-        let __js_obj_cell_0, __js_obj_entry_0 =
-          Js.Obj.Internal.slot_ref ~method_name:"a" ~js_name:"a" ~present:true a
-        in
-        let __js_obj_cell_1, __js_obj_entry_1 =
-          Js.Obj.Internal.slot_ref ~method_name:"b" ~js_name:"b" ~present:true b
-        in
+        let __js_obj_cell_0 = Stdlib.ref a in
+        let __js_obj_cell_1 = Stdlib.ref b in
         let __js_obj =
           object
             method a = !__js_obj_cell_0
             method b = !__js_obj_cell_1
           end
         in
-        (Js.Obj.Internal.register_abstract __js_obj
-           [ __js_obj_entry_0; __js_obj_entry_1 ]
+        (Js.Obj.Internal.register_deferred_abstract __js_obj (fun () ->
+             [
+               Js.Obj.Internal.deferred_entry ~method_name:"a" ~js_name:"a"
+                 ~present:true __js_obj_cell_0;
+               Js.Obj.Internal.deferred_entry ~method_name:"b" ~js_name:"b"
+                 ~present:true __js_obj_cell_1;
+             ])
           : < a : 'a ; b : 'b > Js.t)
   
       let make ?key:(_ : string option) ~a =

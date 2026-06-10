@@ -553,40 +553,56 @@ let option_is_some_expr ~loc expr = [%expr match [%e expr] with None -> false | 
 let js_obj_internal_expression ~loc name =
   Builder.pexp_ident ~loc { txt = Ldot (Ldot (Ldot (Lident "Js", "Obj"), "Internal"), name); loc }
 
-let build_registered_js_object_expression ?as_type ?(register_name = "register_structural") ~loc fields =
+let is_literal_bool_expr expr =
+  match expr.pexp_desc with Pexp_construct ({ txt = Lident ("true" | "false"); _ }, None) -> true | _ -> false
+
+(* Emits a registered [Js.t] object. Field values live in plain refs read by
+   the object methods; the registry entry is a single [Deferred] thunk that
+   builds the per-field [entry] records (a record plus two boxing closures
+   each) only if [Js.Obj.keys]/[assign]/[merge] ever inspects the object.
+   This keeps object construction — every [makeProps] call and [%mel.obj]
+   literal — free of per-field entry allocation. *)
+let build_registered_js_object_expression ?as_type ?(register_name = "register_deferred") ~loc fields =
   let generated_fields =
     List.mapi
       (fun index { method_name; js_name; present_expr; value_expr } ->
         let cell_name = Printf.sprintf "__js_obj_cell_%d" index in
-        let entry_name = Printf.sprintf "__js_obj_entry_%d" index in
-        let slot_call =
+        let cell_binding =
+          Builder.value_binding ~loc
+            ~pat:(Builder.ppat_var ~loc { loc; txt = cell_name })
+            ~expr:[%expr Stdlib.ref [%e value_expr]]
+        in
+        (* [present] must be evaluated at construction time (it reads the
+           original argument), but literal booleans can be inlined into the
+           thunk directly. *)
+        let present_bindings, present_in_thunk =
+          if is_literal_bool_expr present_expr then ([], present_expr)
+          else
+            let present_name = Printf.sprintf "__js_obj_present_%d" index in
+            ( [ Builder.value_binding ~loc ~pat:(Builder.ppat_var ~loc { loc; txt = present_name }) ~expr:present_expr ],
+              Builder.evar ~loc present_name )
+        in
+        let entry_expr =
           Builder.pexp_apply ~loc
-            (js_obj_internal_expression ~loc "slot_ref")
+            (js_obj_internal_expression ~loc "deferred_entry")
             [
               (Labelled "method_name", Builder.estring ~loc method_name);
               (Labelled "js_name", Builder.estring ~loc js_name);
-              (Labelled "present", present_expr);
-              (Nolabel, value_expr);
+              (Labelled "present", present_in_thunk);
+              (Nolabel, Builder.evar ~loc cell_name);
             ]
-        in
-        let slot_binding =
-          Builder.value_binding ~loc
-            ~pat:
-              (Builder.ppat_tuple ~loc
-                 [ Builder.ppat_var ~loc { loc; txt = cell_name }; Builder.ppat_var ~loc { loc; txt = entry_name } ])
-            ~expr:slot_call
         in
         let method_body = Builder.pexp_apply ~loc (Builder.evar ~loc "!") [ (Nolabel, Builder.evar ~loc cell_name) ] in
         let method_ =
           Builder.pcf_method ~loc (Builder.Located.mk method_name ~loc, Public, Cfk_concrete (Fresh, method_body))
         in
-        (slot_binding, Builder.evar ~loc entry_name, method_))
+        (cell_binding :: present_bindings, entry_expr, method_))
       fields
   in
   let slot_bindings, entry_exprs, methods =
     List.fold_right
-      (fun (slot_binding, entry_expr, method_) (slot_bindings, entry_exprs, methods) ->
-        (slot_binding :: slot_bindings, entry_expr :: entry_exprs, method_ :: methods))
+      (fun (bindings, entry_expr, method_) (slot_bindings, entry_exprs, methods) ->
+        (bindings @ slot_bindings, entry_expr :: entry_exprs, method_ :: methods))
       generated_fields ([], [], [])
   in
   let object_name = "__js_obj" in
@@ -595,10 +611,11 @@ let build_registered_js_object_expression ?as_type ?(register_name = "register_s
       ~pat:(Builder.ppat_var ~loc { loc; txt = object_name })
       ~expr:(Builder.pexp_object ~loc (Builder.class_structure ~self:(Builder.ppat_any ~loc) ~fields:methods))
   in
+  let entries_thunk = [%expr fun () -> [%e Builder.elist ~loc entry_exprs]] in
   let register_call =
     Builder.pexp_apply ~loc
       (js_obj_internal_expression ~loc register_name)
-      [ (Nolabel, Builder.evar ~loc object_name); (Nolabel, Builder.elist ~loc entry_exprs) ]
+      [ (Nolabel, Builder.evar ~loc object_name); (Nolabel, entries_thunk) ]
   in
   let register_call =
     match as_type with None -> register_call | Some core_type -> Builder.pexp_constraint ~loc register_call core_type
@@ -771,7 +788,7 @@ let transform_external_obj ~loc pval_name pval_type =
   in
   let function_args, fields = collect_arguments [] [] pval_type in
   let object_expression =
-    build_registered_js_object_expression ~loc ~register_name:"register_abstract"
+    build_registered_js_object_expression ~loc ~register_name:"register_deferred_abstract"
       ~as_type:(get_return_core_type pval_type) fields
   in
   let function_expression =

@@ -6,36 +6,24 @@
     let makeProps ?(children : 'children option) ?(top : 'top option)
         ?(left : 'left option) ?(right : 'right option) ?(bottom : 'bottom option)
         ?(all : 'all option) () =
-      let __js_obj_cell_0, __js_obj_entry_0 =
-        Js.Obj.Internal.slot_ref ~method_name:"children" ~js_name:"children"
-          ~present:(match children with None -> false | Some _ -> true)
-          children
+      let __js_obj_cell_0 = Stdlib.ref children in
+      let __js_obj_present_0 =
+        match children with None -> false | Some _ -> true
       in
-      let __js_obj_cell_1, __js_obj_entry_1 =
-        Js.Obj.Internal.slot_ref ~method_name:"top" ~js_name:"top"
-          ~present:(match top with None -> false | Some _ -> true)
-          top
+      let __js_obj_cell_1 = Stdlib.ref top in
+      let __js_obj_present_1 = match top with None -> false | Some _ -> true in
+      let __js_obj_cell_2 = Stdlib.ref left in
+      let __js_obj_present_2 = match left with None -> false | Some _ -> true in
+      let __js_obj_cell_3 = Stdlib.ref right in
+      let __js_obj_present_3 =
+        match right with None -> false | Some _ -> true
       in
-      let __js_obj_cell_2, __js_obj_entry_2 =
-        Js.Obj.Internal.slot_ref ~method_name:"left" ~js_name:"left"
-          ~present:(match left with None -> false | Some _ -> true)
-          left
+      let __js_obj_cell_4 = Stdlib.ref bottom in
+      let __js_obj_present_4 =
+        match bottom with None -> false | Some _ -> true
       in
-      let __js_obj_cell_3, __js_obj_entry_3 =
-        Js.Obj.Internal.slot_ref ~method_name:"right" ~js_name:"right"
-          ~present:(match right with None -> false | Some _ -> true)
-          right
-      in
-      let __js_obj_cell_4, __js_obj_entry_4 =
-        Js.Obj.Internal.slot_ref ~method_name:"bottom" ~js_name:"bottom"
-          ~present:(match bottom with None -> false | Some _ -> true)
-          bottom
-      in
-      let __js_obj_cell_5, __js_obj_entry_5 =
-        Js.Obj.Internal.slot_ref ~method_name:"all" ~js_name:"all"
-          ~present:(match all with None -> false | Some _ -> true)
-          all
-      in
+      let __js_obj_cell_5 = Stdlib.ref all in
+      let __js_obj_present_5 = match all with None -> false | Some _ -> true in
       let __js_obj =
         object
           method children = !__js_obj_cell_0
@@ -46,15 +34,21 @@
           method all = !__js_obj_cell_5
         end
       in
-      (Js.Obj.Internal.register_abstract __js_obj
-         [
-           __js_obj_entry_0;
-           __js_obj_entry_1;
-           __js_obj_entry_2;
-           __js_obj_entry_3;
-           __js_obj_entry_4;
-           __js_obj_entry_5;
-         ]
+      (Js.Obj.Internal.register_deferred_abstract __js_obj (fun () ->
+           [
+             Js.Obj.Internal.deferred_entry ~method_name:"children"
+               ~js_name:"children" ~present:__js_obj_present_0 __js_obj_cell_0;
+             Js.Obj.Internal.deferred_entry ~method_name:"top" ~js_name:"top"
+               ~present:__js_obj_present_1 __js_obj_cell_1;
+             Js.Obj.Internal.deferred_entry ~method_name:"left" ~js_name:"left"
+               ~present:__js_obj_present_2 __js_obj_cell_2;
+             Js.Obj.Internal.deferred_entry ~method_name:"right" ~js_name:"right"
+               ~present:__js_obj_present_3 __js_obj_cell_3;
+             Js.Obj.Internal.deferred_entry ~method_name:"bottom"
+               ~js_name:"bottom" ~present:__js_obj_present_4 __js_obj_cell_4;
+             Js.Obj.Internal.deferred_entry ~method_name:"all" ~js_name:"all"
+               ~present:__js_obj_present_5 __js_obj_cell_5;
+           ])
         : < children : 'children option
           ; top : 'top option
           ; left : 'left option

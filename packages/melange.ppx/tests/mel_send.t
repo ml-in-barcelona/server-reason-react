@@ -34,33 +34,37 @@ Labelled and unlabelled args with @@mel.obj
   $ ./standalone.exe -impl input.ml | ocamlformat - --enable-outside-detected-project --impl | tee output.ml
   let makeInitParam : onLoad:string -> unit -> < onLoad : string > =
    fun ~onLoad _ ->
-    let __js_obj_cell_0, __js_obj_entry_0 =
-      Js.Obj.Internal.slot_ref ~method_name:"onLoad" ~js_name:"onLoad"
-        ~present:true onLoad
-    in
+    let __js_obj_cell_0 = Stdlib.ref onLoad in
     let __js_obj =
       object
         method onLoad = !__js_obj_cell_0
       end
     in
-    (Js.Obj.Internal.register_abstract __js_obj [ __js_obj_entry_0 ]
+    (Js.Obj.Internal.register_deferred_abstract __js_obj (fun () ->
+         [
+           Js.Obj.Internal.deferred_entry ~method_name:"onLoad" ~js_name:"onLoad"
+             ~present:true __js_obj_cell_0;
+         ])
       : < onLoad : string >)
   
   let onLoad = (makeInitParam ~onLoad:"ready" ())#onLoad
   
   let makeOptional : ?retries:int -> unit -> < retries : int option > =
    fun ?retries _ ->
-    let __js_obj_cell_0, __js_obj_entry_0 =
-      Js.Obj.Internal.slot_ref ~method_name:"retries" ~js_name:"retries"
-        ~present:(match retries with None -> false | Some _ -> true)
-        retries
+    let __js_obj_cell_0 = Stdlib.ref retries in
+    let __js_obj_present_0 =
+      match retries with None -> false | Some _ -> true
     in
     let __js_obj =
       object
         method retries = !__js_obj_cell_0
       end
     in
-    (Js.Obj.Internal.register_abstract __js_obj [ __js_obj_entry_0 ]
+    (Js.Obj.Internal.register_deferred_abstract __js_obj (fun () ->
+         [
+           Js.Obj.Internal.deferred_entry ~method_name:"retries"
+             ~js_name:"retries" ~present:__js_obj_present_0 __js_obj_cell_0;
+         ])
       : < retries : int option >)
   
   let retries = (makeOptional ())#retries
@@ -70,8 +74,8 @@ Labelled and unlabelled args with @@mel.obj
   >   module Obj = struct
   >     module Internal = struct
   >       type entry = unit
-  >       let slot_ref ~method_name:_ ~js_name:_ ~present:_ value = (ref value, ())
-  >       let register_abstract obj _ = obj
+  >       let deferred_entry ~method_name:_ ~js_name:_ ~present:_ _cell = ()
+  >       let register_deferred_abstract obj (_ : unit -> entry list) = Stdlib.Obj.magic obj
   >     end
   >   end
   > end

@@ -4,16 +4,17 @@ We need to output ML syntax here, otherwise refmt could not parse it.
   module React_component_with_props = struct
     include struct
       let makeProps ~(lola : 'lola) () =
-        let __js_obj_cell_0, __js_obj_entry_0 =
-          Js.Obj.Internal.slot_ref ~method_name:"lola" ~js_name:"lola"
-            ~present:true lola
-        in
+        let __js_obj_cell_0 = Stdlib.ref lola in
         let __js_obj =
           object
             method lola = !__js_obj_cell_0
           end
         in
-        (Js.Obj.Internal.register_abstract __js_obj [ __js_obj_entry_0 ]
+        (Js.Obj.Internal.register_deferred_abstract __js_obj (fun () ->
+             [
+               Js.Obj.Internal.deferred_entry ~method_name:"lola" ~js_name:"lola"
+                 ~present:true __js_obj_cell_0;
+             ])
           : < lola : 'lola > Js.t)
   
       let make ?key:(_ : string option) ~lola () =
@@ -44,22 +45,21 @@ We need to output ML syntax here, otherwise refmt could not parse it.
   module Forward_Ref = struct
     include struct
       let makeProps ~(children : 'children) ~(buttonRef : 'buttonRef) () =
-        let __js_obj_cell_0, __js_obj_entry_0 =
-          Js.Obj.Internal.slot_ref ~method_name:"children" ~js_name:"children"
-            ~present:true children
-        in
-        let __js_obj_cell_1, __js_obj_entry_1 =
-          Js.Obj.Internal.slot_ref ~method_name:"buttonRef" ~js_name:"buttonRef"
-            ~present:true buttonRef
-        in
+        let __js_obj_cell_0 = Stdlib.ref children in
+        let __js_obj_cell_1 = Stdlib.ref buttonRef in
         let __js_obj =
           object
             method children = !__js_obj_cell_0
             method buttonRef = !__js_obj_cell_1
           end
         in
-        (Js.Obj.Internal.register_abstract __js_obj
-           [ __js_obj_entry_0; __js_obj_entry_1 ]
+        (Js.Obj.Internal.register_deferred_abstract __js_obj (fun () ->
+             [
+               Js.Obj.Internal.deferred_entry ~method_name:"children"
+                 ~js_name:"children" ~present:true __js_obj_cell_0;
+               Js.Obj.Internal.deferred_entry ~method_name:"buttonRef"
+                 ~js_name:"buttonRef" ~present:true __js_obj_cell_1;
+             ])
           : < children : 'children ; buttonRef : 'buttonRef > Js.t)
   
       let make ?key:(_ : string option) ~children =
@@ -98,14 +98,10 @@ We need to output ML syntax here, otherwise refmt could not parse it.
   module Onclick_handler_button = struct
     include struct
       let makeProps ~(name : 'name) ?(isDisabled : 'isDisabled option) () =
-        let __js_obj_cell_0, __js_obj_entry_0 =
-          Js.Obj.Internal.slot_ref ~method_name:"name" ~js_name:"name"
-            ~present:true name
-        in
-        let __js_obj_cell_1, __js_obj_entry_1 =
-          Js.Obj.Internal.slot_ref ~method_name:"isDisabled" ~js_name:"isDisabled"
-            ~present:(match isDisabled with None -> false | Some _ -> true)
-            isDisabled
+        let __js_obj_cell_0 = Stdlib.ref name in
+        let __js_obj_cell_1 = Stdlib.ref isDisabled in
+        let __js_obj_present_1 =
+          match isDisabled with None -> false | Some _ -> true
         in
         let __js_obj =
           object
@@ -113,8 +109,13 @@ We need to output ML syntax here, otherwise refmt could not parse it.
             method isDisabled = !__js_obj_cell_1
           end
         in
-        (Js.Obj.Internal.register_abstract __js_obj
-           [ __js_obj_entry_0; __js_obj_entry_1 ]
+        (Js.Obj.Internal.register_deferred_abstract __js_obj (fun () ->
+             [
+               Js.Obj.Internal.deferred_entry ~method_name:"name" ~js_name:"name"
+                 ~present:true __js_obj_cell_0;
+               Js.Obj.Internal.deferred_entry ~method_name:"isDisabled"
+                 ~js_name:"isDisabled" ~present:__js_obj_present_1 __js_obj_cell_1;
+             ])
           : < name : 'name ; isDisabled : 'isDisabled option > Js.t)
   
       let make ?key:(_ : string option) ~name =
@@ -123,20 +124,39 @@ We need to output ML syntax here, otherwise refmt could not parse it.
           ( Stdlib.__FUNCTION__,
             fun () ->
               let onClick event = Js.log event in
-              React.createElement "button"
-                (Stdlib.List.filter_map Stdlib.Fun.id
-                   [
-                     Some (React.JSX.String ("name", "name", (name : string)));
-                     Some
-                       (React.JSX.Event
-                          ( "onClick",
-                            React.JSX.Mouse
-                              (onClick : React.Event.Mouse.t -> unit) ));
-                     Some
-                       (React.JSX.Bool
-                          ("disabled", "disabled", (isDisabled : bool)));
-                   ])
-                [] ))
+              React.Writer
+                {
+                  emit =
+                    (fun b ->
+                      Buffer.add_string b "<button";
+                      Buffer.add_char b ' ';
+                      Buffer.add_string b "name";
+                      Buffer.add_string b "=\"";
+                      ReactDOM.escape_to_buffer b (name : string);
+                      Buffer.add_char b '"';
+                      if (isDisabled : bool) then (
+                        Buffer.add_char b ' ';
+                        Buffer.add_string b "disabled");
+                      Buffer.add_string b "></button>";
+                      ());
+                  original =
+                    (fun () ->
+                      React.createElement "button"
+                        (Stdlib.List.filter_map Stdlib.Fun.id
+                           [
+                             Some
+                               (React.JSX.String ("name", "name", (name : string)));
+                             Some
+                               (React.JSX.Event
+                                  ( "onClick",
+                                    React.JSX.Mouse
+                                      (onClick : React.Event.Mouse.t -> unit) ));
+                             Some
+                               (React.JSX.Bool
+                                  ("disabled", "disabled", (isDisabled : bool)));
+                           ])
+                        []);
+                } ))
         [@warning "-16"]
   
       let make ?(key : string option)
@@ -148,17 +168,20 @@ We need to output ML syntax here, otherwise refmt could not parse it.
   module Children_as_string = struct
     include struct
       let makeProps ?(name : 'name option) () =
-        let __js_obj_cell_0, __js_obj_entry_0 =
-          Js.Obj.Internal.slot_ref ~method_name:"name" ~js_name:"name"
-            ~present:(match name with None -> false | Some _ -> true)
-            name
+        let __js_obj_cell_0 = Stdlib.ref name in
+        let __js_obj_present_0 =
+          match name with None -> false | Some _ -> true
         in
         let __js_obj =
           object
             method name = !__js_obj_cell_0
           end
         in
-        (Js.Obj.Internal.register_abstract __js_obj [ __js_obj_entry_0 ]
+        (Js.Obj.Internal.register_deferred_abstract __js_obj (fun () ->
+             [
+               Js.Obj.Internal.deferred_entry ~method_name:"name" ~js_name:"name"
+                 ~present:__js_obj_present_0 __js_obj_cell_0;
+             ])
           : < name : 'name option > Js.t)
   
       let make ?key:(_ : string option) ?(name = "joe") () =
@@ -191,22 +214,21 @@ We need to output ML syntax here, otherwise refmt could not parse it.
   module Uppercase_with_SSR_components = struct
     include struct
       let makeProps ~(children : 'children) ~(moreProps : 'moreProps) () =
-        let __js_obj_cell_0, __js_obj_entry_0 =
-          Js.Obj.Internal.slot_ref ~method_name:"children" ~js_name:"children"
-            ~present:true children
-        in
-        let __js_obj_cell_1, __js_obj_entry_1 =
-          Js.Obj.Internal.slot_ref ~method_name:"moreProps" ~js_name:"moreProps"
-            ~present:true moreProps
-        in
+        let __js_obj_cell_0 = Stdlib.ref children in
+        let __js_obj_cell_1 = Stdlib.ref moreProps in
         let __js_obj =
           object
             method children = !__js_obj_cell_0
             method moreProps = !__js_obj_cell_1
           end
         in
-        (Js.Obj.Internal.register_abstract __js_obj
-           [ __js_obj_entry_0; __js_obj_entry_1 ]
+        (Js.Obj.Internal.register_deferred_abstract __js_obj (fun () ->
+             [
+               Js.Obj.Internal.deferred_entry ~method_name:"children"
+                 ~js_name:"children" ~present:true __js_obj_cell_0;
+               Js.Obj.Internal.deferred_entry ~method_name:"moreProps"
+                 ~js_name:"moreProps" ~present:true __js_obj_cell_1;
+             ])
           : < children : 'children ; moreProps : 'moreProps > Js.t)
   
       let make ?key:(_ : string option) ~children =
@@ -532,16 +554,17 @@ We need to output ML syntax here, otherwise refmt could not parse it.
   module Upper_with_aria = struct
     include struct
       let makeProps ~(children : 'children) () =
-        let __js_obj_cell_0, __js_obj_entry_0 =
-          Js.Obj.Internal.slot_ref ~method_name:"children" ~js_name:"children"
-            ~present:true children
-        in
+        let __js_obj_cell_0 = Stdlib.ref children in
         let __js_obj =
           object
             method children = !__js_obj_cell_0
           end
         in
-        (Js.Obj.Internal.register_abstract __js_obj [ __js_obj_entry_0 ]
+        (Js.Obj.Internal.register_deferred_abstract __js_obj (fun () ->
+             [
+               Js.Obj.Internal.deferred_entry ~method_name:"children"
+                 ~js_name:"children" ~present:true __js_obj_cell_0;
+             ])
           : < children : 'children > Js.t)
   
       let make ?key:(_ : string option) ~children () =
@@ -578,16 +601,17 @@ We need to output ML syntax here, otherwise refmt could not parse it.
   module Form_with_method = struct
     include struct
       let makeProps ~(children : 'children) () =
-        let __js_obj_cell_0, __js_obj_entry_0 =
-          Js.Obj.Internal.slot_ref ~method_name:"children" ~js_name:"children"
-            ~present:true children
-        in
+        let __js_obj_cell_0 = Stdlib.ref children in
         let __js_obj =
           object
             method children = !__js_obj_cell_0
           end
         in
-        (Js.Obj.Internal.register_abstract __js_obj [ __js_obj_entry_0 ]
+        (Js.Obj.Internal.register_deferred_abstract __js_obj (fun () ->
+             [
+               Js.Obj.Internal.deferred_entry ~method_name:"children"
+                 ~js_name:"children" ~present:true __js_obj_cell_0;
+             ])
           : < children : 'children > Js.t)
   
       let make ?key:(_ : string option) ~children () =
@@ -622,16 +646,17 @@ We need to output ML syntax here, otherwise refmt could not parse it.
   module Form_with_method = struct
     include struct
       let makeProps ~(children : 'children) () =
-        let __js_obj_cell_0, __js_obj_entry_0 =
-          Js.Obj.Internal.slot_ref ~method_name:"children" ~js_name:"children"
-            ~present:true children
-        in
+        let __js_obj_cell_0 = Stdlib.ref children in
         let __js_obj =
           object
             method children = !__js_obj_cell_0
           end
         in
-        (Js.Obj.Internal.register_abstract __js_obj [ __js_obj_entry_0 ]
+        (Js.Obj.Internal.register_deferred_abstract __js_obj (fun () ->
+             [
+               Js.Obj.Internal.deferred_entry ~method_name:"children"
+                 ~js_name:"children" ~present:true __js_obj_cell_0;
+             ])
           : < children : 'children > Js.t)
   
       let make ?key:(_ : string option) ~children () =
@@ -666,16 +691,17 @@ We need to output ML syntax here, otherwise refmt could not parse it.
   module Form_with_action_function = struct
     include struct
       let makeProps ~(children : 'children) () =
-        let __js_obj_cell_0, __js_obj_entry_0 =
-          Js.Obj.Internal.slot_ref ~method_name:"children" ~js_name:"children"
-            ~present:true children
-        in
+        let __js_obj_cell_0 = Stdlib.ref children in
         let __js_obj =
           object
             method children = !__js_obj_cell_0
           end
         in
-        (Js.Obj.Internal.register_abstract __js_obj [ __js_obj_entry_0 ]
+        (Js.Obj.Internal.register_deferred_abstract __js_obj (fun () ->
+             [
+               Js.Obj.Internal.deferred_entry ~method_name:"children"
+                 ~js_name:"children" ~present:true __js_obj_cell_0;
+             ])
           : < children : 'children > Js.t)
   
       let make ?key:(_ : string option) ~children () =
@@ -714,16 +740,17 @@ We need to output ML syntax here, otherwise refmt could not parse it.
   module Form_with_action_string = struct
     include struct
       let makeProps ~(children : 'children) () =
-        let __js_obj_cell_0, __js_obj_entry_0 =
-          Js.Obj.Internal.slot_ref ~method_name:"children" ~js_name:"children"
-            ~present:true children
-        in
+        let __js_obj_cell_0 = Stdlib.ref children in
         let __js_obj =
           object
             method children = !__js_obj_cell_0
           end
         in
-        (Js.Obj.Internal.register_abstract __js_obj [ __js_obj_entry_0 ]
+        (Js.Obj.Internal.register_deferred_abstract __js_obj (fun () ->
+             [
+               Js.Obj.Internal.deferred_entry ~method_name:"children"
+                 ~js_name:"children" ~present:true __js_obj_cell_0;
+             ])
           : < children : 'children > Js.t)
   
       let make ?key:(_ : string option) ~children () =
@@ -758,16 +785,17 @@ We need to output ML syntax here, otherwise refmt could not parse it.
   module Button_with_formAction_string = struct
     include struct
       let makeProps ~(children : 'children) () =
-        let __js_obj_cell_0, __js_obj_entry_0 =
-          Js.Obj.Internal.slot_ref ~method_name:"children" ~js_name:"children"
-            ~present:true children
-        in
+        let __js_obj_cell_0 = Stdlib.ref children in
         let __js_obj =
           object
             method children = !__js_obj_cell_0
           end
         in
-        (Js.Obj.Internal.register_abstract __js_obj [ __js_obj_entry_0 ]
+        (Js.Obj.Internal.register_deferred_abstract __js_obj (fun () ->
+             [
+               Js.Obj.Internal.deferred_entry ~method_name:"children"
+                 ~js_name:"children" ~present:true __js_obj_cell_0;
+             ])
           : < children : 'children > Js.t)
   
       let make ?key:(_ : string option) ~children () =
@@ -803,16 +831,17 @@ We need to output ML syntax here, otherwise refmt could not parse it.
   module Button_with_formAction_function = struct
     include struct
       let makeProps ~(children : 'children) () =
-        let __js_obj_cell_0, __js_obj_entry_0 =
-          Js.Obj.Internal.slot_ref ~method_name:"children" ~js_name:"children"
-            ~present:true children
-        in
+        let __js_obj_cell_0 = Stdlib.ref children in
         let __js_obj =
           object
             method children = !__js_obj_cell_0
           end
         in
-        (Js.Obj.Internal.register_abstract __js_obj [ __js_obj_entry_0 ]
+        (Js.Obj.Internal.register_deferred_abstract __js_obj (fun () ->
+             [
+               Js.Obj.Internal.deferred_entry ~method_name:"children"
+                 ~js_name:"children" ~present:true __js_obj_cell_0;
+             ])
           : < children : 'children > Js.t)
   
       let make ?key:(_ : string option) ~children () =
@@ -863,16 +892,17 @@ We need to output ML syntax here, otherwise refmt could not parse it.
   module Async_component = struct
     include struct
       let makeProps ~(children : 'children) () =
-        let __js_obj_cell_0, __js_obj_entry_0 =
-          Js.Obj.Internal.slot_ref ~method_name:"children" ~js_name:"children"
-            ~present:true children
-        in
+        let __js_obj_cell_0 = Stdlib.ref children in
         let __js_obj =
           object
             method children = !__js_obj_cell_0
           end
         in
-        (Js.Obj.Internal.register_abstract __js_obj [ __js_obj_entry_0 ]
+        (Js.Obj.Internal.register_deferred_abstract __js_obj (fun () ->
+             [
+               Js.Obj.Internal.deferred_entry ~method_name:"children"
+                 ~js_name:"children" ~present:true __js_obj_cell_0;
+             ])
           : < children : 'children > Js.t)
   
       let make ?key:(_ : string option) ~children () =
@@ -920,16 +950,17 @@ We need to output ML syntax here, otherwise refmt could not parse it.
   module Sequence = struct
     include struct
       let makeProps ~(lola : 'lola) () =
-        let __js_obj_cell_0, __js_obj_entry_0 =
-          Js.Obj.Internal.slot_ref ~method_name:"lola" ~js_name:"lola"
-            ~present:true lola
-        in
+        let __js_obj_cell_0 = Stdlib.ref lola in
         let __js_obj =
           object
             method lola = !__js_obj_cell_0
           end
         in
-        (Js.Obj.Internal.register_abstract __js_obj [ __js_obj_entry_0 ]
+        (Js.Obj.Internal.register_deferred_abstract __js_obj (fun () ->
+             [
+               Js.Obj.Internal.deferred_entry ~method_name:"lola" ~js_name:"lola"
+                 ~present:true __js_obj_cell_0;
+             ])
           : < lola : 'lola > Js.t)
   
       let make ?key:(_ : string option) ~lola () =
@@ -962,7 +993,8 @@ We need to output ML syntax here, otherwise refmt could not parse it.
     include struct
       let makeProps () =
         let __js_obj = object end in
-        (Js.Obj.Internal.register_abstract __js_obj [] : < > Js.t)
+        (Js.Obj.Internal.register_deferred_abstract __js_obj (fun () -> [])
+          : < > Js.t)
   
       let make ?key:(_ : string option) () =
         React.Upper_case_component

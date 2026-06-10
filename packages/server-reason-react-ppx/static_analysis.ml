@@ -187,16 +187,17 @@ let analyze_attribute ~tag_name (label, expr) : attr_analysis_result =
    [React.Writer.emit] body. [String], [Int], [Bool], and [BooleanishString] all
    serialize to " name=\"value\"" (or nothing, for false booleans) via a
    small, well-defined rule set mirroring [ReactDOM.write_attribute_to_buffer].
+   [Style] serializes via [ReactDOM.Style.write_to_buffer], the exact function
+   the variant-tree path calls, so output is byte-identical.
 
-   [Action], [Style], [Ref], and [InnerHtml] have more complex semantics
-   (variant dispatch, style serialization, DOM-ref handling, or zero-render
-   for events). We leave those on the variant-tree path by treating any such
-   non-literal attribute as forcing [Validation_failed], which collapses the
-   element to [Cannot_optimize]. Same behavior as before this change — we
-   only widen what succeeds, never what fails. *)
+   [Action], [Ref], and [InnerHtml] have more complex semantics (variant
+   dispatch, DOM-ref handling, or children replacement). We leave those on
+   the variant-tree path by treating any such non-literal attribute as
+   forcing [Validation_failed], which collapses the element to
+   [Cannot_optimize]. *)
 let is_lowerable_kind = function
-  | DomProps.String | DomProps.Int | DomProps.Bool | DomProps.BooleanishString -> true
-  | DomProps.Action | DomProps.Style | DomProps.Ref | DomProps.InnerHtml -> false
+  | DomProps.String | DomProps.Int | DomProps.Bool | DomProps.BooleanishString | DomProps.Style -> true
+  | DomProps.Action | DomProps.Ref | DomProps.InnerHtml -> false
 
 (* Kept in lock-step with [ReactDOM.is_react_custom_attribute] so the set is
    audit-identical. In practice only ["suppressContentEditableWarning"] and
@@ -213,6 +214,65 @@ let is_react_custom_attribute_name = function
    runtime discards. *)
 let attr_is_emittable (info : attr_render_info) =
   (not info.is_event) && is_lowerable_kind info.kind && not (is_react_custom_attribute_name info.html_name)
+
+(* Attributes the SSR runtime never renders: events
+   ([ReactDOM.write_attribute_to_buffer]'s [Event _ -> ()]) and React's
+   warning-suppression flags ([is_react_custom_attribute]). Skipping them at
+   analysis time instead of failing keeps the element on the static/Writer
+   fast path and also fixes a divergence where a literal
+   [suppressHydrationWarning=true] used to leak into prerendered HTML while
+   the runtime path omitted it. [InnerHtml] is excluded from the name check:
+   [dangerouslySetInnerHTML] replaces children and must keep forcing
+   [Cannot_optimize]. *)
+let attr_is_ignored_by_ssr (info : attr_render_info) =
+  info.is_event || (is_react_custom_attribute_name info.html_name && info.kind <> DomProps.InnerHtml)
+
+let rec strip_constraint expr =
+  match expr.pexp_desc with Pexp_constraint (inner, _) -> strip_constraint inner | _ -> expr
+
+(* Try to fold a [style] attribute to a compile-time string. After
+   [Style_rewrite] runs (bottom-up, before the JSX rewrite), a fully-literal
+   [ReactDOM.Style.make ~color:"red" ()] arrives here as the list literal
+   [("color", "color", "red") :: ([] : ...)]. When every key and value is a
+   string literal we replicate [ReactDOMStyle.write_to_buffer] exactly:
+   skip empty values, separate with ';', write [key ':' String.trim value],
+   no HTML escaping. Note the runtime skip is [v == ""] (physical equality):
+   literal [""] is a shared constant so it is skipped at runtime too, which
+   keeps the fold byte-identical for literal inputs. *)
+let extract_static_style expr =
+  let rec collect acc expr =
+    match (strip_constraint expr).pexp_desc with
+    | Pexp_construct ({ txt = Lident "[]"; _ }, None) -> Some (List.rev acc)
+    | Pexp_construct ({ txt = Lident "::"; _ }, Some arg) -> (
+        match (strip_constraint arg).pexp_desc with
+        | Pexp_tuple [ head; tail ] -> (
+            match (strip_constraint head).pexp_desc with
+            | Pexp_tuple [ key; _camel; value ] -> (
+                match (extract_literal_string key, extract_literal_string value) with
+                | Some key, Some value -> collect ((key, value) :: acc) tail
+                | _ -> None)
+            | _ -> None)
+        | _ -> None)
+    | _ -> None
+  in
+  match collect [] expr with
+  | None -> None
+  | Some entries ->
+      let buf = Buffer.create 64 in
+      Buffer.add_string buf " style=\"";
+      let first = ref true in
+      List.iter
+        (fun (key, value) ->
+          if value <> "" then begin
+            if not !first then Buffer.add_char buf ';';
+            Buffer.add_string buf key;
+            Buffer.add_char buf ':';
+            Buffer.add_string buf (String.trim value);
+            first := false
+          end)
+        entries;
+      Buffer.add_char buf '"';
+      Some (Buffer.contents buf)
 
 let analyze_attributes ~tag_name attrs =
   (* Walk left-to-right, accumulating static HTML into [static_buf] between
@@ -241,9 +301,22 @@ let analyze_attributes ~tag_name attrs =
         match analyze_attribute ~tag_name attr with
         | Invalid -> `Failed
         | Ok None -> loop rest
+        | Ok (Some (Static_attr (info, _) | Optional_attr (info, _) | Dynamic_attr (info, _)))
+          when attr_is_ignored_by_ssr info ->
+            loop rest
         | Ok (Some (Static_attr (info, value))) ->
             Buffer.add_string static_buf (render_static_attr_with_info info value);
             loop rest
+        | Ok (Some (Dynamic_attr (info, expr))) when info.kind = DomProps.Style -> (
+            (* Fully-literal styles fold to a static string; anything else
+               becomes a Writer hole that calls the runtime serializer. *)
+            match extract_static_style expr with
+            | Some rendered ->
+                Buffer.add_string static_buf rendered;
+                loop rest
+            | None ->
+                push_dynamic info expr ~is_optional:false;
+                loop rest)
         | Ok (Some (Optional_attr (info, expr))) when attr_is_emittable info ->
             push_dynamic info expr ~is_optional:true;
             loop rest

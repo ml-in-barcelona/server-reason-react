@@ -1,152 +1,362 @@
 Since we generate invalid syntax for the argument of the make fn `(Props : <>)`
 We need to output ML syntax here, otherwise refmt could not parse it.
   $ ../ppx.sh --output ml input.re
-  React.createElement "div"
-    (Stdlib.List.filter_map Stdlib.Fun.id
-       [
-         Some (React.JSX.String ("class", "className", (fst x : string)));
-         Some (React.JSX.Style (snd x : ReactDOM.Style.t));
-       ])
-    []
+  React.Writer
+    {
+      emit =
+        (fun b ->
+          Buffer.add_string b "<div";
+          Buffer.add_char b ' ';
+          Buffer.add_string b "class";
+          Buffer.add_string b "=\"";
+          ReactDOM.escape_to_buffer b (fst x : string);
+          Buffer.add_char b '"';
+          Buffer.add_string b " style=\"";
+          ReactDOM.Style.write_to_buffer b (snd x : ReactDOM.Style.t);
+          Buffer.add_char b '"';
+          Buffer.add_string b "></div>";
+          ());
+      original =
+        (fun () ->
+          React.createElement "div"
+            (Stdlib.List.filter_map Stdlib.Fun.id
+               [
+                 Some (React.JSX.String ("class", "className", (fst x : string)));
+                 Some (React.JSX.Style (snd x : ReactDOM.Style.t));
+               ])
+            []);
+    }
   ;;
   
-  React.createElement "div"
-    (Stdlib.List.filter_map Stdlib.Fun.id
-       [
-         (match
-            (match x with None -> None | Some x -> Some (fst x) : string option)
-          with
-         | None -> None
-         | Some v -> Some (React.JSX.String ("class", "className", v)));
-         (match
-            (match x with None -> None | Some x -> Some (snd x)
-              : ReactDOM.Style.t option)
-          with
-         | None -> None
-         | Some v -> Some (React.JSX.Style v));
-       ])
-    []
+  React.Writer
+    {
+      emit =
+        (fun b ->
+          Buffer.add_string b "<div";
+          (match match x with None -> None | Some x -> Some (fst x) with
+          | None -> ()
+          | Some v ->
+              Buffer.add_char b ' ';
+              Buffer.add_string b "class";
+              Buffer.add_string b "=\"";
+              ReactDOM.escape_to_buffer b (v : string);
+              Buffer.add_char b '"');
+          (match match x with None -> None | Some x -> Some (snd x) with
+          | None -> ()
+          | Some v ->
+              Buffer.add_string b " style=\"";
+              ReactDOM.Style.write_to_buffer b (v : ReactDOM.Style.t);
+              Buffer.add_char b '"');
+          Buffer.add_string b "></div>";
+          ());
+      original =
+        (fun () ->
+          React.createElement "div"
+            (Stdlib.List.filter_map Stdlib.Fun.id
+               [
+                 (match
+                    (match x with None -> None | Some x -> Some (fst x)
+                      : string option)
+                  with
+                 | None -> None
+                 | Some v -> Some (React.JSX.String ("class", "className", v)));
+                 (match
+                    (match x with None -> None | Some x -> Some (snd x)
+                      : ReactDOM.Style.t option)
+                  with
+                 | None -> None
+                 | Some v -> Some (React.JSX.Style v));
+               ])
+            []);
+    }
   ;;
   
-  React.createElement "div"
-    (Stdlib.List.filter_map Stdlib.Fun.id
-       [
-         Some
-           (React.JSX.String
-              ("class", "className", (fst x ^ " " ^ "lola" : string)));
-         Some (React.JSX.Style (snd x : ReactDOM.Style.t));
-       ])
-    []
+  React.Writer
+    {
+      emit =
+        (fun b ->
+          Buffer.add_string b "<div";
+          Buffer.add_char b ' ';
+          Buffer.add_string b "class";
+          Buffer.add_string b "=\"";
+          ReactDOM.escape_to_buffer b (fst x ^ " " ^ "lola" : string);
+          Buffer.add_char b '"';
+          Buffer.add_string b " style=\"";
+          ReactDOM.Style.write_to_buffer b (snd x : ReactDOM.Style.t);
+          Buffer.add_char b '"';
+          Buffer.add_string b "></div>";
+          ());
+      original =
+        (fun () ->
+          React.createElement "div"
+            (Stdlib.List.filter_map Stdlib.Fun.id
+               [
+                 Some
+                   (React.JSX.String
+                      ("class", "className", (fst x ^ " " ^ "lola" : string)));
+                 Some (React.JSX.Style (snd x : ReactDOM.Style.t));
+               ])
+            []);
+    }
   ;;
   
-  React.createElement "div"
-    (Stdlib.List.filter_map Stdlib.Fun.id
-       [
-         Some (React.JSX.String ("class", "className", (fst x : string)));
-         Some
-           (React.JSX.Style
-              (ReactDOM.Style.combine
+  React.Writer
+    {
+      emit =
+        (fun b ->
+          Buffer.add_string b "<div";
+          Buffer.add_char b ' ';
+          Buffer.add_string b "class";
+          Buffer.add_string b "=\"";
+          ReactDOM.escape_to_buffer b (fst x : string);
+          Buffer.add_char b '"';
+          Buffer.add_string b " style=\"";
+          ReactDOM.Style.write_to_buffer b
+            (ReactDOM.Style.combine
+               (("background-color", "backgroundColor", "gainsboro")
+                :: ([] : (string * string * string) list)
+                 : ReactDOM.Style.t)
+               (snd x)
+              : ReactDOM.Style.t);
+          Buffer.add_char b '"';
+          Buffer.add_string b "></div>";
+          ());
+      original =
+        (fun () ->
+          React.createElement "div"
+            (Stdlib.List.filter_map Stdlib.Fun.id
+               [
+                 Some (React.JSX.String ("class", "className", (fst x : string)));
+                 Some
+                   (React.JSX.Style
+                      (ReactDOM.Style.combine
+                         (("background-color", "backgroundColor", "gainsboro")
+                          :: ([] : (string * string * string) list)
+                           : ReactDOM.Style.t)
+                         (snd x)
+                        : ReactDOM.Style.t));
+               ])
+            []);
+    }
+  ;;
+  
+  React.Writer
+    {
+      emit =
+        (fun b ->
+          Buffer.add_string b "<div";
+          Buffer.add_char b ' ';
+          Buffer.add_string b "class";
+          Buffer.add_string b "=\"";
+          ReactDOM.escape_to_buffer b (fst x ^ " " ^ "lola" : string);
+          Buffer.add_char b '"';
+          Buffer.add_string b " style=\"";
+          ReactDOM.Style.write_to_buffer b
+            (ReactDOM.Style.combine
+               (("background-color", "backgroundColor", "gainsboro")
+                :: ([] : (string * string * string) list)
+                 : ReactDOM.Style.t)
+               (snd x)
+              : ReactDOM.Style.t);
+          Buffer.add_char b '"';
+          Buffer.add_string b "></div>";
+          ());
+      original =
+        (fun () ->
+          React.createElement "div"
+            (Stdlib.List.filter_map Stdlib.Fun.id
+               [
+                 Some
+                   (React.JSX.String
+                      ("class", "className", (fst x ^ " " ^ "lola" : string)));
+                 Some
+                   (React.JSX.Style
+                      (ReactDOM.Style.combine
+                         (("background-color", "backgroundColor", "gainsboro")
+                          :: ([] : (string * string * string) list)
+                           : ReactDOM.Style.t)
+                         (snd x)
+                        : ReactDOM.Style.t));
+               ])
+            []);
+    }
+  ;;
+  
+  React.Writer
+    {
+      emit =
+        (fun b ->
+          Buffer.add_string b "<div";
+          Buffer.add_char b ' ';
+          Buffer.add_string b "class";
+          Buffer.add_string b "=\"";
+          ReactDOM.escape_to_buffer b
+            (match match x with None -> None | Some x -> Some (fst x) with
+             | None -> "lola"
+             | Some x -> x ^ " " ^ "lola"
+              : string);
+          Buffer.add_char b '"';
+          (match match x with None -> None | Some x -> Some (snd x) with
+          | None -> ()
+          | Some v ->
+              Buffer.add_string b " style=\"";
+              ReactDOM.Style.write_to_buffer b (v : ReactDOM.Style.t);
+              Buffer.add_char b '"');
+          Buffer.add_string b "></div>";
+          ());
+      original =
+        (fun () ->
+          React.createElement "div"
+            (Stdlib.List.filter_map Stdlib.Fun.id
+               [
+                 Some
+                   (React.JSX.String
+                      ( "class",
+                        "className",
+                        (match
+                           match x with None -> None | Some x -> Some (fst x)
+                         with
+                         | None -> "lola"
+                         | Some x -> x ^ " " ^ "lola"
+                          : string) ));
+                 (match
+                    (match x with None -> None | Some x -> Some (snd x)
+                      : ReactDOM.Style.t option)
+                  with
+                 | None -> None
+                 | Some v -> Some (React.JSX.Style v));
+               ])
+            []);
+    }
+  ;;
+  
+  React.Writer
+    {
+      emit =
+        (fun b ->
+          Buffer.add_string b "<div";
+          (match match x with None -> None | Some x -> Some (fst x) with
+          | None -> ()
+          | Some v ->
+              Buffer.add_char b ' ';
+              Buffer.add_string b "class";
+              Buffer.add_string b "=\"";
+              ReactDOM.escape_to_buffer b (v : string);
+              Buffer.add_char b '"');
+          Buffer.add_string b " style=\"";
+          ReactDOM.Style.write_to_buffer b
+            (match match x with None -> None | Some x -> Some (snd x) with
+             | None ->
                  (("background-color", "backgroundColor", "gainsboro")
                   :: ([] : (string * string * string) list)
                    : ReactDOM.Style.t)
-                 (snd x)
-                : ReactDOM.Style.t));
-       ])
-    []
+             | Some x ->
+                 ReactDOM.Style.combine
+                   (("background-color", "backgroundColor", "gainsboro")
+                    :: ([] : (string * string * string) list)
+                     : ReactDOM.Style.t)
+                   x
+              : ReactDOM.Style.t);
+          Buffer.add_char b '"';
+          Buffer.add_string b "></div>";
+          ());
+      original =
+        (fun () ->
+          React.createElement "div"
+            (Stdlib.List.filter_map Stdlib.Fun.id
+               [
+                 (match
+                    (match x with None -> None | Some x -> Some (fst x)
+                      : string option)
+                  with
+                 | None -> None
+                 | Some v -> Some (React.JSX.String ("class", "className", v)));
+                 Some
+                   (React.JSX.Style
+                      (match
+                         match x with None -> None | Some x -> Some (snd x)
+                       with
+                       | None ->
+                           (("background-color", "backgroundColor", "gainsboro")
+                            :: ([] : (string * string * string) list)
+                             : ReactDOM.Style.t)
+                       | Some x ->
+                           ReactDOM.Style.combine
+                             (("background-color", "backgroundColor", "gainsboro")
+                              :: ([] : (string * string * string) list)
+                               : ReactDOM.Style.t)
+                             x
+                        : ReactDOM.Style.t));
+               ])
+            []);
+    }
   ;;
   
-  React.createElement "div"
-    (Stdlib.List.filter_map Stdlib.Fun.id
-       [
-         Some
-           (React.JSX.String
-              ("class", "className", (fst x ^ " " ^ "lola" : string)));
-         Some
-           (React.JSX.Style
-              (ReactDOM.Style.combine
+  React.Writer
+    {
+      emit =
+        (fun b ->
+          Buffer.add_string b "<div";
+          Buffer.add_char b ' ';
+          Buffer.add_string b "class";
+          Buffer.add_string b "=\"";
+          ReactDOM.escape_to_buffer b
+            (match match x with None -> None | Some x -> Some (fst x) with
+             | None -> "lola"
+             | Some x -> x ^ " " ^ "lola"
+              : string);
+          Buffer.add_char b '"';
+          Buffer.add_string b " style=\"";
+          ReactDOM.Style.write_to_buffer b
+            (match match x with None -> None | Some x -> Some (snd x) with
+             | None ->
                  (("background-color", "backgroundColor", "gainsboro")
                   :: ([] : (string * string * string) list)
                    : ReactDOM.Style.t)
-                 (snd x)
-                : ReactDOM.Style.t));
-       ])
-    []
-  ;;
-  
-  React.createElement "div"
-    (Stdlib.List.filter_map Stdlib.Fun.id
-       [
-         Some
-           (React.JSX.String
-              ( "class",
-                "className",
-                (match match x with None -> None | Some x -> Some (fst x) with
-                 | None -> "lola"
-                 | Some x -> x ^ " " ^ "lola"
-                  : string) ));
-         (match
-            (match x with None -> None | Some x -> Some (snd x)
-              : ReactDOM.Style.t option)
-          with
-         | None -> None
-         | Some v -> Some (React.JSX.Style v));
-       ])
-    []
-  ;;
-  
-  React.createElement "div"
-    (Stdlib.List.filter_map Stdlib.Fun.id
-       [
-         (match
-            (match x with None -> None | Some x -> Some (fst x) : string option)
-          with
-         | None -> None
-         | Some v -> Some (React.JSX.String ("class", "className", v)));
-         Some
-           (React.JSX.Style
-              (match match x with None -> None | Some x -> Some (snd x) with
-               | None ->
+             | Some x ->
+                 ReactDOM.Style.combine
                    (("background-color", "backgroundColor", "gainsboro")
                     :: ([] : (string * string * string) list)
                      : ReactDOM.Style.t)
-               | Some x ->
-                   ReactDOM.Style.combine
-                     (("background-color", "backgroundColor", "gainsboro")
-                      :: ([] : (string * string * string) list)
-                       : ReactDOM.Style.t)
-                     x
-                : ReactDOM.Style.t));
-       ])
-    []
-  ;;
-  
-  React.createElement "div"
-    (Stdlib.List.filter_map Stdlib.Fun.id
-       [
-         Some
-           (React.JSX.String
-              ( "class",
-                "className",
-                (match match x with None -> None | Some x -> Some (fst x) with
-                 | None -> "lola"
-                 | Some x -> x ^ " " ^ "lola"
-                  : string) ));
-         Some
-           (React.JSX.Style
-              (match match x with None -> None | Some x -> Some (snd x) with
-               | None ->
-                   (("background-color", "backgroundColor", "gainsboro")
-                    :: ([] : (string * string * string) list)
-                     : ReactDOM.Style.t)
-               | Some x ->
-                   ReactDOM.Style.combine
-                     (("background-color", "backgroundColor", "gainsboro")
-                      :: ([] : (string * string * string) list)
-                       : ReactDOM.Style.t)
-                     x
-                : ReactDOM.Style.t));
-       ])
-    []
+                   x
+              : ReactDOM.Style.t);
+          Buffer.add_char b '"';
+          Buffer.add_string b "></div>";
+          ());
+      original =
+        (fun () ->
+          React.createElement "div"
+            (Stdlib.List.filter_map Stdlib.Fun.id
+               [
+                 Some
+                   (React.JSX.String
+                      ( "class",
+                        "className",
+                        (match
+                           match x with None -> None | Some x -> Some (fst x)
+                         with
+                         | None -> "lola"
+                         | Some x -> x ^ " " ^ "lola"
+                          : string) ));
+                 Some
+                   (React.JSX.Style
+                      (match
+                         match x with None -> None | Some x -> Some (snd x)
+                       with
+                       | None ->
+                           (("background-color", "backgroundColor", "gainsboro")
+                            :: ([] : (string * string * string) list)
+                             : ReactDOM.Style.t)
+                       | Some x ->
+                           ReactDOM.Style.combine
+                             (("background-color", "backgroundColor", "gainsboro")
+                              :: ([] : (string * string * string) list)
+                               : ReactDOM.Style.t)
+                             x
+                        : ReactDOM.Style.t));
+               ])
+            []);
+    }
   ;;
   
   Foo.Bar.make (Foo.Bar.makeProps ~styles:x ());;

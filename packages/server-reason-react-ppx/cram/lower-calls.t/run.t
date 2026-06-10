@@ -23,25 +23,29 @@
         ),
     });
   let lower_inline_styles =
-    React.createElement(
-      "div",
-      Stdlib.List.filter_map(
-        Stdlib.Fun.id,
-        [
-          Some(
-            React.JSX.Style(
-              (
-                [
-                  ("background-color", "backgroundColor", "gainsboro"),
-                  ...([]: list((string, string, string))),
-                ]: ReactDOM.Style.t
-              ): ReactDOM.Style.t,
-            ),
+    React.Static({
+      prerendered: "<div style=\"background-color:gainsboro\"></div>",
+      original:
+        React.createElement(
+          "div",
+          Stdlib.List.filter_map(
+            Stdlib.Fun.id,
+            [
+              Some(
+                React.JSX.Style(
+                  (
+                    [
+                      ("background-color", "backgroundColor", "gainsboro"),
+                      ...([]: list((string, string, string))),
+                    ]: ReactDOM.Style.t
+                  ): ReactDOM.Style.t,
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
-      [],
-    );
+          [],
+        ),
+    });
   let lower_inner_html =
     React.createElement(
       "div",
@@ -61,7 +65,7 @@
           Buffer.add_char(b, ' ');
           Buffer.add_string(b, "tabindex");
           Buffer.add_string(b, "=\"");
-          Printf.bprintf(b, "%d", v: int);
+          Buffer.add_string(b, Stdlib.string_of_int(v: int));
           Buffer.add_char(b, '"');
         };
         Buffer.add_string(b, "></div>");
@@ -262,169 +266,28 @@
                                      Buffer.add_string(b, "<li>");
                                      ReactDOM.write_to_buffer(
                                        b,
-                                       React.createElement(
-                                         "a",
-                                         Stdlib.List.filter_map(
-                                           Stdlib.Fun.id,
-                                           [
-                                             Some(
-                                               [@implicit_arity]
-                                               React.JSX.String(
-                                                 "href",
-                                                 "href",
-                                                 e.path: string,
-                                               ),
-                                             ),
-                                             Some(
-                                               [@implicit_arity]
-                                               React.JSX.Event(
-                                                 "onClick",
-                                                 React.JSX.Mouse(
-                                                   event => {
-                                                     React.Event.Mouse.preventDefault(
-                                                       event,
-                                                     );
-                                                     ReactRouter.push(e.path);
-                                                   }:
-                                                      React.Event.Mouse.t => unit,
-                                                 ),
-                                               ),
-                                             ),
-                                           ],
-                                         ),
-                                         [e.title |> s],
-                                       ),
-                                     );
-                                     Buffer.add_string(b, "</li>");
-                                     ();
-                                   },
-                                   original: () =>
-                                     React.createElementWithKey(
-                                       ~key=e.path,
-                                       "li",
-                                       Stdlib.List.filter_map(
-                                         Stdlib.Fun.id,
-                                         [
-                                           Some(
-                                             [@implicit_arity]
-                                             React.JSX.String(
-                                               "key",
-                                               "key",
+                                       React.Writer({
+                                         emit: b => {
+                                           Buffer.add_string(b, "<a");
+                                           {
+                                             Buffer.add_char(b, ' ');
+                                             Buffer.add_string(b, "href");
+                                             Buffer.add_string(b, "=\"");
+                                             ReactDOM.escape_to_buffer(
+                                               b,
                                                e.path: string,
-                                             ),
-                                           ),
-                                         ],
-                                       ),
-                                       [
-                                         React.createElement(
-                                           "a",
-                                           Stdlib.List.filter_map(
-                                             Stdlib.Fun.id,
-                                             [
-                                               Some(
-                                                 [@implicit_arity]
-                                                 React.JSX.String(
-                                                   "href",
-                                                   "href",
-                                                   e.path: string,
-                                                 ),
-                                               ),
-                                               Some(
-                                                 [@implicit_arity]
-                                                 React.JSX.Event(
-                                                   "onClick",
-                                                   React.JSX.Mouse(
-                                                     event => {
-                                                       React.Event.Mouse.preventDefault(
-                                                         event,
-                                                       );
-                                                       ReactRouter.push(e.path);
-                                                     }:
-                                                        React.Event.Mouse.t =>
-                                                        unit,
-                                                   ),
-                                                 ),
-                                               ),
-                                             ],
-                                           ),
-                                           [e.title |> s],
-                                         ),
-                                       ],
-                                     ),
-                                 })
-                               )
-                            |> React.list,
-                          );
-                          Buffer.add_string(b, "</ul>");
-                          ();
-                        },
-                        original: () =>
-                          React.createElement(
-                            "ul",
-                            [],
-                            [
-                              examples
-                              |> List.map(e =>
-                                   React.Writer({
-                                     emit: b => {
-                                       Buffer.add_string(b, "<li>");
-                                       ReactDOM.write_to_buffer(
-                                         b,
-                                         React.createElement(
-                                           "a",
-                                           Stdlib.List.filter_map(
-                                             Stdlib.Fun.id,
-                                             [
-                                               Some(
-                                                 [@implicit_arity]
-                                                 React.JSX.String(
-                                                   "href",
-                                                   "href",
-                                                   e.path: string,
-                                                 ),
-                                               ),
-                                               Some(
-                                                 [@implicit_arity]
-                                                 React.JSX.Event(
-                                                   "onClick",
-                                                   React.JSX.Mouse(
-                                                     event => {
-                                                       React.Event.Mouse.preventDefault(
-                                                         event,
-                                                       );
-                                                       ReactRouter.push(e.path);
-                                                     }:
-                                                        React.Event.Mouse.t =>
-                                                        unit,
-                                                   ),
-                                                 ),
-                                               ),
-                                             ],
-                                           ),
-                                           [e.title |> s],
-                                         ),
-                                       );
-                                       Buffer.add_string(b, "</li>");
-                                       ();
-                                     },
-                                     original: () =>
-                                       React.createElementWithKey(
-                                         ~key=e.path,
-                                         "li",
-                                         Stdlib.List.filter_map(
-                                           Stdlib.Fun.id,
-                                           [
-                                             Some(
-                                               [@implicit_arity]
-                                               React.JSX.String(
-                                                 "key",
-                                                 "key",
-                                                 e.path: string,
-                                               ),
-                                             ),
-                                           ],
-                                         ),
-                                         [
+                                             );
+                                             Buffer.add_char(b, '"');
+                                           };
+                                           Buffer.add_string(b, ">");
+                                           ReactDOM.write_to_buffer(
+                                             b,
+                                             e.title |> s,
+                                           );
+                                           Buffer.add_string(b, "</a>");
+                                           ();
+                                         },
+                                         original: () =>
                                            React.createElement(
                                              "a",
                                              Stdlib.List.filter_map(
@@ -460,6 +323,246 @@
                                              ),
                                              [e.title |> s],
                                            ),
+                                       }),
+                                     );
+                                     Buffer.add_string(b, "</li>");
+                                     ();
+                                   },
+                                   original: () =>
+                                     React.createElementWithKey(
+                                       ~key=e.path,
+                                       "li",
+                                       Stdlib.List.filter_map(
+                                         Stdlib.Fun.id,
+                                         [
+                                           Some(
+                                             [@implicit_arity]
+                                             React.JSX.String(
+                                               "key",
+                                               "key",
+                                               e.path: string,
+                                             ),
+                                           ),
+                                         ],
+                                       ),
+                                       [
+                                         React.Writer({
+                                           emit: b => {
+                                             Buffer.add_string(b, "<a");
+                                             {
+                                               Buffer.add_char(b, ' ');
+                                               Buffer.add_string(b, "href");
+                                               Buffer.add_string(b, "=\"");
+                                               ReactDOM.escape_to_buffer(
+                                                 b,
+                                                 e.path: string,
+                                               );
+                                               Buffer.add_char(b, '"');
+                                             };
+                                             Buffer.add_string(b, ">");
+                                             ReactDOM.write_to_buffer(
+                                               b,
+                                               e.title |> s,
+                                             );
+                                             Buffer.add_string(b, "</a>");
+                                             ();
+                                           },
+                                           original: () =>
+                                             React.createElement(
+                                               "a",
+                                               Stdlib.List.filter_map(
+                                                 Stdlib.Fun.id,
+                                                 [
+                                                   Some(
+                                                     [@implicit_arity]
+                                                     React.JSX.String(
+                                                       "href",
+                                                       "href",
+                                                       e.path: string,
+                                                     ),
+                                                   ),
+                                                   Some(
+                                                     [@implicit_arity]
+                                                     React.JSX.Event(
+                                                       "onClick",
+                                                       React.JSX.Mouse(
+                                                         event => {
+                                                           React.Event.Mouse.preventDefault(
+                                                             event,
+                                                           );
+                                                           ReactRouter.push(
+                                                             e.path,
+                                                           );
+                                                         }:
+                                                            React.Event.Mouse.t =>
+                                                            unit,
+                                                       ),
+                                                     ),
+                                                   ),
+                                                 ],
+                                               ),
+                                               [e.title |> s],
+                                             ),
+                                         }),
+                                       ],
+                                     ),
+                                 })
+                               )
+                            |> React.list,
+                          );
+                          Buffer.add_string(b, "</ul>");
+                          ();
+                        },
+                        original: () =>
+                          React.createElement(
+                            "ul",
+                            [],
+                            [
+                              examples
+                              |> List.map(e =>
+                                   React.Writer({
+                                     emit: b => {
+                                       Buffer.add_string(b, "<li>");
+                                       ReactDOM.write_to_buffer(
+                                         b,
+                                         React.Writer({
+                                           emit: b => {
+                                             Buffer.add_string(b, "<a");
+                                             {
+                                               Buffer.add_char(b, ' ');
+                                               Buffer.add_string(b, "href");
+                                               Buffer.add_string(b, "=\"");
+                                               ReactDOM.escape_to_buffer(
+                                                 b,
+                                                 e.path: string,
+                                               );
+                                               Buffer.add_char(b, '"');
+                                             };
+                                             Buffer.add_string(b, ">");
+                                             ReactDOM.write_to_buffer(
+                                               b,
+                                               e.title |> s,
+                                             );
+                                             Buffer.add_string(b, "</a>");
+                                             ();
+                                           },
+                                           original: () =>
+                                             React.createElement(
+                                               "a",
+                                               Stdlib.List.filter_map(
+                                                 Stdlib.Fun.id,
+                                                 [
+                                                   Some(
+                                                     [@implicit_arity]
+                                                     React.JSX.String(
+                                                       "href",
+                                                       "href",
+                                                       e.path: string,
+                                                     ),
+                                                   ),
+                                                   Some(
+                                                     [@implicit_arity]
+                                                     React.JSX.Event(
+                                                       "onClick",
+                                                       React.JSX.Mouse(
+                                                         event => {
+                                                           React.Event.Mouse.preventDefault(
+                                                             event,
+                                                           );
+                                                           ReactRouter.push(
+                                                             e.path,
+                                                           );
+                                                         }:
+                                                            React.Event.Mouse.t =>
+                                                            unit,
+                                                       ),
+                                                     ),
+                                                   ),
+                                                 ],
+                                               ),
+                                               [e.title |> s],
+                                             ),
+                                         }),
+                                       );
+                                       Buffer.add_string(b, "</li>");
+                                       ();
+                                     },
+                                     original: () =>
+                                       React.createElementWithKey(
+                                         ~key=e.path,
+                                         "li",
+                                         Stdlib.List.filter_map(
+                                           Stdlib.Fun.id,
+                                           [
+                                             Some(
+                                               [@implicit_arity]
+                                               React.JSX.String(
+                                                 "key",
+                                                 "key",
+                                                 e.path: string,
+                                               ),
+                                             ),
+                                           ],
+                                         ),
+                                         [
+                                           React.Writer({
+                                             emit: b => {
+                                               Buffer.add_string(b, "<a");
+                                               {
+                                                 Buffer.add_char(b, ' ');
+                                                 Buffer.add_string(b, "href");
+                                                 Buffer.add_string(b, "=\"");
+                                                 ReactDOM.escape_to_buffer(
+                                                   b,
+                                                   e.path: string,
+                                                 );
+                                                 Buffer.add_char(b, '"');
+                                               };
+                                               Buffer.add_string(b, ">");
+                                               ReactDOM.write_to_buffer(
+                                                 b,
+                                                 e.title |> s,
+                                               );
+                                               Buffer.add_string(b, "</a>");
+                                               ();
+                                             },
+                                             original: () =>
+                                               React.createElement(
+                                                 "a",
+                                                 Stdlib.List.filter_map(
+                                                   Stdlib.Fun.id,
+                                                   [
+                                                     Some(
+                                                       [@implicit_arity]
+                                                       React.JSX.String(
+                                                         "href",
+                                                         "href",
+                                                         e.path: string,
+                                                       ),
+                                                     ),
+                                                     Some(
+                                                       [@implicit_arity]
+                                                       React.JSX.Event(
+                                                         "onClick",
+                                                         React.JSX.Mouse(
+                                                           event => {
+                                                             React.Event.Mouse.preventDefault(
+                                                               event,
+                                                             );
+                                                             ReactRouter.push(
+                                                               e.path,
+                                                             );
+                                                           }:
+                                                              React.Event.Mouse.t =>
+                                                              unit,
+                                                         ),
+                                                       ),
+                                                     ),
+                                                   ],
+                                                 ),
+                                                 [e.title |> s],
+                                               ),
+                                           }),
                                          ],
                                        ),
                                    })
@@ -501,174 +604,28 @@
                                        Buffer.add_string(b, "<li>");
                                        ReactDOM.write_to_buffer(
                                          b,
-                                         React.createElement(
-                                           "a",
-                                           Stdlib.List.filter_map(
-                                             Stdlib.Fun.id,
-                                             [
-                                               Some(
-                                                 [@implicit_arity]
-                                                 React.JSX.String(
-                                                   "href",
-                                                   "href",
-                                                   e.path: string,
-                                                 ),
-                                               ),
-                                               Some(
-                                                 [@implicit_arity]
-                                                 React.JSX.Event(
-                                                   "onClick",
-                                                   React.JSX.Mouse(
-                                                     event => {
-                                                       React.Event.Mouse.preventDefault(
-                                                         event,
-                                                       );
-                                                       ReactRouter.push(e.path);
-                                                     }:
-                                                        React.Event.Mouse.t =>
-                                                        unit,
-                                                   ),
-                                                 ),
-                                               ),
-                                             ],
-                                           ),
-                                           [e.title |> s],
-                                         ),
-                                       );
-                                       Buffer.add_string(b, "</li>");
-                                       ();
-                                     },
-                                     original: () =>
-                                       React.createElementWithKey(
-                                         ~key=e.path,
-                                         "li",
-                                         Stdlib.List.filter_map(
-                                           Stdlib.Fun.id,
-                                           [
-                                             Some(
-                                               [@implicit_arity]
-                                               React.JSX.String(
-                                                 "key",
-                                                 "key",
+                                         React.Writer({
+                                           emit: b => {
+                                             Buffer.add_string(b, "<a");
+                                             {
+                                               Buffer.add_char(b, ' ');
+                                               Buffer.add_string(b, "href");
+                                               Buffer.add_string(b, "=\"");
+                                               ReactDOM.escape_to_buffer(
+                                                 b,
                                                  e.path: string,
-                                               ),
-                                             ),
-                                           ],
-                                         ),
-                                         [
-                                           React.createElement(
-                                             "a",
-                                             Stdlib.List.filter_map(
-                                               Stdlib.Fun.id,
-                                               [
-                                                 Some(
-                                                   [@implicit_arity]
-                                                   React.JSX.String(
-                                                     "href",
-                                                     "href",
-                                                     e.path: string,
-                                                   ),
-                                                 ),
-                                                 Some(
-                                                   [@implicit_arity]
-                                                   React.JSX.Event(
-                                                     "onClick",
-                                                     React.JSX.Mouse(
-                                                       event => {
-                                                         React.Event.Mouse.preventDefault(
-                                                           event,
-                                                         );
-                                                         ReactRouter.push(
-                                                           e.path,
-                                                         );
-                                                       }:
-                                                          React.Event.Mouse.t =>
-                                                          unit,
-                                                     ),
-                                                   ),
-                                                 ),
-                                               ],
-                                             ),
-                                             [e.title |> s],
-                                           ),
-                                         ],
-                                       ),
-                                   })
-                                 )
-                              |> React.list,
-                            );
-                            Buffer.add_string(b, "</ul>");
-                            ();
-                          },
-                          original: () =>
-                            React.createElement(
-                              "ul",
-                              [],
-                              [
-                                examples
-                                |> List.map(e =>
-                                     React.Writer({
-                                       emit: b => {
-                                         Buffer.add_string(b, "<li>");
-                                         ReactDOM.write_to_buffer(
-                                           b,
-                                           React.createElement(
-                                             "a",
-                                             Stdlib.List.filter_map(
-                                               Stdlib.Fun.id,
-                                               [
-                                                 Some(
-                                                   [@implicit_arity]
-                                                   React.JSX.String(
-                                                     "href",
-                                                     "href",
-                                                     e.path: string,
-                                                   ),
-                                                 ),
-                                                 Some(
-                                                   [@implicit_arity]
-                                                   React.JSX.Event(
-                                                     "onClick",
-                                                     React.JSX.Mouse(
-                                                       event => {
-                                                         React.Event.Mouse.preventDefault(
-                                                           event,
-                                                         );
-                                                         ReactRouter.push(
-                                                           e.path,
-                                                         );
-                                                       }:
-                                                          React.Event.Mouse.t =>
-                                                          unit,
-                                                     ),
-                                                   ),
-                                                 ),
-                                               ],
-                                             ),
-                                             [e.title |> s],
-                                           ),
-                                         );
-                                         Buffer.add_string(b, "</li>");
-                                         ();
-                                       },
-                                       original: () =>
-                                         React.createElementWithKey(
-                                           ~key=e.path,
-                                           "li",
-                                           Stdlib.List.filter_map(
-                                             Stdlib.Fun.id,
-                                             [
-                                               Some(
-                                                 [@implicit_arity]
-                                                 React.JSX.String(
-                                                   "key",
-                                                   "key",
-                                                   e.path: string,
-                                                 ),
-                                               ),
-                                             ],
-                                           ),
-                                           [
+                                               );
+                                               Buffer.add_char(b, '"');
+                                             };
+                                             Buffer.add_string(b, ">");
+                                             ReactDOM.write_to_buffer(
+                                               b,
+                                               e.title |> s,
+                                             );
+                                             Buffer.add_string(b, "</a>");
+                                             ();
+                                           },
+                                           original: () =>
                                              React.createElement(
                                                "a",
                                                Stdlib.List.filter_map(
@@ -704,6 +661,246 @@
                                                ),
                                                [e.title |> s],
                                              ),
+                                         }),
+                                       );
+                                       Buffer.add_string(b, "</li>");
+                                       ();
+                                     },
+                                     original: () =>
+                                       React.createElementWithKey(
+                                         ~key=e.path,
+                                         "li",
+                                         Stdlib.List.filter_map(
+                                           Stdlib.Fun.id,
+                                           [
+                                             Some(
+                                               [@implicit_arity]
+                                               React.JSX.String(
+                                                 "key",
+                                                 "key",
+                                                 e.path: string,
+                                               ),
+                                             ),
+                                           ],
+                                         ),
+                                         [
+                                           React.Writer({
+                                             emit: b => {
+                                               Buffer.add_string(b, "<a");
+                                               {
+                                                 Buffer.add_char(b, ' ');
+                                                 Buffer.add_string(b, "href");
+                                                 Buffer.add_string(b, "=\"");
+                                                 ReactDOM.escape_to_buffer(
+                                                   b,
+                                                   e.path: string,
+                                                 );
+                                                 Buffer.add_char(b, '"');
+                                               };
+                                               Buffer.add_string(b, ">");
+                                               ReactDOM.write_to_buffer(
+                                                 b,
+                                                 e.title |> s,
+                                               );
+                                               Buffer.add_string(b, "</a>");
+                                               ();
+                                             },
+                                             original: () =>
+                                               React.createElement(
+                                                 "a",
+                                                 Stdlib.List.filter_map(
+                                                   Stdlib.Fun.id,
+                                                   [
+                                                     Some(
+                                                       [@implicit_arity]
+                                                       React.JSX.String(
+                                                         "href",
+                                                         "href",
+                                                         e.path: string,
+                                                       ),
+                                                     ),
+                                                     Some(
+                                                       [@implicit_arity]
+                                                       React.JSX.Event(
+                                                         "onClick",
+                                                         React.JSX.Mouse(
+                                                           event => {
+                                                             React.Event.Mouse.preventDefault(
+                                                               event,
+                                                             );
+                                                             ReactRouter.push(
+                                                               e.path,
+                                                             );
+                                                           }:
+                                                              React.Event.Mouse.t =>
+                                                              unit,
+                                                         ),
+                                                       ),
+                                                     ),
+                                                   ],
+                                                 ),
+                                                 [e.title |> s],
+                                               ),
+                                           }),
+                                         ],
+                                       ),
+                                   })
+                                 )
+                              |> React.list,
+                            );
+                            Buffer.add_string(b, "</ul>");
+                            ();
+                          },
+                          original: () =>
+                            React.createElement(
+                              "ul",
+                              [],
+                              [
+                                examples
+                                |> List.map(e =>
+                                     React.Writer({
+                                       emit: b => {
+                                         Buffer.add_string(b, "<li>");
+                                         ReactDOM.write_to_buffer(
+                                           b,
+                                           React.Writer({
+                                             emit: b => {
+                                               Buffer.add_string(b, "<a");
+                                               {
+                                                 Buffer.add_char(b, ' ');
+                                                 Buffer.add_string(b, "href");
+                                                 Buffer.add_string(b, "=\"");
+                                                 ReactDOM.escape_to_buffer(
+                                                   b,
+                                                   e.path: string,
+                                                 );
+                                                 Buffer.add_char(b, '"');
+                                               };
+                                               Buffer.add_string(b, ">");
+                                               ReactDOM.write_to_buffer(
+                                                 b,
+                                                 e.title |> s,
+                                               );
+                                               Buffer.add_string(b, "</a>");
+                                               ();
+                                             },
+                                             original: () =>
+                                               React.createElement(
+                                                 "a",
+                                                 Stdlib.List.filter_map(
+                                                   Stdlib.Fun.id,
+                                                   [
+                                                     Some(
+                                                       [@implicit_arity]
+                                                       React.JSX.String(
+                                                         "href",
+                                                         "href",
+                                                         e.path: string,
+                                                       ),
+                                                     ),
+                                                     Some(
+                                                       [@implicit_arity]
+                                                       React.JSX.Event(
+                                                         "onClick",
+                                                         React.JSX.Mouse(
+                                                           event => {
+                                                             React.Event.Mouse.preventDefault(
+                                                               event,
+                                                             );
+                                                             ReactRouter.push(
+                                                               e.path,
+                                                             );
+                                                           }:
+                                                              React.Event.Mouse.t =>
+                                                              unit,
+                                                         ),
+                                                       ),
+                                                     ),
+                                                   ],
+                                                 ),
+                                                 [e.title |> s],
+                                               ),
+                                           }),
+                                         );
+                                         Buffer.add_string(b, "</li>");
+                                         ();
+                                       },
+                                       original: () =>
+                                         React.createElementWithKey(
+                                           ~key=e.path,
+                                           "li",
+                                           Stdlib.List.filter_map(
+                                             Stdlib.Fun.id,
+                                             [
+                                               Some(
+                                                 [@implicit_arity]
+                                                 React.JSX.String(
+                                                   "key",
+                                                   "key",
+                                                   e.path: string,
+                                                 ),
+                                               ),
+                                             ],
+                                           ),
+                                           [
+                                             React.Writer({
+                                               emit: b => {
+                                                 Buffer.add_string(b, "<a");
+                                                 {
+                                                   Buffer.add_char(b, ' ');
+                                                   Buffer.add_string(b, "href");
+                                                   Buffer.add_string(b, "=\"");
+                                                   ReactDOM.escape_to_buffer(
+                                                     b,
+                                                     e.path: string,
+                                                   );
+                                                   Buffer.add_char(b, '"');
+                                                 };
+                                                 Buffer.add_string(b, ">");
+                                                 ReactDOM.write_to_buffer(
+                                                   b,
+                                                   e.title |> s,
+                                                 );
+                                                 Buffer.add_string(b, "</a>");
+                                                 ();
+                                               },
+                                               original: () =>
+                                                 React.createElement(
+                                                   "a",
+                                                   Stdlib.List.filter_map(
+                                                     Stdlib.Fun.id,
+                                                     [
+                                                       Some(
+                                                         [@implicit_arity]
+                                                         React.JSX.String(
+                                                           "href",
+                                                           "href",
+                                                           e.path: string,
+                                                         ),
+                                                       ),
+                                                       Some(
+                                                         [@implicit_arity]
+                                                         React.JSX.Event(
+                                                           "onClick",
+                                                           React.JSX.Mouse(
+                                                             event => {
+                                                               React.Event.Mouse.preventDefault(
+                                                                 event,
+                                                               );
+                                                               ReactRouter.push(
+                                                                 e.path,
+                                                               );
+                                                             }:
+                                                                React.Event.Mouse.t =>
+                                                                unit,
+                                                           ),
+                                                         ),
+                                                       ),
+                                                     ],
+                                                   ),
+                                                   [e.title |> s],
+                                                 ),
+                                             }),
                                            ],
                                          ),
                                      })
@@ -775,174 +972,28 @@
                                        Buffer.add_string(b, "<li>");
                                        ReactDOM.write_to_buffer(
                                          b,
-                                         React.createElement(
-                                           "a",
-                                           Stdlib.List.filter_map(
-                                             Stdlib.Fun.id,
-                                             [
-                                               Some(
-                                                 [@implicit_arity]
-                                                 React.JSX.String(
-                                                   "href",
-                                                   "href",
-                                                   e.path: string,
-                                                 ),
-                                               ),
-                                               Some(
-                                                 [@implicit_arity]
-                                                 React.JSX.Event(
-                                                   "onClick",
-                                                   React.JSX.Mouse(
-                                                     event => {
-                                                       React.Event.Mouse.preventDefault(
-                                                         event,
-                                                       );
-                                                       ReactRouter.push(e.path);
-                                                     }:
-                                                        React.Event.Mouse.t =>
-                                                        unit,
-                                                   ),
-                                                 ),
-                                               ),
-                                             ],
-                                           ),
-                                           [e.title |> s],
-                                         ),
-                                       );
-                                       Buffer.add_string(b, "</li>");
-                                       ();
-                                     },
-                                     original: () =>
-                                       React.createElementWithKey(
-                                         ~key=e.path,
-                                         "li",
-                                         Stdlib.List.filter_map(
-                                           Stdlib.Fun.id,
-                                           [
-                                             Some(
-                                               [@implicit_arity]
-                                               React.JSX.String(
-                                                 "key",
-                                                 "key",
+                                         React.Writer({
+                                           emit: b => {
+                                             Buffer.add_string(b, "<a");
+                                             {
+                                               Buffer.add_char(b, ' ');
+                                               Buffer.add_string(b, "href");
+                                               Buffer.add_string(b, "=\"");
+                                               ReactDOM.escape_to_buffer(
+                                                 b,
                                                  e.path: string,
-                                               ),
-                                             ),
-                                           ],
-                                         ),
-                                         [
-                                           React.createElement(
-                                             "a",
-                                             Stdlib.List.filter_map(
-                                               Stdlib.Fun.id,
-                                               [
-                                                 Some(
-                                                   [@implicit_arity]
-                                                   React.JSX.String(
-                                                     "href",
-                                                     "href",
-                                                     e.path: string,
-                                                   ),
-                                                 ),
-                                                 Some(
-                                                   [@implicit_arity]
-                                                   React.JSX.Event(
-                                                     "onClick",
-                                                     React.JSX.Mouse(
-                                                       event => {
-                                                         React.Event.Mouse.preventDefault(
-                                                           event,
-                                                         );
-                                                         ReactRouter.push(
-                                                           e.path,
-                                                         );
-                                                       }:
-                                                          React.Event.Mouse.t =>
-                                                          unit,
-                                                     ),
-                                                   ),
-                                                 ),
-                                               ],
-                                             ),
-                                             [e.title |> s],
-                                           ),
-                                         ],
-                                       ),
-                                   })
-                                 )
-                              |> React.list,
-                            );
-                            Buffer.add_string(b, "</ul>");
-                            ();
-                          },
-                          original: () =>
-                            React.createElement(
-                              "ul",
-                              [],
-                              [
-                                examples
-                                |> List.map(e =>
-                                     React.Writer({
-                                       emit: b => {
-                                         Buffer.add_string(b, "<li>");
-                                         ReactDOM.write_to_buffer(
-                                           b,
-                                           React.createElement(
-                                             "a",
-                                             Stdlib.List.filter_map(
-                                               Stdlib.Fun.id,
-                                               [
-                                                 Some(
-                                                   [@implicit_arity]
-                                                   React.JSX.String(
-                                                     "href",
-                                                     "href",
-                                                     e.path: string,
-                                                   ),
-                                                 ),
-                                                 Some(
-                                                   [@implicit_arity]
-                                                   React.JSX.Event(
-                                                     "onClick",
-                                                     React.JSX.Mouse(
-                                                       event => {
-                                                         React.Event.Mouse.preventDefault(
-                                                           event,
-                                                         );
-                                                         ReactRouter.push(
-                                                           e.path,
-                                                         );
-                                                       }:
-                                                          React.Event.Mouse.t =>
-                                                          unit,
-                                                     ),
-                                                   ),
-                                                 ),
-                                               ],
-                                             ),
-                                             [e.title |> s],
-                                           ),
-                                         );
-                                         Buffer.add_string(b, "</li>");
-                                         ();
-                                       },
-                                       original: () =>
-                                         React.createElementWithKey(
-                                           ~key=e.path,
-                                           "li",
-                                           Stdlib.List.filter_map(
-                                             Stdlib.Fun.id,
-                                             [
-                                               Some(
-                                                 [@implicit_arity]
-                                                 React.JSX.String(
-                                                   "key",
-                                                   "key",
-                                                   e.path: string,
-                                                 ),
-                                               ),
-                                             ],
-                                           ),
-                                           [
+                                               );
+                                               Buffer.add_char(b, '"');
+                                             };
+                                             Buffer.add_string(b, ">");
+                                             ReactDOM.write_to_buffer(
+                                               b,
+                                               e.title |> s,
+                                             );
+                                             Buffer.add_string(b, "</a>");
+                                             ();
+                                           },
+                                           original: () =>
                                              React.createElement(
                                                "a",
                                                Stdlib.List.filter_map(
@@ -978,6 +1029,246 @@
                                                ),
                                                [e.title |> s],
                                              ),
+                                         }),
+                                       );
+                                       Buffer.add_string(b, "</li>");
+                                       ();
+                                     },
+                                     original: () =>
+                                       React.createElementWithKey(
+                                         ~key=e.path,
+                                         "li",
+                                         Stdlib.List.filter_map(
+                                           Stdlib.Fun.id,
+                                           [
+                                             Some(
+                                               [@implicit_arity]
+                                               React.JSX.String(
+                                                 "key",
+                                                 "key",
+                                                 e.path: string,
+                                               ),
+                                             ),
+                                           ],
+                                         ),
+                                         [
+                                           React.Writer({
+                                             emit: b => {
+                                               Buffer.add_string(b, "<a");
+                                               {
+                                                 Buffer.add_char(b, ' ');
+                                                 Buffer.add_string(b, "href");
+                                                 Buffer.add_string(b, "=\"");
+                                                 ReactDOM.escape_to_buffer(
+                                                   b,
+                                                   e.path: string,
+                                                 );
+                                                 Buffer.add_char(b, '"');
+                                               };
+                                               Buffer.add_string(b, ">");
+                                               ReactDOM.write_to_buffer(
+                                                 b,
+                                                 e.title |> s,
+                                               );
+                                               Buffer.add_string(b, "</a>");
+                                               ();
+                                             },
+                                             original: () =>
+                                               React.createElement(
+                                                 "a",
+                                                 Stdlib.List.filter_map(
+                                                   Stdlib.Fun.id,
+                                                   [
+                                                     Some(
+                                                       [@implicit_arity]
+                                                       React.JSX.String(
+                                                         "href",
+                                                         "href",
+                                                         e.path: string,
+                                                       ),
+                                                     ),
+                                                     Some(
+                                                       [@implicit_arity]
+                                                       React.JSX.Event(
+                                                         "onClick",
+                                                         React.JSX.Mouse(
+                                                           event => {
+                                                             React.Event.Mouse.preventDefault(
+                                                               event,
+                                                             );
+                                                             ReactRouter.push(
+                                                               e.path,
+                                                             );
+                                                           }:
+                                                              React.Event.Mouse.t =>
+                                                              unit,
+                                                         ),
+                                                       ),
+                                                     ),
+                                                   ],
+                                                 ),
+                                                 [e.title |> s],
+                                               ),
+                                           }),
+                                         ],
+                                       ),
+                                   })
+                                 )
+                              |> React.list,
+                            );
+                            Buffer.add_string(b, "</ul>");
+                            ();
+                          },
+                          original: () =>
+                            React.createElement(
+                              "ul",
+                              [],
+                              [
+                                examples
+                                |> List.map(e =>
+                                     React.Writer({
+                                       emit: b => {
+                                         Buffer.add_string(b, "<li>");
+                                         ReactDOM.write_to_buffer(
+                                           b,
+                                           React.Writer({
+                                             emit: b => {
+                                               Buffer.add_string(b, "<a");
+                                               {
+                                                 Buffer.add_char(b, ' ');
+                                                 Buffer.add_string(b, "href");
+                                                 Buffer.add_string(b, "=\"");
+                                                 ReactDOM.escape_to_buffer(
+                                                   b,
+                                                   e.path: string,
+                                                 );
+                                                 Buffer.add_char(b, '"');
+                                               };
+                                               Buffer.add_string(b, ">");
+                                               ReactDOM.write_to_buffer(
+                                                 b,
+                                                 e.title |> s,
+                                               );
+                                               Buffer.add_string(b, "</a>");
+                                               ();
+                                             },
+                                             original: () =>
+                                               React.createElement(
+                                                 "a",
+                                                 Stdlib.List.filter_map(
+                                                   Stdlib.Fun.id,
+                                                   [
+                                                     Some(
+                                                       [@implicit_arity]
+                                                       React.JSX.String(
+                                                         "href",
+                                                         "href",
+                                                         e.path: string,
+                                                       ),
+                                                     ),
+                                                     Some(
+                                                       [@implicit_arity]
+                                                       React.JSX.Event(
+                                                         "onClick",
+                                                         React.JSX.Mouse(
+                                                           event => {
+                                                             React.Event.Mouse.preventDefault(
+                                                               event,
+                                                             );
+                                                             ReactRouter.push(
+                                                               e.path,
+                                                             );
+                                                           }:
+                                                              React.Event.Mouse.t =>
+                                                              unit,
+                                                         ),
+                                                       ),
+                                                     ),
+                                                   ],
+                                                 ),
+                                                 [e.title |> s],
+                                               ),
+                                           }),
+                                         );
+                                         Buffer.add_string(b, "</li>");
+                                         ();
+                                       },
+                                       original: () =>
+                                         React.createElementWithKey(
+                                           ~key=e.path,
+                                           "li",
+                                           Stdlib.List.filter_map(
+                                             Stdlib.Fun.id,
+                                             [
+                                               Some(
+                                                 [@implicit_arity]
+                                                 React.JSX.String(
+                                                   "key",
+                                                   "key",
+                                                   e.path: string,
+                                                 ),
+                                               ),
+                                             ],
+                                           ),
+                                           [
+                                             React.Writer({
+                                               emit: b => {
+                                                 Buffer.add_string(b, "<a");
+                                                 {
+                                                   Buffer.add_char(b, ' ');
+                                                   Buffer.add_string(b, "href");
+                                                   Buffer.add_string(b, "=\"");
+                                                   ReactDOM.escape_to_buffer(
+                                                     b,
+                                                     e.path: string,
+                                                   );
+                                                   Buffer.add_char(b, '"');
+                                                 };
+                                                 Buffer.add_string(b, ">");
+                                                 ReactDOM.write_to_buffer(
+                                                   b,
+                                                   e.title |> s,
+                                                 );
+                                                 Buffer.add_string(b, "</a>");
+                                                 ();
+                                               },
+                                               original: () =>
+                                                 React.createElement(
+                                                   "a",
+                                                   Stdlib.List.filter_map(
+                                                     Stdlib.Fun.id,
+                                                     [
+                                                       Some(
+                                                         [@implicit_arity]
+                                                         React.JSX.String(
+                                                           "href",
+                                                           "href",
+                                                           e.path: string,
+                                                         ),
+                                                       ),
+                                                       Some(
+                                                         [@implicit_arity]
+                                                         React.JSX.Event(
+                                                           "onClick",
+                                                           React.JSX.Mouse(
+                                                             event => {
+                                                               React.Event.Mouse.preventDefault(
+                                                                 event,
+                                                               );
+                                                               ReactRouter.push(
+                                                                 e.path,
+                                                               );
+                                                             }:
+                                                                React.Event.Mouse.t =>
+                                                                unit,
+                                                           ),
+                                                         ),
+                                                       ),
+                                                     ],
+                                                   ),
+                                                   [e.title |> s],
+                                                 ),
+                                             }),
                                            ],
                                          ),
                                      })
@@ -1019,176 +1310,28 @@
                                          Buffer.add_string(b, "<li>");
                                          ReactDOM.write_to_buffer(
                                            b,
-                                           React.createElement(
-                                             "a",
-                                             Stdlib.List.filter_map(
-                                               Stdlib.Fun.id,
-                                               [
-                                                 Some(
-                                                   [@implicit_arity]
-                                                   React.JSX.String(
-                                                     "href",
-                                                     "href",
-                                                     e.path: string,
-                                                   ),
-                                                 ),
-                                                 Some(
-                                                   [@implicit_arity]
-                                                   React.JSX.Event(
-                                                     "onClick",
-                                                     React.JSX.Mouse(
-                                                       event => {
-                                                         React.Event.Mouse.preventDefault(
-                                                           event,
-                                                         );
-                                                         ReactRouter.push(
-                                                           e.path,
-                                                         );
-                                                       }:
-                                                          React.Event.Mouse.t =>
-                                                          unit,
-                                                     ),
-                                                   ),
-                                                 ),
-                                               ],
-                                             ),
-                                             [e.title |> s],
-                                           ),
-                                         );
-                                         Buffer.add_string(b, "</li>");
-                                         ();
-                                       },
-                                       original: () =>
-                                         React.createElementWithKey(
-                                           ~key=e.path,
-                                           "li",
-                                           Stdlib.List.filter_map(
-                                             Stdlib.Fun.id,
-                                             [
-                                               Some(
-                                                 [@implicit_arity]
-                                                 React.JSX.String(
-                                                   "key",
-                                                   "key",
+                                           React.Writer({
+                                             emit: b => {
+                                               Buffer.add_string(b, "<a");
+                                               {
+                                                 Buffer.add_char(b, ' ');
+                                                 Buffer.add_string(b, "href");
+                                                 Buffer.add_string(b, "=\"");
+                                                 ReactDOM.escape_to_buffer(
+                                                   b,
                                                    e.path: string,
-                                                 ),
-                                               ),
-                                             ],
-                                           ),
-                                           [
-                                             React.createElement(
-                                               "a",
-                                               Stdlib.List.filter_map(
-                                                 Stdlib.Fun.id,
-                                                 [
-                                                   Some(
-                                                     [@implicit_arity]
-                                                     React.JSX.String(
-                                                       "href",
-                                                       "href",
-                                                       e.path: string,
-                                                     ),
-                                                   ),
-                                                   Some(
-                                                     [@implicit_arity]
-                                                     React.JSX.Event(
-                                                       "onClick",
-                                                       React.JSX.Mouse(
-                                                         event => {
-                                                           React.Event.Mouse.preventDefault(
-                                                             event,
-                                                           );
-                                                           ReactRouter.push(
-                                                             e.path,
-                                                           );
-                                                         }:
-                                                            React.Event.Mouse.t =>
-                                                            unit,
-                                                       ),
-                                                     ),
-                                                   ),
-                                                 ],
-                                               ),
-                                               [e.title |> s],
-                                             ),
-                                           ],
-                                         ),
-                                     })
-                                   )
-                                |> React.list,
-                              );
-                              Buffer.add_string(b, "</ul>");
-                              ();
-                            },
-                            original: () =>
-                              React.createElement(
-                                "ul",
-                                [],
-                                [
-                                  examples
-                                  |> List.map(e =>
-                                       React.Writer({
-                                         emit: b => {
-                                           Buffer.add_string(b, "<li>");
-                                           ReactDOM.write_to_buffer(
-                                             b,
-                                             React.createElement(
-                                               "a",
-                                               Stdlib.List.filter_map(
-                                                 Stdlib.Fun.id,
-                                                 [
-                                                   Some(
-                                                     [@implicit_arity]
-                                                     React.JSX.String(
-                                                       "href",
-                                                       "href",
-                                                       e.path: string,
-                                                     ),
-                                                   ),
-                                                   Some(
-                                                     [@implicit_arity]
-                                                     React.JSX.Event(
-                                                       "onClick",
-                                                       React.JSX.Mouse(
-                                                         event => {
-                                                           React.Event.Mouse.preventDefault(
-                                                             event,
-                                                           );
-                                                           ReactRouter.push(
-                                                             e.path,
-                                                           );
-                                                         }:
-                                                            React.Event.Mouse.t =>
-                                                            unit,
-                                                       ),
-                                                     ),
-                                                   ),
-                                                 ],
-                                               ),
-                                               [e.title |> s],
-                                             ),
-                                           );
-                                           Buffer.add_string(b, "</li>");
-                                           ();
-                                         },
-                                         original: () =>
-                                           React.createElementWithKey(
-                                             ~key=e.path,
-                                             "li",
-                                             Stdlib.List.filter_map(
-                                               Stdlib.Fun.id,
-                                               [
-                                                 Some(
-                                                   [@implicit_arity]
-                                                   React.JSX.String(
-                                                     "key",
-                                                     "key",
-                                                     e.path: string,
-                                                   ),
-                                                 ),
-                                               ],
-                                             ),
-                                             [
+                                                 );
+                                                 Buffer.add_char(b, '"');
+                                               };
+                                               Buffer.add_string(b, ">");
+                                               ReactDOM.write_to_buffer(
+                                                 b,
+                                                 e.title |> s,
+                                               );
+                                               Buffer.add_string(b, "</a>");
+                                               ();
+                                             },
+                                             original: () =>
                                                React.createElement(
                                                  "a",
                                                  Stdlib.List.filter_map(
@@ -1224,6 +1367,252 @@
                                                  ),
                                                  [e.title |> s],
                                                ),
+                                           }),
+                                         );
+                                         Buffer.add_string(b, "</li>");
+                                         ();
+                                       },
+                                       original: () =>
+                                         React.createElementWithKey(
+                                           ~key=e.path,
+                                           "li",
+                                           Stdlib.List.filter_map(
+                                             Stdlib.Fun.id,
+                                             [
+                                               Some(
+                                                 [@implicit_arity]
+                                                 React.JSX.String(
+                                                   "key",
+                                                   "key",
+                                                   e.path: string,
+                                                 ),
+                                               ),
+                                             ],
+                                           ),
+                                           [
+                                             React.Writer({
+                                               emit: b => {
+                                                 Buffer.add_string(b, "<a");
+                                                 {
+                                                   Buffer.add_char(b, ' ');
+                                                   Buffer.add_string(b, "href");
+                                                   Buffer.add_string(b, "=\"");
+                                                   ReactDOM.escape_to_buffer(
+                                                     b,
+                                                     e.path: string,
+                                                   );
+                                                   Buffer.add_char(b, '"');
+                                                 };
+                                                 Buffer.add_string(b, ">");
+                                                 ReactDOM.write_to_buffer(
+                                                   b,
+                                                   e.title |> s,
+                                                 );
+                                                 Buffer.add_string(b, "</a>");
+                                                 ();
+                                               },
+                                               original: () =>
+                                                 React.createElement(
+                                                   "a",
+                                                   Stdlib.List.filter_map(
+                                                     Stdlib.Fun.id,
+                                                     [
+                                                       Some(
+                                                         [@implicit_arity]
+                                                         React.JSX.String(
+                                                           "href",
+                                                           "href",
+                                                           e.path: string,
+                                                         ),
+                                                       ),
+                                                       Some(
+                                                         [@implicit_arity]
+                                                         React.JSX.Event(
+                                                           "onClick",
+                                                           React.JSX.Mouse(
+                                                             event => {
+                                                               React.Event.Mouse.preventDefault(
+                                                                 event,
+                                                               );
+                                                               ReactRouter.push(
+                                                                 e.path,
+                                                               );
+                                                             }:
+                                                                React.Event.Mouse.t =>
+                                                                unit,
+                                                           ),
+                                                         ),
+                                                       ),
+                                                     ],
+                                                   ),
+                                                   [e.title |> s],
+                                                 ),
+                                             }),
+                                           ],
+                                         ),
+                                     })
+                                   )
+                                |> React.list,
+                              );
+                              Buffer.add_string(b, "</ul>");
+                              ();
+                            },
+                            original: () =>
+                              React.createElement(
+                                "ul",
+                                [],
+                                [
+                                  examples
+                                  |> List.map(e =>
+                                       React.Writer({
+                                         emit: b => {
+                                           Buffer.add_string(b, "<li>");
+                                           ReactDOM.write_to_buffer(
+                                             b,
+                                             React.Writer({
+                                               emit: b => {
+                                                 Buffer.add_string(b, "<a");
+                                                 {
+                                                   Buffer.add_char(b, ' ');
+                                                   Buffer.add_string(b, "href");
+                                                   Buffer.add_string(b, "=\"");
+                                                   ReactDOM.escape_to_buffer(
+                                                     b,
+                                                     e.path: string,
+                                                   );
+                                                   Buffer.add_char(b, '"');
+                                                 };
+                                                 Buffer.add_string(b, ">");
+                                                 ReactDOM.write_to_buffer(
+                                                   b,
+                                                   e.title |> s,
+                                                 );
+                                                 Buffer.add_string(b, "</a>");
+                                                 ();
+                                               },
+                                               original: () =>
+                                                 React.createElement(
+                                                   "a",
+                                                   Stdlib.List.filter_map(
+                                                     Stdlib.Fun.id,
+                                                     [
+                                                       Some(
+                                                         [@implicit_arity]
+                                                         React.JSX.String(
+                                                           "href",
+                                                           "href",
+                                                           e.path: string,
+                                                         ),
+                                                       ),
+                                                       Some(
+                                                         [@implicit_arity]
+                                                         React.JSX.Event(
+                                                           "onClick",
+                                                           React.JSX.Mouse(
+                                                             event => {
+                                                               React.Event.Mouse.preventDefault(
+                                                                 event,
+                                                               );
+                                                               ReactRouter.push(
+                                                                 e.path,
+                                                               );
+                                                             }:
+                                                                React.Event.Mouse.t =>
+                                                                unit,
+                                                           ),
+                                                         ),
+                                                       ),
+                                                     ],
+                                                   ),
+                                                   [e.title |> s],
+                                                 ),
+                                             }),
+                                           );
+                                           Buffer.add_string(b, "</li>");
+                                           ();
+                                         },
+                                         original: () =>
+                                           React.createElementWithKey(
+                                             ~key=e.path,
+                                             "li",
+                                             Stdlib.List.filter_map(
+                                               Stdlib.Fun.id,
+                                               [
+                                                 Some(
+                                                   [@implicit_arity]
+                                                   React.JSX.String(
+                                                     "key",
+                                                     "key",
+                                                     e.path: string,
+                                                   ),
+                                                 ),
+                                               ],
+                                             ),
+                                             [
+                                               React.Writer({
+                                                 emit: b => {
+                                                   Buffer.add_string(b, "<a");
+                                                   {
+                                                     Buffer.add_char(b, ' ');
+                                                     Buffer.add_string(
+                                                       b,
+                                                       "href",
+                                                     );
+                                                     Buffer.add_string(
+                                                       b,
+                                                       "=\"",
+                                                     );
+                                                     ReactDOM.escape_to_buffer(
+                                                       b,
+                                                       e.path: string,
+                                                     );
+                                                     Buffer.add_char(b, '"');
+                                                   };
+                                                   Buffer.add_string(b, ">");
+                                                   ReactDOM.write_to_buffer(
+                                                     b,
+                                                     e.title |> s,
+                                                   );
+                                                   Buffer.add_string(b, "</a>");
+                                                   ();
+                                                 },
+                                                 original: () =>
+                                                   React.createElement(
+                                                     "a",
+                                                     Stdlib.List.filter_map(
+                                                       Stdlib.Fun.id,
+                                                       [
+                                                         Some(
+                                                           [@implicit_arity]
+                                                           React.JSX.String(
+                                                             "href",
+                                                             "href",
+                                                             e.path: string,
+                                                           ),
+                                                         ),
+                                                         Some(
+                                                           [@implicit_arity]
+                                                           React.JSX.Event(
+                                                             "onClick",
+                                                             React.JSX.Mouse(
+                                                               event => {
+                                                                 React.Event.Mouse.preventDefault(
+                                                                   event,
+                                                                 );
+                                                                 ReactRouter.push(
+                                                                   e.path,
+                                                                 );
+                                                               }:
+                                                                  React.Event.Mouse.t =>
+                                                                  unit,
+                                                             ),
+                                                           ),
+                                                         ),
+                                                       ],
+                                                     ),
+                                                     [e.title |> s],
+                                                   ),
+                                               }),
                                              ],
                                            ),
                                        })
@@ -1310,174 +1699,28 @@
                                        Buffer.add_string(b, "<li>");
                                        ReactDOM.write_to_buffer(
                                          b,
-                                         React.createElement(
-                                           "a",
-                                           Stdlib.List.filter_map(
-                                             Stdlib.Fun.id,
-                                             [
-                                               Some(
-                                                 [@implicit_arity]
-                                                 React.JSX.String(
-                                                   "href",
-                                                   "href",
-                                                   e.path: string,
-                                                 ),
-                                               ),
-                                               Some(
-                                                 [@implicit_arity]
-                                                 React.JSX.Event(
-                                                   "onClick",
-                                                   React.JSX.Mouse(
-                                                     event => {
-                                                       React.Event.Mouse.preventDefault(
-                                                         event,
-                                                       );
-                                                       ReactRouter.push(e.path);
-                                                     }:
-                                                        React.Event.Mouse.t =>
-                                                        unit,
-                                                   ),
-                                                 ),
-                                               ),
-                                             ],
-                                           ),
-                                           [e.title |> s],
-                                         ),
-                                       );
-                                       Buffer.add_string(b, "</li>");
-                                       ();
-                                     },
-                                     original: () =>
-                                       React.createElementWithKey(
-                                         ~key=e.path,
-                                         "li",
-                                         Stdlib.List.filter_map(
-                                           Stdlib.Fun.id,
-                                           [
-                                             Some(
-                                               [@implicit_arity]
-                                               React.JSX.String(
-                                                 "key",
-                                                 "key",
+                                         React.Writer({
+                                           emit: b => {
+                                             Buffer.add_string(b, "<a");
+                                             {
+                                               Buffer.add_char(b, ' ');
+                                               Buffer.add_string(b, "href");
+                                               Buffer.add_string(b, "=\"");
+                                               ReactDOM.escape_to_buffer(
+                                                 b,
                                                  e.path: string,
-                                               ),
-                                             ),
-                                           ],
-                                         ),
-                                         [
-                                           React.createElement(
-                                             "a",
-                                             Stdlib.List.filter_map(
-                                               Stdlib.Fun.id,
-                                               [
-                                                 Some(
-                                                   [@implicit_arity]
-                                                   React.JSX.String(
-                                                     "href",
-                                                     "href",
-                                                     e.path: string,
-                                                   ),
-                                                 ),
-                                                 Some(
-                                                   [@implicit_arity]
-                                                   React.JSX.Event(
-                                                     "onClick",
-                                                     React.JSX.Mouse(
-                                                       event => {
-                                                         React.Event.Mouse.preventDefault(
-                                                           event,
-                                                         );
-                                                         ReactRouter.push(
-                                                           e.path,
-                                                         );
-                                                       }:
-                                                          React.Event.Mouse.t =>
-                                                          unit,
-                                                     ),
-                                                   ),
-                                                 ),
-                                               ],
-                                             ),
-                                             [e.title |> s],
-                                           ),
-                                         ],
-                                       ),
-                                   })
-                                 )
-                              |> React.list,
-                            );
-                            Buffer.add_string(b, "</ul>");
-                            ();
-                          },
-                          original: () =>
-                            React.createElement(
-                              "ul",
-                              [],
-                              [
-                                examples
-                                |> List.map(e =>
-                                     React.Writer({
-                                       emit: b => {
-                                         Buffer.add_string(b, "<li>");
-                                         ReactDOM.write_to_buffer(
-                                           b,
-                                           React.createElement(
-                                             "a",
-                                             Stdlib.List.filter_map(
-                                               Stdlib.Fun.id,
-                                               [
-                                                 Some(
-                                                   [@implicit_arity]
-                                                   React.JSX.String(
-                                                     "href",
-                                                     "href",
-                                                     e.path: string,
-                                                   ),
-                                                 ),
-                                                 Some(
-                                                   [@implicit_arity]
-                                                   React.JSX.Event(
-                                                     "onClick",
-                                                     React.JSX.Mouse(
-                                                       event => {
-                                                         React.Event.Mouse.preventDefault(
-                                                           event,
-                                                         );
-                                                         ReactRouter.push(
-                                                           e.path,
-                                                         );
-                                                       }:
-                                                          React.Event.Mouse.t =>
-                                                          unit,
-                                                     ),
-                                                   ),
-                                                 ),
-                                               ],
-                                             ),
-                                             [e.title |> s],
-                                           ),
-                                         );
-                                         Buffer.add_string(b, "</li>");
-                                         ();
-                                       },
-                                       original: () =>
-                                         React.createElementWithKey(
-                                           ~key=e.path,
-                                           "li",
-                                           Stdlib.List.filter_map(
-                                             Stdlib.Fun.id,
-                                             [
-                                               Some(
-                                                 [@implicit_arity]
-                                                 React.JSX.String(
-                                                   "key",
-                                                   "key",
-                                                   e.path: string,
-                                                 ),
-                                               ),
-                                             ],
-                                           ),
-                                           [
+                                               );
+                                               Buffer.add_char(b, '"');
+                                             };
+                                             Buffer.add_string(b, ">");
+                                             ReactDOM.write_to_buffer(
+                                               b,
+                                               e.title |> s,
+                                             );
+                                             Buffer.add_string(b, "</a>");
+                                             ();
+                                           },
+                                           original: () =>
                                              React.createElement(
                                                "a",
                                                Stdlib.List.filter_map(
@@ -1513,6 +1756,246 @@
                                                ),
                                                [e.title |> s],
                                              ),
+                                         }),
+                                       );
+                                       Buffer.add_string(b, "</li>");
+                                       ();
+                                     },
+                                     original: () =>
+                                       React.createElementWithKey(
+                                         ~key=e.path,
+                                         "li",
+                                         Stdlib.List.filter_map(
+                                           Stdlib.Fun.id,
+                                           [
+                                             Some(
+                                               [@implicit_arity]
+                                               React.JSX.String(
+                                                 "key",
+                                                 "key",
+                                                 e.path: string,
+                                               ),
+                                             ),
+                                           ],
+                                         ),
+                                         [
+                                           React.Writer({
+                                             emit: b => {
+                                               Buffer.add_string(b, "<a");
+                                               {
+                                                 Buffer.add_char(b, ' ');
+                                                 Buffer.add_string(b, "href");
+                                                 Buffer.add_string(b, "=\"");
+                                                 ReactDOM.escape_to_buffer(
+                                                   b,
+                                                   e.path: string,
+                                                 );
+                                                 Buffer.add_char(b, '"');
+                                               };
+                                               Buffer.add_string(b, ">");
+                                               ReactDOM.write_to_buffer(
+                                                 b,
+                                                 e.title |> s,
+                                               );
+                                               Buffer.add_string(b, "</a>");
+                                               ();
+                                             },
+                                             original: () =>
+                                               React.createElement(
+                                                 "a",
+                                                 Stdlib.List.filter_map(
+                                                   Stdlib.Fun.id,
+                                                   [
+                                                     Some(
+                                                       [@implicit_arity]
+                                                       React.JSX.String(
+                                                         "href",
+                                                         "href",
+                                                         e.path: string,
+                                                       ),
+                                                     ),
+                                                     Some(
+                                                       [@implicit_arity]
+                                                       React.JSX.Event(
+                                                         "onClick",
+                                                         React.JSX.Mouse(
+                                                           event => {
+                                                             React.Event.Mouse.preventDefault(
+                                                               event,
+                                                             );
+                                                             ReactRouter.push(
+                                                               e.path,
+                                                             );
+                                                           }:
+                                                              React.Event.Mouse.t =>
+                                                              unit,
+                                                         ),
+                                                       ),
+                                                     ),
+                                                   ],
+                                                 ),
+                                                 [e.title |> s],
+                                               ),
+                                           }),
+                                         ],
+                                       ),
+                                   })
+                                 )
+                              |> React.list,
+                            );
+                            Buffer.add_string(b, "</ul>");
+                            ();
+                          },
+                          original: () =>
+                            React.createElement(
+                              "ul",
+                              [],
+                              [
+                                examples
+                                |> List.map(e =>
+                                     React.Writer({
+                                       emit: b => {
+                                         Buffer.add_string(b, "<li>");
+                                         ReactDOM.write_to_buffer(
+                                           b,
+                                           React.Writer({
+                                             emit: b => {
+                                               Buffer.add_string(b, "<a");
+                                               {
+                                                 Buffer.add_char(b, ' ');
+                                                 Buffer.add_string(b, "href");
+                                                 Buffer.add_string(b, "=\"");
+                                                 ReactDOM.escape_to_buffer(
+                                                   b,
+                                                   e.path: string,
+                                                 );
+                                                 Buffer.add_char(b, '"');
+                                               };
+                                               Buffer.add_string(b, ">");
+                                               ReactDOM.write_to_buffer(
+                                                 b,
+                                                 e.title |> s,
+                                               );
+                                               Buffer.add_string(b, "</a>");
+                                               ();
+                                             },
+                                             original: () =>
+                                               React.createElement(
+                                                 "a",
+                                                 Stdlib.List.filter_map(
+                                                   Stdlib.Fun.id,
+                                                   [
+                                                     Some(
+                                                       [@implicit_arity]
+                                                       React.JSX.String(
+                                                         "href",
+                                                         "href",
+                                                         e.path: string,
+                                                       ),
+                                                     ),
+                                                     Some(
+                                                       [@implicit_arity]
+                                                       React.JSX.Event(
+                                                         "onClick",
+                                                         React.JSX.Mouse(
+                                                           event => {
+                                                             React.Event.Mouse.preventDefault(
+                                                               event,
+                                                             );
+                                                             ReactRouter.push(
+                                                               e.path,
+                                                             );
+                                                           }:
+                                                              React.Event.Mouse.t =>
+                                                              unit,
+                                                         ),
+                                                       ),
+                                                     ),
+                                                   ],
+                                                 ),
+                                                 [e.title |> s],
+                                               ),
+                                           }),
+                                         );
+                                         Buffer.add_string(b, "</li>");
+                                         ();
+                                       },
+                                       original: () =>
+                                         React.createElementWithKey(
+                                           ~key=e.path,
+                                           "li",
+                                           Stdlib.List.filter_map(
+                                             Stdlib.Fun.id,
+                                             [
+                                               Some(
+                                                 [@implicit_arity]
+                                                 React.JSX.String(
+                                                   "key",
+                                                   "key",
+                                                   e.path: string,
+                                                 ),
+                                               ),
+                                             ],
+                                           ),
+                                           [
+                                             React.Writer({
+                                               emit: b => {
+                                                 Buffer.add_string(b, "<a");
+                                                 {
+                                                   Buffer.add_char(b, ' ');
+                                                   Buffer.add_string(b, "href");
+                                                   Buffer.add_string(b, "=\"");
+                                                   ReactDOM.escape_to_buffer(
+                                                     b,
+                                                     e.path: string,
+                                                   );
+                                                   Buffer.add_char(b, '"');
+                                                 };
+                                                 Buffer.add_string(b, ">");
+                                                 ReactDOM.write_to_buffer(
+                                                   b,
+                                                   e.title |> s,
+                                                 );
+                                                 Buffer.add_string(b, "</a>");
+                                                 ();
+                                               },
+                                               original: () =>
+                                                 React.createElement(
+                                                   "a",
+                                                   Stdlib.List.filter_map(
+                                                     Stdlib.Fun.id,
+                                                     [
+                                                       Some(
+                                                         [@implicit_arity]
+                                                         React.JSX.String(
+                                                           "href",
+                                                           "href",
+                                                           e.path: string,
+                                                         ),
+                                                       ),
+                                                       Some(
+                                                         [@implicit_arity]
+                                                         React.JSX.Event(
+                                                           "onClick",
+                                                           React.JSX.Mouse(
+                                                             event => {
+                                                               React.Event.Mouse.preventDefault(
+                                                                 event,
+                                                               );
+                                                               ReactRouter.push(
+                                                                 e.path,
+                                                               );
+                                                             }:
+                                                                React.Event.Mouse.t =>
+                                                                unit,
+                                                           ),
+                                                         ),
+                                                       ),
+                                                     ],
+                                                   ),
+                                                   [e.title |> s],
+                                                 ),
+                                             }),
                                            ],
                                          ),
                                      })
@@ -1554,176 +2037,28 @@
                                          Buffer.add_string(b, "<li>");
                                          ReactDOM.write_to_buffer(
                                            b,
-                                           React.createElement(
-                                             "a",
-                                             Stdlib.List.filter_map(
-                                               Stdlib.Fun.id,
-                                               [
-                                                 Some(
-                                                   [@implicit_arity]
-                                                   React.JSX.String(
-                                                     "href",
-                                                     "href",
-                                                     e.path: string,
-                                                   ),
-                                                 ),
-                                                 Some(
-                                                   [@implicit_arity]
-                                                   React.JSX.Event(
-                                                     "onClick",
-                                                     React.JSX.Mouse(
-                                                       event => {
-                                                         React.Event.Mouse.preventDefault(
-                                                           event,
-                                                         );
-                                                         ReactRouter.push(
-                                                           e.path,
-                                                         );
-                                                       }:
-                                                          React.Event.Mouse.t =>
-                                                          unit,
-                                                     ),
-                                                   ),
-                                                 ),
-                                               ],
-                                             ),
-                                             [e.title |> s],
-                                           ),
-                                         );
-                                         Buffer.add_string(b, "</li>");
-                                         ();
-                                       },
-                                       original: () =>
-                                         React.createElementWithKey(
-                                           ~key=e.path,
-                                           "li",
-                                           Stdlib.List.filter_map(
-                                             Stdlib.Fun.id,
-                                             [
-                                               Some(
-                                                 [@implicit_arity]
-                                                 React.JSX.String(
-                                                   "key",
-                                                   "key",
+                                           React.Writer({
+                                             emit: b => {
+                                               Buffer.add_string(b, "<a");
+                                               {
+                                                 Buffer.add_char(b, ' ');
+                                                 Buffer.add_string(b, "href");
+                                                 Buffer.add_string(b, "=\"");
+                                                 ReactDOM.escape_to_buffer(
+                                                   b,
                                                    e.path: string,
-                                                 ),
-                                               ),
-                                             ],
-                                           ),
-                                           [
-                                             React.createElement(
-                                               "a",
-                                               Stdlib.List.filter_map(
-                                                 Stdlib.Fun.id,
-                                                 [
-                                                   Some(
-                                                     [@implicit_arity]
-                                                     React.JSX.String(
-                                                       "href",
-                                                       "href",
-                                                       e.path: string,
-                                                     ),
-                                                   ),
-                                                   Some(
-                                                     [@implicit_arity]
-                                                     React.JSX.Event(
-                                                       "onClick",
-                                                       React.JSX.Mouse(
-                                                         event => {
-                                                           React.Event.Mouse.preventDefault(
-                                                             event,
-                                                           );
-                                                           ReactRouter.push(
-                                                             e.path,
-                                                           );
-                                                         }:
-                                                            React.Event.Mouse.t =>
-                                                            unit,
-                                                       ),
-                                                     ),
-                                                   ),
-                                                 ],
-                                               ),
-                                               [e.title |> s],
-                                             ),
-                                           ],
-                                         ),
-                                     })
-                                   )
-                                |> React.list,
-                              );
-                              Buffer.add_string(b, "</ul>");
-                              ();
-                            },
-                            original: () =>
-                              React.createElement(
-                                "ul",
-                                [],
-                                [
-                                  examples
-                                  |> List.map(e =>
-                                       React.Writer({
-                                         emit: b => {
-                                           Buffer.add_string(b, "<li>");
-                                           ReactDOM.write_to_buffer(
-                                             b,
-                                             React.createElement(
-                                               "a",
-                                               Stdlib.List.filter_map(
-                                                 Stdlib.Fun.id,
-                                                 [
-                                                   Some(
-                                                     [@implicit_arity]
-                                                     React.JSX.String(
-                                                       "href",
-                                                       "href",
-                                                       e.path: string,
-                                                     ),
-                                                   ),
-                                                   Some(
-                                                     [@implicit_arity]
-                                                     React.JSX.Event(
-                                                       "onClick",
-                                                       React.JSX.Mouse(
-                                                         event => {
-                                                           React.Event.Mouse.preventDefault(
-                                                             event,
-                                                           );
-                                                           ReactRouter.push(
-                                                             e.path,
-                                                           );
-                                                         }:
-                                                            React.Event.Mouse.t =>
-                                                            unit,
-                                                       ),
-                                                     ),
-                                                   ),
-                                                 ],
-                                               ),
-                                               [e.title |> s],
-                                             ),
-                                           );
-                                           Buffer.add_string(b, "</li>");
-                                           ();
-                                         },
-                                         original: () =>
-                                           React.createElementWithKey(
-                                             ~key=e.path,
-                                             "li",
-                                             Stdlib.List.filter_map(
-                                               Stdlib.Fun.id,
-                                               [
-                                                 Some(
-                                                   [@implicit_arity]
-                                                   React.JSX.String(
-                                                     "key",
-                                                     "key",
-                                                     e.path: string,
-                                                   ),
-                                                 ),
-                                               ],
-                                             ),
-                                             [
+                                                 );
+                                                 Buffer.add_char(b, '"');
+                                               };
+                                               Buffer.add_string(b, ">");
+                                               ReactDOM.write_to_buffer(
+                                                 b,
+                                                 e.title |> s,
+                                               );
+                                               Buffer.add_string(b, "</a>");
+                                               ();
+                                             },
+                                             original: () =>
                                                React.createElement(
                                                  "a",
                                                  Stdlib.List.filter_map(
@@ -1759,6 +2094,252 @@
                                                  ),
                                                  [e.title |> s],
                                                ),
+                                           }),
+                                         );
+                                         Buffer.add_string(b, "</li>");
+                                         ();
+                                       },
+                                       original: () =>
+                                         React.createElementWithKey(
+                                           ~key=e.path,
+                                           "li",
+                                           Stdlib.List.filter_map(
+                                             Stdlib.Fun.id,
+                                             [
+                                               Some(
+                                                 [@implicit_arity]
+                                                 React.JSX.String(
+                                                   "key",
+                                                   "key",
+                                                   e.path: string,
+                                                 ),
+                                               ),
+                                             ],
+                                           ),
+                                           [
+                                             React.Writer({
+                                               emit: b => {
+                                                 Buffer.add_string(b, "<a");
+                                                 {
+                                                   Buffer.add_char(b, ' ');
+                                                   Buffer.add_string(b, "href");
+                                                   Buffer.add_string(b, "=\"");
+                                                   ReactDOM.escape_to_buffer(
+                                                     b,
+                                                     e.path: string,
+                                                   );
+                                                   Buffer.add_char(b, '"');
+                                                 };
+                                                 Buffer.add_string(b, ">");
+                                                 ReactDOM.write_to_buffer(
+                                                   b,
+                                                   e.title |> s,
+                                                 );
+                                                 Buffer.add_string(b, "</a>");
+                                                 ();
+                                               },
+                                               original: () =>
+                                                 React.createElement(
+                                                   "a",
+                                                   Stdlib.List.filter_map(
+                                                     Stdlib.Fun.id,
+                                                     [
+                                                       Some(
+                                                         [@implicit_arity]
+                                                         React.JSX.String(
+                                                           "href",
+                                                           "href",
+                                                           e.path: string,
+                                                         ),
+                                                       ),
+                                                       Some(
+                                                         [@implicit_arity]
+                                                         React.JSX.Event(
+                                                           "onClick",
+                                                           React.JSX.Mouse(
+                                                             event => {
+                                                               React.Event.Mouse.preventDefault(
+                                                                 event,
+                                                               );
+                                                               ReactRouter.push(
+                                                                 e.path,
+                                                               );
+                                                             }:
+                                                                React.Event.Mouse.t =>
+                                                                unit,
+                                                           ),
+                                                         ),
+                                                       ),
+                                                     ],
+                                                   ),
+                                                   [e.title |> s],
+                                                 ),
+                                             }),
+                                           ],
+                                         ),
+                                     })
+                                   )
+                                |> React.list,
+                              );
+                              Buffer.add_string(b, "</ul>");
+                              ();
+                            },
+                            original: () =>
+                              React.createElement(
+                                "ul",
+                                [],
+                                [
+                                  examples
+                                  |> List.map(e =>
+                                       React.Writer({
+                                         emit: b => {
+                                           Buffer.add_string(b, "<li>");
+                                           ReactDOM.write_to_buffer(
+                                             b,
+                                             React.Writer({
+                                               emit: b => {
+                                                 Buffer.add_string(b, "<a");
+                                                 {
+                                                   Buffer.add_char(b, ' ');
+                                                   Buffer.add_string(b, "href");
+                                                   Buffer.add_string(b, "=\"");
+                                                   ReactDOM.escape_to_buffer(
+                                                     b,
+                                                     e.path: string,
+                                                   );
+                                                   Buffer.add_char(b, '"');
+                                                 };
+                                                 Buffer.add_string(b, ">");
+                                                 ReactDOM.write_to_buffer(
+                                                   b,
+                                                   e.title |> s,
+                                                 );
+                                                 Buffer.add_string(b, "</a>");
+                                                 ();
+                                               },
+                                               original: () =>
+                                                 React.createElement(
+                                                   "a",
+                                                   Stdlib.List.filter_map(
+                                                     Stdlib.Fun.id,
+                                                     [
+                                                       Some(
+                                                         [@implicit_arity]
+                                                         React.JSX.String(
+                                                           "href",
+                                                           "href",
+                                                           e.path: string,
+                                                         ),
+                                                       ),
+                                                       Some(
+                                                         [@implicit_arity]
+                                                         React.JSX.Event(
+                                                           "onClick",
+                                                           React.JSX.Mouse(
+                                                             event => {
+                                                               React.Event.Mouse.preventDefault(
+                                                                 event,
+                                                               );
+                                                               ReactRouter.push(
+                                                                 e.path,
+                                                               );
+                                                             }:
+                                                                React.Event.Mouse.t =>
+                                                                unit,
+                                                           ),
+                                                         ),
+                                                       ),
+                                                     ],
+                                                   ),
+                                                   [e.title |> s],
+                                                 ),
+                                             }),
+                                           );
+                                           Buffer.add_string(b, "</li>");
+                                           ();
+                                         },
+                                         original: () =>
+                                           React.createElementWithKey(
+                                             ~key=e.path,
+                                             "li",
+                                             Stdlib.List.filter_map(
+                                               Stdlib.Fun.id,
+                                               [
+                                                 Some(
+                                                   [@implicit_arity]
+                                                   React.JSX.String(
+                                                     "key",
+                                                     "key",
+                                                     e.path: string,
+                                                   ),
+                                                 ),
+                                               ],
+                                             ),
+                                             [
+                                               React.Writer({
+                                                 emit: b => {
+                                                   Buffer.add_string(b, "<a");
+                                                   {
+                                                     Buffer.add_char(b, ' ');
+                                                     Buffer.add_string(
+                                                       b,
+                                                       "href",
+                                                     );
+                                                     Buffer.add_string(
+                                                       b,
+                                                       "=\"",
+                                                     );
+                                                     ReactDOM.escape_to_buffer(
+                                                       b,
+                                                       e.path: string,
+                                                     );
+                                                     Buffer.add_char(b, '"');
+                                                   };
+                                                   Buffer.add_string(b, ">");
+                                                   ReactDOM.write_to_buffer(
+                                                     b,
+                                                     e.title |> s,
+                                                   );
+                                                   Buffer.add_string(b, "</a>");
+                                                   ();
+                                                 },
+                                                 original: () =>
+                                                   React.createElement(
+                                                     "a",
+                                                     Stdlib.List.filter_map(
+                                                       Stdlib.Fun.id,
+                                                       [
+                                                         Some(
+                                                           [@implicit_arity]
+                                                           React.JSX.String(
+                                                             "href",
+                                                             "href",
+                                                             e.path: string,
+                                                           ),
+                                                         ),
+                                                         Some(
+                                                           [@implicit_arity]
+                                                           React.JSX.Event(
+                                                             "onClick",
+                                                             React.JSX.Mouse(
+                                                               event => {
+                                                                 React.Event.Mouse.preventDefault(
+                                                                   event,
+                                                                 );
+                                                                 ReactRouter.push(
+                                                                   e.path,
+                                                                 );
+                                                               }:
+                                                                  React.Event.Mouse.t =>
+                                                                  unit,
+                                                             ),
+                                                           ),
+                                                         ),
+                                                       ],
+                                                     ),
+                                                     [e.title |> s],
+                                                   ),
+                                               }),
                                              ],
                                            ),
                                        })
@@ -1834,176 +2415,28 @@
                                          Buffer.add_string(b, "<li>");
                                          ReactDOM.write_to_buffer(
                                            b,
-                                           React.createElement(
-                                             "a",
-                                             Stdlib.List.filter_map(
-                                               Stdlib.Fun.id,
-                                               [
-                                                 Some(
-                                                   [@implicit_arity]
-                                                   React.JSX.String(
-                                                     "href",
-                                                     "href",
-                                                     e.path: string,
-                                                   ),
-                                                 ),
-                                                 Some(
-                                                   [@implicit_arity]
-                                                   React.JSX.Event(
-                                                     "onClick",
-                                                     React.JSX.Mouse(
-                                                       event => {
-                                                         React.Event.Mouse.preventDefault(
-                                                           event,
-                                                         );
-                                                         ReactRouter.push(
-                                                           e.path,
-                                                         );
-                                                       }:
-                                                          React.Event.Mouse.t =>
-                                                          unit,
-                                                     ),
-                                                   ),
-                                                 ),
-                                               ],
-                                             ),
-                                             [e.title |> s],
-                                           ),
-                                         );
-                                         Buffer.add_string(b, "</li>");
-                                         ();
-                                       },
-                                       original: () =>
-                                         React.createElementWithKey(
-                                           ~key=e.path,
-                                           "li",
-                                           Stdlib.List.filter_map(
-                                             Stdlib.Fun.id,
-                                             [
-                                               Some(
-                                                 [@implicit_arity]
-                                                 React.JSX.String(
-                                                   "key",
-                                                   "key",
+                                           React.Writer({
+                                             emit: b => {
+                                               Buffer.add_string(b, "<a");
+                                               {
+                                                 Buffer.add_char(b, ' ');
+                                                 Buffer.add_string(b, "href");
+                                                 Buffer.add_string(b, "=\"");
+                                                 ReactDOM.escape_to_buffer(
+                                                   b,
                                                    e.path: string,
-                                                 ),
-                                               ),
-                                             ],
-                                           ),
-                                           [
-                                             React.createElement(
-                                               "a",
-                                               Stdlib.List.filter_map(
-                                                 Stdlib.Fun.id,
-                                                 [
-                                                   Some(
-                                                     [@implicit_arity]
-                                                     React.JSX.String(
-                                                       "href",
-                                                       "href",
-                                                       e.path: string,
-                                                     ),
-                                                   ),
-                                                   Some(
-                                                     [@implicit_arity]
-                                                     React.JSX.Event(
-                                                       "onClick",
-                                                       React.JSX.Mouse(
-                                                         event => {
-                                                           React.Event.Mouse.preventDefault(
-                                                             event,
-                                                           );
-                                                           ReactRouter.push(
-                                                             e.path,
-                                                           );
-                                                         }:
-                                                            React.Event.Mouse.t =>
-                                                            unit,
-                                                       ),
-                                                     ),
-                                                   ),
-                                                 ],
-                                               ),
-                                               [e.title |> s],
-                                             ),
-                                           ],
-                                         ),
-                                     })
-                                   )
-                                |> React.list,
-                              );
-                              Buffer.add_string(b, "</ul>");
-                              ();
-                            },
-                            original: () =>
-                              React.createElement(
-                                "ul",
-                                [],
-                                [
-                                  examples
-                                  |> List.map(e =>
-                                       React.Writer({
-                                         emit: b => {
-                                           Buffer.add_string(b, "<li>");
-                                           ReactDOM.write_to_buffer(
-                                             b,
-                                             React.createElement(
-                                               "a",
-                                               Stdlib.List.filter_map(
-                                                 Stdlib.Fun.id,
-                                                 [
-                                                   Some(
-                                                     [@implicit_arity]
-                                                     React.JSX.String(
-                                                       "href",
-                                                       "href",
-                                                       e.path: string,
-                                                     ),
-                                                   ),
-                                                   Some(
-                                                     [@implicit_arity]
-                                                     React.JSX.Event(
-                                                       "onClick",
-                                                       React.JSX.Mouse(
-                                                         event => {
-                                                           React.Event.Mouse.preventDefault(
-                                                             event,
-                                                           );
-                                                           ReactRouter.push(
-                                                             e.path,
-                                                           );
-                                                         }:
-                                                            React.Event.Mouse.t =>
-                                                            unit,
-                                                       ),
-                                                     ),
-                                                   ),
-                                                 ],
-                                               ),
-                                               [e.title |> s],
-                                             ),
-                                           );
-                                           Buffer.add_string(b, "</li>");
-                                           ();
-                                         },
-                                         original: () =>
-                                           React.createElementWithKey(
-                                             ~key=e.path,
-                                             "li",
-                                             Stdlib.List.filter_map(
-                                               Stdlib.Fun.id,
-                                               [
-                                                 Some(
-                                                   [@implicit_arity]
-                                                   React.JSX.String(
-                                                     "key",
-                                                     "key",
-                                                     e.path: string,
-                                                   ),
-                                                 ),
-                                               ],
-                                             ),
-                                             [
+                                                 );
+                                                 Buffer.add_char(b, '"');
+                                               };
+                                               Buffer.add_string(b, ">");
+                                               ReactDOM.write_to_buffer(
+                                                 b,
+                                                 e.title |> s,
+                                               );
+                                               Buffer.add_string(b, "</a>");
+                                               ();
+                                             },
+                                             original: () =>
                                                React.createElement(
                                                  "a",
                                                  Stdlib.List.filter_map(
@@ -2039,6 +2472,252 @@
                                                  ),
                                                  [e.title |> s],
                                                ),
+                                           }),
+                                         );
+                                         Buffer.add_string(b, "</li>");
+                                         ();
+                                       },
+                                       original: () =>
+                                         React.createElementWithKey(
+                                           ~key=e.path,
+                                           "li",
+                                           Stdlib.List.filter_map(
+                                             Stdlib.Fun.id,
+                                             [
+                                               Some(
+                                                 [@implicit_arity]
+                                                 React.JSX.String(
+                                                   "key",
+                                                   "key",
+                                                   e.path: string,
+                                                 ),
+                                               ),
+                                             ],
+                                           ),
+                                           [
+                                             React.Writer({
+                                               emit: b => {
+                                                 Buffer.add_string(b, "<a");
+                                                 {
+                                                   Buffer.add_char(b, ' ');
+                                                   Buffer.add_string(b, "href");
+                                                   Buffer.add_string(b, "=\"");
+                                                   ReactDOM.escape_to_buffer(
+                                                     b,
+                                                     e.path: string,
+                                                   );
+                                                   Buffer.add_char(b, '"');
+                                                 };
+                                                 Buffer.add_string(b, ">");
+                                                 ReactDOM.write_to_buffer(
+                                                   b,
+                                                   e.title |> s,
+                                                 );
+                                                 Buffer.add_string(b, "</a>");
+                                                 ();
+                                               },
+                                               original: () =>
+                                                 React.createElement(
+                                                   "a",
+                                                   Stdlib.List.filter_map(
+                                                     Stdlib.Fun.id,
+                                                     [
+                                                       Some(
+                                                         [@implicit_arity]
+                                                         React.JSX.String(
+                                                           "href",
+                                                           "href",
+                                                           e.path: string,
+                                                         ),
+                                                       ),
+                                                       Some(
+                                                         [@implicit_arity]
+                                                         React.JSX.Event(
+                                                           "onClick",
+                                                           React.JSX.Mouse(
+                                                             event => {
+                                                               React.Event.Mouse.preventDefault(
+                                                                 event,
+                                                               );
+                                                               ReactRouter.push(
+                                                                 e.path,
+                                                               );
+                                                             }:
+                                                                React.Event.Mouse.t =>
+                                                                unit,
+                                                           ),
+                                                         ),
+                                                       ),
+                                                     ],
+                                                   ),
+                                                   [e.title |> s],
+                                                 ),
+                                             }),
+                                           ],
+                                         ),
+                                     })
+                                   )
+                                |> React.list,
+                              );
+                              Buffer.add_string(b, "</ul>");
+                              ();
+                            },
+                            original: () =>
+                              React.createElement(
+                                "ul",
+                                [],
+                                [
+                                  examples
+                                  |> List.map(e =>
+                                       React.Writer({
+                                         emit: b => {
+                                           Buffer.add_string(b, "<li>");
+                                           ReactDOM.write_to_buffer(
+                                             b,
+                                             React.Writer({
+                                               emit: b => {
+                                                 Buffer.add_string(b, "<a");
+                                                 {
+                                                   Buffer.add_char(b, ' ');
+                                                   Buffer.add_string(b, "href");
+                                                   Buffer.add_string(b, "=\"");
+                                                   ReactDOM.escape_to_buffer(
+                                                     b,
+                                                     e.path: string,
+                                                   );
+                                                   Buffer.add_char(b, '"');
+                                                 };
+                                                 Buffer.add_string(b, ">");
+                                                 ReactDOM.write_to_buffer(
+                                                   b,
+                                                   e.title |> s,
+                                                 );
+                                                 Buffer.add_string(b, "</a>");
+                                                 ();
+                                               },
+                                               original: () =>
+                                                 React.createElement(
+                                                   "a",
+                                                   Stdlib.List.filter_map(
+                                                     Stdlib.Fun.id,
+                                                     [
+                                                       Some(
+                                                         [@implicit_arity]
+                                                         React.JSX.String(
+                                                           "href",
+                                                           "href",
+                                                           e.path: string,
+                                                         ),
+                                                       ),
+                                                       Some(
+                                                         [@implicit_arity]
+                                                         React.JSX.Event(
+                                                           "onClick",
+                                                           React.JSX.Mouse(
+                                                             event => {
+                                                               React.Event.Mouse.preventDefault(
+                                                                 event,
+                                                               );
+                                                               ReactRouter.push(
+                                                                 e.path,
+                                                               );
+                                                             }:
+                                                                React.Event.Mouse.t =>
+                                                                unit,
+                                                           ),
+                                                         ),
+                                                       ),
+                                                     ],
+                                                   ),
+                                                   [e.title |> s],
+                                                 ),
+                                             }),
+                                           );
+                                           Buffer.add_string(b, "</li>");
+                                           ();
+                                         },
+                                         original: () =>
+                                           React.createElementWithKey(
+                                             ~key=e.path,
+                                             "li",
+                                             Stdlib.List.filter_map(
+                                               Stdlib.Fun.id,
+                                               [
+                                                 Some(
+                                                   [@implicit_arity]
+                                                   React.JSX.String(
+                                                     "key",
+                                                     "key",
+                                                     e.path: string,
+                                                   ),
+                                                 ),
+                                               ],
+                                             ),
+                                             [
+                                               React.Writer({
+                                                 emit: b => {
+                                                   Buffer.add_string(b, "<a");
+                                                   {
+                                                     Buffer.add_char(b, ' ');
+                                                     Buffer.add_string(
+                                                       b,
+                                                       "href",
+                                                     );
+                                                     Buffer.add_string(
+                                                       b,
+                                                       "=\"",
+                                                     );
+                                                     ReactDOM.escape_to_buffer(
+                                                       b,
+                                                       e.path: string,
+                                                     );
+                                                     Buffer.add_char(b, '"');
+                                                   };
+                                                   Buffer.add_string(b, ">");
+                                                   ReactDOM.write_to_buffer(
+                                                     b,
+                                                     e.title |> s,
+                                                   );
+                                                   Buffer.add_string(b, "</a>");
+                                                   ();
+                                                 },
+                                                 original: () =>
+                                                   React.createElement(
+                                                     "a",
+                                                     Stdlib.List.filter_map(
+                                                       Stdlib.Fun.id,
+                                                       [
+                                                         Some(
+                                                           [@implicit_arity]
+                                                           React.JSX.String(
+                                                             "href",
+                                                             "href",
+                                                             e.path: string,
+                                                           ),
+                                                         ),
+                                                         Some(
+                                                           [@implicit_arity]
+                                                           React.JSX.Event(
+                                                             "onClick",
+                                                             React.JSX.Mouse(
+                                                               event => {
+                                                                 React.Event.Mouse.preventDefault(
+                                                                   event,
+                                                                 );
+                                                                 ReactRouter.push(
+                                                                   e.path,
+                                                                 );
+                                                               }:
+                                                                  React.Event.Mouse.t =>
+                                                                  unit,
+                                                             ),
+                                                           ),
+                                                         ),
+                                                       ],
+                                                     ),
+                                                     [e.title |> s],
+                                                   ),
+                                               }),
                                              ],
                                            ),
                                        })
@@ -2080,176 +2759,28 @@
                                            Buffer.add_string(b, "<li>");
                                            ReactDOM.write_to_buffer(
                                              b,
-                                             React.createElement(
-                                               "a",
-                                               Stdlib.List.filter_map(
-                                                 Stdlib.Fun.id,
-                                                 [
-                                                   Some(
-                                                     [@implicit_arity]
-                                                     React.JSX.String(
-                                                       "href",
-                                                       "href",
-                                                       e.path: string,
-                                                     ),
-                                                   ),
-                                                   Some(
-                                                     [@implicit_arity]
-                                                     React.JSX.Event(
-                                                       "onClick",
-                                                       React.JSX.Mouse(
-                                                         event => {
-                                                           React.Event.Mouse.preventDefault(
-                                                             event,
-                                                           );
-                                                           ReactRouter.push(
-                                                             e.path,
-                                                           );
-                                                         }:
-                                                            React.Event.Mouse.t =>
-                                                            unit,
-                                                       ),
-                                                     ),
-                                                   ),
-                                                 ],
-                                               ),
-                                               [e.title |> s],
-                                             ),
-                                           );
-                                           Buffer.add_string(b, "</li>");
-                                           ();
-                                         },
-                                         original: () =>
-                                           React.createElementWithKey(
-                                             ~key=e.path,
-                                             "li",
-                                             Stdlib.List.filter_map(
-                                               Stdlib.Fun.id,
-                                               [
-                                                 Some(
-                                                   [@implicit_arity]
-                                                   React.JSX.String(
-                                                     "key",
-                                                     "key",
+                                             React.Writer({
+                                               emit: b => {
+                                                 Buffer.add_string(b, "<a");
+                                                 {
+                                                   Buffer.add_char(b, ' ');
+                                                   Buffer.add_string(b, "href");
+                                                   Buffer.add_string(b, "=\"");
+                                                   ReactDOM.escape_to_buffer(
+                                                     b,
                                                      e.path: string,
-                                                   ),
-                                                 ),
-                                               ],
-                                             ),
-                                             [
-                                               React.createElement(
-                                                 "a",
-                                                 Stdlib.List.filter_map(
-                                                   Stdlib.Fun.id,
-                                                   [
-                                                     Some(
-                                                       [@implicit_arity]
-                                                       React.JSX.String(
-                                                         "href",
-                                                         "href",
-                                                         e.path: string,
-                                                       ),
-                                                     ),
-                                                     Some(
-                                                       [@implicit_arity]
-                                                       React.JSX.Event(
-                                                         "onClick",
-                                                         React.JSX.Mouse(
-                                                           event => {
-                                                             React.Event.Mouse.preventDefault(
-                                                               event,
-                                                             );
-                                                             ReactRouter.push(
-                                                               e.path,
-                                                             );
-                                                           }:
-                                                              React.Event.Mouse.t =>
-                                                              unit,
-                                                         ),
-                                                       ),
-                                                     ),
-                                                   ],
-                                                 ),
-                                                 [e.title |> s],
-                                               ),
-                                             ],
-                                           ),
-                                       })
-                                     )
-                                  |> React.list,
-                                );
-                                Buffer.add_string(b, "</ul>");
-                                ();
-                              },
-                              original: () =>
-                                React.createElement(
-                                  "ul",
-                                  [],
-                                  [
-                                    examples
-                                    |> List.map(e =>
-                                         React.Writer({
-                                           emit: b => {
-                                             Buffer.add_string(b, "<li>");
-                                             ReactDOM.write_to_buffer(
-                                               b,
-                                               React.createElement(
-                                                 "a",
-                                                 Stdlib.List.filter_map(
-                                                   Stdlib.Fun.id,
-                                                   [
-                                                     Some(
-                                                       [@implicit_arity]
-                                                       React.JSX.String(
-                                                         "href",
-                                                         "href",
-                                                         e.path: string,
-                                                       ),
-                                                     ),
-                                                     Some(
-                                                       [@implicit_arity]
-                                                       React.JSX.Event(
-                                                         "onClick",
-                                                         React.JSX.Mouse(
-                                                           event => {
-                                                             React.Event.Mouse.preventDefault(
-                                                               event,
-                                                             );
-                                                             ReactRouter.push(
-                                                               e.path,
-                                                             );
-                                                           }:
-                                                              React.Event.Mouse.t =>
-                                                              unit,
-                                                         ),
-                                                       ),
-                                                     ),
-                                                   ],
-                                                 ),
-                                                 [e.title |> s],
-                                               ),
-                                             );
-                                             Buffer.add_string(b, "</li>");
-                                             ();
-                                           },
-                                           original: () =>
-                                             React.createElementWithKey(
-                                               ~key=e.path,
-                                               "li",
-                                               Stdlib.List.filter_map(
-                                                 Stdlib.Fun.id,
-                                                 [
-                                                   Some(
-                                                     [@implicit_arity]
-                                                     React.JSX.String(
-                                                       "key",
-                                                       "key",
-                                                       e.path: string,
-                                                     ),
-                                                   ),
-                                                 ],
-                                               ),
-                                               [
+                                                   );
+                                                   Buffer.add_char(b, '"');
+                                                 };
+                                                 Buffer.add_string(b, ">");
+                                                 ReactDOM.write_to_buffer(
+                                                   b,
+                                                   e.title |> s,
+                                                 );
+                                                 Buffer.add_string(b, "</a>");
+                                                 ();
+                                               },
+                                               original: () =>
                                                  React.createElement(
                                                    "a",
                                                    Stdlib.List.filter_map(
@@ -2285,6 +2816,267 @@
                                                    ),
                                                    [e.title |> s],
                                                  ),
+                                             }),
+                                           );
+                                           Buffer.add_string(b, "</li>");
+                                           ();
+                                         },
+                                         original: () =>
+                                           React.createElementWithKey(
+                                             ~key=e.path,
+                                             "li",
+                                             Stdlib.List.filter_map(
+                                               Stdlib.Fun.id,
+                                               [
+                                                 Some(
+                                                   [@implicit_arity]
+                                                   React.JSX.String(
+                                                     "key",
+                                                     "key",
+                                                     e.path: string,
+                                                   ),
+                                                 ),
+                                               ],
+                                             ),
+                                             [
+                                               React.Writer({
+                                                 emit: b => {
+                                                   Buffer.add_string(b, "<a");
+                                                   {
+                                                     Buffer.add_char(b, ' ');
+                                                     Buffer.add_string(
+                                                       b,
+                                                       "href",
+                                                     );
+                                                     Buffer.add_string(
+                                                       b,
+                                                       "=\"",
+                                                     );
+                                                     ReactDOM.escape_to_buffer(
+                                                       b,
+                                                       e.path: string,
+                                                     );
+                                                     Buffer.add_char(b, '"');
+                                                   };
+                                                   Buffer.add_string(b, ">");
+                                                   ReactDOM.write_to_buffer(
+                                                     b,
+                                                     e.title |> s,
+                                                   );
+                                                   Buffer.add_string(b, "</a>");
+                                                   ();
+                                                 },
+                                                 original: () =>
+                                                   React.createElement(
+                                                     "a",
+                                                     Stdlib.List.filter_map(
+                                                       Stdlib.Fun.id,
+                                                       [
+                                                         Some(
+                                                           [@implicit_arity]
+                                                           React.JSX.String(
+                                                             "href",
+                                                             "href",
+                                                             e.path: string,
+                                                           ),
+                                                         ),
+                                                         Some(
+                                                           [@implicit_arity]
+                                                           React.JSX.Event(
+                                                             "onClick",
+                                                             React.JSX.Mouse(
+                                                               event => {
+                                                                 React.Event.Mouse.preventDefault(
+                                                                   event,
+                                                                 );
+                                                                 ReactRouter.push(
+                                                                   e.path,
+                                                                 );
+                                                               }:
+                                                                  React.Event.Mouse.t =>
+                                                                  unit,
+                                                             ),
+                                                           ),
+                                                         ),
+                                                       ],
+                                                     ),
+                                                     [e.title |> s],
+                                                   ),
+                                               }),
+                                             ],
+                                           ),
+                                       })
+                                     )
+                                  |> React.list,
+                                );
+                                Buffer.add_string(b, "</ul>");
+                                ();
+                              },
+                              original: () =>
+                                React.createElement(
+                                  "ul",
+                                  [],
+                                  [
+                                    examples
+                                    |> List.map(e =>
+                                         React.Writer({
+                                           emit: b => {
+                                             Buffer.add_string(b, "<li>");
+                                             ReactDOM.write_to_buffer(
+                                               b,
+                                               React.Writer({
+                                                 emit: b => {
+                                                   Buffer.add_string(b, "<a");
+                                                   {
+                                                     Buffer.add_char(b, ' ');
+                                                     Buffer.add_string(
+                                                       b,
+                                                       "href",
+                                                     );
+                                                     Buffer.add_string(
+                                                       b,
+                                                       "=\"",
+                                                     );
+                                                     ReactDOM.escape_to_buffer(
+                                                       b,
+                                                       e.path: string,
+                                                     );
+                                                     Buffer.add_char(b, '"');
+                                                   };
+                                                   Buffer.add_string(b, ">");
+                                                   ReactDOM.write_to_buffer(
+                                                     b,
+                                                     e.title |> s,
+                                                   );
+                                                   Buffer.add_string(b, "</a>");
+                                                   ();
+                                                 },
+                                                 original: () =>
+                                                   React.createElement(
+                                                     "a",
+                                                     Stdlib.List.filter_map(
+                                                       Stdlib.Fun.id,
+                                                       [
+                                                         Some(
+                                                           [@implicit_arity]
+                                                           React.JSX.String(
+                                                             "href",
+                                                             "href",
+                                                             e.path: string,
+                                                           ),
+                                                         ),
+                                                         Some(
+                                                           [@implicit_arity]
+                                                           React.JSX.Event(
+                                                             "onClick",
+                                                             React.JSX.Mouse(
+                                                               event => {
+                                                                 React.Event.Mouse.preventDefault(
+                                                                   event,
+                                                                 );
+                                                                 ReactRouter.push(
+                                                                   e.path,
+                                                                 );
+                                                               }:
+                                                                  React.Event.Mouse.t =>
+                                                                  unit,
+                                                             ),
+                                                           ),
+                                                         ),
+                                                       ],
+                                                     ),
+                                                     [e.title |> s],
+                                                   ),
+                                               }),
+                                             );
+                                             Buffer.add_string(b, "</li>");
+                                             ();
+                                           },
+                                           original: () =>
+                                             React.createElementWithKey(
+                                               ~key=e.path,
+                                               "li",
+                                               Stdlib.List.filter_map(
+                                                 Stdlib.Fun.id,
+                                                 [
+                                                   Some(
+                                                     [@implicit_arity]
+                                                     React.JSX.String(
+                                                       "key",
+                                                       "key",
+                                                       e.path: string,
+                                                     ),
+                                                   ),
+                                                 ],
+                                               ),
+                                               [
+                                                 React.Writer({
+                                                   emit: b => {
+                                                     Buffer.add_string(b, "<a");
+                                                     {
+                                                       Buffer.add_char(b, ' ');
+                                                       Buffer.add_string(
+                                                         b,
+                                                         "href",
+                                                       );
+                                                       Buffer.add_string(
+                                                         b,
+                                                         "=\"",
+                                                       );
+                                                       ReactDOM.escape_to_buffer(
+                                                         b,
+                                                         e.path: string,
+                                                       );
+                                                       Buffer.add_char(b, '"');
+                                                     };
+                                                     Buffer.add_string(b, ">");
+                                                     ReactDOM.write_to_buffer(
+                                                       b,
+                                                       e.title |> s,
+                                                     );
+                                                     Buffer.add_string(
+                                                       b,
+                                                       "</a>",
+                                                     );
+                                                     ();
+                                                   },
+                                                   original: () =>
+                                                     React.createElement(
+                                                       "a",
+                                                       Stdlib.List.filter_map(
+                                                         Stdlib.Fun.id,
+                                                         [
+                                                           Some(
+                                                             [@implicit_arity]
+                                                             React.JSX.String(
+                                                               "href",
+                                                               "href",
+                                                               e.path: string,
+                                                             ),
+                                                           ),
+                                                           Some(
+                                                             [@implicit_arity]
+                                                             React.JSX.Event(
+                                                               "onClick",
+                                                               React.JSX.Mouse(
+                                                                 event => {
+                                                                   React.Event.Mouse.preventDefault(
+                                                                     event,
+                                                                   );
+                                                                   ReactRouter.push(
+                                                                     e.path,
+                                                                   );
+                                                                 }:
+                                                                    React.Event.Mouse.t =>
+                                                                    unit,
+                                                               ),
+                                                             ),
+                                                           ),
+                                                         ],
+                                                       ),
+                                                       [e.title |> s],
+                                                     ),
+                                                 }),
                                                ],
                                              ),
                                          })
@@ -2799,22 +3591,27 @@
         ),
     });
   let div =
-    React.createElement(
-      "div",
-      Stdlib.List.filter_map(
-        Stdlib.Fun.id,
-        [
-          switch ((onClick: option(React.Event.Mouse.t => unit))) {
-          | None => None
-          | Some(v) =>
-            Some(
-              [@implicit_arity] React.JSX.Event("onClick", React.JSX.Mouse(v)),
-            )
-          },
-        ],
-      ),
-      [],
-    );
+    React.Static({
+      prerendered: "<div></div>",
+      original:
+        React.createElement(
+          "div",
+          Stdlib.List.filter_map(
+            Stdlib.Fun.id,
+            [
+              switch ((onClick: option(React.Event.Mouse.t => unit))) {
+              | None => None
+              | Some(v) =>
+                Some(
+                  [@implicit_arity]
+                  React.JSX.Event("onClick", React.JSX.Mouse(v)),
+                )
+              },
+            ],
+          ),
+          [],
+        ),
+    });
   let self_closing_tag_with_children = [%ocaml.error
     "\"meta\" is a self-closing tag and must not have \"children\".\\n"
   ];

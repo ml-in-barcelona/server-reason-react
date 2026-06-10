@@ -422,9 +422,10 @@ let emit_attr_value_write ~loc ~info ~value_expr =
   match info.kind with
   | DomProps.String -> quoted [%expr ReactDOM.escape_to_buffer b ([%e value_expr] : string)]
   | DomProps.Int ->
-      (* [Printf.bprintf b "%d" n] writes digits straight into the buffer;
-         [Stdlib.Int.to_string] would allocate a throwaway string per render. *)
-      quoted [%expr Printf.bprintf b "%d" ([%e value_expr] : int)]
+      (* [string_of_int] allocates a small short-lived string, but measures
+         ~15% faster per write than [Printf.bprintf b "%d"], whose
+         CamlinternalFormat dispatch outweighs the allocation it saves. *)
+      quoted [%expr Buffer.add_string b (Stdlib.string_of_int ([%e value_expr] : int))]
   | DomProps.Bool ->
       (* Matches [Bool (name, _, true) -> " " ^ name] / [false -> nothing]. *)
       [%expr
@@ -434,7 +435,14 @@ let emit_attr_value_write ~loc ~info ~value_expr =
         end]
   | DomProps.BooleanishString ->
       quoted [%expr Buffer.add_string b (if ([%e value_expr] : bool) then "true" else "false")]
-  | DomProps.Action | DomProps.Style | DomProps.Ref | DomProps.InnerHtml ->
+  | DomProps.Style ->
+      (* Mirrors [ReactDOM.write_attribute_to_buffer]'s [Style] case exactly:
+         same serializer, same (lack of) escaping, byte-identical output. *)
+      [%expr
+        Buffer.add_string b " style=\"";
+        ReactDOM.Style.write_to_buffer b ([%e value_expr] : ReactDOM.Style.t);
+        Buffer.add_char b '"']
+  | DomProps.Action | DomProps.Ref | DomProps.InnerHtml ->
       (* Unreachable: [is_lowerable_kind] rejects these kinds before we ever
          reach emission. Fail loud at compile time if the invariant breaks. *)
       Location.raise_errorf ~loc "internal PPX error: attribute kind not lowerable but reached emission (name=%s)"
@@ -471,7 +479,7 @@ let emit_parts_emit_fn ~loc parts =
             [%expr ReactDOM.escape_to_buffer b [%e e]]
         | Dynamic_int e ->
             let loc = e.pexp_loc in
-            [%expr Printf.bprintf b "%d" [%e e]]
+            [%expr Buffer.add_string b (Stdlib.string_of_int [%e e])]
         | Dynamic_float e ->
             let loc = e.pexp_loc in
             [%expr Buffer.add_string b (Stdlib.Float.to_string [%e e])]
@@ -769,34 +777,50 @@ let option_is_some_expr ~loc expr = [%expr match [%e expr] with None -> false | 
 let js_obj_internal_expression ~loc name =
   pexp_ident ~loc { txt = Ldot (Ldot (Ldot (Lident "Js", "Obj"), "Internal"), name); loc }
 
-let build_registered_js_object_expression ?as_type ?(register_name = "register_structural") ~loc fields =
+let is_literal_bool_expr expr =
+  match expr.pexp_desc with Pexp_construct ({ txt = Lident ("true" | "false"); _ }, None) -> true | _ -> false
+
+(* Emits a registered [Js.t] object. Field values live in plain refs read by
+   the object methods; the registry entry is a single [Deferred] thunk that
+   builds the per-field [entry] records (a record plus two boxing closures
+   each) only if [Js.Obj.keys]/[assign]/[merge] ever inspects the object.
+   This keeps object construction — every [makeProps] call and [%mel.obj]
+   literal — free of per-field entry allocation. *)
+let build_registered_js_object_expression ?as_type ?(register_name = "register_deferred") ~loc fields =
   let generated_fields =
     List.mapi fields ~f:(fun index { method_name; js_name; present_expr; value_expr } ->
         let cell_name = Printf.sprintf "__js_obj_cell_%d" index in
-        let entry_name = Printf.sprintf "__js_obj_entry_%d" index in
-        let slot_call =
+        let cell_binding =
+          value_binding ~loc ~pat:(ppat_var ~loc { loc; txt = cell_name }) ~expr:[%expr Stdlib.ref [%e value_expr]]
+        in
+        (* [present] must be evaluated at construction time (it reads the
+           original argument), but literal booleans can be inlined into the
+           thunk directly. *)
+        let present_bindings, present_in_thunk =
+          if is_literal_bool_expr present_expr then ([], present_expr)
+          else
+            let present_name = Printf.sprintf "__js_obj_present_%d" index in
+            ( [ value_binding ~loc ~pat:(ppat_var ~loc { loc; txt = present_name }) ~expr:present_expr ],
+              evar ~loc present_name )
+        in
+        let entry_expr =
           pexp_apply ~loc
-            (js_obj_internal_expression ~loc "slot_ref")
+            (js_obj_internal_expression ~loc "deferred_entry")
             [
               (Labelled "method_name", estring ~loc method_name);
               (Labelled "js_name", estring ~loc js_name);
-              (Labelled "present", present_expr);
-              (Nolabel, value_expr);
+              (Labelled "present", present_in_thunk);
+              (Nolabel, evar ~loc cell_name);
             ]
-        in
-        let slot_binding =
-          value_binding ~loc
-            ~pat:(ppat_tuple ~loc [ ppat_var ~loc { loc; txt = cell_name }; ppat_var ~loc { loc; txt = entry_name } ])
-            ~expr:slot_call
         in
         let method_body = pexp_apply ~loc (evar ~loc "!") [ (Nolabel, evar ~loc cell_name) ] in
         let method_ = pcf_method ~loc (Located.mk method_name ~loc, Public, Cfk_concrete (Fresh, method_body)) in
-        (slot_binding, evar ~loc entry_name, method_))
+        (cell_binding :: present_bindings, entry_expr, method_))
   in
   let slot_bindings, entry_exprs, methods =
     List.fold_right generated_fields ~init:([], [], [])
-      ~f:(fun (slot_binding, entry_expr, method_) (slot_bindings, entry_exprs, methods) ->
-        (slot_binding :: slot_bindings, entry_expr :: entry_exprs, method_ :: methods))
+      ~f:(fun (bindings, entry_expr, method_) (slot_bindings, entry_exprs, methods) ->
+        (bindings @ slot_bindings, entry_expr :: entry_exprs, method_ :: methods))
   in
   let object_name = "__js_obj" in
   let object_binding =
@@ -804,10 +828,11 @@ let build_registered_js_object_expression ?as_type ?(register_name = "register_s
       ~pat:(ppat_var ~loc { loc; txt = object_name })
       ~expr:(pexp_object ~loc (class_structure ~self:(ppat_any ~loc) ~fields:methods))
   in
+  let entries_thunk = [%expr fun () -> [%e pexp_list ~loc entry_exprs]] in
   let register_call =
     pexp_apply ~loc
       (js_obj_internal_expression ~loc register_name)
-      [ (Nolabel, evar ~loc object_name); (Nolabel, pexp_list ~loc entry_exprs) ]
+      [ (Nolabel, evar ~loc object_name); (Nolabel, entries_thunk) ]
   in
   let register_call =
     match as_type with None -> register_call | Some core_type -> pexp_constraint ~loc register_call core_type
@@ -937,7 +962,8 @@ let build_make_props_binding ~loc ~fn_name args =
         { method_name = field_name; js_name = translate_mel_obj_label field_name; present_expr; value_expr })
   in
   let body =
-    build_registered_js_object_expression ~as_type:props_type ~register_name:"register_abstract" ~loc object_fields
+    build_registered_js_object_expression ~as_type:props_type ~register_name:"register_deferred_abstract" ~loc
+      object_fields
   in
   let body = pexp_fun ~loc Nolabel None [%pat? ()] body in
   let body =
