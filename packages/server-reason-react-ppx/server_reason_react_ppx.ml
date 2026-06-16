@@ -448,6 +448,23 @@ let emit_attr_value_write ~loc ~info ~value_expr =
       Location.raise_errorf ~loc "internal PPX error: attribute kind not lowerable but reached emission (name=%s)"
         info.html_name
 
+(* The concrete (non-option) value type carried by a lowerable attribute
+   kind. Used to annotate an optional attribute's scrutinee as
+   [(expr : t option)] so OCaml's type-directed disambiguation resolves a
+   bare [None]/[Some] in [expr] against [option] — even when a user type in
+   scope shadows them (e.g. [type roundness = … | None]). This mirrors the
+   annotations the variant-tree path emits in [make_prop]; without it the
+   [Writer.emit] fast path is the only place that loses the expected type. *)
+let attr_value_core_type ~loc (kind : DomProps.attributeType) =
+  match kind with
+  | DomProps.String -> [%type: string]
+  | DomProps.Int -> [%type: int]
+  | DomProps.Bool | DomProps.BooleanishString -> [%type: bool]
+  | DomProps.Style -> [%type: ReactDOM.Style.t]
+  | DomProps.Action | DomProps.Ref | DomProps.InnerHtml ->
+      (* Unreachable for the same reason as [emit_attr_value_write]. *)
+      Location.raise_errorf ~loc "internal PPX error: attribute kind not lowerable but reached emission"
+
 (* Emit the [Buffer.t -> unit] body for a [static_part list]. Writes the
    static skeleton inline; each dynamic hole becomes a [Buffer.add_*] /
    escape / attribute-emission call that runs at render time with no
@@ -468,7 +485,10 @@ let emit_parts_emit_fn ~loc parts =
       | Pexp_construct ({ txt = Lident "Some"; _ }, Some inner) -> emit_attr_value_write ~loc ~info ~value_expr:inner
       | _ ->
           let write_some = emit_attr_value_write ~loc ~info ~value_expr:[%expr v] in
-          [%expr match [%e expr] with None -> () | Some v -> [%e write_some]]
+          let value_ty = attr_value_core_type ~loc info.kind in
+          (* Annotate the scrutinee so a bare [None]/[Some] inside [expr]
+             disambiguates to [option] and not a shadowing user constructor. *)
+          [%expr match ([%e expr] : [%t value_ty] option) with None -> () | Some v -> [%e write_some]]
   in
   let writes =
     List.map parts ~f:(fun part ->

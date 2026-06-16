@@ -59,7 +59,7 @@
     React.Writer({
       emit: b => {
         Buffer.add_string(b, "<div");
-        switch (tabIndex) {
+        switch ((tabIndex: option(int))) {
         | None => ()
         | Some(v) =>
           Buffer.add_char(b, ' ');

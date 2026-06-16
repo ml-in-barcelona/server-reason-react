@@ -690,6 +690,54 @@ let styles_attribute_optional_some_with_class_and_style = () => {
   );
 };
 
+/* Regression: expected-type propagation for optional host-element props.
+   `Shadowed_none.None` shadows option's `None` (mirroring ahkit's
+   `roundness`). The Writer fast path must annotate the optional attribute
+   scrutinee with its concrete option type; otherwise the bare `None` in
+   `disabled ? None : Some(href)` resolves to `Shadowed_none.None` and this
+   module fails to type-check. This whole module not compiling *is* the
+   regression — see docs/srr-styled-ppx-jsx-type-propagation-fix-plan.md. */
+module Shadowed_none = {
+  type roundness =
+    | Full
+    | None;
+
+  /* Build both constructors so the shadow is genuine (not a pattern-only
+     constructor) and we don't trip the unused-constructor warning. */
+  let _variants = [Full, None];
+
+  let link = (~href, ~disabled) =>
+    <a href=?{disabled ? None : Some(href)}> {React.string("x")} </a>;
+
+  let link_with_styles = (~href, ~disabled, ~styles) =>
+    <a styles href=?{disabled ? None : Some(href)}> {React.string("x")} </a>;
+};
+
+let optional_prop_with_shadowed_none = () => {
+  assert_string(
+    ReactDOM.renderToStaticMarkup(
+      Shadowed_none.link(~href="/blog", ~disabled=false),
+    ),
+    {|<a href="/blog">x</a>|},
+  );
+  assert_string(
+    ReactDOM.renderToStaticMarkup(
+      Shadowed_none.link(~href="/blog", ~disabled=true),
+    ),
+    {|<a>x</a>|},
+  );
+};
+
+let optional_prop_with_shadowed_none_and_styles = () => {
+  let styles = ("klass", ReactDOM.Style.make(~color="red", ()));
+  assert_string(
+    ReactDOM.renderToStaticMarkup(
+      Shadowed_none.link_with_styles(~href="/blog", ~disabled=false, ~styles),
+    ),
+    {|<a class="klass" style="color:red" href="/blog">x</a>|},
+  );
+};
+
 Alcotest_lwt.run(
   "server-reason-react.ppx",
   [
@@ -745,6 +793,14 @@ Alcotest_lwt.run(
     test(
       "styles_attribute_optional_some_with_class_and_style",
       styles_attribute_optional_some_with_class_and_style,
+    ),
+    test(
+      "optional_prop_with_shadowed_none",
+      optional_prop_with_shadowed_none,
+    ),
+    test(
+      "optional_prop_with_shadowed_none_and_styles",
+      optional_prop_with_shadowed_none_and_styles,
     ),
     test_lwt("server_function", server_function),
     test_lwt("server_function_reference", server_function_reference),

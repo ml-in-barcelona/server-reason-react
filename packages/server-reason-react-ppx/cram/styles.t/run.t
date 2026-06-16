@@ -33,7 +33,10 @@ We need to output ML syntax here, otherwise refmt could not parse it.
       emit =
         (fun b ->
           Buffer.add_string b "<div";
-          (match match x with None -> None | Some x -> Some (fst x) with
+          (match
+             (match x with None -> None | Some x -> Some (fst x)
+               : string option)
+           with
           | None -> ()
           | Some v ->
               Buffer.add_char b ' ';
@@ -41,7 +44,10 @@ We need to output ML syntax here, otherwise refmt could not parse it.
               Buffer.add_string b "=\"";
               ReactDOM.escape_to_buffer b (v : string);
               Buffer.add_char b '"');
-          (match match x with None -> None | Some x -> Some (snd x) with
+          (match
+             (match x with None -> None | Some x -> Some (snd x)
+               : ReactDOM.Style.t option)
+           with
           | None -> ()
           | Some v ->
               Buffer.add_string b " style=\"";
@@ -196,7 +202,10 @@ We need to output ML syntax here, otherwise refmt could not parse it.
              | Some x -> x ^ " " ^ "lola"
               : string);
           Buffer.add_char b '"';
-          (match match x with None -> None | Some x -> Some (snd x) with
+          (match
+             (match x with None -> None | Some x -> Some (snd x)
+               : ReactDOM.Style.t option)
+           with
           | None -> ()
           | Some v ->
               Buffer.add_string b " style=\"";
@@ -235,7 +244,10 @@ We need to output ML syntax here, otherwise refmt could not parse it.
       emit =
         (fun b ->
           Buffer.add_string b "<div";
-          (match match x with None -> None | Some x -> Some (fst x) with
+          (match
+             (match x with None -> None | Some x -> Some (fst x)
+               : string option)
+           with
           | None -> ()
           | Some v ->
               Buffer.add_char b ' ';
