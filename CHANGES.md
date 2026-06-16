@@ -2,6 +2,7 @@
 
 ## 0.5.0
 
+* Fix unescaped inline `style` attribute in SSR, which truncated the attribute when a CSS value contained a double quote (e.g. a quoted font-family)
 * Improve SSR rendering performance (geomean 1.39x, props-heavy scenarios up to 1.9x, 25-52% less allocation per render) with byte-identical HTML output: lazy/deferred `Js.t` object registration (no more per-`makeProps` Hashtbl and per-field entry allocation), widen the PPX Writer fast path to `style` attributes (literal styles fold to compile-time strings) and skip SSR-ignored attributes (events, `suppress*Warning`), eliminate closure-per-node allocation in the sync render paths, and seed render buffers with the previous render's size. Also fixes literal `suppressHydrationWarning` leaking into prerendered HTML by @davesnx
 * Support Promise caching in react.client.components by @davesnx
 * Reorder head content exactly like react-dom/server by @davesnx
