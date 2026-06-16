@@ -66,6 +66,13 @@ let suspense_fallback_on_error () =
   let html = ReactDOM.renderToString el in
   assert_string html "<!--$!--><div>fallback</div><!--/$-->"
 
+let inline_style_escaping () =
+  (* A quoted CSS value must be escaped so it doesn't terminate the style="..."
+     attribute early and drop the following custom properties. *)
+  let style = ReactDOMStyle.unsafeAddProp (ReactDOMStyle.make ~padding:"8px" ()) "--font" {|"Ahrefs", sans-serif|} in
+  let div = React.createElement "div" [ React.JSX.style style ] [] in
+  assert_string (ReactDOM.renderToString div) {|<div style="--font:&quot;Ahrefs&quot;, sans-serif;padding:8px"></div>|}
+
 let test title fn = (Printf.sprintf "ReactDOM.renderToString / %s" title, [ Alcotest_lwt.test_case_sync "" `Quick fn ])
 
 let tests =
@@ -78,4 +85,5 @@ let tests =
     test "text_after_element_with_text_child" text_after_element_with_text_child;
     test "suspense children render exactly once" suspense_children_render_once;
     test "suspense renders fallback on error" suspense_fallback_on_error;
+    test "inline style escaping" inline_style_escaping;
   ]

@@ -53,6 +53,13 @@ let style_attribute () =
   let div = React.createElement "div" [ React.JSX.style (ReactDOMStyle.make ~color:"red" ~border:"none" ()) ] [] in
   assert_string (write div) {|<div style="color:red;border:none"></div>|}
 
+let style_attribute_escaping () =
+  (* A quote inside a style value must be escaped, otherwise it terminates the
+     style="..." attribute early and the browser drops every property after it. *)
+  let style = ReactDOMStyle.unsafeAddProp (ReactDOMStyle.make ()) "--font" {|"Ahrefs", sans-serif|} in
+  let div = React.createElement "div" [ React.JSX.style style ] [] in
+  assert_string (write div) {|<div style="--font:&quot;Ahrefs&quot;, sans-serif"></div>|}
+
 let html_escaping () =
   let div = React.createElement "div" [] [ React.string "a < b & c > d \"e\" 'f'" ] in
   assert_string (write div) "<div>a &lt; b &amp; c &gt; d &quot;e&quot; &apos;f&apos;</div>"
@@ -184,6 +191,7 @@ let tests =
     test "bool true attribute" bool_true_attribute;
     test "bool false attribute" bool_false_attribute;
     test "style attribute" style_attribute;
+    test "style attribute escaping" style_attribute_escaping;
     test "html escaping" html_escaping;
     test "attribute escaping" attribute_escaping;
     test "dangerouslySetInnerHTML" dangerously_set_inner_html;

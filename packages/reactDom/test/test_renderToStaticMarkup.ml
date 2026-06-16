@@ -99,6 +99,13 @@ let inline_styles () =
   in
   assert_string (ReactDOM.renderToStaticMarkup component) "<button style=\"color:red;border:none\"></button>"
 
+let inline_styles_escaping () =
+  (* font-family values are wrapped in double quotes; they must be escaped so the
+     style attribute isn't terminated early (see styled-ppx SSR escaping bug). *)
+  let style = ReactDOMStyle.unsafeAddProp (ReactDOMStyle.make ()) "--font" {|"Ahrefs", sans-serif|} in
+  let component = React.createElement "p" [ React.JSX.style style ] [] in
+  assert_string (ReactDOM.renderToStaticMarkup component) "<p style=\"--font:&quot;Ahrefs&quot;, sans-serif\"></p>"
+
 let encode_attributes () =
   let component =
     React.createElement "div"
@@ -364,6 +371,7 @@ let tests =
     test "fragments_and_texts" fragments_and_texts;
     test "ignored_attributes_on_jsx" ignored_attributes_on_jsx;
     test "inline_styles" inline_styles;
+    test "inline_styles_escaping" inline_styles_escaping;
     test "encode_attributes" encode_attributes;
     test "dom_props_should_work" dom_props_should_work;
     test "dangerouslySetInnerHtml" dangerouslySetInnerHtml;

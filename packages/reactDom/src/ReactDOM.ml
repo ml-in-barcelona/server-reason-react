@@ -23,7 +23,7 @@ let write_attribute_to_buffer buf (attr : React.JSX.prop) =
   | Action (_, _, _) -> ()
   | Style styles ->
       Buffer.add_string buf " style=\"";
-      Style.write_to_buffer buf styles;
+      Html.escape buf (Style.to_string styles);
       Buffer.add_char buf '"'
   | String (name, _, _value) when is_react_custom_attribute name -> ()
   | String (name, _, value) ->
