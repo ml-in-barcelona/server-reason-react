@@ -1,0 +1,4 @@
+--- /home/me/server-reason-react/compare/srr-compare.EKwyBv/js.output	2026-01-26 19:57:21.195969959 +0000
++++ /home/me/server-reason-react/compare/srr-compare.EKwyBv/native.output	2026-01-26 19:57:21.227970138 +0000
+@@ -0,0 +1 @@
++0:["$","div",null,{"children":"Hello from App"},null,[],{}]

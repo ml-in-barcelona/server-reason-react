@@ -1,0 +1,15 @@
+(melange.emit
+ (target output)
+ (module_systems
+  (es6 re.js))
+ (modules App_js Entry_js)
+ (libraries melange reason-react)
+ (preprocess
+  (pps server-reason-react.ppx -melange reason-react-ppx melange.ppx)))
+
+(executable
+ (name runner)
+ (modules App_native Entry_native Runner)
+ (libraries react reactDOM lwt lwt.unix)
+ (preprocess
+  (pps server-reason-react.ppx lwt_ppx)))
