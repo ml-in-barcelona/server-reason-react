@@ -93,6 +93,31 @@ let style_attribute = () => {
   );
 };
 
+let style_attribute_escaping = () => {
+  /* A quoted CSS value (e.g. a font-family) must be HTML-escaped so it can't
+     terminate the style="..." attribute early. This inline literal is folded
+     by the PPX static-skeleton path (extract_static_style). */
+  let div =
+    <div
+      style={ReactDOM.Style.make(~fontFamily={|"Ahrefs", sans-serif|}, ())}
+    />;
+  assert_string(
+    ReactDOM.renderToStaticMarkup(div),
+    {|<div style="font-family:&quot;Ahrefs&quot;, sans-serif"></div>|},
+  );
+};
+
+let style_attribute_escaping_dynamic = () => {
+  /* A non-literal style is emitted as a PPX Writer hole that serializes at
+     render time; the quoted value must be escaped there too. */
+  let style = ReactDOM.Style.make(~fontFamily={|"Ahrefs", sans-serif|}, ());
+  let div = <div style />;
+  assert_string(
+    ReactDOM.renderToStaticMarkup(div),
+    {|<div style="font-family:&quot;Ahrefs&quot;, sans-serif"></div>|},
+  );
+};
+
 let ref_attribute = () => {
   let div = <div />;
   assert_string(ReactDOM.renderToStaticMarkup(div), {|<div></div>|});
@@ -752,6 +777,11 @@ Alcotest_lwt.run(
     test("booleanish_props_with_ppx", booleanish_props_with_ppx),
     test("booleanish_props_without_ppx", booleanish_props_without_ppx),
     test("style_attribute", style_attribute),
+    test("style_attribute_escaping", style_attribute_escaping),
+    test(
+      "style_attribute_escaping_dynamic",
+      style_attribute_escaping_dynamic,
+    ),
     test("ref_attribute", ref_attribute),
     test("link_as_attribute", link_as_attribute),
     test("inner_html_attribute", innerhtml_attribute),

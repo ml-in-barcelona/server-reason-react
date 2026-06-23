@@ -258,19 +258,25 @@ let extract_static_style expr =
   match collect [] expr with
   | None -> None
   | Some entries ->
-      let buf = Buffer.create 64 in
-      Buffer.add_string buf " style=\"";
+      (* Build the [key:value;…] body exactly like [ReactDOMStyle.write_to_buffer],
+         then HTML-escape it as a whole — mirroring [ReactDOM.write_attribute_to_buffer]'s
+         [Style] case ([Html.escape buf (Style.to_string styles)]) — so a quoted value
+         (e.g. a [font-family]) can't terminate the [style="…"] attribute early. *)
+      let body = Buffer.create 64 in
       let first = ref true in
       List.iter
         (fun (key, value) ->
           if value <> "" then begin
-            if not !first then Buffer.add_char buf ';';
-            Buffer.add_string buf key;
-            Buffer.add_char buf ':';
-            Buffer.add_string buf (String.trim value);
+            if not !first then Buffer.add_char body ';';
+            Buffer.add_string body key;
+            Buffer.add_char body ':';
+            Buffer.add_string body (String.trim value);
             first := false
           end)
         entries;
+      let buf = Buffer.create 64 in
+      Buffer.add_string buf " style=\"";
+      Buffer.add_string buf (escape_html (Buffer.contents body));
       Buffer.add_char buf '"';
       Some (Buffer.contents buf)
 

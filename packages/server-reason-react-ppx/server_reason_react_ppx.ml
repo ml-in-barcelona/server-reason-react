@@ -437,10 +437,12 @@ let emit_attr_value_write ~loc ~info ~value_expr =
       quoted [%expr Buffer.add_string b (if ([%e value_expr] : bool) then "true" else "false")]
   | DomProps.Style ->
       (* Mirrors [ReactDOM.write_attribute_to_buffer]'s [Style] case exactly:
-         same serializer, same (lack of) escaping, byte-identical output. *)
+         serialize the style, then HTML-escape the result (so a quoted value
+         such as a [font-family] cannot break out of the [style="…"] attribute),
+         byte-identical output. *)
       [%expr
         Buffer.add_string b " style=\"";
-        ReactDOM.Style.write_to_buffer b ([%e value_expr] : ReactDOM.Style.t);
+        ReactDOM.escape_to_buffer b (ReactDOM.Style.to_string ([%e value_expr] : ReactDOM.Style.t));
         Buffer.add_char b '"']
   | DomProps.Action | DomProps.Ref | DomProps.InnerHtml ->
       (* Unreachable: [is_lowerable_kind] rejects these kinds before we ever
