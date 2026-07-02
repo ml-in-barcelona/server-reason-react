@@ -12,7 +12,8 @@ We need to output ML syntax here, otherwise refmt could not parse it.
           ReactDOM.escape_to_buffer b (fst x : string);
           Buffer.add_char b '"';
           Buffer.add_string b " style=\"";
-          ReactDOM.Style.write_to_buffer b (snd x : ReactDOM.Style.t);
+          ReactDOM.escape_to_buffer b
+            (ReactDOM.Style.to_string (snd x : ReactDOM.Style.t));
           Buffer.add_char b '"';
           Buffer.add_string b "></div>";
           ());
@@ -51,7 +52,8 @@ We need to output ML syntax here, otherwise refmt could not parse it.
           | None -> ()
           | Some v ->
               Buffer.add_string b " style=\"";
-              ReactDOM.Style.write_to_buffer b (v : ReactDOM.Style.t);
+              ReactDOM.escape_to_buffer b
+                (ReactDOM.Style.to_string (v : ReactDOM.Style.t));
               Buffer.add_char b '"');
           Buffer.add_string b "></div>";
           ());
@@ -88,7 +90,8 @@ We need to output ML syntax here, otherwise refmt could not parse it.
           ReactDOM.escape_to_buffer b (fst x ^ " " ^ "lola" : string);
           Buffer.add_char b '"';
           Buffer.add_string b " style=\"";
-          ReactDOM.Style.write_to_buffer b (snd x : ReactDOM.Style.t);
+          ReactDOM.escape_to_buffer b
+            (ReactDOM.Style.to_string (snd x : ReactDOM.Style.t));
           Buffer.add_char b '"';
           Buffer.add_string b "></div>";
           ());
@@ -117,13 +120,14 @@ We need to output ML syntax here, otherwise refmt could not parse it.
           ReactDOM.escape_to_buffer b (fst x : string);
           Buffer.add_char b '"';
           Buffer.add_string b " style=\"";
-          ReactDOM.Style.write_to_buffer b
-            (ReactDOM.Style.combine
-               (("background-color", "backgroundColor", "gainsboro")
-                :: ([] : (string * string * string) list)
-                 : ReactDOM.Style.t)
-               (snd x)
-              : ReactDOM.Style.t);
+          ReactDOM.escape_to_buffer b
+            (ReactDOM.Style.to_string
+               (ReactDOM.Style.combine
+                  (("background-color", "backgroundColor", "gainsboro")
+                   :: ([] : (string * string * string) list)
+                    : ReactDOM.Style.t)
+                  (snd x)
+                 : ReactDOM.Style.t));
           Buffer.add_char b '"';
           Buffer.add_string b "></div>";
           ());
@@ -157,13 +161,14 @@ We need to output ML syntax here, otherwise refmt could not parse it.
           ReactDOM.escape_to_buffer b (fst x ^ " " ^ "lola" : string);
           Buffer.add_char b '"';
           Buffer.add_string b " style=\"";
-          ReactDOM.Style.write_to_buffer b
-            (ReactDOM.Style.combine
-               (("background-color", "backgroundColor", "gainsboro")
-                :: ([] : (string * string * string) list)
-                 : ReactDOM.Style.t)
-               (snd x)
-              : ReactDOM.Style.t);
+          ReactDOM.escape_to_buffer b
+            (ReactDOM.Style.to_string
+               (ReactDOM.Style.combine
+                  (("background-color", "backgroundColor", "gainsboro")
+                   :: ([] : (string * string * string) list)
+                    : ReactDOM.Style.t)
+                  (snd x)
+                 : ReactDOM.Style.t));
           Buffer.add_char b '"';
           Buffer.add_string b "></div>";
           ());
@@ -209,7 +214,8 @@ We need to output ML syntax here, otherwise refmt could not parse it.
           | None -> ()
           | Some v ->
               Buffer.add_string b " style=\"";
-              ReactDOM.Style.write_to_buffer b (v : ReactDOM.Style.t);
+              ReactDOM.escape_to_buffer b
+                (ReactDOM.Style.to_string (v : ReactDOM.Style.t));
               Buffer.add_char b '"');
           Buffer.add_string b "></div>";
           ());
@@ -256,19 +262,20 @@ We need to output ML syntax here, otherwise refmt could not parse it.
               ReactDOM.escape_to_buffer b (v : string);
               Buffer.add_char b '"');
           Buffer.add_string b " style=\"";
-          ReactDOM.Style.write_to_buffer b
-            (match match x with None -> None | Some x -> Some (snd x) with
-             | None ->
-                 (("background-color", "backgroundColor", "gainsboro")
-                  :: ([] : (string * string * string) list)
-                   : ReactDOM.Style.t)
-             | Some x ->
-                 ReactDOM.Style.combine
-                   (("background-color", "backgroundColor", "gainsboro")
-                    :: ([] : (string * string * string) list)
-                     : ReactDOM.Style.t)
-                   x
-              : ReactDOM.Style.t);
+          ReactDOM.escape_to_buffer b
+            (ReactDOM.Style.to_string
+               (match match x with None -> None | Some x -> Some (snd x) with
+                | None ->
+                    (("background-color", "backgroundColor", "gainsboro")
+                     :: ([] : (string * string * string) list)
+                      : ReactDOM.Style.t)
+                | Some x ->
+                    ReactDOM.Style.combine
+                      (("background-color", "backgroundColor", "gainsboro")
+                       :: ([] : (string * string * string) list)
+                        : ReactDOM.Style.t)
+                      x
+                 : ReactDOM.Style.t));
           Buffer.add_char b '"';
           Buffer.add_string b "></div>";
           ());
@@ -319,19 +326,20 @@ We need to output ML syntax here, otherwise refmt could not parse it.
               : string);
           Buffer.add_char b '"';
           Buffer.add_string b " style=\"";
-          ReactDOM.Style.write_to_buffer b
-            (match match x with None -> None | Some x -> Some (snd x) with
-             | None ->
-                 (("background-color", "backgroundColor", "gainsboro")
-                  :: ([] : (string * string * string) list)
-                   : ReactDOM.Style.t)
-             | Some x ->
-                 ReactDOM.Style.combine
-                   (("background-color", "backgroundColor", "gainsboro")
-                    :: ([] : (string * string * string) list)
-                     : ReactDOM.Style.t)
-                   x
-              : ReactDOM.Style.t);
+          ReactDOM.escape_to_buffer b
+            (ReactDOM.Style.to_string
+               (match match x with None -> None | Some x -> Some (snd x) with
+                | None ->
+                    (("background-color", "backgroundColor", "gainsboro")
+                     :: ([] : (string * string * string) list)
+                      : ReactDOM.Style.t)
+                | Some x ->
+                    ReactDOM.Style.combine
+                      (("background-color", "backgroundColor", "gainsboro")
+                       :: ([] : (string * string * string) list)
+                        : ReactDOM.Style.t)
+                      x
+                 : ReactDOM.Style.t));
           Buffer.add_char b '"';
           Buffer.add_string b "></div>";
           ());

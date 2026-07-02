@@ -18,7 +18,8 @@ even when a user type in scope shadows `None`. Both the `emit` fast path and the
             ReactDOM.escape_to_buffer b (fst x : string);
             Buffer.add_char b '"';
             Buffer.add_string b " style=\"";
-            ReactDOM.Style.write_to_buffer b (snd x : ReactDOM.Style.t);
+            ReactDOM.escape_to_buffer b
+              (ReactDOM.Style.to_string (snd x : ReactDOM.Style.t));
             Buffer.add_char b '"';
             (match
                (match disabled with
