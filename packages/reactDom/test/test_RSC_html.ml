@@ -230,7 +230,7 @@ let async_component_with_promise () =
        data-payload='0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,null,1]\n\
        '>window.srr_stream.push()</script>"
     [
-      "<div hidden=\"true\" id=\"S:1\"><span>Sleep resolved</span></div>\n\
+      "<div hidden id=\"S:1\"><span>Sleep resolved</span></div>\n\
        <script>$RC('B:1', 'S:1')</script><script data-payload='1:[\"$\",\"span\",null,{\"children\":\"Sleep \
        resolved\"},null,null,1]\n\
        '>window.srr_stream.push()</script>";
@@ -266,7 +266,7 @@ let suspenasync_and_client () =
        '>window.srr_stream.push()</script>"
     [
       "<script data-payload='2:I[\"./client-with-props.js\",[],\"\"]\n'>window.srr_stream.push()</script>";
-      "<div hidden=\"true\" id=\"S:1\"><span>Only the client<!-- -->Part of async component</span></div>\n\
+      "<div hidden id=\"S:1\"><span>Only the client<!-- -->Part of async component</span></div>\n\
        <script>$RC('B:1', 'S:1')</script>";
       "<script data-payload='1:[\"$\",\"span\",null,{\"children\":[[\"$\",\"$2\",null,{}],\"Part of async component\"]}]\n\
        '>window.srr_stream.push()</script>";
@@ -302,7 +302,7 @@ let with_sleepy_promise () =
        data-payload='0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,null,1]\n\
        '>window.srr_stream.push()</script>"
     [
-      "<div hidden=\"true\" id=\"S:1\"><div><section><article>Deep Server Content</article></section></div></div>\n\
+      "<div hidden id=\"S:1\"><div><section><article>Deep Server Content</article></section></div></div>\n\
        <script>$RC('B:1', 'S:1')</script><script \
        data-payload='1:[\"$\",\"div\",null,{\"children\":[\"$\",\"section\",null,{\"children\":[\"$\",\"article\",null,{\"children\":\"Deep \
        Server Content\"},null,null,1]},null,null,1]},null,null,1]\n\
@@ -456,7 +456,7 @@ let suspense_with_error () =
        '>window.srr_stream.push()</script>"
     [
       "<script data-payload='1:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n\
-       '>window.srr_stream.push()</script><div hidden=\"true\" id=\"S:1\"></div>\n\
+       '>window.srr_stream.push()</script><div hidden id=\"S:1\"></div>\n\
        <script>$RC('B:1', 'S:1')</script>";
     ]
 
@@ -474,7 +474,7 @@ let suspense_with_error_in_async () =
        '>window.srr_stream.push()</script>"
     [
       "<script data-payload='1:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n\
-       '>window.srr_stream.push()</script><div hidden=\"true\" id=\"S:1\"></div>\n\
+       '>window.srr_stream.push()</script><div hidden id=\"S:1\"></div>\n\
        <script>$RC('B:1', 'S:1')</script>";
     ]
 
@@ -495,7 +495,7 @@ let suspense_with_error_under_lowercase () =
        '>window.srr_stream.push()</script>"
     [
       "<script data-payload='1:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n\
-       '>window.srr_stream.push()</script><div hidden=\"true\" id=\"S:1\"></div>\n\
+       '>window.srr_stream.push()</script><div hidden id=\"S:1\"></div>\n\
        <script>$RC('B:1', 'S:1')</script>";
     ]
 
@@ -558,12 +558,12 @@ let suspense_in_a_list_with_error () =
        data-payload='0:[[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,null,1],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L2\"},null,null,1],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L3\"},null,null,1]]\n\
        '>window.srr_stream.push()</script>"
     [
-      "<div hidden=\"true\" id=\"S:1\">A</div>\n\
+      "<div hidden id=\"S:1\">A</div>\n\
        <script>$RC('B:1', 'S:1')</script><script data-payload='1:\"A\"\n\
        '>window.srr_stream.push()</script>";
       "<script data-payload='2:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n\
        '>window.srr_stream.push()</script>";
-      "<div hidden=\"true\" id=\"S:3\">C</div>\n\
+      "<div hidden id=\"S:3\">C</div>\n\
        <script>$RC('B:3', 'S:3')</script><script data-payload='3:\"C\"\n\
        '>window.srr_stream.push()</script>";
     ]
@@ -738,7 +738,7 @@ let context_preserved_across_async_suspense () =
        data-payload='0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"loading\",\"children\":\"$L1\"},null,null,1]\n\
        '>window.srr_stream.push()</script>"
     [
-      "<div hidden=\"true\" id=\"S:1\">from-provider</div>\n\
+      "<div hidden id=\"S:1\">from-provider</div>\n\
        <script>$RC('B:1', 'S:1')</script><script data-payload='1:\"from-provider\"\n\
        '>window.srr_stream.push()</script>";
     ]
@@ -776,7 +776,7 @@ let context_nested_providers_across_async_suspense () =
        data-payload='0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"loading\",\"children\":\"$L1\"},null,null,1]\n\
        '>window.srr_stream.push()</script>"
     [
-      "<div hidden=\"true\" id=\"S:1\"><span>outer-val+inner-val</span></div>\n\
+      "<div hidden id=\"S:1\"><span>outer-val+inner-val</span></div>\n\
        <script>$RC('B:1', 'S:1')</script><script \
        data-payload='1:[\"$\",\"span\",null,{\"children\":\"outer-val+inner-val\"},null,null,1]\n\
        '>window.srr_stream.push()</script>";
@@ -819,7 +819,7 @@ let context_client_component_reads_context_across_async_suspense () =
        '>window.srr_stream.push()</script>"
     [
       "<script data-payload='2:I[\"./consumer.js\",[],\"Consumer\"]\n'>window.srr_stream.push()</script>";
-      "<div hidden=\"true\" id=\"S:1\"><div>ctx-value</div></div>\n\
+      "<div hidden id=\"S:1\"><div>ctx-value</div></div>\n\
        <script>$RC('B:1', 'S:1')</script><script data-payload='1:[\"$\",\"$2\",null,{},null,null,1]\n\
        '>window.srr_stream.push()</script>";
     ]

@@ -532,7 +532,7 @@ let boundary_to_chunk html index =
   let rc_replacement b s = Html.node "script" [] [ Html.raw (Printf.sprintf "$RC('B:%x', 'S:%x')" b s) ] in
   Html.list ~separator:"\n"
     [
-      Html.node "div" [ Html.attribute "hidden" "true"; Html.attribute "id" (Printf.sprintf "S:%x" index) ] [ html ];
+      Html.node "div" [ Html.present "hidden"; Html.attribute "id" (Printf.sprintf "S:%x" index) ] [ html ];
       rc_replacement index index;
     ]
 
