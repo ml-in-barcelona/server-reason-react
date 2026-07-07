@@ -966,11 +966,15 @@ let timeout_emits_client_render_instruction_per_pending_boundary () =
   Alcotest.(check bool)
     "shell contains the second pending boundary" true
     (contains_substring html {|<!--$?--><template id="B:2"></template>Loading B<!--/$-->|});
-  (* On timeout: the $RX definition is emitted once, one $RX call per pending boundary (with the error detail in
-     dev), and the stream closes *)
+  (* On timeout: an error row rejects each pending row of the RSC payload, the $RX definition is emitted once, one
+     $RX call per pending boundary (with the error detail in dev), and the stream closes *)
   assert_list_of_strings !subscribed_elements
     [
-      "<script>$RX=function(b,c,d,e,f){var \
+      "<script data-payload='1:E{\"message\":\"The render timed \
+       out.\",\"stack\":null,\"env\":\"Server\",\"digest\":\"\"}\n\
+       '>window.srr_stream.push()</script><script data-payload='2:E{\"message\":\"The render timed \
+       out.\",\"stack\":null,\"env\":\"Server\",\"digest\":\"\"}\n\
+       '>window.srr_stream.push()</script><script>$RX=function(b,c,d,e,f){var \
        a=document.getElementById(b);a&&(b=a.previousSibling,b.data=\"$!\",a=a.dataset,c&&(a.dgst=c),d&&(a.msg=d),e&&(a.stck=e),f&&(a.cstck=f),b._reactRetry&&b._reactRetry())};;$RX(\"B:1\",\"\",\"Switched \
        to client rendering because the server rendering aborted due to:\\n\\nThe render timed \
        out.\")</script><script>$RX(\"B:2\",\"\",\"Switched to client rendering because the server rendering aborted \
@@ -989,11 +993,52 @@ let timeout_in_prod_emits_only_digest () =
         subscribed_elements := !subscribed_elements @ [ element ];
         Lwt.return ())
   in
-  (* In production only the digest is passed to $RX, no error detail *)
+  (* In production only the digest is passed to the error row and $RX, no error detail *)
   assert_list_of_strings !subscribed_elements
     [
-      "<script>$RX=function(b,c,d,e,f){var \
+      "<script data-payload='1:E{\"digest\":\"\"}\n\
+       '>window.srr_stream.push()</script><script>$RX=function(b,c,d,e,f){var \
        a=document.getElementById(b);a&&(b=a.previousSibling,b.data=\"$!\",a=a.dataset,c&&(a.dgst=c),d&&(a.msg=d),e&&(a.stck=e),f&&(a.cstck=f),b._reactRetry&&b._reactRetry())};;$RX(\"B:1\",\"\")</script><script>window.srr_stream.close()</script>";
+    ];
+  Lwt.return ()
+
+let timeout_rejects_pending_promise_prop_row () =
+  (* A promise passed as a client component prop is an async row of the RSC payload with no Suspense boundary: on
+     timeout it must be rejected with an error row (so the client-side $@ reference settles) without any $RX script
+     (there is no boundary to flip). *)
+  let never_resolves, _resolver = Lwt.wait () in
+  let app =
+    React.Client_component
+      {
+        key = None;
+        props = [ ("promise", React.Model.Promise (never_resolves, fun res -> React.Model.Json (`String res))) ];
+        client = React.string "Client with a pending promise";
+        import_module = "./client-with-props.js";
+        import_name = "ClientWithProps";
+      }
+  in
+  let subscribed_elements = ref [] in
+  let%lwt html, subscribe = ReactServerDOM.render_html ~progressive_chunk_size:1 ~timeout:0.02 app in
+  let%lwt () =
+    subscribe (fun element ->
+        subscribed_elements := !subscribed_elements @ [ element ];
+        Lwt.return ())
+  in
+  let contains_substring str sub =
+    match Str.search_forward (Str.regexp_string sub) str 0 with exception Not_found -> false | _ -> true
+  in
+  (* The shell references the pending promise row *)
+  Alcotest.(check bool) "shell references the pending promise row" true (contains_substring html "$@");
+  let all_content = String.concat "" !subscribed_elements in
+  Alcotest.(check bool)
+    "no $RX script is emitted without pending boundaries" false (contains_substring all_content "$RX");
+  assert_list_of_strings !subscribed_elements
+    [
+      "<script data-payload='2:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n\
+       '>window.srr_stream.push()</script>";
+      "<script data-payload='1:E{\"message\":\"The render timed \
+       out.\",\"stack\":null,\"env\":\"Server\",\"digest\":\"\"}\n\
+       '>window.srr_stream.push()</script><script>window.srr_stream.close()</script>";
     ];
   Lwt.return ()
 
@@ -1162,6 +1207,7 @@ let tests =
     test ~timeout:500 "timeout_emits_client_render_instruction_per_pending_boundary"
       timeout_emits_client_render_instruction_per_pending_boundary;
     test ~timeout:500 "timeout_in_prod_emits_only_digest" timeout_in_prod_emits_only_digest;
+    test ~timeout:500 "timeout_rejects_pending_promise_prop_row" timeout_rejects_pending_promise_prop_row;
     test ~timeout:500 "timeout_with_late_resolving_boundary_does_not_crash"
       timeout_with_late_resolving_boundary_does_not_crash;
     test ~timeout:500 "timeout_does_not_affect_fast_renders" timeout_does_not_affect_fast_renders;

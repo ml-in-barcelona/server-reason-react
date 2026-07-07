@@ -67,6 +67,9 @@ module Stream = struct
     (* Suspense boundaries whose async content is still rendering, in registration order (most recent first). Used to
        emit a $RX client-render instruction per still-pending boundary when the stream is aborted by a timeout. *)
     mutable pending_boundaries : int list;
+    (* Async rows of the RSC payload (lazy elements, promises passed as props) that are still rendering. Used to
+       reject their client-side $L/$@ references with an error row when the stream is aborted by a timeout. *)
+    mutable pending_model_rows : int list;
     written_client_references : (string * string, int) Hashtbl.t;
   }
 
@@ -97,12 +100,14 @@ module Stream = struct
     let index = context.index in
     context.index <- context.index + 1;
     context.pending <- context.pending + 1;
-    if track_boundary then context.pending_boundaries <- index :: context.pending_boundaries;
+    if track_boundary then context.pending_boundaries <- index :: context.pending_boundaries
+    else context.pending_model_rows <- index :: context.pending_model_rows;
     Lwt.async (fun () ->
         let%lwt to_chunk = promise_to_chunk in
         context.pending <- context.pending - 1;
         if track_boundary then
-          context.pending_boundaries <- List.filter (fun i -> i <> index) context.pending_boundaries;
+          context.pending_boundaries <- List.filter (fun i -> i <> index) context.pending_boundaries
+        else context.pending_model_rows <- List.filter (fun i -> i <> index) context.pending_model_rows;
         if not context.closed then (
           context.push (to_chunk index);
           if context.pending = 0 then close context);
@@ -110,7 +115,8 @@ module Stream = struct
     index
 
   (* Pushes an async row of the RSC payload (a lazy element or a promise passed as prop) that has no placeholder in
-     the flushed HTML. *)
+     the flushed HTML. Tracked in [pending_model_rows] so an abort/timeout can reject its client-side reference with
+     an error row. *)
   let push_async promise_to_chunk ~context = push_promise ~track_boundary:false promise_to_chunk ~context
 
   (* Pushes the async HTML content of a Suspense boundary whose placeholder (<template id="B:n">) and fallback were
@@ -128,6 +134,7 @@ module Stream = struct
         pending;
         index = initial_index;
         pending_boundaries = [];
+        pending_model_rows = [];
         written_client_references = Hashtbl.create 16;
       } )
 end
@@ -563,6 +570,11 @@ let rx_function_definition =
 
 let timeout_error_message =
   "Switched to client rendering because the server rendering aborted due to:\n\nThe render timed out."
+
+(* The error used to reject every still-pending row of the RSC payload when the render times out, mirroring React
+   Flight's abort which errors all pending tasks with the abort reason. Error detail is dev-only (make_error_json
+   emits only the digest in prod). *)
+let timeout_error = { React.message = "The render timed out."; stack = `Null; env = "Server"; digest = "" }
 
 let client_render_boundary_to_chunk ~env ~include_definition index =
   let rx_call =
@@ -1213,15 +1225,22 @@ let render_html ?(skipRoot = false) ?(env = `Dev) ?debug:(_ = false) ?timeout
                    async pushes of boundary promises that resolve later. *)
                 (let%lwt () = Lwt_unix.sleep seconds in
                  if not context.closed then (
-                   (match List.rev context.pending_boundaries with
-                   | [] -> ()
-                   | pending_boundaries ->
-                       context.pending_boundaries <- [];
-                       List.iteri
-                         (fun i index ->
-                           Buffer.add_string buf
-                             (Html.to_string (client_render_boundary_to_chunk ~env ~include_definition:(i = 0) index)))
-                         pending_boundaries);
+                   let pending_boundaries = List.rev context.pending_boundaries in
+                   let pending_rows = List.sort compare (context.pending_model_rows @ pending_boundaries) in
+                   context.pending_boundaries <- [];
+                   context.pending_model_rows <- [];
+                   (* Reject every still-pending row of the RSC payload (lazy elements, promises passed as props and
+                      the content of pending Suspense boundaries) with an error row so the client-side $L/$@
+                      references settle instead of hanging forever, mirroring React Flight's abort. *)
+                   List.iter
+                     (fun index ->
+                       Buffer.add_string buf (Html.to_string (model_to_chunk (Error (env, timeout_error)) index)))
+                     pending_rows;
+                   List.iteri
+                     (fun i index ->
+                       Buffer.add_string buf
+                         (Html.to_string (client_render_boundary_to_chunk ~env ~include_definition:(i = 0) index)))
+                     pending_boundaries;
                    context.pending <- 0;
                    Stream.close context);
                  finish ());
