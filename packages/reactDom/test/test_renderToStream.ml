@@ -429,31 +429,109 @@ let suspense_with_comments () =
        e--;else\"$\"!==d&&\"$?\"!==d&&\"$!\"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data=\"$\";a._reactRetry&&a._reactRetry()}}$RC('B:0','S:0')</script>";
     ]
 
-let abort_streaming () =
+let abort_app () =
   let app () =
     React.createElement "div" []
       [
         mk_suspense ~fallback:(React.string "Loading 1")
-          ~children:(deffered_component ~seconds:0.005 ~children:(React.string "Content 1") ())
+          ~children:(deffered_component ~seconds:0.003 ~children:(React.string "Content 1") ())
           ();
         mk_suspense ~fallback:(React.string "Loading 2")
-          ~children:(deffered_component ~seconds:0.001 ~children:(React.string "Content 2") ())
+          ~children:(deffered_component ~seconds:0.003 ~children:(React.string "Content 2") ())
           ();
       ]
   in
-  let%lwt stream, abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
+  React.Upper_case_component ("app", app)
+
+let abort_shell_chunk =
+  "<div><!--$?--><template id=\"B:0\"></template>Loading 1<!--/$--><!--$?--><template id=\"B:1\"></template>Loading \
+   2<!--/$--></div>"
+
+(* Records exceptions raised inside Lwt.async while [fn] runs: an unguarded push into the closed stream after abort
+   would crash the process through the default hook. *)
+let with_async_exception_hook fn =
+  let async_exceptions = ref [] in
+  let previous_hook = !Lwt.async_exception_hook in
+  (Lwt.async_exception_hook := fun exn -> async_exceptions := Printexc.to_string exn :: !async_exceptions);
+  let%lwt result = fn () in
+  Lwt.async_exception_hook := previous_hook;
+  Lwt.return (result, List.rev !async_exceptions)
+
+let abort_with_pending_boundaries () =
+  let%lwt (first_chunk, remaining), async_exceptions =
+    with_async_exception_hook (fun () ->
+        let%lwt stream, abort = ReactDOM.renderToStream (abort_app ()) in
+        let%lwt first_chunk = Lwt_stream.get stream in
+        (* Abort while both boundaries are still pending *)
+        abort ();
+        let%lwt remaining = Lwt_stream.to_list stream in
+        (* Let the deferred components resolve after the abort: their completions must not push into the closed
+           stream nor raise *)
+        let%lwt () = Lwt_unix.sleep 0.005 in
+        Lwt.return (first_chunk, remaining))
+  in
+  (match first_chunk with
+  | Some chunk -> assert_string chunk abort_shell_chunk
+  | None -> Alcotest.fail "Expected the shell chunk before abort");
+  assert_list Alcotest.string remaining
+    [
+      "<script>$RX=function(b,c,d,e,f){var \
+       a=document.getElementById(b);a&&(b=a.previousSibling,b.data=\"$!\",a=a.dataset,c&&(a.dgst=c),d&&(a.msg=d),e&&(a.stck=e),f&&(a.cstck=f),b._reactRetry&&b._reactRetry())};;$RX(\"B:0\",\"\",\"Switched \
+       to client rendering because the server rendering aborted due to:\\n\\nThe render was aborted by the server \
+       without a reason.\")</script>";
+      "<script>$RX(\"B:1\",\"\",\"Switched to client rendering because the server rendering aborted due to:\\n\\nThe \
+       render was aborted by the server without a reason.\")</script>";
+    ];
+  assert_list Alcotest.string async_exceptions [];
+  Lwt.return ()
+
+let abort_with_pending_boundaries_in_prod () =
+  let%lwt stream, abort = ReactDOM.renderToStream ~env:`Prod (abort_app ()) in
   let%lwt first_chunk = Lwt_stream.get stream in
-  (* Abort after first chunk *)
   abort ();
   let%lwt remaining = Lwt_stream.to_list stream in
-  assert_list Alcotest.string remaining [];
-  match first_chunk with
-  | Some chunk ->
-      Lwt.return
-        (assert_string chunk
-           "<div><!--$?--><template id=\"B:0\"></template>Loading 1<!--/$--><!--$?--><template \
-            id=\"B:1\"></template>Loading 2<!--/$--></div>")
-  | None -> Alcotest.fail "Expected at least one chunk before abort"
+  (match first_chunk with
+  | Some chunk -> assert_string chunk abort_shell_chunk
+  | None -> Alcotest.fail "Expected the shell chunk before abort");
+  (* In production only the digest is passed to $RX, no error detail *)
+  assert_list Alcotest.string remaining
+    [
+      "<script>$RX=function(b,c,d,e,f){var \
+       a=document.getElementById(b);a&&(b=a.previousSibling,b.data=\"$!\",a=a.dataset,c&&(a.dgst=c),d&&(a.msg=d),e&&(a.stck=e),f&&(a.cstck=f),b._reactRetry&&b._reactRetry())};;$RX(\"B:0\",\"\")</script>";
+      "<script>$RX(\"B:1\",\"\")</script>";
+    ];
+  Lwt.return ()
+
+let abort_is_idempotent () =
+  let%lwt stream, abort = ReactDOM.renderToStream (abort_app ()) in
+  let%lwt _first_chunk = Lwt_stream.get stream in
+  abort ();
+  (* A second abort on a closed stream must be a no-op *)
+  abort ();
+  let%lwt remaining = Lwt_stream.to_list stream in
+  Alcotest.(check int) "only one $RX chunk per pending boundary" 2 (List.length remaining);
+  Lwt.return ()
+
+let abort_after_completed_render_is_noop () =
+  let app () =
+    mk_suspense ~fallback:(React.string "Loading")
+      ~children:(deffered_component ~seconds:0. ~children:(React.string "Content") ())
+      ()
+  in
+  let%lwt stream, abort = ReactDOM.renderToStream (React.Upper_case_component ("app", app)) in
+  let%lwt content = Lwt_stream.to_list stream in
+  (* The render is fully flushed and the stream closed, aborting afterwards must not raise nor emit $RX *)
+  abort ();
+  assert_list Alcotest.string content
+    [
+      "<!--$?--><template id=\"B:0\"></template>Loading<!--/$-->";
+      "<div hidden id=\"S:0\"><div>Sleep 0. seconds<!-- -->, <!-- -->Content</div></div>";
+      "<script>function \
+       $RC(a,b){a=document.getElementById(a);b=document.getElementById(b);b.parentNode.removeChild(b);if(a){a=a.previousSibling;var \
+       f=a.parentNode,c=a.nextSibling,e=0;do{if(c&&8===c.nodeType){var d=c.data;if(\"/$\"===d)if(0===e)break;else \
+       e--;else\"$\"!==d&&\"$?\"!==d&&\"$!\"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data=\"$\";a._reactRetry&&a._reactRetry()}}$RC('B:0','S:0')</script>";
+    ];
+  Lwt.return ()
 
 let context_basic () =
   let context = React.createContext "default" in
@@ -797,7 +875,10 @@ let tests =
     test "suspense_with_multiple_children_reordered" suspense_with_multiple_children_reordered;
     test "suspense_with_concurrent_suspenses" suspense_with_concurrent_suspenses;
     test "suspense_with_comments" suspense_with_comments;
-    (* test "abort_streaming" abort_streaming; *)
+    test "abort_with_pending_boundaries" abort_with_pending_boundaries;
+    test "abort_with_pending_boundaries_in_prod" abort_with_pending_boundaries_in_prod;
+    test "abort_is_idempotent" abort_is_idempotent;
+    test "abort_after_completed_render_is_noop" abort_after_completed_render_is_noop;
     test "context_basic" context_basic;
     test "context_default_value" context_default_value;
     test "context_nested_providers" context_nested_providers;
