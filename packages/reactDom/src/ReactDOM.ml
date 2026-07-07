@@ -431,24 +431,6 @@ let write_inline_complete_boundary_script buf has_rc_script_been_injected bounda
 let client_render_boundary_script =
   {|$RX=function(b,c,d,e,f){var a=document.getElementById(b);a&&(b=a.previousSibling,b.data="$!",a=a.dataset,c&&(a.dgst=c),d&&(a.msg=d),e&&(a.stck=e),f&&(a.cstck=f),b._reactRetry&&b._reactRetry())};|}
 
-(* Escapes a string for embedding inside a double-quoted JS string literal within an inline <script>. '<' is escaped to
-   '\u003c' so user content can't terminate the script tag early, matching React's
-   escapeJSStringsForInstructionScripts. *)
-let escape_for_inline_script str =
-  let buf = Buffer.create (String.length str + 16) in
-  String.iter
-    (fun c ->
-      match c with
-      | '\\' -> Buffer.add_string buf "\\\\"
-      | '"' -> Buffer.add_string buf "\\\""
-      | '\n' -> Buffer.add_string buf "\\n"
-      | '\r' -> Buffer.add_string buf "\\r"
-      | '\t' -> Buffer.add_string buf "\\t"
-      | '<' -> Buffer.add_string buf "\\u003c"
-      | c -> Buffer.add_char buf c)
-    str;
-  Buffer.contents buf
-
 let abort_error_message =
   "Switched to client rendering because the server rendering aborted due to:\n\n\
    The render was aborted by the server without a reason."
@@ -458,7 +440,7 @@ let write_inline_client_render_boundary_script buf ~env ~include_definition boun
     (* Error detail is dev-only: in production React passes only the digest to avoid leaking server internals. *)
     match env with
     | `Prod -> Printf.sprintf {|$RX("B:%i","")|} boundary_id
-    | `Dev -> Printf.sprintf {|$RX("B:%i","","%s")|} boundary_id (escape_for_inline_script abort_error_message)
+    | `Dev -> Printf.sprintf {|$RX("B:%i","","%s")|} boundary_id (Html.escape_for_inline_script abort_error_message)
   in
   Buffer.add_string buf "<script>";
   if include_definition then (

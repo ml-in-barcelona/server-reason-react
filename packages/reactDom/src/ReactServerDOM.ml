@@ -551,24 +551,6 @@ let rc_function_script = Html.node "script" [] [ Html.raw rc_function_definition
 let rx_function_definition =
   {|$RX=function(b,c,d,e,f){var a=document.getElementById(b);a&&(b=a.previousSibling,b.data="$!",a=a.dataset,c&&(a.dgst=c),d&&(a.msg=d),e&&(a.stck=e),f&&(a.cstck=f),b._reactRetry&&b._reactRetry())};|}
 
-(* Escapes a string for embedding inside a double-quoted JS string literal within an inline <script>. '<' is escaped to
-   '\u003c' so user content can't terminate the script tag early, matching React's
-   escapeJSStringsForInstructionScripts. *)
-let escape_for_inline_script str =
-  let buf = Buffer.create (String.length str + 16) in
-  String.iter
-    (fun c ->
-      match c with
-      | '\\' -> Buffer.add_string buf "\\\\"
-      | '"' -> Buffer.add_string buf "\\\""
-      | '\n' -> Buffer.add_string buf "\\n"
-      | '\r' -> Buffer.add_string buf "\\r"
-      | '\t' -> Buffer.add_string buf "\\t"
-      | '<' -> Buffer.add_string buf "\\u003c"
-      | c -> Buffer.add_char buf c)
-    str;
-  Buffer.contents buf
-
 let timeout_error_message =
   "Switched to client rendering because the server rendering aborted due to:\n\nThe render timed out."
 
@@ -577,7 +559,7 @@ let client_render_boundary_to_chunk ~env ~include_definition index =
     (* Error detail is dev-only: in production React passes only the digest to avoid leaking server internals. *)
     match env with
     | `Prod -> Printf.sprintf {|$RX("B:%x","")|} index
-    | `Dev -> Printf.sprintf {|$RX("B:%x","","%s")|} index (escape_for_inline_script timeout_error_message)
+    | `Dev -> Printf.sprintf {|$RX("B:%x","","%s")|} index (Html.escape_for_inline_script timeout_error_message)
   in
   Html.node "script" [] [ Html.raw (if include_definition then rx_function_definition ^ ";" ^ rx_call else rx_call) ]
 

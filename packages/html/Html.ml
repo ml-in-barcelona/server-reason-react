@@ -205,3 +205,21 @@ let escape_attribute_value data =
   let buf = Buffer.create (String.length data) in
   add_attribute_escaped buf data;
   Buffer.contents buf
+
+(* Escapes a string for embedding inside a double-quoted JS string literal within an inline <script>. '<' is escaped to
+   '\u003c' so user content can't terminate the script tag early, matching React's
+   escapeJSStringsForInstructionScripts. *)
+let escape_for_inline_script str =
+  let buf = Buffer.create (String.length str + 16) in
+  String.iter
+    (fun c ->
+      match c with
+      | '\\' -> Buffer.add_string buf "\\\\"
+      | '"' -> Buffer.add_string buf "\\\""
+      | '\n' -> Buffer.add_string buf "\\n"
+      | '\r' -> Buffer.add_string buf "\\r"
+      | '\t' -> Buffer.add_string buf "\\t"
+      | '<' -> Buffer.add_string buf "\\u003c"
+      | c -> Buffer.add_char buf c)
+    str;
+  Buffer.contents buf
