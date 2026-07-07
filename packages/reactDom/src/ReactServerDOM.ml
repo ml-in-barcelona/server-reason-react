@@ -261,8 +261,9 @@ module Model = struct
   let props_to_json props = List.filter_map prop_to_json props
   let chunk_ref_or_null = function None -> `Null | Some idx -> `String (ref_value idx)
 
-  (* React element tuple: ["$", type, key, props, debugOwner, debugStack, validated] *)
-  let node ~tag ?(key = None) ~props ?(owner = None) children : json =
+  (* React element tuple. In prod React emits the 4-tuple ["$", type, key, props]; in dev it appends the debug
+     fields [debugOwner, debugStack, validated]. *)
+  let node ~env ~tag ?(key = None) ~props ?(owner = None) children : json =
     let key = match key with None -> `Null | Some key -> `String key in
     let props =
       match children with
@@ -270,7 +271,9 @@ module Model = struct
       | [ one_children ] -> ("children", one_children) :: props
       | childrens -> ("children", `List childrens) :: props
     in
-    `List [ `String "$"; `String tag; key; `Assoc props; chunk_ref_or_null owner; `Null; `Int 1 ]
+    match env with
+    | `Prod -> `List [ `String "$"; `String tag; key; `Assoc props ]
+    | `Dev -> `List [ `String "$"; `String tag; key; `Assoc props; chunk_ref_or_null owner; `Null; `Int 1 ]
 
   (* React outlines the suspense symbol once per stream as its own row
      (e.g. 1:"$Sreact.suspense", pushed before any row that references it,
@@ -283,7 +286,7 @@ module Model = struct
 
   (* Not using `node` because we need to add fallback prop as json directly.
      React serializes suspense props as {children, fallback}: children first. *)
-  let suspense_node ~tag ~key ~fallback children : json =
+  let suspense_node ~env ~tag ~key ~fallback children : json =
     let fallback_prop = ("fallback", fallback) in
     let props =
       match children with
@@ -291,9 +294,10 @@ module Model = struct
       | [ one ] -> [ ("children", one); fallback_prop ]
       | _ -> [ ("children", `List children); fallback_prop ]
     in
-    node ~tag ~key ~props []
+    node ~env ~tag ~key ~props []
 
-  let suspense_placeholder ~tag ~key ~fallback index = suspense_node ~tag ~key ~fallback [ `String (lazy_value index) ]
+  let suspense_placeholder ~env ~tag ~key ~fallback index =
+    suspense_node ~env ~tag ~key ~fallback [ `String (lazy_value index) ]
 
   let component_ref ~module_ ~name =
     let id = `String module_ in
@@ -396,7 +400,7 @@ module Model = struct
               attributes
           in
           let owner = Option.bind debug_info (fun (_, owner_idx) -> owner_idx) in
-          node ~key ~tag ~props ~owner
+          node ~env ~key ~tag ~props ~owner
             (map_children_with_tree_context (turn_element_into_payload ~context ~debug_info) children)
       | Fragment children -> turn_element_into_payload ~context ~debug_info children
       | List children ->
@@ -476,14 +480,14 @@ module Model = struct
           let tag = suspense_tag ~context ~to_chunk in
           let children = turn_element_into_payload ~context ~debug_info children in
           let fallback = turn_element_into_payload ~context ~debug_info fallback in
-          suspense_node ~tag ~key ~fallback [ children ]
+          suspense_node ~env ~tag ~key ~fallback [ children ]
       | Client_component { key; import_module; import_name; props; client = _ } ->
           let ref = component_ref ~module_:import_module ~name:import_name in
           let index = Stream.push_client_ref ~context ~import_module ~import_name (to_chunk (Component_ref ref)) in
           let client_props = models_to_payload ~context ~to_chunk ~env props in
           (* Client references are lazy references ("$L<id>"): the client must not
              block on the module row, it resolves it when the chunk loads. *)
-          node ~tag:(lazy_value index) ~key ~props:client_props []
+          node ~env ~tag:(lazy_value index) ~key ~props:client_props []
       | Provider { children; push; _ } ->
           let pop = push () in
           let result = turn_element_into_payload ~context ~debug_info children in
@@ -851,7 +855,7 @@ let rec render_element_to_html ~(fiber : Fiber.t) (element : React.element) : (H
       let ref : json = Model.component_ref ~module_:import_module ~name:import_name in
       let index = Stream.push_client_ref ~context ~import_module ~import_name (model_to_chunk (Component_ref ref)) in
       (* Client references are lazy references ("$L<id>"), see Model.element_to_payload. *)
-      let model = Model.node ~tag:(Model.lazy_value index) ~key ~props [] in
+      let model = Model.node ~env ~tag:(Model.lazy_value index) ~key ~props [] in
       Lwt.return (html, model)
   | Suspense { key; children; fallback } -> (
       let context = fiber.context in
@@ -876,9 +880,9 @@ let rec render_element_to_html ~(fiber : Fiber.t) (element : React.element) : (H
             let index = Stream.push_async ~context promise in
             Lwt.return
               ( html_suspense_placeholder ~fallback:html_fallback index,
-                Model.suspense_placeholder ~tag ~key ~fallback:model_fallback index )
+                Model.suspense_placeholder ~env:fiber.env ~tag ~key ~fallback:model_fallback index )
         | Return (html, model) ->
-            let model = Model.suspense_node ~tag ~key ~fallback:model_fallback [ model ] in
+            let model = Model.suspense_node ~env:fiber.env ~tag ~key ~fallback:model_fallback [ model ] in
             Lwt.return (html_suspense_immediate html, model)
         | Fail exn -> Lwt.reraise exn
       with exn ->
@@ -889,7 +893,7 @@ let rec render_element_to_html ~(fiber : Fiber.t) (element : React.element) : (H
         in
         let index = Stream.push ~context to_chunk in
         let html = html_suspense_placeholder ~fallback:html_fallback index in
-        Lwt.return (html, Model.suspense_placeholder ~tag ~key ~fallback:model_fallback index))
+        Lwt.return (html, Model.suspense_placeholder ~env:fiber.env ~tag ~key ~fallback:model_fallback index))
   | Provider { children; push; async_key; async_value } ->
       let pop = push () in
       let result = Lwt.with_value async_key (Some async_value) (fun () -> render_element_to_html ~fiber children) in
@@ -936,10 +940,10 @@ and handle_hoistable_element ~fiber ~key ~tag ~attributes ~children ~inner_html 
   let create_model children =
     (* In case of the model, we don't care about inner_html as a children since we need it as a prop. This is the opposite from html rendering *)
     match (Html.is_self_closing_tag tag, inner_html) with
-    | _, Some _ | true, _ -> Model.node ~tag ~key ~props []
+    | _, Some _ | true, _ -> Model.node ~env:fiber.env ~tag ~key ~props []
     | false, None ->
         let children = match children with `List l -> l | other -> [ other ] in
-        Model.node ~tag ~key ~props children
+        Model.node ~env:fiber.env ~tag ~key ~props children
   in
   let create_html_node ~html_props ~children_html =
     match inner_html with
@@ -979,13 +983,15 @@ and process_attributes ~context ?form_action_id attributes =
 and render_regular_element ~fiber ~key ~tag ~attributes ~children ~inner_html () =
   let html_props, json_props = process_attributes ~context:fiber.context attributes in
   match (Html.is_self_closing_tag tag, inner_html) with
-  | true, _ -> Lwt.return (Html.node tag html_props [], Model.node ~tag ~key ~props:json_props [])
+  | true, _ -> Lwt.return (Html.node tag html_props [], Model.node ~env:fiber.env ~tag ~key ~props:json_props [])
   | false, Some inner_html ->
-      Lwt.return (Html.node tag html_props [ Html.raw inner_html ], Model.node ~tag ~key ~props:json_props [])
+      Lwt.return
+        (Html.node tag html_props [ Html.raw inner_html ], Model.node ~env:fiber.env ~tag ~key ~props:json_props [])
   | false, None ->
       let%lwt html, model = elements_to_html ~fiber children in
       let model_children = match model with `List l -> l | other -> [ other ] in
-      Lwt.return (Html.node tag html_props [ html ], Model.node ~tag ~key ~props:json_props model_children)
+      Lwt.return
+        (Html.node tag html_props [ html ], Model.node ~env:fiber.env ~tag ~key ~props:json_props model_children)
 
 and render_form_element ~(fiber : Fiber.t) ~key ~tag ~attributes ~children ~inner_html () =
   let context = fiber.context in
@@ -997,17 +1003,20 @@ and render_form_element ~(fiber : Fiber.t) ~key ~tag ~attributes ~children ~inne
   let html_props, json_props = process_attributes ~context ?form_action_id:action_id attributes in
   match (inner_html, action_id) with
   | Some inner_html, _ ->
-      Lwt.return (Html.node tag html_props [ Html.raw inner_html ], Model.node ~tag ~key ~props:json_props [])
+      Lwt.return
+        (Html.node tag html_props [ Html.raw inner_html ], Model.node ~env:fiber.env ~tag ~key ~props:json_props [])
   | None, Some action_id ->
       let html_props, hidden = apply_form_action_attrs html_props action_id in
       let%lwt html, model = elements_to_html ~fiber children in
       let model_children = match model with `List l -> l | other -> [ other ] in
       Lwt.return
-        (Html.node tag html_props [ Html.list [ hidden; html ] ], Model.node ~tag ~key ~props:json_props model_children)
+        ( Html.node tag html_props [ Html.list [ hidden; html ] ],
+          Model.node ~env:fiber.env ~tag ~key ~props:json_props model_children )
   | None, None ->
       let%lwt html, model = elements_to_html ~fiber children in
       let model_children = match model with `List l -> l | other -> [ other ] in
-      Lwt.return (Html.node tag html_props [ html ], Model.node ~tag ~key ~props:json_props model_children)
+      Lwt.return
+        (Html.node tag html_props [ html ], Model.node ~env:fiber.env ~tag ~key ~props:json_props model_children)
 
 and elements_to_html ~fiber elements =
   let%lwt html_and_models = map_children_with_tree_context_lwt (render_element_to_html ~fiber) elements in

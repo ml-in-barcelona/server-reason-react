@@ -57,17 +57,19 @@ React prod encodes an element as a 4-tuple:
 ["$", type, key, props]
 ```
 
-- `type` is a tag name string, a `$<hex>` reference (client component), or a
-  symbol reference like `"$Sreact.suspense"`.
+- `type` is a tag name string, a `$L<hex>` lazy reference (client component),
+  or a `$<hex>` reference to an outlined row (e.g. the suspense symbol row
+  `"$Sreact.suspense"`, emitted once per stream and deduplicated).
 - `key` is `null` or a string.
-- `props` is a JSON object; `children` is a prop like any other.
+- `props` is a JSON object; `children` is a prop like any other. Suspense
+  props serialize in `{children, fallback}` order. Numeric props serialize as
+  JSON numbers. User string values beginning with `$` are escaped by
+  prefixing another `$` (`"$foo"` → `"$$foo"`); internally generated
+  references are never escaped.
 
-Dev mode appends owner/debug fields, producing wider tuples.
-
-> **Known divergence:** server-reason-react currently emits 7-tuples
-> `["$",tag,key,props,null,null,1]` unconditionally, even with `~env:\`Prod`.
-> All fixtures record React's 4-tuple form; the affected cases are xfail in the
-> conformance suite.
+Prod emits the 4-tuple form. Dev appends the debug fields
+`[debugOwner, debugStack, validated]`, producing 7-tuples. server-reason-react
+follows the same gate on `~env`.
 
 ## Normalization rules
 

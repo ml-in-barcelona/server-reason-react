@@ -379,7 +379,7 @@ let client_with_promise_failed_props () =
   assert_html (app ()) ~env:`Prod
     ~shell:
       "<div>Server Content</div>Client with Props<script data-payload='0:[[\"$\",\"div\",null,{\"children\":\"Server \
-       Content\"},null,null,1],[\"$\",\"$L2\",null,{\"promise\":\"$@1\"},null,null,1]]\n\
+       Content\"}],[\"$\",\"$L2\",null,{\"promise\":\"$@1\"}]]\n\
        '>window.srr_stream.push()</script>"
     [
       "<script data-payload='2:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n\

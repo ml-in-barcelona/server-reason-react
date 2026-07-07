@@ -49,10 +49,11 @@ make spec-check
 
 Cases annotated with `~xfail` in `cases/shared/Cases.re` are **expected** to mismatch;
 the conformance runner asserts that they *do* mismatch, so they flip loudly when fixed.
-The big one right now: srr emits 7-tuple element rows
-`["$",tag,key,props,null,null,1]` unconditionally, while React prod emits 4-tuples
-`["$",type,key,props]`. Almost every case containing an element is therefore xfail
-until the srr encoder grows a prod 4-tuple mode.
+There are currently **no known divergences**: all cases assert byte-equality
+against the React fixtures. The five divergences the spec caught on day one
+(`$`-string escaping, numeric props as strings, `$` instead of `$L` client
+references, inlined suspense symbol, unconditional 7-tuple element rows) were
+fixed on this branch — see the git history for the wire-format alignment.
 
 ## Bumping React
 

@@ -18,35 +18,17 @@ let case = (~xfail=?, name: string, render: unit => React.element): case => {
   xfail,
 };
 
-let seven_tuple_elements = {|srr emits 7-tuple element rows ["$",tag,key,props,null,null,1]; React prod emits 4-tuples ["$",type,key,props]|};
-
 let all: list(case) = [
-  case("element_basic", Element_basic.app, ~xfail=seven_tuple_elements),
-  case("element_nested", Element_nested.app, ~xfail=seven_tuple_elements),
-  case("props_primitives", Props_primitives.app, ~xfail=seven_tuple_elements),
-  case("props_float", Props_float.app, ~xfail=seven_tuple_elements),
-  case("fragment", Fragment_basic.app, ~xfail=seven_tuple_elements),
-  case("text_encoding", Text_encoding.app, ~xfail=seven_tuple_elements),
-  case(
-    "client_component_basic",
-    Client_component_basic.app,
-    ~xfail=seven_tuple_elements,
-  ),
-  case(
-    "client_component_with_props",
-    Client_component_with_props.app,
-    ~xfail=seven_tuple_elements,
-  ),
-  case(
-    "suspense_immediate",
-    Suspense_immediate.app,
-    ~xfail=seven_tuple_elements,
-  ),
-  case("suspense_pending", Suspense_pending.app, ~xfail=seven_tuple_elements),
-  case(
-    "suspense_two_boundaries",
-    Suspense_two_boundaries.app,
-    ~xfail=seven_tuple_elements,
-  ),
-  case("promise_prop", Promise_prop.app, ~xfail=seven_tuple_elements),
+  case("element_basic", Element_basic.app),
+  case("element_nested", Element_nested.app),
+  case("props_primitives", Props_primitives.app),
+  case("props_float", Props_float.app),
+  case("fragment", Fragment_basic.app),
+  case("text_encoding", Text_encoding.app),
+  case("client_component_basic", Client_component_basic.app),
+  case("client_component_with_props", Client_component_with_props.app),
+  case("suspense_immediate", Suspense_immediate.app),
+  case("suspense_pending", Suspense_pending.app),
+  case("suspense_two_boundaries", Suspense_two_boundaries.app),
+  case("promise_prop", Promise_prop.app),
 ];
