@@ -447,7 +447,9 @@ module Model = struct
           let ref = component_ref ~module_:import_module ~name:import_name in
           let index = Stream.push_client_ref ~context ~import_module ~import_name (to_chunk (Component_ref ref)) in
           let client_props = models_to_payload ~context ~to_chunk ~env props in
-          node ~tag:(ref_value index) ~key ~props:client_props []
+          (* Client references are lazy references ("$L<id>"): the client must not
+             block on the module row, it resolves it when the chunk loads. *)
+          node ~tag:(lazy_value index) ~key ~props:client_props []
       | Provider { children; push; _ } ->
           let pop = push () in
           let result = turn_element_into_payload ~context ~debug_info children in
@@ -814,7 +816,8 @@ let rec render_element_to_html ~(fiber : Fiber.t) (element : React.element) : (H
       let%lwt html = client_to_html ~fiber client in
       let ref : json = Model.component_ref ~module_:import_module ~name:import_name in
       let index = Stream.push_client_ref ~context ~import_module ~import_name (model_to_chunk (Component_ref ref)) in
-      let model = Model.node ~tag:(Model.ref_value index) ~key ~props [] in
+      (* Client references are lazy references ("$L<id>"), see Model.element_to_payload. *)
+      let model = Model.node ~tag:(Model.lazy_value index) ~key ~props [] in
       Lwt.return (html, model)
   | Suspense { key; children; fallback } -> (
       let context = fiber.context in

@@ -20,8 +20,6 @@ let case = (~xfail=?, name: string, render: unit => React.element): case => {
 
 let seven_tuple_elements = {|srr emits 7-tuple element rows ["$",tag,key,props,null,null,1]; React prod emits 4-tuples ["$",type,key,props]|};
 
-let lazy_client_refs = {|; srr references client imports as "$1" while React prod uses lazy "$L1"|};
-
 let outlined_suspense = {|; React outlines the suspense symbol as its own row (1:"$Sreact.suspense") and references it as "$1"; srr inlines "$Sreact.suspense" as the element type; children/fallback prop order also differs|};
 
 let all: list(case) = [
@@ -34,12 +32,12 @@ let all: list(case) = [
   case(
     "client_component_basic",
     Client_component_basic.app,
-    ~xfail=seven_tuple_elements ++ lazy_client_refs,
+    ~xfail=seven_tuple_elements,
   ),
   case(
     "client_component_with_props",
     Client_component_with_props.app,
-    ~xfail=seven_tuple_elements ++ lazy_client_refs,
+    ~xfail=seven_tuple_elements,
   ),
   case(
     "suspense_immediate",
@@ -51,9 +49,5 @@ let all: list(case) = [
     Suspense_pending.app,
     ~xfail=seven_tuple_elements ++ outlined_suspense,
   ),
-  case(
-    "promise_prop",
-    Promise_prop.app,
-    ~xfail=seven_tuple_elements ++ lazy_client_refs,
-  ),
+  case("promise_prop", Promise_prop.app, ~xfail=seven_tuple_elements),
 ];

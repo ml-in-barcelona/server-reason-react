@@ -110,7 +110,7 @@ let dollar_prefixed_json_props_are_escaped () =
   assert_list_of_strings !output
     [
       "1:I[\"./client.js\",[],\"Component\"]\n";
-      "0:[\"$\",\"$1\",null,{\"data\":{\"label\":\"$$ref-like\"}},null,null,1]\n";
+      "0:[\"$\",\"$L1\",null,{\"data\":{\"label\":\"$$ref-like\"}},null,null,1]\n";
     ];
   Lwt.return ()
 
@@ -539,7 +539,7 @@ let client_without_props () =
   assert_list_of_strings !output
     [
       "1:I[\"./client-without-props.js\",[],\"ClientWithoutProps\"]\n";
-      "0:[[\"$\",\"div\",null,{\"children\":\"Server Content\"},null,null,1],[\"$\",\"$1\",null,{},null,null,1]]\n";
+      "0:[[\"$\",\"div\",null,{\"children\":\"Server Content\"},null,null,1],[\"$\",\"$L1\",null,{},null,null,1]]\n";
     ];
   Lwt.return ()
 
@@ -577,7 +577,7 @@ let client_with_json_props () =
     [
       "1:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n";
       "0:[[\"$\",\"div\",null,{\"children\":\"Server \
-       Content\"},null,null,1],[\"$\",\"$1\",null,{\"null\":null,\"string\":\"Title\",\"int\":1,\"float\":1.1,\"bool \
+       Content\"},null,null,1],[\"$\",\"$L1\",null,{\"null\":null,\"string\":\"Title\",\"int\":1,\"float\":1.1,\"bool \
        true\":true,\"bool false\":false,\"string list\":[\"Item 1\",\"Item \
        2\"],\"object\":{\"name\":\"John\",\"age\":30}},null,null,1]]\n";
     ];
@@ -606,8 +606,8 @@ let client_with_element_props () =
   assert_list_of_strings !output
     [
       "1:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n";
-      "0:[[\"$\",\"div\",null,{\"children\":\"Server Content\"},null,null,1],[\"$\",\"$1\",null,{\"children\":\"Client \
-       Content\"},null,null,1]]\n";
+      "0:[[\"$\",\"div\",null,{\"children\":\"Server \
+       Content\"},null,null,1],[\"$\",\"$L1\",null,{\"children\":\"Client Content\"},null,null,1]]\n";
     ];
   Lwt.return ()
 
@@ -640,7 +640,7 @@ let client_with_promise_props () =
     [
       "1:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n";
       "0:[[\"$\",\"div\",null,{\"children\":\"Server \
-       Content\"},null,null,1],[\"$\",\"$1\",null,{\"promise\":\"$@2\"},null,null,1]]\n";
+       Content\"},null,null,1],[\"$\",\"$L1\",null,{\"promise\":\"$@2\"},null,null,1]]\n";
       "2:\"||| Resolved |||\"\n";
     ];
   Lwt.return ()
@@ -675,7 +675,7 @@ let client_with_promise_failed_props () =
     [
       "1:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n";
       "0:[[\"$\",\"div\",null,{\"children\":\"Server \
-       Content\"},null,null,1],[\"$\",\"$1\",null,{\"promise\":\"$@2\"},null,null,1]]\n";
+       Content\"},null,null,1],[\"$\",\"$L1\",null,{\"promise\":\"$@2\"},null,null,1]]\n";
       "2:E{\"message\":\"Failure(\\\"Already failed\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n";
     ];
   Lwt.return ()
@@ -708,7 +708,7 @@ let client_with_promise_already_failed_props () =
       "1:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n";
       "2:E{\"message\":\"Failure(\\\"Already failed\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n";
       "0:[[\"$\",\"div\",null,{\"children\":\"Server \
-       Content\"},null,null,1],[\"$\",\"$1\",null,{\"promise\":\"$@2\"},null,null,1]]\n";
+       Content\"},null,null,1],[\"$\",\"$L1\",null,{\"promise\":\"$@2\"},null,null,1]]\n";
     ];
   Lwt.return ()
 
@@ -746,8 +746,8 @@ let mixed_server_and_client () =
       "1:I[\"./client-1.js\",[],\"Client1\"]\n";
       "2:I[\"./client-2.js\",[],\"Client2\"]\n";
       "0:[[\"$\",\"header\",null,{\"children\":\"Server \
-       Header\"},null,null,1],[\"$\",\"$1\",null,{},null,null,1],[\"$\",\"footer\",null,{\"children\":\"Server \
-       Footer\"},null,null,1],[\"$\",\"$2\",null,{},null,null,1]]\n";
+       Header\"},null,null,1],[\"$\",\"$L1\",null,{},null,null,1],[\"$\",\"footer\",null,{\"children\":\"Server \
+       Footer\"},null,null,1],[\"$\",\"$L2\",null,{},null,null,1]]\n";
     ];
   Lwt.return ()
 
@@ -776,7 +776,7 @@ let client_with_server_children () =
     [
       "1:I[\"./client-with-server-children.js\",[],\"ClientWithServerChildren\"]\n";
       "0:[[\"$\",\"div\",null,{\"children\":\"Server \
-       Content\"},null,null,1],[\"$\",\"$1\",null,{\"children\":[\"$\",\"div\",null,{\"children\":\"Server Component \
+       Content\"},null,null,1],[\"$\",\"$L1\",null,{\"children\":[\"$\",\"div\",null,{\"children\":\"Server Component \
        Inside Client\"},null,null,1]},null,null,1]]\n";
     ];
   Lwt.return ()
@@ -1010,7 +1010,7 @@ let client_component_with_async_component () =
   assert_list_of_strings !output
     [
       "1:I[\"./client.js\",[],\"Client\"]\n";
-      "0:[\"$\",\"$1\",null,{\"children\":\"$L2\"},null,null,1]\n";
+      "0:[\"$\",\"$L1\",null,{\"children\":\"$L2\"},null,null,1]\n";
       "2:\"Async Component\"\n";
     ];
   Lwt.return ()
@@ -1107,8 +1107,8 @@ let nested_context () =
     [
       "1:I[\"./provider.js\",[],\"Provider\"]\n";
       "2:I[\"./consumer.js\",[],\"Consumer\"]\n";
-      "0:[\"$\",\"$1\",null,{\"value\":[\"$\",\"$1\",null,{\"value\":[\"$\",\"$1\",null,{\"value\":[\"$\",\"$1\",null,{\"value\":null,\"children\":\"Hey \
-       you\"},null,null,1],\"children\":[\"/me\",[\"$\",\"$2\",null,{},null,null,1]]},null,null,1],\"children\":[\"/about\",[\"$\",\"$2\",null,{},null,null,1]]},null,null,1],\"children\":[\"/root\",[\"$\",\"$2\",null,{},null,null,1]]},null,null,1]\n";
+      "0:[\"$\",\"$L1\",null,{\"value\":[\"$\",\"$L1\",null,{\"value\":[\"$\",\"$L1\",null,{\"value\":[\"$\",\"$L1\",null,{\"value\":null,\"children\":\"Hey \
+       you\"},null,null,1],\"children\":[\"/me\",[\"$\",\"$L2\",null,{},null,null,1]]},null,null,1],\"children\":[\"/about\",[\"$\",\"$L2\",null,{},null,null,1]]},null,null,1],\"children\":[\"/root\",[\"$\",\"$L2\",null,{},null,null,1]]},null,null,1]\n";
     ];
   Lwt.return ()
 
@@ -1392,7 +1392,7 @@ let server_function_as_model_prop () =
     [
       "1:I[\"./client.js\",[],\"Client\"]\n";
       "2:{\"id\":\"action-id-123\",\"bound\":null}\n";
-      "0:[\"$\",\"$1\",null,{\"onSubmit\":\"$F2\"},null,null,1]\n";
+      "0:[\"$\",\"$L1\",null,{\"onSubmit\":\"$F2\"},null,null,1]\n";
     ];
   Lwt.return ()
 
@@ -1415,7 +1415,7 @@ let duplicate_client_component_deduplicates_ref () =
   assert_list_of_strings !output
     [
       "1:I[\"./client.js\",[],\"Client\"]\n";
-      "0:[[\"$\",\"$1\",null,{},null,null,1],[\"$\",\"$1\",null,{},null,null,1]]\n";
+      "0:[[\"$\",\"$L1\",null,{},null,null,1],[\"$\",\"$L1\",null,{},null,null,1]]\n";
     ];
   Lwt.return ()
 
@@ -1436,7 +1436,7 @@ let keyed_duplicate_client_component_preserves_keys () =
   assert_list_of_strings !output
     [
       "1:I[\"./client.js\",[],\"Client\"]\n";
-      "0:[[\"$\",\"$1\",\"first\",{},null,null,1],[\"$\",\"$1\",\"second\",{},null,null,1]]\n";
+      "0:[[\"$\",\"$L1\",\"first\",{},null,null,1],[\"$\",\"$L1\",\"second\",{},null,null,1]]\n";
     ];
   Lwt.return ()
 
