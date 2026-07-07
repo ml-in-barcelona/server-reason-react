@@ -77,6 +77,43 @@ let string_element () =
   assert_list_of_strings !output [ "0:\"hi\"\n" ];
   Lwt.return ()
 
+let dollar_prefixed_strings_are_escaped () =
+  (* User strings starting with '$' get an extra '$' (React's escapeStringValue),
+     since bare "$..." is reference syntax on decode. Only a leading '$' matters. *)
+  let app =
+    React.createElement "div"
+      [ React.JSX.String ("title", "title", "$title") ]
+      [ React.string "$dollar"; React.string "$$double"; React.string "safe $ inside" ]
+  in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~subscribe app in
+  assert_list_of_strings !output
+    [
+      "0:[\"$\",\"div\",null,{\"children\":[\"$$dollar\",\"$$$double\",\"safe $ \
+       inside\"],\"title\":\"$$title\"},null,null,1]\n";
+    ];
+  Lwt.return ()
+
+let dollar_prefixed_json_props_are_escaped () =
+  let app =
+    React.Client_component
+      {
+        key = None;
+        import_module = "./client.js";
+        import_name = "Component";
+        props = [ ("data", React.Model.Json (`Assoc [ ("label", `String "$ref-like") ])) ];
+        client = React.null;
+      }
+  in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~subscribe app in
+  assert_list_of_strings !output
+    [
+      "1:I[\"./client.js\",[],\"Component\"]\n";
+      "0:[\"$\",\"$1\",null,{\"data\":{\"label\":\"$$ref-like\"}},null,null,1]\n";
+    ];
+  Lwt.return ()
+
 let lower_case_component () =
   let app = React.createElement "div" (ReactDOM.domProps ~className:"foo" ()) [] in
   let output, subscribe = capture_stream () in
@@ -1390,6 +1427,8 @@ let tests =
     test "null_element" null_element;
     test "special_characters_not_html_encoded" special_characters_not_html_encoded;
     test "string_element" string_element;
+    test "dollar_prefixed_strings_are_escaped" dollar_prefixed_strings_are_escaped;
+    test "dollar_prefixed_json_props_are_escaped" dollar_prefixed_json_props_are_escaped;
     test "key_renders_outside_of_props" key_renders_outside_of_props;
     test "style_as_json" style_as_json;
     test "lower_case_component" lower_case_component;

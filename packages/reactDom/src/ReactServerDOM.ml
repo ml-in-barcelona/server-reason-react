@@ -172,8 +172,6 @@ let map_children_with_tree_context f children =
 module Model = struct
   type chunk = Value of json | Debug_ref of json | Component_ref of json | Error of env * React.error
 
-  let style_to_json style = `Assoc (List.map (fun (_, jsx_key, value) -> (jsx_key, `String value)) style)
-
   let make_error_json ~env ~message ~stack ~digest : json =
     match is_dev env with
     | true ->
@@ -195,7 +193,28 @@ module Model = struct
   let ref_value id = Printf.sprintf "$%x" id
   let error_value id = Printf.sprintf "$Z%x" id
   let action_value id = Printf.sprintf "$F%x" id
-  let action_to_json (action : _ Runtime.server_function) = `Assoc [ ("id", `String action.id); ("bound", `Null) ]
+
+  (* User strings starting with '$' are escaped with an extra '$' because bare
+     "$..." strings are reference syntax on decode. Mirrors escapeStringValue
+     in React's ReactFlightServer.js: only a leading '$' matters. Internally
+     generated references ("$L1", "$Sreact.suspense", "$@2", ...) are written
+     directly and must never go through this function. *)
+  let escape_string_value value =
+    if String.length value > 0 && String.unsafe_get value 0 = '$' then "$" ^ value else value
+
+  (* Escape every string value (not object keys) of a user-provided JSON model. *)
+  let rec escape_model_json (json : json) : json =
+    match json with
+    | `String value -> `String (escape_string_value value)
+    | `List items -> `List (List.map escape_model_json items)
+    | `Assoc pairs -> `Assoc (List.map (fun (key, value) -> (key, escape_model_json value)) pairs)
+    | (`Bool _ | `Float _ | `Int _ | `Null) as scalar -> scalar
+
+  let style_to_json style =
+    `Assoc (List.map (fun (_, jsx_key, value) -> (jsx_key, `String (escape_string_value value))) style)
+
+  let action_to_json (action : _ Runtime.server_function) =
+    `Assoc [ ("id", `String (escape_string_value action.id)); ("bound", `Null) ]
 
   let prop_to_json (prop : React.JSX.prop) =
     match prop with
@@ -203,9 +222,10 @@ module Model = struct
     | Bool (_, key, value) -> Some (key, `Bool value)
     (* We exclude 'key' from props, since it's outside of the props object *)
     | React.JSX.String (_, key, _) when key = "key" -> None
-    | React.JSX.String (_, key, value) -> Some (key, `String value)
+    | React.JSX.String (_, key, value) -> Some (key, `String (escape_string_value value))
     | React.JSX.Style value -> Some ("style", style_to_json value)
-    | React.JSX.DangerouslyInnerHtml html -> Some ("dangerouslySetInnerHTML", `Assoc [ ("__html", `String html) ])
+    | React.JSX.DangerouslyInnerHtml html ->
+        Some ("dangerouslySetInnerHTML", `Assoc [ ("__html", `String (escape_string_value html)) ])
     | React.JSX.Ref _ -> None
     | React.JSX.Event _ -> None
     | React.JSX.Action _ -> None
@@ -323,19 +343,20 @@ module Model = struct
       | Empty -> `Null
       | Static { original; _ } -> turn_element_into_payload ~context ~debug_info original
       | Writer { original; _ } -> turn_element_into_payload ~context ~debug_info (original ())
-      | Text t -> `String t
+      | Text t -> `String (escape_string_value t)
       | Lower_case_element { key; tag; attributes; children } ->
-          let attributes =
-            List.map
-              (fun prop ->
+          (* Action props are serialized directly to JSON here (instead of being rewritten
+             into String props) so the internal "$F<id>" reference is not $$-escaped. *)
+          let props =
+            List.filter_map
+              (fun (prop : React.JSX.prop) ->
                 match prop with
                 | React.JSX.Action (_, key, f) ->
                     let index = Stream.push ~context (to_chunk (Value (action_to_json f))) in
-                    React.JSX.String (key, key, action_value index)
-                | _ -> prop)
+                    Some (key, `String (action_value index))
+                | _ -> prop_to_json prop)
               attributes
           in
-          let props = props_to_json attributes in
           let owner = Option.bind debug_info (fun (_, owner_idx) -> owner_idx) in
           node ~key ~tag ~props ~owner
             (map_children_with_tree_context (turn_element_into_payload ~context ~debug_info) children)
@@ -429,7 +450,7 @@ module Model = struct
 
   and model_to_payload ~context ?debug ?filter_stack_frame ~to_chunk ~env value =
     match (value : React.model_value) with
-    | Json json -> json
+    | Json json -> escape_model_json json
     | Error error ->
         let index = Stream.push ~context (to_chunk (Error (env, error))) in
         `String (error_value index)
@@ -747,7 +768,7 @@ let rec render_element_to_html ~(fiber : Fiber.t) (element : React.element) : (H
       let b = Buffer.create 256 in
       emit b;
       Lwt.return (Html.raw (Buffer.contents b), model)
-  | Text s -> Lwt.return (Html.string s, `String s)
+  | Text s -> Lwt.return (Html.string s, `String (Model.escape_string_value s))
   | Fragment children -> render_element_to_html ~fiber children
   | List list -> elements_to_html ~fiber list
   | Array arr -> elements_to_html ~fiber (Array.to_list arr)

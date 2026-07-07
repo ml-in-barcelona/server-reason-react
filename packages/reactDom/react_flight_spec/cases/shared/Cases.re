@@ -35,13 +35,7 @@ let all: list(case) = [
       ++ {|; srr serializes int props as JSON strings ("tabIndex":"42" vs 42) and orders props differently|},
   ),
   case("fragment", Fragment_basic.app, ~xfail=seven_tuple_elements),
-  case(
-    "text_encoding",
-    Text_encoding.app,
-    ~xfail=
-      seven_tuple_elements
-      ++ {|; srr does not $$-escape text starting with "$" ("$dollar" vs React's "$$dollar")|},
-  ),
+  case("text_encoding", Text_encoding.app, ~xfail=seven_tuple_elements),
   case(
     "client_component_basic",
     Client_component_basic.app,
