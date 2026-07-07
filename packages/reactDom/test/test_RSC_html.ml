@@ -933,6 +933,108 @@ let timeout_does_not_affect_fast_renders () =
     (Str.string_match (Str.regexp ".*<div hidden.*") all_content 0);
   Lwt.return ()
 
+let never_resolving_component name =
+  React.Async_component
+    ( name,
+      fun () ->
+        let promise, _resolver = Lwt.wait () in
+        let%lwt () = promise in
+        Lwt.return (React.string "Should never appear") )
+
+let timeout_emits_client_render_instruction_per_pending_boundary () =
+  let app =
+    React.createElement "div" []
+      [
+        mk_suspense ~fallback:(React.string "Loading A") ~children:(never_resolving_component "NeverResolvesA") ();
+        mk_suspense ~fallback:(React.string "Loading B") ~children:(never_resolving_component "NeverResolvesB") ();
+      ]
+  in
+  let subscribed_elements = ref [] in
+  let%lwt html, subscribe = ReactServerDOM.render_html ~progressive_chunk_size:1 ~timeout:0.02 app in
+  let%lwt () =
+    subscribe (fun element ->
+        subscribed_elements := !subscribed_elements @ [ element ];
+        Lwt.return ())
+  in
+  let contains_substring str sub =
+    match Str.search_forward (Str.regexp_string sub) str 0 with exception Not_found -> false | _ -> true
+  in
+  (* The shell contains both boundaries as pending fallbacks *)
+  Alcotest.(check bool)
+    "shell contains the first pending boundary" true
+    (contains_substring html {|<!--$?--><template id="B:1"></template>Loading A<!--/$-->|});
+  Alcotest.(check bool)
+    "shell contains the second pending boundary" true
+    (contains_substring html {|<!--$?--><template id="B:2"></template>Loading B<!--/$-->|});
+  (* On timeout: the $RX definition is emitted once, one $RX call per pending boundary (with the error detail in
+     dev), and the stream closes *)
+  assert_list_of_strings !subscribed_elements
+    [
+      "<script>$RX=function(b,c,d,e,f){var \
+       a=document.getElementById(b);a&&(b=a.previousSibling,b.data=\"$!\",a=a.dataset,c&&(a.dgst=c),d&&(a.msg=d),e&&(a.stck=e),f&&(a.cstck=f),b._reactRetry&&b._reactRetry())};;$RX(\"B:1\",\"\",\"Switched \
+       to client rendering because the server rendering aborted due to:\\n\\nThe render timed \
+       out.\")</script><script>$RX(\"B:2\",\"\",\"Switched to client rendering because the server rendering aborted \
+       due to:\\n\\nThe render timed out.\")</script><script>window.srr_stream.close()</script>";
+    ];
+  Lwt.return ()
+
+let timeout_in_prod_emits_only_digest () =
+  let app =
+    mk_suspense ~fallback:(React.string "Loading...") ~children:(never_resolving_component "NeverResolves") ()
+  in
+  let subscribed_elements = ref [] in
+  let%lwt _html, subscribe = ReactServerDOM.render_html ~env:`Prod ~progressive_chunk_size:1 ~timeout:0.02 app in
+  let%lwt () =
+    subscribe (fun element ->
+        subscribed_elements := !subscribed_elements @ [ element ];
+        Lwt.return ())
+  in
+  (* In production only the digest is passed to $RX, no error detail *)
+  assert_list_of_strings !subscribed_elements
+    [
+      "<script>$RX=function(b,c,d,e,f){var \
+       a=document.getElementById(b);a&&(b=a.previousSibling,b.data=\"$!\",a=a.dataset,c&&(a.dgst=c),d&&(a.msg=d),e&&(a.stck=e),f&&(a.cstck=f),b._reactRetry&&b._reactRetry())};;$RX(\"B:1\",\"\")</script><script>window.srr_stream.close()</script>";
+    ];
+  Lwt.return ()
+
+let timeout_with_late_resolving_boundary_does_not_crash () =
+  let async_exceptions = ref [] in
+  let previous_hook = !Lwt.async_exception_hook in
+  (Lwt.async_exception_hook := fun exn -> async_exceptions := Printexc.to_string exn :: !async_exceptions);
+  let app =
+    mk_suspense ~fallback:(React.string "Loading...")
+      ~children:
+        (React.Async_component
+           ( "ResolvesAfterTimeout",
+             fun () ->
+               let%lwt () = Lwt_unix.sleep 0.05 in
+               Lwt.return (React.string "Too late") ))
+      ()
+  in
+  let subscribed_elements = ref [] in
+  let%lwt _html, subscribe = ReactServerDOM.render_html ~progressive_chunk_size:1 ~timeout:0.01 app in
+  let%lwt () =
+    subscribe (fun element ->
+        subscribed_elements := !subscribed_elements @ [ element ];
+        Lwt.return ())
+  in
+  (* Let the boundary resolve after the timeout: its completion must not push into the closed stream nor raise *)
+  let%lwt () = Lwt_unix.sleep 0.06 in
+  Lwt.async_exception_hook := previous_hook;
+  assert_list_of_strings !async_exceptions [];
+  let all_content = String.concat "" !subscribed_elements in
+  let contains_substring str sub =
+    match Str.search_forward (Str.regexp_string sub) str 0 with exception Not_found -> false | _ -> true
+  in
+  Alcotest.(check bool) "the pending boundary got a $RX call" true (contains_substring all_content {|$RX("B:1"|});
+  Alcotest.(check bool)
+    "content never reaches the stream after the timeout" false
+    (contains_substring all_content "Too late");
+  Alcotest.(check bool)
+    "stream end script received" true
+    (String.ends_with ~suffix:"<script>window.srr_stream.close()</script>" all_content);
+  Lwt.return ()
+
 let progressive_chunk_size_batches_small_chunks () =
   let app =
     mk_suspense ~fallback:(React.string "Loading...")
@@ -1057,6 +1159,11 @@ let tests =
     test "context_client_component_reads_context_across_async_suspense"
       context_client_component_reads_context_across_async_suspense;
     test ~timeout:500 "timeout_closes_stream_for_hanging_suspense" timeout_closes_stream_for_hanging_suspense;
+    test ~timeout:500 "timeout_emits_client_render_instruction_per_pending_boundary"
+      timeout_emits_client_render_instruction_per_pending_boundary;
+    test ~timeout:500 "timeout_in_prod_emits_only_digest" timeout_in_prod_emits_only_digest;
+    test ~timeout:500 "timeout_with_late_resolving_boundary_does_not_crash"
+      timeout_with_late_resolving_boundary_does_not_crash;
     test ~timeout:500 "timeout_does_not_affect_fast_renders" timeout_does_not_affect_fast_renders;
     test ~timeout:500 "progressive_chunk_size_batches_small_chunks" progressive_chunk_size_batches_small_chunks;
     test ~timeout:500 "timeout_end_script_appears_exactly_once" timeout_end_script_appears_exactly_once;

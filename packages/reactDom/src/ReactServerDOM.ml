@@ -61,15 +61,27 @@ module Stream = struct
   type 'a t = {
     push : 'a -> unit;
     close : unit -> unit;
+    mutable closed : bool;
     mutable index : int;
     mutable pending : int;
+    (* Suspense boundaries whose async content is still rendering, in registration order (most recent first). Used to
+       emit a $RX client-render instruction per still-pending boundary when the stream is aborted by a timeout. *)
+    mutable pending_boundaries : int list;
     written_client_references : (string * string, int) Hashtbl.t;
   }
+
+  (* Closing is idempotent and pushes are guarded on [closed]: async work that completes after an abort/timeout must
+     not push into (or re-close) the closed stream, which would raise Lwt_stream.Closed inside Lwt.async and crash the
+     process. *)
+  let close context =
+    if not context.closed then (
+      context.closed <- true;
+      context.close ())
 
   let push to_chunk ~context =
     let index = context.index in
     context.index <- context.index + 1;
-    context.push (to_chunk index);
+    if not context.closed then context.push (to_chunk index);
     index
 
   let push_client_ref ~context ~import_module ~import_name to_chunk =
@@ -81,21 +93,33 @@ module Stream = struct
         Hashtbl.replace context.written_client_references key index;
         index
 
-  let push_async promise_to_chunk ~context =
+  let push_async ?(is_boundary = false) promise_to_chunk ~context =
     let index = context.index in
     context.index <- context.index + 1;
     context.pending <- context.pending + 1;
+    if is_boundary then context.pending_boundaries <- index :: context.pending_boundaries;
     Lwt.async (fun () ->
         let%lwt to_chunk = promise_to_chunk in
         context.pending <- context.pending - 1;
-        context.push (to_chunk index);
-        if context.pending = 0 then context.close ();
+        if is_boundary then context.pending_boundaries <- List.filter (fun i -> i <> index) context.pending_boundaries;
+        if not context.closed then (
+          context.push (to_chunk index);
+          if context.pending = 0 then close context);
         Lwt.return ());
     index
 
   let make ?(initial_index = 0) ?(pending = 0) () =
     let stream, push, close = Push_stream.make () in
-    (stream, { push; close; pending; index = initial_index; written_client_references = Hashtbl.create 16 })
+    ( stream,
+      {
+        push;
+        close;
+        closed = false;
+        pending;
+        index = initial_index;
+        pending_boundaries = [];
+        written_client_references = Hashtbl.create 16;
+      } )
 end
 
 (* Resources module maintains insertion order while deduplicating based on src/href *)
@@ -479,7 +503,7 @@ module Model = struct
       to_chunk (Value payload) id
     in
     Stream.push ~context (to_root_chunk model) |> ignore;
-    if context.pending = 0 then context.close ();
+    if context.pending = 0 then Stream.close context;
     match subscribe with None -> Lwt.return () | Some subscribe -> Lwt_stream.iter_s subscribe stream
 
   let create_action_response ?(env = `Dev) ?(debug = false) ?filter_stack_frame ?subscribe response =
@@ -497,7 +521,7 @@ module Model = struct
       to_chunk (Value payload) id
     in
     Stream.push ~context (to_root_chunk response) |> ignore;
-    if context.pending = 0 then context.close ();
+    if context.pending = 0 then Stream.close context;
     match subscribe with None -> Lwt.return () | Some subscribe -> Lwt_stream.iter_s subscribe stream
 end
 
@@ -522,6 +546,40 @@ let rc_function_definition =
   {|function $RC(a,b){a=document.getElementById(a);b=document.getElementById(b);b.parentNode.removeChild(b);if(a){a=a.previousSibling;var f=a.parentNode,c=a.nextSibling,e=0;do{if(c&&8===c.nodeType){var d=c.data;if("/$"===d)if(0===e)break;else e--;else"$"!==d&&"$?"!==d&&"$!"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data="$";a._reactRetry&&a._reactRetry()}}|}
 
 let rc_function_script = Html.node "script" [] [ Html.raw rc_function_definition ]
+
+(* https://github.com/facebook/react/blob/493f72b0a7111b601c16b8ad8bc2649d82c184a0/packages/react-dom-bindings/src/server/fizz-instruction-set/ReactDOMFizzInstructionSetShared.js#L127 *)
+let rx_function_definition =
+  {|$RX=function(b,c,d,e,f){var a=document.getElementById(b);a&&(b=a.previousSibling,b.data="$!",a=a.dataset,c&&(a.dgst=c),d&&(a.msg=d),e&&(a.stck=e),f&&(a.cstck=f),b._reactRetry&&b._reactRetry())};|}
+
+(* Escapes a string for embedding inside a double-quoted JS string literal within an inline <script>. '<' is escaped to
+   '\u003c' so user content can't terminate the script tag early, matching React's
+   escapeJSStringsForInstructionScripts. *)
+let escape_for_inline_script str =
+  let buf = Buffer.create (String.length str + 16) in
+  String.iter
+    (fun c ->
+      match c with
+      | '\\' -> Buffer.add_string buf "\\\\"
+      | '"' -> Buffer.add_string buf "\\\""
+      | '\n' -> Buffer.add_string buf "\\n"
+      | '\r' -> Buffer.add_string buf "\\r"
+      | '\t' -> Buffer.add_string buf "\\t"
+      | '<' -> Buffer.add_string buf "\\u003c"
+      | c -> Buffer.add_char buf c)
+    str;
+  Buffer.contents buf
+
+let timeout_error_message =
+  "Switched to client rendering because the server rendering aborted due to:\n\nThe render timed out."
+
+let client_render_boundary_to_chunk ~env ~include_definition index =
+  let rx_call =
+    (* Error detail is dev-only: in production React passes only the digest to avoid leaking server internals. *)
+    match env with
+    | `Prod -> Printf.sprintf {|$RX("B:%x","")|} index
+    | `Dev -> Printf.sprintf {|$RX("B:%x","","%s")|} index (escape_for_inline_script timeout_error_message)
+  in
+  Html.node "script" [] [ Html.raw (if include_definition then rx_function_definition ^ ";" ^ rx_call else rx_call) ]
 
 let model_to_chunk model index =
   Html.raw
@@ -673,12 +731,12 @@ let rec client_to_html ~(fiber : Fiber.t) (element : React.element) =
                 Lwt.return (boundary_to_chunk html)
               with _exn -> Lwt.return (boundary_to_chunk Html.null)
             in
-            let index = Stream.push_async ~context async in
+            let index = Stream.push_async ~is_boundary:true ~context async in
             Lwt.return (html_suspense_placeholder ~fallback:fallback_html index)
         | Fail exn -> Lwt.reraise exn
       with _exn ->
         let async = Lwt.return (boundary_to_chunk Html.null) in
-        let index = Stream.push_async ~context async in
+        let index = Stream.push_async ~is_boundary:true ~context async in
         Lwt.return (html_suspense_placeholder ~fallback:fallback_html index))
   | Client_component { client; _ } -> client_to_html ~fiber client
   | Provider { children; push; async_key; async_value } ->
@@ -803,7 +861,7 @@ let rec render_element_to_html ~(fiber : Fiber.t) (element : React.element) : (H
                 let to_chunk index = model_to_chunk (Error (fiber.env, error)) index in
                 Lwt.return to_chunk
             in
-            let index = Stream.push_async ~context promise in
+            let index = Stream.push_async ~is_boundary:true ~context promise in
             Lwt.return
               ( html_suspense_placeholder ~fallback:html_fallback index,
                 Model.suspense_placeholder ~key ~fallback:model_fallback index )
@@ -1121,7 +1179,7 @@ let render_html ?(skipRoot = false) ?(env = `Dev) ?debug:(_ = false) ?timeout
       (* Decrement the pending counter to signal that the root data payload is complete. *)
       context.pending <- context.pending - 1;
       (* In case of not having any task pending, we can close the stream *)
-      if context.pending = 0 then context.close ();
+      if context.pending = 0 then Stream.close context;
       let user_scripts =
         create_user_scripts ~root_data_payload ?bootstrapScriptContent ?bootstrapScripts ?bootstrapModules ()
       in
@@ -1156,10 +1214,24 @@ let render_html ?(skipRoot = false) ?(env = `Dev) ?debug:(_ = false) ?timeout
             Lwt.pick
               [
                 subscription;
+                (* On timeout, mirror react-dom's abort: emit a $RX client-render instruction per still-pending
+                   Suspense boundary (the client flips each boundary to errored and retries rendering it there), then
+                   close the stream. The $RX scripts are written straight into the subscriber's buffer since the
+                   stream subscription is about to be cancelled by Lwt.pick. Closing sets [closed], which guards the
+                   async pushes of boundary promises that resolve later. *)
                 (let%lwt () = Lwt_unix.sleep seconds in
-                 if context.pending > 0 then (
+                 if not context.closed then (
+                   (match List.rev context.pending_boundaries with
+                   | [] -> ()
+                   | pending_boundaries ->
+                       context.pending_boundaries <- [];
+                       List.iteri
+                         (fun i index ->
+                           Buffer.add_string buf
+                             (Html.to_string (client_render_boundary_to_chunk ~env ~include_definition:(i = 0) index)))
+                         pending_boundaries);
                    context.pending <- 0;
-                   context.close ());
+                   Stream.close context);
                  finish ());
               ]
       in
