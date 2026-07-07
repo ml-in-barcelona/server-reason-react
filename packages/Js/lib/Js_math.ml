@@ -22,7 +22,7 @@ let _PI = 3.141592653589793
 let _SQRT1_2 = 0.7071067811865476
 
 (** square root of 2 *)
-let _SQRT2 = 1.41421356237
+let _SQRT2 = 1.4142135623730951
 
 (** absolute value *)
 let abs_int _ = Js_internal.notImplemented "Js.Math" "abs_int"

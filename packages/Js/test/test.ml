@@ -714,11 +714,26 @@ let float_tests =
             ignore (Js.Float.toFixed ~digits:101 12.34)));
   ]
 
+let math_tests =
+  [
+    (* Full double-precision values, verified against node's Math.* *)
+    test "constants" (fun () ->
+        assert_float_exact Js.Math._E 2.718281828459045;
+        assert_float_exact Js.Math._LN2 0.6931471805599453;
+        assert_float_exact Js.Math._LN10 2.302585092994046;
+        assert_float_exact Js.Math._LOG2E 1.4426950408889634;
+        assert_float_exact Js.Math._LOG10E 0.4342944819032518;
+        assert_float_exact Js.Math._PI 3.141592653589793;
+        assert_float_exact Js.Math._SQRT1_2 0.7071067811865476;
+        assert_float_exact Js.Math._SQRT2 1.4142135623730951);
+  ]
+
 let () =
   Lwt_main.run
   @@ Alcotest_lwt.run "Js"
        [
          ("Js.Global", global_tests);
+         ("Js.Math", math_tests);
          ("Js.Promise", promise_tests);
          ("Js.Float", float_tests);
          ("Js.String", string_tests);
