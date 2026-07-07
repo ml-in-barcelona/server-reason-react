@@ -763,10 +763,82 @@ let optional_prop_with_shadowed_none_and_styles = () => {
   );
 };
 
+module Memo_plain = {
+  [@react.component]
+  let make = (~a) =>
+    <div> {Printf.sprintf("`a` is %s", a) |> React.string} </div>;
+};
+
+module Memo_inline = {
+  [@react.component]
+  let make =
+    React.memo((~a) =>
+      <div> {Printf.sprintf("`a` is %s", a) |> React.string} </div>
+    );
+};
+
+module Memo_wrapping_make = {
+  [@react.component]
+  let make = (~a) =>
+    <div> {Printf.sprintf("`a` is %s", a) |> React.string} </div>;
+  let make = React.memo(make);
+};
+
+module Memo_custom_compare_inline = {
+  [@react.component]
+  let make =
+    React.memoCustomCompareProps(
+      (~a) => <div> {Printf.sprintf("`a` is %s", a) |> React.string} </div>,
+      (_prevProps, _nextProps) => false,
+    );
+};
+
+module Memo_custom_compare_wrapping_make = {
+  [@react.component]
+  let make = (~a) =>
+    <div> {Printf.sprintf("`a` is %s", a) |> React.string} </div>;
+  let make =
+    React.memoCustomCompareProps(make, (_prevProps, _nextProps) => false);
+};
+
+let memo_renders_like_the_unmemoized_component = () => {
+  let expected = ReactDOM.renderToStaticMarkup(<Memo_plain a="foo" />);
+  assert_string(
+    ReactDOM.renderToStaticMarkup(<Memo_inline a="foo" />),
+    expected,
+  );
+  assert_string(
+    ReactDOM.renderToStaticMarkup(<Memo_wrapping_make a="foo" />),
+    expected,
+  );
+};
+
+let memo_custom_compare_renders_like_the_unmemoized_component = () => {
+  let expected = ReactDOM.renderToStaticMarkup(<Memo_plain a="foo" />);
+  assert_string(
+    ReactDOM.renderToStaticMarkup(<Memo_custom_compare_inline a="foo" />),
+    expected,
+  );
+  assert_string(
+    ReactDOM.renderToStaticMarkup(
+      <Memo_custom_compare_wrapping_make a="foo" />,
+    ),
+    expected,
+  );
+};
+
 Alcotest_lwt.run(
   "server-reason-react.ppx",
   [
     test("tag", tag),
+    test(
+      "memo_renders_like_the_unmemoized_component",
+      memo_renders_like_the_unmemoized_component,
+    ),
+    test(
+      "memo_custom_compare_renders_like_the_unmemoized_component",
+      memo_custom_compare_renders_like_the_unmemoized_component,
+    ),
     test("empty_attribute", empty_attribute),
     test("bool_attribute", bool_attribute),
     test("bool_attributes", bool_attributes),
