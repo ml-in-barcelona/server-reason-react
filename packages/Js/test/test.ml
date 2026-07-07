@@ -15,6 +15,7 @@ let assert_option_int = assert_option Alcotest.int
 
 let assert_int left right = Alcotest.check Alcotest.int "should be equal" right left
 let assert_float left right = Alcotest.check (Alcotest.float 2.) "should be equal" right left
+let assert_float_exact left right = Alcotest.check (Alcotest.float 0.) "should be equal" right left
 let assert_bool left right = Alcotest.check Alcotest.bool "should be equal" right left
 
 let assert_raises fn exn =
@@ -661,6 +662,24 @@ let float_tests =
         assert_float (Js.Float.fromString "NaN") Stdlib.Float.nan;
         assert_float (Js.Float.fromString "Infinity") Stdlib.Float.infinity;
         assert_float (Js.Float.fromString "-Infinity") Stdlib.Float.neg_infinity);
+    test "fromString follows JS Number() semantics" (fun () ->
+        (* node: Number("abc") is NaN (Number(), not parseFloat) *)
+        assert_float_exact (Js.Float.fromString "abc") Stdlib.Float.nan;
+        (* node: Number("3.5px") is NaN, unlike parseFloat("3.5px") === 3.5 *)
+        assert_float_exact (Js.Float.fromString "3.5px") Stdlib.Float.nan;
+        (* node: Number("1_0") is NaN (no numeric separators) *)
+        assert_float_exact (Js.Float.fromString "1_0") Stdlib.Float.nan;
+        (* node: Number("") === 0 and Number("   ") === 0 *)
+        assert_float_exact (Js.Float.fromString "") 0.;
+        assert_float_exact (Js.Float.fromString "   ") 0.;
+        (* node: Number(" 42 ") === 42 (whitespace trimmed on both sides) *)
+        assert_float_exact (Js.Float.fromString " 42 ") 42.;
+        (* node: Number("0x10") === 16, Number("0b101") === 5, Number("0o17") === 15 *)
+        assert_float_exact (Js.Float.fromString "0x10") 16.;
+        assert_float_exact (Js.Float.fromString "0b101") 5.;
+        assert_float_exact (Js.Float.fromString "0o17") 15.;
+        (* node: Number("+Infinity") === Infinity *)
+        assert_float_exact (Js.Float.fromString "+Infinity") Stdlib.Float.infinity);
     test "toFixed" (fun () ->
         assert_string (Js.Float.toFixed 12.3456) "12";
         assert_string (Js.Float.toFixed ~digits:20 0.) "0.00000000000000000000";
