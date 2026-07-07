@@ -1,0 +1,10 @@
+(library
+ (name flight_spec_harness_native)
+ (wrapped false)
+ (modes native byte)
+ (libraries
+  server-reason-react.react
+  server-reason-react.js
+  lwt
+  lwt.unix
+  yojson))
