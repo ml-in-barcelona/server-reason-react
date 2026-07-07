@@ -1,0 +1,10 @@
+(copy_files
+ (files "../shared/*.re"))
+
+(library
+ (name flight_spec_cases_native)
+ (wrapped false)
+ (modes native byte)
+ (libraries react reactDOM js flight_spec_harness_native lwt)
+ (preprocess
+  (pps server-reason-react.ppx)))
