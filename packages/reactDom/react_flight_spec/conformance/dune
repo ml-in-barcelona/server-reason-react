@@ -1,0 +1,17 @@
+(test
+ (name flight_spec_conformance)
+ (modes native)
+ (libraries
+  flight_spec_cases_native
+  reactDOM
+  react
+  js
+  alcotest
+  alcotest-lwt
+  lwt
+  lwt.unix
+  str)
+ (deps
+  (glob_files ../fixtures/*.flight))
+ (preprocess
+  (pps lwt_ppx)))
