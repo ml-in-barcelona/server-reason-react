@@ -351,6 +351,8 @@ module JSX = struct
     | Action : (string * string * _ Runtime.server_function) -> prop
     | Bool of (string * string * bool)
     | String of (string * string * string)
+    | Int of (string * string * int)
+    | Float of (string * string * float)
     | Style of (string * string * string) list
     | DangerouslyInnerHtml of string
     | Ref of Ref.t
@@ -359,8 +361,8 @@ module JSX = struct
   let bool name jsxName value = Bool (name, jsxName, value)
   let string name jsxName value = String (name, jsxName, value)
   let style value = Style value
-  let int name jsxName value = String (name, jsxName, Int.to_string value)
-  let float name jsxName value = String (name, jsxName, Float.to_string value)
+  let int name jsxName value = Int (name, jsxName, value)
+  let float name jsxName value = Float (name, jsxName, value)
   let dangerouslyInnerHtml value = DangerouslyInnerHtml value#__html
   let ref value = Ref value
   let event key value = Event (key, value)
@@ -435,7 +437,10 @@ exception Invalid_children of string
 
 let compare_attribute (left : JSX.prop) (right : JSX.prop) =
   match (left, right) with
-  | Bool (left_key, _, _), Bool (right_key, _, _) | String (left_key, _, _), String (right_key, _, _) ->
+  | Bool (left_key, _, _), Bool (right_key, _, _)
+  | String (left_key, _, _), String (right_key, _, _)
+  | Int (left_key, _, _), Int (right_key, _, _)
+  | Float (left_key, _, _), Float (right_key, _, _) ->
       String.compare left_key right_key
   | Style left_styles, Style right_styles ->
       List.compare
@@ -448,6 +453,8 @@ let clone_attribute acc (attr : JSX.prop) (new_attr : JSX.prop) =
   match (attr, new_attr) with
   | Bool (left, _, _), Bool (right, _, _) when left == right -> new_attr :: acc
   | String (left, _, _), String (right, _, _) when left == right -> new_attr :: acc
+  | Int (left, _, _), Int (right, _, _) when left == right -> new_attr :: acc
+  | Float (left, _, _), Float (right, _, _) when left == right -> new_attr :: acc
   | _ -> new_attr :: acc
 
 module StringMap = Map.Make (String)
@@ -456,7 +463,8 @@ let attributes_to_map attributes =
   List.fold_left
     (fun acc (attr : JSX.prop) ->
       match attr with
-      | (Bool (key, _, _) | String (key, _, _)) as prop -> acc |> StringMap.add key prop
+      | (Bool (key, _, _) | String (key, _, _) | Int (key, _, _) | Float (key, _, _)) as prop ->
+          acc |> StringMap.add key prop
       (* The following constructors shoudn't be part of the StringMap *)
       | DangerouslyInnerHtml _ -> acc
       | Ref _ -> acc

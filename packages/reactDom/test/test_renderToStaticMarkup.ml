@@ -41,6 +41,21 @@ let self_closing_tag () =
   let input = React.createElement "input" [] [] in
   assert_string (ReactDOM.renderToStaticMarkup input) "<input />"
 
+let numeric_attributes () =
+  (* Numbers render the way JavaScript stringifies them: 100.0 -> "100", not "100." *)
+  let component =
+    React.createElement "div"
+      [
+        React.JSX.int "tabindex" "tabIndex" 42;
+        React.JSX.float "aria-valuemin" "aria-valuemin" 0.5;
+        React.JSX.float "aria-valuemax" "aria-valuemax" 100.;
+      ]
+      []
+  in
+  assert_string
+    (ReactDOM.renderToStaticMarkup component)
+    "<div tabindex=\"42\" aria-valuemin=\"0.5\" aria-valuemax=\"100\"></div>"
+
 let dom_element_innerHtml () =
   let p = React.createElement "p" [] [ React.string "text" ] in
   assert_string (ReactDOM.renderToStaticMarkup p) "<p>text</p>"
@@ -362,6 +377,7 @@ let tests =
     test "ignore_nulls" ignore_nulls;
     test "string_attributes" string_attributes;
     test "self_closing_tag" self_closing_tag;
+    test "numeric_attributes" numeric_attributes;
     test "dom_element_innerHtml" dom_element_innerHtml;
     test "children" children;
     test "className" className;

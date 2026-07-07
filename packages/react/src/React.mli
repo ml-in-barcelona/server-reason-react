@@ -530,6 +530,8 @@ module JSX : sig
     | Action : (string * string * _ Runtime.server_function) -> prop
     | Bool of (string * string * bool)
     | String of (string * string * string)
+    | Int of (string * string * int)
+    | Float of (string * string * float)
     | Style of (string * string * string) list
     | DangerouslyInnerHtml of string
     | Ref of domRef

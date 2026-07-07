@@ -27,13 +27,8 @@ let outlined_suspense = {|; React outlines the suspense symbol as its own row (1
 let all: list(case) = [
   case("element_basic", Element_basic.app, ~xfail=seven_tuple_elements),
   case("element_nested", Element_nested.app, ~xfail=seven_tuple_elements),
-  case(
-    "props_primitives",
-    Props_primitives.app,
-    ~xfail=
-      seven_tuple_elements
-      ++ {|; srr serializes int props as JSON strings ("tabIndex":"42" vs 42) and orders props differently|},
-  ),
+  case("props_primitives", Props_primitives.app, ~xfail=seven_tuple_elements),
+  case("props_float", Props_float.app, ~xfail=seven_tuple_elements),
   case("fragment", Fragment_basic.app, ~xfail=seven_tuple_elements),
   case("text_encoding", Text_encoding.app, ~xfail=seven_tuple_elements),
   case(

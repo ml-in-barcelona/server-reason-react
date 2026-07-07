@@ -32,6 +32,21 @@ let write_attribute_to_buffer buf (attr : React.JSX.prop) =
       Buffer.add_string buf "=\"";
       Html.escape buf value;
       Buffer.add_char buf '"'
+  | Int (name, _, _value) when is_react_custom_attribute name -> ()
+  | Int (name, _, value) ->
+      Buffer.add_char buf ' ';
+      Buffer.add_string buf name;
+      Buffer.add_string buf "=\"";
+      Buffer.add_string buf (Int.to_string value);
+      Buffer.add_char buf '"'
+  | Float (name, _, _value) when is_react_custom_attribute name -> ()
+  | Float (name, _, value) ->
+      Buffer.add_char buf ' ';
+      Buffer.add_string buf name;
+      Buffer.add_string buf "=\"";
+      (* Numbers are rendered the way JavaScript stringifies them: "2", not "2." *)
+      Buffer.add_string buf (Js.Float.toString value);
+      Buffer.add_char buf '"'
   (* Events don't get rendered on SSR *)
   | Event _ -> ()
   (* Since we extracted the attribute as children, we are sure there's nothing to render here *)
@@ -59,6 +74,11 @@ let attribute_to_html (attr : React.JSX.prop) =
   | Style styles -> Html.attribute "style" (ReactDOMStyle.to_string styles)
   | String (name, _, _value) when is_react_custom_attribute name -> Html.omitted ()
   | String (name, _, value) -> Html.attribute name value
+  | Int (name, _, _value) when is_react_custom_attribute name -> Html.omitted ()
+  | Int (name, _, value) -> Html.attribute name (Int.to_string value)
+  | Float (name, _, _value) when is_react_custom_attribute name -> Html.omitted ()
+  (* Numbers are rendered the way JavaScript stringifies them: "2", not "2." *)
+  | Float (name, _, value) -> Html.attribute name (Js.Float.toString value)
   (* Events don't get rendered on SSR *)
   | Event _ -> Html.omitted ()
   (* Since we extracted the attribute as children, we are sure there's nothing to render here *)

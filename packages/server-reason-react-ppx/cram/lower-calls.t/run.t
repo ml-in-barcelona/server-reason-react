@@ -81,12 +81,7 @@
               | None => None
               | Some(v) =>
                 Some(
-                  [@implicit_arity]
-                  React.JSX.String(
-                    "tabindex",
-                    "tabIndex",
-                    Stdlib.Int.to_string(v),
-                  ),
+                  [@implicit_arity] React.JSX.Int("tabindex", "tabIndex", v),
                 )
               },
             ],
@@ -109,12 +104,7 @@
             Stdlib.Fun.id,
             [
               Some(
-                [@implicit_arity]
-                React.JSX.String(
-                  "tabindex",
-                  "tabIndex",
-                  Stdlib.Int.to_string(1: int),
-                ),
+                [@implicit_arity] React.JSX.Int("tabindex", "tabIndex", 1: int),
               ),
               Some(
                 [@implicit_arity]

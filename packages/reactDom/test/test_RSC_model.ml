@@ -114,6 +114,24 @@ let dollar_prefixed_json_props_are_escaped () =
     ];
   Lwt.return ()
 
+let numeric_props_serialize_as_json_numbers () =
+  (* React emits numeric props as JSON numbers, stringified the way JavaScript
+     does: integral floats lose the decimal part (100.0 -> 100). *)
+  let app =
+    React.createElement "div"
+      [
+        React.JSX.int "tabindex" "tabIndex" 42;
+        React.JSX.float "aria-valuemin" "aria-valuemin" 0.5;
+        React.JSX.float "aria-valuemax" "aria-valuemax" 100.;
+      ]
+      []
+  in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~subscribe app in
+  assert_list_of_strings !output
+    [ "0:[\"$\",\"div\",null,{\"tabIndex\":42,\"aria-valuemin\":0.5,\"aria-valuemax\":100},null,null,1]\n" ];
+  Lwt.return ()
+
 let lower_case_component () =
   let app = React.createElement "div" (ReactDOM.domProps ~className:"foo" ()) [] in
   let output, subscribe = capture_stream () in
@@ -1429,6 +1447,7 @@ let tests =
     test "string_element" string_element;
     test "dollar_prefixed_strings_are_escaped" dollar_prefixed_strings_are_escaped;
     test "dollar_prefixed_json_props_are_escaped" dollar_prefixed_json_props_are_escaped;
+    test "numeric_props_serialize_as_json_numbers" numeric_props_serialize_as_json_numbers;
     test "key_renders_outside_of_props" key_renders_outside_of_props;
     test "style_as_json" style_as_json;
     test "lower_case_component" lower_case_component;

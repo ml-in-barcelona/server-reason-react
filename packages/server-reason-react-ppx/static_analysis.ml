@@ -197,7 +197,11 @@ let analyze_attribute ~tag_name (label, expr) : attr_analysis_result =
    [Cannot_optimize]. *)
 let is_lowerable_kind = function
   | DomProps.String | DomProps.Int | DomProps.Bool | DomProps.BooleanishString | DomProps.Style -> true
-  | DomProps.Action | DomProps.Ref | DomProps.InnerHtml -> false
+  (* [Float] stays on the variant-tree path: its HTML stringification
+     (JavaScript number formatting via [Js.Float.toString]) lives in
+     [ReactDOM.write_attribute_to_buffer], which is not addressable from
+     emitted user code without adding a dependency on the Js library. *)
+  | DomProps.Float | DomProps.Action | DomProps.Ref | DomProps.InnerHtml -> false
 
 (* Kept in lock-step with [ReactDOM.is_react_custom_attribute] so the set is
    audit-identical. In practice only ["suppressContentEditableWarning"] and

@@ -202,13 +202,20 @@ module Model = struct
   let escape_string_value value =
     if String.length value > 0 && String.unsafe_get value 0 = '$' then "$" ^ value else value
 
-  (* Escape every string value (not object keys) of a user-provided JSON model. *)
+  (* JSON.stringify prints integral floats without a decimal part (2.0 -> 2) while
+     Yojson prints `Float 2.0 as "2.0", so integral floats are emitted as ints. *)
+  let float_to_json value : json =
+    if Float.is_integer value && Float.abs value <= 2. ** 53. then `Int (Float.to_int value) else `Float value
+
+  (* Normalize a user-provided JSON model: escape every string value (not object
+     keys) and print numbers the way JavaScript stringifies them. *)
   let rec escape_model_json (json : json) : json =
     match json with
     | `String value -> `String (escape_string_value value)
+    | `Float value -> float_to_json value
     | `List items -> `List (List.map escape_model_json items)
     | `Assoc pairs -> `Assoc (List.map (fun (key, value) -> (key, escape_model_json value)) pairs)
-    | (`Bool _ | `Float _ | `Int _ | `Null) as scalar -> scalar
+    | (`Bool _ | `Int _ | `Null) as scalar -> scalar
 
   let style_to_json style =
     `Assoc (List.map (fun (_, jsx_key, value) -> (jsx_key, `String (escape_string_value value))) style)
@@ -223,6 +230,8 @@ module Model = struct
     (* We exclude 'key' from props, since it's outside of the props object *)
     | React.JSX.String (_, key, _) when key = "key" -> None
     | React.JSX.String (_, key, value) -> Some (key, `String (escape_string_value value))
+    | React.JSX.Int (_, key, value) -> Some (key, `Int value)
+    | React.JSX.Float (_, key, value) -> Some (key, float_to_json value)
     | React.JSX.Style value -> Some ("style", style_to_json value)
     | React.JSX.DangerouslyInnerHtml html ->
         Some ("dangerouslySetInnerHTML", `Assoc [ ("__html", `String (escape_string_value html)) ])
