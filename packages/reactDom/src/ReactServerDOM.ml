@@ -64,6 +64,7 @@ module Stream = struct
     mutable index : int;
     mutable pending : int;
     written_client_references : (string * string, int) Hashtbl.t;
+    written_symbols : (string, int) Hashtbl.t;
   }
 
   let push to_chunk ~context =
@@ -81,6 +82,16 @@ module Stream = struct
         Hashtbl.replace context.written_client_references key index;
         index
 
+  (* Well-known symbols (e.g. react.suspense) are outlined once per stream and
+     referenced by row id, mirroring React's writtenSymbols map. *)
+  let push_symbol ~context ~symbol to_chunk =
+    match Hashtbl.find_opt context.written_symbols symbol with
+    | Some existing_index -> existing_index
+    | None ->
+        let index = push to_chunk ~context in
+        Hashtbl.replace context.written_symbols symbol index;
+        index
+
   let push_async promise_to_chunk ~context =
     let index = context.index in
     context.index <- context.index + 1;
@@ -95,7 +106,15 @@ module Stream = struct
 
   let make ?(initial_index = 0) ?(pending = 0) () =
     let stream, push, close = Push_stream.make () in
-    (stream, { push; close; pending; index = initial_index; written_client_references = Hashtbl.create 16 })
+    ( stream,
+      {
+        push;
+        close;
+        pending;
+        index = initial_index;
+        written_client_references = Hashtbl.create 16;
+        written_symbols = Hashtbl.create 4;
+      } )
 end
 
 (* Resources module maintains insertion order while deduplicating based on src/href *)
@@ -253,18 +272,28 @@ module Model = struct
     in
     `List [ `String "$"; `String tag; key; `Assoc props; chunk_ref_or_null owner; `Null; `Int 1 ]
 
-  (* Not using `node` because we need to add fallback prop as json directly *)
-  let suspense_node ~key ~fallback children : json =
+  (* React outlines the suspense symbol once per stream as its own row
+     (e.g. 1:"$Sreact.suspense", pushed before any row that references it,
+     deduplicated via written_symbols) and uses the row reference ("$1") as
+     the element type. [suspense_tag] pushes the row on first use and returns
+     that reference. *)
+  let suspense_tag ~context ~to_chunk =
+    let index = Stream.push_symbol ~context ~symbol:"react.suspense" (to_chunk (Value (`String "$Sreact.suspense"))) in
+    ref_value index
+
+  (* Not using `node` because we need to add fallback prop as json directly.
+     React serializes suspense props as {children, fallback}: children first. *)
+  let suspense_node ~tag ~key ~fallback children : json =
     let fallback_prop = ("fallback", fallback) in
     let props =
       match children with
       | [] -> [ fallback_prop ]
-      | [ one ] -> [ fallback_prop; ("children", one) ]
-      | _ -> [ fallback_prop; ("children", `List children) ]
+      | [ one ] -> [ ("children", one); fallback_prop ]
+      | _ -> [ ("children", `List children); fallback_prop ]
     in
-    node ~tag:"$Sreact.suspense" ~key ~props []
+    node ~tag ~key ~props []
 
-  let suspense_placeholder ~key ~fallback index = suspense_node ~key ~fallback [ `String (lazy_value index) ]
+  let suspense_placeholder ~tag ~key ~fallback index = suspense_node ~tag ~key ~fallback [ `String (lazy_value index) ]
 
   let component_ref ~module_ ~name =
     let id = `String module_ in
@@ -441,8 +470,13 @@ module Model = struct
               let index = Stream.push_async promise ~context in
               `String (lazy_value index))
       | Suspense { key; children; fallback } ->
+          (* Row order mirrors React: the outlined symbol row is pushed first,
+             then rows produced by the children (props are serialized in
+             {children, fallback} order), then rows produced by the fallback. *)
+          let tag = suspense_tag ~context ~to_chunk in
+          let children = turn_element_into_payload ~context ~debug_info children in
           let fallback = turn_element_into_payload ~context ~debug_info fallback in
-          suspense_node ~key ~fallback [ turn_element_into_payload ~context ~debug_info children ]
+          suspense_node ~tag ~key ~fallback [ children ]
       | Client_component { key; import_module; import_name; props; client = _ } ->
           let ref = component_ref ~module_:import_module ~name:import_name in
           let index = Stream.push_client_ref ~context ~import_module ~import_name (to_chunk (Component_ref ref)) in
@@ -822,6 +856,9 @@ let rec render_element_to_html ~(fiber : Fiber.t) (element : React.element) : (H
   | Suspense { key; children; fallback } -> (
       let context = fiber.context in
       let%lwt html_fallback, model_fallback = render_element_to_html ~fiber fallback in
+      (* The outlined suspense symbol row must be pushed before any row that
+         references it (see Model.suspense_tag). *)
+      let tag = Model.suspense_tag ~context ~to_chunk:model_to_chunk in
       try%lwt
         let promise = render_element_to_html ~fiber children in
         match Lwt.state promise with
@@ -839,9 +876,9 @@ let rec render_element_to_html ~(fiber : Fiber.t) (element : React.element) : (H
             let index = Stream.push_async ~context promise in
             Lwt.return
               ( html_suspense_placeholder ~fallback:html_fallback index,
-                Model.suspense_placeholder ~key ~fallback:model_fallback index )
+                Model.suspense_placeholder ~tag ~key ~fallback:model_fallback index )
         | Return (html, model) ->
-            let model = Model.suspense_node ~key ~fallback:model_fallback [ model ] in
+            let model = Model.suspense_node ~tag ~key ~fallback:model_fallback [ model ] in
             Lwt.return (html_suspense_immediate html, model)
         | Fail exn -> Lwt.reraise exn
       with exn ->
@@ -852,7 +889,7 @@ let rec render_element_to_html ~(fiber : Fiber.t) (element : React.element) : (H
         in
         let index = Stream.push ~context to_chunk in
         let html = html_suspense_placeholder ~fallback:html_fallback index in
-        Lwt.return (html, Model.suspense_placeholder ~key ~fallback:model_fallback index))
+        Lwt.return (html, Model.suspense_placeholder ~tag ~key ~fallback:model_fallback index))
   | Provider { children; push; async_key; async_value } ->
       let pop = push () in
       let result = Lwt.with_value async_key (Some async_value) (fun () -> render_element_to_html ~fiber children) in

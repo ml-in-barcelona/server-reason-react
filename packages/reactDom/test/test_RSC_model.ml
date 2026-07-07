@@ -267,7 +267,8 @@ let suspense_without_promise () =
   let%lwt () = ReactServerDOM.render_model ~subscribe main in
   assert_list_of_strings !output
     [
-      "0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":[\"$\",\"div\",null,{\"children\":[[\"$\",\"span\",null,{\"children\":\"hi\"},null,null,1],[\"$\",\"span\",null,{\"children\":\"hola\"},null,null,1]]},null,null,1]},null,null,1]\n";
+      "1:\"$Sreact.suspense\"\n";
+      "0:[\"$\",\"$1\",null,{\"children\":[\"$\",\"div\",null,{\"children\":[[\"$\",\"span\",null,{\"children\":\"hi\"},null,null,1],[\"$\",\"span\",null,{\"children\":\"hola\"},null,null,1]]},null,null,1],\"fallback\":\"Loading...\"},null,null,1]\n";
     ];
   Lwt.return ()
 
@@ -287,8 +288,9 @@ let suspense_with_promise () =
   let%lwt () = ReactServerDOM.render_model ~subscribe main in
   assert_list_of_strings !output
     [
-      "0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,null,1]\n";
-      "1:\"lol\"\n";
+      "1:\"$Sreact.suspense\"\n";
+      "0:[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Loading...\"},null,null,1]\n";
+      "2:\"lol\"\n";
     ];
   Lwt.return ()
 
@@ -303,8 +305,9 @@ let suspense_with_error () =
   let%lwt () = ReactServerDOM.render_model ~subscribe main in
   assert_list_of_strings !output
     [
-      "1:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n";
-      "0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,null,1]\n";
+      "1:\"$Sreact.suspense\"\n";
+      "2:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n";
+      "0:[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Loading...\"},null,null,1]\n";
     ];
   Lwt.return ()
 
@@ -319,8 +322,9 @@ let suspense_with_error_in_async () =
   let%lwt () = ReactServerDOM.render_model ~subscribe main in
   assert_list_of_strings !output
     [
-      "1:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n";
-      "0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,null,1]\n";
+      "1:\"$Sreact.suspense\"\n";
+      "2:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n";
+      "0:[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Loading...\"},null,null,1]\n";
     ];
   Lwt.return ()
 
@@ -338,8 +342,9 @@ let suspense_with_error_under_lowercase () =
   let%lwt () = ReactServerDOM.render_model ~subscribe main in
   assert_list_of_strings !output
     [
-      "1:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n";
-      "0:[\"$\",\"div\",null,{\"children\":[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,null,1]},null,null,1]\n";
+      "1:\"$Sreact.suspense\"\n";
+      "2:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n";
+      "0:[\"$\",\"div\",null,{\"children\":[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Loading...\"},null,null,1]},null,null,1]\n";
     ];
   Lwt.return ()
 
@@ -395,12 +400,13 @@ let suspense_in_a_list () =
   let%lwt () = ReactServerDOM.render_model ~subscribe main in
   assert_list_of_strings !output
     [
-      "0:[[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,null,1],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L2\"},null,null,1],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L3\"},null,null,1],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L4\"},null,null,1],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L5\"},null,null,1]]\n";
-      "1:\"A\"\n";
-      "2:\"B\"\n";
-      "3:\"C\"\n";
-      "4:\"D\"\n";
-      "5:\"E\"\n";
+      "1:\"$Sreact.suspense\"\n";
+      "0:[[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Loading...\"},null,null,1],[\"$\",\"$1\",null,{\"children\":\"$L3\",\"fallback\":\"Loading...\"},null,null,1],[\"$\",\"$1\",null,{\"children\":\"$L4\",\"fallback\":\"Loading...\"},null,null,1],[\"$\",\"$1\",null,{\"children\":\"$L5\",\"fallback\":\"Loading...\"},null,null,1],[\"$\",\"$1\",null,{\"children\":\"$L6\",\"fallback\":\"Loading...\"},null,null,1]]\n";
+      "2:\"A\"\n";
+      "3:\"B\"\n";
+      "4:\"C\"\n";
+      "5:\"D\"\n";
+      "6:\"E\"\n";
     ];
   Lwt.return ()
 
@@ -422,12 +428,13 @@ let suspense_in_a_list_with_error () =
   let%lwt () = ReactServerDOM.render_model ~subscribe main in
   assert_list_of_strings !output
     [
-      "0:[[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,null,1],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L2\"},null,null,1],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L3\"},null,null,1],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L4\"},null,null,1],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L5\"},null,null,1]]\n";
-      "1:\"A\"\n";
-      "2:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n";
-      "3:\"C\"\n";
-      "4:\"D\"\n";
-      "5:\"E\"\n";
+      "1:\"$Sreact.suspense\"\n";
+      "0:[[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Loading...\"},null,null,1],[\"$\",\"$1\",null,{\"children\":\"$L3\",\"fallback\":\"Loading...\"},null,null,1],[\"$\",\"$1\",null,{\"children\":\"$L4\",\"fallback\":\"Loading...\"},null,null,1],[\"$\",\"$1\",null,{\"children\":\"$L5\",\"fallback\":\"Loading...\"},null,null,1],[\"$\",\"$1\",null,{\"children\":\"$L6\",\"fallback\":\"Loading...\"},null,null,1]]\n";
+      "2:\"A\"\n";
+      "3:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n";
+      "4:\"C\"\n";
+      "5:\"D\"\n";
+      "6:\"E\"\n";
     ];
   Lwt.return ()
 
@@ -444,7 +451,10 @@ let suspense_with_immediate_promise () =
   let output, subscribe = capture_stream () in
   let%lwt () = ReactServerDOM.render_model ~subscribe main in
   assert_list_of_strings !output
-    [ "0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"DONE :)\"},null,null,1]\n" ];
+    [
+      "1:\"$Sreact.suspense\"\n";
+      "0:[\"$\",\"$1\",null,{\"children\":\"DONE :)\",\"fallback\":\"Loading...\"},null,null,1]\n";
+    ];
   Lwt.return ()
 
 let delayed_value value =
@@ -465,8 +475,9 @@ let suspense () =
   let%lwt () = ReactServerDOM.render_model ~subscribe main in
   assert_list_of_strings !output
     [
-      "0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,null,1]\n";
-      "1:\"DONE :)\"\n";
+      "1:\"$Sreact.suspense\"\n";
+      "0:[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Loading...\"},null,null,1]\n";
+      "2:\"DONE :)\"\n";
     ];
   Lwt.return ()
 
@@ -484,8 +495,9 @@ let nested_suspense () =
   let%lwt () = ReactServerDOM.render_model ~subscribe main in
   assert_list_of_strings !output
     [
-      "0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,null,1]\n";
-      "1:\"DONE :)\"\n";
+      "1:\"$Sreact.suspense\"\n";
+      "0:[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Loading...\"},null,null,1]\n";
+      "2:\"DONE :)\"\n";
     ];
   Lwt.return ()
 
@@ -1125,24 +1137,27 @@ let suspense_with_nested_upper_case () =
   let%lwt () = ReactServerDOM.render_model ~subscribe main in
   assert_list_of_strings !output
     [
-      "0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":[\"$\",\"div\",null,{\"children\":\"inner-value\"},null,null,1]},null,null,1]\n";
+      "1:\"$Sreact.suspense\"\n";
+      "0:[\"$\",\"$1\",null,{\"children\":[\"$\",\"div\",null,{\"children\":\"inner-value\"},null,null,1],\"fallback\":\"Loading...\"},null,null,1]\n";
     ];
   Lwt.return ()
 
 let suspense_at_root () =
-  (* React: 0:["$","$Sreact.suspense",null,{"fallback":"Loading...","children":"Resolved content"}] *)
+  (* React: 1:"$Sreact.suspense" then 0:["$","$1",null,{"children":"Resolved content","fallback":"Loading..."}] *)
   let app = mk_suspense ~fallback:(React.string "Loading...") ~children:(React.string "Resolved content") () in
   let output, subscribe = capture_stream () in
   let%lwt () = ReactServerDOM.render_model ~subscribe app in
   assert_list_of_strings !output
     [
-      "0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"Resolved content\"},null,null,1]\n";
+      "1:\"$Sreact.suspense\"\n";
+      "0:[\"$\",\"$1\",null,{\"children\":\"Resolved content\",\"fallback\":\"Loading...\"},null,null,1]\n";
     ];
   Lwt.return ()
 
 let suspense_at_root_with_upper_case_children () =
   (* Server components inside Suspense are inlined, matching React.js.
-     React: 0:["$","$Sreact.suspense",null,{"fallback":"Loading...","children":["$","div",null,{"children":"Hello"}]}] *)
+     React: 1:"$Sreact.suspense" then
+     0:["$","$1",null,{"children":["$","div",null,{"children":"Hello"}],"fallback":"Loading..."}] *)
   let app =
     mk_suspense ~fallback:(React.string "Loading...")
       ~children:(React.Upper_case_component ("Inner", fun () -> React.createElement "div" [] [ React.string "Hello" ]))
@@ -1152,14 +1167,16 @@ let suspense_at_root_with_upper_case_children () =
   let%lwt () = ReactServerDOM.render_model ~subscribe app in
   assert_list_of_strings !output
     [
-      "0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":[\"$\",\"div\",null,{\"children\":\"Hello\"},null,null,1]},null,null,1]\n";
+      "1:\"$Sreact.suspense\"\n";
+      "0:[\"$\",\"$1\",null,{\"children\":[\"$\",\"div\",null,{\"children\":\"Hello\"},null,null,1],\"fallback\":\"Loading...\"},null,null,1]\n";
     ];
   Lwt.return ()
 
 let suspense_at_root_with_nested_components () =
   (* Server components are always inlined, matching React.js behavior.
-       0:["$","$Sreact.suspense",null,{"fallback":"Loading...",
-         "children":["$","div",null,{"children":["$","div",null,{"children":"Hello"}]}]}] *)
+       1:"$Sreact.suspense" then
+       0:["$","$1",null,{"children":["$","div",null,{"children":["$","div",null,{"children":"Hello"}]}],
+         "fallback":"Loading..."}] *)
   let inner () =
     React.Upper_case_component ("Inner", fun () -> React.createElement "div" [] [ React.string "Hello" ])
   in
@@ -1169,13 +1186,14 @@ let suspense_at_root_with_nested_components () =
   let%lwt () = ReactServerDOM.render_model ~subscribe app in
   assert_list_of_strings !output
     [
-      "0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":[\"$\",\"div\",null,{\"children\":[\"$\",\"div\",null,{\"children\":\"Hello\"},null,null,1]},null,null,1]},null,null,1]\n";
+      "1:\"$Sreact.suspense\"\n";
+      "0:[\"$\",\"$1\",null,{\"children\":[\"$\",\"div\",null,{\"children\":[\"$\",\"div\",null,{\"children\":\"Hello\"},null,null,1]},null,null,1],\"fallback\":\"Loading...\"},null,null,1]\n";
     ];
   Lwt.return ()
 
 let suspense_at_root_with_async () =
   (* Async children inside root Suspense create a lazy ref.
-     React: 0:["$","$Sreact.suspense",null,{"fallback":"Loading...","children":"$L1"}] then 1:resolved *)
+     React: 1:"$Sreact.suspense" then 0:["$","$1",null,{"children":"$L2","fallback":"Loading..."}] then 2:resolved *)
   let app =
     mk_suspense ~fallback:(React.string "Loading...")
       ~children:
@@ -1190,8 +1208,9 @@ let suspense_at_root_with_async () =
   let%lwt () = ReactServerDOM.render_model ~subscribe app in
   assert_list_of_strings !output
     [
-      "0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,null,1]\n";
-      "1:[\"$\",\"span\",null,{\"children\":\"Async resolved\"},null,null,1]\n";
+      "1:\"$Sreact.suspense\"\n";
+      "0:[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Loading...\"},null,null,1]\n";
+      "2:[\"$\",\"span\",null,{\"children\":\"Async resolved\"},null,null,1]\n";
     ];
   Lwt.return ()
 

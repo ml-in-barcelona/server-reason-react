@@ -20,8 +20,6 @@ let case = (~xfail=?, name: string, render: unit => React.element): case => {
 
 let seven_tuple_elements = {|srr emits 7-tuple element rows ["$",tag,key,props,null,null,1]; React prod emits 4-tuples ["$",type,key,props]|};
 
-let outlined_suspense = {|; React outlines the suspense symbol as its own row (1:"$Sreact.suspense") and references it as "$1"; srr inlines "$Sreact.suspense" as the element type; children/fallback prop order also differs|};
-
 let all: list(case) = [
   case("element_basic", Element_basic.app, ~xfail=seven_tuple_elements),
   case("element_nested", Element_nested.app, ~xfail=seven_tuple_elements),
@@ -42,12 +40,13 @@ let all: list(case) = [
   case(
     "suspense_immediate",
     Suspense_immediate.app,
-    ~xfail=seven_tuple_elements ++ outlined_suspense,
+    ~xfail=seven_tuple_elements,
   ),
+  case("suspense_pending", Suspense_pending.app, ~xfail=seven_tuple_elements),
   case(
-    "suspense_pending",
-    Suspense_pending.app,
-    ~xfail=seven_tuple_elements ++ outlined_suspense,
+    "suspense_two_boundaries",
+    Suspense_two_boundaries.app,
+    ~xfail=seven_tuple_elements,
   ),
   case("promise_prop", Promise_prop.app, ~xfail=seven_tuple_elements),
 ];
