@@ -93,20 +93,30 @@ module Stream = struct
         Hashtbl.replace context.written_client_references key index;
         index
 
-  let push_async ?(is_boundary = false) promise_to_chunk ~context =
+  let push_promise ~track_boundary promise_to_chunk ~context =
     let index = context.index in
     context.index <- context.index + 1;
     context.pending <- context.pending + 1;
-    if is_boundary then context.pending_boundaries <- index :: context.pending_boundaries;
+    if track_boundary then context.pending_boundaries <- index :: context.pending_boundaries;
     Lwt.async (fun () ->
         let%lwt to_chunk = promise_to_chunk in
         context.pending <- context.pending - 1;
-        if is_boundary then context.pending_boundaries <- List.filter (fun i -> i <> index) context.pending_boundaries;
+        if track_boundary then
+          context.pending_boundaries <- List.filter (fun i -> i <> index) context.pending_boundaries;
         if not context.closed then (
           context.push (to_chunk index);
           if context.pending = 0 then close context);
         Lwt.return ());
     index
+
+  (* Pushes an async row of the RSC payload (a lazy element or a promise passed as prop) that has no placeholder in
+     the flushed HTML. *)
+  let push_async promise_to_chunk ~context = push_promise ~track_boundary:false promise_to_chunk ~context
+
+  (* Pushes the async HTML content of a Suspense boundary whose placeholder (<template id="B:n">) and fallback were
+     already flushed. Tracked in [pending_boundaries] so an abort/timeout can emit a $RX client-render instruction for
+     it. *)
+  let push_boundary_async promise_to_chunk ~context = push_promise ~track_boundary:true promise_to_chunk ~context
 
   let make ?(initial_index = 0) ?(pending = 0) () =
     let stream, push, close = Push_stream.make () in
@@ -713,12 +723,12 @@ let rec client_to_html ~(fiber : Fiber.t) (element : React.element) =
                 Lwt.return (boundary_to_chunk html)
               with _exn -> Lwt.return (boundary_to_chunk Html.null)
             in
-            let index = Stream.push_async ~is_boundary:true ~context async in
+            let index = Stream.push_boundary_async ~context async in
             Lwt.return (html_suspense_placeholder ~fallback:fallback_html index)
         | Fail exn -> Lwt.reraise exn
       with _exn ->
         let async = Lwt.return (boundary_to_chunk Html.null) in
-        let index = Stream.push_async ~is_boundary:true ~context async in
+        let index = Stream.push_boundary_async ~context async in
         Lwt.return (html_suspense_placeholder ~fallback:fallback_html index))
   | Client_component { client; _ } -> client_to_html ~fiber client
   | Provider { children; push; async_key; async_value } ->
@@ -843,7 +853,7 @@ let rec render_element_to_html ~(fiber : Fiber.t) (element : React.element) : (H
                 let to_chunk index = model_to_chunk (Error (fiber.env, error)) index in
                 Lwt.return to_chunk
             in
-            let index = Stream.push_async ~is_boundary:true ~context promise in
+            let index = Stream.push_boundary_async ~context promise in
             Lwt.return
               ( html_suspense_placeholder ~fallback:html_fallback index,
                 Model.suspense_placeholder ~key ~fallback:model_fallback index )
