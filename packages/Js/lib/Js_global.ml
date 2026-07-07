@@ -137,22 +137,5 @@ let encodeURI = URI.encode_uri ~component:false
 let decodeURI = URI.decode_uri ~component:false
 let encodeURIComponent = URI.encode_uri ~component:true
 let decodeURIComponent = URI.decode_uri ~component:true
-
-let parseFloat str =
-  (* JavaScript's parseFloat via quickjs: skips leading whitespace (full
-     Unicode), parses the longest numeric prefix, NaN when no valid number
-     starts the string. *)
-  match Quickjs.Global.parse_float str with
-  | Some f -> f
-  | None -> nan
-
-let parseInt ?radix str =
-  (* JavaScript's parseInt via quickjs: skips leading whitespace (full
-     Unicode), auto-detects the 0x/0X prefix when no radix is given (never
-     0o/0b), parses the longest valid prefix, NaN when nothing parses or the
-     radix is invalid. parse_int_float returns JavaScript's actual number
-     type, so values beyond OCaml's int range come back as floats with
-     JavaScript's precision (parseInt "99…9" (26 digits) is 1e26). *)
-  match Quickjs.Global.parse_int_float ?radix str with
-  | Some f -> f
-  | None -> nan
+let parseFloat str = match Quickjs.Global.parse_float str with Some f -> f | None -> nan
+let parseInt ?radix str = match Quickjs.Global.parse_int_float ?radix str with Some f -> f | None -> nan
