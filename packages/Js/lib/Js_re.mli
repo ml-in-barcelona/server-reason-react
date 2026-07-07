@@ -22,8 +22,9 @@ val exec : str:string -> t -> result option
 val test : str:string -> t -> bool
 val captures : result -> string Js_internal.nullable array
 
-val groups : result -> (string * string) list
-(** Returns all named capture groups as a list of (name, value) pairs *)
+val groups : result -> (string * string option) list
+(** Returns all named capture groups as a list of (name, value) pairs. The value is [None] when the group did not
+    participate in the match. *)
 
 val group : string -> result -> string option
 (** Returns the value of a named capture group, or None if not found *)
