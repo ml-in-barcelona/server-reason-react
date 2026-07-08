@@ -1,7 +1,9 @@
 # React Flight protocol spec
 
 A verifiable specification of the React Flight (RSC) wire protocol, used to keep
-`ReactServerDOM.render_model` byte-compatible with the real React implementation.
+`ReactServerDOM.render_model` byte-compatible with the real React implementation,
+and `ReactServerDOM.decodeReply`/`decodeFormDataReply` faithful to what the real
+`encodeReply` sends.
 
 ## How it works
 
@@ -18,6 +20,13 @@ normalized as described in [protocol.md](./protocol.md)). An OCaml conformance r
 (`conformance/`) renders the same cases natively and byte-compares each row against the
 committed fixture. Fixture diffs across React version bumps *are* the protocol changelog.
 
+The **reply direction** (client → server) works the other way around: `reply/cases.mjs`
+declares plain JS argument values, `reply/generate-reply.mjs` encodes them with the real
+`encodeReply` from `react-server-dom-webpack/client` (plain `bun`, no react-server
+condition) into `reply/fixtures/*.reply`, and `conformance/reply_spec_conformance.ml`
+feeds those exact bytes to srr's `decodeReply`/`decodeFormDataReply` and compares the
+decoded result against an expected Yojson value declared per case.
+
 ## Layout
 
 ```
@@ -30,7 +39,10 @@ cases/shared/     single-source case files + the Cases.re registry.
 cases/native/     native library (copy_files from shared).
 cases/js/         melange.emit target (copy_files from shared).
 fixtures/         committed golden output of the real React.
-conformance/      alcotest runner comparing srr output against fixtures.
+conformance/      alcotest runners: flight_spec_conformance (server → client)
+                  and reply_spec_conformance (client → server).
+reply/            reply-direction spec: cases.mjs (JS argument values),
+                  generate-reply.mjs (encodeReply → fixtures), fixtures/.
 ```
 
 ## Running
@@ -40,17 +52,25 @@ conformance/      alcotest runner comparing srr output against fixtures.
 dune build @packages/reactDom/react_flight_spec/runtest
 
 # Regenerate fixtures from the real React (needs bun + `bun install` in this dir):
-make spec-generate      # from the repo root
-# Verify fixtures are up to date without writing:
+make spec-generate        # server → client .flight fixtures, from the repo root
+make spec-generate-reply  # client → server .reply fixtures
+# Verify fixtures (both directions) are up to date without writing:
 make spec-check
 ```
 
 ## Known divergences (xfail)
 
-Cases annotated with `~xfail` in `cases/shared/Cases.re` are **expected** to mismatch;
-the conformance runner asserts that they *do* mismatch, so they flip loudly when fixed.
+Cases annotated with `~xfail` in `cases/shared/Cases.re` (model direction) or in the
+registry of `conformance/reply_spec_conformance.ml` (reply direction) are **expected**
+to mismatch; the conformance runners assert that they *do* mismatch, so they flip
+loudly when fixed.
 
-**There are currently no known divergences: every case matches the React
+Reply direction: **one known divergence.** srr's `decodeReply` unescapes `$$`-prefixed
+strings by dropping two characters instead of one, so `"$$money"` (React's encoding of
+the user string `"$money"`) decodes to `"money"` instead of `"$money"`
+(`dollar_strings` case; React's own `decodeReply` returns `value.slice(1)`).
+
+Model direction: **no known divergences — every case matches the React
 fixtures byte-for-byte.** All ten divergences the spec caught were fixed on
 this branch — see the git history for the alignment work: `$`-string escaping,
 numeric props as strings, `$` instead of `$L` client references, inlined
@@ -62,9 +82,11 @@ task's own row, sync throws at the root erroring the root row (`0:E`), and
 ## Bumping React
 
 1. Edit the exact versions in `package.json`, run `bun install` here.
-2. `make spec-generate` — the fixture diff is the protocol change.
+2. `make spec-generate && make spec-generate-reply` — the fixture diff is the
+   protocol change.
 3. Review the diff, update `protocol.md` if the grammar changed, adjust xfail
-   annotations in `Cases.re`, commit fixtures + lockfile together.
+   annotations in `Cases.re` / `reply_spec_conformance.ml`, commit fixtures +
+   lockfile together.
 
 ## Compromises / implementation notes
 
@@ -85,3 +107,11 @@ task's own row, sync throws at the root erroring the root row (`0:E`), and
   `react/jsx-runtime`, `react-server-dom-webpack/server`) resolve against the
   exact-pinned `node_modules` of this directory rather than whatever is above
   `_build`.
+- **Reply generator runs under plain bun**: `encodeReply` is client-side code, so
+  no `--conditions react-server`. It is imported from
+  `react-server-dom-webpack/client.browser` explicitly (bun matches the `node`
+  export condition, whose client build does not export `encodeReply`) with inert
+  `__webpack_require__` shims installed first.
+- **Bun's `FormData.prototype.toJSON`** (non-web-standard) would hijack
+  `JSON.stringify` before React's replacer sees a FormData argument; `reply/cases.mjs`
+  shadows it per instance to restore the browser behavior React targets.

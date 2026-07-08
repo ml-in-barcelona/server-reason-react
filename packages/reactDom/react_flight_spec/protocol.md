@@ -95,6 +95,60 @@ Observed from the `error_*` fixtures:
   normally with its `children` as the errored `$L` reference and the fallback
   untouched; fallback handling is the client's job.
 
+## Reply direction (client → server)
+
+Observed from `encodeReply` (the public wrapper over `processReply`) in
+`react-server-dom-webpack/client` 19.1.0. This is the body a client sends when
+calling a server function; srr decodes it with `ReactServerDOM.decodeReply`
+(string bodies) and `ReactServerDOM.decodeFormDataReply` (FormData bodies).
+Fixtures live under `reply/fixtures/*.reply` and are kept honest by
+`conformance/reply_spec_conformance.ml`.
+
+### Body shape
+
+`encodeReply(args)` encodes the **argument array** of the call and returns:
+
+- a **string**: the JSON of the args array, when nothing needs outlining;
+- a **FormData**: as soon as any value requires an out-of-band part (Map, Set,
+  Blob/File, FormData, server reference, …). Outlined parts are appended
+  first, in serialization order; the root args model is appended **last** at
+  key `"0"`. Keys are decimal part ids (referenced from models in hex).
+
+### `$` string prefixes in reply models
+
+| prefix | meaning | srr decode |
+| ------ | ------- | ---------- |
+| `$$` | escape: one `$` was prepended to a user string starting with `$` (`"$money"` → `"$$money"`) | should strip one `$` (known divergence: strips the escape and the first payload char, see xfail) |
+| `$undefined` | `undefined` | `` `Null `` |
+| `$D<iso>` | Date (`toISOString`) | `` `String iso `` |
+| `$n<digits>` | BigInt | `` `String digits `` |
+| `$NaN`, `$Infinity`, `$-Infinity`, `$-0` | non-finite / negative-zero numbers (note: full words, not the `$N`/`$I` short forms) | `` `Float `` |
+| `$Q<hex>` | Map, outlined as `[[k, v], …]` | `` `Assoc `` when all keys are strings, else the raw pair list |
+| `$W<hex>` | Set, outlined as `[v, …]` | `` `List `` |
+| `$K<hex>` | FormData; its entries are inlined into the outer form as `<id>_<name>` | consumed at the top level of args (entries returned as the residual FormData); decodes to `` `Null `` when nested |
+| `$B<hex>` | Blob/File, appended as a binary form entry | resolved to the entry bytes as `` `String `` |
+| `$F<hex>` | server reference, outlined as `{"id": …, "bound": …}` | the outlined object as `` `Assoc `` |
+| `$T` | temporary reference — **no id**: the key is the object path, tracked out-of-band by the temporary reference set | resolver is called with the empty string |
+
+Numbers, booleans, `null`, plain strings, arrays and objects are plain JSON.
+Object **keys** are never `$`-escaped, only string values in model position.
+
+### Reply fixtures
+
+`reply/fixtures/<case>.reply`, written by `reply/generate-reply.mjs`:
+
+- line 1 is `string` or `formdata` — the type `encodeReply` returned;
+- `string` body: line 2 is the body verbatim (JSON strings escape newlines,
+  so the body is always a single line);
+- `formdata` body: one JSON array per line, in FormData **insertion order**
+  (which is React's serialization order): `["string", key, value]` for text
+  entries, `["blob", key, base64]` for Blob/File entries. Content-type and
+  filename of blobs are not part of the fixture (srr's FormData is
+  string-only).
+
+Everything is byte-exact; there is no normalization in the reply direction.
+Determinism: fixed Date instants, Map/Set serialize in insertion order.
+
 ## Normalization rules
 
 Applied identically by `generate.mjs` (fixture side) and the OCaml conformance
