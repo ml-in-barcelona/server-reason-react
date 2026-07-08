@@ -351,10 +351,6 @@ module JSX = struct
     | Action : (string * string * _ Runtime.server_function) -> prop
     | Bool of (string * string * bool)
     | BooleanishString of (string * string * bool)
-        (** Boolean-valued props that render as "true"/"false" strings in HTML attributes (aria-hidden, draggable, …)
-            but stay raw JSON booleans in the Flight payload.
-            https://github.com/facebook/react/blob/a17467e7e2cd8947c595d1834889b5d184459f12/packages/react-dom-bindings/src/server/ReactFizzConfigDOM.js#L1165-L1176
-        *)
     | String of (string * string * string)
     | Int of (string * string * int)
     | Float of (string * string * float)
@@ -422,8 +418,6 @@ and element =
   | Array of element array
   | Text of string
   | Int of int
-      (** Numeric text nodes ([React.int]/[React.float]) stay numbers until the serialization seams: HTML stringifies
-          them (floats via JavaScript number formatting) while the Flight payload keeps raw JSON numbers, like React. *)
   | Float of float
   | Static of { prerendered : string; original : element }
   | Writer of { emit : Buffer.t -> unit; original : unit -> element }
@@ -438,8 +432,6 @@ and element =
   | Provider of { children : element; push : unit -> unit -> unit; async_key : Obj.t Lwt.key; async_value : Obj.t }
   | Consumer of element
   | Suspense of { key : string option; children : element; fallback : element option }
-      (** [fallback] mirrors the JSX prop: [None] means the prop was absent (React omits it from the Flight props object
-          entirely), while [Some Empty] is an explicit [fallback={React.null}] (serialized as ["fallback":null]). *)
 
 and lower_case_element = { key : string option; tag : string; attributes : JSX.prop list; children : element list }
 and client_props = (string * element Model.t) list
