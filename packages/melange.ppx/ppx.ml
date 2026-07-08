@@ -599,10 +599,10 @@ let build_registered_js_object_expression ?as_type ?(register_name = "register_d
         (cell_binding :: present_bindings, entry_expr, method_))
       fields
   in
-  let slot_bindings, entry_exprs, methods =
+  let field_bindings, entry_exprs, methods =
     List.fold_right
-      (fun (bindings, entry_expr, method_) (slot_bindings, entry_exprs, methods) ->
-        (bindings @ slot_bindings, entry_expr :: entry_exprs, method_ :: methods))
+      (fun (bindings, entry_expr, method_) (field_bindings, entry_exprs, methods) ->
+        (bindings @ field_bindings, entry_expr :: entry_exprs, method_ :: methods))
       generated_fields ([], [], [])
   in
   let object_name = "__js_obj" in
@@ -622,7 +622,7 @@ let build_registered_js_object_expression ?as_type ?(register_name = "register_d
   in
   List.fold_right
     (fun binding acc -> Builder.pexp_let ~loc Nonrecursive [ binding ] acc)
-    (slot_bindings @ [ object_binding ]) register_call
+    (field_bindings @ [ object_binding ]) register_call
 
 let rec get_return_core_type = function
   | { ptyp_desc = Ptyp_arrow (_, _, rest); _ } -> get_return_core_type rest

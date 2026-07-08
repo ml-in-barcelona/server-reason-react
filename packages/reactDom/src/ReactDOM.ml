@@ -394,7 +394,7 @@ let escape_to_buffer = Html.escape
    a heuristic: a race across domains only produces a suboptimal hint. *)
 let min_render_buffer_size = 1024
 let max_render_buffer_hint = 131072
-let last_render_size = Stdlib.ref min_render_buffer_size
+let last_render_size = ref min_render_buffer_size
 
 let remember_render_size size =
   let clamped =
@@ -404,21 +404,16 @@ let remember_render_size size =
   in
   if clamped <> !last_render_size then last_render_size := clamped
 
-let renderToString ?identifier_prefix element =
+let render_sync ~mode ?identifier_prefix element =
   (* TODO: try catch to avoid React.use usages *)
   React.reset_id_rendering ?prefix:identifier_prefix ();
   let buf = Buffer.create !last_render_size in
-  render_to_buffer ~mode:String buf element;
+  render_to_buffer ~mode buf element;
   remember_render_size (Buffer.length buf);
   Buffer.contents buf
 
-let renderToStaticMarkup ?identifier_prefix element =
-  (* TODO: try catch to avoid React.use usages *)
-  React.reset_id_rendering ?prefix:identifier_prefix ();
-  let buf = Buffer.create !last_render_size in
-  render_to_buffer ~mode:Markup buf element;
-  remember_render_size (Buffer.length buf);
-  Buffer.contents buf
+let renderToString ?identifier_prefix element = render_sync ~mode:String ?identifier_prefix element
+let renderToStaticMarkup ?identifier_prefix element = render_sync ~mode:Markup ?identifier_prefix element
 
 type stream_context = {
   push : string -> unit;

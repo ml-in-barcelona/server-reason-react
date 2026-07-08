@@ -64,23 +64,21 @@ let escape_html s =
   Html.escape buf s;
   Buffer.contents buf
 
-let rec extract_literal_string expr =
-  match expr.pexp_desc with
-  | Pexp_constant (Pconst_string (s, _, _)) -> Some s
-  | Pexp_constraint (inner, _) -> extract_literal_string inner
-  | _ -> None
+let rec strip_constraint expr =
+  match expr.pexp_desc with Pexp_constraint (inner, _) -> strip_constraint inner | _ -> expr
 
-let rec extract_literal_int expr =
-  match expr.pexp_desc with
+let extract_literal_string expr =
+  match (strip_constraint expr).pexp_desc with Pexp_constant (Pconst_string (s, _, _)) -> Some s | _ -> None
+
+let extract_literal_int expr =
+  match (strip_constraint expr).pexp_desc with
   | Pexp_constant (Pconst_integer (s, _)) -> ( try Some (int_of_string s) with _ -> None)
-  | Pexp_constraint (inner, _) -> extract_literal_int inner
   | _ -> None
 
-let rec extract_literal_bool expr =
-  match expr.pexp_desc with
+let extract_literal_bool expr =
+  match (strip_constraint expr).pexp_desc with
   | Pexp_construct ({ txt = Lident "true"; _ }, None) -> Some true
   | Pexp_construct ({ txt = Lident "false"; _ }, None) -> Some false
-  | Pexp_constraint (inner, _) -> extract_literal_bool inner
   | _ -> None
 
 let extract_react_string_arg expr =
@@ -170,8 +168,9 @@ let analyze_attribute ~tag_name (label, expr) : attr_analysis_result =
    [React.Writer.emit] body. [String], [Int], [Bool], and [BooleanishString] all
    serialize to " name=\"value\"" (or nothing, for false booleans) via a
    small, well-defined rule set mirroring [ReactDOM.write_attribute_to_buffer].
-   [Style] serializes via [ReactDOM.Style.write_to_buffer], the exact function
-   the variant-tree path calls, so output is byte-identical.
+   [Style] serializes via [ReactDOM.Style.to_string] followed by
+   HTML-escaping, exactly matching [ReactDOM.write_attribute_to_buffer]'s
+   [Style] case, so output is byte-identical.
 
    [Action], [Ref], and [InnerHtml] have more complex semantics (variant
    dispatch, DOM-ref handling, or children replacement). We leave those on
@@ -214,18 +213,13 @@ let attr_is_emittable (info : attr_render_info) =
 let attr_is_ignored_by_ssr (info : attr_render_info) =
   info.is_event || (is_react_custom_attribute_name info.html_name && info.kind <> DomProps.InnerHtml)
 
-let rec strip_constraint expr =
-  match expr.pexp_desc with Pexp_constraint (inner, _) -> strip_constraint inner | _ -> expr
-
 (* Try to fold a [style] attribute to a compile-time string. After
    [Style_rewrite] runs (bottom-up, before the JSX rewrite), a fully-literal
    [ReactDOM.Style.make ~color:"red" ()] arrives here as the list literal
    [("color", "color", "red") :: ([] : ...)]. When every key and value is a
    string literal we replicate [ReactDOMStyle.write_to_buffer] exactly:
    skip empty values, separate with ';', write [key ':' String.trim value],
-   no HTML escaping. Note the runtime skip is [v == ""] (physical equality):
-   literal [""] is a shared constant so it is skipped at runtime too, which
-   keeps the fold byte-identical for literal inputs. *)
+   no HTML escaping. *)
 let extract_static_style expr =
   let rec collect acc expr =
     match (strip_constraint expr).pexp_desc with
@@ -263,7 +257,7 @@ let extract_static_style expr =
         entries;
       let buf = Buffer.create 64 in
       Buffer.add_string buf " style=\"";
-      Buffer.add_string buf (escape_html (Buffer.contents body));
+      Html.escape buf (Buffer.contents body);
       Buffer.add_char buf '"';
       Some (Buffer.contents buf)
 

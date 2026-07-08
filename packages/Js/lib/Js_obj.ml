@@ -25,16 +25,13 @@ module Internal = struct
   (* Object registration is on the hot path: every [makeProps] (one per
      component instantiation) and every [%mel.obj] literal registers its
      entries. Materializing [metadata] eagerly costs a [Hashtbl.create]
-     plus one [Hashtbl.replace] and one list cons per field — yet the
+     plus one [Hashtbl.replace] and one list cons per field — and building
+     an [entry] costs a record plus two boxing closures per field — yet the
      metadata is only ever consulted by [keys]/[assign]/[merge], which
-     almost never run on these objects. [slot] keeps the registration
-     payload until the first lookup forces it into [metadata].
-
-     [Deferred] goes one step further for PPX-generated objects: building
-     an [entry] costs a record plus two boxing closures per field, so the
-     generated code registers a single thunk that builds all entries on
-     demand instead of paying that cost per object construction. *)
-  type state = Built of metadata | Pending of entry list | Deferred of (unit -> entry list)
+     almost never run on these objects. So the generated code registers a
+     single [Deferred] thunk that builds all entries on demand instead of
+     paying that cost per object construction. *)
+  type state = Built of metadata | Deferred of (unit -> entry list)
   type slot = { mutable state : state }
 
   let registry : slot Registry.t = Registry.create 16
@@ -52,23 +49,6 @@ module Internal = struct
         metadata.cached_keys <- Some keys;
         keys
 
-  let raw_entry ~method_name ~js_name ~present value =
-    let cell = ref value in
-    { method_name; js_name; present; get_boxed = (fun () -> !cell); set_boxed = (fun next -> cell := next) }
-
-  let slot_ref ~method_name ~js_name ~present initial =
-    let cell = ref initial in
-    let entry =
-      {
-        method_name;
-        js_name;
-        present;
-        get_boxed = (fun () -> Obj.repr !cell);
-        set_boxed = (fun next -> cell := Obj.obj next);
-      }
-    in
-    (cell, entry)
-
   let register_entry metadata entry =
     let was_present =
       match Hashtbl.find_opt metadata.entries entry.js_name with Some existing -> existing.present | None -> false
@@ -82,11 +62,7 @@ module Internal = struct
     slot.state <- Built metadata;
     metadata
 
-  let force slot =
-    match slot.state with
-    | Built metadata -> metadata
-    | Pending entries -> build_metadata slot entries
-    | Deferred thunk -> build_metadata slot (thunk ())
+  let force slot = match slot.state with Built metadata -> metadata | Deferred thunk -> build_metadata slot (thunk ())
 
   let get_metadata object_ =
     match Registry.find_opt registry (Obj.repr object_) with None -> None | Some slot -> Some (force slot)
@@ -98,10 +74,6 @@ module Internal = struct
         let metadata = empty_metadata () in
         Registry.add registry (Obj.repr object_) { state = Built metadata };
         metadata
-
-  let register_structural object_ entries =
-    Registry.replace registry (Obj.repr object_) { state = Pending entries };
-    object_
 
   (* Builds the [entry] for a field cell on demand; only ever called from a
      [Deferred] thunk, so the record and its two boxing closures are not
@@ -120,7 +92,14 @@ module Internal = struct
     object_
 
   let clone_entry entry =
-    raw_entry ~method_name:entry.method_name ~js_name:entry.js_name ~present:entry.present (entry.get_boxed ())
+    let cell = ref (entry.get_boxed ()) in
+    {
+      method_name = entry.method_name;
+      js_name = entry.js_name;
+      present = entry.present;
+      get_boxed = (fun () -> !cell);
+      set_boxed = (fun next -> cell := next);
+    }
 
   let present_entries metadata =
     Array.fold_right
@@ -180,11 +159,10 @@ module Internal = struct
     copy_present_entries_into target_metadata source;
     target
 
-  let register_abstract object_ entries = Obj.obj (Obj.repr (register_structural object_ entries))
   let register_deferred_abstract object_ thunk = Obj.obj (Obj.repr (register_deferred object_ thunk))
 end
 
-let empty () : < .. > = Internal.register_abstract ((object end : < >) :> < .. >) []
+let empty () : < .. > = Internal.register_deferred_abstract ((object end : < >) :> < .. >) (fun () -> [])
 let assign target source = Internal.assign_into target source
 
 let merge () left right : < .. > =

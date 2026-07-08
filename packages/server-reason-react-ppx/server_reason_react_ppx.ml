@@ -492,8 +492,6 @@ let emit_parts_emit_fn ~loc parts =
       | _ ->
           let write_some = emit_attr_value_write ~loc ~info ~value_expr:[%expr v] in
           let value_ty = attr_value_core_type ~loc info.kind in
-          (* Annotate the scrutinee so a bare [None]/[Some] inside [expr]
-             disambiguates to [option] and not a shadowing user constructor. *)
           [%expr match ([%e expr] : [%t value_ty] option) with None -> () | Some v -> [%e write_some]]
   in
   let writes =
@@ -840,10 +838,10 @@ let build_registered_js_object_expression ?as_type ?(register_name = "register_d
         let method_ = pcf_method ~loc (Located.mk method_name ~loc, Public, Cfk_concrete (Fresh, method_body)) in
         (cell_binding :: present_bindings, entry_expr, method_))
   in
-  let slot_bindings, entry_exprs, methods =
+  let field_bindings, entry_exprs, methods =
     List.fold_right generated_fields ~init:([], [], [])
-      ~f:(fun (bindings, entry_expr, method_) (slot_bindings, entry_exprs, methods) ->
-        (bindings @ slot_bindings, entry_expr :: entry_exprs, method_ :: methods))
+      ~f:(fun (bindings, entry_expr, method_) (field_bindings, entry_exprs, methods) ->
+        (bindings @ field_bindings, entry_expr :: entry_exprs, method_ :: methods))
   in
   let object_name = "__js_obj" in
   let object_binding =
@@ -860,7 +858,7 @@ let build_registered_js_object_expression ?as_type ?(register_name = "register_d
   let register_call =
     match as_type with None -> register_call | Some core_type -> pexp_constraint ~loc register_call core_type
   in
-  List.fold_right (slot_bindings @ [ object_binding ]) ~init:register_call ~f:(fun binding acc ->
+  List.fold_right (field_bindings @ [ object_binding ]) ~init:register_call ~f:(fun binding acc ->
       pexp_let ~loc Nonrecursive [ binding ] acc)
 
 let option_type ~loc inner = ptyp_constr ~loc { txt = Lident "option"; loc } [ inner ]
@@ -1799,12 +1797,7 @@ let traverse =
                     (* div() [@JSX] *)
                     | Pexp_ident { txt = Lident name; loc = _name_loc } ->
                         (* This expansion from "styles" prop into "className" and "style" props is a feature by styled-ppx. The existence of this here, is because dune/ppxlib doesn't allow more than one preprocess_impl and even that, the combination of styled-ppx and server-reason-react.ppx doesn't compose properly. *)
-                        let apply_expr = { expr with pexp_desc = Pexp_apply (tag, rest_of_args) } in
-                        let new_args =
-                          match (Styles_attribute.expand apply_expr).pexp_desc with
-                          | Pexp_apply (_, args) -> args
-                          | _ -> rest_of_args
-                        in
+                        let new_args = Styles_attribute.expand_attributes ~loc:tag.pexp_loc rest_of_args in
                         rewrite_lowercase ~loc:expr.pexp_loc name new_args children
                     (* Reason adds `createElement` as default when an uppercase is found,
                    we change it back to make *)

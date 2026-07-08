@@ -53,9 +53,13 @@ let expand_attributes ~loc attributes =
   in
   let rec aux (className, style, other_args) args =
     match args with
-    | [] ->
+    | [] -> (
         let rest = List.rev other_args in
-        ([ className; style ] |> List.filter_map Stdlib.Fun.id) @ rest
+        match (className, style) with
+        | Some c, Some s -> c :: s :: rest
+        | Some c, None -> c :: rest
+        | None, Some s -> s :: rest
+        | None, None -> rest)
     | (label, arg) :: rest -> (
         match label with
         | Ppxlib.Labelled "className" | Ppxlib.Optional "className" ->

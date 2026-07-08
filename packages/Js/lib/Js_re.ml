@@ -1,6 +1,5 @@
 (** Provide bindings to Js regex expression *)
 
-(* The RegExp object *)
 type t = Quickjs.RegExp.t
 
 (* The result of executing a RegExp on a string. *)
@@ -24,18 +23,19 @@ let fromStringWithFlags : string -> flags:string -> t =
   | Ok regex -> regex
   | Error err -> raise (Invalid_argument (Quickjs.RegExp.compile_error_to_string err))
 
-let flags : t -> string = fun regexp -> Quickjs.RegExp.flags regexp
-let global : t -> bool = fun regexp -> Quickjs.RegExp.global regexp
-let ignoreCase : t -> bool = fun regexp -> Quickjs.RegExp.ignorecase regexp
-let multiline : t -> bool = fun regexp -> Quickjs.RegExp.multiline regexp
-let sticky : t -> bool = fun regexp -> Quickjs.RegExp.sticky regexp
-let unicode : t -> bool = fun regexp -> Quickjs.RegExp.unicode regexp
-let dotAll : t -> bool = fun regexp -> Quickjs.RegExp.dotall regexp
-let lastIndex : t -> int = fun regex -> Quickjs.RegExp.last_index regex
-let setLastIndex : t -> int -> unit = fun regex index -> Quickjs.RegExp.set_last_index regex index
+let flags : t -> string = Quickjs.RegExp.flags
+let global : t -> bool = Quickjs.RegExp.global
+let ignoreCase : t -> bool = Quickjs.RegExp.ignorecase
+let multiline : t -> bool = Quickjs.RegExp.multiline
+let sticky : t -> bool = Quickjs.RegExp.sticky
+let unicode : t -> bool = Quickjs.RegExp.unicode
+let dotAll : t -> bool = Quickjs.RegExp.dotall
+let lastIndex : t -> int = Quickjs.RegExp.last_index
+let setLastIndex : t -> int -> unit = Quickjs.RegExp.set_last_index
+
+(* [exec]/[test] stay eta-expanded to erase Quickjs's [?timeout_ms] optional argument *)
 let exec : str:string -> t -> result option = fun ~str rex -> Quickjs.RegExp.exec rex str
-let test_ : t -> string -> bool = fun regexp str -> Quickjs.RegExp.test regexp str
-let test : str:string -> t -> bool = fun ~str regex -> test_ regex str
+let test : str:string -> t -> bool = fun ~str regex -> Quickjs.RegExp.test regex str
 
 (* Named capture groups *)
 let groups : result -> (string * string option) list = fun result -> result.Quickjs.RegExp.groups
