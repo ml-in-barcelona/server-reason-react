@@ -375,11 +375,11 @@ let is_style_make_ident = function
    The final arg must be [()] (Nolabel, unit), and there must be no optional
    args and no unknown label names.
 
-   The output list must match the runtime order produced by [Style.make]: items
-   appear in reverse-signature-order (because the body prepends in signature
-   order, last prepend ends up at head). The visible CSS output then reads
-   reverse-signature-order, which tests and the [style_order_matters]
-   assertions depend on. *)
+   The output list must match the runtime order produced by [Style.make]:
+   signature order (the body prepends in signature order and reverses at the
+   end). Signature order is also the JS object key order melange produces for
+   reason-react's [ReactDOM.Style.make], which react-dom preserves in both
+   inline style output and the Flight payload. *)
 let try_rewrite_call ~loc:_ args =
   let rec collect acc = function
     | [] -> None (* missing the final unit *)
@@ -396,10 +396,9 @@ let try_rewrite_call ~loc:_ args =
   match collect [] args with
   | None -> None
   | Some entries ->
-      (* Sort by signature index ascending; since [make]'s body prepends in
-         signature order, the resulting list has the last (highest-index) entry
-         at the head. We build [head :: ... :: tail] in that order. *)
-      let sorted = List.sort (fun (i, _, _, _) (j, _, _, _) -> Int.compare j i) entries in
+      (* Sort by signature index ascending, matching the runtime [make]'s
+         output order. *)
+      let sorted = List.sort (fun (i, _, _, _) (j, _, _, _) -> Int.compare i j) entries in
       let loc = Location.none in
       let list_expr =
         List.fold_right

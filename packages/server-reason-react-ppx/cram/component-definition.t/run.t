@@ -665,10 +665,8 @@ We need to output ML syntax here, otherwise refmt could not parse it.
                         (Stdlib.List.filter_map Stdlib.Fun.id
                            [
                              Some
-                               (React.JSX.String
-                                  ( "aria-hidden",
-                                    "aria-hidden",
-                                    Stdlib.Bool.to_string ("true" : bool) ));
+                               (React.JSX.BooleanishString
+                                  ("aria-hidden", "aria-hidden", ("true" : bool)));
                            ])
                         [ children ]);
                 } )

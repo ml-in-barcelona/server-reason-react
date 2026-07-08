@@ -6,6 +6,7 @@ type attributeType =
   | Action
   | String
   | Int
+  | Float
   | Bool
   | BooleanishString (* `Booleanish_string` are JSX attributes represented as boolean values but rendered as strings on HTML https://github.com/facebook/react/blob/a17467e7e2cd8947c595d1834889b5d184459f12/packages/react-dom-bindings/src/server/ReactFizzConfigDOM.js#L1165-L1176 *)
   | Style
@@ -283,7 +284,7 @@ let ariaAttributes =
 
     (* Indicates the element that represents the current item within a container
        or set of related elements. *)
-    Attribute { name = "aria-current"; jsxName = "ariaCurrent"; reasonJsxName = "ariaCurrent"; type_ = String (* Bool | 'false' | 'true' | 'page' | 'step' | 'location' | 'date' | 'time' *) };
+    Attribute { name = "aria-current"; jsxName = "aria-current"; reasonJsxName = "ariaCurrent"; type_ = String (* Bool | 'false' | 'true' | 'page' | 'step' | 'location' | 'date' | 'time' *) };
 
     (* Identifies the element (or elements) that describes the object.
      * @see aria-labelledby
@@ -444,16 +445,16 @@ let ariaAttributes =
 
     (* Defines the maximum allowed value for a range widget. *)
 
-    Attribute { name = "aria-valuemax"; jsxName = "aria-valuemax"; reasonJsxName = "ariaValuemax"; type_ = Int };
+    Attribute { name = "aria-valuemax"; jsxName = "aria-valuemax"; reasonJsxName = "ariaValuemax"; type_ = Float };
 
     (* Defines the minimum allowed value for a range widget. *)
 
-    Attribute { name = "aria-valuemin"; jsxName = "aria-valuemin"; reasonJsxName = "ariaValuemin"; type_ = Int };
+    Attribute { name = "aria-valuemin"; jsxName = "aria-valuemin"; reasonJsxName = "ariaValuemin"; type_ = Float };
 
     (* Defines the current value for a range widget.
     * @see aria-valuetext.
     *)
-    Attribute { name = "aria-valuenow"; jsxName = "aria-valuenow"; reasonJsxName = "ariaValuenow"; type_ = Int };
+    Attribute { name = "aria-valuenow"; jsxName = "aria-valuenow"; reasonJsxName = "ariaValuenow"; type_ = Float };
 
     (* Defines the human readable text alternative of aria-valuenow for a range
        widget. *)

@@ -1,0 +1,2 @@
+1:{"id":"spec/actions#submit","bound":null}
+0:["$","form",null,{"children":["$","button",null,{"children":"Submit"}],"action":"$F1"}]

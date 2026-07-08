@@ -529,7 +529,10 @@ module JSX : sig
   type prop =
     | Action : (string * string * _ Runtime.server_function) -> prop
     | Bool of (string * string * bool)
+    | BooleanishString of (string * string * bool)
     | String of (string * string * string)
+    | Int of (string * string * int)
+    | Float of (string * string * float)
     | Style of (string * string * string) list
     | DangerouslyInnerHtml of string
     | Ref of domRef
@@ -538,6 +541,7 @@ module JSX : sig
   (** Helpers to create JSX.prop without variants, helpful for function application *)
 
   val bool : string -> string -> bool -> prop
+  val booleanishString : string -> string -> bool -> prop
   val string : string -> string -> string -> prop
   val style : (string * string * string) list -> prop
   val dangerouslyInnerHtml : < __html : string ; .. > -> prop
@@ -594,6 +598,8 @@ and element =
   | List of element list
   | Array of element array
   | Text of string
+  | Int of int
+  | Float of float
   | Static of { prerendered : string; original : element }
   | Writer of { emit : Buffer.t -> unit; original : unit -> element }
       (** Subtree with static skeleton + dynamic string/int/float/element holes. [emit] writes directly into the
@@ -607,7 +613,7 @@ and element =
   | Empty
   | Provider of { children : element; push : unit -> unit -> unit; async_key : Obj.t Lwt.key; async_value : Obj.t }
   | Consumer of element
-  | Suspense of { key : string option; children : element; fallback : element }
+  | Suspense of { key : string option; children : element; fallback : element option }
 
 and lower_case_element = { key : string option; tag : string; attributes : JSX.prop list; children : element list }
 and client_props = (string * element Model.t) list

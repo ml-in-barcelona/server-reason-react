@@ -1,0 +1,7 @@
+(library
+ (name flight_spec_harness_js)
+ (wrapped false)
+ (modes melange)
+ (libraries reason-react melange.js)
+ (preprocess
+  (pps melange.ppx)))

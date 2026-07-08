@@ -1,0 +1,4 @@
+1:I["spec/Form.js",[],"Form"]
+2:{"id":"spec/actions#save","bound":null}
+3:{"id":"spec/actions#remove","bound":null}
+0:["$","$L1",null,{"onSave":"$F2","onRemove":"$F3"}]

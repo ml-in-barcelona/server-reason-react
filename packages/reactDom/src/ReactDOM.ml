@@ -8,6 +8,14 @@ let is_react_custom_attribute attr =
   | "dangerouslySetInnerHTML" | "ref" | "key" | "suppressContentEditableWarning" | "suppressHydrationWarning" -> true
   | _ -> false
 
+(* Writes ` name="value"` for values that need no HTML escaping (numbers, booleanish strings). *)
+let write_raw_attribute buf name value =
+  Buffer.add_char buf ' ';
+  Buffer.add_string buf name;
+  Buffer.add_string buf "=\"";
+  Buffer.add_string buf value;
+  Buffer.add_char buf '"'
+
 let write_attribute_to_buffer buf (attr : React.JSX.prop) =
   match attr with
   (* ignores "ref" prop *)
@@ -20,18 +28,23 @@ let write_attribute_to_buffer buf (attr : React.JSX.prop) =
   | Bool (name, _, true) ->
       Buffer.add_char buf ' ';
       Buffer.add_string buf name
+  | (BooleanishString (name, _, _) | String (name, _, _) | Int (name, _, _) | Float (name, _, _))
+    when is_react_custom_attribute name ->
+      ()
+  | BooleanishString (name, _, value) -> write_raw_attribute buf name (if value then "true" else "false")
   | Action (_, _, _) -> ()
   | Style styles ->
       Buffer.add_string buf " style=\"";
       Html.escape buf (Style.to_string styles);
       Buffer.add_char buf '"'
-  | String (name, _, _value) when is_react_custom_attribute name -> ()
   | String (name, _, value) ->
       Buffer.add_char buf ' ';
       Buffer.add_string buf name;
       Buffer.add_string buf "=\"";
       Html.escape buf value;
       Buffer.add_char buf '"'
+  | Int (name, _, value) -> write_raw_attribute buf name (Int.to_string value)
+  | Float (name, _, value) -> write_raw_attribute buf name (Js.Float.toString value)
   (* Events don't get rendered on SSR *)
   | Event _ -> ()
   (* Since we extracted the attribute as children, we are sure there's nothing to render here *)
@@ -55,10 +68,15 @@ let attribute_to_html (attr : React.JSX.prop) =
   | Bool (_name, _, false) -> Html.omitted ()
   (* true attributes render solely the attribute name *)
   | Bool (name, _, true) -> Html.present name
+  | (BooleanishString (name, _, _) | String (name, _, _) | Int (name, _, _) | Float (name, _, _))
+    when is_react_custom_attribute name ->
+      Html.omitted ()
+  | BooleanishString (name, _, value) -> Html.attribute name (if value then "true" else "false")
   | Action (_, _, _) -> Html.omitted ()
   | Style styles -> Html.attribute "style" (ReactDOMStyle.to_string styles)
-  | String (name, _, _value) when is_react_custom_attribute name -> Html.omitted ()
   | String (name, _, value) -> Html.attribute name value
+  | Int (name, _, value) -> Html.attribute name (Int.to_string value)
+  | Float (name, _, value) -> Html.attribute name (Js.Float.toString value)
   (* Events don't get rendered on SSR *)
   | Event _ -> Html.omitted ()
   (* Since we extracted the attribute as children, we are sure there's nothing to render here *)
@@ -132,6 +150,15 @@ let render_children_array_lwt render_element arr =
 
 type mode = String | Markup
 
+(* Text-like elements (Text, Int, Float) render as text nodes: user strings are HTML-escaped, numbers are stringified
+   the way JavaScript does ("2", not OCaml's "2."). Callers handle their own text-node separator semantics. *)
+let write_text_node buf (element : React.element) =
+  match element with
+  | Text text -> Html.escape buf text
+  | Int i -> Buffer.add_string buf (Int.to_string i)
+  | Float f -> Buffer.add_string buf (Js.Float.toString f)
+  | _ -> raise (Invalid_argument "write_text_node expects a Text, Int or Float element")
+
 (* The sync renderers below take [buf] as a positional argument on every
    mutually-recursive function instead of partially applying it. Partial
    applications like [render_element ~buf] allocate a fresh closure per
@@ -172,11 +199,11 @@ let render_to_buffer ~mode buf element =
              "Async components can't be rendered to static markup, since rendering is synchronous. Please use \
               `renderToStream` instead.")
     | Lower_case_element { key = _; tag; attributes; children } -> render_lower_case buf tag attributes children
-    | Text text ->
+    | (Text _ | Int _ | Float _) as text_node ->
         let is_previous_text_node = !previous_node_was_text in
         previous_node_was_text := true;
         if is_previous_text_node && add_separator_between_text_nodes then Buffer.add_string buf "<!-- -->";
-        Html.escape buf text;
+        write_text_node buf text_node;
         should_add_doctype := false
     | Suspense { key = _; children; fallback } -> (
         let suspense_inner_buf = Buffer.create 128 in
@@ -187,7 +214,7 @@ let render_to_buffer ~mode buf element =
             Buffer.add_string buf "<!--/$-->"
         | exception _e ->
             Buffer.add_string buf "<!--$!-->";
-            render_element buf fallback;
+            render_element buf (Option.value fallback ~default:React.null);
             Buffer.add_string buf "<!--/$-->")
   and render_upper_case_component buf component =
     let saved_ctx = !React.current_tree_context in
@@ -298,12 +325,12 @@ let write_to_buffer buf element =
           Buffer.add_string buf "</";
           Buffer.add_string buf tag;
           Buffer.add_char buf '>')
-    | Text text -> Html.escape buf text
+    | (Text _ | Int _ | Float _) as text_node -> write_text_node buf text_node
     | Suspense { children; fallback; _ } -> (
         let suspense_inner_buf = Buffer.create 128 in
         match render suspense_inner_buf children with
         | () -> Buffer.add_buffer buf suspense_inner_buf
-        | exception _e -> render buf fallback)
+        | exception _e -> render buf (Option.value fallback ~default:React.null))
   and render_upper_case_component buf component =
     let saved_ctx = !React.current_tree_context in
     React.reset_component_id_state saved_ctx;
@@ -478,12 +505,12 @@ let rec render_to_buffer ~stream_context ?(add_doctype = false) buf element =
     | List list -> render_children_list_lwt render_element list
     | Array arr -> render_children_array_lwt render_element arr
     | Lower_case_element { key; tag; attributes; children } -> render_lower_case ~key tag attributes children
-    | Text text ->
+    | (Text _ | Int _ | Float _) as text_node ->
         let is_previous_text_node = !previous_node_was_text in
         previous_node_was_text := true;
         if is_previous_text_node then Buffer.add_string buf "<!-- -->";
         should_add_doctype := false;
-        Html.escape buf text;
+        write_text_node buf text_node;
         Lwt.return ()
     | Upper_case_component (_, component) -> render_upper_case_component_lwt render_element component
     | Async_component (_, component) -> (
@@ -531,7 +558,7 @@ let rec render_to_buffer ~stream_context ?(add_doctype = false) buf element =
     | Suspense { children; fallback; _ } -> (
         let render_fallback_html () =
           let fallback_buf = Buffer.create 128 in
-          let%lwt () = render_to_buffer ~stream_context fallback_buf fallback in
+          let%lwt () = render_to_buffer ~stream_context fallback_buf (Option.value fallback ~default:React.null) in
           Lwt.return (Buffer.contents fallback_buf)
         in
         try%lwt
@@ -647,6 +674,14 @@ let renderToStream ?identifier_prefix element =
       if stream_context.waiting = 0 then close ();
       Lwt.return (stream, abort))
 
+(* Dedup keys copy React's request.hints keys verbatim; the "null" slot in preconnect's key is the (unsupported)
+   crossOrigin option. *)
+let preload ~href ~as_ =
+  Flight_hints.emit { dedup_key = "L[" ^ as_ ^ "]" ^ href; code = "L"; payload = `List [ `String href; `String as_ ] }
+
+let preconnect ~href = Flight_hints.emit { dedup_key = "C|null|" ^ href; code = "C"; payload = `String href }
+let prefetchDNS ~href = Flight_hints.emit { dedup_key = "D|" ^ href; code = "D"; payload = `String href }
+let preinitScript ~href = Flight_hints.emit { dedup_key = "X|" ^ href; code = "X"; payload = `String href }
 let querySelector _str = Runtime.fail_impossible_action_in_ssr "ReactDOM.querySelector"
 let render _element _node = Runtime.fail_impossible_action_in_ssr "ReactDOM.render"
 let hydrate _element _node = Runtime.fail_impossible_action_in_ssr "ReactDOM.hydrate"
@@ -662,7 +697,7 @@ let add kind value map = match value with Some i -> map |> List.cons (kind i) | 
 type dangerouslySetInnerHTML = < __html : string >
 
 (* `Booleanish_string` are JSX attributes represented as boolean values but rendered as strings on HTML https://github.com/facebook/react/blob/a17467e7e2cd8947c595d1834889b5d184459f12/packages/react-dom-bindings/src/server/ReactFizzConfigDOM.js#L1165-L1176 *)
-let booleanish_string name jsxName v = React.JSX.string name jsxName (string_of_bool v)
+let booleanish_string = React.JSX.booleanishString
 
 [@@@ocamlformat "disable"]
 (* domProps isn't used by the generated code from the ppx, and it's purpose is to

@@ -1,0 +1,10 @@
+(copy_files
+ (files "../shared/*.re"))
+
+(melange.emit
+ (target flight)
+ (module_systems
+  (es6 mjs))
+ (libraries reason-react flight_spec_harness_js melange.js)
+ (preprocess
+  (pps reason-react-ppx melange.ppx)))
