@@ -71,7 +71,7 @@ let capture_component_stack ~filter_stack_frame =
 module Physical_key : sig
   type t
 
-  val make : 'a Lwt.t -> t
+  val make : 'a -> t
   val equal : t -> t -> bool
 end = struct
   type t = Obj.t
@@ -105,6 +105,8 @@ module Stream = struct
        mutable state and change as it resolves; streams see few promises, so a
        linear scan is fine). *)
     mutable written_promises : (Physical_key.t * int) list;
+    (* React's writtenServerReferences: the same server function serialized twice reuses one row. *)
+    mutable written_server_references : (Physical_key.t * int) list;
     (* Rows produced synchronously while another row is being serialized but
        that React only writes after it: error chunks (completedErrorChunks)
        and retries of already-resolved thenables (pingedTasks) both flush
@@ -164,6 +166,15 @@ module Stream = struct
 
   let remember_written_promise ~context key index = context.written_promises <- (key, index) :: context.written_promises
 
+  let push_server_reference ~context ~key to_chunk =
+    let find (k, index) = if Physical_key.equal k key then Some index else None in
+    match List.find_map find context.written_server_references with
+    | Some existing_index -> existing_index
+    | None ->
+        let index = push to_chunk ~context in
+        context.written_server_references <- (key, index) :: context.written_server_references;
+        index
+
   (* Well-known symbols (e.g. react.suspense) are outlined once per stream and
      referenced by row id, mirroring React's writtenSymbols map. *)
   let push_symbol ~context ~symbol to_chunk =
@@ -218,6 +229,7 @@ module Stream = struct
         written_hints = Hashtbl.create 8;
         pending_hints;
         written_promises = [];
+        written_server_references = [];
         deferred_rows = [];
       } )
 end
@@ -526,7 +538,10 @@ module Model = struct
               (fun (prop : React.JSX.prop) ->
                 match prop with
                 | React.JSX.Action (_, key, f) ->
-                    let index = Stream.push ~context (to_chunk (Value (action_to_json f))) in
+                    let index =
+                      Stream.push_server_reference ~context ~key:(Physical_key.make f)
+                        (to_chunk (Value (action_to_json f)))
+                    in
                     Some (key, `String (action_value index))
                 | _ -> prop_to_json prop)
               attributes
@@ -684,7 +699,10 @@ module Model = struct
         let assoc = List.map (fun (name, value) -> (name, model_to_payload ~context ~to_chunk ~env value)) assoc in
         `Assoc assoc
     | Function action ->
-        let index = Stream.push ~context (to_chunk (Value (action_to_json action))) in
+        let index =
+          Stream.push_server_reference ~context ~key:(Physical_key.make action)
+            (to_chunk (Value (action_to_json action)))
+        in
         `String (action_value index)
 
   and models_to_payload ~context ~to_chunk ~env props =
@@ -898,7 +916,10 @@ let rewrite_action_props ~context attributes =
     (fun prop ->
       match prop with
       | React.JSX.Action (_, key, f) ->
-          let index = Stream.push ~context (model_to_chunk (Value (Model.action_to_json f))) in
+          let index =
+            Stream.push_server_reference ~context ~key:(Physical_key.make f)
+              (model_to_chunk (Value (Model.action_to_json f)))
+          in
           React.JSX.String (key, key, Model.action_value index)
       | _ -> prop)
     attributes
@@ -1221,7 +1242,10 @@ and process_attributes ~context ?form_action_id attributes =
       (fun (prop : React.JSX.prop) ->
         match prop with
         | Action (_, key, f) ->
-            let index = Stream.push ~context (model_to_chunk (Value (Model.action_to_json f))) in
+            let index =
+              Stream.push_server_reference ~context ~key:(Physical_key.make f)
+                (model_to_chunk (Value (Model.action_to_json f)))
+            in
             Some (key, `String (Model.action_value index))
         | _ -> Model.prop_to_json prop)
       attributes

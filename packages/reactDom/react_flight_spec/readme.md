@@ -65,16 +65,10 @@ registry of `conformance/reply_spec_conformance.ml` (reply direction) are **expe
 to mismatch; the conformance runners assert that they *do* mismatch, so they flip
 loudly when fixed.
 
-Reply direction: **one known divergence.** srr's `decodeReply` unescapes `$$`-prefixed
-strings by dropping two characters instead of one, so `"$$money"` (React's encoding of
-the user string `"$money"`) decodes to `"money"` instead of `"$money"`
-(`dollar_strings` case; React's own `decodeReply` returns `value.slice(1)`).
-
-Model direction: **one known divergence.** `server_function_dedup` — React dedups a
-server reference passed twice (one `{"id","bound"}` row, both props `"$F2"`) via
-`writtenServerReferences`, while srr pushes a fresh row per occurrence
-(`"$F2"`/`"$F3"` plus a duplicate row). Every other case matches the React
-fixtures byte-for-byte. All ten divergences the spec initially caught were fixed on
+**There are currently no known divergences in either direction: every case
+matches the React fixtures byte-for-byte.** All divergences the spec caught
+(including the reply-side `$$`-unescape bug and the missing server-reference
+dedup) were fixed on
 this branch — see the git history for the alignment work: `$`-string escaping,
 numeric props as strings, `$` instead of `$L` client references, inlined
 suspense symbol, unconditional 7-tuple element rows, shared-thenable dedup
