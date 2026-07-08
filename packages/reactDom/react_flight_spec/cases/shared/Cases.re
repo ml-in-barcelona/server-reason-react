@@ -27,6 +27,15 @@ let all: list(case) = [
   case("element_void", Element_void.app),
   case("deep_nesting", Deep_nesting.app),
   case("large_array", Large_array.app),
+  case("children_mixed", Children_mixed.app),
+  case("children_null", Children_null.app),
+  case(
+    "children_numbers",
+    Children_numbers.app,
+    ~xfail=
+      {|React.int/React.float children cross the wire as JSON numbers (42, 3.14, 100) in React, but srr's React.int/React.float eagerly stringify into Text at construction, emitting JSON strings ("42", "3.14", and "100." via string_of_float)|},
+  ),
+  case("fragment_nested", Fragment_nested.app),
   case("props_primitives", Props_primitives.app),
   case("props_float", Props_float.app),
   case("fragment", Fragment_basic.app),
