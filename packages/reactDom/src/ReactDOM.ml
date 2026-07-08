@@ -428,11 +428,17 @@ type stream_context = {
   mutable boundary_id : int;
   mutable suspense_id : int;
   mutable waiting : int;
+  (* Suspense boundaries whose async content is still rendering, in registration order (most recent first). Used by
+     [abort] to emit a $RX client-render instruction per still-pending boundary. *)
+  mutable pending_boundaries : int list;
 }
 
-(* https://github.com/facebook/react/blob/493f72b0a7111b601c16b8ad8bc2649d82c184a0/packages/react-dom-bindings/src/server/fizz-instruction-set/ReactDOMFizzInstructionSetShared.js#L46 *)
-let complete_boundary_script =
-  {|function $RC(a,b){a=document.getElementById(a);b=document.getElementById(b);b.parentNode.removeChild(b);if(a){a=a.previousSibling;var f=a.parentNode,c=a.nextSibling,e=0;do{if(c&&8===c.nodeType){var d=c.data;if("/$"===d)if(0===e)break;else e--;else"$"!==d&&"$?"!==d&&"$!"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data="$";a._reactRetry&&a._reactRetry()}}|}
+let close_stream stream_context =
+  if not stream_context.closed then (
+    stream_context.closed <- true;
+    stream_context.close ())
+
+let complete_boundary_script = Fizz_instructions.complete_boundary
 
 let write_inline_complete_boundary_script buf has_rc_script_been_injected boundary_id suspense_id =
   let rc_call = Printf.sprintf "$RC('B:%i','S:%i')" boundary_id suspense_id in
@@ -445,6 +451,26 @@ let write_inline_complete_boundary_script buf has_rc_script_been_injected bounda
     Buffer.add_string buf "<script>";
     Buffer.add_string buf rc_call;
     Buffer.add_string buf "</script>")
+
+let client_render_boundary_script = Fizz_instructions.client_render_boundary
+
+let abort_error_message =
+  "Switched to client rendering because the server rendering aborted due to:\n\n\
+   The render was aborted by the server without a reason."
+
+let write_inline_client_render_boundary_script buf ~env ~include_definition boundary_id =
+  let rx_call =
+    (* Error detail is dev-only: in production React passes only the digest to avoid leaking server internals. *)
+    match env with
+    | `Prod -> Printf.sprintf {|$RX("B:%i","")|} boundary_id
+    | `Dev -> Printf.sprintf {|$RX("B:%i","","%s")|} boundary_id (Html.escape_for_inline_script abort_error_message)
+  in
+  Buffer.add_string buf "<script>";
+  if include_definition then (
+    Buffer.add_string buf client_render_boundary_script;
+    Buffer.add_char buf ';');
+  Buffer.add_string buf rx_call;
+  Buffer.add_string buf "</script>"
 
 let write_suspense_resolved_element buf ~id html =
   Buffer.add_string buf "<div hidden id=\"S:";
@@ -579,12 +605,15 @@ let rec render_to_buffer ~stream_context ?(add_doctype = false) buf element =
                 stream_context.boundary_id <- stream_context.boundary_id + 1;
                 stream_context.suspense_id <- stream_context.suspense_id + 1;
                 stream_context.waiting <- stream_context.waiting + 1;
+                stream_context.pending_boundaries <- current_boundary_id :: stream_context.pending_boundaries;
 
                 Lwt.async (fun () ->
                     let%lwt _ = promise in
                     let async_buf = Buffer.create 512 in
                     let%lwt () = render_to_buffer ~stream_context async_buf children in
                     stream_context.waiting <- stream_context.waiting - 1;
+                    stream_context.pending_boundaries <-
+                      List.filter (fun id -> id <> current_boundary_id) stream_context.pending_boundaries;
                     if not stream_context.closed then (
                       let inner_html = Buffer.contents async_buf in
                       Buffer.clear async_buf;
@@ -593,11 +622,9 @@ let rec render_to_buffer ~stream_context ?(add_doctype = false) buf element =
                       Buffer.clear async_buf;
                       write_inline_complete_boundary_script async_buf stream_context.has_rc_script_been_injected
                         current_boundary_id current_suspense_id;
-                      stream_context.push (Buffer.contents async_buf));
-                    stream_context.has_rc_script_been_injected <- true;
-                    if stream_context.waiting = 0 then (
-                      stream_context.closed <- true;
-                      stream_context.close ());
+                      stream_context.push (Buffer.contents async_buf);
+                      stream_context.has_rc_script_been_injected <- true;
+                      if stream_context.waiting = 0 then close_stream stream_context);
                     Lwt.return ());
 
                 write_suspense_fallback buf ~boundary_id:current_boundary_id fallback_html;
@@ -649,7 +676,7 @@ let rec render_to_buffer ~stream_context ?(add_doctype = false) buf element =
     await_unhandled_suspensions := true;
     render_element element
 
-let renderToStream ?identifier_prefix element =
+let renderToStream ?(env = `Dev) ?identifier_prefix element =
   React.reset_id_rendering ?prefix:identifier_prefix ();
   React.Cache.with_request_cache_async (fun () ->
       let stream, push_to_stream, close = Push_stream.make () in
@@ -662,16 +689,31 @@ let renderToStream ?identifier_prefix element =
           boundary_id = 0;
           suspense_id = 0;
           has_rc_script_been_injected = false;
+          pending_boundaries = [];
         }
       in
+      (* Aborting while Suspense boundaries are pending mirrors react-dom: emit a $RX client-render instruction per
+         still-pending boundary (so the client flips each boundary to errored and retries rendering it there), then
+         close the stream. Closing sets [closed], which guards the async pushes of boundary promises that resolve
+         later. *)
       let abort () =
-        (* TODO: Needs to flush the remaining loading fallbacks as HTML, and React.js will try to render the rest on the client. *)
-        Lwt_stream.closed stream |> Lwt.ignore_result
+        if not stream_context.closed then (
+          (match List.rev stream_context.pending_boundaries with
+          | [] -> ()
+          | pending_boundaries ->
+              stream_context.pending_boundaries <- [];
+              List.iteri
+                (fun i boundary_id ->
+                  let buf = Buffer.create 256 in
+                  write_inline_client_render_boundary_script buf ~env ~include_definition:(i = 0) boundary_id;
+                  stream_context.push (Buffer.contents buf))
+                pending_boundaries);
+          close_stream stream_context)
       in
       let buf = Buffer.create 1024 in
       let%lwt () = render_to_buffer ~stream_context ~add_doctype:true buf element in
       push_to_stream (Buffer.contents buf);
-      if stream_context.waiting = 0 then close ();
+      if stream_context.waiting = 0 then close_stream stream_context;
       Lwt.return (stream, abort))
 
 (* Dedup keys copy React's request.hints keys verbatim; the "null" slot in preconnect's key is the (unsupported)

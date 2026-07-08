@@ -88,8 +88,13 @@ module Stream = struct
        encountered after a hint call still streams before the hint. *)
     push_import : 'a -> unit;
     close : unit -> unit;
+    mutable closed : bool;
     mutable index : int;
     mutable pending : int;
+    (* Async rows still rendering, in registration order (most recent first). On an abort/timeout every entry gets
+       an error row rejecting its client-side reference, and [`Boundary] entries (Suspense content whose B:<id>
+       placeholder already flushed) additionally get a $RX client-render instruction. *)
+    mutable pending_rows : (int * [ `Boundary | `Model_row ]) list;
     written_client_references : (string * string, int) Hashtbl.t;
     written_symbols : (string, string) Hashtbl.t;
     (* React's request.hints set: one H row per dedup key per request. *)
@@ -115,10 +120,18 @@ module Stream = struct
     mutable deferred_rows : (unit -> unit) list;
   }
 
+  (* Closing is idempotent and pushes are guarded on [closed]: async work that completes after an abort/timeout must
+     not push into (or re-close) the closed stream, which would raise Lwt_stream.Closed inside Lwt.async and crash the
+     process. *)
+  let close context =
+    if not context.closed then (
+      context.closed <- true;
+      context.close ())
+
   let push to_chunk ~context =
     let index = context.index in
     context.index <- context.index + 1;
-    context.push (to_chunk index);
+    if not context.closed then context.push (to_chunk index);
     index
 
   (* Mirror React's flush ordering: the row id is allocated at encounter time
@@ -191,21 +204,34 @@ module Stream = struct
   (* An asynchronous task row: the id is allocated BEFORE [make_chunk] runs
      (React's createTask does request.nextChunkId++ up front), so rows pushed
      while the task's payload is serialized get later ids. The row is written
-     when the promise resolves. *)
-  let push_async make_chunk ~context =
+     when the promise resolves — unless the stream was aborted/closed in the
+     meantime, in which case the chunk is dropped. *)
+  let push_task ~kind make_chunk ~context =
     let index = context.index in
     context.index <- context.index + 1;
     context.pending <- context.pending + 1;
+    context.pending_rows <- (index, kind) :: context.pending_rows;
     Lwt.async (fun () ->
         let%lwt to_chunk = make_chunk () in
         context.pending <- context.pending - 1;
-        context.push (to_chunk index);
-        (* Rows deferred during this row's serialization flush right after it,
-           and may register new pending work, so flush before the close check. *)
-        flush_deferred ~context;
-        if context.pending = 0 then context.close ();
+        context.pending_rows <- List.filter (fun (i, _) -> i <> index) context.pending_rows;
+        if not context.closed then (
+          context.push (to_chunk index);
+          (* Rows deferred during this row's serialization flush right after it,
+             and may register new pending work, so flush before the close check. *)
+          flush_deferred ~context;
+          if context.pending = 0 then close context);
         Lwt.return ());
     index
+
+  (* An async row of the RSC payload (a lazy element, a promise passed as prop, or the root task) with no placeholder
+     in the flushed HTML. Tracked in [pending_rows] so an abort/timeout can reject its client-side reference with an
+     error row. *)
+  let push_async make_chunk ~context = push_task ~kind:`Model_row make_chunk ~context
+
+  (* The async HTML content of a Suspense boundary whose placeholder (<template id="B:n">) and fallback were already
+     flushed. Tracked in [pending_rows] so an abort/timeout can emit a $RX client-render instruction for it. *)
+  let push_boundary_async make_chunk ~context = push_task ~kind:`Boundary make_chunk ~context
 
   let make ?(initial_index = 0) ?(pending = 0) () =
     let stream, push_raw, close_raw = Push_stream.make () in
@@ -226,8 +252,10 @@ module Stream = struct
           (fun () ->
             drain_hints ();
             close_raw ());
+        closed = false;
         pending;
         index = initial_index;
+        pending_rows = [];
         written_client_references = Hashtbl.create 16;
         written_symbols = Hashtbl.create 4;
         written_hints = Hashtbl.create 8;
@@ -901,10 +929,26 @@ srr_stream.readable_stream = new ReadableStream({ start(c) { srr_stream._c = c; 
 |};
     ]
 
-let rc_function_definition =
-  {|function $RC(a,b){a=document.getElementById(a);b=document.getElementById(b);b.parentNode.removeChild(b);if(a){a=a.previousSibling;var f=a.parentNode,c=a.nextSibling,e=0;do{if(c&&8===c.nodeType){var d=c.data;if("/$"===d)if(0===e)break;else e--;else"$"!==d&&"$?"!==d&&"$!"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data="$";a._reactRetry&&a._reactRetry()}}|}
-
+let rc_function_definition = Fizz_instructions.complete_boundary
 let rc_function_script = Html.node "script" [] [ Html.raw rc_function_definition ]
+let rx_function_definition = Fizz_instructions.client_render_boundary
+
+let timeout_error_message =
+  "Switched to client rendering because the server rendering aborted due to:\n\nThe render timed out."
+
+(* The error used to reject every still-pending row of the RSC payload when the render times out, mirroring React
+   Flight's abort which errors all pending tasks with the abort reason. Error detail is dev-only (make_error_json
+   emits only the digest in prod). *)
+let timeout_error = { React.message = "The render timed out."; stack = `Null; env = "Server"; digest = "" }
+
+let client_render_boundary_to_chunk ~env ~include_definition index =
+  let rx_call =
+    (* Error detail is dev-only: in production React passes only the digest to avoid leaking server internals. *)
+    match env with
+    | `Prod -> Printf.sprintf {|$RX("B:%x","")|} index
+    | `Dev -> Printf.sprintf {|$RX("B:%x","","%s")|} index (Html.escape_for_inline_script timeout_error_message)
+  in
+  Html.node "script" [] [ Html.raw (if include_definition then rx_function_definition ^ ";" ^ rx_call else rx_call) ]
 
 let model_to_chunk model index =
   Html.raw
@@ -915,7 +959,7 @@ let boundary_to_chunk html index =
   let rc_replacement b s = Html.node "script" [] [ Html.raw (Printf.sprintf "$RC('B:%x', 'S:%x')" b s) ] in
   Html.list ~separator:"\n"
     [
-      Html.node "div" [ Html.attribute "hidden" "true"; Html.attribute "id" (Printf.sprintf "S:%x" index) ] [ html ];
+      Html.node "div" [ Html.present "hidden"; Html.attribute "id" (Printf.sprintf "S:%x" index) ] [ html ];
       rc_replacement index index;
     ]
 
@@ -1057,12 +1101,12 @@ let rec client_to_html ~(fiber : Fiber.t) (element : React.element) =
                 Lwt.return (boundary_to_chunk html)
               with _exn -> Lwt.return (boundary_to_chunk Html.null)
             in
-            let index = Stream.push_async ~context (fun () -> async) in
+            let index = Stream.push_boundary_async ~context (fun () -> async) in
             Lwt.return (html_suspense_placeholder ~fallback:fallback_html index)
         | Fail exn -> Lwt.reraise exn
       with _exn ->
         let async = Lwt.return (boundary_to_chunk Html.null) in
-        let index = Stream.push_async ~context (fun () -> async) in
+        let index = Stream.push_boundary_async ~context (fun () -> async) in
         Lwt.return (html_suspense_placeholder ~fallback:fallback_html index))
   | Client_component { client; _ } -> client_to_html ~fiber client
   | Provider { children; push; async_key; async_value } ->
@@ -1201,7 +1245,7 @@ let rec render_element_to_html ~(fiber : Fiber.t) (element : React.element) : (H
                 let to_chunk index = model_to_chunk (Error (fiber.env, error)) index in
                 Lwt.return to_chunk
             in
-            let index = Stream.push_async ~context (fun () -> promise) in
+            let index = Stream.push_boundary_async ~context (fun () -> promise) in
             Lwt.return
               ( html_suspense_placeholder ~fallback:html_fallback index,
                 Model.suspense_placeholder ~env:fiber.env ~tag ~key ~fallback:model_fallback index )
@@ -1526,7 +1570,7 @@ let render_html ?(skipRoot = false) ?(env = `Dev) ?debug:(_ = false) ?timeout
       (* Decrement the pending counter to signal that the root data payload is complete. *)
       context.pending <- context.pending - 1;
       (* In case of not having any task pending, we can close the stream *)
-      if context.pending = 0 then context.close ();
+      if context.pending = 0 then Stream.close context;
       let user_scripts =
         create_user_scripts ~root_data_payload ?bootstrapScriptContent ?bootstrapScripts ?bootstrapModules ()
       in
@@ -1561,10 +1605,35 @@ let render_html ?(skipRoot = false) ?(env = `Dev) ?debug:(_ = false) ?timeout
             Lwt.pick
               [
                 subscription;
+                (* On timeout, mirror react-dom's abort: emit a $RX client-render instruction per still-pending
+                   Suspense boundary (the client flips each boundary to errored and retries rendering it there), then
+                   close the stream. The $RX scripts are written straight into the subscriber's buffer since the
+                   stream subscription is about to be cancelled by Lwt.pick. Closing sets [closed], which guards the
+                   async pushes of boundary promises that resolve later. *)
                 (let%lwt () = Lwt_unix.sleep seconds in
-                 if context.pending > 0 then (
+                 if not context.closed then (
+                   let pending_boundaries =
+                     List.rev
+                       (List.filter_map
+                          (fun (index, kind) -> match kind with `Boundary -> Some index | `Model_row -> None)
+                          context.pending_rows)
+                   in
+                   let pending_rows = List.sort compare (List.map fst context.pending_rows) in
+                   context.pending_rows <- [];
+                   (* Reject every still-pending row of the RSC payload (lazy elements, promises passed as props and
+                      the content of pending Suspense boundaries) with an error row so the client-side $L/$@
+                      references settle instead of hanging forever, mirroring React Flight's abort. *)
+                   List.iter
+                     (fun index ->
+                       Buffer.add_string buf (Html.to_string (model_to_chunk (Error (env, timeout_error)) index)))
+                     pending_rows;
+                   List.iteri
+                     (fun i index ->
+                       Buffer.add_string buf
+                         (Html.to_string (client_render_boundary_to_chunk ~env ~include_definition:(i = 0) index)))
+                     pending_boundaries;
                    context.pending <- 0;
-                   context.close ());
+                   Stream.close context);
                  finish ());
               ]
       in
