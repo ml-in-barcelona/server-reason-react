@@ -70,8 +70,11 @@ strings by dropping two characters instead of one, so `"$$money"` (React's encod
 the user string `"$money"`) decodes to `"money"` instead of `"$money"`
 (`dollar_strings` case; React's own `decodeReply` returns `value.slice(1)`).
 
-Model direction: **no known divergences — every case matches the React
-fixtures byte-for-byte.** All ten divergences the spec caught were fixed on
+Model direction: **one known divergence.** `server_function_dedup` — React dedups a
+server reference passed twice (one `{"id","bound"}` row, both props `"$F2"`) via
+`writtenServerReferences`, while srr pushes a fresh row per occurrence
+(`"$F2"`/`"$F3"` plus a duplicate row). Every other case matches the React
+fixtures byte-for-byte. All ten divergences the spec initially caught were fixed on
 this branch — see the git history for the alignment work: `$`-string escaping,
 numeric props as strings, `$` instead of `$L` client references, inlined
 suspense symbol, unconditional 7-tuple element rows, shared-thenable dedup

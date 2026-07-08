@@ -63,6 +63,36 @@ let object_ = (name: string, fields: list((string, model))): prop => (
   model_object(fields),
 );
 
+/* A server function reference. Created once and reused so that cases can
+   exercise React's per-reference dedup (writtenServerReferences). */
+type server_function = Runtime.server_function(unit => Js.Promise.t(unit));
+
+let server_function = (~id: string): server_function => {
+  Runtime.id,
+  call: () => Js.Promise.resolve(),
+};
+
+let server_function_prop = (name: string, fn: server_function): prop => (
+  name,
+  React.Model.Function(fn),
+);
+
+let model_server_function = (fn: server_function): model =>
+  React.Model.Function(fn);
+
+/* A <form> host element with a server function as its [action] prop. Typed
+   JSX cannot express this single-source (the native ppx takes a polymorphic
+   variant, reason-react a string), so both harnesses build the element
+   directly. */
+let form_with_action =
+    (~action: server_function, children: React.element): React.element =>
+  React.Lower_case_element({
+    key: None,
+    tag: "form",
+    attributes: [React.JSX.Action(("action", "action", action))],
+    children: [children],
+  });
+
 /* [client] is the SSR fallback, unused when rendering the model. */
 let client_component =
     (~importModule: string, ~importName: string, ~props: list(prop)=[], ())
