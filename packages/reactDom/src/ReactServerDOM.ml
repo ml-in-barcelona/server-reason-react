@@ -57,6 +57,29 @@ let capture_component_stack ~filter_stack_frame =
   in
   `List (List.filter_map Fun.id frames)
 
+(* Identity-only key over promises of ANY payload type, mirroring React's
+   writtenObjects map (keyed on JS object identity of the thenable). A
+   [Model.Promise] is a GADT that hides the promise's payload type, so two
+   occurrences of the same promise can't be compared with ( == ) at their
+   original type once the existential is opened. [Obj.repr] is used purely to
+   erase the type for a physical-identity comparison: the representation is
+   never inspected or reinterpreted (no [Obj.magic]), and ( == ) on [Obj.t]
+   compares identity exactly like ( == ) at the original type, which makes
+   this sound. The abstract signature keeps the [Obj.t] from leaking. An Lwt
+   promise is always a heap block, so identity is well-defined (no unboxed
+   float pitfalls). *)
+module Physical_key : sig
+  type t
+
+  val make : 'a Lwt.t -> t
+  val equal : t -> t -> bool
+end = struct
+  type t = Obj.t
+
+  let make = Obj.repr
+  let equal = ( == )
+end
+
 module Stream = struct
   type 'a t = {
     push : 'a -> unit;
@@ -65,6 +88,13 @@ module Stream = struct
     mutable pending : int;
     written_client_references : (string * string, int) Hashtbl.t;
     written_symbols : (string, int) Hashtbl.t;
+    (* React's writtenObjects for thenables: the same promise serialized twice
+       in one stream resolves to the same "$@<id>" reference and a single
+       resolution row. Keyed on the promise's PHYSICAL identity (an assoc list
+       rather than a Hashtbl: structural hashing of a promise would traverse
+       mutable state and change as it resolves; streams see few promises, so a
+       linear scan is fine). *)
+    mutable written_promises : (Physical_key.t * int) list;
     (* Rows produced synchronously while another row is being serialized but
        that React only writes after it: error chunks (completedErrorChunks)
        and retries of already-resolved thenables (pingedTasks) both flush
@@ -112,6 +142,11 @@ module Stream = struct
         Hashtbl.replace context.written_client_references key index;
         index
 
+  let find_written_promise ~context key =
+    List.find_map (fun (k, index) -> if Physical_key.equal k key then Some index else None) context.written_promises
+
+  let remember_written_promise ~context key index = context.written_promises <- (key, index) :: context.written_promises
+
   (* Well-known symbols (e.g. react.suspense) are outlined once per stream and
      referenced by row id, mirroring React's writtenSymbols map. *)
   let push_symbol ~context ~symbol to_chunk =
@@ -151,6 +186,7 @@ module Stream = struct
         index = initial_index;
         written_client_references = Hashtbl.create 16;
         written_symbols = Hashtbl.create 4;
+        written_promises = [];
         deferred_rows = [];
       } )
 end
@@ -563,34 +599,42 @@ module Model = struct
         `String (error_value index)
     | Element element -> element_to_payload ~context ?debug ?filter_stack_frame ~to_chunk ~env element
     | Promise (promise, value_to_model) -> (
-        match Lwt.state promise with
-        | Return value ->
-            (* React retries an already-resolved thenable as its own task
-               AFTER the current one (pingedTasks), so the resolution row is
-               serialized and written after the row that references it. *)
+        (* The same promise serialized twice in one stream dedups to one row,
+           keyed on the promise's physical identity like React's
+           writtenObjects (the transform is an srr-side artifact with no React
+           equivalent — a .then() in JS creates a distinct thenable — so the
+           promise alone determines the reference). *)
+        let written_key = Physical_key.make promise in
+        match Stream.find_written_promise ~context written_key with
+        | Some index -> `String (promise_value index)
+        | None ->
             let index =
-              Stream.push_deferred ~context (fun index ->
-                  match model_to_payload ~context ~to_chunk ~env (value_to_model value) with
-                  | payload -> to_chunk (Value payload) index
-                  | exception exn -> to_chunk (Error (env, exn_to_error exn)) index)
+              match Lwt.state promise with
+              | Return value ->
+                  (* React retries an already-resolved thenable as its own task
+                     AFTER the current one (pingedTasks), so the resolution row
+                     is serialized and written after the row that references it. *)
+                  Stream.push_deferred ~context (fun index ->
+                      match model_to_payload ~context ~to_chunk ~env (value_to_model value) with
+                      | payload -> to_chunk (Value payload) index
+                      | exception exn -> to_chunk (Error (env, exn_to_error exn)) index)
+              | Sleep ->
+                  let promise =
+                    try%lwt
+                      let%lwt value = promise in
+                      let model = value_to_model value in
+                      let payload = model_to_payload ~context ~to_chunk ~env model in
+                      Lwt.return (to_chunk (Value payload))
+                    with exn ->
+                      let error = exn_to_error exn in
+                      Lwt.return (to_chunk (Error (env, error)))
+                  in
+                  Stream.push_async (fun () -> promise) ~context
+              | Fail exn ->
+                  let error = exn_to_error exn in
+                  Stream.push_deferred ~context (to_chunk (Error (env, error)))
             in
-            `String (promise_value index)
-        | Sleep ->
-            let promise =
-              try%lwt
-                let%lwt value = promise in
-                let model = value_to_model value in
-                let payload = model_to_payload ~context ~to_chunk ~env model in
-                Lwt.return (to_chunk (Value payload))
-              with exn ->
-                let error = exn_to_error exn in
-                Lwt.return (to_chunk (Error (env, error)))
-            in
-            let index = Stream.push_async (fun () -> promise) ~context in
-            `String (promise_value index)
-        | Fail exn ->
-            let error = exn_to_error exn in
-            let index = Stream.push_deferred ~context (to_chunk (Error (env, error))) in
+            Stream.remember_written_promise ~context written_key index;
             `String (promise_value index))
     | List list ->
         let list = List.map (fun element -> model_to_payload ~context ~to_chunk ~env element) list in

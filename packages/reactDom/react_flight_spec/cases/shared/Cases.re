@@ -75,11 +75,10 @@ let all: list(case) = [
   case("promise_prop_resolved", Promise_prop_resolved.app),
   case("promise_prop_rejected", Promise_prop_rejected.app),
   case("promise_resolving_to_element", Promise_resolving_to_element.app),
+  case("promise_prop_shared", Promise_prop_shared.app),
   case(
-    "promise_prop_shared",
-    Promise_prop_shared.app,
-    ~xfail=
-      {|React dedups a shared thenable via writtenObjects: {"left":"$@2","right":"$@2"} with a single resolution row 2. srr wraps each prop in its own Model.Promise and never dedups, emitting {"left":"$@2","right":"$@3"} plus two identical resolution rows (3 streams before 2)|},
+    "promise_shared_across_components",
+    Promise_shared_across_components.app,
   ),
   case("error_component", Error_component.app),
   case("error_in_root_chain", Error_in_root_chain.app),

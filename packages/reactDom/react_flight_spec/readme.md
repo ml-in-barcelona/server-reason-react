@@ -49,16 +49,15 @@ make spec-check
 
 Cases annotated with `~xfail` in `cases/shared/Cases.re` are **expected** to mismatch;
 the conformance runner asserts that they *do* mismatch, so they flip loudly when fixed.
-The five divergences the spec caught on day one (`$`-string escaping, numeric
-props as strings, `$` instead of `$L` client references, inlined suspense
-symbol, unconditional 7-tuple element rows) were fixed on this branch — see
-the git history for the wire-format alignment.
 
-Current known divergences (see the `~xfail` reasons in `Cases.re` for the
-exact rows):
-
-- `promise_prop_shared` — React dedups a shared thenable (one `$@` row,
-  referenced twice); srr serializes each promise prop independently.
+**There are currently no known divergences: every case matches the React
+fixtures byte-for-byte.** All ten divergences the spec caught were fixed on
+this branch — see the git history for the alignment work: `$`-string escaping,
+numeric props as strings, `$` instead of `$L` client references, inlined
+suspense symbol, unconditional 7-tuple element rows, shared-thenable dedup
+(`writtenObjects`), async components at the task root resolving into the
+task's own row, sync throws at the root erroring the root row (`0:E`), and
+`E`-row flushing after the model rows of the same flush.
 
 ## Bumping React
 
