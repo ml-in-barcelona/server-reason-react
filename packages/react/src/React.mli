@@ -675,8 +675,11 @@ type any_promise = Any_promise : 'a Lwt.t -> any_promise
 
 exception Suspend of any_promise
 
-val memo : ('props * 'props -> bool) -> 'a -> 'props * 'props -> bool
-val memoCustomCompareProps : ('props * 'props -> bool) -> ('props * 'props -> bool) -> 'a -> 'props * 'props -> bool
+(** Signatures match reason-react. On the server there's no re-render, so memoization is a no-op: the component is
+    returned unchanged and the compare function is ignored. *)
+
+val memo : 'component -> 'component
+val memoCustomCompareProps : 'component -> ('props -> 'props -> bool) -> 'component
 val cache : ('a -> 'b) -> 'a -> 'b
 val useContext : 'a Context.t -> 'a
 val useState : (unit -> 'state) -> 'state * (('state -> 'state) -> unit)

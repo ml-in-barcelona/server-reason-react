@@ -267,18 +267,13 @@ let a7_2_t2 () =
   assert_float (Number.parseInt "0x1FFFFFFFFFFFFF") 9007199254740991.0
 
 let a7_2_t3 () =
-  (* Numbers with many digits - this test is skipped because:
-     - The number 12345678901234567890 (~1.23e19) exceeds OCaml's max_int (~4.6e18)
-     - quickjs.ml's parse_int returns an OCaml int, which overflows for such large values
-     - JavaScript's parseInt returns a float64, so it can represent large numbers (with precision loss)
-
-     In practice, numbers this large lose precision anyway due to float64 limitations.
-
-     Original test:
-     let result = Number.parseInt "12345678901234567890" in
-     assert_bool (result > 1.23e19 && result < 1.24e19) true
-  *)
-  ()
+  (* Numbers with many digits: parseInt returns a float64, so values beyond
+     OCaml's int range come back with JavaScript's precision instead of NaN *)
+  let result = Number.parseInt "12345678901234567890" in
+  assert_bool (result > 1.23e19 && result < 1.24e19) true;
+  (* node: parseInt("99999999999999999999999999", 10) === 1e26 *)
+  assert_float_exact (Number.parseInt ~radix:10 "99999999999999999999999999") 1e26;
+  assert_float_exact (Number.parseInt "99999999999999999999999999") 1e26
 
 let a7_3_t1 () =
   (* Leading zeros *)

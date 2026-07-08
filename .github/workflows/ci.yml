@@ -16,6 +16,7 @@ env:
 
 permissions:
   contents: write
+  pull-requests: write
 
 concurrency:
   group: ci-${{ github.ref }}
