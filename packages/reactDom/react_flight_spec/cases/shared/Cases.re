@@ -80,6 +80,32 @@ let all: list(case) = [
     "promise_shared_across_components",
     Promise_shared_across_components.app,
   ),
+  case(
+    ~xfail="srr does not emit H rows yet",
+    "hint_preload_style",
+    Hint_preload_style.app,
+  ),
+  case(
+    ~xfail="srr does not emit H rows yet",
+    "hint_preconnect",
+    Hint_preconnect.app,
+  ),
+  case(
+    ~xfail="srr does not emit H rows yet",
+    "hint_prefetch_dns",
+    Hint_prefetch_dns.app,
+  ),
+  case(
+    ~xfail="srr does not emit H rows yet",
+    "hint_preinit_script",
+    Hint_preinit_script.app,
+  ),
+  case(~xfail="srr does not emit H rows yet", "hint_dedup", Hint_dedup.app),
+  case(
+    ~xfail="srr does not emit H rows yet",
+    "hint_before_client_ref",
+    Hint_before_client_ref.app,
+  ),
   case("error_component", Error_component.app),
   case("error_in_root_chain", Error_in_root_chain.app),
   case("error_row_reference", Error_row_reference.app),
