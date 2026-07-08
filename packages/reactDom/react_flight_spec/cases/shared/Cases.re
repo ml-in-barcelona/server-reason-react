@@ -36,6 +36,8 @@ let all: list(case) = [
   case("client_with_children", Client_with_children.app),
   case("client_nested_in_client", Client_nested_in_client.app),
   case("client_props_kitchen_sink", Client_props_kitchen_sink.app),
+  case("client_prop_array_and_object", Client_prop_array_and_object.app),
+  case("model_null", Model_null.app),
   case("suspense_immediate", Suspense_immediate.app),
   case("suspense_pending", Suspense_pending.app),
   case("suspense_two_boundaries", Suspense_two_boundaries.app),
