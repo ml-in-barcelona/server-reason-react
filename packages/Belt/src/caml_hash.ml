@@ -1,30 +1,28 @@
 [@@@ocaml.text " "]
 
-let ( << ) = Nativeint.shift_left [@@ocaml.text " "]
+let ( << ) = Int32.shift_left [@@ocaml.text " "]
 
-let ( >>> ) = Nativeint.shift_right_logical
-let ( |~ ) = Nativeint.logor
-let ( ^ ) = Nativeint.logxor
-
-external ( *~ ) : nativeint -> nativeint -> nativeint = "caml_int32_mul"
-external ( +~ ) : nativeint -> nativeint -> nativeint = "caml_int32_add"
-
-let rotl32 (x : nativeint) n = x << n |~ (x >>> 32 - n)
+let ( >>> ) = Int32.shift_right_logical
+let ( |~ ) = Int32.logor
+let ( ^ ) = Int32.logxor
+let ( *~ ) = Int32.mul
+let ( +~ ) = Int32.add
+let rotl32 (x : int32) n = x << n |~ (x >>> 32 - n)
 
 let caml_hash_mix_int h d =
   let d = ref d in
-  d := !d *~ 3432918353n;
+  d := !d *~ 0xcc9e2d51l;
   d := rotl32 !d 15;
-  d := !d *~ 461845907n;
+  d := !d *~ 0x1b873593l;
   let h = ref (h ^ !d) in
   h := rotl32 !h 13;
-  !h +~ (!h << 2) +~ 3864292196n
+  !h +~ (!h << 2) +~ 0xe6546b64l
 
 let caml_hash_final_mix h =
   let h = ref (h ^ (h >>> 16)) in
-  h := !h *~ 2246822507n;
+  h := !h *~ 0x85ebca6bl;
   h := !h ^ (!h >>> 13);
-  h := !h *~ 3266489909n;
+  h := !h *~ 0xc2b2ae35l;
   !h ^ (!h >>> 16)
 
 let caml_hash_mix_string h s =
@@ -36,7 +34,7 @@ let caml_hash_mix_string h s =
     let w =
       Char.code s.[j] lor (Char.code s.[j + 1] lsl 8) lor (Char.code s.[j + 2] lsl 16) lor (Char.code s.[j + 3] lsl 24)
     in
-    hash := caml_hash_mix_int !hash (Nativeint.of_int w)
+    hash := caml_hash_mix_int !hash (Int32.of_int w)
   done;
   let modulo = len land 3 in
   (if modulo <> 0 then
@@ -45,6 +43,6 @@ let caml_hash_mix_string h s =
        else if modulo = 2 then (Char.code s.[len - 1] lsl 8) lor Char.code s.[len - 2]
        else Char.code s.[len - 1]
      in
-     hash := caml_hash_mix_int !hash (Nativeint.of_int w));
-  hash := !hash ^ Nativeint.of_int len;
+     hash := caml_hash_mix_int !hash (Int32.of_int w));
+  hash := !hash ^ Int32.of_int len;
   !hash

@@ -67,8 +67,9 @@ val getExn : 'a option -> 'a
       getExn None (* Raises getExn error *)
     ]} *)
 
-external getUnsafe : 'a option -> 'a = "%identity"
-(** [getUnsafe x] returns x This is an unsafe operation, it assumes x is neither not None or (Some (None .. )) *)
+val getUnsafe : 'a option -> 'a
+(** [getUnsafe x] returns the value inside [x], assuming [x] is [Some value]. Calling it on [None] is undefined behavior
+    in Melange; on native it raises [Invalid_argument]. *)
 
 val mapWithDefaultU : 'a option -> 'b -> (('a -> 'b)[@u]) -> 'b
 (** Uncurried version of [mapWithDefault] *)

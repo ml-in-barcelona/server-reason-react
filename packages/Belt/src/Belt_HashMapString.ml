@@ -5,7 +5,7 @@ type seed = int
 
 let caml_hash_mix_string = Caml_hash.caml_hash_mix_string
 let final_mix = Caml_hash.caml_hash_final_mix
-let hash (s : key) = Nativeint.to_int (final_mix (caml_hash_mix_string Nativeint.zero s))
+let hash (s : key) = Int32.to_int (final_mix (caml_hash_mix_string Int32.zero s))
 
 module N = Belt_internalBuckets
 module C = Belt_internalBucketsType
