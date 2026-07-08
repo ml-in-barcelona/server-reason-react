@@ -35,6 +35,34 @@ let promise_string = (name: string, value: Js.Promise.t(string)): prop => (
   ),
 );
 
+let promise_element =
+    (name: string, value: Js.Promise.t(React.element)): prop => (
+  name,
+  React.Model.Promise(value, resolved => React.Model.Element(resolved)),
+);
+
+/* Value-level constructors, for nesting inside array/object props. */
+type model = React.model_value;
+
+let model_string = (value: string): model =>
+  React.Model.Json(`String(value));
+let model_int = (value: int): model => React.Model.Json(`Int(value));
+let model_float = (value: float): model => React.Model.Json(`Float(value));
+let model_bool = (value: bool): model => React.Model.Json(`Bool(value));
+let model_null: model = React.Model.Json(`Null);
+let model_list = (items: list(model)): model => React.Model.List(items);
+let model_object = (fields: list((string, model))): model =>
+  React.Model.Assoc(fields);
+
+let list = (name: string, items: list(model)): prop => (
+  name,
+  model_list(items),
+);
+let object_ = (name: string, fields: list((string, model))): prop => (
+  name,
+  model_object(fields),
+);
+
 /* [client] is the SSR fallback, unused when rendering the model. */
 let client_component =
     (~importModule: string, ~importName: string, ~props: list(prop)=[], ())

@@ -16,6 +16,10 @@ external value_of_float: float => value = "%identity";
 external value_of_bool: bool => value = "%identity";
 external value_of_element: React.element => value = "%identity";
 external value_of_promise: Js.Promise.t(string) => value = "%identity";
+external value_of_element_promise: Js.Promise.t(React.element) => value =
+  "%identity";
+external value_of_array: array(value) => value = "%identity";
+external value_of_dict: Js.Dict.t(value) => value = "%identity";
 
 let value_null: value = [%mel.raw "null"];
 
@@ -42,6 +46,36 @@ let element = (name: string, value: React.element): prop => (
 let promise_string = (name: string, value: Js.Promise.t(string)): prop => (
   name,
   value_of_promise(value),
+);
+let promise_element =
+    (name: string, value: Js.Promise.t(React.element)): prop => (
+  name,
+  value_of_element_promise(value),
+);
+
+/* Value-level constructors, for nesting inside array/object props. */
+type model = value;
+
+let model_string = value_of_string;
+let model_int = value_of_int;
+let model_float = value_of_float;
+let model_bool = value_of_bool;
+let model_null: model = value_null;
+let model_list = (items: list(model)): model =>
+  value_of_array(Array.of_list(items));
+let model_object = (fields: list((string, model))): model => {
+  let dict = Js.Dict.empty();
+  List.iter(((name, item)) => Js.Dict.set(dict, name, item), fields);
+  value_of_dict(dict);
+};
+
+let list = (name: string, items: list(model)): prop => (
+  name,
+  model_list(items),
+);
+let object_ = (name: string, fields: list((string, model))): prop => (
+  name,
+  model_object(fields),
 );
 
 /* An opaque component type: either a registered client reference or an async
