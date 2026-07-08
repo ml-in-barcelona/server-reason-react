@@ -209,6 +209,19 @@ let render_to_buffer ~mode buf element =
         if is_previous_text_node && add_separator_between_text_nodes then Buffer.add_string buf "<!-- -->";
         Html.escape buf text;
         should_add_doctype := false
+    | Int i ->
+        let is_previous_text_node = !previous_node_was_text in
+        previous_node_was_text := true;
+        if is_previous_text_node && add_separator_between_text_nodes then Buffer.add_string buf "<!-- -->";
+        Buffer.add_string buf (Int.to_string i);
+        should_add_doctype := false
+    | Float f ->
+        let is_previous_text_node = !previous_node_was_text in
+        previous_node_was_text := true;
+        if is_previous_text_node && add_separator_between_text_nodes then Buffer.add_string buf "<!-- -->";
+        (* Numbers are rendered the way JavaScript stringifies them: "2", not "2." *)
+        Buffer.add_string buf (Js.Float.toString f);
+        should_add_doctype := false
     | Suspense { key = _; children; fallback } -> (
         let suspense_inner_buf = Buffer.create 128 in
         match render_element suspense_inner_buf children with
@@ -330,6 +343,9 @@ let write_to_buffer buf element =
           Buffer.add_string buf tag;
           Buffer.add_char buf '>')
     | Text text -> Html.escape buf text
+    | Int i -> Buffer.add_string buf (Int.to_string i)
+    (* Numbers are rendered the way JavaScript stringifies them: "2", not "2." *)
+    | Float f -> Buffer.add_string buf (Js.Float.toString f)
     | Suspense { children; fallback; _ } -> (
         let suspense_inner_buf = Buffer.create 128 in
         match render suspense_inner_buf children with
@@ -515,6 +531,21 @@ let rec render_to_buffer ~stream_context ?(add_doctype = false) buf element =
         if is_previous_text_node then Buffer.add_string buf "<!-- -->";
         should_add_doctype := false;
         Html.escape buf text;
+        Lwt.return ()
+    | Int i ->
+        let is_previous_text_node = !previous_node_was_text in
+        previous_node_was_text := true;
+        if is_previous_text_node then Buffer.add_string buf "<!-- -->";
+        should_add_doctype := false;
+        Buffer.add_string buf (Int.to_string i);
+        Lwt.return ()
+    | Float f ->
+        let is_previous_text_node = !previous_node_was_text in
+        previous_node_was_text := true;
+        if is_previous_text_node then Buffer.add_string buf "<!-- -->";
+        should_add_doctype := false;
+        (* Numbers are rendered the way JavaScript stringifies them: "2", not "2." *)
+        Buffer.add_string buf (Js.Float.toString f);
         Lwt.return ()
     | Upper_case_component (_, component) -> render_upper_case_component_lwt render_element component
     | Async_component (_, component) -> (

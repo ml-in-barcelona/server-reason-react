@@ -600,6 +600,10 @@ and element =
   | List of element list
   | Array of element array
   | Text of string
+  | Int of int
+      (** Numeric text nodes ([React.int]/[React.float]) stay numbers until the serialization seams: HTML stringifies
+          them (floats via JavaScript number formatting) while the Flight payload keeps raw JSON numbers, like React. *)
+  | Float of float
   | Static of { prerendered : string; original : element }
   | Writer of { emit : Buffer.t -> unit; original : unit -> element }
       (** Subtree with static skeleton + dynamic string/int/float/element holes. [emit] writes directly into the

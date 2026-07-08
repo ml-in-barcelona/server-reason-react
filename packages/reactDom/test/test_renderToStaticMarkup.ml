@@ -56,6 +56,20 @@ let numeric_attributes () =
     (ReactDOM.renderToStaticMarkup component)
     "<div tabindex=\"42\" aria-valuemin=\"0.5\" aria-valuemax=\"100\"></div>"
 
+let numeric_children () =
+  (* Number children render the way JavaScript stringifies them: 100.0 ->
+     "100" (not string_of_float's "100."), 3.14 -> "3.14". *)
+  let component =
+    React.createElement "ul" []
+      [
+        React.createElement "li" [] [ React.int 42 ];
+        React.createElement "li" [] [ React.float 3.14 ];
+        React.createElement "li" [] [ React.int 0 ];
+        React.createElement "li" [] [ React.float 100.0 ];
+      ]
+  in
+  assert_string (ReactDOM.renderToStaticMarkup component) "<ul><li>42</li><li>3.14</li><li>0</li><li>100</li></ul>"
+
 let dom_element_innerHtml () =
   let p = React.createElement "p" [] [ React.string "text" ] in
   assert_string (ReactDOM.renderToStaticMarkup p) "<p>text</p>"
@@ -378,6 +392,7 @@ let tests =
     test "string_attributes" string_attributes;
     test "self_closing_tag" self_closing_tag;
     test "numeric_attributes" numeric_attributes;
+    test "numeric_children" numeric_children;
     test "dom_element_innerHtml" dom_element_innerHtml;
     test "children" children;
     test "className" className;

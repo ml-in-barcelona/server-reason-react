@@ -132,6 +132,15 @@ let numeric_props_serialize_as_json_numbers () =
     [ "0:[\"$\",\"div\",null,{\"tabIndex\":42,\"aria-valuemin\":0.5,\"aria-valuemax\":100},null,null,1]\n" ];
   Lwt.return ()
 
+let numeric_children_serialize_as_json_numbers () =
+  (* React.int/React.float children cross the wire as raw JSON numbers,
+     integral floats without the decimal part (100.0 -> 100). *)
+  let app = React.createElement "span" [] [ React.int 42; React.float 3.14; React.int 0; React.float 100.0 ] in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~subscribe app in
+  assert_list_of_strings !output [ "0:[\"$\",\"span\",null,{\"children\":[42,3.14,0,100]},null,null,1]\n" ];
+  Lwt.return ()
+
 let lower_case_component () =
   let app = React.createElement "div" (ReactDOM.domProps ~className:"foo" ()) [] in
   let output, subscribe = capture_stream () in
@@ -1467,6 +1476,7 @@ let tests =
     test "dollar_prefixed_strings_are_escaped" dollar_prefixed_strings_are_escaped;
     test "dollar_prefixed_json_props_are_escaped" dollar_prefixed_json_props_are_escaped;
     test "numeric_props_serialize_as_json_numbers" numeric_props_serialize_as_json_numbers;
+    test "numeric_children_serialize_as_json_numbers" numeric_children_serialize_as_json_numbers;
     test "key_renders_outside_of_props" key_renders_outside_of_props;
     test "style_as_json" style_as_json;
     test "lower_case_component" lower_case_component;

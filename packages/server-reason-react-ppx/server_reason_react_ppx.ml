@@ -506,9 +506,6 @@ let emit_parts_emit_fn ~loc parts =
         | Dynamic_int e ->
             let loc = e.pexp_loc in
             [%expr Buffer.add_string b (Stdlib.string_of_int [%e e])]
-        | Dynamic_float e ->
-            let loc = e.pexp_loc in
-            [%expr Buffer.add_string b (Stdlib.Float.to_string [%e e])]
         | Dynamic_element e ->
             let loc = e.pexp_loc in
             [%expr ReactDOM.write_to_buffer b [%e e]]

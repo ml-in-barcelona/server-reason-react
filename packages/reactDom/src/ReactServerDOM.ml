@@ -392,6 +392,10 @@ module Model = struct
       | Static { original; _ } -> turn_element_into_payload ~context ~debug_info original
       | Writer { original; _ } -> turn_element_into_payload ~context ~debug_info (original ())
       | Text t -> `String (escape_string_value t)
+      (* Numeric text nodes cross the wire as raw JSON numbers, like React;
+         integral floats print without the decimal part (JSON.stringify). *)
+      | Int i -> `Int i
+      | Float f -> float_to_json f
       | Lower_case_element { key; tag; attributes; children } ->
           (* Action props are serialized directly to JSON here (instead of being rewritten
              into String props) so the internal "$F<id>" reference is not $$-escaped. *)
@@ -682,6 +686,9 @@ let rec client_to_html ~(fiber : Fiber.t) (element : React.element) =
       emit b;
       Lwt.return (Html.raw (Buffer.contents b))
   | Text text -> Lwt.return (Html.string text)
+  | Int i -> Lwt.return (Html.string (Int.to_string i))
+  (* Numbers are rendered the way JavaScript stringifies them: "2", not "2." *)
+  | Float f -> Lwt.return (Html.string (Js.Float.toString f))
   | Fragment children -> client_to_html ~fiber children
   | List childrens ->
       let%lwt html = map_children_with_tree_context_lwt (client_to_html ~fiber) childrens in
@@ -824,6 +831,10 @@ let rec render_element_to_html ~(fiber : Fiber.t) (element : React.element) : (H
       emit b;
       Lwt.return (Html.raw (Buffer.contents b), model)
   | Text s -> Lwt.return (Html.string s, `String (Model.escape_string_value s))
+  | Int i -> Lwt.return (Html.string (Int.to_string i), `Int i)
+  (* HTML stringifies numbers the way JavaScript does ("2", not "2."); the
+     model keeps the raw JSON number. *)
+  | Float f -> Lwt.return (Html.string (Js.Float.toString f), Model.float_to_json f)
   | Fragment children -> render_element_to_html ~fiber children
   | List list -> elements_to_html ~fiber list
   | Array arr -> elements_to_html ~fiber (Array.to_list arr)

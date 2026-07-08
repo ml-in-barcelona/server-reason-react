@@ -57,8 +57,6 @@ the git history for the wire-format alignment.
 Current known divergences (see the `~xfail` reasons in `Cases.re` for the
 exact rows):
 
-- `children_numbers` — `React.int`/`React.float` children cross the wire as
-  JSON strings (srr stringifies at construction); React emits JSON numbers.
 - `promise_prop_shared` — React dedups a shared thenable (one `$@` row,
   referenced twice); srr serializes each promise prop independently.
 - `async_component_nested` — React resolves an async component at the task

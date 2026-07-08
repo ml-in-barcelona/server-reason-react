@@ -421,6 +421,10 @@ and element =
   | List of element list
   | Array of element array
   | Text of string
+  | Int of int
+      (** Numeric text nodes ([React.int]/[React.float]) stay numbers until the serialization seams: HTML stringifies
+          them (floats via JavaScript number formatting) while the Flight payload keeps raw JSON numbers, like React. *)
+  | Float of float
   | Static of { prerendered : string; original : element }
   | Writer of { emit : Buffer.t -> unit; original : unit -> element }
       (** Like [Static] but writes directly into the caller's buffer. Used by the PPX for subtrees with static skeleton
@@ -531,6 +535,8 @@ let rec cloneElement element new_attributes =
   | Writer { original; emit = _ } -> cloneElement (original ()) new_attributes
   | Fragment _ -> raise (Invalid_argument "React.cloneElement: cannot clone a Fragment")
   | Text _ -> raise (Invalid_argument "React.cloneElement: cannot clone a Text element")
+  | Int _ -> raise (Invalid_argument "React.cloneElement: cannot clone a Text element")
+  | Float _ -> raise (Invalid_argument "React.cloneElement: cannot clone a Text element")
   | Empty -> raise (Invalid_argument "React.cloneElement: cannot clone a null element")
   | List _ -> raise (Invalid_argument "React.cloneElement: cannot clone a List")
   | Array _ -> raise (Invalid_argument "React.cloneElement: cannot clone an Array")
@@ -552,10 +558,8 @@ let fragment children = Fragment.make (Fragment.makeProps ~children ())
 (* ReasonReact APIs *)
 let string txt = Text txt
 let null = Empty
-let int i = Text (string_of_int i)
-
-(* FIXME: float_of_string might be different from the browser *)
-let float f = Text (string_of_float f)
+let int i = Int i
+let float f = Float f
 let array arr = Array arr
 let list l = List l
 

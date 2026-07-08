@@ -23,7 +23,6 @@ type static_part =
   | Static_str of string
   | Dynamic_string of expression
   | Dynamic_int of expression
-  | Dynamic_float of expression
   | Dynamic_element of expression
   | Dynamic_attr_slot of { info : attr_render_info; expr : expression; is_optional : bool }
 
@@ -104,21 +103,11 @@ let extract_react_int_arg expr =
   | Pexp_apply ({ pexp_desc = Pexp_ident { txt = Lident "int"; _ }; _ }, [ (Nolabel, arg) ]) -> Some arg
   | _ -> None
 
-let extract_react_float_arg expr =
-  match expr.pexp_desc with
-  | Pexp_apply ({ pexp_desc = Pexp_ident { txt = Ldot (Lident "React", "float"); _ }; _ }, [ (Nolabel, arg) ]) ->
-      Some arg
-  | Pexp_apply ({ pexp_desc = Pexp_ident { txt = Lident "float"; _ }; _ }, [ (Nolabel, arg) ]) -> Some arg
-  | _ -> None
-
 let extract_react_text_literal expr =
   match extract_react_string_arg expr with Some arg -> extract_literal_string arg | None -> None
 
 let extract_react_int_literal expr =
   match extract_react_int_arg expr with Some arg -> extract_literal_int arg | None -> None
-
-let extract_react_float_literal expr =
-  match extract_react_float_arg expr with Some arg -> extract_literal_float arg | None -> None
 
 let extract_unsafe_literal expr =
   match expr.pexp_desc with
@@ -359,18 +348,16 @@ let analyze_child (expr : expression) : static_part =
               match extract_react_int_literal expr with
               | Some i -> Static_str (string_of_int i)
               | None -> (
-                  match extract_react_float_literal expr with
-                  | Some f -> Static_str (Float.to_string f)
+                  (* [React.float] children stay on the variant-tree path
+                     ([Dynamic_element]): their HTML stringification is
+                     JavaScript number formatting ([Js.Float.toString], "2"
+                     not "2."), which lives in ReactDOM and is not
+                     addressable from emitted user code — same reasoning as
+                     [Float] attributes in [is_lowerable_kind]. *)
+                  match extract_react_string_arg expr with
+                  | Some e -> Dynamic_string e
                   | None -> (
-                      match extract_react_string_arg expr with
-                      | Some e -> Dynamic_string e
-                      | None -> (
-                          match extract_react_int_arg expr with
-                          | Some e -> Dynamic_int e
-                          | None -> (
-                              match extract_react_float_arg expr with
-                              | Some e -> Dynamic_float e
-                              | None -> Dynamic_element expr)))))))
+                      match extract_react_int_arg expr with Some e -> Dynamic_int e | None -> Dynamic_element expr)))))
 
 (* Caller [analyze_element] always runs [coalesce_static_parts] on the
    combined [open_tag; ...children...; close_tag] list, so returning
