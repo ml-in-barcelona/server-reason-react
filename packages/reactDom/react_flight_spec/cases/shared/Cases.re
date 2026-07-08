@@ -75,6 +75,8 @@ let all: list(case) = [
   case("suspense_deeply_nested", Suspense_deeply_nested.app),
   case("promise_prop", Promise_prop.app),
   case("promise_prop_two", Promise_prop_two.app),
+  case("promise_prop_resolved", Promise_prop_resolved.app),
+  case("promise_prop_rejected", Promise_prop_rejected.app),
   case("promise_resolving_to_element", Promise_resolving_to_element.app),
   case(
     "promise_prop_shared",
@@ -88,17 +90,7 @@ let all: list(case) = [
     ~xfail=
       {|a sync throw at the ROOT errors the root task itself in React (single row 0:E{...}); srr outlines the error and emits 1:E{...} then 0:"$L1"|},
   ),
-  case(
-    "error_row_reference",
-    Error_row_reference.app,
-    ~xfail=
-      {|row ORDER: React flushes E rows after model rows (0: then 1:E); srr pushes the outlined error row before completing the root row (1:E then 0:). Row contents match, including the "$L1" reference|},
-  ),
-  case(
-    "error_in_suspense_sync",
-    Error_in_suspense_sync.app,
-    ~xfail=
-      {|row ORDER: React flushes E rows after model rows (1: 0: 2:E); srr emits the error row before the root row (1: 2:E 0:). Row contents match, including the "$L2" children reference|},
-  ),
+  case("error_row_reference", Error_row_reference.app),
+  case("error_in_suspense_sync", Error_in_suspense_sync.app),
   case("error_in_async_component", Error_in_async_component.app),
 ];

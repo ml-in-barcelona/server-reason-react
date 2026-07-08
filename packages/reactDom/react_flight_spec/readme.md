@@ -64,11 +64,7 @@ exact rows):
   srr outlines every async component as a `$L` row.
 - `error_component` — a sync throw at the root errors the root task itself in
   React (the stream is a single `0:E{...}` row); srr outlines the error and
-  emits `1:E{...}` followed by `0:"$L1"`.
-- `error_row_reference`, `error_in_suspense_sync` — row **order**: React
-  flushes `E` rows after the model rows of the same flush, even for sync
-  throws; srr pushes the outlined error row before completing the root row.
-  Row contents (including the `$L<id>` reference) match byte-for-byte.
+  emits `0:"$L1"` plus a separate `1:E{...}` row.
 
 ## Bumping React
 

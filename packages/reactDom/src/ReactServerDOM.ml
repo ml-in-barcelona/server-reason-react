@@ -65,6 +65,12 @@ module Stream = struct
     mutable pending : int;
     written_client_references : (string * string, int) Hashtbl.t;
     written_symbols : (string, int) Hashtbl.t;
+    (* Rows produced synchronously while another row is being serialized but
+       that React only writes after it: error chunks (completedErrorChunks)
+       and retries of already-resolved thenables (pingedTasks) both flush
+       after the regular model chunks of the same flush cycle. Stored in
+       reverse order of deferral. *)
+    mutable deferred_rows : (unit -> unit) list;
   }
 
   let push to_chunk ~context =
@@ -72,6 +78,30 @@ module Stream = struct
     context.index <- context.index + 1;
     context.push (to_chunk index);
     index
+
+  (* Mirror React's flush ordering: the row id is allocated at encounter time
+     (React does request.nextChunkId++ eagerly) but the chunk itself is
+     written only after the row currently being serialized. [to_chunk index]
+     is evaluated at flush time, so deferred serialization (e.g. an
+     already-resolved promise's model, which React renders in a later
+     retryTask) allocates any nested row ids after the enclosing row's. *)
+  let push_deferred to_chunk ~context =
+    let index = context.index in
+    context.index <- context.index + 1;
+    context.deferred_rows <- (fun () -> context.push (to_chunk index)) :: context.deferred_rows;
+    index
+
+  (* Runs after every task row (the root row and every async row): writes the
+     rows deferred during that row's serialization. Deferred work can defer
+     further rows (e.g. a resolved promise whose model errors), hence the
+     loop. *)
+  let rec flush_deferred ~context =
+    match context.deferred_rows with
+    | [] -> ()
+    | deferred ->
+        context.deferred_rows <- [];
+        List.iter (fun flush -> flush ()) (List.rev deferred);
+        flush_deferred ~context
 
   let push_client_ref ~context ~import_module ~import_name to_chunk =
     let key = (import_module, import_name) in
@@ -100,6 +130,9 @@ module Stream = struct
         let%lwt to_chunk = promise_to_chunk in
         context.pending <- context.pending - 1;
         context.push (to_chunk index);
+        (* Rows deferred during this row's serialization flush right after it,
+           and may register new pending work, so flush before the close check. *)
+        flush_deferred ~context;
         if context.pending = 0 then context.close ();
         Lwt.return ());
     index
@@ -114,6 +147,7 @@ module Stream = struct
         index = initial_index;
         written_client_references = Hashtbl.create 16;
         written_symbols = Hashtbl.create 4;
+        deferred_rows = [];
       } )
 end
 
@@ -437,7 +471,10 @@ module Model = struct
           | exception exn ->
               React.current_tree_context := saved_ctx;
               let error = exn_to_error exn in
-              let index = Stream.push ~context (to_chunk (Error (env, error))) in
+              (* A sync throw below the task root is outlined ("$L<id>"); the
+                 E row flushes after the row being serialized (see
+                 Stream.push_deferred). *)
+              let index = Stream.push_deferred ~context (to_chunk (Error (env, error))) in
               `String (lazy_value index))
       | Async_component (name, component) -> (
           let saved_ctx = !React.current_tree_context in
@@ -452,7 +489,7 @@ module Model = struct
           | Fail exn ->
               React.current_tree_context := saved_ctx;
               let error = exn_to_error exn in
-              let index = Stream.push ~context (to_chunk (Error (env, error))) in
+              let index = Stream.push_deferred ~context (to_chunk (Error (env, error))) in
               `String (lazy_value index)
           | Return element ->
               let did_use_id = React.check_did_render_id_hook () in
@@ -511,15 +548,21 @@ module Model = struct
     match (value : React.model_value) with
     | Json json -> escape_model_json json
     | Error error ->
-        let index = Stream.push ~context (to_chunk (Error (env, error))) in
+        let index = Stream.push_deferred ~context (to_chunk (Error (env, error))) in
         `String (error_value index)
     | Element element -> element_to_payload ~context ?debug ?filter_stack_frame ~to_chunk ~env element
     | Promise (promise, value_to_model) -> (
         match Lwt.state promise with
         | Return value ->
-            let model = value_to_model value in
-            let payload = model_to_payload ~context ~to_chunk ~env model in
-            let index = Stream.push ~context (to_chunk (Value payload)) in
+            (* React retries an already-resolved thenable as its own task
+               AFTER the current one (pingedTasks), so the resolution row is
+               serialized and written after the row that references it. *)
+            let index =
+              Stream.push_deferred ~context (fun index ->
+                  match model_to_payload ~context ~to_chunk ~env (value_to_model value) with
+                  | payload -> to_chunk (Value payload) index
+                  | exception exn -> to_chunk (Error (env, exn_to_error exn)) index)
+            in
             `String (promise_value index)
         | Sleep ->
             let promise =
@@ -536,7 +579,7 @@ module Model = struct
             `String (promise_value index)
         | Fail exn ->
             let error = exn_to_error exn in
-            let index = Stream.push ~context (to_chunk (Error (env, error))) in
+            let index = Stream.push_deferred ~context (to_chunk (Error (env, error))) in
             `String (promise_value index))
     | List list ->
         let list = List.map (fun element -> model_to_payload ~context ~to_chunk ~env element) list in
@@ -559,6 +602,7 @@ module Model = struct
       to_chunk (Value payload) id
     in
     Stream.push ~context (to_root_chunk model) |> ignore;
+    Stream.flush_deferred ~context;
     if context.pending = 0 then context.close ();
     match subscribe with None -> Lwt.return () | Some subscribe -> Lwt_stream.iter_s subscribe stream
 
@@ -577,6 +621,7 @@ module Model = struct
       to_chunk (Value payload) id
     in
     Stream.push ~context (to_root_chunk response) |> ignore;
+    Stream.flush_deferred ~context;
     if context.pending = 0 then context.close ();
     match subscribe with None -> Lwt.return () | Some subscribe -> Lwt_stream.iter_s subscribe stream
 end
@@ -1220,6 +1265,10 @@ let render_html ?(skipRoot = false) ?(env = `Dev) ?debug:(_ = false) ?timeout
       let%lwt root_html, root_model = render_element_to_html ~fiber element in
       (* To return the model value immediately, we don't push it to the stream but return it as a payload script together with the user_scripts *)
       let root_data_payload = model_to_chunk (Value root_model) 0 in
+      (* Rows deferred while serializing the root model (error rows, resolved
+         promise rows) stream right after the initial document, which embeds
+         the root payload itself. *)
+      Stream.flush_deferred ~context;
       (* Decrement the pending counter to signal that the root data payload is complete. *)
       context.pending <- context.pending - 1;
       (* In case of not having any task pending, we can close the stream *)

@@ -315,8 +315,8 @@ let suspense_with_error () =
   assert_list_of_strings !output
     [
       "1:\"$Sreact.suspense\"\n";
-      "2:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n";
       "0:[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Loading...\"},null,null,1]\n";
+      "2:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n";
     ];
   Lwt.return ()
 
@@ -332,8 +332,8 @@ let suspense_with_error_in_async () =
   assert_list_of_strings !output
     [
       "1:\"$Sreact.suspense\"\n";
-      "2:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n";
       "0:[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Loading...\"},null,null,1]\n";
+      "2:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n";
     ];
   Lwt.return ()
 
@@ -352,8 +352,8 @@ let suspense_with_error_under_lowercase () =
   assert_list_of_strings !output
     [
       "1:\"$Sreact.suspense\"\n";
-      "2:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n";
       "0:[\"$\",\"div\",null,{\"children\":[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Loading...\"},null,null,1]},null,null,1]\n";
+      "2:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n";
     ];
   Lwt.return ()
 
@@ -363,7 +363,7 @@ let error_without_suspense () =
   let output, subscribe = capture_stream () in
   let%lwt () = ReactServerDOM.render_model ~subscribe main in
   assert_list_of_strings !output
-    [ "1:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n"; "0:\"$L1\"\n" ];
+    [ "0:\"$L1\"\n"; "1:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n" ];
   Lwt.return ()
 
 let error_in_toplevel () =
@@ -372,7 +372,7 @@ let error_in_toplevel () =
   let output, subscribe = capture_stream () in
   let%lwt () = ReactServerDOM.render_model ~subscribe main in
   assert_list_of_strings !output
-    [ "1:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n"; "0:\"$L1\"\n" ];
+    [ "0:\"$L1\"\n"; "1:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n" ];
   Lwt.return ()
 
 let error_in_toplevel_in_async () =
@@ -381,7 +381,7 @@ let error_in_toplevel_in_async () =
   let output, subscribe = capture_stream () in
   let%lwt () = ReactServerDOM.render_model ~subscribe main in
   assert_list_of_strings !output
-    [ "1:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n"; "0:\"$L1\"\n" ];
+    [ "0:\"$L1\"\n"; "1:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n" ];
   Lwt.return ()
 
 let await_tick ?(raise = false) ?(ms = 1) num =
@@ -727,9 +727,9 @@ let client_with_promise_already_failed_props () =
   assert_list_of_strings !output
     [
       "1:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n";
-      "2:E{\"message\":\"Failure(\\\"Already failed\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n";
       "0:[[\"$\",\"div\",null,{\"children\":\"Server \
        Content\"},null,null,1],[\"$\",\"$L1\",null,{\"promise\":\"$@2\"},null,null,1]]\n";
+      "2:E{\"message\":\"Failure(\\\"Already failed\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n";
     ];
   Lwt.return ()
 
@@ -842,8 +842,8 @@ let act_with_error () =
   let%lwt () = ReactServerDOM.create_action_response ~subscribe response in
   assert_list_of_strings (List.map replace_uuids !output)
     [
-      "1:E{\"message\":\"Failure(\\\"Error\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"<uuid>\"}\n";
       "0:\"$Z1\"\n";
+      "1:E{\"message\":\"Failure(\\\"Error\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"<uuid>\"}\n";
     ];
   Lwt.return ()
 
@@ -868,8 +868,8 @@ let act_with_error_from_handler () =
   let%lwt () = ReactServerDOM.create_action_response ~subscribe action_promise in
   assert_list_of_strings (List.map replace_uuids !output)
     [
-      "1:E{\"message\":\"Failure(\\\"Error from server\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"<uuid>\"}\n";
       "0:\"$Z1\"\n";
+      "1:E{\"message\":\"Failure(\\\"Error from server\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"<uuid>\"}\n";
     ];
   Lwt.return ()
 
@@ -1429,7 +1429,7 @@ let error_in_prod_hides_message () =
   let main = React.Upper_case_component ("app", app) in
   let output, subscribe = capture_stream () in
   let%lwt () = ReactServerDOM.render_model ~env:`Prod ~subscribe main in
-  assert_list_of_strings !output [ "1:E{\"digest\":\"\"}\n"; "0:\"$L1\"\n" ];
+  assert_list_of_strings !output [ "0:\"$L1\"\n"; "1:E{\"digest\":\"\"}\n" ];
   Lwt.return ()
 
 let duplicate_client_component_deduplicates_ref () =
