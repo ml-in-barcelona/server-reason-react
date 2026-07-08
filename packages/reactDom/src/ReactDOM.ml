@@ -683,6 +683,13 @@ let renderToStream ?identifier_prefix element =
       if stream_context.waiting = 0 then close ();
       Lwt.return (stream, abort))
 
+let preload ~href ~as_ =
+  Flight_hints.emit
+    { dedup_key = Printf.sprintf "L[%s]%s" as_ href; code = "L"; payload = `List [ `String href; `String as_ ] }
+
+let preconnect ~href = Flight_hints.emit { dedup_key = "C|null|" ^ href; code = "C"; payload = `String href }
+let prefetchDNS ~href = Flight_hints.emit { dedup_key = "D|" ^ href; code = "D"; payload = `String href }
+let preinitScript ~href = Flight_hints.emit { dedup_key = "X|" ^ href; code = "X"; payload = `String href }
 let querySelector _str = Runtime.fail_impossible_action_in_ssr "ReactDOM.querySelector"
 let render _element _node = Runtime.fail_impossible_action_in_ssr "ReactDOM.render"
 let hydrate _element _node = Runtime.fail_impossible_action_in_ssr "ReactDOM.hydrate"
