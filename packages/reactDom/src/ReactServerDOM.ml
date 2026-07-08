@@ -347,8 +347,44 @@ module Model = struct
   (* 2^53: the largest range where every integer is exactly representable (ocamlopt does not fold [2. ** 53.]) *)
   let max_safe_integer = 9007199254740992.
 
+  (* Values JSON can't represent cross the wire as React's special strings
+     ($NaN, $Infinity, $-Infinity, $-0); integral floats within the exact
+     range collapse to ints; everything else is printed by [write_json]
+     below the way JavaScript stringifies numbers. *)
   let float_to_json value : json =
-    if Float.is_integer value && Float.abs value <= max_safe_integer then `Int (Float.to_int value) else `Float value
+    if Float.is_nan value then `String "$NaN"
+    else if value = Float.infinity then `String "$Infinity"
+    else if value = Float.neg_infinity then `String "$-Infinity"
+    else if value = 0. && Float.sign_bit value then `String "$-0"
+    else if Float.is_integer value && Float.abs value <= max_safe_integer then `Int (Float.to_int value)
+    else `Float value
+
+  (* Yojson prints floats with OCaml's %h-derived formats ("9e+18"); JavaScript
+     prints integral doubles in full digits up to 1e21 ("9000000000000000000").
+     Rows must match JSON.stringify, so floats go through the JS number
+     printer; everything else delegates to Yojson. *)
+  let rec write_json buf (json : json) =
+    match json with
+    | `Float value -> Buffer.add_string buf (Js.Float.toString value)
+    | `List items ->
+        Buffer.add_char buf '[';
+        List.iteri
+          (fun i item ->
+            if i > 0 then Buffer.add_char buf ',';
+            write_json buf item)
+          items;
+        Buffer.add_char buf ']'
+    | `Assoc pairs ->
+        Buffer.add_char buf '{';
+        List.iteri
+          (fun i (key, value) ->
+            if i > 0 then Buffer.add_char buf ',';
+            Yojson.Basic.write_json buf (`String key);
+            Buffer.add_char buf ':';
+            write_json buf value)
+          pairs;
+        Buffer.add_char buf '}'
+    | (`String _ | `Int _ | `Bool _ | `Null) as scalar -> Yojson.Basic.write_json buf scalar
 
   (* Normalize a user-provided JSON model: escape every string value (not object
      keys) and print numbers the way JavaScript stringifies them. *)
@@ -464,28 +500,28 @@ module Model = struct
   let value_to_chunk id value =
     let buf = Buffer.create (4 * 1024) in
     Buffer.add_string buf (Printf.sprintf "%x:" id);
-    Yojson.Basic.write_json buf value;
+    write_json buf value;
     Buffer.add_string buf "\n";
     Buffer.contents buf
 
   let debug_info_to_chunk id debug_info =
     let buf = Buffer.create (4 * 1024) in
     Buffer.add_string buf (Printf.sprintf "%x:D" id);
-    Yojson.Basic.write_json buf debug_info;
+    write_json buf debug_info;
     Buffer.add_string buf "\n";
     Buffer.contents buf
 
   let client_reference_to_chunk id ref =
     let buf = Buffer.create 256 in
     Buffer.add_string buf (Printf.sprintf "%x:I" id);
-    Yojson.Basic.write_json buf ref;
+    write_json buf ref;
     Buffer.add_string buf "\n";
     Buffer.contents buf
 
   let error_to_chunk id error =
     let buf = Buffer.create 256 in
     Buffer.add_string buf (Printf.sprintf "%x:E" id);
-    Yojson.Basic.write_json buf error;
+    write_json buf error;
     Buffer.add_string buf "\n";
     Buffer.contents buf
 
@@ -495,7 +531,7 @@ module Model = struct
     let buf = Buffer.create 64 in
     Buffer.add_string buf ":H";
     Buffer.add_string buf code;
-    Yojson.Basic.write_json buf payload;
+    write_json buf payload;
     Buffer.add_string buf "\n";
     Buffer.contents buf
 

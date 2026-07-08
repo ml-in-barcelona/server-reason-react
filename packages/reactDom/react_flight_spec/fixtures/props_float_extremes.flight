@@ -1,0 +1,2 @@
+1:I["spec/FloatSink.js",[],"default"]
+0:["$","$L1",null,{"largeInteger":9000000000000000000,"exponentThreshold":1e+21,"small":1e-7,"shortestRoundTrip":0.30000000000000004,"negativeZero":"$-0","notANumber":"$NaN","positiveInfinity":"$Infinity","negativeInfinity":"$-Infinity"}]

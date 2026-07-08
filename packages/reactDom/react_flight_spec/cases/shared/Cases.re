@@ -33,6 +33,8 @@ let all: list(case) = [
   case("fragment_nested", Fragment_nested.app),
   case("props_primitives", Props_primitives.app),
   case("props_float", Props_float.app),
+  case("props_float_extremes", Props_float_extremes.app),
+  case("children_float_large", Children_float_large.app),
   case("props_boolean_attributes", Props_boolean_attributes.app),
   case("props_style", Props_style.app),
   case("props_style_order", Props_style_order.app),

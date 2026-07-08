@@ -111,6 +111,12 @@ React prod encodes an element as a 4-tuple:
   JSON numbers. User string values beginning with `$` are escaped by
   prefixing another `$` (`"$foo"` → `"$$foo"`); internally generated
   references are never escaped.
+- Numbers print the way `JSON.stringify` does: integral doubles in full
+  digits up to `1e21` (`9e18` → `9000000000000000000`, beyond OCaml's
+  2^53-exact range), exponent form from `1e21` and below `1e-6`, shortest
+  round-trip decimals otherwise. Values JSON can't represent cross the wire
+  as the special strings `"$NaN"`, `"$Infinity"`, `"$-Infinity"` and
+  `"$-0"` (`props_float_extremes`, `children_float_large`).
 
 Prod emits the 4-tuple form. Dev appends the debug fields
 `[debugOwner, debugStack, validated]`, producing 7-tuples. server-reason-react
