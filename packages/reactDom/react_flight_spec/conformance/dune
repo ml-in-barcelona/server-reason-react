@@ -1,5 +1,6 @@
 (test
  (name flight_spec_conformance)
+ (modules flight_spec_conformance)
  (modes native)
  (libraries
   flight_spec_cases_native
@@ -15,3 +16,11 @@
   (glob_files ../fixtures/*.flight))
  (preprocess
   (pps lwt_ppx)))
+
+(test
+ (name reply_spec_conformance)
+ (modules reply_spec_conformance)
+ (modes native)
+ (libraries reactDOM js yojson alcotest)
+ (deps
+  (glob_files ../reply/fixtures/*.reply)))
