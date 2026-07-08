@@ -48,7 +48,7 @@ let suspense_children_render_once () =
   in
   let el =
     React.Suspense
-      { key = None; children = child (); fallback = React.createElement "div" [] [ React.string "loading" ] }
+      { key = None; children = child (); fallback = Some (React.createElement "div" [] [ React.string "loading" ]) }
   in
   let html = ReactDOM.renderToString el in
   assert_string html "<!--$--><div>hello</div><!--/$-->";
@@ -60,7 +60,7 @@ let suspense_fallback_on_error () =
       {
         key = None;
         children = React.Upper_case_component ("Throws", fun () -> raise (Failure "boom"));
-        fallback = React.createElement "div" [] [ React.string "fallback" ];
+        fallback = Some (React.createElement "div" [] [ React.string "fallback" ]);
       }
   in
   let html = ReactDOM.renderToString el in

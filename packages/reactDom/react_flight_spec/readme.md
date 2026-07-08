@@ -66,8 +66,6 @@ exact rows):
 - `async_component_nested` — React resolves an async component at the task
   root into the task's own row and only outlines *nested* async components;
   srr outlines every async component as a `$L` row.
-- `suspense_no_fallback` — srr serializes a missing Suspense fallback as
-  `"fallback":null`; React omits the prop from the props object entirely.
 - `error_component` — a sync throw at the root errors the root task itself in
   React (the stream is a single `0:E{...}` row); srr outlines the error and
   emits `1:E{...}` followed by `0:"$L1"`.

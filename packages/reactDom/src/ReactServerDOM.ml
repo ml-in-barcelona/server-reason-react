@@ -285,14 +285,17 @@ module Model = struct
     ref_value index
 
   (* Not using `node` because we need to add fallback prop as json directly.
-     React serializes suspense props as {children, fallback}: children first. *)
+     React serializes suspense props as {children, fallback}: children first.
+     When the fallback prop is absent from the JSX, React omits the key from
+     the props object entirely (an explicit fallback={null} serializes as
+     "fallback":null and arrives here as [Some `Null]). *)
   let suspense_node ~env ~tag ~key ~fallback children : json =
-    let fallback_prop = ("fallback", fallback) in
+    let fallback_prop = match fallback with None -> [] | Some fallback -> [ ("fallback", fallback) ] in
     let props =
       match children with
-      | [] -> [ fallback_prop ]
-      | [ one ] -> [ ("children", one); fallback_prop ]
-      | _ -> [ ("children", `List children); fallback_prop ]
+      | [] -> fallback_prop
+      | [ one ] -> ("children", one) :: fallback_prop
+      | _ -> ("children", `List children) :: fallback_prop
     in
     node ~env ~tag ~key ~props []
 
@@ -479,7 +482,7 @@ module Model = struct
              {children, fallback} order), then rows produced by the fallback. *)
           let tag = suspense_tag ~context ~to_chunk in
           let children = turn_element_into_payload ~context ~debug_info children in
-          let fallback = turn_element_into_payload ~context ~debug_info fallback in
+          let fallback = Option.map (turn_element_into_payload ~context ~debug_info) fallback in
           suspense_node ~env ~tag ~key ~fallback [ children ]
       | Client_component { key; import_module; import_name; props; client = _ } ->
           let ref = component_ref ~module_:import_module ~name:import_name in
@@ -730,7 +733,7 @@ let rec client_to_html ~(fiber : Fiber.t) (element : React.element) =
         React.current_tree_context := saved_ctx;
         raise exn)
   | Suspense { key = _; children; fallback } -> (
-      let%lwt fallback_html = client_to_html ~fiber fallback in
+      let%lwt fallback_html = client_to_html ~fiber (Option.value fallback ~default:React.null) in
       let context = fiber.context in
       try%lwt
         let promise = client_to_html ~fiber children in
@@ -859,7 +862,13 @@ let rec render_element_to_html ~(fiber : Fiber.t) (element : React.element) : (H
       Lwt.return (html, model)
   | Suspense { key; children; fallback } -> (
       let context = fiber.context in
-      let%lwt html_fallback, model_fallback = render_element_to_html ~fiber fallback in
+      let%lwt html_fallback, model_fallback =
+        match fallback with
+        | None -> Lwt.return (Html.null, None)
+        | Some fallback ->
+            let%lwt html, model = render_element_to_html ~fiber fallback in
+            Lwt.return (html, Some model)
+      in
       (* The outlined suspense symbol row must be pushed before any row that
          references it (see Model.suspense_tag). *)
       let tag = Model.suspense_tag ~context ~to_chunk:model_to_chunk in

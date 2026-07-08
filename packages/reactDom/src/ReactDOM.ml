@@ -207,7 +207,7 @@ let render_to_buffer ~mode buf element =
             Buffer.add_string buf "<!--/$-->"
         | exception _e ->
             Buffer.add_string buf "<!--$!-->";
-            render_element buf fallback;
+            render_element buf (Option.value fallback ~default:React.null);
             Buffer.add_string buf "<!--/$-->")
   and render_upper_case_component buf component =
     let saved_ctx = !React.current_tree_context in
@@ -323,7 +323,7 @@ let write_to_buffer buf element =
         let suspense_inner_buf = Buffer.create 128 in
         match render suspense_inner_buf children with
         | () -> Buffer.add_buffer buf suspense_inner_buf
-        | exception _e -> render buf fallback)
+        | exception _e -> render buf (Option.value fallback ~default:React.null))
   and render_upper_case_component buf component =
     let saved_ctx = !React.current_tree_context in
     React.reset_component_id_state saved_ctx;
@@ -551,7 +551,7 @@ let rec render_to_buffer ~stream_context ?(add_doctype = false) buf element =
     | Suspense { children; fallback; _ } -> (
         let render_fallback_html () =
           let fallback_buf = Buffer.create 128 in
-          let%lwt () = render_to_buffer ~stream_context fallback_buf fallback in
+          let%lwt () = render_to_buffer ~stream_context fallback_buf (Option.value fallback ~default:React.null) in
           Lwt.return (Buffer.contents fallback_buf)
         in
         try%lwt

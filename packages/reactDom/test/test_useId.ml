@@ -128,7 +128,11 @@ let identifier_prefix () =
 let use_id_inside_suspense () =
   let el =
     React.Suspense
-      { key = None; children = div_with_id (); fallback = React.createElement "div" [] [ React.string "loading" ] }
+      {
+        key = None;
+        children = div_with_id ();
+        fallback = Some (React.createElement "div" [] [ React.string "loading" ]);
+      }
   in
   let html = ReactDOM.renderToString el in
   assert_string html "<!--$--><div id=\"\xc2\xabR0\xc2\xbb\"></div><!--/$-->"
@@ -138,7 +142,11 @@ let use_id_suspense_and_sibling () =
     React.createElement "div" []
       [
         React.Suspense
-          { key = None; children = div_with_id (); fallback = React.createElement "div" [] [ React.string "loading" ] };
+          {
+            key = None;
+            children = div_with_id ();
+            fallback = Some (React.createElement "div" [] [ React.string "loading" ]);
+          };
         div_with_id ();
       ]
   in
@@ -197,7 +205,7 @@ let kitchen_sink () =
                       {
                         key = None;
                         children = div_with_id ();
-                        fallback = React.createElement "span" [] [ React.string "..." ];
+                        fallback = Some (React.createElement "span" [] [ React.string "..." ]);
                       };
                   ]))
           ();

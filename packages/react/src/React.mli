@@ -609,7 +609,9 @@ and element =
   | Empty
   | Provider of { children : element; push : unit -> unit -> unit; async_key : Obj.t Lwt.key; async_value : Obj.t }
   | Consumer of element
-  | Suspense of { key : string option; children : element; fallback : element }
+  | Suspense of { key : string option; children : element; fallback : element option }
+      (** [fallback] mirrors the JSX prop: [None] means the prop was absent (React omits it from the Flight props object
+          entirely), while [Some Empty] is an explicit [fallback={React.null}] (serialized as ["fallback":null]). *)
 
 and lower_case_element = { key : string option; tag : string; attributes : JSX.prop list; children : element list }
 and client_props = (string * element Model.t) list
