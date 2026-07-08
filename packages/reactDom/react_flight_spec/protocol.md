@@ -31,8 +31,53 @@ The spec therefore compares **rows**, never chunks.
 | `I` | module import (client reference): `[id, chunks[], exportName]` as resolved through the client manifest |
 | `E` | error: prod emits `{"digest": "..."}` only; dev adds `message`, `stack`, `env` |
 | `T` | raw text row, `<id>:T<hex-length>,<utf8 bytes>` (large/binary-ish strings) |
+| `H` | resource hint (see below); the only row kind with **no id**: `:H<kind><json>` |
 | `D` | debug info (dev only) |
 | `W` | console/warn replay (dev only) |
+
+## Hint rows
+
+Calling react-dom's resource APIs (`preload`, `preconnect`, `prefetchDNS`,
+`preinit`) while a flight request is active emits a **hint row**. Hint rows
+are id-less — the row is literally `:H<kind><json>\n` — and never consume a
+row id, so they don't shift the ids of surrounding model rows.
+
+The letter after `H` encodes the hint kind, and the JSON payload depends on
+which optional arguments survive React's `trimOptions` (absent options
+collapse to the shortest form):
+
+| kind | source call | payload (shortest form) |
+| ---- | ----------- | ----------------------- |
+| `L` | `preload(href, {as})` | `["<href>","<as>"]` (`[href, as, options]` with options) |
+| `C` | `preconnect(href)` | `"<href>"` (`[href, crossOrigin]` with a string crossOrigin) |
+| `D` | `prefetchDNS(href)` | `"<href>"` |
+| `X` | `preinit(src, {as:"script"})` | `"<src>"` (`[src, options]` with options) |
+| `S` | `preinit(href, {as:"style"})` | `"<href>"`, `[href, precedence]`, or `[href, precedence, options]` |
+| `m` | `preloadModule(href)` | `"<href>"` (`[href, options]` with options) |
+| `M` | `preinitModule(src)` | `"<src>"` (`[src, options]` with options) |
+
+The payload is plain `JSON.stringify` output: hrefs starting with `$` are
+**not** escaped (hints never pass through the model serializer).
+
+Hints are deduplicated per request, keyed on the call kind and its
+identifying arguments (`"L[<as>]<href>"`, `"C|<crossorigin-or-null>|<href>"`,
+`"D|<href>"`, `"X|<src>"`; `preload` with `as: "image"` folds
+`imageSrcSet`/`imageSizes` into the key). The same call twice emits one row
+(`hint_dedup.flight`); the same href with a different `as` is a new key.
+
+Within a flush cycle React writes rows in bucket order: import (`I`) rows,
+then hint rows, then regular model rows, then error rows. A hint issued
+*before* a client reference is encountered therefore still streams *after*
+the `I` row (`hint_before_client_ref.flight`), and a hint issued inside a
+suspended task streams right before that task's model row.
+
+server-reason-react exposes `ReactDOM.preload`/`preconnect`/`prefetchDNS`/
+`preinitScript` covering the `L`/`C`/`D`/`X` kinds without options. The calls
+dispatch to the current flight request (installed by
+`ReactServerDOM.render_model` and `create_action_response` via Lwt's implicit
+storage) and are safe no-ops when no flight render is active — including
+under `render_html`, where turning hints into head tags (react-dom's fizz
+behavior) is out of scope for now.
 
 ## `$` string prefixes inside models
 

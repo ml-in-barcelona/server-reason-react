@@ -171,3 +171,36 @@ let delay_ms: int => Js.Promise.t(unit) = [%mel.raw
 ];
 
 let delay = (~ms: int): Js.Promise.t(unit) => delay_ms(ms);
+
+/* Resource hints: under the react-server condition, react-dom exposes the
+   flight-side preload/preconnect/prefetchDNS/preinit that emit H rows when a
+   request is active. Options objects are built as Js.Dict so `as` (a Reason
+   keyword) stays a plain property name. */
+
+[@mel.module "react-dom"]
+external react_dom_preload: (string, Js.Dict.t(string)) => unit = "preload";
+
+let preload = (~href: string, ~as_: string, ()) => {
+  let options = Js.Dict.empty();
+  Js.Dict.set(options, "as", as_);
+  react_dom_preload(href, options);
+};
+
+[@mel.module "react-dom"]
+external react_dom_preconnect: string => unit = "preconnect";
+
+let preconnect = (~href: string) => react_dom_preconnect(href);
+
+[@mel.module "react-dom"]
+external react_dom_prefetch_dns: string => unit = "prefetchDNS";
+
+let prefetch_dns = (~href: string) => react_dom_prefetch_dns(href);
+
+[@mel.module "react-dom"]
+external react_dom_preinit: (string, Js.Dict.t(string)) => unit = "preinit";
+
+let preinit_script = (~href: string) => {
+  let options = Js.Dict.empty();
+  Js.Dict.set(options, "as", "script");
+  react_dom_preinit(href, options);
+};

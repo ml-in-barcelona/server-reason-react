@@ -111,3 +111,14 @@ let async_component =
 
 let delay = (~ms: int): Js.Promise.t(unit) =>
   Lwt_unix.sleep(Stdlib.float_of_int(ms) /. 1000.0);
+
+/* Resource hints, mirroring react-dom's flight-side API (see ../js/Spec.re). */
+
+let preload = (~href: string, ~as_: string, ()) =>
+  ReactDOM.preload(~href, ~as_);
+
+let preconnect = (~href: string) => ReactDOM.preconnect(~href);
+
+let prefetch_dns = (~href: string) => ReactDOM.prefetchDNS(~href);
+
+let preinit_script = (~href: string) => ReactDOM.preinitScript(~href);

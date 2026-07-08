@@ -102,6 +102,12 @@ task's own row, sync throws at the root erroring the root row (`0:E`), and
   null-valued prop on a host element, so that coverage lives in
   `client_component_with_props` via the Spec prop constructors instead of
   `props_primitives`.
+- **Resource hints**: `Spec.preload`/`Spec.preconnect`/`Spec.prefetch_dns`/
+  `Spec.preinit_script` bind react-dom's flight-side API on the js side and
+  `ReactDOM.preload`/`preconnect`/`prefetchDNS`/`preinitScript` natively. The
+  calls must happen while a component renders: outside an active request both
+  implementations are no-ops (React falls back to the client dispatcher) and
+  no `H` row is emitted.
 - **No `[@react.client.component]`** in cases: its melange output is a browser stub,
   which is the wrong artifact for a JS RSC server. `Spec.client_component` calls
   `registerClientReference` from react-server-dom-webpack directly.
