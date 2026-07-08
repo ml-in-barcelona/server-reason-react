@@ -1,16 +1,20 @@
+(library
+ (name spec_fixture)
+ (modules spec_fixture)
+ (libraries alcotest))
+
 (test
  (name flight_spec_conformance)
  (modules flight_spec_conformance)
  (modes native)
  (libraries
   flight_spec_cases_native
+  spec_fixture
   reactDOM
   react
-  js
   alcotest
   alcotest-lwt
   lwt
-  lwt.unix
   str)
  (deps
   (glob_files ../fixtures/*.flight))
@@ -21,6 +25,6 @@
  (name reply_spec_conformance)
  (modules reply_spec_conformance)
  (modes native)
- (libraries reactDOM js yojson alcotest)
+ (libraries reactDOM spec_fixture js yojson alcotest)
  (deps
   (glob_files ../reply/fixtures/*.reply)))

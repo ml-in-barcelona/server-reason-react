@@ -23,7 +23,6 @@
 //                                 filename are not part of the fixture)
 //   Every fixture ends with a trailing newline.
 
-import * as fs from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -62,41 +61,17 @@ async function serializeBody(body) {
   return lines.join("\n") + "\n";
 }
 
-const fixturesDir = path.join(here, "fixtures");
-fs.mkdirSync(fixturesDir, { recursive: true });
+const { runFixtureSuite } = await import(path.join(here, "..", "fixture-suite.mjs"));
 
-let failures = 0;
-let count = 0;
-
-for (const kase of cases) {
-  count += 1;
-  const fixturePath = path.join(fixturesDir, `${kase.name}.reply`);
-  const body = await encodeReply(kase.args(), kase.options?.());
-  const serialized = await serializeBody(body);
-
-  if (check) {
-    if (!fs.existsSync(fixturePath)) {
-      console.error(`FAIL ${kase.name}: fixture missing (${fixturePath})`);
-      failures += 1;
-      continue;
-    }
-    const committed = fs.readFileSync(fixturePath, "utf8");
-    if (committed !== serialized) {
-      failures += 1;
-      console.error(`FAIL ${kase.name}: fixture out of date`);
-      console.error(`  fixture: ${JSON.stringify(committed)}`);
-      console.error(`  encoded: ${JSON.stringify(serialized)}`);
-    } else {
-      console.log(`ok   ${kase.name}`);
-    }
-  } else {
-    fs.writeFileSync(fixturePath, serialized);
-    console.log(`wrote reply/fixtures/${kase.name}.reply`);
-  }
-}
-
-if (check && failures > 0) {
-  console.error(`\n${failures}/${count} reply fixtures out of date. Run: make spec-generate-reply`);
-  process.exit(1);
-}
-console.log(`\n${count} reply cases ${check ? "checked" : "generated"} against react-server-dom-webpack.`);
+await runFixtureSuite({
+  cases,
+  fixturePath: (kase) => path.join(here, "fixtures", `${kase.name}.reply`),
+  produce: async (kase) => serializeBody(await encodeReply(kase.args(), kase.options?.())),
+  printDiff: (_kase, committed, produced) => {
+    console.error(`  fixture: ${JSON.stringify(committed)}`);
+    console.error(`  encoded: ${JSON.stringify(produced)}`);
+  },
+  label: "reply cases",
+  regenCommand: "make spec-generate-reply",
+  check,
+});

@@ -70,7 +70,7 @@ const clientManifest = new Proxy(
 
 function normalizeRow(row) {
   return row
-    .replace(/"stack":(\[.*?\]|".*?")/g, '"stack":"<stack>"')
+    .replace(/"stack":(\[[^\]]*\]|".*?")/g, '"stack":"<stack>"')
     .replace(/"digest":"[^"]*"/g, '"digest":"<digest>"');
 }
 
@@ -115,48 +115,25 @@ async function renderCase(kase) {
 // Main loop
 // ---------------------------------------------------------------------------
 
-const fixturesDir = path.join(here, "fixtures");
-fs.mkdirSync(fixturesDir, { recursive: true });
+const { runFixtureSuite } = await import(path.join(here, "fixture-suite.mjs"));
 
-let failures = 0;
-let count = 0;
-
-for (const kase of listItems(all)) {
-  count += 1;
-  const fixturePath = path.join(fixturesDir, `${kase.name}.flight`);
-  const rows = await renderCase(kase);
-  const rendered = rows.join("\n") + "\n";
-
-  if (check) {
-    if (!fs.existsSync(fixturePath)) {
-      console.error(`FAIL ${kase.name}: fixture missing (${fixturePath})`);
-      failures += 1;
-      continue;
-    }
-    const committed = fs.readFileSync(fixturePath, "utf8");
-    if (committed !== rendered) {
-      failures += 1;
-      console.error(`FAIL ${kase.name}: fixture out of date`);
-      const committedRows = toRows(committed);
-      const max = Math.max(committedRows.length, rows.length);
-      for (let i = 0; i < max; i += 1) {
-        if (committedRows[i] !== rows[i]) {
-          console.error(`  row ${i}:`);
-          console.error(`    fixture:  ${committedRows[i] ?? "<missing>"}`);
-          console.error(`    rendered: ${rows[i] ?? "<missing>"}`);
-        }
+await runFixtureSuite({
+  cases: listItems(all),
+  fixturePath: (kase) => path.join(here, "fixtures", `${kase.name}.flight`),
+  produce: async (kase) => (await renderCase(kase)).join("\n") + "\n",
+  printDiff: (_kase, committed, produced) => {
+    const committedRows = toRows(committed);
+    const rows = toRows(produced);
+    const max = Math.max(committedRows.length, rows.length);
+    for (let i = 0; i < max; i += 1) {
+      if (committedRows[i] !== rows[i]) {
+        console.error(`  row ${i}:`);
+        console.error(`    fixture:  ${committedRows[i] ?? "<missing>"}`);
+        console.error(`    rendered: ${rows[i] ?? "<missing>"}`);
       }
-    } else {
-      console.log(`ok   ${kase.name}`);
     }
-  } else {
-    fs.writeFileSync(fixturePath, rendered);
-    console.log(`wrote fixtures/${kase.name}.flight (${rows.length} row${rows.length === 1 ? "" : "s"})`);
-  }
-}
-
-if (check && failures > 0) {
-  console.error(`\n${failures}/${count} fixtures out of date. Run: make spec-generate`);
-  process.exit(1);
-}
-console.log(`\n${count} cases ${check ? "checked" : "generated"} against react-server-dom-webpack.`);
+  },
+  label: "cases",
+  regenCommand: "make spec-generate",
+  check,
+});

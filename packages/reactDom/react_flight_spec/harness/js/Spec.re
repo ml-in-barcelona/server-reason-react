@@ -63,11 +63,14 @@ let model_bool = value_of_bool;
 let model_null: model = value_null;
 let model_list = (items: list(model)): model =>
   value_of_array(Array.of_list(items));
-let model_object = (fields: list((string, model))): model => {
+let dict_of_pairs = (pairs: list((string, value))): Js.Dict.t(value) => {
   let dict = Js.Dict.empty();
-  List.iter(((name, item)) => Js.Dict.set(dict, name, item), fields);
-  value_of_dict(dict);
+  List.iter(((name, item)) => Js.Dict.set(dict, name, item), pairs);
+  dict;
 };
+
+let model_object = (fields: list((string, model))): model =>
+  value_of_dict(dict_of_pairs(fields));
 
 let list = (name: string, items: list(model)): prop => (
   name,
@@ -117,12 +120,6 @@ external createElementWithProps:
   (component, Js.Dict.t(value)) => React.element =
   "createElement";
 
-let props_to_dict = (props: list(prop)): Js.Dict.t(value) => {
-  let dict = Js.Dict.empty();
-  List.iter(((name, value)) => Js.Dict.set(dict, name, value), props);
-  dict;
-};
-
 /* registerClientReference(impl, id, name) tags [impl] with
    $$id = "<id>#<name>", which the echoing client manifest in generate.mjs
    resolves back to {id, chunks: [], name}. */
@@ -130,7 +127,7 @@ let client_component =
     (~importModule: string, ~importName: string, ~props: list(prop)=[], ())
     : React.element => {
   let reference = registerClientReference(() => (), importModule, importName);
-  createElementWithProps(reference, props_to_dict(props));
+  createElementWithProps(reference, dict_of_pairs(props));
 };
 
 [@mel.module "react"]
@@ -145,12 +142,14 @@ external createHostElementWithProps:
    serializer prepends the children prop, and JSX (both runtimes) also puts
    children before the other props. */
 let form_with_action =
-    (~action: server_function, children: React.element): React.element => {
-  let props = Js.Dict.empty();
-  Js.Dict.set(props, "children", value_of_element(children));
-  Js.Dict.set(props, "action", value_of_server_function(action));
-  createHostElementWithProps("form", props);
-};
+    (~action: server_function, children: React.element): React.element =>
+  createHostElementWithProps(
+    "form",
+    dict_of_pairs([
+      ("children", value_of_element(children)),
+      ("action", value_of_server_function(action)),
+    ]),
+  );
 
 let with_name: (string, unit => Js.Promise.t(React.element)) => component = [%mel.raw
   {|

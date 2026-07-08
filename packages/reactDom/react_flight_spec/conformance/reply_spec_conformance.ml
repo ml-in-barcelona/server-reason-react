@@ -7,8 +7,6 @@
    The fixture is the wire truth (what React sends); the [expected] value is
    the spec's assertion of srr's decode semantics for those exact bytes.
 
-   Cases annotated with [xfail] are asserted to MISMATCH: they are known
-   divergences and must flip loudly (test failure) once fixed.
 
    This runner only READS committed fixtures: it works offline, without bun
    or node_modules. *)
@@ -49,12 +47,7 @@ type body =
   | String_body of string
   | FormData_body of (string * string) list (* key, value — blob entries base64-decoded to bytes *)
 
-let read_fixture name =
-  let path = Filename.concat fixtures_dir (name ^ ".reply") in
-  if not (Sys.file_exists path) then
-    Alcotest.failf "fixture %s is missing; run `make spec-generate-reply` and commit the result" path;
-  let ic = open_in_bin path in
-  Fun.protect ~finally:(fun () -> close_in ic) (fun () -> really_input_string ic (in_channel_length ic))
+let read_fixture = Spec_fixture.read ~dir:fixtures_dir ~suffix:".reply" ~regen_command:"make spec-generate-reply"
 
 let parse_formdata_entry line =
   match Yojson.Basic.from_string line with
@@ -65,9 +58,7 @@ let parse_formdata_entry line =
 
 let parse_fixture name =
   let contents = read_fixture name in
-  let lines = String.split_on_char '\n' contents in
-  let lines = match List.rev lines with "" :: rest -> List.rev rest | _ -> lines in
-  match lines with
+  match Spec_fixture.split_rows contents with
   | [ "string"; body ] -> String_body body
   | "formdata" :: entries -> FormData_body (List.map parse_formdata_entry entries)
   | _ -> Alcotest.failf "fixture %s.reply is malformed (expected `string` or `formdata` header)" name
@@ -98,9 +89,7 @@ let all : case list =
     case "numbers" [ `Int 0; `Int (-1); `Int 1073741824; `Float 1e21; `Float 1.5; `Float (-3.5) ];
     case "empty_args" [];
     (* React escapes user strings starting with `$` by prepending one `$`
-       ("$money" -> "$$money"); its decoder strips only that escape
-       character. srr's decodeReply strips the escape AND the first payload
-       character ("$$money" -> "money" instead of "$money"). *)
+       ("$money" -> "$$money"); both decoders strip only that escape character. *)
     case "dollar_strings" [ `String "$money"; `String "$$x"; `String "$"; `String "price is $10" ];
     case "undefined_arg" [ `String "a"; `Null; `Int 42 ];
     case "date" [ `String "2024-01-15T10:30:00.000Z" ];
@@ -227,17 +216,8 @@ let make_test (case : case) =
                case.expected_form_entries form_entries
     in
     let fixture = read_fixture case.name in
-    match (case.xfail, matches) with
-    | None, true -> ()
-    | None, false ->
-        print_divergence ~fixture ~expected_args:case.expected_args ~expected_form:case.expected_form_entries decoded;
-        Alcotest.failf "case %s: srr decode diverges from the expected semantics of the React fixture" case.name
-    | Some reason, false ->
-        Printf.printf "  [xfail] %s: known divergence (%s)\n" case.name reason;
-        print_divergence ~fixture ~expected_args:case.expected_args ~expected_form:case.expected_form_entries decoded
-    | Some reason, true ->
-        Alcotest.failf "case %s now MATCHES the expected semantics: divergence fixed! Remove ~xfail (%s)" case.name
-          reason
+    Spec_fixture.check ~name:case.name ~xfail:case.xfail ~matches ~print_divergence:(fun () ->
+        print_divergence ~fixture ~expected_args:case.expected_args ~expected_form:case.expected_form_entries decoded)
   in
   (Printf.sprintf "reply_spec / %s" case.name, [ Alcotest.test_case "" `Quick run ])
 
