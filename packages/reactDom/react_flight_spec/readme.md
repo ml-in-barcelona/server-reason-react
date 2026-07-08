@@ -50,8 +50,11 @@ make spec-check
 Cases annotated with `~xfail` in `cases/shared/Cases.re` are **expected** to mismatch;
 the conformance runner asserts that they *do* mismatch, so they flip loudly when fixed.
 
-**There are currently no known divergences: every case matches the React
-fixtures byte-for-byte.** All ten divergences the spec caught were fixed on
+One known divergence remains: `server_function_dedup` — React dedups a server
+reference passed twice (one `{"id","bound"}` row, both props `"$F2"`) via
+`writtenServerReferences`, while srr pushes a fresh row per occurrence
+(`"$F2"`/`"$F3"` plus a duplicate row). Every other case matches the React
+fixtures byte-for-byte. All ten divergences the spec initially caught were fixed on
 this branch — see the git history for the alignment work: `$`-string escaping,
 numeric props as strings, `$` instead of `$L` client references, inlined
 suspense symbol, unconditional 7-tuple element rows, shared-thenable dedup

@@ -80,6 +80,16 @@ let all: list(case) = [
     "promise_shared_across_components",
     Promise_shared_across_components.app,
   ),
+  case("server_function_prop", Server_function_prop.app),
+  case(
+    "server_function_dedup",
+    Server_function_dedup.app,
+    ~xfail=
+      {|React dedups a server reference via writtenServerReferences: one {"id","bound"} row referenced twice ({"left":"$F2","right":"$F2"}). srr pushes a fresh row for every Model.Function occurrence, emitting a duplicate row 3 and {"left":"$F2","right":"$F3"}|},
+  ),
+  case("server_function_in_object", Server_function_in_object.app),
+  case("server_function_two", Server_function_two.app),
+  case("form_action", Form_action.app),
   case("error_component", Error_component.app),
   case("error_in_root_chain", Error_in_root_chain.app),
   case("error_row_reference", Error_row_reference.app),
