@@ -5,6 +5,7 @@
  (libraries
   server-reason-react.react
   server-reason-react.js
+  server-reason-react.runtime
   lwt
   lwt.unix
   yojson))

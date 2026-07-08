@@ -78,6 +78,32 @@ let object_ = (name: string, fields: list((string, model))): prop => (
   model_object(fields),
 );
 
+/* A server function reference: registerServerReference(fn, id, null) tags
+   [fn] with $$id = "<id>" (no export-name suffix when the third argument is
+   null), which Flight serializes as an outlined {"id","bound"} row plus a
+   "$F<hexid>" reference — no server manifest involved. Created once and
+   reused so that cases can exercise React's per-reference dedup
+   (writtenServerReferences). */
+type server_function;
+
+[@mel.module "react-server-dom-webpack/server"]
+external registerServerReference:
+  (unit => Js.Promise.t(unit), string, Js.null(string)) => server_function =
+  "registerServerReference";
+
+external value_of_server_function: server_function => value = "%identity";
+
+let server_function = (~id: string): server_function =>
+  registerServerReference(() => Js.Promise.resolve(), id, Js.null);
+
+let server_function_prop = (name: string, fn: server_function): prop => (
+  name,
+  value_of_server_function(fn),
+);
+
+let model_server_function = (fn: server_function): model =>
+  value_of_server_function(fn);
+
 /* An opaque component type: either a registered client reference or an async
    function component. Only ever handed back to React.createElement. */
 type component;
@@ -105,6 +131,25 @@ let client_component =
     : React.element => {
   let reference = registerClientReference(() => (), importModule, importName);
   createElementWithProps(reference, props_to_dict(props));
+};
+
+[@mel.module "react"]
+external createHostElementWithProps:
+  (string, Js.Dict.t(value)) => React.element =
+  "createElement";
+
+/* A <form> host element with a server function as its [action] prop. Typed
+   JSX cannot express this single-source (the native ppx takes a polymorphic
+   variant, reason-react a string), so both harnesses build the element
+   directly. [children] goes first in the props object: srr's model
+   serializer prepends the children prop, and JSX (both runtimes) also puts
+   children before the other props. */
+let form_with_action =
+    (~action: server_function, children: React.element): React.element => {
+  let props = Js.Dict.empty();
+  Js.Dict.set(props, "children", value_of_element(children));
+  Js.Dict.set(props, "action", value_of_server_function(action));
+  createHostElementWithProps("form", props);
 };
 
 let with_name: (string, unit => Js.Promise.t(React.element)) => component = [%mel.raw
