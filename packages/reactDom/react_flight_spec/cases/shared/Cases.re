@@ -38,6 +38,12 @@ let all: list(case) = [
   case("client_props_kitchen_sink", Client_props_kitchen_sink.app),
   case("client_prop_array_and_object", Client_prop_array_and_object.app),
   case("model_null", Model_null.app),
+  case(
+    "async_component_nested",
+    Async_component_nested.app,
+    ~xfail=
+      {|React retries a suspended task in place: an async component at the task root resolves into its own row (0:["$","div",...,"$L1"]) and only the NESTED async component is outlined. srr outlines every async component, emitting 0:"$L1" and shifting the chain to rows 1 ("$L2") and 2|},
+  ),
   case("suspense_immediate", Suspense_immediate.app),
   case("suspense_pending", Suspense_pending.app),
   case("suspense_two_boundaries", Suspense_two_boundaries.app),
