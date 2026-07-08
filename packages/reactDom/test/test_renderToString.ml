@@ -73,6 +73,14 @@ let inline_style_escaping () =
   let div = React.createElement "div" [ React.JSX.style style ] [] in
   assert_string (ReactDOM.renderToString div) {|<div style="padding:8px;--font:&quot;Ahrefs&quot;, sans-serif"></div>|}
 
+let inline_style_empty_value_skipped () =
+  (* [""] here lives in this compilation unit, so a [v == ""] check inside
+     ReactDOMStyle wouldn't skip it (string constants are only shared per
+     unit). Regression test for the structural check. *)
+  let style = ReactDOMStyle.make ~color:"" ~padding:"8px" () in
+  let div = React.createElement "div" [ React.JSX.style style ] [] in
+  assert_string (ReactDOM.renderToString div) {|<div style="padding:8px"></div>|}
+
 let test title fn = (Printf.sprintf "ReactDOM.renderToString / %s" title, [ Alcotest_lwt.test_case_sync "" `Quick fn ])
 
 let tests =
@@ -86,4 +94,5 @@ let tests =
     test "suspense children render exactly once" suspense_children_render_once;
     test "suspense renders fallback on error" suspense_fallback_on_error;
     test "inline style escaping" inline_style_escaping;
+    test "inline style empty value skipped" inline_style_empty_value_skipped;
   ]

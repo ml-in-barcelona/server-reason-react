@@ -713,7 +713,9 @@ let write_to_buffer buf (styles : t) : unit =
   let rec loop first = function
     | [] -> ()
     | (k, _, v) :: rest ->
-        if v == "" then loop first rest
+        (* Skip empty values structurally, not with [==]: it must match the
+           PPX static fold. *)
+        if String.length v = 0 then loop first rest
         else (
           if not first then Buffer.add_char buf ';';
           Buffer.add_string buf k;

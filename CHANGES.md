@@ -2,6 +2,7 @@
 
 ## 0.5.0
 
+* Fix empty inline `style` values not being skipped at runtime: the skip used physical equality (`v == ""`), which misses empty strings from other compilation units, diverging from the PPX static fold (e.g. `style="color:;padding:8px"` vs `style="padding:8px"`) by @davesnx
 * Match react-dom's abort behavior in streaming renders: `ReactDOM.renderToStream`'s `abort` (previously a no-op) and `ReactServerDOM.render_html`'s `timeout` now emit a `$RX` client-render instruction per still-pending Suspense boundary before closing the stream, so the client flips those boundaries to errored and retries them there. Error detail is dev-only (gated on the new `?env` parameter of `renderToStream`; production passes only the digest), the close is idempotent, and boundary promises that resolve after the abort no longer push into the closed stream (which crashed the process). Also aligns `ReactServerDOM`'s resolved-segment markup on a bare `hidden` attribute (`<div hidden id="S:x">`) matching react-dom
 * Add `ReactDOM.preload`, `ReactDOM.preconnect`, `ReactDOM.prefetchDNS` and `ReactDOM.preinitScript`, following react-dom's flight-side resource hint API. Called during a `ReactServerDOM.render_model` (or `create_action_response`) render they emit id-less `:H<kind><json>` rows into the Flight stream with React's per-request dedup and flush order (imports, hints, model rows) — verified byte-for-byte against react-server-dom-webpack 19.1.0 by six new flight spec cases. Outside a flight render the calls are no-ops by @davesnx
 
