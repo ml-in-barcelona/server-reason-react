@@ -65,6 +65,11 @@ exact rows):
   `"aria-current"` (camelCase jsxName in srr's DomProps table).
 - `props_aria_booleanish` — boolean aria props are stringified to
   `"true"`/`"false"`; React keeps raw JSON booleans.
+- `promise_prop_shared` — React dedups a shared thenable (one `$@` row,
+  referenced twice); srr serializes each promise prop independently.
+- `async_component_nested` — React resolves an async component at the task
+  root into the task's own row and only outlines *nested* async components;
+  srr outlines every async component as a `$L` row.
 
 ## Bumping React
 
