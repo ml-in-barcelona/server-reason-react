@@ -56,12 +56,9 @@ let all: list(case) = [
   case("client_props_kitchen_sink", Client_props_kitchen_sink.app),
   case("client_prop_array_and_object", Client_prop_array_and_object.app),
   case("model_null", Model_null.app),
-  case(
-    "async_component_nested",
-    Async_component_nested.app,
-    ~xfail=
-      {|React retries a suspended task in place: an async component at the task root resolves into its own row (0:["$","div",...,"$L1"]) and only the NESTED async component is outlined. srr outlines every async component, emitting 0:"$L1" and shifting the chain to rows 1 ("$L2") and 2|},
-  ),
+  case("async_component_nested", Async_component_nested.app),
+  case("async_component_root_resolved", Async_component_root_resolved.app),
+  case("async_component_root_rejected", Async_component_root_rejected.app),
   case("suspense_immediate", Suspense_immediate.app),
   case("suspense_pending", Suspense_pending.app),
   case("suspense_two_boundaries", Suspense_two_boundaries.app),
@@ -84,12 +81,8 @@ let all: list(case) = [
     ~xfail=
       {|React dedups a shared thenable via writtenObjects: {"left":"$@2","right":"$@2"} with a single resolution row 2. srr wraps each prop in its own Model.Promise and never dedups, emitting {"left":"$@2","right":"$@3"} plus two identical resolution rows (3 streams before 2)|},
   ),
-  case(
-    "error_component",
-    Error_component.app,
-    ~xfail=
-      {|a sync throw at the ROOT errors the root task itself in React (single row 0:E{...}); srr outlines the error and emits 1:E{...} then 0:"$L1"|},
-  ),
+  case("error_component", Error_component.app),
+  case("error_in_root_chain", Error_in_root_chain.app),
   case("error_row_reference", Error_row_reference.app),
   case("error_in_suspense_sync", Error_in_suspense_sync.app),
   case("error_in_async_component", Error_in_async_component.app),

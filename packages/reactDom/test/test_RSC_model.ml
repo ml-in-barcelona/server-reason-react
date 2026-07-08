@@ -362,8 +362,9 @@ let error_without_suspense () =
   let main = React.Upper_case_component ("app", app) in
   let output, subscribe = capture_stream () in
   let%lwt () = ReactServerDOM.render_model ~subscribe main in
+  (* A failure on the root chain errors the root task's own row. *)
   assert_list_of_strings !output
-    [ "0:\"$L1\"\n"; "1:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n" ];
+    [ "0:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n" ];
   Lwt.return ()
 
 let error_in_toplevel () =
@@ -371,8 +372,9 @@ let error_in_toplevel () =
   let main = React.Upper_case_component ("app", app) in
   let output, subscribe = capture_stream () in
   let%lwt () = ReactServerDOM.render_model ~subscribe main in
+  (* A failure on the root chain errors the root task's own row. *)
   assert_list_of_strings !output
-    [ "0:\"$L1\"\n"; "1:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n" ];
+    [ "0:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n" ];
   Lwt.return ()
 
 let error_in_toplevel_in_async () =
@@ -380,8 +382,9 @@ let error_in_toplevel_in_async () =
   let main = React.Async_component ("app", app) in
   let output, subscribe = capture_stream () in
   let%lwt () = ReactServerDOM.render_model ~subscribe main in
+  (* A failure on the root chain errors the root task's own row. *)
   assert_list_of_strings !output
-    [ "0:\"$L1\"\n"; "1:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n" ];
+    [ "0:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n" ];
   Lwt.return ()
 
 let await_tick ?(raise = false) ?(ms = 1) num =
@@ -521,7 +524,8 @@ let async_component_without_suspense () =
   in
   let output, subscribe = capture_stream () in
   let%lwt () = ReactServerDOM.render_model ~subscribe app in
-  assert_list_of_strings !output [ "0:\"$L1\"\n"; "1:\"DONE :)\"\n" ];
+  (* The root task retries in place: the async root resolves into row 0 itself. *)
+  assert_list_of_strings !output [ "0:\"DONE :)\"\n" ];
   Lwt.return ()
 
 let async_component_without_suspense_immediate () =
@@ -534,7 +538,8 @@ let async_component_without_suspense_immediate () =
   in
   let output, subscribe = capture_stream () in
   let%lwt () = ReactServerDOM.render_model ~subscribe app in
-  assert_list_of_strings !output [ "0:\"$L1\"\n"; "1:\"DONE :)\"\n" ];
+  (* The root task retries in place: the async root resolves into row 0 itself. *)
+  assert_list_of_strings !output [ "0:\"DONE :)\"\n" ];
   Lwt.return ()
 
 let client_without_props () =
@@ -1429,7 +1434,7 @@ let error_in_prod_hides_message () =
   let main = React.Upper_case_component ("app", app) in
   let output, subscribe = capture_stream () in
   let%lwt () = ReactServerDOM.render_model ~env:`Prod ~subscribe main in
-  assert_list_of_strings !output [ "0:\"$L1\"\n"; "1:E{\"digest\":\"\"}\n" ];
+  assert_list_of_strings !output [ "0:E{\"digest\":\"\"}\n" ];
   Lwt.return ()
 
 let duplicate_client_component_deduplicates_ref () =

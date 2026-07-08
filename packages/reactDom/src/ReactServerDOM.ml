@@ -122,12 +122,16 @@ module Stream = struct
         Hashtbl.replace context.written_symbols symbol index;
         index
 
-  let push_async promise_to_chunk ~context =
+  (* An asynchronous task row: the id is allocated BEFORE [make_chunk] runs
+     (React's createTask does request.nextChunkId++ up front), so rows pushed
+     while the task's payload is serialized get later ids. The row is written
+     when the promise resolves. *)
+  let push_async make_chunk ~context =
     let index = context.index in
     context.index <- context.index + 1;
     context.pending <- context.pending + 1;
     Lwt.async (fun () ->
-        let%lwt to_chunk = promise_to_chunk in
+        let%lwt to_chunk = make_chunk () in
         context.pending <- context.pending - 1;
         context.push (to_chunk index);
         (* Rows deferred during this row's serialization flush right after it,
@@ -393,14 +397,21 @@ module Model = struct
         ("props", `Assoc []);
       ]
 
-  let rec element_to_payload ?(debug = false) ?(filter_stack_frame = default_filter_stack_frame) ~context ~to_chunk ~env
-      element =
+  let emit_debug_info_row ~filter_stack_frame ~context ~to_chunk ~name ~debug_info =
+    let owner_idx = Option.map fst debug_info in
+    let stack = capture_component_stack ~filter_stack_frame in
+    let chunk = make_debug_info ?owner:owner_idx ~stack name in
+    let debug_info_idx = Stream.push ~context (to_chunk (Value chunk)) in
+    (debug_info_idx, owner_idx)
+
+  (* [debug_info] carries the (debug row id, owner row id) attached by the
+     closest component above, so nested rows can reference their owner. [None]
+     means no component has attached debug rows yet (the root row, id 0, owns
+     the next one). *)
+  let rec element_to_payload ?(debug = false) ?(filter_stack_frame = default_filter_stack_frame) ?debug_info ~context
+      ~to_chunk ~env element =
     let emit_debug_info ~name ~debug_info =
-      let owner_idx = Option.map fst debug_info in
-      let stack = capture_component_stack ~filter_stack_frame in
-      let chunk = make_debug_info ?owner:owner_idx ~stack name in
-      let debug_info_idx = Stream.push ~context (to_chunk (Value chunk)) in
-      (debug_info_idx, owner_idx)
+      emit_debug_info_row ~filter_stack_frame ~context ~to_chunk ~name ~debug_info
     in
     let outline_with_debug_ref ~name ~debug_info ~render_child =
       let model_index = context.index in
@@ -518,7 +529,7 @@ module Model = struct
                   let error = exn_to_error exn in
                   Lwt.return (to_chunk (Error (env, error)))
               in
-              let index = Stream.push_async promise ~context in
+              let index = Stream.push_async (fun () -> promise) ~context in
               `String (lazy_value index))
       | Suspense { key; children; fallback } ->
           (* Row order mirrors React: the outlined symbol row is pushed first,
@@ -542,7 +553,7 @@ module Model = struct
           result
       | Consumer children -> turn_element_into_payload ~context ~debug_info children
     in
-    turn_element_into_payload ~context ~debug_info:None element
+    turn_element_into_payload ~context ~debug_info element
 
   and model_to_payload ~context ?debug ?filter_stack_frame ~to_chunk ~env value =
     match (value : React.model_value) with
@@ -575,7 +586,7 @@ module Model = struct
                 let error = exn_to_error exn in
                 Lwt.return (to_chunk (Error (env, error)))
             in
-            let index = Stream.push_async promise ~context in
+            let index = Stream.push_async (fun () -> promise) ~context in
             `String (promise_value index)
         | Fail exn ->
             let error = exn_to_error exn in
@@ -594,16 +605,102 @@ module Model = struct
   and models_to_payload ~context ~to_chunk ~env props =
     List.map (fun (name, value) -> (name, model_to_payload ~context ~to_chunk ~env value)) props
 
+  (* React renders the model at a task's ROOT destructively (retryTask →
+     renderModelDestructive): the chain of transparent wrappers and components
+     between the task root and the first concrete node belongs to the SAME
+     task. An async component on that chain suspends the whole task and
+     resolves into the task's own row; a sync throw (or rejection) errors the
+     task's own row (`<id>:E`, handled by the caller's catch). Only values
+     BELOW the root chain — props, children, list items — are outlined into
+     new rows (see element_to_payload). *)
+  let element_to_root_payload ?(debug = false) ?(filter_stack_frame = default_filter_stack_frame) ~context ~to_chunk
+      ~env element =
+    let rec go ~debug_info (element : React.element) =
+      match element with
+      | React.Static { original; _ } -> go ~debug_info original
+      | Writer { original; _ } -> go ~debug_info (original ())
+      | Fragment children -> go ~debug_info children
+      | Consumer children -> go ~debug_info children
+      | Provider { children; push; _ } ->
+          let pop = push () in
+          let%lwt payload = go ~debug_info children in
+          pop ();
+          Lwt.return payload
+      | (Upper_case_component _ | Async_component _) when debug && Option.is_some debug_info ->
+          (* In debug mode only the FIRST component attaches its debug rows to
+             the root row; components further down are outlined with their own
+             debug ref by the sync serializer (outline_with_debug_ref). *)
+          Lwt.return (element_to_payload ~debug ~filter_stack_frame ?debug_info ~context ~to_chunk ~env element)
+      | Upper_case_component (name, component) ->
+          let saved_ctx = !React.current_tree_context in
+          React.reset_component_id_state saved_ctx;
+          let element =
+            try component ()
+            with exn ->
+              React.current_tree_context := saved_ctx;
+              raise exn
+          in
+          let did_use_id = React.check_did_render_id_hook () in
+          if did_use_id then React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:1 ~index:0;
+          let%lwt payload = continue_with_debug ~name ~debug_info element in
+          React.current_tree_context := saved_ctx;
+          Lwt.return payload
+      | Async_component (name, component) -> (
+          let saved_ctx = !React.current_tree_context in
+          React.reset_component_id_state saved_ctx;
+          let promise =
+            try component ()
+            with exn ->
+              React.current_tree_context := saved_ctx;
+              raise exn
+          in
+          let did_use_id = React.check_did_render_id_hook () in
+          if did_use_id then React.current_tree_context := React.Tree_context.push saved_ctx ~total_children:1 ~index:0;
+          try%lwt
+            let%lwt element = promise in
+            let%lwt payload = continue_with_debug ~name ~debug_info element in
+            React.current_tree_context := saved_ctx;
+            Lwt.return payload
+          with exn ->
+            React.current_tree_context := saved_ctx;
+            Lwt.reraise exn)
+      | element ->
+          Lwt.return (element_to_payload ~debug ~filter_stack_frame ?debug_info ~context ~to_chunk ~env element)
+    and continue_with_debug ~name ~debug_info element =
+      match (debug, debug_info) with
+      | true, None ->
+          (* Matches attach_debug_info: the root component's debug info row is
+             referenced from the root row (id 0, allocated before this task's
+             serialization started). *)
+          let debug_info_idx, _ = emit_debug_info_row ~filter_stack_frame ~context ~to_chunk ~name ~debug_info:None in
+          context.push (to_chunk (Debug_ref (`String (ref_value debug_info_idx))) 0);
+          go ~debug_info:(Some (debug_info_idx, None)) element
+      | _ -> go ~debug_info element
+    in
+    go ~debug_info:None element
+
+  let model_to_root_payload ?debug ?filter_stack_frame ~context ~to_chunk ~env (value : React.model_value) =
+    match value with
+    | Element element -> element_to_root_payload ?debug ?filter_stack_frame ~context ~to_chunk ~env element
+    (* Non-element roots (JSON, promises, errors…) have no root chain to
+       resolve: React outlines thenables and error values even at the root. *)
+    | other -> Lwt.return (model_to_payload ?debug ?filter_stack_frame ~context ~to_chunk ~env other)
+
+  (* The root row is a task like any other (React allocates its id first via
+     createTask): its serialization may suspend (async component on the root
+     chain) and its row is written when the payload resolves. A failure on the
+     root chain errors the root row itself (`0:E{...}`). *)
+  let push_root_task ?debug ?filter_stack_frame ~context ~env model =
+    Stream.push_async ~context (fun () ->
+        try%lwt
+          let%lwt payload = model_to_root_payload ?debug ?filter_stack_frame ~context ~to_chunk ~env model in
+          Lwt.return (to_chunk (Value payload))
+        with exn -> Lwt.return (to_chunk (Error (env, exn_to_error exn))))
+
   let render ?(env = `Dev) ?(debug = false) ?filter_stack_frame ?subscribe ?identifier_prefix model =
     React.reset_id_rendering ?prefix:identifier_prefix ();
     let stream, context = Stream.make () in
-    let to_root_chunk model id =
-      let payload = model_to_payload ~debug ?filter_stack_frame ~context ~to_chunk ~env model in
-      to_chunk (Value payload) id
-    in
-    Stream.push ~context (to_root_chunk model) |> ignore;
-    Stream.flush_deferred ~context;
-    if context.pending = 0 then context.close ();
+    let (_root_index : int) = push_root_task ~debug ?filter_stack_frame ~context ~env model in
     match subscribe with None -> Lwt.return () | Some subscribe -> Lwt_stream.iter_s subscribe stream
 
   let create_action_response ?(env = `Dev) ?(debug = false) ?filter_stack_frame ?subscribe response =
@@ -616,13 +713,7 @@ module Model = struct
         Lwt.return (React.Model.Error { message; stack; env = "Server"; digest })
     in
     let stream, context = Stream.make () in
-    let to_root_chunk value id =
-      let payload = model_to_payload ~debug ?filter_stack_frame ~context ~to_chunk ~env value in
-      to_chunk (Value payload) id
-    in
-    Stream.push ~context (to_root_chunk response) |> ignore;
-    Stream.flush_deferred ~context;
-    if context.pending = 0 then context.close ();
+    let (_root_index : int) = push_root_task ~debug ?filter_stack_frame ~context ~env response in
     match subscribe with None -> Lwt.return () | Some subscribe -> Lwt_stream.iter_s subscribe stream
 end
 
@@ -801,12 +892,12 @@ let rec client_to_html ~(fiber : Fiber.t) (element : React.element) =
                 Lwt.return (boundary_to_chunk html)
               with _exn -> Lwt.return (boundary_to_chunk Html.null)
             in
-            let index = Stream.push_async ~context async in
+            let index = Stream.push_async ~context (fun () -> async) in
             Lwt.return (html_suspense_placeholder ~fallback:fallback_html index)
         | Fail exn -> Lwt.reraise exn
       with _exn ->
         let async = Lwt.return (boundary_to_chunk Html.null) in
-        let index = Stream.push_async ~context async in
+        let index = Stream.push_async ~context (fun () -> async) in
         Lwt.return (html_suspense_placeholder ~fallback:fallback_html index))
   | Client_component { client; _ } -> client_to_html ~fiber client
   | Provider { children; push; async_key; async_value } ->
@@ -945,7 +1036,7 @@ let rec render_element_to_html ~(fiber : Fiber.t) (element : React.element) : (H
                 let to_chunk index = model_to_chunk (Error (fiber.env, error)) index in
                 Lwt.return to_chunk
             in
-            let index = Stream.push_async ~context promise in
+            let index = Stream.push_async ~context (fun () -> promise) in
             Lwt.return
               ( html_suspense_placeholder ~fallback:html_fallback index,
                 Model.suspense_placeholder ~env:fiber.env ~tag ~key ~fallback:model_fallback index )
