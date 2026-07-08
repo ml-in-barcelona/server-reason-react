@@ -21,7 +21,6 @@ let write_attribute_to_buffer buf (attr : React.JSX.prop) =
       Buffer.add_char buf ' ';
       Buffer.add_string buf name
   | BooleanishString (name, _, _) when is_react_custom_attribute name -> ()
-  (* booleanish attributes render as "true"/"false" strings *)
   | BooleanishString (name, _, value) ->
       Buffer.add_char buf ' ';
       Buffer.add_string buf name;
@@ -52,7 +51,6 @@ let write_attribute_to_buffer buf (attr : React.JSX.prop) =
       Buffer.add_char buf ' ';
       Buffer.add_string buf name;
       Buffer.add_string buf "=\"";
-      (* Numbers are rendered the way JavaScript stringifies them: "2", not "2." *)
       Buffer.add_string buf (Js.Float.toString value);
       Buffer.add_char buf '"'
   (* Events don't get rendered on SSR *)
@@ -79,7 +77,6 @@ let attribute_to_html (attr : React.JSX.prop) =
   (* true attributes render solely the attribute name *)
   | Bool (name, _, true) -> Html.present name
   | BooleanishString (name, _, _) when is_react_custom_attribute name -> Html.omitted ()
-  (* booleanish attributes render as "true"/"false" strings *)
   | BooleanishString (name, _, value) -> Html.attribute name (if value then "true" else "false")
   | Action (_, _, _) -> Html.omitted ()
   | Style styles -> Html.attribute "style" (ReactDOMStyle.to_string styles)
@@ -88,7 +85,6 @@ let attribute_to_html (attr : React.JSX.prop) =
   | Int (name, _, _value) when is_react_custom_attribute name -> Html.omitted ()
   | Int (name, _, value) -> Html.attribute name (Int.to_string value)
   | Float (name, _, _value) when is_react_custom_attribute name -> Html.omitted ()
-  (* Numbers are rendered the way JavaScript stringifies them: "2", not "2." *)
   | Float (name, _, value) -> Html.attribute name (Js.Float.toString value)
   (* Events don't get rendered on SSR *)
   | Event _ -> Html.omitted ()

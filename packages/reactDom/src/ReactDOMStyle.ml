@@ -706,10 +706,6 @@ let make
   let acc = match rubyAlign with Some v -> ("ruby-align", "rubyAlign", v) :: acc | None -> acc in
   let acc = match rubyMerge with Some v -> ("ruby-merge", "rubyMerge", v) :: acc | None -> acc in
   let acc = match rubyPosition with Some v -> ("ruby-position", "rubyPosition", v) :: acc | None -> acc in
-  (* The body prepends in signature order, so [acc] ends up reversed. Reverse
-     it back: the visible property order must be signature order, matching the
-     JS object melange builds for reason-react's [ReactDOM.Style.make] (both
-     react-dom's inline style output and the Flight payload preserve it). *)
   List.rev acc
 [@@@ocamlformat "enable"]
 

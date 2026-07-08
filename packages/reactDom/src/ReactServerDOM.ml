@@ -867,7 +867,6 @@ let rec client_to_html ~(fiber : Fiber.t) (element : React.element) =
       Lwt.return (Html.raw (Buffer.contents b))
   | Text text -> Lwt.return (Html.string text)
   | Int i -> Lwt.return (Html.string (Int.to_string i))
-  (* Numbers are rendered the way JavaScript stringifies them: "2", not "2." *)
   | Float f -> Lwt.return (Html.string (Js.Float.toString f))
   | Fragment children -> client_to_html ~fiber children
   | List childrens ->
