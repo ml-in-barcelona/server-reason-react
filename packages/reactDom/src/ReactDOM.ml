@@ -8,6 +8,14 @@ let is_react_custom_attribute attr =
   | "dangerouslySetInnerHTML" | "ref" | "key" | "suppressContentEditableWarning" | "suppressHydrationWarning" -> true
   | _ -> false
 
+(* Writes ` name="value"` for values that need no HTML escaping (numbers, booleanish strings). *)
+let write_raw_attribute buf name value =
+  Buffer.add_char buf ' ';
+  Buffer.add_string buf name;
+  Buffer.add_string buf "=\"";
+  Buffer.add_string buf value;
+  Buffer.add_char buf '"'
+
 let write_attribute_to_buffer buf (attr : React.JSX.prop) =
   match attr with
   (* ignores "ref" prop *)
@@ -20,39 +28,23 @@ let write_attribute_to_buffer buf (attr : React.JSX.prop) =
   | Bool (name, _, true) ->
       Buffer.add_char buf ' ';
       Buffer.add_string buf name
-  | BooleanishString (name, _, _) when is_react_custom_attribute name -> ()
-  | BooleanishString (name, _, value) ->
-      Buffer.add_char buf ' ';
-      Buffer.add_string buf name;
-      Buffer.add_string buf "=\"";
-      Buffer.add_string buf (if value then "true" else "false");
-      Buffer.add_char buf '"'
+  | (BooleanishString (name, _, _) | String (name, _, _) | Int (name, _, _) | Float (name, _, _))
+    when is_react_custom_attribute name ->
+      ()
+  | BooleanishString (name, _, value) -> write_raw_attribute buf name (if value then "true" else "false")
   | Action (_, _, _) -> ()
   | Style styles ->
       Buffer.add_string buf " style=\"";
       Html.escape buf (Style.to_string styles);
       Buffer.add_char buf '"'
-  | String (name, _, _value) when is_react_custom_attribute name -> ()
   | String (name, _, value) ->
       Buffer.add_char buf ' ';
       Buffer.add_string buf name;
       Buffer.add_string buf "=\"";
       Html.escape buf value;
       Buffer.add_char buf '"'
-  | Int (name, _, _value) when is_react_custom_attribute name -> ()
-  | Int (name, _, value) ->
-      Buffer.add_char buf ' ';
-      Buffer.add_string buf name;
-      Buffer.add_string buf "=\"";
-      Buffer.add_string buf (Int.to_string value);
-      Buffer.add_char buf '"'
-  | Float (name, _, _value) when is_react_custom_attribute name -> ()
-  | Float (name, _, value) ->
-      Buffer.add_char buf ' ';
-      Buffer.add_string buf name;
-      Buffer.add_string buf "=\"";
-      Buffer.add_string buf (Js.Float.toString value);
-      Buffer.add_char buf '"'
+  | Int (name, _, value) -> write_raw_attribute buf name (Int.to_string value)
+  | Float (name, _, value) -> write_raw_attribute buf name (Js.Float.toString value)
   (* Events don't get rendered on SSR *)
   | Event _ -> ()
   (* Since we extracted the attribute as children, we are sure there's nothing to render here *)
@@ -76,15 +68,14 @@ let attribute_to_html (attr : React.JSX.prop) =
   | Bool (_name, _, false) -> Html.omitted ()
   (* true attributes render solely the attribute name *)
   | Bool (name, _, true) -> Html.present name
-  | BooleanishString (name, _, _) when is_react_custom_attribute name -> Html.omitted ()
+  | (BooleanishString (name, _, _) | String (name, _, _) | Int (name, _, _) | Float (name, _, _))
+    when is_react_custom_attribute name ->
+      Html.omitted ()
   | BooleanishString (name, _, value) -> Html.attribute name (if value then "true" else "false")
   | Action (_, _, _) -> Html.omitted ()
   | Style styles -> Html.attribute "style" (ReactDOMStyle.to_string styles)
-  | String (name, _, _value) when is_react_custom_attribute name -> Html.omitted ()
   | String (name, _, value) -> Html.attribute name value
-  | Int (name, _, _value) when is_react_custom_attribute name -> Html.omitted ()
   | Int (name, _, value) -> Html.attribute name (Int.to_string value)
-  | Float (name, _, _value) when is_react_custom_attribute name -> Html.omitted ()
   | Float (name, _, value) -> Html.attribute name (Js.Float.toString value)
   (* Events don't get rendered on SSR *)
   | Event _ -> Html.omitted ()
@@ -683,9 +674,10 @@ let renderToStream ?identifier_prefix element =
       if stream_context.waiting = 0 then close ();
       Lwt.return (stream, abort))
 
+(* Dedup keys copy React's request.hints keys verbatim; the "null" slot in preconnect's key is the (unsupported)
+   crossOrigin option. *)
 let preload ~href ~as_ =
-  Flight_hints.emit
-    { dedup_key = Printf.sprintf "L[%s]%s" as_ href; code = "L"; payload = `List [ `String href; `String as_ ] }
+  Flight_hints.emit { dedup_key = "L[" ^ as_ ^ "]" ^ href; code = "L"; payload = `List [ `String href; `String as_ ] }
 
 let preconnect ~href = Flight_hints.emit { dedup_key = "C|null|" ^ href; code = "C"; payload = `String href }
 let prefetchDNS ~href = Flight_hints.emit { dedup_key = "D|" ^ href; code = "D"; payload = `String href }
@@ -705,7 +697,7 @@ let add kind value map = match value with Some i -> map |> List.cons (kind i) | 
 type dangerouslySetInnerHTML = < __html : string >
 
 (* `Booleanish_string` are JSX attributes represented as boolean values but rendered as strings on HTML https://github.com/facebook/react/blob/a17467e7e2cd8947c595d1834889b5d184459f12/packages/react-dom-bindings/src/server/ReactFizzConfigDOM.js#L1165-L1176 *)
-let booleanish_string name jsxName v = React.JSX.booleanishString name jsxName v
+let booleanish_string = React.JSX.booleanishString
 
 [@@@ocamlformat "disable"]
 (* domProps isn't used by the generated code from the ppx, and it's purpose is to

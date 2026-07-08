@@ -57,17 +57,17 @@ let capture_component_stack ~filter_stack_frame =
   in
   `List (List.filter_map Fun.id frames)
 
-(* Identity-only key over promises of ANY payload type, mirroring React's
-   writtenObjects map (keyed on JS object identity of the thenable). A
-   [Model.Promise] is a GADT that hides the promise's payload type, so two
-   occurrences of the same promise can't be compared with ( == ) at their
-   original type once the existential is opened. [Obj.repr] is used purely to
-   erase the type for a physical-identity comparison: the representation is
-   never inspected or reinterpreted (no [Obj.magic]), and ( == ) on [Obj.t]
-   compares identity exactly like ( == ) at the original type, which makes
-   this sound. The abstract signature keeps the [Obj.t] from leaking. An Lwt
-   promise is always a heap block, so identity is well-defined (no unboxed
-   float pitfalls). *)
+(* Identity-only key over values of any type, mirroring React's written*
+   maps (keyed on JS object identity): promises for writtenObjects, server
+   function records for writtenServerReferences. Both hide their payload type
+   (GADT / polymorphic record), so two occurrences can't be compared with
+   ( == ) at their original type. [Obj.repr] is used purely to erase the type
+   for a physical-identity comparison: the representation is never inspected
+   or reinterpreted (no [Obj.magic]), and ( == ) on [Obj.t] compares identity
+   exactly like ( == ) at the original type, which makes this sound. The
+   abstract signature keeps the [Obj.t] from leaking. Both key kinds are
+   always heap blocks, so identity is well-defined (no unboxed float
+   pitfalls). *)
 module Physical_key : sig
   type t
 
@@ -91,7 +91,7 @@ module Stream = struct
     mutable index : int;
     mutable pending : int;
     written_client_references : (string * string, int) Hashtbl.t;
-    written_symbols : (string, int) Hashtbl.t;
+    written_symbols : (string, string) Hashtbl.t;
     (* React's request.hints set: one H row per dedup key per request. *)
     written_hints : (string, unit) Hashtbl.t;
     (* Hint rows buffered until the next regular row write, emulating React's
@@ -161,14 +161,15 @@ module Stream = struct
       Hashtbl.replace context.written_hints dedup_key ();
       Queue.add row context.pending_hints)
 
-  let find_written_promise ~context key =
-    List.find_map (fun (k, index) -> if Physical_key.equal k key then Some index else None) context.written_promises
+  let rec find_by_physical_key key = function
+    | [] -> None
+    | (k, index) :: rest -> if Physical_key.equal k key then Some index else find_by_physical_key key rest
 
+  let find_written_promise ~context key = find_by_physical_key key context.written_promises
   let remember_written_promise ~context key index = context.written_promises <- (key, index) :: context.written_promises
 
   let push_server_reference ~context ~key to_chunk =
-    let find (k, index) = if Physical_key.equal k key then Some index else None in
-    match List.find_map find context.written_server_references with
+    match find_by_physical_key key context.written_server_references with
     | Some existing_index -> existing_index
     | None ->
         let index = push to_chunk ~context in
@@ -176,14 +177,16 @@ module Stream = struct
         index
 
   (* Well-known symbols (e.g. react.suspense) are outlined once per stream and
-     referenced by row id, mirroring React's writtenSymbols map. *)
-  let push_symbol ~context ~symbol to_chunk =
+     referenced by row id, mirroring React's writtenSymbols map. Stores the
+     formatted "$<hex>" reference so repeated boundaries allocate nothing. *)
+  let push_symbol ~context ~symbol ~reference_of_index make_chunk =
     match Hashtbl.find_opt context.written_symbols symbol with
-    | Some existing_index -> existing_index
+    | Some reference -> reference
     | None ->
-        let index = push to_chunk ~context in
-        Hashtbl.replace context.written_symbols symbol index;
-        index
+        let index = push (make_chunk ()) ~context in
+        let reference = reference_of_index index in
+        Hashtbl.replace context.written_symbols symbol reference;
+        reference
 
   (* An asynchronous task row: the id is allocated BEFORE [make_chunk] runs
      (React's createTask does request.nextChunkId++ up front), so rows pushed
@@ -208,8 +211,9 @@ module Stream = struct
     let stream, push_raw, close_raw = Push_stream.make () in
     let pending_hints = Queue.create () in
     let drain_hints () =
-      Queue.iter push_raw pending_hints;
-      Queue.clear pending_hints
+      if not (Queue.is_empty pending_hints) then (
+        Queue.iter push_raw pending_hints;
+        Queue.clear pending_hints)
     in
     ( stream,
       {
@@ -340,17 +344,37 @@ module Model = struct
 
   (* JSON.stringify prints integral floats without a decimal part (2.0 -> 2) while
      Yojson prints `Float 2.0 as "2.0", so integral floats are emitted as ints. *)
+  (* 2^53: the largest range where every integer is exactly representable (ocamlopt does not fold [2. ** 53.]) *)
+  let max_safe_integer = 9007199254740992.
+
   let float_to_json value : json =
-    if Float.is_integer value && Float.abs value <= 2. ** 53. then `Int (Float.to_int value) else `Float value
+    if Float.is_integer value && Float.abs value <= max_safe_integer then `Int (Float.to_int value) else `Float value
 
   (* Normalize a user-provided JSON model: escape every string value (not object
      keys) and print numbers the way JavaScript stringifies them. *)
+  let rec map_sharing f = function
+    | [] -> []
+    | x :: rest as list ->
+        let x' = f x in
+        let rest' = map_sharing f rest in
+        if x' == x && rest' == rest then list else x' :: rest'
+
   let rec escape_model_json (json : json) : json =
     match json with
-    | `String value -> `String (escape_string_value value)
+    | `String value ->
+        let escaped = escape_string_value value in
+        if escaped == value then json else `String escaped
     | `Float value -> float_to_json value
-    | `List items -> `List (List.map escape_model_json items)
-    | `Assoc pairs -> `Assoc (List.map (fun (key, value) -> (key, escape_model_json value)) pairs)
+    | `List items ->
+        let items' = map_sharing escape_model_json items in
+        if items' == items then json else `List items'
+    | `Assoc pairs ->
+        let escape_pair ((key, value) as pair) =
+          let value' = escape_model_json value in
+          if value' == value then pair else (key, value')
+        in
+        let pairs' = map_sharing escape_pair pairs in
+        if pairs' == pairs then json else `Assoc pairs'
     | (`Bool _ | `Int _ | `Null) as scalar -> scalar
 
   let style_to_json style =
@@ -358,6 +382,15 @@ module Model = struct
 
   let action_to_json (action : _ Runtime.server_function) =
     `Assoc [ ("id", `String (escape_string_value action.id)); ("bound", `Null) ]
+
+  (* Outlines a server function as its own {"id","bound"} row (deduplicated on
+     physical identity, mirroring React's writtenServerReferences) and returns
+     the "$F<hexid>" reference. *)
+  let outline_server_function ~context ~to_chunk fn =
+    let index =
+      Stream.push_server_reference ~context ~key:(Physical_key.make fn) (to_chunk (Value (action_to_json fn)))
+    in
+    action_value index
 
   let prop_to_json (prop : React.JSX.prop) =
     match prop with
@@ -401,8 +434,8 @@ module Model = struct
      the element type. [suspense_tag] pushes the row on first use and returns
      that reference. *)
   let suspense_tag ~context ~to_chunk =
-    let index = Stream.push_symbol ~context ~symbol:"react.suspense" (to_chunk (Value (`String "$Sreact.suspense"))) in
-    ref_value index
+    Stream.push_symbol ~context ~symbol:"react.suspense" ~reference_of_index:ref_value (fun () ->
+        to_chunk (Value (`String "$Sreact.suspense")))
 
   (* Not using `node` because we need to add fallback prop as json directly.
      React serializes suspense props as {children, fallback}: children first.
@@ -537,12 +570,7 @@ module Model = struct
             List.filter_map
               (fun (prop : React.JSX.prop) ->
                 match prop with
-                | React.JSX.Action (_, key, f) ->
-                    let index =
-                      Stream.push_server_reference ~context ~key:(Physical_key.make f)
-                        (to_chunk (Value (action_to_json f)))
-                    in
-                    Some (key, `String (action_value index))
+                | React.JSX.Action (_, key, f) -> Some (key, `String (outline_server_function ~context ~to_chunk f))
                 | _ -> prop_to_json prop)
               attributes
           in
@@ -698,12 +726,7 @@ module Model = struct
     | Assoc assoc ->
         let assoc = List.map (fun (name, value) -> (name, model_to_payload ~context ~to_chunk ~env value)) assoc in
         `Assoc assoc
-    | Function action ->
-        let index =
-          Stream.push_server_reference ~context ~key:(Physical_key.make action)
-            (to_chunk (Value (action_to_json action)))
-        in
-        `String (action_value index)
+    | Function action -> `String (outline_server_function ~context ~to_chunk action)
 
   and models_to_payload ~context ~to_chunk ~env props =
     List.map (fun (name, value) -> (name, model_to_payload ~context ~to_chunk ~env value)) props
@@ -803,12 +826,15 @@ module Model = struct
   let hint_sink ~context { Flight_hints.dedup_key; code; payload } =
     Stream.push_hint ~context ~dedup_key (hint_to_chunk code payload)
 
-  let render ?(env = `Dev) ?(debug = false) ?filter_stack_frame ?subscribe ?identifier_prefix model =
-    React.reset_id_rendering ?prefix:identifier_prefix ();
+  let run_stream ~env ~debug ?filter_stack_frame ?subscribe model =
     let stream, context = Stream.make () in
     Flight_hints.with_sink (hint_sink ~context) (fun () ->
         let (_root_index : int) = push_root_task ~debug ?filter_stack_frame ~context ~env model in
         match subscribe with None -> Lwt.return () | Some subscribe -> Lwt_stream.iter_s subscribe stream)
+
+  let render ?(env = `Dev) ?(debug = false) ?filter_stack_frame ?subscribe ?identifier_prefix model =
+    React.reset_id_rendering ?prefix:identifier_prefix ();
+    run_stream ~env ~debug ?filter_stack_frame ?subscribe model
 
   let create_action_response ?(env = `Dev) ?(debug = false) ?filter_stack_frame ?subscribe response =
     let%lwt response =
@@ -819,10 +845,7 @@ module Model = struct
         let digest = generate_uuid () in
         Lwt.return (React.Model.Error { message; stack; env = "Server"; digest })
     in
-    let stream, context = Stream.make () in
-    Flight_hints.with_sink (hint_sink ~context) (fun () ->
-        let (_root_index : int) = push_root_task ~debug ?filter_stack_frame ~context ~env response in
-        match subscribe with None -> Lwt.return () | Some subscribe -> Lwt_stream.iter_s subscribe stream)
+    run_stream ~env ~debug ?filter_stack_frame ?subscribe response
 end
 
 let rsc_start_script =
@@ -916,11 +939,7 @@ let rewrite_action_props ~context attributes =
     (fun prop ->
       match prop with
       | React.JSX.Action (_, key, f) ->
-          let index =
-            Stream.push_server_reference ~context ~key:(Physical_key.make f)
-              (model_to_chunk (Value (Model.action_to_json f)))
-          in
-          React.JSX.String (key, key, Model.action_value index)
+          React.JSX.String (key, key, Model.outline_server_function ~context ~to_chunk:model_to_chunk f)
       | _ -> prop)
     attributes
 
@@ -1241,12 +1260,7 @@ and process_attributes ~context ?form_action_id attributes =
     List.filter_map
       (fun (prop : React.JSX.prop) ->
         match prop with
-        | Action (_, key, f) ->
-            let index =
-              Stream.push_server_reference ~context ~key:(Physical_key.make f)
-                (model_to_chunk (Value (Model.action_to_json f)))
-            in
-            Some (key, `String (Model.action_value index))
+        | Action (_, key, f) -> Some (key, `String (Model.outline_server_function ~context ~to_chunk:model_to_chunk f))
         | _ -> Model.prop_to_json prop)
       attributes
   in
