@@ -47,12 +47,7 @@ let all: list(case) = [
       {|React preserves the style object's insertion order ({"backgroundColor":...,"color":...}); srr's ReactDOM.Style.make prepends properties in declaration order, emitting the keys reversed ({"color":...,"backgroundColor":...})|},
   ),
   case("props_aria", Props_aria.app),
-  case(
-    "props_aria_current",
-    Props_aria_current.app,
-    ~xfail=
-      {|React emits "aria-current"; srr serializes it as "ariaCurrent" — the only aria attribute in DomProps.ml whose jsxName is camelCase instead of the hyphenated wire name|},
-  ),
+  case("props_aria_current", Props_aria_current.app),
   case(
     "props_aria_booleanish",
     Props_aria_booleanish.app,

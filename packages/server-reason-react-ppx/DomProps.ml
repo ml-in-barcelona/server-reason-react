@@ -284,7 +284,7 @@ let ariaAttributes =
 
     (* Indicates the element that represents the current item within a container
        or set of related elements. *)
-    Attribute { name = "aria-current"; jsxName = "ariaCurrent"; reasonJsxName = "ariaCurrent"; type_ = String (* Bool | 'false' | 'true' | 'page' | 'step' | 'location' | 'date' | 'time' *) };
+    Attribute { name = "aria-current"; jsxName = "aria-current"; reasonJsxName = "ariaCurrent"; type_ = String (* Bool | 'false' | 'true' | 'page' | 'step' | 'location' | 'date' | 'time' *) };
 
     (* Identifies the element (or elements) that describes the object.
      * @see aria-labelledby

@@ -61,8 +61,6 @@ exact rows):
   JSON strings (srr stringifies at construction); React emits JSON numbers.
 - `props_style_order` — multi-property style objects come out with reversed
   key order (srr's `ReactDOM.Style.make` prepends in declaration order).
-- `props_aria_current` — serialized as `"ariaCurrent"` instead of
-  `"aria-current"` (camelCase jsxName in srr's DomProps table).
 - `props_aria_booleanish` — boolean aria props are stringified to
   `"true"`/`"false"`; React keeps raw JSON booleans.
 - `promise_prop_shared` — React dedups a shared thenable (one `$@` row,
