@@ -98,10 +98,13 @@ async function renderCase(kase) {
       },
     });
     sink.on("error", reject);
+    // Component errors are part of the protocol under test: React catches
+    // them and emits `E` rows (the digest is onError's return value, "" when
+    // undefined; digests are normalized away regardless). Never reject here:
+    // an unexpectedly broken case still surfaces as a fixture/conformance
+    // diff instead of aborting generation.
     const { pipe } = renderToPipeableStream(kase.render(), clientManifest, {
-      onError(error) {
-        reject(error instanceof Error ? error : new Error(String(error)));
-      },
+      onError() {},
     });
     pipe(sink);
   });
