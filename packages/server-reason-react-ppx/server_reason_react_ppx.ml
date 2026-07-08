@@ -152,15 +152,19 @@ let make_prop ~is_optional ~prop attribute_value =
         | None -> None
         | Some v -> Some (React.JSX.String ([%e estring ~loc name], [%e estring ~loc jsxName], v))]
   | Attribute { type_ = DomProps.Int; name; jsxName }, false ->
-      [%expr
-        Some
-          (React.JSX.String
-             ([%e estring ~loc name], [%e estring ~loc jsxName], Stdlib.Int.to_string ([%e attribute_value] : int)))]
+      [%expr Some (React.JSX.Int ([%e estring ~loc name], [%e estring ~loc jsxName], ([%e attribute_value] : int)))]
   | Attribute { type_ = DomProps.Int; name; jsxName }, true ->
       [%expr
         match ([%e attribute_value] : int option) with
         | None -> None
-        | Some v -> Some (React.JSX.String ([%e estring ~loc name], [%e estring ~loc jsxName], Stdlib.Int.to_string v))]
+        | Some v -> Some (React.JSX.Int ([%e estring ~loc name], [%e estring ~loc jsxName], v))]
+  | Attribute { type_ = DomProps.Float; name; jsxName }, false ->
+      [%expr Some (React.JSX.Float ([%e estring ~loc name], [%e estring ~loc jsxName], ([%e attribute_value] : float)))]
+  | Attribute { type_ = DomProps.Float; name; jsxName }, true ->
+      [%expr
+        match ([%e attribute_value] : float option) with
+        | None -> None
+        | Some v -> Some (React.JSX.Float ([%e estring ~loc name], [%e estring ~loc jsxName], v))]
   | Attribute { type_ = DomProps.Bool; name; jsxName }, false ->
       [%expr Some (React.JSX.Bool ([%e estring ~loc name], [%e estring ~loc jsxName], ([%e attribute_value] : bool)))]
   | Attribute { type_ = DomProps.Bool; name; jsxName }, true ->
@@ -168,17 +172,17 @@ let make_prop ~is_optional ~prop attribute_value =
         match ([%e attribute_value] : bool option) with
         | None -> None
         | Some v -> Some (React.JSX.Bool ([%e estring ~loc name], [%e estring ~loc jsxName], v))]
-  (* BooleanishString needs to transform bool into string *)
+  (* BooleanishString stays a boolean until the serialization seams: HTML renders "true"/"false", Flight keeps the raw
+     JSON boolean *)
   | Attribute { type_ = DomProps.BooleanishString; name; jsxName }, false ->
       [%expr
         Some
-          (React.JSX.String
-             ([%e estring ~loc name], [%e estring ~loc jsxName], Stdlib.Bool.to_string ([%e attribute_value] : bool)))]
+          (React.JSX.BooleanishString ([%e estring ~loc name], [%e estring ~loc jsxName], ([%e attribute_value] : bool)))]
   | Attribute { type_ = DomProps.BooleanishString; name; jsxName }, true ->
       [%expr
         match ([%e attribute_value] : bool option) with
         | None -> None
-        | Some v -> Some (React.JSX.String ([%e estring ~loc name], [%e estring ~loc jsxName], Stdlib.Bool.to_string v))]
+        | Some v -> Some (React.JSX.BooleanishString ([%e estring ~loc name], [%e estring ~loc jsxName], v))]
   | Attribute { type_ = DomProps.Style; _ }, false ->
       [%expr Some (React.JSX.Style ([%e attribute_value] : ReactDOM.Style.t))]
   | Attribute { type_ = DomProps.Style; _ }, true ->
@@ -444,7 +448,7 @@ let emit_attr_value_write ~loc ~info ~value_expr =
         Buffer.add_string b " style=\"";
         ReactDOM.escape_to_buffer b (ReactDOM.Style.to_string ([%e value_expr] : ReactDOM.Style.t));
         Buffer.add_char b '"']
-  | DomProps.Action | DomProps.Ref | DomProps.InnerHtml ->
+  | DomProps.Float | DomProps.Action | DomProps.Ref | DomProps.InnerHtml ->
       (* Unreachable: [is_lowerable_kind] rejects these kinds before we ever
          reach emission. Fail loud at compile time if the invariant breaks. *)
       Location.raise_errorf ~loc "internal PPX error: attribute kind not lowerable but reached emission (name=%s)"
@@ -463,7 +467,7 @@ let attr_value_core_type ~loc (kind : DomProps.attributeType) =
   | DomProps.Int -> [%type: int]
   | DomProps.Bool | DomProps.BooleanishString -> [%type: bool]
   | DomProps.Style -> [%type: ReactDOM.Style.t]
-  | DomProps.Action | DomProps.Ref | DomProps.InnerHtml ->
+  | DomProps.Float | DomProps.Action | DomProps.Ref | DomProps.InnerHtml ->
       (* Unreachable for the same reason as [emit_attr_value_write]. *)
       Location.raise_errorf ~loc "internal PPX error: attribute kind not lowerable but reached emission"
 
@@ -502,9 +506,6 @@ let emit_parts_emit_fn ~loc parts =
         | Dynamic_int e ->
             let loc = e.pexp_loc in
             [%expr Buffer.add_string b (Stdlib.string_of_int [%e e])]
-        | Dynamic_float e ->
-            let loc = e.pexp_loc in
-            [%expr Buffer.add_string b (Stdlib.Float.to_string [%e e])]
         | Dynamic_element e ->
             let loc = e.pexp_loc in
             [%expr ReactDOM.write_to_buffer b [%e e]]

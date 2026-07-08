@@ -6,22 +6,22 @@ module React_component_with_props = {
 };
 let react_component_with_props = <React_component_with_props lola="flores" />;
 
-/* module Using_React_memo = {
-     [@react.component]
-     let make =
-       React.memo((~a) =>
-         <div> {Printf.sprintf("`a` is %s", a) |> React.string} </div>
-       );
-   };
+module Using_React_memo = {
+  [@react.component]
+  let make =
+    React.memo((~a) =>
+      <div> {Printf.sprintf("`a` is %s", a) |> React.string} </div>
+    );
+};
 
-   module Using_memo_custom_compare_Props = {
-     [@react.component]
-     let make =
-       React.memoCustomCompareProps(
-         (~a) => <div> {Printf.sprintf("`a` is %d", a) |> React.string} </div>,
-         (prevPros, nextProps) => false,
-       );
-   }; */
+module Using_memo_custom_compare_Props = {
+  [@react.component]
+  let make =
+    React.memoCustomCompareProps(
+      (~a) => <div> {Printf.sprintf("`a` is %d", a) |> React.string} </div>,
+      (prevPros, nextProps) => false,
+    );
+};
 
 module Forward_Ref = {
   [@react.component]

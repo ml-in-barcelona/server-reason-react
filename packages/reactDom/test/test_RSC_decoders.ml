@@ -100,13 +100,13 @@ let decodeReply_undefined_preserves_positions () =
 let decodeReply_escaped_dollar_string () =
   let response = ReactServerDOM.decodeReply "[\"$$money\"]" |> unwrap_ok in
   match response with
-  | [| `String s |] -> assert_string s "money"
-  | _ -> Alcotest.fail "expected [String \"money\"] for $$money"
+  | [| `String s |] -> assert_string s "$money"
+  | _ -> Alcotest.fail "expected [String \"$money\"] for $$money"
 
 let decodeReply_escaped_dollar_empty () =
-  (* "$$" with nothing after the escape should produce an empty string *)
+  (* "$$" is the escaped encoding of a lone "$" *)
   let response = ReactServerDOM.decodeReply "[\"$$\"]" |> unwrap_ok in
-  match response with [| `String s |] -> assert_string s "" | _ -> Alcotest.fail "expected [String \"\"] for $$"
+  match response with [| `String s |] -> assert_string s "$" | _ -> Alcotest.fail "expected [String \"$\"] for $$"
 
 let decodeReply_date () =
   let response = ReactServerDOM.decodeReply "[\"$D2024-01-15T10:30:00.000Z\"]" |> unwrap_ok in
@@ -162,7 +162,7 @@ let decodeReply_mixed_special_values () =
       assert_string hello "hello";
       assert_int n 42;
       assert_string date "2024-06-15T00:00:00.000Z";
-      assert_string price "price";
+      assert_string price "$price";
       assert_float_is_nan nan_val;
       assert_float_is_infinity inf_val
   | _ -> Alcotest.fail "expected mixed special values to decode correctly"
@@ -225,7 +225,7 @@ let decodeFormDataReply_with_special_values () =
   let args, formData = ReactServerDOM.decodeFormDataReply formData |> unwrap_ok in
   match (args, Js.FormData.get formData "file") with
   | [| `String escaped; `String date; `Float nan_val |], `String file ->
-      assert_string escaped "escaped";
+      assert_string escaped "$escaped";
       assert_string date "2024-01-01T00:00:00.000Z";
       assert_float_is_nan nan_val;
       assert_string file "data"
@@ -302,7 +302,7 @@ let decodeFormDataReply_outlined_with_special_values () =
   match args with
   | [| `List [ `String date; `Null; `String dollar ] |] ->
       assert_string date "2024-01-01T00:00:00.000Z";
-      assert_string dollar "dollar"
+      assert_string dollar "$dollar"
   | _ -> Alcotest.fail "expected outlined model with special values resolved"
 
 (* Mixed regular args + outlined models + FormData *)
@@ -365,7 +365,7 @@ let decodeReply_nested_special_values_in_object () =
   match response with
   | [| `Assoc [ ("date", `String date); ("value", `String price) ] |] ->
       assert_string date "2024-01-01T00:00:00.000Z";
-      assert_string price "50"
+      assert_string price "$50"
   | _ -> Alcotest.fail "expected special values in nested objects to be resolved"
 
 let decodeReply_nested_special_values_in_array () =

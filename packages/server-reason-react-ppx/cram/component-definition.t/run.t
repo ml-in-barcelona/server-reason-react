@@ -42,6 +42,86 @@ We need to output ML syntax here, otherwise refmt could not parse it.
     React_component_with_props.make
       (React_component_with_props.makeProps ~lola:"flores" ())
   
+  module Using_React_memo = struct
+    include struct
+      let makeProps ~(a : 'a) () =
+        let __js_obj_cell_0 = Stdlib.ref a in
+        let __js_obj =
+          object
+            method a = !__js_obj_cell_0
+          end
+        in
+        (Js.Obj.Internal.register_deferred_abstract __js_obj (fun () ->
+             [
+               Js.Obj.Internal.deferred_entry ~method_name:"a" ~js_name:"a"
+                 ~present:true __js_obj_cell_0;
+             ])
+          : < a : 'a > Js.t)
+  
+      let make ?key:(_ : string option) ~a () =
+        React.Upper_case_component
+          ( Stdlib.__FUNCTION__,
+            fun () ->
+              React.Writer
+                {
+                  emit =
+                    (fun b ->
+                      Buffer.add_string b "<div>";
+                      ReactDOM.write_to_buffer b
+                        (Printf.sprintf "`a` is %s" a |> React.string);
+                      Buffer.add_string b "</div>";
+                      ());
+                  original =
+                    (fun () ->
+                      React.createElement "div" []
+                        [ Printf.sprintf "`a` is %s" a |> React.string ]);
+                } )
+  
+      let make ?(key : string option) (Props : < a : 'a > Js.t) =
+        make ?key ~a:Props#a ()
+    end
+  end
+  
+  module Using_memo_custom_compare_Props = struct
+    include struct
+      let makeProps ~(a : 'a) () =
+        let __js_obj_cell_0 = Stdlib.ref a in
+        let __js_obj =
+          object
+            method a = !__js_obj_cell_0
+          end
+        in
+        (Js.Obj.Internal.register_deferred_abstract __js_obj (fun () ->
+             [
+               Js.Obj.Internal.deferred_entry ~method_name:"a" ~js_name:"a"
+                 ~present:true __js_obj_cell_0;
+             ])
+          : < a : 'a > Js.t)
+  
+      let make ?key:(_ : string option) ~a () =
+        React.Upper_case_component
+          ( Stdlib.__FUNCTION__,
+            fun () ->
+              React.Writer
+                {
+                  emit =
+                    (fun b ->
+                      Buffer.add_string b "<div>";
+                      ReactDOM.write_to_buffer b
+                        (Printf.sprintf "`a` is %d" a |> React.string);
+                      Buffer.add_string b "</div>";
+                      ());
+                  original =
+                    (fun () ->
+                      React.createElement "div" []
+                        [ Printf.sprintf "`a` is %d" a |> React.string ]);
+                } )
+  
+      let make ?(key : string option) (Props : < a : 'a > Js.t) =
+        make ?key ~a:Props#a ()
+    end
+  end
+  
   module Forward_Ref = struct
     include struct
       let makeProps ~(children : 'children) ~(buttonRef : 'buttonRef) () =
@@ -585,10 +665,8 @@ We need to output ML syntax here, otherwise refmt could not parse it.
                         (Stdlib.List.filter_map Stdlib.Fun.id
                            [
                              Some
-                               (React.JSX.String
-                                  ( "aria-hidden",
-                                    "aria-hidden",
-                                    Stdlib.Bool.to_string ("true" : bool) ));
+                               (React.JSX.BooleanishString
+                                  ("aria-hidden", "aria-hidden", ("true" : bool)));
                            ])
                         [ children ]);
                 } )

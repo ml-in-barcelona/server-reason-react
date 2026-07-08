@@ -41,6 +41,35 @@ let self_closing_tag () =
   let input = React.createElement "input" [] [] in
   assert_string (ReactDOM.renderToStaticMarkup input) "<input />"
 
+let numeric_attributes () =
+  (* Numbers render the way JavaScript stringifies them: 100.0 -> "100", not "100." *)
+  let component =
+    React.createElement "div"
+      [
+        React.JSX.int "tabindex" "tabIndex" 42;
+        React.JSX.float "aria-valuemin" "aria-valuemin" 0.5;
+        React.JSX.float "aria-valuemax" "aria-valuemax" 100.;
+      ]
+      []
+  in
+  assert_string
+    (ReactDOM.renderToStaticMarkup component)
+    "<div tabindex=\"42\" aria-valuemin=\"0.5\" aria-valuemax=\"100\"></div>"
+
+let numeric_children () =
+  (* Number children render the way JavaScript stringifies them: 100.0 ->
+     "100" (not string_of_float's "100."), 3.14 -> "3.14". *)
+  let component =
+    React.createElement "ul" []
+      [
+        React.createElement "li" [] [ React.int 42 ];
+        React.createElement "li" [] [ React.float 3.14 ];
+        React.createElement "li" [] [ React.int 0 ];
+        React.createElement "li" [] [ React.float 100.0 ];
+      ]
+  in
+  assert_string (ReactDOM.renderToStaticMarkup component) "<ul><li>42</li><li>3.14</li><li>0</li><li>100</li></ul>"
+
 let dom_element_innerHtml () =
   let p = React.createElement "p" [] [ React.string "text" ] in
   assert_string (ReactDOM.renderToStaticMarkup p) "<p>text</p>"
@@ -97,7 +126,7 @@ let inline_styles () =
   let component =
     React.createElement "button" [ React.JSX.style (ReactDOMStyle.make ~color:"red" ~border:"none" ()) ] []
   in
-  assert_string (ReactDOM.renderToStaticMarkup component) "<button style=\"color:red;border:none\"></button>"
+  assert_string (ReactDOM.renderToStaticMarkup component) "<button style=\"border:none;color:red\"></button>"
 
 let inline_styles_escaping () =
   (* font-family values are wrapped in double quotes; they must be escaped so the
@@ -362,6 +391,8 @@ let tests =
     test "ignore_nulls" ignore_nulls;
     test "string_attributes" string_attributes;
     test "self_closing_tag" self_closing_tag;
+    test "numeric_attributes" numeric_attributes;
+    test "numeric_children" numeric_children;
     test "dom_element_innerHtml" dom_element_innerHtml;
     test "children" children;
     test "className" className;

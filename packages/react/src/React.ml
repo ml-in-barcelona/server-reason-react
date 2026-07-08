@@ -350,17 +350,21 @@ module JSX = struct
   type prop =
     | Action : (string * string * _ Runtime.server_function) -> prop
     | Bool of (string * string * bool)
+    | BooleanishString of (string * string * bool)
     | String of (string * string * string)
+    | Int of (string * string * int)
+    | Float of (string * string * float)
     | Style of (string * string * string) list
     | DangerouslyInnerHtml of string
     | Ref of Ref.t
     | Event of string * event
 
   let bool name jsxName value = Bool (name, jsxName, value)
+  let booleanishString name jsxName value = BooleanishString (name, jsxName, value)
   let string name jsxName value = String (name, jsxName, value)
   let style value = Style value
-  let int name jsxName value = String (name, jsxName, Int.to_string value)
-  let float name jsxName value = String (name, jsxName, Float.to_string value)
+  let int name jsxName value = Int (name, jsxName, value)
+  let float name jsxName value = Float (name, jsxName, value)
   let dangerouslyInnerHtml value = DangerouslyInnerHtml value#__html
   let ref value = Ref value
   let event key value = Event (key, value)
@@ -413,6 +417,8 @@ and element =
   | List of element list
   | Array of element array
   | Text of string
+  | Int of int
+  | Float of float
   | Static of { prerendered : string; original : element }
   | Writer of { emit : Buffer.t -> unit; original : unit -> element }
       (** Like [Static] but writes directly into the caller's buffer. Used by the PPX for subtrees with static skeleton
@@ -425,7 +431,7 @@ and element =
   | Empty
   | Provider of { children : element; push : unit -> unit -> unit; async_key : Obj.t Lwt.key; async_value : Obj.t }
   | Consumer of element
-  | Suspense of { key : string option; children : element; fallback : element }
+  | Suspense of { key : string option; children : element; fallback : element option }
 
 and lower_case_element = { key : string option; tag : string; attributes : JSX.prop list; children : element list }
 and client_props = (string * element Model.t) list
@@ -435,7 +441,11 @@ exception Invalid_children of string
 
 let compare_attribute (left : JSX.prop) (right : JSX.prop) =
   match (left, right) with
-  | Bool (left_key, _, _), Bool (right_key, _, _) | String (left_key, _, _), String (right_key, _, _) ->
+  | Bool (left_key, _, _), Bool (right_key, _, _)
+  | BooleanishString (left_key, _, _), BooleanishString (right_key, _, _)
+  | String (left_key, _, _), String (right_key, _, _)
+  | Int (left_key, _, _), Int (right_key, _, _)
+  | Float (left_key, _, _), Float (right_key, _, _) ->
       String.compare left_key right_key
   | Style left_styles, Style right_styles ->
       List.compare
@@ -447,7 +457,10 @@ let compare_attribute (left : JSX.prop) (right : JSX.prop) =
 let clone_attribute acc (attr : JSX.prop) (new_attr : JSX.prop) =
   match (attr, new_attr) with
   | Bool (left, _, _), Bool (right, _, _) when left == right -> new_attr :: acc
+  | BooleanishString (left, _, _), BooleanishString (right, _, _) when left == right -> new_attr :: acc
   | String (left, _, _), String (right, _, _) when left == right -> new_attr :: acc
+  | Int (left, _, _), Int (right, _, _) when left == right -> new_attr :: acc
+  | Float (left, _, _), Float (right, _, _) when left == right -> new_attr :: acc
   | _ -> new_attr :: acc
 
 module StringMap = Map.Make (String)
@@ -456,7 +469,9 @@ let attributes_to_map attributes =
   List.fold_left
     (fun acc (attr : JSX.prop) ->
       match attr with
-      | (Bool (key, _, _) | String (key, _, _)) as prop -> acc |> StringMap.add key prop
+      | (Bool (key, _, _) | BooleanishString (key, _, _) | String (key, _, _) | Int (key, _, _) | Float (key, _, _)) as
+        prop ->
+          acc |> StringMap.add key prop
       (* The following constructors shoudn't be part of the StringMap *)
       | DangerouslyInnerHtml _ -> acc
       | Ref _ -> acc
@@ -511,7 +526,7 @@ let rec cloneElement element new_attributes =
   | Static { original; prerendered = _ } -> cloneElement original new_attributes
   | Writer { original; emit = _ } -> cloneElement (original ()) new_attributes
   | Fragment _ -> raise (Invalid_argument "React.cloneElement: cannot clone a Fragment")
-  | Text _ -> raise (Invalid_argument "React.cloneElement: cannot clone a Text element")
+  | Text _ | Int _ | Float _ -> raise (Invalid_argument "React.cloneElement: cannot clone a Text element")
   | Empty -> raise (Invalid_argument "React.cloneElement: cannot clone a null element")
   | List _ -> raise (Invalid_argument "React.cloneElement: cannot clone a List")
   | Array _ -> raise (Invalid_argument "React.cloneElement: cannot clone an Array")
@@ -533,10 +548,8 @@ let fragment children = Fragment.make (Fragment.makeProps ~children ())
 (* ReasonReact APIs *)
 let string txt = Text txt
 let null = Empty
-let int i = Text (string_of_int i)
-
-(* FIXME: float_of_string might be different from the browser *)
-let float f = Text (string_of_float f)
+let int i = Int i
+let float f = Float f
 let array arr = Array arr
 let list l = List l
 
@@ -587,8 +600,7 @@ module Suspense = struct
       method children = children
     end
 
-  let make ?key props =
-    Suspense { key; fallback = or_react_null props#fallback; children = or_react_null props#children }
+  let make ?key props = Suspense { key; fallback = props#fallback; children = or_react_null props#children }
 end
 
 module Cache = struct
@@ -608,8 +620,10 @@ module Cache = struct
     Lwt.with_value async_key (Some cache) f
 end
 
-let memo f _component = f
-let memoCustomCompareProps f _compare _component = f
+(* On the server there's no re-render, so memoization is a no-op and the
+   component is passed through unchanged. Signatures match reason-react. *)
+let memo component = component
+let memoCustomCompareProps component _compare = component
 
 let cache fn =
   let fn_id = !Cache.fn_id_counter in

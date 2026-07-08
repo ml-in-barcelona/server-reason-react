@@ -23,7 +23,6 @@ type static_part =
   | Static_str of string
   | Dynamic_string of expression
   | Dynamic_int of expression
-  | Dynamic_float of expression
   | Dynamic_element of expression
   | Dynamic_attr_slot of { info : attr_render_info; expr : expression; is_optional : bool }
 
@@ -77,12 +76,6 @@ let rec extract_literal_int expr =
   | Pexp_constraint (inner, _) -> extract_literal_int inner
   | _ -> None
 
-let rec extract_literal_float expr =
-  match expr.pexp_desc with
-  | Pexp_constant (Pconst_float (s, _)) -> ( try Some (float_of_string s) with _ -> None)
-  | Pexp_constraint (inner, _) -> extract_literal_float inner
-  | _ -> None
-
 let rec extract_literal_bool expr =
   match expr.pexp_desc with
   | Pexp_construct ({ txt = Lident "true"; _ }, None) -> Some true
@@ -104,21 +97,11 @@ let extract_react_int_arg expr =
   | Pexp_apply ({ pexp_desc = Pexp_ident { txt = Lident "int"; _ }; _ }, [ (Nolabel, arg) ]) -> Some arg
   | _ -> None
 
-let extract_react_float_arg expr =
-  match expr.pexp_desc with
-  | Pexp_apply ({ pexp_desc = Pexp_ident { txt = Ldot (Lident "React", "float"); _ }; _ }, [ (Nolabel, arg) ]) ->
-      Some arg
-  | Pexp_apply ({ pexp_desc = Pexp_ident { txt = Lident "float"; _ }; _ }, [ (Nolabel, arg) ]) -> Some arg
-  | _ -> None
-
 let extract_react_text_literal expr =
   match extract_react_string_arg expr with Some arg -> extract_literal_string arg | None -> None
 
 let extract_react_int_literal expr =
   match extract_react_int_arg expr with Some arg -> extract_literal_int arg | None -> None
-
-let extract_react_float_literal expr =
-  match extract_react_float_arg expr with Some arg -> extract_literal_float arg | None -> None
 
 let extract_unsafe_literal expr =
   match expr.pexp_desc with
@@ -197,7 +180,11 @@ let analyze_attribute ~tag_name (label, expr) : attr_analysis_result =
    [Cannot_optimize]. *)
 let is_lowerable_kind = function
   | DomProps.String | DomProps.Int | DomProps.Bool | DomProps.BooleanishString | DomProps.Style -> true
-  | DomProps.Action | DomProps.Ref | DomProps.InnerHtml -> false
+  (* [Float] stays on the variant-tree path: its HTML stringification
+     (JavaScript number formatting via [Js.Float.toString]) lives in
+     [ReactDOM.write_attribute_to_buffer], which is not addressable from
+     emitted user code without adding a dependency on the Js library. *)
+  | DomProps.Float | DomProps.Action | DomProps.Ref | DomProps.InnerHtml -> false
 
 (* Kept in lock-step with [ReactDOM.is_react_custom_attribute] so the set is
    audit-identical. In practice only ["suppressContentEditableWarning"] and
@@ -355,18 +342,16 @@ let analyze_child (expr : expression) : static_part =
               match extract_react_int_literal expr with
               | Some i -> Static_str (string_of_int i)
               | None -> (
-                  match extract_react_float_literal expr with
-                  | Some f -> Static_str (Float.to_string f)
+                  (* [React.float] children stay on the variant-tree path
+                     ([Dynamic_element]): their HTML stringification is
+                     JavaScript number formatting ([Js.Float.toString], "2"
+                     not "2."), which lives in ReactDOM and is not
+                     addressable from emitted user code — same reasoning as
+                     [Float] attributes in [is_lowerable_kind]. *)
+                  match extract_react_string_arg expr with
+                  | Some e -> Dynamic_string e
                   | None -> (
-                      match extract_react_string_arg expr with
-                      | Some e -> Dynamic_string e
-                      | None -> (
-                          match extract_react_int_arg expr with
-                          | Some e -> Dynamic_int e
-                          | None -> (
-                              match extract_react_float_arg expr with
-                              | Some e -> Dynamic_float e
-                              | None -> Dynamic_element expr)))))))
+                      match extract_react_int_arg expr with Some e -> Dynamic_int e | None -> Dynamic_element expr)))))
 
 (* Caller [analyze_element] always runs [coalesce_static_parts] on the
    combined [open_tag; ...children...; close_tag] list, so returning

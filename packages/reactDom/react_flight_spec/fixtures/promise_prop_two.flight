@@ -1,0 +1,4 @@
+1:I["spec/Await.js",[],"Await"]
+0:["$","$L1",null,{"fast":"$@2","slow":"$@3"}]
+2:"fast value"
+3:"slow value"

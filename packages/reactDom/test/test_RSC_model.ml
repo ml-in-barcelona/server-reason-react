@@ -77,6 +77,70 @@ let string_element () =
   assert_list_of_strings !output [ "0:\"hi\"\n" ];
   Lwt.return ()
 
+let dollar_prefixed_strings_are_escaped () =
+  (* User strings starting with '$' get an extra '$' (React's escapeStringValue),
+     since bare "$..." is reference syntax on decode. Only a leading '$' matters. *)
+  let app =
+    React.createElement "div"
+      [ React.JSX.String ("title", "title", "$title") ]
+      [ React.string "$dollar"; React.string "$$double"; React.string "safe $ inside" ]
+  in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~subscribe app in
+  assert_list_of_strings !output
+    [
+      "0:[\"$\",\"div\",null,{\"children\":[\"$$dollar\",\"$$$double\",\"safe $ \
+       inside\"],\"title\":\"$$title\"},null,null,1]\n";
+    ];
+  Lwt.return ()
+
+let dollar_prefixed_json_props_are_escaped () =
+  let app =
+    React.Client_component
+      {
+        key = None;
+        import_module = "./client.js";
+        import_name = "Component";
+        props = [ ("data", React.Model.Json (`Assoc [ ("label", `String "$ref-like") ])) ];
+        client = React.null;
+      }
+  in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~subscribe app in
+  assert_list_of_strings !output
+    [
+      "1:I[\"./client.js\",[],\"Component\"]\n";
+      "0:[\"$\",\"$L1\",null,{\"data\":{\"label\":\"$$ref-like\"}},null,null,1]\n";
+    ];
+  Lwt.return ()
+
+let numeric_props_serialize_as_json_numbers () =
+  (* React emits numeric props as JSON numbers, stringified the way JavaScript
+     does: integral floats lose the decimal part (100.0 -> 100). *)
+  let app =
+    React.createElement "div"
+      [
+        React.JSX.int "tabindex" "tabIndex" 42;
+        React.JSX.float "aria-valuemin" "aria-valuemin" 0.5;
+        React.JSX.float "aria-valuemax" "aria-valuemax" 100.;
+      ]
+      []
+  in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~subscribe app in
+  assert_list_of_strings !output
+    [ "0:[\"$\",\"div\",null,{\"tabIndex\":42,\"aria-valuemin\":0.5,\"aria-valuemax\":100},null,null,1]\n" ];
+  Lwt.return ()
+
+let numeric_children_serialize_as_json_numbers () =
+  (* React.int/React.float children cross the wire as raw JSON numbers,
+     integral floats without the decimal part (100.0 -> 100). *)
+  let app = React.createElement "span" [] [ React.int 42; React.float 3.14; React.int 0; React.float 100.0 ] in
+  let output, subscribe = capture_stream () in
+  let%lwt () = ReactServerDOM.render_model ~subscribe app in
+  assert_list_of_strings !output [ "0:[\"$\",\"span\",null,{\"children\":[42,3.14,0,100]},null,null,1]\n" ];
+  Lwt.return ()
+
 let lower_case_component () =
   let app = React.createElement "div" (ReactDOM.domProps ~className:"foo" ()) [] in
   let output, subscribe = capture_stream () in
@@ -212,7 +276,8 @@ let suspense_without_promise () =
   let%lwt () = ReactServerDOM.render_model ~subscribe main in
   assert_list_of_strings !output
     [
-      "0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":[\"$\",\"div\",null,{\"children\":[[\"$\",\"span\",null,{\"children\":\"hi\"},null,null,1],[\"$\",\"span\",null,{\"children\":\"hola\"},null,null,1]]},null,null,1]},null,null,1]\n";
+      "1:\"$Sreact.suspense\"\n";
+      "0:[\"$\",\"$1\",null,{\"children\":[\"$\",\"div\",null,{\"children\":[[\"$\",\"span\",null,{\"children\":\"hi\"},null,null,1],[\"$\",\"span\",null,{\"children\":\"hola\"},null,null,1]]},null,null,1],\"fallback\":\"Loading...\"},null,null,1]\n";
     ];
   Lwt.return ()
 
@@ -232,8 +297,9 @@ let suspense_with_promise () =
   let%lwt () = ReactServerDOM.render_model ~subscribe main in
   assert_list_of_strings !output
     [
-      "0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,null,1]\n";
-      "1:\"lol\"\n";
+      "1:\"$Sreact.suspense\"\n";
+      "0:[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Loading...\"},null,null,1]\n";
+      "2:\"lol\"\n";
     ];
   Lwt.return ()
 
@@ -248,8 +314,9 @@ let suspense_with_error () =
   let%lwt () = ReactServerDOM.render_model ~subscribe main in
   assert_list_of_strings !output
     [
-      "1:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n";
-      "0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,null,1]\n";
+      "1:\"$Sreact.suspense\"\n";
+      "0:[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Loading...\"},null,null,1]\n";
+      "2:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n";
     ];
   Lwt.return ()
 
@@ -264,8 +331,9 @@ let suspense_with_error_in_async () =
   let%lwt () = ReactServerDOM.render_model ~subscribe main in
   assert_list_of_strings !output
     [
-      "1:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n";
-      "0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,null,1]\n";
+      "1:\"$Sreact.suspense\"\n";
+      "0:[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Loading...\"},null,null,1]\n";
+      "2:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n";
     ];
   Lwt.return ()
 
@@ -283,8 +351,9 @@ let suspense_with_error_under_lowercase () =
   let%lwt () = ReactServerDOM.render_model ~subscribe main in
   assert_list_of_strings !output
     [
-      "1:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n";
-      "0:[\"$\",\"div\",null,{\"children\":[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,null,1]},null,null,1]\n";
+      "1:\"$Sreact.suspense\"\n";
+      "0:[\"$\",\"div\",null,{\"children\":[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Loading...\"},null,null,1]},null,null,1]\n";
+      "2:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n";
     ];
   Lwt.return ()
 
@@ -293,8 +362,9 @@ let error_without_suspense () =
   let main = React.Upper_case_component ("app", app) in
   let output, subscribe = capture_stream () in
   let%lwt () = ReactServerDOM.render_model ~subscribe main in
+  (* A failure on the root chain errors the root task's own row. *)
   assert_list_of_strings !output
-    [ "1:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n"; "0:\"$L1\"\n" ];
+    [ "0:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n" ];
   Lwt.return ()
 
 let error_in_toplevel () =
@@ -302,8 +372,9 @@ let error_in_toplevel () =
   let main = React.Upper_case_component ("app", app) in
   let output, subscribe = capture_stream () in
   let%lwt () = ReactServerDOM.render_model ~subscribe main in
+  (* A failure on the root chain errors the root task's own row. *)
   assert_list_of_strings !output
-    [ "1:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n"; "0:\"$L1\"\n" ];
+    [ "0:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n" ];
   Lwt.return ()
 
 let error_in_toplevel_in_async () =
@@ -311,8 +382,9 @@ let error_in_toplevel_in_async () =
   let main = React.Async_component ("app", app) in
   let output, subscribe = capture_stream () in
   let%lwt () = ReactServerDOM.render_model ~subscribe main in
+  (* A failure on the root chain errors the root task's own row. *)
   assert_list_of_strings !output
-    [ "1:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n"; "0:\"$L1\"\n" ];
+    [ "0:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n" ];
   Lwt.return ()
 
 let await_tick ?(raise = false) ?(ms = 1) num =
@@ -340,12 +412,13 @@ let suspense_in_a_list () =
   let%lwt () = ReactServerDOM.render_model ~subscribe main in
   assert_list_of_strings !output
     [
-      "0:[[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,null,1],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L2\"},null,null,1],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L3\"},null,null,1],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L4\"},null,null,1],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L5\"},null,null,1]]\n";
-      "1:\"A\"\n";
-      "2:\"B\"\n";
-      "3:\"C\"\n";
-      "4:\"D\"\n";
-      "5:\"E\"\n";
+      "1:\"$Sreact.suspense\"\n";
+      "0:[[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Loading...\"},null,null,1],[\"$\",\"$1\",null,{\"children\":\"$L3\",\"fallback\":\"Loading...\"},null,null,1],[\"$\",\"$1\",null,{\"children\":\"$L4\",\"fallback\":\"Loading...\"},null,null,1],[\"$\",\"$1\",null,{\"children\":\"$L5\",\"fallback\":\"Loading...\"},null,null,1],[\"$\",\"$1\",null,{\"children\":\"$L6\",\"fallback\":\"Loading...\"},null,null,1]]\n";
+      "2:\"A\"\n";
+      "3:\"B\"\n";
+      "4:\"C\"\n";
+      "5:\"D\"\n";
+      "6:\"E\"\n";
     ];
   Lwt.return ()
 
@@ -367,12 +440,13 @@ let suspense_in_a_list_with_error () =
   let%lwt () = ReactServerDOM.render_model ~subscribe main in
   assert_list_of_strings !output
     [
-      "0:[[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,null,1],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L2\"},null,null,1],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L3\"},null,null,1],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L4\"},null,null,1],[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L5\"},null,null,1]]\n";
-      "1:\"A\"\n";
-      "2:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n";
-      "3:\"C\"\n";
-      "4:\"D\"\n";
-      "5:\"E\"\n";
+      "1:\"$Sreact.suspense\"\n";
+      "0:[[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Loading...\"},null,null,1],[\"$\",\"$1\",null,{\"children\":\"$L3\",\"fallback\":\"Loading...\"},null,null,1],[\"$\",\"$1\",null,{\"children\":\"$L4\",\"fallback\":\"Loading...\"},null,null,1],[\"$\",\"$1\",null,{\"children\":\"$L5\",\"fallback\":\"Loading...\"},null,null,1],[\"$\",\"$1\",null,{\"children\":\"$L6\",\"fallback\":\"Loading...\"},null,null,1]]\n";
+      "2:\"A\"\n";
+      "3:E{\"message\":\"Failure(\\\"lol\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n";
+      "4:\"C\"\n";
+      "5:\"D\"\n";
+      "6:\"E\"\n";
     ];
   Lwt.return ()
 
@@ -389,7 +463,10 @@ let suspense_with_immediate_promise () =
   let output, subscribe = capture_stream () in
   let%lwt () = ReactServerDOM.render_model ~subscribe main in
   assert_list_of_strings !output
-    [ "0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"DONE :)\"},null,null,1]\n" ];
+    [
+      "1:\"$Sreact.suspense\"\n";
+      "0:[\"$\",\"$1\",null,{\"children\":\"DONE :)\",\"fallback\":\"Loading...\"},null,null,1]\n";
+    ];
   Lwt.return ()
 
 let delayed_value value =
@@ -410,8 +487,9 @@ let suspense () =
   let%lwt () = ReactServerDOM.render_model ~subscribe main in
   assert_list_of_strings !output
     [
-      "0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,null,1]\n";
-      "1:\"DONE :)\"\n";
+      "1:\"$Sreact.suspense\"\n";
+      "0:[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Loading...\"},null,null,1]\n";
+      "2:\"DONE :)\"\n";
     ];
   Lwt.return ()
 
@@ -429,8 +507,9 @@ let nested_suspense () =
   let%lwt () = ReactServerDOM.render_model ~subscribe main in
   assert_list_of_strings !output
     [
-      "0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,null,1]\n";
-      "1:\"DONE :)\"\n";
+      "1:\"$Sreact.suspense\"\n";
+      "0:[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Loading...\"},null,null,1]\n";
+      "2:\"DONE :)\"\n";
     ];
   Lwt.return ()
 
@@ -445,7 +524,8 @@ let async_component_without_suspense () =
   in
   let output, subscribe = capture_stream () in
   let%lwt () = ReactServerDOM.render_model ~subscribe app in
-  assert_list_of_strings !output [ "0:\"$L1\"\n"; "1:\"DONE :)\"\n" ];
+  (* The root task retries in place: the async root resolves into row 0 itself. *)
+  assert_list_of_strings !output [ "0:\"DONE :)\"\n" ];
   Lwt.return ()
 
 let async_component_without_suspense_immediate () =
@@ -458,7 +538,8 @@ let async_component_without_suspense_immediate () =
   in
   let output, subscribe = capture_stream () in
   let%lwt () = ReactServerDOM.render_model ~subscribe app in
-  assert_list_of_strings !output [ "0:\"$L1\"\n"; "1:\"DONE :)\"\n" ];
+  (* The root task retries in place: the async root resolves into row 0 itself. *)
+  assert_list_of_strings !output [ "0:\"DONE :)\"\n" ];
   Lwt.return ()
 
 let client_without_props () =
@@ -484,7 +565,7 @@ let client_without_props () =
   assert_list_of_strings !output
     [
       "1:I[\"./client-without-props.js\",[],\"ClientWithoutProps\"]\n";
-      "0:[[\"$\",\"div\",null,{\"children\":\"Server Content\"},null,null,1],[\"$\",\"$1\",null,{},null,null,1]]\n";
+      "0:[[\"$\",\"div\",null,{\"children\":\"Server Content\"},null,null,1],[\"$\",\"$L1\",null,{},null,null,1]]\n";
     ];
   Lwt.return ()
 
@@ -522,7 +603,7 @@ let client_with_json_props () =
     [
       "1:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n";
       "0:[[\"$\",\"div\",null,{\"children\":\"Server \
-       Content\"},null,null,1],[\"$\",\"$1\",null,{\"null\":null,\"string\":\"Title\",\"int\":1,\"float\":1.1,\"bool \
+       Content\"},null,null,1],[\"$\",\"$L1\",null,{\"null\":null,\"string\":\"Title\",\"int\":1,\"float\":1.1,\"bool \
        true\":true,\"bool false\":false,\"string list\":[\"Item 1\",\"Item \
        2\"],\"object\":{\"name\":\"John\",\"age\":30}},null,null,1]]\n";
     ];
@@ -551,8 +632,8 @@ let client_with_element_props () =
   assert_list_of_strings !output
     [
       "1:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n";
-      "0:[[\"$\",\"div\",null,{\"children\":\"Server Content\"},null,null,1],[\"$\",\"$1\",null,{\"children\":\"Client \
-       Content\"},null,null,1]]\n";
+      "0:[[\"$\",\"div\",null,{\"children\":\"Server \
+       Content\"},null,null,1],[\"$\",\"$L1\",null,{\"children\":\"Client Content\"},null,null,1]]\n";
     ];
   Lwt.return ()
 
@@ -585,7 +666,7 @@ let client_with_promise_props () =
     [
       "1:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n";
       "0:[[\"$\",\"div\",null,{\"children\":\"Server \
-       Content\"},null,null,1],[\"$\",\"$1\",null,{\"promise\":\"$@2\"},null,null,1]]\n";
+       Content\"},null,null,1],[\"$\",\"$L1\",null,{\"promise\":\"$@2\"},null,null,1]]\n";
       "2:\"||| Resolved |||\"\n";
     ];
   Lwt.return ()
@@ -620,7 +701,7 @@ let client_with_promise_failed_props () =
     [
       "1:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n";
       "0:[[\"$\",\"div\",null,{\"children\":\"Server \
-       Content\"},null,null,1],[\"$\",\"$1\",null,{\"promise\":\"$@2\"},null,null,1]]\n";
+       Content\"},null,null,1],[\"$\",\"$L1\",null,{\"promise\":\"$@2\"},null,null,1]]\n";
       "2:E{\"message\":\"Failure(\\\"Already failed\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n";
     ];
   Lwt.return ()
@@ -651,9 +732,9 @@ let client_with_promise_already_failed_props () =
   assert_list_of_strings !output
     [
       "1:I[\"./client-with-props.js\",[],\"ClientWithProps\"]\n";
-      "2:E{\"message\":\"Failure(\\\"Already failed\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n";
       "0:[[\"$\",\"div\",null,{\"children\":\"Server \
-       Content\"},null,null,1],[\"$\",\"$1\",null,{\"promise\":\"$@2\"},null,null,1]]\n";
+       Content\"},null,null,1],[\"$\",\"$L1\",null,{\"promise\":\"$@2\"},null,null,1]]\n";
+      "2:E{\"message\":\"Failure(\\\"Already failed\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"\"}\n";
     ];
   Lwt.return ()
 
@@ -691,8 +772,8 @@ let mixed_server_and_client () =
       "1:I[\"./client-1.js\",[],\"Client1\"]\n";
       "2:I[\"./client-2.js\",[],\"Client2\"]\n";
       "0:[[\"$\",\"header\",null,{\"children\":\"Server \
-       Header\"},null,null,1],[\"$\",\"$1\",null,{},null,null,1],[\"$\",\"footer\",null,{\"children\":\"Server \
-       Footer\"},null,null,1],[\"$\",\"$2\",null,{},null,null,1]]\n";
+       Header\"},null,null,1],[\"$\",\"$L1\",null,{},null,null,1],[\"$\",\"footer\",null,{\"children\":\"Server \
+       Footer\"},null,null,1],[\"$\",\"$L2\",null,{},null,null,1]]\n";
     ];
   Lwt.return ()
 
@@ -721,7 +802,7 @@ let client_with_server_children () =
     [
       "1:I[\"./client-with-server-children.js\",[],\"ClientWithServerChildren\"]\n";
       "0:[[\"$\",\"div\",null,{\"children\":\"Server \
-       Content\"},null,null,1],[\"$\",\"$1\",null,{\"children\":[\"$\",\"div\",null,{\"children\":\"Server Component \
+       Content\"},null,null,1],[\"$\",\"$L1\",null,{\"children\":[\"$\",\"div\",null,{\"children\":\"Server Component \
        Inside Client\"},null,null,1]},null,null,1]]\n";
     ];
   Lwt.return ()
@@ -750,7 +831,7 @@ let style_as_json () =
   let output, subscribe = capture_stream () in
   let%lwt () = ReactServerDOM.render_model ~subscribe app in
   assert_list_of_strings !output
-    [ "0:[\"$\",\"div\",null,{\"style\":{\"zIndex\":\"34\",\"color\":\"red\",\"background\":\"blue\"}},null,null,1]\n" ];
+    [ "0:[\"$\",\"div\",null,{\"style\":{\"background\":\"blue\",\"color\":\"red\",\"zIndex\":\"34\"}},null,null,1]\n" ];
   Lwt.return ()
 
 let act_with_simple_response () =
@@ -766,8 +847,8 @@ let act_with_error () =
   let%lwt () = ReactServerDOM.create_action_response ~subscribe response in
   assert_list_of_strings (List.map replace_uuids !output)
     [
-      "1:E{\"message\":\"Failure(\\\"Error\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"<uuid>\"}\n";
       "0:\"$Z1\"\n";
+      "1:E{\"message\":\"Failure(\\\"Error\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"<uuid>\"}\n";
     ];
   Lwt.return ()
 
@@ -792,8 +873,8 @@ let act_with_error_from_handler () =
   let%lwt () = ReactServerDOM.create_action_response ~subscribe action_promise in
   assert_list_of_strings (List.map replace_uuids !output)
     [
-      "1:E{\"message\":\"Failure(\\\"Error from server\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"<uuid>\"}\n";
       "0:\"$Z1\"\n";
+      "1:E{\"message\":\"Failure(\\\"Error from server\\\")\",\"stack\":[],\"env\":\"Server\",\"digest\":\"<uuid>\"}\n";
     ];
   Lwt.return ()
 
@@ -955,7 +1036,7 @@ let client_component_with_async_component () =
   assert_list_of_strings !output
     [
       "1:I[\"./client.js\",[],\"Client\"]\n";
-      "0:[\"$\",\"$1\",null,{\"children\":\"$L2\"},null,null,1]\n";
+      "0:[\"$\",\"$L1\",null,{\"children\":\"$L2\"},null,null,1]\n";
       "2:\"Async Component\"\n";
     ];
   Lwt.return ()
@@ -1052,8 +1133,8 @@ let nested_context () =
     [
       "1:I[\"./provider.js\",[],\"Provider\"]\n";
       "2:I[\"./consumer.js\",[],\"Consumer\"]\n";
-      "0:[\"$\",\"$1\",null,{\"value\":[\"$\",\"$1\",null,{\"value\":[\"$\",\"$1\",null,{\"value\":[\"$\",\"$1\",null,{\"value\":null,\"children\":\"Hey \
-       you\"},null,null,1],\"children\":[\"/me\",[\"$\",\"$2\",null,{},null,null,1]]},null,null,1],\"children\":[\"/about\",[\"$\",\"$2\",null,{},null,null,1]]},null,null,1],\"children\":[\"/root\",[\"$\",\"$2\",null,{},null,null,1]]},null,null,1]\n";
+      "0:[\"$\",\"$L1\",null,{\"value\":[\"$\",\"$L1\",null,{\"value\":[\"$\",\"$L1\",null,{\"value\":[\"$\",\"$L1\",null,{\"value\":null,\"children\":\"Hey \
+       you\"},null,null,1],\"children\":[\"/me\",[\"$\",\"$L2\",null,{},null,null,1]]},null,null,1],\"children\":[\"/about\",[\"$\",\"$L2\",null,{},null,null,1]]},null,null,1],\"children\":[\"/root\",[\"$\",\"$L2\",null,{},null,null,1]]},null,null,1]\n";
     ];
   Lwt.return ()
 
@@ -1070,24 +1151,27 @@ let suspense_with_nested_upper_case () =
   let%lwt () = ReactServerDOM.render_model ~subscribe main in
   assert_list_of_strings !output
     [
-      "0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":[\"$\",\"div\",null,{\"children\":\"inner-value\"},null,null,1]},null,null,1]\n";
+      "1:\"$Sreact.suspense\"\n";
+      "0:[\"$\",\"$1\",null,{\"children\":[\"$\",\"div\",null,{\"children\":\"inner-value\"},null,null,1],\"fallback\":\"Loading...\"},null,null,1]\n";
     ];
   Lwt.return ()
 
 let suspense_at_root () =
-  (* React: 0:["$","$Sreact.suspense",null,{"fallback":"Loading...","children":"Resolved content"}] *)
+  (* React: 1:"$Sreact.suspense" then 0:["$","$1",null,{"children":"Resolved content","fallback":"Loading..."}] *)
   let app = mk_suspense ~fallback:(React.string "Loading...") ~children:(React.string "Resolved content") () in
   let output, subscribe = capture_stream () in
   let%lwt () = ReactServerDOM.render_model ~subscribe app in
   assert_list_of_strings !output
     [
-      "0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"Resolved content\"},null,null,1]\n";
+      "1:\"$Sreact.suspense\"\n";
+      "0:[\"$\",\"$1\",null,{\"children\":\"Resolved content\",\"fallback\":\"Loading...\"},null,null,1]\n";
     ];
   Lwt.return ()
 
 let suspense_at_root_with_upper_case_children () =
   (* Server components inside Suspense are inlined, matching React.js.
-     React: 0:["$","$Sreact.suspense",null,{"fallback":"Loading...","children":["$","div",null,{"children":"Hello"}]}] *)
+     React: 1:"$Sreact.suspense" then
+     0:["$","$1",null,{"children":["$","div",null,{"children":"Hello"}],"fallback":"Loading..."}] *)
   let app =
     mk_suspense ~fallback:(React.string "Loading...")
       ~children:(React.Upper_case_component ("Inner", fun () -> React.createElement "div" [] [ React.string "Hello" ]))
@@ -1097,14 +1181,16 @@ let suspense_at_root_with_upper_case_children () =
   let%lwt () = ReactServerDOM.render_model ~subscribe app in
   assert_list_of_strings !output
     [
-      "0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":[\"$\",\"div\",null,{\"children\":\"Hello\"},null,null,1]},null,null,1]\n";
+      "1:\"$Sreact.suspense\"\n";
+      "0:[\"$\",\"$1\",null,{\"children\":[\"$\",\"div\",null,{\"children\":\"Hello\"},null,null,1],\"fallback\":\"Loading...\"},null,null,1]\n";
     ];
   Lwt.return ()
 
 let suspense_at_root_with_nested_components () =
   (* Server components are always inlined, matching React.js behavior.
-       0:["$","$Sreact.suspense",null,{"fallback":"Loading...",
-         "children":["$","div",null,{"children":["$","div",null,{"children":"Hello"}]}]}] *)
+       1:"$Sreact.suspense" then
+       0:["$","$1",null,{"children":["$","div",null,{"children":["$","div",null,{"children":"Hello"}]}],
+         "fallback":"Loading..."}] *)
   let inner () =
     React.Upper_case_component ("Inner", fun () -> React.createElement "div" [] [ React.string "Hello" ])
   in
@@ -1114,13 +1200,14 @@ let suspense_at_root_with_nested_components () =
   let%lwt () = ReactServerDOM.render_model ~subscribe app in
   assert_list_of_strings !output
     [
-      "0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":[\"$\",\"div\",null,{\"children\":[\"$\",\"div\",null,{\"children\":\"Hello\"},null,null,1]},null,null,1]},null,null,1]\n";
+      "1:\"$Sreact.suspense\"\n";
+      "0:[\"$\",\"$1\",null,{\"children\":[\"$\",\"div\",null,{\"children\":[\"$\",\"div\",null,{\"children\":\"Hello\"},null,null,1]},null,null,1],\"fallback\":\"Loading...\"},null,null,1]\n";
     ];
   Lwt.return ()
 
 let suspense_at_root_with_async () =
   (* Async children inside root Suspense create a lazy ref.
-     React: 0:["$","$Sreact.suspense",null,{"fallback":"Loading...","children":"$L1"}] then 1:resolved *)
+     React: 1:"$Sreact.suspense" then 0:["$","$1",null,{"children":"$L2","fallback":"Loading..."}] then 2:resolved *)
   let app =
     mk_suspense ~fallback:(React.string "Loading...")
       ~children:
@@ -1135,8 +1222,9 @@ let suspense_at_root_with_async () =
   let%lwt () = ReactServerDOM.render_model ~subscribe app in
   assert_list_of_strings !output
     [
-      "0:[\"$\",\"$Sreact.suspense\",null,{\"fallback\":\"Loading...\",\"children\":\"$L1\"},null,null,1]\n";
-      "1:[\"$\",\"span\",null,{\"children\":\"Async resolved\"},null,null,1]\n";
+      "1:\"$Sreact.suspense\"\n";
+      "0:[\"$\",\"$1\",null,{\"children\":\"$L2\",\"fallback\":\"Loading...\"},null,null,1]\n";
+      "2:[\"$\",\"span\",null,{\"children\":\"Async resolved\"},null,null,1]\n";
     ];
   Lwt.return ()
 
@@ -1337,7 +1425,7 @@ let server_function_as_model_prop () =
     [
       "1:I[\"./client.js\",[],\"Client\"]\n";
       "2:{\"id\":\"action-id-123\",\"bound\":null}\n";
-      "0:[\"$\",\"$1\",null,{\"onSubmit\":\"$F2\"},null,null,1]\n";
+      "0:[\"$\",\"$L1\",null,{\"onSubmit\":\"$F2\"},null,null,1]\n";
     ];
   Lwt.return ()
 
@@ -1346,7 +1434,7 @@ let error_in_prod_hides_message () =
   let main = React.Upper_case_component ("app", app) in
   let output, subscribe = capture_stream () in
   let%lwt () = ReactServerDOM.render_model ~env:`Prod ~subscribe main in
-  assert_list_of_strings !output [ "1:E{\"digest\":\"\"}\n"; "0:\"$L1\"\n" ];
+  assert_list_of_strings !output [ "0:E{\"digest\":\"\"}\n" ];
   Lwt.return ()
 
 let duplicate_client_component_deduplicates_ref () =
@@ -1360,7 +1448,7 @@ let duplicate_client_component_deduplicates_ref () =
   assert_list_of_strings !output
     [
       "1:I[\"./client.js\",[],\"Client\"]\n";
-      "0:[[\"$\",\"$1\",null,{},null,null,1],[\"$\",\"$1\",null,{},null,null,1]]\n";
+      "0:[[\"$\",\"$L1\",null,{},null,null,1],[\"$\",\"$L1\",null,{},null,null,1]]\n";
     ];
   Lwt.return ()
 
@@ -1381,7 +1469,7 @@ let keyed_duplicate_client_component_preserves_keys () =
   assert_list_of_strings !output
     [
       "1:I[\"./client.js\",[],\"Client\"]\n";
-      "0:[[\"$\",\"$1\",\"first\",{},null,null,1],[\"$\",\"$1\",\"second\",{},null,null,1]]\n";
+      "0:[[\"$\",\"$L1\",\"first\",{},null,null,1],[\"$\",\"$L1\",\"second\",{},null,null,1]]\n";
     ];
   Lwt.return ()
 
@@ -1390,6 +1478,10 @@ let tests =
     test "null_element" null_element;
     test "special_characters_not_html_encoded" special_characters_not_html_encoded;
     test "string_element" string_element;
+    test "dollar_prefixed_strings_are_escaped" dollar_prefixed_strings_are_escaped;
+    test "dollar_prefixed_json_props_are_escaped" dollar_prefixed_json_props_are_escaped;
+    test "numeric_props_serialize_as_json_numbers" numeric_props_serialize_as_json_numbers;
+    test "numeric_children_serialize_as_json_numbers" numeric_children_serialize_as_json_numbers;
     test "key_renders_outside_of_props" key_renders_outside_of_props;
     test "style_as_json" style_as_json;
     test "lower_case_component" lower_case_component;

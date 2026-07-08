@@ -51,7 +51,7 @@ let bool_false_attribute () =
 
 let style_attribute () =
   let div = React.createElement "div" [ React.JSX.style (ReactDOMStyle.make ~color:"red" ~border:"none" ()) ] [] in
-  assert_string (write div) {|<div style="color:red;border:none"></div>|}
+  assert_string (write div) {|<div style="border:none;color:red"></div>|}
 
 let style_attribute_escaping () =
   (* A quote inside a style value must be escaped, otherwise it terminates the
@@ -95,7 +95,7 @@ let suspense_success () =
       {
         key = None;
         children = React.createElement "div" [] [ React.string "ok" ];
-        fallback = React.createElement "div" [] [ React.string "loading" ];
+        fallback = Some (React.createElement "div" [] [ React.string "loading" ]);
       }
   in
   assert_string (write el) "<div>ok</div>"
@@ -107,7 +107,7 @@ let suspense_fallback_on_error () =
       {
         key = None;
         children = React.Upper_case_component ("Throws", fun () -> raise (Failure "boom"));
-        fallback = React.createElement "div" [] [ React.string "fallback" ];
+        fallback = Some (React.createElement "div" [] [ React.string "fallback" ]);
       }
   in
   assert_string (write el) "<div>fallback</div>"

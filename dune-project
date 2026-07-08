@@ -27,7 +27,9 @@
   ; General system dependencies
   (ocaml (>= 4.14.1))
   (reason (>= 3.17.2))
-  (melange (>= 3.0.0))
+  ; melange 7 inlines externals cross-module and breaks relative
+  ; [@mel.module "./..."] paths (e.g. ReactServerDOMEsbuild.js)
+  (melange (and (>= 3.0.0) (< 7.0.0)))
 
   ; Library dependencies
   (uucp (>= 16.0.0))
