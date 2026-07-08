@@ -83,11 +83,21 @@ end
 module Stream = struct
   type 'a t = {
     push : 'a -> unit;
+    (* Import (I) rows bypass the pending-hints drain: React flushes
+       completedImportChunks before completedHintChunks, so an import row
+       encountered after a hint call still streams before the hint. *)
+    push_import : 'a -> unit;
     close : unit -> unit;
     mutable index : int;
     mutable pending : int;
     written_client_references : (string * string, int) Hashtbl.t;
     written_symbols : (string, int) Hashtbl.t;
+    (* React's request.hints set: one H row per dedup key per request. *)
+    written_hints : (string, unit) Hashtbl.t;
+    (* Hint rows buffered until the next regular row write, emulating React's
+       flush order within a cycle: imports, hints, regular rows, errors. Hint
+       rows are id-less (":H<code><json>") and never consume a row id. *)
+    pending_hints : 'a Queue.t;
     (* React's writtenObjects for thenables: the same promise serialized twice
        in one stream resolves to the same "$@<id>" reference and a single
        resolution row. Keyed on the promise's PHYSICAL identity (an assoc list
@@ -138,9 +148,16 @@ module Stream = struct
     match Hashtbl.find_opt context.written_client_references key with
     | Some existing_index -> existing_index
     | None ->
-        let index = push to_chunk ~context in
+        let index = context.index in
+        context.index <- context.index + 1;
+        context.push_import (to_chunk index);
         Hashtbl.replace context.written_client_references key index;
         index
+
+  let push_hint ~context ~dedup_key row =
+    if not (Hashtbl.mem context.written_hints dedup_key) then (
+      Hashtbl.replace context.written_hints dedup_key ();
+      Queue.add row context.pending_hints)
 
   let find_written_promise ~context key =
     List.find_map (fun (k, index) -> if Physical_key.equal k key then Some index else None) context.written_promises
@@ -177,15 +194,29 @@ module Stream = struct
     index
 
   let make ?(initial_index = 0) ?(pending = 0) () =
-    let stream, push, close = Push_stream.make () in
+    let stream, push_raw, close_raw = Push_stream.make () in
+    let pending_hints = Queue.create () in
+    let drain_hints () =
+      Queue.iter push_raw pending_hints;
+      Queue.clear pending_hints
+    in
     ( stream,
       {
-        push;
-        close;
+        push =
+          (fun chunk ->
+            drain_hints ();
+            push_raw chunk);
+        push_import = push_raw;
+        close =
+          (fun () ->
+            drain_hints ();
+            close_raw ());
         pending;
         index = initial_index;
         written_client_references = Hashtbl.create 16;
         written_symbols = Hashtbl.create 4;
+        written_hints = Hashtbl.create 8;
+        pending_hints;
         written_promises = [];
         deferred_rows = [];
       } )
@@ -410,6 +441,16 @@ module Model = struct
     let buf = Buffer.create 256 in
     Buffer.add_string buf (Printf.sprintf "%x:E" id);
     Yojson.Basic.write_json buf error;
+    Buffer.add_string buf "\n";
+    Buffer.contents buf
+
+  (* Hint rows are id-less; the payload is plain JSON.stringify output, never
+     $-escaped (React's emitHint stringifies outside the flight serializer). *)
+  let hint_to_chunk code payload =
+    let buf = Buffer.create 64 in
+    Buffer.add_string buf ":H";
+    Buffer.add_string buf code;
+    Yojson.Basic.write_json buf payload;
     Buffer.add_string buf "\n";
     Buffer.contents buf
 
@@ -741,11 +782,15 @@ module Model = struct
           Lwt.return (to_chunk (Value payload))
         with exn -> Lwt.return (to_chunk (Error (env, exn_to_error exn))))
 
+  let hint_sink ~context { Flight_hints.dedup_key; code; payload } =
+    Stream.push_hint ~context ~dedup_key (hint_to_chunk code payload)
+
   let render ?(env = `Dev) ?(debug = false) ?filter_stack_frame ?subscribe ?identifier_prefix model =
     React.reset_id_rendering ?prefix:identifier_prefix ();
     let stream, context = Stream.make () in
-    let (_root_index : int) = push_root_task ~debug ?filter_stack_frame ~context ~env model in
-    match subscribe with None -> Lwt.return () | Some subscribe -> Lwt_stream.iter_s subscribe stream
+    Flight_hints.with_sink (hint_sink ~context) (fun () ->
+        let (_root_index : int) = push_root_task ~debug ?filter_stack_frame ~context ~env model in
+        match subscribe with None -> Lwt.return () | Some subscribe -> Lwt_stream.iter_s subscribe stream)
 
   let create_action_response ?(env = `Dev) ?(debug = false) ?filter_stack_frame ?subscribe response =
     let%lwt response =
@@ -757,8 +802,9 @@ module Model = struct
         Lwt.return (React.Model.Error { message; stack; env = "Server"; digest })
     in
     let stream, context = Stream.make () in
-    let (_root_index : int) = push_root_task ~debug ?filter_stack_frame ~context ~env response in
-    match subscribe with None -> Lwt.return () | Some subscribe -> Lwt_stream.iter_s subscribe stream
+    Flight_hints.with_sink (hint_sink ~context) (fun () ->
+        let (_root_index : int) = push_root_task ~debug ?filter_stack_frame ~context ~env response in
+        match subscribe with None -> Lwt.return () | Some subscribe -> Lwt_stream.iter_s subscribe stream)
 end
 
 let rsc_start_script =
