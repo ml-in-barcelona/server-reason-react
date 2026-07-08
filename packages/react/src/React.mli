@@ -702,12 +702,20 @@ module Tree_context : sig
 end
 
 val current_tree_context : Tree_context.t Stdlib.ref
-(** Rendering hook context — called by the renderer before/after rendering each function component. *)
+(** Rendering hook context — called by the renderer before/after rendering each function component.
+
+    Process-global: two async renders must not be in flight concurrently in one process, or their [useId] state corrupts
+    each other at Lwt yields. *)
 
 val reset_component_id_state : Tree_context.t -> unit
 val check_did_render_id_hook : unit -> bool
 val reset_id_rendering : ?prefix:string -> unit -> unit
+
 val useId : unit -> string
+(** Generates a stable id for the current render.
+
+    Relies on process-global state ([current_tree_context] et al.): only one async render may be in flight per process,
+    otherwise concurrent renders interleave at Lwt yields and produce hydration mismatches. *)
 
 type ('input, 'output) callback = 'input -> 'output
 

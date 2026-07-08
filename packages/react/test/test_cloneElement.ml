@@ -47,8 +47,9 @@ let clone_attributes () =
 
 let clone_order_attributes () =
   let element = React.createElement "div" [] [] in
+  (* spread semantics: new attributes are appended in their original order *)
   let expected =
-    React.createElement "div" [ React.JSX.String ("val", "val", "31"); React.JSX.Bool ("lola", "lola", true) ] []
+    React.createElement "div" [ React.JSX.Bool ("lola", "lola", true); React.JSX.String ("val", "val", "31") ] []
   in
   let cloned =
     React.cloneElement element [ React.JSX.Bool ("lola", "lola", true); React.JSX.String ("val", "val", "31") ]
@@ -98,9 +99,10 @@ let clone_static_with_new_attributes () =
   let original = React.createElement "div" [ React.JSX.String ("id", "id", "root") ] [] in
   let static_element = React.Static { prerendered = {|<div id="root"></div>|}; original } in
   let cloned = React.cloneElement static_element [ React.JSX.String ("class", "className", "container") ] in
+  (* spread semantics: base attributes first, new attributes appended *)
   let expected =
     React.createElement "div"
-      [ React.JSX.String ("class", "className", "container"); React.JSX.String ("id", "id", "root") ]
+      [ React.JSX.String ("id", "id", "root"); React.JSX.String ("class", "className", "container") ]
       []
   in
   assert_element cloned expected
@@ -126,9 +128,10 @@ let clone_static_preserves_children () =
   let original = React.createElement "div" [ React.JSX.String ("id", "id", "parent") ] children in
   let static_element = React.Static { prerendered = {|<div id="parent"><span></span>hello</div>|}; original } in
   let cloned = React.cloneElement static_element [ React.JSX.String ("class", "className", "wrapper") ] in
+  (* spread semantics: base attributes first, new attributes appended *)
   let expected =
     React.createElement "div"
-      [ React.JSX.String ("class", "className", "wrapper"); React.JSX.String ("id", "id", "parent") ]
+      [ React.JSX.String ("id", "id", "parent"); React.JSX.String ("class", "className", "wrapper") ]
       children
   in
   assert_element cloned expected
@@ -140,6 +143,68 @@ let clone_nested_static () =
   let outer_static = React.Static { prerendered = {|<div><p id="inner"></p></div>|}; original = outer_original } in
   let cloned = React.cloneElement outer_static [ React.JSX.Bool ("hidden", "hidden", true) ] in
   let expected = React.createElement "div" [ React.JSX.Bool ("hidden", "hidden", true) ] [ inner_static ] in
+  assert_element cloned expected
+
+let clone_preserves_style_and_event () =
+  let styles = [ ("color", "color", "red") ] in
+  let on_click = React.JSX.Event ("onClick", React.JSX.Mouse (fun _ -> ())) in
+  let element =
+    React.createElement "button" [ React.JSX.Style styles; on_click; React.JSX.String ("name", "name", "submit") ] []
+  in
+  let cloned = React.cloneElement element [ React.JSX.String ("id", "id", "cta") ] in
+  let expected =
+    React.createElement "button"
+      [
+        React.JSX.Style styles;
+        on_click;
+        React.JSX.String ("name", "name", "submit");
+        React.JSX.String ("id", "id", "cta");
+      ]
+      []
+  in
+  assert_element cloned expected
+
+let clone_override_keeps_base_position () =
+  let element =
+    React.createElement "div"
+      [ React.JSX.String ("class", "className", "a"); React.JSX.Bool ("hidden", "hidden", true) ]
+      []
+  in
+  let cloned = React.cloneElement element [ React.JSX.String ("class", "className", "b") ] in
+  let expected =
+    React.createElement "div"
+      [ React.JSX.String ("class", "className", "b"); React.JSX.Bool ("hidden", "hidden", true) ]
+      []
+  in
+  assert_element cloned expected;
+  Alcotest.(check string) "renders overridden class" {|<div class="b" hidden></div>|} (ReactDOM.renderToString cloned)
+
+let clone_preserves_attribute_order () =
+  let element =
+    React.createElement "div"
+      [ React.JSX.String ("a", "a", "1"); React.JSX.String ("b", "b", "2"); React.JSX.String ("c", "c", "3") ]
+      []
+  in
+  let cloned = React.cloneElement element [ React.JSX.String ("d", "d", "4") ] in
+  let expected =
+    React.createElement "div"
+      [
+        React.JSX.String ("a", "a", "1");
+        React.JSX.String ("b", "b", "2");
+        React.JSX.String ("c", "c", "3");
+        React.JSX.String ("d", "d", "4");
+      ]
+      []
+  in
+  assert_element cloned expected
+
+let clone_preserves_dangerously_inner_html () =
+  let html = "<strong>hi</strong>" in
+  let element = React.createElement "div" [ React.JSX.DangerouslyInnerHtml html ] [] in
+  let cloned = React.cloneElement element [ React.JSX.String ("id", "id", "raw") ] in
+  let expected =
+    React.createElement "div" [ React.JSX.DangerouslyInnerHtml html; React.JSX.String ("id", "id", "raw") ] []
+  in
   assert_element cloned expected
 
 let case title fn = Alcotest.test_case title `Quick fn
@@ -159,4 +224,8 @@ let tests =
       case "static result is Lower_case_element not Static" clone_static_result_is_not_static;
       case "static preserves children" clone_static_preserves_children;
       case "static nested static unwraps outer only" clone_nested_static;
+      case "style and event props survive a clone" clone_preserves_style_and_event;
+      case "override replaces value in base position" clone_override_keeps_base_position;
+      case "base order preserved, new attributes appended" clone_preserves_attribute_order;
+      case "dangerouslySetInnerHTML survives a clone" clone_preserves_dangerously_inner_html;
     ] )

@@ -439,61 +439,44 @@ and model_value = element Model.t
 
 exception Invalid_children of string
 
-let compare_attribute (left : JSX.prop) (right : JSX.prop) =
-  match (left, right) with
-  | Bool (left_key, _, _), Bool (right_key, _, _)
-  | BooleanishString (left_key, _, _), BooleanishString (right_key, _, _)
-  | String (left_key, _, _), String (right_key, _, _)
-  | Int (left_key, _, _), Int (right_key, _, _)
-  | Float (left_key, _, _), Float (right_key, _, _) ->
-      String.compare left_key right_key
-  | Style left_styles, Style right_styles ->
-      List.compare
-        (fun (left_property, _, left_value) (right_property, _, right_value) ->
-          Int.compare (String.compare left_property right_property) (String.compare left_value right_value))
-        left_styles right_styles
-  | _ -> 0
+let prop_key (prop : JSX.prop) =
+  match prop with
+  | Bool (name, _, _) -> name
+  | BooleanishString (name, _, _) -> name
+  | String (name, _, _) -> name
+  | Int (name, _, _) -> name
+  | Float (name, _, _) -> name
+  | Action (name, _, _) -> name
+  | Style _ -> "style"
+  | DangerouslyInnerHtml _ -> "dangerouslySetInnerHTML"
+  | Ref _ -> "ref"
+  | Event (name, _) -> name
 
-let clone_attribute acc (attr : JSX.prop) (new_attr : JSX.prop) =
-  match (attr, new_attr) with
-  | Bool (left, _, _), Bool (right, _, _) when left == right -> new_attr :: acc
-  | BooleanishString (left, _, _), BooleanishString (right, _, _) when left == right -> new_attr :: acc
-  | String (left, _, _), String (right, _, _) when left == right -> new_attr :: acc
-  | Int (left, _, _), Int (right, _, _) when left == right -> new_attr :: acc
-  | Float (left, _, _), Float (right, _, _) when left == right -> new_attr :: acc
-  | _ -> new_attr :: acc
-
-module StringMap = Map.Make (String)
-
-let attributes_to_map attributes =
-  List.fold_left
-    (fun acc (attr : JSX.prop) ->
-      match attr with
-      | (Bool (key, _, _) | BooleanishString (key, _, _) | String (key, _, _) | Int (key, _, _) | Float (key, _, _)) as
-        prop ->
-          acc |> StringMap.add key prop
-      (* The following constructors shoudn't be part of the StringMap *)
-      | DangerouslyInnerHtml _ -> acc
-      | Ref _ -> acc
-      | Event _ -> acc
-      | Action _ -> acc
-      | Style _ -> acc)
-    StringMap.empty attributes
-
-let clone_attributes attributes new_attributes =
-  let attribute_map = attributes_to_map attributes in
-  let new_attribute_map = attributes_to_map new_attributes in
-  StringMap.merge
-    (fun _key attr new_attr ->
-      match (attr, new_attr) with
-      | Some attr, Some new_attr -> Some (clone_attribute [] attr new_attr)
-      | Some attr, None -> Some [ attr ]
-      | None, Some new_attr -> Some [ new_attr ]
-      | None, None -> None)
-    attribute_map new_attribute_map
-  |> StringMap.bindings
-  |> List.map (fun (_, attrs) -> attrs)
-  |> List.flatten |> List.rev |> List.sort compare_attribute
+(* Merges attributes following JS object-spread semantics ([{...attributes, ...new_attributes}]): base attributes keep
+   their original order and are replaced in place when a new attribute shares their key; new attributes with unseen
+   keys are appended in their original order. If the same key appears multiple times in [new_attributes], the last
+   occurrence wins. O(n²) over List, which is fine: attribute lists are small and [cloneElement] is rare. *)
+let clone_attributes (attributes : JSX.prop list) (new_attributes : JSX.prop list) =
+  let key_equals key prop = String.equal (prop_key prop) key in
+  let last_new_with_key key =
+    List.fold_left (fun acc prop -> if key_equals key prop then Some prop else acc) None new_attributes
+  in
+  let base =
+    List.map
+      (fun attr -> match last_new_with_key (prop_key attr) with Some replacement -> replacement | None -> attr)
+      attributes
+  in
+  let rec append_new seen props =
+    match props with
+    | [] -> []
+    | prop :: rest ->
+        let key = prop_key prop in
+        if List.exists (key_equals key) attributes || List.mem key seen then append_new seen rest
+        else
+          let winner = match last_new_with_key key with Some last -> last | None -> prop in
+          winner :: append_new (key :: seen) rest
+  in
+  base @ append_new [] new_attributes
 
 let create_element_with_key ?key tag attributes children =
   match Html.is_self_closing_tag tag with
@@ -757,7 +740,13 @@ end
 
 (* Rendering hook context — mutable state set by the renderer (ReactDOM) and
    read by hooks (useId). This mirrors React's currentlyRenderingTask pattern
-   in ReactFizzHooks.js. *)
+   in ReactFizzHooks.js.
+
+   This state is process-global: two async renders (renderToStream/render_html)
+   must not be in flight concurrently in one process, or their useId state
+   interleaves at Lwt yields and produces hydration mismatches.
+   TODO: scope per render (Lwt.key, as React.Cache/Context do, or thread through
+   the renderer) before enabling concurrent renders. *)
 let current_tree_context : Tree_context.t Stdlib.ref = Stdlib.ref Tree_context.empty
 let local_id_counter : int Stdlib.ref = Stdlib.ref 0
 let did_render_id_hook : bool Stdlib.ref = Stdlib.ref false
