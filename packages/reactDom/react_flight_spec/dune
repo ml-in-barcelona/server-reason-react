@@ -1,4 +1,4 @@
 ; Only these directories are part of the dune build. Crucially this keeps
 ; node_modules (bun-managed, for fixture generation) out of dune's sight.
 
-(dirs harness cases conformance fixtures)
+(dirs harness cases conformance fixtures reply)

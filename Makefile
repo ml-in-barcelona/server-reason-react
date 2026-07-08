@@ -154,10 +154,15 @@ spec-generate: ## Regenerate React Flight fixtures from react-server-dom-webpack
 	$(DUNE) build --profile=dev @$(flight_spec_dir)/melange
 	cd $(flight_spec_dir) && NODE_ENV=production bun --conditions react-server generate.mjs
 
+.PHONY: spec-generate-reply
+spec-generate-reply: ## Regenerate React Flight reply fixtures from encodeReply (requires bun + `bun install` in $(flight_spec_dir))
+	cd $(flight_spec_dir) && NODE_ENV=production bun reply/generate-reply.mjs
+
 .PHONY: spec-check
-spec-check: ## Verify the committed React Flight fixtures are up to date
+spec-check: ## Verify the committed React Flight fixtures (both directions) are up to date
 	$(DUNE) build --profile=dev @$(flight_spec_dir)/melange
 	cd $(flight_spec_dir) && NODE_ENV=production bun --conditions react-server generate.mjs --check
+	cd $(flight_spec_dir) && NODE_ENV=production bun reply/generate-reply.mjs --check
 
 container_name = server-reason-react-demo
 current_hash = $(shell git rev-parse HEAD | cut -c1-7)
