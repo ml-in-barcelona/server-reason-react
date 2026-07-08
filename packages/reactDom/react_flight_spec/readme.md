@@ -49,11 +49,22 @@ make spec-check
 
 Cases annotated with `~xfail` in `cases/shared/Cases.re` are **expected** to mismatch;
 the conformance runner asserts that they *do* mismatch, so they flip loudly when fixed.
-There are currently **no known divergences**: all cases assert byte-equality
-against the React fixtures. The five divergences the spec caught on day one
-(`$`-string escaping, numeric props as strings, `$` instead of `$L` client
-references, inlined suspense symbol, unconditional 7-tuple element rows) were
-fixed on this branch — see the git history for the wire-format alignment.
+The five divergences the spec caught on day one (`$`-string escaping, numeric
+props as strings, `$` instead of `$L` client references, inlined suspense
+symbol, unconditional 7-tuple element rows) were fixed on this branch — see
+the git history for the wire-format alignment.
+
+Current known divergences (see the `~xfail` reasons in `Cases.re` for the
+exact rows):
+
+- `children_numbers` — `React.int`/`React.float` children cross the wire as
+  JSON strings (srr stringifies at construction); React emits JSON numbers.
+- `props_style_order` — multi-property style objects come out with reversed
+  key order (srr's `ReactDOM.Style.make` prepends in declaration order).
+- `props_aria_current` — serialized as `"ariaCurrent"` instead of
+  `"aria-current"` (camelCase jsxName in srr's DomProps table).
+- `props_aria_booleanish` — boolean aria props are stringified to
+  `"true"`/`"false"`; React keeps raw JSON booleans.
 
 ## Bumping React
 

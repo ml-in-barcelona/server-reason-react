@@ -38,6 +38,29 @@ let all: list(case) = [
   case("fragment_nested", Fragment_nested.app),
   case("props_primitives", Props_primitives.app),
   case("props_float", Props_float.app),
+  case("props_boolean_attributes", Props_boolean_attributes.app),
+  case("props_style", Props_style.app),
+  case(
+    "props_style_order",
+    Props_style_order.app,
+    ~xfail=
+      {|React preserves the style object's insertion order ({"backgroundColor":...,"color":...}); srr's ReactDOM.Style.make prepends properties in declaration order, emitting the keys reversed ({"color":...,"backgroundColor":...})|},
+  ),
+  case("props_aria", Props_aria.app),
+  case(
+    "props_aria_current",
+    Props_aria_current.app,
+    ~xfail=
+      {|React emits "aria-current"; srr serializes it as "ariaCurrent" — the only aria attribute in DomProps.ml whose jsxName is camelCase instead of the hyphenated wire name|},
+  ),
+  case(
+    "props_aria_booleanish",
+    Props_aria_booleanish.app,
+    ~xfail=
+      {|React keeps raw booleans in the payload ("aria-atomic":false,"aria-hidden":true); srr stringifies booleanish aria props at JSX construction ("aria-atomic":"false","aria-hidden":"true")|},
+  ),
+  case("text_unicode", Text_unicode.app),
+  case("text_json_specials", Text_json_specials.app),
   case("fragment", Fragment_basic.app),
   case("text_encoding", Text_encoding.app),
   case("client_component_basic", Client_component_basic.app),
