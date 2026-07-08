@@ -21,6 +21,12 @@ let case = (~xfail=?, name: string, render: unit => React.element): case => {
 let all: list(case) = [
   case("element_basic", Element_basic.app),
   case("element_nested", Element_nested.app),
+  case("element_keys", Element_keys.app),
+  case("element_key_on_root", Element_key_on_root.app),
+  case("element_empty_props", Element_empty_props.app),
+  case("element_void", Element_void.app),
+  case("deep_nesting", Deep_nesting.app),
+  case("large_array", Large_array.app),
   case("props_primitives", Props_primitives.app),
   case("props_float", Props_float.app),
   case("fragment", Fragment_basic.app),
