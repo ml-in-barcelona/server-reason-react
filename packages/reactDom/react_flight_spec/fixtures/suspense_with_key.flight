@@ -1,0 +1,2 @@
+1:"$Sreact.suspense"
+0:["$","$1","boundary",{"children":["$","div",null,{"children":"keyed"}],"fallback":["$","span",null,{"children":"loading"}]}]

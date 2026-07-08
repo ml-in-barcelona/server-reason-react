@@ -30,5 +30,17 @@ let all: list(case) = [
   case("suspense_immediate", Suspense_immediate.app),
   case("suspense_pending", Suspense_pending.app),
   case("suspense_two_boundaries", Suspense_two_boundaries.app),
+  case("suspense_nested", Suspense_nested.app),
+  case("suspense_inner_pending", Suspense_inner_pending.app),
+  case(
+    "suspense_no_fallback",
+    Suspense_no_fallback.app,
+    ~xfail=
+      {|srr serializes a missing Suspense fallback as "fallback":null; React omits the prop entirely: {"children":...}|},
+  ),
+  case("suspense_with_key", Suspense_with_key.app),
+  case("suspense_resolution_order", Suspense_resolution_order.app),
+  case("suspense_multiple_children", Suspense_multiple_children.app),
+  case("suspense_deeply_nested", Suspense_deeply_nested.app),
   case("promise_prop", Promise_prop.app),
 ];
