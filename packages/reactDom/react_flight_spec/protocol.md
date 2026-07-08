@@ -71,6 +71,30 @@ Prod emits the 4-tuple form. Dev appends the debug fields
 `[debugOwner, debugStack, validated]`, producing 7-tuples. server-reason-react
 follows the same gate on `~env`.
 
+A prop whose value is absent (e.g. a `<Suspense>` without `fallback`) is
+omitted from the props object entirely, not serialized as `null`
+(`suspense_no_fallback.flight`).
+
+## Errors
+
+Observed from the `error_*` fixtures:
+
+- A React node that throws — synchronously or as a rejected async component —
+  is replaced in its model position by a **lazy** reference `$L<id>`, and the
+  error itself streams as `<id>:E{...}`. The reference is `$L<hex>`, not
+  `$Z<hex>` (`error_row_reference.flight`).
+- Prod `E` rows carry `{"digest": ...}` only; the digest is the return value
+  of the `onError` render option (`""` when it returns undefined). Digests are
+  implementation-defined and normalized to `<digest>`.
+- Within a flush, React emits `E` rows **after** the model rows, even when the
+  throw happened synchronously while rendering the model
+  (`error_in_suspense_sync.flight`).
+- A throw while rendering the **root** model errors row 0 itself: the whole
+  stream is a single `0:E{...}` row (`error_component.flight`).
+- Suspense does not catch errors at the Flight layer: the boundary serializes
+  normally with its `children` as the errored `$L` reference and the fallback
+  untouched; fallback handling is the client's job.
+
 ## Normalization rules
 
 Applied identically by `generate.mjs` (fixture side) and the OCaml conformance

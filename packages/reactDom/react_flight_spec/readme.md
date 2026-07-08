@@ -49,11 +49,22 @@ make spec-check
 
 Cases annotated with `~xfail` in `cases/shared/Cases.re` are **expected** to mismatch;
 the conformance runner asserts that they *do* mismatch, so they flip loudly when fixed.
-There are currently **no known divergences**: all cases assert byte-equality
-against the React fixtures. The five divergences the spec caught on day one
-(`$`-string escaping, numeric props as strings, `$` instead of `$L` client
-references, inlined suspense symbol, unconditional 7-tuple element rows) were
-fixed on this branch — see the git history for the wire-format alignment.
+The five divergences the spec caught on day one (`$`-string escaping, numeric
+props as strings, `$` instead of `$L` client references, inlined suspense
+symbol, unconditional 7-tuple element rows) were fixed on this branch — see
+the git history for the wire-format alignment.
+
+Current known divergences:
+
+- `suspense_no_fallback` — srr serializes a missing Suspense fallback as
+  `"fallback":null`; React omits the prop from the props object entirely.
+- `error_component` — a sync throw at the root errors the root task itself in
+  React (the stream is a single `0:E{...}` row); srr outlines the error and
+  emits `1:E{...}` followed by `0:"$L1"`.
+- `error_row_reference`, `error_in_suspense_sync` — row **order**: React
+  flushes `E` rows after the model rows of the same flush, even for sync
+  throws; srr pushes the outlined error row before completing the root row.
+  Row contents (including the `$L<id>` reference) match byte-for-byte.
 
 ## Bumping React
 
