@@ -101,9 +101,7 @@ let all : case list =
        ("$money" -> "$$money"); its decoder strips only that escape
        character. srr's decodeReply strips the escape AND the first payload
        character ("$$money" -> "money" instead of "$money"). *)
-    case "dollar_strings"
-      [ `String "$money"; `String "$$x"; `String "$"; `String "price is $10" ]
-      ~xfail:"srr's $$ unescape drops the first character of the payload (\"$$money\" decodes to \"money\")";
+    case "dollar_strings" [ `String "$money"; `String "$$x"; `String "$"; `String "price is $10" ];
     case "undefined_arg" [ `String "a"; `Null; `Int 42 ];
     case "date" [ `String "2024-01-15T10:30:00.000Z" ];
     case "bigint" [ `String "9007199254740993" ];

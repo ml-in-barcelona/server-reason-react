@@ -1579,7 +1579,8 @@ let rec decode_value (ctx : decode_ctx) (json : json) : (json, string) result =
       let len = String.length value in
       let rest = String.sub value 2 (len - 2) in
       match String.get value 1 with
-      | '$' -> Ok (`String rest)
+      (* Escaped user string: drop only the escaping '$', like React's value.slice(1) *)
+      | '$' -> Ok (`String (String.sub value 1 (len - 1)))
       | 'u' -> Ok `Null
       | 'K' -> Ok `Null
       | 'D' -> Ok (`String rest)
