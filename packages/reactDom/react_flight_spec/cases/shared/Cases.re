@@ -43,12 +43,7 @@ let all: list(case) = [
   case("props_style_order", Props_style_order.app),
   case("props_aria", Props_aria.app),
   case("props_aria_current", Props_aria_current.app),
-  case(
-    "props_aria_booleanish",
-    Props_aria_booleanish.app,
-    ~xfail=
-      {|React keeps raw booleans in the payload ("aria-atomic":false,"aria-hidden":true); srr stringifies booleanish aria props at JSX construction ("aria-atomic":"false","aria-hidden":"true")|},
-  ),
+  case("props_aria_booleanish", Props_aria_booleanish.app),
   case("text_unicode", Text_unicode.app),
   case("text_json_specials", Text_json_specials.app),
   case("fragment", Fragment_basic.app),

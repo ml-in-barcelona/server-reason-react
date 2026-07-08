@@ -350,6 +350,11 @@ module JSX = struct
   type prop =
     | Action : (string * string * _ Runtime.server_function) -> prop
     | Bool of (string * string * bool)
+    | BooleanishString of (string * string * bool)
+        (** Boolean-valued props that render as "true"/"false" strings in HTML attributes (aria-hidden, draggable, …)
+            but stay raw JSON booleans in the Flight payload.
+            https://github.com/facebook/react/blob/a17467e7e2cd8947c595d1834889b5d184459f12/packages/react-dom-bindings/src/server/ReactFizzConfigDOM.js#L1165-L1176
+        *)
     | String of (string * string * string)
     | Int of (string * string * int)
     | Float of (string * string * float)
@@ -359,6 +364,7 @@ module JSX = struct
     | Event of string * event
 
   let bool name jsxName value = Bool (name, jsxName, value)
+  let booleanishString name jsxName value = BooleanishString (name, jsxName, value)
   let string name jsxName value = String (name, jsxName, value)
   let style value = Style value
   let int name jsxName value = Int (name, jsxName, value)
@@ -440,6 +446,7 @@ exception Invalid_children of string
 let compare_attribute (left : JSX.prop) (right : JSX.prop) =
   match (left, right) with
   | Bool (left_key, _, _), Bool (right_key, _, _)
+  | BooleanishString (left_key, _, _), BooleanishString (right_key, _, _)
   | String (left_key, _, _), String (right_key, _, _)
   | Int (left_key, _, _), Int (right_key, _, _)
   | Float (left_key, _, _), Float (right_key, _, _) ->
@@ -454,6 +461,7 @@ let compare_attribute (left : JSX.prop) (right : JSX.prop) =
 let clone_attribute acc (attr : JSX.prop) (new_attr : JSX.prop) =
   match (attr, new_attr) with
   | Bool (left, _, _), Bool (right, _, _) when left == right -> new_attr :: acc
+  | BooleanishString (left, _, _), BooleanishString (right, _, _) when left == right -> new_attr :: acc
   | String (left, _, _), String (right, _, _) when left == right -> new_attr :: acc
   | Int (left, _, _), Int (right, _, _) when left == right -> new_attr :: acc
   | Float (left, _, _), Float (right, _, _) when left == right -> new_attr :: acc
@@ -465,7 +473,8 @@ let attributes_to_map attributes =
   List.fold_left
     (fun acc (attr : JSX.prop) ->
       match attr with
-      | (Bool (key, _, _) | String (key, _, _) | Int (key, _, _) | Float (key, _, _)) as prop ->
+      | (Bool (key, _, _) | BooleanishString (key, _, _) | String (key, _, _) | Int (key, _, _) | Float (key, _, _)) as
+        prop ->
           acc |> StringMap.add key prop
       (* The following constructors shoudn't be part of the StringMap *)
       | DangerouslyInnerHtml _ -> acc

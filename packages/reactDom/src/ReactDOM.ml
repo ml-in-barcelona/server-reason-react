@@ -20,6 +20,14 @@ let write_attribute_to_buffer buf (attr : React.JSX.prop) =
   | Bool (name, _, true) ->
       Buffer.add_char buf ' ';
       Buffer.add_string buf name
+  | BooleanishString (name, _, _) when is_react_custom_attribute name -> ()
+  (* booleanish attributes render as "true"/"false" strings *)
+  | BooleanishString (name, _, value) ->
+      Buffer.add_char buf ' ';
+      Buffer.add_string buf name;
+      Buffer.add_string buf "=\"";
+      Buffer.add_string buf (if value then "true" else "false");
+      Buffer.add_char buf '"'
   | Action (_, _, _) -> ()
   | Style styles ->
       Buffer.add_string buf " style=\"";
@@ -70,6 +78,9 @@ let attribute_to_html (attr : React.JSX.prop) =
   | Bool (_name, _, false) -> Html.omitted ()
   (* true attributes render solely the attribute name *)
   | Bool (name, _, true) -> Html.present name
+  | BooleanishString (name, _, _) when is_react_custom_attribute name -> Html.omitted ()
+  (* booleanish attributes render as "true"/"false" strings *)
+  | BooleanishString (name, _, value) -> Html.attribute name (if value then "true" else "false")
   | Action (_, _, _) -> Html.omitted ()
   | Style styles -> Html.attribute "style" (ReactDOMStyle.to_string styles)
   | String (name, _, _value) when is_react_custom_attribute name -> Html.omitted ()
@@ -682,7 +693,7 @@ let add kind value map = match value with Some i -> map |> List.cons (kind i) | 
 type dangerouslySetInnerHTML = < __html : string >
 
 (* `Booleanish_string` are JSX attributes represented as boolean values but rendered as strings on HTML https://github.com/facebook/react/blob/a17467e7e2cd8947c595d1834889b5d184459f12/packages/react-dom-bindings/src/server/ReactFizzConfigDOM.js#L1165-L1176 *)
-let booleanish_string name jsxName v = React.JSX.string name jsxName (string_of_bool v)
+let booleanish_string name jsxName v = React.JSX.booleanishString name jsxName v
 
 [@@@ocamlformat "disable"]
 (* domProps isn't used by the generated code from the ppx, and it's purpose is to

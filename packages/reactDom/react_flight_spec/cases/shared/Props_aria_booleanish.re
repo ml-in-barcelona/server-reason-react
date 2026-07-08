@@ -1,4 +1,4 @@
-/* Boolean-valued aria props: React keeps the raw JS boolean in the payload
-   ("aria-hidden":true); srr renders aria booleans as booleanish strings
-   ("true"/"false") at JSX construction time. */
+/* Boolean-valued aria props: React keeps the raw JS boolean in the Flight
+   payload ("aria-hidden":true); the "true"/"false" stringification only
+   happens when rendering HTML attributes. */
 let app = () => <div ariaAtomic=false ariaHidden=true />;

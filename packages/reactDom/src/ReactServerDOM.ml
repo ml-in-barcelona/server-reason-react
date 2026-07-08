@@ -246,6 +246,9 @@ module Model = struct
     match prop with
     (* We ignore the HTML name, and only use the JSX name *)
     | Bool (_, key, value) -> Some (key, `Bool value)
+    (* Booleanish props are stringified in HTML attributes only; the Flight
+       payload keeps the raw JSON boolean, like React. *)
+    | BooleanishString (_, key, value) -> Some (key, `Bool value)
     (* We exclude 'key' from props, since it's outside of the props object *)
     | React.JSX.String (_, key, _) when key = "key" -> None
     | React.JSX.String (_, key, value) -> Some (key, `String (escape_string_value value))

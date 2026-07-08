@@ -172,17 +172,17 @@ let make_prop ~is_optional ~prop attribute_value =
         match ([%e attribute_value] : bool option) with
         | None -> None
         | Some v -> Some (React.JSX.Bool ([%e estring ~loc name], [%e estring ~loc jsxName], v))]
-  (* BooleanishString needs to transform bool into string *)
+  (* BooleanishString stays a boolean until the serialization seams: HTML renders "true"/"false", Flight keeps the raw
+     JSON boolean *)
   | Attribute { type_ = DomProps.BooleanishString; name; jsxName }, false ->
       [%expr
         Some
-          (React.JSX.String
-             ([%e estring ~loc name], [%e estring ~loc jsxName], Stdlib.Bool.to_string ([%e attribute_value] : bool)))]
+          (React.JSX.BooleanishString ([%e estring ~loc name], [%e estring ~loc jsxName], ([%e attribute_value] : bool)))]
   | Attribute { type_ = DomProps.BooleanishString; name; jsxName }, true ->
       [%expr
         match ([%e attribute_value] : bool option) with
         | None -> None
-        | Some v -> Some (React.JSX.String ([%e estring ~loc name], [%e estring ~loc jsxName], Stdlib.Bool.to_string v))]
+        | Some v -> Some (React.JSX.BooleanishString ([%e estring ~loc name], [%e estring ~loc jsxName], v))]
   | Attribute { type_ = DomProps.Style; _ }, false ->
       [%expr Some (React.JSX.Style ([%e attribute_value] : ReactDOM.Style.t))]
   | Attribute { type_ = DomProps.Style; _ }, true ->

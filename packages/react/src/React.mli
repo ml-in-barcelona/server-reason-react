@@ -529,6 +529,9 @@ module JSX : sig
   type prop =
     | Action : (string * string * _ Runtime.server_function) -> prop
     | Bool of (string * string * bool)
+    | BooleanishString of (string * string * bool)
+        (** Boolean-valued props that render as "true"/"false" strings in HTML attributes (aria-hidden, draggable, …)
+            but stay raw JSON booleans in the Flight payload. *)
     | String of (string * string * string)
     | Int of (string * string * int)
     | Float of (string * string * float)
@@ -540,6 +543,7 @@ module JSX : sig
   (** Helpers to create JSX.prop without variants, helpful for function application *)
 
   val bool : string -> string -> bool -> prop
+  val booleanishString : string -> string -> bool -> prop
   val string : string -> string -> string -> prop
   val style : (string * string * string) list -> prop
   val dangerouslyInnerHtml : < __html : string ; .. > -> prop
