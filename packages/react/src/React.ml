@@ -608,8 +608,10 @@ module Cache = struct
     Lwt.with_value async_key (Some cache) f
 end
 
-let memo f _component = f
-let memoCustomCompareProps f _compare _component = f
+(* On the server there's no re-render, so memoization is a no-op and the
+   component is passed through unchanged. Signatures match reason-react. *)
+let memo component = component
+let memoCustomCompareProps component _compare = component
 
 let cache fn =
   let fn_id = !Cache.fn_id_counter in

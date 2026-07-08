@@ -15,6 +15,7 @@ let assert_option_int = assert_option Alcotest.int
 
 let assert_int left right = Alcotest.check Alcotest.int "should be equal" right left
 let assert_float left right = Alcotest.check (Alcotest.float 2.) "should be equal" right left
+let assert_float_exact left right = Alcotest.check (Alcotest.float 0.) "should be equal" right left
 let assert_bool left right = Alcotest.check Alcotest.bool "should be equal" right left
 
 let assert_raises fn exn =
@@ -661,6 +662,24 @@ let float_tests =
         assert_float (Js.Float.fromString "NaN") Stdlib.Float.nan;
         assert_float (Js.Float.fromString "Infinity") Stdlib.Float.infinity;
         assert_float (Js.Float.fromString "-Infinity") Stdlib.Float.neg_infinity);
+    test "fromString follows JS Number() semantics" (fun () ->
+        (* node: Number("abc") is NaN (Number(), not parseFloat) *)
+        assert_float_exact (Js.Float.fromString "abc") Stdlib.Float.nan;
+        (* node: Number("3.5px") is NaN, unlike parseFloat("3.5px") === 3.5 *)
+        assert_float_exact (Js.Float.fromString "3.5px") Stdlib.Float.nan;
+        (* node: Number("1_0") is NaN (no numeric separators) *)
+        assert_float_exact (Js.Float.fromString "1_0") Stdlib.Float.nan;
+        (* node: Number("") === 0 and Number("   ") === 0 *)
+        assert_float_exact (Js.Float.fromString "") 0.;
+        assert_float_exact (Js.Float.fromString "   ") 0.;
+        (* node: Number(" 42 ") === 42 (whitespace trimmed on both sides) *)
+        assert_float_exact (Js.Float.fromString " 42 ") 42.;
+        (* node: Number("0x10") === 16, Number("0b101") === 5, Number("0o17") === 15 *)
+        assert_float_exact (Js.Float.fromString "0x10") 16.;
+        assert_float_exact (Js.Float.fromString "0b101") 5.;
+        assert_float_exact (Js.Float.fromString "0o17") 15.;
+        (* node: Number("+Infinity") === Infinity *)
+        assert_float_exact (Js.Float.fromString "+Infinity") Stdlib.Float.infinity);
     test "toFixed" (fun () ->
         assert_string (Js.Float.toFixed 12.3456) "12";
         assert_string (Js.Float.toFixed ~digits:20 0.) "0.00000000000000000000";
@@ -695,11 +714,26 @@ let float_tests =
             ignore (Js.Float.toFixed ~digits:101 12.34)));
   ]
 
+let math_tests =
+  [
+    (* Full double-precision values, verified against node's Math.* *)
+    test "constants" (fun () ->
+        assert_float_exact Js.Math._E 2.718281828459045;
+        assert_float_exact Js.Math._LN2 0.6931471805599453;
+        assert_float_exact Js.Math._LN10 2.302585092994046;
+        assert_float_exact Js.Math._LOG2E 1.4426950408889634;
+        assert_float_exact Js.Math._LOG10E 0.4342944819032518;
+        assert_float_exact Js.Math._PI 3.141592653589793;
+        assert_float_exact Js.Math._SQRT1_2 0.7071067811865476;
+        assert_float_exact Js.Math._SQRT2 1.4142135623730951);
+  ]
+
 let () =
   Lwt_main.run
   @@ Alcotest_lwt.run "Js"
        [
          ("Js.Global", global_tests);
+         ("Js.Math", math_tests);
          ("Js.Promise", promise_tests);
          ("Js.Float", float_tests);
          ("Js.String", string_tests);

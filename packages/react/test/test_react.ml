@@ -303,10 +303,29 @@ let cache_async_no_cross_request_leaking () =
   assert_string !seen_in_p2 "from-p2-ok";
   Lwt.return ()
 
+let memo_component ~name () =
+  React.Upper_case_component ("component", fun () -> React.createElement "div" [] [ React.string name ])
+
+let memo_renders_identically () =
+  let memoized = React.memo memo_component in
+  assert_string
+    (ReactDOM.renderToStaticMarkup (memoized ~name:"foo" ()))
+    (ReactDOM.renderToStaticMarkup (memo_component ~name:"foo" ()))
+
+let memo_custom_compare_props_renders_identically () =
+  (* The compare function is ignored on the server: there's no re-render *)
+  let memoized = React.memoCustomCompareProps memo_component (fun _prev _next -> true) in
+  assert_string
+    (ReactDOM.renderToStaticMarkup (memoized ~name:"foo" ()))
+    (ReactDOM.renderToStaticMarkup (memo_component ~name:"foo" ()))
+
 let tests =
   ( "React",
     [
       test "useState" use_state_doesnt_fire;
+      test "memo renders identically to the un-memoized component" memo_renders_identically;
+      test "memoCustomCompareProps renders identically to the un-memoized component"
+        memo_custom_compare_props_renders_identically;
       test "useSyncExternalStoreWithServer" use_sync_external_store_with_server;
       test "useEffect" use_effect_doesnt_fire;
       test "Children.map" children_map_one_element;
