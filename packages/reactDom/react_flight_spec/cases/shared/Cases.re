@@ -42,4 +42,12 @@ let all: list(case) = [
   case("suspense_pending", Suspense_pending.app),
   case("suspense_two_boundaries", Suspense_two_boundaries.app),
   case("promise_prop", Promise_prop.app),
+  case("promise_prop_two", Promise_prop_two.app),
+  case("promise_resolving_to_element", Promise_resolving_to_element.app),
+  case(
+    "promise_prop_shared",
+    Promise_prop_shared.app,
+    ~xfail=
+      {|React dedups a shared thenable via writtenObjects: {"left":"$@2","right":"$@2"} with a single resolution row 2. srr wraps each prop in its own Model.Promise and never dedups, emitting {"left":"$@2","right":"$@3"} plus two identical resolution rows (3 streams before 2)|},
+  ),
 ];
