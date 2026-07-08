@@ -27,6 +27,12 @@ let all: list(case) = [
   case("text_encoding", Text_encoding.app),
   case("client_component_basic", Client_component_basic.app),
   case("client_component_with_props", Client_component_with_props.app),
+  case("client_ref_dedup", Client_ref_dedup.app),
+  case("client_ref_two_modules", Client_ref_two_modules.app),
+  case(
+    "client_ref_same_module_two_names",
+    Client_ref_same_module_two_names.app,
+  ),
   case("suspense_immediate", Suspense_immediate.app),
   case("suspense_pending", Suspense_pending.app),
   case("suspense_two_boundaries", Suspense_two_boundaries.app),
