@@ -71,7 +71,7 @@ let inline_style_escaping () =
      attribute early and drop the following custom properties. *)
   let style = ReactDOMStyle.unsafeAddProp (ReactDOMStyle.make ~padding:"8px" ()) "--font" {|"Ahrefs", sans-serif|} in
   let div = React.createElement "div" [ React.JSX.style style ] [] in
-  assert_string (ReactDOM.renderToString div) {|<div style="--font:&quot;Ahrefs&quot;, sans-serif;padding:8px"></div>|}
+  assert_string (ReactDOM.renderToString div) {|<div style="padding:8px;--font:&quot;Ahrefs&quot;, sans-serif"></div>|}
 
 let test title fn = (Printf.sprintf "ReactDOM.renderToString / %s" title, [ Alcotest_lwt.test_case_sync "" `Quick fn ])
 

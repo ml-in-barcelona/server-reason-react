@@ -817,7 +817,7 @@ let style_as_json () =
   let output, subscribe = capture_stream () in
   let%lwt () = ReactServerDOM.render_model ~subscribe app in
   assert_list_of_strings !output
-    [ "0:[\"$\",\"div\",null,{\"style\":{\"zIndex\":\"34\",\"color\":\"red\",\"background\":\"blue\"}},null,null,1]\n" ];
+    [ "0:[\"$\",\"div\",null,{\"style\":{\"background\":\"blue\",\"color\":\"red\",\"zIndex\":\"34\"}},null,null,1]\n" ];
   Lwt.return ()
 
 let act_with_simple_response () =

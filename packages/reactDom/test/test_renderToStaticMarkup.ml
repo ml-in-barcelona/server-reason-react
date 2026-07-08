@@ -112,7 +112,7 @@ let inline_styles () =
   let component =
     React.createElement "button" [ React.JSX.style (ReactDOMStyle.make ~color:"red" ~border:"none" ()) ] []
   in
-  assert_string (ReactDOM.renderToStaticMarkup component) "<button style=\"color:red;border:none\"></button>"
+  assert_string (ReactDOM.renderToStaticMarkup component) "<button style=\"border:none;color:red\"></button>"
 
 let inline_styles_escaping () =
   (* font-family values are wrapped in double quotes; they must be escaped so the

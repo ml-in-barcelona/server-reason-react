@@ -40,12 +40,7 @@ let all: list(case) = [
   case("props_float", Props_float.app),
   case("props_boolean_attributes", Props_boolean_attributes.app),
   case("props_style", Props_style.app),
-  case(
-    "props_style_order",
-    Props_style_order.app,
-    ~xfail=
-      {|React preserves the style object's insertion order ({"backgroundColor":...,"color":...}); srr's ReactDOM.Style.make prepends properties in declaration order, emitting the keys reversed ({"color":...,"backgroundColor":...})|},
-  ),
+  case("props_style_order", Props_style_order.app),
   case("props_aria", Props_aria.app),
   case("props_aria_current", Props_aria_current.app),
   case(
