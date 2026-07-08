@@ -315,7 +315,7 @@ let svg_2 = () => {
         </defs>
       </svg>,
     ),
-    {|<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink" version="1.1" baseProfile="full" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" zoomAndPan="magnify" fill="#000000" fill-opacity="0.8" stroke="#000000" stroke-opacity="0.8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4" stroke-dasharray="5,5" stroke-dashoffset="2" opacity="0.8" color="red" enable-background="accumulate" patternUnits="userSpaceOnUse" gradientUnits="userSpaceOnUse" gradientTransform="rotate(45)" filter="url(#myFilter)" transform="rotate(45 50 50)"><defs><filter id="myFilter"><feGaussianBlur in="SourceGraphic" stdDeviation="3"></feGaussianBlur></filter></defs></svg>|},
+    {|<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" baseProfile="full" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" zoomAndPan="magnify" fill="#000000" fill-opacity="0.8" stroke="#000000" stroke-opacity="0.8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4" stroke-dasharray="5,5" stroke-dashoffset="2" opacity="0.8" color="red" enable-background="accumulate" patternUnits="userSpaceOnUse" gradientUnits="userSpaceOnUse" gradientTransform="rotate(45)" filter="url(#myFilter)" transform="rotate(45 50 50)"><defs><filter id="myFilter"><feGaussianBlur in="SourceGraphic" stdDeviation="3"></feGaussianBlur></filter></defs></svg>|},
   );
 };
 

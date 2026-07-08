@@ -138,6 +138,12 @@ let suspense_with_always_throwing () =
   assert_stream stream
     [ "<!--$!--><template data-msg=\"Failure(&quot;always throwing&quot;)\n\"></template>Loading...<!--/$-->" ]
 
+let suspense_with_always_throwing_in_prod () =
+  (* In production no error detail (message/backtrace) may leak into the HTML *)
+  let app () = mk_suspense ~fallback:(React.string "Loading...") ~children:(always_throwing_component ()) () in
+  let%lwt stream, _abort = ReactDOM.renderToStream ~env:`Prod (React.Upper_case_component ("app", app)) in
+  assert_stream stream [ "<!--$!--><template></template>Loading...<!--/$-->" ]
+
 let suspense_with_react_use () =
   Sleep.destroy ();
   let time =
@@ -853,6 +859,51 @@ let dangerous_html_in_suspense () =
        e--;else\"$\"!==d&&\"$?\"!==d&&\"$!\"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data=\"$\";a._reactRetry&&a._reactRetry()}}$RC('B:0','S:0')</script>";
     ]
 
+(* Pauses on the first render only; subsequent renders resolve synchronously. Needed to reproduce the
+   boundary-completes-while-shell-is-parked race: the boundary's async block re-renders its children after the
+   promise resolves, and only a now-synchronous child lets the block complete (and hit [waiting = 0]) while the main
+   walk is still parked. *)
+let once_pausing_component ~name ~children () =
+  let resolved = ref false in
+  React.Async_component
+    ( name,
+      fun () ->
+        if !resolved then Lwt.return children
+        else (
+          resolved := true;
+          let%lwt () = Lwt.pause () in
+          Lwt.return children) )
+
+let boundary_resolves_while_shell_is_suspended () =
+  (* A Suspense boundary that fully completes while the main walk is parked awaiting a top-level (unwrapped) async
+     component. The root walk counts as a pending unit: the boundary hitting [waiting = 0] must not close the stream
+     before the shell push (which used to reject the render with Lwt_stream.Closed). *)
+  let app =
+    React.createElement "div" []
+      [
+        mk_suspense ~fallback:(React.string "Loading")
+          ~children:(once_pausing_component ~name:"inside" ~children:(React.string "Inner") ())
+          ();
+        once_pausing_component ~name:"outside" ~children:(React.string "Outside") ();
+      ]
+  in
+  let%lwt chunks, async_exceptions =
+    with_async_exception_hook (fun () ->
+        let%lwt stream, _abort = ReactDOM.renderToStream app in
+        Lwt_stream.to_list stream)
+  in
+  assert_list Alcotest.string async_exceptions [];
+  assert_list Alcotest.string chunks
+    [
+      "<div hidden id=\"S:0\">Inner</div>";
+      "<script>function \
+       $RC(a,b){a=document.getElementById(a);b=document.getElementById(b);b.parentNode.removeChild(b);if(a){a=a.previousSibling;var \
+       f=a.parentNode,c=a.nextSibling,e=0;do{if(c&&8===c.nodeType){var d=c.data;if(\"/$\"===d)if(0===e)break;else \
+       e--;else\"$\"!==d&&\"$?\"!==d&&\"$!\"!==d||e++}d=c.nextSibling;f.removeChild(c);c=d}while(c);for(;b.firstChild;)f.insertBefore(b.firstChild,c);a.data=\"$\";a._reactRetry&&a._reactRetry()}}$RC('B:0','S:0')</script>";
+      "<div>InnerOutside</div>";
+    ];
+  Lwt.return ()
+
 let tests =
   [
     test "silly_stream" silly_stream;
@@ -868,6 +919,8 @@ let tests =
       suspense_with_resolved_text_after_element_with_text_child;
     test "suspense_with_async_component" suspense_with_async_component;
     test "suspense_with_always_throwing" suspense_with_always_throwing;
+    test "suspense_with_always_throwing_in_prod" suspense_with_always_throwing_in_prod;
+    test "boundary_resolves_while_shell_is_suspended" boundary_resolves_while_shell_is_suspended;
     test "suspense_with_nested_suspense" suspense_with_nested_suspense;
     test "suspense_with_nested_suspenses" suspense_with_nested_suspenses;
     test "suspense_with_nested_suspense_with_error" suspense_with_nested_suspense_with_error;

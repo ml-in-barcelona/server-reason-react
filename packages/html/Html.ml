@@ -223,3 +223,33 @@ let escape_for_inline_script str =
       | c -> Buffer.add_char buf c)
     str;
   Buffer.contents buf
+
+(* Escapes an entire inline <script> body (raw JS code, not a string literal): neutralizes "<script" and "</script"
+   (case-insensitive) by unicode-escaping the 's', so user content can't terminate the surrounding script tag early.
+   Mirrors react-dom's escapeEntireInlineScriptContent ((<\/|<)(s)(cript)/gi). *)
+let escape_entire_inline_script str =
+  let len = String.length str in
+  let buf = Buffer.create (len + 16) in
+  let matches_cript i =
+    i + 5 <= len
+    && Char.lowercase_ascii str.[i] = 'c'
+    && Char.lowercase_ascii str.[i + 1] = 'r'
+    && Char.lowercase_ascii str.[i + 2] = 'i'
+    && Char.lowercase_ascii str.[i + 3] = 'p'
+    && Char.lowercase_ascii str.[i + 4] = 't'
+  in
+  let i = ref 0 in
+  while !i < len do
+    let s_index =
+      if str.[!i] <> '<' then None else if !i + 1 < len && str.[!i + 1] = '/' then Some (!i + 2) else Some (!i + 1)
+    in
+    match s_index with
+    | Some j when j < len && (str.[j] = 's' || str.[j] = 'S') && matches_cript (j + 1) ->
+        Buffer.add_substring buf str !i (j - !i);
+        Buffer.add_string buf (if str.[j] = 's' then "\\u0073" else "\\u0053");
+        i := j + 1
+    | _ ->
+        Buffer.add_char buf str.[!i];
+        incr i
+  done;
+  Buffer.contents buf

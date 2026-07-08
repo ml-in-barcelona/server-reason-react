@@ -1500,7 +1500,9 @@ let create_initial_resources ~bootstrap_scripts ~bootstrap_modules =
 
 let create_user_scripts ~root_data_payload ?bootstrapScriptContent ?bootstrapScripts ?bootstrapModules () =
   let bootstrap_script_content =
-    match bootstrapScriptContent with None -> Html.null | Some content -> Html.node "script" [] [ Html.raw content ]
+    match bootstrapScriptContent with
+    | None -> Html.null
+    | Some content -> Html.node "script" [] [ Html.raw (Html.escape_entire_inline_script content) ]
   in
   let bootstrap_scripts_nodes =
     match bootstrapScripts with

@@ -81,6 +81,21 @@ let inline_style_empty_value_skipped () =
   let div = React.createElement "div" [ React.JSX.style style ] [] in
   assert_string (ReactDOM.renderToString div) {|<div style="padding:8px"></div>|}
 
+let default_checked_and_value_render_as_checked_and_value () =
+  (* React maps defaultChecked/defaultValue to the checked/value DOM attributes on server output *)
+  let props = ReactDOM.domProps ~defaultChecked:true ~defaultValue:"hello" () in
+  let input = React.createElement "input" props [] in
+  assert_string (ReactDOM.renderToString input) {|<input value="hello" checked />|}
+
+let xlink_and_xmlns_props_render_with_colon_names () =
+  (* xlinkActuate/xlinkArcrole/xmlnsXlink render as xlink:actuate/xlink:arcrole/xmlns:xlink, matching React *)
+  let props =
+    ReactDOM.domProps ~xlinkActuate:"onLoad" ~xlinkArcrole:"arc" ~xmlnsXlink:"http://www.w3.org/1999/xlink" ()
+  in
+  let use = React.createElement "use" props [] in
+  assert_string (ReactDOM.renderToString use)
+    {|<use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:arcrole="arc" xlink:actuate="onLoad"></use>|}
+
 let test title fn = (Printf.sprintf "ReactDOM.renderToString / %s" title, [ Alcotest_lwt.test_case_sync "" `Quick fn ])
 
 let tests =
@@ -95,4 +110,6 @@ let tests =
     test "suspense renders fallback on error" suspense_fallback_on_error;
     test "inline style escaping" inline_style_escaping;
     test "inline style empty value skipped" inline_style_empty_value_skipped;
+    test "defaultChecked/defaultValue render as checked/value" default_checked_and_value_render_as_checked_and_value;
+    test "xlink/xmlns props render with colon names" xlink_and_xmlns_props_render_with_colon_names;
   ]

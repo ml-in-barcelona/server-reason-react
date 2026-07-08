@@ -191,6 +191,15 @@ let input_and_bootstrap_scripts () =
        '>window.srr_stream.push()</script><script>console.log('hello')</script><script src=\"react\" async=\"\" \
        type=\"module\"></script><script src=\"react-dom\" async=\"\" type=\"module\"></script>"
 
+let bootstrap_script_content_cannot_break_out_of_script () =
+  (* "</script>"/"<script>" inside bootstrapScriptContent must not terminate the inline <script> tag early: the 's'
+     is unicode-escaped, mirroring react-dom's escapeEntireInlineScriptContent *)
+  let app = React.createElement "input" [] [] in
+  assert_html app ~bootstrapScriptContent:{|console.log("</script><script>alert(1)</script>")|}
+    ~shell:
+      "<input /><script data-payload='0:[\"$\",\"input\",null,{},null,null,1]\n\
+       '>window.srr_stream.push()</script><script>console.log(\"</\\u0073cript><\\u0073cript>alert(1)</\\u0073cript>\")</script>"
+
 let title_and_meta_populates_to_the_head () =
   let app =
     html
@@ -490,6 +499,7 @@ let tests =
     test "html_without_body_and_bootstrap_scripts" html_without_body_and_bootstrap_scripts;
     test "html_with_body_and_bootstrap_scripts" html_with_body_and_bootstrap_scripts;
     test "input_and_bootstrap_scripts" input_and_bootstrap_scripts;
+    test "bootstrap_script_content_cannot_break_out_of_script" bootstrap_script_content_cannot_break_out_of_script;
     test "title_and_meta_populates_to_the_head" title_and_meta_populates_to_the_head;
     test "async_scripts_to_head" async_scripts_to_head;
     test "no_async_scripts_to_remain" no_async_scripts_to_remain;

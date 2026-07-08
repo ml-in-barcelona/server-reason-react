@@ -481,15 +481,19 @@ let write_suspense_fallback buf ~boundary_id fallback =
   Buffer.add_string buf fallback;
   Buffer.add_string buf "<!--/$-->"
 
-let write_suspense_fallback_error buf ~exn fallback =
-  let backtrace = Printexc.get_backtrace () in
-  Buffer.add_string buf "<!--$!--><template data-msg=\"";
-  Html.escape buf (Printexc.to_string exn ^ "\n" ^ backtrace);
-  Buffer.add_string buf "\"></template>";
+let write_suspense_fallback_error buf ~env ~exn fallback =
+  (* Error detail is dev-only, mirroring React: production must not leak exception messages or backtraces into HTML. *)
+  (match env with
+  | `Prod -> Buffer.add_string buf "<!--$!--><template></template>"
+  | `Dev ->
+      let backtrace = Printexc.get_backtrace () in
+      Buffer.add_string buf "<!--$!--><template data-msg=\"";
+      Html.escape buf (Printexc.to_string exn ^ "\n" ^ backtrace);
+      Buffer.add_string buf "\"></template>");
   Buffer.add_string buf fallback;
   Buffer.add_string buf "<!--/$-->"
 
-let rec render_to_buffer ~stream_context ?(add_doctype = false) buf element =
+let rec render_to_buffer ~env ~stream_context ?(add_doctype = false) buf element =
   let should_add_doctype = ref add_doctype in
   let previous_node_was_text = ref false in
   (* When an async component suspends without a Suspense boundary, the exception
@@ -575,11 +579,11 @@ let rec render_to_buffer ~stream_context ?(add_doctype = false) buf element =
     | Suspense _ when !await_unhandled_suspensions ->
         (* In retry mode, delegate Suspense to a fresh render_to_buffer call which
            starts with await_unhandled_suspensions=false, so Suspense streaming works *)
-        render_to_buffer ~stream_context buf element
+        render_to_buffer ~env ~stream_context buf element
     | Suspense { children; fallback; _ } -> (
         let render_fallback_html () =
           let fallback_buf = Buffer.create 128 in
-          let%lwt () = render_to_buffer ~stream_context fallback_buf (Option.value fallback ~default:React.null) in
+          let%lwt () = render_to_buffer ~env ~stream_context fallback_buf (Option.value fallback ~default:React.null) in
           Lwt.return (Buffer.contents fallback_buf)
         in
         try%lwt
@@ -591,7 +595,7 @@ let rec render_to_buffer ~stream_context ?(add_doctype = false) buf element =
             | Lwt.Return _ -> render_element children
             | Lwt.Fail exn ->
                 let%lwt fallback_html = render_fallback_html () in
-                write_suspense_fallback_error buf ~exn fallback_html;
+                write_suspense_fallback_error buf ~env ~exn fallback_html;
                 Lwt.return ()
             | Lwt.Sleep ->
                 let%lwt fallback_html = render_fallback_html () in
@@ -605,7 +609,7 @@ let rec render_to_buffer ~stream_context ?(add_doctype = false) buf element =
                 Lwt.async (fun () ->
                     let%lwt _ = promise in
                     let async_buf = Buffer.create 512 in
-                    let%lwt () = render_to_buffer ~stream_context async_buf children in
+                    let%lwt () = render_to_buffer ~env ~stream_context async_buf children in
                     stream_context.waiting <- stream_context.waiting - 1;
                     stream_context.pending_boundaries <-
                       List.filter (fun id -> id <> current_boundary_id) stream_context.pending_boundaries;
@@ -626,7 +630,7 @@ let rec render_to_buffer ~stream_context ?(add_doctype = false) buf element =
                 Lwt.return ())
         | exn ->
             let%lwt fallback_html = render_fallback_html () in
-            write_suspense_fallback_error buf ~exn fallback_html;
+            write_suspense_fallback_error buf ~env ~exn fallback_html;
             Lwt.return ())
   and render_lower_case ~key:_ tag attributes children =
     if Html.is_self_closing_tag tag then (
@@ -680,7 +684,10 @@ let renderToStream ?(env = `Dev) ?identifier_prefix element =
           push = push_to_stream;
           close;
           closed = false;
-          waiting = 0;
+          (* The root walk counts as a pending unit (decremented after the shell push below). Otherwise a boundary
+             whose promise resolves while the main walk is parked at an Lwt yield would drop [waiting] to 0 and close
+             the stream before the shell is pushed. *)
+          waiting = 1;
           boundary_id = 0;
           suspense_id = 0;
           has_rc_script_been_injected = false;
@@ -706,8 +713,9 @@ let renderToStream ?(env = `Dev) ?identifier_prefix element =
           close_stream stream_context)
       in
       let buf = Buffer.create 1024 in
-      let%lwt () = render_to_buffer ~stream_context ~add_doctype:true buf element in
-      push_to_stream (Buffer.contents buf);
+      let%lwt () = render_to_buffer ~env ~stream_context ~add_doctype:true buf element in
+      if not stream_context.closed then push_to_stream (Buffer.contents buf);
+      stream_context.waiting <- stream_context.waiting - 1;
       if stream_context.waiting = 0 then close_stream stream_context;
       Lwt.return (stream, abort))
 
@@ -1275,8 +1283,8 @@ let domProps
   |> add (React.JSX.int "aria-rowindex" "aria-rowindex") ariaRowindex
   |> add (React.JSX.int "aria-rowspan" "aria-rowspan") ariaRowspan
   |> add (React.JSX.int "aria-setsize" "aria-setsize") ariaSetsize
-  |> add (React.JSX.bool "defaultChecked" "defaultChecked") defaultChecked
-  |> add (React.JSX.string "defaultValue" "defaultValue") defaultValue
+  |> add (React.JSX.bool "checked" "defaultChecked") defaultChecked
+  |> add (React.JSX.string "value" "defaultValue") defaultValue
   |> add (React.JSX.string "accesskey" "accessKey") accessKey
   |> add (React.JSX.string "class" "className") className
   |> add (booleanish_string "contenteditable" "contentEditable") contentEditable
@@ -1693,15 +1701,15 @@ let domProps
   |> add (React.JSX.string "x2" "x2") x2
   |> add (React.JSX.string "xChannelSelector" "xChannelSelector") xChannelSelector
   |> add (React.JSX.string "x-height" "xHeight") xHeight
-  |> add (React.JSX.string "xlink:arcrole" "xlinkActuate") xlinkActuate
-  |> add (React.JSX.string "xlinkArcrole" "xlinkArcrole") xlinkArcrole
+  |> add (React.JSX.string "xlink:actuate" "xlinkActuate") xlinkActuate
+  |> add (React.JSX.string "xlink:arcrole" "xlinkArcrole") xlinkArcrole
   |> add (React.JSX.string "xlink:href" "xlinkHref") xlinkHref
   |> add (React.JSX.string "xlink:role" "xlinkRole") xlinkRole
   |> add (React.JSX.string "xlink:show" "xlinkShow") xlinkShow
   |> add (React.JSX.string "xlink:title" "xlinkTitle") xlinkTitle
   |> add (React.JSX.string "xlink:type" "xlinkType") xlinkType
   |> add (React.JSX.string "xmlns" "xmlns") xmlns
-  |> add (React.JSX.string "xmlnsXlink" "xmlnsXlink") xmlnsXlink
+  |> add (React.JSX.string "xmlns:xlink" "xmlnsXlink") xmlnsXlink
   |> add (React.JSX.string "xml:base" "xmlBase") xmlBase
   |> add (React.JSX.string "xml:lang" "xmlLang") xmlLang
   |> add (React.JSX.string "xml:space" "xmlSpace") xmlSpace

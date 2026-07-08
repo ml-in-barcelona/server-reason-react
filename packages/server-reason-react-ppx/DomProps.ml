@@ -479,8 +479,8 @@ let ariaRole = String
 let reactAttributes =
   [
     Attribute { name = "class"; jsxName = "className"; reasonJsxName = "className"; type_ = String };
-    Attribute { name = "defaultChecked"; jsxName = "defaultChecked"; reasonJsxName = "defaultChecked"; type_ = Bool };
-    Attribute { name = "defaultValue"; jsxName = "defaultValue"; reasonJsxName = "defaultValue"; type_ = String (* | number | ReadonlyArray<String> *) };
+    Attribute { name = "checked"; jsxName = "defaultChecked"; reasonJsxName = "defaultChecked"; type_ = Bool };
+    Attribute { name = "value"; jsxName = "defaultValue"; reasonJsxName = "defaultValue"; type_ = String (* | number | ReadonlyArray<String> *) };
     (* https://reactjs.org/docs/dom-elements.html *)
     Attribute { name = "dangerouslySetInnerHTML"; jsxName = "dangerouslySetInnerHTML"; reasonJsxName = "dangerouslySetInnerHTML"; type_ = InnerHtml };
     Attribute { name = "ref"; jsxName = "ref"; reasonJsxName = "ref"; type_ = Ref };
@@ -1389,7 +1389,7 @@ module SVG = struct
       Attribute { name = "xml:base"; jsxName = "xmlBase"; reasonJsxName = "xmlBase"; type_ = String }; (* https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/xml:base *)
       Attribute { name = "xml:lang"; jsxName = "xmlLang"; reasonJsxName = "xmlLang"; type_ = String }; (* https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/xml:lang *)
       Attribute { name = "xmlns"; jsxName = "xmlns"; reasonJsxName = "xmlns"; type_ = String };
-      Attribute { name = "xmlnsXlink"; jsxName = "xmlnsXlink"; reasonJsxName = "xmlnsXlink"; type_ = String };
+      Attribute { name = "xmlns:xlink"; jsxName = "xmlnsXlink"; reasonJsxName = "xmlnsXlink"; type_ = String };
       Attribute { name = "xmlSpace"; jsxName = "xmlSpace"; reasonJsxName = "xmlSpace"; type_ = String };
       Attribute { name = "y1"; jsxName = "y1"; reasonJsxName = "y1"; type_ = String (* number | *) };
       Attribute { name = "y2"; jsxName = "y2"; reasonJsxName = "y2"; type_ = String (* number | *) };
