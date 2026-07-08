@@ -76,12 +76,6 @@ let rec extract_literal_int expr =
   | Pexp_constraint (inner, _) -> extract_literal_int inner
   | _ -> None
 
-let rec extract_literal_float expr =
-  match expr.pexp_desc with
-  | Pexp_constant (Pconst_float (s, _)) -> ( try Some (float_of_string s) with _ -> None)
-  | Pexp_constraint (inner, _) -> extract_literal_float inner
-  | _ -> None
-
 let rec extract_literal_bool expr =
   match expr.pexp_desc with
   | Pexp_construct ({ txt = Lident "true"; _ }, None) -> Some true

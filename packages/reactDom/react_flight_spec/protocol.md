@@ -163,7 +163,7 @@ Fixtures live under `reply/fixtures/*.reply` and are kept honest by
 
 | prefix | meaning | srr decode |
 | ------ | ------- | ---------- |
-| `$$` | escape: one `$` was prepended to a user string starting with `$` (`"$money"` → `"$$money"`) | should strip one `$` (known divergence: strips the escape and the first payload char, see xfail) |
+| `$$` | escape: one `$` was prepended to a user string starting with `$` (`"$money"` → `"$$money"`) | strips the escaping `$` |
 | `$undefined` | `undefined` | `` `Null `` |
 | `$D<iso>` | Date (`toISOString`) | `` `String iso `` |
 | `$n<digits>` | BigInt | `` `String digits `` |

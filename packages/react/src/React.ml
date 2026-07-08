@@ -526,9 +526,7 @@ let rec cloneElement element new_attributes =
   | Static { original; prerendered = _ } -> cloneElement original new_attributes
   | Writer { original; emit = _ } -> cloneElement (original ()) new_attributes
   | Fragment _ -> raise (Invalid_argument "React.cloneElement: cannot clone a Fragment")
-  | Text _ -> raise (Invalid_argument "React.cloneElement: cannot clone a Text element")
-  | Int _ -> raise (Invalid_argument "React.cloneElement: cannot clone a Text element")
-  | Float _ -> raise (Invalid_argument "React.cloneElement: cannot clone a Text element")
+  | Text _ | Int _ | Float _ -> raise (Invalid_argument "React.cloneElement: cannot clone a Text element")
   | Empty -> raise (Invalid_argument "React.cloneElement: cannot clone a null element")
   | List _ -> raise (Invalid_argument "React.cloneElement: cannot clone a List")
   | Array _ -> raise (Invalid_argument "React.cloneElement: cannot clone an Array")
