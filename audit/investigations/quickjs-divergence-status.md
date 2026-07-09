@@ -25,10 +25,10 @@
 
 ## Divergences unrelated to quickjs (won't be fixed by any quickjs update)
 
-- **`Belt.HashMap.Int/String` data loss** — `caml_hash.ml:9-10` FFI misuse (finding 2.4). Pure OCaml/C-binding bug.
-- **`Belt.Option.getUnsafe`** — unsound `%identity` (2.5).
-- **`Js.String` byte-vs-UTF-16** — `length`/`charCodeAt`/`indexOf`/`slice`/`replace`/empty-match loops (2.14). The regex engine is UTF-16, but the surrounding index arithmetic is UTF-8-byte-based; and `replace` uses `Str`, not quickjs.
-- **`Js.Date` local/UTC parsing** — `Js_date.ml:386,460` treat no-TZ/legacy as UTC (2.15).
+- **`Belt.HashMap.Int/String` data loss** — `caml_hash.ml:9-10` FFI misuse (finding 2.4). Pure OCaml/C-binding bug. **Fixed 2026-07-08.**
+- **`Belt.Option.getUnsafe`** — unsound `%identity` (2.5). **Fixed 2026-07-08.**
+- **`Js.String` byte-vs-UTF-16** — `length`/`charCodeAt`/`indexOf`/`slice`/`replace`/empty-match loops (2.14). The regex engine is UTF-16, but the surrounding index arithmetic is UTF-8-byte-based; and `replace` uses `Str`, not quickjs. **Fixed 2026-07-09** — the whole surface now routes through `Quickjs.String.Prototype` with UTF-16↔byte boundary converters; `Str` removed (see 02-high.md §2.14).
+- **`Js.Date` local/UTC parsing** — `Js_date.ml:386,460` treat no-TZ/legacy as UTC (2.15). **Fixed 2026-07-09** — pure-OCaml ECMA-262 parser + `LocalTZA(t, false)`; quickjs has no Date API so this stays OCaml-side (see 02-high.md §2.15).
 - **`Belt` `*Exn` raise `Js.Exn.Error` not `Not_found`** — catch-site divergence.
 - **`Js.Dict` duplicate keys / bucket-order iteration**, **`Js.Array.isArray = true`**, **`url` WHATWG gaps** (2.22).
 

@@ -36,7 +36,7 @@ The following answers from the maintainer reshape severity:
 
 ## Severity summary
 
-Statuses last synced against `39e22a6` (2026-07-08). Per-finding `Sync` lines in the severity files carry the evidence.
+Statuses last synced against the 2026-07-09 worktree (after `53f8893`). Per-finding `Sync` lines in the severity files carry the evidence.
 
 | # | Severity | One-line | Status |
 |---|----------|----------|--------|
@@ -49,12 +49,12 @@ Statuses last synced against `39e22a6` (2026-07-08). Per-finding `Sync` lines in
 | 2.7 | Critical | `defaultChecked`/`defaultValue` rendered as literal attrs | **Fixed** (map to `checked`/`value`) + test |
 | 2.8 | High | `cloneElement` drops style/event/ref/innerHTML/action props | **Fixed** (spread semantics over all prop kinds) + tests |
 | 2.9 | High | Error+backtrace leaked into prod HTML (`renderToStream`) | **Fixed** (`env` threaded; bare template in Prod) + test |
-| 2.10 | High | `render_html ~debug` silently ignored | Open |
-| 2.11 | High | Head-hoisted resources dropped when root isn't `<html>` | Open |
+| 2.10 | High | `render_html ~debug` silently ignored | **Fixed** (debug/filter_stack_frame threaded via Fiber; model-path row format) + tests |
+| 2.11 | High | Head-hoisted resources dropped when root isn't `<html>` | **Fixed** (hoistables stream before the root, react-dom preamble order) + tests |
 | 2.12 | High | `renderToStream` abort is a no-op | **Fixed** by #373 (bcbc9ac), tests enabled |
-| 2.13 | High | Errors swallowed in `client_to_html` Suspense | Open |
-| 2.14 | High | `Js.String` byte-vs-UTF16: crashes, corruption, infinite loops | Open — #372 was numbers-only |
-| 2.15 | High | `Js.Date` local/UTC parse wrong | Open |
+| 2.13 | High | Errors swallowed in `client_to_html` Suspense | **Fixed** (re-raise without boundary; `<!--$!-->` pre-flush; `$RX` post-flush; env-gated) + tests |
+| 2.14 | High | `Js.String` byte-vs-UTF16: crashes, corruption, infinite loops | **Fixed** (UTF-16 semantics via Quickjs.String; Str removed) + tests, node-differential |
+| 2.15 | High | `Js.Date` local/UTC parse wrong | **Fixed** (ECMA-262 parsing, LocalTZA DST, mutating setters, round-trips) + tests |
 | 2.16 | Medium | Numeric parse/format divergences | **Fixed** by #372 (7cb72d0) + #374 (b04951c) |
 | 2.17–2.25, 2.27–2.28 | Medium | See `03-medium.md` | Open |
 | 2.26 | Medium | `bootstrapScriptContent` injected raw (`</script>` breakout) | **Fixed** (`Html.escape_entire_inline_script`) + test |
@@ -71,3 +71,4 @@ Full detail per severity file. Design-level issues in `05-design-tensions.md`.
 |------|-------------|---------|
 | 2026-07-08 | `39e22a6` | Re-verified 2.1–2.33 against #371–#374 + style fix. Fixed: 2.3, 2.12, 2.16, 2.29, 2.31. Partial: 2.9. All other findings re-confirmed open at current line numbers. |
 | 2026-07-08 | `4dc1fbb..f6b59ae` | Fix batch: 2.2, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9 (completed), 2.26 all fixed with regression tests; 2.1 constraint documented. Remaining open: 2.10, 2.11, 2.13, 2.14, 2.15, 2.17–2.25, 2.27, 2.28, 2.30, 2.32, 2.33. |
+| 2026-07-09 | worktree after `53f8893` | Fix batch: 2.10, 2.11, 2.13, 2.14, 2.15 all fixed with regression tests (details in per-finding Sync lines in 02-high.md). Remaining open: 2.17–2.25, 2.27, 2.28, 2.30, 2.32, 2.33. |
