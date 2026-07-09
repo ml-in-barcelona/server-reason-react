@@ -115,6 +115,12 @@ module Page = {
         </Section>
         <Hr />
         <Section
+          title="Client component that errors on the server"
+          description="The Suspense boundary is flushed in errored form (<!--$!--> / $RX) instead of a silent blank, and the browser retries rendering it client-side">
+          <ThrowingClient />
+        </Section>
+        <Hr />
+        <Section
           title="Debug client props"
           description="Passing client props into a client component">
           <Debug_props
@@ -250,6 +256,7 @@ module App = {
 
 let handler = request =>
   DreamRSC.createFromRequest(
+    ~debug=Sys.getenv_opt("DEMO_ENV") == Some("development"),
     ~bootstrapModules=["/static/demo/SinglePageRSC.re.js"],
     ~layout=
       children =>

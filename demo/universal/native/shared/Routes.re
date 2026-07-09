@@ -7,6 +7,7 @@ let singlePageRSC = "/demo/singlePageRSC";
 let dummyRouterRSC = "/demo/dummyRouterRSC";
 let dummyRouterRSCNoSSR = "/demo/dummyRouterRSC?ssr=false";
 let router = "/demo/router";
+let fragmentRSC = "/demo/fragmentRSC";
 
 let links = [|
   (
@@ -48,6 +49,11 @@ let links = [|
     "nestedRouterRSC",
     "A nested router with server components and SSR, client components and Suspense + React.use. It uses the same design as the dummyRouterRSC but with a more complex structure that can handle nested routes and dynamic segments.",
     router,
+  ),
+  (
+    "fragmentRSC",
+    "A server component page without an <html> wrapper: title/meta/link get hoisted to the top of the shell, and Js.String/Js.Date render JavaScript-identical values on the server (UTF-16 string semantics, local-time date parsing).",
+    fragmentRSC,
   ),
 |];
 
